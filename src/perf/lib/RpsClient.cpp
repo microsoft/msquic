@@ -136,10 +136,17 @@ RpsClient::Start(
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t ActiveProcCount = QuicProcActiveCount();
+    if (ActiveProcCount >= 8) {
+        //
+        // If we have enough cores, leave 2 cores for OS overhead
+        //
+        ActiveProcCount -= 2;
+    }
     for (uint32_t i = 0; i < ConnectionCount; ++i) {
         HQUIC Connection = nullptr;
 
-        Status = QuicSetCurrentThreadProcessorAffinity((uint8_t)i);
+        Status = QuicSetCurrentThreadProcessorAffinity((uint8_t)(i % ActiveProcCount));
         if (QUIC_FAILED(Status)) {
             WriteOutput("Setting Thread Group Failed 0x%x\n", Status);
             return Status;
