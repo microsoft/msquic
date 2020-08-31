@@ -21665,6 +21665,33 @@
         },
         "CustomSettings": null
       }
+    },
+    "InvalidInitialPackets": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Aborting connection with invalid initial packets",
+      "UniqueId": "InvalidInitialPackets",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnWarning",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
     }
   },
   "Version": 1,
@@ -24601,6 +24628,10 @@
       {
         "UniquenessHash": "262f6b18-033f-5ef9-44eb-b2bebae16084",
         "TraceID": "BindingDropPacketEx"
+      },
+      {
+        "UniquenessHash": "77212d61-9925-bec1-4c5b-749d4fff7279",
+        "TraceID": "InvalidInitialPackets"
       }
     ]
   }
