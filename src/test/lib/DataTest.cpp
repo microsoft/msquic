@@ -727,6 +727,9 @@ QuicAbortiveStreamHandler(
                 TestContext->Passed = false;
                 TestContext->TestResult = (uint32_t) QUIC_STATUS_CONNECTION_IDLE;
             }
+            if (!TestContext->Stream.Handle) {
+                MsQuic->StreamClose(QuicStream);
+            }
             break;
         case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
             break;
@@ -756,7 +759,6 @@ QuicAbortiveConnectionHandler(
                 (void*) QuicAbortiveStreamHandler,
                 Context);
 
-            TestContext->Stream.Handle = Event->PEER_STREAM_STARTED.Stream;
             if (TestContext->Server &&
                 !TestContext->Flags.ClientShutdown &&
                 !TestContext->Flags.SendDataOnStream) {

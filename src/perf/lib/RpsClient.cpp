@@ -23,17 +23,20 @@ PrintHelp(
         "\n"
         "RPS Client options:\n"
         "\n"
+        "  -target:<####>              The target server to connect to.\n"
         "  -runtime:<####>             The total runtime (in ms). (def:%u)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -conns:<####>               The number of connections to use. (def:%u)\n"
         "  -parallel:<####>            The number of parallel requests per connection. (def:%u)\n"
         "  -request:<####>             The length of request payloads. (def:%u)\n"
+        "  -response:<####>             The length of request payloads. (def:%u)\n"
         "\n",
         RPS_DEFAULT_RUN_TIME,
-        THROUGHPUT_DEFAULT_PORT,
+        PERF_DEFAULT_PORT,
         RPS_DEFAULT_CONNECTION_COUNT,
         RPS_DEFAULT_PARALLEL_REQUEST_COUNT,
-        RPS_DEFAULT_REQUEST_LENGTH
+        RPS_DEFAULT_REQUEST_LENGTH,
+        RPS_DEFAULT_RESPONSE_LENGTH
         );
 }
 
@@ -41,8 +44,8 @@ RpsClient::RpsClient() {
     QuicEventInitialize(&AllConnected, TRUE, FALSE);
     if (Session.IsValid()) {
         Session.SetAutoCleanup();
-        Session.SetDisconnectTimeout(RPS_DEFAULT_DISCONNECT_TIMEOUT);
-        Session.SetIdleTimeout(RPS_DEFAULT_IDLE_TIMEOUT);
+        Session.SetDisconnectTimeout(PERF_DEFAULT_DISCONNECT_TIMEOUT);
+        Session.SetIdleTimeout(PERF_DEFAULT_IDLE_TIMEOUT);
     }
 }
 
@@ -86,15 +89,17 @@ RpsClient::Init(
     TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "conns", &ConnectionCount);
     TryGetValue(argc, argv, "request", &RequestLength);
+    TryGetValue(argc, argv, "response", &ResponseLength);
 
-    RequestBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + RequestLength);
+    RequestBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + sizeof(uint64_t) + RequestLength);
     if (!RequestBuffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    RequestBuffer->Length = RequestLength;
+    RequestBuffer->Length = sizeof(uint64_t) + RequestLength;
     RequestBuffer->Buffer = (uint8_t*)(RequestBuffer + 1);
+    *(uint64_t*)(RequestBuffer->Buffer) = QuicByteSwapUint64(ResponseLength);
     for (uint32_t i = 0; i < RequestLength; ++i) {
-        RequestBuffer->Buffer[i] = (uint8_t)i;
+        RequestBuffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -131,8 +136,22 @@ RpsClient::Start(
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t ActiveProcCount = QuicProcActiveCount();
+    if (ActiveProcCount >= 8) {
+        //
+        // If we have enough cores, leave 2 cores for OS overhead
+        //
+        ActiveProcCount -= 2;
+    }
     for (uint32_t i = 0; i < ConnectionCount; ++i) {
         HQUIC Connection = nullptr;
+
+        Status = QuicSetCurrentThreadProcessorAffinity((uint8_t)(i % ActiveProcCount));
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("Setting Thread Group Failed 0x%x\n", Status);
+            return Status;
+        }
+
         Status =
             MsQuic->ConnectionOpen(
                 Session,
@@ -200,15 +219,6 @@ RpsClient::Start(
                 return Status;
             }
         }
-
-#if defined(_WIN32) && !defined(_KERNEL_MODE)
-        uint8_t Processor = (uint8_t)(i % QuicProcActiveCount());
-        const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[Processor];
-        GROUP_AFFINITY Group = {0};
-        Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);
-        Group.Group = ProcInfo->Group;
-        SetThreadGroupAffinity(GetCurrentThread(), &Group, NULL);
-#endif
 
         Status =
             MsQuic->ConnectionStart(

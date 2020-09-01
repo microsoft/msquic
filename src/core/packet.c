@@ -729,22 +729,20 @@ QuicPacketLogDrop(
         QuicDataPathRecvPacketToRecvDatagram(Packet);
 
     if (Packet->AssignedToConnection) {
-        InterlockedIncrement64((int64_t*) &((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
+        InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
             ConnDropPacket,
-            "[conn][%p] DROP packet[%llu] Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+            "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
-            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
             CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
     } else {
-        InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
+        InterlockedIncrement64((int64_t*)&((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
             BindingDropPacket,
-            "[bind][%p] DROP packet[%llu] Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+            "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
-            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
             CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
@@ -765,23 +763,21 @@ QuicPacketLogDropWithValue(
         QuicDataPathRecvPacketToRecvDatagram(Packet);
 
     if (Packet->AssignedToConnection) {
-        InterlockedIncrement64((int64_t*) & ((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
+        InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
             ConnDropPacketEx,
-            "[conn][%p] DROP packet[%llu] Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+            "[conn][%p] DROP packet Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
-            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             Value,
             CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
             CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
     } else {
-        InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
+        InterlockedIncrement64((int64_t*)&((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
             BindingDropPacketEx,
-            "[bind][%p] DROP packet[%llu] %llu. Dst=%!ADDR! Src=%!ADDR! Reason=%s",
+            "[bind][%p] DROP packet %llu. Dst=%!ADDR! Src=%!ADDR! Reason=%s",
             Owner,
-            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             Value,
             CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
             CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),

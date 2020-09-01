@@ -786,15 +786,18 @@ function Get-TestMatrix {
             $RemoteArgs += " " + $Test.Remote.Arguments.Remote
         }
 
+        $DefaultLocalArgs = $LocalArgs
+        $DefaultRemoteArgs = $RemoteArgs
+
         $VariableValues = @{}
         foreach ($VarKey in $DefaultVals.Keys) {
             $VariableValues.Add($VarKey, $DefaultVals[$VarKey].DefaultKey)
-            $LocalArgs += (" " + $DefaultVals[$VarKey].LocalValue)
-            $RemoteArgs += (" " + $DefaultVals[$VarKey].RemoteValue)
+            $DefaultLocalArgs += (" " + $DefaultVals[$VarKey].LocalValue)
+            $DefaultRemoteArgs += (" " + $DefaultVals[$VarKey].RemoteValue)
         }
 
         # Create the default test
-        $TestRunDef = [TestRunDefinition]::new($Test, $LocalArgs, $RemoteArgs, $VariableValues)
+        $TestRunDef = [TestRunDefinition]::new($Test, $DefaultLocalArgs, $DefaultRemoteArgs, $VariableValues)
         $ToRunTests += $TestRunDef
 
         foreach ($Var in $Test.Variables) {

@@ -1397,10 +1397,6 @@
                 name="Owner"
                 />
             <data
-                inType="win:UInt64"
-                name="PktNum"
-                />
-            <data
                 inType="win:UInt8"
                 name="LocalAddrLength"
                 />
@@ -1429,10 +1425,6 @@
             <data
                 inType="win:Pointer"
                 name="Owner"
-                />
-            <data
-                inType="win:UInt64"
-                name="PktNum"
                 />
             <data
                 inType="win:UInt64"
@@ -3025,11 +3017,11 @@
             />
         <string
             id="Etw.ConnDropPacket"
-            value="[conn][%1] DROP packet[%2] Dst=%4 Src=%6 Reason=%7."
+            value="[conn][%1] DROP packet Dst=%3 Src=%5 Reason=%6."
             />
         <string
             id="Etw.ConnDropPacketEx"
-            value="[conn][%1] DROP packet[%2] Dst=%5 Src=%7 Reason=%8, %3."
+            value="[conn][%1] DROP packet Dst=%4 Src=%6 Reason=%7, %2."
             />
         <string
             id="Etw.ConnError"
@@ -3297,11 +3289,11 @@
             />
         <string
             id="Etw.BindingDropPacket"
-            value="[bind][%1] DROP packet[%2] Dst=%4 Src=%6 Reason=%7."
+            value="[bind][%1] DROP packet Dst=%3 Src=%5 Reason=%6."
             />
         <string
             id="Etw.BindingDropPacketEx"
-            value="[bind][%1] DROP packet[%2] Dst=%5 Src=%7 Reason=%8, %3."
+            value="[bind][%1] DROP packet Dst=%4 Src=%6 Reason=%7, %2."
             />
         <string
             id="Etw.BindingError"

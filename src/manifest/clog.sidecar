@@ -17537,10 +17537,10 @@
         "CustomSettings": null
       }
     },
-    "ConnDropPacket": {
+    "BindingDropPacketEx": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] DROP packet[%llu] Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
-      "UniqueId": "ConnDropPacket",
+      "TraceString": "[bind][%p] DROP packet %llu. Dst=%!ADDR! Src=%!ADDR! Reason=%s",
+      "UniqueId": "BindingDropPacketEx",
       "splitArgs": [
         {
           "VariableInfo": {
@@ -17552,66 +17552,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
-            "SuggestedTelemetryName": "arg4"
-          },
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
-            "SuggestedTelemetryName": "arg5"
-          },
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Reason",
-            "SuggestedTelemetryName": "arg6"
-          },
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg6"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceEvent",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "BindingDropPacket": {
-      "ModuleProperites": {},
-      "TraceString": "[bind][%p] DROP packet[%llu] Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
-      "UniqueId": "BindingDropPacket",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Owner",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
+            "UserSuppliedTrimmed": "Value",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -17657,7 +17598,7 @@
     },
     "ConnDropPacketEx": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] DROP packet[%llu] Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+      "TraceString": "[conn][%p] DROP packet Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
       "UniqueId": "ConnDropPacketEx",
       "splitArgs": [
         {
@@ -17670,7 +17611,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
+            "UserSuppliedTrimmed": "Value",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -17678,15 +17619,15 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Value",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg4"
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
             "SuggestedTelemetryName": "arg5"
           },
           "DefinationEncoding": "!ADDR!",
@@ -17694,19 +17635,11 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
+            "UserSuppliedTrimmed": "Reason",
             "SuggestedTelemetryName": "arg6"
           },
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg6"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Reason",
-            "SuggestedTelemetryName": "arg7"
-          },
           "DefinationEncoding": "s",
-          "MacroVariableName": "arg7"
+          "MacroVariableName": "arg6"
         }
       ],
       "macro": {
@@ -17722,10 +17655,10 @@
         "CustomSettings": null
       }
     },
-    "BindingDropPacketEx": {
+    "BindingDropPacket": {
       "ModuleProperites": {},
-      "TraceString": "[bind][%p] DROP packet[%llu] %llu. Dst=%!ADDR! Src=%!ADDR! Reason=%s",
-      "UniqueId": "BindingDropPacketEx",
+      "TraceString": "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+      "UniqueId": "BindingDropPacket",
       "splitArgs": [
         {
           "VariableInfo": {
@@ -17737,43 +17670,78 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg3"
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Value",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg4"
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
+            "UserSuppliedTrimmed": "Reason",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "!ADDR!",
+          "DefinationEncoding": "s",
           "MacroVariableName": "arg5"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ConnDropPacket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
+      "UniqueId": "ConnDropPacket",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Owner",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
         },
         {
           "VariableInfo": {
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
-            "SuggestedTelemetryName": "arg6"
+            "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg6"
+          "MacroVariableName": "arg4"
         },
         {
           "VariableInfo": {
             "UserSuppliedTrimmed": "Reason",
-            "SuggestedTelemetryName": "arg7"
+            "SuggestedTelemetryName": "arg5"
           },
           "DefinationEncoding": "s",
-          "MacroVariableName": "arg7"
+          "MacroVariableName": "arg5"
         }
       ],
       "macro": {
@@ -21697,6 +21665,33 @@
         },
         "CustomSettings": null
       }
+    },
+    "InvalidInitialPackets": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Aborting connection with invalid initial packets",
+      "UniqueId": "InvalidInitialPackets",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnWarning",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
     }
   },
   "Version": 1,
@@ -21923,7 +21918,7 @@
         "MacroConfigurations": {},
         "Version": 1,
         "CustomTypeClogCSharpFile": "DEFAULTS",
-        "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nnamespace defaults.clog_config\n{\n    public class Types\n    {\n        public static string DecodePointer(ulong pointer)\n        {\n            return \"0x\" + pointer.ToString(\"x\");\n        }\n\n        public static string DecodeUInt32(uint value)\n        {\n            return value.ToString();\n        }\n\n        public static string DecodeInt32(int value)\n        {\n            return value.ToString();\n        }\n\n        public static string DecodeInt8(byte value)\n        {\n            return value.ToString();\n        }\n    }\n}\n",
+        "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nnamespace defaults.clog_config\n{\n    public class Types\n    {\n        public static string DecodePointer(ulong pointer)\n        {\n            return \"0x\" + pointer.ToString(\"x\");\n        }\n\n        public static string DecodeChar(byte value)\n        {\n            return ((char)value).ToString();\n        }\n\n        public static string DecodeUInt32(uint value)\n        {\n            return value.ToString();\n        }\n\n        public static string DecodeInt32(int value)\n        {\n            return value.ToString();\n        }\n\n        public static string DecodeInt8(byte value)\n        {\n            return value.ToString();\n        }\n    }\n}\n",
         "TypeEncoders": {
           "Version": 0,
           "TypeEncoder": [
@@ -22110,7 +22105,8 @@
             {
               "EncodingType": "UInt8",
               "CType": "char",
-              "DefinationEncoding": "c"
+              "DefinationEncoding": "c",
+              "CustomDecoder": "defaults.clog_config.Types.DecodeChar"
             },
             {
               "EncodingType": "ANSI_String",
@@ -24087,22 +24083,6 @@
         "TraceID": "ListenerStarted"
       },
       {
-        "UniquenessHash": "2cb7fb05-fb1a-60ec-7a8b-d18c9d49b481",
-        "TraceID": "ConnDropPacket"
-      },
-      {
-        "UniquenessHash": "f603a0b1-0e10-d5f3-c1b9-2d9b9c4451bb",
-        "TraceID": "BindingDropPacket"
-      },
-      {
-        "UniquenessHash": "4fd4e8e2-526f-acb6-d7ba-59f1a4973b05",
-        "TraceID": "ConnDropPacketEx"
-      },
-      {
-        "UniquenessHash": "4eee119a-1325-3a27-60c0-9c033c17e4ec",
-        "TraceID": "BindingDropPacketEx"
-      },
-      {
         "UniquenessHash": "4a17af8c-bd56-a1f2-d3d6-b28b75030213",
         "TraceID": "DatapathRecv"
       },
@@ -24633,6 +24613,26 @@
       {
         "UniquenessHash": "18fa206f-59b9-158c-7fa9-904ae6cb9663",
         "TraceID": "SchannelContextCreated"
+      },
+      {
+        "UniquenessHash": "77212d61-9925-bec1-4c5b-749d4fff7279",
+        "TraceID": "InvalidInitialPackets"
+      },
+      {
+        "UniquenessHash": "946d7a4f-ca9f-b676-8fef-1661da5703cd",
+        "TraceID": "ConnDropPacket"
+      },
+      {
+        "UniquenessHash": "aff4ab67-a70e-f05b-c51d-9b97628c141e",
+        "TraceID": "BindingDropPacket"
+      },
+      {
+        "UniquenessHash": "7b8fcbcd-b097-9b8b-3d56-a2ca2d8b5cb8",
+        "TraceID": "ConnDropPacketEx"
+      },
+      {
+        "UniquenessHash": "262f6b18-033f-5ef9-44eb-b2bebae16084",
+        "TraceID": "BindingDropPacketEx"
       }
     ]
   }

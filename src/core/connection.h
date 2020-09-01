@@ -244,6 +244,7 @@ typedef struct QUIC_CONN_STATS {
         uint64_t DroppedPackets;        // Includes DuplicatePackets.
         uint64_t DuplicatePackets;
         uint64_t DecryptionFailures;    // Count of packets that failed to decrypt.
+        uint64_t ValidPackets;          // Count of packets that successfully decrypted or had no encryption.
 
         uint64_t TotalBytes;            // Sum of UDP payloads
         uint64_t TotalStreamBytes;      // Sum of stream payloads

@@ -99,25 +99,27 @@ QuicTimerWheelUninitialize(
     _Inout_ QUIC_TIMER_WHEEL* TimerWheel
     )
 {
-    for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
-        QUIC_LIST_ENTRY* ListHead = &TimerWheel->Slots[i];
-        QUIC_LIST_ENTRY* Entry = ListHead->Flink;
-        while (Entry != ListHead) {
-            QUIC_CONNECTION* Connection =
-                QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
-            QuicTraceLogConnWarning(
-                StillInTimerWheel,
-                Connection,
-                "Still in timer wheel! Connection was likely leaked!");
-            Entry = Entry->Flink;
+    if (TimerWheel->Slots != NULL) {
+        for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
+            QUIC_LIST_ENTRY* ListHead = &TimerWheel->Slots[i];
+            QUIC_LIST_ENTRY* Entry = ListHead->Flink;
+            while (Entry != ListHead) {
+                QUIC_CONNECTION* Connection =
+                    QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
+                QuicTraceLogConnWarning(
+                    StillInTimerWheel,
+                    Connection,
+                    "Still in timer wheel! Connection was likely leaked!");
+                Entry = Entry->Flink;
+            }
+            QUIC_TEL_ASSERT(QuicListIsEmpty(&TimerWheel->Slots[i]));
         }
-        QUIC_TEL_ASSERT(QuicListIsEmpty(&TimerWheel->Slots[i]));
-    }
-    QUIC_TEL_ASSERT(TimerWheel->ConnectionCount == 0);
-    QUIC_TEL_ASSERT(TimerWheel->NextConnection == NULL);
-    QUIC_TEL_ASSERT(TimerWheel->NextExpirationTime == UINT64_MAX);
+        QUIC_TEL_ASSERT(TimerWheel->ConnectionCount == 0);
+        QUIC_TEL_ASSERT(TimerWheel->NextConnection == NULL);
+        QUIC_TEL_ASSERT(TimerWheel->NextExpirationTime == UINT64_MAX);
 
-    QUIC_FREE(TimerWheel->Slots);
+        QUIC_FREE(TimerWheel->Slots);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -3616,6 +3616,8 @@ QuicConnRecvDecryptAndAuthenticate(
         return FALSE;
     }
 
+    Connection->Stats.Recv.ValidPackets++;
+
     //
     // Validate the header's reserved bits now that the packet has been
     // decrypted.
@@ -5013,6 +5015,20 @@ QuicConnRecvDatagrams(
 
     if (ReleaseChain != NULL) {
         QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
+    }
+
+    if (QuicConnIsServer(Connection) &&
+        Connection->Stats.Recv.ValidPackets == 0 &&
+        !Connection->State.ClosedLocally) {
+        //
+        // The packet(s) that created this connection weren't valid. We should
+        // immediately throw away the connection.
+        //
+        QuicTraceLogConnWarning(
+            InvalidInitialPackets,
+            Connection,
+            "Aborting connection with invalid initial packets");
+        QuicConnSilentlyAbort(Connection);
     }
 
     //

@@ -234,11 +234,11 @@ function CMake-Generate {
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
-    if ($DisableLogs) {
-        $Arguments += " -DQUIC_ENABLE_LOGGING=off"
+    if (!$DisableLogs) {
+        $Arguments += " -DQUIC_ENABLE_LOGGING=on"
     }
     if ($SanitizeAddress) {
-        $Arguments += " -DQUIC_SANITIZE_ADDRESS=on"
+        $Arguments += " -DQUIC_ENABLE_SANITIZERS=on"
     }
     if ($DisableTools) {
         $Arguments += " -DQUIC_BUILD_TOOLS=off"

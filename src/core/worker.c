@@ -30,6 +30,12 @@ Abstract:
 QUIC_THREAD_CALLBACK(QuicWorkerThread, Context);
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicWorkerUninitialize(
+    _In_ QUIC_WORKER* Worker
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicWorkerInitialize(
     _In_opt_ const void* Owner,
@@ -82,25 +88,13 @@ QuicWorkerInitialize(
             Worker,
             Status,
             "QuicThreadCreate");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTimerWheelUninitialize(&Worker->TimerWheel);
         goto Error;
     }
-
-    Status = QUIC_STATUS_SUCCESS;
 
 Error:
 
     if (QUIC_FAILED(Status)) {
-        QuicPoolUninitialize(&Worker->StreamPool);
-        QuicPoolUninitialize(&Worker->DefaultReceiveBufferPool);
-        QuicPoolUninitialize(&Worker->SendRequestPool);
-        QuicSentPacketPoolUninitialize(&Worker->SentPacketPool);
-        QuicPoolUninitialize(&Worker->ApiContextPool);
-        QuicPoolUninitialize(&Worker->StatelessContextPool);
-        QuicPoolUninitialize(&Worker->OperPool);
-        QuicEventUninitialize(Worker->Ready);
-        QuicDispatchLockUninitialize(&Worker->Lock);
+        QuicWorkerUninitialize(Worker);
     }
 
     return Status;
@@ -126,8 +120,10 @@ QuicWorkerUninitialize(
     // Wait for the thread to finish.
     //
     QuicEventSet(Worker->Ready);
-    QuicThreadWait(&Worker->Thread);
-    QuicThreadDelete(&Worker->Thread);
+    if (Worker->Thread) {
+        QuicThreadWait(&Worker->Thread);
+        QuicThreadDelete(&Worker->Thread);
+    }
 
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Worker->Connections));
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Worker->Operations));

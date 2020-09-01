@@ -1081,7 +1081,7 @@ QuicCryptoTlsDecodeTransportParameters(
 
     while (Offset < TPLen) {
 
-        QUIC_VAR_INT Id;
+        QUIC_VAR_INT Id = 0;
         if (!QuicVarIntDecode(TPLen, TPBuf, &Offset, &Id)) {
             QuicTraceEvent(
                 ConnError,
