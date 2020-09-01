@@ -538,7 +538,9 @@ if ($ListTestCases) {
 }
 
 # Cancel any outstanding logs that might be leftover.
-& $LogScript -Cancel | Out-Null
+if ($LogProfile -ne "None") {
+    & $LogScript -Cancel | Out-Null
+}
 
 # Debugger doesn't work for parallel right now.
 if ($Debugger -and $ExecutionMode -eq "Parallel") {
