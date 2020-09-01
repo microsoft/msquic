@@ -11524,14 +11524,14 @@
         "CustomSettings": null
       }
     },
-    "SessionCreated": {
+    "SessionRundown": {
       "ModuleProperites": {},
-      "TraceString": "[sess][%p] Created, Registration=%p, Alpn=%s",
-      "UniqueId": "SessionCreated",
+      "TraceString": "[sess][%p] Rundown, Registration=%p",
+      "UniqueId": "SessionRundown",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Session",
+            "UserSuppliedTrimmed": "// TODO - Fix manifest\r\n        Session",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "p",
@@ -11544,14 +11544,6 @@
           },
           "DefinationEncoding": "p",
           "MacroVariableName": "arg3"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "\"\"",
-            "SuggestedTelemetryName": "arg4"
-          },
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
         }
       ],
       "macro": {
@@ -11560,7 +11552,7 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -11742,14 +11734,14 @@
         "CustomSettings": null
       }
     },
-    "SessionRundown": {
+    "SessionCreated": {
       "ModuleProperites": {},
-      "TraceString": "[sess][%p] Rundown, Registration=%p, Alpn=%p",
-      "UniqueId": "SessionRundown",
+      "TraceString": "[sess][%p] Created, Registration=%p",
+      "UniqueId": "SessionCreated",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Session",
+            "UserSuppliedTrimmed": "// TODO - Fix manifest\r\n        Session",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "p",
@@ -11762,14 +11754,6 @@
           },
           "DefinationEncoding": "p",
           "MacroVariableName": "arg3"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "\"\"",
-            "SuggestedTelemetryName": "arg4"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg4"
         }
       ],
       "macro": {
@@ -11778,7 +11762,7 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -19029,11 +19013,20 @@
         "CustomSettings": null
       }
     },
-    "SchannelAch": {
+    "SchannelAchCompleteInline": {
       "ModuleProperites": {},
-      "TraceString": "[ tls] Calling ACH to create server security config",
-      "UniqueId": "SchannelAch",
-      "splitArgs": [],
+      "TraceString": "[ tls] Invoking security config completion callback inline, 0x%x",
+      "UniqueId": "SchannelAchCompleteInline",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "SecStatus",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
       "macro": {
         "MacroName": "QuicTraceLogVerbose",
         "EncodedPrefix": null,
@@ -19047,20 +19040,11 @@
         "CustomSettings": null
       }
     },
-    "SchannelAchCompleteInline": {
+    "SchannelAch": {
       "ModuleProperites": {},
-      "TraceString": "[ tls] Invoking security config completion callback, 0x%x",
-      "UniqueId": "SchannelAchCompleteInline",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "SecStatus",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg2"
-        }
-      ],
+      "TraceString": "[ tls] Calling ACH to create security config",
+      "UniqueId": "SchannelAch",
+      "splitArgs": [],
       "macro": {
         "MacroName": "QuicTraceLogVerbose",
         "EncodedPrefix": null,
@@ -23391,10 +23375,6 @@
         "TraceID": "SessionServerResumptionLevelSet"
       },
       {
-        "UniquenessHash": "beb182bb-7f41-f3cf-e77a-ad0a0f1c1fa4",
-        "TraceID": "SessionCreated"
-      },
-      {
         "UniquenessHash": "95031d15-4726-27c6-6968-bd42ae4a56b4",
         "TraceID": "SessionDestroyed"
       },
@@ -23413,10 +23393,6 @@
       {
         "UniquenessHash": "9bec5f10-1218-44b8-2370-fd6a7817fcfe",
         "TraceID": "SessionShutdown"
-      },
-      {
-        "UniquenessHash": "9f017e81-6d92-3436-a8e5-023d33db9c0f",
-        "TraceID": "SessionRundown"
       },
       {
         "UniquenessHash": "cf82c2cd-9f33-dd50-a621-e700bfc9069b",
@@ -24251,14 +24227,6 @@
         "TraceID": "SchannelUninitialized"
       },
       {
-        "UniquenessHash": "18d71dfd-c63b-1856-fcfb-f497e885c098",
-        "TraceID": "SchannelAch"
-      },
-      {
-        "UniquenessHash": "2f770264-7822-a5c1-4858-e0acff4e209e",
-        "TraceID": "SchannelAchCompleteInline"
-      },
-      {
         "UniquenessHash": "c04de4b9-64de-c415-dda2-b07f295f9897",
         "TraceID": "SchannelLogSecret"
       },
@@ -24633,6 +24601,98 @@
       {
         "UniquenessHash": "262f6b18-033f-5ef9-44eb-b2bebae16084",
         "TraceID": "BindingDropPacketEx"
+      },
+      {
+        "UniquenessHash": "c020fe47-4ec6-93b0-03db-ec72593a14b5",
+        "TraceID": "ConfigurationOpenStorageFailed"
+      },
+      {
+        "UniquenessHash": "2b8c1b84-4ce3-1294-13da-1f56579a80a0",
+        "TraceID": "ConfigurationOpenAppStorageFailed"
+      },
+      {
+        "UniquenessHash": "e104b282-92ce-2322-3af0-f59ccaabf2f1",
+        "TraceID": "ConfigurationSettingsUpdated"
+      },
+      {
+        "UniquenessHash": "cbb6b1b3-c622-960c-7710-3b4a2a2477ef",
+        "TraceID": "ConfigurationBiDiStreamCountSet"
+      },
+      {
+        "UniquenessHash": "054c594f-1828-4bf8-8d1b-3e719c892418",
+        "TraceID": "ConfigurationUniDiStreamCountSet"
+      },
+      {
+        "UniquenessHash": "d645889e-57ae-8aa7-016f-7191d00ba018",
+        "TraceID": "ConfigurationIdleTimeoutSet"
+      },
+      {
+        "UniquenessHash": "dc22664f-747d-bbab-521d-6824042d10a1",
+        "TraceID": "ConfigurationDisconnectTimeoutSet"
+      },
+      {
+        "UniquenessHash": "2bf0b220-8b2d-36e4-9a62-733567e64963",
+        "TraceID": "ConfigurationMaxBytesPerKeySet"
+      },
+      {
+        "UniquenessHash": "c9408adb-784d-e66c-9923-af68cb28d7ac",
+        "TraceID": "ConfigurationMigrationEnabledSet"
+      },
+      {
+        "UniquenessHash": "b1340158-be8e-9f5f-ec5f-98f51efbcac5",
+        "TraceID": "ConfigurationDatagramReceiveEnabledSet"
+      },
+      {
+        "UniquenessHash": "1c222485-7d45-ed6a-ec7d-e4a1f52b57e3",
+        "TraceID": "ConfigurationServerResumptionLevelSet"
+      },
+      {
+        "UniquenessHash": "f017e9d9-1069-630c-9301-b7c2cdd0dab5",
+        "TraceID": "ConfigurationCreated"
+      },
+      {
+        "UniquenessHash": "c4fb9ea0-c592-0ce3-51af-47689a0b2d11",
+        "TraceID": "ConfigurationCleanup"
+      },
+      {
+        "UniquenessHash": "e63d4591-3c4b-b640-cf7d-5e58755920bd",
+        "TraceID": "ConfigurationDestroyed"
+      },
+      {
+        "UniquenessHash": "1a9b55d5-1b7e-a6d6-e74a-cc8d426e6aaa",
+        "TraceID": "ConfigurationRundown"
+      },
+      {
+        "UniquenessHash": "fe35af8f-0c66-1f8e-30be-08ddd65a620f",
+        "TraceID": "ConnRegisterConfiguration"
+      },
+      {
+        "UniquenessHash": "a290086f-0860-5ace-eb4d-b8dd2d650d08",
+        "TraceID": "ConnUnregisterConfiguration"
+      },
+      {
+        "UniquenessHash": "9263ea25-3bcc-5edf-b6ee-493bfe5cc4de",
+        "TraceID": "SetConfiguration"
+      },
+      {
+        "UniquenessHash": "aa3db291-59d1-7919-0454-1e9f8a4adf56",
+        "TraceID": "SessionCreated"
+      },
+      {
+        "UniquenessHash": "9814be06-8d0f-343d-b115-db6cfdfb0b65",
+        "TraceID": "SessionRundown"
+      },
+      {
+        "UniquenessHash": "3c095e75-f922-9df3-753d-eab794e216ee",
+        "TraceID": "SchannelAchAsync"
+      },
+      {
+        "UniquenessHash": "01e767df-e7db-9399-5d4e-ecd19823890a",
+        "TraceID": "SchannelAch"
+      },
+      {
+        "UniquenessHash": "7a6ea81a-5491-2148-a007-711c5a641acc",
+        "TraceID": "SchannelAchCompleteInline"
       }
     ]
   }
