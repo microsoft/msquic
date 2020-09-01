@@ -378,8 +378,8 @@ if(QUIC_TLS STREQUAL "openssl")
         target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
 
         if (QUIC_CI AND EXISTS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+            message(STATUS "Found existing OpenSSL cache, skipping openssl build")
         else()
-
             file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
             file(MAKE_DIRECTORY ${OPENSSL_DIR}/release/include)
 
@@ -419,7 +419,6 @@ if(QUIC_TLS STREQUAL "openssl")
 
             add_dependencies(OpenSSL_Crypto OpenSSL_Build_Release OpenSSL_Build_Debug)
             add_dependencies(OpenSSL OpenSSL_Build_Release OpenSSL_Build_Debug)
-
         endif()
     else()
         # Configure and build OpenSSL.
