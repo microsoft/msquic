@@ -9,7 +9,10 @@ Abstract:
 
 --*/
 
-#include <msquichelper.h>
+#include <msquic.h>
+#include <msquicp.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 const QUIC_REGISTRATION_CONFIG RegConfig = { "quicsample", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
 const QUIC_BUFFER Alpn = { sizeof("sample") - 1, (uint8_t*)"sample" };
@@ -22,14 +25,63 @@ HQUIC Registration;
 HQUIC Configuration;
 HQUIC Session;
 
-void
-PrintUsage()
+void PrintUsage()
 {
-    printf("\nquicsample runs a simple client or server.\n\n");
+    printf(
+        "\n"
+        "quicsample runs a simple client or server.\n"
+        "\n"
+        "Usage:\n"
+        "\n"
+        "  quicinterop.exe -client -target:<...> [-unsecure]\n"
+        "  quicinterop.exe -server -cert_hash:<...> or (-cert_file:<...> and -key_file:<...>)\n"
+        );
+}
 
-    printf("Usage:\n");
-    printf("  quicinterop.exe -client -target:<...> [-unsecure]\n");
-    printf("  quicinterop.exe -server -cert_hash:<...> or (-cert_file:<...> and -key_file:<...>)\n");
+_Ret_maybenull_ _Null_terminated_ const char*
+GetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name
+    )
+{
+    const size_t nameLen = strlen(name);
+    for (int i = 0; i < argc; i++) {
+        if (_strnicmp(argv[i] + 1, name, nameLen) == 0) {
+            return argv[i] + 1 + nameLen + 1;
+        }
+    }
+    return nullptr;
+}
+
+uint8_t DecodeHexChar(char c)
+{
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'A' && c <= 'F') return 10 + c - 'A';
+    if (c >= 'a' && c <= 'f') return 10 + c - 'a';
+    return 0;
+}
+
+uint32_t
+DecodeHexBuffer(
+    _In_z_ const char* HexBuffer,
+    _In_ uint32_t OutBufferLen,
+    _Out_writes_to_(OutBufferLen, return)
+        uint8_t* OutBuffer
+    )
+{
+    uint32_t HexBufferLen = (uint32_t)strlen(HexBuffer) / 2;
+    if (HexBufferLen > OutBufferLen) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < HexBufferLen; i++) {
+        OutBuffer[i] =
+            (DecodeHexChar(HexBuffer[i * 2]) << 4) |
+            DecodeHexChar(HexBuffer[i * 2 + 1]);
+    }
+
+    return HexBufferLen;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -59,7 +111,7 @@ ServerSend(
     _In_ HQUIC Stream
     )
 {
-    auto SendBufferRaw = QUIC_ALLOC_PAGED(sizeof(QUIC_BUFFER) + SendBufferLength);
+    auto SendBufferRaw = malloc(sizeof(QUIC_BUFFER) + SendBufferLength);
     if (SendBufferRaw == nullptr) {
         printf("SendBuffer allocation failed!\n");
         MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
@@ -75,7 +127,7 @@ ServerSend(
     QUIC_STATUS Status;
     if (QUIC_FAILED(Status = MsQuic->StreamSend(Stream, SendBuffer, 1, QUIC_SEND_FLAG_FIN, SendBuffer))) {
         printf("StreamSend failed, 0x%x!\n", Status);
-        QUIC_FREE(SendBufferRaw);
+        free(SendBufferRaw);
         MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
     }
 }
@@ -92,7 +144,7 @@ ServerStreamCallback(
 {
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        QUIC_FREE(Event->SEND_COMPLETE.ClientContext);
+        free(Event->SEND_COMPLETE.ClientContext);
         printf("[strm][%p] Data sent\n", Stream);
         break;
     case QUIC_STREAM_EVENT_RECEIVE:
@@ -194,7 +246,7 @@ ServerLoadConfiguration(
 
     const char* Cert;
     const char* KeyFile;
-    if (TryGetValue(argc, argv, "cert_hash", &Cert)) {
+    if (Cert = GetValue(argc, argv, "cert_hash")) {
         uint32_t CertHashLen =
             DecodeHexBuffer(
                 Cert,
@@ -206,15 +258,15 @@ ServerLoadConfiguration(
         Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
         Config.CredConfig.Creds = &Config.CertHash;
 
-    } else if (TryGetValue(argc, argv, "cert_file", &Cert) &&
-        TryGetValue(argc, argv, "key_file", &KeyFile)) {
+    } else if ((Cert = GetValue(argc, argv, "cert_file")) &&
+               (KeyFile = GetValue(argc, argv, "key_file"))) {
         Config.CertFile.CertificateFile = (char*)Cert;
         Config.CertFile.PrivateKeyFile = (char*)KeyFile;
         Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
         Config.CredConfig.Creds = &Config.CertFile;
 
     } else {
-        printf("Must specify '-cert_hash' or 'cert_file'!\n");
+        printf("Must specify '-cert_hash' or 'cert_file' and 'key_file'!\n");
         return false;
     }
 
@@ -304,7 +356,7 @@ ClientStreamCallback(
 {
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        QUIC_FREE(Event->SEND_COMPLETE.ClientContext);
+        free(Event->SEND_COMPLETE.ClientContext);
         printf("[strm][%p] Data sent\n", Stream);
         break;
     case QUIC_STREAM_EVENT_RECEIVE:
@@ -348,7 +400,7 @@ ClientSend(
         goto Error;
     }
 
-    SendBufferRaw = (uint8_t*)QUIC_ALLOC_PAGED(sizeof(QUIC_BUFFER) + SendBufferLength);
+    SendBufferRaw = (uint8_t*)malloc(sizeof(QUIC_BUFFER) + SendBufferLength);
     if (SendBufferRaw == nullptr) {
         printf("SendBuffer allocation failed!\n");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -363,7 +415,7 @@ ClientSend(
 
     if (QUIC_FAILED(Status = MsQuic->StreamSend(Stream, SendBuffer, 1, QUIC_SEND_FLAG_FIN, SendBuffer))) {
         printf("StreamSend failed, 0x%x!\n", Status);
-        QUIC_FREE(SendBufferRaw);
+        free(SendBufferRaw);
         goto Error;
     }
 
@@ -390,8 +442,10 @@ ClientConnectionCallback(
         ClientSend(Connection);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
+        printf("[conn][%p] Shutdown by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+        break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
-        printf("[conn][%p] Shutdown\n", Connection);
+        printf("[conn][%p] Shutdown by peer, 0x%llu\n", Connection, (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         printf("[conn][%p] All done\n", Connection);
@@ -461,7 +515,7 @@ RunClient(
         goto Error;
     }
 
-    if (TryGetValue(argc, argv, "ticket", &ResumptionTicketString) && ResumptionTicketString != nullptr) {
+    if (ResumptionTicketString = GetValue(argc, argv, "ticket")) {
         uint8_t ResumptionTicket[1024];
          uint16_t TicketLength = (uint16_t)DecodeHexBuffer(ResumptionTicketString, sizeof(ResumptionTicket), ResumptionTicket);
         if (QUIC_FAILED(Status = MsQuic->SetParam(
@@ -476,7 +530,7 @@ RunClient(
     }
 
     const char* Target;
-    if (!TryGetValue(argc, argv, "target", &Target)) {
+    if (!(Target = GetValue(argc, argv, "target"))) {
         printf("Must specify '-target' argument!\n");
         goto Error;
     }
@@ -518,8 +572,7 @@ main(
         goto Error;
     }
 
-    if (GetValue(argc, argv, "help") ||
-        GetValue(argc, argv, "?")) {
+    if (GetValue(argc, argv, "help") || GetValue(argc, argv, "?")) {
         PrintUsage();
     } else if (GetValue(argc, argv, "client")) {
         RunClient(argc, argv);
