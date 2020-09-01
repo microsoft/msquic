@@ -766,13 +766,8 @@ QuicTraceConnEvent(
         Addrs = DecodeAddr(Addrs, LocalAddrStr);
         Addrs = DecodeAddr(Addrs, RemoteAddrStr);
         char* Reason = (char*)Addrs;
-        if (EvData->DropPacket.PktNum != ULLONG_MAX) {
-            printf("DROP packet Num=%llu Src=%s Dst=%s Reason=%s\n",
-                EvData->DropPacket.PktNum, RemoteAddrStr, LocalAddrStr, Reason);
-        } else {
-            printf("DROP packet Src=%s Dst=%s Reason=%s\n",
-                RemoteAddrStr, LocalAddrStr, Reason);
-        }
+        printf("DROP packet Src=%s Dst=%s Reason=%s\n",
+            RemoteAddrStr, LocalAddrStr, Reason);
         break;
     }
     case EventId_QuicConnDropPacketEx: {
@@ -782,13 +777,8 @@ QuicTraceConnEvent(
         Addrs = DecodeAddr(Addrs, LocalAddrStr);
         Addrs = DecodeAddr(Addrs, RemoteAddrStr);
         char* Reason = (char*)Addrs;
-        if (EvData->DropPacketEx.PktNum != ULLONG_MAX) {
-            printf("DROP packet Num=%llu Src=%s Dst=%s Reason=%s, %llu\n",
-                EvData->DropPacketEx.PktNum, RemoteAddrStr, LocalAddrStr, Reason, EvData->DropPacketEx.Value);
-        } else {
-            printf("DROP packet Src=%s Dst=%s Reason=%s, %llu\n",
-                RemoteAddrStr, LocalAddrStr, Reason, EvData->DropPacketEx.Value);
-        }
+        printf("DROP packet Src=%s Dst=%s Reason=%s, %llu\n",
+            RemoteAddrStr, LocalAddrStr, Reason, EvData->DropPacketEx.Value);
         break;
     }
     case EventId_QuicConnError: {
@@ -1016,13 +1006,8 @@ QuicTraceBindingEvent(
         Addrs = DecodeAddr(Addrs, LocalAddrStr);
         Addrs = DecodeAddr(Addrs, RemoteAddrStr);
         char* Reason = (char*)Addrs;
-        if (EvData->DropPacket.PktNum != ULLONG_MAX) {
-            printf("DROP packet Num=%llu Src=%s Dst=%s Reason=%s\n",
-                EvData->DropPacket.PktNum, LocalAddrStr, RemoteAddrStr, Reason);
-        } else {
-            printf("DROP packet Src=%s Dst=%s Reason=%s\n",
-                LocalAddrStr, RemoteAddrStr, Reason);
-        }
+        printf("DROP packet Src=%s Dst=%s Reason=%s\n",
+            LocalAddrStr, RemoteAddrStr, Reason);
         break;
     }
     case EventId_QuicBindingDropPacketEx: {
@@ -1032,13 +1017,8 @@ QuicTraceBindingEvent(
         Addrs = DecodeAddr(Addrs, LocalAddrStr);
         Addrs = DecodeAddr(Addrs, RemoteAddrStr);
         char* Reason = (char*)Addrs;
-        if (EvData->DropPacketEx.PktNum != ULLONG_MAX) {
-            printf("DROP packet Num=%llu Src=%s Dst=%s Reason=%s, %llu\n",
-                EvData->DropPacketEx.PktNum, LocalAddrStr, RemoteAddrStr, Reason, EvData->DropPacketEx.Value);
-        } else {
-            printf("DROP packet Src=%s Dst=%s Reason=%s, %llu\n",
-                LocalAddrStr, RemoteAddrStr, Reason, EvData->DropPacketEx.Value);
-        }
+        printf("DROP packet Src=%s Dst=%s Reason=%s, %llu\n",
+            LocalAddrStr, RemoteAddrStr, Reason, EvData->DropPacketEx.Value);
         break;
     }
     case EventId_QuicBindingError: {

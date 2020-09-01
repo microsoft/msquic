@@ -620,7 +620,7 @@ Arguments:
         if (HashTable->FirstLevelDir != NULL) {
 
 #if DEBUG
-            uint32_t largestFirstLevelIndex, largestSecondLevelIndex;
+            uint32_t largestFirstLevelIndex = 0, largestSecondLevelIndex = 0;
             QuicComputeDirIndices(
                 (HashTable->TableSize - 1), &largestFirstLevelIndex, &largestSecondLevelIndex);
 #endif

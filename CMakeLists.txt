@@ -35,9 +35,20 @@ endif()
 
 project(msquic)
 
+# Set a default build type if none was specified
+set(default_build_type "Release")
+
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
+        STRING "Choose the type of build." FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+                 "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
 message(STATUS "System name: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "System version: ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 if (WIN32)
     set(QUIC_PLATFORM "windows")
@@ -102,7 +113,7 @@ endif()
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
 option(QUIC_BUILD_PERF "Builds the perf code" ON)
-option(QUIC_ENABLE_LOGGING "Enables logging" ON)
+option(QUIC_ENABLE_LOGGING "Enables logging" OFF)
 option(QUIC_ENABLE_SANITIZERS "Enables sanitizers" OFF)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 option(QUIC_UWP_BUILD "Build for UWP" OFF)
@@ -110,19 +121,12 @@ option(QUIC_PGO "Enables profile guided optimizations" OFF)
 option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
 option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
 option(QUIC_CODE_CHECK "Run static code checkers" OFF)
+option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
     message(WARNING "Logging unsupported on this version of CMake. Please upgrade to 3.6 or later.")
     set(QUIC_ENABLE_LOGGING OFF)
-endif()
-
-if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
-    set(QUIC_PLATFORM "windows")
-elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
-    set(QUIC_PLATFORM "linux")
-elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
-    set(QUIC_PLATFORM "darwin")
 endif()
 
 if (QUIC_PDBALTPATH AND MSVC)
@@ -255,7 +259,7 @@ if(WIN32)
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
-    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} /std:c++17 /EHsc)
+    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} /EHsc)
 
     # These cannot be updated until CMake 3.13
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /GL /Zi")
@@ -291,6 +295,18 @@ if(WIN32)
 
 else()
     # Custom build flags.
+
+    if (QUIC_OPTIMIZE_LOCAL AND NOT CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
+        set(MARCH -march=native)
+    endif()
+    set(CMAKE_C_FLAGS_DEBUG "-Og -ggdb3")
+    set(CMAKE_C_FLAGS_MINSIZEREL "-Os -DNDEBUG")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Ofast ${MARCH} -ggdb3 -DNDEBUG")
+    set(CMAKE_C_FLAGS_RELEASE "-Ofast ${MARCH} -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
+    set(CMAKE_CXX_FLAGS_MINSIZEREL ${CMAKE_C_FLAGS_MINSIZEREL})
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
+    set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 
     list(APPEND QUIC_COMMON_FLAGS -fms-extensions -fPIC)
     if (QUIC_PLATFORM STREQUAL "darwin")
@@ -328,7 +344,7 @@ else()
 
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-address-use-after-scope -Og -g3 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-address-use-after-scope -Og -ggdb3 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
         if (CMAKE_C_COMPILER_ID MATCHES "Clang")
             list(APPEND QUIC_COMMON_FLAGS -fsanitize=unsigned-integer-overflow -fsanitize=local-bounds -fsanitize=integer -fsanitize=nullability)
         endif()
@@ -339,7 +355,7 @@ else()
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
-    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} -std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format)
+    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS})
 endif()
 
 if(QUIC_TLS STREQUAL "openssl")
@@ -506,9 +522,6 @@ if(QUIC_BUILD_TEST)
 
     enable_testing()
     add_subdirectory(submodules/googletest)
-
-    set_property(TARGET gtest PROPERTY CXX_STANDARD 17)
-    set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
 
     set_property(TARGET gtest PROPERTY FOLDER "tests")
     set_property(TARGET gtest_main PROPERTY FOLDER "tests")

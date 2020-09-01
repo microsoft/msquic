@@ -105,7 +105,7 @@ param (
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
-    [int]$Timeout = 60,
+    [int]$Timeout = 120,
 
     [Parameter(Mandatory = $false)]
     [switch]$RecordQUIC = $false,

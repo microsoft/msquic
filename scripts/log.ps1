@@ -109,6 +109,7 @@ function Log-Start {
                 Invoke-Expression $Command | Write-Debug
             }
             lttng enable-event --userspace CLOG_* | Write-Debug
+            lttng add-context --userspace --type=vpid --type=vtid | Write-Debug
             lttng start | Write-Debug
 
             if ($Stream) {
