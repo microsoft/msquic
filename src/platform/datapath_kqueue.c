@@ -534,7 +534,7 @@ QuicDataPathWorkerThread(
 
         if (ProcContext->Datapath->Shutdown) break;
 
-        QUIC_DBG_ASSERT(EventCount > 0);
+        //QUIC_DBG_ASSERT(EventCount > 0);
 
         for (int i = 0; i < EventCount; i++) {
             QuicSocketContextProcessEvent(ProcContext, &EventList[i]);
