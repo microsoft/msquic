@@ -66,6 +66,9 @@ This script provides helpers for building msquic.
 .PARAMETER ConfigureOnly
     Run configuration only.
 
+.PARAMETER CI
+    Build is occuring from CI
+
 .EXAMPLE
     build.ps1
 
@@ -137,7 +140,10 @@ param (
     [switch]$UpdateClog = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ConfigureOnly = $false
+    [switch]$ConfigureOnly = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CI = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -275,6 +281,9 @@ function CMake-Generate {
     }
     if ($SkipSourceLink) {
         $Arguments += " -DQUIC_SOURCE_LINK=OFF"
+    }
+    if ($CI) {
+        $Arguments += " -DQUIC_CI=ON"
     }
     $Arguments += " ../../.."
 
