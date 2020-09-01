@@ -21712,6 +21712,14 @@
       "stubs": {
         "Modules": []
       },
+      "STDOUT": {
+        "Modules": [
+          {
+            "ExportModule": "STDOUT",
+            "CustomSettings": {}
+          }
+        ]
+      },
       "etw_only": {
         "Modules": [
           {
@@ -21772,6 +21780,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -21784,6 +21793,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -21796,6 +21806,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -21808,6 +21819,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -21820,6 +21832,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -21832,6 +21845,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -21844,6 +21858,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -21856,6 +21871,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -21868,6 +21884,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -21880,6 +21897,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -21892,6 +21910,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -21904,6 +21923,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },

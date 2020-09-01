@@ -440,6 +440,7 @@ QuicSocketContextUninitializeComplete(
     _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
+    UNREFERENCED_PARAMETER(ProcContext);
     if (SocketContext->CurrentRecvBlock != NULL) {
         QuicDataPathBindingReturnRecvDatagrams(&SocketContext->CurrentRecvBlock->RecvPacket);
     }
@@ -459,8 +460,10 @@ QuicSocketContextUninitializeComplete(
 
 void QuicSocketContextSendPending(
     _In_ QUIC_SOCKET_CONTEXT *SocketContext,
-    _In_ QUIC_DATAPATH_PROC_CONTEXT *ProcContext) {
-
+    _In_ QUIC_DATAPATH_PROC_CONTEXT *ProcContext
+    )
+{
+    UNREFERENCED_PARAMETER(ProcContext);
     if (SocketContext->SendWaiting) {
         SocketContext->SendWaiting = FALSE;
     }
@@ -549,7 +552,6 @@ QuicProcessorContextInitialize(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    int Ret = 0;
     uint32_t RecvPacketLength = 0;
 
     QUIC_DBG_ASSERT(Datapath != NULL);
@@ -861,10 +863,10 @@ QuicSocketContextInitialize(
     _In_ const QUIC_ADDR* RemoteAddress
     )
 {
+    UNREFERENCED_PARAMETER(ProcContext);
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Result = 0;
     int Option = 0;
-    QUIC_ADDR MappedRemoteAddress = { };
     socklen_t AssignedLocalAddressLength = 0;
 
     QUIC_DATAPATH_BINDING* Binding = SocketContext->Binding;
@@ -1390,6 +1392,7 @@ QuicDataPathBindingAllocSendContext(
     _In_ uint16_t MaxPacketSize
     )
 {
+    UNREFERENCED_PARAMETER(ECN);
     UNREFERENCED_PARAMETER(MaxPacketSize);
     QUIC_DBG_ASSERT(Binding != NULL);
 
@@ -1494,6 +1497,8 @@ QuicDataPathBindingFreeSendDatagram(
     _In_ QUIC_BUFFER* SendDatagram
     )
 {
+    UNREFERENCED_PARAMETER(SendContext);
+    UNREFERENCED_PARAMETER(SendDatagram);
     QUIC_FRE_ASSERT(FALSE);
 }
 
@@ -1595,7 +1600,6 @@ QuicDataPathBindingSend(
     ssize_t SentByteCount = 0;
     size_t i = 0;
     socklen_t RemoteAddrLen = 0;
-    QUIC_ADDR MappedRemoteAddress = { };
     struct cmsghdr *CMsg = NULL;
     struct in_pktinfo *PktInfo = NULL;
     struct in6_pktinfo *PktInfo6 = NULL;
@@ -1878,6 +1882,10 @@ QuicDataPathBindingSetParam(
     _In_reads_bytes_(BufferLength) const uint8_t * Buffer
     )
 {
+    UNREFERENCED_PARAMETER(Binding);
+    UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
     QUIC_FRE_ASSERT(FALSE);
     return QUIC_STATUS_SUCCESS;
 }
@@ -1894,6 +1902,10 @@ QuicDataPathBindingGetParam(
     _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer
     )
 {
+    UNREFERENCED_PARAMETER(Binding);
+    UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
     QUIC_FRE_ASSERT(FALSE);
     return QUIC_STATUS_SUCCESS;
 }
