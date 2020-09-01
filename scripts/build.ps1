@@ -63,6 +63,12 @@ This script provides helpers for building msquic.
 .PARAMETER UpdateClog
     Build allowing clog to update the sidecar.
 
+.PARAMETER ConfigureOnly
+    Run configuration only.
+
+.PARAMETER CI
+    Build is occuring from CI
+
 .EXAMPLE
     build.ps1
 
@@ -131,7 +137,13 @@ param (
     [switch]$Clang = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UpdateClog = $false
+    [switch]$UpdateClog = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ConfigureOnly = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CI = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -270,6 +282,9 @@ function CMake-Generate {
     if ($SkipSourceLink) {
         $Arguments += " -DQUIC_SOURCE_LINK=OFF"
     }
+    if ($CI) {
+        $Arguments += " -DQUIC_CI=ON"
+    }
     $Arguments += " ../../.."
 
     CMake-Execute $Arguments
@@ -334,9 +349,11 @@ if ($UpdateClog) {
 Log "Generating files..."
 CMake-Generate
 
-# Build the code.
-Log "Building..."
-CMake-Build
+if (!$ConfigureOnly) {
+    # Build the code.
+    Log "Building..."
+    CMake-Build
+}
 
 Log "Done."
 
