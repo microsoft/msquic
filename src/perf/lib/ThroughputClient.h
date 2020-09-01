@@ -90,11 +90,7 @@ private:
     QuicPoolAllocator<ConnectionData> ConnectionDataAllocator;
     UniquePtr<char[]> TargetData;
     QUIC_EVENT* StopEvent {nullptr};
-<<<<<<< HEAD
-    uint64_t Length {0};
-=======
     QUIC_BUFFER* DataBuffer {nullptr};
->>>>>>> main
     uint8_t UseSendBuffer {TRUE};
     uint8_t UseEncryption {TRUE};
     QUIC_ADDR LocalIpAddr;
