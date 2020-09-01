@@ -414,7 +414,7 @@ QUIC_STATIC_ASSERT(
 // lifetime of a connection. Set to the lowest limit, which is for
 // AEAD_AES_128_CCM at 2^23.5 (rounded down)
 //
-#define QUIC_AEAD_INTEGRITY_LIMIT 0xB503F3
+#define QUIC_AEAD_INTEGRITY_LIMIT               11863283
 
 /*************************************************************
                   PERSISTENT SETTINGS
