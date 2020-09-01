@@ -396,7 +396,7 @@ MsQuicConnectionStart(
     Oper->API_CALL.Context->CONN_START.Configuration = Configuration;
     Oper->API_CALL.Context->CONN_START.ServerName = ServerNameCopy;
     Oper->API_CALL.Context->CONN_START.AlpnList = AlpnList;
-    Oper->API_CALL.Context->CONN_START.AlpnListLength = AlpnListLength;
+    Oper->API_CALL.Context->CONN_START.AlpnListLength = (uint16_t)AlpnListLength;
     Oper->API_CALL.Context->CONN_START.ServerPort = ServerPort;
     Oper->API_CALL.Context->CONN_START.Family = Family;
     ServerNameCopy = NULL;

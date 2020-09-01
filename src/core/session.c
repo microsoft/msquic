@@ -54,7 +54,7 @@ QuicSessionAlloc(
 
     QuicTraceEvent(
         SessionCreated,
-        "[sess][%p] Created, Registration=%p", // TODO - Fix manifest
+        "[sess][%p] Created, Registration=%p",
         Session,
         Session->Registration);
 

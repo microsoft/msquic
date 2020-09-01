@@ -695,7 +695,7 @@
                 name="Session"
                 />
           </template>
-          <template tid="tid_SESSION_REGISTRATION_STRING">
+          <template tid="tid_SESSION_REGISTRATION">
             <data
                 inType="win:Pointer"
                 name="Session"
@@ -703,10 +703,6 @@
             <data
                 inType="win:Pointer"
                 name="Registration"
-                />
-            <data
-                inType="win:AnsiString"
-                name="AppName"
                 />
           </template>
           <template tid="tid_SESSION_FLAGS_ERRORCODE">
@@ -1939,7 +1935,7 @@
               message="$(string.Etw.SessionCreated)"
               opcode="win:Info"
               symbol="QuicSessionCreated"
-              template="tid_SESSION_REGISTRATION_STRING"
+              template="tid_SESSION_REGISTRATION"
               value="3072"
               />
           <event
@@ -1975,7 +1971,7 @@
               message="$(string.Etw.SessionRundown)"
               opcode="win:Info"
               symbol="QuicSessionRundown"
-              template="tid_SESSION_REGISTRATION_STRING"
+              template="tid_SESSION_REGISTRATION"
               value="3076"
               />
           <event
@@ -3217,11 +3213,11 @@
             />
         <string
             id="Etw.SessionCreated"
-            value="[sess][%1] Created, Registration=%2, Alpn=%3"
+            value="[sess][%1] Created, Registration=%2"
             />
         <string
             id="Etw.SessionRundown"
-            value="[sess][%1] Rundown, Registration=%2, Alpn=%3"
+            value="[sess][%1] Rundown, Registration=%2"
             />
         <string
             id="Etw.SessionDestroyed"

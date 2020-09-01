@@ -1907,7 +1907,7 @@ QuicConnSendResumptionTicket(
     QUIC_STATUS Status;
     uint32_t EncodedTransportParametersLength = 0;
     uint8_t* TicketBuffer = NULL;
-    uint16_t AlpnLength = *(Connection->Crypto.TlsState.NegotiatedAlpn);
+    uint8_t AlpnLength = Connection->Crypto.TlsState.NegotiatedAlpn[0];
     const uint8_t* EncodedHSTP = NULL;
 
     if (Connection->HandshakeTP == NULL) {
@@ -2053,6 +2053,7 @@ QuicConnRecvResumptionTicket(
                 "Resumption Ticket ALPN length failed to decode");
             goto Error;
         }
+        /* TODO
         if (QuicTlsAlpnFindInList(
                 Connection->Session->AlpnListLength, Connection->Session->AlpnList,
                 (uint8_t)AlpnLength, Ticket + Offset) == NULL) {
@@ -2063,7 +2064,7 @@ QuicConnRecvResumptionTicket(
                 "Resumption Ticket ALPN not present in ALPN list");
             goto Error;
         }
-        Offset += (uint16_t)AlpnLength;
+        Offset += (uint16_t)AlpnLength;*/
 
         if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &TPLength)) {
             QuicTraceEvent(

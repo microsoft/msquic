@@ -397,7 +397,7 @@ QuicListenerIndicateEvent(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 const uint8_t*
-QuicSessionFindAlpnInList(
+QuicListenerFindAlpnInList(
     _In_ const QUIC_LISTENER* Listener,
     _In_ uint16_t OtherAlpnListLength,
     _In_reads_(OtherAlpnListLength)
