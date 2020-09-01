@@ -272,7 +272,7 @@ PerfServer::SendResponse(
         }
 
         Context->BytesSent += IoSize;
-        Context->OutstandingBytes += Buffer->Length;
+        Context->OutstandingBytes += IoSize;
 
         MsQuic->StreamSend(StreamHandle, Buffer, 1, Flags, Buffer);
     }

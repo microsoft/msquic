@@ -7,7 +7,7 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-ServerMode:1",
+                "All": "",
                 "Loopback": "-selfsign:1",
                 "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
             }
@@ -18,7 +18,7 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-ServerMode:0 -TestName:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000000000",
+                "All": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
@@ -63,7 +63,7 @@
             "Arch": ["x64", "arm"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-ServerMode:1 -selfsign:1",
+                "All": "-selfsign:1",
                 "Loopback": "",
                 "Remote": ""
             }
@@ -74,7 +74,7 @@
             "Arch": ["x64", "arm"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-ServerMode:0 -TestName:Throughput -target:$RemoteAddress -uni:1 -length:2000000000",
+                "All": "-test:Throughput -target:$RemoteAddress -uni:1 -length:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
@@ -119,7 +119,7 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-ServerMode:1",
+                "All": "",
                 "Loopback": "-selfsign:1",
                 "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
             }
@@ -130,7 +130,7 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-ServerMode:0 -TestName:RPS -target:$RemoteAddress",
+                "All": "-test:RPS -target:$RemoteAddress",
                 "Loopback": "",
                 "Remote": ""
             }

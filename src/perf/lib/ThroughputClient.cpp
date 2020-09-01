@@ -341,6 +341,7 @@ ThroughputClient::StreamCallback(
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
         StrmContext->OutstandingBytes -= ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length;
         if (!Event->SEND_COMPLETE.Canceled) {
+            StrmContext->BytesCompleted += ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length;
             SendData(StrmContext);
         }
         break;
@@ -402,7 +403,7 @@ ThroughputClient::SendData(
         }
 
         Context->BytesSent += DataLength;
-        Context->OutstandingBytes += Buffer->Length;
+        Context->OutstandingBytes += DataLength;
 
         MsQuic->StreamSend(Context->Stream.Handle, Buffer, 1, Flags, Buffer);
     }
