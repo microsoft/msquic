@@ -34,12 +34,10 @@ PrintHelp(
         "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
         "  -sendbuf:<0/1>              Whether to use send buffering. (def:1)\n"
         "  -length:<####>              The length of streams opened locally. (def:0)\n"
-        "  -iosize:<####>              The size of each send request queued. (buffered def:%u) (nonbuffered def:%u)\n"
-        "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n"
+        "  -iosize:<####>              The size of each send request queued. (def:%u)\n"
         "\n",
         PERF_DEFAULT_PORT,
-        PERF_DEFAULT_IO_SIZE_BUFFERED, PERF_DEFAULT_IO_SIZE_NONBUFFERED,
-        PERF_DEFAULT_SEND_COUNT_BUFFERED, PERF_DEFAULT_SEND_COUNT_NONBUFFERED
+        PERF_DEFAULT_IO_SIZE
         );
 }
 
@@ -49,6 +47,12 @@ ThroughputClient::ThroughputClient(
     if (Session.IsValid()) {
         Session.SetIdleTimeout(TPUT_DEFAULT_IDLE_TIMEOUT);
         Session.SetAutoCleanup();
+    }
+}
+
+ThroughputClient::~ThroughputClient() {
+    if (DataBuffer) {
+        QUIC_FREE(DataBuffer);
     }
 }
 
@@ -117,11 +121,8 @@ ThroughputClient::Init(
 
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffer);
 
-    IoSize = UseSendBuffer ? PERF_DEFAULT_IO_SIZE_BUFFERED : PERF_DEFAULT_IO_SIZE_NONBUFFERED;
+    IoSize = PERF_DEFAULT_IO_SIZE;
     TryGetValue(argc, argv, "iosize", &IoSize);
-
-    IoCount = UseSendBuffer ? PERF_DEFAULT_SEND_COUNT_BUFFERED : PERF_DEFAULT_SEND_COUNT_NONBUFFERED;
-    TryGetValue(argc, argv, "iocount", &IoCount);
 
     size_t Len = strlen(Target);
     char* LocalTarget = new(std::nothrow) char[Len + 1];
@@ -132,7 +133,16 @@ ThroughputClient::Init(
     QuicCopyMemory(TargetData.get(), Target, Len);
     TargetData[Len] = '\0';
 
-    BufferAllocator.Initialize(IoSize);
+    DataBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + IoSize);
+    if (!DataBuffer) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    DataBuffer->Length = IoSize;
+    DataBuffer->Buffer = (uint8_t*)(DataBuffer + 1);
+    *(uint64_t*)(DataBuffer->Buffer) = QuicByteSwapUint64(0); // Zero-length request right now
+    for (uint32_t i = 0; i < IoSize - sizeof(uint64_t); ++i) {
+        DataBuffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
+    }
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -230,70 +240,52 @@ ThroughputClient::Start(
             &LocalIpAddr);
     }
 
-    StreamData* StrmData = StreamDataAllocator.Alloc(this, ConnData->Connection);
+    StreamContext* StrmContext = StreamContextAllocator.Alloc(this, ConnData->Connection);
+    if (UseSendBuffer) {
+        StrmContext->IdealSendBuffer = 1; // Hack to use only 1 send buffer
+    }
 
     Status =
         MsQuic->StreamOpen(
             ConnData->Connection,
             QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
             [](HQUIC Handle, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
-                return ((StreamData*)Context)->Client->
+                return ((StreamContext*)Context)->Client->
                     StreamCallback(
                         Handle,
                         Event,
-                        (StreamData*)Context);
+                        (StreamContext*)Context);
             },
-            StrmData,
-            &StrmData->Stream.Handle);
+            StrmContext,
+            &StrmContext->Stream.Handle);
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed StreamOpen 0x%x\n", Status);
-        StreamDataAllocator.Free(StrmData);
+        StreamContextAllocator.Free(StrmContext);
         return Status;
     }
 
     Status =
         MsQuic->StreamStart(
-            StrmData->Stream.Handle,
+            StrmContext->Stream.Handle,
             QUIC_STREAM_START_FLAG_NONE);
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed StreamStart 0x%x\n", Status);
-        StreamDataAllocator.Free(StrmData);
+        StreamContextAllocator.Free(StrmContext);
         return Status;
     }
 
-    StrmData->StartTime = QuicTimeUs64();
+    StrmContext->StartTime = QuicTimeUs64();
 
     if (Length == 0) {
         Status =
             MsQuic->StreamShutdown(
-                StrmData->Stream.Handle,
+                StrmContext->Stream.Handle,
                 QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
                 0);
         return Status;
     }
 
-    uint32_t SendRequestCount = 0;
-    while (StrmData->BytesSent < Length && SendRequestCount < IoCount) {
-        SendRequest* SendReq = SendRequestAllocator.Alloc(&BufferAllocator, IoSize, true);
-        SendReq->SetLength(Length - StrmData->BytesSent);
-        if (StrmData->BytesSent == 0) {
-            QuicZeroMemory(SendReq->QuicBuffer.Buffer, sizeof(uint64_t));
-        }
-        StrmData->BytesSent += SendReq->QuicBuffer.Length;
-        ++SendRequestCount;
-        Status =
-            MsQuic->StreamSend(
-                StrmData->Stream,
-                &SendReq->QuicBuffer,
-                1,
-                SendReq->Flags,
-                SendReq);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("Failed StreamSend 0x%x\n", Status);
-            SendRequestAllocator.Free(SendReq);
-            return Status;
-        }
-    }
+    SendData(StrmContext);
 
     Status =
         MsQuic->ConnectionStart(
@@ -343,34 +335,16 @@ QUIC_STATUS
 ThroughputClient::StreamCallback(
     _In_ HQUIC StreamHandle,
     _Inout_ QUIC_STREAM_EVENT* Event,
-    _Inout_ StreamData* StrmData
+    _Inout_ StreamContext* StrmContext
     ) {
     switch (Event->Type) {
-    case QUIC_STREAM_EVENT_SEND_COMPLETE: {
-        SendRequest* Req = (SendRequest*)Event->SEND_COMPLETE.ClientContext;
+    case QUIC_STREAM_EVENT_SEND_COMPLETE:
+        StrmContext->OutstandingBytes -= ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length;
         if (!Event->SEND_COMPLETE.Canceled) {
-            uint64_t BytesLeftToSend = Length - StrmData->BytesSent;
-            StrmData->BytesCompleted += Req->QuicBuffer.Length;
-            if (BytesLeftToSend != 0) {
-                Req->SetLength(BytesLeftToSend);
-                StrmData->BytesSent += Req->QuicBuffer.Length;
-
-                if (QUIC_SUCCEEDED(
-                    MsQuic->StreamSend(
-                        StrmData->Stream.Handle,
-                        &Req->QuicBuffer,
-                        1,
-                        Req->Flags,
-                        Req))) {
-                    Req = nullptr;
-                }
-            }
-        }
-        if (Req) {
-            SendRequestAllocator.Free(Req);
+            StrmContext->BytesCompleted += ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length;
+            SendData(StrmContext);
         }
         break;
-    }
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
         MsQuic->StreamShutdown(
@@ -379,23 +353,58 @@ ThroughputClient::StreamCallback(
             0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
-        StrmData->EndTime = QuicTimeUs64();
-        uint64_t ElapsedMicroseconds = StrmData->EndTime - StrmData->StartTime;
-        uint32_t SendRate = (uint32_t)((StrmData->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
+        StrmContext->EndTime = QuicTimeUs64();
+        uint64_t ElapsedMicroseconds = StrmContext->EndTime - StrmContext->StartTime;
+        uint32_t SendRate = (uint32_t)((StrmContext->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
         WriteOutput("[%p][%llu] Closed [%s] after %u.%u ms. (TX %llu bytes @ %u kbps).\n",
-            StrmData->Connection,
+            StrmContext->Connection,
             (unsigned long long)GetStreamID(MsQuic, StreamHandle),
             "Complete",
             (uint32_t)(ElapsedMicroseconds / 1000),
             (uint32_t)(ElapsedMicroseconds % 1000),
-            (unsigned long long)StrmData->BytesCompleted, SendRate);
+            (unsigned long long)StrmContext->BytesCompleted, SendRate);
 
-        StreamDataAllocator.Free(StrmData);
+        StreamContextAllocator.Free(StrmContext);
         break;
     }
+    case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
+        if (!UseSendBuffer &&
+            StrmContext->IdealSendBuffer < Event->IDEAL_SEND_BUFFER_SIZE.ByteCount) {
+            StrmContext->IdealSendBuffer = Event->IDEAL_SEND_BUFFER_SIZE.ByteCount;
+            SendData(StrmContext);
+        }
+        break;
     default:
         break;
     }
     return QUIC_STATUS_SUCCESS;
+}
+
+void
+ThroughputClient::SendData(
+    _In_ StreamContext* Context
+    )
+{
+    while (Context->BytesSent < Length &&
+           Context->OutstandingBytes < Context->IdealSendBuffer) {
+
+        uint64_t BytesLeftToSend = Length - Context->BytesSent;
+        uint32_t DataLength = IoSize;
+        QUIC_BUFFER* Buffer = DataBuffer;
+        QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
+
+        if ((uint64_t)DataLength >= BytesLeftToSend) {
+            DataLength = (uint32_t)BytesLeftToSend;
+            Context->LastBuffer.Buffer = Buffer->Buffer;
+            Context->LastBuffer.Length = DataLength;
+            Buffer = &Context->LastBuffer;
+            Flags = QUIC_SEND_FLAG_FIN;
+        }
+
+        Context->BytesSent += DataLength;
+        Context->OutstandingBytes += DataLength;
+
+        MsQuic->StreamSend(Context->Stream.Handle, Buffer, 1, Flags, Buffer);
+    }
 }
