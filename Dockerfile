@@ -13,7 +13,8 @@ WORKDIR /src/Debug
 RUN     chmod +x /src/scripts/install-powershell-docker.sh
 RUN     /src/scripts/install-powershell-docker.sh
 ENV     PATH="/root/.dotnet/tools:${PATH}"
-RUN     cmake -DQUIC_BUILD_TEST=OFF -DQUIC_BUILD_PERF=OFF ..
+RUN     cmake -DQUIC_BUILD_TEST=OFF -DQUIC_BUILD_PERF=OFF \
+            -DQUIC_ENABLE_LOGGING=on ..
 RUN     cmake --build .
 RUN     openssl ecparam -out server.eckey -noout -name prime256v1 -genkey
 RUN	    openssl pkcs8 -topk8 -inform pem -in server.eckey -nocrypt \
