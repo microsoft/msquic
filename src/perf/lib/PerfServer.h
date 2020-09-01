@@ -44,17 +44,21 @@ private:
 
     struct StreamContext {
         StreamContext(
-            PerfServer* Server, bool Unidirectional) :
-            Server{Server}, Unidirectional{Unidirectional} { }
+            PerfServer* Server, bool Unidirectional, bool BufferedIo) :
+            Server{Server}, Unidirectional{Unidirectional}, BufferedIo{BufferedIo} {
+            if (BufferedIo) {
+                IdealSendBuffer = 1; // Hack to get just do 1 send at a time.
+            }
+        }
         PerfServer* Server;
         bool Unidirectional;
-        bool BufferedIo{false};
+        bool BufferedIo;
         bool ResponseSizeSet{false};
+        uint64_t IdealSendBuffer{PERF_DEFAULT_SEND_BUFFER_SIZE};
         uint64_t ResponseSize{0};
         uint64_t BytesSent{0};
-        uint32_t OutstandingSends{0};
-        uint32_t MaxOutstandingSends{PERF_DEFAULT_SEND_COUNT_NONBUFFERED};
-        uint32_t IoSize{PERF_DEFAULT_IO_SIZE_NONBUFFERED};
+        uint64_t OutstandingBytes{0};
+        uint32_t IoSize{PERF_DEFAULT_IO_SIZE};
         QUIC_BUFFER LastBuffer;
     };
 
@@ -90,7 +94,6 @@ private:
     PerfSecurityConfig SecurityConfig;
     uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_EVENT* StopEvent {nullptr};
-    QUIC_BUFFER* DataBufferBuffered {nullptr};
-    QUIC_BUFFER* DataBufferNonBuffered {nullptr};
+    QUIC_BUFFER* DataBuffer {nullptr};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
 };

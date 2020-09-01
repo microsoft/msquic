@@ -30,7 +30,7 @@ QUIC_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
 QUIC_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 QUIC_DATAPATH* Datapath;
 QUIC_DATAPATH_BINDING* Binding;
-uint8_t ServerMode = 0;
+bool ServerMode = false;
 
 static
 void
@@ -38,8 +38,19 @@ PrintHelp(
     ) {
     WriteOutput(
         "\n"
-        "Usage: quicperf -ServerMode:<1:0> [-TestName:<Throughput|RPS>] [options]\n"
+        "quicperf usage:\n"
         "\n"
+        "Server: quicperf [options]\n"
+        "\n"
+        "  -port:<####>                The UDP port of the server. (def:%u)\n"
+        "  -selfsign:<0/1>             Uses a self-signed server certificate.\n"
+        "  -thumbprint:<cert_hash>     The hash or thumbprint of the certificate to use.\n"
+        "  -cert_store:<store name>    The certificate store to search for the thumbprint in.\n"
+        "  -machine_cert:<0/1>         Use the machine, or current user's, certificate store. (def:0)\n"
+        "\n"
+        "Client: quicperf -TestName:<Throughput|RPS> [options]\n"
+        "\n",
+        PERF_DEFAULT_PORT
         );
 }
 
@@ -57,15 +68,8 @@ QuicMainStart(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    ServerMode = 0;
-    if (!IsArg(argv[0], "ServerMode")) {
-        WriteOutput("Must specify -ServerMode argument\n");
-        PrintHelp();
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    TryGetValue(argc, argv, "ServerMode", &ServerMode);
-    argc--; argv++;
+    const char* TestName = GetValue(argc, argv, "test");
+    ServerMode = TestName == nullptr;
 
     QUIC_STATUS Status;
 
@@ -99,22 +103,13 @@ QuicMainStart(
         TestToRun = new(std::nothrow) PerfServer(SelfSignedConfig);
 
     } else {
-        if (!IsArg(argv[0], "TestName")) {
-            WriteOutput("Must specify -TestName argument\n");
-            PrintHelp();
-            delete MsQuic;
-            MsQuic = nullptr;
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
 
-        const char* TestName = GetValue(argc, argv, "TestName");
-        argc--; argv++;
-
-        if (IsValue(TestName, "Throughput")) {
+        if (IsValue(TestName, "Throughput") || IsValue(TestName, "tput")) {
             TestToRun = new(std::nothrow) ThroughputClient;
         } else if (IsValue(TestName, "RPS")) {
             TestToRun = new(std::nothrow) RpsClient;
         } else {
+            PrintHelp();
             delete MsQuic;
             return QUIC_STATUS_INVALID_PARAMETER;
         }

@@ -16,11 +16,12 @@ Abstract:
 #include "PerfHelpers.h"
 #include "PerfBase.h"
 #include "PerfCommon.h"
-#include "SendRequest.h"
 
 class ThroughputClient : public PerfBase {
 public:
     ThroughputClient();
+
+    ~ThroughputClient() override;
 
     QUIC_STATUS
     Init(
@@ -41,30 +42,27 @@ public:
 private:
 
     struct ConnectionData {
-        ConnectionData(
-            _In_ ThroughputClient* Client)
-            : Client{Client} {
-
-        }
-        ThroughputClient* Client{ nullptr };
+        ConnectionData(_In_ ThroughputClient* Client) : Client{Client} { }
+        ThroughputClient* Client;
         ConnectionScope Connection;
         uint8_t Padding[16]; // Padding for Pools
     };
 
-    struct StreamData {
-        StreamData(
+    struct StreamContext {
+        StreamContext(
             _In_ ThroughputClient* Client,
             _In_ HQUIC Connection)
-            : Client{Client}, Connection{Connection} {
-
-        }
-        ThroughputClient* Client{ nullptr };
+            : Client{Client}, Connection{Connection} { }
+        ThroughputClient* Client;
         HQUIC Connection;
         StreamScope Stream;
+        uint64_t IdealSendBuffer{PERF_DEFAULT_SEND_BUFFER_SIZE};
+        uint64_t OutstandingBytes{0};
         uint64_t BytesSent{0};
         uint64_t BytesCompleted{0};
         uint64_t StartTime{0};
         uint64_t EndTime{0};
+        QUIC_BUFFER LastBuffer;
     };
 
     QUIC_STATUS
@@ -78,23 +76,30 @@ private:
     StreamCallback(
         _In_ HQUIC StreamHandle,
         _Inout_ QUIC_STREAM_EVENT* Event,
-        _Inout_ StreamData* StrmData
+        _Inout_ StreamContext* StrmData
+        );
+
+    void
+    SendData(
+        _In_ StreamContext* Context
         );
 
     MsQuicRegistration Registration;
     MsQuicSession Session{Registration, PERF_ALPN};
-    QuicPoolAllocator<StreamData> StreamDataAllocator;
+    QuicPoolAllocator<StreamContext> StreamContextAllocator;
     QuicPoolAllocator<ConnectionData> ConnectionDataAllocator;
-    QuicPoolAllocator<SendRequest> SendRequestAllocator;
-    QuicPoolBufferAllocator BufferAllocator;
     UniquePtr<char[]> TargetData;
-    uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_EVENT* StopEvent {nullptr};
+<<<<<<< HEAD
     uint64_t Length {0};
+=======
+    QUIC_BUFFER* DataBuffer {nullptr};
+>>>>>>> main
     uint8_t UseSendBuffer {TRUE};
-    QUIC_ADDR LocalIpAddr;
-    uint16_t RemoteFamily {AF_UNSPEC};
-    uint32_t IoSize {0};
-    uint32_t IoCount {0};
     uint8_t UseEncryption {TRUE};
+    QUIC_ADDR LocalIpAddr;
+    uint16_t Port {PERF_DEFAULT_PORT};
+    uint16_t RemoteFamily {AF_UNSPEC};
+    uint64_t Length {0};
+    uint32_t IoSize {0};
 };

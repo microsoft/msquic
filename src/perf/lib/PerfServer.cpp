@@ -46,11 +46,8 @@ PerfServer::PerfServer(
 }
 
 PerfServer::~PerfServer() {
-    if (DataBufferBuffered) {
-        QUIC_FREE(DataBufferBuffered);
-    }
-    if (DataBufferNonBuffered) {
-        QUIC_FREE(DataBufferNonBuffered);
+    if (DataBuffer) {
+        QUIC_FREE(DataBuffer);
     }
 }
 
@@ -76,24 +73,14 @@ PerfServer::Init(
         return Status;
     }
 
-    DataBufferBuffered = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE_BUFFERED);
-    if (!DataBufferBuffered) {
+    DataBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE);
+    if (!DataBuffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    DataBufferBuffered->Length = PERF_DEFAULT_IO_SIZE_BUFFERED;
-    DataBufferBuffered->Buffer = (uint8_t*)(DataBufferBuffered + 1);
-    for (uint32_t i = 0; i < PERF_DEFAULT_IO_SIZE_BUFFERED; ++i) {
-        DataBufferBuffered->Buffer[i] = (uint8_t)i;
-    }
-
-    DataBufferNonBuffered = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE_NONBUFFERED);
-    if (!DataBufferNonBuffered) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    DataBufferNonBuffered->Length = PERF_DEFAULT_IO_SIZE_BUFFERED;
-    DataBufferNonBuffered->Buffer = (uint8_t*)(DataBufferNonBuffered + 1);
-    for (uint32_t i = 0; i < PERF_DEFAULT_IO_SIZE_BUFFERED; ++i) {
-        DataBufferNonBuffered->Buffer[i] = (uint8_t)i;
+    DataBuffer->Length = PERF_DEFAULT_IO_SIZE;
+    DataBuffer->Buffer = (uint8_t*)(DataBuffer + 1);
+    for (uint32_t i = 0; i < PERF_DEFAULT_IO_SIZE; ++i) {
+        DataBuffer->Buffer[i] = (uint8_t)i;
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -173,7 +160,11 @@ PerfServer::ConnectionCallback(
         MsQuic->ConnectionClose(ConnectionHandle);
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
-        auto Context = StreamContextAllocator.Alloc(this, Event->PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+        auto Context =
+            StreamContextAllocator.Alloc(
+                this,
+                Event->PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
+                false); // TODO - Support buffered IO
         if (!Context) {
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
@@ -217,7 +208,7 @@ PerfServer::StreamCallback(
         }
         break;
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        Context->OutstandingSends--;
+        Context->OutstandingBytes -= ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length;
         if (!Event->SEND_COMPLETE.Canceled) {
             SendResponse(Context, StreamHandle);
         }
@@ -244,6 +235,13 @@ PerfServer::StreamCallback(
         MsQuic->StreamClose(StreamHandle);
         StreamContextAllocator.Free(Context);
         break;
+    case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
+        if (!Context->BufferedIo &&
+            Context->IdealSendBuffer < Event->IDEAL_SEND_BUFFER_SIZE.ByteCount) {
+            Context->IdealSendBuffer = Event->IDEAL_SEND_BUFFER_SIZE.ByteCount;
+            SendResponse(Context, StreamHandle);
+        }
+        break;
     default:
         break;
     }
@@ -258,11 +256,11 @@ PerfServer::SendResponse(
     )
 {
     while (Context->BytesSent < Context->ResponseSize &&
-           Context->OutstandingSends < Context->MaxOutstandingSends) {
+           Context->OutstandingBytes < Context->IdealSendBuffer) {
 
         uint64_t BytesLeftToSend = Context->ResponseSize - Context->BytesSent;
         uint32_t IoSize = Context->IoSize;
-        QUIC_BUFFER* Buffer = DataBufferNonBuffered; // TODO - Support buffered
+        QUIC_BUFFER* Buffer = DataBuffer;
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
 
         if ((uint64_t)IoSize >= BytesLeftToSend) {
@@ -274,8 +272,8 @@ PerfServer::SendResponse(
         }
 
         Context->BytesSent += IoSize;
-        Context->OutstandingSends++;
+        Context->OutstandingBytes += IoSize;
 
-        MsQuic->StreamSend(StreamHandle, Buffer, 1, Flags, nullptr);
+        MsQuic->StreamSend(StreamHandle, Buffer, 1, Flags, Buffer);
     }
 }
