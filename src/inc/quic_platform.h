@@ -17,8 +17,6 @@ Supported Environments:
 
 #pragma once
 
-#define QUIC_PLATFORM_H
-
 #define IS_POWER_OF_TWO(x) (((x) != 0) && (((x) & ((x) - 1)) == 0))
 
 //
