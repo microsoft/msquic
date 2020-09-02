@@ -622,7 +622,17 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
+                /* TODO:
+
+                    Currently deadlocks because it makes a blocking call to wait
+                    on the QUIC worker thread, but the worker thread tries to
+                    grab the same log when cleaning up the connections' streams.
+
+                    We're going to need some kind of ref counting solution on
+                    the stream handle instead of a lock in order to do this.
+
                 SpinQuicGetRandomParam(Stream);
+                */
             }
             break;
         }
