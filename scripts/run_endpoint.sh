@@ -32,10 +32,26 @@ babeltrace --names all -i lttng-live net://localhost/host/`hostname`/msquiclive 
 if [ "$ROLE" == "client" ]; then
     # Wait for the simulator to start up.
     /wait-for-it.sh sim:57832 -s -t 30
-    cd /downloads || exit
+    case "$TESTCASE" in
+    "resumption")
+        CLIENT_PARAMS="-test:R $CLIENT_PARAMS"
+        ;;
+    "versionnegotiation")
+        CLIENT_PARAMS="-test:V $CLIENT_PARAMS"
+        ;;
+    "handshake")
+        CLIENT_PARAMS="-test:H $CLIENT_PARAMS"
+        ;;
+    "zerortt")
+        CLIENT_PARAMS="-test:Z $CLIENT_PARAMS"
+        ;;
+    *)
+        ;;
+    esac
 
     # TODO: add client support
     # I am not sure if the msquic codebase has an h09 client?
+    quicinterop ${CLIENT_PARAMS} -custom:193.167.100.100 -port:443
     exit 127
 
 elif [ "$ROLE" == "server" ]; then
