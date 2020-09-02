@@ -14,18 +14,15 @@ Environment:
 
 --*/
 
-#ifndef QUIC_PLATFORM_
+#pragma once
+
+#ifndef QUIC_PLATFORM_TYPE
 #error "Must be included from quic_platform.h"
 #endif
 
 #ifdef _KERNEL_MODE
 #error "Incorrectly including Windows User Platform Header"
 #endif
-
-#ifndef _PLATFORM_WINDOWS_USER_
-#define _PLATFORM_WINDOWS_USER_
-
-#pragma once
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN 1
@@ -979,5 +976,3 @@ QuicPlatFreeSelfSignedCert(
 #if defined(__cplusplus)
 }
 #endif
-
-#endif // _PLATFORM_WINDOWS_USER_

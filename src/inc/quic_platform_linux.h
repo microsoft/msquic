@@ -13,16 +13,15 @@ Environment:
 
 --*/
 
-#ifndef QUIC_PLATFORM_
+#pragma once
+
+#ifndef QUIC_PLATFORM_TYPE
 #error "Must be included from quic_platform.h"
 #endif
 
 #ifndef QUIC_PLATFORM_LINUX
 #error "Incorrectly including Linux Platform Header from non-Linux platfrom"
 #endif
-
-#ifndef _PLATFORM_LINUX_
-#define _PLATFORM_LINUX_
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -799,5 +798,3 @@ QuicPlatFreeSelfSignedCert(
 #if defined(__cplusplus)
 }
 #endif
-
-#endif // _PLATFORM_LINUX_

@@ -78,9 +78,6 @@ Usage examples:
 
 #pragma once
 
-#ifndef QUIC_HASHTABLE_
-#define QUIC_HASHTABLE_
-
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 
 #define QUIC_HASH_ALLOCATED_HEADER 0x00000001
@@ -260,5 +257,3 @@ QuicHashSimple(
     }
     return Hash;
 }
-
-#endif // QUIC_HASHTABLE_

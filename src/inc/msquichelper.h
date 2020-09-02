@@ -13,12 +13,7 @@ Environment:
 
 --*/
 
-#ifndef _MSQUICHELPER_
-#define _MSQUICHELPER_
-
-#if _MSC_VER > 1000
 #pragma once
-#endif
 
 #include <quic_platform.h>
 #include <msquic.h>
@@ -598,5 +593,3 @@ TryGetValue(
 }
 
 #endif
-
-#endif // _MSQUICHELPER_

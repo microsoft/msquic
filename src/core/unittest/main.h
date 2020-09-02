@@ -5,6 +5,8 @@
 
 --*/
 
+#pragma once
+
 #include "precomp.h"
 
 #undef min // gtest headers conflict with previous definitions of min/max.

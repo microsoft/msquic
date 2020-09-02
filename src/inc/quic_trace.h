@@ -29,9 +29,6 @@ Abstract:
 
  --*/
 
-#ifndef _TRACE_H
-#define _TRACE_H
-
 #pragma once
 
 #if !defined(QUIC_CLOG)
@@ -271,5 +268,3 @@ QuicTraceStubVarArgs(
 #endif // QUIC_LOGS_MANIFEST_ETW
 
 #endif // QUIC_CLOG
-
-#endif // _TRACE_H
