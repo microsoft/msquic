@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #define QUIC_TEST_APIS 1
+#define _CRT_SECURE_NO_WARNINGS
 
 #include "platform_internal.h"
 #include "openssl/ssl.h"
@@ -268,12 +269,20 @@ Exit:
 static char* QuicTestCertFilename = (char*)"localhost_cert.pem";
 static char* QuicTestPrivateKeyFilename = (char*)"localhost_key.pem";
 
+#ifndef MAX_PATH
+#define MAX_PATH 50
+#endif
+
 typedef struct QUIC_SEC_CONFIG_PARAMS_INTERNAL {
     QUIC_SEC_CONFIG_PARAMS;
     QUIC_CERTIFICATE_FILE CertFile;
+#ifdef _WIN32
+    char TempPath [MAX_PATH];
+#else
     const char* TempDir;
-    char CertFilepath[50];
-    char PrivateKeyFilepath[50];
+#endif
+    char CertFilepath[MAX_PATH];
+    char PrivateKeyFilepath[MAX_PATH];
 
 } QUIC_SEC_CONFIG_PARAMS_INTERNAL;
 
@@ -299,6 +308,46 @@ QuicPlatGetSelfSignedCert(
     Params->CertFile.CertificateFile = Params->CertFilepath;
     Params->CertFile.PrivateKeyFile = Params->PrivateKeyFilepath;
 
+#ifdef _WIN32
+
+    DWORD PathStatus = GetTempPathA(sizeof(Params->TempPath), Params->TempPath);
+    if (PathStatus > MAX_PATH || PathStatus <= 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "GetTempPathA failed");
+        goto Error;
+    }
+
+    UINT TempFileStatus =
+        GetTempFileNameA(
+            Params->TempPath,
+            "msquicopensslcert",
+            0,
+            Params->CertFilepath);
+    if (TempFileStatus == 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "GetTempFileNameA Cert Path failed");
+        goto Error;
+    }
+
+    TempFileStatus =
+        GetTempFileNameA(
+            Params->TempPath,
+            "msquicopensslkey",
+            0,
+            Params->PrivateKeyFilepath);
+    if (TempFileStatus == 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "GetTempFileNameA Private Key failed");
+        goto Error;
+    }
+
+#else
     char* Template = (char*)(Params + 1);
     memcpy(Template, TEMP_DIR_TEMPLATE, sizeof(TEMP_DIR_TEMPLATE));
 
@@ -335,6 +384,7 @@ QuicPlatGetSelfSignedCert(
         Params->PrivateKeyFilepath + strlen(Params->TempDir) + 1,
         QuicTestPrivateKeyFilename,
         strlen(QuicTestPrivateKeyFilename));
+#endif
 
     if (QUIC_FAILED(
         QuicTlsGenerateSelfSignedCert(
@@ -348,6 +398,10 @@ QuicPlatGetSelfSignedCert(
 
 Error:
 
+#if _WIN32
+    DeleteFileA(Params->CertFilepath);
+    DeleteFileA(Params->PrivateKeyFilepath);
+#endif
     free(Params);
 
     return NULL;
@@ -362,6 +416,10 @@ QuicPlatFreeSelfSignedCert(
     QUIC_SEC_CONFIG_PARAMS_INTERNAL* Params =
         (QUIC_SEC_CONFIG_PARAMS_INTERNAL*)_Params;
 
+#ifdef _WIN32
+    DeleteFileA(Params->CertFilepath);
+    DeleteFileA(Params->PrivateKeyFilepath);
+#else
     char RmCmd[32] = {0};
     strncpy(RmCmd, "rm -rf ", 7 + 1);
     strcat(RmCmd, Params->TempDir);
@@ -371,6 +429,7 @@ QuicPlatFreeSelfSignedCert(
             "[ lib] ERROR, %s.",
             "Tempdir del error");
     }
+#endif
 
     free(Params);
 }
