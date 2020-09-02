@@ -226,7 +226,7 @@ MsQuicListenerStart(
             "[list][%p] ERROR, %s.",
             Listener,
             "Register with binding");
-        QuicRundownRelease(&Listener->Rundown);
+        QuicRundownReleaseAndWait(&Listener->Rundown);
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
