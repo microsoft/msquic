@@ -3631,6 +3631,9 @@ QuicConnRecvDecryptAndAuthenticate(
         Connection->Stats.Recv.DecryptionFailures++;
         QuicPacketLogDrop(Connection, Packet, "Decryption failure");
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL);
+        if (Connection->Stats.Recv.DecryptionFailures >= QUIC_AEAD_INTEGRITY_LIMIT) {
+            QuicConnTransportError(Connection, QUIC_ERROR_AEAD_LIMIT_REACHED);
+        }
 
         return FALSE;
     }

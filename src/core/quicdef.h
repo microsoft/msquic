@@ -409,6 +409,13 @@ QUIC_STATIC_ASSERT(
 //
 #define QUIC_TLS_RESUMPTION_TICKET_VERSION      1
 
+//
+// The AEAD Integrity limit for maximum failed decryption packets over the
+// lifetime of a connection. Set to the lowest limit, which is for
+// AEAD_AES_128_CCM at 2^23.5 (rounded down)
+//
+#define QUIC_AEAD_INTEGRITY_LIMIT               11863283
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/

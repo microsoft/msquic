@@ -2533,7 +2533,7 @@ QuicTlsHdkfExpand(
         goto Exit;
     }
 
-    if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, SecretLen) != 1) {
+    if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, (int)SecretLen) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -2542,7 +2542,7 @@ QuicTlsHdkfExpand(
         goto Exit;
     }
 
-    if (EVP_PKEY_CTX_add1_hkdf_info(KeyCtx, Info, InfoLen) != 1) {
+    if (EVP_PKEY_CTX_add1_hkdf_info(KeyCtx, Info, (int)InfoLen) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -2584,7 +2584,7 @@ QuicTlsHkdfExpandLabel(
     uint8_t Info[128] = {0};
     size_t InfoLen = sizeof(Info);
 
-    QuicTlsHkdfFormatLabel(Label, OutputBufferLen, Info, (uint32_t *)&InfoLen);
+    QuicTlsHkdfFormatLabel(Label, (uint16_t)OutputBufferLen, Info, (uint32_t *)&InfoLen);
 
     return
         QuicTlsHdkfExpand(
@@ -2610,8 +2610,8 @@ QuicTlsHkdfFormatLabel(
 
     QUIC_DBG_ASSERT((size_t)*DataLength >= (LabelLen + 10));
 
-    Data[0] = KeyLen / 256;
-    Data[1] = KeyLen % 256;
+    Data[0] = (uint8_t)(KeyLen / 256);
+    Data[1] = (uint8_t)(KeyLen % 256);
     Data[2] = (uint8_t)(QUIC_HKDF_PREFIX_LEN + LabelLen);
     memcpy(Data + 3, QUIC_HKDF_PREFIX, QUIC_HKDF_PREFIX_LEN);
     memcpy(Data + 3 + QUIC_HKDF_PREFIX_LEN, Label, LabelLen);
@@ -2979,7 +2979,7 @@ QuicTlsHkdfExtract(
         goto Exit;
     }
 
-    if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, Salt, SaltLen) != 1) {
+    if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, Salt, (int)SaltLen) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -2988,7 +2988,7 @@ QuicTlsHkdfExtract(
         goto Exit;
     }
 
-    if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, SecretLen) != 1) {
+    if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, (int)SecretLen) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -3013,7 +3013,7 @@ Exit:
         KeyCtx = NULL;
     }
 
-    return Ret;
+    return (BOOLEAN)Ret;
 }
 
 static
@@ -3063,7 +3063,7 @@ QuicTlsEncrypt(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            OutputBufferLen,
+            (unsigned)OutputBufferLen,
             "Incorrect output buffer length");
         Ret = -1;
         goto Exit;
@@ -3088,7 +3088,7 @@ QuicTlsEncrypt(
         goto Exit;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, NonceLen, NULL) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, (int)NonceLen, NULL) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -3107,7 +3107,7 @@ QuicTlsEncrypt(
     }
 
     if (Authdata != NULL) {
-        if (EVP_EncryptUpdate(CipherCtx, NULL, &Len, Authdata, AuthDataLen) != 1) {
+        if (EVP_EncryptUpdate(CipherCtx, NULL, &Len, Authdata, (int)AuthDataLen) != 1) {
             QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -3117,7 +3117,7 @@ QuicTlsEncrypt(
         }
     }
 
-    if (EVP_EncryptUpdate(CipherCtx, OutputBuffer, &Len, PlainText, PlainTextLen) != 1) {
+    if (EVP_EncryptUpdate(CipherCtx, OutputBuffer, &Len, PlainText, (int)PlainTextLen) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -3141,13 +3141,13 @@ QuicTlsEncrypt(
 
     QUIC_FRE_ASSERT(OutLen + TagLen <= OutputBufferLen);
 
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_GET_TAG, TagLen, OutputBuffer + OutLen) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_GET_TAG, (int)TagLen, OutputBuffer + OutLen) != 1) {
         Ret = -1;
         goto Exit;
     }
 
     OutLen += TagLen;
-    Ret = OutLen;
+    Ret = (int)OutLen;
 
 Exit:
 
@@ -3211,7 +3211,7 @@ QuicTlsDecrypt(
         goto Exit;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, NonceLen, NULL) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, (int)NonceLen, NULL) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -3233,7 +3233,7 @@ QuicTlsDecrypt(
     int Len;
 
     if (AuthData != NULL) {
-        if (EVP_DecryptUpdate(CipherCtx, NULL, &Len, AuthData, AuthDataLen) != 1) {
+        if (EVP_DecryptUpdate(CipherCtx, NULL, &Len, AuthData, (int)AuthDataLen) != 1) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
@@ -3243,7 +3243,7 @@ QuicTlsDecrypt(
         }
     }
 
-    if (EVP_DecryptUpdate(CipherCtx, OutputBuffer, &Len, CipherText, CipherTextLen) != 1) {
+    if (EVP_DecryptUpdate(CipherCtx, OutputBuffer, &Len, CipherText, (int)CipherTextLen) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -3254,7 +3254,7 @@ QuicTlsDecrypt(
 
     OutLen = Len;
 
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_TAG, TagLen, Tag) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_TAG, (int)TagLen, Tag) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -3273,7 +3273,7 @@ QuicTlsDecrypt(
     }
 
     OutLen += Len;
-    Ret = OutLen;
+    Ret = (int)OutLen;
 
 Exit:
 

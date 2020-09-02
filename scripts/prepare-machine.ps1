@@ -66,6 +66,26 @@ if ($IsWindows) {
         # TODO - Check for Windows preview
     }
 
+    if (($Configuration -eq "Dev") -or ($Configuration -eq "Build")) {
+        $NasmVersion = "2.15.05"
+        $NasmPath = Join-Path $env:Programfiles "nasm-$NasmVersion"
+        $NasmExe = Join-Path $NasmPath "nasm.exe"
+        if (!(Test-Path $NasmExe)) {
+            New-Item -Path .\build -ItemType Directory -Force
+            if ([System.Environment]::Is64BitOperatingSystem) {
+                Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-win64.zip" -OutFile "build\nasm.zip"
+            } else {
+                Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win32/nasm-$NasmVersion-win32.zip" -OutFile "build\nasm.zip"
+            }
+            Expand-Archive -Path "build\nasm.zip" -DestinationPath $env:Programfiles -Force
+            $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
+            $CurrentSystemPath = "$CurrentSystemPath;$NasmPath"
+            [Environment]::SetEnvironmentVariable("PATH", $CurrentSystemPath, [System.EnvironmentVariableTarget]::Machine)
+            Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH};$NasmPath"
+            Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
+        }
+    }
+
     if (($Configuration -eq "Dev") -or ($Configuration -eq "Test")) {
         Install-ClogTool "Microsoft.Logging.CLOG2Text.Windows"
     }

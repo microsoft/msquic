@@ -34,7 +34,7 @@ jobs:
          mkdir build
          cd build
          cmake ..
-         cmake --build . --target OpenSSL
+         cmake --build . --target OpenSSL_Build
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v1
