@@ -36,6 +36,7 @@ QuicCryptoDumpSendState(
     if (QuicTraceLogVerboseEnabled()) {
 
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+        UNREFERENCED_PARAMETER(Connection);
 
         QuicTraceLogConnVerbose(
             CryptoDump,
@@ -484,6 +485,8 @@ QuicCryptoWriteOneFrame(
     QUIC_DBG_ASSERT(CryptoOffset >= (Crypto->TlsState.BufferTotalLength - Crypto->TlsState.BufferLength));
 
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+    UNREFERENCED_PARAMETER(Connection);
+
     QUIC_CRYPTO_EX Frame = { CryptoOffset - EncryptLevelStart, 0, 0 };
     Frame.Data =
         Crypto->TlsState.Buffer +
