@@ -935,7 +935,8 @@ QuicPlatGetSelfSignedCert(
         return NULL;
     }
 
-    Params->Flags = QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT;
+    Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT;
+    Params->Flags = QUIC_CREDENTIAL_FLAG_NONE;
     Params->Certificate =
         FindOrCreateCertificate(
             Type == QUIC_SELF_SIGN_CERT_USER,

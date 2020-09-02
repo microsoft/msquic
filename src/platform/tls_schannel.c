@@ -824,6 +824,8 @@ QuicTlsSecConfigCreate(
     QUIC_DBG_ASSERT(CredConfig && CompletionHandler);
 
 #ifndef _KERNEL_MODE
+    PCERT_CONTEXT CertContext = NULL;
+
     if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_SYNCHRONOUS)) {
         return QUIC_STATUS_NOT_SUPPORTED;
     }
@@ -999,8 +1001,6 @@ QuicTlsSecConfigCreate(
         Credentials->dwFlags |= SCH_CRED_SNI_CREDENTIAL;
     }
 #else
-
-    PCERT_CONTEXT CertContext = NULL;
 
     Status =
         QuicCertCreate(

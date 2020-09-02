@@ -22,7 +22,7 @@ typedef void QUIC_CERT;
 //
 QUIC_STATUS
 QuicCertCreate(
-    _In_ uint32_t Flags,
+    _In_ uint32_t Type,
     _In_opt_ void* CertConfig,
     _In_opt_z_ const char* Principal,
     _Out_ QUIC_CERT** NewCertificate
