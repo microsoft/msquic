@@ -14,10 +14,9 @@ Environment:
 
 --*/
 
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#pragma once
 
-#ifndef QUIC_PLATFORM_DISPATCH_
-#define QUIC_PLATFORM_DISPATCH_
+#ifdef QUIC_PLATFORM_DISPATCH_TABLE
 
 #include "quic_platform.h"
 #include "quic_datapath.h"
@@ -269,7 +268,5 @@ typedef struct QUIC_PLATFORM_DISPATCH {
 } QUIC_PLATFORM_DISPATCH;
 
 extern QUIC_PLATFORM_DISPATCH* PlatDispatch;
-
-#endif // QUIC_PLATFORM_DISPATCH_
 
 #endif // QUIC_PLATFORM_DISPATCH_TABLE
