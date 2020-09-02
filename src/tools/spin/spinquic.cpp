@@ -262,6 +262,9 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
 
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
+        if (!GetRandom(20)) {
+            return QUIC_STATUS_CONNECTION_REFUSED;
+        }
         Event->NEW_CONNECTION.SecurityConfig = GlobalSecurityConfig;
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, nullptr);
         auto ctx = new SpinQuicConnection(Event->NEW_CONNECTION.Connection);
