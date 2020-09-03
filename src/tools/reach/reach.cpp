@@ -65,7 +65,7 @@ QUIC_THREAD_CALLBACK(TestReachability, Context)
     Alpn.Length = (uint32_t)strlen((char*)Context);
 
     HQUIC Session = nullptr;
-    if (QUIC_FAILED(MsQuic->SessionOpen(Registration, &Alpn, 1, nullptr, &Session))) {
+    if (QUIC_FAILED(MsQuic->SessionOpen(Registration, 0, NULL, &Alpn, 1, nullptr, &Session))) {
         printf("SessionOpen failed.\n");
         exit(1);
     }

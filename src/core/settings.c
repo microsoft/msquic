@@ -189,6 +189,124 @@ QuicSettingsCopy(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicSettingApply(
+    _Inout_ QUIC_SETTINGS* Settings,
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), >=)
+        uint32_t NewSessionSize,
+    _In_reads_bytes_(NewSessionSize)
+        const QUIC_SETTINGS* NewSettings
+    )
+{
+    // TODO - Input validation
+    UNREFERENCED_PARAMETER(NewSessionSize); // TODO - Use to validate new settings
+    if (NewSettings->IsSet.PacingEnabled) {
+        Settings->PacingEnabled = NewSettings->PacingEnabled;
+        Settings->IsSet.PacingEnabled = TRUE;
+    }
+    if (NewSettings->IsSet.MigrationEnabled) {
+        Settings->MigrationEnabled = NewSettings->MigrationEnabled;
+        Settings->IsSet.MigrationEnabled = TRUE;
+    }
+    if (NewSettings->IsSet.DatagramReceiveEnabled) {
+        Settings->DatagramReceiveEnabled = NewSettings->DatagramReceiveEnabled;
+        Settings->IsSet.DatagramReceiveEnabled = TRUE;
+    }
+    if (NewSettings->IsSet.MaxPartitionCount) {
+        Settings->MaxPartitionCount = NewSettings->MaxPartitionCount;
+        Settings->IsSet.MaxPartitionCount = TRUE;
+    }
+    if (NewSettings->IsSet.MaxOperationsPerDrain) {
+        Settings->MaxOperationsPerDrain = NewSettings->MaxOperationsPerDrain;
+        Settings->IsSet.MaxOperationsPerDrain = TRUE;
+    }
+    if (NewSettings->IsSet.RetryMemoryLimit) {
+        Settings->RetryMemoryLimit = NewSettings->RetryMemoryLimit;
+        Settings->IsSet.RetryMemoryLimit = TRUE;
+    }
+    if (NewSettings->IsSet.LoadBalancingMode) {
+        Settings->LoadBalancingMode = NewSettings->LoadBalancingMode;
+        Settings->IsSet.LoadBalancingMode = TRUE;
+    }
+    if (NewSettings->IsSet.MaxWorkerQueueDelayUs) {
+        Settings->MaxWorkerQueueDelayUs = NewSettings->MaxWorkerQueueDelayUs;
+        Settings->IsSet.MaxWorkerQueueDelayUs = TRUE;
+    }
+    if (NewSettings->IsSet.MaxStatelessOperations) {
+        Settings->MaxStatelessOperations = NewSettings->MaxStatelessOperations;
+        Settings->IsSet.MaxStatelessOperations = TRUE;
+    }
+    if (NewSettings->IsSet.InitialWindowPackets) {
+        Settings->InitialWindowPackets = NewSettings->InitialWindowPackets;
+        Settings->IsSet.InitialWindowPackets = TRUE;
+    }
+    if (NewSettings->IsSet.SendIdleTimeoutMs) {
+        Settings->SendIdleTimeoutMs = NewSettings->SendIdleTimeoutMs;
+        Settings->IsSet.SendIdleTimeoutMs = TRUE;
+    }
+    if (NewSettings->IsSet.InitialRttMs) {
+        Settings->InitialRttMs = NewSettings->InitialRttMs;
+        Settings->IsSet.InitialRttMs = TRUE;
+    }
+    if (NewSettings->IsSet.MaxAckDelayMs) {
+        Settings->MaxAckDelayMs = NewSettings->MaxAckDelayMs;
+        Settings->IsSet.MaxAckDelayMs = TRUE;
+    }
+    if (NewSettings->IsSet.DisconnectTimeoutMs) {
+        Settings->DisconnectTimeoutMs = NewSettings->DisconnectTimeoutMs;
+        Settings->IsSet.DisconnectTimeoutMs = TRUE;
+    }
+    if (NewSettings->IsSet.KeepAliveIntervalMs) {
+        Settings->KeepAliveIntervalMs = NewSettings->KeepAliveIntervalMs;
+        Settings->IsSet.KeepAliveIntervalMs = TRUE;
+    }
+    if (NewSettings->IsSet.IdleTimeoutMs) {
+        Settings->IdleTimeoutMs = NewSettings->IdleTimeoutMs;
+        Settings->IsSet.IdleTimeoutMs = TRUE;
+    }
+    if (NewSettings->IsSet.HandshakeIdleTimeoutMs) {
+        Settings->HandshakeIdleTimeoutMs = NewSettings->HandshakeIdleTimeoutMs;
+        Settings->IsSet.HandshakeIdleTimeoutMs = TRUE;
+    }
+    if (NewSettings->IsSet.BidiStreamCount) {
+        Settings->BidiStreamCount = NewSettings->BidiStreamCount;
+        Settings->IsSet.BidiStreamCount = TRUE;
+    }
+    if (NewSettings->IsSet.UnidiStreamCount) {
+        Settings->UnidiStreamCount = NewSettings->UnidiStreamCount;
+        Settings->IsSet.UnidiStreamCount = TRUE;
+    }
+    if (NewSettings->IsSet.TlsClientMaxSendBuffer) {
+        Settings->TlsClientMaxSendBuffer = NewSettings->TlsClientMaxSendBuffer;
+        Settings->IsSet.TlsClientMaxSendBuffer = TRUE;
+    }
+    if (NewSettings->IsSet.TlsClientMaxSendBuffer) {
+        Settings->TlsClientMaxSendBuffer = NewSettings->TlsClientMaxSendBuffer;
+        Settings->IsSet.TlsClientMaxSendBuffer = TRUE;
+    }
+    if (NewSettings->IsSet.StreamRecvWindowDefault) {
+        Settings->StreamRecvWindowDefault = NewSettings->StreamRecvWindowDefault;
+        Settings->IsSet.StreamRecvWindowDefault = TRUE;
+    }
+    if (NewSettings->IsSet.StreamRecvBufferDefault) {
+        Settings->StreamRecvBufferDefault = NewSettings->StreamRecvBufferDefault;
+        Settings->IsSet.StreamRecvBufferDefault = TRUE;
+    }
+    if (NewSettings->IsSet.ConnFlowControlWindow) {
+        Settings->ConnFlowControlWindow = NewSettings->ConnFlowControlWindow;
+        Settings->IsSet.ConnFlowControlWindow = TRUE;
+    }
+    if (NewSettings->IsSet.MaxBytesPerKey) {
+        Settings->MaxBytesPerKey = NewSettings->MaxBytesPerKey;
+        Settings->IsSet.MaxBytesPerKey = TRUE;
+    }
+    if (NewSettings->IsSet.ServerResumptionLevel) {
+        Settings->ServerResumptionLevel = NewSettings->ServerResumptionLevel;
+        Settings->IsSet.ServerResumptionLevel = TRUE;
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicSettingsLoad(
     _Inout_ QUIC_SETTINGS* Settings,
     _In_ QUIC_STORAGE* Storage

@@ -41,6 +41,12 @@ void QuicTestValidateSession()
 
     HQUIC Session = nullptr;
 
+    QUIC_SETTINGS EmptySettings{0};
+
+    QUIC_SETTINGS GoodSettings{0};
+    GoodSettings.IdleTimeoutMs = 30000;
+    GoodSettings.IsSet.IdleTimeoutMs = TRUE;
+
     const char RawGoodAlpn[]    = "Alpn";
     const char RawEmptyAlpn[]   = "";
     const char RawLongAlpn[]    = "makethisstringjuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuustright";
@@ -58,6 +64,8 @@ void QuicTestValidateSession()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->SessionOpen(
             TestReg,
+            0,
+            nullptr,
             &GoodAlpn,
             1,
             nullptr,
@@ -70,10 +78,50 @@ void QuicTestValidateSession()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->SessionOpen(
             nullptr,
+            0,
+            nullptr,
             &GoodAlpn,
             1,
             nullptr,
             &Session));
+
+    //
+    // Null settings.
+    //
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SessionOpen(
+            TestReg,
+            0,
+            nullptr,
+            &GoodAlpn,
+            1,
+            nullptr,
+            &Session));
+
+    MsQuic->SessionClose(
+        Session);
+    Session = nullptr;
+
+    //
+    // Good settings.
+    //
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SessionOpen(
+            TestReg,
+            sizeof(GoodSettings),
+            &GoodSettings,
+            &GoodAlpn,
+            1,
+            nullptr,
+            &Session));
+
+    MsQuic->SessionClose(
+        Session);
+    Session = nullptr;
+
+    //
+    // Invalid settings - TODO
+    //
 
     //
     // Null ALPN.
@@ -82,6 +130,8 @@ void QuicTestValidateSession()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->SessionOpen(
             TestReg,
+            0,
+            nullptr,
             nullptr,
             0,
             nullptr,
@@ -94,6 +144,8 @@ void QuicTestValidateSession()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->SessionOpen(
             TestReg,
+            0,
+            nullptr,
             &EmptyAlpn,
             1,
             nullptr,
@@ -105,6 +157,8 @@ void QuicTestValidateSession()
     TEST_QUIC_SUCCEEDED(
         MsQuic->SessionOpen(
             TestReg,
+            0,
+            nullptr,
             &LongAlpn,
             1,
             nullptr,
@@ -121,6 +175,8 @@ void QuicTestValidateSession()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->SessionOpen(
             TestReg,
+            0,
+            nullptr,
             &TooLongAlpn,
             1,
             nullptr,
@@ -136,6 +192,8 @@ void QuicTestValidateSession()
     TEST_QUIC_SUCCEEDED(
         MsQuic->SessionOpen(
             TestReg,
+            0,
+            nullptr,
             TwoAlpns,
             2,
             nullptr,
@@ -153,6 +211,8 @@ void QuicTestValidateSession()
     TEST_QUIC_SUCCEEDED(
         MsQuic->SessionOpen(
             TestReg,
+            0,
+            nullptr,
             &GoodAlpn,
             1,
             nullptr,
@@ -212,70 +272,6 @@ void QuicTestValidateSession()
             sizeof(TicketKey),
             TicketKey));
 #endif
-
-    //
-    // Server resumption level - invalid level
-    //
-    QUIC_SERVER_RESUMPTION_LEVEL Level = (QUIC_SERVER_RESUMPTION_LEVEL) 0xff;
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-            sizeof(Level),
-            nullptr));
-
-    //
-    // Server resumption level - Invalid length
-    //
-    Level = QUIC_SERVER_RESUME_ONLY;
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-            0,
-            &Level));
-
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-            sizeof(Level) - 1,
-            &Level));
-
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-            sizeof(Level) + 1,
-            &Level));
-
-    //
-    // Server resumption level - NULL level
-    //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-            sizeof(Level),
-            nullptr));
-
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-            sizeof(Level),
-            &Level));
 
     MsQuic->SessionClose(
         Session);

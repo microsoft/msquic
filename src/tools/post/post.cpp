@@ -148,7 +148,7 @@ main(
     EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
     const QUIC_REGISTRATION_CONFIG RegConfig = { "post", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
     EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
-    EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, ALPNs, ARRAYSIZE(ALPNs), nullptr, &Session));
+    EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, 0, NULL, ALPNs, ARRAYSIZE(ALPNs), nullptr, &Session));
     EXIT_ON_FAILURE(MsQuic->ConnectionOpen(Session, ConnectionHandler, nullptr, &Connection));
     EXIT_ON_FAILURE(MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS, sizeof(CertificateValidationFlags), &CertificateValidationFlags));
     EXIT_ON_FAILURE(MsQuic->StreamOpen(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, StreamHandler, nullptr, &Stream));

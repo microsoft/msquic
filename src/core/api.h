@@ -47,6 +47,9 @@ QUIC_STATUS
 QUIC_API
 MsQuicSessionOpen(
     _In_ _Pre_defensive_ HQUIC RegistrationContext,
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_opt_(SettingsSize)
+        const QUIC_SETTINGS* Settings,
     _In_reads_(AlpnBufferCount) _Pre_defensive_
         const QUIC_BUFFER* const AlpnBuffers,
     _In_ uint32_t AlpnBufferCount,

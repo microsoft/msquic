@@ -330,31 +330,10 @@ void SpinQuicSetRandomSesssioParam(HQUIC Session)
     SetParamHelper Helper(QUIC_PARAM_LEVEL_SESSION);
     uint8_t TlsTicket[44];
 
-    switch (GetRandom(8)) {
+    switch (GetRandom(2)) {
     case QUIC_PARAM_SESSION_TLS_TICKET_KEY:                         // uint8_t[44]
         QuicRandom(sizeof(TlsTicket), TlsTicket);
         Helper.SetPtr(QUIC_PARAM_SESSION_TLS_TICKET_KEY, TlsTicket, sizeof(TlsTicket));
-        break;
-    case QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT:                 // uint16_t
-        Helper.SetUint16(QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, (uint16_t)GetRandom(10));
-        break;
-    case QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT:                // uint16_t
-        Helper.SetUint16(QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, (uint16_t)GetRandom(10));
-        break;
-    case QUIC_PARAM_SESSION_IDLE_TIMEOUT:                           // uint64_t - milliseconds
-        Helper.SetUint64(QUIC_PARAM_SESSION_IDLE_TIMEOUT, GetRandom(32000));
-        break;
-    case QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT:                     // uint32_t - milliseconds
-        Helper.SetUint32(QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT, GetRandom(32000));
-        break;
-    case QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY:                      // uint64_t - bytes
-        Helper.SetUint64(QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY, GetRandom(32000));
-        break;
-    case QUIC_PARAM_SESSION_MIGRATION_ENABLED:                      // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_SESSION_MIGRATION_ENABLED, (uint8_t)GetRandom(2));
-        break;
-    case QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED:               // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED, (uint8_t)GetRandom(2));
         break;
     default:
         break;
@@ -438,7 +417,7 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 const uint32_t ParamCounts[] = {
     QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE + 1,
     QUIC_PARAM_REGISTRATION_CID_PREFIX + 1,
-    QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL + 1,
+    QUIC_PARAM_SESSION_TLS_TICKET_KEY + 1,
     QUIC_PARAM_LISTENER_STATS + 1,
     QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION + 1,
     0,
@@ -891,19 +870,21 @@ main(int argc, char **argv)
 
         ASSERT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
 
+        QUIC_SETTINGS QuicSettings{0};
+        QuicSettings.BidiStreamCount = GetRandom((uint16_t)10);
+        QuicSettings.IsSet.BidiStreamCount = TRUE;
+        QuicSettings.UnidiStreamCount = GetRandom((uint16_t)10);
+        QuicSettings.IsSet.UnidiStreamCount = TRUE;
+        // TODO - Randomize more of the settings.
+
         if (SessionCount == 1) {
             QUIC_BUFFER AlpnBuffer;
             AlpnBuffer.Length = (uint32_t)strlen(Settings.AlpnPrefix);
             AlpnBuffer.Buffer = (uint8_t*)Settings.AlpnPrefix;
 
             HQUIC Session;
-            ASSERT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
+            ASSERT_ON_FAILURE(MsQuic->SessionOpen(Registration, sizeof(QuicSettings), &QuicSettings, &AlpnBuffer, 1, nullptr, &Session));
             Sessions.push_back(Session);
-
-            // Configure Session
-            auto PeerStreamCount = GetRandom((uint16_t)10);
-            ASSERT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
-            ASSERT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
 
         } else {
             QUIC_BUFFER AlpnBuffer;
@@ -917,13 +898,8 @@ main(int argc, char **argv)
                 AlpnBuffer.Buffer[AlpnBuffer.Length-1] = (uint8_t)j;
 
                 HQUIC Session;
-                ASSERT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
+                ASSERT_ON_FAILURE(MsQuic->SessionOpen(Registration, sizeof(QuicSettings), &QuicSettings, &AlpnBuffer, 1, nullptr, &Session));
                 Sessions.push_back(Session);
-
-                // Configure Session
-                auto PeerStreamCount = GetRandom((uint16_t)10);
-                ASSERT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
-                ASSERT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
             }
 
             free(AlpnBuffer.Buffer);

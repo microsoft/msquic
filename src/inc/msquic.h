@@ -334,35 +334,38 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
 
 typedef struct QUIC_SETTINGS {
 
-    struct {
-        uint64_t PacingEnabled              : 1;
-        uint64_t MigrationEnabled           : 1;
-        uint64_t DatagramReceiveEnabled     : 1;
-        uint64_t ServerResumptionLevel      : 1;
-        uint64_t MaxPartitionCount          : 1;
-        uint64_t MaxOperationsPerDrain      : 1;
-        uint64_t RetryMemoryLimit           : 1;
-        uint64_t LoadBalancingMode          : 1;
-        uint64_t MaxWorkerQueueDelayUs      : 1;
-        uint64_t MaxStatelessOperations     : 1;
-        uint64_t InitialWindowPackets       : 1;
-        uint64_t SendIdleTimeoutMs          : 1;
-        uint64_t InitialRttMs               : 1;
-        uint64_t MaxAckDelayMs              : 1;
-        uint64_t DisconnectTimeoutMs        : 1;
-        uint64_t KeepAliveIntervalMs        : 1;
-        uint64_t IdleTimeoutMs              : 1;
-        uint64_t HandshakeIdleTimeoutMs     : 1;
-        uint64_t BidiStreamCount            : 1;
-        uint64_t UnidiStreamCount           : 1;
-        uint64_t TlsClientMaxSendBuffer     : 1;
-        uint64_t TlsServerMaxSendBuffer     : 1;
-        uint64_t StreamRecvWindowDefault    : 1;
-        uint64_t StreamRecvBufferDefault    : 1;
-        uint64_t ConnFlowControlWindow      : 1;
-        uint64_t MaxBytesPerKey             : 1;
-        uint64_t RESERVED                   : 38;
-    } IsSet;
+    union {
+        uint64_t IsSetFlags;
+        struct {
+            uint64_t PacingEnabled              : 1;
+            uint64_t MigrationEnabled           : 1;
+            uint64_t DatagramReceiveEnabled     : 1;
+            uint64_t ServerResumptionLevel      : 1;
+            uint64_t MaxPartitionCount          : 1;
+            uint64_t MaxOperationsPerDrain      : 1;
+            uint64_t RetryMemoryLimit           : 1;
+            uint64_t LoadBalancingMode          : 1;
+            uint64_t MaxWorkerQueueDelayUs      : 1;
+            uint64_t MaxStatelessOperations     : 1;
+            uint64_t InitialWindowPackets       : 1;
+            uint64_t SendIdleTimeoutMs          : 1;
+            uint64_t InitialRttMs               : 1;
+            uint64_t MaxAckDelayMs              : 1;
+            uint64_t DisconnectTimeoutMs        : 1;
+            uint64_t KeepAliveIntervalMs        : 1;
+            uint64_t IdleTimeoutMs              : 1;
+            uint64_t HandshakeIdleTimeoutMs     : 1;
+            uint64_t BidiStreamCount            : 1;
+            uint64_t UnidiStreamCount           : 1;
+            uint64_t TlsClientMaxSendBuffer     : 1;
+            uint64_t TlsServerMaxSendBuffer     : 1;
+            uint64_t StreamRecvWindowDefault    : 1;
+            uint64_t StreamRecvBufferDefault    : 1;
+            uint64_t ConnFlowControlWindow      : 1;
+            uint64_t MaxBytesPerKey             : 1;
+            uint64_t RESERVED                   : 38;
+        } IsSet;
+    };
 
     uint8_t PacingEnabled           : 1;
     uint8_t MigrationEnabled        : 1;
@@ -457,14 +460,6 @@ typedef enum QUIC_PARAM_LEVEL {
 // Parameters for QUIC_PARAM_LEVEL_SESSION.
 //
 #define QUIC_PARAM_SESSION_TLS_TICKET_KEY               0   // uint8_t[44]
-#define QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT       1   // uint16_t
-#define QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT      2   // uint16_t
-#define QUIC_PARAM_SESSION_IDLE_TIMEOUT                 3   // uint64_t - milliseconds
-#define QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT           4   // uint32_t - milliseconds
-#define QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY            5   // uint64_t - bytes
-#define QUIC_PARAM_SESSION_MIGRATION_ENABLED            6   // uint8_t (BOOLEAN)
-#define QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED     7   // uint8_t (BOOLEAN)
-#define QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL      8   // QUIC_SERVER_RESUMPTION_LEVEL
 
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
@@ -635,6 +630,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_SESSION_OPEN_FN)(
     _In_ _Pre_defensive_ HQUIC Registration,
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_opt_(SettingsSize)
+        const QUIC_SETTINGS* Settings,
     _In_reads_(AlpnBufferCount) _Pre_defensive_
         const QUIC_BUFFER* const AlpnBuffers,
     _In_range_(>, 0) uint32_t AlpnBufferCount,

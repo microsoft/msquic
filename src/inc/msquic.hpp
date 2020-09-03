@@ -254,6 +254,8 @@ public:
                 InitStatus =
                     MsQuic->SessionOpen(
                     Reg,
+                    0,
+                    NULL,
                     &Alpn,
                     1,
                     nullptr,
@@ -273,6 +275,8 @@ public:
             InitStatus =
                 MsQuic->SessionOpen(
                     Registration,
+                    0,
+                    NULL,
                     &Alpn,
                     1,
                     nullptr,
@@ -291,6 +295,8 @@ public:
             InitStatus =
                 MsQuic->SessionOpen(
                     Registration,
+                    0,
+                    NULL,
                     Alpns,
                     ARRAYSIZE(Alpns),
                     nullptr,
@@ -341,7 +347,7 @@ public:
                 44,
                 Buffer);
     }
-    QUIC_STATUS
+    /*QUIC_STATUS
     SetPeerBidiStreamCount(
         uint16_t value
         ) noexcept {
@@ -425,7 +431,7 @@ public:
                 QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
                 sizeof(Level),
                 &Level);
-    }
+    }*/
 };
 
 struct MsQuicListener {
