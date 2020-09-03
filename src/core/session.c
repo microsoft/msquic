@@ -941,7 +941,7 @@ QuicSessionParamSet(
             break;
         }
 
-        Session->Settings.AppSet.BidiStreamCount = TRUE;
+        Session->Settings.IsSet.BidiStreamCount = TRUE;
         Session->Settings.BidiStreamCount = *(uint16_t*)Buffer;
 
         QuicTraceLogInfo(
@@ -961,7 +961,7 @@ QuicSessionParamSet(
             break;
         }
 
-        Session->Settings.AppSet.UnidiStreamCount = TRUE;
+        Session->Settings.IsSet.UnidiStreamCount = TRUE;
         Session->Settings.UnidiStreamCount = *(uint16_t*)Buffer;
 
         QuicTraceLogInfo(
@@ -981,7 +981,7 @@ QuicSessionParamSet(
             break;
         }
 
-        Session->Settings.AppSet.IdleTimeoutMs = TRUE;
+        Session->Settings.IsSet.IdleTimeoutMs = TRUE;
         Session->Settings.IdleTimeoutMs = *(uint64_t*)Buffer;
 
         QuicTraceLogInfo(
@@ -1001,7 +1001,7 @@ QuicSessionParamSet(
             break;
         }
 
-        Session->Settings.AppSet.DisconnectTimeoutMs = TRUE;
+        Session->Settings.IsSet.DisconnectTimeoutMs = TRUE;
         Session->Settings.DisconnectTimeoutMs = *(uint32_t*)Buffer;
 
         QuicTraceLogInfo(
@@ -1061,7 +1061,7 @@ QuicSessionParamSet(
             break;
         }
 
-        Session->Settings.AppSet.MaxBytesPerKey = TRUE;
+        Session->Settings.IsSet.MaxBytesPerKey = TRUE;
         Session->Settings.MaxBytesPerKey = NewValue;
 
         QuicTraceLogInfo(
@@ -1080,7 +1080,7 @@ QuicSessionParamSet(
             break;
         }
 
-        Session->Settings.AppSet.MigrationEnabled = TRUE;
+        Session->Settings.IsSet.MigrationEnabled = TRUE;
         Session->Settings.MigrationEnabled = *(BOOLEAN*)Buffer;
 
         QuicTraceLogInfo(
@@ -1099,7 +1099,7 @@ QuicSessionParamSet(
             break;
         }
 
-        Session->Settings.AppSet.DatagramReceiveEnabled = TRUE;
+        Session->Settings.IsSet.DatagramReceiveEnabled = TRUE;
         Session->Settings.DatagramReceiveEnabled = *(BOOLEAN*)Buffer;
 
         QuicTraceLogInfo(
@@ -1120,7 +1120,7 @@ QuicSessionParamSet(
             break;
         }
 
-        Session->Settings.AppSet.ServerResumptionLevel = TRUE;
+        Session->Settings.IsSet.ServerResumptionLevel = TRUE;
         Session->Settings.ServerResumptionLevel =
             *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer;
 

@@ -571,7 +571,7 @@ QuicLibrarySetGlobalParam(
         }
 
         MsQuicLib.Settings.RetryMemoryLimit = *(uint16_t*)Buffer;
-        MsQuicLib.Settings.AppSet.RetryMemoryLimit = TRUE;
+        MsQuicLib.Settings.IsSet.RetryMemoryLimit = TRUE;
         QuicTraceLogInfo(
             LibraryRetryMemoryLimitSet,
             "[ lib] Updated retry memory limit = %hu",
@@ -602,7 +602,7 @@ QuicLibrarySetGlobalParam(
         }
 
         MsQuicLib.Settings.LoadBalancingMode = *(uint16_t*)Buffer;
-        MsQuicLib.Settings.AppSet.LoadBalancingMode = TRUE;
+        MsQuicLib.Settings.IsSet.LoadBalancingMode = TRUE;
         QuicTraceLogInfo(
             LibraryLoadBalancingModeSet,
             "[ lib] Updated load balancing mode = %hu",

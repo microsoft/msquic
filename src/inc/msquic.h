@@ -110,6 +110,12 @@ typedef enum QUIC_CONNECTION_SHUTDOWN_FLAGS {
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CONNECTION_SHUTDOWN_FLAGS);
 
+typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
+    QUIC_SERVER_NO_RESUME,
+    QUIC_SERVER_RESUME_ONLY,
+    QUIC_SERVER_RESUME_AND_ZERORTT
+} QUIC_SERVER_RESUMPTION_LEVEL;
+
 typedef enum QUIC_SEND_RESUMPTION_FLAGS {
     QUIC_SEND_RESUMPTION_FLAG_NONE          = 0x0000,
     QUIC_SEND_RESUMPTION_FLAG_FINAL         = 0x0001    // Free TLS state after sending this ticket.
@@ -326,6 +332,68 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_MAX
 } QUIC_PERFORMANCE_COUNTERS;
 
+typedef struct QUIC_SETTINGS {
+
+    struct {
+        uint64_t PacingEnabled              : 1;
+        uint64_t MigrationEnabled           : 1;
+        uint64_t DatagramReceiveEnabled     : 1;
+        uint64_t ServerResumptionLevel      : 1;
+        uint64_t MaxPartitionCount          : 1;
+        uint64_t MaxOperationsPerDrain      : 1;
+        uint64_t RetryMemoryLimit           : 1;
+        uint64_t LoadBalancingMode          : 1;
+        uint64_t MaxWorkerQueueDelayUs      : 1;
+        uint64_t MaxStatelessOperations     : 1;
+        uint64_t InitialWindowPackets       : 1;
+        uint64_t SendIdleTimeoutMs          : 1;
+        uint64_t InitialRttMs               : 1;
+        uint64_t MaxAckDelayMs              : 1;
+        uint64_t DisconnectTimeoutMs        : 1;
+        uint64_t KeepAliveIntervalMs        : 1;
+        uint64_t IdleTimeoutMs              : 1;
+        uint64_t HandshakeIdleTimeoutMs     : 1;
+        uint64_t BidiStreamCount            : 1;
+        uint64_t UnidiStreamCount           : 1;
+        uint64_t TlsClientMaxSendBuffer     : 1;
+        uint64_t TlsServerMaxSendBuffer     : 1;
+        uint64_t StreamRecvWindowDefault    : 1;
+        uint64_t StreamRecvBufferDefault    : 1;
+        uint64_t ConnFlowControlWindow      : 1;
+        uint64_t MaxBytesPerKey             : 1;
+        uint64_t RESERVED                   : 38;
+    } IsSet;
+
+    uint8_t PacingEnabled           : 1;
+    uint8_t MigrationEnabled        : 1;
+    uint8_t DatagramReceiveEnabled  : 1;
+    uint8_t ServerResumptionLevel   : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
+    uint8_t RESERVED                : 3;
+    uint8_t MaxPartitionCount;              // Global only
+    uint8_t MaxOperationsPerDrain;          // Global only
+    uint16_t RetryMemoryLimit;              // Global only
+    uint16_t LoadBalancingMode;             // Global only
+    uint32_t MaxWorkerQueueDelayUs;
+    uint32_t MaxStatelessOperations;
+    uint32_t InitialWindowPackets;
+    uint32_t SendIdleTimeoutMs;
+    uint32_t InitialRttMs;
+    uint32_t MaxAckDelayMs;
+    uint32_t DisconnectTimeoutMs;
+    uint32_t KeepAliveIntervalMs;
+    uint64_t HandshakeIdleTimeoutMs;
+    uint64_t IdleTimeoutMs;
+    uint16_t BidiStreamCount;
+    uint16_t UnidiStreamCount;
+    uint32_t TlsClientMaxSendBuffer;
+    uint32_t TlsServerMaxSendBuffer;
+    uint32_t StreamRecvWindowDefault;
+    uint32_t StreamRecvBufferDefault;
+    uint32_t ConnFlowControlWindow;
+    uint64_t MaxBytesPerKey;
+
+} QUIC_SETTINGS;
+
 //
 // Functions for associating application contexts with QUIC handles.
 //
@@ -371,12 +439,6 @@ typedef enum QUIC_PARAM_LEVEL {
     QUIC_PARAM_LEVEL_TLS,
     QUIC_PARAM_LEVEL_STREAM
 } QUIC_PARAM_LEVEL;
-
-typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
-    QUIC_SERVER_NO_RESUME,
-    QUIC_SERVER_RESUME_ONLY,
-    QUIC_SERVER_RESUME_AND_ZERORTT
-} QUIC_SERVER_RESUMPTION_LEVEL;
 
 //
 // Parameters for QUIC_PARAM_LEVEL_GLOBAL.

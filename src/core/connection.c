@@ -379,7 +379,7 @@ QuicConnApplySettings(
     _In_ const QUIC_SETTINGS* Settings
     )
 {
-    Connection->State.UsePacing = Settings->PacingDefault;
+    Connection->State.UsePacing = Settings->PacingEnabled;
     Connection->MaxAckDelayMs = Settings->MaxAckDelayMs;
     Connection->Paths[0].SmoothedRtt = MS_TO_US(Settings->InitialRttMs);
     Connection->Paths[0].RttVariance = Connection->Paths[0].SmoothedRtt / 2;
