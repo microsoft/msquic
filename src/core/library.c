@@ -200,7 +200,7 @@ MsQuicLibraryInitialize(
     //
     MsQuicLib.ProcessorCount = (uint16_t) QuicProcActiveCount();
     QUIC_FRE_ASSERT(MsQuicLib.ProcessorCount > 0);
-    MsQuicLib.PartitionCount = (uint8_t)MsQuicLib.ProcessorCount;
+    MsQuicLib.PartitionCount = (uint8_t)min(MsQuicLib.ProcessorCount, UINT8_MAX-1);
     if (MsQuicLib.PartitionCount  > (uint32_t)MsQuicLib.Settings.MaxPartitionCount) {
         MsQuicLib.PartitionCount  = (uint32_t)MsQuicLib.Settings.MaxPartitionCount;
     }
