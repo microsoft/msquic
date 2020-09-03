@@ -52,7 +52,6 @@ if [ "$ROLE" == "client" ]; then
     # TODO: add client support
     # I am not sure if the msquic codebase has an h09 client?
     quicinterop ${CLIENT_PARAMS} -custom:server -port:443
-    exit 127
 
 elif [ "$ROLE" == "server" ]; then
     case "$TESTCASE" in
