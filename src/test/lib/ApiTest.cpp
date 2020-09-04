@@ -293,7 +293,7 @@ DummyListenerCallback(
 
 void QuicTestValidateListener()
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
 
     HQUIC Listener = nullptr;
@@ -511,11 +511,10 @@ ListenerFailSendResumeCallback(
 
 void QuicTestValidateConnection()
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_ONLY;
-    Settings.IsSet.ServerResumptionLevel = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
 
-    MsQuicSession Session(&Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), &Settings);
     TEST_TRUE(Session.IsValid());
 
     //
@@ -1035,11 +1034,10 @@ DummyStreamCallback(
 
 void QuicTestValidateStream(bool Connect)
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.BidiStreamCount = 32;
-    Settings.IsSet.BidiStreamCount = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetPeerBidiStreamCount(32);
 
-    MsQuicSession Session(&Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), &Settings);
     TEST_TRUE(Session.IsValid());
 
     QUIC_BUFFER Buffers[1] = {};

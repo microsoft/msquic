@@ -224,7 +224,7 @@ QuicDrillInitialPacketFailureTest(
     QuicAddr ServerAddress(QuicAddrFamily);
     DrillSender Sender;
 
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicBvt"));
     if (!Session.IsValid()) {
         TEST_FAILURE("Session not valid!");
         goto Failure;

@@ -534,9 +534,8 @@ QuicTestValidateConnectionEvents3(
 
 void QuicTestValidateConnectionEvents()
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), true);
     TEST_TRUE(Session.IsValid());
-    Session.SetAutoCleanup();
 
     { // Listener Scope
 
@@ -574,9 +573,8 @@ QuicTestValidateStreamEvents1(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), true);
     TEST_TRUE(Session.IsValid());
-    Session.SetAutoCleanup();
 
     { // Connections scope
     ConnValidator Client, Server;
@@ -685,9 +683,8 @@ QuicTestValidateStreamEvents2(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), true);
     TEST_TRUE(Session.IsValid());
-    Session.SetAutoCleanup();
 
     { // Connections scope
     ConnValidator Client, Server;
@@ -777,11 +774,10 @@ QuicTestValidateStreamEvents2(
 
 void QuicTestValidateStreamEvents()
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.BidiStreamCount = 1;
-    Settings.IsSet.BidiStreamCount = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetPeerBidiStreamCount(1);
 
-    MsQuicSession Session(&Settings, "MsQuicTest", true);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings, true);
     TEST_TRUE(Session.IsValid());
 
     { // Listener Scope

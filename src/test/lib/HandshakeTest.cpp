@@ -55,7 +55,7 @@ QuicTestPrimeResumption(
         }
     };
 
-    TestListener Listener(Session.Handle, PrimeResumption::ListenerAccept);
+    TestListener Listener(Session, PrimeResumption::ListenerAccept);
     TEST_TRUE(Listener.IsValid());
 
     QuicAddr ServerLocalAddr(Family);
@@ -128,26 +128,22 @@ QuicTestConnect(
     _In_ uint8_t RandomLossPercentage
     )
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.BidiStreamCount = 4;
-    Settings.IsSet.BidiStreamCount = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetPeerBidiStreamCount(4);
     if (RandomLossPercentage != 0) {
-        Settings.IdleTimeoutMs = 30000;
-        Settings.IsSet.IdleTimeoutMs = TRUE;
-        Settings.DisconnectTimeoutMs = 30000;
-        Settings.IsSet.DisconnectTimeoutMs = TRUE;
+        Settings.SetIdleTimeoutMs(30000);
+        Settings.SetDisconnectTimeoutMs(30000);
     } else {
-        Settings.IdleTimeoutMs = 10000;
-        Settings.IsSet.IdleTimeoutMs = TRUE;
+        Settings.SetIdleTimeoutMs(10000);
     }
     if (SessionResumption) {
         Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_ONLY;
         Settings.IsSet.ServerResumptionLevel = TRUE;
     }
 
-    MsQuicSession Session(&Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(Session.IsValid());
-    MsQuicSession Session2(&Settings, "MsQuicTest2", "MsQuicTest");
+    MsQuicSession Session2(*Registration, MsQuicAlpn("MsQuicTest2", "MsQuicTest"), Settings);
     TEST_TRUE(Session2.IsValid());
 
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
@@ -278,11 +274,10 @@ QuicTestNatPortRebind(
     _In_ int Family
     )
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.IdleTimeoutMs = 10000;
-    Settings.IsSet.IdleTimeoutMs = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
 
-    MsQuicSession Session(&Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(Session.IsValid());
 
     {
@@ -366,11 +361,10 @@ QuicTestNatAddrRebind(
     _In_ int Family
     )
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.IdleTimeoutMs = 10000;
-    Settings.IsSet.IdleTimeoutMs = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
 
-    MsQuicSession Session(&Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(Session.IsValid());
 
     {
@@ -455,11 +449,10 @@ QuicTestPathValidationTimeout(
     _In_ int Family
     )
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.IdleTimeoutMs = 10000;
-    Settings.IsSet.IdleTimeoutMs = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
 
-    MsQuicSession Session(&Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(Session.IsValid());
 
     {
@@ -525,11 +518,10 @@ QuicTestChangeMaxStreamID(
     _In_ int Family
     )
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.IdleTimeoutMs = 10000;
-    Settings.IsSet.IdleTimeoutMs = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
 
-    MsQuicSession Session(&Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(Session.IsValid());
 
     {
@@ -602,11 +594,10 @@ QuicTestConnectAndIdle(
     _In_ bool EnableKeepAlive
     )
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.IdleTimeoutMs = 3000;
-    Settings.IsSet.IdleTimeoutMs = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
 
-    MsQuicSession Session(&Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(Session.IsValid());
 
     {
@@ -689,7 +680,7 @@ QuicTestConnectUnreachable(
     _In_ int Family
     )
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
 
     {
@@ -718,11 +709,10 @@ QuicTestVersionNegotiation(
     _In_ int Family
     )
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.IdleTimeoutMs = 3000;
-    Settings.IsSet.IdleTimeoutMs = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
 
-    MsQuicSession Session(&Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(Session.IsValid());
 
     {
@@ -770,13 +760,12 @@ QuicTestConnectBadAlpn(
     _In_ int Family
     )
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.IdleTimeoutMs = 3000;
-    Settings.IsSet.IdleTimeoutMs = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
 
-    MsQuicSession GoodSession(&Settings);
+    MsQuicSession GoodSession(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(GoodSession.IsValid());
-    MsQuicSession BadSession(&Settings, "BadALPN"); // Incorrect ALPN
+    MsQuicSession BadSession(*Registration, MsQuicAlpn("BadALPN"), Settings); // Incorrect ALPN
     TEST_TRUE(BadSession.IsValid());
 
     {
@@ -821,11 +810,10 @@ QuicTestConnectBadSni(
     _In_ int Family
     )
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.IdleTimeoutMs = 3000;
-    Settings.IsSet.IdleTimeoutMs = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
 
-    MsQuicSession Session(&Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(Session.IsValid());
 
     {
@@ -891,11 +879,10 @@ QuicTestConnectServerRejected(
     _In_ int Family
     )
 {
-    QUIC_SETTINGS Settings {0};
-    Settings.IdleTimeoutMs = 3000;
-    Settings.IsSet.IdleTimeoutMs = TRUE;
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
 
-    MsQuicSession Session(&Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(Session.IsValid());
 
     {
@@ -937,13 +924,12 @@ QuicTestKeyUpdate(
     _In_ bool ServerKeyUpdate
     )
 {
-    QUIC_SETTINGS Settings {0};
+    MsQuicSettings Settings;
     if (UseKeyUpdateBytes) {
-        Settings.MaxBytesPerKey = KeyUpdateBytes;
-        Settings.IsSet.MaxBytesPerKey = TRUE;
+        Settings.SetMaxBytesPerKey(KeyUpdateBytes);
     }
 
-    MsQuicSession Session(&Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(Session.IsValid());
 
     {
@@ -1057,7 +1043,7 @@ QuicTestCidUpdate(
     _In_ uint16_t Iterations
     )
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
 
     {

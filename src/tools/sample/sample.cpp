@@ -161,7 +161,6 @@ RunServer(
     )
 {
     QUIC_STATUS Status;
-    const uint16_t PeerStreamCount = 1;
     HQUIC Listener = nullptr;
 
     QUIC_ADDR Address = {};

@@ -31,7 +31,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingApply(
     _Inout_ QUIC_SETTINGS* Settings,
-    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), >=)
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSessionSize,
     _In_reads_bytes_(NewSessionSize)
         const QUIC_SETTINGS* NewSettings

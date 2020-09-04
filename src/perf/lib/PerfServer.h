@@ -91,24 +91,16 @@ private:
         _In_ HQUIC StreamHandle
         );
 
-    static
-    const QUIC_SETTINGS*
-    GetSettings()
-    {
-        static QUIC_SETTINGS Settings {0};
-        Settings.BidiStreamCount = PERF_DEFAULT_STREAM_COUNT;
-        Settings.IsSet.BidiStreamCount = TRUE;
-        Settings.UnidiStreamCount = PERF_DEFAULT_STREAM_COUNT;
-        Settings.IsSet.UnidiStreamCount = TRUE;
-        Settings.DisconnectTimeoutMs = PERF_DEFAULT_DISCONNECT_TIMEOUT;
-        Settings.IsSet.DisconnectTimeoutMs = TRUE;
-        Settings.IdleTimeoutMs = PERF_DEFAULT_IDLE_TIMEOUT;
-        Settings.IsSet.IdleTimeoutMs = TRUE;
-        return &Settings;
-    }
-
     MsQuicRegistration Registration;
-    MsQuicSession Session {Registration, GetSettings(), PERF_ALPN, true};
+    MsQuicSession Session {
+        Registration,
+        MsQuicAlpn(PERF_ALPN),
+        MsQuicSettings()
+            .SetPeerBidiStreamCount(PERF_DEFAULT_STREAM_COUNT)
+            .SetPeerUnidiStreamCount(PERF_DEFAULT_STREAM_COUNT)
+            .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
+            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT),
+        true};
     MsQuicListener Listener {Session};
     PerfSelfSignedConfiguration* SelfSignedConfig;
     PerfSecurityConfig SecurityConfig;

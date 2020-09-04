@@ -84,18 +84,13 @@ private:
         _In_ StreamContext* Context
         );
 
-    static
-    const QUIC_SETTINGS*
-    GetSettings()
-    {
-        static QUIC_SETTINGS Settings {0};
-        Settings.IdleTimeoutMs = PERF_DEFAULT_IDLE_TIMEOUT;
-        Settings.IsSet.IdleTimeoutMs = TRUE;
-        return &Settings;
-    }
-
     MsQuicRegistration Registration;
-    MsQuicSession Session {Registration, GetSettings(), PERF_ALPN, true};
+    MsQuicSession Session {
+        Registration,
+        MsQuicAlpn(PERF_ALPN),
+        MsQuicSettings()
+            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT),
+        true};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
     QuicPoolAllocator<ConnectionData> ConnectionDataAllocator;
     UniquePtr<char[]> TargetData;

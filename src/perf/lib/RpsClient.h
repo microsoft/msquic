@@ -58,20 +58,14 @@ private:
         _In_ HQUIC Handle
         );
 
-    static
-    const QUIC_SETTINGS*
-    GetSettings()
-    {
-        static QUIC_SETTINGS Settings {0};
-        Settings.DisconnectTimeoutMs = PERF_DEFAULT_DISCONNECT_TIMEOUT;
-        Settings.IsSet.DisconnectTimeoutMs = TRUE;
-        Settings.IdleTimeoutMs = PERF_DEFAULT_IDLE_TIMEOUT;
-        Settings.IsSet.IdleTimeoutMs = TRUE;
-        return &Settings;
-    }
-
     MsQuicRegistration Registration;
-    MsQuicSession Session {Registration, GetSettings(), PERF_ALPN, true};
+    MsQuicSession Session {
+        Registration,
+        MsQuicAlpn(PERF_ALPN),
+        MsQuicSettings()
+            .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
+            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT),
+        true};
     uint16_t Port {PERF_DEFAULT_PORT};
     UniquePtr<char[]> Target;
     uint32_t RunTime {RPS_DEFAULT_RUN_TIME};

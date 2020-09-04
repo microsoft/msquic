@@ -181,30 +181,28 @@ public:
     bool operator != (T* _ptr) const { return ptr != _ptr; }
 };
 
-class QuicApiTable : public QUIC_API_TABLE {
-    QUIC_STATUS Init;
-    const QUIC_API_TABLE* ApiTable{nullptr};
+class MsQuicApi : public QUIC_API_TABLE {
+    const QUIC_API_TABLE* ApiTable {nullptr};
+    QUIC_STATUS InitStatus;
 public:
-    QuicApiTable() noexcept {
-        if (QUIC_SUCCEEDED(Init = MsQuicOpen(&ApiTable))) {
+    MsQuicApi() noexcept {
+        if (QUIC_SUCCEEDED(InitStatus = MsQuicOpen(&ApiTable))) {
             QUIC_API_TABLE* thisTable = this;
             QuicCopyMemory(thisTable, ApiTable, sizeof(*ApiTable));
         }
     }
-
-    ~QuicApiTable() noexcept {
-        if (QUIC_SUCCEEDED(Init)) {
+    ~MsQuicApi() noexcept {
+        if (QUIC_SUCCEEDED(InitStatus)) {
             MsQuicClose(ApiTable);
             ApiTable = nullptr;
             QUIC_API_TABLE* thisTable = this;
             QuicZeroMemory(thisTable, sizeof(*thisTable));
         }
     }
-
-    QUIC_STATUS InitStatus() const noexcept {
-        return Init;
-    }
+    QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
 };
+
+extern const MsQuicApi* MsQuic;
 
 class MsQuicRegistration {
     HQUIC Handle {nullptr};
@@ -213,6 +211,10 @@ public:
     operator HQUIC () const noexcept { return Handle; }
     MsQuicRegistration() noexcept {
         InitStatus = MsQuic->RegistrationOpen(nullptr, &Handle);
+    }
+    MsQuicRegistration(_In_z_ const char* AppName, QUIC_EXECUTION_PROFILE Profile = QUIC_EXECUTION_PROFILE_LOW_LATENCY) noexcept {
+        const QUIC_REGISTRATION_CONFIG RegConfig = { AppName, Profile };
+        InitStatus = MsQuic->RegistrationOpen(&RegConfig, &Handle);
     }
     ~MsQuicRegistration() noexcept {
         MsQuic->RegistrationClose(Handle);
@@ -223,6 +225,41 @@ public:
     MsQuicRegistration operator=(MsQuicRegistration& Other) = delete;
 };
 
+class MsQuicAlpn {
+    QUIC_BUFFER Buffers[2];
+    uint32_t BuffersLength;
+public:
+    MsQuicAlpn(_In_z_ const char* RawAlpn1) noexcept {
+        Buffers[0].Buffer = (uint8_t*)RawAlpn1;
+        Buffers[0].Length = (uint32_t)strlen(RawAlpn1);
+        BuffersLength = 1;
+    }
+    MsQuicAlpn(_In_z_ const char* RawAlpn1, _In_z_ const char* RawAlpn2) noexcept {
+        Buffers[0].Buffer = (uint8_t*)RawAlpn1;
+        Buffers[0].Length = (uint32_t)strlen(RawAlpn1);
+        Buffers[1].Buffer = (uint8_t*)RawAlpn2;
+        Buffers[1].Length = (uint32_t)strlen(RawAlpn2);
+        BuffersLength = 2;
+    }
+    operator const QUIC_BUFFER* () const noexcept { return Buffers; }
+    uint32_t Length() const noexcept { return BuffersLength; }
+};
+
+class MsQuicSettings : public QUIC_SETTINGS {
+public:
+    MsQuicSettings() noexcept { IsSetFlags = 0; }
+    MsQuicSettings& SetPacingEnabled(bool Value) { PacingEnabled = Value; IsSet.PacingEnabled = TRUE; return *this; }
+    MsQuicSettings& SetMigrationEnabled(bool Value) { MigrationEnabled = Value; IsSet.MigrationEnabled = TRUE; return *this; }
+    MsQuicSettings& SetDatagramReceiveEnabled(bool Value) { DatagramReceiveEnabled = Value; IsSet.DatagramReceiveEnabled = TRUE; return *this; }
+    MsQuicSettings& SetServerResumptionLevel(QUIC_SERVER_RESUMPTION_LEVEL Value) { ServerResumptionLevel = Value; IsSet.ServerResumptionLevel = TRUE; return *this; }
+    MsQuicSettings& SetIdleTimeoutMs(uint64_t Value) { IdleTimeoutMs = Value; IsSet.IdleTimeoutMs = TRUE; return *this; }
+    MsQuicSettings& SetHandshakeIdleTimeoutMs(uint64_t Value) { HandshakeIdleTimeoutMs = Value; IsSet.HandshakeIdleTimeoutMs = TRUE; return *this; }
+    MsQuicSettings& SetDisconnectTimeoutMs(uint32_t Value) { DisconnectTimeoutMs = Value; IsSet.DisconnectTimeoutMs = TRUE; return *this; }
+    MsQuicSettings& SetPeerBidiStreamCount(uint16_t Value) { BidiStreamCount = Value; IsSet.BidiStreamCount = TRUE; return *this; }
+    MsQuicSettings& SetPeerUnidiStreamCount(uint16_t Value) { UnidiStreamCount = Value; IsSet.UnidiStreamCount = TRUE; return *this; }
+    MsQuicSettings& SetMaxBytesPerKey(uint64_t Value) { MaxBytesPerKey = Value; IsSet.MaxBytesPerKey = TRUE; return *this; }
+};
+
 class MsQuicSession {
     bool CloseAllConnectionsOnDelete {false};
     QUIC_STATUS InitStatus;
@@ -231,75 +268,37 @@ public:
     operator HQUIC () const noexcept { return Handle; }
     MsQuicSession(
         _In_ const MsQuicRegistration& Reg,
-        _In_opt_ const QUIC_SETTINGS* Settings = nullptr,
-        _In_z_ const char* RawAlpn = "MsQuicTest",
+        _In_ const MsQuicAlpn& Alpns,
         _In_ bool AutoCleanUp = false
         ) noexcept : CloseAllConnectionsOnDelete(AutoCleanUp) {
-        if (!Reg.IsValid()) {
-            InitStatus = Reg.GetInitStatus();
-            return;
-        }
-        QUIC_BUFFER Alpn;
-        Alpn.Buffer = (uint8_t*)RawAlpn;
-        Alpn.Length = (uint32_t)strlen(RawAlpn);
-        InitStatus =
+        InitStatus = !Reg.IsValid() ?
+            Reg.GetInitStatus() :
             MsQuic->SessionOpen(
                 Reg,
-                Settings ? 0 : sizeof(Settings),
-                Settings,
-                &Alpn,
-                1,
+                0,
+                nullptr,
+                Alpns,
+                Alpns.Length(),
                 nullptr,
                 &Handle);
     }
-
-#ifndef QUIC_SKIP_GLOBAL_CONSTRUCTORS
-
     MsQuicSession(
-        _In_opt_ const QUIC_SETTINGS* Settings = nullptr,
-        _In_z_ const char* RawAlpn = "MsQuicTest",
+        _In_ const MsQuicRegistration& Reg,
+        _In_ const MsQuicAlpn& Alpns,
+        _In_ const MsQuicSettings& Settings,
         _In_ bool AutoCleanUp = false
         ) noexcept : CloseAllConnectionsOnDelete(AutoCleanUp) {
-        QUIC_BUFFER Alpn;
-        Alpn.Buffer = (uint8_t*)RawAlpn;
-        Alpn.Length = (uint32_t)strlen(RawAlpn);
-        if (QUIC_FAILED(
-            InitStatus =
-                MsQuic->SessionOpen(
-                    Registration,
-                    Settings ? 0 : sizeof(Settings),
-                    Settings,
-                    &Alpn,
-                    1,
-                    nullptr,
-                    &Handle))) {
-            Handle = nullptr;
-        }
+        InitStatus = !Reg.IsValid() ?
+            Reg.GetInitStatus() :
+            MsQuic->SessionOpen(
+                Reg,
+                sizeof(Settings),
+                &Settings,
+                Alpns,
+                Alpns.Length(),
+                nullptr,
+                &Handle);
     }
-    MsQuicSession(
-        _In_opt_ const QUIC_SETTINGS* Settings,
-        _In_z_ const char* RawAlpn1,
-        _In_z_ const char* RawAlpn2
-        ) noexcept {
-        QUIC_BUFFER Alpns[2];
-        Alpns[0].Buffer = (uint8_t*)RawAlpn1;
-        Alpns[0].Length = (uint32_t)strlen(RawAlpn1);
-        Alpns[1].Buffer = (uint8_t*)RawAlpn2;
-        Alpns[1].Length = (uint32_t)strlen(RawAlpn2);
-        if (QUIC_FAILED(
-            InitStatus =
-                MsQuic->SessionOpen(
-                    Registration,
-                    Settings ? 0 : sizeof(Settings),
-                    Settings,
-                    Alpns,
-                    ARRAYSIZE(Alpns),
-                    nullptr,
-                    &Handle))) {
-            Handle = nullptr;
-        }
-    }
-#endif
     ~MsQuicSession() noexcept {
         if (Handle != nullptr) {
             if (CloseAllConnectionsOnDelete) {
@@ -312,14 +311,9 @@ public:
         }
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
-    bool IsValid() const noexcept {
-        return Handle != nullptr;
-    }
+    bool IsValid() const noexcept { return Handle != nullptr; }
     MsQuicSession(MsQuicSession& other) = delete;
     MsQuicSession operator=(MsQuicSession& Other) = delete;
-    void SetAutoCleanup() noexcept {
-        CloseAllConnectionsOnDelete = true;
-    }
     void Shutdown(
         _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
         _In_ QUIC_UINT62 ErrorCode
@@ -390,14 +384,10 @@ struct MsQuicListener {
     }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
-    bool IsValid() const {
-        return Handle != nullptr;
-    }
+    bool IsValid() const { return Handle != nullptr; }
     MsQuicListener(MsQuicListener& other) = delete;
     MsQuicListener operator=(MsQuicListener& Other) = delete;
-    operator HQUIC () const noexcept {
-        return Handle;
-    }
+    operator HQUIC () const noexcept { return Handle; }
 };
 
 struct ListenerScope {
