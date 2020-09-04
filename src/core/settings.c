@@ -188,7 +188,7 @@ QuicSettingsCopy(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicSettingApply(
     _Inout_ QUIC_SETTINGS* Settings,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
@@ -224,6 +224,9 @@ QuicSettingApply(
         Settings->IsSet.RetryMemoryLimit = TRUE;
     }
     if (NewSettings->IsSet.LoadBalancingMode) {
+        if (NewSettings->LoadBalancingMode > QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+            return FALSE;
+        }
         Settings->LoadBalancingMode = NewSettings->LoadBalancingMode;
         Settings->IsSet.LoadBalancingMode = TRUE;
     }
@@ -248,10 +251,16 @@ QuicSettingApply(
         Settings->IsSet.InitialRttMs = TRUE;
     }
     if (NewSettings->IsSet.MaxAckDelayMs) {
+        if (NewSettings->MaxAckDelayMs > QUIC_TP_MAX_ACK_DELAY_MAX) {
+            return FALSE;
+        }
         Settings->MaxAckDelayMs = NewSettings->MaxAckDelayMs;
         Settings->IsSet.MaxAckDelayMs = TRUE;
     }
     if (NewSettings->IsSet.DisconnectTimeoutMs) {
+        if (NewSettings->DisconnectTimeoutMs > QUIC_MAX_DISCONNECT_TIMEOUT) {
+            return FALSE;
+        }
         Settings->DisconnectTimeoutMs = NewSettings->DisconnectTimeoutMs;
         Settings->IsSet.DisconnectTimeoutMs = TRUE;
     }
@@ -260,10 +269,16 @@ QuicSettingApply(
         Settings->IsSet.KeepAliveIntervalMs = TRUE;
     }
     if (NewSettings->IsSet.IdleTimeoutMs) {
+        if (NewSettings->IdleTimeoutMs > QUIC_VAR_INT_MAX) {
+            return FALSE;
+        }
         Settings->IdleTimeoutMs = NewSettings->IdleTimeoutMs;
         Settings->IsSet.IdleTimeoutMs = TRUE;
     }
     if (NewSettings->IsSet.HandshakeIdleTimeoutMs) {
+        if (NewSettings->HandshakeIdleTimeoutMs > QUIC_VAR_INT_MAX) {
+            return FALSE;
+        }
         Settings->HandshakeIdleTimeoutMs = NewSettings->HandshakeIdleTimeoutMs;
         Settings->IsSet.HandshakeIdleTimeoutMs = TRUE;
     }
@@ -288,6 +303,9 @@ QuicSettingApply(
         Settings->IsSet.StreamRecvWindowDefault = TRUE;
     }
     if (NewSettings->IsSet.StreamRecvBufferDefault) {
+        if (NewSettings->StreamRecvBufferDefault < QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
+            return FALSE;
+        }
         Settings->StreamRecvBufferDefault = NewSettings->StreamRecvBufferDefault;
         Settings->IsSet.StreamRecvBufferDefault = TRUE;
     }
@@ -296,13 +314,20 @@ QuicSettingApply(
         Settings->IsSet.ConnFlowControlWindow = TRUE;
     }
     if (NewSettings->IsSet.MaxBytesPerKey) {
+        if (NewSettings->MaxBytesPerKey > QUIC_DEFAULT_MAX_BYTES_PER_KEY) {
+            return FALSE;
+        }
         Settings->MaxBytesPerKey = NewSettings->MaxBytesPerKey;
         Settings->IsSet.MaxBytesPerKey = TRUE;
     }
     if (NewSettings->IsSet.ServerResumptionLevel) {
+        if (NewSettings->MaxBytesPerKey > QUIC_SERVER_RESUME_AND_ZERORTT) {
+            return FALSE;
+        }
         Settings->ServerResumptionLevel = NewSettings->ServerResumptionLevel;
         Settings->IsSet.ServerResumptionLevel = TRUE;
     }
+    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

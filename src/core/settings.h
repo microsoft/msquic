@@ -28,7 +28,7 @@ QuicSettingsCopy(
 // Applies the changes from the new settings.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicSettingApply(
     _Inout_ QUIC_SETTINGS* Settings,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)

@@ -278,7 +278,10 @@ MsQuicSessionOpen(
 
     if (Settings != NULL && Settings->IsSetFlags != 0) {
         QUIC_DBG_ASSERT(SettingsSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey));
-        QuicSettingApply(&Session->Settings, SettingsSize, Settings);
+        if (!QuicSettingApply(&Session->Settings, SettingsSize, Settings)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
     }
 
     QuicSessionSettingsChanged(Session);
