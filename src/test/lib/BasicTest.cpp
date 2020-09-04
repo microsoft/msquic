@@ -92,7 +92,7 @@ void QuicTestStartTwoListeners()
 {
     MsQuicSession Session1(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session1.IsValid());
-    MsQuicSession Session2(nullptr, "MsQuicTest2");
+    MsQuicSession Session2(*Registration, "MsQuicTest2");
     TEST_TRUE(Session2.IsValid());
 
     {

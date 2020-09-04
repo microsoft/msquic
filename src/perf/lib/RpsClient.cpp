@@ -40,17 +40,6 @@ PrintHelp(
         );
 }
 
-RpsClient::RpsClient() {
-    QuicEventInitialize(&AllConnected, TRUE, FALSE);
-}
-
-RpsClient::~RpsClient() {
-    if (RequestBuffer) {
-        QUIC_FREE(RequestBuffer);
-    }
-    QuicEventUninitialize(AllConnected);
-}
-
 QUIC_STATUS
 RpsClient::Init(
     _In_ int argc,

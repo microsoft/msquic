@@ -19,9 +19,16 @@ Abstract:
 
 class RpsClient : public PerfBase {
 public:
-    RpsClient();
+    RpsClient() {
+        QuicEventInitialize(&AllConnected, TRUE, FALSE);
+    }
 
-    ~RpsClient() override;
+    ~RpsClient() override {
+        if (RequestBuffer) {
+            QUIC_FREE(RequestBuffer);
+        }
+        QuicEventUninitialize(AllConnected);
+    }
 
     QUIC_STATUS
     Init(

@@ -19,9 +19,15 @@ Abstract:
 
 class ThroughputClient : public PerfBase {
 public:
-    ThroughputClient();
+    ThroughputClient() {
+        QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
+    }
 
-    ~ThroughputClient() override;
+    ~ThroughputClient() override {
+        if (DataBuffer) {
+            QUIC_FREE(DataBuffer);
+        }
+    }
 
     QUIC_STATUS
     Init(

@@ -41,17 +41,6 @@ PrintHelp(
         );
 }
 
-ThroughputClient::ThroughputClient(
-    ) {
-    QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
-}
-
-ThroughputClient::~ThroughputClient() {
-    if (DataBuffer) {
-        QUIC_FREE(DataBuffer);
-    }
-}
-
 QUIC_STATUS
 ThroughputClient::Init(
     _In_ int argc,
