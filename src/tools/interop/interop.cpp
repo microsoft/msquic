@@ -518,23 +518,25 @@ private:
         InteropConnection* pThis = (InteropConnection*)Context;
         switch (Event->Type) {
         case QUIC_STREAM_EVENT_RECEIVE:
-            if (pThis->File == nullptr && CustomUrlPath) {
-                const char* FileName = strrchr(UrlPath, '/') + 1;
-                pThis->File = fopen(FileName, "wb");
+            if (CustomUrlPath) {
                 if (pThis->File == nullptr) {
-                    printf("Failed to open file %s\n", FileName);
-                    break;
+                    const char* FileName = strrchr(UrlPath, '/') + 1;
+                    pThis->File = fopen(FileName, "wb");
+                    if (pThis->File == nullptr) {
+                        printf("Failed to open file %s\n", FileName);
+                        break;
+                    }
                 }
-            }
-            for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
-                uint32_t DataLength = Event->RECEIVE.Buffers[i].Length;
-                if (fwrite(
-                        Event->RECEIVE.Buffers[i].Buffer,
-                        1,
-                        DataLength,
-                        pThis->File) < DataLength) {
-                    printf("Failed to write to file!\n");
-                    break;
+                for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
+                    uint32_t DataLength = Event->RECEIVE.Buffers[i].Length;
+                    if (fwrite(
+                            Event->RECEIVE.Buffers[i].Buffer,
+                            1,
+                            DataLength,
+                            pThis->File) < DataLength) {
+                        printf("Failed to write to file!\n");
+                        break;
+                    }
                 }
             }
             break;
