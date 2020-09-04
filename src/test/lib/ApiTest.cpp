@@ -103,6 +103,23 @@ void QuicTestValidateSession()
     Session = nullptr;
 
     //
+    // Empty settings.
+    //
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SessionOpen(
+            TestReg,
+            sizeof(EmptySettings),
+            &EmptySettings,
+            &GoodAlpn,
+            1,
+            nullptr,
+            &Session));
+
+    MsQuic->SessionClose(
+        Session);
+    Session = nullptr;
+
+    //
     // Good settings.
     //
     TEST_QUIC_SUCCEEDED(
@@ -514,7 +531,7 @@ void QuicTestValidateConnection()
     MsQuicSettings Settings;
     Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
 
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), &Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(Session.IsValid());
 
     //
@@ -1037,7 +1054,7 @@ void QuicTestValidateStream(bool Connect)
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(32);
 
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), &Settings);
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
     TEST_TRUE(Session.IsValid());
 
     QUIC_BUFFER Buffers[1] = {};
