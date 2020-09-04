@@ -410,7 +410,7 @@ QuicTestValidateConnectionEvents2(
     TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
 }
 
-void
+/*void
 QuicTestValidateConnectionEvents3(
     _In_ MsQuicSession& Session,
     _In_ HQUIC Listener,
@@ -530,7 +530,7 @@ QuicTestValidateConnectionEvents3(
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
     TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
-}
+}*/
 
 void QuicTestValidateConnectionEvents()
 {
@@ -562,7 +562,7 @@ void QuicTestValidateConnectionEvents()
     QuicTestValidateConnectionEvents1(Session.Handle, Listener.Handle, ServerLocalAddr);
     QuicTestValidateConnectionEvents2(Session.Handle, Listener.Handle, ServerLocalAddr);
 #ifndef QUIC_DISABLE_0RTT_TESTS
-    QuicTestValidateConnectionEvents3(Session, Listener.Handle, ServerLocalAddr);
+    //QuicTestValidateConnectionEvents3(Session, Listener.Handle, ServerLocalAddr);
 #endif
 
     } // Listener Scope
@@ -777,18 +777,12 @@ QuicTestValidateStreamEvents2(
 
 void QuicTestValidateStreamEvents()
 {
-    MsQuicSession Session;
-    TEST_TRUE(Session.IsValid());
-    Session.SetAutoCleanup();
+    QUIC_SETTINGS Settings {0};
+    Settings.BidiStreamCount = 1;
+    Settings.IsSet.BidiStreamCount = TRUE;
 
-    uint16_t StreamCount = 1;
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Session.Handle,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT,
-            sizeof(StreamCount),
-            &StreamCount));
+    MsQuicSession Session(&Settings, "MsQuicTest", true);
+    TEST_TRUE(Session.IsValid());
 
     { // Listener Scope
 

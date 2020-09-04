@@ -42,11 +42,6 @@ PrintHelp(
 
 RpsClient::RpsClient() {
     QuicEventInitialize(&AllConnected, TRUE, FALSE);
-    if (Session.IsValid()) {
-        Session.SetAutoCleanup();
-        Session.SetDisconnectTimeout(PERF_DEFAULT_DISCONNECT_TIMEOUT);
-        Session.SetIdleTimeout(PERF_DEFAULT_IDLE_TIMEOUT);
-    }
 }
 
 RpsClient::~RpsClient() {

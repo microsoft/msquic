@@ -53,13 +53,16 @@ QuicTestDatagramNegotiation(
     _In_ bool DatagramReceiveEnabled
     )
 {
-    MsQuicSession ClientSession;
-    TEST_TRUE(ClientSession.IsValid());
-    TEST_QUIC_SUCCEEDED(ClientSession.SetDatagramReceiveEnabled(true)); // Always enabled on client.
+    QUIC_SETTINGS Settings {0};
+    Settings.DatagramReceiveEnabled = TRUE; // Always enabled on client.
+    Settings.IsSet.DatagramReceiveEnabled = TRUE;
 
-    MsQuicSession ServerSession;
+    MsQuicSession ClientSession(&Settings);
+    TEST_TRUE(ClientSession.IsValid());
+
+    Settings.DatagramReceiveEnabled = DatagramReceiveEnabled;
+    MsQuicSession ServerSession(&Settings);
     TEST_TRUE(ServerSession.IsValid());
-    TEST_QUIC_SUCCEEDED(ServerSession.SetDatagramReceiveEnabled(DatagramReceiveEnabled));
 
     uint8_t RawBuffer[] = "datagram";
     QUIC_BUFFER DatagramBuffer = { sizeof(RawBuffer), RawBuffer };
@@ -143,9 +146,12 @@ QuicTestDatagramSend(
     _In_ int Family
     )
 {
-    MsQuicSession Session;
+    QUIC_SETTINGS Settings {0};
+    Settings.DatagramReceiveEnabled = TRUE;
+    Settings.IsSet.DatagramReceiveEnabled = TRUE;
+
+    MsQuicSession Session(&Settings);
     TEST_TRUE(Session.IsValid());
-    TEST_QUIC_SUCCEEDED(Session.SetDatagramReceiveEnabled(true));
 
     uint8_t RawBuffer[] = "datagram";
     QUIC_BUFFER DatagramBuffer = { sizeof(RawBuffer), RawBuffer };

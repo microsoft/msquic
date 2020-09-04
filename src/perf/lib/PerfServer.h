@@ -20,9 +20,13 @@ class PerfServer : public PerfBase {
 public:
     PerfServer(
         _In_ PerfSelfSignedConfiguration* SelfSignedConfig
-        );
+        ) : SelfSignedConfig{SelfSignedConfig} { }
 
-    ~PerfServer() override;
+    ~PerfServer() override {
+        if (DataBuffer) {
+            QUIC_FREE(DataBuffer);
+        }
+    }
 
     QUIC_STATUS
     Init(
@@ -87,8 +91,24 @@ private:
         _In_ HQUIC StreamHandle
         );
 
+    static
+    const QUIC_SETTINGS*
+    GetSettings()
+    {
+        static QUIC_SETTINGS Settings {0};
+        Settings.BidiStreamCount = PERF_DEFAULT_STREAM_COUNT;
+        Settings.IsSet.BidiStreamCount = TRUE;
+        Settings.UnidiStreamCount = PERF_DEFAULT_STREAM_COUNT;
+        Settings.IsSet.UnidiStreamCount = TRUE;
+        Settings.DisconnectTimeoutMs = PERF_DEFAULT_DISCONNECT_TIMEOUT;
+        Settings.IsSet.DisconnectTimeoutMs = TRUE;
+        Settings.IdleTimeoutMs = PERF_DEFAULT_IDLE_TIMEOUT;
+        Settings.IsSet.IdleTimeoutMs = TRUE;
+        return &Settings;
+    }
+
     MsQuicRegistration Registration;
-    MsQuicSession Session {Registration, PERF_ALPN};
+    MsQuicSession Session {Registration, GetSettings(), PERF_ALPN, true};
     MsQuicListener Listener {Session};
     PerfSelfSignedConfiguration* SelfSignedConfig;
     PerfSecurityConfig SecurityConfig;

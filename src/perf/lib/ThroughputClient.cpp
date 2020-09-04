@@ -44,10 +44,6 @@ PrintHelp(
 ThroughputClient::ThroughputClient(
     ) {
     QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
-    if (Session.IsValid()) {
-        Session.SetIdleTimeout(TPUT_DEFAULT_IDLE_TIMEOUT);
-        Session.SetAutoCleanup();
-    }
 }
 
 ThroughputClient::~ThroughputClient() {

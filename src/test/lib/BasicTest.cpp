@@ -57,7 +57,7 @@ void QuicTestStartListener()
 
 void QuicTestStartListenerMultiAlpns()
 {
-    MsQuicSession Session("MsQuicTest1", "MsQuicTest2");
+    MsQuicSession Session(nullptr, "MsQuicTest1", "MsQuicTest2");
     TEST_TRUE(Session.IsValid());
 
     {
@@ -92,7 +92,7 @@ void QuicTestStartTwoListeners()
 {
     MsQuicSession Session1;
     TEST_TRUE(Session1.IsValid());
-    MsQuicSession Session2("MsQuicTest2");
+    MsQuicSession Session2(nullptr, "MsQuicTest2");
     TEST_TRUE(Session2.IsValid());
 
     {
@@ -113,7 +113,7 @@ void QuicTestStartTwoListenersSameALPN()
 {
     MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
-    MsQuicSession Session2("MsQuicTest", "MsQuicTest2");
+    MsQuicSession Session2(nullptr, "MsQuicTest", "MsQuicTest2");
     TEST_TRUE(Session2.IsValid());
 
     {

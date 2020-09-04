@@ -511,7 +511,11 @@ ListenerFailSendResumeCallback(
 
 void QuicTestValidateConnection()
 {
-    MsQuicSession Session;
+    QUIC_SETTINGS Settings {0};
+    Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_ONLY;
+    Settings.IsSet.ServerResumptionLevel = TRUE;
+
+    MsQuicSession Session(&Settings);
     TEST_TRUE(Session.IsValid());
 
     //
@@ -950,20 +954,6 @@ void QuicTestValidateConnection()
             // isn't in connected state yet.
             //
 
-            QUIC_SERVER_RESUMPTION_LEVEL Level = QUIC_SERVER_RESUME_ONLY;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    Session.Handle,
-                    QUIC_PARAM_LEVEL_SESSION,
-                    QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-                    sizeof(Level),
-                    &Level));
-
-            //
-            // Give time for the parameter to get set.
-            //
-            QuicSleep(100);
-
             TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionOpen(
                     Session,
@@ -1045,9 +1035,12 @@ DummyStreamCallback(
 
 void QuicTestValidateStream(bool Connect)
 {
-    MsQuicSession Session;
+    QUIC_SETTINGS Settings {0};
+    Settings.BidiStreamCount = 32;
+    Settings.IsSet.BidiStreamCount = TRUE;
+
+    MsQuicSession Session(&Settings);
     TEST_TRUE(Session.IsValid());
-    TEST_QUIC_SUCCEEDED(Session.SetPeerBidiStreamCount(32));
 
     QUIC_BUFFER Buffers[1] = {};
 
