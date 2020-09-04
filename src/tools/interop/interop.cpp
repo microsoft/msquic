@@ -522,6 +522,7 @@ private:
                 const char* FileName = strrchr(URL, '/') + 1;
                 pThis->File = fopen(FileName, "wb");
                 if (pThis->File == nullptr) {
+                    printf("Failed to open file %s\n", FileName);
                     break;
                 }
             }
@@ -532,6 +533,7 @@ private:
                         1,
                         DataLength,
                         pThis->File) < DataLength) {
+                    printf("Failed to write to file!\n");
                     break;
                 }
             }

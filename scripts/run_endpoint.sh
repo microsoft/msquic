@@ -32,7 +32,7 @@ babeltrace --names all -i lttng-live net://localhost/host/`hostname`/msquiclive 
 if [ "$ROLE" == "client" ]; then
     # Wait for the simulator to start up.
     /wait-for-it.sh sim:57832 -s -t 30
-    cd  /downloads || exit
+    cd /downloads || exit
 
     case "$TESTCASE" in
     "resumption")
@@ -61,6 +61,8 @@ if [ "$ROLE" == "client" ]; then
     for REQ in $REQUESTS; do
         quicinterop ${CLIENT_PARAMS} -url $REQ -custom:server -port:443
     done
+    # Wait for the logs to flush to disk.
+    sleep 2
 
 elif [ "$ROLE" == "server" ]; then
     case "$TESTCASE" in
