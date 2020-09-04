@@ -57,7 +57,7 @@ void QuicTestStartListener()
 
 void QuicTestStartListenerMultiAlpns()
 {
-    MsQuicSession Session(nullptr, "MsQuicTest1", "MsQuicTest2");
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest1", "MsQuicTest2"));
     TEST_TRUE(Session.IsValid());
 
     {
