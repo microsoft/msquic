@@ -118,8 +118,8 @@ uint32_t CurrentThreadCount;
 
 uint16_t CustomPort = 0;
 
-const char* URL = "/";
-bool CustomUrl = false;
+const char* UrlPath = "/";
+bool CustomUrlPath = false;
 
 extern "C" void QuicTraceRundown(void) { }
 
@@ -171,7 +171,7 @@ public:
     bool ReceivedQuackAck : 1;
     InteropConnection(HQUIC Session, bool VerNeg = false, bool LargeTP = false) :
         Connection(nullptr),
-        SendRequest(URL),
+        SendRequest(UrlPath),
         NegotiatedAlpn(nullptr),
         File(nullptr),
         VersionUnsupported(false),
@@ -518,8 +518,8 @@ private:
         InteropConnection* pThis = (InteropConnection*)Context;
         switch (Event->Type) {
         case QUIC_STREAM_EVENT_RECEIVE:
-            if (pThis->File == nullptr && CustomUrl) {
-                const char* FileName = strrchr(URL, '/') + 1;
+            if (pThis->File == nullptr && CustomUrlPath) {
+                const char* FileName = strrchr(UrlPath, '/') + 1;
                 pThis->File = fopen(FileName, "wb");
                 if (pThis->File == nullptr) {
                     printf("Failed to open file %s\n", FileName);
@@ -641,7 +641,7 @@ RunInteropTest(
     case VersionNegotiation: {
         InteropConnection Connection(Session, true);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
-            if (CustomUrl) {
+            if (CustomUrlPath) {
                 Connection.SendHttpRequest();
             }
             Connection.GetQuicVersion(QuicVersionUsed);
@@ -670,7 +670,7 @@ RunInteropTest(
         }
         InteropConnection Connection(Session, false, Feature == PostQuantum);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
-            if (CustomUrl) {
+            if (CustomUrlPath) {
                 Connection.SendHttpRequest();
             }
             Connection.GetQuicVersion(QuicVersionUsed);
@@ -727,12 +727,12 @@ RunInteropTest(
         InteropConnection Connection(Session);
         if (Connection.SetKeepAlive(50) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port)) {
-            if (CustomUrl) {
+            if (CustomUrlPath) {
                 Connection.SendHttpRequest();
             }
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
-            if (!CustomUrl) {
+            if (!CustomUrlPath) {
                 QuicSleep(2000); // Allow keep alive packets to trigger key updates.
             }
             QUIC_STATISTICS Stats;
@@ -983,10 +983,13 @@ main(
     TryGetValue(argc, argv, "timeout", &WaitTimeoutMs);
     TryGetValue(argc, argv, "version", &InitialVersion);
     TryGetValue(argc, argv, "port", &CustomPort);
-    if (TryGetValue(argc, argv, "url", &URL)) {
-        URL = strchr(URL,'/') + 2; // Skip the two slashes in http://
-        URL = strchr(URL, '/'); // Skip the hostname (and port) and start at the path.
-        CustomUrl = true;
+    if (TryGetValue(argc, argv, "urlpath", &UrlPath)) {
+        if (UrlPath[0] != '/' || strlen(UrlPath) == 1) {
+            printf("Invalid UrlPath! Must begin with '/'!\n");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+        CustomUrlPath = true;
     }
 
     const char* Target, *Custom;

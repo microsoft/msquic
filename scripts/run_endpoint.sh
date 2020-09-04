@@ -7,7 +7,7 @@ if [ -n "$TESTCASE" ]; then
     case "$TESTCASE" in
     # TODO: add supported test cases here
     "versionnegotiation"|"handshake"|"transfer"|"retry"|"resumption"|\
-    "multiconnect"|"zerortt"|"chacha20")
+    "multiconnect")
         ;;
     *)
         exit 127
@@ -59,7 +59,8 @@ if [ "$ROLE" == "client" ]; then
     esac
 
     for REQ in $REQUESTS; do
-        quicinterop ${CLIENT_PARAMS} -url $REQ -custom:server -port:443
+        FILE=`echo $REQ | cut -f4 -d'/'`
+        quicinterop ${CLIENT_PARAMS} -urlpath "/"$FILE -custom:server -port:443
     done
     # Wait for the logs to flush to disk.
     sleep 2
