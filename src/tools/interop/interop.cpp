@@ -118,6 +118,9 @@ uint32_t CurrentThreadCount;
 
 uint16_t CustomPort = 0;
 
+const char* URL = "/";
+bool CustomUrl = false;
+
 extern "C" void QuicTraceRundown(void) { }
 
 void
@@ -138,7 +141,7 @@ PrintUsage()
 }
 
 class GetRequest : public QUIC_BUFFER {
-    uint8_t RawBuffer[64];
+    uint8_t RawBuffer[512];
 public:
     GetRequest(const char *Request, bool Http1_1 = false) {
         Buffer = RawBuffer;
@@ -158,6 +161,7 @@ class InteropConnection {
     QUIC_EVENT QuackAckReceived;
     QUIC_EVENT ShutdownComplete;
     char* NegotiatedAlpn;
+    FILE* File;
 public:
     bool VersionUnsupported : 1;
     bool Connected : 1;
@@ -167,8 +171,9 @@ public:
     bool ReceivedQuackAck : 1;
     InteropConnection(HQUIC Session, bool VerNeg = false, bool LargeTP = false) :
         Connection(nullptr),
-        SendRequest("/"),
+        SendRequest(URL),
         NegotiatedAlpn(nullptr),
+        File(nullptr),
         VersionUnsupported(false),
         Connected(false),
         Resumed(false),
@@ -512,6 +517,25 @@ private:
     {
         InteropConnection* pThis = (InteropConnection*)Context;
         switch (Event->Type) {
+        case QUIC_STREAM_EVENT_RECEIVE:
+            if (pThis->File == nullptr && CustomUrl) {
+                const char* FileName = strrchr(URL, '/') + 1;
+                pThis->File = fopen(FileName, "wb");
+                if (pThis->File == nullptr) {
+                    break;
+                }
+            }
+            for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
+                uint32_t DataLength = Event->RECEIVE.Buffers[i].Length;
+                if (fwrite(
+                        Event->RECEIVE.Buffers[i].Buffer,
+                        1,
+                        DataLength,
+                        pThis->File) < DataLength) {
+                    break;
+                }
+            }
+            break;
         case QUIC_STREAM_EVENT_SEND_COMPLETE:
             break;
         case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
@@ -532,6 +556,11 @@ private:
                     &Length)) &&
                 Length > 0) {
                 pThis->UsedZeroRtt = true;
+            }
+            if (pThis->File) {
+                fflush(pThis->File);
+                fclose(pThis->File);
+                pThis->File = nullptr;
             }
             QuicEventSet(pThis->RequestComplete);
             MsQuic->StreamClose(Stream);
@@ -610,6 +639,9 @@ RunInteropTest(
     case VersionNegotiation: {
         InteropConnection Connection(Session, true);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
+            if (CustomUrl) {
+                Connection.SendHttpRequest();
+            }
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             QUIC_STATISTICS Stats;
@@ -636,6 +668,9 @@ RunInteropTest(
         }
         InteropConnection Connection(Session, false, Feature == PostQuantum);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
+            if (CustomUrl) {
+                Connection.SendHttpRequest();
+            }
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             if (Feature == StatelessRetry) {
@@ -690,9 +725,14 @@ RunInteropTest(
         InteropConnection Connection(Session);
         if (Connection.SetKeepAlive(50) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port)) {
+            if (CustomUrl) {
+                Connection.SendHttpRequest();
+            }
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
-            QuicSleep(2000); // Allow keep alive packets to trigger key updates.
+            if (!CustomUrl) {
+                QuicSleep(2000); // Allow keep alive packets to trigger key updates.
+            }
             QUIC_STATISTICS Stats;
             if (Connection.GetStatistics(Stats)) {
                 Success = Stats.Misc.KeyUpdateCount > 1;
@@ -941,6 +981,11 @@ main(
     TryGetValue(argc, argv, "timeout", &WaitTimeoutMs);
     TryGetValue(argc, argv, "version", &InitialVersion);
     TryGetValue(argc, argv, "port", &CustomPort);
+    if (TryGetValue(argc, argv, "url", &URL)) {
+        URL = strchr(URL,'/') + 2; // Skip the two slashes in http://
+        URL = strchr(URL, '/'); // Skip the hostname (and port) and start at the path.
+        CustomUrl = true;
+    }
 
     const char* Target, *Custom;
     if (TryGetValue(argc, argv, "target", &Target)) {
