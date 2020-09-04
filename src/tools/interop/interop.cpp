@@ -579,6 +579,8 @@ RunInteropTest(
     QUIC_SETTINGS Settings{0};
     Settings.UnidiStreamCount = 3;
     Settings.IsSet.UnidiStreamCount = TRUE;
+    Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
+    Settings.IsSet.InitialRttMs = TRUE;
     if (Feature == KeyUpdate) {
         Settings.MaxBytesPerKey = 10; // Force a key update after every 10 bytes sent
         Settings.IsSet.MaxBytesPerKey = TRUE;

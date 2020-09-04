@@ -278,6 +278,8 @@ struct HttpSession {
         Settings.IsSet.BidiStreamCount = TRUE;
         Settings.UnidiStreamCount = 1; // We allow 1 unidirectional stream, just for interop tests.
         Settings.IsSet.UnidiStreamCount = TRUE;
+        Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
+        Settings.IsSet.InitialRttMs = TRUE;
 
         EXIT_ON_FAILURE(
             MsQuic->SessionOpen(

@@ -137,8 +137,7 @@ QuicTestConnect(
         Settings.SetIdleTimeoutMs(10000);
     }
     if (SessionResumption) {
-        Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_ONLY;
-        Settings.IsSet.ServerResumptionLevel = TRUE;
+        Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
     }
 
     MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
