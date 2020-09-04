@@ -321,7 +321,7 @@ QuicSettingApply(
         Settings->IsSet.MaxBytesPerKey = TRUE;
     }
     if (NewSettings->IsSet.ServerResumptionLevel) {
-        if (NewSettings->MaxBytesPerKey > QUIC_SERVER_RESUME_AND_ZERORTT) {
+        if (NewSettings->ServerResumptionLevel > QUIC_SERVER_RESUME_AND_ZERORTT) {
             return FALSE;
         }
         Settings->ServerResumptionLevel = NewSettings->ServerResumptionLevel;
