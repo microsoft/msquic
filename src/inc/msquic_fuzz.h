@@ -21,12 +21,7 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_FUZZ_
-#define _MSQUIC_FUZZ_
-
-#ifdef _WIN32
 #pragma once
-#endif
 
 #if defined(__cplusplus)
 extern "C" {
@@ -172,5 +167,3 @@ MsQuicFuzzSimulateReceive(
 #if defined(__cplusplus)
 }
 #endif
-
-#endif // _MSQUIC_
