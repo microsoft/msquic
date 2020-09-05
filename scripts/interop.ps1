@@ -42,6 +42,9 @@ This script runs quicinterop locally.
 .PARAMETER Serial
     Runs the test cases serially.
 
+.PARAMETER UrlPath
+    Path to resource on the server to download.
+
 #>
 
 param (
@@ -86,7 +89,10 @@ param (
     [string]$Version = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Serial = $false
+    [switch]$Serial = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$UrlPath = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -153,6 +159,9 @@ if ($Version -ne "") {
 }
 if ($Serial) {
     $ExtraArgs += " -serial"
+}
+if ($UrlPath -ne "") {
+    $ExtraArgs += " -urlpath:$UrlPath"
 }
 
 if ($ExtraArgs -ne "") {

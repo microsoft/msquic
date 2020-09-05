@@ -7,7 +7,7 @@ if [ -n "$TESTCASE" ]; then
     case "$TESTCASE" in
     # TODO: add supported test cases here
     "versionnegotiation"|"handshake"|"transfer"|"retry"|"resumption"|\
-    "multiconnect"|"zerortt"|"chacha20")
+    "multiconnect")
         ;;
     *)
         exit 127
@@ -34,9 +34,36 @@ if [ "$ROLE" == "client" ]; then
     /wait-for-it.sh sim:57832 -s -t 30
     cd /downloads || exit
 
-    # TODO: add client support
-    # I am not sure if the msquic codebase has an h09 client?
-    exit 127
+    case "$TESTCASE" in
+    "resumption")
+        CLIENT_PARAMS="-test:R $CLIENT_PARAMS"
+        ;;
+    "versionnegotiation")
+        CLIENT_PARAMS="-test:V $CLIENT_PARAMS"
+        ;;
+    "handshake")
+        CLIENT_PARAMS="-test:H $CLIENT_PARAMS"
+        ;;
+    "handshakecorruption")
+        CLIENT_PARAMS="-test:H $CLIENT_PARAMS"
+        ;;
+    "handshakeloss")
+        CLIENT_PARAMS="-test:H $CLIENT_PARAMS"
+        ;;
+    "zerortt")
+        CLIENT_PARAMS="-test:Z $CLIENT_PARAMS"
+        ;;
+    *)
+        CLIENT_PARAMS="-test:D $CLIENT_PARAMS"
+        ;;
+    esac
+
+    for REQ in $REQUESTS; do
+        FILE=`echo $REQ | cut -f4 -d'/'`
+        quicinterop ${CLIENT_PARAMS} -urlpath "/"$FILE -custom:server -port:443
+    done
+    # Wait for the logs to flush to disk.
+    sleep 2
 
 elif [ "$ROLE" == "server" ]; then
     case "$TESTCASE" in
