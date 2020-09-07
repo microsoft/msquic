@@ -134,25 +134,19 @@ MsQuicGetPublicIPEx(
 {
     const QUIC_BUFFER Alpn = { sizeof("ip") - 1, (uint8_t*)"ip" };
     const uint16_t UdpPort = 4444;
-    const uint64_t IdleTimeoutMs = 2000;
-    const uint16_t PeerStreamCount = 1;
+
+    QUIC_SETTINGS Settings{0};
+    Settings.IdleTimeoutMs = 2000;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
+    Settings.PeerUnidiStreamCount = 1;
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
 
     QUIC_IP_LOOKUP Context = {
         FALSE, QUIC_STATUS_SUCCESS, MsQuic, NULL, NULL, LocalAddress, PublicAddress
     };
 
-    if (QUIC_FAILED(Context.Status = Context.MsQuic->SessionOpen(Registration, &Alpn, 1, NULL, &Context.Session))) {
+    if (QUIC_FAILED(Context.Status = Context.MsQuic->SessionOpen(Registration, sizeof(Settings), &Settings, &Alpn, 1, NULL, &Context.Session))) {
         QUIC_PRINTF("SessionOpen failed, 0x%x!\n", Context.Status);
-        goto Error;
-    }
-
-    if (QUIC_FAILED(Context.Status = Context.MsQuic->SetParam(Context.Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_IDLE_TIMEOUT, sizeof(IdleTimeoutMs), &IdleTimeoutMs))) {
-        QUIC_PRINTF("SetParam(SESSION_IDLE_TIMEOUT) failed, 0x%x!\n", Context.Status);
-        goto Error;
-    }
-
-    if (QUIC_FAILED(Context.Status = Context.MsQuic->SetParam(Context.Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount))) {
-        QUIC_PRINTF("SetParam(SESSION_PEER_UNIDI_STREAM_COUNT) failed, 0x%x!\n", Context.Status);
         goto Error;
     }
 

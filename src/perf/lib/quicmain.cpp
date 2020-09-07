@@ -18,7 +18,7 @@ Abstract:
 #include "quicmain.cpp.clog.h"
 #endif
 
-const QuicApiTable* MsQuic;
+const MsQuicApi* MsQuic;
 volatile int BufferCurrent;
 char Buffer[BufferLength];
 
@@ -89,11 +89,11 @@ QuicMainStart(
         }
     }
 
-    MsQuic = new(std::nothrow) QuicApiTable;
+    MsQuic = new(std::nothrow) MsQuicApi;
     if (MsQuic == nullptr) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    if (QUIC_FAILED(Status = MsQuic->InitStatus())) {
+    if (QUIC_FAILED(Status = MsQuic->GetInitStatus())) {
         delete MsQuic;
         MsQuic = nullptr;
         return Status;

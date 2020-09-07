@@ -33,24 +33,6 @@ PrintHelp(
         );
 }
 
-PerfServer::PerfServer(
-    _In_ PerfSelfSignedConfiguration* SelfSignedConfig
-    ) : SelfSignedConfig{SelfSignedConfig} {
-    if (Session.IsValid()) {
-        Session.SetAutoCleanup();
-        Session.SetPeerBidiStreamCount(PERF_DEFAULT_STREAM_COUNT);
-        Session.SetPeerUnidiStreamCount(PERF_DEFAULT_STREAM_COUNT);
-        Session.SetDisconnectTimeout(PERF_DEFAULT_DISCONNECT_TIMEOUT);
-        Session.SetIdleTimeout(PERF_DEFAULT_IDLE_TIMEOUT);
-    }
-}
-
-PerfServer::~PerfServer() {
-    if (DataBuffer) {
-        QUIC_FREE(DataBuffer);
-    }
-}
-
 QUIC_STATUS
 PerfServer::Init(
     _In_ int argc,

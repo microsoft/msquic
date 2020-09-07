@@ -272,31 +272,24 @@ struct HttpSession {
             const QUIC_BUFFER* const AlpnBuffers,
         _In_range_(>, 0) uint32_t AlpnBufferCount,
         const QUIC_ADDR* LocalAddress) {
+
+        QUIC_SETTINGS Settings{0};
+        Settings.PeerBidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
+        Settings.IsSet.PeerBidiStreamCount = TRUE;
+        Settings.PeerUnidiStreamCount = 1; // We allow 1 unidirectional stream, just for interop tests.
+        Settings.IsSet.PeerUnidiStreamCount = TRUE;
+        Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
+        Settings.IsSet.InitialRttMs = TRUE;
+
         EXIT_ON_FAILURE(
             MsQuic->SessionOpen(
                 Registration,
+                sizeof(Settings),
+                &Settings,
                 AlpnBuffers,
                 AlpnBufferCount,
                 nullptr,
                 &Session));
-
-        uint16_t PeerBidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
-        uint16_t PeerUnidiStreamCount = 1; // We allow 1 unidirectional stream, just for interop tests.
-
-        EXIT_ON_FAILURE(
-            MsQuic->SetParam(
-                Session,
-                QUIC_PARAM_LEVEL_SESSION,
-                QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT,
-                sizeof(PeerBidiStreamCount),
-                &PeerBidiStreamCount));
-        EXIT_ON_FAILURE(
-            MsQuic->SetParam(
-                Session,
-                QUIC_PARAM_LEVEL_SESSION,
-                QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT,
-                sizeof(PeerUnidiStreamCount),
-                &PeerUnidiStreamCount));
 
         Server = new HttpServer(Session, LocalAddress);
     }

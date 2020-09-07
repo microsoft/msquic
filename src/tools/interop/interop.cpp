@@ -609,6 +609,16 @@ RunInteropTest(
 {
     bool Success = false;
 
+    QUIC_SETTINGS Settings{0};
+    Settings.PeerUnidiStreamCount = 3;
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
+    Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
+    Settings.IsSet.InitialRttMs = TRUE;
+    if (Feature == KeyUpdate) {
+        Settings.MaxBytesPerKey = 10; // Force a key update after every 10 bytes sent
+        Settings.IsSet.MaxBytesPerKey = TRUE;
+    }
+
     const QUIC_BUFFER* Alpns;
     uint32_t AlpnCount;
     if (Feature & QuicTestFeatureDataPath) {
@@ -626,18 +636,12 @@ RunInteropTest(
     VERIFY_QUIC_SUCCESS(
         MsQuic->SessionOpen(
             Registration,
+            sizeof(Settings),
+            &Settings,
             Alpns,
             AlpnCount,
             nullptr,
             &Session));
-    uint16_t UniStreams = 3;
-    VERIFY_QUIC_SUCCESS(
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT,
-            sizeof(UniStreams),
-            &UniStreams));
 
     switch (Feature) {
     case VersionNegotiation: {
@@ -718,14 +722,6 @@ RunInteropTest(
     }
 
     case KeyUpdate: {
-        uint64_t MaxBytesPerKey = 10; // Force a key update after every 10 bytes sent
-        VERIFY_QUIC_SUCCESS(
-            MsQuic->SetParam(
-                Session,
-                QUIC_PARAM_LEVEL_SESSION,
-                QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY,
-                sizeof(MaxBytesPerKey),
-                &MaxBytesPerKey));
         InteropConnection Connection(Session);
         if (Connection.SetKeepAlive(50) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port)) {

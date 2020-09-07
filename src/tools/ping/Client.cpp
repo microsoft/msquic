@@ -19,26 +19,23 @@ void QuicPingClientRun()
     PingTracker Tracker;
     bool Timeout = true;
     {
+        QUIC_SETTINGS Settings{0};
+        if (PingConfig.MaxBytesPerKey != UINT64_MAX) {
+            Settings.MaxBytesPerKey = PingConfig.MaxBytesPerKey;
+            Settings.IsSet.MaxBytesPerKey = TRUE;
+        }
+
         QuicSession Session;
         if (QUIC_FAILED(
             MsQuic->SessionOpen(
                 Registration,
+                sizeof(Settings),
+                &Settings,
                 &PingConfig.ALPN,
                 1,
                 NULL,
                 &Session.Handle))) {
             printf("MsQuic->SessionOpen failed!\n");
-            return;
-        }
-        if (PingConfig.MaxBytesPerKey != UINT64_MAX &&
-            QUIC_FAILED(
-            MsQuic->SetParam(
-                Session.Handle,
-                QUIC_PARAM_LEVEL_SESSION,
-                QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY,
-                sizeof(uint64_t),
-                &PingConfig.MaxBytesPerKey))) {
-            printf("MsQuic.SetParam (SESSION_MAX_BYTES_PER_KEY) failed!\n");
             return;
         }
 

@@ -19,9 +19,16 @@ Abstract:
 
 class RpsClient : public PerfBase {
 public:
-    RpsClient();
+    RpsClient() {
+        QuicEventInitialize(&AllConnected, TRUE, FALSE);
+    }
 
-    ~RpsClient() override;
+    ~RpsClient() override {
+        if (RequestBuffer) {
+            QUIC_FREE(RequestBuffer);
+        }
+        QuicEventUninitialize(AllConnected);
+    }
 
     QUIC_STATUS
     Init(
@@ -59,7 +66,13 @@ private:
         );
 
     MsQuicRegistration Registration;
-    MsQuicSession Session{Registration, PERF_ALPN};
+    MsQuicSession Session {
+        Registration,
+        MsQuicAlpn(PERF_ALPN),
+        MsQuicSettings()
+            .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
+            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT),
+        true};
     uint16_t Port {PERF_DEFAULT_PORT};
     UniquePtr<char[]> Target;
     uint32_t RunTime {RPS_DEFAULT_RUN_TIME};

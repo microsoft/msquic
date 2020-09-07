@@ -19,9 +19,15 @@ Abstract:
 
 class ThroughputClient : public PerfBase {
 public:
-    ThroughputClient();
+    ThroughputClient() {
+        QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
+    }
 
-    ~ThroughputClient() override;
+    ~ThroughputClient() override {
+        if (DataBuffer) {
+            QUIC_FREE(DataBuffer);
+        }
+    }
 
     QUIC_STATUS
     Init(
@@ -85,7 +91,12 @@ private:
         );
 
     MsQuicRegistration Registration;
-    MsQuicSession Session{Registration, PERF_ALPN};
+    MsQuicSession Session {
+        Registration,
+        MsQuicAlpn(PERF_ALPN),
+        MsQuicSettings()
+            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT),
+        true};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
     QuicPoolAllocator<ConnectionData> ConnectionDataAllocator;
     UniquePtr<char[]> TargetData;

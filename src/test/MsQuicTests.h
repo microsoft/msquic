@@ -9,19 +9,12 @@ Abstract:
 
 --*/
 
-#include <msquic.h>
+#include "msquic.hpp"
 
 //#define QUIC_COMPARTMENT_TESTS 1
 
-extern const QUIC_API_TABLE* MsQuic;
-extern HQUIC Registration;
+extern MsQuicRegistration* Registration;
 extern QUIC_SEC_CONFIG* SecurityConfig;
-
-//
-// Must be included under above extern declarations
-// Fixing is invasive, will do in future
-//
-#include "msquic.hpp"
 
 #ifdef __cplusplus
 extern "C" {
