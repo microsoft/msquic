@@ -27,7 +27,7 @@ ListenerDoNothingCallback(
 
 void QuicTestCreateListener()
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
 
     {
@@ -38,7 +38,7 @@ void QuicTestCreateListener()
 
 void QuicTestStartListener()
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
 
     {
@@ -57,7 +57,7 @@ void QuicTestStartListener()
 
 void QuicTestStartListenerMultiAlpns()
 {
-    MsQuicSession Session("MsQuicTest1", "MsQuicTest2");
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest1", "MsQuicTest2"));
     TEST_TRUE(Session.IsValid());
 
     {
@@ -76,7 +76,7 @@ void QuicTestStartListenerMultiAlpns()
 
 void QuicTestStartListenerImplicit(_In_ int Family)
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
 
     {
@@ -90,9 +90,9 @@ void QuicTestStartListenerImplicit(_In_ int Family)
 
 void QuicTestStartTwoListeners()
 {
-    MsQuicSession Session1;
+    MsQuicSession Session1(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session1.IsValid());
-    MsQuicSession Session2("MsQuicTest2");
+    MsQuicSession Session2(*Registration, "MsQuicTest2");
     TEST_TRUE(Session2.IsValid());
 
     {
@@ -111,9 +111,9 @@ void QuicTestStartTwoListeners()
 
 void QuicTestStartTwoListenersSameALPN()
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
-    MsQuicSession Session2("MsQuicTest", "MsQuicTest2");
+    MsQuicSession Session2(*Registration, MsQuicAlpn("MsQuicTest", "MsQuicTest2"));
     TEST_TRUE(Session2.IsValid());
 
     {
@@ -173,7 +173,7 @@ void QuicTestStartTwoListenersSameALPN()
 
 void QuicTestStartListenerExplicit(_In_ int Family)
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
 
     {
@@ -193,7 +193,7 @@ void QuicTestStartListenerExplicit(_In_ int Family)
 
 void QuicTestCreateConnection()
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
 
     {
@@ -204,7 +204,7 @@ void QuicTestCreateConnection()
 
 void QuicTestBindConnectionImplicit(_In_ int Family)
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
 
     {
@@ -218,7 +218,7 @@ void QuicTestBindConnectionImplicit(_In_ int Family)
 
 void QuicTestBindConnectionExplicit(_In_ int Family)
 {
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
 
     {

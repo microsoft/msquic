@@ -84,28 +84,6 @@ DecodeHexBuffer(
     return HexBufferLen;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_CONFIGURATION_CALLBACK)
-QUIC_STATUS
-QUIC_API
-ConfigurationCallback(
-    _In_ HQUIC /* Configuration */,
-    _In_opt_ void* /* Context */,
-    _Inout_ QUIC_CONFIGURATION_EVENT* Event
-    )
-{
-    switch (Event->Type) {
-    case QUIC_CONFIGURATION_EVENT_LOAD_COMPLETE:
-        if (QUIC_FAILED(Event->LOAD_CREDENTIAL_COMPLETE.Status)) {
-            printf("Configuration load failed, 0x%x\n", Event->LOAD_CREDENTIAL_COMPLETE.Status);
-        }
-        break;
-    default:
-        break;
-    }
-    return QUIC_STATUS_SUCCESS;
-}
-
 void
 ServerSend(
     _In_ HQUIC Stream
@@ -241,8 +219,16 @@ ServerLoadConfiguration(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     )
 {
+    QUIC_SETTINGS Settings{0};
+    Settings.IdleTimeoutMs = IdleTimeoutMs;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
+    Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT;
+    Settings.IsSet.ServerResumptionLevel = TRUE;
+    Settings.PeerBidiStreamCount = 1;
+    Settings.IsSet.PeerBidiStreamCount = TRUE;
+
     QUIC_CREDENTIAL_CONFIG_HELPER Config;
-    Config.CredConfig.Flags = QUIC_CREDENTIAL_FLAG_LOAD_SYNCHRONOUS;
+    Config.CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
 
     const char* Cert;
     const char* KeyFile;
@@ -271,36 +257,13 @@ ServerLoadConfiguration(
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, ConfigurationCallback, nullptr, &Configuration))) {
+    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, sizeof(Settings), &Settings, nullptr, &Configuration))) {
         printf("ConfigurationOpen failed, 0x%x!\n", Status);
         return false;
     }
 
     if (QUIC_FAILED(Status = MsQuic->ConfigurationLoadCredential(Configuration, &Config.CredConfig))) {
-        printf("ConfigurationOpen failed, 0x%x!\n", Status);
-        return false;
-    }
-
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-            Configuration, QUIC_PARAM_LEVEL_CONFIGURATION, QUIC_PARAM_CONFIG_IDLE_TIMEOUT,
-            sizeof(IdleTimeoutMs), &IdleTimeoutMs))) {
-        printf("SetParam(QUIC_PARAM_CONFIG_IDLE_TIMEOUT) failed, 0x%x!\n", Status);
-        return false;
-    }
-
-    QUIC_SERVER_RESUMPTION_LEVEL ResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT;
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-            Configuration, QUIC_PARAM_LEVEL_CONFIGURATION, QUIC_PARAM_CONFIG_SERVER_RESUMPTION_LEVEL,
-            sizeof(ResumptionLevel), &ResumptionLevel))) {
-        printf("SetParam(QUIC_PARAM_CONFIG_SERVER_RESUMPTION_LEVEL) failed, 0x%x!\n", Status);
-        return false;
-    }
-
-    const uint16_t PeerStreamCount = 1;
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-            Configuration, QUIC_PARAM_LEVEL_CONFIGURATION, QUIC_PARAM_CONFIG_PEER_BIDI_STREAM_COUNT,
-            sizeof(PeerStreamCount), &PeerStreamCount))) {
-        printf("SetParam(QUIC_PARAM_CONFIG_PEER_BIDI_STREAM_COUNT) failed, 0x%x!\n", Status);
+        printf("ConfigurationLoadCredential failed, 0x%x!\n", Status);
         return false;
     }
 
@@ -469,28 +432,25 @@ ClientLoadConfiguration(
     bool Unsecure
     )
 {
+    QUIC_SETTINGS Settings{0};
+    Settings.IdleTimeoutMs = IdleTimeoutMs;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
+
     QUIC_CREDENTIAL_CONFIG CredConfig;
     CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE;
-    CredConfig.Flags = QUIC_CREDENTIAL_FLAG_LOAD_SYNCHRONOUS | QUIC_CREDENTIAL_FLAG_CLIENT;
+    CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT;
     if (Unsecure) {
         CredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, ConfigurationCallback, nullptr, &Configuration))) {
+    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, sizeof(Settings), &Settings, nullptr, &Configuration))) {
         printf("ConfigurationOpen failed, 0x%x!\n", Status);
         return false;
     }
 
     if (QUIC_FAILED(Status = MsQuic->ConfigurationLoadCredential(Configuration, &CredConfig))) {
-        printf("ConfigurationOpen failed, 0x%x!\n", Status);
-        return false;
-    }
-
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-            Configuration, QUIC_PARAM_LEVEL_CONFIGURATION, QUIC_PARAM_CONFIG_IDLE_TIMEOUT,
-            sizeof(IdleTimeoutMs), &IdleTimeoutMs))) {
-        printf("SetParam(QUIC_PARAM_CONFIG_IDLE_TIMEOUT) failed, 0x%x!\n", Status);
+        printf("ConfigurationLoadCredential failed, 0x%x!\n", Status);
         return false;
     }
 

@@ -27,7 +27,9 @@ QUIC_STATUS
 QUIC_API
 MsQuicConfigurationOpen(
     _In_ _Pre_defensive_ HQUIC Registration,
-    _In_ _Pre_defensive_ QUIC_CONFIGURATION_CALLBACK_HANDLER Handler,
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_opt_(SettingsSize)
+        const QUIC_SETTINGS* Settings,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Configuration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* Configuration
@@ -46,7 +48,7 @@ QUIC_STATUS
 QUIC_API
 MsQuicConfigurationLoadCredential(
     _In_ _Pre_defensive_ HQUIC Configuration,
-    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
+    _In_ _Pre_defensive_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

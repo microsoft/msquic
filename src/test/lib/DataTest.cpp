@@ -345,16 +345,17 @@ QuicTestConnectAndPing(
     PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
     PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
-    MsQuicSession Session;
-    TEST_TRUE(Session.IsValid());
-    Session.SetAutoCleanup();
+    MsQuicSettings Settings;
     if (ClientZeroRtt) {
-        Session.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
+        Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
     }
     if (!ServerInitiatedStreams) {
-        TEST_QUIC_SUCCEEDED(Session.SetPeerUnidiStreamCount(TotalStreamCount));
-        TEST_QUIC_SUCCEEDED(Session.SetPeerBidiStreamCount(TotalStreamCount));
+        Settings.SetPeerBidiStreamCount(TotalStreamCount);
+        Settings.SetPeerUnidiStreamCount(TotalStreamCount);
     }
+
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings, true);
+    TEST_TRUE(Session.IsValid());
 
     if (ServerRejectZeroRtt) {
         uint8_t NewTicketKey[44] = {1};
@@ -461,10 +462,12 @@ QuicTestServerDisconnect(
     PingStats ServerStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
     PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE);
 
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
+
     {
-        MsQuicSession Session;
+        MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
         TEST_TRUE(Session.IsValid());
-        TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000)); // Fallback (test failure) timeout
 
         {
             TestListener Listener(Session.Handle, ListenerAcceptPingConnection);
@@ -564,11 +567,13 @@ QuicTestClientDisconnect(
     PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE,
         StopListenerFirst ? QUIC_STATUS_CONNECTION_TIMEOUT : QUIC_STATUS_ABORTED);
 
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
+    Settings.SetPeerUnidiStreamCount(1);
+
     {
-        MsQuicSession Session;
+        MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
         TEST_TRUE(Session.IsValid());
-        TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000)); // Fallback (test failure) timeout
-        TEST_QUIC_SUCCEEDED(Session.SetPeerUnidiStreamCount(1));
 
         {
             TestListener Listener(Session.Handle, ListenerAcceptConnectionAndStreams);
@@ -838,7 +843,7 @@ QuicAbortiveTransfers(
     )
 {
     uint32_t TimeoutMs = 500;
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
 
     TEST_TRUE(Session.IsValid());
     /*
@@ -1330,7 +1335,7 @@ QuicTestReceiveResume(
     )
 {
     uint32_t TimeoutMs = 500;
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
 
     uint32_t SendSize = SendBytes;
@@ -1596,7 +1601,7 @@ QuicTestReceiveResumeNoData(
     )
 {
     uint32_t TimeoutMs = 500;
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     TEST_TRUE(Session.IsValid());
 
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;

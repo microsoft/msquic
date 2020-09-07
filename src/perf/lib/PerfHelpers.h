@@ -21,12 +21,6 @@ Abstract:
 
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // For disabling encryption
 
-class QuicApiTable;
-
-extern const QuicApiTable* MsQuic;
-
-#define QUIC_SKIP_GLOBAL_CONSTRUCTORS
-
 #include <quic_platform.h>
 #include <quic_trace.h>
 #include <msquic.hpp>
@@ -108,8 +102,8 @@ WriteOutput(
     }
     int Start = End - Length;
     QuicCopyMemory(Buffer + Start, Buf, Length);
-    
-    
+
+
     return Length;
 #endif
 }

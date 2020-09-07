@@ -150,7 +150,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Length of various parts of locally generated connection IDs.
     //
-    _Field_range_(MSQUIC_MIN_CID_SID_LENGTH, MSQUIC_MAX_CID_SID_LENGTH)
+    _Field_range_(0, MSQUIC_MAX_CID_SID_LENGTH)
     uint8_t CidServerIdLength;
     // uint8_t CidPartitionIdLength; // Currently hard coded (MSQUIC_CID_PID_LENGTH)
     _Field_range_(QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH, MSQUIC_CID_MAX_LENGTH)

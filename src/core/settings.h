@@ -5,66 +5,6 @@
 
 --*/
 
-typedef struct QUIC_SETTINGS {
-
-    BOOLEAN PacingDefault    : 1;
-    BOOLEAN MigrationEnabled : 1;
-    BOOLEAN DatagramReceiveEnabled  : 1;
-    uint8_t ServerResumptionLevel : 2;
-    uint8_t MaxPartitionCount;          // Global only
-    uint8_t MaxOperationsPerDrain;      // Global only
-    uint16_t RetryMemoryLimit;          // Global only
-    uint16_t LoadBalancingMode;         // Global only
-    uint32_t MaxWorkerQueueDelayUs;
-    uint32_t MaxStatelessOperations;
-    uint32_t InitialWindowPackets;
-    uint32_t SendIdleTimeoutMs;
-    uint32_t InitialRttMs;
-    uint32_t MaxAckDelayMs;
-    uint32_t DisconnectTimeoutMs;
-    uint32_t KeepAliveIntervalMs;
-    uint64_t HandshakeIdleTimeoutMs;
-    uint64_t IdleTimeoutMs;
-    uint16_t BidiStreamCount;
-    uint16_t UnidiStreamCount;
-    uint32_t TlsClientMaxSendBuffer;
-    uint32_t TlsServerMaxSendBuffer;
-    uint32_t StreamRecvWindowDefault;
-    uint32_t StreamRecvBufferDefault;
-    uint32_t ConnFlowControlWindow;
-    uint64_t MaxBytesPerKey;
-
-    struct {
-        BOOLEAN PacingDefault : 1;
-        BOOLEAN MigrationEnabled : 1;
-        BOOLEAN DatagramReceiveEnabled : 1;
-        BOOLEAN ServerResumptionLevel : 1;
-        BOOLEAN MaxPartitionCount : 1;
-        BOOLEAN MaxOperationsPerDrain : 1;
-        BOOLEAN RetryMemoryLimit : 1;
-        BOOLEAN LoadBalancingMode : 1;
-        BOOLEAN MaxWorkerQueueDelayUs : 1;
-        BOOLEAN MaxStatelessOperations : 1;
-        BOOLEAN InitialWindowPackets : 1;
-        BOOLEAN SendIdleTimeoutMs : 1;
-        BOOLEAN InitialRttMs : 1;
-        BOOLEAN MaxAckDelayMs : 1;
-        BOOLEAN DisconnectTimeoutMs : 1;
-        BOOLEAN KeepAliveIntervalMs : 1;
-        BOOLEAN IdleTimeoutMs : 1;
-        BOOLEAN HandshakeIdleTimeoutMs : 1;
-        BOOLEAN BidiStreamCount : 1;
-        BOOLEAN UnidiStreamCount : 1;
-        BOOLEAN TlsClientMaxSendBuffer : 1;
-        BOOLEAN TlsServerMaxSendBuffer : 1;
-        BOOLEAN StreamRecvWindowDefault : 1;
-        BOOLEAN StreamRecvBufferDefault : 1;
-        BOOLEAN ConnFlowControlWindow : 1;
-        BOOLEAN MaxBytesPerKey : 1;
-    } AppSet;
-
-} QUIC_SETTINGS;
-
 //
 // Initializes all settings to default values, if not already set by the app.
 //
@@ -82,6 +22,19 @@ void
 QuicSettingsCopy(
     _Inout_ QUIC_SETTINGS* Settings,
     _In_ const QUIC_SETTINGS* ParentSettings
+    );
+
+//
+// Applies the changes from the new settings.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicSettingApply(
+    _Inout_ QUIC_SETTINGS* Settings,
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
+        uint32_t NewSessionSize,
+    _In_reads_bytes_(NewSessionSize)
+        const QUIC_SETTINGS* NewSettings
     );
 
 //

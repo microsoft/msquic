@@ -78,77 +78,33 @@ struct PingServer {
 
 void QuicPingServerRun()
 {
+    QUIC_SETTINGS Settings{0};
+    Settings.PeerBidiStreamCount = PingConfig.PeerBidirStreamCount;
+    Settings.IsSet.PeerBidiStreamCount = TRUE;
+    Settings.PeerUnidiStreamCount = PingConfig.PeerUnidirStreamCount;
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
+    Settings.DisconnectTimeoutMs = PingConfig.DisconnectTimeout;
+    Settings.IsSet.DisconnectTimeoutMs = TRUE;
+    Settings.IdleTimeoutMs = PingConfig.IdleTimeout;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
+    if (PingConfig.MaxBytesPerKey != UINT64_MAX) {
+        Settings.MaxBytesPerKey = PingConfig.MaxBytesPerKey;
+        Settings.IsSet.MaxBytesPerKey = TRUE;
+    }
+    Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_ONLY;
+    Settings.IsSet.ServerResumptionLevel = TRUE;
+
     QuicSession Session;
     if (QUIC_FAILED(
         MsQuic->SessionOpen(
             Registration,
+            sizeof(Settings),
+            &Settings,
             &PingConfig.ALPN,
             1,
             NULL,
             &Session.Handle))) {
         printf("MsQuic->SessionOpen failed!\n");
-        return;
-    }
-    if (QUIC_FAILED(
-        MsQuic->SetParam(
-            Session.Handle,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT,
-            sizeof(uint16_t),
-            &PingConfig.PeerBidirStreamCount))) {
-        printf("MsQuic->SetParam (SESSION_PEER_BIDI_STREAM_COUNT) failed!\n");
-        return;
-    }
-    if (QUIC_FAILED(
-        MsQuic->SetParam(
-            Session.Handle,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT,
-            sizeof(uint16_t),
-            &PingConfig.PeerUnidirStreamCount))) {
-        printf("MsQuic->SetParam (SESSION_PEER_UNIDI_STREAM_COUNT) failed!\n");
-        return;
-    }
-    if (QUIC_FAILED(
-        MsQuic->SetParam(
-            Session.Handle,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT,
-            sizeof(uint32_t),
-            &PingConfig.DisconnectTimeout))) {
-        printf("MsQuic->SetParam (SESSION_DISCONNECT_TIMEOUT) failed!\n");
-        return;
-    }
-    if (QUIC_FAILED(
-        MsQuic->SetParam(
-            Session.Handle,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_IDLE_TIMEOUT,
-            sizeof(uint64_t),
-            &PingConfig.IdleTimeout))) {
-        printf("MsQuic->SetParam (SESSION_IDLE_TIMEOUT) failed!\n");
-        return;
-    }
-    if (PingConfig.MaxBytesPerKey != UINT64_MAX &&
-        QUIC_FAILED(
-        MsQuic->SetParam(
-            Session.Handle,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY,
-            sizeof(uint64_t),
-            &PingConfig.MaxBytesPerKey))) {
-        printf("MsQuic.SetParam (SESSION_MAX_BYTES_PER_KEY) failed!\n");
-        return;
-    }
-    QUIC_SERVER_RESUMPTION_LEVEL ResumeLevel = QUIC_SERVER_RESUME_ONLY;
-    if (QUIC_FAILED(
-        MsQuic->SetParam(
-            Session.Handle,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-            sizeof(ResumeLevel),
-            &ResumeLevel))) {
-        printf("MsQuic.SetParam (SESSION_SERVER_RESUMPTION_LEVEL) failed!\n");
         return;
     }
 

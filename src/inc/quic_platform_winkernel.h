@@ -14,18 +14,15 @@ Environment:
 
 --*/
 
-#ifndef QUIC_PLATFORM_
+#pragma once
+
+#ifndef QUIC_PLATFORM_TYPE
 #error "Must be included from quic_platform.h"
 #endif
 
 #ifndef _KERNEL_MODE
 #error "Incorrectly including Windows Kernel Platform Header"
 #endif
-
-#ifndef _PLATFORM_WINDOWS_KERNEL_
-#define _PLATFORM_WINDOWS_KERNEL_
-
-#pragma once
 
 #pragma warning(push) // Don't care about OACR warnings in publics
 #pragma warning(disable:26036)
@@ -961,5 +958,3 @@ QuicSetCurrentThreadProcessorAffinity(
 #if defined(__cplusplus)
 }
 #endif
-
-#endif // _PLATFORM_WINDOWS_KERNEL_

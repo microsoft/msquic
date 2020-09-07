@@ -93,7 +93,7 @@ typedef enum QUIC_CREDENTIAL_TYPE {
 typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_NONE                       = 0x00000000,
     QUIC_CREDENTIAL_FLAG_CLIENT                     = 0x00000001, // Lack of client flag indicates server.
-    QUIC_CREDENTIAL_FLAG_LOAD_SYNCHRONOUS           = 0x00000002,
+    QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS          = 0x00000002,
     QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION  = 0x00000004,
     QUIC_CREDENTIAL_FLAG_ENABLE_OCSP                = 0x00000008
 } QUIC_CREDENTIAL_FLAGS;
@@ -113,6 +113,12 @@ typedef enum QUIC_CONNECTION_SHUTDOWN_FLAGS {
 } QUIC_CONNECTION_SHUTDOWN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CONNECTION_SHUTDOWN_FLAGS);
+
+typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
+    QUIC_SERVER_NO_RESUME,
+    QUIC_SERVER_RESUME_ONLY,
+    QUIC_SERVER_RESUME_AND_ZERORTT
+} QUIC_SERVER_RESUMPTION_LEVEL;
 
 typedef enum QUIC_SEND_RESUMPTION_FLAGS {
     QUIC_SEND_RESUMPTION_FLAG_NONE          = 0x0000,
@@ -195,11 +201,24 @@ typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.
     QUIC_EXECUTION_PROFILE ExecutionProfile;
 } QUIC_REGISTRATION_CONFIG;
 
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_CREDENTIAL_LOAD_COMPLETE)
+void
+(QUIC_API QUIC_CREDENTIAL_LOAD_COMPLETE)(
+    _In_ HQUIC Configuration,
+    _In_opt_ void* Context,
+    _In_ QUIC_STATUS Status
+    );
+
+typedef QUIC_CREDENTIAL_LOAD_COMPLETE *QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER;
+
 typedef struct QUIC_CREDENTIAL_CONFIG {
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
     void* Creds;
     const char* Principal;
+    QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler;
 } QUIC_CREDENTIAL_CONFIG;
 
 typedef struct QUIC_CERTIFICATE_HASH {
@@ -337,6 +356,71 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_MAX
 } QUIC_PERFORMANCE_COUNTERS;
 
+typedef struct QUIC_SETTINGS {
+
+    union {
+        uint64_t IsSetFlags;
+        struct {
+            uint64_t PacingEnabled              : 1;
+            uint64_t MigrationEnabled           : 1;
+            uint64_t DatagramReceiveEnabled     : 1;
+            uint64_t ServerResumptionLevel      : 1;
+            uint64_t MaxPartitionCount          : 1;
+            uint64_t MaxOperationsPerDrain      : 1;
+            uint64_t RetryMemoryLimit           : 1;
+            uint64_t LoadBalancingMode          : 1;
+            uint64_t MaxWorkerQueueDelayUs      : 1;
+            uint64_t MaxStatelessOperations     : 1;
+            uint64_t InitialWindowPackets       : 1;
+            uint64_t SendIdleTimeoutMs          : 1;
+            uint64_t InitialRttMs               : 1;
+            uint64_t MaxAckDelayMs              : 1;
+            uint64_t DisconnectTimeoutMs        : 1;
+            uint64_t KeepAliveIntervalMs        : 1;
+            uint64_t IdleTimeoutMs              : 1;
+            uint64_t HandshakeIdleTimeoutMs     : 1;
+            uint64_t PeerBidiStreamCount        : 1;
+            uint64_t PeerUnidiStreamCount       : 1;
+            uint64_t TlsClientMaxSendBuffer     : 1;
+            uint64_t TlsServerMaxSendBuffer     : 1;
+            uint64_t StreamRecvWindowDefault    : 1;
+            uint64_t StreamRecvBufferDefault    : 1;
+            uint64_t ConnFlowControlWindow      : 1;
+            uint64_t MaxBytesPerKey             : 1;
+            uint64_t RESERVED                   : 38;
+        } IsSet;
+    };
+
+    uint8_t PacingEnabled           : 1;
+    uint8_t MigrationEnabled        : 1;
+    uint8_t DatagramReceiveEnabled  : 1;
+    uint8_t ServerResumptionLevel   : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
+    uint8_t RESERVED                : 3;
+    uint8_t MaxPartitionCount;              // Global only
+    uint8_t MaxOperationsPerDrain;          // Global only
+    uint16_t RetryMemoryLimit;              // Global only
+    uint16_t LoadBalancingMode;             // Global only
+    uint32_t MaxWorkerQueueDelayUs;
+    uint32_t MaxStatelessOperations;
+    uint32_t InitialWindowPackets;
+    uint32_t SendIdleTimeoutMs;
+    uint32_t InitialRttMs;
+    uint32_t MaxAckDelayMs;
+    uint32_t DisconnectTimeoutMs;
+    uint32_t KeepAliveIntervalMs;
+    uint64_t HandshakeIdleTimeoutMs;
+    uint64_t IdleTimeoutMs;
+    uint16_t PeerBidiStreamCount;
+    uint16_t PeerUnidiStreamCount;
+    uint32_t TlsClientMaxSendBuffer;
+    uint32_t TlsServerMaxSendBuffer;
+    uint32_t StreamRecvWindowDefault;
+    uint32_t StreamRecvBufferDefault;
+    uint32_t ConnFlowControlWindow;
+    uint64_t MaxBytesPerKey;
+
+} QUIC_SETTINGS;
+
 //
 // Functions for associating application contexts with QUIC handles.
 //
@@ -383,12 +467,6 @@ typedef enum QUIC_PARAM_LEVEL {
     QUIC_PARAM_LEVEL_STREAM
 } QUIC_PARAM_LEVEL;
 
-typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
-    QUIC_SERVER_NO_RESUME,
-    QUIC_SERVER_RESUME_ONLY,
-    QUIC_SERVER_RESUME_AND_ZERORTT
-} QUIC_SERVER_RESUMPTION_LEVEL;
-
 //
 // Parameters for QUIC_PARAM_LEVEL_GLOBAL.
 //
@@ -406,14 +484,6 @@ typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
 // Parameters for QUIC_PARAM_LEVEL_CONFIGURATION.
 //
 #define QUIC_PARAM_CONFIG_TLS_TICKET_KEY                0   // uint8_t[44]
-#define QUIC_PARAM_CONFIG_PEER_BIDI_STREAM_COUNT        1   // uint16_t
-#define QUIC_PARAM_CONFIG_PEER_UNIDI_STREAM_COUNT       2   // uint16_t
-#define QUIC_PARAM_CONFIG_IDLE_TIMEOUT                  3   // uint64_t - milliseconds
-#define QUIC_PARAM_CONFIG_DISCONNECT_TIMEOUT            4   // uint32_t - milliseconds
-#define QUIC_PARAM_CONFIG_MAX_BYTES_PER_KEY             5   // uint64_t - bytes
-#define QUIC_PARAM_CONFIG_MIGRATION_ENABLED             6   // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONFIG_DATAGRAM_RECEIVE_ENABLED      7   // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONFIG_SERVER_RESUMPTION_LEVEL       8   // QUIC_SERVER_RESUMPTION_LEVEL
 
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
@@ -537,31 +607,6 @@ void
 // Configuration Interface.
 //
 
-typedef enum QUIC_CONFIGURATION_EVENT_TYPE {
-    QUIC_CONFIGURATION_EVENT_LOAD_COMPLETE      = 0
-} QUIC_CONFIGURATION_EVENT_TYPE;
-
-typedef struct QUIC_CONFIGURATION_EVENT {
-    QUIC_CONFIGURATION_EVENT_TYPE Type;
-    union {
-        struct {
-            QUIC_STATUS Status;
-        } LOAD_CREDENTIAL_COMPLETE;
-    };
-} QUIC_CONFIGURATION_EVENT;
-
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_CONFIGURATION_CALLBACK)
-QUIC_STATUS
-(QUIC_API QUIC_CONFIGURATION_CALLBACK)(
-    _In_ HQUIC Configuration,
-    _In_opt_ void* Context,
-    _Inout_ QUIC_CONFIGURATION_EVENT* Event
-    );
-
-typedef QUIC_CONFIGURATION_CALLBACK *QUIC_CONFIGURATION_CALLBACK_HANDLER;
-
 //
 // Opens a new configuration.
 //
@@ -570,7 +615,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_CONFIGURATION_OPEN_FN)(
     _In_ _Pre_defensive_ HQUIC Registration,
-    _In_ _Pre_defensive_ QUIC_CONFIGURATION_CALLBACK_HANDLER Handler,
+    _In_ uint32_t SettingsSize,
+    _In_reads_bytes_opt_(SettingsSize)
+        const QUIC_SETTINGS* Settings,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Configuration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* Configuration
@@ -596,7 +643,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_CONFIGURATION_LOAD_CREDENTIAL_FN)(
     _In_ _Pre_defensive_ HQUIC Configuration,
-    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
+    _In_ _Pre_defensive_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     );
 
 //
