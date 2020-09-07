@@ -392,17 +392,17 @@ QuicConnApplySettings(
     uint8_t PeerStreamType =
         QuicConnIsServer(Connection) ?
             STREAM_ID_FLAG_IS_CLIENT : STREAM_ID_FLAG_IS_SERVER;
-    if (Settings->BidiStreamCount != 0) {
+    if (Settings->PeerBidiStreamCount != 0) {
         QuicStreamSetUpdateMaxCount(
             &Connection->Streams,
             PeerStreamType | STREAM_ID_FLAG_IS_BI_DIR,
-            Settings->BidiStreamCount);
+            Settings->PeerBidiStreamCount);
     }
-    if (Settings->UnidiStreamCount != 0) {
+    if (Settings->PeerUnidiStreamCount != 0) {
         QuicStreamSetUpdateMaxCount(
             &Connection->Streams,
             PeerStreamType | STREAM_ID_FLAG_IS_UNI_DIR,
-            Settings->UnidiStreamCount);
+            Settings->PeerUnidiStreamCount);
     }
 
     if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&

@@ -577,8 +577,8 @@ RunInteropTest(
     bool Success = false;
 
     QUIC_SETTINGS Settings{0};
-    Settings.UnidiStreamCount = 3;
-    Settings.IsSet.UnidiStreamCount = TRUE;
+    Settings.PeerUnidiStreamCount = 3;
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
     Settings.IsSet.InitialRttMs = TRUE;
     if (Feature == KeyUpdate) {

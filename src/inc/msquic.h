@@ -355,8 +355,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t KeepAliveIntervalMs        : 1;
             uint64_t IdleTimeoutMs              : 1;
             uint64_t HandshakeIdleTimeoutMs     : 1;
-            uint64_t BidiStreamCount            : 1;
-            uint64_t UnidiStreamCount           : 1;
+            uint64_t PeerBidiStreamCount        : 1;
+            uint64_t PeerUnidiStreamCount       : 1;
             uint64_t TlsClientMaxSendBuffer     : 1;
             uint64_t TlsServerMaxSendBuffer     : 1;
             uint64_t StreamRecvWindowDefault    : 1;
@@ -386,8 +386,8 @@ typedef struct QUIC_SETTINGS {
     uint32_t KeepAliveIntervalMs;
     uint64_t HandshakeIdleTimeoutMs;
     uint64_t IdleTimeoutMs;
-    uint16_t BidiStreamCount;
-    uint16_t UnidiStreamCount;
+    uint16_t PeerBidiStreamCount;
+    uint16_t PeerUnidiStreamCount;
     uint32_t TlsClientMaxSendBuffer;
     uint32_t TlsServerMaxSendBuffer;
     uint32_t StreamRecvWindowDefault;

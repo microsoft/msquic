@@ -398,8 +398,8 @@ main(
     Settings.IsSet.IdleTimeoutMs = TRUE;
     Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT;
     Settings.IsSet.ServerResumptionLevel = TRUE;
-    Settings.BidiStreamCount = 1;
-    Settings.IsSet.BidiStreamCount = TRUE;
+    Settings.PeerBidiStreamCount = 1;
+    Settings.IsSet.PeerBidiStreamCount = TRUE;
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (QUIC_FAILED(Status = QuicPlatformInitialize())) {

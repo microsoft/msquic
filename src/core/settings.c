@@ -71,11 +71,11 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.HandshakeIdleTimeoutMs) {
         Settings->HandshakeIdleTimeoutMs = QUIC_DEFAULT_HANDSHAKE_IDLE_TIMEOUT;
     }
-    if (!Settings->IsSet.BidiStreamCount) {
-        Settings->BidiStreamCount = 0;
+    if (!Settings->IsSet.PeerBidiStreamCount) {
+        Settings->PeerBidiStreamCount = 0;
     }
-    if (!Settings->IsSet.UnidiStreamCount) {
-        Settings->UnidiStreamCount = 0;
+    if (!Settings->IsSet.PeerUnidiStreamCount) {
+        Settings->PeerUnidiStreamCount = 0;
     }
     if (!Settings->IsSet.TlsClientMaxSendBuffer) {
         Settings->TlsClientMaxSendBuffer = QUIC_MAX_TLS_CLIENT_SEND_BUFFER;
@@ -158,11 +158,11 @@ QuicSettingsCopy(
     if (!Settings->IsSet.HandshakeIdleTimeoutMs) {
         Settings->HandshakeIdleTimeoutMs = ParentSettings->HandshakeIdleTimeoutMs;
     }
-    if (!Settings->IsSet.BidiStreamCount) {
-        Settings->BidiStreamCount = ParentSettings->BidiStreamCount;
+    if (!Settings->IsSet.PeerBidiStreamCount) {
+        Settings->PeerBidiStreamCount = ParentSettings->PeerBidiStreamCount;
     }
-    if (!Settings->IsSet.UnidiStreamCount) {
-        Settings->UnidiStreamCount = ParentSettings->UnidiStreamCount;
+    if (!Settings->IsSet.PeerUnidiStreamCount) {
+        Settings->PeerUnidiStreamCount = ParentSettings->PeerUnidiStreamCount;
     }
     if (!Settings->IsSet.TlsClientMaxSendBuffer) {
         Settings->TlsClientMaxSendBuffer = ParentSettings->TlsClientMaxSendBuffer;
@@ -282,13 +282,13 @@ QuicSettingApply(
         Settings->HandshakeIdleTimeoutMs = NewSettings->HandshakeIdleTimeoutMs;
         Settings->IsSet.HandshakeIdleTimeoutMs = TRUE;
     }
-    if (NewSettings->IsSet.BidiStreamCount) {
-        Settings->BidiStreamCount = NewSettings->BidiStreamCount;
-        Settings->IsSet.BidiStreamCount = TRUE;
+    if (NewSettings->IsSet.PeerBidiStreamCount) {
+        Settings->PeerBidiStreamCount = NewSettings->PeerBidiStreamCount;
+        Settings->IsSet.PeerBidiStreamCount = TRUE;
     }
-    if (NewSettings->IsSet.UnidiStreamCount) {
-        Settings->UnidiStreamCount = NewSettings->UnidiStreamCount;
-        Settings->IsSet.UnidiStreamCount = TRUE;
+    if (NewSettings->IsSet.PeerUnidiStreamCount) {
+        Settings->PeerUnidiStreamCount = NewSettings->PeerUnidiStreamCount;
+        Settings->IsSet.PeerUnidiStreamCount = TRUE;
     }
     if (NewSettings->IsSet.TlsClientMaxSendBuffer) {
         Settings->TlsClientMaxSendBuffer = NewSettings->TlsClientMaxSendBuffer;
@@ -649,8 +649,8 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpKeepAliveIntervalMs,     "[sett] KeepAliveIntervalMs    = %u", Settings->KeepAliveIntervalMs);
     QuicTraceLogVerbose(SettingDumpIdleTimeoutMs,           "[sett] IdleTimeoutMs          = %llu", Settings->IdleTimeoutMs);
     QuicTraceLogVerbose(SettingDumpHandshakeIdleTimeoutMs,  "[sett] HandshakeIdleTimeoutMs = %llu", Settings->HandshakeIdleTimeoutMs);
-    QuicTraceLogVerbose(SettingDumpBidiStreamCount,         "[sett] BidiStreamCount        = %hu", Settings->BidiStreamCount);
-    QuicTraceLogVerbose(SettingDumpUnidiStreamCount,        "[sett] UnidiStreamCount       = %hu", Settings->UnidiStreamCount);
+    QuicTraceLogVerbose(SettingDumpBidiStreamCount,         "[sett] PeerBidiStreamCount        = %hu", Settings->PeerBidiStreamCount);
+    QuicTraceLogVerbose(SettingDumpUnidiStreamCount,        "[sett] PeerUnidiStreamCount       = %hu", Settings->PeerUnidiStreamCount);
     QuicTraceLogVerbose(SettingDumpTlsClientMaxSendBuffer,  "[sett] TlsClientMaxSendBuffer = %u", Settings->TlsClientMaxSendBuffer);
     QuicTraceLogVerbose(SettingDumpTlsServerMaxSendBuffer,  "[sett] TlsServerMaxSendBuffer = %u", Settings->TlsServerMaxSendBuffer);
     QuicTraceLogVerbose(SettingDumpStreamRecvWindowDefault, "[sett] StreamRecvWindowDefault= %u", Settings->StreamRecvWindowDefault);

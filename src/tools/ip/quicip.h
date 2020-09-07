@@ -138,8 +138,8 @@ MsQuicGetPublicIPEx(
     QUIC_SETTINGS Settings{0};
     Settings.IdleTimeoutMs = 2000;
     Settings.IsSet.IdleTimeoutMs = TRUE;
-    Settings.UnidiStreamCount = 1;
-    Settings.IsSet.UnidiStreamCount = TRUE;
+    Settings.PeerUnidiStreamCount = 1;
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
 
     QUIC_IP_LOOKUP Context = {
         FALSE, QUIC_STATUS_SUCCESS, MsQuic, NULL, NULL, LocalAddress, PublicAddress

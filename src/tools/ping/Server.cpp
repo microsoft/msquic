@@ -79,10 +79,10 @@ struct PingServer {
 void QuicPingServerRun()
 {
     QUIC_SETTINGS Settings{0};
-    Settings.BidiStreamCount = PingConfig.PeerBidirStreamCount;
-    Settings.IsSet.BidiStreamCount = TRUE;
-    Settings.UnidiStreamCount = PingConfig.PeerUnidirStreamCount;
-    Settings.IsSet.UnidiStreamCount = TRUE;
+    Settings.PeerBidiStreamCount = PingConfig.PeerBidirStreamCount;
+    Settings.IsSet.PeerBidiStreamCount = TRUE;
+    Settings.PeerUnidiStreamCount = PingConfig.PeerUnidirStreamCount;
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.DisconnectTimeoutMs = PingConfig.DisconnectTimeout;
     Settings.IsSet.DisconnectTimeoutMs = TRUE;
     Settings.IdleTimeoutMs = PingConfig.IdleTimeout;

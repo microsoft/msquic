@@ -274,10 +274,10 @@ struct HttpSession {
         const QUIC_ADDR* LocalAddress) {
 
         QUIC_SETTINGS Settings{0};
-        Settings.BidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
-        Settings.IsSet.BidiStreamCount = TRUE;
-        Settings.UnidiStreamCount = 1; // We allow 1 unidirectional stream, just for interop tests.
-        Settings.IsSet.UnidiStreamCount = TRUE;
+        Settings.PeerBidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
+        Settings.IsSet.PeerBidiStreamCount = TRUE;
+        Settings.PeerUnidiStreamCount = 1; // We allow 1 unidirectional stream, just for interop tests.
+        Settings.IsSet.PeerUnidiStreamCount = TRUE;
         Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
         Settings.IsSet.InitialRttMs = TRUE;
 

@@ -871,10 +871,10 @@ main(int argc, char **argv)
         ASSERT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
 
         QUIC_SETTINGS QuicSettings{0};
-        QuicSettings.BidiStreamCount = GetRandom((uint16_t)10);
-        QuicSettings.IsSet.BidiStreamCount = TRUE;
-        QuicSettings.UnidiStreamCount = GetRandom((uint16_t)10);
-        QuicSettings.IsSet.UnidiStreamCount = TRUE;
+        QuicSettings.PeerBidiStreamCount = GetRandom((uint16_t)10);
+        QuicSettings.IsSet.PeerBidiStreamCount = TRUE;
+        QuicSettings.PeerUnidiStreamCount = GetRandom((uint16_t)10);
+        QuicSettings.IsSet.PeerUnidiStreamCount = TRUE;
         // TODO - Randomize more of the settings.
 
         if (SessionCount == 1) {

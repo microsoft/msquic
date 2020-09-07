@@ -11259,7 +11259,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Session->Settings.BidiStreamCount",
+            "UserSuppliedTrimmed": "Session->Settings.PeerBidiStreamCount",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "hu",
@@ -11294,7 +11294,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Session->Settings.UnidiStreamCount",
+            "UserSuppliedTrimmed": "Session->Settings.PeerUnidiStreamCount",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "hu",
@@ -12279,14 +12279,14 @@
         "CustomSettings": null
       }
     },
-    "SettingDumpBidiStreamCount": {
+    "SettingDumpUnidiStreamCount": {
       "ModuleProperites": {},
-      "TraceString": "[sett] BidiStreamCount        = %hu",
-      "UniqueId": "SettingDumpBidiStreamCount",
+      "TraceString": "[sett] PeerUnidiStreamCount       = %hu",
+      "UniqueId": "SettingDumpUnidiStreamCount",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Settings->BidiStreamCount",
+            "UserSuppliedTrimmed": "Settings->PeerUnidiStreamCount",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "hu",
@@ -12299,21 +12299,21 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
         },
         "CustomSettings": null
       }
     },
-    "SettingDumpUnidiStreamCount": {
+    "SettingDumpBidiStreamCount": {
       "ModuleProperites": {},
-      "TraceString": "[sett] UnidiStreamCount       = %hu",
-      "UniqueId": "SettingDumpUnidiStreamCount",
+      "TraceString": "[sett] PeerBidiStreamCount        = %hu",
+      "UniqueId": "SettingDumpBidiStreamCount",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Settings->UnidiStreamCount",
+            "UserSuppliedTrimmed": "Settings->PeerBidiStreamCount",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "hu",
@@ -12326,7 +12326,7 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -23487,14 +23487,6 @@
         "TraceID": "SettingDumpHandshakeIdleTimeoutMs"
       },
       {
-        "UniquenessHash": "698fdf44-609b-8dfa-6c5d-36ecf64c4729",
-        "TraceID": "SettingDumpBidiStreamCount"
-      },
-      {
-        "UniquenessHash": "a68e172d-dcc8-10c1-d4e9-52debec8756f",
-        "TraceID": "SettingDumpUnidiStreamCount"
-      },
-      {
         "UniquenessHash": "4eaf58f9-d813-f2de-2388-6f550e14f27d",
         "TraceID": "SettingDumpTlsClientMaxSendBuffer"
       },
@@ -24633,6 +24625,14 @@
       {
         "UniquenessHash": "fe3408e1-1fb0-c1b5-d7d9-61b116db0fe8",
         "TraceID": "SettingDumpPacingDefault"
+      },
+      {
+        "UniquenessHash": "b05a4904-eed9-890a-df87-d1be6ce939e7",
+        "TraceID": "SettingDumpBidiStreamCount"
+      },
+      {
+        "UniquenessHash": "c0b9ef14-8cfb-bc52-5929-b07ed1639034",
+        "TraceID": "SettingDumpUnidiStreamCount"
       }
     ]
   }
