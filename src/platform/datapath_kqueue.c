@@ -598,46 +598,8 @@ void QuicDataPathPopulateTargetAddress(_In_ ADDRESS_FAMILY Family, _In_ ADDRINFO
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS QuicDataPathResolveAddress(_In_ QUIC_DATAPATH* Datapath, _In_z_ const char* HostName, _Inout_ QUIC_ADDR * Address) {
     QUIC_STATUS Status;
-    PWSTR HostNameW = NULL;
     ADDRINFOW Hints = { 0 };
     ADDRINFOW *Ai;
-
-    int Result =
-        MultiByteToWideChar(
-            CP_UTF8,
-            MB_ERR_INVALID_CHARS,
-            HostName,
-            -1,
-            NULL,
-            0);
-    if (Result == 0) {
-        DWORD LastError = GetLastError();
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", LastError, "Calculate hostname wchar length");
-        Status = HRESULT_FROM_WIN32(LastError);
-        goto Exit;
-    }
-
-    HostNameW = QUIC_ALLOC_PAGED(sizeof(WCHAR) * Result);
-    if (HostNameW == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "Wchar hostname", sizeof(WCHAR) * Result);
-        goto Exit;
-    }
-
-    Result =
-        MultiByteToWideChar(
-            CP_UTF8,
-            MB_ERR_INVALID_CHARS,
-            HostName,
-            -1,
-            HostNameW,
-            Result);
-    if (Result == 0) {
-        DWORD LastError = GetLastError();
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", LastError, "Convert hostname to wchar");
-        Status = HRESULT_FROM_WIN32(LastError);
-        goto Exit;
-    }
 
     //
     // Prepopulate hint with input family. It might be unspecified.
@@ -648,9 +610,9 @@ QUIC_STATUS QuicDataPathResolveAddress(_In_ QUIC_DATAPATH* Datapath, _In_z_ cons
     // Try numeric name first.
     //
     Hints.ai_flags = AI_NUMERICHOST;
-    if (GetAddrInfoW(HostNameW, NULL, &Hints, &Ai) == 0) {
-        QuicDataPathPopulateTargetAddress((ADDRESS_FAMILY)Hints.ai_family, Ai, Address);
-        FreeAddrInfoW(Ai);
+    if (getaddrinfo(HostName, NULL, &Hints, &Ai) == 0) {
+        QuicDataPathPopulateTargetAddress(Hints.ai_family, Ai, Address);
+        freeaddrinfo(Ai);
         Status = QUIC_STATUS_SUCCESS;
         goto Exit;
     }
@@ -659,22 +621,18 @@ QUIC_STATUS QuicDataPathResolveAddress(_In_ QUIC_DATAPATH* Datapath, _In_z_ cons
     // Try canonical host name.
     //
     Hints.ai_flags = AI_CANONNAME;
-    if (GetAddrInfoW(HostNameW, NULL, &Hints, &Ai) == 0) {
+    if (getaddrinfo(HostName, NULL, &Hints, &Ai) == 0) {
         QuicDataPathPopulateTargetAddress((ADDRESS_FAMILY)Hints.ai_family, Ai, Address);
-        FreeAddrInfoW(Ai);
+        freeaddrinfo(Ai);
         Status = QUIC_STATUS_SUCCESS;
         goto Exit;
     }
 
     QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "Resolving hostname to IP");
     QuicTraceLogError(DatapathResolveHostNameFailed, "[%p] Couldn't resolve hostname '%s' to an IP address", Datapath, HostName);
-    Status = HRESULT_FROM_WIN32(WSAHOST_NOT_FOUND);
+    Status = QUIC_STATUS_DNS_RESOLUTION_ERROR;
 
 Exit:
-
-    if (HostNameW != NULL) {
-        QUIC_FREE(HostNameW);
-    }
 
     return Status;
 }
