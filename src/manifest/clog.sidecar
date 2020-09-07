@@ -12279,14 +12279,14 @@
         "CustomSettings": null
       }
     },
-    "SettingDumpUnidiStreamCount": {
+    "SettingDumpBidiStreamCount": {
       "ModuleProperites": {},
-      "TraceString": "[sett] PeerUnidiStreamCount       = %hu",
-      "UniqueId": "SettingDumpUnidiStreamCount",
+      "TraceString": "[sett] PeerBidiStreamCount    = %hu",
+      "UniqueId": "SettingDumpBidiStreamCount",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Settings->PeerUnidiStreamCount",
+            "UserSuppliedTrimmed": "Settings->PeerBidiStreamCount",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "hu",
@@ -12306,14 +12306,14 @@
         "CustomSettings": null
       }
     },
-    "SettingDumpBidiStreamCount": {
+    "SettingDumpUnidiStreamCount": {
       "ModuleProperites": {},
-      "TraceString": "[sett] PeerBidiStreamCount        = %hu",
-      "UniqueId": "SettingDumpBidiStreamCount",
+      "TraceString": "[sett] PeerUnidiStreamCount   = %hu",
+      "UniqueId": "SettingDumpUnidiStreamCount",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Settings->PeerBidiStreamCount",
+            "UserSuppliedTrimmed": "Settings->PeerUnidiStreamCount",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "hu",
@@ -24627,11 +24627,11 @@
         "TraceID": "SettingDumpPacingDefault"
       },
       {
-        "UniquenessHash": "b05a4904-eed9-890a-df87-d1be6ce939e7",
+        "UniquenessHash": "b6d32b84-af0c-b1cb-5e97-a9fb84980e8d",
         "TraceID": "SettingDumpBidiStreamCount"
       },
       {
-        "UniquenessHash": "c0b9ef14-8cfb-bc52-5929-b07ed1639034",
+        "UniquenessHash": "db025b70-a960-32f0-75b0-1cc495602e15",
         "TraceID": "SettingDumpUnidiStreamCount"
       }
     ]
