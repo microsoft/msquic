@@ -23,7 +23,6 @@ extern "C" {
 
 typedef struct QUIC_SEC_CONFIG QUIC_SEC_CONFIG;
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
-typedef struct QUIC_TLS_SESSION QUIC_TLS_SESSION;
 typedef struct QUIC_TLS QUIC_TLS;
 
 #define TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION   0x0010  // Host Byte Order
@@ -68,13 +67,13 @@ typedef QUIC_TLS_RECEIVE_TP_CALLBACK *QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER;
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
-(QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK)(
+(QUIC_TLS_RECEIVE_TICKET_CALLBACK)(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint16_t TicketLength,
     _In_reads_(TicketLength) const uint8_t* Ticket
     );
 
-typedef QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK *QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK_HANDLER;
+typedef QUIC_TLS_RECEIVE_TICKET_CALLBACK *QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER;
 
 //
 // The input configuration for creation of a TLS context.
@@ -82,11 +81,6 @@ typedef QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK *QUIC_TLS_RECEIVE_RESUMPTION_CALLBA
 typedef struct QUIC_TLS_CONFIG {
 
     BOOLEAN IsServer;
-
-    //
-    // The TLS session.
-    //
-    QUIC_TLS_SESSION* TlsSession;
 
     //
     // The TLS configuration information and credentials.
@@ -126,7 +120,7 @@ typedef struct QUIC_TLS_CONFIG {
     //
     // Invoked when a resumption ticket is received.
     //
-    QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK_HANDLER ReceiveResumptionCallback;
+    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveResumptionCallback;
 
     //
     // Name of the server we are connecting to (client side only).
@@ -289,47 +283,6 @@ void
 QuicTlsSecConfigDelete(
     __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
         QUIC_SEC_CONFIG* SecurityConfig
-    );
-
-//
-// Initializes a TLS session.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsSessionInitialize(
-    _Out_ QUIC_TLS_SESSION** NewTlsSession
-    );
-
-//
-// Uninitializes a TLS session.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsSessionUninitialize(
-    _In_opt_ QUIC_TLS_SESSION* TlsSession
-    );
-
-//
-// Configures the 0-RTT ticket key (server side).
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsSessionSetTicketKey(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_reads_bytes_(44)
-        const void* Buffer
-    );
-
-//
-// Adds a new ticket to the ticket store, from a contiguous buffer.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsSessionAddTicket(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t * const Buffer
     );
 
 //

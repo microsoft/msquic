@@ -27,9 +27,12 @@ QUIC_STATUS
 QUIC_API
 MsQuicConfigurationOpen(
     _In_ _Pre_defensive_ HQUIC Registration,
-    _In_ uint32_t SettingsSize,
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
     _In_reads_bytes_opt_(SettingsSize)
         const QUIC_SETTINGS* Settings,
+    _In_ uint32_t SettingsSize,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Configuration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* Configuration
@@ -149,9 +152,6 @@ QUIC_API
 MsQuicConnectionStart(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ _Pre_defensive_ HQUIC ConfigHandle,
-    _In_reads_(AlpnBufferCount) _Pre_defensive_
-        const QUIC_BUFFER* const AlpnBuffers,
-    _In_range_(>, 0) uint32_t AlpnBufferCount,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,

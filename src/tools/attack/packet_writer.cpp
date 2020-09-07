@@ -23,17 +23,6 @@ const uint32_t CertValidationIgnoreFlags =
     QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
     QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
 
-struct TlsSession
-{
-    QUIC_TLS_SESSION* Ptr;
-    TlsSession() : Ptr(nullptr) {
-        VERIFY_QUIC_SUCCESS(QuicTlsSessionInitialize(&Ptr));
-    }
-    ~TlsSession() {
-        QuicTlsSessionUninitialize(Ptr);
-    }
-};
-
 struct TlsContext
 {
     QUIC_TLS* Ptr;
@@ -42,7 +31,7 @@ struct TlsContext
     QUIC_EVENT ProcessCompleteEvent;
     uint8_t AlpnListBuffer[256];
 
-    TlsContext(TlsSession& Session, _In_z_ const char* Alpn, _In_z_ const char* Sni) :
+    TlsContext(_In_z_ const char* Alpn, _In_z_ const char* Sni) :
         Ptr(nullptr), SecConfig(nullptr) {
 
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
@@ -54,7 +43,7 @@ struct TlsContext
         State.BufferAllocLength = 8000;
 
         VERIFY_QUIC_SUCCESS(
-            QuicTlsClientSecConfigCreate(
+            QuicTlsSecConfigCreate(
                 CertValidationIgnoreFlags, &SecConfig));
 
         QUIC_CONNECTION Connection = {0};
@@ -77,7 +66,6 @@ struct TlsContext
 
         QUIC_TLS_CONFIG Config = {0};
         Config.IsServer = FALSE;
-        Config.TlsSession = Session.Ptr;
         Config.SecConfig = SecConfig;
         Config.AlpnBuffer = AlpnListBuffer;
         Config.AlpnBufferLength = AlpnListBuffer[0] + 1;
@@ -101,7 +89,7 @@ struct TlsContext
     ~TlsContext() {
         QuicTlsUninitialize(Ptr);
         if (SecConfig) {
-            QuicTlsSecConfigRelease(SecConfig);
+            QuicTlsSecConfigDelete(SecConfig);
         }
         QuicEventUninitialize(ProcessCompleteEvent);
         QUIC_FREE(State.Buffer);
@@ -229,23 +217,20 @@ PacketWriter::WriteInitialCryptoFrame(
         uint8_t* Buffer
     )
 {
-    TlsSession Session;
-    {
-        TlsContext ClientContext(Session, Alpn, Sni);
-        ClientContext.ProcessData();
+    TlsContext ClientContext(Alpn, Sni);
+    ClientContext.ProcessData();
 
-        QUIC_CRYPTO_EX Frame = {
-            0, ClientContext.State.BufferLength, ClientContext.State.Buffer
-        };
+    QUIC_CRYPTO_EX Frame = {
+        0, ClientContext.State.BufferLength, ClientContext.State.Buffer
+    };
 
-        if (!QuicCryptoFrameEncode(
-                &Frame,
-                Offset,
-                BufferLength,
-                Buffer)) {
-            printf("QuicCryptoFrameEncode failure!\n");
-            exit(0);
-        }
+    if (!QuicCryptoFrameEncode(
+            &Frame,
+            Offset,
+            BufferLength,
+            Buffer)) {
+        printf("QuicCryptoFrameEncode failure!\n");
+        exit(0);
     }
 }
 

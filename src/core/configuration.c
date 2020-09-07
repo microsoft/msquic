@@ -21,7 +21,12 @@ QUIC_STATUS
 QUIC_API
 MsQuicConfigurationOpen(
     _In_ _Pre_defensive_ HQUIC Handle,
-    _In_ _Pre_defensive_ QUIC_CONFIGURATION_CALLBACK_HANDLER Handler,
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
+    _In_reads_bytes_opt_(SettingsSize)
+        const QUIC_SETTINGS* Settings,
+    _In_ uint32_t SettingsSize,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Configuration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* NewConfiguration
@@ -30,6 +35,8 @@ MsQuicConfigurationOpen(
     QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
     QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
     QUIC_CONFIGURATION* Configuration;
+    uint8_t* AlpnList;
+    uint32_t AlpnListLength;
 
     QuicTraceEvent(
         ApiEnter,
@@ -37,31 +44,80 @@ MsQuicConfigurationOpen(
         QUIC_TRACE_API_CONFIGURATION_OPEN,
         Handle);
 
-    if (Handle == NULL || Handler == NULL ||
-        Handle->Type != QUIC_HANDLE_TYPE_REGISTRATION) {
+    if (Handle == NULL ||
+        Handle->Type != QUIC_HANDLE_TYPE_REGISTRATION ||
+        AlpnBuffers == NULL ||
+        AlpnBufferCount == 0) {
         goto Error;
     }
 
-    Configuration = QUIC_ALLOC_NONPAGED(sizeof(QUIC_CONFIGURATION));
+    if (Settings != NULL &&
+        SettingsSize < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    AlpnListLength = 0;
+    for (uint32_t i = 0; i < AlpnBufferCount; ++i) {
+        if (AlpnBuffers[i].Length == 0 ||
+            AlpnBuffers[i].Length > QUIC_MAX_ALPN_LENGTH) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+        AlpnListLength += sizeof(uint8_t) + AlpnBuffers[i].Length;
+    }
+    if (AlpnListLength > UINT16_MAX) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+    QUIC_ANALYSIS_ASSERT(AlpnListLength <= UINT16_MAX);
+
+    Configuration = QUIC_ALLOC_NONPAGED(sizeof(QUIC_CONFIGURATION) + AlpnListLength);
     if (Configuration == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_CONFIGURATION" ,
             sizeof(QUIC_CONFIGURATION));
-        return QUIC_STATUS_OUT_OF_MEMORY;
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
     }
 
     QuicZeroMemory(Configuration, sizeof(QUIC_CONFIGURATION));
     Configuration->Type = QUIC_HANDLE_TYPE_CONFIGURATION;
     Configuration->ClientContext = Context;
-    Configuration->ClientCallbackHandler = Handler;
     Configuration->Registration = Registration;
     QuicRundownInitialize(&Configuration->Rundown);
+
+    Configuration->AlpnListLength = (uint16_t)AlpnListLength;
+    AlpnList = Configuration->AlpnList;
+
+    for (uint32_t i = 0; i < AlpnBufferCount; ++i) {
+        AlpnList[0] = (uint8_t)AlpnBuffers[i].Length;
+        AlpnList++;
+
+        QuicCopyMemory(
+            AlpnList,
+            AlpnBuffers[i].Buffer,
+            AlpnBuffers[i].Length);
+        AlpnList += AlpnBuffers[i].Length;
+    }
 
 #ifdef QUIC_COMPARTMENT_ID
     Configuration->CompartmentId = QuicCompartmentIdGetCurrent();
 #endif
+
+    //
+    // TODO - Optimize the settings code below:
+    //
+    //  1. When there is no silo support, the per-app name settings can live in
+    //     the registration.
+    //
+    //  2. When there is silo support (Windows kernel mode), then there will be
+    //     a ton of duplication between every single configuration (multiple
+    //     server certificate scenarios), so we should have an intermediate
+    //     object (ref counted) that is per-silo, per-app to handle these.
+    //
 
 #ifdef QUIC_SILO
     Configuration->Silo = QuicSiloGetCurrentServer();
@@ -110,6 +166,14 @@ MsQuicConfigurationOpen(
         }
     }
 
+    if (Settings != NULL && Settings->IsSetFlags != 0) {
+        QUIC_DBG_ASSERT(SettingsSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey));
+        if (!QuicSettingApply(&Configuration->Settings, SettingsSize, Settings)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+    }
+
     QuicTraceEvent(
         ConfigurationCreated,
         "[cnfg][%p] Created, Registration=%p",
@@ -128,6 +192,16 @@ MsQuicConfigurationOpen(
     *NewConfiguration = Configuration;
 
 Error:
+
+    if (QUIC_FAILED(Status) && Configuration != NULL) {
+        QuicStorageClose(Configuration->AppSpecificStorage);
+#ifdef QUIC_SILO
+        QuicStorageClose(Configuration->Storage);
+        QuicSiloRelease(Configuration->Silo);
+#endif
+        QuicRundownUninitialize(&Configuration->Rundown);
+        QUIC_FREE(Configuration);
+    }
 
     QuicTraceEvent(
         ApiExitStatus,
@@ -227,7 +301,7 @@ QUIC_STATUS
 QUIC_API
 MsQuicConfigurationLoadCredential(
     _In_ _Pre_defensive_ HQUIC Handle,
-    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
+    _In_ _Pre_defensive_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -238,7 +312,8 @@ MsQuicConfigurationLoadCredential(
         QUIC_TRACE_API_CONFIGURATION_LOAD_CREDENTIAL,
         Handle);
 
-    if (Handle != NULL && CredConfig == NULL &&
+    if (Handle != NULL &&
+        CredConfig != NULL &&
         Handle->Type == QUIC_HANDLE_TYPE_CONFIGURATION) {
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
@@ -252,11 +327,16 @@ MsQuicConfigurationLoadCredential(
                 CredConfig,
                 Configuration,
                 MsQuicConfigurationLoadCredentialComplete);
+
+        if (Status != QUIC_STATUS_PENDING) {
+            QuicRundownRelease(&Configuration->Rundown);
+        }
     }
 
     QuicTraceEvent(
-        ApiExit,
-        "[ api] Exit");
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -367,165 +447,11 @@ QuicConfigurationParamGet(
         void* Buffer
     )
 {
-    QUIC_STATUS Status;
-
-    switch (Param) {
-
-    case QUIC_PARAM_CONFIG_PEER_BIDI_STREAM_COUNT:
-
-        if (*BufferLength < sizeof(Configuration->Settings.BidiStreamCount)) {
-            *BufferLength = sizeof(Configuration->Settings.BidiStreamCount);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(Configuration->Settings.BidiStreamCount);
-        *(uint16_t*)Buffer = Configuration->Settings.BidiStreamCount;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONFIG_PEER_UNIDI_STREAM_COUNT:
-
-        if (*BufferLength < sizeof(Configuration->Settings.UnidiStreamCount)) {
-            *BufferLength = sizeof(Configuration->Settings.UnidiStreamCount);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(Configuration->Settings.UnidiStreamCount);
-        *(uint16_t*)Buffer = Configuration->Settings.UnidiStreamCount;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONFIG_IDLE_TIMEOUT:
-
-        if (*BufferLength < sizeof(Configuration->Settings.IdleTimeoutMs)) {
-            *BufferLength = sizeof(Configuration->Settings.IdleTimeoutMs);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(Configuration->Settings.IdleTimeoutMs);
-        *(uint64_t*)Buffer = Configuration->Settings.IdleTimeoutMs;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONFIG_DISCONNECT_TIMEOUT:
-
-        if (*BufferLength < sizeof(Configuration->Settings.DisconnectTimeoutMs)) {
-            *BufferLength = sizeof(Configuration->Settings.DisconnectTimeoutMs);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(Configuration->Settings.DisconnectTimeoutMs);
-        *(uint32_t*)Buffer = Configuration->Settings.DisconnectTimeoutMs;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONFIG_MAX_BYTES_PER_KEY:
-        if (*BufferLength < sizeof(Configuration->Settings.MaxBytesPerKey)) {
-            *BufferLength = sizeof(Configuration->Settings.MaxBytesPerKey);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(Configuration->Settings.MaxBytesPerKey);
-        *(uint64_t*)Buffer = Configuration->Settings.MaxBytesPerKey;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONFIG_MIGRATION_ENABLED:
-        if (*BufferLength < sizeof(BOOLEAN)) {
-            *BufferLength = sizeof(BOOLEAN);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(BOOLEAN);
-        *(BOOLEAN*)Buffer = Configuration->Settings.MigrationEnabled;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONFIG_DATAGRAM_RECEIVE_ENABLED:
-        if (*BufferLength < sizeof(BOOLEAN)) {
-            *BufferLength = sizeof(BOOLEAN);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(BOOLEAN);
-        *(BOOLEAN*)Buffer = Configuration->Settings.DatagramReceiveEnabled;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONFIG_SERVER_RESUMPTION_LEVEL:
-        if (*BufferLength  < sizeof(QUIC_SERVER_RESUMPTION_LEVEL)) {
-            *BufferLength = sizeof(QUIC_SERVER_RESUMPTION_LEVEL);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(QUIC_SERVER_RESUMPTION_LEVEL);
-        *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer =
-            (QUIC_SERVER_RESUMPTION_LEVEL)Configuration->Settings.ServerResumptionLevel;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    default:
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        break;
-    }
-
-    return Status;
+    UNREFERENCED_PARAMETER(Configuration);
+    UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -553,206 +479,6 @@ QuicConfigurationParamSet(
             QuicTlsConfigurationSetTicketKey(
                 Configuration->TlsConfiguration,
                 Buffer);*/
-        break;
-    }
-
-    case QUIC_PARAM_CONFIG_PEER_BIDI_STREAM_COUNT: {
-
-        if (BufferLength != sizeof(uint16_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        Configuration->Settings.AppSet.BidiStreamCount = TRUE;
-        Configuration->Settings.BidiStreamCount = *(uint16_t*)Buffer;
-
-        QuicTraceLogInfo(
-            ConfigurationBiDiStreamCountSet,
-            "[cnfg][%p] Updated bidirectional stream count = %hu",
-            Configuration,
-            Configuration->Settings.BidiStreamCount);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-    }
-
-    case QUIC_PARAM_CONFIG_PEER_UNIDI_STREAM_COUNT: {
-
-        if (BufferLength != sizeof(uint16_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        Configuration->Settings.AppSet.UnidiStreamCount = TRUE;
-        Configuration->Settings.UnidiStreamCount = *(uint16_t*)Buffer;
-
-        QuicTraceLogInfo(
-            ConfigurationUniDiStreamCountSet,
-            "[cnfg][%p] Updated unidirectional stream count = %hu",
-            Configuration,
-            Configuration->Settings.UnidiStreamCount);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-    }
-
-    case QUIC_PARAM_CONFIG_IDLE_TIMEOUT: {
-
-        if (BufferLength != sizeof(Configuration->Settings.IdleTimeoutMs)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        Configuration->Settings.AppSet.IdleTimeoutMs = TRUE;
-        Configuration->Settings.IdleTimeoutMs = *(uint64_t*)Buffer;
-
-        QuicTraceLogInfo(
-            ConfigurationIdleTimeoutSet,
-            "[cnfg][%p] Updated idle timeout to %llu milliseconds",
-            Configuration,
-            Configuration->Settings.IdleTimeoutMs);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-    }
-
-    case QUIC_PARAM_CONFIG_DISCONNECT_TIMEOUT: {
-
-        if (BufferLength != sizeof(Configuration->Settings.DisconnectTimeoutMs)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        Configuration->Settings.AppSet.DisconnectTimeoutMs = TRUE;
-        Configuration->Settings.DisconnectTimeoutMs = *(uint32_t*)Buffer;
-
-        QuicTraceLogInfo(
-            ConfigurationDisconnectTimeoutSet,
-            "[cnfg][%p] Updated disconnect timeout to %u milliseconds",
-            Configuration,
-            Configuration->Settings.DisconnectTimeoutMs);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-    }
-
-    case QUIC_PARAM_CONFIG_ADD_RESUMPTION_STATE: {
-
-        const QUIC_SERIALIZED_RESUMPTION_STATE* State =
-            (const QUIC_SERIALIZED_RESUMPTION_STATE*)Buffer;
-
-        if (BufferLength < sizeof(QUIC_SERIALIZED_RESUMPTION_STATE) ||
-            BufferLength < sizeof(QUIC_SERIALIZED_RESUMPTION_STATE) + State->ServerNameLength) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        const char* ServerName = (const char*)State->Buffer;
-
-        const uint8_t* TicketBuffer = State->Buffer + State->ServerNameLength;
-        uint32_t TicketBufferLength =
-            BufferLength -
-            sizeof(QUIC_SERIALIZED_RESUMPTION_STATE) -
-            State->ServerNameLength;
-
-        /*QuicConfigurationServerCacheSetStateInternal(
-            Configuration,
-            State->ServerNameLength,
-            ServerName,
-            State->QuicVersion,
-            &State->TransportParameters,
-            NULL);
-
-        Status =
-            QuicTlsConfigurationAddTicket(
-                Configuration->TlsConfiguration,
-                TicketBufferLength,
-                TicketBuffer);*/
-        break;
-    }
-
-    case QUIC_PARAM_CONFIG_MAX_BYTES_PER_KEY: {
-        if (BufferLength != sizeof(Configuration->Settings.MaxBytesPerKey)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        uint64_t NewValue = *(uint64_t*)Buffer;
-        if (NewValue > QUIC_DEFAULT_MAX_BYTES_PER_KEY) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        Configuration->Settings.AppSet.MaxBytesPerKey = TRUE;
-        Configuration->Settings.MaxBytesPerKey = NewValue;
-
-        QuicTraceLogInfo(
-            ConfigurationMaxBytesPerKeySet,
-            "[cnfg][%p] Updated max bytes per key to %llu bytes",
-            Configuration,
-            Configuration->Settings.MaxBytesPerKey);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-    }
-
-    case QUIC_PARAM_CONFIG_MIGRATION_ENABLED: {
-        if (BufferLength != sizeof(BOOLEAN)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        Configuration->Settings.AppSet.MigrationEnabled = TRUE;
-        Configuration->Settings.MigrationEnabled = *(BOOLEAN*)Buffer;
-
-        QuicTraceLogInfo(
-            ConfigurationMigrationEnabledSet,
-            "[cnfg][%p] Updated migration enabled to %hhu",
-            Configuration,
-            Configuration->Settings.MigrationEnabled);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-    }
-
-    case QUIC_PARAM_CONFIG_DATAGRAM_RECEIVE_ENABLED: {
-        if (BufferLength != sizeof(BOOLEAN)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        Configuration->Settings.AppSet.DatagramReceiveEnabled = TRUE;
-        Configuration->Settings.DatagramReceiveEnabled = *(BOOLEAN*)Buffer;
-
-        QuicTraceLogInfo(
-            ConfigurationDatagramReceiveEnabledSet,
-            "[cnfg][%p] Updated datagram receive enabled to %hhu",
-            Configuration,
-            Configuration->Settings.DatagramReceiveEnabled);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-    }
-
-    case QUIC_PARAM_CONFIG_SERVER_RESUMPTION_LEVEL: {
-        if (BufferLength != sizeof(QUIC_SERVER_RESUMPTION_LEVEL) ||
-            Buffer == NULL ||
-            *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer > QUIC_SERVER_RESUME_AND_ZERORTT) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        Configuration->Settings.AppSet.ServerResumptionLevel = TRUE;
-        Configuration->Settings.ServerResumptionLevel =
-            *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer;
-
-        QuicTraceLogInfo(
-            ConfigurationServerResumptionLevelSet,
-            "[cnfg][%p] Updated Server resume/0-RTT to %hhu",
-            Configuration,
-            Configuration->Settings.ServerResumptionLevel);
-
-        Status = QUIC_STATUS_SUCCESS;
         break;
     }
 

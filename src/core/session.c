@@ -82,42 +82,6 @@ MsQuicSessionFree(
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Session->Connections));
     QuicRundownUninitialize(&Session->Rundown);
 
-    if (Session->Registration != NULL) {
-        QuicTlsSessionUninitialize(Session->TlsSession);
-
-        //
-        // Enumerate and free all entries in the table.
-        //
-        QUIC_HASHTABLE_ENTRY* Entry;
-        QUIC_HASHTABLE_ENUMERATOR Enumerator;
-        QuicHashtableEnumerateBegin(&Session->ServerCache, &Enumerator);
-        while (TRUE) {
-            Entry = QuicHashtableEnumerateNext(&Session->ServerCache, &Enumerator);
-            if (Entry == NULL) {
-                QuicHashtableEnumerateEnd(&Session->ServerCache, &Enumerator);
-                break;
-            }
-            QuicHashtableRemove(&Session->ServerCache, Entry, NULL);
-
-            //
-            // Release the security config stored in this cache.
-            //
-            QUIC_SERVER_CACHE* Temp = QUIC_CONTAINING_RECORD(Entry, QUIC_SERVER_CACHE, Entry);
-            if (Temp->SecConfig != NULL) {
-                QuicTlsSecConfigRelease(Temp->SecConfig);
-            }
-
-            QUIC_FREE(Entry);
-        }
-        QuicHashtableUninitialize(&Session->ServerCache);
-
-        QuicStorageClose(Session->AppSpecificStorage);
-#ifdef QUIC_SILO
-        QuicStorageClose(Session->Storage);
-        QuicSiloRelease(Session->Silo);
-#endif
-    }
-
     QuicDispatchLockUninitialize(&Session->ConnectionsLock);
     QuicRwLockUninitialize(&Session->ServerCacheLock);
     QuicTraceEvent(
@@ -161,75 +125,6 @@ MsQuicSessionOpen(
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
-
-    if (!QuicHashtableInitializeEx(&Session->ServerCache, QUIC_HASH_MIN_SIZE)) {
-        QuicTraceEvent(
-            SessionError,
-            "[sess][%p] ERROR, %s.",
-            Session,
-            "Server cache initialize");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-
-    Status = QuicTlsSessionInitialize(&Session->TlsSession);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            SessionErrorStatus,
-            "[sess][%p] ERROR, %u, %s.",
-            Session,
-            Status,
-            "QuicTlsSessionInitialize");
-        QuicHashtableUninitialize(&Session->ServerCache);
-        goto Error;
-    }
-
-#ifdef QUIC_SILO
-    if (Session->Silo != NULL) {
-        //
-        // Only need to load base key if in a silo. Otherwise, the library already
-        // read in the default silo settings.
-        //
-        Status =
-            QuicStorageOpen(
-                NULL,
-                (QUIC_STORAGE_CHANGE_CALLBACK_HANDLER)QuicSessionSettingsChanged,
-                Session,
-                &Session->Storage);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(
-                SessionOpenStorageFailed,
-                "[sess][%p] Failed to open settings, 0x%x",
-                Session,
-                Status);
-            Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
-        }
-    }
-#endif
-
-    if (Session->Registration->AppNameLength != 0) {
-        char SpecificAppKey[UINT8_MAX + sizeof(QUIC_SETTING_APP_KEY)] = QUIC_SETTING_APP_KEY;
-        QuicCopyMemory(
-            SpecificAppKey + sizeof(QUIC_SETTING_APP_KEY) - 1,
-            Session->Registration->AppName,
-            Session->Registration->AppNameLength);
-        Status =
-            QuicStorageOpen(
-                SpecificAppKey,
-                (QUIC_STORAGE_CHANGE_CALLBACK_HANDLER)QuicSessionSettingsChanged,
-                Session,
-                &Session->AppSpecificStorage);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(
-                SessionOpenAppStorageFailed,
-                "[sess][%p] Failed to open app specific settings, 0x%x",
-                Session,
-                Status);
-            Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
-        }
-    }
-
-    QuicSessionSettingsChanged(Session);
 
     QuicLockAcquire(&Session->Registration->SessionLock);
     QuicListInsertTail(&Session->Registration->Sessions, &Session->Link);
@@ -392,36 +287,6 @@ QuicSessionTraceRundown(
     }
 
     QuicDispatchLockRelease(&Session->ConnectionsLock);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_STORAGE_CHANGE_CALLBACK)
-void
-QuicSessionSettingsChanged(
-    _Inout_ QUIC_SESSION* Session
-    )
-{
-#ifdef QUIC_SILO
-    if (Session->Storage != NULL) {
-        QuicSettingsSetDefault(&Session->Settings);
-        QuicSettingsLoad(&Session->Settings, Session->Storage);
-    } else {
-        QuicSettingsCopy(&Session->Settings, &MsQuicLib.Settings);
-    }
-#else
-    QuicSettingsCopy(&Session->Settings, &MsQuicLib.Settings);
-#endif
-
-    if (Session->AppSpecificStorage != NULL) {
-        QuicSettingsLoad(&Session->Settings, Session->AppSpecificStorage);
-    }
-
-    QuicTraceLogInfo(
-        SessionSettingsUpdated,
-        "[sess][%p] Settings %p Updated",
-        Session,
-        &Session->Settings);
-    QuicSettingsDump(&Session->Settings);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -99,9 +99,6 @@ QuicOperationFree(
             if (ApiCtx->CONN_START.ServerName != NULL) {
                 QUIC_FREE(ApiCtx->CONN_START.ServerName);
             }
-            if (ApiCtx->CONN_START.AlpnList != NULL) {
-                QUIC_FREE(ApiCtx->CONN_START.AlpnList);
-            }
         } else if (ApiCtx->Type == QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET) {
             if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData != NULL) {
                 QUIC_DBG_ASSERT(ApiCtx->CONN_SEND_RESUMPTION_TICKET.AppDataLength != 0);

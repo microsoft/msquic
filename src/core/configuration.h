@@ -57,10 +57,8 @@ typedef struct QUIC_CONFIGURATION {
     //
     QUIC_SETTINGS Settings;
 
-    //
-    // The handler for the API client's callbacks.
-    //
-    QUIC_CONFIGURATION_CALLBACK_HANDLER ClientCallbackHandler;
+    uint16_t AlpnListLength;
+    uint8_t AlpnList[0];
 
 } QUIC_CONFIGURATION;
 

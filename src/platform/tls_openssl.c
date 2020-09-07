@@ -23,16 +23,6 @@ Abstract:
 uint16_t QuicTlsTPHeaderSize = 0;
 
 //
-// TLS session object.
-//
-
-typedef struct QUIC_TLS_SESSION {
-
-    uint32_t Reserved;
-
-} QUIC_TLS_SESSION;
-
-//
 // The QUIC sec config object. Created once per listener on server side and
 // once per connection on client side.
 //
@@ -52,11 +42,6 @@ typedef struct QUIC_SEC_CONFIG {
 //
 
 typedef struct QUIC_TLS {
-
-    //
-    // TlsSession - The TLS session object that this context belong to.
-    //
-    QUIC_TLS_SESSION* TlsSession;
 
     //
     // The TLS configuration information and credentials.
@@ -910,66 +895,6 @@ QuicTlsSecConfigDelete(
 }
 
 QUIC_STATUS
-QuicTlsSessionInitialize(
-    _Out_ QUIC_TLS_SESSION** NewTlsSession
-    )
-{
-    *NewTlsSession = QuicAlloc(sizeof(QUIC_TLS_SESSION));
-    if (*NewTlsSession == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_TLS_SESSION",
-            sizeof(QUIC_TLS_SESSION));
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    return QUIC_STATUS_SUCCESS;
-}
-
-void
-QuicTlsSessionUninitialize(
-    _In_opt_ QUIC_TLS_SESSION* TlsSession
-    )
-{
-    if (TlsSession != NULL) {
-        QUIC_FREE(TlsSession);
-        TlsSession = NULL;
-    }
-}
-
-QUIC_STATUS
-QuicTlsSessionSetTicketKey(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_reads_bytes_(44)
-        const void* Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(TlsSession);
-    UNREFERENCED_PARAMETER(Buffer);
-    //
-    // LINUX_TODO.
-    //
-    return QUIC_STATUS_SUCCESS;
-}
-
-QUIC_STATUS
-QuicTlsSessionAddTicket(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t * const Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(TlsSession);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    //
-    // LINUX_TODO.
-    //
-    return QUIC_STATUS_SUCCESS;
-}
-
-QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
@@ -994,7 +919,6 @@ QuicTlsInitialize(
     QuicZeroMemory(TlsContext, sizeof(QUIC_TLS));
 
     TlsContext->Connection = Config->Connection;
-    TlsContext->TlsSession = Config->TlsSession;
     TlsContext->IsServer = Config->IsServer;
     TlsContext->SecConfig = QuicTlsSecConfigAddRef(Config->SecConfig);
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;

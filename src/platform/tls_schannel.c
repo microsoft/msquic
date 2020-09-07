@@ -286,12 +286,6 @@ typedef struct QUIC_ACH_CONTEXT {
 
 } QUIC_ACH_CONTEXT;
 
-typedef struct QUIC_TLS_SESSION {
-
-    uint32_t Reserved;
-
-} QUIC_TLS_SESSION;
-
 typedef struct _SEC_BUFFER_WORKSPACE {
 
     //
@@ -324,8 +318,6 @@ typedef struct QUIC_TLS {
     BOOLEAN HandshakeKeyRead : 1;
     BOOLEAN ApplicationKeyRead : 1;
     BOOLEAN TicketReceived : 1;
-
-    QUIC_TLS_SESSION* TlsSession;
 
     //
     // Cached server name indication.
@@ -1178,63 +1170,6 @@ QuicTlsSecConfigDelete(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicTlsSessionInitialize(
-    _Out_ QUIC_TLS_SESSION** NewTlsSession
-    )
-{
-    *NewTlsSession = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS_SESSION));
-    if (*NewTlsSession == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_TLS_SESSION",
-            sizeof(QUIC_TLS_SESSION));
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    return QUIC_STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsSessionUninitialize(
-    _In_opt_ QUIC_TLS_SESSION* TlsSession
-    )
-{
-    if (TlsSession != NULL) {
-        QUIC_FREE(TlsSession);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsSessionSetTicketKey(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_reads_bytes_(44)
-        const void* Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(TlsSession);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsSessionAddTicket(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t * const Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(TlsSession);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
@@ -1266,7 +1201,6 @@ QuicTlsInitialize(
     SecInvalidateHandle(&TlsContext->SchannelContext);
 
     TlsContext->IsServer = Config->IsServer;
-    TlsContext->TlsSession = Config->TlsSession;
     TlsContext->Connection = Config->Connection;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
     TlsContext->SNI = Config->ServerName;

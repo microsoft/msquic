@@ -1218,10 +1218,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnSetConfiguration(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_CONFIGURATION* Configuration,
-    _In_reads_bytes_(AlpnListLength)
-        const uint8_t* AlpnList,
-    _In_ uint16_t AlpnListLength
+    _In_ QUIC_CONFIGURATION* Configuration
     );
 
 //

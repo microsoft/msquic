@@ -188,26 +188,6 @@ typedef struct QUIC_KEY {
     uint64_t Secret;
 } QUIC_KEY;
 
-typedef struct QUIC_TLS_SESSION {
-
-    //
-    // Total number of references on the TLS session. Only freed once all
-    // references are released.
-    //
-    long RefCount;
-
-    //
-    // Lock protecting parallel access to the ticket store.
-    //
-    QUIC_RW_LOCK TicketStoreLock;
-
-    //
-    // The in memory ticket store for this session.
-    //
-    QUIC_HASHTABLE TicketStore;
-
-} QUIC_TLS_SESSION;
-
 //
 // Contiguous memory representation of a ticket.
 //
@@ -265,12 +245,11 @@ typedef struct QUIC_TLS {
 
     QUIC_FAKE_TLS_MESSAGE_TYPE LastMessageType; // Last message sent.
 
-    QUIC_TLS_SESSION* TlsSession;
     QUIC_SEC_CONFIG* SecConfig;
 
     QUIC_CONNECTION* Connection;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
-    QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK_HANDLER ReceiveResumptionCallback;
+    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveResumptionCallback;
 
     uint16_t AlpnBufferLength;
     const uint8_t* AlpnBuffer;
@@ -408,315 +387,6 @@ QuicTlsSecConfigDelete(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicTlsSessionInitialize(
-    _Out_ QUIC_TLS_SESSION** NewTlsSession
-    )
-{
-    QUIC_STATUS Status;
-    QUIC_TLS_SESSION* TlsSession = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS_SESSION));
-    if (TlsSession == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_TLS_SESSION",
-            sizeof(QUIC_TLS_SESSION));
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-
-    if (!QuicHashtableInitializeEx(&TlsSession->TicketStore, QUIC_HASH_MIN_SIZE)) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-
-    QuicRwLockInitialize(&TlsSession->TicketStoreLock);
-    TlsSession->RefCount = 1;
-
-    *NewTlsSession = TlsSession;
-    TlsSession = NULL;
-
-    Status = QUIC_STATUS_SUCCESS;
-
-Error:
-
-    if (TlsSession != NULL) {
-        QUIC_FREE(TlsSession);
-    }
-
-    return Status;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsSessionFree(
-    _In_opt_ QUIC_TLS_SESSION* TlsSession
-    )
-{
-    if (TlsSession != NULL) {
-
-        //
-        // Enumerate and free all entries in the table.
-        //
-        QUIC_HASHTABLE_ENTRY* Entry;
-        QUIC_HASHTABLE_ENUMERATOR Enumerator;
-        QuicHashtableEnumerateBegin(&TlsSession->TicketStore, &Enumerator);
-        while (TRUE) {
-            Entry = QuicHashtableEnumerateNext(&TlsSession->TicketStore, &Enumerator);
-            if (Entry == NULL) {
-                QuicHashtableEnumerateEnd(&TlsSession->TicketStore, &Enumerator);
-                break;
-            }
-            QuicHashtableRemove(&TlsSession->TicketStore, Entry, NULL);
-            QUIC_FREE(Entry);
-        }
-
-        QuicHashtableUninitialize(&TlsSession->TicketStore);
-        QuicRwLockUninitialize(&TlsSession->TicketStoreLock);
-        QUIC_FREE(TlsSession);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_SESSION*
-QuicTlsSessionAddRef(
-    _In_ QUIC_TLS_SESSION* TlsSession
-    )
-{
-    InterlockedIncrement(&TlsSession->RefCount);
-    return TlsSession;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsSessionRelease(
-    _In_ QUIC_TLS_SESSION* TlsSession
-    )
-{
-    if (InterlockedDecrement(&TlsSession->RefCount) == 0) {
-        QuicTlsSessionFree(TlsSession);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsSessionUninitialize(
-    _In_opt_ QUIC_TLS_SESSION* TlsSession
-    )
-{
-    if (TlsSession != NULL) {
-        QuicTlsSessionRelease(TlsSession);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsSessionSetTicketKey(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_reads_bytes_(44)
-        const void* Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(TlsSession);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_SUCCESS;
-}
-
-//
-// Requires TlsSession->TicketStoreLock to be held (shared or exclusive).
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_TICKET_ENTRY*
-QuicTlsSessionLookupTicketEntry(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_ uint16_t ServerNameLength,
-    _In_reads_(ServerNameLength)
-        const char* ServerName,
-    _In_ uint32_t TicketHash
-    )
-{
-    QUIC_HASHTABLE_LOOKUP_CONTEXT Context;
-    QUIC_HASHTABLE_ENTRY* Entry =
-        QuicHashtableLookup(&TlsSession->TicketStore, TicketHash, &Context);
-
-    while (Entry != NULL) {
-        QUIC_TLS_TICKET_ENTRY* Temp =
-            QUIC_CONTAINING_RECORD(Entry, QUIC_TLS_TICKET_ENTRY, Entry);
-        if (Temp->Ticket.ServerNameLength == ServerNameLength &&
-            memcmp(Temp->Ticket.Buffer, ServerName, ServerNameLength) == 0) {
-            return Temp;
-        }
-        Entry = QuicHashtableLookupNext(&TlsSession->TicketStore, &Context);
-    }
-
-    return NULL;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsSessionInsertTicketEntry(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_ QUIC_TLS_TICKET_ENTRY* NewTicketEntry
-    )
-{
-    uint32_t TicketHash =
-        QuicHashSimple(
-            NewTicketEntry->Ticket.ServerNameLength,
-            NewTicketEntry->Ticket.Buffer);
-
-    QuicRwLockAcquireExclusive(&TlsSession->TicketStoreLock);
-
-    //
-    // Since we only allow one entry per server name, we need to see if there
-    // is already a ticket in the store, and if so, remove it.
-    //
-    QUIC_TLS_TICKET_ENTRY* OldTicketEntry =
-        QuicTlsSessionLookupTicketEntry(
-            TlsSession,
-            NewTicketEntry->Ticket.ServerNameLength,
-            (const char*)NewTicketEntry->Ticket.Buffer,
-            TicketHash);
-
-    if (OldTicketEntry != NULL) {
-        QuicHashtableRemove(
-            &TlsSession->TicketStore, &OldTicketEntry->Entry, NULL);
-    }
-
-    //
-    // Add the new ticket to the store.
-    //
-    QuicHashtableInsert(
-        &TlsSession->TicketStore,
-        &NewTicketEntry->Entry,
-        TicketHash,
-        NULL);
-
-    QuicRwLockReleaseExclusive(&TlsSession->TicketStoreLock);
-
-    if (OldTicketEntry != NULL) {
-        //
-        // Release the old ticket outside the lock.
-        //
-        QuicTlsTicketRelease(&OldTicketEntry->Ticket);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_TICKET*
-QuicTlsSessionGetTicket(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_ uint16_t ServerNameLength,
-    _In_reads_(ServerNameLength)
-        const char* ServerName
-    )
-{
-    uint32_t TicketHash =
-        QuicHashSimple(ServerNameLength, (const uint8_t*)ServerName);
-
-    QuicRwLockAcquireShared(&TlsSession->TicketStoreLock);
-
-    QUIC_TLS_TICKET_ENTRY* TicketEntry =
-        QuicTlsSessionLookupTicketEntry(
-            TlsSession, ServerNameLength, ServerName, TicketHash);
-
-    if (TicketEntry != NULL) {
-        InterlockedIncrement(&TicketEntry->RefCount);
-    }
-
-    QuicRwLockReleaseShared(&TlsSession->TicketStoreLock);
-
-    return TicketEntry  == NULL ? NULL : &TicketEntry->Ticket;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsSessionAddTicket(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t * const Buffer
-    )
-{
-    const QUIC_TLS_TICKET* const Ticket = (const QUIC_TLS_TICKET* const)Buffer;
-
-    if (BufferLength < sizeof(QUIC_TLS_TICKET)) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    uint32_t ExpectedBufferLength =
-        sizeof(QUIC_TLS_TICKET) +
-        Ticket->ServerNameLength +
-        Ticket->TicketLength;
-
-    if (BufferLength < ExpectedBufferLength) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    size_t TicketEntryLength =
-        sizeof(QUIC_TLS_TICKET_ENTRY) +
-        Ticket->ServerNameLength +
-        Ticket->TicketLength;
-
-#pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (TLS Session is cleaned up).")
-    QUIC_TLS_TICKET_ENTRY* TicketEntry =
-        (QUIC_TLS_TICKET_ENTRY*)QUIC_ALLOC_PAGED(TicketEntryLength);
-    if (TicketEntry == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_TLS_TICKET_ENTRY",
-            TicketEntryLength);
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-
-    TicketEntry->RefCount = 1; // 1 for the store.
-    memcpy(&TicketEntry->Ticket, Ticket, ExpectedBufferLength);
-
-    QuicTlsSessionInsertTicketEntry(TlsSession, TicketEntry);
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_TICKET*
-QuicTlsSessionCreateTicket(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_z_ const char* ServerName,
-    _In_ uint16_t TicketLength,
-    _In_reads_bytes_(TicketLength)
-        const uint8_t* Ticket
-    )
-{
-    uint16_t ServerNameLength = (uint16_t)strlen(ServerName);
-
-    size_t TicketEntryLength =
-        sizeof(QUIC_TLS_TICKET_ENTRY) +
-        ServerNameLength +
-        TicketLength;
-
-    QUIC_TLS_TICKET_ENTRY* TicketEntry =
-        (QUIC_TLS_TICKET_ENTRY*)QUIC_ALLOC_PAGED(TicketEntryLength);
-    if (TicketEntry == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_TLS_TICKET_ENTRY",
-            TicketEntryLength);
-        return NULL;
-    }
-
-    TicketEntry->RefCount = 2; // 1 for the store, 1 for the return.
-    TicketEntry->Ticket.ServerNameLength = ServerNameLength;
-    TicketEntry->Ticket.TicketLength = TicketLength;
-    memcpy(TicketEntry->Ticket.Buffer, ServerName, ServerNameLength);
-    memcpy(TicketEntry->Ticket.Buffer + ServerNameLength, Ticket, TicketLength);
-
-    QuicTlsSessionInsertTicketEntry(TlsSession, TicketEntry);
-
-    return &TicketEntry->Ticket;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
@@ -741,7 +411,6 @@ QuicTlsInitialize(
     QuicZeroMemory(TlsContext, sizeof(QUIC_TLS));
 
     TlsContext->IsServer = Config->IsServer;
-    TlsContext->TlsSession = QuicTlsSessionAddRef(Config->TlsSession);
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->LocalTPBuffer = Config->LocalTPBuffer;
@@ -769,7 +438,7 @@ QuicTlsInitialize(
             goto Error;
         }
 
-        if (!TlsContext->IsServer) {
+        /*if (!TlsContext->IsServer) {
             //
             // Look up a 0-RTT ticket from TlsSession ticket store.
             //
@@ -786,7 +455,7 @@ QuicTlsInitialize(
                     TlsContext->Connection,
                     "Using 0-RTT ticket.");
             }
-        }
+        }*/
 
         TlsContext->SNI = QUIC_ALLOC_PAGED(ServerNameLength + 1);
         if (TlsContext->SNI == NULL) {
@@ -842,7 +511,6 @@ QuicTlsUninitialize(
             QUIC_FREE(TlsContext->LocalTPBuffer);
         }
 
-        QuicTlsSessionRelease(TlsContext->TlsSession);
         QUIC_FREE(TlsContext);
     }
 }
@@ -1413,26 +1081,8 @@ QuicTlsClientProcess(
         QUIC_FRE_ASSERT(ServerMessageLength < UINT16_MAX);
 
         //
-        // Release any previous ticket.
+        // TODO - Indicate Ticket up
         //
-        if (TlsContext->Ticket != NULL) {
-            QuicTlsTicketRelease(TlsContext->Ticket);
-        }
-
-        //
-        // Add new ticket to TlsSession ticket store.
-        //
-        TlsContext->Ticket =
-            QuicTlsSessionCreateTicket(
-                TlsContext->TlsSession,
-                TlsContext->SNI,
-                (uint16_t)ServerMessageLength,
-                ServerMessage->TICKET.Ticket);
-
-        if (TlsContext->Ticket != NULL) {
-            TlsContext->TicketReady = TRUE;
-            *ResultFlags |= QUIC_TLS_RESULT_TICKET;
-        }
 
         DrainLength = (uint16_t)ServerMessageLength + 4;
         break;

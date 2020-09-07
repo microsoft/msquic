@@ -1674,22 +1674,17 @@ QuicConnStart(
     _In_ QUIC_CONFIGURATION* Configuration,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_opt_z_ const char* ServerName,
-    _In_reads_bytes_(AlpnListLength)
-        const uint8_t* AlpnList,
-    _In_ uint16_t AlpnListLength,
     _In_ uint16_t ServerPort // Host byte order
     )
 {
     QUIC_STATUS Status;
     QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
-    QUIC_DBG_ASSERT(AlpnList != NULL);
 
     if (Connection->State.ClosedLocally || Connection->State.Started) {
         if (ServerName != NULL) {
             QUIC_FREE(ServerName);
         }
-        QUIC_FREE(AlpnList);
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -1703,8 +1698,8 @@ QuicConnStart(
 #ifdef QUIC_COMPARTMENT_ID
         BOOLEAN RevertCompartmentId = FALSE;
         QUIC_COMPARTMENT_ID PrevCompartmentId = QuicCompartmentIdGetCurrent();
-        if (PrevCompartmentId != Connection->Session->CompartmentId) {
-            Status = QuicCompartmentIdSetCurrent(Connection->Session->CompartmentId);
+        if (PrevCompartmentId != Configuration->CompartmentId) {
+            Status = QuicCompartmentIdSetCurrent(Configuration->CompartmentId);
             if (QUIC_FAILED(Status)) {
                 QuicTraceEvent(
                     ConnErrorStatus,
@@ -1822,12 +1817,7 @@ QuicConnStart(
     //
     // Start the handshake.
     //
-    Status =
-        QuicConnSetConfiguration(
-            Connection,
-            Configuration,
-            AlpnList,
-            AlpnListLength);
+    Status = QuicConnSetConfiguration(Connection, Configuration);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
@@ -1843,10 +1833,6 @@ Exit:
 
     if (ServerName != NULL) {
         QUIC_FREE(ServerName);
-    }
-
-    if (AlpnList != NULL) {
-        QUIC_FREE(AlpnList);
     }
 
     if (QUIC_FAILED(Status)) {
@@ -1881,7 +1867,7 @@ QuicConnRestart(
         //
         QUIC_PATH* Path = &Connection->Paths[0];
         Path->GotFirstRttSample = FALSE;
-        Path->SmoothedRtt = MS_TO_US(Connection->Session->Settings.InitialRttMs);
+        Path->SmoothedRtt = MS_TO_US(Connection->Configuration->Settings.InitialRttMs);
         Path->RttVariance = Path->SmoothedRtt / 2;
     }
 
@@ -2053,9 +2039,8 @@ QuicConnRecvResumptionTicket(
                 "Resumption Ticket ALPN length failed to decode");
             goto Error;
         }
-        /* TODO
         if (QuicTlsAlpnFindInList(
-                Connection->Session->AlpnListLength, Connection->Session->AlpnList,
+                Connection->Configuration->AlpnListLength, Connection->Configuration->AlpnList,
                 (uint8_t)AlpnLength, Ticket + Offset) == NULL) {
             QuicTraceEvent(
                 ConnError,
@@ -2064,7 +2049,7 @@ QuicConnRecvResumptionTicket(
                 "Resumption Ticket ALPN not present in ALPN list");
             goto Error;
         }
-        Offset += (uint16_t)AlpnLength;*/
+        Offset += (uint16_t)AlpnLength;
 
         if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &TPLength)) {
             QuicTraceEvent(
@@ -2093,9 +2078,9 @@ QuicConnRecvResumptionTicket(
         //
         if (ResumedTP.ActiveConnectionIdLimit > QUIC_ACTIVE_CONNECTION_ID_LIMIT ||
             ResumedTP.InitialMaxData > Connection->Send.MaxData ||
-            ResumedTP.InitialMaxStreamDataBidiLocal > Connection->Session->Settings.StreamRecvWindowDefault ||
-            ResumedTP.InitialMaxStreamDataBidiRemote > Connection->Session->Settings.StreamRecvWindowDefault ||
-            ResumedTP.InitialMaxStreamDataUni > Connection->Session->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataBidiLocal > Connection->Configuration->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataBidiRemote > Connection->Configuration->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataUni > Connection->Configuration->Settings.StreamRecvWindowDefault ||
             ResumedTP.InitialMaxUniStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount ||
             ResumedTP.InitialMaxBidiStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
             //
@@ -2143,10 +2128,14 @@ QuicConnRecvResumptionTicket(
         QUIC_DBG_ASSERT(Offset + AppTicketLength == TicketLength);
     } else {
         //
-        // TODO Client-side processing.
-        // Until then, this shouldn't ever get called.
+        // TODO - Encode QUIC specific info with the ticket.
         //
-        QUIC_FRE_ASSERT(FALSE);
+        QUIC_CONNECTION_EVENT Event = { 0, };
+        Event.Type = QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED;
+        Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength = TicketLength;
+        Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicket = Ticket;
+        ResumptionAccepted =
+            QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
     }
 
 Error:
@@ -2206,9 +2195,9 @@ QuicConnGenerateLocalTransportParameters(
             Link);
 
     LocalTP->InitialMaxData = Connection->Send.MaxData;
-    LocalTP->InitialMaxStreamDataBidiLocal = Connection->Session->Settings.StreamRecvWindowDefault;
-    LocalTP->InitialMaxStreamDataBidiRemote = Connection->Session->Settings.StreamRecvWindowDefault;
-    LocalTP->InitialMaxStreamDataUni = Connection->Session->Settings.StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataBidiLocal = Connection->Configuration->Settings.StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataBidiRemote = Connection->Configuration->Settings.StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataUni = Connection->Configuration->Settings.StreamRecvWindowDefault;
     LocalTP->MaxUdpPayloadSize =
         MaxUdpPayloadSizeFromMTU(
             QuicDataPathBindingGetLocalMtu(
@@ -2267,7 +2256,7 @@ QuicConnGenerateLocalTransportParameters(
                 Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount;
         }
 
-        if (!Connection->Session->Settings.MigrationEnabled) {
+        if (!Connection->Configuration->Settings.MigrationEnabled) {
             LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION;
         }
 
@@ -2338,10 +2327,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnSetConfiguration(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_CONFIGURATION* Configuration,
-    _In_reads_bytes_(AlpnListLength)
-        const uint8_t* AlpnList,
-    _In_ uint16_t AlpnListLength
+    _In_ QUIC_CONFIGURATION* Configuration
     )
 {
     QUIC_STATUS Status;
@@ -2350,13 +2336,11 @@ QuicConnSetConfiguration(
     QUIC_TEL_ASSERT(Connection->Session != NULL);
     QUIC_TEL_ASSERT(Connection->Configuration != NULL);
     QUIC_TEL_ASSERT(Configuration != NULL);
-    QUIC_TEL_ASSERT(AlpnList != NULL);
-    QUIC_TEL_ASSERT(AlpnListLength != 0);
 
     QuicTraceLogConnInfo(
         SetConfiguration,
         Connection,
-        "Configuration set, %p", // TODO - ALPN list?
+        "Configuration set, %p",
         Configuration);
 
     (void)QuicRundownAcquire(&Configuration->Rundown);
@@ -2365,7 +2349,7 @@ QuicConnSetConfiguration(
     if (!QuicConnIsServer(Connection)) {
 
         uint32_t InitialQuicVersion = QUIC_VERSION_LATEST;
-        /*if (Connection->RemoteServerName != NULL &&
+        if (Connection->RemoteServerName != NULL &&
             QuicSessionServerCacheGetState(
                 Connection->Session,
                 Connection->RemoteServerName,
@@ -2378,7 +2362,7 @@ QuicConnSetConfiguration(
                 Connection,
                 "Found server cached state");
             QuicConnProcessPeerTransportParameters(Connection, TRUE);
-        }*/
+        }
 
         if (Connection->Stats.QuicVersion == 0) {
             //
@@ -5635,13 +5619,7 @@ QuicConnParamSet(
             break;
         }
 
-        Status =
-            QuicConnSetConfiguration(
-                Connection,
-                Configuration,
-                Connection->Crypto.TlsState.NegotiatedAlpn,
-                Connection->Crypto.TlsState.NegotiatedAlpn[0] + 1
-                );
+        Status = QuicConnSetConfiguration(Connection, Configuration);
         if (QUIC_FAILED(Status)) {
             break;
         }
@@ -6426,11 +6404,8 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_START.Configuration,
                 ApiCtx->CONN_START.Family,
                 ApiCtx->CONN_START.ServerName,
-                ApiCtx->CONN_START.AlpnList,
-                ApiCtx->CONN_START.AlpnListLength,
                 ApiCtx->CONN_START.ServerPort);
         ApiCtx->CONN_START.ServerName = NULL;
-        ApiCtx->CONN_START.AlpnList = NULL;
         break;
 
     case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:
@@ -6557,7 +6532,7 @@ QuicConnDrainOperations(
     const uint32_t MaxOperationCount =
         (Connection->Session == NULL || Connection->Session->Registration == NULL) ?
             MsQuicLib.Settings.MaxOperationsPerDrain :
-            Connection->Session->Settings.MaxOperationsPerDrain;
+            Connection->Configuration->Settings.MaxOperationsPerDrain;
     uint32_t OperationCount = 0;
     BOOLEAN HasMoreWorkToDo = TRUE;
 

@@ -25,7 +25,7 @@ Abstract:
 
 QUIC_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 QUIC_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
-QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK QuicConnRecvResumptionTicket;
+QUIC_TLS_RECEIVE_TICKET_CALLBACK QuicConnRecvResumptionTicket;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -263,10 +263,8 @@ QuicCryptoInitializeTls(
     QUIC_DBG_ASSERT(Params != NULL);
     QUIC_DBG_ASSERT(SecConfig != NULL);
     QUIC_DBG_ASSERT(Connection->Session != NULL);
-    QUIC_DBG_ASSERT(Connection->Session->TlsSession != NULL);
 
     TlsConfig.IsServer = IsServer;
-    TlsConfig.TlsSession = Connection->Session->TlsSession;
     TlsConfig.AlpnBuffer = AlpnList;
     TlsConfig.AlpnBufferLength = AlpnListLength;
     TlsConfig.SecConfig = SecConfig;
