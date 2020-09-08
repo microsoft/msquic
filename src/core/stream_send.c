@@ -791,8 +791,8 @@ QuicStreamWriteOneFrame(
     PacketMetadata->Flags.IsAckEliciting = TRUE;
     PacketMetadata->Frames[PacketMetadata->FrameCount].Type = QUIC_FRAME_STREAM;
     PacketMetadata->Frames[PacketMetadata->FrameCount].STREAM.Stream = Stream;
-    PacketMetadata->Frames[PacketMetadata->FrameCount].STREAM.Offset = Frame.Offset;
-    PacketMetadata->Frames[PacketMetadata->FrameCount].STREAM.Length = (uint16_t)Frame.Length;
+    PacketMetadata->Frames[PacketMetadata->FrameCount].StreamOffset = Frame.Offset;
+    PacketMetadata->Frames[PacketMetadata->FrameCount].StreamLength = (uint16_t)Frame.Length;
     PacketMetadata->Frames[PacketMetadata->FrameCount].Flags = 0;
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_OPEN) {
         Stream->SendFlags &= ~QUIC_STREAM_SEND_FLAG_OPEN;
@@ -1157,8 +1157,8 @@ QuicStreamOnLoss(
 
     uint32_t AddSendFlags = 0;
 
-    uint64_t Start = FrameMetadata->STREAM.Offset;
-    uint64_t End = Start + FrameMetadata->STREAM.Length;
+    uint64_t Start = FrameMetadata->StreamOffset;
+    uint64_t End = Start + FrameMetadata->StreamLength;
 
     if ((FrameMetadata->Flags & QUIC_SENT_FRAME_FLAG_STREAM_OPEN) &&
         !Stream->Flags.SendOpenAcked) {
@@ -1293,8 +1293,8 @@ QuicStreamOnAck(
     _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
     )
 {
-    uint64_t Offset = FrameMetadata->STREAM.Offset;
-    uint32_t Length = FrameMetadata->STREAM.Length;
+    uint64_t Offset = FrameMetadata->StreamOffset;
+    uint32_t Length = FrameMetadata->StreamLength;
 
     //
     // The offset directly following this frame.

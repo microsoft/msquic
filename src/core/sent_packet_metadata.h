@@ -15,9 +15,6 @@ typedef struct QUIC_STREAM QUIC_STREAM;
 #define QUIC_SENT_FRAME_FLAG_STREAM_OPEN    0x01    // STREAM frame opened stream
 #define QUIC_SENT_FRAME_FLAG_STREAM_FIN     0x02    // STREAM frame included FIN bit
 
-#pragma pack(push)
-#pragma pack(1)
-
 //
 // Tracker for a sent frame.
 //
@@ -39,11 +36,6 @@ typedef struct QUIC_SENT_FRAME_METADATA {
         } CRYPTO;
         struct {
             QUIC_STREAM* Stream;
-            //
-            // TODO- optimization: encode in 32 bits.
-            //
-            uint64_t Offset;
-            uint16_t Length;
         } STREAM;
         struct {
             QUIC_STREAM* Stream;
@@ -67,6 +59,16 @@ typedef struct QUIC_SENT_FRAME_METADATA {
             void* ClientContext;
         } DATAGRAM;
     };
+    //
+    // The following to fields are for STREAM. However, if they were in stream
+    // they force the union to completely contain them, which doesn't allow the
+    // Type and Flags fields to be packed nicely.
+    //
+    //
+    // TODO- optimization: encode in 32 bits.
+    //
+    uint64_t StreamOffset;
+    uint16_t StreamLength;
     uint8_t Type; // QUIC_FRAME_*
     uint8_t Flags; // QUIC_SENT_FRAME_FLAG_*
 
@@ -95,7 +97,6 @@ typedef struct QUIC_SENT_PACKET_METADATA {
     uint64_t PacketNumber;
     uint32_t SentTime; // In microseconds
     uint16_t PacketLength;
-    uint8_t PathId;
 
     //
     // Hints about the QUIC packet and included frames.
@@ -105,12 +106,21 @@ typedef struct QUIC_SENT_PACKET_METADATA {
     //
     // Frames included in this packet.
     //
-    uint8_t FrameCount;
+    uint8_t FrameCount  : 4;
+    uint8_t PathId      : 4;
     QUIC_SENT_FRAME_METADATA Frames[0];
 
 } QUIC_SENT_PACKET_METADATA;
 
-#pragma pack(pop)
+QUIC_STATIC_ASSERT(
+    QUIC_MAX_PATH_COUNT <= 16,
+    "Must have a max path count of less then 16"
+);
+
+QUIC_STATIC_ASSERT(
+    QUIC_MAX_FRAMES_PER_PACKET <= 16,
+    "Must have a max frames per packet of less then 16"
+);
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
