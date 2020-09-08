@@ -61,25 +61,16 @@ MsQuicCalculatePartitionMask(
     void
     )
 {
-    QUIC_FRE_ASSERT(MsQuicLib.PartitionCount != 0);
+    QUIC_DBG_ASSERT(MsQuicLib.PartitionCount != 0);
+    QUIC_DBG_ASSERT(MsQuicLib.PartitionCount != 0xFFFF);
 
-    uint16_t PartCount = MsQuicLib.PartitionCount;
-    uint8_t PowCount = 0;
+    uint16_t n = MsQuicLib.PartitionCount;
 
-    for (;;) {
-        if (PartCount & 0x8000) {
-            break;
-        }
-        PowCount++;
-        PartCount <<= 1;
-    }
-
-    PowCount = 16 - PowCount;
-    MsQuicLib.PartitionMask = 0;
-    for (uint16_t i = 0; i < PowCount; i++) {
-        MsQuicLib.PartitionMask <<= 1;
-        MsQuicLib.PartitionMask |= 1;
-    }
+    n |= (n >> 1);
+    n |= (n >> 2);
+    n |= (n >> 4);
+    n |= (n >> 8);
+    return n - (n >> 1);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
