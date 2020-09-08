@@ -236,14 +236,14 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT {
     QUIC_DATAPATH* Datapath;
 
     //
-    // IO Completion Binding used for the processing completions on the socket.
+    // The kqueue to manage events
     //
-    HANDLE IOCP;
+    int Kqueue;
 
     //
-    // Thread used for handling IOCP completions.
+    // Thread used for handling kqueue events.
     //
-    HANDLE CompletionThread;
+    pthread_t CompletionThread;
 
     //
     // The ID of the CompletionThread.
@@ -406,9 +406,7 @@ QuicDataPathInitialize(
 
     Datapath->RecvPayloadOffset = sizeof(QUIC_DATAPATH_INTERNAL_RECV_CONTEXT) + MessageCount * Datapath->DatagramStride;
 
-    uint32_t RecvDatagramLength = Datapath->RecvPayloadOffset +
-            ((Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING) ?
-                MAX_URO_PAYLOAD_LENGTH : MAX_UDP_PAYLOAD_LENGTH);
+    uint32_t RecvDatagramLength = Datapath->RecvPayloadOffset + MAX_UDP_PAYLOAD_LENGTH;
 
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
 
@@ -420,33 +418,35 @@ QuicDataPathInitialize(
 
         Datapath->ProcContexts[i].Datapath = Datapath;
         Datapath->ProcContexts[i].Index = i;
+        Datapath->ProcContexts[i].Kqueue = INVALID_SOCKET;
 
         QuicPoolInitialize(FALSE, sizeof(QUIC_DATAPATH_SEND_CONTEXT), QUIC_POOL_GENERIC, &Datapath->ProcContexts[i].SendContextPool);
         QuicPoolInitialize(FALSE, MAX_UDP_PAYLOAD_LENGTH, QUIC_POOL_DATA, &Datapath->ProcContexts[i].SendBufferPool);
         QuicPoolInitialize(FALSE, QUIC_LARGE_SEND_BUFFER_SIZE, QUIC_POOL_DATA, &Datapath->ProcContexts[i].LargeSendBufferPool);
         QuicPoolInitialize(FALSE, RecvDatagramLength, QUIC_POOL_DATA, &Datapath->ProcContexts[i].RecvDatagramPool);
 
-        Datapath->ProcContexts[i].IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1);
+        int KqueueFd = kqueue();
 
-        if (Datapath->ProcContexts[i].IOCP == NULL) {
-            DWORD LastError = GetLastError();
-            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", LastError, "CreateIoCompletionPort");
-            Status = HRESULT_FROM_WIN32(LastError);
-            goto Error;
+        if (KqueueFd == INVALID_SOCKET) {
+            Status = errno;
+            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", Status, "kqueue() failed");
+            goto exit;
         }
 
-        Datapath->ProcContexts[i].CompletionThread =
-            CreateThread(
-                NULL,
-                0,
-                QuicDataPathWorkerThread,
-                &Datapath->ProcContexts[i],
-                0,
-                NULL);
-        if (Datapath->ProcContexts[i].CompletionThread == NULL) {
-            DWORD LastError = GetLastError();
-            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", LastError, "CreateThread");
-            Status = HRESULT_FROM_WIN32(LastError);
+        Datapath->ProcContexts[i].Kqueue = KqueueFd;
+
+        QUIC_THREAD_CONFIG ThreadConfig = {
+            0,
+            0,
+            NULL,
+            QuicDataPathWorkerThread,
+            ProcContext
+        };
+
+        Status = QuicThreadCreate(&ThreadConfig, &Datapath->ProcContexts[i].CompletionThread);
+
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", Status, "CreateThread");
             goto Error;
         }
     }
@@ -459,11 +459,12 @@ Error:
     if (QUIC_FAILED(Status)) {
         if (Datapath != NULL) {
             for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
-                if (Datapath->ProcContexts[i].IOCP) {
-                    CloseHandle(Datapath->ProcContexts[i].IOCP);
+                if (Datapath->ProcContexts[i].Kqueue != INVALID_SOCKET) {
+                    close(Datapath->ProcContexts[i].Kqueue);
                 }
                 if (Datapath->ProcContexts[i].CompletionThread) {
-                    CloseHandle(Datapath->ProcContexts[i].CompletionThread);
+                    // TODO: pthread_kill / pthread_cancel this..
+                    // or find a better way to cancel the thread
                 }
                 QuicPoolUninitialize(&Datapath->ProcContexts[i].SendContextPool);
                 QuicPoolUninitialize(&Datapath->ProcContexts[i].SendBufferPool);
@@ -473,7 +474,6 @@ Error:
             QuicRundownUninitialize(&Datapath->BindingsRundown);
             QUIC_FREE(Datapath);
         }
-        (void)WSACleanup();
     }
 
 Exit:
@@ -498,6 +498,7 @@ void QuicDataPathUninitialize(_In_ QUIC_DATAPATH* Datapath) {
     //
     Datapath->Shutdown = TRUE;
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
+        QuicDataPathWakeWorkerThread(Datapath->ProcContexts[i], NULL);
         PostQueuedCompletionStatus(Datapath->ProcContexts[i].IOCP, 0, (ULONG_PTR)NULL, NULL);
     }
 
@@ -505,12 +506,13 @@ void QuicDataPathUninitialize(_In_ QUIC_DATAPATH* Datapath) {
     // Wait for the worker threads to finish up. Then clean it up.
     //
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
-        WaitForSingleObject(Datapath->ProcContexts[i].CompletionThread, INFINITE);
-        CloseHandle(Datapath->ProcContexts[i].CompletionThread);
+        pthread_join(Datapath->ProcContexts[i].CompletionThread);
+        //WaitForSingleObject(Datapath->ProcContexts[i].CompletionThread, INFINITE);
+        //CloseHandle(Datapath->ProcContexts[i].CompletionThread);
     }
 
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
-        CloseHandle(Datapath->ProcContexts[i].IOCP);
+        close(Datapath->ProcContexts[i].Kqueue);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].SendContextPool);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].SendBufferPool);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].LargeSendBufferPool);
@@ -519,8 +521,12 @@ void QuicDataPathUninitialize(_In_ QUIC_DATAPATH* Datapath) {
 
     QuicRundownUninitialize(&Datapath->BindingsRundown);
     QUIC_FREE(Datapath);
+}
 
-    WSACleanup();
+void QuicDataPathWakeWorkerThread(_In_ QUIC_DATAPATH_PROC_CONTEXT *ProcContext, _In_ QUIC_SOCKET_CONTEXT *SocketContext) {
+    struct kevent Event = { };
+    EV_SET(&Event, 42, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, (void *)SocketContext);
+    kevent(ProcContext->KqueueFd, Event, 1, NULL, 0, NULL);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -846,33 +852,20 @@ void QuicDataPathBindingDelete(_In_ QUIC_DATAPATH_BINDING* Binding)
         QUIC_DBG_ASSERT(Datapath->ProcContexts[Processor].ThreadId != GetCurrentThreadId());
         QuicRundownReleaseAndWait(&SocketContext->UpcallRundown);
 
-        CancelIo((HANDLE)SocketContext->Socket);
-        closesocket(SocketContext->Socket);
-
-        PostQueuedCompletionStatus(
-            Datapath->ProcContexts[Processor].IOCP,
-            UINT32_MAX,
-            (ULONG_PTR)SocketContext,
-            &SocketContext->RecvOverlapped);
+        close(SocketContext->Socket);
+        QuicDataPathWakeWorkerThread(&Datapath->ProcContexts[0], SocketContext);
 
     } else {
         for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
             QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
-            QUIC_DBG_ASSERT(Datapath->ProcContexts[i].ThreadId != GetCurrentThreadId());
             QuicRundownReleaseAndWait(&SocketContext->UpcallRundown);
         }
         for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
             QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
-            uint32_t Processor = i;
 
-            CancelIo((HANDLE)SocketContext->Socket);
-            closesocket(SocketContext->Socket);
+            close(SocketContext->Socket);
 
-            PostQueuedCompletionStatus(
-                Datapath->ProcContexts[Processor].IOCP,
-                UINT32_MAX,
-                (ULONG_PTR)SocketContext,
-                &SocketContext->RecvOverlapped);
+            QuicDataPathWakeWorkerThread(Datapath->ProcContexts[i], SocketContext);
         }
     }
 
