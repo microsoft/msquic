@@ -27,6 +27,7 @@ uint32_t TestCases = QuicTestFeatureAll;
 uint32_t WaitTimeoutMs = 5000;
 uint32_t InitialVersion = 0;
 bool RunSerially = false;
+bool TestFailed = false; // True if any test failed
 
 const BOOLEAN UseSendBuffering = FALSE;
 const uint32_t CertificateValidationFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
@@ -546,9 +547,19 @@ private:
             QuicEventSet(pThis->RequestComplete);
             break;
         case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
+            if (pThis->File) {
+                fflush(pThis->File);
+                fclose(pThis->File);
+                pThis->File = nullptr;
+            }
             pThis->ReceivedResponse = true;
             break;
         case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
+            if (pThis->File) {
+                printf("Request closed incomplete.\n");
+                fclose(pThis->File); // Didn't get closed properly.
+                pThis->File = nullptr;
+            }
             uint64_t Length = 0;
             uint32_t LengthLength = sizeof(Length);
             if (QUIC_SUCCEEDED(
@@ -560,11 +571,6 @@ private:
                     &Length)) &&
                 Length > 0) {
                 pThis->UsedZeroRtt = true;
-            }
-            if (pThis->File) {
-                fflush(pThis->File);
-                fclose(pThis->File);
-                pThis->File = nullptr;
             }
             QuicEventSet(pThis->RequestComplete);
             MsQuic->StreamClose(Stream);
@@ -647,14 +653,14 @@ RunInteropTest(
     case VersionNegotiation: {
         InteropConnection Connection(Session, true);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
-            if (CustomUrlPath) {
-                Connection.SendHttpRequest();
-            }
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             QUIC_STATISTICS Stats;
             if (Connection.GetStatistics(Stats)) {
                 Success = Stats.VersionNegotiation != 0;
+            }
+            if (Success && CustomUrlPath) {
+                Success = Connection.SendHttpRequest();
             }
         } else if (Connection.VersionUnsupported) {
             Success = Connection.VersionUnsupported;
@@ -676,9 +682,6 @@ RunInteropTest(
         }
         InteropConnection Connection(Session, false, Feature == PostQuantum);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
-            if (CustomUrlPath) {
-                Connection.SendHttpRequest();
-            }
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             if (Feature == StatelessRetry) {
@@ -692,6 +695,9 @@ RunInteropTest(
                 Success = Connection.Resumed;
             } else {
                 Success = true;
+            }
+            if (Success && CustomUrlPath) {
+                Success = Connection.SendHttpRequest();
             }
         }
         break;
@@ -725,17 +731,15 @@ RunInteropTest(
         InteropConnection Connection(Session);
         if (Connection.SetKeepAlive(50) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port)) {
-            if (CustomUrlPath) {
-                Connection.SendHttpRequest();
-            }
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
-            if (!CustomUrlPath) {
-                QuicSleep(2000); // Allow keep alive packets to trigger key updates.
-            }
+            QuicSleep(2000); // Allow keep alive packets to trigger key updates.
             QUIC_STATISTICS Stats;
             if (Connection.GetStatistics(Stats)) {
                 Success = Stats.Misc.KeyUpdateCount > 1;
+            }
+            if (Success && CustomUrlPath) {
+                Success = Connection.SendHttpRequest();
             }
         }
         break;
@@ -753,6 +757,9 @@ RunInteropTest(
                 !Connection.WaitForShutdownComplete()) {
                 Success = true;
             }
+            if (Success && CustomUrlPath) {
+                Success = Connection.SendHttpRequest();
+            }
         }
         break;
     }
@@ -768,6 +775,9 @@ RunInteropTest(
                 Connection.SetKeepAlive(50) &&
                 !Connection.WaitForShutdownComplete()) {
                 Success = true;
+            }
+            if (Success && CustomUrlPath) {
+                Success = Connection.SendHttpRequest();
             }
         }
         break;
@@ -786,6 +796,15 @@ RunInteropTest(
     }
 
     MsQuic->SessionClose(Session);
+
+    if (CustomUrlPath && !Success) {
+        //
+        // Delete any file we might have downloaded, because the test didn't
+        // actually succeed.
+        //
+        const char* FileName = strrchr(UrlPath, '/') + 1;
+        (void)remove(FileName);
+    }
 
     return Success;
 }
@@ -818,6 +837,8 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
             Alpn = nullptr;
         }
         QuicLockRelease(&TestResultsLock);
+    } else {
+        TestFailed = true;
     }
 
     free((void*)Alpn);
@@ -1011,6 +1032,10 @@ main(
     }
 
     RunInteropTests();
+
+    if (CustomUrlPath && TestFailed) {
+        Status = QUIC_STATUS_ABORTED;
+    }
 
 Error:
 
