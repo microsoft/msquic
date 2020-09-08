@@ -97,6 +97,7 @@ typedef struct QUIC_SENT_PACKET_METADATA {
     uint64_t PacketNumber;
     uint32_t SentTime; // In microseconds
     uint16_t PacketLength;
+    uint8_t PathId;
 
     //
     // Hints about the QUIC packet and included frames.
@@ -106,21 +107,10 @@ typedef struct QUIC_SENT_PACKET_METADATA {
     //
     // Frames included in this packet.
     //
-    uint8_t FrameCount  : 4;
-    uint8_t PathId      : 4;
+    uint8_t FrameCount;
     QUIC_SENT_FRAME_METADATA Frames[0];
 
 } QUIC_SENT_PACKET_METADATA;
-
-QUIC_STATIC_ASSERT(
-    QUIC_MAX_PATH_COUNT <= 16,
-    "Must have a max path count of less then 16"
-);
-
-QUIC_STATIC_ASSERT(
-    QUIC_MAX_FRAMES_PER_PACKET <= 16,
-    "Must have a max frames per packet of less then 16"
-);
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
