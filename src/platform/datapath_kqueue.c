@@ -92,12 +92,6 @@ typedef struct QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT {
 // Send context.
 //
 typedef struct QUIC_DATAPATH_SEND_CONTEXT {
-
-    //
-    // The Overlapped structure for I/O completion.
-    //
-    OVERLAPPED Overlapped;
-
     //
     // The owning processor context.
     //
@@ -148,7 +142,7 @@ typedef struct QUIC_UDP_SOCKET_CONTEXT {
     //
     // UDP socket used for sending/receiving datagrams.
     //
-    SOCKET Socket;
+    int Socket;
 
     //
     // Rundown for synchronizing clean up with upcalls.
@@ -1648,15 +1642,12 @@ DWORD QuicDataPathWorkerThread(_In_ void* CompletionContext) {
     QUIC_DBG_ASSERT(ProcContext != NULL);
     QUIC_DBG_ASSERT(ProcContext->Datapath != NULL);
 
-    QUIC_UDP_SOCKET_CONTEXT* SocketContext;
-    LPOVERLAPPED Overlapped;
-    DWORD NumberOfBytesTransferred;
-    ULONG IoResult;
-
     int Kqueue = ProcContext->Kqueue;
     struct kevent EventList[32];
 
     while (TRUE) {
+        DWORD NumberOfBytesTransferred = 0;
+        ULONG IoResult = 0;
 
         int EventCount = kevent(Kqueue, NULL, 0, EventList, 32, NULL);
 
@@ -1669,26 +1660,25 @@ DWORD QuicDataPathWorkerThread(_In_ void* CompletionContext) {
         if (Event->filter == EVFILT_USER || Event->flags & EV_EOF) {
             QuicDataPathSocketContextShutdown(SocketContext);
         }
-        
-        // XXX: Do we need the SocketContext->UpcallRundown if we only have one worker?
-        QUIC_DBG_ASSERT(NumberOfBytesTransferred <= 0xFFFF);
-        if (NumberOfBytesTransferred > 0xFFFF && IoResult == NO_ERROR) {
-            IoResult = ERROR_INVALID_PARAMETER;
+
+        else if (Event->filter == EVFILT_READ) {
+            NumberOfBytesTransferred = recvmsg(SocketContext->SocketFd, &SocketContext->RecvMsgHdr, 0);
+            if (NumberOfBytesTransferred == -1) IoResult = errno; 
+
+            // XXX: Do we need the SocketContext->UpcallRundown if we only have one worker?
+            // Handle the receive indication and queue a new receive.
+            QuicDataPathRecvComplete(ProcContext, SocketContext, IoResult, (uint16_t)NumberOfBytesTransferred);
         }
-
-        //
-        // Handle the receive indication and queue a new receive.
-        //
-        QuicDataPathRecvComplete(
-                ProcContext,
-                SocketContext,
-                IoResult,
-                (UINT16)NumberOfBytesTransferred);
-
+        else if (Event->filter == EVFILT_WRITE) {
+            // This indicates that there is buffer available for sending. Try
+            // to empty the send queue
+            // XXX: It seems in winuser we don't handle any failed sends, the
+            // core probably just notices the missed-ack and handles it
+            // accordingly
+        }
     }
 
     QuicTraceLogInfo(DatapathWorkerThreadStop, "[ udp][%p] Worker stop", ProcContext);
-
     return NO_ERROR;
 }
 
