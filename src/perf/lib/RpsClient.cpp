@@ -121,11 +121,11 @@ RpsClient::Start(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t ActiveProcCount = QuicProcActiveCount();
-    if (ActiveProcCount >= 8) {
+    if (ActiveProcCount >= 60) {
         //
         // If we have enough cores, leave 2 cores for OS overhead
         //
-        ActiveProcCount -= 2;
+        ActiveProcCount -= 24;
     }
     for (uint32_t i = 0; i < ConnectionCount; ++i) {
         HQUIC Connection = nullptr;
