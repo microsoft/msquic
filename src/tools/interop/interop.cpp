@@ -251,10 +251,6 @@ public:
         QuicEventUninitialize(QuackAckReceived);
         QuicEventUninitialize(ConnectionComplete);
         delete [] NegotiatedAlpn;
-        if (File) {
-            printf("Request closed incomplete.\n");
-            fclose(File); // Didn't get closed properly.
-        }
     }
     bool SetKeepAlive(uint32_t KeepAliveMs) {
         return
@@ -559,6 +555,11 @@ private:
             pThis->ReceivedResponse = true;
             break;
         case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
+            if (pThis->File) {
+                printf("Request closed incomplete.\n");
+                fclose(pThis->File); // Didn't get closed properly.
+                pThis->File = nullptr;
+            }
             uint64_t Length = 0;
             uint32_t LengthLength = sizeof(Length);
             if (QUIC_SUCCEEDED(
