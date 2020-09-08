@@ -300,16 +300,6 @@ typedef struct QUIC_DATAPATH {
     UINT8 MaxSendBatchSize;
 
     //
-    // Function pointer to WSASendMsg.
-    //
-    LPFN_WSASENDMSG WSASendMsg;
-
-    //
-    // Function pointer to WSARecvMsg.
-    //
-    LPFN_WSARECVMSG WSARecvMsg;
-
-    //
     // Rundown for waiting on binding cleanup.
     //
     QUIC_RUNDOWN_REF BindingsRundown;
@@ -681,8 +671,7 @@ QuicDataPathBindingCreate(
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].Socket = INVALID_SOCKET;
         Binding->SocketContexts[i].RecvWsaBuf.len = (Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING) ?
-                MAX_URO_PAYLOAD_LENGTH :
-                Binding->Mtu - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE;
+                MAX_URO_PAYLOAD_LENGTH : Binding->Mtu - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE;
         QuicRundownInitialize(&Binding->SocketContexts[i].UpcallRundown);
     }
 
@@ -691,64 +680,12 @@ QuicDataPathBindingCreate(
         QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
         UINT8 AffinitizedProcessor = (UINT8)i;
 
-        SocketContext->Socket = WSASocketW(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, WSA_FLAG_OVERLAPPED);
+        SocketContext->Socket = socket(AF_INET6, SOCK_DGRAM, 0);
         if (SocketContext->Socket == INVALID_SOCKET) {
             int WsaError = WSAGetLastError();
             QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", Binding, WsaError, "WSASocketW");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
-        }
-
-        DWORD BytesReturned;
-
-        if (Datapath->WSASendMsg == NULL) {
-            LPFN_WSASENDMSG WSASendMsg = NULL;
-            GUID WSASendMsgGuid = WSAID_WSASENDMSG;
-
-            Result =
-                WSAIoctl(
-                    SocketContext->Socket,
-                    SIO_GET_EXTENSION_FUNCTION_POINTER,
-                    &WSASendMsgGuid,
-                    sizeof(WSASendMsgGuid),
-                    &WSASendMsg,
-                    sizeof(WSASendMsg),
-                    &BytesReturned,
-                    NULL,
-                    NULL);
-            if (Result != NO_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", Binding, WsaError, "SIO_GET_EXTENSION_FUNCTION_POINTER (WSASendMsg)");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
-
-            Datapath->WSASendMsg = WSASendMsg;
-        }
-
-        if (Datapath->WSARecvMsg == NULL) {
-            LPFN_WSARECVMSG WSARecvMsg = NULL;
-            GUID WSARecvMsgGuid = WSAID_WSARECVMSG;
-
-            Result =
-                WSAIoctl(
-                    SocketContext->Socket,
-                    SIO_GET_EXTENSION_FUNCTION_POINTER,
-                    &WSARecvMsgGuid,
-                    sizeof(WSARecvMsgGuid),
-                    &WSARecvMsg,
-                    sizeof(WSARecvMsg),
-                    &BytesReturned,
-                    NULL,
-                    NULL);
-            if (Result != NO_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", Binding, WsaError, "SIO_GET_EXTENSION_FUNCTION_POINTER (WSARecvMsg)");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
-
-            Datapath->WSARecvMsg = WSARecvMsg;
         }
 
         Option = FALSE;
@@ -993,7 +930,8 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void QuicDataPathBindingDelete(_In_ QUIC_DATAPATH_BINDING* Binding) {
+void QuicDataPathBindingDelete(_In_ QUIC_DATAPATH_BINDING* Binding)
+{
     QUIC_DBG_ASSERT(Binding != NULL);
     QuicTraceLogVerbose(DatapathShuttingDown, "[ udp][%p] Shutting down", Binding);
 
@@ -1142,42 +1080,7 @@ QUIC_STATUS QuicDataPathBindingStartReceive(_In_ QUIC_UDP_SOCKET_CONTEXT* Socket
     SocketContext->RecvWsaMsgHdr.Control.buf = SocketContext->RecvWsaMsgControlBuf;
     SocketContext->RecvWsaMsgHdr.Control.len = sizeof(SocketContext->RecvWsaMsgControlBuf);
 
-Retry_recv:
-
-    Result =
-        SocketContext->Binding->Datapath->WSARecvMsg(
-            SocketContext->Socket,
-            &SocketContext->RecvWsaMsgHdr,
-            &BytesRecv,
-            &SocketContext->RecvOverlapped,
-            NULL);
-    if (Result == SOCKET_ERROR) {
-        int WsaError = WSAGetLastError();
-        if (WsaError != WSA_IO_PENDING) {
-            if (WsaError == WSAECONNRESET) {
-                QuicDataPathBindingHandleUnreachableError(SocketContext, (ULONG)WsaError);
-                goto Retry_recv;
-            } else {
-                QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", SocketContext->Binding, WsaError, "WSARecvMsg");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
-        }
-    } else {
-        //
-        // Manually post IO completion if receive completed synchronously.
-        //
-        if (!PostQueuedCompletionStatus(
-                CompletionPort,
-                BytesRecv,
-                (ULONG_PTR)SocketContext,
-                &SocketContext->RecvOverlapped)) {
-            DWORD LastError = GetLastError();
-            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", SocketContext->Binding, LastError, "PostQueuedCompletionStatus");
-            Status = HRESULT_FROM_WIN32(LastError);
-            goto Error;
-        }
-    }
+    // TODO: Add socket to Kqueue
 
     Status = QUIC_STATUS_SUCCESS;
 
@@ -1604,17 +1507,19 @@ BOOLEAN QuicDataPathBindingIsSendContextFull(_In_ QUIC_DATAPATH_SEND_CONTEXT* Se
     return !QuicSendContextCanAllocSend(SendContext, SendContext->SegmentSize);
 }
 
-void QuicSendContextComplete(_In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext, _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ ULONG IoResult) {
+void QuicSendContextComplete(_In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext, _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ ULONG IoResult)
+{
     UNREFERENCED_PARAMETER(SocketContext);
     if (IoResult != QUIC_STATUS_SUCCESS) {
-        QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", SocketContext->Binding, IoResult, "WSASendMsg completion");
+        QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", SocketContext->Binding, IoResult, "sendmsg completion");
     }
 
     QuicDataPathBindingFreeSendContext(SendContext);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS QuicDataPathBindingSendTo(_In_ QUIC_DATAPATH_BINDING* Binding, _In_ const SOCKADDR_INET * RemoteAddress, _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext) {
+QUIC_STATUS QuicDataPathBindingSendTo(_In_ QUIC_DATAPATH_BINDING* Binding, _In_ const SOCKADDR_INET * RemoteAddress, _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext) 
+{
     QUIC_STATUS Status;
     QUIC_DATAPATH* Datapath;
     QUIC_UDP_SOCKET_CONTEXT* SocketContext;
@@ -1689,18 +1594,13 @@ QUIC_STATUS QuicDataPathBindingSendTo(_In_ QUIC_DATAPATH_BINDING* Binding, _In_ 
     // Start the async send.
     //
     RtlZeroMemory(&SendContext->Overlapped, sizeof(OVERLAPPED));
-    Result =
-        Datapath->WSASendMsg(
-            Socket,
-            &WSAMhdr,
-            0,
-            &BytesSent,
-            &SendContext->Overlapped,
-            NULL);
+    Result = sendmsg(Socket, &WSAMhdr, 0);
+
     if (Result == SOCKET_ERROR) {
+        // TODO: Fix this check to be more concise for POSIX-like platforms
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
-            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", SocketContext->Binding, WsaError, "WSASendMsg");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", SocketContext->Binding, WsaError, "sendmsg");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Exit;
         }
@@ -1830,19 +1730,13 @@ QuicDataPathBindingSendFromTo(
     // Start the async send.
     //
     RtlZeroMemory(&SendContext->Overlapped, sizeof(OVERLAPPED));
-    Result =
-        Datapath->WSASendMsg(
-            Socket,
-            &WSAMhdr,
-            0,
-            &BytesSent,
-            &SendContext->Overlapped,
-            NULL);
+    Result = sendmsg(Socket, &WSAMhdr, 0);
 
     if (Result == SOCKET_ERROR) {
+        // TODO: Update this result check to be more posix-y
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
-            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", SocketContext->Binding, WsaError, "WSASendMsg");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", SocketContext->Binding, WsaError, "sendmsg");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Exit;
         }
@@ -1864,8 +1758,7 @@ Exit:
     return Status;
 }
 
-DWORD
-QuicDataPathWorkerThread(_In_ void* CompletionContext) {
+DWORD QuicDataPathWorkerThread(_In_ void* CompletionContext) {
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = (QUIC_DATAPATH_PROC_CONTEXT*)CompletionContext;
 
     QuicTraceLogInfo(DatapathWorkerThreadStart, "[ udp][%p] Worker start", ProcContext);
@@ -1948,14 +1841,7 @@ QuicDataPathWorkerThread(_In_ void* CompletionContext) {
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicDataPathBindingSetParam(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ uint32_t Param,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength) const UINT8 * Buffer
-    )
-{
+QUIC_STATUS QuicDataPathBindingSetParam(_In_ QUIC_DATAPATH_BINDING* Binding, _In_ uint32_t Param, _In_ uint32_t BufferLength, _In_reads_bytes_(BufferLength) const UINT8 * Buffer) {
     UNREFERENCED_PARAMETER(Binding);
     UNREFERENCED_PARAMETER(Param);
     UNREFERENCED_PARAMETER(BufferLength);
@@ -1964,14 +1850,7 @@ QuicDataPathBindingSetParam(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicDataPathBindingGetParam(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ uint32_t Param,
-    _Inout_ PUINT32 BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength) UINT8 * Buffer
-    )
-{
+QUIC_STATUS QuicDataPathBindingGetParam(_In_ QUIC_DATAPATH_BINDING* Binding, _In_ uint32_t Param, _Inout_ PUINT32 BufferLength, _Out_writes_bytes_opt_(*BufferLength) UINT8 * Buffer) {
     UNREFERENCED_PARAMETER(Binding);
     UNREFERENCED_PARAMETER(Param);
     UNREFERENCED_PARAMETER(BufferLength);
