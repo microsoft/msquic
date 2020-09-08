@@ -64,13 +64,15 @@ MsQuicCalculatePartitionMask(
     QUIC_DBG_ASSERT(MsQuicLib.PartitionCount != 0);
     QUIC_DBG_ASSERT(MsQuicLib.PartitionCount != 0xFFFF);
 
-    uint16_t n = MsQuicLib.PartitionCount;
+    uint16_t PartitionCount = MsQuicLib.PartitionCount;
 
-    n |= (n >> 1);
-    n |= (n >> 2);
-    n |= (n >> 4);
-    n |= (n >> 8);
-    return n - (n >> 1);
+    PartitionCount |= (PartitionCount >> 1);
+    PartitionCount |= (PartitionCount >> 2);
+    PartitionCount |= (PartitionCount >> 4);
+    PartitionCount |= (PartitionCount >> 8);
+    uint16_t HighBitSet = PartitionCount - (PartitionCount >> 1);
+
+    MsQuicLib.PartitionMask = (HighBitSet << 1) - 1;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
