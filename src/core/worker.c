@@ -48,7 +48,7 @@ QuicWorkerInitialize(
 
     QuicTraceEvent(
         WorkerCreated,
-        "[wrkr][%p] Created, IdealProc=%d Owner=%p",
+        "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
         Worker,
         IdealProcessor,
         Owner);

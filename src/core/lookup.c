@@ -361,7 +361,7 @@ QuicLookupFindConnectionByLocalCidInternal(
         // hash table.
         //
         QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 2, "The code below assumes 2 bytes");
-        uint32_t PartitionIndex;
+        uint16_t PartitionIndex;
         QuicCopyMemory(&PartitionIndex, CID + MsQuicLib.CidServerIdLength, 2);
         PartitionIndex &= MsQuicLib.PartitionMask;
         PartitionIndex %= Lookup->PartitionCount;
@@ -480,7 +480,7 @@ QuicLookupInsertLocalCid(
         // Insert the source connection ID into the hash table.
         //
         QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 2, "The code below assumes 2 bytes");
-        uint32_t PartitionIndex;
+        uint16_t PartitionIndex;
         QuicCopyMemory(&PartitionIndex, SourceCid->CID.Data + MsQuicLib.CidServerIdLength, 2);
         PartitionIndex &= MsQuicLib.PartitionMask;
         PartitionIndex %= Lookup->PartitionCount;
@@ -610,7 +610,7 @@ QuicLookupRemoveLocalCidInt(
         // Remove the source connection ID from the multi-hash table.
         //
         QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 2, "The code below assumes 2 bytes");
-        uint32_t PartitionIndex;
+        uint16_t PartitionIndex;
         QuicCopyMemory(&PartitionIndex, SourceCid->CID.Data + MsQuicLib.CidServerIdLength, 2);
         PartitionIndex &= MsQuicLib.PartitionMask;
         PartitionIndex %= Lookup->PartitionCount;

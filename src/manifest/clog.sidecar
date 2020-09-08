@@ -14540,7 +14540,7 @@
     },
     "WorkerCreated": {
       "ModuleProperites": {},
-      "TraceString": "[wrkr][%p] Created, IdealProc=%d Owner=%p",
+      "TraceString": "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
       "UniqueId": "WorkerCreated",
       "splitArgs": [
         {
@@ -14556,7 +14556,7 @@
             "UserSuppliedTrimmed": "IdealProcessor",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "d",
+          "DefinationEncoding": "hu",
           "MacroVariableName": "arg3"
         },
         {
@@ -24631,7 +24631,7 @@
         "TraceID": "SettingDumpUnidiStreamCount"
       },
       {
-        "UniquenessHash": "b8f69516-5b41-a4e3-8876-a88b8c1fcc8e",
+        "UniquenessHash": "49ee2ed0-1b90-a7f2-d8a6-230a287a07b7",
         "TraceID": "WorkerCreated"
       }
     ]

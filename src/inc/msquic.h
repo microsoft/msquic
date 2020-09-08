@@ -372,7 +372,7 @@ typedef struct QUIC_SETTINGS {
     uint8_t DatagramReceiveEnabled  : 1;
     uint8_t ServerResumptionLevel   : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t RESERVED                : 3;
-    uint16_t MaxPartitionCount;              // Global only
+    uint16_t MaxPartitionCount;             // Global only
     uint8_t MaxOperationsPerDrain;          // Global only
     uint16_t RetryMemoryLimit;              // Global only
     uint16_t LoadBalancingMode;             // Global only
