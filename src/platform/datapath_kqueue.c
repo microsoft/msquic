@@ -367,20 +367,12 @@ QuicDataPathInitialize(
 {
     int WsaError;
     QUIC_STATUS Status;
-    WSADATA WsaData;
     QUIC_DATAPATH* Datapath;
     uint32_t DatapathLength;
     uint32_t MaxProcCount = QuicProcActiveCount();
 
     if (RecvCallback == NULL || UnreachableCallback == NULL || NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
-        Datapath = NULL;
-        goto Exit;
-    }
-
-    if ((WsaError = WSAStartup(MAKEWORD(2, 2), &WsaData)) != 0) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", WsaError, "WSAStartup");
-        Status = HRESULT_FROM_WIN32(WsaError);
         Datapath = NULL;
         goto Exit;
     }
@@ -401,20 +393,9 @@ QuicDataPathInitialize(
     Datapath->ProcCount = MaxProcCount;
     QuicRundownInitialize(&Datapath->BindingsRundown);
 
-    if (Datapath->Features & QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION) {
-        //
-        // UDP send batching is actually supported on even earlier Windows
-        // versions than USO, but we have no good way to dynamically query
-        // support level. So we just couple the two features' support level
-        // together, since send batching is guaranteed to be supported if USO
-        // is.
-        //
-        Datapath->MaxSendBatchSize = QUIC_MAX_BATCH_SEND;
-    } else {
-        Datapath->MaxSendBatchSize = 1;
-    }
+    Datapath->MaxSendBatchSize = 1;
 
-    uint32_t MessageCount = (Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING) ? URO_MAX_DATAGRAMS_PER_INDICATION : 1;
+    uint32_t MessageCount = 1;
 
     Datapath->DatagramStride =
         ALIGN_UP(
@@ -465,17 +446,6 @@ QuicDataPathInitialize(
         if (Datapath->ProcContexts[i].CompletionThread == NULL) {
             DWORD LastError = GetLastError();
             QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", LastError, "CreateThread");
-            Status = HRESULT_FROM_WIN32(LastError);
-            goto Error;
-        }
-
-        const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[i];
-        GROUP_AFFINITY Group = {0};
-        Group.Mask = (KAFFINITY)(1llu << ProcInfo->Index);
-        Group.Group = ProcInfo->Group;
-        if (!SetThreadGroupAffinity(Datapath->ProcContexts[i].CompletionThread, &Group, NULL)) {
-            DWORD LastError = GetLastError();
-            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", LastError, "SetThreadGroupAffinity");
             Status = HRESULT_FROM_WIN32(LastError);
             goto Error;
         }
