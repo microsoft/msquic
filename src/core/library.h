@@ -122,12 +122,12 @@ typedef struct QUIC_LIBRARY {
     // Number of partitions currently being used.
     //
     _Field_range_(>, 0)
-    uint8_t PartitionCount;
+    uint16_t PartitionCount;
 
     //
     // Mask for the worker index in the connection's partition ID.
     //
-    uint8_t PartitionMask;
+    uint16_t PartitionMask;
 
 #if DEBUG
     //
@@ -243,19 +243,19 @@ extern QUIC_LIBRARY MsQuicLib;
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_range_(0,MsQuicLib.PartitionCount - 1)
 inline
-uint8_t
+uint16_t
 QuicLibraryGetCurrentPartition(
     void
     )
 {
-    return ((uint8_t)QuicProcCurrentNumber()) % MsQuicLib.PartitionCount;
+    return ((uint16_t)QuicProcCurrentNumber()) % MsQuicLib.PartitionCount;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
-uint8_t
+uint16_t
 QuicPartitionIdCreate(
-    uint8_t BaseIndex
+    uint16_t BaseIndex
     )
 {
     QUIC_DBG_ASSERT(BaseIndex < MsQuicLib.PartitionCount);
@@ -267,16 +267,16 @@ QuicPartitionIdCreate(
     // of two. This is because we use a bit mask to split the two parts of the
     // ID.
     //
-    uint8_t PartitionId;
+    uint16_t PartitionId;
     QuicRandom(sizeof(PartitionId), &PartitionId);
     return (PartitionId & ~MsQuicLib.PartitionMask) | BaseIndex;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
-uint8_t
+uint16_t
 QuicPartitionIdGetIndex(
-    uint8_t PartitionId
+    uint16_t PartitionId
     )
 {
     return (PartitionId & MsQuicLib.PartitionMask) % MsQuicLib.PartitionCount;
@@ -284,10 +284,10 @@ QuicPartitionIdGetIndex(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
-uint8_t
+uint16_t
 QuicPartitionIndexIncrement(
-    uint8_t PartitionIndex,
-    uint8_t Increment
+    uint16_t PartitionIndex,
+    uint16_t Increment
     )
 {
     QUIC_DBG_ASSERT(Increment < MsQuicLib.PartitionCount);
@@ -296,10 +296,10 @@ QuicPartitionIndexIncrement(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
-uint8_t
+uint16_t
 QuicPartitionIndexDecrement(
-    uint8_t PartitionIndex,
-    uint8_t Decrement
+    uint16_t PartitionIndex,
+    uint16_t Decrement
     )
 {
     QUIC_DBG_ASSERT(Decrement < MsQuicLib.PartitionCount);
@@ -338,7 +338,7 @@ QuicCidNewRandomSource(
     _In_opt_ QUIC_CONNECTION* Connection,
     _In_reads_opt_(MsQuicLib.CidServerIdLength)
         const void* ServerID,
-    _In_ uint8_t PartitionID,
+    _In_ uint16_t PartitionID,
     _In_ uint8_t PrefixLength,
     _In_reads_(PrefixLength)
         const void* Prefix
@@ -367,9 +367,9 @@ QuicCidNewRandomSource(
         }
         Data += MsQuicLib.CidServerIdLength;
 
-        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 1, "Assumes a single byte PID");
-        *Data = PartitionID;
-        Data++;
+        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == sizeof(PartitionID), "Assumes a 2 byte PID");
+        QuicCopyMemory(Data, &PartitionID, sizeof(PartitionID));
+        Data += sizeof(PartitionID);
 
         if (PrefixLength) {
             QuicCopyMemory(Data, Prefix, PrefixLength);

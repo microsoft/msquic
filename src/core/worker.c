@@ -40,7 +40,7 @@ QUIC_STATUS
 QuicWorkerInitialize(
     _In_opt_ const void* Owner,
     _In_ uint16_t ThreadFlags,
-    _In_ uint8_t IdealProcessor,
+    _In_ uint16_t IdealProcessor,
     _Inout_ QUIC_WORKER* Worker
     )
 {
@@ -48,7 +48,7 @@ QuicWorkerInitialize(
 
     QuicTraceEvent(
         WorkerCreated,
-        "[wrkr][%p] Created, IdealProc=%hhu Owner=%p",
+        "[wrkr][%p] Created, IdealProc=%d Owner=%p",
         Worker,
         IdealProcessor,
         Owner);
@@ -690,7 +690,7 @@ QUIC_STATUS
 QuicWorkerPoolInitialize(
     _In_opt_ const void* Owner,
     _In_ uint16_t ThreadFlags,
-    _In_ uint8_t WorkerCount,
+    _In_ uint16_t WorkerCount,
     _Out_ QUIC_WORKER_POOL** NewWorkerPool
     )
 {
@@ -717,10 +717,10 @@ QuicWorkerPoolInitialize(
     // attempt to spread the connection workload out over multiple processors.
     //
 
-    for (uint8_t i = 0; i < WorkerCount; i++) {
+    for (uint16_t i = 0; i < WorkerCount; i++) {
         Status = QuicWorkerInitialize(Owner, ThreadFlags, i, &WorkerPool->Workers[i]);
         if (QUIC_FAILED(Status)) {
-            for (uint8_t j = 0; j < i; j++) {
+            for (uint16_t j = 0; j < i; j++) {
                 QuicWorkerUninitialize(&WorkerPool->Workers[j]);
             }
             goto Error;
@@ -747,7 +747,7 @@ QuicWorkerPoolUninitialize(
     _In_ QUIC_WORKER_POOL* WorkerPool
     )
 {
-    for (uint8_t i = 0; i < WorkerPool->WorkerCount; i++) {
+    for (uint16_t i = 0; i < WorkerPool->WorkerCount; i++) {
         QuicWorkerUninitialize(&WorkerPool->Workers[i]);
     }
 
@@ -760,7 +760,7 @@ QuicWorkerPoolIsOverloaded(
     _In_ QUIC_WORKER_POOL* WorkerPool
     )
 {
-    for (uint8_t i = 0; i < WorkerPool->WorkerCount; ++i) {
+    for (uint16_t i = 0; i < WorkerPool->WorkerCount; ++i) {
         if (!QuicWorkerIsOverloaded(&WorkerPool->Workers[i])) {
             return FALSE;
         }
@@ -769,7 +769,7 @@ QuicWorkerPoolIsOverloaded(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint8_t
+uint16_t
 QuicWorkerPoolGetLeastLoadedWorker(
     _In_ QUIC_WORKER_POOL* WorkerPool
     )
@@ -781,9 +781,9 @@ QuicWorkerPoolGetLeastLoadedWorker(
     // first to see if an equal or less loaded worker is available.
     //
 
-    uint8_t Worker = (WorkerPool->LastWorker + 1) % WorkerPool->WorkerCount;
+    uint16_t Worker = (WorkerPool->LastWorker + 1) % WorkerPool->WorkerCount;
     uint64_t MinQueueDelay = WorkerPool->Workers[Worker].AverageQueueDelay;
-    uint8_t MinQueueDelayWorker = Worker;
+    uint16_t MinQueueDelayWorker = Worker;
 
     while ((Worker != WorkerPool->LastWorker) && (MinQueueDelay > 0)) {
         Worker = (Worker + 1) % WorkerPool->WorkerCount;
