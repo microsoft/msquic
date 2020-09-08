@@ -257,7 +257,7 @@ ServerLoadConfiguration(
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, sizeof(Settings), &Settings, nullptr, &Configuration))) {
+    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), nullptr, &Configuration))) {
         printf("ConfigurationOpen failed, 0x%x!\n", Status);
         return false;
     }
@@ -444,7 +444,7 @@ ClientLoadConfiguration(
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, sizeof(Settings), &Settings, nullptr, &Configuration))) {
+    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), nullptr, &Configuration))) {
         printf("ConfigurationOpen failed, 0x%x!\n", Status);
         return false;
     }
@@ -497,7 +497,7 @@ RunClient(
 
     printf("[conn][%p] Connecting...\n", Connection);
 
-    if (QUIC_FAILED(Status = MsQuic->ConnectionStart(Connection, Configuration, &Alpn, 1, AF_UNSPEC, Target, UdpPort))) {
+    if (QUIC_FAILED(Status = MsQuic->ConnectionStart(Connection, Configuration, AF_UNSPEC, Target, UdpPort))) {
         printf("ConnectionStart failed, 0x%x!\n", Status);
         goto Error;
     }
