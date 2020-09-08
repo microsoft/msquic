@@ -281,6 +281,8 @@ typedef struct QUIC_TLS {
 
 } QUIC_TLS;
 
+DWORD miTlsCurrentConnectionIndex = TLS_OUT_OF_INDEXES; // Thread-local storage index
+
 //
 // Callback from mitls for logging purposes.
 //
@@ -293,7 +295,7 @@ MiTlsTraceCallback(
     QuicTraceEvent(
         TlsMessage,
         "[ tls][%p] %s",
-        NULL, // TODO - Save connection in thread-local storage and retrieve it?
+        TlsGetValue(miTlsCurrentConnectionIndex),
         Msg);
 }
 
@@ -303,6 +305,8 @@ QuicTlsLibraryInitialize(
     )
 {
     QUIC_STATUS Status;
+
+    miTlsCurrentConnectionIndex = TlsAlloc();
 
     QuicTraceLogVerbose(
         miTlsInitialize,
@@ -346,6 +350,10 @@ QuicTlsLibraryInitialize(
 
 Error:
 
+    if (QUIC_FAILED(Status)) {
+        TlsFree(miTlsCurrentConnectionIndex);
+    }
+
     return Status;
 }
 
@@ -358,6 +366,7 @@ QuicTlsLibraryUninitialize(
         miTlsUninitialize,
         "[ tls] Cleaning up miTLS library");
     FFI_mitls_cleanup();
+    TlsFree(miTlsCurrentConnectionIndex);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -452,6 +461,8 @@ QuicTlsInitialize(
     QUIC_DBG_ASSERT(Config != NULL);
     QUIC_DBG_ASSERT(NewTlsContext != NULL);
     UNREFERENCED_PARAMETER(State);
+
+    TlsSetValue(miTlsCurrentConnectionIndex, Config->Connection);
 
     TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS) + sizeof(uint16_t) + Config->AlpnBufferLength);
     if (TlsContext == NULL) {
@@ -642,6 +653,8 @@ QuicTlsReset(
 {
     QUIC_DBG_ASSERT(TlsContext->IsServer == FALSE);
 
+    TlsSetValue(miTlsCurrentConnectionIndex, TlsContext->Connection);
+
     TlsContext->BufferLength = 0;
     TlsContext->CurrentReaderKey = -1;
     TlsContext->CurrentWriterKey = -1;
@@ -681,6 +694,8 @@ QuicTlsProcessData(
     uint32_t ConsumedBytes;
 
     QUIC_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
+
+    TlsSetValue(miTlsCurrentConnectionIndex, TlsContext->Connection);
 
     //
     // Validate buffer lengths.
@@ -775,6 +790,8 @@ QuicTlsProcessDataComplete(
     if (TlsContext->IsServer) {
         QUIC_DBG_ASSERT(TlsContext->State->HandshakeComplete || TlsContext->Buffer != NULL);
     }
+
+    TlsSetValue(miTlsCurrentConnectionIndex, TlsContext->Connection);
 
     uint32_t BufferOffset = 0;
 
