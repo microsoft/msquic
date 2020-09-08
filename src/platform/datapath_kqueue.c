@@ -369,7 +369,7 @@ QuicDataPathInitialize(
     QUIC_STATUS Status;
     QUIC_DATAPATH* Datapath;
     uint32_t DatapathLength;
-    uint32_t MaxProcCount = QuicProcActiveCount();
+    uint32_t MaxProcCount = 1;
 
     if (RecvCallback == NULL || UnreachableCallback == NULL || NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
