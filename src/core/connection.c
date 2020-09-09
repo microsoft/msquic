@@ -295,6 +295,15 @@ QuicConnFree(
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Connection->Streams.ClosedStreams));
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
+    //
+    // Free up packet space if it wasn't freed by QuicConnUninitialize
+    //
+    for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
+        if (Connection->Packets[i] != NULL) {
+            QuicPacketSpaceUninitialize(Connection->Packets[i]);
+            Connection->Packets[i] = NULL;
+        }
+    }
 #if DEBUG
     while (!QuicListIsEmpty(&Connection->Streams.AllStreams)) {
         QUIC_STREAM *Stream =
