@@ -345,7 +345,7 @@ QuicCidNewRandomSource(
     )
 {
     QUIC_DBG_ASSERT(MsQuicLib.CidTotalLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
-    QUIC_DBG_ASSERT(MsQuicLib.CidTotalLength == MsQuicLib.CidServerIdLength + 1 + MSQUIC_CID_PAYLOAD_LENGTH);
+    QUIC_DBG_ASSERT(MsQuicLib.CidTotalLength == MsQuicLib.CidServerIdLength + MSQUIC_CID_PID_LENGTH + MSQUIC_CID_PAYLOAD_LENGTH);
     QUIC_DBG_ASSERT(MSQUIC_CID_PAYLOAD_LENGTH > PrefixLength);
 
     QUIC_CID_HASH_ENTRY* Entry =
