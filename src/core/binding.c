@@ -672,9 +672,9 @@ QuicBindingQueueStatelessOperation(
     _In_ QUIC_RECV_DATAGRAM* Datagram
     )
 {
-    if (MsQuicLib.WorkerPool == NULL) {
+    if (MsQuicLib.StatelessRegistration == NULL) {
         QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
-            "NULL worker pool");
+            "NULL stateless registration");
         return FALSE;
     }
 

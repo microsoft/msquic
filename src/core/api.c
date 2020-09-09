@@ -59,7 +59,7 @@ MsQuicConnectionOpen(
     }
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Registration = (QUIC_SESSION*)RegistrationHandle;
+    Registration = (QUIC_REGISTRATION*)RegistrationHandle;
 
     if ((Connection = QuicConnAlloc(Registration, NULL)) == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -298,7 +298,8 @@ MsQuicConnectionStart(
 
     if (Connection->State.Started || Connection->State.ClosedLocally) {
         Status = QUIC_STATUS_INVALID_STATE; // TODO - Support the Connect after close/previous connect failure?
-        goto
+        goto Error;
+    }
 
     if (ServerName != NULL) {
         //
@@ -351,7 +352,6 @@ MsQuicConnectionStart(
     Oper->API_CALL.Context->CONN_START.ServerPort = ServerPort;
     Oper->API_CALL.Context->CONN_START.Family = Family;
     ServerNameCopy = NULL;
-    AlpnList = NULL;
 
     //
     // Queue the operation but don't wait for the completion.

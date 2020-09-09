@@ -73,8 +73,7 @@ MsQuicRegistrationOpen(
     QuicListInitializeHead(&Registration->Configurations);
     QuicDispatchLockInitialize(&Registration->ConnectionLock);
     QuicListInitializeHead(&Registration->Connections);
-    QuicRundownInitialize(&Registration->ConfigRundown);
-    QuicRundownInitialize(&Registration->ConnectionRundown);
+    QuicRundownInitialize(&Registration->Rundown);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
         QuicCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
@@ -158,8 +157,7 @@ MsQuicRegistrationOpen(
 Error:
 
     if (Registration != NULL) {
-        QuicRundownUninitialize(&Registration->ConfigRundown);
-        QuicRundownUninitialize(&Registration->ConnectionRundown);
+        QuicRundownUninitialize(&Registration->Rundown);
         QuicDispatchLockUninitialize(&Registration->ConnectionLock);
         QuicLockUninitialize(&Registration->ConfigLock);
         QUIC_FREE(Registration);
@@ -196,23 +194,14 @@ MsQuicRegistrationClose(
             "[ reg][%p] Cleaning up",
             Registration);
 
-        //
-        // If you hit this assert, you are trying to clean up a registration without
-        // first cleaning up all the child objects first.
-        //
-        QUIC_REG_VERIFY(Registration, QuicListIsEmpty(&Registration->Connections));
-
         QuicLockAcquire(&MsQuicLib.Lock);
         QuicListEntryRemove(&Registration->Link);
         QuicLockRelease(&MsQuicLib.Lock);
 
-        QuicRundownReleaseAndWait(&Registration->ConnectionRundown);
+        QuicRundownReleaseAndWait(&Registration->Rundown);
 
         QuicWorkerPoolUninitialize(Registration->WorkerPool);
-        QuicRundownReleaseAndWait(&Registration->ConfigRundown);
-
-        QuicRundownUninitialize(&Registration->ConfigRundown);
-        QuicRundownUninitialize(&Registration->ConnectionRundown);
+        QuicRundownUninitialize(&Registration->Rundown);
         QuicDispatchLockUninitialize(&Registration->ConnectionLock);
         QuicLockUninitialize(&Registration->ConfigLock);
 

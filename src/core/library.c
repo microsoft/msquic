@@ -299,6 +299,28 @@ MsQuicLibraryUninitialize(
     )
 {
     //
+    // Clean up the data path first, which can continue to cause new connections
+    // to get created.
+    //
+    QuicDataPathUninitialize(MsQuicLib.Datapath);
+    MsQuicLib.Datapath = NULL;
+
+    //
+    // The library's stateless registration for processing half-opened
+    // connections needs to be cleaned up next, as it's the last thing that can
+    // be holding on to connection objects.
+    //
+    if (MsQuicLib.StatelessRegistration != NULL) {
+        MsQuicRegistrationShutdown(
+            (HQUIC)MsQuicLib.StatelessRegistration,
+            QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
+            0);
+        MsQuicRegistrationClose(
+            (HQUIC)MsQuicLib.StatelessRegistration);
+        MsQuicLib.StatelessRegistration = NULL;
+    }
+
+    //
     // If you hit this assert, MsQuic API is trying to be unloaded without
     // first closing all registrations.
     //
@@ -307,27 +329,6 @@ MsQuicLibraryUninitialize(
     if (MsQuicLib.Storage != NULL) {
         QuicStorageClose(MsQuicLib.Storage);
         MsQuicLib.Storage = NULL;
-    }
-
-    //
-    // Clean up all the leftover, unregistered server connections.
-    //
-    if (MsQuicLib.StatelessRegistration != NULL) {
-        MsQuicRegistrationClose((HQUIC)MsQuicLib.StatelessRegistration);
-        MsQuicLib.StatelessRegistration = NULL;
-    }
-
-    QuicDataPathUninitialize(MsQuicLib.Datapath);
-    MsQuicLib.Datapath = NULL;
-
-    //
-    // The library's worker pool for processing half-opened connections
-    // needs to be cleaned up first, as it's the last thing that can be
-    // holding on to connection objects.
-    //
-    if (MsQuicLib.WorkerPool != NULL) {
-        QuicWorkerPoolUninitialize(MsQuicLib.WorkerPool);
-        MsQuicLib.WorkerPool = NULL;
     }
 
 #if DEBUG
@@ -1400,10 +1401,10 @@ QuicLibraryGetWorker(
     void
     )
 {
-    QUIC_DBG_ASSERT(MsQuicLib.WorkerPool != NULL);
+    QUIC_DBG_ASSERT(MsQuicLib.StatelessRegistration != NULL);
     return
-        &MsQuicLib.WorkerPool->Workers[
-            MsQuicLib.NextWorkerIndex++ % MsQuicLib.WorkerPool->WorkerCount];
+        &MsQuicLib.StatelessRegistration->WorkerPool->Workers[
+            MsQuicLib.NextWorkerIndex++ % MsQuicLib.StatelessRegistration->WorkerPool->WorkerCount];
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

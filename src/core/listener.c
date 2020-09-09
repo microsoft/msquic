@@ -43,7 +43,7 @@ MsQuicListenerOpen(
         goto Error;
     }
 
-    Registration = (QUIC_SESSION*)RegistrationHandle;
+    Registration = (QUIC_REGISTRATION*)RegistrationHandle;
 
     Listener = QUIC_ALLOC_NONPAGED(sizeof(QUIC_LISTENER));
     if (Listener == NULL) {
