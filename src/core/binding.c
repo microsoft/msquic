@@ -49,6 +49,7 @@ QuicBindingInitialize(
     QUIC_STATUS Status;
     QUIC_BINDING* Binding;
     uint8_t HashSalt[20];
+    BOOLEAN HashTableInitialized = FALSE;
 
     Binding = QUIC_ALLOC_NONPAGED(sizeof(QUIC_BINDING));
     if (Binding == NULL) {
@@ -72,7 +73,11 @@ QuicBindingInitialize(
     QuicDispatchLockInitialize(&Binding->StatelessOperLock);
     QuicListInitializeHead(&Binding->Listeners);
     QuicLookupInitialize(&Binding->Lookup);
-    QuicHashtableInitializeEx(&Binding->StatelessOperTable, QUIC_HASH_MIN_SIZE);
+    if (!QuicHashtableInitializeEx(&Binding->StatelessOperTable, QUIC_HASH_MIN_SIZE)) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+    HashTableInitialized = TRUE;
     QuicListInitializeHead(&Binding->StatelessOperList);
 
     //
@@ -164,7 +169,9 @@ Error:
         if (Binding != NULL) {
             QuicHashFree(Binding->ResetTokenHash);
             QuicLookupUninitialize(&Binding->Lookup);
-            QuicHashtableUninitialize(&Binding->StatelessOperTable);
+            if (HashTableInitialized) {
+                QuicHashtableUninitialize(&Binding->StatelessOperTable);
+            }
             QuicDispatchLockUninitialize(&Binding->StatelessOperLock);
             QuicDispatchLockUninitialize(&Binding->ResetTokenLock);
             QuicDispatchRwLockUninitialize(&Binding->RwLock);

@@ -397,7 +397,7 @@ typedef struct QUIC_SETTINGS {
     uint8_t DatagramReceiveEnabled  : 1;
     uint8_t ServerResumptionLevel   : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t RESERVED                : 3;
-    uint8_t MaxPartitionCount;              // Global only
+    uint16_t MaxPartitionCount;             // Global only
     uint8_t MaxOperationsPerDrain;          // Global only
     uint16_t RetryMemoryLimit;              // Global only
     uint16_t LoadBalancingMode;             // Global only
@@ -508,7 +508,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_SEND_BUFFERING                  15  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_SEND_PACING                     16  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_SHARE_UDP_BINDING               17  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 18  // uint8_t
+#define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 18  // uint16_t
 #define QUIC_PARAM_CONN_MAX_STREAM_IDS                  19  // uint64_t[4]
 #define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        20  // QUIC_STREAM_SCHEDULING_SCHEME
 #define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        21  // uint8_t (BOOLEAN)
@@ -797,7 +797,7 @@ typedef struct QUIC_CONNECTION_EVENT {
             uint16_t UnidirectionalCount;
         } STREAMS_AVAILABLE;
         struct {
-            uint8_t IdealProcessor;
+            uint16_t IdealProcessor;
         } IDEAL_PROCESSOR_CHANGED;
         struct {
             BOOLEAN SendEnabled;

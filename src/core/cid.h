@@ -28,9 +28,9 @@ Abstract:
 
 //
 // The index of the byte we use for partition ID lookup, in the connection ID.
-// The PID is just a single byte. The PID immediately follows the SID.
+// The PID is 2 bytes. The PID immediately follows the SID.
 //
-#define MSQUIC_CID_PID_LENGTH                       1
+#define MSQUIC_CID_PID_LENGTH                       2
 
 //
 // The number of bytes (and randomness) that MsQuic uses to uniquely
@@ -296,4 +296,3 @@ QuicCidToStr(
 {
     return QuicCidBufToStr(CID->Data, CID->Length);
 }
-

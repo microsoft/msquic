@@ -52,7 +52,7 @@ QuicLookupUninitialize(
         QUIC_DBG_ASSERT(Lookup->SINGLE.Connection == NULL);
     } else {
         QUIC_DBG_ASSERT(Lookup->HASH.Tables != NULL);
-        for (uint8_t i = 0; i < Lookup->PartitionCount; i++) {
+        for (uint16_t i = 0; i < Lookup->PartitionCount; i++) {
             QUIC_PARTITIONED_HASHTABLE* Table = &Lookup->HASH.Tables[i];
             QUIC_DBG_ASSERT(Table->Table.NumEntries == 0);
 #pragma warning(push)
@@ -79,7 +79,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupCreateHashTable(
     _In_ QUIC_LOOKUP* Lookup,
-    _In_range_(>, 0) uint8_t PartitionCount
+    _In_range_(>, 0) uint16_t PartitionCount
     )
 {
     QUIC_DBG_ASSERT(Lookup->LookupTable == NULL);
@@ -90,8 +90,8 @@ QuicLookupCreateHashTable(
 
     if (Lookup->HASH.Tables != NULL) {
 
-        uint8_t Cleanup = 0;
-        for (uint8_t i = 0; i < PartitionCount; i++) {
+        uint16_t Cleanup = 0;
+        for (uint16_t i = 0; i < PartitionCount; i++) {
             if (!QuicHashtableInitializeEx(&Lookup->HASH.Tables[i].Table, QUIC_HASH_MIN_SIZE)) {
                 Cleanup = i;
                 break;
@@ -99,7 +99,7 @@ QuicLookupCreateHashTable(
             QuicDispatchRwLockInitialize(&Lookup->HASH.Tables[i].RwLock);
         }
         if (Cleanup != 0) {
-            for (uint8_t i = 0; i < Cleanup; i++) {
+            for (uint16_t i = 0; i < Cleanup; i++) {
                 QuicHashtableUninitialize(&Lookup->HASH.Tables[i].Table);
             }
             QUIC_FREE(Lookup->HASH.Tables);
@@ -128,7 +128,7 @@ QuicLookupRebalance(
     // Calculate the updated partition count.
     //
 
-    uint8_t PartitionCount;
+    uint16_t PartitionCount;
     if (Lookup->MaximizePartitioning) {
         PartitionCount = MsQuicLib.PartitionCount;
 
@@ -150,7 +150,7 @@ QuicLookupRebalance(
 
     if (PartitionCount > Lookup->PartitionCount) {
 
-        uint8_t PreviousPartitionCount = Lookup->PartitionCount;
+        uint16_t PreviousPartitionCount = Lookup->PartitionCount;
         void* PreviousLookup = Lookup->LookupTable;
         Lookup->LookupTable = NULL;
 
@@ -199,7 +199,7 @@ QuicLookupRebalance(
             //
 
             QUIC_PARTITIONED_HASHTABLE* PreviousTable = PreviousLookup;
-            for (uint8_t i = 0; i < PreviousPartitionCount; i++) {
+            for (uint16_t i = 0; i < PreviousPartitionCount; i++) {
                 QUIC_HASHTABLE_ENTRY* Entry;
                 QUIC_HASHTABLE_ENUMERATOR Enumerator;
 #pragma warning(push)
@@ -360,8 +360,9 @@ QuicLookupFindConnectionByLocalCidInternal(
         // partitioned hash table array, and look up the connection in that
         // hash table.
         //
-        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 1, "The code below assumes 1 byte");
-        uint32_t PartitionIndex = CID[MsQuicLib.CidServerIdLength];
+        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 2, "The code below assumes 2 bytes");
+        uint16_t PartitionIndex;
+        QuicCopyMemory(&PartitionIndex, CID + MsQuicLib.CidServerIdLength, 2);
         PartitionIndex &= MsQuicLib.PartitionMask;
         PartitionIndex %= Lookup->PartitionCount;
         QUIC_PARTITIONED_HASHTABLE* Table = &Lookup->HASH.Tables[PartitionIndex];
@@ -478,8 +479,9 @@ QuicLookupInsertLocalCid(
         //
         // Insert the source connection ID into the hash table.
         //
-        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 1, "The code below assumes 1 byte");
-        uint32_t PartitionIndex = SourceCid->CID.Data[MsQuicLib.CidServerIdLength];
+        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 2, "The code below assumes 2 bytes");
+        uint16_t PartitionIndex;
+        QuicCopyMemory(&PartitionIndex, SourceCid->CID.Data + MsQuicLib.CidServerIdLength, 2);
         PartitionIndex &= MsQuicLib.PartitionMask;
         PartitionIndex %= Lookup->PartitionCount;
         QUIC_PARTITIONED_HASHTABLE* Table = &Lookup->HASH.Tables[PartitionIndex];
@@ -607,8 +609,9 @@ QuicLookupRemoveLocalCidInt(
         //
         // Remove the source connection ID from the multi-hash table.
         //
-        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 1, "The code below assumes 1 byte");
-        uint32_t PartitionIndex = SourceCid->CID.Data[MsQuicLib.CidServerIdLength];
+        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 2, "The code below assumes 2 bytes");
+        uint16_t PartitionIndex;
+        QuicCopyMemory(&PartitionIndex, SourceCid->CID.Data + MsQuicLib.CidServerIdLength, 2);
         PartitionIndex &= MsQuicLib.PartitionMask;
         PartitionIndex %= Lookup->PartitionCount;
         QUIC_PARTITIONED_HASHTABLE* Table = &Lookup->HASH.Tables[PartitionIndex];

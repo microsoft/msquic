@@ -353,7 +353,7 @@ QuicRegistrationAcceptConnection(
         Connection->PartitionID += QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
     }
 
-    uint8_t Index =
+    uint16_t Index =
         Registration->NoPartitioning ? 0 : QuicPartitionIdGetIndex(Connection->PartitionID);
 
     //
@@ -370,7 +370,7 @@ QuicRegistrationQueueNewConnection(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    uint8_t Index =
+    uint16_t Index =
         Registration->NoPartitioning ? 0 : QuicPartitionIdGetIndex(Connection->PartitionID);
 
     //

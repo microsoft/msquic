@@ -14524,7 +14524,7 @@
     },
     "WorkerCreated": {
       "ModuleProperites": {},
-      "TraceString": "[wrkr][%p] Created, IdealProc=%hhu Owner=%p",
+      "TraceString": "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
       "UniqueId": "WorkerCreated",
       "splitArgs": [
         {
@@ -14540,7 +14540,7 @@
             "UserSuppliedTrimmed": "IdealProcessor",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "hu",
           "MacroVariableName": "arg3"
         },
         {
@@ -14558,7 +14558,7 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -23715,10 +23715,6 @@
         "TraceID": "AbandonOnLibShutdown"
       },
       {
-        "UniquenessHash": "b60b7439-8fc3-c165-28b5-ceb75cedf2e3",
-        "TraceID": "WorkerCreated"
-      },
-      {
         "UniquenessHash": "07e794d9-3f9b-61ce-b0b8-af3cc9d92ebe",
         "TraceID": "WorkerErrorStatus"
       },
@@ -24631,56 +24627,12 @@
         "TraceID": "ConfigurationDatagramReceiveEnabledSet"
       },
       {
-        "UniquenessHash": "1c222485-7d45-ed6a-ec7d-e4a1f52b57e3",
-        "TraceID": "ConfigurationServerResumptionLevelSet"
+        "UniquenessHash": "db025b70-a960-32f0-75b0-1cc495602e15",
+        "TraceID": "SettingDumpUnidiStreamCount"
       },
       {
-        "UniquenessHash": "f017e9d9-1069-630c-9301-b7c2cdd0dab5",
-        "TraceID": "ConfigurationCreated"
-      },
-      {
-        "UniquenessHash": "c4fb9ea0-c592-0ce3-51af-47689a0b2d11",
-        "TraceID": "ConfigurationCleanup"
-      },
-      {
-        "UniquenessHash": "e63d4591-3c4b-b640-cf7d-5e58755920bd",
-        "TraceID": "ConfigurationDestroyed"
-      },
-      {
-        "UniquenessHash": "1a9b55d5-1b7e-a6d6-e74a-cc8d426e6aaa",
-        "TraceID": "ConfigurationRundown"
-      },
-      {
-        "UniquenessHash": "fe35af8f-0c66-1f8e-30be-08ddd65a620f",
-        "TraceID": "ConnRegisterConfiguration"
-      },
-      {
-        "UniquenessHash": "a290086f-0860-5ace-eb4d-b8dd2d650d08",
-        "TraceID": "ConnUnregisterConfiguration"
-      },
-      {
-        "UniquenessHash": "9263ea25-3bcc-5edf-b6ee-493bfe5cc4de",
-        "TraceID": "SetConfiguration"
-      },
-      {
-        "UniquenessHash": "aa3db291-59d1-7919-0454-1e9f8a4adf56",
-        "TraceID": "SessionCreated"
-      },
-      {
-        "UniquenessHash": "9814be06-8d0f-343d-b115-db6cfdfb0b65",
-        "TraceID": "SessionRundown"
-      },
-      {
-        "UniquenessHash": "3c095e75-f922-9df3-753d-eab794e216ee",
-        "TraceID": "SchannelAchAsync"
-      },
-      {
-        "UniquenessHash": "01e767df-e7db-9399-5d4e-ecd19823890a",
-        "TraceID": "SchannelAch"
-      },
-      {
-        "UniquenessHash": "7a6ea81a-5491-2148-a007-711c5a641acc",
-        "TraceID": "SchannelAchCompleteInline"
+        "UniquenessHash": "49ee2ed0-1b90-a7f2-d8a6-230a287a07b7",
+        "TraceID": "WorkerCreated"
       }
     ]
   }
