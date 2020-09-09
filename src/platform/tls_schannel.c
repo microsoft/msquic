@@ -726,7 +726,7 @@ _Must_inspect_result_
 _Success_(return != NULL)
 QUIC_ACH_CONTEXT*
 QuicTlsAllocateAchContext(
-    _In_ QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER Callback,
     _In_ QUIC_SEC_CONFIG* Config
@@ -1039,7 +1039,7 @@ QuicTlsSecConfigCreate(
 
 #ifdef _KERNEL_MODE
 
-    if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_SYNCHRONOUS)) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
 
         //
         // Async (kernel-mode only) code path.
