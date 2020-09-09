@@ -39,7 +39,7 @@ Abstract:
 typedef struct QUIC_RECEIVE_PROCESSING_STATE {
     BOOLEAN ResetIdleTimeout;
     BOOLEAN UpdatePartitionId;
-    uint8_t PartitionIndex;
+    uint16_t PartitionIndex;
 } QUIC_RECEIVE_PROCESSING_STATE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -66,11 +66,11 @@ QuicConnAlloc(
     // the current processor for now. Once the connection receives a packet the
     // partition can be updated accordingly.
     //
-    uint8_t BasePartitionId =
+    uint16_t BasePartitionId =
         IsServer ?
             (Datagram->PartitionIndex % MsQuicLib.PartitionCount) :
             CurProcIndex % MsQuicLib.PartitionCount;
-    uint8_t PartitionId = QuicPartitionIdCreate(BasePartitionId);
+    uint16_t PartitionId = QuicPartitionIdCreate(BasePartitionId);
     QUIC_DBG_ASSERT(BasePartitionId == QuicPartitionIdGetIndex(PartitionId));
 
     QUIC_CONNECTION* Connection =
@@ -295,6 +295,15 @@ QuicConnFree(
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Connection->Streams.ClosedStreams));
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
+    //
+    // Free up packet space if it wasn't freed by QuicConnUninitialize
+    //
+    for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
+        if (Connection->Packets[i] != NULL) {
+            QuicPacketSpaceUninitialize(Connection->Packets[i]);
+            Connection->Packets[i] = NULL;
+        }
+    }
 #if DEBUG
     while (!QuicListIsEmpty(&Connection->Streams.AllStreams)) {
         QUIC_STREAM *Stream =
@@ -6300,8 +6309,8 @@ QuicConnParamGet(
 
     case QUIC_PARAM_CONN_IDEAL_PROCESSOR:
 
-        if (*BufferLength < sizeof(uint8_t)) {
-            *BufferLength = sizeof(uint8_t);
+        if (*BufferLength < sizeof(uint16_t)) {
+            *BufferLength = sizeof(uint16_t);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -6311,8 +6320,8 @@ QuicConnParamGet(
             break;
         }
 
-        *BufferLength = sizeof(uint8_t);
-        *(uint8_t*)Buffer = Connection->Worker->IdealProcessor;
+        *BufferLength = sizeof(uint16_t);
+        *(uint16_t*)Buffer = Connection->Worker->IdealProcessor;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

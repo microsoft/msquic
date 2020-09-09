@@ -629,7 +629,7 @@
                 name="Worker"
                 />
             <data
-                inType="win:UInt8"
+                inType="win:UInt16"
                 name="IdealProcessor"
                 />
             <data

@@ -14540,7 +14540,7 @@
     },
     "WorkerCreated": {
       "ModuleProperites": {},
-      "TraceString": "[wrkr][%p] Created, IdealProc=%hhu Owner=%p",
+      "TraceString": "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
       "UniqueId": "WorkerCreated",
       "splitArgs": [
         {
@@ -14556,7 +14556,7 @@
             "UserSuppliedTrimmed": "IdealProcessor",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "hu",
           "MacroVariableName": "arg3"
         },
         {
@@ -14574,7 +14574,7 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -23759,10 +23759,6 @@
         "TraceID": "AbandonOnLibShutdown"
       },
       {
-        "UniquenessHash": "b60b7439-8fc3-c165-28b5-ceb75cedf2e3",
-        "TraceID": "WorkerCreated"
-      },
-      {
         "UniquenessHash": "07e794d9-3f9b-61ce-b0b8-af3cc9d92ebe",
         "TraceID": "WorkerErrorStatus"
       },
@@ -24653,6 +24649,10 @@
       {
         "UniquenessHash": "db025b70-a960-32f0-75b0-1cc495602e15",
         "TraceID": "SettingDumpUnidiStreamCount"
+      },
+      {
+        "UniquenessHash": "49ee2ed0-1b90-a7f2-d8a6-230a287a07b7",
+        "TraceID": "WorkerCreated"
       }
     ]
   }

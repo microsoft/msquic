@@ -636,7 +636,7 @@ typedef void* (* LPTHREAD_START_ROUTINE)(void *);
 
 typedef struct QUIC_THREAD_CONFIG {
     uint16_t Flags;
-    uint8_t IdealProcessor;
+    uint16_t IdealProcessor;
     _Field_z_ const char* Name;
     LPTHREAD_START_ROUTINE Callback;
     void* Context;
