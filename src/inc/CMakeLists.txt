@@ -15,7 +15,7 @@ target_compile_features(inc INTERFACE cxx_std_17)
 target_compile_features(inc INTERFACE c_std_11)
 
 if (NOT MSVC AND QUIC_ENABLE_SANITIZERS)
-    target_link_libraries(inc INTERFACE -fsanitize=address,leak,undefined)
+    target_link_libraries(inc INTERFACE -fsanitize=address,undefined)
 endif()
 
 if(QUIC_ENABLE_LOGGING)

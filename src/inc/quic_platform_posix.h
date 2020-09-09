@@ -54,6 +54,12 @@ extern "C" {
 #define DEBUG 1
 #endif
 
+#define ALIGN_DOWN(length, type) \
+    ((unsigned long)(length) & ~(sizeof(type) - 1))
+
+#define ALIGN_UP(length, type) \
+    (ALIGN_DOWN(((unsigned long)(length) + sizeof(type) - 1), type))
+
 //
 // Library Initialization routines.
 //
@@ -82,7 +88,7 @@ QuicPlatformUninitialize(
 // Generic stuff.
 //
 
-#define INVALID_SOCKET_FD ((int)(-1))
+#define INVALID_SOCKET ((int)(-1))
 
 #define SOCKET_ERROR (-1)
 

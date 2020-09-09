@@ -155,6 +155,7 @@ QuicCryptoTlsReadSniExtension(
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
+    (void)Connection;
     /*
       struct {
           NameType name_type;
@@ -254,6 +255,7 @@ QuicCryptoTlsReadAlpnExtension(
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
+    (void)Connection;
     /*
        enum {
            application_layer_protocol_negotiation(16), (65535)
