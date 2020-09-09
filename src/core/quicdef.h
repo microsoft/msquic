@@ -105,7 +105,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 // Maximum number of partitions to support.
 //
-#define QUIC_MAX_PARTITION_COUNT                128
+#define QUIC_MAX_PARTITION_COUNT                512
 
 //
 // The number of partitions (cores) to offset from the receive (RSS) core when

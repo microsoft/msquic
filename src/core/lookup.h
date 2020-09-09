@@ -42,7 +42,7 @@ typedef struct QUIC_LOOKUP {
     // The number of partitions used for lookup tables. Value of 0 (default)
     // indicates only a single connection (may be NULL) is bound.
     //
-    uint8_t PartitionCount;
+    uint16_t PartitionCount;
 
     //
     // Local CID lookup.

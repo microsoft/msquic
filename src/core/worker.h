@@ -23,7 +23,7 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     //
     // The worker's ideal processor.
     //
-    uint8_t IdealProcessor;
+    uint16_t IdealProcessor;
 
     //
     // The identifier of the platform thread.
@@ -85,12 +85,12 @@ typedef struct QUIC_WORKER_POOL {
     //
     // Number of workers in the pool.
     //
-    uint8_t WorkerCount;
+    uint16_t WorkerCount;
 
     //
     // Last least loaded worker.
     //
-    uint8_t LastWorker;
+    uint16_t LastWorker;
 
     //
     // All the workers.
@@ -122,7 +122,7 @@ QUIC_STATUS
 QuicWorkerPoolInitialize(
     _In_opt_ const void* Owner,
     _In_ uint16_t ThreadFlags,
-    _In_ uint8_t WorkerCount,
+    _In_ uint16_t WorkerCount,
     _Out_ QUIC_WORKER_POOL** WorkerPool
     );
 
@@ -148,7 +148,7 @@ QuicWorkerPoolIsOverloaded(
 // Gets the worker index with the smallest current load.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint8_t
+uint16_t
 QuicWorkerPoolGetLeastLoadedWorker(
     _In_ QUIC_WORKER_POOL* WorkerPool
     );
