@@ -23,7 +23,6 @@ const uint32_t SendBufferLength = 100;
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 HQUIC Configuration;
-HQUIC Session;
 
 void PrintUsage()
 {
@@ -288,7 +287,7 @@ RunServer(
         return;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Session, ServerListenerCallback, nullptr, &Listener))) {
+    if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Registration, ServerListenerCallback, nullptr, &Listener))) {
         printf("ListenerOpen failed, 0x%x!\n", Status);
         goto Error;
     }
@@ -471,7 +470,7 @@ RunClient(
     QUIC_STATUS Status;
     const char* ResumptionTicketString = nullptr;
     HQUIC Connection = nullptr;
-    if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Session, ClientConnectionCallback, nullptr, &Connection))) {
+    if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Registration, ClientConnectionCallback, nullptr, &Connection))) {
         printf("ConnectionOpen failed, 0x%x!\n", Status);
         goto Error;
     }
@@ -523,11 +522,6 @@ main(
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, nullptr, &Session))) {
-        printf("SessionOpen failed, 0x%x!\n", Status);
-        goto Error;
-    }
-
     if (GetValue(argc, argv, "help") || GetValue(argc, argv, "?")) {
         PrintUsage();
     } else if (GetValue(argc, argv, "client")) {
@@ -541,9 +535,6 @@ main(
 Error:
 
     if (MsQuic != nullptr) {
-        if (Session != nullptr) {
-            MsQuic->SessionClose(Session); // Waits on all connections to be cleaned up.
-        }
         if (Configuration != nullptr) {
             MsQuic->ConfigurationClose(Configuration);
         }
