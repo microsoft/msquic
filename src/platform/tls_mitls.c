@@ -408,7 +408,30 @@ QuicTlsSecConfigCreate(
 
     QUIC_STATUS Status;
 
-    if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+
+        if (CredConfig->TicketKey != NULL &&
+            !FFI_mitls_set_sealing_key("AES256-GCM", (uint8_t*)CredConfig->TicketKey, 44)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "FFI_mitls_set_sealing_key failed");
+            Status = QUIC_STATUS_INVALID_STATE;
+            goto Error;
+        }
+
+    } else {
+
+        if (CredConfig->TicketKey != NULL &&
+            !FFI_mitls_set_ticket_key("AES256-GCM", (uint8_t*)CredConfig->TicketKey, 44)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "FFI_mitls_set_ticket_key failed");
+            Status = QUIC_STATUS_INVALID_STATE;
+            goto Error;
+        }
+
         Status =
             QuicCertCreate(
                 CredConfig->Type,

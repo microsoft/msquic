@@ -647,6 +647,10 @@ QuicTlsSecConfigCreate(
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
+    if (CredConfig->TicketKey != NULL) {
+        return QUIC_STATUS_NOT_SUPPORTED; // Not currently supported
+    }
+
     QUIC_CERTIFICATE_FILE* CertFile = CredConfig->Creds;
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {

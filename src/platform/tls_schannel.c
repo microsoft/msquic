@@ -821,6 +821,10 @@ QuicTlsSecConfigCreate(
 
     QUIC_DBG_ASSERT(CredConfig && CompletionHandler);
 
+    if (CredConfig->TicketKey != NULL) {
+        return QUIC_STATUS_NOT_SUPPORTED; // Not currently supported
+    }
+
 #ifndef _KERNEL_MODE
     PCERT_CONTEXT CertContext = NULL;
 
