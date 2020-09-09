@@ -28,10 +28,10 @@ TEST(PartitionTest, SplitPartitioning)
     // unchanged value.
     //
 
-    const uint8_t Inc = QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
+    const uint16_t Inc = QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
 
     for (uint32_t i = 1; i <= QUIC_MAX_PARTITION_COUNT; ++i) {
-        MsQuicLib.PartitionCount = (uint8_t)i;
+        MsQuicLib.PartitionCount = (uint16_t)i;
         MsQuicCalculatePartitionMask();
 
         //printf("Partition Count: %hhu [Mask: %hhx]\n", MsQuicLib.PartitionCount, MsQuicLib.PartitionMask);
@@ -41,7 +41,7 @@ TEST(PartitionTest, SplitPartitioning)
         }
 
         for (uint32_t j = 0; j < i; ++j) {
-            uint8_t PartitionIndex = (uint8_t)j;
+            uint16_t PartitionIndex = (uint16_t)j;
             ASSERT_EQ(
                 PartitionIndex,
                 QuicPartitionIndexDecrement(
@@ -62,16 +62,16 @@ TEST(PartitionTest, RandomPartitionId)
     //
 
     for (uint32_t i = 1; i <= QUIC_MAX_PARTITION_COUNT; ++i) {
-        MsQuicLib.PartitionCount = (uint8_t)i;
+        MsQuicLib.PartitionCount = (uint16_t)i;
         MsQuicCalculatePartitionMask();
 
         //printf("Partition Count: %hhu [Mask: %hhx]\n", MsQuicLib.PartitionCount, MsQuicLib.PartitionMask);
 
         for (uint32_t j = 0; j < i; ++j) {
-            uint8_t PartitionIndex = (uint8_t)j;
+            uint16_t PartitionIndex = (uint16_t)j;
 
             for (uint32_t k = 0; k < 1000; ++k) {
-                uint8_t PartitionId = QuicPartitionIdCreate(PartitionIndex);
+                uint16_t PartitionId = QuicPartitionIdCreate(PartitionIndex);
                 ASSERT_EQ(PartitionIndex, QuicPartitionIdGetIndex(PartitionId));
             }
         }

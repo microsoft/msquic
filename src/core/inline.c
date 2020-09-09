@@ -45,7 +45,7 @@ QuicCidNewRandomSource(
     _In_opt_ QUIC_CONNECTION* Connection,
     _In_reads_opt_(MsQuicLib.CidServerIdLength)
         const void* ServerID,
-    _In_ uint8_t PartitionID,
+    _In_ uint16_t PartitionID,
     _In_ uint8_t PrefixLength,
     _In_reads_(PrefixLength)
         const void* Prefix
@@ -140,35 +140,35 @@ QuicIsVersionSupported(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint8_t
+uint16_t
 QuicLibraryGetCurrentPartition(
     void
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint8_t
+uint16_t
 QuicPartitionIdCreate(
-    uint8_t BaseIndex
+    uint16_t BaseIndex
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint8_t
+uint16_t
 QuicPartitionIdGetIndex(
-    uint8_t PartitionId
+    uint16_t PartitionId
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint8_t
+uint16_t
 QuicPartitionIndexIncrement(
-    uint8_t PartitionIndex,
-    uint8_t Increment
+    uint16_t PartitionIndex,
+    uint16_t Increment
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint8_t
+uint16_t
 QuicPartitionIndexDecrement(
-    uint8_t PartitionIndex,
-    uint8_t Decrement
+    uint16_t PartitionIndex,
+    uint16_t Decrement
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

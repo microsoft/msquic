@@ -234,7 +234,7 @@ struct QuicWorkerData {
     uint64_t Ptr;
     uint32_t ProcessId;
     uint32_t ThreadId;
-    uint8_t IdealProcessor;
+    uint16_t IdealProcessor;
     uint64_t ProcessorBitmap;
 
     uint64_t InitialTimeStamp;      // Nanoseconds

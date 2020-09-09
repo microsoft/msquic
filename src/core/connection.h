@@ -331,7 +331,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The partition ID for the connection ID.
     //
-    uint8_t PartitionID;
+    uint16_t PartitionID;
 
     //
     // Number of non-retired desintation CIDs we currently have cached.
