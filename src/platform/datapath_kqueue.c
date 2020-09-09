@@ -74,8 +74,6 @@ typedef struct QUIC_DATAPATH_INTERNAL_RECV_CONTEXT {
     //
     QUIC_TUPLE Tuple;
 
-    uint8_t Buffer[MAX_UDP_PAYLOAD_LENGTH];
-
 } QUIC_DATAPATH_INTERNAL_RECV_CONTEXT;
 
 //
@@ -990,165 +988,165 @@ QuicDataPathRecvComplete(
     // inline. Otherwise, we remove it as the current because we are giving
     // it to the client.
     //
-//    QUIC_DBG_ASSERT(SocketContext->CurrentRecvContext != NULL);
-//    QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = SocketContext->CurrentRecvContext;
-//    if (IoResult == NO_ERROR) {
-//        SocketContext->CurrentRecvContext = NULL;
-//    }
-//
-//    PSOCKADDR_INET RemoteAddr = &RecvContext->Tuple.RemoteAddress;
-//    PSOCKADDR_INET LocalAddr = &RecvContext->Tuple.LocalAddress;
-//
-//    if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
-//        //
-//        // Error from shutdown, silently ignore. Return immediately so the
-//        // receive doesn't get reposted.
-//        //
-//        return;
-//
-//    } else if (IsUnreachableErrorCode(IoResult)) {
-//        QuicDataPathBindingHandleUnreachableError(SocketContext, IoResult);
-//    } else if (IoResult == ERROR_MORE_DATA || (IoResult == NO_ERROR && SocketContext->RecvWsaBuf.len < NumberOfBytesTransferred)) {
-//        QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
-//
-//#if QUIC_CLOG
-//        QuicTraceLogVerbose(DatapathTooLarge, "[ udp][%p] Received larger than expected datagram from %!ADDR!", SocketContext->Binding, CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
-//#endif
-//
-//        //
-//        // TODO - Indicate to Core library.
-//        //
-//
-//    } else if (IoResult == QUIC_STATUS_SUCCESS) {
-//
-//        QUIC_RECV_DATAGRAM* DatagramChain = NULL;
-//        QUIC_RECV_DATAGRAM** DatagramChainTail = &DatagramChain;
-//
-//        QUIC_DATAPATH* Datapath = SocketContext->Binding->Datapath;
-//        QUIC_RECV_DATAGRAM* Datagram;
-//        PUCHAR RecvPayload = ((PUCHAR)RecvContext) + Datapath->RecvPayloadOffset;
-//
-//        BOOLEAN FoundLocalAddr = FALSE;
-//        UINT16 MessageLength = NumberOfBytesTransferred;
-//        ULONG MessageCount = 0;
-//        BOOLEAN IsCoalesced = FALSE;
-//        INT ECN = 0;
-//
-//        for (WSACMSGHDR *CMsg = WSA_CMSG_FIRSTHDR(&SocketContext->RecvWsaMsgHdr);
-//            CMsg != NULL;
-//            CMsg = WSA_CMSG_NXTHDR(&SocketContext->RecvWsaMsgHdr, CMsg)) {
-//
-//            if (CMsg->cmsg_level == IPPROTO_IPV6) {
-//                if (CMsg->cmsg_type == IPV6_PKTINFO) {
-//                    PIN6_PKTINFO PktInfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(CMsg);
-//                    LocalAddr->si_family = AF_INET6;
-//                    LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
-//                    LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-//                    QuicConvertFromMappedV6(LocalAddr, LocalAddr);
-//
-//                    LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
-//                    FoundLocalAddr = TRUE;
-//                } else if (CMsg->cmsg_type == IPV6_ECN) {
-//                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
-//                    QUIC_DBG_ASSERT(ECN < UINT8_MAX);
-//                }
-//            } else if (CMsg->cmsg_level == IPPROTO_IP) {
-//                if (CMsg->cmsg_type == IP_PKTINFO) {
-//                    PIN_PKTINFO PktInfo = (PIN_PKTINFO)WSA_CMSG_DATA(CMsg);
-//                    LocalAddr->si_family = AF_INET;
-//                    LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
-//                    LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-//                    LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
-//                    FoundLocalAddr = TRUE;
-//                } else if (CMsg->cmsg_type == IP_ECN) {
-//                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
-//                    QUIC_DBG_ASSERT(ECN < UINT8_MAX);
-//                }
-//#ifdef UDP_RECV_MAX_COALESCED_SIZE
-//            } else if (CMsg->cmsg_level == IPPROTO_UDP) {
-//                if (CMsg->cmsg_type == UDP_COALESCED_INFO) {
-//                    QUIC_DBG_ASSERT(*(PDWORD)WSA_CMSG_DATA(CMsg) <= MAX_URO_PAYLOAD_LENGTH);
-//                    MessageLength = (UINT16)*(PDWORD)WSA_CMSG_DATA(CMsg);
-//                    IsCoalesced = TRUE;
-//                }
-//#endif
-//            }
-//        }
-//
-//        if (!FoundLocalAddr) {
-//            //
-//            // The underlying data path does not guarantee ancillary data for
-//            // enabled socket options when the system is under memory pressure.
-//            //
-//            QuicTraceLogWarning(DatapathMissingInfo, "[ udp][%p] WSARecvMsg completion is missing IP_PKTINFO", SocketContext->Binding);
-//            goto Drop;
-//        }
-//
-//        if (NumberOfBytesTransferred == 0) {
-//            QuicTraceLogWarning(DatapathRecvEmpty, "[ udp][%p] Dropping datagram with empty payload.", SocketContext->Binding);
-//            goto Drop;
-//        }
-//
-//        QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
-//
-//        QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!", SocketContext->Binding, NumberOfBytesTransferred, MessageLength, CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr), CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
-//
-//        QUIC_DBG_ASSERT(NumberOfBytesTransferred <= SocketContext->RecvWsaBuf.len);
-//
-//        Datagram = (QUIC_RECV_DATAGRAM*)(RecvContext + 1);
-//
-//        for ( ; NumberOfBytesTransferred != 0; NumberOfBytesTransferred -= MessageLength) {
-//
-//            QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext = QuicDataPathDatagramToInternalDatagramContext(Datagram);
-//            InternalDatagramContext->RecvContext = RecvContext;
-//
-//            if (MessageLength > NumberOfBytesTransferred) {
-//                //
-//                // The last message is smaller than all the rest.
-//                //
-//                MessageLength = NumberOfBytesTransferred;
-//            }
-//
-//            Datagram->Next = NULL;
-//            Datagram->Buffer = RecvPayload;
-//            Datagram->BufferLength = MessageLength;
-//            Datagram->Tuple = &RecvContext->Tuple;
-//            Datagram->PartitionIndex = (uint8_t)ProcContext->Index;
-//            Datagram->TypeOfService = (uint8_t)ECN;
-//            Datagram->Allocated = TRUE;
-//            Datagram->QueuedOnConnection = FALSE;
-//
-//            RecvPayload += MessageLength;
-//
-//            //
-//            // Add the datagram to the end of the current chain.
-//            //
-//            *DatagramChainTail = Datagram;
-//            DatagramChainTail = &Datagram->Next;
-//            RecvContext->ReferenceCount++;
-//
-//            Datagram = (QUIC_RECV_DATAGRAM*) (((PUCHAR)Datagram) + SocketContext->Binding->Datapath->DatagramStride);
-//
-//            if (IsCoalesced && ++MessageCount == URO_MAX_DATAGRAMS_PER_INDICATION) {
-//                QuicTraceLogWarning(DatapathUroPreallocExceeded, "[ udp][%p] Exceeded URO preallocation capacity.", SocketContext->Binding);
-//                break;
-//            }
-//        }
-//
-//        QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
-//        QUIC_DBG_ASSERT(DatagramChain);
-//
-//        SocketContext->Binding->Datapath->RecvHandler(SocketContext->Binding, SocketContext->Binding->ClientContext, DatagramChain);
-//
-//    } else {
-//        QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", SocketContext->Binding, IoResult, "WSARecvMsg completion");
-//    }
-//
-//Drop:
-//    //
-//    // Try to start a new receive.
-//    //
-//    (void)QuicDataPathBindingStartReceive(SocketContext, ProcContext->IOCP);
+    //    QUIC_DBG_ASSERT(SocketContext->CurrentRecvContext != NULL);
+    //    QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = SocketContext->CurrentRecvContext;
+    //    if (IoResult == NO_ERROR) {
+    //        SocketContext->CurrentRecvContext = NULL;
+    //    }
+    //
+    //    PSOCKADDR_INET RemoteAddr = &RecvContext->Tuple.RemoteAddress;
+    //    PSOCKADDR_INET LocalAddr = &RecvContext->Tuple.LocalAddress;
+    //
+    //    if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
+    //        //
+    //        // Error from shutdown, silently ignore. Return immediately so the
+    //        // receive doesn't get reposted.
+    //        //
+    //        return;
+    //
+    //    } else if (IsUnreachableErrorCode(IoResult)) {
+    //        QuicDataPathBindingHandleUnreachableError(SocketContext, IoResult);
+    //    } else if (IoResult == ERROR_MORE_DATA || (IoResult == NO_ERROR && SocketContext->RecvWsaBuf.len < NumberOfBytesTransferred)) {
+    //        QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
+    //
+    //#if QUIC_CLOG
+    //        QuicTraceLogVerbose(DatapathTooLarge, "[ udp][%p] Received larger than expected datagram from %!ADDR!", SocketContext->Binding, CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+    //#endif
+    //
+    //        //
+    //        // TODO - Indicate to Core library.
+    //        //
+    //
+    //    } else if (IoResult == QUIC_STATUS_SUCCESS) {
+    //
+    //        QUIC_RECV_DATAGRAM* DatagramChain = NULL;
+    //        QUIC_RECV_DATAGRAM** DatagramChainTail = &DatagramChain;
+    //
+    //        QUIC_DATAPATH* Datapath = SocketContext->Binding->Datapath;
+    //        QUIC_RECV_DATAGRAM* Datagram;
+    //        PUCHAR RecvPayload = ((PUCHAR)RecvContext) + Datapath->RecvPayloadOffset;
+    //
+    //        BOOLEAN FoundLocalAddr = FALSE;
+    //        UINT16 MessageLength = NumberOfBytesTransferred;
+    //        ULONG MessageCount = 0;
+    //        BOOLEAN IsCoalesced = FALSE;
+    //        INT ECN = 0;
+    //
+    //        for (WSACMSGHDR *CMsg = WSA_CMSG_FIRSTHDR(&SocketContext->RecvWsaMsgHdr);
+    //            CMsg != NULL;
+    //            CMsg = WSA_CMSG_NXTHDR(&SocketContext->RecvWsaMsgHdr, CMsg)) {
+    //
+    //            if (CMsg->cmsg_level == IPPROTO_IPV6) {
+    //                if (CMsg->cmsg_type == IPV6_PKTINFO) {
+    //                    PIN6_PKTINFO PktInfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(CMsg);
+    //                    LocalAddr->si_family = AF_INET6;
+    //                    LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
+    //                    LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+    //                    QuicConvertFromMappedV6(LocalAddr, LocalAddr);
+    //
+    //                    LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
+    //                    FoundLocalAddr = TRUE;
+    //                } else if (CMsg->cmsg_type == IPV6_ECN) {
+    //                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
+    //                    QUIC_DBG_ASSERT(ECN < UINT8_MAX);
+    //                }
+    //            } else if (CMsg->cmsg_level == IPPROTO_IP) {
+    //                if (CMsg->cmsg_type == IP_PKTINFO) {
+    //                    PIN_PKTINFO PktInfo = (PIN_PKTINFO)WSA_CMSG_DATA(CMsg);
+    //                    LocalAddr->si_family = AF_INET;
+    //                    LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
+    //                    LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+    //                    LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
+    //                    FoundLocalAddr = TRUE;
+    //                } else if (CMsg->cmsg_type == IP_ECN) {
+    //                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
+    //                    QUIC_DBG_ASSERT(ECN < UINT8_MAX);
+    //                }
+    //#ifdef UDP_RECV_MAX_COALESCED_SIZE
+    //            } else if (CMsg->cmsg_level == IPPROTO_UDP) {
+    //                if (CMsg->cmsg_type == UDP_COALESCED_INFO) {
+    //                    QUIC_DBG_ASSERT(*(PDWORD)WSA_CMSG_DATA(CMsg) <= MAX_URO_PAYLOAD_LENGTH);
+    //                    MessageLength = (UINT16)*(PDWORD)WSA_CMSG_DATA(CMsg);
+    //                    IsCoalesced = TRUE;
+    //                }
+    //#endif
+    //            }
+    //        }
+    //
+    //        if (!FoundLocalAddr) {
+    //            //
+    //            // The underlying data path does not guarantee ancillary data for
+    //            // enabled socket options when the system is under memory pressure.
+    //            //
+    //            QuicTraceLogWarning(DatapathMissingInfo, "[ udp][%p] WSARecvMsg completion is missing IP_PKTINFO", SocketContext->Binding);
+    //            goto Drop;
+    //        }
+    //
+    //        if (NumberOfBytesTransferred == 0) {
+    //            QuicTraceLogWarning(DatapathRecvEmpty, "[ udp][%p] Dropping datagram with empty payload.", SocketContext->Binding);
+    //            goto Drop;
+    //        }
+    //
+    //        QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
+    //
+    //        QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!", SocketContext->Binding, NumberOfBytesTransferred, MessageLength, CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr), CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+    //
+    //        QUIC_DBG_ASSERT(NumberOfBytesTransferred <= SocketContext->RecvWsaBuf.len);
+    //
+    //        Datagram = (QUIC_RECV_DATAGRAM*)(RecvContext + 1);
+    //
+    //        for ( ; NumberOfBytesTransferred != 0; NumberOfBytesTransferred -= MessageLength) {
+    //
+    //            QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext = QuicDataPathDatagramToInternalDatagramContext(Datagram);
+    //            InternalDatagramContext->RecvContext = RecvContext;
+    //
+    //            if (MessageLength > NumberOfBytesTransferred) {
+    //                //
+    //                // The last message is smaller than all the rest.
+    //                //
+    //                MessageLength = NumberOfBytesTransferred;
+    //            }
+    //
+    //            Datagram->Next = NULL;
+    //            Datagram->Buffer = RecvPayload;
+    //            Datagram->BufferLength = MessageLength;
+    //            Datagram->Tuple = &RecvContext->Tuple;
+    //            Datagram->PartitionIndex = (uint8_t)ProcContext->Index;
+    //            Datagram->TypeOfService = (uint8_t)ECN;
+    //            Datagram->Allocated = TRUE;
+    //            Datagram->QueuedOnConnection = FALSE;
+    //
+    //            RecvPayload += MessageLength;
+    //
+    //            //
+    //            // Add the datagram to the end of the current chain.
+    //            //
+    //            *DatagramChainTail = Datagram;
+    //            DatagramChainTail = &Datagram->Next;
+    //            RecvContext->ReferenceCount++;
+    //
+    //            Datagram = (QUIC_RECV_DATAGRAM*) (((PUCHAR)Datagram) + SocketContext->Binding->Datapath->DatagramStride);
+    //
+    //            if (IsCoalesced && ++MessageCount == URO_MAX_DATAGRAMS_PER_INDICATION) {
+    //                QuicTraceLogWarning(DatapathUroPreallocExceeded, "[ udp][%p] Exceeded URO preallocation capacity.", SocketContext->Binding);
+    //                break;
+    //            }
+    //        }
+    //
+    //        QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
+    //        QUIC_DBG_ASSERT(DatagramChain);
+    //
+    //        SocketContext->Binding->Datapath->RecvHandler(SocketContext->Binding, SocketContext->Binding->ClientContext, DatagramChain);
+    //
+    //    } else {
+    //        QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %u, %s.", SocketContext->Binding, IoResult, "WSARecvMsg completion");
+    //    }
+    //
+    //Drop:
+    //    //
+    //    // Try to start a new receive.
+    //    //
+    //    (void)QuicDataPathBindingStartReceive(SocketContext, ProcContext->IOCP);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1220,7 +1218,7 @@ void QuicDataPathBindingFreeSendContext(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendCon
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
     QUIC_POOL* BufferPool = SendContext->SegmentSize > 0 ? &ProcContext->LargeSendBufferPool : &ProcContext->SendBufferPool;
 
-    for (UINT8 i = 0; i < SendContext->BufferCount; ++i) {
+    for (uint8_t i = 0; i < SendContext->BufferCount; ++i) {
         QuicPoolFree(BufferPool, SendContext->Buffers[i].buf);
     }
 
@@ -1238,161 +1236,161 @@ BOOLEAN QuicSendContextCanAllocSendSegment(_In_ QUIC_DATAPATH_SEND_CONTEXT* Send
     return MaxBufferLength <= BytesAvailable;
 }
 
-static
-BOOLEAN QuicSendContextCanAllocSend(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ UINT16 MaxBufferLength) {
-    return (SendContext->BufferCount < SendContext->Owner->Datapath->MaxSendBatchSize) ||
-        ((SendContext->SegmentSize > 0) &&
-            QuicSendContextCanAllocSendSegment(SendContext, MaxBufferLength));
-}
+//static
+//BOOLEAN QuicSendContextCanAllocSend(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ UINT16 MaxBufferLength) {
+//    return (SendContext->BufferCount < SendContext->Owner->Datapath->MaxSendBatchSize) ||
+//        ((SendContext->SegmentSize > 0) &&
+//            QuicSendContextCanAllocSendSegment(SendContext, MaxBufferLength));
+//}
 
-static
-void QuicSendContextFinalizeSendBuffer(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ BOOLEAN IsSendingImmediately) {
-    if (SendContext->ClientBuffer.len == 0) {
-        //
-        // There is no buffer segment outstanding at the client.
-        //
-        if (SendContext->BufferCount > 0) {
-            QUIC_DBG_ASSERT(SendContext->Buffers[SendContext->BufferCount - 1].len < UINT16_MAX);
-            SendContext->TotalSize += SendContext->Buffers[SendContext->BufferCount - 1].len;
-        }
-        return;
-    }
+//static
+//void QuicSendContextFinalizeSendBuffer(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ BOOLEAN IsSendingImmediately) {
+//    if (SendContext->ClientBuffer.len == 0) {
+//        //
+//        // There is no buffer segment outstanding at the client.
+//        //
+//        if (SendContext->BufferCount > 0) {
+//            QUIC_DBG_ASSERT(SendContext->Buffers[SendContext->BufferCount - 1].len < UINT16_MAX);
+//            SendContext->TotalSize += SendContext->Buffers[SendContext->BufferCount - 1].len;
+//        }
+//        return;
+//    }
+//
+//    QUIC_DBG_ASSERT(SendContext->SegmentSize > 0 && SendContext->BufferCount > 0);
+//    QUIC_DBG_ASSERT(SendContext->ClientBuffer.len > 0 && SendContext->ClientBuffer.len <= SendContext->SegmentSize);
+//    QUIC_DBG_ASSERT(QuicSendContextCanAllocSendSegment(SendContext, 0));
+//
+//    //
+//    // Append the client's buffer segment to our internal send buffer.
+//    //
+//    SendContext->Buffers[SendContext->BufferCount - 1].len += SendContext->ClientBuffer.len;
+//    SendContext->TotalSize += SendContext->ClientBuffer.len;
+//
+//    if (SendContext->ClientBuffer.len == SendContext->SegmentSize) {
+//        SendContext->ClientBuffer.buf += SendContext->SegmentSize;
+//        SendContext->ClientBuffer.len = 0;
+//    } else {
+//        //
+//        // The next segment allocation must create a new backing buffer.
+//        //
+//        QUIC_DBG_ASSERT(IsSendingImmediately); // Future: Refactor so it's impossible to hit this.
+//        UNREFERENCED_PARAMETER(IsSendingImmediately);
+//        SendContext->ClientBuffer.buf = NULL;
+//        SendContext->ClientBuffer.len = 0;
+//    }
+//}
 
-    QUIC_DBG_ASSERT(SendContext->SegmentSize > 0 && SendContext->BufferCount > 0);
-    QUIC_DBG_ASSERT(SendContext->ClientBuffer.len > 0 && SendContext->ClientBuffer.len <= SendContext->SegmentSize);
-    QUIC_DBG_ASSERT(QuicSendContextCanAllocSendSegment(SendContext, 0));
+//_Success_(return != NULL)
+//static
+//WSABUF* QuicSendContextAllocBuffer(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ QUIC_POOL* BufferPool) {
+//    QUIC_DBG_ASSERT(SendContext->BufferCount < SendContext->Owner->Datapath->MaxSendBatchSize);
+//
+//    WSABUF* WsaBuffer = &SendContext->Buffers[SendContext->BufferCount];
+//    WsaBuffer->buf = QuicPoolAlloc(BufferPool);
+//    if (WsaBuffer->buf == NULL) {
+//        return NULL;
+//    }
+//    ++SendContext->BufferCount;
+//
+//    return WsaBuffer;
+//}
 
-    //
-    // Append the client's buffer segment to our internal send buffer.
-    //
-    SendContext->Buffers[SendContext->BufferCount - 1].len += SendContext->ClientBuffer.len;
-    SendContext->TotalSize += SendContext->ClientBuffer.len;
-
-    if (SendContext->ClientBuffer.len == SendContext->SegmentSize) {
-        SendContext->ClientBuffer.buf += SendContext->SegmentSize;
-        SendContext->ClientBuffer.len = 0;
-    } else {
-        //
-        // The next segment allocation must create a new backing buffer.
-        //
-        QUIC_DBG_ASSERT(IsSendingImmediately); // Future: Refactor so it's impossible to hit this.
-        UNREFERENCED_PARAMETER(IsSendingImmediately);
-        SendContext->ClientBuffer.buf = NULL;
-        SendContext->ClientBuffer.len = 0;
-    }
-}
-
-_Success_(return != NULL)
-static
-WSABUF* QuicSendContextAllocBuffer(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ QUIC_POOL* BufferPool) {
-    QUIC_DBG_ASSERT(SendContext->BufferCount < SendContext->Owner->Datapath->MaxSendBatchSize);
-
-    WSABUF* WsaBuffer = &SendContext->Buffers[SendContext->BufferCount];
-    WsaBuffer->buf = QuicPoolAlloc(BufferPool);
-    if (WsaBuffer->buf == NULL) {
-        return NULL;
-    }
-    ++SendContext->BufferCount;
-
-    return WsaBuffer;
-}
-
-_Success_(return != NULL)
-static
-QUIC_BUFFER* QuicSendContextAllocPacketBuffer(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ UINT16 MaxBufferLength) {
-    WSABUF* WsaBuffer = QuicSendContextAllocBuffer(SendContext, &SendContext->Owner->SendBufferPool);
-    if (WsaBuffer != NULL) {
-        WsaBuffer->len = MaxBufferLength;
-    }
-    return (QUIC_BUFFER *)WsaBuffer;
-}
-
-_Success_(return != NULL)
-static
-QUIC_BUFFER* QuicSendContextAllocSegmentBuffer(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ UINT16 MaxBufferLength) {
-    QUIC_DBG_ASSERT(SendContext->SegmentSize > 0);
-    QUIC_DBG_ASSERT(MaxBufferLength <= SendContext->SegmentSize);
-
-    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
-    WSABUF* WsaBuffer;
-
-    if (SendContext->ClientBuffer.buf != NULL &&
-        QuicSendContextCanAllocSendSegment(SendContext, MaxBufferLength)) {
-
-        //
-        // All clear to return the next segment of our contiguous buffer.
-        //
-        SendContext->ClientBuffer.len = MaxBufferLength;
-        return (QUIC_BUFFER*)&SendContext->ClientBuffer;
-    }
-
-    WsaBuffer = QuicSendContextAllocBuffer(SendContext, &ProcContext->LargeSendBufferPool);
-    if (WsaBuffer == NULL) {
-        return NULL;
-    }
-
-    //
-    // Provide a virtual WSABUF to the client. Once the client has committed
-    // to a final send size, we'll append it to our internal backing buffer.
-    //
-    WsaBuffer->len = 0;
-    SendContext->ClientBuffer.buf = WsaBuffer->buf;
-    SendContext->ClientBuffer.len = MaxBufferLength;
-
-    return (QUIC_BUFFER*)&SendContext->ClientBuffer;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != NULL)
-QUIC_BUFFER* QuicDataPathBindingAllocSendDatagram(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ UINT16 MaxBufferLength) {
-    QUIC_DBG_ASSERT(SendContext != NULL);
-    QUIC_DBG_ASSERT(MaxBufferLength > 0);
-    QUIC_DBG_ASSERT(MaxBufferLength <= QUIC_MAX_MTU - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE);
-
-    QuicSendContextFinalizeSendBuffer(SendContext, FALSE);
-
-    if (!QuicSendContextCanAllocSend(SendContext, MaxBufferLength)) {
-        return NULL;
-    }
-
-    if (SendContext->SegmentSize == 0) {
-        return QuicSendContextAllocPacketBuffer(SendContext, MaxBufferLength);
-    } else {
-        return QuicSendContextAllocSegmentBuffer(SendContext, MaxBufferLength);
-    }
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void QuicDataPathBindingFreeSendDatagram(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ QUIC_BUFFER* Datagram) {
-    //
-    // This must be the final send buffer; intermediate buffers cannot be freed.
-    //
-    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
-    PCHAR TailBuffer = SendContext->Buffers[SendContext->BufferCount - 1].buf;
-
-    if (SendContext->SegmentSize == 0) {
-        QUIC_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
-
-        QuicPoolFree(&ProcContext->SendBufferPool, Datagram->Buffer);
-        --SendContext->BufferCount;
-    } else {
-        TailBuffer += SendContext->Buffers[SendContext->BufferCount - 1].len;
-        QUIC_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
-
-        if (SendContext->Buffers[SendContext->BufferCount - 1].len == 0) {
-            QuicPoolFree(&ProcContext->LargeSendBufferPool, Datagram->Buffer);
-            --SendContext->BufferCount;
-        }
-
-        SendContext->ClientBuffer.buf = NULL;
-        SendContext->ClientBuffer.len = 0;
-    }
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN QuicDataPathBindingIsSendContextFull(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext) {
-    return !QuicSendContextCanAllocSend(SendContext, SendContext->SegmentSize);
-}
+//_Success_(return != NULL)
+//static
+//QUIC_BUFFER* QuicSendContextAllocPacketBuffer(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ UINT16 MaxBufferLength) {
+//    WSABUF* WsaBuffer = QuicSendContextAllocBuffer(SendContext, &SendContext->Owner->SendBufferPool);
+//    if (WsaBuffer != NULL) {
+//        WsaBuffer->len = MaxBufferLength;
+//    }
+//    return (QUIC_BUFFER *)WsaBuffer;
+//}
+//
+//_Success_(return != NULL)
+//static
+//QUIC_BUFFER* QuicSendContextAllocSegmentBuffer(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ UINT16 MaxBufferLength) {
+//    QUIC_DBG_ASSERT(SendContext->SegmentSize > 0);
+//    QUIC_DBG_ASSERT(MaxBufferLength <= SendContext->SegmentSize);
+//
+//    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
+//    WSABUF* WsaBuffer;
+//
+//    if (SendContext->ClientBuffer.buf != NULL &&
+//        QuicSendContextCanAllocSendSegment(SendContext, MaxBufferLength)) {
+//
+//        //
+//        // All clear to return the next segment of our contiguous buffer.
+//        //
+//        SendContext->ClientBuffer.len = MaxBufferLength;
+//        return (QUIC_BUFFER*)&SendContext->ClientBuffer;
+//    }
+//
+//    WsaBuffer = QuicSendContextAllocBuffer(SendContext, &ProcContext->LargeSendBufferPool);
+//    if (WsaBuffer == NULL) {
+//        return NULL;
+//    }
+//
+//    //
+//    // Provide a virtual WSABUF to the client. Once the client has committed
+//    // to a final send size, we'll append it to our internal backing buffer.
+//    //
+//    WsaBuffer->len = 0;
+//    SendContext->ClientBuffer.buf = WsaBuffer->buf;
+//    SendContext->ClientBuffer.len = MaxBufferLength;
+//
+//    return (QUIC_BUFFER*)&SendContext->ClientBuffer;
+//}
+//
+//_IRQL_requires_max_(DISPATCH_LEVEL)
+//_Success_(return != NULL)
+//QUIC_BUFFER* QuicDataPathBindingAllocSendDatagram(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ UINT16 MaxBufferLength) {
+//    QUIC_DBG_ASSERT(SendContext != NULL);
+//    QUIC_DBG_ASSERT(MaxBufferLength > 0);
+//    QUIC_DBG_ASSERT(MaxBufferLength <= QUIC_MAX_MTU - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE);
+//
+//    //QuicSendContextFinalizeSendBuffer(SendContext, FALSE);
+//
+//    //if (!QuicSendContextCanAllocSend(SendContext, MaxBufferLength)) {
+//    //    return NULL;
+//    //}
+//
+//    //if (SendContext->SegmentSize == 0) {
+//    //    return QuicSendContextAllocPacketBuffer(SendContext, MaxBufferLength);
+//    //} else {
+//    //    return QuicSendContextAllocSegmentBuffer(SendContext, MaxBufferLength);
+//    //}
+//}
+//
+//_IRQL_requires_max_(DISPATCH_LEVEL)
+//void QuicDataPathBindingFreeSendDatagram(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ QUIC_BUFFER* Datagram) {
+//    //
+//    // This must be the final send buffer; intermediate buffers cannot be freed.
+//    //
+//    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
+//    PCHAR TailBuffer = SendContext->Buffers[SendContext->BufferCount - 1].buf;
+//
+//    if (SendContext->SegmentSize == 0) {
+//        QUIC_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
+//
+//        QuicPoolFree(&ProcContext->SendBufferPool, Datagram->Buffer);
+//        --SendContext->BufferCount;
+//    } else {
+//        TailBuffer += SendContext->Buffers[SendContext->BufferCount - 1].len;
+//        QUIC_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
+//
+//        if (SendContext->Buffers[SendContext->BufferCount - 1].len == 0) {
+//            QuicPoolFree(&ProcContext->LargeSendBufferPool, Datagram->Buffer);
+//            --SendContext->BufferCount;
+//        }
+//
+//        SendContext->ClientBuffer.buf = NULL;
+//        SendContext->ClientBuffer.len = 0;
+//    }
+//}
+//
+//_IRQL_requires_max_(DISPATCH_LEVEL)
+//BOOLEAN QuicDataPathBindingIsSendContextFull(_In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext) {
+//    return !QuicSendContextCanAllocSend(SendContext, SendContext->SegmentSize);
+//}
 
 void QuicSendContextComplete(_In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext, _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext, _In_ ULONG IoResult)
 {
@@ -1671,7 +1669,6 @@ DWORD QuicDataPathWorkerThread(_In_ void* CompletionContext) {
         if (Event->filter == EVFILT_USER || Event->flags & EV_EOF) {
             QuicDataPathSocketContextShutdown(SocketContext);
         }
-
         else if (Event->filter == EVFILT_READ) {
             NumberOfBytesTransferred = recvmsg(SocketContext->SocketFd, &SocketContext->RecvMsgHdr, 0);
             if (NumberOfBytesTransferred == -1) IoResult = errno; 
