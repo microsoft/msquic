@@ -18,7 +18,7 @@ Abstract:
 typedef enum QUIC_HANDLE_TYPE {
 
     QUIC_HANDLE_TYPE_REGISTRATION,
-    QUIC_HANDLE_TYPE_SESSION,
+    QUIC_HANDLE_TYPE_CONFIGURATION,
     QUIC_HANDLE_TYPE_LISTENER,
     QUIC_HANDLE_TYPE_CONNECTION_CLIENT,
     QUIC_HANDLE_TYPE_CONNECTION_SERVER,
@@ -418,8 +418,8 @@ struct QuicHandle : Struct {
         switch (Type()) {
         case QUIC_HANDLE_TYPE_REGISTRATION:
             return "REGISTRATION";
-        case QUIC_HANDLE_TYPE_SESSION:
-            return "SESSION";
+        case QUIC_HANDLE_TYPE_CONFIGURATION:
+            return "CONFIGURATION";
         case QUIC_HANDLE_TYPE_LISTENER:
             return "LISTENER";
         case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
@@ -436,8 +436,8 @@ struct QuicHandle : Struct {
         switch (Type()) {
         case QUIC_HANDLE_TYPE_REGISTRATION:
             return "registration";
-        case QUIC_HANDLE_TYPE_SESSION:
-            return "session";
+        case QUIC_HANDLE_TYPE_CONFIGURATION:
+            return "congifuration";
         case QUIC_HANDLE_TYPE_LISTENER:
             return "listener";
         case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:

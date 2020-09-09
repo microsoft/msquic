@@ -27,7 +27,6 @@ set(SOURCES
     send.c
     send_buffer.c
     sent_packet_metadata.c
-    session.c
     settings.c
     stream.c
     stream_recv.c

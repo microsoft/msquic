@@ -320,6 +320,25 @@ QuicTlsSecConfigCreate(
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS &&
+        CredConfig->AsyncHandler == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+        return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
+    }
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+            return QUIC_STATUS_NOT_SUPPORTED; // Not supported for client (yet)
+        }
+    } else {
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+            return QUIC_STATUS_INVALID_PARAMETER; // Required for server
+        }
+    }
+
     QUIC_STATUS Status;
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
 
@@ -333,35 +352,42 @@ QuicTlsSecConfigCreate(
     SecurityConfig->Type = CredConfig->Type;
     SecurityConfig->Flags = CredConfig->Flags;
 
-    if (CredConfig->Type == QUIC_CREDENTIAL_FLAG_NONE) {
-        goto Format; // Using NULL certificate (stub-only).
-    } else {
-        Status =
-            QuicCertCreate(
-                CredConfig->Type,
-                CredConfig->Creds,
-                CredConfig->Principal,
-                &SecurityConfig->Certificate);
-        if (QUIC_FAILED(Status)) {
-            goto Error;
+    if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
+        if (CredConfig->Type == QUIC_CREDENTIAL_FLAG_NONE) {
+            goto Format; // Using NULL certificate (stub-only).
+        } else {
+            Status =
+                QuicCertCreate(
+                    CredConfig->Type,
+                    CredConfig->Creds,
+                    CredConfig->Principal,
+                    &SecurityConfig->Certificate);
+            if (QUIC_FAILED(Status)) {
+                goto Error;
+            }
         }
-    }
 
 Format:
 
-    SecurityConfig->FormatLength =
-        (uint16_t)QuicCertFormat(
-            SecurityConfig->Certificate,
-            sizeof(SecurityConfig->FormatBuffer),
-            SecurityConfig->FormatBuffer);
-
-    Status = QUIC_STATUS_SUCCESS;
+        SecurityConfig->FormatLength =
+            (uint16_t)QuicCertFormat(
+                SecurityConfig->Certificate,
+                sizeof(SecurityConfig->FormatBuffer),
+                SecurityConfig->FormatBuffer);
+    }
 
     CompletionHandler(
+        CredConfig,
         Context,
         Status,
         SecurityConfig);
     SecurityConfig = NULL;
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
+        Status = QUIC_STATUS_PENDING;
+    } else {
+        Status = QUIC_STATUS_SUCCESS;
+    }
 
 Error:
 

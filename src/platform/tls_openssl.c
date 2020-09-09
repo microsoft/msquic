@@ -638,33 +638,36 @@ QuicTlsSecConfigCreate(
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS &&
+        CredConfig->AsyncHandler == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+        return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
+    }
+
+    QUIC_CERTIFICATE_FILE* CertFile = CredConfig->Creds;
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+            return QUIC_STATUS_NOT_SUPPORTED; // Not supported for client (yet)
+        }
+    } else {
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+            return QUIC_STATUS_INVALID_PARAMETER; // Required for server
+        } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+            return QUIC_STATUS_NOT_SUPPORTED; // Only support file currently
+        } else if (CertFile == NULL ||
+            CertFile->CertificateFile == NULL ||
+            CertFile->PrivateKeyFile == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
+
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
-    QUIC_CERTIFICATE_FILE* CertFile = CredConfig->Creds;
-
-    //
-    // We only allow PEM formatted cert files.
-    //
-
-    if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Flags,
-            "Invalid sec config flags");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    if (CertFile == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "CertFile unspecified");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
 
     //
     // Create a security config.
@@ -866,10 +869,14 @@ QuicTlsSecConfigCreate(
     // Invoke completion inline.
     //
 
-    CompletionHandler(Context, Status, SecurityConfig);
-
-    Status = QUIC_STATUS_SUCCESS;
+    CompletionHandler(CredConfig, Context, Status, SecurityConfig);
     SecurityConfig = NULL;
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
+        Status = QUIC_STATUS_PENDING;
+    } else {
+        Status = QUIC_STATUS_SUCCESS;
+    }
 
 Exit:
 

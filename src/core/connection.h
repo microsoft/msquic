@@ -266,9 +266,9 @@ typedef struct QUIC_CONNECTION {
     struct QUIC_HANDLE;
 
     //
-    // Link into the session's list of connections.
+    // Link into the registrations's list of connections.
     //
-    QUIC_LIST_ENTRY SessionLink;
+    QUIC_LIST_ENTRY RegistrationLink;
 
     //
     // Link in the worker's connection queue.
@@ -292,14 +292,15 @@ typedef struct QUIC_CONNECTION {
     QUIC_REGISTRATION* Registration;
 
     //
-    // The top level session this connection is a part of.
-    //
-    QUIC_SESSION* Session;
-
-    //
     // The configuration for this connection.
     //
     QUIC_CONFIGURATION* Configuration;
+
+    //
+    // The current parent settings object. Points to global settings if the
+    // configuration hasn't been set yet.
+    //
+    QUIC_SETTINGS* ParentSettings;
 
     //
     // Number of references to the handle.
@@ -556,6 +557,15 @@ typedef struct QUIC_CONNECTION {
     QUIC_PRIVATE_TRANSPORT_PARAMETER TestTransportParameter;
 
 } QUIC_CONNECTION;
+
+typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
+
+    uint32_t QuicVersion;
+    QUIC_TRANSPORT_PARAMETERS TransportParameters;
+    uint16_t ServerNameLength;
+    uint8_t Buffer[0]; // ServerName and TLS Session/Ticket
+
+} QUIC_SERIALIZED_RESUMPTION_STATE;
 
 //
 // Estimates the memory usage for a connection object in the handshake state.
@@ -831,7 +841,7 @@ _Must_inspect_result_
 _Success_(return != NULL)
 QUIC_CONNECTION*
 QuicConnAlloc(
-    _In_ QUIC_SESSION* Session,
+    _In_ QUIC_REGISTRATION* Registration,
     _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram
     );
 
@@ -942,6 +952,25 @@ QuicConnRelease(
 #pragma warning(pop)
 
 //
+// Registers the connection with a registration.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicConnRegister(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _Inout_ QUIC_REGISTRATION* Registration
+    );
+
+//
+// Unregisters the connection with its current registration.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicConnUnregister(
+    _Inout_ QUIC_CONNECTION* Connection
+    );
+
+//
 // Tracing rundown for the connection.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -977,8 +1006,7 @@ QuicConnDrainOperations(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnApplySettings(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //

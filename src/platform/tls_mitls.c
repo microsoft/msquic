@@ -377,49 +377,74 @@ QuicTlsSecConfigCreate(
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
-    QUIC_STATUS Status;
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS &&
+        CredConfig->AsyncHandler == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+        return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
+    }
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+            return QUIC_STATUS_NOT_SUPPORTED; // Not supported for client (yet)
+        }
+    } else {
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+            return QUIC_STATUS_INVALID_PARAMETER; // Required for server
+        }
+    }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete).")
     QUIC_SEC_CONFIG* SecurityConfig = QUIC_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG));
     if (SecurityConfig == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     SecurityConfig->Flags = CredConfig->Flags;
     SecurityConfig->Certificate = NULL;
     SecurityConfig->PrivateKey = NULL;
 
-    Status =
-        QuicCertCreate(
-            CredConfig->Type,
-            CredConfig->Creds,
-            CredConfig->Principal,
-            &SecurityConfig->Certificate);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
+    QUIC_STATUS Status;
+
+    if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+        Status =
+            QuicCertCreate(
+                CredConfig->Type,
+                CredConfig->Creds,
+                CredConfig->Principal,
+                &SecurityConfig->Certificate);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
+
+        SecurityConfig->PrivateKey =
+            QuicCertGetPrivateKey(SecurityConfig->Certificate);
+        if (SecurityConfig->PrivateKey == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+
+        SecurityConfig->FormatLength =
+            (uint16_t)QuicCertFormat(
+                SecurityConfig->Certificate,
+                sizeof(SecurityConfig->FormatBuffer),
+                SecurityConfig->FormatBuffer);
     }
-
-    SecurityConfig->PrivateKey =
-        QuicCertGetPrivateKey(SecurityConfig->Certificate);
-    if (SecurityConfig->PrivateKey == NULL) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
-
-    SecurityConfig->FormatLength =
-        (uint16_t)QuicCertFormat(
-            SecurityConfig->Certificate,
-            sizeof(SecurityConfig->FormatBuffer),
-            SecurityConfig->FormatBuffer);
-
-    Status = QUIC_STATUS_SUCCESS;
 
     CompletionHandler(
+        CredConfig,
         Context,
         Status,
         SecurityConfig);
     SecurityConfig = NULL;
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
+        Status = QUIC_STATUS_PENDING;
+    } else {
+        Status = QUIC_STATUS_SUCCESS;
+    }
 
 Error:
 
@@ -460,6 +485,8 @@ QuicTlsInitialize(
 
     QUIC_DBG_ASSERT(Config != NULL);
     QUIC_DBG_ASSERT(NewTlsContext != NULL);
+    QUIC_DBG_ASSERT(Config->SecConfig != NULL);
+    QUIC_DBG_ASSERT(!(Config->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT));
     UNREFERENCED_PARAMETER(State);
 
     TlsSetValue(miTlsCurrentConnectionIndex, Config->Connection);
@@ -481,7 +508,7 @@ QuicTlsInitialize(
     // Initialize internal variables.
     //
     TlsContext->IsServer = Config->IsServer;
-    TlsContext->SecConfig = QuicTlsSecConfigAddRef(Config->SecConfig);
+    TlsContext->SecConfig = Config->SecConfig;
     TlsContext->CurrentReaderKey = -1;
     TlsContext->CurrentWriterKey = -1;
     TlsContext->Connection = Config->Connection;

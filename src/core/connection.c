@@ -48,7 +48,7 @@ _Must_inspect_result_
 _Success_(return != NULL)
 QUIC_CONNECTION*
 QuicConnAlloc(
-    _In_ QUIC_SESSION* Session,
+    _In_ QUIC_REGISTRATION* Registration,
     _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram
     )
 {
@@ -141,12 +141,6 @@ QuicConnAlloc(
     }
 
     if (IsServer) {
-
-        //
-        // Use global settings until the connection is assigned to a session.
-        // Then the connection will use the session's settings.
-        //
-        QuicConnApplySettings(Connection, &MsQuicLib.Settings);
 
         const QUIC_RECV_PACKET* Packet =
             QuicDataPathRecvDatagramToRecvPacket(Datagram);
@@ -246,7 +240,7 @@ QuicConnAlloc(
             Connection);
     }
 
-    QuicSessionRegisterConnection(Session, Connection);
+    QuicConnRegister(Connection, Registration);
 
     return Connection;
 
@@ -328,13 +322,10 @@ QuicConnFree(
     QuicStreamSetUninitialize(&Connection->Streams);
     QuicSendBufferUninitialize(&Connection->SendBuffer);
     QuicDatagramUninitialize(&Connection->Datagram);
-    QuicSessionUnregisterConnection(Connection);
     if (Connection->Configuration != NULL) {
         QuicRundownRelease(&Connection->Configuration->Rundown);
     }
-    if (Connection->Registration != NULL) {
-        QuicRundownRelease(&Connection->Registration->ConnectionRundown);
-    }
+    QuicConnUnregister(Connection);
     Connection->State.Freed = TRUE;
     if (Connection->RemoteServerName != NULL) {
         QUIC_FREE(Connection->RemoteServerName);
@@ -372,37 +363,36 @@ QuicConnFree(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnApplySettings(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ QUIC_CONNECTION* Connection
     )
 {
-    Connection->State.UsePacing = Settings->PacingEnabled;
-    Connection->MaxAckDelayMs = Settings->MaxAckDelayMs;
-    Connection->Paths[0].SmoothedRtt = MS_TO_US(Settings->InitialRttMs);
+    Connection->State.UsePacing = Connection->ParentSettings->PacingEnabled;
+    Connection->MaxAckDelayMs = Connection->ParentSettings->MaxAckDelayMs;
+    Connection->Paths[0].SmoothedRtt = MS_TO_US(Connection->ParentSettings->InitialRttMs);
     Connection->Paths[0].RttVariance = Connection->Paths[0].SmoothedRtt / 2;
-    Connection->DisconnectTimeoutUs = MS_TO_US(Settings->DisconnectTimeoutMs);
-    Connection->IdleTimeoutMs = Settings->IdleTimeoutMs;
-    Connection->HandshakeIdleTimeoutMs = Settings->HandshakeIdleTimeoutMs;
-    Connection->KeepAliveIntervalMs = Settings->KeepAliveIntervalMs;
-    Connection->Datagram.ReceiveEnabled = Settings->DatagramReceiveEnabled;
+    Connection->DisconnectTimeoutUs = MS_TO_US(Connection->ParentSettings->DisconnectTimeoutMs);
+    Connection->IdleTimeoutMs = Connection->ParentSettings->IdleTimeoutMs;
+    Connection->HandshakeIdleTimeoutMs = Connection->ParentSettings->HandshakeIdleTimeoutMs;
+    Connection->KeepAliveIntervalMs = Connection->ParentSettings->KeepAliveIntervalMs;
+    Connection->Datagram.ReceiveEnabled = Connection->ParentSettings->DatagramReceiveEnabled;
 
     uint8_t PeerStreamType =
         QuicConnIsServer(Connection) ?
             STREAM_ID_FLAG_IS_CLIENT : STREAM_ID_FLAG_IS_SERVER;
-    if (Settings->PeerBidiStreamCount != 0) {
+    if (Connection->ParentSettings->PeerBidiStreamCount != 0) {
         QuicStreamSetUpdateMaxCount(
             &Connection->Streams,
             PeerStreamType | STREAM_ID_FLAG_IS_BI_DIR,
-            Settings->PeerBidiStreamCount);
+            Connection->ParentSettings->PeerBidiStreamCount);
     }
-    if (Settings->PeerUnidiStreamCount != 0) {
+    if (Connection->ParentSettings->PeerUnidiStreamCount != 0) {
         QuicStreamSetUpdateMaxCount(
             &Connection->Streams,
             PeerStreamType | STREAM_ID_FLAG_IS_UNI_DIR,
-            Settings->PeerUnidiStreamCount);
+            Connection->ParentSettings->PeerUnidiStreamCount);
     }
 
-    if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
+    if (Connection->ParentSettings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
         Connection->HandshakeTP == NULL) {
         QUIC_DBG_ASSERT(!Connection->State.Started);
         Connection->HandshakeTP =
@@ -419,8 +409,8 @@ QuicConnApplySettings(
         }
     }
 
-    QuicSendApplySettings(&Connection->Send, Settings);
-    QuicCongestionControlInitialize(&Connection->CongestionControl, Settings);
+    QuicSendApplySettings(&Connection->Send, Connection->ParentSettings);
+    QuicCongestionControlInitialize(&Connection->CongestionControl, Connection->ParentSettings);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -513,12 +503,67 @@ QuicConnCloseHandle(
     Connection->State.HandleClosed = TRUE;
     Connection->ClientCallbackHandler = NULL;
 
-    QuicSessionUnregisterConnection(Connection);
-
     QuicTraceEvent(
         ConnHandleClosed,
         "[conn][%p] Handle closed",
         Connection);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicConnRegister(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _Inout_ QUIC_REGISTRATION* Registration
+    )
+{
+    QuicConnUnregister(Connection);
+
+    Connection->Registration = Registration;
+    BOOLEAN Success = QuicRundownAcquire(&Registration->Rundown);
+    QUIC_DBG_ASSERT(Success); UNREFERENCED_PARAMETER(Success);
+#ifdef QuicVerifierEnabledByAddr
+    Connection->State.IsVerifying = Registration->IsVerifying;
+#endif
+
+    QuicDispatchLockAcquire(&Registration->ConnectionLock);
+    QuicListInsertTail(&Registration->Connections, &Connection->RegistrationLink);
+    QuicDispatchLockRelease(&Registration->ConnectionLock);
+
+    QuicTraceEvent(
+        ConnRegistered,
+        "[conn][%p] Registered with %p",
+        Connection,
+        Registration);
+
+    if (Connection->Configuration == NULL) {
+        //
+        // Use global settings until the connection is assigned a configuration.
+        //
+        QuicConnApplySettings(Connection, &MsQuicLib.Settings);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicConnUnregister(
+    _Inout_ QUIC_CONNECTION* Connection
+    )
+{
+    if (Connection->Registration != NULL) {
+        QUIC_REGISTRATION* Registration = Connection->Registration;
+        Connection->Registration = NULL;
+
+        QuicDispatchLockAcquire(&Registration->ConnectionLock);
+        QuicListEntryRemove(&Connection->RegistrationLink);
+        QuicDispatchLockRelease(&Registration->ConnectionLock);
+        QuicRundownRelease(&Registration->Rundown);
+
+        QuicTraceEvent(
+            ConnUnregistered,
+            "[conn][%p] Unregistered from %p",
+            Connection,
+            Registration);
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -556,13 +601,12 @@ QuicConnTraceRundownOper(
         "[conn][%p] Assigned worker: %p",
         Connection,
         Connection->Worker);
-    if (Connection->Session != NULL) {
-        QuicTraceEvent(
-            ConnRegisterSession,
-            "[conn][%p] Registered with session: %p",
-            Connection,
-            Connection->Session);
-    }
+    QUIC_DBG_ASSERT(Connection->Registration);
+    QuicTraceEvent(
+        ConnRegistered,
+        "[conn][%p] Registered with %p",
+        Connection,
+        Connection->Registration);
     if (Connection->State.Started) {
         for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
             if (Connection->State.LocalAddressSet || i != 0) {
@@ -1746,7 +1790,9 @@ QuicConnStart(
     //
     Status =
         QuicLibraryGetBinding(
-            Connection->Session,
+#ifdef QUIC_COMPARTMENT_ID
+            Configuration->CompartmentId,
+#endif
             Connection->State.ShareBinding,
             FALSE,
             Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL,
@@ -1867,7 +1913,7 @@ QuicConnRestart(
         //
         QUIC_PATH* Path = &Connection->Paths[0];
         Path->GotFirstRttSample = FALSE;
-        Path->SmoothedRtt = MS_TO_US(Connection->Configuration->Settings.InitialRttMs);
+        Path->SmoothedRtt = MS_TO_US(Connection->ParentSettings->InitialRttMs);
         Path->RttVariance = Path->SmoothedRtt / 2;
     }
 
@@ -2078,9 +2124,9 @@ QuicConnRecvResumptionTicket(
         //
         if (ResumedTP.ActiveConnectionIdLimit > QUIC_ACTIVE_CONNECTION_ID_LIMIT ||
             ResumedTP.InitialMaxData > Connection->Send.MaxData ||
-            ResumedTP.InitialMaxStreamDataBidiLocal > Connection->Configuration->Settings.StreamRecvWindowDefault ||
-            ResumedTP.InitialMaxStreamDataBidiRemote > Connection->Configuration->Settings.StreamRecvWindowDefault ||
-            ResumedTP.InitialMaxStreamDataUni > Connection->Configuration->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataBidiLocal > Connection->ParentSettings->StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataBidiRemote > Connection->ParentSettings->StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataUni > Connection->ParentSettings->StreamRecvWindowDefault ||
             ResumedTP.InitialMaxUniStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount ||
             ResumedTP.InitialMaxBidiStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
             //
@@ -2185,7 +2231,7 @@ QuicConnGenerateLocalTransportParameters(
     _Out_ QUIC_TRANSPORT_PARAMETERS* LocalTP
     )
 {
-    QUIC_TEL_ASSERT(Connection->Session != NULL);
+    QUIC_TEL_ASSERT(Connection->Configuration != NULL);
 
     QUIC_DBG_ASSERT(Connection->SourceCids.Next != NULL);
     const QUIC_CID_HASH_ENTRY* SourceCid =
@@ -2195,9 +2241,9 @@ QuicConnGenerateLocalTransportParameters(
             Link);
 
     LocalTP->InitialMaxData = Connection->Send.MaxData;
-    LocalTP->InitialMaxStreamDataBidiLocal = Connection->Configuration->Settings.StreamRecvWindowDefault;
-    LocalTP->InitialMaxStreamDataBidiRemote = Connection->Configuration->Settings.StreamRecvWindowDefault;
-    LocalTP->InitialMaxStreamDataUni = Connection->Configuration->Settings.StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataBidiLocal = Connection->ParentSettings->StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataBidiRemote = Connection->ParentSettings->StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataUni = Connection->ParentSettings->StreamRecvWindowDefault;
     LocalTP->MaxUdpPayloadSize =
         MaxUdpPayloadSizeFromMTU(
             QuicDataPathBindingGetLocalMtu(
@@ -2256,7 +2302,7 @@ QuicConnGenerateLocalTransportParameters(
                 Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount;
         }
 
-        if (!Connection->Configuration->Settings.MigrationEnabled) {
+        if (!Connection->ParentSettings->MigrationEnabled) {
             LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION;
         }
 
@@ -2333,8 +2379,7 @@ QuicConnSetConfiguration(
     QUIC_STATUS Status;
     QUIC_TRANSPORT_PARAMETERS LocalTP = { 0 };
 
-    QUIC_TEL_ASSERT(Connection->Session != NULL);
-    QUIC_TEL_ASSERT(Connection->Configuration != NULL);
+    QUIC_TEL_ASSERT(Connection->Configuration == NULL);
     QUIC_TEL_ASSERT(Configuration != NULL);
 
     QuicTraceLogConnInfo(
@@ -2343,8 +2388,11 @@ QuicConnSetConfiguration(
         "Configuration set, %p",
         Configuration);
 
-    (void)QuicRundownAcquire(&Configuration->Rundown);
+    BOOLEAN Result = QuicRundownAcquire(&Configuration->Rundown);
+    QUIC_DBG_ASSERT(Result); UNREFERENCED_PARAMETER(Result);
     Connection->Configuration = Configuration;
+    Connection->ParentSettings = &Configuration->Settings;
+    QuicConnApplySettings(Connection);
 
     if (!QuicConnIsServer(Connection)) {
 
@@ -2433,8 +2481,8 @@ QuicConnSetConfiguration(
             &Connection->Crypto,
             Configuration->SecurityConfig,
             &LocalTP,
-            AlpnList,
-            AlpnListLength);
+            Configuration->AlpnList,
+            Configuration->AlpnListLength);
 
 Error:
 
@@ -5350,12 +5398,15 @@ QuicConnParamSet(
 
             QUIC_DBG_ASSERT(Connection->Paths[0].Binding);
             QUIC_DBG_ASSERT(Connection->State.RemoteAddressSet);
+            QUIC_DBG_ASSERT(Connection->Configuration != NULL);
 
             QUIC_BINDING* OldBinding = Connection->Paths[0].Binding;
 
             Status =
                 QuicLibraryGetBinding(
-                    Connection->Session,
+#ifdef QUIC_COMPARTMENT_ID
+                    Connection->Configuration->CompartmentId,
+#endif
                     Connection->State.ShareBinding,
                     FALSE,
                     LocalAddress,
@@ -6530,9 +6581,9 @@ QuicConnDrainOperations(
 {
     QUIC_OPERATION* Oper;
     const uint32_t MaxOperationCount =
-        (Connection->Session == NULL || Connection->Session->Registration == NULL) ?
+        (Connection->Configuration == NULL) ?
             MsQuicLib.Settings.MaxOperationsPerDrain :
-            Connection->Configuration->Settings.MaxOperationsPerDrain;
+            Connection->ParentSettings->MaxOperationsPerDrain;
     uint32_t OperationCount = 0;
     BOOLEAN HasMoreWorkToDo = TRUE;
 

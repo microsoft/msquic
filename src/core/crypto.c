@@ -262,7 +262,7 @@ QuicCryptoInitializeTls(
 
     QUIC_DBG_ASSERT(Params != NULL);
     QUIC_DBG_ASSERT(SecConfig != NULL);
-    QUIC_DBG_ASSERT(Connection->Session != NULL);
+    QUIC_DBG_ASSERT(Connection->Configuration != NULL);
 
     TlsConfig.IsServer = IsServer;
     TlsConfig.AlpnBuffer = AlpnList;
@@ -1370,13 +1370,13 @@ QuicCryptoProcessTlsCompletion(
         if (!QuicConnIsServer(Connection) &&
             Connection->RemoteServerName != NULL) {
 
-            /*QUIC_SEC_CONFIG* SecConfig = QuicTlsGetSecConfig(Crypto->TLS);
+            QUIC_SEC_CONFIG* SecConfig = QuicTlsGetSecConfig(Crypto->TLS);
 
             //
             // Cache this information for future connections in this
             // session to make use of.
             //
-            QUIC_TEL_ASSERT(Connection->Session != NULL);
+            QUIC_TEL_ASSERT(Connection->Configuration != NULL);
             QuicSessionServerCacheSetState(
                 Connection->Session,
                 Connection->RemoteServerName,
@@ -1384,7 +1384,7 @@ QuicCryptoProcessTlsCompletion(
                 &Connection->PeerTransportParams,
                 SecConfig);
 
-            QuicTlsSecConfigRelease(SecConfig);*/
+            QuicTlsSecConfigRelease(SecConfig);
         }
 
         QUIC_DBG_ASSERT(Crypto->TlsState.NegotiatedAlpn != NULL);
@@ -1396,8 +1396,8 @@ QuicCryptoProcessTlsCompletion(
             //
             Crypto->TlsState.NegotiatedAlpn =
                 QuicTlsAlpnFindInList(
-                    Connection->Session->AlpnListLength,
-                    Connection->Session->AlpnList,
+                    Connection->Configuration->AlpnListLength,
+                    Connection->Configuration->AlpnList,
                     Crypto->TlsState.NegotiatedAlpn[0],
                     Crypto->TlsState.NegotiatedAlpn + 1);
             QUIC_TEL_ASSERT(Crypto->TlsState.NegotiatedAlpn != NULL);

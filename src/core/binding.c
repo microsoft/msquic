@@ -1176,7 +1176,7 @@ QuicBindingCreateConnection(
 
     QUIC_CONNECTION* NewConnection =
         QuicConnAlloc(
-            MsQuicLib.UnregisteredSession,
+            MsQuicLib.StatelessRegistration,
             Datagram);
     if (NewConnection == NULL) {
         QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");

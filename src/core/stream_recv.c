@@ -584,7 +584,7 @@ QuicStreamOnBytesDelivered(
         // Limit stream FC window growth by the connection FC window size.
         //
         if (Stream->RecvBuffer.VirtualBufferLength <
-            Stream->Connection->Session->Settings.ConnFlowControlWindow) {
+            Stream->Connection->ParentSettings->ConnFlowControlWindow) {
 
             uint32_t TimeThreshold = (uint32_t)
                 ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].MinRtt) / RecvBufferDrainThreshold);

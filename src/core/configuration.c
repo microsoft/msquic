@@ -182,7 +182,7 @@ MsQuicConfigurationOpen(
 
     QuicConfigurationSettingsChanged(Configuration);
 
-    BOOLEAN Result = QuicRundownAcquire(&Registration->ConfigRundown);
+    BOOLEAN Result = QuicRundownAcquire(&Registration->Rundown);
     QUIC_FRE_ASSERT(Result);
 
     QuicLockAcquire(&Registration->ConfigLock);
@@ -251,7 +251,7 @@ MsQuicConfigurationClose(
         QuicSiloRelease(Configuration->Silo);
 #endif
 
-        QuicRundownRelease(&Configuration->Registration->ConfigRundown);
+        QuicRundownRelease(&Configuration->Registration->Rundown);
 
         QuicRundownUninitialize(&Configuration->Rundown);
         QuicTraceEvent(
@@ -271,12 +271,15 @@ _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
 void
 QUIC_API
 MsQuicConfigurationLoadCredentialComplete(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
     _In_ QUIC_STATUS Status,
     _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
     )
 {
     QUIC_CONFIGURATION* Configuration = (QUIC_CONFIGURATION*)Context;
+
+    QUIC_DBG_ASSERT(CredConfig != NULL);
 
     if (QUIC_SUCCEEDED(Status)) {
         QUIC_DBG_ASSERT(SecurityConfig);
@@ -285,13 +288,13 @@ MsQuicConfigurationLoadCredentialComplete(
         QUIC_DBG_ASSERT(SecurityConfig == NULL);
     }
 
-    QUIC_CONFIGURATION_EVENT* Event;
-    Event->Type = QUIC_CONFIGURATION_EVENT_LOAD_COMPLETE;
-    Event->LOAD_CREDENTIAL_COMPLETE.Status = Status;
-    (void)Configuration->ClientCallbackHandler(
-        Configuration,
-        Configuration->ClientCallbackHandler,
-        &Event);
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
+        QUIC_DBG_ASSERT(CredConfig->AsyncHandler != NULL);
+        CredConfig->AsyncHandler(
+            Configuration,
+            Configuration->ClientContext,
+            Status);
+    }
 
     QuicRundownRelease(&Configuration->Rundown);
 }
@@ -327,8 +330,7 @@ MsQuicConfigurationLoadCredential(
                 CredConfig,
                 Configuration,
                 MsQuicConfigurationLoadCredentialComplete);
-
-        if (Status != QUIC_STATUS_PENDING) {
+        if (QUIC_FAILED(Status)) {
             QuicRundownRelease(&Configuration->Rundown);
         }
     }
@@ -384,59 +386,6 @@ QuicConfigurationSettingsChanged(
     QuicSettingsDump(&Configuration->Settings);
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicConfigurationRegisterConnection(
-    _Inout_ QUIC_CONFIGURATION* Configuration,
-    _Inout_ QUIC_CONNECTION* Connection
-    )
-{
-    QuicConfigurationUnregisterConnection(Connection);
-    Connection->Configuration = Configuration;
-
-    if (Configuration->Registration != NULL) {
-        Connection->Registration = Configuration->Registration;
-        QuicRundownAcquire(&Configuration->Registration->ConnectionRundown);
-#ifdef QuicVerifierEnabledByAddr
-        Connection->State.IsVerifying = Configuration->Registration->IsVerifying;
-#endif
-        QuicConnApplySettings(Connection, &Configuration->Settings);
-    }
-
-    QuicTraceEvent(
-        ConnRegisterConfiguration,
-        "[conn][%p] Registered with session: %p",
-        Connection,
-        Configuration);
-    BOOLEAN Success = QuicRundownAcquire(&Configuration->Rundown);
-    QUIC_DBG_ASSERT(Success); UNREFERENCED_PARAMETER(Success);
-    QuicDispatchLockAcquire(&Configuration->ConnectionsLock);
-    QuicListInsertTail(&Configuration->Connections, &Connection->ConfigurationLink);
-    QuicDispatchLockRelease(&Configuration->ConnectionsLock);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicConfigurationUnregisterConnection(
-    _Inout_ QUIC_CONNECTION* Connection
-    )
-{
-    if (Connection->Configuration == NULL) {
-        return;
-    }
-    QUIC_CONFIGURATION* Configuration = Connection->Configuration;
-    Connection->Configuration = NULL;
-    QuicTraceEvent(
-        ConnUnregisterConfiguration,
-        "[conn][%p] Unregistered from session: %p",
-        Connection,
-        Configuration);
-    QuicDispatchLockAcquire(&Configuration->ConnectionsLock);
-    QuicListEntryRemove(&Connection->ConfigurationLink);
-    QuicDispatchLockRelease(&Configuration->ConnectionsLock);
-    QuicRundownRelease(&Configuration->Rundown);
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConfigurationParamGet(
@@ -464,28 +413,9 @@ QuicConfigurationParamSet(
         const void* Buffer
     )
 {
-    QUIC_STATUS Status;
-
-    switch (Param) {
-
-    case QUIC_PARAM_CONFIG_TLS_TICKET_KEY: {
-
-        if (BufferLength != 44) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        /*Status =
-            QuicTlsConfigurationSetTicketKey(
-                Configuration->TlsConfiguration,
-                Buffer);*/
-        break;
-    }
-
-    default:
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        break;
-    }
-
-    return Status;
+    UNREFERENCED_PARAMETER(Configuration);
+    UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
+    return QUIC_STATUS_NOT_SUPPORTED;
 }

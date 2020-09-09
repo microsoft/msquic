@@ -319,9 +319,9 @@ MsQuicLibraryUninitialize(
     //
     // Clean up all the leftover, unregistered server connections.
     //
-    if (MsQuicLib.UnregisteredSession != NULL) {
-        MsQuicSessionClose((HQUIC)MsQuicLib.UnregisteredSession);
-        MsQuicLib.UnregisteredSession = NULL;
+    if (MsQuicLib.StatelessRegistration != NULL) {
+        MsQuicRegistrationClose((HQUIC)MsQuicLib.StatelessRegistration);
+        MsQuicLib.StatelessRegistration = NULL;
     }
 
     QuicDataPathUninitialize(MsQuicLib.Datapath);
@@ -759,7 +759,6 @@ QuicLibrarySetParam(
     QUIC_STATUS Status;
     QUIC_REGISTRATION* Registration;
     QUIC_CONFIGURATION* Configuration;
-    QUIC_SESSION* Session;
     QUIC_LISTENER* Listener;
     QUIC_CONNECTION* Connection;
     QUIC_STREAM* Stream;
@@ -770,7 +769,6 @@ QuicLibrarySetParam(
         Stream = NULL;
         Connection = NULL;
         Listener = NULL;
-        Session = NULL;
         Configuration = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Registration = (QUIC_REGISTRATION*)Handle;
@@ -780,24 +778,18 @@ QuicLibrarySetParam(
         Stream = NULL;
         Connection = NULL;
         Listener = NULL;
-        Session = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Configuration = (QUIC_CONFIGURATION*)Handle;
-        Registration = Session->Registration;
+        Registration = Configuration->Registration;
         break;
-
-    case QUIC_HANDLE_TYPE_SESSION:
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        goto Error;
 
     case QUIC_HANDLE_TYPE_LISTENER:
         Stream = NULL;
         Connection = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Listener = (QUIC_LISTENER*)Handle;
-        Session = Listener->Session;
         Configuration = NULL;
-        Registration = Session->Registration;
+        Registration = Listener->Registration;
         break;
 
     case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
@@ -806,8 +798,6 @@ QuicLibrarySetParam(
         Listener = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Connection = (QUIC_CONNECTION*)Handle;
-        Session = Connection->Session;
-        QUIC_TEL_ASSERT(Session != NULL);
         Configuration = Connection->Configuration;
         Registration = Connection->Registration;
         break;
@@ -817,8 +807,6 @@ QuicLibrarySetParam(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Stream = (QUIC_STREAM*)Handle;
         Connection = Stream->Connection;
-        Session = Connection->Session;
-        QUIC_TEL_ASSERT(Session != NULL);
         Configuration = Connection->Configuration;
         Registration = Connection->Registration;
         break;
@@ -903,7 +891,6 @@ QuicLibraryGetParam(
     QUIC_STATUS Status;
     QUIC_REGISTRATION* Registration;
     QUIC_CONFIGURATION* Configuration;
-    QUIC_SESSION* Session;
     QUIC_LISTENER* Listener;
     QUIC_CONNECTION* Connection;
     QUIC_STREAM* Stream;
@@ -916,7 +903,6 @@ QuicLibraryGetParam(
         Stream = NULL;
         Connection = NULL;
         Listener = NULL;
-        Session = NULL;
         Configuration = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Registration = (QUIC_REGISTRATION*)Handle;
@@ -926,24 +912,18 @@ QuicLibraryGetParam(
         Stream = NULL;
         Connection = NULL;
         Listener = NULL;
-        Session = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Configuration = (QUIC_CONFIGURATION*)Handle;
-        Registration = Session->Registration;
+        Registration = Configuration->Registration;
         break;
-
-    case QUIC_HANDLE_TYPE_SESSION:
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        goto Error;
 
     case QUIC_HANDLE_TYPE_LISTENER:
         Stream = NULL;
         Connection = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Listener = (QUIC_LISTENER*)Handle;
-        Session = Listener->Session;
         Configuration = NULL;
-        Registration = Session->Registration;
+        Registration = Listener->Registration;
         break;
 
     case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
@@ -952,8 +932,6 @@ QuicLibraryGetParam(
         Listener = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Connection = (QUIC_CONNECTION*)Handle;
-        Session = Connection->Session;
-        QUIC_TEL_ASSERT(Session != NULL);
         Configuration = Connection->Configuration;
         Registration = Connection->Registration;
         break;
@@ -963,8 +941,6 @@ QuicLibraryGetParam(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Stream = (QUIC_STREAM*)Handle;
         Connection = Stream->Connection;
-        Session = Connection->Session;
-        QUIC_TEL_ASSERT(Session != NULL);
         Configuration = Connection->Configuration;
         Registration = Connection->Registration;
         break;
@@ -1076,14 +1052,11 @@ MsQuicOpen(
 
     Api->RegistrationOpen = MsQuicRegistrationOpen;
     Api->RegistrationClose = MsQuicRegistrationClose;
+    Api->RegistrationShutdown = MsQuicRegistrationShutdown;
 
     Api->ConfigurationOpen = MsQuicConfigurationOpen;
     Api->ConfigurationClose = MsQuicConfigurationClose;
     Api->ConfigurationLoadCredential = MsQuicConfigurationLoadCredential;
-
-    Api->SessionOpen = MsQuicSessionOpen;
-    Api->SessionClose = MsQuicSessionClose;
-    Api->SessionShutdown = MsQuicSessionShutdown;
 
     Api->ListenerOpen = MsQuicListenerOpen;
     Api->ListenerClose = MsQuicListenerClose;
@@ -1194,7 +1167,9 @@ QuicLibraryLookupBinding(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetBinding(
-    _In_ QUIC_SESSION* Session,
+#ifdef QUIC_COMPARTMENT_ID
+    _In_ QUIC_COMPARTMENT_ID CompartmentId,
+#endif
     _In_ BOOLEAN ShareBinding,
     _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR * LocalAddress,
@@ -1202,7 +1177,6 @@ QuicLibraryGetBinding(
     _Out_ QUIC_BINDING** NewBinding
     )
 {
-    UNREFERENCED_PARAMETER(Session);
     QUIC_STATUS Status = QUIC_STATUS_NOT_FOUND;
     QUIC_BINDING* Binding;
     QUIC_ADDR NewLocalAddress;
@@ -1224,7 +1198,7 @@ QuicLibraryGetBinding(
     Binding =
         QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
-            Session->CompartmentId,
+            CompartmentId,
 #endif
             LocalAddress,
             RemoteAddress);
@@ -1262,7 +1236,7 @@ NewBinding:
     Status =
         QuicBindingInitialize(
 #ifdef QUIC_COMPARTMENT_ID
-            Session->CompartmentId,
+            CompartmentId,
 #endif
             ShareBinding,
             ServerOwned,
@@ -1293,7 +1267,7 @@ NewBinding:
     Binding =
         QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
-            Session->CompartmentId,
+            CompartmentId,
 #endif
             &NewLocalAddress,
             NULL);
@@ -1397,34 +1371,24 @@ QuicLibraryOnListenerRegistered(
 
     QuicLockAcquire(&MsQuicLib.Lock);
 
-    if (MsQuicLib.WorkerPool == NULL) {
+    if (MsQuicLib.StatelessRegistration == NULL) {
         //
-        // Lazily initialize server specific state, such as worker threads and
-        // the unregistered connection session.
+        // Lazily initialize server specific state.
         //
         QuicTraceEvent(
-            LibraryWorkerPoolInit,
-            "[ lib] Shared worker pool initializing");
+            LibraryServerInit,
+            "[ lib] Shared server state initializing");
 
-        QUIC_DBG_ASSERT(MsQuicLib.UnregisteredSession == NULL);
-        if (QUIC_FAILED(
-            QuicSessionAlloc(
-                NULL,
-                0,
-                &MsQuicLib.UnregisteredSession))) {
-            Success = FALSE;
-            goto Fail;
-        }
+        const QUIC_REGISTRATION_CONFIG Config = {
+            "Stateless",
+            QUIC_EXECUTION_PROFILE_LOW_LATENCY
+        };
 
         if (QUIC_FAILED(
-            QuicWorkerPoolInitialize(
-                NULL,
-                0,
-                max(1, MsQuicLib.PartitionCount / 4),
-                &MsQuicLib.WorkerPool))) {
+            MsQuicRegistrationOpen(
+                &Config,
+                &MsQuicLib.StatelessRegistration))) {
             Success = FALSE;
-            MsQuicSessionClose((HQUIC)MsQuicLib.UnregisteredSession);
-            MsQuicLib.UnregisteredSession = NULL;
             goto Fail;
         }
     }

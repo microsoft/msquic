@@ -100,25 +100,6 @@ QuicConfigurationSettingsChanged(
     );
 
 //
-// Registers the connection with the session.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicConfigurationRegisterConnection(
-    _Inout_ QUIC_CONFIGURATION* Configuration,
-    _Inout_ QUIC_CONNECTION* Connection
-    );
-
-//
-// Unregisters the connection with the session.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicConfigurationUnregisterConnection(
-    _Inout_ QUIC_CONNECTION* Connection
-    );
-
-//
 // Gets a session parameter.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

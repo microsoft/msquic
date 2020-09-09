@@ -218,7 +218,8 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
     QUIC_CREDENTIAL_FLAGS Flags;
     void* Creds;
     const char* Principal;
-    QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler;
+    const uint8_t* TicketKey; // Optional, 44 byte array
+    QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
 } QUIC_CREDENTIAL_CONFIG;
 
 typedef struct QUIC_CERTIFICATE_HASH {
@@ -481,11 +482,6 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_REGISTRATION_CID_PREFIX              0   // uint8_t[]
 
 //
-// Parameters for QUIC_PARAM_LEVEL_CONFIGURATION.
-//
-#define QUIC_PARAM_CONFIG_TLS_TICKET_KEY                0   // uint8_t[44]
-
-//
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
 //
 #define QUIC_PARAM_LISTENER_LOCAL_ADDRESS               0   // QUIC_ADDR
@@ -593,7 +589,10 @@ QUIC_STATUS
     );
 
 //
-// Closes the registration.
+// Closes the registration. This function synchronizes the cleanup of all
+// child objects. It does this by blocking until all those child objects have
+// been closed by the application.
+// N.B. This function will deadlock if called in any MsQuic callbacks.
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -601,6 +600,19 @@ void
 (QUIC_API * QUIC_REGISTRATION_CLOSE_FN)(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
         HQUIC Registration
+    );
+
+//
+// Calls shutdown for all connections in this registration. Don't call on a
+// MsQuic callback thread or it might deadlock.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+(QUIC_API * QUIC_REGISTRATION_SHUTDOWN_FN)(
+    _In_ _Pre_defensive_ HQUIC Registration,
+    _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
+    _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode // Application defined error code
     );
 
 //
@@ -650,50 +662,6 @@ QUIC_STATUS
     );
 
 //
-// Session Context Interface.
-//
-
-//
-// Opens a new session.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-(QUIC_API * QUIC_SESSION_OPEN_FN)(
-    _In_ _Pre_defensive_ HQUIC Registration,
-    _In_opt_ void* Context,
-    _Outptr_ _At_(*Session, __drv_allocatesMem(Mem)) _Pre_defensive_
-        HQUIC* Session
-    );
-
-//
-// Closes an existing session. This function synchronizes the cleanup of all
-// child objects (listeners and connections). It does this by blocking until
-// all those child objects have been closed by the application.
-// N.B. This function will deadlock if called in any MsQuic callbacks.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-(QUIC_API * QUIC_SESSION_CLOSE_FN)(
-    _In_ _Pre_defensive_ __drv_freesMem(Mem)
-        HQUIC Session
-    );
-
-//
-// Calls shutdown for all connections in this session. Don't call on a MsQuic
-// callback thread or it might deadlock.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-(QUIC_API * QUIC_SESSION_SHUTDOWN_FN)(
-    _In_ _Pre_defensive_ HQUIC Session,
-    _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
-    _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode // Application defined error code
-    );
-
-//
 // Listener Context Interface.
 //
 
@@ -731,7 +699,7 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_LISTENER_OPEN_FN)(
-    _In_ _Pre_defensive_ HQUIC Session,
+    _In_ _Pre_defensive_ HQUIC Registration,
     _In_ _Pre_defensive_ QUIC_LISTENER_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Listener, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -873,7 +841,7 @@ typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_CONNECTION_OPEN_FN)(
-    _In_ _Pre_defensive_ HQUIC Session,
+    _In_ _Pre_defensive_ HQUIC Registration,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -1121,15 +1089,12 @@ typedef struct QUIC_API_TABLE {
 
     QUIC_REGISTRATION_OPEN_FN           RegistrationOpen;
     QUIC_REGISTRATION_CLOSE_FN          RegistrationClose;
+    QUIC_REGISTRATION_SHUTDOWN_FN       RegistrationShutdown;
 
     QUIC_CONFIGURATION_OPEN_FN          ConfigurationOpen;
     QUIC_CONFIGURATION_CLOSE_FN         ConfigurationClose;
     QUIC_CONFIGURATION_LOAD_CREDENTIAL_FN
                                         ConfigurationLoadCredential;
-
-    QUIC_SESSION_OPEN_FN                SessionOpen;
-    QUIC_SESSION_CLOSE_FN               SessionClose;
-    QUIC_SESSION_SHUTDOWN_FN            SessionShutdown;
 
     QUIC_LISTENER_OPEN_FN               ListenerOpen;
     QUIC_LISTENER_CLOSE_FN              ListenerClose;

@@ -51,7 +51,6 @@ extern "C" {
 #include "api.h"
 #include "registration.h"
 #include "configuration.h"
-#include "session.h"
 #include "range.h"
 #include "recv_buffer.h"
 #include "send_buffer.h"

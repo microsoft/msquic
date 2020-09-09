@@ -418,9 +418,9 @@ QuicWorkerProcessTimers(
             QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
 
         Connection->WorkerThreadID = Worker->ThreadID;
-        QuicSessionAttachSilo(Connection->Session);
+        QuicConfigurationAttachSilo(Connection->Configuration);
         QuicConnTimerExpired(Connection, TimeNow);
-        QuicSessionDetachSilo();
+        QuicConfigurationDetachSilo();
         Connection->WorkerThreadID = 0;
     }
 }
@@ -437,7 +437,7 @@ QuicWorkerProcessConnection(
         "[conn][%p] Scheduling: %u",
         Connection,
         QUIC_SCHEDULE_PROCESSING);
-    QuicSessionAttachSilo(Connection->Session);
+    QuicConfigurationAttachSilo(Connection->Configuration);
 
     if (Connection->Stats.Schedule.LastQueueTime != 0) {
         QuicWorkerUpdateQueueDelay(
@@ -516,7 +516,7 @@ QuicWorkerProcessConnection(
     }
     QuicDispatchLockRelease(&Worker->Lock);
 
-    QuicSessionDetachSilo();
+    QuicConfigurationDetachSilo();
 
     if (DoneWithConnection) {
         if (Connection->State.UpdateWorker) {

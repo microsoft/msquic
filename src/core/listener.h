@@ -23,9 +23,16 @@ typedef struct QUIC_LISTENER {
     QUIC_LIST_ENTRY Link;
 
     //
-    // The top level session.
+    // The top level registration.
     //
-    QUIC_SESSION* Session;
+    QUIC_REGISTRATION* Registration;
+
+#ifdef QUIC_SILO
+    //
+    // The silo.
+    //
+    QUIC_SILO Silo;
+#endif
 
     //
     // Rundown for unregistering from a binding.
@@ -62,6 +69,24 @@ typedef struct QUIC_LISTENER {
     uint8_t* AlpnList;
 
 } QUIC_LISTENER;
+
+#ifdef QUIC_SILO
+
+#define QuicListenerAttachSilo(Listener) \
+    QUIC_SILO PrevSilo = Listener->Silo == NULL ? \
+        QUIC_SILO_INVALID : QuicSiloAttach(Listener->Silo)
+
+#define QuicListenerDetachSilo() \
+    if (PrevSilo != QUIC_SILO_INVALID) {\
+        QuicSiloDetatch(PrevSilo); \
+    }
+
+#else
+
+#define QuicListenerAttachSilo(Listener)
+#define QuicListenerDetachSilo()
+
+#endif // #ifdef QUIC_SILO
 
 //
 // Tracing rundown for the binding.

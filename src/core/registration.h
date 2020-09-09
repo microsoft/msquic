@@ -73,24 +73,19 @@ typedef struct QUIC_REGISTRATION {
     QUIC_LIST_ENTRY Configurations;
 
     //
-    // Protects access to the Sessions list.
+    // Protects access to the Connections list.
     //
-    QUIC_LOCK SessionLock;
+    QUIC_DISPATCH_LOCK ConnectionLock;
 
     //
-    // List of all sessions for this registration.
+    // List of all connections for this registration.
     //
-    QUIC_LIST_ENTRY Sessions;
+    QUIC_LIST_ENTRY Connections;
 
     //
-    // Rundown for all outstanding configurations.
+    // Rundown for all child objects.
     //
-    QUIC_RUNDOWN_REF ConfigRundown;
-
-    //
-    // Rundown for all connections.
-    //
-    QUIC_RUNDOWN_REF ConnectionRundown;
+    QUIC_RUNDOWN_REF Rundown;
 
     //
     // Name of the application layer.

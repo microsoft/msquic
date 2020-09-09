@@ -12,7 +12,6 @@ typedef enum QUIC_HANDLE_TYPE {
 
     QUIC_HANDLE_TYPE_REGISTRATION,
     QUIC_HANDLE_TYPE_CONFIGURATION,
-    QUIC_HANDLE_TYPE_SESSION,
     QUIC_HANDLE_TYPE_LISTENER,
     QUIC_HANDLE_TYPE_CONNECTION_CLIENT,
     QUIC_HANDLE_TYPE_CONNECTION_SERVER,
@@ -189,13 +188,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Contains all (server) connections currently not in an app's registration.
     //
-    QUIC_SESSION* UnregisteredSession;
-
-    //
-    // Set of workers that manage processing client Initial packets on the
-    // server side.
-    //
-    QUIC_WORKER_POOL* WorkerPool;
+    QUIC_REGISTRATION* StatelessRegistration;
 
     //
     // Per-processor storage. Count of `PartitionCount`.
@@ -429,7 +422,9 @@ QuicLibraryGetParam(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetBinding(
-    _In_ QUIC_SESSION* Session,
+#ifdef QUIC_COMPARTMENT_ID
+    _In_ QUIC_COMPARTMENT_ID CompartmentId,
+#endif
     _In_ BOOLEAN ShareBinding,
     _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR * LocalAddress,

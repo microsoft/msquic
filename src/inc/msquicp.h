@@ -21,16 +21,6 @@ extern "C" {
 #endif
 
 //
-// Disables server certificate validation.
-// Used with the QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS parameter.
-//
-#define QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION   0x80000000
-
-//
-// The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
-//
-
-//
 // Returns TRUE to drop the packet.
 //
 typedef
@@ -65,6 +55,17 @@ typedef struct QUIC_TEST_DATAPATH_HOOKS {
 #define QUIC_TEST_DATAPATH_HOOKS_ENABLED 1
 #endif
 
+typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
+    uint16_t Type;
+    uint16_t Length;
+    _Field_size_(Length)
+    const uint8_t* Buffer;
+} QUIC_PRIVATE_TRANSPORT_PARAMETER;
+
+//
+// The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
+//
+
 #define QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS           0x80000001  // QUIC_TEST_DATAPATH_HOOKS*
 
 //
@@ -75,13 +76,6 @@ typedef struct QUIC_TEST_DATAPATH_HOOKS {
 //
 // The different private parameters for QUIC_PARAM_LEVEL_CONNECTION.
 //
-
-typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
-    uint16_t Type;
-    uint16_t Length;
-    _Field_size_(Length)
-    const uint8_t* Buffer;
-} QUIC_PRIVATE_TRANSPORT_PARAMETER;
 
 #define QUIC_PARAM_CONN_RESUMPTION_STATE                0x80000001  // uint8_t*
 #define QUIC_PARAM_CONN_FORCE_KEY_UPDATE                0x80000002  // No payload

@@ -42,9 +42,15 @@ struct TlsContext
         State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000);
         State.BufferAllocLength = 8000;
 
+        QUIC_CREDENTIAL_CONFIG CredConfig = {
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE,
+            QUIC_CREDENTIAL_FLAG_CLIENT & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
+            NULL,
+            NULL
+        };
         VERIFY_QUIC_SUCCESS(
             QuicTlsSecConfigCreate(
-                CertValidationIgnoreFlags, &SecConfig));
+                &CredConfig, &SecConfig, OnSecConfigCreateComplete));
 
         QUIC_CONNECTION Connection = {0};
         ((QUIC_HANDLE*)&Connection)->Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
@@ -100,6 +106,19 @@ struct TlsContext
     }
 
 private:
+
+    _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
+    static void
+    QUIC_API
+    OnSecConfigCreateComplete(
+        _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
+        _In_opt_ void* Context,
+        _In_ QUIC_STATUS /* Status */,
+        _In_opt_ QUIC_SEC_CONFIG* SecConfig
+        )
+    {
+        *(QUIC_SEC_CONFIG**)Context = SecConfig;
+    }
 
     QUIC_TLS_RESULT_FLAGS
     ProcessData(

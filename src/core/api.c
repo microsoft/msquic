@@ -14,9 +14,9 @@ Abstract:
 #include "api.c.clog.h"
 #endif
 
-#define IS_SESSION_HANDLE(Handle) \
+#define IS_REGISTRATION_HANDLE(Handle) \
 ( \
-    (Handle) != NULL && (Handle)->Type == QUIC_HANDLE_TYPE_SESSION \
+    (Handle) != NULL && (Handle)->Type == QUIC_HANDLE_TYPE_REGISTRATION \
 )
 
 #define IS_CONN_HANDLE(Handle) \
@@ -34,7 +34,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicConnectionOpen(
-    _In_ _Pre_defensive_ HQUIC SessionHandle,
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -42,16 +42,16 @@ MsQuicConnectionOpen(
     )
 {
     QUIC_STATUS Status;
-    QUIC_SESSION* Session;
+    QUIC_REGISTRATION* Registration;
     QUIC_CONNECTION* Connection = NULL;
 
     QuicTraceEvent(
         ApiEnter,
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_CONNECTION_OPEN,
-        SessionHandle);
+        RegistrationHandle);
 
-    if (!IS_SESSION_HANDLE(SessionHandle) ||
+    if (!IS_REGISTRATION_HANDLE(RegistrationHandle) ||
         NewConnection == NULL ||
         Handler == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -59,9 +59,9 @@ MsQuicConnectionOpen(
     }
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Session = (QUIC_SESSION*)SessionHandle;
+    Registration = (QUIC_SESSION*)RegistrationHandle;
 
-    if ((Connection = QuicConnAlloc(Session, NULL)) == NULL) {
+    if ((Connection = QuicConnAlloc(Registration, NULL)) == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -69,7 +69,7 @@ MsQuicConnectionOpen(
     Connection->ClientCallbackHandler = Handler;
     Connection->ClientContext = Context;
 
-    QuicRegistrationQueueNewConnection(Session->Registration, Connection);
+    QuicRegistrationQueueNewConnection(Registration, Connection);
 
     *NewConnection = (HQUIC)Connection;
     Status = QUIC_STATUS_SUCCESS;
@@ -1202,10 +1202,10 @@ MsQuicSetParam(
     }
 
     if (Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION ||
-        Handle->Type == QUIC_HANDLE_TYPE_SESSION ||
+        Handle->Type == QUIC_HANDLE_TYPE_CONFIGURATION ||
         Handle->Type == QUIC_HANDLE_TYPE_LISTENER) {
         //
-        // Registration, Session and Listener parameters are processed inline.
+        // Registration, Configuration and Listener parameters are processed inline.
         //
         Status = QuicLibrarySetParam(Handle, Level, Param, BufferLength, Buffer);
         goto Error;
@@ -1313,10 +1313,10 @@ MsQuicGetParam(
     }
 
     if (Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION ||
-        Handle->Type == QUIC_HANDLE_TYPE_SESSION ||
+        Handle->Type == QUIC_HANDLE_TYPE_CONFIGURATION ||
         Handle->Type == QUIC_HANDLE_TYPE_LISTENER) {
         //
-        // Registration, Session and Listener parameters are processed inline.
+        // Registration, Configuration and Listener parameters are processed inline.
         //
         Status = QuicLibraryGetParam(Handle, Level, Param, BufferLength, Buffer);
         goto Error;

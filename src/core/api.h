@@ -22,6 +22,15 @@ MsQuicRegistrationClose(
         HQUIC Registration
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QUIC_API
+MsQuicRegistrationShutdown(
+    _In_ _Pre_defensive_ HQUIC Registration,
+    _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
+    _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -57,35 +66,8 @@ MsQuicConfigurationLoadCredential(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
-MsQuicSessionOpen(
-    _In_ _Pre_defensive_ HQUIC RegistrationContext,
-    _In_opt_ void* Context,
-    _Outptr_ _At_(*Session, __drv_allocatesMem(Mem)) _Pre_defensive_
-        HQUIC *Session
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QUIC_API
-MsQuicSessionClose(
-    _In_ _Pre_defensive_ __drv_freesMem(Mem)
-        HQUIC Session
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QUIC_API
-MsQuicSessionShutdown(
-    _In_ _Pre_defensive_ HQUIC Session,
-    _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
-    _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QUIC_API
 MsQuicListenerOpen(
-    _In_ _Pre_defensive_ HQUIC Session,
+    _In_ _Pre_defensive_ HQUIC Registration,
     _In_ _Pre_defensive_ QUIC_LISTENER_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Listener, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -122,7 +104,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicConnectionOpen(
-    _In_ _Pre_defensive_ HQUIC Session,
+    _In_ _Pre_defensive_ HQUIC Registration,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem)) _Pre_defensive_

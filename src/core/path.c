@@ -29,8 +29,8 @@ QuicPathInitialize(
     Path->ID = Connection->NextPathId++; // TODO - Check for duplicates after wrap around?
     Path->MinRtt = UINT32_MAX;
     Path->Mtu = QUIC_DEFAULT_PATH_MTU;
-    if (Connection->Session != NULL) {
-        Path->SmoothedRtt = MS_TO_US(Connection->Session->Settings.InitialRttMs);
+    if (Connection->Configuration != NULL) {
+        Path->SmoothedRtt = MS_TO_US(Connection->ParentSettings->InitialRttMs);
     } else {
         Path->SmoothedRtt = MS_TO_US(QUIC_INITIAL_RTT);
     }

@@ -49,6 +49,7 @@ protected:
     static void
     QUIC_API
     OnSecConfigCreateComplete(
+        _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
         _In_opt_ void* Context,
         _In_ QUIC_STATUS Status,
         _In_opt_ QUIC_SEC_CONFIG* SecConfig

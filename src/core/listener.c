@@ -18,7 +18,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicListenerOpen(
-    _In_ _Pre_defensive_ HQUIC SessionHandle,
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
     _In_ _Pre_defensive_ QUIC_LISTENER_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*NewListener, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -26,24 +26,24 @@ MsQuicListenerOpen(
     )
 {
     QUIC_STATUS Status;
-    QUIC_SESSION* Session;
+    QUIC_REGISTRATION* Registration;
     QUIC_LISTENER* Listener = NULL;
 
     QuicTraceEvent(
         ApiEnter,
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_LISTENER_OPEN,
-        SessionHandle);
+        RegistrationHandle);
 
-    if (SessionHandle == NULL ||
-        SessionHandle->Type != QUIC_HANDLE_TYPE_SESSION ||
+    if (RegistrationHandle == NULL ||
+        RegistrationHandle->Type != QUIC_HANDLE_TYPE_REGISTRATION ||
         NewListener == NULL ||
         Handler == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 
-    Session = (QUIC_SESSION*)SessionHandle;
+    Registration = (QUIC_SESSION*)RegistrationHandle;
 
     Listener = QUIC_ALLOC_NONPAGED(sizeof(QUIC_LISTENER));
     if (Listener == NULL) {
@@ -58,19 +58,24 @@ MsQuicListenerOpen(
 
     QuicZeroMemory(Listener, sizeof(QUIC_LISTENER));
     Listener->Type = QUIC_HANDLE_TYPE_LISTENER;
-    Listener->Session = Session;
+    Listener->Registration = Registration;
     Listener->ClientCallbackHandler = Handler;
     Listener->ClientContext = Context;
     QuicRundownInitializeDisabled(&Listener->Rundown);
 
-#pragma prefast(suppress: __WARNING_6031, "Will always succeed.")
-    QuicRundownAcquire(&Session->Rundown);
+#ifdef QUIC_SILO
+    Listener->Silo = QuicSiloGetCurrentServer();
+    QuicSiloAddRef(Listener->Silo);
+#endif
+
+    BOOLEAN Result = QuicRundownAcquire(&Registration->Rundown);
+    QUIC_DBG_ASSERT(Result); UNREFERENCED_PARAMETER(Result);
 
     QuicTraceEvent(
         ListenerCreated,
-        "[list][%p] Created, Session=%p",
+        "[list][%p] Created, Registration=%p",
         Listener,
-        Listener->Session);
+        Listener->Registration);
     *NewListener = (HQUIC)Listener;
     Status = QUIC_STATUS_SUCCESS;
 
@@ -117,7 +122,7 @@ MsQuicListenerClose(
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     QUIC_LISTENER* Listener = (QUIC_LISTENER*)Handle;
-    QUIC_SESSION* Session = Listener->Session;
+    QUIC_REGISTRATION* Registration = Listener->Registration;
 
     //
     // Make sure the listener has unregistered from the binding.
@@ -131,9 +136,13 @@ MsQuicListenerClose(
         "[list][%p] Destroyed",
         Listener);
 
+#ifdef QUIC_SILO
+    QuicSiloRelease(Listener->Silo);
+#endif
+
     QUIC_DBG_ASSERT(Listener->AlpnList == NULL);
     QUIC_FREE(Listener);
-    QuicRundownRelease(&Session->Rundown);
+    QuicRundownRelease(&Registration->Rundown);
 
     QuicTraceEvent(
         ApiExit,
@@ -250,7 +259,9 @@ MsQuicListenerStart(
     QUIC_TEL_ASSERT(Listener->Binding == NULL);
     Status =
         QuicLibraryGetBinding(
-            Listener->Session,
+#ifdef QUIC_COMPARTMENT_ID
+            QuicCompartmentIdGetCurrent(),
+#endif
             TRUE,           // Listeners always share the binding.
             TRUE,
             &BindingLocalAddress,
@@ -367,9 +378,9 @@ QuicListenerTraceRundown(
 {
     QuicTraceEvent(
         ListenerRundown,
-        "[list][%p] Rundown, Session=%p",
+        "[list][%p] Rundown, Registration=%p",
         Listener,
-        Listener->Session);
+        Listener->Registration);
     if (Listener->Binding != NULL) {
         QuicTraceEvent(
             ListenerStarted,
@@ -489,7 +500,7 @@ QuicListenerClaimConnection(
     Event.NEW_CONNECTION.Connection = (HQUIC)Connection;
     Event.NEW_CONNECTION.Configuration = NULL;
 
-    QuicSessionAttachSilo(Listener->Session);
+    QuicListenerAttachSilo(Listener);
 
     QuicTraceLogVerbose(
         ListenerIndicateNewConnection,
@@ -498,7 +509,7 @@ QuicListenerClaimConnection(
 
     QUIC_STATUS Status = QuicListenerIndicateEvent(Listener, &Event);
 
-    QuicSessionDetachSilo();
+    QuicListenerDetachSilo();
 
     if (Status == QUIC_STATUS_PENDING) {
         QuicTraceLogVerbose(
@@ -575,7 +586,7 @@ QuicListenerAcceptConnection(
     )
 {
     if (!QuicRegistrationAcceptConnection(
-            Listener->Session->Registration,
+            Listener->Registration,
             Connection)) {
         QuicTraceEvent(
             ConnError,
@@ -589,14 +600,12 @@ QuicListenerAcceptConnection(
         return;
     }
 
-    QuicSessionRegisterConnection(Listener->Session, Connection);
+    QuicConnRegister(Connection, Listener->Registration);
     if (!QuicConnGenerateNewSourceCid(Connection, TRUE)) {
-        QuicSessionUnregisterConnection(Connection);
         return;
     }
 
     if (!QuicListenerClaimConnection(Listener, Connection, Info)) {
-        QuicSessionUnregisterConnection(Connection);
         Listener->TotalRejectedConnections++;
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_APP_REJECT);
         return;

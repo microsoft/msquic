@@ -32,8 +32,8 @@ BOOLEAN
 QuicSettingApply(
     _Inout_ QUIC_SETTINGS* Settings,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
-        uint32_t NewSessionSize,
-    _In_reads_bytes_(NewSessionSize)
+        uint32_t NewSettingsSize,
+    _In_reads_bytes_(NewSettingsSize)
         const QUIC_SETTINGS* NewSettings
     );
 

@@ -246,6 +246,9 @@ typedef struct QUIC_SEC_CONFIG {
 } QUIC_SEC_CONFIG;
 
 typedef struct QUIC_ACH_CONTEXT {
+
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+
     //
     // Context for the completion callback.
     //
@@ -723,6 +726,7 @@ _Must_inspect_result_
 _Success_(return != NULL)
 QUIC_ACH_CONTEXT*
 QuicTlsAllocateAchContext(
+    _In_ QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER Callback,
     _In_ QUIC_SEC_CONFIG* Config
@@ -737,6 +741,7 @@ QuicTlsAllocateAchContext(
             sizeof(QUIC_ACH_CONTEXT));
     } else {
         RtlZeroMemory(AchContext, sizeof(*AchContext));
+        AchContext->CredConfig = *CredConfig;
         AchContext->CompletionContext = Context;
         AchContext->CompletionCallback = Callback;
         AchContext->SecConfig = Config;
@@ -781,6 +786,7 @@ QuicTlsSspiNotifyCallback(
     void* CompletionContext = Context->CompletionContext;
     QUIC_SEC_CONFIG* SecConfig = (QUIC_SEC_CONFIG*)Context->SecConfig;
     SECURITY_STATUS Status = SspiGetAsyncCallStatus(Handle);
+    QUIC_CREDENTIAL_CONFIG CredConfig = Context->CredConfig;
     QuicTlsFreeAchContext(Context);
     if (Status != SEC_E_OK) {
         QuicTraceEvent(
@@ -788,10 +794,10 @@ QuicTlsSspiNotifyCallback(
             "[ lib] ERROR, %u, %s.",
             Status,
             "Completion for SspiAcquireCredentialsHandleAsyncW");
-        CompletionCallback(CompletionContext, SecStatusToQuicStatus(Status), NULL);
+        CompletionCallback(&CredConfig, CompletionContext, SecStatusToQuicStatus(Status), NULL);
         QuicTlsSecConfigDelete(SecConfig); // *MUST* be last call to prevent crash in platform cleanup.
     } else {
-        CompletionCallback(CompletionContext, QUIC_STATUS_SUCCESS, SecConfig);
+        CompletionCallback(&CredConfig, CompletionContext, QUIC_STATUS_SUCCESS, SecConfig);
     }
 }
 
@@ -818,7 +824,7 @@ QuicTlsSecConfigCreate(
 #ifndef _KERNEL_MODE
     PCERT_CONTEXT CertContext = NULL;
 
-    if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_SYNCHRONOUS)) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 #endif
@@ -868,7 +874,11 @@ QuicTlsSecConfigCreate(
     Config->Flags = CredConfig->Flags;
 
     QUIC_ACH_CONTEXT* AchContext =
-        QuicTlsAllocateAchContext(Context, CompletionHandler, Config);
+        QuicTlsAllocateAchContext(
+            CredConfig,
+            Context,
+            CompletionHandler,
+            Config);
     if (AchContext == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -1090,7 +1100,7 @@ QuicTlsSecConfigCreate(
 
 #endif
 
-    QUIC_DBG_ASSERT(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_SYNCHRONOUS);
+    QUIC_DBG_ASSERT(!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS));
 
     QuicTraceLogVerbose(
         SchannelAch,
@@ -1126,7 +1136,11 @@ QuicTlsSecConfigCreate(
         "[ tls] Invoking security config completion callback inline, 0x%x",
         SecStatus);
 
-    CompletionHandler(Context, SecStatusToQuicStatus(SecStatus), (QUIC_SEC_CONFIG*)Config);
+    CompletionHandler(
+        CredConfig,
+        Context,
+        SecStatusToQuicStatus(SecStatus),
+        Config);
     Status = QUIC_STATUS_PENDING;
     Config = NULL;
 
