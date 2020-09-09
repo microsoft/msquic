@@ -52,7 +52,7 @@ QuicLookupUninitialize(
         QUIC_DBG_ASSERT(Lookup->SINGLE.Connection == NULL);
     } else {
         QUIC_DBG_ASSERT(Lookup->HASH.Tables != NULL);
-        for (uint8_t i = 0; i < Lookup->PartitionCount; i++) {
+        for (uint16_t i = 0; i < Lookup->PartitionCount; i++) {
             QUIC_PARTITIONED_HASHTABLE* Table = &Lookup->HASH.Tables[i];
             QUIC_DBG_ASSERT(Table->Table.NumEntries == 0);
 #pragma warning(push)
@@ -199,7 +199,7 @@ QuicLookupRebalance(
             //
 
             QUIC_PARTITIONED_HASHTABLE* PreviousTable = PreviousLookup;
-            for (uint8_t i = 0; i < PreviousPartitionCount; i++) {
+            for (uint16_t i = 0; i < PreviousPartitionCount; i++) {
                 QUIC_HASHTABLE_ENTRY* Entry;
                 QUIC_HASHTABLE_ENUMERATOR Enumerator;
 #pragma warning(push)
