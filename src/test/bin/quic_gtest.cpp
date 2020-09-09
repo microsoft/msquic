@@ -12,8 +12,8 @@
 
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
-const QUIC_API_TABLE* MsQuic;
-HQUIC Registration;
+const MsQuicApi* MsQuic;
+MsQuicRegistration* Registration;
 QUIC_SEC_CONFIG_PARAMS* SelfSignedCertParams;
 QUIC_SEC_CONFIG* SecurityConfig;
 QuicDriverClient DriverClient;
@@ -48,9 +48,10 @@ public:
             ASSERT_TRUE(DriverClient.Initialize(SelfSignedCertParams, DriverName));
         } else {
             printf("Initializing for User Mode tests\n");
-            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuicOpen(&MsQuic)));
-            const QUIC_REGISTRATION_CONFIG RegConfig = { "MsQuicBVT", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
-            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&RegConfig, &Registration)));
+            MsQuic = new MsQuicApi();
+            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
+            Registration = new MsQuicRegistration("MsQuicBVT");
+            ASSERT_TRUE(QUIC_SUCCEEDED(Registration->GetInitStatus()));
             ASSERT_TRUE(LoadSecConfig());
             QuicTestInitialize();
         }
@@ -62,8 +63,8 @@ public:
         } else {
             QuicTestUninitialize();
             MsQuic->SecConfigDelete(SecurityConfig);
-            MsQuic->RegistrationClose(Registration);
-            MsQuicClose(MsQuic);
+            delete Registration;
+            delete MsQuic;
         }
         QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
         QuicPlatformUninitialize();
@@ -88,7 +89,7 @@ public:
         QuicEventInitialize(&Event, FALSE, FALSE);
         if (QUIC_SUCCEEDED(
             MsQuic->SecConfigCreate(
-                Registration,
+                *Registration,
                 (QUIC_SEC_CONFIG_FLAGS)SelfSignedCertParams->Flags,
                 SelfSignedCertParams->Certificate,
                 SelfSignedCertParams->Principal,

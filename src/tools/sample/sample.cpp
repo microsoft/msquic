@@ -161,7 +161,6 @@ RunServer(
     )
 {
     QUIC_STATUS Status;
-    const uint16_t PeerStreamCount = 1;
     HQUIC Listener = nullptr;
 
     QUIC_ADDR Address = {};
@@ -186,13 +185,6 @@ RunServer(
     } else {
         printf("Must specify '-cert_hash' or 'cert_file'!\n");
         return;
-    }
-
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-            Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT,
-            sizeof(PeerStreamCount), &PeerStreamCount))) {
-        printf("SetParam(QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT) failed, 0x%x!\n", Status);
-        goto Error;
     }
 
     if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Session, ServerListenerCallback, nullptr, &Listener))) {
@@ -401,7 +393,14 @@ main(
 {
     QuicPlatformSystemLoad();
 
-    QUIC_SERVER_RESUMPTION_LEVEL ResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT;
+    QUIC_SETTINGS Settings{0};
+    Settings.IdleTimeoutMs = IdleTimeoutMs;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
+    Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT;
+    Settings.IsSet.ServerResumptionLevel = TRUE;
+    Settings.PeerBidiStreamCount = 1;
+    Settings.IsSet.PeerBidiStreamCount = TRUE;
+
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (QUIC_FAILED(Status = QuicPlatformInitialize())) {
         printf("QuicPlatformInitialize failed, 0x%x!\n", Status);
@@ -419,24 +418,10 @@ main(
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, &Alpn, 1, nullptr, &Session))) {
+    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, sizeof(Settings), &Settings, &Alpn, 1, nullptr, &Session))) {
         printf("SessionOpen failed, 0x%x!\n", Status);
         goto Error;
     }
-
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-            Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_IDLE_TIMEOUT,
-            sizeof(IdleTimeoutMs), &IdleTimeoutMs))) {
-        printf("SetParam(QUIC_PARAM_SESSION_IDLE_TIMEOUT) failed, 0x%x!\n", Status);
-        goto Error;
-    }
-
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-        Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-        sizeof(ResumptionLevel), &ResumptionLevel))) {
-            printf("SetParam(QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL) failed, 0x%x!\n", Status);
-            goto Error;
-        }
 
     if (GetValue(argc, argv, "help") ||
         GetValue(argc, argv, "?")) {

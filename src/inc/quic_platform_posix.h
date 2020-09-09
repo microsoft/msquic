@@ -13,16 +13,15 @@ Environment:
 
 --*/
 
-#ifndef QUIC_PLATFORM_
+#pragma once
+
+#ifndef QUIC_PLATFORM_TYPE
 #error "Must be included from quic_platform.h"
 #endif
 
 #if !defined(QUIC_PLATFORM_LINUX) && !defined(QUIC_PLATFORM_DARWIN)
 #error "Incorrectly including Posix Platform Header from unsupported platfrom"
 #endif
-
-#ifndef _PLATFORM_LINUX_
-#define _PLATFORM_LINUX_
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -805,5 +804,3 @@ QuicPlatFreeSelfSignedCert(
 #if defined(__cplusplus)
 }
 #endif
-
-#endif // _PLATFORM_LINUX_

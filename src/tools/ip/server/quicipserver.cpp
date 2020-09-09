@@ -227,6 +227,10 @@ main(
 {
     QuicPlatformSystemLoad();
 
+    QUIC_SETTINGS Settings{0};
+    Settings.IdleTimeoutMs = IdleTimeoutMs;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
+
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (QUIC_FAILED(Status = QuicPlatformInitialize())) {
         printf("QuicPlatformInitialize failed, 0x%x!\n", Status);
@@ -244,15 +248,8 @@ main(
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, &Alpn, 1, nullptr, &Session))) {
+    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, sizeof(Settings), &Settings, &Alpn, 1, nullptr, &Session))) {
         printf("SessionOpen failed, 0x%x!\n", Status);
-        goto Error;
-    }
-
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-            Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_IDLE_TIMEOUT,
-            sizeof(IdleTimeoutMs), &IdleTimeoutMs))) {
-        printf("SetParam(QUIC_PARAM_SESSION_IDLE_TIMEOUT) failed, 0x%x!\n", Status);
         goto Error;
     }
 

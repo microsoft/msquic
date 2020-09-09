@@ -40,22 +40,6 @@ PrintHelp(
         );
 }
 
-RpsClient::RpsClient() {
-    QuicEventInitialize(&AllConnected, TRUE, FALSE);
-    if (Session.IsValid()) {
-        Session.SetAutoCleanup();
-        Session.SetDisconnectTimeout(PERF_DEFAULT_DISCONNECT_TIMEOUT);
-        Session.SetIdleTimeout(PERF_DEFAULT_IDLE_TIMEOUT);
-    }
-}
-
-RpsClient::~RpsClient() {
-    if (RequestBuffer) {
-        QUIC_FREE(RequestBuffer);
-    }
-    QuicEventUninitialize(AllConnected);
-}
-
 QUIC_STATUS
 RpsClient::Init(
     _In_ int argc,

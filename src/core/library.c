@@ -200,7 +200,7 @@ MsQuicLibraryInitialize(
     //
     MsQuicLib.ProcessorCount = (uint16_t) QuicProcActiveCount();
     QUIC_FRE_ASSERT(MsQuicLib.ProcessorCount > 0);
-    MsQuicLib.PartitionCount = (uint8_t)MsQuicLib.ProcessorCount;
+    MsQuicLib.PartitionCount = (uint8_t)min(MsQuicLib.ProcessorCount, UINT8_MAX-1);
     if (MsQuicLib.PartitionCount  > (uint32_t)MsQuicLib.Settings.MaxPartitionCount) {
         MsQuicLib.PartitionCount  = (uint32_t)MsQuicLib.Settings.MaxPartitionCount;
     }
@@ -541,7 +541,6 @@ QuicLibApplyLoadBalancingSetting(
         MSQUIC_CID_PID_LENGTH +
         MSQUIC_CID_PAYLOAD_LENGTH;
 
-    QUIC_FRE_ASSERT(MsQuicLib.CidServerIdLength >= MSQUIC_MIN_CID_SID_LENGTH);
     QUIC_FRE_ASSERT(MsQuicLib.CidServerIdLength <= MSQUIC_MAX_CID_SID_LENGTH);
     QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
     QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength <= MSQUIC_CID_MAX_LENGTH);
@@ -572,7 +571,7 @@ QuicLibrarySetGlobalParam(
         }
 
         MsQuicLib.Settings.RetryMemoryLimit = *(uint16_t*)Buffer;
-        MsQuicLib.Settings.AppSet.RetryMemoryLimit = TRUE;
+        MsQuicLib.Settings.IsSet.RetryMemoryLimit = TRUE;
         QuicTraceLogInfo(
             LibraryRetryMemoryLimitSet,
             "[ lib] Updated retry memory limit = %hu",
@@ -603,7 +602,7 @@ QuicLibrarySetGlobalParam(
         }
 
         MsQuicLib.Settings.LoadBalancingMode = *(uint16_t*)Buffer;
-        MsQuicLib.Settings.AppSet.LoadBalancingMode = TRUE;
+        MsQuicLib.Settings.IsSet.LoadBalancingMode = TRUE;
         QuicTraceLogInfo(
             LibraryLoadBalancingModeSet,
             "[ lib] Updated load balancing mode = %hu",

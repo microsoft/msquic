@@ -206,8 +206,6 @@ struct DrillSender {
 
         return Status;
     }
-
-
 };
 
 bool
@@ -224,7 +222,7 @@ QuicDrillInitialPacketFailureTest(
     QuicAddr ServerAddress(QuicAddrFamily);
     DrillSender Sender;
 
-    MsQuicSession Session;
+    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
     if (!Session.IsValid()) {
         TEST_FAILURE("Session not valid!");
         goto Failure;

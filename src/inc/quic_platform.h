@@ -15,12 +15,7 @@ Supported Environments:
 
 --*/
 
-#ifdef _WIN32
 #pragma once
-#endif
-
-#ifndef QUIC_PLATFORM_
-#define QUIC_PLATFORM_
 
 #define IS_POWER_OF_TWO(x) (((x) != 0) && (((x) & ((x) - 1)) == 0))
 
@@ -247,5 +242,3 @@ QuicListPopEntry(
 
 #include "quic_hashtable.h"
 #include "quic_toeplitz.h"
-
-#endif // QUIC_PLATFORM_

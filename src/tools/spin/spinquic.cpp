@@ -94,10 +94,10 @@ static const size_t BufferCount = ARRAYSIZE(MaxBufferSizes);
 static QUIC_BUFFER Buffers[BufferCount];
 
 typedef enum {
-    SpinQuicAPICallCreateConnection = 0,
-    SpinQuicAPICallStartConnection,
-    SpinQuicAPICallShutdownConnection,
-    SpinQuicAPICallCloseConnection,
+    SpinQuicAPICallConnectionOpen = 0,
+    SpinQuicAPICallConnectionStart,
+    SpinQuicAPICallConnectionShutdown,
+    SpinQuicAPICallConnectionClose,
     SpinQuicAPICallStreamOpen,
     SpinQuicAPICallStreamStart,
     SpinQuicAPICallStreamSend,
@@ -105,7 +105,8 @@ typedef enum {
     SpinQuicAPICallStreamClose,
     SpinQuicAPICallSetParamSession,
     SpinQuicAPICallSetParamConnection,
-    SpinQuicAPICallGetParam,
+    SpinQuicAPICallGetParamConnection,
+    SpinQuicAPICallGetParamStream,
     SpinQuicAPICallDatagramSend,
     SpinQuicAPICallCount    // Always the last element
 } SpinQuicAPICall;
@@ -261,6 +262,9 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
 
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
+        if (!GetRandom(20)) {
+            return QUIC_STATUS_CONNECTION_REFUSED;
+        }
         Event->NEW_CONNECTION.SecurityConfig = GlobalSecurityConfig;
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, nullptr);
         auto ctx = new SpinQuicConnection(Event->NEW_CONNECTION.Connection);
@@ -326,31 +330,10 @@ void SpinQuicSetRandomSesssioParam(HQUIC Session)
     SetParamHelper Helper(QUIC_PARAM_LEVEL_SESSION);
     uint8_t TlsTicket[44];
 
-    switch (GetRandom(8)) {
+    switch (GetRandom(2)) {
     case QUIC_PARAM_SESSION_TLS_TICKET_KEY:                         // uint8_t[44]
         QuicRandom(sizeof(TlsTicket), TlsTicket);
         Helper.SetPtr(QUIC_PARAM_SESSION_TLS_TICKET_KEY, TlsTicket, sizeof(TlsTicket));
-        break;
-    case QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT:                 // uint16_t
-        Helper.SetUint16(QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, (uint16_t)GetRandom(10));
-        break;
-    case QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT:                // uint16_t
-        Helper.SetUint16(QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, (uint16_t)GetRandom(10));
-        break;
-    case QUIC_PARAM_SESSION_IDLE_TIMEOUT:                           // uint64_t - milliseconds
-        Helper.SetUint64(QUIC_PARAM_SESSION_IDLE_TIMEOUT, GetRandom(32000));
-        break;
-    case QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT:                     // uint32_t - milliseconds
-        Helper.SetUint32(QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT, GetRandom(32000));
-        break;
-    case QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY:                      // uint64_t - bytes
-        Helper.SetUint64(QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY, GetRandom(32000));
-        break;
-    case QUIC_PARAM_SESSION_MIGRATION_ENABLED:                      // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_SESSION_MIGRATION_ENABLED, (uint8_t)GetRandom(2));
-        break;
-    case QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED:               // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED, (uint8_t)GetRandom(2));
         break;
     default:
         break;
@@ -434,14 +417,16 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 const uint32_t ParamCounts[] = {
     QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE + 1,
     QUIC_PARAM_REGISTRATION_CID_PREFIX + 1,
-    QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL + 1,
+    QUIC_PARAM_SESSION_TLS_TICKET_KEY + 1,
     QUIC_PARAM_LISTENER_STATS + 1,
-    QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION + 1
+    QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION + 1,
+    0,
+    QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE + 1
 };
 
 #define GET_PARAM_LOOP_COUNT 10
 
-void SpinQuicGetRandomParam(HQUIC Connection)
+void SpinQuicGetRandomParam(HQUIC Handle)
 {
     for (uint32_t i = 0; i < GET_PARAM_LOOP_COUNT; ++i) {
         QUIC_PARAM_LEVEL Level = (QUIC_PARAM_LEVEL)GetRandom(5);
@@ -451,7 +436,7 @@ void SpinQuicGetRandomParam(HQUIC Connection)
         uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1);
 
         MsQuic->GetParam(
-            (GetRandom(10) == 0) ? nullptr : Connection,
+            (GetRandom(10) == 0) ? nullptr : Handle,
             Level,
             Param,
             &OutBufferLength,
@@ -459,11 +444,33 @@ void SpinQuicGetRandomParam(HQUIC Connection)
     }
 }
 
-void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
+void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nullptr)
 {
+    bool IsServer = Listeners != nullptr;
+
     uint64_t OpCount = 0;
     while (++OpCount != Settings.MaxOperationCount &&
         QuicTimeDiff64(StartTimeMs, QuicTimeMs64()) < Settings.RunTimeMs) {
+
+        if (Listeners) {
+            auto Value = GetRandom(100);
+            if (Value >= 90) {
+                for (auto &Listener : *Listeners) {
+                    MsQuic->ListenerStop(Listener);
+                }
+            } else if (Value >= 40) {
+                for (auto &Listener : *Listeners) {
+                    QUIC_ADDR sockAddr = { 0 };
+                    QuicAddrSetFamily(&sockAddr, GetRandom(2) ? AF_INET : AF_UNSPEC);
+                    QuicAddrSetPort(&sockAddr, GetRandomFromVector(Settings.Ports));
+                    MsQuic->ListenerStart(Listener, &sockAddr);
+                }
+            } else {
+                for (auto &Listener : *Listeners) {
+                    SpinQuicGetRandomParam(Listener);
+                }
+            }
+        }
 
     #define BAIL_ON_NULL_CONNECTION(Connection) \
         if (Connection == nullptr) { \
@@ -474,7 +481,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
         }
 
         switch (GetRandom(SpinQuicAPICallCount)) {
-        case SpinQuicAPICallCreateConnection:
+        case SpinQuicAPICallConnectionOpen:
             if (!IsServer) {
                 auto ctx = new SpinQuicConnection();
                 if (ctx == nullptr) continue;
@@ -494,19 +501,19 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
                 }
             }
             break;
-        case SpinQuicAPICallStartConnection: {
+        case SpinQuicAPICallConnectionStart: {
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             MsQuic->ConnectionStart(Connection, AF_INET, Settings.ServerName, GetRandomFromVector(Settings.Ports));
             break;
         }
-        case SpinQuicAPICallShutdownConnection: {
+        case SpinQuicAPICallConnectionShutdown: {
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             MsQuic->ConnectionShutdown(Connection, (QUIC_CONNECTION_SHUTDOWN_FLAGS)GetRandom(2), 0);
             break;
         }
-        case SpinQuicAPICallCloseConnection: {
+        case SpinQuicAPICallConnectionClose: {
             auto Connection = Connections.TryGetRandom(true);
             BAIL_ON_NULL_CONNECTION(Connection);
             delete SpinQuicConnection::Get(Connection);
@@ -583,10 +590,32 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
             SpinQuicSetRandomConnectionParam(Connection);
             break;
         }
-        case SpinQuicAPICallGetParam: {
+        case SpinQuicAPICallGetParamConnection: {
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             SpinQuicGetRandomParam(Connection);
+            break;
+        }
+        case SpinQuicAPICallGetParamStream: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            auto ctx = SpinQuicConnection::Get(Connection);
+            {
+                std::lock_guard<std::mutex> Lock(ctx->Lock);
+                auto Stream = ctx->TryGetStream();
+                if (Stream == nullptr) continue;
+                /* TODO:
+
+                    Currently deadlocks because it makes a blocking call to wait
+                    on the QUIC worker thread, but the worker thread tries to
+                    grab the same log when cleaning up the connections' streams.
+
+                    We're going to need some kind of ref counting solution on
+                    the stream handle instead of a lock in order to do this.
+
+                SpinQuicGetRandomParam(Stream);
+                */
+            }
             break;
         }
         case SpinQuicAPICallDatagramSend: {
@@ -647,7 +676,7 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
     // Run
     //
 
-    Spin(Connections, true);
+    Spin(Connections, &Listeners);
 
     //
     // Clean up
@@ -684,7 +713,7 @@ QUIC_THREAD_CALLBACK(ClientSpin, Context)
     // Run
     //
 
-    Spin(Connections, false);
+    Spin(Connections);
 
     //
     // Clean up
@@ -841,19 +870,21 @@ main(int argc, char **argv)
 
         ASSERT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
 
+        QUIC_SETTINGS QuicSettings{0};
+        QuicSettings.PeerBidiStreamCount = GetRandom((uint16_t)10);
+        QuicSettings.IsSet.PeerBidiStreamCount = TRUE;
+        QuicSettings.PeerUnidiStreamCount = GetRandom((uint16_t)10);
+        QuicSettings.IsSet.PeerUnidiStreamCount = TRUE;
+        // TODO - Randomize more of the settings.
+
         if (SessionCount == 1) {
             QUIC_BUFFER AlpnBuffer;
             AlpnBuffer.Length = (uint32_t)strlen(Settings.AlpnPrefix);
             AlpnBuffer.Buffer = (uint8_t*)Settings.AlpnPrefix;
 
             HQUIC Session;
-            ASSERT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
+            ASSERT_ON_FAILURE(MsQuic->SessionOpen(Registration, sizeof(QuicSettings), &QuicSettings, &AlpnBuffer, 1, nullptr, &Session));
             Sessions.push_back(Session);
-
-            // Configure Session
-            auto PeerStreamCount = GetRandom((uint16_t)10);
-            ASSERT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
-            ASSERT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
 
         } else {
             QUIC_BUFFER AlpnBuffer;
@@ -867,13 +898,8 @@ main(int argc, char **argv)
                 AlpnBuffer.Buffer[AlpnBuffer.Length-1] = (uint8_t)j;
 
                 HQUIC Session;
-                ASSERT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
+                ASSERT_ON_FAILURE(MsQuic->SessionOpen(Registration, sizeof(QuicSettings), &QuicSettings, &AlpnBuffer, 1, nullptr, &Session));
                 Sessions.push_back(Session);
-
-                // Configure Session
-                auto PeerStreamCount = GetRandom((uint16_t)10);
-                ASSERT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
-                ASSERT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
             }
 
             free(AlpnBuffer.Buffer);

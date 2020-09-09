@@ -10,12 +10,7 @@ Abstract:
 
 --*/
 
-#ifdef _WIN32
 #pragma once
-#endif
-
-#ifndef QUIC_DATAPATH_
-#define QUIC_DATAPATH_
 
 #include "quic_platform.h"
 
@@ -487,5 +482,3 @@ QuicDataPathBindingGetParam(
 #if defined(__cplusplus)
 }
 #endif
-
-#endif // QUIC_DATAPATH_

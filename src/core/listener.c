@@ -226,7 +226,7 @@ MsQuicListenerStart(
             "[list][%p] ERROR, %s.",
             Listener,
             "Register with binding");
-        QuicRundownRelease(&Listener->Rundown);
+        QuicRundownReleaseAndWait(&Listener->Rundown);
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
@@ -559,7 +559,11 @@ QuicListenerParamGet(
         Stats->TotalAcceptedConnections = Listener->TotalAcceptedConnections;
         Stats->TotalRejectedConnections = Listener->TotalRejectedConnections;
 
-        Stats->Binding.Recv.DroppedPackets = Listener->Binding->Stats.Recv.DroppedPackets;
+        if (Listener->Binding != NULL) {
+            Stats->Binding.Recv.DroppedPackets = Listener->Binding->Stats.Recv.DroppedPackets;
+        } else {
+            Stats->Binding.Recv.DroppedPackets = 0;
+        }
 
         Status = QUIC_STATUS_SUCCESS;
         break;

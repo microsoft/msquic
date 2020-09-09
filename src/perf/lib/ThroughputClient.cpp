@@ -41,21 +41,6 @@ PrintHelp(
         );
 }
 
-ThroughputClient::ThroughputClient(
-    ) {
-    QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
-    if (Session.IsValid()) {
-        Session.SetIdleTimeout(TPUT_DEFAULT_IDLE_TIMEOUT);
-        Session.SetAutoCleanup();
-    }
-}
-
-ThroughputClient::~ThroughputClient() {
-    if (DataBuffer) {
-        QUIC_FREE(DataBuffer);
-    }
-}
-
 QUIC_STATUS
 ThroughputClient::Init(
     _In_ int argc,
