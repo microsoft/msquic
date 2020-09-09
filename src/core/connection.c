@@ -295,6 +295,15 @@ QuicConnFree(
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Connection->Streams.ClosedStreams));
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
+    //
+    // Free up packet space if it wasn't freed by QuicConnUninitialize
+    //
+    for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
+        if (Connection->Packets[i] != NULL) {
+            QuicPacketSpaceUninitialize(Connection->Packets[i]);
+            Connection->Packets[i] = NULL;
+        }
+    }
 #if DEBUG
     while (!QuicListIsEmpty(&Connection->Streams.AllStreams)) {
         QUIC_STREAM *Stream =
@@ -303,9 +312,6 @@ QuicConnFree(
                 QUIC_STREAM,
                 AllStreamsLink);
         QUIC_DBG_ASSERTMSG(Stream != NULL, "Stream was leaked!");
-    }
-    for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
-        QUIC_FRE_ASSERT(Connection->Packets[i] == NULL);
     }
 #endif
     while (!QuicListIsEmpty(&Connection->DestCids)) {
