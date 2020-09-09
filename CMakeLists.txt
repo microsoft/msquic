@@ -317,11 +317,6 @@ else()
         list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_LINUX)
     endif()
 
-    if (QUIC_ENABLE_SANITIZERS)
-        set(QUIC_ENABLE_LOGGING OFF)
-        message(WARNING "LTTng logging is incompatible with sanitizers. Skipping logging")
-    endif()
-
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for LTTng tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE linux)
