@@ -304,6 +304,9 @@ QuicConnFree(
                 AllStreamsLink);
         QUIC_DBG_ASSERTMSG(Stream != NULL, "Stream was leaked!");
     }
+    for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
+        QUIC_FRE_ASSERT(Connection->Packets[i] == NULL);
+    }
 #endif
     while (!QuicListIsEmpty(&Connection->DestCids)) {
         QUIC_CID_QUIC_LIST_ENTRY *CID =
