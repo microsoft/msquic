@@ -354,8 +354,8 @@ QuicProcessorContextInitialize(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    int EpollFd = INVALID_SOCKET_FD;
-    int EventFd = INVALID_SOCKET_FD;
+    int EpollFd = INVALID_SOCKET;
+    int EventFd = INVALID_SOCKET;
     int Ret = 0;
     uint32_t RecvPacketLength = 0;
     BOOLEAN EventFdAdded = FALSE;
@@ -383,7 +383,7 @@ QuicProcessorContextInitialize(
         &ProcContext->SendContextPool);
 
     EpollFd = epoll_create1(EPOLL_CLOEXEC);
-    if (EpollFd == INVALID_SOCKET_FD) {
+    if (EpollFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -394,7 +394,7 @@ QuicProcessorContextInitialize(
     }
 
     EventFd = eventfd(0, EFD_CLOEXEC);
-    if (EventFd == INVALID_SOCKET_FD) {
+    if (EventFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -458,10 +458,10 @@ Exit:
         if (EventFdAdded) {
             epoll_ctl(EpollFd, EPOLL_CTL_DEL, EventFd, NULL);
         }
-        if (EventFd != INVALID_SOCKET_FD) {
+        if (EventFd != INVALID_SOCKET) {
             close(EventFd);
         }
-        if (EpollFd != INVALID_SOCKET_FD) {
+        if (EpollFd != INVALID_SOCKET) {
             close(EpollFd);
         }
         QuicPoolUninitialize(&ProcContext->RecvBlockPool);
@@ -775,7 +775,7 @@ QuicSocketContextInitialize(
     }
 
     SocketContext->CleanupFd = eventfd(0, EFD_CLOEXEC);
-    if (SocketContext->CleanupFd == INVALID_SOCKET_FD) {
+    if (SocketContext->CleanupFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -816,7 +816,7 @@ QuicSocketContextInitialize(
             AF_INET6,
             SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, // TODO check if SOCK_CLOEXEC is required?
             IPPROTO_UDP);
-    if (SocketContext->SocketFd == INVALID_SOCKET_FD) {
+    if (SocketContext->SocketFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -1100,7 +1100,7 @@ Exit:
 
     if (QUIC_FAILED(Status)) {
         close(SocketContext->SocketFd);
-        SocketContext->SocketFd = INVALID_SOCKET_FD;
+        SocketContext->SocketFd = INVALID_SOCKET;
     }
 
     return Status;
@@ -1221,7 +1221,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         close(SocketContext->SocketFd);
-        SocketContext->SocketFd = INVALID_SOCKET_FD;
+        SocketContext->SocketFd = INVALID_SOCKET;
     }
 
     return Status;
@@ -1599,7 +1599,7 @@ QuicDataPathBindingCreate(
     }
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
-        Binding->SocketContexts[i].SocketFd = INVALID_SOCKET_FD;
+        Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
         Binding->SocketContexts[i].RecvIov.iov_len =
             Binding->Mtu - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE;
         QuicListInitializeHead(&Binding->SocketContexts[i].PendingSendContextHead);
