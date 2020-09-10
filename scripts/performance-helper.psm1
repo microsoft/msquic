@@ -67,6 +67,11 @@ $WpaQUICLogProfileXml = `
         <Keyword Value="0xC0000000"/>
       </Keywords>
     </EventProvider>
+    <EventProvider Id="DroppedPackets" Name="2F07E2EE-15DB-40F1-90EF-9D7BA282188A" NonPagedMemory="true" Level="5">
+        <Keywords>
+        <Keyword Value="0x0000010000000000"/>
+        </Keywords>
+    </EventProvider>
     <Profile Id="CPU.Light.File" Name="CPU" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
       <Collectors>
         <SystemCollectorId Value="SC_HighVolume">
@@ -75,6 +80,7 @@ $WpaQUICLogProfileXml = `
         <EventCollectorId Value="EC_LowVolume">
           <EventProviders>
             <EventProviderId Value="MsQuicEtwPerf" />
+            <EventProviderId Value="DroppedPackets" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
