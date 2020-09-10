@@ -95,7 +95,7 @@ private:
         Registration,
         MsQuicAlpn(PERF_ALPN),
         MsQuicSettings()
-            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT),
+            .SetIdleTimeoutMs(TPUT_DEFAULT_IDLE_TIMEOUT),
         true};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
     QuicPoolAllocator<ConnectionData> ConnectionDataAllocator;
