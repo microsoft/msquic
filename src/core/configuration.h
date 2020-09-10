@@ -124,30 +124,3 @@ QuicConfigurationParamSet(
     _In_reads_bytes_(BufferLength)
         const void* Buffer
     );
-
-//
-// Gets a previously cached server state.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(return!=FALSE)
-BOOLEAN
-QuicConfigurationServerCacheGetState(
-    _In_ QUIC_CONFIGURATION* Configuration,
-    _In_z_ const char* ServerName,
-    _Out_ uint32_t* QuicVersion,
-    _Out_ QUIC_TRANSPORT_PARAMETERS* Parameters,
-    _Out_ QUIC_SEC_CONFIG** SecConfig
-    );
-
-//
-// Sets/updates cached server state.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicConfigurationServerCacheSetState(
-    _In_ QUIC_CONFIGURATION* Configuration,
-    _In_z_ const char* ServerName,
-    _In_ uint32_t QuicVersion,
-    _In_ const QUIC_TRANSPORT_PARAMETERS* Parameters,
-    _In_ QUIC_SEC_CONFIG* SecConfig
-    );
