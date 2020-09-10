@@ -328,7 +328,7 @@ function Invoke-Test {
 
     $AllRunsResults = @()
 
-    Start-Tracing -Exe $LocalExe
+    #Start-Tracing -Exe $LocalExe
 
     try {
         1..$Test.Iterations | ForEach-Object {
@@ -349,14 +349,14 @@ function Invoke-Test {
         Write-Debug $RemoteResults.ToString()
     }
 
-    Stop-Tracing -Exe $LocalExe
+    #Stop-Tracing -Exe $LocalExe
 
     if ($Record) {
         if ($Local) {
             Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
         } else {
             Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
-            Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
+            #Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
         }
     }
 
