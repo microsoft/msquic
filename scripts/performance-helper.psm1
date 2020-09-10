@@ -315,7 +315,7 @@ function Invoke-RemoteExe {
             $EtwXmlName = $Exe + ".remote.wprp"
 
             $WpaXml | Out-File $EtwXmlName
-            wpr.exe -start $EtwXmlName -filemode 2> $null
+            #wpr.exe -start $EtwXmlName -filemode 2> $null
         }
 
         $Arch = Split-Path (Split-Path $Exe -Parent) -Leaf
@@ -340,7 +340,7 @@ function Invoke-RemoteExe {
 
         if ($Record -and $IsWindows) {
             $EtwName = $Exe + ".remote.etl"
-            wpr.exe -stop $EtwName 2> $null
+            #wpr.exe -stop $EtwName 2> $null
         }
     } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $WpaXml, $Kernel
 }
