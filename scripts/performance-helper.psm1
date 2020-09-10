@@ -189,7 +189,7 @@ function Wait-ForRemote {
     # Ping sidechannel socket on 9999 to tell the app to die
     $Socket = New-Object System.Net.Sockets.UDPClient
     $Socket.Send(@(1), 1, $RemoteAddress, 9999) | Out-Null
-    Wait-Job -Job $Job -Timeout 120 | Out-Null
+    Wait-Job -Job $Job -Timeout 360 | Out-Null
     Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
     return $RetVal -join "`n"
