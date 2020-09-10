@@ -62,7 +62,7 @@ $WpaQUICLogProfileXml = `
         <Stack Value="SampledProfile"/>
       </Stacks>
     </SystemProvider>
-    <EventProvider Id="MsQuicEtwPerf" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" Level="4">
+    <EventProvider Id="MsQuicEtwPerf" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" Level="5">
       <Keywords>
         <Keyword Value="0xC0000000"/>
       </Keywords>
