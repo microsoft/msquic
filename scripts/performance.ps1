@@ -355,7 +355,7 @@ function Invoke-Test {
         if ($Local) {
             Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
         } else {
-            #Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
+            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
             Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
         }
     }
