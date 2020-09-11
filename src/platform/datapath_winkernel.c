@@ -370,7 +370,7 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT {
     //
     QUIC_POOL RecvBufferPools[2];
 
-    int64_t OutstandingStoredBytes;
+    int64_t OutstandingPendingBytes;
 
 } QUIC_DATAPATH_PROC_CONTEXT;
 
@@ -917,7 +917,7 @@ QuicDataPathInitialize(
             QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].RecvBufferPools[1]);
 
-        Datapath->ProcContexts[i].OutstandingStoredBytes = 0;
+        Datapath->ProcContexts[i].OutstandingPendingBytes = 0;
     }
 
     Status = WskRegister(&WskClientNpi, &Datapath->WskRegistration);
@@ -1863,7 +1863,7 @@ QuicDataPathFreeRecvContext(
         } else {
             DataIndication = Context->DataIndication;
             InterlockedAdd64(
-                &Context->ProcContext->OutstandingStoredBytes,
+                &Context->ProcContext->OutstandingPendingBytes,
                 -Context->DataIndicationSize);
         }
     }
@@ -2106,7 +2106,7 @@ QuicDataPathSocketReceive(
                     goto Drop;
                 }
 
-                if (RecvContext->ProcContext->OutstandingStoredBytes > PENDING_BUFFER_LIMIT) {
+                if (RecvContext->ProcContext->OutstandingPendingBytes > PENDING_BUFFER_LIMIT) {
                     //
                     // Perform a copy
                     //
@@ -2129,7 +2129,7 @@ QuicDataPathSocketReceive(
                     QUIC_DBG_ASSERT(DataIndication->Next == NULL);
                     RecvContext->DataIndicationSize = (int32_t)DataLength;
                     InterlockedAdd64(
-                        &RecvContext->ProcContext->OutstandingStoredBytes,
+                        &RecvContext->ProcContext->OutstandingPendingBytes,
                         RecvContext->DataIndicationSize);
                 }
 
