@@ -112,7 +112,7 @@ typedef struct QUIC_DATAPATH_INTERNAL_RECV_CONTEXT {
     QUIC_POOL* OwningPool;
 
     QUIC_DATAPATH_BINDING* Binding;
-    PWSK_DATAGRAM_INDICATION DataIndication;
+    //PWSK_DATAGRAM_INDICATION DataIndication;
     ULONG ReferenceCount;
 
     //
@@ -1837,6 +1837,8 @@ QuicDataPathSocketReceive(
     QUIC_RECV_DATAGRAM* DatagramChain = NULL;
     QUIC_RECV_DATAGRAM** DatagramChainTail = &DatagramChain;
 
+    //QUIC_RECV_DATAGRAM* AllocedDatagram = NULL;
+
     UNREFERENCED_PARAMETER(Flags);
 
     //
@@ -1849,7 +1851,7 @@ QuicDataPathSocketReceive(
         DataIndication->Next = NULL;
 
         QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = NULL;
-        QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext;
+        //QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext;
         QUIC_RECV_DATAGRAM* Datagram = NULL;
 
         if (DataIndication->Buffer.Mdl == NULL ||
@@ -2035,7 +2037,6 @@ QuicDataPathSocketReceive(
                 }
 
                 RecvContext->Binding = Binding;
-                RecvContext->DataIndication = DataIndication;
                 RecvContext->ReferenceCount = 0;
                 RecvContext->Tuple.LocalAddress = LocalAddr;
                 RecvContext->Tuple.RemoteAddress = RemoteAddr;
@@ -2049,13 +2050,18 @@ QuicDataPathSocketReceive(
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
 
-            InternalDatagramContext =
-                QuicDataPathDatagramToInternalDatagramContext(Datagram);
-            InternalDatagramContext->RecvContext = RecvContext;
+            // InternalDatagramContext =
+            //     QuicDataPathDatagramToInternalDatagramContext(Datagram);
+            // InternalDatagramContext->RecvContext = RecvContext;
 
-            Datagram->Buffer = (uint8_t*)Mdl->MappedSystemVa + MdlOffset;
+            Datagram->Buffer = QUIC_ALLOC_NONPAGED(MessageLength);
+            QuicCopyMemory(Datagram->Buffer, (uint8_t*)Mdl->MappedSystemVa + MdlOffset, MessageLength);
+
+            //Datagram->Buffer = (uint8_t*)Mdl->MappedSystemVa + MdlOffset;
             Datagram->BufferLength = MessageLength;
             Datagram->Tuple = &RecvContext->Tuple;
+
+
 
             //
             // Add the datagram to the end of the current chain.
@@ -2102,10 +2108,10 @@ QuicDataPathSocketReceive(
             RecvContext = NULL;
         }
 
-        if (RecvContext == NULL) {
+        //if (RecvContext == NULL) {
             *ReleaseChainTail = DataIndication;
             ReleaseChainTail = &DataIndication->Next;
-        }
+        //}
     }
 
     if (DatagramChain != NULL) {
@@ -2136,9 +2142,9 @@ QuicDataPathBindingReturnRecvDatagrams(
     _In_opt_ QUIC_RECV_DATAGRAM* DatagramChain
     )
 {
-    QUIC_DATAPATH_BINDING* Binding = NULL;
-    PWSK_DATAGRAM_INDICATION DataIndications = NULL;
-    PWSK_DATAGRAM_INDICATION* DataIndicationTail = &DataIndications;
+    //QUIC_DATAPATH_BINDING* Binding = NULL;
+    //PWSK_DATAGRAM_INDICATION DataIndications = NULL;
+    //PWSK_DATAGRAM_INDICATION* DataIndicationTail = &DataIndications;
 
     LONG BatchedBufferCount = 0;
     QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* BatchedInternalContext = NULL;
@@ -2155,9 +2161,10 @@ QuicDataPathBindingReturnRecvDatagrams(
         QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* InternalContext =
             InternalBufferContext->RecvContext;
 
-        QUIC_DBG_ASSERT(Binding == NULL || Binding == InternalContext->Binding);
-        Binding = InternalContext->Binding;
+        //QUIC_DBG_ASSERT(Binding == NULL || Binding == InternalContext->Binding);
+        //Binding = InternalContext->Binding;
         Datagram->Allocated = FALSE;
+        QUIC_FREE(Datagram->Buffer);
 
         if (BatchedInternalContext == InternalContext) {
             BatchedBufferCount++;
@@ -2169,9 +2176,9 @@ QuicDataPathBindingReturnRecvDatagrams(
                 //
                 // Clean up the data indication.
                 //
-                QUIC_DBG_ASSERT(BatchedInternalContext->DataIndication->Next == NULL);
-                *DataIndicationTail = BatchedInternalContext->DataIndication;
-                DataIndicationTail = &BatchedInternalContext->DataIndication->Next;
+                //QUIC_DBG_ASSERT(BatchedInternalContext->DataIndication->Next == NULL);
+                //*DataIndicationTail = BatchedInternalContext->DataIndication;
+                //DataIndicationTail = &BatchedInternalContext->DataIndication->Next;
 
                 QuicPoolFree(BatchedInternalContext->OwningPool, BatchedInternalContext);
             }
@@ -2188,20 +2195,20 @@ QuicDataPathBindingReturnRecvDatagrams(
         //
         // Clean up the data indication.
         //
-        QUIC_DBG_ASSERT(BatchedInternalContext->DataIndication->Next == NULL);
-        *DataIndicationTail = BatchedInternalContext->DataIndication;
-        DataIndicationTail = &BatchedInternalContext->DataIndication->Next;
+        //QUIC_DBG_ASSERT(BatchedInternalContext->DataIndication->Next == NULL);
+        //*DataIndicationTail = BatchedInternalContext->DataIndication;
+        //DataIndicationTail = &BatchedInternalContext->DataIndication->Next;
 
         QuicPoolFree(BatchedInternalContext->OwningPool, BatchedInternalContext);
     }
 
-    if (DataIndications != NULL) {
-        //
-        // Return the datagram indications back to Wsk.
-        //
-        QUIC_DBG_ASSERT(Binding != NULL);
-        Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, DataIndications);
-    }
+    //if (DataIndications != NULL) {
+    //    //
+    //    // Return the datagram indications back to Wsk.
+    //    //
+    //    QUIC_DBG_ASSERT(Binding != NULL);
+    //    Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, DataIndications);
+    //}
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
