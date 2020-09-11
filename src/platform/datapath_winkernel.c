@@ -1832,8 +1832,8 @@ QuicDataPathSocketReceive(
         return STATUS_DEVICE_NOT_READY;
     }
 
-    PWSK_DATAGRAM_INDICATION ReleaseChain = NULL;
-    PWSK_DATAGRAM_INDICATION* ReleaseChainTail = &ReleaseChain;
+    //PWSK_DATAGRAM_INDICATION ReleaseChain = NULL;
+    //PWSK_DATAGRAM_INDICATION* ReleaseChainTail = &ReleaseChain;
     QUIC_RECV_DATAGRAM* DatagramChain = NULL;
     QUIC_RECV_DATAGRAM** DatagramChainTail = &DatagramChain;
 
@@ -2097,8 +2097,8 @@ QuicDataPathSocketReceive(
                     Binding->Datapath->DatagramStride);
         }
 
-        *ReleaseChainTail = DataIndication;
-        ReleaseChainTail = &DataIndication->Next;
+        // *ReleaseChainTail = DataIndication;
+        // ReleaseChainTail = &DataIndication->Next;
 
         continue;
 
@@ -2116,8 +2116,8 @@ QuicDataPathSocketReceive(
         }
 
         //if (RecvContext == NULL) {
-            *ReleaseChainTail = DataIndication;
-            ReleaseChainTail = &DataIndication->Next;
+            // *ReleaseChainTail = DataIndication;
+            // ReleaseChainTail = &DataIndication->Next;
         //}
     }
 
@@ -2131,12 +2131,12 @@ QuicDataPathSocketReceive(
             DatagramChain);
     }
 
-    if (ReleaseChain != NULL) {
-        //
-        // Release any dropped datagrams.
-        //
-        Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
-    }
+    // if (ReleaseChain != NULL) {
+    //     //
+    //     // Release any dropped datagrams.
+    //     //
+    //     Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
+    // }
 
     QuicRundownRelease(&Binding->Rundown[CurProcNumber]);
 
