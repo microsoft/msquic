@@ -30,7 +30,6 @@ bool RunSerially = false;
 bool TestFailed = false; // True if any test failed
 
 const BOOLEAN UseSendBuffering = FALSE;
-const uint32_t CertificateValidationFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
 const uint32_t RandomReservedVersion = 168430090ul; // Random reserved version to force VN.
 const uint8_t RandomTransportParameterPayload[2345] = {0};
 QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
@@ -155,6 +154,7 @@ public:
 };
 
 class InteropConnection {
+    HQUIC Configuration;
     HQUIC Connection;
     GetRequest SendRequest;
     QUIC_EVENT ConnectionComplete;
@@ -170,7 +170,8 @@ public:
     bool UsedZeroRtt : 1;
     bool ReceivedResponse : 1;
     bool ReceivedQuackAck : 1;
-    InteropConnection(HQUIC Session, bool VerNeg = false, bool LargeTP = false) :
+    InteropConnection(HQUIC Configuration, bool VerNeg = false, bool LargeTP = false) :
+        Configuration(Configuration),
         Connection(nullptr),
         SendRequest(UrlPath),
         NegotiatedAlpn(nullptr),
@@ -189,17 +190,10 @@ public:
 
         VERIFY_QUIC_SUCCESS(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 InteropConnection::ConnectionCallback,
                 this,
                 &Connection));
-        VERIFY_QUIC_SUCCESS(
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-                sizeof(CertificateValidationFlags),
-                &CertificateValidationFlags));
         VERIFY_QUIC_SUCCESS(
             MsQuic->SetParam(
                 Connection,
@@ -276,6 +270,7 @@ public:
         if (QUIC_SUCCEEDED(
             MsQuic->ConnectionStart(
                 Connection,
+                Configuration,
                 AF_UNSPEC,
                 ServerName,
                 ServerPort))) {
@@ -638,20 +633,29 @@ RunInteropTest(
         AlpnCount = ARRAYSIZE(HandshakeAlpns);
     }
 
-    HQUIC Session;
+    HQUIC Configuration;
     VERIFY_QUIC_SUCCESS(
-        MsQuic->SessionOpen(
+        MsQuic->ConfigurationOpen(
             Registration,
-            sizeof(Settings),
-            &Settings,
             Alpns,
             AlpnCount,
+            &Settings,
+            sizeof(Settings),
             nullptr,
-            &Session));
+            &Configuration));
+
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    QuicZeroMemory(&CredConfig, sizeof(CredConfig));
+    CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+
+    VERIFY_QUIC_SUCCESS(
+        MsQuic->ConfigurationLoadCredential(
+            Configuration,
+            &CredConfig));
 
     switch (Feature) {
     case VersionNegotiation: {
-        InteropConnection Connection(Session, true);
+        InteropConnection Connection(Configuration, true);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -674,13 +678,13 @@ RunInteropTest(
     case StatelessRetry:
     case PostQuantum: {
         if (Feature == Resumption) {
-            InteropConnection Connection(Session);
+            InteropConnection Connection(Configuration);
             if (!Connection.ConnectToServer(Endpoint.ServerName, Port) ||
                 !Connection.WaitForTicket()) {
                 break;
             }
         }
-        InteropConnection Connection(Session, false, Feature == PostQuantum);
+        InteropConnection Connection(Configuration, false, Feature == PostQuantum);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -706,13 +710,13 @@ RunInteropTest(
     case StreamData:
     case ZeroRtt: {
         if (Feature == ZeroRtt) {
-            InteropConnection Connection(Session);
+            InteropConnection Connection(Configuration);
             if (!Connection.ConnectToServer(Endpoint.ServerName, Port) ||
                 !Connection.WaitForTicket()) {
                 break;
             }
         }
-        InteropConnection Connection(Session, false);
+        InteropConnection Connection(Configuration, false);
         if (Connection.SendHttpRequest(false) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port) &&
             Connection.WaitForHttpResponse()) {
@@ -728,7 +732,7 @@ RunInteropTest(
     }
 
     case KeyUpdate: {
-        InteropConnection Connection(Session);
+        InteropConnection Connection(Configuration);
         if (Connection.SetKeepAlive(50) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
@@ -746,7 +750,7 @@ RunInteropTest(
     }
 
     case CidUpdate: {
-        InteropConnection Connection(Session);
+        InteropConnection Connection(Configuration);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -765,7 +769,7 @@ RunInteropTest(
     }
 
     case NatRebinding: {
-        InteropConnection Connection(Session);
+        InteropConnection Connection(Configuration);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -784,7 +788,7 @@ RunInteropTest(
     }
 
     case Datagram: {
-        InteropConnection Connection(Session, false);
+        InteropConnection Connection(Configuration, false);
         if (Connection.SendQuack() &&
             Connection.ConnectToServer(Endpoint.ServerName, Port) &&
             Connection.WaitForQuackAck()) {
@@ -795,7 +799,7 @@ RunInteropTest(
     }
     }
 
-    MsQuic->SessionClose(Session);
+    MsQuic->ConfigurationClose(Configuration); // TODO - Wait on connection
 
     if (CustomUrlPath && !Success) {
         //
