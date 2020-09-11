@@ -59,7 +59,7 @@ QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ QUIC_EVENT* StopEvent,
-    _In_ PerfSelfSignedConfiguration* SelfSignedConfig
+    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     ) {
     argc--; argv++; // Skip app name
 
@@ -100,7 +100,7 @@ QuicMainStart(
     }
 
     if (ServerMode) {
-        TestToRun = new(std::nothrow) PerfServer(SelfSignedConfig);
+        TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);
 
     } else {
 

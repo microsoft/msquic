@@ -929,39 +929,6 @@ QuicSetCurrentThreadProcessorAffinity(
 
 #endif
 
-//
-// Test Interface for loading a self-signed certificate.
-//
-
-#ifdef QUIC_TEST_APIS
-
-typedef struct QUIC_SEC_CONFIG_PARAMS {
-    uint32_t Type; // QUIC_CREDENTIAL_TYPE
-    uint32_t Flags; // QUIC_CREDENTIAL_FLAGS
-    void* Certificate;
-    const char* Principal;
-    uint8_t Thumbprint[20];
-} QUIC_SEC_CONFIG_PARAMS;
-
-typedef enum QUIC_SELF_SIGN_CERT_TYPE {
-    QUIC_SELF_SIGN_CERT_USER,
-    QUIC_SELF_SIGN_CERT_MACHINE
-} QUIC_SELF_SIGN_CERT_TYPE;
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG_PARAMS*
-QuicPlatGetSelfSignedCert(
-    _In_ QUIC_SELF_SIGN_CERT_TYPE Type
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicPlatFreeSelfSignedCert(
-    _In_ QUIC_SEC_CONFIG_PARAMS* Params
-    );
-
-#endif // QUIC_TEST_APIS
-
 #ifdef _M_X64
 #define QUIC_CPUID(FunctionId, eax, ebx, ecx, edx) \
     int CpuInfo[4]; \

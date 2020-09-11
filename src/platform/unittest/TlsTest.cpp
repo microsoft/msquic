@@ -25,7 +25,7 @@ protected:
     QUIC_SEC_CONFIG* ServerSecConfig {nullptr};
     QUIC_SEC_CONFIG* ClientSecConfig {nullptr};
     QUIC_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
-    static QUIC_SEC_CONFIG_PARAMS* SelfSignedCertParams;
+    static const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
 
     TlsTest() { }
 
@@ -74,15 +74,9 @@ protected:
 
     void SetUp() override
     {
-        QUIC_CREDENTIAL_CONFIG ServerCredConfig = {
-            (QUIC_CREDENTIAL_TYPE)SelfSignedCertParams->Type,
-            (QUIC_CREDENTIAL_FLAGS)SelfSignedCertParams->Flags,
-            SelfSignedCertParams->Certificate,
-            SelfSignedCertParams->Principal
-        };
         VERIFY_QUIC_SUCCESS(
             QuicTlsSecConfigCreate(
-                &ServerCredConfig,
+                SelfSignedCertParams,
                 &ServerSecConfig,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfig);
@@ -572,7 +566,7 @@ protected:
     }
 };
 
-QUIC_SEC_CONFIG_PARAMS* TlsTest::SelfSignedCertParams = nullptr;
+const QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
 
 TEST_F(TlsTest, Initialize)
 {

@@ -273,8 +273,8 @@ static char* QuicTestPrivateKeyFilename = (char*)"localhost_key.pem";
 #define MAX_PATH 50
 #endif
 
-typedef struct QUIC_SEC_CONFIG_PARAMS_INTERNAL {
-    QUIC_SEC_CONFIG_PARAMS;
+typedef struct QUIC_CREDENTIAL_CONFIG_INTERNAL {
+    QUIC_CREDENTIAL_CONFIG;
     QUIC_CERTIFICATE_FILE CertFile;
 #ifdef _WIN32
     char TempPath [MAX_PATH];
@@ -284,27 +284,27 @@ typedef struct QUIC_SEC_CONFIG_PARAMS_INTERNAL {
     char CertFilepath[MAX_PATH];
     char PrivateKeyFilepath[MAX_PATH];
 
-} QUIC_SEC_CONFIG_PARAMS_INTERNAL;
+} QUIC_CREDENTIAL_CONFIG_INTERNAL;
 
 #define TEMP_DIR_TEMPLATE "/tmp/quictest.XXXXXX"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG_PARAMS*
+const QUIC_CREDENTIAL_CONFIG*
 QuicPlatGetSelfSignedCert(
     _In_ QUIC_SELF_SIGN_CERT_TYPE Type
     )
 {
     UNREFERENCED_PARAMETER(Type);
 
-    QUIC_SEC_CONFIG_PARAMS_INTERNAL* Params =
-        malloc(sizeof(QUIC_SEC_CONFIG_PARAMS_INTERNAL) + sizeof(TEMP_DIR_TEMPLATE));
+    QUIC_CREDENTIAL_CONFIG_INTERNAL* Params =
+        malloc(sizeof(QUIC_CREDENTIAL_CONFIG_INTERNAL) + sizeof(TEMP_DIR_TEMPLATE));
     if (Params == NULL) {
         return NULL;
     }
 
     QuicZeroMemory(Params, sizeof(*Params));
-    Params->Flags = QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE;
-    Params->Certificate = &Params->CertFile;
+    Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
+    Params->Creds = &Params->CertFile;
     Params->CertFile.CertificateFile = Params->CertFilepath;
     Params->CertFile.PrivateKeyFile = Params->PrivateKeyFilepath;
 
@@ -394,7 +394,7 @@ QuicPlatGetSelfSignedCert(
         goto Error;
     }
 
-    return (QUIC_SEC_CONFIG_PARAMS*)Params;
+    return (QUIC_CREDENTIAL_CONFIG*)Params;
 
 Error:
 
@@ -410,11 +410,11 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPlatFreeSelfSignedCert(
-    _In_ QUIC_SEC_CONFIG_PARAMS* _Params
+    _In_ const QUIC_CREDENTIAL_CONFIG* _Params
     )
 {
-    QUIC_SEC_CONFIG_PARAMS_INTERNAL* Params =
-        (QUIC_SEC_CONFIG_PARAMS_INTERNAL*)_Params;
+    QUIC_CREDENTIAL_CONFIG_INTERNAL* Params =
+        (QUIC_CREDENTIAL_CONFIG_INTERNAL*)_Params;
 
 #ifdef _WIN32
     DeleteFileA(Params->CertFilepath);
