@@ -2097,6 +2097,9 @@ QuicDataPathSocketReceive(
                     Binding->Datapath->DatagramStride);
         }
 
+        *ReleaseChainTail = DataIndication;
+        ReleaseChainTail = &DataIndication->Next;
+
         continue;
 
     Drop:
