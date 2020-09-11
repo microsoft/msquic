@@ -21,6 +21,15 @@ Environment:
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef struct QUIC_CREDENTIAL_CONFIG_HELPER {
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    union {
+        QUIC_CERTIFICATE_HASH CertHash;
+        QUIC_CERTIFICATE_HASH_STORE CertHashStore;
+        QUIC_CERTIFICATE_FILE CertFile;
+    };
+} QUIC_CREDENTIAL_CONFIG_HELPER;
+
 //
 // Converts the QUIC Status Code to a string for console output.
 //
@@ -368,6 +377,48 @@ TryGetValue(
 #else
     *pValue = strtoull(value, &End, 10);
 #endif
+    return true;
+}
+
+inline
+_Success_(return != false)
+bool
+GetServerCredConfigFromArgs(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _Out_ QUIC_CREDENTIAL_CONFIG_HELPER* Config
+    )
+{
+    Config->CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
+
+    const char* Cert;
+    const char* KeyFile;
+    if ((Cert = GetValue(argc, argv, "thumbprint")) ||
+        (Cert = GetValue(argc, argv, "cert_hash")) ||
+        (Cert = GetValue(argc, argv, "hash"))) {
+        uint32_t CertHashLen =
+            DecodeHexBuffer(
+                Cert,
+                sizeof(Config->CertHash.ShaHash),
+                Config->CertHash.ShaHash);
+        if (CertHashLen != sizeof(Config->CertHash.ShaHash)) {
+            return -1;
+        }
+        Config->CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        Config->CredConfig.Creds = &Config->CertHash;
+
+    } else if (
+        (Cert = GetValue(argc, argv, "file")) && (KeyFile = GetValue(argc, argv, "key")) ||
+        (Cert = GetValue(argc, argv, "cert_file")) && (KeyFile = GetValue(argc, argv, "cert_key"))) {
+        Config->CertFile.CertificateFile = (char*)Cert;
+        Config->CertFile.PrivateKeyFile = (char*)KeyFile;
+        Config->CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
+        Config->CredConfig.Creds = &Config->CertFile;
+
+    } else {
+        return false;
+    }
+
     return true;
 }
 
