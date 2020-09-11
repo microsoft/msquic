@@ -1832,7 +1832,7 @@ QuicDataPathSocketReceive(
         return STATUS_DEVICE_NOT_READY;
     }
 
-    //PWSK_DATAGRAM_INDICATION ReleaseChain = NULL;
+    PWSK_DATAGRAM_INDICATION ReleaseChain = DataIndicationHead;
     //PWSK_DATAGRAM_INDICATION* ReleaseChainTail = &ReleaseChain;
     QUIC_RECV_DATAGRAM* DatagramChain = NULL;
     QUIC_RECV_DATAGRAM** DatagramChainTail = &DatagramChain;
@@ -2137,6 +2137,8 @@ QuicDataPathSocketReceive(
     //     //
     //     Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
     // }
+
+    Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
 
     QuicRundownRelease(&Binding->Rundown[CurProcNumber]);
 
