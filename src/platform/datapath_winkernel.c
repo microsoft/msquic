@@ -2055,6 +2055,10 @@ QuicDataPathSocketReceive(
             // InternalDatagramContext->RecvContext = RecvContext;
 
             Datagram->Buffer = QUIC_ALLOC_NONPAGED(MessageLength);
+            if (Datagram->Buffer == 0) {
+                QUIC_FRE_ASSERT(FALSE);
+            }
+
             QuicCopyMemory(Datagram->Buffer, (uint8_t*)Mdl->MappedSystemVa + MdlOffset, MessageLength);
 
             //Datagram->Buffer = (uint8_t*)Mdl->MappedSystemVa + MdlOffset;
