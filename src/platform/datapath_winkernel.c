@@ -1900,7 +1900,7 @@ QuicDataPathSocketReceive(
         return STATUS_DEVICE_NOT_READY;
     }
 
-    PWSK_DATAGRAM_INDICATION ReleaseChain = DataIndicationHead;
+    PWSK_DATAGRAM_INDICATION ReleaseChain = NULL;
     PWSK_DATAGRAM_INDICATION* ReleaseChainTail = &ReleaseChain;
     QUIC_RECV_DATAGRAM* DatagramChain = NULL;
     QUIC_RECV_DATAGRAM** DatagramChainTail = &DatagramChain;
@@ -2117,6 +2117,7 @@ QuicDataPathSocketReceive(
                 } else {
                     RecvContext->IsCopiedBuffer = FALSE;
                     RecvContext->DataIndication = DataIndication;
+                    QUIC_DBG_ASSERT(DataIndication->Next == NULL);
                     RecvContext->DataIndicationSize = (int32_t)DataLength;
                     InterlockedAdd64(
                         &RecvContext->ProcContext->OutstandingStoredBytes,
@@ -2142,7 +2143,6 @@ QuicDataPathSocketReceive(
             InternalDatagramContext->RecvContext = RecvContext;
 
             if (RecvContext->IsCopiedBuffer) {
-                DbgBreakPoint();
                 Datagram->Buffer = CurrentCopiedBuffer;
                 QuicCopyMemory(Datagram->Buffer, (uint8_t*)Mdl->MappedSystemVa + MdlOffset, MessageLength);
                 CurrentCopiedBuffer += MessageLength;
@@ -2192,7 +2192,6 @@ QuicDataPathSocketReceive(
             // the indication will be returned only after the binding client has
             // returned the buffers.
             //
-            DbgBreakPoint();
             PWSK_DATAGRAM_INDICATION FreeIndic =
                 QuicDataPathFreeRecvContext(RecvContext);
             QUIC_DBG_ASSERT(FreeIndic == DataIndication);
@@ -2201,7 +2200,6 @@ QuicDataPathSocketReceive(
         }
 
         if (RecvContext == NULL || RecvContext->IsCopiedBuffer) {
-            DbgBreakPoint();
              *ReleaseChainTail = DataIndication;
              ReleaseChainTail = &DataIndication->Next;
         }
@@ -2218,7 +2216,6 @@ QuicDataPathSocketReceive(
     }
 
      if (ReleaseChain != NULL) {
-         DbgBreakPoint();
          //
          // Release any dropped datagrams.
          //
