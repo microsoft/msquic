@@ -1832,7 +1832,7 @@ QuicDataPathSocketReceive(
         return STATUS_DEVICE_NOT_READY;
     }
 
-    PWSK_DATAGRAM_INDICATION ReleaseChain = DataIndicationHead;
+    //PWSK_DATAGRAM_INDICATION ReleaseChain = DataIndicationHead;
     //PWSK_DATAGRAM_INDICATION* ReleaseChainTail = &ReleaseChain;
     QUIC_RECV_DATAGRAM* DatagramChain = NULL;
     QUIC_RECV_DATAGRAM** DatagramChainTail = &DatagramChain;
@@ -1848,7 +1848,6 @@ QuicDataPathSocketReceive(
 
         PWSK_DATAGRAM_INDICATION DataIndication = DataIndicationHead;
         DataIndicationHead = DataIndicationHead->Next;
-        DataIndication->Next = NULL;
 
         QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = NULL;
         QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext;
@@ -2138,11 +2137,11 @@ QuicDataPathSocketReceive(
     //     Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
     // }
 
-    Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
+    //Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
 
     QuicRundownRelease(&Binding->Rundown[CurProcNumber]);
 
-    return STATUS_PENDING;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
