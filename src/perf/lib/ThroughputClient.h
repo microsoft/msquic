@@ -95,7 +95,7 @@ private:
         Registration,
         MsQuicAlpn(PERF_ALPN),
         MsQuicSettings()
-            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT),
+            .SetIdleTimeoutMs(TPUT_DEFAULT_IDLE_TIMEOUT),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
