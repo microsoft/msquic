@@ -232,7 +232,7 @@ ServerLoadConfiguration(
 
     const char* Cert;
     const char* KeyFile;
-    if (Cert = GetValue(argc, argv, "cert_hash")) {
+    if ((Cert = GetValue(argc, argv, "cert_hash")) != nullptr) {
         uint32_t CertHashLen =
             DecodeHexBuffer(
                 Cert,
@@ -244,8 +244,8 @@ ServerLoadConfiguration(
         Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
         Config.CredConfig.Creds = &Config.CertHash;
 
-    } else if ((Cert = GetValue(argc, argv, "cert_file")) &&
-               (KeyFile = GetValue(argc, argv, "key_file"))) {
+    } else if ((Cert = GetValue(argc, argv, "cert_file")) != nullptr &&
+               (KeyFile = GetValue(argc, argv, "key_file")) != nullptr) {
         Config.CertFile.CertificateFile = (char*)Cert;
         Config.CertFile.PrivateKeyFile = (char*)KeyFile;
         Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
@@ -475,7 +475,7 @@ RunClient(
         goto Error;
     }
 
-    if (ResumptionTicketString = GetValue(argc, argv, "ticket")) {
+    if ((ResumptionTicketString = GetValue(argc, argv, "ticket")) != nullptr) {
         uint8_t ResumptionTicket[1024];
         uint16_t TicketLength = (uint16_t)DecodeHexBuffer(ResumptionTicketString, sizeof(ResumptionTicket), ResumptionTicket);
         if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_RESUMPTION_STATE, TicketLength, ResumptionTicket))) {

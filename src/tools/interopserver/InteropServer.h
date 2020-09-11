@@ -10,7 +10,7 @@
 #include <msquichelper.h>
 
 extern const QUIC_API_TABLE* MsQuic;
-extern HQUIC* Configuration;
+extern HQUIC Configuration;
 
 const QUIC_BUFFER QuackBuffer = { sizeof("quack") - 1, (uint8_t*)"quack" };
 const QUIC_BUFFER QuackAckBuffer = { sizeof("quack-ack") - 1, (uint8_t*)"quack-ack" };

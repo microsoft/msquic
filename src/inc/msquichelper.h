@@ -393,23 +393,23 @@ GetServerCredConfigFromArgs(
 
     const char* Cert;
     const char* KeyFile;
-    if ((Cert = GetValue(argc, argv, "thumbprint")) ||
-        (Cert = GetValue(argc, argv, "cert_hash")) ||
-        (Cert = GetValue(argc, argv, "hash"))) {
+    if ((Cert = GetValue(argc, argv, "thumbprint")) != nullptr ||
+        (Cert = GetValue(argc, argv, "cert_hash")) != nullptr ||
+        (Cert = GetValue(argc, argv, "hash")) != nullptr) {
         uint32_t CertHashLen =
             DecodeHexBuffer(
                 Cert,
                 sizeof(Config->CertHash.ShaHash),
                 Config->CertHash.ShaHash);
         if (CertHashLen != sizeof(Config->CertHash.ShaHash)) {
-            return -1;
+            return false;
         }
         Config->CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
         Config->CredConfig.Creds = &Config->CertHash;
 
     } else if (
-        (Cert = GetValue(argc, argv, "file")) && (KeyFile = GetValue(argc, argv, "key")) ||
-        (Cert = GetValue(argc, argv, "cert_file")) && (KeyFile = GetValue(argc, argv, "cert_key"))) {
+        (Cert = GetValue(argc, argv, "file")) != nullptr && (KeyFile = GetValue(argc, argv, "key")) != nullptr ||
+        (Cert = GetValue(argc, argv, "cert_file")) != nullptr && (KeyFile = GetValue(argc, argv, "cert_key")) != nullptr) {
         Config->CertFile.CertificateFile = (char*)Cert;
         Config->CertFile.PrivateKeyFile = (char*)KeyFile;
         Config->CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
