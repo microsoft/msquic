@@ -2142,7 +2142,7 @@ QuicDataPathSocketReceive(
 
     QuicRundownRelease(&Binding->Rundown[CurProcNumber]);
 
-    return STATUS_SUCCESS;
+    return STATUS_PENDING;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
