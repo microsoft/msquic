@@ -89,6 +89,11 @@ typedef enum {
 //
 #define URO_MAX_DATAGRAMS_PER_INDICATION    64
 
+//
+// The maximum allowed pending WSK buffers per proc before copying.
+//
+#define PENDING_BUFFER_LIMIT                256000
+
 static_assert(
     sizeof(QUIC_BUFFER) == sizeof(WSABUF),
     "WSABUF is assumed to be interchangeable for QUIC_BUFFER");
@@ -355,13 +360,13 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT {
 
     //
     // Pool of receive datagram contexts and buffers to be shared by all sockets
-    // on this core. Idx 0 is regular, Idx 1 is URO.
+    // on this core. Index 0 is regular, Index 1 is URO.
     //
     //
     QUIC_POOL RecvDatagramPools[2];
 
     //
-    // Pool of receive data buffers. Idx 0 is 4096, Idx 1 is 65536.
+    // Pool of receive data buffers. Index 0 is 4096, Index 1 is 65536.
     //
     QUIC_POOL RecvBufferPools[2];
 
@@ -2101,7 +2106,7 @@ QuicDataPathSocketReceive(
                     goto Drop;
                 }
 
-                if (RecvContext->ProcContext->OutstandingStoredBytes > 256000) {
+                if (RecvContext->ProcContext->OutstandingStoredBytes > PENDING_BUFFER_LIMIT) {
                     //
                     // Perform a copy
                     //

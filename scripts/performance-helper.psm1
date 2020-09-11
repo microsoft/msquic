@@ -62,15 +62,10 @@ $WpaQUICLogProfileXml = `
         <Stack Value="SampledProfile"/>
       </Stacks>
     </SystemProvider>
-    <EventProvider Id="MsQuicEtwPerf" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" Level="4">
+    <EventProvider Id="MsQuicEtwPerf" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" Level="5">
       <Keywords>
-        <Keyword Value="0xC0000000"/>
+        <Keyword Value="0xE0000000"/>
       </Keywords>
-    </EventProvider>
-    <EventProvider Id="DroppedPackets" Name="2F07E2EE-15DB-40F1-90EF-9D7BA282188A" NonPagedMemory="true" Level="5">
-        <Keywords>
-        <Keyword Value="0x0000010000000000"/>
-        </Keywords>
     </EventProvider>
     <Profile Id="CPU.Light.File" Name="CPU" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
       <Collectors>
@@ -80,7 +75,6 @@ $WpaQUICLogProfileXml = `
         <EventCollectorId Value="EC_LowVolume">
           <EventProviders>
             <EventProviderId Value="MsQuicEtwPerf" />
-            <EventProviderId Value="DroppedPackets" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
@@ -195,7 +189,7 @@ function Wait-ForRemote {
     # Ping sidechannel socket on 9999 to tell the app to die
     $Socket = New-Object System.Net.Sockets.UDPClient
     $Socket.Send(@(1), 1, $RemoteAddress, 9999) | Out-Null
-    Wait-Job -Job $Job -Timeout 360 | Out-Null
+    Wait-Job -Job $Job -Timeout 120 | Out-Null
     Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
     return $RetVal -join "`n"
