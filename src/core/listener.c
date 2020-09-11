@@ -561,12 +561,7 @@ QuicListenerClaimConnection(
     if (Event.NEW_CONNECTION.Configuration != NULL) {
         QUIC_CONFIGURATION* Configuration =
             (QUIC_CONFIGURATION*)Event.NEW_CONNECTION.Configuration;
-        if (QUIC_FAILED(
-            QuicConnSetConfiguration(
-                Connection,
-                Configuration,
-                Connection->Crypto.TlsState.NegotiatedAlpn,
-                Connection->Crypto.TlsState.NegotiatedAlpn[0] + 1))) {
+        if (QUIC_FAILED(QuicConnSetConfiguration(Connection, Configuration))) {
             QuicConnTransportError(
                 Connection,
                 QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE);

@@ -239,35 +239,6 @@ DecodeHexBuffer(
     return HexBufferLen;
 }
 
-//
-// Helper function to take a hex encoded byte string for the resumption state.
-//
-inline
-BOOLEAN
-SetResumptionState(
-    _In_ const QUIC_API_TABLE* MsQuic,
-    _In_ HQUIC Handle,
-    _In_z_ const char* SerializedState
-    )
-{
-    uint8_t State[2048];
-    uint32_t StateLen =
-        DecodeHexBuffer(SerializedState, sizeof(State), State);
-
-    if (StateLen == 0) {
-        return FALSE;
-    }
-
-    return
-        QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                Handle,
-                QUIC_PARAM_LEVEL_SESSION,
-                QUIC_PARAM_SESSION_ADD_RESUMPTION_STATE,
-                StateLen,
-                State));
-}
-
 #if defined(__cplusplus)
 
 struct CreateSecConfigHelper {

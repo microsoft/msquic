@@ -81,7 +81,7 @@ typedef struct QUIC_CONFIGURATION {
 #endif // #ifdef QUIC_SILO
 
 //
-// Tracing rundown for the session.
+// Tracing rundown for the configuration.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -100,7 +100,7 @@ QuicConfigurationSettingsChanged(
     );
 
 //
-// Gets a session parameter.
+// Gets a configuration parameter.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -113,7 +113,7 @@ QuicConfigurationParamGet(
     );
 
 //
-// Sets a session parameter.
+// Sets a configuration parameter.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS

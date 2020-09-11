@@ -69,11 +69,6 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS           0x80000001  // QUIC_TEST_DATAPATH_HOOKS*
 
 //
-// The different private parameters for QUIC_PARAM_LEVEL_CONFIGURATION.
-//
-#define QUIC_PARAM_CONFIG_ADD_RESUMPTION_STATE          0x80000001  // uint8_t*
-
-//
 // The different private parameters for QUIC_PARAM_LEVEL_CONNECTION.
 //
 

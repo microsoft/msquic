@@ -249,10 +249,7 @@ QUIC_STATUS
 QuicCryptoInitializeTls(
     _Inout_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_SEC_CONFIG* SecConfig,
-    _In_ const QUIC_TRANSPORT_PARAMETERS* Params,
-    _In_reads_bytes_(AlpnListLength)
-        const uint8_t* AlpnList,
-    _In_ uint16_t AlpnListLength
+    _In_ const QUIC_TRANSPORT_PARAMETERS* Params
     )
 {
     QUIC_STATUS Status;
@@ -265,8 +262,13 @@ QuicCryptoInitializeTls(
     QUIC_DBG_ASSERT(Connection->Configuration != NULL);
 
     TlsConfig.IsServer = IsServer;
-    TlsConfig.AlpnBuffer = AlpnList;
-    TlsConfig.AlpnBufferLength = AlpnListLength;
+    if (IsServer) {
+        TlsConfig.AlpnBuffer = Crypto->TlsState.NegotiatedAlpn;
+        TlsConfig.AlpnBufferLength = 1 + Crypto->TlsState.NegotiatedAlpn[0];
+    } else {
+        TlsConfig.AlpnBuffer = Connection->Configuration->AlpnList;
+        TlsConfig.AlpnBufferLength = Connection->Configuration->AlpnListLength;
+    }
     TlsConfig.SecConfig = SecConfig;
     TlsConfig.Connection = Connection;
     TlsConfig.ProcessCompleteCallback = QuicTlsProcessDataCompleteCallback;
@@ -1367,32 +1369,12 @@ QuicCryptoProcessTlsCompletion(
 
         QuicConnGenerateNewSourceCids(Connection, FALSE);
 
-        if (!QuicConnIsServer(Connection) &&
-            Connection->RemoteServerName != NULL) {
-
-            QUIC_SEC_CONFIG* SecConfig = QuicTlsGetSecConfig(Crypto->TLS);
-
-            //
-            // Cache this information for future connections in this
-            // session to make use of.
-            //
-            QUIC_TEL_ASSERT(Connection->Configuration != NULL);
-            QuicSessionServerCacheSetState(
-                Connection->Session,
-                Connection->RemoteServerName,
-                Connection->Stats.QuicVersion,
-                &Connection->PeerTransportParams,
-                SecConfig);
-
-            QuicTlsSecConfigRelease(SecConfig);
-        }
-
         QUIC_DBG_ASSERT(Crypto->TlsState.NegotiatedAlpn != NULL);
         if (!QuicConnIsServer(Connection)) {
             //
             // Currently, NegotiatedAlpn points into TLS state memory, which
             // doesn't live as long as the connection. Update it to point to the
-            // session state memory instead.
+            // configuration state memory instead.
             //
             Crypto->TlsState.NegotiatedAlpn =
                 QuicTlsAlpnFindInList(

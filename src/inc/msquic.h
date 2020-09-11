@@ -501,20 +501,19 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE             8   // char[]
 #define QUIC_PARAM_CONN_STATISTICS                      9   // QUIC_STATISTICS
 #define QUIC_PARAM_CONN_STATISTICS_PLAT                 10  // QUIC_STATISTICS
-#define QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS           11  // uint32_t
-#define QUIC_PARAM_CONN_KEEP_ALIVE                      12  // uint32_t - milliseconds
-#define QUIC_PARAM_CONN_DISCONNECT_TIMEOUT              13  // uint32_t - milliseconds
-#define QUIC_PARAM_CONN_CONFIGURATION                   14  // HQUIC
-#define QUIC_PARAM_CONN_SEND_BUFFERING                  15  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_SEND_PACING                     16  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_SHARE_UDP_BINDING               17  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 18  // uint16_t
-#define QUIC_PARAM_CONN_MAX_STREAM_IDS                  19  // uint64_t[4]
-#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        20  // QUIC_STREAM_SCHEDULING_SCHEME
-#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        21  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           22  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_KEEP_ALIVE                      11  // uint32_t - milliseconds
+#define QUIC_PARAM_CONN_DISCONNECT_TIMEOUT              12  // uint32_t - milliseconds
+#define QUIC_PARAM_CONN_CONFIGURATION                   13  // HQUIC
+#define QUIC_PARAM_CONN_SEND_BUFFERING                  14  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_SEND_PACING                     15  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_SHARE_UDP_BINDING               16  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 17  // uint16_t
+#define QUIC_PARAM_CONN_MAX_STREAM_IDS                  18  // uint64_t[4]
+#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        19  // QUIC_STREAM_SCHEDULING_SCHEME
+#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        20  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           21  // uint8_t (BOOLEAN)
 #ifdef QUIC_API_ENABLE_INSECURE_FEATURES
-#define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         23  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         22  // uint8_t (BOOLEAN)
 #endif
 
 #ifdef WIN32 // Windows certificate validation ignore flags.

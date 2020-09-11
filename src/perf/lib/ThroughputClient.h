@@ -90,13 +90,15 @@ private:
         _In_ StreamContext* Context
         );
 
-    MsQuicRegistration Registration;
-    MsQuicSession Session {
+    MsQuicRegistration Registration {true};
+    MsQuicConfiguration Configuration {
         Registration,
         MsQuicAlpn(PERF_ALPN),
         MsQuicSettings()
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT),
-        true};
+        MsQuicCredentialConfig(
+            QUIC_CREDENTIAL_FLAG_CLIENT |
+            QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
     QuicPoolAllocator<ConnectionData> ConnectionDataAllocator;
     UniquePtr<char[]> TargetData;

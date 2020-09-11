@@ -43,17 +43,11 @@ PerfServer::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (!Listener.IsValid()) {
-        return Listener.GetInitStatus();
+    if (QUIC_FAILED(InitStatus)) {
+        return InitStatus;
     }
 
     TryGetValue(argc, argv, "port", &Port);
-
-    QUIC_STATUS Status = SecurityConfig.Initialize(argc, argv, Registration, SelfSignedConfig);
-    if (QUIC_FAILED(Status)) {
-        PrintHelp();
-        return Status;
-    }
 
     DataBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE);
     if (!DataBuffer) {
@@ -80,6 +74,7 @@ PerfServer::Start(
 
     return
         Listener.Start(
+            Alpn,
             &Address,
             [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
                 return ((PerfServer*)Context)->ListenerCallback(Handle, Event);
@@ -96,7 +91,7 @@ PerfServer::Wait(
     } else {
         QuicEventWaitForever(*StopEvent);
     }
-    Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+    Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -125,7 +120,7 @@ PerfServer::ListenerCallback(
                         Event);
             };
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)Handler, this);
-        Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
+        Event->NEW_CONNECTION.Configuration = Configuration;
         break;
     }
     }

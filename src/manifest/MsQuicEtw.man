@@ -23,8 +23,8 @@
               />
           <keyword
               mask="0x0000000000000002"
-              name="ut:Session"
-              symbol="KW_QUIC_SESSION"
+              name="ut:Configuration"
+              symbol="KW_QUIC_CONFIGURATION"
               />
           <keyword
               mask="0x0000000000000004"
@@ -359,96 +359,88 @@
                 value="3"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_OPEN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.REGISTRATION_SHUTDOWN)"
                 value="4"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_CLOSE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_OPEN)"
                 value="5"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_LOAD_CREDENTIAL)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_CLOSE)"
                 value="6"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.SESSION_OPEN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_LOAD_CREDENTIAL)"
                 value="7"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.SESSION_CLOSE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_OPEN)"
                 value="8"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.SESSION_SHUTDOWN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_CLOSE)"
                 value="9"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_OPEN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_START)"
                 value="10"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_CLOSE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_STOP)"
                 value="11"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_START)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_OPEN)"
                 value="12"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_STOP)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_CLOSE)"
                 value="13"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_OPEN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_SHUTDOWN)"
                 value="14"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_CLOSE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_START)"
                 value="15"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_SHUTDOWN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_SEND_RESUMPTION_TICKET)"
                 value="16"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_START)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_OPEN)"
                 value="17"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_SEND_RESUMPTION_TICKET)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_CLOSE)"
                 value="18"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_OPEN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_START)"
                 value="19"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_CLOSE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_SHUTDOWN)"
                 value="20"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_START)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_SEND)"
                 value="21"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_SHUTDOWN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_COMPLETE)"
                 value="22"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_SEND)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_SET_ENABLED)"
                 value="23"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_COMPLETE)"
-                value="24"
-                />
-            <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_SET_ENABLED)"
-                value="25"
-                />
-            <map
                 message="$(string.Enum.QUIC_TRACE_API_TYPE.DATAGRAM_SEND)"
-                value="26"
+                value="24"
                 />
           </valueMap>
           <valueMap name="map_QUIC_SEND_FLUSH_REASON">
@@ -621,6 +613,20 @@
                 name="ErrStr"
                 />
           </template>
+          <template tid="tid_REGISTRATION_FLAGS_ERRORCODE">
+            <data
+                inType="win:Pointer"
+                name="Registration"
+                />
+            <data
+                inType="win:UInt32"
+                name="Flags"
+                />
+            <data
+                inType="win:UInt64"
+                name="ErrorCode"
+                />
+          </template>
           <template tid="tid_WORKER">
             <data
                 inType="win:Pointer"
@@ -689,50 +695,36 @@
                 name="ErrStr"
                 />
           </template>
-          <template tid="tid_SESSION">
+          <template tid="tid_CONFIGURATION">
             <data
                 inType="win:Pointer"
-                name="Session"
+                name="Configuration"
                 />
           </template>
-          <template tid="tid_SESSION_REGISTRATION">
+          <template tid="tid_CONFIGURATION_REGISTRATION">
             <data
                 inType="win:Pointer"
-                name="Session"
+                name="Configuration"
                 />
             <data
                 inType="win:Pointer"
                 name="Registration"
                 />
           </template>
-          <template tid="tid_SESSION_FLAGS_ERRORCODE">
+          <template tid="tid_CONFIGURATION_ERROR">
             <data
                 inType="win:Pointer"
-                name="Session"
-                />
-            <data
-                inType="win:UInt32"
-                name="Flags"
-                />
-            <data
-                inType="win:UInt64"
-                name="ErrorCode"
-                />
-          </template>
-          <template tid="tid_SESSION_ERROR">
-            <data
-                inType="win:Pointer"
-                name="Session"
+                name="Configuration"
                 />
             <data
                 inType="win:AnsiString"
                 name="ErrStr"
                 />
           </template>
-          <template tid="tid_SESSION_STATUS_ERROR">
+          <template tid="tid_CONFIGURATION_STATUS_ERROR">
             <data
                 inType="win:Pointer"
-                name="Session"
+                name="Configuration"
                 />
             <data
                 inType="win:UInt32"
@@ -749,14 +741,14 @@
                 name="Listener"
                 />
           </template>
-          <template tid="tid_LISTENER_SESSION">
+          <template tid="tid_LISTENER_REGISTRATION">
             <data
                 inType="win:Pointer"
                 name="Listener"
                 />
             <data
                 inType="win:Pointer"
-                name="Session"
+                name="Registration"
                 />
           </template>
           <template tid="tid_LISTENER_IP_ADDR_BINDING">
@@ -932,14 +924,14 @@
                 name="Worker"
                 />
           </template>
-          <template tid="tid_CONN_SESSION">
+          <template tid="tid_CONN_REGISTRATION">
             <data
                 inType="win:Pointer"
                 name="Connection"
                 />
             <data
                 inType="win:Pointer"
-                name="Session"
+                name="Registration"
                 />
           </template>
           <template tid="tid_CONN_TRANSPORT_SHUTDOWN">
@@ -1698,9 +1690,9 @@
           <event
               keywords="ut:LowVolume"
               level="win:Informational"
-              message="$(string.Etw.LibraryWorkerPoolInit)"
+              message="$(string.Etw.LibraryServerInit)"
               opcode="win:Info"
-              symbol="QuicLibraryWorkerPoolInit"
+              symbol="QuicLibraryServerInit"
               value="5"
               />
           <event
@@ -1846,6 +1838,15 @@
               template="tid_REGISTRATION_STATUS_ERROR"
               value="1029"
               />
+          <event
+              keywords="ut:Registration ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.RegistrationShutdown)"
+              opcode="win:Info"
+              symbol="QuicRegistrationShutdown"
+              template="tid_REGISTRATION_FLAGS_ERRORCODE"
+              value="1030"
+              />
           <!-- 2048 - 3071 | Worker Events -->
           <event
               keywords="ut:Worker ut:LowVolume"
@@ -1928,68 +1929,60 @@
               template="tid_WORKER_STATUS_ERROR"
               value="2056"
               />
-          <!-- 3072 - 4095 | Session Events -->
+          <!-- 3072 - 4095 | Configuration Events -->
           <event
-              keywords="ut:Session ut:LowVolume"
+              keywords="ut:Configuration ut:LowVolume"
               level="win:Informational"
-              message="$(string.Etw.SessionCreated)"
+              message="$(string.Etw.ConfigurationCreated)"
               opcode="win:Info"
-              symbol="QuicSessionCreated"
-              template="tid_SESSION_REGISTRATION"
+              symbol="QuicConfigurationCreated"
+              template="tid_CONFIGURATION_REGISTRATION"
               value="3072"
               />
           <event
-              keywords="ut:Session ut:LowVolume"
+              keywords="ut:Configuration ut:LowVolume"
               level="win:Informational"
-              message="$(string.Etw.SessionDestroyed)"
+              message="$(string.Etw.ConfigurationDestroyed)"
               opcode="win:Info"
-              symbol="QuicSessionDestroyed"
-              template="tid_SESSION"
+              symbol="QuicConfigurationDestroyed"
+              template="tid_CONFIGURATION"
               value="3073"
               />
           <event
-              keywords="ut:Session ut:LowVolume"
+              keywords="ut:Configuration ut:LowVolume"
               level="win:Informational"
-              message="$(string.Etw.SessionCleanup)"
+              message="$(string.Etw.ConfigurationCleanup)"
               opcode="win:Info"
-              symbol="QuicSessionCleanup"
-              template="tid_SESSION"
+              symbol="QuicConfigurationCleanup"
+              template="tid_CONFIGURATION"
               value="3074"
               />
+          <!-- missing -->
           <event
-              keywords="ut:Session ut:LowVolume"
+              keywords="ut:Configuration ut:LowVolume"
               level="win:Informational"
-              message="$(string.Etw.SessionShutdown)"
+              message="$(string.Etw.ConfigurationRundown)"
               opcode="win:Info"
-              symbol="QuicSessionShutdown"
-              template="tid_SESSION_FLAGS_ERRORCODE"
-              value="3075"
-              />
-          <event
-              keywords="ut:Session ut:LowVolume"
-              level="win:Informational"
-              message="$(string.Etw.SessionRundown)"
-              opcode="win:Info"
-              symbol="QuicSessionRundown"
-              template="tid_SESSION_REGISTRATION"
+              symbol="QuicConfigurationRundown"
+              template="tid_CONFIGURATION_REGISTRATION"
               value="3076"
               />
           <event
-              keywords="ut:Session ut:LowVolume"
+              keywords="ut:Configuration ut:LowVolume"
               level="win:Error"
-              message="$(string.Etw.SessionError)"
+              message="$(string.Etw.ConfigurationError)"
               opcode="win:Info"
-              symbol="QuicSessionError"
-              template="tid_SESSION_ERROR"
+              symbol="QuicConfigurationError"
+              template="tid_CONFIGURATION_ERROR"
               value="3077"
               />
           <event
-              keywords="ut:Session ut:LowVolume"
+              keywords="ut:Configuration ut:LowVolume"
               level="win:Error"
-              message="$(string.Etw.SessionErrorStatus)"
+              message="$(string.Etw.ConfigurationErrorStatus)"
               opcode="win:Info"
-              symbol="QuicSessionErrorStatus"
-              template="tid_SESSION_STATUS_ERROR"
+              symbol="QuicConfigurationErrorStatus"
+              template="tid_CONFIGURATION_STATUS_ERROR"
               value="3078"
               />
           <!-- 4096 - 5119 | Listener Events -->
@@ -1999,7 +1992,7 @@
               message="$(string.Etw.ListenerCreated)"
               opcode="win:Info"
               symbol="QuicListenerCreated"
-              template="tid_LISTENER_SESSION"
+              template="tid_LISTENER_REGISTRATION"
               value="4096"
               />
           <event
@@ -2035,7 +2028,7 @@
               message="$(string.Etw.ListenerRundown)"
               opcode="win:Info"
               symbol="QuicListenerRundown"
-              template="tid_LISTENER_SESSION"
+              template="tid_LISTENER_REGISTRATION"
               value="4100"
               />
           <event
@@ -2177,19 +2170,19 @@
           <event
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
-              message="$(string.Etw.ConnRegisterSession)"
+              message="$(string.Etw.ConnRegistered)"
               opcode="win:Info"
-              symbol="QuicConnRegisterSession"
-              template="tid_CONN_SESSION"
+              symbol="QuicConnRegistered"
+              template="tid_CONN_REGISTRATION"
               value="5133"
               />
           <event
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
-              message="$(string.Etw.ConnUnregisterSession)"
+              message="$(string.Etw.ConnUnregistered)"
               opcode="win:Info"
-              symbol="QuicConnUnregisterSession"
-              template="tid_CONN_SESSION"
+              symbol="QuicConnUnregistered"
+              template="tid_CONN_REGISTRATION"
               value="5134"
               />
           <event
@@ -2944,12 +2937,12 @@
             value="[conn][%1] Assigned worker: %2"
             />
         <string
-            id="Etw.ConnRegisterSession"
-            value="[conn][%1] Registered with session: %2"
+            id="Etw.ConnRegistered"
+            value="[conn][%1] Registered with %2"
             />
         <string
-            id="Etw.ConnUnregisterSession"
-            value="[conn][%1] Unregistered from session: %2"
+            id="Etw.ConnUnregistered"
+            value="[conn][%1] Unregistered from %2"
             />
         <string
             id="Etw.ConnTransportShutdown"
@@ -3176,6 +3169,10 @@
             value="[ reg][%1] ERROR, %2, %3."
             />
         <string
+            id="Etw.RegistrationShutdown"
+            value="[ reg][%1] Shutting down connections, Flags=%2, ErrorCode=%3"
+            />
+        <string
             id="Etw.LibraryInitialized"
             value="[ lib] Initialized, PartitionCount=%1 DatapathFeatures=%2"
             />
@@ -3196,8 +3193,8 @@
             value="[ lib] Release"
             />
         <string
-            id="Etw.LibraryWorkerPoolInit"
-            value="[ lib] Shared worker pool initializing"
+            id="Etw.LibraryServerInit"
+            value="[ lib] Shared server state initializing"
             />
         <string
             id="Etw.LibraryError"
@@ -3212,40 +3209,36 @@
             value="[ lib] ASSERT, %2:%1 - %3."
             />
         <string
-            id="Etw.SessionCreated"
-            value="[sess][%1] Created, Registration=%2"
+            id="Etw.ConfigurationCreated"
+            value="[cnfg][%1] Created, Registration=%2"
             />
         <string
-            id="Etw.SessionRundown"
-            value="[sess][%1] Rundown, Registration=%2"
+            id="Etw.ConfigurationRundown"
+            value="[cnfg][%1] Rundown, Registration=%2"
             />
         <string
-            id="Etw.SessionDestroyed"
-            value="[sess][%1] Destroyed"
+            id="Etw.ConfigurationDestroyed"
+            value="[cnfg][%1] Destroyed"
             />
         <string
-            id="Etw.SessionCleanup"
-            value="[sess][%1] Cleaning up"
+            id="Etw.ConfigurationCleanup"
+            value="[cnfg][%1] Cleaning up"
             />
         <string
-            id="Etw.SessionShutdown"
-            value="[sess][%1] Shutting down connections, Flags=%2, ErrorCode=%3"
+            id="Etw.ConfigurationError"
+            value="[cnfg][%1] ERROR, %2."
             />
         <string
-            id="Etw.SessionError"
-            value="[sess][%1] ERROR, %2."
-            />
-        <string
-            id="Etw.SessionErrorStatus"
-            value="[sess][%1] ERROR, %2, %3."
+            id="Etw.ConfigurationErrorStatus"
+            value="[cnfg][%1] ERROR, %2, %3."
             />
         <string
             id="Etw.ListenerCreated"
-            value="[list][%1] Created, Session=%2"
+            value="[list][%1] Created, Registration=%2"
             />
         <string
             id="Etw.ListenerRundown"
-            value="[list][%1] Rundown, Session=%2"
+            value="[list][%1] Rundown, Registration=%2"
             />
         <string
             id="Etw.ListenerDestroyed"
@@ -3601,6 +3594,10 @@
             value="REGISTRATION_CLOSE"
             />
         <string
+            id="Enum.QUIC_TRACE_API_TYPE.REGISTRATION_SHUTDOWN"
+            value="REGISTRATION_SHUTDOWN"
+            />
+        <string
             id="Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_OPEN"
             value="CONFIGURATION_OPEN"
             />
@@ -3611,18 +3608,6 @@
         <string
             id="Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_LOAD_CREDENTIAL"
             value="CONFIGURATION_LOAD_CREDENTIAL"
-            />
-        <string
-            id="Enum.QUIC_TRACE_API_TYPE.SESSION_OPEN"
-            value="SESSION_OPEN"
-            />
-        <string
-            id="Enum.QUIC_TRACE_API_TYPE.SESSION_CLOSE"
-            value="SESSION_CLOSE"
-            />
-        <string
-            id="Enum.QUIC_TRACE_API_TYPE.SESSION_SHUTDOWN"
-            value="SESSION_SHUTDOWN"
             />
         <string
             id="Enum.QUIC_TRACE_API_TYPE.LISTENER_OPEN"

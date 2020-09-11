@@ -29,7 +29,6 @@ void QuicTestUninitialize();
 
 void QuicTestValidateApi();
 void QuicTestValidateRegistration();
-void QuicTestValidateSession();
 void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);

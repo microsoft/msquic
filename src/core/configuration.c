@@ -34,7 +34,7 @@ MsQuicConfigurationOpen(
 {
     QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
     QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
-    QUIC_CONFIGURATION* Configuration;
+    QUIC_CONFIGURATION* Configuration = NULL;
     uint8_t* AlpnList;
     uint32_t AlpnListLength;
 
@@ -189,7 +189,7 @@ MsQuicConfigurationOpen(
     QuicListInsertTail(&Registration->Configurations, &Configuration->Link);
     QuicLockRelease(&Registration->ConfigLock);
 
-    *NewConfiguration = Configuration;
+    *NewConfiguration = (HQUIC)Configuration;
 
 Error:
 
@@ -291,7 +291,7 @@ MsQuicConfigurationLoadCredentialComplete(
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
         QUIC_DBG_ASSERT(CredConfig->AsyncHandler != NULL);
         CredConfig->AsyncHandler(
-            Configuration,
+            (HQUIC)Configuration,
             Configuration->ClientContext,
             Status);
     }

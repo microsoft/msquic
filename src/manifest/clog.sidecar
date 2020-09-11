@@ -8536,10 +8536,10 @@
         "CustomSettings": null
       }
     },
-    "ListenerCreated": {
+    "ListenerRundown": {
       "ModuleProperites": {},
-      "TraceString": "[list][%p] Created, Session=%p",
-      "UniqueId": "ListenerCreated",
+      "TraceString": "[list][%p] Rundown, Registration=%p",
+      "UniqueId": "ListenerRundown",
       "splitArgs": [
         {
           "VariableInfo": {
@@ -8551,7 +8551,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Listener->Session",
+            "UserSuppliedTrimmed": "Listener->Registration",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -8564,7 +8564,7 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -8703,10 +8703,10 @@
         "CustomSettings": null
       }
     },
-    "ListenerRundown": {
+    "ListenerCreated": {
       "ModuleProperites": {},
-      "TraceString": "[list][%p] Rundown, Session=%p",
-      "UniqueId": "ListenerRundown",
+      "TraceString": "[list][%p] Created, Registration=%p",
+      "UniqueId": "ListenerCreated",
       "splitArgs": [
         {
           "VariableInfo": {
@@ -8718,7 +8718,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Listener->Session",
+            "UserSuppliedTrimmed": "Listener->Registration",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -8731,7 +8731,7 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -23071,10 +23071,6 @@
         "TraceID": "NoSecurityConfigAvailable"
       },
       {
-        "UniquenessHash": "b5ee3b99-bc14-024e-4f0a-8be10e90a5fa",
-        "TraceID": "ListenerCreated"
-      },
-      {
         "UniquenessHash": "c1f29de0-fe00-6ea3-b33e-690fb6e099d4",
         "TraceID": "ListenerDestroyed"
       },
@@ -23089,10 +23085,6 @@
       {
         "UniquenessHash": "da94a1b4-7135-7fd3-9216-36a5faf1ed7a",
         "TraceID": "ListenerStopped"
-      },
-      {
-        "UniquenessHash": "8dacc12e-b838-4b2f-273b-77a730a20b87",
-        "TraceID": "ListenerRundown"
       },
       {
         "UniquenessHash": "cbfa374b-8626-eaf8-52f1-dae0df48749f",
@@ -24633,6 +24625,66 @@
       {
         "UniquenessHash": "49ee2ed0-1b90-a7f2-d8a6-230a287a07b7",
         "TraceID": "WorkerCreated"
+      },
+      {
+        "UniquenessHash": "f017e9d9-1069-630c-9301-b7c2cdd0dab5",
+        "TraceID": "ConfigurationCreated"
+      },
+      {
+        "UniquenessHash": "c4fb9ea0-c592-0ce3-51af-47689a0b2d11",
+        "TraceID": "ConfigurationCleanup"
+      },
+      {
+        "UniquenessHash": "e63d4591-3c4b-b640-cf7d-5e58755920bd",
+        "TraceID": "ConfigurationDestroyed"
+      },
+      {
+        "UniquenessHash": "1a9b55d5-1b7e-a6d6-e74a-cc8d426e6aaa",
+        "TraceID": "ConfigurationRundown"
+      },
+      {
+        "UniquenessHash": "9263ea25-3bcc-5edf-b6ee-493bfe5cc4de",
+        "TraceID": "SetConfiguration"
+      },
+      {
+        "UniquenessHash": "60a38bc0-4218-963b-507a-5d7cb5c08596",
+        "TraceID": "ConnRegistered"
+      },
+      {
+        "UniquenessHash": "2c7b6642-2b16-6fdb-2e81-f932dca249e3",
+        "TraceID": "ConnUnregistered"
+      },
+      {
+        "UniquenessHash": "58367e27-574f-14e0-4661-81f93cdb9e18",
+        "TraceID": "LibraryServerInit"
+      },
+      {
+        "UniquenessHash": "135ad665-a1b8-32ac-555d-8d1c65c94206",
+        "TraceID": "ListenerCreated"
+      },
+      {
+        "UniquenessHash": "516f74f8-8802-7cdb-d034-3fa2e41d42c0",
+        "TraceID": "ListenerRundown"
+      },
+      {
+        "UniquenessHash": "fe3408e1-1fb0-c1b5-d7d9-61b116db0fe8",
+        "TraceID": "SettingDumpPacingDefault"
+      },
+      {
+        "UniquenessHash": "b6d32b84-af0c-b1cb-5e97-a9fb84980e8d",
+        "TraceID": "SettingDumpBidiStreamCount"
+      },
+      {
+        "UniquenessHash": "3c095e75-f922-9df3-753d-eab794e216ee",
+        "TraceID": "SchannelAchAsync"
+      },
+      {
+        "UniquenessHash": "01e767df-e7db-9399-5d4e-ecd19823890a",
+        "TraceID": "SchannelAch"
+      },
+      {
+        "UniquenessHash": "7a6ea81a-5491-2148-a007-711c5a641acc",
+        "TraceID": "SchannelAchCompleteInline"
       }
     ]
   }

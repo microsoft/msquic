@@ -1381,7 +1381,7 @@ QuicLibraryOnListenerRegistered(
         if (QUIC_FAILED(
             MsQuicRegistrationOpen(
                 &Config,
-                &MsQuicLib.StatelessRegistration))) {
+                (HQUIC*)&MsQuicLib.StatelessRegistration))) {
             Success = FALSE;
             goto Fail;
         }

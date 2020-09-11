@@ -22,22 +22,26 @@ Supported Platforms:
 
 #include <msquic.h>
 
+#ifndef QUIC_DBG_ASSERT
+#define QUIC_DBG_ASSERT(X) // no-op if not already defined
+#endif
+
 struct QuicAddr {
     QUIC_ADDR SockAddr;
     QuicAddr() {
-        QuicZeroMemory(&SockAddr, sizeof(SockAddr));
+        memset(&SockAddr, 0, sizeof(SockAddr));
     }
     QuicAddr(QUIC_ADDRESS_FAMILY af) {
-        QuicZeroMemory(&SockAddr, sizeof(SockAddr));
+        memset(&SockAddr, 0, sizeof(SockAddr));
         QuicAddrSetFamily(&SockAddr, af);
     }
     QuicAddr(QUIC_ADDRESS_FAMILY af, uint16_t Port) {
-        QuicZeroMemory(&SockAddr, sizeof(SockAddr));
+        memset(&SockAddr, 0, sizeof(SockAddr));
         QuicAddrSetFamily(&SockAddr, af);
         QuicAddrSetPort(&SockAddr, Port);
     }
     QuicAddr(QUIC_ADDRESS_FAMILY af, bool /*unused*/) {
-        QuicZeroMemory(&SockAddr, sizeof(SockAddr));
+        memset(&SockAddr, 0, sizeof(SockAddr));
         QuicAddrSetFamily(&SockAddr, af);
         QuicAddrSetToLoopback(&SockAddr);
     }
@@ -188,7 +192,7 @@ public:
     MsQuicApi() noexcept {
         if (QUIC_SUCCEEDED(InitStatus = MsQuicOpen(&ApiTable))) {
             QUIC_API_TABLE* thisTable = this;
-            QuicCopyMemory(thisTable, ApiTable, sizeof(*ApiTable));
+            memcpy(thisTable, ApiTable, sizeof(*ApiTable));
         }
     }
     ~MsQuicApi() noexcept {
@@ -196,7 +200,7 @@ public:
             MsQuicClose(ApiTable);
             ApiTable = nullptr;
             QUIC_API_TABLE* thisTable = this;
-            QuicZeroMemory(thisTable, sizeof(*thisTable));
+            memset(thisTable, 0, sizeof(*thisTable));
         }
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
@@ -205,24 +209,45 @@ public:
 extern const MsQuicApi* MsQuic;
 
 class MsQuicRegistration {
+    bool CloseAllConnectionsOnDelete {false};
     HQUIC Handle {nullptr};
     QUIC_STATUS InitStatus;
 public:
     operator HQUIC () const noexcept { return Handle; }
-    MsQuicRegistration() noexcept {
+    MsQuicRegistration(
+        _In_ bool AutoCleanUp = false
+        ) noexcept : CloseAllConnectionsOnDelete(AutoCleanUp) {
         InitStatus = MsQuic->RegistrationOpen(nullptr, &Handle);
     }
-    MsQuicRegistration(_In_z_ const char* AppName, QUIC_EXECUTION_PROFILE Profile = QUIC_EXECUTION_PROFILE_LOW_LATENCY) noexcept {
+    MsQuicRegistration(
+        _In_z_ const char* AppName,
+        QUIC_EXECUTION_PROFILE Profile = QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        _In_ bool AutoCleanUp = false
+        ) noexcept : CloseAllConnectionsOnDelete(AutoCleanUp) {
         const QUIC_REGISTRATION_CONFIG RegConfig = { AppName, Profile };
         InitStatus = MsQuic->RegistrationOpen(&RegConfig, &Handle);
     }
     ~MsQuicRegistration() noexcept {
-        MsQuic->RegistrationClose(Handle);
+        if (Handle != nullptr) {
+            if (CloseAllConnectionsOnDelete) {
+                MsQuic->RegistrationShutdown(
+                    Handle,
+                    QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
+                    1);
+            }
+            MsQuic->RegistrationClose(Handle);
+        }
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const noexcept { return Handle != nullptr; }
     MsQuicRegistration(MsQuicRegistration& other) = delete;
     MsQuicRegistration operator=(MsQuicRegistration& Other) = delete;
+    void Shutdown(
+        _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
+        _In_ QUIC_UINT62 ErrorCode
+        ) noexcept {
+        MsQuic->RegistrationShutdown(Handle, Flags, ErrorCode);
+    }
 };
 
 class MsQuicAlpn {
@@ -260,78 +285,101 @@ public:
     MsQuicSettings& SetMaxBytesPerKey(uint64_t Value) { MaxBytesPerKey = Value; IsSet.MaxBytesPerKey = TRUE; return *this; }
 };
 
-class MsQuicSession {
-    bool CloseAllConnectionsOnDelete {false};
+class MsQuicCredentialConfig : public QUIC_CREDENTIAL_CONFIG {
+public:
+    MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAGS _Flags = QUIC_CREDENTIAL_FLAG_CLIENT) {
+        memset(this, 0, sizeof(QUIC_CREDENTIAL_CONFIG));
+        Flags = _Flags;
+    }
+};
+
+class MsQuicConfiguration {
+    HQUIC Handle {nullptr};
     QUIC_STATUS InitStatus;
 public:
-    HQUIC Handle {nullptr};
     operator HQUIC () const noexcept { return Handle; }
-    MsQuicSession(
+    MsQuicConfiguration(
         _In_ const MsQuicRegistration& Reg,
-        _In_ const MsQuicAlpn& Alpns,
-        _In_ bool AutoCleanUp = false
-        ) noexcept : CloseAllConnectionsOnDelete(AutoCleanUp) {
+        _In_ const MsQuicAlpn& Alpns
+        )  {
         InitStatus = !Reg.IsValid() ?
             Reg.GetInitStatus() :
-            MsQuic->SessionOpen(
+            MsQuic->ConfigurationOpen(
                 Reg,
-                0,
-                nullptr,
                 Alpns,
                 Alpns.Length(),
                 nullptr,
+                0,
+                nullptr,
                 &Handle);
     }
-    MsQuicSession(
+    MsQuicConfiguration(
+        _In_ const MsQuicRegistration& Reg,
+        _In_ const MsQuicAlpn& Alpns,
+        _In_ const MsQuicCredentialConfig& CredConfig
+        )  {
+        InitStatus = !Reg.IsValid() ?
+            Reg.GetInitStatus() :
+            MsQuic->ConfigurationOpen(
+                Reg,
+                Alpns,
+                Alpns.Length(),
+                nullptr,
+                0,
+                nullptr,
+                &Handle);
+        if (IsValid()) {
+            InitStatus = LoadCredential(&CredConfig);
+        }
+    }
+    MsQuicConfiguration(
+        _In_ const MsQuicRegistration& Reg,
+        _In_ const MsQuicAlpn& Alpns,
+        _In_ const MsQuicSettings& Settings
+        ) noexcept {
+        InitStatus = !Reg.IsValid() ?
+            Reg.GetInitStatus() :
+            MsQuic->ConfigurationOpen(
+                Reg,
+                Alpns,
+                Alpns.Length(),
+                &Settings,
+                sizeof(Settings),
+                nullptr,
+                &Handle);
+    }
+    MsQuicConfiguration(
         _In_ const MsQuicRegistration& Reg,
         _In_ const MsQuicAlpn& Alpns,
         _In_ const MsQuicSettings& Settings,
-        _In_ bool AutoCleanUp = false
-        ) noexcept : CloseAllConnectionsOnDelete(AutoCleanUp) {
+        _In_ const MsQuicCredentialConfig& CredConfig
+        ) noexcept {
         InitStatus = !Reg.IsValid() ?
             Reg.GetInitStatus() :
-            MsQuic->SessionOpen(
+            MsQuic->ConfigurationOpen(
                 Reg,
-                sizeof(Settings),
-                &Settings,
                 Alpns,
                 Alpns.Length(),
+                &Settings,
+                sizeof(Settings),
                 nullptr,
                 &Handle);
+        if (IsValid()) {
+            InitStatus = LoadCredential(&CredConfig);
+        }
     }
-    ~MsQuicSession() noexcept {
+    ~MsQuicConfiguration() noexcept {
         if (Handle != nullptr) {
-            if (CloseAllConnectionsOnDelete) {
-                MsQuic->SessionShutdown(
-                    Handle,
-                    QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
-                    1);
-            }
-            MsQuic->SessionClose(Handle);
+            MsQuic->ConfigurationClose(Handle);
         }
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const noexcept { return Handle != nullptr; }
-    MsQuicSession(MsQuicSession& other) = delete;
-    MsQuicSession operator=(MsQuicSession& Other) = delete;
-    void Shutdown(
-        _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
-        _In_ QUIC_UINT62 ErrorCode
-        ) noexcept {
-        MsQuic->SessionShutdown(Handle, Flags, ErrorCode);
-    }
+    MsQuicConfiguration(MsQuicConfiguration& other) = delete;
+    MsQuicConfiguration operator=(MsQuicConfiguration& Other) = delete;
     QUIC_STATUS
-    SetTlsTicketKey(
-        _In_reads_bytes_(44)
-            const uint8_t* const Buffer
-        ) noexcept {
-        return
-            MsQuic->SetParam(
-                Handle,
-                QUIC_PARAM_LEVEL_SESSION,
-                QUIC_PARAM_SESSION_TLS_TICKET_KEY,
-                44,
-                Buffer);
+    LoadCredential(_In_ const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept {
+        return MsQuic->ConfigurationLoadCredential(Handle, CredConfig);
     }
 };
 
@@ -341,15 +389,15 @@ struct MsQuicListener {
     QUIC_LISTENER_CALLBACK_HANDLER Handler { nullptr };
     void* Context{ nullptr };
 
-    MsQuicListener(const MsQuicSession& Session) noexcept {
-        if (!Session.IsValid()) {
-            InitStatus = Session.GetInitStatus();
+    MsQuicListener(const MsQuicRegistration& Registration) noexcept {
+        if (!Registration.IsValid()) {
+            InitStatus = Registration.GetInitStatus();
             return;
         }
         if (QUIC_FAILED(
             InitStatus =
                 MsQuic->ListenerOpen(
-                    Session,
+                    Registration,
                     [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
                         MsQuicListener* Listener = (MsQuicListener*)Context;
                         return Listener->Handler(Handle, Listener->Context, Event);
@@ -370,12 +418,13 @@ struct MsQuicListener {
 
     QUIC_STATUS
     Start(
+        _In_ const MsQuicAlpn& Alpns,
         _In_ QUIC_ADDR* Address,
         _In_ QUIC_LISTENER_CALLBACK_HANDLER _Handler,
         _In_ void* _Context) noexcept {
         Handler = _Handler;
         Context = _Context;
-        return MsQuic->ListenerStart(Handle, Address);
+        return MsQuic->ListenerStart(Handle, Alpns, Alpns.Length(), Address);
     }
 
     QUIC_STATUS
@@ -414,6 +463,24 @@ struct StreamScope {
     operator HQUIC() const noexcept { return Handle; }
 };
 
+struct QuicBufferScope {
+    QUIC_BUFFER* Buffer;
+    QuicBufferScope() noexcept : Buffer(nullptr) { }
+    QuicBufferScope(uint32_t Size) noexcept : Buffer((QUIC_BUFFER*) new uint8_t[sizeof(QUIC_BUFFER) + Size]) {
+        memset(Buffer, 0, sizeof(*Buffer) + Size);
+        Buffer->Length = Size;
+        Buffer->Buffer = (uint8_t*)(Buffer + 1);
+    }
+    operator QUIC_BUFFER* () noexcept { return Buffer; }
+    ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
+};
+
+#ifdef QUIC_PLATFORM_TYPE
+
+//
+// Abstractions for platform specific types/interfaces
+//
+
 struct EventScope {
     QUIC_EVENT Handle;
     EventScope() noexcept { QuicEventInitialize(&Handle, FALSE, FALSE); }
@@ -423,14 +490,4 @@ struct EventScope {
     operator QUIC_EVENT() const noexcept { return Handle; }
 };
 
-struct QuicBufferScope {
-    QUIC_BUFFER* Buffer;
-    QuicBufferScope() noexcept : Buffer(nullptr) { }
-    QuicBufferScope(uint32_t Size) noexcept : Buffer((QUIC_BUFFER*) new uint8_t[sizeof(QUIC_BUFFER) + Size]) {
-        QuicZeroMemory(Buffer, sizeof(*Buffer) + Size);
-        Buffer->Length = Size;
-        Buffer->Buffer = (uint8_t*)(Buffer + 1);
-    }
-    operator QUIC_BUFFER* () noexcept { return Buffer; }
-    ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
-};
+#endif

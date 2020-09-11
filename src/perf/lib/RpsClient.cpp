@@ -50,8 +50,8 @@ RpsClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (!Session.IsValid()) {
-        return Session.GetInitStatus();
+    if (!Configuration.IsValid()) {
+        return Configuration.GetInitStatus();
     }
 
     const char* target;
@@ -97,14 +97,14 @@ RpsClient::Start(
 
     struct ScopeCleanup {
         bool NeedsCleanup {true};
-        MsQuicSession& Session;
-        ScopeCleanup(MsQuicSession &_Session) : Session(_Session) { }
+        MsQuicRegistration& Registration;
+        ScopeCleanup(MsQuicRegistration &_Registration) : Registration(_Registration) { }
         ~ScopeCleanup() {
             if (NeedsCleanup) {
-                Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+                Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
             }
         }
-    } Scope(Session);
+    } Scope(Registration);
 
     QUIC_CONNECTION_CALLBACK_HANDLER Handler =
         [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
@@ -138,26 +138,12 @@ RpsClient::Start(
 
         Status =
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 Handler,
                 this,
                 &Connection);
         if (QUIC_FAILED(Status)) {
             WriteOutput("ConnectionOpen failed, 0x%x\n", Status);
-            return Status;
-        }
-
-        uint32_t SecFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-        Status =
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-                sizeof(SecFlags),
-                &SecFlags);
-        if (QUIC_FAILED(Status)) {
-            MsQuic->ConnectionClose(Connection);
-            WriteOutput("SetParam(CONN_CERT_VALIDATION_FLAGS) failed, 0x%x\n", Status);
             return Status;
         }
 
@@ -207,6 +193,7 @@ RpsClient::Start(
         Status =
             MsQuic->ConnectionStart(
                 Connection,
+                Configuration,
                 AF_UNSPEC,
                 Target.get(),
                 Port);
@@ -268,7 +255,7 @@ RpsClient::Wait(
     WriteOutput("Result: %u RPS\n", RPS);
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
     //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
-    Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+    Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
 
     return QUIC_STATUS_SUCCESS;
 }

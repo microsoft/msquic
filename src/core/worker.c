@@ -638,8 +638,8 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
     }
 
     //
-    // Because the session layer only waits for the session rundown to complete,
-    // and because the connection releases the session rundown on handle close,
+    // Because the registration layer only waits for the rundown to complete,
+    // and because the connection releases the rundown on handle close,
     // not free, it's possible that the worker thread still had the connection
     // in it's list by the time clean up started. So it needs to release any
     // remaining references on connections.

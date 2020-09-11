@@ -241,6 +241,7 @@ QuicConnAlloc(
     }
 
     QuicConnRegister(Connection, Registration);
+    QuicConnApplySettings(Connection);
 
     return Connection;
 
@@ -334,8 +335,6 @@ QuicConnFree(
     if (Connection->Configuration != NULL) {
         QuicRundownRelease(&Connection->Configuration->Rundown);
     }
-    QuicConnUnregister(Connection);
-    Connection->State.Freed = TRUE;
     if (Connection->RemoteServerName != NULL) {
         QUIC_FREE(Connection->RemoteServerName);
     }
@@ -348,17 +347,18 @@ QuicConnFree(
             Connection->HandshakeTP);
         Connection->HandshakeTP = NULL;
     }
-    QuicTraceEvent(
-        ConnDestroyed,
-        "[conn][%p] Destroyed",
-        Connection);
-
     if (Connection->State.Started && !Connection->State.Connected) {
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL);
     }
     if (Connection->State.Connected) {
         QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_CONNECTED);
     }
+    QuicConnUnregister(Connection);
+    Connection->State.Freed = TRUE;
+    QuicTraceEvent(
+        ConnDestroyed,
+        "[conn][%p] Destroyed",
+        Connection);
     QuicPoolFree(
         &MsQuicLib.PerProc[QuicProcCurrentNumber()].ConnectionPool,
         Connection);
@@ -525,7 +525,7 @@ QuicConnRegister(
     _Inout_ QUIC_REGISTRATION* Registration
     )
 {
-    QuicConnUnregister(Connection);
+    QuicConnUnregister(Connection); // From any previous registration
 
     Connection->Registration = Registration;
     BOOLEAN Success = QuicRundownAcquire(&Registration->Rundown);
@@ -543,13 +543,6 @@ QuicConnRegister(
         "[conn][%p] Registered with %p",
         Connection,
         Registration);
-
-    if (Connection->Configuration == NULL) {
-        //
-        // Use global settings until the connection is assigned a configuration.
-        //
-        QuicConnApplySettings(Connection, &MsQuicLib.Settings);
-    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2166,7 +2159,6 @@ QuicConnRecvResumptionTicket(
         ResumptionAccepted =
             QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
 
-
         if (ResumptionAccepted) {
             QuicTraceEvent(
                 ConnServerResumeTicket,
@@ -2406,20 +2398,9 @@ QuicConnSetConfiguration(
     if (!QuicConnIsServer(Connection)) {
 
         uint32_t InitialQuicVersion = QUIC_VERSION_LATEST;
-        if (Connection->RemoteServerName != NULL &&
-            QuicSessionServerCacheGetState(
-                Connection->Session,
-                Connection->RemoteServerName,
-                &InitialQuicVersion,
-                &Connection->PeerTransportParams,
-                &SecConfig)) {
-
-            QuicTraceLogConnVerbose(
-                FoundCachedServerState,
-                Connection,
-                "Found server cached state");
-            QuicConnProcessPeerTransportParameters(Connection, TRUE);
-        }
+        //
+        // TODO - Check for any resumption state from previous connection.
+        //
 
         if (Connection->Stats.QuicVersion == 0) {
             //
@@ -2489,9 +2470,7 @@ QuicConnSetConfiguration(
         QuicCryptoInitializeTls(
             &Connection->Crypto,
             Configuration->SecurityConfig,
-            &LocalTP,
-            Configuration->AlpnList,
-            Configuration->AlpnListLength);
+            &LocalTP);
 
 Error:
 
@@ -5584,26 +5563,6 @@ QuicConnParamSet(
 
         break;
 
-    case QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS:
-
-        if (BufferLength != sizeof(Connection->ServerCertValidationFlags)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (QuicConnIsServer(Connection) || Connection->State.Started) {
-            //
-            // Only allowed on client connections, before the connection starts.
-            //
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        Connection->ServerCertValidationFlags = *(uint32_t*)Buffer;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_CONN_KEEP_ALIVE:
 
         if (BufferLength != sizeof(Connection->KeepAliveIntervalMs)) {
@@ -6138,25 +6097,6 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
-
-    case QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS:
-
-        if (*BufferLength < sizeof(Connection->ServerCertValidationFlags)) {
-            *BufferLength = sizeof(Connection->ServerCertValidationFlags);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(Connection->ServerCertValidationFlags);
-        *(uint32_t*)Buffer = Connection->ServerCertValidationFlags;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
 
     case QUIC_PARAM_CONN_KEEP_ALIVE:
 

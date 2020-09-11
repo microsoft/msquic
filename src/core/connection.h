@@ -325,11 +325,6 @@ typedef struct QUIC_CONNECTION {
     QUIC_THREAD_ID WorkerThreadID;
 
     //
-    // The set of ignore flags for server certificate validation to pass to TLS.
-    //
-    uint32_t ServerCertValidationFlags;
-
-    //
     // The server ID for the connection ID.
     //
     uint8_t ServerID[MSQUIC_MAX_CID_SID_LENGTH];
@@ -1001,7 +996,7 @@ QuicConnDrainOperations(
     );
 
 //
-// Applies the settings from the session.
+// Applies the currently configured settings.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
