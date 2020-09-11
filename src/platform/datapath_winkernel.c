@@ -107,21 +107,19 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT QUIC_DATAPATH_PROC_CONTEXT;
 typedef struct QUIC_DATAPATH_INTERNAL_RECV_CONTEXT {
 
     //
-    // The per proc context for this context
+    // The per proc context for this receive context.
     //
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext;
 
     union {
         //
-        // The start of the data buffer
+        // The start of the data buffer, or the cached data indication from wsk.
         //
         uint8_t* DataBufferStart;
         PWSK_DATAGRAM_INDICATION DataIndication;
     };
 
     QUIC_DATAPATH_BINDING* Binding;
-
-
 
     ULONG ReferenceCount;
 
@@ -132,9 +130,9 @@ typedef struct QUIC_DATAPATH_INTERNAL_RECV_CONTEXT {
 
     int32_t DataIndicationSize;
 
-    uint8_t DatagramPoolIndex       : 1;
-    uint8_t BufferPoolIndex    : 1;
-    uint8_t IsCopiedBuffer  : 1;
+    uint8_t DatagramPoolIndex   : 1;
+    uint8_t BufferPoolIndex     : 1;
+    uint8_t IsCopiedBuffer      : 1;
 } QUIC_DATAPATH_INTERNAL_RECV_CONTEXT;
 
 BOOLEAN
@@ -357,13 +355,13 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT {
 
     //
     // Pool of receive datagram contexts and buffers to be shared by all sockets
-    // on this core. Idx 0 is regular, Idx 1 is URO
+    // on this core. Idx 0 is regular, Idx 1 is URO.
     //
     //
     QUIC_POOL RecvDatagramPools[2];
 
     //
-    // Pool of receive data buffers. Idx 0 is 4096, Idx 1 is 65536
+    // Pool of receive data buffers. Idx 0 is 4096, Idx 1 is 65536.
     //
     QUIC_POOL RecvBufferPools[2];
 
@@ -2112,8 +2110,14 @@ QuicDataPathSocketReceive(
                     RecvContext->DataBufferStart =
                         (uint8_t*)QuicPoolAlloc(
                             &RecvContext->ProcContext->RecvBufferPools[RecvContext->BufferPoolIndex]);
+                    if (RecvContext->DataBufferStart == NULL) {
+                        QuicTraceLogWarning(
+                            DatapathDropAllocRecvBufferFailure,
+                            "[%p] Couldn't allocate receive buffers.",
+                            Binding);
+                        goto Drop;
+                    }
                     CurrentCopiedBuffer = RecvContext->DataBufferStart;
-                    // TODO Error Handling
                 } else {
                     RecvContext->IsCopiedBuffer = FALSE;
                     RecvContext->DataIndication = DataIndication;
@@ -2200,8 +2204,8 @@ QuicDataPathSocketReceive(
         }
 
         if (RecvContext == NULL || RecvContext->IsCopiedBuffer) {
-             *ReleaseChainTail = DataIndication;
-             ReleaseChainTail = &DataIndication->Next;
+            *ReleaseChainTail = DataIndication;
+            ReleaseChainTail = &DataIndication->Next;
         }
     }
 
@@ -2215,12 +2219,12 @@ QuicDataPathSocketReceive(
             DatagramChain);
     }
 
-     if (ReleaseChain != NULL) {
-         //
-         // Release any dropped datagrams.
-         //
-         Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
-     }
+    if (ReleaseChain != NULL) {
+        //
+        // Release any dropped or copied datagrams.
+        //
+        Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
+    }
 
     QuicRundownRelease(&Binding->Rundown[CurProcNumber]);
 
