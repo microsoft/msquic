@@ -1851,7 +1851,7 @@ QuicDataPathSocketReceive(
         DataIndication->Next = NULL;
 
         QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = NULL;
-        //QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext;
+        QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext;
         QUIC_RECV_DATAGRAM* Datagram = NULL;
 
         if (DataIndication->Buffer.Mdl == NULL ||
@@ -2050,9 +2050,9 @@ QuicDataPathSocketReceive(
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
 
-            // InternalDatagramContext =
-            //     QuicDataPathDatagramToInternalDatagramContext(Datagram);
-            // InternalDatagramContext->RecvContext = RecvContext;
+            InternalDatagramContext =
+                QuicDataPathDatagramToInternalDatagramContext(Datagram);
+            InternalDatagramContext->RecvContext = RecvContext;
 
             Datagram->Buffer = QUIC_ALLOC_NONPAGED(MessageLength);
             if (Datagram->Buffer == 0) {
@@ -2137,7 +2137,7 @@ QuicDataPathSocketReceive(
 
     QuicRundownRelease(&Binding->Rundown[CurProcNumber]);
 
-    return STATUS_PENDING;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
