@@ -24,8 +24,7 @@ const uint64_t IdleTimeoutMs = 2000;
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
-HQUIC Session;
-QUIC_SEC_CONFIG* SecurityConfig;
+HQUIC Configuration;
 
 extern "C" void QuicTraceRundown(void) { }
 
@@ -132,7 +131,7 @@ ServerListenerCallback(
 {
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
-        Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
+        Event->NEW_CONNECTION.Configuration = Configuration;
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)ServerConnectionCallback, nullptr);
         break;
     default:
