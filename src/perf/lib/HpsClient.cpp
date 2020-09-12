@@ -154,7 +154,7 @@ HpsClient::Wait(
     WriteOutput("Result: %u HPS\n", HPS);
     //WriteOutput("Result: %u HPS (%ull start, %ull completed)\n",
     //    HPS, StartedConnections, CompletedConnections);
-    Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+    Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
 
     return QUIC_STATUS_SUCCESS;
 }

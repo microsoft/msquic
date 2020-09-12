@@ -35,7 +35,7 @@ struct HpsWorkerContext {
             QuicThreadWait(&Thread);
             QuicThreadDelete(&Thread);
         }
-        QuicEventUninitialize(&WakeEvent);
+        QuicEventUninitialize(WakeEvent);
     }
 };
 
