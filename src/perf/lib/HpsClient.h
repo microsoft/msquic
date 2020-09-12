@@ -81,7 +81,7 @@ public:
         MsQuicAlpn(PERF_ALPN),
         MsQuicSettings()
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
-            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT),
+            .SetIdleTimeoutMs(HPS_DEFAULT_IDLE_TIMEOUT),
         true};
     uint32_t ActiveProcCount;
     uint16_t Port {PERF_DEFAULT_PORT};

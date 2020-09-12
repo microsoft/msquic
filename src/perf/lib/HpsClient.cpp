@@ -85,8 +85,6 @@ QUIC_THREAD_CALLBACK(HpsWorkerThread, _Context)
 {
     auto Context = (HpsWorkerContext*)_Context;
 
-    //WriteOutput("Worker %hu started.\n", Context->Processor);
-
     while (!Context->pThis->Shutdown) {
         if ((uint32_t)Context->OutstandingConnections == Context->pThis->Parallel) {
             QuicEventWaitForever(Context->WakeEvent);
@@ -95,8 +93,6 @@ QUIC_THREAD_CALLBACK(HpsWorkerThread, _Context)
             Context->pThis->StartConnection(Context);
         }
     }
-
-    //WriteOutput("Worker %hu shutdown.\n", Context->Processor);
 
     QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
@@ -171,7 +167,7 @@ HpsClient::ConnectionCallback(
         MsQuic->ConnectionShutdown(ConnectionHandle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         InterlockedDecrement(&Context->OutstandingConnections);
         if (!Shutdown) {
-            QuicEventSet(&Context->WakeEvent);
+            QuicEventSet(Context->WakeEvent);
         }
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
@@ -193,7 +189,7 @@ HpsClient::ConnectionCallback(
                 // Failed to connect, so kick off another connection.
                 //
                 InterlockedDecrement(&Context->OutstandingConnections);
-                QuicEventSet(&Context->WakeEvent);
+                QuicEventSet(Context->WakeEvent);
             }
         }
         MsQuic->ConnectionClose(ConnectionHandle);
