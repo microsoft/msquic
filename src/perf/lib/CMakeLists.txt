@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 set(SOURCES
+    HpsClient.cpp
     PerfServer.cpp
     quicmain.cpp
     RpsClient.cpp
