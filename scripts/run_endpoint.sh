@@ -71,7 +71,7 @@ if [ "$ROLE" == "client" ]; then
             FILE=`echo $REQ | cut -f4 -d'/'`
             FILES=${FILES}",/"${FILE}
         done
-        quicinterop ${CLIENT_PARAMS} -urlpath $FILES -custom:server -port:443
+        quicinterop ${CLIENT_PARAMS} -urlpath "${FILES}" -custom:server -port:443
     fi
     # Wait for the logs to flush to disk.
     sleep 2
