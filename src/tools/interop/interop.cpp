@@ -326,6 +326,10 @@ public:
         QuicEventInitialize(&QuackAckReceived, TRUE, FALSE);
         QuicEventInitialize(&ShutdownComplete, TRUE, FALSE);
 
+        for (uint32_t i = 0; i < UrlCount; ++i) {
+            Streams[i] = nullptr;
+        }
+
         VERIFY_QUIC_SUCCESS(
             MsQuic->ConnectionOpen(
                 Session,
