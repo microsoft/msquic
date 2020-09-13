@@ -143,9 +143,9 @@ HpsClient::Wait(
     }
 
     uint32_t HPS = (uint32_t)((CompletedConnections * 1000ull) / (uint64_t)RunTime);
-    //WriteOutput("Result: %u HPS\n", HPS);
-    WriteOutput("Result: %u HPS (%ull create, %ull start, %ull complete)\n",
-        HPS, CreatedConnections, StartedConnections, CompletedConnections);
+    WriteOutput("Result: %u HPS\n", HPS);
+    //WriteOutput("Result: %u HPS (%ull create, %ull start, %ull complete)\n",
+    //    HPS, CreatedConnections, StartedConnections, CompletedConnections);
     Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
 
     return QUIC_STATUS_SUCCESS;
@@ -166,27 +166,10 @@ HpsClient::ConnectionCallback(
             QuicEventSet(Context->WakeEvent);
         }
         break;
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
-        //WriteOutput("Connection died, 0x%x\n", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
-        break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        if (!Shutdown) {
-            QUIC_STATISTICS Stats;
-            uint32_t StatsSize = sizeof(Stats);
-            if (QUIC_SUCCEEDED(
-                MsQuic->GetParam(
-                    ConnectionHandle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_STATISTICS,
-                    &StatsSize,
-                    &Stats)) &&
-                Stats.Timing.HandshakeFlightEnd == 0) {
-                //
-                // Failed to connect, so kick off another connection.
-                //
-                InterlockedDecrement(&Context->OutstandingConnections);
-                QuicEventSet(Context->WakeEvent);
-            }
+        if (!Shutdown && !Event->SHUTDOWN_COMPLETE.HandshakeCompleted) {
+            InterlockedDecrement(&Context->OutstandingConnections);
+            QuicEventSet(Context->WakeEvent);
         }
         MsQuic->ConnectionClose(ConnectionHandle);
         break;
