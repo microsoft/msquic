@@ -58,10 +58,21 @@ if [ "$ROLE" == "client" ]; then
         ;;
     esac
 
-    for REQ in $REQUESTS; do
-        FILE=`echo $REQ | cut -f4 -d'/'`
-        quicinterop ${CLIENT_PARAMS} -urlpath "/"$FILE -custom:server -port:443
-    done
+    if [ "$TESTCASE" == "multiconnect" ]; then
+        for REQ in $REQUESTS; do
+            FILE=`echo $REQ | cut -f4 -d'/'`
+            quicinterop ${CLIENT_PARAMS} -urlpath "/"$FILE -custom:server -port:443
+        done
+    else
+        FILE=`echo ${REQUESTS[0]} | cut -f4 -d'/'`
+        REQUESTS=${REQUESTS[@]:1}
+        FILES="/"${FILE}
+        for REQ in $REQUESTS; do
+            FILE=`echo $REQ | cut -f4 -d'/'`
+            FILES=${FILES}",/"${FILE}
+        done
+        quicinterop ${CLIENT_PARAMS} -urlpath $FILES -custom:server -port:443
+    fi
     # Wait for the logs to flush to disk.
     sleep 2
 

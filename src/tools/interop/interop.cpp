@@ -121,6 +121,10 @@ uint16_t CustomPort = 0;
 
 const char* UrlPath = "/";
 bool CustomUrlPath = false;
+const char**  Urls = nullptr;
+uint32_t UrlCount = 0;
+
+const char UrlDelimiter = ',';
 
 extern "C" void QuicTraceRundown(void) { }
 
@@ -154,32 +158,167 @@ public:
     }
 };
 
+class InteropStream {
+    HQUIC Stream;
+    QUIC_EVENT RequestComplete;
+    GetRequest SendRequest;
+    const char* RequestPath;
+    FILE* File;
+public:
+    bool ReceivedResponse : 1;
+    bool UsedZeroRtt : 1;
+    InteropStream(HQUIC Connection, const char* Request) :
+        Stream(nullptr),
+        SendRequest(Request),
+        RequestPath(Request),
+        File(nullptr),
+        ReceivedResponse(false),
+        UsedZeroRtt(false)
+    {
+        QuicEventInitialize(&RequestComplete, TRUE, FALSE);
+
+        VERIFY_QUIC_SUCCESS(
+            MsQuic->StreamOpen(
+                Connection,
+                QUIC_STREAM_OPEN_FLAG_NONE,
+                InteropStream::StreamCallback,
+                this,
+                &Stream));
+    }
+    ~InteropStream() {
+        MsQuic->StreamClose(Stream);
+        QuicEventUninitialize(&RequestComplete);
+    }
+
+    bool SendHttpRequest(bool WaitForResponse = true) {
+        QuicEventReset(&RequestComplete);
+        if (QUIC_FAILED(
+            MsQuic->StreamStart(
+                Stream,
+                QUIC_STREAM_START_FLAG_IMMEDIATE))) {
+            MsQuic->StreamClose(Stream);
+            return false;
+        }
+
+        if (QUIC_FAILED(
+            MsQuic->StreamSend(
+                Stream,
+                &SendRequest,
+                1,
+                QUIC_SEND_FLAG_ALLOW_0_RTT | QUIC_SEND_FLAG_FIN,
+                nullptr))) {
+            MsQuic->StreamShutdown(
+                Stream,
+                QUIC_STREAM_SHUTDOWN_FLAG_ABORT | QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
+                0);
+            return false;
+        }
+        return !WaitForResponse || WaitForHttpResponse();
+    }
+
+    bool WaitForHttpResponse() {
+        return
+            QuicEventWaitWithTimeout(RequestComplete, WaitTimeoutMs) &&
+            ReceivedResponse;
+    }
+
+    static
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    _Function_class_(QUIC_STREAM_CALLBACK)
+    QUIC_STATUS
+    QUIC_API
+    StreamCallback(
+        _In_ HQUIC Stream,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_STREAM_EVENT* Event
+        )
+    {
+        InteropStream* pThis = (InteropStream*)Context;
+        switch (Event->Type) {
+        case QUIC_STREAM_EVENT_RECEIVE:
+            if (CustomUrlPath) {
+                if (pThis->File == nullptr) {
+                    const char* FileName = strrchr(pThis->RequestPath, '/') + 1;
+                    pThis->File = fopen(FileName, "wb");
+                    if (pThis->File == nullptr) {
+                        printf("Failed to open file %s\n", FileName);
+                        break;
+                    }
+                }
+                for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
+                    uint32_t DataLength = Event->RECEIVE.Buffers[i].Length;
+                    if (fwrite(
+                            Event->RECEIVE.Buffers[i].Buffer,
+                            1,
+                            DataLength,
+                            pThis->File) < DataLength) {
+                        printf("Failed to write to file!\n");
+                        break;
+                    }
+                }
+            }
+            break;
+        case QUIC_STREAM_EVENT_SEND_COMPLETE:
+            break;
+        case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
+            QuicEventSet(pThis->RequestComplete);
+            break;
+        case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
+            if (pThis->File) {
+                fflush(pThis->File);
+                fclose(pThis->File);
+                pThis->File = nullptr;
+            }
+            pThis->ReceivedResponse = true;
+            break;
+        case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
+            if (pThis->File) {
+                printf("Request closed incomplete.\n");
+                fclose(pThis->File); // Didn't get closed properly.
+                pThis->File = nullptr;
+            }
+            uint64_t Length = 0;
+            uint32_t LengthLength = sizeof(Length);
+            if (QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    Stream,
+                    QUIC_PARAM_LEVEL_STREAM,
+                    QUIC_PARAM_STREAM_0RTT_LENGTH,
+                    &LengthLength,
+                    &Length)) &&
+                Length > 0) {
+                pThis->UsedZeroRtt = true;
+            }
+            QuicEventSet(pThis->RequestComplete);
+            break;
+        }
+        default:
+            break;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
 class InteropConnection {
     HQUIC Connection;
-    GetRequest SendRequest;
+    InteropStream** Streams;
     QUIC_EVENT ConnectionComplete;
     QUIC_EVENT RequestComplete;
     QUIC_EVENT QuackAckReceived;
     QUIC_EVENT ShutdownComplete;
     char* NegotiatedAlpn;
-    FILE* File;
 public:
     bool VersionUnsupported : 1;
     bool Connected : 1;
     bool Resumed : 1;
-    bool UsedZeroRtt : 1;
-    bool ReceivedResponse : 1;
     bool ReceivedQuackAck : 1;
     InteropConnection(HQUIC Session, bool VerNeg = false, bool LargeTP = false) :
         Connection(nullptr),
-        SendRequest(UrlPath),
+        Streams(new InteropStream*[UrlCount]),
         NegotiatedAlpn(nullptr),
-        File(nullptr),
         VersionUnsupported(false),
         Connected(false),
         Resumed(false),
-        UsedZeroRtt(false),
-        ReceivedResponse(false),
         ReceivedQuackAck(false)
     {
         QuicEventInitialize(&ConnectionComplete, TRUE, FALSE);
@@ -244,6 +383,12 @@ public:
     }
     ~InteropConnection()
     {
+        for (uint32_t i = 0; i < UrlCount; ++i) {
+            if (Streams[i] != nullptr) {
+                delete Streams[i];
+            }
+        }
+        delete [] Streams;
         Shutdown();
         MsQuic->ConnectionClose(Connection);
         QuicEventUninitialize(ShutdownComplete);
@@ -293,46 +438,21 @@ public:
     bool WaitForShutdownComplete() {
         return QuicEventWaitWithTimeout(ShutdownComplete, WaitTimeoutMs);
     }
-    bool SendHttpRequest(bool WaitForResponse = true) {
-        QuicEventReset(RequestComplete);
-        ReceivedResponse = false;
-
-        HQUIC Stream;
-        if (QUIC_FAILED(
-            MsQuic->StreamOpen(
-                Connection,
-                QUIC_STREAM_OPEN_FLAG_NONE,
-                InteropConnection::StreamCallback,
-                this,
-                &Stream))) {
-            return false;
+    bool SendHttpRequests(bool WaitForResponse = true) {
+        for (uint32_t i = 0; i < UrlCount; ++i) {
+            Streams[i] = new InteropStream(Connection, Urls[i]);
+            if (!Streams[i]->SendHttpRequest(false)) {
+                return false;
+            }
         }
-        if (QUIC_FAILED(
-            MsQuic->StreamStart(
-                Stream,
-                QUIC_STREAM_START_FLAG_IMMEDIATE))) {
-            MsQuic->StreamClose(Stream);
-            return false;
-        }
-        if (QUIC_FAILED(
-            MsQuic->StreamSend(
-                Stream,
-                &SendRequest,
-                1,
-                QUIC_SEND_FLAG_ALLOW_0_RTT | QUIC_SEND_FLAG_FIN,
-                nullptr))) {
-            MsQuic->StreamShutdown(
-                Stream,
-                QUIC_STREAM_SHUTDOWN_FLAG_ABORT | QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
-                0);
-            return false;
-        }
-        return !WaitForResponse || WaitForHttpResponse();
+        return !WaitForResponse || WaitForHttpResponses();
     }
-    bool WaitForHttpResponse() {
-        return
-            QuicEventWaitWithTimeout(RequestComplete, WaitTimeoutMs) &&
-            ReceivedResponse;
+    bool WaitForHttpResponses() {
+        bool Result = true;
+        for (uint32_t i = 0; i < UrlCount; ++i) {
+            Result &= Streams[i]->WaitForHttpResponse();
+        }
+        return Result;
     }
     bool SendQuack() {
         BOOLEAN DatagramEnabled = TRUE;
@@ -375,6 +495,13 @@ public:
             QuicSleep(100);
         }
         return true; // TryCount < 20;
+    }
+    bool UsedZeroRtt() {
+        bool Result = true;
+        for (uint32_t i = 0; i < UrlCount; ++i) {
+            Result &= Streams[i]->UsedZeroRtt;
+        }
+        return Result;
     }
     bool ForceCidUpdate() {
         return
@@ -510,82 +637,6 @@ private:
     _Function_class_(QUIC_STREAM_CALLBACK)
     QUIC_STATUS
     QUIC_API
-    StreamCallback(
-        _In_ HQUIC Stream,
-        _In_opt_ void* Context,
-        _Inout_ QUIC_STREAM_EVENT* Event
-        )
-    {
-        InteropConnection* pThis = (InteropConnection*)Context;
-        switch (Event->Type) {
-        case QUIC_STREAM_EVENT_RECEIVE:
-            if (CustomUrlPath) {
-                if (pThis->File == nullptr) {
-                    const char* FileName = strrchr(UrlPath, '/') + 1;
-                    pThis->File = fopen(FileName, "wb");
-                    if (pThis->File == nullptr) {
-                        printf("Failed to open file %s\n", FileName);
-                        break;
-                    }
-                }
-                for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
-                    uint32_t DataLength = Event->RECEIVE.Buffers[i].Length;
-                    if (fwrite(
-                            Event->RECEIVE.Buffers[i].Buffer,
-                            1,
-                            DataLength,
-                            pThis->File) < DataLength) {
-                        printf("Failed to write to file!\n");
-                        break;
-                    }
-                }
-            }
-            break;
-        case QUIC_STREAM_EVENT_SEND_COMPLETE:
-            break;
-        case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
-            QuicEventSet(pThis->RequestComplete);
-            break;
-        case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
-            if (pThis->File) {
-                fflush(pThis->File);
-                fclose(pThis->File);
-                pThis->File = nullptr;
-            }
-            pThis->ReceivedResponse = true;
-            break;
-        case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
-            if (pThis->File) {
-                printf("Request closed incomplete.\n");
-                fclose(pThis->File); // Didn't get closed properly.
-                pThis->File = nullptr;
-            }
-            uint64_t Length = 0;
-            uint32_t LengthLength = sizeof(Length);
-            if (QUIC_SUCCEEDED(
-                MsQuic->GetParam(
-                    Stream,
-                    QUIC_PARAM_LEVEL_STREAM,
-                    QUIC_PARAM_STREAM_0RTT_LENGTH,
-                    &LengthLength,
-                    &Length)) &&
-                Length > 0) {
-                pThis->UsedZeroRtt = true;
-            }
-            QuicEventSet(pThis->RequestComplete);
-            MsQuic->StreamClose(Stream);
-            break;
-        }
-        default:
-            break;
-        }
-        return QUIC_STATUS_SUCCESS;
-    }
-    static
-    _IRQL_requires_max_(DISPATCH_LEVEL)
-    _Function_class_(QUIC_STREAM_CALLBACK)
-    QUIC_STATUS
-    QUIC_API
     NoOpStreamCallback(
         _In_ HQUIC Stream,
         _In_opt_ void* /* Context */,
@@ -660,7 +711,7 @@ RunInteropTest(
                 Success = Stats.VersionNegotiation != 0;
             }
             if (Success && CustomUrlPath) {
-                Success = Connection.SendHttpRequest();
+                Success = Connection.SendHttpRequests();
             }
         } else if (Connection.VersionUnsupported) {
             Success = Connection.VersionUnsupported;
@@ -697,7 +748,7 @@ RunInteropTest(
                 Success = true;
             }
             if (Success && CustomUrlPath) {
-                Success = Connection.SendHttpRequest();
+                Success = Connection.SendHttpRequests();
             }
         }
         break;
@@ -713,13 +764,13 @@ RunInteropTest(
             }
         }
         InteropConnection Connection(Session, false);
-        if (Connection.SendHttpRequest(false) &&
+        if (Connection.SendHttpRequests(false) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port) &&
-            Connection.WaitForHttpResponse()) {
+            Connection.WaitForHttpResponses()) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             if (Feature == ZeroRtt) {
-                Success = Connection.UsedZeroRtt;
+                Success = Connection.UsedZeroRtt();
             } else {
                 Success = true;
             }
@@ -739,7 +790,7 @@ RunInteropTest(
                 Success = Stats.Misc.KeyUpdateCount > 1;
             }
             if (Success && CustomUrlPath) {
-                Success = Connection.SendHttpRequest();
+                Success = Connection.SendHttpRequests();
             }
         }
         break;
@@ -758,7 +809,7 @@ RunInteropTest(
                 Success = true;
             }
             if (Success && CustomUrlPath) {
-                Success = Connection.SendHttpRequest();
+                Success = Connection.SendHttpRequests();
             }
         }
         break;
@@ -777,7 +828,7 @@ RunInteropTest(
                 Success = true;
             }
             if (Success && CustomUrlPath) {
-                Success = Connection.SendHttpRequest();
+                Success = Connection.SendHttpRequests();
             }
         }
         break;
@@ -802,8 +853,10 @@ RunInteropTest(
         // Delete any file we might have downloaded, because the test didn't
         // actually succeed.
         //
-        const char* FileName = strrchr(UrlPath, '/') + 1;
-        (void)remove(FileName);
+        for (uint32_t i = 0; i < UrlCount; ++i) {
+            const char* FileName = strrchr(Urls[i], '/') + 1;
+            (void)remove(FileName);
+        }
     }
 
     return Success;
@@ -1002,13 +1055,29 @@ main(
     TryGetValue(argc, argv, "timeout", &WaitTimeoutMs);
     TryGetValue(argc, argv, "version", &InitialVersion);
     TryGetValue(argc, argv, "port", &CustomPort);
-    if (TryGetValue(argc, argv, "urlpath", &UrlPath)) {
-        if (UrlPath[0] != '/' || strlen(UrlPath) == 1) {
-            printf("Invalid UrlPath! Must begin with '/'!\n");
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
+    const char* UrlParam = nullptr;
+    if (TryGetValue(argc, argv, "urlpath", &UrlParam)) {
+        for (int i = 0; UrlParam[i] != '\0'; ++i) {
+            if (UrlParam[i] == ',') {
+                ++UrlCount;
+            }
+        }
+        ++UrlCount;
+        Urls = new const char*[UrlCount];
+        for (uint32_t i = 0; i < UrlCount; ++i) {
+            Urls[i] = strtok((i == 0) ? (char*)UrlParam : nullptr, ",");
+            if (Urls[i][0] != '/' || strlen(Urls[i]) == 1) {
+                printf("Invalid UrlPath! Must begin with '/'!\n");
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                delete[] Urls;
+                goto Error;
+            }
         }
         CustomUrlPath = true;
+    } else {
+        Urls = new const char*[1];
+        Urls[0] = "/";
+        UrlCount = 1;
     }
 
     const char* Target, *Custom;
