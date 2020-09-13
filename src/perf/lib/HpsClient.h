@@ -20,13 +20,16 @@ Abstract:
 struct HpsWorkerContext {
     class HpsClient* pThis {nullptr};
     QUIC_ADDR LocalAddr;
+    QUIC_ADDR RemoteAddr;
     uint16_t Processor {0};
     long OutstandingConnections {0};
     QUIC_EVENT WakeEvent;
     QUIC_THREAD Thread;
+    bool AddrsSet {false};
     bool ThreadStarted {false};
     HpsWorkerContext() {
         QuicZeroMemory(&LocalAddr, sizeof(LocalAddr));
+        QuicZeroMemory(&RemoteAddr, sizeof(RemoteAddr));
         QuicEventInitialize(&WakeEvent, FALSE, TRUE);
     }
     ~HpsWorkerContext() {
@@ -87,6 +90,7 @@ public:
     uint32_t RunTime {HPS_DEFAULT_RUN_TIME};
     uint32_t Parallel {HPS_DEFAULT_PARALLEL_COUNT};
     QUIC_EVENT* CompletionEvent {nullptr};
+    uint64_t CreatedConnections {0};
     uint64_t StartedConnections {0};
     uint64_t CompletedConnections {0};
     bool Shutdown {false};

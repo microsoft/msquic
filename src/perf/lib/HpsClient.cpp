@@ -49,7 +49,7 @@ HpsClient::Init(
     }
 
     ActiveProcCount = QuicProcActiveCount();
-    if (ActiveProcCount >= 8) {
+    if (ActiveProcCount >= 60) {
         //
         // If we have enough cores, leave 2 cores for OS overhead
         //
@@ -143,9 +143,9 @@ HpsClient::Wait(
     }
 
     uint32_t HPS = (uint32_t)((CompletedConnections * 1000ull) / (uint64_t)RunTime);
-    WriteOutput("Result: %u HPS\n", HPS);
-    //WriteOutput("Result: %u HPS (%ull start, %ull completed)\n",
-    //    HPS, StartedConnections, CompletedConnections);
+    //WriteOutput("Result: %u HPS\n", HPS);
+    WriteOutput("Result: %u HPS (%ull create, %ull start, %ull complete)\n",
+        HPS, CreatedConnections, StartedConnections, CompletedConnections);
     Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
 
     return QUIC_STATUS_SUCCESS;
@@ -236,6 +236,8 @@ HpsClient::StartConnection(
         return;
     }
 
+    InterlockedIncrement64((int64_t*)&CreatedConnections);
+
     uint32_t SecFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
     Status =
         MsQuic->SetParam(
@@ -266,8 +268,7 @@ HpsClient::StartConnection(
         return;
     }
 
-    bool AlreadyHasAddr = QuicAddrGetPort(&Context->LocalAddr) != 0;
-    if (AlreadyHasAddr) {
+    if (Context->AddrsSet) {
         Status =
             MsQuic->SetParam(
                 Scope.Connection,
@@ -278,6 +279,19 @@ HpsClient::StartConnection(
         if (QUIC_FAILED(Status)) {
             if (!Shutdown) {
                 WriteOutput("SetParam(CONN_LOCAL_ADDRESS) failed, 0x%x\n", Status);
+            }
+            return;
+        }
+        Status =
+            MsQuic->SetParam(
+                Scope.Connection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                sizeof(QUIC_ADDR),
+                &Context->RemoteAddr);
+        if (QUIC_FAILED(Status)) {
+            if (!Shutdown) {
+                WriteOutput("SetParam(CONN_REMOTE_ADDRESS) failed, 0x%x\n", Status);
             }
             return;
         }
@@ -296,7 +310,7 @@ HpsClient::StartConnection(
         return;
     }
 
-    if (!AlreadyHasAddr) {
+    if (!Context->AddrsSet) {
         uint32_t AddrLen = sizeof(QUIC_ADDR);
         Status =
             MsQuic->GetParam(
@@ -310,6 +324,20 @@ HpsClient::StartConnection(
                 WriteOutput("GetParam(CONN_LOCAL_ADDRESS) failed, 0x%x\n", Status);
             }
         }
+        Status =
+            MsQuic->GetParam(
+                Scope.Connection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                &AddrLen,
+                &Context->RemoteAddr);
+        if (QUIC_FAILED(Status)) {
+            if (!Shutdown) {
+                WriteOutput("GetParam(CONN_REMOTE_ADDRESS) failed, 0x%x\n", Status);
+            }
+        }
+
+        Context->AddrsSet = true;
     }
 
     InterlockedIncrement64((int64_t*)&StartedConnections);

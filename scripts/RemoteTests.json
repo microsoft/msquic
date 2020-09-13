@@ -208,7 +208,7 @@
         "AllowLoopback": false,
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Result: (.*) HPS",
+        "ResultsMatcher": "Result: (.*) HPS.*",
         "Units": "HPS"
     }
 ]

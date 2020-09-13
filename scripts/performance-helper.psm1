@@ -637,7 +637,7 @@ function Publish-TestResults {
     } elseif ($Test.TestName -eq "RPS") {
         Publish-RPSTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
     } else {
-        Write-Error "Unknown Test Type"
+        Write-Info "Unknown Test Type"
     }
 }
 
