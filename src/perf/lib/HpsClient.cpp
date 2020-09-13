@@ -251,20 +251,24 @@ HpsClient::StartConnection(
         return;
     }
 
-    if (Context->AddrsSet) {
+    bool LocalAddrSet = QuicAddrGetPort(&Context->LocalAddrs[Context->NextLocalAddr]) != 0;
+    if (LocalAddrSet) {
         Status =
             MsQuic->SetParam(
                 Scope.Connection,
                 QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
                 sizeof(QUIC_ADDR),
-                &Context->LocalAddr);
+                &Context->LocalAddrs[Context->NextLocalAddr]);
         if (QUIC_FAILED(Status)) {
             if (!Shutdown) {
                 WriteOutput("SetParam(CONN_LOCAL_ADDRESS) failed, 0x%x\n", Status);
             }
             return;
         }
+    }
+
+    if (Context->RemoteAddrSet) {
         Status =
             MsQuic->SetParam(
                 Scope.Connection,
@@ -293,7 +297,7 @@ HpsClient::StartConnection(
         return;
     }
 
-    if (!Context->AddrsSet) {
+    if (!LocalAddrSet) {
         uint32_t AddrLen = sizeof(QUIC_ADDR);
         Status =
             MsQuic->GetParam(
@@ -301,12 +305,16 @@ HpsClient::StartConnection(
                 QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
                 &AddrLen,
-                &Context->LocalAddr);
+                &Context->LocalAddrs[Context->NextLocalAddr]);
         if (QUIC_FAILED(Status)) {
             if (!Shutdown) {
                 WriteOutput("GetParam(CONN_LOCAL_ADDRESS) failed, 0x%x\n", Status);
             }
         }
+    }
+
+    if (!Context->RemoteAddrSet) {
+        uint32_t AddrLen = sizeof(QUIC_ADDR);
         Status =
             MsQuic->GetParam(
                 Scope.Connection,
@@ -319,10 +327,10 @@ HpsClient::StartConnection(
                 WriteOutput("GetParam(CONN_REMOTE_ADDRESS) failed, 0x%x\n", Status);
             }
         }
-
-        Context->AddrsSet = true;
+        Context->RemoteAddrSet = true;
     }
 
+    Context->NextLocalAddr = (Context->NextLocalAddr + 1) % HPS_BINDINGS_PER_WORKER;
     InterlockedIncrement64((int64_t*)&StartedConnections);
     Scope.Connection = nullptr;
 }

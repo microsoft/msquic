@@ -19,17 +19,18 @@ Abstract:
 
 struct HpsWorkerContext {
     class HpsClient* pThis {nullptr};
-    QUIC_ADDR LocalAddr;
     QUIC_ADDR RemoteAddr;
+    QUIC_ADDR LocalAddrs[HPS_BINDINGS_PER_WORKER];
     uint16_t Processor {0};
     long OutstandingConnections {0};
+    uint32_t NextLocalAddr;
     QUIC_EVENT WakeEvent;
     QUIC_THREAD Thread;
-    bool AddrsSet {false};
+    bool RemoteAddrSet {false};
     bool ThreadStarted {false};
     HpsWorkerContext() {
-        QuicZeroMemory(&LocalAddr, sizeof(LocalAddr));
         QuicZeroMemory(&RemoteAddr, sizeof(RemoteAddr));
+        QuicZeroMemory(&LocalAddrs, sizeof(LocalAddrs));
         QuicEventInitialize(&WakeEvent, FALSE, TRUE);
     }
     ~HpsWorkerContext() {

@@ -636,8 +636,10 @@ function Publish-TestResults {
         Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
     } elseif ($Test.TestName -eq "RPS") {
         Publish-RPSTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
+    } elseif ($Test.TestName -eq "HPS") {
+        Write-Host "TODO: Publish HPS test results!!!"
     } else {
-        Write-Info "Unknown Test Type"
+        Write-Host "Unknown Test Type"
     }
 }
 
