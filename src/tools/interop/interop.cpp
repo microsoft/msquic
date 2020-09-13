@@ -187,11 +187,11 @@ public:
     }
     ~InteropStream() {
         MsQuic->StreamClose(Stream);
-        QuicEventUninitialize(&RequestComplete);
+        QuicEventUninitialize(RequestComplete);
     }
 
     bool SendHttpRequest(bool WaitForResponse = true) {
-        QuicEventReset(&RequestComplete);
+        QuicEventReset(RequestComplete);
         if (QUIC_FAILED(
             MsQuic->StreamStart(
                 Stream,
@@ -1055,7 +1055,7 @@ main(
     TryGetValue(argc, argv, "timeout", &WaitTimeoutMs);
     TryGetValue(argc, argv, "version", &InitialVersion);
     TryGetValue(argc, argv, "port", &CustomPort);
-    const char* UrlParam = nullptr;
+    const char* UrlParam;
     if (TryGetValue(argc, argv, "urlpath", &UrlParam)) {
         for (int i = 0; UrlParam[i] != '\0'; ++i) {
             if (UrlParam[i] == ',') {
