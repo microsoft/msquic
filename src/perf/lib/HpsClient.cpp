@@ -103,8 +103,6 @@ HpsClient::Start(
     ) {
     CompletionEvent = StopEvent;
 
-    WriteOutput("Starting workers...\n");
-
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint32_t Proc = 0; Proc < ActiveProcCount; ++Proc) {
         Contexts[Proc].pThis = this;
@@ -124,8 +122,6 @@ HpsClient::Start(
         }
         Contexts[Proc].ThreadStarted = true;
     }
-
-    WriteOutput("Workers started!\n");
 
     return Status;
 }

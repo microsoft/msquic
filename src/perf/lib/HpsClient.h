@@ -63,8 +63,6 @@ public:
         _In_ int Timeout
         ) override;
 
-//private:
-
     QUIC_STATUS
     ConnectionCallback(
         _In_ HpsWorkerContext* Context,

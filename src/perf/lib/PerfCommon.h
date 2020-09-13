@@ -34,5 +34,5 @@ Abstract:
 
 #define HPS_DEFAULT_RUN_TIME                (10 * 1000)
 #define HPS_DEFAULT_IDLE_TIMEOUT            (5 * 1000)
-#define HPS_DEFAULT_PARALLEL_COUNT          100
+#define HPS_DEFAULT_PARALLEL_COUNT          10
 #define HPS_MAX_WORKER_COUNT                128
