@@ -65,9 +65,8 @@ if [ "$ROLE" == "client" ]; then
         done
     else
         FILE=`echo ${REQUESTS[0]} | cut -f4 -d'/'`
-        REQUESTS=${REQUESTS[@]:1}
         FILES="/"${FILE}
-        for REQ in $REQUESTS; do
+        for REQ in ${REQUESTS[@]:1}; do
             FILE=`echo $REQ | cut -f4 -d'/'`
             FILES=${FILES}",/"${FILE}
         done
