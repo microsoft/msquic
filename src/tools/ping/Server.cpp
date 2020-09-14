@@ -25,10 +25,10 @@ struct PingServer {
         }
     }
 
-    bool Start(HQUIC Session) {
+    bool Start() {
         if (QUIC_FAILED(
             MsQuic->ListenerOpen(
-                Session,
+                Registration,
                 QuicCallbackHandler,
                 this,
                 &QuicListener))) {
@@ -38,6 +38,8 @@ struct PingServer {
         if (QUIC_FAILED(
             MsQuic->ListenerStart(
                 QuicListener,
+                &PingConfig.ALPN,
+                1,
                 &PingConfig.LocalIpAddr))) {
             printf("MsQuic->ListenerStart failed!\n");
         }
@@ -52,7 +54,7 @@ struct PingServer {
         case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
             auto Connection = new PingConnection(&Tracker, Event->NEW_CONNECTION.Connection);
             if (Connection != NULL) {
-                Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
+                Event->NEW_CONNECTION.Configuration = Configuration;
                 if (!Connection->Initialize(true)) {
                     delete Connection;
                 }
@@ -78,39 +80,9 @@ struct PingServer {
 
 void QuicPingServerRun()
 {
-    QUIC_SETTINGS Settings{0};
-    Settings.PeerBidiStreamCount = PingConfig.PeerBidirStreamCount;
-    Settings.IsSet.PeerBidiStreamCount = TRUE;
-    Settings.PeerUnidiStreamCount = PingConfig.PeerUnidirStreamCount;
-    Settings.IsSet.PeerUnidiStreamCount = TRUE;
-    Settings.DisconnectTimeoutMs = PingConfig.DisconnectTimeout;
-    Settings.IsSet.DisconnectTimeoutMs = TRUE;
-    Settings.IdleTimeoutMs = PingConfig.IdleTimeout;
-    Settings.IsSet.IdleTimeoutMs = TRUE;
-    if (PingConfig.MaxBytesPerKey != UINT64_MAX) {
-        Settings.MaxBytesPerKey = PingConfig.MaxBytesPerKey;
-        Settings.IsSet.MaxBytesPerKey = TRUE;
-    }
-    Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_ONLY;
-    Settings.IsSet.ServerResumptionLevel = TRUE;
-
-    QuicSession Session;
-    if (QUIC_FAILED(
-        MsQuic->SessionOpen(
-            Registration,
-            sizeof(Settings),
-            &Settings,
-            &PingConfig.ALPN,
-            1,
-            NULL,
-            &Session.Handle))) {
-        printf("MsQuic->SessionOpen failed!\n");
-        return;
-    }
-
     {
         PingServer Server;
-        if (!Server.Start(Session.Handle)) {
+        if (!Server.Start()) {
             printf("Failed to start the listener!\n");
             return;
         }
@@ -132,5 +104,5 @@ void QuicPingServerRun()
         }
     }
 
-    Session.Cancel();
+    MsQuic->RegistrationShutdown(Registration, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
 }

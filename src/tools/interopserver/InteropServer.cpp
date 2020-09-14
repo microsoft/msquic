@@ -89,12 +89,6 @@ main(
         return -1;
     }
 
-    QUIC_CREDENTIAL_CONFIG_HELPER Config;
-    if (!GetServerCredConfigFromArgs(argc, argv, &Config)) {
-        printf("Missing arg loading server certificate!\n");
-        return -1;
-    }
-
     QUIC_SETTINGS Settings{0};
     Settings.PeerBidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
     Settings.IsSet.PeerBidiStreamCount = TRUE;
@@ -103,15 +97,10 @@ main(
     Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
     Settings.IsSet.InitialRttMs = TRUE;
 
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &Settings, sizeof(Settings), nullptr, &Configuration))) {
-        printf("ConfigurationOpen failed, 0x%x!\n", Status);
-        return false;
-    }
-
-    if (QUIC_FAILED(Status = MsQuic->ConfigurationLoadCredential(Configuration, &Config.CredConfig))) {
-        printf("ConfigurationLoadCredential failed, 0x%x!\n", Status);
-        return false;
+    Configuration = GetServerConfigurationFromArgs(argc, argv, MsQuic, Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &Settings, sizeof(Settings));
+    if (!Configuration) {
+        printf("Failed to load configuration from args!\n");
+        return -1;
     }
 
     {
@@ -120,7 +109,7 @@ main(
         getchar();
     }
 
-    MsQuic->ConfigurationClose(Configuration);
+    FreeServerConfiguration(MsQuic, Configuration);
     MsQuic->RegistrationShutdown(
         Registration,
         QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,

@@ -14,6 +14,11 @@ Abstract:
 
 #include "QuicPing.h"
 
+struct QuicConfigurationPtr {
+    HQUIC Handle {nullptr};
+    ~QuicConfigurationPtr() { MsQuic->ConfigurationClose(Handle); }
+};
+
 void QuicPingClientRun()
 {
     PingTracker Tracker;
@@ -25,17 +30,28 @@ void QuicPingClientRun()
             Settings.IsSet.MaxBytesPerKey = TRUE;
         }
 
-        QuicSession Session;
+        QuicConfigurationPtr ClientConfiguration;
         if (QUIC_FAILED(
-            MsQuic->SessionOpen(
+            MsQuic->ConfigurationOpen(
                 Registration,
-                sizeof(Settings),
-                &Settings,
                 &PingConfig.ALPN,
                 1,
-                NULL,
-                &Session.Handle))) {
-            printf("MsQuic->SessionOpen failed!\n");
+                &Settings,
+                sizeof(Settings),
+                nullptr,
+                &ClientConfiguration.Handle))) {
+            printf("MsQuic->ConfigurationOpen failed!\n");
+            return;
+        }
+
+        QUIC_CREDENTIAL_CONFIG CredConfig;
+        CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE;
+        CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+        if (QUIC_FAILED(
+            MsQuic->ConfigurationLoadCredential(
+                ClientConfiguration.Handle,
+                &CredConfig))) {
+            printf("MsQuic->ConfigurationLoadCredential failed!\n");
             return;
         }
 
@@ -44,7 +60,6 @@ void QuicPingClientRun()
             Connections[i] =
                 new PingConnection(
                     &Tracker,
-                    Session.Handle,
                     PingConfig.ConnectionCount == 1);
             if (!Connections[i]) {
                 printf("Failed to open a connection!\n");
@@ -62,14 +77,14 @@ void QuicPingClientRun()
         // Start connecting to the remote server.
         //
         for (uint32_t i = 0; i < PingConfig.ConnectionCount; i++) {
-            Connections[i]->Connect();
+            Connections[i]->Connect(ClientConfiguration.Handle);
         }
 
         delete[] Connections;
 
         if (Tracker.Wait(PingConfig.Client.WaitTimeout)) {
             printf("Cancelling remaining connections.\n");
-            Session.Cancel();
+            MsQuic->RegistrationShutdown(Registration, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
             Timeout = false; // Connections didn't hit idle timeout. They were cancelled.
         }
     }

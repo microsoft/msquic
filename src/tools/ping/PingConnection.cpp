@@ -13,7 +13,6 @@ Abstract:
 
 PingConnection::PingConnection(
     _In_ PingTracker* Tracker,
-    _In_ HQUIC Session,
     _In_ bool DumpResumption
     ) :
     Tracker(Tracker), QuicConnection(nullptr), DumpResumption(DumpResumption),
@@ -24,7 +23,7 @@ PingConnection::PingConnection(
 
     if (QUIC_FAILED(
         MsQuic->ConnectionOpen(
-            Session,
+            Registration,
             QuicCallbackHandler,
             this,
             &QuicConnection))) {
@@ -124,18 +123,6 @@ PingConnection::Initialize(
             return false;
         }
 
-        uint32_t SecFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-                sizeof(SecFlags),
-                &SecFlags))) {
-            printf("Failed to set the cert validation flags!\n");
-            return false;
-        }
-
         if (PingConfig.PeerBidirStreamCount != 0) {
             if (QUIC_FAILED(
                 MsQuic->SetParam(
@@ -162,14 +149,14 @@ PingConnection::Initialize(
             }
         }
 
-        if (PingConfig.Client.ResumeToken &&
+        /*if (PingConfig.Client.ResumeToken &&
             !SetResumptionState(
                 MsQuic,
                 QuicConnection,
                 PingConfig.Client.ResumeToken)) {
             printf("Failed to set the resumption token!\n");
             return false;
-        }
+        }*/
 
         if (PingConfig.Client.Version &&
             QUIC_FAILED(
@@ -243,7 +230,7 @@ PingConnection::QueueDatagram(
 }
 
 bool
-PingConnection::Connect() {
+PingConnection::Connect(_In_ HQUIC ClientConfiguration) {
     if (QuicAddrGetFamily(&PingConfig.LocalIpAddr) != AF_UNSPEC) {
         MsQuic->SetParam(
             QuicConnection,
@@ -267,6 +254,7 @@ PingConnection::Connect() {
     if (QUIC_FAILED(
         MsQuic->ConnectionStart(
             QuicConnection,
+            ClientConfiguration,
             QuicAddrGetFamily(&PingConfig.Client.RemoteIpAddr),
             PingConfig.Client.Target,
             QuicAddrGetPort(&PingConfig.Client.RemoteIpAddr)))) {

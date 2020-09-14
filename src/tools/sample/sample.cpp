@@ -485,7 +485,7 @@ RunClient(
     }
 
     const char* Target;
-    if (!(Target = GetValue(argc, argv, "target"))) {
+    if ((Target = GetValue(argc, argv, "target")) == nullptr) {
         printf("Must specify '-target' argument!\n");
         goto Error;
     }

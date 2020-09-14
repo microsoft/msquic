@@ -382,44 +382,113 @@ TryGetValue(
 
 inline
 _Success_(return != false)
-bool
-GetServerCredConfigFromArgs(
+HQUIC
+GetServerConfigurationFromArgs(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _Out_ QUIC_CREDENTIAL_CONFIG_HELPER* Config
+    _In_ const QUIC_API_TABLE* MsQuic,
+    _In_ HQUIC Registration,
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
+    _In_reads_bytes_opt_(SettingsSize)
+        const QUIC_SETTINGS* Settings,
+    _In_ uint32_t SettingsSize
     )
 {
-    Config->CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
+    QUIC_CREDENTIAL_CONFIG_HELPER Helper;
+    const QUIC_CREDENTIAL_CONFIG* Config = &Helper.CredConfig;
+    Helper.CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
 
     const char* Cert;
     const char* KeyFile;
+
     if ((Cert = GetValue(argc, argv, "thumbprint")) != nullptr ||
         (Cert = GetValue(argc, argv, "cert_hash")) != nullptr ||
         (Cert = GetValue(argc, argv, "hash")) != nullptr) {
         uint32_t CertHashLen =
             DecodeHexBuffer(
                 Cert,
-                sizeof(Config->CertHash.ShaHash),
-                Config->CertHash.ShaHash);
-        if (CertHashLen != sizeof(Config->CertHash.ShaHash)) {
-            return false;
+                sizeof(Helper.CertHashStore.ShaHash),
+                Helper.CertHashStore.ShaHash);
+        if (CertHashLen != sizeof(Helper.CertHashStore.ShaHash)) {
+            return nullptr;
         }
-        Config->CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
-        Config->CredConfig.Creds = &Config->CertHash;
+        Helper.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE;
+        Helper.CredConfig.Creds = &Helper.CertHashStore;
+        memcpy(Helper.CertHashStore.StoreName, "My", sizeof("My"));
+        Helper.CertHashStore.Flags =
+            GetValue(argc, argv, "machine") ?
+                QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE :
+                QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
 
     } else if (
         (Cert = GetValue(argc, argv, "file")) != nullptr && (KeyFile = GetValue(argc, argv, "key")) != nullptr ||
         (Cert = GetValue(argc, argv, "cert_file")) != nullptr && (KeyFile = GetValue(argc, argv, "cert_key")) != nullptr) {
-        Config->CertFile.CertificateFile = (char*)Cert;
-        Config->CertFile.PrivateKeyFile = (char*)KeyFile;
-        Config->CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
-        Config->CredConfig.Creds = &Config->CertFile;
+        Helper.CertFile.CertificateFile = (char*)Cert;
+        Helper.CertFile.PrivateKeyFile = (char*)KeyFile;
+        Helper.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
+        Helper.CredConfig.Creds = &Helper.CertFile;
+
+#ifdef QUIC_TEST_APIS
+    } else if (GetValue(argc, argv, "selfsign")) {
+        Config = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+        if (!Config) {
+            return nullptr;
+        }
+#endif
 
     } else {
         return false;
     }
 
-    return true;
+#ifdef QUIC_TEST_APIS
+    void* Context = (Config != &Helper.CredConfig) ? (void*)Config : nullptr;
+#else
+    void* Context = nullptr;
+#endif
+
+    HQUIC Configuration = nullptr;
+    if (QUIC_SUCCEEDED(
+        MsQuic->ConfigurationOpen(
+            Registration,
+            AlpnBuffers,
+            AlpnBufferCount,
+            Settings,
+            SettingsSize,
+            Context,
+            &Configuration)) &&
+        QUIC_FAILED(
+        MsQuic->ConfigurationLoadCredential(
+            Configuration,
+            Config))) {
+        MsQuic->ConfigurationClose(Configuration);
+        Configuration = nullptr;
+    }
+
+#ifdef QUIC_TEST_APIS
+    if (!Configuration && Config != &Helper.CredConfig) {
+        QuicPlatFreeSelfSignedCert(Config);
+    }
+#endif
+
+    return Configuration;
 }
 
+inline
+void
+FreeServerConfiguration(
+    _In_ const QUIC_API_TABLE* MsQuic,
+    _In_ HQUIC Configuration
+    )
+{
+#ifdef QUIC_TEST_APIS
+    auto SelfSignedConfig = (const QUIC_CREDENTIAL_CONFIG*)MsQuic->GetContext(Configuration);
+    if (SelfSignedConfig) {
+        QuicPlatFreeSelfSignedCert(SelfSignedConfig);
+    }
 #endif
+    MsQuic->ConfigurationClose(Configuration);
+}
+
+#endif // defined(__cplusplus)

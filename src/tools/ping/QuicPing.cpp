@@ -13,7 +13,7 @@ Abstract:
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
-QUIC_SEC_CONFIG* SecurityConfig;
+HQUIC Configuration;
 QUIC_PING_CONFIG PingConfig;
 
 extern "C" void QuicTraceRundown(void) { }
@@ -223,67 +223,43 @@ ParseServerCommand(
         return;
     }
 
-    QUIC_SEC_CONFIG_PARAMS* selfSignedCertParams = nullptr;
-
-    uint16_t useSelfSigned = 0;
-    if (!TryGetValue(argc, argv, "selfsign", &useSelfSigned)) {
-
-#if _WIN32
-        const char* certThumbprint;
-        if (!TryGetValue(argc, argv, "thumbprint", &certThumbprint)) {
-            printf("Must specify -thumbprint: for server mode.\n");
-            return;
-        }
-        const char* certStoreName;
-        if (!TryGetValue(argc, argv, "cert_store", &certStoreName)) {
-            SecurityConfig = GetSecConfigForThumbprint(MsQuic, Registration, certThumbprint);
-            if (SecurityConfig == nullptr) {
-                printf("Failed to create security configuration for thumbprint:'%s'.\n", certThumbprint);
-                return;
-            }
-        } else {
-            uint32_t machineCert = 0;
-            TryGetValue(argc, argv, "machine_cert", &machineCert);
-            QUIC_CERTIFICATE_HASH_STORE_FLAGS flags =
-                machineCert ? QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE : QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
-
-            SecurityConfig = GetSecConfigForThumbprintAndStore(MsQuic, Registration, flags, certThumbprint, certStoreName);
-            if (SecurityConfig == nullptr) {
-                printf(
-                    "Failed to create security configuration for thumbprint:'%s' and store: '%s'.\n",
-                    certThumbprint,
-                    certStoreName);
-                return;
-            }
-        }
-#else
-        // TODO - Support getting sec config on Linux.
-        printf("Loading sec config on Linux unsupported right now.\n");
-        return;
-#endif
-    } else {
-        selfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
-        if (!selfSignedCertParams) {
-            printf("Failed to create platform self signed certificate\n");
-            return;
-        }
-
-        SecurityConfig = GetSecConfigForSelfSigned(MsQuic, Registration, selfSignedCertParams);
-        if (!SecurityConfig) {
-            printf("Failed to create security config for self signed certificate\n");
-            QuicPlatFreeSelfSignedCert(selfSignedCertParams);
-            return;
-        }
-    }
-
     PingConfig.ConnectionCount = 0;
     ParseCommonCommands(argc, argv);
+
+    QUIC_SETTINGS Settings{0};
+    Settings.PeerBidiStreamCount = PingConfig.PeerBidirStreamCount;
+    Settings.IsSet.PeerBidiStreamCount = TRUE;
+    Settings.PeerUnidiStreamCount = PingConfig.PeerUnidirStreamCount;
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
+    Settings.DisconnectTimeoutMs = PingConfig.DisconnectTimeout;
+    Settings.IsSet.DisconnectTimeoutMs = TRUE;
+    Settings.IdleTimeoutMs = PingConfig.IdleTimeout;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
+    if (PingConfig.MaxBytesPerKey != UINT64_MAX) {
+        Settings.MaxBytesPerKey = PingConfig.MaxBytesPerKey;
+        Settings.IsSet.MaxBytesPerKey = TRUE;
+    }
+    Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_ONLY;
+    Settings.IsSet.ServerResumptionLevel = TRUE;
+
+    Configuration =
+        GetServerConfigurationFromArgs(
+            argc,
+            argv,
+            MsQuic,
+            Registration,
+            &PingConfig.ALPN,
+            1,
+            &Settings,
+            sizeof(Settings));
+    if (!Configuration) {
+        printf("Failed to load configuration from args.\n");
+        return;
+    }
+
     QuicPingServerRun();
 
-    MsQuic->SecConfigDelete(SecurityConfig);
-    if (selfSignedCertParams) {
-        QuicPlatFreeSelfSignedCert(selfSignedCertParams);
-    }
+    FreeServerConfiguration(MsQuic, Configuration);
 }
 
 void
