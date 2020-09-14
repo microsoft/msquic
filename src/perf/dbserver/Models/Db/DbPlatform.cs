@@ -14,5 +14,6 @@ namespace QuicDataServer.Models.Db
 
         public ICollection<DbThroughputTestRecord> ThroughputTests { get; set; } = null!;
         public ICollection<DbRpsTestRecord> RpsTests { get; set; } = null!;
+        public ICollection<DbHpsTestRecord> HpsTests { get; set; } = null!;
     }
 }

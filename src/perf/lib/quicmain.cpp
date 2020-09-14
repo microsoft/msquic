@@ -13,6 +13,7 @@ Abstract:
 #include "PerfServer.h"
 #include "ThroughputClient.h"
 #include "RpsClient.h"
+#include "HpsClient.h"
 
 #ifdef QUIC_CLOG
 #include "quicmain.cpp.clog.h"
@@ -48,7 +49,7 @@ PrintHelp(
         "  -cert_store:<store name>    The certificate store to search for the thumbprint in.\n"
         "  -machine_cert:<0/1>         Use the machine, or current user's, certificate store. (def:0)\n"
         "\n"
-        "Client: quicperf -TestName:<Throughput|RPS> [options]\n"
+        "Client: quicperf -TestName:<Throughput|RPS|HPS> [options]\n"
         "\n",
         PERF_DEFAULT_PORT
         );
@@ -108,6 +109,8 @@ QuicMainStart(
             TestToRun = new(std::nothrow) ThroughputClient;
         } else if (IsValue(TestName, "RPS")) {
             TestToRun = new(std::nothrow) RpsClient;
+        } else if (IsValue(TestName, "HPS")) {
+            TestToRun = new(std::nothrow) HpsClient;
         } else {
             PrintHelp();
             delete MsQuic;
