@@ -1228,7 +1228,8 @@ MsQuicSetParam(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (Connection->WorkerThreadID == QuicCurThreadID()) {
+    if ((!Connection->State.Started && !QuicConnIsServer(Connection)) ||
+        Connection->WorkerThreadID == QuicCurThreadID()) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //

@@ -916,7 +916,7 @@ QuicSetCurrentThreadProcessorAffinity(
     if (SetThreadGroupAffinity(GetCurrentThread(), &Group, NULL)) {
         return QUIC_STATUS_SUCCESS;
     }
-    return GetLastError();
+    return HRESULT_FROM_WIN32(GetLastError());
 }
 
 #define QuicCompartmentIdGetCurrent() GetCurrentThreadCompartmentId()

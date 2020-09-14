@@ -89,6 +89,11 @@ typedef enum {
 //
 #define URO_MAX_DATAGRAMS_PER_INDICATION    64
 
+//
+// The maximum allowed pending WSK buffers per proc before copying.
+//
+#define PENDING_BUFFER_LIMIT                256000
+
 static_assert(
     sizeof(QUIC_BUFFER) == sizeof(WSABUF),
     "WSABUF is assumed to be interchangeable for QUIC_BUFFER");
@@ -107,18 +112,32 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT QUIC_DATAPATH_PROC_CONTEXT;
 typedef struct QUIC_DATAPATH_INTERNAL_RECV_CONTEXT {
 
     //
-    // The owning datagram pool.
+    // The per proc context for this receive context.
     //
-    QUIC_POOL* OwningPool;
+    QUIC_DATAPATH_PROC_CONTEXT* ProcContext;
+
+    union {
+        //
+        // The start of the data buffer, or the cached data indication from wsk.
+        //
+        uint8_t* DataBufferStart;
+        PWSK_DATAGRAM_INDICATION DataIndication;
+    };
 
     QUIC_DATAPATH_BINDING* Binding;
-    PWSK_DATAGRAM_INDICATION DataIndication;
+
     ULONG ReferenceCount;
 
     //
     // Contains the 4 tuple.
     //
     QUIC_TUPLE Tuple;
+
+    int32_t DataIndicationSize;
+
+    uint8_t DatagramPoolIndex   : 1;
+    uint8_t BufferPoolIndex     : 1;
+    uint8_t IsCopiedBuffer      : 1;
 } QUIC_DATAPATH_INTERNAL_RECV_CONTEXT;
 
 BOOLEAN
@@ -341,15 +360,17 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT {
 
     //
     // Pool of receive datagram contexts and buffers to be shared by all sockets
-    // on this core.
+    // on this core. Index 0 is regular, Index 1 is URO.
     //
-    QUIC_POOL RecvDatagramPool;
+    //
+    QUIC_POOL RecvDatagramPools[2];
 
     //
-    // Pool of receive datagram contexts and buffers to be shared by all sockets
-    // on this core for URO.
+    // Pool of receive data buffers. Index 0 is 4096, Index 1 is 65536.
     //
-    QUIC_POOL UroRecvDatagramPool;
+    QUIC_POOL RecvBufferPools[2];
+
+    int64_t OutstandingPendingBytes;
 
 } QUIC_DATAPATH_PROC_CONTEXT;
 
@@ -876,13 +897,27 @@ QuicDataPathInitialize(
             FALSE,
             RecvDatagramLength,
             QUIC_POOL_DATA,
-            &Datapath->ProcContexts[i].RecvDatagramPool);
+            &Datapath->ProcContexts[i].RecvDatagramPools[0]);
 
         QuicPoolInitialize(
             FALSE,
             UroDatagramLength,
             QUIC_POOL_DATA,
-            &Datapath->ProcContexts[i].UroRecvDatagramPool);
+            &Datapath->ProcContexts[i].RecvDatagramPools[1]);
+
+        QuicPoolInitialize(
+            FALSE,
+            4096,
+            QUIC_POOL_DATA,
+            &Datapath->ProcContexts[i].RecvBufferPools[0]);
+
+        QuicPoolInitialize(
+            FALSE,
+            65536,
+            QUIC_POOL_DATA,
+            &Datapath->ProcContexts[i].RecvBufferPools[1]);
+
+        Datapath->ProcContexts[i].OutstandingPendingBytes = 0;
     }
 
     Status = WskRegister(&WskClientNpi, &Datapath->WskRegistration);
@@ -951,8 +986,10 @@ Error:
         QuicPoolUninitialize(&Datapath->ProcContexts[i].SendContextPool);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].SendBufferPool);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].LargeSendBufferPool);
-        QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvDatagramPool);
-        QuicPoolUninitialize(&Datapath->ProcContexts[i].UroRecvDatagramPool);
+        QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvDatagramPools[0]);
+        QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvDatagramPools[1]);
+        QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvBufferPools[0]);
+        QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvBufferPools[1]);
     }
     QUIC_FREE(Datapath);
 
@@ -977,8 +1014,10 @@ QuicDataPathUninitialize(
         QuicPoolUninitialize(&Datapath->ProcContexts[i].SendContextPool);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].SendBufferPool);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].LargeSendBufferPool);
-        QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvDatagramPool);
-        QuicPoolUninitialize(&Datapath->ProcContexts[i].UroRecvDatagramPool);
+        QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvDatagramPools[0]);
+        QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvDatagramPools[1]);
+        QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvBufferPools[0]);
+        QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvBufferPools[1]);
     }
     QUIC_FREE(Datapath);
 }
@@ -1786,6 +1825,7 @@ QuicDataPathBindingGetRemoteAddress(
     *Address = Binding->RemoteAddress;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_DATAPATH_INTERNAL_RECV_CONTEXT*
 QuicDataPathBindingAllocRecvContext(
     _In_ QUIC_DATAPATH* Datapath,
@@ -1793,18 +1833,45 @@ QuicDataPathBindingAllocRecvContext(
     _In_ BOOLEAN IsUro
     )
 {
-    QUIC_POOL* Pool =
-        IsUro ?
-            &Datapath->ProcContexts[ProcIndex].UroRecvDatagramPool :
-            &Datapath->ProcContexts[ProcIndex].RecvDatagramPool;
+    QUIC_DBG_ASSERT(IsUro == 1 || IsUro == 0);
+    QUIC_POOL* Pool = &Datapath->ProcContexts[ProcIndex].RecvDatagramPools[IsUro];
 
     QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* InternalContext = QuicPoolAlloc(Pool);
 
     if (InternalContext != NULL) {
-        InternalContext->OwningPool = Pool;
+        InternalContext->DatagramPoolIndex = IsUro;
+        InternalContext->ProcContext = &Datapath->ProcContexts[ProcIndex];
+        InternalContext->DataBufferStart = NULL;
     }
 
     return InternalContext;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PWSK_DATAGRAM_INDICATION
+QuicDataPathFreeRecvContext(
+    _In_ __drv_freesMem(Context) QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* Context
+    )
+{
+    PWSK_DATAGRAM_INDICATION DataIndication = NULL;
+    if (Context->DataBufferStart != NULL) {
+        if (Context->IsCopiedBuffer) {
+            QuicPoolFree(
+                &Context->ProcContext->RecvBufferPools[Context->BufferPoolIndex],
+                Context->DataBufferStart);
+        } else {
+            DataIndication = Context->DataIndication;
+            InterlockedAdd64(
+                &Context->ProcContext->OutstandingPendingBytes,
+                -Context->DataIndicationSize);
+        }
+    }
+
+    QuicPoolFree(
+        &Context->ProcContext->RecvDatagramPools[Context->DatagramPoolIndex],
+        Context);
+    return DataIndication;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1824,6 +1891,8 @@ QuicDataPathSocketReceive(
     if (DataIndicationHead == NULL) {
         return STATUS_SUCCESS;
     }
+
+    QUIC_DBG_ASSERT(Context != NULL);
 
     QUIC_DATAPATH_BINDING* Binding = (QUIC_DATAPATH_BINDING*)Context;
 
@@ -1961,6 +2030,7 @@ QuicDataPathSocketReceive(
         PMDL Mdl = DataIndication->Buffer.Mdl;
         ULONG MdlOffset = DataIndication->Buffer.Offset;
         SIZE_T DataLength = DataIndication->Buffer.Length;
+        uint8_t* CurrentCopiedBuffer = NULL;
 
         if (MessageLength == 0) {
             //
@@ -2034,8 +2104,34 @@ QuicDataPathSocketReceive(
                     goto Drop;
                 }
 
+                if (RecvContext->ProcContext->OutstandingPendingBytes > PENDING_BUFFER_LIMIT) {
+                    //
+                    // Perform a copy
+                    //
+                    RecvContext->IsCopiedBuffer = TRUE;
+                    RecvContext->BufferPoolIndex = DataLength > 4096 ? 1 : 0;
+                    RecvContext->DataBufferStart =
+                        (uint8_t*)QuicPoolAlloc(
+                            &RecvContext->ProcContext->RecvBufferPools[RecvContext->BufferPoolIndex]);
+                    if (RecvContext->DataBufferStart == NULL) {
+                        QuicTraceLogWarning(
+                            DatapathDropAllocRecvBufferFailure,
+                            "[%p] Couldn't allocate receive buffers.",
+                            Binding);
+                        goto Drop;
+                    }
+                    CurrentCopiedBuffer = RecvContext->DataBufferStart;
+                } else {
+                    RecvContext->IsCopiedBuffer = FALSE;
+                    RecvContext->DataIndication = DataIndication;
+                    QUIC_DBG_ASSERT(DataIndication->Next == NULL);
+                    RecvContext->DataIndicationSize = (int32_t)DataLength;
+                    InterlockedAdd64(
+                        &RecvContext->ProcContext->OutstandingPendingBytes,
+                        RecvContext->DataIndicationSize);
+                }
+
                 RecvContext->Binding = Binding;
-                RecvContext->DataIndication = DataIndication;
                 RecvContext->ReferenceCount = 0;
                 RecvContext->Tuple.LocalAddress = LocalAddr;
                 RecvContext->Tuple.RemoteAddress = RemoteAddr;
@@ -2053,7 +2149,14 @@ QuicDataPathSocketReceive(
                 QuicDataPathDatagramToInternalDatagramContext(Datagram);
             InternalDatagramContext->RecvContext = RecvContext;
 
-            Datagram->Buffer = (uint8_t*)Mdl->MappedSystemVa + MdlOffset;
+            if (RecvContext->IsCopiedBuffer) {
+                Datagram->Buffer = CurrentCopiedBuffer;
+                QuicCopyMemory(Datagram->Buffer, (uint8_t*)Mdl->MappedSystemVa + MdlOffset, MessageLength);
+                CurrentCopiedBuffer += MessageLength;
+            } else {
+                Datagram->Buffer = (uint8_t*)Mdl->MappedSystemVa + MdlOffset;
+            }
+
             Datagram->BufferLength = MessageLength;
             Datagram->Tuple = &RecvContext->Tuple;
 
@@ -2087,8 +2190,6 @@ QuicDataPathSocketReceive(
                     Binding->Datapath->DatagramStride);
         }
 
-        continue;
-
     Drop:
 
         if (RecvContext != NULL && RecvContext->ReferenceCount == 0) {
@@ -2098,11 +2199,14 @@ QuicDataPathSocketReceive(
             // the indication will be returned only after the binding client has
             // returned the buffers.
             //
-            QuicPoolFree(RecvContext->OwningPool, RecvContext);
+            PWSK_DATAGRAM_INDICATION FreeIndic =
+                QuicDataPathFreeRecvContext(RecvContext);
+            QUIC_DBG_ASSERT(FreeIndic == DataIndication);
+            UNREFERENCED_PARAMETER(FreeIndic);
             RecvContext = NULL;
         }
 
-        if (RecvContext == NULL) {
+        if (RecvContext == NULL || RecvContext->IsCopiedBuffer) {
             *ReleaseChainTail = DataIndication;
             ReleaseChainTail = &DataIndication->Next;
         }
@@ -2120,7 +2224,7 @@ QuicDataPathSocketReceive(
 
     if (ReleaseChain != NULL) {
         //
-        // Release any dropped datagrams.
+        // Release any dropped or copied datagrams.
         //
         Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
     }
@@ -2137,6 +2241,7 @@ QuicDataPathBindingReturnRecvDatagrams(
     )
 {
     QUIC_DATAPATH_BINDING* Binding = NULL;
+    PWSK_DATAGRAM_INDICATION DataIndication = NULL;
     PWSK_DATAGRAM_INDICATION DataIndications = NULL;
     PWSK_DATAGRAM_INDICATION* DataIndicationTail = &DataIndications;
 
@@ -2169,11 +2274,14 @@ QuicDataPathBindingReturnRecvDatagrams(
                 //
                 // Clean up the data indication.
                 //
-                QUIC_DBG_ASSERT(BatchedInternalContext->DataIndication->Next == NULL);
-                *DataIndicationTail = BatchedInternalContext->DataIndication;
-                DataIndicationTail = &BatchedInternalContext->DataIndication->Next;
+                DataIndication =
+                    QuicDataPathFreeRecvContext(BatchedInternalContext);
 
-                QuicPoolFree(BatchedInternalContext->OwningPool, BatchedInternalContext);
+                if (DataIndication != NULL) {
+                    QUIC_DBG_ASSERT(DataIndication->Next == NULL);
+                    *DataIndicationTail = DataIndication;
+                    DataIndicationTail = &DataIndication->Next;
+                }
             }
 
             BatchedInternalContext = InternalContext;
@@ -2188,11 +2296,14 @@ QuicDataPathBindingReturnRecvDatagrams(
         //
         // Clean up the data indication.
         //
-        QUIC_DBG_ASSERT(BatchedInternalContext->DataIndication->Next == NULL);
-        *DataIndicationTail = BatchedInternalContext->DataIndication;
-        DataIndicationTail = &BatchedInternalContext->DataIndication->Next;
+        DataIndication =
+            QuicDataPathFreeRecvContext(BatchedInternalContext);
 
-        QuicPoolFree(BatchedInternalContext->OwningPool, BatchedInternalContext);
+        if (DataIndication != NULL) {
+            QUIC_DBG_ASSERT(DataIndication->Next == NULL);
+            *DataIndicationTail = DataIndication;
+            DataIndicationTail = &DataIndication->Next;
+        }
     }
 
     if (DataIndications != NULL) {

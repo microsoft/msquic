@@ -220,26 +220,30 @@ QuicPathSetActive(
     _In_ QUIC_PATH* Path
     )
 {
-    QUIC_DBG_ASSERT(Path != &Connection->Paths[0]);
+    BOOLEAN UdpPortChangeOnly = FALSE;
+    if (Path == &Connection->Paths[0]) {
+        QUIC_DBG_ASSERT(!Path->IsActive);
+        Path->IsActive = TRUE;
+    } else {
+        UdpPortChangeOnly =
+            QuicAddrGetFamily(&Path->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].RemoteAddress) &&
+            QuicAddrCompareIp(&Path->RemoteAddress, &Connection->Paths[0].RemoteAddress);
 
-    BOOLEAN UdpPortChangeOnly =
-        QuicAddrGetFamily(&Path->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].RemoteAddress) &&
-        QuicAddrCompareIp(&Path->RemoteAddress, &Connection->Paths[0].RemoteAddress);
+        QUIC_PATH PrevActivePath = Connection->Paths[0];
+
+        PrevActivePath.IsActive = FALSE;
+        Path->IsActive = TRUE;
+
+        Connection->Paths[0] = *Path;
+        *Path = PrevActivePath;
+    }
 
     QuicTraceLogConnInfo(
         PathActive,
         Connection,
         "Path[%hhu] Set active (rebind=%hhu)",
-        Path->ID,
+        Connection->Paths[0].ID,
         UdpPortChangeOnly);
-
-    QUIC_PATH PrevActivePath = Connection->Paths[0];
-
-    PrevActivePath.IsActive = FALSE;
-    Path->IsActive = TRUE;
-
-    Connection->Paths[0] = *Path;
-    *Path = PrevActivePath;
 
     if (!UdpPortChangeOnly) {
         QuicCongestionControlReset(&Connection->CongestionControl);

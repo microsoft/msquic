@@ -779,6 +779,7 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_UINT62 ErrorCode;
         } SHUTDOWN_INITIATED_BY_PEER;
         struct {
+            BOOLEAN HandshakeCompleted;
             BOOLEAN PeerAcknowledgedShutdown;
         } SHUTDOWN_COMPLETE;
         struct {
