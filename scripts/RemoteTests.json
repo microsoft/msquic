@@ -3,7 +3,7 @@
         "TestName": "Throughput",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls", "openssl"],
+            "Tls": ["stub", "schannel", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -14,7 +14,63 @@
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls", "openssl"],
+            "Tls": ["stub", "schannel", "mitls"],
+            "Arch": ["x64", "x86", "arm", "arm64"],
+            "Exe": "quicperf",
+            "Arguments": {
+                "All": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000000000",
+                "Loopback": "",
+                "Remote": ""
+            }
+        },
+        "Variables": [
+            {
+                "Name": "Encryption",
+                "Local": {
+                    "On": "",
+                    "Off": "-encrypt:0"
+                },
+                "Remote": {
+                    "On": "",
+                    "Off": ""
+                },
+                "Default": "On"
+            },
+            {
+                "Name": "SendBuffering",
+                "Local": {
+                    "On": "",
+                    "Off": "-sendbuf:0"
+                },
+                "Remote": {
+                    "On": "",
+                    "Off": ""
+                },
+                "Default": "Off"
+            }
+        ],
+        "AllowLoopback": true,
+        "Iterations": 10,
+        "RemoteReadyMatcher": "Started!",
+        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)",
+        "Units": "kbps"
+    },
+    {
+        "TestName": "Throughput",
+        "Remote": {
+            "Platform": "Windows",
+            "Tls": ["openssl"],
+            "Arch": ["x64", "x86", "arm", "arm64"],
+            "Exe": "quicperf",
+            "Arguments": {
+                "All": "-selfsign:1",
+                "Loopback": "",
+                "Remote": ""
+            }
+        },
+        "Local": {
+            "Platform": "Windows",
+            "Tls": ["openssl"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
