@@ -264,6 +264,8 @@ RpsClient::Wait(
 
     QuicEventWaitWithTimeout(*CompletionEvent, Timeout);
 
+    Shutdown = true;
+
     uint32_t RPS = (uint32_t)((CompletedRequests * 1000ull) / (uint64_t)RunTime);
     WriteOutput("Result: %u RPS\n", RPS);
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
@@ -335,6 +337,10 @@ RpsClient::SendRequest(
     _In_ HQUIC Handle
     )
 {
+    if (Shutdown) {
+        return;
+    }
+
     QUIC_STREAM_CALLBACK_HANDLER Handler =
         [](HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
             return ((RpsClient*)Context)->
