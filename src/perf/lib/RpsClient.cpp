@@ -255,6 +255,16 @@ RpsClient::Start(
 
     Scope.NeedsCleanup = false;
 
+    uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
+    if (ThreadToSetAffinityTo > 2) {
+        ThreadToSetAffinityTo -= 2;
+        //
+        // TODO: Fix QuicSetCurrentThreadProcessorAffinity to take 16 bits
+        //
+        QuicSetCurrentThreadProcessorAffinity((uint8_t)ThreadToSetAffinityTo);
+    }
+
+
     return QUIC_STATUS_SUCCESS;
 }
 

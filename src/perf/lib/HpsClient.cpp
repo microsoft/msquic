@@ -123,6 +123,15 @@ HpsClient::Start(
         Contexts[Proc].ThreadStarted = true;
     }
 
+    uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
+    if (ThreadToSetAffinityTo > 2) {
+        ThreadToSetAffinityTo -= 2;
+        //
+        // TODO: Fix QuicSetCurrentThreadProcessorAffinity to take 16 bits
+        //
+        QuicSetCurrentThreadProcessorAffinity((uint8_t)ThreadToSetAffinityTo);
+    }
+
     return Status;
 }
 
