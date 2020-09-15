@@ -345,7 +345,7 @@ MsQuicConnectionStart(
         goto Error;
     }
 
-    QuicRundownAcquire(&Configuration->Rundown);
+    QuicConfigurationAddRef(Configuration);
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_START;
     Oper->API_CALL.Context->CONN_START.Configuration = Configuration;
     Oper->API_CALL.Context->CONN_START.ServerName = ServerNameCopy;

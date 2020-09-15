@@ -87,7 +87,7 @@ MsQuicConfigurationOpen(
     Configuration->Type = QUIC_HANDLE_TYPE_CONFIGURATION;
     Configuration->ClientContext = Context;
     Configuration->Registration = Registration;
-    QuicRundownInitialize(&Configuration->Rundown);
+    QuicRefInitialize(&Configuration->RefCount);
 
     Configuration->AlpnListLength = (uint16_t)AlpnListLength;
     AlpnList = Configuration->AlpnList;
@@ -199,7 +199,6 @@ Error:
         QuicStorageClose(Configuration->Storage);
         QuicSiloRelease(Configuration->Silo);
 #endif
-        QuicRundownUninitialize(&Configuration->Rundown);
         QUIC_FREE(Configuration);
     }
 
@@ -209,6 +208,42 @@ Error:
         Status);
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConfigurationUninitialize(
+    _In_ __drv_freesMem(Mem) QUIC_CONFIGURATION* Configuration
+    )
+{
+    QUIC_DBG_ASSERT(Configuration != NULL);
+
+    QuicTraceEvent(
+        ConfigurationCleanup,
+        "[cnfg][%p] Cleaning up",
+        Configuration);
+
+    QuicLockAcquire(&Configuration->Registration->ConfigLock);
+    QuicListEntryRemove(&Configuration->Link);
+    QuicLockRelease(&Configuration->Registration->ConfigLock);
+
+    if (Configuration->SecurityConfig != NULL) {
+        QuicTlsSecConfigDelete(Configuration->SecurityConfig);
+    }
+
+    QuicStorageClose(Configuration->AppSpecificStorage);
+#ifdef QUIC_SILO
+    QuicStorageClose(Configuration->Storage);
+    QuicSiloRelease(Configuration->Silo);
+#endif
+
+    QuicRundownRelease(&Configuration->Registration->Rundown);
+
+    QuicTraceEvent(
+        ConfigurationDestroyed,
+        "[cnfg][%p] Destroyed",
+        Configuration);
+    QUIC_FREE(Configuration);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -226,39 +261,8 @@ MsQuicConfigurationClose(
         Handle);
 
     if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_CONFIGURATION) {
-
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        QUIC_CONFIGURATION* Configuration = (QUIC_CONFIGURATION*)Handle;
-
-        QuicTraceEvent(
-            ConfigurationCleanup,
-            "[cnfg][%p] Cleaning up",
-            Configuration);
-
-        QuicLockAcquire(&Configuration->Registration->ConfigLock);
-        QuicListEntryRemove(&Configuration->Link);
-        QuicLockRelease(&Configuration->Registration->ConfigLock);
-
-        if (Configuration->SecurityConfig != NULL) {
-            QuicTlsSecConfigDelete(Configuration->SecurityConfig);
-        }
-
-        QuicRundownReleaseAndWait(&Configuration->Rundown);
-
-        QuicStorageClose(Configuration->AppSpecificStorage);
-#ifdef QUIC_SILO
-        QuicStorageClose(Configuration->Storage);
-        QuicSiloRelease(Configuration->Silo);
-#endif
-
-        QuicRundownRelease(&Configuration->Registration->Rundown);
-
-        QuicRundownUninitialize(&Configuration->Rundown);
-        QuicTraceEvent(
-            ConfigurationDestroyed,
-            "[cnfg][%p] Destroyed",
-            Configuration);
-        QUIC_FREE(Configuration);
+        QuicConfigurationRelease((QUIC_CONFIGURATION*)Handle);
     }
 
     QuicTraceEvent(
@@ -296,7 +300,7 @@ MsQuicConfigurationLoadCredentialComplete(
             Status);
     }
 
-    QuicRundownRelease(&Configuration->Rundown);
+    QuicConfigurationRelease(Configuration);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -322,8 +326,7 @@ MsQuicConfigurationLoadCredential(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_CONFIGURATION* Configuration = (QUIC_CONFIGURATION*)Handle;
 
-        BOOLEAN Result = QuicRundownAcquire(&Configuration->Rundown);
-        QUIC_FRE_ASSERT(Result);
+        QuicConfigurationAddRef(Configuration);
 
         Status =
             QuicTlsSecConfigCreate(
@@ -331,7 +334,7 @@ MsQuicConfigurationLoadCredential(
                 Configuration,
                 MsQuicConfigurationLoadCredentialComplete);
         if (QUIC_FAILED(Status)) {
-            QuicRundownRelease(&Configuration->Rundown);
+            QuicConfigurationRelease(Configuration);
         }
     }
 

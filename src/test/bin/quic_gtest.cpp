@@ -13,15 +13,14 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 const MsQuicApi* MsQuic;
-MsQuicRegistration* Registration;
-QUIC_SEC_CONFIG_PARAMS* SelfSignedCertParams;
-QUIC_SEC_CONFIG* SecurityConfig;
+extern MsQuicCredentialConfig SelfSignedCredConfig(QUIC_CREDENTIAL_FLAG_NONE);
 QuicDriverClient DriverClient;
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
 class QuicTestEnvironment : public ::testing::Environment {
     QuicDriverService DriverService;
+    const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
 public:
     void SetUp() override {
         QuicPlatformSystemLoad();
@@ -45,14 +44,12 @@ public:
             }
             ASSERT_TRUE(DriverService.Initialize(DriverName, DependentDriverNames));
             ASSERT_TRUE(DriverService.Start());
-            ASSERT_TRUE(DriverClient.Initialize(SelfSignedCertParams, DriverName));
+            ASSERT_TRUE(DriverClient.Initialize((QUIC_CERTIFICATE_HASH*)(SelfSignedCertParams + 1), DriverName));
         } else {
             printf("Initializing for User Mode tests\n");
             MsQuic = new MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
-            Registration = new MsQuicRegistration("MsQuicBVT");
-            ASSERT_TRUE(QUIC_SUCCEEDED(Registration->GetInitStatus()));
-            ASSERT_TRUE(LoadSecConfig());
+            SelfSignedCredConfig = *SelfSignedCertParams;
             QuicTestInitialize();
         }
     }
@@ -62,43 +59,11 @@ public:
             DriverService.Uninitialize();
         } else {
             QuicTestUninitialize();
-            MsQuic->SecConfigDelete(SecurityConfig);
-            delete Registration;
             delete MsQuic;
         }
         QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
         QuicPlatformUninitialize();
         QuicPlatformSystemUnload();
-    }
-    _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
-    static void
-    QUIC_API
-    GetSecConfigComplete(
-        _In_opt_ void* Context,
-        _In_ QUIC_STATUS /* Status */,
-        _In_opt_ QUIC_SEC_CONFIG* SecConfig
-        )
-    {
-        _Analysis_assume_(Context);
-        auto Event = (QUIC_EVENT*)Context;
-        SecurityConfig = SecConfig;
-        QuicEventSet(*Event);
-    }
-    bool LoadSecConfig() {
-        QUIC_EVENT Event;
-        QuicEventInitialize(&Event, FALSE, FALSE);
-        if (QUIC_SUCCEEDED(
-            MsQuic->SecConfigCreate(
-                *Registration,
-                (QUIC_SEC_CONFIG_FLAGS)SelfSignedCertParams->Flags,
-                SelfSignedCertParams->Certificate,
-                SelfSignedCertParams->Principal,
-                &Event,
-                GetSecConfigComplete))) {
-            QuicEventWaitForever(Event);
-        }
-        QuicEventUninitialize(Event);
-        return SecurityConfig != nullptr;
     }
 };
 
@@ -183,21 +148,6 @@ TEST(ParameterValidation, ValidateRegistration) {
     }
 }
 
-#if _WIN32
-TEST(ParameterValidation, ValidateServerSecConfig) {
-    TestLogger Logger("QuicTestValidateServerSecConfig");
-    if (TestingKernelMode) {
-        // Not currently supported, since certs are in user store.
-        GTEST_SKIP_(":Unsupported in kernel mode");
-    } else {
-        QUIC_CERTIFICATE_HASH_STORE CertHashStore = { QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE };
-        memcpy(CertHashStore.ShaHash, SelfSignedCertParams->Thumbprint, sizeof(CertHashStore.ShaHash));
-        memcpy(CertHashStore.StoreName, "My", 2);
-        QuicTestValidateServerSecConfig(SelfSignedCertParams->Certificate, &CertHashStore, "localhost");
-    }
-}
-#endif // _WIN32
-
 TEST(ParameterValidation, ValidateGetPerfCounters) {
     TestLogger Logger("QuicTestGetPerfCounters");
     if (TestingKernelMode) {
@@ -207,12 +157,12 @@ TEST(ParameterValidation, ValidateGetPerfCounters) {
     }
 }
 
-TEST(ParameterValidation, ValidateSession) {
-    TestLogger Logger("QuicTestValidateSession");
+TEST(ParameterValidation, ValidateConfiguration) {
+    TestLogger Logger("QuicTestValidateConfiguration");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_SESSION));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION));
     } else {
-        QuicTestValidateSession();
+        QuicTestValidateConfiguration();
     }
 }
 
@@ -360,7 +310,7 @@ TEST_P(WithHandshakeArgs1, Connect) {
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
             (uint8_t)GetParam().MultipleALPNs,
-            0,  // AsyncSecConfig
+            0,  // AsyncConfiguration
             (uint8_t)GetParam().MultiPacketClientInitial,
             (uint8_t)GetParam().SessionResumption,
             0   // RandomLossPercentage
@@ -372,7 +322,7 @@ TEST_P(WithHandshakeArgs1, Connect) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             GetParam().MultipleALPNs,
-            false,  // AsyncSecConfig
+            false,  // AsyncConfiguration
             GetParam().MultiPacketClientInitial,
             GetParam().SessionResumption,
             0);     // RandomLossPercentage
@@ -387,7 +337,7 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             (uint8_t)GetParam().ServerStatelessRetry,
             1,  // ClientUsesOldVersion
             0,  // MultipleALPNs
-            0,  // AsyncSecConfig
+            0,  // AsyncConfiguration
             0,  // MultiPacketClientInitial
             0,  // SessionResumption
             0   // RandomLossPercentage
@@ -399,7 +349,7 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             false,  // MultipleALPNs
-            false,  // AsyncSecConfig
+            false,  // AsyncConfiguration
             false,  // MultiPacketClientInitial
             false,  // SessionResumption
             0);     // RandomLossPercentage
@@ -414,7 +364,7 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
             (uint8_t)GetParam().MultipleALPNs,
-            1,  // AsyncSecConfig
+            1,  // AsyncConfiguration
             0,  // MultiPacketClientInitial
             0,  // SessionResumption
             0   // RandomLossPercentage
@@ -426,7 +376,7 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             GetParam().MultipleALPNs,
-            true,   // AsyncSecConfig
+            true,   // AsyncConfiguration
             false,  // MultiPacketClientInitial
             false,  // SessionResumption
             0);     // RandomLossPercentage
@@ -451,7 +401,7 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
             0,  // MultipleALPNs
-            0,  // AsyncSecConfig
+            0,  // AsyncConfiguration
             (uint8_t)GetParam().MultiPacketClientInitial,
             (uint8_t)GetParam().SessionResumption,
             GetParam().RandomLossPercentage
@@ -463,7 +413,7 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
             false,  // MultipleALPNs,
-            false,  // AsyncSecConfig
+            false,  // AsyncConfiguration
             GetParam().MultiPacketClientInitial,
             GetParam().SessionResumption,
             GetParam().RandomLossPercentage);

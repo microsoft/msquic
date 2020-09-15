@@ -37,17 +37,10 @@ TestConnection::TestConnection(
     } else {
         MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicConnectionHandler, this);
     }
-
-    //
-    // Test code uses self-signed certificates, so we cannot validate the root.
-    //
-    SetCertValidationFlags(
-        QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
-        QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID);
 }
 
 TestConnection::TestConnection(
-    _In_ MsQuicSession& Session,
+    _In_ MsQuicRegistration& Registration,
     _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler
     ) :
     QuicConnection(nullptr),
@@ -66,7 +59,7 @@ TestConnection::TestConnection(
 
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
-            Session.Handle,
+            Registration,
             QuicConnectionHandler,
             this,
             &QuicConnection);
@@ -74,13 +67,6 @@ TestConnection::TestConnection(
         TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
         QuicConnection = nullptr;
     }
-
-    //
-    // Test code uses self-signed certificates, so we cannot validate the root.
-    //
-    SetCertValidationFlags(
-        QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
-        QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID);
 }
 
 TestConnection::~TestConnection()
@@ -93,6 +79,7 @@ TestConnection::~TestConnection()
 
 QUIC_STATUS
 TestConnection::Start(
+    _In_ HQUIC Configuration,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_opt_z_ const char* ServerName,
     _In_ uint16_t ServerPort // Host byte order
@@ -102,6 +89,7 @@ TestConnection::Start(
     if (QUIC_SUCCEEDED(
         Status = MsQuic->ConnectionStart(
             QuicConnection,
+            Configuration,
             Family,
             ServerName,
             ServerPort))) {
@@ -572,39 +560,6 @@ TestConnection::GetStatistics()
     return value;
 }
 
-uint32_t
-TestConnection::GetCertValidationFlags()
-{
-    BOOLEAN value;
-    uint32_t valueSize = sizeof(value);
-    QUIC_STATUS Status =
-        MsQuic->GetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-            &valueSize,
-            &value);
-    if (QUIC_FAILED(Status)) {
-        value = 0;
-        TEST_FAILURE("MsQuic->GetParam(CONN_CERT_VALIDATION_FLAGS) failed, 0x%x.", Status);
-    }
-    return value;
-}
-
-QUIC_STATUS
-TestConnection::SetCertValidationFlags(
-    uint32_t value
-    )
-{
-    return
-        MsQuic->SetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-            sizeof(value),
-            &value);
-}
-
 bool
 TestConnection::GetUseSendBuffer()
 {
@@ -793,15 +748,15 @@ TestConnection::SetPriorityScheme(
 }
 
 QUIC_STATUS
-TestConnection::SetSecurityConfig(
-    QUIC_SEC_CONFIG* value
+TestConnection::SetConfiguration(
+    HQUIC value
     )
 {
     return
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_SEC_CONFIG,
+            QUIC_PARAM_CONN_CONFIGURATION,
             sizeof(value),
             &value);
 }

@@ -333,7 +333,8 @@ QuicConnFree(
     QuicSendBufferUninitialize(&Connection->SendBuffer);
     QuicDatagramUninitialize(&Connection->Datagram);
     if (Connection->Configuration != NULL) {
-        QuicRundownRelease(&Connection->Configuration->Rundown);
+        QuicConfigurationRelease(Connection->Configuration);
+        Connection->ParentSettings = NULL;
     }
     if (Connection->RemoteServerName != NULL) {
         QUIC_FREE(Connection->RemoteServerName);
@@ -2391,8 +2392,7 @@ QuicConnSetConfiguration(
         "Configuration set, %p",
         Configuration);
 
-    BOOLEAN Result = QuicRundownAcquire(&Configuration->Rundown);
-    QUIC_DBG_ASSERT(Result); UNREFERENCED_PARAMETER(Result);
+    QuicConfigurationAddRef(Configuration);
     Connection->Configuration = Configuration;
     Connection->ParentSettings = &Configuration->Settings;
     QuicConnApplySettings(Connection);

@@ -110,7 +110,7 @@ public:
         );
 
     TestConnection(
-        _In_ MsQuicSession& Session,
+        _In_ MsQuicRegistration& Registration,
         _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler = nullptr
         );
 
@@ -122,6 +122,7 @@ public:
 
     QUIC_STATUS
     Start(
+        _In_ HQUIC Configuration,
         _In_ QUIC_ADDRESS_FAMILY Family,
         _In_opt_z_ const char* ServerName,
         _In_ uint16_t ServerPort // Host byte order
@@ -235,9 +236,6 @@ public:
 
     QUIC_STATISTICS GetStatistics();
 
-    uint32_t GetCertValidationFlags();
-    QUIC_STATUS SetCertValidationFlags(uint32_t value);
-
     bool GetUseSendBuffer();
     QUIC_STATUS SetUseSendBuffer(bool value);
 
@@ -255,7 +253,7 @@ public:
     QUIC_STREAM_SCHEDULING_SCHEME GetPriorityScheme();
     QUIC_STATUS SetPriorityScheme(QUIC_STREAM_SCHEDULING_SCHEME value);
 
-    QUIC_STATUS SetSecurityConfig(QUIC_SEC_CONFIG* value);
+    QUIC_STATUS SetConfiguration(HQUIC value);
 
     bool HasNewZeroRttTicket();
     QUIC_STATUS GetResumptionTicket(uint8_t* Buffer, uint32_t* BufferLength);

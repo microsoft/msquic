@@ -13,8 +13,7 @@ Abstract:
 
 //#define QUIC_COMPARTMENT_TESTS 1
 
-extern MsQuicRegistration* Registration;
-extern QUIC_SEC_CONFIG* SecurityConfig;
+extern MsQuicCredentialConfig SelfSignedCredConfig;
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,10 +28,10 @@ void QuicTestUninitialize();
 
 void QuicTestValidateApi();
 void QuicTestValidateRegistration();
+void QuicTestValidateConfiguration();
 void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
-void QuicTestValidateServerSecConfig(void* CertContext, QUIC_CERTIFICATE_HASH_STORE* CertHashStore, char* Principal);
 void QuicTestGetPerfCounters();
 
 //
@@ -67,7 +66,7 @@ QuicTestConnect(
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
     _In_ bool MultipleALPNs,
-    _In_ bool AsyncSecConfig,
+    _In_ bool AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ bool SessionResumption,
     _In_ uint8_t RandomLossPercentage // 0 to 100
@@ -326,14 +325,14 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 // IOCTL Interface
 //
 
-#define IOCTL_QUIC_SEC_CONFIG \
+#define IOCTL_QUIC_SET_CERT_HASH \
     QUIC_CTL_CODE(1, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_CERTIFICATE_HASH
 
 #define IOCTL_QUIC_RUN_VALIDATE_REGISTRATION \
     QUIC_CTL_CODE(2, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define IOCTL_QUIC_RUN_VALIDATE_SESSION \
+#define IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION \
     QUIC_CTL_CODE(3, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 #define IOCTL_QUIC_RUN_VALIDATE_LISTENER \
@@ -385,7 +384,7 @@ typedef struct {
     uint8_t ServerStatelessRetry;
     uint8_t ClientUsesOldVersion;
     uint8_t MultipleALPNs;
-    uint8_t AsyncSecConfig;
+    uint8_t AsyncConfiguration;
     uint8_t MultiPacketClientInitial;
     uint8_t SessionResumption;
     uint8_t RandomLossPercentage;

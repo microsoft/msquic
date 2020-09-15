@@ -226,7 +226,7 @@ private:
 
 struct HttpServer {
     HttpServer(
-        _In_ HQUIC Session,
+        _In_ HQUIC Registration,
         _In_reads_(AlpnBufferCount) _Pre_defensive_
             const QUIC_BUFFER* const AlpnBuffers,
         _In_range_(>, 0) uint32_t AlpnBufferCount,
@@ -234,7 +234,7 @@ struct HttpServer {
 
         EXIT_ON_FAILURE(
             MsQuic->ListenerOpen(
-                Session,
+                Registration,
                 QuicCallbackHandler,
                 this,
                 &QuicListener));

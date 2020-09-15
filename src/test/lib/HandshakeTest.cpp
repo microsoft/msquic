@@ -31,15 +31,10 @@ void QuicTestUninitialize()
     DatapathHooks::Instance = nullptr;
 }
 
-void
-QuicTestPrimeResumption(
-    MsQuicSession& Session,
-    QUIC_ADDRESS_FAMILY Family,
-    bool& Success
-    )
+QUIC_BUFFER* QuicTestPrimeResumption()
 {
     TestScopeLogger logScope("PrimeResumption");
-    Success = false;
+    QUIC_BUFFER* ResumptionTicket = nullptr;
 
     struct PrimeResumption {
         _Function_class_(NEW_CONNECTION_CALLBACK) static void
@@ -80,7 +75,7 @@ QuicTestPrimeResumption(
         Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
     }
 
-    Success = true;
+    return ResumptionTicket;
 }
 
 struct ServerAcceptContext {
@@ -122,12 +117,18 @@ QuicTestConnect(
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
     _In_ bool MultipleALPNs,
-    _In_ bool AsyncSecConfig,
+    _In_ bool AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ bool SessionResumption,
     _In_ uint8_t RandomLossPercentage
     )
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn1("MsQuicTest");
+    MsQuicAlpn Alpn2("MsQuicTest2", "MsQuicTest");
+
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(4);
     if (RandomLossPercentage != 0) {
@@ -140,17 +141,17 @@ QuicTestConnect(
         Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
     }
 
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
-    TEST_TRUE(Session.IsValid());
-    MsQuicSession Session2(*Registration, MsQuicAlpn("MsQuicTest2", "MsQuicTest"), Settings);
-    TEST_TRUE(Session2.IsValid());
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn2, Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
 
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn1, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
 
+    QUIC_BUFFER* ResumptionTicket = nullptr;
     if (SessionResumption) {
-        bool Success;
-        QuicTestPrimeResumption(Session, QuicAddrFamily, Success);
-        if (!Success) {
+        ResumptionTicket = QuicTestPrimeResumption();
+        if (!ResumptionTicket) {
             return;
         }
     }
@@ -159,16 +160,18 @@ QuicTestConnect(
     PrivateTransportHelper TpHelper(MultiPacketClientInitial);
     RandomLossHelper LossHelper(RandomLossPercentage);
 
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+
     {
         TestListener Listener(
-            MultipleALPNs ? Session2.Handle : Session.Handle,
+            Registration,
             ListenerAcceptConnection,
-            AsyncSecConfig);
+            AsyncConfiguration ? nullptr : ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
         Listener.SetHasRandomLoss(RandomLossPercentage != 0);
 
         QuicAddr ServerLocalAddr(QuicAddrFamily);
-        TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.Start(MultipleALPNs ? Alpn2 : Alpn1, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         {
@@ -177,7 +180,7 @@ QuicTestConnect(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(Session);
+                TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
                 Client.SetHasRandomLoss(RandomLossPercentage != 0);
 
@@ -197,18 +200,19 @@ QuicTestConnect(
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
+                        ClientConfiguration,
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
-                if (AsyncSecConfig) {
+                if (AsyncConfiguration) {
                     if (!QuicEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
                         TEST_FAILURE("Timed out waiting for server accept.");
                     } else if (Server == nullptr) {
                         TEST_FAILURE("Failed to accept server connection.");
                     } else {
                         TEST_QUIC_SUCCEEDED(
-                            Server->SetSecurityConfig(SecurityConfig));
+                            Server->SetConfiguration(ClientConfiguration));
                     }
                 }
 

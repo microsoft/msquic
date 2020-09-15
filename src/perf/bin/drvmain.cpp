@@ -758,7 +758,7 @@ QuicPerfCtlEvtIoDeviceControl(
         Client,
         FunctionCode);
 
-    if (IoControlCode != IOCTL_QUIC_SEC_CONFIG &&
+    if (IoControlCode != IOCTL_QUIC_SET_CERT_HASH &&
         !Client->SelfSignedValid) {
         Status = STATUS_INVALID_DEVICE_STATE;
         QuicTraceEvent(
@@ -769,7 +769,7 @@ QuicPerfCtlEvtIoDeviceControl(
     }
 
     switch (IoControlCode) {
-    case IOCTL_QUIC_SEC_CONFIG:
+    case IOCTL_QUIC_SET_CERT_HASH:
         QUIC_FRE_ASSERT(Params != nullptr);
         Status =
             QuicPerfCtlSetSecurityConfig(

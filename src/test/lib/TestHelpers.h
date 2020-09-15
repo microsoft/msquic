@@ -53,12 +53,10 @@ InterlockedSubtract64(
     return InterlockedExchangeAdd64(Addend, -Value) - Value;
 }
 
-void
-QuicTestPrimeResumption(
-    MsQuicSession& Session,
-    QUIC_ADDRESS_FAMILY Family,
-    bool& Success
-    );
+//
+// Helper function to get a resumption ticket.
+//
+QUIC_BUFFER* QuicTestPrimeResumption();
 
 struct StatelessRetryHelper
 {

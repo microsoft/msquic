@@ -182,13 +182,13 @@ public:
                 "CreateFile failed");
             return false;
         }
-        if (!Run(IOCTL_QUIC_SEC_CONFIG, CertHash, sizeof(*CertHash), 30000)) {
+        if (!Run(IOCTL_QUIC_SET_CERT_HASH, CertHash, sizeof(*CertHash), 30000)) {
             CloseHandle(DeviceHandle);
             DeviceHandle = INVALID_HANDLE_VALUE;
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "Run(IOCTL_QUIC_SEC_CONFIG) failed");
+                "Run(IOCTL_QUIC_SET_CERT_HASH) failed");
             return false;
         }
         return true;

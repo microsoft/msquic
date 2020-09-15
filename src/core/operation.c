@@ -94,7 +94,7 @@ QuicOperationFree(
         QUIC_API_CONTEXT* ApiCtx = Oper->API_CALL.Context;
         if (ApiCtx->Type == QUIC_API_TYPE_CONN_START) {
             if (ApiCtx->CONN_START.Configuration != NULL) {
-                QuicRundownRelease(&ApiCtx->CONN_START.Configuration->Rundown);
+                QuicConfigurationRelease(ApiCtx->CONN_START.Configuration);
             }
             if (ApiCtx->CONN_START.ServerName != NULL) {
                 QUIC_FREE(ApiCtx->CONN_START.ServerName);

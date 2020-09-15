@@ -410,7 +410,7 @@ QuicTestValidateConnectionEvents2(
     TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
 }
 
-/*void
+void
 QuicTestValidateConnectionEvents3(
     _In_ MsQuicSession& Session,
     _In_ HQUIC Listener,
@@ -530,23 +530,25 @@ QuicTestValidateConnectionEvents3(
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
     TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
-}*/
+}
 
 void QuicTestValidateConnectionEvents()
 {
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), true);
-    TEST_TRUE(Session.IsValid());
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
 
     { // Listener Scope
 
     ListenerScope Listener;
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
-            Session.Handle,
+            Registration,
             ListenerEventValidatorCallback,
             nullptr,
             &Listener.Handle));
-    TEST_QUIC_SUCCEEDED(MsQuic->ListenerStart(Listener.Handle, nullptr));
+    TEST_QUIC_SUCCEEDED(MsQuic->ListenerStart(Listener.Handle, Alpn, Alpn.Length(), nullptr));
 
     QuicAddr ServerLocalAddr;
     uint32_t ServerLocalAddrSize = sizeof(ServerLocalAddr.SockAddr);
@@ -561,7 +563,7 @@ void QuicTestValidateConnectionEvents()
     QuicTestValidateConnectionEvents1(Session.Handle, Listener.Handle, ServerLocalAddr);
     QuicTestValidateConnectionEvents2(Session.Handle, Listener.Handle, ServerLocalAddr);
 #ifndef QUIC_DISABLE_0RTT_TESTS
-    //QuicTestValidateConnectionEvents3(Session, Listener.Handle, ServerLocalAddr);
+    QuicTestValidateConnectionEvents3(Session, Listener.Handle, ServerLocalAddr);
 #endif
 
     } // Listener Scope

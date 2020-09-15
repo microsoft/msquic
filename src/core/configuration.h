@@ -23,9 +23,9 @@ typedef struct QUIC_CONFIGURATION {
     QUIC_LIST_ENTRY Link;
 
     //
-    // Rundown for clean up.
+    // Reference count for tracking lifetime.
     //
-    QUIC_RUNDOWN_REF Rundown;
+    QUIC_REF_COUNT RefCount;
 
     //
     // The TLS security configurations.
@@ -79,6 +79,41 @@ typedef struct QUIC_CONFIGURATION {
 #define QuicConfigurationDetachSilo()
 
 #endif // #ifdef QUIC_SILO
+
+//
+// Cleans up the configuration memory.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConfigurationUninitialize(
+    _In_ __drv_freesMem(Mem) QUIC_CONFIGURATION* Configuration
+    );
+
+//
+// Adds a new references to the configuration.
+//
+inline
+void
+QuicConfigurationAddRef(
+    _In_ QUIC_CONFIGURATION* Configuration
+    )
+{
+    QuicRefIncrement(&Configuration->RefCount);
+}
+
+//
+// Releases a reference to the configuration and cleans it up if it's the last.
+//
+inline
+void
+QuicConfigurationRelease(
+    _In_ QUIC_CONFIGURATION* Configuration
+    )
+{
+    if (QuicRefDecrement(&Configuration->RefCount)) {
+        QuicConfigurationUninitialize(Configuration);
+    }
+}
 
 //
 // Tracing rundown for the configuration.

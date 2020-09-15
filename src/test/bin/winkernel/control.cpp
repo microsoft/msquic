@@ -18,10 +18,8 @@ Abstract:
 #endif
 
 const MsQuicApi* MsQuic;
-MsQuicRegistration* Registration;
-QUIC_SEC_CONFIG* SecurityConfig;
-
-QUIC_SEC_CONFIG_CREATE_COMPLETE QuicTestSecConfigCreated;
+MsQuicCredentialConfig SelfSignedCredConfig(QUIC_CREDENTIAL_FLAG_NONE);
+QUIC_CERTIFICATE_HASH SelfSignedCertHash;
 
 #ifdef PRIVATE_LIBRARY
 DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\" QUIC_DRIVER_NAME_PRIVATE);
@@ -45,8 +43,6 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DEVICE_EXTENSION, QuicTestCtlGetDeviceCo
 typedef struct QUIC_TEST_CLIENT
 {
     LIST_ENTRY Link;
-    QUIC_SEC_CONFIG* SecurityConfig;
-    KEVENT SecConfigComplete;
     bool TestFailure;
 
 } QUIC_TEST_CLIENT;
@@ -264,20 +260,6 @@ QuicTestCtlEvtFileCreate(
         }
 
         RtlZeroMemory(Client, sizeof(QUIC_TEST_CLIENT));
-        KeInitializeEvent(&Client->SecConfigComplete, NotificationEvent, FALSE);
-
-        Registration = new MsQuicRegistration("MsQuicBVT");
-        if (Registration == nullptr) {
-            break;
-        }
-        if (QUIC_FAILED(Registration->GetInitStatus())) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Registration->GetInitStatus(),
-                "RegistrationOpen");
-            break;
-        }
 
         //
         // Insert into the client list
@@ -342,17 +324,7 @@ QuicTestCtlEvtFileCleanup(
             "[test] Client %p cleaning up",
             Client);
 
-        //
-        // Delete the security configuration.
-        //
-        if (Client->SecurityConfig != nullptr) {
-            MsQuic->SecConfigDelete(Client->SecurityConfig);
-            SecurityConfig = nullptr;
-        }
-
-        delete Registration;
-        Registration = nullptr;
-
+        SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE;
         QuicTestClient = nullptr;
     }
 
@@ -390,105 +362,6 @@ QuicTestCtlEvtIoCanceled(
 error:
 
     WdfRequestComplete(Request, Status);
-}
-
-NTSTATUS
-QuicTestCtlSetSecurityConfig(
-    _Inout_ QUIC_TEST_CLIENT* Client,
-    _In_ const QUIC_CERTIFICATE_HASH* CertHash
-    )
-{
-    QUIC_CERTIFICATE_HASH_STORE CertHashStore = { QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE, { 0 }, "My" };
-    RtlCopyMemory(&CertHashStore.ShaHash, CertHash, sizeof(QUIC_CERTIFICATE_HASH));
-
-    //
-    // Create the security configuration (async).
-    //
-    NTSTATUS Status =
-        MsQuic->SecConfigCreate(
-            *Registration,
-            QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE,
-            &CertHashStore,
-            nullptr,
-            Client,
-            QuicTestSecConfigCreated);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "SecConfigCreate");
-        goto Error;
-    }
-
-    //
-    // Wait for security configuration to be completed.
-    //
-    KeWaitForSingleObject(&Client->SecConfigComplete, Executive, KernelMode, FALSE, NULL);
-    if (Client->SecurityConfig == nullptr) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "SecConfigCreate failed to get certificate");
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Error;
-    }
-
-    SecurityConfig = Client->SecurityConfig;
-    Status = QUIC_STATUS_SUCCESS;
-
-    QuicTraceLogInfo(
-        TestControlClientInitialized,
-        "[test] Client %p set security config and initialized",
-        Client);
-
-Error:
-
-    return Status;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
-void
-QUIC_API
-QuicTestSecConfigCreated(
-    _In_opt_ void* Context,
-    _In_ QUIC_STATUS Status,
-    _In_opt_ QUIC_SEC_CONFIG* SecConfig
-    )
-/*++
-
-Routine Description:
-
-    QuicTestSecConfigCreated is the completion callback for the
-    SecConfigCreate call in DriverEntry.
-
-Arguments:
-
-    Context - The application context pointer passed to SecConfigCreate.
-
-    Status - The completion status.
-
-    SecurityConfig - The security configuration, if successful.
-
-Return Value:
-
-    None
-
---*/
-{
-    QUIC_TEST_CLIENT* Client = (QUIC_TEST_CLIENT*)Context;
-    QUIC_FRE_ASSERT(Client != nullptr);
-
-    QuicTraceLogInfo(
-        TestControlSecConfigCreated,
-        "[test] SecConfigCreated: 0x%x",
-        Status);
-
-    NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
-
-    Client->SecurityConfig = SecConfig;
-    KeSetEvent(&Client->SecConfigComplete, IO_NO_INCREMENT, FALSE);
 }
 
 size_t QUIC_IOCTL_BUFFER_SIZES[] =
@@ -662,8 +535,8 @@ QuicTestCtlEvtIoDeviceControl(
         Client,
         FunctionCode);
 
-    if (IoControlCode != IOCTL_QUIC_SEC_CONFIG &&
-        Client->SecurityConfig == nullptr) {
+    if (IoControlCode != IOCTL_QUIC_SET_CERT_HASH &&
+        SelfSignedCredConfig.Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
         Status = STATUS_INVALID_DEVICE_STATE;
         QuicTraceEvent(
             LibraryError,
@@ -674,19 +547,20 @@ QuicTestCtlEvtIoDeviceControl(
 
     switch (IoControlCode) {
 
-    case IOCTL_QUIC_SEC_CONFIG:
+    case IOCTL_QUIC_SET_CERT_HASH:
         QUIC_FRE_ASSERT(Params != nullptr);
-        Status =
-            QuicTestCtlSetSecurityConfig(
-                Client,
-                &Params->CertHash);
+        SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        SelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
+        SelfSignedCredConfig.Creds = &SelfSignedCertHash;
+        RtlCopyMemory(&SelfSignedCertHash.ShaHash, &Params->CertHash, sizeof(QUIC_CERTIFICATE_HASH));
+        Status = QUIC_STATUS_SUCCESS;
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_REGISTRATION:
         QuicTestCtlRun(QuicTestValidateRegistration());
         break;
-    case IOCTL_QUIC_RUN_VALIDATE_SESSION:
-        QuicTestCtlRun(QuicTestValidateSession());
+    case IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION:
+        QuicTestCtlRun(QuicTestValidateConfiguration());
         break;
     case IOCTL_QUIC_RUN_VALIDATE_LISTENER:
         QuicTestCtlRun(QuicTestValidateListener());
@@ -739,7 +613,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params1.ServerStatelessRetry != 0,
                 Params->Params1.ClientUsesOldVersion != 0,
                 Params->Params1.MultipleALPNs != 0,
-                Params->Params1.AsyncSecConfig != 0,
+                Params->Params1.AsyncConfiguration != 0,
                 Params->Params1.MultiPacketClientInitial != 0,
                 Params->Params1.SessionResumption != 0,
                 Params->Params1.RandomLossPercentage

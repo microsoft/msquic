@@ -18,19 +18,19 @@ Abstract:
 volatile int64_t NextConnID = 0x10000;
 
 TestListener::TestListener(
-    _In_ HQUIC SessionHandle,
+    _In_ HQUIC Registration,
     _In_ NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallbackHandler,
-    _In_ bool AsyncSecConfig,
+    _In_opt_ HQUIC Configuration,
     _In_ bool UseSendBuffer
     ) :
-    QuicListener(nullptr),
-    FilterConnections(false), SetSecConfig(!AsyncSecConfig),
-    UseSendBuffer(UseSendBuffer), NewConnectionCallback(NewConnectionCallbackHandler),
+    QuicListener(nullptr), QuicConfiguration(Configuration),
+    FilterConnections(false), UseSendBuffer(UseSendBuffer),
+    NewConnectionCallback(NewConnectionCallbackHandler),
     Context(nullptr)
 {
     QUIC_STATUS Status =
         MsQuic->ListenerOpen(
-            SessionHandle,
+            Registration,
             QuicListenerHandler,
             this,
             &QuicListener);
@@ -47,12 +47,17 @@ TestListener::~TestListener()
 
 QUIC_STATUS
 TestListener::Start(
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
     _In_opt_ const QUIC_ADDR * LocalAddress
     )
 {
     return
         MsQuic->ListenerStart(
             QuicListener,
+            AlpnBuffers,
+            AlpnBufferCount,
             LocalAddress);
 }
 
@@ -131,11 +136,11 @@ TestListener::HandleListenerEvent(
             break;
         }
 
-        if (SetSecConfig) {
-            Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
+        if (QuicConfiguration) {
+            Event->NEW_CONNECTION.Configuration = QuicConfiguration;
             Status = QUIC_STATUS_SUCCESS;
         } else {
-            Status = QUIC_STATUS_PENDING; // The SecConfig will be set later.
+            Status = QUIC_STATUS_PENDING; // The configuration will be set later.
         }
 
         BOOLEAN Opt = UseSendBuffer;
@@ -150,11 +155,11 @@ TestListener::HandleListenerEvent(
             TEST_FAILURE("MsQuic->SetParam(CONN_SEND_BUFFERING) failed, 0x%x.", Status);
         }
 
-        if (SetSecConfig) {
-            Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
+        if (QuicConfiguration) {
+            Event->NEW_CONNECTION.Configuration = QuicConfiguration;
             Status = QUIC_STATUS_SUCCESS;
         } else {
-            Status = QUIC_STATUS_PENDING; // The SecConfig will be set later.
+            Status = QUIC_STATUS_PENDING; // The configuration will be set later.
         }
 
         NewConnectionCallback(
