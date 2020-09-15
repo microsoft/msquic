@@ -66,16 +66,17 @@ public:
     UniquePtr& operator=(const UniquePtr& other) = delete;
 
     UniquePtr(UniquePtr&& other) noexcept {
-        this->ptr = other->ptr;
-        other->ptr = nullptr;
+        this->ptr = other.ptr;
+        other.ptr = nullptr;
     }
 
     UniquePtr& operator=(UniquePtr&& other) noexcept {
         if (this->ptr) {
             delete this->ptr;
         }
-        this->ptr = other->ptr;
-        other->ptr = nullptr;
+        this->ptr = other.ptr;
+        other.ptr = nullptr;
+        return *this;
     }
 
     ~UniquePtr() noexcept {
@@ -120,16 +121,17 @@ public:
     UniquePtr& operator=(const UniquePtr& other) = delete;
 
     UniquePtr(UniquePtr&& other) noexcept {
-        this->ptr = other->ptr;
-        other->ptr = nullptr;
+        this->ptr = other.ptr;
+        other.ptr = nullptr;
     }
 
     UniquePtr& operator=(UniquePtr&& other) noexcept {
         if (this->ptr) {
             delete[] this->ptr;
         }
-        this->ptr = other->ptr;
-        other->ptr = nullptr;
+        this->ptr = other.ptr;
+        other.ptr = nullptr;
+        return *this;
     }
 
     ~UniquePtr() noexcept {

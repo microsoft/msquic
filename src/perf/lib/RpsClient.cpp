@@ -114,9 +114,13 @@ RpsClient::Start(
                     Event);
         };
 
-    UniquePtr<HQUIC[]> Connections(new(std::nothrow) HQUIC[ConnectionCount]);
+    Connections = UniquePtr<HQUIC[]>(new(std::nothrow) HQUIC[ConnectionCount]);
     if (!Connections.get()) {
         return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    for (uint32_t i = 0; i < ConnectionCount; i++) {
+        Connections[i] = nullptr;
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -268,14 +272,20 @@ RpsClient::Wait(
     WriteOutput("Result: %u RPS\n", RPS);
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
     //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
-    Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+    if (Connections != nullptr) {
+        for (uint32_t i = 0; i < ConnectionCount; i++) {
+            if (Connections[i] != nullptr) {
+                MsQuic->ConnectionClose(Connections[i]);
+            }
+        }
+    }
 
     return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
 RpsClient::ConnectionCallback(
-    _In_ HQUIC ConnectionHandle,
+    _In_ HQUIC /* ConnectionHandle */,
     _Inout_ QUIC_CONNECTION_EVENT* Event
     ) {
     switch (Event->Type) {
@@ -288,9 +298,6 @@ RpsClient::ConnectionCallback(
         //WriteOutput("Connection died, 0x%x\n", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
-            MsQuic->ConnectionClose(ConnectionHandle);
-        }
         break;
     default:
         break;
