@@ -761,11 +761,17 @@ class Defaults {
 }
 
 function Get-TestMatrix {
-    param ([TestDefinition[]]$Tests)
+    param ([TestDefinition[]]$Tests, $RemotePlatform, $LocalPlatform)
 
     [TestRunDefinition[]]$ToRunTests = @()
 
     foreach ($Test in $Tests) {
+
+        if (!(Test-CanRunTest -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform)) {
+            Write-Host "Skipping $($Test.ToString())"
+            continue
+        }
+
         [hashtable]$DefaultVals = @{}
         # Get all default variables
         foreach ($Var in $Test.Variables) {
@@ -872,12 +878,21 @@ class TestDefinition {
     [string]$ResultsMatcher;
     [boolean]$AllowLoopback;
     [string]$Units;
+
+    [string]ToString() {
+        $Platform = $this.Remote.Platform
+        if ($script:Kernel -and $this.Remote.Platform -eq "Windows") {
+            $Platform = 'Winkernel'
+        }
+        $RetString = "$($this.TestName)_$($Platform) [$($this.Remote.Arch)] [$($this.Remote.Tls)]"
+        return $RetString
+    }
 }
 
 function Get-Tests {
-    param ($Path)
+    param ($Path, $RemotePlatform, $LocalPlatform)
     $Tests = [TestDefinition[]](Get-Content -Path $Path | ConvertFrom-Json -AsHashtable)
-    $MatrixTests = Get-TestMatrix -Tests $Tests
+    $MatrixTests = Get-TestMatrix -Tests $Tests -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
     if (Test-AllTestsValid -Tests $MatrixTests) {
         return $MatrixTests
     } else {
@@ -900,7 +915,7 @@ function Test-AllTestsValid {
 }
 
 function Test-CanRunTest {
-    param ([TestRunDefinition]$Test, $RemotePlatform, $LocalPlatform)
+    param ([TestDefinition]$Test, $RemotePlatform, $LocalPlatform)
     $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
     if (!$PlatformCorrect) {
         return $false
