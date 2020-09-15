@@ -129,7 +129,8 @@ HpsClient::Start(
         //
         // TODO: Fix QuicSetCurrentThreadProcessorAffinity to take 16 bits
         //
-        QuicSetCurrentThreadProcessorAffinity((uint8_t)ThreadToSetAffinityTo);
+        Status =
+            QuicSetCurrentThreadProcessorAffinity((uint8_t)ThreadToSetAffinityTo);
     }
 
     return Status;
