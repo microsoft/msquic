@@ -567,9 +567,9 @@ QuicDataPathInitialize(
     uint32_t DatapathLength;
 
     uint32_t MaxProcCount = QuicProcActiveCount();
-    QUIC_DBG_ASSERT(MaxProcCount <= UINT16_MAX);
-    if (MaxProcCount > UINT16_MAX) {
-        MaxProcCount = UINT16_MAX;
+    QUIC_DBG_ASSERT(MaxProcCount <= UINT16_MAX - 1);
+    if (MaxProcCount >= UINT16_MAX) {
+        MaxProcCount = UINT16_MAX - 1;
     }
 
     if (RecvCallback == NULL || UnreachableCallback == NULL || NewDataPath == NULL) {
