@@ -175,7 +175,7 @@ HpsClient::ConnectionCallback(
             InterlockedDecrement(&Context->OutstandingConnections);
             QuicEventSet(Context->WakeEvent);
         }
-        if (!Event->SHUTDOWN_COMPLETE.AppShutdownInProgress) {
+        if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
             MsQuic->ConnectionClose(ConnectionHandle);
         }
         break;

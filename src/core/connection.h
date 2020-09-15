@@ -148,10 +148,10 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ResumptionEnabled : 1;
 
         //
-        // Indicates that an app shutdown from a non worker thread is in progress.
+        // Indicates that an app close from a non worker thread is in progress.
         // Received by the QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE event.
         //
-        BOOLEAN AppShutdownInProgress: 1;
+        BOOLEAN AppCloseInProgress: 1;
 
 #ifdef QuicVerifierEnabledByAddr
         //

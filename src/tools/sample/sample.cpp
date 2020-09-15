@@ -311,7 +311,7 @@ ClientConnectionCallback(
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         printf("[conn][%p] All done\n", Connection);
-        if (!Event->SHUTDOWN_COMPLETE.AppShutdownInProgress) {
+        if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
             MsQuic->ConnectionClose(Connection);
         }
         break;

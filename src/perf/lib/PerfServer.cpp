@@ -139,7 +139,7 @@ PerfServer::ConnectionCallback(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        if (!Event->SHUTDOWN_COMPLETE.AppShutdownInProgress) {
+        if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
             MsQuic->ConnectionClose(ConnectionHandle);
         }
         break;
