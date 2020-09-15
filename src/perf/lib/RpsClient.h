@@ -88,5 +88,4 @@ private:
     uint64_t StartedRequests {0};
     uint64_t SendCompletedRequests {0};
     uint64_t CompletedRequests {0};
-    bool Shutdown {false};
 };
