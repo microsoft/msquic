@@ -17,6 +17,7 @@ const char* RootFolderPath;
 const char* UploadFolderPath;
 
 const QUIC_BUFFER SupportedALPNs[] = {
+    { sizeof("hq-30") - 1, (uint8_t*)"hq-30" },
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
     { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
     { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
