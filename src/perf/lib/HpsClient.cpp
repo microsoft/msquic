@@ -142,6 +142,10 @@ HpsClient::Wait(
         QuicEventSet(Contexts[i].WakeEvent);
     }
 
+    for (uint32_t i  = 0; i < ActiveProcCount; i++) {
+        Contexts[i].WaitForWorker();
+    }
+
     uint32_t HPS = (uint32_t)((CompletedConnections * 1000ull) / (uint64_t)RunTime);
     WriteOutput("Result: %u HPS\n", HPS);
     //WriteOutput("Result: %u HPS (%ull create, %ull start, %ull complete)\n",
@@ -171,7 +175,9 @@ HpsClient::ConnectionCallback(
             InterlockedDecrement(&Context->OutstandingConnections);
             QuicEventSet(Context->WakeEvent);
         }
-        MsQuic->ConnectionClose(ConnectionHandle);
+        if (!Event->SHUTDOWN_COMPLETE.AppShutdownInProgress) {
+            MsQuic->ConnectionClose(ConnectionHandle);
+        }
         break;
     default:
         break;

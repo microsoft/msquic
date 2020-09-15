@@ -288,7 +288,9 @@ RpsClient::ConnectionCallback(
         //WriteOutput("Connection died, 0x%x\n", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        MsQuic->ConnectionClose(ConnectionHandle);
+        if (!Event->SHUTDOWN_COMPLETE.AppShutdownInProgress) {
+            MsQuic->ConnectionClose(ConnectionHandle);
+        }
         break;
     default:
         break;

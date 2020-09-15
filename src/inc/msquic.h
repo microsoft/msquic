@@ -786,6 +786,7 @@ typedef struct QUIC_CONNECTION_EVENT {
         struct {
             BOOLEAN HandshakeCompleted;
             BOOLEAN PeerAcknowledgedShutdown;
+            BOOLEAN AppShutdownInProgress;
         } SHUTDOWN_COMPLETE;
         struct {
             const QUIC_ADDR* Address;

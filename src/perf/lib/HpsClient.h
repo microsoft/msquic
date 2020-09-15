@@ -33,7 +33,7 @@ struct HpsWorkerContext {
         QuicZeroMemory(&LocalAddrs, sizeof(LocalAddrs));
         QuicEventInitialize(&WakeEvent, FALSE, TRUE);
     }
-    ~HpsWorkerContext() {
+    void WaitForWorker() {
         if (ThreadStarted) {
             QuicEventSet(WakeEvent);
             QuicThreadWait(&Thread);
