@@ -338,7 +338,7 @@ RpsClient::SendRequest(
     )
 {
     if (Shutdown) {
-        return;
+        return QUIC_STATUS_SUCCESS;
     }
 
     QUIC_STREAM_CALLBACK_HANDLER Handler =
