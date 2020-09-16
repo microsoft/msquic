@@ -116,15 +116,18 @@ struct ConnEventValidator {
 
 struct ConnValidator {
     HQUIC Handle;
+    HQUIC Configuration;
     ConnEventValidator** ExpectedEvents;
     uint32_t CurrentEvent;
     QUIC_EVENT Complete;
-    ConnValidator() :
-        Handle(nullptr), ExpectedEvents(nullptr), CurrentEvent(0) {
+    ConnValidator(HQUIC Configuration = nullptr) :
+        Handle(nullptr), Configuration(Configuration),
+        ExpectedEvents(nullptr), CurrentEvent(0) {
         QuicEventInitialize(&Complete, TRUE, FALSE);
     }
-    ConnValidator(ConnEventValidator** expectedEvents) :
-        Handle(nullptr), ExpectedEvents(expectedEvents), CurrentEvent(0) {
+    ConnValidator(ConnEventValidator** expectedEvents, HQUIC Configuration = nullptr) :
+        Handle(nullptr), Configuration(Configuration),
+        ExpectedEvents(expectedEvents), CurrentEvent(0) {
         QuicEventInitialize(&Complete, TRUE, FALSE);
     }
     ~ConnValidator() {
@@ -263,7 +266,7 @@ ListenerEventValidatorCallback(
         Event->NEW_CONNECTION.Connection,
         (void *)ConnValidatorCallback,
         Validator);
-    Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
+    Event->NEW_CONNECTION.Configuration = Validator->Configuration;
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -273,7 +276,7 @@ QUIC_STATUS
 QUIC_API
 ListenerEventResumptionCallback(
     _In_ HQUIC /* Listener */,
-    _In_opt_ void* /*Context*/,
+    _In_opt_ void* Context,
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
 {
@@ -282,17 +285,24 @@ ListenerEventResumptionCallback(
         (void *)ConnServerResumptionCallback,
         nullptr);
 
-    Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
+    Event->NEW_CONNECTION.Configuration = (HQUIC)Context;
     return QUIC_STATUS_SUCCESS;
 }
 
 void
 QuicTestValidateConnectionEvents1(
-    _In_ HQUIC Session,
+    _In_ MsQuicRegistration& Registration,
     _In_ HQUIC Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
     ConnValidator Client(
         new(std::nothrow) ConnEventValidator* [4] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
@@ -308,26 +318,18 @@ QuicTestValidateConnectionEvents1(
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
-        }
+        },
+        ServerConfiguration
     );
 
     MsQuic->SetContext(Listener, &Server);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
-            Session,
+            Registration,
             ConnValidatorCallback,
             &Client,
             &Client.Handle));
-    uint32_t CertFlags =
-        QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-            sizeof(CertFlags),
-            &CertFlags));
     uint16_t StreamCount = 0; // Temp Work around.
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -339,6 +341,7 @@ QuicTestValidateConnectionEvents1(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
+            ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
@@ -350,11 +353,18 @@ QuicTestValidateConnectionEvents1(
 
 void
 QuicTestValidateConnectionEvents2(
-    _In_ HQUIC Session,
+    _In_ MsQuicRegistration& Registration,
     _In_ HQUIC Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
     ConnValidator Client(
         new(std::nothrow) ConnEventValidator* [5] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
@@ -370,26 +380,18 @@ QuicTestValidateConnectionEvents2(
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
-        }
+        },
+        ServerConfiguration
     );
 
     MsQuic->SetContext(Listener, &Server);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
-            Session,
+            Registration,
             ConnValidatorCallback,
             &Client,
             &Client.Handle));
-    uint32_t CertFlags =
-        QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-            sizeof(CertFlags),
-            &CertFlags));
     uint16_t StreamCount = 0; // Temp Work around.
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -401,6 +403,7 @@ QuicTestValidateConnectionEvents2(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
+            ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
@@ -412,11 +415,20 @@ QuicTestValidateConnectionEvents2(
 
 void
 QuicTestValidateConnectionEvents3(
-    _In_ MsQuicSession& Session,
+    _In_ MsQuicRegistration& Registration,
     _In_ HQUIC Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
+    MsQuicSettings Settings;
+    Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
     ConnValidator Client(
         new(std::nothrow) ConnEventValidator* [4] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
@@ -434,14 +446,12 @@ QuicTestValidateConnectionEvents3(
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
-        }
+        },
+        ServerConfiguration
     );
 
-    uint32_t CertFlags =
-        QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
     uint16_t StreamCount = 0; // Temp Work around.
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_SERVER_RESUMPTION_LEVEL Level = QUIC_SERVER_RESUME_ONLY;
     QUIC_BUFFER* ResumptionBuffer = (QUIC_BUFFER*) SerializedResumptionStorage;
     ResumptionBuffer->Length = RESUMPTION_BUFFER_LENGTH;
     ResumptionBuffer->Buffer = SerializedResumptionStorage + sizeof(QUIC_BUFFER);
@@ -449,20 +459,12 @@ QuicTestValidateConnectionEvents3(
     //
     // Create a connection just to get a resumption ticket.
     //
-    MsQuic->SetCallbackHandler(Listener, (void*)ListenerEventResumptionCallback, nullptr);
-    Status =
-        MsQuic->SetParam(
-            Session.Handle,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-            sizeof(Level),
-            &Level);
-    TEST_QUIC_SUCCEEDED(Status);
+    MsQuic->SetCallbackHandler(Listener, (void*)ListenerEventResumptionCallback, (HQUIC)ServerConfiguration);
 
-    TestConnection FirstConnection(Session, nullptr);
-    FirstConnection.SetCertValidationFlags(CertFlags);
+    TestConnection FirstConnection(Registration, nullptr);
     FirstConnection.SetPeerBidiStreamCount(StreamCount);
     FirstConnection.Start(
+        ClientConfiguration,
         QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
         QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
         QuicAddrGetPort(&ServerLocalAddr.SockAddr));
@@ -484,6 +486,7 @@ QuicTestValidateConnectionEvents3(
     //
     MsQuic->SetCallbackHandler(Listener, (void*)ListenerEventValidatorCallback, &Server);
 
+    /* TODO - Necessary?
     Level = QUIC_SERVER_NO_RESUME;
     Status =
         MsQuic->SetParam(
@@ -492,21 +495,14 @@ QuicTestValidateConnectionEvents3(
             QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
             sizeof(Level),
             &Level);
-    TEST_QUIC_SUCCEEDED(Status);
+    TEST_QUIC_SUCCEEDED(Status);*/
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
-            Session.Handle,
+            Registration,
             ConnValidatorCallback,
             &Client,
             &Client.Handle));
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-            sizeof(CertFlags),
-            &CertFlags));
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             Client.Handle,
@@ -517,13 +513,14 @@ QuicTestValidateConnectionEvents3(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             Client.Handle,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_ADD_RESUMPTION_STATE,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_RESUMPTION_STATE,
             ResumptionBuffer->Length,
             ResumptionBuffer->Buffer));
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
+            ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
@@ -560,10 +557,10 @@ void QuicTestValidateConnectionEvents()
             &ServerLocalAddrSize,
             &ServerLocalAddr.SockAddr));
 
-    QuicTestValidateConnectionEvents1(Session.Handle, Listener.Handle, ServerLocalAddr);
-    QuicTestValidateConnectionEvents2(Session.Handle, Listener.Handle, ServerLocalAddr);
+    QuicTestValidateConnectionEvents1(Registration, Listener.Handle, ServerLocalAddr);
+    QuicTestValidateConnectionEvents2(Registration, Listener.Handle, ServerLocalAddr);
 #ifndef QUIC_DISABLE_0RTT_TESTS
-    QuicTestValidateConnectionEvents3(Session, Listener.Handle, ServerLocalAddr);
+    QuicTestValidateConnectionEvents3(Registration, Listener.Handle, ServerLocalAddr);
 #endif
 
     } // Listener Scope
@@ -571,41 +568,31 @@ void QuicTestValidateConnectionEvents()
 
 void
 QuicTestValidateStreamEvents1(
+    _In_ MsQuicRegistration& Registration,
     _In_ HQUIC Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), true);
-    TEST_TRUE(Session.IsValid());
+    MsQuicSettings Settings;
+    Settings.SetPeerBidiStreamCount(1);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
 
     { // Connections scope
-    ConnValidator Client, Server;
+    ConnValidator Client, Server(ServerConfiguration);
 
     MsQuic->SetContext(Listener, &Server);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
-            Session,
+            Registration,
             ConnValidatorCallback,
             &Client,
             &Client.Handle));
-    uint32_t CertFlags =
-        QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-            sizeof(CertFlags),
-            &CertFlags));
-    uint16_t StreamCount = 0; // Temp Work around.
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT,
-            sizeof(StreamCount),
-            &StreamCount));
 
     { // Stream scope
 
@@ -667,6 +654,7 @@ QuicTestValidateStreamEvents1(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
+            ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
@@ -681,41 +669,31 @@ QuicTestValidateStreamEvents1(
 
 void
 QuicTestValidateStreamEvents2(
+    _In_ MsQuicRegistration& Registration,
     _In_ HQUIC Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), true);
-    TEST_TRUE(Session.IsValid());
+    MsQuicSettings Settings;
+    Settings.SetPeerBidiStreamCount(1);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
 
     { // Connections scope
-    ConnValidator Client, Server;
+    ConnValidator Client, Server(ServerConfiguration);
 
     MsQuic->SetContext(Listener, &Server);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
-            Session.Handle,
+            Registration,
             ConnValidatorCallback,
             &Client,
             &Client.Handle));
-    uint32_t CertFlags =
-        QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-            sizeof(CertFlags),
-            &CertFlags));
-    uint16_t StreamCount = 0; // Temp Work around.
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT,
-            sizeof(StreamCount),
-            &StreamCount));
 
     { // Stream scope
 
@@ -762,6 +740,7 @@ QuicTestValidateStreamEvents2(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
+            ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
@@ -776,22 +755,21 @@ QuicTestValidateStreamEvents2(
 
 void QuicTestValidateStreamEvents()
 {
-    MsQuicSettings Settings;
-    Settings.SetPeerBidiStreamCount(1);
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
 
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings, true);
-    TEST_TRUE(Session.IsValid());
+    MsQuicAlpn Alpn("MsQuicTest");
 
     { // Listener Scope
 
     ListenerScope Listener;
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
-            Session.Handle,
+            Registration,
             ListenerEventValidatorCallback,
             nullptr,
             &Listener.Handle));
-    TEST_QUIC_SUCCEEDED(MsQuic->ListenerStart(Listener.Handle, nullptr));
+    TEST_QUIC_SUCCEEDED(MsQuic->ListenerStart(Listener.Handle,  Alpn, Alpn.Length(), nullptr));
 
     QuicAddr ServerLocalAddr;
     uint32_t ServerLocalAddrSize = sizeof(ServerLocalAddr.SockAddr);
@@ -803,8 +781,8 @@ void QuicTestValidateStreamEvents()
             &ServerLocalAddrSize,
             &ServerLocalAddr.SockAddr));
 
-    QuicTestValidateStreamEvents1(Listener.Handle, ServerLocalAddr);
-    QuicTestValidateStreamEvents2(Listener.Handle, ServerLocalAddr);
+    QuicTestValidateStreamEvents1(Registration, Listener.Handle, ServerLocalAddr);
+    QuicTestValidateStreamEvents2(Registration, Listener.Handle, ServerLocalAddr);
 
     } // Listener Scope
 }
