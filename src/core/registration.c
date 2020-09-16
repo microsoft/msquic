@@ -97,7 +97,6 @@ MsQuicRegistrationOpen(
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME:
         WorkerThreadFlags =
-            QUIC_THREAD_FLAG_SET_IDEAL_PROC |
             QUIC_THREAD_FLAG_SET_AFFINITIZE;
         break;
     }

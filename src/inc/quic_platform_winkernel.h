@@ -799,8 +799,7 @@ QuicThreadCreate(
             goto Cleanup;
         }
     }
-    if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) &&
-        !(Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
+    if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
         Status =
             ZwSetInformationThread(
                 ThreadHandle,
