@@ -15,6 +15,8 @@ Abstract:
 #include "HpsClient.cpp.clog.h"
 #endif
 
+static HpsClient* BaseKnownClient;
+
 static
 void
 PrintHelp(
@@ -39,6 +41,7 @@ HpsClient::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
+    BaseKnownClient = this;
     if (argc > 0 && (IsArg(argv[0], "?") || IsArg(argv[0], "help"))) {
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -86,11 +89,13 @@ QUIC_THREAD_CALLBACK(HpsWorkerThread, _Context)
     auto Context = (HpsWorkerContext*)_Context;
 
     while (!Context->pThis->Shutdown) {
+        QUIC_FRE_ASSERT(Context->pThis == BaseKnownClient);
         if ((uint32_t)Context->OutstandingConnections == Context->pThis->Parallel) {
             QuicEventWaitForever(Context->WakeEvent);
         } else {
             InterlockedIncrement(&Context->OutstandingConnections);
             Context->pThis->StartConnection(Context);
+            QUIC_FRE_ASSERT(Context->pThis == BaseKnownClient);
         }
     }
 
@@ -203,6 +208,7 @@ void
 HpsClient::StartConnection(
     HpsWorkerContext* Context
     ) {
+    QUIC_FRE_ASSERT(this == BaseKnownClient);
 
     struct ScopeCleanup {
         HQUIC Connection {nullptr};
@@ -348,6 +354,8 @@ HpsClient::StartConnection(
         }
         Context->RemoteAddrSet = true;
     }
+
+    QUIC_FRE_ASSERT(this == BaseKnownClient);
 
     Context->NextLocalAddr = (Context->NextLocalAddr + 1) % HPS_BINDINGS_PER_WORKER;
     InterlockedIncrement64((int64_t*)&StartedConnections);
