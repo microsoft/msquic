@@ -85,12 +85,10 @@ MsQuicRegistrationOpen(
     switch (Registration->ExecProfile) {
     default:
     case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
-        WorkerThreadFlags =
-            QUIC_THREAD_FLAG_SET_IDEAL_PROC;
+        WorkerThreadFlags = QUIC_THREAD_FLAG_NONE;
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT:
         WorkerThreadFlags =
-            QUIC_THREAD_FLAG_SET_IDEAL_PROC |
             QUIC_THREAD_FLAG_SET_AFFINITIZE;
         Registration->SplitPartitioning = TRUE;
         break;
@@ -100,7 +98,6 @@ MsQuicRegistrationOpen(
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME:
         WorkerThreadFlags =
-            QUIC_THREAD_FLAG_SET_IDEAL_PROC |
             QUIC_THREAD_FLAG_SET_AFFINITIZE;
         break;
     }

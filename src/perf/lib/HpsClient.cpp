@@ -109,7 +109,7 @@ HpsClient::Start(
         Contexts[Proc].Processor = (uint16_t)Proc;
 
         QUIC_THREAD_CONFIG ThreadConfig = {
-            QUIC_THREAD_FLAG_SET_IDEAL_PROC | QUIC_THREAD_FLAG_SET_AFFINITIZE,
+            QUIC_THREAD_FLAG_SET_AFFINITIZE,
             (uint16_t)Proc,
             "HPS Worker",
             HpsWorkerThread,
@@ -121,6 +121,16 @@ HpsClient::Start(
             break;
         }
         Contexts[Proc].ThreadStarted = true;
+    }
+
+    uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
+    if (ThreadToSetAffinityTo > 2) {
+        ThreadToSetAffinityTo -= 2;
+        //
+        // TODO: Fix QuicSetCurrentThreadProcessorAffinity to take 16 bits
+        //
+        Status =
+            QuicSetCurrentThreadProcessorAffinity((uint8_t)ThreadToSetAffinityTo);
     }
 
     return Status;
@@ -140,6 +150,10 @@ HpsClient::Wait(
     Shutdown = true;
     for (uint32_t i = 0; i < ActiveProcCount; ++i) {
         QuicEventSet(Contexts[i].WakeEvent);
+    }
+
+    for (uint32_t i  = 0; i < ActiveProcCount; i++) {
+        Contexts[i].WaitForWorker();
     }
 
     uint32_t HPS = (uint32_t)((CompletedConnections * 1000ull) / (uint64_t)RunTime);
@@ -171,7 +185,9 @@ HpsClient::ConnectionCallback(
             InterlockedDecrement(&Context->OutstandingConnections);
             QuicEventSet(Context->WakeEvent);
         }
-        MsQuic->ConnectionClose(ConnectionHandle);
+        if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
+            MsQuic->ConnectionClose(ConnectionHandle);
+        }
         break;
     default:
         break;

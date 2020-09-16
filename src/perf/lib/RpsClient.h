@@ -90,4 +90,6 @@ private:
     uint64_t StartedRequests {0};
     uint64_t SendCompletedRequests {0};
     uint64_t CompletedRequests {0};
+    UniquePtr<HQUIC[]> Connections {nullptr};
+    bool Running {true};
 };
