@@ -820,12 +820,14 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupRemoveLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCid
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid,
+    _In_ QUIC_SINGLE_LIST_ENTRY** Entry
     )
 {
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
     QuicLookupRemoveLocalCidInt(Lookup, SourceCid);
     SourceCid->CID.IsInLookupTable = FALSE;
+    *Entry = (*Entry)->Next;
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
     QuicConnRelease(SourceCid->Connection, QUIC_CONN_REF_LOOKUP_TABLE);
 }
