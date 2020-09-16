@@ -624,10 +624,6 @@ typedef pthread_t QUIC_THREAD;
 
 typedef void* (* LPTHREAD_START_ROUTINE)(void *);
 
-#define QUIC_THREAD_FLAG_SET_IDEAL_PROC     0x0001
-#define QUIC_THREAD_FLAG_SET_AFFINITIZE     0x0002
-#define QUIC_THREAD_FLAG_HIGH_PRIORITY      0x0004
-
 typedef struct QUIC_THREAD_CONFIG {
     uint16_t Flags;
     uint16_t IdealProcessor;

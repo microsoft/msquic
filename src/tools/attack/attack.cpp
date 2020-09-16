@@ -335,7 +335,7 @@ void RunAttack()
 
     for (uint32_t i = 0; i < ThreadCount; ++i) {
         QUIC_THREAD_CONFIG ThreadConfig = {
-            QUIC_THREAD_FLAG_SET_IDEAL_PROC | QUIC_THREAD_FLAG_SET_AFFINITIZE,
+            QUIC_THREAD_FLAG_SET_AFFINITIZE,
             (uint8_t)(i % ProcCount),
             "AttackRunner",
             RunAttackThread,

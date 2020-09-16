@@ -147,6 +147,12 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN ResumptionEnabled : 1;
 
+        //
+        // Indicates that an app close from a non worker thread is in progress.
+        // Received by the QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE event.
+        //
+        BOOLEAN AppCloseInProgress: 1;
+
 #ifdef QuicVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
@@ -1050,14 +1056,14 @@ QuicConnGetSourceCidFromSeq(
             if (RemoveFromList) {
                 QuicBindingRemoveSourceConnectionID(
                     Connection->Paths[0].Binding,
-                    SourceCid);
+                    SourceCid,
+                    Entry);
                 QuicTraceEvent(
                     ConnSourceCidRemoved,
                     "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
                     Connection,
                     SourceCid->CID.SequenceNumber,
                     CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-                *Entry = (*Entry)->Next;
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
             return SourceCid;

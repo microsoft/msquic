@@ -1352,6 +1352,8 @@ QuicConnOnShutdownComplete(
             Connection->State.Connected;
         Event.SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown =
             !Connection->State.ShutdownCompleteTimedOut;
+        Event.SHUTDOWN_COMPLETE.AppCloseInProgress =
+            Connection->State.AppCloseInProgress;
 
         QuicTraceLogConnVerbose(
             IndicateConnectionShutdownComplete,
@@ -6444,6 +6446,7 @@ QuicConnProcessApiOperation(
     switch (ApiCtx->Type) {
 
     case QUIC_API_TYPE_CONN_CLOSE:
+        Connection->State.AppCloseInProgress = TRUE;
         QuicConnCloseHandle(Connection);
         break;
 

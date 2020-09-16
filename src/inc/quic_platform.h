@@ -71,6 +71,17 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_PERF      'frPQ'  // QPrf - QUIC perf code
 #define QUIC_POOL_TOOL      'loTQ'  // QTol - QUIC tool code
 
+typedef enum QUIC_THREAD_FLAGS {
+    QUIC_THREAD_FLAG_NONE               = 0x0000,
+    QUIC_THREAD_FLAG_SET_IDEAL_PROC     = 0x0001,
+    QUIC_THREAD_FLAG_SET_AFFINITIZE     = 0x0002,
+    QUIC_THREAD_FLAG_HIGH_PRIORITY      = 0x0004
+} QUIC_THREAD_FLAGS;
+
+#ifdef DEFINE_ENUM_FLAG_OPERATORS
+DEFINE_ENUM_FLAG_OPERATORS(QUIC_THREAD_FLAGS);
+#endif
+
 #ifdef _KERNEL_MODE
 #define QUIC_PLATFORM_TYPE 1
 #include <quic_platform_winkernel.h>
