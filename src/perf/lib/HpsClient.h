@@ -23,7 +23,7 @@ struct HpsWorkerContext {
     QUIC_ADDR LocalAddrs[HPS_BINDINGS_PER_WORKER];
     uint16_t Processor {0};
     long OutstandingConnections {0};
-    uint32_t NextLocalAddr;
+    uint32_t NextLocalAddr {0};
     QUIC_EVENT WakeEvent;
     QUIC_THREAD Thread;
     bool RemoteAddrSet {false};
