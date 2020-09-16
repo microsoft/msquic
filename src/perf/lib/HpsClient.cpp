@@ -15,8 +15,6 @@ Abstract:
 #include "HpsClient.cpp.clog.h"
 #endif
 
-static HpsClient* BaseKnownClient;
-
 static
 void
 PrintHelp(
@@ -41,7 +39,6 @@ HpsClient::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
-    BaseKnownClient = this;
     if (argc > 0 && (IsArg(argv[0], "?") || IsArg(argv[0], "help"))) {
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -89,13 +86,11 @@ QUIC_THREAD_CALLBACK(HpsWorkerThread, _Context)
     auto Context = (HpsWorkerContext*)_Context;
 
     while (!Context->pThis->Shutdown) {
-        QUIC_FRE_ASSERT(Context->pThis == BaseKnownClient);
         if ((uint32_t)Context->OutstandingConnections == Context->pThis->Parallel) {
             QuicEventWaitForever(Context->WakeEvent);
         } else {
             InterlockedIncrement(&Context->OutstandingConnections);
             Context->pThis->StartConnection(Context);
-            QUIC_FRE_ASSERT(Context->pThis == BaseKnownClient);
         }
     }
 
@@ -208,8 +203,6 @@ void
 HpsClient::StartConnection(
     HpsWorkerContext* Context
     ) {
-    QUIC_FRE_ASSERT(this == BaseKnownClient);
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
 
     struct ScopeCleanup {
         HQUIC Connection {nullptr};
@@ -223,8 +216,6 @@ HpsClient::StartConnection(
         }
     } Scope(Context);
 
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
-
     QUIC_CONNECTION_CALLBACK_HANDLER Handler =
         [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
             return ((HpsWorkerContext*)Context)->pThis->
@@ -233,8 +224,6 @@ HpsClient::StartConnection(
                     Conn,
                     Event);
         };
-
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
 
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
@@ -249,11 +238,7 @@ HpsClient::StartConnection(
         return;
     }
 
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
-
     InterlockedIncrement64((int64_t*)&CreatedConnections);
-
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
 
     uint32_t SecFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
     Status =
@@ -270,8 +255,6 @@ HpsClient::StartConnection(
         return;
     }
 
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
-
     BOOLEAN Opt = TRUE;
     Status =
         MsQuic->SetParam(
@@ -287,7 +270,6 @@ HpsClient::StartConnection(
         return;
     }
 
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
     bool LocalAddrSet = QuicAddrGetPort(&Context->LocalAddrs[Context->NextLocalAddr]) != 0;
     if (LocalAddrSet) {
         Status =
@@ -305,8 +287,6 @@ HpsClient::StartConnection(
         }
     }
 
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
-
     if (Context->RemoteAddrSet) {
         Status =
             MsQuic->SetParam(
@@ -323,8 +303,6 @@ HpsClient::StartConnection(
         }
     }
 
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
-
     Status =
         MsQuic->ConnectionStart(
             Scope.Connection,
@@ -337,8 +315,6 @@ HpsClient::StartConnection(
         }
         return;
     }
-
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
 
     if (!LocalAddrSet) {
         uint32_t AddrLen = sizeof(QUIC_ADDR);
@@ -355,8 +331,6 @@ HpsClient::StartConnection(
             }
         }
     }
-
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
 
     if (!Context->RemoteAddrSet) {
         uint32_t AddrLen = sizeof(QUIC_ADDR);
@@ -375,11 +349,7 @@ HpsClient::StartConnection(
         Context->RemoteAddrSet = true;
     }
 
-    QUIC_FRE_ASSERT(this == BaseKnownClient);
-
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
     Context->NextLocalAddr = (Context->NextLocalAddr + 1) % HPS_BINDINGS_PER_WORKER;
-    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
     InterlockedIncrement64((int64_t*)&StartedConnections);
     Scope.Connection = nullptr;
 }
