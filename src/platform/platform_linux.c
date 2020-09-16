@@ -699,22 +699,20 @@ QuicThreadCreate(
     }
 
 #ifdef __GLIBC__
-    if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
-        // There is no way to set an ideal processor in Linux, so just set affinity
-        if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
-            cpu_set_t CpuSet;
-            CPU_ZERO(&CpuSet);
-            CPU_SET(Config->IdealProcessor, &CpuSet);
-            if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
-                QuicTraceEvent(
-                    LibraryError,
-                    "[ lib] ERROR, %s.",
-                    "pthread_attr_setaffinity_np failed");
-            }
-        } else {
-            // TODO - Set Linux equivalent of NUMA affinity.
+    if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
+        cpu_set_t CpuSet;
+        CPU_ZERO(&CpuSet);
+        CPU_SET(Config->IdealProcessor, &CpuSet);
+        if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "pthread_attr_setaffinity_np failed");
         }
+    } else {
+        // TODO - Set Linux equivalent of NUMA affinity.
     }
+    // There is no way to set an ideal processor in Linux.
 #endif
 
     if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
@@ -739,8 +737,7 @@ QuicThreadCreate(
     }
 
 #ifndef __GLIBC__
-    if (Status == QUIC_STATUS_SUCCESS && Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
-        // There is no way to set an ideal processor in Linux, so just set affinity
+    if (Status == QUIC_STATUS_SUCCESS) {
         if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
             cpu_set_t CpuSet;
             CPU_ZERO(&CpuSet);

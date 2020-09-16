@@ -139,7 +139,9 @@ PerfServer::ConnectionCallback(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        MsQuic->ConnectionClose(ConnectionHandle);
+        if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
+            MsQuic->ConnectionClose(ConnectionHandle);
+        }
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
         auto Context =

@@ -784,7 +784,9 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_UINT62 ErrorCode;
         } SHUTDOWN_INITIATED_BY_PEER;
         struct {
-            BOOLEAN PeerAcknowledgedShutdown;
+            BOOLEAN HandshakeCompleted          : 1;
+            BOOLEAN PeerAcknowledgedShutdown    : 1;
+            BOOLEAN AppCloseInProgress          : 1;
         } SHUTDOWN_COMPLETE;
         struct {
             const QUIC_ADDR* Address;
