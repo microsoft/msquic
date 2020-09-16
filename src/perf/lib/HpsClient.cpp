@@ -158,9 +158,6 @@ HpsClient::Wait(
 
     uint32_t HPS = (uint32_t)((CompletedConnections * 1000ull) / (uint64_t)RunTime);
     WriteOutput("Result: %u HPS\n", HPS);
-#ifndef _KERNEL_MODE
-    fflush(stdout);
-#endif
     //WriteOutput("Result: %u HPS (%ull create, %ull start, %ull complete)\n",
     //    HPS, CreatedConnections, StartedConnections, CompletedConnections);
     Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
