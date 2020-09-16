@@ -1050,14 +1050,14 @@ QuicConnGetSourceCidFromSeq(
             if (RemoveFromList) {
                 QuicBindingRemoveSourceConnectionID(
                     Connection->Paths[0].Binding,
-                    SourceCid);
+                    SourceCid,
+                    Entry);
                 QuicTraceEvent(
                     ConnSourceCidRemoved,
                     "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
                     Connection,
                     SourceCid->CID.SequenceNumber,
                     CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-                *Entry = (*Entry)->Next;
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
             return SourceCid;
