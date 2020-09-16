@@ -120,7 +120,7 @@ uint32_t CurrentThreadCount;
 uint16_t CustomPort = 0;
 
 bool CustomUrlPath = false;
-std::vector<const char*> Urls;
+std::vector<std::string> Urls;
 
 extern "C" void QuicTraceRundown(void) { }
 
@@ -432,8 +432,8 @@ public:
         return QuicEventWaitWithTimeout(ShutdownComplete, WaitTimeoutMs);
     }
     bool SendHttpRequests(bool WaitForResponse = true) {
-        for (const char* Url : Urls) {
-            InteropStream* Stream = new InteropStream(Connection, Url);
+        for (auto& Url : Urls) {
+            InteropStream* Stream = new InteropStream(Connection, Url.c_str());
             Streams.push_back(Stream);
             if (!Stream->SendHttpRequest(WaitForResponse)) {
                 return false;
@@ -847,8 +847,8 @@ RunInteropTest(
         // Delete any file we might have downloaded, because the test didn't
         // actually succeed.
         //
-        for (const char* Url : Urls) {
-            const char* FileName = strrchr(Url, '/') + 1;
+        for (auto& Url : Urls) {
+            const char* FileName = strrchr(Url.c_str(), '/') + 1;
             (void)remove(FileName);
         }
     }
@@ -979,6 +979,45 @@ RunInteropTests()
     printf("\n");
 }
 
+bool
+ParseCommandLineUrls(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    )
+{
+    bool ProcessingUrls = false;
+    for (int i = 0; i < argc; ++i) {
+        if (_strnicmp(argv[i] + 1, "urls", 4) == 0) {
+            if (argv[i][1 + 4] != ':') {
+                printf("Invalid URLs! First URL needs a : between the parameter name and it.\n");
+                return false;
+            }
+            CustomUrlPath = true;
+            ProcessingUrls = true;
+            argv[i] += 5; // Advance beyond the parameter name.
+        }
+        if (ProcessingUrls) {
+            if (argv[i][0] == '-') {
+                ProcessingUrls = false;
+                continue;
+            }
+            const char* Url = argv[i];
+            for (int j = 0; j < 3; ++j) {
+                Url = strchr(Url, '/');
+                if (Url == nullptr) {
+                    printf("Invalid URL provided! Must match 'http[s]://server[:port]/\n");
+                    return false;
+                }
+                if (j < 2) {
+                    ++Url;
+                }
+            }
+            Urls.push_back(Url);
+        }
+    }
+    return true;
+}
+
 int
 QUIC_MAIN_EXPORT
 main(
@@ -1021,7 +1060,6 @@ main(
         }
     }
 
-    bool ProcessingUrls = false;
     RunSerially = GetValue(argc, argv, "serial") != nullptr;
 
     QuicPlatformSystemLoad();
@@ -1050,39 +1088,9 @@ main(
     TryGetValue(argc, argv, "timeout", &WaitTimeoutMs);
     TryGetValue(argc, argv, "version", &InitialVersion);
     TryGetValue(argc, argv, "port", &CustomPort);
-    //
-    // Get URLs from commandline.
-    //
-    for (int i = 0; i < argc; ++i) {
-        if (_strnicmp(argv[i] + 1, "urls", 4) == 0) {
-            if (argv[i][1 + 4] != ':') {
-                printf("Invalid URLs! First URL needs a : between the parameter name and it.\n");
-                Status = QUIC_STATUS_INVALID_PARAMETER;
-                goto Error;
-            }
-            CustomUrlPath = true;
-            ProcessingUrls = true;
-            argv[i] += 5; // Advance beyond the parameter name.
-        }
-        if (ProcessingUrls) {
-            if (argv[i][0] == '-') {
-                ProcessingUrls = false;
-                continue;
-            }
-            const char* Url = argv[i];
-            for (int j = 0; j < 3; ++j) {
-                Url = strchr(Url, '/');
-                if (Url == nullptr) {
-                    printf("Invalid URL provided! Must match 'http[s]://server[:port]/\n");
-                    Status = QUIC_STATUS_INVALID_PARAMETER;
-                    goto Error;
-                }
-                if (j < 2) {
-                    ++Url;
-                }
-            }
-            Urls.push_back(Url);
-        }
+    if (!ParseCommandLineUrls(argc, argv)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
     }
     if (!CustomUrlPath) {
         Urls.push_back("/");
