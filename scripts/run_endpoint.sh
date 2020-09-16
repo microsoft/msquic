@@ -59,20 +59,12 @@ if [ "$ROLE" == "client" ]; then
     esac
 
     if [ "$TESTCASE" == "multiconnect" ]; then
-        for REQ in "${REQUESTS}"; do
-            FILE=`echo "${REQ}" | cut -f4 -d'/'`
-            quicinterop ${CLIENT_PARAMS} -urlpath:"/${FILE}" -custom:server -port:443
+        for REQ in $REQUESTS; do
+            quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"$REQ"
         done
     else
-        FIRST=`echo "${REQUESTS[0]}" | cut -f4 -d'/'`
-        FILES="/${FIRST}"
-        echo "Files before loop: ${FILES}"
-        for REQ in "${REQUESTS[@]:1}"; do
-            FILE=`echo "${REQ}" | cut -f4 -d'/'`
-            FILES="${FILES},/${FILE}"
-        done
-        echo "Files parameter: ${FILES}"
-        quicinterop ${CLIENT_PARAMS} -urlpath:"${FILES}" -custom:server -port:443
+        echo "Requests parameter: ${REQUESTS[@]}"
+        quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"${REQUESTS[@]}"
     fi
     # Wait for the logs to flush to disk.
     sleep 5

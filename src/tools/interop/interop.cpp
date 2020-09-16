@@ -24,7 +24,7 @@ const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 int EndpointIndex = -1;
 uint32_t TestCases = QuicTestFeatureAll;
-uint32_t WaitTimeoutMs = 5000;
+uint32_t WaitTimeoutMs = 10000;
 uint32_t InitialVersion = 0;
 bool RunSerially = false;
 bool TestFailed = false; // True if any test failed
@@ -119,12 +119,8 @@ uint32_t CurrentThreadCount;
 
 uint16_t CustomPort = 0;
 
-const char* UrlPath = "/";
 bool CustomUrlPath = false;
-const char**  Urls = nullptr;
-uint32_t UrlCount = 0;
-
-const char UrlDelimiter = ',';
+std::vector<const char*> Urls;
 
 extern "C" void QuicTraceRundown(void) { }
 
@@ -301,7 +297,7 @@ public:
 
 class InteropConnection {
     HQUIC Connection;
-    InteropStream** Streams;
+    std::vector<InteropStream*> Streams;
     QUIC_EVENT ConnectionComplete;
     QUIC_EVENT RequestComplete;
     QUIC_EVENT QuackAckReceived;
@@ -314,7 +310,6 @@ public:
     bool ReceivedQuackAck : 1;
     InteropConnection(HQUIC Session, bool VerNeg = false, bool LargeTP = false) :
         Connection(nullptr),
-        Streams(new InteropStream*[UrlCount]),
         NegotiatedAlpn(nullptr),
         VersionUnsupported(false),
         Connected(false),
@@ -325,10 +320,6 @@ public:
         QuicEventInitialize(&RequestComplete, TRUE, FALSE);
         QuicEventInitialize(&QuackAckReceived, TRUE, FALSE);
         QuicEventInitialize(&ShutdownComplete, TRUE, FALSE);
-
-        for (uint32_t i = 0; i < UrlCount; ++i) {
-            Streams[i] = nullptr;
-        }
 
         VERIFY_QUIC_SUCCESS(
             MsQuic->ConnectionOpen(
@@ -387,12 +378,10 @@ public:
     }
     ~InteropConnection()
     {
-        for (uint32_t i = 0; i < UrlCount; ++i) {
-            if (Streams[i] != nullptr) {
-                delete Streams[i];
-            }
+        for (InteropStream* Stream : Streams) {
+            delete Stream;
         }
-        delete [] Streams;
+        Streams.clear();
         Shutdown();
         MsQuic->ConnectionClose(Connection);
         QuicEventUninitialize(ShutdownComplete);
@@ -443,9 +432,10 @@ public:
         return QuicEventWaitWithTimeout(ShutdownComplete, WaitTimeoutMs);
     }
     bool SendHttpRequests(bool WaitForResponse = true) {
-        for (uint32_t i = 0; i < UrlCount; ++i) {
-            Streams[i] = new InteropStream(Connection, Urls[i]);
-            if (!Streams[i]->SendHttpRequest(false)) {
+        for (const char* Url : Urls) {
+            InteropStream* Stream = new InteropStream(Connection, Url);
+            Streams.push_back(Stream);
+            if (!Stream->SendHttpRequest(WaitForResponse)) {
                 return false;
             }
         }
@@ -453,8 +443,8 @@ public:
     }
     bool WaitForHttpResponses() {
         bool Result = true;
-        for (uint32_t i = 0; i < UrlCount; ++i) {
-            Result &= Streams[i]->WaitForHttpResponse();
+        for (InteropStream* Stream : Streams) {
+            Result &= Stream->WaitForHttpResponse();
         }
         return Result;
     }
@@ -502,8 +492,8 @@ public:
     }
     bool UsedZeroRtt() {
         bool Result = true;
-        for (uint32_t i = 0; i < UrlCount; ++i) {
-            Result &= Streams[i]->UsedZeroRtt;
+        for (InteropStream* Stream : Streams) {
+            Result &= Stream->UsedZeroRtt;
         }
         return Result;
     }
@@ -857,8 +847,8 @@ RunInteropTest(
         // Delete any file we might have downloaded, because the test didn't
         // actually succeed.
         //
-        for (uint32_t i = 0; i < UrlCount; ++i) {
-            const char* FileName = strrchr(Urls[i], '/') + 1;
+        for (const char* Url : Urls) {
+            const char* FileName = strrchr(Url, '/') + 1;
             (void)remove(FileName);
         }
     }
@@ -1031,6 +1021,7 @@ main(
         }
     }
 
+    bool ProcessingUrls = false;
     RunSerially = GetValue(argc, argv, "serial") != nullptr;
 
     QuicPlatformSystemLoad();
@@ -1059,29 +1050,42 @@ main(
     TryGetValue(argc, argv, "timeout", &WaitTimeoutMs);
     TryGetValue(argc, argv, "version", &InitialVersion);
     TryGetValue(argc, argv, "port", &CustomPort);
-    const char* UrlParam;
-    if (TryGetValue(argc, argv, "urlpath", &UrlParam)) {
-        for (int i = 0; UrlParam[i] != '\0'; ++i) {
-            if (UrlParam[i] == ',') {
-                ++UrlCount;
-            }
-        }
-        ++UrlCount;
-        Urls = new const char*[UrlCount];
-        for (uint32_t i = 0; i < UrlCount; ++i) {
-            Urls[i] = strtok((i == 0) ? (char*)UrlParam : nullptr, ",");
-            if (Urls[i][0] != '/' || strlen(Urls[i]) == 1) {
-                printf("Invalid UrlPath! Must begin with '/'!\n");
+    //
+    // Get URLs from commandline.
+    //
+    for (int i = 0; i < argc; ++i) {
+        if (_strnicmp(argv[i] + 1, "urls", 4) == 0) {
+            if (argv[i][1 + 4] != ':') {
+                printf("Invalid URLs! First URL needs a : between the parameter name and it.\n");
                 Status = QUIC_STATUS_INVALID_PARAMETER;
-                delete[] Urls;
                 goto Error;
             }
+            CustomUrlPath = true;
+            ProcessingUrls = true;
+            argv[i] += 5; // Advance beyond the parameter name.
         }
-        CustomUrlPath = true;
-    } else {
-        Urls = new const char*[1];
-        Urls[0] = "/";
-        UrlCount = 1;
+        if (ProcessingUrls) {
+            if (argv[i][0] == '-') {
+                ProcessingUrls = false;
+                continue;
+            }
+            const char* Url = argv[i];
+            for (int j = 0; j < 3; ++j) {
+                Url = strchr(Url, '/');
+                if (Url == nullptr) {
+                    printf("Invalid URL provided! Must match 'http[s]://server[:port]/\n");
+                    Status = QUIC_STATUS_INVALID_PARAMETER;
+                    goto Error;
+                }
+                if (j < 2) {
+                    ++Url;
+                }
+            }
+            Urls.push_back(Url);
+        }
+    }
+    if (!CustomUrlPath) {
+        Urls.push_back("/");
     }
 
     const char* Target, *Custom;

@@ -9,6 +9,7 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 
 #include <msquichelper.h>
+#include <vector>
 
 //
 // Different features tested by this tool.
