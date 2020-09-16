@@ -276,6 +276,7 @@ HpsClient::StartConnection(
         return;
     }
 
+    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
     bool LocalAddrSet = QuicAddrGetPort(&Context->LocalAddrs[Context->NextLocalAddr]) != 0;
     if (LocalAddrSet) {
         Status =
@@ -358,6 +359,7 @@ HpsClient::StartConnection(
     QUIC_FRE_ASSERT(this == BaseKnownClient);
 
     Context->NextLocalAddr = (Context->NextLocalAddr + 1) % HPS_BINDINGS_PER_WORKER;
+    QUIC_FRE_ASSERT(Context->NextLocalAddr < HPS_BINDINGS_PER_WORKER);
     InterlockedIncrement64((int64_t*)&StartedConnections);
     Scope.Connection = nullptr;
 }

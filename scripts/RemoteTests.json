@@ -25,7 +25,7 @@
         },
         "Variables": [],
         "AllowLoopback": false,
-        "Iterations": 5,
+        "Iterations": 8,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": "Result: (.*) HPS.*",
         "Units": "HPS"
