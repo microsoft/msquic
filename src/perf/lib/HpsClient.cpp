@@ -109,7 +109,7 @@ HpsClient::Start(
         Contexts[Proc].Processor = (uint16_t)Proc;
 
         QUIC_THREAD_CONFIG ThreadConfig = {
-            QUIC_THREAD_FLAG_SET_IDEAL_PROC | QUIC_THREAD_FLAG_SET_AFFINITIZE,
+            QUIC_THREAD_FLAG_SET_AFFINITIZE,
             (uint16_t)Proc,
             "HPS Worker",
             HpsWorkerThread,

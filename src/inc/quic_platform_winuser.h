@@ -759,10 +759,6 @@ NtSetInformationThread(
     );
 #endif
 
-#define QUIC_THREAD_FLAG_SET_IDEAL_PROC     0x0001
-#define QUIC_THREAD_FLAG_SET_AFFINITIZE     0x0002
-#define QUIC_THREAD_FLAG_HIGH_PRIORITY      0x0004
-
 typedef struct QUIC_THREAD_CONFIG {
     uint16_t Flags;
     uint16_t IdealProcessor;
@@ -778,7 +774,9 @@ typedef HANDLE QUIC_THREAD;
     FuncName(                                       \
       _In_ void* CtxVarName                         \
       )
+
 #define QUIC_THREAD_RETURN(Status) return (DWORD)(Status)
+
 inline
 QUIC_STATUS
 QuicThreadCreate(
@@ -797,19 +795,18 @@ QuicThreadCreate(
     if (*Thread == NULL) {
         return GetLastError();
     }
-    if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
-        const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[Config->IdealProcessor];
-        GROUP_AFFINITY Group = {0};
-        if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
-            Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
-        } else {
-            Group.Mask = (KAFFINITY)QuicNumaMasks[ProcInfo->NumaNode];  // Fixed NUMA node
-        }
-        Group.Group = ProcInfo->Group;
-        SetThreadGroupAffinity(*Thread, &Group, NULL);
-        if (!(Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE)) {
-            SetThreadIdealProcessor(*Thread, ProcInfo->Index);
-        }
+    const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[Config->IdealProcessor];
+    GROUP_AFFINITY Group = {0};
+    if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
+        Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
+    } else {
+        Group.Mask = (KAFFINITY)QuicNumaMasks[ProcInfo->NumaNode];  // Fixed NUMA node
+    }
+    Group.Group = ProcInfo->Group;
+    SetThreadGroupAffinity(*Thread, &Group, NULL);
+    if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC &&
+        !(Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE)) {
+        SetThreadIdealProcessor(*Thread, ProcInfo->Index);
     }
     if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
         SetThreadPriority(*Thread, THREAD_PRIORITY_HIGHEST);

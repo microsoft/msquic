@@ -695,10 +695,6 @@ QuicSleep(
 // Create Thread Interfaces
 //
 
-#define QUIC_THREAD_FLAG_SET_IDEAL_PROC     0x0001
-#define QUIC_THREAD_FLAG_SET_AFFINITIZE     0x0002
-#define QUIC_THREAD_FLAG_HIGH_PRIORITY      0x0004
-
 typedef struct QUIC_THREAD_CONFIG {
     uint16_t Flags;
     uint16_t IdealProcessor;
@@ -715,7 +711,9 @@ typedef struct _ETHREAD *QUIC_THREAD;
     FuncName(                                       \
       _In_ void* CtxVarName                         \
       )
+
 #define QUIC_THREAD_RETURN(Status) PsTerminateSystemThread(Status)
+
 inline
 QUIC_STATUS
 QuicThreadCreate(
@@ -752,56 +750,57 @@ QuicThreadCreate(
         *Thread = NULL;
         goto Cleanup;
     }
-    if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
-        PROCESSOR_NUMBER Processor, IdealProcessor;
+    PROCESSOR_NUMBER Processor, IdealProcessor;
+    Status =
+        KeGetProcessorNumberFromIndex(
+            Config->IdealProcessor,
+            &Processor);
+    QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+    if (QUIC_FAILED(Status)) {
+        goto Cleanup;
+    }
+    IdealProcessor = Processor;
+    if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
+        GROUP_AFFINITY Affinity;
+        QuicZeroMemory(&Affinity, sizeof(Affinity));
+        Affinity.Group = Processor.Group;
+        Affinity.Mask = (1ull << Processor.Number);
         Status =
-            KeGetProcessorNumberFromIndex(
-                Config->IdealProcessor,
-                &Processor);
+            ZwSetInformationThread(
+                ThreadHandle,
+                ThreadGroupInformation,
+                &Affinity,
+                sizeof(Affinity));
         QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
         if (QUIC_FAILED(Status)) {
             goto Cleanup;
         }
-        IdealProcessor = Processor;
-        if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
-            GROUP_AFFINITY Affinity;
-            QuicZeroMemory(&Affinity, sizeof(Affinity));
-            Affinity.Group = Processor.Group;
-            Affinity.Mask = (1ull << Processor.Number);
-            Status =
-                ZwSetInformationThread(
-                    ThreadHandle,
-                    ThreadGroupInformation,
-                    &Affinity,
-                    sizeof(Affinity));
-            QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-            if (QUIC_FAILED(Status)) {
-                goto Cleanup;
-            }
-        } else { // NUMA Node Affinity
-            SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info;
-            ULONG InfoLength = sizeof(Info);
-            Status =
-                KeQueryLogicalProcessorRelationship(
-                    &Processor,
-                    RelationNumaNode,
-                    &Info,
-                    &InfoLength);
-            QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-            if (QUIC_FAILED(Status)) {
-                goto Cleanup;
-            }
-            Status =
-                ZwSetInformationThread(
-                    ThreadHandle,
-                    ThreadGroupInformation,
-                    &Info.NumaNode.GroupMask,
-                    sizeof(GROUP_AFFINITY));
-            QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-            if (QUIC_FAILED(Status)) {
-                goto Cleanup;
-            }
+    } else { // NUMA Node Affinity
+        SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info;
+        ULONG InfoLength = sizeof(Info);
+        Status =
+            KeQueryLogicalProcessorRelationship(
+                &Processor,
+                RelationNumaNode,
+                &Info,
+                &InfoLength);
+        QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        if (QUIC_FAILED(Status)) {
+            goto Cleanup;
         }
+        Status =
+            ZwSetInformationThread(
+                ThreadHandle,
+                ThreadGroupInformation,
+                &Info.NumaNode.GroupMask,
+                sizeof(GROUP_AFFINITY));
+        QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        if (QUIC_FAILED(Status)) {
+            goto Cleanup;
+        }
+    }
+    if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) &&
+        !(Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
         Status =
             ZwSetInformationThread(
                 ThreadHandle,
