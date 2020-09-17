@@ -3,7 +3,7 @@
         "TestName": "Throughput",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls"],
+            "Tls": ["stub", "schannel"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -14,7 +14,7 @@
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls"],
+            "Tls": ["stub", "schannel"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -59,7 +59,7 @@
         "TestName": "Throughput",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["openssl"],
+            "Tls": ["openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -70,7 +70,7 @@
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["openssl"],
+            "Tls": ["openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -171,7 +171,7 @@
         "TestName": "RPS",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls"],
+            "Tls": ["stub", "schannel"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -182,7 +182,7 @@
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls"],
+            "Tls": ["stub", "schannel"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -240,7 +240,7 @@
         "TestName": "RPS",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["openssl"],
+            "Tls": ["openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -251,7 +251,7 @@
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["openssl"],
+            "Tls": ["openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -309,7 +309,7 @@
         "TestName": "HPS",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls"],
+            "Tls": ["stub", "schannel"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -320,7 +320,7 @@
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls"],
+            "Tls": ["stub", "schannel"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -340,7 +340,7 @@
         "TestName": "HPS",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["openssl"],
+            "Tls": ["openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -351,7 +351,7 @@
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["openssl"],
+            "Tls": ["openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
