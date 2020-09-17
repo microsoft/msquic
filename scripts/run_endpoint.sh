@@ -58,12 +58,16 @@ if [ "$ROLE" == "client" ]; then
         ;;
     esac
 
-    for REQ in $REQUESTS; do
-        FILE=`echo $REQ | cut -f4 -d'/'`
-        quicinterop ${CLIENT_PARAMS} -urlpath "/"$FILE -custom:server -port:443 -version:-16777187
-    done
+    if [ "$TESTCASE" == "multiconnect" ]; then
+        for REQ in $REQUESTS; do
+            quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"$REQ" -version:-16777187
+        done
+    else
+        echo "Requests parameter: ${REQUESTS[@]}"
+        quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"${REQUESTS[@]}" -version:-16777187
+    fi
     # Wait for the logs to flush to disk.
-    sleep 2
+    sleep 5
 
 elif [ "$ROLE" == "server" ]; then
     case "$TESTCASE" in
