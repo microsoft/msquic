@@ -53,26 +53,32 @@ QuicTestDatagramNegotiation(
     _In_ bool DatagramReceiveEnabled
     )
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
     MsQuicSettings Settings;
     Settings.SetDatagramReceiveEnabled(true); // Always enabled on client.
 
-    MsQuicSession ClientSession(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
-    TEST_TRUE(ClientSession.IsValid());
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
 
     Settings.SetDatagramReceiveEnabled(DatagramReceiveEnabled);
-    MsQuicSession ServerSession(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
-    TEST_TRUE(ServerSession.IsValid());
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
 
     uint8_t RawBuffer[] = "datagram";
     QUIC_BUFFER DatagramBuffer = { sizeof(RawBuffer), RawBuffer };
 
     {
-        TestListener Listener(ServerSession.Handle, ListenerAcceptConnection);
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
-        TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         {
@@ -81,7 +87,7 @@ QuicTestDatagramNegotiation(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(ClientSession);
+                TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
 
                 TEST_TRUE(Client.GetDatagramSendEnabled()); // Datagrams start as enabled
@@ -96,6 +102,7 @@ QuicTestDatagramNegotiation(
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
+                        ClientConfiguration,
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
@@ -145,11 +152,20 @@ QuicTestDatagramSend(
     _In_ int Family
     )
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
     MsQuicSettings Settings;
     Settings.SetDatagramReceiveEnabled(true);
 
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
-    TEST_TRUE(Session.IsValid());
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
 
     uint8_t RawBuffer[] = "datagram";
     QUIC_BUFFER DatagramBuffer = { sizeof(RawBuffer), RawBuffer };
@@ -157,12 +173,12 @@ QuicTestDatagramSend(
     SelectiveLossHelper LossHelper;
 
     {
-        TestListener Listener(Session.Handle, ListenerAcceptConnection);
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
-        TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         {
@@ -171,13 +187,14 @@ QuicTestDatagramSend(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(Session);
+                TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
 
                 TEST_TRUE(Client.GetDatagramSendEnabled());
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
+                        ClientConfiguration,
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
