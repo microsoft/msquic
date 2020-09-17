@@ -7,9 +7,9 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "",
-                "Loopback": "-selfsign:1",
-                "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
+                "All": "-selfsign:1",
+                "Loopback": "",
+                "Remote": ""
             }
         },
         "Local": {
@@ -175,9 +175,9 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "",
-                "Loopback": "-selfsign:1",
-                "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
+                "All": "-selfsign:1",
+                "Loopback": "",
+                "Remote": ""
             }
         },
         "Local": {
@@ -313,9 +313,9 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "",
-                "Loopback": "-selfsign:1",
-                "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
+                "All": "-selfsign:1",
+                "Loopback": "",
+                "Remote": ""
             }
         },
         "Local": {
