@@ -47,7 +47,8 @@ MsQuicConfigurationOpen(
     if (Handle == NULL ||
         Handle->Type != QUIC_HANDLE_TYPE_REGISTRATION ||
         AlpnBuffers == NULL ||
-        AlpnBufferCount == 0) {
+        AlpnBufferCount == 0 ||
+        NewConfiguration == NULL) {
         goto Error;
     }
 

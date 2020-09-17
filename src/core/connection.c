@@ -108,6 +108,7 @@ QuicConnAlloc(
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
     Connection->PeerTransportParams.AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
+    Connection->ParentSettings = &MsQuicLib.Settings;
     QuicDispatchLockInitialize(&Connection->ReceiveQueueLock);
     QuicListInitializeHead(&Connection->DestCids);
     QuicStreamSetInitialize(&Connection->Streams);
@@ -334,7 +335,8 @@ QuicConnFree(
     QuicDatagramUninitialize(&Connection->Datagram);
     if (Connection->Configuration != NULL) {
         QuicConfigurationRelease(Connection->Configuration);
-        Connection->ParentSettings = NULL;
+        Connection->Configuration = NULL;
+        Connection->ParentSettings = &MsQuicLib.Settings;
     }
     if (Connection->RemoteServerName != NULL) {
         QUIC_FREE(Connection->RemoteServerName);
@@ -6535,9 +6537,7 @@ QuicConnDrainOperations(
 {
     QUIC_OPERATION* Oper;
     const uint32_t MaxOperationCount =
-        (Connection->Configuration == NULL) ?
-            MsQuicLib.Settings.MaxOperationsPerDrain :
-            Connection->ParentSettings->MaxOperationsPerDrain;
+        Connection->ParentSettings->MaxOperationsPerDrain;
     uint32_t OperationCount = 0;
     BOOLEAN HasMoreWorkToDo = TRUE;
 
