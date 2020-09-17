@@ -196,6 +196,9 @@ public:
             return false;
         }
 
+        if (CustomUrlPath) {
+            printf("Sending request: %s", SendRequest.Buffer);
+        }
         if (QUIC_FAILED(
             MsQuic->StreamSend(
                 Stream,
@@ -241,6 +244,7 @@ public:
                         break;
                     }
                 }
+                uint64_t TotalBytesWritten = 0;
                 for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
                     uint32_t DataLength = Event->RECEIVE.Buffers[i].Length;
                     if (fwrite(
@@ -251,12 +255,17 @@ public:
                         printf("Failed to write to file!\n");
                         break;
                     }
+                    TotalBytesWritten += DataLength;
                 }
+                printf("Wrote %llu bytes to file.\n", (long long unsigned int)TotalBytesWritten);
             }
             break;
         case QUIC_STREAM_EVENT_SEND_COMPLETE:
             break;
         case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
+            if (CustomUrlPath) {
+                printf("Peer aborted send!\n");
+            }
             QuicEventSet(pThis->RequestComplete);
             break;
         case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
