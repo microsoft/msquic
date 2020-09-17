@@ -1213,7 +1213,19 @@ QuicTlsInitialize(
     const size_t TlsSize = sizeof(QUIC_TLS) + (size_t)AppProtocolsSize;
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_TLS* TlsContext = QUIC_ALLOC_NONPAGED(TlsSize);
+    QUIC_TLS* TlsContext = NULL;
+
+    if (Config->IsServer != !(Config->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            Config->Connection,
+            "Mismatched SEC_CONFIG IsServer state");
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    TlsContext = QUIC_ALLOC_NONPAGED(TlsSize);
     if (TlsContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1530,12 +1542,11 @@ QuicTlsWriteDataToSchannel(
     SECURITY_STATUS SecStatus;
 
     if (TlsContext->IsServer) {
-        QUIC_SEC_CONFIG* SecConfig = (QUIC_SEC_CONFIG*)TlsContext->SecConfig;
-        QUIC_DBG_ASSERT(!(SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT));
+        QUIC_DBG_ASSERT(!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT));
 
         SecStatus =
             AcceptSecurityContext(
-                &SecConfig->CredentialHandle,
+                &TlsContext->SecConfig->CredentialHandle,
                 SecIsValidHandle(&TlsContext->SchannelContext) ? &TlsContext->SchannelContext : NULL,
                 &InSecBufferDesc,
                 ContextReq,
@@ -1546,12 +1557,11 @@ QuicTlsWriteDataToSchannel(
                 NULL); // FYI, used for client authentication certificate.
 
     } else {
-        QUIC_SEC_CONFIG* SecConfig = (QUIC_SEC_CONFIG*)TlsContext->SecConfig;
-        QUIC_DBG_ASSERT(SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT);
+        QUIC_DBG_ASSERT(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT);
 
         SecStatus =
             InitializeSecurityContextW(
-                &SecConfig->CredentialHandle,
+                &TlsContext->SecConfig->CredentialHandle,
                 SecIsValidHandle(&TlsContext->SchannelContext) ? &TlsContext->SchannelContext : NULL,
                 TargetServerName, // Only set to non-null on client initial.
                 ContextReq,

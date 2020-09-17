@@ -226,7 +226,7 @@ QuicTestConnect(
                         TEST_FAILURE("Failed to accept server connection.");
                     } else {
                         TEST_QUIC_SUCCEEDED(
-                            Server->SetConfiguration(ClientConfiguration));
+                            Server->SetConfiguration(ServerConfiguration));
                     }
                 }
 
@@ -938,7 +938,7 @@ QuicTestConnectBadSni(
                 QuicAddr RemoteAddr(Family == 4 ? AF_INET : AF_INET6, true);
                 TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
 
-                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
+                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_CONNECTION_REFUSED);
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
                         ClientConfiguration,

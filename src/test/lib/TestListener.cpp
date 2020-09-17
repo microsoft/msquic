@@ -121,8 +121,7 @@ TestListener::HandleListenerEvent(
                 QUIC_LOCALHOST_FOR_AF(AF_INET6),
                 Event->NEW_CONNECTION.Info->ServerName,
                 Event->NEW_CONNECTION.Info->ServerNameLength) != 0) {
-            Status = QUIC_STATUS_NOT_SUPPORTED; // We don't fail the test, just reject the connection.
-            break;
+            break; // We don't fail the test, just reject the connection.
         }
 
         if (Event->NEW_CONNECTION.Connection == nullptr) {
@@ -136,13 +135,6 @@ TestListener::HandleListenerEvent(
             break;
         }
 
-        if (QuicConfiguration) {
-            Event->NEW_CONNECTION.Configuration = QuicConfiguration;
-            Status = QUIC_STATUS_SUCCESS;
-        } else {
-            Status = QUIC_STATUS_PENDING; // The configuration will be set later.
-        }
-
         BOOLEAN Opt = UseSendBuffer;
         Status =
             MsQuic->SetParam(
@@ -153,6 +145,7 @@ TestListener::HandleListenerEvent(
                 &Opt);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("MsQuic->SetParam(CONN_SEND_BUFFERING) failed, 0x%x.", Status);
+            break;
         }
 
         if (QuicConfiguration) {
