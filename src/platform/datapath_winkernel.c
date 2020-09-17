@@ -92,7 +92,7 @@ typedef enum {
 //
 // The maximum allowed pending WSK buffers per proc before copying.
 //
-#define PENDING_BUFFER_LIMIT                256000
+#define PENDING_BUFFER_LIMIT                0
 
 static_assert(
     sizeof(QUIC_BUFFER) == sizeof(WSABUF),
@@ -2104,7 +2104,7 @@ QuicDataPathSocketReceive(
                     goto Drop;
                 }
 
-                if (RecvContext->ProcContext->OutstandingPendingBytes > PENDING_BUFFER_LIMIT) {
+                if (RecvContext->ProcContext->OutstandingPendingBytes >= PENDING_BUFFER_LIMIT) {
                     //
                     // Perform a copy
                     //
