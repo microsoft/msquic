@@ -371,12 +371,12 @@ QuicTestConnectAndPing(
         //
         // TODO: Validate new connections don't do 0-RTT
         //
-        TEST_QUIC_SUCCEEDED(Session.SetTlsTicketKey(NewTicketKey));
+        // TODO - TEST_QUIC_SUCCEEDED(Session.SetTlsTicketKey(NewTicketKey));
     }
 
     QUIC_BUFFER* ResumptionTicket = nullptr;
     if (ClientZeroRtt) {
-        ResumptionTicket = QuicTestPrimeResumption();
+        QuicTestPrimeResumption(&ResumptionTicket);
         if (!ResumptionTicket) {
             return;
         }
@@ -393,8 +393,8 @@ QuicTestConnectAndPing(
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         if (ServerRejectZeroRtt) {
-            uint8_t NewTicketKey[44] = {0};
-            TEST_QUIC_SUCCEEDED(Session.SetTlsTicketKey(NewTicketKey));
+            //uint8_t NewTicketKey[44] = {0};
+            // TODO - TEST_QUIC_SUCCEEDED(Session.SetTlsTicketKey(NewTicketKey));
         }
 
         Listener.Context = &ServerStats;
@@ -472,46 +472,54 @@ QuicTestServerDisconnect(
     PingStats ServerStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
     PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE);
 
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
     MsQuicSettings Settings;
     Settings.SetIdleTimeoutMs(10000);
 
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
     {
-        MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
-        TEST_TRUE(Session.IsValid());
+        TestListener Listener(Registration, ListenerAcceptPingConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        Listener.Context = &ServerStats;
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         {
-            TestListener Listener(Session.Handle, ListenerAcceptPingConnection);
-            TEST_TRUE(Listener.IsValid());
-            Listener.Context = &ServerStats;
-            TEST_QUIC_SUCCEEDED(Listener.Start());
-
-            QuicAddr ServerLocalAddr;
-            TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-            {
-                TestConnection* Client =
-                    NewPingConnection(
-                        Session,
-                        &ClientStats,
-                        FALSE);
-                if (Client == nullptr) {
-                    return;
-                }
-                TEST_QUIC_SUCCEEDED(Client->SetPeerUnidiStreamCount(1));
-
-                TEST_QUIC_SUCCEEDED(
-                    Client->Start(
-                        QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-                        QUIC_LOCALHOST_FOR_AF(
-                            QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-                        ServerLocalAddr.GetPort()));
-
-                QuicSleep(500); // Sleep for a little bit.
-
-                Client->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+            TestConnection* Client =
+                NewPingConnection(
+                    Registration,
+                    &ClientStats,
+                    FALSE);
+            if (Client == nullptr) {
+                return;
             }
+            TEST_QUIC_SUCCEEDED(Client->SetPeerUnidiStreamCount(1));
+
+            TEST_QUIC_SUCCEEDED(
+                Client->Start(
+                    ClientConfiguration,
+                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+                    QUIC_LOCALHOST_FOR_AF(
+                        QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                    ServerLocalAddr.GetPort()));
+
+            QuicSleep(500); // Sleep for a little bit.
+
+            Client->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
         }
-    } // Scope exit waits on Session closure, which waits for connection closures.
+    }
 }
 
 _Function_class_(STREAM_SHUTDOWN_CALLBACK)
@@ -577,76 +585,84 @@ QuicTestClientDisconnect(
     PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE,
         StopListenerFirst ? QUIC_STATUS_CONNECTION_TIMEOUT : QUIC_STATUS_ABORTED);
 
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
     MsQuicSettings Settings;
     Settings.SetIdleTimeoutMs(10000);
     Settings.SetPeerUnidiStreamCount(1);
 
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
     {
-        MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
-        TEST_TRUE(Session.IsValid());
+        TestListener Listener(Registration, ListenerAcceptConnectionAndStreams, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        TestConnection* Client;
         {
-            TestListener Listener(Session.Handle, ListenerAcceptConnectionAndStreams);
-            TEST_TRUE(Listener.IsValid());
-            TEST_QUIC_SUCCEEDED(Listener.Start());
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
 
-            QuicAddr ServerLocalAddr;
-            TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-            TestConnection* Client;
-            {
-                UniquePtr<TestConnection> Server;
-                ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-                Listener.Context = &ServerAcceptCtx;
-
-                Client =
-                    NewPingConnection(
-                        Session,
-                        &ClientStats,
-                        false);
-                if (Client == nullptr) {
-                    return;
-                }
-
-                Client->SetExpectedTransportCloseStatus(ClientStats.ExpectedCloseStatus);
-                TEST_QUIC_SUCCEEDED(Client->SetDisconnectTimeout(1000)); // ms
-
-                if (!SendPingBurst(
-                        Client,
-                        ClientStats.StreamCount,
-                        ClientStats.PayloadLength)) {
-                    return;
-                }
-
-                TEST_QUIC_SUCCEEDED(
-                    Client->Start(
-                        AF_INET,
-                        QUIC_LOCALHOST_FOR_AF(AF_INET),
-                        ServerLocalAddr.GetPort()));
-
-                if (!Client->WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Client->GetIsConnected());
-
-                TEST_NOT_EQUAL(nullptr, Server);
-                if (!Server->WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Server->GetIsConnected());
-
-                if (StopListenerFirst) {
-                    Listener.Stop();
-                }
-
-                QuicSleep(15); // Sleep for just a bit.
-
-                Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+            Client =
+                NewPingConnection(
+                    Registration,
+                    &ClientStats,
+                    false);
+            if (Client == nullptr) {
+                return;
             }
 
-            (void)Client->WaitForShutdownComplete();
+            Client->SetExpectedTransportCloseStatus(ClientStats.ExpectedCloseStatus);
+            TEST_QUIC_SUCCEEDED(Client->SetDisconnectTimeout(1000)); // ms
+
+            if (!SendPingBurst(
+                    Client,
+                    ClientStats.StreamCount,
+                    ClientStats.PayloadLength)) {
+                return;
+            }
+
+            TEST_QUIC_SUCCEEDED(
+                Client->Start(
+                    ClientConfiguration,
+                    AF_INET,
+                    QUIC_LOCALHOST_FOR_AF(AF_INET),
+                    ServerLocalAddr.GetPort()));
+
+            if (!Client->WaitForConnectionComplete()) {
+                return;
+            }
+            TEST_TRUE(Client->GetIsConnected());
+
+            TEST_NOT_EQUAL(nullptr, Server);
+            if (!Server->WaitForConnectionComplete()) {
+                return;
+            }
+            TEST_TRUE(Server->GetIsConnected());
+
+            if (StopListenerFirst) {
+                Listener.Stop();
+            }
+
+            QuicSleep(15); // Sleep for just a bit.
+
+            Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
         }
-    } // Scope exit waits on Session closure, which waits for connection closures.
+
+        (void)Client->WaitForShutdownComplete();
+    }
 }
 
 struct AbortiveTestContext {
@@ -860,9 +876,19 @@ QuicAbortiveTransfers(
     )
 {
     uint32_t TimeoutMs = 500;
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
 
-    TEST_TRUE(Session.IsValid());
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
     /*
         Test Cases:
         *   Sender closes the stream before data has even been sent.
@@ -898,12 +924,12 @@ QuicAbortiveTransfers(
     }
 
     {
-        AbortiveTestContext ClientContext(false, Flags, ExpectedError, ShutdownFlags), ServerContext(true, Flags, ExpectedError, ShutdownFlags);
+        AbortiveTestContext ClientContext(nullptr, false, Flags, ExpectedError, ShutdownFlags), ServerContext(ServerConfiguration, true, Flags, ExpectedError, ShutdownFlags);
 
         ListenerScope Listener;
         QUIC_STATUS Status =
             MsQuic->ListenerOpen(
-                Session,
+                Registration,
                 QuicAbortiveListenerHandler,
                 &ServerContext,
                 &Listener.Handle);
@@ -912,7 +938,7 @@ QuicAbortiveTransfers(
             return;
         }
 
-        Status = MsQuic->ListenerStart(Listener.Handle, nullptr);
+        Status = MsQuic->ListenerStart(Listener.Handle, Alpn, Alpn.Length(), nullptr);
 
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("MsQuic->ListenerStart failed, 0x%x.", Status);
@@ -937,7 +963,7 @@ QuicAbortiveTransfers(
         //
         Status =
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 QuicAbortiveConnectionHandler,
                 &ClientContext,
                 &ClientContext.Conn.Handle);
@@ -949,6 +975,7 @@ QuicAbortiveTransfers(
         Status =
             MsQuic->ConnectionStart(
                 ClientContext.Conn.Handle,
+                ClientConfiguration,
                 QuicAddrFamily,
                 QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                 ServerLocalAddr.GetPort());
@@ -1380,7 +1407,7 @@ QuicTestReceiveResume(
             return;
         }
 
-        Status = MsQuic->ListenerStart(Listener.Handle, Alpn, Alpn.Length(), nulllptr);
+        Status = MsQuic->ListenerStart(Listener.Handle, Alpn, Alpn.Length(), nullptr);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("MsQuic->ListenerStart failed, 0x%x.", Status);
             return;

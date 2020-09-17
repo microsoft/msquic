@@ -56,7 +56,7 @@ InterlockedSubtract64(
 //
 // Helper function to get a resumption ticket.
 //
-QUIC_BUFFER* QuicTestPrimeResumption();
+void QuicTestPrimeResumption(_Out_ QUIC_BUFFER** ResumptionTicket);
 
 struct StatelessRetryHelper
 {

@@ -49,7 +49,7 @@ public:
             printf("Initializing for User Mode tests\n");
             MsQuic = new MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
-            SelfSignedCredConfig = *SelfSignedCertParams;
+            memcpy(&SelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             QuicTestInitialize();
         }
     }

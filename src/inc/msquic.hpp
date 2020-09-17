@@ -287,9 +287,13 @@ public:
     MsQuicSettings& SetMaxBytesPerKey(uint64_t Value) { MaxBytesPerKey = Value; IsSet.MaxBytesPerKey = TRUE; return *this; }
 };
 
+#ifndef QUIC_DEFAULT_CLIENT_CRED_FLAGS
+#define QUIC_DEFAULT_CLIENT_CRED_FLAGS QUIC_CREDENTIAL_FLAG_CLIENT
+#endif
+
 class MsQuicCredentialConfig : public QUIC_CREDENTIAL_CONFIG {
 public:
-    MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAGS _Flags = QUIC_CREDENTIAL_FLAG_CLIENT) {
+    MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAGS _Flags = QUIC_DEFAULT_CLIENT_CRED_FLAGS) {
         memset(this, 0, sizeof(QUIC_CREDENTIAL_CONFIG));
         Flags = _Flags;
     }
