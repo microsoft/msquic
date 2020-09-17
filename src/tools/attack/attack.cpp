@@ -27,7 +27,6 @@
 #define ATTACK_PORT_DEFAULT 443
 
 static QUIC_DATAPATH* Datapath;
-static QUIC_DATAPATH_BINDING* Binding;
 
 static uint32_t AttackType;
 static const char* ServerName;
@@ -103,7 +102,7 @@ UdpUnreachCallback(
 {
 }
 
-void RunAttackRandom(uint16_t Length, bool ValidQuic)
+void RunAttackRandom(QUIC_DATAPATH_BINDING* Binding, uint16_t Length, bool ValidQuic)
 {
     uint64_t ConnectionId = 0;
     QuicRandom(sizeof(ConnectionId), &ConnectionId);
@@ -176,7 +175,7 @@ void printf_buf(const char* name, void* buf, uint32_t len)
 #define printf_buf(name, buf, len)
 #endif
 
-void RunAttackValidInitial()
+void RunAttackValidInitial(QUIC_DATAPATH_BINDING* Binding)
 {
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH;
@@ -291,30 +290,9 @@ void RunAttackValidInitial()
     }
 }
 
-QUIC_THREAD_CALLBACK(RunAttackThread, Context)
+QUIC_THREAD_CALLBACK(RunAttackThread, /* Context */)
 {
-    UNREFERENCED_PARAMETER(Context);
-    switch (AttackType) {
-    case 1:
-        RunAttackRandom(1, false);
-        break;
-    case 2:
-        RunAttackRandom(QUIC_MIN_INITIAL_LENGTH, false);
-        break;
-    case 3:
-        RunAttackRandom(QUIC_MIN_INITIAL_LENGTH, true);
-        break;
-    case 4:
-        RunAttackValidInitial();
-        break;
-    default:
-        break;
-    }
-    QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
-}
-
-void RunAttack()
-{
+    QUIC_DATAPATH_BINDING* Binding;
     QUIC_STATUS Status =
         QuicDataPathBindingCreate(
             Datapath,
@@ -324,9 +302,33 @@ void RunAttack()
             &Binding);
     if (QUIC_FAILED(Status)) {
         printf("QuicDataPathBindingCreate failed, 0x%x\n", Status);
-        return;
+        QUIC_THREAD_RETURN(Status);
     }
 
+    switch (AttackType) {
+    case 1:
+        RunAttackRandom(Binding, 1, false);
+        break;
+    case 2:
+        RunAttackRandom(Binding, QUIC_MIN_INITIAL_LENGTH, false);
+        break;
+    case 3:
+        RunAttackRandom(Binding, QUIC_MIN_INITIAL_LENGTH, true);
+        break;
+    case 4:
+        RunAttackValidInitial(Binding);
+        break;
+    default:
+        break;
+    }
+
+    QuicDataPathBindingDelete(Binding);
+
+    QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
+}
+
+void RunAttack()
+{
     QUIC_THREAD* Threads =
         (QUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD));
 
@@ -353,8 +355,6 @@ void RunAttack()
     printf("Packet Rate: %llu KHz\n", (unsigned long long)(TotalPacketCount) / QuicTimeDiff64(TimeStart, TimeEnd));
     printf("Bit Rate: %llu mbps\n", (unsigned long long)(8 * TotalByteCount) / (1000 * QuicTimeDiff64(TimeStart, TimeEnd)));
     QUIC_FREE(Threads);
-
-    QuicDataPathBindingDelete(Binding);
 }
 
 int
