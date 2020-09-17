@@ -3,63 +3,7 @@
         "TestName": "Throughput",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel"],
-            "Arch": ["x64", "x86", "arm", "arm64"],
-            "Exe": "quicperf",
-            "Arguments": {
-                "All": "",
-                "Loopback": "-selfsign:1",
-                "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
-            }
-        },
-        "Local": {
-            "Platform": "Windows",
-            "Tls": ["stub", "schannel"],
-            "Arch": ["x64", "x86", "arm", "arm64"],
-            "Exe": "quicperf",
-            "Arguments": {
-                "All": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000000000",
-                "Loopback": "",
-                "Remote": ""
-            }
-        },
-        "Variables": [
-            {
-                "Name": "Encryption",
-                "Local": {
-                    "On": "",
-                    "Off": "-encrypt:0"
-                },
-                "Remote": {
-                    "On": "",
-                    "Off": ""
-                },
-                "Default": "On"
-            },
-            {
-                "Name": "SendBuffering",
-                "Local": {
-                    "On": "",
-                    "Off": "-sendbuf:0"
-                },
-                "Remote": {
-                    "On": "",
-                    "Off": ""
-                },
-                "Default": "Off"
-            }
-        ],
-        "AllowLoopback": true,
-        "Iterations": 10,
-        "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)",
-        "Units": "kbps"
-    },
-    {
-        "TestName": "Throughput",
-        "Remote": {
-            "Platform": "Windows",
-            "Tls": ["openssl", "mitls"],
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -70,7 +14,7 @@
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["openssl", "mitls"],
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -171,76 +115,7 @@
         "TestName": "RPS",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel"],
-            "Arch": ["x64", "x86", "arm", "arm64"],
-            "Exe": "quicperf",
-            "Arguments": {
-                "All": "",
-                "Loopback": "-selfsign:1",
-                "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
-            }
-        },
-        "Local": {
-            "Platform": "Windows",
-            "Tls": ["stub", "schannel"],
-            "Arch": ["x64", "x86", "arm", "arm64"],
-            "Exe": "quicperf",
-            "Arguments": {
-                "All": "-test:RPS -target:$RemoteAddress",
-                "Loopback": "",
-                "Remote": ""
-            }
-        },
-        "Variables": [
-            {
-                "Name": "ConnectionCount",
-                "Local": {
-                    "1000": "-conns:1000"
-                },
-                "Remote": {
-                    "1000": ""
-                },
-                "Default": "1000"
-            },
-            {
-                "Name": "RequestSize",
-                "Local": {
-                    "0": "-request:0"
-                },
-                "Remote": {
-                    "0": ""
-                },
-
-                "Default": "0"
-            },
-            {
-                "Name": "ResponseSize",
-                "Local": {
-                    "0": "-response:0",
-                    "512": "-response:512",
-                    "4096": "-response:4096",
-                    "16384": "-response:16384"
-                },
-                "Remote": {
-                    "0": "",
-                    "512": "",
-                    "4096": "",
-                    "16384": ""
-                },
-                "Default": "4096"
-            }
-        ],
-        "AllowLoopback": false,
-        "Iterations": 5,
-        "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Result: (.*) RPS",
-        "Units": "RPS"
-    },
-    {
-        "TestName": "RPS",
-        "Remote": {
-            "Platform": "Windows",
-            "Tls": ["openssl", "mitls"],
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -251,7 +126,7 @@
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["openssl", "mitls"],
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -309,38 +184,7 @@
         "TestName": "HPS",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel"],
-            "Arch": ["x64", "x86", "arm", "arm64"],
-            "Exe": "quicperf",
-            "Arguments": {
-                "All": "",
-                "Loopback": "-selfsign:1",
-                "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
-            }
-        },
-        "Local": {
-            "Platform": "Windows",
-            "Tls": ["stub", "schannel"],
-            "Arch": ["x64", "x86", "arm", "arm64"],
-            "Exe": "quicperf",
-            "Arguments": {
-                "All": "-test:HPS -target:$RemoteAddress",
-                "Loopback": "",
-                "Remote": ""
-            }
-        },
-        "Variables": [],
-        "AllowLoopback": false,
-        "Iterations": 5,
-        "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Result: (.*) HPS.*",
-        "Units": "HPS"
-    },
-    {
-        "TestName": "HPS",
-        "Remote": {
-            "Platform": "Windows",
-            "Tls": ["openssl", "mitls"],
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -351,7 +195,7 @@
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["openssl", "mitls"],
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
