@@ -160,6 +160,9 @@ class InteropStream {
     GetRequest SendRequest;
     const char* RequestPath;
     FILE* File;
+    uint64_t DownloadStartTime;
+    uint64_t LastReceiveTime;
+    int64_t LastReceiveDuration;
 public:
     bool ReceivedResponse : 1;
     bool UsedZeroRtt : 1;
@@ -168,6 +171,9 @@ public:
         SendRequest(Request),
         RequestPath(Request),
         File(nullptr),
+        DownloadStartTime(0),
+        LastReceiveTime(0),
+        LastReceiveDuration(0),
         ReceivedResponse(false),
         UsedZeroRtt(false)
     {
@@ -236,7 +242,9 @@ public:
         switch (Event->Type) {
         case QUIC_STREAM_EVENT_RECEIVE:
             if (CustomUrlPath) {
+                int64_t Now = QuicTimeMs64();
                 if (pThis->File == nullptr) {
+                    pThis->DownloadStartTime = Now;
                     const char* FileName = strrchr(pThis->RequestPath, '/') + 1;
                     pThis->File = fopen(FileName, "wb");
                     if (pThis->File == nullptr) {
@@ -257,7 +265,16 @@ public:
                     }
                     TotalBytesWritten += DataLength;
                 }
-                printf("Wrote %llu bytes to file.\n", (long long unsigned int)TotalBytesWritten);
+                int64_t ReceiveDuration = (int64_t)(pThis->LastReceiveTime == 0) ? 0 : QuicTimeDiff64(pThis->LastReceiveTime, Now);
+                int64_t ReceiveTimeDiff = (int64_t)QuicTimeDiff64(pThis->LastReceiveDuration, ReceiveDuration);
+                printf(
+                    "Wrote %llu bytes to file.(%llu ms/%lld ms/%lld ms)\n",
+                    (long long unsigned int)TotalBytesWritten,
+                    (long long unsigned int)QuicTimeDiff64(pThis->DownloadStartTime, Now),
+                    (long long int)ReceiveDuration,
+                    (long long int)ReceiveTimeDiff);
+                pThis->LastReceiveTime = Now;
+                pThis->LastReceiveDuration = ReceiveDuration;
             }
             break;
         case QUIC_STREAM_EVENT_SEND_COMPLETE:
