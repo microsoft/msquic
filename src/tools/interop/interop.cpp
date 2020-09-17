@@ -269,10 +269,10 @@ public:
                 int64_t ReceiveTimeDiff = (int64_t)QuicTimeDiff64(pThis->LastReceiveDuration, ReceiveDuration);
                 printf(
                     "Wrote %llu bytes to file.(%llu ms/%lld ms/%lld ms)\n",
-                    (long long unsigned int)TotalBytesWritten,
-                    (long long unsigned int)QuicTimeDiff64(pThis->DownloadStartTime, Now),
-                    (long long int)ReceiveDuration,
-                    (long long int)ReceiveTimeDiff);
+                    (unsigned long long)TotalBytesWritten,
+                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now),
+                    (long long)ReceiveDuration,
+                    (long long)ReceiveTimeDiff);
                 pThis->LastReceiveTime = Now;
                 pThis->LastReceiveDuration = ReceiveDuration;
             }
@@ -282,7 +282,7 @@ public:
         case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
             if (CustomUrlPath) {
                 printf("Peer aborted send! (%llu ms)\n",
-                    (long long unsigned int)QuicTimeDiff64(pThis->DownloadStartTime, Now));
+                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now));
             }
             QuicEventSet(pThis->RequestComplete);
             break;
@@ -297,7 +297,7 @@ public:
         case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
             if (pThis->File) {
                 printf("Request closed incomplete. (%llu ms)\n",
-                    (long long unsigned int)QuicTimeDiff64(pThis->DownloadStartTime, Now));
+                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now));
                 fclose(pThis->File); // Didn't get closed properly.
                 pThis->File = nullptr;
             }
