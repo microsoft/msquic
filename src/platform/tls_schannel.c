@@ -895,6 +895,9 @@ QuicTlsSecConfigCreate(
     Credentials->dwVersion = SCH_CREDENTIALS_VERSION;
     Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
     Credentials->dwFlags |= SCH_USE_STRONG_CRYPTO;
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) {
+        Credentials->dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
+    }
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
         Credentials->dwFlags |= SCH_CRED_SNI_ENABLE_OCSP;
     }
@@ -1008,23 +1011,30 @@ QuicTlsSecConfigCreate(
     }
 #else
 
-    Status =
-        QuicCertCreate(
-            CredConfig->Type,
-            CredConfig->Creds,
-            CredConfig->Principal,
-            &CertContext);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "QuicCertCreate");
-        goto Error;
-    }
+    if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+        Status =
+            QuicCertCreate(
+                CredConfig->Type,
+                CredConfig->Creds,
+                CredConfig->Principal,
+                &CertContext);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "QuicCertCreate");
+            goto Error;
+        }
 
-    Credentials->cCreds = 1;
-    Credentials->paCred = &CertContext;
+        Credentials->cCreds = 1;
+        Credentials->paCred = &CertContext;
+
+    } else {
+        QUIC_DBG_ASSERT(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT);
+        Credentials->cCreds = 0;
+        Credentials->paCred = NULL;
+    }
 #endif
 
     TimeStamp CredExpiration;
@@ -1138,12 +1148,12 @@ QuicTlsSecConfigCreate(
     QuicTraceLogVerbose(
         SchannelAchCompleteInline,
         "[ tls] Invoking security config completion callback inline, 0x%x",
-        SecStatus);
+        Status);
 
     CompletionHandler(
         CredConfig,
         Context,
-        SecStatusToQuicStatus(SecStatus),
+        Status,
         Config);
     Status = QUIC_STATUS_PENDING;
     Config = NULL;

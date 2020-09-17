@@ -16,25 +16,25 @@ Abstract:
 
 QUIC_STATUS
 QuicCertCreate(
-    _In_ uint32_t Flags,
+    _In_ uint32_t Type,
     _In_opt_ void* CertConfig,
     _In_opt_z_ const char* Principal,
     _Out_ QUIC_CERT** NewCertificate
     )
 {
-    if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH) {
+    if (Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
         if (CertConfig == NULL && Principal == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE) {
+    } else if (Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE) {
         if (CertConfig == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
+    } else if (Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
         if (CertConfig == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE) {
+    } else if (Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
         if (CertConfig == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }

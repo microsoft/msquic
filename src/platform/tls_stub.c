@@ -441,7 +441,7 @@ QuicTlsInitialize(
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->LocalTPBuffer = Config->LocalTPBuffer;
     TlsContext->LocalTPLength = Config->LocalTPLength;
-    TlsContext->SecConfig = QuicTlsSecConfigAddRef(Config->SecConfig);
+    TlsContext->SecConfig = Config->SecConfig;
     TlsContext->Connection = Config->Connection;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
     TlsContext->ReceiveResumptionCallback = Config->ReceiveResumptionCallback;
@@ -996,7 +996,7 @@ QuicTlsClientProcess(
                 ExtListLength -= ExtLength + 4;
             }
 
-            if (TlsContext->SecConfig->Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) {
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) {
                 QuicTraceLogConnWarning(
                     StubTlsCertValidationDisabled,
                     TlsContext->Connection,
