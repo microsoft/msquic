@@ -239,10 +239,10 @@ public:
         )
     {
         InteropStream* pThis = (InteropStream*)Context;
+        int64_t Now = QuicTimeMs64();
         switch (Event->Type) {
         case QUIC_STREAM_EVENT_RECEIVE:
             if (CustomUrlPath) {
-                int64_t Now = QuicTimeMs64();
                 if (pThis->File == nullptr) {
                     pThis->DownloadStartTime = Now;
                     const char* FileName = strrchr(pThis->RequestPath, '/') + 1;
@@ -281,7 +281,8 @@ public:
             break;
         case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
             if (CustomUrlPath) {
-                printf("Peer aborted send!\n");
+                printf("Peer aborted send! (%llu ms)\n",
+                    (long long unsigned int)QuicTimeDiff64(pThis->DownloadStartTime, Now));
             }
             QuicEventSet(pThis->RequestComplete);
             break;
@@ -295,7 +296,8 @@ public:
             break;
         case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
             if (pThis->File) {
-                printf("Request closed incomplete.\n");
+                printf("Request closed incomplete. (%llu ms)\n",
+                    (long long unsigned int)QuicTimeDiff64(pThis->DownloadStartTime, Now));
                 fclose(pThis->File); // Didn't get closed properly.
                 pThis->File = nullptr;
             }
