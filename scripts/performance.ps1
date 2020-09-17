@@ -323,7 +323,9 @@ function Invoke-Test {
 
     if (!$ReadyToStart) {
         Stop-Job -Job $RemoteJob
-        Write-Error "Test Remote for $Test failed to start"
+        $RetVal = Receive-Job -Job $RemoteJob
+        $RetVal = $RetVal -join "`n"
+        Write-Error "Test Remote for $Test failed to start: $RetVal"
     }
 
     $AllRunsResults = @()
