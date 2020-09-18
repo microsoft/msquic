@@ -159,7 +159,11 @@ class InteropStream {
     QUIC_EVENT RequestComplete;
     GetRequest SendRequest;
     const char* RequestPath;
+    const char* FileName;
     FILE* File;
+    uint64_t DownloadStartTime;
+    uint64_t LastReceiveTime;
+    int64_t LastReceiveDuration;
 public:
     bool ReceivedResponse : 1;
     bool UsedZeroRtt : 1;
@@ -167,7 +171,11 @@ public:
         Stream(nullptr),
         SendRequest(Request),
         RequestPath(Request),
+        FileName(nullptr),
         File(nullptr),
+        DownloadStartTime(0),
+        LastReceiveTime(0),
+        LastReceiveDuration(0),
         ReceivedResponse(false),
         UsedZeroRtt(false)
     {
@@ -196,6 +204,9 @@ public:
             return false;
         }
 
+        if (CustomUrlPath) {
+            printf("Sending request: %s", SendRequest.Buffer);
+        }
         if (QUIC_FAILED(
             MsQuic->StreamSend(
                 Stream,
@@ -230,17 +241,20 @@ public:
         )
     {
         InteropStream* pThis = (InteropStream*)Context;
+        int64_t Now = QuicTimeMs64();
         switch (Event->Type) {
         case QUIC_STREAM_EVENT_RECEIVE:
             if (CustomUrlPath) {
                 if (pThis->File == nullptr) {
-                    const char* FileName = strrchr(pThis->RequestPath, '/') + 1;
-                    pThis->File = fopen(FileName, "wb");
+                    pThis->DownloadStartTime = Now;
+                    pThis->FileName = strrchr(pThis->RequestPath, '/') + 1;
+                    pThis->File = fopen(pThis->FileName, "wb");
                     if (pThis->File == nullptr) {
-                        printf("Failed to open file %s\n", FileName);
+                        printf("Failed to open file %s\n", pThis->FileName);
                         break;
                     }
                 }
+                uint64_t TotalBytesWritten = 0;
                 for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
                     uint32_t DataLength = Event->RECEIVE.Buffers[i].Length;
                     if (fwrite(
@@ -251,12 +265,29 @@ public:
                         printf("Failed to write to file!\n");
                         break;
                     }
+                    TotalBytesWritten += DataLength;
                 }
+                int64_t ReceiveDuration = (int64_t)(pThis->LastReceiveTime == 0) ? 0 : QuicTimeDiff64(pThis->LastReceiveTime, Now);
+                int64_t ReceiveTimeDiff = (int64_t)QuicTimeDiff64(pThis->LastReceiveDuration, ReceiveDuration);
+                printf(
+                    "%s: Wrote %llu bytes.(%llu ms/%lld ms/%lld ms)\n",
+                    pThis->FileName,
+                    (unsigned long long)TotalBytesWritten,
+                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now),
+                    (long long)ReceiveDuration,
+                    (long long)ReceiveTimeDiff);
+                pThis->LastReceiveTime = Now;
+                pThis->LastReceiveDuration = ReceiveDuration;
             }
             break;
         case QUIC_STREAM_EVENT_SEND_COMPLETE:
             break;
         case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
+            if (CustomUrlPath) {
+                printf("%s: Peer aborted send! (%llu ms)\n",
+                    pThis->FileName,
+                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now));
+            }
             QuicEventSet(pThis->RequestComplete);
             break;
         case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
@@ -264,12 +295,17 @@ public:
                 fflush(pThis->File);
                 fclose(pThis->File);
                 pThis->File = nullptr;
+                printf("%s: Completed download! (%llu ms)",
+                    pThis->FileName,
+                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now));
             }
             pThis->ReceivedResponse = true;
             break;
         case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
             if (pThis->File) {
-                printf("Request closed incomplete.\n");
+                printf("%s: Request closed incomplete. (%llu ms)\n",
+                    pThis->FileName,
+                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now));
                 fclose(pThis->File); // Didn't get closed properly.
                 pThis->File = nullptr;
             }
