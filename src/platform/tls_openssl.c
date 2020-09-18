@@ -1319,19 +1319,6 @@ QuicTlsProcessDataComplete(
 }
 
 QUIC_STATUS
-QuicTlsReadTicket(
-    _In_ QUIC_TLS* TlsContext,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_INVALID_STATE;
-}
-
-QUIC_STATUS
 QuicTlsParamSet(
     _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,

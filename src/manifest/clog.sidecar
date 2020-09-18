@@ -20120,7 +20120,7 @@
     },
     "StubTlsRecvNewSessionTicket": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Received new ticket. ticket_len:%u session_len:%u for %s",
+      "TraceString": "[conn][%p] Received new ticket. ticket_len:%u for %s",
       "UniqueId": "StubTlsRecvNewSessionTicket",
       "splitArgs": [
         {
@@ -20133,7 +20133,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "(uint32_t)ServerMessageLength",
+            "UserSuppliedTrimmed": "ServerMessageLength",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "u",
@@ -20141,19 +20141,11 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "(uint32_t)0",
+            "UserSuppliedTrimmed": "TlsContext->SNI",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "TlsContext->SNI",
-            "SuggestedTelemetryName": "arg5"
-          },
           "DefinationEncoding": "s",
-          "MacroVariableName": "arg5"
+          "MacroVariableName": "arg4"
         }
       ],
       "macro": {
@@ -23733,10 +23725,6 @@
         "TraceID": "StubTlsContextCleaningUp"
       },
       {
-        "UniquenessHash": "0b1951ab-04a5-27f1-86ca-0dc9d53ba837",
-        "TraceID": "StubTlsRecvNewSessionTicket"
-      },
-      {
         "UniquenessHash": "9b5f99a0-b1b6-bae7-12fd-89f89d1f1667",
         "TraceID": "StubTlsProcessData"
       },
@@ -23863,6 +23851,10 @@
       {
         "UniquenessHash": "78d1c2fe-fbce-b603-004e-f2026093416c",
         "TraceID": "TestHookDropLimitAddrSend"
+      },
+      {
+        "UniquenessHash": "9ca0fd16-2037-7132-3b3f-25691460af7f",
+        "TraceID": "StubTlsRecvNewSessionTicket"
       }
     ]
   }

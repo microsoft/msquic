@@ -188,45 +188,6 @@ typedef struct QUIC_KEY {
     uint64_t Secret;
 } QUIC_KEY;
 
-//
-// Contiguous memory representation of a ticket.
-//
-typedef struct QUIC_TLS_TICKET {
-
-    uint16_t ServerNameLength;
-    uint16_t TicketLength;
-    _Field_size_(ServerNameLength + TicketLength)
-    uint8_t Buffer[0];
-
-} QUIC_TLS_TICKET;
-
-//
-// Entry into the TLS ticket store.
-//
-typedef struct QUIC_TLS_TICKET_ENTRY {
-
-    QUIC_HASHTABLE_ENTRY Entry;
-    long RefCount;
-    QUIC_TLS_TICKET Ticket;
-
-} QUIC_TLS_TICKET_ENTRY;
-
-//
-// Releases a reference on the TLS ticket, and frees it if it was the last ref.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsTicketRelease(
-    _In_ QUIC_TLS_TICKET* Ticket
-    )
-{
-    QUIC_TLS_TICKET_ENTRY* TicketEntry =
-        QUIC_CONTAINING_RECORD(Ticket, QUIC_TLS_TICKET_ENTRY, Ticket);
-    if (InterlockedDecrement(&TicketEntry->RefCount) == 0) {
-        QUIC_FREE(TicketEntry);
-    }
-}
-
 typedef struct QUIC_SEC_CONFIG {
 
     QUIC_CREDENTIAL_TYPE Type;
@@ -241,7 +202,6 @@ typedef struct QUIC_TLS {
 
     BOOLEAN IsServer : 1;
     BOOLEAN EarlyDataAttempted : 1;
-    BOOLEAN TicketReady : 1;
 
     QUIC_FAKE_TLS_MESSAGE_TYPE LastMessageType; // Last message sent.
 
@@ -249,17 +209,18 @@ typedef struct QUIC_TLS {
 
     QUIC_CONNECTION* Connection;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
-    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveResumptionCallback;
+    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicketCallback;
 
     uint16_t AlpnBufferLength;
     const uint8_t* AlpnBuffer;
 
     const char* SNI;
 
+    const uint8_t* ResumptionTicketBuffer;
+    uint32_t ResumptionTicketLength;
+
     const uint8_t* LocalTPBuffer;
     uint32_t LocalTPLength;
-
-    QUIC_TLS_TICKET* Ticket;
 
 } QUIC_TLS;
 
@@ -435,17 +396,26 @@ QuicTlsInitialize(
     TlsContext->IsServer = Config->IsServer;
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
+    TlsContext->ResumptionTicketLength = Config->ResumptionTicketLength;
+    TlsContext->ResumptionTicketBuffer = Config->ResumptionTicketBuffer;
     TlsContext->LocalTPBuffer = Config->LocalTPBuffer;
     TlsContext->LocalTPLength = Config->LocalTPLength;
     TlsContext->SecConfig = Config->SecConfig;
     TlsContext->Connection = Config->Connection;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
-    TlsContext->ReceiveResumptionCallback = Config->ReceiveResumptionCallback;
+    TlsContext->ReceiveTicketCallback = Config->ReceiveResumptionCallback;
 
     QuicTraceLogConnVerbose(
         StubTlsContextCreated,
         TlsContext->Connection,
         "TLS context Created");
+
+    if (TlsContext->ResumptionTicketBuffer != NULL) {
+        QuicTraceLogConnVerbose(
+            StubTlsUsing0Rtt,
+            TlsContext->Connection,
+            "Using 0-RTT ticket.");
+    }
 
     if (Config->ServerName != NULL) {
         const size_t ServerNameLength =
@@ -459,25 +429,6 @@ QuicTlsInitialize(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
-
-        /*if (!TlsContext->IsServer) {
-            //
-            // Look up a 0-RTT ticket from TlsSession ticket store.
-            //
-            TlsContext->Ticket =
-                QuicTlsSessionGetTicket(
-                    TlsContext->TlsSession,
-                    (uint16_t)ServerNameLength,
-                    Config->ServerName);
-
-            if (TlsContext->Ticket != NULL) {
-
-                QuicTraceLogConnVerbose(
-                    StubTlsUsing0Rtt,
-                    TlsContext->Connection,
-                    "Using 0-RTT ticket.");
-            }
-        }*/
 
         TlsContext->SNI = QUIC_ALLOC_PAGED(ServerNameLength + 1);
         if (TlsContext->SNI == NULL) {
@@ -521,8 +472,8 @@ QuicTlsUninitialize(
             TlsContext->Connection,
             "Cleaning up");
 
-        if (TlsContext->Ticket != NULL) {
-            QuicTlsTicketRelease(TlsContext->Ticket);
+        if (TlsContext->ResumptionTicketBuffer != NULL) {
+            QUIC_FREE(TlsContext->ResumptionTicketBuffer);
         }
 
         if (TlsContext->SNI != NULL) {
@@ -604,7 +555,7 @@ QuicTlsServerProcess(
             }
             case TlsExt_SessionTicket: {
                 TlsContext->EarlyDataAttempted = TRUE;
-                if (TlsContext->ReceiveResumptionCallback(
+                if (TlsContext->ReceiveTicketCallback(
                         TlsContext->Connection,
                         ExtLength,
                         ((QUIC_TLS_SESSION_TICKET_EXT*)ExtList)->Ticket)) {
@@ -865,19 +816,19 @@ QuicTlsClientProcess(
         memcpy(ALPN->AlpnList, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
         ExtListLength += 6 + TlsContext->AlpnBufferLength;
 
-        if (TlsContext->Ticket != NULL) {
+        if (TlsContext->ResumptionTicketBuffer != NULL) {
             TlsContext->EarlyDataAttempted = TRUE;
 
             QUIC_TLS_SESSION_TICKET_EXT* Ticket =
                 (QUIC_TLS_SESSION_TICKET_EXT*)
                 (ClientMessage->CLIENT_INITIAL.ExtList + ExtListLength);
             TlsWriteUint16(Ticket->ExtType, TlsExt_SessionTicket);
-            TlsWriteUint16(Ticket->ExtLen, TlsContext->Ticket->TicketLength);
+            TlsWriteUint16(Ticket->ExtLen, (uint16_t)TlsContext->ResumptionTicketLength);
             memcpy(
                 Ticket->Ticket,
-                TlsContext->Ticket->Buffer + TlsContext->Ticket->ServerNameLength,
-                TlsContext->Ticket->TicketLength);
-            ExtListLength += 4 + TlsContext->Ticket->TicketLength;
+                TlsContext->ResumptionTicketBuffer,
+                TlsContext->ResumptionTicketLength);
+            ExtListLength += 4 + (uint16_t)TlsContext->ResumptionTicketLength;
         } else {
             TlsContext->EarlyDataAttempted = FALSE;
         }
@@ -1086,16 +1037,16 @@ QuicTlsClientProcess(
         QuicTraceLogConnVerbose(
             StubTlsRecvNewSessionTicket,
             TlsContext->Connection,
-            "Received new ticket. ticket_len:%u session_len:%u for %s",
-            (uint32_t)ServerMessageLength,
-            (uint32_t)0,
+            "Received new ticket. ticket_len:%u for %s",
+            ServerMessageLength,
             TlsContext->SNI);
 
         QUIC_FRE_ASSERT(ServerMessageLength < UINT16_MAX);
 
-        //
-        // TODO - Indicate Ticket up
-        //
+        (void)TlsContext->ReceiveTicketCallback(
+            TlsContext->Connection,
+            ServerMessageLength,
+            ServerMessage->TICKET.Ticket);
 
         DrainLength = (uint16_t)ServerMessageLength + 4;
         break;
@@ -1247,57 +1198,6 @@ QuicTlsProcessDataComplete(
     UNREFERENCED_PARAMETER(TlsContext);
     UNREFERENCED_PARAMETER(BufferConsumed);
     return QUIC_TLS_RESULT_ERROR;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsReadTicket(
-    _In_ QUIC_TLS* TlsContext,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
-        uint8_t* Buffer
-    )
-{
-    QUIC_STATUS Status;
-
-    if (!TlsContext->TicketReady) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Exit;
-    }
-
-    uint32_t TicketBufferLength =
-        sizeof(QUIC_TLS_TICKET) +
-        TlsContext->Ticket->ServerNameLength +
-        TlsContext->Ticket->TicketLength;
-
-    if (*BufferLength < TicketBufferLength) {
-        *BufferLength = TicketBufferLength;
-        Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-        goto Exit;
-    }
-
-    if (Buffer == NULL) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    QuicTraceLogConnVerbose(
-        StubTlsReadTicket,
-        TlsContext->Connection,
-        "Ticket (%u bytes) read.",
-        TicketBufferLength);
-
-    QuicCopyMemory(
-        Buffer,
-        TlsContext->Ticket,
-        TicketBufferLength);
-    *BufferLength = TicketBufferLength;
-
-    Status = QUIC_STATUS_SUCCESS;
-
-Exit:
-
-    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

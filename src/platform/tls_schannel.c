@@ -320,7 +320,6 @@ typedef struct QUIC_TLS {
     BOOLEAN PeerTransportParamsReceived : 1;
     BOOLEAN HandshakeKeyRead : 1;
     BOOLEAN ApplicationKeyRead : 1;
-    BOOLEAN TicketReceived : 1;
 
     //
     // Cached server name indication.
@@ -351,6 +350,7 @@ typedef struct QUIC_TLS {
     //
     QUIC_CONNECTION* Connection;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
+    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicketCallback;
 
     //
     // Workspace for sec buffers pass into ISC/ASC.
@@ -1243,6 +1243,7 @@ QuicTlsInitialize(
     TlsContext->IsServer = Config->IsServer;
     TlsContext->Connection = Config->Connection;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
+    TlsContext->ReceiveTicketCallback = Config->ReceiveResumptionCallback;
     TlsContext->SNI = Config->ServerName;
     TlsContext->SecConfig = Config->SecConfig;
 
@@ -1270,6 +1271,9 @@ QuicTlsInitialize(
         (uint16_t)(Config->LocalTPLength - FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer));
 
     State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
+    if (Config->ResumptionTicketBuffer != NULL) {
+        QUIC_FREE(Config->ResumptionTicketBuffer);
+    }
 
     Status = QUIC_STATUS_SUCCESS;
     *NewTlsContext = TlsContext;
@@ -2032,7 +2036,10 @@ QuicTlsProcessData(
         // We need to wait for the handshake to be complete before setting
         // the flag, since we don't know if we've received the ticket yet.
         //
-        TlsContext->TicketReceived = TRUE;
+        (void)TlsContext->ReceiveTicketCallback(
+            TlsContext->Connection,
+            0,
+            NULL);
     }
 
     QuicTraceLogConnVerbose(
@@ -2079,26 +2086,6 @@ QuicTlsProcessDataComplete(
     UNREFERENCED_PARAMETER(TlsContext);
     *BufferConsumed = 0;
     return QUIC_TLS_RESULT_ERROR;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsReadTicket(
-    _In_ QUIC_TLS* TlsContext,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
-        uint8_t* Buffer
-    )
-{
-    BufferLength = 0;
-    if (TlsContext->TicketReceived) {
-        if (Buffer == NULL) {
-            return QUIC_STATUS_BUFFER_TOO_SMALL;
-        } else {
-            return QUIC_STATUS_SUCCESS;
-        }
-    }
-    return  QUIC_STATUS_INVALID_STATE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
