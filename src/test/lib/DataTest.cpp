@@ -64,6 +64,8 @@ struct PingStats
 
     QUIC_EVENT CompletionEvent;
 
+    QUIC_BUFFER* ResumptionTicket {nullptr};
+
     PingStats(
         uint64_t _PayloadLength,
         uint32_t _ConnectionCount,
@@ -94,6 +96,9 @@ struct PingStats
     ~PingStats() {
         QuicEventUninitialize(CompletionEvent);
         QuicZeroMemory(&CompletionEvent, sizeof(CompletionEvent));
+        if (ResumptionTicket) {
+            QUIC_FREE(ResumptionTicket);
+        }
     }
 };
 
@@ -302,6 +307,9 @@ NewPingConnection(
     Connection->Context = new(std::nothrow) PingConnState(ClientStats, Connection);
     Connection->SetShutdownCompleteCallback(PingConnectionShutdown);
     Connection->SetExpectedResumed(ClientStats->ZeroRtt);
+    if (ClientStats->ResumptionTicket) {
+        Connection->SetResumptionTicket(ClientStats->ResumptionTicket);
+    }
 
     Connection->SetPriorityScheme(
         ClientStats->FifoScheduling ?
@@ -374,10 +382,9 @@ QuicTestConnectAndPing(
         // TODO - TEST_QUIC_SUCCEEDED(Session.SetTlsTicketKey(NewTicketKey));
     }
 
-    QUIC_BUFFER* ResumptionTicket = nullptr;
     if (ClientZeroRtt) {
-        QuicTestPrimeResumption(&ResumptionTicket);
-        if (!ResumptionTicket) {
+        QuicTestPrimeResumption(&ClientStats.ResumptionTicket);
+        if (!ClientStats.ResumptionTicket) {
             return;
         }
     }

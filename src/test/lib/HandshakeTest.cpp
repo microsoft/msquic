@@ -80,15 +80,10 @@ void QuicTestPrimeResumption(_Out_ QUIC_BUFFER** ResumptionTicket)
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
                 QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                 ServerLocalAddr.GetPort()));
-        if (!Client.WaitForConnectionComplete()) {
-            return;
+        if (Client.WaitForConnectionComplete()) {
+            TEST_TRUE(Client.GetIsConnected());
+            *ResumptionTicket = Client.WaitForResumptionTicket();
         }
-        TEST_TRUE(Client.GetIsConnected());
-        if (!Client.WaitForZeroRttTicket()) {
-            return;
-        }
-        // TODO - Get ResumptionTicket
-        Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
     }
 }
 
@@ -209,6 +204,8 @@ QuicTestConnect(
                 }
 
                 if (SessionResumption) {
+                    Client.SetResumptionTicket(ResumptionTicket);
+                    QUIC_FREE(ResumptionTicket);
                     Client.SetExpectedResumed(true);
                 }
 

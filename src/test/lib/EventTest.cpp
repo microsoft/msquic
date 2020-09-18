@@ -17,9 +17,6 @@ Abstract:
 #define QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION   1
 #define QUIC_EVENT_ACTION_SHUTDOWN_STREAM       2
 
-#define RESUMPTION_BUFFER_LENGTH 2048
-uint8_t SerializedResumptionStorage[sizeof(QUIC_BUFFER) + RESUMPTION_BUFFER_LENGTH];
-
 struct StreamEventValidator {
     bool Success;
     bool Optional;
@@ -330,14 +327,6 @@ QuicTestValidateConnectionEvents1(
             ConnValidatorCallback,
             &Client,
             &Client.Handle));
-    uint16_t StreamCount = 0; // Temp Work around.
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT,
-            sizeof(StreamCount),
-            &StreamCount));
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
@@ -392,14 +381,6 @@ QuicTestValidateConnectionEvents2(
             ConnValidatorCallback,
             &Client,
             &Client.Handle));
-    uint16_t StreamCount = 0; // Temp Work around.
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT,
-            sizeof(StreamCount),
-            &StreamCount));
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
@@ -420,9 +401,13 @@ QuicTestValidateConnectionEvents3(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
-    MsQuicSettings Settings;
-    Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, SelfSignedCredConfig);
+    QUIC_BUFFER* ResumptionTicket = nullptr;
+    QuicTestPrimeResumption(&ResumptionTicket);
+    if (!ResumptionTicket) {
+        return;
+    }
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
@@ -450,52 +435,7 @@ QuicTestValidateConnectionEvents3(
         ServerConfiguration
     );
 
-    uint16_t StreamCount = 0; // Temp Work around.
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_BUFFER* ResumptionBuffer = (QUIC_BUFFER*) SerializedResumptionStorage;
-    ResumptionBuffer->Length = RESUMPTION_BUFFER_LENGTH;
-    ResumptionBuffer->Buffer = SerializedResumptionStorage + sizeof(QUIC_BUFFER);
-
-    //
-    // Create a connection just to get a resumption ticket.
-    //
-    MsQuic->SetCallbackHandler(Listener, (void*)ListenerEventResumptionCallback, (HQUIC)ServerConfiguration);
-
-    TestConnection FirstConnection(Registration, nullptr);
-    FirstConnection.SetPeerBidiStreamCount(StreamCount);
-    FirstConnection.Start(
-        ClientConfiguration,
-        QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-        QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-        QuicAddrGetPort(&ServerLocalAddr.SockAddr));
-    FirstConnection.WaitForConnectionComplete();
-    int i = 0;
-    do {
-        QuicSleep(100);
-        Status =
-            FirstConnection.GetResumptionTicket(
-                ResumptionBuffer->Buffer,
-                &ResumptionBuffer->Length);
-    } while (Status != QUIC_STATUS_SUCCESS && i++ < 10);
-    TEST_QUIC_SUCCEEDED(Status);
-    FirstConnection.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-    FirstConnection.WaitForShutdownComplete();
-
-    //
-    // Set up the listener for the actual test now.
-    //
-    MsQuic->SetCallbackHandler(Listener, (void*)ListenerEventValidatorCallback, &Server);
-
-    /* TODO - Necessary?
-    Level = QUIC_SERVER_NO_RESUME;
-    Status =
-        MsQuic->SetParam(
-            Session.Handle,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-            sizeof(Level),
-            &Level);
-    TEST_QUIC_SUCCEEDED(Status);*/
+    MsQuic->SetContext(Listener, &Server);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
@@ -507,16 +447,10 @@ QuicTestValidateConnectionEvents3(
         MsQuic->SetParam(
             Client.Handle,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT,
-            sizeof(StreamCount),
-            &StreamCount));
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_RESUMPTION_STATE,
-            ResumptionBuffer->Length,
-            ResumptionBuffer->Buffer));
+            ResumptionTicket->Length,
+            ResumptionTicket->Buffer));
+    QUIC_FREE(ResumptionTicket);
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
