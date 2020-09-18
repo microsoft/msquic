@@ -44,7 +44,7 @@ const QUIC_PACKET_KEY_TYPE miTlsKeyTypes[2][4] =
 };
 
 //
-// Callback for miTLS when a new ticket is ready.
+// Callback for miTLS when extensions are ready.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return != TLS_nego_abort)
@@ -211,12 +211,7 @@ typedef struct QUIC_TLS {
     //
     // Indicates the client attempted 0-RTT.
     //
-    BOOLEAN EarlyDataAttempted;
-
-    //
-    // Flag indicating the server has sent an updated ticket.
-    //
-    BOOLEAN TicketReady : 1;
+    BOOLEAN EarlyDataAttempted : 1;
 
     //
     // Index into the miTlsKeyTypes array.
@@ -265,7 +260,8 @@ typedef struct QUIC_TLS {
     QUIC_CONNECTION* Connection;
     QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER ProcessCompleteCallback;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
-    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveResumptionTicketCallback;
+    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicketCallback;
+
     //
     // miTLS Config.
     //
@@ -417,8 +413,9 @@ QuicTlsSecConfigCreate(
     SecurityConfig->Flags = CredConfig->Flags;
     SecurityConfig->Certificate = NULL;
     SecurityConfig->PrivateKey = NULL;
+    SecurityConfig->FormatLength = 0;
 
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
 
@@ -521,7 +518,6 @@ QuicTlsInitialize(
     QUIC_DBG_ASSERT(Config != NULL);
     QUIC_DBG_ASSERT(NewTlsContext != NULL);
     QUIC_DBG_ASSERT(Config->SecConfig != NULL);
-    QUIC_DBG_ASSERT(!(Config->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT));
     UNREFERENCED_PARAMETER(State);
 
     TlsSetValue(miTlsCurrentConnectionIndex, Config->Connection);
@@ -548,7 +544,7 @@ QuicTlsInitialize(
     TlsContext->CurrentWriterKey = -1;
     TlsContext->Connection = Config->Connection;
     TlsContext->ProcessCompleteCallback = Config->ProcessCompleteCallback;
-    TlsContext->ReceiveResumptionTicketCallback = Config->ReceiveResumptionCallback;
+    TlsContext->ReceiveTicketCallback = Config->ReceiveResumptionCallback;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
 
     TlsContext->Extensions[0].ext_type = TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION;
@@ -572,6 +568,8 @@ QuicTlsInitialize(
     TlsContext->miTlsConfig.cert_callbacks = &TlsContext->miTlsCertCallbacks;
 
     if (Config->IsServer) {
+
+        QUIC_DBG_ASSERT(Config->ResumptionTicketBuffer == NULL);
 
         TlsContext->miTlsConfig.is_server = TRUE;
         TlsContext->miTlsConfig.callback_state = TlsContext;
@@ -614,32 +612,24 @@ QuicTlsInitialize(
             }
             memcpy((char*)TlsContext->SNI, Config->ServerName, ServerNameLength + 1);
 
-            //
-            // Look up a 0-RTT ticket from TlsSession ticket store.
-            //
-            /*TlsContext->Ticket =
-                QuicTlsSessionGetTicket(
-                    TlsContext->TlsSession,
-                    (uint16_t)ServerNameLength,
-                    Config->ServerName);
-
-            if (TlsContext->Ticket != NULL) {
+            if (Config->ResumptionTicketBuffer != NULL) {
 
                 QuicTraceLogConnVerbose(
                     miTlsUsing0Rtt,
                     TlsContext->Connection,
                     "Using 0-RTT ticket.");
 
-                TlsContext->miTlsTicket.ticket_len = TlsContext->Ticket->TicketLength;
-                TlsContext->miTlsTicket.ticket =
-                    TlsContext->Ticket->Buffer + TlsContext->Ticket->ServerNameLength;
+                QUIC_TLS_TICKET* SerializedTicket =
+                    (QUIC_TLS_TICKET*)Config->ResumptionTicketBuffer;
+                // TODO - Validate Length
 
-                TlsContext->miTlsTicket.session_len = TlsContext->Ticket->SessionLength;
+                TlsContext->miTlsTicket.ticket_len = SerializedTicket->TicketLength;
+                TlsContext->miTlsTicket.ticket = SerializedTicket->Buffer;
+
+                TlsContext->miTlsTicket.session_len = SerializedTicket->SessionLength;
                 TlsContext->miTlsTicket.session =
-                    TlsContext->miTlsTicket.ticket + TlsContext->Ticket->TicketLength;
-
-                TlsContext->miTlsConfig.server_ticket = &TlsContext->miTlsTicket;
-            }*/
+                    SerializedTicket->Buffer + SerializedTicket->TicketLength;
+            }
         }
 
         TlsContext->miTlsConfig.host_name = TlsContext->SNI;
@@ -694,6 +684,15 @@ QuicTlsUninitialize(
     if (TlsContext != NULL) {
 
         FFI_mitls_quic_free(TlsContext->miTlsState);
+
+        if (TlsContext->miTlsTicket.ticket != NULL) {
+            QUIC_TLS_TICKET* SerializedTicket =
+                CONTAINING_RECORD(
+                    TlsContext->miTlsTicket.ticket,
+                    QUIC_TLS_TICKET,
+                    Buffer);
+            QUIC_FREE(SerializedTicket);
+        }
 
         if (TlsContext->SNI != NULL) {
             QUIC_FREE(TlsContext->SNI);
@@ -986,7 +985,7 @@ QuicTlsProcessDataComplete(
                         break;
                     }
                     QUIC_FRE_ASSERT(TicketLen <= UINT32_MAX);
-                    if (!TlsContext->ReceiveResumptionTicketCallback(
+                    if (!TlsContext->ReceiveTicketCallback(
                             TlsContext->Connection,
                             (uint32_t)TicketLen, Ticket)) {
                         //
@@ -1181,10 +1180,6 @@ QuicTlsProcessDataComplete(
         TlsContext->Connection,
         "Consumed %u bytes",
         BufferOffset);
-
-    if (TlsContext->TicketReady) {
-        ResultFlags |= QUIC_TLS_RESULT_TICKET;
-    }
 
     return ResultFlags;
 }
@@ -1645,10 +1640,10 @@ QuicTlsOnTicketReady(
         SerializedTicket->TicketLength);
     QuicCopyMemory(
         SerializedTicket->Buffer + SerializedTicket->TicketLength,
-        Ticket->session_len,
+        Ticket->session,
         SerializedTicket->SessionLength);
 
-    (void)TlsContext->ReceiveResumptionTicketCallback(
+    (void)TlsContext->ReceiveTicketCallback(
         TlsContext->Connection,
         TotalSize,
         (uint8_t*)SerializedTicket);

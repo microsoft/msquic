@@ -1410,13 +1410,6 @@ QuicCryptoProcessTlsCompletion(
         }
     }
 
-    if (ResultFlags & QUIC_TLS_RESULT_TICKET) {
-        QuicTraceLogConnInfo(
-            TicketReady,
-            Connection,
-            "Ticket ready");
-    }
-
     QuicCryptoValidate(Crypto);
 
     if (ResultFlags & QUIC_TLS_RESULT_READ_KEY_UPDATED) {

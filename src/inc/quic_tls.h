@@ -149,7 +149,6 @@ typedef enum QUIC_TLS_RESULT_FLAGS {
     QUIC_TLS_RESULT_EARLY_DATA_ACCEPT   = 0x0020, // The server accepted the early (0-RTT) data.
     QUIC_TLS_RESULT_EARLY_DATA_REJECT   = 0x0040, // The server rejected the early (0-RTT) data.
     QUIC_TLS_RESULT_COMPLETE            = 0x0080, // Handshake complete.
-    QUIC_TLS_RESULT_TICKET              = 0x0100, // Ticket Ready.
     QUIC_TLS_RESULT_ERROR               = 0x8000  // An error occured.
 
 } QUIC_TLS_RESULT_FLAGS;
