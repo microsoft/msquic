@@ -69,7 +69,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 (QUIC_TLS_RECEIVE_TICKET_CALLBACK)(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint16_t TicketLength,
+    _In_ uint32_t TicketLength,
     _In_reads_(TicketLength) const uint8_t* Ticket
     );
 
@@ -81,6 +81,11 @@ typedef QUIC_TLS_RECEIVE_TICKET_CALLBACK *QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDL
 typedef struct QUIC_TLS_CONFIG {
 
     BOOLEAN IsServer;
+
+    //
+    // Connection context for completion callbacks.
+    //
+    QUIC_CONNECTION* Connection;
 
     //
     // The TLS configuration information and credentials.
@@ -96,6 +101,18 @@ typedef struct QUIC_TLS_CONFIG {
     uint16_t AlpnBufferLength;
 
     //
+    // Name of the server we are connecting to (client side only).
+    //
+    const char* ServerName;
+
+    //
+    // The optional ticket buffer the client size uses to resume a previous
+    // session (client side only).
+    //
+    const uint8_t* ResumptionTicketBuffer;
+    uint32_t ResumptionTicketLength;
+
+    //
     // The local QUIC transport parameters to send. Buffer is freed by the TLS
     // context when it's no longer needed.
     //
@@ -103,17 +120,12 @@ typedef struct QUIC_TLS_CONFIG {
     uint32_t LocalTPLength;
 
     //
-    // Passed into completion callbacks.
-    //
-    QUIC_CONNECTION* Connection;
-
-    //
     // Invoked for the completion of process calls that were pending.
     //
     QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER ProcessCompleteCallback;
 
     //
-    // Invoked when QUIC TP are received.
+    // Invoked when QUIC transport parameters are received.
     //
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
@@ -121,11 +133,6 @@ typedef struct QUIC_TLS_CONFIG {
     // Invoked when a resumption ticket is received.
     //
     QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveResumptionCallback;
-
-    //
-    // Name of the server we are connecting to (client side only).
-    //
-    const char* ServerName;
 
 } QUIC_TLS_CONFIG;
 
@@ -344,18 +351,6 @@ QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessDataComplete(
     _In_ QUIC_TLS* TlsContext,
     _Out_ uint32_t * ConsumedBuffer
-    );
-
-//
-// Called to read a TLS ticket.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsReadTicket(
-    _In_ QUIC_TLS* TlsContext,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
-        uint8_t* Buffer
     );
 
 //

@@ -18,7 +18,7 @@ Abstract:
 #endif
 
 const MsQuicApi* MsQuic;
-MsQuicCredentialConfig SelfSignedCredConfig(QUIC_CREDENTIAL_FLAG_NONE);
+QUIC_CREDENTIAL_CONFIG SelfSignedCredConfig;
 QUIC_CERTIFICATE_HASH SelfSignedCertHash;
 
 #ifdef PRIVATE_LIBRARY
@@ -644,14 +644,6 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_CONNECT_AND_IDLE:
         QUIC_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestConnectAndIdle(Params->EnableKeepAlive != 0));
-        break;
-
-    case IOCTL_QUIC_RUN_VALIDATE_SECCONFIG:
-        //
-        // Make the string for Schannel
-        //
-        QUIC_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestValidateServerSecConfig(nullptr, &Params->CertHashStore, "localhost"));
         break;
 
     case IOCTL_QUIC_RUN_CONNECT_UNREACHABLE:

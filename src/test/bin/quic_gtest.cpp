@@ -13,7 +13,7 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 const MsQuicApi* MsQuic;
-extern MsQuicCredentialConfig SelfSignedCredConfig(QUIC_CREDENTIAL_FLAG_NONE);
+QUIC_CREDENTIAL_CONFIG SelfSignedCredConfig;
 QuicDriverClient DriverClient;
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }

@@ -13,7 +13,7 @@ Abstract:
 
 //#define QUIC_COMPARTMENT_TESTS 1
 
-extern MsQuicCredentialConfig SelfSignedCredConfig;
+extern QUIC_CREDENTIAL_CONFIG SelfSignedCredConfig;
 
 #ifdef __cplusplus
 extern "C" {
@@ -426,9 +426,7 @@ typedef struct {
     QUIC_CTL_CODE(18, METHOD_BUFFERED, FILE_WRITE_DATA)
     // uint8_t - EnableKeepAlive
 
-#define IOCTL_QUIC_RUN_VALIDATE_SECCONFIG \
-    QUIC_CTL_CODE(19, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // QUIC_CERTIFICATE_HASH_STORE
+// 19 - Deprecated
 
 #define IOCTL_QUIC_RUN_CONNECT_UNREACHABLE \
     QUIC_CTL_CODE(20, METHOD_BUFFERED, FILE_WRITE_DATA)

@@ -187,6 +187,18 @@ typedef struct QUIC_SEC_CONFIG {
 } QUIC_SEC_CONFIG;
 
 //
+// Contiguous memory representation of a ticket.
+//
+typedef struct QUIC_TLS_TICKET {
+
+    uint32_t TicketLength;
+    uint32_t SessionLength;
+    _Field_size_(TicketLength + SessionLength)
+    uint8_t Buffer[0];
+
+} QUIC_TLS_TICKET;
+
+//
 // The TLS interface context.
 //
 typedef struct QUIC_TLS {
@@ -973,10 +985,10 @@ QuicTlsProcessDataComplete(
                         ResultFlags |= QUIC_TLS_RESULT_ERROR;
                         break;
                     }
-                    QUIC_FRE_ASSERT(TicketLen <= UINT16_MAX);
+                    QUIC_FRE_ASSERT(TicketLen <= UINT32_MAX);
                     if (!TlsContext->ReceiveResumptionTicketCallback(
                             TlsContext->Connection,
-                            (uint16_t)TicketLen, Ticket)) {
+                            (uint32_t)TicketLen, Ticket)) {
                         //
                         // QUIC or the app rejected the resumption ticket.
                         // Abandon the early data and continue the handshake.
@@ -1535,7 +1547,7 @@ QuicTlsOnCertVerify(
     int Result = 0;
     QUIC_CERT* Certificate = NULL;
 
-    if (TlsContext->SecConfig->Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) {
+    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) {
         QuicTraceLogConnWarning(
             miTlsCertValidationDisabled,
             TlsContext->Connection,
@@ -1608,59 +1620,40 @@ QuicTlsOnTicketReady(
         (uint32_t)Ticket->session_len,
         ServerNameIndication);
 
-    // TODO - Indicate up
-}
+    QUIC_DBG_ASSERT(Ticket->ticket_len + Ticket->session_len <= UINT32_MAX);
+    QUIC_DBG_ASSERT(Ticket->ticket_len + Ticket->session_len >= Ticket->ticket_len);
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsReadTicket(
-    _In_ QUIC_TLS* TlsContext,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
-        uint8_t* Buffer
-    )
-{
-    QUIC_STATUS Status;
-
-    if (!TlsContext->TicketReady) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Exit;
-    }
-
-    uint32_t TicketBufferLength =
+    uint32_t TotalSize =
         sizeof(QUIC_TLS_TICKET) +
-        TlsContext->Ticket->ServerNameLength +
-        TlsContext->Ticket->TicketLength +
-        TlsContext->Ticket->SessionLength;
+        (uint32_t)(Ticket->ticket_len + Ticket->session_len);
 
-    if (*BufferLength < TicketBufferLength) {
-        *BufferLength = TicketBufferLength;
-        Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-        goto Exit;
+    QUIC_TLS_TICKET *SerializedTicket = QUIC_ALLOC_NONPAGED(TotalSize);
+    if (SerializedTicket == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_TLS_TICKET",
+            TotalSize);
+        return;
     }
 
-    if (Buffer == NULL) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    QuicTraceLogConnVerbose(
-        miTlsReadTicket,
-        TlsContext->Connection,
-        "Ticket (%u bytes) read.",
-        TicketBufferLength);
-
+    SerializedTicket->TicketLength = (uint32_t)Ticket->ticket_len;
+    SerializedTicket->SessionLength = (uint32_t)Ticket->session_len;
     QuicCopyMemory(
-        Buffer,
-        TlsContext->Ticket,
-        TicketBufferLength);
-    *BufferLength = TicketBufferLength;
+        SerializedTicket->Buffer,
+        Ticket->ticket,
+        SerializedTicket->TicketLength);
+    QuicCopyMemory(
+        SerializedTicket->Buffer + SerializedTicket->TicketLength,
+        Ticket->session_len,
+        SerializedTicket->SessionLength);
 
-    Status = QUIC_STATUS_SUCCESS;
+    (void)TlsContext->ReceiveResumptionTicketCallback(
+        TlsContext->Connection,
+        TotalSize,
+        (uint8_t*)SerializedTicket);
 
-Exit:
-
-    return Status;
+    QUIC_FREE(SerializedTicket);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
