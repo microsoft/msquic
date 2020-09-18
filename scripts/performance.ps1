@@ -323,7 +323,9 @@ function Invoke-Test {
 
     if (!$ReadyToStart) {
         Stop-Job -Job $RemoteJob
-        Write-Error "Test Remote for $Test failed to start"
+        $RetVal = Receive-Job -Job $RemoteJob
+        $RetVal = $RetVal -join "`n"
+        Write-Error "Test Remote for $Test failed to start: $RetVal"
     }
 
     $AllRunsResults = @()
@@ -389,7 +391,7 @@ if ($Record -and $IsWindows) {
 }
 
 try {
-    $Tests = Get-Tests $TestsFile
+    $Tests = Get-Tests -Path $TestsFile -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
 
     if ($null -eq $Tests) {
         Write-Error "Tests are not valid"
@@ -418,11 +420,7 @@ try {
         if ($TestToRun -ne "" -and $Test.TestName -ne $TestToRun) {
             continue
         }
-        if (Test-CanRunTest -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform) {
-            Invoke-Test -Test $Test
-        } else {
-            Write-Output "Skipping $Test"
-        }
+        Invoke-Test -Test $Test
     }
 
     if ($PGO) {

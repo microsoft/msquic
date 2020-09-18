@@ -7,7 +7,7 @@ if [ -n "$TESTCASE" ]; then
     case "$TESTCASE" in
     # TODO: add supported test cases here
     "versionnegotiation"|"handshake"|"transfer"|"retry"|"resumption"|\
-    "multiconnect")
+    "multiconnect"|"ecn"|"keyupdate")
         ;;
     *)
         exit 127
@@ -60,11 +60,11 @@ if [ "$ROLE" == "client" ]; then
 
     if [ "$TESTCASE" == "multiconnect" ]; then
         for REQ in $REQUESTS; do
-            quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"$REQ"
+            quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"$REQ" -version:-16777187
         done
     else
         echo "Requests parameter: ${REQUESTS[@]}"
-        quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"${REQUESTS[@]}"
+        quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"${REQUESTS[@]}" -version:-16777187
     fi
     # Wait for the logs to flush to disk.
     sleep 5

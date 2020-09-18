@@ -3,18 +3,18 @@
         "TestName": "Throughput",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls", "openssl"],
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "",
-                "Loopback": "-selfsign:1",
-                "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
+                "All": "-selfsign:1",
+                "Loopback": "",
+                "Remote": ""
             }
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls", "openssl"],
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -115,18 +115,18 @@
         "TestName": "RPS",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls", "openssl"],
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "",
-                "Loopback": "-selfsign:1",
-                "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
+                "All": "-selfsign:1",
+                "Loopback": "",
+                "Remote": ""
             }
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls", "openssl"],
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -184,18 +184,18 @@
         "TestName": "HPS",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls", "openssl"],
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "",
-                "Loopback": "-selfsign:1",
-                "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
+                "All": "-selfsign:1",
+                "Loopback": "",
+                "Remote": ""
             }
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls", "openssl"],
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {

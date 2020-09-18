@@ -30,7 +30,7 @@ typedef struct QUIC_VERSION_INFO {
 //
 // The list of supported QUIC versions.
 //
-extern const QUIC_VERSION_INFO QuicSupportedVersionList[4];
+extern const QUIC_VERSION_INFO QuicSupportedVersionList[5];
 
 //
 // Prefixes used in packet logging.
@@ -252,6 +252,7 @@ QuicPacketIsHandshake(
         case QUIC_VERSION_DRAFT_27:
         case QUIC_VERSION_DRAFT_28:
         case QUIC_VERSION_DRAFT_29:
+        case QUIC_VERSION_DRAFT_30:
         case QUIC_VERSION_MS_1:
             return ((QUIC_LONG_HEADER_V1*)Packet)->Type != QUIC_0_RTT_PROTECTED;
         default:
