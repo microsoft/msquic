@@ -891,7 +891,6 @@ Exit:
     return Status;
 }
 
-static
 void
 QuicTlsSecConfigDelete(
     _In_ QUIC_SEC_CONFIG* SecurityConfig
