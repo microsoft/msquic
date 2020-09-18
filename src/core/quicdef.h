@@ -410,6 +410,12 @@ QUIC_STATIC_ASSERT(
 #define QUIC_TLS_RESUMPTION_TICKET_VERSION      1
 
 //
+// Version of the blob for client resumption tickets.
+// This needs to be incremented for each change in order or count of fields.
+//
+#define QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION      1
+
+//
 // The AEAD Integrity limit for maximum failed decryption packets over the
 // lifetime of a connection. Set to the lowest limit, which is for
 // AEAD_AES_128_CCM at 2^23.5 (rounded down)

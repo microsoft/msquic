@@ -817,7 +817,7 @@ typedef struct QUIC_CONNECTION_EVENT {
             const uint8_t* ResumptionState;
         } RESUMED;
         struct {
-            uint16_t ResumptionTicketLength;
+            uint32_t ResumptionTicketLength;
             const uint8_t* ResumptionTicket;
         } RESUMPTION_TICKET_RECEIVED;
     };

@@ -418,8 +418,8 @@ QuicConnApplySettings(
             Connection->ParentSettings->PeerUnidiStreamCount);
     }
 
-    if (Connection->ParentSettings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
-        Connection->HandshakeTP == NULL) {
+    if ((Connection->ParentSettings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME ||
+        !QuicConnIsServer(Connection)) && Connection->HandshakeTP == NULL) {
         QUIC_DBG_ASSERT(!Connection->State.Started);
         Connection->HandshakeTP =
             QuicPoolAlloc(&MsQuicLib.PerProc[QuicProcCurrentNumber()].TransportParamPool);
@@ -2197,15 +2197,88 @@ QuicConnRecvResumptionTicket(
 
         QUIC_DBG_ASSERT(Offset + AppTicketLength == TicketLength);
     } else {
+
+        uint32_t EncodedTransportParametersLength = 0;
+        uint8_t* TicketBlobBuffer = NULL;
+        const uint8_t* EncodedHSTP = NULL;
+
+        if (Connection->HandshakeTP == NULL) {
+            // TODO: Log missing TP?
+            goto Error;
+        }
+
+        QUIC_TRANSPORT_PARAMETERS HSTPCopy = *Connection->HandshakeTP;
+        HSTPCopy.Flags = HSTPCopy.Flags & (
+            QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
+            QUIC_TP_FLAG_INITIAL_MAX_DATA |
+            QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
+            QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
+            QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
+            QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI |
+            QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI);
+
+        EncodedHSTP =
+            QuicCryptoTlsEncodeTransportParameters(
+                Connection,
+                &HSTPCopy,
+                &EncodedTransportParametersLength);
+        if (EncodedHSTP == NULL) {
+            goto Error;
+        }
+
+        uint32_t TotalTicketLength =
+            (uint32_t)(QuicVarIntSize(QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION) +
+            QuicVarIntSize(EncodedTransportParametersLength) +
+            QuicVarIntSize(TicketLength) +
+            EncodedTransportParametersLength +
+            TicketLength);
+
+        TicketBlobBuffer = QUIC_ALLOC_NONPAGED(TotalTicketLength);
+        if (TicketBlobBuffer == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Client resumption ticket",
+                TotalTicketLength);
+            goto Error;
+        }
+
         //
-        // TODO - Encode QUIC specific info with the ticket.
+        // Encoded ticket blob format is as follows:
+        //   Ticket Version (QUIC_VAR_INT) [1..4]
+        //   Transport Parameters length (QUIC_VAR_INT) [1..2]
+        //   Transport Parameters [...]
+        //   Received Ticket length (QUIC_VAR_INT) [1..2]
+        //   Received Ticket (omitted if length is zero) [...]
         //
+
+        _Analysis_assume_(sizeof(*TicketBlobBuffer) >= 8);
+        uint8_t* TicketCursor = QuicVarIntEncode(QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION, TicketBlobBuffer);
+        TicketCursor = QuicVarIntEncode(EncodedTransportParametersLength, TicketCursor);
+        QuicCopyMemory(TicketCursor, EncodedHSTP, EncodedTransportParametersLength);
+        TicketCursor += EncodedTransportParametersLength;
+        TicketCursor = QuicVarIntEncode(TicketLength, TicketCursor);
+        if (TicketLength > 0) {
+            QuicCopyMemory(TicketCursor, Ticket, TicketLength);
+            TicketCursor += TicketLength;
+        }
+        QUIC_DBG_ASSERT(TicketCursor == TicketBlobBuffer + TotalTicketLength);
+
         QUIC_CONNECTION_EVENT Event = { 0, };
         Event.Type = QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED;
-        Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength = TicketLength;
-        Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicket = Ticket;
+        Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength = TotalTicketLength;
+        Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicket = TicketBlobBuffer;
         ResumptionAccepted =
             QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
+
+Error:
+        if (TicketBlobBuffer != NULL) {
+            QUIC_FREE(TicketBlobBuffer);
+        }
+
+        if (EncodedHSTP != NULL) {
+            QUIC_FREE(EncodedHSTP);
+        }
     }
 
 Error:
@@ -2469,16 +2542,13 @@ QuicConnSetConfiguration(
         goto Error;
     }
 
-    if (QuicConnIsServer(Connection)) {
-
-        //
-        // Persist the transport parameters used during handshake for resumption.
-        // (if resumption is enabled)
-        //
-        if (Connection->HandshakeTP != NULL) {
-            QUIC_DBG_ASSERT(Connection->State.ResumptionEnabled);
-            *Connection->HandshakeTP = LocalTP;
-        }
+    //
+    // Persist the transport parameters used during handshake for resumption.
+    // (if resumption is enabled)
+    //
+    if (Connection->HandshakeTP != NULL) {
+        QUIC_DBG_ASSERT(Connection->State.ResumptionEnabled);
+        *Connection->HandshakeTP = LocalTP;
     }
 
     Connection->State.Started = TRUE;
