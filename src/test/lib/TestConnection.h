@@ -72,9 +72,12 @@ class TestConnection
     QUIC_EVENT EventConnectionComplete;
     QUIC_EVENT EventPeerClosed;
     QUIC_EVENT EventShutdownComplete;
+    QUIC_EVENT EventResumptionTicketReceived;
 
     NEW_STREAM_CALLBACK_HANDLER NewStreamCallback;
     CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER ShutdownCompleteCallback;
+
+    QUIC_BUFFER* ResumptionTicket;
 
     uint32_t DatagramsSent;
     uint32_t DatagramsCanceled;
@@ -151,7 +154,7 @@ public:
 
     bool WaitForConnectionComplete();
 
-    bool WaitForZeroRttTicket();
+    QUIC_BUFFER* WaitForResumptionTicket();
 
     bool WaitForShutdownComplete();
 
@@ -255,6 +258,5 @@ public:
 
     QUIC_STATUS SetConfiguration(HQUIC value);
 
-    bool HasNewZeroRttTicket();
-    QUIC_STATUS GetResumptionTicket(uint8_t* Buffer, uint32_t* BufferLength);
+    QUIC_STATUS SetResumptionTicket(const QUIC_BUFFER* ResumptionTicket) const;
 };

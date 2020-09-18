@@ -75,6 +75,9 @@ TestConnection::~TestConnection()
     QuicEventUninitialize(EventShutdownComplete);
     QuicEventUninitialize(EventPeerClosed);
     QuicEventUninitialize(EventConnectionComplete);
+    if (ResumptionTicket) {
+        QUIC_FREE(ResumptionTicket);
+    }
 }
 
 QUIC_STATUS
@@ -146,22 +149,16 @@ TestConnection::WaitForConnectionComplete()
     return true;
 }
 
-bool
-TestConnection::WaitForZeroRttTicket()
+QUIC_BUFFER*
+TestConnection::WaitForResumptionTicket()
 {
-    const uint32_t MaxTryCount = 1 + GetWaitTimeout() / 100;
-    uint32_t TryCount = 0;
-    while (TryCount++ < MaxTryCount) {
-        if (HasNewZeroRttTicket()) {
-            break;
-        }
-        QuicSleep(100);
+    if (!QuicEventWaitWithTimeout(EventResumptionTicketReceived, GetWaitTimeout())) {
+        TEST_FAILURE("WaitForResumptionTicket timed out after %u ms.", GetWaitTimeout());
+        return nullptr;
     }
-    if (TryCount == MaxTryCount) {
-        TEST_FAILURE("WaitForZeroRttTicket failed.");
-        return false;
-    }
-    return true;
+    auto Ticket = ResumptionTicket;
+    ResumptionTicket = nullptr;
+    return Ticket;
 }
 
 bool
@@ -761,33 +758,18 @@ TestConnection::SetConfiguration(
             &value);
 }
 
-bool
-TestConnection::HasNewZeroRttTicket()
-{
-    uint32_t ResumptionStateLength = 0;
-    return
-        QUIC_STATUS_BUFFER_TOO_SMALL ==
-        MsQuic->GetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_RESUMPTION_STATE,
-            &ResumptionStateLength,
-            nullptr);
-}
-
 QUIC_STATUS
-TestConnection::GetResumptionTicket(
-    uint8_t* Buffer,
-    uint32_t* BufferLength
-    )
+TestConnection::SetResumptionTicket(
+    const QUIC_BUFFER* NewResumptionTicket
+    ) const
 {
     return
-        MsQuic->GetParam(
+        MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_RESUMPTION_STATE,
-            BufferLength,
-            Buffer);
+            NewResumptionTicket->Length,
+            NewResumptionTicket->Buffer);
 }
 
 QUIC_STATUS
@@ -894,6 +876,22 @@ TestConnection::HandleConnectionEvent(
             break;
         }
         break;
+
+    case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
+        ResumptionTicket =
+            (QUIC_BUFFER*)
+            QUIC_ALLOC_NONPAGED(
+                sizeof(QUIC_BUFFER) +
+                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
+        if (ResumptionTicket) {
+            ResumptionTicket->Buffer = (uint8_t*)(ResumptionTicket + 1);
+            ResumptionTicket->Length = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
+            QuicCopyMemory(
+                ResumptionTicket->Buffer,
+                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket,
+                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
+            QuicEventSet(EventResumptionTicketReceived);
+        }
 
     default:
         break;
