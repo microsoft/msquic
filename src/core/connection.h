@@ -45,8 +45,12 @@ typedef union QUIC_CONNECTION_STATE {
         // Indicates whether packet number encryption is enabled or not for the
         // connection.
         //
-        BOOLEAN HeaderProtectionEnabled : 1;
+        BOOLEAN HeaderProtectionEnabled : 1; // TODO - Remove since it's not used
 
+        //
+        // Indicates that 1-RTT encryption has been configured/negotiated to be
+        // disabled.
+        //
         BOOLEAN Disable1RttEncrytion : 1;
 
         //
@@ -56,6 +60,12 @@ typedef union QUIC_CONNECTION_STATE {
         // appliciation, via the listener callback.
         //
         BOOLEAN ExternalOwner : 1;
+
+        //
+        // Indicate the connection is currently in the registration's list of
+        // connections and needs to be removed.
+        //
+        BOOLEAN Registered : 1;
 
         //
         // This flag indicates the client has gotten response from the server.
@@ -960,15 +970,6 @@ void
 QuicConnRegister(
     _Inout_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_REGISTRATION* Registration
-    );
-
-//
-// Unregisters the connection with its current registration.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicConnUnregister(
-    _Inout_ QUIC_CONNECTION* Connection
     );
 
 //

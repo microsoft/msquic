@@ -280,6 +280,7 @@ QuicConnFree(
     if (Connection->State.ExternalOwner) {
         QUIC_TEL_ASSERT(Connection->State.HandleClosed);
         QUIC_TEL_ASSERT(Connection->State.Uninitialized);
+        QUIC_DBG_ASSERT(!Connection->State.Registered);
     }
     QUIC_TEL_ASSERT(Connection->SourceCids.Next == NULL);
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Connection->Streams.ClosedStreams));
@@ -311,6 +312,17 @@ QuicConnFree(
                 QUIC_CID_QUIC_LIST_ENTRY,
                 Link);
         QUIC_FREE(CID);
+    }
+    if (Connection->State.Registered) {
+        QuicDispatchLockAcquire(&Connection->Registration->ConnectionLock);
+        QuicListEntryRemove(&Connection->RegistrationLink);
+        QuicDispatchLockRelease(&Connection->Registration->ConnectionLock);
+        Connection->State.Registered = FALSE;
+        QuicTraceEvent(
+            ConnUnregistered,
+            "[conn][%p] Unregistered from %p",
+            Connection,
+            Connection->Registration);
     }
     if (Connection->Worker != NULL) {
         QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
@@ -356,7 +368,9 @@ QuicConnFree(
     if (Connection->State.Connected) {
         QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_CONNECTED);
     }
-    QuicConnUnregister(Connection);
+    if (Connection->Registration != NULL) {
+        QuicRundownRelease(&Connection->Registration->Rundown);
+    }
     Connection->State.Freed = TRUE;
     QuicTraceEvent(
         ConnDestroyed,
@@ -515,6 +529,18 @@ QuicConnCloseHandle(
     Connection->State.HandleClosed = TRUE;
     Connection->ClientCallbackHandler = NULL;
 
+    if (Connection->State.Registered) {
+        QuicDispatchLockAcquire(&Connection->Registration->ConnectionLock);
+        QuicListEntryRemove(&Connection->RegistrationLink);
+        QuicDispatchLockRelease(&Connection->Registration->ConnectionLock);
+        Connection->State.Registered = FALSE;
+        QuicTraceEvent(
+            ConnUnregistered,
+            "[conn][%p] Unregistered from %p",
+            Connection,
+            Connection->Registration);
+    }
+
     QuicTraceEvent(
         ConnHandleClosed,
         "[conn][%p] Handle closed",
@@ -528,8 +554,20 @@ QuicConnRegister(
     _Inout_ QUIC_REGISTRATION* Registration
     )
 {
-    QuicConnUnregister(Connection); // From any previous registration
+    if (Connection->Registration != NULL) {
+        QuicDispatchLockAcquire(&Connection->Registration->ConnectionLock);
+        QuicListEntryRemove(&Connection->RegistrationLink);
+        QuicDispatchLockRelease(&Connection->Registration->ConnectionLock);
+        QuicRundownRelease(&Connection->Registration->Rundown);
 
+        QuicTraceEvent(
+            ConnUnregistered,
+            "[conn][%p] Unregistered from %p",
+            Connection,
+            Connection->Registration);
+    }
+
+    Connection->State.Registered = TRUE;
     Connection->Registration = Registration;
     BOOLEAN Success = QuicRundownAcquire(&Registration->Rundown);
     QUIC_DBG_ASSERT(Success); UNREFERENCED_PARAMETER(Success);
@@ -546,29 +584,6 @@ QuicConnRegister(
         "[conn][%p] Registered with %p",
         Connection,
         Registration);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicConnUnregister(
-    _Inout_ QUIC_CONNECTION* Connection
-    )
-{
-    if (Connection->Registration != NULL) {
-        QUIC_REGISTRATION* Registration = Connection->Registration;
-        Connection->Registration = NULL;
-
-        QuicDispatchLockAcquire(&Registration->ConnectionLock);
-        QuicListEntryRemove(&Connection->RegistrationLink);
-        QuicDispatchLockRelease(&Registration->ConnectionLock);
-        QuicRundownRelease(&Registration->Rundown);
-
-        QuicTraceEvent(
-            ConnUnregistered,
-            "[conn][%p] Unregistered from %p",
-            Connection,
-            Registration);
-    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -931,7 +931,7 @@ QuicTlsInitialize(
 
     TlsContext->Connection = Config->Connection;
     TlsContext->IsServer = Config->IsServer;
-    TlsContext->SecConfig = QuicTlsSecConfigAddRef(Config->SecConfig);
+    TlsContext->SecConfig = Config->SecConfig;
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
@@ -1036,11 +1036,6 @@ QuicTlsUninitialize(
             OpenSslContextCleaningUp,
             TlsContext->Connection,
             "Cleaning up");
-
-        if (TlsContext->SecConfig != NULL) {
-            QuicTlsSecConfigRelease(TlsContext->SecConfig);
-            TlsContext->SecConfig = NULL;
-        }
 
         if (TlsContext->SNI != NULL) {
             QUIC_FREE(TlsContext->SNI);

@@ -70,7 +70,7 @@ typedef union QUIC_STREAM_FLAGS {
 } QUIC_STREAM_FLAGS;
 
 typedef union QUIC_CONNECTION_STATE {
-    UINT32 Flags;
+    uint32_t Flags;
     struct {
         BOOLEAN Allocated       : 1;    // Allocated. Used for Debugging.
         BOOLEAN Initialized     : 1;    // Initialized successfully. Used for Debugging.
@@ -81,14 +81,20 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN AppClosed       : 1;    // Application (not transport) closed connection.
         BOOLEAN HandleShutdown  : 1;    // Shutdown callback delivered for handle.
         BOOLEAN HandleClosed    : 1;    // Handle closed by application layer.
-        BOOLEAN Uninitialized   : 1;    // Uninitialize started/completed. Used for Debugging.
+        BOOLEAN Uninitialized   : 1;    // Uninitialize started/completed.
         BOOLEAN Freed           : 1;    // Freed. Used for Debugging.
 
         //
         // Indicates whether packet number encryption is enabled or not for the
         // connection.
         //
-        BOOLEAN HeaderProtectionEnabled : 1;
+        BOOLEAN HeaderProtectionEnabled : 1; // TODO - Remove since it's not used
+
+        //
+        // Indicates that 1-RTT encryption has been configured/negotiated to be
+        // disabled.
+        //
+        BOOLEAN Disable1RttEncrytion : 1;
 
         //
         // Indicates whether the current 'owner' of the connection is internal
@@ -97,6 +103,12 @@ typedef union QUIC_CONNECTION_STATE {
         // appliciation, via the listener callback.
         //
         BOOLEAN ExternalOwner : 1;
+
+        //
+        // Indicate the connection is currently in the registration's list of
+        // connections and needs to be removed.
+        //
+        BOOLEAN Registered : 1;
 
         //
         // This flag indicates the client has gotten response from the server.
@@ -136,6 +148,11 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN RemoteAddressSet : 1;
 
         //
+        // Indicates the peer transport parameters variable has been set.
+        //
+        BOOLEAN PeerTransportParameterValid : 1;
+
+        //
         // Indicates the connection needs to queue onto a new worker thread.
         //
         BOOLEAN UpdateWorker : 1;
@@ -166,9 +183,28 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ShareBinding : 1;
 
         //
-        // Indicate the TestTransportParameter variable has been set by the app.
+        // Indicates the TestTransportParameter variable has been set by the app.
         //
         BOOLEAN TestTransportParameterSet : 1;
+
+        //
+        // Indicates the connection is using the round robin stream scheduling
+        // scheme.
+        //
+        BOOLEAN UseRoundRobinStreamScheduling : 1;
+
+        //
+        // Indicates that this connection has resumption enabled and needs to
+        // keep the TLS state and transport parameters until it is done sending
+        // resumption tickets.
+        //
+        BOOLEAN ResumptionEnabled : 1;
+
+        //
+        // Indicates that an app close from a non worker thread is in progress.
+        // Received by the QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE event.
+        //
+        BOOLEAN AppCloseInProgress: 1;
 
 #ifdef QuicVerifierEnabledByAddr
         //

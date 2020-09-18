@@ -452,8 +452,7 @@ QuicBindingAcceptConnection(
     // Find a listener that matches the incoming connection request, by IP, port
     // and ALPN.
     //
-    QUIC_LISTENER* Listener =
-        QuicBindingGetListener(Connection->Paths[0].Binding, Info);
+    QUIC_LISTENER* Listener = QuicBindingGetListener(Binding, Info);
     if (Listener == NULL) {
         QuicTraceEvent(
             ConnError,

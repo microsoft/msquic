@@ -339,23 +339,21 @@ QuicTlsSecConfigCreate(
         }
     }
 
-    QUIC_STATUS Status;
-    QUIC_SEC_CONFIG* SecurityConfig = NULL;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete)")
-    SecurityConfig = QUIC_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG));
+    QUIC_SEC_CONFIG* SecurityConfig = QUIC_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG));
     if (SecurityConfig == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
+    QuicZeroMemory(SecurityConfig, sizeof(QUIC_SEC_CONFIG));
     SecurityConfig->Type = CredConfig->Type;
     SecurityConfig->Flags = CredConfig->Flags;
 
     if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
-        if (CredConfig->Type == QUIC_CREDENTIAL_FLAG_NONE) {
-            goto Format; // Using NULL certificate (stub-only).
-        } else {
+        if (CredConfig->Type != QUIC_CREDENTIAL_FLAG_NONE) {
             Status =
                 QuicCertCreate(
                     CredConfig->Type,
@@ -366,8 +364,6 @@ QuicTlsSecConfigCreate(
                 goto Error;
             }
         }
-
-Format:
 
         SecurityConfig->FormatLength =
             (uint16_t)QuicCertFormat(
@@ -554,15 +550,6 @@ QuicTlsReset(
 
     QUIC_FRE_ASSERT(TlsContext->IsServer == FALSE);
     TlsContext->LastMessageType = QUIC_TLS_MESSAGE_INVALID;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG*
-QuicTlsGetSecConfig(
-    _In_ QUIC_TLS* TlsContext
-    )
-{
-    return QuicTlsSecConfigAddRef(TlsContext->SecConfig);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -284,6 +284,7 @@ MsQuicConfigurationLoadCredentialComplete(
 {
     QUIC_CONFIGURATION* Configuration = (QUIC_CONFIGURATION*)Context;
 
+    QUIC_DBG_ASSERT(Configuration != NULL);
     QUIC_DBG_ASSERT(CredConfig != NULL);
 
     if (QUIC_SUCCEEDED(Status)) {
