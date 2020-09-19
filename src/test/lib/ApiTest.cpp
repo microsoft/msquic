@@ -1015,13 +1015,13 @@ void QuicTestValidateStream(bool Connect)
 
     MsQuicAlpn Alpn("MsQuicTest");
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, SelfSignedCredConfig);
-    TEST_TRUE(ServerConfiguration.IsValid());
-
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(32);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
     QUIC_BUFFER Buffers[1] = {};

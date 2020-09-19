@@ -77,7 +77,7 @@ class TestConnection
     NEW_STREAM_CALLBACK_HANDLER NewStreamCallback;
     CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER ShutdownCompleteCallback;
 
-    QUIC_BUFFER* ResumptionTicket;
+    QUIC_BUFFER* ResumptionTicket {nullptr};
 
     uint32_t DatagramsSent;
     uint32_t DatagramsCanceled;
