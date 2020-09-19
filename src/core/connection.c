@@ -5961,7 +5961,7 @@ QuicConnParamSet(
         }
 
         uint16_t Offset = 0;
-        QUIC_VAR_INT TicketVersion = 0, AlpnLength = 0, TPLength = 0, TicketLength = 0;
+        QUIC_VAR_INT TicketVersion = 0, TPLength = 0, TicketLength = 0;
         if (!QuicVarIntDecode((uint16_t)BufferLength, Buffer, &Offset, &TicketVersion)) {
             QuicTraceEvent(
                 ConnError,
@@ -6014,7 +6014,7 @@ QuicConnParamSet(
         Offset += (uint16_t)TPLength;
         if (TicketLength > 0) {
             Offset += (uint16_t)TicketLength;
-            Connection->Crypto.ResumptionTicket = QUIC_ALLOC_NONPAGED(TicketLength);
+            Connection->Crypto.ResumptionTicket = QUIC_ALLOC_NONPAGED((uint16_t)TicketLength);
             if (Connection->Crypto.ResumptionTicket == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
