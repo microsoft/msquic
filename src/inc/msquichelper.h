@@ -403,9 +403,9 @@ GetServerConfigurationFromArgs(
     const char* Cert;
     const char* KeyFile;
 
-    if ((Cert = GetValue(argc, argv, "thumbprint")) != nullptr ||
-        (Cert = GetValue(argc, argv, "cert_hash")) != nullptr ||
-        (Cert = GetValue(argc, argv, "hash")) != nullptr) {
+    if (((Cert = GetValue(argc, argv, "thumbprint")) != nullptr) ||
+        ((Cert = GetValue(argc, argv, "cert_hash")) != nullptr) ||
+        ((Cert = GetValue(argc, argv, "hash")) != nullptr)) {
         uint32_t CertHashLen =
             DecodeHexBuffer(
                 Cert,
@@ -423,8 +423,10 @@ GetServerConfigurationFromArgs(
                 QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
 
     } else if (
-        (Cert = GetValue(argc, argv, "file")) != nullptr && (KeyFile = GetValue(argc, argv, "key")) != nullptr ||
-        (Cert = GetValue(argc, argv, "cert_file")) != nullptr && (KeyFile = GetValue(argc, argv, "cert_key")) != nullptr) {
+        (((Cert = GetValue(argc, argv, "file")) != nullptr) &&
+         ((KeyFile = GetValue(argc, argv, "key")) != nullptr)) ||
+        (((Cert = GetValue(argc, argv, "cert_file")) != nullptr) &&
+         ((KeyFile = GetValue(argc, argv, "cert_key")) != nullptr))) {
         Helper.CertFile.CertificateFile = (char*)Cert;
         Helper.CertFile.PrivateKeyFile = (char*)KeyFile;
         Helper.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
@@ -439,7 +441,7 @@ GetServerConfigurationFromArgs(
 #endif
 
     } else {
-        return false;
+        return nullptr;
     }
 
 #ifdef QUIC_TEST_APIS
