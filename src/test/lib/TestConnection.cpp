@@ -56,6 +56,7 @@ TestConnection::TestConnection(
     QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
     QuicEventInitialize(&EventShutdownComplete, TRUE, FALSE);
+    QuicEventInitialize(&EventResumptionTicketReceived, TRUE, FALSE);
 
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
@@ -72,6 +73,7 @@ TestConnection::TestConnection(
 TestConnection::~TestConnection()
 {
     MsQuic->ConnectionClose(QuicConnection);
+    QuicEventUninitialize(EventResumptionTicketReceived);
     QuicEventUninitialize(EventShutdownComplete);
     QuicEventUninitialize(EventPeerClosed);
     QuicEventUninitialize(EventConnectionComplete);

@@ -6024,7 +6024,7 @@ QuicConnParamSet(
                     Status = QUIC_STATUS_OUT_OF_MEMORY;
                     break;
             }
-            QuicCopyMemory(Connection->Crypto.ResumptionTicket, (uint8_t*)Buffer + Offset, TicketLength);
+            QuicCopyMemory(Connection->Crypto.ResumptionTicket, (uint8_t*)Buffer + Offset, (uint16_t)TicketLength);
             Connection->Crypto.ResumptionTicketLength = (uint32_t)TicketLength;
         }
         QUIC_DBG_ASSERT(BufferLength == Offset);

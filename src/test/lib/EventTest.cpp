@@ -401,18 +401,24 @@ QuicTestValidateConnectionEvents3(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
-    QUIC_BUFFER* ResumptionTicket = nullptr;
-    QuicTestPrimeResumption(&ResumptionTicket);
-    if (!ResumptionTicket) {
-        return;
-    }
-
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
+    MsQuicSettings Settings;
+    Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, SelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
+
+    QUIC_BUFFER* ResumptionTicket = nullptr;
+    QuicTestPrimeResumption(
+        Registration,
+        ServerConfiguration,
+        ClientConfiguration,
+        &ResumptionTicket);
+    if (!ResumptionTicket) {
+        return;
+    }
 
     ConnValidator Client(
         new(std::nothrow) ConnEventValidator* [4] {

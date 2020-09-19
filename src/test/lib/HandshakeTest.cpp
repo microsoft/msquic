@@ -31,24 +31,16 @@ void QuicTestUninitialize()
     DatapathHooks::Instance = nullptr;
 }
 
-void QuicTestPrimeResumption(_Out_ QUIC_BUFFER** ResumptionTicket)
+void
+QuicTestPrimeResumption(
+    _In_ MsQuicRegistration& Registration,
+    _In_ MsQuicConfiguration& ServerConfiguration,
+    _In_ MsQuicConfiguration& ClientConfiguration,
+    _Out_ QUIC_BUFFER** ResumptionTicket
+    )
 {
     TestScopeLogger logScope("PrimeResumption");
     *ResumptionTicket = nullptr;
-
-    MsQuicRegistration Registration(true);
-    TEST_TRUE(Registration.IsValid());
-
-    MsQuicAlpn Alpn("MsQuicTest");
-
-    MsQuicSettings Settings;
-    Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, SelfSignedCredConfig);
-    TEST_TRUE(ServerConfiguration.IsValid());
-
-    MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
-    TEST_TRUE(ClientConfiguration.IsValid());
 
     struct PrimeResumption {
         _Function_class_(NEW_CONNECTION_CALLBACK) static void
@@ -68,7 +60,7 @@ void QuicTestPrimeResumption(_Out_ QUIC_BUFFER** ResumptionTicket)
     TEST_TRUE(Listener.IsValid());
 
     QuicAddr ServerLocalAddr;
-    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
     {
@@ -83,7 +75,12 @@ void QuicTestPrimeResumption(_Out_ QUIC_BUFFER** ResumptionTicket)
         if (Client.WaitForConnectionComplete()) {
             TEST_TRUE(Client.GetIsConnected());
             *ResumptionTicket = Client.WaitForResumptionTicket();
+            if (*ResumptionTicket == nullptr) {
+                TEST_FAILURE("Failed to prime resumption ticket.");
+            }
         }
+
+        Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
     }
 }
 
@@ -159,7 +156,11 @@ QuicTestConnect(
 
     QUIC_BUFFER* ResumptionTicket = nullptr;
     if (SessionResumption) {
-        QuicTestPrimeResumption(&ResumptionTicket);
+        QuicTestPrimeResumption(
+            Registration,
+            ServerConfiguration,
+            ClientConfiguration,
+            &ResumptionTicket);
         if (!ResumptionTicket) {
             return;
         }

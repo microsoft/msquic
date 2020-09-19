@@ -383,7 +383,11 @@ QuicTestConnectAndPing(
     }
 
     if (ClientZeroRtt) {
-        QuicTestPrimeResumption(&ClientStats.ResumptionTicket);
+        QuicTestPrimeResumption(
+            Registration,
+            ServerConfiguration,
+            ClientConfiguration,
+            &ClientStats.ResumptionTicket);
         if (!ClientStats.ResumptionTicket) {
             return;
         }
@@ -801,7 +805,7 @@ QuicAbortiveConnectionHandler(
         case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
             MsQuic->SetCallbackHandler(
                 Event->PEER_STREAM_STARTED.Stream,
-                (void*) QuicAbortiveStreamHandler,
+                (void*)QuicAbortiveStreamHandler,
                 Context);
 
             if (TestContext->Server &&
@@ -838,6 +842,10 @@ QuicAbortiveConnectionHandler(
         case QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED:
             __fallthrough;
         case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_RESUMED:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
             return QUIC_STATUS_SUCCESS;
         default:
             TEST_FAILURE(
@@ -1306,7 +1314,7 @@ QuicRecvResumeConnectionHandler(
         case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
             MsQuic->SetCallbackHandler(
                 Event->PEER_STREAM_STARTED.Stream,
-                (void*) QuicRecvResumeStreamHandler,
+                (void*)QuicRecvResumeStreamHandler,
                 Context);
             TestContext->Stream.Handle = Event->PEER_STREAM_STARTED.Stream;
             QuicEventSet(TestContext->StreamEvent.Handle);
@@ -1329,6 +1337,10 @@ QuicRecvResumeConnectionHandler(
         case QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED:
             __fallthrough;
         case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_RESUMED:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
             return QUIC_STATUS_SUCCESS;
         default:
             TEST_FAILURE(
