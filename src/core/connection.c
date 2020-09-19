@@ -2018,10 +2018,10 @@ QuicConnSendResumptionTicket(
     //   Ticket Version (QUIC_VAR_INT) [1..4]
     //   Quic Version [4]
     //   Negotiated ALPN length (QUIC_VAR_INT) [1..2]
-    //   Negotiated ALPN [...]
     //   Transport Parameters length (QUIC_VAR_INT) [1..2]
-    //   Transport Parameters [...]
     //   App Ticket length (QUIC_VAR_INT) [1..2]
+    //   Negotiated ALPN [...]
+    //   Transport Parameters [...]
     //   App Ticket (omitted if length is zero) [...]
     //
 
@@ -2030,12 +2030,12 @@ QuicConnSendResumptionTicket(
     *(uint32_t*)TicketCursor = QuicByteSwapUint32(QUIC_VERSION_LATEST);
     TicketCursor += sizeof(QUIC_VERSION_LATEST);
     TicketCursor = QuicVarIntEncode(AlpnLength, TicketCursor);
+    TicketCursor = QuicVarIntEncode(EncodedTransportParametersLength, TicketCursor);
+    TicketCursor = QuicVarIntEncode(AppDataLength, TicketCursor);
     QuicCopyMemory(TicketCursor, Connection->Crypto.TlsState.NegotiatedAlpn + 1, AlpnLength);
     TicketCursor += AlpnLength;
-    TicketCursor = QuicVarIntEncode(EncodedTransportParametersLength, TicketCursor);
     QuicCopyMemory(TicketCursor, EncodedHSTP, EncodedTransportParametersLength);
     TicketCursor += EncodedTransportParametersLength;
-    TicketCursor = QuicVarIntEncode(AppDataLength, TicketCursor);
     if (AppDataLength > 0) {
         QuicCopyMemory(TicketCursor, AppResumptionData, AppDataLength);
         TicketCursor += AppDataLength;
@@ -2110,6 +2110,25 @@ QuicConnRecvResumptionTicket(
                 "Resumption Ticket ALPN length failed to decode");
             goto Error;
         }
+
+        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &TPLength)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket TP length failed to decode");
+            goto Error;
+        }
+
+        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &AppTicketLength)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket app data length failed to decode");
+            goto Error;
+        }
+
         if (QuicTlsAlpnFindInList(
                 Connection->Configuration->AlpnListLength, Connection->Configuration->AlpnList,
                 (uint8_t)AlpnLength, Ticket + Offset) == NULL) {
@@ -2122,14 +2141,6 @@ QuicConnRecvResumptionTicket(
         }
         Offset += (uint16_t)AlpnLength;
 
-        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &TPLength)) {
-            QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Resumption Ticket TP length failed to decode");
-            goto Error;
-        }
         if (!QuicCryptoTlsDecodeTransportParameters(
                 Connection,
                 Ticket + Offset,
@@ -2163,15 +2174,6 @@ QuicConnRecvResumptionTicket(
                 "[conn][%p] ERROR, %s.",
                 Connection,
                 "Resumption Ticket transport params greater than current server settings");
-            goto Error;
-        }
-
-        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &AppTicketLength)) {
-            QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Resumption Ticket app data length failed to decode");
             goto Error;
         }
 
@@ -2243,17 +2245,17 @@ QuicConnRecvResumptionTicket(
         // Encoded ticket blob format is as follows:
         //   Ticket Version (QUIC_VAR_INT) [1..4]
         //   Transport Parameters length (QUIC_VAR_INT) [1..2]
-        //   Transport Parameters [...]
         //   Received Ticket length (QUIC_VAR_INT) [1..2]
+        //   Transport Parameters [...]
         //   Received Ticket (omitted if length is zero) [...]
         //
 
         _Analysis_assume_(sizeof(*TicketBlobBuffer) >= 8);
         uint8_t* TicketCursor = QuicVarIntEncode(QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION, TicketBlobBuffer);
         TicketCursor = QuicVarIntEncode(EncodedTransportParametersLength, TicketCursor);
+        TicketCursor = QuicVarIntEncode(TicketLength, TicketCursor);
         QuicCopyMemory(TicketCursor, EncodedServerTP, EncodedTransportParametersLength);
         TicketCursor += EncodedTransportParametersLength;
-        TicketCursor = QuicVarIntEncode(TicketLength, TicketCursor);
         if (TicketLength > 0) {
             QuicCopyMemory(TicketCursor, Ticket, TicketLength);
             TicketCursor += TicketLength;
@@ -5960,10 +5962,6 @@ QuicConnParamSet(
 
         uint16_t Offset = 0;
         QUIC_VAR_INT TicketVersion = 0, AlpnLength = 0, TPLength = 0, TicketLength = 0;
-        //
-        // As long as the Ticket blob for the client keeps the transport params
-        // length below 65k, casting BufferLength to uint16_t will be fine.
-        //
         if (!QuicVarIntDecode((uint16_t)BufferLength, Buffer, &Offset, &TicketVersion)) {
             QuicTraceEvent(
                 ConnError,
@@ -5991,6 +5989,15 @@ QuicConnParamSet(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
+        if (!QuicVarIntDecode((uint16_t)BufferLength, Buffer, &Offset, &TicketLength)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket data length failed to decode");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
         if (!QuicCryptoTlsDecodeTransportParameters(
                 Connection,
                 (uint8_t*)Buffer + Offset,
@@ -6005,15 +6012,6 @@ QuicConnParamSet(
             break;
         }
         Offset += (uint16_t)TPLength;
-        if (!QuicVarIntDecode((uint16_t)BufferLength, Buffer, &Offset, &TicketLength)) {
-            QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Resumption Ticket data length failed to decode");
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
         if (TicketLength > 0) {
             Offset += (uint16_t)TicketLength;
             Connection->Crypto.ResumptionTicket = QUIC_ALLOC_NONPAGED(TicketLength);
@@ -6026,6 +6024,7 @@ QuicConnParamSet(
                     Status = QUIC_STATUS_OUT_OF_MEMORY;
                     break;
             }
+            QuicCopyMemory(Connection->Crypto.ResumptionTicket, (uint8_t*)Buffer + Offset, TicketLength);
             Connection->Crypto.ResumptionTicketLength = (uint32_t)TicketLength;
         }
         QUIC_DBG_ASSERT(BufferLength == Offset);
