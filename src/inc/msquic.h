@@ -515,6 +515,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #ifdef QUIC_API_ENABLE_INSECURE_FEATURES
 #define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         22  // uint8_t (BOOLEAN)
 #endif
+#define QUIC_PARAM_CONN_RESUMPTION_STATE                23  // uint8_t[]
 
 #ifdef WIN32 // Windows certificate validation ignore flags.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080

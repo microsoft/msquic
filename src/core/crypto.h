@@ -93,6 +93,12 @@ typedef struct QUIC_CRYPTO {
     //
     QUIC_RECV_BUFFER RecvBuffer;
 
+    //
+    // Resumption ticket to send to server.
+    //
+    uint8_t* ResumptionTicket;
+    uint32_t ResumptionTicketLength;
+
 } QUIC_CRYPTO;
 
 inline

@@ -418,8 +418,8 @@ QuicConnApplySettings(
             Connection->ParentSettings->PeerUnidiStreamCount);
     }
 
-    if ((Connection->ParentSettings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME ||
-        !QuicConnIsServer(Connection)) && Connection->HandshakeTP == NULL) {
+    if (Connection->ParentSettings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
+        Connection->HandshakeTP == NULL) {
         QUIC_DBG_ASSERT(!Connection->State.Started);
         Connection->HandshakeTP =
             QuicPoolAlloc(&MsQuicLib.PerProc[QuicProcCurrentNumber()].TransportParamPool);
@@ -2200,15 +2200,11 @@ QuicConnRecvResumptionTicket(
 
         uint32_t EncodedTransportParametersLength = 0;
         uint8_t* TicketBlobBuffer = NULL;
-        const uint8_t* EncodedHSTP = NULL;
+        const uint8_t* EncodedServerTP = NULL;
 
-        if (Connection->HandshakeTP == NULL) {
-            // TODO: Log missing TP?
-            goto Error;
-        }
-
-        QUIC_TRANSPORT_PARAMETERS HSTPCopy = *Connection->HandshakeTP;
-        HSTPCopy.Flags = HSTPCopy.Flags & (
+        QUIC_DBG_ASSERT(Connection->State.PeerTransportParameterValid);
+        QUIC_TRANSPORT_PARAMETERS ServerTPCopy = Connection->PeerTransportParams;
+        ServerTPCopy.Flags = ServerTPCopy.Flags & (
             QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
             QUIC_TP_FLAG_INITIAL_MAX_DATA |
             QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
@@ -2217,12 +2213,12 @@ QuicConnRecvResumptionTicket(
             QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI |
             QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI);
 
-        EncodedHSTP =
+        EncodedServerTP =
             QuicCryptoTlsEncodeTransportParameters(
                 Connection,
-                &HSTPCopy,
+                &ServerTPCopy,
                 &EncodedTransportParametersLength);
-        if (EncodedHSTP == NULL) {
+        if (EncodedServerTP == NULL) {
             goto Error;
         }
 
@@ -2240,7 +2236,7 @@ QuicConnRecvResumptionTicket(
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Client resumption ticket",
                 TotalTicketLength);
-            goto Error;
+            goto ClientError;
         }
 
         //
@@ -2255,7 +2251,7 @@ QuicConnRecvResumptionTicket(
         _Analysis_assume_(sizeof(*TicketBlobBuffer) >= 8);
         uint8_t* TicketCursor = QuicVarIntEncode(QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION, TicketBlobBuffer);
         TicketCursor = QuicVarIntEncode(EncodedTransportParametersLength, TicketCursor);
-        QuicCopyMemory(TicketCursor, EncodedHSTP, EncodedTransportParametersLength);
+        QuicCopyMemory(TicketCursor, EncodedServerTP, EncodedTransportParametersLength);
         TicketCursor += EncodedTransportParametersLength;
         TicketCursor = QuicVarIntEncode(TicketLength, TicketCursor);
         if (TicketLength > 0) {
@@ -2271,13 +2267,13 @@ QuicConnRecvResumptionTicket(
         ResumptionAccepted =
             QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
 
-Error:
+ClientError:
         if (TicketBlobBuffer != NULL) {
             QUIC_FREE(TicketBlobBuffer);
         }
 
-        if (EncodedHSTP != NULL) {
-            QUIC_FREE(EncodedHSTP);
+        if (EncodedServerTP != NULL) {
+            QUIC_FREE(EncodedServerTP);
         }
     }
 
@@ -2546,7 +2542,7 @@ QuicConnSetConfiguration(
     // Persist the transport parameters used during handshake for resumption.
     // (if resumption is enabled)
     //
-    if (Connection->HandshakeTP != NULL) {
+    if (QuicConnIsServer(Connection) && Connection->HandshakeTP != NULL) {
         QUIC_DBG_ASSERT(Connection->State.ResumptionEnabled);
         *Connection->HandshakeTP = LocalTP;
     }
@@ -5948,6 +5944,96 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_CONN_RESUMPTION_STATE: {
+        if (BufferLength == 0 || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        //
+        // Must be set before the connection is started.
+        //
+        if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        uint16_t Offset = 0;
+        QUIC_VAR_INT TicketVersion = 0, AlpnLength = 0, TPLength = 0, TicketLength = 0;
+        //
+        // As long as the Ticket blob for the client keeps the transport params
+        // length below 65k, casting BufferLength to uint16_t will be fine.
+        //
+        if (!QuicVarIntDecode((uint16_t)BufferLength, Buffer, &Offset, &TicketVersion)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Client Ticket version failed to decode");
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+        }
+        if (TicketVersion != QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Client Ticket version unsupported");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        if (!QuicVarIntDecode((uint16_t)BufferLength, Buffer, &Offset, &TPLength)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Client Ticket TP length failed to decode");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        if (!QuicCryptoTlsDecodeTransportParameters(
+                Connection,
+                (uint8_t*)Buffer + Offset,
+                (uint16_t)TPLength,
+                &Connection->PeerTransportParams)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket TParams failed to decode");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        Offset += (uint16_t)TPLength;
+        if (!QuicVarIntDecode((uint16_t)BufferLength, Buffer, &Offset, &TicketLength)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket data length failed to decode");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        if (TicketLength > 0) {
+            Offset += (uint16_t)TicketLength;
+            Connection->Crypto.ResumptionTicket = QUIC_ALLOC_NONPAGED(TicketLength);
+            if (Connection->Crypto.ResumptionTicket == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Resumption ticket copy",
+                    TicketLength);
+                    Status = QUIC_STATUS_OUT_OF_MEMORY;
+                    break;
+            }
+            Connection->Crypto.ResumptionTicketLength = (uint32_t)TicketLength;
+        }
+        QUIC_DBG_ASSERT(BufferLength == Offset);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -6227,65 +6313,6 @@ QuicConnParamGet(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
-
-    case QUIC_PARAM_CONN_RESUMPTION_STATE: {
-
-        if (QuicConnIsServer(Connection)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (Connection->RemoteServerName == NULL) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        uint32_t RequiredBufferLength = 0;
-        Status = QuicTlsReadTicket(Connection->Crypto.TLS, &RequiredBufferLength, NULL);
-        if (Status != QUIC_STATUS_BUFFER_TOO_SMALL) {
-            QuicTraceLogConnVerbose(
-                ReadTicketFailure,
-                Connection,
-                "QuicTlsReadTicket failed, 0x%x",
-                Status);
-            break;
-        }
-
-        _Analysis_assume_(strlen(Connection->RemoteServerName) <= (size_t)UINT16_MAX);
-        uint16_t RemoteServerNameLength = (uint16_t)strlen(Connection->RemoteServerName);
-
-        QUIC_SERIALIZED_RESUMPTION_STATE* State =
-            (QUIC_SERIALIZED_RESUMPTION_STATE*)Buffer;
-
-        RequiredBufferLength += sizeof(QUIC_SERIALIZED_RESUMPTION_STATE);
-        RequiredBufferLength += RemoteServerNameLength;
-
-        if (*BufferLength < RequiredBufferLength) {
-            *BufferLength = RequiredBufferLength;
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        State->QuicVersion = Connection->Stats.QuicVersion;
-        State->TransportParameters = Connection->PeerTransportParams;
-        State->ServerNameLength = RemoteServerNameLength;
-        memcpy(State->Buffer, Connection->RemoteServerName, State->ServerNameLength);
-
-        uint32_t TempBufferLength = *BufferLength - RemoteServerNameLength;
-        Status =
-            QuicTlsReadTicket(
-                Connection->Crypto.TLS,
-                &TempBufferLength,
-                State->Buffer + RemoteServerNameLength);
-        *BufferLength = RequiredBufferLength;
-
-        break;
-    }
 
     case QUIC_PARAM_CONN_SEND_BUFFERING:
 

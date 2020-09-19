@@ -271,6 +271,8 @@ QuicCryptoInitializeTls(
     }
     TlsConfig.SecConfig = SecConfig;
     TlsConfig.Connection = Connection;
+    TlsConfig.ResumptionTicketBuffer = Crypto->ResumptionTicket;
+    TlsConfig.ResumptionTicketLength = Crypto->ResumptionTicketLength;
     TlsConfig.ProcessCompleteCallback = QuicTlsProcessDataCompleteCallback;
     TlsConfig.ReceiveTPCallback = QuicConnReceiveTP;
     TlsConfig.ReceiveResumptionCallback = QuicConnRecvResumptionTicket;
@@ -356,6 +358,12 @@ QuicCryptoHandshakeConfirmed(
     QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_DBG_ASSERT(Path->Binding != NULL);
     QuicBindingOnConnectionHandshakeConfirmed(Path->Binding, Connection);
+
+    if (Crypto->ResumptionTicket != NULL) {
+        QUIC_FREE(Crypto->ResumptionTicket);
+        Crypto->ResumptionTicketLength = 0;
+        Crypto->ResumptionTicket = NULL;
+    }
 
     QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_HANDSHAKE);
 }
