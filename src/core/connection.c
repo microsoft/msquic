@@ -2198,6 +2198,7 @@ QuicConnRecvResumptionTicket(
         }
 
         QUIC_DBG_ASSERT(Offset + AppTicketLength == TicketLength);
+
     } else {
 
         uint32_t EncodedTransportParametersLength = 0;

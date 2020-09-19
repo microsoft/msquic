@@ -54,7 +54,7 @@ ConnectionHandler(
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->ConnectionClose(Connection);
-        QuicEventSet(&Context);
+        QuicEventSet(Context->Complete);
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         return QUIC_STATUS_NOT_SUPPORTED;
