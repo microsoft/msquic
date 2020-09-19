@@ -314,7 +314,7 @@ QuicTlsSecConfigCreate(
     SecurityConfig->Flags = CredConfig->Flags;
 
     if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
-        if (CredConfig->Type != QUIC_CREDENTIAL_FLAG_NONE) {
+        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
             Status =
                 QuicCertCreate(
                     CredConfig->Type,
