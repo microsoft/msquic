@@ -19,10 +19,6 @@
 #define VERIFY_QUIC_SUCCESS(result, ...) \
     if (QUIC_FAILED(result)) { printf(#result " failed.\n"); exit(0); }
 
-const uint32_t CertValidationIgnoreFlags =
-    QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
-    QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
-
 struct TlsContext
 {
     QUIC_TLS* Ptr;

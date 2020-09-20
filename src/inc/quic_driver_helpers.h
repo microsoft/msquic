@@ -367,10 +367,10 @@ public:
 class QuicDriverClient {
 public:
     bool Initialize(
-        _In_ QUIC_SEC_CONFIG_PARAMS* SecConfigParams,
+        _In_ QUIC_CERTIFICATE_HASH* CertHash,
         _In_z_ const char* DriverName
     ) {
-        UNREFERENCED_PARAMETER(SecConfigParams);
+        UNREFERENCED_PARAMETER(CertHash);
         UNREFERENCED_PARAMETER(DriverName);
         return false;
     }

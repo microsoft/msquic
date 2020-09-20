@@ -353,6 +353,12 @@ QuicTestConnectAndPing(
     PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
     PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
+    if (ServerRejectZeroRtt) {
+        //
+        // TODO: Validate new connections don't do 0-RTT
+        //
+    }
+
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
@@ -367,25 +373,28 @@ QuicTestConnectAndPing(
         Settings.SetPeerUnidiStreamCount(TotalStreamCount);
     }
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
-    TEST_TRUE(ServerConfiguration.IsValid());
+    uint8_t GoodTicketKey[44] = {0};
+    MsQuicCredentialConfig GoodServerConfig(SelfSignedCredConfig);
+    GoodServerConfig.TicketKey = GoodTicketKey;
+
+    uint8_t BadTicketKey[44] = {1};
+    MsQuicCredentialConfig BadServerConfig(SelfSignedCredConfig);
+    BadServerConfig.TicketKey = BadTicketKey;
+
+    MsQuicConfiguration GoodServerConfiguration(Registration, Alpn, Settings, GoodServerConfig);
+    TEST_TRUE(GoodServerConfiguration.IsValid());
+
+    MsQuicConfiguration BadServerConfiguration(Registration, Alpn, Settings, BadServerConfig);
+    TEST_TRUE(BadServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    if (ServerRejectZeroRtt) {
-        uint8_t NewTicketKey[44] = {1};
-        //
-        // TODO: Validate new connections don't do 0-RTT
-        //
-        // TODO - TEST_QUIC_SUCCEEDED(Session.SetTlsTicketKey(NewTicketKey));
-    }
-
     if (ClientZeroRtt) {
         QuicTestPrimeResumption(
             Registration,
-            ServerConfiguration,
+            GoodServerConfiguration,
             ClientConfiguration,
             &ClientStats.ResumptionTicket);
         if (!ClientStats.ResumptionTicket) {
@@ -396,17 +405,16 @@ QuicTestConnectAndPing(
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
 
     {
-        TestListener Listener(Registration, ListenerAcceptPingConnection, ServerConfiguration, UseSendBuffer);
+        TestListener Listener(
+            Registration,
+            ListenerAcceptPingConnection,
+            ServerRejectZeroRtt ? BadServerConfiguration : GoodServerConfiguration,
+            UseSendBuffer);
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-        if (ServerRejectZeroRtt) {
-            //uint8_t NewTicketKey[44] = {0};
-            // TODO - TEST_QUIC_SUCCEEDED(Session.SetTlsTicketKey(NewTicketKey));
-        }
 
         Listener.Context = &ServerStats;
 
