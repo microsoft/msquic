@@ -29,6 +29,8 @@ jobs:
 
       # Install dependencies and build submodules before starting analysis.
       - run: |
+         sudo apt-add-repository ppa:lttng/stable-2.11
+         sudo apt-get update
          sudo apt-get install -y liblttng-ust-dev
          sudo sh scripts/install-powershell-docker.sh
          mkdir build
