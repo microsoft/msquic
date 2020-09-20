@@ -284,6 +284,8 @@ function CMake-Generate {
     }
     if ($CI) {
         $Arguments += " -DQUIC_CI=ON"
+        $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
+        $Arguments += " -DQUIC_VER_SUFFIX=`"-official`""
     }
     $Arguments += " ../../.."
 
