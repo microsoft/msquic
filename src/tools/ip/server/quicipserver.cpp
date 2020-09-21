@@ -138,7 +138,7 @@ ServerListenerCallback(
     default:
         break;
     }
-    return QUIC_STATUS_SUCCESS;
+    return Status;
 }
 
 void
