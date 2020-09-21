@@ -494,7 +494,7 @@ QuicListenerClaimConnection(
     // connection and return the server configuration.
     //
 
-    Connection->State.ExternalOwner = TRUE;
+    Connection->State.ListenerAccepted = TRUE;
 
     QUIC_LISTENER_EVENT Event;
     Event.Type = QUIC_LISTENER_EVENT_NEW_CONNECTION;
@@ -519,7 +519,6 @@ QuicListenerClaimConnection(
             Listener,
             Status,
             "NEW_CONNECTION callback");
-        Connection->State.ExternalOwner = FALSE;
         QuicConnTransportError(
             Connection,
             QUIC_ERROR_CONNECTION_REFUSED);
@@ -534,7 +533,7 @@ QuicListenerClaimConnection(
         Connection->ClientCallbackHandler != NULL,
         "App MUST set callback handler!");
 
-    Connection->State.ListenerAccepted = TRUE;
+    Connection->State.ExternalOwner = TRUE;
     Connection->State.UpdateWorker = TRUE;
 
     return TRUE;

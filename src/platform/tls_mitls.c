@@ -167,9 +167,7 @@ QuicPacketKeyCreate(
 //
 typedef struct QUIC_SEC_CONFIG {
 
-    //
-    // Configuration flags.
-    //
+    QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
 
     //
@@ -410,6 +408,7 @@ QuicTlsSecConfigCreate(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
+    SecurityConfig->Type = CredConfig->Type;
     SecurityConfig->Flags = CredConfig->Flags;
     SecurityConfig->Certificate = NULL;
     SecurityConfig->PrivateKey = NULL;
@@ -498,7 +497,7 @@ QuicTlsSecConfigDelete(
         QuicCertDeletePrivateKey(SecurityConfig->PrivateKey);
     }
     if (SecurityConfig->Certificate != NULL &&
-        !(SecurityConfig->Flags & QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT)) {
+        (SecurityConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT)) {
         QuicCertFree(SecurityConfig->Certificate);
     }
     QUIC_FREE(SecurityConfig);

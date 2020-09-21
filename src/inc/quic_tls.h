@@ -395,7 +395,7 @@ QuicTlsAlpnFindInList(
     )
 {
     while (AlpnListLength != 0) {
-        QUIC_ANALYSIS_ASSUME(AlpnList[0] + 1 <= AlpnListLength);
+        QUIC_DBG_ASSERT(AlpnList[0] + 1 <= AlpnListLength);
         if (AlpnList[0] == FindAlpnLength &&
             memcmp(AlpnList+1, FindAlpn, FindAlpnLength) == 0) {
             return AlpnList;

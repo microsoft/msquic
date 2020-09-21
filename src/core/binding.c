@@ -469,7 +469,21 @@ QuicBindingAcceptConnection(
     // Save the negotiated ALPN (starting with the length prefix) to be
     // used later in building up the TLS response.
     //
-    Connection->Crypto.TlsState.NegotiatedAlpn = Info->NegotiatedAlpn - 1;
+    uint16_t NegotiatedAlpnLength = 1 + Info->NegotiatedAlpn[-1];
+    uint8_t* NegotiatedAlpn = QUIC_ALLOC_NONPAGED(NegotiatedAlpnLength);
+    if (NegotiatedAlpn == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "NegotiatedAlpn",
+            NegotiatedAlpnLength);
+        QuicConnTransportError(
+            Connection,
+            QUIC_ERROR_INTERNAL_ERROR);
+        return;
+    }
+    QuicCopyMemory(NegotiatedAlpn, Info->NegotiatedAlpn - 1, NegotiatedAlpnLength);
+    Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
 
     //
     // Allow for the listener to decide if it wishes to accept the incoming

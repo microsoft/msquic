@@ -239,6 +239,11 @@ QuicCryptoUninitialize(
         QUIC_FREE(Crypto->ResumptionTicket);
         Crypto->ResumptionTicket = NULL;
     }
+    if (Crypto->TlsState.NegotiatedAlpn != NULL &&
+        QuicConnIsServer(QuicCryptoGetConnection(Crypto))) {
+        QUIC_FREE(Crypto->TlsState.NegotiatedAlpn);
+        Crypto->TlsState.NegotiatedAlpn = NULL;
+    }
     if (Crypto->Initialized) {
         QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
         QuicRangeUninitialize(&Crypto->SparseAckRanges);
@@ -1521,13 +1526,12 @@ QuicCryptoProcessData(
             goto Error;
         }
 
-        if (BufferOffset == 0 &&
-            QuicConnIsServer(Connection) &&
-            !Connection->State.ExternalOwner) {
+        if (QuicConnIsServer(Connection) && !Connection->State.ListenerAccepted) {
             //
             // Preprocess the TLS ClientHello to find the ALPN (and optionally
             // SNI) to match the connection to a listener.
             //
+            QUIC_DBG_ASSERT(BufferOffset == 0);
             QUIC_NEW_CONNECTION_INFO Info = {0};
             QUIC_STATUS Status =
                 QuicCryptoTlsReadInitial(
