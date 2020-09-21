@@ -33,7 +33,6 @@ class TestListener
     HQUIC QuicConfiguration;
 
     bool FilterConnections : 1;
-    bool SetConfiguration  : 1;
     bool UseSendBuffer     : 1;
     bool HasRandomLoss     : 1;
 

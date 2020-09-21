@@ -100,6 +100,7 @@ PerfServer::ListenerCallback(
     _In_ HQUIC /*ListenerHandle*/,
     _Inout_ QUIC_LISTENER_EVENT* Event
     ) {
+    QUIC_STATUS Status = QUIC_STATUS_NOT_SUPPORTED;
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
         BOOLEAN value = TRUE;
@@ -120,11 +121,11 @@ PerfServer::ListenerCallback(
                         Event);
             };
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)Handler, this);
-        Event->NEW_CONNECTION.Configuration = Configuration;
+        Status = MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, Configuration);
         break;
     }
     }
-    return QUIC_STATUS_SUCCESS;
+    return Status;
 }
 
 QUIC_STATUS

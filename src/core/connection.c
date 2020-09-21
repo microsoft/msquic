@@ -1467,7 +1467,7 @@ QuicConnTryClose(
     if (!ClosedRemotely) {
 
         if ((Flags & QUIC_CLOSE_APPLICATION) &&
-            Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
+            QuicCryptoGetNextEncryptLevel(&Connection->Crypto) < QUIC_ENCRYPT_LEVEL_1_RTT) {
             //
             // Application close can only happen if we are using 1-RTT keys.
             // Otherwise we have to send "user_canceled" TLS error code as a
@@ -1477,6 +1477,11 @@ QuicConnTryClose(
             ErrorCode = QUIC_ERROR_CRYPTO_USER_CANCELED;
             RemoteReasonPhrase = NULL;
             RemoteReasonPhraseLength = 0;
+
+            QuicTraceLogConnInfo(
+                CloseUserCanceled,
+                Connection,
+                "Connection close using user canceled error");
         }
     }
 
@@ -2472,11 +2477,16 @@ QuicConnSetConfiguration(
     _In_ QUIC_CONFIGURATION* Configuration
     )
 {
+    if (Connection->Configuration != NULL || QuicConnIsClosed(Connection)) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
     QUIC_STATUS Status;
     QUIC_TRANSPORT_PARAMETERS LocalTP = { 0 };
 
     QUIC_TEL_ASSERT(Connection->Configuration == NULL);
     QUIC_TEL_ASSERT(Configuration != NULL);
+    QUIC_TEL_ASSERT(Configuration->SecurityConfig != NULL);
 
     QuicTraceLogConnInfo(
         SetConfiguration,
@@ -5709,35 +5719,6 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_CONFIGURATION: {
-
-        if (BufferLength != sizeof(QUIC_CONFIGURATION*) || Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        QUIC_CONFIGURATION* Configuration = *(QUIC_CONFIGURATION**)Buffer;
-        if (Configuration->Type != QUIC_HANDLE_TYPE_CONFIGURATION) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (!QuicConnIsServer(Connection) ||
-            Connection->State.ListenerAccepted == FALSE ||
-            Connection->Crypto.TLS != NULL) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        Status = QuicConnSetConfiguration(Connection, Configuration);
-        if (QUIC_FAILED(Status)) {
-            break;
-        }
-
-        QuicCryptoProcessData(&Connection->Crypto, FALSE);
-        break;
-    }
-
     case QUIC_PARAM_CONN_SEND_BUFFERING:
 
         if (BufferLength != sizeof(uint8_t)) {
@@ -6526,6 +6507,13 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_START.ServerName,
                 ApiCtx->CONN_START.ServerPort);
         ApiCtx->CONN_START.ServerName = NULL;
+        break;
+
+    case QUIC_API_TYPE_CONN_SET_CONFIGURATION:
+        Status =
+            QuicConnSetConfiguration(
+                Connection,
+                ApiCtx->CONN_SET_CONFIGURATION.Configuration);
         break;
 
     case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:

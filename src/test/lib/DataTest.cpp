@@ -373,19 +373,23 @@ QuicTestConnectAndPing(
         Settings.SetPeerUnidiStreamCount(TotalStreamCount);
     }
 
-    uint8_t GoodTicketKey[44] = {0};
     MsQuicCredentialConfig GoodServerConfig(SelfSignedCredConfig);
+#ifndef QUIC_DISABLE_0RTT_TESTS
+    uint8_t GoodTicketKey[44] = {0};
     GoodServerConfig.TicketKey = GoodTicketKey;
 
-    uint8_t BadTicketKey[44] = {1};
     MsQuicCredentialConfig BadServerConfig(SelfSignedCredConfig);
+    uint8_t BadTicketKey[44] = {1};
     BadServerConfig.TicketKey = BadTicketKey;
+#endif
 
     MsQuicConfiguration GoodServerConfiguration(Registration, Alpn, Settings, GoodServerConfig);
     TEST_TRUE(GoodServerConfiguration.IsValid());
 
+#ifndef QUIC_DISABLE_0RTT_TESTS
     MsQuicConfiguration BadServerConfiguration(Registration, Alpn, Settings, BadServerConfig);
     TEST_TRUE(BadServerConfiguration.IsValid());
+#endif
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
@@ -408,7 +412,11 @@ QuicTestConnectAndPing(
         TestListener Listener(
             Registration,
             ListenerAcceptPingConnection,
+#ifndef QUIC_DISABLE_0RTT_TESTS
             ServerRejectZeroRtt ? BadServerConfiguration : GoodServerConfiguration,
+#else
+            GoodServerConfiguration,
+#endif
             UseSendBuffer);
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
@@ -491,7 +499,7 @@ QuicTestServerDisconnect(
     PingStats ServerStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
     PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE);
 
-    MsQuicRegistration Registration(true);
+    MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
     MsQuicAlpn Alpn("MsQuicTest");
@@ -604,7 +612,7 @@ QuicTestClientDisconnect(
     PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE,
         StopListenerFirst ? QUIC_STATUS_CONNECTION_TIMEOUT : QUIC_STATUS_ABORTED);
 
-    MsQuicRegistration Registration(true);
+    MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
     MsQuicAlpn Alpn("MsQuicTest");
@@ -881,8 +889,7 @@ QuicAbortiveListenerHandler(
         case QUIC_LISTENER_EVENT_NEW_CONNECTION:
             TestContext->Conn.Handle = Event->NEW_CONNECTION.Connection;
             MsQuic->SetCallbackHandler(TestContext->Conn.Handle, (void*) QuicAbortiveConnectionHandler, Context);
-            Event->NEW_CONNECTION.Configuration = TestContext->ServerConfiguration;
-            return QUIC_STATUS_SUCCESS;
+            return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, TestContext->ServerConfiguration);
         default:
             TEST_FAILURE(
                 "Invalid listener event! Context: 0x%p, Event: %d",
@@ -1376,8 +1383,7 @@ QuicRecvResumeListenerHandler(
         case QUIC_LISTENER_EVENT_NEW_CONNECTION:
             TestContext->Conn.Handle = Event->NEW_CONNECTION.Connection;
             MsQuic->SetCallbackHandler(TestContext->Conn.Handle, (void*) QuicRecvResumeConnectionHandler, Context);
-            Event->NEW_CONNECTION.Configuration = TestContext->ServerConfiguration;
-            return QUIC_STATUS_SUCCESS;
+            return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, TestContext->ServerConfiguration);
         default:
             TEST_FAILURE(
                 "Invalid listener event! Context: 0x%p, Event: %d",

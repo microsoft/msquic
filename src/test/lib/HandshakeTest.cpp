@@ -1015,12 +1015,9 @@ QuicTestConnectServerRejected(
                     QuicAddrFamily,
                     QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                     ServerLocalAddr.GetPort()));
-            if (!Client.WaitForConnectionComplete()) {
+            if (!Client.WaitForShutdownComplete()) {
                 return;
             }
-
-            TEST_FALSE(Client.GetIsConnected());
-            TEST_TRUE(Client.GetTransportClosed());
         }
     }
 }

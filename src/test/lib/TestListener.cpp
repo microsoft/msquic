@@ -148,16 +148,22 @@ TestListener::HandleListenerEvent(
             break;
         }
 
-        if (QuicConfiguration) {
-            Event->NEW_CONNECTION.Configuration = QuicConfiguration;
-            Status = QUIC_STATUS_SUCCESS;
-        } else {
-            Status = QUIC_STATUS_PENDING; // The configuration will be set later.
-        }
-
         NewConnectionCallback(
             this,
             Event->NEW_CONNECTION.Connection);
+
+        if (QuicConfiguration) {
+            Status =
+                MsQuic->ConnectionSetConfiguration(
+                    Event->NEW_CONNECTION.Connection,
+                    QuicConfiguration);
+            if (QUIC_FAILED(Status)) {
+                TEST_FAILURE("MsQuic->ConnectionSetConfiguration failed, 0x%x.", Status);
+                break;
+            }
+        }
+
+        Status = QUIC_STATUS_SUCCESS;
         break;
     }
 

@@ -129,10 +129,11 @@ ServerListenerCallback(
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_NOT_SUPPORTED;
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
-        Event->NEW_CONNECTION.Configuration = Configuration;
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)ServerConnectionCallback, nullptr);
+        Status = MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, Configuration);
         break;
     default:
         break;

@@ -314,7 +314,8 @@ QuicTlsSecConfigCreate(
     SecurityConfig->Flags = CredConfig->Flags;
 
     if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
-        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE &&
+            CredConfig->Type != QUIC_CREDENTIAL_TYPE_NULL) {
             Status =
                 QuicCertCreate(
                     CredConfig->Type,
@@ -396,8 +397,6 @@ QuicTlsInitialize(
     TlsContext->IsServer = Config->IsServer;
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
-    TlsContext->ResumptionTicketLength = Config->ResumptionTicketLength;
-    TlsContext->ResumptionTicketBuffer = Config->ResumptionTicketBuffer;
     TlsContext->LocalTPBuffer = Config->LocalTPBuffer;
     TlsContext->LocalTPLength = Config->LocalTPLength;
     TlsContext->SecConfig = Config->SecConfig;
@@ -409,13 +408,6 @@ QuicTlsInitialize(
         StubTlsContextCreated,
         TlsContext->Connection,
         "TLS context Created");
-
-    if (TlsContext->ResumptionTicketBuffer != NULL) {
-        QuicTraceLogConnVerbose(
-            StubTlsUsing0Rtt,
-            TlsContext->Connection,
-            "Using 0-RTT ticket.");
-    }
 
     if (Config->ServerName != NULL) {
         const size_t ServerNameLength =
@@ -441,6 +433,15 @@ QuicTlsInitialize(
             goto Error;
         }
         memcpy((char*)TlsContext->SNI, Config->ServerName, ServerNameLength + 1);
+    }
+
+    TlsContext->ResumptionTicketLength = Config->ResumptionTicketLength;
+    TlsContext->ResumptionTicketBuffer = Config->ResumptionTicketBuffer;
+    if (TlsContext->ResumptionTicketBuffer != NULL) {
+        QuicTraceLogConnVerbose(
+            StubTlsUsing0Rtt,
+            TlsContext->Connection,
+            "Using 0-RTT ticket.");
     }
 
     *NewTlsContext = TlsContext;

@@ -260,14 +260,13 @@ private:
         _Inout_ QUIC_LISTENER_EVENT* Event
         ) {
         if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
-            Event->NEW_CONNECTION.Configuration = Configuration;
             if (Event->NEW_CONNECTION.Info->NegotiatedAlpnLength >= 6 &&
                 !memcmp(Event->NEW_CONNECTION.Info->NegotiatedAlpn, "siduck", 6)) {
                 new DatagramConnection(Event->NEW_CONNECTION.Connection);
             } else {
                 new HttpConnection(Event->NEW_CONNECTION.Connection);
             }
-            return QUIC_STATUS_SUCCESS;
+            return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, Configuration);
         }
         return QUIC_STATUS_NOT_SUPPORTED;
     }

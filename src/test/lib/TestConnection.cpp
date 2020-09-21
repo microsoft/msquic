@@ -31,6 +31,7 @@ TestConnection::TestConnection(
     QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
     QuicEventInitialize(&EventShutdownComplete, TRUE, FALSE);
+    QuicEventInitialize(&EventResumptionTicketReceived, TRUE, FALSE);
 
     if (QuicConnection == nullptr) {
         TEST_FAILURE("Invalid handle passed into TestConnection.");
@@ -752,12 +753,9 @@ TestConnection::SetConfiguration(
     )
 {
     return
-        MsQuic->SetParam(
+        MsQuic->ConnectionSetConfiguration(
             QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_CONFIGURATION,
-            sizeof(value),
-            &value);
+            value);
 }
 
 QUIC_STATUS

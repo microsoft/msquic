@@ -17,7 +17,11 @@
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // Needed for disabling 1-RTT encryption
 #include <msquichelper.h>
 
-#define ASSERT_ON_FAILURE(x) QUIC_FRE_ASSERT(QUIC_SUCCEEDED(x))
+#define ASSERT_ON_FAILURE(x) \
+    do { \
+        QUIC_STATUS _STATUS; \
+        QUIC_FRE_ASSERT(QUIC_SUCCEEDED((_STATUS = x))); \
+    } while (0)
 #define ASSERT_ON_NOT(x) QUIC_FRE_ASSERT(x)
 
 template<typename T>
@@ -260,8 +264,14 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
         if (!GetRandom(20)) {
             return QUIC_STATUS_CONNECTION_REFUSED;
         }
-        Event->NEW_CONNECTION.Configuration = ServerConfiguration;
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, nullptr);
+        QUIC_STATUS Status =
+            MsQuic->ConnectionSetConfiguration(
+                Event->NEW_CONNECTION.Connection,
+                ServerConfiguration);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
         auto ctx = new SpinQuicConnection(Event->NEW_CONNECTION.Connection);
         if (ctx == nullptr) {
             return QUIC_STATUS_OUT_OF_MEMORY;
@@ -870,9 +880,11 @@ main(int argc, char **argv)
         // TODO - Randomize more of the settings.
 
         QUIC_CREDENTIAL_CONFIG CredConfig;
+        QuicZeroMemory(&CredConfig, sizeof(CredConfig));
         CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE;
-        CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT;
-        // TODO - Randomize cert validation flag
+        CredConfig.Flags =
+            QUIC_CREDENTIAL_FLAG_CLIENT |
+            QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION; // TODO - Randomize cert validation flag
 
         for (uint32_t j = 0; j < AlpnCount; j++) {
             HQUIC Configuration;

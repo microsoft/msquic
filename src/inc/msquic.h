@@ -503,19 +503,18 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_STATISTICS_PLAT                 10  // QUIC_STATISTICS
 #define QUIC_PARAM_CONN_KEEP_ALIVE                      11  // uint32_t - milliseconds
 #define QUIC_PARAM_CONN_DISCONNECT_TIMEOUT              12  // uint32_t - milliseconds
-#define QUIC_PARAM_CONN_CONFIGURATION                   13  // HQUIC
-#define QUIC_PARAM_CONN_SEND_BUFFERING                  14  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_SEND_PACING                     15  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_SHARE_UDP_BINDING               16  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 17  // uint16_t
-#define QUIC_PARAM_CONN_MAX_STREAM_IDS                  18  // uint64_t[4]
-#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        19  // QUIC_STREAM_SCHEDULING_SCHEME
-#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        20  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           21  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_SEND_BUFFERING                  13  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_SEND_PACING                     14  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_SHARE_UDP_BINDING               15  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 16  // uint16_t
+#define QUIC_PARAM_CONN_MAX_STREAM_IDS                  17  // uint64_t[4]
+#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        18  // QUIC_STREAM_SCHEDULING_SCHEME
+#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        19  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           20  // uint8_t (BOOLEAN)
 #ifdef QUIC_API_ENABLE_INSECURE_FEATURES
-#define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         22  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         21  // uint8_t (BOOLEAN)
 #endif
-#define QUIC_PARAM_CONN_RESUMPTION_STATE                23  // uint8_t[]
+#define QUIC_PARAM_CONN_RESUMPTION_STATE                22  // uint8_t[]
 
 #ifdef WIN32 // Windows certificate validation ignore flags.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080
@@ -673,9 +672,8 @@ typedef struct QUIC_LISTENER_EVENT {
     QUIC_LISTENER_EVENT_TYPE Type;
     union {
         struct {
-            /* in */    const QUIC_NEW_CONNECTION_INFO* Info;
-            /* in */    HQUIC Connection;
-            /* out */   HQUIC Configuration;
+            const QUIC_NEW_CONNECTION_INFO* Info;
+            HQUIC Connection;
         } NEW_CONNECTION;
     };
 } QUIC_LISTENER_EVENT;
@@ -893,6 +891,18 @@ QUIC_STATUS
     );
 
 //
+// Sets the (server-side) configuration handle for the connection. This must be
+// called on an accepted connection in order to proceed with the QUIC handshake.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_SET_CONFIGURATION_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_ _Pre_defensive_ HQUIC Configuration
+    );
+
+//
 // Uses the QUIC (server) handle to send a resumption ticket to the remote
 // client, optionally with app-specific data useful during resumption.
 //
@@ -1107,6 +1117,8 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_CLOSE_FN            ConnectionClose;
     QUIC_CONNECTION_SHUTDOWN_FN         ConnectionShutdown;
     QUIC_CONNECTION_START_FN            ConnectionStart;
+    QUIC_CONNECTION_SET_CONFIGURATION_FN
+                                        ConnectionSetConfiguration;
     QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionTicket;
 
     QUIC_STREAM_OPEN_FN                 StreamOpen;

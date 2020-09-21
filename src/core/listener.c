@@ -494,11 +494,12 @@ QuicListenerClaimConnection(
     // connection and return the server configuration.
     //
 
+    Connection->State.ExternalOwner = TRUE;
+
     QUIC_LISTENER_EVENT Event;
     Event.Type = QUIC_LISTENER_EVENT_NEW_CONNECTION;
     Event.NEW_CONNECTION.Info = Info;
     Event.NEW_CONNECTION.Connection = (HQUIC)Connection;
-    Event.NEW_CONNECTION.Configuration = NULL;
 
     QuicListenerAttachSilo(Listener);
 
@@ -511,39 +512,18 @@ QuicListenerClaimConnection(
 
     QuicListenerDetachSilo();
 
-    if (Status == QUIC_STATUS_PENDING) {
-        QuicTraceLogVerbose(
-            ListenerNewConnectionPending,
-            "[list][%p] App indicate pending NEW_CONNECTION",
-            Listener);
-        QUIC_DBG_ASSERT(Event.NEW_CONNECTION.Configuration == NULL);
-    } else if (QUIC_FAILED(Status)) {
+    if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ListenerErrorStatus,
             "[list][%p] ERROR, %u, %s.",
             Listener,
             Status,
             "NEW_CONNECTION callback");
+        Connection->State.ExternalOwner = FALSE;
         QuicConnTransportError(
             Connection,
             QUIC_ERROR_CONNECTION_REFUSED);
         return FALSE;
-    } else if (Event.NEW_CONNECTION.Configuration == NULL) {
-        QuicTraceEvent(
-            ListenerError,
-            "[list][%p] ERROR, %s.",
-            Listener,
-            "NEW_CONNECTION callback didn't set Configuration");
-        QuicConnTransportError(
-            Connection,
-            QUIC_ERROR_INTERNAL_ERROR);
-        return FALSE;
-    } else {
-        QuicTraceLogVerbose(
-            ListenerNewConnectionAccepted,
-            "[list][%p] App accepted NEW_CONNECTION",
-            Listener);
-        QUIC_DBG_ASSERT(Event.NEW_CONNECTION.Configuration != NULL);
     }
 
     //
@@ -554,20 +534,8 @@ QuicListenerClaimConnection(
         Connection->ClientCallbackHandler != NULL,
         "App MUST set callback handler!");
 
-    Connection->State.ExternalOwner = TRUE;
     Connection->State.ListenerAccepted = TRUE;
     Connection->State.UpdateWorker = TRUE;
-
-    if (Event.NEW_CONNECTION.Configuration != NULL) {
-        QUIC_CONFIGURATION* Configuration =
-            (QUIC_CONFIGURATION*)Event.NEW_CONNECTION.Configuration;
-        if (QUIC_FAILED(QuicConnSetConfiguration(Connection, Configuration))) {
-            QuicConnTransportError(
-                Connection,
-                QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE);
-            return FALSE;
-        }
-    }
 
     return TRUE;
 }

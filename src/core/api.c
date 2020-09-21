@@ -376,6 +376,99 @@ Error:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
+MsQuicConnectionSetConfiguration(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ _Pre_defensive_ HQUIC ConfigHandle
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_CONNECTION* Connection;
+    QUIC_CONFIGURATION* Configuration;
+    QUIC_OPERATION* Oper;
+
+    QUIC_PASSIVE_CODE();
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_SET_CONFIGURATION,
+        Handle);
+
+    if (ConfigHandle == NULL ||
+        ConfigHandle->Type != QUIC_HANDLE_TYPE_CONFIGURATION) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    if (IS_CONN_HANDLE(Handle)) {
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        Connection = (QUIC_CONNECTION*)Handle;
+    } else if (IS_STREAM_HANDLE(Handle)) {
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        QUIC_STREAM* Stream = (QUIC_STREAM*)Handle;
+        QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
+        QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+        Connection = Stream->Connection;
+    } else {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+
+    if (!QuicConnIsServer(Connection)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    if (Connection->Configuration != NULL) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
+    }
+
+    Configuration = (QUIC_CONFIGURATION*)ConfigHandle;
+
+    if (Configuration->SecurityConfig == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
+    QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    if (Oper == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CONN_SET_CONFIGURATION operation",
+            0);
+        goto Error;
+    }
+
+    QuicConfigurationAddRef(Configuration);
+    Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SET_CONFIGURATION;
+    Oper->API_CALL.Context->CONN_SET_CONFIGURATION.Configuration = Configuration;
+
+    //
+    // Queue the operation but don't wait for the completion.
+    //
+    QuicConnQueueOper(Connection, Oper);
+    Status = QUIC_STATUS_PENDING;
+
+Error:
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
 MsQuicConnectionSendResumptionTicket(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ QUIC_SEND_RESUMPTION_FLAGS Flags,

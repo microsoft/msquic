@@ -263,8 +263,10 @@ ListenerEventValidatorCallback(
         Event->NEW_CONNECTION.Connection,
         (void *)ConnValidatorCallback,
         Validator);
-    Event->NEW_CONNECTION.Configuration = Validator->Configuration;
-    return QUIC_STATUS_SUCCESS;
+    return
+        MsQuic->ConnectionSetConfiguration(
+            Event->NEW_CONNECTION.Connection,
+            Validator->Configuration);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -282,8 +284,10 @@ ListenerEventResumptionCallback(
         (void *)ConnServerResumptionCallback,
         nullptr);
 
-    Event->NEW_CONNECTION.Configuration = (HQUIC)Context;
-    return QUIC_STATUS_SUCCESS;
+    return
+        MsQuic->ConnectionSetConfiguration(
+            Event->NEW_CONNECTION.Connection,
+            (HQUIC)Context);
 }
 
 void
@@ -293,6 +297,8 @@ QuicTestValidateConnectionEvents1(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
+    TestScopeLogger ScopeLogger(__FUNCTION__);
+
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
@@ -312,7 +318,7 @@ QuicTestValidateConnectionEvents1(
         new(std::nothrow) ConnEventValidator* [5] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         },
@@ -347,6 +353,8 @@ QuicTestValidateConnectionEvents2(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
+    TestScopeLogger ScopeLogger(__FUNCTION__);
+
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
@@ -402,6 +410,8 @@ QuicTestValidateConnectionEvents3(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
+    TestScopeLogger ScopeLogger(__FUNCTION__);
+
     MsQuicSettings Settings;
     Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, SelfSignedCredConfig);
@@ -514,6 +524,8 @@ QuicTestValidateStreamEvents1(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
+    TestScopeLogger ScopeLogger(__FUNCTION__);
+
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(1);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, SelfSignedCredConfig);
@@ -616,6 +628,8 @@ QuicTestValidateStreamEvents2(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
+    TestScopeLogger ScopeLogger(__FUNCTION__);
+
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(1);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, SelfSignedCredConfig);
@@ -663,7 +677,7 @@ QuicTestValidateStreamEvents2(
         new(std::nothrow) ConnEventValidator* [5] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         });

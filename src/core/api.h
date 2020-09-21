@@ -143,6 +143,14 @@ MsQuicConnectionStart(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
+MsQuicConnectionSetConfiguration(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ _Pre_defensive_ HQUIC ConfigHandle
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
 MsQuicConnectionSendResumptionTicket(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ QUIC_SEND_RESUMPTION_FLAGS Flags,

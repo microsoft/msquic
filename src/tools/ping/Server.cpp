@@ -54,7 +54,13 @@ struct PingServer {
         case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
             auto Connection = new PingConnection(&Tracker, Event->NEW_CONNECTION.Connection);
             if (Connection != NULL) {
-                Event->NEW_CONNECTION.Configuration = Configuration;
+                QUIC_STATUS Status =
+                    MsQuic->ConnectionSetConfiguration(
+                        Event->NEW_CONNECTION.Connection,
+                        Configuration);
+                if (QUIC_FAILED(Status)) {
+                    delete Connection;
+                }
                 if (!Connection->Initialize(true)) {
                     delete Connection;
                 }

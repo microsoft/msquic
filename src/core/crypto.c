@@ -235,6 +235,10 @@ QuicCryptoUninitialize(
         QuicTlsUninitialize(Crypto->TLS);
         Crypto->TLS = NULL;
     }
+    if (Crypto->ResumptionTicket != NULL) {
+        QUIC_FREE(Crypto->ResumptionTicket);
+        Crypto->ResumptionTicket = NULL;
+    }
     if (Crypto->Initialized) {
         QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
         QuicRangeUninitialize(&Crypto->SparseAckRanges);
@@ -302,9 +306,8 @@ QuicCryptoInitializeTls(
         goto Error;
     }
 
-    if (!IsServer) {
-        QuicCryptoProcessData(Crypto, TRUE);
-    }
+    Crypto->ResumptionTicket = NULL; // Owned by TLS now.
+    QuicCryptoProcessData(Crypto, !IsServer);
 
 Error:
 
@@ -358,12 +361,6 @@ QuicCryptoHandshakeConfirmed(
     QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_DBG_ASSERT(Path->Binding != NULL);
     QuicBindingOnConnectionHandshakeConfirmed(Path->Binding, Connection);
-
-    if (Crypto->ResumptionTicket != NULL) {
-        QUIC_FREE(Crypto->ResumptionTicket);
-        Crypto->ResumptionTicketLength = 0;
-        Crypto->ResumptionTicket = NULL;
-    }
 
     QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_HANDSHAKE);
 }
@@ -1550,6 +1547,9 @@ QuicCryptoProcessData(
                 goto Error;
             }
 
+            QuicRecvBufferDrain(&Crypto->RecvBuffer, 0);
+            QuicCryptoValidate(Crypto);
+
             Info.QuicVersion = Connection->Stats.QuicVersion;
             Info.LocalAddress = &Connection->Paths[0].LocalAddress;
             Info.RemoteAddress = &Connection->Paths[0].RemoteAddress;
@@ -1560,9 +1560,11 @@ QuicCryptoProcessData(
                 Connection->Paths[0].Binding,
                 Connection,
                 &Info);
+            return;
         }
     }
 
+    QUIC_DBG_ASSERT(Crypto->TLS != NULL);
     if (Crypto->TLS == NULL) {
         //
         // The listener still hasn't given us the security config to initialize
@@ -1577,7 +1579,12 @@ QuicCryptoProcessData(
     QuicCryptoValidate(Crypto);
 
     QUIC_TLS_RESULT_FLAGS ResultFlags =
-        QuicTlsProcessData(Crypto->TLS, QUIC_TLS_CRYPTO_DATA, Buffer.Buffer, &Buffer.Length, &Crypto->TlsState);
+        QuicTlsProcessData(
+            Crypto->TLS,
+            QUIC_TLS_CRYPTO_DATA,
+            Buffer.Buffer,
+            &Buffer.Length,
+            &Crypto->TlsState);
 
     QUIC_TEL_ASSERT(!IsClientInitial || ResultFlags != QUIC_TLS_RESULT_PENDING); // TODO - Support async for client Initial?
 

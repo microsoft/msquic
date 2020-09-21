@@ -241,7 +241,7 @@ public:
         }
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
-    bool IsValid() const noexcept { return Handle != nullptr; }
+    bool IsValid() const noexcept { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicRegistration(MsQuicRegistration& other) = delete;
     MsQuicRegistration operator=(MsQuicRegistration& Other) = delete;
     void Shutdown(
@@ -383,7 +383,7 @@ public:
         }
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
-    bool IsValid() const noexcept { return Handle != nullptr; }
+    bool IsValid() const noexcept { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicConfiguration(MsQuicConfiguration& other) = delete;
     MsQuicConfiguration operator=(MsQuicConfiguration& Other) = delete;
     QUIC_STATUS
@@ -442,7 +442,7 @@ struct MsQuicListener {
     }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
-    bool IsValid() const { return Handle != nullptr; }
+    bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicListener(MsQuicListener& other) = delete;
     MsQuicListener operator=(MsQuicListener& Other) = delete;
     operator HQUIC () const noexcept { return Handle; }

@@ -1469,6 +1469,33 @@
         "CustomSettings": null
       }
     },
+    "CloseUserCanceled": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Connection close using user canceled error",
+      "UniqueId": "CloseUserCanceled",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "CloseComplete": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Connection close complete",
@@ -2991,41 +3018,6 @@
         "CustomSettings": null
       }
     },
-    "ReadTicketFailure": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] QuicTlsReadTicket failed, 0x%x",
-      "UniqueId": "ReadTicketFailure",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Status",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "AbandonInternallyClosed": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Abandoning internal, closed connection",
@@ -3279,6 +3271,41 @@
         "CustomSettings": null
       }
     },
+    "ConnUnregistered": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Unregistered from %p",
+      "UniqueId": "ConnUnregistered",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection->Registration",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "ConnDestroyed": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Destroyed",
@@ -3337,41 +3364,6 @@
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Registered with %p",
       "UniqueId": "ConnRegistered",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Registration",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceEvent",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "ConnUnregistered": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Unregistered from %p",
-      "UniqueId": "ConnUnregistered",
       "splitArgs": [
         {
           "VariableInfo": {
@@ -4466,33 +4458,6 @@
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake confirmed (server)",
       "UniqueId": "HandshakeConfirmedServer",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "TicketReady": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Ticket ready",
-      "UniqueId": "TicketReady",
       "splitArgs": [
         {
           "VariableInfo": {
@@ -9717,60 +9682,6 @@
       "ModuleProperites": {},
       "TraceString": "[list][%p] Indicating NEW_CONNECTION",
       "UniqueId": "ListenerIndicateNewConnection",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Listener",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "ListenerNewConnectionPending": {
-      "ModuleProperites": {},
-      "TraceString": "[list][%p] App indicate pending NEW_CONNECTION",
-      "UniqueId": "ListenerNewConnectionPending",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Listener",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "ListenerNewConnectionAccepted": {
-      "ModuleProperites": {},
-      "TraceString": "[list][%p] App accepted NEW_CONNECTION",
-      "UniqueId": "ListenerNewConnectionAccepted",
       "splitArgs": [
         {
           "VariableInfo": {
@@ -18583,41 +18494,6 @@
         "CustomSettings": null
       }
     },
-    "miTlsReadTicket": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Ticket (%u bytes) read.",
-      "UniqueId": "miTlsReadTicket",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "TlsContext->Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "TicketBufferLength",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "TlsMessage": {
       "ModuleProperites": {},
       "TraceString": "[ tls][%p] %s",
@@ -20196,41 +20072,6 @@
         "CustomSettings": null
       }
     },
-    "StubTlsReadTicket": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Ticket (%u bytes) read.",
-      "UniqueId": "StubTlsReadTicket",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "TlsContext->Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "TicketBufferLength",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "TestControlClientCanceledRequest": {
       "ModuleProperites": {},
       "TraceString": "[test] Client %p canceled request %p",
@@ -21617,6 +21458,10 @@
         "TraceID": "UnreachableInvalid"
       },
       {
+        "UniquenessHash": "b4f3dc8d-17c8-39c5-5345-952616752980",
+        "TraceID": "CloseUserCanceled"
+      },
+      {
         "UniquenessHash": "e6969fd7-4bfa-f16b-fd2d-f366f94dce7c",
         "TraceID": "CloseComplete"
       },
@@ -21801,10 +21646,6 @@
         "TraceID": "TestTPSet"
       },
       {
-        "UniquenessHash": "ec0cf6f5-fe6d-3708-e0e3-53203202704d",
-        "TraceID": "ReadTicketFailure"
-      },
-      {
         "UniquenessHash": "4af24dff-9b3b-84ae-8868-0443f2ad6ec5",
         "TraceID": "AbandonInternallyClosed"
       },
@@ -21833,6 +21674,10 @@
         "TraceID": "ConnInitializeComplete"
       },
       {
+        "UniquenessHash": "2c7b6642-2b16-6fdb-2e81-f932dca249e3",
+        "TraceID": "ConnUnregistered"
+      },
+      {
         "UniquenessHash": "3903cc44-b387-b5f6-17fc-62d5aee48015",
         "TraceID": "ConnDestroyed"
       },
@@ -21843,10 +21688,6 @@
       {
         "UniquenessHash": "60a38bc0-4218-963b-507a-5d7cb5c08596",
         "TraceID": "ConnRegistered"
-      },
-      {
-        "UniquenessHash": "2c7b6642-2b16-6fdb-2e81-f932dca249e3",
-        "TraceID": "ConnUnregistered"
       },
       {
         "UniquenessHash": "9ba874f3-1fe6-aef6-6d3b-5c9b8b9d8720",
@@ -21951,10 +21792,6 @@
       {
         "UniquenessHash": "fba5c72f-0c3d-f668-a88b-39e5e3e62cbd",
         "TraceID": "HandshakeConfirmedServer"
-      },
-      {
-        "UniquenessHash": "b9d890f2-d479-8184-b0e5-948bdc1545d7",
-        "TraceID": "TicketReady"
       },
       {
         "UniquenessHash": "4e785757-b1de-e65c-a7b1-7ac868748434",
@@ -22495,14 +22332,6 @@
       {
         "UniquenessHash": "ffc33ba8-4bc7-9e30-e207-f1d3cb6bb3f2",
         "TraceID": "ListenerIndicateNewConnection"
-      },
-      {
-        "UniquenessHash": "2a7ce132-f946-ec7a-79f4-18f2efe3e781",
-        "TraceID": "ListenerNewConnectionPending"
-      },
-      {
-        "UniquenessHash": "1e177a53-4d41-51c1-4261-1d8b246402b8",
-        "TraceID": "ListenerNewConnectionAccepted"
       },
       {
         "UniquenessHash": "135ad665-a1b8-32ac-555d-8d1c65c94206",
@@ -23529,10 +23358,6 @@
         "TraceID": "miTlsRecvNewSessionTicket"
       },
       {
-        "UniquenessHash": "f5af39c5-d069-02f5-f72f-13e3cc524620",
-        "TraceID": "miTlsReadTicket"
-      },
-      {
         "UniquenessHash": "71d0a82e-145c-f936-f56e-7dcb4099b96e",
         "TraceID": "TlsMessage"
       },
@@ -23725,12 +23550,12 @@
         "TraceID": "StubTlsContextCleaningUp"
       },
       {
-        "UniquenessHash": "9b5f99a0-b1b6-bae7-12fd-89f89d1f1667",
-        "TraceID": "StubTlsProcessData"
+        "UniquenessHash": "9ca0fd16-2037-7132-3b3f-25691460af7f",
+        "TraceID": "StubTlsRecvNewSessionTicket"
       },
       {
-        "UniquenessHash": "ba8f7a88-fc0f-b8fc-30a8-bdb33e21fd5b",
-        "TraceID": "StubTlsReadTicket"
+        "UniquenessHash": "9b5f99a0-b1b6-bae7-12fd-89f89d1f1667",
+        "TraceID": "StubTlsProcessData"
       },
       {
         "UniquenessHash": "ad38c379-0d77-0135-bf6a-19efa61ee493",
@@ -23851,10 +23676,6 @@
       {
         "UniquenessHash": "78d1c2fe-fbce-b603-004e-f2026093416c",
         "TraceID": "TestHookDropLimitAddrSend"
-      },
-      {
-        "UniquenessHash": "9ca0fd16-2037-7132-3b3f-25691460af7f",
-        "TraceID": "StubTlsRecvNewSessionTicket"
       }
     ]
   }
