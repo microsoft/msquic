@@ -1376,7 +1376,7 @@ QuicLibraryOnListenerRegistered(
 
         const QUIC_REGISTRATION_CONFIG Config = {
             "Stateless",
-            QUIC_EXECUTION_PROFILE_LOW_LATENCY
+            QUIC_EXECUTION_PROFILE_TYPE_INTERNAL
         };
 
         if (QUIC_FAILED(

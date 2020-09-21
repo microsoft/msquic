@@ -35,6 +35,7 @@ MsQuicRegistrationOpen(
 {
     QUIC_STATUS Status;
     QUIC_REGISTRATION* Registration = NULL;
+    BOOLEAN IsReentrantInitialization = FALSE;
     size_t AppNameLength = 0;
     if (Config != NULL && Config->AppName != NULL) {
         AppNameLength = strlen(Config->AppName);
@@ -67,6 +68,10 @@ MsQuicRegistrationOpen(
     Registration->NoPartitioning = FALSE;
     Registration->SplitPartitioning = FALSE;
     Registration->ExecProfile = Config == NULL ? QUIC_EXECUTION_PROFILE_LOW_LATENCY : Config->ExecutionProfile;
+    if (Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
+        Registration->ExecProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
+        IsReentrantInitialization = TRUE;
+    }
     Registration->CidPrefixLength = 0;
     Registration->CidPrefix = NULL;
     QuicLockInitialize(&Registration->ConfigLock);
@@ -82,6 +87,7 @@ MsQuicRegistrationOpen(
     }
 
     uint16_t WorkerThreadFlags = 0;
+    QUIC_DBG_ASSERT(Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL);
     switch (Registration->ExecProfile) {
     default:
     case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
@@ -144,9 +150,13 @@ MsQuicRegistrationOpen(
     }
 #endif
 
-    QuicLockAcquire(&MsQuicLib.Lock);
-    QuicListInsertTail(&MsQuicLib.Registrations, &Registration->Link);
-    QuicLockRelease(&MsQuicLib.Lock);
+    if (IsReentrantInitialization) {
+        QuicListInsertTail(&MsQuicLib.Registrations, &Registration->Link);
+    } else {
+        QuicLockAcquire(&MsQuicLib.Lock);
+        QuicListInsertTail(&MsQuicLib.Registrations, &Registration->Link);
+        QuicLockRelease(&MsQuicLib.Lock);
+    }
 
     *NewRegistration = (HQUIC)Registration;
     Registration = NULL;
