@@ -164,7 +164,7 @@ RunServer(
     HQUIC Listener = nullptr;
 
     QUIC_ADDR Address = {};
-    QuicAddrSetFamily(&Address, AF_UNSPEC);
+    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
     QuicAddrSetPort(&Address, UdpPort);
 
     const char* Cert;
@@ -374,7 +374,7 @@ RunClient(
 
     printf("[conn][%p] Connecting...\n", Connection);
 
-    if (QUIC_FAILED(Status = MsQuic->ConnectionStart(Connection, AF_UNSPEC, Target, UdpPort))) {
+    if (QUIC_FAILED(Status = MsQuic->ConnectionStart(Connection, QUIC_ADDRESS_FAMILY_UNSPEC, Target, UdpPort))) {
         printf("ConnectionStart failed, 0x%x!\n", Status);
         goto Error;
     }

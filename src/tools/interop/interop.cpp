@@ -453,7 +453,7 @@ public:
         if (QUIC_SUCCEEDED(
             MsQuic->ConnectionStart(
                 Connection,
-                AF_UNSPEC,
+                QUIC_ADDRESS_FAMILY_UNSPEC,
                 ServerName,
                 ServerPort))) {
             QuicEventWaitWithTimeout(ConnectionComplete, WaitTimeoutMs);

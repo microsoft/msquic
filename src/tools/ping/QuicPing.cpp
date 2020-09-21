@@ -299,8 +299,8 @@ ParseClientCommand(
     uint16_t ip;
     if (TryGetValue(argc, argv, "ip", &ip)) {
         switch (ip) {
-        case 4: QuicAddrSetFamily(&PingConfig.Client.RemoteIpAddr, AF_INET); break;
-        case 6: QuicAddrSetFamily(&PingConfig.Client.RemoteIpAddr, AF_INET6); break;
+        case 4: QuicAddrSetFamily(&PingConfig.Client.RemoteIpAddr, QUIC_ADDRESS_FAMILY_INET); break;
+        case 6: QuicAddrSetFamily(&PingConfig.Client.RemoteIpAddr, QUIC_ADDRESS_FAMILY_INET6); break;
         }
     }
 

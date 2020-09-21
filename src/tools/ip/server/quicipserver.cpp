@@ -151,7 +151,7 @@ RunServer(
     HQUIC Listener = nullptr;
 
     QUIC_ADDR Address = {};
-    QuicAddrSetFamily(&Address, AF_UNSPEC);
+    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
     QuicAddrSetPort(&Address, UdpPort);
 
     QUIC_SEC_CONFIG_PARAMS* SelfSignedCertParams = nullptr;

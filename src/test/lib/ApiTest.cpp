@@ -580,7 +580,7 @@ void QuicTestValidateConnection()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->ConnectionStart(
             nullptr,
-            AF_INET,
+            QUIC_ADDRESS_FAMILY_INET,
             "localhost",
             4433));
 
@@ -600,7 +600,7 @@ void QuicTestValidateConnection()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConnectionStart(
                 Connection.Handle,
-                AF_MAX,
+                (QUIC_ADDRESS_FAMILY)AF_MAX,
                 "localhost",
                 4433));
     }
@@ -621,7 +621,7 @@ void QuicTestValidateConnection()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConnectionStart(
                 Connection.Handle,
-                AF_INET,
+                QUIC_ADDRESS_FAMILY_INET,
                 nullptr,
                 4433));
     }
@@ -642,7 +642,7 @@ void QuicTestValidateConnection()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConnectionStart(
                 Connection.Handle,
-                AF_INET,
+                QUIC_ADDRESS_FAMILY_INET,
                 "localhost",
                 0));
     }
@@ -662,7 +662,7 @@ void QuicTestValidateConnection()
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionStart(
                 Connection.Handle,
-                AF_INET,
+                QUIC_ADDRESS_FAMILY_INET,
                 "localhost",
                 4433));
 
@@ -679,7 +679,7 @@ void QuicTestValidateConnection()
             QUIC_STATUS_INVALID_STATE,
             MsQuic->ConnectionStart(
                 Connection.Handle,
-                AF_INET,
+                QUIC_ADDRESS_FAMILY_INET,
                 "localhost",
                 4433));
     }
@@ -706,7 +706,7 @@ void QuicTestValidateConnection()
 
         MsQuic->ConnectionStart(
             Connection.Handle,
-            AF_INET,
+            QUIC_ADDRESS_FAMILY_INET,
             "localhost",
             4433);
     }

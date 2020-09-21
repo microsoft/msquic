@@ -652,7 +652,7 @@ QuicDataPathPopulateTargetAddress(
 
     QuicZeroMemory(Address, sizeof(QUIC_ADDR));
 
-    if (AddrInfo->ai_addr->sa_family == AF_INET6) {
+    if (AddrInfo->ai_addr->sa_family == QUIC_ADDRESS_FAMILY_INET6) {
         QUIC_DBG_ASSERT(sizeof(struct sockaddr_in6) == AddrInfo->ai_addrlen);
 
         //
@@ -661,14 +661,14 @@ QuicDataPathPopulateTargetAddress(
 
         SockAddrIn6 = (struct sockaddr_in6*)AddrInfo->ai_addr;
 
-        if (Family == AF_UNSPEC && IN6_IS_ADDR_V4MAPPED(&SockAddrIn6->sin6_addr)) {
+        if (Family == QUIC_ADDRESS_FAMILY_UNSPEC && IN6_IS_ADDR_V4MAPPED(&SockAddrIn6->sin6_addr)) {
             SockAddrIn = &Address->Ipv4;
 
             //
             // Get the ipv4 address from the mapped address.
             //
 
-            SockAddrIn->sin_family = AF_INET;
+            SockAddrIn->sin_family = QUIC_ADDRESS_FAMILY_INET;
             memcpy(&SockAddrIn->sin_addr.s_addr, &SockAddrIn6->sin6_addr.s6_addr[12], 4);
             SockAddrIn->sin_port = SockAddrIn6->sin6_port;
 
@@ -677,7 +677,7 @@ QuicDataPathPopulateTargetAddress(
             Address->Ipv6 = *SockAddrIn6;
             return;
         }
-    } else if (AddrInfo->ai_addr->sa_family == AF_INET) {
+    } else if (AddrInfo->ai_addr->sa_family == QUIC_ADDRESS_FAMILY_INET) {
         QUIC_DBG_ASSERT(sizeof(struct sockaddr_in) == AddrInfo->ai_addrlen);
         SockAddrIn = (struct sockaddr_in*)AddrInfo->ai_addr;
         Address->Ipv4 = *SockAddrIn;
@@ -1256,7 +1256,7 @@ QuicSocketContextRecvComplete(
         if (CMsg->cmsg_level == IPPROTO_IPV6) {
             if (CMsg->cmsg_type == IPV6_PKTINFO) {
                 struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
-                LocalAddr->Ip.sa_family = AF_INET6;
+                LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
                 LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
                 LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                 QuicConvertFromMappedV6(LocalAddr, LocalAddr);
@@ -1270,7 +1270,7 @@ QuicSocketContextRecvComplete(
         } else if (CMsg->cmsg_level == IPPROTO_IP) {
             if (CMsg->cmsg_type == IP_PKTINFO) {
                 struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
-                LocalAddr->Ip.sa_family = AF_INET;
+                LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET;
                 LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
                 LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                 LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
@@ -1595,7 +1595,7 @@ QuicDataPathBindingCreate(
     if (LocalAddress) {
         QuicConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
     } else {
-        Binding->LocalAddress.Ip.sa_family = AF_INET6;
+        Binding->LocalAddress.Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
     }
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
@@ -2025,8 +2025,8 @@ QuicDataPathBindingSend(
     };
 
     CMsg = CMSG_FIRSTHDR(&Mhdr);
-    CMsg->cmsg_level = RemoteAddress->Ip.sa_family == AF_INET ? IPPROTO_IP : IPPROTO_IPV6;
-    CMsg->cmsg_type = RemoteAddress->Ip.sa_family == AF_INET ? IP_TOS : IPV6_TCLASS;
+    CMsg->cmsg_level = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IPPROTO_IP : IPPROTO_IPV6;
+    CMsg->cmsg_type = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IP_TOS : IPV6_TCLASS;
     CMsg->cmsg_len = CMSG_LEN(sizeof(int));
     *(int *)CMSG_DATA(CMsg) = SendContext->ECN;
 
@@ -2034,7 +2034,7 @@ QuicDataPathBindingSend(
         Mhdr.msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
         CMsg = CMSG_NXTHDR(&Mhdr, CMsg);
         QUIC_DBG_ASSERT(CMsg != NULL);
-        if (RemoteAddress->Ip.sa_family == AF_INET) {
+        if (RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
             CMsg->cmsg_level = IPPROTO_IP;
             CMsg->cmsg_type = IP_PKTINFO;
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));

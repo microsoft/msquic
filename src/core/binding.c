@@ -328,7 +328,7 @@ QuicBindingRegisterListener(
             continue;
         }
 
-        if (NewFamily != AF_UNSPEC && !QuicAddrCompareIp(NewAddr, ExistingAddr)) {
+        if (NewFamily != QUIC_ADDRESS_FAMILY_UNSPEC && !QuicAddrCompareIp(NewAddr, ExistingAddr)) {
             continue;
         }
 
@@ -400,7 +400,7 @@ QuicBindingGetListener(
         const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
         FailedAlpnMatch = FALSE;
 
-        if (ExistingFamily != AF_UNSPEC) {
+        if (ExistingFamily != QUIC_ADDRESS_FAMILY_UNSPEC) {
             if (Family != ExistingFamily ||
                 (!ExistingWildCard && !QuicAddrCompareIp(Addr, ExistingAddr))) {
                 continue; // No IP match.

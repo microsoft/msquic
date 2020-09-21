@@ -154,7 +154,7 @@ struct DrillSender {
             return Status;
         }
 
-        if (Family == AF_INET) {
+        if (Family == QUIC_ADDRESS_FAMILY_INET) {
             ServerAddress.Ipv4.sin_port = NetworkPort;
         } else {
             ServerAddress.Ipv6.sin6_port = NetworkPort;
@@ -253,7 +253,7 @@ QuicDrillInitialPacketFailureTest(
             Sender.Initialize(
                 QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                 QuicAddrFamily,
-                (QuicAddrFamily == AF_INET) ?
+                (QuicAddrFamily == QUIC_ADDRESS_FAMILY_INET) ?
                     ServerAddress.SockAddr.Ipv4.sin_port :
                     ServerAddress.SockAddr.Ipv6.sin6_port);
         if (QUIC_FAILED(Status)) {
@@ -339,7 +339,7 @@ QuicDrillTestInitialCid(
     uint8_t ActualCidLength;
     uint8_t CidLengthField;
 
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     DrillInitialPacketDescriptor InitialDescriptor;
 
     // Calculate the test parameters
@@ -416,7 +416,7 @@ QuicDrillTestInitialToken(
     _In_ int Family
     )
 {
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     const uint8_t GeneratedTokenLength = 20;
     uint64_t TokenLen;
 

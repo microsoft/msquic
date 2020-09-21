@@ -107,7 +107,6 @@ Environment:
 // IP Address Abstraction Helpers
 //
 
-typedef ADDRESS_FAMILY QUIC_ADDRESS_FAMILY;
 typedef SOCKADDR_INET QUIC_ADDR;
 
 #define QUIC_ADDR_V4_PORT_OFFSET        FIELD_OFFSET(SOCKADDR_IN, sin_port)
@@ -116,6 +115,12 @@ typedef SOCKADDR_INET QUIC_ADDR;
 #define QUIC_ADDR_V6_PORT_OFFSET        FIELD_OFFSET(SOCKADDR_IN6, sin6_port)
 #define QUIC_ADDR_V6_IP_OFFSET          FIELD_OFFSET(SOCKADDR_IN6, sin6_addr)
 
+typedef enum QUIC_ADDRESS_FAMILY {
+    QUIC_ADDRESS_FAMILY_UNSPEC = AF_UNSPEC,
+    QUIC_ADDRESS_FAMILY_INET = AF_INET,
+    QUIC_ADDRESS_FAMILY_INET6 = AF_INET6
+} QUIC_ADDRESS_FAMILY;
+
 inline
 BOOLEAN
 QuicAddrIsValid(
@@ -123,9 +128,9 @@ QuicAddrIsValid(
     )
 {
     return
-        Addr->si_family == AF_UNSPEC ||
-        Addr->si_family == AF_INET ||
-        Addr->si_family == AF_INET6;
+        Addr->si_family == QUIC_ADDRESS_FAMILY_UNSPEC ||
+        Addr->si_family == QUIC_ADDRESS_FAMILY_INET ||
+        Addr->si_family == QUIC_ADDRESS_FAMILY_INET6;
 }
 
 inline
@@ -135,7 +140,7 @@ QuicAddrCompareIp(
     _In_ const QUIC_ADDR * const Addr2
     )
 {
-    if (Addr1->si_family == AF_INET) {
+    if (Addr1->si_family == QUIC_ADDRESS_FAMILY_INET) {
         return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr, sizeof(IN_ADDR)) == 0;
     } else {
         return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0;
@@ -162,9 +167,9 @@ QuicAddrIsWildCard(
     _In_ const QUIC_ADDR * const Addr
     )
 {
-    if (Addr->si_family == AF_UNSPEC) {
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
         return TRUE;
-    } else if (Addr->si_family == AF_INET) {
+    } else if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
         const IN_ADDR ZeroAddr = {0};
         return memcmp(&Addr->Ipv4.sin_addr, &ZeroAddr, sizeof(IN_ADDR)) == 0;
     } else {
@@ -174,22 +179,22 @@ QuicAddrIsWildCard(
 }
 
 inline
-uint16_t
+QUIC_ADDRESS_FAMILY
 QuicAddrGetFamily(
     _In_ const QUIC_ADDR * const Addr
     )
 {
-    return Addr->si_family;
+    return (QUIC_ADDRESS_FAMILY)Addr->si_family;
 }
 
 inline
 void
 QuicAddrSetFamily(
-    _Out_ QUIC_ADDR * Addr,
-    _In_ uint16_t Family
+    _Inout_ QUIC_ADDR * Addr,
+    _In_ QUIC_ADDRESS_FAMILY Family
     )
 {
-    Addr->si_family = Family;
+    Addr->si_family = (ADDRESS_FAMILY)Family;
 }
 
 inline
@@ -229,7 +234,7 @@ QuicAddrSetToLoopback(
     _Inout_ QUIC_ADDR * Addr
     )
 {
-    if (Addr->si_family == AF_INET) {
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b1 = 127;
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b4 = 1;
     } else {
@@ -246,7 +251,7 @@ QuicAddrIncrement(
     _Inout_ QUIC_ADDR * Addr
     )
 {
-    if (Addr->si_family == AF_INET) {
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b4++;
     } else {
         Addr->Ipv6.sin6_addr.u.Byte[15]++;
@@ -261,7 +266,7 @@ QuicAddrHash(
 {
     uint32_t Hash = 5387; // A random prime number.
 #define UPDATE_HASH(byte) Hash = ((Hash << 5) - Hash) + (byte)
-    if (Addr->si_family == AF_INET) {
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
         UPDATE_HASH(Addr->Ipv4.sin_port & 0xFF);
         UPDATE_HASH(Addr->Ipv4.sin_port >> 8);
         for (uint8_t i = 0; i < sizeof(Addr->Ipv4.sin_addr); ++i) {
@@ -289,9 +294,9 @@ QuicAddrFromString(
 {
     Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
     if (RtlIpv4StringToAddressExA(AddrStr, FALSE, &Addr->Ipv4.sin_addr, &Addr->Ipv4.sin_port) == NO_ERROR) {
-        Addr->si_family = AF_INET;
+        Addr->si_family = QUIC_ADDRESS_FAMILY_INET;
     } else if (RtlIpv6StringToAddressExA(AddrStr, &Addr->Ipv6.sin6_addr, &Addr->Ipv6.sin6_scope_id, &Addr->Ipv6.sin6_port) == NO_ERROR) {
-        Addr->si_family = AF_INET6;
+        Addr->si_family = QUIC_ADDRESS_FAMILY_INET6;
     } else {
         return FALSE;
     }
@@ -314,7 +319,7 @@ QuicAddrToString(
 {
     LONG Status;
     ULONG AddrStrLen = ARRAYSIZE(AddrStr->Address);
-    if (Addr->si_family == AF_INET) {
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
         Status =
             RtlIpv4AddressToStringExA(
                 &Addr->Ipv4.sin_addr,

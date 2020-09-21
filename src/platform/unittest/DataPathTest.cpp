@@ -28,7 +28,7 @@ struct QuicAddr
     QUIC_ADDR SockAddr;
 
     uint16_t Port() {
-        if (QuicAddrGetFamily(&SockAddr) == AF_INET) {
+        if (QuicAddrGetFamily(&SockAddr) == QUIC_ADDRESS_FAMILY_INET) {
             return SockAddr.Ipv4.sin_port;
         } else {
             return SockAddr.Ipv6.sin6_port;
@@ -37,7 +37,7 @@ struct QuicAddr
 
     #undef SetPort
     void SetPort(uint16_t port) {
-        if (QuicAddrGetFamily(&SockAddr) == AF_INET) {
+        if (QuicAddrGetFamily(&SockAddr) == QUIC_ADDRESS_FAMILY_INET) {
             SockAddr.Ipv4.sin_port = port;
         } else {
             SockAddr.Ipv6.sin6_port = port;
@@ -139,8 +139,8 @@ protected:
         //
         NextPort = 50000 + (QuicCurThreadID() % 10000) + (rand() % 5000);
 
-        LocalIPv4.Resolve(AF_INET, "localhost");
-        LocalIPv6.Resolve(AF_INET6, "localhost");
+        LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
+        LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
 
         ExpectedData = (char*)QUIC_ALLOC_NONPAGED(ExpectedDataSize);
         ASSERT_NE(ExpectedData, nullptr);

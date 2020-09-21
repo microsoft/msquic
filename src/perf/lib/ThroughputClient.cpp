@@ -69,8 +69,8 @@ ThroughputClient::Init(
     uint16_t Ip;
     if (TryGetValue(argc, argv, "ip", &Ip)) {
         switch (Ip) {
-        case 4: RemoteFamily = AF_INET; break;
-        case 6: RemoteFamily = AF_INET6; break;
+        case 4: RemoteFamily = QUIC_ADDRESS_FAMILY_INET; break;
+        case 6: RemoteFamily = QUIC_ADDRESS_FAMILY_INET6; break;
         }
     }
 
@@ -216,7 +216,7 @@ ThroughputClient::Start(
         }
     }
 
-    if (QuicAddrGetFamily(&LocalIpAddr) != AF_UNSPEC) {
+    if (QuicAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
         MsQuic->SetParam(
             ConnData->Connection,
             QUIC_PARAM_LEVEL_CONNECTION,

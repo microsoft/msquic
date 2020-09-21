@@ -678,15 +678,15 @@ typedef struct QUIC_EVENT_DATA_LOG {
 inline void AddrToString(const SOCKADDR_INET* Addr, _Out_ char AddrStr[INET6_ADDRSTRLEN])
 {
     ULONG AddrStrLen = INET6_ADDRSTRLEN;
-    if (Addr->si_family == AF_UNSPEC) {
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
         if (Addr->Ipv4.sin_port == 0) {
             strcpy_s(AddrStr, INET6_ADDRSTRLEN, "NotSet");
         } else {
             sprintf_s(AddrStr, INET6_ADDRSTRLEN, "Unspecified:%u", Addr->Ipv4.sin_port);
         }
-    } else if (Addr->si_family == AF_INET) {
+    } else if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
         RtlIpv4AddressToStringExA(&Addr->Ipv4.sin_addr, Addr->Ipv4.sin_port, AddrStr, &AddrStrLen);
-    } else if (Addr->si_family == AF_INET6) {
+    } else if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET6) {
         RtlIpv6AddressToStringExA(&Addr->Ipv6.sin6_addr, Addr->Ipv6.sin6_scope_id, Addr->Ipv6.sin6_port, AddrStr, &AddrStrLen);
     } else {
         strcpy_s(AddrStr, INET6_ADDRSTRLEN, "Invalid");

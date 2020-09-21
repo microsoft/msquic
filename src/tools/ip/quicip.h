@@ -163,7 +163,7 @@ MsQuicGetPublicIPEx(
         }
     }
 
-    if (AF_UNSPEC != QuicAddrGetFamily(LocalAddress)) {
+    if (QUIC_ADDRESS_FAMILY_UNSPEC != QuicAddrGetFamily(LocalAddress)) {
         if (QUIC_FAILED(Context.Status = Context.MsQuic->SetParam(Context.Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_LOCAL_ADDRESS, sizeof(QUIC_ADDR), LocalAddress))) {
             QUIC_PRINTF("SetParam(CONN_LOCAL_ADDRESS) failed, 0x%x!\n", Context.Status);
             goto Error;

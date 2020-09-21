@@ -147,7 +147,15 @@ typedef unsigned char BOOLEAN;
 typedef struct in_addr IN_ADDR;
 typedef struct in6_addr IN6_ADDR;
 typedef struct addrinfo ADDRINFO;
-typedef sa_family_t QUIC_ADDRESS_FAMILY;
+
+//
+// Enum matches windows values
+//
+typedef enum QUIC_ADDRESS_FAMILY {
+    QUIC_ADDRESS_FAMILY_UNSPEC = 0,
+    QUIC_ADDRESS_FAMILY_INET = 2,
+    QUIC_ADDRESS_FAMILY_INET6 = 23,
+} QUIC_ADDRESS_FAMILY;
 
 typedef union QUIC_ADDR {
     struct sockaddr Ip;
@@ -176,7 +184,7 @@ typedef union QUIC_ADDR {
 extern "C" {
 #endif
 
-#define QUIC_LOCALHOST_FOR_AF(Af) ((Af == AF_INET) ? "localhost" : "ip6-localhost")
+#define QUIC_LOCALHOST_FOR_AF(Af) ((Af == QUIC_ADDRESS_FAMILY_INET) ? "localhost" : "ip6-localhost")
 
 #define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080
 #define QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA                 0x00000100
@@ -215,7 +223,10 @@ QuicAddrFamilyIsValid(
     _In_ QUIC_ADDRESS_FAMILY Family
     )
 {
-    return Family == AF_INET || Family == AF_INET6 || Family == AF_UNSPEC;
+    return
+        Family == QUIC_ADDRESS_FAMILY_UNSPEC ||
+        Family == QUIC_ADDRESS_FAMILY_INET ||
+        Family == QUIC_ADDRESS_FAMILY_INET6;
 }
 
 inline
@@ -234,7 +245,7 @@ QuicAddrCompareIp(
     _In_ const QUIC_ADDR* const Addr2
     )
 {
-    if (AF_INET == Addr1->Ip.sa_family) {
+    if (QUIC_ADDRESS_FAMILY_INET == Addr1->Ip.sa_family) {
         return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr, sizeof(IN_ADDR)) == 0;
     } else {
         return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0;
@@ -253,7 +264,7 @@ QuicAddrCompare(
         return FALSE;
     }
 
-    if (AF_INET == Addr1->Ip.sa_family) {
+    if (QUIC_ADDRESS_FAMILY_INET == Addr1->Ip.sa_family) {
         return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr, sizeof(IN_ADDR)) == 0;
     } else {
         return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0;
@@ -261,7 +272,7 @@ QuicAddrCompare(
 }
 
 inline
-uint16_t
+QUIC_ADDRESS_FAMILY
 QuicAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
     )
@@ -273,7 +284,7 @@ inline
 void
 QuicAddrSetFamily(
     _In_ QUIC_ADDR* Addr,
-    _In_ uint16_t Family
+    _In_ QUIC_ADDRESS_FAMILY Family
     )
 {
     Addr->Ip.sa_family = Family;
@@ -285,7 +296,7 @@ QuicAddrGetPort(
     _In_ const QUIC_ADDR* const Addr
     )
 {
-    if (AF_INET == Addr->Ip.sa_family) {
+    if (QUIC_ADDRESS_FAMILY_INET == Addr->Ip.sa_family) {
         return ntohs(Addr->Ipv4.sin_port);
     } else {
         return ntohs(Addr->Ipv6.sin6_port);
@@ -299,7 +310,7 @@ QuicAddrSetPort(
     _In_ uint16_t Port
     )
 {
-    if (AF_INET == Addr->Ip.sa_family) {
+    if (QUIC_ADDRESS_FAMILY_INET == Addr->Ip.sa_family) {
         Addr->Ipv4.sin_port = htons(Port);
     } else {
         Addr->Ipv6.sin6_port = htons(Port);
@@ -330,7 +341,7 @@ QuicAddrIncrement(
     _Inout_ QUIC_ADDR * Addr
     )
 {
-    if (Addr->Ip.sa_family == AF_INET) {
+    if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
         ((uint8_t*)&Addr->Ipv4.sin_addr)[3]++;
     } else {
         ((uint8_t*)&Addr->Ipv6.sin6_addr)[15]++;
@@ -343,7 +354,7 @@ QuicAddrSetToLoopback(
     _Inout_ QUIC_ADDR* Addr
     )
 {
-    if (Addr->Ip.sa_family == AF_INET) {
+    if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
         Addr->Ipv4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     } else {
         Addr->Ipv6.sin6_addr = in6addr_loopback;
@@ -359,7 +370,7 @@ QuicAddrHash(
 {
     uint32_t Hash = 5387; // A random prime number.
 #define UPDATE_HASH(byte) Hash = ((Hash << 5) - Hash) + (byte)
-    if (Addr->Ip.sa_family == AF_INET) {
+    if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
         UPDATE_HASH(Addr->Ipv4.sin_port & 0xFF);
         UPDATE_HASH(Addr->Ipv4.sin_port >> 8);
         for (uint8_t i = 0; i < sizeof(Addr->Ipv4.sin_addr); ++i) {
@@ -381,9 +392,9 @@ QuicAddrIsWildCard(
     _In_ const QUIC_ADDR* const Addr
     )
 {
-    if (Addr->Ip.sa_family == AF_UNSPEC) {
+    if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
         return TRUE;
-    } else if (Addr->Ip.sa_family == AF_INET) {
+    } else if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
         const IN_ADDR ZeroAddr = {0};
         return memcmp(&Addr->Ipv4.sin_addr.s_addr, &ZeroAddr, sizeof(IN_ADDR)) == 0;
     } else {
@@ -426,7 +437,7 @@ QuicAddr4FromString(
             return FALSE;
         }
     }
-    Addr->Ip.sa_family = AF_INET;
+    Addr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET;
     return TRUE;
 }
 
@@ -460,7 +471,7 @@ QuicAddr6FromString(
             return FALSE;
         }
     }
-    Addr->Ip.sa_family = AF_INET6;
+    Addr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
     return TRUE;
 }
 
@@ -493,7 +504,7 @@ QuicAddrToString(
     )
 {
     char* Address = AddrStr->Address;
-    if (Addr->Ip.sa_family == AF_INET6 && Addr->Ipv6.sin6_port != 0) {
+    if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6 && Addr->Ipv6.sin6_port != 0) {
         Address[0] = '[';
         Address++;
     }
@@ -506,7 +517,7 @@ QuicAddrToString(
     }
     if (Addr->Ipv4.sin_port != 0) {
         Address += strlen(Address);
-        if (Addr->Ip.sa_family == AF_INET6) {
+        if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6) {
             Address[0] = ']';
             Address++;
         }

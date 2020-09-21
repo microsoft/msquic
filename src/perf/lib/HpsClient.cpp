@@ -303,7 +303,7 @@ HpsClient::StartConnection(
     Status =
         MsQuic->ConnectionStart(
             Scope.Connection,
-            AF_UNSPEC,
+            QUIC_ADDRESS_FAMILY_UNSPEC,
             Target.get(),
             Port);
     if (QUIC_FAILED(Status)) {

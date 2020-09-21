@@ -94,7 +94,7 @@ QUIC_THREAD_CALLBACK(TestReachability, Context)
         exit(1);
     }
 
-    if (QUIC_FAILED(MsQuic->ConnectionStart(Connection, AF_UNSPEC, ServerName, Port))) {
+    if (QUIC_FAILED(MsQuic->ConnectionStart(Connection, QUIC_ADDRESS_FAMILY_UNSPEC, ServerName, Port))) {
         printf("ConnectionStart failed.\n");
         exit(1);
     }
