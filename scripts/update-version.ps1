@@ -28,7 +28,7 @@ $MsQuicVerFilePath = Join-Path $RootDir "src" "inc" "msquic.ver"
 $CreatePackageFilePath = Join-Path $RootDir ".azure" "templates" "create-package.yml"
 
 # Get the current version number from the msquic.ver file.
-$OriginalVersion = (Select-String -Path $MsQuicVerFilePath "VER_FILEVERSION *(.*),VER_BUILD_ID$" -AllMatches).Matches[0].Groups[1].Value
+$OriginalVersion = (Select-String -Path $MsQuicVerFilePath "VER_FILEVERSION *(.*),0$" -AllMatches).Matches[0].Groups[1].Value
 $OriginalVersion2 = $OriginalVersion.Replace(",", ".")
 $Version = $OriginalVersion.Split(",")
 Write-Host "Current version: $Version"

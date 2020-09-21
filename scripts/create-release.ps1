@@ -31,7 +31,7 @@ git checkout main
 git pull
 
 # Get the current major and minor version numbers from msquic.ver.
-$Version = (Select-String -Path $MsQuicVerFilePath "VER_FILEVERSION *(.*),.*,VER_BUILD_ID$" -AllMatches).Matches[0].Groups[1].Value.Replace(",", ".")
+$Version = (Select-String -Path $MsQuicVerFilePath "VER_FILEVERSION *(.*),.*,0$" -AllMatches).Matches[0].Groups[1].Value.Replace(",", ".")
 
 # Create a new release branch with the current version number.
 git checkout -b "release/$Version"
