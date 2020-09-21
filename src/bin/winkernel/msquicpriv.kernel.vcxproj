@@ -42,9 +42,6 @@
     <ClCompile Include="driver.c" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="msquicpriv.rc" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
@@ -86,7 +83,7 @@
     <QUIC_VER_SUFFIX Condition="'$(QUIC_VER_SUFFIX)' == ''">-private</QUIC_VER_SUFFIX>
   </PropertyGroup>
   <ItemGroup>
-    <ResourceCompile Include="msquic.rc">
+    <ResourceCompile Include="msquicpriv.rc">
       <PreprocessorDefinitions>VER_BUILD_ID=$(QUIC_VER_BUILD_ID);VER_SUFFIX=$(QUIC_VER_SUFFIX);%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemGroup>
