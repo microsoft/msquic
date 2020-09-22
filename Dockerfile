@@ -16,11 +16,6 @@ ENV     PATH="/root/.dotnet/tools:${PATH}"
 RUN     cmake -DQUIC_BUILD_TEST=OFF -DQUIC_BUILD_PERF=OFF \
             -DQUIC_ENABLE_LOGGING=on ..
 RUN     cmake --build .
-RUN     openssl ecparam -out server.eckey -noout -name prime256v1 -genkey
-RUN	    openssl pkcs8 -topk8 -inform pem -in server.eckey -nocrypt \
-            -out server.key
-RUN     openssl req -batch -new -key server.key -days 9365 -nodes -x509 \
-            -subj "/" -addext "subjectAltName = DNS:server" -out server.crt
 
 FROM    martenseemann/quic-network-simulator-endpoint
 RUN     apt-get update -y \

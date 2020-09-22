@@ -64,6 +64,8 @@ if [ "$ROLE" == "client" ]; then
         done
     else
         echo "Requests parameter: ${REQUESTS[@]}"
+        # FIXME: there doesn't seem to be a way to specify to use /certs/ca.pem
+        # for certificate verification
         quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"${REQUESTS[@]}" -version:-16777187
     fi
     # Wait for the logs to flush to disk.
@@ -79,5 +81,5 @@ elif [ "$ROLE" == "server" ]; then
     esac
 
     quicinteropserver ${SERVER_PARAMS} -root:/www -listen:* -port:443 \
-        -file:/server.crt -key:/server.key 2>&1
+        -file:/certs/cert.pem -key:/certs/priv.key 2>&1
 fi
