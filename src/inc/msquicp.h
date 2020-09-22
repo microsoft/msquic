@@ -91,17 +91,6 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x80000003  // No payload
 #define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x80000004  // QUIC_PRIVATE_TRANSPORT_PARAMETER
 
-//
-// MsQuic.sys IOCTL interface
-//
-
-#ifdef CTL_CODE
-
-#define IOCTL_QUIC_PERFORMANCE_COUNTERS \
-    CTL_CODE(FILE_DEVICE_NETWORK, 1, METHOD_BUFFERED, FILE_READ_DATA)
-
-#endif // CTL_CODE
-
 #if defined(__cplusplus)
 }
 #endif

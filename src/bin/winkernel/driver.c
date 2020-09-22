@@ -112,12 +112,10 @@ Return Value:
         goto Error;
     }
 
-#ifdef QUIC_IOCTL_INTERFACE
     Status = QuicIoCtlInitialize(Driver);
     if (!NT_SUCCESS(Status)) {
         goto Error;
     }
-#endif
 
 Error:
 
@@ -153,9 +151,7 @@ Arguments:
     UNREFERENCED_PARAMETER(Driver);
 
     PAGED_CODE();
-#ifdef QUIC_IOCTL_INTERFACE
     QuicIoCtlUninitialize();
-#endif
     MsQuicLibraryUnload();
     QuicPlatformSystemUnload();
 }

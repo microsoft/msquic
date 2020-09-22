@@ -12,7 +12,7 @@ Abstract:
 #include "quic_platform.h"
 #include "quic_trace.h"
 #include "msquic.h"
-#include "msquicp.h"
+#include "msquic_ioctl.h"
 
 #ifdef QUIC_CLOG
 #include "ioctl.c.clog.h"
@@ -25,8 +25,8 @@ QuicLibrarySumPerfCountersExternal(
     _In_ uint32_t BufferLength
     );
 
-DECLARE_CONST_UNICODE_STRING(QuicIoCtlDeviceName, L"\\Device\\msquic");
-DECLARE_CONST_UNICODE_STRING(QuicIoCtlDeviceSymLink, L"\\DosDevices\\msquic");
+DECLARE_CONST_UNICODE_STRING(QuicIoCtlDeviceName, L"\\Device\\" MSQUIC_DEVICE_NAME);
+DECLARE_CONST_UNICODE_STRING(QuicIoCtlDeviceSymLink, L"\\DosDevices\\" MSQUIC_DEVICE_NAME);
 
 typedef struct QUIC_DEVICE_EXTENSION {
     void* Reserved;
@@ -352,8 +352,7 @@ QuicIoCtlEvtIoDeviceControl(
             Status = STATUS_INSUFFICIENT_RESOURCES;
             goto Error;
         }
-    }
-    else {
+    } else {
         OutputBufferLength = QUIC_PERF_COUNTER_MAX * sizeof(int64_t);
     }
 
@@ -382,8 +381,7 @@ Error:
         Client,
         Status);
 
-    WdfRequestComplete(Request, Status);
+    WdfRequestCompleteWithInformation(Request, Status, OutputBufferLength);
     UNREFERENCED_PARAMETER(InputBufferLength);
-    UNREFERENCED_PARAMETER(OutputBufferLength);
     UNREFERENCED_PARAMETER(Queue);
 }
