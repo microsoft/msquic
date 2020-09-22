@@ -33,6 +33,5 @@ COPY    --from=source /src/scripts/install-powershell-docker.sh \
 RUN     chmod +x /install-powershell-docker.sh
 RUN     /install-powershell-docker.sh
 ENV     PATH="/root/.dotnet/tools:${PATH}"
-COPY    --from=build /src/Debug/server.* /
 RUN     chmod +x /run_endpoint.sh
 ENTRYPOINT [ "/run_endpoint.sh" ]
