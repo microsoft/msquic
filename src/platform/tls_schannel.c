@@ -912,7 +912,14 @@ QuicTlsSecConfigCreate(
     //
 
 #ifdef _KERNEL_MODE
-    if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        //
+        // Nothing supported for client right now.
+        //
+        Credentials->cCreds = 0;
+        Credentials->paCred = NULL;
+
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
         if (CredConfig->Creds == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
@@ -986,6 +993,7 @@ QuicTlsSecConfigCreate(
         //
         Credentials->cCreds = 0;
         Credentials->paCred = NULL;
+
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         QuicTraceEvent(
