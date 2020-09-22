@@ -312,6 +312,7 @@ QuicCryptoInitializeTls(
     }
 
     Crypto->ResumptionTicket = NULL; // Owned by TLS now.
+    Crypto->ResumptionTicketLength = 0;
     QuicCryptoProcessData(Crypto, !IsServer);
 
 Error:

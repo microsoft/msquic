@@ -620,16 +620,23 @@ QuicTlsInitialize(
 
                 QUIC_TLS_TICKET* SerializedTicket =
                     (QUIC_TLS_TICKET*)Config->ResumptionTicketBuffer;
-                // TODO - Validate Length
+                if (SerializedTicket->SessionLength + SerializedTicket->TicketLength
+                    != Config->ResumptionTicketLength - sizeof(QUIC_TLS_TICKET)) {
+                    QuicTraceEvent(
+                        TlsError,
+                        "[ tls][%p] ERROR, %s.",
+                        TlsContext->Connection,
+                        "0-RTT ticket is corrupt");
+                } else {
+                    TlsContext->miTlsTicket.ticket_len = SerializedTicket->TicketLength;
+                    TlsContext->miTlsTicket.ticket = SerializedTicket->Buffer;
 
-                TlsContext->miTlsTicket.ticket_len = SerializedTicket->TicketLength;
-                TlsContext->miTlsTicket.ticket = SerializedTicket->Buffer;
+                    TlsContext->miTlsTicket.session_len = SerializedTicket->SessionLength;
+                    TlsContext->miTlsTicket.session =
+                        SerializedTicket->Buffer + SerializedTicket->TicketLength;
 
-                TlsContext->miTlsTicket.session_len = SerializedTicket->SessionLength;
-                TlsContext->miTlsTicket.session =
-                    SerializedTicket->Buffer + SerializedTicket->TicketLength;
-
-                TlsContext->miTlsConfig.server_ticket = &TlsContext->miTlsTicket;
+                    TlsContext->miTlsConfig.server_ticket = &TlsContext->miTlsTicket;
+                }
             }
         }
 

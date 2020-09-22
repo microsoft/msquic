@@ -5950,8 +5950,8 @@ QuicConnParamSet(
                 "[conn][%p] ERROR, %s.",
                 Connection,
                 "Client Ticket version failed to decode");
-                Status = QUIC_STATUS_INVALID_PARAMETER;
-                break;
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
         }
         if (TicketVersion != QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION) {
             QuicTraceEvent(
@@ -5995,7 +5995,6 @@ QuicConnParamSet(
         }
         Offset += (uint16_t)TPLength;
         if (TicketLength > 0) {
-            Offset += (uint16_t)TicketLength;
             Connection->Crypto.ResumptionTicket = QUIC_ALLOC_NONPAGED((uint16_t)TicketLength);
             if (Connection->Crypto.ResumptionTicket == NULL) {
                 QuicTraceEvent(
@@ -6003,11 +6002,12 @@ QuicConnParamSet(
                     "Allocation of '%s' failed. (%llu bytes)",
                     "Resumption ticket copy",
                     TicketLength);
-                    Status = QUIC_STATUS_OUT_OF_MEMORY;
-                    break;
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+                break;
             }
             QuicCopyMemory(Connection->Crypto.ResumptionTicket, (uint8_t*)Buffer + Offset, (uint16_t)TicketLength);
             Connection->Crypto.ResumptionTicketLength = (uint32_t)TicketLength;
+            Offset += (uint16_t)TicketLength;
         }
         QUIC_DBG_ASSERT(BufferLength == Offset);
 
