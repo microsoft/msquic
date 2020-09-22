@@ -628,6 +628,8 @@ QuicTlsInitialize(
                 TlsContext->miTlsTicket.session_len = SerializedTicket->SessionLength;
                 TlsContext->miTlsTicket.session =
                     SerializedTicket->Buffer + SerializedTicket->TicketLength;
+
+                TlsContext->miTlsConfig.server_ticket = &TlsContext->miTlsTicket;
             }
         }
 
@@ -757,22 +759,22 @@ QuicTlsProcessData(
 
     TlsSetValue(miTlsCurrentConnectionIndex, TlsContext->Connection);
 
-    //
-    // Validate buffer lengths.
-    //
-    if (TlsContext->BufferLength + *BufferLength > QUIC_TLS_MAX_MESSAGE_LENGTH) {
-        ResultFlags = QUIC_TLS_RESULT_ERROR;
-        QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s.",
-            TlsContext->Connection,
-            "TLS buffer too big");
-        goto Error;
-    }
-
     TlsContext->State = State;
 
     if (DataType == QUIC_TLS_CRYPTO_DATA) {
+
+        //
+        // Validate buffer lengths.
+        //
+        if (TlsContext->BufferLength + *BufferLength > QUIC_TLS_MAX_MESSAGE_LENGTH) {
+            ResultFlags = QUIC_TLS_RESULT_ERROR;
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "TLS buffer too big");
+            goto Error;
+        }
 
         if (*BufferLength) {
             QuicTraceLogConnVerbose(
@@ -807,12 +809,11 @@ QuicTlsProcessData(
             ResultFlags = QuicTlsProcessDataComplete(TlsContext, &ConsumedBytes);
             *BufferLength = ConsumedBytes;
         }
+
     } else {
         QUIC_DBG_ASSERT(DataType == QUIC_TLS_TICKET_DATA);
 
         QUIC_DBG_ASSERT(TlsContext->IsServer);
-        QUIC_DBG_ASSERT((*BufferLength > 0 && Buffer != NULL) ||
-            (*BufferLength == 0 && Buffer == NULL));
 
         QuicTraceLogConnVerbose(
             miTlsSend0RttTicket,

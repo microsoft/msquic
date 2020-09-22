@@ -149,6 +149,9 @@ protected:
                 QuicPacketKeyFree(State.ReadKeys[i]);
                 QuicPacketKeyFree(State.WriteKeys[i]);
             }
+            if (ResumptionTicket.Buffer) {
+                QUIC_FREE(ResumptionTicket.Buffer);
+            }
         }
 
         void InitializeServer(
@@ -169,6 +172,7 @@ protected:
             Config.Connection = (QUIC_CONNECTION*)this;
             Config.ProcessCompleteCallback = OnProcessComplete;
             Config.ReceiveTPCallback = OnRecvQuicTP;
+            Config.ReceiveResumptionCallback = OnRecvTicketServer;
             State.NegotiatedAlpn = Alpn;
 
             VERIFY_QUIC_SUCCESS(
@@ -181,7 +185,8 @@ protected:
         void InitializeClient(
             QUIC_SEC_CONFIG* SecConfig,
             bool MultipleAlpns = false,
-            uint16_t TPLen = 64
+            uint16_t TPLen = 64,
+            QUIC_BUFFER* Ticket = nullptr
             )
         {
             QUIC_TLS_CONFIG Config = {0};
@@ -195,7 +200,13 @@ protected:
             Config.Connection = (QUIC_CONNECTION*)this;
             Config.ProcessCompleteCallback = OnProcessComplete;
             Config.ReceiveTPCallback = OnRecvQuicTP;
+            Config.ReceiveResumptionCallback = OnRecvTicketClient;
             Config.ServerName = "localhost";
+            if (Ticket) {
+                Config.ResumptionTicketBuffer = Ticket->Buffer;
+                Config.ResumptionTicketLength = Ticket->Length;
+                Ticket->Buffer = nullptr;
+            }
 
             VERIFY_QUIC_SUCCESS(
                 QuicTlsInitialize(
@@ -248,7 +259,8 @@ protected:
             _In_reads_bytes_(*BufferLength)
                 const uint8_t * Buffer,
             _In_ uint32_t * BufferLength,
-            _In_ bool ExpectError
+            _In_ bool ExpectError,
+            _In_ QUIC_TLS_DATA_TYPE DataType
             )
         {
             QuicEventReset(ProcessCompleteEvent);
@@ -256,14 +268,18 @@ protected:
             EXPECT_TRUE(Buffer != nullptr || *BufferLength == 0);
             if (Buffer != nullptr) {
                 EXPECT_EQ(BufferKey, State.ReadKey);
-                *BufferLength = GetCompleteTlsMessagesLength(Buffer, *BufferLength);
-                if (*BufferLength == 0) return (QUIC_TLS_RESULT_FLAGS)0;
+                if (DataType != QUIC_TLS_TICKET_DATA) {
+                    *BufferLength = GetCompleteTlsMessagesLength(Buffer, *BufferLength);
+                    if (*BufferLength == 0) return (QUIC_TLS_RESULT_FLAGS)0;
+                }
             }
+
+            std::cout << "Processing " << *BufferLength << " bytes of type " << DataType << std::endl;
 
             auto Result =
                 QuicTlsProcessData(
                     Ptr,
-                    QUIC_TLS_CRYPTO_DATA,
+                    DataType,
                     Buffer,
                     BufferLength,
                     &State);
@@ -286,22 +302,22 @@ protected:
                 const uint8_t * Buffer,
             _In_ uint32_t BufferLength,
             _In_ uint32_t FragmentSize,
-            _In_ bool ExpectError
+            _In_ bool ExpectError,
+            _In_ QUIC_TLS_DATA_TYPE DataType
             )
         {
             uint32_t Result = 0;
             uint32_t ConsumedBuffer = FragmentSize;
             uint32_t Count = 1;
-            while (BufferLength != 0 && !(Result & QUIC_TLS_RESULT_ERROR)) {
-
+            do {
                 if (BufferLength < FragmentSize) {
                     FragmentSize = BufferLength;
                     ConsumedBuffer = FragmentSize;
                 }
 
-                //std::cout << "Processing fragment of " << FragmentSize << " bytes" << std::endl;
+                //std::cout << "Processing fragment of " << FragmentSize << " bytes of type " << DataType << std::endl;
 
-                Result |= (uint32_t)ProcessData(BufferKey, Buffer, &ConsumedBuffer, ExpectError);
+                Result |= (uint32_t)ProcessData(BufferKey, Buffer, &ConsumedBuffer, ExpectError, DataType);
 
                 if (ConsumedBuffer > 0) {
                     Buffer += ConsumedBuffer;
@@ -309,19 +325,23 @@ protected:
                 } else {
                     ConsumedBuffer = FragmentSize * ++Count;
                     ConsumedBuffer = min(ConsumedBuffer, BufferLength);
-                };
-            }
+                }
+
+            } while (BufferLength != 0 && !(Result & QUIC_TLS_RESULT_ERROR));
 
             return (QUIC_TLS_RESULT_FLAGS)Result;
         }
 
     public:
 
+        QUIC_BUFFER ResumptionTicket {0, nullptr};
+
         QUIC_TLS_RESULT_FLAGS
         ProcessData(
             _Inout_ QUIC_TLS_PROCESS_STATE* PeerState,
             _In_ uint32_t FragmentSize = DefaultFragmentSize,
-            _In_ bool ExpectError = false
+            _In_ bool ExpectError = false,
+            _In_ QUIC_TLS_DATA_TYPE DataType = QUIC_TLS_CRYPTO_DATA
             )
         {
             if (PeerState == nullptr) {
@@ -329,12 +349,12 @@ protected:
                 // Special case for client hello/initial.
                 //
                 uint32_t Zero = 0;
-                return ProcessData(QUIC_PACKET_KEY_INITIAL, nullptr, &Zero, ExpectError);
+                return ProcessData(QUIC_PACKET_KEY_INITIAL, nullptr, &Zero, ExpectError, DataType);
             }
 
             uint32_t Result = 0;
 
-            while (PeerState->BufferLength != 0 && !(Result & QUIC_TLS_RESULT_ERROR)) {
+            do {
                 uint16_t BufferLength;
                 QUIC_PACKET_KEY_TYPE PeerWriteKey;
 
@@ -366,14 +386,16 @@ protected:
                         PeerState->Buffer,
                         BufferLength,
                         FragmentSize,
-                        ExpectError);
+                        ExpectError,
+                        DataType);
 
                 PeerState->BufferLength -= BufferLength;
                 QuicMoveMemory(
                     PeerState->Buffer,
                     PeerState->Buffer + BufferLength,
                     PeerState->BufferLength);
-            }
+
+            } while (PeerState->BufferLength != 0 && !(Result & QUIC_TLS_RESULT_ERROR));
 
             return (QUIC_TLS_RESULT_FLAGS)Result;
         }
@@ -398,6 +420,38 @@ protected:
             UNREFERENCED_PARAMETER(Connection);
             UNREFERENCED_PARAMETER(TPLength);
             UNREFERENCED_PARAMETER(TPBuffer);
+            return TRUE;
+        }
+
+        static BOOLEAN
+        OnRecvTicketServer(
+            _In_ QUIC_CONNECTION* Connection,
+            _In_ uint32_t TicketLength,
+            _In_reads_(TicketLength) const uint8_t* Ticket
+            )
+        {
+            UNREFERENCED_PARAMETER(Connection);
+            UNREFERENCED_PARAMETER(TicketLength);
+            UNREFERENCED_PARAMETER(Ticket);
+            return TRUE;
+        }
+
+        static BOOLEAN
+        OnRecvTicketClient(
+            _In_ QUIC_CONNECTION* Connection,
+            _In_ uint32_t TicketLength,
+            _In_reads_(TicketLength) const uint8_t* Ticket
+            )
+        {
+            auto Context = (TlsContext*)Connection;
+            if (Context->ResumptionTicket.Buffer == nullptr) {
+                Context->ResumptionTicket.Buffer =
+                    (uint8_t*)QUIC_ALLOC_NONPAGED(TicketLength);
+                QuicCopyMemory(
+                    Context->ResumptionTicket.Buffer,
+                    Ticket,
+                    TicketLength);
+            }
             return TRUE;
         }
     };
@@ -485,9 +539,12 @@ protected:
     DoHandshake(
         TlsContext& ServerContext,
         TlsContext& ClientContext,
-        uint32_t FragmentSize = DefaultFragmentSize
+        uint32_t FragmentSize = DefaultFragmentSize,
+        bool SendResumptionTicket = false
         )
     {
+        std::cout << "==DoHandshake==" << std::endl;
+
         auto Result = ClientContext.ProcessData(nullptr);
         ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
 
@@ -502,6 +559,13 @@ protected:
 
         Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize);
         ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+
+        if (SendResumptionTicket) {
+            Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize, false, QUIC_TLS_TICKET_DATA);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+
+            Result = ClientContext.ProcessData(&ServerContext.State, FragmentSize);
+        }
     }
 
     int64_t
@@ -581,6 +645,21 @@ TEST_F(TlsTest, Handshake)
     ServerContext.InitializeServer(ServerSecConfig);
     ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
     DoHandshake(ServerContext, ClientContext);
+}
+
+TEST_F(TlsTest, HandshakeResumption)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
+
+    ASSERT_NE(nullptr, ClientContext.ResumptionTicket.Buffer);
+
+    TlsContext ServerContext2, ClientContext2;
+    ServerContext2.InitializeServer(ServerSecConfig);
+    ClientContext2.InitializeClient(ClientSecConfigNoCertValidation, false, 64, &ClientContext.ResumptionTicket);
+    DoHandshake(ServerContext2, ClientContext2);
 }
 
 TEST_F(TlsTest, HandshakeMultiAlpnServer)
