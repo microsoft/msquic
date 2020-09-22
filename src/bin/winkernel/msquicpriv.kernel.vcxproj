@@ -42,9 +42,6 @@
     <ClCompile Include="driver.c" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="msquicpriv.rc" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
@@ -81,6 +78,15 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <QUIC_VER_BUILD_ID Condition="'$(QUIC_VER_BUILD_ID)' == ''">0</QUIC_VER_BUILD_ID>
+    <QUIC_VER_SUFFIX Condition="'$(QUIC_VER_SUFFIX)' == ''">-private</QUIC_VER_SUFFIX>
+  </PropertyGroup>
+  <ItemGroup>
+    <ResourceCompile Include="msquicpriv.rc">
+      <PreprocessorDefinitions>VER_BUILD_ID=$(QUIC_VER_BUILD_ID);VER_SUFFIX=$(QUIC_VER_SUFFIX);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+  </ItemGroup>
   <PropertyGroup>
     <TargetName>msquicpriv</TargetName>
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
