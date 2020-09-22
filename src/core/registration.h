@@ -6,6 +6,12 @@
 --*/
 
 //
+// Special internal type to indicate registration created for global listener
+// processing.
+//
+#define QUIC_EXECUTION_PROFILE_TYPE_INTERNAL ((QUIC_EXECUTION_PROFILE)0xFF)
+
+//
 // Different outcomes for a new incoming connection.
 //
 typedef enum QUIC_CONNECTION_ACCEPT_RESULT {

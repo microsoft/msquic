@@ -647,6 +647,7 @@ TEST_F(TlsTest, Handshake)
     DoHandshake(ServerContext, ClientContext);
 }
 
+#ifndef QUIC_DISABLE_0RTT_TESTS
 TEST_F(TlsTest, HandshakeResumption)
 {
     TlsContext ServerContext, ClientContext;
@@ -661,6 +662,7 @@ TEST_F(TlsTest, HandshakeResumption)
     ClientContext2.InitializeClient(ClientSecConfigNoCertValidation, false, 64, &ClientContext.ResumptionTicket);
     DoHandshake(ServerContext2, ClientContext2);
 }
+#endif
 
 TEST_F(TlsTest, HandshakeMultiAlpnServer)
 {

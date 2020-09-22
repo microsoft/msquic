@@ -1082,7 +1082,7 @@ QuicTlsHasValidMessageToProcess(
         return TRUE;
     }
 
-    if (BufferLength < 7) {
+    if (BufferLength < 4) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",

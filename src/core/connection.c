@@ -6010,6 +6010,7 @@ QuicConnParamSet(
             Offset += (uint16_t)TicketLength;
         }
         QUIC_DBG_ASSERT(BufferLength == Offset);
+        QuicConnProcessPeerTransportParameters(Connection, TRUE);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
