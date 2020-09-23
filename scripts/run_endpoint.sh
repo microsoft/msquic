@@ -83,9 +83,9 @@ if [ "$ROLE" == "client" ]; then
         # FIXME: there doesn't seem to be a way to specify to use /certs/ca.pem
         # for certificate verification
         quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"${REQUESTS[@]}" -version:-16777187
-
-        echo "Client complete."
     fi
+
+    echo "Client complete."
 
 elif [ "$ROLE" == "server" ]; then
     case "$TESTCASE" in
