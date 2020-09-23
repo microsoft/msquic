@@ -631,6 +631,8 @@ QuicCryptoTlsEncodeTransportParameters(
     //
 
     UNREFERENCED_PARAMETER(Connection);
+    UNREFERENCED_PARAMETER(IsServerTP);
+
     QuicTraceLogConnVerbose(
         EncodeTPStart,
         Connection,
