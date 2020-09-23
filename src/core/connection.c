@@ -2004,7 +2004,6 @@ QuicConnSendResumptionTicket(
         QuicVarIntSize(AlpnLength) +
         QuicVarIntSize(EncodedTransportParametersLength) +
         QuicVarIntSize(AppDataLength) +
-        sizeof(QUIC_VERSION_LATEST) +
         AlpnLength +
         EncodedTransportParametersLength +
         AppDataLength);
