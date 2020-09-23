@@ -181,7 +181,7 @@ Return Value:
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "QuicTestCtlInitialize failed");
+            "QuicIoctlTestCtlInitialize failed");
         goto Error;
     }
 
@@ -230,7 +230,7 @@ Arguments:
 
     QuicIoctlTestCtlUninitialize();
     QuicTestCtlUninitialize();
- 
+
     QuicTraceLogInfo(
         TestDriverStopped,
         "[test] Stopped");
@@ -238,4 +238,3 @@ Arguments:
     QuicPlatformUninitialize();
     QuicPlatformSystemUnload();
 }
-
