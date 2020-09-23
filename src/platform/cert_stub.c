@@ -16,26 +16,24 @@ Abstract:
 
 QUIC_STATUS
 QuicCertCreate(
-    _In_ uint32_t Type,
-    _In_opt_ void* CertConfig,
-    _In_opt_z_ const char* Principal,
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _Out_ QUIC_CERT** NewCertificate
     )
 {
-    if (Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
-        if (CertConfig == NULL && Principal == NULL) {
+    if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
+        if (CredConfig->CertificateHash == NULL && CredConfig->Principal == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-    } else if (Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE) {
-        if (CertConfig == NULL) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE) {
+        if (CredConfig->CertificateHashStore == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-    } else if (Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
-        if (CertConfig == NULL) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
+        if (CredConfig->CertificateContext == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-    } else if (Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
-        if (CertConfig == NULL) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+        if (CredConfig->CertificateFile == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     } else {

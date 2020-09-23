@@ -2000,6 +2000,7 @@ QuicConnSendResumptionTicket(
 
     uint32_t TotalTicketLength =
         (uint32_t)(QuicVarIntSize(QUIC_TLS_RESUMPTION_TICKET_VERSION) +
+        sizeof(Connection->Stats.QuicVersion) +
         QuicVarIntSize(AlpnLength) +
         QuicVarIntSize(EncodedTransportParametersLength) +
         QuicVarIntSize(AppDataLength) +
@@ -2031,11 +2032,10 @@ QuicConnSendResumptionTicket(
     //   App Ticket (omitted if length is zero) [...]
     //
 
-    uint32_t QuicVersion = Connection->Stats.QuicVersion;
     _Analysis_assume_(sizeof(*TicketBuffer) >= 8);
     uint8_t* TicketCursor = QuicVarIntEncode(QUIC_TLS_RESUMPTION_TICKET_VERSION, TicketBuffer);
-    memcpy(TicketCursor, &QuicVersion, sizeof(QuicVersion));
-    TicketCursor += sizeof(QUIC_VERSION_LATEST);
+    memcpy(TicketCursor, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
+    TicketCursor += sizeof(Connection->Stats.QuicVersion);
     TicketCursor = QuicVarIntEncode(AlpnLength, TicketCursor);
     TicketCursor = QuicVarIntEncode(EncodedTransportParametersLength, TicketCursor);
     TicketCursor = QuicVarIntEncode(AppDataLength, TicketCursor);
@@ -2237,6 +2237,7 @@ QuicConnRecvResumptionTicket(
 
         uint32_t TotalTicketLength =
             (uint32_t)(QuicVarIntSize(QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION) +
+            sizeof(Connection->Stats.QuicVersion) +
             QuicVarIntSize(EncodedTransportParametersLength) +
             QuicVarIntSize(TicketLength) +
             EncodedTransportParametersLength +
@@ -2262,11 +2263,10 @@ QuicConnRecvResumptionTicket(
         //   Received Ticket (omitted if length is zero) [...]
         //
 
-        uint32_t QuicVersion = Connection->Stats.QuicVersion;
         _Analysis_assume_(sizeof(*TicketBlobBuffer) >= 8);
         uint8_t* TicketCursor = QuicVarIntEncode(QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION, TicketBlobBuffer);
-        memcpy(TicketCursor, &QuicVersion, sizeof(QuicVersion));
-        TicketCursor += sizeof(QuicVersion);
+        memcpy(TicketCursor, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
+        TicketCursor += sizeof(Connection->Stats.QuicVersion);
         TicketCursor = QuicVarIntEncode(EncodedTransportParametersLength, TicketCursor);
         TicketCursor = QuicVarIntEncode(TicketLength, TicketCursor);
         QuicCopyMemory(TicketCursor, EncodedServerTP, EncodedTransportParametersLength);

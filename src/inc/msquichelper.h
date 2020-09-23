@@ -415,7 +415,7 @@ GetServerConfigurationFromArgs(
             return nullptr;
         }
         Helper.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE;
-        Helper.CredConfig.Creds = &Helper.CertHashStore;
+        Helper.CredConfig.CertificateHashStore = &Helper.CertHashStore;
         memcpy(Helper.CertHashStore.StoreName, "My", sizeof("My"));
         Helper.CertHashStore.Flags =
             GetValue(argc, argv, "machine") ?
@@ -430,7 +430,7 @@ GetServerConfigurationFromArgs(
         Helper.CertFile.CertificateFile = (char*)Cert;
         Helper.CertFile.PrivateKeyFile = (char*)KeyFile;
         Helper.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
-        Helper.CredConfig.Creds = &Helper.CertFile;
+        Helper.CredConfig.CertificateFile = &Helper.CertFile;
 
 #ifdef QUIC_TEST_APIS
     } else if (GetValue(argc, argv, "selfsign")) {

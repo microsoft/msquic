@@ -937,11 +937,11 @@ QuicPlatGetSelfSignedCert(
 
     Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT;
     Params->Flags = QUIC_CREDENTIAL_FLAG_NONE;
-    Params->Creds =
+    Params->CertificateContext =
         FindOrCreateCertificate(
             Type == QUIC_SELF_SIGN_CERT_USER,
             (uint8_t*)(Params + 1));
-    if (Params->Creds == NULL) {
+    if (Params->CertificateContext == NULL) {
         HeapFree(GetProcessHeap(), 0, Params);
         return NULL;
     }
@@ -955,6 +955,6 @@ QuicPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* Params
     )
 {
-    FreeServerCertificate(Params->Creds);
+    FreeServerCertificate(Params->CertificateContext);
     HeapFree(GetProcessHeap(), 0, (void*)Params);
 }

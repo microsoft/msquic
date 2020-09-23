@@ -304,7 +304,7 @@ QuicPlatGetSelfSignedCert(
 
     QuicZeroMemory(Params, sizeof(*Params));
     Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
-    Params->Creds = &Params->CertFile;
+    Params->CertificateFile = &Params->CertFile;
     Params->CertFile.CertificateFile = Params->CertFilepath;
     Params->CertFile.PrivateKeyFile = Params->PrivateKeyFilepath;
 

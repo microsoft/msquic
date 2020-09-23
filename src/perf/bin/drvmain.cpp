@@ -528,7 +528,7 @@ QuicPerfCtlSetSecurityConfig(
 {
     Client->SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
     Client->SelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
-    Client->SelfSignedCredConfig.Creds = &Client->SelfSignedCertHash;
+    Client->SelfSignedCredConfig.CertificateHash = &Client->SelfSignedCertHash;
     RtlCopyMemory(&Client->SelfSignedCertHash.ShaHash, CertHash, sizeof(QUIC_CERTIFICATE_HASH));
     Client->SelfSignedValid = true;
     return QUIC_STATUS_SUCCESS;

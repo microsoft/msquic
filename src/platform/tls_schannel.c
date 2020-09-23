@@ -268,7 +268,7 @@ typedef struct QUIC_ACH_CONTEXT {
 #endif
 
     //
-    // CredConfig->Creds hash used to find the server certificate.
+    // CredConfig certificate hash used to find the server certificate.
     //
     SCHANNEL_CERT_HASH_STORE CertHash;
 
@@ -835,21 +835,21 @@ QuicTlsSecConfigCreate(
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
 
-        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
             return QUIC_STATUS_NOT_SUPPORTED; // Client certificates not supported yet.
         }
 
     } else {
 
         switch (CredConfig->Type) {
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE:
+        case QUIC_CREDENTIAL_TYPE_NONE:
             return QUIC_STATUS_INVALID_PARAMETER; // Server requires a certificate.
         case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
         case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
 #ifndef _KERNEL_MODE
         case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
 #endif
-            if (CredConfig->Creds == NULL && CredConfig->Principal == NULL) {
+            if (CredConfig->CertificateContext == NULL && CredConfig->Principal == NULL) {
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
             break;
@@ -920,11 +920,11 @@ QuicTlsSecConfigCreate(
         Credentials->paCred = NULL;
 
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
-        if (CredConfig->Creds == NULL) {
+        if (CredConfig->CertificateHash == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
-        QUIC_CERTIFICATE_HASH* CertHash = CredConfig->Creds;
+        QUIC_CERTIFICATE_HASH* CertHash = CredConfig->CertificateHash;
         AchContext->CertHash.dwLength = sizeof(AchContext->CertHash);
         AchContext->CertHash.dwFlags |= SCH_MACHINE_CERT_HASH;
         AchContext->CertHash.hProv = 0;
@@ -945,11 +945,11 @@ QuicTlsSecConfigCreate(
         Credentials->dwFlags |= SCH_MACHINE_CERT_HASH;
 
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE) {
-        if (CredConfig->Creds == NULL) {
+        if (CredConfig->CertificateHashStore == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
-        QUIC_CERTIFICATE_HASH_STORE* CertHashStore = CredConfig->Creds;
+        QUIC_CERTIFICATE_HASH_STORE* CertHashStore = CredConfig->CertificateHashStore;
 
         AchContext->CertHash.dwLength = sizeof(AchContext->CertHash);
         AchContext->CertHash.dwFlags |= CertHashStore->Flags;
@@ -1019,13 +1019,8 @@ QuicTlsSecConfigCreate(
     }
 #else
 
-    if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
-        Status =
-            QuicCertCreate(
-                CredConfig->Type,
-                CredConfig->Creds,
-                CredConfig->Principal,
-                &CertContext);
+    if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
+        Status = QuicCertCreate(CredConfig, &CertContext);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -1173,7 +1168,7 @@ Error:
     }
 
 #ifndef _KERNEL_MODE
-    if (CertContext != NULL && CertContext != CredConfig->Creds) {
+    if (CertContext != NULL && CertContext != CredConfig->CertificateContext) {
         CertFreeCertificateContext(CertContext);
     }
 #endif

@@ -324,7 +324,7 @@ QuicTestCtlEvtFileCleanup(
             "[test] Client %p cleaning up",
             Client);
 
-        SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE;
+        SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
         QuicTestClient = nullptr;
     }
 
@@ -536,7 +536,7 @@ QuicTestCtlEvtIoDeviceControl(
         FunctionCode);
 
     if (IoControlCode != IOCTL_QUIC_SET_CERT_HASH &&
-        SelfSignedCredConfig.Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+        SelfSignedCredConfig.Type == QUIC_CREDENTIAL_TYPE_NONE) {
         Status = STATUS_INVALID_DEVICE_STATE;
         QuicTraceEvent(
             LibraryError,
@@ -551,7 +551,7 @@ QuicTestCtlEvtIoDeviceControl(
         QUIC_FRE_ASSERT(Params != nullptr);
         SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
         SelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
-        SelfSignedCredConfig.Creds = &SelfSignedCertHash;
+        SelfSignedCredConfig.CertificateHash = &SelfSignedCertHash;
         RtlCopyMemory(&SelfSignedCertHash.ShaHash, &Params->CertHash, sizeof(QUIC_CERTIFICATE_HASH));
         Status = QUIC_STATUS_SUCCESS;
         break;

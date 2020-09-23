@@ -393,11 +393,11 @@ QuicTlsSecConfigCreate(
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
             return QUIC_STATUS_NOT_SUPPORTED; // Not supported for client (yet)
         }
     } else {
-        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_NONE) {
             return QUIC_STATUS_INVALID_PARAMETER; // Required for server
         }
     }
@@ -440,12 +440,7 @@ QuicTlsSecConfigCreate(
             goto Error;
         }
 
-        Status =
-            QuicCertCreate(
-                CredConfig->Type,
-                CredConfig->Creds,
-                CredConfig->Principal,
-                &SecurityConfig->Certificate);
+        Status = QuicCertCreate(CredConfig, &SecurityConfig->Certificate);
         if (QUIC_FAILED(Status)) {
             goto Error;
         }

@@ -146,7 +146,8 @@ main(
     HQUIC Stream = nullptr;
 
     QUIC_CREDENTIAL_CONFIG CredConfig;
-    CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE;
+    QuicZeroMemory(&CredConfig, sizeof(CredConfig));
+    CredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
     CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_CLIENT;
 
     EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));

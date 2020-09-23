@@ -301,6 +301,13 @@ MsQuicConnectionStart(
         goto Error;
     }
 
+    Configuration = (QUIC_CONFIGURATION*)ConfigHandle;
+
+    if (Configuration->SecurityConfig == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
     if (ServerName != NULL) {
         //
         // Validate the server name length.
@@ -329,8 +336,6 @@ MsQuicConnectionStart(
         QuicCopyMemory(ServerNameCopy, ServerName, ServerNameLength);
         ServerNameCopy[ServerNameLength] = 0;
     }
-
-    Configuration = (QUIC_CONFIGURATION*)ConfigHandle;
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
     QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));

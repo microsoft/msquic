@@ -83,7 +83,7 @@ typedef enum QUIC_LOAD_BALANCING_MODE {
 } QUIC_LOAD_BALANCING_MODE;
 
 typedef enum QUIC_CREDENTIAL_TYPE {
-    QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE,
+    QUIC_CREDENTIAL_TYPE_NONE,
     QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
     QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
     QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
@@ -213,15 +213,6 @@ void
 
 typedef QUIC_CREDENTIAL_LOAD_COMPLETE *QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER;
 
-typedef struct QUIC_CREDENTIAL_CONFIG {
-    QUIC_CREDENTIAL_TYPE Type;
-    QUIC_CREDENTIAL_FLAGS Flags;
-    void* Creds;
-    const char* Principal;
-    const uint8_t* TicketKey; // Optional, 44 byte array
-    QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
-} QUIC_CREDENTIAL_CONFIG;
-
 typedef struct QUIC_CERTIFICATE_HASH {
     uint8_t ShaHash[20];
 } QUIC_CERTIFICATE_HASH;
@@ -236,6 +227,20 @@ typedef struct QUIC_CERTIFICATE_FILE {
     char *PrivateKeyFile;
     char *CertificateFile;
 } QUIC_CERTIFICATE_FILE;
+
+typedef struct QUIC_CREDENTIAL_CONFIG {
+    QUIC_CREDENTIAL_TYPE Type;
+    QUIC_CREDENTIAL_FLAGS Flags;
+    union {
+        QUIC_CERTIFICATE_HASH* CertificateHash;
+        QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore;
+        void* CertificateContext; // Platform specific certificate context object
+        QUIC_CERTIFICATE_FILE* CertificateFile;
+    };
+    const char* Principal;
+    void* TicketKey; // Optional, 44 byte array
+    QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
+} QUIC_CREDENTIAL_CONFIG;
 
 //
 // A single contiguous buffer.
@@ -638,8 +643,7 @@ QUIC_STATUS
     );
 
 //
-// Closes an existing configuration. N.B. This function will deadlock if called
-// in a QUIC_CONFIGURATION_CALLBACK_HANDLER callback.
+// Closes an existing configuration.
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)

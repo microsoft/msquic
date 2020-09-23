@@ -651,14 +651,14 @@ QuicTlsSecConfigCreate(
         return QUIC_STATUS_NOT_SUPPORTED; // Not currently supported
     }
 
-    QUIC_CERTIFICATE_FILE* CertFile = CredConfig->Creds;
+    QUIC_CERTIFICATE_FILE* CertFile = CredConfig->CertificateFile;
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
             return QUIC_STATUS_NOT_SUPPORTED; // Not supported for client (yet)
         }
     } else {
-        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE) {
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_NONE) {
             return QUIC_STATUS_INVALID_PARAMETER; // Required for server
         } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
             return QUIC_STATUS_NOT_SUPPORTED; // Only support file currently

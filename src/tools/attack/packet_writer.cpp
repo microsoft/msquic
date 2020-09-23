@@ -39,7 +39,7 @@ struct TlsContext
         State.BufferAllocLength = 8000;
 
         QUIC_CREDENTIAL_CONFIG CredConfig = {
-            QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE,
+            QUIC_CREDENTIAL_TYPE_NONE,
             QUIC_CREDENTIAL_FLAG_CLIENT & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
             NULL,
             NULL

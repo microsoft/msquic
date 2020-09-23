@@ -501,41 +501,39 @@ Exit:
 
 QUIC_STATUS
 QuicCertCreate(
-    _In_ uint32_t Type,
-    _In_opt_ void* CertConfig,
-    _In_opt_z_ const char* Principal,
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _Out_ QUIC_CERT** NewCertificate
     )
 {
     QUIC_STATUS Status;
 
-    if (Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
-        if (CertConfig == NULL && Principal == NULL) {
+    if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
+        if (CredConfig->CertificateContext == NULL && CredConfig->Principal == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
             Status =
                 QuicCertLookupHash(
-                    (const QUIC_CERTIFICATE_HASH*)CertConfig,
-                    Principal,
+                    CredConfig->CertificateHash,
+                    CredConfig->Principal,
                     NewCertificate);
         }
 
-    } else if (Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE) {
-        if (CertConfig == NULL) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE) {
+        if (CredConfig->CertificateHashStore == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
             Status =
                 QuicCertLookupHashStore(
-                    (const QUIC_CERTIFICATE_HASH_STORE*)CertConfig,
-                    Principal,
+                    CredConfig->CertificateHashStore,
+                    CredConfig->Principal,
                     NewCertificate);
         }
 
-    } else if (Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
-        if (CertConfig == NULL) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
+        if (CredConfig->CertificateContext == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
-            *NewCertificate = (QUIC_CERT*)CertConfig;
+            *NewCertificate = (QUIC_CERT*)CredConfig->CertificateContext;
             Status = QUIC_STATUS_SUCCESS;
         }
 

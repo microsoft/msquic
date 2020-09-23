@@ -15,6 +15,7 @@ Environment:
 
 #define SIZEOF_CERT_CHAIN_LIST_LENGTH 3
 
+typedef struct QUIC_CREDENTIAL_CONFIG QUIC_CREDENTIAL_CONFIG;
 typedef void QUIC_CERT;
 
 //
@@ -22,9 +23,7 @@ typedef void QUIC_CERT;
 //
 QUIC_STATUS
 QuicCertCreate(
-    _In_ uint32_t Type,
-    _In_opt_ void* CertConfig,
-    _In_opt_z_ const char* Principal,
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _Out_ QUIC_CERT** NewCertificate
     );
 

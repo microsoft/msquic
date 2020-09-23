@@ -243,14 +243,14 @@ ServerLoadConfiguration(
             return false;
         }
         Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
-        Config.CredConfig.Creds = &Config.CertHash;
+        Config.CredConfig.CertificateHash = &Config.CertHash;
 
     } else if ((Cert = GetValue(argc, argv, "cert_file")) != nullptr &&
                (KeyFile = GetValue(argc, argv, "key_file")) != nullptr) {
         Config.CertFile.CertificateFile = (char*)Cert;
         Config.CertFile.PrivateKeyFile = (char*)KeyFile;
         Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
-        Config.CredConfig.Creds = &Config.CertFile;
+        Config.CredConfig.CertificateFile = &Config.CertFile;
 
     } else {
         printf("Must specify '-cert_hash' or 'cert_file' and 'key_file'!\n");
@@ -440,7 +440,8 @@ ClientLoadConfiguration(
     Settings.IsSet.IdleTimeoutMs = TRUE;
 
     QUIC_CREDENTIAL_CONFIG CredConfig;
-    CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE;
+    memset(&CredConfig, 0, sizeof(CredConfig));
+    CredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
     CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT;
     if (Unsecure) {
         CredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
