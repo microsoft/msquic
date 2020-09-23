@@ -193,11 +193,13 @@ $RunTest = Join-Path $RootDir "scripts/run-gtest.ps1"
 $MsQuicTest = $null
 $MsQuicCoreTest = $null
 $MsQuicPlatTest = $null
+$MsQuicIoctlTest = $null
 $KernelPath = $null;
 if ($IsWindows) {
     $MsQuicTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquictest.exe"
     $MsQuicCoreTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquiccoretest.exe"
     $MsQuicPlatTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquicplatformtest.exe"
+    $MsQuicPlatTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquicioctltest.exe"
     $KernelPath = Join-Path $RootDir "\artifacts\bin\winkernel\$($Arch)_$($Config)_$($Tls)"
 } else {
     $MsQuicTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquictest"
@@ -262,6 +264,8 @@ if ($CodeCoverage) {
 if (!$Kernel) {
     Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
     Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
+} else {
+    Invoke-Expression ($RunTest + " -Path $MsQuicIoctlTest " + $TestArguments)
 }
 Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 

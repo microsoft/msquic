@@ -5,41 +5,36 @@
 
 Abstract:
 
-    IOCTL interface for the MsQuic.sys driver.
+    QUIC Kernel Mode IOCTL Interface Test Driver
 
 --*/
 
-#include "quic_platform.h"
-#include "quic_trace.h"
-#include "msquic.h"
-#include "msquic_ioctl.h"
+#include <quic_platform.h>
+#include <MsQuicTests.h>
 
+#include "quic_trace.h"
 #ifdef QUIC_CLOG
-#include "ioctl.c.clog.h"
+#include "ioctltestcontrol.cpp.clog.h"
 #endif
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicLibrarySumPerfCountersExternal(
-    _Out_writes_bytes_(BufferLength) uint8_t* Buffer,
-    _In_ uint32_t BufferLength
-    );
+#ifdef PRIVATE_LIBRARY
+DECLARE_CONST_UNICODE_STRING(QuicIoctlTestCtlDeviceName, L"\\Device\\" QUIC_DRIVER_NAME_PRIVATE "IOCTL");
+DECLARE_CONST_UNICODE_STRING(QuicIoctlTestCtlDeviceSymLink, L"\\DosDevices\\" QUIC_DRIVER_NAME_PRIVATE "IOCTL");
+#else
+DECLARE_CONST_UNICODE_STRING(QuicIoctlTestCtlDeviceName, L"\\Device\\" QUIC_DRIVER_NAME "IOCTL");
+DECLARE_CONST_UNICODE_STRING(QuicIoctlTestCtlDeviceSymLink, L"\\DosDevices\\" QUIC_DRIVER_NAME "IOCTL");
+#endif
 
-DECLARE_CONST_UNICODE_STRING(QuicIoCtlDeviceName, L"\\Device\\" MSQUIC_DEVICE_NAME);
-DECLARE_CONST_UNICODE_STRING(QuicIoCtlDeviceSymLink, L"\\DosDevices\\" MSQUIC_DEVICE_NAME);
+EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL QuicIoctlTestCtlEvtIoDeviceControl;
 
-EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL QuicIoCtlEvtIoDeviceControl;
-EVT_WDF_IO_QUEUE_IO_CANCELED_ON_QUEUE QuicIoCtlEvtIoQueueCanceled;
-EVT_WDF_REQUEST_CANCEL QuicIoCtlEvtIoCanceled;
-
-WDFDEVICE QuicIoCtlDevice;
+WDFDEVICE QuicIoctlTestCtlDevice = nullptr;
 
 _No_competing_thread_
 INITCODE
 NTSTATUS
-QuicIoCtlInitialize(
+QuicIoctlTestCtlInitialize(
     _In_ WDFDRIVER Driver
-    )
+)
 {
     NTSTATUS Status = STATUS_SUCCESS;
     PWDFDEVICE_INIT DeviceInit = NULL;
@@ -65,7 +60,7 @@ QuicIoCtlInitialize(
     Status =
         WdfDeviceInitAssignName(
             DeviceInit,
-            &QuicIoCtlDeviceName);
+            &QuicIoctlTestCtlDeviceName);
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -74,10 +69,6 @@ QuicIoCtlInitialize(
             "WdfDeviceInitAssignName failed");
         goto Error;
     }
-
-    QuicTraceLogVerbose(
-        IoControlInitialized,
-        "[ioct] Control interface initialized");
 
     WDF_FILEOBJECT_CONFIG_INIT(
         &FileConfig,
@@ -105,7 +96,10 @@ QuicIoCtlInitialize(
         goto Error;
     }
 
-    Status = WdfDeviceCreateSymbolicLink(Device, &QuicIoCtlDeviceSymLink);
+    Status =
+        WdfDeviceCreateSymbolicLink(
+            Device,
+            &QuicIoctlTestCtlDeviceSymLink);
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -116,7 +110,7 @@ QuicIoCtlInitialize(
     }
 
     WDF_IO_QUEUE_CONFIG_INIT_DEFAULT_QUEUE(&QueueConfig, WdfIoQueueDispatchParallel);
-    QueueConfig.EvtIoDeviceControl = QuicIoCtlEvtIoDeviceControl;
+    QueueConfig.EvtIoDeviceControl = QuicIoctlTestCtlEvtIoDeviceControl;
 
     __analysis_assume(QueueConfig.EvtIoStop != 0);
     Status =
@@ -136,12 +130,12 @@ QuicIoCtlInitialize(
         goto Error;
     }
 
-    QuicIoCtlDevice = Device;
+    QuicIoctlTestCtlDevice = Device;
 
     WdfControlFinishInitializing(Device);
 
     QuicTraceLogVerbose(
-        IoControlInitialized,
+        TestControlInitialized,
         "[ioct] Control interface initialized");
 
 Error:
@@ -155,17 +149,20 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicIoCtlUninitialize(
-        void
-    )
+QuicIoctlTestCtlUninitialize(
+    void
+)
 {
     QuicTraceLogVerbose(
         IoControlUninitializing,
         "[ioct] Control interface uninitializing");
 
-    if (QuicIoCtlDevice != NULL) {
-        WdfObjectDelete(QuicIoCtlDevice);
-        QuicIoCtlDevice = NULL;
+    delete MsQuic;
+    MsQuic = nullptr;
+
+    if (QuicIoctlTestCtlDevice != NULL) {
+        WdfObjectDelete(QuicIoctlTestCtlDevice);
+        QuicIoctlTestCtlDevice = NULL;
     }
 
     QuicTraceLogVerbose(
@@ -174,16 +171,15 @@ QuicIoCtlUninitialize(
 }
 
 VOID
-QuicIoCtlEvtIoDeviceControl(
+QuicIoctlTestCtlEvtIoDeviceControl(
     _In_ WDFQUEUE Queue,
     _In_ WDFREQUEST Request,
     _In_ size_t OutputBufferLength,
     _In_ size_t InputBufferLength,
     _In_ ULONG IoControlCode
-    )
+)
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    uint8_t* OutputBuffer = NULL;
 
     if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
         Status = STATUS_NOT_SUPPORTED;
@@ -194,48 +190,44 @@ QuicIoCtlEvtIoDeviceControl(
         goto Error;
     }
 
-    if (IoControlCode != IOCTL_QUIC_PERFORMANCE_COUNTERS) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Invalid IOCTL");
-        Status = STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
-
-    if (OutputBufferLength < QUIC_PERF_COUNTER_MAX * sizeof(int64_t)) {
-        //
-        // Copy as many counters will fit completely in the buffer.
-        //
-        OutputBufferLength = (OutputBufferLength / sizeof(int64_t)) * sizeof(int64_t);
-        if (OutputBufferLength == 0) {
-            Status = STATUS_INSUFFICIENT_RESOURCES;
+    switch (IoControlCode) {
+    case IOCTL_QUIC_TEST_IOCTL_INTERFACE_INITIALIZE_LIBRARY:
+        if (MsQuic != nullptr) {
+            Status = STATUS_INVALID_DEVICE_STATE;
+            break;
+        }
+        MsQuic = new MsQuicApi;
+        if (MsQuic == nullptr) {
+            Status = STATUS_NO_MEMORY;
+            break;
+        }
+        if (QUIC_FAILED(Status = MsQuic->GetInitStatus())) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "MsQuicOpen");
             goto Error;
         }
-    } else {
-        OutputBufferLength = QUIC_PERF_COUNTER_MAX * sizeof(int64_t);
-    }
-
-    Status =
-        WdfRequestRetrieveOutputBuffer(
-            Request,
-            OutputBufferLength,
-            &OutputBuffer,
-            NULL);
-    if (!NT_SUCCESS(Status)) {
+        break;
+    case IOCTL_QUIC_TEST_IOCTL_INTERFACE_UNINITIALIZE_LIBRARY:
+        delete MsQuic;
+        MsQuic = nullptr;
+        break;
+    default:
+        Status = STATUS_NOT_IMPLEMENTED;
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
-            "WdfRequestRetrieveOutputBuffer failed");
-        goto Error;
+            IoGetFunctionCodeFromCtlCode(IoControlCode),
+            "Invalid FunctionCode");
+        break;
     }
-
-    QuicLibrarySumPerfCountersExternal(OutputBuffer, (uint32_t)OutputBufferLength);
 
 Error:
 
-    WdfRequestCompleteWithInformation(Request, Status, OutputBufferLength);
+    WdfRequestComplete(Request, Status);
+    UNREFERENCED_PARAMETER(OutputBufferLength);
     UNREFERENCED_PARAMETER(InputBufferLength);
     UNREFERENCED_PARAMETER(Queue);
 }

@@ -31,7 +31,6 @@ Environment:
 #define MSQUIC_DEVICE_NAME L"msquic"
 #endif
 
-
 //
 // MsQuic.sys IOCTL interface
 //
@@ -56,9 +55,21 @@ MsQuicReadPerformanceCounters(
     DWORD ReadBytes;
     HANDLE DeviceHandle = INVALID_HANDLE_VALUE;
 
+    const WCHAR* FileName;
+
+#ifdef QUIC_PRIVATE_INTERFACE
+    if (PrivateTestLibrary) {
+        FileName = L"\\\\.\\\\msquicpriv";
+    } else {
+        FileName = L"\\\\.\\\\msquic";
+    }
+#else
+    FileName = L"\\\\.\\\\msquic";
+#endif
+
     DeviceHandle =
         CreateFileW(
-            L"\\\\.\\\\" MSQUIC_DEVICE_NAME,
+            FileName,
             GENERIC_READ,
             0,
             NULL,
@@ -66,7 +77,7 @@ MsQuicReadPerformanceCounters(
             FILE_ATTRIBUTE_NORMAL,
             NULL);
     if (DeviceHandle == INVALID_HANDLE_VALUE) {
-        Status = HRESULT_FROM_WIN32(GetLastError());
+        Status = GetLastError();
         goto Exit;
     }
 
@@ -79,7 +90,7 @@ MsQuicReadPerformanceCounters(
             (*NumberOfCounters) * 8,
             &ReadBytes,
             NULL)) {
-        Status = HRESULT_FROM_WIN32(GetLastError());
+        Status = GetLastError();
         goto Exit;
     }
 

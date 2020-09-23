@@ -32,6 +32,19 @@ VOID
 QuicTestCtlUninitialize(
     );
 
+_No_competing_thread_
+INITCODE
+NTSTATUS
+QuicIoctlTestCtlInitialize(
+    _In_ WDFDRIVER Driver
+);
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicIoctlTestCtlUninitialize(
+    void
+);
+
 void* __cdecl operator new (size_t Size) {
     return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_TEST);
 }
@@ -161,6 +174,17 @@ Return Value:
         goto Error;
     }
 
+    Status = QuicIoctlTestCtlInitialize(Driver);
+    if (!NT_SUCCESS(Status)) {
+        QuicTestCtlUninitialize();
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicTestCtlInitialize failed");
+        goto Error;
+    }
+
     QuicTestInitialize();
 
     QuicTraceLogInfo(
@@ -204,6 +228,7 @@ Arguments:
 
     QuicTestUninitialize();
 
+    QuicIoctlTestCtlUninitialize();
     QuicTestCtlUninitialize();
  
     QuicTraceLogInfo(
