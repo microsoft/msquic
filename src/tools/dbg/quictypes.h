@@ -927,6 +927,7 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_CONN_CLOSE,
     QUIC_API_TYPE_CONN_SHUTDOWN,
     QUIC_API_TYPE_CONN_START,
+    QUIC_API_TYPE_CONN_SET_CONFIGURATION,
     QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET,
 
     QUIC_API_TYPE_STRM_CLOSE,
@@ -959,6 +960,8 @@ struct ApiCall : Struct {
             return "API_CONN_SHUTDOWN";
         case QUIC_API_TYPE_CONN_START:
             return "API_CONN_START";
+        case QUIC_API_TYPE_CONN_SET_CONFIGURATION:
+            return "API_TYPE_CONN_SET_CONFIGURATION";
         case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:
             return "QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET";
         case QUIC_API_TYPE_STRM_CLOSE:
@@ -1073,8 +1076,8 @@ struct Connection : Struct {
 
     Connection(ULONG64 Addr) : Struct("msquic!QUIC_CONNECTION", Addr) { }
 
-    static Connection FromSessionLink(ULONG64 LinkAddr) {
-        return Connection(LinkEntryToType(LinkAddr, "msquic!QUIC_CONNECTION", "SessionLink"));
+    static Connection FromRegistrationLink(ULONG64 LinkAddr) {
+        return Connection(LinkEntryToType(LinkAddr, "msquic!QUIC_CONNECTION", "RegistrationLink"));
     }
 
     static Connection FromWorkerLink(ULONG64 LinkAddr) {
@@ -1184,8 +1187,8 @@ struct Listener : Struct {
         return ReadType<UCHAR>("WildCard") != 0;
     }
 
-    ULONG64 GetSession() {
-        return ReadPointer("Session");
+    ULONG64 GetRegistration() {
+        return ReadPointer("Registration");
     }
 
     ULONG64 GetBinding() {
@@ -1194,6 +1197,39 @@ struct Listener : Struct {
 
     IpAddress GetLocalAddress() {
         return IpAddress(AddrOf("LocalAddress"));
+    }
+
+    ULONG64 GetRawAlpnList() {
+        return AddrOf("AlpnList");
+    }
+
+    USHORT GetAlpnListLength() {
+        return ReadType<USHORT>("AlpnListLength");
+    }
+
+    String GetAlpns() {
+        ULONG64 AlpnList = GetRawAlpnList();
+        USHORT AlpnListLength = GetAlpnListLength();
+
+        String Str;
+        ULONG StrOffset = 0;
+        while (AlpnListLength != 0) {
+            UINT8 Length;
+            ReadTypeAtAddr<UINT8>(AlpnList, &Length);
+            AlpnList++;
+            AlpnListLength--;
+
+            ULONG cbRead;
+            ReadMemory(AlpnList, Str.Data + StrOffset, Length, &cbRead);
+            AlpnList += Length;
+            AlpnListLength -= Length;
+            StrOffset += Length + 1;
+            Str.Data[StrOffset] = ',';
+        }
+
+        Str.Data[StrOffset - 1] = 0;
+
+        return Str;
     }
 };
 
@@ -1249,20 +1285,16 @@ struct WorkerPool : Struct {
     }
 };
 
-struct Session : Struct {
+struct Configuration : Struct {
 
-    Session(ULONG64 Addr) : Struct("msquic!QUIC_SESSION", Addr) { }
+    Configuration(ULONG64 Addr) : Struct("msquic!QUIC_CONFIGURATION", Addr) { }
 
-    static Session FromLink(ULONG64 LinkAddr) {
-        return Session(LinkEntryToType(LinkAddr, "msquic!QUIC_SESSION", "Link"));
+    static Configuration FromLink(ULONG64 LinkAddr) {
+        return Configuration(LinkEntryToType(LinkAddr, "msquic!QUIC_CONFIGURATION", "Link"));
     }
 
     ULONG64 GetRegistration() {
         return ReadPointer("Registration");
-    }
-
-    LinkedList GetConnections() {
-        return LinkedList(AddrOf("Connections"));
     }
 
     ULONG64 GetRawAlpnList() {
@@ -1311,8 +1343,12 @@ struct Registration : Struct {
         return WorkerPool(ReadPointer("WorkerPool"));
     }
 
-    LinkedList GetSessions() {
-        return LinkedList(AddrOf("Sessions"));
+    LinkedList GetConfigurations() {
+        return LinkedList(AddrOf("Configurations"));
+    }
+
+    LinkedList GetConnections() {
+        return LinkedList(AddrOf("Connections"));
     }
 
     String GetAppName() {
