@@ -2718,7 +2718,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessPeerTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ BOOLEAN FromCache
+    _In_ BOOLEAN FromResumptionTicket
     )
 {
     QuicTraceLogConnInfo(
@@ -2736,34 +2736,34 @@ QuicConnProcessPeerTransportParameters(
         Connection->SourceCidLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT;
     }
 
-    if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_STATELESS_RESET_TOKEN) {
-        QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCids));
-        QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
-        QUIC_CID_QUIC_LIST_ENTRY* DestCid =
-            QUIC_CONTAINING_RECORD(
-                Connection->DestCids.Flink,
-                QUIC_CID_QUIC_LIST_ENTRY,
-                Link);
-        QuicCopyMemory(
-            DestCid->ResetToken,
-            Connection->PeerTransportParams.StatelessResetToken,
-            QUIC_STATELESS_RESET_TOKEN_LENGTH);
-        DestCid->CID.HasResetToken = TRUE;
-    }
+    if (!FromResumptionTicket) {
+        if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_STATELESS_RESET_TOKEN) {
+            QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCids));
+            QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
+            QUIC_CID_QUIC_LIST_ENTRY* DestCid =
+                QUIC_CONTAINING_RECORD(
+                    Connection->DestCids.Flink,
+                    QUIC_CID_QUIC_LIST_ENTRY,
+                    Link);
+            QuicCopyMemory(
+                DestCid->ResetToken,
+                Connection->PeerTransportParams.StatelessResetToken,
+                QUIC_STATELESS_RESET_TOKEN_LENGTH);
+            DestCid->CID.HasResetToken = TRUE;
+        }
 
-    if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_PREFERRED_ADDRESS) {
-        /*QuicTraceLogConnInfo(
-            PeerPreferredAddress,
-            Connection,
-            "Peer configured preferred address %!ADDR!",
-            CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress));*/
+        if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_PREFERRED_ADDRESS) {
+            /*QuicTraceLogConnInfo(
+                PeerPreferredAddress,
+                Connection,
+                "Peer configured preferred address %!ADDR!",
+                CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress));*/
 
-        //
-        // TODO - Implement preferred address feature.
-        //
-    }
+            //
+            // TODO - Implement preferred address feature.
+            //
+        }
 
-    if (!FromCache) {
         //
         // Version draft-28 and later fully validate all exchanged connection IDs.
         // Version draft-27 only validates in the Retry scenario.
@@ -2786,7 +2786,7 @@ QuicConnProcessPeerTransportParameters(
         &Connection->Streams,
         Connection->PeerTransportParams.InitialMaxBidiStreams,
         Connection->PeerTransportParams.InitialMaxUniStreams,
-        !FromCache);
+        !FromResumptionTicket);
 
     QuicDatagramOnSendStateChanged(&Connection->Datagram);
 
