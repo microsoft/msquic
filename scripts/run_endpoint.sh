@@ -36,7 +36,7 @@ function StopLTTng() {
   echo "Stopping LTTng logging..."
   lttng stop msquic
   babeltrace --name all /logs/lttng/* > /logs/babeltrace.txt
-  clog2text_lttng  -i /logs/babeltrace.txt -s clog.sidecar --t --c -o /logs/quic.log
+  clog2text_lttng -i /logs/babeltrace.txt -s clog.sidecar --t --c -o /logs/quic.log
   quit=1
   echo "LTTng logging stopped and converted."
 }
