@@ -587,7 +587,6 @@ typedef struct {
 
 #define QUIC_MAX_IOCTL_FUNC_CODE 45
 
-
 //
 // The below IOCTLS are for interfacing with the MsQuic Ioctl Test APIs
 //
