@@ -30,15 +30,17 @@ lttng enable-event --userspace CLOG_*
 lttng add-context --userspace --type=vpid --type=vtid
 lttng start
 
-# Trap SIGTERM and exit signals to stop LTTng logging and convert.
-trap StopLTTng SIGTERM exit
+# Trap TERM and exit signals to stop LTTng logging and convert.
+trap StopLTTng TERM exit
 function StopLTTng() {
-  echo "Stopping LTTng logging..."
-  lttng stop msquic
-  babeltrace --name all /logs/lttng/* > /logs/babeltrace.txt
-  clog2text_lttng -i /logs/babeltrace.txt -s clog.sidecar --t --c -o /logs/quic.log
-  quit=1
-  echo "LTTng logging stopped and converted."
+    if [ "$quic" -ne 1 ]; then
+        echo "Stopping LTTng logging..."
+        lttng stop msquic
+        babeltrace --name all /logs/lttng/* > /logs/babeltrace.txt
+        clog2text_lttng -i /logs/babeltrace.txt -s clog.sidecar --t --c -o /logs/quic.log
+        echo "LTTng logging stopped and converted."
+        quit=1
+    fi
 }
 
 if [ "$ROLE" == "client" ]; then
@@ -79,6 +81,8 @@ if [ "$ROLE" == "client" ]; then
         # FIXME: there doesn't seem to be a way to specify to use /certs/ca.pem
         # for certificate verification
         quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"${REQUESTS[@]}" -version:-16777187
+
+        echo "Client complete."
     fi
 
 elif [ "$ROLE" == "server" ]; then
@@ -96,6 +100,10 @@ elif [ "$ROLE" == "server" ]; then
     # Wait for the trap to execute and set the quit variable.
     echo "Waiting for quit..."
     while [ "$quit" -ne 1 ]; do
-        sleep 1
+        sleep 1 &
+        wait
     done
+    echo "Waiting complete."
 fi
+
+echo "Script complete."
