@@ -49,7 +49,6 @@ struct TlsContext
                 &CredConfig, &SecConfig, OnSecConfigCreateComplete));
 
         QUIC_CONNECTION Connection = {0};
-        ((QUIC_HANDLE*)&Connection)->Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
 
         QUIC_TRANSPORT_PARAMETERS TP = {0};
         TP.Flags |= QUIC_TP_FLAG_INITIAL_MAX_DATA;
@@ -72,7 +71,7 @@ struct TlsContext
         Config.AlpnBuffer = AlpnListBuffer;
         Config.AlpnBufferLength = AlpnListBuffer[0] + 1;
         Config.LocalTPBuffer =
-            QuicCryptoTlsEncodeTransportParameters(&Connection, &TP, &Config.LocalTPLength);
+            QuicCryptoTlsEncodeTransportParameters(&Connection, FALSE, &TP, &Config.LocalTPLength);
         if (!Config.LocalTPBuffer) {
             printf("Failed to encode transport parameters!\n");
         }

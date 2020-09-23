@@ -292,6 +292,7 @@ QuicCryptoInitializeTls(
     TlsConfig.LocalTPBuffer =
         QuicCryptoTlsEncodeTransportParameters(
             Connection,
+            QuicConnIsServer(Connection),
             Params,
             &TlsConfig.LocalTPLength);
     if (TlsConfig.LocalTPBuffer == NULL) {
@@ -1152,6 +1153,7 @@ QuicConnReceiveTP(
 {
     if (!QuicCryptoTlsDecodeTransportParameters(
             Connection,
+            !QuicConnIsServer(Connection),
             TPBuffer,
             TPLength,
             &Connection->PeerTransportParams)) {

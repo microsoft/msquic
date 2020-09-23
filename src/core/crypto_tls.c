@@ -621,6 +621,7 @@ _Success_(return != NULL)
 const uint8_t*
 QuicCryptoTlsEncodeTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN IsServerTP,
     _In_ const QUIC_TRANSPORT_PARAMETERS *TransportParams,
     _Out_ uint32_t* TPLen
     )
@@ -629,6 +630,7 @@ QuicCryptoTlsEncodeTransportParameters(
     // Precompute the required size so we can allocate all at once.
     //
 
+    UNREFERENCED_PARAMETER(Connection);
     QuicTraceLogConnVerbose(
         EncodeTPStart,
         Connection,
@@ -636,7 +638,7 @@ QuicCryptoTlsEncodeTransportParameters(
 
     size_t RequiredTPLen = 0;
     if (TransportParams->Flags & QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID) {
-        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+        QUIC_DBG_ASSERT(IsServerTP);
         QUIC_FRE_ASSERT(TransportParams->OriginalDestinationConnectionIDLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -650,7 +652,7 @@ QuicCryptoTlsEncodeTransportParameters(
                 QuicVarIntSize(TransportParams->IdleTimeout));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_STATELESS_RESET_TOKEN) {
-        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+        QUIC_DBG_ASSERT(IsServerTP);
         RequiredTPLen +=
             TlsTransportParamLength(
                 QUIC_TP_ID_STATELESS_RESET_TOKEN,
@@ -717,7 +719,7 @@ QuicCryptoTlsEncodeTransportParameters(
                 0);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_PREFERRED_ADDRESS) {
-        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+        QUIC_DBG_ASSERT(IsServerTP);
         QUIC_FRE_ASSERT(FALSE); // TODO - Implement
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT) {
@@ -734,7 +736,7 @@ QuicCryptoTlsEncodeTransportParameters(
                 TransportParams->InitialSourceConnectionIDLength);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID) {
-        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+        QUIC_DBG_ASSERT(IsServerTP);
         QUIC_FRE_ASSERT(TransportParams->RetrySourceConnectionIDLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -789,7 +791,7 @@ QuicCryptoTlsEncodeTransportParameters(
     //
 
     if (TransportParams->Flags & QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID) {
-        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+        QUIC_DBG_ASSERT(IsServerTP);
         TPBuf =
             TlsWriteTransportParam(
                 QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID,
@@ -816,7 +818,7 @@ QuicCryptoTlsEncodeTransportParameters(
             TransportParams->IdleTimeout);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_STATELESS_RESET_TOKEN) {
-        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+        QUIC_DBG_ASSERT(IsServerTP);
         TPBuf =
             TlsWriteTransportParam(
                 QUIC_TP_ID_STATELESS_RESET_TOKEN,
@@ -943,7 +945,7 @@ QuicCryptoTlsEncodeTransportParameters(
             "TP: Disable Active Migration");
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_PREFERRED_ADDRESS) {
-        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+        QUIC_DBG_ASSERT(IsServerTP);
         QUIC_FRE_ASSERT(FALSE); // TODO - Implement
         QuicTraceLogConnVerbose(
             EncodeTPPreferredAddress,
@@ -978,7 +980,7 @@ QuicCryptoTlsEncodeTransportParameters(
                 TransportParams->InitialSourceConnectionIDLength).Buffer);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID) {
-        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+        QUIC_DBG_ASSERT(IsServerTP);
         TPBuf =
             TlsWriteTransportParam(
                 QUIC_TP_ID_RETRY_SOURCE_CONNECTION_ID,
@@ -1057,6 +1059,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicCryptoTlsDecodeTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN IsServerTP,
     _In_reads_(TPLen)
         const uint8_t* TPBuf,
     _In_ uint16_t TPLen,
@@ -1066,6 +1069,8 @@ QuicCryptoTlsDecodeTransportParameters(
     BOOLEAN Result = FALSE;
     uint64_t ParamsPresent = 0;
     uint16_t Offset = 0;
+
+    UNREFERENCED_PARAMETER(Connection);
 
     QuicZeroMemory(TransportParams, sizeof(QUIC_TRANSPORT_PARAMETERS));
     TransportParams->MaxUdpPayloadSize = QUIC_TP_MAX_PACKET_SIZE_DEFAULT;
@@ -1139,7 +1144,7 @@ QuicCryptoTlsDecodeTransportParameters(
                     Length,
                     "Invalid length of QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID");
                 goto Exit;
-            } else if (QuicConnIsServer(Connection)) {
+            } else if (!IsServerTP) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
@@ -1189,7 +1194,7 @@ QuicCryptoTlsDecodeTransportParameters(
                     Length,
                     "Invalid length of QUIC_TP_ID_STATELESS_RESET_TOKEN");
                 goto Exit;
-            } else if (QuicConnIsServer(Connection)) {
+            } else if (!IsServerTP) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
@@ -1447,7 +1452,7 @@ QuicCryptoTlsDecodeTransportParameters(
             break;
 
         case QUIC_TP_ID_PREFERRED_ADDRESS:
-            if (QuicConnIsServer(Connection)) {
+            if (!IsServerTP) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
@@ -1522,7 +1527,7 @@ QuicCryptoTlsDecodeTransportParameters(
                     Length,
                     "Invalid length of QUIC_TP_ID_RETRY_SOURCE_CONNECTION_ID");
                 goto Exit;
-            } else if (QuicConnIsServer(Connection)) {
+            } else if (!IsServerTP) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",

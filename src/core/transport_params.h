@@ -175,6 +175,7 @@ _Success_(return != NULL)
 const uint8_t*
 QuicCryptoTlsEncodeTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN IsServerTP,
     _In_ const QUIC_TRANSPORT_PARAMETERS *TransportParams,
     _Out_ uint32_t* TPLen
     );
@@ -187,6 +188,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicCryptoTlsDecodeTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN IsServerTP,
     _In_reads_(TPLen)
         const uint8_t* TPBuf,
     _In_ uint16_t TPLen,

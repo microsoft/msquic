@@ -57,7 +57,7 @@ void EncodeDecodeAndCompare(
     uint32_t BufferLength;
     auto Buffer =
         QuicCryptoTlsEncodeTransportParameters(
-            &JunkConnection, Original, &BufferLength);
+            &JunkConnection, IsServer, Original, &BufferLength);
     ASSERT_NE(nullptr, Buffer);
 
     ASSERT_TRUE(UINT16_MAX >= (BufferLength - QuicTlsTPHeaderSize));
@@ -68,7 +68,7 @@ void EncodeDecodeAndCompare(
     QUIC_TRANSPORT_PARAMETERS Decoded;
     BOOLEAN DecodedSuccessfully =
         QuicCryptoTlsDecodeTransportParameters(
-            &JunkConnection, TPBuffer, TPBufferLength, &Decoded);
+            &JunkConnection, IsServer, TPBuffer, TPBufferLength, &Decoded);
 
     QUIC_FREE(Buffer);
 

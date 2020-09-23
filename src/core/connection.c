@@ -1990,6 +1990,7 @@ QuicConnSendResumptionTicket(
     EncodedHSTP =
         QuicCryptoTlsEncodeTransportParameters(
             Connection,
+            QuicConnIsServer(Connection),
             &HSTPCopy,
             &EncodedTransportParametersLength);
     if (EncodedHSTP == NULL) {
@@ -2148,6 +2149,7 @@ QuicConnRecvResumptionTicket(
 
         if (!QuicCryptoTlsDecodeTransportParameters(
                 Connection,
+                TRUE,   // IsServerTP
                 Ticket + Offset,
                 (uint16_t)TPLength,
                 &ResumedTP)) {
@@ -2212,7 +2214,7 @@ QuicConnRecvResumptionTicket(
 
         QUIC_DBG_ASSERT(Connection->State.PeerTransportParameterValid);
         QUIC_TRANSPORT_PARAMETERS ServerTPCopy = Connection->PeerTransportParams;
-        ServerTPCopy.Flags = ServerTPCopy.Flags & (
+        ServerTPCopy.Flags &= (
             QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
             QUIC_TP_FLAG_INITIAL_MAX_DATA |
             QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
@@ -2224,6 +2226,7 @@ QuicConnRecvResumptionTicket(
         EncodedServerTP =
             QuicCryptoTlsEncodeTransportParameters(
                 Connection,
+                TRUE,
                 &ServerTPCopy,
                 &EncodedTransportParametersLength);
         if (EncodedServerTP == NULL) {
@@ -5935,9 +5938,9 @@ QuicConnParamSet(
         }
 
         //
-        // Must be set before the connection is started.
+        // Must be set before the client connection is started.
         //
-        if (Connection->State.Started) {
+        if (QuicConnIsServer(Connection) || Connection->State.Started) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
@@ -5982,6 +5985,7 @@ QuicConnParamSet(
         }
         if (!QuicCryptoTlsDecodeTransportParameters(
                 Connection,
+                FALSE,  // IsServerTP
                 (uint8_t*)Buffer + Offset,
                 (uint16_t)TPLength,
                 &Connection->PeerTransportParams)) {
