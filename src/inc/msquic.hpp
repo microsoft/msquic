@@ -294,10 +294,12 @@ public:
 class MsQuicCredentialConfig : public QUIC_CREDENTIAL_CONFIG {
 public:
     MsQuicCredentialConfig(const QUIC_CREDENTIAL_CONFIG& Config) {
-        memcpy(this, &Config, sizeof(QUIC_CREDENTIAL_CONFIG));
+        QUIC_CREDENTIAL_CONFIG* thisStruct = this;
+        memcpy(thisStruct, &Config, sizeof(QUIC_CREDENTIAL_CONFIG));
     }
     MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAGS _Flags = QUIC_DEFAULT_CLIENT_CRED_FLAGS) {
-        memset(this, 0, sizeof(QUIC_CREDENTIAL_CONFIG));
+        QUIC_CREDENTIAL_CONFIG* thisStruct = this;
+        memset(thisStruct, 0, sizeof(QUIC_CREDENTIAL_CONFIG));
         Flags = _Flags;
     }
 };
