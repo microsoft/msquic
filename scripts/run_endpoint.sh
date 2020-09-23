@@ -20,6 +20,8 @@ fi
 # - SERVER_PARAMS contains user-supplied command line parameters
 # - CLIENT_PARAMS contains user-supplied command line parameters
 
+quit=0
+
 # Setup and start LTTng logging.
 echo "Starting LTTng logging..."
 mkdir /logs/lttng
@@ -35,6 +37,8 @@ function StopLTTng() {
   lttng stop msquic
   babeltrace --name all /logs/lttng/* > /logs/babeltrace.txt
   clog2text_lttng  -i /logs/babeltrace.txt -s clog.sidecar --t --c -o /logs/quic.log
+  quit=1
+  echo "LTTng logging stopped and converted."
 }
 
 if [ "$ROLE" == "client" ]; then
@@ -76,8 +80,6 @@ if [ "$ROLE" == "client" ]; then
         # for certificate verification
         quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"${REQUESTS[@]}" -version:-16777187
     fi
-    # Wait for the logs to flush to disk.
-    sleep 5
 
 elif [ "$ROLE" == "server" ]; then
     case "$TESTCASE" in
@@ -88,6 +90,12 @@ elif [ "$ROLE" == "server" ]; then
         ;;
     esac
 
-    quicinteropserver ${SERVER_PARAMS} -root:/www -listen:* -port:443 \
+    & quicinteropserver ${SERVER_PARAMS} -root:/www -listen:* -port:443 \
         -file:/certs/cert.pem -key:/certs/priv.key 2>&1
+
+    # Wait for the trap to execute and set the quit variable.
+    echo "Waiting for quit..."
+    while [ "$quit" -ne 1 ]; do
+        sleep 1
+    done
 fi
