@@ -90,8 +90,8 @@ elif [ "$ROLE" == "server" ]; then
         ;;
     esac
 
-    & quicinteropserver ${SERVER_PARAMS} -root:/www -listen:* -port:443 \
-        -file:/certs/cert.pem -key:/certs/priv.key 2>&1
+    quicinteropserver ${SERVER_PARAMS} -root:/www -listen:* -port:443 \
+        -file:/certs/cert.pem -key:/certs/priv.key &
 
     # Wait for the trap to execute and set the quit variable.
     echo "Waiting for quit..."
