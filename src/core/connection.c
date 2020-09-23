@@ -2022,7 +2022,7 @@ QuicConnSendResumptionTicket(
     //
     // Encoded ticket format is as follows:
     //   Ticket Version (QUIC_VAR_INT) [1..4]
-    //   Quic Version [4]
+    //   Quic Version (network byte order) [4]
     //   Negotiated ALPN length (QUIC_VAR_INT) [1..2]
     //   Transport Parameters length (QUIC_VAR_INT) [1..2]
     //   App Ticket length (QUIC_VAR_INT) [1..2]
@@ -2031,9 +2031,10 @@ QuicConnSendResumptionTicket(
     //   App Ticket (omitted if length is zero) [...]
     //
 
+    uint32_t QuicVersion = Connection->Stats.QuicVersion;
     _Analysis_assume_(sizeof(*TicketBuffer) >= 8);
     uint8_t* TicketCursor = QuicVarIntEncode(QUIC_TLS_RESUMPTION_TICKET_VERSION, TicketBuffer);
-    *(uint32_t*)TicketCursor = QuicByteSwapUint32(QUIC_VERSION_LATEST);
+    memcpy(TicketCursor, &QuicVersion, sizeof(QuicVersion));
     TicketCursor += sizeof(QUIC_VERSION_LATEST);
     TicketCursor = QuicVarIntEncode(AlpnLength, TicketCursor);
     TicketCursor = QuicVarIntEncode(EncodedTransportParametersLength, TicketCursor);
@@ -2097,8 +2098,9 @@ QuicConnRecvResumptionTicket(
             goto Error;
         }
 
-        uint32_t QuicVersionHost = QuicByteSwapUint32(*(uint32_t*)(Ticket + Offset));
-        if (!QuicIsVersionSupported(QuicVersionHost)) {
+        uint32_t QuicVersion;
+        memcpy(&QuicVersion, Ticket + Offset, sizeof(QuicVersion));
+        if (!QuicIsVersionSupported(QuicVersion)) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
@@ -2106,7 +2108,7 @@ QuicConnRecvResumptionTicket(
                 "Resumption Ticket for unsupported QUIC version");
             goto Error;
         }
-        Offset += sizeof(QuicVersionHost);
+        Offset += sizeof(QuicVersion);
 
         if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &AlpnLength)) {
             QuicTraceEvent(
@@ -2253,14 +2255,18 @@ QuicConnRecvResumptionTicket(
         //
         // Encoded ticket blob format is as follows:
         //   Ticket Version (QUIC_VAR_INT) [1..4]
+        //   Negotiated Quic Version (network byte order) [4]
         //   Transport Parameters length (QUIC_VAR_INT) [1..2]
         //   Received Ticket length (QUIC_VAR_INT) [1..2]
         //   Transport Parameters [...]
         //   Received Ticket (omitted if length is zero) [...]
         //
 
+        uint32_t QuicVersion = Connection->Stats.QuicVersion;
         _Analysis_assume_(sizeof(*TicketBlobBuffer) >= 8);
         uint8_t* TicketCursor = QuicVarIntEncode(QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION, TicketBlobBuffer);
+        memcpy(TicketCursor, &QuicVersion, sizeof(QuicVersion));
+        TicketCursor += sizeof(QuicVersion);
         TicketCursor = QuicVarIntEncode(EncodedTransportParametersLength, TicketCursor);
         TicketCursor = QuicVarIntEncode(TicketLength, TicketCursor);
         QuicCopyMemory(TicketCursor, EncodedServerTP, EncodedTransportParametersLength);
@@ -5946,6 +5952,7 @@ QuicConnParamSet(
         }
 
         uint16_t Offset = 0;
+        uint32_t TicketQuicVersion = 0;
         QUIC_VAR_INT TicketVersion = 0, TPLength = 0, TicketLength = 0;
         if (!QuicVarIntDecode((uint16_t)BufferLength, Buffer, &Offset, &TicketVersion)) {
             QuicTraceEvent(
@@ -5965,6 +5972,10 @@ QuicConnParamSet(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
+        memcpy(&TicketQuicVersion, (uint8_t*)Buffer + Offset, sizeof(TicketQuicVersion));
+        Connection->Stats.QuicVersion = TicketQuicVersion;
+        QuicConnOnQuicVersionSet(Connection);
+        Offset += sizeof(TicketQuicVersion);
         if (!QuicVarIntDecode((uint16_t)BufferLength, Buffer, &Offset, &TPLength)) {
             QuicTraceEvent(
                 ConnError,
