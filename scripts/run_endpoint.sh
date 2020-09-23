@@ -99,7 +99,7 @@ elif [ "$ROLE" == "server" ]; then
     esac
 
     quicinteropserver ${SERVER_PARAMS} -root:/www -listen:* -port:443 \
-        -file:/certs/cert.pem -key:/certs/priv.key &
+        -file:/certs/cert.pem -key:/certs/priv.key -noexit &
     wait
 
     echo "Server complete."
