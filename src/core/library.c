@@ -105,6 +105,24 @@ QuicLibrarySumPerfCounters(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLibrarySumPerfCountersExternal(
+    _Out_writes_bytes_(BufferLength) uint8_t* Buffer,
+    _In_ uint32_t BufferLength
+    )
+{
+    QuicLockAcquire(&MsQuicLib.Lock);
+
+    if (MsQuicLib.RefCount == 0) {
+        QuicZeroMemory(Buffer, BufferLength);
+    } else {
+        QuicLibrarySumPerfCounters(Buffer, BufferLength);
+    }
+
+    QuicLockRelease(&MsQuicLib.Lock);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(QUIC_STORAGE_CHANGE_CALLBACK)
 void
 MsQuicLibraryReadSettings(

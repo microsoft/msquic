@@ -36,6 +36,87 @@
         "CustomSettings": null
       }
     },
+    "IoControlInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[ioct] Control interface initialized",
+      "UniqueId": "IoControlInitialized",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "IoControlUninitializing": {
+      "ModuleProperites": {},
+      "TraceString": "[ioct] Control interface uninitializing",
+      "UniqueId": "IoControlUninitializing",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "IoControlUninitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[ioct] Control interface uninitialized",
+      "UniqueId": "IoControlUninitialized",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "LibraryError": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] ERROR, %s.",
+      "UniqueId": "LibraryError",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "\"WdfControlDeviceInitAllocate failed\"",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "PacketRxMarkedForAck": {
       "ModuleProperites": {},
       "TraceString": "[%c][RX][%llu] Marked for ACK (ECN=%hhu)",
@@ -5193,7 +5274,7 @@
     },
     "EncodeTPStart": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Encoding Transport Parameters",
+      "TraceString": "[conn][%p] Encoding Transport Parameters (Server = %hhu)",
       "UniqueId": "EncodeTPStart",
       "splitArgs": [
         {
@@ -5203,6 +5284,14 @@
           },
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "IsServerTP",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macro": {
@@ -5939,7 +6028,7 @@
     },
     "DecodeTPStart": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Decoding Peer Transport Parameters (%hu bytes)",
+      "TraceString": "[conn][%p] Decoding Transport Parameters (Server = %hhu) (%hu bytes)",
       "UniqueId": "DecodeTPStart",
       "splitArgs": [
         {
@@ -5952,11 +6041,19 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "TPLen",
+            "UserSuppliedTrimmed": "IsServerTP",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "hu",
+          "DefinationEncoding": "hhu",
           "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "TPLen",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
         }
       ],
       "macro": {
@@ -15739,33 +15836,6 @@
         "CustomSettings": null
       }
     },
-    "LibraryError": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib] ERROR, %s.",
-      "UniqueId": "LibraryError",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "\"Not all cert bytes were processed\"",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceEvent",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "CertOpenSslGetProcessAddressFailure": {
       "ModuleProperites": {},
       "TraceString": "[cert] GetProcAddress failed for %s, 0x%x",
@@ -21282,6 +21352,22 @@
         "TraceID": "LibraryErrorStatus"
       },
       {
+        "UniquenessHash": "193d3f1c-4319-fb61-1559-0ca414fb5a55",
+        "TraceID": "IoControlInitialized"
+      },
+      {
+        "UniquenessHash": "88418940-a371-9258-288f-2c8d8283e6d5",
+        "TraceID": "IoControlUninitializing"
+      },
+      {
+        "UniquenessHash": "2eec0817-66c4-c7f7-92fe-d0c262a928a0",
+        "TraceID": "IoControlUninitialized"
+      },
+      {
+        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
+        "TraceID": "LibraryError"
+      },
+      {
         "UniquenessHash": "bb7402a7-ba47-dbce-71f2-fbbd659eb0ff",
         "TraceID": "PacketRxMarkedForAck"
       },
@@ -21866,7 +21952,7 @@
         "TraceID": "DecodeTPUnknown"
       },
       {
-        "UniquenessHash": "2c89f795-3932-98d9-2849-6ddf6675cfa9",
+        "UniquenessHash": "0e57e530-870c-7ba0-5b7b-5da31f55dc03",
         "TraceID": "EncodeTPStart"
       },
       {
@@ -21954,7 +22040,7 @@
         "TraceID": "EncodeTPEnd"
       },
       {
-        "UniquenessHash": "7e43f912-3063-019a-bbcf-efe0eff8fbb4",
+        "UniquenessHash": "822613a7-cc7e-334a-8e53-483b30217cea",
         "TraceID": "DecodeTPStart"
       },
       {
@@ -22996,10 +23082,6 @@
       {
         "UniquenessHash": "d53212c8-2068-d598-a55f-1b238ec86ad1",
         "TraceID": "CertCapiVerify"
-      },
-      {
-        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
-        "TraceID": "LibraryError"
       },
       {
         "UniquenessHash": "f11702ec-fc18-f5bb-c732-90e621e3356d",

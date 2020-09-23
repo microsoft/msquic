@@ -76,19 +76,6 @@ QuicTestCtlInitialize(
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
 
-    MsQuic = new MsQuicApi();
-    if (!MsQuic) {
-        goto Error;
-    }
-    if (QUIC_FAILED(MsQuic->GetInitStatus())) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            MsQuic->GetInitStatus(),
-            "MsQuicOpen");
-        goto Error;
-    }
-
     DeviceInit =
         WdfControlDeviceInitAllocate(
             Driver,
@@ -216,6 +203,7 @@ QuicTestCtlUninitialize(
     }
 
     delete MsQuic;
+    MsQuic = nullptr;
 
     QuicTraceLogVerbose(
         TestControlUninitialized,
@@ -247,6 +235,22 @@ QuicTestCtlEvtFileCreate(
                 "Already have max clients");
             Status = STATUS_TOO_MANY_SESSIONS;
             break;
+        }
+
+        if (MsQuic == nullptr) {
+            MsQuic = new MsQuicApi();
+            if (!MsQuic) {
+                Status = STATUS_NO_MEMORY;
+                break;
+            }
+            if (QUIC_FAILED(Status = MsQuic->GetInitStatus())) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    MsQuic->GetInitStatus(),
+                    "MsQuicOpen");
+                break;
+            }
         }
 
         QUIC_TEST_CLIENT* Client = QuicTestCtlGetFileContext(FileObject);

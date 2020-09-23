@@ -636,7 +636,8 @@ QuicCryptoTlsEncodeTransportParameters(
     QuicTraceLogConnVerbose(
         EncodeTPStart,
         Connection,
-        "Encoding Transport Parameters");
+        "Encoding Transport Parameters (Server = %hhu)",
+        IsServerTP);
 
     size_t RequiredTPLen = 0;
     if (TransportParams->Flags & QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID) {
@@ -1083,7 +1084,8 @@ QuicCryptoTlsDecodeTransportParameters(
     QuicTraceLogConnVerbose(
         DecodeTPStart,
         Connection,
-        "Decoding Peer Transport Parameters (%hu bytes)",
+        "Decoding Transport Parameters (Server = %hhu) (%hu bytes)",
+        IsServerTP,
         TPLen);
 
     while (Offset < TPLen) {

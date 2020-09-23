@@ -37,6 +37,7 @@
   <ItemGroup>
     <ClCompile Include="driver.cpp" />
     <ClCompile Include="control.cpp" />
+    <ClCompile Include="ioctltestcontrol.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\MsQuicTests.h" />
