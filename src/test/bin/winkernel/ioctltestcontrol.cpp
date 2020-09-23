@@ -136,7 +136,7 @@ QuicIoctlTestCtlInitialize(
 
     QuicTraceLogVerbose(
         TestControlInitialized,
-        "[ioct] Control interface initialized");
+        "[test] Control interface initialized");
 
 Error:
 
