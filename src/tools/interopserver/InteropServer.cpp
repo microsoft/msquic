@@ -124,6 +124,7 @@ main(
         getchar();
     }
 
+    printf("Cleaning up...\n");
     MsQuic->SecConfigDelete(SecurityConfig);
     MsQuic->RegistrationClose(Registration);
     MsQuicClose(MsQuic);
