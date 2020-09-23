@@ -20,14 +20,22 @@ fi
 # - SERVER_PARAMS contains user-supplied command line parameters
 # - CLIENT_PARAMS contains user-supplied command line parameters
 
-# Start LTTng live streaming.
-lttng -q create msquiclive --live 1000
+# Setup and start LTTng logging.
+echo "Starting LTTng logging..."
+mkdir /logs/lttng
+lttng -q create msquic -o=/logs/lttng
 lttng enable-event --userspace CLOG_*
 lttng add-context --userspace --type=vpid --type=vtid
 lttng start
-babeltrace -i lttng-live net://localhost
-babeltrace --names all -i lttng-live net://localhost/host/`hostname`/msquiclive \
-    | stdbuf -i0 -o0 clog2text_lttng -s clog.sidecar --t --c > /logs/quic.log &
+
+# Trap SIGTERM and exit signals to stop LTTng logging and convert.
+trap StopLTTng SIGTERM exit
+function StopLTTng() {
+  echo "Stopping LTTng logging..."
+  lttng stop msquic
+  babeltrace --name all /logs/lttng/* > /logs/babeltrace.txt
+  clog2text_lttng  -i /logs/babeltrace.txt -s clog.sidecar --t --c -o /logs/quic.log
+}
 
 if [ "$ROLE" == "client" ]; then
     # Wait for the simulator to start up.
