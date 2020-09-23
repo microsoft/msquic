@@ -16,10 +16,6 @@ Abstract:
 
 #ifdef _WIN32
 
-//#define QUIC_DRIVER_FILE_NAME  QUIC_DRIVER_NAME ".sys"
-//#define QUIC_IOCTL_PATH        "\\\\.\\\\" QUIC_DRIVER_NAME
-
-
 class QuicDriverService {
     SC_HANDLE ScmHandle;
     SC_HANDLE ServiceHandle;
@@ -138,6 +134,242 @@ public:
             }
         }
         return true;
+    }
+
+    bool DoStopSvc()
+    {
+        SERVICE_STATUS_PROCESS ServiceStatus;
+        DWORD StartTime = GetTickCount();
+        DWORD BytesNeeded;
+        DWORD Timeout = 30000; // 30-second time-out
+        DWORD WaitTime;
+
+        //
+        // Make sure the service is not already stopped.
+        //
+
+       if (!QueryServiceStatusEx(
+                ServiceHandle,
+                SC_STATUS_PROCESS_INFO,
+                (LPBYTE)&ServiceStatus,
+                sizeof(SERVICE_STATUS_PROCESS),
+                &BytesNeeded)) {
+            return false;
+        }
+
+        if (ServiceStatus.dwCurrentState == SERVICE_STOPPED) {
+            return true;
+        }
+
+        //
+        // If a stop is pending, wait for it.
+        //
+
+        while (ServiceStatus.dwCurrentState == SERVICE_STOP_PENDING)
+        {
+            //
+            // Do not wait longer than the wait hint. A good interval is
+            // one-tenth of the wait hint but not less than 1 second
+            // and not more than 10 seconds.
+            //
+
+            WaitTime = ServiceStatus.dwWaitHint / 10;
+
+            if(WaitTime < 1000) {
+                WaitTime = 1000;
+            } else if (WaitTime > 10000) {
+                WaitTime = 10000;
+            }
+
+            Sleep(WaitTime);
+
+            if (!QueryServiceStatusEx(
+                    ServiceHandle,
+                    SC_STATUS_PROCESS_INFO,
+                    (LPBYTE)&ServiceStatus,
+                    sizeof(SERVICE_STATUS_PROCESS),
+                    &BytesNeeded)) {
+                return false;
+            }
+
+            if (ServiceStatus.dwCurrentState == SERVICE_STOPPED) {
+                return true;
+            }
+
+            if (GetTickCount() - StartTime > Timeout) {
+                return false;
+            }
+        }
+
+        //
+        // If the service is running, dependencies must be stopped first.
+        //
+
+        StopDependentServices();
+
+        //
+        // Send a stop code to the service.
+        //
+
+        if (!ControlService(
+                ServiceHandle,
+                SERVICE_CONTROL_STOP,
+                (LPSERVICE_STATUS) &ServiceStatus)) {
+            return false;
+        }
+
+        //
+        // Wait for the service to stop.
+        //
+
+        while (ServiceStatus.dwCurrentState != SERVICE_STOPPED)
+        {
+            Sleep(ServiceStatus.dwWaitHint);
+            if (!QueryServiceStatusEx(
+                    ServiceHandle,
+                    SC_STATUS_PROCESS_INFO,
+                    (LPBYTE)&ServiceStatus,
+                    sizeof(SERVICE_STATUS_PROCESS),
+                    &BytesNeeded)) {
+                return false;
+            }
+
+            if (ServiceStatus.dwCurrentState == SERVICE_STOPPED) {
+                break;
+            }
+
+            if (GetTickCount() - StartTime > Timeout) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool StopDependentServices()
+    {
+        DWORD i;
+        DWORD BytesNeeded;
+        DWORD Count;
+        bool Status = true;
+
+        LPENUM_SERVICE_STATUS   Dependencies = NULL;
+        ENUM_SERVICE_STATUS     EnumServices;
+        SC_HANDLE               DepService;
+        SERVICE_STATUS_PROCESS  ServiceStatus;
+
+        DWORD StartTime = GetTickCount();
+        DWORD Timeout = 30000; // 30-second time-out
+
+        //
+        // Pass a zero-length buffer to get the required buffer size.
+        //
+        if (EnumDependentServices(
+                ServiceHandle,
+                SERVICE_ACTIVE,
+                Dependencies,
+                0,
+                &BytesNeeded,
+                &Count)) {
+            //
+            // If the Enum call succeeds, then there are no dependent
+            // services, so do nothing.
+            //
+            Status = true;
+            goto Exit;
+        } else {
+            if (GetLastError() != ERROR_MORE_DATA) {
+                //
+                // Unexpected error
+                //
+                Status = false;
+                goto Exit;
+            }
+
+            //
+            // Allocate a buffer for the dependencies.
+            //
+            Dependencies =
+                (LPENUM_SERVICE_STATUS)HeapAlloc(
+                    GetProcessHeap(),
+                    HEAP_ZERO_MEMORY,
+                    BytesNeeded);
+
+            if (!Dependencies) {
+                Status = false;
+                goto Exit;
+            }
+
+            // Enumerate the dependencies.
+            if (!EnumDependentServices(
+                    ServiceHandle,
+                    SERVICE_ACTIVE,
+                    Dependencies,
+                    BytesNeeded,
+                    &BytesNeeded,
+                    &Count)) {
+                Status = false;
+                goto Exit;
+            }
+
+            for (i = 0; i < Count; i++)
+            {
+                EnumServices = *(Dependencies + i);
+                //
+                // Open the service.
+                //
+                DepService =
+                    OpenService(
+                        ScmHandle,
+                        EnumServices.lpServiceName,
+                        SERVICE_STOP | SERVICE_QUERY_STATUS);
+
+                if (!DepService) {
+                    Status = false;
+                    goto Exit;
+                }
+
+                // Send a stop code.
+                if (!ControlService(
+                        DepService,
+                        SERVICE_CONTROL_STOP,
+                        (LPSERVICE_STATUS) &ServiceStatus)) {
+                    CloseServiceHandle(DepService);
+                    Status = false;
+                    goto Exit;
+                }
+
+                // Wait for the service to stop.
+                while (ServiceStatus.dwCurrentState != SERVICE_STOPPED) {
+                    Sleep(ServiceStatus.dwWaitHint);
+                    if (!QueryServiceStatusEx(
+                            DepService,
+                            SC_STATUS_PROCESS_INFO,
+                            (LPBYTE)&ServiceStatus,
+                            sizeof(SERVICE_STATUS_PROCESS),
+                            &BytesNeeded)) {
+                        CloseServiceHandle(DepService);
+                        Status = false;
+                        goto Exit;
+                    }
+
+                    if (ServiceStatus.dwCurrentState == SERVICE_STOPPED) {
+                        break;
+                    }
+
+                    if (GetTickCount() - StartTime > Timeout) {
+                        CloseServiceHandle(DepService);
+                        Status = false;
+                        goto Exit;
+                    }
+                }
+                CloseServiceHandle(DepService);
+            }
+        }
+    Exit:
+        if (Dependencies != nullptr) {
+            HeapFree(GetProcessHeap(), 0, Dependencies);
+        }
+        return Status;
     }
 };
 
