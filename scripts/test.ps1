@@ -199,7 +199,7 @@ if ($IsWindows) {
     $MsQuicTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquictest.exe"
     $MsQuicCoreTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquiccoretest.exe"
     $MsQuicPlatTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquicplatformtest.exe"
-    $MsQuicPlatTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquicioctltest.exe"
+    $MsQuicIoctlTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquicioctltest.exe"
     $KernelPath = Join-Path $RootDir "\artifacts\bin\winkernel\$($Arch)_$($Config)_$($Tls)"
 } else {
     $MsQuicTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquictest"
