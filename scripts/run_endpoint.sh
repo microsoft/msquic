@@ -20,8 +20,6 @@ fi
 # - SERVER_PARAMS contains user-supplied command line parameters
 # - CLIENT_PARAMS contains user-supplied command line parameters
 
-quit=0
-
 # Setup and start LTTng logging.
 echo "Starting LTTng logging..."
 mkdir /logs/lttng
@@ -30,17 +28,21 @@ lttng enable-event --userspace CLOG_*
 lttng add-context --userspace --type=vpid --type=vtid
 lttng start
 
-# Trap TERM and exit signals to stop LTTng logging and convert.
-trap StopLTTng TERM exit
+# Trap TERM and EXIT signals to stop LTTng logging and convert.
+QUIT=0
+trap StopLTTng TERM EXIT
 function StopLTTng() {
-    if [ "$quic" -ne 1 ]; then
+    echo "Trap fired."
+    if [ "$QUIT" -ne 1 ]; then
         echo "Stopping LTTng logging..."
         lttng stop msquic
         babeltrace --name all /logs/lttng/* > /logs/babeltrace.txt
         clog2text_lttng -i /logs/babeltrace.txt -s clog.sidecar --t --c -o /logs/quic.log
         echo "LTTng logging stopped and converted."
-        quit=1
+        QUIT=1
     fi
+    echo "Exiting script..."
+    exit
 }
 
 if [ "$ROLE" == "client" ]; then
@@ -96,14 +98,9 @@ elif [ "$ROLE" == "server" ]; then
 
     quicinteropserver ${SERVER_PARAMS} -root:/www -listen:* -port:443 \
         -file:/certs/cert.pem -key:/certs/priv.key &
+    wait
 
-    # Wait for the trap to execute and set the quit variable.
-    echo "Waiting for quit..."
-    while [ "$quit" -ne 1 ]; do
-        sleep 1 &
-        wait
-    done
-    echo "Waiting complete."
+    echo "Server complete."
 fi
 
 echo "Script complete."
