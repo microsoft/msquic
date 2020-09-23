@@ -24,8 +24,6 @@ bool PrivateTestLibrary = false;
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
-
-
 class QuicTestEnvironment : public ::testing::Environment {
 public:
     QuicDriverService TestDriverService;

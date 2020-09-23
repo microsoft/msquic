@@ -16,10 +16,6 @@ Abstract:
 
 #ifdef _WIN32
 
-//#define QUIC_DRIVER_FILE_NAME  QUIC_DRIVER_NAME ".sys"
-//#define QUIC_IOCTL_PATH        "\\\\.\\\\" QUIC_DRIVER_NAME
-
-
 class QuicDriverService {
     SC_HANDLE ScmHandle;
     SC_HANDLE ServiceHandle;
@@ -140,211 +136,240 @@ public:
         return true;
     }
 
-    VOID DoStopSvc()
+    bool DoStopSvc()
     {
-        SERVICE_STATUS_PROCESS ssp;
-        DWORD dwStartTime = GetTickCount();
-        DWORD dwBytesNeeded;
-        DWORD dwTimeout = 30000; // 30-second time-out
-        DWORD dwWaitTime;
+        SERVICE_STATUS_PROCESS ServiceStatus;
+        DWORD StartTime = GetTickCount();
+        DWORD BytesNeeded;
+        DWORD Timeout = 30000; // 30-second time-out
+        DWORD WaitTime;
 
+        //
         // Make sure the service is not already stopped.
+        //
 
-        if ( !QueryServiceStatusEx(
+       if (!QueryServiceStatusEx(
                 ServiceHandle,
                 SC_STATUS_PROCESS_INFO,
-                (LPBYTE)&ssp,
+                (LPBYTE)&ServiceStatus,
                 sizeof(SERVICE_STATUS_PROCESS),
-                &dwBytesNeeded ) )
-        {
-            printf("QueryServiceStatusEx failed (%d)\n", GetLastError());
-            return;
+                &BytesNeeded)) {
+            return false;
         }
 
-        if ( ssp.dwCurrentState == SERVICE_STOPPED )
-        {
-            printf("Service is already stopped.\n");
-            return;
+        if (ServiceStatus.dwCurrentState == SERVICE_STOPPED) {
+            return true;
         }
 
+        //
         // If a stop is pending, wait for it.
+        //
 
-        while ( ssp.dwCurrentState == SERVICE_STOP_PENDING )
+        while (ServiceStatus.dwCurrentState == SERVICE_STOP_PENDING)
         {
-            printf("Service stop pending...\n");
-
+            //
             // Do not wait longer than the wait hint. A good interval is
             // one-tenth of the wait hint but not less than 1 second
             // and not more than 10 seconds.
+            //
 
-            dwWaitTime = ssp.dwWaitHint / 10;
+            WaitTime = ServiceStatus.dwWaitHint / 10;
 
-            if( dwWaitTime < 1000 )
-                dwWaitTime = 1000;
-            else if ( dwWaitTime > 10000 )
-                dwWaitTime = 10000;
+            if(WaitTime < 1000) {
+                WaitTime = 1000;
+            } else if (WaitTime > 10000) {
+                WaitTime = 10000;
+            }
 
-            Sleep( dwWaitTime );
+            Sleep(WaitTime);
 
-            if ( !QueryServiceStatusEx(
+            if (!QueryServiceStatusEx(
                     ServiceHandle,
                     SC_STATUS_PROCESS_INFO,
-                    (LPBYTE)&ssp,
+                    (LPBYTE)&ServiceStatus,
                     sizeof(SERVICE_STATUS_PROCESS),
-                    &dwBytesNeeded ) )
-            {
-                printf("QueryServiceStatusEx failed (%d)\n", GetLastError());
-                return;
+                    &BytesNeeded)) {
+                return false;
             }
 
-            if ( ssp.dwCurrentState == SERVICE_STOPPED )
-            {
-                printf("Service stopped successfully.\n");
-                return;
+            if (ServiceStatus.dwCurrentState == SERVICE_STOPPED) {
+                return true;
             }
 
-            if ( GetTickCount() - dwStartTime > dwTimeout )
-            {
-                printf("Service stop timed out.\n");
-                return;
+            if (GetTickCount() - StartTime > Timeout) {
+                return false;
             }
         }
 
+        //
         // If the service is running, dependencies must be stopped first.
+        //
 
         StopDependentServices();
 
+        //
         // Send a stop code to the service.
+        //
 
-        if ( !ControlService(
+        if (!ControlService(
                 ServiceHandle,
                 SERVICE_CONTROL_STOP,
-                (LPSERVICE_STATUS) &ssp ) )
-        {
-            printf( "ControlService failed (%d)\n", GetLastError() );
-            return;
+                (LPSERVICE_STATUS) &ServiceStatus)) {
+            return false;
         }
 
+        //
         // Wait for the service to stop.
+        //
 
-        while ( ssp.dwCurrentState != SERVICE_STOPPED )
+        while (ServiceStatus.dwCurrentState != SERVICE_STOPPED)
         {
-            Sleep( ssp.dwWaitHint );
-            if ( !QueryServiceStatusEx(
+            Sleep(ServiceStatus.dwWaitHint);
+            if (!QueryServiceStatusEx(
                     ServiceHandle,
                     SC_STATUS_PROCESS_INFO,
-                    (LPBYTE)&ssp,
+                    (LPBYTE)&ServiceStatus,
                     sizeof(SERVICE_STATUS_PROCESS),
-                    &dwBytesNeeded ) )
-            {
-                printf( "QueryServiceStatusEx failed (%d)\n", GetLastError() );
-                return;
+                    &BytesNeeded)) {
+                return false;
             }
 
-            if ( ssp.dwCurrentState == SERVICE_STOPPED )
+            if (ServiceStatus.dwCurrentState == SERVICE_STOPPED) {
                 break;
+            }
 
-            if ( GetTickCount() - dwStartTime > dwTimeout )
-            {
-                printf( "Wait timed out\n" );
-                return;
+            if (GetTickCount() - StartTime > Timeout) {
+                return false;
             }
         }
-        printf("Service stopped successfully\n");
+        return true;
     }
 
-    BOOL StopDependentServices()
+    bool StopDependentServices()
     {
         DWORD i;
-        DWORD dwBytesNeeded;
-        DWORD dwCount;
+        DWORD BytesNeeded;
+        DWORD Count;
+        bool Status = true;
 
-        LPENUM_SERVICE_STATUS   lpDependencies = NULL;
-        ENUM_SERVICE_STATUS     ess;
-        SC_HANDLE               hDepService;
-        SERVICE_STATUS_PROCESS  ssp;
+        LPENUM_SERVICE_STATUS   Dependencies = NULL;
+        ENUM_SERVICE_STATUS     EnumServices;
+        SC_HANDLE               DepService;
+        SERVICE_STATUS_PROCESS  ServiceStatus;
 
-        DWORD dwStartTime = GetTickCount();
-        DWORD dwTimeout = 30000; // 30-second time-out
+        DWORD StartTime = GetTickCount();
+        DWORD Timeout = 30000; // 30-second time-out
 
+        //
         // Pass a zero-length buffer to get the required buffer size.
-        if ( EnumDependentServices( ServiceHandle, SERVICE_ACTIVE,
-            lpDependencies, 0, &dwBytesNeeded, &dwCount ) )
-        {
+        //
+        if (EnumDependentServices(
+                ServiceHandle,
+                SERVICE_ACTIVE,
+                Dependencies,
+                0,
+                &BytesNeeded,
+                &Count)) {
+            //
             // If the Enum call succeeds, then there are no dependent
             // services, so do nothing.
-            return TRUE;
-        }
-        else
-        {
-            if ( GetLastError() != ERROR_MORE_DATA )
-                return FALSE; // Unexpected error
+            //
+            Status = true;
+            goto Exit;
+        } else {
+            if (GetLastError() != ERROR_MORE_DATA) {
+                //
+                // Unexpected error
+                //
+                Status = false;
+                goto Exit;
+            }
 
+            //
             // Allocate a buffer for the dependencies.
-            lpDependencies = (LPENUM_SERVICE_STATUS) HeapAlloc(
-                GetProcessHeap(), HEAP_ZERO_MEMORY, dwBytesNeeded );
+            //
+            Dependencies =
+                (LPENUM_SERVICE_STATUS)HeapAlloc(
+                    GetProcessHeap(),
+                    HEAP_ZERO_MEMORY,
+                    BytesNeeded);
 
-            if ( !lpDependencies )
-                return FALSE;
+            if (!Dependencies) {
+                Status = false;
+                goto Exit;
+            }
 
-            __try {
-                // Enumerate the dependencies.
-                if ( !EnumDependentServices( ServiceHandle, SERVICE_ACTIVE,
-                    lpDependencies, dwBytesNeeded, &dwBytesNeeded,
-                    &dwCount ) )
-                return FALSE;
+            // Enumerate the dependencies.
+            if (!EnumDependentServices(
+                    ServiceHandle,
+                    SERVICE_ACTIVE,
+                    Dependencies,
+                    BytesNeeded,
+                    &BytesNeeded,
+                    &Count)) {
+                Status = false;
+                goto Exit;
+            }
 
-                for ( i = 0; i < dwCount; i++ )
-                {
-                    ess = *(lpDependencies + i);
-                    // Open the service.
-                    hDepService = OpenService( ScmHandle,
-                    ess.lpServiceName,
-                    SERVICE_STOP | SERVICE_QUERY_STATUS );
+            for (i = 0; i < Count; i++)
+            {
+                EnumServices = *(Dependencies + i);
+                //
+                // Open the service.
+                //
+                DepService =
+                    OpenService(
+                        ScmHandle,
+                        EnumServices.lpServiceName,
+                        SERVICE_STOP | SERVICE_QUERY_STATUS);
 
-                    if ( !hDepService )
-                    return FALSE;
+                if (!DepService) {
+                    Status = false;
+                    goto Exit;
+                }
 
-                    __try {
-                        // Send a stop code.
-                        if ( !ControlService( hDepService,
-                                SERVICE_CONTROL_STOP,
-                                (LPSERVICE_STATUS) &ssp ) )
-                        return FALSE;
+                // Send a stop code.
+                if (!ControlService(
+                        DepService,
+                        SERVICE_CONTROL_STOP,
+                        (LPSERVICE_STATUS) &ServiceStatus)) {
+                    CloseServiceHandle(DepService);
+                    Status = false;
+                    goto Exit;
+                }
 
-                        // Wait for the service to stop.
-                        while ( ssp.dwCurrentState != SERVICE_STOPPED )
-                        {
-                            Sleep( ssp.dwWaitHint );
-                            if ( !QueryServiceStatusEx(
-                                    hDepService,
-                                    SC_STATUS_PROCESS_INFO,
-                                    (LPBYTE)&ssp,
-                                    sizeof(SERVICE_STATUS_PROCESS),
-                                    &dwBytesNeeded ) )
-                            return FALSE;
-
-                            if ( ssp.dwCurrentState == SERVICE_STOPPED )
-                                break;
-
-                            if ( GetTickCount() - dwStartTime > dwTimeout )
-                                return FALSE;
-                        }
+                // Wait for the service to stop.
+                while (ServiceStatus.dwCurrentState != SERVICE_STOPPED) {
+                    Sleep(ServiceStatus.dwWaitHint);
+                    if (!QueryServiceStatusEx(
+                            DepService,
+                            SC_STATUS_PROCESS_INFO,
+                            (LPBYTE)&ServiceStatus,
+                            sizeof(SERVICE_STATUS_PROCESS),
+                            &BytesNeeded)) {
+                        CloseServiceHandle(DepService);
+                        Status = false;
+                        goto Exit;
                     }
-                    __finally
-                    {
-                        // Always release the service handle.
-                        CloseServiceHandle( hDepService );
+
+                    if (ServiceStatus.dwCurrentState == SERVICE_STOPPED) {
+                        break;
+                    }
+
+                    if (GetTickCount() - StartTime > Timeout) {
+                        CloseServiceHandle(DepService);
+                        Status = false;
+                        goto Exit;
                     }
                 }
-            }
-            __finally
-            {
-                // Always free the enumeration buffer.
-                HeapFree( GetProcessHeap(), 0, lpDependencies );
+                CloseServiceHandle(DepService);
             }
         }
-        return TRUE;
+    Exit:
+        if (Dependencies != nullptr) {
+            HeapFree(GetProcessHeap(), 0, Dependencies);
+        }
+        return Status;
     }
 };
 

@@ -5,7 +5,7 @@
 
 Abstract:
 
-    This file contains the definitions for the msquic ioctl interface
+    This file contains the definitions for the MsQuic IOCTL interface.
 
 Environment:
 
@@ -87,14 +87,14 @@ MsQuicReadPerformanceCounters(
             NULL,
             0,
             (uint8_t*)Counters,
-            (*NumberOfCounters) * 8,
+            (*NumberOfCounters) * sizeof(int64_t),
             &ReadBytes,
             NULL)) {
         Status = GetLastError();
         goto Exit;
     }
 
-    *NumberOfCounters = (uint32_t)(ReadBytes / 8);
+    *NumberOfCounters = (uint32_t)(ReadBytes / sizeof(int64_t));
 Exit:
 
     if (DeviceHandle != INVALID_HANDLE_VALUE) {
