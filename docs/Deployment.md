@@ -44,7 +44,7 @@ Enable-TlsCipherSuite -Name TLS_CHACHA20_POLY1305_SHA256
 In order to configure the Windows firewall to allow inbound QUIC traffic efficiently, use a command such as the one below.
 
 ```PowerShell
-New-NetFirewallRule -DisplayName "Allow QUIC" -Direction Inbound -Protocol UDP -LocalPort 4433 -Action Allow -LocalOnlyMapping $true
+New-NetFirewallRule -DisplayName "Allow QUIC" -Direction Inbound -Protocol UDP -LocalPort 433 -Action Allow -LocalOnlyMapping $true
 ```
 
 Note the use of the `-LocalOnlyMapping $true` argument. This is a performance optimizing feature that should be used for UDP based protocols (like QUIC).
