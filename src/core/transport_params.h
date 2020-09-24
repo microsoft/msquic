@@ -177,6 +177,7 @@ QuicCryptoTlsEncodeTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN IsServerTP,
     _In_ const QUIC_TRANSPORT_PARAMETERS *TransportParams,
+    _In_opt_ const QUIC_PRIVATE_TRANSPORT_PARAMETER* TestParam,
     _Out_ uint32_t* TPLen
     );
 

@@ -623,6 +623,7 @@ QuicCryptoTlsEncodeTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN IsServerTP,
     _In_ const QUIC_TRANSPORT_PARAMETERS *TransportParams,
+    _In_opt_ const QUIC_PRIVATE_TRANSPORT_PARAMETER* TestParam,
     _Out_ uint32_t* TPLen
     )
 {
@@ -758,11 +759,11 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION,
                 0);
     }
-    if (Connection->State.TestTransportParameterSet) {
+    if (TestParam != NULL) {
         RequiredTPLen +=
             TlsTransportParamLength(
-                Connection->TestTransportParameter.Type,
-                Connection->TestTransportParameter.Length);
+                TestParam->Type,
+                TestParam->Length);
     }
 
     QUIC_TEL_ASSERT(RequiredTPLen <= UINT16_MAX);
@@ -1021,19 +1022,19 @@ QuicCryptoTlsEncodeTransportParameters(
             Connection,
             "TP: Disable 1-RTT Encryption");
     }
-    if (Connection->State.TestTransportParameterSet) {
+    if (TestParam != NULL) {
         TPBuf =
             TlsWriteTransportParam(
-                Connection->TestTransportParameter.Type,
-                Connection->TestTransportParameter.Length,
-                Connection->TestTransportParameter.Buffer,
+                TestParam->Type,
+                TestParam->Length,
+                TestParam->Buffer,
                 TPBuf);
         QuicTraceLogConnVerbose(
             EncodeTPTest,
             Connection,
             "TP: TEST TP (Type %hu, Length %hu)",
-            Connection->TestTransportParameter.Type,
-            Connection->TestTransportParameter.Length);
+            TestParam->Type,
+            TestParam->Length);
     }
 
     size_t FinalTPLength = (TPBuf - (TPBufBase + QuicTlsTPHeaderSize));

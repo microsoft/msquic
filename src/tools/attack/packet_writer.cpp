@@ -71,7 +71,7 @@ struct TlsContext
         Config.AlpnBuffer = AlpnListBuffer;
         Config.AlpnBufferLength = AlpnListBuffer[0] + 1;
         Config.LocalTPBuffer =
-            QuicCryptoTlsEncodeTransportParameters(&Connection, FALSE, &TP, &Config.LocalTPLength);
+            QuicCryptoTlsEncodeTransportParameters(&Connection, FALSE, &TP, NULL, &Config.LocalTPLength);
         if (!Config.LocalTPBuffer) {
             printf("Failed to encode transport parameters!\n");
         }

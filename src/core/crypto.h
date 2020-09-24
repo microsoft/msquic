@@ -299,3 +299,59 @@ QuicCryptoUpdateKeyPhase (
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN LocalUpdate
     );
+
+QUIC_STATUS
+QuicCryptoEncodeServerTicket(
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ uint32_t QuicVersion,
+    _In_reads_bytes_opt_(AppDataLength)
+        const uint8_t* const AppResumptionData,
+    _In_ uint32_t AppDataLength,
+    _In_ const QUIC_TRANSPORT_PARAMETERS* HandshakeTP,
+    _In_reads_bytes_(AlpnLength)
+        const uint8_t* const NegotiatedAlpn,
+    _In_ uint8_t AlpnLength,
+    _Outptr_opt_result_buffer_maybenull_(TicketSize)
+        uint8_t** Ticket,
+    _Out_ uint32_t* TicketLength
+    );
+
+QUIC_STATUS
+QuicCryptoDecodeServerTicket(
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_reads_bytes_(TicketLength) const uint8_t* Ticket,
+    _In_ uint16_t TicketLength,
+    _In_ const uint8_t* AlpnList,
+    _In_ uint16_t AlpnListLength,
+    _Inout_ QUIC_TRANSPORT_PARAMETERS* DecodedTP,
+    _Outptr_opt_result_buffer_maybenull_(AppDataLength)
+        const uint8_t** AppData,
+    _Out_ uint32_t* AppDataLength
+    );
+
+QUIC_STATUS
+QuicCryptoEncodeClientTicket(
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_reads_bytes_(TicketLength)
+        const uint8_t* Ticket,
+    _In_ uint32_t TicketLength,
+    _In_ const QUIC_TRANSPORT_PARAMETERS* ServerTP,
+    _In_ uint32_t QuicVersion,
+    _Outptr_result_bytebuffer_(ClientTicketLength)
+        const uint8_t** ClientTicket,
+    _Out_ uint32_t* ClientTicketLength
+    );
+
+QUIC_STATUS
+QuicCryptoDecodeClientTicket(
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_reads_bytes_(ClientTicketLength) const uint8_t* ClientTicket,
+    _In_ uint16_t ClientTicketLength,
+    _Inout_ QUIC_TRANSPORT_PARAMETERS* DecodedTP,
+    _Outptr_opt_result_buffer_maybenull_(ServerTicketLength)
+        uint8_t** ServerTicket,
+    _Out_ uint32_t* ServerTicketLength,
+    _Out_ uint32_t* QuicVersion
+    );
+
+
