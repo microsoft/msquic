@@ -1032,11 +1032,16 @@ QuicSocketContextInitialize(
         goto Exit;
     }
 
+    QuicCopyMemory(&MappedRemoteAddress, &Binding->LocalAddress, sizeof(MappedRemoteAddress));
+    if (MappedRemoteAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+        MappedRemoteAddress.Ipv6.sin6_family = AF_INET6;
+    }
+
     Result =
         bind(
             SocketContext->SocketFd,
-            (const struct sockaddr*)&Binding->LocalAddress,
-            sizeof(Binding->LocalAddress));
+            (const struct sockaddr*)&MappedRemoteAddress,
+            sizeof(MappedRemoteAddress));
     if (Result == SOCKET_ERROR) {
         Status = errno;
         QuicTraceEvent(
@@ -1051,6 +1056,10 @@ QuicSocketContextInitialize(
     if (RemoteAddress != NULL) {
         QuicZeroMemory(&MappedRemoteAddress, sizeof(MappedRemoteAddress));
         QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+
+        if (MappedRemoteAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+            MappedRemoteAddress.Ipv6.sin6_family = AF_INET6;
+        }
 
         Result =
             connect(
@@ -1094,6 +1103,10 @@ QuicSocketContextInitialize(
 
     if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
         QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    }
+
+    if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
+        Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
     }
 
 Exit:
