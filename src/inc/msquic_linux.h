@@ -149,13 +149,11 @@ typedef struct in6_addr IN6_ADDR;
 typedef struct addrinfo ADDRINFO;
 
 //
-// Enum matches windows values
+// Defines match windows values.
 //
-typedef enum QUIC_ADDRESS_FAMILY {
-    QUIC_ADDRESS_FAMILY_UNSPEC = 0,
-    QUIC_ADDRESS_FAMILY_INET = 2,
-    QUIC_ADDRESS_FAMILY_INET6 = 23,
-} QUIC_ADDRESS_FAMILY;
+#define QUIC_ADDRESS_FAMILY_UNSPEC 0
+#define QUIC_ADDRESS_FAMILY_INET 2
+#define QUIC_ADDRESS_FAMILY_INET6 23
 
 typedef union QUIC_ADDR {
     struct sockaddr Ip;
