@@ -392,6 +392,11 @@ QuicConnApplySettings(
     _In_ QUIC_CONNECTION* Connection
     )
 {
+    QuicTraceLogConnInfo(
+        ApplySettings,
+        Connection,
+        "Applying new settings");
+
     Connection->State.UsePacing = Connection->ParentSettings->PacingEnabled;
     Connection->MaxAckDelayMs = Connection->ParentSettings->MaxAckDelayMs;
     Connection->Paths[0].SmoothedRtt = MS_TO_US(Connection->ParentSettings->InitialRttMs);
