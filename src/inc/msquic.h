@@ -367,15 +367,14 @@ typedef struct QUIC_SETTINGS {
         } IsSet;
     };
 
-    uint8_t PacingEnabled           : 1;
-    uint8_t MigrationEnabled        : 1;
-    uint8_t DatagramReceiveEnabled  : 1;
-    uint8_t ServerResumptionLevel   : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
-    uint8_t RESERVED                : 3;
-    uint16_t MaxPartitionCount;             // Global only
-    uint8_t MaxOperationsPerDrain;          // Global only
-    uint16_t RetryMemoryLimit;              // Global only
-    uint16_t LoadBalancingMode;             // Global only
+    uint64_t MaxBytesPerKey;
+    uint64_t HandshakeIdleTimeoutMs;
+    uint64_t IdleTimeoutMs;
+    uint32_t TlsClientMaxSendBuffer;
+    uint32_t TlsServerMaxSendBuffer;
+    uint32_t StreamRecvWindowDefault;
+    uint32_t StreamRecvBufferDefault;
+    uint32_t ConnFlowControlWindow;
     uint32_t MaxWorkerQueueDelayUs;
     uint32_t MaxStatelessOperations;
     uint32_t InitialWindowPackets;
@@ -384,16 +383,17 @@ typedef struct QUIC_SETTINGS {
     uint32_t MaxAckDelayMs;
     uint32_t DisconnectTimeoutMs;
     uint32_t KeepAliveIntervalMs;
-    uint64_t HandshakeIdleTimeoutMs;
-    uint64_t IdleTimeoutMs;
     uint16_t PeerBidiStreamCount;
     uint16_t PeerUnidiStreamCount;
-    uint32_t TlsClientMaxSendBuffer;
-    uint32_t TlsServerMaxSendBuffer;
-    uint32_t StreamRecvWindowDefault;
-    uint32_t StreamRecvBufferDefault;
-    uint32_t ConnFlowControlWindow;
-    uint64_t MaxBytesPerKey;
+    uint16_t RetryMemoryLimit;              // Global only
+    uint16_t LoadBalancingMode;             // Global only
+    uint16_t MaxPartitionCount;             // Global only
+    uint8_t MaxOperationsPerDrain;          // Global only
+    uint8_t PacingEnabled           : 1;
+    uint8_t MigrationEnabled        : 1;
+    uint8_t DatagramReceiveEnabled  : 1;
+    uint8_t ServerResumptionLevel   : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
+    uint8_t RESERVED                : 3;
 
 } QUIC_SETTINGS;
 
