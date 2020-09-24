@@ -41,6 +41,7 @@
   <ItemGroup>
     <ClCompile Include="driver.c" />
     <ClCompile Include="ioctl.c" />
+    <ClCompile Include="msquicpcw.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />

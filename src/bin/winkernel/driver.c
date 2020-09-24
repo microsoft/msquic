@@ -29,6 +29,16 @@ MsQuicLibraryUnload(
     void
     );
 
+NTSTATUS
+MsQuicPcwStartup(
+    void
+);
+
+void
+MsQuicPcwCleanup(
+    void
+);
+
 _No_competing_thread_
 INITCODE
 NTSTATUS
@@ -117,6 +127,8 @@ Return Value:
         goto Error;
     }
 
+    MsQuicPcwStartup();
+
 Error:
 
     if (!NT_SUCCESS(Status)) {
@@ -151,6 +163,7 @@ Arguments:
     UNREFERENCED_PARAMETER(Driver);
 
     PAGED_CODE();
+    MsQuicPcwCleanup();
     QuicIoCtlUninitialize();
     MsQuicLibraryUnload();
     QuicPlatformSystemUnload();
