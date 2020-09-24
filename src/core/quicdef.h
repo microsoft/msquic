@@ -435,6 +435,7 @@ QUIC_STATIC_ASSERT(
 #define QUIC_SETTING_MAX_STATELESS_OPERATIONS   "MaxStatelessOperations"
 #define QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN   "MaxOperationsPerDrain"
 
+#define QUIC_SETTING_SEND_BUFFERING_DEFAULT     "SendBufferingDefault"
 #define QUIC_SETTING_SEND_PACING_DEFAULT        "SendPacingDefault"
 #define QUIC_SETTING_MIGRATION_ENABLED          "MigrationEnabled"
 #define QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED   "DatagramReceiveEnabled"

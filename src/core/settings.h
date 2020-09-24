@@ -56,3 +56,12 @@ void
 QuicSettingsDump(
     _In_ const QUIC_SETTINGS* Settings
     );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicSettingsDumpNew(
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
+        uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_SETTINGS* Settings
+    );

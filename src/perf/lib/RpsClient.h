@@ -71,7 +71,8 @@ private:
         MsQuicAlpn(PERF_ALPN),
         MsQuicSettings()
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
-            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT),
+            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
+            .SetSendBufferingEnabled(false),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};

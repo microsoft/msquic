@@ -42,6 +42,18 @@ typedef struct QUIC_RECEIVE_PROCESSING_STATE {
     uint16_t PartitionIndex;
 } QUIC_RECEIVE_PROCESSING_STATE;
 
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnApplyNewSettings(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN OverWrite,
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
+        uint32_t NewSettingsSize,
+    _In_reads_bytes_(NewSettingsSize)
+        const QUIC_SETTINGS* NewSettings
+    );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 __drv_allocatesMem(Mem)
 _Must_inspect_result_
@@ -101,7 +113,6 @@ QuicConnAlloc(
 #endif
     Connection->PartitionID = PartitionId;
     Connection->State.Allocated = TRUE;
-    Connection->State.UseSendBuffer = QUIC_DEFAULT_SEND_BUFFERING_ENABLE;
     Connection->State.ShareBinding = IsServer;
     Connection->Stats.Timing.Start = QuicTimeUs64();
     Connection->SourceCidLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
@@ -116,7 +127,7 @@ QuicConnAlloc(
     QuicSendBufferInitialize(&Connection->SendBuffer);
     QuicOperationQueueInitialize(&Connection->OperQ);
     QuicSendInitialize(&Connection->Send, &Connection->Settings);
-    QuicCongestionControlInitialize(&Connection->Send, &Connection->Settings);
+    QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
     QuicLossDetectionInitialize(&Connection->LossDetection);
     QuicDatagramInitialize(&Connection->Datagram);
     QuicRangeInitialize(
@@ -388,59 +399,6 @@ QuicConnFree(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicConnApplyNewSettings(
-    _In_ QUIC_CONNECTION* Connection
-    )
-{
-    QuicTraceLogConnInfo(
-        ApplySettings,
-        Connection,
-        "Applying new settings");
-
-    Connection->Paths[0].SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
-    Connection->Paths[0].RttVariance = Connection->Paths[0].SmoothedRtt / 2;
-
-    Connection->Datagram.ReceiveEnabled = Connection->Settings.DatagramReceiveEnabled;
-
-    uint8_t PeerStreamType =
-        QuicConnIsServer(Connection) ?
-            STREAM_ID_FLAG_IS_CLIENT : STREAM_ID_FLAG_IS_SERVER;
-    if (Connection->Settings.PeerBidiStreamCount != 0) {
-        QuicStreamSetUpdateMaxCount(
-            &Connection->Streams,
-            PeerStreamType | STREAM_ID_FLAG_IS_BI_DIR,
-            Connection->Settings.PeerBidiStreamCount);
-    }
-    if (Connection->Settings.PeerUnidiStreamCount != 0) {
-        QuicStreamSetUpdateMaxCount(
-            &Connection->Streams,
-            PeerStreamType | STREAM_ID_FLAG_IS_UNI_DIR,
-            Connection->Settings.PeerUnidiStreamCount);
-    }
-
-    if (Connection->Settings.ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
-        Connection->HandshakeTP == NULL) {
-        QUIC_DBG_ASSERT(!Connection->State.Started);
-        Connection->HandshakeTP =
-            QuicPoolAlloc(&MsQuicLib.PerProc[QuicProcCurrentNumber()].TransportParamPool);
-        if (Connection->HandshakeTP == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "handshake TP",
-                sizeof(*Connection->HandshakeTP));
-        } else {
-            QuicZeroMemory(Connection->HandshakeTP, sizeof(*Connection->HandshakeTP));
-            Connection->State.ResumptionEnabled = TRUE;
-        }
-    }
-
-    QuicSendApplyNewSettings(&Connection->Send, &Connection->Settings);
-    QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
 QuicConnShutdown(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Flags,
@@ -627,6 +585,13 @@ QuicConnTraceRundownOper(
         "[conn][%p] Registered with %p",
         Connection,
         Connection->Registration);
+    if (Connection->Stats.QuicVersion != 0) {
+        QuicTraceEvent(
+            ConnVersionSet,
+            "[conn][%p] Version = %u",
+            Connection,
+            Connection->Stats.QuicVersion);
+    }
     if (Connection->State.Started) {
         for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
             if (Connection->State.LocalAddressSet || i != 0) {
@@ -678,7 +643,6 @@ QuicConnTraceRundownOper(
         }
     }
     if (Connection->State.Connected) {
-        QuicConnOnQuicVersionSet(Connection);
         QuicTraceEvent(
             ConnHandshakeComplete,
             "[conn][%p] Handshake complete",
@@ -2315,29 +2279,22 @@ QuicConnSetConfiguration(
 
     QuicConfigurationAddRef(Configuration);
     Connection->Configuration = Configuration;
-    QuicSettingApply(
-        &Connection->Settings,
+    QuicConnApplyNewSettings(
+        Connection,
         FALSE,
         sizeof(Configuration->Settings),
         &Configuration->Settings);
-    QuicConnApplyNewSettings(Connection);
 
     if (!QuicConnIsServer(Connection)) {
-
-        uint32_t InitialQuicVersion = QUIC_VERSION_LATEST;
-        //
-        // TODO - Check for any resumption state from previous connection.
-        //
 
         if (Connection->Stats.QuicVersion == 0) {
             //
             // Only initialize the version if not already done (by the
             // application layer).
             //
-            Connection->Stats.QuicVersion = InitialQuicVersion;
+            Connection->Stats.QuicVersion = QUIC_VERSION_LATEST;
+            QuicConnOnQuicVersionSet(Connection);
         }
-
-        QuicConnOnQuicVersionSet(Connection);
 
         QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCids));
         const QUIC_CID_QUIC_LIST_ENTRY* DestCid =
@@ -5360,7 +5317,7 @@ QuicConnParamSet(
         break;
     }
 
-    case QUIC_PARAM_CONN_REMOTE_ADDRESS: {
+    case QUIC_PARAM_CONN_REMOTE_ADDRESS:
 
         if (BufferLength != sizeof(QUIC_ADDR)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -5386,61 +5343,45 @@ QuicConnParamSet(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
-    }
 
-    case QUIC_PARAM_CONN_IDLE_TIMEOUT:
+    case QUIC_PARAM_CONN_SETTINGS:
 
-        if (BufferLength != sizeof(Connection->Settings.IdleTimeoutMs)) {
+        if (BufferLength != sizeof(QUIC_SETTINGS)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER; // TODO - Support partial?
+            break;
+        }
+
+        if (!QuicConnApplyNewSettings(
+                Connection,
+                TRUE,
+                BufferLength,
+                (QUIC_SETTINGS*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        if (Connection->State.Started) {
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_SHARE_UDP_BINDING:
+
+        if (BufferLength != sizeof(uint8_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Connection->State.Started || QuicConnIsServer(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
 
-        Connection->Settings.IdleTimeoutMs = *(uint64_t*)Buffer;
+        Connection->State.ShareBinding = *(uint8_t*)Buffer;
 
         QuicTraceLogConnInfo(
-            UpdateIdleTimeout,
+            UpdateShareBinding,
             Connection,
-            "Updated idle timeout to %llu milliseconds",
-            Connection->Settings.IdleTimeoutMs);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT:
-
-        if (BufferLength != sizeof(uint16_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        QuicStreamSetUpdateMaxCount(
-            &Connection->Streams,
-            QuicConnIsServer(Connection) ?
-                STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR :
-                STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_BI_DIR,
-            *(uint16_t*)Buffer);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT:
-
-        if (BufferLength != sizeof(uint16_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        QuicStreamSetUpdateMaxCount(
-            &Connection->Streams,
-            QuicConnIsServer(Connection) ?
-                STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR :
-                STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_UNI_DIR,
-            *(uint16_t*)Buffer);
+            "Updated ShareBinding = %hhu",
+            Connection->State.ShareBinding);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -5487,119 +5428,6 @@ QuicConnParamSet(
 
         break;
 
-    case QUIC_PARAM_CONN_KEEP_ALIVE:
-
-        if (BufferLength != sizeof(Connection->Settings.KeepAliveIntervalMs)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (Connection->State.Started &&
-            Connection->Settings.KeepAliveIntervalMs != 0) {
-            //
-            // Cancel any current timer first.
-            //
-            QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_KEEP_ALIVE);
-        }
-
-        Connection->Settings.KeepAliveIntervalMs = *(uint32_t*)Buffer;
-
-        QuicTraceLogConnInfo(
-            UpdateKeepAlive,
-            Connection,
-            "Updated keep alive interval to %u milliseconds",
-            Connection->Settings.KeepAliveIntervalMs);
-
-        if (Connection->State.Started &&
-            Connection->Settings.KeepAliveIntervalMs != 0) {
-            QuicConnProcessKeepAliveOperation(Connection);
-        }
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONN_DISCONNECT_TIMEOUT:
-
-        if (BufferLength != sizeof(MS_TO_US(Connection->Settings.DisconnectTimeoutMs))) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (*(uint32_t*)Buffer == 0 ||
-            *(uint32_t*)Buffer > QUIC_MAX_DISCONNECT_TIMEOUT) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        MS_TO_US(Connection->Settings.DisconnectTimeoutMs) = MS_TO_US(*(uint32_t*)Buffer);
-
-        QuicTraceLogConnInfo(
-            UpdateDisconnectTimeout,
-            Connection,
-            "Updated disconnect timeout = %u milliseconds",
-            *(uint32_t*)Buffer);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONN_SEND_BUFFERING:
-
-        if (BufferLength != sizeof(uint8_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-        Connection->State.UseSendBuffer = *(uint8_t*)Buffer;
-
-        QuicTraceLogConnInfo(
-            UpdateUseSendBuffer,
-            Connection,
-            "Updated UseSendBuffer = %hhu",
-            Connection->State.UseSendBuffer);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONN_SEND_PACING:
-
-        if (BufferLength != sizeof(uint8_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-        Connection->Settings.PacingEnabled = *(uint8_t*)Buffer;
-        Connection->Settings.IsSet.PacingEnabled = TRUE;
-
-        QuicTraceLogConnInfo(
-            UpdatePacingEnabled,
-            Connection,
-            "Updated PacingEnabled = %hhu",
-            Connection->Settings.PacingEnabled);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONN_SHARE_UDP_BINDING:
-
-        if (BufferLength != sizeof(uint8_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (Connection->State.Started || QuicConnIsServer(Connection)) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        Connection->State.ShareBinding = *(uint8_t*)Buffer;
-
-        QuicTraceLogConnInfo(
-            UpdateShareBinding,
-            Connection,
-            "Updated ShareBinding = %hhu",
-            Connection->State.ShareBinding);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME: {
 
         if (BufferLength != sizeof(QUIC_STREAM_SCHEDULING_SCHEME)) {
@@ -5627,6 +5455,90 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
+
+    case QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED:
+
+        if (BufferLength != sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Connection->Datagram.ReceiveEnabled = *(BOOLEAN*)Buffer;
+        Status = QUIC_STATUS_SUCCESS;
+
+        QuicTraceLogConnVerbose(
+            DatagramReceiveEnableUpdated,
+            Connection,
+            "Updated datagram receive enabled to %hhu",
+            Connection->Datagram.ReceiveEnabled);
+
+        break;
+
+    case QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION:
+
+        if (BufferLength != sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Connection->State.Disable1RttEncrytion = *(BOOLEAN*)Buffer;
+        Status = QUIC_STATUS_SUCCESS;
+
+        QuicTraceLogConnVerbose(
+            Disable1RttEncrytionUpdated,
+            Connection,
+            "Updated disable 1-RTT encrytption to %hhu",
+            Connection->State.Disable1RttEncrytion);
+
+        break;
+
+    case QUIC_PARAM_CONN_RESUMPTION_STATE: {
+        if (BufferLength == 0 || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        //
+        // Must be set before the client connection is started.
+        //
+        if (QuicConnIsServer(Connection) || Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Status =
+            QuicCryptoDecodeClientTicket(
+                Connection,
+                (uint16_t)BufferLength,
+                Buffer,
+                &Connection->PeerTransportParams,
+                &Connection->Crypto.ResumptionTicket,
+                &Connection->Crypto.ResumptionTicketLength,
+                &Connection->Stats.QuicVersion);
+        if (QUIC_FAILED(Status)) {
+            break;
+        }
+
+        QuicConnOnQuicVersionSet(Connection);
+        QuicConnProcessPeerTransportParameters(Connection, TRUE);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    //
+    // Private
+    //
 
     case QUIC_PARAM_CONN_FORCE_KEY_UPDATE:
 
@@ -5680,52 +5592,6 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED:
-
-        if (BufferLength != sizeof(BOOLEAN)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (Connection->State.Started) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        Connection->Datagram.ReceiveEnabled = *(BOOLEAN*)Buffer;
-        Status = QUIC_STATUS_SUCCESS;
-
-        QuicTraceLogConnVerbose(
-            DatagramReceiveEnableUpdated,
-            Connection,
-            "Updated datagram receive enabled to %hhu",
-            Connection->Datagram.ReceiveEnabled);
-
-        break;
-
-    case QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION:
-
-        if (BufferLength != sizeof(BOOLEAN)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (Connection->State.Started) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        Connection->State.Disable1RttEncrytion = *(BOOLEAN*)Buffer;
-        Status = QUIC_STATUS_SUCCESS;
-
-        QuicTraceLogConnVerbose(
-            Disable1RttEncrytionUpdated,
-            Connection,
-            "Updated disable 1-RTT encrytption to %hhu",
-            Connection->State.Disable1RttEncrytion);
-
-        break;
-
     case QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER:
 
         if (BufferLength != sizeof(QUIC_PRIVATE_TRANSPORT_PARAMETER)) {
@@ -5751,39 +5617,6 @@ QuicConnParamSet(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
-
-    case QUIC_PARAM_CONN_RESUMPTION_STATE: {
-        if (BufferLength == 0 || Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        //
-        // Must be set before the client connection is started.
-        //
-        if (QuicConnIsServer(Connection) || Connection->State.Started) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        Status =
-            QuicCryptoDecodeClientTicket(
-                Connection,
-                (uint16_t)BufferLength,
-                Buffer,
-                &Connection->PeerTransportParams,
-                &Connection->Crypto.ResumptionTicket,
-                &Connection->Crypto.ResumptionTicketLength,
-                &Connection->Stats.QuicVersion);
-        if (QUIC_FAILED(Status)) {
-            break;
-        }
-        QuicConnOnQuicVersionSet(Connection);
-        QuicConnProcessPeerTransportParameters(Connection, TRUE);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -5882,51 +5715,8 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_IDLE_TIMEOUT:
+    case QUIC_PARAM_CONN_IDEAL_PROCESSOR:
 
-        if (*BufferLength < sizeof(Connection->Settings.IdleTimeoutMs)) {
-            *BufferLength = sizeof(Connection->Settings.IdleTimeoutMs);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(Connection->Settings.IdleTimeoutMs);
-        *(uint64_t*)Buffer = Connection->Settings.IdleTimeoutMs;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT:
-        Type =
-            QuicConnIsServer(Connection) ?
-                STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR :
-                STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_BI_DIR;
-        goto Get_Stream_Count;
-    case QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT:
-        Type =
-            QuicConnIsServer(Connection) ?
-                STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR :
-                STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_UNI_DIR;
-        goto Get_Stream_Count;
-    case QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT:
-        Type =
-            QuicConnIsServer(Connection) ?
-                STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_BI_DIR :
-                STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR;
-        goto Get_Stream_Count;
-    case QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT:
-        Type =
-            QuicConnIsServer(Connection) ?
-                STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_UNI_DIR :
-                STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR;
-        goto Get_Stream_Count;
-
-    Get_Stream_Count:
         if (*BufferLength < sizeof(uint16_t)) {
             *BufferLength = sizeof(uint16_t);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
@@ -5939,22 +5729,15 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(uint16_t);
-        *(uint16_t*)Buffer =
-            QuicStreamSetGetCountAvailable(&Connection->Streams, Type);
+        *(uint16_t*)Buffer = Connection->Worker->IdealProcessor;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_CLOSE_REASON_PHRASE:
+    case QUIC_PARAM_CONN_SETTINGS:
 
-        if (Connection->CloseReasonPhrase == NULL) {
-            Status = QUIC_STATUS_NOT_FOUND;
-            break;
-        }
-
-        Length = (uint32_t)strlen(Connection->CloseReasonPhrase) + 1;
-        if (*BufferLength < Length) {
-            *BufferLength = Length;
+        if (*BufferLength < sizeof(QUIC_SETTINGS)) {
+            *BufferLength = sizeof(QUIC_SETTINGS);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -5964,8 +5747,8 @@ QuicConnParamGet(
             break;
         }
 
-        *BufferLength = Length;
-        QuicCopyMemory(Buffer, Connection->CloseReasonPhrase, Length);
+        *BufferLength = sizeof(QUIC_SETTINGS);
+        *(QUIC_SETTINGS*)Buffer = Connection->Settings;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -6027,82 +5810,6 @@ QuicConnParamGet(
         break;
     }
 
-    case QUIC_PARAM_CONN_KEEP_ALIVE:
-
-        if (*BufferLength < sizeof(Connection->Settings.KeepAliveIntervalMs)) {
-            *BufferLength = sizeof(Connection->Settings.KeepAliveIntervalMs);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(Connection->Settings.KeepAliveIntervalMs);
-        *(uint32_t*)Buffer = Connection->Settings.KeepAliveIntervalMs;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONN_DISCONNECT_TIMEOUT:
-
-        if (*BufferLength < sizeof(MS_TO_US(Connection->Settings.DisconnectTimeoutMs))) {
-            *BufferLength = sizeof(MS_TO_US(Connection->Settings.DisconnectTimeoutMs));
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(uint32_t);
-        *(uint32_t*)Buffer = US_TO_MS(MS_TO_US(Connection->Settings.DisconnectTimeoutMs));
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONN_SEND_BUFFERING:
-
-        if (*BufferLength < sizeof(uint8_t)) {
-            *BufferLength = sizeof(uint8_t);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(uint8_t);
-        *(uint8_t*)Buffer = Connection->State.UseSendBuffer;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONN_SEND_PACING:
-
-        if (*BufferLength < sizeof(uint8_t)) {
-            *BufferLength = sizeof(uint8_t);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(uint8_t);
-        *(uint8_t*)Buffer = Connection->Settings.PacingEnabled;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_CONN_SHARE_UDP_BINDING:
 
         if (*BufferLength < sizeof(uint8_t)) {
@@ -6122,8 +5829,21 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_IDEAL_PROCESSOR:
+    case QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT:
+        Type =
+            QuicConnIsServer(Connection) ?
+                STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_BI_DIR :
+                STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR;
+        goto Get_Stream_Count;
 
+    case QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT:
+        Type =
+            QuicConnIsServer(Connection) ?
+                STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_UNI_DIR :
+                STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR;
+        goto Get_Stream_Count;
+
+    Get_Stream_Count:
         if (*BufferLength < sizeof(uint16_t)) {
             *BufferLength = sizeof(uint16_t);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
@@ -6136,7 +5856,8 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(uint16_t);
-        *(uint16_t*)Buffer = Connection->Worker->IdealProcessor;
+        *(uint16_t*)Buffer =
+            QuicStreamSetGetCountAvailable(&Connection->Streams, Type);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -6156,6 +5877,31 @@ QuicConnParamGet(
 
         *BufferLength = sizeof(uint64_t) * NUMBER_OF_STREAM_TYPES;
         QuicStreamSetGetMaxStreamIDs(&Connection->Streams, (uint64_t*)Buffer);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_CLOSE_REASON_PHRASE:
+
+        if (Connection->CloseReasonPhrase == NULL) {
+            Status = QUIC_STATUS_NOT_FOUND;
+            break;
+        }
+
+        Length = (uint32_t)strlen(Connection->CloseReasonPhrase) + 1;
+        if (*BufferLength < Length) {
+            *BufferLength = Length;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = Length;
+        QuicCopyMemory(Buffer, Connection->CloseReasonPhrase, Length);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -6244,6 +5990,91 @@ QuicConnParamGet(
     }
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnApplyNewSettings(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN OverWrite,
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
+        uint32_t NewSettingsSize,
+    _In_reads_bytes_(NewSettingsSize)
+        const QUIC_SETTINGS* NewSettings
+    )
+{
+    QuicTraceLogConnInfo(
+        ApplySettings,
+        Connection,
+        "Applying new settings");
+
+    if (!QuicSettingApply(
+            &Connection->Settings,
+            OverWrite,
+            NewSettingsSize,
+            NewSettings)) {
+        return FALSE;
+    }
+
+    if (!Connection->State.Started) {
+
+        Connection->Paths[0].SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
+        Connection->Paths[0].RttVariance = Connection->Paths[0].SmoothedRtt / 2;
+        Connection->Datagram.ReceiveEnabled = Connection->Settings.DatagramReceiveEnabled;
+
+        if (Connection->Settings.ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
+            Connection->HandshakeTP == NULL) {
+            QUIC_DBG_ASSERT(!Connection->State.Started);
+            Connection->HandshakeTP =
+                QuicPoolAlloc(&MsQuicLib.PerProc[QuicProcCurrentNumber()].TransportParamPool);
+            if (Connection->HandshakeTP == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "handshake TP",
+                    sizeof(*Connection->HandshakeTP));
+            } else {
+                QuicZeroMemory(Connection->HandshakeTP, sizeof(*Connection->HandshakeTP));
+                Connection->State.ResumptionEnabled = TRUE;
+            }
+        }
+
+        QuicSendApplyNewSettings(&Connection->Send, &Connection->Settings);
+        QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
+    }
+
+    uint8_t PeerStreamType =
+        QuicConnIsServer(Connection) ?
+            STREAM_ID_FLAG_IS_CLIENT : STREAM_ID_FLAG_IS_SERVER;
+
+    if (NewSettings->IsSet.PeerBidiStreamCount) {
+        QuicStreamSetUpdateMaxCount(
+            &Connection->Streams,
+            PeerStreamType | STREAM_ID_FLAG_IS_BI_DIR,
+            Connection->Settings.PeerBidiStreamCount);
+    }
+    if (NewSettings->IsSet.PeerUnidiStreamCount) {
+        QuicStreamSetUpdateMaxCount(
+            &Connection->Streams,
+            PeerStreamType | STREAM_ID_FLAG_IS_UNI_DIR,
+            Connection->Settings.PeerUnidiStreamCount);
+    }
+
+    if (NewSettings->IsSet.KeepAliveIntervalMs && Connection->State.Started) {
+        if (Connection->Settings.KeepAliveIntervalMs != 0) {
+            QuicConnProcessKeepAliveOperation(Connection);;
+        } else {
+            QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_KEEP_ALIVE);
+        }
+    }
+
+    if (OverWrite) {
+        QuicSettingsDumpNew(NewSettingsSize, NewSettings);
+    } else {
+        QuicSettingsDump(&Connection->Settings); // TODO - Really necessary?
+    }
+
+    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

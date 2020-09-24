@@ -213,7 +213,7 @@ MsQuicLibraryInitialize(
     //
 
     QuicStorageReadValue(
-        &MsQuicLib.Storage,
+        MsQuicLib.Storage,
         QUIC_SETTING_MAX_PARTITION_COUNT,
         (uint8_t*)&DefaultMaxPartitionCount,
         &DefaultMaxPartitionCountLen);

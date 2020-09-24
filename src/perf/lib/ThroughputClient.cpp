@@ -174,14 +174,16 @@ ThroughputClient::Start(
     Shutdown.ConnHandle = ConnData->Connection.Handle;
 
     if (!UseSendBuffer) {
-        BOOLEAN Opt = FALSE;
+        QUIC_SETTINGS Settings{0};
+        Settings.SendBufferingEnabled = FALSE;
+        Settings.IsSet.SendBufferingEnabled = TRUE;
         Status =
             MsQuic->SetParam(
                 ConnData->Connection,
                 QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SEND_BUFFERING,
-                sizeof(Opt),
-                &Opt);
+                QUIC_PARAM_CONN_SETTINGS,
+                sizeof(Settings),
+                &Settings);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Failed Disable Send Buffering 0x%x\n", Status);
             return Status;

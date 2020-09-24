@@ -388,11 +388,12 @@ typedef struct QUIC_SETTINGS {
             uint64_t RetryMemoryLimit           : 1;
             uint64_t LoadBalancingMode          : 1;
             uint64_t MaxOperationsPerDrain      : 1;
+            uint64_t SendBufferingEnabled       : 1;
             uint64_t PacingEnabled              : 1;
             uint64_t MigrationEnabled           : 1;
             uint64_t DatagramReceiveEnabled     : 1;
             uint64_t ServerResumptionLevel      : 1;
-            uint64_t RESERVED                   : 39;
+            uint64_t RESERVED                   : 38;
         } IsSet;
     };
 
@@ -417,11 +418,12 @@ typedef struct QUIC_SETTINGS {
     uint16_t RetryMemoryLimit;              // Global only
     uint16_t LoadBalancingMode;             // Global only
     uint8_t MaxOperationsPerDrain;
+    uint8_t SendBufferingEnabled    : 1;
     uint8_t PacingEnabled           : 1;
     uint8_t MigrationEnabled        : 1;
     uint8_t DatagramReceiveEnabled  : 1;
     uint8_t ServerResumptionLevel   : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
-    uint8_t RESERVED                : 3;
+    uint8_t RESERVED                : 2;
 
 } QUIC_SETTINGS;
 
@@ -478,11 +480,17 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS            1   // uint32_t[] - network byte order
 #define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE            2   // uint16_t - QUIC_LOAD_BALANCING_MODE
 #define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 3   // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
+#define QUIC_PARAM_GLOBAL_SETTINGS                      4   // QUIC_SETTINGS
 
 //
 // Parameters for QUIC_PARAM_LEVEL_REGISTRATION.
 //
 #define QUIC_PARAM_REGISTRATION_CID_PREFIX              0   // uint8_t[]
+
+//
+// Parameters for QUIC_PARAM_LEVEL_CONFIGURATION.
+//
+#define QUIC_PARAM_CONFIGUREATION_SETTINGS              0   // QUIC_SETTINGS
 
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
@@ -496,24 +504,22 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_QUIC_VERSION                    0   // uint32_t
 #define QUIC_PARAM_CONN_LOCAL_ADDRESS                   1   // QUIC_ADDR
 #define QUIC_PARAM_CONN_REMOTE_ADDRESS                  2   // QUIC_ADDR
-#define QUIC_PARAM_CONN_SETTINGS                        3   // QUIC_SETTINGS
-#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT         6   // uint16_t
-#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT        7   // uint16_t
-#define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE             8   // char[]
-#define QUIC_PARAM_CONN_STATISTICS                      9   // QUIC_STATISTICS
-#define QUIC_PARAM_CONN_STATISTICS_PLAT                 10  // QUIC_STATISTICS
-#define QUIC_PARAM_CONN_SEND_BUFFERING                  13  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_SEND_PACING                     14  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_SHARE_UDP_BINDING               15  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 16  // uint16_t
-#define QUIC_PARAM_CONN_MAX_STREAM_IDS                  17  // uint64_t[4]
-#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        18  // QUIC_STREAM_SCHEDULING_SCHEME
-#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        19  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           20  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 3   // uint16_t
+#define QUIC_PARAM_CONN_SETTINGS                        4   // QUIC_SETTINGS
+#define QUIC_PARAM_CONN_STATISTICS                      5   // QUIC_STATISTICS
+#define QUIC_PARAM_CONN_STATISTICS_PLAT                 6   // QUIC_STATISTICS
+#define QUIC_PARAM_CONN_SHARE_UDP_BINDING               7   // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT         8   // uint16_t
+#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT        9   // uint16_t
+#define QUIC_PARAM_CONN_MAX_STREAM_IDS                  10  // uint64_t[4]
+#define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE             11  // char[]
+#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        12  // QUIC_STREAM_SCHEDULING_SCHEME
+#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        13  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           14  // uint8_t (BOOLEAN)
 #ifdef QUIC_API_ENABLE_INSECURE_FEATURES
-#define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         21  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         15  // uint8_t (BOOLEAN)
 #endif
-#define QUIC_PARAM_CONN_RESUMPTION_STATE                22  // uint8_t[]
+#define QUIC_PARAM_CONN_RESUMPTION_STATE                16  // uint8_t[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_TLS.

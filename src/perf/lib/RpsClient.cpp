@@ -151,21 +151,7 @@ RpsClient::Start(
             return Status;
         }
 
-        BOOLEAN Opt = FALSE;
-        Status =
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SEND_BUFFERING,
-                sizeof(Opt),
-                &Opt);
-        if (QUIC_FAILED(Status)) {
-            MsQuic->ConnectionClose(Connection);
-            WriteOutput("SetParam(CONN_SEND_BUFFERING) failed, 0x%x\n", Status);
-            return Status;
-        }
-
-        Opt = TRUE;
+        BOOLEAN Opt = TRUE;
         Status =
             MsQuic->SetParam(
                 Connection,

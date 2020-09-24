@@ -20,6 +20,9 @@ QuicSettingsSetDefault(
     _Inout_ QUIC_SETTINGS* Settings
     )
 {
+    if (!Settings->IsSet.SendBufferingEnabled) {
+        Settings->SendBufferingEnabled = QUIC_DEFAULT_SEND_BUFFERING_ENABLE;
+    }
     if (!Settings->IsSet.PacingEnabled) {
         Settings->PacingEnabled = QUIC_DEFAULT_SEND_PACING;
     }
@@ -104,6 +107,9 @@ QuicSettingsCopy(
     _In_ const QUIC_SETTINGS* Source
     )
 {
+    if (!Destination->IsSet.SendBufferingEnabled) {
+        Destination->SendBufferingEnabled = Source->SendBufferingEnabled;
+    }
     if (!Destination->IsSet.PacingEnabled) {
         Destination->PacingEnabled = Source->PacingEnabled;
     }
@@ -195,6 +201,10 @@ QuicSettingApply(
     // TODO - Input validation
     UNREFERENCED_PARAMETER(NewSettingsSize); // TODO - Use to validate new settings
 
+    if (Source->IsSet.SendBufferingEnabled && (!Destination->IsSet.SendBufferingEnabled || OverWrite)) {
+        Destination->PacingEnabled = Source->SendBufferingEnabled;
+        Destination->IsSet.SendBufferingEnabled = TRUE;
+    }
     if (Source->IsSet.PacingEnabled && (!Destination->IsSet.PacingEnabled || OverWrite)) {
         Destination->PacingEnabled = Source->PacingEnabled;
         Destination->IsSet.PacingEnabled = TRUE;
@@ -336,6 +346,17 @@ QuicSettingsLoad(
         uint8_t Array[sizeof(uint64_t)];
     } MultiValue;
     uint32_t ValueLen;
+
+    if (!Settings->IsSet.SendBufferingEnabled) {
+        Value = QUIC_DEFAULT_SEND_BUFFERING_ENABLE;
+        ValueLen = sizeof(Value);
+        QuicStorageReadValue(
+            Storage,
+            QUIC_SETTING_SEND_BUFFERING_DEFAULT,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->SendBufferingEnabled = !!Value;
+    }
 
     if (!Settings->IsSet.PacingEnabled) {
         Value = QUIC_DEFAULT_SEND_PACING;
@@ -611,7 +632,8 @@ QuicSettingsDump(
     _In_ const QUIC_SETTINGS* Settings
     )
 {
-    QuicTraceLogVerbose(SettingDumpPacingDefault,           "[sett] PacingEnabled          = %hhu", Settings->PacingEnabled);
+    QuicTraceLogVerbose(SettingDumpSendBufferingEnabled,    "[sett] SendBufferingEnabled   = %hhu", Settings->SendBufferingEnabled);
+    QuicTraceLogVerbose(SettingDumpPacingEnabled,           "[sett] PacingEnabled          = %hhu", Settings->PacingEnabled);
     QuicTraceLogVerbose(SettingDumpMigrationEnabled,        "[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
     QuicTraceLogVerbose(SettingDumpDatagramReceiveEnabled,  "[sett] DatagramReceiveEnabled = %hhu", Settings->DatagramReceiveEnabled);
     QuicTraceLogVerbose(SettingDumpMaxOperationsPerDrain,   "[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
@@ -636,4 +658,95 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpConnFlowControlWindow,   "[sett] ConnFlowControlWindow  = %u", Settings->ConnFlowControlWindow);
     QuicTraceLogVerbose(SettingDumpMaxBytesPerKey,          "[sett] MaxBytesPerKey         = %llu", Settings->MaxBytesPerKey);
     QuicTraceLogVerbose(SettingDumpServerResumptionLevel,   "[sett] ServerResumptionLevel  = %hhu", Settings->ServerResumptionLevel);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicSettingsDumpNew(
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
+        uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_SETTINGS* Settings
+    )
+{
+    UNREFERENCED_PARAMETER(SettingsSize); // TODO - Use when reading settings
+
+    if (Settings->IsSet.SendBufferingEnabled) {
+        QuicTraceLogVerbose(SettingDumpSendBufferingEnabled,    "[sett] SendBufferingEnabled   = %hhu", Settings->SendBufferingEnabled);
+    }
+    if (Settings->IsSet.PacingEnabled) {
+        QuicTraceLogVerbose(SettingDumpPacingEnabled,           "[sett] PacingEnabled          = %hhu", Settings->PacingEnabled);
+    }
+    if (Settings->IsSet.MigrationEnabled) {
+        QuicTraceLogVerbose(SettingDumpMigrationEnabled,        "[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
+    }
+    if (Settings->IsSet.DatagramReceiveEnabled) {
+        QuicTraceLogVerbose(SettingDumpDatagramReceiveEnabled,  "[sett] DatagramReceiveEnabled = %hhu", Settings->DatagramReceiveEnabled);
+    }
+    if (Settings->IsSet.MaxOperationsPerDrain) {
+        QuicTraceLogVerbose(SettingDumpMaxOperationsPerDrain,   "[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
+    }
+    if (Settings->IsSet.RetryMemoryLimit) {
+        QuicTraceLogVerbose(SettingDumpRetryMemoryLimit,        "[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
+    }
+    if (Settings->IsSet.LoadBalancingMode) {
+        QuicTraceLogVerbose(SettingDumpLoadBalancingMode,       "[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
+    }
+    if (Settings->IsSet.MaxStatelessOperations) {
+        QuicTraceLogVerbose(SettingDumpMaxStatelessOperations,  "[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
+    }
+    if (Settings->IsSet.MaxWorkerQueueDelayUs) {
+        QuicTraceLogVerbose(SettingDumpMaxWorkerQueueDelayUs,   "[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);
+    }
+    if (Settings->IsSet.InitialWindowPackets) {
+        QuicTraceLogVerbose(SettingDumpInitialWindowPackets,    "[sett] InitialWindowPackets   = %u", Settings->InitialWindowPackets);
+    }
+    if (Settings->IsSet.SendIdleTimeoutMs) {
+        QuicTraceLogVerbose(SettingDumpSendIdleTimeoutMs,       "[sett] SendIdleTimeoutMs      = %u", Settings->SendIdleTimeoutMs);
+    }
+    if (Settings->IsSet.InitialRttMs) {
+        QuicTraceLogVerbose(SettingDumpInitialRttMs,            "[sett] InitialRttMs           = %u", Settings->InitialRttMs);
+    }
+    if (Settings->IsSet.MaxAckDelayMs) {
+        QuicTraceLogVerbose(SettingDumpMaxAckDelayMs,           "[sett] MaxAckDelayMs          = %u", Settings->MaxAckDelayMs);
+    }
+    if (Settings->IsSet.DisconnectTimeoutMs) {
+        QuicTraceLogVerbose(SettingDumpDisconnectTimeoutMs,     "[sett] DisconnectTimeoutMs    = %u", Settings->DisconnectTimeoutMs);
+    }
+    if (Settings->IsSet.KeepAliveIntervalMs) {
+        QuicTraceLogVerbose(SettingDumpKeepAliveIntervalMs,     "[sett] KeepAliveIntervalMs    = %u", Settings->KeepAliveIntervalMs);
+    }
+    if (Settings->IsSet.IdleTimeoutMs) {
+        QuicTraceLogVerbose(SettingDumpIdleTimeoutMs,           "[sett] IdleTimeoutMs          = %llu", Settings->IdleTimeoutMs);
+    }
+    if (Settings->IsSet.HandshakeIdleTimeoutMs) {
+        QuicTraceLogVerbose(SettingDumpHandshakeIdleTimeoutMs,  "[sett] HandshakeIdleTimeoutMs = %llu", Settings->HandshakeIdleTimeoutMs);
+    }
+    if (Settings->IsSet.PeerBidiStreamCount) {
+        QuicTraceLogVerbose(SettingDumpBidiStreamCount,         "[sett] PeerBidiStreamCount    = %hu", Settings->PeerBidiStreamCount);
+    }
+    if (Settings->IsSet.PeerUnidiStreamCount) {
+        QuicTraceLogVerbose(SettingDumpUnidiStreamCount,        "[sett] PeerUnidiStreamCount   = %hu", Settings->PeerUnidiStreamCount);
+    }
+    if (Settings->IsSet.TlsClientMaxSendBuffer) {
+        QuicTraceLogVerbose(SettingDumpTlsClientMaxSendBuffer,  "[sett] TlsClientMaxSendBuffer = %u", Settings->TlsClientMaxSendBuffer);
+    }
+    if (Settings->IsSet.TlsServerMaxSendBuffer) {
+        QuicTraceLogVerbose(SettingDumpTlsServerMaxSendBuffer,  "[sett] TlsServerMaxSendBuffer = %u", Settings->TlsServerMaxSendBuffer);
+    }
+    if (Settings->IsSet.StreamRecvWindowDefault) {
+        QuicTraceLogVerbose(SettingDumpStreamRecvWindowDefault, "[sett] StreamRecvWindowDefault= %u", Settings->StreamRecvWindowDefault);
+    }
+    if (Settings->IsSet.StreamRecvBufferDefault) {
+        QuicTraceLogVerbose(SettingDumpStreamRecvBufferDefault, "[sett] StreamRecvBufferDefault= %u", Settings->StreamRecvBufferDefault);
+    }
+    if (Settings->IsSet.ConnFlowControlWindow) {
+        QuicTraceLogVerbose(SettingDumpConnFlowControlWindow,   "[sett] ConnFlowControlWindow  = %u", Settings->ConnFlowControlWindow);
+    }
+    if (Settings->IsSet.MaxBytesPerKey) {
+        QuicTraceLogVerbose(SettingDumpMaxBytesPerKey,          "[sett] MaxBytesPerKey         = %llu", Settings->MaxBytesPerKey);
+    }
+    if (Settings->IsSet.ServerResumptionLevel) {
+        QuicTraceLogVerbose(SettingDumpServerResumptionLevel,   "[sett] ServerResumptionLevel  = %hhu", Settings->ServerResumptionLevel);
+    }
 }

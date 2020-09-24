@@ -563,20 +563,20 @@ TestConnection::GetStatistics()
 bool
 TestConnection::GetUseSendBuffer()
 {
-    BOOLEAN value;
+    QUIC_SETTINGS value;
     uint32_t valueSize = sizeof(value);
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_SEND_BUFFERING,
+            QUIC_PARAM_CONN_SETTINGS,
             &valueSize,
             &value);
     if (QUIC_FAILED(Status)) {
         value = 0;
-        TEST_FAILURE("MsQuic->GetParam(CONN_SEND_BUFFERING) failed, 0x%x.", Status);
+        TEST_FAILURE("MsQuic->GetParam(CONN_SETTINGS) failed, 0x%x.", Status);
     }
-    return value != FALSE;
+    return value.SendBufferingEnabled != FALSE;
 }
 
 QUIC_STATUS
@@ -584,14 +584,16 @@ TestConnection::SetUseSendBuffer(
     bool value
     )
 {
-    BOOLEAN bValue = value ? TRUE : FALSE;
+    QUIC_SETTINGS Settings{0};
+    Settings.SendBufferingEnabled = value ? TRUE : FALSE;
+    Settings.IsSet.SendBufferingEnabled = TRUE;
     return
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_SEND_BUFFERING,
-            sizeof(bValue),
-            &bValue);
+            QUIC_PARAM_CONN_SETTINGS,
+            sizeof(Settings),
+            &Settings);
 }
 
 uint32_t
