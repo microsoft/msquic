@@ -127,7 +127,10 @@ Return Value:
         goto Error;
     }
 
-    MsQuicPcwStartup();
+    Status = MsQuicPcwStartup();
+    if (!NT_SUCCESS(Status)) {
+        goto Error;
+    }
 
 Error:
 
