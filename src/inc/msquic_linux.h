@@ -147,6 +147,7 @@ typedef unsigned char BOOLEAN;
 typedef struct in_addr IN_ADDR;
 typedef struct in6_addr IN6_ADDR;
 typedef struct addrinfo ADDRINFO;
+typedef sa_family_t QUIC_ADDRESS_FAMILY;
 
 //
 // Defines match windows values.

@@ -302,9 +302,9 @@ struct IpAddress {
     IpAddress(ULONG64 Addr) {
         ReadTypeAtAddr(Addr, &Raw);
         ULONG StringLen = sizeof(String);
-        if (Raw.si_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
+        if (Raw.si_family == AF_UNSPEC) {
             sprintf(IpString, "UNSPEC:%u", ntohs(Raw.Ipv4.sin_port));
-        } else if (Raw.si_family == QUIC_ADDRESS_FAMILY_INET) {
+        } else if (Raw.si_family == AF_INET) {
             RtlIpv4AddressToStringExA(&Raw.Ipv4.sin_addr, Raw.Ipv4.sin_port, IpString, &StringLen);
         } else {
             RtlIpv6AddressToStringExA(&Raw.Ipv6.sin6_addr, 0, Raw.Ipv6.sin6_port, IpString, &StringLen);
