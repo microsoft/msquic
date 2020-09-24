@@ -337,14 +337,14 @@ typedef struct QUIC_SETTINGS {
     union {
         uint64_t IsSetFlags;
         struct {
-            uint64_t PacingEnabled              : 1;
-            uint64_t MigrationEnabled           : 1;
-            uint64_t DatagramReceiveEnabled     : 1;
-            uint64_t ServerResumptionLevel      : 1;
-            uint64_t MaxPartitionCount          : 1;
-            uint64_t MaxOperationsPerDrain      : 1;
-            uint64_t RetryMemoryLimit           : 1;
-            uint64_t LoadBalancingMode          : 1;
+            uint64_t MaxBytesPerKey             : 1;
+            uint64_t HandshakeIdleTimeoutMs     : 1;
+            uint64_t IdleTimeoutMs              : 1;
+            uint64_t TlsClientMaxSendBuffer     : 1;
+            uint64_t TlsServerMaxSendBuffer     : 1;
+            uint64_t StreamRecvWindowDefault    : 1;
+            uint64_t StreamRecvBufferDefault    : 1;
+            uint64_t ConnFlowControlWindow      : 1;
             uint64_t MaxWorkerQueueDelayUs      : 1;
             uint64_t MaxStatelessOperations     : 1;
             uint64_t InitialWindowPackets       : 1;
@@ -353,16 +353,16 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaxAckDelayMs              : 1;
             uint64_t DisconnectTimeoutMs        : 1;
             uint64_t KeepAliveIntervalMs        : 1;
-            uint64_t IdleTimeoutMs              : 1;
-            uint64_t HandshakeIdleTimeoutMs     : 1;
             uint64_t PeerBidiStreamCount        : 1;
             uint64_t PeerUnidiStreamCount       : 1;
-            uint64_t TlsClientMaxSendBuffer     : 1;
-            uint64_t TlsServerMaxSendBuffer     : 1;
-            uint64_t StreamRecvWindowDefault    : 1;
-            uint64_t StreamRecvBufferDefault    : 1;
-            uint64_t ConnFlowControlWindow      : 1;
-            uint64_t MaxBytesPerKey             : 1;
+            uint64_t RetryMemoryLimit           : 1;
+            uint64_t LoadBalancingMode          : 1;
+            uint64_t MaxPartitionCount          : 1;
+            uint64_t MaxOperationsPerDrain      : 1;
+            uint64_t PacingEnabled              : 1;
+            uint64_t MigrationEnabled           : 1;
+            uint64_t DatagramReceiveEnabled     : 1;
+            uint64_t ServerResumptionLevel      : 1;
             uint64_t RESERVED                   : 38;
         } IsSet;
     };
