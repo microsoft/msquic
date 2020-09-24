@@ -600,7 +600,7 @@ void QuicTestValidateConnection()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConnectionStart(
                 Connection.Handle,
-                (QUIC_ADDRESS_FAMILY)AF_MAX,
+                127,
                 "localhost",
                 4433));
     }
