@@ -2077,7 +2077,7 @@ QuicConnRecvResumptionTicket(
 
     } else {
 
-        uint8_t* ClientTicket = NULL;
+        const uint8_t* ClientTicket = NULL;
         uint32_t ClientTicketLength = 0;
 
         QUIC_DBG_ASSERT(Connection->State.PeerTransportParameterValid);

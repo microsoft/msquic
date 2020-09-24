@@ -2000,8 +2000,10 @@ QuicCryptoDecodeServerTicket(
 
     if (TicketLength == Offset + AppTicketLength) {
         Status = QUIC_STATUS_SUCCESS;
-        *AppData = Ticket + Offset;
         *AppDataLength = (uint32_t)AppTicketLength;
+        if (AppTicketLength > 0) {
+            *AppData = Ticket + Offset;
+        }
     } else {
         QuicTraceEvent(
             ConnError,
