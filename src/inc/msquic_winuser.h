@@ -107,27 +107,19 @@ Environment:
 // IP Address Abstraction Helpers
 //
 
+typedef SOCKADDR_INET QUIC_ADDR;
+
+#define QUIC_ADDR_V4_PORT_OFFSET        FIELD_OFFSET(SOCKADDR_IN, sin_port)
+#define QUIC_ADDR_V4_IP_OFFSET          FIELD_OFFSET(SOCKADDR_IN, sin_addr)
+
+#define QUIC_ADDR_V6_PORT_OFFSET        FIELD_OFFSET(SOCKADDR_IN6, sin6_port)
+#define QUIC_ADDR_V6_IP_OFFSET          FIELD_OFFSET(SOCKADDR_IN6, sin6_addr)
+
 typedef enum QUIC_ADDRESS_FAMILY {
     QUIC_ADDRESS_FAMILY_UNSPEC = AF_UNSPEC,
     QUIC_ADDRESS_FAMILY_INET = AF_INET,
     QUIC_ADDRESS_FAMILY_INET6 = AF_INET6
 } QUIC_ADDRESS_FAMILY;
-
-typedef struct _QUIC_ADDR {
-    QUIC_ADDRESS_FAMILY Family;
-    uint16_t Port;
-    uint32_t ScopeId;
-    union {
-        uint8_t Ipv4Addr[4];
-        uint8_t Ipv6Addr[16];
-    };
-} QUIC_ADDR;
-
-#define QUIC_ADDR_V4_PORT_OFFSET        FIELD_OFFSET(QUIC_ADDR, Port)
-#define QUIC_ADDR_V4_IP_OFFSET          FIELD_OFFSET(QUIC_ADDR, Ipv4Addr)
-
-#define QUIC_ADDR_V6_PORT_OFFSET        FIELD_OFFSET(QUIC_ADDR, Port)
-#define QUIC_ADDR_V6_IP_OFFSET          FIELD_OFFSET(QUIC_ADDR, Ipv6Addr)
 
 inline
 BOOLEAN
@@ -136,9 +128,9 @@ QuicAddrIsValid(
     )
 {
     return
-        Addr->Family == QUIC_ADDRESS_FAMILY_UNSPEC ||
-        Addr->Family == QUIC_ADDRESS_FAMILY_INET ||
-        Addr->Family == QUIC_ADDRESS_FAMILY_INET6;
+        Addr->si_family == QUIC_ADDRESS_FAMILY_UNSPEC ||
+        Addr->si_family == QUIC_ADDRESS_FAMILY_INET ||
+        Addr->si_family == QUIC_ADDRESS_FAMILY_INET6;
 }
 
 inline
@@ -148,10 +140,10 @@ QuicAddrCompareIp(
     _In_ const QUIC_ADDR * const Addr2
     )
 {
-    if (Addr1->Family == QUIC_ADDRESS_FAMILY_INET) {
-        return memcmp(&Addr1->Ipv4Addr, &Addr2->Ipv4Addr, sizeof(Addr1->Ipv4Addr)) == 0;
+    if (Addr1->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr, sizeof(IN_ADDR)) == 0;
     } else {
-        return memcmp(&Addr1->Ipv6Addr, &Addr2->Ipv6Addr, sizeof(Addr1->Ipv6Addr)) == 0;
+        return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0;
     }
 }
 
@@ -162,8 +154,8 @@ QuicAddrCompare(
     _In_ const QUIC_ADDR * const Addr2
     )
 {
-    if (Addr1->Family != Addr2->Family ||
-        Addr1->Port != Addr2->Port) {
+    if (Addr1->si_family != Addr2->si_family ||
+        Addr1->Ipv4.sin_port != Addr2->Ipv4.sin_port) {
         return FALSE;
     }
     return QuicAddrCompareIp(Addr1, Addr2);
@@ -175,16 +167,14 @@ QuicAddrIsWildCard(
     _In_ const QUIC_ADDR * const Addr
     )
 {
-    if (Addr->Family == QUIC_ADDRESS_FAMILY_UNSPEC) {
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
         return TRUE;
-    } else if (Addr->Family == QUIC_ADDRESS_FAMILY_INET) {
-        const uint8_t Zeros[4];
-        QuicZeroMemory(&Zeros, sizeof(Zeros));
-        return memcmp(&Addr->Ipv4Addr, &Zeros, sizeof(Zeros)) == 0;
+    } else if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        const IN_ADDR ZeroAddr = {0};
+        return memcmp(&Addr->Ipv4.sin_addr, &ZeroAddr, sizeof(IN_ADDR)) == 0;
     } else {
-        const uint8_t Zeros[16];
-        QuicZeroMemory(&Zeros, sizeof(Zeros));
-        return memcmp(&Addr->Ipv6Addr, &Zeros, sizeof(Zeros)) == 0;
+        const IN6_ADDR ZeroAddr = {0};
+        return memcmp(&Addr->Ipv6.sin6_addr, &ZeroAddr, sizeof(IN6_ADDR)) == 0;
     }
 }
 
@@ -194,7 +184,7 @@ QuicAddrGetFamily(
     _In_ const QUIC_ADDR * const Addr
     )
 {
-    return (QUIC_ADDRESS_FAMILY)Addr->Family;
+    return (QUIC_ADDRESS_FAMILY)Addr->si_family;
 }
 
 inline
@@ -204,7 +194,7 @@ QuicAddrSetFamily(
     _In_ QUIC_ADDRESS_FAMILY Family
     )
 {
-    Addr->Family = (ADDRESS_FAMILY)Family;
+    Addr->si_family = (ADDRESS_FAMILY)Family;
 }
 
 inline
@@ -213,7 +203,7 @@ QuicAddrGetPort(
     _In_ const QUIC_ADDR * const Addr
     )
 {
-    return QuicNetByteSwapShort(Addr->Port);
+    return QuicNetByteSwapShort(Addr->Ipv4.sin_port);
 }
 
 inline
@@ -223,7 +213,7 @@ QuicAddrSetPort(
     _In_ uint16_t Port // Host byte order
     )
 {
-    Addr->Port = QuicNetByteSwapShort(Port);
+    Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
 }
 
 inline
@@ -235,7 +225,7 @@ QuicAddrIsBoundExplicitly(
     //
     // Scope ID of zero indicates we are sending from a connected binding.
     //
-    return Addr->ScopeId == 0;
+    return Addr->Ipv6.sin6_scope_id == 0;
 }
 
 inline
@@ -244,11 +234,11 @@ QuicAddrSetToLoopback(
     _Inout_ QUIC_ADDR * Addr
     )
 {
-    if (Addr->Family == QUIC_ADDRESS_FAMILY_UNSPEC) {
-        Addr->Ipv4Addr[0] = 127;
-        Addr->Ipv4Addr[3] = 1;
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
+        Addr->Ipv4.sin_addr.S_un.S_un_b.s_b1 = 127;
+        Addr->Ipv4.sin_addr.S_un.S_un_b.s_b4 = 1;
     } else {
-        Addr->Ipv6Addr[15] = 1;
+        Addr->Ipv6.sin6_addr.u.Byte[15] = 1;
     }
 }
 
@@ -261,10 +251,10 @@ QuicAddrIncrement(
     _Inout_ QUIC_ADDR * Addr
     )
 {
-    if (Addr->Family == QUIC_ADDRESS_FAMILY_INET) {
-        Addr->Ipv4Addr[3]++;
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        Addr->Ipv4.sin_addr.S_un.S_un_b.s_b4++;
     } else {
-        Addr->Ipv6Addr[15]++;
+        Addr->Ipv6.sin6_addr.u.Byte[15]++;
     }
 }
 
@@ -276,17 +266,17 @@ QuicAddrHash(
 {
     uint32_t Hash = 5387; // A random prime number.
 #define UPDATE_HASH(byte) Hash = ((Hash << 5) - Hash) + (byte)
-    if (Addr->Family == QUIC_ADDRESS_FAMILY_INET) {
-        UPDATE_HASH(Addr->Port & 0xFF);
-        UPDATE_HASH(Addr->Port >> 8);
-        for (uint8_t i = 0; i < sizeof(Addr->Ipv4Addr); ++i) {
-            UPDATE_HASH(Addr->Ipv4Addr[i]);
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        UPDATE_HASH(Addr->Ipv4.sin_port & 0xFF);
+        UPDATE_HASH(Addr->Ipv4.sin_port >> 8);
+        for (uint8_t i = 0; i < sizeof(Addr->Ipv4.sin_addr); ++i) {
+            UPDATE_HASH(((uint8_t*)&Addr->Ipv4.sin_addr)[i]);
         }
     } else {
-        UPDATE_HASH(Addr->Port & 0xFF);
-        UPDATE_HASH(Addr->Port >> 8);
-        for (uint8_t i = 0; i < sizeof(Addr->Ipv6Addr); ++i) {
-            UPDATE_HASH(Addr->Ipv6Addr[i]);
+        UPDATE_HASH(Addr->Ipv6.sin6_port & 0xFF);
+        UPDATE_HASH(Addr->Ipv6.sin6_port >> 8);
+        for (uint8_t i = 0; i < sizeof(Addr->Ipv6.sin6_addr); ++i) {
+            UPDATE_HASH(((uint8_t*)&Addr->Ipv6.sin6_addr)[i]);
         }
     }
     return Hash;
@@ -302,15 +292,11 @@ QuicAddrFromString(
     _Out_ QUIC_ADDR* Addr
     )
 {
-    Addr->Port = QuicNetByteSwapShort(Port);
-    struct in_addr ipv4In;
-    struct in6_addr ipv6In;
-    if (RtlIpv4StringToAddressExA(AddrStr, FALSE, &ipv4In, &Addr->Port) == NO_ERROR) {
-        QuicCopyMemory(&Addr->Ipv4Addr, &ipv4In.S_un.S_addr, sizeof(ipv4In.S_un.S_addr));
-        Addr->Family = QUIC_ADDRESS_FAMILY_INET;
-    } else if (RtlIpv6StringToAddressExA(AddrStr, &ipv6In, &Addr->ScopeId, &Addr->Port) == NO_ERROR) {
-        QuicCopyMemory(&Addr->Ipv6Addr, &ipv6In.u.Byte, sizeof(Addr->Ipv6Addr));
-        Addr->Family = QUIC_ADDRESS_FAMILY_INET6;
+    Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
+    if (RtlIpv4StringToAddressExA(AddrStr, FALSE, &Addr->Ipv4.sin_addr, &Addr->Ipv4.sin_port) == NO_ERROR) {
+        Addr->si_family = QUIC_ADDRESS_FAMILY_INET;
+    } else if (RtlIpv6StringToAddressExA(AddrStr, &Addr->Ipv6.sin6_addr, &Addr->Ipv6.sin6_scope_id, &Addr->Ipv6.sin6_port) == NO_ERROR) {
+        Addr->si_family = QUIC_ADDRESS_FAMILY_INET6;
     } else {
         return FALSE;
     }
@@ -333,23 +319,19 @@ QuicAddrToString(
 {
     LONG Status;
     ULONG AddrStrLen = ARRAYSIZE(AddrStr->Address);
-    if (Addr->Family == QUIC_ADDRESS_FAMILY_INET) {
-        struct in_addr ipv4In;
-        QuicCopyMemory(&ipv4In.S_un.S_addr, &Addr->Ipv4Addr, sizeof(ipv4In.S_un.S_addr));
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
         Status =
             RtlIpv4AddressToStringExA(
-                &ipv4In,
-                Addr->Port,
+                &Addr->Ipv4.sin_addr,
+                Addr->Ipv4.sin_port,
                 AddrStr->Address,
                 &AddrStrLen);
     } else {
-        struct in6_addr ipv6In;
-        QuicCopyMemory(&ipv6In.u.Byte, &Addr->Ipv6Addr, sizeof(Addr->Ipv6Addr));
         Status =
             RtlIpv6AddressToStringExA(
-                &ipv6In,
+                &Addr->Ipv6.sin6_addr,
                 0,
-                Addr->Port,
+                Addr->Ipv6.sin6_port,
                 AddrStr->Address,
                 &AddrStrLen);
     }
