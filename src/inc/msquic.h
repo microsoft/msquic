@@ -371,7 +371,6 @@ typedef struct QUIC_SETTINGS {
             uint64_t MigrationEnabled           : 1;
             uint64_t DatagramReceiveEnabled     : 1;
             uint64_t ServerResumptionLevel      : 1;
-            uint64_t MaxPartitionCount          : 1;
             uint64_t MaxOperationsPerDrain      : 1;
             uint64_t RetryMemoryLimit           : 1;
             uint64_t LoadBalancingMode          : 1;
@@ -393,7 +392,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t StreamRecvBufferDefault    : 1;
             uint64_t ConnFlowControlWindow      : 1;
             uint64_t MaxBytesPerKey             : 1;
-            uint64_t RESERVED                   : 38;
+            uint64_t RESERVED                   : 39;
         } IsSet;
     };
 
@@ -402,8 +401,7 @@ typedef struct QUIC_SETTINGS {
     uint8_t DatagramReceiveEnabled  : 1;
     uint8_t ServerResumptionLevel   : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t RESERVED                : 3;
-    uint16_t MaxPartitionCount;             // Global only
-    uint8_t MaxOperationsPerDrain;          // Global only
+    uint8_t MaxOperationsPerDrain;
     uint16_t RetryMemoryLimit;              // Global only
     uint16_t LoadBalancingMode;             // Global only
     uint32_t MaxWorkerQueueDelayUs;
@@ -498,16 +496,12 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_QUIC_VERSION                    0   // uint32_t
 #define QUIC_PARAM_CONN_LOCAL_ADDRESS                   1   // QUIC_ADDR
 #define QUIC_PARAM_CONN_REMOTE_ADDRESS                  2   // QUIC_ADDR
-#define QUIC_PARAM_CONN_IDLE_TIMEOUT                    3   // uint64_t - milliseconds
-#define QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT          4   // uint16_t
-#define QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT         5   // uint16_t
+#define QUIC_PARAM_CONN_SETTINGS                        3   // QUIC_SETTINGS
 #define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT         6   // uint16_t
 #define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT        7   // uint16_t
 #define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE             8   // char[]
 #define QUIC_PARAM_CONN_STATISTICS                      9   // QUIC_STATISTICS
 #define QUIC_PARAM_CONN_STATISTICS_PLAT                 10  // QUIC_STATISTICS
-#define QUIC_PARAM_CONN_KEEP_ALIVE                      11  // uint32_t - milliseconds
-#define QUIC_PARAM_CONN_DISCONNECT_TIMEOUT              12  // uint32_t - milliseconds
 #define QUIC_PARAM_CONN_SEND_BUFFERING                  13  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_SEND_PACING                     14  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_SHARE_UDP_BINDING               15  // uint8_t (BOOLEAN)
@@ -520,15 +514,6 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         21  // uint8_t (BOOLEAN)
 #endif
 #define QUIC_PARAM_CONN_RESUMPTION_STATE                22  // uint8_t[]
-
-#ifdef WIN32 // Windows certificate validation ignore flags.
-#define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080
-#define QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA                 0x00000100
-#define QUIC_CERTIFICATE_FLAG_IGNORE_WRONG_USAGE                0x00000200
-#define QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID     0x00001000 // bad common name in X509 Cert.
-#define QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_DATE_INVALID   0x00002000 // expired X509 Cert.
-#define QUIC_CERTIFICATE_FLAG_IGNORE_WEAK_SIGNATURE             0x00010000
-#endif
 
 //
 // Parameters for QUIC_PARAM_LEVEL_TLS.

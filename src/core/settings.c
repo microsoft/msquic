@@ -29,9 +29,6 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.DatagramReceiveEnabled) {
         Settings->DatagramReceiveEnabled = QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED;
     }
-    if (!Settings->IsSet.MaxPartitionCount) {
-        Settings->MaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
-    }
     if (!Settings->IsSet.MaxOperationsPerDrain) {
         Settings->MaxOperationsPerDrain = QUIC_MAX_OPERATIONS_PER_DRAIN;
     }
@@ -103,229 +100,224 @@ QuicSettingsSetDefault(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsCopy(
-    _Inout_ QUIC_SETTINGS* Settings,
-    _In_ const QUIC_SETTINGS* ParentSettings
+    _Inout_ QUIC_SETTINGS* Destination,
+    _In_ const QUIC_SETTINGS* Source
     )
 {
-    if (!Settings->IsSet.PacingEnabled) {
-        Settings->PacingEnabled = ParentSettings->PacingEnabled;
+    if (!Destination->IsSet.PacingEnabled) {
+        Destination->PacingEnabled = Source->PacingEnabled;
     }
-    if (!Settings->IsSet.MigrationEnabled) {
-        Settings->MigrationEnabled = ParentSettings->MigrationEnabled;
+    if (!Destination->IsSet.MigrationEnabled) {
+        Destination->MigrationEnabled = Source->MigrationEnabled;
     }
-    if (!Settings->IsSet.DatagramReceiveEnabled) {
-        Settings->DatagramReceiveEnabled = ParentSettings->DatagramReceiveEnabled;
+    if (!Destination->IsSet.DatagramReceiveEnabled) {
+        Destination->DatagramReceiveEnabled = Source->DatagramReceiveEnabled;
     }
-    if (!Settings->IsSet.MaxPartitionCount) {
-        Settings->MaxPartitionCount = ParentSettings->MaxPartitionCount;
+    if (!Destination->IsSet.MaxOperationsPerDrain) {
+        Destination->MaxOperationsPerDrain = Source->MaxOperationsPerDrain;
     }
-    if (!Settings->IsSet.MaxOperationsPerDrain) {
-        Settings->MaxOperationsPerDrain = ParentSettings->MaxOperationsPerDrain;
+    if (!Destination->IsSet.RetryMemoryLimit) {
+        Destination->RetryMemoryLimit = Source->RetryMemoryLimit;
     }
-    if (!Settings->IsSet.RetryMemoryLimit) {
-        Settings->RetryMemoryLimit = ParentSettings->RetryMemoryLimit;
+    if (!Destination->IsSet.LoadBalancingMode) {
+        Destination->LoadBalancingMode = Source->LoadBalancingMode;
     }
-    if (!Settings->IsSet.LoadBalancingMode) {
-        Settings->LoadBalancingMode = ParentSettings->LoadBalancingMode;
+    if (!Destination->IsSet.MaxWorkerQueueDelayUs) {
+        Destination->MaxWorkerQueueDelayUs = Source->MaxWorkerQueueDelayUs;
     }
-    if (!Settings->IsSet.MaxWorkerQueueDelayUs) {
-        Settings->MaxWorkerQueueDelayUs = ParentSettings->MaxWorkerQueueDelayUs;
+    if (!Destination->IsSet.MaxStatelessOperations) {
+        Destination->MaxStatelessOperations = Source->MaxStatelessOperations;
     }
-    if (!Settings->IsSet.MaxStatelessOperations) {
-        Settings->MaxStatelessOperations = ParentSettings->MaxStatelessOperations;
+    if (!Destination->IsSet.InitialWindowPackets) {
+        Destination->InitialWindowPackets = Source->InitialWindowPackets;
     }
-    if (!Settings->IsSet.InitialWindowPackets) {
-        Settings->InitialWindowPackets = ParentSettings->InitialWindowPackets;
+    if (!Destination->IsSet.SendIdleTimeoutMs) {
+        Destination->SendIdleTimeoutMs = Source->SendIdleTimeoutMs;
     }
-    if (!Settings->IsSet.SendIdleTimeoutMs) {
-        Settings->SendIdleTimeoutMs = ParentSettings->SendIdleTimeoutMs;
+    if (!Destination->IsSet.InitialRttMs) {
+        Destination->InitialRttMs = Source->InitialRttMs;
     }
-    if (!Settings->IsSet.InitialRttMs) {
-        Settings->InitialRttMs = ParentSettings->InitialRttMs;
+    if (!Destination->IsSet.MaxAckDelayMs) {
+        Destination->MaxAckDelayMs = Source->MaxAckDelayMs;
     }
-    if (!Settings->IsSet.MaxAckDelayMs) {
-        Settings->MaxAckDelayMs = ParentSettings->MaxAckDelayMs;
+    if (!Destination->IsSet.DisconnectTimeoutMs) {
+        Destination->DisconnectTimeoutMs = Source->DisconnectTimeoutMs;
     }
-    if (!Settings->IsSet.DisconnectTimeoutMs) {
-        Settings->DisconnectTimeoutMs = ParentSettings->DisconnectTimeoutMs;
+    if (!Destination->IsSet.KeepAliveIntervalMs) {
+        Destination->KeepAliveIntervalMs = Source->KeepAliveIntervalMs;
     }
-    if (!Settings->IsSet.KeepAliveIntervalMs) {
-        Settings->KeepAliveIntervalMs = ParentSettings->KeepAliveIntervalMs;
+    if (!Destination->IsSet.IdleTimeoutMs) {
+        Destination->IdleTimeoutMs = Source->IdleTimeoutMs;
     }
-    if (!Settings->IsSet.IdleTimeoutMs) {
-        Settings->IdleTimeoutMs = ParentSettings->IdleTimeoutMs;
+    if (!Destination->IsSet.HandshakeIdleTimeoutMs) {
+        Destination->HandshakeIdleTimeoutMs = Source->HandshakeIdleTimeoutMs;
     }
-    if (!Settings->IsSet.HandshakeIdleTimeoutMs) {
-        Settings->HandshakeIdleTimeoutMs = ParentSettings->HandshakeIdleTimeoutMs;
+    if (!Destination->IsSet.PeerBidiStreamCount) {
+        Destination->PeerBidiStreamCount = Source->PeerBidiStreamCount;
     }
-    if (!Settings->IsSet.PeerBidiStreamCount) {
-        Settings->PeerBidiStreamCount = ParentSettings->PeerBidiStreamCount;
+    if (!Destination->IsSet.PeerUnidiStreamCount) {
+        Destination->PeerUnidiStreamCount = Source->PeerUnidiStreamCount;
     }
-    if (!Settings->IsSet.PeerUnidiStreamCount) {
-        Settings->PeerUnidiStreamCount = ParentSettings->PeerUnidiStreamCount;
+    if (!Destination->IsSet.TlsClientMaxSendBuffer) {
+        Destination->TlsClientMaxSendBuffer = Source->TlsClientMaxSendBuffer;
     }
-    if (!Settings->IsSet.TlsClientMaxSendBuffer) {
-        Settings->TlsClientMaxSendBuffer = ParentSettings->TlsClientMaxSendBuffer;
+    if (!Destination->IsSet.TlsClientMaxSendBuffer) {
+        Destination->TlsClientMaxSendBuffer = Source->TlsClientMaxSendBuffer;
     }
-    if (!Settings->IsSet.TlsClientMaxSendBuffer) {
-        Settings->TlsClientMaxSendBuffer = ParentSettings->TlsClientMaxSendBuffer;
+    if (!Destination->IsSet.StreamRecvWindowDefault) {
+        Destination->StreamRecvWindowDefault = Source->StreamRecvWindowDefault;
     }
-    if (!Settings->IsSet.StreamRecvWindowDefault) {
-        Settings->StreamRecvWindowDefault = ParentSettings->StreamRecvWindowDefault;
+    if (!Destination->IsSet.StreamRecvBufferDefault) {
+        Destination->StreamRecvBufferDefault = Source->StreamRecvBufferDefault;
     }
-    if (!Settings->IsSet.StreamRecvBufferDefault) {
-        Settings->StreamRecvBufferDefault = ParentSettings->StreamRecvBufferDefault;
+    if (!Destination->IsSet.ConnFlowControlWindow) {
+        Destination->ConnFlowControlWindow = Source->ConnFlowControlWindow;
     }
-    if (!Settings->IsSet.ConnFlowControlWindow) {
-        Settings->ConnFlowControlWindow = ParentSettings->ConnFlowControlWindow;
+    if (!Destination->IsSet.MaxBytesPerKey) {
+        Destination->MaxBytesPerKey = Source->MaxBytesPerKey;
     }
-    if (!Settings->IsSet.MaxBytesPerKey) {
-        Settings->MaxBytesPerKey = ParentSettings->MaxBytesPerKey;
-    }
-    if (!Settings->IsSet.ServerResumptionLevel) {
-        Settings->ServerResumptionLevel = ParentSettings->ServerResumptionLevel;
+    if (!Destination->IsSet.ServerResumptionLevel) {
+        Destination->ServerResumptionLevel = Source->ServerResumptionLevel;
     }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSettingApply(
-    _Inout_ QUIC_SETTINGS* Settings,
+    _Inout_ QUIC_SETTINGS* Destination,
+    _In_ BOOLEAN OverWrite,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
-        const QUIC_SETTINGS* NewSettings
+        const QUIC_SETTINGS* Source
     )
 {
     // TODO - Input validation
     UNREFERENCED_PARAMETER(NewSettingsSize); // TODO - Use to validate new settings
-    if (NewSettings->IsSet.PacingEnabled) {
-        Settings->PacingEnabled = NewSettings->PacingEnabled;
-        Settings->IsSet.PacingEnabled = TRUE;
+
+    if (Source->IsSet.PacingEnabled && (!Destination->IsSet.PacingEnabled || OverWrite)) {
+        Destination->PacingEnabled = Source->PacingEnabled;
+        Destination->IsSet.PacingEnabled = TRUE;
     }
-    if (NewSettings->IsSet.MigrationEnabled) {
-        Settings->MigrationEnabled = NewSettings->MigrationEnabled;
-        Settings->IsSet.MigrationEnabled = TRUE;
+    if (Source->IsSet.MigrationEnabled && (!Destination->IsSet.MigrationEnabled || OverWrite)) {
+        Destination->MigrationEnabled = Source->MigrationEnabled;
+        Destination->IsSet.MigrationEnabled = TRUE;
     }
-    if (NewSettings->IsSet.DatagramReceiveEnabled) {
-        Settings->DatagramReceiveEnabled = NewSettings->DatagramReceiveEnabled;
-        Settings->IsSet.DatagramReceiveEnabled = TRUE;
+    if (Source->IsSet.DatagramReceiveEnabled && (!Destination->IsSet.DatagramReceiveEnabled || OverWrite)) {
+        Destination->DatagramReceiveEnabled = Source->DatagramReceiveEnabled;
+        Destination->IsSet.DatagramReceiveEnabled = TRUE;
     }
-    if (NewSettings->IsSet.MaxPartitionCount) {
-        Settings->MaxPartitionCount = NewSettings->MaxPartitionCount;
-        Settings->IsSet.MaxPartitionCount = TRUE;
+    if (Source->IsSet.MaxOperationsPerDrain && (!Destination->IsSet.MaxOperationsPerDrain || OverWrite)) {
+        Destination->MaxOperationsPerDrain = Source->MaxOperationsPerDrain;
+        Destination->IsSet.MaxOperationsPerDrain = TRUE;
     }
-    if (NewSettings->IsSet.MaxOperationsPerDrain) {
-        Settings->MaxOperationsPerDrain = NewSettings->MaxOperationsPerDrain;
-        Settings->IsSet.MaxOperationsPerDrain = TRUE;
+    if (Source->IsSet.RetryMemoryLimit && (!Destination->IsSet.RetryMemoryLimit || OverWrite)) {
+        Destination->RetryMemoryLimit = Source->RetryMemoryLimit;
+        Destination->IsSet.RetryMemoryLimit = TRUE;
     }
-    if (NewSettings->IsSet.RetryMemoryLimit) {
-        Settings->RetryMemoryLimit = NewSettings->RetryMemoryLimit;
-        Settings->IsSet.RetryMemoryLimit = TRUE;
-    }
-    if (NewSettings->IsSet.LoadBalancingMode) {
-        if (NewSettings->LoadBalancingMode > QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+    if (Source->IsSet.LoadBalancingMode && (!Destination->IsSet.LoadBalancingMode || OverWrite)) {
+        if (Source->LoadBalancingMode > QUIC_LOAD_BALANCING_SERVER_ID_IP) {
             return FALSE;
         }
-        Settings->LoadBalancingMode = NewSettings->LoadBalancingMode;
-        Settings->IsSet.LoadBalancingMode = TRUE;
+        Destination->LoadBalancingMode = Source->LoadBalancingMode;
+        Destination->IsSet.LoadBalancingMode = TRUE;
     }
-    if (NewSettings->IsSet.MaxWorkerQueueDelayUs) {
-        Settings->MaxWorkerQueueDelayUs = NewSettings->MaxWorkerQueueDelayUs;
-        Settings->IsSet.MaxWorkerQueueDelayUs = TRUE;
+    if (Source->IsSet.MaxWorkerQueueDelayUs && (!Destination->IsSet.MaxWorkerQueueDelayUs || OverWrite)) {
+        Destination->MaxWorkerQueueDelayUs = Source->MaxWorkerQueueDelayUs;
+        Destination->IsSet.MaxWorkerQueueDelayUs = TRUE;
     }
-    if (NewSettings->IsSet.MaxStatelessOperations) {
-        Settings->MaxStatelessOperations = NewSettings->MaxStatelessOperations;
-        Settings->IsSet.MaxStatelessOperations = TRUE;
+    if (Source->IsSet.MaxStatelessOperations && (!Destination->IsSet.MaxStatelessOperations || OverWrite)) {
+        Destination->MaxStatelessOperations = Source->MaxStatelessOperations;
+        Destination->IsSet.MaxStatelessOperations = TRUE;
     }
-    if (NewSettings->IsSet.InitialWindowPackets) {
-        Settings->InitialWindowPackets = NewSettings->InitialWindowPackets;
-        Settings->IsSet.InitialWindowPackets = TRUE;
+    if (Source->IsSet.InitialWindowPackets && (!Destination->IsSet.InitialWindowPackets || OverWrite)) {
+        Destination->InitialWindowPackets = Source->InitialWindowPackets;
+        Destination->IsSet.InitialWindowPackets = TRUE;
     }
-    if (NewSettings->IsSet.SendIdleTimeoutMs) {
-        Settings->SendIdleTimeoutMs = NewSettings->SendIdleTimeoutMs;
-        Settings->IsSet.SendIdleTimeoutMs = TRUE;
+    if (Source->IsSet.SendIdleTimeoutMs && (!Destination->IsSet.SendIdleTimeoutMs || OverWrite)) {
+        Destination->SendIdleTimeoutMs = Source->SendIdleTimeoutMs;
+        Destination->IsSet.SendIdleTimeoutMs = TRUE;
     }
-    if (NewSettings->IsSet.InitialRttMs) {
-        Settings->InitialRttMs = NewSettings->InitialRttMs;
-        Settings->IsSet.InitialRttMs = TRUE;
+    if (Source->IsSet.InitialRttMs && (!Destination->IsSet.InitialRttMs || OverWrite)) {
+        Destination->InitialRttMs = Source->InitialRttMs;
+        Destination->IsSet.InitialRttMs = TRUE;
     }
-    if (NewSettings->IsSet.MaxAckDelayMs) {
-        if (NewSettings->MaxAckDelayMs > QUIC_TP_MAX_ACK_DELAY_MAX) {
+    if (Source->IsSet.MaxAckDelayMs && (!Destination->IsSet.MaxAckDelayMs || OverWrite)) {
+        if (Source->MaxAckDelayMs > QUIC_TP_MAX_ACK_DELAY_MAX) {
             return FALSE;
         }
-        Settings->MaxAckDelayMs = NewSettings->MaxAckDelayMs;
-        Settings->IsSet.MaxAckDelayMs = TRUE;
+        Destination->MaxAckDelayMs = Source->MaxAckDelayMs;
+        Destination->IsSet.MaxAckDelayMs = TRUE;
     }
-    if (NewSettings->IsSet.DisconnectTimeoutMs) {
-        if (NewSettings->DisconnectTimeoutMs > QUIC_MAX_DISCONNECT_TIMEOUT) {
+    if (Source->IsSet.DisconnectTimeoutMs && (!Destination->IsSet.DisconnectTimeoutMs || OverWrite)) {
+        if (Source->DisconnectTimeoutMs > QUIC_MAX_DISCONNECT_TIMEOUT) {
             return FALSE;
         }
-        Settings->DisconnectTimeoutMs = NewSettings->DisconnectTimeoutMs;
-        Settings->IsSet.DisconnectTimeoutMs = TRUE;
+        Destination->DisconnectTimeoutMs = Source->DisconnectTimeoutMs;
+        Destination->IsSet.DisconnectTimeoutMs = TRUE;
     }
-    if (NewSettings->IsSet.KeepAliveIntervalMs) {
-        Settings->KeepAliveIntervalMs = NewSettings->KeepAliveIntervalMs;
-        Settings->IsSet.KeepAliveIntervalMs = TRUE;
+    if (Source->IsSet.KeepAliveIntervalMs && (!Destination->IsSet.KeepAliveIntervalMs || OverWrite)) {
+        Destination->KeepAliveIntervalMs = Source->KeepAliveIntervalMs;
+        Destination->IsSet.KeepAliveIntervalMs = TRUE;
     }
-    if (NewSettings->IsSet.IdleTimeoutMs) {
-        if (NewSettings->IdleTimeoutMs > QUIC_VAR_INT_MAX) {
+    if (Source->IsSet.IdleTimeoutMs && (!Destination->IsSet.IdleTimeoutMs || OverWrite)) {
+        if (Source->IdleTimeoutMs > QUIC_VAR_INT_MAX) {
             return FALSE;
         }
-        Settings->IdleTimeoutMs = NewSettings->IdleTimeoutMs;
-        Settings->IsSet.IdleTimeoutMs = TRUE;
+        Destination->IdleTimeoutMs = Source->IdleTimeoutMs;
+        Destination->IsSet.IdleTimeoutMs = TRUE;
     }
-    if (NewSettings->IsSet.HandshakeIdleTimeoutMs) {
-        if (NewSettings->HandshakeIdleTimeoutMs > QUIC_VAR_INT_MAX) {
+    if (Source->IsSet.HandshakeIdleTimeoutMs && (!Destination->IsSet.HandshakeIdleTimeoutMs || OverWrite)) {
+        if (Source->HandshakeIdleTimeoutMs > QUIC_VAR_INT_MAX) {
             return FALSE;
         }
-        Settings->HandshakeIdleTimeoutMs = NewSettings->HandshakeIdleTimeoutMs;
-        Settings->IsSet.HandshakeIdleTimeoutMs = TRUE;
+        Destination->HandshakeIdleTimeoutMs = Source->HandshakeIdleTimeoutMs;
+        Destination->IsSet.HandshakeIdleTimeoutMs = TRUE;
     }
-    if (NewSettings->IsSet.PeerBidiStreamCount) {
-        Settings->PeerBidiStreamCount = NewSettings->PeerBidiStreamCount;
-        Settings->IsSet.PeerBidiStreamCount = TRUE;
+    if (Source->IsSet.PeerBidiStreamCount && (!Destination->IsSet.PeerBidiStreamCount || OverWrite)) {
+        Destination->PeerBidiStreamCount = Source->PeerBidiStreamCount;
+        Destination->IsSet.PeerBidiStreamCount = TRUE;
     }
-    if (NewSettings->IsSet.PeerUnidiStreamCount) {
-        Settings->PeerUnidiStreamCount = NewSettings->PeerUnidiStreamCount;
-        Settings->IsSet.PeerUnidiStreamCount = TRUE;
+    if (Source->IsSet.PeerUnidiStreamCount && (!Destination->IsSet.PeerUnidiStreamCount || OverWrite)) {
+        Destination->PeerUnidiStreamCount = Source->PeerUnidiStreamCount;
+        Destination->IsSet.PeerUnidiStreamCount = TRUE;
     }
-    if (NewSettings->IsSet.TlsClientMaxSendBuffer) {
-        Settings->TlsClientMaxSendBuffer = NewSettings->TlsClientMaxSendBuffer;
-        Settings->IsSet.TlsClientMaxSendBuffer = TRUE;
+    if (Source->IsSet.TlsClientMaxSendBuffer && (!Destination->IsSet.TlsClientMaxSendBuffer || OverWrite)) {
+        Destination->TlsClientMaxSendBuffer = Source->TlsClientMaxSendBuffer;
+        Destination->IsSet.TlsClientMaxSendBuffer = TRUE;
     }
-    if (NewSettings->IsSet.TlsClientMaxSendBuffer) {
-        Settings->TlsClientMaxSendBuffer = NewSettings->TlsClientMaxSendBuffer;
-        Settings->IsSet.TlsClientMaxSendBuffer = TRUE;
+    if (Source->IsSet.TlsClientMaxSendBuffer && (!Destination->IsSet.TlsClientMaxSendBuffer || OverWrite)) {
+        Destination->TlsClientMaxSendBuffer = Source->TlsClientMaxSendBuffer;
+        Destination->IsSet.TlsClientMaxSendBuffer = TRUE;
     }
-    if (NewSettings->IsSet.StreamRecvWindowDefault) {
-        Settings->StreamRecvWindowDefault = NewSettings->StreamRecvWindowDefault;
-        Settings->IsSet.StreamRecvWindowDefault = TRUE;
+    if (Source->IsSet.StreamRecvWindowDefault && (!Destination->IsSet.StreamRecvWindowDefault || OverWrite)) {
+        Destination->StreamRecvWindowDefault = Source->StreamRecvWindowDefault;
+        Destination->IsSet.StreamRecvWindowDefault = TRUE;
     }
-    if (NewSettings->IsSet.StreamRecvBufferDefault) {
-        if (NewSettings->StreamRecvBufferDefault < QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
+    if (Source->IsSet.StreamRecvBufferDefault && (!Destination->IsSet.StreamRecvBufferDefault || OverWrite)) {
+        if (Source->StreamRecvBufferDefault < QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
             return FALSE;
         }
-        Settings->StreamRecvBufferDefault = NewSettings->StreamRecvBufferDefault;
-        Settings->IsSet.StreamRecvBufferDefault = TRUE;
+        Destination->StreamRecvBufferDefault = Source->StreamRecvBufferDefault;
+        Destination->IsSet.StreamRecvBufferDefault = TRUE;
     }
-    if (NewSettings->IsSet.ConnFlowControlWindow) {
-        Settings->ConnFlowControlWindow = NewSettings->ConnFlowControlWindow;
-        Settings->IsSet.ConnFlowControlWindow = TRUE;
+    if (Source->IsSet.ConnFlowControlWindow && (!Destination->IsSet.ConnFlowControlWindow || OverWrite)) {
+        Destination->ConnFlowControlWindow = Source->ConnFlowControlWindow;
+        Destination->IsSet.ConnFlowControlWindow = TRUE;
     }
-    if (NewSettings->IsSet.MaxBytesPerKey) {
-        if (NewSettings->MaxBytesPerKey > QUIC_DEFAULT_MAX_BYTES_PER_KEY) {
+    if (Source->IsSet.MaxBytesPerKey && (!Destination->IsSet.MaxBytesPerKey || OverWrite)) {
+        if (Source->MaxBytesPerKey > QUIC_DEFAULT_MAX_BYTES_PER_KEY) {
             return FALSE;
         }
-        Settings->MaxBytesPerKey = NewSettings->MaxBytesPerKey;
-        Settings->IsSet.MaxBytesPerKey = TRUE;
+        Destination->MaxBytesPerKey = Source->MaxBytesPerKey;
+        Destination->IsSet.MaxBytesPerKey = TRUE;
     }
-    if (NewSettings->IsSet.ServerResumptionLevel) {
-        if (NewSettings->ServerResumptionLevel > QUIC_SERVER_RESUME_AND_ZERORTT) {
+    if (Source->IsSet.ServerResumptionLevel && (!Destination->IsSet.ServerResumptionLevel || OverWrite)) {
+        if (Source->ServerResumptionLevel > QUIC_SERVER_RESUME_AND_ZERORTT) {
             return FALSE;
         }
-        Settings->ServerResumptionLevel = NewSettings->ServerResumptionLevel;
-        Settings->IsSet.ServerResumptionLevel = TRUE;
+        Destination->ServerResumptionLevel = Source->ServerResumptionLevel;
+        Destination->IsSet.ServerResumptionLevel = TRUE;
     }
     return TRUE;
 }
@@ -376,19 +368,6 @@ QuicSettingsLoad(
             (uint8_t*)&Value,
             &ValueLen);
         Settings->DatagramReceiveEnabled = !!Value;
-    }
-
-    if (!Settings->IsSet.MaxPartitionCount) {
-        Value = QUIC_MAX_PARTITION_COUNT;
-        ValueLen = sizeof(Value);
-        QuicStorageReadValue(
-            Storage,
-            QUIC_SETTING_MAX_PARTITION_COUNT,
-            (uint8_t*)&Value,
-            &ValueLen);
-        if (Value <= UINT8_MAX) {
-            Settings->MaxPartitionCount = (uint8_t)Value;
-        }
     }
 
     if (!Settings->IsSet.MaxOperationsPerDrain) {
@@ -635,7 +614,6 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpPacingDefault,           "[sett] PacingEnabled          = %hhu", Settings->PacingEnabled);
     QuicTraceLogVerbose(SettingDumpMigrationEnabled,        "[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
     QuicTraceLogVerbose(SettingDumpDatagramReceiveEnabled,  "[sett] DatagramReceiveEnabled = %hhu", Settings->DatagramReceiveEnabled);
-    QuicTraceLogVerbose(SettingDumpMaxPartitionCount,       "[sett] MaxPartitionCount      = %hhu", Settings->MaxPartitionCount);
     QuicTraceLogVerbose(SettingDumpMaxOperationsPerDrain,   "[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
     QuicTraceLogVerbose(SettingDumpRetryMemoryLimit,        "[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
     QuicTraceLogVerbose(SettingDumpLoadBalancingMode,       "[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);

@@ -169,7 +169,11 @@ MsQuicConfigurationOpen(
 
     if (Settings != NULL && Settings->IsSetFlags != 0) {
         QUIC_DBG_ASSERT(SettingsSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey));
-        if (!QuicSettingApply(&Configuration->Settings, SettingsSize, Settings)) {
+        if (!QuicSettingApply(
+                &Configuration->Settings,
+                TRUE,
+                SettingsSize,
+                Settings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }

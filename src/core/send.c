@@ -28,10 +28,12 @@ Abstract:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendInitialize(
-    _Inout_ QUIC_SEND* Send
+    _Inout_ QUIC_SEND* Send,
+    _In_ const QUIC_SETTINGS* Settings
     )
 {
     QuicListInitializeHead(&Send->SendStreams);
+    Send->MaxData = Settings->ConnFlowControlWindow;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -67,7 +69,7 @@ QuicSendUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicSendApplySettings(
+QuicSendApplyNewSettings(
     _Inout_ QUIC_SEND* Send,
     _In_ const QUIC_SETTINGS* Settings
     )
@@ -1190,11 +1192,11 @@ QuicSendStartDelayedAckTimer(
             StartAckDelayTimer,
             Connection,
             "Starting ACK_DELAY timer for %u ms",
-            Connection->MaxAckDelayMs);
+            Connection->Settings.MaxAckDelayMs);
         QuicConnTimerSet(
             Connection,
             QUIC_CONN_TIMER_ACK_DELAY,
-            Connection->MaxAckDelayMs); // TODO - Use smaller timeout when handshake data is outstanding.
+            Connection->Settings.MaxAckDelayMs); // TODO - Use smaller timeout when handshake data is outstanding.
         Send->DelayedAckTimerActive = TRUE;
     }
 }

@@ -30,7 +30,7 @@ QuicPathInitialize(
     Path->MinRtt = UINT32_MAX;
     Path->Mtu = QUIC_DEFAULT_PATH_MTU;
     if (Connection->Configuration != NULL) {
-        Path->SmoothedRtt = MS_TO_US(Connection->ParentSettings->InitialRttMs);
+        Path->SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
     } else {
         Path->SmoothedRtt = MS_TO_US(QUIC_INITIAL_RTT);
     }

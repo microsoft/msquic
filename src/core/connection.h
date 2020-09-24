@@ -130,11 +130,6 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN UseSendBuffer : 1;
 
         //
-        // Indicates whether pacing logic is enabled for sending.
-        //
-        BOOLEAN UsePacing : 1;
-
-        //
         // Indicates whether this connection shares bindings with others.
         //
         BOOLEAN ShareBinding : 1;
@@ -313,10 +308,10 @@ typedef struct QUIC_CONNECTION {
     QUIC_CONFIGURATION* Configuration;
 
     //
-    // The current parent settings object. Points to global settings if the
-    // configuration hasn't been set yet.
+    // The settings for this connection. Some values may be inherited from the
+    // global settings, the configuration setting or explicitly set by the app.
     //
-    QUIC_SETTINGS* ParentSettings;
+    QUIC_SETTINGS Settings;
 
     //
     // Number of references to the handle.
@@ -389,33 +384,6 @@ typedef struct QUIC_CONNECTION {
     // 2 ^ ack_delay_exponent.
     //
     uint8_t AckDelayExponent;
-
-    //
-    // Maximum amount of time the connection waits before acknowledging a
-    // received packet.
-    //
-    uint32_t MaxAckDelayMs;
-
-    //
-    // The idle timeout period (in milliseconds).
-    //
-    uint64_t IdleTimeoutMs;
-
-    //
-    // The handshake idle timeout period (in milliseconds).
-    //
-    uint64_t HandshakeIdleTimeoutMs;
-
-    //
-    // The number of microseconds that must elapse before the connection will be
-    // considered 'ACK idle' and disconnects.
-    //
-    uint32_t DisconnectTimeoutUs;
-
-    //
-    // The interval (in milliseconds) between keep alives sent locally.
-    //
-    uint32_t KeepAliveIntervalMs;
 
     //
     // The sequence number to use for the next source CID.
@@ -999,15 +967,6 @@ QuicConnIndicateEvent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ QUIC_CONNECTION* Connection
-    );
-
-//
-// Applies the currently configured settings.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicConnApplySettings(
     _In_ QUIC_CONNECTION* Connection
     );
 

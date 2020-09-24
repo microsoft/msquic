@@ -227,8 +227,8 @@ QuicLossDetectionComputeProbeTimeout(
         4 * Path->RttVariance +
         (uint32_t)MS_TO_US(Connection->PeerTransportParams.MaxAckDelay);
     Pto *= Count;
-    if (Pto < MsQuicLib.Settings.MaxWorkerQueueDelayUs) {
-        Pto = MsQuicLib.Settings.MaxWorkerQueueDelayUs;
+    if (Pto < Connection->Settings.MaxWorkerQueueDelayUs) {
+        Pto = Connection->Settings.MaxWorkerQueueDelayUs;
     }
     return Pto;
 }
@@ -349,7 +349,7 @@ QuicLossDetectionUpdateTimer(
         MaxDelay =
             QuicTimeDiff32(
                 TimeNow,
-                OldestPacket->SentTime + Connection->DisconnectTimeoutUs);
+                OldestPacket->SentTime + MS_TO_US(Connection->Settings.DisconnectTimeoutMs));
     } else {
         MaxDelay = (UINT32_MAX >> 1) - 1;
     }
@@ -723,7 +723,7 @@ QuicLossDetectionRetransmitFrames(
                 QUIC_DBG_ASSERT(Connection->Configuration != NULL);
                 uint32_t ValidationTimeout =
                     max(QuicLossDetectionComputeProbeTimeout(LossDetection, Path, 3),
-                        6 * MS_TO_US(Connection->ParentSettings->InitialRttMs));
+                        6 * MS_TO_US(Connection->Settings.InitialRttMs));
                 if (QuicTimeDiff32(Path->PathValidationStartTime, TimeNow) > ValidationTimeout) {
                     QuicTraceLogConnInfo(
                         PathValidationTimeout,
@@ -1547,7 +1547,7 @@ QuicLossDetectionProcessTimerOperation(
 
     if (OldestPacket != NULL &&
         QuicTimeDiff32(OldestPacket->SentTime, TimeNow) >=
-            Connection->DisconnectTimeoutUs) {
+            MS_TO_US(Connection->Settings.DisconnectTimeoutMs)) {
         //
         // OldestPacket has been in the SentPackets list for at least
         // DisconnectTimeoutUs without an ACK for either OldestPacket or for any

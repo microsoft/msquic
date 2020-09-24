@@ -2018,7 +2018,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection->KeepAliveIntervalMs",
+            "UserSuppliedTrimmed": "Connection->Settings.KeepAliveIntervalMs",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "u",
@@ -12597,7 +12597,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection->MaxAckDelayMs",
+            "UserSuppliedTrimmed": "Connection->Settings.MaxAckDelayMs",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "u",

@@ -108,13 +108,15 @@ QuicConnAlloc(
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
     Connection->PeerTransportParams.AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
-    Connection->ParentSettings = &MsQuicLib.Settings;
+    Connection->Settings = MsQuicLib.Settings;
+    Connection->Settings.IsSetFlags = 0; // Just grab the global values, not IsSet flags.
     QuicDispatchLockInitialize(&Connection->ReceiveQueueLock);
     QuicListInitializeHead(&Connection->DestCids);
     QuicStreamSetInitialize(&Connection->Streams);
     QuicSendBufferInitialize(&Connection->SendBuffer);
     QuicOperationQueueInitialize(&Connection->OperQ);
-    QuicSendInitialize(&Connection->Send);
+    QuicSendInitialize(&Connection->Send, &Connection->Settings);
+    QuicCongestionControlInitialize(&Connection->Send, &Connection->Settings);
     QuicLossDetectionInitialize(&Connection->LossDetection);
     QuicDatagramInitialize(&Connection->Datagram);
     QuicRangeInitialize(
@@ -242,7 +244,6 @@ QuicConnAlloc(
     }
 
     QuicConnRegister(Connection, Registration);
-    QuicConnApplySettings(Connection);
 
     return Connection;
 
@@ -348,7 +349,6 @@ QuicConnFree(
     if (Connection->Configuration != NULL) {
         QuicConfigurationRelease(Connection->Configuration);
         Connection->Configuration = NULL;
-        Connection->ParentSettings = &MsQuicLib.Settings;
     }
     if (Connection->RemoteServerName != NULL) {
         QUIC_FREE(Connection->RemoteServerName);
@@ -388,7 +388,7 @@ QuicConnFree(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicConnApplySettings(
+QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection
     )
 {
@@ -397,33 +397,28 @@ QuicConnApplySettings(
         Connection,
         "Applying new settings");
 
-    Connection->State.UsePacing = Connection->ParentSettings->PacingEnabled;
-    Connection->MaxAckDelayMs = Connection->ParentSettings->MaxAckDelayMs;
-    Connection->Paths[0].SmoothedRtt = MS_TO_US(Connection->ParentSettings->InitialRttMs);
+    Connection->Paths[0].SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
     Connection->Paths[0].RttVariance = Connection->Paths[0].SmoothedRtt / 2;
-    Connection->DisconnectTimeoutUs = MS_TO_US(Connection->ParentSettings->DisconnectTimeoutMs);
-    Connection->IdleTimeoutMs = Connection->ParentSettings->IdleTimeoutMs;
-    Connection->HandshakeIdleTimeoutMs = Connection->ParentSettings->HandshakeIdleTimeoutMs;
-    Connection->KeepAliveIntervalMs = Connection->ParentSettings->KeepAliveIntervalMs;
-    Connection->Datagram.ReceiveEnabled = Connection->ParentSettings->DatagramReceiveEnabled;
+
+    Connection->Datagram.ReceiveEnabled = Connection->Settings.DatagramReceiveEnabled;
 
     uint8_t PeerStreamType =
         QuicConnIsServer(Connection) ?
             STREAM_ID_FLAG_IS_CLIENT : STREAM_ID_FLAG_IS_SERVER;
-    if (Connection->ParentSettings->PeerBidiStreamCount != 0) {
+    if (Connection->Settings.PeerBidiStreamCount != 0) {
         QuicStreamSetUpdateMaxCount(
             &Connection->Streams,
             PeerStreamType | STREAM_ID_FLAG_IS_BI_DIR,
-            Connection->ParentSettings->PeerBidiStreamCount);
+            Connection->Settings.PeerBidiStreamCount);
     }
-    if (Connection->ParentSettings->PeerUnidiStreamCount != 0) {
+    if (Connection->Settings.PeerUnidiStreamCount != 0) {
         QuicStreamSetUpdateMaxCount(
             &Connection->Streams,
             PeerStreamType | STREAM_ID_FLAG_IS_UNI_DIR,
-            Connection->ParentSettings->PeerUnidiStreamCount);
+            Connection->Settings.PeerUnidiStreamCount);
     }
 
-    if (Connection->ParentSettings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
+    if (Connection->Settings.ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
         Connection->HandshakeTP == NULL) {
         QUIC_DBG_ASSERT(!Connection->State.Started);
         Connection->HandshakeTP =
@@ -440,8 +435,8 @@ QuicConnApplySettings(
         }
     }
 
-    QuicSendApplySettings(&Connection->Send, Connection->ParentSettings);
-    QuicCongestionControlInitialize(&Connection->CongestionControl, Connection->ParentSettings);
+    QuicSendApplyNewSettings(&Connection->Send, &Connection->Settings);
+    QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1903,11 +1898,11 @@ QuicConnStart(
         goto Exit;
     }
 
-    if (Connection->KeepAliveIntervalMs != 0) {
+    if (Connection->Settings.KeepAliveIntervalMs != 0) {
         QuicConnTimerSet(
             Connection,
             QUIC_CONN_TIMER_KEEP_ALIVE,
-            Connection->KeepAliveIntervalMs);
+            Connection->Settings.KeepAliveIntervalMs);
     }
 
 Exit:
@@ -1948,7 +1943,7 @@ QuicConnRestart(
         //
         QUIC_PATH* Path = &Connection->Paths[0];
         Path->GotFirstRttSample = FALSE;
-        Path->SmoothedRtt = MS_TO_US(Connection->ParentSettings->InitialRttMs);
+        Path->SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
         Path->RttVariance = Path->SmoothedRtt / 2;
     }
 
@@ -2024,13 +2019,13 @@ QuicConnRecvResumptionTicket(
     if (QuicConnIsServer(Connection)) {
         const uint8_t* AppData = NULL;
         uint32_t AppDataLength = 0;
-        
+
         QUIC_STATUS Status =
             QuicCryptoDecodeServerTicket(
                 Connection,
                 TicketLength,
                 Ticket,
-                Connection->Configuration->AlpnList, 
+                Connection->Configuration->AlpnList,
                 Connection->Configuration->AlpnListLength,
                 &ResumedTP,
                 &AppData,
@@ -2044,9 +2039,9 @@ QuicConnRecvResumptionTicket(
         //
         if (ResumedTP.ActiveConnectionIdLimit > QUIC_ACTIVE_CONNECTION_ID_LIMIT ||
             ResumedTP.InitialMaxData > Connection->Send.MaxData ||
-            ResumedTP.InitialMaxStreamDataBidiLocal > Connection->ParentSettings->StreamRecvWindowDefault ||
-            ResumedTP.InitialMaxStreamDataBidiRemote > Connection->ParentSettings->StreamRecvWindowDefault ||
-            ResumedTP.InitialMaxStreamDataUni > Connection->ParentSettings->StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataBidiLocal > Connection->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataBidiRemote > Connection->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataUni > Connection->Settings.StreamRecvWindowDefault ||
             ResumedTP.InitialMaxUniStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount ||
             ResumedTP.InitialMaxBidiStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
             //
@@ -2166,15 +2161,15 @@ QuicConnGenerateLocalTransportParameters(
             Link);
 
     LocalTP->InitialMaxData = Connection->Send.MaxData;
-    LocalTP->InitialMaxStreamDataBidiLocal = Connection->ParentSettings->StreamRecvWindowDefault;
-    LocalTP->InitialMaxStreamDataBidiRemote = Connection->ParentSettings->StreamRecvWindowDefault;
-    LocalTP->InitialMaxStreamDataUni = Connection->ParentSettings->StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataBidiLocal = Connection->Settings.StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataBidiRemote = Connection->Settings.StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataUni = Connection->Settings.StreamRecvWindowDefault;
     LocalTP->MaxUdpPayloadSize =
         MaxUdpPayloadSizeFromMTU(
             QuicDataPathBindingGetLocalMtu(
                 Connection->Paths[0].Binding->DatapathBinding));
     LocalTP->MaxAckDelay =
-        Connection->MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
+        Connection->Settings.MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
     LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     LocalTP->Flags =
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -2185,9 +2180,9 @@ QuicConnGenerateLocalTransportParameters(
         QUIC_TP_FLAG_MAX_ACK_DELAY |
         QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
 
-    if (Connection->IdleTimeoutMs != 0) {
+    if (Connection->Settings.IdleTimeoutMs != 0) {
         LocalTP->Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
-        LocalTP->IdleTimeout = Connection->IdleTimeoutMs;
+        LocalTP->IdleTimeout = Connection->Settings.IdleTimeoutMs;
     }
 
     if (Connection->AckDelayExponent != QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT) {
@@ -2227,7 +2222,7 @@ QuicConnGenerateLocalTransportParameters(
                 Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount;
         }
 
-        if (!Connection->ParentSettings->MigrationEnabled) {
+        if (!Connection->Settings.MigrationEnabled) {
             LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION;
         }
 
@@ -2320,8 +2315,12 @@ QuicConnSetConfiguration(
 
     QuicConfigurationAddRef(Configuration);
     Connection->Configuration = Configuration;
-    Connection->ParentSettings = &Configuration->Settings;
-    QuicConnApplySettings(Connection);
+    QuicSettingApply(
+        &Connection->Settings,
+        FALSE,
+        sizeof(Configuration->Settings),
+        &Configuration->Settings);
+    QuicConnApplyNewSettings(Connection);
 
     if (!QuicConnIsServer(Connection)) {
 
@@ -5157,11 +5156,11 @@ QuicConnResetIdleTimeout(
         //
         IdleTimeoutMs = Connection->PeerTransportParams.IdleTimeout;
         if (IdleTimeoutMs == 0 ||
-            (Connection->IdleTimeoutMs != 0 && Connection->IdleTimeoutMs < IdleTimeoutMs)) {
-            IdleTimeoutMs = Connection->IdleTimeoutMs;
+            (Connection->Settings.IdleTimeoutMs != 0 && Connection->Settings.IdleTimeoutMs < IdleTimeoutMs)) {
+            IdleTimeoutMs = Connection->Settings.IdleTimeoutMs;
         }
     } else {
-        IdleTimeoutMs = Connection->HandshakeIdleTimeoutMs;
+        IdleTimeoutMs = Connection->Settings.HandshakeIdleTimeoutMs;
     }
 
     if (IdleTimeoutMs != 0) {
@@ -5183,11 +5182,11 @@ QuicConnResetIdleTimeout(
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_IDLE);
     }
 
-    if (Connection->KeepAliveIntervalMs != 0) {
+    if (Connection->Settings.KeepAliveIntervalMs != 0) {
         QuicConnTimerSet(
             Connection,
             QUIC_CONN_TIMER_KEEP_ALIVE,
-            Connection->KeepAliveIntervalMs);
+            Connection->Settings.KeepAliveIntervalMs);
     }
 }
 
@@ -5225,7 +5224,7 @@ QuicConnProcessKeepAliveOperation(
     QuicConnTimerSet(
         Connection,
         QUIC_CONN_TIMER_KEEP_ALIVE,
-        Connection->KeepAliveIntervalMs);
+        Connection->Settings.KeepAliveIntervalMs);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -5391,7 +5390,7 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_IDLE_TIMEOUT:
 
-        if (BufferLength != sizeof(Connection->IdleTimeoutMs)) {
+        if (BufferLength != sizeof(Connection->Settings.IdleTimeoutMs)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -5401,13 +5400,13 @@ QuicConnParamSet(
             break;
         }
 
-        Connection->IdleTimeoutMs = *(uint64_t*)Buffer;
+        Connection->Settings.IdleTimeoutMs = *(uint64_t*)Buffer;
 
         QuicTraceLogConnInfo(
             UpdateIdleTimeout,
             Connection,
             "Updated idle timeout to %llu milliseconds",
-            Connection->IdleTimeoutMs);
+            Connection->Settings.IdleTimeoutMs);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -5490,29 +5489,29 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_KEEP_ALIVE:
 
-        if (BufferLength != sizeof(Connection->KeepAliveIntervalMs)) {
+        if (BufferLength != sizeof(Connection->Settings.KeepAliveIntervalMs)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
         if (Connection->State.Started &&
-            Connection->KeepAliveIntervalMs != 0) {
+            Connection->Settings.KeepAliveIntervalMs != 0) {
             //
             // Cancel any current timer first.
             //
             QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_KEEP_ALIVE);
         }
 
-        Connection->KeepAliveIntervalMs = *(uint32_t*)Buffer;
+        Connection->Settings.KeepAliveIntervalMs = *(uint32_t*)Buffer;
 
         QuicTraceLogConnInfo(
             UpdateKeepAlive,
             Connection,
             "Updated keep alive interval to %u milliseconds",
-            Connection->KeepAliveIntervalMs);
+            Connection->Settings.KeepAliveIntervalMs);
 
         if (Connection->State.Started &&
-            Connection->KeepAliveIntervalMs != 0) {
+            Connection->Settings.KeepAliveIntervalMs != 0) {
             QuicConnProcessKeepAliveOperation(Connection);
         }
 
@@ -5521,7 +5520,7 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_DISCONNECT_TIMEOUT:
 
-        if (BufferLength != sizeof(Connection->DisconnectTimeoutUs)) {
+        if (BufferLength != sizeof(MS_TO_US(Connection->Settings.DisconnectTimeoutMs))) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -5532,7 +5531,7 @@ QuicConnParamSet(
             break;
         }
 
-        Connection->DisconnectTimeoutUs = MS_TO_US(*(uint32_t*)Buffer);
+        MS_TO_US(Connection->Settings.DisconnectTimeoutMs) = MS_TO_US(*(uint32_t*)Buffer);
 
         QuicTraceLogConnInfo(
             UpdateDisconnectTimeout,
@@ -5566,13 +5565,14 @@ QuicConnParamSet(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
-        Connection->State.UsePacing = *(uint8_t*)Buffer;
+        Connection->Settings.PacingEnabled = *(uint8_t*)Buffer;
+        Connection->Settings.IsSet.PacingEnabled = TRUE;
 
         QuicTraceLogConnInfo(
-            UpdateUsePacing,
+            UpdatePacingEnabled,
             Connection,
-            "Updated UsePacing = %hhu",
-            Connection->State.UsePacing);
+            "Updated PacingEnabled = %hhu",
+            Connection->Settings.PacingEnabled);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -5884,8 +5884,8 @@ QuicConnParamGet(
 
     case QUIC_PARAM_CONN_IDLE_TIMEOUT:
 
-        if (*BufferLength < sizeof(Connection->IdleTimeoutMs)) {
-            *BufferLength = sizeof(Connection->IdleTimeoutMs);
+        if (*BufferLength < sizeof(Connection->Settings.IdleTimeoutMs)) {
+            *BufferLength = sizeof(Connection->Settings.IdleTimeoutMs);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -5895,8 +5895,8 @@ QuicConnParamGet(
             break;
         }
 
-        *BufferLength = sizeof(Connection->IdleTimeoutMs);
-        *(uint64_t*)Buffer = Connection->IdleTimeoutMs;
+        *BufferLength = sizeof(Connection->Settings.IdleTimeoutMs);
+        *(uint64_t*)Buffer = Connection->Settings.IdleTimeoutMs;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -6029,8 +6029,8 @@ QuicConnParamGet(
 
     case QUIC_PARAM_CONN_KEEP_ALIVE:
 
-        if (*BufferLength < sizeof(Connection->KeepAliveIntervalMs)) {
-            *BufferLength = sizeof(Connection->KeepAliveIntervalMs);
+        if (*BufferLength < sizeof(Connection->Settings.KeepAliveIntervalMs)) {
+            *BufferLength = sizeof(Connection->Settings.KeepAliveIntervalMs);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -6040,16 +6040,16 @@ QuicConnParamGet(
             break;
         }
 
-        *BufferLength = sizeof(Connection->KeepAliveIntervalMs);
-        *(uint32_t*)Buffer = Connection->KeepAliveIntervalMs;
+        *BufferLength = sizeof(Connection->Settings.KeepAliveIntervalMs);
+        *(uint32_t*)Buffer = Connection->Settings.KeepAliveIntervalMs;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
 
     case QUIC_PARAM_CONN_DISCONNECT_TIMEOUT:
 
-        if (*BufferLength < sizeof(Connection->DisconnectTimeoutUs)) {
-            *BufferLength = sizeof(Connection->DisconnectTimeoutUs);
+        if (*BufferLength < sizeof(MS_TO_US(Connection->Settings.DisconnectTimeoutMs))) {
+            *BufferLength = sizeof(MS_TO_US(Connection->Settings.DisconnectTimeoutMs));
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -6060,7 +6060,7 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(uint32_t);
-        *(uint32_t*)Buffer = US_TO_MS(Connection->DisconnectTimeoutUs);
+        *(uint32_t*)Buffer = US_TO_MS(MS_TO_US(Connection->Settings.DisconnectTimeoutMs));
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -6098,7 +6098,7 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(uint8_t);
-        *(uint8_t*)Buffer = Connection->State.UsePacing;
+        *(uint8_t*)Buffer = Connection->Settings.PacingEnabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -6408,7 +6408,7 @@ QuicConnDrainOperations(
 {
     QUIC_OPERATION* Oper;
     const uint32_t MaxOperationCount =
-        Connection->ParentSettings->MaxOperationsPerDrain;
+        Connection->Settings.MaxOperationsPerDrain;
     uint32_t OperationCount = 0;
     BOOLEAN HasMoreWorkToDo = TRUE;
 
@@ -6429,11 +6429,11 @@ QuicConnDrainOperations(
                 ConnInitializeComplete,
                 "[conn][%p] Initialize complete",
                 Connection);
-            if (Connection->KeepAliveIntervalMs != 0) {
+            if (Connection->Settings.KeepAliveIntervalMs != 0) {
                 QuicConnTimerSet(
                     Connection,
                     QUIC_CONN_TIMER_KEEP_ALIVE,
-                    Connection->KeepAliveIntervalMs);
+                    Connection->Settings.KeepAliveIntervalMs);
             }
         }
     }

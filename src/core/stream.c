@@ -85,7 +85,7 @@ QuicStreamInitialize(
         }
     }
 
-    InitialRecvBufferLength = Connection->ParentSettings->StreamRecvBufferDefault;
+    InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
         PreallocatedRecvBuffer = QuicPoolAlloc(&Worker->DefaultReceiveBufferPool);
         if (PreallocatedRecvBuffer == NULL) {
@@ -98,7 +98,7 @@ QuicStreamInitialize(
         QuicRecvBufferInitialize(
             &Stream->RecvBuffer,
             InitialRecvBufferLength,
-            Connection->ParentSettings->StreamRecvWindowDefault,
+            Connection->Settings.StreamRecvWindowDefault,
             FALSE,
             PreallocatedRecvBuffer);
     if (QUIC_FAILED(Status)) {
