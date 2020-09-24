@@ -174,7 +174,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 const uint8_t*
 QuicCryptoTlsEncodeTransportParameters(
-    _In_ QUIC_CONNECTION* Connection,
+    _In_opt_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN IsServerTP,
     _In_ const QUIC_TRANSPORT_PARAMETERS *TransportParams,
     _In_opt_ const QUIC_PRIVATE_TRANSPORT_PARAMETER* TestParam,
@@ -188,7 +188,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicCryptoTlsDecodeTransportParameters(
-    _In_ QUIC_CONNECTION* Connection,
+    _In_opt_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN IsServerTP,
     _In_reads_(TPLen)
         const uint8_t* TPBuf,
