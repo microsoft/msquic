@@ -1980,11 +1980,11 @@ QuicConnSendResumptionTicket(
         QuicCryptoEncodeServerTicket(
             Connection,
             Connection->Stats.QuicVersion,
-            AppResumptionData,
             AppDataLength,
+            AppResumptionData,
             Connection->HandshakeTP,
-            Connection->Crypto.TlsState.NegotiatedAlpn + 1,
             AlpnLength,
+            Connection->Crypto.TlsState.NegotiatedAlpn + 1,
             &TicketBuffer,
             &TicketLength);
     if (QUIC_FAILED(Status)) {
@@ -2023,7 +2023,8 @@ QuicConnRecvResumptionTicket(
         QUIC_STATUS Status =
             QuicCryptoDecodeServerTicket(
                 Connection,
-                Ticket, TicketLength,
+                TicketLength,
+                Ticket,
                 Connection->Configuration->AlpnList, 
                 Connection->Configuration->AlpnListLength,
                 &ResumedTP,
@@ -2085,8 +2086,8 @@ QuicConnRecvResumptionTicket(
         if (QUIC_SUCCEEDED(
             QuicCryptoEncodeClientTicket(
                 Connection,
-                Ticket,
                 TicketLength,
+                Ticket,
                 &Connection->PeerTransportParams,
                 Connection->Stats.QuicVersion,
                 &ClientTicket,
@@ -5763,8 +5764,8 @@ QuicConnParamSet(
         Status =
             QuicCryptoDecodeClientTicket(
                 Connection,
-                Buffer,
                 (uint16_t)BufferLength,
+                Buffer,
                 &Connection->PeerTransportParams,
                 &Connection->Crypto.ResumptionTicket,
                 &Connection->Crypto.ResumptionTicketLength,
