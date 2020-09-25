@@ -181,7 +181,6 @@ MsQuicLibraryInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN PlatformInitialized = FALSE;
     uint32_t DefaultMaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
-    uint32_t DefaultMaxPartitionCountLen = sizeof(DefaultMaxPartitionCount);
 
     Status = QuicPlatformInitialize();
     if (QUIC_FAILED(Status)) {
@@ -220,13 +219,16 @@ MsQuicLibraryInitialize(
     // TODO: Add support for CPU hot swap/add.
     //
 
-    QuicStorageReadValue(
-        MsQuicLib.Storage,
-        QUIC_SETTING_MAX_PARTITION_COUNT,
-        (uint8_t*)&DefaultMaxPartitionCount,
-        &DefaultMaxPartitionCountLen);
-    if (DefaultMaxPartitionCount > QUIC_MAX_PARTITION_COUNT) {
-        DefaultMaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
+    if (MsQuicLib.Storage != NULL) {
+        uint32_t DefaultMaxPartitionCountLen = sizeof(DefaultMaxPartitionCount);
+        QuicStorageReadValue(
+            MsQuicLib.Storage,
+            QUIC_SETTING_MAX_PARTITION_COUNT,
+            (uint8_t*)&DefaultMaxPartitionCount,
+            &DefaultMaxPartitionCountLen);
+        if (DefaultMaxPartitionCount > QUIC_MAX_PARTITION_COUNT) {
+            DefaultMaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
+        }
     }
     MsQuicLib.ProcessorCount = (uint16_t)QuicProcActiveCount();
     QUIC_FRE_ASSERT(MsQuicLib.ProcessorCount > 0);
