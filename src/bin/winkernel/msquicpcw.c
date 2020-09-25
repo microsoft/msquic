@@ -30,7 +30,7 @@ void
 QuicLibrarySumPerfCountersExternal(
     _Out_writes_bytes_(BufferLength) uint8_t* Buffer,
     _In_ uint32_t BufferLength
-);
+    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
