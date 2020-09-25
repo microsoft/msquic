@@ -2021,10 +2021,14 @@ QuicConnRecvResumptionTicket(
             goto Error;
         }
 
-        QUIC_CONNECTION_EVENT Event = { 0, };
+        QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_RESUMED;
         Event.RESUMED.ResumptionStateLength = (uint16_t)AppDataLength;
         Event.RESUMED.ResumptionState = (AppDataLength > 0) ? AppData : NULL;
+        QuicTraceLogConnVerbose(
+            IndicateResumptionTicketReceived,
+            Connection,
+            "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
         ResumptionAccepted =
             QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
 
@@ -2058,14 +2062,18 @@ QuicConnRecvResumptionTicket(
                 &ClientTicket,
                 &ClientTicketLength))) {
 
-            QUIC_CONNECTION_EVENT Event = { 0, };
+            QUIC_CONNECTION_EVENT Event;
             Event.Type = QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED;
             Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength = ClientTicketLength;
             Event.RESUMPTION_TICKET_RECEIVED.ResumptionTicket = ClientTicket;
-            ResumptionAccepted =
-                QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
+            QuicTraceLogConnVerbose(
+                IndicateResumptionTicketReceived,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
+            (void)QuicConnIndicateEvent(Connection, &Event);
 
             QUIC_FREE(ClientTicket);
+            ResumptionAccepted = TRUE;
         }
     }
 

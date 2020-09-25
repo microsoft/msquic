@@ -2229,6 +2229,33 @@
         "CustomSettings": null
       }
     },
+    "IndicateResumptionTicketReceived": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED",
+      "UniqueId": "IndicateResumptionTicketReceived",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "QueueDatagrams": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Queuing %u UDP datagrams",
@@ -21465,6 +21492,10 @@
       {
         "UniquenessHash": "f8280555-5057-232c-bc7d-b3cdd8f840f5",
         "TraceID": "IndicateConnectionShutdownComplete"
+      },
+      {
+        "UniquenessHash": "920800a1-3a54-af40-19d9-fdfaf274a6d4",
+        "TraceID": "IndicateResumptionTicketReceived"
       },
       {
         "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",

@@ -1509,6 +1509,10 @@ QuicTraceRundown(
             MsQuicLib.PartitionCount,
             QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
+        if (MsQuicLib.StatelessRegistration) {
+            QuicRegistrationTraceRundown(MsQuicLib.StatelessRegistration);
+        }
+
         for (QUIC_LIST_ENTRY* Link = MsQuicLib.Registrations.Flink;
             Link != &MsQuicLib.Registrations;
             Link = Link->Flink) {
