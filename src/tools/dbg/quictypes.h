@@ -168,16 +168,6 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN SendShutdownCompleteNotif : 1;
 
         //
-        // Indicates whether send requests should be buffered.
-        //
-        BOOLEAN UseSendBuffer : 1;
-
-        //
-        // Indicates whether pacing logic is enabled for sending.
-        //
-        BOOLEAN UsePacing : 1;
-
-        //
         // Indicates whether this connection shares bindings with others.
         //
         BOOLEAN ShareBinding : 1;

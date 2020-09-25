@@ -5114,7 +5114,8 @@ QuicConnResetIdleTimeout(
         //
         IdleTimeoutMs = Connection->PeerTransportParams.IdleTimeout;
         if (IdleTimeoutMs == 0 ||
-            (Connection->Settings.IdleTimeoutMs != 0 && Connection->Settings.IdleTimeoutMs < IdleTimeoutMs)) {
+            (Connection->Settings.IdleTimeoutMs != 0 &&
+             Connection->Settings.IdleTimeoutMs < IdleTimeoutMs)) {
             IdleTimeoutMs = Connection->Settings.IdleTimeoutMs;
         }
     } else {
