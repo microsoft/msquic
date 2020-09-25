@@ -11,7 +11,6 @@ Abstract:
 
 #include "quic_platform.h"
 #include "quic_trace.h"
-
 #ifdef QUIC_CLOG
 #include "driver.c.clog.h"
 #endif
@@ -26,19 +25,6 @@ MsQuicLibraryLoad(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 MsQuicLibraryUnload(
-    void
-    );
-
-_No_competing_thread_
-INITCODE
-NTSTATUS
-QuicIoCtlInitialize(
-    _In_ WDFDRIVER Driver
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicIoCtlUninitialize(
     void
     );
 
@@ -112,11 +98,6 @@ Return Value:
         goto Error;
     }
 
-    Status = QuicIoCtlInitialize(Driver);
-    if (!NT_SUCCESS(Status)) {
-        goto Error;
-    }
-
 Error:
 
     if (!NT_SUCCESS(Status)) {
@@ -151,7 +132,6 @@ Arguments:
     UNREFERENCED_PARAMETER(Driver);
 
     PAGED_CODE();
-    QuicIoCtlUninitialize();
     MsQuicLibraryUnload();
     QuicPlatformSystemUnload();
 }

@@ -32,7 +32,7 @@ static uint32_t AttackType;
 static const char* ServerName;
 static const char* IpAddress;
 static QUIC_ADDR ServerAddress;
-static const char* Alpn = "h3-30";
+static const char* Alpn = "h3-31";
 static uint64_t TimeoutMs = ATTACK_TIMEOUT_DEFAULT_MS;
 static uint32_t ThreadCount = ATTACK_THREADS_DEFAULT;
 

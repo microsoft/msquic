@@ -304,6 +304,7 @@ QuicPacketBuilderPrepare(
             case QUIC_VERSION_DRAFT_28:
             case QUIC_VERSION_DRAFT_29:
             case QUIC_VERSION_DRAFT_30:
+            case QUIC_VERSION_DRAFT_31:
             case QUIC_VERSION_MS_1:
                 Builder->HeaderLength =
                     QuicPacketEncodeShortHeaderV1(
@@ -329,6 +330,7 @@ QuicPacketBuilderPrepare(
             case QUIC_VERSION_DRAFT_28:
             case QUIC_VERSION_DRAFT_29:
             case QUIC_VERSION_DRAFT_30:
+            case QUIC_VERSION_DRAFT_31:
             case QUIC_VERSION_MS_1:
             default:
                 Builder->HeaderLength =
@@ -657,6 +659,7 @@ QuicPacketBuilderFinalize(
         case QUIC_VERSION_DRAFT_28:
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_DRAFT_30:
+        case QUIC_VERSION_DRAFT_31:
         case QUIC_VERSION_MS_1:
         default:
             QuicVarIntEncode2Bytes(

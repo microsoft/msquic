@@ -1698,6 +1698,7 @@ QuicConnOnQuicVersionSet(
     case QUIC_VERSION_DRAFT_28:
     case QUIC_VERSION_DRAFT_29:
     case QUIC_VERSION_DRAFT_30:
+    case QUIC_VERSION_DRAFT_31:
     case QUIC_VERSION_MS_1:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
