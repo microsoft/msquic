@@ -134,6 +134,10 @@
 #define _Outptr_result_buffer_(...)
 #endif
 
+#ifndef _Outptr_opt_result_buffer_
+#define _Outptr_opt_result_buffer_(...)
+#endif
+
 #ifndef _Outptr_result_buffer_maybenull_
 #define _Outptr_result_buffer_maybenull_(...)
 #endif

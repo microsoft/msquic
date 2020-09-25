@@ -228,13 +228,15 @@ typedef struct QUIC_CERTIFICATE_FILE {
     char *CertificateFile;
 } QUIC_CERTIFICATE_FILE;
 
+typedef void QUIC_CERTIFICATE; // Platform specific certificate context object
+
 typedef struct QUIC_CREDENTIAL_CONFIG {
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
     union {
         QUIC_CERTIFICATE_HASH* CertificateHash;
         QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore;
-        void* CertificateContext; // Platform specific certificate context object
+        QUIC_CERTIFICATE* CertificateContext;
         QUIC_CERTIFICATE_FILE* CertificateFile;
     };
     const char* Principal;

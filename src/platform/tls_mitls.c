@@ -173,7 +173,7 @@ typedef struct QUIC_SEC_CONFIG {
     //
     // The certificate context, used for signing.
     //
-    QUIC_CERT* Certificate;
+    QUIC_CERTIFICATE* Certificate;
     void* PrivateKey;
 
     //
@@ -1542,7 +1542,7 @@ QuicTlsOnCertVerify(
         "OnCertVerify");
 
     int Result = 0;
-    QUIC_CERT* Certificate = NULL;
+    QUIC_CERTIFICATE* Certificate = NULL;
 
     if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) {
         QuicTraceLogConnWarning(

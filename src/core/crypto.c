@@ -2209,7 +2209,7 @@ QuicCryptoDecodeClientTicket(
         goto Error;
     }
     if (TicketLength != 0) {
-        *ServerTicket = QUIC_ALLOC_NONPAGED(TicketLength);
+        *ServerTicket = QUIC_ALLOC_NONPAGED((uint32_t)TicketLength);
         if (*ServerTicket == NULL) {
             QuicTraceEvent(
                 AllocFailure,

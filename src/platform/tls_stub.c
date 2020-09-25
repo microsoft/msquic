@@ -192,7 +192,7 @@ typedef struct QUIC_SEC_CONFIG {
 
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
-    QUIC_CERT* Certificate;
+    QUIC_CERTIFICATE* Certificate;
     uint16_t FormatLength;
     uint8_t FormatBuffer[SIZEOF_CERT_CHAIN_LIST_LENGTH];
 
@@ -937,7 +937,7 @@ QuicTlsClientProcess(
                     "Certificate validation disabled!");
             } else {
 
-                QUIC_CERT* ServerCert =
+                QUIC_CERTIFICATE* ServerCert =
                     QuicCertParseChain(
                         ServerMessage->SERVER_HANDSHAKE.CertificateLength,
                         ServerMessage->SERVER_HANDSHAKE.Certificate);

@@ -16,7 +16,7 @@ Environment:
 #define SIZEOF_CERT_CHAIN_LIST_LENGTH 3
 
 typedef struct QUIC_CREDENTIAL_CONFIG QUIC_CREDENTIAL_CONFIG;
-typedef void QUIC_CERT;
+typedef void QUIC_CERTIFICATE;
 
 //
 // Gets the certificate from the input configuration.
@@ -24,7 +24,7 @@ typedef void QUIC_CERT;
 QUIC_STATUS
 QuicCertCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _Out_ QUIC_CERT** NewCertificate
+    _Out_ QUIC_CERTIFICATE** NewCertificate
     );
 
 //
@@ -32,7 +32,7 @@ QuicCertCreate(
 //
 void
 QuicCertFree(
-    _In_ QUIC_CERT* Certificate
+    _In_ QUIC_CERTIFICATE* Certificate
     );
 
 //
@@ -42,7 +42,7 @@ QuicCertFree(
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertSelect(
-    _In_opt_ QUIC_CERT* Certificate,
+    _In_opt_ QUIC_CERTIFICATE* Certificate,
     _In_reads_(SignatureAlgorithmsLength)
         const uint16_t *SignatureAlgorithms,
     _In_ size_t SignatureAlgorithmsLength,
@@ -54,7 +54,7 @@ QuicCertSelect(
 // to a certificate object.
 //
 _Success_(return != NULL)
-QUIC_CERT*
+QUIC_CERTIFICATE*
 QuicCertParseChain(
     _In_ size_t ChainBufferLength,
     _In_reads_(ChainBufferLength) const uint8_t *ChainBuffer
@@ -67,7 +67,7 @@ QuicCertParseChain(
 _Success_(return != 0)
 size_t
 QuicCertFormat(
-    _In_opt_ QUIC_CERT* Certificate,
+    _In_opt_ QUIC_CERTIFICATE* Certificate,
     _In_ size_t BufferLength,
     _Out_writes_to_(BufferLength, return)
         uint8_t* Buffer
@@ -79,7 +79,7 @@ QuicCertFormat(
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertValidateChain(
-    _In_ QUIC_CERT* Certificate,
+    _In_ QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ const char* Host,
     _In_ uint32_t IgnoreFlags
     );
@@ -90,7 +90,7 @@ QuicCertValidateChain(
 _Success_(return != NULL)
 void*
 QuicCertGetPrivateKey(
-    _In_ QUIC_CERT* Certificate
+    _In_ QUIC_CERTIFICATE* Certificate
     );
 
 //
@@ -123,7 +123,7 @@ QuicCertSign(
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertVerify(
-    _In_ QUIC_CERT* Certificate,
+    _In_ QUIC_CERTIFICATE* Certificate,
     _In_ const uint16_t SignatureAlgorithm,
     _In_reads_(CertListToBeSignedLength)
         const uint8_t *CertListToBeSigned,
