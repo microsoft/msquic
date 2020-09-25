@@ -2132,7 +2132,7 @@ QuicCryptoDecodeClientTicket(
     _In_reads_bytes_(ClientTicketLength)
         const uint8_t* ClientTicket,
     _Out_ QUIC_TRANSPORT_PARAMETERS* DecodedTP,
-    _Outptr_opt_result_buffer_(*ServerTicketLength)
+    _Outptr_result_buffer_maybenull_(*ServerTicketLength)
         uint8_t** ServerTicket,
     _Out_ uint32_t* ServerTicketLength,
     _Out_ uint32_t* QuicVersion
