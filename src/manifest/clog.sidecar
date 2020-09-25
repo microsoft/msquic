@@ -24637,34 +24637,6 @@
       {
         "UniquenessHash": "977ca100-03bb-010a-09ab-0a04d33a7dfd",
         "TraceID": "DatapathDropAllocRecvBufferFailure"
-      },
-      {
-        "UniquenessHash": "fd2e7ffd-0428-e1d7-902e-d4ff393b53bb",
-        "TraceID": "IoControlClientCreated"
-      },
-      {
-        "UniquenessHash": "5272e16b-6306-a6c8-ff86-a7c98753b29c",
-        "TraceID": "IoControlClientCleaningUp"
-      },
-      {
-        "UniquenessHash": "da3e61e7-ed11-0e5e-985e-f1c52289767e",
-        "TraceID": "IoControlClientIoctl"
-      },
-      {
-        "UniquenessHash": "5ddb1a5f-8a6f-f2a8-ee9f-73aff8ded388",
-        "TraceID": "IoControlClientIoctlComplete"
-      },
-      {
-        "UniquenessHash": "193d3f1c-4319-fb61-1559-0ca414fb5a55",
-        "TraceID": "IoControlInitialized"
-      },
-      {
-        "UniquenessHash": "88418940-a371-9258-288f-2c8d8283e6d5",
-        "TraceID": "IoControlUninitializing"
-      },
-      {
-        "UniquenessHash": "2eec0817-66c4-c7f7-92fe-d0c262a928a0",
-        "TraceID": "IoControlUninitialized"
       }
     ]
   }

@@ -27,7 +27,7 @@ function Force-Copy($Source, $Destination) {
 }
 
 # Package up all necessary header and manifest files.
-$IncFiles = "msquic.h", "msquicp.h", "msquic_winkernel.h", "msquic_winuser.h", "msquic_ioctl.h"
+$IncFiles = "msquic.h", "msquicp.h", "msquic_winkernel.h", "msquic_winuser.h"
 foreach ($File in $IncFiles) {
     Force-Copy (Join-Path $RootDir "src/inc/$File") $PackageDir
 }
@@ -47,8 +47,6 @@ foreach ($Config in $Configs) {
         Force-Copy (Join-Path $InputDir "msquic.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
         Force-Copy (Join-Path $InputDir "msquictest.exe") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
         Force-Copy (Join-Path $InputDir "msquictest.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
-        Force-Copy (Join-Path $InputDir "msquicioctltest.exe") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
-        Force-Copy (Join-Path $InputDir "msquicioctltest.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
     }
 }
 
