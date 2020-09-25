@@ -21,8 +21,8 @@ const char* ServerName = "localhost";
 const char* ServerIp = nullptr;
 QUIC_ADDR ServerAddress = {0};
 std::vector<const char*> ALPNs(
-    { "h3-27", "h3-28", "h3-29", "h3-30",
-      "hq-27", "hq-28", "hq-29", "hq-30",
+    { "h3-27", "h3-28", "h3-29", "h3-30", "h3-31",
+      "hq-27", "hq-28", "hq-29", "hq-30", "hq-31",
       "smb" });
 const char* InputAlpn = nullptr;
 

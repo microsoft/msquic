@@ -11,7 +11,6 @@ Abstract:
 
 #include "quic_platform.h"
 #include "quic_trace.h"
-
 #ifdef QUIC_CLOG
 #include "driver.c.clog.h"
 #endif
@@ -29,26 +28,16 @@ MsQuicLibraryUnload(
     void
     );
 
-NTSTATUS
-MsQuicPcwStartup(
-    void
-);
-
-void
-MsQuicPcwCleanup(
-    void
-);
-
 _No_competing_thread_
 INITCODE
 NTSTATUS
-QuicIoCtlInitialize(
-    _In_ WDFDRIVER Driver
+MsQuicPcwStartup(
+    void
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicIoCtlUninitialize(
+MsQuicPcwCleanup(
     void
     );
 
@@ -122,11 +111,6 @@ Return Value:
         goto Error;
     }
 
-    Status = QuicIoCtlInitialize(Driver);
-    if (!NT_SUCCESS(Status)) {
-        goto Error;
-    }
-
     Status = MsQuicPcwStartup();
     if (!NT_SUCCESS(Status)) {
         goto Error;
@@ -167,7 +151,6 @@ Arguments:
 
     PAGED_CODE();
     MsQuicPcwCleanup();
-    QuicIoCtlUninitialize();
     MsQuicLibraryUnload();
     QuicPlatformSystemUnload();
 }
