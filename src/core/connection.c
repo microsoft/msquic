@@ -5348,7 +5348,7 @@ QuicConnParamSet(
     case QUIC_PARAM_CONN_SETTINGS:
 
         if (BufferLength != sizeof(QUIC_SETTINGS)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER; // TODO - Support partial?
+            Status = QUIC_STATUS_INVALID_PARAMETER; // TODO - Support partial
             break;
         }
 

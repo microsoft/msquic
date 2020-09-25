@@ -235,6 +235,16 @@ ParseServerCommand(
     Settings.IsSet.DisconnectTimeoutMs = TRUE;
     Settings.IdleTimeoutMs = PingConfig.IdleTimeout;
     Settings.IsSet.IdleTimeoutMs = TRUE;
+    Settings.DatagramReceiveEnabled = TRUE;
+    Settings.IsSet.DatagramReceiveEnabled = TRUE;
+    if (!PingConfig.UseSendBuffer) {
+        Settings.SendBufferingEnabled = FALSE;
+        Settings.IsSet.SendBufferingEnabled = TRUE;
+    }
+    if (!PingConfig.UsePacing) {
+        Settings.PacingEnabled = FALSE;
+        Settings.IsSet.PacingEnabled = TRUE;
+    }
     if (PingConfig.MaxBytesPerKey != UINT64_MAX) {
         Settings.MaxBytesPerKey = PingConfig.MaxBytesPerKey;
         Settings.IsSet.MaxBytesPerKey = TRUE;

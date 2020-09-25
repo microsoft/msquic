@@ -206,6 +206,9 @@ public:
     // Parameters
     //
 
+    QUIC_SETTINGS GetSettings() const;
+    QUIC_STATUS SetSettings(_In_ const QUIC_SETTINGS& value);
+
     QUIC_STATUS ForceKeyUpdate();
     QUIC_STATUS ForceCidUpdate();
 

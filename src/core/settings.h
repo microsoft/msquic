@@ -58,7 +58,7 @@ QuicSettingsDump(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+void
 QuicSettingsDumpNew(
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t SettingsSize,

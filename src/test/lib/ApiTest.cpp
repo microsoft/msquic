@@ -446,7 +446,7 @@ ResumptionFailConnectionCallback(
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
-void
+bool
 ListenerFailSendResumeCallback(
     _In_ TestListener*  Listener,
     _In_ HQUIC ConnectionHandle
@@ -455,15 +455,22 @@ ListenerFailSendResumeCallback(
     //
     // Validate sending the resumption ticket fails
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_STATE,
+    QUIC_STATUS Status =
         MsQuic->ConnectionSendResumptionTicket(
             ConnectionHandle,
             QUIC_SEND_RESUMPTION_FLAG_NONE,
             0,
-            nullptr));
+            nullptr);
+    if (Status != QUIC_STATUS_INVALID_STATE) {
+        TEST_FAILURE(
+            "ConnectionSendResumptionTicket has unexpected error! Expected 0x%x, actual 0x%x",
+            QUIC_STATUS_INVALID_STATE,
+            Status);
+        return false;
+    }
     MsQuic->SetCallbackHandler(ConnectionHandle, (void*)ResumptionFailConnectionCallback, Listener->Context);
     QuicEventSet(*(QUIC_EVENT*)Listener->Context);
+    return true;
 }
 #endif
 
@@ -479,8 +486,9 @@ void QuicTestValidateConnection()
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
+    Settings.SetIdleTimeoutMs(1000);
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
     //
@@ -869,15 +877,6 @@ void QuicTestValidateConnection()
                     nullptr,
                     &Connection.Handle));
 
-            const uint64_t IdleTimeout = 1000;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    Connection.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_IDLE_TIMEOUT,
-                    sizeof(IdleTimeout),
-                    &IdleTimeout));
-
             TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionStart(
                     Connection.Handle,
@@ -901,14 +900,6 @@ void QuicTestValidateConnection()
                     AutoShutdownConnectionCallback,
                     &Event,
                     &Connection.Handle));
-
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    Connection.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_IDLE_TIMEOUT,
-                    sizeof(IdleTimeout),
-                    &IdleTimeout));
 
             TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionStart(
@@ -936,14 +927,6 @@ void QuicTestValidateConnection()
                     &Connection.Handle));
 
             TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    Connection.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_IDLE_TIMEOUT,
-                    sizeof(IdleTimeout),
-                    &IdleTimeout));
-
-            TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionStart(
                     Connection.Handle,
                     ClientConfiguration,
@@ -967,7 +950,7 @@ void QuicTestValidateConnection()
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
-void
+bool
 ListenerAcceptCallback(
     _In_ TestListener*  Listener,
     _In_ HQUIC ConnectionHandle
@@ -978,8 +961,9 @@ ListenerAcceptCallback(
     if (*NewConnection == nullptr || !(*NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *NewConnection;
-        MsQuic->ConnectionClose(ConnectionHandle);
+        return false;
     }
+    return true;
 }
 
 _Function_class_(QUIC_STREAM_CALLBACK)

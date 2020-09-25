@@ -29,7 +29,6 @@ uint32_t InitialVersion = 0;
 bool RunSerially = false;
 bool TestFailed = false; // True if any test failed
 
-const BOOLEAN UseSendBuffering = FALSE;
 const uint32_t RandomReservedVersion = 168430090ul; // Random reserved version to force VN.
 const uint8_t RandomTransportParameterPayload[2345] = {0};
 QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
@@ -369,21 +368,6 @@ public:
                 InteropConnection::ConnectionCallback,
                 this,
                 &Connection));
-        VERIFY_QUIC_SUCCESS(
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SEND_BUFFERING,
-                sizeof(UseSendBuffering),
-                &UseSendBuffering));
-        uint64_t IdleTimeoutMs = WaitTimeoutMs;
-        VERIFY_QUIC_SUCCESS(
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_IDLE_TIMEOUT,
-                sizeof(IdleTimeoutMs),
-                &IdleTimeoutMs));
         if (VerNeg) {
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
@@ -426,24 +410,30 @@ public:
         delete [] NegotiatedAlpn;
     }
     bool SetKeepAlive(uint32_t KeepAliveMs) {
+        QUIC_SETTINGS Settings{0};
+        Settings.KeepAliveIntervalMs = KeepAliveMs;
+        Settings.IsSet.KeepAliveIntervalMs = TRUE;
         return
             QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_KEEP_ALIVE,
-                    sizeof(KeepAliveMs),
-                    &KeepAliveMs));
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
     }
     bool SetDisconnectTimeout(uint32_t TimeoutMs) {
+        QUIC_SETTINGS Settings{0};
+        Settings.DisconnectTimeoutMs = TimeoutMs;
+        Settings.IsSet.DisconnectTimeoutMs = TRUE;
         return
             QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_DISCONNECT_TIMEOUT,
-                    sizeof(TimeoutMs),
-                    &TimeoutMs));
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
     }
     bool ConnectToServer(const char* ServerName, uint16_t ServerPort) {
         if (QUIC_SUCCEEDED(
@@ -701,6 +691,10 @@ RunInteropTest(
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
     Settings.IsSet.InitialRttMs = TRUE;
+    Settings.SendBufferingEnabled = FALSE;
+    Settings.IsSet.SendBufferingEnabled = TRUE;
+    Settings.IdleTimeoutMs = WaitTimeoutMs;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
     if (Feature == KeyUpdate) {
         Settings.MaxBytesPerKey = 10; // Force a key update after every 10 bytes sent
         Settings.IsSet.MaxBytesPerKey = TRUE;

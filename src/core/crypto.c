@@ -2208,26 +2208,19 @@ QuicCryptoDecodeClientTicket(
             "Client resumption ticket length is corrupt");
         goto Error;
     }
-    if (TicketLength == 0) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Client resumption ticket contains no server ticket");
-        goto Error;
+    if (TicketLength != 0) {
+        *ServerTicket = QUIC_ALLOC_NONPAGED(TicketLength);
+        if (*ServerTicket == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Resumption ticket copy",
+                TicketLength);
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
+        }
+        QuicCopyMemory(*ServerTicket, (uint8_t*)ClientTicket + Offset, (uint16_t)TicketLength);
     }
-    *ServerTicket = QUIC_ALLOC_NONPAGED(TicketLength);
-    if (*ServerTicket == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Resumption ticket copy",
-            TicketLength);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-    QuicCopyMemory(*ServerTicket, (uint8_t*)ClientTicket + Offset, (uint16_t)TicketLength);
     *ServerTicketLength = (uint32_t)TicketLength;
     Offset += (uint16_t)TicketLength;
     QUIC_DBG_ASSERT(ClientTicketLength == Offset);

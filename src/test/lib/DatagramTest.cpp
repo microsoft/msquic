@@ -28,7 +28,7 @@ struct ServerAcceptContext {
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
-void
+bool
 ListenerAcceptConnection(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -40,11 +40,11 @@ ListenerAcceptConnection(
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
         *AcceptContext->NewConnection = nullptr;
-        MsQuic->ConnectionClose(ConnectionHandle);
-    } else {
-        (*AcceptContext->NewConnection)->SetHasRandomLoss(Listener->GetHasRandomLoss());
+        return false;
     }
+    (*AcceptContext->NewConnection)->SetHasRandomLoss(Listener->GetHasRandomLoss());
     QuicEventSet(AcceptContext->NewConnectionReady);
+    return true;
 }
 
 void

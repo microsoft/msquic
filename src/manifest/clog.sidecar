@@ -36,87 +36,6 @@
         "CustomSettings": null
       }
     },
-    "IoControlInitialized": {
-      "ModuleProperites": {},
-      "TraceString": "[ioct] Control interface initialized",
-      "UniqueId": "IoControlInitialized",
-      "splitArgs": [],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "IoControlUninitializing": {
-      "ModuleProperites": {},
-      "TraceString": "[ioct] Control interface uninitializing",
-      "UniqueId": "IoControlUninitializing",
-      "splitArgs": [],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "IoControlUninitialized": {
-      "ModuleProperites": {},
-      "TraceString": "[ioct] Control interface uninitialized",
-      "UniqueId": "IoControlUninitialized",
-      "splitArgs": [],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "LibraryError": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib] ERROR, %s.",
-      "UniqueId": "LibraryError",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "\"WdfControlDeviceInitAllocate failed\"",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceEvent",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "PacketRxMarkedForAck": {
       "ModuleProperites": {},
       "TraceString": "[%c][RX][%llu] Marked for ACK (ECN=%hhu)",
@@ -965,6 +884,33 @@
         "CustomSettings": null
       }
     },
+    "ConfigurationSetSettings": {
+      "ModuleProperites": {},
+      "TraceString": "[cnfg][%p] Setting new settings",
+      "UniqueId": "ConfigurationSetSettings",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Configuration",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "ConfigurationCreated": {
       "ModuleProperites": {},
       "TraceString": "[cnfg][%p] Created, Registration=%p",
@@ -1550,33 +1496,6 @@
         "CustomSettings": null
       }
     },
-    "ApplySettings": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Applying new settings",
-      "UniqueId": "ApplySettings",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "CloseUserCanceled": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Connection close using user canceled error",
@@ -1968,181 +1887,6 @@
         "CustomSettings": null
       }
     },
-    "UpdateIdleTimeout": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Updated idle timeout to %llu milliseconds",
-      "UniqueId": "UpdateIdleTimeout",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection->IdleTimeoutMs",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "UpdateKeepAlive": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Updated keep alive interval to %u milliseconds",
-      "UniqueId": "UpdateKeepAlive",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection->Settings.KeepAliveIntervalMs",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "UpdateDisconnectTimeout": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Updated disconnect timeout = %u milliseconds",
-      "UniqueId": "UpdateDisconnectTimeout",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "*(uint32_t*)Buffer",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "UpdateUseSendBuffer": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Updated UseSendBuffer = %hhu",
-      "UniqueId": "UpdateUseSendBuffer",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection->State.UseSendBuffer",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "UpdateUsePacing": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Updated UsePacing = %hhu",
-      "UniqueId": "UpdateUsePacing",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection->State.UsePacing",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "UpdateShareBinding": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated ShareBinding = %hhu",
@@ -2198,6 +1942,33 @@
           },
           "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ApplySettings": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Applying new settings",
+      "UniqueId": "ApplySettings",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
         }
       ],
       "macro": {
@@ -2959,60 +2730,6 @@
         "CustomSettings": null
       }
     },
-    "ForceKeyUpdate": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Forcing key update",
-      "UniqueId": "ForceKeyUpdate",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "ForceCidUpdate": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Forcing destination CID update",
-      "UniqueId": "ForceCidUpdate",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "DatagramReceiveEnableUpdated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated datagram receive enabled to %hhu",
@@ -3068,6 +2785,60 @@
           },
           "DefinationEncoding": "hhu",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ForceKeyUpdate": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Forcing key update",
+      "UniqueId": "ForceKeyUpdate",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ForceCidUpdate": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Forcing destination CID update",
+      "UniqueId": "ForceCidUpdate",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
         }
       ],
       "macro": {
@@ -3581,6 +3352,41 @@
         "CustomSettings": null
       }
     },
+    "ConnVersionSet": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Version = %u",
+      "UniqueId": "ConnVersionSet",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection->Stats.QuicVersion",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "ConnHandshakeComplete": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake complete",
@@ -3800,41 +3606,6 @@
           },
           "DefinationEncoding": "hhu",
           "MacroVariableName": "arg5"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceEvent",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "ConnVersionSet": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Version = %u",
-      "UniqueId": "ConnVersionSet",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection->Stats.QuicVersion",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
         }
       ],
       "macro": {
@@ -5990,7 +5761,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection->TestTransportParameter.Type",
+            "UserSuppliedTrimmed": "TestParam->Type",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "hu",
@@ -5998,7 +5769,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection->TestTransportParameter.Length",
+            "UserSuppliedTrimmed": "TestParam->Length",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "hu",
@@ -9498,6 +9269,24 @@
         "CustomSettings": null
       }
     },
+    "LibrarySetSettings": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Setting new settings",
+      "UniqueId": "LibrarySetSettings",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "LibraryInUse": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Now in use.",
@@ -12687,10 +12476,37 @@
         "CustomSettings": null
       }
     },
-    "SettingDumpPacingDefault": {
+    "SettingDumpSendBufferingEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] SendBufferingEnabled   = %hhu",
+      "UniqueId": "SettingDumpSendBufferingEnabled",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Settings->SendBufferingEnabled",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "SettingDumpPacingEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] PacingEnabled          = %hhu",
-      "UniqueId": "SettingDumpPacingDefault",
+      "UniqueId": "SettingDumpPacingEnabled",
       "splitArgs": [
         {
           "VariableInfo": {
@@ -12749,33 +12565,6 @@
         {
           "VariableInfo": {
             "UserSuppliedTrimmed": "Settings->DatagramReceiveEnabled",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "SettingDumpMaxPartitionCount": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] MaxPartitionCount      = %hhu",
-      "UniqueId": "SettingDumpMaxPartitionCount",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Settings->MaxPartitionCount",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "hhu",
@@ -15852,6 +15641,33 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "LibraryError": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] ERROR, %s.",
+      "UniqueId": "LibraryError",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "\"Not all cert bytes were processed\"",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
         "EncodedPrefix": null,
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
@@ -21379,22 +21195,6 @@
         "TraceID": "LibraryErrorStatus"
       },
       {
-        "UniquenessHash": "193d3f1c-4319-fb61-1559-0ca414fb5a55",
-        "TraceID": "IoControlInitialized"
-      },
-      {
-        "UniquenessHash": "88418940-a371-9258-288f-2c8d8283e6d5",
-        "TraceID": "IoControlUninitializing"
-      },
-      {
-        "UniquenessHash": "2eec0817-66c4-c7f7-92fe-d0c262a928a0",
-        "TraceID": "IoControlUninitialized"
-      },
-      {
-        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
-        "TraceID": "LibraryError"
-      },
-      {
         "UniquenessHash": "bb7402a7-ba47-dbce-71f2-fbbd659eb0ff",
         "TraceID": "PacketRxMarkedForAck"
       },
@@ -21495,6 +21295,10 @@
         "TraceID": "ConfigurationSettingsUpdated"
       },
       {
+        "UniquenessHash": "68e427b3-d324-b500-3d21-f8f8c84079fb",
+        "TraceID": "ConfigurationSetSettings"
+      },
+      {
         "UniquenessHash": "f017e9d9-1069-630c-9301-b7c2cdd0dab5",
         "TraceID": "ConfigurationCreated"
       },
@@ -21571,10 +21375,6 @@
         "TraceID": "UnreachableInvalid"
       },
       {
-        "UniquenessHash": "87c499a7-b21e-c2df-9d11-9176e9730676",
-        "TraceID": "ApplySettings"
-      },
-      {
         "UniquenessHash": "b4f3dc8d-17c8-39c5-5345-952616752980",
         "TraceID": "CloseUserCanceled"
       },
@@ -21627,32 +21427,16 @@
         "TraceID": "Unreachable"
       },
       {
-        "UniquenessHash": "5566ba17-a508-e348-c832-84523238b097",
-        "TraceID": "UpdateIdleTimeout"
-      },
-      {
-        "UniquenessHash": "5b5d01c1-4b5f-2107-e6bf-6438b293efa1",
-        "TraceID": "UpdateKeepAlive"
-      },
-      {
-        "UniquenessHash": "c12bc763-2609-6955-b54b-6514e5ddc0a4",
-        "TraceID": "UpdateDisconnectTimeout"
-      },
-      {
-        "UniquenessHash": "333a1d25-730c-87e8-c17c-7ab1cc39df40",
-        "TraceID": "UpdateUseSendBuffer"
-      },
-      {
-        "UniquenessHash": "f1df97fd-15d7-455b-c14f-10a85fd3d688",
-        "TraceID": "UpdateUsePacing"
-      },
-      {
         "UniquenessHash": "66cfdc40-f79f-a762-a02c-b7f1a4c2e0eb",
         "TraceID": "UpdateShareBinding"
       },
       {
         "UniquenessHash": "f433b4bc-afec-9da4-79cb-eb11596d42e4",
         "TraceID": "UpdateStreamSchedulingScheme"
+      },
+      {
+        "UniquenessHash": "87c499a7-b21e-c2df-9d11-9176e9730676",
+        "TraceID": "ApplySettings"
       },
       {
         "UniquenessHash": "ffeb66e8-2636-b98b-46a5-564068b26843",
@@ -21743,20 +21527,20 @@
         "TraceID": "UdpRecv"
       },
       {
-        "UniquenessHash": "4e7f072c-3335-6eb0-dcca-13d3fdf87fe8",
-        "TraceID": "ForceKeyUpdate"
-      },
-      {
-        "UniquenessHash": "6e5b39c0-03d0-5405-431a-9b3d0940496e",
-        "TraceID": "ForceCidUpdate"
-      },
-      {
         "UniquenessHash": "886942eb-0bdc-fffd-0a3b-e2ea639228bb",
         "TraceID": "DatagramReceiveEnableUpdated"
       },
       {
         "UniquenessHash": "b5551d75-2b95-b9d9-98f7-36215d5364b0",
         "TraceID": "Disable1RttEncrytionUpdated"
+      },
+      {
+        "UniquenessHash": "4e7f072c-3335-6eb0-dcca-13d3fdf87fe8",
+        "TraceID": "ForceKeyUpdate"
+      },
+      {
+        "UniquenessHash": "6e5b39c0-03d0-5405-431a-9b3d0940496e",
+        "TraceID": "ForceCidUpdate"
       },
       {
         "UniquenessHash": "ad3632a2-ac75-293d-854f-381b59368114",
@@ -21815,6 +21599,10 @@
         "TraceID": "ConnAssignWorker"
       },
       {
+        "UniquenessHash": "bdb8873d-36bc-4a0a-69e3-0de1a47e4afd",
+        "TraceID": "ConnVersionSet"
+      },
+      {
         "UniquenessHash": "e55bbe23-63cb-e695-26d2-734d5bab5d48",
         "TraceID": "ConnHandshakeComplete"
       },
@@ -21837,10 +21625,6 @@
       {
         "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",
         "TraceID": "ConnTransportShutdown"
-      },
-      {
-        "UniquenessHash": "bdb8873d-36bc-4a0a-69e3-0de1a47e4afd",
-        "TraceID": "ConnVersionSet"
       },
       {
         "UniquenessHash": "7a6ee833-be8b-28d5-a62a-4addb834ada3",
@@ -22391,6 +22175,10 @@
         "TraceID": "LibraryLoadBalancingModeSet"
       },
       {
+        "UniquenessHash": "8b631421-6922-c7cf-8f9e-0b9ded090611",
+        "TraceID": "LibrarySetSettings"
+      },
+      {
         "UniquenessHash": "80830820-d84f-0303-c862-a7d195fbca03",
         "TraceID": "LibraryInUse"
       },
@@ -22731,8 +22519,12 @@
         "TraceID": "IndicateIdealSendBuffer"
       },
       {
-        "UniquenessHash": "fe3408e1-1fb0-c1b5-d7d9-61b116db0fe8",
-        "TraceID": "SettingDumpPacingDefault"
+        "UniquenessHash": "a0905196-8b7e-fdd3-5369-0c6ffcc3707f",
+        "TraceID": "SettingDumpSendBufferingEnabled"
+      },
+      {
+        "UniquenessHash": "50c8e61a-10db-0422-9497-26f288b36eed",
+        "TraceID": "SettingDumpPacingEnabled"
       },
       {
         "UniquenessHash": "340f2d77-e194-4320-a5cf-5bd9f81d8568",
@@ -22741,10 +22533,6 @@
       {
         "UniquenessHash": "d4201eb3-a633-2e4e-e23a-2c5e045234fa",
         "TraceID": "SettingDumpDatagramReceiveEnabled"
-      },
-      {
-        "UniquenessHash": "8ec2f3d9-be06-8705-d9ac-064897042254",
-        "TraceID": "SettingDumpMaxPartitionCount"
       },
       {
         "UniquenessHash": "3fe22b95-e06c-01be-48f2-1bed9eb3def3",
@@ -23113,6 +22901,10 @@
       {
         "UniquenessHash": "d53212c8-2068-d598-a55f-1b238ec86ad1",
         "TraceID": "CertCapiVerify"
+      },
+      {
+        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
+        "TraceID": "LibraryError"
       },
       {
         "UniquenessHash": "f11702ec-fc18-f5bb-c732-90e621e3356d",

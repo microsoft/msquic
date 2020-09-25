@@ -25,9 +25,31 @@ void QuicPingClientRun()
     bool Timeout = true;
     {
         QUIC_SETTINGS Settings{0};
+        Settings.IdleTimeoutMs = PingConfig.IdleTimeout;
+        Settings.IsSet.IdleTimeoutMs = TRUE;
+        Settings.DisconnectTimeoutMs = PingConfig.DisconnectTimeout;
+        Settings.IsSet.DisconnectTimeoutMs = TRUE;
+        Settings.DatagramReceiveEnabled = TRUE;
+        Settings.IsSet.DatagramReceiveEnabled = TRUE;
+        if (!PingConfig.UseSendBuffer) {
+            Settings.SendBufferingEnabled = FALSE;
+            Settings.IsSet.SendBufferingEnabled = TRUE;
+        }
+        if (!PingConfig.UsePacing) {
+            Settings.PacingEnabled = FALSE;
+            Settings.IsSet.PacingEnabled = TRUE;
+        }
         if (PingConfig.MaxBytesPerKey != UINT64_MAX) {
             Settings.MaxBytesPerKey = PingConfig.MaxBytesPerKey;
             Settings.IsSet.MaxBytesPerKey = TRUE;
+        }
+        if (PingConfig.PeerBidirStreamCount != 0) {
+            Settings.PeerBidiStreamCount = PingConfig.PeerBidirStreamCount;
+            Settings.IsSet.PeerBidiStreamCount = TRUE;
+        }
+        if (PingConfig.PeerUnidirStreamCount != 0) {
+            Settings.PeerUnidiStreamCount = PingConfig.PeerUnidirStreamCount;
+            Settings.IsSet.PeerUnidiStreamCount = TRUE;
         }
 
         QuicConfigurationPtr ClientConfiguration;

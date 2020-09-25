@@ -70,8 +70,14 @@ QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
     Alpn.Buffer = (uint8_t*)_Alpn;
     Alpn.Length = (uint32_t)strlen((char*)_Alpn);
 
+    QUIC_SETTINGS Settings{0};
+    Settings.PeerUnidiStreamCount = 100;
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
+    Settings.IdleTimeoutMs = 10 * 1000;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
+
     HQUIC Configuration = nullptr;
-    if (QUIC_FAILED(MsQuic->ConfigurationOpen(Registration, &Alpn, 1, nullptr, 0, nullptr, &Configuration))) {
+    if (QUIC_FAILED(MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), nullptr, &Configuration))) {
         printf("ConfigurationOpen failed.\n");
         exit(1);
     }
@@ -96,18 +102,6 @@ QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
 
     if (QUIC_FAILED(MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_REMOTE_ADDRESS, sizeof(ServerAddress), &ServerAddress))) {
         printf("SetParam QUIC_PARAM_CONN_REMOTE_ADDRESS failed.\n");
-        exit(1);
-    }
-
-    uint16_t StreamCount = 100;
-    if (QUIC_FAILED(MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT, sizeof(StreamCount), &StreamCount))) {
-        printf("SetParam QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT failed.\n");
-        exit(1);
-    }
-
-    uint64_t IdleTimeoutMs = 10 * 1000;
-    if (QUIC_FAILED(MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_IDLE_TIMEOUT, sizeof(IdleTimeoutMs), &IdleTimeoutMs))) {
-        printf("SetParam QUIC_PARAM_CONN_IDLE_TIMEOUT failed.\n");
         exit(1);
     }
 

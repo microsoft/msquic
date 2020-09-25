@@ -405,11 +405,34 @@ QuicConfigurationParamGet(
         void* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(Configuration);
-    UNREFERENCED_PARAMETER(Param);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_STATUS Status;
+
+    switch (Param) {
+    case QUIC_PARAM_CONFIGURATION_SETTINGS:
+
+        if (*BufferLength < sizeof(QUIC_SETTINGS)) {
+            *BufferLength = sizeof(QUIC_SETTINGS);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL; // TODO - Support partial
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QUIC_SETTINGS);
+        QuicCopyMemory(Buffer, &Configuration->Settings, sizeof(QUIC_SETTINGS));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    default:
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -422,9 +445,39 @@ QuicConfigurationParamSet(
         const void* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(Configuration);
-    UNREFERENCED_PARAMETER(Param);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_STATUS Status;
+
+    switch (Param) {
+    case QUIC_PARAM_GLOBAL_SETTINGS:
+
+        if (BufferLength != sizeof(QUIC_SETTINGS)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER; // TODO - Support partial
+            break;
+        }
+
+        QuicTraceLogInfo(
+            ConfigurationSetSettings,
+            "[cnfg][%p] Setting new settings",
+            Configuration);
+
+        if (!QuicSettingApply(
+                &Configuration->Settings,
+                TRUE,
+                BufferLength,
+                (QUIC_SETTINGS*)Buffer)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS*)Buffer);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    default:
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    return Status;
 }

@@ -74,14 +74,14 @@ QuicDrillTestVarIntEncoder(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
-void
+bool
 QuicDrillConnectionCallbackHandler(
     _In_ TestListener* /* Listener */,
-    _In_ HQUIC ConnectionHandle
+    _In_ HQUIC /* ConnectionHandle */
     )
 {
     TEST_FAILURE("Quic Drill listener received an unexpected event!");
-    MsQuic->ConnectionClose(ConnectionHandle);
+    return false;
 }
 
 struct DrillSender {

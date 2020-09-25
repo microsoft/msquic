@@ -20,11 +20,11 @@ volatile int64_t NextConnID = 0x10000;
 TestListener::TestListener(
     _In_ HQUIC Registration,
     _In_ NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallbackHandler,
-    _In_opt_ HQUIC Configuration,
-    _In_ bool UseSendBuffer
+    _In_opt_ HQUIC Configuration
     ) :
-    QuicListener(nullptr), QuicConfiguration(Configuration),
-    FilterConnections(false), UseSendBuffer(UseSendBuffer),
+    QuicListener(nullptr),
+    QuicConfiguration(Configuration),
+    FilterConnections(false),
     NewConnectionCallback(NewConnectionCallbackHandler),
     Context(nullptr)
 {
@@ -130,27 +130,13 @@ TestListener::HandleListenerEvent(
             break;
         }
 
-        if (FilterConnections) {
+        if (FilterConnections ||
+            !NewConnectionCallback(
+                this,
+                Event->NEW_CONNECTION.Connection)) {
             Status = QUIC_STATUS_CONNECTION_REFUSED;
             break;
         }
-
-        BOOLEAN Opt = UseSendBuffer;
-        Status =
-            MsQuic->SetParam(
-                Event->NEW_CONNECTION.Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SEND_BUFFERING,
-                sizeof(Opt),
-                &Opt);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->SetParam(CONN_SEND_BUFFERING) failed, 0x%x.", Status);
-            break;
-        }
-
-        NewConnectionCallback(
-            this,
-            Event->NEW_CONNECTION.Connection);
 
         if (QuicConfiguration) {
             Status =

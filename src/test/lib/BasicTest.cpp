@@ -16,13 +16,14 @@ Abstract:
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
-void
+bool
 ListenerDoNothingCallback(
     _In_ TestListener* /* Listener */,
     _In_ HQUIC /* ConnectionHandle */
     )
 {
     TEST_FAILURE("This callback should never be called!");
+    return false;
 }
 
 void QuicTestCreateListener()

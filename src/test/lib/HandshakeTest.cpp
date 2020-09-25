@@ -43,16 +43,16 @@ QuicTestPrimeResumption(
     *ResumptionTicket = nullptr;
 
     struct PrimeResumption {
-        _Function_class_(NEW_CONNECTION_CALLBACK) static void
+        _Function_class_(NEW_CONNECTION_CALLBACK) static bool
         ListenerAccept(_In_ TestListener* /* Listener */, _In_ HQUIC ConnectionHandle) {
             auto NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
             if (NewConnection == nullptr || !NewConnection->IsValid()) {
                 TEST_FAILURE("Failed to accept new TestConnection.");
                 delete NewConnection;
-                MsQuic->ConnectionClose(ConnectionHandle);
-            } else {
-                NewConnection->SetAutoDelete();
+                return false;
             }
+            NewConnection->SetAutoDelete();
+            return true;
         }
     };
 
@@ -98,7 +98,7 @@ struct ServerAcceptContext {
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
-void
+bool
 ListenerAcceptConnection(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -110,11 +110,11 @@ ListenerAcceptConnection(
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
         *AcceptContext->NewConnection = nullptr;
-        MsQuic->ConnectionClose(ConnectionHandle);
-    } else {
-        (*AcceptContext->NewConnection)->SetHasRandomLoss(Listener->GetHasRandomLoss());
+        return false;
     }
+    (*AcceptContext->NewConnection)->SetHasRandomLoss(Listener->GetHasRandomLoss());
     QuicEventSet(AcceptContext->NewConnectionReady);
+    return true;
 }
 
 void
@@ -958,7 +958,7 @@ QuicTestConnectBadSni(
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
-void
+bool
 ListenerRejectConnection(
     _In_ TestListener* /*  Listener */,
     _In_ HQUIC ConnectionHandle
@@ -968,11 +968,11 @@ ListenerRejectConnection(
     if (Connection == nullptr || !Connection->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete Connection;
-        MsQuic->ConnectionClose(ConnectionHandle);
-    } else {
-        Connection->SetAutoDelete();
-        Connection->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_SPECIAL_ERROR);
+        return false;
     }
+    Connection->SetAutoDelete();
+    Connection->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_SPECIAL_ERROR);
+    return true;
 }
 
 void
@@ -987,6 +987,7 @@ QuicTestConnectServerRejected(
 
     MsQuicSettings Settings;
     Settings.SetIdleTimeoutMs(3000);
+    Settings.SetSendBufferingEnabled(true);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -996,7 +997,7 @@ QuicTestConnectServerRejected(
     TEST_TRUE(ClientConfiguration.IsValid());
 
     {
-        TestListener Listener(Registration, ListenerRejectConnection, ServerConfiguration, true);
+        TestListener Listener(Registration, ListenerRejectConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 

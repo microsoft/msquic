@@ -342,45 +342,27 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
         break; // TODO - Add support here
     case QUIC_PARAM_CONN_REMOTE_ADDRESS:                            // QUIC_ADDR
         break; // Get Only
-    case QUIC_PARAM_CONN_IDLE_TIMEOUT:                              // uint64_t - milliseconds
-        Helper.SetUint64(QUIC_PARAM_CONN_IDLE_TIMEOUT, GetRandom(20000));
-        break;
-    case QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT:                    // uint16_t
-        Helper.SetUint16(QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT, (uint16_t)GetRandom(50000));
-        break;
-    case QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT:                   // uint16_t
-        Helper.SetUint16(QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT, (uint16_t)GetRandom(50000));
-        break;
-    case QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT:                   // uint16_t
+    case QUIC_PARAM_CONN_IDEAL_PROCESSOR:                           // uint16_t
         break; // Get Only
-    case QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT:                  // uint16_t
-        break; // Get Only
-    case QUIC_PARAM_CONN_CLOSE_REASON_PHRASE:                       // char[]
-        Helper.SetPtr(QUIC_PARAM_CONN_CLOSE_REASON_PHRASE, "ABCDEFGHI\x00\x00\x00\x00\x00", 10);
+    case QUIC_PARAM_CONN_SETTINGS:                                  // QUIC_SETTINGS
+        // TODO
         break;
     case QUIC_PARAM_CONN_STATISTICS:                                // QUIC_STATISTICS
         break; // Get Only
     case QUIC_PARAM_CONN_STATISTICS_PLAT:                           // QUIC_STATISTICS
         break; // Get Only
-    case QUIC_PARAM_CONN_KEEP_ALIVE:                                // uint32_t - milliseconds
-        Helper.SetUint32(QUIC_PARAM_CONN_KEEP_ALIVE, GetRandom(200));
-        break;
-    case QUIC_PARAM_CONN_DISCONNECT_TIMEOUT:                        // uint32_t - milliseconds
-        Helper.SetUint32(QUIC_PARAM_CONN_DISCONNECT_TIMEOUT, GetRandom(200));
-        break;
-    case QUIC_PARAM_CONN_SEND_BUFFERING:                            // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_CONN_SEND_BUFFERING, (uint8_t)GetRandom(2));
-        break;
-    case QUIC_PARAM_CONN_SEND_PACING:                               // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_CONN_SEND_PACING, (uint8_t)GetRandom(2));
-        break;
     case QUIC_PARAM_CONN_SHARE_UDP_BINDING:                         // uint8_t (BOOLEAN)
         Helper.SetUint8(QUIC_PARAM_CONN_SHARE_UDP_BINDING, (uint8_t)GetRandom(2));
         break;
-    case QUIC_PARAM_CONN_IDEAL_PROCESSOR:                           // uint16_t
+    case QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT:                   // uint16_t
+        break; // Get Only
+    case QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT:                  // uint16_t
         break; // Get Only
     case QUIC_PARAM_CONN_MAX_STREAM_IDS:                            // uint64_t[4]
         break; // Get Only
+    case QUIC_PARAM_CONN_CLOSE_REASON_PHRASE:                       // char[]
+        Helper.SetPtr(QUIC_PARAM_CONN_CLOSE_REASON_PHRASE, "ABCDEFGHI\x00\x00\x00\x00\x00", 10);
+        break;
     case QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME:                  // QUIC_STREAM_SCHEDULING_SCHEME
         Helper.SetUint32(QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME, GetRandom(QUIC_STREAM_SCHEDULING_SCHEME_COUNT));
         break;
@@ -391,6 +373,9 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
         break; // Get Only
     case QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION:                   // uint8_t (BOOLEAN)
         Helper.SetUint8(QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, (uint8_t)GetRandom(2));
+        break;
+    case QUIC_PARAM_CONN_RESUMPTION_STATE:                          // uint8_t[]
+        // TODO
         break;
     default:
         break;

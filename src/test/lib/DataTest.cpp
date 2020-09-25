@@ -238,7 +238,7 @@ ConnectionAcceptPingStream(
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
-void
+bool
 ListenerAcceptPingConnection(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -250,8 +250,7 @@ ListenerAcceptPingConnection(
     if (Connection == nullptr || !(Connection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete Connection;
-        MsQuic->ConnectionClose(ConnectionHandle);
-        return;
+        return false;
     }
     Connection->SetAutoDelete();
 
@@ -277,6 +276,8 @@ ListenerAcceptPingConnection(
             Stats->StreamCount,
             Stats->PayloadLength);
     }
+
+    return true;
 }
 
 TestConnection*
@@ -372,6 +373,7 @@ QuicTestConnectAndPing(
         Settings.SetPeerBidiStreamCount(TotalStreamCount);
         Settings.SetPeerUnidiStreamCount(TotalStreamCount);
     }
+    Settings.SetSendBufferingEnabled(UseSendBuffer);
 
     MsQuicCredentialConfig GoodServerConfig(SelfSignedCredConfig);
 #ifndef QUIC_DISABLE_0RTT_TESTS
@@ -413,11 +415,11 @@ QuicTestConnectAndPing(
             Registration,
             ListenerAcceptPingConnection,
 #ifndef QUIC_DISABLE_0RTT_TESTS
-            ServerRejectZeroRtt ? BadServerConfiguration : GoodServerConfiguration,
+            ServerRejectZeroRtt ? BadServerConfiguration : GoodServerConfiguration
 #else
-            GoodServerConfiguration,
+            GoodServerConfiguration
 #endif
-            UseSendBuffer);
+            );
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
@@ -580,7 +582,7 @@ ConnectionAcceptAndIgnoreStream(
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
-void
+bool
 ListenerAcceptConnectionAndStreams(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -592,9 +594,10 @@ ListenerAcceptConnectionAndStreams(
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
         *AcceptContext->NewConnection = nullptr;
-        MsQuic->ConnectionClose(ConnectionHandle);
+        return false;
     }
     QuicEventSet(AcceptContext->NewConnectionReady);
+    return true;
 }
 
 void
@@ -935,8 +938,6 @@ QuicAbortiveTransfers(
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
     QuicAddr ServerLocalAddr;
     QuicBufferScope Buffer(SendLength);
-    uint32_t StreamCountType = (Flags.UnidirectionalStream) ?
-        QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT : QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT;
     QUIC_STREAM_SHUTDOWN_FLAGS ShutdownFlags;
     switch (Flags.ShutdownDirection) {
         case ShutdownBoth:
@@ -1052,15 +1053,23 @@ QuicAbortiveTransfers(
         }
 
         if (!Flags.DelayStreamCreation) {
+            QUIC_SETTINGS Settings{0};
+            if (Flags.UnidirectionalStream) {
+                Settings.PeerUnidiStreamCount = StreamCount;
+                Settings.IsSet.PeerUnidiStreamCount = TRUE;
+            } else {
+                Settings.PeerBidiStreamCount = StreamCount;
+                Settings.IsSet.PeerBidiStreamCount = TRUE;
+            }
             Status =
                 MsQuic->SetParam(
                     ServerContext.Conn.Handle,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    StreamCountType,
-                    sizeof(StreamCount),
-                    &StreamCount);
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings);
             if (QUIC_FAILED(Status)) {
-                TEST_FAILURE("MsQuic->SetParam QUIC_PARAM_CONN_PEER_*DI_STREAM_COUNT(%d) failed, 0x%x", StreamCountType, Status);
+                TEST_FAILURE("MsQuic->SetParam QUIC_PARAM_CONN_SETTINGS failed, 0x%x", Status);
                 return;
             }
         }
@@ -1100,15 +1109,23 @@ QuicAbortiveTransfers(
         }
 
         if (Flags.DelayStreamCreation) {
+            QUIC_SETTINGS Settings{0};
+            if (Flags.UnidirectionalStream) {
+                Settings.PeerUnidiStreamCount = StreamCount;
+                Settings.IsSet.PeerUnidiStreamCount = TRUE;
+            } else {
+                Settings.PeerBidiStreamCount = StreamCount;
+                Settings.IsSet.PeerBidiStreamCount = TRUE;
+            }
             Status =
                 MsQuic->SetParam(
                     ServerContext.Conn.Handle,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    StreamCountType,
-                    sizeof(StreamCount),
-                    &StreamCount);
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings);
             if (QUIC_FAILED(Status)) {
-                TEST_FAILURE("MsQuic->SetParam QUIC_PARAM_CONN_PEER_*DI_STREAM_COUNT(%d) failed, 0x%x", StreamCountType, Status);
+                TEST_FAILURE("MsQuic->SetParam QUIC_PARAM_CONN_SETTINGS failed, 0x%x", Status);
                 return;
             }
         }
@@ -1494,17 +1511,18 @@ QuicTestReceiveResume(
             return;
         }
 
-        uint32_t StreamCount = 1;
-        uint16_t ParamType = QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT;
+        QUIC_SETTINGS Settings{0};
+        Settings.PeerUnidiStreamCount = 1;
+        Settings.IsSet.PeerUnidiStreamCount = TRUE;
         Status =
             MsQuic->SetParam(
                 ServerContext.Conn.Handle,
                 QUIC_PARAM_LEVEL_CONNECTION,
-                ParamType,
-                sizeof(ParamType),
-                &StreamCount);
+                QUIC_PARAM_CONN_SETTINGS,
+                sizeof(Settings),
+                &Settings);
         if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->SetParam QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT failed, 0x%x", Status);
+            TEST_FAILURE("MsQuic->SetParam QUIC_PARAM_CONN_SETTINGS failed, 0x%x", Status);
             return;
         }
 
@@ -1754,17 +1772,18 @@ QuicTestReceiveResumeNoData(
             return;
         }
 
-        uint32_t StreamCount = 1;
-        uint16_t ParamType = QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT;
+        QUIC_SETTINGS Settings{ 0 };
+        Settings.PeerUnidiStreamCount = 1;
+        Settings.IsSet.PeerUnidiStreamCount = TRUE;
         Status =
             MsQuic->SetParam(
                 ServerContext.Conn.Handle,
                 QUIC_PARAM_LEVEL_CONNECTION,
-                ParamType,
-                sizeof(ParamType),
-                &StreamCount);
+                QUIC_PARAM_CONN_SETTINGS,
+                sizeof(Settings),
+                &Settings);
         if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->SetParam QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT failed, 0x%x", Status);
+            TEST_FAILURE("MsQuic->SetParam QUIC_PARAM_CONN_SETTINGS failed, 0x%x", Status);
             return;
         }
 

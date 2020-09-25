@@ -123,6 +123,35 @@ QuicLibrarySumPerfCountersExternal(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+MsQuicLibraryOnSettingsChanged(
+    _In_ BOOLEAN UpdateRegistrations
+    )
+{
+    if (!MsQuicLib.InUse) {
+        //
+        // Load balancing settings can only change before the library is
+        // officially "in use", otherwise existing connections would be
+        // destroyed.
+        //
+        QuicLibApplyLoadBalancingSetting();
+    }
+
+    if (UpdateRegistrations) {
+        QuicLockAcquire(&MsQuicLib.Lock);
+
+        for (QUIC_LIST_ENTRY* Link = MsQuicLib.Registrations.Flink;
+            Link != &MsQuicLib.Registrations;
+            Link = Link->Flink) {
+            QuicRegistrationSettingsChanged(
+                QUIC_CONTAINING_RECORD(Link, QUIC_REGISTRATION, Link));
+        }
+
+        QuicLockRelease(&MsQuicLib.Lock);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(QUIC_STORAGE_CHANGE_CALLBACK)
 void
 MsQuicLibraryReadSettings(
@@ -140,28 +169,7 @@ MsQuicLibraryReadSettings(
         &MsQuicLib.Settings);
     QuicSettingsDump(&MsQuicLib.Settings);
 
-    if (!MsQuicLib.InUse) {
-        //
-        // Load balancing settings can only change before the library is
-        // officially "in use", otherwise existing connections would be
-        // destroyed.
-        //
-        QuicLibApplyLoadBalancingSetting();
-    }
-
-    BOOLEAN UpdateRegistrations = (Context != NULL);
-    if (UpdateRegistrations) {
-        QuicLockAcquire(&MsQuicLib.Lock);
-
-        for (QUIC_LIST_ENTRY* Link = MsQuicLib.Registrations.Flink;
-            Link != &MsQuicLib.Registrations;
-            Link = Link->Flink) {
-            QuicRegistrationSettingsChanged(
-                QUIC_CONTAINING_RECORD(Link, QUIC_REGISTRATION, Link));
-        }
-
-        QuicLockRelease(&MsQuicLib.Lock);
-    }
+    MsQuicLibraryOnSettingsChanged(Context != NULL);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -631,6 +639,33 @@ QuicLibrarySetGlobalParam(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+    }
+
+    case QUIC_PARAM_GLOBAL_SETTINGS:
+
+        if (BufferLength != sizeof(QUIC_SETTINGS)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER; // TODO - Support partial
+            break;
+        }
+
+        QuicTraceLogInfo(
+            LibrarySetSettings,
+            "[ lib] Setting new settings");
+
+        if (!QuicSettingApply(
+                &MsQuicLib.Settings,
+                TRUE,
+                BufferLength,
+                (QUIC_SETTINGS*)Buffer)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS*)Buffer);
+        MsQuicLibraryOnSettingsChanged(TRUE);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     case QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS:
@@ -648,7 +683,6 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 #endif
-    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -757,6 +791,25 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
+
+    case QUIC_PARAM_GLOBAL_SETTINGS:
+
+        if (*BufferLength < sizeof(QUIC_SETTINGS)) {
+            *BufferLength = sizeof(QUIC_SETTINGS);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL; // TODO - Support partial
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QUIC_SETTINGS);
+        QuicCopyMemory(Buffer, &MsQuicLib.Settings, sizeof(QUIC_SETTINGS));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
