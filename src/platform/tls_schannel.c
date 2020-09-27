@@ -915,7 +915,6 @@ QuicTlsSecConfigCreate(
     Credentials->cTlsParameters = 1;
 
     Credentials->dwVersion = SCH_CREDENTIALS_VERSION;
-    Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
     Credentials->dwFlags |= SCH_USE_STRONG_CRYPTO;
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) {
         Credentials->dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
@@ -927,6 +926,7 @@ QuicTlsSecConfigCreate(
         Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_CLIENT;
     } else {
+        Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_SERVER;
     }
     //
