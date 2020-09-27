@@ -265,6 +265,16 @@ typedef struct QUIC_ACH_CONTEXT {
     // call needs it.
     //
     UNICODE_STRING Principal;
+
+    //
+    // Used to wait on the async callback, when in synchronous mode.
+    //
+    KEVENT CompletionEvent;
+
+    //
+    // The status received from the completion callback.
+    //
+    SECURITY_STATUS CompletionStatus;
 #endif
 
     //
@@ -747,6 +757,11 @@ QuicTlsAllocateAchContext(
         AchContext->SecConfig = Config;
         AchContext->Credentials.pTlsParameters = &AchContext->TlsParameters;
         AchContext->Credentials.cTlsParameters = 1;
+#ifdef _KERNEL_MODE
+        if (!(AchContext->CredConfig.Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS)) {
+            KeInitializeEvent(&AchContext->CompletionEvent, NotificationEvent, FALSE);
+        }
+#endif
     }
 
     return AchContext;
@@ -782,12 +797,16 @@ QuicTlsSspiNotifyCallback(
         return;
     }
     QUIC_ACH_CONTEXT* Context = CallbackData;
+    BOOLEAN Synchronous = !(Context->CredConfig.Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS);
     QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionCallback = Context->CompletionCallback;
     void* CompletionContext = Context->CompletionContext;
-    QUIC_SEC_CONFIG* SecConfig = (QUIC_SEC_CONFIG*)Context->SecConfig;
+    QUIC_SEC_CONFIG* SecConfig = Context->SecConfig;
     SECURITY_STATUS Status = SspiGetAsyncCallStatus(Handle);
+    Context->CompletionStatus = Status;
     QUIC_CREDENTIAL_CONFIG CredConfig = Context->CredConfig;
-    QuicTlsFreeAchContext(Context);
+    if (!Synchronous) {
+        QuicTlsFreeAchContext(Context);
+    }
     if (Status != SEC_E_OK) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -798,6 +817,9 @@ QuicTlsSspiNotifyCallback(
         QuicTlsSecConfigDelete(SecConfig); // *MUST* be last call to prevent crash in platform cleanup.
     } else {
         CompletionCallback(&CredConfig, CompletionContext, QUIC_STATUS_SUCCESS, SecConfig);
+    }
+    if (Synchronous) {
+        KeSetEvent(&Context->CompletionEvent, IO_NO_INCREMENT, FALSE);
     }
 }
 
@@ -975,10 +997,10 @@ QuicTlsSecConfigCreate(
 #pragma warning(pop)
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "Convert cert store name to unicode");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "Convert cert store name to unicode");
             goto Error;
         }
 
@@ -1040,84 +1062,85 @@ QuicTlsSecConfigCreate(
     }
 #endif
 
-    TimeStamp CredExpiration;
     unsigned long Direction =
         (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) ?
             SECPKG_CRED_OUTBOUND : SECPKG_CRED_INBOUND;
-#ifdef _KERNEL_MODE
-    PSECURITY_STRING PackageName = (PSECURITY_STRING) &QuicTlsPackageName;
-#else
-    WCHAR* PackageName = UNISP_NAME_W;
-#endif
 
 #ifdef _KERNEL_MODE
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
+    PSECURITY_STRING PackageName = (PSECURITY_STRING)&QuicTlsPackageName;
 
-        //
-        // Async (kernel-mode only) code path.
-        //
+    //
+    // Async (kernel-mode only) code path.
+    //
 
-        Config->SspiContext = SspiCreateAsyncContext();
-        if (Config->SspiContext == NULL) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "SspiCreateAsyncContext");
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            goto Error;
-        }
-
-        SecStatus =
-            SspiSetAsyncNotifyCallback(
-                Config->SspiContext,
-                QuicTlsSspiNotifyCallback,
-                AchContext);
-        if (SecStatus != SEC_E_OK) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                SecStatus,
-                "SspiSetAsyncNotifyCallback");
-            Status = SecStatusToQuicStatus(SecStatus);
-            goto Error;
-        }
-
-        QuicTraceLogVerbose(
-            SchannelAchAsync,
-            "[ tls] Calling ACH async to create security config");
-
-        SecStatus =
-            SspiAcquireCredentialsHandleAsyncW(
-                Config->SspiContext,
-                &AchContext->Principal,
-                PackageName,
-                Direction,
-                NULL,
-                &AchContext->Credentials,
-                NULL,
-                NULL,
-                &Config->CredentialHandle,
-                NULL);
-        if (SecStatus != SEC_E_OK) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                SecStatus,
-                "SspiAcquireCredentialsHandleAsyncW");
-            Status = SecStatusToQuicStatus(SecStatus);
-            goto Error;
-        }
-
-        Status = QUIC_STATUS_PENDING;
-        AchContext = NULL;
-        Config = NULL;
+    Config->SspiContext = SspiCreateAsyncContext();
+    if (Config->SspiContext == NULL) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "SspiCreateAsyncContext");
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
-#endif
+    SecStatus =
+        SspiSetAsyncNotifyCallback(
+            Config->SspiContext,
+            QuicTlsSspiNotifyCallback,
+            AchContext);
+    if (SecStatus != SEC_E_OK) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SecStatus,
+            "SspiSetAsyncNotifyCallback");
+        Status = SecStatusToQuicStatus(SecStatus);
+        goto Error;
+    }
 
-    QUIC_DBG_ASSERT(!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS));
+    QuicTraceLogVerbose(
+        SchannelAchAsync,
+        "[ tls] Calling ACH async to create security config");
+
+    SecStatus =
+        SspiAcquireCredentialsHandleAsyncW(
+            Config->SspiContext,
+            &AchContext->Principal,
+            PackageName,
+            Direction,
+            NULL,
+            &AchContext->Credentials,
+            NULL,
+            NULL,
+            &Config->CredentialHandle,
+            NULL);
+    if (SecStatus != SEC_E_OK) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SecStatus,
+            "SspiAcquireCredentialsHandleAsyncW");
+        Status = SecStatusToQuicStatus(SecStatus);
+        goto Error;
+    }
+    Config = NULL;
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
+        Status = QUIC_STATUS_PENDING;
+        AchContext = NULL;
+
+    } else {
+        KeWaitForSingleObject(&AchContext->CompletionEvent, Executive, KernelMode, FALSE, NULL);
+        Status = SecStatusToQuicStatus(AchContext->CompletionStatus);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
+    }
+
+#else // !_KERNEL_MODE
+
+    TimeStamp CredExpiration;
 
     QuicTraceLogVerbose(
         SchannelAch,
@@ -1125,12 +1148,8 @@ QuicTlsSecConfigCreate(
 
     SecStatus =
         AcquireCredentialsHandleW(
-#ifdef _KERNEL_MODE
-            &AchContext->Principal,
-#else
             NULL,
-#endif
-            PackageName,
+            UNISP_NAME_W,
             Direction,
             NULL,
             Credentials,
@@ -1158,8 +1177,14 @@ QuicTlsSecConfigCreate(
         Context,
         Status,
         Config);
-    Status = QUIC_STATUS_PENDING;
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
+        Status = QUIC_STATUS_PENDING;
+    } else {
+        Status = QUIC_STATUS_SUCCESS;
+    }
     Config = NULL;
+
+#endif // _KERNEL_MODE
 
 Error:
 
