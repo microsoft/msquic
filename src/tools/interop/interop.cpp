@@ -300,7 +300,7 @@ public:
                 fflush(pThis->File);
                 fclose(pThis->File);
                 pThis->File = nullptr;
-                printf("%s: Completed download! (%llu ms)",
+                printf("%s: Completed download! (%llu ms)\n",
                     pThis->FileName,
                     (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now));
             }
