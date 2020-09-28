@@ -405,6 +405,8 @@ function Invoke-LocalExe {
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
 
+    $Stopwatch =  [system.diagnostics.stopwatch]::StartNew()
+
     $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
 
     # Wait for the job to finish
@@ -412,6 +414,11 @@ function Invoke-LocalExe {
     Stop-Job -Job $LocalJob | Out-Null
 
     $RetVal = Receive-Job -Job $LocalJob
+
+    $Stopwatch.Stop()
+
+    Write-Host ("Test Run Took " + $Stopwatch.Elapsed)
+
     return $RetVal -join "`n"
 }
 
