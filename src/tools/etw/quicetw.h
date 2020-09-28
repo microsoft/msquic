@@ -1140,7 +1140,8 @@ inline void ReadCid(_In_z_ const char* Cid)
 #define QUIC_ERROR_TRANSPORT_PARAMETER_ERROR    0x8
 #define QUIC_ERROR_PROTOCOL_VIOLATION           0xA
 #define QUIC_ERROR_CRYPTO_BUFFER_EXCEEDED       0xD
-#define QUIC_ERROR_AEAD_LIMIT_REACHED           0xE
+#define QUIC_ERROR_KEY_UPDATE_ERROR             0xE
+#define QUIC_ERROR_AEAD_LIMIT_REACHED           0xF
 
 #define QUIC_ERROR_CRYPTO_ERROR_MASK            0x1FF
 
@@ -1165,7 +1166,8 @@ QuicErrorToString(
         case QUIC_ERROR_TRANSPORT_PARAMETER_ERROR:  return "TRANSPORT_PARAMETER_ERROR";
         case QUIC_ERROR_PROTOCOL_VIOLATION:         return "PROTOCOL_VIOLATION";
         case QUIC_ERROR_CRYPTO_BUFFER_EXCEEDED:     return "CRYPTO_BUFFER_EXCEEDED";
-        case QUIC_ERROR_AEAD_LIMIT_REACHED:         return "AEAD_LIMIT_REACHED";
+        case QUIC_ERROR_KEY_UPDATE_ERROR:           return "CRYPTO_BUFFER_EXCEEDED";
+        case QUIC_ERROR_AEAD_LIMIT_REACHED:         return "KEY_UPDATE_ERROR";
         default:                                    return "UNDEFINED ERROR CODE";
         }
     } else if (ErrorCode < 0x200) {

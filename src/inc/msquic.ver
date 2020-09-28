@@ -3,6 +3,17 @@
 //    Licensed under the MIT License.
 //
 
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#ifndef VER_BUILD_ID
+#define VER_BUILD_ID 0
+#endif
+
+#ifndef VER_SUFFIX
+#define VER_SUFFIX -private
+#endif
+
 #define VER_COMPANYNAME_STR         "Microsoft Corporation"
 #define VER_FILEDESCRIPTION_STR     "Microsoft\256 QUIC Library"
 #define VER_INTERNALNAME_STR        "msquic"
@@ -10,14 +21,12 @@
 #define VER_PRODUCTNAME_STR         "Microsoft\256 QUIC"
 
 #define VER_FILEVERSION             1,0,0,0
-#define VER_FILEVERSION_STR         "1.0.0\0"
+#define VER_FILEVERSION_STR         "1.0.0.0\0"
 
-#define VER_PRODUCTVERSION          1,0,0,0
-#define VER_PRODUCTVERSION_STR      "1.0.0\0"
+#define VER_PRODUCTVERSION_STR      "1.0.0." STR(VER_BUILD_ID) STR(VER_SUFFIX) "\0"
 
 VS_VERSION_INFO                     VERSIONINFO
 FILEVERSION                         VER_FILEVERSION
-PRODUCTVERSION                      VER_PRODUCTVERSION
 FILEFLAGSMASK                       VS_FFI_FILEFLAGSMASK
 FILEFLAGS                           0
 FILEOS                              VOS_NT_WINDOWS32

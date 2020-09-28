@@ -9,15 +9,4 @@
 #define VER_FILESUBTYPE             VFT2_UNKNOWN
 #define VER_ORIGINALFILENAME_STR    "msquic.dll"
 
-#ifdef QUIC_WINDOWS_INTERNAL
-
-#include <ntverp.h>
-#define VER_FILEDESCRIPTION_STR     "Microsoft QUIC Library"
-#define VER_INTERNALNAME_STR        "msquic"
-#include "common.ver"
-
-#else
-
 #include "msquic.ver"
-
-#endif // QUIC_WINDOWS_INTERNAL
