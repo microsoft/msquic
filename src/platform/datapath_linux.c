@@ -1063,7 +1063,7 @@ QuicSocketContextInitialize(
         getsockname(
             SocketContext->SocketFd,
             &MappedAddress.Ip,
-            sizeof(MappedAddress));
+            &AssignedLocalAddressLength);
     if (Result == SOCKET_ERROR) {
         Status = errno;
         QuicTraceEvent(
