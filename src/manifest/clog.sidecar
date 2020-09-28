@@ -19148,6 +19148,24 @@
         "CustomSettings": null
       }
     },
+    "SchannelAchWorkerStart": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] Starting ACH worker",
+      "UniqueId": "SchannelAchWorkerStart",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "SchannelAch": {
       "ModuleProperites": {},
       "TraceString": "[ tls] Calling AcquireCredentialsHandleW",
@@ -23384,6 +23402,10 @@
       {
         "UniquenessHash": "fd2f4dda-2c95-a301-6a5e-8dda859fd5c5",
         "TraceID": "SchannelAchAsync"
+      },
+      {
+        "UniquenessHash": "03c8b552-99e5-6c8b-a95f-ba31e7b3149b",
+        "TraceID": "SchannelAchWorkerStart"
       },
       {
         "UniquenessHash": "a1f31b13-badd-4de3-0620-3c8d413e7d49",
