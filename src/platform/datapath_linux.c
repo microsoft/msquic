@@ -1053,17 +1053,17 @@ QuicSocketContextInitialize(
         goto Exit;
     }
 
-//
+    //
     // If no specific local port was indicated, then the stack just
     // assigned this socket a port. We need to query it and use it for
     // all the other sockets we are going to create.
     //
-    AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
+    AssignedLocalAddressLength = sizeof(MappedAddress);
     Result =
         getsockname(
             SocketContext->SocketFd,
-            (struct sockaddr *)&Binding->LocalAddress,
-            &AssignedLocalAddressLength);
+            &MappedAddress.Ip,
+            sizeof(MappedAddress));
     if (Result == SOCKET_ERROR) {
         Status = errno;
         QuicTraceEvent(
