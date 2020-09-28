@@ -337,14 +337,14 @@ typedef struct QUIC_SETTINGS {
     union {
         uint64_t IsSetFlags;
         struct {
-            uint64_t PacingEnabled              : 1;
-            uint64_t MigrationEnabled           : 1;
-            uint64_t DatagramReceiveEnabled     : 1;
-            uint64_t ServerResumptionLevel      : 1;
-            uint64_t MaxPartitionCount          : 1;
-            uint64_t MaxOperationsPerDrain      : 1;
-            uint64_t RetryMemoryLimit           : 1;
-            uint64_t LoadBalancingMode          : 1;
+            uint64_t MaxBytesPerKey             : 1;
+            uint64_t HandshakeIdleTimeoutMs     : 1;
+            uint64_t IdleTimeoutMs              : 1;
+            uint64_t TlsClientMaxSendBuffer     : 1;
+            uint64_t TlsServerMaxSendBuffer     : 1;
+            uint64_t StreamRecvWindowDefault    : 1;
+            uint64_t StreamRecvBufferDefault    : 1;
+            uint64_t ConnFlowControlWindow      : 1;
             uint64_t MaxWorkerQueueDelayUs      : 1;
             uint64_t MaxStatelessOperations     : 1;
             uint64_t InitialWindowPackets       : 1;
@@ -353,29 +353,28 @@ typedef struct QUIC_SETTINGS {
             uint64_t MaxAckDelayMs              : 1;
             uint64_t DisconnectTimeoutMs        : 1;
             uint64_t KeepAliveIntervalMs        : 1;
-            uint64_t IdleTimeoutMs              : 1;
-            uint64_t HandshakeIdleTimeoutMs     : 1;
             uint64_t PeerBidiStreamCount        : 1;
             uint64_t PeerUnidiStreamCount       : 1;
-            uint64_t TlsClientMaxSendBuffer     : 1;
-            uint64_t TlsServerMaxSendBuffer     : 1;
-            uint64_t StreamRecvWindowDefault    : 1;
-            uint64_t StreamRecvBufferDefault    : 1;
-            uint64_t ConnFlowControlWindow      : 1;
-            uint64_t MaxBytesPerKey             : 1;
+            uint64_t RetryMemoryLimit           : 1;
+            uint64_t LoadBalancingMode          : 1;
+            uint64_t MaxPartitionCount          : 1;
+            uint64_t MaxOperationsPerDrain      : 1;
+            uint64_t PacingEnabled              : 1;
+            uint64_t MigrationEnabled           : 1;
+            uint64_t DatagramReceiveEnabled     : 1;
+            uint64_t ServerResumptionLevel      : 1;
             uint64_t RESERVED                   : 38;
         } IsSet;
     };
 
-    uint8_t PacingEnabled           : 1;
-    uint8_t MigrationEnabled        : 1;
-    uint8_t DatagramReceiveEnabled  : 1;
-    uint8_t ServerResumptionLevel   : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
-    uint8_t RESERVED                : 3;
-    uint16_t MaxPartitionCount;             // Global only
-    uint8_t MaxOperationsPerDrain;          // Global only
-    uint16_t RetryMemoryLimit;              // Global only
-    uint16_t LoadBalancingMode;             // Global only
+    uint64_t MaxBytesPerKey;
+    uint64_t HandshakeIdleTimeoutMs;
+    uint64_t IdleTimeoutMs;
+    uint32_t TlsClientMaxSendBuffer;
+    uint32_t TlsServerMaxSendBuffer;
+    uint32_t StreamRecvWindowDefault;
+    uint32_t StreamRecvBufferDefault;
+    uint32_t ConnFlowControlWindow;
     uint32_t MaxWorkerQueueDelayUs;
     uint32_t MaxStatelessOperations;
     uint32_t InitialWindowPackets;
@@ -384,16 +383,17 @@ typedef struct QUIC_SETTINGS {
     uint32_t MaxAckDelayMs;
     uint32_t DisconnectTimeoutMs;
     uint32_t KeepAliveIntervalMs;
-    uint64_t HandshakeIdleTimeoutMs;
-    uint64_t IdleTimeoutMs;
     uint16_t PeerBidiStreamCount;
     uint16_t PeerUnidiStreamCount;
-    uint32_t TlsClientMaxSendBuffer;
-    uint32_t TlsServerMaxSendBuffer;
-    uint32_t StreamRecvWindowDefault;
-    uint32_t StreamRecvBufferDefault;
-    uint32_t ConnFlowControlWindow;
-    uint64_t MaxBytesPerKey;
+    uint16_t RetryMemoryLimit;              // Global only
+    uint16_t LoadBalancingMode;             // Global only
+    uint16_t MaxPartitionCount;             // Global only
+    uint8_t MaxOperationsPerDrain;          // Global only
+    uint8_t PacingEnabled           : 1;
+    uint8_t MigrationEnabled        : 1;
+    uint8_t DatagramReceiveEnabled  : 1;
+    uint8_t ServerResumptionLevel   : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
+    uint8_t RESERVED                : 3;
 
 } QUIC_SETTINGS;
 

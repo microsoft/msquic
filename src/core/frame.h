@@ -69,10 +69,14 @@
 //
 #define QUIC_ERROR_CRYPTO_BUFFER_EXCEEDED       0xD
 //
-// An endpoint has exceeded the maximum number of failed packet decryptions
-// over its lifetime
+// An endpoint detected errors in performing key updates.
 //
-#define QUIC_ERROR_AEAD_LIMIT_REACHED           0xE
+#define QUIC_ERROR_KEY_UPDATE_ERROR             0xE
+//
+// An endpoint has exceeded the maximum number of failed packet decryptions
+// over its lifetime.
+//
+#define QUIC_ERROR_AEAD_LIMIT_REACHED           0xF
 //
 // The cryptographic handshake failed. A range of 256 values is reserved for
 // carrying error codes specific to the cryptographic handshake that is used.
