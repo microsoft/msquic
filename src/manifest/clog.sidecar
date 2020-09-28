@@ -19132,7 +19132,7 @@
     },
     "SchannelAchAsync": {
       "ModuleProperites": {},
-      "TraceString": "[ tls] Calling ACH async to create security config",
+      "TraceString": "[ tls] Calling SspiAcquireCredentialsHandleAsyncW",
       "UniqueId": "SchannelAchAsync",
       "splitArgs": [],
       "macro": {
@@ -19150,7 +19150,7 @@
     },
     "SchannelAch": {
       "ModuleProperites": {},
-      "TraceString": "[ tls] Calling ACH to create security config",
+      "TraceString": "[ tls] Calling AcquireCredentialsHandleW",
       "UniqueId": "SchannelAch",
       "splitArgs": [],
       "macro": {
@@ -23382,11 +23382,11 @@
         "TraceID": "SchannelUninitialized"
       },
       {
-        "UniquenessHash": "3c095e75-f922-9df3-753d-eab794e216ee",
+        "UniquenessHash": "fd2f4dda-2c95-a301-6a5e-8dda859fd5c5",
         "TraceID": "SchannelAchAsync"
       },
       {
-        "UniquenessHash": "01e767df-e7db-9399-5d4e-ecd19823890a",
+        "UniquenessHash": "a1f31b13-badd-4de3-0620-3c8d413e7d49",
         "TraceID": "SchannelAch"
       },
       {
