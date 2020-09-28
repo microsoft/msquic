@@ -238,7 +238,7 @@ QuicAddrSetToLoopback(
     _Inout_ QUIC_ADDR * Addr
     )
 {
-    if (Addr->si_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b1 = 127;
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b4 = 1;
     } else {
