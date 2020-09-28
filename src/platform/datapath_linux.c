@@ -765,7 +765,7 @@ QuicSocketContextInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Result = 0;
     int Option = 0;
-    QUIC_ADDR MappedRemoteAddress = {0};
+    QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
 
     QUIC_DATAPATH_BINDING* Binding = SocketContext->Binding;
@@ -1032,16 +1032,16 @@ QuicSocketContextInitialize(
         goto Exit;
     }
 
-    QuicCopyMemory(&MappedRemoteAddress, &Binding->LocalAddress, sizeof(MappedRemoteAddress));
-    if (MappedRemoteAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-        MappedRemoteAddress.Ipv6.sin6_family = AF_INET6;
+    QuicCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
+    if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+        MappedAddress.Ipv6.sin6_family = AF_INET6;
     }
 
     Result =
         bind(
             SocketContext->SocketFd,
-            (const struct sockaddr*)&MappedRemoteAddress,
-            sizeof(MappedRemoteAddress));
+            &MappedAddress.Ip,
+            sizeof(MappedAddress));
     if (Result == SOCKET_ERROR) {
         Status = errno;
         QuicTraceEvent(
@@ -1053,33 +1053,7 @@ QuicSocketContextInitialize(
         goto Exit;
     }
 
-    if (RemoteAddress != NULL) {
-        QuicZeroMemory(&MappedRemoteAddress, sizeof(MappedRemoteAddress));
-        QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
-
-        if (MappedRemoteAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-            MappedRemoteAddress.Ipv6.sin6_family = AF_INET6;
-        }
-
-        Result =
-            connect(
-                SocketContext->SocketFd,
-                (const struct sockaddr*)&MappedRemoteAddress,
-                sizeof(MappedRemoteAddress));
-
-        if (Result == SOCKET_ERROR) {
-            Status = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "connect failed");
-            goto Exit;
-        }
-    }
-
-    //
+//
     // If no specific local port was indicated, then the stack just
     // assigned this socket a port. We need to query it and use it for
     // all the other sockets we are going to create.
@@ -1099,6 +1073,32 @@ QuicSocketContextInitialize(
             Status,
             "getsockname failed");
         goto Exit;
+    }
+
+    if (RemoteAddress != NULL) {
+        QuicZeroMemory(&MappedAddress, sizeof(MappedAddress));
+        QuicConvertToMappedV6(RemoteAddress, &MappedAddress);
+
+        if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+            MappedAddress.Ipv6.sin6_family = AF_INET6;
+        }
+
+        Result =
+            connect(
+                SocketContext->SocketFd,
+                &MappedAddress.Ip,
+                sizeof(MappedAddress));
+
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "connect failed");
+            goto Exit;
+        }
     }
 
     if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
@@ -2026,6 +2026,10 @@ QuicDataPathBindingSend(
     // Map V4 address to dual-stack socket format.
     //
     QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+
+    if (MappedRemoteAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+        MappedRemoteAddress.Ipv6.sin6_family = AF_INET6;
+    }
 
     struct msghdr Mhdr = {
         .msg_name = &MappedRemoteAddress,
