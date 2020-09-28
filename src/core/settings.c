@@ -202,7 +202,7 @@ QuicSettingApply(
     UNREFERENCED_PARAMETER(NewSettingsSize); // TODO - Use to validate new settings
 
     if (Source->IsSet.SendBufferingEnabled && (!Destination->IsSet.SendBufferingEnabled || OverWrite)) {
-        Destination->PacingEnabled = Source->SendBufferingEnabled;
+        Destination->SendBufferingEnabled = Source->SendBufferingEnabled;
         Destination->IsSet.SendBufferingEnabled = TRUE;
     }
     if (Source->IsSet.PacingEnabled && (!Destination->IsSet.PacingEnabled || OverWrite)) {
