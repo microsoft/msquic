@@ -10,11 +10,11 @@ MsQuic supports a number of configuration knobs (or settings). These settings ca
 |--------------------------|----------|------------------------|-------------------------------------------------------------------------------------------------------|---------------------|
 | Max Partition Count      | uint16_t | MaxPartitionCount      | The maximum processor count used for partitioning work in MsQuic                                      | Yes                 |
 | Max Operations per Drain | uint8_t  | MaxOperationsPerDrain  | The maximum number of operations to drain per connection quantum                                      | No                  |
-| Retry Memory Limit       | uint16_t | RetryMemoryFraction    | The percentage of available memory usable for handshake<br>connections before stateless retry is used | No                  |
+| Retry Memory Limit       | uint16_t | RetryMemoryFraction    | The percentage of available memory usable for handshake connections before stateless retry is used    | No                  |
 | Max Worker Queue Delay   | uint32_t | MaxWorkerQueueDelayMs  | The maximum queue delay (in ms) allowed for a worker thread                                           | No                  |
-| Max Stateless Operations | uint32_t | MaxStatelessOperations | The maximum number of stateless operations that may be queued at<br>any one time                      | No                  |
+| Max Stateless Operations | uint32_t | MaxStatelessOperations | The maximum number of stateless operations that may be queued at any one time                         | No                  |
 | Initial Window Size      | uint32_t | InitialWindowPackets   | The size (in packets) of the initial congestion window for a<br>connection                            | No                  |
-|                          |          |                        |                                                                                                       |                     |
+|                          |          |                        |                                                                                                       |                    |
 
 **TODO** - Finish list above
 
@@ -28,7 +28,7 @@ The settings can also be set per "app-name" (as indicated in `RegistrationOpen`)
 
 > HKLM:\System\CurrentControlSet\Services\MsQuic\Parameters\app-name
 
-The `DWord` type should be used for all 32-bit or less types. For 64-bit types, `DWord` or `QWord` may be used. If invalid types or values are used, they will be ignored and the built-in default will be used instead.
+The `DWORD` type should be used for all 32-bit or less types. For 64-bit types, `DWORD` or `QWORD` may be used. If invalid types or values are used, they will be ignored and the built-in default will be used instead.
 
 # Cipher Suites
 
@@ -50,7 +50,7 @@ In order to configure the Windows firewall to allow inbound QUIC traffic efficie
 New-NetFirewallRule -DisplayName "Allow QUIC" -Direction Inbound -Protocol UDP -LocalPort 433 -Action Allow -LocalOnlyMapping $true
 ```
 
-Note the use of the `-LocalOnlyMapping $true` argument. This is a performance optimizing feature that should be used for UDP based protocols (like QUIC).
+Note the use of the `-LocalOnlyMapping $true` argument. This is a performance optimizing feature that should be used for UDP based protocols (like QUIC). See [MSDN](https://docs.microsoft.com/en-us/powershell/module/netsecurity/new-netfirewallrule) for additional details.
 
 # Load Balancing
 
