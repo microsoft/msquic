@@ -13,7 +13,7 @@ MsQuic supports a number of configuration knobs (or settings). These settings ca
 | Retry Memory Limit       | uint16_t | RetryMemoryFraction    | The percentage of available memory usable for handshake connections before stateless retry is used    | No                  |
 | Max Worker Queue Delay   | uint32_t | MaxWorkerQueueDelayMs  | The maximum queue delay (in ms) allowed for a worker thread                                           | No                  |
 | Max Stateless Operations | uint32_t | MaxStatelessOperations | The maximum number of stateless operations that may be queued at any one time                         | No                  |
-| Initial Window Size      | uint32_t | InitialWindowPackets   | The size (in packets) of the initial congestion window for a<br>connection                            | No                  |
+| Initial Window Size      | uint32_t | InitialWindowPackets   | The size (in packets) of the initial congestion window for a connection                               | No                  |
 |                          |          |                        |                                                                                                       |                    |
 
 **TODO** - Finish list above
