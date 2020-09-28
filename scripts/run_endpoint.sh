@@ -45,7 +45,7 @@ if [ "$ROLE" == "client" ]; then
         CLIENT_PARAMS="-test:H $CLIENT_PARAMS"
         ;;
     "transfer")
-        CLIENT_PARAMS="-test:D -timeout:25000 $CLIENT_PARAMS"
+        CLIENT_PARAMS="-test:D -timeout:50000 $CLIENT_PARAMS"
         ;;
     "multiconnect")
         CLIENT_PARAMS="-test:D -timeout:25000 $CLIENT_PARAMS"
