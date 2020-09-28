@@ -278,7 +278,7 @@ typedef struct QUIC_ACH_CONTEXT {
     //
     // The status received from the completion callback.
     //
-    SECURITY_STATUS CompletionStatus;
+    NTSTATUS CompletionStatus;
 #endif
 
     //
@@ -742,8 +742,7 @@ QUIC_ACH_CONTEXT*
 QuicTlsAllocateAchContext(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
-    _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER Callback,
-    _In_ QUIC_SEC_CONFIG* Config
+    _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER Callback
     )
 {
     QUIC_ACH_CONTEXT* AchContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_ACH_CONTEXT));
@@ -758,7 +757,6 @@ QuicTlsAllocateAchContext(
         AchContext->CredConfig = *CredConfig;
         AchContext->CompletionContext = Context;
         AchContext->CompletionCallback = Callback;
-        AchContext->SecConfig = Config;
         AchContext->Credentials.pTlsParameters = &AchContext->TlsParameters;
         AchContext->Credentials.cTlsParameters = 1;
 #ifdef _KERNEL_MODE
@@ -785,6 +783,9 @@ QuicTlsFreeAchContext(
         SspiFreeAsyncContext(AchContext->SspiContext);
     }
 #endif
+    if (AchContext->SecConfig != NULL) {
+        QuicTlsSecConfigDelete(AchContext->SecConfig);
+    }
     QUIC_FREE(AchContext);
 }
 
@@ -803,16 +804,17 @@ QuicTlsSspiNotifyCallback(
             "NULL CallbackData to QuicTlsSspiNotifyCallback");
         return;
     }
-    QUIC_ACH_CONTEXT* Context = CallbackData;
-    BOOLEAN Synchronous = !(Context->CredConfig.Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS);
-    QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionCallback = Context->CompletionCallback;
-    void* CompletionContext = Context->CompletionContext;
-    QUIC_SEC_CONFIG* SecConfig = Context->SecConfig;
+    QUIC_ACH_CONTEXT* AchContext = CallbackData;
+    BOOLEAN IsAsync = !!(AchContext->CredConfig.Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS);
+    QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionCallback = AchContext->CompletionCallback;
+    void* CompletionContext = AchContext->CompletionContext;
+    QUIC_SEC_CONFIG* SecConfig = AchContext->SecConfig;
+    AchContext->SecConfig = NULL;
     SECURITY_STATUS Status = SspiGetAsyncCallStatus(Handle);
-    Context->CompletionStatus = Status;
-    QUIC_CREDENTIAL_CONFIG CredConfig = Context->CredConfig;
-    if (!Synchronous) {
-        QuicTlsFreeAchContext(Context);
+    AchContext->CompletionStatus = SecStatusToQuicStatus(Status);
+    QUIC_CREDENTIAL_CONFIG CredConfig = AchContext->CredConfig;
+    if (IsAsync) {
+        QuicTlsFreeAchContext(AchContext);
     }
     if (Status != SEC_E_OK) {
         QuicTraceEvent(
@@ -825,15 +827,74 @@ QuicTlsSspiNotifyCallback(
     } else {
         CompletionCallback(&CredConfig, CompletionContext, QUIC_STATUS_SUCCESS, SecConfig);
     }
-    if (Synchronous) {
-        KeSetEvent(&Context->CompletionEvent, IO_NO_INCREMENT, FALSE);
+    if (!IsAsync) {
+        KeSetEvent(&AchContext->CompletionEvent, IO_NO_INCREMENT, FALSE);
     }
 }
 
-//
-// Used by QuicTlsServerSecConfigCreate and QuicTlsInitialize
-//
 const static UNICODE_STRING QuicTlsPackageName = RTL_CONSTANT_STRING(L"Schannel");
+
+typedef struct TLS_WORKER_CONTEXT {
+    NTSTATUS CompletionStatus;
+    QUIC_ACH_CONTEXT* AchContext;
+} TLS_WORKER_CONTEXT;
+
+_IRQL_requires_same_
+void
+QuicTlsAchHelper(
+    _In_ TLS_WORKER_CONTEXT* ThreadContext
+    )
+{
+    QUIC_ACH_CONTEXT* AchContext = ThreadContext->AchContext;
+    BOOLEAN IsClient = !!(AchContext->CredConfig.Flags & QUIC_CREDENTIAL_FLAG_CLIENT);
+    BOOLEAN IsAsync = !!(AchContext->CredConfig.Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS);
+
+    QuicTraceLogVerbose(
+        SchannelAchAsync,
+        "[ tls] Calling SspiAcquireCredentialsHandleAsyncW");
+
+    SECURITY_STATUS SecStatus =
+        SspiAcquireCredentialsHandleAsyncW(
+            AchContext->SspiContext,
+            IsClient ? NULL : &AchContext->Principal,
+            (PSECURITY_STRING)&QuicTlsPackageName,
+            IsClient ? SECPKG_CRED_OUTBOUND : SECPKG_CRED_INBOUND,
+            NULL,
+            &AchContext->Credentials,
+            NULL,
+            NULL,
+            &AchContext->SecConfig->CredentialHandle,
+            NULL);
+    if (SecStatus != SEC_E_OK) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SecStatus,
+            "SspiAcquireCredentialsHandleAsyncW");
+        ThreadContext->CompletionStatus = SecStatusToQuicStatus(SecStatus);
+
+    } else {
+        if (IsAsync) {
+            ThreadContext->CompletionStatus = QUIC_STATUS_PENDING;
+            ThreadContext->AchContext = NULL;
+        } else {
+            KeWaitForSingleObject(&AchContext->CompletionEvent, Executive, KernelMode, FALSE, NULL);
+            ThreadContext->CompletionStatus = AchContext->CompletionStatus;
+        }
+    }
+}
+
+_Function_class_(KSTART_ROUTINE)
+_IRQL_requires_same_
+void
+QuicTlsAchWorker(
+    _In_ void* Context
+    )
+{
+    TLS_WORKER_CONTEXT* ThreadContext = Context;
+    QuicTlsAchHelper(ThreadContext);
+    PsTerminateSystemThread(STATUS_SUCCESS);
+}
 
 #endif
 
@@ -892,31 +953,30 @@ QuicTlsSecConfigCreate(
         }
     }
 
+    QUIC_ACH_CONTEXT* AchContext =
+        QuicTlsAllocateAchContext(
+            CredConfig,
+            Context,
+            CompletionHandler);
+    if (AchContext == NULL) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete)")
-    QUIC_SEC_CONFIG* SecConfig = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG));
-    if (SecConfig == NULL) {
+    AchContext->SecConfig = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG));
+    if (AchContext->SecConfig == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_SEC_CONFIG",
             sizeof(QUIC_SEC_CONFIG));
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-
-    RtlZeroMemory(SecConfig, sizeof(QUIC_SEC_CONFIG));
-    SecInvalidateHandle(&SecConfig->CredentialHandle);
-    SecConfig->Flags = CredConfig->Flags;
-
-    QUIC_ACH_CONTEXT* AchContext =
-        QuicTlsAllocateAchContext(
-            CredConfig,
-            Context,
-            CompletionHandler,
-            SecConfig);
-    if (AchContext == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+
+    RtlZeroMemory(AchContext->SecConfig, sizeof(QUIC_SEC_CONFIG));
+    SecInvalidateHandle(&AchContext->SecConfig->CredentialHandle);
+    AchContext->SecConfig->Flags = CredConfig->Flags;
 
     PSCH_CREDENTIALS Credentials = &AchContext->Credentials;
 
@@ -1091,43 +1151,64 @@ QuicTlsSecConfigCreate(
     }
 
     QuicTraceLogVerbose(
-        SchannelAchAsync,
-        "[ tls] Calling SspiAcquireCredentialsHandleAsyncW");
+        SchannelAchWorkerStart,
+        "[ tls] Starting ACH worker");
 
-    SecStatus =
-        SspiAcquireCredentialsHandleAsyncW(
-            AchContext->SspiContext,
-            IsClient ? NULL : &AchContext->Principal,
-            (PSECURITY_STRING)&QuicTlsPackageName,
-            IsClient ? SECPKG_CRED_OUTBOUND : SECPKG_CRED_INBOUND,
-            NULL,
-            &AchContext->Credentials,
-            NULL,
-            NULL,
-            &SecConfig->CredentialHandle,
-            NULL);
-    if (SecStatus != SEC_E_OK) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SecStatus,
-            "SspiAcquireCredentialsHandleAsyncW");
-        Status = SecStatusToQuicStatus(SecStatus);
-        goto Error;
-    }
-    SecConfig = NULL;
-
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
-        Status = QUIC_STATUS_PENDING;
-        AchContext = NULL;
-
-    } else {
-        KeWaitForSingleObject(&AchContext->CompletionEvent, Executive, KernelMode, FALSE, NULL);
-        Status = SecStatusToQuicStatus(AchContext->CompletionStatus);
+    TLS_WORKER_CONTEXT ThreadContext = { STATUS_SUCCESS, AchContext };
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        //
+        // For schannel resumption to work, we have to call the client side
+        // of this from a SYSTEM thread.
+        //
+        HANDLE ThreadHandle;
+        Status =
+            PsCreateSystemThread(
+                &ThreadHandle,
+                THREAD_ALL_ACCESS,
+                NULL,
+                NULL,
+                NULL,
+                QuicTlsAchWorker,
+                &ThreadContext);
         if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "PsCreateSystemThread(QuicTlsAchWorker)");
             goto Error;
         }
+        void* Thread = NULL;
+        Status =
+            ObReferenceObjectByHandle(
+                ThreadHandle,
+                THREAD_ALL_ACCESS,
+                *PsThreadType,
+                KernelMode,
+                &Thread,
+                NULL);
+        NtClose(ThreadHandle);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ObReferenceObjectByHandle(QuicTlsAchWorker)");
+            goto Error;
+        }
+        KeWaitForSingleObject(Thread, Executive, KernelMode, FALSE, NULL);
+        ObDereferenceObject(Thread);
+
+    } else {
+        //
+        // For schannel to successfully load the certificate (even a machine
+        // one), this needs to be on the caller's thread.
+        //
+        QuicTlsAchHelper(&ThreadContext);
     }
+
+    Status = ThreadContext.CompletionStatus;
+    AchContext = ThreadContext.AchContext;
 
 #else // !_KERNEL_MODE
 
@@ -1144,7 +1225,7 @@ QuicTlsSecConfigCreate(
             Credentials,
             NULL,
             NULL,
-            &SecConfig->CredentialHandle,
+            &AchContext->SecConfig->CredentialHandle,
             NULL);
     if (SecStatus != SEC_E_OK) {
         QuicTraceEvent(
@@ -1165,21 +1246,17 @@ QuicTlsSecConfigCreate(
         CredConfig,
         Context,
         Status,
-        SecConfig);
+        AchContext->SecConfig);
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
         Status = QUIC_STATUS_PENDING;
     } else {
         Status = QUIC_STATUS_SUCCESS;
     }
-    SecConfig = NULL;
+    AchContext->SecConfig = NULL;
 
 #endif // _KERNEL_MODE
 
 Error:
-
-    if (AchContext != NULL) {
-        QuicTlsFreeAchContext(AchContext);
-    }
 
 #ifndef _KERNEL_MODE
     if (CertContext != NULL && CertContext != CredConfig->CertificateContext) {
@@ -1187,8 +1264,8 @@ Error:
     }
 #endif
 
-    if (SecConfig != NULL) {
-        QuicTlsSecConfigDelete(SecConfig);
+    if (AchContext != NULL) {
+        QuicTlsFreeAchContext(AchContext);
     }
 
     return Status;

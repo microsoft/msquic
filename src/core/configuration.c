@@ -304,9 +304,8 @@ MsQuicConfigurationLoadCredentialComplete(
             (HQUIC)Configuration,
             Configuration->ClientContext,
             Status);
+        QuicConfigurationRelease(Configuration);
     }
-
-    QuicConfigurationRelease(Configuration);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -339,7 +338,11 @@ MsQuicConfigurationLoadCredential(
                 CredConfig,
                 Configuration,
                 MsQuicConfigurationLoadCredentialComplete);
-        if (QUIC_FAILED(Status)) {
+        if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) ||
+            QUIC_FAILED(Status)) {
+            //
+            // Release ref for synchronous calls or asynchronous failures.
+            //
             QuicConfigurationRelease(Configuration);
         }
     }
