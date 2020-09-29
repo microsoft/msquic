@@ -30,6 +30,11 @@ The settings can also be set per "app-name" (as indicated in `RegistrationOpen`)
 
 The `DWORD` type should be used for all 32-bit or less types. For 64-bit types, `DWORD` or `QWORD` may be used. If invalid types or values are used, they will be ignored and the built-in default will be used instead.
 
+For example, to set the **Initial Window Size** setting to `20` packets, you may do the following:
+```
+reg.exe add "HKLM\System\CurrentControlSet\Services\MsQuic\Parameters" /v InitialWindowPackets /t REG_DWORD /d 20
+```
+
 # Cipher Suites
 
 ## Windows
