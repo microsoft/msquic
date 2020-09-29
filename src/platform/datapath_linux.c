@@ -652,7 +652,7 @@ QuicDataPathPopulateTargetAddress(
 
     QuicZeroMemory(Address, sizeof(QUIC_ADDR));
 
-    if (AddrInfo->ai_addr->sa_family == QUIC_ADDRESS_FAMILY_INET6) {
+    if (AddrInfo->ai_addr->sa_family == AF_INET6) {
         QUIC_DBG_ASSERT(sizeof(struct sockaddr_in6) == AddrInfo->ai_addrlen);
 
         //
@@ -677,7 +677,7 @@ QuicDataPathPopulateTargetAddress(
             Address->Ipv6 = *SockAddrIn6;
             return;
         }
-    } else if (AddrInfo->ai_addr->sa_family == QUIC_ADDRESS_FAMILY_INET) {
+    } else if (AddrInfo->ai_addr->sa_family == AF_INET) {
         QUIC_DBG_ASSERT(sizeof(struct sockaddr_in) == AddrInfo->ai_addrlen);
         SockAddrIn = (struct sockaddr_in*)AddrInfo->ai_addr;
         Address->Ipv4 = *SockAddrIn;
