@@ -1481,13 +1481,13 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
 QUIC_NO_SANITIZE("implicit-conversion")
 QuicLibraryGetWorker(
-    void
+    _In_ const _In_ QUIC_RECV_DATAGRAM* Datagram
     )
 {
     QUIC_DBG_ASSERT(MsQuicLib.StatelessRegistration != NULL);
     return
         &MsQuicLib.StatelessRegistration->WorkerPool->Workers[
-            MsQuicLib.NextWorkerIndex++ % MsQuicLib.StatelessRegistration->WorkerPool->WorkerCount];
+            Datagram->PartitionIndex % MsQuicLib.PartitionCount];
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

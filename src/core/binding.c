@@ -692,10 +692,10 @@ QuicBindingQueueStatelessOperation(
         return FALSE;
     }
 
-    QUIC_WORKER* Worker = QuicLibraryGetWorker();
+    QUIC_WORKER* Worker = QuicLibraryGetWorker(Datagram);
     if (QuicWorkerIsOverloaded(Worker)) {
         QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
-            "Worker overloaded (stateless oper)");
+            "Stateless worker overloaded (stateless oper)");
         return FALSE;
     }
 
@@ -1192,9 +1192,19 @@ QuicBindingCreateConnection(
     // QuicLookupAddRemoteHash.
     //
 
-    QUIC_CONNECTION* Connection = NULL;
     QUIC_RECV_PACKET* Packet = QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
+    //
+    // Pick a stateless worker to process the client hello and if successful,
+    // the connection will later be moved to the correct registration's worker.
+    //
+    QUIC_WORKER* Worker = QuicLibraryGetWorker(Datagram);
+    if (QuicWorkerIsOverloaded(Worker)) {
+        QuicPacketLogDrop(Binding, Packet, "Stateless worker overloaded");
+        return NULL;
+    }
+
+    QUIC_CONNECTION* Connection = NULL;
     QUIC_CONNECTION* NewConnection =
         QuicConnAlloc(
             MsQuicLib.StatelessRegistration,
@@ -1203,6 +1213,8 @@ QuicBindingCreateConnection(
         QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");
         return NULL;
     }
+
+    QuicWorkerAssignConnection(Worker, NewConnection);
 
     BOOLEAN BindingRefAdded = FALSE;
     QUIC_DBG_ASSERT(NewConnection->SourceCids.Next != NULL);
@@ -1213,17 +1225,6 @@ QuicBindingCreateConnection(
             Link);
 
     QuicConnAddRef(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
-
-    //
-    // Pick a temporary worker to process the client hello and if successful,
-    // the connection will later be moved to the correct registration's worker.
-    //
-    QUIC_WORKER* Worker = QuicLibraryGetWorker();
-    if (QuicWorkerIsOverloaded(Worker)) {
-        QuicPacketLogDrop(Binding, Packet, "Worker overloaded");
-        goto Exit;
-    }
-    QuicWorkerAssignConnection(Worker, NewConnection);
 
     //
     // Even though the new connection might not end up being put in this

@@ -137,11 +137,6 @@ typedef struct QUIC_LIBRARY {
 #endif
 
     //
-    // Next worker to use in the pool.
-    //
-    uint8_t NextWorkerIndex;
-
-    //
     // Estimated timer resolution for the platform.
     //
     uint8_t TimerResolutionMs;
@@ -469,7 +464,7 @@ QuicLibraryOnListenerRegistered(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
 QuicLibraryGetWorker(
-    void
+    _In_ const _In_ QUIC_RECV_DATAGRAM* Datagram
     );
 
 //
