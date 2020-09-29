@@ -431,7 +431,7 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
             } else if (Value >= 40) {
                 for (auto &Listener : *Listeners) {
                     QUIC_ADDR sockAddr = { 0 };
-                    QuicAddrSetFamily(&sockAddr, GetRandom(2) ? AF_INET : AF_UNSPEC);
+                    QuicAddrSetFamily(&sockAddr, GetRandom(2) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC);
                     QuicAddrSetPort(&sockAddr, GetRandomFromVector(Settings.Ports));
                     MsQuic->ListenerStart(Listener, &Alpns[GetRandom(AlpnCount)], 1, &sockAddr);
                 }
@@ -470,7 +470,7 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             HQUIC Configuration = GetRandomFromVector(ClientConfigurations);
-            MsQuic->ConnectionStart(Connection, Configuration, AF_INET, Settings.ServerName, GetRandomFromVector(Settings.Ports));
+            MsQuic->ConnectionStart(Connection, Configuration, QUIC_ADDRESS_FAMILY_INET, Settings.ServerName, GetRandomFromVector(Settings.Ports));
             break;
         }
         case SpinQuicAPICallConnectionShutdown: {
@@ -634,7 +634,7 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
             ASSERT_ON_FAILURE(MsQuic->ListenerOpen(Registration, SpinQuicServerHandleListenerEvent, &Connections, &Listener));
 
             QUIC_ADDR sockAddr = { 0 };
-            QuicAddrSetFamily(&sockAddr, GetRandom(2) ? AF_INET : AF_UNSPEC);
+            QuicAddrSetFamily(&sockAddr, GetRandom(2) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC);
             QuicAddrSetPort(&sockAddr, pt);
 
             ASSERT_ON_FAILURE(MsQuic->ListenerStart(Listener, &Alpns[i], 1, &sockAddr));

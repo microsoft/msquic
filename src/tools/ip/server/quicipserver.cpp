@@ -155,7 +155,7 @@ RunServer(
     Settings.IsSet.IdleTimeoutMs = TRUE;
 
     QUIC_ADDR Address = {};
-    QuicAddrSetFamily(&Address, AF_UNSPEC);
+    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
     QuicAddrSetPort(&Address, UdpPort);
 
     Configuration =

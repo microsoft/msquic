@@ -349,7 +349,7 @@ QuicTestConnectAndPing(
 {
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
     const uint16_t TotalStreamCount = (uint16_t)(StreamCount * StreamBurstCount);
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
     PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
     PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
@@ -667,8 +667,8 @@ QuicTestClientDisconnect(
             TEST_QUIC_SUCCEEDED(
                 Client->Start(
                     ClientConfiguration,
-                    AF_INET,
-                    QUIC_LOCALHOST_FOR_AF(AF_INET),
+                    QUIC_ADDRESS_FAMILY_INET,
+                    QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
                     ServerLocalAddr.GetPort()));
 
             if (!Client->WaitForConnectionComplete()) {
@@ -935,7 +935,7 @@ QuicAbortiveTransfers(
 
     uint16_t StreamCount = 1;
     int SendLength = 100;
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr;
     QuicBufferScope Buffer(SendLength);
     QUIC_STREAM_SHUTDOWN_FLAGS ShutdownFlags;
@@ -1435,7 +1435,7 @@ QuicTestReceiveResume(
     TEST_TRUE(ClientConfiguration.IsValid());
 
     uint32_t SendSize = SendBytes;
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr;
     QuicBufferScope Buffer(SendSize);
     RecvResumeTestContext ServerContext(ServerConfiguration, true, ShutdownType, PauseType), ClientContext(nullptr, false, ShutdownType, PauseType);
@@ -1697,7 +1697,7 @@ QuicTestReceiveResumeNoData(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr;
     RecvResumeTestContext ServerContext(ServerConfiguration, true, ShutdownType, ReturnConsumedBytes), ClientContext(nullptr, false, ShutdownType, ReturnConsumedBytes);
     ServerContext.ShutdownOnly = true;

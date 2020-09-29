@@ -210,7 +210,7 @@ ConvertArgToAddress(
         // Explicitly zero, otherwise kernel mode errors
         //
         QuicZeroMemory(Address, sizeof(*Address));
-        QuicAddrSetFamily(Address, AF_UNSPEC);
+        QuicAddrSetFamily(Address, QUIC_ADDRESS_FAMILY_UNSPEC);
         QuicAddrSetPort(Address, Port);
         return TRUE;
     }

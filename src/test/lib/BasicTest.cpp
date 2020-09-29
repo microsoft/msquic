@@ -62,7 +62,7 @@ void QuicTestStartListener()
     {
         TestListener Listener(Registration, ListenerDoNothingCallback, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
-        QuicAddr LocalAddress(AF_UNSPEC);
+        QuicAddr LocalAddress(QUIC_ADDRESS_FAMILY_UNSPEC);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, Alpn.Length(), &LocalAddress.SockAddr));
     }
 }
@@ -84,7 +84,7 @@ void QuicTestStartListenerMultiAlpns()
     {
         TestListener Listener(Registration, ListenerDoNothingCallback, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
-        QuicAddr LocalAddress(AF_UNSPEC);
+        QuicAddr LocalAddress(QUIC_ADDRESS_FAMILY_UNSPEC);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, Alpn.Length(), &LocalAddress.SockAddr));
     }
 }
@@ -101,7 +101,7 @@ void QuicTestStartListenerImplicit(_In_ int Family)
         TestListener Listener(Registration, ListenerDoNothingCallback, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
-        QuicAddr LocalAddress(Family == 4 ? AF_INET : AF_INET6);
+        QuicAddr LocalAddress(Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6);
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, Alpn.Length(), &LocalAddress.SockAddr));
     }
 }
@@ -209,7 +209,7 @@ void QuicTestStartListenerExplicit(_In_ int Family)
         TestListener Listener(Registration, ListenerDoNothingCallback, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr LocalAddress(QuicAddr(QuicAddrFamily, true), TestUdpPortBase);
         QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
         while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
@@ -240,7 +240,7 @@ void QuicTestBindConnectionImplicit(_In_ int Family)
         TestConnection Connection(Registration);
         TEST_TRUE(Connection.IsValid());
 
-        QuicAddr LocalAddress(Family == 4 ? AF_INET : AF_INET6);
+        QuicAddr LocalAddress(Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6);
         TEST_QUIC_SUCCEEDED(Connection.SetLocalAddr(LocalAddress));
     }
 }
@@ -254,7 +254,7 @@ void QuicTestBindConnectionExplicit(_In_ int Family)
         TestConnection Connection(Registration);
         TEST_TRUE(Connection.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr LocalAddress(QuicAddr(QuicAddrFamily, true), TestUdpPortBase);
         QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
         while (Status == QUIC_STATUS_ADDRESS_IN_USE) {

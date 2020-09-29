@@ -114,11 +114,11 @@ TestListener::HandleListenerEvent(
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
         if (Event->NEW_CONNECTION.Info->ServerName != nullptr &&
             _strnicmp(
-                QUIC_LOCALHOST_FOR_AF(AF_INET),
+                QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
                 Event->NEW_CONNECTION.Info->ServerName,
                 Event->NEW_CONNECTION.Info->ServerNameLength) != 0 &&
             _strnicmp(
-                QUIC_LOCALHOST_FOR_AF(AF_INET6),
+                QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET6),
                 Event->NEW_CONNECTION.Info->ServerName,
                 Event->NEW_CONNECTION.Info->ServerNameLength) != 0) {
             break; // We don't fail the test, just reject the connection.

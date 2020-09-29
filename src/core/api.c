@@ -269,7 +269,9 @@ MsQuicConnectionStart(
     //
     // Make sure the connection is to a IPv4 or IPv6 address or unspecified.
     //
-    if (Family != AF_UNSPEC && Family != AF_INET && Family != AF_INET6) {
+    if (Family != QUIC_ADDRESS_FAMILY_UNSPEC &&
+        Family != QUIC_ADDRESS_FAMILY_INET &&
+        Family != QUIC_ADDRESS_FAMILY_INET6) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }

@@ -184,7 +184,7 @@ RpsClient::Start(
             MsQuic->ConnectionStart(
                 Connection,
                 Configuration,
-                AF_UNSPEC,
+                QUIC_ADDRESS_FAMILY_UNSPEC,
                 Target.get(),
                 Port);
         if (QUIC_FAILED(Status)) {

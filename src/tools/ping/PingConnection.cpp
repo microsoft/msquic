@@ -141,7 +141,7 @@ PingConnection::QueueDatagram(
 
 bool
 PingConnection::Connect(_In_ HQUIC ClientConfiguration) {
-    if (QuicAddrGetFamily(&PingConfig.LocalIpAddr) != AF_UNSPEC) {
+    if (QuicAddrGetFamily(&PingConfig.LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,

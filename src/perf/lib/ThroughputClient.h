@@ -108,7 +108,7 @@ private:
     uint8_t UseEncryption {TRUE};
     QUIC_ADDR LocalIpAddr;
     uint16_t Port {PERF_DEFAULT_PORT};
-    uint16_t RemoteFamily {AF_UNSPEC};
+    QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
     uint64_t Length {0};
     uint32_t IoSize {0};
 };

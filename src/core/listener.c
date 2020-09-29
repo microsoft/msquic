@@ -250,7 +250,7 @@ MsQuicListenerStart(
     // (if available) UDP port and then manually filter on the specific address
     // (if available) at the QUIC layer.
     //
-    QuicAddrSetFamily(&BindingLocalAddress, AF_INET6);
+    QuicAddrSetFamily(&BindingLocalAddress, QUIC_ADDRESS_FAMILY_INET6);
     QuicAddrSetPort(&BindingLocalAddress,
         PortUnspecified ? 0 : QuicAddrGetPort(LocalAddress));
 
