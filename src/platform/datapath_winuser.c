@@ -860,19 +860,19 @@ QuicDataPathPopulateTargetAddress(
     _Out_ SOCKADDR_INET* Address
     )
 {
-    if (Ai->ai_addr->sa_family == AF_INET6) {
+    if (Ai->ai_addr->sa_family == QUIC_ADDRESS_FAMILY_INET6) {
         //
         // Is this a mapped ipv4 one?
         //
         PSOCKADDR_IN6 SockAddr6 = (PSOCKADDR_IN6)Ai->ai_addr;
 
-        if (Family == AF_UNSPEC && IN6ADDR_ISV4MAPPED(SockAddr6))
+        if (Family == QUIC_ADDRESS_FAMILY_UNSPEC && IN6ADDR_ISV4MAPPED(SockAddr6))
         {
             PSOCKADDR_IN SockAddr4 = &Address->Ipv4;
             //
             // Get the ipv4 address from the mapped address.
             //
-            SockAddr4->sin_family = AF_INET;
+            SockAddr4->sin_family = QUIC_ADDRESS_FAMILY_INET;
             SockAddr4->sin_addr =
                 *(IN_ADDR UNALIGNED *)
                     IN6_GET_ADDR_V4MAPPED(&SockAddr6->sin6_addr);
@@ -1038,7 +1038,7 @@ QuicDataPathBindingCreate(
     if (LocalAddress) {
         QuicConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
     } else {
-        Binding->LocalAddress.si_family = AF_INET6;
+        Binding->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
     Binding->Mtu = QUIC_MAX_MTU;
     QuicRundownAcquire(&Datapath->BindingsRundown);
@@ -1970,7 +1970,7 @@ QuicDataPathRecvComplete(
             if (CMsg->cmsg_level == IPPROTO_IPV6) {
                 if (CMsg->cmsg_type == IPV6_PKTINFO) {
                     PIN6_PKTINFO PktInfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(CMsg);
-                    LocalAddr->si_family = AF_INET6;
+                    LocalAddr->si_family = QUIC_ADDRESS_FAMILY_INET6;
                     LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
                     LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                     QuicConvertFromMappedV6(LocalAddr, LocalAddr);
@@ -1984,7 +1984,7 @@ QuicDataPathRecvComplete(
             } else if (CMsg->cmsg_level == IPPROTO_IP) {
                 if (CMsg->cmsg_type == IP_PKTINFO) {
                     PIN_PKTINFO PktInfo = (PIN_PKTINFO)WSA_CMSG_DATA(CMsg);
-                    LocalAddr->si_family = AF_INET;
+                    LocalAddr->si_family = QUIC_ADDRESS_FAMILY_INET;
                     LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
                     LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
@@ -2518,7 +2518,7 @@ QuicDataPathBindingSendTo(
     WSAMhdr.Control.buf = (PCHAR)CtrlBuf;
     WSAMhdr.Control.len = 0;
 
-    if (RemoteAddress->si_family == AF_INET) {
+    if (RemoteAddress->si_family == QUIC_ADDRESS_FAMILY_INET) {
         WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
         CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
         CMsg->cmsg_level = IPPROTO_IP;
@@ -2659,7 +2659,7 @@ QuicDataPathBindingSendFromTo(
     WSAMhdr.Control.buf = (PCHAR)CtrlBuf;
     WSAMhdr.Control.len = 0;
 
-    if (LocalAddress->si_family == AF_INET) {
+    if (LocalAddress->si_family == QUIC_ADDRESS_FAMILY_INET) {
         WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(IN_PKTINFO));
         CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
         CMsg->cmsg_level = IPPROTO_IP;

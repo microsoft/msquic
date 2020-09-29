@@ -8,6 +8,7 @@ set(SOURCES
     PartitionTest.cpp
     RangeTest.cpp
     SpinFrame.cpp
+    TicketTest.cpp
     TransportParamTest.cpp
     VarIntTest.cpp
 )

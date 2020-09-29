@@ -43,17 +43,11 @@ PerfServer::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (!Listener.IsValid()) {
-        return Listener.GetInitStatus();
+    if (QUIC_FAILED(InitStatus)) {
+        return InitStatus;
     }
 
     TryGetValue(argc, argv, "port", &Port);
-
-    QUIC_STATUS Status = SecurityConfig.Initialize(argc, argv, Registration, SelfSignedConfig);
-    if (QUIC_FAILED(Status)) {
-        PrintHelp();
-        return Status;
-    }
 
     DataBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE);
     if (!DataBuffer) {
@@ -73,13 +67,14 @@ PerfServer::Start(
     _In_ QUIC_EVENT* _StopEvent
     ) {
     QUIC_ADDR Address;
-    QuicAddrSetFamily(&Address, AF_UNSPEC);
+    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
     QuicAddrSetPort(&Address, Port);
 
     StopEvent = _StopEvent;
 
     return
         Listener.Start(
+            Alpn,
             &Address,
             [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
                 return ((PerfServer*)Context)->ListenerCallback(Handle, Event);
@@ -96,7 +91,7 @@ PerfServer::Wait(
     } else {
         QuicEventWaitForever(*StopEvent);
     }
-    Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+    Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -105,6 +100,7 @@ PerfServer::ListenerCallback(
     _In_ HQUIC /*ListenerHandle*/,
     _Inout_ QUIC_LISTENER_EVENT* Event
     ) {
+    QUIC_STATUS Status = QUIC_STATUS_NOT_SUPPORTED;
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
         BOOLEAN value = TRUE;
@@ -125,11 +121,11 @@ PerfServer::ListenerCallback(
                         Event);
             };
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)Handler, this);
-        Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
+        Status = MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, Configuration);
         break;
     }
     }
-    return QUIC_STATUS_SUCCESS;
+    return Status;
 }
 
 QUIC_STATUS

@@ -21,6 +21,15 @@ Environment:
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef struct QUIC_CREDENTIAL_CONFIG_HELPER {
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    union {
+        QUIC_CERTIFICATE_HASH CertHash;
+        QUIC_CERTIFICATE_HASH_STORE CertHashStore;
+        QUIC_CERTIFICATE_FILE CertFile;
+    };
+} QUIC_CREDENTIAL_CONFIG_HELPER;
+
 //
 // Converts the QUIC Status Code to a string for console output.
 //
@@ -201,7 +210,7 @@ ConvertArgToAddress(
         // Explicitly zero, otherwise kernel mode errors
         //
         QuicZeroMemory(Address, sizeof(*Address));
-        QuicAddrSetFamily(Address, AF_UNSPEC);
+        QuicAddrSetFamily(Address, QUIC_ADDRESS_FAMILY_UNSPEC);
         QuicAddrSetPort(Address, Port);
         return TRUE;
     }
@@ -239,228 +248,7 @@ DecodeHexBuffer(
     return HexBufferLen;
 }
 
-//
-// Helper function to take a hex encoded byte string for the resumption state.
-//
-inline
-BOOLEAN
-SetResumptionState(
-    _In_ const QUIC_API_TABLE* MsQuic,
-    _In_ HQUIC Handle,
-    _In_z_ const char* SerializedState
-    )
-{
-    uint8_t State[2048];
-    uint32_t StateLen =
-        DecodeHexBuffer(SerializedState, sizeof(State), State);
-
-    if (StateLen == 0) {
-        return FALSE;
-    }
-
-    return
-        QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                Handle,
-                QUIC_PARAM_LEVEL_SESSION,
-                QUIC_PARAM_SESSION_ADD_RESUMPTION_STATE,
-                StateLen,
-                State));
-}
-
 #if defined(__cplusplus)
-
-struct CreateSecConfigHelper {
-    QUIC_EVENT Complete;
-    QUIC_SEC_CONFIG* SecurityConfig;
-
-    CreateSecConfigHelper() : SecurityConfig(nullptr) {
-        QuicEventInitialize(&Complete, FALSE, FALSE);
-    }
-
-    ~CreateSecConfigHelper() {
-        QuicEventUninitialize(Complete);
-    }
-
-    _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
-    static void
-    QUIC_API
-    GetSecConfigComplete(
-        _In_opt_ void* Context,
-        _In_ QUIC_STATUS /* Status */,
-        _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
-        )
-    {
-        _Analysis_assume_(Context);
-        auto HelperContext = (CreateSecConfigHelper*)Context;
-        HelperContext->SecurityConfig = SecurityConfig;
-        QuicEventSet(HelperContext->Complete);
-    }
-
-    QUIC_SEC_CONFIG*
-    Create(
-        _In_ const QUIC_API_TABLE* MsQuic,
-        _In_ _Pre_defensive_ HQUIC Registration,
-        _In_ QUIC_SEC_CONFIG_FLAGS Flags,
-        _In_opt_ void* Certificate,
-        _In_opt_z_ const char* Principal
-        )
-    {
-        if (QUIC_SUCCEEDED(
-            MsQuic->SecConfigCreate(
-                Registration,
-                Flags,
-                Certificate,
-                Principal,
-                this,
-                GetSecConfigComplete))) {
-            QuicEventWaitForever(Complete);
-        }
-        return SecurityConfig;
-    }
-};
-
-inline
-QUIC_SEC_CONFIG*
-GetSecConfigForCertContext(
-    _In_ const QUIC_API_TABLE* MsQuic,
-    _In_ HQUIC Registration,
-    _In_ void* CertContext
-    )
-{
-    CreateSecConfigHelper Helper;
-    return
-        Helper.Create(
-            MsQuic,
-            Registration,
-            QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT,
-            CertContext,
-            nullptr);
-}
-
-inline
-QUIC_SEC_CONFIG*
-GetSecConfigForSNI(
-    _In_ const QUIC_API_TABLE* MsQuic,
-    _In_ HQUIC Registration,
-    _In_z_ const char* ServerName
-    )
-{
-    CreateSecConfigHelper Helper;
-    return
-        Helper.Create(
-            MsQuic,
-            Registration,
-            QUIC_SEC_CONFIG_FLAG_NONE,
-            nullptr,
-            ServerName);
-}
-
-inline
-QUIC_SEC_CONFIG*
-GetSecConfigForThumbprint(
-    _In_ const QUIC_API_TABLE* MsQuic,
-    _In_ HQUIC Registration,
-    _In_z_ const char* Thumbprint
-    )
-{
-    QUIC_CERTIFICATE_HASH CertHash;
-    uint32_t CertHashLen =
-        DecodeHexBuffer(
-            Thumbprint,
-            sizeof(CertHash.ShaHash),
-            CertHash.ShaHash);
-    if (CertHashLen != sizeof(CertHash.ShaHash)) {
-        return nullptr;
-    }
-    CreateSecConfigHelper Helper;
-    return
-        Helper.Create(
-            MsQuic,
-            Registration,
-            QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
-            &CertHash,
-            nullptr);
-}
-
-inline
-QUIC_SEC_CONFIG*
-GetSecConfigForThumbprintAndStore(
-    _In_ const QUIC_API_TABLE* MsQuic,
-    _In_ HQUIC Registration,
-    _In_ QUIC_CERTIFICATE_HASH_STORE_FLAGS Flags,
-    _In_z_ const char* Thumbprint,
-    _In_z_ const char* StoreName
-    )
-{
-    QUIC_CERTIFICATE_HASH_STORE CertHashStore;
-    QuicZeroMemory(&CertHashStore, sizeof(CertHashStore));
-
-    uint32_t CertHashLen =
-        DecodeHexBuffer(
-            Thumbprint,
-            sizeof(CertHashStore.ShaHash),
-            CertHashStore.ShaHash);
-    if (CertHashLen != sizeof(CertHashStore.ShaHash)) {
-        return nullptr;
-    }
-
-    size_t StoreNameLen = strlen(StoreName);
-    QuicCopyMemory(CertHashStore.StoreName, StoreName, min(StoreNameLen, sizeof(CertHashStore.StoreName)));
-
-    CertHashStore.Flags = Flags;
-
-    CreateSecConfigHelper Helper;
-    return
-        Helper.Create(
-            MsQuic,
-            Registration,
-            QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE,
-            &CertHashStore,
-            nullptr);
-}
-
-inline
-QUIC_SEC_CONFIG*
-GetSecConfigForFile(
-    _In_ const QUIC_API_TABLE* MsQuic,
-    _In_ HQUIC Registration,
-    _In_z_ const char *PrivateKeyFile,
-    _In_z_ const char *CertificateFile
-    )
-{
-    QUIC_CERTIFICATE_FILE CertFile;
-    CertFile.PrivateKeyFile = (char*)PrivateKeyFile;
-    CertFile.CertificateFile = (char*)CertificateFile;
-    CreateSecConfigHelper Helper;
-    return
-        Helper.Create(
-            MsQuic,
-            Registration,
-            QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE,
-            &CertFile,
-            nullptr);
-}
-
-#ifdef QUIC_TEST_APIS
-inline
-QUIC_SEC_CONFIG*
-GetSecConfigForSelfSigned(
-    _In_ const QUIC_API_TABLE* MsQuic,
-    _In_ HQUIC Registration,
-    _In_ const QUIC_SEC_CONFIG_PARAMS* Params
-    )
-{
-    CreateSecConfigHelper Helper;
-    return Helper.Create(
-        MsQuic,
-        Registration,
-        (QUIC_SEC_CONFIG_FLAGS)Params->Flags,
-        Params->Certificate,
-        Params->Principal
-    );
-}
-#endif
 
 //
 // Arg Value Parsers
@@ -592,4 +380,118 @@ TryGetValue(
     return true;
 }
 
+inline
+_Success_(return != false)
+HQUIC
+GetServerConfigurationFromArgs(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_ const QUIC_API_TABLE* MsQuic,
+    _In_ HQUIC Registration,
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
+    _In_reads_bytes_opt_(SettingsSize)
+        const QUIC_SETTINGS* Settings,
+    _In_ uint32_t SettingsSize
+    )
+{
+    QUIC_CREDENTIAL_CONFIG_HELPER Helper;
+    QuicZeroMemory(&Helper, sizeof(Helper));
+    const QUIC_CREDENTIAL_CONFIG* Config = &Helper.CredConfig;
+    Helper.CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
+
+    const char* Cert;
+    const char* KeyFile;
+
+    if (((Cert = GetValue(argc, argv, "thumbprint")) != nullptr) ||
+        ((Cert = GetValue(argc, argv, "cert_hash")) != nullptr) ||
+        ((Cert = GetValue(argc, argv, "hash")) != nullptr)) {
+        uint32_t CertHashLen =
+            DecodeHexBuffer(
+                Cert,
+                sizeof(Helper.CertHashStore.ShaHash),
+                Helper.CertHashStore.ShaHash);
+        if (CertHashLen != sizeof(Helper.CertHashStore.ShaHash)) {
+            return nullptr;
+        }
+        Helper.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE;
+        Helper.CredConfig.CertificateHashStore = &Helper.CertHashStore;
+        memcpy(Helper.CertHashStore.StoreName, "My", sizeof("My"));
+        Helper.CertHashStore.Flags =
+            GetValue(argc, argv, "machine") ?
+                QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE :
+                QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
+
+    } else if (
+        (((Cert = GetValue(argc, argv, "file")) != nullptr) &&
+         ((KeyFile = GetValue(argc, argv, "key")) != nullptr)) ||
+        (((Cert = GetValue(argc, argv, "cert_file")) != nullptr) &&
+         ((KeyFile = GetValue(argc, argv, "cert_key")) != nullptr))) {
+        Helper.CertFile.CertificateFile = (char*)Cert;
+        Helper.CertFile.PrivateKeyFile = (char*)KeyFile;
+        Helper.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
+        Helper.CredConfig.CertificateFile = &Helper.CertFile;
+
+#ifdef QUIC_TEST_APIS
+    } else if (GetValue(argc, argv, "selfsign")) {
+        Config = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+        if (!Config) {
+            return nullptr;
+        }
 #endif
+
+    } else {
+        return nullptr;
+    }
+
+#ifdef QUIC_TEST_APIS
+    void* Context = (Config != &Helper.CredConfig) ? (void*)Config : nullptr;
+#else
+    void* Context = nullptr;
+#endif
+
+    HQUIC Configuration = nullptr;
+    if (QUIC_SUCCEEDED(
+        MsQuic->ConfigurationOpen(
+            Registration,
+            AlpnBuffers,
+            AlpnBufferCount,
+            Settings,
+            SettingsSize,
+            Context,
+            &Configuration)) &&
+        QUIC_FAILED(
+        MsQuic->ConfigurationLoadCredential(
+            Configuration,
+            Config))) {
+        MsQuic->ConfigurationClose(Configuration);
+        Configuration = nullptr;
+    }
+
+#ifdef QUIC_TEST_APIS
+    if (!Configuration && Config != &Helper.CredConfig) {
+        QuicPlatFreeSelfSignedCert(Config);
+    }
+#endif
+
+    return Configuration;
+}
+
+inline
+void
+FreeServerConfiguration(
+    _In_ const QUIC_API_TABLE* MsQuic,
+    _In_ HQUIC Configuration
+    )
+{
+#ifdef QUIC_TEST_APIS
+    auto SelfSignedConfig = (const QUIC_CREDENTIAL_CONFIG*)MsQuic->GetContext(Configuration);
+    if (SelfSignedConfig) {
+        QuicPlatFreeSelfSignedCert(SelfSignedConfig);
+    }
+#endif
+    MsQuic->ConfigurationClose(Configuration);
+}
+
+#endif // defined(__cplusplus)

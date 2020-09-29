@@ -60,7 +60,7 @@ QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ QUIC_EVENT* StopEvent,
-    _In_ PerfSelfSignedConfiguration* SelfSignedConfig
+    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     ) {
     argc--; argv++; // Skip app name
 
@@ -82,7 +82,7 @@ QuicMainStart(
             return Status;
         }
 
-        QuicAddr LocalAddress {AF_INET, (uint16_t)9999};
+        QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
         Status = QuicDataPathBindingCreate(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
         if (QUIC_FAILED(Status)) {
             QuicDataPathUninitialize(Datapath);
@@ -101,7 +101,7 @@ QuicMainStart(
     }
 
     if (ServerMode) {
-        TestToRun = new(std::nothrow) PerfServer(SelfSignedConfig);
+        TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);
 
     } else {
 

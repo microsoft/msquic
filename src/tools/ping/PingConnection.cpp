@@ -13,7 +13,6 @@ Abstract:
 
 PingConnection::PingConnection(
     _In_ PingTracker* Tracker,
-    _In_ HQUIC Session,
     _In_ bool DumpResumption
     ) :
     Tracker(Tracker), QuicConnection(nullptr), DumpResumption(DumpResumption),
@@ -24,7 +23,7 @@ PingConnection::PingConnection(
 
     if (QUIC_FAILED(
         MsQuic->ConnectionOpen(
-            Session,
+            Registration,
             QuicCallbackHandler,
             this,
             &QuicConnection))) {
@@ -59,117 +58,15 @@ PingConnection::Initialize(
 {
     this->IsServer = isServer;
 
-    if (!PingConfig.UseSendBuffer) {
-        BOOLEAN Opt = FALSE;
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SEND_BUFFERING,
-                sizeof(Opt),
-                &Opt))) {
-            printf("MsQuic->SetParam (SEND_BUFFERING) failed!\n");
-            return false;
-        }
-    }
-
-    if (!PingConfig.UsePacing) {
-        BOOLEAN Opt = FALSE;
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SEND_PACING,
-                sizeof(Opt),
-                &Opt))) {
-            printf("MsQuic->SetParam (SEND_PACING) failed!\n");
-            return false;
-        }
-    }
-
-    {
-        BOOLEAN Enabled = TRUE;
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
-                sizeof(Enabled),
-                &Enabled))) {
-            printf("MsQuic->SetParam (DATAGRAMS) failed!\n");
-            return false;
-        }
-    }
-
     if (!IsServer) {
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_DISCONNECT_TIMEOUT,
-                sizeof(uint32_t),
-                &PingConfig.DisconnectTimeout))) {
-            printf("Failed to set the disconnect timeout!\n");
-            return false;
-        }
-
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_IDLE_TIMEOUT,
-                sizeof(uint64_t),
-                &PingConfig.IdleTimeout))) {
-            printf("Failed to set the idle timeout!\n");
-            return false;
-        }
-
-        uint32_t SecFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-                sizeof(SecFlags),
-                &SecFlags))) {
-            printf("Failed to set the cert validation flags!\n");
-            return false;
-        }
-
-        if (PingConfig.PeerBidirStreamCount != 0) {
-            if (QUIC_FAILED(
-                MsQuic->SetParam(
-                    QuicConnection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT,
-                    sizeof(uint16_t),
-                    &PingConfig.PeerBidirStreamCount))) {
-                printf("Failed to set the peer max bidi stream count!\n");
-                return false;
-            }
-        }
-
-        if (PingConfig.PeerUnidirStreamCount != 0) {
-            if (QUIC_FAILED(
-                MsQuic->SetParam(
-                    QuicConnection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT,
-                    sizeof(uint16_t),
-                    &PingConfig.PeerUnidirStreamCount))) {
-                printf("Failed to set the peer max uni stream count!\n");
-                return false;
-            }
-        }
-
-        if (PingConfig.Client.ResumeToken &&
+        /*if (PingConfig.Client.ResumeToken &&
             !SetResumptionState(
                 MsQuic,
                 QuicConnection,
                 PingConfig.Client.ResumeToken)) {
             printf("Failed to set the resumption token!\n");
             return false;
-        }
+        }*/
 
         if (PingConfig.Client.Version &&
             QUIC_FAILED(
@@ -243,8 +140,8 @@ PingConnection::QueueDatagram(
 }
 
 bool
-PingConnection::Connect() {
-    if (QuicAddrGetFamily(&PingConfig.LocalIpAddr) != AF_UNSPEC) {
+PingConnection::Connect(_In_ HQUIC ClientConfiguration) {
+    if (QuicAddrGetFamily(&PingConfig.LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
@@ -267,6 +164,7 @@ PingConnection::Connect() {
     if (QUIC_FAILED(
         MsQuic->ConnectionStart(
             QuicConnection,
+            ClientConfiguration,
             QuicAddrGetFamily(&PingConfig.Client.RemoteIpAddr),
             PingConfig.Client.Target,
             QuicAddrGetPort(&PingConfig.Client.RemoteIpAddr)))) {

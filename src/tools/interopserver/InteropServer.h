@@ -10,7 +10,7 @@
 #include <msquichelper.h>
 
 extern const QUIC_API_TABLE* MsQuic;
-extern QUIC_SEC_CONFIG* SecurityConfig;
+extern HQUIC Configuration;
 
 const QUIC_BUFFER QuackBuffer = { sizeof("quack") - 1, (uint8_t*)"quack" };
 const QUIC_BUFFER QuackAckBuffer = { sizeof("quack-ack") - 1, (uint8_t*)"quack-ack" };
@@ -225,16 +225,24 @@ private:
 };
 
 struct HttpServer {
-    HttpServer(HQUIC Session, const QUIC_ADDR* LocalAddress) {
+    HttpServer(
+        _In_ HQUIC Registration,
+        _In_reads_(AlpnBufferCount) _Pre_defensive_
+            const QUIC_BUFFER* const AlpnBuffers,
+        _In_range_(>, 0) uint32_t AlpnBufferCount,
+        const QUIC_ADDR* LocalAddress) {
+
         EXIT_ON_FAILURE(
             MsQuic->ListenerOpen(
-                Session,
+                Registration,
                 QuicCallbackHandler,
                 this,
                 &QuicListener));
         EXIT_ON_FAILURE(
             MsQuic->ListenerStart(
                 QuicListener,
+                AlpnBuffers,
+                AlpnBufferCount,
                 LocalAddress));
     }
     ~HttpServer() {
@@ -252,56 +260,14 @@ private:
         _Inout_ QUIC_LISTENER_EVENT* Event
         ) {
         if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
-            Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
             if (Event->NEW_CONNECTION.Info->NegotiatedAlpnLength >= 6 &&
                 !memcmp(Event->NEW_CONNECTION.Info->NegotiatedAlpn, "siduck", 6)) {
                 new DatagramConnection(Event->NEW_CONNECTION.Connection);
             } else {
                 new HttpConnection(Event->NEW_CONNECTION.Connection);
             }
-            return QUIC_STATUS_SUCCESS;
+            return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, Configuration);
         }
         return QUIC_STATUS_NOT_SUPPORTED;
     }
-};
-
-struct HttpSession {
-    HttpSession(
-        HQUIC Registration,
-        _In_reads_(AlpnBufferCount) _Pre_defensive_
-            const QUIC_BUFFER* const AlpnBuffers,
-        _In_range_(>, 0) uint32_t AlpnBufferCount,
-        const QUIC_ADDR* LocalAddress) {
-
-        QUIC_SETTINGS Settings{0};
-        Settings.PeerBidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
-        Settings.IsSet.PeerBidiStreamCount = TRUE;
-        Settings.PeerUnidiStreamCount = 1; // We allow 1 unidirectional stream, just for interop tests.
-        Settings.IsSet.PeerUnidiStreamCount = TRUE;
-        Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
-        Settings.IsSet.InitialRttMs = TRUE;
-
-        EXIT_ON_FAILURE(
-            MsQuic->SessionOpen(
-                Registration,
-                sizeof(Settings),
-                &Settings,
-                AlpnBuffers,
-                AlpnBufferCount,
-                nullptr,
-                &Session));
-
-        Server = new HttpServer(Session, LocalAddress);
-    }
-    ~HttpSession() {
-        delete Server;
-        MsQuic->SessionShutdown(
-            Session,
-            QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
-            0);
-        MsQuic->SessionClose(Session);
-    }
-private:
-    HQUIC Session;
-    HttpServer* Server;
 };

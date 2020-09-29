@@ -21,8 +21,8 @@ extern "C" {
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4214)  // nonstandard extension used: bit field types other than int
 
+typedef struct QUIC_SEC_CONFIG QUIC_SEC_CONFIG;
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
-typedef struct QUIC_TLS_SESSION QUIC_TLS_SESSION;
 typedef struct QUIC_TLS QUIC_TLS;
 
 #define TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION   0x0010  // Host Byte Order
@@ -67,13 +67,13 @@ typedef QUIC_TLS_RECEIVE_TP_CALLBACK *QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER;
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
-(QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK)(
+(QUIC_TLS_RECEIVE_TICKET_CALLBACK)(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint16_t TicketLength,
+    _In_ uint32_t TicketLength,
     _In_reads_(TicketLength) const uint8_t* Ticket
     );
 
-typedef QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK *QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK_HANDLER;
+typedef QUIC_TLS_RECEIVE_TICKET_CALLBACK *QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER;
 
 //
 // The input configuration for creation of a TLS context.
@@ -83,9 +83,9 @@ typedef struct QUIC_TLS_CONFIG {
     BOOLEAN IsServer;
 
     //
-    // The TLS session.
+    // Connection context for completion callbacks.
     //
-    QUIC_TLS_SESSION* TlsSession;
+    QUIC_CONNECTION* Connection;
 
     //
     // The TLS configuration information and credentials.
@@ -101,6 +101,18 @@ typedef struct QUIC_TLS_CONFIG {
     uint16_t AlpnBufferLength;
 
     //
+    // Name of the server we are connecting to (client side only).
+    //
+    const char* ServerName;
+
+    //
+    // The optional ticket buffer the client size uses to resume a previous
+    // session (client side only).
+    //
+    const uint8_t* ResumptionTicketBuffer;
+    uint32_t ResumptionTicketLength;
+
+    //
     // The local QUIC transport parameters to send. Buffer is freed by the TLS
     // context when it's no longer needed.
     //
@@ -108,29 +120,19 @@ typedef struct QUIC_TLS_CONFIG {
     uint32_t LocalTPLength;
 
     //
-    // Passed into completion callbacks.
-    //
-    QUIC_CONNECTION* Connection;
-
-    //
     // Invoked for the completion of process calls that were pending.
     //
     QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER ProcessCompleteCallback;
 
     //
-    // Invoked when QUIC TP are received.
+    // Invoked when QUIC transport parameters are received.
     //
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
     //
     // Invoked when a resumption ticket is received.
     //
-    QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK_HANDLER ReceiveResumptionCallback;
-
-    //
-    // Name of the server we are connecting to (client side only).
-    //
-    const char* ServerName;
+    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveResumptionCallback;
 
 } QUIC_TLS_CONFIG;
 
@@ -147,7 +149,6 @@ typedef enum QUIC_TLS_RESULT_FLAGS {
     QUIC_TLS_RESULT_EARLY_DATA_ACCEPT   = 0x0020, // The server accepted the early (0-RTT) data.
     QUIC_TLS_RESULT_EARLY_DATA_REJECT   = 0x0040, // The server rejected the early (0-RTT) data.
     QUIC_TLS_RESULT_COMPLETE            = 0x0080, // Handshake complete.
-    QUIC_TLS_RESULT_TICKET              = 0x0100, // Ticket Ready.
     QUIC_TLS_RESULT_ERROR               = 0x8000  // An error occured.
 
 } QUIC_TLS_RESULT_FLAGS;
@@ -257,89 +258,38 @@ typedef struct QUIC_TLS_PROCESS_STATE {
 
 } QUIC_TLS_PROCESS_STATE;
 
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
+void
+(QUIC_API QUIC_SEC_CONFIG_CREATE_COMPLETE)(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_opt_ void* Context,
+    _In_ QUIC_STATUS Status,
+    _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
+    );
+
+typedef QUIC_SEC_CONFIG_CREATE_COMPLETE *QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER;
+
 //
 // Creates a new TLS security configuration.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicTlsServerSecConfigCreate(
-    _Inout_ QUIC_RUNDOWN_REF* Rundown,
-    _In_ QUIC_SEC_CONFIG_FLAGS Flags,
-    _In_opt_ void* Certificate,
-    _In_opt_z_ const char* Principal,
+QuicTlsSecConfigCreate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     );
 
 //
-// Creates a new TLS security configuration for client use.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsClientSecConfigCreate(
-    _In_ uint32_t Flags,
-    _Outptr_ QUIC_SEC_CONFIG** ClientConfig
-    );
-
-//
-// Adds a reference to a TLS security configuration.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG*
-QuicTlsSecConfigAddRef(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
-    );
-
-//
-// Releases a references on a TLS security configuration and cleans it up
-// if it's the last reference.
+// Deletes a TLS security configuration.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QUIC_API
-QuicTlsSecConfigRelease(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
-    );
-
-//
-// Initializes a TLS session.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsSessionInitialize(
-    _Out_ QUIC_TLS_SESSION** NewTlsSession
-    );
-
-//
-// Uninitializes a TLS session.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsSessionUninitialize(
-    _In_opt_ QUIC_TLS_SESSION* TlsSession
-    );
-
-//
-// Configures the 0-RTT ticket key (server side).
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsSessionSetTicketKey(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_reads_bytes_(44)
-        const void* Buffer
-    );
-
-//
-// Adds a new ticket to the ticket store, from a contiguous buffer.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsSessionAddTicket(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t * const Buffer
+QuicTlsSecConfigDelete(
+    __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
+        QUIC_SEC_CONFIG* SecurityConfig
     );
 
 //
@@ -372,16 +322,6 @@ QuicTlsReset(
     );
 
 //
-// Returns the security configuration used to initialize this TLS.
-// Caller must release the ref on the QUIC_SEC_CONFIG.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG*
-QuicTlsGetSecConfig(
-    _In_ QUIC_TLS* TlsContext
-    );
-
-//
 // Called to process any data received from the peer. In the case of the client,
 // the initial call is made with no input buffer to generate the initial output.
 // The returned QUIC_TLS_RESULT_FLAGS and QUIC_TLS_PROCESS_STATE are update with
@@ -410,18 +350,6 @@ QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessDataComplete(
     _In_ QUIC_TLS* TlsContext,
     _Out_ uint32_t * ConsumedBuffer
-    );
-
-//
-// Called to read a TLS ticket.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsReadTicket(
-    _In_ QUIC_TLS* TlsContext,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
-        uint8_t* Buffer
     );
 
 //
@@ -467,7 +395,7 @@ QuicTlsAlpnFindInList(
     )
 {
     while (AlpnListLength != 0) {
-        QUIC_ANALYSIS_ASSUME(AlpnList[0] + 1 <= AlpnListLength);
+        QUIC_DBG_ASSERT(AlpnList[0] + 1 <= AlpnListLength);
         if (AlpnList[0] == FindAlpnLength &&
             memcmp(AlpnList+1, FindAlpn, FindAlpnLength) == 0) {
             return AlpnList;

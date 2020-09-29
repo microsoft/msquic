@@ -34,12 +34,12 @@ void QuicTestValidateRegistration()
     MsQuic->RegistrationClose(nullptr);
 }
 
-void QuicTestValidateSession()
+void QuicTestValidateConfiguration()
 {
-    MsQuicRegistration TestReg;
-    TEST_TRUE(TestReg.IsValid());
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
 
-    HQUIC Session = nullptr;
+    HQUIC LocalConfiguration = nullptr;
 
     QUIC_SETTINGS EmptySettings{0};
 
@@ -62,12 +62,12 @@ void QuicTestValidateSession()
     //
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SessionOpen(
-            TestReg,
-            0,
-            nullptr,
+        MsQuic->ConfigurationOpen(
+            Registration,
             &GoodAlpn,
             1,
+            nullptr,
+            0,
             nullptr,
             nullptr));
 
@@ -76,65 +76,65 @@ void QuicTestValidateSession()
     //
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SessionOpen(
-            nullptr,
-            0,
+        MsQuic->ConfigurationOpen(
             nullptr,
             &GoodAlpn,
             1,
             nullptr,
-            &Session));
+            0,
+            nullptr,
+            &LocalConfiguration));
 
     //
     // Null settings.
     //
     TEST_QUIC_SUCCEEDED(
-        MsQuic->SessionOpen(
-            TestReg,
-            0,
-            nullptr,
+        MsQuic->ConfigurationOpen(
+            Registration,
             &GoodAlpn,
             1,
             nullptr,
-            &Session));
+            0,
+            nullptr,
+            &LocalConfiguration));
 
-    MsQuic->SessionClose(
-        Session);
-    Session = nullptr;
+    MsQuic->ConfigurationClose(
+        LocalConfiguration);
+    LocalConfiguration = nullptr;
 
     //
     // Empty settings.
     //
     TEST_QUIC_SUCCEEDED(
-        MsQuic->SessionOpen(
-            TestReg,
-            sizeof(EmptySettings),
-            &EmptySettings,
+        MsQuic->ConfigurationOpen(
+            Registration,
             &GoodAlpn,
             1,
+            &EmptySettings,
+            sizeof(EmptySettings),
             nullptr,
-            &Session));
+            &LocalConfiguration));
 
-    MsQuic->SessionClose(
-        Session);
-    Session = nullptr;
+    MsQuic->ConfigurationClose(
+        LocalConfiguration);
+    LocalConfiguration = nullptr;
 
     //
     // Good settings.
     //
     TEST_QUIC_SUCCEEDED(
-        MsQuic->SessionOpen(
-            TestReg,
-            sizeof(GoodSettings),
-            &GoodSettings,
+        MsQuic->ConfigurationOpen(
+            Registration,
             &GoodAlpn,
             1,
+            &GoodSettings,
+            sizeof(GoodSettings),
             nullptr,
-            &Session));
+            &LocalConfiguration));
 
-    MsQuic->SessionClose(
-        Session);
-    Session = nullptr;
+    MsQuic->ConfigurationClose(
+        LocalConfiguration);
+    LocalConfiguration = nullptr;
 
     //
     // Invalid settings - TODO
@@ -145,59 +145,59 @@ void QuicTestValidateSession()
     //
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SessionOpen(
-            TestReg,
-            0,
-            nullptr,
+        MsQuic->ConfigurationOpen(
+            Registration,
             nullptr,
             0,
             nullptr,
-            &Session));
+            0,
+            nullptr,
+            &LocalConfiguration));
 
     //
     // Empty ALPN.
     //
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SessionOpen(
-            TestReg,
-            0,
-            nullptr,
+        MsQuic->ConfigurationOpen(
+            Registration,
             &EmptyAlpn,
             1,
             nullptr,
-            &Session));
+            0,
+            nullptr,
+            &LocalConfiguration));
 
     //
     // 255-byte ALPN.
     //
     TEST_QUIC_SUCCEEDED(
-        MsQuic->SessionOpen(
-            TestReg,
-            0,
-            nullptr,
+        MsQuic->ConfigurationOpen(
+            Registration,
             &LongAlpn,
             1,
             nullptr,
-            &Session));
+            0,
+            nullptr,
+            &LocalConfiguration));
 
-    MsQuic->SessionClose(
-        Session);
-    Session = nullptr;
+    MsQuic->ConfigurationClose(
+        LocalConfiguration);
+    LocalConfiguration = nullptr;
 
     //
     // 256-byte ALPN.
     //
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SessionOpen(
-            TestReg,
-            0,
-            nullptr,
+        MsQuic->ConfigurationOpen(
+            Registration,
             &TooLongAlpn,
             1,
             nullptr,
-            &Session));
+            0,
+            nullptr,
+            &LocalConfiguration));
 
     //
     // Multiple ALPNs
@@ -207,92 +207,22 @@ void QuicTestValidateSession()
         { sizeof("alpn2") - 1, (uint8_t*)"alpn2" }
     };
     TEST_QUIC_SUCCEEDED(
-        MsQuic->SessionOpen(
-            TestReg,
-            0,
-            nullptr,
+        MsQuic->ConfigurationOpen(
+            Registration,
             TwoAlpns,
             2,
             nullptr,
-            &Session));
-
-    MsQuic->SessionClose(
-        Session);
-    Session = nullptr;
-
-    //
-    // Can't call SessionClose with invalid values as MsQuic asserts
-    // (on purpose).
-    //
-
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SessionOpen(
-            TestReg,
             0,
             nullptr,
-            &GoodAlpn,
-            1,
-            nullptr,
-            &Session));
+            &LocalConfiguration));
 
-    uint8_t TicketKey[44] = {0};
-
-    //
-    // NULL Ticket.
-    //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_TLS_TICKET_KEY,
-            0,
-            NULL));
+    MsQuic->ConfigurationClose(
+        LocalConfiguration);
+    LocalConfiguration = nullptr;
 
     //
-    // Invalid length.
+    // TODO - ConfigurationLoad?
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_TLS_TICKET_KEY,
-            0,
-            TicketKey));
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_TLS_TICKET_KEY,
-            1,
-            TicketKey));
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_TLS_TICKET_KEY,
-            sizeof(TicketKey) - 1,
-            TicketKey));
-
-#ifndef QUIC_DISABLE_0RTT_TESTS
-    //
-    // Valid 0-RTT ticket encryption key.
-    //
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_TLS_TICKET_KEY,
-            sizeof(TicketKey),
-            TicketKey));
-#endif
-
-    MsQuic->SessionClose(
-        Session);
-    Session = nullptr;
 }
 
 static
@@ -310,8 +240,11 @@ DummyListenerCallback(
 
 void QuicTestValidateListener()
 {
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
-    TEST_TRUE(Session.IsValid());
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicConfiguration LocalConfiguration(Registration, Alpn);
+    TEST_TRUE(LocalConfiguration.IsValid());
 
     HQUIC Listener = nullptr;
 
@@ -321,13 +254,13 @@ void QuicTestValidateListener()
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->ListenerOpen(
-            Session,
+            Registration,
             nullptr,
             nullptr,
             &Listener));
 
     //
-    // Null session.
+    // Null registration.
     //
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
@@ -343,7 +276,7 @@ void QuicTestValidateListener()
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->ListenerOpen(
-            Session,
+            Registration,
             DummyListenerCallback,
             nullptr,
             nullptr));
@@ -353,7 +286,7 @@ void QuicTestValidateListener()
     //
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
-            Session,
+            Registration,
             DummyListenerCallback,
             nullptr,
             &Listener));
@@ -363,6 +296,8 @@ void QuicTestValidateListener()
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerStart(
             Listener,
+            Alpn,
+            Alpn.Length(),
             nullptr));
 
     MsQuic->ListenerClose(Listener);
@@ -373,7 +308,7 @@ void QuicTestValidateListener()
     //
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
-            Session,
+            Registration,
             DummyListenerCallback,
             nullptr,
             &Listener));
@@ -381,6 +316,8 @@ void QuicTestValidateListener()
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerStart(
             Listener,
+            Alpn,
+            Alpn.Length(),
             nullptr));
 
     MsQuic->ListenerClose(Listener);
@@ -391,7 +328,7 @@ void QuicTestValidateListener()
     //
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
-            Session,
+            Registration,
             DummyListenerCallback,
             nullptr,
             &Listener));
@@ -399,12 +336,16 @@ void QuicTestValidateListener()
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerStart(
             Listener,
+            Alpn,
+            Alpn.Length(),
             nullptr));
 
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_STATE,
         MsQuic->ListenerStart(
             Listener,
+            Alpn,
+            Alpn.Length(),
             nullptr));
 
     MsQuic->ListenerClose(Listener);
@@ -415,7 +356,7 @@ void QuicTestValidateListener()
     //
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
-            Session,
+            Registration,
             DummyListenerCallback,
             nullptr,
             &Listener));
@@ -505,7 +446,7 @@ ResumptionFailConnectionCallback(
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
-void
+bool
 ListenerFailSendResumeCallback(
     _In_ TestListener*  Listener,
     _In_ HQUIC ConnectionHandle
@@ -514,25 +455,41 @@ ListenerFailSendResumeCallback(
     //
     // Validate sending the resumption ticket fails
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_STATE,
+    QUIC_STATUS Status =
         MsQuic->ConnectionSendResumptionTicket(
             ConnectionHandle,
             QUIC_SEND_RESUMPTION_FLAG_NONE,
             0,
-            nullptr));
+            nullptr);
+    if (Status != QUIC_STATUS_INVALID_STATE) {
+        TEST_FAILURE(
+            "ConnectionSendResumptionTicket has unexpected error! Expected 0x%x, actual 0x%x",
+            QUIC_STATUS_INVALID_STATE,
+            Status);
+        return false;
+    }
     MsQuic->SetCallbackHandler(ConnectionHandle, (void*)ResumptionFailConnectionCallback, Listener->Context);
     QuicEventSet(*(QUIC_EVENT*)Listener->Context);
+    return true;
 }
 #endif
 
 void QuicTestValidateConnection()
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
     MsQuicSettings Settings;
     Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
-    TEST_TRUE(Session.IsValid());
+    Settings.SetIdleTimeoutMs(1000);
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
 
     //
     // Null out-parameter.
@@ -540,7 +497,7 @@ void QuicTestValidateConnection()
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->ConnectionOpen(
-            Session,
+            Registration,
             DummyConnectionCallback,
             nullptr,
             nullptr));
@@ -553,14 +510,14 @@ void QuicTestValidateConnection()
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 nullptr,
                 nullptr,
                 &Connection.Handle));
     }
 
     //
-    // Null session parameter.
+    // Null registration parameter.
     //
     {
         ConnectionScope Connection;
@@ -580,7 +537,8 @@ void QuicTestValidateConnection()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->ConnectionStart(
             nullptr,
-            AF_INET,
+            ClientConfiguration,
+            QUIC_ADDRESS_FAMILY_INET,
             "localhost",
             4433));
 
@@ -591,7 +549,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -600,7 +558,8 @@ void QuicTestValidateConnection()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConnectionStart(
                 Connection.Handle,
-                AF_MAX,
+                ClientConfiguration,
+                127,
                 "localhost",
                 4433));
     }
@@ -612,7 +571,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -621,7 +580,8 @@ void QuicTestValidateConnection()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConnectionStart(
                 Connection.Handle,
-                AF_INET,
+                ClientConfiguration,
+                QUIC_ADDRESS_FAMILY_INET,
                 nullptr,
                 4433));
     }
@@ -633,7 +593,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -642,7 +602,8 @@ void QuicTestValidateConnection()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConnectionStart(
                 Connection.Handle,
-                AF_INET,
+                ClientConfiguration,
+                QUIC_ADDRESS_FAMILY_INET,
                 "localhost",
                 0));
     }
@@ -654,7 +615,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -662,7 +623,8 @@ void QuicTestValidateConnection()
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionStart(
                 Connection.Handle,
-                AF_INET,
+                ClientConfiguration,
+                QUIC_ADDRESS_FAMILY_INET,
                 "localhost",
                 4433));
 
@@ -679,7 +641,8 @@ void QuicTestValidateConnection()
             QUIC_STATUS_INVALID_STATE,
             MsQuic->ConnectionStart(
                 Connection.Handle,
-                AF_INET,
+                ClientConfiguration,
+                QUIC_ADDRESS_FAMILY_INET,
                 "localhost",
                 4433));
     }
@@ -694,7 +657,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -706,7 +669,8 @@ void QuicTestValidateConnection()
 
         MsQuic->ConnectionStart(
             Connection.Handle,
-            AF_INET,
+            ClientConfiguration,
+            QUIC_ADDRESS_FAMILY_INET,
             "localhost",
             4433);
     }
@@ -718,7 +682,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -754,7 +718,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -788,7 +752,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -812,7 +776,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -843,7 +807,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -890,10 +854,10 @@ void QuicTestValidateConnection()
     //
 #ifndef QUIC_DISABLE_0RTT_TESTS
     {
-        TestListener MyListener(Session, ListenerFailSendResumeCallback);
+        TestListener MyListener(Registration, ListenerFailSendResumeCallback, ServerConfiguration);
         TEST_TRUE(MyListener.IsValid());
 
-        TEST_QUIC_SUCCEEDED(MyListener.Start());
+        TEST_QUIC_SUCCEEDED(MyListener.Start(Alpn, Alpn.Length()));
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
 
@@ -908,23 +872,15 @@ void QuicTestValidateConnection()
             ConnectionScope Connection;
             TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionOpen(
-                    Session,
+                    Registration,
                     AutoShutdownConnectionCallback,
                     nullptr,
                     &Connection.Handle));
 
-            const uint64_t IdleTimeout = 1000;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    Connection.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_IDLE_TIMEOUT,
-                    sizeof(IdleTimeout),
-                    &IdleTimeout));
-
             TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionStart(
                     Connection.Handle,
+                    ClientConfiguration,
                     QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
                     QUIC_LOCALHOST_FOR_AF(
                         QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
@@ -940,22 +896,15 @@ void QuicTestValidateConnection()
             //
             TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionOpen(
-                    Session,
+                    Registration,
                     AutoShutdownConnectionCallback,
                     &Event,
                     &Connection.Handle));
 
             TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    Connection.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_IDLE_TIMEOUT,
-                    sizeof(IdleTimeout),
-                    &IdleTimeout));
-
-            TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionStart(
                     Connection.Handle,
+                    ClientConfiguration,
                     QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
                     QUIC_LOCALHOST_FOR_AF(
                         QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
@@ -972,22 +921,15 @@ void QuicTestValidateConnection()
 
             TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionOpen(
-                    Session,
+                    Registration,
                     AutoShutdownConnectionCallback,
                     nullptr,
                     &Connection.Handle));
 
             TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    Connection.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_IDLE_TIMEOUT,
-                    sizeof(IdleTimeout),
-                    &IdleTimeout));
-
-            TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionStart(
                     Connection.Handle,
+                    ClientConfiguration,
                     QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
                     QUIC_LOCALHOST_FOR_AF(
                         QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
@@ -1008,7 +950,7 @@ void QuicTestValidateConnection()
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
-void
+bool
 ListenerAcceptCallback(
     _In_ TestListener*  Listener,
     _In_ HQUIC ConnectionHandle
@@ -1019,8 +961,9 @@ ListenerAcceptCallback(
     if (*NewConnection == nullptr || !(*NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *NewConnection;
-        MsQuic->ConnectionClose(ConnectionHandle);
+        return false;
     }
+    return true;
 }
 
 _Function_class_(QUIC_STREAM_CALLBACK)
@@ -1051,29 +994,37 @@ DummyStreamCallback(
 
 void QuicTestValidateStream(bool Connect)
 {
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(32);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"), Settings);
-    TEST_TRUE(Session.IsValid());
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
 
     QUIC_BUFFER Buffers[1] = {};
 
     //
-    // Force the Client, Server, and Listener to clean up before the Session and Registration.
+    // Force the Client, Server, and Listener to clean up before the Registration.
     //
     {
-        TestListener MyListener(Session, ListenerAcceptCallback);
+        TestListener MyListener(Registration, ListenerAcceptCallback, ServerConfiguration);
         TEST_TRUE(MyListener.IsValid());
 
         UniquePtr<TestConnection> Server;
         MyListener.Context = &Server;
 
         {
-            TestConnection Client(Session);
+            TestConnection Client(Registration);
             TEST_TRUE(Client.IsValid());
             if (Connect) {
-                TEST_QUIC_SUCCEEDED(MyListener.Start());
+                TEST_QUIC_SUCCEEDED(MyListener.Start(Alpn, Alpn.Length()));
                 QuicAddr ServerLocalAddr;
                 TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
 
@@ -1082,6 +1033,7 @@ void QuicTestValidateStream(bool Connect)
                 //
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
+                        ClientConfiguration,
                         QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
                         QUIC_LOCALHOST_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
@@ -1413,139 +1365,6 @@ public:
         QuicEventUninitialize(Event);
     }
 };
-
-void static
-QuicTestValidateSecConfig(
-    _In_ SecConfigTestContext* ctxt,
-    _In_ QUIC_STATUS Status,
-    _In_opt_ QUIC_SEC_CONFIG* SecConfig
-    )
-{
-    TEST_QUIC_STATUS(ctxt->Expected, Status);
-
-    if (ctxt->Expected == QUIC_STATUS_SUCCESS) {
-        TEST_TRUE(SecConfig != nullptr);
-    }
-
-    ctxt->Failed = false;
-}
-
-_Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
-void static
-QUIC_API
-QuicTestSecConfigCreateComplete(
-    _In_opt_ void* Context,
-    _In_ QUIC_STATUS Status,
-    _In_opt_ QUIC_SEC_CONFIG* SecConfig
-    )
-{
-    _Analysis_assume_(Context != NULL);
-    SecConfigTestContext* ctxt = (SecConfigTestContext*) Context;
-
-    ctxt->Failed = true;
-    QuicTestValidateSecConfig(ctxt, Status, SecConfig);
-
-    //
-    // If SecurityConfig is non-null, Delete the security config.
-    //
-    if (SecurityConfig != nullptr) {
-        MsQuic->SecConfigDelete(SecConfig);
-    }
-
-    //
-    // Finally, signal event in Context to allow test to continue.
-    //
-    QuicEventSet(ctxt->Event);
-}
-
-void QuicTestValidateServerSecConfig(void* CertContext, QUIC_CERTIFICATE_HASH_STORE* CertHashStore, char* Principal)
-{
-    MsQuicRegistration TestReg;
-    TEST_TRUE(TestReg.IsValid());
-
-    SecConfigTestContext TestContext;
-
-    //
-    // Test null inputs.
-    //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->SecConfigCreate(
-            TestReg,
-            QUIC_SEC_CONFIG_FLAG_NONE,
-            nullptr,    // Certificate
-            nullptr,    // Principal
-            &TestContext,
-            QuicTestSecConfigCreateComplete));
-
-    if (CertContext != nullptr) {
-        //
-        // Test certificate context.
-        //
-        TestContext.Expected = QUIC_STATUS_SUCCESS;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->SecConfigCreate(
-                TestReg,
-                QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT,
-                CertContext,                // Certificate
-                nullptr,                    // Principal
-                &TestContext,
-                QuicTestSecConfigCreateComplete));
-
-        TEST_TRUE(QuicEventWaitWithTimeout(TestContext.Event, TestWaitTimeout));
-        TEST_FALSE(TestContext.Failed);
-    }
-
-    if (Principal != nullptr) {
-        //
-        // Test certificate principal.
-        //
-        TestContext.Expected = QUIC_STATUS_SUCCESS;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->SecConfigCreate(
-                TestReg,
-                QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
-                nullptr,                    // Certificate
-                Principal,                  // Principal
-                &TestContext,
-                QuicTestSecConfigCreateComplete));
-
-        TEST_TRUE(QuicEventWaitWithTimeout(TestContext.Event, TestWaitTimeout));
-        TEST_FALSE(TestContext.Failed);
-    }
-
-    if (CertHashStore != nullptr) {
-        //
-        // Test certificate hash.
-        //
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->SecConfigCreate(
-                TestReg,
-                QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
-                &CertHashStore->ShaHash,        // Certificate
-                nullptr,                        // Principal
-                &TestContext,
-                QuicTestSecConfigCreateComplete));
-
-        TEST_TRUE(QuicEventWaitWithTimeout(TestContext.Event, TestWaitTimeout));
-        TEST_FALSE(TestContext.Failed);
-
-        //
-        // Test certificate hash + store.
-        //
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->SecConfigCreate(
-                TestReg,
-                QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE,
-                CertHashStore,                          // Certificate
-                nullptr,                                // Principal
-                &TestContext,
-                QuicTestSecConfigCreateComplete));
-
-        TEST_TRUE(QuicEventWaitWithTimeout(TestContext.Event, TestWaitTimeout));
-        TEST_FALSE(TestContext.Failed);
-    }
-}
 
 void
 QuicTestGetPerfCounters()

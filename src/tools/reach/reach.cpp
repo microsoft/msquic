@@ -31,24 +31,30 @@ HQUIC Registration;
 
 extern "C" void QuicTraceRundown(void) { }
 
+struct ConnectionContext {
+    bool GotConnected;
+    QUIC_EVENT Complete;
+};
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(QUIC_CONNECTION_CALLBACK)
 QUIC_STATUS
 QUIC_API
 ConnectionHandler(
     _In_ HQUIC Connection,
-    _In_opt_ void* Context,
+    _In_opt_ void* _Context,
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
 {
-    bool* GotConnected = (bool*)Context;
+    auto Context = (ConnectionContext*)_Context;
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        *GotConnected = true;
+        Context->GotConnected = true;
         MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->ConnectionClose(Connection);
+        QuicEventSet(Context->Complete);
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         return QUIC_STATUS_NOT_SUPPORTED;
@@ -58,21 +64,38 @@ ConnectionHandler(
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_THREAD_CALLBACK(TestReachability, Context)
+QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
 {
     QUIC_BUFFER Alpn;
-    Alpn.Buffer = (uint8_t*)Context;
-    Alpn.Length = (uint32_t)strlen((char*)Context);
+    Alpn.Buffer = (uint8_t*)_Alpn;
+    Alpn.Length = (uint32_t)strlen((char*)_Alpn);
 
-    HQUIC Session = nullptr;
-    if (QUIC_FAILED(MsQuic->SessionOpen(Registration, 0, NULL, &Alpn, 1, nullptr, &Session))) {
-        printf("SessionOpen failed.\n");
+    QUIC_SETTINGS Settings{0};
+    Settings.PeerUnidiStreamCount = 100;
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
+    Settings.IdleTimeoutMs = 10 * 1000;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
+
+    HQUIC Configuration = nullptr;
+    if (QUIC_FAILED(MsQuic->ConfigurationOpen(Registration, &Alpn, 1, &Settings, sizeof(Settings), nullptr, &Configuration))) {
+        printf("ConfigurationOpen failed.\n");
         exit(1);
     }
 
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    QuicZeroMemory(&CredConfig, sizeof(CredConfig));
+    CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT; // TODO - Disable certificate validation?
+
+    if (QUIC_FAILED(MsQuic->ConfigurationLoadCredential(Configuration, &CredConfig))) {
+        printf("ConfigurationOpen failed.\n");
+        exit(1);
+    }
+
+    ConnectionContext Context = { false };
+    QuicEventInitialize(&Context.Complete, TRUE, FALSE);
+
     HQUIC Connection = nullptr;
-    bool GotConnected = false;
-    if (QUIC_FAILED(MsQuic->ConnectionOpen(Session, ConnectionHandler, &GotConnected, &Connection))) {
+    if (QUIC_FAILED(MsQuic->ConnectionOpen(Registration, ConnectionHandler, &Context, &Connection))) {
         printf("ConnectionOpen failed.\n");
         exit(1);
     }
@@ -82,29 +105,19 @@ QUIC_THREAD_CALLBACK(TestReachability, Context)
         exit(1);
     }
 
-    uint16_t StreamCount = 100;
-    if (QUIC_FAILED(MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT, sizeof(StreamCount), &StreamCount))) {
-        printf("SetParam QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT failed.\n");
-        exit(1);
-    }
-
-    uint64_t IdleTimeoutMs = 10 * 1000;
-    if (QUIC_FAILED(MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_IDLE_TIMEOUT, sizeof(IdleTimeoutMs), &IdleTimeoutMs))) {
-        printf("SetParam QUIC_PARAM_CONN_IDLE_TIMEOUT failed.\n");
-        exit(1);
-    }
-
-    if (QUIC_FAILED(MsQuic->ConnectionStart(Connection, AF_UNSPEC, ServerName, Port))) {
+    if (QUIC_FAILED(MsQuic->ConnectionStart(Connection, Configuration, QUIC_ADDRESS_FAMILY_UNSPEC, ServerName, Port))) {
         printf("ConnectionStart failed.\n");
         exit(1);
     }
 
-    MsQuic->SessionClose(Session);
+    MsQuic->ConfigurationClose(Configuration);
+    QuicEventWaitForever(Context.Complete);
+    QuicEventUninitialize(Context.Complete);
 
-    if (GotConnected) {
-        printf("  %6s    reachable\n", (char*)Context);
+    if (Context.GotConnected) {
+        printf("  %6s    reachable\n", (char*)_Alpn);
     } else {
-        printf("  %6s  unreachable\n", (char*)Context);
+        printf("  %6s  unreachable\n", (char*)_Alpn);
     }
 
     QUIC_THREAD_RETURN(0);

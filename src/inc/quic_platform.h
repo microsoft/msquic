@@ -253,3 +253,38 @@ QuicListPopEntry(
 
 #include "quic_hashtable.h"
 #include "quic_toeplitz.h"
+
+//
+// Test Interface for loading a self-signed certificate.
+//
+
+#ifdef QUIC_TEST_APIS
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+typedef struct QUIC_CREDENTIAL_CONFIG QUIC_CREDENTIAL_CONFIG;
+
+typedef enum QUIC_SELF_SIGN_CERT_TYPE {
+    QUIC_SELF_SIGN_CERT_USER,
+    QUIC_SELF_SIGN_CERT_MACHINE
+} QUIC_SELF_SIGN_CERT_TYPE;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+const QUIC_CREDENTIAL_CONFIG*
+QuicPlatGetSelfSignedCert(
+    _In_ QUIC_SELF_SIGN_CERT_TYPE Type
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPlatFreeSelfSignedCert(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
+    );
+
+#if defined(__cplusplus)
+}
+#endif
+
+#endif // QUIC_TEST_APIS

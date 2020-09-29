@@ -657,3 +657,13 @@ int64_t
 QuicTimeEpochMs64(
     void
     );
+
+void
+QuicConfigurationAddRef(
+    _In_ QUIC_CONFIGURATION* Configuration
+    );
+
+void
+QuicConfigurationRelease(
+    _In_ QUIC_CONFIGURATION* Configuration
+    );

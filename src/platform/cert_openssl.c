@@ -176,7 +176,7 @@ QuicCertLibraryUninitialize(
 }
 
 _Success_(return != NULL)
-QUIC_CERT*
+QUIC_CERTIFICATE*
 QuicCertSelect(
     _In_reads_opt_(ServerNameIndiciationLength)
         const char* ServerNameIndiciation,
@@ -200,11 +200,11 @@ QuicCertSelect(
 
     QuicLockRelease(&miPKI.Lock);
 
-    return (QUIC_CERT*)Certificate;
+    return (QUIC_CERTIFICATE*)Certificate;
 }
 
 _Success_(return != NULL)
-QUIC_CERT*
+QUIC_CERTIFICATE*
 QuicCertParseChain(
     _In_ size_t ChainBufferLength,
     _In_reads_(ChainBufferLength) const BYTE *ChainBuffer
@@ -220,13 +220,13 @@ QuicCertParseChain(
 
     QuicLockRelease(&miPKI.Lock);
 
-    return (QUIC_CERT*)Certificate;
+    return (QUIC_CERTIFICATE*)Certificate;
 }
 
 _Success_(return != 0)
 size_t
 QuicCertFormat(
-    _In_ QUIC_CERT* Certificate,
+    _In_ QUIC_CERTIFICATE* Certificate,
     _In_ size_t BufferLength,
     _Out_writes_to_(BufferLength, return)
         BYTE* Buffer
@@ -249,7 +249,7 @@ QuicCertFormat(
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertValidateChain(
-    _In_ QUIC_CERT* Certificate,
+    _In_ QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ const char* Host,
     _In_ uint32_t IgnoreFlags
     )
@@ -272,7 +272,7 @@ QuicCertValidateChain(
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertSign(
-    _In_ QUIC_CERT* Certificate,
+    _In_ QUIC_CERTIFICATE* Certificate,
     _In_ const UINT16 SignatureAlgorithm,
     _In_reads_(CertListToBeSignedLength)
         const BYTE *CertListToBeSigned,
@@ -303,7 +303,7 @@ QuicCertSign(
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertVerify(
-    _In_ QUIC_CERT* Certificate,
+    _In_ QUIC_CERTIFICATE* Certificate,
     _In_ const UINT16 SignatureAlgorithm,
     _In_reads_(CertListToBeSignedLength)
         const BYTE *CertListToBeSigned,
