@@ -14,9 +14,9 @@ Abstract:
 #include "api.c.clog.h"
 #endif
 
-#define IS_SESSION_HANDLE(Handle) \
+#define IS_REGISTRATION_HANDLE(Handle) \
 ( \
-    (Handle) != NULL && (Handle)->Type == QUIC_HANDLE_TYPE_SESSION \
+    (Handle) != NULL && (Handle)->Type == QUIC_HANDLE_TYPE_REGISTRATION \
 )
 
 #define IS_CONN_HANDLE(Handle) \
@@ -34,7 +34,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicConnectionOpen(
-    _In_ _Pre_defensive_ HQUIC SessionHandle,
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -42,16 +42,16 @@ MsQuicConnectionOpen(
     )
 {
     QUIC_STATUS Status;
-    QUIC_SESSION* Session;
+    QUIC_REGISTRATION* Registration;
     QUIC_CONNECTION* Connection = NULL;
 
     QuicTraceEvent(
         ApiEnter,
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_CONNECTION_OPEN,
-        SessionHandle);
+        RegistrationHandle);
 
-    if (!IS_SESSION_HANDLE(SessionHandle) ||
+    if (!IS_REGISTRATION_HANDLE(RegistrationHandle) ||
         NewConnection == NULL ||
         Handler == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -59,9 +59,9 @@ MsQuicConnectionOpen(
     }
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Session = (QUIC_SESSION*)SessionHandle;
+    Registration = (QUIC_REGISTRATION*)RegistrationHandle;
 
-    if ((Connection = QuicConnAlloc(Session, NULL)) == NULL) {
+    if ((Connection = QuicConnAlloc(Registration, NULL)) == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -69,7 +69,7 @@ MsQuicConnectionOpen(
     Connection->ClientCallbackHandler = Handler;
     Connection->ClientContext = Context;
 
-    QuicRegistrationQueueNewConnection(Session->Registration, Connection);
+    QuicRegistrationQueueNewConnection(Registration, Connection);
 
     *NewConnection = (HQUIC)Connection;
     Status = QUIC_STATUS_SUCCESS;
@@ -238,6 +238,7 @@ QUIC_STATUS
 QUIC_API
 MsQuicConnectionStart(
     _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ _Pre_defensive_ HQUIC ConfigHandle,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,
@@ -246,6 +247,7 @@ MsQuicConnectionStart(
 {
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection;
+    QUIC_CONFIGURATION* Configuration;
     QUIC_OPERATION* Oper;
     char* ServerNameCopy = NULL;
 
@@ -257,7 +259,9 @@ MsQuicConnectionStart(
         QUIC_TRACE_API_CONNECTION_START,
         Handle);
 
-    if (ServerPort == 0) {
+    if (ConfigHandle == NULL ||
+        ConfigHandle->Type != QUIC_HANDLE_TYPE_CONFIGURATION ||
+        ServerPort == 0) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
@@ -296,6 +300,13 @@ MsQuicConnectionStart(
 
     if (Connection->State.Started || Connection->State.ClosedLocally) {
         Status = QUIC_STATUS_INVALID_STATE; // TODO - Support the Connect after close/previous connect failure?
+        goto Error;
+    }
+
+    Configuration = (QUIC_CONFIGURATION*)ConfigHandle;
+
+    if (Configuration->SecurityConfig == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 
@@ -340,7 +351,10 @@ MsQuicConnectionStart(
             0);
         goto Error;
     }
+
+    QuicConfigurationAddRef(Configuration);
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_START;
+    Oper->API_CALL.Context->CONN_START.Configuration = Configuration;
     Oper->API_CALL.Context->CONN_START.ServerName = ServerNameCopy;
     Oper->API_CALL.Context->CONN_START.ServerPort = ServerPort;
     Oper->API_CALL.Context->CONN_START.Family = Family;
@@ -357,6 +371,99 @@ Error:
     if (ServerNameCopy != NULL) {
         QUIC_FREE(ServerNameCopy);
     }
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionSetConfiguration(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ _Pre_defensive_ HQUIC ConfigHandle
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_CONNECTION* Connection;
+    QUIC_CONFIGURATION* Configuration;
+    QUIC_OPERATION* Oper;
+
+    QUIC_PASSIVE_CODE();
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_SET_CONFIGURATION,
+        Handle);
+
+    if (ConfigHandle == NULL ||
+        ConfigHandle->Type != QUIC_HANDLE_TYPE_CONFIGURATION) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    if (IS_CONN_HANDLE(Handle)) {
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        Connection = (QUIC_CONNECTION*)Handle;
+    } else if (IS_STREAM_HANDLE(Handle)) {
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        QUIC_STREAM* Stream = (QUIC_STREAM*)Handle;
+        QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
+        QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+        Connection = Stream->Connection;
+    } else {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+
+    if (!QuicConnIsServer(Connection)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    if (Connection->Configuration != NULL) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
+    }
+
+    Configuration = (QUIC_CONFIGURATION*)ConfigHandle;
+
+    if (Configuration->SecurityConfig == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
+    QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    if (Oper == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CONN_SET_CONFIGURATION operation",
+            0);
+        goto Error;
+    }
+
+    QuicConfigurationAddRef(Configuration);
+    Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SET_CONFIGURATION;
+    Oper->API_CALL.Context->CONN_SET_CONFIGURATION.Configuration = Configuration;
+
+    //
+    // Queue the operation but don't wait for the completion.
+    //
+    QuicConnQueueOper(Connection, Oper);
+    Status = QUIC_STATUS_PENDING;
+
+Error:
 
     QuicTraceEvent(
         ApiExitStatus,
@@ -1195,10 +1302,10 @@ MsQuicSetParam(
     }
 
     if (Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION ||
-        Handle->Type == QUIC_HANDLE_TYPE_SESSION ||
+        Handle->Type == QUIC_HANDLE_TYPE_CONFIGURATION ||
         Handle->Type == QUIC_HANDLE_TYPE_LISTENER) {
         //
-        // Registration, Session and Listener parameters are processed inline.
+        // Registration, Configuration and Listener parameters are processed inline.
         //
         Status = QuicLibrarySetParam(Handle, Level, Param, BufferLength, Buffer);
         goto Error;
@@ -1306,10 +1413,10 @@ MsQuicGetParam(
     }
 
     if (Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION ||
-        Handle->Type == QUIC_HANDLE_TYPE_SESSION ||
+        Handle->Type == QUIC_HANDLE_TYPE_CONFIGURATION ||
         Handle->Type == QUIC_HANDLE_TYPE_LISTENER) {
         //
-        // Registration, Session and Listener parameters are processed inline.
+        // Registration, Configuration and Listener parameters are processed inline.
         //
         Status = QuicLibraryGetParam(Handle, Level, Param, BufferLength, Buffer);
         goto Error;

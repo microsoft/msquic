@@ -18,19 +18,19 @@ Abstract:
 volatile int64_t NextConnID = 0x10000;
 
 TestListener::TestListener(
-    _In_ HQUIC SessionHandle,
+    _In_ HQUIC Registration,
     _In_ NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallbackHandler,
-    _In_ bool AsyncSecConfig,
-    _In_ bool UseSendBuffer
+    _In_opt_ HQUIC Configuration
     ) :
     QuicListener(nullptr),
-    FilterConnections(false), SetSecConfig(!AsyncSecConfig),
-    UseSendBuffer(UseSendBuffer), NewConnectionCallback(NewConnectionCallbackHandler),
+    QuicConfiguration(Configuration),
+    FilterConnections(false),
+    NewConnectionCallback(NewConnectionCallbackHandler),
     Context(nullptr)
 {
     QUIC_STATUS Status =
         MsQuic->ListenerOpen(
-            SessionHandle,
+            Registration,
             QuicListenerHandler,
             this,
             &QuicListener);
@@ -47,12 +47,17 @@ TestListener::~TestListener()
 
 QUIC_STATUS
 TestListener::Start(
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
     _In_opt_ const QUIC_ADDR * LocalAddress
     )
 {
     return
         MsQuic->ListenerStart(
             QuicListener,
+            AlpnBuffers,
+            AlpnBufferCount,
             LocalAddress);
 }
 
@@ -116,8 +121,7 @@ TestListener::HandleListenerEvent(
                 QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET6),
                 Event->NEW_CONNECTION.Info->ServerName,
                 Event->NEW_CONNECTION.Info->ServerNameLength) != 0) {
-            Status = QUIC_STATUS_NOT_SUPPORTED; // We don't fail the test, just reject the connection.
-            break;
+            break; // We don't fail the test, just reject the connection.
         }
 
         if (Event->NEW_CONNECTION.Connection == nullptr) {
@@ -126,40 +130,26 @@ TestListener::HandleListenerEvent(
             break;
         }
 
-        if (FilterConnections) {
+        if (FilterConnections ||
+            !NewConnectionCallback(
+                this,
+                Event->NEW_CONNECTION.Connection)) {
             Status = QUIC_STATUS_CONNECTION_REFUSED;
             break;
         }
 
-        if (SetSecConfig) {
-            Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
-            Status = QUIC_STATUS_SUCCESS;
-        } else {
-            Status = QUIC_STATUS_PENDING; // The SecConfig will be set later.
+        if (QuicConfiguration) {
+            Status =
+                MsQuic->ConnectionSetConfiguration(
+                    Event->NEW_CONNECTION.Connection,
+                    QuicConfiguration);
+            if (QUIC_FAILED(Status)) {
+                TEST_FAILURE("MsQuic->ConnectionSetConfiguration failed, 0x%x.", Status);
+                break;
+            }
         }
 
-        BOOLEAN Opt = UseSendBuffer;
-        Status =
-            MsQuic->SetParam(
-                Event->NEW_CONNECTION.Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SEND_BUFFERING,
-                sizeof(Opt),
-                &Opt);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->SetParam(CONN_SEND_BUFFERING) failed, 0x%x.", Status);
-        }
-
-        if (SetSecConfig) {
-            Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
-            Status = QUIC_STATUS_SUCCESS;
-        } else {
-            Status = QUIC_STATUS_PENDING; // The SecConfig will be set later.
-        }
-
-        NewConnectionCallback(
-            this,
-            Event->NEW_CONNECTION.Connection);
+        Status = QUIC_STATUS_SUCCESS;
         break;
     }
 

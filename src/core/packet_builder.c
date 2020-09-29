@@ -781,7 +781,7 @@ QuicPacketBuilderFinalize(
         //
         if (Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE &&
             PacketSpace->CurrentKeyPhaseBytesSent + QUIC_MAX_MTU >=
-                Connection->Session->Settings.MaxBytesPerKey &&
+                Connection->Settings.MaxBytesPerKey &&
             !PacketSpace->AwaitingKeyPhaseConfirmation &&
             Connection->State.HandshakeConfirmed) {
 

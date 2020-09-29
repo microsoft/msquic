@@ -24,6 +24,7 @@
   <ItemGroup>
     <ClCompile Include="analyze.cpp" />
     <ClCompile Include="binding.cpp" />
+    <ClCompile Include="configuration.cpp" />
     <ClCompile Include="connection.cpp" />
     <ClCompile Include="dump.cpp" />
     <ClCompile Include="handle.cpp" />
@@ -32,7 +33,6 @@
     <ClCompile Include="packet.cpp" />
     <ClCompile Include="quicdbg.cpp" />
     <ClCompile Include="registration.cpp" />
-    <ClCompile Include="session.cpp" />
     <ClCompile Include="stream.cpp" />
     <ClCompile Include="worker.cpp" />
   </ItemGroup>

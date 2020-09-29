@@ -1,16 +1,16 @@
-SessionShutdown function
+RegistrationShutdown function
 ======
 
-Starts the shutdown process for all connections in the session.
+Starts the shutdown process for all connections in the registration.
 
 # Syntax
 
 ```C
 typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
-(QUIC_API * QUIC_SESSION_SHUTDOWN_FN)(
-    _In_ _Pre_defensive_ HQUIC Session,
+(QUIC_API * QUIC_REGISTRATION_SHUTDOWN_FN)(
+    _In_ _Pre_defensive_ HQUIC Registration,
     _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
     _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode // Application defined error code
     );
@@ -18,9 +18,9 @@ void
 
 # Parameters
 
-`Session`
+`Registration`
 
-The valid handle to an open session object.
+The valid handle to an open registration object.
 
 `Flags`
 
@@ -41,6 +41,6 @@ The 62-bit error code to indicate to the peer as the reason for the shutdown.
 
 # See Also
 
-[SessionOpen](SessionOpen.md)<br>
-[SessionClose](SessionClose.md)<br>
+[RegistrationOpen](RegistrationOpen.md)<br>
+[RegistrationClose](RegistrationClose.md)<br>
 [ConnectionShutdown](ConnectionShutdown.md)<br>

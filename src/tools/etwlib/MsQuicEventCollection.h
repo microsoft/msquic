@@ -139,8 +139,9 @@ enum QuicApiType {
     QuicApiGetParam,
     QuicApiRegistrationOpen,
     QuicApiRegistrationClose,
-    QuicApiSecConfigCreate,
-    QuicApiSecConfigDelete,
+    QuicApiConfigurationOpen,
+    QuicApiConfigurationClose,
+    QuicApiConfigurationLoadCredential,
     QuicApiSessionOpen,
     QuicApiSessionClose,
     QuicApiSessionShutdown,
@@ -152,13 +153,15 @@ enum QuicApiType {
     QuicApiConnectionClose,
     QuicApiConnectionShutdown,
     QuicApiConnectionStart,
+    QuicApiConnectionSendResumptionTicket,
     QuicApiStreamOpen,
     QuicApiStreamClose,
     QuicApiStreamStart,
     QuicApiStreamShutdown,
     QuicApiStreamSend,
     QuicApiStreamReceiveComplete,
-    QuicApiStreamReceiveSetEnabled
+    QuicApiStreamReceiveSetEnabled,
+    QuicApiDatagramSend
 };
 
 //

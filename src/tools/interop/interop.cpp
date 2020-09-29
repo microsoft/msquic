@@ -29,8 +29,6 @@ uint32_t InitialVersion = 0;
 bool RunSerially = false;
 bool TestFailed = false; // True if any test failed
 
-const BOOLEAN UseSendBuffering = FALSE;
-const uint32_t CertificateValidationFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
 const uint32_t RandomReservedVersion = 168430090ul; // Random reserved version to force VN.
 const uint8_t RandomTransportParameterPayload[2345] = {0};
 QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
@@ -337,6 +335,7 @@ public:
 };
 
 class InteropConnection {
+    HQUIC Configuration;
     HQUIC Connection;
     std::vector<InteropStream*> Streams;
     QUIC_EVENT ConnectionComplete;
@@ -349,7 +348,8 @@ public:
     bool Connected : 1;
     bool Resumed : 1;
     bool ReceivedQuackAck : 1;
-    InteropConnection(HQUIC Session, bool VerNeg = false, bool LargeTP = false) :
+    InteropConnection(HQUIC Configuration, bool VerNeg = false, bool LargeTP = false) :
+        Configuration(Configuration),
         Connection(nullptr),
         NegotiatedAlpn(nullptr),
         VersionUnsupported(false),
@@ -364,32 +364,10 @@ public:
 
         VERIFY_QUIC_SUCCESS(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 InteropConnection::ConnectionCallback,
                 this,
                 &Connection));
-        VERIFY_QUIC_SUCCESS(
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-                sizeof(CertificateValidationFlags),
-                &CertificateValidationFlags));
-        VERIFY_QUIC_SUCCESS(
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SEND_BUFFERING,
-                sizeof(UseSendBuffering),
-                &UseSendBuffering));
-        uint64_t IdleTimeoutMs = WaitTimeoutMs;
-        VERIFY_QUIC_SUCCESS(
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_IDLE_TIMEOUT,
-                sizeof(IdleTimeoutMs),
-                &IdleTimeoutMs));
         if (VerNeg) {
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
@@ -432,29 +410,36 @@ public:
         delete [] NegotiatedAlpn;
     }
     bool SetKeepAlive(uint32_t KeepAliveMs) {
+        QUIC_SETTINGS Settings{0};
+        Settings.KeepAliveIntervalMs = KeepAliveMs;
+        Settings.IsSet.KeepAliveIntervalMs = TRUE;
         return
             QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_KEEP_ALIVE,
-                    sizeof(KeepAliveMs),
-                    &KeepAliveMs));
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
     }
     bool SetDisconnectTimeout(uint32_t TimeoutMs) {
+        QUIC_SETTINGS Settings{0};
+        Settings.DisconnectTimeoutMs = TimeoutMs;
+        Settings.IsSet.DisconnectTimeoutMs = TRUE;
         return
             QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_DISCONNECT_TIMEOUT,
-                    sizeof(TimeoutMs),
-                    &TimeoutMs));
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
     }
     bool ConnectToServer(const char* ServerName, uint16_t ServerPort) {
         if (QUIC_SUCCEEDED(
             MsQuic->ConnectionStart(
                 Connection,
+                Configuration,
                 QUIC_ADDRESS_FAMILY_UNSPEC,
                 ServerName,
                 ServerPort))) {
@@ -706,6 +691,10 @@ RunInteropTest(
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
     Settings.IsSet.InitialRttMs = TRUE;
+    Settings.SendBufferingEnabled = FALSE;
+    Settings.IsSet.SendBufferingEnabled = TRUE;
+    Settings.IdleTimeoutMs = WaitTimeoutMs;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
     if (Feature == KeyUpdate) {
         Settings.MaxBytesPerKey = 10; // Force a key update after every 10 bytes sent
         Settings.IsSet.MaxBytesPerKey = TRUE;
@@ -724,20 +713,29 @@ RunInteropTest(
         AlpnCount = ARRAYSIZE(HandshakeAlpns);
     }
 
-    HQUIC Session;
+    HQUIC Configuration;
     VERIFY_QUIC_SUCCESS(
-        MsQuic->SessionOpen(
+        MsQuic->ConfigurationOpen(
             Registration,
-            sizeof(Settings),
-            &Settings,
             Alpns,
             AlpnCount,
+            &Settings,
+            sizeof(Settings),
             nullptr,
-            &Session));
+            &Configuration));
+
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    QuicZeroMemory(&CredConfig, sizeof(CredConfig));
+    CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+
+    VERIFY_QUIC_SUCCESS(
+        MsQuic->ConfigurationLoadCredential(
+            Configuration,
+            &CredConfig));
 
     switch (Feature) {
     case VersionNegotiation: {
-        InteropConnection Connection(Session, true);
+        InteropConnection Connection(Configuration, true);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -760,13 +758,13 @@ RunInteropTest(
     case StatelessRetry:
     case PostQuantum: {
         if (Feature == Resumption) {
-            InteropConnection Connection(Session);
+            InteropConnection Connection(Configuration);
             if (!Connection.ConnectToServer(Endpoint.ServerName, Port) ||
                 !Connection.WaitForTicket()) {
                 break;
             }
         }
-        InteropConnection Connection(Session, false, Feature == PostQuantum);
+        InteropConnection Connection(Configuration, false, Feature == PostQuantum);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -792,13 +790,13 @@ RunInteropTest(
     case StreamData:
     case ZeroRtt: {
         if (Feature == ZeroRtt) {
-            InteropConnection Connection(Session);
+            InteropConnection Connection(Configuration);
             if (!Connection.ConnectToServer(Endpoint.ServerName, Port) ||
                 !Connection.WaitForTicket()) {
                 break;
             }
         }
-        InteropConnection Connection(Session, false);
+        InteropConnection Connection(Configuration, false);
         if (Connection.SendHttpRequests(false) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port) &&
             Connection.WaitForHttpResponses()) {
@@ -814,7 +812,7 @@ RunInteropTest(
     }
 
     case KeyUpdate: {
-        InteropConnection Connection(Session);
+        InteropConnection Connection(Configuration);
         if (Connection.SetKeepAlive(50) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
@@ -832,7 +830,7 @@ RunInteropTest(
     }
 
     case CidUpdate: {
-        InteropConnection Connection(Session);
+        InteropConnection Connection(Configuration);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -851,7 +849,7 @@ RunInteropTest(
     }
 
     case NatRebinding: {
-        InteropConnection Connection(Session);
+        InteropConnection Connection(Configuration);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -870,7 +868,7 @@ RunInteropTest(
     }
 
     case Datagram: {
-        InteropConnection Connection(Session, false);
+        InteropConnection Connection(Configuration, false);
         if (Connection.SendQuack() &&
             Connection.ConnectToServer(Endpoint.ServerName, Port) &&
             Connection.WaitForQuackAck()) {
@@ -881,7 +879,7 @@ RunInteropTest(
     }
     }
 
-    MsQuic->SessionClose(Session);
+    MsQuic->ConfigurationClose(Configuration); // TODO - Wait on connection
 
     if (CustomUrlPath && !Success) {
         //

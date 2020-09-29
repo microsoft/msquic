@@ -16,38 +16,36 @@ Abstract:
 
 QUIC_STATUS
 QuicCertCreate(
-    _In_ uint32_t Flags,
-    _In_opt_ void* CertConfig,
-    _In_opt_z_ const char* Principal,
-    _Out_ QUIC_CERT** NewCertificate
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _Out_ QUIC_CERTIFICATE** NewCertificate
     )
 {
-    if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH) {
-        if (CertConfig == NULL && Principal == NULL) {
+    if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
+        if (CredConfig->CertificateHash == NULL && CredConfig->Principal == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE) {
-        if (CertConfig == NULL) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE) {
+        if (CredConfig->CertificateHashStore == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
-        if (CertConfig == NULL) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
+        if (CredConfig->CertificateContext == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE) {
-        if (CertConfig == NULL) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+        if (CredConfig->CertificateFile == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     } else {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-    *NewCertificate = (QUIC_CERT*)1;
+    *NewCertificate = (QUIC_CERTIFICATE*)1;
     return QUIC_STATUS_SUCCESS;
 }
 
 void
 QuicCertFree(
-    _In_ QUIC_CERT* Certificate
+    _In_ QUIC_CERTIFICATE* Certificate
     )
 {
     UNREFERENCED_PARAMETER(Certificate);
@@ -56,7 +54,7 @@ QuicCertFree(
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertSelect(
-    _In_opt_ QUIC_CERT* Certificate,
+    _In_opt_ QUIC_CERTIFICATE* Certificate,
     _In_reads_(SignatureAlgorithmsLength)
         const uint16_t *SignatureAlgorithms,
     _In_ size_t SignatureAlgorithmsLength,
@@ -70,7 +68,7 @@ QuicCertSelect(
 }
 
 _Success_(return != NULL)
-QUIC_CERT*
+QUIC_CERTIFICATE*
 QuicCertParseChain(
     _In_ size_t ChainBufferLength,
     _In_reads_(ChainBufferLength)
@@ -87,13 +85,13 @@ QuicCertParseChain(
     if (ChainBufferLength < SIZEOF_CERT_CHAIN_LIST_LENGTH + CertLength) {
         return NULL;
     }
-    return (QUIC_CERT*)1;
+    return (QUIC_CERTIFICATE*)1;
 }
 
 _Success_(return != 0)
 size_t
 QuicCertFormat(
-    _In_opt_ QUIC_CERT* Certificate,
+    _In_opt_ QUIC_CERTIFICATE* Certificate,
     _In_ size_t BufferLength,
     _Out_writes_to_(BufferLength, return)
         uint8_t* Buffer
@@ -111,7 +109,7 @@ QuicCertFormat(
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertValidateChain(
-    _In_ QUIC_CERT* Certificate,
+    _In_ QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ const char* Host,
     _In_ uint32_t IgnoreFlags
     )
@@ -125,7 +123,7 @@ QuicCertValidateChain(
 _Success_(return != NULL)
 void*
 QuicCertGetPrivateKey(
-    _In_ QUIC_CERT* Certificate
+    _In_ QUIC_CERTIFICATE* Certificate
     )
 {
     UNREFERENCED_PARAMETER(Certificate);
@@ -169,7 +167,7 @@ QuicCertSign(
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertVerify(
-    _In_ QUIC_CERT* Certificate,
+    _In_ QUIC_CERTIFICATE* Certificate,
     _In_ const uint16_t SignatureAlgorithm,
     _In_reads_(CertListToBeSignedLength)
         const uint8_t *CertListToBeSigned,

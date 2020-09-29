@@ -146,7 +146,7 @@ class QuicDriverClient {
 public:
     QuicDriverClient() : DeviceHandle(INVALID_HANDLE_VALUE) { }
     bool Initialize(
-        _In_ QUIC_SEC_CONFIG_PARAMS* SecConfigParams,
+        _In_ QUIC_CERTIFICATE_HASH* CertHash,
         _In_z_ const char* DriverName
         ) {
         uint32_t Error;
@@ -182,13 +182,13 @@ public:
                 "CreateFile failed");
             return false;
         }
-        if (!Run(IOCTL_QUIC_SEC_CONFIG, SecConfigParams->Thumbprint, sizeof(SecConfigParams->Thumbprint), 30000)) {
+        if (!Run(IOCTL_QUIC_SET_CERT_HASH, CertHash, sizeof(*CertHash), 30000)) {
             CloseHandle(DeviceHandle);
             DeviceHandle = INVALID_HANDLE_VALUE;
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "Run(IOCTL_QUIC_SEC_CONFIG) failed");
+                "Run(IOCTL_QUIC_SET_CERT_HASH) failed");
             return false;
         }
         return true;
@@ -367,10 +367,10 @@ public:
 class QuicDriverClient {
 public:
     bool Initialize(
-        _In_ QUIC_SEC_CONFIG_PARAMS* SecConfigParams,
+        _In_ QUIC_CERTIFICATE_HASH* CertHash,
         _In_z_ const char* DriverName
     ) {
-        UNREFERENCED_PARAMETER(SecConfigParams);
+        UNREFERENCED_PARAMETER(CertHash);
         UNREFERENCED_PARAMETER(DriverName);
         return false;
     }

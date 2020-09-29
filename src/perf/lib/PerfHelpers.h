@@ -34,14 +34,6 @@ Abstract:
 #include <new.h>
 #endif
 
-struct PerfSelfSignedConfiguration {
-#ifdef _KERNEL_MODE
-    QUIC_CERTIFICATE_HASH SelfSignedSecurityHash;
-#else
-    QUIC_SEC_CONFIG_PARAMS* SelfSignedParams;
-#endif
-};
-
 #define QUIC_TEST_SESSION_CLOSED    1
 
 extern
@@ -50,7 +42,7 @@ QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ QUIC_EVENT* StopEvent,
-    _In_ PerfSelfSignedConfiguration* SelfSignedConfig
+    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     );
 
 extern
@@ -108,7 +100,7 @@ WriteOutput(
 #endif
 }
 
-struct PerfSecurityConfig {
+/*struct PerfSecurityConfig {
     QUIC_STATUS Initialize(int argc, char** argv, const MsQuicRegistration& Registration, PerfSelfSignedConfiguration* Config) {
         uint16_t useSelfSigned = 0;
         if (TryGetValue(argc, argv, "selfsign", &useSelfSigned)) {
@@ -173,7 +165,7 @@ struct PerfSecurityConfig {
     operator QUIC_SEC_CONFIG*() const { return SecurityConfig; }
 
     QUIC_SEC_CONFIG* SecurityConfig {nullptr};
-};
+};*/
 
 struct CountHelper {
     long RefCount;

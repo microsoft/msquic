@@ -57,6 +57,7 @@ public:
 
     EXT_COMMAND_METHOD(quicanalyze);
     EXT_COMMAND_METHOD(quicbinding);
+    EXT_COMMAND_METHOD(quicconfiguration);
     EXT_COMMAND_METHOD(quicconn);
     EXT_COMMAND_METHOD(quicconnection);
     EXT_COMMAND_METHOD(quicdump);
@@ -67,7 +68,6 @@ public:
     EXT_COMMAND_METHOD(quiclistener);
     EXT_COMMAND_METHOD(quicpacket);
     EXT_COMMAND_METHOD(quicregistration);
-    EXT_COMMAND_METHOD(quicsession);
     EXT_COMMAND_METHOD(quicstream);
     EXT_COMMAND_METHOD(quicworker);
 

@@ -52,13 +52,13 @@ void ExecuteSummaryCommand(void)
         "  Objects\n" \
         "    Registration  --\n" \
         "    Worker        %u\n" \
-        "    Session       --\n" \
+        "    Configuration --\n" \
         "    Listener      %u\n" \
         "    Connection    %u\n" \
         "    Stream        %u\n" \
         "    Binding       %u\n" \
         ;
-    
+
     printf(
         FormatStr2,
         Workers.NextId - 1,

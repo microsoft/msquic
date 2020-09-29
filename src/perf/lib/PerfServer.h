@@ -18,9 +18,12 @@ Abstract:
 
 class PerfServer : public PerfBase {
 public:
-    PerfServer(
-        _In_ PerfSelfSignedConfiguration* SelfSignedConfig
-        ) : SelfSignedConfig{SelfSignedConfig} { }
+    PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig) {
+        InitStatus =
+            Configuration.IsValid() ?
+                Configuration.LoadCredential(CredConfig) :
+                Configuration.GetInitStatus();
+    }
 
     ~PerfServer() override {
         if (DataBuffer) {
@@ -91,19 +94,18 @@ private:
         _In_ HQUIC StreamHandle
         );
 
-    MsQuicRegistration Registration;
-    MsQuicSession Session {
+    QUIC_STATUS InitStatus;
+    MsQuicRegistration Registration {true};
+    MsQuicAlpn Alpn {PERF_ALPN};
+    MsQuicConfiguration Configuration {
         Registration,
-        MsQuicAlpn(PERF_ALPN),
+        Alpn,
         MsQuicSettings()
             .SetPeerBidiStreamCount(PERF_DEFAULT_STREAM_COUNT)
             .SetPeerUnidiStreamCount(PERF_DEFAULT_STREAM_COUNT)
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
-            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT),
-        true};
-    MsQuicListener Listener {Session};
-    PerfSelfSignedConfiguration* SelfSignedConfig;
-    PerfSecurityConfig SecurityConfig;
+            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)};
+    MsQuicListener Listener {Registration};
     uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};

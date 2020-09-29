@@ -27,21 +27,21 @@ EXT_COMMAND(
         Registration.Addr,
         Registration.GetAppName().Data);
 
-    Dml("\n<u>SESSIONS</u>\n"
+    Dml("\n<u>CONFIGURATIONS</u>\n"
         "\n");
 
-    auto Sessions = Registration.GetSessions();
+    auto Configurations = Registration.GetConfigurations();
     while (!CheckControlC()) {
-        ULONG64 LinkAddr = Sessions.Next();
+        ULONG64 LinkAddr = Configurations.Next();
         if (LinkAddr == 0) {
             break;
         }
 
-        auto Session = Session::FromLink(LinkAddr);
-        Dml("\t<link cmd=\"!quicsession 0x%I64X\">0x%I64X</link>\t\"%s\"\n",
-            Session.Addr,
-            Session.Addr,
-            Session.GetAlpns().Data);
+        auto Configuration = Configuration::FromLink(LinkAddr);
+        Dml("\t<link cmd=\"!quicconfiguration 0x%I64X\">0x%I64X</link>\t\"%s\"\n",
+            Configuration.Addr,
+            Configuration.Addr,
+            Configuration.GetAlpns().Data);
     }
 
     Dml("\n<u>WORKERS</u>\n"
@@ -54,6 +54,22 @@ EXT_COMMAND(
             Workers.GetWorker(i).Addr,
             Workers.GetWorker(i).IdealProcessor(),
             Workers.GetWorker(i).StateStr());
+    }
+
+    Dml("\n<u>CONNECTIONS</u>\n"
+        "\n");
+
+    auto Connections = Registration.GetConnections();
+    while (!CheckControlC()) {
+        ULONG64 LinkAddr = Connections.Next();
+        if (LinkAddr == 0) {
+            break;
+        }
+
+        auto Connection = Connection::FromRegistrationLink(LinkAddr);
+        Dml("\t<link cmd=\"!quicconnection 0x%I64X\">0x%I64X</link>\n",
+            Connection.Addr,
+            Connection.Addr);
     }
 
     Dml("\n");

@@ -110,7 +110,6 @@ struct PingConnection {
     //
     PingConnection(
         _In_ PingTracker* Tracker,
-        _In_ HQUIC Session,
         _In_ bool DumpResumption
         );
 
@@ -135,7 +134,7 @@ struct PingConnection {
     //
     // Starts the connection handshake to the server.
     //
-    bool Connect();
+    bool Connect(_In_ HQUIC ClientConfiguration);
 
     //
     // Called by the child stream when it's done cleaning up.

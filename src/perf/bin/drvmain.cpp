@@ -33,7 +33,8 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DEVICE_EXTENSION, QuicPerfCtlGetDeviceCo
 
 typedef struct QUIC_DRIVER_CLIENT {
     LIST_ENTRY Link;
-    PerfSelfSignedConfiguration SelfSignedConfiguration;
+    QUIC_CREDENTIAL_CONFIG SelfSignedCredConfig;
+    QUIC_CERTIFICATE_HASH SelfSignedCertHash;
     bool SelfSignedValid;
     QUIC_EVENT StopEvent;
     WDFREQUEST Request;
@@ -525,7 +526,10 @@ QuicPerfCtlSetSecurityConfig(
     _In_ const QUIC_CERTIFICATE_HASH* CertHash
     )
 {
-    Client->SelfSignedConfiguration.SelfSignedSecurityHash = *CertHash;
+    Client->SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+    Client->SelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
+    Client->SelfSignedCredConfig.CertificateHash = &Client->SelfSignedCertHash;
+    RtlCopyMemory(&Client->SelfSignedCertHash.ShaHash, CertHash, sizeof(QUIC_CERTIFICATE_HASH));
     Client->SelfSignedValid = true;
     return QUIC_STATUS_SUCCESS;
 }
@@ -659,7 +663,7 @@ QuicPerfCtlStart(
             (int)Length,
             Argv,
             &Client->StopEvent,
-            &Client->SelfSignedConfiguration);
+            &Client->SelfSignedCredConfig);
     delete[] Argv;
 
     return Status;
@@ -758,7 +762,7 @@ QuicPerfCtlEvtIoDeviceControl(
         Client,
         FunctionCode);
 
-    if (IoControlCode != IOCTL_QUIC_SEC_CONFIG &&
+    if (IoControlCode != IOCTL_QUIC_SET_CERT_HASH &&
         !Client->SelfSignedValid) {
         Status = STATUS_INVALID_DEVICE_STATE;
         QuicTraceEvent(
@@ -769,7 +773,7 @@ QuicPerfCtlEvtIoDeviceControl(
     }
 
     switch (IoControlCode) {
-    case IOCTL_QUIC_SEC_CONFIG:
+    case IOCTL_QUIC_SET_CERT_HASH:
         QUIC_FRE_ASSERT(Params != nullptr);
         Status =
             QuicPerfCtlSetSecurityConfig(

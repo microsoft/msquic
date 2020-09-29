@@ -6,6 +6,12 @@
 --*/
 
 //
+// Special internal type to indicate registration created for global listener
+// processing.
+//
+#define QUIC_EXECUTION_PROFILE_TYPE_INTERNAL ((QUIC_EXECUTION_PROFILE)0xFF)
+
+//
 // Different outcomes for a new incoming connection.
 //
 typedef enum QUIC_CONNECTION_ACCEPT_RESULT {
@@ -63,24 +69,29 @@ typedef struct QUIC_REGISTRATION {
     QUIC_WORKER_POOL* WorkerPool;
 
     //
-    // Protects access to the Sessions list.
+    // Protects access to the Configurations list.
     //
-    QUIC_LOCK Lock;
+    QUIC_LOCK ConfigLock;
 
     //
-    // List of all sessions for this registration.
+    // List of all configurations for this registration.
     //
-    QUIC_LIST_ENTRY Sessions;
+    QUIC_LIST_ENTRY Configurations;
 
     //
-    // Rundown for all connections
+    // Protects access to the Connections list.
     //
-    QUIC_RUNDOWN_REF ConnectionRundown;
+    QUIC_DISPATCH_LOCK ConnectionLock;
 
     //
-    // Rundown for all outstanding security configs.
+    // List of all connections for this registration.
     //
-    QUIC_RUNDOWN_REF SecConfigRundown;
+    QUIC_LIST_ENTRY Connections;
+
+    //
+    // Rundown for all child objects.
+    //
+    QUIC_RUNDOWN_REF Rundown;
 
     //
     // Name of the application layer.
@@ -123,7 +134,7 @@ QuicRegistrationSettingsChanged(
 // or not.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_CONNECTION_ACCEPT_RESULT
+BOOLEAN
 QuicRegistrationAcceptConnection(
     _In_ QUIC_REGISTRATION* Registration,
     _In_ QUIC_CONNECTION* Connection

@@ -74,14 +74,14 @@ QuicDrillTestVarIntEncoder(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
-void
+bool
 QuicDrillConnectionCallbackHandler(
     _In_ TestListener* /* Listener */,
-    _In_ HQUIC ConnectionHandle
+    _In_ HQUIC /* ConnectionHandle */
     )
 {
     TEST_FAILURE("Quic Drill listener received an unexpected event!");
-    MsQuic->ConnectionClose(ConnectionHandle);
+    return false;
 }
 
 struct DrillSender {
@@ -222,22 +222,37 @@ QuicDrillInitialPacketFailureTest(
     QuicAddr ServerAddress(QuicAddrFamily);
     DrillSender Sender;
 
-    MsQuicSession Session(*Registration, MsQuicAlpn("MsQuicTest"));
-    if (!Session.IsValid()) {
-        TEST_FAILURE("Session not valid!");
-        goto Failure;
+    MsQuicRegistration Registration;
+    if (!Registration.IsValid()) {
+        TEST_FAILURE("Registration not valid!");
+        return false;
+    }
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, SelfSignedCredConfig);
+    if (!ServerConfiguration.IsValid()) {
+        TEST_FAILURE("ServerConfiguration not valid!");
+        return false;
+    }
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    if (!ClientConfiguration.IsValid()) {
+        TEST_FAILURE("ClientConfiguration not valid!");
+        return false;
     }
 
     {
         //
         // Start the server.
         //
-        TestListener Listener(Session.Handle, QuicDrillConnectionCallbackHandler);
+        TestListener Listener(Registration, QuicDrillConnectionCallbackHandler, ServerConfiguration);
 
-        Status = Listener.Start(&ServerAddress.SockAddr);
+        Status = Listener.Start(Alpn, &ServerAddress.SockAddr);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("ListenerStart failed, 0x%x.", Status);
-            goto Failure;
+            return false;
         }
 
         //
@@ -246,7 +261,7 @@ QuicDrillInitialPacketFailureTest(
         Status = Listener.GetLocalAddr(ServerAddress);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("MsQuic->GetParam failed, 0x%x.", Status);
-            goto Failure;
+            return false;
         }
 
         Status =
@@ -257,7 +272,7 @@ QuicDrillInitialPacketFailureTest(
                     ServerAddress.SockAddr.Ipv4.sin_port :
                     ServerAddress.SockAddr.Ipv6.sin6_port);
         if (QUIC_FAILED(Status)) {
-            goto Failure;
+            return false;
         }
 
         DrillBuffer PacketBuffer = InitialPacketDescriptor.write();
@@ -265,7 +280,7 @@ QuicDrillInitialPacketFailureTest(
         Status = Listener.GetStatistics(Stats);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Get Listener statistics before test failed, 0x%x.", Status);
-            goto Failure;
+            return false;
         }
         DroppedPacketsBefore = Stats.Binding.Recv.DroppedPackets;
 
@@ -274,7 +289,7 @@ QuicDrillInitialPacketFailureTest(
         //
         Status = Sender.Send(&PacketBuffer);
         if (QUIC_FAILED(Status)) {
-            goto Failure;
+            return false;
         }
 
         //
@@ -285,7 +300,7 @@ QuicDrillInitialPacketFailureTest(
         Status = Listener.GetStatistics(Stats);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Get Listener statistics after test failed, 0x%x.", Status);
-            goto Failure;
+            return false;
         }
         DroppedPacketsAfter = Stats.Binding.Recv.DroppedPackets;
 
@@ -297,14 +312,11 @@ QuicDrillInitialPacketFailureTest(
             TEST_FAILURE(
                 "DroppedPacketsAfter - DroppedPacketsBefore (%d) not equal to 1",
                 DroppedPacketsAfter - DroppedPacketsBefore);
-            goto Failure;
+            return false;
         }
     }
+
     return true;
-
-Failure:
-
-    return false;
 }
 
 #define VALID_CID_LENGTH_SHORT 8

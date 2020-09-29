@@ -19,7 +19,7 @@ void
 
 `Handle`
 
-The valid handle to any API object. This includes handles to registration, session, listener, connection and stream objects.
+The valid handle to any API object. This includes handles to registration, configuration, listener, connection and stream objects.
 
 `Context`
 

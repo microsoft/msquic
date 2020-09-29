@@ -50,7 +50,7 @@ extern "C" {
 #include "binding.h"
 #include "api.h"
 #include "registration.h"
-#include "session.h"
+#include "configuration.h"
 #include "range.h"
 #include "recv_buffer.h"
 #include "send_buffer.h"

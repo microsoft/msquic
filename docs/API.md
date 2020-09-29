@@ -33,9 +33,7 @@ The API supports both server and client applications. All functionality is expos
 
 [**Registration**](#registration) – Manages the execution context for all child objects. An app may open multiple registrations but ideally should only open one.
 
-[**Security Configuration**](#security-configuration) – Abstracts the configuration for the TLS component. This primarily consists of a certificate that is used for authentication. The app may create as many of these as necessary.
-
-[**Session**](#session) – Abstracts several different session-layer concepts: TLS Session Resumption, Application Layer Protocol Negotiation (ALPN) and platform specifics (such as Server Silo and Network Compartment ID on Windows). The app may create as many of these as necessary.
+[**Configuration**](#configuration) – Abstracts the configuration for a connection. TODO
 
 [**Listener**](#listener) – Server side only, this object provides the interface for an app to accept incoming connections from clients. Once the connection has been accepted, it is independent of the listener. The app may create as many of these as necessary.
 
@@ -88,17 +86,11 @@ Generally, each app only needs a single registration. The registration represent
 
 A registration is created by calling [RegistrationOpen](api/RegistrationOpen.md) and deleted by calling [RegistrationClose](api/RegistrationClose.md).
 
-## Security Configuration
+## Configuration
 
-Currently only used on the server side, the security configuration (AKA security config) abstracts a server certificate (and other configuration) used by a [listener](#listener) to accept an incoming connection request.
+TODO
 
-A security config is created by calling [SecConfigCreate](api/SecConfigCreate.md) and deleted by calling [SecConfigDelete](api/SecConfigDelete.md).
-
-## Session
-
-An app must create a session before it can create any listeners or connections. Each session maintains certain transport and platform state common to all child handles. Primarily, this consists of the ALPN string used for the connection handshakes and TLS state used for session resumption. On Windows platforms it also inherits the Silo and Network Compartment ID from the thread that creates it.
-
-A session is created by calling [SessionOpen](api/SessionOpen.md) and deleted by calling [SessionClose](api/SessionClose.md). [SessionClose](api/SessionClose.md) **will block** on all oustanding connections. Therefore do not call it on any MsQuic event callback, as it will likely create a deadlock.
+A configuration is created by calling [ConfigurationOpen](api/ConfigurationOpen.md) and deleted by calling [ConfigurationClose](api/ConfigurationClose.md).
 
 ## Listener
 

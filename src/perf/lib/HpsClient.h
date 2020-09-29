@@ -82,13 +82,15 @@ public:
 
     HpsWorkerContext Contexts[HPS_MAX_WORKER_COUNT];
     MsQuicRegistration Registration;
-    MsQuicSession Session {
+    MsQuicConfiguration Configuration {
         Registration,
         MsQuicAlpn(PERF_ALPN),
         MsQuicSettings()
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
             .SetIdleTimeoutMs(HPS_DEFAULT_IDLE_TIMEOUT),
-        true};
+        MsQuicCredentialConfig(
+            QUIC_CREDENTIAL_FLAG_CLIENT |
+            QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
     uint32_t ActiveProcCount;
     uint16_t Port {PERF_DEFAULT_PORT};
     UniquePtr<char[]> Target;

@@ -50,8 +50,8 @@ RpsClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (!Session.IsValid()) {
-        return Session.GetInitStatus();
+    if (!Configuration.IsValid()) {
+        return Configuration.GetInitStatus();
     }
 
     const char* target;
@@ -97,14 +97,14 @@ RpsClient::Start(
 
     struct ScopeCleanup {
         bool NeedsCleanup {true};
-        MsQuicSession& Session;
-        ScopeCleanup(MsQuicSession &_Session) : Session(_Session) { }
+        MsQuicRegistration& Registration;
+        ScopeCleanup(MsQuicRegistration &_Registration) : Registration(_Registration) { }
         ~ScopeCleanup() {
             if (NeedsCleanup) {
-                Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+                Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
             }
         }
-    } Scope(Session);
+    } Scope(Registration);
 
     QUIC_CONNECTION_CALLBACK_HANDLER Handler =
         [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
@@ -142,7 +142,7 @@ RpsClient::Start(
 
         Status =
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 Handler,
                 this,
                 &Connection);
@@ -151,35 +151,7 @@ RpsClient::Start(
             return Status;
         }
 
-        uint32_t SecFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-        Status =
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-                sizeof(SecFlags),
-                &SecFlags);
-        if (QUIC_FAILED(Status)) {
-            MsQuic->ConnectionClose(Connection);
-            WriteOutput("SetParam(CONN_CERT_VALIDATION_FLAGS) failed, 0x%x\n", Status);
-            return Status;
-        }
-
-        BOOLEAN Opt = FALSE;
-        Status =
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SEND_BUFFERING,
-                sizeof(Opt),
-                &Opt);
-        if (QUIC_FAILED(Status)) {
-            MsQuic->ConnectionClose(Connection);
-            WriteOutput("SetParam(CONN_SEND_BUFFERING) failed, 0x%x\n", Status);
-            return Status;
-        }
-
-        Opt = TRUE;
+        BOOLEAN Opt = TRUE;
         Status =
             MsQuic->SetParam(
                 Connection,
@@ -211,6 +183,7 @@ RpsClient::Start(
         Status =
             MsQuic->ConnectionStart(
                 Connection,
+                Configuration,
                 QUIC_ADDRESS_FAMILY_UNSPEC,
                 Target.get(),
                 Port);

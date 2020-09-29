@@ -24,8 +24,7 @@ const uint64_t IdleTimeoutMs = 2000;
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
-HQUIC Session;
-QUIC_SEC_CONFIG* SecurityConfig;
+HQUIC Configuration;
 
 extern "C" void QuicTraceRundown(void) { }
 
@@ -130,15 +129,16 @@ ServerListenerCallback(
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_NOT_SUPPORTED;
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
-        Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)ServerConnectionCallback, nullptr);
+        Status = MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, Configuration);
         break;
     default:
         break;
     }
-    return QUIC_STATUS_SUCCESS;
+    return Status;
 }
 
 void
@@ -150,56 +150,35 @@ RunServer(
     QUIC_STATUS Status;
     HQUIC Listener = nullptr;
 
+    QUIC_SETTINGS Settings{0};
+    Settings.IdleTimeoutMs = IdleTimeoutMs;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
+
     QUIC_ADDR Address = {};
     QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
     QuicAddrSetPort(&Address, UdpPort);
 
-    QUIC_SEC_CONFIG_PARAMS* SelfSignedCertParams = nullptr;
-    const char* Cert;
-    const char* KeyFile;
-    if (GetValue(argc, argv, "selfsign")) {
-        SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
-        if (!SelfSignedCertParams) {
-            printf("Failed to create platform self signed certificate\n");
-            return;
-        }
-
-        SecurityConfig = GetSecConfigForSelfSigned(MsQuic, Registration, SelfSignedCertParams);
-        if (!SecurityConfig) {
-            printf("Failed to create security config for self signed certificate\n");
-            QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
-            return;
-        }
-    } else if (TryGetValue(argc, argv, "cert_hash", &Cert)) {
-        const char* StoreName = "My";
-        QUIC_CERTIFICATE_HASH_STORE_FLAGS Flags = QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
-        if (GetValue(argc, argv, "machine")) {
-            Flags |= QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE;
-        }
-        TryGetValue(argc, argv, "cert_store", &StoreName);
-        SecurityConfig = GetSecConfigForThumbprintAndStore(MsQuic, Registration, Flags, Cert, StoreName);
-        if (SecurityConfig == nullptr) {
-            printf("Failed to load certificate from hash!\n");
-            return;
-        }
-    } else if (TryGetValue(argc, argv, "cert_file", &Cert) &&
-        TryGetValue(argc, argv, "key_file", &KeyFile)) {
-        SecurityConfig = GetSecConfigForFile(MsQuic, Registration, KeyFile, Cert);
-        if (SecurityConfig == nullptr) {
-            printf("Failed to load certificate from file!\n");
-            return;
-        }
-    } else {
-        printf("Must specify 'selfsign', '-cert_hash' or 'cert_file'!\n");
+    Configuration =
+        GetServerConfigurationFromArgs(
+            argc,
+            argv,
+            MsQuic,
+            Registration,
+            &Alpn,
+            1,
+            &Settings,
+            sizeof(Settings));
+    if (!Configuration) {
+        printf("Failed to load configuration from args!\n");
         return;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Session, ServerListenerCallback, nullptr, &Listener))) {
+    if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Registration, ServerListenerCallback, nullptr, &Listener))) {
         printf("ListenerOpen failed, 0x%x!\n", Status);
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->ListenerStart(Listener, &Address))) {
+    if (QUIC_FAILED(Status = MsQuic->ListenerStart(Listener, &Alpn, 1, &Address))) {
         printf("ListenerStart failed, 0x%x!\n", Status);
         goto Error;
     }
@@ -212,9 +191,8 @@ Error:
     if (Listener != nullptr) {
         MsQuic->ListenerClose(Listener);
     }
-    MsQuic->SecConfigDelete(SecurityConfig);
-    if (SelfSignedCertParams) {
-        QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
+    if (Configuration) {
+        FreeServerConfiguration(MsQuic, Configuration);
     }
 }
 
@@ -226,10 +204,6 @@ main(
     )
 {
     QuicPlatformSystemLoad();
-
-    QUIC_SETTINGS Settings{0};
-    Settings.IdleTimeoutMs = IdleTimeoutMs;
-    Settings.IsSet.IdleTimeoutMs = TRUE;
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (QUIC_FAILED(Status = QuicPlatformInitialize())) {
@@ -248,19 +222,11 @@ main(
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, sizeof(Settings), &Settings, &Alpn, 1, nullptr, &Session))) {
-        printf("SessionOpen failed, 0x%x!\n", Status);
-        goto Error;
-    }
-
     RunServer(argc, argv);
 
 Error:
 
     if (MsQuic != nullptr) {
-        if (Session != nullptr) {
-            MsQuic->SessionClose(Session); // Waits on all connections to be cleaned up.
-        }
         if (Registration != nullptr) {
             MsQuic->RegistrationClose(Registration);
         }

@@ -146,7 +146,7 @@ QuicSendBufferFill(
     QUIC_SEND_REQUEST* Req;
     QUIC_LIST_ENTRY* Entry;
 
-    QUIC_DBG_ASSERT(Connection->State.UseSendBuffer);
+    QUIC_DBG_ASSERT(Connection->Settings.SendBufferingEnabled);
 
     Entry = Connection->Send.SendStreams.Flink;
     while (QuicSendBufferHasSpace(&Connection->SendBuffer) && Entry != &(Connection->Send.SendStreams)) {
@@ -251,7 +251,7 @@ QuicSendBufferConnectionAdjust(
         }
         QuicHashtableEnumerateEnd(Connection->Streams.StreamTable, &Enumerator);
 
-        if (Connection->State.UseSendBuffer) {
+        if (Connection->Settings.SendBufferingEnabled) {
             QuicSendBufferFill(Connection);
         }
     }

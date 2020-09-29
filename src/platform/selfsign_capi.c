@@ -924,23 +924,24 @@ Done:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG_PARAMS*
+const QUIC_CREDENTIAL_CONFIG*
 QuicPlatGetSelfSignedCert(
     _In_ QUIC_SELF_SIGN_CERT_TYPE Type
     )
 {
-    QUIC_SEC_CONFIG_PARAMS* Params =
-        HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(QUIC_SEC_CONFIG_PARAMS));
+    QUIC_CREDENTIAL_CONFIG* Params =
+        HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(QUIC_CREDENTIAL_CONFIG) + sizeof(QUIC_CERTIFICATE_HASH));
     if (Params == NULL) {
         return NULL;
     }
 
-    Params->Flags = QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT;
-    Params->Certificate =
+    Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT;
+    Params->Flags = QUIC_CREDENTIAL_FLAG_NONE;
+    Params->CertificateContext =
         FindOrCreateCertificate(
             Type == QUIC_SELF_SIGN_CERT_USER,
-            Params->Thumbprint);
-    if (Params->Certificate == NULL) {
+            (uint8_t*)(Params + 1));
+    if (Params->CertificateContext == NULL) {
         HeapFree(GetProcessHeap(), 0, Params);
         return NULL;
     }
@@ -951,9 +952,9 @@ QuicPlatGetSelfSignedCert(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPlatFreeSelfSignedCert(
-    _In_ QUIC_SEC_CONFIG_PARAMS* Params
+    _In_ const QUIC_CREDENTIAL_CONFIG* Params
     )
 {
-    FreeServerCertificate(Params->Certificate);
-    HeapFree(GetProcessHeap(), 0, Params);
+    FreeServerCertificate(Params->CertificateContext);
+    HeapFree(GetProcessHeap(), 0, (void*)Params);
 }
