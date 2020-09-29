@@ -1075,6 +1075,8 @@ QuicSocketContextInitialize(
         goto Exit;
     }
 
+    Binding->LocalAddress.Ipv4.sin_port = MappedAddress.Ipv4.sin_port;
+
     if (RemoteAddress != NULL) {
         QuicZeroMemory(&MappedAddress, sizeof(MappedAddress));
         QuicConvertToMappedV6(RemoteAddress, &MappedAddress);
