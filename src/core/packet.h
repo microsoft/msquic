@@ -554,7 +554,7 @@ QuicPacketHash(
 {
     uint32_t Key, Offset;
 
-    if (QuicAddrGetFamily(RemoteAddress) == AF_INET) {
+    if (QuicAddrGetFamily(RemoteAddress) == QUIC_ADDRESS_FAMILY_INET) {
         Key =
             QuicToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,

@@ -155,7 +155,7 @@ main(
     EXIT_ON_FAILURE(MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS, sizeof(CertificateValidationFlags), &CertificateValidationFlags));
     EXIT_ON_FAILURE(MsQuic->StreamOpen(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, StreamHandler, nullptr, &Stream));
     EXIT_ON_FAILURE(MsQuic->StreamStart(Stream, QUIC_STREAM_START_FLAG_ASYNC));
-    EXIT_ON_FAILURE(MsQuic->ConnectionStart(Connection, AF_UNSPEC, ServerName, Port));
+    EXIT_ON_FAILURE(MsQuic->ConnectionStart(Connection, QUIC_ADDRESS_FAMILY_UNSPEC, ServerName, Port));
 
     printf("POST '%s' to %s:%hu\n", FileName, ServerName, Port);
 

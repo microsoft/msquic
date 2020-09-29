@@ -73,7 +73,7 @@ PerfServer::Start(
     _In_ QUIC_EVENT* _StopEvent
     ) {
     QUIC_ADDR Address;
-    QuicAddrSetFamily(&Address, AF_UNSPEC);
+    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
     QuicAddrSetPort(&Address, Port);
 
     StopEvent = _StopEvent;

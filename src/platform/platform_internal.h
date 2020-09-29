@@ -105,7 +105,7 @@ QuicConvertToMappedV6(
     _Out_ QUIC_ADDR* OutAddr
     )
 {
-    if (InAddr->si_family == AF_INET) {
+    if (InAddr->si_family == QUIC_ADDRESS_FAMILY_INET) {
         SCOPE_ID unspecified_scope = {0};
         IN6ADDR_SETV4MAPPED(
             &OutAddr->Ipv6,
@@ -130,9 +130,9 @@ QuicConvertFromMappedV6(
     _Out_ QUIC_ADDR* OutAddr
     )
 {
-    QUIC_DBG_ASSERT(InAddr->si_family == AF_INET6);
+    QUIC_DBG_ASSERT(InAddr->si_family == QUIC_ADDRESS_FAMILY_INET6);
     if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
-        OutAddr->si_family = AF_INET;
+        OutAddr->si_family = QUIC_ADDRESS_FAMILY_INET;
         OutAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
         OutAddr->Ipv4.sin_addr =
             *(IN_ADDR UNALIGNED *)

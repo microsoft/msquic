@@ -145,7 +145,7 @@ QuicTestConnect(
     MsQuicSession Session2(*Registration, MsQuicAlpn("MsQuicTest2", "MsQuicTest"), Settings);
     TEST_TRUE(Session2.IsValid());
 
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
     if (SessionResumption) {
         bool Success;
@@ -283,7 +283,7 @@ QuicTestNatPortRebind(
         TestListener Listener(Session.Handle, ListenerAcceptConnection);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -370,7 +370,7 @@ QuicTestNatAddrRebind(
         TestListener Listener(Session.Handle, ListenerAcceptConnection);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -458,7 +458,7 @@ QuicTestPathValidationTimeout(
         TestListener Listener(Session.Handle, ListenerAcceptConnection);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -527,7 +527,7 @@ QuicTestChangeMaxStreamID(
         TestListener Listener(Session.Handle, ListenerAcceptConnection);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -622,7 +622,7 @@ QuicTestConnectAndIdle(
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
-                        AF_UNSPEC,
+                        QUIC_ADDRESS_FAMILY_UNSPEC,
                         QUIC_LOCALHOST_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         ServerLocalAddr.GetPort()));
@@ -683,7 +683,7 @@ QuicTestConnectUnreachable(
     TEST_TRUE(Session.IsValid());
 
     {
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
         TestConnection Client(Session);
         TEST_TRUE(Client.IsValid());
@@ -719,7 +719,7 @@ QuicTestVersionNegotiation(
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
@@ -772,7 +772,7 @@ QuicTestConnectBadAlpn(
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
@@ -832,13 +832,13 @@ QuicTestConnectBadSni(
                 TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
-                QuicAddr RemoteAddr(Family == 4 ? AF_INET : AF_INET6, true);
+                QuicAddr RemoteAddr(Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6, true);
                 TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
 
                 Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
-                        Family == 4 ? AF_INET : AF_INET6,
+                        Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6,
                         "badlocalhost",
                         ServerLocalAddr.GetPort()));
                 if (!Client.WaitForConnectionComplete()) {
@@ -889,7 +889,7 @@ QuicTestConnectServerRejected(
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
@@ -935,7 +935,7 @@ QuicTestKeyUpdate(
         TestListener Listener(Session.Handle, ListenerAcceptConnection);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -1049,7 +1049,7 @@ QuicTestCidUpdate(
         TestListener Listener(Session.Handle, ListenerAcceptConnection);
         TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
