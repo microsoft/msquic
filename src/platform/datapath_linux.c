@@ -1053,30 +1053,6 @@ QuicSocketContextInitialize(
         goto Exit;
     }
 
-    //
-    // If no specific local port was indicated, then the stack just
-    // assigned this socket a port. We need to query it and use it for
-    // all the other sockets we are going to create.
-    //
-    AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
-    Result =
-        getsockname(
-            SocketContext->SocketFd,
-            &MappedAddress.Ip,
-            &AssignedLocalAddressLength);
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "getsockname failed");
-        goto Exit;
-    }
-
-    Binding->LocalAddress.Ipv4.sin_port = MappedAddress.Ipv4.sin_port;
-
     if (RemoteAddress != NULL) {
         QuicZeroMemory(&MappedAddress, sizeof(MappedAddress));
         QuicConvertToMappedV6(RemoteAddress, &MappedAddress);
@@ -1101,6 +1077,29 @@ QuicSocketContextInitialize(
                 "connect failed");
             goto Exit;
         }
+    }
+
+
+    //
+    // If no specific local port was indicated, then the stack just
+    // assigned this socket a port. We need to query it and use it for
+    // all the other sockets we are going to create.
+    //
+    AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
+    Result =
+        getsockname(
+            SocketContext->SocketFd,
+            (struct sockaddr *)&Binding->LocalAddress,
+            &AssignedLocalAddressLength);
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "getsockname failed");
+        goto Exit;
     }
 
     if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
