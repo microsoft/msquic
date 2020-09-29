@@ -229,6 +229,7 @@ ServerLoadConfiguration(
     Settings.IsSet.PeerBidiStreamCount = TRUE;
 
     QUIC_CREDENTIAL_CONFIG_HELPER Config;
+    memset(&Config, 0, sizeof(Config));
     Config.CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
 
     const char* Cert;

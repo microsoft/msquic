@@ -397,6 +397,7 @@ GetServerConfigurationFromArgs(
     )
 {
     QUIC_CREDENTIAL_CONFIG_HELPER Helper;
+    QuicZeroMemory(&Helper, sizeof(Helper));
     const QUIC_CREDENTIAL_CONFIG* Config = &Helper.CredConfig;
     Helper.CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
 
