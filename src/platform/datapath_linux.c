@@ -1058,7 +1058,7 @@ QuicSocketContextInitialize(
     // assigned this socket a port. We need to query it and use it for
     // all the other sockets we are going to create.
     //
-    AssignedLocalAddressLength = sizeof(MappedAddress);
+    AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
     Result =
         getsockname(
             SocketContext->SocketFd,
@@ -1256,7 +1256,13 @@ QuicSocketContextRecvComplete(
     BOOLEAN FoundLocalAddr = FALSE;
     BOOLEAN FoundTOS = FALSE;
     QUIC_ADDR* LocalAddr = &RecvPacket->Tuple->LocalAddress;
+    if (LocalAddr->Ipv6.sin6_family == AF_INET6) {
+        LocalAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+    }
     QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
+    if (RemoteAddr->Ipv6.sin6_family == AF_INET6) {
+        RemoteAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+    }
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
     RecvPacket->TypeOfService = 0;
