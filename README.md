@@ -24,7 +24,7 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
 
 > **Important** The QUIC spec is currently in IETF last call and should move to IESG review by Nov 2020. From there it will likely take a few months before it is finalized to RFC.
 
-Drafts: [Transport](https://tools.ietf.org/html/draft-ietf-quic-transport), [TLS](https://tools.ietf.org/html/draft-ietf-quic-tls), [Loss](https://tools.ietf.org/html/draft-ietf-quic-recovery), [Datagram](https://tools.ietf.org/html/draft-ietf-quic-datagram), [Load Balancing](https://tools.ietf.org/html/draft-ietf-quic-load-balancers)
+Drafts: [Transport](https://tools.ietf.org/html/draft-ietf-quic-transport), [TLS](https://tools.ietf.org/html/draft-ietf-quic-tls), [Recovery](https://tools.ietf.org/html/draft-ietf-quic-recovery), [Datagram](https://tools.ietf.org/html/draft-ietf-quic-datagram), [Load Balancing](https://tools.ietf.org/html/draft-ietf-quic-load-balancers)
 
 > **Important** Several QUIC protocol features are not yet fully implemented:
 >
