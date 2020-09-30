@@ -6,6 +6,8 @@ MsQuic is used as the basis for several different protocols (HTTP, SMB, etc.), b
 
 MsQuic supports a number of configuration knobs (or settings). These settings can either be set dynamically (via the `QUIC_SETTINGS` structure) or via persistent storage (e.g. registry on Windows).
 
+> **Important** - Generally MsQuic already choses the best / most correct default values for all settings. Settings should only be changed after due diligence and A/B testing is performed.
+
 | Setting                  | Type     | Name                   | Description                                                                                           | Restart<br>Required |
 |--------------------------|----------|------------------------|-------------------------------------------------------------------------------------------------------|---------------------|
 | Max Partition Count      | uint16_t | MaxPartitionCount      | The maximum processor count used for partitioning work in MsQuic                                      | Yes                 |
@@ -20,11 +22,13 @@ MsQuic supports a number of configuration knobs (or settings). These settings ca
 
 ## Windows
 
-On Windows, these settings can set via the registry. The main registry path for the keys is:
+On Windows, these settings can set via the registry and will persist across reboots and build upgrades. For most settings, a reboot is not required fo them to immediately take effect. For complete details, see the `Restart Required` column in the table above. Also note that updated settings will only effect new connections (not existing ones).
+
+The main registry path for the keys is:
 
 > HKLM:\System\CurrentControlSet\Services\MsQuic\Parameters
 
-The settings can also be set per "app-name" (as indicated in `RegistrationOpen`):
+The settings can also be set per "app-name" (as indicated in [RegistrationOpen](.\api\RegistrationOpen.md)):
 
 > HKLM:\System\CurrentControlSet\Services\MsQuic\Parameters\app-name
 
@@ -49,7 +53,7 @@ Enable-TlsCipherSuite -Name TLS_CHACHA20_POLY1305_SHA256
 
 ## Windows
 
-In order to configure the Windows firewall to allow inbound QUIC traffic efficiently, use a command such as the one below.
+In order to configure the Windows firewall to allow inbound QUIC traffic efficiently, use a command such as the one below. Generally, the firewall rule should be applied for all scenarios, unless a layer below you (i.g. IIS) is already doing it on your behalf.
 
 ```PowerShell
 New-NetFirewallRule -DisplayName "Allow QUIC" -Direction Inbound -Protocol UDP -LocalPort 433 -Action Allow -LocalOnlyMapping $true
@@ -75,9 +79,21 @@ MsQuic currently supports a load balancing mode where the server encodes the loc
 
 This encoding is **not enabled by default**. To configure it, set the `LoadBalancingMode` setting to `1`. **Note** - The server must be restarted for this setting to take effect.
 
+To use this load balancing model, the load balancer must support the model described above and be explicitly configured to enable it for your endpoint.
+
+# Client Migration
+
+Client migration is a key feature in the QUIC protocol that allows for the connection to survive changes in the client's IP address or UDP port. MsQuic generally supports this but it requires QUIC load balancing support (when using a load balancer). QUIC encodes a connection identifier (connection ID or CID) in every packet it sends. This CID allows a server to encode routing information that a coordinating load balancer can use to route the packet, instead of using the IP tuple as most existing load balancers currently route UDP traffic.
+
+## NAT Rebindings without Load Balancing Support
+
+If your deployment does not have QUIC load balancing support then you will not be able to make sure of the client migration feature described above to survive any NAT rebindings that change the client's IP tuple (from the server's perspective). This can be especially painful for any services migrating from a TCP based solution to QUIC, since most middleboxes on the internet have a much smaller timeout period for UDP (20 to 30 seconds) compared to TCP. This means any QUIC connection that goes idle for greater than ~20 seconds runs the risk of getting rebound by the NAT the next time the client sends a packet, resulting in a tuple change, and then likely resulting in the packet getting routed to the incorrect load balanced server.
+
+The mitigation to this problem is to enable QUIC keep alives. They can be enabled on either the client or server side, but only need to be enabled on one side. They can be enabled either dynamically in the code or globally via the settings. To enable keep alives via the settings, set the `KeepAliveIntervalMs` setting to a reasonable value, such as `20000` (20 seconds).
+
 # DoS Mitigations
 
-MsQuic has a few built in DoS mitigations (server side).
+MsQuic has a few built-in denial of service mitigations (server side).
 
 ## Stateless Retry
 
@@ -97,3 +113,7 @@ The threshold mentioned above is currently tracked as a percentage of total avai
 MsQuic uses worker threads internally to execute the QUIC protocol logic. For each worker thread, MsQuic tracks the average queue delay for any work done on one of these threads. This queue delay is simply the time from when the work is added to the queue to when the work is removed from the queue. If this delay hits a certain threshold, then existing connections can start to suffer (i.e. spurious packet loss, decreased throughput, or even connection failures). In order to prevent this, new connections are rejected with the SERVER_BUSY error, when this threshold is reached.
 
 The queue delay threshold can be configured via the `MaxWorkerQueueDelayMs` setting.
+
+# Diagnostics
+
+For details on how to diagnose any issues with your deployment at the MsQuic layer see [Diagnostics](Diagnostics.md).
