@@ -200,6 +200,12 @@ main(
     QUIC_STATUS RetVal = 0;
     bool TestingKernelMode = false;
     bool KeyboardWait = false;
+    WCHAR Name[512];
+    DWORD NameLen = sizeof(Name) / sizeof(WCHAR);
+
+    if (GetUserNameW(Name, &NameLen)) {
+        wprintf(L"User name is: %s\n", Name);
+    }
 
     QuicPlatformSystemLoad();
     if (QUIC_FAILED(QuicPlatformInitialize())) {
