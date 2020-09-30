@@ -139,7 +139,6 @@ QuicKernelMain(
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    printf("Right before run\n");
     uint32_t OutBufferWritten = 0;
     bool RunSuccess = false;
     if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength, 30000)) {

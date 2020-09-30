@@ -79,6 +79,7 @@ QuicMainStart(
         Binding = nullptr;
         Status = QuicDataPathInitialize(0, DatapathReceive, DatapathUnreachable, &Datapath);
         if (QUIC_FAILED(Status)) {
+            WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
             return Status;
         }
 
@@ -86,25 +87,26 @@ QuicMainStart(
         Status = QuicDataPathBindingCreate(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
         if (QUIC_FAILED(Status)) {
             QuicDataPathUninitialize(Datapath);
+            WriteOutput("Datapath Binding for shutdown failed to initialize: %d\n", Status);
             return Status;
         }
     }
 
     MsQuic = new(std::nothrow) MsQuicApi;
     if (MsQuic == nullptr) {
+        WriteOutput("MsQuic Alloc Out of Memory\n");
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     if (QUIC_FAILED(Status = MsQuic->GetInitStatus())) {
         delete MsQuic;
         MsQuic = nullptr;
+        WriteOutput("MsQuic Failed To Initialize: %d\n", Status);
         return Status;
     }
 
     if (ServerMode) {
         TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);
-
     } else {
-
         if (IsValue(TestName, "Throughput") || IsValue(TestName, "tput")) {
             TestToRun = new(std::nothrow) ThroughputClient;
         } else if (IsValue(TestName, "RPS")) {
@@ -124,9 +126,14 @@ QuicMainStart(
             Status = TestToRun->Start(StopEvent);
             if (QUIC_SUCCEEDED(Status)) {
                 return QUIC_STATUS_SUCCESS;
+            } else {
+                WriteOutput("Test Failed To Start: %d\n", Status);
             }
+        } else {
+            WriteOutput("Test Failed To Initialize: %d\n", Status);
         }
     } else {
+        WriteOutput("Test Alloc Out Of Memory\n");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
     }
 
