@@ -8,21 +8,41 @@ MsQuic supports a number of configuration knobs (or settings). These settings ca
 
 > **Important** - Generally MsQuic already choses the best / most correct default values for all settings. Settings should only be changed after due diligence and A/B testing is performed.
 
-| Setting                  | Type     | Name                   | Description                                                                                           | Restart<br>Required |
-|--------------------------|----------|------------------------|-------------------------------------------------------------------------------------------------------|---------------------|
-| Max Partition Count      | uint16_t | MaxPartitionCount      | The maximum processor count used for partitioning work in MsQuic                                      | Yes                 |
-| Max Operations per Drain | uint8_t  | MaxOperationsPerDrain  | The maximum number of operations to drain per connection quantum                                      | No                  |
-| Retry Memory Limit       | uint16_t | RetryMemoryFraction    | The percentage of available memory usable for handshake connections before stateless retry is used    | No                  |
-| Max Worker Queue Delay   | uint32_t | MaxWorkerQueueDelayMs  | The maximum queue delay (in ms) allowed for a worker thread                                           | No                  |
-| Max Stateless Operations | uint32_t | MaxStatelessOperations | The maximum number of stateless operations that may be queued at any one time                         | No                  |
-| Initial Window Size      | uint32_t | InitialWindowPackets   | The size (in packets) of the initial congestion window for a connection                               | No                  |
-|                          |          |                        |                                                                                                       |                    |
+| Setting                            | Type     | Name                    | Description                                                                                        |
+|------------------------------------|----------|-------------------------|----------------------------------------------------------------------------------------------------|
+| Max Partition Count                | uint16_t | MaxPartitionCount       | The maximum processor count used for partitioning work in MsQuic. **Restart is required.**         |
+| Max Bytes per Key                  | uint64_t | MaxBytesPerKey          |                                                                                                    |
+| Handshake Idle Timeout             | uint64_t | HandshakeIdleTimeoutMs  |                                                                                                    |
+| Idle Timeout                       | uint64_t | IdleTimeoutMs           |                                                                                                    |
+| Max TLS Send Buffer (Client)       | uint32_t | TlsClientMaxSendBuffer  |                                                                                                    |
+| Max TLS Send Buffer (Server)       | uint32_t | TlsServerMaxSendBuffer  |                                                                                                    |
+| Stream Receive Window              | uint32_t | StreamRecvWindowDefault |                                                                                                    |
+| Stream Receive Buffer              | uint32_t | StreamRecvBufferDefault |                                                                                                    |
+| Flow Control Window                | uint32_t | ConnFlowControlWindow   |                                                                                                    |
+| Max Worker Queue Delay             | uint32_t | MaxWorkerQueueDelayMs   | The maximum queue delay (in ms) allowed for a worker thread                                        |
+| Max Stateless Operations           | uint32_t | MaxStatelessOperations  | The maximum number of stateless operations that may be queued at any one time                      |
+| Initial Window                     | uint32_t | InitialWindowPackets    | The size (in packets) of the initial congestion window for a connection                            |
+| Send Idle Timeout                  | uint32_t | SendIdleTimeoutMs       |                                                                                                    |
+| Initial RTT                        | uint32_t | InitialRttMs            |                                                                                                    |
+| Max ACK Delay                      | uint32_t | MaxAckDelayMs           |                                                                                                    |
+| Disconnect Timeout                 | uint32_t | DisconnectTimeoutMs     |                                                                                                    |
+| Keep Alive Interval                | uint32_t | KeepAliveIntervalMs     |                                                                                                    |
+| Peer Stream Count (Bidirectional)  | uint16_t | PeerBidiStreamCount     |                                                                                                    |
+| Peer Stream Count (Unidirectional) | uint16_t | PeerUnidiStreamCount    |                                                                                                    |
+| Retry Memory Limit                 | uint16_t | RetryMemoryFraction     | The percentage of available memory usable for handshake connections before stateless retry is used |
+| Load Balancing Mode                | uint16_t | LoadBalancingMode       |                                                                                                    |
+| Max Operations per Drain           | uint8_t  | MaxOperationsPerDrain   | The maximum number of operations to drain per connection quantum                                   |
+| Send Buffering                     | uint8_t  | SendBufferingEnabled    |                                                                                                    |
+| Send Pacing                        | uint8_t  | PacingEnabled           |                                                                                                    |
+| Client Migration Support           | uint8_t  | MigrationEnabled        |                                                                                                    |
+| Datagram Receive Support           | uint8_t  | DatagramReceiveEnabled  |                                                                                                    |
+| Server Resumption Level            | uint8_t  | ServerResumptionLevel   |                                                                                                    |
 
-**TODO** - Finish list above
+**TODO** - Finish table above
 
 ## Windows
 
-On Windows, these settings can set via the registry and will persist across reboots and build upgrades. For most settings, a reboot is not required fo them to immediately take effect. For complete details, see the `Restart Required` column in the table above. Also note that updated settings will only effect new connections (not existing ones).
+On Windows, these settings can set via the registry and will persist across reboots and build upgrades. For most settings, a reboot is not required for them to immediately take effect. Also note that updated settings will only affect new connections (not existing ones).
 
 The main registry path for the keys is:
 
@@ -56,7 +76,7 @@ Enable-TlsCipherSuite -Name TLS_CHACHA20_POLY1305_SHA256
 In order to configure the Windows firewall to allow inbound QUIC traffic efficiently, use a command such as the one below. Generally, the firewall rule should be applied for all scenarios, unless a layer below you (i.g. IIS) is already doing it on your behalf.
 
 ```PowerShell
-New-NetFirewallRule -DisplayName "Allow QUIC" -Direction Inbound -Protocol UDP -LocalPort 433 -Action Allow -LocalOnlyMapping $true
+New-NetFirewallRule -DisplayName "Allow QUIC" -Direction Inbound -Protocol UDP -LocalPort 443 -Action Allow -LocalOnlyMapping $true
 ```
 
 Note the use of the `-LocalOnlyMapping $true` argument. This is a performance optimizing feature that should be used for UDP based protocols (like QUIC). See [MSDN](https://docs.microsoft.com/en-us/powershell/module/netsecurity/new-netfirewallrule) for additional details.
@@ -83,7 +103,7 @@ To use this load balancing model, the load balancer must support the model descr
 
 # Client Migration
 
-Client migration is a key feature in the QUIC protocol that allows for the connection to survive changes in the client's IP address or UDP port. MsQuic generally supports this but it requires QUIC load balancing support (when using a load balancer). QUIC encodes a connection identifier (connection ID or CID) in every packet it sends. This CID allows a server to encode routing information that a coordinating load balancer can use to route the packet, instead of using the IP tuple as most existing load balancers currently route UDP traffic.
+Client migration is a key feature in the QUIC protocol that allows for the connection to survive changes in the client's IP address or UDP port. MsQuic generally supports this but it requires QUIC load balancing support (when using a load balancer). QUIC encodes a connection identifier (connection ID or CID) in every packet it sends. This CID allows a server to encode routing information that a coordinating load balancer can use to route the packet, instead of using the IP tuple as most existing load balancers currently use to route UDP traffic.
 
 ## NAT Rebindings without Load Balancing Support
 
