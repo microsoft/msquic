@@ -201,15 +201,6 @@ main(
     bool TestingKernelMode = false;
     bool KeyboardWait = false;
 
-#ifdef _WIN32
-    WCHAR Name[512];
-    DWORD NameLen = sizeof(Name) / sizeof(WCHAR);
-
-    if (GetUserNameW(Name, &NameLen)) {
-        wprintf(L"User name is: %s\n", Name);
-    }
-#endif
-
     QuicPlatformSystemLoad();
     if (QUIC_FAILED(QuicPlatformInitialize())) {
         printf("Platform failed to initialize\n");
