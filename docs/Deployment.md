@@ -73,7 +73,7 @@ Enable-TlsCipherSuite -Name TLS_CHACHA20_POLY1305_SHA256
 
 ## Windows
 
-In order to configure the Windows firewall to allow inbound QUIC traffic efficiently, use a command such as the one below. Generally, the firewall rule should be applied for all scenarios, unless a layer below you (i.g. IIS) is already doing it on your behalf.
+In order to configure the Windows firewall to allow inbound QUIC traffic efficiently, use a command such as the one below. Generally, the firewall rule should be applied for all scenarios, unless a layer below you (e.g. IIS) is already doing it on your behalf.
 
 ```PowerShell
 New-NetFirewallRule -DisplayName "Allow QUIC" -Direction Inbound -Protocol UDP -LocalPort 443 -Action Allow -LocalOnlyMapping $true
