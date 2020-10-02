@@ -6,8 +6,7 @@
 if [ -n "$TESTCASE" ]; then
     case "$TESTCASE" in
     # TODO: add supported test cases here
-    "versionnegotiation"|"handshake"|"transfer"|"retry"|"resumption"|\
-    "multiconnect"|"ecn"|"keyupdate")
+    "versionnegotiation"|"handshake"|"transfer"|"retry"|"multiconnect"|"keyupdate")
         ;;
     *)
         exit 127
