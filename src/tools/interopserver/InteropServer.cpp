@@ -12,11 +12,12 @@ Abstract:
 #include "InteropServer.h"
 
 const QUIC_API_TABLE* MsQuic;
-QUIC_SEC_CONFIG* SecurityConfig;
+HQUIC Configuration;
 const char* RootFolderPath;
 const char* UploadFolderPath;
 
 const QUIC_BUFFER SupportedALPNs[] = {
+    { sizeof("hq-30") - 1, (uint8_t*)"hq-30" },
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
     { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
     { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
@@ -31,7 +32,7 @@ PrintUsage()
 
     printf("Usage:\n");
     printf("  quicinteropserver -listen:<addr or *> -root:<path>"
-           " [-thumbprint:<cert_thumbprint>] [-name:<cert_name>]"
+           " [-thumbprint:<cert_thumbprint>]"
            " [-file:<cert_filepath> AND -key:<cert_key_filepath>]"
            " [-port:<####> (def:%u)]  [-retry:<0/1> (def:%u)]"
            " [-upload:<path>]\n\n",
@@ -89,41 +90,31 @@ main(
         return -1;
     }
 
-    const char* CertThumbprint = nullptr;
-    const char* CertName = nullptr;
-    const char* CertFile = nullptr;
-    const char* CertKeyFile = nullptr;
-    if (TryGetValue(argc, argv, "thumbprint", &CertThumbprint)) {
-        SecurityConfig = GetSecConfigForThumbprint(MsQuic, Registration, CertThumbprint);
-        if (SecurityConfig == nullptr) {
-            printf("Failed to find certificate from thumbprint:'%s'.\n", CertThumbprint);
-            return -1;
-        }
-    } else if (TryGetValue(argc, argv, "name", &CertName)) {
-        SecurityConfig = GetSecConfigForSNI(MsQuic, Registration, CertName);
-        if (SecurityConfig == nullptr) {
-            printf("Failed to find certificate from name:'%s'.\n", CertName);
-            return -1;
-        }
-    } else if (TryGetValue(argc, argv, "file", &CertFile) &&
-        TryGetValue(argc, argv, "key", &CertKeyFile)) {
-        SecurityConfig = GetSecConfigForFile(MsQuic, Registration, CertKeyFile, CertFile);
-        if (SecurityConfig == nullptr) {
-            printf("Failed to find certificate from file:'%s'.\n", CertFile);
-            return -1;
-        }
-    } else {
-        printf("Missing arg loading server certificate!\n");
+    QUIC_SETTINGS Settings{0};
+    Settings.PeerBidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
+    Settings.IsSet.PeerBidiStreamCount = TRUE;
+    Settings.PeerUnidiStreamCount = 1; // We allow 1 unidirectional stream, just for interop tests.
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
+    Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
+    Settings.IsSet.InitialRttMs = TRUE;
+
+    Configuration = GetServerConfigurationFromArgs(argc, argv, MsQuic, Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &Settings, sizeof(Settings));
+    if (!Configuration) {
+        printf("Failed to load configuration from args!\n");
         return -1;
     }
 
     {
-        HttpSession Session(Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &ListenAddr);
+        HttpServer Server(Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &ListenAddr);
         printf("Press Enter to exit.\n\n");
         getchar();
     }
 
-    MsQuic->SecConfigDelete(SecurityConfig);
+    FreeServerConfiguration(MsQuic, Configuration);
+    MsQuic->RegistrationShutdown(
+        Registration,
+        QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
+        0);
     MsQuic->RegistrationClose(Registration);
     MsQuicClose(MsQuic);
 

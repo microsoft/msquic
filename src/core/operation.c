@@ -93,9 +93,12 @@ QuicOperationFree(
     if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
         QUIC_API_CONTEXT* ApiCtx = Oper->API_CALL.Context;
         if (ApiCtx->Type == QUIC_API_TYPE_CONN_START) {
+            QuicConfigurationRelease(ApiCtx->CONN_START.Configuration);
             if (ApiCtx->CONN_START.ServerName != NULL) {
                 QUIC_FREE(ApiCtx->CONN_START.ServerName);
             }
+        } else if (ApiCtx->Type == QUIC_API_TYPE_CONN_SET_CONFIGURATION) {
+            QuicConfigurationRelease(ApiCtx->CONN_SET_CONFIGURATION.Configuration);
         } else if (ApiCtx->Type == QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET) {
             if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData != NULL) {
                 QUIC_DBG_ASSERT(ApiCtx->CONN_SEND_RESUMPTION_TICKET.AppDataLength != 0);

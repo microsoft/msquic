@@ -5,6 +5,7 @@ set(SOURCES
     ack_tracker.c
     api.c
     binding.c
+    configuration.c
     congestion_control.c
     connection.c
     crypto.c
@@ -26,7 +27,6 @@ set(SOURCES
     send.c
     send_buffer.c
     sent_packet_metadata.c
-    session.c
     settings.c
     stream.c
     stream_recv.c

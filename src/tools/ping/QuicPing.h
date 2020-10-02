@@ -23,9 +23,9 @@ extern const QUIC_API_TABLE* MsQuic;
 extern HQUIC Registration;
 
 //
-// Security configuration for server.
+// Configuration for server.
 //
-extern QUIC_SEC_CONFIG* SecurityConfig;
+extern HQUIC Configuration;
 
 //
 // Raw byte buffer for sending.
@@ -148,16 +148,6 @@ typedef struct QUIC_PING_CONFIG {
 } QUIC_PING_CONFIG;
 
 extern QUIC_PING_CONFIG PingConfig;
-
-struct QuicSession
-{
-    HQUIC Handle;
-    QuicSession() : Handle(nullptr) {}
-    ~QuicSession() { if (Handle != nullptr) { MsQuic->SessionClose(Handle); } }
-    void Cancel() {
-        MsQuic->SessionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
-    }
-};
 
 struct PingSendRequest {
 

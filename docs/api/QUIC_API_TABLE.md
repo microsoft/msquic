@@ -17,13 +17,12 @@ typedef struct QUIC_API_TABLE {
 
     QUIC_REGISTRATION_OPEN_FN           RegistrationOpen;
     QUIC_REGISTRATION_CLOSE_FN          RegistrationClose;
+    QUIC_REGISTRATION_SHUTDOWN_FN       RegistrationShutdown;
 
-    QUIC_SEC_CONFIG_CREATE_FN           SecConfigCreate;
-    QUIC_SEC_CONFIG_DELETE_FN           SecConfigDelete;
-
-    QUIC_SESSION_OPEN_FN                SessionOpen;
-    QUIC_SESSION_CLOSE_FN               SessionClose;
-    QUIC_SESSION_SHUTDOWN_FN            SessionShutdown;
+    QUIC_CONFIGURATION_OPEN_FN          ConfigurationOpen;
+    QUIC_CONFIGURATION_CLOSE_FN         ConfigurationClose;
+    QUIC_CONFIGURATION_LOAD_CREDENTIAL_FN
+                                        ConfigurationLoadCredential;
 
     QUIC_LISTENER_OPEN_FN               ListenerOpen;
     QUIC_LISTENER_CLOSE_FN              ListenerClose;
@@ -34,6 +33,7 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_CLOSE_FN            ConnectionClose;
     QUIC_CONNECTION_SHUTDOWN_FN         ConnectionShutdown;
     QUIC_CONNECTION_START_FN            ConnectionStart;
+    QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionTicket;
 
     QUIC_STREAM_OPEN_FN                 StreamOpen;
     QUIC_STREAM_CLOSE_FN                StreamClose;
@@ -78,25 +78,21 @@ See [RegistrationOpen](RegistrationOpen.md)
 
 See [RegistrationClose](RegistrationClose.md)
 
-`SecConfigCreate`
+`RegistrationShutdown`
 
-See [SecConfigCreate](SecConfigCreate.md)
+See [RegistrationShutdown](RegistrationShutdown.md)
 
-`SecConfigDelete`
+`ConfigurationOpen`
 
-See [SecConfigDelete](SecConfigDelete.md)
+See [ConfigurationOpen](ConfigurationOpen.md)
 
-`SessionOpen`
+`ConfigurationClose`
 
-See [SessionOpen](SessionOpen.md)
+See [ConfigurationClose](ConfigurationClose.md)
 
-`SessionClose`
+`ConfigurationLoadCredential`
 
-See [SessionClose](SessionClose.md)
-
-`SessionShutdown`
-
-See [SessionShutdown](SessionShutdown.md)
+See [ConfigurationLoadCredential](ConfigurationLoadCredential.md)
 
 `ListenerOpen`
 

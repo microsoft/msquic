@@ -208,8 +208,8 @@ QuicProcessorInfoInit(
                 uint32_t ProcessorOffset = 0;
                 for (WORD i = 0; i < Info->Group.ActiveGroupCount; ++i) {
                     uint32_t IndexToSet = Index - ProcessorOffset;
-                    QUIC_DBG_ASSERT(IndexToSet < 64);
                     if (IndexToSet < Info->Group.GroupInfo[i].ActiveProcessorCount) {
+                        QUIC_DBG_ASSERT(IndexToSet < 64);
                         QuicProcessorInfo[Index].Group = i;
                         QuicProcessorInfo[Index].Index = IndexToSet;
                         QuicProcessorInfo[Index].MaskInGroup = 1ull << IndexToSet;

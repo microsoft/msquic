@@ -37,6 +37,8 @@ Examples:
   quicinteropserver -listen:* -retry:1 -thumbprint:175342733b39d81c997817296c9b691172ca6b6e -root:c:\temp
 ```
 
+Please see [Deployment.md](Deployment.md) for additional deployment considerations.
+
 ## Windows Instructions
 
 The simplest and quickest way to set up the server on Windows is to use a self-signed certificate. The following PowerShell command can easily create one for you:
@@ -99,39 +101,3 @@ sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
 # Set the core dump pattern.
 sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
 ```
-
-# Enabling Load Balancing Support
-
-MsQuic currently supports a load balancing mode when the server encodes the local IPv4 address or IPv6 suffix into bytes 1 through 4 of the connection IDs it created. You can read more details about the general encoding [here](https://github.com/quicwg/load-balancers/blob/master/draft-ietf-quic-load-balancers.md#plaintext-cid-algorithm-plaintext-cid-algorithm).
-
-```
-0                   1                   2                   3
-0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|  First octet  |             Server ID (X=8..152)              |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                        Any (0..152-X)                         |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-```
-
-`Server ID` is 4 bytes long, as encodes the complete IPv4 address OR the last 4 bytes of the IPv6 address.
-
-This encoding is **not enabled by default**. To configure it, follow the instructions below.
-
-## Windows Instructions
-
-The easiest way to enable the feature is through the registry:
-
-```PowerShell
-$MsQuicRegPath = "HKLM:\System\CurrentControlSet\Services\MsQuic\Parameters\Apps\interopserver"
-if (!(Test-Path $MsQuicRegPath)) {
-    New-Item -Path $MsQuicRegPath -Force | Out-Null
-}
-New-ItemProperty -Path $MsQuicRegPath -Name LoadBalancingMode -PropertyType DWord -Value 1 -Force | Out-Null
-```
-
-Make sure to configure the registry key above before you start the server.
-
-## Linux Instructions
-
-> Not supported at this time.

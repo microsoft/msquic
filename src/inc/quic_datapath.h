@@ -94,7 +94,7 @@ MaxUdpPayloadSizeForFamily(
     _In_ uint16_t Mtu
     )
 {
-    return Family == AF_INET ?
+    return Family == QUIC_ADDRESS_FAMILY_INET ?
         Mtu - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE :
         Mtu - QUIC_MIN_IPV6_HEADER_SIZE - QUIC_UDP_HEADER_SIZE;
 }
@@ -110,7 +110,7 @@ PacketSizeFromUdpPayloadSize(
     _In_ uint16_t UdpPayloadSize
     )
 {
-    return Family == AF_INET ?
+    return Family == QUIC_ADDRESS_FAMILY_INET ?
         UdpPayloadSize + QUIC_MIN_IPV4_HEADER_SIZE + QUIC_UDP_HEADER_SIZE :
         UdpPayloadSize + QUIC_MIN_IPV6_HEADER_SIZE + QUIC_UDP_HEADER_SIZE;
 }

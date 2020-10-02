@@ -157,6 +157,12 @@ endif()
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(QUIC_OUTPUT_DIR ${QUIC_BUILD_DIR}/bin/$<IF:$<CONFIG:Debug>,Debug,Release> CACHE STRING "Output directory for build artifacts")
 
+set(QUIC_VER_BUILD_ID "0" CACHE STRING "The version build ID")
+set(QUIC_VER_SUFFIX "-private" CACHE STRING "The version suffix")
+
+message(STATUS "Version Build ID: ${QUIC_VER_BUILD_ID}")
+message(STATUS "Version Suffix: ${QUIC_VER_SUFFIX}")
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/obj/$<IF:$<CONFIG:Debug>,Debug,Release>)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QUIC_OUTPUT_DIR})
@@ -208,6 +214,9 @@ else()
         list(APPEND QUIC_WARNING_FLAGS -Wno-missing-braces -Wno-microsoft-anon-tag)
     endif()
 endif()
+
+list(APPEND QUIC_COMMON_DEFINES VER_BUILD_ID=${QUIC_VER_BUILD_ID})
+list(APPEND QUIC_COMMON_DEFINES VER_SUFFIX=${QUIC_VER_SUFFIX})
 
 if(WIN32)
     # Generate the MsQuicEtw header file.

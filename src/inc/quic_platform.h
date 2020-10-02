@@ -71,6 +71,17 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_PERF      'frPQ'  // QPrf - QUIC perf code
 #define QUIC_POOL_TOOL      'loTQ'  // QTol - QUIC tool code
 
+typedef enum QUIC_THREAD_FLAGS {
+    QUIC_THREAD_FLAG_NONE               = 0x0000,
+    QUIC_THREAD_FLAG_SET_IDEAL_PROC     = 0x0001,
+    QUIC_THREAD_FLAG_SET_AFFINITIZE     = 0x0002,
+    QUIC_THREAD_FLAG_HIGH_PRIORITY      = 0x0004
+} QUIC_THREAD_FLAGS;
+
+#ifdef DEFINE_ENUM_FLAG_OPERATORS
+DEFINE_ENUM_FLAG_OPERATORS(QUIC_THREAD_FLAGS);
+#endif
+
 #ifdef _KERNEL_MODE
 #define QUIC_PLATFORM_TYPE 1
 #include <quic_platform_winkernel.h>
@@ -242,3 +253,38 @@ QuicListPopEntry(
 
 #include "quic_hashtable.h"
 #include "quic_toeplitz.h"
+
+//
+// Test Interface for loading a self-signed certificate.
+//
+
+#ifdef QUIC_TEST_APIS
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+typedef struct QUIC_CREDENTIAL_CONFIG QUIC_CREDENTIAL_CONFIG;
+
+typedef enum QUIC_SELF_SIGN_CERT_TYPE {
+    QUIC_SELF_SIGN_CERT_USER,
+    QUIC_SELF_SIGN_CERT_MACHINE
+} QUIC_SELF_SIGN_CERT_TYPE;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+const QUIC_CREDENTIAL_CONFIG*
+QuicPlatGetSelfSignedCert(
+    _In_ QUIC_SELF_SIGN_CERT_TYPE Type
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPlatFreeSelfSignedCert(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
+    );
+
+#if defined(__cplusplus)
+}
+#endif
+
+#endif // QUIC_TEST_APIS

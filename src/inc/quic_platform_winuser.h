@@ -536,7 +536,6 @@ typedef HANDLE QUIC_EVENT;
 // This is an undocumented API that is used to query the current timer
 // resolution.
 //
-#if !defined(QUIC_WINDOWS_INTERNAL)
 __kernel_entry
 NTSYSCALLAPI
 NTSTATUS
@@ -546,7 +545,6 @@ NtQueryTimerResolution(
     _Out_ PULONG MinimumTime,
     _Out_ PULONG CurrentTime
     );
-#endif
 
 //
 // Returns the worst-case system timer resolution (in us).
@@ -740,7 +738,7 @@ QuicProcCurrentNumber(
 // essentially what SetThreadDescription does, but that is not available in
 // older versions of Windows.
 //
-#if !defined(QUIC_WINDOWS_INTERNAL) && !defined(QUIC_UWP_BUILD)
+#if !defined(QUIC_UWP_BUILD)
 #define ThreadNameInformation ((THREADINFOCLASS)38)
 
 typedef struct _THREAD_NAME_INFORMATION {
@@ -759,10 +757,6 @@ NtSetInformationThread(
     );
 #endif
 
-#define QUIC_THREAD_FLAG_SET_IDEAL_PROC     0x0001
-#define QUIC_THREAD_FLAG_SET_AFFINITIZE     0x0002
-#define QUIC_THREAD_FLAG_HIGH_PRIORITY      0x0004
-
 typedef struct QUIC_THREAD_CONFIG {
     uint16_t Flags;
     uint16_t IdealProcessor;
@@ -778,7 +772,9 @@ typedef HANDLE QUIC_THREAD;
     FuncName(                                       \
       _In_ void* CtxVarName                         \
       )
+
 #define QUIC_THREAD_RETURN(Status) return (DWORD)(Status)
+
 inline
 QUIC_STATUS
 QuicThreadCreate(
@@ -797,19 +793,17 @@ QuicThreadCreate(
     if (*Thread == NULL) {
         return GetLastError();
     }
+    const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[Config->IdealProcessor];
+    GROUP_AFFINITY Group = {0};
+    if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
+        Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
+    } else {
+        Group.Mask = (KAFFINITY)QuicNumaMasks[ProcInfo->NumaNode];  // Fixed NUMA node
+    }
+    Group.Group = ProcInfo->Group;
+    SetThreadGroupAffinity(*Thread, &Group, NULL);
     if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
-        const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[Config->IdealProcessor];
-        GROUP_AFFINITY Group = {0};
-        if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
-            Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
-        } else {
-            Group.Mask = (KAFFINITY)QuicNumaMasks[ProcInfo->NumaNode];  // Fixed NUMA node
-        }
-        Group.Group = ProcInfo->Group;
-        SetThreadGroupAffinity(*Thread, &Group, NULL);
-        if (!(Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE)) {
-            SetThreadIdealProcessor(*Thread, ProcInfo->Index);
-        }
+        SetThreadIdealProcessor(*Thread, ProcInfo->Index);
     }
     if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
         SetThreadPriority(*Thread, THREAD_PRIORITY_HIGHEST);
@@ -916,7 +910,7 @@ QuicSetCurrentThreadProcessorAffinity(
     if (SetThreadGroupAffinity(GetCurrentThread(), &Group, NULL)) {
         return QUIC_STATUS_SUCCESS;
     }
-    return GetLastError();
+    return HRESULT_FROM_WIN32(GetLastError());
 }
 
 #define QuicCompartmentIdGetCurrent() GetCurrentThreadCompartmentId()
@@ -928,38 +922,6 @@ QuicSetCurrentThreadProcessorAffinity(
 #define QuicSetCurrentThreadProcessorAffinity(ProcessorIndex) QUIC_STATUS_SUCCESS
 
 #endif
-
-//
-// Test Interface for loading a self-signed certificate.
-//
-
-#ifdef QUIC_TEST_APIS
-
-typedef struct QUIC_SEC_CONFIG_PARAMS {
-    uint32_t Flags; // QUIC_SEC_CONFIG_FLAGS
-    void* Certificate;
-    const char* Principal;
-    uint8_t Thumbprint[20];
-} QUIC_SEC_CONFIG_PARAMS;
-
-typedef enum QUIC_SELF_SIGN_CERT_TYPE {
-    QUIC_SELF_SIGN_CERT_USER,
-    QUIC_SELF_SIGN_CERT_MACHINE
-} QUIC_SELF_SIGN_CERT_TYPE;
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG_PARAMS*
-QuicPlatGetSelfSignedCert(
-    _In_ QUIC_SELF_SIGN_CERT_TYPE Type
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicPlatFreeSelfSignedCert(
-    _In_ QUIC_SEC_CONFIG_PARAMS* Params
-    );
-
-#endif // QUIC_TEST_APIS
 
 #ifdef _M_X64
 #define QUIC_CPUID(FunctionId, eax, ebx, ecx, edx) \

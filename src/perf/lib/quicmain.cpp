@@ -13,6 +13,7 @@ Abstract:
 #include "PerfServer.h"
 #include "ThroughputClient.h"
 #include "RpsClient.h"
+#include "HpsClient.h"
 
 #ifdef QUIC_CLOG
 #include "quicmain.cpp.clog.h"
@@ -48,7 +49,7 @@ PrintHelp(
         "  -cert_store:<store name>    The certificate store to search for the thumbprint in.\n"
         "  -machine_cert:<0/1>         Use the machine, or current user's, certificate store. (def:0)\n"
         "\n"
-        "Client: quicperf -TestName:<Throughput|RPS> [options]\n"
+        "Client: quicperf -TestName:<Throughput|RPS|HPS> [options]\n"
         "\n",
         PERF_DEFAULT_PORT
         );
@@ -59,7 +60,7 @@ QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ QUIC_EVENT* StopEvent,
-    _In_ PerfSelfSignedConfiguration* SelfSignedConfig
+    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     ) {
     argc--; argv++; // Skip app name
 
@@ -78,36 +79,40 @@ QuicMainStart(
         Binding = nullptr;
         Status = QuicDataPathInitialize(0, DatapathReceive, DatapathUnreachable, &Datapath);
         if (QUIC_FAILED(Status)) {
+            WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
             return Status;
         }
 
-        QuicAddr LocalAddress {AF_INET, (uint16_t)9999};
+        QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
         Status = QuicDataPathBindingCreate(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
         if (QUIC_FAILED(Status)) {
             QuicDataPathUninitialize(Datapath);
+            WriteOutput("Datapath Binding for shutdown failed to initialize: %d\n", Status);
             return Status;
         }
     }
 
     MsQuic = new(std::nothrow) MsQuicApi;
     if (MsQuic == nullptr) {
+        WriteOutput("MsQuic Alloc Out of Memory\n");
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     if (QUIC_FAILED(Status = MsQuic->GetInitStatus())) {
         delete MsQuic;
         MsQuic = nullptr;
+        WriteOutput("MsQuic Failed To Initialize: %d\n", Status);
         return Status;
     }
 
     if (ServerMode) {
-        TestToRun = new(std::nothrow) PerfServer(SelfSignedConfig);
-
+        TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);
     } else {
-
         if (IsValue(TestName, "Throughput") || IsValue(TestName, "tput")) {
             TestToRun = new(std::nothrow) ThroughputClient;
         } else if (IsValue(TestName, "RPS")) {
             TestToRun = new(std::nothrow) RpsClient;
+        } else if (IsValue(TestName, "HPS")) {
+            TestToRun = new(std::nothrow) HpsClient;
         } else {
             PrintHelp();
             delete MsQuic;
@@ -121,9 +126,14 @@ QuicMainStart(
             Status = TestToRun->Start(StopEvent);
             if (QUIC_SUCCEEDED(Status)) {
                 return QUIC_STATUS_SUCCESS;
+            } else {
+                WriteOutput("Test Failed To Start: %d\n", Status);
             }
+        } else {
+            WriteOutput("Test Failed To Initialize: %d\n", Status);
         }
     } else {
+        WriteOutput("Test Alloc Out Of Memory\n");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
     }
 

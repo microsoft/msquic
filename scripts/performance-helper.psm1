@@ -171,7 +171,7 @@ function Invoke-TestCommand {
 function Wait-ForRemoteReady {
     param ($Job, $Matcher)
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
-    while ($StopWatch.ElapsedMilliseconds -lt 10000) {
+    while ($StopWatch.ElapsedMilliseconds -lt 20000) {
         $CurrentResults = Receive-Job -Job $Job -Keep
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match $Matcher
@@ -405,6 +405,8 @@ function Invoke-LocalExe {
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
 
+    $Stopwatch =  [system.diagnostics.stopwatch]::StartNew()
+
     $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
 
     # Wait for the job to finish
@@ -412,6 +414,11 @@ function Invoke-LocalExe {
     Stop-Job -Job $LocalJob | Out-Null
 
     $RetVal = Receive-Job -Job $LocalJob
+
+    $Stopwatch.Stop()
+
+    Write-Host ("Test Run Took " + $Stopwatch.Elapsed)
+
     return $RetVal -join "`n"
 }
 
@@ -629,6 +636,88 @@ function Publish-RPSTestResults {
 
 #endregion
 
+#region HPS Publish
+
+class HPSRequest {
+    [string]$PlatformName;
+
+    HPSRequest (
+        [TestRunDefinition]$Test
+    ) {
+        $this.PlatformName = $Test.ToTestPlatformString();
+    }
+}
+
+function Get-LatestHPSRemoteTestResults([HPSRequest]$Request) {
+    $Uri = "https://msquicperformanceresults.azurewebsites.net/HPS/get"
+    $RequestJson = ConvertTo-Json -InputObject $Request
+    Write-Debug "Requesting: $Uri with $RequestJson"
+    $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
+    Write-Debug "Result: $LatestResult"
+    return $LatestResult
+}
+
+class HPSTestPublishResult {
+    [string]$MachineName;
+    [string]$PlatformName;
+    [string]$TestName;
+    [string]$CommitHash;
+    [string]$AuthKey;
+    [double[]]$IndividualRunResults;
+
+    HPSTestPublishResult (
+        [HPSRequest]$Request,
+        [double[]]$RunResults,
+        [string]$MachineName,
+        [string]$CommitHash
+    ) {
+        $this.TestName = "HPS"
+        $this.MachineName = $MachineName
+        $this.PlatformName = $Request.PlatformName
+        $this.CommitHash = $CommitHash
+        $this.AuthKey = "empty"
+        $this.IndividualRunResults = $RunResults
+    }
+}
+
+function Publish-HPSTestResults {
+    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+
+    $Request = [HPSRequest]::new($Test)
+
+    $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
+    $FullLastResult = Get-LatestHPSRemoteTestResults -Request $Request
+
+    if ($FullLastResult -ne "") {
+        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
+        $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
+        $PercentDiffStr = $PercentDiff.ToString("#.##")
+        if ($PercentDiff -ge 0) {
+            $PercentDiffStr = "+$PercentDiffStr"
+        }
+        Write-Output "Median: $MedianCurrentResult $($Test.Units) ($PercentDiffStr%)"
+        Write-Output "Master: $MedianLastResult $($Test.Units)"
+    } else {
+        Write-Output "Median: $MedianCurrentResult $($Test.Units)"
+    }
+
+    if ($Publish -and ($null -ne $CurrentCommitHash)) {
+        Write-Output "Saving results_$Test.json out for publishing."
+        $MachineName = $null
+        if (Test-Path 'env:AGENT_MACHINENAME') {
+            $MachineName = $env:AGENT_MACHINENAME
+        }
+        $Results = [HPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
+
+        $ResultFile = Join-Path $OutputDir "results_$Test.json"
+        $Results | ConvertTo-Json | Out-File $ResultFile
+    } elseif (!$Publish) {
+        Write-Debug "Failed to publish because of missing commit hash"
+    }
+}
+
+#endregion
+
 function Publish-TestResults {
     param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
 
@@ -636,8 +725,10 @@ function Publish-TestResults {
         Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
     } elseif ($Test.TestName -eq "RPS") {
         Publish-RPSTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
+    } elseif ($Test.TestName -eq "HPS") {
+        Publish-HPSTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
     } else {
-        Write-Error "Unknown Test Type"
+        Write-Host "Unknown Test Type"
     }
 }
 
@@ -761,11 +852,17 @@ class Defaults {
 }
 
 function Get-TestMatrix {
-    param ([TestDefinition[]]$Tests)
+    param ([TestDefinition[]]$Tests, $RemotePlatform, $LocalPlatform)
 
     [TestRunDefinition[]]$ToRunTests = @()
 
     foreach ($Test in $Tests) {
+
+        if (!(Test-CanRunTest -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform)) {
+            Write-Host "Skipping $($Test.ToString())"
+            continue
+        }
+
         [hashtable]$DefaultVals = @{}
         # Get all default variables
         foreach ($Var in $Test.Variables) {
@@ -872,12 +969,21 @@ class TestDefinition {
     [string]$ResultsMatcher;
     [boolean]$AllowLoopback;
     [string]$Units;
+
+    [string]ToString() {
+        $Platform = $this.Remote.Platform
+        if ($script:Kernel -and $this.Remote.Platform -eq "Windows") {
+            $Platform = 'Winkernel'
+        }
+        $RetString = "$($this.TestName)_$($Platform) [$($this.Remote.Arch)] [$($this.Remote.Tls)]"
+        return $RetString
+    }
 }
 
 function Get-Tests {
-    param ($Path)
+    param ($Path, $RemotePlatform, $LocalPlatform)
     $Tests = [TestDefinition[]](Get-Content -Path $Path | ConvertFrom-Json -AsHashtable)
-    $MatrixTests = Get-TestMatrix -Tests $Tests
+    $MatrixTests = Get-TestMatrix -Tests $Tests -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
     if (Test-AllTestsValid -Tests $MatrixTests) {
         return $MatrixTests
     } else {
@@ -900,7 +1006,7 @@ function Test-AllTestsValid {
 }
 
 function Test-CanRunTest {
-    param ([TestRunDefinition]$Test, $RemotePlatform, $LocalPlatform)
+    param ([TestDefinition]$Test, $RemotePlatform, $LocalPlatform)
     $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
     if (!$PlatformCorrect) {
         return $false

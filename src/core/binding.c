@@ -328,11 +328,11 @@ QuicBindingRegisterListener(
             continue;
         }
 
-        if (NewFamily != AF_UNSPEC && !QuicAddrCompareIp(NewAddr, ExistingAddr)) {
+        if (NewFamily != QUIC_ADDRESS_FAMILY_UNSPEC && !QuicAddrCompareIp(NewAddr, ExistingAddr)) {
             continue;
         }
 
-        if (QuicSessionHasAlpnOverlap(NewListener->Session, ExistingListener->Session)) {
+        if (QuicListenerHasAlpnOverlap(NewListener, ExistingListener)) {
             QuicTraceLogWarning(
                 BindingListenerAlreadyRegistered,
                 "[bind][%p] Listener (%p) already registered on ALPN",
@@ -400,14 +400,14 @@ QuicBindingGetListener(
         const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
         FailedAlpnMatch = FALSE;
 
-        if (ExistingFamily != AF_UNSPEC) {
+        if (ExistingFamily != QUIC_ADDRESS_FAMILY_UNSPEC) {
             if (Family != ExistingFamily ||
                 (!ExistingWildCard && !QuicAddrCompareIp(Addr, ExistingAddr))) {
                 continue; // No IP match.
             }
         }
 
-        if (QuicSessionMatchesAlpn(ExistingListener->Session, Info)) {
+        if (QuicListenerMatchesAlpn(ExistingListener, Info)) {
             if (QuicRundownAcquire(&ExistingListener->Rundown)) {
                 Listener = ExistingListener;
             }
@@ -440,6 +440,60 @@ QuicBindingUnregisterListener(
     QuicDispatchRwLockReleaseExclusive(&Binding->RwLock);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicBindingAcceptConnection(
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_NEW_CONNECTION_INFO* Info
+    )
+{
+    //
+    // Find a listener that matches the incoming connection request, by IP, port
+    // and ALPN.
+    //
+    QUIC_LISTENER* Listener = QuicBindingGetListener(Binding, Info);
+    if (Listener == NULL) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "No listener found for connection");
+        QuicConnTransportError(
+            Connection,
+            QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL);
+        return;
+    }
+
+    //
+    // Save the negotiated ALPN (starting with the length prefix) to be
+    // used later in building up the TLS response.
+    //
+    uint16_t NegotiatedAlpnLength = 1 + Info->NegotiatedAlpn[-1];
+    uint8_t* NegotiatedAlpn = QUIC_ALLOC_NONPAGED(NegotiatedAlpnLength);
+    if (NegotiatedAlpn == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "NegotiatedAlpn",
+            NegotiatedAlpnLength);
+        QuicConnTransportError(
+            Connection,
+            QUIC_ERROR_INTERNAL_ERROR);
+        return;
+    }
+    QuicCopyMemory(NegotiatedAlpn, Info->NegotiatedAlpn - 1, NegotiatedAlpnLength);
+    Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
+
+    //
+    // Allow for the listener to decide if it wishes to accept the incoming
+    // connection.
+    //
+    QuicListenerAcceptConnection(Listener, Connection, Info);
+
+    QuicRundownRelease(&Listener->Rundown);
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingAddSourceConnectionID(
@@ -454,10 +508,11 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingRemoveSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCid
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid,
+    _In_ QUIC_SINGLE_LIST_ENTRY** Entry
     )
 {
-    QuicLookupRemoveLocalCid(&Binding->Lookup, SourceCid);
+    QuicLookupRemoveLocalCid(&Binding->Lookup, SourceCid, Entry);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -631,16 +686,16 @@ QuicBindingQueueStatelessOperation(
     _In_ QUIC_RECV_DATAGRAM* Datagram
     )
 {
-    if (MsQuicLib.WorkerPool == NULL) {
+    if (MsQuicLib.StatelessRegistration == NULL) {
         QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
-            "NULL worker pool");
+            "NULL stateless registration");
         return FALSE;
     }
 
-    QUIC_WORKER* Worker = QuicLibraryGetWorker();
+    QUIC_WORKER* Worker = QuicLibraryGetWorker(Datagram);
     if (QuicWorkerIsOverloaded(Worker)) {
         QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
-            "Worker overloaded (stateless oper)");
+            "Stateless worker overloaded (stateless oper)");
         return FALSE;
     }
 
@@ -1137,17 +1192,29 @@ QuicBindingCreateConnection(
     // QuicLookupAddRemoteHash.
     //
 
-    QUIC_CONNECTION* Connection = NULL;
     QUIC_RECV_PACKET* Packet = QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
+    //
+    // Pick a stateless worker to process the client hello and if successful,
+    // the connection will later be moved to the correct registration's worker.
+    //
+    QUIC_WORKER* Worker = QuicLibraryGetWorker(Datagram);
+    if (QuicWorkerIsOverloaded(Worker)) {
+        QuicPacketLogDrop(Binding, Packet, "Stateless worker overloaded");
+        return NULL;
+    }
+
+    QUIC_CONNECTION* Connection = NULL;
     QUIC_CONNECTION* NewConnection =
         QuicConnAlloc(
-            MsQuicLib.UnregisteredSession,
+            MsQuicLib.StatelessRegistration,
             Datagram);
     if (NewConnection == NULL) {
         QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");
         return NULL;
     }
+
+    QuicWorkerAssignConnection(Worker, NewConnection);
 
     BOOLEAN BindingRefAdded = FALSE;
     QUIC_DBG_ASSERT(NewConnection->SourceCids.Next != NULL);
@@ -1158,17 +1225,6 @@ QuicBindingCreateConnection(
             Link);
 
     QuicConnAddRef(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
-
-    //
-    // Pick a temporary worker to process the client hello and if successful,
-    // the connection will later be moved to the correct registration's worker.
-    //
-    QUIC_WORKER* Worker = QuicLibraryGetWorker();
-    if (QuicWorkerIsOverloaded(Worker)) {
-        QuicPacketLogDrop(Binding, Packet, "Worker overloaded");
-        goto Exit;
-    }
-    QuicWorkerAssignConnection(Worker, NewConnection);
 
     //
     // Even though the new connection might not end up being put in this
@@ -1349,6 +1405,8 @@ QuicBindingDeliverDatagrams(
         case QUIC_VERSION_DRAFT_27:
         case QUIC_VERSION_DRAFT_28:
         case QUIC_VERSION_DRAFT_29:
+        case QUIC_VERSION_DRAFT_30:
+        case QUIC_VERSION_DRAFT_31:
         case QUIC_VERSION_MS_1:
             if (Packet->LH->Type != QUIC_INITIAL) {
                 QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");

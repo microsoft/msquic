@@ -29,11 +29,7 @@ QuicPathInitialize(
     Path->ID = Connection->NextPathId++; // TODO - Check for duplicates after wrap around?
     Path->MinRtt = UINT32_MAX;
     Path->Mtu = QUIC_DEFAULT_PATH_MTU;
-    if (Connection->Session != NULL) {
-        Path->SmoothedRtt = MS_TO_US(Connection->Session->Settings.InitialRttMs);
-    } else {
-        Path->SmoothedRtt = MS_TO_US(QUIC_INITIAL_RTT);
-    }
+    Path->SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
     Path->RttVariance = Path->SmoothedRtt / 2;
 
     QuicTraceLogConnInfo(
@@ -220,26 +216,30 @@ QuicPathSetActive(
     _In_ QUIC_PATH* Path
     )
 {
-    QUIC_DBG_ASSERT(Path != &Connection->Paths[0]);
+    BOOLEAN UdpPortChangeOnly = FALSE;
+    if (Path == &Connection->Paths[0]) {
+        QUIC_DBG_ASSERT(!Path->IsActive);
+        Path->IsActive = TRUE;
+    } else {
+        UdpPortChangeOnly =
+            QuicAddrGetFamily(&Path->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].RemoteAddress) &&
+            QuicAddrCompareIp(&Path->RemoteAddress, &Connection->Paths[0].RemoteAddress);
 
-    BOOLEAN UdpPortChangeOnly =
-        QuicAddrGetFamily(&Path->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].RemoteAddress) &&
-        QuicAddrCompareIp(&Path->RemoteAddress, &Connection->Paths[0].RemoteAddress);
+        QUIC_PATH PrevActivePath = Connection->Paths[0];
+
+        PrevActivePath.IsActive = FALSE;
+        Path->IsActive = TRUE;
+
+        Connection->Paths[0] = *Path;
+        *Path = PrevActivePath;
+    }
 
     QuicTraceLogConnInfo(
         PathActive,
         Connection,
         "Path[%hhu] Set active (rebind=%hhu)",
-        Path->ID,
+        Connection->Paths[0].ID,
         UdpPortChangeOnly);
-
-    QUIC_PATH PrevActivePath = Connection->Paths[0];
-
-    PrevActivePath.IsActive = FALSE;
-    Path->IsActive = TRUE;
-
-    Connection->Paths[0] = *Path;
-    *Path = PrevActivePath;
 
     if (!UdpPortChangeOnly) {
         QuicCongestionControlReset(&Connection->CongestionControl);

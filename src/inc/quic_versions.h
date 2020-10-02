@@ -20,6 +20,8 @@ Abstract:
 #define QUIC_VERSION_DRAFT_27   0x1b0000ffU     // IETF draft 27
 #define QUIC_VERSION_DRAFT_28   0x1c0000ffU     // IETF draft 28
 #define QUIC_VERSION_DRAFT_29   0x1d0000ffU     // IETF draft 29
+#define QUIC_VERSION_DRAFT_30   0x1e0000ffU     // IETF draft 30
+#define QUIC_VERSION_DRAFT_31   0x1f0000ffU     // IETF draft 31
 
 //
 // The QUIC version numbers, in host byte order.
@@ -30,6 +32,8 @@ Abstract:
 #define QUIC_VERSION_DRAFT_27_H 0xff00001bU     // IETF draft 27
 #define QUIC_VERSION_DRAFT_28_H 0xff00001cU     // IETF draft 28
 #define QUIC_VERSION_DRAFT_29_H 0xff00001dU     // IETF draft 29
+#define QUIC_VERSION_DRAFT_30_H 0xff00001eU     // IETF draft 30
+#define QUIC_VERSION_DRAFT_31_H 0xff00001fU     // IETF draft 31
 
 //
 // Represents a reserved version value; used to force version negotation.
@@ -40,8 +44,8 @@ Abstract:
 //
 // The latest QUIC version number.
 //
-#define QUIC_VERSION_LATEST     QUIC_VERSION_DRAFT_29
-#define QUIC_VERSION_LATEST_H   QUIC_VERSION_DRAFT_29_H
+#define QUIC_VERSION_LATEST     QUIC_VERSION_DRAFT_31
+#define QUIC_VERSION_LATEST_H   QUIC_VERSION_DRAFT_31_H
 
 inline
 BOOLEAN
@@ -54,6 +58,8 @@ QuicIsVersionSupported(
     case QUIC_VERSION_DRAFT_27:
     case QUIC_VERSION_DRAFT_28:
     case QUIC_VERSION_DRAFT_29:
+    case QUIC_VERSION_DRAFT_30:
+    case QUIC_VERSION_DRAFT_31:
     case QUIC_VERSION_MS_1:
         return TRUE;
     default:

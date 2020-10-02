@@ -321,6 +321,17 @@ QuicBindingUnregisterListener(
     );
 
 //
+// Passes the connection to the binding to (possibly) accept it.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicBindingAcceptConnection(
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_NEW_CONNECTION_INFO* Info
+    );
+
+//
 // Attempts to insert the connection's new source CID into the binding's
 // lookup table.
 //
@@ -338,7 +349,8 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingRemoveSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCid
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid,
+    _In_ QUIC_SINGLE_LIST_ENTRY** Entry
     );
 
 //

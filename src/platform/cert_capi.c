@@ -402,7 +402,7 @@ QUIC_STATUS
 QuicCertLookupHash(
     _In_opt_ const QUIC_CERTIFICATE_HASH* CertHash,
     _In_opt_z_ const char* Principal,
-    _Out_ QUIC_CERT** NewCertificate
+    _Out_ QUIC_CERTIFICATE** NewCertificate
     )
 {
     QUIC_STATUS Status;
@@ -433,7 +433,7 @@ QuicCertLookupHash(
     }
 
     Status = QUIC_STATUS_SUCCESS;
-    *NewCertificate = (QUIC_CERT*)CertCtx;
+    *NewCertificate = (QUIC_CERTIFICATE*)CertCtx;
 
 Exit:
 
@@ -448,7 +448,7 @@ QUIC_STATUS
 QuicCertLookupHashStore(
     _In_ const QUIC_CERTIFICATE_HASH_STORE* CertHashStore,
     _In_opt_z_ const char* Principal,
-    _Out_ QUIC_CERT** NewCertificate
+    _Out_ QUIC_CERTIFICATE** NewCertificate
     )
 {
     QUIC_STATUS Status;
@@ -488,7 +488,7 @@ QuicCertLookupHashStore(
     }
 
     Status = QUIC_STATUS_SUCCESS;
-    *NewCertificate = (QUIC_CERT*)CertCtx;
+    *NewCertificate = (QUIC_CERTIFICATE*)CertCtx;
 
 Exit:
 
@@ -501,41 +501,39 @@ Exit:
 
 QUIC_STATUS
 QuicCertCreate(
-    _In_ uint32_t Flags,
-    _In_opt_ void* CertConfig,
-    _In_opt_z_ const char* Principal,
-    _Out_ QUIC_CERT** NewCertificate
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _Out_ QUIC_CERTIFICATE** NewCertificate
     )
 {
     QUIC_STATUS Status;
 
-    if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH) {
-        if (CertConfig == NULL && Principal == NULL) {
+    if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
+        if (CredConfig->CertificateContext == NULL && CredConfig->Principal == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
             Status =
                 QuicCertLookupHash(
-                    (const QUIC_CERTIFICATE_HASH*)CertConfig,
-                    Principal,
+                    CredConfig->CertificateHash,
+                    CredConfig->Principal,
                     NewCertificate);
         }
 
-    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE) {
-        if (CertConfig == NULL) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE) {
+        if (CredConfig->CertificateHashStore == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
             Status =
                 QuicCertLookupHashStore(
-                    (const QUIC_CERTIFICATE_HASH_STORE*)CertConfig,
-                    Principal,
+                    CredConfig->CertificateHashStore,
+                    CredConfig->Principal,
                     NewCertificate);
         }
 
-    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
-        if (CertConfig == NULL) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
+        if (CredConfig->CertificateContext == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
-            *NewCertificate = (QUIC_CERT*)CertConfig;
+            *NewCertificate = (QUIC_CERTIFICATE*)CredConfig->CertificateContext;
             Status = QUIC_STATUS_SUCCESS;
         }
 
@@ -548,7 +546,7 @@ QuicCertCreate(
 
 void
 QuicCertFree(
-    _In_ QUIC_CERT* Certificate
+    _In_ QUIC_CERTIFICATE* Certificate
     )
 {
     (void)CertFreeCertificateContext((PCERT_CONTEXT)Certificate);
@@ -591,7 +589,7 @@ QuicCertSelect(
 }
 
 _Success_(return != NULL)
-QUIC_CERT*
+QUIC_CERTIFICATE*
 QuicCertParseChain(
     _In_ size_t ChainBufferLength,
     _In_reads_(ChainBufferLength) const BYTE *ChainBuffer
@@ -679,13 +677,13 @@ Exit:
         CertCloseStore(TempStore, 0);
     }
 
-    return (QUIC_CERT*)LeafCertCtx;
+    return (QUIC_CERTIFICATE*)LeafCertCtx;
 }
 
 _Success_(return != 0)
 size_t
 QuicCertFormat(
-    _In_opt_ QUIC_CERT* Certificate,
+    _In_opt_ QUIC_CERTIFICATE* Certificate,
     _In_ size_t BufferLength,
     _Out_writes_to_(BufferLength, return)
         BYTE* Buffer
@@ -842,7 +840,7 @@ Exit:
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertValidateChain(
-    _In_ QUIC_CERT* Certificate,
+    _In_ QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ PCSTR Host,
     _In_ uint32_t IgnoreFlags
     )
@@ -938,7 +936,7 @@ Exit:
 _Success_(return != NULL)
 void*
 QuicCertGetPrivateKey(
-    _In_ QUIC_CERT* Certificate
+    _In_ QUIC_CERTIFICATE* Certificate
     )
 {
     PCCERT_CONTEXT CertCtx = (PCCERT_CONTEXT)Certificate;
@@ -1116,7 +1114,7 @@ Exit:
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertVerify(
-    _In_ QUIC_CERT* Certificate,
+    _In_ QUIC_CERTIFICATE* Certificate,
     _In_ const UINT16 SignatureAlgorithm,
     _In_reads_(CertListToVerifyLength)
         const BYTE *CertListToVerify,

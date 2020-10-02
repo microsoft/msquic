@@ -23,33 +23,11 @@ Abstract:
 uint16_t QuicTlsTPHeaderSize = 0;
 
 //
-// TLS session object.
-//
-
-typedef struct QUIC_TLS_SESSION {
-
-    uint32_t Reserved;
-
-} QUIC_TLS_SESSION;
-
-//
 // The QUIC sec config object. Created once per listener on server side and
 // once per connection on client side.
 //
 
 typedef struct QUIC_SEC_CONFIG {
-    //
-    // The sec config rundown object passed by MsQuic during sec config
-    // creation.
-    //
-
-    QUIC_RUNDOWN_REF* CleanupRundown;
-
-    //
-    // Ref count.
-    //
-
-    long RefCount;
 
     //
     // The SSL context associated with the sec config.
@@ -64,11 +42,6 @@ typedef struct QUIC_SEC_CONFIG {
 //
 
 typedef struct QUIC_TLS {
-
-    //
-    // TlsSession - The TLS session object that this context belong to.
-    //
-    QUIC_TLS_SESSION* TlsSession;
 
     //
     // The TLS configuration information and credentials.
@@ -386,12 +359,6 @@ QuicTlsDecrypt(
     _In_ const EVP_CIPHER *Aead
     );
 
-static
-void
-QuicTlsSecConfigDelete(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
-    );
-
 QUIC_STATUS
 QuicTlsLibraryInitialize(
     void
@@ -665,53 +632,46 @@ SSL_QUIC_METHOD OpenSslQuicCallbacks = {
 };
 
 QUIC_STATUS
-QuicTlsServerSecConfigCreate(
-    _Inout_ QUIC_RUNDOWN_REF* Rundown,
-    _In_ QUIC_SEC_CONFIG_FLAGS Flags,
-    _In_opt_ void* Certificate,
-    _In_opt_z_ const char* Principal,
+QuicTlsSecConfigCreate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
-    UNREFERENCED_PARAMETER(Principal);
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS &&
+        CredConfig->AsyncHandler == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+        return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
+    }
+
+    if (CredConfig->TicketKey != NULL) {
+        return QUIC_STATUS_NOT_SUPPORTED; // Not currently supported
+    }
+
+    QUIC_CERTIFICATE_FILE* CertFile = CredConfig->CertificateFile;
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
+            return QUIC_STATUS_NOT_SUPPORTED; // Not supported for client (yet)
+        }
+    } else {
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_NONE) {
+            return QUIC_STATUS_INVALID_PARAMETER; // Required for server
+        } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+            return QUIC_STATUS_NOT_SUPPORTED; // Only support file currently
+        } else if (CertFile == NULL ||
+            CertFile->CertificateFile == NULL ||
+            CertFile->PrivateKeyFile == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
+
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
-    QUIC_CERTIFICATE_FILE* CertFile = Certificate;
-    uint32_t SSLOpts = 0;
-
-    //
-    // We only allow PEM formatted cert files.
-    //
-
-    if (Flags != QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Flags,
-            "Invalid sec config flags");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    if (CertFile == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "CertFile unspecified");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    if (!QuicRundownAcquire(Rundown)) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to acquire sec config rundown");
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Exit;
-    }
 
     //
     // Create a security config.
@@ -724,18 +684,9 @@ QuicTlsServerSecConfigCreate(
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_SEC_CONFIG",
             sizeof(QUIC_SEC_CONFIG));
-        QuicRundownRelease(Rundown);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
-
-    SecurityConfig->CleanupRundown = Rundown;
-
-    //
-    // Initial ref.
-    //
-
-    SecurityConfig->RefCount = 1;
 
     //
     // Create the a SSL context for the security config.
@@ -754,189 +705,6 @@ QuicTlsServerSecConfigCreate(
 
     //
     // Configure the SSL context with the defaults.
-    //
-
-    SSLOpts = (SSL_OP_ALL & ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS) |
-               SSL_OP_SINGLE_ECDH_USE |
-               SSL_OP_CIPHER_SERVER_PREFERENCE |
-               SSL_OP_NO_ANTI_REPLAY;
-
-    SSL_CTX_set_options(SecurityConfig->SSLCtx, SSLOpts);
-    SSL_CTX_clear_options(SecurityConfig->SSLCtx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
-
-    Ret =
-        SSL_CTX_set_ciphersuites(
-            SecurityConfig->SSLCtx,
-            QUIC_TLS_DEFAULT_SSL_CIPHERS);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "SSL_CTX_set_ciphersuites failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    Ret =
-        SSL_CTX_set1_groups_list(
-            SecurityConfig->SSLCtx,
-            QUIC_TLS_DEFAULT_SSL_CURVES);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "SSL_CTX_set1_groups_list failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    SSL_CTX_set_mode(SecurityConfig->SSLCtx, SSL_MODE_RELEASE_BUFFERS);
-
-    SSL_CTX_set_min_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
-    SSL_CTX_set_max_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
-
-    SSL_CTX_set_alpn_select_cb(SecurityConfig->SSLCtx, QuicTlsAlpnSelectCallback, NULL);
-
-    SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
-
-    //
-    // Set the server certs.
-    //
-
-    Ret =
-        SSL_CTX_use_PrivateKey_file(
-            SecurityConfig->SSLCtx,
-            CertFile->PrivateKeyFile,
-            SSL_FILETYPE_PEM);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "SSL_CTX_use_PrivateKey_file failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    Ret =
-        SSL_CTX_use_certificate_chain_file(
-            SecurityConfig->SSLCtx,
-            CertFile->CertificateFile);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "SSL_CTX_use_certificate_chain_file failed");
-      Status = QUIC_STATUS_TLS_ERROR;
-      goto Exit;
-    }
-
-    Ret = SSL_CTX_check_private_key(SecurityConfig->SSLCtx);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "SSL_CTX_check_private_key failed");
-      Status = QUIC_STATUS_TLS_ERROR;
-      goto Exit;
-    }
-
-    SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, UINT32_MAX);
-    SSL_CTX_set_quic_method(SecurityConfig->SSLCtx, &OpenSslQuicCallbacks);
-    SSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx, QuicTlsClientHelloCallback, NULL);
-
-    //
-    // Invoke completion inline.
-    //
-
-    CompletionHandler(Context, Status, SecurityConfig);
-
-    Status = QUIC_STATUS_SUCCESS;
-    SecurityConfig = NULL;
-
-Exit:
-
-    if (SecurityConfig != NULL) {
-        QuicTlsSecConfigDelete(SecurityConfig);
-        SecurityConfig = NULL;
-    }
-
-    return Status;
-}
-
-static
-void
-QuicTlsSecConfigDelete(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
-    )
-{
-    QUIC_RUNDOWN_REF* Rundown = SecurityConfig->CleanupRundown;
-
-    if (SecurityConfig->SSLCtx != NULL) {
-        SSL_CTX_free(SecurityConfig->SSLCtx);
-        SecurityConfig->SSLCtx = NULL;
-    }
-
-    QuicFree(SecurityConfig);
-    SecurityConfig = NULL;
-
-    if (Rundown != NULL) {
-        QuicRundownRelease(Rundown);
-        Rundown = NULL;
-    }
-}
-
-QUIC_STATUS
-QuicTlsClientSecConfigCreate(
-    _In_ uint32_t Flags,
-    _Outptr_ QUIC_SEC_CONFIG** ClientConfig
-    )
-{
-    UNREFERENCED_PARAMETER(Flags);
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    int Ret = 0;
-    QUIC_SEC_CONFIG* SecurityConfig = NULL;
-
-    //
-    // Create a security config.
-    //
-
-    SecurityConfig = QuicAlloc(sizeof(QUIC_SEC_CONFIG));
-    if (SecurityConfig == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "SecurityConfig alloc failed");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
-
-    QuicZeroMemory(SecurityConfig, sizeof(*SecurityConfig));
-    SecurityConfig->RefCount = 1;
-
-    //
-    // Create a SSL context for the security config.
-    // LINUX_TODO: Check if it's better to make this context global and shared
-    // across all client connections.
-    //
-
-    SecurityConfig->SSLCtx = SSL_CTX_new(TLS_method());
-    if (SecurityConfig->SSLCtx == NULL) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "SSL_CTX_new failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    //
-    // Configure the SSL defaults.
     //
 
     Ret = SSL_CTX_set_min_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
@@ -961,6 +729,20 @@ QuicTlsClientSecConfigCreate(
         goto Exit;
     }
 
+    Ret =
+        SSL_CTX_set_ciphersuites(
+            SecurityConfig->SSLCtx,
+            QUIC_TLS_DEFAULT_SSL_CIPHERS);
+    if (Ret != 1) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_set_ciphersuites failed");
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
+
     Ret = SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
     if (Ret != 1) {
         QuicTraceEvent(
@@ -972,18 +754,10 @@ QuicTlsClientSecConfigCreate(
         goto Exit;
     }
 
-    Ret = SSL_CTX_set_ciphersuites(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_SSL_CIPHERS);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "SSL_CTX_set_ciphersuites failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    Ret = SSL_CTX_set1_groups_list(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_SSL_CURVES);
+    Ret =
+        SSL_CTX_set1_groups_list(
+            SecurityConfig->SSLCtx,
+            QUIC_TLS_DEFAULT_SSL_CURVES);
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -1005,135 +779,129 @@ QuicTlsClientSecConfigCreate(
         goto Exit;
     }
 
-    //
-    // Cert related config.
-    //
-
-    BOOLEAN VerifyServerCertificate = TRUE; // !(Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION);
-    if (!VerifyServerCertificate) {
-        SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
-    } else {
-        SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_VERIFY_DEPTH);
-
-        if (QuicOpenSslClientTrustedCert == NULL) {
-            SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        BOOLEAN VerifyServerCertificate = TRUE; // !(Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION);
+        if (!VerifyServerCertificate) {
+            SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
         } else {
-            //
-            // LINUX_TODO: This is a hack to set a client side trusted cert in order
-            //   to verify server cert. Fix this once MsQuic formally supports
-            //   passing TLS related config from APP layer to TAL.
-            //
+            SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_VERIFY_DEPTH);
 
-            /*Ret =
-                SSL_CTX_load_verify_locations(
-                    SecurityConfig->SSLCtx,
-                    QuicOpenSslClientTrustedCert,
-                    NULL);
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_load_verify_locations failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }*/
+            if (QuicOpenSslClientTrustedCert != NULL) {
+                //
+                // LINUX_TODO: This is a hack to set a client side trusted cert in order
+                //   to verify server cert. Fix this once MsQuic formally supports
+                //   passing TLS related config from APP layer to TAL.
+                //
+
+                /*Ret =
+                    SSL_CTX_load_verify_locations(
+                        SecurityConfig->SSLCtx,
+                        QuicOpenSslClientTrustedCert,
+                        NULL);
+                if (Ret != 1) {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        ERR_get_error(),
+                        "SSL_CTX_load_verify_locations failed");
+                    Status = QUIC_STATUS_TLS_ERROR;
+                    goto Exit;
+                }*/
+            }
         }
+    } else {
+        SSL_CTX_set_options(
+            SecurityConfig->SSLCtx,
+            (SSL_OP_ALL & ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS) |
+            SSL_OP_SINGLE_ECDH_USE |
+            SSL_OP_CIPHER_SERVER_PREFERENCE |
+            SSL_OP_NO_ANTI_REPLAY);
+        SSL_CTX_clear_options(SecurityConfig->SSLCtx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
+        SSL_CTX_set_mode(SecurityConfig->SSLCtx, SSL_MODE_RELEASE_BUFFERS);
+
+        SSL_CTX_set_alpn_select_cb(SecurityConfig->SSLCtx, QuicTlsAlpnSelectCallback, NULL);
+
+        //
+        // Set the server certs.
+        //
+
+        Ret =
+            SSL_CTX_use_PrivateKey_file(
+                SecurityConfig->SSLCtx,
+                CertFile->PrivateKeyFile,
+                SSL_FILETYPE_PEM);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_PrivateKey_file failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        Ret =
+            SSL_CTX_use_certificate_chain_file(
+                SecurityConfig->SSLCtx,
+                CertFile->CertificateFile);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_use_certificate_chain_file failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        Ret = SSL_CTX_check_private_key(SecurityConfig->SSLCtx);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_check_private_key failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, UINT32_MAX);
+        SSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx, QuicTlsClientHelloCallback, NULL);
     }
 
-    *ClientConfig = SecurityConfig;
+    //
+    // Invoke completion inline.
+    //
+
+    CompletionHandler(CredConfig, Context, Status, SecurityConfig);
     SecurityConfig = NULL;
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
+        Status = QUIC_STATUS_PENDING;
+    } else {
+        Status = QUIC_STATUS_SUCCESS;
+    }
 
 Exit:
 
     if (SecurityConfig != NULL) {
         QuicTlsSecConfigDelete(SecurityConfig);
-        SecurityConfig = NULL;
     }
 
     return Status;
 }
 
-inline
-QUIC_SEC_CONFIG*
-QuicTlsSecConfigAddRef(
+void
+QuicTlsSecConfigDelete(
     _In_ QUIC_SEC_CONFIG* SecurityConfig
     )
 {
-    InterlockedIncrement(&SecurityConfig->RefCount);
-    return SecurityConfig;
-}
-
-void
-QUIC_API
-QuicTlsSecConfigRelease(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
-    )
-{
-    if (InterlockedDecrement(&SecurityConfig->RefCount) == 0) {
-        QuicTlsSecConfigDelete(SecurityConfig);
-        SecurityConfig = NULL;
+    if (SecurityConfig->SSLCtx != NULL) {
+        SSL_CTX_free(SecurityConfig->SSLCtx);
+        SecurityConfig->SSLCtx = NULL;
     }
-}
 
-QUIC_STATUS
-QuicTlsSessionInitialize(
-    _Out_ QUIC_TLS_SESSION** NewTlsSession
-    )
-{
-    *NewTlsSession = QuicAlloc(sizeof(QUIC_TLS_SESSION));
-    if (*NewTlsSession == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_TLS_SESSION",
-            sizeof(QUIC_TLS_SESSION));
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    return QUIC_STATUS_SUCCESS;
-}
-
-void
-QuicTlsSessionUninitialize(
-    _In_opt_ QUIC_TLS_SESSION* TlsSession
-    )
-{
-    if (TlsSession != NULL) {
-        QUIC_FREE(TlsSession);
-        TlsSession = NULL;
-    }
-}
-
-QUIC_STATUS
-QuicTlsSessionSetTicketKey(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_reads_bytes_(44)
-        const void* Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(TlsSession);
-    UNREFERENCED_PARAMETER(Buffer);
-    //
-    // LINUX_TODO.
-    //
-    return QUIC_STATUS_SUCCESS;
-}
-
-QUIC_STATUS
-QuicTlsSessionAddTicket(
-    _In_ QUIC_TLS_SESSION* TlsSession,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t * const Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(TlsSession);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    //
-    // LINUX_TODO.
-    //
-    return QUIC_STATUS_SUCCESS;
+    QuicFree(SecurityConfig);
 }
 
 QUIC_STATUS
@@ -1161,9 +929,8 @@ QuicTlsInitialize(
     QuicZeroMemory(TlsContext, sizeof(QUIC_TLS));
 
     TlsContext->Connection = Config->Connection;
-    TlsContext->TlsSession = Config->TlsSession;
     TlsContext->IsServer = Config->IsServer;
-    TlsContext->SecConfig = QuicTlsSecConfigAddRef(Config->SecConfig);
+    TlsContext->SecConfig = Config->SecConfig;
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
@@ -1269,11 +1036,6 @@ QuicTlsUninitialize(
             TlsContext->Connection,
             "Cleaning up");
 
-        if (TlsContext->SecConfig != NULL) {
-            QuicTlsSecConfigRelease(TlsContext->SecConfig);
-            TlsContext->SecConfig = NULL;
-        }
-
         if (TlsContext->SNI != NULL) {
             QUIC_FREE(TlsContext->SNI);
             TlsContext->SNI = NULL;
@@ -1346,14 +1108,6 @@ QuicTlsReset(
 Exit:
 
     return;
-}
-
-QUIC_SEC_CONFIG*
-QuicTlsGetSecConfig(
-    _In_ QUIC_TLS* TlsContext
-    )
-{
-    return QuicTlsSecConfigAddRef(TlsContext->SecConfig);
 }
 
 QUIC_TLS_RESULT_FLAGS
@@ -1562,19 +1316,6 @@ QuicTlsProcessDataComplete(
     UNREFERENCED_PARAMETER(TlsContext);
     UNREFERENCED_PARAMETER(BufferConsumed);
     return QUIC_TLS_RESULT_ERROR;
-}
-
-QUIC_STATUS
-QuicTlsReadTicket(
-    _In_ QUIC_TLS* TlsContext,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_INVALID_STATE;
 }
 
 QUIC_STATUS

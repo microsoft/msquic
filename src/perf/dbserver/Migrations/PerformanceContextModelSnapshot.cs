@@ -22,6 +22,35 @@ namespace QuicPerformanceDataServer.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
+            modelBuilder.Entity("QuicDataServer.Models.Db.DbHpsTestRecord", b =>
+                {
+                    b.Property<int>("DbHpsTestRecordId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<string>("CommitHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DbMachineId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DbPlatformId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("TestDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("DbHpsTestRecordId");
+
+                    b.HasIndex("DbMachineId");
+
+                    b.HasIndex("DbPlatformId");
+
+                    b.ToTable("HpsTestRecords");
+                });
+
             modelBuilder.Entity("QuicDataServer.Models.Db.DbMachine", b =>
                 {
                     b.Property<int>("DbMachineId")
@@ -205,6 +234,42 @@ namespace QuicPerformanceDataServer.Migrations
                     b.HasIndex("DbPlatformId");
 
                     b.ToTable("ThroughputTestRecords");
+                });
+
+            modelBuilder.Entity("QuicDataServer.Models.Db.DbHpsTestRecord", b =>
+                {
+                    b.HasOne("QuicDataServer.Models.Db.DbMachine", null)
+                        .WithMany("HpsTestRecords")
+                        .HasForeignKey("DbMachineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuicDataServer.Models.Db.DbPlatform", null)
+                        .WithMany("HpsTests")
+                        .HasForeignKey("DbPlatformId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("QuicDataServer.Models.Db.HpsTestResult", "TestResults", b1 =>
+                        {
+                            b1.Property<int>("DbHpsTestRecordId")
+                                .HasColumnType("int");
+
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int")
+                                .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                            b1.Property<double>("Result")
+                                .HasColumnType("float");
+
+                            b1.HasKey("DbHpsTestRecordId", "Id");
+
+                            b1.ToTable("HpsTestResult");
+
+                            b1.WithOwner()
+                                .HasForeignKey("DbHpsTestRecordId");
+                        });
                 });
 
             modelBuilder.Entity("QuicDataServer.Models.Db.DbRpsTestRecord", b =>

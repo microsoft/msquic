@@ -24,13 +24,11 @@ const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 int EndpointIndex = -1;
 uint32_t TestCases = QuicTestFeatureAll;
-uint32_t WaitTimeoutMs = 5000;
+uint32_t WaitTimeoutMs = 10000;
 uint32_t InitialVersion = 0;
 bool RunSerially = false;
 bool TestFailed = false; // True if any test failed
 
-const BOOLEAN UseSendBuffering = FALSE;
-const uint32_t CertificateValidationFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
 const uint32_t RandomReservedVersion = 168430090ul; // Random reserved version to force VN.
 const uint8_t RandomTransportParameterPayload[2345] = {0};
 QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
@@ -40,6 +38,9 @@ QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
 };
 
 const QUIC_BUFFER HandshakeAlpns[] = {
+    { sizeof("hq-31") - 1, (uint8_t*)"hq-31" },
+    { sizeof("hq-30") - 1, (uint8_t*)"hq-30" },
+    { sizeof("h3-30") - 1, (uint8_t*)"h3-30" },
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
     { sizeof("h3-29") - 1, (uint8_t*)"h3-29" },
     { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
@@ -49,6 +50,8 @@ const QUIC_BUFFER HandshakeAlpns[] = {
 };
 
 const QUIC_BUFFER DatapathAlpns[] = {
+    { sizeof("hq-31") - 1, (uint8_t*)"hq-31" },
+    { sizeof("hq-30") - 1, (uint8_t*)"hq-30" },
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
     { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
     { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
@@ -119,8 +122,8 @@ uint32_t CurrentThreadCount;
 
 uint16_t CustomPort = 0;
 
-const char* UrlPath = "/";
 bool CustomUrlPath = false;
+std::vector<std::string> Urls;
 
 extern "C" void QuicTraceRundown(void) { }
 
@@ -154,32 +157,204 @@ public:
     }
 };
 
-class InteropConnection {
-    HQUIC Connection;
+class InteropStream {
+    HQUIC Stream;
+    QUIC_EVENT RequestComplete;
     GetRequest SendRequest;
+    const char* RequestPath;
+    const char* FileName;
+    FILE* File;
+    uint64_t DownloadStartTime;
+    uint64_t LastReceiveTime;
+    int64_t LastReceiveDuration;
+public:
+    bool ReceivedResponse : 1;
+    bool UsedZeroRtt : 1;
+    InteropStream(HQUIC Connection, const char* Request) :
+        Stream(nullptr),
+        SendRequest(Request),
+        RequestPath(Request),
+        FileName(nullptr),
+        File(nullptr),
+        DownloadStartTime(0),
+        LastReceiveTime(0),
+        LastReceiveDuration(0),
+        ReceivedResponse(false),
+        UsedZeroRtt(false)
+    {
+        QuicEventInitialize(&RequestComplete, TRUE, FALSE);
+
+        VERIFY_QUIC_SUCCESS(
+            MsQuic->StreamOpen(
+                Connection,
+                QUIC_STREAM_OPEN_FLAG_NONE,
+                InteropStream::StreamCallback,
+                this,
+                &Stream));
+    }
+    ~InteropStream() {
+        MsQuic->StreamClose(Stream);
+        QuicEventUninitialize(RequestComplete);
+    }
+
+    bool SendHttpRequest(bool WaitForResponse = true) {
+        QuicEventReset(RequestComplete);
+        if (QUIC_FAILED(
+            MsQuic->StreamStart(
+                Stream,
+                QUIC_STREAM_START_FLAG_IMMEDIATE))) {
+            MsQuic->StreamClose(Stream);
+            return false;
+        }
+
+        if (CustomUrlPath) {
+            printf("Sending request: %s", SendRequest.Buffer);
+        }
+        if (QUIC_FAILED(
+            MsQuic->StreamSend(
+                Stream,
+                &SendRequest,
+                1,
+                QUIC_SEND_FLAG_ALLOW_0_RTT | QUIC_SEND_FLAG_FIN,
+                nullptr))) {
+            MsQuic->StreamShutdown(
+                Stream,
+                QUIC_STREAM_SHUTDOWN_FLAG_ABORT | QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
+                0);
+            return false;
+        }
+        return !WaitForResponse || WaitForHttpResponse();
+    }
+
+    bool WaitForHttpResponse() {
+        return
+            QuicEventWaitWithTimeout(RequestComplete, WaitTimeoutMs) &&
+            ReceivedResponse;
+    }
+
+    static
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    _Function_class_(QUIC_STREAM_CALLBACK)
+    QUIC_STATUS
+    QUIC_API
+    StreamCallback(
+        _In_ HQUIC Stream,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_STREAM_EVENT* Event
+        )
+    {
+        InteropStream* pThis = (InteropStream*)Context;
+        int64_t Now = QuicTimeMs64();
+        switch (Event->Type) {
+        case QUIC_STREAM_EVENT_RECEIVE:
+            if (CustomUrlPath) {
+                if (pThis->File == nullptr) {
+                    pThis->DownloadStartTime = Now;
+                    pThis->FileName = strrchr(pThis->RequestPath, '/') + 1;
+                    pThis->File = fopen(pThis->FileName, "wb");
+                    if (pThis->File == nullptr) {
+                        printf("Failed to open file %s\n", pThis->FileName);
+                        break;
+                    }
+                }
+                uint64_t TotalBytesWritten = 0;
+                for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
+                    uint32_t DataLength = Event->RECEIVE.Buffers[i].Length;
+                    if (fwrite(
+                            Event->RECEIVE.Buffers[i].Buffer,
+                            1,
+                            DataLength,
+                            pThis->File) < DataLength) {
+                        printf("Failed to write to file!\n");
+                        break;
+                    }
+                    TotalBytesWritten += DataLength;
+                }
+                int64_t ReceiveDuration = (int64_t)(pThis->LastReceiveTime == 0) ? 0 : QuicTimeDiff64(pThis->LastReceiveTime, Now);
+                int64_t ReceiveTimeDiff = (int64_t)QuicTimeDiff64(pThis->LastReceiveDuration, ReceiveDuration);
+                printf(
+                    "%s: Wrote %llu bytes.(%llu ms/%lld ms/%lld ms)\n",
+                    pThis->FileName,
+                    (unsigned long long)TotalBytesWritten,
+                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now),
+                    (long long)ReceiveDuration,
+                    (long long)ReceiveTimeDiff);
+                pThis->LastReceiveTime = Now;
+                pThis->LastReceiveDuration = ReceiveDuration;
+            }
+            break;
+        case QUIC_STREAM_EVENT_SEND_COMPLETE:
+            break;
+        case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
+            if (CustomUrlPath) {
+                printf("%s: Peer aborted send! (%llu ms)\n",
+                    pThis->FileName,
+                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now));
+            }
+            QuicEventSet(pThis->RequestComplete);
+            break;
+        case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
+            if (pThis->File) {
+                fflush(pThis->File);
+                fclose(pThis->File);
+                pThis->File = nullptr;
+                printf("%s: Completed download! (%llu ms)\n",
+                    pThis->FileName,
+                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now));
+            }
+            pThis->ReceivedResponse = true;
+            break;
+        case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
+            if (pThis->File) {
+                printf("%s: Request closed incomplete. (%llu ms)\n",
+                    pThis->FileName,
+                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now));
+                fclose(pThis->File); // Didn't get closed properly.
+                pThis->File = nullptr;
+            }
+            uint64_t Length = 0;
+            uint32_t LengthLength = sizeof(Length);
+            if (QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    Stream,
+                    QUIC_PARAM_LEVEL_STREAM,
+                    QUIC_PARAM_STREAM_0RTT_LENGTH,
+                    &LengthLength,
+                    &Length)) &&
+                Length > 0) {
+                pThis->UsedZeroRtt = true;
+            }
+            QuicEventSet(pThis->RequestComplete);
+            break;
+        }
+        default:
+            break;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+class InteropConnection {
+    HQUIC Configuration;
+    HQUIC Connection;
+    std::vector<InteropStream*> Streams;
     QUIC_EVENT ConnectionComplete;
     QUIC_EVENT RequestComplete;
     QUIC_EVENT QuackAckReceived;
     QUIC_EVENT ShutdownComplete;
     char* NegotiatedAlpn;
-    FILE* File;
 public:
     bool VersionUnsupported : 1;
     bool Connected : 1;
     bool Resumed : 1;
-    bool UsedZeroRtt : 1;
-    bool ReceivedResponse : 1;
     bool ReceivedQuackAck : 1;
-    InteropConnection(HQUIC Session, bool VerNeg = false, bool LargeTP = false) :
+    InteropConnection(HQUIC Configuration, bool VerNeg = false, bool LargeTP = false) :
+        Configuration(Configuration),
         Connection(nullptr),
-        SendRequest(UrlPath),
         NegotiatedAlpn(nullptr),
-        File(nullptr),
         VersionUnsupported(false),
         Connected(false),
         Resumed(false),
-        UsedZeroRtt(false),
-        ReceivedResponse(false),
         ReceivedQuackAck(false)
     {
         QuicEventInitialize(&ConnectionComplete, TRUE, FALSE);
@@ -189,32 +364,10 @@ public:
 
         VERIFY_QUIC_SUCCESS(
             MsQuic->ConnectionOpen(
-                Session,
+                Registration,
                 InteropConnection::ConnectionCallback,
                 this,
                 &Connection));
-        VERIFY_QUIC_SUCCESS(
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-                sizeof(CertificateValidationFlags),
-                &CertificateValidationFlags));
-        VERIFY_QUIC_SUCCESS(
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SEND_BUFFERING,
-                sizeof(UseSendBuffering),
-                &UseSendBuffering));
-        uint64_t IdleTimeoutMs = WaitTimeoutMs;
-        VERIFY_QUIC_SUCCESS(
-            MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_IDLE_TIMEOUT,
-                sizeof(IdleTimeoutMs),
-                &IdleTimeoutMs));
         if (VerNeg) {
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
@@ -244,6 +397,10 @@ public:
     }
     ~InteropConnection()
     {
+        for (InteropStream* Stream : Streams) {
+            delete Stream;
+        }
+        Streams.clear();
         Shutdown();
         MsQuic->ConnectionClose(Connection);
         QuicEventUninitialize(ShutdownComplete);
@@ -253,30 +410,37 @@ public:
         delete [] NegotiatedAlpn;
     }
     bool SetKeepAlive(uint32_t KeepAliveMs) {
+        QUIC_SETTINGS Settings{0};
+        Settings.KeepAliveIntervalMs = KeepAliveMs;
+        Settings.IsSet.KeepAliveIntervalMs = TRUE;
         return
             QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_KEEP_ALIVE,
-                    sizeof(KeepAliveMs),
-                    &KeepAliveMs));
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
     }
     bool SetDisconnectTimeout(uint32_t TimeoutMs) {
+        QUIC_SETTINGS Settings{0};
+        Settings.DisconnectTimeoutMs = TimeoutMs;
+        Settings.IsSet.DisconnectTimeoutMs = TRUE;
         return
             QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_DISCONNECT_TIMEOUT,
-                    sizeof(TimeoutMs),
-                    &TimeoutMs));
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
     }
     bool ConnectToServer(const char* ServerName, uint16_t ServerPort) {
         if (QUIC_SUCCEEDED(
             MsQuic->ConnectionStart(
                 Connection,
-                AF_UNSPEC,
+                Configuration,
+                QUIC_ADDRESS_FAMILY_UNSPEC,
                 ServerName,
                 ServerPort))) {
             QuicEventWaitWithTimeout(ConnectionComplete, WaitTimeoutMs);
@@ -293,46 +457,22 @@ public:
     bool WaitForShutdownComplete() {
         return QuicEventWaitWithTimeout(ShutdownComplete, WaitTimeoutMs);
     }
-    bool SendHttpRequest(bool WaitForResponse = true) {
-        QuicEventReset(RequestComplete);
-        ReceivedResponse = false;
-
-        HQUIC Stream;
-        if (QUIC_FAILED(
-            MsQuic->StreamOpen(
-                Connection,
-                QUIC_STREAM_OPEN_FLAG_NONE,
-                InteropConnection::StreamCallback,
-                this,
-                &Stream))) {
-            return false;
+    bool SendHttpRequests(bool WaitForResponse = true) {
+        for (auto& Url : Urls) {
+            InteropStream* Stream = new InteropStream(Connection, Url.c_str());
+            Streams.push_back(Stream);
+            if (!Stream->SendHttpRequest(WaitForResponse)) {
+                return false;
+            }
         }
-        if (QUIC_FAILED(
-            MsQuic->StreamStart(
-                Stream,
-                QUIC_STREAM_START_FLAG_IMMEDIATE))) {
-            MsQuic->StreamClose(Stream);
-            return false;
-        }
-        if (QUIC_FAILED(
-            MsQuic->StreamSend(
-                Stream,
-                &SendRequest,
-                1,
-                QUIC_SEND_FLAG_ALLOW_0_RTT | QUIC_SEND_FLAG_FIN,
-                nullptr))) {
-            MsQuic->StreamShutdown(
-                Stream,
-                QUIC_STREAM_SHUTDOWN_FLAG_ABORT | QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
-                0);
-            return false;
-        }
-        return !WaitForResponse || WaitForHttpResponse();
+        return !WaitForResponse || WaitForHttpResponses();
     }
-    bool WaitForHttpResponse() {
-        return
-            QuicEventWaitWithTimeout(RequestComplete, WaitTimeoutMs) &&
-            ReceivedResponse;
+    bool WaitForHttpResponses() {
+        bool Result = true;
+        for (InteropStream* Stream : Streams) {
+            Result &= Stream->WaitForHttpResponse();
+        }
+        return Result;
     }
     bool SendQuack() {
         BOOLEAN DatagramEnabled = TRUE;
@@ -375,6 +515,13 @@ public:
             QuicSleep(100);
         }
         return true; // TryCount < 20;
+    }
+    bool UsedZeroRtt() {
+        bool Result = true;
+        for (InteropStream* Stream : Streams) {
+            Result &= Stream->UsedZeroRtt;
+        }
+        return Result;
     }
     bool ForceCidUpdate() {
         return
@@ -510,82 +657,6 @@ private:
     _Function_class_(QUIC_STREAM_CALLBACK)
     QUIC_STATUS
     QUIC_API
-    StreamCallback(
-        _In_ HQUIC Stream,
-        _In_opt_ void* Context,
-        _Inout_ QUIC_STREAM_EVENT* Event
-        )
-    {
-        InteropConnection* pThis = (InteropConnection*)Context;
-        switch (Event->Type) {
-        case QUIC_STREAM_EVENT_RECEIVE:
-            if (CustomUrlPath) {
-                if (pThis->File == nullptr) {
-                    const char* FileName = strrchr(UrlPath, '/') + 1;
-                    pThis->File = fopen(FileName, "wb");
-                    if (pThis->File == nullptr) {
-                        printf("Failed to open file %s\n", FileName);
-                        break;
-                    }
-                }
-                for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
-                    uint32_t DataLength = Event->RECEIVE.Buffers[i].Length;
-                    if (fwrite(
-                            Event->RECEIVE.Buffers[i].Buffer,
-                            1,
-                            DataLength,
-                            pThis->File) < DataLength) {
-                        printf("Failed to write to file!\n");
-                        break;
-                    }
-                }
-            }
-            break;
-        case QUIC_STREAM_EVENT_SEND_COMPLETE:
-            break;
-        case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
-            QuicEventSet(pThis->RequestComplete);
-            break;
-        case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
-            if (pThis->File) {
-                fflush(pThis->File);
-                fclose(pThis->File);
-                pThis->File = nullptr;
-            }
-            pThis->ReceivedResponse = true;
-            break;
-        case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
-            if (pThis->File) {
-                printf("Request closed incomplete.\n");
-                fclose(pThis->File); // Didn't get closed properly.
-                pThis->File = nullptr;
-            }
-            uint64_t Length = 0;
-            uint32_t LengthLength = sizeof(Length);
-            if (QUIC_SUCCEEDED(
-                MsQuic->GetParam(
-                    Stream,
-                    QUIC_PARAM_LEVEL_STREAM,
-                    QUIC_PARAM_STREAM_0RTT_LENGTH,
-                    &LengthLength,
-                    &Length)) &&
-                Length > 0) {
-                pThis->UsedZeroRtt = true;
-            }
-            QuicEventSet(pThis->RequestComplete);
-            MsQuic->StreamClose(Stream);
-            break;
-        }
-        default:
-            break;
-        }
-        return QUIC_STATUS_SUCCESS;
-    }
-    static
-    _IRQL_requires_max_(DISPATCH_LEVEL)
-    _Function_class_(QUIC_STREAM_CALLBACK)
-    QUIC_STATUS
-    QUIC_API
     NoOpStreamCallback(
         _In_ HQUIC Stream,
         _In_opt_ void* /* Context */,
@@ -620,6 +691,10 @@ RunInteropTest(
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
     Settings.IsSet.InitialRttMs = TRUE;
+    Settings.SendBufferingEnabled = FALSE;
+    Settings.IsSet.SendBufferingEnabled = TRUE;
+    Settings.IdleTimeoutMs = WaitTimeoutMs;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
     if (Feature == KeyUpdate) {
         Settings.MaxBytesPerKey = 10; // Force a key update after every 10 bytes sent
         Settings.IsSet.MaxBytesPerKey = TRUE;
@@ -638,20 +713,29 @@ RunInteropTest(
         AlpnCount = ARRAYSIZE(HandshakeAlpns);
     }
 
-    HQUIC Session;
+    HQUIC Configuration;
     VERIFY_QUIC_SUCCESS(
-        MsQuic->SessionOpen(
+        MsQuic->ConfigurationOpen(
             Registration,
-            sizeof(Settings),
-            &Settings,
             Alpns,
             AlpnCount,
+            &Settings,
+            sizeof(Settings),
             nullptr,
-            &Session));
+            &Configuration));
+
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    QuicZeroMemory(&CredConfig, sizeof(CredConfig));
+    CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+
+    VERIFY_QUIC_SUCCESS(
+        MsQuic->ConfigurationLoadCredential(
+            Configuration,
+            &CredConfig));
 
     switch (Feature) {
     case VersionNegotiation: {
-        InteropConnection Connection(Session, true);
+        InteropConnection Connection(Configuration, true);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -660,7 +744,7 @@ RunInteropTest(
                 Success = Stats.VersionNegotiation != 0;
             }
             if (Success && CustomUrlPath) {
-                Success = Connection.SendHttpRequest();
+                Success = Connection.SendHttpRequests();
             }
         } else if (Connection.VersionUnsupported) {
             Success = Connection.VersionUnsupported;
@@ -674,13 +758,13 @@ RunInteropTest(
     case StatelessRetry:
     case PostQuantum: {
         if (Feature == Resumption) {
-            InteropConnection Connection(Session);
+            InteropConnection Connection(Configuration);
             if (!Connection.ConnectToServer(Endpoint.ServerName, Port) ||
                 !Connection.WaitForTicket()) {
                 break;
             }
         }
-        InteropConnection Connection(Session, false, Feature == PostQuantum);
+        InteropConnection Connection(Configuration, false, Feature == PostQuantum);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -697,7 +781,7 @@ RunInteropTest(
                 Success = true;
             }
             if (Success && CustomUrlPath) {
-                Success = Connection.SendHttpRequest();
+                Success = Connection.SendHttpRequests();
             }
         }
         break;
@@ -706,20 +790,20 @@ RunInteropTest(
     case StreamData:
     case ZeroRtt: {
         if (Feature == ZeroRtt) {
-            InteropConnection Connection(Session);
+            InteropConnection Connection(Configuration);
             if (!Connection.ConnectToServer(Endpoint.ServerName, Port) ||
                 !Connection.WaitForTicket()) {
                 break;
             }
         }
-        InteropConnection Connection(Session, false);
-        if (Connection.SendHttpRequest(false) &&
+        InteropConnection Connection(Configuration, false);
+        if (Connection.SendHttpRequests(false) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port) &&
-            Connection.WaitForHttpResponse()) {
+            Connection.WaitForHttpResponses()) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             if (Feature == ZeroRtt) {
-                Success = Connection.UsedZeroRtt;
+                Success = Connection.UsedZeroRtt();
             } else {
                 Success = true;
             }
@@ -728,7 +812,7 @@ RunInteropTest(
     }
 
     case KeyUpdate: {
-        InteropConnection Connection(Session);
+        InteropConnection Connection(Configuration);
         if (Connection.SetKeepAlive(50) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
@@ -739,14 +823,14 @@ RunInteropTest(
                 Success = Stats.Misc.KeyUpdateCount > 1;
             }
             if (Success && CustomUrlPath) {
-                Success = Connection.SendHttpRequest();
+                Success = Connection.SendHttpRequests();
             }
         }
         break;
     }
 
     case CidUpdate: {
-        InteropConnection Connection(Session);
+        InteropConnection Connection(Configuration);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -758,14 +842,14 @@ RunInteropTest(
                 Success = true;
             }
             if (Success && CustomUrlPath) {
-                Success = Connection.SendHttpRequest();
+                Success = Connection.SendHttpRequests();
             }
         }
         break;
     }
 
     case NatRebinding: {
-        InteropConnection Connection(Session);
+        InteropConnection Connection(Configuration);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -777,14 +861,14 @@ RunInteropTest(
                 Success = true;
             }
             if (Success && CustomUrlPath) {
-                Success = Connection.SendHttpRequest();
+                Success = Connection.SendHttpRequests();
             }
         }
         break;
     }
 
     case Datagram: {
-        InteropConnection Connection(Session, false);
+        InteropConnection Connection(Configuration, false);
         if (Connection.SendQuack() &&
             Connection.ConnectToServer(Endpoint.ServerName, Port) &&
             Connection.WaitForQuackAck()) {
@@ -795,15 +879,17 @@ RunInteropTest(
     }
     }
 
-    MsQuic->SessionClose(Session);
+    MsQuic->ConfigurationClose(Configuration); // TODO - Wait on connection
 
     if (CustomUrlPath && !Success) {
         //
         // Delete any file we might have downloaded, because the test didn't
         // actually succeed.
         //
-        const char* FileName = strrchr(UrlPath, '/') + 1;
-        (void)remove(FileName);
+        for (auto& Url : Urls) {
+            const char* FileName = strrchr(Url.c_str(), '/') + 1;
+            (void)remove(FileName);
+        }
     }
 
     return Success;
@@ -932,6 +1018,45 @@ RunInteropTests()
     printf("\n");
 }
 
+bool
+ParseCommandLineUrls(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    )
+{
+    bool ProcessingUrls = false;
+    for (int i = 0; i < argc; ++i) {
+        if (_strnicmp(argv[i] + 1, "urls", 4) == 0) {
+            if (argv[i][1 + 4] != ':') {
+                printf("Invalid URLs! First URL needs a : between the parameter name and it.\n");
+                return false;
+            }
+            CustomUrlPath = true;
+            ProcessingUrls = true;
+            argv[i] += 5; // Advance beyond the parameter name.
+        }
+        if (ProcessingUrls) {
+            if (argv[i][0] == '-') {
+                ProcessingUrls = false;
+                continue;
+            }
+            const char* Url = argv[i];
+            for (int j = 0; j < 3; ++j) {
+                Url = strchr(Url, '/');
+                if (Url == nullptr) {
+                    printf("Invalid URL provided! Must match 'http[s]://server[:port]/\n");
+                    return false;
+                }
+                if (j < 2) {
+                    ++Url;
+                }
+            }
+            Urls.push_back(Url);
+        }
+    }
+    return true;
+}
+
 int
 QUIC_MAIN_EXPORT
 main(
@@ -1002,13 +1127,12 @@ main(
     TryGetValue(argc, argv, "timeout", &WaitTimeoutMs);
     TryGetValue(argc, argv, "version", &InitialVersion);
     TryGetValue(argc, argv, "port", &CustomPort);
-    if (TryGetValue(argc, argv, "urlpath", &UrlPath)) {
-        if (UrlPath[0] != '/' || strlen(UrlPath) == 1) {
-            printf("Invalid UrlPath! Must begin with '/'!\n");
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
-        }
-        CustomUrlPath = true;
+    if (!ParseCommandLineUrls(argc, argv)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+    if (!CustomUrlPath) {
+        Urls.push_back("/");
     }
 
     const char* Target, *Custom;

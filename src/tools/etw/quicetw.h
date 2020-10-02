@@ -678,15 +678,15 @@ typedef struct QUIC_EVENT_DATA_LOG {
 inline void AddrToString(const SOCKADDR_INET* Addr, _Out_ char AddrStr[INET6_ADDRSTRLEN])
 {
     ULONG AddrStrLen = INET6_ADDRSTRLEN;
-    if (Addr->si_family == AF_UNSPEC) {
+    if (Addr->si_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
         if (Addr->Ipv4.sin_port == 0) {
             strcpy_s(AddrStr, INET6_ADDRSTRLEN, "NotSet");
         } else {
             sprintf_s(AddrStr, INET6_ADDRSTRLEN, "Unspecified:%u", Addr->Ipv4.sin_port);
         }
-    } else if (Addr->si_family == AF_INET) {
+    } else if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
         RtlIpv4AddressToStringExA(&Addr->Ipv4.sin_addr, Addr->Ipv4.sin_port, AddrStr, &AddrStrLen);
-    } else if (Addr->si_family == AF_INET6) {
+    } else if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET6) {
         RtlIpv6AddressToStringExA(&Addr->Ipv6.sin6_addr, Addr->Ipv6.sin6_scope_id, Addr->Ipv6.sin6_port, AddrStr, &AddrStrLen);
     } else {
         strcpy_s(AddrStr, INET6_ADDRSTRLEN, "Invalid");
@@ -1140,7 +1140,8 @@ inline void ReadCid(_In_z_ const char* Cid)
 #define QUIC_ERROR_TRANSPORT_PARAMETER_ERROR    0x8
 #define QUIC_ERROR_PROTOCOL_VIOLATION           0xA
 #define QUIC_ERROR_CRYPTO_BUFFER_EXCEEDED       0xD
-#define QUIC_ERROR_AEAD_LIMIT_REACHED           0xE
+#define QUIC_ERROR_KEY_UPDATE_ERROR             0xE
+#define QUIC_ERROR_AEAD_LIMIT_REACHED           0xF
 
 #define QUIC_ERROR_CRYPTO_ERROR_MASK            0x1FF
 
@@ -1165,7 +1166,8 @@ QuicErrorToString(
         case QUIC_ERROR_TRANSPORT_PARAMETER_ERROR:  return "TRANSPORT_PARAMETER_ERROR";
         case QUIC_ERROR_PROTOCOL_VIOLATION:         return "PROTOCOL_VIOLATION";
         case QUIC_ERROR_CRYPTO_BUFFER_EXCEEDED:     return "CRYPTO_BUFFER_EXCEEDED";
-        case QUIC_ERROR_AEAD_LIMIT_REACHED:         return "AEAD_LIMIT_REACHED";
+        case QUIC_ERROR_KEY_UPDATE_ERROR:           return "CRYPTO_BUFFER_EXCEEDED";
+        case QUIC_ERROR_AEAD_LIMIT_REACHED:         return "KEY_UPDATE_ERROR";
         default:                                    return "UNDEFINED ERROR CODE";
         }
     } else if (ErrorCode < 0x200) {

@@ -65,14 +65,17 @@ private:
         _In_ HQUIC Handle
         );
 
-    MsQuicRegistration Registration;
-    MsQuicSession Session {
+    MsQuicRegistration Registration {true};
+    MsQuicConfiguration Configuration {
         Registration,
         MsQuicAlpn(PERF_ALPN),
         MsQuicSettings()
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
-            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT),
-        true};
+            .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
+            .SetSendBufferingEnabled(false),
+        MsQuicCredentialConfig(
+            QUIC_CREDENTIAL_FLAG_CLIENT |
+            QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
     uint16_t Port {PERF_DEFAULT_PORT};
     UniquePtr<char[]> Target;
     uint32_t RunTime {RPS_DEFAULT_RUN_TIME};
@@ -88,4 +91,6 @@ private:
     uint64_t StartedRequests {0};
     uint64_t SendCompletedRequests {0};
     uint64_t CompletedRequests {0};
+    UniquePtr<HQUIC[]> Connections {nullptr};
+    bool Running {true};
 };

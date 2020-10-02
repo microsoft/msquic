@@ -28,6 +28,19 @@ MsQuicLibraryUnload(
     void
     );
 
+_No_competing_thread_
+INITCODE
+NTSTATUS
+MsQuicPcwStartup(
+    void
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+MsQuicPcwCleanup(
+    void
+    );
+
 INITCODE DRIVER_INITIALIZE DriverEntry;
 PAGEDX EVT_WDF_DRIVER_UNLOAD EvtDriverUnload;
 
@@ -98,6 +111,11 @@ Return Value:
         goto Error;
     }
 
+    Status = MsQuicPcwStartup();
+    if (!NT_SUCCESS(Status)) {
+        goto Error;
+    }
+
 Error:
 
     if (!NT_SUCCESS(Status)) {
@@ -132,6 +150,7 @@ Arguments:
     UNREFERENCED_PARAMETER(Driver);
 
     PAGED_CODE();
+    MsQuicPcwCleanup();
     MsQuicLibraryUnload();
     QuicPlatformSystemUnload();
 }

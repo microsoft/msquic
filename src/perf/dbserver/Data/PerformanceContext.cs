@@ -21,6 +21,7 @@ namespace QuicDataServer.Data
 
         public DbSet<DbThroughputTestRecord> ThroughputTestRecords { get; set; } = null!;
         public DbSet<DbRpsTestRecord> RpsTestRecords { get; set; } = null!;
+        public DbSet<DbHpsTestRecord> HpsTestRecords { get; set; } = null!;
 
         public DbSet<DbMachine> Machines { get; set; } = null!;
 

@@ -18,7 +18,7 @@ Abstract:
 typedef enum QUIC_HANDLE_TYPE {
 
     QUIC_HANDLE_TYPE_REGISTRATION,
-    QUIC_HANDLE_TYPE_SESSION,
+    QUIC_HANDLE_TYPE_CONFIGURATION,
     QUIC_HANDLE_TYPE_LISTENER,
     QUIC_HANDLE_TYPE_CONNECTION_CLIENT,
     QUIC_HANDLE_TYPE_CONNECTION_SERVER,
@@ -70,7 +70,7 @@ typedef union QUIC_STREAM_FLAGS {
 } QUIC_STREAM_FLAGS;
 
 typedef union QUIC_CONNECTION_STATE {
-    UINT32 Flags;
+    uint32_t Flags;
     struct {
         BOOLEAN Allocated       : 1;    // Allocated. Used for Debugging.
         BOOLEAN Initialized     : 1;    // Initialized successfully. Used for Debugging.
@@ -81,14 +81,20 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN AppClosed       : 1;    // Application (not transport) closed connection.
         BOOLEAN HandleShutdown  : 1;    // Shutdown callback delivered for handle.
         BOOLEAN HandleClosed    : 1;    // Handle closed by application layer.
-        BOOLEAN Uninitialized   : 1;    // Uninitialize started/completed. Used for Debugging.
+        BOOLEAN Uninitialized   : 1;    // Uninitialize started/completed.
         BOOLEAN Freed           : 1;    // Freed. Used for Debugging.
 
         //
         // Indicates whether packet number encryption is enabled or not for the
         // connection.
         //
-        BOOLEAN HeaderProtectionEnabled : 1;
+        BOOLEAN HeaderProtectionEnabled : 1; // TODO - Remove since it's not used
+
+        //
+        // Indicates that 1-RTT encryption has been configured/negotiated to be
+        // disabled.
+        //
+        BOOLEAN Disable1RttEncrytion : 1;
 
         //
         // Indicates whether the current 'owner' of the connection is internal
@@ -97,6 +103,12 @@ typedef union QUIC_CONNECTION_STATE {
         // appliciation, via the listener callback.
         //
         BOOLEAN ExternalOwner : 1;
+
+        //
+        // Indicate the connection is currently in the registration's list of
+        // connections and needs to be removed.
+        //
+        BOOLEAN Registered : 1;
 
         //
         // This flag indicates the client has gotten response from the server.
@@ -136,6 +148,11 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN RemoteAddressSet : 1;
 
         //
+        // Indicates the peer transport parameters variable has been set.
+        //
+        BOOLEAN PeerTransportParameterValid : 1;
+
+        //
         // Indicates the connection needs to queue onto a new worker thread.
         //
         BOOLEAN UpdateWorker : 1;
@@ -151,24 +168,33 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN SendShutdownCompleteNotif : 1;
 
         //
-        // Indicates whether send requests should be buffered.
-        //
-        BOOLEAN UseSendBuffer : 1;
-
-        //
-        // Indicates whether pacing logic is enabled for sending.
-        //
-        BOOLEAN UsePacing : 1;
-
-        //
         // Indicates whether this connection shares bindings with others.
         //
         BOOLEAN ShareBinding : 1;
 
         //
-        // Indicate the TestTransportParameter variable has been set by the app.
+        // Indicates the TestTransportParameter variable has been set by the app.
         //
         BOOLEAN TestTransportParameterSet : 1;
+
+        //
+        // Indicates the connection is using the round robin stream scheduling
+        // scheme.
+        //
+        BOOLEAN UseRoundRobinStreamScheduling : 1;
+
+        //
+        // Indicates that this connection has resumption enabled and needs to
+        // keep the TLS state and transport parameters until it is done sending
+        // resumption tickets.
+        //
+        BOOLEAN ResumptionEnabled : 1;
+
+        //
+        // Indicates that an app close from a non worker thread is in progress.
+        // Received by the QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE event.
+        //
+        BOOLEAN AppCloseInProgress: 1;
 
 #ifdef QuicVerifierEnabledByAddr
         //
@@ -418,8 +444,8 @@ struct QuicHandle : Struct {
         switch (Type()) {
         case QUIC_HANDLE_TYPE_REGISTRATION:
             return "REGISTRATION";
-        case QUIC_HANDLE_TYPE_SESSION:
-            return "SESSION";
+        case QUIC_HANDLE_TYPE_CONFIGURATION:
+            return "CONFIGURATION";
         case QUIC_HANDLE_TYPE_LISTENER:
             return "LISTENER";
         case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
@@ -436,8 +462,8 @@ struct QuicHandle : Struct {
         switch (Type()) {
         case QUIC_HANDLE_TYPE_REGISTRATION:
             return "registration";
-        case QUIC_HANDLE_TYPE_SESSION:
-            return "session";
+        case QUIC_HANDLE_TYPE_CONFIGURATION:
+            return "congifuration";
         case QUIC_HANDLE_TYPE_LISTENER:
             return "listener";
         case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
@@ -891,6 +917,7 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_CONN_CLOSE,
     QUIC_API_TYPE_CONN_SHUTDOWN,
     QUIC_API_TYPE_CONN_START,
+    QUIC_API_TYPE_CONN_SET_CONFIGURATION,
     QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET,
 
     QUIC_API_TYPE_STRM_CLOSE,
@@ -923,6 +950,8 @@ struct ApiCall : Struct {
             return "API_CONN_SHUTDOWN";
         case QUIC_API_TYPE_CONN_START:
             return "API_CONN_START";
+        case QUIC_API_TYPE_CONN_SET_CONFIGURATION:
+            return "API_TYPE_CONN_SET_CONFIGURATION";
         case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:
             return "QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET";
         case QUIC_API_TYPE_STRM_CLOSE:
@@ -1037,8 +1066,8 @@ struct Connection : Struct {
 
     Connection(ULONG64 Addr) : Struct("msquic!QUIC_CONNECTION", Addr) { }
 
-    static Connection FromSessionLink(ULONG64 LinkAddr) {
-        return Connection(LinkEntryToType(LinkAddr, "msquic!QUIC_CONNECTION", "SessionLink"));
+    static Connection FromRegistrationLink(ULONG64 LinkAddr) {
+        return Connection(LinkEntryToType(LinkAddr, "msquic!QUIC_CONNECTION", "RegistrationLink"));
     }
 
     static Connection FromWorkerLink(ULONG64 LinkAddr) {
@@ -1148,8 +1177,8 @@ struct Listener : Struct {
         return ReadType<UCHAR>("WildCard") != 0;
     }
 
-    ULONG64 GetSession() {
-        return ReadPointer("Session");
+    ULONG64 GetRegistration() {
+        return ReadPointer("Registration");
     }
 
     ULONG64 GetBinding() {
@@ -1158,6 +1187,39 @@ struct Listener : Struct {
 
     IpAddress GetLocalAddress() {
         return IpAddress(AddrOf("LocalAddress"));
+    }
+
+    ULONG64 GetRawAlpnList() {
+        return AddrOf("AlpnList");
+    }
+
+    USHORT GetAlpnListLength() {
+        return ReadType<USHORT>("AlpnListLength");
+    }
+
+    String GetAlpns() {
+        ULONG64 AlpnList = GetRawAlpnList();
+        USHORT AlpnListLength = GetAlpnListLength();
+
+        String Str;
+        ULONG StrOffset = 0;
+        while (AlpnListLength != 0) {
+            UINT8 Length;
+            ReadTypeAtAddr<UINT8>(AlpnList, &Length);
+            AlpnList++;
+            AlpnListLength--;
+
+            ULONG cbRead;
+            ReadMemory(AlpnList, Str.Data + StrOffset, Length, &cbRead);
+            AlpnList += Length;
+            AlpnListLength -= Length;
+            StrOffset += Length + 1;
+            Str.Data[StrOffset] = ',';
+        }
+
+        Str.Data[StrOffset - 1] = 0;
+
+        return Str;
     }
 };
 
@@ -1213,20 +1275,16 @@ struct WorkerPool : Struct {
     }
 };
 
-struct Session : Struct {
+struct Configuration : Struct {
 
-    Session(ULONG64 Addr) : Struct("msquic!QUIC_SESSION", Addr) { }
+    Configuration(ULONG64 Addr) : Struct("msquic!QUIC_CONFIGURATION", Addr) { }
 
-    static Session FromLink(ULONG64 LinkAddr) {
-        return Session(LinkEntryToType(LinkAddr, "msquic!QUIC_SESSION", "Link"));
+    static Configuration FromLink(ULONG64 LinkAddr) {
+        return Configuration(LinkEntryToType(LinkAddr, "msquic!QUIC_CONFIGURATION", "Link"));
     }
 
     ULONG64 GetRegistration() {
         return ReadPointer("Registration");
-    }
-
-    LinkedList GetConnections() {
-        return LinkedList(AddrOf("Connections"));
     }
 
     ULONG64 GetRawAlpnList() {
@@ -1275,8 +1333,12 @@ struct Registration : Struct {
         return WorkerPool(ReadPointer("WorkerPool"));
     }
 
-    LinkedList GetSessions() {
-        return LinkedList(AddrOf("Sessions"));
+    LinkedList GetConfigurations() {
+        return LinkedList(AddrOf("Configurations"));
+    }
+
+    LinkedList GetConnections() {
+        return LinkedList(AddrOf("Connections"));
     }
 
     String GetAppName() {

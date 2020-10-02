@@ -630,10 +630,6 @@ typedef pthread_t QUIC_THREAD;
 
 typedef void* (* LPTHREAD_START_ROUTINE)(void *);
 
-#define QUIC_THREAD_FLAG_SET_IDEAL_PROC     0x0001
-#define QUIC_THREAD_FLAG_SET_AFFINITIZE     0x0002
-#define QUIC_THREAD_FLAG_HIGH_PRIORITY      0x0004
-
 typedef struct QUIC_THREAD_CONFIG {
     uint16_t Flags;
     uint16_t IdealProcessor;
@@ -765,37 +761,6 @@ QuicConvertFromMappedV6(
     _In_ const QUIC_ADDR* InAddr,
     _Out_ QUIC_ADDR* OutAddr
     );
-
-//
-// Test Interface for loading a self-signed certificate.
-//
-
-#ifdef QUIC_TEST_APIS
-
-typedef struct QUIC_SEC_CONFIG_PARAMS {
-    uint32_t Flags;
-    void* Certificate;
-    const char* Principal;
-} QUIC_SEC_CONFIG_PARAMS;
-
-typedef enum QUIC_SELF_SIGN_CERT_TYPE {
-    QUIC_SELF_SIGN_CERT_USER,
-    QUIC_SELF_SIGN_CERT_MACHINE
-} QUIC_SELF_SIGN_CERT_TYPE;
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG_PARAMS*
-QuicPlatGetSelfSignedCert(
-    _In_ QUIC_SELF_SIGN_CERT_TYPE Type
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicPlatFreeSelfSignedCert(
-    _In_ QUIC_SEC_CONFIG_PARAMS* Params
-    );
-
-#endif // QUIC_TEST_APIS
 
 #define QuicSetCurrentThreadProcessorAffinity(ProcessorIndex) QUIC_STATUS_SUCCESS
 

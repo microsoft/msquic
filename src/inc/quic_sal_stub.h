@@ -182,6 +182,10 @@
 #define __drv_aliasesMem
 #endif
 
+#ifndef _Frees_ptr_
+#define _Frees_ptr_
+#endif
+
 #ifndef _Frees_ptr_opt_
 #define _Frees_ptr_opt_
 #endif

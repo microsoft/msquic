@@ -667,8 +667,8 @@ QuicConvertToMappedV6(
 
     QuicZeroMemory(OutAddr, sizeof(QUIC_ADDR));
 
-    if (InAddr->Ip.sa_family == AF_INET) {
-        OutAddr->Ipv6.sin6_family = AF_INET6;
+    if (InAddr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
+        OutAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
         OutAddr->Ipv6.sin6_port = InAddr->Ipv4.sin_port;
         memset(&(OutAddr->Ipv6.sin6_addr.s6_addr[10]), 0xff, 2);
         memcpy(&(OutAddr->Ipv6.sin6_addr.s6_addr[12]), &InAddr->Ipv4.sin_addr.s_addr, 4);
@@ -683,13 +683,13 @@ QuicConvertFromMappedV6(
     _Out_ QUIC_ADDR* OutAddr
     )
 {
-    QUIC_DBG_ASSERT(InAddr->Ip.sa_family == AF_INET6);
+    QUIC_DBG_ASSERT(InAddr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6);
 
     if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
         QUIC_ADDR TmpAddrS = {0};
         QUIC_ADDR* TmpAddr = &TmpAddrS;
 
-        TmpAddr->Ipv4.sin_family = AF_INET;
+        TmpAddr->Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
         TmpAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
         memcpy(&TmpAddr->Ipv4.sin_addr.s_addr, &InAddr->Ipv6.sin6_addr.s6_addr[12], 4);
         *OutAddr = *TmpAddr;
@@ -719,22 +719,20 @@ QuicThreadCreate(
     }
 
 #ifdef __GLIBC__
-    if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
-        // There is no way to set an ideal processor in Linux, so just set affinity
-        if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
-            cpu_set_t CpuSet;
-            CPU_ZERO(&CpuSet);
-            CPU_SET(Config->IdealProcessor, &CpuSet);
-            if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
-                QuicTraceEvent(
-                    LibraryError,
-                    "[ lib] ERROR, %s.",
-                    "pthread_attr_setaffinity_np failed");
-            }
-        } else {
-            // TODO - Set Linux equivalent of NUMA affinity.
+    if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
+        cpu_set_t CpuSet;
+        CPU_ZERO(&CpuSet);
+        CPU_SET(Config->IdealProcessor, &CpuSet);
+        if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "pthread_attr_setaffinity_np failed");
         }
+    } else {
+        // TODO - Set Linux equivalent of NUMA affinity.
     }
+    // There is no way to set an ideal processor in Linux.
 #endif
 
     if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
@@ -759,8 +757,7 @@ QuicThreadCreate(
     }
 
 #ifndef __GLIBC__
-    if (Status == QUIC_STATUS_SUCCESS && Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
-        // There is no way to set an ideal processor in Linux, so just set affinity
+    if (Status == QUIC_STATUS_SUCCESS) {
         if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
             cpu_set_t CpuSet;
             CPU_ZERO(&CpuSet);

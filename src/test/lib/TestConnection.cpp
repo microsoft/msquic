@@ -31,23 +31,17 @@ TestConnection::TestConnection(
     QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
     QuicEventInitialize(&EventShutdownComplete, TRUE, FALSE);
+    QuicEventInitialize(&EventResumptionTicketReceived, TRUE, FALSE);
 
     if (QuicConnection == nullptr) {
         TEST_FAILURE("Invalid handle passed into TestConnection.");
     } else {
         MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicConnectionHandler, this);
     }
-
-    //
-    // Test code uses self-signed certificates, so we cannot validate the root.
-    //
-    SetCertValidationFlags(
-        QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
-        QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID);
 }
 
 TestConnection::TestConnection(
-    _In_ MsQuicSession& Session,
+    _In_ MsQuicRegistration& Registration,
     _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler
     ) :
     QuicConnection(nullptr),
@@ -63,10 +57,11 @@ TestConnection::TestConnection(
     QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
     QuicEventInitialize(&EventShutdownComplete, TRUE, FALSE);
+    QuicEventInitialize(&EventResumptionTicketReceived, TRUE, FALSE);
 
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
-            Session.Handle,
+            Registration,
             QuicConnectionHandler,
             this,
             &QuicConnection);
@@ -74,25 +69,23 @@ TestConnection::TestConnection(
         TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
         QuicConnection = nullptr;
     }
-
-    //
-    // Test code uses self-signed certificates, so we cannot validate the root.
-    //
-    SetCertValidationFlags(
-        QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
-        QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID);
 }
 
 TestConnection::~TestConnection()
 {
     MsQuic->ConnectionClose(QuicConnection);
+    QuicEventUninitialize(EventResumptionTicketReceived);
     QuicEventUninitialize(EventShutdownComplete);
     QuicEventUninitialize(EventPeerClosed);
     QuicEventUninitialize(EventConnectionComplete);
+    if (ResumptionTicket) {
+        QUIC_FREE(ResumptionTicket);
+    }
 }
 
 QUIC_STATUS
 TestConnection::Start(
+    _In_ HQUIC Configuration,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_opt_z_ const char* ServerName,
     _In_ uint16_t ServerPort // Host byte order
@@ -102,6 +95,7 @@ TestConnection::Start(
     if (QUIC_SUCCEEDED(
         Status = MsQuic->ConnectionStart(
             QuicConnection,
+            Configuration,
             Family,
             ServerName,
             ServerPort))) {
@@ -158,22 +152,16 @@ TestConnection::WaitForConnectionComplete()
     return true;
 }
 
-bool
-TestConnection::WaitForZeroRttTicket()
+QUIC_BUFFER*
+TestConnection::WaitForResumptionTicket()
 {
-    const uint32_t MaxTryCount = 1 + GetWaitTimeout() / 100;
-    uint32_t TryCount = 0;
-    while (TryCount++ < MaxTryCount) {
-        if (HasNewZeroRttTicket()) {
-            break;
-        }
-        QuicSleep(100);
+    if (!QuicEventWaitWithTimeout(EventResumptionTicketReceived, GetWaitTimeout())) {
+        TEST_FAILURE("WaitForResumptionTicket timed out after %u ms.", GetWaitTimeout());
+        return nullptr;
     }
-    if (TryCount == MaxTryCount) {
-        TEST_FAILURE("WaitForZeroRttTicket failed.");
-        return false;
-    }
-    return true;
+    auto Ticket = ResumptionTicket;
+    ResumptionTicket = nullptr;
+    return Ticket;
 }
 
 bool
@@ -384,23 +372,42 @@ TestConnection::SetRemoteAddr(
             &remoteAddr.SockAddr);
 }
 
-uint64_t
-TestConnection::GetIdleTimeout()
+QUIC_SETTINGS
+TestConnection::GetSettings() const
 {
-    uint64_t value;
+    QUIC_SETTINGS value;
     uint32_t valueSize = sizeof(value);
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_IDLE_TIMEOUT,
+            QUIC_PARAM_CONN_SETTINGS,
             &valueSize,
             &value);
     if (QUIC_FAILED(Status)) {
-        value = 0;
-        TEST_FAILURE("MsQuic->GetParam(CONN_IDLE_TIMEOUT) failed, 0x%x.", Status);
+        TEST_FAILURE("MsQuic->GetParam(CONN_SETTINGS) failed, 0x%x.", Status);
     }
     return value;
+}
+
+QUIC_STATUS
+TestConnection::SetSettings(
+    _In_ const QUIC_SETTINGS& value
+    )
+{
+    return
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_SETTINGS,
+            sizeof(value),
+            &value);
+}
+
+uint64_t
+TestConnection::GetIdleTimeout()
+{
+    return GetSettings().IdleTimeoutMs;
 }
 
 QUIC_STATUS
@@ -408,32 +415,16 @@ TestConnection::SetIdleTimeout(
     uint64_t value
     )
 {
-    return
-        MsQuic->SetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_IDLE_TIMEOUT,
-            sizeof(value),
-            &value);
+    QUIC_SETTINGS Settings{0};
+    Settings.IdleTimeoutMs = value;
+    Settings.IsSet.IdleTimeoutMs = TRUE;
+    return SetSettings(Settings);
 }
 
 uint32_t
 TestConnection::GetDisconnectTimeout()
 {
-    uint32_t value;
-    uint32_t valueSize = sizeof(value);
-    QUIC_STATUS Status =
-        MsQuic->GetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_DISCONNECT_TIMEOUT,
-            &valueSize,
-            &value);
-    if (QUIC_FAILED(Status)) {
-        value = 0;
-        TEST_FAILURE("MsQuic->GetParam(CONN_DISCONNECT_TIMEOUT) failed, 0x%x.", Status);
-    }
-    return value;
+    return GetSettings().DisconnectTimeoutMs;
 }
 
 QUIC_STATUS
@@ -441,32 +432,16 @@ TestConnection::SetDisconnectTimeout(
     uint32_t value
     )
 {
-    return
-        MsQuic->SetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_DISCONNECT_TIMEOUT,
-            sizeof(value),
-            &value);
+    QUIC_SETTINGS Settings{0};
+    Settings.DisconnectTimeoutMs = value;
+    Settings.IsSet.DisconnectTimeoutMs = TRUE;
+    return SetSettings(Settings);
 }
 
 uint16_t
 TestConnection::GetPeerBidiStreamCount()
 {
-    uint16_t value;
-    uint32_t valueSize = sizeof(value);
-    QUIC_STATUS Status =
-        MsQuic->GetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT,
-            &valueSize,
-            &value);
-    if (QUIC_FAILED(Status)) {
-        value = 0;
-        TEST_FAILURE("MsQuic->GetParam(CONN_PEER_BIDI_STREAM_COUNT) failed, 0x%x.", Status);
-    }
-    return value;
+    return GetSettings().PeerBidiStreamCount;
 }
 
 QUIC_STATUS
@@ -474,32 +449,16 @@ TestConnection::SetPeerBidiStreamCount(
     uint16_t value
     )
 {
-    return
-        MsQuic->SetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT,
-            sizeof(value),
-            &value);
+    QUIC_SETTINGS Settings{0};
+    Settings.PeerBidiStreamCount = value;
+    Settings.IsSet.PeerBidiStreamCount = TRUE;
+    return SetSettings(Settings);
 }
 
 uint16_t
 TestConnection::GetPeerUnidiStreamCount()
 {
-    uint16_t value;
-    uint32_t valueSize = sizeof(value);
-    QUIC_STATUS Status =
-        MsQuic->GetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT,
-            &valueSize,
-            &value);
-    if (QUIC_FAILED(Status)) {
-        value = 0;
-        TEST_FAILURE("MsQuic->GetParam(CONN_PEER_UNIDI_STREAM_COUNT) failed, 0x%x.", Status);
-    }
-    return value;
+    return GetSettings().PeerUnidiStreamCount;
 }
 
 QUIC_STATUS
@@ -507,13 +466,10 @@ TestConnection::SetPeerUnidiStreamCount(
     uint16_t value
     )
 {
-    return
-        MsQuic->SetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT,
-            sizeof(value),
-            &value);
+    QUIC_SETTINGS Settings{0};
+    Settings.PeerUnidiStreamCount = value;
+    Settings.IsSet.PeerUnidiStreamCount = TRUE;
+    return SetSettings(Settings);
 }
 
 uint16_t
@@ -572,56 +528,10 @@ TestConnection::GetStatistics()
     return value;
 }
 
-uint32_t
-TestConnection::GetCertValidationFlags()
-{
-    BOOLEAN value;
-    uint32_t valueSize = sizeof(value);
-    QUIC_STATUS Status =
-        MsQuic->GetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-            &valueSize,
-            &value);
-    if (QUIC_FAILED(Status)) {
-        value = 0;
-        TEST_FAILURE("MsQuic->GetParam(CONN_CERT_VALIDATION_FLAGS) failed, 0x%x.", Status);
-    }
-    return value;
-}
-
-QUIC_STATUS
-TestConnection::SetCertValidationFlags(
-    uint32_t value
-    )
-{
-    return
-        MsQuic->SetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-            sizeof(value),
-            &value);
-}
-
 bool
 TestConnection::GetUseSendBuffer()
 {
-    BOOLEAN value;
-    uint32_t valueSize = sizeof(value);
-    QUIC_STATUS Status =
-        MsQuic->GetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_SEND_BUFFERING,
-            &valueSize,
-            &value);
-    if (QUIC_FAILED(Status)) {
-        value = 0;
-        TEST_FAILURE("MsQuic->GetParam(CONN_SEND_BUFFERING) failed, 0x%x.", Status);
-    }
-    return value != FALSE;
+    return GetSettings().SendBufferingEnabled;
 }
 
 QUIC_STATUS
@@ -629,33 +539,16 @@ TestConnection::SetUseSendBuffer(
     bool value
     )
 {
-    BOOLEAN bValue = value ? TRUE : FALSE;
-    return
-        MsQuic->SetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_SEND_BUFFERING,
-            sizeof(bValue),
-            &bValue);
+    QUIC_SETTINGS Settings{0};
+    Settings.SendBufferingEnabled = value ? TRUE : FALSE;
+    Settings.IsSet.SendBufferingEnabled = TRUE;
+    return SetSettings(Settings);
 }
 
 uint32_t
 TestConnection::GetKeepAlive()
 {
-    uint32_t value;
-    uint32_t valueSize = sizeof(value);
-    QUIC_STATUS Status =
-        MsQuic->GetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_KEEP_ALIVE,
-            &valueSize,
-            &value);
-    if (QUIC_FAILED(Status)) {
-        value = 0;
-        TEST_FAILURE("MsQuic->GetParam(CONN_KEEP_ALIVE) failed, 0x%x.", Status);
-    }
-    return value;
+    return GetSettings().KeepAliveIntervalMs;
 }
 
 QUIC_STATUS
@@ -663,13 +556,10 @@ TestConnection::SetKeepAlive(
     uint32_t value
     )
 {
-    return
-        MsQuic->SetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_KEEP_ALIVE,
-            sizeof(value),
-            &value);
+    QUIC_SETTINGS Settings{0};
+    Settings.KeepAliveIntervalMs = value;
+    Settings.IsSet.KeepAliveIntervalMs = TRUE;
+    return SetSettings(Settings);
 }
 
 bool
@@ -793,46 +683,28 @@ TestConnection::SetPriorityScheme(
 }
 
 QUIC_STATUS
-TestConnection::SetSecurityConfig(
-    QUIC_SEC_CONFIG* value
+TestConnection::SetConfiguration(
+    HQUIC value
     )
+{
+    return
+        MsQuic->ConnectionSetConfiguration(
+            QuicConnection,
+            value);
+}
+
+QUIC_STATUS
+TestConnection::SetResumptionTicket(
+    const QUIC_BUFFER* NewResumptionTicket
+    ) const
 {
     return
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_SEC_CONFIG,
-            sizeof(value),
-            &value);
-}
-
-bool
-TestConnection::HasNewZeroRttTicket()
-{
-    uint32_t ResumptionStateLength = 0;
-    return
-        QUIC_STATUS_BUFFER_TOO_SMALL ==
-        MsQuic->GetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_RESUMPTION_STATE,
-            &ResumptionStateLength,
-            nullptr);
-}
-
-QUIC_STATUS
-TestConnection::GetResumptionTicket(
-    uint8_t* Buffer,
-    uint32_t* BufferLength
-    )
-{
-    return
-        MsQuic->GetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_RESUMPTION_STATE,
-            BufferLength,
-            Buffer);
+            NewResumptionTicket->Length,
+            NewResumptionTicket->Buffer);
 }
 
 QUIC_STATUS
@@ -939,6 +811,22 @@ TestConnection::HandleConnectionEvent(
             break;
         }
         break;
+
+    case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
+        ResumptionTicket =
+            (QUIC_BUFFER*)
+            QUIC_ALLOC_NONPAGED(
+                sizeof(QUIC_BUFFER) +
+                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
+        if (ResumptionTicket) {
+            ResumptionTicket->Buffer = (uint8_t*)(ResumptionTicket + 1);
+            ResumptionTicket->Length = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
+            QuicCopyMemory(
+                ResumptionTicket->Buffer,
+                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket,
+                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
+            QuicEventSet(EventResumptionTicketReceived);
+        }
 
     default:
         break;

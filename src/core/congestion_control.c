@@ -160,7 +160,7 @@ QuicCongestionControlGetSendAllowance(
         //
         SendAllowance = 0;
 
-    } else if (!Connection->State.UsePacing || !Connection->Paths[0].GotFirstRttSample) {
+    } else if (!Connection->Settings.PacingEnabled || !Connection->Paths[0].GotFirstRttSample) {
         //
         // Pacing is disabled or we don't have an RTT sample yet, so just send
         // everything we can.
