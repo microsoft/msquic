@@ -3116,7 +3116,7 @@ QuicConnRecvHeader(
 
     if (!Packet->IsShortHeader) {
         if (Packet->Invariant->LONG_HDR.Version != Connection->Stats.QuicVersion) {
-            if (Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG) {
+            if (Packet->Invariant->LONG_HDR.Version != QUIC_VERSION_LATEST) {
                 Connection->Stats.VersionNegotiation = TRUE;
 
                 //
