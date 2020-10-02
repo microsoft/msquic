@@ -55,11 +55,6 @@ QUIC_CID_QUIC_LIST_ENTRY*
 QuicCidNewRandomDestination(
     );
 
-uint8_t
-QuicCidDecodeLength(
-    _In_ uint8_t Length
-    );
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnFatalError(
