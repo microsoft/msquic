@@ -2773,7 +2773,7 @@ QuicConnUpdateDestCid(
     return TRUE;
 }
 
-/*
+
 //
 // Version negotiation is removed for the first version of QUIC.
 // When it is put back, it will probably be implemented as in this
@@ -2793,8 +2793,9 @@ QuicConnRecvVerNeg(
     const uint32_t* ServerVersionList =
         (const uint32_t*)(
         Packet->VerNeg->DestCid +
-        QuicCidDecodeLength(Packet->VerNeg->SourceCidLength) +
-        QuicCidDecodeLength(Packet->VerNeg->DestCidLength));
+        Packet->VerNeg->DestCidLength +
+        sizeof(uint8_t) + // sourceCID length field size
+        Packet->VerNeg->DestCid[Packet->VerNeg->DestCidLength]);  // this is the sourceCID length
     uint16_t ServerVersionListLength =
         (Packet->BufferLength - (uint16_t)((uint8_t*)ServerVersionList - Packet->Buffer)) / sizeof(uint32_t);
 
@@ -2839,7 +2840,7 @@ QuicConnRecvVerNeg(
     //
     // Did we find a supported version?
     //
-    if (SupportedVersion != 0) {
+    if (FALSE) { // TODO: remove this once Version Negotiation is supported.
 
         Connection->Stats.QuicVersion = SupportedVersion;
         QuicConnOnQuicVersionSet(Connection);
@@ -2856,8 +2857,8 @@ QuicConnRecvVerNeg(
         //
         QuicConnCloseLocally(
             Connection,
-            QUIC_CLOSE_INTERNAL_SILENT,
-            QUIC_ERROR_VERSION_NEGOTIATION_ERROR,
+            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+            (uint64_t)QUIC_STATUS_VER_NEG_ERROR,
             NULL);
     }
 
@@ -2865,7 +2866,7 @@ Exit:
 
     return;
 }
-*/
+
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -3130,11 +3131,7 @@ QuicConnRecvHeader(
                 // mismatch, so abandon the connect attempt.
                 //
 
-                QuicConnCloseLocally(
-                    Connection,
-                    QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
-                    (uint64_t)QUIC_STATUS_VER_NEG_ERROR,
-                    NULL);
+                QuicConnRecvVerNeg(Connection, Packet);
             } else {
                 QuicPacketLogDropWithValue(Connection, Packet, "Invalid version", QuicByteSwapUint32(Packet->Invariant->LONG_HDR.Version));
             }
