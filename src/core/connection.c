@@ -2840,7 +2840,7 @@ QuicConnRecvVerNeg(
     //
     // Did we find a supported version?
     //
-    if (SupportedVersion != 0) {
+    if (FALSE) { // TODO: remove this once Version Negotiation is supported.
 
         Connection->Stats.QuicVersion = SupportedVersion;
         QuicConnOnQuicVersionSet(Connection);
