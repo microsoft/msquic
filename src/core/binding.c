@@ -917,13 +917,13 @@ QuicBindingProcessStatelessOperation(
         Token.Encrypted.OrigConnIdLength = RecvPacket->DestCidLen;
 
         uint8_t Iv[QUIC_MAX_IV_LENGTH];
-        if (MsQuicLib.CidTotalLength >= sizeof(Iv)) {
-            QuicCopyMemory(Iv, NewDestCid, sizeof(Iv));
-            for (uint8_t i = sizeof(Iv); i < MsQuicLib.CidTotalLength; ++i) {
-                Iv[i % sizeof(Iv)] ^= NewDestCid[i];
+        if (MsQuicLib.CidTotalLength >= QUIC_IV_LENGTH) {
+            QuicCopyMemory(Iv, NewDestCid, QUIC_IV_LENGTH);
+            for (uint8_t i = QUIC_IV_LENGTH; i < MsQuicLib.CidTotalLength; ++i) {
+                Iv[i % QUIC_IV_LENGTH] ^= NewDestCid[i];
             }
         } else {
-            QuicZeroMemory(Iv, sizeof(Iv));
+            QuicZeroMemory(Iv, QUIC_IV_LENGTH);
             QuicCopyMemory(Iv, NewDestCid, MsQuicLib.CidTotalLength);
         }
 
