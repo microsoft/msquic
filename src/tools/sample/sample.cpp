@@ -162,7 +162,7 @@ ServerSend(
     //
     // Sends the buffer over the stream. Note the FIN flag is passed along with
     // the buffer. This indicates this is the last buffer on the stream and the
-    // the stream is shut down (in the send direction) immediate after.
+    // the stream is shut down (in the send direction) immediately after.
     //
     QUIC_STATUS Status;
     if (QUIC_FAILED(Status = MsQuic->StreamSend(Stream, SendBuffer, 1, QUIC_SEND_FLAG_FIN, SendBuffer))) {
@@ -217,7 +217,7 @@ ServerStreamCallback(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         //
         // Both directions of the stream have been shut down and MsQuic is done
-        // with the stream. It can now we safely cleaned up.
+        // with the stream. It can now be safely cleaned up.
         //
         printf("[strm][%p] All done\n", Stream);
         MsQuic->StreamClose(Stream);
@@ -273,7 +273,8 @@ ServerConnectionCallback(
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         //
-        // The peer has started/created a new stream.
+        // The peer has started/created a new stream. The app MUST set the
+        // callback handler before returning.
         //
         printf("[strm][%p] Peer started\n", Event->PEER_STREAM_STARTED.Stream);
         MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)ServerStreamCallback, nullptr);
@@ -309,7 +310,8 @@ ServerListenerCallback(
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
         //
         // A new connection is being attempted by a client. For the handshake to
-        // proceed, the server must provide a configuration for QUIC to use.
+        // proceed, the server must provide a configuration for QUIC to use. The
+        // app MUST set the callback handler before returning.
         //
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)ServerConnectionCallback, nullptr);
         Status = MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, Configuration);
@@ -515,7 +517,7 @@ ClientStreamCallback(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         //
         // Both directions of the stream have been shut down and MsQuic is done
-        // with the stream. It can now we safely cleaned up.
+        // with the stream. It can now be safely cleaned up.
         //
         printf("[strm][%p] All done\n", Stream);
         MsQuic->StreamClose(Stream);
@@ -575,7 +577,7 @@ ClientSend(
     //
     // Sends the buffer over the stream. Note the FIN flag is passed along with
     // the buffer. This indicates this is the last buffer on the stream and the
-    // the stream is shut down (in the send direction) immediate after.
+    // the stream is shut down (in the send direction) immediately after.
     //
     if (QUIC_FAILED(Status = MsQuic->StreamSend(Stream, SendBuffer, 1, QUIC_SEND_FLAG_FIN, SendBuffer))) {
         printf("StreamSend failed, 0x%x!\n", Status);
