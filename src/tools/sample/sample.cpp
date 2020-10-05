@@ -10,9 +10,10 @@ Abstract:
     The quicsample app implements a simple protocol (ALPN "sample") where the
     client connects to the server, opens a single bidirectional stream, sends
     some data and shuts down the stream in the send direction. On the server
-    side all connections, streams and data is accepted. After the stream is shut
-    down, the server then sends its own data and shuts down it send direction.
-    The connection only shuts down when the 1 second idle timeout triggers.
+    side all connections, streams and data are accepted. After the stream is
+    shut down, the server then sends its own data and shuts down its send
+    direction. The connection only shuts down when the 1 second idle timeout
+    triggers.
 
 --*/
 
@@ -43,7 +44,7 @@ const uint16_t UdpPort = 4567;
 const uint64_t IdleTimeoutMs = 1000;
 
 //
-// The amount of buffer sent over the streams in the protocol.
+// The length of buffer sent over the streams in the protocol.
 //
 const uint32_t SendBufferLength = 100;
 
@@ -67,9 +68,6 @@ HQUIC Registration;
 //
 HQUIC Configuration;
 
-//
-// Prints out the app usage text.
-//
 void PrintUsage()
 {
     printf(
@@ -164,7 +162,7 @@ ServerSend(
     //
     // Sends the buffer over the stream. Note the FIN flag is passed along with
     // the buffer. This indicates this is the last buffer on the stream and the
-    // the stream is shutdown (in the send direction) immediate after.
+    // the stream is shut down (in the send direction) immediate after.
     //
     QUIC_STATUS Status;
     if (QUIC_FAILED(Status = MsQuic->StreamSend(Stream, SendBuffer, 1, QUIC_SEND_FLAG_FIN, SendBuffer))) {
@@ -206,7 +204,7 @@ ServerStreamCallback(
         //
         // The peer gracefully shut down its send direction of the stream.
         //
-        printf("[strm][%p] Peer shutdown\n", Stream);
+        printf("[strm][%p] Peer shut down\n", Stream);
         ServerSend(Stream);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
@@ -253,17 +251,17 @@ ServerConnectionCallback(
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
         //
-        // The connection has been shutdown by the transport. Generally, this is
-        // the expected way for the connection to shut down with this protocol,
-        // since we let idle timeout kill the connection.
+        // The connection has been shut down by the transport. Generally, this
+        // is the expected way for the connection to shut down with this
+        // protocol, since we let idle timeout kill the connection.
         //
-        printf("[conn][%p] Shutdown by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+        printf("[conn][%p] Shut down by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
         //
-        // The connection was explicitly shutdown by the peer.
+        // The connection was explicitly shut down by the peer.
         //
-        printf("[conn][%p] Shutdown by peer, 0x%llu\n", Connection, (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
+        printf("[conn][%p] Shut down by peer, 0x%llu\n", Connection, (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         //
@@ -512,7 +510,7 @@ ClientStreamCallback(
         //
         // The peer aborted its send direction of the stream.
         //
-        printf("[strm][%p] Peer shutdown\n", Stream);
+        printf("[strm][%p] Peer shut down\n", Stream);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         //
@@ -577,7 +575,7 @@ ClientSend(
     //
     // Sends the buffer over the stream. Note the FIN flag is passed along with
     // the buffer. This indicates this is the last buffer on the stream and the
-    // the stream is shutdown (in the send direction) immediate after.
+    // the stream is shut down (in the send direction) immediate after.
     //
     if (QUIC_FAILED(Status = MsQuic->StreamSend(Stream, SendBuffer, 1, QUIC_SEND_FLAG_FIN, SendBuffer))) {
         printf("StreamSend failed, 0x%x!\n", Status);
@@ -615,17 +613,17 @@ ClientConnectionCallback(
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
         //
-        // The connection has been shutdown by the transport. Generally, this is
-        // the expected way for the connection to shut down with this protocol,
-        // since we let idle timeout kill the connection.
+        // The connection has been shut down by the transport. Generally, this
+        // is the expected way for the connection to shut down with this
+        // protocol, since we let idle timeout kill the connection.
         //
-        printf("[conn][%p] Shutdown by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+        printf("[conn][%p] Shut down by transport, 0x%x\n", Connection, Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
         //
-        // The connection was explicitly shutdown by the peer.
+        // The connection was explicitly shutd own by the peer.
         //
-        printf("[conn][%p] Shutdown by peer, 0x%llu\n", Connection, (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
+        printf("[conn][%p] Shut down by peer, 0x%llu\n", Connection, (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         //
@@ -723,7 +721,7 @@ RunClient(
     HQUIC Connection = nullptr;
 
     //
-    // Allocate a new connection object. 
+    // Allocate a new connection object.
     //
     if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Registration, ClientConnectionCallback, nullptr, &Connection))) {
         printf("ConnectionOpen failed, 0x%x!\n", Status);
