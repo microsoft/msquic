@@ -29,7 +29,7 @@ Abstract:
 const QUIC_REGISTRATION_CONFIG RegConfig = { "quicsample", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
 
 //
-// The application layer protocol negotiation used in the handshake.
+// The protocol name used in the Application Layer Protocol Negotiation (ALPN).
 //
 const QUIC_BUFFER Alpn = { sizeof("sample") - 1, (uint8_t*)"sample" };
 
@@ -621,7 +621,7 @@ ClientConnectionCallback(
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
         //
-        // The connection was explicitly shutd own by the peer.
+        // The connection was explicitly shut down by the peer.
         //
         printf("[conn][%p] Shut down by peer, 0x%llu\n", Connection, (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
         break;
