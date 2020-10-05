@@ -3449,7 +3449,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QUIC_STATELESS_RESET_TOKEN_LENGTH);
     }
 
-    uint8_t Iv[QUIC_IV_LENGTH];
+    uint8_t Iv[QUIC_MAX_IV_LENGTH];
     QuicCryptoCombineIvAndPacketNumber(
         Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->Iv,
         (uint8_t*) &Packet->PacketNumber,

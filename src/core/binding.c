@@ -916,7 +916,7 @@ QuicBindingProcessStatelessOperation(
         QuicCopyMemory(Token.Encrypted.OrigConnId, RecvPacket->DestCid, RecvPacket->DestCidLen);
         Token.Encrypted.OrigConnIdLength = RecvPacket->DestCidLen;
 
-        uint8_t Iv[QUIC_IV_LENGTH];
+        uint8_t Iv[QUIC_MAX_IV_LENGTH];
         if (MsQuicLib.CidTotalLength >= sizeof(Iv)) {
             QuicCopyMemory(Iv, NewDestCid, sizeof(Iv));
             for (uint8_t i = sizeof(Iv); i < MsQuicLib.CidTotalLength; ++i) {

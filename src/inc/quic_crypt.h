@@ -41,6 +41,11 @@ typedef struct QUIC_HASH QUIC_HASH;
 #define QUIC_IV_LENGTH 12
 
 //
+// The maximum buffer length of the IV need by the platform layer.
+//
+#define QUIC_MAX_IV_LENGTH 48
+
+//
 // The length of buffer used for header protection sampling.
 //
 #define QUIC_HP_SAMPLE_LENGTH 16
