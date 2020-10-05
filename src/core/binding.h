@@ -467,13 +467,13 @@ QuicRetryTokenDecrypt(
     QuicCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
     uint8_t Iv[QUIC_MAX_IV_LENGTH];
-    if (MsQuicLib.CidTotalLength >= sizeof(Iv)) {
-        QuicCopyMemory(Iv, Packet->DestCid, sizeof(Iv));
-        for (uint8_t i = sizeof(Iv); i < MsQuicLib.CidTotalLength; ++i) {
-            Iv[i % sizeof(Iv)] ^= Packet->DestCid[i];
+    if (MsQuicLib.CidTotalLength >= QUIC_IV_LENGTH) {
+        QuicCopyMemory(Iv, Packet->DestCid, QUIC_IV_LENGTH);
+        for (uint8_t i = QUIC_IV_LENGTH; i < MsQuicLib.CidTotalLength; ++i) {
+            Iv[i % QUIC_IV_LENGTH] ^= Packet->DestCid[i];
         }
     } else {
-        QuicZeroMemory(Iv, sizeof(Iv));
+        QuicZeroMemory(Iv, QUIC_IV_LENGTH);
         QuicCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
     }
 
