@@ -355,7 +355,8 @@ ServerLoadConfiguration(
     Settings.IsSet.ServerResumptionLevel = TRUE;
     //
     // Configures the server's settings to allow for the peer to open a single
-    // bidirectional stream.
+    // bidirectional stream. By default connections are not configured to allow
+    // any streams from the peer.
     //
     Settings.PeerBidiStreamCount = 1;
     Settings.IsSet.PeerBidiStreamCount = TRUE;
@@ -692,7 +693,8 @@ ClientLoadConfiguration(
     }
 
     //
-    // Loads the TLS credential part of the configuration.
+    // Loads the TLS credential part of the configuration. This is required even
+    // on client side, to indicate if a certificate is required or not.
     //
     if (QUIC_FAILED(Status = MsQuic->ConfigurationLoadCredential(Configuration, &CredConfig))) {
         printf("ConfigurationLoadCredential failed, 0x%x!\n", Status);
@@ -712,7 +714,7 @@ RunClient(
     )
 {
     //
-    // Load the client configuration based on the "usecure" command line option.
+    // Load the client configuration based on the "unsecure" command line option.
     //
     if (!ClientLoadConfiguration(GetValue(argc, argv, "unsecure"))) {
         return;
@@ -733,7 +735,7 @@ RunClient(
     if ((ResumptionTicketString = GetValue(argc, argv, "ticket")) != nullptr) {
         //
         // If provided at the command line, set the resumption ticket that can
-        // be used to resume a previou session.
+        // be used to resume a previous session.
         //
         uint8_t ResumptionTicket[1024];
         uint16_t TicketLength = (uint16_t)DecodeHexBuffer(ResumptionTicketString, sizeof(ResumptionTicket), ResumptionTicket);
