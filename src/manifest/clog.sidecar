@@ -4120,7 +4120,7 @@
     },
     "ConnPacketStats": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvLostOrReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu",
+      "TraceString": "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu",
       "UniqueId": "ConnPacketStats",
       "splitArgs": [
         {
@@ -4165,7 +4165,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection->Stats.Recv.LostOrReorderedPackets",
+            "UserSuppliedTrimmed": "Connection->Stats.Recv.ReorderedPackets",
             "SuggestedTelemetryName": "arg7"
           },
           "DefinationEncoding": "llu",

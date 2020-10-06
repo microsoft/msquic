@@ -339,7 +339,7 @@ PingConnection::ProcessEvent(
             printf("[%p]     Pers Congestion Events: %u\n", QuicConnection, Stats.Send.PersistentCongestionCount);
             printf("[%p]   Recv:\n", QuicConnection);
             printf("[%p]     Total Packets:          %llu\n", QuicConnection, (unsigned long long)Stats.Recv.TotalPackets);
-            printf("[%p]     Reordered Packets:      %llu\n", QuicConnection, (unsigned long long)Stats.Recv.LostOrReorderedPackets);
+            printf("[%p]     Reordered Packets:      %llu\n", QuicConnection, (unsigned long long)Stats.Recv.ReorderedPackets);
             printf("[%p]     Dropped Packets:        %llu\n", QuicConnection, (unsigned long long)Stats.Recv.DroppedPackets);
             printf("[%p]     Decryption Failures:    %llu\n", QuicConnection, (unsigned long long)Stats.Recv.DecryptionFailures);
             printf("[%p]     Total Bytes:            %llu\n", QuicConnection, (unsigned long long)Stats.Recv.TotalBytes);

@@ -5801,7 +5801,7 @@ QuicConnParamGet(
         Stats->Send.CongestionCount = Connection->Stats.Send.CongestionCount;
         Stats->Send.PersistentCongestionCount = Connection->Stats.Send.PersistentCongestionCount;
         Stats->Recv.TotalPackets = Connection->Stats.Recv.TotalPackets;
-        Stats->Recv.LostOrReorderedPackets = Connection->Stats.Recv.LostOrReorderedPackets;
+        Stats->Recv.ReorderedPackets = Connection->Stats.Recv.ReorderedPackets;
         Stats->Recv.DroppedPackets = Connection->Stats.Recv.DroppedPackets;
         Stats->Recv.DuplicatePackets = Connection->Stats.Recv.DuplicatePackets;
         Stats->Recv.TotalBytes = Connection->Stats.Recv.TotalBytes;

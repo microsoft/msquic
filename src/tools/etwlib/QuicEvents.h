@@ -326,7 +326,7 @@ struct QuicConnEventPayload {
             uint64_t SendSuspectedLostPackets;
             uint64_t SendSpuriousLostPackets;
             uint64_t RecvTotalPackets;
-            uint64_t RecvLostOrReorderedPackets;
+            uint64_t RecvReorderedPackets;
             uint64_t RecvDroppedPackets;
             uint64_t RecvDuplicatePackets;
             uint64_t RecvDecryptionFailures;

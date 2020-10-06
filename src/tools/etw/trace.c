@@ -860,12 +860,12 @@ QuicTraceConnEvent(
         break;
     }
     case EventId_QuicConnPacketStats: {
-        printf("STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvLostOrReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu\n",
+        printf("STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu\n",
             EvData->PacketStats.SendTotalPackets,
             EvData->PacketStats.SendSuspectedLostPackets,
             EvData->PacketStats.SendSpuriousLostPackets,
             EvData->PacketStats.RecvTotalPackets,
-            EvData->PacketStats.RecvLostOrReorderedPackets,
+            EvData->PacketStats.RecvReorderedPackets,
             EvData->PacketStats.RecvDroppedPackets,
             EvData->PacketStats.RecvDuplicatePackets,
             EvData->PacketStats.RecvDecryptionFailures);
