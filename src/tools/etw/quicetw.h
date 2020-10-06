@@ -482,7 +482,7 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
             UINT64 SendSuspectedLostPackets;
             UINT64 SendSpuriousLostPackets;
             UINT64 RecvTotalPackets;
-            UINT64 RecvReorderedPackets;
+            UINT64 RecvLostOrReorderedPackets;
             UINT64 RecvDroppedPackets;
             UINT64 RecvDuplicatePackets;
             UINT64 RecvDecryptionFailures;

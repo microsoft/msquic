@@ -309,7 +309,7 @@ typedef struct QUIC_STATISTICS {
     } Send;
     struct {
         uint64_t TotalPackets;          // QUIC packets; could be coalesced into fewer UDP datagrams.
-        uint64_t ReorderedPackets;      // Means not the expected next packet. Could indicate loss gap too.
+        uint64_t LostOrReorderedPackets;// Means not the expected next packet. Could indicate loss gap too.
         uint64_t DroppedPackets;        // Includes DuplicatePackets.
         uint64_t DuplicatePackets;
         uint64_t TotalBytes;            // Sum of UDP payloads

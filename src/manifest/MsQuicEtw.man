@@ -1170,7 +1170,7 @@
                 />
             <data
                 inType="win:UInt64"
-                name="RecvReorderedPackets"
+                name="RecvLostOrReorderedPackets"
                 />
             <data
                 inType="win:UInt64"
@@ -3038,7 +3038,7 @@
             />
         <string
             id="Etw.ConnPacketStats"
-            value="[conn][%1] STATS: SendTotalPackets=%2 SendSuspectedLostPackets=%3 SendSpuriousLostPackets=%4 RecvTotalPackets=%5 RecvReorderedPackets=%6 RecvDroppedPackets=%7 RecvDuplicatePackets=%8 RecvDecryptionFailures=%9"
+            value="[conn][%1] STATS: SendTotalPackets=%2 SendSuspectedLostPackets=%3 SendSpuriousLostPackets=%4 RecvTotalPackets=%5 RecvLostOrReorderedPackets=%6 RecvDroppedPackets=%7 RecvDuplicatePackets=%8 RecvDecryptionFailures=%9"
             />
         <string
             id="Etw.ConnShutdownComplete"

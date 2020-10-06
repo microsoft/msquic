@@ -117,7 +117,7 @@ QuicAckTrackerAckPacket(
         // Any time the next expected packet number doesn't match the one we
         // received, we consider it reordering.
         //
-        Connection->Stats.Recv.ReorderedPackets++;
+        Connection->Stats.Recv.LostOrReorderedPackets++;
     }
 
     if (!QuicRangeAddValue(&Tracker->PacketNumbersToAck, PacketNumber)) {
