@@ -112,10 +112,10 @@ QuicAckTrackerAckPacket(
 
     uint64_t CurLargestPacketNumber;
     if (QuicRangeGetMaxSafe(&Tracker->PacketNumbersToAck, &CurLargestPacketNumber) &&
-        CurLargestPacketNumber + 1 != PacketNumber) {
+        CurLargestPacketNumber > PacketNumber) {
         //
-        // Any time the next expected packet number doesn't match the one we
-        // received, we consider it reordering.
+        // Any time the largest known packet number is greater than the one
+        // we just received, we consider it reordering.
         //
         Connection->Stats.Recv.ReorderedPackets++;
     }

@@ -246,7 +246,7 @@ typedef struct QUIC_CONN_STATS {
 
     struct {
         uint64_t TotalPackets;          // QUIC packets; could be coalesced into fewer UDP datagrams.
-        uint64_t ReorderedPackets;      // Means not the expected next packet. Could indicate loss gap too.
+        uint64_t ReorderedPackets;      // Packets where packet number is less than highest seen.
         uint64_t DroppedPackets;        // Includes DuplicatePackets.
         uint64_t DuplicatePackets;
         uint64_t DecryptionFailures;    // Count of packets that failed to decrypt.
