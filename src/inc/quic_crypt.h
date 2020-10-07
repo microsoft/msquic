@@ -43,7 +43,11 @@ typedef struct QUIC_HASH QUIC_HASH;
 //
 // The maximum buffer length of the IV need by the platform layer.
 //
-#define QUIC_MAX_IV_LENGTH 48
+#ifdef _WIN32
+#define QUIC_MAX_IV_LENGTH 48 // BCrypt requires block size
+#else
+#define QUIC_MAX_IV_LENGTH QUIC_IV_LENGTH
+#endif
 
 //
 // The length of buffer used for header protection sampling.
