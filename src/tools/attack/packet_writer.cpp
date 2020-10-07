@@ -19,21 +19,6 @@
 #define VERIFY_QUIC_SUCCESS(result, ...) \
     if (QUIC_FAILED(result)) { printf(#result " failed.\n"); exit(0); }
 
-const uint32_t CertValidationIgnoreFlags =
-    QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
-    QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
-
-struct TlsSession
-{
-    QUIC_TLS_SESSION* Ptr;
-    TlsSession() : Ptr(nullptr) {
-        VERIFY_QUIC_SUCCESS(QuicTlsSessionInitialize(&Ptr));
-    }
-    ~TlsSession() {
-        QuicTlsSessionUninitialize(Ptr);
-    }
-};
-
 struct TlsContext
 {
     QUIC_TLS* Ptr;
@@ -42,7 +27,7 @@ struct TlsContext
     QUIC_EVENT ProcessCompleteEvent;
     uint8_t AlpnListBuffer[256];
 
-    TlsContext(TlsSession& Session, _In_z_ const char* Alpn, _In_z_ const char* Sni) :
+    TlsContext(_In_z_ const char* Alpn, _In_z_ const char* Sni) :
         Ptr(nullptr), SecConfig(nullptr) {
 
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
@@ -53,12 +38,16 @@ struct TlsContext
         State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000);
         State.BufferAllocLength = 8000;
 
+        QUIC_CREDENTIAL_CONFIG CredConfig = {
+            QUIC_CREDENTIAL_TYPE_NONE,
+            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
+            NULL, NULL, NULL, NULL
+        };
         VERIFY_QUIC_SUCCESS(
-            QuicTlsClientSecConfigCreate(
-                CertValidationIgnoreFlags, &SecConfig));
+            QuicTlsSecConfigCreate(
+                &CredConfig, &SecConfig, OnSecConfigCreateComplete));
 
         QUIC_CONNECTION Connection = {0};
-        ((QUIC_HANDLE*)&Connection)->Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
 
         QUIC_TRANSPORT_PARAMETERS TP = {0};
         TP.Flags |= QUIC_TP_FLAG_INITIAL_MAX_DATA;
@@ -77,12 +66,11 @@ struct TlsContext
 
         QUIC_TLS_CONFIG Config = {0};
         Config.IsServer = FALSE;
-        Config.TlsSession = Session.Ptr;
         Config.SecConfig = SecConfig;
         Config.AlpnBuffer = AlpnListBuffer;
         Config.AlpnBufferLength = AlpnListBuffer[0] + 1;
         Config.LocalTPBuffer =
-            QuicCryptoTlsEncodeTransportParameters(&Connection, &TP, &Config.LocalTPLength);
+            QuicCryptoTlsEncodeTransportParameters(&Connection, FALSE, &TP, NULL, &Config.LocalTPLength);
         if (!Config.LocalTPBuffer) {
             printf("Failed to encode transport parameters!\n");
         }
@@ -101,7 +89,7 @@ struct TlsContext
     ~TlsContext() {
         QuicTlsUninitialize(Ptr);
         if (SecConfig) {
-            QuicTlsSecConfigRelease(SecConfig);
+            QuicTlsSecConfigDelete(SecConfig);
         }
         QuicEventUninitialize(ProcessCompleteEvent);
         QUIC_FREE(State.Buffer);
@@ -112,6 +100,19 @@ struct TlsContext
     }
 
 private:
+
+    _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
+    static void
+    QUIC_API
+    OnSecConfigCreateComplete(
+        _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
+        _In_opt_ void* Context,
+        _In_ QUIC_STATUS /* Status */,
+        _In_opt_ QUIC_SEC_CONFIG* SecConfig
+        )
+    {
+        *(QUIC_SEC_CONFIG**)Context = SecConfig;
+    }
 
     QUIC_TLS_RESULT_FLAGS
     ProcessData(
@@ -219,6 +220,19 @@ private:
     }
 };
 
+PacketWriter::PacketWriter(
+    _In_ uint32_t Version,
+    _In_z_ const char* Alpn,
+    _In_z_ const char* Sni
+    )
+{
+    QuicVersion = Version;
+    uint16_t BufferSize = sizeof(CryptoBuffer);
+    CryptoBufferLength = 0;
+    WriteInitialCryptoFrame(
+        Alpn, Sni, &CryptoBufferLength, BufferSize, CryptoBuffer);
+}
+
 void
 PacketWriter::WriteInitialCryptoFrame(
     _In_z_ const char* Alpn,
@@ -229,23 +243,20 @@ PacketWriter::WriteInitialCryptoFrame(
         uint8_t* Buffer
     )
 {
-    TlsSession Session;
-    {
-        TlsContext ClientContext(Session, Alpn, Sni);
-        ClientContext.ProcessData();
+    TlsContext ClientContext(Alpn, Sni);
+    ClientContext.ProcessData();
 
-        QUIC_CRYPTO_EX Frame = {
-            0, ClientContext.State.BufferLength, ClientContext.State.Buffer
-        };
+    QUIC_CRYPTO_EX Frame = {
+        0, ClientContext.State.BufferLength, ClientContext.State.Buffer
+    };
 
-        if (!QuicCryptoFrameEncode(
-                &Frame,
-                Offset,
-                BufferLength,
-                Buffer)) {
-            printf("QuicCryptoFrameEncode failure!\n");
-            exit(0);
-        }
+    if (!QuicCryptoFrameEncode(
+            &Frame,
+            Offset,
+            BufferLength,
+            Buffer)) {
+        printf("QuicCryptoFrameEncode failure!\n");
+        exit(0);
     }
 }
 
@@ -253,8 +264,6 @@ void
 PacketWriter::WriteClientInitialPacket(
     _In_ uint32_t PacketNumber,
     _In_ uint8_t CidLength,
-    _In_z_ const char* Alpn,
-    _In_z_ const char* Sni,
     _In_ uint16_t BufferLength,
     _Out_writes_to_(BufferLength, *PacketLength)
         uint8_t* Buffer,
@@ -271,7 +280,7 @@ PacketWriter::WriteClientInitialPacket(
     uint8_t PacketNumberLength;
     *PacketLength =
         QuicPacketEncodeLongHeaderV1(
-            QUIC_VERSION_LATEST,
+            QuicVersion,
             QUIC_INITIAL,
             Cid,
             Cid,
@@ -282,14 +291,17 @@ PacketWriter::WriteClientInitialPacket(
             Buffer,
             &PayloadLengthOffset,
             &PacketNumberLength);
+    if (*PacketLength + CryptoBufferLength > BufferLength) {
+        printf("Crypto Too Big!\n");
+        exit(0);
+    }
 
-    *HeaderLength = *PacketLength;
-    WriteInitialCryptoFrame(Alpn, Sni, PacketLength, BufferLength, Buffer);
-
-    uint16_t PayloadLength = *PacketLength - *HeaderLength;
     QuicVarIntEncode2Bytes(
-        PacketNumberLength + PayloadLength + QUIC_ENCRYPTION_OVERHEAD,
+        PacketNumberLength + CryptoBufferLength + QUIC_ENCRYPTION_OVERHEAD,
         Buffer + PayloadLengthOffset);
+    *HeaderLength = *PacketLength;
 
+    QuicCopyMemory(Buffer + *PacketLength, CryptoBuffer, CryptoBufferLength);
+    *PacketLength += CryptoBufferLength;
     *PacketLength += QUIC_ENCRYPTION_OVERHEAD;
 }

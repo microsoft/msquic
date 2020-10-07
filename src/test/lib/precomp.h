@@ -5,6 +5,12 @@
 
 --*/
 
+//
+// Test code defaults to disabling certificate validation.
+//
+#define QUIC_DEFAULT_CLIENT_CRED_FLAGS \
+    (QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)
+
 #ifndef _KERNEL_MODE
 #include <vector>
 #endif

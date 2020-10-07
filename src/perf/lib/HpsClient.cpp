@@ -44,8 +44,8 @@ HpsClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (!Session.IsValid()) {
-        return Session.GetInitStatus();
+    if (!Configuration.IsValid()) {
+        return Configuration.GetInitStatus();
     }
 
     ActiveProcCount = QuicProcActiveCount();
@@ -160,7 +160,7 @@ HpsClient::Wait(
     WriteOutput("Result: %u HPS\n", HPS);
     //WriteOutput("Result: %u HPS (%ull create, %ull start, %ull complete)\n",
     //    HPS, CreatedConnections, StartedConnections, CompletedConnections);
-    Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+    Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -224,7 +224,7 @@ HpsClient::StartConnection(
 
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
-            Session,
+            Registration,
             Handler,
             Context,
             &Scope.Connection);
@@ -236,21 +236,6 @@ HpsClient::StartConnection(
     }
 
     InterlockedIncrement64((int64_t*)&CreatedConnections);
-
-    uint32_t SecFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-    Status =
-        MsQuic->SetParam(
-            Scope.Connection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-            sizeof(SecFlags),
-            &SecFlags);
-    if (QUIC_FAILED(Status)) {
-        if (!Shutdown) {
-            WriteOutput("SetParam(CONN_CERT_VALIDATION_FLAGS) failed, 0x%x\n", Status);
-        }
-        return;
-    }
 
     BOOLEAN Opt = TRUE;
     Status =
@@ -303,7 +288,8 @@ HpsClient::StartConnection(
     Status =
         MsQuic->ConnectionStart(
             Scope.Connection,
-            AF_UNSPEC,
+            Configuration,
+            QUIC_ADDRESS_FAMILY_UNSPEC,
             Target.get(),
             Port);
     if (QUIC_FAILED(Status)) {

@@ -171,7 +171,7 @@ function Invoke-TestCommand {
 function Wait-ForRemoteReady {
     param ($Job, $Matcher)
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
-    while ($StopWatch.ElapsedMilliseconds -lt 10000) {
+    while ($StopWatch.ElapsedMilliseconds -lt 20000) {
         $CurrentResults = Receive-Job -Job $Job -Keep
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match $Matcher
@@ -405,6 +405,8 @@ function Invoke-LocalExe {
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
 
+    $Stopwatch =  [system.diagnostics.stopwatch]::StartNew()
+
     $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
 
     # Wait for the job to finish
@@ -412,6 +414,11 @@ function Invoke-LocalExe {
     Stop-Job -Job $LocalJob | Out-Null
 
     $RetVal = Receive-Job -Job $LocalJob
+
+    $Stopwatch.Stop()
+
+    Write-Host ("Test Run Took " + $Stopwatch.Elapsed)
+
     return $RetVal -join "`n"
 }
 

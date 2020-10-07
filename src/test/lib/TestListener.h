@@ -12,11 +12,12 @@ Abstract:
 class TestListener;
 
 //
-// Callback for processing incoming connections.
+// Callback for processing incoming connections. Returns true if the connection
+// is accepted.
 //
 typedef
 _Function_class_(NEW_CONNECTION_CALLBACK)
-void
+bool
 (NEW_CONNECTION_CALLBACK)(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -30,11 +31,10 @@ typedef NEW_CONNECTION_CALLBACK *NEW_CONNECTION_CALLBACK_HANDLER;
 class TestListener
 {
     HQUIC QuicListener;
+    HQUIC QuicConfiguration;
 
-    bool FilterConnections  : 1;
-    bool SetSecConfig  : 1;
-    bool UseSendBuffer : 1;
-    bool HasRandomLoss : 1;
+    bool FilterConnections : 1;
+    bool HasRandomLoss     : 1;
 
     NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallback;
 
@@ -61,10 +61,9 @@ class TestListener
 public:
 
     TestListener(
-        _In_ HQUIC SessionHandle,
+        _In_ HQUIC Registration,
         _In_ NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallbackHandler,
-        _In_ bool AsyncSecConfig = false,
-        _In_ bool UseSendBuffer = true
+        _In_opt_ HQUIC Configuration
         );
 
     ~TestListener();
@@ -73,8 +72,20 @@ public:
 
     QUIC_STATUS
     Start(
+        _In_reads_(AlpnBufferCount) _Pre_defensive_
+            const QUIC_BUFFER* const AlpnBuffers,
+        _In_range_(>, 0) uint32_t AlpnBufferCount,
         _In_opt_ const QUIC_ADDR * LocalAddress = nullptr
         );
+
+    QUIC_STATUS
+    Start(
+        _In_ const MsQuicAlpn& Alpn,
+        _In_opt_ const QUIC_ADDR * LocalAddress = nullptr
+        )
+    {
+        return Start(Alpn, Alpn.Length(), LocalAddress);
+    }
 
     void Stop();
 

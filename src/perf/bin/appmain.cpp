@@ -34,13 +34,13 @@ QuicUserMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ bool KeyboardWait,
-    _In_ PerfSelfSignedConfiguration* SelfSignedConfig
+    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     ) {
     EventScope StopEvent {true};
 
     QUIC_STATUS Status;
 
-    Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedConfig);
+    Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedCredConfig);
     if (QUIC_FAILED(Status)) {
         return Status;
     }
@@ -66,7 +66,7 @@ QuicKernelMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ bool /*KeyboardWait*/,
-    _In_ QUIC_SEC_CONFIG_PARAMS* SelfSignedParams
+    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedParams
     ) {
     size_t TotalLength = sizeof(argc);
 
@@ -132,14 +132,13 @@ QuicKernelMain(
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    if (!DriverClient.Initialize(SelfSignedParams, QUIC_DRIVER_NAME)) {
+    if (!DriverClient.Initialize((QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1), QUIC_DRIVER_NAME)) {
         printf("Intializing Driver Client Failed.\n");
         DriverService.Uninitialize();
         QUIC_FREE(Data);
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    printf("Right before run\n");
     uint32_t OutBufferWritten = 0;
     bool RunSuccess = false;
     if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength, 30000)) {
@@ -197,8 +196,7 @@ main(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
-    QUIC_SEC_CONFIG_PARAMS* SelfSignedParams = nullptr;
-    PerfSelfSignedConfiguration SelfSignedConfig;
+    const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     QUIC_STATUS RetVal = 0;
     bool TestingKernelMode = false;
     bool KeyboardWait = false;
@@ -223,33 +221,31 @@ main(
         }
     }
 
-    SelfSignedParams =
+    SelfSignedCredConfig =
         QuicPlatGetSelfSignedCert(
             TestingKernelMode ?
                 QUIC_SELF_SIGN_CERT_MACHINE :
                 QUIC_SELF_SIGN_CERT_USER);
-    if (!SelfSignedParams) {
+    if (!SelfSignedCredConfig) {
         printf("Creating self signed certificate failed\n");
         RetVal = QUIC_STATUS_INTERNAL_ERROR;
         goto Exit;
     }
 
-    SelfSignedConfig.SelfSignedParams = SelfSignedParams;
-
     if (TestingKernelMode) {
 #ifdef _WIN32
         printf("Entering kernel mode main\n");
-        RetVal = QuicKernelMain(argc, argv, KeyboardWait, SelfSignedParams);
+        RetVal = QuicKernelMain(argc, argv, KeyboardWait, SelfSignedCredConfig);
 #else
         QUIC_FRE_ASSERT(FALSE);
 #endif
     } else {
-        RetVal = QuicUserMain(argc, argv, KeyboardWait, &SelfSignedConfig);
+        RetVal = QuicUserMain(argc, argv, KeyboardWait, SelfSignedCredConfig);
     }
 
 Exit:
-    if (SelfSignedParams) {
-        QuicPlatFreeSelfSignedCert(SelfSignedParams);
+    if (SelfSignedCredConfig) {
+        QuicPlatFreeSelfSignedCert(SelfSignedCredConfig);
     }
 
     QuicPlatformUninitialize();

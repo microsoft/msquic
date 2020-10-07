@@ -20,8 +20,8 @@ QuicSettingsSetDefault(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsCopy(
-    _Inout_ QUIC_SETTINGS* Settings,
-    _In_ const QUIC_SETTINGS* ParentSettings
+    _Inout_ QUIC_SETTINGS* Destination,
+    _In_ const QUIC_SETTINGS* Source
     );
 
 //
@@ -30,11 +30,12 @@ QuicSettingsCopy(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSettingApply(
-    _Inout_ QUIC_SETTINGS* Settings,
+    _Inout_ QUIC_SETTINGS* Destination,
+    _In_ BOOLEAN OverWrite,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
-        uint32_t NewSessionSize,
-    _In_reads_bytes_(NewSessionSize)
-        const QUIC_SETTINGS* NewSettings
+        uint32_t SourceSize,
+    _In_reads_bytes_(SourceSize)
+        const QUIC_SETTINGS* Source
     );
 
 //
@@ -54,4 +55,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsDump(
     _In_ const QUIC_SETTINGS* Settings
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicSettingsDumpNew(
+    _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
+        uint32_t SettingsSize,
+    _In_reads_bytes_(SettingsSize)
+        const QUIC_SETTINGS* Settings
     );

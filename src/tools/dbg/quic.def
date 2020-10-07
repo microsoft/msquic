@@ -15,6 +15,7 @@ EXPORTS
 
     quicanalyze
     quicbinding
+    quicconfiguration
     quicconn
     quicconnection
     quicdump
@@ -25,6 +26,5 @@ EXPORTS
     quiclistener
     quicpacket
     quicregistration
-    quicsession
     quicstream
     quicworker

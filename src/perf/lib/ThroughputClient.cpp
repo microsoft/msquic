@@ -51,8 +51,8 @@ ThroughputClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (!Session.IsValid()) {
-        return Session.GetInitStatus();
+    if (!Configuration.IsValid()) {
+        return Configuration.GetInitStatus();
     }
 
     const char* Target = nullptr;
@@ -69,8 +69,8 @@ ThroughputClient::Init(
     uint16_t Ip;
     if (TryGetValue(argc, argv, "ip", &Ip)) {
         switch (Ip) {
-        case 4: RemoteFamily = AF_INET; break;
-        case 6: RemoteFamily = AF_INET6; break;
+        case 4: RemoteFamily = QUIC_ADDRESS_FAMILY_INET; break;
+        case 6: RemoteFamily = QUIC_ADDRESS_FAMILY_INET6; break;
         }
     }
 
@@ -154,7 +154,7 @@ ThroughputClient::Start(
     }
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
-            Session,
+            Registration,
             [](HQUIC Handle, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
                 ConnectionData* ConnData = (ConnectionData*)Context;
                 return ConnData->Client->
@@ -173,28 +173,17 @@ ThroughputClient::Start(
 
     Shutdown.ConnHandle = ConnData->Connection.Handle;
 
-    uint32_t SecFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-    Status =
-        MsQuic->SetParam(
-            ConnData->Connection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-            sizeof(SecFlags),
-            &SecFlags);
-    if (QUIC_FAILED(Status)) {
-        WriteOutput("Failed Cert Validation Disable 0x%x\n", Status);
-        return Status;
-    }
-
     if (!UseSendBuffer) {
-        BOOLEAN Opt = FALSE;
+        QUIC_SETTINGS Settings{0};
+        Settings.SendBufferingEnabled = FALSE;
+        Settings.IsSet.SendBufferingEnabled = TRUE;
         Status =
             MsQuic->SetParam(
                 ConnData->Connection,
                 QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SEND_BUFFERING,
-                sizeof(Opt),
-                &Opt);
+                QUIC_PARAM_CONN_SETTINGS,
+                sizeof(Settings),
+                &Settings);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Failed Disable Send Buffering 0x%x\n", Status);
             return Status;
@@ -216,7 +205,7 @@ ThroughputClient::Start(
         }
     }
 
-    if (QuicAddrGetFamily(&LocalIpAddr) != AF_UNSPEC) {
+    if (QuicAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
         MsQuic->SetParam(
             ConnData->Connection,
             QUIC_PARAM_LEVEL_CONNECTION,
@@ -275,6 +264,7 @@ ThroughputClient::Start(
     Status =
         MsQuic->ConnectionStart(
             ConnData->Connection,
+            Configuration,
             RemoteFamily,
             TargetData.get(),
             Port);

@@ -38,6 +38,7 @@
     <ClCompile Include="ack_tracker.c" />
     <ClCompile Include="api.c" />
     <ClCompile Include="binding.c" />
+    <ClCompile Include="configuration.c" />
     <ClCompile Include="congestion_control.c" />
     <ClCompile Include="connection.c" />
     <ClCompile Include="crypto.c" />
@@ -60,7 +61,6 @@
     <ClCompile Include="send.c" />
     <ClCompile Include="send_buffer.c" />
     <ClCompile Include="sent_packet_metadata.c" />
-    <ClCompile Include="session.c" />
     <ClCompile Include="settings.c" />
     <ClCompile Include="stream.c" />
     <ClCompile Include="stream_recv.c" />
@@ -74,6 +74,7 @@
     <ClInclude Include="api.h" />
     <ClInclude Include="binding.h" />
     <ClInclude Include="cid.h" />
+    <ClInclude Include="configuration.h" />
     <ClInclude Include="congestion_control.h" />
     <ClInclude Include="connection.h" />
     <ClInclude Include="crypto.h" />
@@ -96,7 +97,6 @@
     <ClInclude Include="send.h" />
     <ClInclude Include="send_buffer.h" />
     <ClInclude Include="sent_packet_metadata.h" />
-    <ClInclude Include="session.h" />
     <ClInclude Include="settings.h" />
     <ClInclude Include="stream.h" />
     <ClInclude Include="stream_set.h" />

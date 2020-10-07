@@ -69,10 +69,11 @@ MsQuicRegistrationOpen(
     Registration->ExecProfile = Config == NULL ? QUIC_EXECUTION_PROFILE_LOW_LATENCY : Config->ExecutionProfile;
     Registration->CidPrefixLength = 0;
     Registration->CidPrefix = NULL;
-    QuicLockInitialize(&Registration->Lock);
-    QuicListInitializeHead(&Registration->Sessions);
-    QuicRundownInitialize(&Registration->SecConfigRundown);
-    QuicRundownInitialize(&Registration->ConnectionRundown);
+    QuicLockInitialize(&Registration->ConfigLock);
+    QuicListInitializeHead(&Registration->Configurations);
+    QuicDispatchLockInitialize(&Registration->ConnectionLock);
+    QuicListInitializeHead(&Registration->Connections);
+    QuicRundownInitialize(&Registration->Rundown);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
         QuicCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
@@ -143,9 +144,11 @@ MsQuicRegistrationOpen(
     }
 #endif
 
-    QuicLockAcquire(&MsQuicLib.Lock);
-    QuicListInsertTail(&MsQuicLib.Registrations, &Registration->Link);
-    QuicLockRelease(&MsQuicLib.Lock);
+    if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
+        QuicLockAcquire(&MsQuicLib.Lock);
+        QuicListInsertTail(&MsQuicLib.Registrations, &Registration->Link);
+        QuicLockRelease(&MsQuicLib.Lock);
+    }
 
     *NewRegistration = (HQUIC)Registration;
     Registration = NULL;
@@ -153,9 +156,9 @@ MsQuicRegistrationOpen(
 Error:
 
     if (Registration != NULL) {
-        QuicRundownUninitialize(&Registration->SecConfigRundown);
-        QuicRundownUninitialize(&Registration->ConnectionRundown);
-        QuicLockUninitialize(&Registration->Lock);
+        QuicRundownUninitialize(&Registration->Rundown);
+        QuicDispatchLockUninitialize(&Registration->ConnectionLock);
+        QuicLockUninitialize(&Registration->ConfigLock);
         QUIC_FREE(Registration);
     }
 
@@ -190,24 +193,18 @@ MsQuicRegistrationClose(
             "[ reg][%p] Cleaning up",
             Registration);
 
-        //
-        // If you hit this assert, you are trying to clean up a registration without
-        // first cleaning up all the child sessions first.
-        //
-        QUIC_REG_VERIFY(Registration, QuicListIsEmpty(&Registration->Sessions));
+        if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
+            QuicLockAcquire(&MsQuicLib.Lock);
+            QuicListEntryRemove(&Registration->Link);
+            QuicLockRelease(&MsQuicLib.Lock);
+        }
 
-        QuicLockAcquire(&MsQuicLib.Lock);
-        QuicListEntryRemove(&Registration->Link);
-        QuicLockRelease(&MsQuicLib.Lock);
-
-        QuicRundownReleaseAndWait(&Registration->ConnectionRundown);
+        QuicRundownReleaseAndWait(&Registration->Rundown);
 
         QuicWorkerPoolUninitialize(Registration->WorkerPool);
-        QuicRundownReleaseAndWait(&Registration->SecConfigRundown);
-
-        QuicRundownUninitialize(&Registration->SecConfigRundown);
-        QuicRundownUninitialize(&Registration->ConnectionRundown);
-        QuicLockUninitialize(&Registration->Lock);
+        QuicRundownUninitialize(&Registration->Rundown);
+        QuicDispatchLockUninitialize(&Registration->ConnectionLock);
+        QuicLockUninitialize(&Registration->ConfigLock);
 
         if (Registration->CidPrefix != NULL) {
             QUIC_FREE(Registration->CidPrefix);
@@ -219,6 +216,64 @@ MsQuicRegistrationClose(
             ApiExit,
             "[ api] Exit");
     }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QUIC_API
+MsQuicRegistrationShutdown(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
+    _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode
+    )
+{
+    QUIC_DBG_ASSERT(Handle != NULL);
+    QUIC_DBG_ASSERT(Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION);
+
+    if (ErrorCode > QUIC_UINT62_MAX) {
+        return;
+    }
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_REGISTRATION_SHUTDOWN,
+        Handle);
+
+    if (Handle && Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION) {
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
+
+        QuicDispatchLockAcquire(&Registration->ConnectionLock);
+
+        QUIC_LIST_ENTRY* Entry = Registration->Connections.Flink;
+        while (Entry != &Registration->Connections) {
+
+            QUIC_CONNECTION* Connection =
+                QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, RegistrationLink);
+
+            if (InterlockedCompareExchange16(
+                    (short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
+
+                QUIC_OPERATION* Oper = &Connection->BackUpOper;
+                Oper->FreeAfterProcess = FALSE;
+                Oper->Type = QUIC_OPER_TYPE_API_CALL;
+                Oper->API_CALL.Context = &Connection->BackupApiContext;
+                Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
+                Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = Flags;
+                Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = ErrorCode;
+                QuicConnQueueHighestPriorityOper(Connection, Oper);
+            }
+
+            Entry = Entry->Flink;
+        }
+
+        QuicDispatchLockRelease(&Registration->ConnectionLock);
+    }
+
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -233,16 +288,27 @@ QuicRegistrationTraceRundown(
         Registration,
         Registration->AppName);
 
-    QuicLockAcquire(&Registration->Lock);
+    QuicLockAcquire(&Registration->ConfigLock);
 
-    for (QUIC_LIST_ENTRY* Link = Registration->Sessions.Flink;
-        Link != &Registration->Sessions;
+    for (QUIC_LIST_ENTRY* Link = Registration->Configurations.Flink;
+        Link != &Registration->Configurations;
         Link = Link->Flink) {
-        QuicSessionTraceRundown(
-            QUIC_CONTAINING_RECORD(Link, QUIC_SESSION, Link));
+        QuicConfigurationTraceRundown(
+            QUIC_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
     }
 
-    QuicLockRelease(&Registration->Lock);
+    QuicLockRelease(&Registration->ConfigLock);
+
+    QuicDispatchLockAcquire(&Registration->ConnectionLock);
+
+    for (QUIC_LIST_ENTRY* Link = Registration->Connections.Flink;
+        Link != &Registration->Connections;
+        Link = Link->Flink) {
+        QuicConnQueueTraceRundown(
+            QUIC_CONTAINING_RECORD(Link, QUIC_CONNECTION, RegistrationLink));
+    }
+
+    QuicDispatchLockRelease(&Registration->ConnectionLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -251,85 +317,20 @@ QuicRegistrationSettingsChanged(
     _Inout_ QUIC_REGISTRATION* Registration
     )
 {
-    QuicLockAcquire(&Registration->Lock);
+    QuicLockAcquire(&Registration->ConfigLock);
 
-    for (QUIC_LIST_ENTRY* Link = Registration->Sessions.Flink;
-        Link != &Registration->Sessions;
+    for (QUIC_LIST_ENTRY* Link = Registration->Configurations.Flink;
+        Link != &Registration->Configurations;
         Link = Link->Flink) {
-        QuicSessionSettingsChanged(
-            QUIC_CONTAINING_RECORD(Link, QUIC_SESSION, Link));
+        QuicConfigurationSettingsChanged(
+            QUIC_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
     }
 
-    QuicLockRelease(&Registration->Lock);
+    QuicLockRelease(&Registration->ConfigLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicSecConfigCreate(
-    _In_ _Pre_defensive_ HQUIC Handle,
-    _In_ QUIC_SEC_CONFIG_FLAGS Flags,
-    _In_opt_ void* Certificate,
-    _In_opt_z_ const char* Principal,
-    _In_opt_ void* Context,
-    _In_ _Pre_defensive_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
-    )
-{
-    QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
-
-    QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_SEC_CONFIG_CREATE,
-        Handle);
-
-    if (Handle != NULL &&
-        Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION &&
-        CompletionHandler != NULL) {
-
-        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
-        Status =
-            QuicTlsServerSecConfigCreate(
-                &Registration->SecConfigRundown,
-                Flags,
-                Certificate,
-                Principal,
-                Context,
-                CompletionHandler);
-    }
-
-    QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-
-    return Status;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QUIC_API
-MsQuicSecConfigDelete(
-    _In_ _Pre_defensive_ QUIC_SEC_CONFIG* SecurityConfig
-    )
-{
-    QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_SEC_CONFIG_DELETE,
-        SecurityConfig);
-
-    if (SecurityConfig != NULL) {
-        QuicTlsSecConfigRelease(SecurityConfig);
-    }
-
-    QuicTraceEvent(
-        ApiExit,
-        "[ api] Exit");
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_CONNECTION_ACCEPT_RESULT
+BOOLEAN
 QuicRegistrationAcceptConnection(
     _In_ QUIC_REGISTRATION* Registration,
     _In_ QUIC_CONNECTION* Connection
@@ -349,11 +350,7 @@ QuicRegistrationAcceptConnection(
     // TODO - Look for other worker instead if the proposed worker is overloaded?
     //
 
-    if (QuicWorkerIsOverloaded(&Registration->WorkerPool->Workers[Index])) {
-        return QUIC_CONNECTION_REJECT_BUSY;
-    } else {
-        return QUIC_CONNECTION_ACCEPT;
-    }
+    return !QuicWorkerIsOverloaded(&Registration->WorkerPool->Workers[Index]);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -19,19 +19,20 @@ EXT_COMMAND(
     )
 {
     Listener Listener(GetUnnamedArgU64(0));
-    Session Session(Listener.GetSession());
+    Registration Registration(Listener.GetRegistration());
 
     Dml("\n<b>LISTENER</b> (<link cmd=\"dt msquic!QUIC_LISTENER 0x%I64X\">raw</link>)\n"
         "\n"
         "\tWildCard            %s\n"
-        "\tSession             <link cmd=\"!quicsession 0x%I64X\">0x%I64X</link>\t\"%s\"\n"
+        "\tAlpns               %s\n"
+        "\tSession             <link cmd=\"!quicregistration 0x%I64X\">0x%I64X</link>\n"
         "\tBinding             <link cmd=\"!quicbinding 0x%I64X\">0x%I64X</link>\n"
         "\tLocalAddress        %s\n\n",
         Listener.Addr,
         Listener.WildCard() ? "true" : "false",
-        Session.Addr,
-        Session.Addr,
-        Session.GetAlpns().Data,
+        Listener.GetAlpns().Data,
+        Registration.Addr,
+        Registration.Addr,
         Listener.GetBinding(),
         Listener.GetBinding(),
         Listener.GetLocalAddress().IpString);

@@ -25,7 +25,7 @@ QUIC_STATUS
 
 `Handle`
 
-The valid handle to any API object. This includes handles to registration, session, listener, connection and stream objects. For `Level` equal to `QUIC_PARAM_LEVEL_GLOBAL`, this parameter must be `NULL`.
+The valid handle to any API object. This includes handles to registration, configuration, listener, connection and stream objects. For `Level` equal to `QUIC_PARAM_LEVEL_GLOBAL`, this parameter must be `NULL`.
 
 `Level`
 

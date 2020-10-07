@@ -93,6 +93,12 @@ typedef struct QUIC_CRYPTO {
     //
     QUIC_RECV_BUFFER RecvBuffer;
 
+    //
+    // Resumption ticket to send to server.
+    //
+    uint8_t* ResumptionTicket;
+    uint32_t ResumptionTicketLength;
+
 } QUIC_CRYPTO;
 
 inline
@@ -293,3 +299,85 @@ QuicCryptoUpdateKeyPhase (
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN LocalUpdate
     );
+
+//
+// Encode all state the server needs to resume the connection into a ticket
+// ready to be passed to TLS.
+// The buffer returned in Ticket needs to be freed with QUIC_FREE().
+// Note: Connection is only used for logging and may be NULL for testing.
+//
+QUIC_STATUS
+QuicCryptoEncodeServerTicket(
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ uint32_t QuicVersion,
+    _In_ uint32_t AppDataLength,
+    _In_reads_bytes_opt_(AppDataLength)
+        const uint8_t* const AppResumptionData,
+    _In_ const QUIC_TRANSPORT_PARAMETERS* HandshakeTP,
+    _In_ uint8_t AlpnLength,
+    _In_reads_bytes_(AlpnLength)
+        const uint8_t* const NegotiatedAlpn,
+    _Outptr_result_buffer_(*TicketLength)
+        uint8_t** Ticket,
+    _Out_ uint32_t* TicketLength
+    );
+
+//
+// Decode a previously-generated resumption ticket and extract all data needed
+// to resume the connection.
+// AppData contains a pointer to the offset within Ticket, so do not free it.
+// AppData contain NULL if the server application didn't pass any resumption
+// data.
+// Note: Connection is only used for logging and may be NULL for testing.
+//
+QUIC_STATUS
+QuicCryptoDecodeServerTicket(
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ uint16_t TicketLength,
+    _In_reads_bytes_(TicketLength)
+        const uint8_t* Ticket,
+    _In_ const uint8_t* AlpnList,
+    _In_ uint16_t AlpnListLength,
+    _Out_ QUIC_TRANSPORT_PARAMETERS* DecodedTP,
+    _Outptr_result_buffer_maybenull_(*AppDataLength)
+        const uint8_t** AppData,
+    _Out_ uint32_t* AppDataLength
+    );
+
+//
+// Encodes necessary data into the client ticket to enable connection resumption.
+// The pointer held by ClientTicket needs to be freed by QUIC_FREE().
+// Note: Connection is only used for logging and may be NULL for testing.
+//
+QUIC_STATUS
+QuicCryptoEncodeClientTicket(
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ uint32_t TicketLength,
+    _In_reads_bytes_(TicketLength)
+        const uint8_t* Ticket,
+    _In_ const QUIC_TRANSPORT_PARAMETERS* ServerTP,
+    _In_ uint32_t QuicVersion,
+    _Outptr_result_buffer_(*ClientTicketLength)
+        const uint8_t** ClientTicket,
+    _Out_ uint32_t* ClientTicketLength
+    );
+
+//
+// Decodes and returns data necessary to resume a connection from a client ticket.
+// The buffer held in ServerTicket must be freed with QUIC_FREE().
+// Note: Connection is only used for logging and my be NULL for testing.
+//
+QUIC_STATUS
+QuicCryptoDecodeClientTicket(
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ uint16_t ClientTicketLength,
+    _In_reads_bytes_(ClientTicketLength)
+        const uint8_t* ClientTicket,
+    _Out_ QUIC_TRANSPORT_PARAMETERS* DecodedTP,
+    _Outptr_result_buffer_maybenull_(*ServerTicketLength)
+        uint8_t** ServerTicket,
+    _Out_ uint32_t* ServerTicketLength,
+    _Out_ uint32_t* QuicVersion
+    );
+
+

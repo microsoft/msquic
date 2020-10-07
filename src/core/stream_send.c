@@ -406,7 +406,7 @@ QuicStreamCompleteSendRequest(
         QUIC_DBG_ASSERT(Connection->SendBuffer.PostedBytes >= SendRequest->TotalLength);
         Connection->SendBuffer.PostedBytes -= SendRequest->TotalLength;
 
-        if (Connection->State.UseSendBuffer) {
+        if (Connection->Settings.SendBufferingEnabled) {
             QuicSendBufferFill(Connection);
         }
     }
@@ -577,7 +577,7 @@ QuicStreamSendFlush(
             Stream,
             QUIC_STREAM_SEND_FLAG_DATA);
 
-        if (Stream->Connection->State.UseSendBuffer) {
+        if (Stream->Connection->Settings.SendBufferingEnabled) {
             QuicSendBufferFill(Stream->Connection);
         }
 

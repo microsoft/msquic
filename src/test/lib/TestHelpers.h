@@ -53,11 +53,19 @@ InterlockedSubtract64(
     return InterlockedExchangeAdd64(Addend, -Value) - Value;
 }
 
+//
+// Helper function to get a resumption ticket.
+//
+// TODO - Schannel currently requires the same configurations to be used for
+// resumption to work. Once this is fixed, we shouldn't need to pass in any
+// input parameters to make this work.
+//
 void
 QuicTestPrimeResumption(
-    MsQuicSession& Session,
-    QUIC_ADDRESS_FAMILY Family,
-    bool& Success
+    _In_ MsQuicRegistration& Registration,
+    _In_ MsQuicConfiguration& ServerConfiguration,
+    _In_ MsQuicConfiguration& ClientConfiguration,
+    _Out_ QUIC_BUFFER** ResumptionTicket
     );
 
 struct StatelessRetryHelper

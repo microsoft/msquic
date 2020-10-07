@@ -27,14 +27,16 @@
 #define ATTACK_PORT_DEFAULT 443
 
 static QUIC_DATAPATH* Datapath;
+static PacketWriter* Writer;
 
 static uint32_t AttackType;
 static const char* ServerName;
 static const char* IpAddress;
 static QUIC_ADDR ServerAddress;
-static const char* Alpn = "h3-30";
 static uint64_t TimeoutMs = ATTACK_TIMEOUT_DEFAULT_MS;
 static uint32_t ThreadCount = ATTACK_THREADS_DEFAULT;
+static const char* Alpn = "h3-29";
+static uint32_t Version = QUIC_VERSION_DRAFT_29;
 
 static uint64_t TimeStart;
 static int64_t TotalPacketCount;
@@ -183,11 +185,9 @@ void RunAttackValidInitial(QUIC_DATAPATH_BINDING* Binding)
 
     uint8_t Packet[512] = {0};
     uint16_t PacketLength, HeaderLength;
-    PacketWriter::WriteClientInitialPacket(
+    Writer->WriteClientInitialPacket(
         PacketNumber,
         sizeof(uint64_t),
-        Alpn,
-        ServerName,
         sizeof(Packet),
         Packet,
         &PacketLength,
@@ -329,6 +329,8 @@ QUIC_THREAD_CALLBACK(RunAttackThread, /* Context */)
 
 void RunAttack()
 {
+    Writer = new PacketWriter(Version, Alpn, ServerName);
+
     QUIC_THREAD* Threads =
         (QUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD));
 
@@ -355,6 +357,8 @@ void RunAttack()
     printf("Packet Rate: %llu KHz\n", (unsigned long long)(TotalPacketCount) / QuicTimeDiff64(TimeStart, TimeEnd));
     printf("Bit Rate: %llu mbps\n", (unsigned long long)(8 * TotalByteCount) / (1000 * QuicTimeDiff64(TimeStart, TimeEnd)));
     QUIC_FREE(Threads);
+
+    delete Writer;
 }
 
 int

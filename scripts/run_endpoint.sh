@@ -6,8 +6,7 @@
 if [ -n "$TESTCASE" ]; then
     case "$TESTCASE" in
     # TODO: add supported test cases here
-    "versionnegotiation"|"handshake"|"transfer"|"retry"|"resumption"|\
-    "multiconnect"|"ecn"|"keyupdate")
+    "versionnegotiation"|"handshake"|"transfer"|"retry"|"multiconnect"|"keyupdate")
         ;;
     *)
         exit 127
@@ -62,14 +61,17 @@ if [ "$ROLE" == "client" ]; then
     "handshake")
         CLIENT_PARAMS="-test:H $CLIENT_PARAMS"
         ;;
-    "handshakecorruption")
-        CLIENT_PARAMS="-test:H $CLIENT_PARAMS"
+    "transfer")
+        CLIENT_PARAMS="-test:D -timeout:50000 $CLIENT_PARAMS"
         ;;
-    "handshakeloss")
-        CLIENT_PARAMS="-test:H $CLIENT_PARAMS"
+    "multiconnect")
+        CLIENT_PARAMS="-test:D -timeout:25000 $CLIENT_PARAMS"
         ;;
     "zerortt")
         CLIENT_PARAMS="-test:Z $CLIENT_PARAMS"
+        ;;
+    "keyupdate")
+        CLIENT_PARAMS="-test:U $CLIENT_PARAMS"
         ;;
     *)
         CLIENT_PARAMS="-test:D $CLIENT_PARAMS"
@@ -81,10 +83,9 @@ if [ "$ROLE" == "client" ]; then
             quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"$REQ" -version:-16777187
         done
     else
-        echo "Requests parameter: ${REQUESTS[@]}"
         # FIXME: there doesn't seem to be a way to specify to use /certs/ca.pem
         # for certificate verification
-        quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"${REQUESTS[@]}" -version:-16777187
+        quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:${REQUESTS[@]} -version:-16777187
     fi
 
     echo "Client complete."

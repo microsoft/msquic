@@ -15,6 +15,9 @@
 
 #define TEST_QUIC_SUCCEEDED(__condition) ASSERT_FALSE(QUIC_FAILED(__condition))
 
+#define COMPARE_TP_FIELD(TpName, Field) \
+    if (A->Flags & QUIC_TP_FLAG_##TpName) { ASSERT_EQ(A->Field, B->Field); }
+
 inline
 std::ostream& operator << (std::ostream& o, const QUIC_FRAME_TYPE& type) {
     switch (type) {

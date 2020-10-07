@@ -418,9 +418,9 @@ QuicWorkerProcessTimers(
             QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
 
         Connection->WorkerThreadID = Worker->ThreadID;
-        QuicSessionAttachSilo(Connection->Session);
+        QuicConfigurationAttachSilo(Connection->Configuration);
         QuicConnTimerExpired(Connection, TimeNow);
-        QuicSessionDetachSilo();
+        QuicConfigurationDetachSilo();
         Connection->WorkerThreadID = 0;
     }
 }
@@ -437,7 +437,7 @@ QuicWorkerProcessConnection(
         "[conn][%p] Scheduling: %u",
         Connection,
         QUIC_SCHEDULE_PROCESSING);
-    QuicSessionAttachSilo(Connection->Session);
+    QuicConfigurationAttachSilo(Connection->Configuration);
 
     if (Connection->Stats.Schedule.LastQueueTime != 0) {
         QuicWorkerUpdateQueueDelay(
@@ -516,7 +516,7 @@ QuicWorkerProcessConnection(
     }
     QuicDispatchLockRelease(&Worker->Lock);
 
-    QuicSessionDetachSilo();
+    QuicConfigurationDetachSilo();
 
     if (DoneWithConnection) {
         if (Connection->State.UpdateWorker) {
@@ -638,8 +638,8 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
     }
 
     //
-    // Because the session layer only waits for the session rundown to complete,
-    // and because the connection releases the session rundown on handle close,
+    // Because the registration layer only waits for the rundown to complete,
+    // and because the connection releases the rundown on handle close,
     // not free, it's possible that the worker thread still had the connection
     // in it's list by the time clean up started. So it needs to release any
     // remaining references on connections.

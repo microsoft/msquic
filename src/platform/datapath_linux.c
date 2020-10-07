@@ -661,14 +661,14 @@ QuicDataPathPopulateTargetAddress(
 
         SockAddrIn6 = (struct sockaddr_in6*)AddrInfo->ai_addr;
 
-        if (Family == AF_UNSPEC && IN6_IS_ADDR_V4MAPPED(&SockAddrIn6->sin6_addr)) {
+        if (Family == QUIC_ADDRESS_FAMILY_UNSPEC && IN6_IS_ADDR_V4MAPPED(&SockAddrIn6->sin6_addr)) {
             SockAddrIn = &Address->Ipv4;
 
             //
             // Get the ipv4 address from the mapped address.
             //
 
-            SockAddrIn->sin_family = AF_INET;
+            SockAddrIn->sin_family = QUIC_ADDRESS_FAMILY_INET;
             memcpy(&SockAddrIn->sin_addr.s_addr, &SockAddrIn6->sin6_addr.s6_addr[12], 4);
             SockAddrIn->sin_port = SockAddrIn6->sin6_port;
 
@@ -765,7 +765,7 @@ QuicSocketContextInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Result = 0;
     int Option = 0;
-    QUIC_ADDR MappedRemoteAddress = {0};
+    QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
 
     QUIC_DATAPATH_BINDING* Binding = SocketContext->Binding;
@@ -1032,11 +1032,16 @@ QuicSocketContextInitialize(
         goto Exit;
     }
 
+    QuicCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
+    if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+        MappedAddress.Ipv6.sin6_family = AF_INET6;
+    }
+
     Result =
         bind(
             SocketContext->SocketFd,
-            (const struct sockaddr*)&Binding->LocalAddress,
-            sizeof(Binding->LocalAddress));
+            &MappedAddress.Ip,
+            sizeof(MappedAddress));
     if (Result == SOCKET_ERROR) {
         Status = errno;
         QuicTraceEvent(
@@ -1049,14 +1054,18 @@ QuicSocketContextInitialize(
     }
 
     if (RemoteAddress != NULL) {
-        QuicZeroMemory(&MappedRemoteAddress, sizeof(MappedRemoteAddress));
-        QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+        QuicZeroMemory(&MappedAddress, sizeof(MappedAddress));
+        QuicConvertToMappedV6(RemoteAddress, &MappedAddress);
+
+        if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+            MappedAddress.Ipv6.sin6_family = AF_INET6;
+        }
 
         Result =
             connect(
                 SocketContext->SocketFd,
-                (const struct sockaddr*)&MappedRemoteAddress,
-                sizeof(MappedRemoteAddress));
+                &MappedAddress.Ip,
+                sizeof(MappedAddress));
 
         if (Result == SOCKET_ERROR) {
             Status = errno;
@@ -1069,6 +1078,7 @@ QuicSocketContextInitialize(
             goto Exit;
         }
     }
+
 
     //
     // If no specific local port was indicated, then the stack just
@@ -1094,6 +1104,10 @@ QuicSocketContextInitialize(
 
     if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
         QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    }
+
+    if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
+        Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
     }
 
 Exit:
@@ -1243,7 +1257,13 @@ QuicSocketContextRecvComplete(
     BOOLEAN FoundLocalAddr = FALSE;
     BOOLEAN FoundTOS = FALSE;
     QUIC_ADDR* LocalAddr = &RecvPacket->Tuple->LocalAddress;
+    if (LocalAddr->Ipv6.sin6_family == AF_INET6) {
+        LocalAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+    }
     QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
+    if (RemoteAddr->Ipv6.sin6_family == AF_INET6) {
+        RemoteAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+    }
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
     RecvPacket->TypeOfService = 0;
@@ -1256,7 +1276,7 @@ QuicSocketContextRecvComplete(
         if (CMsg->cmsg_level == IPPROTO_IPV6) {
             if (CMsg->cmsg_type == IPV6_PKTINFO) {
                 struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
-                LocalAddr->Ip.sa_family = AF_INET6;
+                LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
                 LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
                 LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                 QuicConvertFromMappedV6(LocalAddr, LocalAddr);
@@ -1270,7 +1290,7 @@ QuicSocketContextRecvComplete(
         } else if (CMsg->cmsg_level == IPPROTO_IP) {
             if (CMsg->cmsg_type == IP_PKTINFO) {
                 struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
-                LocalAddr->Ip.sa_family = AF_INET;
+                LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET;
                 LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
                 LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                 LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
@@ -1595,7 +1615,7 @@ QuicDataPathBindingCreate(
     if (LocalAddress) {
         QuicConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
     } else {
-        Binding->LocalAddress.Ip.sa_family = AF_INET6;
+        Binding->LocalAddress.Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
     }
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
@@ -2014,6 +2034,10 @@ QuicDataPathBindingSend(
     //
     QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
+    if (MappedRemoteAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+        MappedRemoteAddress.Ipv6.sin6_family = AF_INET6;
+    }
+
     struct msghdr Mhdr = {
         .msg_name = &MappedRemoteAddress,
         .msg_namelen = sizeof(MappedRemoteAddress),
@@ -2025,8 +2049,8 @@ QuicDataPathBindingSend(
     };
 
     CMsg = CMSG_FIRSTHDR(&Mhdr);
-    CMsg->cmsg_level = RemoteAddress->Ip.sa_family == AF_INET ? IPPROTO_IP : IPPROTO_IPV6;
-    CMsg->cmsg_type = RemoteAddress->Ip.sa_family == AF_INET ? IP_TOS : IPV6_TCLASS;
+    CMsg->cmsg_level = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IPPROTO_IP : IPPROTO_IPV6;
+    CMsg->cmsg_type = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IP_TOS : IPV6_TCLASS;
     CMsg->cmsg_len = CMSG_LEN(sizeof(int));
     *(int *)CMSG_DATA(CMsg) = SendContext->ECN;
 
@@ -2034,7 +2058,7 @@ QuicDataPathBindingSend(
         Mhdr.msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
         CMsg = CMSG_NXTHDR(&Mhdr, CMsg);
         QUIC_DBG_ASSERT(CMsg != NULL);
-        if (RemoteAddress->Ip.sa_family == AF_INET) {
+        if (RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
             CMsg->cmsg_level = IPPROTO_IP;
             CMsg->cmsg_type = IP_PKTINFO;
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));

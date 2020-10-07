@@ -17,17 +17,17 @@ Abstract:
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG_PARAMS*
+const QUIC_CREDENTIAL_CONFIG*
 QuicPlatGetSelfSignedCert(
     _In_ QUIC_SELF_SIGN_CERT_TYPE Type
     )
 {
     UNREFERENCED_PARAMETER(Type);
 
-    QUIC_SEC_CONFIG_PARAMS* Params = malloc(sizeof(QUIC_SEC_CONFIG_PARAMS));
+    QUIC_CREDENTIAL_CONFIG* Params = malloc(sizeof(QUIC_CREDENTIAL_CONFIG));
     if (Params != NULL) {
         QuicZeroMemory(Params, sizeof(*Params));
-        Params->Flags = QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NULL;
+        Params->Type = QUIC_CREDENTIAL_TYPE_NULL;
     }
     return Params;
 }
@@ -35,8 +35,8 @@ QuicPlatGetSelfSignedCert(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPlatFreeSelfSignedCert(
-    _In_ QUIC_SEC_CONFIG_PARAMS* Params
+    _In_ const QUIC_CREDENTIAL_CONFIG* Params
     )
 {
-    free(Params);
+    free((void*)Params);
 }

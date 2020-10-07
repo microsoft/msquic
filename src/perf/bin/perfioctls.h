@@ -17,7 +17,7 @@ Abstract:
 #define IoGetFunctionCodeFromCtlCode( ControlCode ) (\
     ( ControlCode >> 2) & 0x00000FFF )
 
-#define IOCTL_QUIC_SEC_CONFIG \
+#define IOCTL_QUIC_SET_CERT_HASH \
     QUIC_CTL_CODE(1, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 #define IOCTL_QUIC_RUN_PERF \

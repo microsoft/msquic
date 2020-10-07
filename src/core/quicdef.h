@@ -10,7 +10,7 @@ typedef struct QUIC_OPERATION QUIC_OPERATION;
 typedef struct QUIC_WORKER QUIC_WORKER;
 typedef struct QUIC_WORKER_POOL QUIC_WORKER_POOL;
 typedef struct QUIC_REGISTRATION QUIC_REGISTRATION;
-typedef struct QUIC_SESSION QUIC_SESSION;
+typedef struct QUIC_CONFIGURATION QUIC_CONFIGURATION;
 typedef struct QUIC_LISTENER QUIC_LISTENER;
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 typedef struct QUIC_STREAM QUIC_STREAM;
@@ -410,6 +410,12 @@ QUIC_STATIC_ASSERT(
 #define QUIC_TLS_RESUMPTION_TICKET_VERSION      1
 
 //
+// Version of the blob for client resumption tickets.
+// This needs to be incremented for each change in order or count of fields.
+//
+#define QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION      1
+
+//
 // The AEAD Integrity limit for maximum failed decryption packets over the
 // lifetime of a connection. Set to the lowest limit, which is for
 // AEAD_AES_128_CCM at 2^23.5 (rounded down)
@@ -429,6 +435,7 @@ QUIC_STATIC_ASSERT(
 #define QUIC_SETTING_MAX_STATELESS_OPERATIONS   "MaxStatelessOperations"
 #define QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN   "MaxOperationsPerDrain"
 
+#define QUIC_SETTING_SEND_BUFFERING_DEFAULT     "SendBufferingDefault"
 #define QUIC_SETTING_SEND_PACING_DEFAULT        "SendPacingDefault"
 #define QUIC_SETTING_MIGRATION_ENABLED          "MigrationEnabled"
 #define QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED   "DatagramReceiveEnabled"

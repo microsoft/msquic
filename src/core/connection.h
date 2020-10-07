@@ -45,8 +45,12 @@ typedef union QUIC_CONNECTION_STATE {
         // Indicates whether packet number encryption is enabled or not for the
         // connection.
         //
-        BOOLEAN HeaderProtectionEnabled : 1;
+        BOOLEAN HeaderProtectionEnabled : 1; // TODO - Remove since it's not used
 
+        //
+        // Indicates that 1-RTT encryption has been configured/negotiated to be
+        // disabled.
+        //
         BOOLEAN Disable1RttEncrytion : 1;
 
         //
@@ -56,6 +60,12 @@ typedef union QUIC_CONNECTION_STATE {
         // appliciation, via the listener callback.
         //
         BOOLEAN ExternalOwner : 1;
+
+        //
+        // Indicate the connection is currently in the registration's list of
+        // connections and needs to be removed.
+        //
+        BOOLEAN Registered : 1;
 
         //
         // This flag indicates the client has gotten response from the server.
@@ -113,16 +123,6 @@ typedef union QUIC_CONNECTION_STATE {
         // The application needs to be notified of a shutdown complete event.
         //
         BOOLEAN SendShutdownCompleteNotif : 1;
-
-        //
-        // Indicates whether send requests should be buffered.
-        //
-        BOOLEAN UseSendBuffer : 1;
-
-        //
-        // Indicates whether pacing logic is enabled for sending.
-        //
-        BOOLEAN UsePacing : 1;
 
         //
         // Indicates whether this connection shares bindings with others.
@@ -246,7 +246,7 @@ typedef struct QUIC_CONN_STATS {
 
     struct {
         uint64_t TotalPackets;          // QUIC packets; could be coalesced into fewer UDP datagrams.
-        uint64_t ReorderedPackets;      // Means not the expected next packet. Could indicate loss gap too.
+        uint64_t ReorderedPackets;      // Packets where packet number is less than highest seen.
         uint64_t DroppedPackets;        // Includes DuplicatePackets.
         uint64_t DuplicatePackets;
         uint64_t DecryptionFailures;    // Count of packets that failed to decrypt.
@@ -272,9 +272,9 @@ typedef struct QUIC_CONNECTION {
     struct QUIC_HANDLE;
 
     //
-    // Link into the session's list of connections.
+    // Link into the registrations's list of connections.
     //
-    QUIC_LIST_ENTRY SessionLink;
+    QUIC_LIST_ENTRY RegistrationLink;
 
     //
     // Link in the worker's connection queue.
@@ -298,9 +298,15 @@ typedef struct QUIC_CONNECTION {
     QUIC_REGISTRATION* Registration;
 
     //
-    // The top level session this connection is a part of.
+    // The configuration for this connection.
     //
-    QUIC_SESSION* Session;
+    QUIC_CONFIGURATION* Configuration;
+
+    //
+    // The settings for this connection. Some values may be inherited from the
+    // global settings, the configuration setting or explicitly set by the app.
+    //
+    QUIC_SETTINGS Settings;
 
     //
     // Number of references to the handle.
@@ -323,11 +329,6 @@ typedef struct QUIC_CONNECTION {
     // The current worker thread ID. 0 if not being processed right now.
     //
     QUIC_THREAD_ID WorkerThreadID;
-
-    //
-    // The set of ignore flags for server certificate validation to pass to TLS.
-    //
-    uint32_t ServerCertValidationFlags;
 
     //
     // The server ID for the connection ID.
@@ -378,33 +379,6 @@ typedef struct QUIC_CONNECTION {
     // 2 ^ ack_delay_exponent.
     //
     uint8_t AckDelayExponent;
-
-    //
-    // Maximum amount of time the connection waits before acknowledging a
-    // received packet.
-    //
-    uint32_t MaxAckDelayMs;
-
-    //
-    // The idle timeout period (in milliseconds).
-    //
-    uint64_t IdleTimeoutMs;
-
-    //
-    // The handshake idle timeout period (in milliseconds).
-    //
-    uint64_t HandshakeIdleTimeoutMs;
-
-    //
-    // The number of microseconds that must elapse before the connection will be
-    // considered 'ACK idle' and disconnects.
-    //
-    uint32_t DisconnectTimeoutUs;
-
-    //
-    // The interval (in milliseconds) between keep alives sent locally.
-    //
-    uint32_t KeepAliveIntervalMs;
 
     //
     // The sequence number to use for the next source CID.
@@ -557,6 +531,15 @@ typedef struct QUIC_CONNECTION {
     QUIC_PRIVATE_TRANSPORT_PARAMETER TestTransportParameter;
 
 } QUIC_CONNECTION;
+
+typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
+
+    uint32_t QuicVersion;
+    QUIC_TRANSPORT_PARAMETERS TransportParameters;
+    uint16_t ServerNameLength;
+    uint8_t Buffer[0]; // ServerName and TLS Session/Ticket
+
+} QUIC_SERIALIZED_RESUMPTION_STATE;
 
 //
 // Estimates the memory usage for a connection object in the handshake state.
@@ -832,7 +815,7 @@ _Must_inspect_result_
 _Success_(return != NULL)
 QUIC_CONNECTION*
 QuicConnAlloc(
-    _In_ QUIC_SESSION* Session,
+    _In_ QUIC_REGISTRATION* Registration,
     _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram
     );
 
@@ -943,6 +926,16 @@ QuicConnRelease(
 #pragma warning(pop)
 
 //
+// Registers the connection with a registration.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicConnRegister(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _Inout_ QUIC_REGISTRATION* Registration
+    );
+
+//
 // Tracing rundown for the connection.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -970,16 +963,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
     _In_ QUIC_CONNECTION* Connection
-    );
-
-//
-// Applies the settings from the session.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicConnApplySettings(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_SETTINGS* Settings
     );
 
 //
@@ -1192,18 +1175,6 @@ QuicConnOnLocalAddressChanged(
     );
 
 //
-// Starts the connection.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicConnStart(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_opt_z_ const char* ServerName,
-    _In_ uint16_t ServerPort // Host byte order
-    );
-
-//
 // Restarts the connection with the current configuration.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1225,13 +1196,13 @@ QuicConnProcessPeerTransportParameters(
     );
 
 //
-// Configures the security config.
+// Sets the configuration handle.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicConnHandshakeConfigure(
+QuicConnSetConfiguration(
     _In_ QUIC_CONNECTION* Connection,
-    _In_opt_ QUIC_SEC_CONFIG* SecConfig
+    _In_ QUIC_CONFIGURATION* Configuration
     );
 
 //
