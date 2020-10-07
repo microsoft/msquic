@@ -2773,12 +2773,6 @@ QuicConnUpdateDestCid(
     return TRUE;
 }
 
-
-//
-// Version negotiation is removed for the first version of QUIC.
-// When it is put back, it will probably be implemented as in this
-// function.
-//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRecvVerNeg(
@@ -2794,8 +2788,8 @@ QuicConnRecvVerNeg(
         (const uint32_t*)(
         Packet->VerNeg->DestCid +
         Packet->VerNeg->DestCidLength +
-        sizeof(uint8_t) + // sourceCID length field size
-        Packet->VerNeg->DestCid[Packet->VerNeg->DestCidLength]);  // this is the sourceCID length
+        sizeof(uint8_t) +                                         // SourceCidLength field size
+        Packet->VerNeg->DestCid[Packet->VerNeg->DestCidLength]);  // SourceCidLength
     uint16_t ServerVersionListLength =
         (Packet->BufferLength - (uint16_t)((uint8_t*)ServerVersionList - Packet->Buffer)) / sizeof(uint32_t);
 
@@ -2820,11 +2814,8 @@ QuicConnRecvVerNeg(
         // Check to see if this is the current version.
         //
         if (ServerVersionList[i] == Connection->Stats.QuicVersion) {
-            QuicTraceLogConnVerbose(
-                InvalidVerNeg,
-                Connection,
-                "Dropping version negotation that includes the current version");
-            goto Exit;
+            QuicPacketLogDrop(Connection, Packet, "Version Negotation that includes the current version");
+            return;
         }
 
         //
@@ -2837,34 +2828,37 @@ QuicConnRecvVerNeg(
         }
     }
 
-    //
-    // Did we find a supported version?
-    //
-    if (FALSE) { // TODO: remove this once Version Negotiation is supported.
-
-        Connection->Stats.QuicVersion = SupportedVersion;
-        QuicConnOnQuicVersionSet(Connection);
-
-        //
-        // Match found! Start connecting with selected version.
-        //
-        QuicConnRestart(Connection, TRUE);
-
-    } else {
-
-        //
-        // No match! Connection failure.
-        //
+    if (SupportedVersion != 0) { // TODO - Remove once version negotiation extension support is added.
+        QuicPacketLogDrop(Connection, Packet, "Version Negotation is unsupported");
         QuicConnCloseLocally(
             Connection,
             QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
             (uint64_t)QUIC_STATUS_VER_NEG_ERROR,
             NULL);
+        return;
     }
 
-Exit:
+    if (SupportedVersion == 0) {
+        //
+        // No match! Connection failure.
+        //
+        QuicTraceLogConnError(
+            RecvVerNegNoMatch,
+            Connection,
+            "Version Negotation contained no supported versions");
+        QuicConnCloseLocally(
+            Connection,
+            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+            (uint64_t)QUIC_STATUS_VER_NEG_ERROR,
+            NULL);
+        return;
+    }
 
-    return;
+    /* TODO - Add version negotiation extension support
+    Connection->Stats.QuicVersion = SupportedVersion;
+    QuicConnOnQuicVersionSet(Connection);
+    QuicConnRestart(Connection, TRUE);
+    */
 }
 
 
@@ -3110,28 +3104,22 @@ QuicConnRecvHeader(
     // Check invariants and packet version.
     //
 
-    if (!Packet->ValidatedHeaderInv &&
-        !QuicPacketValidateInvariant(Connection, Packet, Connection->State.ShareBinding)) {
-        return FALSE;
+    if (!Packet->ValidatedHeaderInv) {
+        QUIC_DBG_ASSERT(Packet->DestCid != NULL); // This should only hit for coalesced packets.
+        if (!QuicPacketValidateInvariant(Connection, Packet, Connection->State.ShareBinding)) {
+            return FALSE;
+        }
     }
 
     if (!Packet->IsShortHeader) {
         if (Packet->Invariant->LONG_HDR.Version != Connection->Stats.QuicVersion) {
             if (Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG) {
+                //
+                // Version negotiation packet received.
+                //
                 Connection->Stats.VersionNegotiation = TRUE;
-
-                //
-                // Version negotiation is removed for the first version of QUIC.
-                // When it is put back, it will probably be implemented as in this
-                // function:
-                // QuicConnRecvVerNeg(Connection, Packet);
-                //
-                // For now, since there is a single version, receiving
-                // a version negotation packet means there is a version
-                // mismatch, so abandon the connect attempt.
-                //
-
                 QuicConnRecvVerNeg(Connection, Packet);
+
             } else {
                 QuicPacketLogDropWithValue(Connection, Packet, "Invalid version", QuicByteSwapUint32(Packet->Invariant->LONG_HDR.Version));
             }
@@ -3145,6 +3133,16 @@ QuicConnRecvHeader(
     }
 
     QUIC_FRE_ASSERT(QuicIsVersionSupported(Connection->Stats.QuicVersion));
+
+#if DEBUG
+    if (!Packet->IsShortHeader) {
+        if (Connection->State.ShareBinding) {
+            QUIC_DBG_ASSERT(Packet->DestCidLen >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
+        } else {
+            QUIC_DBG_ASSERT(Packet->DestCidLen == 0);
+        }
+    }
+#endif
 
     //
     // Begin non-version-independent logic. When future versions are supported,

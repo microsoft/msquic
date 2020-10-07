@@ -113,20 +113,6 @@ QuicPacketValidateInvariant(
             QuicPacketLogDrop(Owner, Packet, "LH no room for DestCid");
             return FALSE;
         }
-        if (IsBindingShared) {
-            if (DestCidLen == 0) {
-                QuicPacketLogDrop(Owner, Packet, "Zero length DestCid");
-                return FALSE;
-            } else if (DestCidLen < QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH) {
-                QuicPacketLogDrop(Owner, Packet, "Less than min length CID on non-exclusive binding");
-                return FALSE;
-            }
-        } else {
-            if (DestCidLen != 0) {
-                QuicPacketLogDrop(Owner, Packet, "Non-zero length CID on exclusive binding");
-                return FALSE;
-            }
-        }
 
         DestCid = Packet->Invariant->LONG_HDR.DestCid;
 

@@ -1237,6 +1237,33 @@
         "CustomSettings": null
       }
     },
+    "RecvVerNegNoMatch": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Version Negotation contained no supported versions",
+      "UniqueId": "RecvVerNegNoMatch",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnError",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "ApiEventNoHandler": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Event silently discarded (no handler).",
@@ -2346,33 +2373,6 @@
           },
           "DefinationEncoding": "x",
           "MacroVariableName": "arg4"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "InvalidVerNeg": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Dropping version negotation that includes the current version",
-      "UniqueId": "InvalidVerNeg",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
         }
       ],
       "macro": {
@@ -21384,6 +21384,10 @@
         "TraceID": "PacketRxNotAcked"
       },
       {
+        "UniquenessHash": "c9015186-9937-78ff-24f3-2f08dc9d3c95",
+        "TraceID": "RecvVerNegNoMatch"
+      },
+      {
         "UniquenessHash": "c69c6d33-2838-013a-936c-7fbc085570b4",
         "TraceID": "ApiEventNoHandler"
       },
@@ -21526,10 +21530,6 @@
       {
         "UniquenessHash": "62fa7337-1321-2cd0-f7cc-236d893ed747",
         "TraceID": "VerNegItem"
-      },
-      {
-        "UniquenessHash": "ed33a4f4-4591-33d1-1760-74e7f873aa11",
-        "TraceID": "InvalidVerNeg"
       },
       {
         "UniquenessHash": "3405b409-bdc8-a1c4-cc9a-6dc3c0f86f01",
