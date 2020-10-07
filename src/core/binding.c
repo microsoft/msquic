@@ -1092,6 +1092,21 @@ QuicBindingPreprocessDatagram(
             }
             return FALSE;
         }
+
+        if (Binding->Exclusive) {
+            if (Packet->DestCidLen != 0) {
+                QuicPacketLogDrop(Binding, Packet, "Non-zero length CID on exclusive binding");
+                return FALSE;
+            }
+        } else {
+            if (Packet->DestCidLen == 0) {
+                QuicPacketLogDrop(Binding, Packet, "Zero length DestCid");
+                return FALSE;
+            } else if (Packet->DestCidLen < QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH) {
+                QuicPacketLogDrop(Binding, Packet, "Less than min length CID on non-exclusive binding");
+                return FALSE;
+            }
+        }
     }
 
     *ReleaseDatagram = FALSE;
