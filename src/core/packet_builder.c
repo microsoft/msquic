@@ -704,7 +704,7 @@ QuicPacketBuilderFinalize(
 
         uint8_t* Payload = Header + Builder->HeaderLength;
 
-        uint8_t Iv[QUIC_IV_LENGTH];
+        uint8_t Iv[QUIC_MAX_IV_LENGTH];
         QuicCryptoCombineIvAndPacketNumber(Builder->Key->Iv, (uint8_t*) &Builder->Metadata->PacketNumber, Iv);
 
         QUIC_STATUS Status;
