@@ -20,6 +20,7 @@ fi
 # - CLIENT_PARAMS contains user-supplied command line parameters
 
 # Start LTTng live streaming.
+echo "Starting LTTng logging..."
 lttng -q create msquiclive --live 1000
 lttng enable-event --userspace CLOG_*
 lttng add-context --userspace --type=vpid --type=vtid
@@ -72,6 +73,8 @@ if [ "$ROLE" == "client" ]; then
     # Wait for the logs to flush to disk.
     sleep 5
 
+    echo "Client complete."
+
 elif [ "$ROLE" == "server" ]; then
     case "$TESTCASE" in
     "retry")
@@ -82,5 +85,10 @@ elif [ "$ROLE" == "server" ]; then
     esac
 
     quicinteropserver ${SERVER_PARAMS} -root:/www -listen:* -port:443 \
-        -file:/certs/cert.pem -key:/certs/priv.key 2>&1
+        -file:/certs/cert.pem -key:/certs/priv.key -noexit &
+    wait
+
+    echo "Server complete."
 fi
+
+echo "Script complete."

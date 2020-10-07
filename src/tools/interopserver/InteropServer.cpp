@@ -106,8 +106,15 @@ main(
 
     {
         HttpServer Server(Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &ListenAddr);
-        printf("Press Enter to exit.\n\n");
-        getchar();
+        if (!GetValue(argc, argv, "noexit")) {
+            printf("Press Enter to exit.\n\n");
+            getchar();
+        } else {
+            QUIC_EVENT Event;
+            QuicEventInitialize(&Event, TRUE, FALSE);
+            printf("Waiting forever.\n\n");
+            QuicEventWaitForever(Event);
+        }
     }
 
     FreeServerConfiguration(MsQuic, Configuration);
