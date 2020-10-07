@@ -19,7 +19,7 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
   * Exchange application data in the first round trip (0-RTT).
   * Survives a change in the clients IP address or port.
   * Easily extendable for new features and extensions.
-  * Unreliable application data.
+  * Relaible and Unreliable delivery of application data.
   * Stateless load balancing.
 
 > **Important** The QUIC spec is currently in IETF last call and should move to IESG review by Nov 2020. From there it will likely take a few months before it is finalized to RFC.
