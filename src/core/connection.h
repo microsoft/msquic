@@ -254,6 +254,8 @@ typedef struct QUIC_CONN_STATS {
 
         uint64_t TotalBytes;            // Sum of UDP payloads
         uint64_t TotalStreamBytes;      // Sum of stream payloads
+
+        uint64_t AcksReceived;          // Count of receive ACK frames.
     } Recv;
 
     struct {

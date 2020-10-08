@@ -1857,3 +1857,302 @@ QuicTestReceiveResumeNoData(
         }
     }
 }
+
+struct AckSendDelayTestContext {
+    AckSendDelayTestContext() :
+        SendBuffer(1, 200)
+    {};
+    HQUIC ServerConfiguration;
+    QuicSendBuffer SendBuffer;
+    EventScope ServerStreamStartedEvent;
+    EventScope ClientReceiveDataEvent;
+    EventScope ClientConnectedEvent;
+    ConnectionScope ServerConnection;
+    ConnectionScope ClientConnection;
+    StreamScope ServerStream;
+    StreamScope ClientStream;
+    uint64_t AckCountStart;
+    uint64_t AckCountStop;
+};
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_STREAM_CALLBACK)
+static
+QUIC_STATUS
+QUIC_API
+QuicAckDelayStreamHandler(
+    _In_ HQUIC QuicStream,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_STREAM_EVENT* Event
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    AckSendDelayTestContext* TestContext = (AckSendDelayTestContext*)Context;
+    if (TestContext->ServerStream.Handle == QuicStream) {
+        //
+        // Server side
+        //
+        switch (Event->Type) {
+        case QUIC_STREAM_EVENT_RECEIVE:
+            Event->RECEIVE.TotalBufferLength = 0;
+            Status = MsQuic->StreamSend(
+                QuicStream,
+                TestContext->SendBuffer.Buffers,
+                TestContext->SendBuffer.BufferCount,
+                QUIC_SEND_FLAG_FIN,
+                nullptr);
+            if (QUIC_FAILED(Status)) {
+                TEST_FAILURE("Server failed to send to send data back 0x%x", Status);
+            }
+            break;
+        default:
+            break;
+        }
+    } else {
+        if(TestContext->ClientStream.Handle != QuicStream) {
+            TEST_FAILURE("Client stream is wrong??! %p vs %p",
+                TestContext->ClientStream.Handle,
+                QuicStream);
+        }
+        //
+        // Client side
+        //
+        switch (Event->Type) {
+        case QUIC_STREAM_EVENT_RECEIVE: {
+            QUIC_STATISTICS Stats{};
+            uint32_t StatsSize = sizeof(Stats);
+            Status = MsQuic->GetParam(
+                TestContext->ClientConnection.Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_STATISTICS,
+                &StatsSize,
+                &Stats);
+            if (QUIC_FAILED(Status)) {
+                TEST_FAILURE("Client failed to query statistics on receive 0x%x", Status);
+            }
+            TestContext->AckCountStop = Stats.Recv.AcksReceived;
+            Event->RECEIVE.TotalBufferLength = 0;
+            QuicEventSet(TestContext->ClientReceiveDataEvent.Handle);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_CONNECTION_CALLBACK)
+static
+QUIC_STATUS
+QUIC_API
+QuicAckDelayConnectionHandler(
+    _In_ HQUIC QuicConnection,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    )
+{
+    AckSendDelayTestContext* TestContext = (AckSendDelayTestContext*)Context;
+    if (TestContext->ServerConnection == QuicConnection) {
+        //
+        // Server side
+        //
+        switch (Event->Type) {
+        case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
+            MsQuic->SetCallbackHandler(
+                Event->PEER_STREAM_STARTED.Stream,
+                (void*)QuicAckDelayStreamHandler,
+                Context);
+            TestContext->ServerStream.Handle = Event->PEER_STREAM_STARTED.Stream;
+            QuicEventSet(TestContext->ServerStreamStartedEvent.Handle);
+            break;
+        default:
+            break;
+        }
+    } else {
+        if(TestContext->ClientConnection.Handle != QuicConnection) {
+            TEST_FAILURE("Client connection is wrong??! %p vs %p",
+                TestContext->ClientConnection.Handle,
+                QuicConnection);
+        }
+        //
+        // Client side
+        //
+        switch(Event->Type) {
+        case QUIC_CONNECTION_EVENT_CONNECTED:
+            QuicEventSet(TestContext->ClientConnectedEvent.Handle);
+            break;
+        default:
+            break;
+        }
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_LISTENER_CALLBACK)
+static
+QUIC_STATUS
+QUIC_API
+QuicAckDelayListenerHandler(
+    _In_ HQUIC /* QuicListener */,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+    )
+{
+    AckSendDelayTestContext* TestContext = (AckSendDelayTestContext*)Context;
+    switch (Event->Type) {
+        case QUIC_LISTENER_EVENT_NEW_CONNECTION:
+            TestContext->ServerConnection.Handle = Event->NEW_CONNECTION.Connection;
+            MsQuic->SetCallbackHandler(TestContext->ServerConnection.Handle, (void*) QuicAckDelayConnectionHandler, Context);
+            return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, TestContext->ServerConfiguration);
+        default:
+            TEST_FAILURE(
+                "Invalid listener event! Context: 0x%p, Event: %d",
+                Context,
+                Event->Type);
+            return QUIC_STATUS_INVALID_STATE;
+    }
+}
+
+void
+QuicTestAckSendDelay(
+    )
+{
+    uint32_t TimeoutMs = 3000;
+    uint32_t AckDelayMs = 1000;
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings{};
+    Settings.SetIdleTimeoutMs(TimeoutMs);
+    Settings.MaxAckDelayMs = AckDelayMs;
+    Settings.IsSet.MaxAckDelayMs = true;
+    Settings.SetPeerBidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (true) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr;
+
+    {
+        AckSendDelayTestContext TestContext {};
+
+        TestContext.ServerConfiguration = ServerConfiguration;
+        //
+        // Start the server.
+        //
+        ListenerScope Listener;
+        QUIC_STATUS Status =
+            MsQuic->ListenerOpen(
+                Registration,
+                QuicAckDelayListenerHandler,
+                &TestContext,
+                &Listener.Handle);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->ListenerOpen failed, 0x%x.", Status);
+            return;
+        }
+
+        Status = MsQuic->ListenerStart(Listener.Handle, Alpn, Alpn.Length(), nullptr);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->ListenerStart failed, 0x%x.", Status);
+            return;
+        }
+
+        uint32_t Size = sizeof(ServerLocalAddr.SockAddr);
+        Status =
+            MsQuic->GetParam(
+                Listener.Handle,
+                QUIC_PARAM_LEVEL_LISTENER,
+                QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
+                &Size,
+                &ServerLocalAddr.SockAddr);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->GetParam failed, 0x%x.", Status);
+            return;
+        }
+
+        //
+        // Start the client.
+        //
+        Status =
+            MsQuic->ConnectionOpen(
+                Registration,
+                QuicAckDelayConnectionHandler,
+                &TestContext,
+                &TestContext.ClientConnection.Handle);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
+            return;
+        }
+
+        Status =
+            MsQuic->ConnectionStart(
+                TestContext.ClientConnection.Handle,
+                ClientConfiguration,
+                QuicAddrFamily,
+                QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                ServerLocalAddr.GetPort());
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->ConnectionStart failed, 0x%x.", Status);
+            return;
+        }
+
+        if (!QuicEventWaitWithTimeout(TestContext.ClientConnectedEvent.Handle, TimeoutMs)) {
+            TEST_FAILURE("Client failed to get connected before timeout!");
+            return;
+        }
+
+        QUIC_STATISTICS Stats{};
+        uint32_t StatsSize = sizeof(Stats);
+        Status =
+            MsQuic->GetParam(
+                TestContext.ClientConnection.Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_STATISTICS,
+                &StatsSize,
+                &Stats);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("Client failed to query statistics at start 0x%x", Status);
+            return;
+        }
+        TestContext.AckCountStart = Stats.Recv.AcksReceived;
+        Status =
+            MsQuic->StreamOpen(
+                TestContext.ClientConnection.Handle,
+                QUIC_STREAM_OPEN_FLAG_NONE,
+                QuicAckDelayStreamHandler,
+                &TestContext,
+                &TestContext.ClientStream.Handle);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("Client failed to open stream 0x%x", Status);
+            return;
+        }
+        Status =
+            MsQuic->StreamSend(
+                TestContext.ClientStream.Handle,
+                TestContext.SendBuffer.Buffers,
+                TestContext.SendBuffer.BufferCount,
+                QUIC_SEND_FLAG_START,
+                nullptr);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("Client failed to send data 0x%x", Status);
+        }
+
+        if (!QuicEventWaitWithTimeout(TestContext.ClientReceiveDataEvent.Handle, TimeoutMs)) {
+            TEST_FAILURE("Client failed to receive data before timeout!");
+            return;
+        }
+
+        TEST_EQUAL(TestContext.AckCountStop - TestContext.AckCountStart, 1);
+    }
+}
