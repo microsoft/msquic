@@ -1910,7 +1910,7 @@ QuicAckDelayStreamHandler(
         }
     } else {
         if(TestContext->ClientStream.Handle != QuicStream) {
-            TEST_FAILURE("Client stream is wrong??! %p vs %p",
+            TEST_FAILURE("Client stream is wrong?! %p vs %p",
                 TestContext->ClientStream.Handle,
                 QuicStream);
         }
@@ -1972,7 +1972,7 @@ QuicAckDelayConnectionHandler(
         }
     } else {
         if(TestContext->ClientConnection.Handle != QuicConnection) {
-            TEST_FAILURE("Client connection is wrong??! %p vs %p",
+            TEST_FAILURE("Client connection is wrong?! %p vs %p",
                 TestContext->ClientConnection.Handle,
                 QuicConnection);
         }
