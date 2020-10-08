@@ -691,7 +691,7 @@ QUIC_STATUS
 QuicDataPathResolveAddress(
     _In_ QUIC_DATAPATH* Datapath,
     _In_z_ const char* HostName,
-    _Inout_ QUIC_ADDR * Address
+    _Inout_ QUIC_ADDR* Address
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
@@ -1722,7 +1722,7 @@ QuicDataPathBindingDelete(
 void
 QuicDataPathBindingGetLocalAddress(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _Out_ QUIC_ADDR * Address
+    _Out_ QUIC_ADDR* Address
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
@@ -1736,7 +1736,7 @@ QuicDataPathBindingGetLocalAddress(
 void
 QuicDataPathBindingGetRemoteAddress(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _Out_ QUIC_ADDR * Address
+    _Out_ QUIC_ADDR* Address
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
@@ -1984,6 +1984,13 @@ QuicDataPathBindingSend(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
 {
+#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+    return
+        PlatDispatch->DatapathBindingSend(
+            Binding,
+            RemoteAddress,
+            SendContext);
+#else
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_SOCKET_CONTEXT* SocketContext = NULL;
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
@@ -2114,67 +2121,7 @@ Exit:
     }
 
     return Status;
-}
-
-QUIC_STATUS
-QuicDataPathBindingSendTo(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
-    )
-{
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->DatapathBindingSendTo(
-            Binding,
-            RemoteAddress,
-            SendContext);
-#else
-    QUIC_DBG_ASSERT(
-        Binding != NULL &&
-        RemoteAddress != NULL &&
-        RemoteAddress->Ipv4.sin_port != 0 &&
-        SendContext != NULL);
-
-    return
-        QuicDataPathBindingSend(
-            Binding,
-            NULL,
-            RemoteAddress,
-            SendContext);
-#endif
-}
-
-QUIC_STATUS
-QuicDataPathBindingSendFromTo(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const QUIC_ADDR * LocalAddress,
-    _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
-    )
-{
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->DatapathBindingSendFromTo(
-            Binding,
-            LocalAddress,
-            RemoteAddress,
-            SendContext);
-#else
-    QUIC_DBG_ASSERT(
-        Binding != NULL &&
-        LocalAddress != NULL &&
-        RemoteAddress != NULL &&
-        SendContext != NULL &&
-        SendContext->BufferCount != 0);
-
-    return
-        QuicDataPathBindingSend(
-            Binding,
-            LocalAddress,
-            RemoteAddress,
-            SendContext);
-#endif
+#endif // QUIC_PLATFORM_DISPATCH_TABLE
 }
 
 uint16_t

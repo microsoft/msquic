@@ -1110,7 +1110,7 @@ QUIC_STATUS
 QuicDataPathResolveAddress(
     _In_ QUIC_DATAPATH* Datapath,
     _In_z_ const char* HostName,
-    _Inout_ QUIC_ADDR * Address
+    _Inout_ QUIC_ADDR* Address
     )
 {
     QUIC_STATUS Status = STATUS_SUCCESS;
@@ -1273,8 +1273,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathBindingCreate(
     _In_ QUIC_DATAPATH* Datapath,
-    _In_opt_ const SOCKADDR_INET * LocalAddress,
-    _In_opt_ const SOCKADDR_INET * RemoteAddress,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
     _Out_ QUIC_DATAPATH_BINDING** NewBinding
     )
@@ -1807,7 +1807,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicDataPathBindingGetLocalAddress(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _Out_ SOCKADDR_INET * Address
+    _Out_ QUIC_ADDR* Address
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
@@ -1818,7 +1818,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicDataPathBindingGetRemoteAddress(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _Out_ SOCKADDR_INET * Address
+    _Out_ QUIC_ADDR* Address
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
@@ -2736,86 +2736,10 @@ QuicDataPathBindingPrepareSendContext(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingSendTo(
+QuicDataPathBindingSend(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const SOCKADDR_INET * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
-    )
-{
-    QUIC_STATUS Status;
-    PDWORD SegmentSize;
-
-    QUIC_DBG_ASSERT(
-        Binding != NULL && RemoteAddress != NULL && SendContext != NULL);
-
-    //
-    // Initialize IRP and MDLs for sending.
-    //
-    QuicDataPathBindingPrepareSendContext(SendContext);
-
-    SendContext->Binding = Binding;
-
-    QuicTraceEvent(
-        DatapathSendTo,
-        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
-        Binding,
-        SendContext->TotalSize,
-        SendContext->WskBufferCount,
-        SendContext->SegmentSize,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
-
-    BYTE CMsgBuffer[WSA_CMSG_SPACE(sizeof(*SegmentSize))];
-    PWSACMSGHDR CMsg = NULL;
-    ULONG CMsgLen = 0;
-
-    // TODO - Use SendContext->ECN if not QUIC_ECN_NON_ECT
-
-    if (SendContext->SegmentSize > 0) {
-        CMsg = (PWSACMSGHDR)CMsgBuffer;
-        CMsgLen += WSA_CMSG_SPACE(sizeof(*SegmentSize));
-
-        CMsg->cmsg_level = IPPROTO_UDP;
-        CMsg->cmsg_type = UDP_SEND_MSG_SIZE;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(*SegmentSize));
-
-        SegmentSize = (PDWORD)WSA_CMSG_DATA(CMsg);
-        *SegmentSize = SendContext->SegmentSize;
-    }
-
-    InterlockedIncrement(&Binding->SendOutstanding);
-
-    Status =
-        Binding->DgrmSocket->Dispatch->
-        WskSendMessages(
-            Binding->Socket,
-            SendContext->WskBufs,
-            0,
-            NULL,
-            CMsgLen,
-            CMsg,
-            &SendContext->Irp);
-
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "WskSendMessages");
-        //
-        // Callback still gets invoked on failure to do the cleanup.
-        //
-    }
-
-    return STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicDataPathBindingSendFromTo(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const SOCKADDR_INET * LocalAddress,
-    _In_ const SOCKADDR_INET * RemoteAddress,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
 {

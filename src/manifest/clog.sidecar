@@ -23634,6 +23634,14 @@
       {
         "UniquenessHash": "78d1c2fe-fbce-b603-004e-f2026093416c",
         "TraceID": "TestHookDropLimitAddrSend"
+      },
+      {
+        "UniquenessHash": "ed52dc79-5619-64e6-7bde-c177b24ff85d",
+        "TraceID": "BindingSendFailed"
+      },
+      {
+        "UniquenessHash": "8419ad0b-e226-53e3-837c-4eebd4cc6619",
+        "TraceID": "BindingSendTestDrop"
       }
     ]
   }

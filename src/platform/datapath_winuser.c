@@ -889,7 +889,7 @@ QUIC_STATUS
 QuicDataPathResolveAddress(
     _In_ QUIC_DATAPATH* Datapath,
     _In_z_ const char* HostName,
-    _Inout_ QUIC_ADDR * Address
+    _Inout_ QUIC_ADDR* Address
     )
 {
     QUIC_STATUS Status;
@@ -1003,8 +1003,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathBindingCreate(
     _In_ QUIC_DATAPATH* Datapath,
-    _In_opt_ const SOCKADDR_INET * LocalAddress,
-    _In_opt_ const SOCKADDR_INET * RemoteAddress,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
     _Out_ QUIC_DATAPATH_BINDING** NewBinding
     )
@@ -1537,7 +1537,6 @@ QUIC_DISABLED_BY_FUZZER_END;
     }
 
     QuicConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
-    Binding->LocalAddress.Ipv6.sin6_scope_id = 0;
 
     if (RemoteAddress != NULL) {
         Binding->RemoteAddress = *RemoteAddress;
@@ -1731,7 +1730,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicDataPathBindingGetLocalAddress(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _Out_ SOCKADDR_INET * Address
+    _Out_ QUIC_ADDR* Address
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
@@ -1742,7 +1741,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicDataPathBindingGetRemoteAddress(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _Out_ SOCKADDR_INET * Address
+    _Out_ QUIC_ADDR* Address
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
@@ -1974,7 +1973,6 @@ QuicDataPathRecvComplete(
                     LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
                     LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                     QuicConvertFromMappedV6(LocalAddr, LocalAddr);
-
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
                     FoundLocalAddr = TRUE;
                 } else if (CMsg->cmsg_type == IPV6_ECN) {
@@ -2465,141 +2463,10 @@ QuicSendContextComplete(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingSendTo(
+QuicDataPathBindingSend(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const SOCKADDR_INET * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
-    )
-{
-    QUIC_STATUS Status;
-    QUIC_DATAPATH* Datapath;
-    QUIC_UDP_SOCKET_CONTEXT* SocketContext;
-    SOCKET Socket;
-    int Result;
-    DWORD BytesSent;
-
-    QUIC_DBG_ASSERT(
-        Binding != NULL && RemoteAddress != NULL && SendContext != NULL);
-
-    if (SendContext->WsaBufferCount == 0) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    QuicSendContextFinalizeSendBuffer(SendContext, TRUE);
-
-    Datapath = Binding->Datapath;
-    SocketContext = &Binding->SocketContexts[Binding->Connected ? 0 : GetCurrentProcessorNumber()];
-    Socket = SocketContext->Socket;
-
-    QuicTraceEvent(
-        DatapathSendTo,
-        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
-        Binding,
-        SendContext->TotalSize,
-        SendContext->WsaBufferCount,
-        SendContext->SegmentSize,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
-
-    PWSACMSGHDR CMsg;
-    BYTE CtrlBuf[
-        WSA_CMSG_SPACE(sizeof(INT)) +   // IP_ECN
-#ifdef UDP_SEND_MSG_SIZE
-        WSA_CMSG_SPACE(sizeof(DWORD))   // UDP_SEND_MSG_SIZE
-#endif
-        ];
-
-    WSAMSG WSAMhdr;
-    WSAMhdr.dwFlags = 0;
-    WSAMhdr.name = NULL;
-    WSAMhdr.namelen = 0;
-    WSAMhdr.lpBuffers = SendContext->WsaBuffers;
-    WSAMhdr.dwBufferCount = SendContext->WsaBufferCount;
-    WSAMhdr.Control.buf = (PCHAR)CtrlBuf;
-    WSAMhdr.Control.len = 0;
-
-    if (RemoteAddress->si_family == QUIC_ADDRESS_FAMILY_INET) {
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
-        CMsg->cmsg_level = IPPROTO_IP;
-        CMsg->cmsg_type = IP_ECN;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendContext->ECN;
-
-    } else {
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
-        CMsg->cmsg_level = IPPROTO_IPV6;
-        CMsg->cmsg_type = IPV6_ECN;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendContext->ECN;
-    }
-
-#ifdef UDP_SEND_MSG_SIZE
-    if (SendContext->SegmentSize > 0) {
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(DWORD));
-        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-        QUIC_DBG_ASSERT(CMsg != NULL);
-        CMsg->cmsg_level = IPPROTO_UDP;
-        CMsg->cmsg_type = UDP_SEND_MSG_SIZE;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(DWORD));
-        *(PDWORD)WSA_CMSG_DATA(CMsg) = SendContext->SegmentSize;
-    }
-#endif
-
-    QUIC_DBG_ASSERT(Binding->RemoteAddress.Ipv4.sin_port != 0);
-
-    //
-    // Start the async send.
-    //
-    RtlZeroMemory(&SendContext->Overlapped, sizeof(OVERLAPPED));
-    Result =
-        Datapath->WSASendMsg(
-            Socket,
-            &WSAMhdr,
-            0,
-            &BytesSent,
-            &SendContext->Overlapped,
-            NULL);
-    if (Result == SOCKET_ERROR) {
-        int WsaError = WSAGetLastError();
-        if (WsaError != WSA_IO_PENDING) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                WsaError,
-                "WSASendMsg");
-            Status = HRESULT_FROM_WIN32(WsaError);
-            goto Exit;
-        }
-    } else {
-        //
-        // Completed synchronously.
-        //
-        QuicSendContextComplete(
-            SocketContext,
-            SendContext,
-            QUIC_STATUS_SUCCESS);
-    }
-
-    Status = QUIC_STATUS_SUCCESS;
-
-Exit:
-
-    if (QUIC_FAILED(Status)) {
-        QuicDataPathBindingFreeSendContext(SendContext);
-    }
-
-    return Status;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicDataPathBindingSendFromTo(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const SOCKADDR_INET * LocalAddress,
-    _In_ const SOCKADDR_INET * RemoteAddress,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
 {
@@ -2646,7 +2513,7 @@ QuicDataPathBindingSendFromTo(
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
         WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
 #ifdef UDP_SEND_MSG_SIZE
-        WSA_CMSG_SPACE(sizeof(DWORD))    // UDP_SEND_MSG_SIZE
+        WSA_CMSG_SPACE(sizeof(DWORD))           // UDP_SEND_MSG_SIZE
 #endif
         ];
 
@@ -2660,6 +2527,7 @@ QuicDataPathBindingSendFromTo(
     WSAMhdr.Control.len = 0;
 
     if (LocalAddress->si_family == QUIC_ADDRESS_FAMILY_INET) {
+
         WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(IN_PKTINFO));
         CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
         CMsg->cmsg_level = IPPROTO_IP;
