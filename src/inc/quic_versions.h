@@ -54,7 +54,6 @@ QuicIsVersionSupported(
     )
 {
     switch (Version) {
-    case QUIC_VERSION_VER_NEG:
     case QUIC_VERSION_DRAFT_27:
     case QUIC_VERSION_DRAFT_28:
     case QUIC_VERSION_DRAFT_29:

@@ -28,9 +28,17 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_INITIAL_RTT                        333 // millisec
 
 //
-// The minimum QUIC Packet Size (UDP payload size) for initial QUIC packets.
+// The minimum (version 1) QUIC Packet Size (UDP payload size) for initial QUIC
+// packets.
 //
 #define QUIC_MIN_INITIAL_PACKET_LENGTH          1200
+
+//
+// The minimum UDP payload size across all supported versions. Used to decided
+// on whether to send a version negotiation packet in response to an unsupported
+// QUIC version.
+//
+#define QUIC_MIN_UDP_PAYLOAD_LENGTH_FOR_VN      QUIC_MIN_INITIAL_PACKET_LENGTH
 
 //
 // The initial congestion window.

@@ -1082,9 +1082,19 @@ QuicBindingPreprocessDatagram(
         //
         // Validate we support this long header packet version.
         //
-        if (!QuicIsVersionSupported(Packet->Invariant->LONG_HDR.Version)) {
+        if (Packet->Invariant->LONG_HDR.Version != QUIC_VERSION_VER_NEG &&
+            !QuicIsVersionSupported(Packet->Invariant->LONG_HDR.Version)) {
+            //
+            // The QUIC packet has an unsupported and non-VN packet number. If
+            // we have a listener on this binding and the packet is long enough
+            // we should respond with a version negotiation packet.
+            //
             if (!QuicBindingHasListenerRegistered(Binding)) {
                 QuicPacketLogDrop(Binding, Packet, "No listener to send VN");
+
+            } else if (Datagram->BufferLength < QUIC_MIN_UDP_PAYLOAD_LENGTH_FOR_VN) {
+                QuicPacketLogDrop(Binding, Packet, "Too small to send VN");
+
             } else {
                 *ReleaseDatagram =
                     !QuicBindingQueueStatelessOperation(
