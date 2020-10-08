@@ -34,7 +34,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_MIN_INITIAL_PACKET_LENGTH          1200
 
 //
-// The minimum UDP payload size across all supported versions. Used to decided
+// The minimum UDP payload size across all supported versions. Used to decide
 // on whether to send a version negotiation packet in response to an unsupported
 // QUIC version.
 //
