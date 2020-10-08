@@ -2493,7 +2493,7 @@ QuicDataPathBindingSend(
     Socket = SocketContext->Socket;
 
     QuicTraceEvent(
-        DatapathSendFromTo,
+        DatapathSend,
         "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Binding,
         SendContext->TotalSize,

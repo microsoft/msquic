@@ -616,8 +616,8 @@ typedef struct QUIC_EVENT_DATA_TLS {
 #pragma pack(pop)
 
 typedef enum QUIC_EVENT_ID_DATAPATH {
-    EventId_QuicDatapathSendTo,
-    EventId_QuicDatapathSendFromTo,
+    EventId_QuicDatapathDEPRECATED,
+    EventId_QuicDatapathSend,
     EventId_QuicDatapathRecv,
     EventId_QuicDatapathError,
     EventId_QuicDatapathErrorStatus,
@@ -634,15 +634,8 @@ typedef struct QUIC_EVENT_DATA_DATAPATH {
             UINT32 TotalSize;
             UINT8 BufferCount;
             UINT16 SegmentSize;
-            UINT8 RemoteAddrLength;
-            SOCKADDR_INET RemoteAddr;
-        } SendTo;
-        struct {
-            UINT32 TotalSize;
-            UINT8 BufferCount;
-            UINT16 SegmentSize;
             UINT8 Addrs[1]; // RemoteAddr, LocalAddr
-        } SendFromTo;
+        } Send;
         struct {
             UINT32 TotalSize;
             UINT16 SegmentSize;

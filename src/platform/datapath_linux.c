@@ -2015,26 +2015,16 @@ QuicDataPathBindingSend(
         SendContext->Iovs[i].iov_len = SendContext->Buffers[i].Length;
         TotalSize += SendContext->Buffers[i].Length;
     }
-    if (LocalAddress == NULL) {
-        QuicTraceEvent(
-            DatapathSendTo,
-            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
-            Binding,
-            TotalSize,
-            SendContext->BufferCount,
-            SendContext->Buffers[0].Length,
-            CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
-    } else {
-        QuicTraceEvent(
-            DatapathSendFromTo,
-            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-            Binding,
-            TotalSize,
-            SendContext->BufferCount,
-            SendContext->Buffers[0].Length,
-            CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-            CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-    }
+
+    QuicTraceEvent(
+        DatapathSend,
+        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        Binding,
+        TotalSize,
+        SendContext->BufferCount,
+        SendContext->Buffers[0].Length,
+        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.

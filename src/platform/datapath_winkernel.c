@@ -207,7 +207,7 @@ typedef struct QUIC_DATAPATH_SEND_CONTEXT {
     QUIC_DATAPATH_PROC_CONTEXT* Owner;
 
     //
-    // The IRP buffer for the async WskSendTo call.
+    // The IRP buffer for the async WskSendMessages call.
     //
     union {
         IRP Irp;
@@ -2758,7 +2758,7 @@ QuicDataPathBindingSend(
     SendContext->Binding = Binding;
 
     QuicTraceEvent(
-        DatapathSendFromTo,
+        DatapathSend,
         "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Binding,
         SendContext->TotalSize,
