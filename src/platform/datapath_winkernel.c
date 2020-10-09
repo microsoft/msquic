@@ -2831,7 +2831,7 @@ QuicDataPathBindingSend(
             Binding->Socket,
             SendContext->WskBufs,
             0,
-            (PSOCKADDR)&MappedAddress,
+            Binding->Connected ? NULL : (PSOCKADDR)&MappedAddress,
             CMsgLen,
             (PWSACMSGHDR)CMsgBuffer,
             &SendContext->Irp);

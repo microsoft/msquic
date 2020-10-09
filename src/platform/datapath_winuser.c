@@ -2518,8 +2518,13 @@ QuicDataPathBindingSend(
 
     WSAMSG WSAMhdr;
     WSAMhdr.dwFlags = 0;
-    WSAMhdr.name = (LPSOCKADDR)&MappedRemoteAddress;
-    WSAMhdr.namelen = sizeof(MappedRemoteAddress);
+    if (Binding->Connected) {
+        WSAMhdr.name = NULL;
+        WSAMhdr.namelen = 0;
+    } else {
+        WSAMhdr.name = (LPSOCKADDR)&MappedRemoteAddress;
+        WSAMhdr.namelen = sizeof(MappedRemoteAddress);
+    }
     WSAMhdr.lpBuffers = SendContext->WsaBuffers;
     WSAMhdr.dwBufferCount = SendContext->WsaBufferCount;
     WSAMhdr.Control.buf = (PCHAR)CtrlBuf;
