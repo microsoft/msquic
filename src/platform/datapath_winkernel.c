@@ -283,6 +283,11 @@ typedef struct _WSK_DATAGRAM_SOCKET {
 typedef struct QUIC_DATAPATH_BINDING {
 
     //
+    // Flag indicates the binding has a default remote destination.
+    //
+    BOOLEAN Connected : 1;
+
+    //
     // Parent datapath.
     //
     QUIC_DATAPATH* Datapath;
@@ -1313,6 +1318,7 @@ QuicDataPathBindingCreate(
     RtlZeroMemory(Binding, BindingSize);
     Binding->Datapath = Datapath;
     Binding->ClientContext = RecvCallbackContext;
+    Binding->Connected = (RemoteAddress != NULL);
     if (LocalAddress != NULL) {
         QuicConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
     } else {
@@ -2778,31 +2784,33 @@ QuicDataPathBindingSend(
     //
     BYTE CMsgBuffer[WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) + WSA_CMSG_SPACE(sizeof(*SegmentSize))];
     PWSACMSGHDR CMsg = (PWSACMSGHDR)CMsgBuffer;
-    ULONG CMsgLen;
+    ULONG CMsgLen = 0;
 
     // TODO - Use SendContext->ECN if not QUIC_ECN_NON_ECT
 
-    if (LocalAddress->si_family == QUIC_ADDRESS_FAMILY_INET) {
-        CMsgLen = WSA_CMSG_SPACE(sizeof(IN_PKTINFO));
+    if (!Binding->Connected) {
+        if (LocalAddress->si_family == QUIC_ADDRESS_FAMILY_INET) {
+            CMsgLen += WSA_CMSG_SPACE(sizeof(IN_PKTINFO));
 
-        CMsg->cmsg_level = IPPROTO_IP;
-        CMsg->cmsg_type = IP_PKTINFO;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN_PKTINFO));
+            CMsg->cmsg_level = IPPROTO_IP;
+            CMsg->cmsg_type = IP_PKTINFO;
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN_PKTINFO));
 
-        PIN_PKTINFO PktInfo = (PIN_PKTINFO)WSA_CMSG_DATA(CMsg);
-        PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
-        PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
+            PIN_PKTINFO PktInfo = (PIN_PKTINFO)WSA_CMSG_DATA(CMsg);
+            PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
+            PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
 
-    } else {
-        CMsgLen = WSA_CMSG_SPACE(sizeof(IN6_PKTINFO));
+        } else {
+            CMsgLen += WSA_CMSG_SPACE(sizeof(IN6_PKTINFO));
 
-        CMsg->cmsg_level = IPPROTO_IPV6;
-        CMsg->cmsg_type = IPV6_PKTINFO;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN6_PKTINFO));
+            CMsg->cmsg_level = IPPROTO_IPV6;
+            CMsg->cmsg_type = IPV6_PKTINFO;
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN6_PKTINFO));
 
-        PIN6_PKTINFO PktInfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(CMsg);
-        PktInfo6->ipi6_ifindex = LocalAddress->Ipv6.sin6_scope_id;
-        PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
+            PIN6_PKTINFO PktInfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(CMsg);
+            PktInfo6->ipi6_ifindex = LocalAddress->Ipv6.sin6_scope_id;
+            PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
+        }
     }
 
     if (SendContext->SegmentSize > 0) {
@@ -2827,7 +2835,7 @@ QuicDataPathBindingSend(
             0,
             (PSOCKADDR)&MappedAddress,
             CMsgLen,
-            (PWSACMSGHDR)CMsgBuffer,
+            CMsgLen == 0 ? NULL : (PWSACMSGHDR)CMsgBuffer,
             &SendContext->Irp);
 
     if (QUIC_FAILED(Status)) {
