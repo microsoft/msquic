@@ -816,6 +816,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_ACK_SEND_DELAY:
+        QUIC_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestAckSendDelay(Params->Family));
         break;
