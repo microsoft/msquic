@@ -1757,7 +1757,7 @@ QuicEncrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-    if (EVP_EncryptInit_ex(Key->CipherCtx, NULL, NULL, Key, Iv) != 1) {
+    if (EVP_EncryptInit_ex(Key->CipherCtx, NULL, NULL, Key->Buffer, Iv) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1830,7 +1830,7 @@ QuicDecrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(Buffer, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(Key->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1839,7 +1839,7 @@ QuicDecrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-    if (EVP_DecryptInit_ex(Key->CipherCtx, NULL, NULL, Key, Iv) != 1) {
+    if (EVP_DecryptInit_ex(Key->CipherCtx, NULL, NULL, Key->Buffer, Iv) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
