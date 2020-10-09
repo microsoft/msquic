@@ -1866,7 +1866,7 @@ struct AckSendDelayTestContext {
     QuicSendBuffer SendBuffer;
     EventScope ServerStreamStartedEvent;
     EventScope ClientReceiveDataEvent;
-    EventScope ClientConnectedEvent;
+    EventScope ServerConnectedEvent;
     ConnectionScope ServerConnection;
     ConnectionScope ClientConnection;
     StreamScope ServerStream;
@@ -1903,16 +1903,18 @@ QuicAckDelayStreamHandler(
                 nullptr);
             if (QUIC_FAILED(Status)) {
                 TEST_FAILURE("Server failed to send to send data back 0x%x", Status);
+                return Status;
             }
             break;
         default:
             break;
         }
     } else {
-        if(TestContext->ClientStream.Handle != QuicStream) {
+        if (TestContext->ClientStream.Handle != QuicStream) {
             TEST_FAILURE("Client stream is wrong?! %p vs %p",
                 TestContext->ClientStream.Handle,
                 QuicStream);
+            return QUIC_STATUS_INVALID_STATE;
         }
         //
         // Client side
@@ -1929,8 +1931,9 @@ QuicAckDelayStreamHandler(
                 &Stats);
             if (QUIC_FAILED(Status)) {
                 TEST_FAILURE("Client failed to query statistics on receive 0x%x", Status);
+                return Status;
             }
-            TestContext->AckCountStop = Stats.Recv.AcksReceived;
+            TestContext->AckCountStop = Stats.Recv.ValidAckFrames;
             Event->RECEIVE.TotalBufferLength = 0;
             QuicEventSet(TestContext->ClientReceiveDataEvent.Handle);
             break;
@@ -1959,6 +1962,9 @@ QuicAckDelayConnectionHandler(
         // Server side
         //
         switch (Event->Type) {
+        case QUIC_CONNECTION_EVENT_CONNECTED:
+            QuicEventSet(TestContext->ServerConnectedEvent.Handle);
+            break;
         case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
             MsQuic->SetCallbackHandler(
                 Event->PEER_STREAM_STARTED.Stream,
@@ -1975,13 +1981,14 @@ QuicAckDelayConnectionHandler(
             TEST_FAILURE("Client connection is wrong?! %p vs %p",
                 TestContext->ClientConnection.Handle,
                 QuicConnection);
+            return QUIC_STATUS_INVALID_STATE;
         }
         //
         // Client side
         //
         switch(Event->Type) {
         case QUIC_CONNECTION_EVENT_CONNECTED:
-            QuicEventSet(TestContext->ClientConnectedEvent.Handle);
+            // QuicEventSet(TestContext->ServerConnectedEvent.Handle);
             break;
         default:
             break;
@@ -2040,7 +2047,7 @@ QuicTestAckSendDelay(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (true) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (true) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6; // TODO: Support v4/v6
     QuicAddr ServerLocalAddr;
 
     {
@@ -2107,10 +2114,15 @@ QuicTestAckSendDelay(
             return;
         }
 
-        if (!QuicEventWaitWithTimeout(TestContext.ClientConnectedEvent.Handle, TimeoutMs)) {
-            TEST_FAILURE("Client failed to get connected before timeout!");
+        if (!QuicEventWaitWithTimeout(TestContext.ServerConnectedEvent.Handle, TimeoutMs)) {
+            TEST_FAILURE("Server failed to get connected before timeout!");
             return;
         }
+
+        //
+        // Wait for connection to go silent before continuing
+        //
+        QuicSleep(100);
 
         QUIC_STATISTICS Stats{};
         uint32_t StatsSize = sizeof(Stats);
@@ -2125,7 +2137,7 @@ QuicTestAckSendDelay(
             TEST_FAILURE("Client failed to query statistics at start 0x%x", Status);
             return;
         }
-        TestContext.AckCountStart = Stats.Recv.AcksReceived;
+        TestContext.AckCountStart = Stats.Recv.ValidAckFrames;
         Status =
             MsQuic->StreamOpen(
                 TestContext.ClientConnection.Handle,

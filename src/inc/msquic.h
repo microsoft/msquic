@@ -315,7 +315,7 @@ typedef struct QUIC_STATISTICS {
         uint64_t TotalBytes;            // Sum of UDP payloads
         uint64_t TotalStreamBytes;      // Sum of stream payloads
         uint64_t DecryptionFailures;    // Count of packet decryption failures.
-        uint64_t AcksReceived;          // Count of receive ACK frames.
+        uint64_t ValidAckFrames;        // Count of receive ACK frames.
     } Recv;
     struct {
         uint32_t KeyUpdateCount;

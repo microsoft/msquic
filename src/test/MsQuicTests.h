@@ -237,7 +237,7 @@ QuicTestReceiveResumeNoData(
 
 void
 QuicTestAckSendDelay(
-);
+    );
 
 //
 // QuicDrill tests
