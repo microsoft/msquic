@@ -50,7 +50,7 @@
             }
         ],
         "AllowLoopback": true,
-        "Iterations": 10,
+        "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
         "Units": "kbps"
@@ -106,7 +106,7 @@
             }
         ],
         "AllowLoopback": true,
-        "Iterations": 10,
+        "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
         "Units": "kbps"
@@ -150,7 +150,7 @@
             }
         ],
         "AllowLoopback": true,
-        "Iterations": 10,
+        "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
         "Units": "kbps"
@@ -194,7 +194,7 @@
             }
         ],
         "AllowLoopback": true,
-        "Iterations": 10,
+        "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
         "Units": "kbps"
