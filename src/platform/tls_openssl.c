@@ -94,13 +94,16 @@ typedef struct QUIC_KEY {
     //
     // The cipher to use for encryption/decryption.
     //
+    const EVP_CIPHER* Aead;
 
-    const EVP_CIPHER *Aead;
+    //
+    // The cipher context to use for encryption/decryption.
+    //
+    EVP_CIPHER_CTX* CipherCtx;
 
     //
     // Buffer and Buffer length of the key.
     //
-
     size_t BufferLen;
     uint8_t Buffer[64];
 
@@ -319,44 +322,6 @@ QuicTlsHkdfExtract(
     _In_reads_(SaltLen) const uint8_t *Salt,
     _In_ size_t SaltLen,
     _In_ const EVP_MD *Md
-    );
-
-static
-size_t
-QuicTlsAeadTagLength(
-    _In_ const EVP_CIPHER *Aead
-    );
-
-static
-int
-QuicTlsEncrypt(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(PlainTextLen) const uint8_t *PlainText,
-    _In_ size_t PlainTextLen,
-    _In_reads_bytes_(KeyLen) const uint8_t *Key,
-    _In_ size_t KeyLen,
-    _In_reads_bytes_(NonceLen) const uint8_t *Nonce,
-    _In_ size_t NonceLen,
-    _In_reads_bytes_(AuthDataLen) const uint8_t *Authdata,
-    _In_ size_t AuthDataLen,
-    _In_ const EVP_CIPHER *Aead
-    );
-
-static
-int
-QuicTlsDecrypt(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(CipherTextLen) const uint8_t *CipherText,
-    _In_ size_t CipherTextLen,
-    _In_reads_bytes_(KeyLen) const uint8_t *Key,
-    _In_ size_t KeyLen,
-    _In_reads_bytes_(NonceLen) const uint8_t *Nonce,
-    _In_ size_t NonceLen,
-    _In_reads_bytes_(AuthDataLen) const uint8_t *AuthData,
-    _In_ size_t AuthDataLen,
-    _In_ const EVP_CIPHER *Aead
     );
 
 QUIC_STATUS
@@ -1710,6 +1675,16 @@ QuicKeyCreate(
         goto Exit;
     }
 
+    Key->CipherCtx = EVP_CIPHER_CTX_new();
+    if (Key->CipherCtx == NULL) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_CIPHER_CTX_new failed");
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
     switch (AeadType) {
     case QUIC_AEAD_AES_128_GCM:
         Key->Aead = EVP_aes_128_gcm();
@@ -1726,7 +1701,6 @@ QuicKeyCreate(
     }
 
     Key->BufferLen = EVP_CIPHER_key_length(Key->Aead);
-
     memcpy(Key->Buffer, RawKey, Key->BufferLen);
 
     *NewKey = Key;
@@ -1745,8 +1719,8 @@ QuicKeyFree(
     )
 {
     if (Key != NULL) {
+        EVP_CIPHER_CTX_free(Key->CipherCtx);
         QuicFree(Key);
-        Key = NULL;
     }
 }
 
@@ -1763,20 +1737,73 @@ QuicEncrypt(
     )
 {
     QUIC_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
-    int Ret =
-        QuicTlsEncrypt(
-            Buffer,
-            BufferLength,
-            Buffer,
-            BufferLength - QUIC_ENCRYPTION_OVERHEAD,
-            Key->Buffer,
-            Key->BufferLen,
-            Iv,
-            QUIC_IV_LENGTH,
-            AuthData,
-            AuthDataLength,
-            Key->Aead);
-    return (Ret < 0) ? QUIC_STATUS_TLS_ERROR : QUIC_STATUS_SUCCESS;
+
+    size_t OutLen = 0;
+    int Len = 0;
+
+    if (EVP_EncryptInit_ex(Key->CipherCtx, Key->Aead, NULL, NULL, NULL) != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptInit_ex failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    if (EVP_CIPHER_CTX_ctrl(Key->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_CIPHER_CTX_ctrl failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    if (EVP_EncryptInit_ex(Key->CipherCtx, NULL, NULL, Key, Iv) != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptInit_ex failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    if (AuthData != NULL) {
+        if (EVP_EncryptUpdate(Key->CipherCtx, NULL, &Len, AuthData, (int)AuthDataLength) != 1) {
+            QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptUpdate failed");
+            return QUIC_STATUS_TLS_ERROR;
+        }
+    }
+
+    if (EVP_EncryptUpdate(Key->CipherCtx, Buffer, &Len, Buffer, (int)BufferLength) != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptUpdate failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    OutLen = Len;
+
+    if (EVP_EncryptFinal_ex(Key->CipherCtx, Buffer + OutLen, &Len) != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptFinal_ex failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    OutLen += Len;
+
+    if (EVP_CIPHER_CTX_ctrl(Key->CipherCtx, EVP_CTRL_AEAD_GET_TAG, QUIC_ENCRYPTION_OVERHEAD, Buffer + OutLen) != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_CIPHER_CTX_ctrl failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
@@ -1790,20 +1817,80 @@ QuicDecrypt(
     )
 {
     QUIC_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
-    int Ret =
-        QuicTlsDecrypt(
-            Buffer,
-            BufferLength,
-            Buffer,
-            BufferLength,
-            Key->Buffer,
-            Key->BufferLen,
-            Iv,
-            QUIC_IV_LENGTH,
-            AuthData,
-            AuthDataLength,
-            Key->Aead);
-    return (Ret < 0) ? QUIC_STATUS_TLS_ERROR : QUIC_STATUS_SUCCESS;
+
+    BufferLength -= QUIC_ENCRYPTION_OVERHEAD;
+    uint8_t *Tag = Buffer + BufferLength;
+
+    if (EVP_DecryptInit_ex(Key->CipherCtx, Key->Aead, NULL, NULL, NULL) != 1) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_DecryptInit_ex failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    if (EVP_CIPHER_CTX_ctrl(Buffer, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_CIPHER_CTX_ctrl failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    if (EVP_DecryptInit_ex(Key->CipherCtx, NULL, NULL, Key, Iv) != 1) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_DecryptInit_ex failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    size_t OutLen;
+    int Len;
+
+    if (AuthData != NULL &&
+        EVP_DecryptUpdate(Key->CipherCtx, NULL, &Len, AuthData, (int)AuthDataLength) != 1) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_DecryptUpdate (AD) failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    if (EVP_DecryptUpdate(Key->CipherCtx, Buffer, &Len, Buffer, (int)BufferLength) != 1) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_DecryptUpdate (Cipher) failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    OutLen = Len;
+
+    if (EVP_CIPHER_CTX_ctrl(Key->CipherCtx, EVP_CTRL_AEAD_SET_TAG, QUIC_ENCRYPTION_OVERHEAD, Tag) != 1) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_CIPHER_CTX_ctrl failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    if (EVP_DecryptFinal_ex(Key->CipherCtx, Buffer + OutLen, &Len) != 1) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_DecryptFinal_ex failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
@@ -1873,9 +1960,7 @@ QuicHpKeyFree(
     )
 {
     if (Key != NULL) {
-        if (Key->CipherCtx != NULL) {
-            EVP_CIPHER_CTX_free(Key->CipherCtx);
-        }
+        EVP_CIPHER_CTX_free(Key->CipherCtx);
         QuicFree(Key);
     }
 }
@@ -2755,273 +2840,4 @@ Exit:
     }
 
     return (BOOLEAN)Ret;
-}
-
-static
-size_t
-QuicTlsAeadTagLength(
-    _In_ const EVP_CIPHER *Aead
-    )
-{
-    if (Aead == EVP_aes_128_gcm() || Aead == EVP_aes_256_gcm()) {
-        return EVP_GCM_TLS_TAG_LEN;
-    }
-
-    if (Aead == EVP_chacha20_poly1305()) {
-        return EVP_CHACHAPOLY_TLS_TAG_LEN;
-    }
-
-    QUIC_FRE_ASSERT(FALSE);
-    return 0;
-}
-
-static
-int
-QuicTlsEncrypt(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(PlainTextLen) const uint8_t *PlainText,
-    _In_ size_t PlainTextLen,
-    _In_reads_bytes_(KeyLen) const uint8_t *Key,
-    _In_ size_t KeyLen,
-    _In_reads_bytes_(NonceLen) const uint8_t *Nonce,
-    _In_ size_t NonceLen,
-    _In_reads_bytes_(AuthDataLen) const uint8_t *Authdata,
-    _In_ size_t AuthDataLen,
-    _In_ const EVP_CIPHER *Aead
-    )
-{
-    UNREFERENCED_PARAMETER(KeyLen);
-    int Ret = 0;
-    size_t TagLen = QuicTlsAeadTagLength(Aead);
-    EVP_CIPHER_CTX *CipherCtx = NULL;
-    size_t OutLen = 0;
-    int Len = 0;
-
-    QUIC_FRE_ASSERT(TagLen == QUIC_ENCRYPTION_OVERHEAD);
-
-    if (OutputBufferLen < PlainTextLen + TagLen) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            (unsigned)OutputBufferLen,
-            "Incorrect output buffer length");
-        Ret = -1;
-        goto Exit;
-    }
-
-    CipherCtx = EVP_CIPHER_CTX_new();
-    if (CipherCtx == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "CipherCtx alloc failed");
-        Ret = -1;
-        goto Exit;
-    }
-
-    if (EVP_EncryptInit_ex(CipherCtx, Aead, NULL, NULL, NULL) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_EncryptInit_ex failed");
-        Ret = -1;
-        goto Exit;
-    }
-
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, (int)NonceLen, NULL) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_CIPHER_CTX_ctrl failed");
-        Ret = -1;
-        goto Exit;
-    }
-
-    if (EVP_EncryptInit_ex(CipherCtx, NULL, NULL, Key, Nonce) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_EncryptInit_ex failed");
-        Ret = -1;
-        goto Exit;
-    }
-
-    if (Authdata != NULL) {
-        if (EVP_EncryptUpdate(CipherCtx, NULL, &Len, Authdata, (int)AuthDataLen) != 1) {
-            QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_EncryptUpdate failed");
-            Ret = -1;
-            goto Exit;
-        }
-    }
-
-    if (EVP_EncryptUpdate(CipherCtx, OutputBuffer, &Len, PlainText, (int)PlainTextLen) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_EncryptUpdate failed");
-        Ret = -1;
-        goto Exit;
-    }
-
-    OutLen = Len;
-
-    if (EVP_EncryptFinal_ex(CipherCtx, OutputBuffer + OutLen, &Len) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_EncryptFinal_ex failed");
-        Ret = -1;
-        goto Exit;
-    }
-
-    OutLen += Len;
-
-    QUIC_FRE_ASSERT(OutLen + TagLen <= OutputBufferLen);
-
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_GET_TAG, (int)TagLen, OutputBuffer + OutLen) != 1) {
-        Ret = -1;
-        goto Exit;
-    }
-
-    OutLen += TagLen;
-    Ret = (int)OutLen;
-
-Exit:
-
-    if (CipherCtx != NULL) {
-        EVP_CIPHER_CTX_free(CipherCtx);
-        CipherCtx = NULL;
-    }
-
-    return Ret;
-}
-
-static
-int
-QuicTlsDecrypt(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(CipherTextLen) const uint8_t *CipherText,
-    _In_ size_t CipherTextLen,
-    _In_reads_bytes_(KeyLen) const uint8_t *Key,
-    _In_ size_t KeyLen,
-    _In_reads_bytes_(NonceLen) const uint8_t *Nonce,
-    _In_ size_t NonceLen,
-    _In_reads_bytes_(AuthDataLen) const uint8_t *AuthData,
-    _In_ size_t AuthDataLen,
-    _In_ const EVP_CIPHER *Aead
-    )
-{
-    UNREFERENCED_PARAMETER(KeyLen);
-    size_t TagLen = QuicTlsAeadTagLength(Aead);
-    int Ret = -1;
-    EVP_CIPHER_CTX *CipherCtx = NULL;
-
-    QUIC_FRE_ASSERT(TagLen == QUIC_ENCRYPTION_OVERHEAD);
-
-    if (TagLen > CipherTextLen || OutputBufferLen + TagLen < CipherTextLen) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Incorrect buffer length");
-        goto Exit;
-    }
-
-    CipherTextLen -= TagLen;
-    uint8_t *Tag = (uint8_t *)CipherText + CipherTextLen;
-
-    CipherCtx = EVP_CIPHER_CTX_new();
-    if (CipherCtx == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_CIPHER_CTX_new failed");
-        goto Exit;
-    }
-
-    if (EVP_DecryptInit_ex(CipherCtx, Aead, NULL, NULL, NULL) != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "EVP_DecryptInit_ex failed");
-        goto Exit;
-    }
-
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, (int)NonceLen, NULL) != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "EVP_CIPHER_CTX_ctrl failed");
-        goto Exit;
-    }
-
-    if (EVP_DecryptInit_ex(CipherCtx, NULL, NULL, Key, Nonce) != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "EVP_DecryptInit_ex failed");
-        goto Exit;
-    }
-
-    size_t OutLen;
-    int Len;
-
-    if (AuthData != NULL) {
-        if (EVP_DecryptUpdate(CipherCtx, NULL, &Len, AuthData, (int)AuthDataLen) != 1) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                ERR_get_error(),
-                "EVP_DecryptUpdate (AD) failed");
-            goto Exit;
-        }
-    }
-
-    if (EVP_DecryptUpdate(CipherCtx, OutputBuffer, &Len, CipherText, (int)CipherTextLen) != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "EVP_DecryptUpdate (Cipher) failed");
-        goto Exit;
-    }
-
-    OutLen = Len;
-
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_TAG, (int)TagLen, Tag) != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "EVP_CIPHER_CTX_ctrl failed");
-        goto Exit;
-    }
-
-    if (EVP_DecryptFinal_ex(CipherCtx, OutputBuffer + OutLen, &Len) != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "EVP_DecryptFinal_ex failed");
-        goto Exit;
-    }
-
-    OutLen += Len;
-    Ret = (int)OutLen;
-
-Exit:
-
-    if (CipherCtx != NULL) {
-        EVP_CIPHER_CTX_free(CipherCtx);
-        CipherCtx = NULL;
-    }
-
-    return Ret;
 }
