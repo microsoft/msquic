@@ -1077,19 +1077,20 @@ QuicSendFlush(
             uint8_t PrevFrameCount = Builder.Metadata->FrameCount;
             QUIC_PACKET_SPACE* Packets = Connection->Packets[Builder.EncryptLevel];
             if (Builder.PacketType != QUIC_0_RTT_PROTECTED &&
-                QuicAckTrackerHasPacketsToAck(&Packets->AckTracker)) {
-                if (!QuicAckTrackerAckFrameEncode(&Packets->AckTracker, &Builder)) {
-                    //
-                    // This should never happen in practice, since the ACK
-                    // frame should be the first frame in the packet, and a
-                    // partially-filled packet should have already written
-                    // an ACK frame, if it was going to.
-                    //
-                    QUIC_DBG_ASSERT(FALSE);
-                    if (Builder.Metadata->FrameCount > PrevFrameCount) {
-                        WrotePacketFrames = TRUE;
-                        break;
-                    }
+                QuicAckTrackerHasPacketsToAck(&Packets->AckTracker) &&
+                !QuicAckTrackerAckFrameEncode(&Packets->AckTracker, &Builder)) {
+                //
+                // This should never happen in practice, since the ACK
+                // frame should be the first frame in the packet, and a
+                // partially-filled packet should have already written
+                // an ACK frame, if it was going to.
+                // Hitting this ASSERT during tests means either the packet
+                // was tiny, or it tried to fit an ACK block at the end.
+                //
+                QUIC_DBG_ASSERT(FALSE);
+                if (Builder.Metadata->FrameCount > PrevFrameCount) {
+                    WrotePacketFrames = TRUE;
+                    break;
                 }
             }
             WrotePacketFrames = QuicStreamSendWrite(Stream, &Builder);
