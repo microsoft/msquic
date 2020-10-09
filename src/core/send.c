@@ -1074,11 +1074,22 @@ QuicSendFlush(
                     Send->TailLossProbeNeeded)) {
                 break;
             }
+            uint8_t PrevFrameCount = Builder.Metadata->FrameCount;
             QUIC_PACKET_SPACE* Packets = Connection->Packets[Builder.EncryptLevel];
             if (Builder.PacketType != QUIC_0_RTT_PROTECTED &&
                 QuicAckTrackerHasPacketsToAck(&Packets->AckTracker)) {
                 if (!QuicAckTrackerAckFrameEncode(&Packets->AckTracker, &Builder)) {
-                    // TODO
+                    //
+                    // This should never happen in practice, since the ACK
+                    // frame should be the first frame in the packet, and a
+                    // partially-filled packet should have already written
+                    // an ACK frame, if it was going to.
+                    //
+                    QUIC_DBG_ASSERT(FALSE);
+                    if (Builder.Metadata->FrameCount > PrevFrameCount) {
+                        WrotePacketFrames = TRUE;
+                        break;
+                    }
                 }
             }
             WrotePacketFrames = QuicStreamSendWrite(Stream, &Builder);

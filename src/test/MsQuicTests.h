@@ -237,6 +237,7 @@ QuicTestReceiveResumeNoData(
 
 void
 QuicTestAckSendDelay(
+    _In_ int Family
     );
 
 //

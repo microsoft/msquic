@@ -812,12 +812,12 @@ TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
     }
 }
 
-TEST(AckDelay, AckSendDelay) {
+TEST_P(WithFamilyArgs, AckSendDelay) {
     TestLogger Logger("QuicTestAckSendDelay");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ACK_SEND_DELAY));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ACK_SEND_DELAY, GetParam().Family));
     } else {
-        QuicTestAckSendDelay();
+        QuicTestAckSendDelay(GetParam().Family);
     }
 }
 

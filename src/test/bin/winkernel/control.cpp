@@ -412,7 +412,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     sizeof(INT32),
     0,
-    0
+    sizeof(INT32)
 };
 
 static_assert(
@@ -817,7 +817,7 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_ACK_SEND_DELAY:
         QuicTestCtlRun(
-            QuicTestAckSendDelay());
+            QuicTestAckSendDelay(Params->Family));
         break;
 
     default:

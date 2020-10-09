@@ -2025,10 +2025,11 @@ QuicAckDelayListenerHandler(
 
 void
 QuicTestAckSendDelay(
+    _In_ int Family
     )
 {
-    uint32_t TimeoutMs = 3000;
-    uint32_t AckDelayMs = 1000;
+    const uint32_t TimeoutMs = 3000;
+    const uint32_t AckDelayMs = 1000;
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -2036,8 +2037,7 @@ QuicTestAckSendDelay(
 
     MsQuicSettings Settings{};
     Settings.SetIdleTimeoutMs(TimeoutMs);
-    Settings.MaxAckDelayMs = AckDelayMs;
-    Settings.IsSet.MaxAckDelayMs = true;
+    Settings.SetMaxAckDelayMs(AckDelayMs);
     Settings.SetPeerBidiStreamCount(1);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
@@ -2047,7 +2047,7 @@ QuicTestAckSendDelay(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (true) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6; // TODO: Support v4/v6
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr;
 
     {
