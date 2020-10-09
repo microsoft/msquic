@@ -3822,6 +3822,7 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
+            Connection->Stats.Recv.ValidAckFrames++;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -5802,6 +5803,7 @@ QuicConnParamGet(
         Stats->Recv.TotalBytes = Connection->Stats.Recv.TotalBytes;
         Stats->Recv.TotalStreamBytes = Connection->Stats.Recv.TotalStreamBytes;
         Stats->Recv.DecryptionFailures = Connection->Stats.Recv.DecryptionFailures;
+        Stats->Recv.ValidAckFrames = Connection->Stats.Recv.ValidAckFrames;
         Stats->Misc.KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
 
         if (Param == QUIC_PARAM_CONN_STATISTICS_PLAT) {
