@@ -1655,7 +1655,6 @@ QuicDataPathBindingCreate(
     }
 
     QuicConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
-    Binding->LocalAddress.Ipv6.sin6_scope_id = 0;
 
     if (RemoteAddress != NULL) {
         Binding->RemoteAddress = *RemoteAddress;
@@ -1961,7 +1960,6 @@ QuicDataPathSocketReceive(
                     LocalAddr.Ipv6.sin6_addr = PktInfo6->ipi6_addr;
                     LocalAddr.Ipv6.sin6_port = Binding->LocalAddress.Ipv6.sin6_port;
                     QuicConvertFromMappedV6(&LocalAddr, &LocalAddr);
-
                     LocalAddr.Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
                     FoundLocalAddr = TRUE;
 
@@ -2835,7 +2833,7 @@ QuicDataPathBindingSend(
             0,
             (PSOCKADDR)&MappedAddress,
             CMsgLen,
-            CMsgLen == 0 ? NULL : (PWSACMSGHDR)CMsgBuffer,
+            (PWSACMSGHDR)CMsgBuffer,
             &SendContext->Irp);
 
     if (QUIC_FAILED(Status)) {

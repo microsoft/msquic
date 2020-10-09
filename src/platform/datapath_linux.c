@@ -333,14 +333,6 @@ typedef struct QUIC_DATAPATH {
 
 } QUIC_DATAPATH;
 
-QUIC_STATUS
-QuicDataPathBindingSend(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
-    );
-
 void*
 QuicDataPathWorkerThread(
     _In_ void* Context
@@ -2052,7 +2044,7 @@ QuicDataPathBindingSend(
     CMsg->cmsg_len = CMSG_LEN(sizeof(int));
     *(int *)CMSG_DATA(CMsg) = SendContext->ECN;
 
-    if (LocalAddress) {
+    if (!Binding->Connected) {
         Mhdr.msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
         CMsg = CMSG_NXTHDR(&Mhdr, CMsg);
         QUIC_DBG_ASSERT(CMsg != NULL);
