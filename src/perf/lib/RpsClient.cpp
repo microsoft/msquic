@@ -256,6 +256,9 @@ RpsClient::Wait(
 
     uint32_t RPS = (uint32_t)((CompletedRequests * 1000ull) / (uint64_t)RunTime);
     WriteOutput("Result: %u RPS\n", RPS);
+#ifndef _KERNEL_MODE
+    fflush(stdout);
+#endif
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
     //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
     if (Connections != nullptr) {
