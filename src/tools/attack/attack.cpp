@@ -106,6 +106,9 @@ UdpUnreachCallback(
 
 void RunAttackRandom(QUIC_DATAPATH_BINDING* Binding, uint16_t Length, bool ValidQuic)
 {
+    QUIC_ADDR LocalAddress;
+    QuicDataPathBindingGetLocalAddress(Binding, &LocalAddress);
+
     uint64_t ConnectionId = 0;
     QuicRandom(sizeof(ConnectionId), &ConnectionId);
 
@@ -152,15 +155,13 @@ void RunAttackRandom(QUIC_DATAPATH_BINDING* Binding, uint16_t Length, bool Valid
             InterlockedExchangeAdd64(&TotalByteCount, Length);
         }
 
-        QUIC_STATUS Status =
-            QuicDataPathBindingSendTo(
-                Binding,
-                &ServerAddress,
-                SendContext);
-        if (QUIC_FAILED(Status)) {
-            printf("QuicDataPathBindingSendTo failed, 0x%x\n", Status);
-            return;
-        }
+        VERIFY(
+        QUIC_SUCCEEDED(
+        QuicDataPathBindingSend(
+            Binding,
+            &LocalAddress,
+            &ServerAddress,
+            SendContext)));
     }
 }
 
@@ -182,6 +183,9 @@ void RunAttackValidInitial(QUIC_DATAPATH_BINDING* Binding)
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH;
     const uint64_t PacketNumber = 0;
+
+    QUIC_ADDR LocalAddress;
+    QuicDataPathBindingGetLocalAddress(Binding, &LocalAddress);
 
     uint8_t Packet[512] = {0};
     uint16_t PacketLength, HeaderLength;
@@ -283,8 +287,9 @@ void RunAttackValidInitial(QUIC_DATAPATH_BINDING* Binding)
 
         VERIFY(
         QUIC_SUCCEEDED(
-        QuicDataPathBindingSendTo(
+        QuicDataPathBindingSend(
             Binding,
+            &LocalAddress,
             &ServerAddress,
             SendContext)));
     }

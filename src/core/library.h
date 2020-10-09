@@ -422,8 +422,8 @@ QuicLibraryGetBinding(
 #endif
     _In_ BOOLEAN ShareBinding,
     _In_ BOOLEAN ServerOwned,
-    _In_opt_ const QUIC_ADDR * LocalAddress,
-    _In_opt_ const QUIC_ADDR * RemoteAddress,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
     );
 

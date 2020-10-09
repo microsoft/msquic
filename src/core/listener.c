@@ -157,7 +157,7 @@ MsQuicListenerStart(
     _In_reads_(AlpnBufferCount) _Pre_defensive_
         const QUIC_BUFFER* const AlpnBuffers,
     _In_range_(>, 0) uint32_t AlpnBufferCount,
-    _In_opt_ const QUIC_ADDR * LocalAddress
+    _In_opt_ const QUIC_ADDR* LocalAddress
     )
 {
     QUIC_STATUS Status;

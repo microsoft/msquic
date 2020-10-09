@@ -75,13 +75,13 @@ public:
         _In_reads_(AlpnBufferCount) _Pre_defensive_
             const QUIC_BUFFER* const AlpnBuffers,
         _In_range_(>, 0) uint32_t AlpnBufferCount,
-        _In_opt_ const QUIC_ADDR * LocalAddress = nullptr
+        _In_opt_ const QUIC_ADDR* LocalAddress = nullptr
         );
 
     QUIC_STATUS
     Start(
         _In_ const MsQuicAlpn& Alpn,
-        _In_opt_ const QUIC_ADDR * LocalAddress = nullptr
+        _In_opt_ const QUIC_ADDR* LocalAddress = nullptr
         )
     {
         return Start(Alpn, Alpn.Length(), LocalAddress);
