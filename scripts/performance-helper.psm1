@@ -722,9 +722,9 @@ function Publish-HPSTestResults {
 function Publish-TestResults {
     param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
 
-    if ($Test.TestName -eq "Throughput") {
+    if ($Test.TestName -eq "ThroughputUp") {
         Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $false
-    } elseif ($Test.TestName -eq "Throughput (download)") {
+    } elseif ($Test.TestName -eq "ThroughputDown") {
         Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $true
     } elseif ($Test.TestName -eq "RPS") {
         Publish-RPSTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir

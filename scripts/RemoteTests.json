@@ -1,6 +1,6 @@
 [
     {
-        "TestName": "Throughput",
+        "TestName": "ThroughputUp",
         "Remote": {
             "Platform": "Windows",
             "Tls": ["stub", "schannel", "openssl", "mitls"],
@@ -56,7 +56,7 @@
         "Units": "kbps"
     },
     {
-        "TestName": "Throughput",
+        "TestName": "ThroughputUp",
         "Remote" : {
             "Platform": "Linux",
             "Tls": ["stub", "openssl"],
@@ -112,7 +112,7 @@
         "Units": "kbps"
     },
     {
-        "TestName": "Throughput (download)",
+        "TestName": "ThroughputDown",
         "Remote": {
             "Platform": "Windows",
             "Tls": ["stub", "schannel", "openssl", "mitls"],
@@ -156,7 +156,7 @@
         "Units": "kbps"
     },
     {
-        "TestName": "Throughput (download)",
+        "TestName": "ThroughputDown",
         "Remote" : {
             "Platform": "Linux",
             "Tls": ["stub", "openssl"],
