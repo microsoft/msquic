@@ -447,14 +447,15 @@ class ThroughputRequest {
     [boolean]$ServerToClient;
 
     ThroughputRequest (
-        [TestRunDefinition]$Test
+        [TestRunDefinition]$Test,
+        [boolean]$ServerToClient
     ) {
         $this.PlatformName = $Test.ToTestPlatformString();
         $this.Loopback = $Test.Loopback;
         $this.Encryption = $Test.VariableValues["Encryption"] -eq "On";
         $this.SendBuffering = $Test.VariableValues["SendBuffering"] -eq "On";
         $this.NumberOfStreams = 1;
-        $this.ServerToClient = $false;
+        $this.ServerToClient = $ServerToClient;
     }
 }
 
@@ -501,9 +502,9 @@ class ThroughputTestPublishResult {
 }
 
 function Publish-ThroughputTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir, $ServerToClient)
 
-    $Request = [ThroughputRequest]::new($Test)
+    $Request = [ThroughputRequest]::new($Test, $ServerToClient)
 
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
     $FullLastResult = Get-LatestThroughputRemoteTestResults -Request $Request
@@ -722,7 +723,9 @@ function Publish-TestResults {
     param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
 
     if ($Test.TestName -eq "Throughput") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
+        Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $false
+    } elseif ($Test.TestName -eq "Throughput (download)") {
+        Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $true
     } elseif ($Test.TestName -eq "RPS") {
         Publish-RPSTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
     } elseif ($Test.TestName -eq "HPS") {
