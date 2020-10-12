@@ -526,7 +526,7 @@ QuicTlsAddHandshakeDataCallback(
         // new data.
         //
         uint16_t NewBufferAllocLength = TlsState->BufferAllocLength;
-        while (Length + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
+        while (Length + TlsState->BufferLength > (size_t)NewBufferAllocLength) {
             NewBufferAllocLength <<= 1;
         }
 
