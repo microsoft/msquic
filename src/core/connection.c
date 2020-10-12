@@ -1567,13 +1567,12 @@ QuicConnTryClose(
         if (ResultQuicStatus) {
             Connection->CloseStatus = (QUIC_STATUS)ErrorCode;
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
-            if (ErrorCode != QUIC_STATUS_CONNECTION_IDLE &&
-                ErrorCode != QUIC_STATUS_CONNECTION_TIMEOUT) {
-                QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS);
-            }
         } else {
             Connection->CloseStatus = QuicErrorCodeToStatus(ErrorCode);
             Connection->CloseErrorCode = ErrorCode;
+            if (QuicErrorIsProtocolError(ErrorCode)) {
+                QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS);
+            }
         }
 
         if (Flags & QUIC_CLOSE_APPLICATION) {

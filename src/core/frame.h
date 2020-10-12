@@ -90,6 +90,20 @@
 #define QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL   QUIC_ERROR_CRYPTO_ERROR(120) // TLS error code for 'no_application_protocol'
 
 //
+// Used for determining which errors to count for performance counters.
+//
+inline
+BOOLEAN
+QuicErrorIsProtocolError(
+    _In_ QUIC_VAR_INT ErrorCode
+    )
+{
+    return
+        ErrorCode >= QUIC_ERROR_FLOW_CONTROL_ERROR &&
+        ErrorCode <= QUIC_ERROR_AEAD_LIMIT_REACHED;
+}
+
+//
 // Different types of QUIC frames
 //
 typedef enum QUIC_FRAME_TYPE {
