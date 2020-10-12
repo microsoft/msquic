@@ -1342,7 +1342,7 @@ QuicPacketKeyCreateInitial(
         }
 
         TempWriteKey->PacketKey->Aead = EVP_aes_128_gcm();
-        if (EVP_CipherInit_ex(TempWriteKey->PacketKey->CipherCtx, TempWriteKey->PacketKey->Aead, NULL, NULL, NULL, 0) != 1) {
+        if (EVP_CipherInit_ex(TempWriteKey->PacketKey->CipherCtx, TempWriteKey->PacketKey->Aead, NULL, NULL, NULL, 1) != 1) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
@@ -1351,15 +1351,17 @@ QuicPacketKeyCreateInitial(
             goto Exit;
         }
 
-        TempWriteKey->HeaderKey->Aead = EVP_aes_128_ctr();
-        if (EVP_CipherInit_ex(TempWriteKey->HeaderKey->CipherCtx, TempWriteKey->HeaderKey->Aead, NULL, NULL, NULL, 0) != 1) {
+        if (EVP_CIPHER_CTX_ctrl(TempWriteKey->PacketKey->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
             QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "EVP_CipherInit_ex failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
+
+        TempWriteKey->HeaderKey->Aead = EVP_aes_128_ctr();
 
         if (!QuicTlsHkdfExtract(
                 InitialSecret,
@@ -1461,7 +1463,7 @@ QuicPacketKeyCreateInitial(
         }
 
         TempReadKey->PacketKey->Aead = EVP_aes_128_gcm();
-        if (EVP_CipherInit_ex(TempReadKey->PacketKey->CipherCtx, TempReadKey->PacketKey->Aead, NULL, NULL, NULL, 0) != 1) {
+        if (EVP_CipherInit_ex(TempReadKey->PacketKey->CipherCtx, TempReadKey->PacketKey->Aead, NULL, NULL, NULL, 1) != 1) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
@@ -1470,15 +1472,17 @@ QuicPacketKeyCreateInitial(
             goto Exit;
         }
 
-        TempReadKey->HeaderKey->Aead = EVP_aes_128_ctr();
-        if (EVP_CipherInit_ex(TempReadKey->HeaderKey->CipherCtx, TempReadKey->HeaderKey->Aead, NULL, NULL, NULL, 0) != 1) {
+        if (EVP_CIPHER_CTX_ctrl(TempReadKey->PacketKey->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
             QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "EVP_CipherInit_ex failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
+
+        TempReadKey->HeaderKey->Aead = EVP_aes_128_ctr();
 
         if (!QuicTlsHkdfExtract(
                 InitialSecret,
@@ -1625,11 +1629,21 @@ QuicPacketKeyUpdate(
 
     TempKey->Type = OldKey->Type;
     TempKey->PacketKey->Aead = OldKey->PacketKey->Aead;
-    if (EVP_CipherInit_ex(TempKey->PacketKey->CipherCtx, TempKey->PacketKey->Aead, NULL, NULL, NULL, 0) != 1) {
+    if (EVP_CipherInit_ex(TempKey->PacketKey->CipherCtx, TempKey->PacketKey->Aead, NULL, NULL, NULL, 1) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
             "EVP_CipherInit_ex failed");
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
+
+    if (EVP_CIPHER_CTX_ctrl(TempKey->PacketKey->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -1742,7 +1756,7 @@ QuicKeyCreate(
         goto Exit;
     }
 
-    if (EVP_CipherInit_ex(Key->CipherCtx, Key->Aead, NULL, NULL, NULL, 0) != 1) {
+    if (EVP_CipherInit_ex(Key->CipherCtx, Key->Aead, NULL, NULL, NULL, 1) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1960,15 +1974,6 @@ QuicHpKeyCreate(
         goto Exit;
     }
 
-    if (EVP_CipherInit_ex(Key->CipherCtx, Key->Aead, NULL, NULL, NULL, 0) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_CipherInit_ex failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
     Key->BufferLen = EVP_CIPHER_key_length(Key->Aead);
     QuicCopyMemory(Key->Buffer, RawKey, Key->BufferLen);
 
@@ -2001,46 +2006,31 @@ QuicHpComputeMask(
     _Out_writes_bytes_(QUIC_HP_SAMPLE_LENGTH * BatchSize) uint8_t* Mask
     )
 {
-    BOOLEAN Ret = FALSE;
-    int Len = 0;
-    uint32_t Offset = 0;
     static const uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
 
+    int OutLen = 0;
+    uint32_t Offset = 0;
     for (uint8_t i = 0; i < BatchSize; ++i) { // TODO - Figure out how to not use a loop here!
-        if (EVP_EncryptInit_ex(Key->CipherCtx, NULL, NULL, Key->Buffer, Cipher + Offset) != 1) {
+        if (EVP_EncryptInit_ex(Key->CipherCtx, Key->Aead, NULL, Key->Buffer, Cipher + Offset) != 1) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
                 "EVP_EncryptInit_ex failed");
-            goto Exit;
+            return QUIC_STATUS_TLS_ERROR;
         }
 
-        if (EVP_EncryptUpdate(Key->CipherCtx, Mask + Offset, &Len, PLAINTEXT, sizeof(PLAINTEXT) - 1) != 1) {
+        if (EVP_EncryptUpdate(Key->CipherCtx, Mask + Offset, &OutLen, PLAINTEXT, sizeof(PLAINTEXT) - 1) != 1) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
                 "EVP_EncryptUpdate failed");
-            goto Exit;
+            return QUIC_STATUS_TLS_ERROR;
         }
 
-        QUIC_FRE_ASSERT(Len == 5);
-        if (EVP_EncryptFinal_ex(Key->CipherCtx, Mask + Offset + Len, &Len) != 1) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "EVP_EncryptFinal_ex failed");
-            goto Exit;
-        }
-
-        QUIC_FRE_ASSERT(Len == 0);
         Offset += QUIC_HP_SAMPLE_LENGTH;
     }
 
-    Ret = TRUE;
-
-Exit:
-
-    return Ret ? QUIC_STATUS_SUCCESS : QUIC_STATUS_TLS_ERROR;
+    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
@@ -2262,7 +2252,7 @@ QuicTlsKeyCreate(
     QuicTlsNegotiatedCiphers(TlsContext, &AeadType, &HashType);
     QuicTlsKeySetAead(AeadType, TempKey);
 
-    if (EVP_CipherInit_ex(TempKey->PacketKey->CipherCtx, TempKey->PacketKey->Aead, NULL, NULL, NULL, 0) != 1) {
+    if (EVP_CipherInit_ex(TempKey->PacketKey->CipherCtx, TempKey->PacketKey->Aead, NULL, NULL, NULL, 1) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -2271,11 +2261,12 @@ QuicTlsKeyCreate(
         goto Exit;
     }
 
-    if (EVP_CipherInit_ex(TempKey->HeaderKey->CipherCtx, TempKey->HeaderKey->Aead, NULL, NULL, NULL, 0) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(TempKey->PacketKey->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
         QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_CipherInit_ex failed");
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -2694,11 +2685,21 @@ QuicPacketKeyDerive(
 
     QuicTlsKeySetAead(Secret->Aead, Key);
 
-    if (EVP_CipherInit_ex(Key->PacketKey->CipherCtx, Key->PacketKey->Aead, NULL, NULL, NULL, 0) != 1) {
+    if (EVP_CipherInit_ex(Key->PacketKey->CipherCtx, Key->PacketKey->Aead, NULL, NULL, NULL, 1) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
             "EVP_CipherInit_ex failed");
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Error;
+    }
+
+    if (EVP_CIPHER_CTX_ctrl(Key->PacketKey->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Error;
     }
@@ -2724,15 +2725,6 @@ QuicPacketKeyDerive(
     }
 
     if (CreateHpKey) {
-        if (EVP_CipherInit_ex(Key->HeaderKey->CipherCtx, Key->HeaderKey->Aead, NULL, NULL, NULL, 0) != 1) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "EVP_CipherInit_ex failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Error;
-        }
-
         Status =
             QuicTlsDeriveHeaderProtectionKey(
                 Secret->Secret,

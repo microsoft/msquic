@@ -1542,7 +1542,7 @@ QuicBindingReceive(
             if (Hooks->Receive(Datagram)) {
                 *ReleaseChainTail = Datagram;
                 ReleaseChainTail = &Datagram->Next;
-                QuicPacketLogDrop(Binding, Packet, "Test Dopped");
+                QuicPacketLogDrop(Binding, Packet, "Test Dropped");
                 continue;
             }
         }
