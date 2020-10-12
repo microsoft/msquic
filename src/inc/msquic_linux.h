@@ -497,7 +497,7 @@ QuicAddrToString(
             Addr->Ip.sa_family,
             &Addr->Ipv4.sin_addr,
             Address,
-            sizeof(QUIC_ADDR_STR)) != 0) {
+            sizeof(QUIC_ADDR_STR)) == NULL) {
         return FALSE;
     }
     if (Addr->Ipv4.sin_port != 0) {
