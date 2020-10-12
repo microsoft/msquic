@@ -18383,6 +18383,49 @@
         "CustomSettings": null
       }
     },
+    "OpenSslLogSecret": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] %s[%u]: %s",
+      "UniqueId": "OpenSslLogSecret",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Prefix",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Length",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "SecretStr",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "OpenSslAlert": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Send alert = %u (Level = %u)",
@@ -23185,6 +23228,10 @@
       {
         "UniquenessHash": "9eac4540-061f-ff2b-c104-5c1e1b8b22b6",
         "TraceID": "TlsError"
+      },
+      {
+        "UniquenessHash": "69c5c25e-ab70-9800-8260-aa93a193bd8b",
+        "TraceID": "OpenSslLogSecret"
       },
       {
         "UniquenessHash": "c7b17ffc-7649-6294-b6d0-cf4bbf4bc8cb",

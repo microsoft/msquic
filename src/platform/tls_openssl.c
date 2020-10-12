@@ -87,242 +87,24 @@ typedef struct QUIC_TLS {
 } QUIC_TLS;
 
 //
-// Represents a packet payload protection key.
-//
-
-typedef struct QUIC_KEY {
-    //
-    // The cipher to use for encryption/decryption.
-    //
-    const EVP_CIPHER* Aead;
-
-    //
-    // The cipher context to use for encryption/decryption.
-    //
-    EVP_CIPHER_CTX* CipherCtx;
-
-    //
-    // Buffer and Buffer length of the key.
-    //
-    size_t BufferLen;
-    uint8_t Buffer[64];
-
-} QUIC_KEY;
-
-//
-// Represents a hash.
-//
-
-typedef struct QUIC_HASH {
-    //
-    // The message digest.
-    //
-
-    const EVP_MD *Md;
-
-    //
-    // Salt and salt length.
-    //
-
-    uint32_t SaltLength;
-    uint8_t Salt[QUIC_VERSION_SALT_LENGTH];
-
-} QUIC_HASH;
-
-//
-// Represents a packet header protection key.
-//
-
-typedef struct QUIC_HP_KEY {
-    //
-    // The cipher to use for encryption/decryption.
-    //
-    const EVP_CIPHER *Aead;
-
-    //
-    // The cipher context to use for encryption/decryption.
-    //
-    EVP_CIPHER_CTX *CipherCtx;
-
-    //
-    // Buffer and BufferLen of the key.
-    //
-    int BufferLen;
-    uint8_t Buffer[64];
-
-} QUIC_HP_KEY;
-
-//
 // Default list of Cipher used.
 //
-
 #define QUIC_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
 
 //
 // Default list of curves for ECDHE ciphers.
 //
-
 #define QUIC_TLS_DEFAULT_SSL_CURVES     "P-256:X25519:P-384:P-521"
 
 //
 // Default cert verify depth.
 //
-
 #define QUIC_TLS_DEFAULT_VERIFY_DEPTH  10
 
 //
 // Hack to set trusted cert file on client side.
 //
-
 char *QuicOpenSslClientTrustedCert = NULL;
-
-static
-int
-QuicTlsAlpnSelectCallback(
-    _In_ SSL *Ssl,
-    _Out_writes_bytes_(Outlen) const unsigned char **Out,
-    _Out_ unsigned char *OutLen,
-    _In_reads_bytes_(Inlen) const unsigned char *In,
-    _In_ unsigned int InLen,
-    _In_ void *Arg
-    );
-
-static
-QUIC_STATUS
-QuicAllocatePacketKey(
-    _In_ QUIC_PACKET_KEY_TYPE KeyType,
-    _In_ BOOLEAN AllocHpKey,
-    _Outptr_ QUIC_PACKET_KEY** Key
-    );
-
-static
-QUIC_STATUS
-QuicTlsKeyCreate(
-    _Inout_ QUIC_TLS* TlsContext,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_ QUIC_PACKET_KEY_TYPE QuicKeyType,
-    _Out_ QUIC_PACKET_KEY** QuicKey
-    );
-
-static
-void
-QuicTlsKeySetAead(
-    _In_ QUIC_AEAD_TYPE AeadType,
-    _Out_ QUIC_PACKET_KEY* Key
-    );
-
-static
-const EVP_MD *
-QuicTlsKeyGetMd(
-    _In_ QUIC_HASH_TYPE HashType
-    );
-
-static
-void
-QuicTlsNegotiatedCiphers(
-    _In_ QUIC_TLS* TlsContext,
-    _Out_ QUIC_AEAD_TYPE *AeadType,
-    _Out_ QUIC_HASH_TYPE *HashType
-    );
-
-static
-BOOLEAN
-QuicTlsHdkfExpand(
-    _Out_writes_bytes_(KeyLen) uint8_t *Key,
-    _In_ size_t KeyLen,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_reads_bytes_(InfoLen) const uint8_t *Info,
-    _In_ size_t InfoLen,
-    _In_ const EVP_MD *Md
-    );
-
-static
-BOOLEAN
-QuicTlsHkdfExpandLabel(
-    _Out_writes_bytes_(KeyLen) uint8_t *Key,
-    _In_ size_t KeyLen,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_z_ const char* const Label,
-    _In_ const EVP_MD *Md
-    );
-
-static
-void
-QuicTlsHkdfFormatLabel(
-    _In_z_ const char* const Label,
-    _In_ uint16_t KeyLen,
-    _Out_writes_all_(4 + QUIC_HKDF_PREFIX_LEN + strlen(Label)) uint8_t* const Data,
-    _Inout_ uint32_t* const DataLength
-    );
-
-static
-QUIC_STATUS
-QuicTlsDerivePacketProtectionKey(
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_ const EVP_MD *Md,
-    _Out_ QUIC_PACKET_KEY *QuicKey
-    );
-
-static
-QUIC_STATUS
-QuicTlsDerivePacketProtectionIv(
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_ const EVP_MD *Md,
-    _Out_ QUIC_PACKET_KEY *QuicKey
-    );
-
-static
-QUIC_STATUS
-QuicTlsDeriveHeaderProtectionKey(
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_ const EVP_MD *Md,
-    _Out_ QUIC_PACKET_KEY *QuicKey
-    );
-
-static
-BOOLEAN
-QuicTlsDeriveClientInitialSecret(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen
-    );
-
-static
-BOOLEAN
-QuicTlsDeriveServerInitialSecret(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen
-    );
-
-static
-QUIC_STATUS
-QuicTlsUpdateTrafficSecret(
-    _Out_writes_bytes_(SecretLen) const uint8_t *NewSecret,
-    _In_reads_bytes_(SecretLen) const uint8_t *OldSecret,
-    _In_ size_t SecretLen,
-    _In_ const EVP_MD *Md
-    );
-
-static
-BOOLEAN
-QuicTlsHkdfExtract(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_reads_(SaltLen) const uint8_t *Salt,
-    _In_ size_t SaltLen,
-    _In_ const EVP_MD *Md
-    );
 
 QUIC_STATUS
 QuicTlsLibraryInitialize(
@@ -392,6 +174,31 @@ QUIC_STATIC_ASSERT((int)ssl_encryption_early_data == (int)QUIC_PACKET_KEY_0_RTT,
 QUIC_STATIC_ASSERT((int)ssl_encryption_handshake == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
 QUIC_STATIC_ASSERT((int)ssl_encryption_application == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
 
+void
+QuicTlsNegotiatedCiphers(
+    _In_ QUIC_TLS* TlsContext,
+    _Out_ QUIC_AEAD_TYPE *AeadType,
+    _Out_ QUIC_HASH_TYPE *HashType
+    )
+{
+    switch (SSL_CIPHER_get_id(SSL_get_current_cipher(TlsContext->Ssl))) {
+    case 0x03001301u: // TLS_AES_128_GCM_SHA256
+        *AeadType = QUIC_AEAD_AES_128_GCM;
+        *HashType = QUIC_HASH_SHA256;
+        break;
+    case 0x03001302u: // TLS_AES_256_GCM_SHA384
+        *AeadType = QUIC_AEAD_AES_256_GCM;
+        *HashType = QUIC_HASH_SHA384;
+        break;
+    case 0x03001303u: // TLS_CHACHA20_POLY1305_SHA256
+        *AeadType = QUIC_AEAD_CHACHA20_POLY1305;
+        *HashType = QUIC_HASH_SHA256;
+        break;
+    default:
+        QUIC_FRE_ASSERT(FALSE);
+    }
+}
+
 int
 QuicTlsSetEncryptionSecretsCallback(
     _In_ SSL *Ssl,
@@ -412,13 +219,17 @@ QuicTlsSetEncryptionSecretsCallback(
         "New encryption secrets (Level = %u)",
         Level);
 
+    QUIC_SECRET Secret;
+    QuicTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
+    QuicCopyMemory(Secret.Secret, WriteSecret, SecretLen);
+
     QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
     Status =
-        QuicTlsKeyCreate(
-            TlsContext,
-            WriteSecret,
-            SecretLen,
+        QuicPacketKeyDerive(
             KeyType,
+            &Secret,
+            "write secret",
+            TRUE,
             &TlsState->WriteKeys[KeyType]);
     if (QUIC_FAILED(Status)) {
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
@@ -427,14 +238,15 @@ QuicTlsSetEncryptionSecretsCallback(
 
     TlsState->WriteKey = KeyType;
     TlsContext->ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
+    QuicCopyMemory(Secret.Secret, ReadSecret, SecretLen);
 
     QUIC_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
     Status =
-        QuicTlsKeyCreate(
-            TlsContext,
-            ReadSecret,
-            SecretLen,
+        QuicPacketKeyDerive(
             KeyType,
+            &Secret,
+            "read secret",
+            TRUE,
             &TlsState->ReadKeys[KeyType]);
     if (QUIC_FAILED(Status)) {
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
@@ -1319,278 +1131,381 @@ QuicTlsParamGet(
 // Crypto / Key Functionality
 //
 
+#ifdef DEBUG
+void
+QuicTlsLogSecret(
+    _In_z_ const char* const Prefix,
+    _In_reads_(Length)
+        const uint8_t* const Secret,
+    _In_ uint32_t Length
+    )
+{
+    #define HEX_TO_CHAR(x) ((x) > 9 ? ('a' + ((x) - 10)) : '0' + (x))
+    char SecretStr[256 + 1] = {0};
+    QUIC_DBG_ASSERT(Length * 2 < sizeof(SecretStr));
+    for (uint8_t i = 0; i < Length; i++) {
+        SecretStr[i*2]     = HEX_TO_CHAR(Secret[i] >> 4);
+        SecretStr[i*2 + 1] = HEX_TO_CHAR(Secret[i] & 0xf);
+    }
+    QuicTraceLogVerbose(
+        OpenSslLogSecret,
+        "[ tls] %s[%u]: %s",
+        Prefix,
+        Length,
+        SecretStr);
+}
+#else
+#define QuicTlsLogSecret(Prefix, Secret, Length) UNREFERENCED_PARAMETER(Prefix);
+#endif
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicHkdfFormatLabel(
+    _In_z_ const char* const Label,
+    _In_ uint16_t HashLength,
+    _Out_writes_all_(5 + QUIC_HKDF_PREFIX_LEN + strlen(Label))
+        uint8_t* const Data,
+    _Inout_ uint32_t* const DataLength
+    )
+{
+    QUIC_DBG_ASSERT(strlen(Label) <= UINT8_MAX - QUIC_HKDF_PREFIX_LEN);
+    uint8_t LabelLength = (uint8_t)strlen(Label);
+
+    Data[0] = HashLength >> 8;
+    Data[1] = HashLength & 0xff;
+    Data[2] = QUIC_HKDF_PREFIX_LEN + LabelLength;
+    memcpy(Data + 3, QUIC_HKDF_PREFIX, QUIC_HKDF_PREFIX_LEN);
+    memcpy(Data + 3 + QUIC_HKDF_PREFIX_LEN, Label, LabelLength);
+    Data[3 + QUIC_HKDF_PREFIX_LEN + LabelLength] = 0;
+    *DataLength = 3 + QUIC_HKDF_PREFIX_LEN + LabelLength + 1;
+
+    Data[*DataLength] = 0x1;
+    *DataLength += 1;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicHkdfExpandLabel(
+    _In_ QUIC_HASH* Hash,
+    _In_z_ const char* const Label,
+    _In_ uint16_t KeyLength,
+    _In_ uint32_t OutputLength, // Writes QuicHashLength(HashType) bytes.
+    _Out_writes_all_(OutputLength)
+        uint8_t* const Output
+    )
+{
+    uint8_t LabelBuffer[64];
+    uint32_t LabelLength = sizeof(LabelBuffer);
+
+    _Analysis_assume_(strlen(Label) <= 23);
+    QuicHkdfFormatLabel(Label, KeyLength, LabelBuffer, &LabelLength);
+
+    return
+        QuicHashCompute(
+            Hash,
+            LabelBuffer,
+            LabelLength,
+            OutputLength,
+            Output);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicTlsDeriveInitialSecrets(
+    _In_reads_(QUIC_VERSION_SALT_LENGTH)
+        const uint8_t* const Salt,
+    _In_reads_(CIDLength)
+        const uint8_t* const CID,
+    _In_ uint8_t CIDLength,
+    _Out_ QUIC_SECRET *ClientInitial,
+    _Out_ QUIC_SECRET *ServerInitial
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_HASH* InitialHash = NULL;
+    QUIC_HASH* DerivedHash = NULL;
+    uint8_t InitialSecret[QUIC_HASH_SHA256_SIZE];
+
+    QuicTlsLogSecret("init cid", CID, CIDLength);
+
+    Status =
+        QuicHashCreate(
+            QUIC_HASH_SHA256,
+            Salt,
+            QUIC_VERSION_SALT_LENGTH,
+            &InitialHash);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    //
+    // Extract secret for client and server secret expansion.
+    //
+    Status =
+        QuicHashCompute(
+            InitialHash,
+            CID,
+            CIDLength,
+            sizeof(InitialSecret),
+            InitialSecret);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    QuicTlsLogSecret("init secret", InitialSecret, sizeof(InitialSecret));
+
+    //
+    // Create hash for client and server secret expansion.
+    //
+    Status =
+        QuicHashCreate(
+            QUIC_HASH_SHA256,
+            InitialSecret,
+            sizeof(InitialSecret),
+            &DerivedHash);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    //
+    // Expand client secret.
+    //
+    ClientInitial->Hash = QUIC_HASH_SHA256;
+    ClientInitial->Aead = QUIC_AEAD_AES_128_GCM;
+    Status =
+        QuicHkdfExpandLabel(
+            DerivedHash,
+            "client in",
+            sizeof(InitialSecret),
+            QUIC_HASH_SHA256_SIZE,
+            ClientInitial->Secret);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    //
+    // Expand server secret.
+    //
+    ServerInitial->Hash = QUIC_HASH_SHA256;
+    ServerInitial->Aead = QUIC_AEAD_AES_128_GCM;
+    Status =
+        QuicHkdfExpandLabel(
+            DerivedHash,
+            "server in",
+            sizeof(InitialSecret),
+            QUIC_HASH_SHA256_SIZE,
+            ServerInitial->Secret);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+Error:
+
+    QuicHashFree(InitialHash);
+    QuicHashFree(DerivedHash);
+
+    RtlSecureZeroMemory(InitialSecret, sizeof(InitialSecret));
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicPacketKeyDerive(
+    _In_ QUIC_PACKET_KEY_TYPE KeyType,
+    _In_ const QUIC_SECRET* const Secret,
+    _In_z_ const char* const SecretName,
+    _In_ BOOLEAN CreateHpKey,
+    _Out_ QUIC_PACKET_KEY **NewKey
+    )
+{
+    const uint16_t SecretLength = QuicHashLength(Secret->Hash);
+    const uint16_t KeyLength = QuicKeyLength(Secret->Aead);
+
+    QUIC_DBG_ASSERT(SecretLength >= KeyLength);
+    QUIC_DBG_ASSERT(SecretLength >= QUIC_IV_LENGTH);
+    QUIC_DBG_ASSERT(SecretLength <= QUIC_HASH_MAX_SIZE);
+
+    QuicTlsLogSecret(SecretName, Secret->Secret, SecretLength);
+
+    const uint16_t PacketKeyLength =
+        sizeof(QUIC_PACKET_KEY) +
+        (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
+    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
+    if (Key == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_PACKET_KEY",
+            PacketKeyLength);
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    QuicZeroMemory(Key, sizeof(QUIC_PACKET_KEY));
+    Key->Type = KeyType;
+
+    QUIC_HASH* Hash = NULL;
+    uint8_t Temp[QUIC_HASH_MAX_SIZE];
+
+    QUIC_STATUS Status =
+        QuicHashCreate(
+            Secret->Hash,
+            Secret->Secret,
+            SecretLength,
+            &Hash);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    Status =
+        QuicHkdfExpandLabel(
+            Hash,
+            "quic iv",
+            QUIC_IV_LENGTH,
+            SecretLength,
+            Temp);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    memcpy(Key->Iv, Temp, QUIC_IV_LENGTH);
+    QuicTlsLogSecret("static iv", Key->Iv, QUIC_IV_LENGTH);
+
+    Status =
+        QuicHkdfExpandLabel(
+            Hash,
+            "quic key",
+            KeyLength,
+            SecretLength,
+            Temp);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    QuicTlsLogSecret("key", Temp, KeyLength);
+
+    Status =
+        QuicKeyCreate(
+            Secret->Aead,
+            Temp,
+            &Key->PacketKey);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    if (CreateHpKey) {
+        Status =
+            QuicHkdfExpandLabel(
+                Hash,
+                "quic hp",
+                KeyLength,
+                SecretLength,
+                Temp);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
+
+        QuicTlsLogSecret("hp", Temp, KeyLength);
+
+        Status =
+            QuicHpKeyCreate(
+                Secret->Aead,
+                Temp,
+                &Key->HeaderKey);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
+    }
+
+    if (KeyType == QUIC_PACKET_KEY_1_RTT) {
+        QuicCopyMemory(Key->TrafficSecret, Secret, sizeof(QUIC_SECRET));
+    }
+
+    *NewKey = Key;
+    Key = NULL;
+
+Error:
+
+    QuicPacketKeyFree(Key);
+    QuicHashFree(Hash);
+
+    QuicSecureZeroMemory(Temp, sizeof(Temp));
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_When_(NewReadKey != NULL, _At_(*NewReadKey, __drv_allocatesMem(Mem)))
+_When_(NewWriteKey != NULL, _At_(*NewWriteKey, __drv_allocatesMem(Mem)))
 QUIC_STATUS
 QuicPacketKeyCreateInitial(
     _In_ BOOLEAN IsServer,
-    _In_reads_(QUIC_VERSION_SALT_LENGTH) const uint8_t* const Salt,
+    _In_reads_(QUIC_VERSION_SALT_LENGTH)
+        const uint8_t* const Salt,  // Version Specific
     _In_ uint8_t CIDLength,
-    _In_reads_(CIDLength) const uint8_t* const CID,
-    _Out_opt_ QUIC_PACKET_KEY** ReadKey,
-    _Out_opt_ QUIC_PACKET_KEY** WriteKey
+    _In_reads_(CIDLength)
+        const uint8_t* const CID,
+    _Out_opt_ QUIC_PACKET_KEY** NewReadKey,
+    _Out_opt_ QUIC_PACKET_KEY** NewWriteKey
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_PACKET_KEY *TempReadKey = NULL;
-    QUIC_PACKET_KEY *TempWriteKey = NULL;
-    uint8_t InitialSecret[QUIC_HASH_SHA256_SIZE] = {0};
-    uint8_t Secret[QUIC_HASH_SHA256_SIZE] = {0};
+    QUIC_STATUS Status;
+    QUIC_SECRET ClientInitial, ServerInitial;
+    QUIC_PACKET_KEY* ReadKey = NULL, *WriteKey = NULL;
 
-    if (WriteKey != NULL) {
-        Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_INITIAL, TRUE, &TempWriteKey);
-        if (QUIC_FAILED(Status)) {
-            goto Exit;
-        }
+    Status =
+        QuicTlsDeriveInitialSecrets(
+            Salt,
+            CID,
+            CIDLength,
+            &ClientInitial,
+            &ServerInitial);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
 
-        TempWriteKey->PacketKey->Aead = EVP_aes_128_gcm();
-        if (EVP_CipherInit_ex(TempWriteKey->PacketKey->CipherCtx, TempWriteKey->PacketKey->Aead, NULL, NULL, NULL, 1) != 1) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "EVP_CipherInit_ex failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Exit;
-        }
-
-        if (EVP_CIPHER_CTX_ctrl(TempWriteKey->PacketKey->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                ERR_get_error(),
-                "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Exit;
-        }
-
-        TempWriteKey->HeaderKey->Aead = EVP_aes_128_ecb();
-
-        if (!QuicTlsHkdfExtract(
-                InitialSecret,
-                sizeof(InitialSecret),
-                CID,
-                CIDLength,
-                Salt,
-                QUIC_VERSION_SALT_LENGTH,
-                EVP_sha256())) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "QuicTlsHkdfExtract failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Exit;
-        }
-
-        if (IsServer) {
-            if (!QuicTlsDeriveServerInitialSecret(
-                    Secret,
-                    sizeof(Secret),
-                    InitialSecret,
-                    sizeof(InitialSecret))) {
-                QuicTraceEvent(
-                    LibraryError,
-                    "[ lib] ERROR, %s.",
-                    "QuicTlsDeriveServerInitialSecret failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-        } else {
-            if (!QuicTlsDeriveClientInitialSecret(
-                    Secret,
-                    sizeof(Secret),
-                    InitialSecret,
-                    sizeof(InitialSecret))) {
-                QuicTraceEvent(
-                    LibraryError,
-                    "[ lib] ERROR, %s.",
-                    "QuicTlsDeriveClientInitialSecret failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-        }
-
+    if (NewWriteKey != NULL) {
         Status =
-            QuicTlsDerivePacketProtectionKey(
-                Secret,
-                sizeof(Secret),
-                EVP_sha256(),
-                TempWriteKey);
-
+            QuicPacketKeyDerive(
+                QUIC_PACKET_KEY_INITIAL,
+                IsServer ? &ServerInitial : &ClientInitial,
+                IsServer ? "srv secret" : "cli secret",
+                TRUE,
+                &WriteKey);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "QuicTlsDerivePacketProtectionKey failed");
-            goto Exit;
-        }
-
-        Status =
-            QuicTlsDerivePacketProtectionIv(
-                Secret,
-                sizeof(Secret),
-                EVP_sha256(),
-                TempWriteKey);
-
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "QuicTlsDerivePacketProtectionIv failed");
-            goto Exit;
-        }
-
-        Status =
-            QuicTlsDeriveHeaderProtectionKey(
-                Secret,
-                sizeof(Secret),
-                EVP_sha256(),
-                TempWriteKey);
-
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "QuicTlsDeriveHeaderProtectionKey failed");
-            goto Exit;
+            goto Error;
         }
     }
 
-    if (ReadKey != NULL) {
-        Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_INITIAL, TRUE, &TempReadKey);
-        if (QUIC_FAILED(Status)) {
-            goto Exit;
-        }
-
-        TempReadKey->PacketKey->Aead = EVP_aes_128_gcm();
-        if (EVP_CipherInit_ex(TempReadKey->PacketKey->CipherCtx, TempReadKey->PacketKey->Aead, NULL, NULL, NULL, 1) != 1) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "EVP_CipherInit_ex failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Exit;
-        }
-
-        if (EVP_CIPHER_CTX_ctrl(TempReadKey->PacketKey->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                ERR_get_error(),
-                "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Exit;
-        }
-
-        TempReadKey->HeaderKey->Aead = EVP_aes_128_ecb();
-
-        if (!QuicTlsHkdfExtract(
-                InitialSecret,
-                sizeof(InitialSecret),
-                CID,
-                CIDLength,
-                Salt,
-                QUIC_VERSION_SALT_LENGTH,
-                EVP_sha256())) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "QuicTlsHkdfExtract failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Exit;
-        }
-
-        if (IsServer) {
-            if (!QuicTlsDeriveClientInitialSecret(
-                    Secret,
-                    sizeof(Secret),
-                    InitialSecret,
-                    sizeof(InitialSecret))) {
-                QuicTraceEvent(
-                    LibraryError,
-                    "[ lib] ERROR, %s.",
-                    "QuicTlsDeriveClientInitialSecret failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-        } else {
-            if (!QuicTlsDeriveServerInitialSecret(
-                    Secret,
-                    sizeof(Secret),
-                    InitialSecret,
-                    sizeof(InitialSecret))) {
-                QuicTraceEvent(
-                    LibraryError,
-                    "[ lib] ERROR, %s.",
-                    "QuicTlsDeriveServerInitialSecret failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-        }
-
+    if (NewReadKey != NULL) {
         Status =
-            QuicTlsDerivePacketProtectionKey(
-                Secret,
-                sizeof(Secret),
-                EVP_sha256(),
-                TempReadKey);
-
+            QuicPacketKeyDerive(
+                QUIC_PACKET_KEY_INITIAL,
+                IsServer ? &ClientInitial : &ServerInitial,
+                IsServer ? "cli secret" : "srv secret",
+                TRUE,
+                &ReadKey);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "QuicTlsDerivePacketProtectionKey failed");
-            goto Exit;
-        }
-
-        Status =
-            QuicTlsDerivePacketProtectionIv(
-                Secret,
-                sizeof(Secret),
-                EVP_sha256(),
-                TempReadKey);
-
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "QuicTlsDerivePacketProtectionIv failed");
-            goto Exit;
-        }
-
-        Status =
-            QuicTlsDeriveHeaderProtectionKey(
-                Secret,
-                sizeof(Secret),
-                EVP_sha256(),
-                TempReadKey);
-
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "QuicTlsDeriveHeaderProtectionKey failed");
-            goto Exit;
+            goto Error;
         }
     }
 
-    if (ReadKey != NULL) {
-        *ReadKey = TempReadKey;
-        TempReadKey = NULL;
+    if (NewWriteKey != NULL) {
+        *NewWriteKey = WriteKey;
+        WriteKey = NULL;
     }
 
-    if (WriteKey != NULL) {
-        *WriteKey = TempWriteKey;
-        TempWriteKey = NULL;
+    if (NewReadKey != NULL) {
+        *NewReadKey = ReadKey;
+        ReadKey = NULL;
     }
 
-Exit:
+Error:
 
-    QuicPacketKeyFree(TempReadKey);
-    QuicPacketKeyFree(TempWriteKey);
+    QuicPacketKeyFree(ReadKey);
+    QuicPacketKeyFree(WriteKey);
+
+    QuicSecureZeroMemory(ClientInitial.Secret, sizeof(ClientInitial.Secret));
+    QuicSecureZeroMemory(ServerInitial.Secret, sizeof(ServerInitial.Secret));
 
     return Status;
 }
@@ -1616,94 +1531,52 @@ QuicPacketKeyUpdate(
     _Out_ QUIC_PACKET_KEY** NewKey
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_PACKET_KEY *TempKey = NULL;
-    size_t SecretLen = 0;
+    if (OldKey->Type != QUIC_PACKET_KEY_1_RTT) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
 
-    QUIC_FRE_ASSERT(OldKey->Type == QUIC_PACKET_KEY_1_RTT);
+    QUIC_HASH* Hash = NULL;
+    QUIC_SECRET NewTrafficSecret;
+    const uint16_t SecretLength = QuicHashLength(OldKey->TrafficSecret->Hash);
 
-    Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_1_RTT, FALSE, &TempKey);
+    QUIC_STATUS Status =
+        QuicHashCreate(
+            OldKey->TrafficSecret->Hash,
+            OldKey->TrafficSecret->Secret,
+            SecretLength,
+            &Hash);
     if (QUIC_FAILED(Status)) {
-        goto Exit;
-    }
-
-    TempKey->Type = OldKey->Type;
-    TempKey->PacketKey->Aead = OldKey->PacketKey->Aead;
-    if (EVP_CipherInit_ex(TempKey->PacketKey->CipherCtx, TempKey->PacketKey->Aead, NULL, NULL, NULL, 1) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_CipherInit_ex failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    if (EVP_CIPHER_CTX_ctrl(TempKey->PacketKey->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    TempKey->TrafficSecret[0].Aead = OldKey->TrafficSecret[0].Aead;
-    TempKey->TrafficSecret[0].Hash = OldKey->TrafficSecret[0].Hash;
-
-    SecretLen = QuicHashLength(OldKey->TrafficSecret[0].Hash);
-
-    Status =
-        QuicTlsUpdateTrafficSecret(
-            TempKey->TrafficSecret[0].Secret,
-            OldKey->TrafficSecret[0].Secret,
-            SecretLen,
-            QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash));
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "QuicTlsUpdateTrafficSecret failed");
-        goto Exit;
+        goto Error;
     }
 
     Status =
-        QuicTlsDerivePacketProtectionKey(
-            TempKey->TrafficSecret[0].Secret,
-            SecretLen,
-            QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash),
-            TempKey);
+        QuicHkdfExpandLabel(
+            Hash,
+            "quic ku",
+            SecretLength,
+            SecretLength,
+            NewTrafficSecret.Secret);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "QuicTlsDerivePacketProtectionKey failed");
-        goto Exit;
+        goto Error;
     }
+
+    NewTrafficSecret.Hash = OldKey->TrafficSecret->Hash;
+    NewTrafficSecret.Aead = OldKey->TrafficSecret->Aead;
 
     Status =
-        QuicTlsDerivePacketProtectionIv(
-            TempKey->TrafficSecret[0].Secret,
-            SecretLen,
-            QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash),
-            TempKey);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "QuicTlsDerivePacketProtectionIv failed");
-        goto Exit;
-    }
+        QuicPacketKeyDerive(
+            QUIC_PACKET_KEY_1_RTT,
+            &NewTrafficSecret,
+            "update traffic secret",
+            FALSE,
+            NewKey);
 
-    *NewKey = TempKey;
-    TempKey = NULL;
+    QuicSecureZeroMemory(&NewTrafficSecret, sizeof(QUIC_SECRET));
+    QuicSecureZeroMemory(OldKey->TrafficSecret, sizeof(QUIC_SECRET));
 
-Exit:
+Error:
 
-    QuicPacketKeyFree(TempKey);
+    QuicHashFree(Hash);
 
     return Status;
 }
@@ -1719,20 +1592,10 @@ QuicKeyCreate(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_KEY* Key = QuicAlloc(sizeof(QUIC_KEY));
+    const EVP_CIPHER *Aead;
 
-    if (Key == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_KEY",
-            sizeof(QUIC_KEY));
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
-
-    Key->CipherCtx = EVP_CIPHER_CTX_new();
-    if (Key->CipherCtx == NULL) {
+    EVP_CIPHER_CTX* CipherCtx = EVP_CIPHER_CTX_new();
+    if (CipherCtx == NULL) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1743,20 +1606,20 @@ QuicKeyCreate(
 
     switch (AeadType) {
     case QUIC_AEAD_AES_128_GCM:
-        Key->Aead = EVP_aes_128_gcm();
+        Aead = EVP_aes_128_gcm();
         break;
     case QUIC_AEAD_AES_256_GCM:
-        Key->Aead = EVP_aes_256_gcm();
+        Aead = EVP_aes_256_gcm();
         break;
     case QUIC_AEAD_CHACHA20_POLY1305:
-        Key->Aead = EVP_chacha20_poly1305();
+        Aead = EVP_chacha20_poly1305();
         break;
     default:
         Status = QUIC_STATUS_NOT_SUPPORTED;
         goto Exit;
     }
 
-    if (EVP_CipherInit_ex(Key->CipherCtx, Key->Aead, NULL, NULL, NULL, 1) != 1) {
+    if (EVP_CipherInit_ex(CipherCtx, Aead, NULL, RawKey, NULL, 1) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1765,7 +1628,7 @@ QuicKeyCreate(
         goto Exit;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(Key->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1775,15 +1638,12 @@ QuicKeyCreate(
         goto Exit;
     }
 
-    Key->BufferLen = EVP_CIPHER_key_length(Key->Aead);
-    memcpy(Key->Buffer, RawKey, Key->BufferLen);
-
-    *NewKey = Key;
-    Key = NULL;
+    *NewKey = (QUIC_KEY*)CipherCtx;
+    CipherCtx = NULL;
 
 Exit:
 
-    QuicKeyFree(Key);
+    QuicKeyFree((QUIC_KEY*)CipherCtx);
 
     return Status;
 }
@@ -1793,10 +1653,7 @@ QuicKeyFree(
     _In_opt_ QUIC_KEY* Key
     )
 {
-    if (Key != NULL) {
-        EVP_CIPHER_CTX_free(Key->CipherCtx);
-        QuicFree(Key);
-    }
+    EVP_CIPHER_CTX_free((EVP_CIPHER_CTX*)Key);
 }
 
 QUIC_STATUS
@@ -1817,7 +1674,9 @@ QuicEncrypt(
     uint8_t *Tag = Buffer + PlainTextLength;
     int OutLen;
 
-    if (EVP_EncryptInit_ex(Key->CipherCtx, NULL, NULL, Key->Buffer, Iv) != 1) {
+    EVP_CIPHER_CTX* CipherCtx = (EVP_CIPHER_CTX*)Key;
+
+    if (EVP_EncryptInit_ex(CipherCtx, NULL, NULL, NULL, Iv) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1826,7 +1685,7 @@ QuicEncrypt(
     }
 
     if (AuthData != NULL &&
-        EVP_EncryptUpdate(Key->CipherCtx, NULL, &OutLen, AuthData, (int)AuthDataLength) != 1) {
+        EVP_EncryptUpdate(CipherCtx, NULL, &OutLen, AuthData, (int)AuthDataLength) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1834,7 +1693,7 @@ QuicEncrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-    if (EVP_EncryptUpdate(Key->CipherCtx, Buffer, &OutLen, Buffer, (int)PlainTextLength) != 1) {
+    if (EVP_EncryptUpdate(CipherCtx, Buffer, &OutLen, Buffer, (int)PlainTextLength) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1842,7 +1701,7 @@ QuicEncrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-    if (EVP_EncryptFinal_ex(Key->CipherCtx, Tag, &OutLen) != 1) {
+    if (EVP_EncryptFinal_ex(CipherCtx, Tag, &OutLen) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1850,7 +1709,7 @@ QuicEncrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(Key->CipherCtx, EVP_CTRL_AEAD_GET_TAG, QUIC_ENCRYPTION_OVERHEAD, Tag) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_GET_TAG, QUIC_ENCRYPTION_OVERHEAD, Tag) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1877,7 +1736,9 @@ QuicDecrypt(
     uint8_t *Tag = Buffer + CipherTextLength;
     int OutLen;
 
-    if (EVP_DecryptInit_ex(Key->CipherCtx, NULL, NULL, Key->Buffer, Iv) != 1) {
+    EVP_CIPHER_CTX* CipherCtx = (EVP_CIPHER_CTX*)Key;
+
+    if (EVP_DecryptInit_ex(CipherCtx, NULL, NULL, NULL, Iv) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1887,7 +1748,7 @@ QuicDecrypt(
     }
 
     if (AuthData != NULL &&
-        EVP_DecryptUpdate(Key->CipherCtx, NULL, &OutLen, AuthData, (int)AuthDataLength) != 1) {
+        EVP_DecryptUpdate(CipherCtx, NULL, &OutLen, AuthData, (int)AuthDataLength) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1896,7 +1757,7 @@ QuicDecrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-    if (EVP_DecryptUpdate(Key->CipherCtx, Buffer, &OutLen, Buffer, (int)CipherTextLength) != 1) {
+    if (EVP_DecryptUpdate(CipherCtx, Buffer, &OutLen, Buffer, (int)CipherTextLength) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1905,7 +1766,7 @@ QuicDecrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(Key->CipherCtx, EVP_CTRL_AEAD_SET_TAG, QUIC_ENCRYPTION_OVERHEAD, Tag) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_TAG, QUIC_ENCRYPTION_OVERHEAD, Tag) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1914,7 +1775,7 @@ QuicDecrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-    if (EVP_DecryptFinal_ex(Key->CipherCtx, Tag, &OutLen) != 1) {
+    if (EVP_DecryptFinal_ex(CipherCtx, Tag, &OutLen) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1937,20 +1798,10 @@ QuicHpKeyCreate(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    const EVP_CIPHER *Aead;
 
-    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HP_KEY));
-    if (Key == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_KEY",
-            sizeof(QUIC_KEY));
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
-
-    Key->CipherCtx = EVP_CIPHER_CTX_new();
-    if (Key->CipherCtx == NULL) {
+    EVP_CIPHER_CTX* CipherCtx = EVP_CIPHER_CTX_new();
+    if (CipherCtx == NULL) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1961,28 +1812,33 @@ QuicHpKeyCreate(
 
     switch (AeadType) {
     case QUIC_AEAD_AES_128_GCM:
-        Key->Aead = EVP_aes_128_ecb();
+        Aead = EVP_aes_128_ecb();
         break;
     case QUIC_AEAD_AES_256_GCM:
-        Key->Aead = EVP_aes_256_ecb();
+        Aead = EVP_aes_256_ecb();
         break;
     case QUIC_AEAD_CHACHA20_POLY1305:
-        Key->Aead = EVP_chacha20_poly1305();
+        Aead = EVP_chacha20_poly1305();
         break;
     default:
         Status = QUIC_STATUS_NOT_SUPPORTED;
         goto Exit;
     }
 
-    Key->BufferLen = EVP_CIPHER_key_length(Key->Aead);
-    QuicCopyMemory(Key->Buffer, RawKey, Key->BufferLen);
+    if (EVP_EncryptInit_ex(CipherCtx, Aead, NULL, RawKey, NULL) != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptInit_ex failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
 
-    *NewKey = Key;
-    Key = NULL;
+    *NewKey = (QUIC_HP_KEY*)CipherCtx;
+    CipherCtx = NULL;
 
 Exit:
 
-    QuicHpKeyFree(Key);
+    QuicHpKeyFree((QUIC_HP_KEY*)CipherCtx);
 
     return Status;
 }
@@ -1992,10 +1848,7 @@ QuicHpKeyFree(
     _In_opt_ QUIC_HP_KEY* Key
     )
 {
-    if (Key != NULL) {
-        EVP_CIPHER_CTX_free(Key->CipherCtx);
-        QuicFree(Key);
-    }
+    EVP_CIPHER_CTX_free((EVP_CIPHER_CTX*)Key);
 }
 
 QUIC_STATUS
@@ -2006,25 +1859,38 @@ QuicHpComputeMask(
     _Out_writes_bytes_(QUIC_HP_SAMPLE_LENGTH * BatchSize) uint8_t* Mask
     )
 {
-    if (EVP_EncryptInit_ex(Key->CipherCtx, Key->Aead, NULL, Key->Buffer, NULL) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_EncryptInit_ex failed");
-        return QUIC_STATUS_TLS_ERROR;
-    }
-
     int OutLen = 0;
-    if (EVP_EncryptUpdate(Key->CipherCtx, Mask, &OutLen, Cipher, QUIC_HP_SAMPLE_LENGTH * BatchSize) != 1) {
+    if (EVP_EncryptUpdate((EVP_CIPHER_CTX*)Key, Mask, &OutLen, Cipher, QUIC_HP_SAMPLE_LENGTH * BatchSize) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
             "EVP_EncryptUpdate failed");
         return QUIC_STATUS_TLS_ERROR;
     }
-
     return QUIC_STATUS_SUCCESS;
 }
+
+//
+// Hash abstraction
+//
+
+typedef struct QUIC_HASH {
+    //
+    // The message digest.
+    //
+    const EVP_MD *Md;
+
+    //
+    // Context used for hashing.
+    //
+    EVP_MD_CTX* HashContext;
+
+    //
+    // Key used for hashing.
+    //
+    EVP_PKEY* HmacKey;
+
+} QUIC_HASH;
 
 QUIC_STATUS
 QuicHashCreate(
@@ -2062,9 +1928,17 @@ QuicHashCreate(
         goto Exit;
     }
 
-    QUIC_FRE_ASSERT(SaltLength <= QUIC_VERSION_SALT_LENGTH);
-    Hash->SaltLength = SaltLength;
-    memcpy(Hash->Salt, Salt, SaltLength);
+    Hash->HashContext = EVP_MD_CTX_create();
+    if (Hash->HashContext == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
+    Hash->HmacKey = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, Salt, SaltLength);
+    if (Hash->HmacKey == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
 
     *NewHash = Hash;
     Hash = NULL;
@@ -2082,8 +1956,9 @@ QuicHashFree(
     )
 {
     if (Hash != NULL) {
+        EVP_MD_CTX_free(Hash->HashContext);
+        EVP_PKEY_free(Hash->HmacKey);
         QuicFree(Hash);
-        Hash = NULL;
     }
 }
 
@@ -2097,33 +1972,19 @@ QuicHashCompute(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    EVP_MD_CTX* HashContext = NULL;
-    EVP_PKEY* HmacKey = NULL;
 
-    HashContext = EVP_MD_CTX_create();
-    if (HashContext == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-
-    HmacKey = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, Hash->Salt, Hash->SaltLength);
-    if (HmacKey == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-
-    if (!EVP_DigestSignInit(HashContext, NULL, Hash->Md, NULL, HmacKey)) {
+    if (!EVP_DigestSignInit(Hash->HashContext, NULL, Hash->Md, NULL, Hash->HmacKey)) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
     }
 
-    if (!EVP_DigestSignUpdate(HashContext, Input, InputLength)) {
+    if (!EVP_DigestSignUpdate(Hash->HashContext, Input, InputLength)) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
     }
 
     size_t ActualOutputSize = OutputLength;
-    if (!EVP_DigestSignFinal(HashContext, Output, &ActualOutputSize)) {
+    if (!EVP_DigestSignFinal(Hash->HashContext, Output, &ActualOutputSize)) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
     }
@@ -2131,769 +1992,6 @@ QuicHashCompute(
     QUIC_FRE_ASSERT(ActualOutputSize == OutputLength);
 
 Error:
-    if (HashContext != NULL) {
-        EVP_MD_CTX_free(HashContext);
-    }
-
-    if (HmacKey != NULL) {
-        EVP_PKEY_free(HmacKey);
-    }
 
     return Status;
-}
-
-static
-void
-QuicTlsKeySetAead(
-    _In_ QUIC_AEAD_TYPE AeadType,
-    _Out_ QUIC_PACKET_KEY* Key
-    )
-{
-    switch (AeadType) {
-    case QUIC_AEAD_AES_128_GCM:
-        Key->PacketKey->Aead = EVP_aes_128_gcm();
-        if (Key->HeaderKey != NULL) {
-            Key->HeaderKey->Aead = EVP_aes_128_ecb();
-        }
-        break;
-    case QUIC_AEAD_AES_256_GCM:
-        Key->PacketKey->Aead = EVP_aes_256_gcm();
-        if (Key->HeaderKey != NULL) {
-            Key->HeaderKey->Aead = EVP_aes_256_ecb();
-        }
-        break;
-    case QUIC_AEAD_CHACHA20_POLY1305:
-        Key->PacketKey->Aead = EVP_chacha20_poly1305();
-        if (Key->HeaderKey != NULL) {
-            Key->HeaderKey->Aead = EVP_chacha20();
-        }
-        break;
-    default:
-        QUIC_FRE_ASSERT(FALSE);
-    }
-}
-
-static
-const
-EVP_MD *
-QuicTlsKeyGetMd(
-    _In_ QUIC_HASH_TYPE HashType
-    )
-{
-    switch (HashType) {
-    case QUIC_HASH_SHA256:
-        return EVP_sha256();
-    case QUIC_HASH_SHA384:
-        return EVP_sha384();
-    default:
-        QUIC_FRE_ASSERT(FALSE);
-        return NULL;
-    }
-}
-
-static
-void
-QuicTlsNegotiatedCiphers(
-    _In_ QUIC_TLS* TlsContext,
-    _Out_ QUIC_AEAD_TYPE *AeadType,
-    _Out_ QUIC_HASH_TYPE *HashType
-    )
-{
-    switch (SSL_CIPHER_get_id(SSL_get_current_cipher(TlsContext->Ssl))) {
-    case 0x03001301u: // TLS_AES_128_GCM_SHA256
-        *AeadType = QUIC_AEAD_AES_128_GCM;
-        *HashType = QUIC_HASH_SHA256;
-        break;
-    case 0x03001302u: // TLS_AES_256_GCM_SHA384
-        *AeadType = QUIC_AEAD_AES_256_GCM;
-        *HashType = QUIC_HASH_SHA384;
-        break;
-    case 0x03001303u: // TLS_CHACHA20_POLY1305_SHA256
-        *AeadType = QUIC_AEAD_CHACHA20_POLY1305;
-        *HashType = QUIC_HASH_SHA256;
-        break;
-    default:
-        QUIC_FRE_ASSERT(FALSE);
-    }
-}
-
-static
-QUIC_STATUS
-QuicTlsKeyCreate(
-    _Inout_ QUIC_TLS* TlsContext,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_ QUIC_PACKET_KEY_TYPE KeyType,
-    _Out_ QUIC_PACKET_KEY** Key
-    )
-{
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_PACKET_KEY *TempKey = NULL;
-    QUIC_SECRET *TrafficSecret = NULL;
-    QUIC_HASH_TYPE HashType = QUIC_HASH_SHA256;
-    QUIC_AEAD_TYPE AeadType = QUIC_AEAD_AES_128_GCM;
-
-    Status = QuicAllocatePacketKey(KeyType, TRUE, &TempKey);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "key alloc failed");
-        goto Exit;
-    }
-
-    QuicTlsNegotiatedCiphers(TlsContext, &AeadType, &HashType);
-    QuicTlsKeySetAead(AeadType, TempKey);
-
-    if (EVP_CipherInit_ex(TempKey->PacketKey->CipherCtx, TempKey->PacketKey->Aead, NULL, NULL, NULL, 1) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_CipherInit_ex failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    if (EVP_CIPHER_CTX_ctrl(TempKey->PacketKey->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    Status =
-        QuicTlsDerivePacketProtectionKey(
-            Secret,
-            SecretLen,
-            QuicTlsKeyGetMd(HashType),
-            TempKey);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            TlsErrorStatus,
-            "[ tls][%p] ERROR, %u, %s.",
-            TlsContext->Connection,
-            Status,
-            "QuicTlsDerivePacketProtectionKey failed");
-        goto Exit;
-    }
-
-    Status =
-        QuicTlsDeriveHeaderProtectionKey(
-            Secret,
-            SecretLen,
-            QuicTlsKeyGetMd(HashType),
-            TempKey);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            TlsErrorStatus,
-            "[ tls][%p] ERROR, %u, %s.",
-            TlsContext->Connection,
-            Status,
-            "QuicTlsDeriveHeaderProtectionKey failed");
-        goto Exit;
-    }
-
-    Status =
-        QuicTlsDerivePacketProtectionIv(
-            Secret,
-            SecretLen,
-            QuicTlsKeyGetMd(HashType),
-            TempKey);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            TlsErrorStatus,
-            "[ tls][%p] ERROR, %u, %s.",
-            TlsContext->Connection,
-            Status,
-            "QuicTlsDerivePacketProtectionIv failed");
-        goto Exit;
-    }
-
-    if (KeyType == QUIC_PACKET_KEY_1_RTT) {
-        TrafficSecret = &TempKey->TrafficSecret[0];
-        QuicCopyMemory(TrafficSecret->Secret, Secret, SecretLen);
-        TrafficSecret->Aead = AeadType;
-        TrafficSecret->Hash = HashType;
-    }
-
-    *Key = TempKey;
-    TempKey = NULL;
-
-Exit:
-
-    QuicPacketKeyFree(TempKey);
-
-    return Status;
-}
-
-static
-BOOLEAN
-QuicTlsHdkfExpand(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_reads_bytes_(InfoLen) const uint8_t *Info,
-    _In_ size_t InfoLen,
-    _In_ const EVP_MD *Md
-    )
-{
-    BOOLEAN Ret = TRUE;
-    EVP_PKEY_CTX *KeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
-    if (KeyCtx == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Key ctx alloc failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_derive_init(KeyCtx) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_derive_init failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_hkdf_mode(KeyCtx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_CTX_hkdf_mode failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_set_hkdf_md(KeyCtx, Md) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_CTX_set_hkdf_md failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, "", 0) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_CTX_set1_hkdf_salt failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, (int)SecretLen) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_CTX_set1_hkdf_key failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_add1_hkdf_info(KeyCtx, Info, (int)InfoLen) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_CTX_add1_hkdf_info failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_derive(KeyCtx, OutputBuffer, &OutputBufferLen) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_derive failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-Exit:
-
-    if (KeyCtx != NULL) {
-        EVP_PKEY_CTX_free(KeyCtx);
-        KeyCtx = NULL;
-    }
-
-    return Ret;
-}
-
-static
-BOOLEAN
-QuicTlsHkdfExpandLabel(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_z_ const char* const Label,
-    _In_ const EVP_MD *Md
-    )
-{
-    uint8_t Info[128] = {0};
-    size_t InfoLen = sizeof(Info);
-
-    QuicTlsHkdfFormatLabel(Label, (uint16_t)OutputBufferLen, Info, (uint32_t *)&InfoLen);
-
-    return
-        QuicTlsHdkfExpand(
-            OutputBuffer,
-            OutputBufferLen,
-            Secret,
-            SecretLen,
-            Info,
-            InfoLen,
-            Md);
-}
-
-static
-void
-QuicTlsHkdfFormatLabel(
-    _In_z_ const char* const Label,
-    _In_ uint16_t KeyLen,
-    _Out_writes_all_(4 + QUIC_HKDF_PREFIX_LEN + strlen(Label)) uint8_t* const Data,
-    _Inout_ uint32_t* const DataLength
-    )
-{
-    size_t LabelLen = strlen(Label);
-
-    QUIC_DBG_ASSERT((size_t)*DataLength >= (LabelLen + 10));
-
-    Data[0] = (uint8_t)(KeyLen / 256);
-    Data[1] = (uint8_t)(KeyLen % 256);
-    Data[2] = (uint8_t)(QUIC_HKDF_PREFIX_LEN + LabelLen);
-    memcpy(Data + 3, QUIC_HKDF_PREFIX, QUIC_HKDF_PREFIX_LEN);
-    memcpy(Data + 3 + QUIC_HKDF_PREFIX_LEN, Label, LabelLen);
-    Data[3+QUIC_HKDF_PREFIX_LEN+LabelLen] = 0;
-    *DataLength = 3 + QUIC_HKDF_PREFIX_LEN + (uint32_t)LabelLen + 1;
-}
-
-static
-QUIC_STATUS
-QuicAllocatePacketKey(
-    _In_ QUIC_PACKET_KEY_TYPE KeyType,
-    _In_ BOOLEAN AllocHpKey,
-    _Outptr_ QUIC_PACKET_KEY** Key
-    )
-{
-    const size_t PacketKeyLength =
-        sizeof(QUIC_PACKET_KEY) +
-        (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
-
-    QUIC_PACKET_KEY * TempKey = QuicAlloc(PacketKeyLength);
-    if (TempKey == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_PACKET_KEY",
-            PacketKeyLength);
-        goto Error;
-    }
-
-    QuicZeroMemory(TempKey, PacketKeyLength);
-    TempKey->Type = KeyType;
-
-    if (AllocHpKey) {
-        TempKey->HeaderKey = QuicAlloc(sizeof(QUIC_HP_KEY));
-        if (TempKey->HeaderKey == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "QUIC_PACKET_KEY",
-                sizeof(QUIC_HP_KEY));
-            goto Error;
-        }
-        TempKey->HeaderKey->CipherCtx = EVP_CIPHER_CTX_new();
-        if (TempKey->HeaderKey->CipherCtx == NULL) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "Cipherctx alloc failed");
-            goto Error;
-        }
-    }
-
-    TempKey->PacketKey = QuicAlloc(sizeof(QUIC_KEY));
-    if (TempKey->PacketKey == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_KEY",
-            sizeof(QUIC_KEY));
-        goto Error;
-    }
-    TempKey->PacketKey->CipherCtx = EVP_CIPHER_CTX_new();
-    if (TempKey->PacketKey->CipherCtx == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Cipherctx alloc failed");
-        goto Error;
-    }
-
-    *Key = TempKey;
-
-    return QUIC_STATUS_SUCCESS;
-
-Error:
-
-    QuicPacketKeyFree(TempKey);
-
-    return QUIC_STATUS_OUT_OF_MEMORY;
-}
-
-static
-QUIC_STATUS
-QuicTlsDerivePacketProtectionKey(
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_ const EVP_MD *Md,
-    _Out_ QUIC_PACKET_KEY *QuicKey
-    )
-{
-    BOOLEAN Ret = 0;
-    int KeyLen = EVP_CIPHER_key_length(QuicKey->PacketKey->Aead);
-
-    QUIC_FRE_ASSERT(KeyLen <= 64);
-
-    QuicKey->PacketKey->BufferLen = KeyLen;
-
-    Ret =
-        QuicTlsHkdfExpandLabel(
-            QuicKey->PacketKey->Buffer,
-            KeyLen,
-            Secret,
-            SecretLen,
-            "quic key",
-            Md);
-
-    if (!Ret) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "QuicTlsHkdfExpandLabel failed");
-        return QUIC_STATUS_TLS_ERROR;
-    }
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-static
-QUIC_STATUS
-QuicTlsDerivePacketProtectionIv(
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_ const EVP_MD *Md,
-    _Out_ QUIC_PACKET_KEY *QuicKey
-    )
-{
-    BOOLEAN Ret = 0;
-    int IvLen = max(8, EVP_CIPHER_iv_length(QuicKey->PacketKey->Aead));
-
-    QUIC_FRE_ASSERT(IvLen <= QUIC_IV_LENGTH);
-
-    Ret =
-        QuicTlsHkdfExpandLabel(
-            QuicKey->Iv,
-            IvLen,
-            Secret,
-            SecretLen,
-            "quic iv",
-            Md);
-
-    if (!Ret) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "QuicTlsHkdfExpandLabel failed");
-        return QUIC_STATUS_TLS_ERROR;
-    }
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-static
-QUIC_STATUS
-QuicTlsDeriveHeaderProtectionKey(
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_ const EVP_MD *Md,
-    _Out_ QUIC_PACKET_KEY *QuicKey
-    )
-{
-    BOOLEAN Ret = 0;
-    int KeyLen = EVP_CIPHER_key_length(QuicKey->HeaderKey->Aead);
-
-    QUIC_FRE_ASSERT(KeyLen <= 64);
-    QuicKey->HeaderKey->BufferLen = KeyLen;
-
-    Ret =
-        QuicTlsHkdfExpandLabel(
-            QuicKey->HeaderKey->Buffer,
-            KeyLen,
-            Secret,
-            SecretLen,
-            "quic hp",
-            Md);
-
-    if (!Ret) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "QuicTlsHkdfExpandLabel failed");
-        return QUIC_STATUS_TLS_ERROR;
-    }
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicPacketKeyDerive(
-    _In_ QUIC_PACKET_KEY_TYPE KeyType,
-    _In_ const QUIC_SECRET* const Secret,
-    _In_z_ const char* const SecretName,
-    _In_ BOOLEAN CreateHpKey,
-    _Out_ QUIC_PACKET_KEY **NewKey
-    )
-{
-    UNREFERENCED_PARAMETER(SecretName);
-    const uint16_t SecretLength = QuicHashLength(Secret->Hash);
-
-    QUIC_DBG_ASSERT(SecretLength >= QuicKeyLength(Secret->Aead));
-    QUIC_DBG_ASSERT(SecretLength >= QUIC_IV_LENGTH);
-    QUIC_DBG_ASSERT(SecretLength <= QUIC_HASH_MAX_SIZE);
-
-    QUIC_PACKET_KEY *Key = NULL;
-    QUIC_STATUS Status = QuicAllocatePacketKey(KeyType, CreateHpKey, &Key);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-
-    QuicTlsKeySetAead(Secret->Aead, Key);
-
-    if (EVP_CipherInit_ex(Key->PacketKey->CipherCtx, Key->PacketKey->Aead, NULL, NULL, NULL, 1) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_CipherInit_ex failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Error;
-    }
-
-    if (EVP_CIPHER_CTX_ctrl(Key->PacketKey->CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Error;
-    }
-
-     Status =
-        QuicTlsDerivePacketProtectionIv(
-            Secret->Secret,
-            SecretLength,
-            QuicTlsKeyGetMd(Secret->Hash),
-            Key);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-
-    Status =
-        QuicTlsDerivePacketProtectionKey(
-            Secret->Secret,
-            SecretLength,
-            QuicTlsKeyGetMd(Secret->Hash),
-            Key);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-
-    if (CreateHpKey) {
-        Status =
-            QuicTlsDeriveHeaderProtectionKey(
-                Secret->Secret,
-                SecretLength,
-                QuicTlsKeyGetMd(Secret->Hash),
-                Key);
-        if (QUIC_FAILED(Status)) {
-            goto Error;
-        }
-    }
-
-    if (KeyType == QUIC_PACKET_KEY_1_RTT) {
-        QuicCopyMemory(Key->TrafficSecret, Secret, sizeof(QUIC_SECRET));
-    }
-
-    *NewKey = Key;
-    Key = NULL;
-
-Error:
-
-    QuicPacketKeyFree(Key);
-
-    return Status;
-}
-
-static
-QUIC_STATUS
-QuicTlsUpdateTrafficSecret(
-    _Out_writes_bytes_(SecretLen) const uint8_t *NewSecret,
-    _In_reads_bytes_(SecretLen) const uint8_t *OldSecret,
-    _In_ size_t SecretLen,
-    _In_ const EVP_MD *Md
-    )
-{
-    BOOLEAN Ret = 0;
-
-    Ret =
-        QuicTlsHkdfExpandLabel(
-            (uint8_t *)NewSecret,
-            SecretLen,
-            (uint8_t *)OldSecret,
-            SecretLen,
-            "quic ku",
-            Md);
-
-    if (!Ret) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "QuicTlsHkdfExpandLabel failed");
-        return QUIC_STATUS_TLS_ERROR;
-    }
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-static
-BOOLEAN
-QuicTlsDeriveClientInitialSecret(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen
-    )
-{
-    return
-        QuicTlsHkdfExpandLabel(
-            OutputBuffer,
-            OutputBufferLen,
-            Secret,
-            SecretLen,
-            "client in",
-            EVP_sha256());
-}
-
-static
-BOOLEAN
-QuicTlsDeriveServerInitialSecret(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen
-    )
-{
-    return
-        QuicTlsHkdfExpandLabel(
-            OutputBuffer,
-            OutputBufferLen,
-            Secret,
-            SecretLen,
-            "server in",
-            EVP_sha256());
-}
-
-static
-BOOLEAN
-QuicTlsHkdfExtract(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_reads_(SaltLen) const uint8_t *Salt,
-    _In_ size_t SaltLen,
-    _In_ const EVP_MD *Md
-    )
-{
-    int Ret = TRUE;
-    EVP_PKEY_CTX *KeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
-    if (KeyCtx == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_CTX_new_id failed");
-        return FALSE;
-    }
-
-    if (EVP_PKEY_derive_init(KeyCtx) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_derive_init failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_hkdf_mode(KeyCtx, EVP_PKEY_HKDEF_MODE_EXTRACT_ONLY) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_CTX_hkdf_mode failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_set_hkdf_md(KeyCtx, Md) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_CTX_set_hkdf_md failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, Salt, (int)SaltLen) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_CTX_set1_hkdf_salt failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, (int)SecretLen) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_CTX_set1_hkdf_key failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_derive(KeyCtx, OutputBuffer, &OutputBufferLen) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_derive failed");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-Exit:
-
-    if (KeyCtx != NULL) {
-        EVP_PKEY_CTX_free(KeyCtx);
-        KeyCtx = NULL;
-    }
-
-    return (BOOLEAN)Ret;
 }
