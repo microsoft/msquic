@@ -1304,7 +1304,7 @@ Error:
     QuicHashFree(InitialHash);
     QuicHashFree(DerivedHash);
 
-    RtlSecureZeroMemory(InitialSecret, sizeof(InitialSecret));
+    QuicSecureZeroMemory(InitialSecret, sizeof(InitialSecret));
 
     return Status;
 }
