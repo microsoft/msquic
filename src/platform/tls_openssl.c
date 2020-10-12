@@ -270,7 +270,7 @@ int
 QuicTlsAddHandshakeDataCallback(
     _In_ SSL *Ssl,
     _In_ OSSL_ENCRYPTION_LEVEL Level,
-    _In_reads_(len) const uint8_t *Data,
+    _In_reads_(Length) const uint8_t *Data,
     _In_ size_t Length
     )
 {
@@ -287,14 +287,44 @@ QuicTlsAddHandshakeDataCallback(
         Length,
         Level);
 
-    if (Length + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
+    if (Length + TlsState->BufferLength > 0xF000) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
             TlsContext->Connection,
-            "Buffer overflow for output handshake data");
+            "Too much handshake data");
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
         return -1;
+    }
+
+    if (Length + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
+        //
+        // Double the allocated buffer length until there's enough room for the
+        // new data.
+        //
+        uint16_t NewBufferAllocLength = TlsState->BufferAllocLength;
+        while (Length + TlsState->BufferLength > (size_t)NewBufferAllocLength) {
+            NewBufferAllocLength <<= 1;
+        }
+
+        uint8_t* NewBuffer = QUIC_ALLOC_NONPAGED(NewBufferAllocLength);
+        if (NewBuffer == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "New crypto buffer",
+                NewBufferAllocLength);
+            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+            return -1;
+        }
+
+        QuicCopyMemory(
+            NewBuffer,
+            TlsState->Buffer,
+            TlsState->BufferLength);
+        QUIC_FREE(TlsState->Buffer);
+        TlsState->Buffer = NewBuffer;
+        TlsState->BufferAllocLength = NewBufferAllocLength;
     }
 
     switch (KeyType) {
