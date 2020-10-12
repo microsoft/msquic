@@ -16,7 +16,6 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-#include "frame.h"
 #ifdef QUIC_CLOG
 #include "inline.c.clog.h"
 #endif
@@ -271,9 +270,4 @@ BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,
     _Out_ QUIC_ADDR_STR* AddrStr
-    );
-
-BOOLEAN
-QuicErrorIsProtocolError(
-    _In_ QUIC_VAR_INT ErrorCode
     );
