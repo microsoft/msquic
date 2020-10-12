@@ -1567,17 +1567,12 @@ QuicConnTryClose(
         if (ResultQuicStatus) {
             Connection->CloseStatus = (QUIC_STATUS)ErrorCode;
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
-            //
-            // Errors 0x1-0xF are quic errors, as are 0x100-0xFF. For future proofing,
-            // consider the whole range of 0x1-0x1FF as a protocol error.
-            //
-            if (ErrorCode > 0 &&
-                ErrorCode <= 0x1FF) {
-                QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS);
-            }
         } else {
             Connection->CloseStatus = QuicErrorCodeToStatus(ErrorCode);
             Connection->CloseErrorCode = ErrorCode;
+            if (QuicErrorIsProtocolError(ErrorCode)) {
+                QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS);
+            }
         }
 
         if (Flags & QUIC_CLOSE_APPLICATION) {
