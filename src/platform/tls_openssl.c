@@ -1361,7 +1361,7 @@ QuicPacketKeyCreateInitial(
             goto Exit;
         }
 
-        TempWriteKey->HeaderKey->Aead = EVP_aes_128_ctr();
+        TempWriteKey->HeaderKey->Aead = EVP_aes_128_ecb();
 
         if (!QuicTlsHkdfExtract(
                 InitialSecret,
@@ -1482,7 +1482,7 @@ QuicPacketKeyCreateInitial(
             goto Exit;
         }
 
-        TempReadKey->HeaderKey->Aead = EVP_aes_128_ctr();
+        TempReadKey->HeaderKey->Aead = EVP_aes_128_ecb();
 
         if (!QuicTlsHkdfExtract(
                 InitialSecret,
@@ -1961,10 +1961,10 @@ QuicHpKeyCreate(
 
     switch (AeadType) {
     case QUIC_AEAD_AES_128_GCM:
-        Key->Aead = EVP_aes_128_ctr();
+        Key->Aead = EVP_aes_128_ecb();
         break;
     case QUIC_AEAD_AES_256_GCM:
-        Key->Aead = EVP_aes_256_ctr();
+        Key->Aead = EVP_aes_256_ecb();
         break;
     case QUIC_AEAD_CHACHA20_POLY1305:
         Key->Aead = EVP_chacha20_poly1305();
@@ -2006,28 +2006,21 @@ QuicHpComputeMask(
     _Out_writes_bytes_(QUIC_HP_SAMPLE_LENGTH * BatchSize) uint8_t* Mask
     )
 {
-    static const uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
+    if (EVP_EncryptInit_ex(Key->CipherCtx, Key->Aead, NULL, Key->Buffer, NULL) != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptInit_ex failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
 
     int OutLen = 0;
-    uint32_t Offset = 0;
-    for (uint8_t i = 0; i < BatchSize; ++i) { // TODO - Figure out how to not use a loop here!
-        if (EVP_EncryptInit_ex(Key->CipherCtx, Key->Aead, NULL, Key->Buffer, Cipher + Offset) != 1) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "EVP_EncryptInit_ex failed");
-            return QUIC_STATUS_TLS_ERROR;
-        }
-
-        if (EVP_EncryptUpdate(Key->CipherCtx, Mask + Offset, &OutLen, PLAINTEXT, sizeof(PLAINTEXT) - 1) != 1) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "EVP_EncryptUpdate failed");
-            return QUIC_STATUS_TLS_ERROR;
-        }
-
-        Offset += QUIC_HP_SAMPLE_LENGTH;
+    if (EVP_EncryptUpdate(Key->CipherCtx, Mask, &OutLen, Cipher, QUIC_HP_SAMPLE_LENGTH * BatchSize) != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptUpdate failed");
+        return QUIC_STATUS_TLS_ERROR;
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -2160,13 +2153,13 @@ QuicTlsKeySetAead(
     case QUIC_AEAD_AES_128_GCM:
         Key->PacketKey->Aead = EVP_aes_128_gcm();
         if (Key->HeaderKey != NULL) {
-            Key->HeaderKey->Aead = EVP_aes_128_ctr();
+            Key->HeaderKey->Aead = EVP_aes_128_ecb();
         }
         break;
     case QUIC_AEAD_AES_256_GCM:
         Key->PacketKey->Aead = EVP_aes_256_gcm();
         if (Key->HeaderKey != NULL) {
-            Key->HeaderKey->Aead = EVP_aes_256_ctr();
+            Key->HeaderKey->Aead = EVP_aes_256_ecb();
         }
         break;
     case QUIC_AEAD_CHACHA20_POLY1305:
