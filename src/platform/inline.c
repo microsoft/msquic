@@ -16,7 +16,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-#include "quic_var_int.h"
+#include "frame.h"
 #ifdef QUIC_CLOG
 #include "inline.c.clog.h"
 #endif
