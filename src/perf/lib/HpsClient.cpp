@@ -31,8 +31,7 @@ PrintHelp(
         "\n",
         HPS_DEFAULT_RUN_TIME,
         PERF_DEFAULT_PORT,
-        HPS_DEFAULT_PARALLEL_COUNT,
-        HPS_MAX_WORKER_COUNT
+        HPS_DEFAULT_PARALLEL_COUNT
         );
 }
 
