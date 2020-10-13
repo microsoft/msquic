@@ -69,6 +69,9 @@ This script provides helpers for building msquic.
 .PARAMETER CI
     Build is occuring from CI
 
+.PARAMETER RandomAllocFail
+    Enables random allocation failures.
+
 .EXAMPLE
     build.ps1
 
@@ -143,7 +146,10 @@ param (
     [switch]$ConfigureOnly = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CI = $false
+    [switch]$CI = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$RandomAllocFail = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -286,6 +292,9 @@ function CMake-Generate {
         $Arguments += " -DQUIC_CI=ON"
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
+    }
+    if ($RandomAllocFail) {
+        $Arguments += " -DQUIC_RANDOM_ALLOC_FAIL=on"
     }
     $Arguments += " ../../.."
 

@@ -123,6 +123,7 @@ option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
 option(QUIC_CODE_CHECK "Run static code checkers" OFF)
 option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
 option(QUIC_CI "CI Specific build optimizations" OFF)
+option(QUIC_RANDOM_ALLOC_FAIL "Randomly fails allocation calls" OFF)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -216,6 +217,10 @@ endif()
 
 list(APPEND QUIC_COMMON_DEFINES VER_BUILD_ID=${QUIC_VER_BUILD_ID})
 list(APPEND QUIC_COMMON_DEFINES VER_SUFFIX=${QUIC_VER_SUFFIX})
+
+if(QUIC_RANDOM_ALLOC_FAIL)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_RANDOM_ALLOC_FAIL)
+endif()
 
 if(WIN32)
     # Generate the MsQuicEtw header file.
