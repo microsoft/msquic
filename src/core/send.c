@@ -1074,7 +1074,20 @@ QuicSendFlush(
                     Send->TailLossProbeNeeded)) {
                 break;
             }
-            WrotePacketFrames = QuicStreamSendWrite(Stream, &Builder);
+
+            //
+            // Write any ACK frames if we have them.
+            //
+            QUIC_PACKET_SPACE* Packets = Connection->Packets[Builder.EncryptLevel];
+            WrotePacketFrames =
+                Builder.PacketType != QUIC_0_RTT_PROTECTED &&
+                QuicAckTrackerHasPacketsToAck(&Packets->AckTracker) &&
+                QuicAckTrackerAckFrameEncode(&Packets->AckTracker, &Builder);
+
+            //
+            // Write the stream frames.
+            //
+            WrotePacketFrames |= QuicStreamSendWrite(Stream, &Builder);
 
             if (Stream->SendFlags == 0) {
                 //

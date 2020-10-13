@@ -227,14 +227,9 @@ QuicAddrSetPort(
     _In_ uint16_t Port
     );
 
-BOOLEAN
-QuicAddrIsBoundExplicitly(
-    _In_ const QUIC_ADDR* const Addr
-    );
-
 void
 QuicAddrIncrement(
-    _Inout_ QUIC_ADDR * Addr
+    _Inout_ QUIC_ADDR* Addr
     );
 
 void

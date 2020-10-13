@@ -458,7 +458,9 @@ QuicLossDetectionOnPacketAcknowledged(
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
-    QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
+    uint8_t PathIndex;
+    QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
+    UNREFERENCED_PARAMETER(PathIndex);
 
     _Analysis_assume_(
         EncryptLevel >= QUIC_ENCRYPT_LEVEL_INITIAL &&
@@ -717,7 +719,8 @@ QuicLossDetectionRetransmitFrames(
         }
 
         case QUIC_FRAME_PATH_CHALLENGE: {
-            QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
+            uint8_t PathIndex;
+            QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
             if (Path != NULL && !Path->IsPeerValidated) {
                 uint32_t TimeNow = QuicTimeUs32();
                 QUIC_DBG_ASSERT(Connection->Configuration != NULL);
@@ -730,7 +733,7 @@ QuicLossDetectionRetransmitFrames(
                         Connection,
                         "Path[%hhu] validation timed out",
                         Path->ID);
-                    QuicPathRemove(Connection, Packet->PathId);
+                    QuicPathRemove(Connection, PathIndex);
                 } else {
                     Path->SendChallenge = TRUE;
                     QuicSendSetSendFlag(

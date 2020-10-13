@@ -264,8 +264,8 @@ QuicBindingInitialize(
 #endif
     _In_ BOOLEAN ShareBinding,
     _In_ BOOLEAN ServerOwned,
-    _In_opt_ const QUIC_ADDR * LocalAddress,
-    _In_opt_ const QUIC_ADDR * RemoteAddress,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
     );
 
@@ -412,24 +412,10 @@ QuicBindingReleaseStatelessOperation(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicBindingSendTo(
+QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
-    _In_ uint32_t BytesToSend,
-    _In_ uint32_t DatagramsToSend
-    );
-
-//
-// Sends data to a remote host. Note, the buffer must remain valid for
-// the duration of the send operation.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicBindingSendFromTo(
-    _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_ADDR * LocalAddress,
-    _In_ const QUIC_ADDR * RemoteAddress,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend

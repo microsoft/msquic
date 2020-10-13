@@ -333,14 +333,6 @@ typedef struct QUIC_DATAPATH {
 
 } QUIC_DATAPATH;
 
-QUIC_STATUS
-QuicDataPathBindingSend(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
-    );
-
 void*
 QuicDataPathWorkerThread(
     _In_ void* Context
@@ -691,7 +683,7 @@ QUIC_STATUS
 QuicDataPathResolveAddress(
     _In_ QUIC_DATAPATH* Datapath,
     _In_z_ const char* HostName,
-    _Inout_ QUIC_ADDR * Address
+    _Inout_ QUIC_ADDR* Address
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
@@ -1722,7 +1714,7 @@ QuicDataPathBindingDelete(
 void
 QuicDataPathBindingGetLocalAddress(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _Out_ QUIC_ADDR * Address
+    _Out_ QUIC_ADDR* Address
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
@@ -1736,7 +1728,7 @@ QuicDataPathBindingGetLocalAddress(
 void
 QuicDataPathBindingGetRemoteAddress(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _Out_ QUIC_ADDR * Address
+    _Out_ QUIC_ADDR* Address
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
@@ -1984,6 +1976,14 @@ QuicDataPathBindingSend(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
 {
+#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+    return
+        PlatDispatch->DatapathBindingSend(
+            Binding,
+            LocalAddress,
+            RemoteAddress,
+            SendContext);
+#else
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_SOCKET_CONTEXT* SocketContext = NULL;
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
@@ -2008,26 +2008,16 @@ QuicDataPathBindingSend(
         SendContext->Iovs[i].iov_len = SendContext->Buffers[i].Length;
         TotalSize += SendContext->Buffers[i].Length;
     }
-    if (LocalAddress == NULL) {
-        QuicTraceEvent(
-            DatapathSendTo,
-            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
-            Binding,
-            TotalSize,
-            SendContext->BufferCount,
-            SendContext->Buffers[0].Length,
-            CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
-    } else {
-        QuicTraceEvent(
-            DatapathSendFromTo,
-            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-            Binding,
-            TotalSize,
-            SendContext->BufferCount,
-            SendContext->Buffers[0].Length,
-            CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-            CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-    }
+
+    QuicTraceEvent(
+        DatapathSend,
+        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        Binding,
+        TotalSize,
+        SendContext->BufferCount,
+        SendContext->Buffers[0].Length,
+        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.
@@ -2054,7 +2044,7 @@ QuicDataPathBindingSend(
     CMsg->cmsg_len = CMSG_LEN(sizeof(int));
     *(int *)CMSG_DATA(CMsg) = SendContext->ECN;
 
-    if (LocalAddress) {
+    if (!Binding->Connected) {
         Mhdr.msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
         CMsg = CMSG_NXTHDR(&Mhdr, CMsg);
         QUIC_DBG_ASSERT(CMsg != NULL);
@@ -2114,67 +2104,7 @@ Exit:
     }
 
     return Status;
-}
-
-QUIC_STATUS
-QuicDataPathBindingSendTo(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
-    )
-{
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->DatapathBindingSendTo(
-            Binding,
-            RemoteAddress,
-            SendContext);
-#else
-    QUIC_DBG_ASSERT(
-        Binding != NULL &&
-        RemoteAddress != NULL &&
-        RemoteAddress->Ipv4.sin_port != 0 &&
-        SendContext != NULL);
-
-    return
-        QuicDataPathBindingSend(
-            Binding,
-            NULL,
-            RemoteAddress,
-            SendContext);
-#endif
-}
-
-QUIC_STATUS
-QuicDataPathBindingSendFromTo(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const QUIC_ADDR * LocalAddress,
-    _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
-    )
-{
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->DatapathBindingSendFromTo(
-            Binding,
-            LocalAddress,
-            RemoteAddress,
-            SendContext);
-#else
-    QUIC_DBG_ASSERT(
-        Binding != NULL &&
-        LocalAddress != NULL &&
-        RemoteAddress != NULL &&
-        SendContext != NULL &&
-        SendContext->BufferCount != 0);
-
-    return
-        QuicDataPathBindingSend(
-            Binding,
-            LocalAddress,
-            RemoteAddress,
-            SendContext);
-#endif
+#endif // QUIC_PLATFORM_DISPATCH_TABLE
 }
 
 uint16_t

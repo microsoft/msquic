@@ -61,14 +61,21 @@ if [ "$ROLE" == "client" ]; then
         ;;
     esac
 
+    # Figure out the server name from the first request. This assumes all URLS
+    # point to the same server.
+    REQS=($REQUESTS)
+    REQ=${REQS[0]}
+    SERVER=$(echo $REQ | cut -d'/' -f3)
+    echo "Connecting to $SERVER"
+
     if [ "$TESTCASE" == "multiconnect" ]; then
         for REQ in $REQUESTS; do
-            quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"$REQ" -version:-16777187
+            quicinterop ${CLIENT_PARAMS} -custom:$SERVER -port:443 -urls:"$REQ" -version:-16777187
         done
     else
         # FIXME: there doesn't seem to be a way to specify to use /certs/ca.pem
         # for certificate verification
-        quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:${REQUESTS[@]} -version:-16777187
+        quicinterop ${CLIENT_PARAMS} -custom:$SERVER -port:443 -urls:${REQUESTS[@]} -version:-16777187
     fi
     # Wait for the logs to flush to disk.
     sleep 5

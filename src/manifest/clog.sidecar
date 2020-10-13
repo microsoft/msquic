@@ -317,45 +317,10 @@
         "CustomSettings": null
       }
     },
-    "BindingSendToFailed": {
+    "BindingSendFailed": {
       "ModuleProperites": {},
-      "TraceString": "[bind][%p] SendTo failed, 0x%x",
-      "UniqueId": "BindingSendToFailed",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Binding",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Status",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogWarning",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "BindingSendFromToFailed": {
-      "ModuleProperites": {},
-      "TraceString": "[bind][%p] SendFromTo failed, 0x%x",
-      "UniqueId": "BindingSendFromToFailed",
+      "TraceString": "[bind][%p] Send failed, 0x%x",
+      "UniqueId": "BindingSendFailed",
       "splitArgs": [
         {
           "VariableInfo": {
@@ -491,37 +456,10 @@
         "CustomSettings": null
       }
     },
-    "BindingSendToTestDrop": {
+    "BindingSendTestDrop": {
       "ModuleProperites": {},
       "TraceString": "[bind][%p] Test dropped packet",
-      "UniqueId": "BindingSendToTestDrop",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Binding",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "BindingSendFromToTestDrop": {
-      "ModuleProperites": {},
-      "TraceString": "[bind][%p] Test dropped packet",
-      "UniqueId": "BindingSendFromToTestDrop",
+      "UniqueId": "BindingSendTestDrop",
       "splitArgs": [
         {
           "VariableInfo": {
@@ -15986,69 +15924,10 @@
         "CustomSettings": null
       }
     },
-    "DatapathSendTo": {
-      "ModuleProperites": {},
-      "TraceString": "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
-      "UniqueId": "DatapathSendTo",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Binding",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "TotalSize",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "SendContext->BufferCount",
-            "SuggestedTelemetryName": "arg4"
-          },
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "SendContext->Buffers[0].Length",
-            "SuggestedTelemetryName": "arg5"
-          },
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)",
-            "SuggestedTelemetryName": "arg6"
-          },
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg6"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceEvent",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "DatapathSendFromTo": {
+    "DatapathSend": {
       "ModuleProperites": {},
       "TraceString": "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-      "UniqueId": "DatapathSendFromTo",
+      "UniqueId": "DatapathSend",
       "splitArgs": [
         {
           "VariableInfo": {
@@ -18493,6 +18372,49 @@
       ],
       "macro": {
         "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "OpenSslLogSecret": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] %s[%u]: %s",
+      "UniqueId": "OpenSslLogSecret",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Prefix",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Length",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "SecretStr",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
         "EncodedPrefix": null,
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
@@ -21276,12 +21198,8 @@
         "TraceID": "BindingListenerAlreadyRegistered"
       },
       {
-        "UniquenessHash": "96bd629b-7658-e8fe-391a-3d50274f933c",
-        "TraceID": "BindingSendToFailed"
-      },
-      {
-        "UniquenessHash": "8f26f6f7-d43a-7cad-a86b-14b20bf283e7",
-        "TraceID": "BindingSendFromToFailed"
+        "UniquenessHash": "ed52dc79-5619-64e6-7bde-c177b24ff85d",
+        "TraceID": "BindingSendFailed"
       },
       {
         "UniquenessHash": "abecde52-d14c-a321-f36e-bec3b2d4aa95",
@@ -21296,12 +21214,8 @@
         "TraceID": "PacketTxRetry"
       },
       {
-        "UniquenessHash": "84d253f3-6080-1dd9-85d9-d1835f969640",
-        "TraceID": "BindingSendToTestDrop"
-      },
-      {
-        "UniquenessHash": "5fab5bdf-643a-f660-0bfe-93129662c1c4",
-        "TraceID": "BindingSendFromToTestDrop"
+        "UniquenessHash": "8419ad0b-e226-53e3-837c-4eebd4cc6619",
+        "TraceID": "BindingSendTestDrop"
       },
       {
         "UniquenessHash": "8f664316-de64-1faa-b303-6cda51fd619a",
@@ -22988,12 +22902,8 @@
         "TraceID": "DatapathRecv"
       },
       {
-        "UniquenessHash": "60419832-af2f-d7f6-6f43-935918db56b1",
-        "TraceID": "DatapathSendTo"
-      },
-      {
-        "UniquenessHash": "0b5e94e2-63da-d912-9c46-0b9e3b5ea839",
-        "TraceID": "DatapathSendFromTo"
+        "UniquenessHash": "94b78b13-9aec-bd06-569d-6b47607c66be",
+        "TraceID": "DatapathSend"
       },
       {
         "UniquenessHash": "b24b16a3-d334-7fa7-5991-5361737fa9a5",
@@ -23318,6 +23228,10 @@
       {
         "UniquenessHash": "9eac4540-061f-ff2b-c104-5c1e1b8b22b6",
         "TraceID": "TlsError"
+      },
+      {
+        "UniquenessHash": "69c5c25e-ab70-9800-8260-aa93a193bd8b",
+        "TraceID": "OpenSslLogSecret"
       },
       {
         "UniquenessHash": "c7b17ffc-7649-6294-b6d0-cf4bbf4bc8cb",

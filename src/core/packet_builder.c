@@ -891,23 +891,13 @@ QuicPacketBuilderSendBatch(
         "Sending batch. %hu datagrams",
         (uint16_t)Builder->TotalCountDatagrams);
 
-    if (QuicAddrIsBoundExplicitly(&Builder->Path->LocalAddress)) {
-        QuicBindingSendTo(
-            Builder->Path->Binding,
-            &Builder->Path->RemoteAddress,
-            Builder->SendContext,
-            Builder->TotalDatagramsLength,
-            Builder->TotalCountDatagrams);
-
-    } else {
-        QuicBindingSendFromTo(
-            Builder->Path->Binding,
-            &Builder->Path->LocalAddress,
-            &Builder->Path->RemoteAddress,
-            Builder->SendContext,
-            Builder->TotalDatagramsLength,
-            Builder->TotalCountDatagrams);
-    }
+    QuicBindingSend(
+        Builder->Path->Binding,
+        &Builder->Path->LocalAddress,
+        &Builder->Path->RemoteAddress,
+        Builder->SendContext,
+        Builder->TotalDatagramsLength,
+        Builder->TotalCountDatagrams);
 
     Builder->PacketBatchSent = TRUE;
     Builder->SendContext = NULL;

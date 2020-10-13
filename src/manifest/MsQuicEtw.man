@@ -1530,35 +1530,7 @@
                 name="ByteCount"
                 />
           </template>
-          <template tid="tid_DATA_SEND_TO">
-            <data
-                inType="win:Pointer"
-                name="UdpBinding"
-                />
-            <data
-                inType="win:UInt32"
-                name="TotalSize"
-                />
-            <data
-                inType="win:UInt8"
-                name="BufferCount"
-                />
-            <data
-                inType="win:UInt16"
-                name="SegmentSize"
-                />
-            <data
-                inType="win:UInt8"
-                name="RemoteAddrLength"
-                />
-            <data
-                inType="win:Binary"
-                length="RemoteAddrLength"
-                name="RemoteAddr"
-                outType="win:SocketAddress"
-                />
-          </template>
-          <template tid="tid_DATA_SEND_FROM_TO">
+          <template tid="tid_DATA_SEND">
             <data
                 inType="win:Pointer"
                 name="UdpBinding"
@@ -2781,19 +2753,10 @@
           <event
               keywords="ut:UDP ut:DataFlow"
               level="win:Verbose"
-              message="$(string.Etw.DatapathSendTo)"
+              message="$(string.Etw.DatapathSend)"
               opcode="win:Info"
-              symbol="QuicDatapathSendTo"
-              template="tid_DATA_SEND_TO"
-              value="9216"
-              />
-          <event
-              keywords="ut:UDP ut:DataFlow"
-              level="win:Verbose"
-              message="$(string.Etw.DatapathSendFromTo)"
-              opcode="win:Info"
-              symbol="QuicDatapathSendFromTo"
-              template="tid_DATA_SEND_FROM_TO"
+              symbol="QuicDatapathSend"
+              template="tid_DATA_SEND"
               value="9217"
               />
           <event
@@ -3317,11 +3280,7 @@
             value="[ tls][%1] %2"
             />
         <string
-            id="Etw.DatapathSendTo"
-            value="[ udp][%1] Send %2 bytes in %3 buffers (segment=%4) Dst=%6"
-            />
-        <string
-            id="Etw.DatapathSendFromTo"
+            id="Etw.DatapathSend"
             value="[ udp][%1] Send %2 bytes in %3 buffers (segment=%4) Dst=%6 Src=%8"
             />
         <string
