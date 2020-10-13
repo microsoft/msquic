@@ -176,7 +176,8 @@ QuicAlloc(
     return PlatDispatch->Alloc(ByteCount);
 #else
 #ifdef QUIC_RANDOM_ALLOC_FAIL
-    return ((rand() % 100) == 1) ? NULL : malloc(ByteCount);
+    uint8_t Rand; QuicRandom(sizeof(Rand), &Rand);
+    return ((Rand % 100) == 1) ? NULL : malloc(ByteCount);
 #else
     return malloc(ByteCount);
 #endif // QUIC_RANDOM_ALLOC_FAIL
