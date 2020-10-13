@@ -27,10 +27,12 @@ PrintHelp(
         "  -runtime:<####>             The total runtime (in ms). (def:%u)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -parallel:<####>            The number of parallel connections per core. (def:%u)\n"
+        "  -threads:<####>             The number of threads to use. Defaults and capped to number of cores/threads\n"
         "\n",
         HPS_DEFAULT_RUN_TIME,
         PERF_DEFAULT_PORT,
-        HPS_DEFAULT_PARALLEL_COUNT
+        HPS_DEFAULT_PARALLEL_COUNT,
+        HPS_MAX_WORKER_COUNT
         );
 }
 
@@ -55,6 +57,12 @@ HpsClient::Init(
         //
         ActiveProcCount -= 2;
     }
+
+    uint32_t TmpProcCount = ActiveProcCount;
+    if (TryGetValue(argc, argv, "threads", &TmpProcCount) && TmpProcCount < ActiveProcCount) {
+        ActiveProcCount = TmpProcCount;
+    }
+
     if (ActiveProcCount > HPS_MAX_WORKER_COUNT) {
         ActiveProcCount = HPS_MAX_WORKER_COUNT;
     }
