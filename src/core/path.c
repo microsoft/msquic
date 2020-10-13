@@ -140,14 +140,17 @@ QuicPathSetValid(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
+_Success_(return != NULL)
 QUIC_PATH*
 QuicConnGetPathByID(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t ID
+    _In_ uint8_t ID,
+    _Out_ uint8_t* Index
     )
 {
     for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
         if (Connection->Paths[i].ID == ID) {
+            *Index = i;
             return &Connection->Paths[i];
         }
     }

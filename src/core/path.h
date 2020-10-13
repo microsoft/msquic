@@ -197,10 +197,12 @@ QuicPathSetActive(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
+_Success_(return != NULL)
 QUIC_PATH*
 QuicConnGetPathByID(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t ID
+    _In_ uint8_t ID,
+    _Out_ uint8_t* Index
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
