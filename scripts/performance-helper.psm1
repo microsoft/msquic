@@ -417,9 +417,9 @@ function Invoke-LocalExe {
 
     Wait-Job -Job $LocalJob -Timeout 10 | Out-Null
 
-    Stop-Job -Job $LocalJob | Out-Null
-
     $RetVal = Receive-Job -Job $LocalJob
+
+    Stop-Job -Job $LocalJob | Out-Null
 
     $Stopwatch.Stop()
 
