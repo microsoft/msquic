@@ -411,6 +411,12 @@ function Invoke-LocalExe {
 
     # Wait for the job to finish
     Wait-Job -Job $LocalJob -Timeout $Timeout | Out-Null
+
+    $Socket = New-Object System.Net.Sockets.UDPClient
+    $Socket.Send(@(1), 1, "localhost", 9999) | Out-Null
+
+    Wait-Job -Job $LocalJob -Timeout 10 | Out-Null
+
     Stop-Job -Job $LocalJob | Out-Null
 
     $RetVal = Receive-Job -Job $LocalJob
