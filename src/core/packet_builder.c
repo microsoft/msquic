@@ -243,11 +243,10 @@ QuicPacketBuilderPrepare(
                 Builder->MinimumDatagramLength = NewDatagramLength;
             }
 
-        } else if (NewPacketType == QUIC_INITIAL &&
-            !QuicConnIsServer(Connection)) {
+        } else if (NewPacketType == QUIC_INITIAL) {
 
             //
-            // Make sure to pad the packet if client Initial packets.
+            // Make sure to pad Initial packets.
             //
             Builder->MinimumDatagramLength =
                 MaxUdpPayloadSizeForFamily(
