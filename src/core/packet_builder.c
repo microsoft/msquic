@@ -253,12 +253,12 @@ QuicPacketBuilderPrepare(
                     QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                     QUIC_INITIAL_PACKET_LENGTH);
 
-            if (Builder->MinimumDatagramLength > Builder->Datagram->Length) {
+            if ((uint32_t)Builder->MinimumDatagramLength > Builder->Datagram->Length) {
                 //
                 // On server, if we're limited by amplification protection, just
                 // pad up to that limit instead.
                 //
-                Builder->MinimumDatagramLength = Builder->Datagram->Length;
+                Builder->MinimumDatagramLength = (uint16_t)Builder->Datagram->Length;
             }
 
         } else if (IsPathMtuDiscovery) {
