@@ -429,7 +429,12 @@ QuicAlloc(
     )
 {
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
+#ifdef QUIC_RANDOM_ALLOC_FAIL
+    uint8_t Rand; QuicRandom(sizeof(Rand), &Rand);
+    return ((Rand % 100) == 1) ? NULL : HeapAlloc(QuicPlatform.Heap, 0, ByteCount);
+#else
     return HeapAlloc(QuicPlatform.Heap, 0, ByteCount);
+#endif // QUIC_RANDOM_ALLOC_FAIL
 }
 
 void
