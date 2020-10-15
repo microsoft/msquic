@@ -26,6 +26,7 @@ PrintHelp(
         "  -target:<####>              The target server to connect to.\n"
 #if _WIN32
         "  -comp:<####>                The compartment ID to run in.\n"
+        "  -core:<####>                The CPU core to use for the main thread.\n"
 #endif
         "  -bind:<addr>                A local IP address to bind to.\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
@@ -105,7 +106,15 @@ ThroughputClient::Init(
 
     if (QUIC_FAILED(QuicSetCurrentThreadGroupAffinity(0))) {
         WriteOutput("Failed to set thread group affinity\n");
-        return QUIC_STATUS_INTERNAL_ERROR;
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    uint16_t CpuCore;
+    if (TryGetValue(argc, argv, "core", &CpuCore)) {
+        if (QUIC_FAILED(QuicSetCurrentThreadProcessorAffinity(CpuCore))) {
+            WriteOutput("Failed to set core\n");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
     }
 
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffer);
