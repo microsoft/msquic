@@ -209,10 +209,25 @@ RpsClient::Start(
         }
 
         Connections[i] = Connection;
+
+        if (i != 0 && (i % RPS_CONNECTIONS_PER_SECOND) == 0) {
+            QuicSleep(1000);
+        }
     }
 
-    if (!QuicEventWaitWithTimeout(AllConnected, RPS_ALL_CONNECT_TIMEOUT)) {
+    uint32_t Timeout = ConnectionCount * RPS_ALL_CONNECT_TIMEOUT;
+    if (Timeout < RPS_ALL_CONNECT_TIMEOUT_MIN) {
+        Timeout = RPS_ALL_CONNECT_TIMEOUT_MIN;
+    }
+
+    if (!QuicEventWaitWithTimeout(AllConnected, Timeout)) {
         WriteOutput("Timeout waiting for connections.\n");
+        Running = false;
+        for (uint32_t i = 0; i < ConnectionCount; i++) {
+            if (Connections[i] != nullptr) {
+                MsQuic->ConnectionClose(Connections[i]);
+            }
+        }
         return QUIC_STATUS_CONNECTION_TIMEOUT;
     }
 
