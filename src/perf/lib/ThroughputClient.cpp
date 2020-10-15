@@ -104,12 +104,10 @@ ThroughputClient::Init(
     }
 #endif
 
-#ifdef QuicSetCurrentThreadAffinityMask
-    uint8_t CpuCore;
+    uint16_t CpuCore;
     if (TryGetValue(argc, argv, "core",  &CpuCore)) {
-        QuicSetCurrentThreadAffinityMask((DWORD_PTR)(1ull << CpuCore));
+        (void)QuicSetCurrentThreadProcessorAffinity(CpuCore);
     }
-#endif
 
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffer);
 

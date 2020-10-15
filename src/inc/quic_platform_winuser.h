@@ -900,7 +900,7 @@ QuicRandom(
 inline
 QUIC_STATUS
 QuicSetCurrentThreadProcessorAffinity(
-    _In_ uint8_t ProcessorIndex
+    _In_ uint16_t ProcessorIndex
     )
 {
     const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[ProcessorIndex];

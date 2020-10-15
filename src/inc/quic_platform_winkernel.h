@@ -925,7 +925,7 @@ NdisSetThreadObjectCompartmentId(
 inline
 QUIC_STATUS
 QuicSetCurrentThreadProcessorAffinity(
-    _In_ uint8_t ProcessorIndex
+    _In_ uint16_t ProcessorIndex
     )
 {
     PROCESSOR_NUMBER ProcInfo;

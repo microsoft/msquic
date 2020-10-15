@@ -134,7 +134,7 @@ RpsClient::Start(
     for (uint32_t i = 0; i < ConnectionCount; ++i) {
         HQUIC Connection = nullptr;
 
-        Status = QuicSetCurrentThreadProcessorAffinity((uint8_t)(i % ActiveProcCount));
+        Status = QuicSetCurrentThreadProcessorAffinity((uint16_t)(i % ActiveProcCount));
         if (QUIC_FAILED(Status)) {
             WriteOutput("Setting Thread Group Failed 0x%x\n", Status);
             return Status;
@@ -231,11 +231,8 @@ RpsClient::Start(
     uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
     if (ThreadToSetAffinityTo > 2) {
         ThreadToSetAffinityTo -= 2;
-        //
-        // TODO: Fix QuicSetCurrentThreadProcessorAffinity to take 16 bits
-        //
         Status =
-            QuicSetCurrentThreadProcessorAffinity((uint8_t)ThreadToSetAffinityTo);
+            QuicSetCurrentThreadProcessorAffinity((uint16_t)ThreadToSetAffinityTo);
     }
 
 
