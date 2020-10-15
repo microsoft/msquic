@@ -24,6 +24,13 @@ public:
     }
 
     ~RpsClient() override {
+        if (Connections != nullptr) {
+            for (uint32_t i = 0; i < ConnectionCount; i++) {
+                if (Connections[i] != nullptr) {
+                    MsQuic->ConnectionClose(Connections[i]);
+                }
+            }
+        }
         if (RequestBuffer) {
             QUIC_FREE(RequestBuffer);
         }

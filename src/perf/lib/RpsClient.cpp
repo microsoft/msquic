@@ -124,7 +124,6 @@ RpsClient::Start(
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    uint32_t ThreadToSetAffinityTo = 0;
     uint32_t ActiveProcCount = QuicProcActiveCount();
     if (ActiveProcCount >= 8) {
         //
@@ -133,12 +132,10 @@ RpsClient::Start(
         ActiveProcCount -= 2;
     }
     for (uint32_t i = 0; i < ConnectionCount; ++i) {
-        HQUIC Connection = nullptr;
-
         Status = QuicSetCurrentThreadProcessorAffinity((uint8_t)(i % ActiveProcCount));
         if (QUIC_FAILED(Status)) {
             WriteOutput("Setting Thread Group Failed 0x%x\n", Status);
-            goto Error;
+            return Status;
         }
 
         Status =
@@ -146,68 +143,63 @@ RpsClient::Start(
                 Registration,
                 Handler,
                 this,
-                &Connection);
+                &Connections[i]);
         if (QUIC_FAILED(Status)) {
             WriteOutput("ConnectionOpen failed, 0x%x\n", Status);
-            goto Error;
+            return Status;
         }
 
         BOOLEAN Opt = TRUE;
         Status =
             MsQuic->SetParam(
-                Connection,
+                Connections[i],
                 QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SHARE_UDP_BINDING,
                 sizeof(Opt),
                 &Opt);
         if (QUIC_FAILED(Status)) {
-            MsQuic->ConnectionClose(Connection);
             WriteOutput("SetParam(CONN_SHARE_UDP_BINDING) failed, 0x%x\n", Status);
-            goto Error;
+            return Status;
         }
 
         if (i >= RPS_MAX_CLIENT_PORT_COUNT) {
             Status =
                 MsQuic->SetParam(
-                    Connection,
+                    Connections[i],
                     QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_LOCAL_ADDRESS,
                     sizeof(QUIC_ADDR),
                     &LocalAddresses[i % RPS_MAX_CLIENT_PORT_COUNT]);
             if (QUIC_FAILED(Status)) {
-                MsQuic->ConnectionClose(Connection);
                 WriteOutput("SetParam(CONN_LOCAL_ADDRESS) failed, 0x%x\n", Status);
-                goto Error;
+                return Status;
             }
         }
 
         Status =
             MsQuic->ConnectionStart(
-                Connection,
+                Connections[i],
                 Configuration,
                 QUIC_ADDRESS_FAMILY_UNSPEC,
                 Target.get(),
                 Port);
         if (QUIC_FAILED(Status)) {
-            MsQuic->ConnectionClose(Connection);
             WriteOutput("ConnectionStart failed, 0x%x\n", Status);
-            goto Error;
+            return Status;
         }
-
-        Connections[i] = Connection;
 
         if (i < RPS_MAX_CLIENT_PORT_COUNT) {
             uint32_t AddrLen = sizeof(QUIC_ADDR);
             Status =
                 MsQuic->GetParam(
-                    Connection,
+                    Connections[i],
                     QUIC_PARAM_LEVEL_CONNECTION,
                     QUIC_PARAM_CONN_LOCAL_ADDRESS,
                     &AddrLen,
                     &LocalAddresses[i]);
             if (QUIC_FAILED(Status)) {
                 WriteOutput("GetParam(CONN_LOCAL_ADDRESS) failed, 0x%x\n", Status);
-                goto Error;
+                return Status;
             }
         }
     }
@@ -215,8 +207,7 @@ RpsClient::Start(
     if (!QuicEventWaitWithTimeout(AllConnected, RPS_ALL_CONNECT_TIMEOUT)) {
         WriteOutput("Timeout waiting for connections.\n");
         Running = false;
-        Status = QUIC_STATUS_CONNECTION_TIMEOUT;
-        goto Error;
+        return QUIC_STATUS_CONNECTION_TIMEOUT;
     }
 
     WriteOutput("All Connected! Waiting for idle.\n");
@@ -231,7 +222,7 @@ RpsClient::Start(
 
     Scope.NeedsCleanup = false;
 
-    ThreadToSetAffinityTo = QuicProcActiveCount();
+    uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
     if (ThreadToSetAffinityTo > 2) {
         ThreadToSetAffinityTo -= 2;
         //
@@ -242,14 +233,6 @@ RpsClient::Start(
     }
 
     return QUIC_STATUS_SUCCESS;
-
-Error:
-    for (uint32_t i = 0; i < ConnectionCount; i++) {
-        if (Connections[i] != nullptr) {
-            MsQuic->ConnectionClose(Connections[i]);
-        }
-    }
-    return Status;
 }
 
 QUIC_STATUS
@@ -268,13 +251,6 @@ RpsClient::Wait(
     WriteOutput("Result: %u RPS\n", RPS);
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
     //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
-    if (Connections != nullptr) {
-        for (uint32_t i = 0; i < ConnectionCount; i++) {
-            if (Connections[i] != nullptr) {
-                MsQuic->ConnectionClose(Connections[i]);
-            }
-        }
-    }
 
     return QUIC_STATUS_SUCCESS;
 }
