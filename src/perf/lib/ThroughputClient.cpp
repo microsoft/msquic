@@ -104,16 +104,18 @@ ThroughputClient::Init(
     }
 #endif
 
-    if (QUIC_FAILED(QuicSetCurrentThreadGroupAffinity(0))) {
+    QUIC_STATUS Status;
+
+    if (QUIC_FAILED(Status = QuicSetCurrentThreadGroupAffinity(0))) {
         WriteOutput("Failed to set thread group affinity\n");
-        return QUIC_STATUS_INVALID_STATE;
+        return Status;
     }
 
     uint16_t CpuCore;
     if (TryGetValue(argc, argv, "core", &CpuCore)) {
-        if (QUIC_FAILED(QuicSetCurrentThreadProcessorAffinity(CpuCore))) {
+        if (QUIC_FAILED(Status = QuicSetCurrentThreadProcessorAffinity(CpuCore))) {
             WriteOutput("Failed to set core\n");
-            return QUIC_STATUS_INVALID_PARAMETER;
+            return Status;
         }
     }
 
