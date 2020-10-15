@@ -924,7 +924,11 @@ QuicSetCurrentThreadGroupAffinity(
     )
 {
     GROUP_AFFINITY Group = {0};
-    Group.Mask = (KAFFINITY)(-1);
+    GROUP_AFFINITY ExistingGroup = {0};
+    if (!GetThreadGroupAffinity(GetCurrentThread(), &ExistingGroup)) {
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+    Group.Mask = ExistingGroup.Mask;
     Group.Group = ProcessorGroup;
     if (SetThreadGroupAffinity(GetCurrentThread(), &Group, NULL)) {
         return QUIC_STATUS_SUCCESS;

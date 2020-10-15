@@ -954,7 +954,19 @@ QuicSetCurrentThreadGroupAffinity(
     )
 {
     GROUP_AFFINITY Affinity = {0};
-    Affinity.Mask = (KAFFINITY)(-1);
+    GROUP_AFFINITY ExistingAffinity = {0};
+    QUIC_STATUS Status;
+    if (QUIC_FAILED(
+        Status =
+            ZwQueryInformationThread(
+            PsGetCurrentThread(),
+            ThreadGroupInformation,
+            &ExistingAffinity,
+            sizeof(ExistingAffinity))) {
+        return Status;
+    }
+
+    Affinity.Mask = ExistingAffinity.Mask;
     Affinity.Group = ProcessorGroup;
     return
         ZwSetInformationThread(
