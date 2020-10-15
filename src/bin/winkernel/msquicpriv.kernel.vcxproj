@@ -95,8 +95,6 @@
     <OutDir>$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\</OutDir>
     <IntDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
     <SignMode>Off</SignMode>
-    <DomainTags>msquic</DomainTags>
-    <EnablePgi>true</EnablePgi>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
