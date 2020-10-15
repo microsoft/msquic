@@ -224,8 +224,8 @@ typedef struct QUIC_CERTIFICATE_HASH_STORE {
 } QUIC_CERTIFICATE_HASH_STORE;
 
 typedef struct QUIC_CERTIFICATE_FILE {
-    char *PrivateKeyFile;
-    char *CertificateFile;
+    const char *PrivateKeyFile;
+    const char *CertificateFile;
 } QUIC_CERTIFICATE_FILE;
 
 typedef void QUIC_CERTIFICATE; // Platform specific certificate context object
