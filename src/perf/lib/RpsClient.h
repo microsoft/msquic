@@ -24,13 +24,6 @@ public:
     }
 
     ~RpsClient() override {
-        if (Connections != nullptr) {
-            for (uint32_t i = 0; i < ConnectionCount; i++) {
-                if (Connections[i] != nullptr) {
-                    MsQuic->ConnectionClose(Connections[i]);
-                }
-            }
-        }
         if (RequestBuffer) {
             QUIC_FREE(RequestBuffer);
         }
@@ -98,6 +91,6 @@ private:
     uint64_t StartedRequests {0};
     uint64_t SendCompletedRequests {0};
     uint64_t CompletedRequests {0};
-    UniquePtr<HQUIC[]> Connections {nullptr};
+    UniquePtr<ConnectionScope[]> Connections {nullptr};
     bool Running {true};
 };

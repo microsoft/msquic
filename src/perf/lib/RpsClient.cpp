@@ -114,13 +114,13 @@ RpsClient::Start(
                     Event);
         };
 
-    Connections = UniquePtr<HQUIC[]>(new(std::nothrow) HQUIC[ConnectionCount]);
+    Connections = UniquePtr<ConnectionScope[]>(new(std::nothrow) ConnectionScope[ConnectionCount]);
     if (!Connections.get()) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     for (uint32_t i = 0; i < ConnectionCount; i++) {
-        Connections[i] = nullptr;
+        Connections[i].Handle = nullptr;
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -143,7 +143,7 @@ RpsClient::Start(
                 Registration,
                 Handler,
                 this,
-                &Connections[i]);
+                &Connections[i].Handle);
         if (QUIC_FAILED(Status)) {
             WriteOutput("ConnectionOpen failed, 0x%x\n", Status);
             return Status;
