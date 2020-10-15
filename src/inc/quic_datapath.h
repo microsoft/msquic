@@ -302,7 +302,7 @@ QUIC_STATUS
 QuicDataPathResolveAddress(
     _In_ QUIC_DATAPATH* Datapath,
     _In_z_ const char* HostName,
-    _Inout_ QUIC_ADDR * Address
+    _Inout_ QUIC_ADDR* Address
     );
 
 //
@@ -318,8 +318,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathBindingCreate(
     _In_ QUIC_DATAPATH* Datapath,
-    _In_opt_ const QUIC_ADDR * LocalAddress,
-    _In_opt_ const QUIC_ADDR * RemoteAddress,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
     _Out_ QUIC_DATAPATH_BINDING** Binding
     );
@@ -352,7 +352,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicDataPathBindingGetLocalAddress(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _Out_ QUIC_ADDR * Address
+    _Out_ QUIC_ADDR* Address
     );
 
 //
@@ -363,7 +363,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicDataPathBindingGetRemoteAddress(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _Out_ QUIC_ADDR * Address
+    _Out_ QUIC_ADDR* Address
     );
 
 //
@@ -377,7 +377,7 @@ QuicDataPathBindingReturnRecvDatagrams(
     );
 
 //
-// Allocates a new send context to be used to call QuicDataPathBindingSendTo. It
+// Allocates a new send context to be used to call QuicDataPathBindingSend. It
 // can be freed with QuicDataPathBindingFreeSendContext too.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -436,22 +436,10 @@ QuicDataPathBindingIsSendContextFull(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingSendTo(
+QuicDataPathBindingSend(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
-    );
-
-//
-// Sends data to a remote host. Note, the buffer must remain valid for
-// the duration of the send operation.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicDataPathBindingSendFromTo(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const QUIC_ADDR * LocalAddress,
-    _In_ const QUIC_ADDR * RemoteAddress,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 

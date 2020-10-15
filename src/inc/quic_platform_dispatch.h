@@ -110,15 +110,15 @@ QUIC_STATUS
 (*QUIC_DATAPATH_RESOLVE_ADDRESS)(
     _In_ QUIC_DATAPATH* Datapath,
     _In_z_ const char* HostName,
-    _Inout_ QUIC_ADDR * Address
+    _Inout_ QUIC_ADDR* Address
     );
 
 typedef
 QUIC_STATUS
 (*QUIC_DATAPATH_BINDING_CREATE)(
     _In_ QUIC_DATAPATH* Datapath,
-    _In_opt_ const QUIC_ADDR * LocalAddress,
-    _In_opt_ const QUIC_ADDR * RemoteAddress,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
     _Out_ QUIC_DATAPATH_BINDING** Binding
     );
@@ -139,14 +139,14 @@ typedef
 void
 (*QUIC_DATAPATH_BINDING_GET_LOCAL_ADDRESS)(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _Out_ QUIC_ADDR * Address
+    _Out_ QUIC_ADDR* Address
     );
 
 typedef
 void
 (*QUIC_DATAPATH_BINDING_GET_REMOTE_ADDRESS)(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _Out_ QUIC_ADDR * Address
+    _Out_ QUIC_ADDR* Address
     );
 
 typedef
@@ -190,18 +190,10 @@ BOOLEAN
 
 typedef
 QUIC_STATUS
-(*QUIC_DATAPATH_BINDING_SEND_TO)(
+(*QUIC_DATAPATH_BINDING_SEND)(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
-    );
-
-typedef
-QUIC_STATUS
-(*QUIC_DATAPATH_BINDING_SEND_FROM_TO)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ const QUIC_ADDR * LocalAddress,
-    _In_ const QUIC_ADDR * RemoteAddress,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
@@ -260,8 +252,7 @@ typedef struct QUIC_PLATFORM_DISPATCH {
     QUIC_DATAPATH_BINDING_IS_SEND_CONTEXT_FULL DatapathBindingIsSendContextFull;
     QUIC_DATAPATH_BINDING_ALLOC_SEND_BUFFER DatapathBindingAllocSendBuffer;
     QUIC_DATAPATH_BINDING_FREE_SEND_BUFFER DatapathBindingFreeSendBuffer;
-    QUIC_DATAPATH_BINDING_SEND_TO DatapathBindingSendTo;
-    QUIC_DATAPATH_BINDING_SEND_FROM_TO DatapathBindingSendFromTo;
+    QUIC_DATAPATH_BINDING_SEND DatapathBindingSend;
     QUIC_DATAPATH_BINDING_SET_PARAM DatapathBindingSetParam;
     QUIC_DATAPATH_BINDING_GET_PARAM DatapathBindingGetParam;
 

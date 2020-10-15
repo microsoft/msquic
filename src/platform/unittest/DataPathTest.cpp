@@ -198,7 +198,7 @@ protected:
                 memcpy(ServerDatagram->Buffer, recvBuffer->Buffer, recvBuffer->BufferLength);
 
                 VERIFY_QUIC_SUCCESS(
-                    QuicDataPathBindingSendFromTo(
+                    QuicDataPathBindingSend(
                         binding,
                         &recvBuffer->Tuple->LocalAddress,
                         &recvBuffer->Tuple->RemoteAddress,
@@ -247,7 +247,7 @@ protected:
                 memcpy(ServerDatagram->Buffer, recvBuffer->Buffer, recvBuffer->BufferLength);
 
                 VERIFY_QUIC_SUCCESS(
-                    QuicDataPathBindingSendFromTo(
+                    QuicDataPathBindingSend(
                         binding,
                         &recvBuffer->Tuple->LocalAddress,
                         &recvBuffer->Tuple->RemoteAddress,
@@ -450,9 +450,13 @@ TEST_P(DataPathTest, Data)
 
     memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
 
+    QUIC_ADDR ClientAddress;
+    QuicDataPathBindingGetLocalAddress(client, &ClientAddress);
+
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathBindingSendTo(
+        QuicDataPathBindingSend(
             client,
+            &ClientAddress,
             &serverAddress.SockAddr,
             ClientSendContext));
 
@@ -529,9 +533,13 @@ TEST_P(DataPathTest, DataRebind)
 
     memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
 
+    QUIC_ADDR ClientAddress;
+    QuicDataPathBindingGetLocalAddress(client, &ClientAddress);
+
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathBindingSendTo(
+        QuicDataPathBindingSend(
             client,
+            &ClientAddress,
             &serverAddress.SockAddr,
             ClientSendContext));
 
@@ -560,9 +568,12 @@ TEST_P(DataPathTest, DataRebind)
 
     memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
 
+    QuicDataPathBindingGetLocalAddress(client, &ClientAddress);
+
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathBindingSendTo(
+        QuicDataPathBindingSend(
             client,
+            &ClientAddress,
             &serverAddress.SockAddr,
             ClientSendContext));
 
@@ -639,9 +650,13 @@ TEST_P(DataPathTest, DataECT0)
 
     memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
 
+    QUIC_ADDR ClientAddress;
+    QuicDataPathBindingGetLocalAddress(client, &ClientAddress);
+
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathBindingSendTo(
+        QuicDataPathBindingSend(
             client,
+            &ClientAddress,
             &serverAddress.SockAddr,
             ClientSendContext));
 

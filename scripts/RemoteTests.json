@@ -1,6 +1,6 @@
 [
     {
-        "TestName": "Throughput",
+        "TestName": "ThroughputUp",
         "Remote": {
             "Platform": "Windows",
             "Tls": ["stub", "schannel", "openssl", "mitls"],
@@ -18,7 +18,7 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000000000",
+                "All": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -upload:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
@@ -50,13 +50,13 @@
             }
         ],
         "AllowLoopback": true,
-        "Iterations": 10,
+        "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)",
+        "ResultsMatcher": ".*@ (.*) kbps.*",
         "Units": "kbps"
     },
     {
-        "TestName": "Throughput",
+        "TestName": "ThroughputUp",
         "Remote" : {
             "Platform": "Linux",
             "Tls": ["stub", "openssl"],
@@ -74,7 +74,7 @@
             "Arch": ["x64", "arm"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-test:Throughput -target:$RemoteAddress -uni:1 -length:2000000000",
+                "All": "-test:Throughput -target:$RemoteAddress -uni:1 -upload:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
@@ -106,9 +106,97 @@
             }
         ],
         "AllowLoopback": true,
-        "Iterations": 10,
+        "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)",
+        "ResultsMatcher": ".*@ (.*) kbps.*",
+        "Units": "kbps"
+    },
+    {
+        "TestName": "ThroughputDown",
+        "Remote": {
+            "Platform": "Windows",
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
+            "Arch": ["x64", "x86", "arm", "arm64"],
+            "Exe": "quicperf",
+            "Arguments": {
+                "All": "-selfsign:1",
+                "Loopback": "",
+                "Remote": ""
+            }
+        },
+        "Local": {
+            "Platform": "Windows",
+            "Tls": ["stub", "schannel", "openssl", "mitls"],
+            "Arch": ["x64", "x86", "arm", "arm64"],
+            "Exe": "quicperf",
+            "Arguments": {
+                "All": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -download:2000000000",
+                "Loopback": "",
+                "Remote": ""
+            }
+        },
+        "Variables": [
+            {
+                "Name": "Encryption",
+                "Local": {
+                    "On": "",
+                    "Off": "-encrypt:0"
+                },
+                "Remote": {
+                    "On": "",
+                    "Off": ""
+                },
+                "Default": "On"
+            }
+        ],
+        "AllowLoopback": true,
+        "Iterations": 5,
+        "RemoteReadyMatcher": "Started!",
+        "ResultsMatcher": ".*@ (.*) kbps.*",
+        "Units": "kbps"
+    },
+    {
+        "TestName": "ThroughputDown",
+        "Remote" : {
+            "Platform": "Linux",
+            "Tls": ["stub", "openssl"],
+            "Arch": ["x64", "arm"],
+            "Exe": "quicperf",
+            "Arguments": {
+                "All": "-selfsign:1",
+                "Loopback": "",
+                "Remote": ""
+            }
+        },
+        "Local" : {
+            "Platform": "linux",
+            "Tls": ["stub", "openssl"],
+            "Arch": ["x64", "arm"],
+            "Exe": "quicperf",
+            "Arguments": {
+                "All": "-test:Throughput -target:$RemoteAddress -uni:1 -download:2000000000",
+                "Loopback": "",
+                "Remote": ""
+            }
+        },
+        "Variables": [
+            {
+                "Name": "Encryption",
+                "Local": {
+                    "On": "",
+                    "Off": "-encrypt:0"
+                },
+                "Remote": {
+                    "On": "",
+                    "Off": ""
+                },
+                "Default": "On"
+            }
+        ],
+        "AllowLoopback": true,
+        "Iterations": 5,
+        "RemoteReadyMatcher": "Started!",
+        "ResultsMatcher": ".*@ (.*) kbps.*",
         "Units": "kbps"
     },
     {

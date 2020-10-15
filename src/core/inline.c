@@ -662,3 +662,8 @@ void
 QuicConfigurationRelease(
     _In_ QUIC_CONFIGURATION* Configuration
     );
+
+BOOLEAN
+QuicErrorIsProtocolError(
+    _In_ QUIC_VAR_INT ErrorCode
+    );

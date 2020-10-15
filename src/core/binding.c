@@ -41,8 +41,8 @@ QuicBindingInitialize(
 #endif
     _In_ BOOLEAN ShareBinding,
     _In_ BOOLEAN ServerOwned,
-    _In_opt_ const QUIC_ADDR * LocalAddress,
-    _In_opt_ const QUIC_ADDR * RemoteAddress,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
     )
 {
@@ -973,7 +973,7 @@ QuicBindingProcessStatelessOperation(
         goto Exit;
     }
 
-    QuicBindingSendFromTo(
+    QuicBindingSend(
         Binding,
         &RecvDatagram->Tuple->LocalAddress,
         &RecvDatagram->Tuple->RemoteAddress,
@@ -1082,9 +1082,19 @@ QuicBindingPreprocessDatagram(
         //
         // Validate we support this long header packet version.
         //
-        if (!QuicIsVersionSupported(Packet->Invariant->LONG_HDR.Version)) {
+        if (Packet->Invariant->LONG_HDR.Version != QUIC_VERSION_VER_NEG &&
+            !QuicIsVersionSupported(Packet->Invariant->LONG_HDR.Version)) {
+            //
+            // The QUIC packet has an unsupported and non-VN packet number. If
+            // we have a listener on this binding and the packet is long enough
+            // we should respond with a version negotiation packet.
+            //
             if (!QuicBindingHasListenerRegistered(Binding)) {
                 QuicPacketLogDrop(Binding, Packet, "No listener to send VN");
+
+            } else if (Datagram->BufferLength < QUIC_MIN_UDP_PAYLOAD_LENGTH_FOR_VN) {
+                QuicPacketLogDrop(Binding, Packet, "Too small to send VN");
+
             } else {
                 *ReleaseDatagram =
                     !QuicBindingQueueStatelessOperation(
@@ -1532,7 +1542,7 @@ QuicBindingReceive(
             if (Hooks->Receive(Datagram)) {
                 *ReleaseChainTail = Datagram;
                 ReleaseChainTail = &Datagram->Next;
-                QuicPacketLogDrop(Binding, Packet, "Test Dopped");
+                QuicPacketLogDrop(Binding, Packet, "Test Dropped");
                 continue;
             }
         }
@@ -1648,79 +1658,10 @@ QuicBindingUnreachable(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicBindingSendTo(
+QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
-    _In_ uint32_t BytesToSend,
-    _In_ uint32_t DatagramsToSend
-    )
-{
-    QUIC_STATUS Status;
-
-#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-    QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
-    if (Hooks != NULL) {
-
-        QUIC_ADDR RemoteAddressCopy = *RemoteAddress;
-        BOOLEAN Drop =
-            Hooks->Send(
-                &RemoteAddressCopy,
-                NULL,
-                SendContext);
-
-        if (Drop) {
-            QuicTraceLogVerbose(
-                BindingSendToTestDrop,
-                "[bind][%p] Test dropped packet",
-                Binding);
-            QuicDataPathBindingFreeSendContext(SendContext);
-            Status = QUIC_STATUS_SUCCESS;
-        } else {
-            Status =
-                QuicDataPathBindingSendTo(
-                    Binding->DatapathBinding,
-                    &RemoteAddressCopy,
-                    SendContext);
-            if (QUIC_FAILED(Status)) {
-                QuicTraceLogWarning(
-                    BindingSendToFailed,
-                    "[bind][%p] SendTo failed, 0x%x",
-                    Binding,
-                    Status);
-            }
-        }
-    } else {
-#endif
-        Status =
-            QuicDataPathBindingSendTo(
-                Binding->DatapathBinding,
-                RemoteAddress,
-                SendContext);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(
-                BindingSendToFailed,
-                "[bind][%p] SendTo failed, 0x%x",
-                Binding,
-                Status);
-        }
-#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-    }
-#endif
-
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND, DatagramsToSend);
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND_BYTES, BytesToSend);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_UDP_SEND_CALLS);
-
-    return Status;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicBindingSendFromTo(
-    _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_ADDR * LocalAddress,
-    _In_ const QUIC_ADDR * RemoteAddress,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend
@@ -1742,22 +1683,22 @@ QuicBindingSendFromTo(
 
         if (Drop) {
             QuicTraceLogVerbose(
-                BindingSendFromToTestDrop,
+                BindingSendTestDrop,
                 "[bind][%p] Test dropped packet",
                 Binding);
             QuicDataPathBindingFreeSendContext(SendContext);
             Status = QUIC_STATUS_SUCCESS;
         } else {
             Status =
-                QuicDataPathBindingSendFromTo(
+                QuicDataPathBindingSend(
                     Binding->DatapathBinding,
                     &LocalAddressCopy,
                     &RemoteAddressCopy,
                     SendContext);
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogWarning(
-                    BindingSendFromToFailed,
-                    "[bind][%p] SendFromTo failed, 0x%x",
+                    BindingSendFailed,
+                    "[bind][%p] Send failed, 0x%x",
                     Binding,
                     Status);
             }
@@ -1765,15 +1706,15 @@ QuicBindingSendFromTo(
     } else {
 #endif
         Status =
-            QuicDataPathBindingSendFromTo(
+            QuicDataPathBindingSend(
                 Binding->DatapathBinding,
                 LocalAddress,
                 RemoteAddress,
                 SendContext);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
-                BindingSendFromToFailed,
-                "[bind][%p] SendFromTo failed, 0x%x",
+                BindingSendFailed,
+                "[bind][%p] Send failed, 0x%x",
                 Binding,
                 Status);
         }

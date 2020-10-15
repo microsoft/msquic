@@ -315,6 +315,7 @@ typedef struct QUIC_STATISTICS {
         uint64_t TotalBytes;            // Sum of UDP payloads
         uint64_t TotalStreamBytes;      // Sum of stream payloads
         uint64_t DecryptionFailures;    // Count of packet decryption failures.
+        uint64_t ValidAckFrames;        // Count of receive ACK frames.
     } Recv;
     struct {
         uint32_t KeyUpdateCount;
@@ -521,7 +522,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #ifdef QUIC_API_ENABLE_INSECURE_FEATURES
 #define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         15  // uint8_t (BOOLEAN)
 #endif
-#define QUIC_PARAM_CONN_RESUMPTION_STATE                16  // uint8_t[]
+#define QUIC_PARAM_CONN_RESUMPTION_TICKET               16  // uint8_t[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_TLS.

@@ -1567,13 +1567,12 @@ QuicConnTryClose(
         if (ResultQuicStatus) {
             Connection->CloseStatus = (QUIC_STATUS)ErrorCode;
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
-            if (ErrorCode != QUIC_STATUS_CONNECTION_IDLE &&
-                ErrorCode != QUIC_STATUS_CONNECTION_TIMEOUT) {
-                QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS);
-            }
         } else {
             Connection->CloseStatus = QuicErrorCodeToStatus(ErrorCode);
             Connection->CloseErrorCode = ErrorCode;
+            if (QuicErrorIsProtocolError(ErrorCode)) {
+                QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS);
+            }
         }
 
         if (Flags & QUIC_CLOSE_APPLICATION) {
@@ -2751,6 +2750,7 @@ QuicConnUpdateDestCid(
                     Packet->SourceCid);
             if (DestCid == NULL) {
                 Connection->DestCidCount--;
+                Connection->Paths[0].DestCid = NULL;
                 QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, "Out of memory");
                 return FALSE;
             } else {
@@ -3822,6 +3822,7 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
+            Connection->Stats.Recv.ValidAckFrames++;
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
@@ -5507,7 +5508,7 @@ QuicConnParamSet(
 
         break;
 
-    case QUIC_PARAM_CONN_RESUMPTION_STATE: {
+    case QUIC_PARAM_CONN_RESUMPTION_TICKET: {
         if (BufferLength == 0 || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
@@ -5802,6 +5803,7 @@ QuicConnParamGet(
         Stats->Recv.TotalBytes = Connection->Stats.Recv.TotalBytes;
         Stats->Recv.TotalStreamBytes = Connection->Stats.Recv.TotalStreamBytes;
         Stats->Recv.DecryptionFailures = Connection->Stats.Recv.DecryptionFailures;
+        Stats->Recv.ValidAckFrames = Connection->Stats.Recv.ValidAckFrames;
         Stats->Misc.KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
 
         if (Param == QUIC_PARAM_CONN_STATISTICS_PLAT) {
@@ -6250,7 +6252,7 @@ QuicConnDrainOperations(
 
     QUIC_PASSIVE_CODE();
 
-    if (!Connection->State.Initialized) {
+    if (!Connection->State.Initialized && !Connection->State.Uninitialized) {
         //
         // TODO - Try to move this only after the connection is accepted by the
         // listener. But that's going to be pretty complicated.

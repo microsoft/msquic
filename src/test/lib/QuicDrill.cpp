@@ -182,6 +182,9 @@ struct DrillSender {
         QUIC_FRE_ASSERT(PacketBuffer->size() <= UINT16_MAX);
         const uint16_t DatagramLength = (uint16_t) PacketBuffer->size();
 
+        QUIC_ADDR LocalAddress;
+        QuicDataPathBindingGetLocalAddress(Binding, &LocalAddress);
+
         QUIC_DATAPATH_SEND_CONTEXT* SendContext =
             QuicDataPathBindingAllocSendContext(
                 Binding, QUIC_ECN_NON_ECT, DatagramLength);
@@ -195,12 +198,15 @@ struct DrillSender {
             return Status;
         }
 
+        //
         // Copy test packet into SendBuffer.
+        //
         memcpy(SendBuffer->Buffer, PacketBuffer->data(), DatagramLength);
 
         Status =
-            QuicDataPathBindingSendTo(
+            QuicDataPathBindingSend(
                 Binding,
+                &LocalAddress,
                 &ServerAddress,
                 SendContext);
 

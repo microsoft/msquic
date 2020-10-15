@@ -108,6 +108,11 @@ QuicAckTrackerAckPacket(
     QUIC_CONNECTION* Connection = QuicAckTrackerGetPacketSpace(Tracker)->Connection;
     _Analysis_assume_(Connection != NULL);
 
+    //
+    // Before entering this function, a check is done for duplicate packets,
+    // so this is guaranteed to only receive non-duplicated packets.
+    //
+
     QUIC_DBG_ASSERT(PacketNumber <= QUIC_VAR_INT_MAX);
 
     uint64_t CurLargestPacketNumber;
