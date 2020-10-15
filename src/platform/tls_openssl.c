@@ -1994,15 +1994,27 @@ QuicHashCompute(
     HMAC_CTX* HashContext = (HMAC_CTX*)Hash;
 
     if (!HMAC_Init_ex(HashContext, NULL, 0, NULL, NULL)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "HMAC_Init_ex(NULL) failed");
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
     if (!HMAC_Update(HashContext, Input, InputLength)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "HMAC_Update failed");
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
     uint32_t ActualOutputSize = OutputLength;
     if (!HMAC_Final(HashContext, Output, &ActualOutputSize)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "HMAC_Final failed");
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
