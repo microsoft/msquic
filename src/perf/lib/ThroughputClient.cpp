@@ -104,9 +104,9 @@ ThroughputClient::Init(
     }
 #endif
 
-    uint16_t CpuCore;
-    if (TryGetValue(argc, argv, "core",  &CpuCore)) {
-        (void)QuicSetCurrentThreadProcessorAffinity(CpuCore);
+    if (QUIC_FAILED(QuicSetCurrentThreadGroupAffinity(0))) {
+        WriteOutput("Failed to set thread group affinity\n");
+        return QUIC_STATUS_INTERNAL_ERROR;
     }
 
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffer);

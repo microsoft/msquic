@@ -917,9 +917,25 @@ QuicSetCurrentThreadProcessorAffinity(
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     HRESULT_FROM_WIN32(SetCurrentThreadCompartmentId(CompartmentId))
 
+inline
+QUIC_STATUS
+QuicSetCurrentThreadGroupAffinity(
+    _In_ uint16_t ProcessorGroup
+    )
+{
+    GROUP_AFFINITY Group = {0};
+    Group.Mask = (KAFFINITY)(~0ull);
+    Group.Group = ProcessorGroup;
+    if (SetThreadGroupAffinity(GetCurrentThread(), &Group, NULL)) {
+        return QUIC_STATUS_SUCCESS;
+    }
+    return HRESULT_FROM_WIN32(GetLastError());
+}
+
 #else
 
 #define QuicSetCurrentThreadProcessorAffinity(ProcessorIndex) QUIC_STATUS_SUCCESS
+#define QuicSetCurrentThreadGroupAffinity(ProcessorGroup) QUIC_STATUS_SUCCESS
 
 #endif
 

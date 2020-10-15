@@ -947,6 +947,23 @@ QuicSetCurrentThreadProcessorAffinity(
             sizeof(Affinity));
 }
 
+inline
+QUIC_STATUS
+QuicSetCurrentThreadGroupAffinity(
+    _In_ uint16_t ProcessorGroup
+    )
+{
+    GROUP_AFFINITY Affinity = {0};
+    Affinity.Mask = (KAFFINITY)(~0ull);
+    Affinity.Group = ProcessorGroup;
+    return
+        ZwSetInformationThread(
+            PsGetCurrentThread(),
+            ThreadGroupInformation,
+            &Affinity,
+            sizeof(Affinity));
+}
+
 #define QuicCompartmentIdGetCurrent() NdisGetThreadObjectCompartmentId(PsGetCurrentThread())
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     NdisSetThreadObjectCompartmentId(PsGetCurrentThread(), CompartmentId)
