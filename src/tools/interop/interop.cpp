@@ -602,13 +602,13 @@ public:
         }
         return false;
     }
-    bool GetResumptionTicket(const uint8_t** Ticket, uint32_t* TicketLength) {
+    bool GetResumptionTicket(const uint8_t*& Ticket, uint32_t& TicketLength) {
         if (!WaitForTicket() || ResumptionTicket == nullptr) {
             return false;
         }
-        *Ticket = new uint8_t[ResumptionTicketLength];
-        memcpy((uint8_t*)*Ticket, ResumptionTicket, ResumptionTicketLength);
-        *TicketLength = ResumptionTicketLength;
+        Ticket = new uint8_t[ResumptionTicketLength];
+        memcpy((uint8_t*)Ticket, ResumptionTicket, ResumptionTicketLength);
+        TicketLength = ResumptionTicketLength;
         return true;
     }
 private:
@@ -788,20 +788,14 @@ RunInteropTest(
         if (Feature == Resumption) {
             InteropConnection Connection(Configuration);
             if (!Connection.ConnectToServer(Endpoint.ServerName, Port) ||
-                !Connection.WaitForTicket()) {
-                printf("Failed waiting for ticket\n");
-                break;
-            }
-            if (!Connection.GetResumptionTicket(&ResumptionTicket, &ResumptionTicketLength)) {
-                printf("Failed to get resumption ticket\n");
+                !Connection.WaitForTicket() ||
+                !Connection.GetResumptionTicket(ResumptionTicket, ResumptionTicketLength)) {
                 break;
             }
         }
         InteropConnection Connection(Configuration, false, Feature == PostQuantum);
         if (Feature == Resumption) {
-            if (!Connection.SetResumptionTicket(ResumptionTicket, ResumptionTicketLength)) {
-                printf("Failed to SET resumption ticket\n");
-            }
+            Connection.SetResumptionTicket(ResumptionTicket, ResumptionTicketLength);
         }
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
@@ -835,10 +829,8 @@ RunInteropTest(
         if (Feature == ZeroRtt) {
             InteropConnection Connection(Configuration);
             if (!Connection.ConnectToServer(Endpoint.ServerName, Port) ||
-                !Connection.WaitForTicket()) {
-                break;
-            }
-            if (!Connection.GetResumptionTicket(&ResumptionTicket, &ResumptionTicketLength)) {
+                !Connection.WaitForTicket() ||
+                !Connection.GetResumptionTicket(ResumptionTicket, ResumptionTicketLength)) {
                 break;
             }
         }
