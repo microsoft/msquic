@@ -29,9 +29,7 @@ Abstract:
 #define RPS_DEFAULT_PARALLEL_REQUEST_COUNT  2
 #define RPS_DEFAULT_REQUEST_LENGTH          0
 #define RPS_DEFAULT_RESPONSE_LENGTH         0
-#define RPS_CONNECTIONS_PER_SECOND          75
-#define RPS_ALL_CONNECT_TIMEOUT             1000 / (RPS_CONNECTIONS_PER_SECOND / 2)
-#define RPS_ALL_CONNECT_TIMEOUT_MIN         10000
+#define RPS_ALL_CONNECT_TIMEOUT             10000
 #define RPS_IDLE_WAIT                       2000
 
 #define HPS_DEFAULT_RUN_TIME                (10 * 1000)
