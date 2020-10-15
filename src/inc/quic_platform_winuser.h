@@ -934,8 +934,23 @@ QuicSetCurrentThreadGroupAffinity(
 
 #else
 
-#define QuicSetCurrentThreadProcessorAffinity(ProcessorIndex) QUIC_STATUS_SUCCESS
-#define QuicSetCurrentThreadGroupAffinity(ProcessorGroup) QUIC_STATUS_SUCCESS
+inline
+QUIC_STATUS
+QuicSetCurrentThreadProcessorAffinity(
+    _In_ uint16_t
+    )
+{
+    return QUIC_STATUS_SUCCESS;
+}
+
+inline
+QUIC_STATUS
+QuicSetCurrentThreadGroupAffinity(
+    _In_ uint16_t
+    )
+{
+    return QUIC_STATUS_SUCCESS;
+}
 
 #endif
 
