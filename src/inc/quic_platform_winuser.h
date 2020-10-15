@@ -937,18 +937,20 @@ QuicSetCurrentThreadGroupAffinity(
 inline
 QUIC_STATUS
 QuicSetCurrentThreadProcessorAffinity(
-    _In_ uint16_t
+    _In_ uint16_t ProcessorIndex
     )
 {
+    UNREFERENCED_PARAMETER(ProcessorIndex);
     return QUIC_STATUS_SUCCESS;
 }
 
 inline
 QUIC_STATUS
 QuicSetCurrentThreadGroupAffinity(
-    _In_ uint16_t
+    _In_ uint16_t ProcessorGroup
     )
 {
+    UNREFERENCED_PARAMETER(ProcessorGroup);
     return QUIC_STATUS_SUCCESS;
 }
 
