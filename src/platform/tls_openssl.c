@@ -10,6 +10,8 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+
+#define OPENSSL_NO_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 #include "openssl/kdf.h"
