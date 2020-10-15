@@ -47,16 +47,9 @@ Environment:
 #include <msquic_winkernel.h>
 #pragma warning(pop)
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-NTSYSAPI
-NTSTATUS
-NTAPI
-ZwSetInformationThread(
-    _In_ HANDLE ThreadHandle,
-    _In_ THREADINFOCLASS ThreadInformationClass,
-    _In_reads_bytes_(ThreadInformationLength) PVOID ThreadInformation,
-    _In_ ULONG ThreadInformationLength
-    );
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSYSAPI
@@ -69,10 +62,6 @@ ZwQueryInformationThread (
     _In_ ULONG ThreadInformationLength,
     _Out_opt_ PULONG ReturnLength
     );
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #if DBG
 #define DEBUG 1
