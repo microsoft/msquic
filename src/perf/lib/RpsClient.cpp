@@ -124,6 +124,7 @@ RpsClient::Start(
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t ThreadToSetAffinityTo = 0;
     uint32_t ActiveProcCount = QuicProcActiveCount();
     if (ActiveProcCount >= 8) {
         //
@@ -230,7 +231,7 @@ RpsClient::Start(
 
     Scope.NeedsCleanup = false;
 
-    uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
+    ThreadToSetAffinityTo = QuicProcActiveCount();
     if (ThreadToSetAffinityTo > 2) {
         ThreadToSetAffinityTo -= 2;
         //
