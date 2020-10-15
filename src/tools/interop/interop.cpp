@@ -415,9 +415,7 @@ public:
         QuicEventUninitialize(QuackAckReceived);
         QuicEventUninitialize(ConnectionComplete);
         delete [] NegotiatedAlpn;
-        if (ResumptionTicket) {
-            delete [] ResumptionTicket;
-        }
+        delete [] ResumptionTicket;
     }
     bool SetKeepAlive(uint32_t KeepAliveMs) {
         QUIC_SETTINGS Settings{0};
