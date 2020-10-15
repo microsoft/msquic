@@ -47,7 +47,6 @@ Environment:
 #include <msquic_winkernel.h>
 #pragma warning(pop)
 
-#if (NTDDI_VERSION >= NTDDI_WIN2K) // Copied from zwapi_x.h.
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSYSAPI
 NTSTATUS
@@ -58,7 +57,18 @@ ZwSetInformationThread(
     _In_reads_bytes_(ThreadInformationLength) PVOID ThreadInformation,
     _In_ ULONG ThreadInformationLength
     );
-#endif
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwQueryInformationThread (
+    _In_ HANDLE ThreadHandle,
+    _In_ THREADINFOCLASS ThreadInformationClass,
+    _In_ PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
 
 #if defined(__cplusplus)
 extern "C" {
@@ -959,10 +969,11 @@ QuicSetCurrentThreadGroupAffinity(
     if (QUIC_FAILED(
         Status =
             ZwQueryInformationThread(
-            PsGetCurrentThread(),
-            ThreadGroupInformation,
-            &ExistingAffinity,
-            sizeof(ExistingAffinity))) {
+                PsGetCurrentThread(),
+                ThreadGroupInformation,
+                &ExistingAffinity,
+                sizeof(ExistingAffinity),
+                NULL))) {
         return Status;
     }
 
