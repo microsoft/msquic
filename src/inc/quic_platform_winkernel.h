@@ -954,7 +954,7 @@ QuicSetCurrentThreadGroupAffinity(
     )
 {
     GROUP_AFFINITY Affinity = {0};
-    Affinity.Mask = (KAFFINITY)(~0ull);
+    Affinity.Mask = (KAFFINITY)(-1);
     Affinity.Group = ProcessorGroup;
     return
         ZwSetInformationThread(
