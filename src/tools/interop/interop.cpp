@@ -451,7 +451,7 @@ public:
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_RESUMPTION_STATE,
+                    QUIC_PARAM_CONN_RESUMPTION_TICKET,
                     TicketLength,
                     Ticket));
     }
@@ -606,9 +606,9 @@ public:
         if (!WaitForTicket() || ResumptionTicket == nullptr) {
             return false;
         }
-        Ticket = new uint8_t[ResumptionTicketLength];
-        memcpy((uint8_t*)Ticket, ResumptionTicket, ResumptionTicketLength);
+        Ticket = ResumptionTicket;
         TicketLength = ResumptionTicketLength;
+        ResumptionTicket = nullptr;
         return true;
     }
 private:
@@ -663,14 +663,12 @@ private:
             }
             break;
         case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
-            if (Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength) {
-                pThis->ResumptionTicketLength = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
-                pThis->ResumptionTicket = new uint8_t[pThis->ResumptionTicketLength];
-                memcpy(
-                    (uint8_t*)pThis->ResumptionTicket,
-                    Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket,
-                    Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
-            }
+            pThis->ResumptionTicketLength = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
+            pThis->ResumptionTicket = new uint8_t[pThis->ResumptionTicketLength];
+            memcpy(
+                (uint8_t*)pThis->ResumptionTicket,
+                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket,
+                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
             QuicEventSet(pThis->TicketReceived);
             break;
         default:
@@ -816,9 +814,7 @@ RunInteropTest(
                 Success = Connection.SendHttpRequests();
             }
         }
-        if (ResumptionTicket) {
-            delete [] ResumptionTicket;
-        }
+        delete [] ResumptionTicket;
         break;
     }
 
@@ -849,9 +845,7 @@ RunInteropTest(
                 Success = true;
             }
         }
-        if (ResumptionTicket) {
-            delete [] ResumptionTicket;
-        }
+        delete [] ResumptionTicket;
         break;
     }
 

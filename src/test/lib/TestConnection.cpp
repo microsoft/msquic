@@ -702,7 +702,7 @@ TestConnection::SetResumptionTicket(
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_RESUMPTION_STATE,
+            QUIC_PARAM_CONN_RESUMPTION_TICKET,
             NewResumptionTicket->Length,
             NewResumptionTicket->Buffer);
 }
