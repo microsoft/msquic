@@ -47,22 +47,21 @@ Environment:
 #include <msquic_winkernel.h>
 #pragma warning(pop)
 
-#if (NTDDI_VERSION >= NTDDI_WIN2K) // Copied from zwapi_x.h.
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSYSAPI
 NTSTATUS
 NTAPI
-ZwSetInformationThread(
+ZwQueryInformationThread (
     _In_ HANDLE ThreadHandle,
     _In_ THREADINFOCLASS ThreadInformationClass,
-    _In_reads_bytes_(ThreadInformationLength) PVOID ThreadInformation,
-    _In_ ULONG ThreadInformationLength
+    _In_ PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
-#endif
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #if DBG
 #define DEBUG 1
@@ -925,7 +924,7 @@ NdisSetThreadObjectCompartmentId(
 inline
 QUIC_STATUS
 QuicSetCurrentThreadProcessorAffinity(
-    _In_ uint8_t ProcessorIndex
+    _In_ uint16_t ProcessorIndex
     )
 {
     PROCESSOR_NUMBER ProcInfo;
@@ -939,6 +938,36 @@ QuicSetCurrentThreadProcessorAffinity(
     GROUP_AFFINITY Affinity = {0};
     Affinity.Mask = (KAFFINITY)(1ull << ProcInfo.Number);
     Affinity.Group = ProcInfo.Group;
+    return
+        ZwSetInformationThread(
+            PsGetCurrentThread(),
+            ThreadGroupInformation,
+            &Affinity,
+            sizeof(Affinity));
+}
+
+inline
+QUIC_STATUS
+QuicSetCurrentThreadGroupAffinity(
+    _In_ uint16_t ProcessorGroup
+    )
+{
+    GROUP_AFFINITY Affinity = {0};
+    GROUP_AFFINITY ExistingAffinity = {0};
+    QUIC_STATUS Status;
+    if (QUIC_FAILED(
+        Status =
+            ZwQueryInformationThread(
+                PsGetCurrentThread(),
+                ThreadGroupInformation,
+                &ExistingAffinity,
+                sizeof(ExistingAffinity),
+                NULL))) {
+        return Status;
+    }
+
+    Affinity.Mask = ExistingAffinity.Mask;
+    Affinity.Group = ProcessorGroup;
     return
         ZwSetInformationThread(
             PsGetCurrentThread(),

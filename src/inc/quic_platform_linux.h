@@ -757,6 +757,7 @@ QuicConvertFromMappedV6(
     );
 
 #define QuicSetCurrentThreadProcessorAffinity(ProcessorIndex) QUIC_STATUS_SUCCESS
+#define QuicSetCurrentThreadGroupAffinity(ProcessorGroup) QUIC_STATUS_SUCCESS
 
 #define QUIC_CPUID(FunctionId, eax, ebx, ecx, dx)
 

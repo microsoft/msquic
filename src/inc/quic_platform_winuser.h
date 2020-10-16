@@ -900,7 +900,7 @@ QuicRandom(
 inline
 QUIC_STATUS
 QuicSetCurrentThreadProcessorAffinity(
-    _In_ uint8_t ProcessorIndex
+    _In_ uint16_t ProcessorIndex
     )
 {
     const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[ProcessorIndex];
@@ -917,9 +917,46 @@ QuicSetCurrentThreadProcessorAffinity(
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     HRESULT_FROM_WIN32(SetCurrentThreadCompartmentId(CompartmentId))
 
+inline
+QUIC_STATUS
+QuicSetCurrentThreadGroupAffinity(
+    _In_ uint16_t ProcessorGroup
+    )
+{
+    GROUP_AFFINITY Group = {0};
+    GROUP_AFFINITY ExistingGroup = {0};
+    if (!GetThreadGroupAffinity(GetCurrentThread(), &ExistingGroup)) {
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+    Group.Mask = ExistingGroup.Mask;
+    Group.Group = ProcessorGroup;
+    if (SetThreadGroupAffinity(GetCurrentThread(), &Group, NULL)) {
+        return QUIC_STATUS_SUCCESS;
+    }
+    return HRESULT_FROM_WIN32(GetLastError());
+}
+
 #else
 
-#define QuicSetCurrentThreadProcessorAffinity(ProcessorIndex) QUIC_STATUS_SUCCESS
+inline
+QUIC_STATUS
+QuicSetCurrentThreadProcessorAffinity(
+    _In_ uint16_t ProcessorIndex
+    )
+{
+    UNREFERENCED_PARAMETER(ProcessorIndex);
+    return QUIC_STATUS_SUCCESS;
+}
+
+inline
+QUIC_STATUS
+QuicSetCurrentThreadGroupAffinity(
+    _In_ uint16_t ProcessorGroup
+    )
+{
+    UNREFERENCED_PARAMETER(ProcessorGroup);
+    return QUIC_STATUS_SUCCESS;
+}
 
 #endif
 
