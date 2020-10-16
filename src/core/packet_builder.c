@@ -243,16 +243,23 @@ QuicPacketBuilderPrepare(
                 Builder->MinimumDatagramLength = NewDatagramLength;
             }
 
-        } else if (NewPacketType == QUIC_INITIAL &&
-            !QuicConnIsServer(Connection)) {
+        } else if (NewPacketType == QUIC_INITIAL) {
 
             //
-            // Make sure to pad the packet if client Initial packets.
+            // Make sure to pad Initial packets.
             //
             Builder->MinimumDatagramLength =
                 MaxUdpPayloadSizeForFamily(
                     QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                     QUIC_INITIAL_PACKET_LENGTH);
+
+            if ((uint32_t)Builder->MinimumDatagramLength > Builder->Datagram->Length) {
+                //
+                // On server, if we're limited by amplification protection, just
+                // pad up to that limit instead.
+                //
+                Builder->MinimumDatagramLength = (uint16_t)Builder->Datagram->Length;
+            }
 
         } else if (IsPathMtuDiscovery) {
             Builder->MinimumDatagramLength = NewDatagramLength;
