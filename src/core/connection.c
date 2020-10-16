@@ -5508,7 +5508,7 @@ QuicConnParamSet(
 
         break;
 
-    case QUIC_PARAM_CONN_RESUMPTION_STATE: {
+    case QUIC_PARAM_CONN_RESUMPTION_TICKET: {
         if (BufferLength == 0 || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
