@@ -75,15 +75,15 @@ RpsClient::Init(
     TryGetValue(argc, argv, "request", &RequestLength);
     TryGetValue(argc, argv, "response", &ResponseLength);
 
-    RequestBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + sizeof(uint64_t) + RequestLength);
+    RequestBuffer.Buffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + sizeof(uint64_t) + RequestLength);
     if (!RequestBuffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    RequestBuffer->Length = sizeof(uint64_t) + RequestLength;
-    RequestBuffer->Buffer = (uint8_t*)(RequestBuffer + 1);
-    *(uint64_t*)(RequestBuffer->Buffer) = QuicByteSwapUint64(ResponseLength);
+    RequestBuffer.Buffer->Length = sizeof(uint64_t) + RequestLength;
+    RequestBuffer.Buffer->Buffer = (uint8_t*)(RequestBuffer.Buffer + 1);
+    *(uint64_t*)(RequestBuffer.Buffer->Buffer) = QuicByteSwapUint64(ResponseLength);
     for (uint32_t i = 0; i < RequestLength; ++i) {
-        RequestBuffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
+        RequestBuffer.Buffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
     }
 
     return QUIC_STATUS_SUCCESS;

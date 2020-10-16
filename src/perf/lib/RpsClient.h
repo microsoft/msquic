@@ -19,17 +19,6 @@ Abstract:
 
 class RpsClient : public PerfBase {
 public:
-    RpsClient() {
-        QuicEventInitialize(&AllConnected, TRUE, FALSE);
-    }
-
-    ~RpsClient() override {
-        if (RequestBuffer) {
-            QUIC_FREE(RequestBuffer);
-        }
-        QuicEventUninitialize(AllConnected);
-    }
-
     QUIC_STATUS
     Init(
         _In_ int argc,
@@ -83,11 +72,19 @@ private:
     uint32_t ParallelRequests {RPS_DEFAULT_PARALLEL_REQUEST_COUNT};
     uint32_t RequestLength {RPS_DEFAULT_REQUEST_LENGTH};
     uint32_t ResponseLength {RPS_DEFAULT_RESPONSE_LENGTH};
-    QUIC_BUFFER* RequestBuffer {nullptr};
+
+    struct QuicBufferScopeQuicAlloc {
+        QUIC_BUFFER* Buffer;
+        QuicBufferScopeQuicAlloc() noexcept : Buffer(nullptr) { }
+        operator QUIC_BUFFER* () noexcept { return Buffer; }
+        ~QuicBufferScopeQuicAlloc() noexcept { if (Buffer) { QUIC_FREE(Buffer); } }
+    };
+
+    QuicBufferScopeQuicAlloc RequestBuffer;
     QUIC_EVENT* CompletionEvent {nullptr};
     QUIC_ADDR LocalAddresses[RPS_MAX_CLIENT_PORT_COUNT];
     uint32_t ActiveConnections {0};
-    QUIC_EVENT AllConnected;
+    EventScope AllConnected {true};
     uint64_t StartedRequests {0};
     uint64_t SendCompletedRequests {0};
     uint64_t CompletedRequests {0};
