@@ -95,17 +95,6 @@ RpsClient::Start(
     ) {
     CompletionEvent = StopEvent;
 
-    struct ScopeCleanup {
-        bool NeedsCleanup {true};
-        MsQuicRegistration& Registration;
-        ScopeCleanup(MsQuicRegistration &_Registration) : Registration(_Registration) { }
-        ~ScopeCleanup() {
-            if (NeedsCleanup) {
-                Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-            }
-        }
-    } Scope(Registration);
-
     QUIC_CONNECTION_CALLBACK_HANDLER Handler =
         [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
             return ((RpsClient*)Context)->
@@ -219,8 +208,6 @@ RpsClient::Start(
             SendRequest(Connections[j]);
         }
     }
-
-    Scope.NeedsCleanup = false;
 
     uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
     if (ThreadToSetAffinityTo > 2) {
