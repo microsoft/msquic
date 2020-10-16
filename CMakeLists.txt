@@ -123,6 +123,7 @@ option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
 option(QUIC_CODE_CHECK "Run static code checkers" OFF)
 option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
 option(QUIC_CI "CI Specific build optimizations" OFF)
+option(QUIC_RANDOM_ALLOC_FAIL "Randomly fails allocation calls" OFF)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -216,6 +217,10 @@ endif()
 
 list(APPEND QUIC_COMMON_DEFINES VER_BUILD_ID=${QUIC_VER_BUILD_ID})
 list(APPEND QUIC_COMMON_DEFINES VER_SUFFIX=${QUIC_VER_SUFFIX})
+
+if(QUIC_RANDOM_ALLOC_FAIL)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_RANDOM_ALLOC_FAIL=1 QUIC_DISABLE_MEM_POOL=1)
+endif()
 
 if(WIN32)
     # Generate the MsQuicEtw header file.
@@ -393,7 +398,12 @@ if(QUIC_TLS STREQUAL "openssl")
             file(MAKE_DIRECTORY ${OPENSSL_DIR}/release/include)
 
             set(OPENSSL_CONFIG_FLAGS
-                enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
+                enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp no-autoerrinit no-filenames no-ui-console no-err
+                no-zlib no-egd no-uplink no-idea no-rc5 no-rc4 no-afalgeng no-acvp_tests
+                no-comp no-cmp no-cms no-ct no-srp no-srtp no-ts no-fips no-gost no-padlockeng no-dso no-ec2m
+                no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
+                no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
+                no-siv no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-des no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
                 no-weak-ssl-ciphers no-shared no-tests VC-WIN64A)
 
             add_custom_target(mkdir_openssl_build_debug
@@ -433,7 +443,12 @@ if(QUIC_TLS STREQUAL "openssl")
         # Configure and build OpenSSL.
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
         set(OPENSSL_CONFIG_FLAGS
-            enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
+            enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp no-autoerrinit no-filenames no-ui-console no-err
+            no-zlib no-egd no-uplink no-idea no-rc5 no-rc4 no-afalgeng no-acvp_tests
+            no-comp no-cmp no-cms no-ct no-srp no-srtp no-ts no-fips no-gost no-padlockeng no-dso no-ec2m
+            no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
+            no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
+            no-siv no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-des no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
             no-weak-ssl-ciphers no-shared no-tests --prefix=${OPENSSL_DIR})
         if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
             set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure

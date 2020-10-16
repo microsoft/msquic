@@ -96,7 +96,9 @@ QuicSentPacketPoolGetPacketMetadata(
     QUIC_SENT_PACKET_METADATA* Metadata =
         QuicPoolAlloc(Pool->Pools + FrameCount - 1);
 #if DEBUG
-    Metadata->Flags.Freed = FALSE;
+    if (Metadata != NULL) {
+        Metadata->Flags.Freed = FALSE;
+    }
 #endif
     return Metadata;
 }

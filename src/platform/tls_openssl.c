@@ -10,12 +10,15 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+
+#define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 #include "openssl/kdf.h"
 #include "openssl/rsa.h"
 #include "openssl/x509.h"
 #include "openssl/pem.h"
+#include "openssl/hmac.h"
 #ifdef QUIC_CLOG
 #include "tls_openssl.c.clog.h"
 #endif
@@ -1860,7 +1863,8 @@ QuicHpKeyCreate(
             LibraryError,
             "[ lib] ERROR, %s.",
             "EVP_EncryptInit_ex failed");
-        return QUIC_STATUS_TLS_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
     }
 
     *NewKey = (QUIC_HP_KEY*)CipherCtx;
@@ -1913,12 +1917,7 @@ typedef struct QUIC_HASH {
     //
     // Context used for hashing.
     //
-    EVP_MD_CTX* HashContext;
-
-    //
-    // Key used for hashing.
-    //
-    EVP_PKEY* HmacKey;
+    HMAC_CTX* HashContext;
 
 } QUIC_HASH;
 
@@ -1931,51 +1930,48 @@ QuicHashCreate(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_HASH* Hash = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASH) + SaltLength);
+    const EVP_MD *Md;
 
-    if (Hash == NULL) {
+    HMAC_CTX* HashContext = HMAC_CTX_new();
+    if (HashContext == NULL) {
         QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_HASH",
-            sizeof(QUIC_HASH) + SaltLength);
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "HMAC_CTX_new failed");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
     switch (HashType) {
     case QUIC_HASH_SHA256:
-        Hash->Md = EVP_sha256();
+        Md = EVP_sha256();
         break;
     case QUIC_HASH_SHA384:
-        Hash->Md = EVP_sha384();
+        Md = EVP_sha384();
         break;
     case QUIC_HASH_SHA512:
-        Hash->Md = EVP_sha512();
+        Md = EVP_sha512();
         break;
     default:
         Status = QUIC_STATUS_NOT_SUPPORTED;
         goto Exit;
     }
 
-    Hash->HashContext = EVP_MD_CTX_create();
-    if (Hash->HashContext == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
+    if (HMAC_Init_ex(HashContext, Salt, SaltLength, Md, NULL) != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "HMAC_Init_ex failed");
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    Hash->HmacKey = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, Salt, SaltLength);
-    if (Hash->HmacKey == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
-
-    *NewHash = Hash;
-    Hash = NULL;
+    *NewHash = (QUIC_HASH*)HashContext;
+    HashContext = NULL;
 
 Exit:
 
-    QuicHashFree(Hash);
+    QuicHashFree((QUIC_HASH*)HashContext);
 
     return Status;
 }
@@ -1985,11 +1981,7 @@ QuicHashFree(
     _In_opt_ QUIC_HASH* Hash
     )
 {
-    if (Hash != NULL) {
-        EVP_MD_CTX_free(Hash->HashContext);
-        EVP_PKEY_free(Hash->HmacKey);
-        QuicFree(Hash);
-    }
+    HMAC_CTX_free((HMAC_CTX*)Hash);
 }
 
 QUIC_STATUS
@@ -2001,27 +1993,33 @@ QuicHashCompute(
     _Out_writes_all_(OutputLength) uint8_t* const Output
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    HMAC_CTX* HashContext = (HMAC_CTX*)Hash;
 
-    if (!EVP_DigestSignInit(Hash->HashContext, NULL, Hash->Md, NULL, Hash->HmacKey)) {
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
+    if (!HMAC_Init_ex(HashContext, NULL, 0, NULL, NULL)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "HMAC_Init_ex(NULL) failed");
+        return QUIC_STATUS_INTERNAL_ERROR;
     }
 
-    if (!EVP_DigestSignUpdate(Hash->HashContext, Input, InputLength)) {
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
+    if (!HMAC_Update(HashContext, Input, InputLength)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "HMAC_Update failed");
+        return QUIC_STATUS_INTERNAL_ERROR;
     }
 
-    size_t ActualOutputSize = OutputLength;
-    if (!EVP_DigestSignFinal(Hash->HashContext, Output, &ActualOutputSize)) {
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
+    uint32_t ActualOutputSize = OutputLength;
+    if (!HMAC_Final(HashContext, Output, &ActualOutputSize)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "HMAC_Final failed");
+        return QUIC_STATUS_INTERNAL_ERROR;
     }
 
     QUIC_FRE_ASSERT(ActualOutputSize == OutputLength);
-
-Error:
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }

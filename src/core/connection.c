@@ -2750,6 +2750,7 @@ QuicConnUpdateDestCid(
                     Packet->SourceCid);
             if (DestCid == NULL) {
                 Connection->DestCidCount--;
+                Connection->Paths[0].DestCid = NULL;
                 QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, "Out of memory");
                 return FALSE;
             } else {
@@ -5507,7 +5508,7 @@ QuicConnParamSet(
 
         break;
 
-    case QUIC_PARAM_CONN_RESUMPTION_STATE: {
+    case QUIC_PARAM_CONN_RESUMPTION_TICKET: {
         if (BufferLength == 0 || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
@@ -6251,7 +6252,7 @@ QuicConnDrainOperations(
 
     QUIC_PASSIVE_CODE();
 
-    if (!Connection->State.Initialized) {
+    if (!Connection->State.Initialized && !Connection->State.Uninitialized) {
         //
         // TODO - Try to move this only after the connection is accepted by the
         // listener. But that's going to be pretty complicated.

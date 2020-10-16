@@ -65,7 +65,7 @@ if [ "$ROLE" == "client" ]; then
     # point to the same server.
     REQS=($REQUESTS)
     REQ=${REQS[0]}
-    SERVER=$(echo $REQ | cut -d'/' -f3)
+    SERVER=$(echo $REQ | cut -d'/' -f3 | cut -d':' -f1)
     echo "Connecting to $SERVER"
 
     if [ "$TESTCASE" == "multiconnect" ]; then
