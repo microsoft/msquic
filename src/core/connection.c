@@ -65,7 +65,7 @@ QuicConnAlloc(
     )
 {
     BOOLEAN IsServer = Datagram != NULL;
-    uint32_t CurProcIndex = QuicProcCurrentNumber() & 0xFFFFFFFE;
+    uint32_t CurProcIndex = QuicProcCurrentNumber();
 
     //
     // For client, the datapath partitioning info is not known yet, so just use
