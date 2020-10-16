@@ -398,7 +398,8 @@ if(QUIC_TLS STREQUAL "openssl")
             file(MAKE_DIRECTORY ${OPENSSL_DIR}/release/include)
 
             set(OPENSSL_CONFIG_FLAGS
-                enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp no-autoerrinit no-filenames no-ui-console no-err
+                enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
+                no-autoerrinit no-filenames no-ui-console no-err
                 no-zlib no-egd no-uplink no-idea no-rc5 no-rc4 no-afalgeng no-acvp_tests
                 no-comp no-cmp no-cms no-ct no-srp no-srtp no-ts no-fips no-gost no-padlockeng no-dso no-ec2m
                 no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
