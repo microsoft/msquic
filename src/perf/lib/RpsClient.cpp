@@ -204,7 +204,7 @@ RpsClient::Start(
         }
     }
 
-    if (!QuicEventWaitWithTimeout(AllConnected, RPS_ALL_CONNECT_TIMEOUT)) {
+    if (!QuicEventWaitWithTimeout(AllConnected.Handle, RPS_ALL_CONNECT_TIMEOUT)) {
         WriteOutput("Timeout waiting for connections.\n");
         Running = false;
         return QUIC_STATUS_CONNECTION_TIMEOUT;
