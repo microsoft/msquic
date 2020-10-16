@@ -335,7 +335,7 @@ function Invoke-Test {
     try {
         1..$Test.Iterations | ForEach-Object {
             Write-Debug "Running Local: $LocalExe Args: $LocalArguments"
-            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
             $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
             $AllRunsResults += $LocalParsedResults
             if ($PGO) {

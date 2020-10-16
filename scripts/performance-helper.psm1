@@ -396,7 +396,7 @@ function Merge-PGOCounts {
 
 function Invoke-LocalExe {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
-    param ($Exe, $RunArgs, $Timeout)
+    param ($Exe, $RunArgs, $Timeout, $OutputDir)
     if (!$IsWindows) {
         $BasePath = Split-Path $Exe -Parent
         $env:LD_LIBRARY_PATH = $BasePath
@@ -404,6 +404,18 @@ function Invoke-LocalExe {
     }
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
+
+    $ExeName = Split-Path $Exe -Leaf
+
+    # Path to the WER registry key used for collecting dumps.
+    $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\$ExeName"
+
+    # Initialize WER dump registry key if necessary.
+    if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
+        New-Item -Path $WerDumpRegPath -Force | Out-Null
+        New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
+        New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $OutputDir -Force | Out-Null
+    }
 
     $Stopwatch =  [system.diagnostics.stopwatch]::StartNew()
 
@@ -416,6 +428,11 @@ function Invoke-LocalExe {
     $RetVal = Receive-Job -Job $LocalJob
 
     $Stopwatch.Stop()
+
+    if ($isWindows) {
+        # Cleanup the WER registry.
+        Remove-Item -Path $WerDumpRegPath -Force | Out-Null
+    }
 
     Write-Host ("Test Run Took " + $Stopwatch.Elapsed)
 
