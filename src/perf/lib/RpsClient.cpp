@@ -249,9 +249,6 @@ RpsClient::Wait(
 
     uint32_t RPS = (uint32_t)((CompletedRequests * 1000ull) / (uint64_t)RunTime);
     WriteOutput("Result: %u RPS\n", RPS);
-#ifndef _KERNEL_MODE
-    fflush(stdout);
-#endif
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
     //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
 
@@ -266,7 +263,7 @@ RpsClient::ConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         if ((uint32_t)InterlockedIncrement64((int64_t*)&ActiveConnections) == ConnectionCount) {
-            QuicEventSet(AllConnected);
+            QuicEventSet(AllConnected.Handle);
         }
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
