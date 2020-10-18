@@ -397,7 +397,7 @@ QuicConvertToMappedV6(
 {
     //QUIC_DBG_ASSERT(!(InAddr == OutAddr));
     if (InAddr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
-        QuicZeroMemory(OutAddr, sizeof(QUIC_ADDR));
+        memset(OutAddr, 0, sizeof(QUIC_ADDR));
         OutAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
         OutAddr->Ipv6.sin6_port = InAddr->Ipv4.sin_port;
         memset(&(OutAddr->Ipv6.sin6_addr.s6_addr[10]), 0xff, 2);
