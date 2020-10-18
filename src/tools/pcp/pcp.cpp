@@ -17,62 +17,6 @@
 static QUIC_DATAPATH* Datapath;
 static QUIC_ADDR ServerAddress;
 
-#if DEBUG
-void printf_buf(const char* name, void* buf, uint32_t len)
-{
-    printf("%s[%u]: ", name, len);
-    for (uint32_t i = 0; i < len; i++) {
-        printf("%.2X", ((uint8_t*)buf)[i]);
-    }
-    printf("\n");
-}
-#else
-#define printf_buf(name, buf, len)
-#endif
-
-void
-QuicConvertToMappedV6(
-    _In_ const QUIC_ADDR* InAddr,
-    _Out_ QUIC_ADDR* OutAddr
-    )
-{
-    if (InAddr->si_family == QUIC_ADDRESS_FAMILY_INET) {
-        SCOPE_ID unspecified_scope = {0};
-        IN6ADDR_SETV4MAPPED(
-            &OutAddr->Ipv6,
-            &InAddr->Ipv4.sin_addr,
-            unspecified_scope,
-            InAddr->Ipv4.sin_port);
-    } else {
-        *OutAddr = *InAddr;
-    }
-}
-
-#pragma warning(push)
-#pragma warning(disable: 6101) // Intentially don't overwrite output if unable to convert
-inline
-void
-QuicConvertFromMappedV6(
-    _In_ const QUIC_ADDR* InAddr,
-    _Out_ QUIC_ADDR* OutAddr
-    )
-{
-    QUIC_DBG_ASSERT(InAddr->si_family == QUIC_ADDRESS_FAMILY_INET6);
-    if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
-        OutAddr->si_family = QUIC_ADDRESS_FAMILY_INET;
-        OutAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
-        OutAddr->Ipv4.sin_addr =
-            *(IN_ADDR UNALIGNED *)
-            IN6_GET_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr);
-    } else if (OutAddr != InAddr) {
-        *OutAddr = *InAddr;
-    }
-}
-#pragma warning(pop)
-
-#pragma pack(push)
-#pragma pack(1)
-
 const uint16_t QUIC_PCP_PORT = 5351;
 
 const uint16_t PCP_MAX_UDP_PAYLOAD = 1100;
@@ -87,6 +31,9 @@ const uint8_t PCP_RESULT_MALFORMED_REQUEST = 3;
 const uint8_t PCP_OPCODE_ANNOUNCE = 0;
 const uint8_t PCP_OPCODE_MAP = 1;
 const uint8_t PCP_OPCODE_PEER = 2;
+
+#pragma pack(push)
+#pragma pack(1)
 
 typedef struct PCP_INVARIANT_HEADER {
 
@@ -159,8 +106,6 @@ ProcessRecvDatagram(
     _In_ QUIC_RECV_DATAGRAM* Datagram
     )
 {
-    //printf_buf("Recv", Datagram->Buffer, Datagram->BufferLength);
-
     PCP_INVARIANT_HEADER* Invariant = (PCP_INVARIANT_HEADER*)Datagram->Buffer;
     if (Invariant->Version != PCP_VERSION) {
         printf("Invalid version: %hhu\n", Invariant->Version);
@@ -274,8 +219,6 @@ bool SendPcpMessage(QUIC_DATAPATH_BINDING* Binding)
     QuicZeroMemory(
         MapReq->SuggestedExternalIpAddress,
         sizeof(MapReq->SuggestedExternalIpAddress));
-
-    //printf_buf("Send", SendBuffer->Buffer, SendBuffer->Length);
 
     printf("Request: Map :%hu for %u seconds\n",
         QuicByteSwapUint16(MapReq->InternalPort),

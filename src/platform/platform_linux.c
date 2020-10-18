@@ -644,47 +644,6 @@ QuicRandom(
 #endif
 }
 
-void
-QuicConvertToMappedV6(
-    _In_ const QUIC_ADDR* InAddr,
-    _Out_ QUIC_ADDR* OutAddr
-    )
-{
-    QUIC_DBG_ASSERT(!(InAddr == OutAddr));
-
-    QuicZeroMemory(OutAddr, sizeof(QUIC_ADDR));
-
-    if (InAddr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
-        OutAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
-        OutAddr->Ipv6.sin6_port = InAddr->Ipv4.sin_port;
-        memset(&(OutAddr->Ipv6.sin6_addr.s6_addr[10]), 0xff, 2);
-        memcpy(&(OutAddr->Ipv6.sin6_addr.s6_addr[12]), &InAddr->Ipv4.sin_addr.s_addr, 4);
-    } else {
-        *OutAddr = *InAddr;
-    }
-}
-
-void
-QuicConvertFromMappedV6(
-    _In_ const QUIC_ADDR* InAddr,
-    _Out_ QUIC_ADDR* OutAddr
-    )
-{
-    QUIC_DBG_ASSERT(InAddr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6);
-
-    if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
-        QUIC_ADDR TmpAddrS = {0};
-        QUIC_ADDR* TmpAddr = &TmpAddrS;
-
-        TmpAddr->Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
-        TmpAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
-        memcpy(&TmpAddr->Ipv4.sin_addr.s_addr, &InAddr->Ipv6.sin6_addr.s6_addr[12], 4);
-        *OutAddr = *TmpAddr;
-    } else if (OutAddr != InAddr) {
-        *OutAddr = *InAddr;
-    }
-}
-
 QUIC_STATUS
 QuicThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,

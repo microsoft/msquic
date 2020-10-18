@@ -276,6 +276,54 @@ QuicAddrHash(
 
 #define QUIC_LOCALHOST_FOR_AF(Af) "localhost"
 
+//
+// Converts IPv6 or IPV4 address to a (possibly mapped) IPv6.
+//
+inline
+void
+QuicConvertToMappedV6(
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
+    )
+{
+    if (InAddr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        SCOPE_ID unspecified_scope = {0};
+        IN6ADDR_SETV4MAPPED(
+            &OutAddr->Ipv6,
+            &InAddr->Ipv4.sin_addr,
+            unspecified_scope,
+            InAddr->Ipv4.sin_port);
+    } else {
+        *OutAddr = *InAddr;
+    }
+}
+
+//
+// Converts (possibly mapped) IPv6 address to a IPv6 or IPV4 address. Does
+// support InAdrr == OutAddr.
+//
+#pragma warning(push)
+#pragma warning(disable: 6101) // Intentially don't overwrite output if unable to convert
+inline
+void
+QuicConvertFromMappedV6(
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
+    )
+{
+    //QUIC_DBG_ASSERT(InAddr->si_family == QUIC_ADDRESS_FAMILY_INET6);
+    if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
+        OutAddr->si_family = QUIC_ADDRESS_FAMILY_INET;
+        OutAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
+        OutAddr->Ipv4.sin_addr =
+            *(IN_ADDR UNALIGNED *)
+            IN6_GET_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr);
+    } else if (OutAddr != InAddr) {
+        *OutAddr = *InAddr;
+    }
+}
+#pragma warning(pop)
+
 inline
 BOOLEAN
 QuicAddrFromString(
