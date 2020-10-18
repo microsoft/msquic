@@ -12,6 +12,7 @@
 
 #include "quic_platform.h"
 #include "quic_datapath.h"
+#include "quic_pcp.h"
 #include "quic_cert.h"
 #include "quic_storage.h"
 #include "quic_tls.h"
@@ -92,6 +93,16 @@ typedef struct QUIC_PLATFORM {
 // Global Platform variables/state.
 //
 extern QUIC_PLATFORM QuicPlatform;
+
+//
+// Internal flags used with QuicDataPathBindingCreate
+//
+#define QUIC_DATAPATH_BINDING_FLAG_PCP  0x00000001
+
+//
+// PCP Receive Callback
+//
+QUIC_DATAPATH_RECEIVE_CALLBACK QuicPcpRecvCallback;
 
 //
 // TLS Initialization

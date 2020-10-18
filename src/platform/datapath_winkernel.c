@@ -288,6 +288,11 @@ typedef struct QUIC_DATAPATH_BINDING {
     BOOLEAN Connected : 1;
 
     //
+    // Flag indicates the binding is being used for PCP.
+    //
+    BOOLEAN PcpBinding : 1;
+
+    //
     // Parent datapath.
     //
     QUIC_DATAPATH* Datapath;
@@ -1296,6 +1301,7 @@ QuicDataPathBindingCreate(
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
+    _In_ uint32_t InternalFlags,
     _Out_ QUIC_DATAPATH_BINDING** NewBinding
     )
 {
@@ -1342,6 +1348,9 @@ QuicDataPathBindingCreate(
     Binding->Mtu = QUIC_MAX_MTU;
     for (uint32_t i = 0; i < QuicProcMaxCount(); ++i) {
         QuicRundownInitialize(&Binding->Rundown[i]);
+    }
+    if (InternalFlags & QUIC_DATAPATH_BINDING_FLAG_PCP) {
+        Binding->PcpBinding = TRUE;
     }
 
     QuicEventInitialize(&Binding->WskCompletionEvent, FALSE, FALSE);
@@ -2037,11 +2046,13 @@ QuicDataPathSocketReceive(
                 CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
 #endif
 
-            QUIC_DBG_ASSERT(Binding->Datapath->UnreachableHandler);
-            Binding->Datapath->UnreachableHandler(
-                Binding,
-                Binding->ClientContext,
-                &RemoteAddr);
+            if (!Binding->PcpBinding) {
+                QUIC_DBG_ASSERT(Binding->Datapath->UnreachableHandler);
+                Binding->Datapath->UnreachableHandler(
+                    Binding,
+                    Binding->ClientContext,
+                    &RemoteAddr);
+            }
 
             goto Drop;
         }
@@ -2235,10 +2246,17 @@ QuicDataPathSocketReceive(
         //
         // Indicate all accepted datagrams.
         //
-        Binding->Datapath->RecvHandler(
-            Binding,
-            Binding->ClientContext,
-            DatagramChain);
+        if (!Binding->PcpBinding) {
+            Binding->Datapath->RecvHandler(
+                Binding,
+                Binding->ClientContext,
+                DatagramChain);
+        } else {
+            QuicPcpRecvCallback(
+                Binding,
+                Binding->ClientContext,
+                DatagramChain);
+        }
     }
 
     if (ReleaseChain != NULL) {

@@ -328,6 +328,7 @@ TEST_F(DataPathTest, Bind)
             nullptr,
             nullptr,
             nullptr,
+            0,
             &binding));
     ASSERT_NE(nullptr, binding);
 
@@ -361,6 +362,7 @@ TEST_F(DataPathTest, Rebind)
             nullptr,
             nullptr,
             nullptr,
+            0,
             &binding1));
     ASSERT_NE(nullptr, binding1);
 
@@ -374,6 +376,7 @@ TEST_F(DataPathTest, Rebind)
             nullptr,
             nullptr,
             nullptr,
+            0,
             &binding2));
     ASSERT_NE(nullptr, binding2);
 
@@ -416,6 +419,7 @@ TEST_P(DataPathTest, Data)
                 &serverAddress.SockAddr,
                 nullptr,
                 &RecvContext,
+                0,
                 &server);
 #ifdef _WIN32
         if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
@@ -437,6 +441,7 @@ TEST_P(DataPathTest, Data)
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
+            0,
             &client));
     ASSERT_NE(nullptr, client);
 
@@ -499,6 +504,7 @@ TEST_P(DataPathTest, DataRebind)
                 &serverAddress.SockAddr,
                 nullptr,
                 &RecvContext,
+                0,
                 &server);
 #ifdef _WIN32
         if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
@@ -520,6 +526,7 @@ TEST_P(DataPathTest, DataRebind)
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
+            0,
             &client));
     ASSERT_NE(nullptr, client);
 
@@ -555,6 +562,7 @@ TEST_P(DataPathTest, DataRebind)
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
+            0,
             &client));
     ASSERT_NE(nullptr, client);
 
@@ -616,6 +624,7 @@ TEST_P(DataPathTest, DataECT0)
                 &serverAddress.SockAddr,
                 nullptr,
                 &RecvContext,
+                0,
                 &server);
 #ifdef _WIN32
         if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
@@ -637,6 +646,7 @@ TEST_P(DataPathTest, DataECT0)
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
+            0,
             &client));
     ASSERT_NE(nullptr, client);
 

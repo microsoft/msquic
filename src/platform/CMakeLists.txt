@@ -5,6 +5,7 @@ if("${QUIC_PLATFORM}" STREQUAL "windows")
     set(SOURCES
         datapath_winuser.c
         hashtable.c
+        pcp.c
         platform_winuser.c
         storage_winuser.c
         toeplitz.c
@@ -15,6 +16,7 @@ else()
             datapath_linux.c
             hashtable.c
             inline.c
+            pcp.c
             platform_linux.c
             storage_linux.c
             toeplitz.c
@@ -24,6 +26,7 @@ else()
             datapath_darwin.c
             hashtable.c
             inline.c
+            pcp.c
             platform_darwin.c
             storage_darwin.c
             toeplitz.c

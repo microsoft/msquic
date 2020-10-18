@@ -226,6 +226,11 @@ typedef struct QUIC_DATAPATH_BINDING {
     BOOLEAN Shutdown : 1;
 
     //
+    // Flag indicates the binding is being used for PCP.
+    //
+    BOOLEAN PcpBinding : 1;
+
+    //
     // The MTU for this binding.
     //
     uint16_t Mtu;
@@ -1324,11 +1329,18 @@ QuicSocketContextRecvComplete(
 
     RecvPacket->PartitionIndex = ProcContext->Index;
 
-    QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
-    SocketContext->Binding->Datapath->RecvHandler(
-        SocketContext->Binding,
-        SocketContext->Binding->ClientContext,
-        RecvPacket);
+    if (!SocketContext->Binding->PcpBinding) {
+        QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
+        SocketContext->Binding->Datapath->RecvHandler(
+            SocketContext->Binding,
+            SocketContext->Binding->ClientContext,
+            RecvPacket);
+    } else{
+        QuicPcpRecvCallback(
+            SocketContext->Binding,
+            SocketContext->Binding->ClientContext,
+            RecvPacket);
+    }
 
     Status = QuicSocketContextPrepareReceive(SocketContext);
 
@@ -1528,10 +1540,12 @@ QuicSocketContextProcessEvents(
             if (ErrNum == ECONNREFUSED ||
                 ErrNum == EHOSTUNREACH ||
                 ErrNum == ENETUNREACH) {
-                SocketContext->Binding->Datapath->UnreachHandler(
-                    SocketContext->Binding,
-                    SocketContext->Binding->ClientContext,
-                    &SocketContext->Binding->RemoteAddress);
+                if (!SocketContext->Binding->PcpBinding) {
+                    SocketContext->Binding->Datapath->UnreachHandler(
+                        SocketContext->Binding,
+                        SocketContext->Binding->ClientContext,
+                        &SocketContext->Binding->RemoteAddress);
+                }
             }
         }
     }
@@ -1576,6 +1590,7 @@ QuicDataPathBindingCreate(
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
+    _In_ uint32_t InternalFlags,
     _Out_ QUIC_DATAPATH_BINDING** NewBinding
     )
 {
@@ -1630,8 +1645,10 @@ QuicDataPathBindingCreate(
         QuicListInitializeHead(&Binding->SocketContexts[i].PendingSendContextHead);
         QuicRundownAcquire(&Binding->Rundown);
     }
-
     QuicRundownAcquire(&Datapath->BindingsRundown);
+    if (InternalFlags & QUIC_DATAPATH_BINDING_FLAG_PCP) {
+        Binding->PcpBinding = TRUE;
+    }
 
     for (uint32_t i = 0; i < SocketCount; i++) {
         Status =

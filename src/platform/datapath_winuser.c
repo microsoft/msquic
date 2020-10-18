@@ -225,6 +225,11 @@ typedef struct QUIC_DATAPATH_BINDING {
     BOOLEAN Connected : 1;
 
     //
+    // Flag indicates the binding is being used for PCP.
+    //
+    BOOLEAN PcpBinding : 1;
+
+    //
     // The index of the affinitized receive processor for a connected socket.
     //
     uint16_t ConnectedProcessorAffinity;
@@ -1105,6 +1110,7 @@ QuicDataPathBindingCreate(
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
+    _In_ uint32_t InternalFlags,
     _Out_ QUIC_DATAPATH_BINDING** NewBinding
     )
 {
@@ -1141,6 +1147,9 @@ QuicDataPathBindingCreate(
     }
     Binding->Mtu = QUIC_MAX_MTU;
     QuicRundownAcquire(&Datapath->BindingsRundown);
+    if (InternalFlags & QUIC_DATAPATH_BINDING_FLAG_PCP) {
+        Binding->PcpBinding = TRUE;
+    }
 
     for (uint16_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
@@ -2027,7 +2036,9 @@ QuicDataPathRecvComplete(
 
     } else if (IsUnreachableErrorCode(IoResult)) {
 
-        QuicDataPathBindingHandleUnreachableError(SocketContext, IoResult);
+        if (!SocketContext->Binding->PcpBinding) {
+            QuicDataPathBindingHandleUnreachableError(SocketContext, IoResult);
+        }
 
     } else if (IoResult == ERROR_MORE_DATA ||
         (IoResult == NO_ERROR && SocketContext->RecvWsaBuf.len < NumberOfBytesTransferred)) {
@@ -2199,10 +2210,17 @@ QuicDataPathRecvComplete(
         }
 #endif
 
-        SocketContext->Binding->Datapath->RecvHandler(
-            SocketContext->Binding,
-            SocketContext->Binding->ClientContext,
-            DatagramChain);
+        if (!SocketContext->Binding->PcpBinding) {
+            SocketContext->Binding->Datapath->RecvHandler(
+                SocketContext->Binding,
+                SocketContext->Binding->ClientContext,
+                DatagramChain);
+        } else {
+            QuicPcpRecvCallback(
+                SocketContext->Binding,
+                SocketContext->Binding->ClientContext,
+                DatagramChain);
+        }
 
     } else {
         QuicTraceEvent(

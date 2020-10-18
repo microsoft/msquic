@@ -333,6 +333,7 @@ QuicDataPathBindingCreate(
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
+    _In_ uint32_t InternalFlags,
     _Out_ QUIC_DATAPATH_BINDING** Binding
     );
 

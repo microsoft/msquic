@@ -304,6 +304,7 @@ QUIC_THREAD_CALLBACK(RunAttackThread, /* Context */)
             nullptr,
             &ServerAddress,
             nullptr,
+            0,
             &Binding);
     if (QUIC_FAILED(Status)) {
         printf("QuicDataPathBindingCreate failed, 0x%x\n", Status);
