@@ -1046,6 +1046,21 @@ QuicDataPathIsPaddingPreferred(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(QUIC_SUCCEEDED(return))
+QUIC_STATUS
+QuicDataPathGetGatewayAddresses(
+    _In_ QUIC_DATAPATH* Datapath,
+    _Out_ QUIC_ADDR** GatewayAddresses,
+    _Out_ uint32_t* GatewayAddressesCount
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    *GatewayAddresses = NULL;
+    *GatewayAddressesCount = 0;
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathResolveAddressWithHint(
     _In_ QUIC_DATAPATH* Datapath,

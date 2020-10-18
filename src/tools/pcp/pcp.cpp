@@ -5,17 +5,13 @@
 
 --*/
 
-#pragma warning(disable:4200)  // nonstandard extension used: bit field types other than int
-#pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
-#pragma warning(disable:4204)  // nonstandard extension used: non-constant aggregate initializer
-#pragma warning(disable:4214)  // nonstandard extension used: zero-sized array in struct/union
-#pragma warning(disable:28931) // Unused Assignment
-
-#include <precomp.h> // from 'core' dir
 #include <msquichelper.h>
+#include <quic_datapath.h>
 
 static QUIC_DATAPATH* Datapath;
-static QUIC_ADDR ServerAddress;
+static QUIC_ADDR* GatewayAddresses;
+static uint32_t GatewayAddressesCount;
+static uint8_t PcpNonce[12];
 
 const uint16_t QUIC_PCP_PORT = 5351;
 
@@ -27,6 +23,16 @@ const uint8_t PCP_RESULT_SUCCESS = 0;
 const uint8_t PCP_RESULT_UNSUPP_VERSION = 1;
 const uint8_t PCP_RESULT_NOT_AUTHORIZED = 2;
 const uint8_t PCP_RESULT_MALFORMED_REQUEST = 3;
+const uint8_t PCP_RESULT_UNSUPP_OPCODE = 4;
+const uint8_t PCP_RESULT_UNSUPP_OPTION = 5;
+const uint8_t PCP_RESULT_MALFORMED_OPTION = 6;
+const uint8_t PCP_RESULT_NETWORK_FAILURE = 7;
+const uint8_t PCP_RESULT_NO_RESOURCES = 8;
+const uint8_t PCP_RESULT_UNSUPP_PROTOCOL = 9;
+const uint8_t PCP_RESULT_USER_EX_QUOTA = 10;
+const uint8_t PCP_RESULT_CANNOT_PROVIDE_EXTERNAL = 11;
+const uint8_t PCP_RESULT_ADDRESS_MISMATCH = 12;
+const uint8_t PCP_RESULT_EXCESSIVE_REMOTE_PEERS = 13;
 
 const uint8_t PCP_OPCODE_ANNOUNCE = 0;
 const uint8_t PCP_OPCODE_MAP = 1;
@@ -35,15 +41,7 @@ const uint8_t PCP_OPCODE_PEER = 2;
 #pragma pack(push)
 #pragma pack(1)
 
-typedef struct PCP_INVARIANT_HEADER {
-
-    uint8_t Version;
-    uint8_t Opcode : 7;
-    uint8_t Request : 1;
-
-} PCP_INVARIANT_HEADER;
-
-typedef struct PCP_REQUEST_HEADER {
+typedef struct PCP_REQUEST {
 
     uint8_t Version;
     uint8_t Opcode : 7;
@@ -51,11 +49,32 @@ typedef struct PCP_REQUEST_HEADER {
     uint16_t Reserved;
     uint32_t RequestLifetime;
     uint8_t ClientIpAddress[16];
-    uint8_t OpcodePayload[0];
+    union {
+        uint8_t OpcodePayload[0];
+        struct {
+            uint8_t MappingNonce[12];
+            uint8_t Protocol;
+            uint8_t Reserved[3];
+            uint16_t InternalPort;
+            uint16_t SuggestedExternalPort;
+            uint8_t SuggestedExternalIpAddress[16];
+        } MAP;
+        struct {
+            uint8_t MappingNonce[12];
+            uint8_t Protocol;
+            uint8_t Reserved[3];
+            uint16_t InternalPort;
+            uint16_t SuggestedExternalPort;
+            uint8_t SuggestedExternalIpAddress[16];
+            uint16_t RemotePeerPort;
+            uint16_t Reserved2;
+            uint8_t RemotePeerIpAddress[16];
+        } PEER;
+    };
 
-} PCP_REQUEST_HEADER;
+} PCP_REQUEST;
 
-typedef struct PCP_RESPONSE_HEADER {
+typedef struct PCP_RESPONSE {
 
     uint8_t Version;
     uint8_t Opcode : 7;
@@ -65,40 +84,48 @@ typedef struct PCP_RESPONSE_HEADER {
     uint32_t Lifetime;
     uint32_t EpochTime;
     uint8_t Reserved2[12];
-    uint8_t OpcodePayload[0];
+    union {
+        uint8_t OpcodePayload[0];
+        struct {
+            uint8_t MappingNonce[12];
+            uint8_t Protocol;
+            uint8_t Reserved[3];
+            uint16_t InternalPort;
+            uint16_t AssignedExternalPort;
+            uint8_t AssignedExternalIpAddress[16];
+        } MAP;
+        struct {
+            uint8_t MappingNonce[12];
+            uint8_t Protocol;
+            uint8_t Reserved[3];
+            uint16_t InternalPort;
+            uint16_t AssignedExternalPort;
+            uint8_t AssignedExternalIpAddress[16];
+            uint16_t RemotePeerPort;
+            uint16_t Reserved2;
+            uint8_t RemotePeerIpAddress[16];
+        } PEER;
+    };
 
-} PCP_RESPONSE_HEADER;
-
-typedef struct PCP_MAP_REQUEST {
-
-    uint8_t MappingNonce[12];
-    uint8_t Protocol;
-    uint8_t Reserved[3];
-    uint16_t InternalPort;
-    uint16_t SuggestedExternalPort;
-    uint8_t SuggestedExternalIpAddress[16];
-
-} PCP_MAP_REQUEST;
-
-typedef struct PCP_MAP_RESPONSE {
-
-    uint8_t MappingNonce[12];
-    uint8_t Protocol;
-    uint8_t Reserved[3];
-    uint16_t InternalPort;
-    uint16_t AssignedExternalPort;
-    uint8_t AssignedExternalIpAddress[16];
-
-} PCP_MAP_RESPONSE;
+} PCP_RESPONSE;
 
 #pragma pack(pop)
+
+#define SIZEOF_THROUGH_FIELD(type, field) \
+    (FIELD_OFFSET(type, field) + sizeof(((type *)0)->field))
+
+const uint16_t PCP_MAP_REQUEST_SIZE = SIZEOF_THROUGH_FIELD(PCP_REQUEST, MAP.SuggestedExternalIpAddress);
+const uint16_t PCP_PEER_REQUEST_SIZE = SIZEOF_THROUGH_FIELD(PCP_REQUEST, PEER.RemotePeerIpAddress);
+
+QUIC_STATIC_ASSERT(PCP_MAP_REQUEST_SIZE <= PCP_MAX_UDP_PAYLOAD, "MAP Request must fit in max");
+QUIC_STATIC_ASSERT(PCP_PEER_REQUEST_SIZE <= PCP_MAX_UDP_PAYLOAD, "PEER Request must fit in max");
 
 void PrintUsage()
 {
     printf("quicpcp is used communicating with a PCP server.\n\n");
 
     printf("Usage:\n");
-    printf("  quicattack.exe -server:address\n\n");
+    printf("  quicattack.exe [-server:address]\n\n");
 }
 
 void
@@ -106,45 +133,88 @@ ProcessRecvDatagram(
     _In_ QUIC_RECV_DATAGRAM* Datagram
     )
 {
-    PCP_INVARIANT_HEADER* Invariant = (PCP_INVARIANT_HEADER*)Datagram->Buffer;
-    if (Invariant->Version != PCP_VERSION) {
-        printf("Invalid version: %hhu\n", Invariant->Version);
+    PCP_RESPONSE* Response = (PCP_RESPONSE*)Datagram->Buffer;
+    if (Response->Version != PCP_VERSION) {
+        printf("Invalid version: %hhu\n", Response->Version);
         return;
     }
 
-    if (Invariant->Request != 1) {
+    if (Response->Request != 1) {
         printf("Received unexpected request\n");
         return;
     }
 
-    if (Invariant->Opcode != PCP_OPCODE_MAP) {
-        printf("Received unexpected opcode, %hhu\n", Invariant->Opcode);
-        return;
+    if (Response->Opcode == PCP_OPCODE_MAP) {
+
+        if (Response->ResultCode != PCP_RESULT_SUCCESS) {
+            printf("Received MAP failure result, %hhu\n", Response->ResultCode);
+            return;
+        }
+
+        if (memcmp(PcpNonce, Response->MAP.MappingNonce, sizeof(PcpNonce))) {
+            printf("Received invalid nonce\n");
+            return;
+        }
+
+        QUIC_ADDR ExternalAddr = {0};
+        QuicAddrSetFamily(&ExternalAddr, QUIC_ADDRESS_FAMILY_INET6);
+        QuicCopyMemory(
+            &ExternalAddr.Ipv6.sin6_addr,
+            Response->MAP.AssignedExternalIpAddress,
+            sizeof(Response->MAP.AssignedExternalIpAddress));
+        ExternalAddr.Ipv6.sin6_port = Response->MAP.AssignedExternalPort;
+        QuicConvertFromMappedV6(&ExternalAddr, &ExternalAddr);
+
+        QUIC_ADDR_STR AddrStr;
+        QuicAddrToString(&ExternalAddr, &AddrStr);
+        printf("Response: %s maps to :%hu for %u seconds\n",
+            AddrStr.Address,
+            QuicByteSwapUint16(Response->MAP.InternalPort),
+            QuicByteSwapUint32(Response->Lifetime));
+
+    } else if (Response->Opcode == PCP_OPCODE_PEER) {
+
+        if (Response->ResultCode != PCP_RESULT_SUCCESS) {
+            printf("Received PEER failure result, %hhu\n", Response->ResultCode);
+            return;
+        }
+
+        if (memcmp(PcpNonce, Response->MAP.MappingNonce, sizeof(PcpNonce))) {
+            printf("Received invalid nonce\n");
+            return;
+        }
+
+        QUIC_ADDR ExternalAddr = {0};
+        QuicAddrSetFamily(&ExternalAddr, QUIC_ADDRESS_FAMILY_INET6);
+        QuicCopyMemory(
+            &ExternalAddr.Ipv6.sin6_addr,
+            Response->PEER.AssignedExternalIpAddress,
+            sizeof(Response->PEER.AssignedExternalIpAddress));
+        ExternalAddr.Ipv6.sin6_port = Response->MAP.AssignedExternalPort;
+        QuicConvertFromMappedV6(&ExternalAddr, &ExternalAddr);
+
+        QUIC_ADDR RemotePeerAddr = {0};
+        QuicAddrSetFamily(&RemotePeerAddr, QUIC_ADDRESS_FAMILY_INET6);
+        QuicCopyMemory(
+            &RemotePeerAddr.Ipv6.sin6_addr,
+            Response->PEER.RemotePeerIpAddress,
+            sizeof(Response->PEER.RemotePeerIpAddress));
+        RemotePeerAddr.Ipv6.sin6_port = Response->PEER.RemotePeerPort;
+        QuicConvertFromMappedV6(&RemotePeerAddr, &RemotePeerAddr);
+
+        QUIC_ADDR_STR ExternalAddrStr, RemotePeerAddrStr;
+        QuicAddrToString(&ExternalAddr, &ExternalAddrStr);
+        QuicAddrToString(&RemotePeerAddr, &RemotePeerAddrStr);
+        printf("Response: %s (to peer %s) maps to :%hu for %u seconds\n",
+            ExternalAddrStr.Address,
+            RemotePeerAddrStr.Address,
+            QuicByteSwapUint16(Response->PEER.InternalPort),
+            QuicByteSwapUint32(Response->Lifetime));
+
+    } else {
+
+        printf("Received unexpected opcode, %hhu\n", Response->Opcode);
     }
-
-    PCP_RESPONSE_HEADER* ResponseHeader = (PCP_RESPONSE_HEADER*)Datagram->Buffer;
-    PCP_MAP_RESPONSE* MapResponse = (PCP_MAP_RESPONSE*)ResponseHeader->OpcodePayload;
-
-    if (ResponseHeader->ResultCode != PCP_RESULT_SUCCESS) {
-        printf("Received failure result, %hhu\n", ResponseHeader->ResultCode);
-        return;
-    }
-
-    QUIC_ADDR ExternalAddr = {0};
-    ExternalAddr.si_family = QUIC_ADDRESS_FAMILY_INET6;
-    QuicCopyMemory(
-        &ExternalAddr.Ipv6.sin6_addr,
-        MapResponse->AssignedExternalIpAddress,
-        sizeof(MapResponse->AssignedExternalIpAddress));
-    ExternalAddr.Ipv6.sin6_port = MapResponse->AssignedExternalPort;
-    QuicConvertFromMappedV6(&ExternalAddr, &ExternalAddr);
-
-    QUIC_ADDR_STR AddrStr;
-    QuicAddrToString(&ExternalAddr, &AddrStr);
-    printf("Response: %s maps to :%hu for %u seconds\n",
-        AddrStr.Address,
-        QuicByteSwapUint16(MapResponse->InternalPort),
-        QuicByteSwapUint32(ResponseHeader->Lifetime));
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -171,64 +241,152 @@ UdpUnreachCallback(
 {
 }
 
-bool SendPcpMessage(QUIC_DATAPATH_BINDING* Binding)
+bool
+SendPcpMapRequest(
+    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ uint16_t InternalPort,             // Host byte order
+    _In_ uint32_t Lifetime                  // Host byte order
+    )
 {
-    QUIC_ADDR LocalAddress;
+    QUIC_ADDR LocalAddress, RemoteAddress;
     QuicDataPathBindingGetLocalAddress(Binding, &LocalAddress);
+    QuicDataPathBindingGetRemoteAddress(Binding, &RemoteAddress);
 
     QUIC_ADDR LocalMappedAddress;
     QuicConvertToMappedV6(&LocalAddress, &LocalMappedAddress);
 
-    const uint16_t UdpPayloadLength =
-        sizeof(PCP_REQUEST_HEADER) + sizeof(PCP_MAP_REQUEST);
-    QUIC_FRE_ASSERT(UdpPayloadLength < PCP_MAX_UDP_PAYLOAD);
-
     QUIC_DATAPATH_SEND_CONTEXT* SendContext =
         QuicDataPathBindingAllocSendContext(
-            Binding, QUIC_ECN_NON_ECT, UdpPayloadLength);
+            Binding, QUIC_ECN_NON_ECT, PCP_MAP_REQUEST_SIZE);
     if (SendContext == nullptr) {
         printf("QuicDataPathBindingAllocSendContext failed\n");
         return false;
     }
 
     QUIC_BUFFER* SendBuffer =
-        QuicDataPathBindingAllocSendDatagram(SendContext, UdpPayloadLength);
+        QuicDataPathBindingAllocSendDatagram(SendContext, PCP_MAP_REQUEST_SIZE);
     if (SendBuffer == nullptr) {
         printf("QuicDataPathBindingAllocSendDatagram failed\n");
         QuicDataPathBindingFreeSendContext(SendContext);
         return false;
     }
 
-    PCP_REQUEST_HEADER* ReqHeader = (PCP_REQUEST_HEADER*)SendBuffer->Buffer;
-    PCP_MAP_REQUEST* MapReq = (PCP_MAP_REQUEST*)ReqHeader->OpcodePayload;
+    PCP_REQUEST* Request = (PCP_REQUEST*)SendBuffer->Buffer;
 
-    ReqHeader->Version = PCP_VERSION;
-    ReqHeader->Request = 0;
-    ReqHeader->Opcode = PCP_OPCODE_MAP;
-    ReqHeader->Reserved = 0;
-    ReqHeader->RequestLifetime = QuicByteSwapUint32(60);
+    Request->Version = PCP_VERSION;
+    Request->Request = 0;
+    Request->Opcode = PCP_OPCODE_MAP;
+    Request->Reserved = 0;
+    Request->RequestLifetime = QuicByteSwapUint32(Lifetime);
     QuicCopyMemory(
-        ReqHeader->ClientIpAddress,
+        Request->ClientIpAddress,
         &LocalMappedAddress.Ipv6.sin6_addr,
-        sizeof(ReqHeader->ClientIpAddress));
-    QuicRandom(sizeof(MapReq->MappingNonce), MapReq->MappingNonce);
-    MapReq->Protocol = 17; // UDP
-    QuicZeroMemory(MapReq->Reserved, sizeof(MapReq->Reserved));
-    MapReq->InternalPort = QuicByteSwapUint16(1234);
-    MapReq->SuggestedExternalPort = 0;
+        sizeof(Request->ClientIpAddress));
+    QuicCopyMemory(Request->MAP.MappingNonce, PcpNonce, sizeof(PcpNonce));
+    Request->MAP.Protocol = 17; // UDP
+    QuicZeroMemory(Request->MAP.Reserved, sizeof(Request->MAP.Reserved));
+    Request->MAP.InternalPort = QuicByteSwapUint16(InternalPort);
+    Request->MAP.SuggestedExternalPort = 0;
     QuicZeroMemory(
-        MapReq->SuggestedExternalIpAddress,
-        sizeof(MapReq->SuggestedExternalIpAddress));
+        Request->MAP.SuggestedExternalIpAddress,
+        sizeof(Request->MAP.SuggestedExternalIpAddress));
 
-    printf("Request: Map :%hu for %u seconds\n",
-        QuicByteSwapUint16(MapReq->InternalPort),
-        QuicByteSwapUint32(ReqHeader->RequestLifetime));
+    if (Request->RequestLifetime) {
+        printf("Request: Map :%hu for %u seconds\n",
+            QuicByteSwapUint16(Request->MAP.InternalPort),
+            QuicByteSwapUint32(Request->RequestLifetime));
+    } else {
+        printf("Request: Delete Map :%hu\n",
+            QuicByteSwapUint16(Request->MAP.InternalPort));
+    }
 
     QUIC_STATUS Status =
         QuicDataPathBindingSend(
             Binding,
             &LocalAddress,
-            &ServerAddress,
+            &RemoteAddress,
+            SendContext);
+    if (QUIC_FAILED(Status)) {
+        printf("QuicDataPathBindingSend failed, 0x%x\n", Status);
+        return false;
+    }
+
+    return true;
+}
+
+bool
+SendPcpPeerRequest(
+    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ const QUIC_ADDR* RemotePeerAddress,
+    _In_ uint16_t InternalPort,             // Host byte order
+    _In_ uint32_t Lifetime                  // Host byte order
+    )
+{
+    QUIC_ADDR LocalAddress, RemoteAddress;
+    QuicDataPathBindingGetLocalAddress(Binding, &LocalAddress);
+    QuicDataPathBindingGetRemoteAddress(Binding, &RemoteAddress);
+
+    QUIC_ADDR LocalMappedAddress;
+    QuicConvertToMappedV6(&LocalAddress, &LocalMappedAddress);
+
+    QUIC_ADDR RemotePeerMappedAddress;
+    QuicConvertToMappedV6(RemotePeerAddress, &RemotePeerMappedAddress);
+
+    QUIC_DATAPATH_SEND_CONTEXT* SendContext =
+        QuicDataPathBindingAllocSendContext(
+            Binding, QUIC_ECN_NON_ECT, PCP_PEER_REQUEST_SIZE);
+    if (SendContext == nullptr) {
+        printf("QuicDataPathBindingAllocSendContext failed\n");
+        return false;
+    }
+
+    QUIC_BUFFER* SendBuffer =
+        QuicDataPathBindingAllocSendDatagram(SendContext, PCP_PEER_REQUEST_SIZE);
+    if (SendBuffer == nullptr) {
+        printf("QuicDataPathBindingAllocSendDatagram failed\n");
+        QuicDataPathBindingFreeSendContext(SendContext);
+        return false;
+    }
+
+    PCP_REQUEST* Request = (PCP_REQUEST*)SendBuffer->Buffer;
+
+    Request->Version = PCP_VERSION;
+    Request->Request = 0;
+    Request->Opcode = PCP_OPCODE_PEER;
+    Request->Reserved = 0;
+    Request->RequestLifetime = QuicByteSwapUint32(Lifetime);
+    QuicCopyMemory(
+        Request->ClientIpAddress,
+        &LocalMappedAddress.Ipv6.sin6_addr,
+        sizeof(Request->ClientIpAddress));
+    QuicCopyMemory(Request->PEER.MappingNonce, PcpNonce, sizeof(PcpNonce));
+    Request->PEER.Protocol = 17; // UDP
+    QuicZeroMemory(Request->PEER.Reserved, sizeof(Request->PEER.Reserved));
+    Request->PEER.InternalPort = QuicByteSwapUint16(InternalPort);
+    Request->PEER.SuggestedExternalPort = 0;
+    QuicZeroMemory(
+        Request->PEER.SuggestedExternalIpAddress,
+        sizeof(Request->PEER.SuggestedExternalIpAddress));
+    QuicCopyMemory(
+        Request->PEER.RemotePeerIpAddress,
+        &RemotePeerMappedAddress.Ipv6.sin6_addr,
+        sizeof(Request->PEER.RemotePeerIpAddress));
+    Request->PEER.RemotePeerPort = RemotePeerMappedAddress.Ipv6.sin6_port;
+
+    if (Request->RequestLifetime) {
+        printf("Request: Peer :%hu for %u seconds\n",
+            QuicByteSwapUint16(Request->MAP.InternalPort),
+            QuicByteSwapUint32(Request->RequestLifetime));
+    } else {
+        printf("Request: Delete Peer :%hu\n",
+            QuicByteSwapUint16(Request->MAP.InternalPort));
+    }
+
+    QUIC_STATUS Status =
+        QuicDataPathBindingSend(
+            Binding,
+            &LocalAddress,
+            &RemoteAddress,
             SendContext);
     if (QUIC_FAILED(Status)) {
         printf("QuicDataPathBindingSend failed, 0x%x\n", Status);
@@ -246,9 +404,11 @@ main(
     )
 {
     int ErrorCode = -1;
-    const char* ServerStr;
     QUIC_DATAPATH_BINDING* Binding = nullptr;
     QUIC_STATUS Status;
+
+    UNREFERENCED_PARAMETER(argc);
+    UNREFERENCED_PARAMETER(argv);
 
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
@@ -257,24 +417,29 @@ main(
         UdpRecvCallback,
         UdpUnreachCallback,
         &Datapath);
+    QuicRandom(sizeof(PcpNonce), PcpNonce);
 
-    if (argc < 2) {
-        PrintUsage();
+    Status =
+        QuicDataPathGetGatewayAddresses(
+            Datapath,
+            &GatewayAddresses,
+            &GatewayAddressesCount);
+    if (QUIC_FAILED(Status)) {
+        printf("QuicDataPathGetGatewayAddresses failed, 0x%x\n", Status);
         goto Error;
     }
 
-    if (!TryGetValue(argc, argv, "server", &ServerStr) ||
-        !ConvertArgToAddress(ServerStr, 0, &ServerAddress)) {
-        printf("Invalid 'server' arg!\n");
-        goto Error;
-    }
-    QuicAddrSetPort(&ServerAddress, QUIC_PCP_PORT);
+    QuicAddrSetPort(&GatewayAddresses[0], QUIC_PCP_PORT);
+
+    QUIC_ADDR_STR AddrStr;
+    QuicAddrToString(&GatewayAddresses[0], &AddrStr);
+    printf("Gateway: %s\n", AddrStr.Address);
 
     Status =
         QuicDataPathBindingCreate(
             Datapath,
             nullptr,
-            &ServerAddress,
+            &GatewayAddresses[0],
             nullptr,
             &Binding);
     if (QUIC_FAILED(Status)) {
@@ -282,11 +447,16 @@ main(
         goto Error;
     }
 
-    if (!SendPcpMessage(Binding)) {
+    if (!SendPcpMapRequest(Binding, 1234, 360000)) {
         goto Error;
     }
+    QuicSleep(1000);
 
-    QuicSleep(3000);
+    if (!SendPcpMapRequest(Binding, 1234, 0)) {
+        goto Error;
+    }
+    QuicSleep(1000);
+
     ErrorCode = 1;
 
 Error:
@@ -294,6 +464,7 @@ Error:
     if (Binding) {
         QuicDataPathBindingDelete(Binding);
     }
+    QUIC_FREE(GatewayAddresses);
     QuicDataPathUninitialize(Datapath);
     QuicPlatformUninitialize();
     QuicPlatformSystemUnload();
