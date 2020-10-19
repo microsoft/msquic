@@ -357,6 +357,19 @@ QuicPcpRecvCallback(
     QuicDataPathBindingReturnRecvDatagrams(RecvBufferChain);
 }
 
+BOOL
+QuicDatapathBindingMatchesLocalAddr(
+    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ const QUIC_ADDR* LocalAddr
+    )
+{
+    QUIC_ADDR BindingLocalAddress;
+    QuicDataPathBindingGetLocalAddress(Binding, &BindingLocalAddress);
+    return
+        QuicAddrGetFamily(LocalAddr) == QuicAddrGetFamily(&BindingLocalAddress) &&
+        QuicAddrCompareIp(LocalAddr, &BindingLocalAddress);
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPcpSendMapRequestInternal(
@@ -434,11 +447,11 @@ QuicPcpSendMapRequest(
 {
     QUIC_DBG_ASSERT(PcpContext != NULL);
 
-    UNREFERENCED_PARAMETER(LocalAddress); // TODO
-
     QUIC_STATUS Status;
     for (uint32_t i = 0; i < PcpContext->GatewayCount; ++i) {
-        if (PcpContext->GatewayBindings[i] != NULL) {
+        if (LocalAddress == NULL ||
+            QuicDatapathBindingMatchesLocalAddr(
+                PcpContext->GatewayBindings[i], LocalAddress)) {
             Status =
                 QuicPcpSendMapRequestInternal(
                     PcpContext->GatewayBindings[i],
@@ -541,11 +554,11 @@ QuicPcpSendPeerRequest(
 {
     QUIC_DBG_ASSERT(PcpContext != NULL);
 
-    UNREFERENCED_PARAMETER(LocalAddress); // TODO
-
     QUIC_STATUS Status;
     for (uint32_t i = 0; i < PcpContext->GatewayCount; ++i) {
-        if (PcpContext->GatewayBindings[i] != NULL) {
+        if (LocalAddress == NULL ||
+            QuicDatapathBindingMatchesLocalAddr(
+                PcpContext->GatewayBindings[i], LocalAddress)) {
             Status =
                 QuicPcpSendPeerRequestInternal(
                     PcpContext->GatewayBindings[i],
