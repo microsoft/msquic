@@ -169,6 +169,7 @@ QuicPcpInitialize(
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_PCP",
             PcpContextSize);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
