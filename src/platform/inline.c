@@ -247,18 +247,6 @@ QuicAddrIsWildCard(
     _In_ const QUIC_ADDR* const Addr
     );
 
-void
-QuicConvertToMappedV6(
-    _In_ const QUIC_ADDR* InAddr,
-    _Out_ QUIC_ADDR* OutAddr
-    );
-
-void
-QuicConvertFromMappedV6(
-    _In_ const QUIC_ADDR* InAddr,
-    _Out_ QUIC_ADDR* OutAddr
-    );
-
 BOOLEAN
 QuicAddr4FromString(
     _In_z_ const char* AddrStr,

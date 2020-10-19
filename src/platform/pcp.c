@@ -118,6 +118,9 @@ typedef struct PCP_RESPONSE {
 const uint16_t PCP_MAP_REQUEST_SIZE = SIZEOF_THROUGH_FIELD(PCP_REQUEST, MAP.SuggestedExternalIpAddress);
 const uint16_t PCP_PEER_REQUEST_SIZE = SIZEOF_THROUGH_FIELD(PCP_REQUEST, PEER.RemotePeerIpAddress);
 
+const uint16_t PCP_MAP_RESPONSE_SIZE = SIZEOF_THROUGH_FIELD(PCP_RESPONSE, MAP.AssignedExternalIpAddress);
+const uint16_t PCP_PEER_RESPONSE_SIZE = SIZEOF_THROUGH_FIELD(PCP_RESPONSE, PEER.RemotePeerIpAddress);
+
 //
 // Main structure for PCP
 //
@@ -160,7 +163,7 @@ QuicPcpInitialize(
 
     PcpContextSize = sizeof(QUIC_PCP) + (GatewayAddressesCount * sizeof(QUIC_DATAPATH_BINDING*));
     PcpContext = (QUIC_PCP*)QUIC_ALLOC_PAGED(PcpContextSize);
-    if (Datapath == NULL) {
+    if (PcpContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
@@ -233,7 +236,7 @@ QuicPcpProcessDatagram(
 {
     PCP_RESPONSE* Response = (PCP_RESPONSE*)Datagram->Buffer;
 
-    if (Datagram->BufferLength < PCP_MAP_REQUEST_SIZE) {
+    if (Datagram->BufferLength < PCP_MAP_RESPONSE_SIZE) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -285,6 +288,14 @@ QuicPcpProcessDatagram(
         Event.MAP.ExternalAddress = &ExternalAddress;
 
     } else if (Response->Opcode == PCP_OPCODE_PEER) {
+
+        if (Datagram->BufferLength < PCP_PEER_RESPONSE_SIZE) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "PCP: Invalid length");
+            return;
+        }
 
         QuicAddrSetFamily(&ExternalAddress, QUIC_ADDRESS_FAMILY_INET6);
         QuicCopyMemory(

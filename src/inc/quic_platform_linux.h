@@ -740,6 +740,23 @@ QuicRandom(
     _Out_writes_bytes_(BufferLen) void* Buffer
     );
 
+//
+// Tracing stuff.
+//
+
+void
+QuicConvertToMappedV6(
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
+    );
+
+void
+QuicConvertFromMappedV6(
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
+    );
+
+
 #define QuicSetCurrentThreadProcessorAffinity(ProcessorIndex) QUIC_STATUS_SUCCESS
 #define QuicSetCurrentThreadGroupAffinity(ProcessorGroup) QUIC_STATUS_SUCCESS
 
