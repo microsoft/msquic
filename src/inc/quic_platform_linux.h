@@ -756,7 +756,6 @@ QuicConvertFromMappedV6(
     _Out_ QUIC_ADDR* OutAddr
     );
 
-
 #define QuicSetCurrentThreadProcessorAffinity(ProcessorIndex) QUIC_STATUS_SUCCESS
 #define QuicSetCurrentThreadGroupAffinity(ProcessorGroup) QUIC_STATUS_SUCCESS
 
