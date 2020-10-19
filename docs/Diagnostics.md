@@ -72,4 +72,77 @@ First off, you're going to need xperf and wpa. Installing the [Windows ADK](http
 
 ## Counters
 
+To assist investigations into running systems, MsQuic has a number of performance counters that are updated during runtime. These counters are exposed as a global `GetParam` parameter.
+Sample code demonstrating how to query the performance counters:
+```c
+uint64_t Counters[QUIC_PERF_COUNTER_MAX];
+uint32_t BufferLength = sizeof(Counters);
+MsQuic->GetParam(
+    nullptr,
+    QUIC_PARAM_LEVEL_GLOBAL,
+    QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+    &BufferLength,
+    Counters);
+```
+
+Each of the parameters available is described here:
+*   QUIC_PERF_COUNTER_CONN_CREATED
+    * Total connections ever allocated.
+    
+*   QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL
+    * Total connections that failed during handshake.
+    
+*   QUIC_PERF_COUNTER_CONN_APP_REJECT
+    * Total connections rejected by the application.
+*   QUIC_PERF_COUNTER_CONN_RESUMED
+    * Total connections resumed.
+*   QUIC_PERF_COUNTER_CONN_ACTIVE
+    * Connections currently allocated.
+*   QUIC_PERF_COUNTER_CONN_CONNECTED
+    * Connections currently in the connected state.
+*   QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS
+    * Total connections shutdown with a protocol error.
+*   QUIC_PERF_COUNTER_CONN_NO_ALPN
+    * Total connection attempts with no matching ALPN.
+*   QUIC_PERF_COUNTER_STRM_ACTIVE
+    * Current streams allocated.
+*   QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST
+    * Total suspected packets lost
+*   QUIC_PERF_COUNTER_PKTS_DROPPED
+    * Total packets dropped for any reason.
+*   QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL
+    * Total packets with decryption failures.
+*   QUIC_PERF_COUNTER_UDP_RECV
+    * Total UDP datagrams received.
+*   QUIC_PERF_COUNTER_UDP_SEND
+    * Total UDP datagrams sent.
+*   QUIC_PERF_COUNTER_UDP_RECV_BYTES
+    * Total UDP payload bytes received.
+*   QUIC_PERF_COUNTER_UDP_SEND_BYTES
+    * Total UDP payload bytes sent.
+*   QUIC_PERF_COUNTER_UDP_RECV_EVENTS
+    * Total UDP receive events.
+*   QUIC_PERF_COUNTER_UDP_SEND_CALLS
+    * Total UDP send API calls.
+*   QUIC_PERF_COUNTER_APP_SEND_BYTES
+    * Total bytes sent by applications.
+*   QUIC_PERF_COUNTER_APP_RECV_BYTES
+    * Total bytes received by applications.
+*   QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH
+    * Current connections queued for processing.
+*   QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH
+    * Current connection operations queued.
+*   QUIC_PERF_COUNTER_CONN_OPER_QUEUED
+    * Total connection operations queued ever.
+*   QUIC_PERF_COUNTER_CONN_OPER_COMPLETED
+    * Total connection operations processed ever.
+*   QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH
+    * Current worker operations queued.
+*   QUIC_PERF_COUNTER_WORK_OPER_QUEUED
+    * Total worker operations queued ever.
+*   QUIC_PERF_COUNTER_WORK_OPER_COMPLETED
+    * Total worker operations processed ever.
+*   QUIC_PERF_COUNTER_MAX
+    * Not a perf counter; just the count of counters.
+
 # FAQ
