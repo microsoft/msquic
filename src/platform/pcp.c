@@ -357,7 +357,7 @@ QuicPcpRecvCallback(
     QuicDataPathBindingReturnRecvDatagrams(RecvBufferChain);
 }
 
-BOOL
+BOOLEAN
 QuicDatapathBindingMatchesLocalAddr(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR* LocalAddr
