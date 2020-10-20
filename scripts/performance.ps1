@@ -345,7 +345,6 @@ function Invoke-Test {
             }
 
             $OutputString = "Run $($_)"
-
             for ($i = 1; $i -lt $AllLocalParsedResults.Count; $i++) {
                 $OutputString += ": $($AllLocalParsedResults[$i]) $($Test.Units[$i - 1])"
             }
