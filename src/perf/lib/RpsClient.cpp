@@ -94,6 +94,8 @@ RpsClient::Init(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
+    QuicZeroMemory(LatencyValues.get(), sizeof(uint32_t) * MaxLatencyIndex);
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -262,9 +264,18 @@ RpsClient::Wait(
     uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
 
     uint64_t TimeSum = 0;
+    uint64_t Min = 0xFFFFFFFFFFFFFFFF;
+    uint64_t Max = 0;
     uint64_t MaxCount = min(CachedCompletedRequests, MaxLatencyIndex);
     for (uint64_t i = 0; i < MaxCount; i++) {
-        TimeSum += LatencyValues[i];
+        uint64_t Value = LatencyValues[i];
+        TimeSum += Value;
+        if (Value < Min) {
+            Min = Value;
+        }
+        if (Value > Max) {
+            Max = Value;
+        }
     }
 
     uint64_t AvgLatency = 0;
@@ -278,7 +289,7 @@ RpsClient::Wait(
         StandardError = StandardDeviation / sqrt((double)MaxCount);
     }
 
-    WriteOutput("Result: %u RPS, Avg Latency: %llu us, Variance %f, StdDev %f, StdErr %f\n", RPS, (unsigned long long)AvgLatency, Variance, StandardDeviation, StandardError);
+    WriteOutput("Result: %u RPS, Avg Latency: %llu us, Variance %f, StdDev %f, StdErr %f, Max %llu, Min %llu\n", RPS, (unsigned long long)AvgLatency, Variance, StandardDeviation, StandardError, (unsigned long long)Max, (unsigned long long)Min);
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
     //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
 
