@@ -262,7 +262,7 @@
                 "Default": "4096"
             }
         ],
-        "AllowLoopback": true,
+        "AllowLoopback": false,
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": "Result: (.*) RPS, Avg Latency: (.*) us",
