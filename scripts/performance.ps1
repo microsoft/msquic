@@ -428,7 +428,6 @@ try {
             continue
         }
         Invoke-Test -Test $Test
-        break
     }
 
     if ($PGO) {
