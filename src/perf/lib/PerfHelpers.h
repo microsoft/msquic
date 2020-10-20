@@ -269,7 +269,6 @@ public:
 
 template<typename T, bool Paged = false>
 class QuicPoolAllocator {
-    static_assert(sizeof(T) >= sizeof(QUIC_POOL_ENTRY), "T must be large enough to fit in the pool");
     QUIC_POOL Pool;
 public:
     QuicPoolAllocator() noexcept {

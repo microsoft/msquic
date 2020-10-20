@@ -43,7 +43,9 @@ private:
             : Client{Client}, StartTime{StartTime} { }
         RpsClient* Client;
         uint64_t StartTime;
+#if DEBUG
         uint8_t Padding[12];
+#endif
     };
 
     QUIC_STATUS

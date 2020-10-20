@@ -51,7 +51,9 @@ private:
         ConnectionData(_In_ ThroughputClient* Client) : Client{Client} { }
         ThroughputClient* Client;
         ConnectionScope Connection;
+#if DEBUG
         uint8_t Padding[16]; // Padding for Pools
+#endif
     };
 
     struct StreamContext {
