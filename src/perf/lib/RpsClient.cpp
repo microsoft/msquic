@@ -277,7 +277,7 @@ RpsClient::StreamCallback(
             InterlockedIncrement64((int64_t*)&CompletedRequests);
             uint64_t EndTime = QuicTimeUs64();
             uint64_t Delta = QuicTimeDiff64(StrmContext->StartTime, EndTime);
-            InterlockedAdd64((int64_t*)&TimeSum, (int64_t)Delta);
+            InterlockedExchangeAdd64((int64_t*)&TimeSum, (int64_t)Delta);
         }
         break;
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
