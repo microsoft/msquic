@@ -344,9 +344,6 @@ function Invoke-Test {
                 Merge-PGOCounts -Path $LocalExePath
             }
 
-            Write-Output $AllLocalParsedResults
-            Write-Output $AllLocalParsedResults.Count
-
             $OutputString = "Run $($_)"
 
             for ($i = 1; $i -lt $AllLocalParsedResults.Count; $i++) {

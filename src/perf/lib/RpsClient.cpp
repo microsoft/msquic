@@ -234,9 +234,9 @@ RpsClient::Wait(
     uint32_t RPS = (uint32_t)((CompletedRequests * 1000ull) / (uint64_t)RunTime);
     uint64_t AvgLatency = 0;
     if (CompletedRequests != 0) {
-        AvgLatency = US_TO_MS(TimeSum / CompletedRequests);
+        AvgLatency = TimeSum / CompletedRequests;
     }
-    WriteOutput("Result: %u RPS, Avg Latency: %u ms\n", RPS, AvgLatency);
+    WriteOutput("Result: %u RPS, Avg Latency: %llu us\n", RPS, AvgLatency);
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
     //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
 

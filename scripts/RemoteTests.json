@@ -265,8 +265,8 @@
         "AllowLoopback": true,
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Result: (.*) RPS, Avg Latency: (.*) ms",
-        "Units": ["RPS", "Avg Latency ms"]
+        "ResultsMatcher": "Result: (.*) RPS, Avg Latency: (.*) us",
+        "Units": ["RPS", "Avg Latency us"]
     },
     {
         "TestName": "HPS",
