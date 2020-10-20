@@ -227,6 +227,24 @@ RpsClient::Start(
     return QUIC_STATUS_SUCCESS;
 }
 
+static
+double
+ComputeVariance(
+    _In_reads_(Length) uint32_t* Measurements,
+    _In_ uint64_t Length,
+    _In_ uint64_t Mean
+    )
+{
+    if (Length <= 1) {
+        return 0;
+    }
+    double Variance = 0;
+    for (int i = 0; i < Length; i++) {
+        Variance += (Measurements[i] - Mean) * (Measurements[i] - Mean) / (Length - 1);
+    }
+    return Variance;
+}
+
 QUIC_STATUS
 RpsClient::Wait(
     _In_ int Timeout
@@ -250,10 +268,17 @@ RpsClient::Wait(
     }
 
     uint64_t AvgLatency = 0;
+    double Variance = 0;
+    double StandardDeviation = 0;
+    double StandardError = 0;
     if (MaxCount != 0) {
         AvgLatency = TimeSum / MaxCount;
+        Variance = ComputeVariance(LatencyValues.get(), MaxCount, AvgLatency);
+        StandardDeviation = sqrt(Variance);
+        StandardError = StandardDeviation / sqrt((double)MaxCount);
     }
-    WriteOutput("Result: %u RPS, Avg Latency: %llu us\n", RPS, (unsigned long long)AvgLatency);
+
+    WriteOutput("Result: %u RPS, Avg Latency: %llu us, Variance %f, StdDev %f, StdErr %f\n", RPS, (unsigned long long)AvgLatency, Variance, StandardDeviation, StandardError);
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
     //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
 
