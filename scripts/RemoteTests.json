@@ -53,7 +53,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Units": "kbps"
+        "Units": ["kbps"]
     },
     {
         "TestName": "ThroughputUp",
@@ -109,7 +109,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Units": "kbps"
+        "Units": ["kbps"]
     },
     {
         "TestName": "ThroughputDown",
@@ -153,7 +153,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Units": "kbps"
+        "Units": ["kbps"]
     },
     {
         "TestName": "ThroughputDown",
@@ -197,7 +197,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Units": "kbps"
+        "Units": ["kbps"]
     },
     {
         "TestName": "RPS",
@@ -262,11 +262,11 @@
                 "Default": "4096"
             }
         ],
-        "AllowLoopback": false,
+        "AllowLoopback": true,
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Result: (.*) RPS",
-        "Units": "RPS"
+        "ResultsMatcher": "Result: (.*) RPS, Avg Latency: (.*) ms",
+        "Units": ["RPS", "Avg Latency ms"]
     },
     {
         "TestName": "HPS",
@@ -297,6 +297,6 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": "Result: (.*) HPS.*",
-        "Units": "HPS"
+        "Units": ["HPS"]
     }
 ]

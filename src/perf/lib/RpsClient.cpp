@@ -232,7 +232,11 @@ RpsClient::Wait(
     Running = false;
 
     uint32_t RPS = (uint32_t)((CompletedRequests * 1000ull) / (uint64_t)RunTime);
-    WriteOutput("Result: %u RPS\n", RPS);
+    uint64_t AvgLatency = 0;
+    if (CompletedRequests != 0) {
+        AvgLatency = US_TO_MS(TimeSum / CompletedRequests);
+    }
+    WriteOutput("Result: %u RPS, Avg Latency: %u ms\n", RPS, AvgLatency);
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
     //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
 
@@ -263,6 +267,7 @@ RpsClient::ConnectionCallback(
 
 QUIC_STATUS
 RpsClient::StreamCallback(
+    _In_ StreamContext* StrmContext,
     _In_ HQUIC StreamHandle,
     _Inout_ QUIC_STREAM_EVENT* Event
     ) {
@@ -270,6 +275,9 @@ RpsClient::StreamCallback(
     case QUIC_STREAM_EVENT_RECEIVE:
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN) {
             InterlockedIncrement64((int64_t*)&CompletedRequests);
+            uint64_t EndTime = QuicTimeUs64();
+            uint64_t Delta = QuicTimeDiff64(StrmContext->StartTime, EndTime);
+            InterlockedAdd64((int64_t*)&TimeSum, (int64_t)Delta);
         }
         break;
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
@@ -284,6 +292,7 @@ RpsClient::StreamCallback(
             0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+        StreamContextAllocator.Free(StrmContext);
         SendRequest(StreamHandle); // Starts a new stream
         MsQuic->StreamClose(StreamHandle);
         break;
@@ -304,11 +313,16 @@ RpsClient::SendRequest(
 
     QUIC_STREAM_CALLBACK_HANDLER Handler =
         [](HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
-            return ((RpsClient*)Context)->
+            StreamContext* Ctx = reinterpret_cast<StreamContext*>(Context);
+            return (Ctx)->Client->
                 StreamCallback(
+                    Ctx,
                     Stream,
                     Event);
         };
+
+    uint64_t StartTime = QuicTimeUs64();
+    StreamContext* StrmContext = StreamContextAllocator.Alloc(this, StartTime);
 
     HQUIC Stream = nullptr;
     QUIC_STATUS Status =
@@ -316,7 +330,7 @@ RpsClient::SendRequest(
             Handle,
             QUIC_STREAM_OPEN_FLAG_NONE,
             Handler,
-            this,
+            StrmContext,
             &Stream);
     if (QUIC_SUCCEEDED(Status)) {
         InterlockedIncrement64((int64_t*)&StartedRequests);
@@ -329,7 +343,10 @@ RpsClient::SendRequest(
                 nullptr);
         if (QUIC_FAILED(Status)) {
             MsQuic->StreamClose(Stream);
+            StreamContextAllocator.Free(StrmContext);
         }
+    } else {
+        StreamContextAllocator.Free(StrmContext);
     }
 
     return Status;

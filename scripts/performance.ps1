@@ -336,14 +336,24 @@ function Invoke-Test {
         1..$Test.Iterations | ForEach-Object {
             Write-Debug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
-            $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
+            $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
+            $LocalParsedResults = $AllLocalParsedResults[1];
             $AllRunsResults += $LocalParsedResults
             if ($PGO) {
                 # Merge client PGO Counts
                 Merge-PGOCounts -Path $LocalExePath
             }
 
-            Write-Output "Run $($_): $LocalParsedResults $($Test.Units)"
+            Write-Output $AllLocalParsedResults
+            Write-Output $AllLocalParsedResults.Count
+
+            $OutputString = "Run $($_)"
+
+            for ($i = 1; $i -lt $AllLocalParsedResults.Count; $i++) {
+                $OutputString += ": $($AllLocalParsedResults[$i]) $($Test.Units[$i - 1])"
+            }
+
+            Write-Output $OutputString
             $LocalResults | Write-Debug
         }
     } finally {
@@ -421,6 +431,7 @@ try {
             continue
         }
         Invoke-Test -Test $Test
+        break
     }
 
     if ($PGO) {
