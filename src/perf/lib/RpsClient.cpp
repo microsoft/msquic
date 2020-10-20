@@ -236,7 +236,7 @@ RpsClient::Wait(
     if (CompletedRequests != 0) {
         AvgLatency = TimeSum / CompletedRequests;
     }
-    WriteOutput("Result: %u RPS, Avg Latency: %llu us\n", RPS, AvgLatency);
+    WriteOutput("Result: %u RPS, Avg Latency: %llu us\n", RPS, (unsigned long long)AvgLatency);
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
     //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
 
