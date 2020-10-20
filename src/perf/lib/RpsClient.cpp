@@ -86,6 +86,14 @@ RpsClient::Init(
         RequestBuffer.Buffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
     }
 
+    MaxLatencyIndex = (RunTime / 1000) * RPS_MAX_REQUESTS_PER_SECOND;
+
+    LatencyValues = UniquePtr<uint32_t[]>(new(std::nothrow) uint32_t[MaxLatencyIndex]);
+
+    if (LatencyValues == nullptr) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -231,10 +239,19 @@ RpsClient::Wait(
 
     Running = false;
 
-    uint32_t RPS = (uint32_t)((CompletedRequests * 1000ull) / (uint64_t)RunTime);
+    uint64_t CachedCompletedRequests = CompletedRequests;
+
+    uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
+
+    uint64_t TimeSum = 0;
+    uint64_t MaxCount = min(CachedCompletedRequests, MaxLatencyIndex);
+    for (uint64_t i = 0; i < MaxCount; i++) {
+        TimeSum += LatencyValues[i];
+    }
+
     uint64_t AvgLatency = 0;
-    if (CompletedRequests != 0) {
-        AvgLatency = TimeSum / CompletedRequests;
+    if (MaxCount != 0) {
+        AvgLatency = TimeSum / MaxCount;
     }
     WriteOutput("Result: %u RPS, Avg Latency: %llu us\n", RPS, (unsigned long long)AvgLatency);
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
@@ -274,10 +291,15 @@ RpsClient::StreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN) {
-            InterlockedIncrement64((int64_t*)&CompletedRequests);
+            uint64_t ToPlaceIndex = (uint64_t)InterlockedIncrement64((int64_t*)&CompletedRequests) - 1;
             uint64_t EndTime = QuicTimeUs64();
             uint64_t Delta = QuicTimeDiff64(StrmContext->StartTime, EndTime);
-            InterlockedExchangeAdd64((int64_t*)&TimeSum, (int64_t)Delta);
+            if (ToPlaceIndex < MaxLatencyIndex) {
+                if (Delta > 0xFFFFFFFF) {
+                    Delta = 0xFFFFFFFF;
+                }
+                LatencyValues[ToPlaceIndex] = (uint32_t)Delta;
+            }
         }
         break;
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
