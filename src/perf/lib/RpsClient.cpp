@@ -287,9 +287,10 @@ RpsClient::Wait(
         {
 #endif
             Statistics LatencyStats, WithoutOutlierLatencyStats;
-            GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &WithoutOutlierLatencyStats);
+            Percentiles PercentileStats;
+            GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &WithoutOutlierLatencyStats, &PercentileStats);
             WriteOutput(
-                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f,  -- No Outliers: Mean: %f, Variance: %f, StdDev: %f, StdErr: %f\n",
+                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f,  -- No Outliers: Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th %f\n",
                 RPS,
                 LatencyStats.Min,
                 LatencyStats.Max,
@@ -300,7 +301,12 @@ RpsClient::Wait(
                 WithoutOutlierLatencyStats.Mean,
                 WithoutOutlierLatencyStats.Variance,
                 WithoutOutlierLatencyStats.StandardDeviation,
-                WithoutOutlierLatencyStats.StandardError);
+                WithoutOutlierLatencyStats.StandardError,
+                PercentileStats.FiftiethPercentile,
+                PercentileStats.NinetiethPercentile,
+                PercentileStats.NintyNinthPercentile,
+                PercentileStats.NintyNinePointNinthPercentile,
+                PercentileStats.NintyNinePointNineNinethPercentile);
 #ifdef _KERNEL_MODE
         }
     }

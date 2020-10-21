@@ -22,6 +22,14 @@ struct Statistics {
     uint32_t Max {0};
 };
 
+struct Percentiles {
+    double FiftiethPercentile {0};
+    double NinetiethPercentile {0};
+    double NintyNinthPercentile {0};
+    double NintyNinePointNinthPercentile {0};
+    double NintyNinePointNineNinethPercentile {0};
+};
+
 #ifdef _KERNEL_MODE
 __declspec(noinline)
 #endif
@@ -122,7 +130,8 @@ GetStatistics(
     _In_reads_(DataLength) uint32_t* Data,
     _In_ size_t DataLength,
     _Out_ Statistics* AllStatistics,
-    _Out_ Statistics* WithoutOutlierStatistics
+    _Out_ Statistics* WithoutOutlierStatistics,
+    _Out_ Percentiles* PercentileStats
     )
 {
     if (DataLength == 0) {
@@ -200,4 +209,19 @@ GetStatistics(
         Min,
         Max
     };
+
+    uint32_t PercentileIndex = (uint32_t)(DataLength * 0.5);
+    PercentileStats->FiftiethPercentile = Data[PercentileIndex];
+
+    PercentileIndex = (uint32_t)(DataLength * 0.9);
+    PercentileStats->NinetiethPercentile = Data[PercentileIndex];
+
+    PercentileIndex = (uint32_t)(DataLength * 0.99);
+    PercentileStats->NintyNinthPercentile = Data[PercentileIndex];
+
+    PercentileIndex = (uint32_t)(DataLength * 0.999);
+    PercentileStats->NintyNinePointNinthPercentile = Data[PercentileIndex];
+
+    PercentileIndex = (uint32_t)(DataLength * 0.9999);
+    PercentileStats->NintyNinePointNineNinethPercentile = Data[PercentileIndex];
 }
