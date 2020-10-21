@@ -1589,7 +1589,9 @@ QuicTlsWriteDataToSchannel(
     }
 
     SUBSCRIBE_GENERIC_TLS_EXTENSION SubscribeExt;
-    if (*InBufferLength != 0 && !TlsContext->PeerTransportParamsReceived) {
+    if (*InBufferLength != 0 &&
+        !TlsContext->IsServer &&
+        !TlsContext->PeerTransportParamsReceived) {
         //
         // Subscribe to get the peer's transport parameters, if available.
         //
@@ -1736,7 +1738,7 @@ QuicTlsWriteDataToSchannel(
         // The handshake has completed. This may or may not result in more data
         // that needs to be sent back in response (depending on client/server).
         //
-        if (!TlsContext->PeerTransportParamsReceived) {
+        if (!TlsContext->IsServer && !TlsContext->PeerTransportParamsReceived) {
             QuicTraceEvent(
                 TlsError,
                 "[ tls][%p] ERROR, %s.",
