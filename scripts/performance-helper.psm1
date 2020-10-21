@@ -424,7 +424,11 @@ function Invoke-LocalExe {
 
 function Get-MedianTestResults($FullResults) {
     $sorted = $FullResults | Sort-Object
-    return $sorted[[int](($sorted.Length - 1) / 2)]
+    if ($sorted.Length -eq 1) {
+        return $sorted[0]
+    } else {
+        return $sorted[[int](($sorted.Length - 1) / 2)]
+    }
 }
 
 function Get-TestResult($Results, $Matcher) {

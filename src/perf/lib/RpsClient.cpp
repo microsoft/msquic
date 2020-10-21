@@ -15,6 +15,12 @@ Abstract:
 #include "RpsClient.cpp.clog.h"
 #endif
 
+#include "LatencyHelpers.h"
+
+#ifdef _KERNEL_MODE
+EXTERN_C int _fltused = 0;
+#endif
+
 static
 void
 PrintHelp(
@@ -76,7 +82,7 @@ RpsClient::Init(
     TryGetValue(argc, argv, "response", &ResponseLength);
 
     RequestBuffer.Buffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + sizeof(uint64_t) + RequestLength);
-    if (!RequestBuffer) {
+    if (!RequestBuffer.Buffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     RequestBuffer.Buffer->Length = sizeof(uint64_t) + RequestLength;
@@ -86,9 +92,12 @@ RpsClient::Init(
         RequestBuffer.Buffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
     }
 
-    MaxLatencyIndex = (RunTime / 1000) * RPS_MAX_REQUESTS_PER_SECOND;
+    MaxLatencyIndex = ((uint64_t)RunTime / 1000) * RPS_MAX_REQUESTS_PER_SECOND;
+    if (MaxLatencyIndex > (0xFFFFFFFF / sizeof(uint32_t))) {
+        MaxLatencyIndex = 0xFFFFFFFF / sizeof(uint32_t);
+    }
 
-    LatencyValues = UniquePtr<uint32_t[]>(new(std::nothrow) uint32_t[MaxLatencyIndex]);
+    LatencyValues = UniquePtr<uint32_t[]>(new(std::nothrow) uint32_t[(size_t)MaxLatencyIndex]);
 
     if (LatencyValues == nullptr) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -229,23 +238,23 @@ RpsClient::Start(
     return QUIC_STATUS_SUCCESS;
 }
 
-static
-double
-ComputeVariance(
-    _In_reads_(Length) uint32_t* Measurements,
-    _In_ uint64_t Length,
-    _In_ uint64_t Mean
-    )
-{
-    if (Length <= 1) {
-        return 0;
-    }
-    double Variance = 0;
-    for (int i = 0; i < Length; i++) {
-        Variance += (Measurements[i] - Mean) * (Measurements[i] - Mean) / (Length - 1);
-    }
-    return Variance;
-}
+//static
+//double
+//ComputeVariance(
+//    _In_reads_(Length) uint32_t* Measurements,
+//    _In_ uint64_t Length,
+//    _In_ uint64_t Mean
+//    )
+//{
+//    if (Length <= 1) {
+//        return 0;
+//    }
+//    double Variance = 0;
+//    for (int i = 0; i < Length; i++) {
+//        Variance += (Measurements[i] - Mean) * (Measurements[i] - Mean) / (Length - 1);
+//    }
+//    return Variance;
+//}
 
 QUIC_STATUS
 RpsClient::Wait(
@@ -263,33 +272,77 @@ RpsClient::Wait(
 
     uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
 
-    uint64_t TimeSum = 0;
-    uint64_t Min = 0xFFFFFFFFFFFFFFFF;
-    uint64_t Max = 0;
-    uint64_t MaxCount = min(CachedCompletedRequests, MaxLatencyIndex);
-    for (uint64_t i = 0; i < MaxCount; i++) {
-        uint64_t Value = LatencyValues[i];
-        TimeSum += Value;
-        if (Value < Min) {
-            Min = Value;
-        }
-        if (Value > Max) {
-            Max = Value;
-        }
+    uint32_t MaxCount = (uint32_t)min(CachedCompletedRequests, MaxLatencyIndex);
+
+#ifdef _KERNEL_MODE
+    XSTATE_SAVE SaveState;
+    NTSTATUS Status;
+
+    Status = KeSaveExtendedProcessorState(XSTATE_MASK_LEGACY, &SaveState);
+    if (!NT_SUCCESS(Status)) {
+        return Status;
     }
 
-    uint64_t AvgLatency = 0;
-    double Variance = 0;
-    double StandardDeviation = 0;
-    double StandardError = 0;
-    if (MaxCount != 0) {
-        AvgLatency = TimeSum / MaxCount;
-        Variance = ComputeVariance(LatencyValues.get(), MaxCount, AvgLatency);
-        StandardDeviation = sqrt(Variance);
-        StandardError = StandardDeviation / sqrt((double)MaxCount);
+    __try {
+        {
+#endif
+            Statistics LatencyStats, WithoutOutlierLatencyStats;
+            GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &WithoutOutlierLatencyStats);
+            WriteOutput(
+                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f,  -- No Outliers: Mean: %f, Variance: %f, StdDev: %f, StdErr: %f\n",
+                RPS,
+                LatencyStats.Min,
+                LatencyStats.Max,
+                LatencyStats.Mean,
+                LatencyStats.Variance,
+                LatencyStats.StandardDeviation,
+                LatencyStats.StandardError,
+                WithoutOutlierLatencyStats.Mean,
+                WithoutOutlierLatencyStats.Variance,
+                WithoutOutlierLatencyStats.StandardDeviation,
+                WithoutOutlierLatencyStats.StandardError);
+#ifdef _KERNEL_MODE
+        }
     }
+    __finally {
+        KeRestoreExtendedProcessorState(&SaveState);
+    }
+#endif
 
-    WriteOutput("Result: %u RPS, Avg Latency: %llu us, Variance %f, StdDev %f, StdErr %f, Max %llu, Min %llu\n", RPS, (unsigned long long)AvgLatency, Variance, StandardDeviation, StandardError, (unsigned long long)Max, (unsigned long long)Min);
+
+    //
+
+    //uint64_t TimeSum = 0;
+    //uint64_t Min = 0xFFFFFFFFFFFFFFFF;
+    //uint64_t Max = 0;
+    //uint64_t MaxCount = min(CachedCompletedRequests, MaxLatencyIndex);
+    //for (uint64_t i = 0; i < MaxCount; i++) {
+    //    uint64_t Value = LatencyValues[i];
+    //    TimeSum += Value;
+    //    if (Value < Min) {
+    //        Min = Value;
+    //    }
+    //    if (Value > Max) {
+    //        Max = Value;
+    //    }
+    //}
+
+    //qsort(LatencyValues.get(), MaxCount, sizeof(uint32_t), [](const void* a, const void* b) -> int {
+    //    return *(uint32_t*)a - *(uint32_t*)b;
+    //    });
+
+    //uint64_t AvgLatency = 0;
+    //double Variance = 0;
+    //double StandardDeviation = 0;
+    //double StandardError = 0;
+    //if (MaxCount != 0) {
+    //    AvgLatency = TimeSum / MaxCount;
+    //    Variance = ComputeVariance(LatencyValues.get(), MaxCount, AvgLatency);
+    //    StandardDeviation = sqrt(Variance);
+    //    StandardError = StandardDeviation / sqrt((double)MaxCount);
+    //}
+
+    //WriteOutput("Result: %u RPS, Avg Latency: %llu us, Variance %f, StdDev %f, StdErr %f, Max %llu, Min %llu\n", RPS, (unsigned long long)AvgLatency, Variance, StandardDeviation, StandardError, (unsigned long long)Max, (unsigned long long)Min);
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
     //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
 
