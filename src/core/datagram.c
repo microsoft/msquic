@@ -311,7 +311,7 @@ QuicDatagramOnSendStateChanged(
     QuicTraceLogConnVerbose(
         IndicateDatagramStateChanged,
         Connection,
-        "Indicating DATAGRAM_STATE_CHANGED [SendEnabled=%hhu] [MaxSendLength=%hu]",
+        "Indicating QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED [SendEnabled=%hhu] [MaxSendLength=%hu]",
         Event.DATAGRAM_STATE_CHANGED.SendEnabled,
         Event.DATAGRAM_STATE_CHANGED.MaxSendLength);
     (void)QuicConnIndicateEvent(Connection, &Event);
