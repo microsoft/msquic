@@ -170,9 +170,10 @@ del msquicpriv.pgc
 
 On the machine acting as client, run the following commands to generate traffic:
 ```
-quicperf -test:tput -target:<server IP> -upload:1000000
-quicperf -test:RPS -target:<server IP> -upload:1000000
-quicperf -test:HPS -target:<server IP> -upload:1000000
+quicperf -test:tput -target:<server IP> -upload:1000000000
+quicperf -test:tput -target:<server IP> -download:1000000000
+quicperf -test:RPS -target:<server IP>
+quicperf -test:HPS -target:<server IP>
 ```
 
 After the client finishes all scenarios, on the server run this again:
