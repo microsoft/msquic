@@ -40,6 +40,7 @@ typedef struct QUIC_DRIVER_CLIENT {
     WDFREQUEST Request;
     QUIC_THREAD Thread;
     bool Canceled;
+    bool CleanupHandleCancellation;
 } QUIC_DRIVER_CLIENT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DRIVER_CLIENT, QuicPerfCtlGetFileContext);
@@ -499,6 +500,7 @@ QuicPerfCtlEvtIoCanceled(
     )
 {
     NTSTATUS Status;
+    
 
     WDFFILEOBJECT FileObject = WdfRequestGetFileObject(Request);
     if (FileObject == nullptr) {
@@ -521,6 +523,11 @@ QuicPerfCtlEvtIoCanceled(
         Client,
         Request);
 
+    WdfObjectAcquireLock(Request);
+    if (Client->CleanupHandleCancellation) {
+        WdfRequestComplete(Request, STATUS_CANCELLED);
+    }
+    WdfObjectReleaseLock(Request);
     return;
 Error:
     WdfRequestComplete(Request, Status);
@@ -582,6 +589,7 @@ QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
     char* LocalBuffer = nullptr;
     DWORD ReturnedLength = 0;
     QUIC_STATUS StopStatus;
+    NTSTATUS Status;
 
     StopStatus =
         QuicMainStop(0);
@@ -594,9 +602,15 @@ QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
         return;
     }
 
-    WdfRequestUnmarkCancelable(Request);
+    WdfObjectAcquireLock(Request);
+    Status = WdfRequestUnmarkCancelable(Request);
+    Client->CleanupHandleCancellation = TRUE;
+    WdfObjectReleaseLock(Request);
+    if (Status == STATUS_CANCELLED) {
+        return;
+    }
 
-    NTSTATUS Status =
+    Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
             (size_t)BufferCurrent + 1,
