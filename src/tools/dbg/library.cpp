@@ -23,9 +23,15 @@ EXT_COMMAND(
     Dml("\n<b>LIBRARY</b> (<link cmd=\"dt msquic!QUIC_LIBRARY 0x%I64X\">raw</link>)\n"
         "\n"
         "\tRefCount             %u\n"
+        "\tHandshake Mem        %llu bytes\n"
+        "\tRetry Mem Limit      %llu bytes\n"
+        "\tSending Retries      %s\n"
         "\n",
         Lib.Addr,
-        Lib.RefCount());
+        Lib.RefCount(),
+        Lib.CurrentHandshakeMemoryUsage(),
+        Lib.RetryHandshakeMemoryLimit(),
+        Lib.IsSendingRetries() ? "yes" : "no");
 
     Dml("\n<u>REGISTRATIONS</u>\n"
         "\n");
