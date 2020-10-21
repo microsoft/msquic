@@ -2578,14 +2578,16 @@ QuicConnProcessPeerTransportParameters(
 
     QuicDatagramOnSendStateChanged(&Connection->Datagram);
 
-    if (Connection->State.Disable1RttEncrytion &&
-        Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION) {
-        QuicTraceLogConnInfo(
-            NegotiatedDisable1RttEncryption,
-            Connection,
-            "Negotiated Disable 1-RTT Encryption");
-    } else {
-        Connection->State.Disable1RttEncrytion = FALSE;
+    if (Connection->State.Started) {
+        if (Connection->State.Disable1RttEncrytion &&
+            Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION) {
+            QuicTraceLogConnInfo(
+                NegotiatedDisable1RttEncryption,
+                Connection,
+                "Negotiated Disable 1-RTT Encryption");
+        } else {
+            Connection->State.Disable1RttEncrytion = FALSE;
+        }
     }
 
     return;
@@ -5493,6 +5495,15 @@ QuicConnParamSet(
         }
 
         if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        if (Connection->State.PeerTransportParameterValid &&
+            (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION))) {
+            //
+            // The peer did't negotiate the feature.
+            //
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }

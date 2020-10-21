@@ -6537,7 +6537,7 @@
     },
     "IndicateDatagramStateChanged": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Indicating DATAGRAM_STATE_CHANGED [SendEnabled=%hhu] [MaxSendLength=%hu]",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED [SendEnabled=%hhu] [MaxSendLength=%hu]",
       "UniqueId": "IndicateDatagramStateChanged",
       "splitArgs": [
         {
@@ -9558,7 +9558,7 @@
     },
     "ListenerIndicateNewConnection": {
       "ModuleProperites": {},
-      "TraceString": "[list][%p] Indicating NEW_CONNECTION",
+      "TraceString": "[list][%p] Indicating NEW_CONNECTION %p",
       "UniqueId": "ListenerIndicateNewConnection",
       "splitArgs": [
         {
@@ -9568,6 +9568,14 @@
           },
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
         }
       ],
       "macro": {
@@ -18973,49 +18981,6 @@
         "CustomSettings": null
       }
     },
-    "TlsErrorStatus": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls][%p] ERROR, %u, %s.",
-      "UniqueId": "TlsErrorStatus",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "TlsContext->Connection",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Status",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "\"QuicTlsDerivePacketProtectionKey failed\"",
-            "SuggestedTelemetryName": "arg4"
-          },
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceEvent",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "SchannelInitialized": {
       "ModuleProperites": {},
       "TraceString": "[ tls] Library initialized",
@@ -19633,6 +19598,49 @@
         "MacroName": "QuicTraceLogConnVerbose",
         "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TlsErrorStatus": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p] ERROR, %u, %s.",
+      "UniqueId": "TlsErrorStatus",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "\"Convert SNI to unicode\"",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
@@ -21906,7 +21914,7 @@
         "TraceID": "DatagramSendShutdown"
       },
       {
-        "UniquenessHash": "bfbc130b-6496-c8c1-c193-82dc7dbfb83e",
+        "UniquenessHash": "67a8d85c-7122-a922-2370-3f841ac174ed",
         "TraceID": "IndicateDatagramStateChanged"
       },
       {
@@ -22198,7 +22206,7 @@
         "TraceID": "PerfCountersRundown"
       },
       {
-        "UniquenessHash": "ffc33ba8-4bc7-9e30-e207-f1d3cb6bb3f2",
+        "UniquenessHash": "f27f1ff0-edfe-bf39-708a-f9da7a2b4d3d",
         "TraceID": "ListenerIndicateNewConnection"
       },
       {
@@ -23302,10 +23310,6 @@
         "TraceID": "OpenSslProcessData"
       },
       {
-        "UniquenessHash": "7312d23f-2305-b54b-e1da-81597fabe281",
-        "TraceID": "TlsErrorStatus"
-      },
-      {
         "UniquenessHash": "a0f9d887-3cc8-3dd3-f2c7-8143878abe6e",
         "TraceID": "SchannelInitialized"
       },
@@ -23388,6 +23392,10 @@
       {
         "UniquenessHash": "183e91b7-6ad7-7a8b-0d77-94004bde6757",
         "TraceID": "SchannelProcessingData"
+      },
+      {
+        "UniquenessHash": "7312d23f-2305-b54b-e1da-81597fabe281",
+        "TraceID": "TlsErrorStatus"
       },
       {
         "UniquenessHash": "64ef2389-7553-24d5-62f5-94fa1ab55eac",

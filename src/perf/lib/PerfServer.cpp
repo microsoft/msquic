@@ -104,15 +104,12 @@ PerfServer::ListenerCallback(
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
         BOOLEAN value = TRUE;
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                Event->NEW_CONNECTION.Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
-                sizeof(value),
-                &value))) {
-            WriteOutput("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n");
-        }
+        MsQuic->SetParam(
+            Event->NEW_CONNECTION.Connection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
+            sizeof(value),
+            &value);
         QUIC_CONNECTION_CALLBACK_HANDLER Handler =
             [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
                 return ((PerfServer*)Context)->
