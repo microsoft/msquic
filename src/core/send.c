@@ -898,6 +898,12 @@ QuicSendPathChallenges(
             continue;
         }
 
+        //
+        // Path challenges need to be padded to at least the same as initial
+        // packets to validate min MTU.
+        //
+        Builder.MinimumDatagramLength = QUIC_INITIAL_PACKET_LENGTH;
+
         uint16_t AvailableBufferLength =
             (uint16_t)Builder.Datagram->Length - Builder.EncryptionOverhead;
 
