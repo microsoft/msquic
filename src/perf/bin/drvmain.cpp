@@ -107,6 +107,12 @@ void __cdecl operator delete[] (_In_opt_ void* Mem) {
     }
 }
 
+void __cdecl operator delete[] (_In_opt_ void* Mem, _In_opt_ size_t) {
+    if (Mem != nullptr) {
+        ExFreePoolWithTag(Mem, QUIC_POOL_PERF);
+    }
+}
+
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
 extern "C"

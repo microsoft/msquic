@@ -15,7 +15,7 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
   * Handshake authenticated with TLS 1.3
   * All packets are encrypted
   * Parallel streams of application data.
-  * Relaible and unreliable delivery of application data.
+  * Reliable and unreliable delivery of application data.
   * Exchange application data in the first round trip (0-RTT).
   * Improved (compared to TCP) congestion control and loss recovery.
   * Survives a change in the clients IP address or port.

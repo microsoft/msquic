@@ -564,12 +564,7 @@ QuicTlsServerProcess(
                 break;
             }
             case TlsExt_QuicTransportParameters: {
-                const QUIC_TLS_QUIC_TP_EXT* QuicTP = (QUIC_TLS_QUIC_TP_EXT*)ExtList;
-                TlsContext->ReceiveTPCallback(
-                    TlsContext->Connection,
-                    ExtLength,
-                    QuicTP->TP);
-                break;
+                break; // Unused
             }
             default:
                 QUIC_FRE_ASSERT(FALSE);

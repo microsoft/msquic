@@ -224,8 +224,8 @@ typedef struct QUIC_CERTIFICATE_HASH_STORE {
 } QUIC_CERTIFICATE_HASH_STORE;
 
 typedef struct QUIC_CERTIFICATE_FILE {
-    char *PrivateKeyFile;
-    char *CertificateFile;
+    const char *PrivateKeyFile;
+    const char *CertificateFile;
 } QUIC_CERTIFICATE_FILE;
 
 typedef void QUIC_CERTIFICATE; // Platform specific certificate context object
@@ -522,7 +522,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #ifdef QUIC_API_ENABLE_INSECURE_FEATURES
 #define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         15  // uint8_t (BOOLEAN)
 #endif
-#define QUIC_PARAM_CONN_RESUMPTION_STATE                16  // uint8_t[]
+#define QUIC_PARAM_CONN_RESUMPTION_TICKET               16  // uint8_t[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_TLS.

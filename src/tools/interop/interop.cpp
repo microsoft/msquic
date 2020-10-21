@@ -39,6 +39,7 @@ QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
 
 const QUIC_BUFFER HandshakeAlpns[] = {
     { sizeof("hq-31") - 1, (uint8_t*)"hq-31" },
+    { sizeof("h3-31") - 1, (uint8_t*)"h3-31" },
     { sizeof("hq-30") - 1, (uint8_t*)"hq-30" },
     { sizeof("h3-30") - 1, (uint8_t*)"h3-30" },
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
@@ -342,7 +343,10 @@ class InteropConnection {
     QUIC_EVENT RequestComplete;
     QUIC_EVENT QuackAckReceived;
     QUIC_EVENT ShutdownComplete;
+    QUIC_EVENT TicketReceived;
     char* NegotiatedAlpn;
+    const uint8_t* ResumptionTicket;
+    uint32_t ResumptionTicketLength;
 public:
     bool VersionUnsupported : 1;
     bool Connected : 1;
@@ -352,6 +356,8 @@ public:
         Configuration(Configuration),
         Connection(nullptr),
         NegotiatedAlpn(nullptr),
+        ResumptionTicket(nullptr),
+        ResumptionTicketLength(0),
         VersionUnsupported(false),
         Connected(false),
         Resumed(false),
@@ -361,6 +367,7 @@ public:
         QuicEventInitialize(&RequestComplete, TRUE, FALSE);
         QuicEventInitialize(&QuackAckReceived, TRUE, FALSE);
         QuicEventInitialize(&ShutdownComplete, TRUE, FALSE);
+        QuicEventInitialize(&TicketReceived, TRUE, FALSE);
 
         VERIFY_QUIC_SUCCESS(
             MsQuic->ConnectionOpen(
@@ -403,11 +410,13 @@ public:
         Streams.clear();
         Shutdown();
         MsQuic->ConnectionClose(Connection);
+        QuicEventUninitialize(TicketReceived);
         QuicEventUninitialize(ShutdownComplete);
         QuicEventUninitialize(RequestComplete);
         QuicEventUninitialize(QuackAckReceived);
         QuicEventUninitialize(ConnectionComplete);
         delete [] NegotiatedAlpn;
+        delete [] ResumptionTicket;
     }
     bool SetKeepAlive(uint32_t KeepAliveMs) {
         QUIC_SETTINGS Settings{0};
@@ -434,6 +443,16 @@ public:
                     QUIC_PARAM_CONN_SETTINGS,
                     sizeof(Settings),
                     &Settings));
+    }
+    bool SetResumptionTicket(const uint8_t* Ticket, uint32_t TicketLength) {
+        return
+            QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Connection,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_RESUMPTION_TICKET,
+                    TicketLength,
+                    Ticket));
     }
     bool ConnectToServer(const char* ServerName, uint16_t ServerPort) {
         if (QUIC_SUCCEEDED(
@@ -500,21 +519,7 @@ public:
             ReceivedQuackAck;
     }
     bool WaitForTicket() {
-        int TryCount = 0;
-        uint32_t TicketLength = 0;
-        while (TryCount++ < 20) {
-            if (QUIC_STATUS_BUFFER_TOO_SMALL ==
-                MsQuic->GetParam(
-                    Connection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_RESUMPTION_STATE,
-                    &TicketLength,
-                    nullptr)) {
-                break;
-            }
-            QuicSleep(100);
-        }
-        return true; // TryCount < 20;
+        return QuicEventWaitWithTimeout(TicketReceived, WaitTimeoutMs);
     }
     bool UsedZeroRtt() {
         bool Result = true;
@@ -596,6 +601,15 @@ public:
         }
         return false;
     }
+    bool GetResumptionTicket(const uint8_t*& Ticket, uint32_t& TicketLength) {
+        if (!WaitForTicket() || ResumptionTicket == nullptr) {
+            return false;
+        }
+        Ticket = ResumptionTicket;
+        TicketLength = ResumptionTicketLength;
+        ResumptionTicket = nullptr;
+        return true;
+    }
 private:
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -646,6 +660,15 @@ private:
                 pThis->ReceivedQuackAck = true;
                 QuicEventSet(pThis->QuackAckReceived);
             }
+            break;
+        case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
+            pThis->ResumptionTicketLength = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
+            pThis->ResumptionTicket = new uint8_t[pThis->ResumptionTicketLength];
+            memcpy(
+                (uint8_t*)pThis->ResumptionTicket,
+                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket,
+                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
+            QuicEventSet(pThis->TicketReceived);
             break;
         default:
             break;
@@ -757,14 +780,20 @@ RunInteropTest(
     case Resumption:
     case StatelessRetry:
     case PostQuantum: {
+        const uint8_t* ResumptionTicket = nullptr;
+        uint32_t ResumptionTicketLength = 0;
         if (Feature == Resumption) {
             InteropConnection Connection(Configuration);
             if (!Connection.ConnectToServer(Endpoint.ServerName, Port) ||
-                !Connection.WaitForTicket()) {
+                !Connection.WaitForTicket() ||
+                !Connection.GetResumptionTicket(ResumptionTicket, ResumptionTicketLength)) {
                 break;
             }
         }
         InteropConnection Connection(Configuration, false, Feature == PostQuantum);
+        if (Feature == Resumption) {
+            Connection.SetResumptionTicket(ResumptionTicket, ResumptionTicketLength);
+        }
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
@@ -784,19 +813,26 @@ RunInteropTest(
                 Success = Connection.SendHttpRequests();
             }
         }
+        delete [] ResumptionTicket;
         break;
     }
 
     case StreamData:
     case ZeroRtt: {
+        const uint8_t* ResumptionTicket = nullptr;
+        uint32_t ResumptionTicketLength = 0;
         if (Feature == ZeroRtt) {
             InteropConnection Connection(Configuration);
             if (!Connection.ConnectToServer(Endpoint.ServerName, Port) ||
-                !Connection.WaitForTicket()) {
+                !Connection.WaitForTicket() ||
+                !Connection.GetResumptionTicket(ResumptionTicket, ResumptionTicketLength)) {
                 break;
             }
         }
         InteropConnection Connection(Configuration, false);
+        if (Feature == ZeroRtt) {
+            Connection.SetResumptionTicket(ResumptionTicket, ResumptionTicketLength);
+        }
         if (Connection.SendHttpRequests(false) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port) &&
             Connection.WaitForHttpResponses()) {
@@ -808,6 +844,7 @@ RunInteropTest(
                 Success = true;
             }
         }
+        delete [] ResumptionTicket;
         break;
     }
 

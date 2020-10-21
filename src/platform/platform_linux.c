@@ -175,8 +175,13 @@ QuicAlloc(
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->Alloc(ByteCount);
 #else
+#ifdef QUIC_RANDOM_ALLOC_FAIL
+    uint8_t Rand; QuicRandom(sizeof(Rand), &Rand);
+    return ((Rand % 100) == 1) ? NULL : malloc(ByteCount);
+#else
     return malloc(ByteCount);
-#endif
+#endif // QUIC_RANDOM_ALLOC_FAIL
+#endif // QUIC_PLATFORM_DISPATCH_TABLE
 }
 
 void

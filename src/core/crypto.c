@@ -1153,9 +1153,11 @@ QuicConnReceiveTP(
     _In_reads_(TPLength) const uint8_t* TPBuffer
     )
 {
+    QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
+
     if (!QuicCryptoTlsDecodeTransportParameters(
             Connection,
-            !QuicConnIsServer(Connection),
+            TRUE,
             TPBuffer,
             TPLength,
             &Connection->PeerTransportParams)) {
@@ -1555,6 +1557,8 @@ QuicCryptoProcessData(
                 //
                 goto Error;
             }
+
+            QuicConnProcessPeerTransportParameters(Connection, FALSE);
 
             QuicRecvBufferDrain(&Crypto->RecvBuffer, 0);
             QuicCryptoValidate(Crypto);

@@ -396,7 +396,7 @@ function Merge-PGOCounts {
 
 function Invoke-LocalExe {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
-    param ($Exe, $RunArgs, $Timeout)
+    param ($Exe, $RunArgs, $Timeout, $OutputDir)
     if (!$IsWindows) {
         $BasePath = Split-Path $Exe -Parent
         $env:LD_LIBRARY_PATH = $BasePath

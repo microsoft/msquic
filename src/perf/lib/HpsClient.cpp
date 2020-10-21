@@ -27,6 +27,7 @@ PrintHelp(
         "  -runtime:<####>             The total runtime (in ms). (def:%u)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -parallel:<####>            The number of parallel connections per core. (def:%u)\n"
+        "  -threads:<####>             The number of threads to use. Defaults and capped to number of cores/threads\n"
         "\n",
         HPS_DEFAULT_RUN_TIME,
         PERF_DEFAULT_PORT,
@@ -55,6 +56,12 @@ HpsClient::Init(
         //
         ActiveProcCount -= 2;
     }
+
+    uint32_t TmpProcCount = ActiveProcCount;
+    if (TryGetValue(argc, argv, "threads", &TmpProcCount) && TmpProcCount < ActiveProcCount) {
+        ActiveProcCount = TmpProcCount;
+    }
+
     if (ActiveProcCount > HPS_MAX_WORKER_COUNT) {
         ActiveProcCount = HPS_MAX_WORKER_COUNT;
     }
@@ -126,11 +133,8 @@ HpsClient::Start(
     uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
     if (ThreadToSetAffinityTo > 2) {
         ThreadToSetAffinityTo -= 2;
-        //
-        // TODO: Fix QuicSetCurrentThreadProcessorAffinity to take 16 bits
-        //
         Status =
-            QuicSetCurrentThreadProcessorAffinity((uint8_t)ThreadToSetAffinityTo);
+            QuicSetCurrentThreadProcessorAffinity((uint16_t)ThreadToSetAffinityTo);
     }
 
     return Status;
