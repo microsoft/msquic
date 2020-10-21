@@ -9558,7 +9558,7 @@
     },
     "ListenerIndicateNewConnection": {
       "ModuleProperites": {},
-      "TraceString": "[list][%p] Indicating NEW_CONNECTION",
+      "TraceString": "[list][%p] Indicating NEW_CONNECTION %p",
       "UniqueId": "ListenerIndicateNewConnection",
       "splitArgs": [
         {
@@ -9568,6 +9568,14 @@
           },
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
         }
       ],
       "macro": {
@@ -22198,7 +22206,7 @@
         "TraceID": "PerfCountersRundown"
       },
       {
-        "UniquenessHash": "ffc33ba8-4bc7-9e30-e207-f1d3cb6bb3f2",
+        "UniquenessHash": "f27f1ff0-edfe-bf39-708a-f9da7a2b4d3d",
         "TraceID": "ListenerIndicateNewConnection"
       },
       {

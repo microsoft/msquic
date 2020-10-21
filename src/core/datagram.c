@@ -303,18 +303,20 @@ QuicDatagramOnSendStateChanged(
 
     Datagram->MaxSendLength = NewMaxSendLength;
 
-    QUIC_CONNECTION_EVENT Event;
-    Event.Type = QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED;
-    Event.DATAGRAM_STATE_CHANGED.SendEnabled = SendEnabled;
-    Event.DATAGRAM_STATE_CHANGED.MaxSendLength = NewMaxSendLength;
+    if (Connection->State.ExternalOwner) {
+        QUIC_CONNECTION_EVENT Event;
+        Event.Type = QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED;
+        Event.DATAGRAM_STATE_CHANGED.SendEnabled = SendEnabled;
+        Event.DATAGRAM_STATE_CHANGED.MaxSendLength = NewMaxSendLength;
 
-    QuicTraceLogConnVerbose(
-        IndicateDatagramStateChanged,
-        Connection,
-        "Indicating QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED [SendEnabled=%hhu] [MaxSendLength=%hu]",
-        Event.DATAGRAM_STATE_CHANGED.SendEnabled,
-        Event.DATAGRAM_STATE_CHANGED.MaxSendLength);
-    (void)QuicConnIndicateEvent(Connection, &Event);
+        QuicTraceLogConnVerbose(
+            IndicateDatagramStateChanged,
+            Connection,
+            "Indicating QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED [SendEnabled=%hhu] [MaxSendLength=%hu]",
+            Event.DATAGRAM_STATE_CHANGED.SendEnabled,
+            Event.DATAGRAM_STATE_CHANGED.MaxSendLength);
+        (void)QuicConnIndicateEvent(Connection, &Event);
+    }
 
     if (!SendEnabled) {
         QuicDatagramSendShutdown(Datagram);
