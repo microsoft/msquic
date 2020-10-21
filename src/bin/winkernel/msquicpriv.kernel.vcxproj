@@ -95,8 +95,6 @@
     <OutDir>$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\</OutDir>
     <IntDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
     <SignMode>Off</SignMode>
-    <DomainTags>msquic</DomainTags>
-    <EnablePgi>true</EnablePgi>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -128,7 +126,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalOptions>%(AdditionalOptions) /FORCE:PGOREPRO /USEPROFILE:PGD=$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\msquic.pgd</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /FORCE:PGOREPRO /USEPROFILE:PGD=$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\priv\msquic.pgd</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -162,7 +160,7 @@
     <Error Condition="!Exists('..\..\..\packages\Microsoft.SourceLink.AzureRepos.Git.1.0.0\build\Microsoft.SourceLink.AzureRepos.Git.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\packages\Microsoft.SourceLink.AzureRepos.Git.1.0.0\build\Microsoft.SourceLink.AzureRepos.Git.targets'))" />
   </Target>
   <Target Name="CopyPgd" BeforeTargets="PrepareForBuild">
-    <Copy DestinationFolder="$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel"
+    <Copy DestinationFolder="$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\priv"
       SourceFiles="$(SolutionDir)src\bin\winkernel\pgo_x64\msquic.pgd" />
   </Target>
 </Project>
