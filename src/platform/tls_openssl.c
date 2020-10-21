@@ -423,14 +423,6 @@ QuicTlsClientHelloCallback(
         return SSL_CLIENT_HELLO_ERROR;
     }
 
-    if (!TlsContext->ReceiveTPCallback(
-            TlsContext->Connection,
-            (uint16_t)TransportParamLen,
-            TransportParams)) {
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-        return SSL_CLIENT_HELLO_ERROR;
-    }
-
     return SSL_CLIENT_HELLO_SUCCESS;
 }
 
