@@ -342,6 +342,7 @@ QuicCryptoReset(
     Crypto->RecoveryEndOffset = 0;
     Crypto->InRecovery = FALSE;
 
+    UNREFERENCED_PARAMETER(ResetTls);
     /*if (ResetTls) {
         Crypto->TlsState.BufferLength = 0;
         Crypto->TlsState.BufferTotalLength = 0;
