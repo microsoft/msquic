@@ -894,6 +894,7 @@ QuicTlsReset(
     SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
     SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
 
+    QUIC_FRE_ASSERT(FALSE); // Currently unsupported!!
     /* TODO - Figure out if this is necessary.
     if (SSL_set_quic_transport_params(
             TlsContext->Ssl,
