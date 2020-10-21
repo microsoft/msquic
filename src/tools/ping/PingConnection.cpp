@@ -89,7 +89,8 @@ PingConnection::Initialize(
                 QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
                 sizeof(value),
-                &value))) {
+                &value)) &&
+            !IsServer) {
             printf("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n");
         }
     }
