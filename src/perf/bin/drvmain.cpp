@@ -629,6 +629,7 @@ QuicPerfCtlReadPrints(
     ThreadConfig.Callback = PerformanceWaitForStopThreadCb;
     ThreadConfig.Context = Client;
     Client->Request = Request;
+    WdfRequestMarkCancelable(Request, QuicPerfCtlEvtIoCanceled);
     if (QUIC_FAILED(Status = QuicThreadCreate(&ThreadConfig, &Client->Thread))) {
         if (Client->Thread) {
             Client->Canceled = true;
@@ -637,12 +638,11 @@ QuicPerfCtlReadPrints(
             QuicThreadDelete(&Client->Thread);
             Client->Thread = nullptr;
         }
+        WdfRequestUnmarkCancelable(Request);
         WdfRequestCompleteWithInformation(
             Request,
             Status,
             0);
-    } else {
-        WdfRequestMarkCancelable(Request, QuicPerfCtlEvtIoCanceled);
     }
 }
 
