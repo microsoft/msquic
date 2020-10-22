@@ -235,6 +235,10 @@ RpsClient::Start(
             QuicSetCurrentThreadProcessorAffinity((uint16_t)ThreadToSetAffinityTo);
     }
 
+#ifndef _KERNEL_MODE
+    GetSystemTimes(&PrevIdle, &PrevKernel, &PrevUser);
+#endif
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -286,11 +290,38 @@ RpsClient::Wait(
     __try {
         {
 #endif
+            double Utilization = 0;
+#ifndef _KERNEL_MODE
+            FILETIME Idle, Kernel, User;
+            GetSystemTimes(&Idle, &Kernel, &User);
+            LARGE_INTEGER Now, Prev;
+            Now.LowPart = Idle.dwLowDateTime;
+            Now.HighPart = Idle.dwHighDateTime;
+            Prev.HighPart = PrevIdle.dwHighDateTime;
+            Prev.HighPart = PrevIdle.dwLowDateTime;
+            uint64_t IdleTime = Now.QuadPart - Prev.QuadPart;
+
+            Now.LowPart = Kernel.dwLowDateTime;
+            Now.HighPart = Kernel.dwHighDateTime;
+            Prev.HighPart = PrevKernel.dwHighDateTime;
+            Prev.HighPart = PrevKernel.dwLowDateTime;
+            uint64_t KernelTime = Now.QuadPart - Prev.QuadPart;
+
+            Now.LowPart = User.dwLowDateTime;
+            Now.HighPart = User.dwHighDateTime;
+            Prev.HighPart = PrevUser.dwHighDateTime;
+            Prev.HighPart = PrevUser.dwLowDateTime;
+            uint64_t UserTime = Now.QuadPart - Prev.QuadPart;
+
+            uint64_t UpTime = (KernelTime - IdleTime) + UserTime;
+            uint64_t TotalTime = KernelTime + UserTime;
+            Utilization = (double)UpTime / (double)TotalTime;
+#endif
             Statistics LatencyStats, WithoutOutlierLatencyStats;
             Percentiles PercentileStats;
             GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &WithoutOutlierLatencyStats, &PercentileStats);
             WriteOutput(
-                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f,  -- No Outliers: Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th %f\n",
+                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f,  -- No Outliers: Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f, CPU: %f\n",
                 RPS,
                 LatencyStats.Min,
                 LatencyStats.Max,
@@ -306,7 +337,8 @@ RpsClient::Wait(
                 PercentileStats.NinetiethPercentile,
                 PercentileStats.NintyNinthPercentile,
                 PercentileStats.NintyNinePointNinthPercentile,
-                PercentileStats.NintyNinePointNineNinethPercentile);
+                PercentileStats.NintyNinePointNineNinethPercentile,
+                Utilization);
 #ifdef _KERNEL_MODE
         }
     }
