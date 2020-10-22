@@ -273,8 +273,7 @@ RpsClient::Wait(
     Running = false;
 
     uint64_t CachedCompletedRequests = CompletedRequests;
-    uint64_t CachedStreamSendFailures = StreamSendFailures;
-    uint64_t CachedStreamOpenFailures = StreamOpenFailures;
+    uint64_t CachedPeerAborted = PeerAbortedCount;
 
     uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
 
@@ -323,7 +322,7 @@ RpsClient::Wait(
             Percentiles PercentileStats;
             GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &WithoutOutlierLatencyStats, &PercentileStats);
             WriteOutput(
-                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f,  -- No Outliers: Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f, CPU: %f, Stream Open Failures %llu, Stream Send Failures %llu\n",
+                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f,  -- No Outliers: Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f, CPU: %f, Peer Aborted Count %llu\n",
                 RPS,
                 LatencyStats.Min,
                 LatencyStats.Max,
@@ -341,8 +340,7 @@ RpsClient::Wait(
                 PercentileStats.NintyNinePointNinthPercentile,
                 PercentileStats.NintyNinePointNineNinethPercentile,
                 Utilization,
-                (unsigned long long)CachedStreamOpenFailures,
-                (unsigned long long)CachedStreamSendFailures);
+                (unsigned long long)CachedPeerAborted);
 #ifdef _KERNEL_MODE
         }
     }
@@ -438,7 +436,8 @@ RpsClient::StreamCallback(
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
-        WriteOutput("Peer stream aborted!\n");
+        //WriteOutput("Peer stream aborted!\n");
+        InterlockedIncrement64((int64_t*)&PeerAbortedCount);
         MsQuic->StreamShutdown(
             StreamHandle,
             QUIC_STREAM_SHUTDOWN_FLAG_ABORT,
@@ -495,12 +494,10 @@ RpsClient::SendRequest(
                 QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN,
                 nullptr);
         if (QUIC_FAILED(Status)) {
-            InterlockedIncrement64((int64_t*)StreamSendFailures);
             MsQuic->StreamClose(Stream);
             StreamContextAllocator.Free(StrmContext);
         }
     } else {
-        InterlockedIncrement64((int64_t*)StreamOpenFailures);
         StreamContextAllocator.Free(StrmContext);
     }
 
