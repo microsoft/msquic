@@ -273,6 +273,8 @@ RpsClient::Wait(
     Running = false;
 
     uint64_t CachedCompletedRequests = CompletedRequests;
+    uint64_t CachedStreamSendFailures = StreamSendFailures;
+    uint64_t CachedStreamOpenFailures = StreamOpenFailures;
 
     uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
 
@@ -321,7 +323,7 @@ RpsClient::Wait(
             Percentiles PercentileStats;
             GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &WithoutOutlierLatencyStats, &PercentileStats);
             WriteOutput(
-                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f,  -- No Outliers: Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f, CPU: %f\n",
+                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f,  -- No Outliers: Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f, CPU: %f, Stream Open Failures %llu, Stream Send Failures %llu\n",
                 RPS,
                 LatencyStats.Min,
                 LatencyStats.Max,
@@ -338,7 +340,9 @@ RpsClient::Wait(
                 PercentileStats.NintyNinthPercentile,
                 PercentileStats.NintyNinePointNinthPercentile,
                 PercentileStats.NintyNinePointNineNinethPercentile,
-                Utilization);
+                Utilization,
+                (unsigned long long)CachedStreamOpenFailures,
+                (unsigned long long)CachedStreamSendFailures);
 #ifdef _KERNEL_MODE
         }
     }
@@ -491,10 +495,12 @@ RpsClient::SendRequest(
                 QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN,
                 nullptr);
         if (QUIC_FAILED(Status)) {
+            InterlockedIncrement64((int64_t*)StreamSendFailures);
             MsQuic->StreamClose(Stream);
             StreamContextAllocator.Free(StrmContext);
         }
     } else {
+        InterlockedIncrement64((int64_t*)StreamOpenFailures);
         StreamContextAllocator.Free(StrmContext);
     }
 
