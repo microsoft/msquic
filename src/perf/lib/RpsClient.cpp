@@ -273,7 +273,6 @@ RpsClient::Wait(
     Running = false;
 
     uint64_t CachedCompletedRequests = CompletedRequests;
-    uint64_t CachedPeerAborted = PeerAbortedCount;
 
     uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
 
@@ -322,7 +321,7 @@ RpsClient::Wait(
             Percentiles PercentileStats;
             GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &WithoutOutlierLatencyStats, &PercentileStats);
             WriteOutput(
-                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f,  -- No Outliers: Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f, CPU: %f, Peer Aborted Count %llu\n",
+                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f,  -- No Outliers: Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f, CPU: %f\n",
                 RPS,
                 LatencyStats.Min,
                 LatencyStats.Max,
@@ -339,8 +338,7 @@ RpsClient::Wait(
                 PercentileStats.NintyNinthPercentile,
                 PercentileStats.NintyNinePointNinthPercentile,
                 PercentileStats.NintyNinePointNineNinethPercentile,
-                Utilization,
-                (unsigned long long)CachedPeerAborted);
+                Utilization);
 #ifdef _KERNEL_MODE
         }
     }
@@ -436,8 +434,7 @@ RpsClient::StreamCallback(
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
-        //WriteOutput("Peer stream aborted!\n");
-        InterlockedIncrement64((int64_t*)&PeerAbortedCount);
+        WriteOutput("Peer stream aborted!\n");
         MsQuic->StreamShutdown(
             StreamHandle,
             QUIC_STREAM_SHUTDOWN_FLAG_ABORT,

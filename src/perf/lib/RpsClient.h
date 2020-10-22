@@ -100,7 +100,6 @@ private:
     uint64_t StartedRequests {0};
     uint64_t SendCompletedRequests {0};
     uint64_t CompletedRequests {0};
-    uint64_t PeerAbortedCount {0};
     UniquePtr<uint32_t[]> LatencyValues {nullptr};
     uint64_t MaxLatencyIndex {0};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
