@@ -227,7 +227,11 @@
             {
                 "Name": "ConnectionCount",
                 "Local": {
-                    "1000": "-conns:1000"
+                    "1000": "-conns:1000",
+                    "500": "-conns:500",
+                    "100": "-conns:100",
+                    "50": "-conns:50",
+                    "25": "-conns:25"
                 },
                 "Remote": {
                     "1000": ""
@@ -248,16 +252,10 @@
             {
                 "Name": "ResponseSize",
                 "Local": {
-                    "0": "-response:0",
-                    "512": "-response:512",
-                    "4096": "-response:4096",
-                    "16384": "-response:16384"
+                    "4096": "-response:4096"
                 },
                 "Remote": {
-                    "0": "",
-                    "512": "",
-                    "4096": "",
-                    "16384": ""
+                    "4096": ""
                 },
                 "Default": "4096"
             }
