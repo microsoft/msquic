@@ -105,9 +105,4 @@ private:
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
     UniquePtr<ConnectionScope[]> Connections {nullptr};
     bool Running {true};
-#ifndef _KERNEL_MODE
-    FILETIME PrevIdle {0};
-    FILETIME PrevKernel {0};
-    FILETIME PrevUser {0};
-#endif
 };

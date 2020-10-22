@@ -235,30 +235,8 @@ RpsClient::Start(
             QuicSetCurrentThreadProcessorAffinity((uint16_t)ThreadToSetAffinityTo);
     }
 
-#ifndef _KERNEL_MODE
-    GetSystemTimes(&PrevIdle, &PrevKernel, &PrevUser);
-#endif
-
     return QUIC_STATUS_SUCCESS;
 }
-
-//static
-//double
-//ComputeVariance(
-//    _In_reads_(Length) uint32_t* Measurements,
-//    _In_ uint64_t Length,
-//    _In_ uint64_t Mean
-//    )
-//{
-//    if (Length <= 1) {
-//        return 0;
-//    }
-//    double Variance = 0;
-//    for (int i = 0; i < Length; i++) {
-//        Variance += (Measurements[i] - Mean) * (Measurements[i] - Mean) / (Length - 1);
-//    }
-//    return Variance;
-//}
 
 QUIC_STATUS
 RpsClient::Wait(
@@ -290,38 +268,11 @@ RpsClient::Wait(
     __try {
         {
 #endif
-            double Utilization = 0;
-#ifndef _KERNEL_MODE
-            FILETIME Idle, Kernel, User;
-            GetSystemTimes(&Idle, &Kernel, &User);
-            LARGE_INTEGER Now, Prev;
-            Now.LowPart = Idle.dwLowDateTime;
-            Now.HighPart = Idle.dwHighDateTime;
-            Prev.HighPart = PrevIdle.dwHighDateTime;
-            Prev.LowPart = PrevIdle.dwLowDateTime;
-            uint64_t IdleTime = Now.QuadPart - Prev.QuadPart;
-
-            Now.LowPart = Kernel.dwLowDateTime;
-            Now.HighPart = Kernel.dwHighDateTime;
-            Prev.HighPart = PrevKernel.dwHighDateTime;
-            Prev.LowPart = PrevKernel.dwLowDateTime;
-            uint64_t KernelTime = Now.QuadPart - Prev.QuadPart;
-
-            Now.LowPart = User.dwLowDateTime;
-            Now.HighPart = User.dwHighDateTime;
-            Prev.HighPart = PrevUser.dwHighDateTime;
-            Prev.LowPart = PrevUser.dwLowDateTime;
-            uint64_t UserTime = Now.QuadPart - Prev.QuadPart;
-
-            uint64_t UpTime = (KernelTime - IdleTime) + UserTime;
-            uint64_t TotalTime = KernelTime + UserTime;
-            Utilization = (double)UpTime / (double)TotalTime;
-#endif
-            Statistics LatencyStats, WithoutOutlierLatencyStats;
+            Statistics LatencyStats;
             Percentiles PercentileStats;
-            GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &WithoutOutlierLatencyStats, &PercentileStats);
+            GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &PercentileStats);
             WriteOutput(
-                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f,  -- No Outliers: Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f, CPU: %f\n",
+                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f\n",
                 RPS,
                 LatencyStats.Min,
                 LatencyStats.Max,
@@ -329,16 +280,11 @@ RpsClient::Wait(
                 LatencyStats.Variance,
                 LatencyStats.StandardDeviation,
                 LatencyStats.StandardError,
-                WithoutOutlierLatencyStats.Mean,
-                WithoutOutlierLatencyStats.Variance,
-                WithoutOutlierLatencyStats.StandardDeviation,
-                WithoutOutlierLatencyStats.StandardError,
                 PercentileStats.FiftiethPercentile,
                 PercentileStats.NinetiethPercentile,
                 PercentileStats.NintyNinthPercentile,
                 PercentileStats.NintyNinePointNinthPercentile,
-                PercentileStats.NintyNinePointNineNinethPercentile,
-                Utilization);
+                PercentileStats.NintyNinePointNineNinethPercentile);
 #ifdef _KERNEL_MODE
         }
     }
@@ -346,44 +292,6 @@ RpsClient::Wait(
         KeRestoreExtendedProcessorState(&SaveState);
     }
 #endif
-
-
-    //
-
-    //uint64_t TimeSum = 0;
-    //uint64_t Min = 0xFFFFFFFFFFFFFFFF;
-    //uint64_t Max = 0;
-    //uint64_t MaxCount = min(CachedCompletedRequests, MaxLatencyIndex);
-    //for (uint64_t i = 0; i < MaxCount; i++) {
-    //    uint64_t Value = LatencyValues[i];
-    //    TimeSum += Value;
-    //    if (Value < Min) {
-    //        Min = Value;
-    //    }
-    //    if (Value > Max) {
-    //        Max = Value;
-    //    }
-    //}
-
-    //qsort(LatencyValues.get(), MaxCount, sizeof(uint32_t), [](const void* a, const void* b) -> int {
-    //    return *(uint32_t*)a - *(uint32_t*)b;
-    //    });
-
-    //uint64_t AvgLatency = 0;
-    //double Variance = 0;
-    //double StandardDeviation = 0;
-    //double StandardError = 0;
-    //if (MaxCount != 0) {
-    //    AvgLatency = TimeSum / MaxCount;
-    //    Variance = ComputeVariance(LatencyValues.get(), MaxCount, AvgLatency);
-    //    StandardDeviation = sqrt(Variance);
-    //    StandardError = StandardDeviation / sqrt((double)MaxCount);
-    //}
-
-    //WriteOutput("Result: %u RPS, Avg Latency: %llu us, Variance %f, StdDev %f, StdErr %f, Max %llu, Min %llu\n", RPS, (unsigned long long)AvgLatency, Variance, StandardDeviation, StandardError, (unsigned long long)Max, (unsigned long long)Min);
-    //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
-    //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
-
     return QUIC_STATUS_SUCCESS;
 }
 

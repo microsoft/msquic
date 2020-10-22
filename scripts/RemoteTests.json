@@ -53,7 +53,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Units": ["kbps"]
+        "Formats": ["{0} kbps"]
     },
     {
         "TestName": "ThroughputUp",
@@ -109,7 +109,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Units": ["kbps"]
+        "Formats": ["{0} kbps"]
     },
     {
         "TestName": "ThroughputDown",
@@ -153,7 +153,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Units": ["kbps"]
+        "Formats": ["{0} kbps"]
     },
     {
         "TestName": "ThroughputDown",
@@ -197,7 +197,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Units": ["kbps"]
+        "Formats": ["{0} kbps"]
     },
     {
         "TestName": "RPS",
@@ -227,30 +227,14 @@
             {
                 "Name": "ConnectionCount",
                 "Local": {
-                    "500": "-conns:500",
-                    "400": "-conns:400",
-                    "300": "-conns:300",
-                    "200": "-conns:200",
-                    "100": "-conns:100",
-                    "75": "-conns:75",
-                    "60": "-conns:60",
-                    "50": "-conns:50",
-                    "40": "-conns:40",
-                    "25": "-conns:25"
+                    "1000": "-conns:1000",
+                    "60": "-conns:60"
                 },
                 "Remote": {
-                    "500": "",
-                    "400": "",
-                    "300": "",
-                    "200": "",
-                    "100": "",
-                    "75": "",
-                    "60": "",
-                    "50": "",
-                    "40": "",
-                    "25": ""
+                    "1000": "",
+                    "60": ""
                 },
-                "Default": "500"
+                "Default": "1000"
             },
             {
                 "Name": "RequestSize",
@@ -266,10 +250,16 @@
             {
                 "Name": "ResponseSize",
                 "Local": {
-                    "4096": "-response:4096"
+                    "0": "-response:0",
+                    "512": "-response:512",
+                    "4096": "-response:4096",
+                    "16384": "-response:16384"
                 },
                 "Remote": {
-                    "4096": ""
+                    "0": "",
+                    "512": "",
+                    "4096": "",
+                    "16384": ""
                 },
                 "Default": "4096"
             }
@@ -277,8 +267,8 @@
         "AllowLoopback": false,
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Result: (.*) RPS(.*)",
-        "Units": ["RPS", ""]
+        "ResultsMatcher": "Result: (.*) RPS, Min: (.*), Max: (.*), Mean: (.*), Variance: (.*), StdDev: (.*), StdErr: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*)",
+        "Formats": ["{0} RPS", "Minimum: {0}", "Maximum: {0}", "Mean: {0}", "Variance: {0}", "Standard Deviation {0}", "Standard Error {0}", "Percentiles: 50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}"]
     },
     {
         "TestName": "HPS",
@@ -309,6 +299,6 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": "Result: (.*) HPS.*",
-        "Units": ["HPS"]
+        "Formats": ["{0} HPS"]
     }
 ]
