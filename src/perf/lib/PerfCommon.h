@@ -26,7 +26,7 @@ Abstract:
 #define RPS_MAX_CLIENT_PORT_COUNT           256
 #define RPS_MAX_REQUESTS_PER_SECOND         1500000 // 1.5 million RPS max as a guess
 #define RPS_DEFAULT_RUN_TIME                (10 * 1000)
-#define RPS_DEFAULT_CONNECTION_COUNT        200
+#define RPS_DEFAULT_CONNECTION_COUNT        40
 #define RPS_DEFAULT_PARALLEL_REQUEST_COUNT  2
 #define RPS_DEFAULT_REQUEST_LENGTH          0
 #define RPS_DEFAULT_RESPONSE_LENGTH         0
