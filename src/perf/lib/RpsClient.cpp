@@ -298,19 +298,19 @@ RpsClient::Wait(
             Now.LowPart = Idle.dwLowDateTime;
             Now.HighPart = Idle.dwHighDateTime;
             Prev.HighPart = PrevIdle.dwHighDateTime;
-            Prev.HighPart = PrevIdle.dwLowDateTime;
+            Prev.LowPart = PrevIdle.dwLowDateTime;
             uint64_t IdleTime = Now.QuadPart - Prev.QuadPart;
 
             Now.LowPart = Kernel.dwLowDateTime;
             Now.HighPart = Kernel.dwHighDateTime;
             Prev.HighPart = PrevKernel.dwHighDateTime;
-            Prev.HighPart = PrevKernel.dwLowDateTime;
+            Prev.LowPart = PrevKernel.dwLowDateTime;
             uint64_t KernelTime = Now.QuadPart - Prev.QuadPart;
 
             Now.LowPart = User.dwLowDateTime;
             Now.HighPart = User.dwHighDateTime;
             Prev.HighPart = PrevUser.dwHighDateTime;
-            Prev.HighPart = PrevUser.dwLowDateTime;
+            Prev.LowPart = PrevUser.dwLowDateTime;
             uint64_t UserTime = Now.QuadPart - Prev.QuadPart;
 
             uint64_t UpTime = (KernelTime - IdleTime) + UserTime;
