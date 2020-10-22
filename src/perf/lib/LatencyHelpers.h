@@ -190,12 +190,12 @@ GetStatistics(
     double LowerFence = Quartile1 - 1.5 * IQR;
     double UpperFence = Quartile3 + 1.5 * IQR;
 
-    printf("Q1 %f IQR %f Q3 %f LF %f UF %f\n", Quartile1, IQR, Quartile3, LowerFence, UpperFence);
+    WriteOutput("Q1 %f IQR %f Q3 %f LF %f UF %f\n", Quartile1, IQR, Quartile3, LowerFence, UpperFence);
 
     size_t NewLength = 0;
     Sum = SumWithoutOutliers(Data, DataLength, LowerFence, UpperFence, &NewLength);
 
-    printf("NewSum %llu NewLen %llu OldLen %llu\n", (unsigned long long) Sum, (unsigned long long)NewLength, (unsigned long long)DataLength);
+    WriteOutput("NewSum %llu NewLen %llu OldLen %llu\n", (unsigned long long) Sum, (unsigned long long)NewLength, (unsigned long long)DataLength);
 
     Mean = Sum / (double)NewLength;
     Variance = ComputeVarianceWithoutOutliers(Data, DataLength, NewLength, Mean, LowerFence, UpperFence);
