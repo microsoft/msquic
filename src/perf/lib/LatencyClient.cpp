@@ -388,6 +388,7 @@ LatencyClient::StreamCallback(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         {
             ConnectionContext* ConnContext = StrmContext->ConnContext;
+            ConnContext->OutstandingCount--;
             StreamContextAllocator.Free(StrmContext);
             SendRequest(StreamHandle, ConnContext); // Starts a new stream
             MsQuic->StreamClose(StreamHandle);
