@@ -1402,37 +1402,37 @@ QuicTlsOnNegotiate(
                 "Failed to find a matching ALPN");
             goto Exit;
         }
-    }
 
-    //
-    // Decode and validate peer's QUIC transport parameters.
-    //
+        //
+        // Decode and validate peer's QUIC transport parameters.
+        //
 
-    if (!FFI_mitls_find_custom_extension(
-            TlsContext->IsServer,
-            RawExtensions,
-            RawExtensionsLength,
-            TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
-            &ExtensionData,
-            &ExtensionDataLength)) {
-        QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s.",
-            TlsContext->Connection,
-            "Missing QUIC transport parameters");
-        goto Exit;
-    }
+        if (!FFI_mitls_find_custom_extension(
+                TlsContext->IsServer,
+                RawExtensions,
+                RawExtensionsLength,
+                TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
+                &ExtensionData,
+                &ExtensionDataLength)) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Missing QUIC transport parameters");
+            goto Exit;
+        }
 
-    if (!TlsContext->ReceiveTPCallback(
-            TlsContext->Connection,
-            (uint16_t)ExtensionDataLength,
-            ExtensionData)) {
-        QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s.",
-            TlsContext->Connection,
-            "Failed to process the QUIC transport parameters");
-        goto Exit;
+        if (!TlsContext->ReceiveTPCallback(
+                TlsContext->Connection,
+                (uint16_t)ExtensionDataLength,
+                ExtensionData)) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Failed to process the QUIC transport parameters");
+            goto Exit;
+        }
     }
 
     Action = TLS_nego_accept;

@@ -380,13 +380,17 @@ struct CidStr {
     char Data[256];
 
     CidStr(ULONG64 Addr, UCHAR Length) {
-        for (UCHAR i = 0; i < Length; i++) {
-            UCHAR Byte;
-            ReadTypeAtAddr(Addr + i, &Byte);
-            Data[i * 2] = QuicHalfByteToStr(Byte >> 4);
-            Data[i * 2 + 1] = QuicHalfByteToStr(Byte & 0xF);
+        if (Length == 0) {
+            strcpy(Data, "empty");
+        } else {
+            for (UCHAR i = 0; i < Length; i++) {
+                UCHAR Byte;
+                ReadTypeAtAddr(Addr + i, &Byte);
+                Data[i * 2] = QuicHalfByteToStr(Byte >> 4);
+                Data[i * 2 + 1] = QuicHalfByteToStr(Byte & 0xF);
+            }
+            Data[Length * 2] = 0;
         }
-        Data[Length * 2] = 0;
     }
 };
 
@@ -429,6 +433,15 @@ struct CidHashEntry : Struct {
 
     Cid GetCid() {
         return Cid(AddrOf("CID"));
+    }
+};
+
+struct Settings : Struct {
+
+    Settings(ULONG64 Addr) : Struct("msquic!QUIC_SETTINGS", Addr) { }
+
+    UINT16 RetryMemoryLimit() {
+        return ReadType<UINT16>("RetryMemoryLimit");
     }
 };
 
@@ -1440,6 +1453,24 @@ struct QuicLibrary : Struct {
         return ReadType<UINT8>("PartitionCount");
     }
 
+    UINT64 CurrentHandshakeMemoryUsage() {
+        return ReadType<UINT64>("CurrentHandshakeMemoryUsage");
+    }
+
+    UINT64 TotalMemory() {
+        UINT64 QuicTotalMemory;
+        ReadTypeAtAddr<UINT64>(GetExpression("msquic!QuicTotalMemory"), &QuicTotalMemory);
+        return QuicTotalMemory;
+    }
+
+    UINT64 RetryHandshakeMemoryLimit() {
+        return (GetSettings().RetryMemoryLimit() * TotalMemory()) / UINT16_MAX;
+    }
+
+    bool IsSendingRetries() {
+        return CurrentHandshakeMemoryUsage() >= RetryHandshakeMemoryLimit();
+    }
+
     LinkedList GetRegistrations() {
         return LinkedList(AddrOf("Registrations"));
     }
@@ -1450,5 +1481,9 @@ struct QuicLibrary : Struct {
 
     WorkerPool GetWorkerPool() {
         return WorkerPool(ReadPointer("WorkerPool"));
+    }
+
+    Settings GetSettings() {
+        return Settings(AddrOf("Settings"));
     }
 };

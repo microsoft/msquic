@@ -525,6 +525,9 @@ function Publish-ThroughputTestResults {
 
     if ($FullLastResult -ne "") {
         $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
+        if ($MedianLastResult -eq 0) {
+            Write-Error "Cannot have a last result median of 0"
+        }
         $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
         $PercentDiffStr = $PercentDiff.ToString("#.##")
         if ($PercentDiff -ge 0) {
@@ -626,6 +629,9 @@ function Publish-RPSTestResults {
 
     if ($FullLastResult -ne "") {
         $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
+        if ($MedianLastResult -eq 0) {
+            Write-Error "Cannot have a last result median of 0"
+        }
         $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
         $PercentDiffStr = $PercentDiff.ToString("#.##")
         if ($PercentDiff -ge 0) {
@@ -711,6 +717,9 @@ function Publish-HPSTestResults {
 
     if ($FullLastResult -ne "") {
         $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
+        if ($MedianLastResult -eq 0) {
+            Write-Error "Cannot have a last result median of 0"
+        }
         $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
         $PercentDiffStr = $PercentDiff.ToString("#.##")
         if ($PercentDiff -ge 0) {

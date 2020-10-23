@@ -505,8 +505,9 @@ QuicListenerClaimConnection(
 
     QuicTraceLogVerbose(
         ListenerIndicateNewConnection,
-        "[list][%p] Indicating NEW_CONNECTION",
-        Listener);
+        "[list][%p] Indicating NEW_CONNECTION %p",
+        Listener,
+        Connection);
 
     QUIC_STATUS Status = QuicListenerIndicateEvent(Listener, &Event);
 

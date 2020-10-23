@@ -940,7 +940,7 @@ QuicSetCurrentThreadProcessorAffinity(
     Affinity.Group = ProcInfo.Group;
     return
         ZwSetInformationThread(
-            PsGetCurrentThread(),
+            ZwCurrentThread(),
             ThreadGroupInformation,
             &Affinity,
             sizeof(Affinity));
@@ -958,7 +958,7 @@ QuicSetCurrentThreadGroupAffinity(
     if (QUIC_FAILED(
         Status =
             ZwQueryInformationThread(
-                PsGetCurrentThread(),
+                ZwCurrentThread(),
                 ThreadGroupInformation,
                 &ExistingAffinity,
                 sizeof(ExistingAffinity),
@@ -970,7 +970,7 @@ QuicSetCurrentThreadGroupAffinity(
     Affinity.Group = ProcessorGroup;
     return
         ZwSetInformationThread(
-            PsGetCurrentThread(),
+            ZwCurrentThread(),
             ThreadGroupInformation,
             &Affinity,
             sizeof(Affinity));

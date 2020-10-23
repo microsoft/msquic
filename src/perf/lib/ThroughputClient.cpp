@@ -73,6 +73,11 @@ ThroughputClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    if (UploadLength == 0 && DownloadLength == 0) {
+        WriteOutput("Must specify non 0 length for either '-upload' or '-download' argument!\n");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     uint16_t Ip;
     if (TryGetValue(argc, argv, "ip", &Ip)) {
         switch (Ip) {
@@ -371,11 +376,21 @@ ThroughputClient::StreamCallback(
         uint64_t ElapsedMicroseconds = StrmContext->EndTime - StrmContext->StartTime;
         uint32_t SendRate = (uint32_t)((StrmContext->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
-        WriteOutput("Result: %llu bytes @ %u kbps (%u.%03u ms).\n",
-            (unsigned long long)StrmContext->BytesCompleted,
-            SendRate,
-            (uint32_t)(ElapsedMicroseconds / 1000),
-            (uint32_t)(ElapsedMicroseconds % 1000));
+        if (StrmContext->BytesCompleted != 0 &&
+            (StrmContext->BytesCompleted == UploadLength || StrmContext->BytesCompleted == DownloadLength)) {
+            WriteOutput(
+                "Result: %llu bytes @ %u kbps (%u.%03u ms).\n",
+                (unsigned long long)StrmContext->BytesCompleted,
+                SendRate,
+                (uint32_t)(ElapsedMicroseconds / 1000),
+                (uint32_t)(ElapsedMicroseconds % 1000));
+        } else {
+            WriteOutput(
+                "Error: Did not complete all bytes. Completed %llu bytes in (%u.%03u ms). Failed to connect?\n",
+                (unsigned long long)StrmContext->BytesCompleted,
+                (uint32_t)(ElapsedMicroseconds / 1000),
+                (uint32_t)(ElapsedMicroseconds % 1000));
+        }
 
         StreamContextAllocator.Free(StrmContext);
         break;

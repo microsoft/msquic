@@ -342,6 +342,7 @@ QuicCryptoTlsReadExtensions(
       } Extension;
     */
 
+    BOOLEAN FoundTransportParameters = FALSE;
     while (BufferLength) {
         //
         // Each extension will have atleast 4 bytes of data. 2 to label
@@ -384,10 +385,30 @@ QuicCryptoTlsReadExtensions(
             if (QUIC_FAILED(Status)) {
                 return Status;
             }
+
+        } else if (ExtType == TlsExt_QuicTransportParameters) {
+            if (!QuicCryptoTlsDecodeTransportParameters(
+                    Connection,
+                    FALSE,
+                    Buffer,
+                    ExtLen,
+                    &Connection->PeerTransportParams)) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+            FoundTransportParameters = TRUE;
         }
 
         BufferLength -= ExtLen;
         Buffer += ExtLen;
+    }
+
+    if (!FoundTransportParameters) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "No QUIC TP extension present");
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     return QUIC_STATUS_SUCCESS;

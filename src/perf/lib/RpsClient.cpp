@@ -252,6 +252,11 @@ RpsClient::Wait(
     uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
     uint32_t MaxCount = (uint32_t)min(CachedCompletedRequests, MaxLatencyIndex);
 
+    if (RPS == 0) {
+        WriteOutput("Error: No requests were completed\n");
+        return QUIC_STATUS_SUCCESS;
+    }
+
 #ifdef _KERNEL_MODE
     XSTATE_SAVE SaveState;
     NTSTATUS Status;

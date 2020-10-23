@@ -1698,6 +1698,7 @@ QuicConnOnQuicVersionSet(
     case QUIC_VERSION_DRAFT_29:
     case QUIC_VERSION_DRAFT_30:
     case QUIC_VERSION_DRAFT_31:
+    case QUIC_VERSION_DRAFT_32:
     case QUIC_VERSION_MS_1:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
@@ -2578,14 +2579,16 @@ QuicConnProcessPeerTransportParameters(
 
     QuicDatagramOnSendStateChanged(&Connection->Datagram);
 
-    if (Connection->State.Disable1RttEncrytion &&
-        Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION) {
-        QuicTraceLogConnInfo(
-            NegotiatedDisable1RttEncryption,
-            Connection,
-            "Negotiated Disable 1-RTT Encryption");
-    } else {
-        Connection->State.Disable1RttEncrytion = FALSE;
+    if (Connection->State.Started) {
+        if (Connection->State.Disable1RttEncrytion &&
+            Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION) {
+            QuicTraceLogConnInfo(
+                NegotiatedDisable1RttEncryption,
+                Connection,
+                "Negotiated Disable 1-RTT Encryption");
+        } else {
+            Connection->State.Disable1RttEncrytion = FALSE;
+        }
     }
 
     return;
@@ -2828,16 +2831,6 @@ QuicConnRecvVerNeg(
         }
     }
 
-    if (SupportedVersion != 0) { // TODO - Remove once version negotiation extension support is added.
-        QuicPacketLogDrop(Connection, Packet, "Version Negotation is unsupported");
-        QuicConnCloseLocally(
-            Connection,
-            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
-            (uint64_t)QUIC_STATUS_VER_NEG_ERROR,
-            NULL);
-        return;
-    }
-
     if (SupportedVersion == 0) {
         //
         // No match! Connection failure.
@@ -2854,11 +2847,9 @@ QuicConnRecvVerNeg(
         return;
     }
 
-    /* TODO - Add version negotiation extension support
     Connection->Stats.QuicVersion = SupportedVersion;
     QuicConnOnQuicVersionSet(Connection);
     QuicConnRestart(Connection, TRUE);
-    */
 }
 
 
@@ -5493,6 +5484,15 @@ QuicConnParamSet(
         }
 
         if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        if (Connection->State.PeerTransportParameterValid &&
+            (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION))) {
+            //
+            // The peer did't negotiate the feature.
+            //
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }

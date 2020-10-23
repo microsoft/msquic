@@ -423,14 +423,6 @@ QuicTlsClientHelloCallback(
         return SSL_CLIENT_HELLO_ERROR;
     }
 
-    if (!TlsContext->ReceiveTPCallback(
-            TlsContext->Connection,
-            (uint16_t)TransportParamLen,
-            TransportParams)) {
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-        return SSL_CLIENT_HELLO_ERROR;
-    }
-
     return SSL_CLIENT_HELLO_SUCCESS;
 }
 
@@ -902,6 +894,7 @@ QuicTlsReset(
     SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
     SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
 
+    QUIC_FRE_ASSERT(FALSE); // Currently unsupported!!
     /* TODO - Figure out if this is necessary.
     if (SSL_set_quic_transport_params(
             TlsContext->Ssl,

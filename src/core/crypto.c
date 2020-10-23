@@ -342,14 +342,15 @@ QuicCryptoReset(
     Crypto->RecoveryEndOffset = 0;
     Crypto->InRecovery = FALSE;
 
-    if (ResetTls) {
+    UNREFERENCED_PARAMETER(ResetTls);
+    /*if (ResetTls) {
         Crypto->TlsState.BufferLength = 0;
         Crypto->TlsState.BufferTotalLength = 0;
 
         QuicTlsReset(Crypto->TLS);
         QuicCryptoProcessData(Crypto, TRUE);
 
-    } else {
+    } else*/ {
         QuicSendSetSendFlag(
             &QuicCryptoGetConnection(Crypto)->Send,
             QUIC_CONN_SEND_FLAG_CRYPTO);
@@ -1153,9 +1154,11 @@ QuicConnReceiveTP(
     _In_reads_(TPLength) const uint8_t* TPBuffer
     )
 {
+    QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
+
     if (!QuicCryptoTlsDecodeTransportParameters(
             Connection,
-            !QuicConnIsServer(Connection),
+            TRUE,
             TPBuffer,
             TPLength,
             &Connection->PeerTransportParams)) {
@@ -1555,6 +1558,8 @@ QuicCryptoProcessData(
                 //
                 goto Error;
             }
+
+            QuicConnProcessPeerTransportParameters(Connection, FALSE);
 
             QuicRecvBufferDrain(&Crypto->RecvBuffer, 0);
             QuicCryptoValidate(Crypto);
