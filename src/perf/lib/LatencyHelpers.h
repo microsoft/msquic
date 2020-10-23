@@ -5,7 +5,7 @@
 
 Abstract:
 
-    Latency match helpers.
+    Latency math helpers.
 
 --*/
 
