@@ -105,9 +105,6 @@ GetStatistics(
 
 #ifdef _WIN32
     qsort_s(
-#else
-    qsort_r(
-#endif
         Data,
         DataLength,
         sizeof(uint32_t),
@@ -115,6 +112,15 @@ GetStatistics(
             return *(const uint32_t*)Left - *(const uint32_t*)Right;
         },
         nullptr);
+#else
+    qsort(
+        Data,
+        DataLength,
+        sizeof(uint32_t),
+        [](const void* Left, const void* Right) -> int {
+            return *(const uint32_t*)Left - *(const uint32_t*)Right;
+        });
+#endif
 
     uint32_t PercentileIndex = (uint32_t)(DataLength * 0.5);
     PercentileStats->FiftiethPercentile = Data[PercentileIndex];
