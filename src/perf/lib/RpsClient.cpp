@@ -232,7 +232,12 @@ RpsClient::Wait(
     Running = false;
 
     uint32_t RPS = (uint32_t)((CompletedRequests * 1000ull) / (uint64_t)RunTime);
-    WriteOutput("Result: %u RPS\n", RPS);
+
+    if (RPS == 0) {
+        WriteOutput("Error: No requests were completed\n");
+    } else {
+        WriteOutput("Result: %u RPS\n", RPS);
+    }
     //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
     //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
 
