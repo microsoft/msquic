@@ -228,11 +228,9 @@ LatencyClient::Start(
     QuicSleep(RPS_IDLE_WAIT);
 
     WriteOutput("Start sending request...\n");
-    for (uint32_t i = 0; i < ParallelRequests; ++i) {
-        for (uint32_t j = 0; j < ConnectionCount; ++j) {
-            ConnectionContext* ConnContext = (ConnectionContext*)MsQuic->GetContext(Connections[j].Handle);
-            SendRequest(Connections[j], ConnContext);
-        }
+    for (uint32_t j = 0; j < ConnectionCount; ++j) {
+        ConnectionContext* ConnContext = (ConnectionContext*)MsQuic->GetContext(Connections[j].Handle);
+        SendRequest(Connections[j], ConnContext);
     }
 
     uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
