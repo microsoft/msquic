@@ -17,10 +17,6 @@ Abstract:
 
 #include "LatencyHelpers.h"
 
-#ifdef _KERNEL_MODE
-EXTERN_C int _fltused = 0;
-#endif
-
 static
 void
 PrintHelp(
