@@ -18,6 +18,8 @@ extern "C" {
     double sqrt(double value);
 }
 
+#include <stdlib.h>
+
 struct Statistics {
     double Mean {0};
     double Variance {0};
