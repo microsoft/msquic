@@ -101,7 +101,7 @@ RpsClient::Init(
     if (LatencyValues == nullptr) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    QuicZeroMemory(LatencyValues.get(), sizeof(uint32_t) * MaxLatencyIndex);
+    QuicZeroMemory(LatencyValues.get(), (size_t)(sizeof(uint32_t) * MaxLatencyIndex));
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -329,7 +329,7 @@ RpsClient::StreamCallback(
                 if (Delta > 0xFFFFFFFF) {
                     Delta = 0xFFFFFFFF;
                 }
-                LatencyValues[ToPlaceIndex] = (uint32_t)Delta;
+                LatencyValues[(size_t)ToPlaceIndex] = (uint32_t)Delta;
             }
         }
         break;
