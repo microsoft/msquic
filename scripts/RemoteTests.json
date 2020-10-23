@@ -310,11 +310,11 @@
                 "Default": "1000"
             }
         ],
-        "AllowLoopback": true,
+        "AllowLoopback": false,
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Result: (.*) RPS, Min: (.*), Max: (.*), Mean: (.*), Variance: (.*), StdDev: (.*), StdErr: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*)",
-        "Formats": ["{0} RPS", "Minimum: {0}", "Maximum: {0}", "Mean: {0}", "Variance: {0}", "Standard Deviation {0}", "Standard Error {0}", "Percentiles: 50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}"]
+        "ResultsMatcher": "Result: (.*) RPS, Min: (.*), Max: (.*), Mean: (.*), Variance: (.*), StdDev: (.*), StdErr: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), CPU: (.*)",
+        "Formats": ["{0} RPS", "Minimum: {0}", "Maximum: {0}", "Mean: {0}", "Variance: {0}", "Standard Deviation {0}", "Standard Error {0}", "Percentiles: 50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "CPU: {0}"]
     },
     {
         "TestName": "HPS",

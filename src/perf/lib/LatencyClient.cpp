@@ -279,11 +279,38 @@ LatencyClient::Wait(
     __try {
         {
 #endif
+            double Utilization = 0;
+#ifndef _KERNEL_MODE
+            FILETIME Idle, Kernel, User;
+            GetSystemTimes(&Idle, &Kernel, &User);
+            LARGE_INTEGER Now, Prev;
+            Now.LowPart = Idle.dwLowDateTime;
+            Now.HighPart = Idle.dwHighDateTime;
+            Prev.HighPart = PrevIdle.dwHighDateTime;
+            Prev.LowPart = PrevIdle.dwLowDateTime;
+            uint64_t IdleTime = Now.QuadPart - Prev.QuadPart;
+
+            Now.LowPart = Kernel.dwLowDateTime;
+            Now.HighPart = Kernel.dwHighDateTime;
+            Prev.HighPart = PrevKernel.dwHighDateTime;
+            Prev.LowPart = PrevKernel.dwLowDateTime;
+            uint64_t KernelTime = Now.QuadPart - Prev.QuadPart;
+
+            Now.LowPart = User.dwLowDateTime;
+            Now.HighPart = User.dwHighDateTime;
+            Prev.HighPart = PrevUser.dwHighDateTime;
+            Prev.LowPart = PrevUser.dwLowDateTime;
+            uint64_t UserTime = Now.QuadPart - Prev.QuadPart;
+
+            uint64_t UpTime = (KernelTime - IdleTime) + UserTime;
+            uint64_t TotalTime = KernelTime + UserTime;
+            Utilization = (double)UpTime / (double)TotalTime;
+#endif
             Statistics LatencyStats;
             Percentiles PercentileStats;
             GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &PercentileStats);
             WriteOutput(
-                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f\n",
+                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f, CPU: %f\n",
                 RPS,
                 LatencyStats.Min,
                 LatencyStats.Max,
@@ -295,7 +322,8 @@ LatencyClient::Wait(
                 PercentileStats.NinetiethPercentile,
                 PercentileStats.NintyNinthPercentile,
                 PercentileStats.NintyNinePointNinthPercentile,
-                PercentileStats.NintyNinePointNineNinethPercentile);
+                PercentileStats.NintyNinePointNineNinethPercentile,
+                Utilization);
 #ifdef _KERNEL_MODE
         }
     }
