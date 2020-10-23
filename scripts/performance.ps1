@@ -337,14 +337,11 @@ function Invoke-Test {
             Write-Debug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
-            $LocalParsedResults = $AllLocalParsedResults[1];
-            $AllRunsResults += $LocalParsedResults
+            $AllRunsResults += $AllLocalParsedResults
             if ($PGO) {
                 # Merge client PGO Counts
                 Merge-PGOCounts -Path $LocalExePath
             }
-
-
 
             $FormattedStrings = @()
 

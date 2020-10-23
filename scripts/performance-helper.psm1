@@ -422,6 +422,14 @@ function Invoke-LocalExe {
     return $RetVal -join "`n"
 }
 
+function Get-TestResultAtIndex($FullResults, $Index) {
+    $RetResults = @()
+    foreach ($Result in $FullResults) {
+        $RetResults += $Result[$Index]
+    }
+    return $RetResults
+}
+
 function Get-MedianTestResults($FullResults) {
     $sorted = $FullResults | Sort-Object
     if ($sorted.Length -eq 1) {
@@ -506,10 +514,11 @@ class ThroughputTestPublishResult {
 }
 
 function Publish-ThroughputTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir, $ServerToClient)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ServerToClient)
 
     $Request = [ThroughputRequest]::new($Test, $ServerToClient)
 
+    $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
     $FullLastResult = Get-LatestThroughputRemoteTestResults -Request $Request
 
@@ -606,10 +615,11 @@ class RPSTestPublishResult {
 }
 
 function Publish-RPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir)
 
     $Request = [RPSRequest]::new($Test)
 
+    $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
     $FullLastResult = Get-LatestRPSRemoteTestResults -Request $Request
 
@@ -690,10 +700,11 @@ class HPSTestPublishResult {
 }
 
 function Publish-HPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir)
 
     $Request = [HPSRequest]::new($Test)
 
+    $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
     $FullLastResult = Get-LatestHPSRemoteTestResults -Request $Request
 
@@ -733,13 +744,13 @@ function Publish-TestResults {
     param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
 
     if ($Test.TestName -eq "ThroughputUp") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $false
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $false
     } elseif ($Test.TestName -eq "ThroughputDown") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $true
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $true
     } elseif ($Test.TestName -eq "RPS") {
-        Publish-RPSTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
+        Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
     } elseif ($Test.TestName -eq "HPS") {
-        Publish-HPSTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
+        Publish-HPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
     } else {
         Write-Host "Unknown Test Type"
     }
