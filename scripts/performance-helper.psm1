@@ -521,6 +521,7 @@ function Publish-ThroughputTestResults {
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
     $FullLastResult = Get-LatestThroughputRemoteTestResults -Request $Request
+    $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($FullLastResult -ne "") {
         $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
@@ -529,7 +530,6 @@ function Publish-ThroughputTestResults {
         if ($PercentDiff -ge 0) {
             $PercentDiffStr = "+$PercentDiffStr"
         }
-        $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Master: $LastFormatted"
@@ -622,6 +622,7 @@ function Publish-RPSTestResults {
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
     $FullLastResult = Get-LatestRPSRemoteTestResults -Request $Request
+    $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($FullLastResult -ne "") {
         $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
@@ -630,7 +631,6 @@ function Publish-RPSTestResults {
         if ($PercentDiff -ge 0) {
             $PercentDiffStr = "+$PercentDiffStr"
         }
-        $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Master: $LastFormatted"
@@ -707,6 +707,7 @@ function Publish-HPSTestResults {
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
     $FullLastResult = Get-LatestHPSRemoteTestResults -Request $Request
+    $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($FullLastResult -ne "") {
         $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
@@ -715,7 +716,6 @@ function Publish-HPSTestResults {
         if ($PercentDiff -ge 0) {
             $PercentDiffStr = "+$PercentDiffStr"
         }
-        $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Master: $LastFormatted"
