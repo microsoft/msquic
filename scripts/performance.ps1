@@ -344,12 +344,18 @@ function Invoke-Test {
                 Merge-PGOCounts -Path $LocalExePath
             }
 
-            $OutputString = "Run $($_): "
-            $Formats = @()
+
+
+            $FormattedStrings = @()
 
             for ($i = 1; $i -lt $AllLocalParsedResults.Count; $i++) {
-                $OutputString += ": $($AllLocalParsedResults[$i]) $($Test.Units[$i - 1])"
+                $Formatted = [string]::Format($Test.Formats[$i - 1], $AllLocalParsedResults[$i])
+                $FormattedStrings += $Formatted
             }
+
+            $Joined = [string]::Join(", ", $FormattedStrings)
+
+            $OutputString = "Run $($_): $Joined"
 
             Write-Output $OutputString
             $LocalResults | Write-Debug

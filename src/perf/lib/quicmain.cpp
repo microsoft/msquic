@@ -14,6 +14,7 @@ Abstract:
 #include "ThroughputClient.h"
 #include "RpsClient.h"
 #include "HpsClient.h"
+#include "LatencyClient.h"
 
 #ifdef QUIC_CLOG
 #include "quicmain.cpp.clog.h"
@@ -113,7 +114,9 @@ QuicMainStart(
             TestToRun = new(std::nothrow) RpsClient;
         } else if (IsValue(TestName, "HPS")) {
             TestToRun = new(std::nothrow) HpsClient;
-        } else {
+        } else if (IsValue(TestName, "Latency")) {
+            TestToRun = new(std::nothrow) LatencyClient;
+        }else {
             PrintHelp();
             delete MsQuic;
             return QUIC_STATUS_INVALID_PARAMETER;

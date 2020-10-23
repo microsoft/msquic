@@ -37,6 +37,7 @@
   <ItemGroup>
     <ClCompile Include="HpsClient.cpp" />
     <ClCompile Include="PerfServer.cpp" />
+    <ClCompile Include="LatencyClient.cpp" />
     <ClCompile Include="quicmain.cpp" />
     <ClCompile Include="RpsClient.cpp" />
     <ClCompile Include="ThroughputClient.cpp" />

@@ -520,10 +520,12 @@ function Publish-ThroughputTestResults {
         if ($PercentDiff -ge 0) {
             $PercentDiffStr = "+$PercentDiffStr"
         }
-        Write-Output "Median: $MedianCurrentResult $($Test.Units[0]) ($PercentDiffStr%)"
-        Write-Output "Master: $MedianLastResult $($Test.Units[0])"
+        $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
+        $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
+        Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
+        Write-Output "Master: $LastFormatted"
     } else {
-        Write-Output "Median: $MedianCurrentResult $($Test.Units[0])"
+        Write-Output "Median: $CurrentFormatted"
     }
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
@@ -618,10 +620,12 @@ function Publish-RPSTestResults {
         if ($PercentDiff -ge 0) {
             $PercentDiffStr = "+$PercentDiffStr"
         }
-        Write-Output "Median: $MedianCurrentResult $($Test.Units[0]) ($PercentDiffStr%)"
-        Write-Output "Master: $MedianLastResult $($Test.Units[0])"
+        $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
+        $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
+        Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
+        Write-Output "Master: $LastFormatted"
     } else {
-        Write-Output "Median: $MedianCurrentResult $($Test.Units[0])"
+        Write-Output "Median: $CurrentFormatted"
     }
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
@@ -700,10 +704,12 @@ function Publish-HPSTestResults {
         if ($PercentDiff -ge 0) {
             $PercentDiffStr = "+$PercentDiffStr"
         }
-        Write-Output "Median: $MedianCurrentResult $($Test.Units[0]) ($PercentDiffStr%)"
-        Write-Output "Master: $MedianLastResult $($Test.Units[0])"
+        $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
+        $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
+        Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
+        Write-Output "Master: $LastFormatted"
     } else {
-        Write-Output "Median: $MedianCurrentResult $($Test.Units[0])"
+        Write-Output "Median: $CurrentFormatted"
     }
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
@@ -772,7 +778,7 @@ class TestRunDefinition {
     [hashtable]$VariableValues;
     [boolean]$Loopback;
     [boolean]$AllowLoopback;
-    [string[]]$Units;
+    [string[]]$Formats;
 
     TestRunDefinition (
         [TestDefinition]$existingDef,
@@ -793,7 +799,7 @@ class TestRunDefinition {
         $this.VariableValues = $variableValues
         $this.Loopback = $script:Local
         $this.AllowLoopback = $existingDef.AllowLoopback
-        $this.Units = $existingDef.Units
+        $this.Formats = $existingDef.Formats
     }
 
     TestRunDefinition (
@@ -813,7 +819,7 @@ class TestRunDefinition {
         $this.VariableValues = $variableValues
         $this.Loopback = $script:Local
         $this.AllowLoopback = $existingDef.AllowLoopback
-        $this.Units = $existingDef.Units
+        $this.Formats = $existingDef.Formats
     }
 
     [string]ToString() {
@@ -975,7 +981,7 @@ class TestDefinition {
     [string]$RemoteReadyMatcher;
     [string]$ResultsMatcher;
     [boolean]$AllowLoopback;
-    [string[]]$Units;
+    [string[]]$Formats;
 
     [string]ToString() {
         $Platform = $this.Remote.Platform
