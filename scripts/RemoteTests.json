@@ -289,7 +289,7 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-test:RPS -target:$RemoteAddress -response:4096 -request:0",
+                "All": "-test:Latency -target:$RemoteAddress -response:4096 -request:0",
                 "Loopback": "",
                 "Remote": ""
             }
