@@ -98,11 +98,9 @@ RpsClient::Init(
     }
 
     LatencyValues = UniquePtr<uint32_t[]>(new(std::nothrow) uint32_t[(size_t)MaxLatencyIndex]);
-
     if (LatencyValues == nullptr) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-
     QuicZeroMemory(LatencyValues.get(), sizeof(uint32_t) * MaxLatencyIndex);
 
     return QUIC_STATUS_SUCCESS;
@@ -251,9 +249,7 @@ RpsClient::Wait(
     Running = false;
 
     uint64_t CachedCompletedRequests = CompletedRequests;
-
     uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
-
     uint32_t MaxCount = (uint32_t)min(CachedCompletedRequests, MaxLatencyIndex);
 
 #ifdef _KERNEL_MODE
