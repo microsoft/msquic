@@ -11,7 +11,12 @@ Abstract:
 
 #pragma once
 
-#include <math.h>
+//
+// Forward declaration because of include issues with math.h
+//
+extern "C" {
+    double sqrt(double value);
+}
 
 struct Statistics {
     double Mean {0};
