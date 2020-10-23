@@ -18,8 +18,6 @@ extern "C" {
     double sqrt(double value);
 }
 
-#include <stdlib.h>
-
 struct Statistics {
     double Mean {0};
     double Variance {0};
@@ -105,7 +103,11 @@ GetStatistics(
         Max
     };
 
+#ifdef _WIN32
     qsort_s(
+#else
+    qsort_r(
+#endif
         Data,
         DataLength,
         sizeof(uint32_t),
