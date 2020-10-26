@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "PerfHelpers.h"
+#include "LatencyHelpers.h"
 
 #ifdef QUIC_CLOG
 #include "appmain.cpp.clog.h"
@@ -25,9 +26,51 @@ Abstract:
 
 #endif
 
-
-
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
+
+QUIC_STATUS
+QuicHandleRpsClient(
+    _In_reads_(Length) uint8_t* ExtraData,
+    _In_ uint32_t Length)
+{
+    if (Length < sizeof(uint32_t) + sizeof(uint32_t)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    uint32_t RunTime;
+    uint32_t CachedCompletedRequests;
+    QuicCopyMemory(&RunTime, ExtraData, sizeof(RunTime));
+    ExtraData += sizeof(RunTime);
+    QuicCopyMemory(&CachedCompletedRequests, ExtraData, sizeof(CachedCompletedRequests));
+    ExtraData += sizeof(CachedCompletedRequests);
+    uint32_t RestOfBufferLength = Length - sizeof(RunTime) - sizeof(CachedCompletedRequests);
+    RestOfBufferLength &= 0xFFFFFFFC; // Round down to nearest multiple of 4
+    uint32_t MaxCount = min(CachedCompletedRequests, RestOfBufferLength);
+
+    uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
+    if (RPS == 0) {
+        printf("Error: No requests were completed\n");
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    Statistics LatencyStats;
+    Percentiles PercentileStats;
+    GetStatistics((uint32_t*)ExtraData, MaxCount, &LatencyStats, &PercentileStats);
+    WriteOutput(
+        "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f\n",
+        RPS,
+        LatencyStats.Min,
+        LatencyStats.Max,
+        LatencyStats.Mean,
+        LatencyStats.Variance,
+        LatencyStats.StandardDeviation,
+        LatencyStats.StandardError,
+        PercentileStats.FiftiethPercentile,
+        PercentileStats.NinetiethPercentile,
+        PercentileStats.NintyNinthPercentile,
+        PercentileStats.NintyNinePointNinthPercentile,
+        PercentileStats.NintyNinePointNineNinethPercentile);
+    return QUIC_STATUS_SUCCESS;
+}
 
 QUIC_STATUS
 QuicUserMain(
@@ -56,6 +99,32 @@ QuicUserMain(
     }
 
     Status = QuicMainStop(0);
+    if (QUIC_FAILED(Status)) {
+        QuicMainFree();
+        return Status;
+    }
+
+    PerfExtraDataMetadata Metadata;
+    Status = QuicMainGetExtraDataMetadata(&Metadata);
+    if (QUIC_FAILED(Status)) {
+        QuicMainFree();
+        return Status;
+    }
+
+    if (Metadata.TestType == PerfTestType::RpsClient) {
+        UniquePtr<uint8_t[]> Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[Metadata.ExtraDataLength]);
+        if (Buffer.get() == nullptr) {
+            QuicMainFree();
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+        Status = QuicMainGetExtraData(Buffer.get(), &Metadata.ExtraDataLength);
+        if (QUIC_FAILED(Status)) {
+            QuicMainFree();
+            return Status;
+        }
+        Status = QuicHandleRpsClient(Buffer.get(), Metadata.ExtraDataLength);
+    }
+
     QuicMainFree();
 
     return Status;
@@ -178,6 +247,43 @@ QuicKernelMain(
             240000);
     if (RunSuccess) {
         printf("%s\n", OutBuffer);
+
+        PerfExtraDataMetadata Metadata;
+        Metadata.TestType = PerfTestType::Server;
+        RunSuccess =
+            DriverClient.Read(
+                IOCTL_QUIC_GET_METADATA,
+                (void*)&Metadata,
+                sizeof(Metadata),
+                &OutBufferWritten,
+                10000);
+        if (RunSuccess && Metadata.TestType == PerfTestType::RpsClient) {
+            UniquePtr<uint8_t[]> Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[Metadata.ExtraDataLength]);
+            if (Buffer.get() != nullptr) {
+                RunSuccess =
+                    DriverClient.Read(
+                        IOCTL_QUIC_GET_EXTRA_DATA,
+                        (void*)Buffer.get(),
+                        Metadata.ExtraDataLength,
+                        &Metadata.ExtraDataLength, 10000);
+                if (RunSuccess) {
+                    QUIC_STATUS Status =
+                        QuicHandleRpsClient(Buffer.get(), Metadata.ExtraDataLength);
+                    if (QUIC_FAILED(Status)) {
+                        RunSuccess = false;
+                        printf("Handle RPS Data Failed\n");
+                    }
+                } else {
+                    printf("Failed to get extra data\n");
+                }
+            } else {
+                printf("Out of memory\n");
+                RunSuccess = false;
+            }
+        } else if (!RunSuccess) {
+            printf("Failed to get metadata\n");
+        }
+
     } else {
         printf("Run end failed\n");
     }

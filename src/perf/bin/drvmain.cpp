@@ -721,7 +721,7 @@ QuicPerfCtlGetExtraData(
     _In_ size_t OutputBufferLength
     )
 {
-    QUIC_FRE_ASSERT(OutputBufferLength < sizeof(uint32_t));
+    QUIC_FRE_ASSERT(OutputBufferLength < UINT32_MAX);
     uint8_t* LocalBuffer = nullptr;
     uint32_t BufferLength = (uint32_t)OutputBufferLength;
 

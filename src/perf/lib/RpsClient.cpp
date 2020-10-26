@@ -15,12 +15,6 @@ Abstract:
 #include "RpsClient.cpp.clog.h"
 #endif
 
-#include "LatencyHelpers.h"
-
-#ifdef _KERNEL_MODE
-EXTERN_C int _fltused = 0;
-#endif
-
 static
 void
 PrintHelp(
@@ -248,51 +242,51 @@ RpsClient::Wait(
 
     Running = false;
 
-    uint64_t CachedCompletedRequests = CompletedRequests;
-    uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
-    uint32_t MaxCount = (uint32_t)min(CachedCompletedRequests, MaxLatencyIndex);
+    CachedCompletedRequests = CompletedRequests;
+    // uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
+    // uint32_t MaxCount = (uint32_t)min(CachedCompletedRequests, MaxLatencyIndex);
 
-    if (RPS == 0) {
-        WriteOutput("Error: No requests were completed\n");
-        return QUIC_STATUS_SUCCESS;
-    }
+    // if (RPS == 0) {
+    //     WriteOutput("Error: No requests were completed\n");
+    //     return QUIC_STATUS_SUCCESS;
+    // }
 
-#ifdef _KERNEL_MODE
-    XSTATE_SAVE SaveState;
-    NTSTATUS Status;
+// #ifdef _KERNEL_MODE
+//     XSTATE_SAVE SaveState;
+//     NTSTATUS Status;
 
-    Status = KeSaveExtendedProcessorState(XSTATE_MASK_LEGACY, &SaveState);
-    if (!NT_SUCCESS(Status)) {
-        return Status;
-    }
+//     Status = KeSaveExtendedProcessorState(XSTATE_MASK_LEGACY, &SaveState);
+//     if (!NT_SUCCESS(Status)) {
+//         return Status;
+//     }
 
-    __try {
-        {
-#endif
-            Statistics LatencyStats;
-            Percentiles PercentileStats;
-            GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &PercentileStats);
-            WriteOutput(
-                "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f\n",
-                RPS,
-                LatencyStats.Min,
-                LatencyStats.Max,
-                LatencyStats.Mean,
-                LatencyStats.Variance,
-                LatencyStats.StandardDeviation,
-                LatencyStats.StandardError,
-                PercentileStats.FiftiethPercentile,
-                PercentileStats.NinetiethPercentile,
-                PercentileStats.NintyNinthPercentile,
-                PercentileStats.NintyNinePointNinthPercentile,
-                PercentileStats.NintyNinePointNineNinethPercentile);
-#ifdef _KERNEL_MODE
-        }
-    }
-    __finally {
-        KeRestoreExtendedProcessorState(&SaveState);
-    }
-#endif
+//     __try {
+//         {
+// #endif
+//             Statistics LatencyStats;
+//             Percentiles PercentileStats;
+//             GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &PercentileStats);
+//             WriteOutput(
+//                 "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f\n",
+//                 RPS,
+//                 LatencyStats.Min,
+//                 LatencyStats.Max,
+//                 LatencyStats.Mean,
+//                 LatencyStats.Variance,
+//                 LatencyStats.StandardDeviation,
+//                 LatencyStats.StandardError,
+//                 PercentileStats.FiftiethPercentile,
+//                 PercentileStats.NinetiethPercentile,
+//                 PercentileStats.NintyNinthPercentile,
+//                 PercentileStats.NintyNinePointNinthPercentile,
+//                 PercentileStats.NintyNinePointNineNinethPercentile);
+// #ifdef _KERNEL_MODE
+//         }
+//     }
+//     __finally {
+//         KeRestoreExtendedProcessorState(&SaveState);
+//     }
+// #endif
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -302,16 +296,28 @@ RpsClient::GetExtraDataMetadata(
     )
 {
     Result->TestType = PerfTestType::RpsClient;
-    Result->ExtraDataLength = 0;
+    uint64_t DataLength = sizeof(RunTime) + sizeof(CachedCompletedRequests) + (CachedCompletedRequests * sizeof(uint32_t));
+    QUIC_FRE_ASSERT(DataLength <= UINT32_MAX); // TODO Limit values properly
+    Result->ExtraDataLength = (uint32_t)DataLength;
 }
 
 QUIC_STATUS
 RpsClient::GetExtraData(
-    _Out_writes_bytes_(*Length) uint8_t*,
+    _Out_writes_bytes_(*Length) uint8_t* Data,
     _Inout_ uint32_t* Length
     )
 {
-    *Length = 0;
+    QUIC_FRE_ASSERT(*Length > sizeof(RunTime) + sizeof(CachedCompletedRequests));
+    QuicCopyMemory(Data, &RunTime, sizeof(RunTime));
+    Data += sizeof(RunTime);
+    QuicCopyMemory(Data, &CachedCompletedRequests, sizeof(CachedCompletedRequests));
+    Data += sizeof(RunTime);
+    uint64_t BufferLength = *Length - sizeof(RunTime) - sizeof(CachedCompletedRequests);
+    if (BufferLength > CachedCompletedRequests * sizeof(uint32_t)) {
+        BufferLength = CachedCompletedRequests * sizeof(uint32_t);
+        *Length = (uint32_t)(BufferLength + sizeof(RunTime) + sizeof(CachedCompletedRequests));
+    }
+    QuicCopyMemory(Data, LatencyValues.get(), (uint32_t)BufferLength);
     return QUIC_STATUS_SUCCESS;
 }
 
