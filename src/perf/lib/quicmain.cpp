@@ -177,6 +177,33 @@ QuicMainFree(
     }
 }
 
+QUIC_STATUS
+QuicMainGetExtraDataMetadata(
+    _Out_ PerfExtraDataMetadata* Metadata
+    )
+{
+    if (TestToRun == nullptr) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    TestToRun->GetExtraDataMetadata(Metadata);
+    return QUIC_STATUS_SUCCESS;
+}
+
+QUIC_STATUS
+QuicMainGetExtraData(
+    _Out_writes_bytes_(*Length) uint8_t* Data,
+    _Inout_ uint32_t* Length
+    )
+{
+    if (TestToRun == nullptr) {
+        *Length = 0;
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    return TestToRun->GetExtraData(Data, Length);
+}
+
 void
 DatapathReceive(
     _In_ QUIC_DATAPATH_BINDING*,

@@ -185,7 +185,7 @@ HpsClient::GetExtraDataMetadata(
 QUIC_STATUS
 HpsClient::GetExtraData(
     _Out_writes_bytes_(*Length) uint8_t*,
-    _Inout_ uint8_t* Length
+    _Inout_ uint32_t* Length
     )
 {
     *Length = 0;

@@ -53,7 +53,7 @@ public:
     QUIC_STATUS
     GetExtraData(
         _Out_writes_bytes_(*Length) uint8_t* Data,
-        _Inout_ uint8_t* Length
+        _Inout_ uint32_t* Length
         ) override;
 
 private:
