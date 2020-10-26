@@ -40,6 +40,8 @@ typedef struct QUIC_DRIVER_CLIENT {
     WDFREQUEST Request;
     QUIC_THREAD Thread;
     bool Canceled;
+    bool CleanupHandleCancellation;
+    QUIC_LOCK CleanupLock;
 } QUIC_DRIVER_CLIENT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DRIVER_CLIENT, QuicPerfCtlGetFileContext);
@@ -401,6 +403,7 @@ QuicPerfCtlEvtFileCreate(
         }
 
         RtlZeroMemory(Client, sizeof(QUIC_DRIVER_CLIENT));
+        QuicLockInitialize(&Client->CleanupLock);
 
         //
         // Insert into the client list
@@ -472,6 +475,7 @@ QuicPerfCtlEvtFileCleanup(
         if (Client->Thread != nullptr) {
             QuicThreadWait(&Client->Thread);
             QuicThreadDelete(&Client->Thread);
+            Client->Thread = nullptr;
         }
         QuicEventUninitialize(Client->StopEvent);
 
@@ -499,6 +503,7 @@ QuicPerfCtlEvtIoCanceled(
     )
 {
     NTSTATUS Status;
+    
 
     WDFFILEOBJECT FileObject = WdfRequestGetFileObject(Request);
     if (FileObject == nullptr) {
@@ -521,6 +526,12 @@ QuicPerfCtlEvtIoCanceled(
         Client,
         Request);
 
+    QuicLockAcquire(&Client->CleanupLock);
+    if (Client->CleanupHandleCancellation) {
+        WdfRequestComplete(Request, STATUS_CANCELLED);
+    }
+    Client->CleanupHandleCancellation = true;
+    QuicLockRelease(&Client->CleanupLock);
     return;
 Error:
     WdfRequestComplete(Request, Status);
@@ -570,9 +581,19 @@ QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
     QUIC_DRIVER_CLIENT* Client = (QUIC_DRIVER_CLIENT*)Context;
     WDFREQUEST Request = Client->Request;
 
+    WdfRequestMarkCancelable(Request, QuicPerfCtlEvtIoCanceled);
+    if (Client->Canceled) {
+        QuicTraceLogInfo(
+            PerformanceStopCancelled,
+            "[perf] Performance Stop Cancelled");
+        WdfRequestComplete(Request, STATUS_CANCELLED);
+        return;
+    }
+
     char* LocalBuffer = nullptr;
     DWORD ReturnedLength = 0;
     QUIC_STATUS StopStatus;
+    NTSTATUS Status;
 
     StopStatus =
         QuicMainStop(0);
@@ -585,9 +606,16 @@ QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
         return;
     }
 
-    WdfRequestUnmarkCancelable(Request);
+    QuicLockAcquire(&Client->CleanupLock);
+    Status = WdfRequestUnmarkCancelable(Request);
+    bool ExistingCancellation = Client->CleanupHandleCancellation;
+    Client->CleanupHandleCancellation = TRUE;
+    QuicLockRelease(&Client->CleanupLock);
+    if (Status == STATUS_CANCELLED && !ExistingCancellation) {
+        return;
+    }
 
-    NTSTATUS Status =
+    Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
             (size_t)BufferCurrent + 1,
@@ -641,8 +669,6 @@ QuicPerfCtlReadPrints(
             Request,
             Status,
             0);
-    } else {
-        WdfRequestMarkCancelable(Request, QuicPerfCtlEvtIoCanceled);
     }
 }
 
