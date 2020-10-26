@@ -15,6 +15,10 @@
 
 #include "hdr_histogram.h"
 
+#ifndef _WIN32
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
+
 /*  ######   #######  ##     ## ##    ## ########  ######  */
 /* ##    ## ##     ## ##     ## ###   ##    ##    ##    ## */
 /* ##       ##     ## ##     ## ####  ##    ##    ##       */
