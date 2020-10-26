@@ -53,7 +53,7 @@ QuicHandleRpsClient(
         return QUIC_STATUS_SUCCESS;
     }
 
-    struct hdr_histogram* histogram;
+    struct hdr_histogram* histogram = nullptr;
 
     uint32_t* Data = (uint32_t*)ExtraData;
 
