@@ -21,7 +21,7 @@ Abstract:
 #include <winioctl.h>
 #include "PerfIoctls.h"
 #include "quic_driver_helpers.h"
-#include <hdr_histogram.h>
+#include "histogram/hdr_histogram.h"
 
 #define QUIC_DRIVER_NAME   "quicperf"
 
