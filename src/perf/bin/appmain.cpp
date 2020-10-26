@@ -42,6 +42,7 @@ QuicUserMain(
 
     Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedCredConfig);
     if (QUIC_FAILED(Status)) {
+        QuicMainFree();
         return Status;
     }
 
@@ -55,6 +56,7 @@ QuicUserMain(
     }
 
     Status = QuicMainStop(0);
+    QuicMainFree();
 
     return Status;
 }
@@ -159,6 +161,7 @@ QuicKernelMain(
             printf("Failed to exit\n");
         }
         QUIC_FREE(OutBuffer);
+        DriverClient.Run(IOCTL_QUIC_FREE_PERF);
         DriverClient.Uninitialize();
         DriverService.Uninitialize();
         return QUIC_STATUS_INVALID_STATE;
@@ -181,6 +184,7 @@ QuicKernelMain(
 
     QUIC_FREE(Data);
     QUIC_FREE(OutBuffer);
+    DriverClient.Run(IOCTL_QUIC_FREE_PERF);
 
     DriverClient.Uninitialize();
     DriverService.Uninitialize();

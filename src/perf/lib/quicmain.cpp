@@ -19,18 +19,18 @@ Abstract:
 #include "quicmain.cpp.clog.h"
 #endif
 
-const MsQuicApi* MsQuic;
+const MsQuicApi* MsQuic = nullptr;
 volatile int BufferCurrent;
 char Buffer[BufferLength];
 
-PerfBase* TestToRun;
+PerfBase* TestToRun = nullptr;
 
 #include "quic_datapath.h"
 
 QUIC_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
 QUIC_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
-QUIC_DATAPATH* Datapath;
-QUIC_DATAPATH_BINDING* Binding;
+QUIC_DATAPATH* Datapath = nullptr;
+QUIC_DATAPATH_BINDING* Binding = nullptr;
 bool ServerMode = false;
 
 static
@@ -87,6 +87,7 @@ QuicMainStart(
         Status = QuicDataPathBindingCreate(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
         if (QUIC_FAILED(Status)) {
             QuicDataPathUninitialize(Datapath);
+            Datapath = nullptr;
             WriteOutput("Datapath Binding for shutdown failed to initialize: %d\n", Status);
             return Status;
         }
@@ -116,6 +117,7 @@ QuicMainStart(
         } else {
             PrintHelp();
             delete MsQuic;
+            MsQuic = nullptr;
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
@@ -149,27 +151,30 @@ QuicMainStop(
     _In_ int Timeout
     ) {
     if (TestToRun == nullptr) {
-        if (ServerMode) {
-            QuicDataPathBindingDelete(Binding);
-            QuicDataPathUninitialize(Datapath);
-            Datapath = nullptr;
-            Binding = nullptr;
-        }
         return QUIC_STATUS_SUCCESS;
     }
 
     QUIC_STATUS Status = TestToRun->Wait(Timeout);
+    return Status;
+}
+
+void
+QuicMainFree(
+    )
+{
     delete TestToRun;
+    TestToRun = nullptr;
     delete MsQuic;
-    if (ServerMode) {
+    MsQuic = nullptr;
+
+    if (Binding) {
         QuicDataPathBindingDelete(Binding);
-        QuicDataPathUninitialize(Datapath);
-        Datapath = nullptr;
         Binding = nullptr;
     }
-    MsQuic = nullptr;
-    TestToRun = nullptr;
-    return Status;
+    if (Datapath) {
+        QuicDataPathUninitialize(Datapath);
+        Datapath = nullptr;
+    }
 }
 
 void

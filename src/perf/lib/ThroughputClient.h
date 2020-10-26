@@ -45,6 +45,17 @@ public:
         _In_ int Timeout
         ) override;
 
+    void
+    GetExtraDataMetadata(
+        _Out_ PerfExtraDataMetadata* Result
+        ) override;
+
+    QUIC_STATUS
+    GetExtraData(
+        _Out_writes_bytes_(*Length) uint8_t* Data,
+        _Inout_ uint8_t* Length
+        ) override;
+
 private:
 
     struct ConnectionData {

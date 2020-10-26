@@ -475,6 +475,8 @@ QuicPerfCtlEvtFileCleanup(
         }
         QuicEventUninitialize(Client->StopEvent);
 
+        QuicMainFree();
+
         //
         // Clean up globals.
         //
@@ -545,6 +547,9 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_CERTIFICATE_HASH),
     SIZE_MAX,
+    0,
+    0,
+    0,
     0
 };
 
@@ -651,7 +656,8 @@ QuicPerfCtlStart(
     _In_ QUIC_DRIVER_CLIENT* Client,
     _In_ char* Arguments,
     _In_ int Length
-    ) {
+    )
+{
     char** Argv = new(std::nothrow) char* [Length];
     if (!Argv) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -673,6 +679,13 @@ QuicPerfCtlStart(
     delete[] Argv;
 
     return Status;
+}
+
+void
+QuicPerfCtlFree(
+    )
+{
+    QuicMainFree();
 }
 
 VOID
@@ -792,6 +805,10 @@ QuicPerfCtlEvtIoDeviceControl(
                 Client,
                 &Params->Data,
                 Params->Length);
+        break;
+    case IOCTL_QUIC_FREE_PERF:
+        QuicMainFree();
+        Status = QUIC_STATUS_SUCCESS;
         break;
     default:
         Status = STATUS_NOT_IMPLEMENTED;

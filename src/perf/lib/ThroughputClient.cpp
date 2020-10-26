@@ -330,6 +330,26 @@ ThroughputClient::Wait(
     return QUIC_STATUS_SUCCESS;
 }
 
+void
+ThroughputClient::GetExtraDataMetadata(
+    _Out_ PerfExtraDataMetadata* Result
+    )
+{
+    Result->TestType = PerfTestType::ThroughputClient;
+    Result->ExtraDataLength = 0;
+}
+
+
+QUIC_STATUS
+ThroughputClient::GetExtraData(
+    _Out_writes_bytes_(*Length) uint8_t*,
+    _Inout_ uint8_t* Length
+    )
+{
+    *Length = 0;
+    return QUIC_STATUS_SUCCESS;
+}
+
 QUIC_STATUS
 ThroughputClient::ConnectionCallback(
     _In_ HQUIC /*ConnectionHandle*/,
