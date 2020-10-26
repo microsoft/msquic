@@ -12,3 +12,6 @@
 [submodule "submodules/wil"]
 	path = submodules/wil
 	url = https://github.com/microsoft/wil
+[submodule "submodules/HdrHistogram_c"]
+	path = submodules/HdrHistogram_c
+	url = https://github.com/HdrHistogram/HdrHistogram_c

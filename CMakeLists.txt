@@ -539,6 +539,11 @@ endif()
 
 # Performance code
 if(QUIC_BUILD_PERF)
+    set(HDR_LOG_REQUIRED OFF)
+    set(HDR_HISTOGRAM_BUILD_PROGRAMS OFF)
+    set(HDR_HISTOGRAM_BUILD_SHARED OFF)
+    set(HDR_HISTOGRAM_INSTALL_SHARED OFF)
+    add_subdirectory(submodules/HdrHistogram_c)
     add_subdirectory(src/perf/lib)
     add_subdirectory(src/perf/bin)
 endif()

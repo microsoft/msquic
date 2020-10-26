@@ -355,7 +355,7 @@ function Invoke-Test {
             $OutputString = "Run $($_): $Joined"
 
             Write-Output $OutputString
-            $LocalResults | Write-Debug
+            $LocalResults | Write-Output
         }
     } finally {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob

@@ -21,6 +21,7 @@ Abstract:
 #include <winioctl.h>
 #include "PerfIoctls.h"
 #include "quic_driver_helpers.h"
+#include <hdr_histogram.h>
 
 #define QUIC_DRIVER_NAME   "quicperf"
 
@@ -52,9 +53,49 @@ QuicHandleRpsClient(
         return QUIC_STATUS_SUCCESS;
     }
 
+    struct hdr_histogram* histogram;
+
+    uint32_t* Data = (uint32_t*)ExtraData;
+
+    uint32_t Min = 0xFFFFFFFF;
+    uint32_t Max = 0;
+    for (size_t i = 0; i < MaxCount; i++) {
+        uint32_t Value = Data[i];
+        if (Value > Max) {
+            Max = Value;
+        }
+        if (Value < Min) {
+            Min = Value;
+        }
+    }
+
+    if (Min == 0) {
+        Min++;
+    }
+    if (Max == UINT32_MAX) {
+        Max--;
+    }
+
+    hdr_init(
+        Min - 1,
+        Max + 1,
+        3,
+        &histogram);
+
+    for (size_t i = 0; i < MaxCount; i++) {
+        hdr_record_value(histogram, Data[i]);
+    }
+
+    hdr_percentiles_print(
+        histogram,
+        stdout,
+        5,
+        1.0,
+        CLASSIC);
+
     Statistics LatencyStats;
     Percentiles PercentileStats;
-    GetStatistics((uint32_t*)ExtraData, MaxCount, &LatencyStats, &PercentileStats);
+    GetStatistics(Data, MaxCount, &LatencyStats, &PercentileStats);
     WriteOutput(
         "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f\n",
         RPS,

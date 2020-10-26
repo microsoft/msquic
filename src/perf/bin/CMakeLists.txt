@@ -12,4 +12,6 @@ add_executable(quicperf ${SOURCES})
 
 set_property(TARGET quicperf PROPERTY FOLDER "perf")
 
+target_link_libraries(quicperf hdr_histogram_static)
+
 target_link_libraries(quicperf inc warnings perflib msquic platform perfbin.clog)
