@@ -11,6 +11,7 @@ Abstract:
 
 #include "PerfHelpers.h"
 #include "LatencyHelpers.h"
+#include "histogram/hdr_histogram.h"
 
 #ifdef QUIC_CLOG
 #include "appmain.cpp.clog.h"
@@ -21,7 +22,6 @@ Abstract:
 #include <winioctl.h>
 #include "PerfIoctls.h"
 #include "quic_driver_helpers.h"
-#include "histogram/hdr_histogram.h"
 
 #define QUIC_DRIVER_NAME   "quicperf"
 
