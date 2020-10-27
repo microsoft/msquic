@@ -1698,6 +1698,7 @@ QuicConnOnQuicVersionSet(
     case QUIC_VERSION_DRAFT_29:
     case QUIC_VERSION_DRAFT_30:
     case QUIC_VERSION_DRAFT_31:
+    case QUIC_VERSION_DRAFT_32:
     case QUIC_VERSION_MS_1:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
@@ -2830,16 +2831,6 @@ QuicConnRecvVerNeg(
         }
     }
 
-    if (SupportedVersion != 0) { // TODO - Remove once version negotiation extension support is added.
-        QuicPacketLogDrop(Connection, Packet, "Version Negotation is unsupported");
-        QuicConnCloseLocally(
-            Connection,
-            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
-            (uint64_t)QUIC_STATUS_VER_NEG_ERROR,
-            NULL);
-        return;
-    }
-
     if (SupportedVersion == 0) {
         //
         // No match! Connection failure.
@@ -2856,11 +2847,9 @@ QuicConnRecvVerNeg(
         return;
     }
 
-    /* TODO - Add version negotiation extension support
     Connection->Stats.QuicVersion = SupportedVersion;
     QuicConnOnQuicVersionSet(Connection);
     QuicConnRestart(Connection, TRUE);
-    */
 }
 
 
