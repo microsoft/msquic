@@ -3,14 +3,14 @@
   <Profiles>
    <SystemCollector Id="SC_HighVolume" Realtime="false">
       <BufferSize Value="1024"/>
-      <Buffers Value="20"/>
+      <Buffers Value="60"/>
     </SystemCollector>
     <EventCollector Id="EC_LowVolume" Name="LowVolume">
-      <BufferSize Value="16"/>
+      <BufferSize Value="128"/>
       <Buffers Value="32"/>
     </EventCollector>
     <EventCollector Id="EC_HighVolume" Name="High Volume">
-      <BufferSize Value="128"/>
+      <BufferSize Value="1024"/>
       <Buffers Value="64"/>
     </EventCollector>
 
@@ -19,7 +19,7 @@
         <Keyword Value="CpuConfig"/>
         <Keyword Value="Loader"/>
         <Keyword Value="ProcessThread"/>
-        <Keyword Value="CSwitch"/>
+        <Keyword Value="SampledProfile"/>
       </Keywords>
       <Stacks>
         <Stack Value="SampledProfile"/>
