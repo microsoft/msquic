@@ -406,7 +406,7 @@ function Invoke-LocalExe {
     $RunArgs = """--extraOutputFile:$LocalExtraFile"" $RunArgs"
 
     $FullCommand = "$Exe $RunArgs"
-    Write-Host "Running Locally: $FullCommand"
+    Write-Debug "Running Locally: $FullCommand"
 
     $Stopwatch =  [system.diagnostics.stopwatch]::StartNew()
 
