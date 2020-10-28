@@ -72,7 +72,7 @@ index 04d89207..b125cdd7 100644
    <ItemGroup>
 ```
 
-You should build for x64 and Release.
+You should **clean** build for x64 and Release.
 
 Then build user mode MsQuic using the regular script with the following flags `-PGO -Tls schannel -config Release`.
 
@@ -140,8 +140,9 @@ if (!(Test-Path -Path "c:\msquic\$($WinKernelBinPath)")) {
     New-Item -Path "c:\msquic\$($WinKernelBinPath)" -ItemType Directory -Force | Out-Null
 }
 
-Copy-Item -Path "$($MsQuicPath)\$($WindowsBinPath)\*"   -Destination "c:\msquic\$($WindowsBinPath)"
-Copy-Item -Path "$($MsQuicPath)\$($WinKernelBinPath)\*" -Destination "c:\msquic\$($WinKernelBinPath)"
+Copy-Item -Path "$($MsQuicPath)\$($WindowsBinPath)\msquic.dll"   -Destination "c:\msquic\$($WinKernelBinPath)"
+Copy-Item -Path "$($MsQuicPath)\$($WindowsBinPath)\quicperf.exe" -Destination "c:\msquic\$($WinKernelBinPath)"
+Copy-Item -Path "$($MsQuicPath)\$($WinKernelBinPath)\*"          -Destination "c:\msquic\$($WinKernelBinPath)"
 
 sc.exe create "msquicpriv" type= kernel binpath= "C:\msquic\$($WinKernelBinPath)\msquicpriv.sys" start= demand
 
@@ -151,6 +152,7 @@ bcdedit /debug on
 
 Write-Host Now Reboot the machine
 ```
+Make sure the machine is configured for kernel debugging and a kernel debugger is attached, otherwise the msquicpriv.sys driver won't load.
 
 ## Training
 
@@ -161,7 +163,7 @@ On the machine that will act as server, run the following command to start the s
 quicperf.exe -selfsign:1 --kernel
 ```
 
-Once running, clear the PGO counts to get a clean slate:
+Once running, clear the PGO counts on both the client and server machines to get a clean slate:
 
 ```
 pgosweep.exe /driver msquicpriv.sys .\msquicpriv.pgc
@@ -170,19 +172,42 @@ del msquicpriv.pgc
 
 On the machine acting as client, run the following commands to generate traffic:
 ```
-quicperf -test:tput -target:<server IP> -upload:1000000000
-quicperf -test:tput -target:<server IP> -download:1000000000
-quicperf -test:RPS -target:<server IP>
-quicperf -test:HPS -target:<server IP>
+quicperf.exe --kernel -test:tput -target:<server IP> -upload:5000000000
+quicperf.exe --kernel -test:tput -target:<server IP> -download:5000000000
+quicperf.exe --kernel -test:RPS -target:<server IP>
+quicperf.exe --kernel -test:HPS -target:<server IP>
 ```
 
-After the client finishes all scenarios, on the server run this again:
+After the client finishes all scenarios, run this again on the client and the server to collect the updated counts:
 ```
 pgosweep.exe /driver msquicpriv.sys .\msquicpriv.pgc
 ```
 
-Copy the .pgc file to a machine with the Visual Studio tools installed and run:
+Copy the .pgc files to a machine with the Visual Studio tools installed and run the following to merge
+the PGC files into the PGD that was generated during build, and then copy that PGD into the git repo:
 ```
-pgomgr.exe /merge msquicpriv.pgc c:\msquic\src\bin\winkernel\pgo_x64\msquic.pgd
+pgomgr.exe /merge msquicpriv-client.pgc msquicpriv-server.pgc c:\msquic\artifacts\bin\winkernel\x64_Release_schannel\msquicpriv.pgd
+xcopy :\msquic\artifacts\bin\winkernel\x64_Release_schannel\msquicpriv.pgd c:\msquic\src\bin\winkernel\pgo_x64\msquic.pgd
 ```
-Ignore the warnings that the files are different databases.
+
+If `pgomgr.exe` emits a warning that the database doesn't match, use `pgodump.exe` to check the ID of both the
+PGD and PGC files and ensure they match. If the PGC file doesn't match, it's most likely because `msquicpriv.sys`
+didn't unload completely when you installed a new one.  You will need to stop `PGODriver.sys` before stopping
+`msquicpriv.sys` when replacing `msquicpriv.sys` with a newer version.  You can also reboot the system after
+replacing `msquicpriv.sys`.
+
+Sample output from `pgodump.exe` showing the IDs are same between PGD and PGC
+```
+> pgodump.exe c:\msquic\artifacts\bin\winkernel\x64_Release_schannel\msquicpriv.pgd
+Microsoft (R) Profile Guided Optimization Database Dump Utility
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+PGD File: c:\msquic\artifacts\bin\winkernel\x64_Release_schannel\msquicpriv.pgd (v44, ID CC21BC03, Signature 4F474F50)  10/27/2020 22:25:53
+```
+```
+> pgodump.exe msquicpriv-client.pgc
+Microsoft (R) Profile Guided Optimization Database Dump Utility
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+PGC File: msquicpriv!client.pgc (ID CC21BC03)
+```
