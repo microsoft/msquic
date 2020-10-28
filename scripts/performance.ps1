@@ -355,7 +355,7 @@ function Invoke-Test {
             $OutputString = "Run $($_): $Joined"
 
             Write-Output $OutputString
-            $LocalResults | Write-Output
+            $LocalResults | Write-Debug
         }
     } finally {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
@@ -383,7 +383,8 @@ function Invoke-Test {
     Publish-TestResults -Test $Test `
                         -AllRunsResults $AllRunsResults `
                         -CurrentCommitHash $CurrentCommitHash `
-                        -OutputDir $OutputDir
+                        -OutputDir $OutputDir `
+                        -ExePath $LocalExe
 }
 
 $LocalDataCache = LocalSetup

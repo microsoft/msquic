@@ -32,7 +32,8 @@ extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 QUIC_STATUS
 QuicHandleRpsClient(
     _In_reads_(Length) uint8_t* ExtraData,
-    _In_ uint32_t Length)
+    _In_ uint32_t Length,
+    _In_opt_z_ const char* FileName)
 {
     if (Length < sizeof(uint32_t) + sizeof(uint32_t)) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -53,46 +54,7 @@ QuicHandleRpsClient(
         return QUIC_STATUS_SUCCESS;
     }
 
-    struct hdr_histogram* histogram = nullptr;
-
     uint32_t* Data = (uint32_t*)ExtraData;
-
-    uint32_t Min = 0xFFFFFFFF;
-    uint32_t Max = 0;
-    for (size_t i = 0; i < MaxCount; i++) {
-        uint32_t Value = Data[i];
-        if (Value > Max) {
-            Max = Value;
-        }
-        if (Value < Min) {
-            Min = Value;
-        }
-    }
-
-    if (Min == 0) {
-        Min++;
-    }
-    if (Max == UINT32_MAX) {
-        Max--;
-    }
-
-    hdr_init(
-        Min - 1,
-        Max + 1,
-        3,
-        &histogram);
-
-    for (size_t i = 0; i < MaxCount; i++) {
-        hdr_record_value(histogram, Data[i]);
-    }
-
-    hdr_percentiles_print(
-        histogram,
-        stdout,
-        5,
-        1.0,
-        CLASSIC);
-
     Statistics LatencyStats;
     Percentiles PercentileStats;
     GetStatistics(Data, MaxCount, &LatencyStats, &PercentileStats);
@@ -110,7 +72,28 @@ QuicHandleRpsClient(
         PercentileStats.NintyNinthPercentile,
         PercentileStats.NintyNinePointNinthPercentile,
         PercentileStats.NintyNinePointNineNinethPercentile);
-    return QUIC_STATUS_SUCCESS;
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    if (FileName != nullptr) {
+        FILE* FilePtr = nullptr;
+        errno_t FileErr = fopen_s(&FilePtr, FileName, "w");
+        if (FileErr == 0) {
+            struct hdr_histogram* histogram = nullptr;
+            int HstStatus = hdr_init(1, LatencyStats.Max, 3, &histogram);
+            if (HstStatus == 0) {
+                for (size_t i = 0; i < MaxCount; i++) {
+                    hdr_record_value(histogram, Data[i]);
+                }
+                hdr_percentiles_print(histogram, FilePtr, 5, 1.0, CSV);
+            } else {
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+            }
+            fclose(FilePtr);
+        } else {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
+    return Status;
 }
 
 QUIC_STATUS
@@ -118,7 +101,8 @@ QuicUserMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ bool KeyboardWait,
-    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
+    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig,
+    _In_opt_z_ const char* FileName
     ) {
     EventScope StopEvent {true};
 
@@ -163,7 +147,7 @@ QuicUserMain(
             QuicMainFree();
             return Status;
         }
-        Status = QuicHandleRpsClient(Buffer.get(), Metadata.ExtraDataLength);
+        Status = QuicHandleRpsClient(Buffer.get(), Metadata.ExtraDataLength, FileName);
     }
 
     QuicMainFree();
@@ -178,17 +162,16 @@ QuicKernelMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ bool /*KeyboardWait*/,
-    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedParams
-    ) {
+    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedParams,
+    _In_opt_z_ const char* FileName
+    )
+{
     size_t TotalLength = sizeof(argc);
 
     //
     // Get total length
     //
     for (int i = 0; i < argc; ++i) {
-        if (strcmp("--kernel", argv[i]) == 0) {
-            continue;
-        }
         TotalLength += strlen(argv[i]) + 1;
     }
 
@@ -210,9 +193,6 @@ QuicKernelMain(
     DataCurrent += sizeof(argc);
 
     for (int i = 0; i < argc; ++i) {
-        if (strcmp("--kernel", argv[i]) == 0) {
-            continue;
-        }
         size_t ArgLen = strlen(argv[i]);
         QuicCopyMemory(DataCurrent, argv[i], ArgLen);
         DataCurrent += ArgLen;
@@ -309,7 +289,7 @@ QuicKernelMain(
                         &Metadata.ExtraDataLength, 10000);
                 if (RunSuccess) {
                     QUIC_STATUS Status =
-                        QuicHandleRpsClient(Buffer.get(), Metadata.ExtraDataLength);
+                        QuicHandleRpsClient(Buffer.get(), Metadata.ExtraDataLength, FileName);
                     if (QUIC_FAILED(Status)) {
                         RunSuccess = false;
                         printf("Handle RPS Data Failed\n");
@@ -351,6 +331,14 @@ main(
     QUIC_STATUS RetVal = 0;
     bool TestingKernelMode = false;
     bool KeyboardWait = false;
+    const char* FileName = nullptr;
+
+    UniquePtr<char*[]> ArgValues = UniquePtr<char*[]>(new char*[argc]);
+
+    if (ArgValues.get() == nullptr) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    int ArgCount = 0;
 
     QuicPlatformSystemLoad();
     if (QUIC_FAILED(QuicPlatformInitialize())) {
@@ -369,6 +357,11 @@ main(
 #endif
         } else if (strcmp("--kbwait", argv[i]) == 0) {
             KeyboardWait = true;
+        } else if (strncmp("--extraOutputFile", argv[i], 17) == 0) {
+            FileName = argv[i] + 18;
+        } else {
+            ArgValues[ArgCount] = argv[i];
+            ArgCount++;
         }
     }
 
@@ -386,12 +379,12 @@ main(
     if (TestingKernelMode) {
 #ifdef _WIN32
         printf("Entering kernel mode main\n");
-        RetVal = QuicKernelMain(argc, argv, KeyboardWait, SelfSignedCredConfig);
+        RetVal = QuicKernelMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, FileName);
 #else
         QUIC_FRE_ASSERT(FALSE);
 #endif
     } else {
-        RetVal = QuicUserMain(argc, argv, KeyboardWait, SelfSignedCredConfig);
+        RetVal = QuicUserMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, FileName);
     }
 
 Exit:

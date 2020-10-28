@@ -397,13 +397,16 @@ function Merge-PGOCounts {
 function Invoke-LocalExe {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
     param ($Exe, $RunArgs, $Timeout, $OutputDir)
+    $BasePath = Split-Path $Exe -Parent
     if (!$IsWindows) {
-        $BasePath = Split-Path $Exe -Parent
         $env:LD_LIBRARY_PATH = $BasePath
         chmod +x $Exe | Out-Null
     }
+    $LocalExtraFile = Join-Path $BasePath "ExtraRunFile.txt"
+    $RunArgs = """--extraOutputFile:$LocalExtraFile"" $RunArgs"
+
     $FullCommand = "$Exe $RunArgs"
-    Write-Debug "Running Locally: $FullCommand"
+    Write-Host "Running Locally: $FullCommand"
 
     $Stopwatch =  [system.diagnostics.stopwatch]::StartNew()
 
@@ -514,7 +517,7 @@ class ThroughputTestPublishResult {
 }
 
 function Publish-ThroughputTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ServerToClient)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ServerToClient, $ExePath)
 
     $Request = [ThroughputRequest]::new($Test, $ServerToClient)
 
@@ -618,9 +621,20 @@ class RPSTestPublishResult {
 }
 
 function Publish-RPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ExePath)
 
     $Request = [RPSRequest]::new($Test)
+
+    # For now, print results file
+    if ($Test.VariableName -eq "ConnectionCount" -and $Test.VariableValue -eq "60") {
+        $BasePath = Split-Path $ExePath -Parent
+        $LocalExtraFile = Join-Path $BasePath "ExtraRunFile.txt"
+        if (Test-Path $LocalExtraFile -PathType Leaf) {
+            Get-Content $LocalExtraFile
+        } else {
+            Write-Host "Extra file $LocalExtraFile not found when expected"
+        }
+    }
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
@@ -706,7 +720,7 @@ class HPSTestPublishResult {
 }
 
 function Publish-HPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ExePath)
 
     $Request = [HPSRequest]::new($Test)
 
@@ -750,16 +764,16 @@ function Publish-HPSTestResults {
 #endregion
 
 function Publish-TestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir, $ExePath)
 
     if ($Test.TestName -eq "ThroughputUp") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $false
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $false -ExePath $ExePath
     } elseif ($Test.TestName -eq "ThroughputDown") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $true
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $true -ExePath $ExePath
     } elseif ($Test.TestName -eq "RPS") {
-        Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
+        Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ExePath $ExePath
     } elseif ($Test.TestName -eq "HPS") {
-        Publish-HPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
+        Publish-HPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ExePath $ExePath
     } else {
         Write-Host "Unknown Test Type"
     }
