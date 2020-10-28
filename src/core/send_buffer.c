@@ -196,11 +196,11 @@ QuicGetNextIdealBytes(
     uint32_t Threshold = QUIC_DEFAULT_IDEAL_SEND_BUFFER_SIZE;
 
     //
-    // We calculate the theshold as an exponential grown based on the default
-    // up to the max, rounding up to the next threshold when equal.
+    // We calculate the threshold as an exponential growth from the default
+    // value up to the max, rounding up to the next threshold when equal.
     //
     while (Threshold <= BaseValue) {
-        uint32_t NextThreshold = (Threshold * 3) / 2; // 1.5x growth
+        uint32_t NextThreshold = Threshold + (Threshold / 2); // 1.5x growth
         if (NextThreshold > QUIC_MAX_IDEAL_SEND_BUFFER_SIZE) {
             Threshold = QUIC_MAX_IDEAL_SEND_BUFFER_SIZE;
             break;
