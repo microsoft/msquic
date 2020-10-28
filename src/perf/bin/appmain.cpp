@@ -76,11 +76,13 @@ QuicHandleRpsClient(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (FileName != nullptr) {
         FILE* FilePtr = nullptr;
-        //
-        // Using 'auto' because the return types are different between platforms
-        // But point to the same type (int)
-        //
-        auto FileErr = fopen_s(&FilePtr, FileName, "w");
+
+#ifdef _WIN32
+        errno_t FileErr = fopen_s(&FilePtr, FileName, "w");
+#else
+        FilePtr = fopen(FileName, "w");
+        int FileErr = (FilePtr == nullptr) ? 1 : 0;
+#endif
         if (FileErr == 0) {
             struct hdr_histogram* histogram = nullptr;
             int HstStatus = hdr_init(1, LatencyStats.Max, 3, &histogram);
