@@ -264,7 +264,7 @@ QuicSendBufferConnectionAdjust(
     // TODO: Currently, IdealBytes only grows and never shrinks. Add appropriate
     // shrinking logic.
     //
-    if (NewIdealBytes < Connection->SendBuffer.IdealBytes) {
+    if (NewIdealBytes > Connection->SendBuffer.IdealBytes) {
         Connection->SendBuffer.IdealBytes = NewIdealBytes;
 
         QUIC_HASHTABLE_ENUMERATOR Enumerator;
