@@ -243,50 +243,6 @@ RpsClient::Wait(
     Running = false;
 
     CachedCompletedRequests = CompletedRequests;
-    // uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
-    // uint32_t MaxCount = (uint32_t)min(CachedCompletedRequests, MaxLatencyIndex);
-
-    // if (RPS == 0) {
-    //     WriteOutput("Error: No requests were completed\n");
-    //     return QUIC_STATUS_SUCCESS;
-    // }
-
-// #ifdef _KERNEL_MODE
-//     XSTATE_SAVE SaveState;
-//     NTSTATUS Status;
-
-//     Status = KeSaveExtendedProcessorState(XSTATE_MASK_LEGACY, &SaveState);
-//     if (!NT_SUCCESS(Status)) {
-//         return Status;
-//     }
-
-//     __try {
-//         {
-// #endif
-//             Statistics LatencyStats;
-//             Percentiles PercentileStats;
-//             GetStatistics(LatencyValues.get(), MaxCount, &LatencyStats, &PercentileStats);
-//             WriteOutput(
-//                 "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f\n",
-//                 RPS,
-//                 LatencyStats.Min,
-//                 LatencyStats.Max,
-//                 LatencyStats.Mean,
-//                 LatencyStats.Variance,
-//                 LatencyStats.StandardDeviation,
-//                 LatencyStats.StandardError,
-//                 PercentileStats.FiftiethPercentile,
-//                 PercentileStats.NinetiethPercentile,
-//                 PercentileStats.NintyNinthPercentile,
-//                 PercentileStats.NintyNinePointNinthPercentile,
-//                 PercentileStats.NintyNinePointNineNinethPercentile);
-// #ifdef _KERNEL_MODE
-//         }
-//     }
-//     __finally {
-//         KeRestoreExtendedProcessorState(&SaveState);
-//     }
-// #endif
     return QUIC_STATUS_SUCCESS;
 }
 

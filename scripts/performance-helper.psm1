@@ -676,16 +676,13 @@ function Publish-RPSTestResults {
 
     $Request = [RPSRequest]::new($Test)
 
-    # For now, print results file
-    if ($Test.VariableName -eq "ConnectionCount" -and $Test.VariableValue -eq "60") {
-        $BasePath = Split-Path $ExePath -Parent
-        $LocalExtraFile = Join-Path $BasePath "ExtraRunFile.txt"
-        if (Test-Path $LocalExtraFile -PathType Leaf) {
-            $ResultFile = Join-Path $OutputDir "histogram_$Test.txt"
-            Copy-Item -Path $LocalExtraFile -Destination $ResultFile
-        } else {
-            Write-Host "Extra file $LocalExtraFile not found when expected"
-        }
+    $BasePath = Split-Path $ExePath -Parent
+    $LocalExtraFile = Join-Path $BasePath "ExtraRunFile.txt"
+    if (Test-Path $LocalExtraFile -PathType Leaf) {
+        $ResultFile = Join-Path $OutputDir "histogram_$Test.txt"
+        Copy-Item -Path $LocalExtraFile -Destination $ResultFile
+    } else {
+        Write-Host "Extra file $LocalExtraFile not found when expected"
     }
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
