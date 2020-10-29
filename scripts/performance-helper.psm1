@@ -394,6 +394,27 @@ function Merge-PGOCounts {
     Remove-Item "$Path\*.pgc" | Out-Null
 }
 
+# Uses CDB.exe to print the crashing callstack in the dump file.
+function PrintDumpCallStack($DumpFile) {
+    $env:_NT_SYMBOL_PATH = Split-Path $Path
+    try {
+        if ($env:BUILD_BUILDNUMBER -ne $null) {
+            $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
+        }
+        $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
+        $Output = ($Output | Select-String -Pattern " # Child-SP(?s).*quit:").Matches[0].Groups[0].Value
+        Write-Host "=================================================================================="
+        Write-Host " $(Split-Path $DumpFile -Leaf)"
+        Write-Host "=================================================================================="
+        $Output -replace "quit:", "=================================================================================="
+    } catch {
+        # Silently fail
+    }
+}
+function Log($msg) {
+    Write-Host "[$(Get-Date)] $msg"
+}
+
 function Invoke-LocalExe {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
     param ($Exe, $RunArgs, $Timeout, $OutputDir)
@@ -408,6 +429,23 @@ function Invoke-LocalExe {
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
 
+    $ExeName = Split-Path $Exe -Leaf
+    # Path to the WER registry key used for collecting dumps.
+    $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\$ExeName"
+    # Root directory of the project.
+    $RootDir = Split-Path $PSScriptRoot -Parent
+    $LogDir = Join-Path $RootDir "artifacts" "logs" $ExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+
+    if ($IsWindows) {
+        if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
+            New-Item -Path $WerDumpRegPath -Force | Out-Null
+        }
+
+        New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
+        New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
+        New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force | Out-Null
+    }
+
     $Stopwatch =  [system.diagnostics.stopwatch]::StartNew()
 
     $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
@@ -419,6 +457,19 @@ function Invoke-LocalExe {
     $RetVal = Receive-Job -Job $LocalJob
 
     $Stopwatch.Stop()
+
+    if ($isWindows) {
+        $DumpFiles = (Get-ChildItem $LogDir) | Where-Object { $_.Extension -eq ".dmp" }
+        if ($DumpFiles) {
+            Log "Dump file(s) generated"
+            foreach ($File in $DumpFiles) {
+                PrintDumpCallStack($File)
+            }
+        }
+
+        # Cleanup the WER registry.
+        Remove-Item -Path $WerDumpRegPath -Force | Out-Null
+    }
 
     Write-Host ("Test Run Took " + $Stopwatch.Elapsed)
 
