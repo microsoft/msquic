@@ -59,19 +59,18 @@ QuicHandleRpsClient(
     Percentiles PercentileStats;
     GetStatistics(Data, MaxCount, &LatencyStats, &PercentileStats);
     WriteOutput(
-        "Result: %u RPS, Min: %d, Max: %d, Mean: %f, Variance: %f, StdDev: %f, StdErr: %f, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f\n",
+        "Result: %u RPS, Min: %d, Max: %d, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f, 99.999th: %f, 99.9999th: %f, StdErr: %f\n",
         RPS,
         LatencyStats.Min,
         LatencyStats.Max,
-        LatencyStats.Mean,
-        LatencyStats.Variance,
-        LatencyStats.StandardDeviation,
-        LatencyStats.StandardError,
-        PercentileStats.FiftiethPercentile,
-        PercentileStats.NinetiethPercentile,
-        PercentileStats.NintyNinthPercentile,
-        PercentileStats.NintyNinePointNinthPercentile,
-        PercentileStats.NintyNinePointNineNinethPercentile);
+        PercentileStats.P50,
+        PercentileStats.P90,
+        PercentileStats.P99,
+        PercentileStats.P99p9,
+        PercentileStats.P99p99,
+        PercentileStats.P99p999,
+        PercentileStats.P99p9999,
+        LatencyStats.StandardError);
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (FileName != nullptr) {
@@ -90,7 +89,7 @@ QuicHandleRpsClient(
                 for (size_t i = 0; i < MaxCount; i++) {
                     hdr_record_value(histogram, Data[i]);
                 }
-                hdr_percentiles_print(histogram, FilePtr, 5, 1.0, CSV);
+                hdr_percentiles_print(histogram, FilePtr, 5, 1.0, CLASSIC);
             } else {
                 Status = QUIC_STATUS_OUT_OF_MEMORY;
             }

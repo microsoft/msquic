@@ -630,7 +630,8 @@ function Publish-RPSTestResults {
         $BasePath = Split-Path $ExePath -Parent
         $LocalExtraFile = Join-Path $BasePath "ExtraRunFile.txt"
         if (Test-Path $LocalExtraFile -PathType Leaf) {
-            Get-Content $LocalExtraFile
+            $ResultFile = Join-Path $OutputDir "histogram_$Test.txt"
+            Copy-Item -Path $LocalExtraFile -Destination $ResultFile
         } else {
             Write-Host "Extra file $LocalExtraFile not found when expected"
         }

@@ -28,11 +28,13 @@ struct Statistics {
 };
 
 struct Percentiles {
-    double FiftiethPercentile {0};
-    double NinetiethPercentile {0};
-    double NintyNinthPercentile {0};
-    double NintyNinePointNinthPercentile {0};
-    double NintyNinePointNineNinethPercentile {0};
+    double P50 {0};
+    double P90 {0};
+    double P99 {0};
+    double P99p9 {0};
+    double P99p99 {0};
+    double P99p999 {0};
+    double P99p9999 {0};
 };
 
 #ifdef _KERNEL_MODE
@@ -123,17 +125,23 @@ GetStatistics(
 #endif
 
     uint32_t PercentileIndex = (uint32_t)(DataLength * 0.5);
-    PercentileStats->FiftiethPercentile = Data[PercentileIndex];
+    PercentileStats->P50 = Data[PercentileIndex];
 
     PercentileIndex = (uint32_t)(DataLength * 0.9);
-    PercentileStats->NinetiethPercentile = Data[PercentileIndex];
+    PercentileStats->P90 = Data[PercentileIndex];
 
     PercentileIndex = (uint32_t)(DataLength * 0.99);
-    PercentileStats->NintyNinthPercentile = Data[PercentileIndex];
+    PercentileStats->P99 = Data[PercentileIndex];
 
     PercentileIndex = (uint32_t)(DataLength * 0.999);
-    PercentileStats->NintyNinePointNinthPercentile = Data[PercentileIndex];
+    PercentileStats->P99p9 = Data[PercentileIndex];
 
     PercentileIndex = (uint32_t)(DataLength * 0.9999);
-    PercentileStats->NintyNinePointNineNinethPercentile = Data[PercentileIndex];
+    PercentileStats->P99p99 = Data[PercentileIndex];
+
+    PercentileIndex = (uint32_t)(DataLength * 0.99999);
+    PercentileStats->P99p999 = Data[PercentileIndex];
+
+    PercentileIndex = (uint32_t)(DataLength * 0.999999);
+    PercentileStats->P99p9999 = Data[PercentileIndex];
 }
