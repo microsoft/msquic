@@ -130,6 +130,7 @@ QuicUserMain(
 
     Status = QuicMainStop(0);
     if (QUIC_FAILED(Status)) {
+        printf("Stop failed with status %d\n", Status);
         QuicMainFree();
         return Status;
     }
@@ -137,6 +138,7 @@ QuicUserMain(
     PerfExtraDataMetadata Metadata;
     Status = QuicMainGetExtraDataMetadata(&Metadata);
     if (QUIC_FAILED(Status)) {
+        printf("Get Extra Metadata failed with status %d\n", Status);
         QuicMainFree();
         return Status;
     }
@@ -149,14 +151,15 @@ QuicUserMain(
         }
         Status = QuicMainGetExtraData(Buffer.get(), &Metadata.ExtraDataLength);
         if (QUIC_FAILED(Status)) {
+            printf("Get Extra Data failed with status %d\n", Status);
             QuicMainFree();
             return Status;
         }
         Status = QuicHandleRpsClient(Buffer.get(), Metadata.ExtraDataLength, FileName);
     }
 
+    printf("App Main returning status %d\n", Status);
     QuicMainFree();
-
     return Status;
 }
 
