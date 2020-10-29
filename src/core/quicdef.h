@@ -300,12 +300,6 @@ QUIC_STATIC_ASSERT(
 #define QUIC_DEFAULT_IDEAL_SEND_BUFFER_SIZE     0x20000 // 131072
 
 //
-// Defines the theshold of the current ideal send buffer that bytes in flight
-// must reach before we will double the ideal send buffer.
-//
-#define QUIC_IDEAL_SEND_BUFFER_THRESHOLD(ISB)   ((ISB) / 4)
-
-//
 // The max ideal send buffer size (in bytes). Note that this is not
 // a hard max on the number of bytes buffered for the connection.
 //
