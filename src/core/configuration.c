@@ -73,7 +73,7 @@ MsQuicConfigurationOpen(
     }
     QUIC_ANALYSIS_ASSERT(AlpnListLength <= UINT16_MAX);
 
-    Configuration = QUIC_ALLOC_NONPAGED(sizeof(QUIC_CONFIGURATION) + AlpnListLength);
+    Configuration = QUIC_ALLOC_NONPAGED(sizeof(QUIC_CONFIGURATION) + AlpnListLength, QUIC_POOL_CONFIG);
     if (Configuration == NULL) {
         QuicTraceEvent(
             AllocFailure,

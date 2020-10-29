@@ -1020,7 +1020,7 @@ QuicDataPathBindingCreate(
         sizeof(QUIC_DATAPATH_BINDING) +
         SocketCount * sizeof(QUIC_UDP_SOCKET_CONTEXT);
 
-    Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength, QUIC_POOL_BINDING);
+    Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength, QUIC_POOL_DATAPATH_BINDING);
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1607,7 +1607,7 @@ QUIC_DISABLED_BY_FUZZER_END;
                     QuicRundownUninitialize(&SocketContext->UpcallRundown);
                 }
                 QuicRundownRelease(&Datapath->BindingsRundown);
-                QUIC_FREE(Binding, QUIC_POOL_BINDING);
+                QUIC_FREE(Binding, QUIC_POOL_DATAPATH_BINDING);
             }
         }
     }
@@ -1712,7 +1712,7 @@ QuicDataPathSocketContextShutdown(
             DatapathShutDownComplete,
             "[ udp][%p] Shut down (complete)",
             SocketContext->Binding);
-        QUIC_FREE(SocketContext->Binding, QUIC_POOL_BINDING);
+        QUIC_FREE(SocketContext->Binding, QUIC_POOL_DATAPATH_BINDING);
     }
 }
 

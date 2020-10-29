@@ -71,15 +71,22 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_PERF      'frPQ'  // QPrf - QUIC perf code
 #define QUIC_POOL_TOOL      'loTQ'  // QTol - QUIC tool code
 
+#define QUIC_POOL_ALPN      'LPAQ'  // QAPL - QUIC ALPN
+
+#define QUIC_POOL_CONFIG 'gfCQ' // QCfg - QUIC configuration
+#define QUIC_POOL_BINDING   'dbCQ'  // QCbd - QUIC Core binding
+
 #define QUIC_POOL_PLATFORM_SENDCTX 'csPQ' // QPsc - QUIC Platform Send Context
 
 #define QUIC_POOL_TLS_ACHCTX 'atPQ' // QPta - QUIC Platform TLS ACH Context
 #define QUIC_POOL_TLS_SNI 'ntPQ' // QPtn - QUIC Platform TLS SNI
+#define QUIC_POOL_TLS_PRINCIPAL 'rtPQ' // QPtn - QUIC Platform TLS Principal
 #define QUIC_POOL_TLS_CTX 'ctPQ' // QPtc - QUIC Platform TLS Context
 #define QUIC_POOL_TLS_TRANSPARAMS 'ttPQ' // QPtc - QUIC Platform TLS Transport Parameters
 #define QUIC_POOL_TLS_RESUMPTION 'rtPQ' // QPtr - QUIC Platform TLS Resumption Buffer
 #define QUIC_POOL_TLS_SECCONF 'stPQ' // QPts - QUIC Platform TLS Sec Config
 #define QUIC_POOL_TLS_PACKETKEY 'ptPQ' // QPts - QUIC Platform TLS Packet Key
+#define QUIC_POOL_TLS_EXTRAS 'xtPQ' // QPtx - QUIC Platform TLS Extra Data
 
 #define QUIC_POOL_TMP_ALLOC 'atCQ' //  QCta - QUIC temporary alloc
 #define QUIC_POOL_PLATFORM_TMP_ALLOC 'atPQ' // QPta - QUIC Platform temporary alloc
@@ -88,7 +95,7 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 
 #define QUIC_POOL_PLATFORM_GENERIC 'LTPQ' // QPLT - QUIC Platform generic
 #define QUIC_POOL_DATAPATH  'pdPQ'  // QPdp - QUIC Platform datapath
-#define QUIC_POOL_BINDING   'dbPQ'  // QDbd - QUIC Platform datapath binding
+#define QUIC_POOL_DATAPATH_BINDING   'dbPQ'  // QDbd - QUIC Platform datapath binding
 #define QUIC_POOL_STORAGE   'tsPQ'  // QPst - QUIC Platform storage
 #define QUIC_POOL_HASHTABLE 'thPQ'  // QPht - QUIC Platform hashtable
 #define QUIC_POOL_HASHTABLE_MEMBER 'lhPQ'  // QPhl - QUIC Platform hashtable member lists

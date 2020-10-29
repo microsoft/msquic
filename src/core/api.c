@@ -324,7 +324,7 @@ MsQuicConnectionStart(
         // Allocate copy of the server name, to save with the connection.
         //
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed by the connection.")
-        ServerNameCopy = QUIC_ALLOC_NONPAGED(ServerNameLength + 1);
+        ServerNameCopy = QUIC_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TMP_ALLOC);
         if (ServerNameCopy == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
@@ -538,7 +538,7 @@ MsQuicConnectionSendResumptionTicket(
     }
 
     if (DataLength > 0) {
-        ResumptionDataCopy = QUIC_ALLOC_NONPAGED(DataLength);
+        ResumptionDataCopy = QUIC_ALLOC_NONPAGED(DataLength, QUIC_POOL_TMP_ALLOC);
         if (ResumptionDataCopy == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
@@ -576,7 +576,7 @@ MsQuicConnectionSendResumptionTicket(
 Error:
 
     if (ResumptionDataCopy != NULL) {
-        QUIC_FREE(ResumptionDataCopy);
+        QUIC_FREE(ResumptionDataCopy, QUIC_POOL_TMP_ALLOC);
     }
 
     QuicTraceEvent(

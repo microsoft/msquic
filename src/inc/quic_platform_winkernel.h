@@ -254,10 +254,9 @@ QuicPlatformLogAssert(
 
 extern uint64_t QuicTotalMemory;
 
-#define QUIC_ALLOC_PAGED(Size) ExAllocatePool2(POOL_FLAG_PAGED | POOL_FLAG_UNINITIALIZED, Size, QUIC_POOL_GENERIC)
-#define QUIC_ALLOC_NONPAGED(Size) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, QUIC_POOL_GENERIC)
-#define QUIC_FREE(Mem) ExFreePool((void*)Mem)
-#define QUIC_FREE_TAG(Mem, Tag) ExFreePoolWithTag((void*)Mem, Tag)
+#define QUIC_ALLOC_PAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
+#define QUIC_ALLOC_NONPAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
+#define QUIC_FREE(Mem, Tag) ExFreePoolWithTag((void*)Mem, Tag)
 
 typedef LOOKASIDE_LIST_EX QUIC_POOL;
 

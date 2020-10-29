@@ -51,7 +51,7 @@ QuicBindingInitialize(
     uint8_t HashSalt[20];
     BOOLEAN HashTableInitialized = FALSE;
 
-    Binding = QUIC_ALLOC_NONPAGED(sizeof(QUIC_BINDING));
+    Binding = QUIC_ALLOC_NONPAGED(sizeof(QUIC_BINDING), QUIC_POOL_BINDING);
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -470,7 +470,7 @@ QuicBindingAcceptConnection(
     // used later in building up the TLS response.
     //
     uint16_t NegotiatedAlpnLength = 1 + Info->NegotiatedAlpn[-1];
-    uint8_t* NegotiatedAlpn = QUIC_ALLOC_NONPAGED(NegotiatedAlpnLength);
+    uint8_t* NegotiatedAlpn = QUIC_ALLOC_NONPAGED(NegotiatedAlpnLength, QUIC_POOL_ALPN);
     if (NegotiatedAlpn == NULL) {
         QuicTraceEvent(
             AllocFailure,

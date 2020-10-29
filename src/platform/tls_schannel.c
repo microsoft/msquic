@@ -436,7 +436,7 @@ QuicTlsUtf8ToWideChar(
         goto Error;
     }
 
-    Buffer = QUIC_ALLOC_NONPAGED(sizeof(WCHAR) * Size, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    Buffer = QUIC_ALLOC_NONPAGED(sizeof(WCHAR) * Size, QUIC_POOL_TLS_SNI);
     if (Buffer == NULL) {
         Error = ERROR_NOT_ENOUGH_MEMORY;
         QuicTraceEvent(
@@ -471,7 +471,7 @@ QuicTlsUtf8ToWideChar(
 Error:
 
     if (Buffer != NULL) {
-        QUIC_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        QUIC_FREE(Buffer, QUIC_POOL_TLS_SNI);
     }
 
     return HRESULT_FROM_WIN32(Error);
@@ -483,7 +483,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsUtf8ToUnicodeString(
     _In_z_ const char* Input,
-    _Inout_ PUNICODE_STRING Output
+    _Inout_ PUNICODE_STRING Output,
+    _In_ uint32_t Tag
     )
 {
     QUIC_DBG_ASSERT(Input != NULL);
@@ -516,7 +517,7 @@ QuicTlsUtf8ToUnicodeString(
         goto Error;
     }
 
-    UnicodeString = QUIC_ALLOC_NONPAGED(RequiredSize);
+    UnicodeString = QUIC_ALLOC_NONPAGED(RequiredSize, Tag);
     if (UnicodeString == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -552,7 +553,7 @@ QuicTlsUtf8ToUnicodeString(
 
 Error:
     if (UnicodeString != NULL) {
-        QUIC_FREE(UnicodeString);
+        QUIC_FREE(UnicodeString, Tag);
         UnicodeString = NULL;
     }
     return Status;
@@ -776,7 +777,7 @@ QuicTlsFreeAchContext(
 {
 #ifdef _KERNEL_MODE
     if (AchContext->Principal.Buffer != NULL) {
-        QUIC_FREE(AchContext->Principal.Buffer);
+        QUIC_FREE(AchContext->Principal.Buffer, QUIC_POOL_TLS_PRINCIPAL);
         RtlZeroMemory(&AchContext->Principal, sizeof(AchContext->Principal));
     }
     if (AchContext->SspiContext != NULL) {
@@ -1084,7 +1085,7 @@ QuicTlsSecConfigCreate(
 
     if (CredConfig->Principal != NULL) {
 
-        Status = QuicTlsUtf8ToUnicodeString(CredConfig->Principal, &AchContext->Principal);
+        Status = QuicTlsUtf8ToUnicodeString(CredConfig->Principal, &AchContext->Principal, QUIC_POOL_TLS_PRINCIPAL);
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -1483,7 +1484,7 @@ QuicTlsWriteDataToSchannel(
         if (TlsContext->SNI != NULL) {
 #ifdef _KERNEL_MODE
             TargetServerName = &ServerName;
-            QUIC_STATUS Status = QuicTlsUtf8ToUnicodeString(TlsContext->SNI, TargetServerName);
+            QUIC_STATUS Status = QuicTlsUtf8ToUnicodeString(TlsContext->SNI, TargetServerName, QUIC_POOL_TLS_SNI);
 #else
             QUIC_STATUS Status = QuicTlsUtf8ToWideChar(TlsContext->SNI, &TargetServerName);
 #endif
@@ -2084,11 +2085,11 @@ QuicTlsWriteDataToSchannel(
 
 #ifdef _KERNEL_MODE
     if (ServerName.Buffer != NULL) {
-        QUIC_FREE(ServerName.Buffer);
+        QUIC_FREE(ServerName.Buffer, QUIC_POOL_TLS_SNI);
     }
 #else
     if (TargetServerName != NULL) {
-        QUIC_FREE(TargetServerName, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        QUIC_FREE(TargetServerName, QUIC_POOL_TLS_SNI);
     }
 #endif
 
