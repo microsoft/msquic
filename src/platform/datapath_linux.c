@@ -371,7 +371,7 @@ QuicProcessorContextInitialize(
     QuicPoolInitialize(
         TRUE,
         sizeof(QUIC_DATAPATH_SEND_CONTEXT),
-        QUIC_POOL_GENERIC,
+        QUIC_POOL_PLATFORM_SENDCTX,
         &ProcContext->SendContextPool);
 
     EpollFd = epoll_create1(EPOLL_CLOEXEC);

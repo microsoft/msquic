@@ -65,11 +65,33 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_TP        'PTCQ'  // QCTP - QUIC connection transport parameters
 #define QUIC_POOL_STREAM    'mtSQ'  // QStm - QUIC stream
 #define QUIC_POOL_SBUF      'fBSQ'  // QSBf - QUIC stream buffer
-#define QUIC_POOL_META      'MFSQ'  // QSFM - QUIC sent frame metedata
+#define QUIC_POOL_META      'MFSQ'  // QSFM - QUIC sent frame metadata
 #define QUIC_POOL_DATA      'atDQ'  // QDta - QUIC datagram buffer
 #define QUIC_POOL_TEST      'tsTQ'  // QTst - QUIC test code
 #define QUIC_POOL_PERF      'frPQ'  // QPrf - QUIC perf code
 #define QUIC_POOL_TOOL      'loTQ'  // QTol - QUIC tool code
+
+#define QUIC_POOL_PLATFORM_SENDCTX 'csPQ' // QPsc - QUIC Platform Send Context
+
+#define QUIC_POOL_TLS_ACHCTX 'atPQ' // QPta - QUIC Platform TLS ACH Context
+#define QUIC_POOL_TLS_SNI 'ntPQ' // QPtn - QUIC Platform TLS SNI
+#define QUIC_POOL_TLS_CTX 'ctPQ' // QPtc - QUIC Platform TLS Context
+#define QUIC_POOL_TLS_TRANSPARAMS 'ttPQ' // QPtc - QUIC Platform TLS Transport Parameters
+#define QUIC_POOL_TLS_RESUMPTION 'rtPQ' // QPtr - QUIC Platform TLS Resumption Buffer
+#define QUIC_POOL_TLS_SECCONF 'stPQ' // QPts - QUIC Platform TLS Sec Config
+#define QUIC_POOL_TLS_PACKETKEY 'ptPQ' // QPts - QUIC Platform TLS Packet Key
+
+#define QUIC_POOL_TMP_ALLOC 'atCQ' //  QCta - QUIC temporary alloc
+#define QUIC_POOL_PLATFORM_TMP_ALLOC 'atPQ' // QPta - QUIC Platform temporary alloc
+
+#define QUIC_POOL_PLATFORM_PROC 'cpPQ' // QPpc - QUIC Platform Processor info
+
+#define QUIC_POOL_PLATFORM_GENERIC 'LTPQ' // QPLT - QUIC Platform generic
+#define QUIC_POOL_DATAPATH  'pdPQ'  // QPdp - QUIC Platform datapath
+#define QUIC_POOL_BINDING   'dbPQ'  // QDbd - QUIC Platform datapath binding
+#define QUIC_POOL_STORAGE   'tsPQ'  // QPst - QUIC Platform storage
+#define QUIC_POOL_HASHTABLE 'thPQ'  // QPht - QUIC Platform hashtable
+#define QUIC_POOL_HASHTABLE_MEMBER 'lhPQ'  // QPhl - QUIC Platform hashtable member lists
 
 typedef enum QUIC_THREAD_FLAGS {
     QUIC_THREAD_FLAG_NONE               = 0x0000,

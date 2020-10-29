@@ -113,7 +113,7 @@ QuicPlatformSystemLoad(
     size_t TpLibNameLen = strlen(TpLibName);
     size_t ProviderFullPathLength = TpLibNameLen + LastTrailingSlashLen + 1;
 
-    char* ProviderFullPath = QUIC_ALLOC_PAGED(ProviderFullPathLength);
+    char* ProviderFullPath = QUIC_ALLOC_PAGED(ProviderFullPathLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (ProviderFullPath == NULL) {
         return;
     }
@@ -128,7 +128,7 @@ QuicPlatformSystemLoad(
     //
     dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
 
-    QUIC_FREE(ProviderFullPath);
+    QUIC_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
 }
 
 void
@@ -169,9 +169,11 @@ QuicPlatformUninitialize(
 
 void*
 QuicAlloc(
-    _In_ size_t ByteCount
+    _In_ size_t ByteCount,
+    _In_ uint32_t Tag
     )
 {
+    UNREFERENCED_PARAMETER(Tag);
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->Alloc(ByteCount);
 #else
@@ -186,9 +188,11 @@ QuicAlloc(
 
 void
 QuicFree(
-    __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem
+    __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem,
+    _In_ uint32_t Tag
     )
 {
+    UNREFERENCED_PARAMETER(Tag);
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     PlatDispatch->Free(Mem);
 #else
@@ -233,7 +237,7 @@ QuicPoolAlloc(
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->PoolAlloc(Pool);
 #else
-    void*Entry = QuicAlloc(Pool->Size);
+    void*Entry = QuicAlloc(Pool->Size, Pool->Tag);
 
     if (Entry != NULL) {
         QuicZeroMemory(Entry, Pool->Size);
@@ -253,7 +257,7 @@ QuicPoolFree(
     PlatDispatch->PoolFree(Pool, Entry);
 #else
     UNREFERENCED_PARAMETER(Pool);
-    QuicFree(Entry);
+    QuicFree(Entry, Pool->Tag);
 #endif
 }
 

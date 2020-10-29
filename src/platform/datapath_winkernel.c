@@ -885,7 +885,7 @@ QuicDataPathInitialize(
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_DATAPATH_SEND_CONTEXT),
-            QUIC_POOL_GENERIC,
+            QUIC_POOL_PLATFORM_SENDCTX,
             &Datapath->ProcContexts[i].SendContextPool);
 
         QuicSendBufferPoolInitialize(

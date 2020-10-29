@@ -140,7 +140,7 @@ QuicConvertUtf8ToUnicode(
     }
 
     PUNICODE_STRING UnicodeString =
-        QUIC_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength);
+        QUIC_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
     if (UnicodeString == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -159,7 +159,7 @@ QuicConvertUtf8ToUnicode(
             (ULONG)Utf8Length);
 
     if (QUIC_FAILED(Status)) {
-        QUIC_FREE(UnicodeString);
+        QUIC_FREE(UnicodeString, QUIC_POOL_PLATFORM_TMP_ALLOC);
         return Status;
     }
 
@@ -209,7 +209,7 @@ QuicStorageOpen(
             NULL);
     }
 
-    Storage = QUIC_ALLOC_NONPAGED(sizeof(QUIC_STORAGE));
+    Storage = QUIC_ALLOC_NONPAGED(sizeof(QUIC_STORAGE), QUIC_POOL_STORAGE);
     if (Storage == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -236,7 +236,7 @@ QuicStorageOpen(
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
-    
+
     Status =
         ZwNotifyChangeKey(
             Storage->RegKey,
@@ -259,14 +259,14 @@ QuicStorageOpen(
 Exit:
 
     if (PathUnicode != NULL) {
-        QUIC_FREE(PathUnicode);
+        QUIC_FREE(PathUnicode, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
     if (Storage != NULL) {
         if (Storage->RegKey != NULL) {
             ZwClose(Storage->RegKey);
         }
         QuicLockUninitialize(&Storage->Lock);
-        QUIC_FREE(Storage);
+        QUIC_FREE(Storage, QUIC_POOL_STORAGE);
     }
 
     return Status;
@@ -291,7 +291,7 @@ QuicStorageClose(
         QuicEventWaitForever(CleanupEvent);
         QuicEventUninitialize(CleanupEvent);
         QuicLockUninitialize(&Storage->Lock);
-        QUIC_FREE(Storage);
+        QUIC_FREE(Storage, QUIC_POOL_STORAGE);
     }
 }
 
@@ -378,7 +378,7 @@ QuicStorageReadValue(
     } else {
 
         ULONG InfoLength = BASE_KEY_INFO_LENGTH + *BufferLength;
-        PKEY_VALUE_PARTIAL_INFORMATION Info = QUIC_ALLOC_PAGED(InfoLength);
+        PKEY_VALUE_PARTIAL_INFORMATION Info = QUIC_ALLOC_PAGED(InfoLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
         if (Info == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
@@ -397,13 +397,13 @@ QuicStorageReadValue(
             memcpy(Buffer, Info->Data, Info->DataLength);
         }
 
-        QUIC_FREE(Info);
+        QUIC_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
 Exit:
 
     if (NameUnicode != NULL) {
-        QUIC_FREE(NameUnicode);
+        QUIC_FREE(NameUnicode, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Status;
