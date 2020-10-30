@@ -19,9 +19,11 @@ Abstract:
 
 struct RpsWorkerContext;
 
-struct RpsConnectionContext : public ConnectionScope {
+struct RpsConnectionContext {
     QUIC_LIST_ENTRY Link; // For Worker's connection queue
     RpsWorkerContext* Worker {nullptr};
+    HQUIC Handle {nullptr};
+    operator HQUIC() const { return Handle; }
     QUIC_STATUS
     StreamCallback(
         _In_ HQUIC StreamHandle,
