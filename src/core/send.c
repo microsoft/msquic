@@ -902,7 +902,18 @@ QuicSendPathChallenges(
         // Path challenges need to be padded to at least the same as initial
         // packets to validate min MTU.
         //
-        Builder.MinimumDatagramLength = QUIC_INITIAL_PACKET_LENGTH;
+        Builder.MinimumDatagramLength =
+            MaxUdpPayloadSizeForFamily(
+                QuicAddrGetFamily(&Builder.Path->RemoteAddress),
+                QUIC_INITIAL_PACKET_LENGTH);
+
+        if ((uint32_t)Builder.MinimumDatagramLength > Builder.Datagram->Length) {
+            //
+            // If we're limited by amplification protection, just pad up to that
+            // limit instead.
+            //
+            Builder.MinimumDatagramLength = (uint16_t)Builder.Datagram->Length;
+        }
 
         uint16_t AvailableBufferLength =
             (uint16_t)Builder.Datagram->Length - Builder.EncryptionOverhead;
