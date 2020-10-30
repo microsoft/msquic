@@ -59,11 +59,15 @@ HpsClient::Init(
 
     uint32_t TmpProcCount = ActiveProcCount;
     if (TryGetValue(argc, argv, "threads", &TmpProcCount) && TmpProcCount < ActiveProcCount) {
+        if (TmpProcCount == 0) {
+            PrintHelp();
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
         ActiveProcCount = TmpProcCount;
     }
 
-    if (ActiveProcCount > HPS_MAX_WORKER_COUNT) {
-        ActiveProcCount = HPS_MAX_WORKER_COUNT;
+    if (ActiveProcCount > PERF_MAX_THREAD_COUNT) {
+        ActiveProcCount = PERF_MAX_THREAD_COUNT;
     }
 
     const char* target;

@@ -80,7 +80,7 @@ public:
 
     void StartConnection(HpsWorkerContext* Context);
 
-    HpsWorkerContext Contexts[HPS_MAX_WORKER_COUNT];
+    HpsWorkerContext Contexts[PERF_MAX_THREAD_COUNT];
     MsQuicRegistration Registration;
     MsQuicConfiguration Configuration {
         Registration,
