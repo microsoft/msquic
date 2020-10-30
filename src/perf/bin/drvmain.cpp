@@ -479,6 +479,8 @@ QuicPerfCtlEvtFileCleanup(
         }
         QuicEventUninitialize(Client->StopEvent);
 
+        QuicMainFree();
+
         //
         // Clean up globals.
         //
@@ -556,6 +558,9 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_CERTIFICATE_HASH),
     SIZE_MAX,
+    0,
+    0,
+    0,
     0
 };
 
@@ -677,7 +682,8 @@ QuicPerfCtlStart(
     _In_ QUIC_DRIVER_CLIENT* Client,
     _In_ char* Arguments,
     _In_ int Length
-    ) {
+    )
+{
     char** Argv = new(std::nothrow) char* [Length];
     if (!Argv) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -699,6 +705,72 @@ QuicPerfCtlStart(
     delete[] Argv;
 
     return Status;
+}
+
+void
+QuicPerfCtlGetMetadata(
+    _In_ WDFREQUEST Request
+    )
+{
+    QUIC_STATUS QuicStatus;
+    PerfExtraDataMetadata Metadata;
+
+    QuicStatus = QuicMainGetExtraDataMetadata(&Metadata);
+    if (QUIC_FAILED(QuicStatus)) {
+        WdfRequestComplete(Request, QuicStatus);
+        return;
+    }
+
+    void* LocalBuffer = nullptr;
+
+    NTSTATUS Status =
+        WdfRequestRetrieveOutputBuffer(
+            Request,
+            sizeof(Metadata),
+            &LocalBuffer,
+            nullptr);
+    if (!NT_SUCCESS(Status)) {
+        WdfRequestComplete(Request, Status);
+        return;
+    }
+
+    QuicCopyMemory(LocalBuffer, &Metadata, sizeof(Metadata));
+    WdfRequestCompleteWithInformation(
+        Request,
+        Status,
+        sizeof(Metadata));
+}
+
+void
+QuicPerfCtlGetExtraData(
+    _In_ WDFREQUEST Request,
+    _In_ size_t OutputBufferLength
+    )
+{
+    QUIC_FRE_ASSERT(OutputBufferLength < UINT32_MAX);
+    uint8_t* LocalBuffer = nullptr;
+    uint32_t BufferLength = (uint32_t)OutputBufferLength;
+
+    NTSTATUS Status =
+        WdfRequestRetrieveOutputBuffer(
+            Request,
+            BufferLength,
+            (void**)&LocalBuffer,
+            nullptr);
+    if (!NT_SUCCESS(Status)) {
+        WdfRequestComplete(Request, Status);
+        return;
+    }
+
+    QUIC_STATUS QuicStatus =
+        QuicMainGetExtraData(
+            LocalBuffer,
+            &BufferLength);
+
+    WdfRequestCompleteWithInformation(
+        Request,
+        QuicStatus,
+        BufferLength);
 }
 
 VOID
@@ -753,6 +825,12 @@ QuicPerfCtlEvtIoDeviceControl(
         QuicPerfCtlReadPrints(
             Request,
             Client);
+        return;
+    } else if (IoControlCode == IOCTL_QUIC_GET_METADATA) {
+        QuicPerfCtlGetMetadata(Request);
+        return;
+    } else if (IoControlCode == IOCTL_QUIC_GET_EXTRA_DATA) {
+        QuicPerfCtlGetExtraData(Request, OutputBufferLength);
         return;
     }
 
@@ -819,6 +897,10 @@ QuicPerfCtlEvtIoDeviceControl(
                 &Params->Data,
                 Params->Length);
         break;
+    case IOCTL_QUIC_FREE_PERF:
+        QuicMainFree();
+        Status = QUIC_STATUS_SUCCESS;
+        break;
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;
@@ -833,6 +915,5 @@ Error:
 
     WdfRequestComplete(Request, Status);
     UNREFERENCED_PARAMETER(InputBufferLength);
-    UNREFERENCED_PARAMETER(OutputBufferLength);
     UNREFERENCED_PARAMETER(Queue);
 }

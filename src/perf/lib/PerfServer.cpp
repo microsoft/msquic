@@ -95,6 +95,26 @@ PerfServer::Wait(
     return QUIC_STATUS_SUCCESS;
 }
 
+void
+PerfServer::GetExtraDataMetadata(
+    _Out_ PerfExtraDataMetadata* Result
+    )
+{
+    Result->TestType = PerfTestType::Server;
+    Result->ExtraDataLength = 0;
+}
+
+
+QUIC_STATUS
+PerfServer::GetExtraData(
+    _Out_writes_bytes_(*Length) uint8_t*,
+    _Inout_ uint32_t* Length
+    )
+{
+    *Length = 0;
+    return QUIC_STATUS_SUCCESS;
+}
+
 QUIC_STATUS
 PerfServer::ListenerCallback(
     _In_ HQUIC /*ListenerHandle*/,

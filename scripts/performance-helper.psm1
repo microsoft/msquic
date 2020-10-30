@@ -394,16 +394,57 @@ function Merge-PGOCounts {
     Remove-Item "$Path\*.pgc" | Out-Null
 }
 
+# Uses CDB.exe to print the crashing callstack in the dump file.
+function PrintDumpCallStack($DumpFile) {
+    $env:_NT_SYMBOL_PATH = Split-Path $Path
+    try {
+        if ($env:BUILD_BUILDNUMBER -ne $null) {
+            $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
+        }
+        $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
+        $Output = ($Output | Select-String -Pattern " # Child-SP(?s).*quit:").Matches[0].Groups[0].Value
+        Write-Host "=================================================================================="
+        Write-Host " $(Split-Path $DumpFile -Leaf)"
+        Write-Host "=================================================================================="
+        $Output -replace "quit:", "=================================================================================="
+    } catch {
+        # Silently fail
+    }
+}
+function Log($msg) {
+    Write-Host "[$(Get-Date)] $msg"
+}
+
 function Invoke-LocalExe {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
     param ($Exe, $RunArgs, $Timeout, $OutputDir)
+    $BasePath = Split-Path $Exe -Parent
     if (!$IsWindows) {
-        $BasePath = Split-Path $Exe -Parent
         $env:LD_LIBRARY_PATH = $BasePath
         chmod +x $Exe | Out-Null
     }
+    $LocalExtraFile = Join-Path $BasePath "ExtraRunFile.txt"
+    $RunArgs = """--extraOutputFile:$LocalExtraFile"" $RunArgs"
+
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
+
+    $ExeName = Split-Path $Exe -Leaf
+    # Path to the WER registry key used for collecting dumps.
+    $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\$ExeName"
+    # Root directory of the project.
+    $RootDir = Split-Path $PSScriptRoot -Parent
+    $LogDir = Join-Path $RootDir "artifacts" "logs" $ExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+
+    if ($IsWindows) {
+        if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
+            New-Item -Path $WerDumpRegPath -Force | Out-Null
+        }
+
+        New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
+        New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
+        New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force | Out-Null
+    }
 
     $Stopwatch =  [system.diagnostics.stopwatch]::StartNew()
 
@@ -417,20 +458,45 @@ function Invoke-LocalExe {
 
     $Stopwatch.Stop()
 
+    if ($isWindows) {
+        $DumpFiles = (Get-ChildItem $LogDir) | Where-Object { $_.Extension -eq ".dmp" }
+        if ($DumpFiles) {
+            Log "Dump file(s) generated"
+            foreach ($File in $DumpFiles) {
+                PrintDumpCallStack($File)
+            }
+        }
+
+        # Cleanup the WER registry.
+        Remove-Item -Path $WerDumpRegPath -Force | Out-Null
+    }
+
     Write-Host ("Test Run Took " + $Stopwatch.Elapsed)
 
     return $RetVal -join "`n"
 }
 
+function Get-TestResultAtIndex($FullResults, $Index) {
+    $RetResults = @()
+    foreach ($Result in $FullResults) {
+        $RetResults += $Result[$Index]
+    }
+    return $RetResults
+}
+
 function Get-MedianTestResults($FullResults) {
     $sorted = $FullResults | Sort-Object
-    return $sorted[[int](($sorted.Length - 1) / 2)]
+    if ($sorted.Length -eq 1) {
+        return $sorted[0]
+    } else {
+        return $sorted[[int](($sorted.Length - 1) / 2)]
+    }
 }
 
 function Get-TestResult($Results, $Matcher) {
     $Found = $Results -match $Matcher
     if ($Found) {
-        return $Matches[1]
+        return $Matches
     } else {
         Write-Error "Error Processing Results:`n`n$Results"
     }
@@ -502,12 +568,14 @@ class ThroughputTestPublishResult {
 }
 
 function Publish-ThroughputTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir, $ServerToClient)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ServerToClient, $ExePath)
 
     $Request = [ThroughputRequest]::new($Test, $ServerToClient)
 
+    $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
     $FullLastResult = Get-LatestThroughputRemoteTestResults -Request $Request
+    $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($FullLastResult -ne "") {
         $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
@@ -519,10 +587,11 @@ function Publish-ThroughputTestResults {
         if ($PercentDiff -ge 0) {
             $PercentDiffStr = "+$PercentDiffStr"
         }
-        Write-Output "Median: $MedianCurrentResult $($Test.Units) ($PercentDiffStr%)"
-        Write-Output "Master: $MedianLastResult $($Test.Units)"
+        $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
+        Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
+        Write-Output "Master: $LastFormatted"
     } else {
-        Write-Output "Median: $MedianCurrentResult $($Test.Units)"
+        Write-Output "Median: $CurrentFormatted"
     }
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
@@ -603,12 +672,23 @@ class RPSTestPublishResult {
 }
 
 function Publish-RPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ExePath)
 
     $Request = [RPSRequest]::new($Test)
 
+    $BasePath = Split-Path $ExePath -Parent
+    $LocalExtraFile = Join-Path $BasePath "ExtraRunFile.txt"
+    if (Test-Path $LocalExtraFile -PathType Leaf) {
+        $ResultFile = Join-Path $OutputDir "histogram_$Test.txt"
+        Copy-Item -Path $LocalExtraFile -Destination $ResultFile
+    } else {
+        Write-Host "Extra file $LocalExtraFile not found when expected"
+    }
+
+    $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
     $FullLastResult = Get-LatestRPSRemoteTestResults -Request $Request
+    $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($FullLastResult -ne "") {
         $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
@@ -620,10 +700,11 @@ function Publish-RPSTestResults {
         if ($PercentDiff -ge 0) {
             $PercentDiffStr = "+$PercentDiffStr"
         }
-        Write-Output "Median: $MedianCurrentResult $($Test.Units) ($PercentDiffStr%)"
-        Write-Output "Master: $MedianLastResult $($Test.Units)"
+        $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
+        Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
+        Write-Output "Master: $LastFormatted"
     } else {
-        Write-Output "Median: $MedianCurrentResult $($Test.Units)"
+        Write-Output "Median: $CurrentFormatted"
     }
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
@@ -688,12 +769,14 @@ class HPSTestPublishResult {
 }
 
 function Publish-HPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ExePath)
 
     $Request = [HPSRequest]::new($Test)
 
+    $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
     $FullLastResult = Get-LatestHPSRemoteTestResults -Request $Request
+    $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($FullLastResult -ne "") {
         $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
@@ -705,10 +788,11 @@ function Publish-HPSTestResults {
         if ($PercentDiff -ge 0) {
             $PercentDiffStr = "+$PercentDiffStr"
         }
-        Write-Output "Median: $MedianCurrentResult $($Test.Units) ($PercentDiffStr%)"
-        Write-Output "Master: $MedianLastResult $($Test.Units)"
+        $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
+        Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
+        Write-Output "Master: $LastFormatted"
     } else {
-        Write-Output "Median: $MedianCurrentResult $($Test.Units)"
+        Write-Output "Median: $CurrentFormatted"
     }
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
@@ -729,16 +813,16 @@ function Publish-HPSTestResults {
 #endregion
 
 function Publish-TestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir, $ExePath)
 
     if ($Test.TestName -eq "ThroughputUp") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $false
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $false -ExePath $ExePath
     } elseif ($Test.TestName -eq "ThroughputDown") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $true
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $true -ExePath $ExePath
     } elseif ($Test.TestName -eq "RPS") {
-        Publish-RPSTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
+        Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ExePath $ExePath
     } elseif ($Test.TestName -eq "HPS") {
-        Publish-HPSTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
+        Publish-HPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ExePath $ExePath
     } else {
         Write-Host "Unknown Test Type"
     }
@@ -777,7 +861,7 @@ class TestRunDefinition {
     [hashtable]$VariableValues;
     [boolean]$Loopback;
     [boolean]$AllowLoopback;
-    [string]$Units;
+    [string[]]$Formats;
 
     TestRunDefinition (
         [TestDefinition]$existingDef,
@@ -798,7 +882,7 @@ class TestRunDefinition {
         $this.VariableValues = $variableValues
         $this.Loopback = $script:Local
         $this.AllowLoopback = $existingDef.AllowLoopback
-        $this.Units = $existingDef.Units
+        $this.Formats = $existingDef.Formats
     }
 
     TestRunDefinition (
@@ -818,7 +902,7 @@ class TestRunDefinition {
         $this.VariableValues = $variableValues
         $this.Loopback = $script:Local
         $this.AllowLoopback = $existingDef.AllowLoopback
-        $this.Units = $existingDef.Units
+        $this.Formats = $existingDef.Formats
     }
 
     [string]ToString() {
@@ -980,7 +1064,7 @@ class TestDefinition {
     [string]$RemoteReadyMatcher;
     [string]$ResultsMatcher;
     [boolean]$AllowLoopback;
-    [string]$Units;
+    [string[]]$Formats;
 
     [string]ToString() {
         $Platform = $this.Remote.Platform

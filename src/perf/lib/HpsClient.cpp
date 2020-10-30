@@ -173,6 +173,25 @@ HpsClient::Wait(
     return QUIC_STATUS_SUCCESS;
 }
 
+void
+HpsClient::GetExtraDataMetadata(
+    _Out_ PerfExtraDataMetadata* Result
+    )
+{
+    Result->TestType = PerfTestType::HpsClient;
+    Result->ExtraDataLength = 0;
+}
+
+QUIC_STATUS
+HpsClient::GetExtraData(
+    _Out_writes_bytes_(*Length) uint8_t*,
+    _Inout_ uint32_t* Length
+    )
+{
+    *Length = 0;
+    return QUIC_STATUS_SUCCESS;
+}
+
 QUIC_STATUS
 HpsClient::ConnectionCallback(
     _In_ HpsWorkerContext* Context,

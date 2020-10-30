@@ -336,14 +336,25 @@ function Invoke-Test {
         1..$Test.Iterations | ForEach-Object {
             Write-Debug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
-            $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
-            $AllRunsResults += $LocalParsedResults
+            $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
+            $AllRunsResults += $AllLocalParsedResults
             if ($PGO) {
                 # Merge client PGO Counts
                 Merge-PGOCounts -Path $LocalExePath
             }
 
-            Write-Output "Run $($_): $LocalParsedResults $($Test.Units)"
+            $FormattedStrings = @()
+
+            for ($i = 1; $i -lt $AllLocalParsedResults.Count; $i++) {
+                $Formatted = [string]::Format($Test.Formats[$i - 1], $AllLocalParsedResults[$i])
+                $FormattedStrings += $Formatted
+            }
+
+            $Joined = [string]::Join(", ", $FormattedStrings)
+
+            $OutputString = "Run $($_): $Joined"
+
+            Write-Output $OutputString
             $LocalResults | Write-Debug
         }
     } finally {
@@ -372,7 +383,8 @@ function Invoke-Test {
     Publish-TestResults -Test $Test `
                         -AllRunsResults $AllRunsResults `
                         -CurrentCommitHash $CurrentCommitHash `
-                        -OutputDir $OutputDir
+                        -OutputDir $OutputDir `
+                        -ExePath $LocalExe
 }
 
 $LocalDataCache = LocalSetup

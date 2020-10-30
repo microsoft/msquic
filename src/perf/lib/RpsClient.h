@@ -35,7 +35,29 @@ public:
         _In_ int Timeout
         ) override;
 
+    void
+    GetExtraDataMetadata(
+        _Out_ PerfExtraDataMetadata* Result
+        ) override;
+
+    QUIC_STATUS
+    GetExtraData(
+        _Out_writes_bytes_(*Length) uint8_t* Data,
+        _Inout_ uint32_t* Length
+        ) override;
+
 private:
+    struct StreamContext {
+        StreamContext(
+            _In_ RpsClient* Client,
+            _In_ uint64_t StartTime)
+            : Client{Client}, StartTime{StartTime} { }
+        RpsClient* Client;
+        uint64_t StartTime;
+#if DEBUG
+        uint8_t Padding[12];
+#endif
+    };
 
     QUIC_STATUS
     ConnectionCallback(
@@ -45,6 +67,7 @@ private:
 
     QUIC_STATUS
     StreamCallback(
+        _In_ StreamContext* StrmContext,
         _In_ HQUIC StreamHandle,
         _Inout_ QUIC_STREAM_EVENT* Event
         );
@@ -88,6 +111,10 @@ private:
     uint64_t StartedRequests {0};
     uint64_t SendCompletedRequests {0};
     uint64_t CompletedRequests {0};
+    uint64_t CachedCompletedRequests {0};
+    UniquePtr<uint32_t[]> LatencyValues {nullptr};
+    uint64_t MaxLatencyIndex {0};
+    QuicPoolAllocator<StreamContext> StreamContextAllocator;
     UniquePtr<ConnectionScope[]> Connections {nullptr};
     bool Running {true};
 };
