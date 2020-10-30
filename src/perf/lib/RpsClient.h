@@ -24,6 +24,7 @@ struct RpsConnectionContext {
     RpsWorkerContext* Worker {nullptr};
     HQUIC Handle {nullptr};
     operator HQUIC() const { return Handle; }
+    ~RpsConnectionContext() noexcept { if (Handle) { MsQuic->ConnectionClose(Handle); } }
     QUIC_STATUS
     StreamCallback(
         _In_ HQUIC StreamHandle,
