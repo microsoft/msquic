@@ -31,6 +31,7 @@ PrintHelp(
         "  -request:<####>             The length of request payloads. (def:%u)\n"
         "  -response:<####>            The length of request payloads. (def:%u)\n"
         "  -threads:<####>             The number of threads to use. Defaults and capped to number of cores\n"
+        "  -affinitize:<0/1>           Affinitizes threads to a core. (def:0)\n"
         "\n",
         RPS_DEFAULT_RUN_TIME,
         PERF_DEFAULT_PORT,
@@ -76,6 +77,11 @@ RpsClient::Init(
     TryGetValue(argc, argv, "requests", &RequestCount);
     TryGetValue(argc, argv, "request", &RequestLength);
     TryGetValue(argc, argv, "response", &ResponseLength);
+
+    uint32_t Affinitize;
+    if (TryGetValue(argc, argv, "affinitize", &Affinitize)) {
+        AffinitizeWorkers = Affinitize != 0;
+    }
 
     WorkerCount = QuicProcActiveCount();
     if (WorkerCount > PERF_MAX_THREAD_COUNT) {
@@ -143,8 +149,9 @@ RpsClient::Start(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint32_t i = 0; i < WorkerCount; ++i) {
+        auto ThreadFlags = AffinitizeWorkers ? QUIC_THREAD_FLAG_SET_AFFINITIZE : QUIC_THREAD_FLAG_NONE;
         QUIC_THREAD_CONFIG ThreadConfig = {
-            QUIC_THREAD_FLAG_SET_AFFINITIZE,
+            (uint16_t)ThreadFlags,
             (uint16_t)i,
             "RPS Worker",
             RpsWorkerThread,

@@ -187,4 +187,5 @@ public:
     RpsWorkerContext Workers[PERF_MAX_THREAD_COUNT];
     UniquePtr<RpsConnectionContext[]> Connections {nullptr};
     bool Running {true};
+    bool AffinitizeWorkers {false};
 };
