@@ -218,7 +218,7 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-test:RPS -target:$RemoteAddress",
+                "All": "-test:RPS -target:$RemoteAddress -threads:0",
                 "Loopback": "",
                 "Remote": ""
             }
