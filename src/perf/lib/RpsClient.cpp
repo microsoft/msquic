@@ -87,8 +87,8 @@ RpsClient::Init(
     }
 
     MaxLatencyIndex = ((uint64_t)RunTime / 1000) * RPS_MAX_REQUESTS_PER_SECOND;
-    if (MaxLatencyIndex > (0xFFFFFFFF / sizeof(uint32_t))) {
-        MaxLatencyIndex = 0xFFFFFFFF / sizeof(uint32_t);
+    if (MaxLatencyIndex > (UINT32_MAX / sizeof(uint32_t))) {
+        MaxLatencyIndex = UINT32_MAX / sizeof(uint32_t);
     }
 
     LatencyValues = UniquePtr<uint32_t[]>(new(std::nothrow) uint32_t[(size_t)MaxLatencyIndex]);
@@ -312,8 +312,8 @@ RpsClient::StreamCallback(
             uint64_t EndTime = QuicTimeUs64();
             uint64_t Delta = QuicTimeDiff64(StrmContext->StartTime, EndTime);
             if (ToPlaceIndex < MaxLatencyIndex) {
-                if (Delta > 0xFFFFFFFF) {
-                    Delta = 0xFFFFFFFF;
+                if (Delta > UINT32_MAX) {
+                    Delta = UINT32_MAX;
                 }
                 LatencyValues[(size_t)ToPlaceIndex] = (uint32_t)Delta;
             }

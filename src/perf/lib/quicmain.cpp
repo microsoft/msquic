@@ -19,18 +19,18 @@ Abstract:
 #include "quicmain.cpp.clog.h"
 #endif
 
-const MsQuicApi* MsQuic = nullptr;
+const MsQuicApi* MsQuic;
 volatile int BufferCurrent;
 char Buffer[BufferLength];
 
-PerfBase* TestToRun = nullptr;
+PerfBase* TestToRun;
 
 #include "quic_datapath.h"
 
 QUIC_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
 QUIC_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
-QUIC_DATAPATH* Datapath = nullptr;
-QUIC_DATAPATH_BINDING* Binding = nullptr;
+QUIC_DATAPATH* Datapath;
+QUIC_DATAPATH_BINDING* Binding;
 bool ServerMode = false;
 
 static
