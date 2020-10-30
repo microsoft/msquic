@@ -3,7 +3,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
-$ResultsPath = Join-Path $RootDir "artifacts/PerfDataResults"
+$ResultsPath = Join-Path $RootDir "artifacts/PerfDataResults/*.json"
 
 # Enumerate files
 $Files = Get-ChildItem -Path $ResultsPath -Recurse -File

@@ -218,6 +218,10 @@
 #define _Out_writes_to_(...)
 #endif
 
+#ifndef _Out_writes_
+#define _Out_writes_(...)
+#endif
+
 #ifndef _Field_z_
 #define _Field_z_
 #endif

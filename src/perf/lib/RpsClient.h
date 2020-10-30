@@ -17,7 +17,21 @@ Abstract:
 #include "PerfBase.h"
 #include "PerfCommon.h"
 
+struct RpsConnectionContext;
 struct RpsWorkerContext;
+class RpsClient;
+
+struct StreamContext {
+    StreamContext(
+        _In_ RpsConnectionContext* Connection,
+        _In_ uint64_t StartTime)
+        : Connection{Connection}, StartTime{StartTime} { }
+    RpsConnectionContext* Connection;
+    uint64_t StartTime;
+#if DEBUG
+    uint8_t Padding[12];
+#endif
+};
 
 struct RpsConnectionContext {
     QUIC_LIST_ENTRY Link; // For Worker's connection queue
@@ -27,6 +41,7 @@ struct RpsConnectionContext {
     ~RpsConnectionContext() noexcept { if (Handle) { MsQuic->ConnectionClose(Handle); } }
     QUIC_STATUS
     StreamCallback(
+        _In_ StreamContext* StrmContext,
         _In_ HQUIC StreamHandle,
         _Inout_ QUIC_STREAM_EVENT* Event
         );
@@ -63,6 +78,7 @@ struct RpsWorkerContext {
         QuicLockAcquire(&Lock);
         QuicListInitializeHead(&Connections);
         QuicLockRelease(&Lock);
+        WaitForWorker();
     }
     RpsConnectionContext* GetConnection() {
         RpsConnectionContext* Connection = nullptr;
@@ -84,14 +100,7 @@ struct RpsWorkerContext {
         QuicListInsertTail(&Connections, &Connection->Link);
         QuicLockRelease(&Lock);
     }
-    void QueueSendRequest() {
-        if (ThreadStarted) {
-            InterlockedIncrement((long*)&RequestCount);
-            QuicEventSet(WakeEvent);
-        } else {
-            GetConnection()->SendRequest(); // Inline if thread isn't running
-        }
-    }
+    void QueueSendRequest();
 };
 
 class RpsClient : public PerfBase {
@@ -117,6 +126,17 @@ public:
     QUIC_STATUS
     Wait(
         _In_ int Timeout
+        ) override;
+
+    void
+    GetExtraDataMetadata(
+        _Out_ PerfExtraDataMetadata* Result
+        ) override;
+
+    QUIC_STATUS
+    GetExtraData(
+        _Out_writes_bytes_(*Length) uint8_t* Data,
+        _Inout_ uint32_t* Length
         ) override;
 
     QUIC_STATUS
@@ -160,6 +180,10 @@ public:
     uint64_t StartedRequests {0};
     uint64_t SendCompletedRequests {0};
     uint64_t CompletedRequests {0};
+    uint64_t CachedCompletedRequests {0};
+    UniquePtr<uint32_t[]> LatencyValues {nullptr};
+    uint64_t MaxLatencyIndex {0};
+    QuicPoolAllocator<StreamContext> StreamContextAllocator;
     RpsWorkerContext Workers[PERF_MAX_THREAD_COUNT];
     UniquePtr<RpsConnectionContext[]> Connections {nullptr};
     bool Running {true};
