@@ -218,7 +218,7 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-test:RPS -target:$RemoteAddress -threads:0 -conns:200 -requests:1000",
+                "All": "-test:RPS -target:$RemoteAddress -threads:0",
                 "Loopback": "",
                 "Remote": ""
             }
@@ -227,8 +227,8 @@
             {
                 "Name": "ConnectionCount",
                 "Local": {
-                    "1000": "-conns:1000",
-                    "60": "-conns:60"
+                    "1000": "-conns:1000 -requests:2000",
+                    "60": "-conns:60 -requests:1000"
                 },
                 "Remote": {
                     "1000": "",
