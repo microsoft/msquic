@@ -395,8 +395,8 @@ function Merge-PGOCounts {
 }
 
 # Uses CDB.exe to print the crashing callstack in the dump file.
-function PrintDumpCallStack($DumpFile) {
-    $env:_NT_SYMBOL_PATH = Split-Path $Path
+function PrintDumpCallStack($DumpFile, $ExePath) {
+    $env:_NT_SYMBOL_PATH = Split-Path $ExePath
     try {
         if ($env:BUILD_BUILDNUMBER -ne $null) {
             $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
@@ -433,8 +433,7 @@ function Invoke-LocalExe {
     # Path to the WER registry key used for collecting dumps.
     $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\$ExeName"
     # Root directory of the project.
-    $RootDir = Split-Path $PSScriptRoot -Parent
-    $LogDir = Join-Path $RootDir "artifacts" "logs" $ExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+    $LogDir = Join-Path $OutputDir "logs" $ExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 
     if ($IsWindows) {
         if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
@@ -463,7 +462,7 @@ function Invoke-LocalExe {
         if ($DumpFiles) {
             Log "Dump file(s) generated"
             foreach ($File in $DumpFiles) {
-                PrintDumpCallStack($File)
+                PrintDumpCallStack($File, $Exe)
             }
         }
 
