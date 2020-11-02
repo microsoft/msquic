@@ -627,7 +627,7 @@ class RPSRequest {
         $this.ConnectionCount = $Test.VariableValues["ConnectionCount"];
         $this.RequestSize = $Test.VariableValues["RequestSize"];
         $this.ResponseSize = $Test.VariableValues["ResponseSize"];
-        $this.ParallelRequests = 2;
+        $this.ParallelRequests = 30;
     }
 }
 
