@@ -40,11 +40,12 @@ QuicFuzzerRecvMsg(
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 
 //
-// This is a (currently) undocumented socket IOCTL. It allows for creating
-// per-processor sockets for the same UDP port. This is used to get better
-// parallelization to improve performance.
+// This IOCTL allows for creating per-processor sockets for the same UDP port.
+// This is used to get better parallelization to improve performance.
 //
-#define SIO_SET_PORT_SHARING_PER_PROC_SOCKET  _WSAIOW(IOC_VENDOR,21)
+#ifndef SIO_CPU_AFFINITY
+#define SIO_CPU_AFFINITY  _WSAIOW(IOC_VENDOR,21)
+#endif
 
 //
 // Not yet available in the SDK. When available this code can be removed.
@@ -1153,7 +1154,7 @@ QuicDataPathBindingCreate(
             Result =
                 WSAIoctl(
                     SocketContext->Socket,
-                    SIO_SET_PORT_SHARING_PER_PROC_SOCKET,
+                    SIO_CPU_AFFINITY,
                     &Processor,
                     sizeof(Processor),
                     NULL,
@@ -1168,7 +1169,7 @@ QuicDataPathBindingCreate(
                     "[ udp][%p] ERROR, %u, %s.",
                     Binding,
                     WsaError,
-                    "SIO_SET_PORT_SHARING_PER_PROC_SOCKET");
+                    "SIO_CPU_AFFINITY");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
