@@ -27,14 +27,15 @@ PrintHelp(
         "  -runtime:<####>             The total runtime (in ms). (def:%u)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -conns:<####>               The number of connections to use. (def:%u)\n"
-        "  -parallel:<####>            The number of parallel requests per connection. (def:%u)\n"
+        "  -requests:<####>            The number of requests to send at a time. (def:2*conns)\n"
         "  -request:<####>             The length of request payloads. (def:%u)\n"
-        "  -response:<####>             The length of request payloads. (def:%u)\n"
+        "  -response:<####>            The length of request payloads. (def:%u)\n"
+        "  -threads:<####>             The number of threads to use. Defaults and capped to number of cores\n"
+        "  -affinitize:<0/1>           Affinitizes threads to a core. (def:0)\n"
         "\n",
         RPS_DEFAULT_RUN_TIME,
         PERF_DEFAULT_PORT,
         RPS_DEFAULT_CONNECTION_COUNT,
-        RPS_DEFAULT_PARALLEL_REQUEST_COUNT,
         RPS_DEFAULT_REQUEST_LENGTH,
         RPS_DEFAULT_RESPONSE_LENGTH
         );
@@ -72,8 +73,31 @@ RpsClient::Init(
     TryGetValue(argc, argv, "runtime", &RunTime);
     TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "conns", &ConnectionCount);
+    RequestCount = 2 * ConnectionCount;
+    TryGetValue(argc, argv, "requests", &RequestCount);
     TryGetValue(argc, argv, "request", &RequestLength);
     TryGetValue(argc, argv, "response", &ResponseLength);
+
+    uint32_t Affinitize;
+    if (TryGetValue(argc, argv, "affinitize", &Affinitize)) {
+        AffinitizeWorkers = Affinitize != 0;
+    }
+
+    WorkerCount = QuicProcActiveCount();
+    if (WorkerCount > PERF_MAX_THREAD_COUNT) {
+        WorkerCount = PERF_MAX_THREAD_COUNT;
+    }
+    if (WorkerCount >= 60) {
+        //
+        // If we have enough cores, leave 2 cores for OS overhead
+        //
+        WorkerCount -= 2;
+    }
+
+    uint32_t ThreadCount;
+    if (TryGetValue(argc, argv, "threads", &ThreadCount) && ThreadCount < WorkerCount) {
+        WorkerCount = ThreadCount;
+    }
 
     RequestBuffer.Buffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + sizeof(uint64_t) + RequestLength);
     if (!RequestBuffer.Buffer) {
@@ -100,11 +124,46 @@ RpsClient::Init(
     return QUIC_STATUS_SUCCESS;
 }
 
+QUIC_THREAD_CALLBACK(RpsWorkerThread, Context)
+{
+    auto Worker = (RpsWorkerContext*)Context;
+
+    while (Worker->Client->Running) {
+        while (Worker->RequestCount != 0) {
+            InterlockedDecrement((long*)&Worker->RequestCount);
+            auto Connection = Worker->GetConnection();
+            if (!Connection) break; // Means we're shutting down
+            Connection->SendRequest();
+        }
+        QuicEventWaitForever(Worker->WakeEvent);
+    }
+
+    QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
+}
+
 QUIC_STATUS
 RpsClient::Start(
     _In_ QUIC_EVENT* StopEvent
     ) {
     CompletionEvent = StopEvent;
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    for (uint32_t i = 0; i < WorkerCount; ++i) {
+        auto ThreadFlags = AffinitizeWorkers ? QUIC_THREAD_FLAG_SET_AFFINITIZE : QUIC_THREAD_FLAG_NONE;
+        QUIC_THREAD_CONFIG ThreadConfig = {
+            (uint16_t)ThreadFlags,
+            (uint16_t)i,
+            "RPS Worker",
+            RpsWorkerThread,
+            &Workers[i]
+        };
+
+        Status = QuicThreadCreate(&ThreadConfig, &Workers[i].Thread);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+        Workers[i].ThreadStarted = true;
+    }
 
     QUIC_CONNECTION_CALLBACK_HANDLER Handler =
         [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
@@ -114,18 +173,13 @@ RpsClient::Start(
                     Event);
         };
 
-    Connections = UniquePtr<ConnectionScope[]>(new(std::nothrow) ConnectionScope[ConnectionCount]);
+    Connections = UniquePtr<RpsConnectionContext[]>(new(std::nothrow) RpsConnectionContext[ConnectionCount]);
     if (!Connections.get()) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    for (uint32_t i = 0; i < ConnectionCount; i++) {
-        Connections[i].Handle = nullptr;
-    }
-
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t ActiveProcCount = QuicProcActiveCount();
-    if (ActiveProcCount >= 8) {
+    if (ActiveProcCount >= 60) {
         //
         // If we have enough cores, leave 2 cores for OS overhead
         //
@@ -147,6 +201,12 @@ RpsClient::Start(
         if (QUIC_FAILED(Status)) {
             WriteOutput("ConnectionOpen failed, 0x%x\n", Status);
             return Status;
+        }
+
+        if (WorkerCount == 0) {
+            Workers[i % ActiveProcCount].QueueConnection(&Connections[i]);
+        } else {
+            Workers[i % WorkerCount].QueueConnection(&Connections[i]);
         }
 
         BOOLEAN Opt = TRUE;
@@ -214,10 +274,8 @@ RpsClient::Start(
     QuicSleep(RPS_IDLE_WAIT);
 
     WriteOutput("Start sending request...\n");
-    for (uint32_t i = 0; i < ParallelRequests; ++i) {
-        for (uint32_t j = 0; j < ConnectionCount; ++j) {
-            SendRequest(Connections[j]);
-        }
+    for (uint32_t i = 0; i < RequestCount; ++i) {
+        Connections[i % ConnectionCount].Worker->QueueSendRequest();
     }
 
     uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
@@ -241,6 +299,9 @@ RpsClient::Wait(
     QuicEventWaitWithTimeout(*CompletionEvent, Timeout);
 
     Running = false;
+    for (uint32_t i = 0; i < WorkerCount; ++i) {
+        Workers[i].Uninitialize();
+    }
 
     CachedCompletedRequests = CompletedRequests;
     return QUIC_STATUS_SUCCESS;
@@ -300,7 +361,7 @@ RpsClient::ConnectionCallback(
 }
 
 QUIC_STATUS
-RpsClient::StreamCallback(
+RpsConnectionContext::StreamCallback(
     _In_ StreamContext* StrmContext,
     _In_ HQUIC StreamHandle,
     _Inout_ QUIC_STREAM_EVENT* Event
@@ -308,19 +369,19 @@ RpsClient::StreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN) {
-            uint64_t ToPlaceIndex = (uint64_t)InterlockedIncrement64((int64_t*)&CompletedRequests) - 1;
+            uint64_t ToPlaceIndex = (uint64_t)InterlockedIncrement64((int64_t*)&Worker->Client->CompletedRequests) - 1;
             uint64_t EndTime = QuicTimeUs64();
             uint64_t Delta = QuicTimeDiff64(StrmContext->StartTime, EndTime);
-            if (ToPlaceIndex < MaxLatencyIndex) {
+            if (ToPlaceIndex < Worker->Client->MaxLatencyIndex) {
                 if (Delta > UINT32_MAX) {
                     Delta = UINT32_MAX;
                 }
-                LatencyValues[(size_t)ToPlaceIndex] = (uint32_t)Delta;
+                Worker->Client->LatencyValues[(size_t)ToPlaceIndex] = (uint32_t)Delta;
             }
         }
         break;
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        InterlockedIncrement64((int64_t*)&SendCompletedRequests);
+        InterlockedIncrement64((int64_t*)&Worker->Client->SendCompletedRequests);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
@@ -331,9 +392,9 @@ RpsClient::StreamCallback(
             0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        StreamContextAllocator.Free(StrmContext);
-        SendRequest(StreamHandle); // Starts a new stream
+        Worker->Client->StreamContextAllocator.Free(StrmContext);
         MsQuic->StreamClose(StreamHandle);
+        Worker->QueueSendRequest();
         break;
     default:
         break;
@@ -341,19 +402,13 @@ RpsClient::StreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS
-RpsClient::SendRequest(
-    _In_ HQUIC Handle
-    )
-{
-    if (!Running) {
-        return QUIC_STATUS_SUCCESS;
-    }
+void
+RpsConnectionContext::SendRequest() {
 
     QUIC_STREAM_CALLBACK_HANDLER Handler =
         [](HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
             StreamContext* Ctx = reinterpret_cast<StreamContext*>(Context);
-            return (Ctx)->Client->
+            return Ctx->Connection->
                 StreamCallback(
                     Ctx,
                     Stream,
@@ -361,32 +416,40 @@ RpsClient::SendRequest(
         };
 
     uint64_t StartTime = QuicTimeUs64();
-    StreamContext* StrmContext = StreamContextAllocator.Alloc(this, StartTime);
+    StreamContext* StrmContext = Worker->Client->StreamContextAllocator.Alloc(this, StartTime);
 
     HQUIC Stream = nullptr;
-    QUIC_STATUS Status =
+    if (QUIC_SUCCEEDED(
         MsQuic->StreamOpen(
             Handle,
             QUIC_STREAM_OPEN_FLAG_NONE,
             Handler,
             StrmContext,
-            &Stream);
-    if (QUIC_SUCCEEDED(Status)) {
-        InterlockedIncrement64((int64_t*)&StartedRequests);
-        Status =
+            &Stream))) {
+        InterlockedIncrement64((int64_t*)&Worker->Client->StartedRequests);
+        if (QUIC_FAILED(
             MsQuic->StreamSend(
                 Stream,
-                RequestBuffer,
+                Worker->Client->RequestBuffer,
                 1,
                 QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN,
-                nullptr);
-        if (QUIC_FAILED(Status)) {
+                nullptr))) {
             MsQuic->StreamClose(Stream);
-            StreamContextAllocator.Free(StrmContext);
+            Worker->Client->StreamContextAllocator.Free(StrmContext);
         }
     } else {
-        StreamContextAllocator.Free(StrmContext);
+        Worker->Client->StreamContextAllocator.Free(StrmContext);
     }
+}
 
-    return Status;
+void
+RpsWorkerContext::QueueSendRequest() {
+    if (Client->Running) {
+        if (ThreadStarted) {
+            InterlockedIncrement((long*)&RequestCount);
+            QuicEventSet(WakeEvent);
+        } else {
+            GetConnection()->SendRequest(); // Inline if thread isn't running
+        }
+    }
 }

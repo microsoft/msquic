@@ -227,14 +227,12 @@
             {
                 "Name": "ConnectionCount",
                 "Local": {
-                    "1000": "-conns:1000",
-                    "60": "-conns:60"
+                    "250": "-conns:250 -requests:7500"
                 },
                 "Remote": {
-                    "1000": "",
-                    "60": ""
+                    "250": ""
                 },
-                "Default": "1000"
+                "Default": "250"
             },
             {
                 "Name": "RequestSize",
