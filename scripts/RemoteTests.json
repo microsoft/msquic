@@ -227,8 +227,8 @@
             {
                 "Name": "ConnectionCount",
                 "Local": {
-                    "200": "-conns:200 -requests:4000",
-                    "60": "-conns:60 -requests:1200"
+                    "200": "-conns:1000 -requests:30000",
+                    "60": "-conns:60 -requests:1800"
                 },
                 "Remote": {
                     "200": "",
