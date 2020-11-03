@@ -26,7 +26,7 @@ namespace QuicEventDataSource.SourceDataCookers
         [DataOutput]
         public IReadOnlyDictionary<ushort, ulong> QuicEventCounts => new ReadOnlyDictionary<ushort, ulong>(this.eventCounts);
 
-        public override ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>(new Guid[] { MsQuicEtwGuid } ));
+        public override ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>(new Guid[] { MsQuicEtwGuid }));
 
         public override string Description => "Quic Event Stats";
 

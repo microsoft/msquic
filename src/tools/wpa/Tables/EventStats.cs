@@ -37,13 +37,7 @@ namespace QuicEventDataSource.Tables
             var eventInfo = tableData.QueryOutput<IReadOnlyDictionary<ushort, ulong>>(
                 new DataOutputPath(EventStatsCooker.CookerPath, "QuicEventCounts"));
 
-            if (eventInfo == null)
-            {
-                // no process data elements were processed by the data cooker
-                return;
-            }
-
-            if (eventInfo.Count == 0)
+            if (eventInfo == null || eventInfo.Count == 0)
             {
                 return;
             }
