@@ -3,12 +3,12 @@
 // Licensed under the MIT License.
 //
 
-using Microsoft.Performance.SDK.Extensibility.SourceParsing;
-using Microsoft.Performance.SDK.Processing;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Diagnostics.Tracing;
-using System.Collections.Generic;
+using Microsoft.Performance.SDK.Extensibility.SourceParsing;
+using Microsoft.Performance.SDK.Processing;
 
 namespace QuicEventDataSource
 {

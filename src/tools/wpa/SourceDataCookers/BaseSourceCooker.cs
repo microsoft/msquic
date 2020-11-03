@@ -3,13 +3,13 @@
 // Licensed under the MIT License.
 //
 
+using System;
+using System.Collections.Generic;
+using System.Threading;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Extensibility.DataCooking;
 using Microsoft.Performance.SDK.Extensibility.DataCooking.SourceDataCooking;
-using System;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace QuicEventDataSource.SourceDataCookers
 {

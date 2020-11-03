@@ -11,7 +11,7 @@ namespace QuicEventDataSource
 {
     public interface IQuicEventContext
     {
-        string LogFileName { get;}
+        string LogFileName { get; }
 
         Version OSVersion { get; }
         int CpuSpeedMHz { get; }

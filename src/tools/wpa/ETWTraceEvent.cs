@@ -3,9 +3,9 @@
 // Licensed under the MIT License.
 //
 
+using System;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK.Extensibility;
-using System;
 
 namespace QuicEventDataSource
 {
