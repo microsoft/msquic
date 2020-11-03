@@ -15,7 +15,7 @@ namespace QuicEventDataSource.Tables
     [Table]
     public sealed class EventStats
     {
-        public static TableDescriptor TableDescriptor = new TableDescriptor(
+        public static readonly TableDescriptor TableDescriptor = new TableDescriptor(
            Guid.Parse("{EE2FA823-C447-4324-969C-BC8AE215B713}"),
            "Quic Event Stats",
            "Quic Event Stats for ETL",
@@ -34,6 +34,16 @@ namespace QuicEventDataSource.Tables
 
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
+            if (tableBuilder == null)
+            {
+                throw new ArgumentNullException(nameof(tableBuilder));
+            }
+
+            if (tableData == null)
+            {
+                throw new ArgumentNullException(nameof(tableData));
+            }
+
             var eventInfo = tableData.QueryOutput<IReadOnlyDictionary<ushort, ulong>>(
                 new DataOutputPath(EventStatsCooker.CookerPath, "QuicEventCounts"));
 

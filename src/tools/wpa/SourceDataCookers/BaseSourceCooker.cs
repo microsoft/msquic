@@ -39,7 +39,7 @@ namespace QuicEventDataSource.SourceDataCookers
 
         public virtual DataProductionStrategy DataProductionStrategy { get; }
 
-        public virtual void BeginDataCooking(ICookedDataRetrieval dataRetrieval, CancellationToken cancellationToken)
+        public virtual void BeginDataCooking(ICookedDataRetrieval dependencyRetrieval, CancellationToken cancellationToken)
         {
         }
 
