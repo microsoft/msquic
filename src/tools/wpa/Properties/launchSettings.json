@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "TraceEventDataSource": {
+      "commandName": "Executable",
+      "executablePath": "Wpa_Testing\\wpa.exe",
+      "nativeDebugging": true
+    }
+  }
+}
