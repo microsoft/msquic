@@ -56,6 +56,19 @@ namespace QuicEventDataSource.Tables
 
             table.AddColumn(eventIDColumnConfig, idProjector);
             table.AddColumn(eventCountColumnConfig, countProjector);
+
+            var config = new TableConfiguration("Quic Events by Count")
+            {
+                Columns = new[]
+                {
+                     eventIDColumnConfig,
+                     TableConfiguration.PivotColumn,
+                     TableConfiguration.GraphColumn,
+                     eventCountColumnConfig,
+                  }
+            };
+
+            tableBuilder.SetDefaultTableConfiguration(config);
         }
     }
 }
