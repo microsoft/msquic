@@ -21,12 +21,12 @@ namespace QuicEventDataSource.SourceDataCookers
         public const string CookerId = "QuicEventStats";
         public static readonly DataCookerPath CookerPath = new DataCookerPath(QuicEventSourceParser.SourceId, CookerId);
 
-        private readonly Dictionary<Guid, ulong> eventCounts;
+        private readonly Dictionary<ushort, ulong> eventCounts;
 
         [DataOutput]
-        public IReadOnlyDictionary<Guid, ulong> QuicEventCounts => new ReadOnlyDictionary<Guid, ulong>(this.eventCounts);
+        public IReadOnlyDictionary<ushort, ulong> QuicEventCounts => new ReadOnlyDictionary<ushort, ulong>(this.eventCounts);
 
-        public override ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>());
+        public override ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>(new Guid[] { MsQuicEtwGuid } ));
 
         public override string Description => "Quic Event Stats";
 
@@ -34,18 +34,18 @@ namespace QuicEventDataSource.SourceDataCookers
 
         public EventStatsCooker() : base(CookerId)
         {
-            this.eventCounts = new Dictionary<Guid, ulong>();
+            this.eventCounts = new Dictionary<ushort, ulong>();
         }
 
         public override DataProcessingResult CookDataElement(ETWTraceEvent data, IQuicEventContext context, CancellationToken cancellationToken)
         {
-            if (!this.eventCounts.ContainsKey(data.Event.ProviderGuid))
+            if (!this.eventCounts.ContainsKey((ushort)data.Event.ID))
             {
-                this.eventCounts.Add(data.Event.ProviderGuid, 1);
+                this.eventCounts.Add((ushort)data.Event.ID, 1);
             }
             else
             {
-                this.eventCounts[data.Event.ProviderGuid]++;
+                this.eventCounts[(ushort)data.Event.ID]++;
             }
 
             return DataProcessingResult.Processed;

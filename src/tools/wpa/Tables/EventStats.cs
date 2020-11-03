@@ -22,9 +22,9 @@ namespace QuicEventDataSource.Tables
            category: "Other",
            requiredDataCookers: new List<DataCookerPath> { EventStatsCooker.CookerPath });
 
-        private static readonly ColumnConfiguration providerIDColumnConfig =
+        private static readonly ColumnConfiguration eventIDColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{7C382588-735D-4450-91A5-F4DF6BD4E42A}"), "Provider ID"),
+                new ColumnMetadata(new Guid("{7C382588-735D-4450-91A5-F4DF6BD4E42A}"), "Event ID"),
                 new UIHints { Width = 80, });
 
         private static readonly ColumnConfiguration eventCountColumnConfig =
@@ -34,7 +34,7 @@ namespace QuicEventDataSource.Tables
 
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
-            var eventInfo = tableData.QueryOutput<IReadOnlyDictionary<Guid, ulong>>(
+            var eventInfo = tableData.QueryOutput<IReadOnlyDictionary<ushort, ulong>>(
                 new DataOutputPath(EventStatsCooker.CookerPath, "QuicEventCounts"));
 
             if (eventInfo == null)
@@ -51,10 +51,10 @@ namespace QuicEventDataSource.Tables
             var table = tableBuilder.SetRowCount(eventInfo.Count);
             var keyValuePair = Projection.Index(eventInfo.ToList());
 
-            var guidProjector = keyValuePair.Compose(x => x.Key);
+            var idProjector = keyValuePair.Compose(x => x.Key);
             var countProjector = keyValuePair.Compose(x => x.Value);
 
-            table.AddColumn(providerIDColumnConfig, guidProjector);
+            table.AddColumn(eventIDColumnConfig, idProjector);
             table.AddColumn(eventCountColumnConfig, countProjector);
         }
     }
