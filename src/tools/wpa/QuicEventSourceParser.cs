@@ -36,46 +36,27 @@ namespace QuicEventDataSource
     {
         public const string SourceId = "QuicEvent";
 
+        private static Guid EventTraceGuid = new Guid("68fdd900-4a3e-11d1-84f4-0000f80464e3");
+        private static Guid SystemConfigExGuid = new Guid("9B79EE91-B5FD-41c0-A243-4248E266E9D0");
+
         public override string Id => SourceId;
 
         private DataSourceInfo info;
+
         private IEnumerable<string> filePaths;
 
         public override DataSourceInfo DataSourceInfo => this.info;
-
 
         public QuicEventSourceParser(IEnumerable<string> filePaths)
         {
             this.filePaths = filePaths;
         }
 
-        private static void ParseEvent(TraceEvent evt, ISourceDataProcessor<ETWTraceEvent, IQuicEventContext, Guid> dataProcessor, QuicEventContext context, ETWTraceEventSource source, CancellationToken cancellationToken)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                source.StopProcessing();
-                return;
-            }
-
-            // TODO: Instead of creating a ETWTraceEvent each time, reuse existing one...
-            var result = dataProcessor.ProcessDataElement(new ETWTraceEvent(evt), context, cancellationToken);
-            // TODO: do something with the result
-        }
-
-        private static Guid MsQuicEtwGuid = new Guid("ff15e657-4f26-570e-88ab-0796b258d11c");
-
-        private static bool IsKnownSynthEvent(TraceEvent evt)
-        {
-            return evt.ProviderGuid == MsQuicEtwGuid;
-        }
-
         public override void ProcessSource(ISourceDataProcessor<ETWTraceEvent, IQuicEventContext, Guid> dataProcessor, ILogger logger, IProgress<int> progress, CancellationToken cancellationToken)
         {
             using (var source = new ETWTraceEventSource(filePaths))
             {
-                var context = new QuicEventContext(source);
-
-                source.AllEvents += (evt) => ParseEvent(evt, dataProcessor, context, source, cancellationToken);
+                source.AllEvents += (evt) => ParseEvent(evt, dataProcessor, new QuicEventContext(source), source, cancellationToken);
 
                 DateTime? firstEvent = null;
 
@@ -109,6 +90,24 @@ namespace QuicEventDataSource
                     this.info = new DataSourceInfo(0, (source.SessionEndTime.Ticks - source.SessionStartTime.Ticks) * 100, source.SessionStartTime.ToUniversalTime());
                 }
             }
+        }
+
+        private static bool IsKnownSynthEvent(TraceEvent evt)
+        {
+            return evt.ProviderGuid == EventTraceGuid || evt.ProviderGuid == SystemConfigExGuid;
+        }
+
+        private static void ParseEvent(TraceEvent evt, ISourceDataProcessor<ETWTraceEvent, IQuicEventContext, Guid> dataProcessor, QuicEventContext context, ETWTraceEventSource source, CancellationToken cancellationToken)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                source.StopProcessing();
+                return;
+            }
+
+            // TODO: Instead of creating a ETWTraceEvent each time, reuse existing one...
+            var result = dataProcessor.ProcessDataElement(new ETWTraceEvent(evt), context, cancellationToken);
+            // TODO: do something with the result
         }
     }
 }

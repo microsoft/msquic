@@ -13,17 +13,13 @@ using Microsoft.Performance.SDK.Extensibility.DataCooking.SourceDataCooking;
 
 namespace QuicEventDataSource.SourceDataCookers
 {
-    public abstract class BaseSourceCooker
-        : CookedDataReflector
-        , ISourceDataCooker<ETWTraceEvent, IQuicEventContext, Guid>
+    public abstract class BaseSourceCooker : CookedDataReflector, ISourceDataCooker<ETWTraceEvent, IQuicEventContext, Guid>
     {
-        protected BaseSourceCooker(string cookerID)
-            : this(new DataCookerPath(QuicEventSourceParser.SourceId, cookerID))
+        protected BaseSourceCooker(string cookerID) : this(new DataCookerPath(QuicEventSourceParser.SourceId, cookerID))
         {
         }
 
-        private BaseSourceCooker(DataCookerPath path)
-            : base(path)
+        private BaseSourceCooker(DataCookerPath path) : base(path)
         {
             this.Path = path;
         }

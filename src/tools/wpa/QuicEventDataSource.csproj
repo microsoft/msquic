@@ -9,6 +9,6 @@
     <PackageReference Include="Microsoft.Performance.SDK" Version="0.108.2" />
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="mkdir $(SolutionDir)artifacts\bin\wpa\$(Configuration)&#xD;&#xA;copy $(TargetPath) $(SolutionDir)artifacts\bin\wpa\$(Configuration)\$(TargetFileName)" />
+    <Exec Command="echo f | xcopy $(TargetPath) $(SolutionDir)artifacts\bin\wpa\$(Configuration)\$(TargetFileName) /Y" />
   </Target>
 </Project>

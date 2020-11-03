@@ -17,9 +17,9 @@ namespace QuicEventDataSource.Tables
     {
         public static TableDescriptor TableDescriptor = new TableDescriptor(
            Guid.Parse("{EE2FA823-C447-4324-969C-BC8AE215B713}"),
-           "Event Stats",
-           "Event Stats for ETL",
-           category: "Stats",
+           "Quic Event Stats",
+           "Quic Event Stats for ETL",
+           category: "Other",
            requiredDataCookers: new List<DataCookerPath> { EventStatsCooker.CookerPath });
 
         private static readonly ColumnConfiguration providerIDColumnConfig =
@@ -29,13 +29,13 @@ namespace QuicEventDataSource.Tables
 
         private static readonly ColumnConfiguration eventCountColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{54B42F78-B2E2-49B0-B5D1-F066399908DB}"), "Event Count"),
+                new ColumnMetadata(new Guid("{54B42F78-B2E2-49B0-B5D1-F066399908DB}"), "Quic Event Count"),
                 new UIHints { Width = 80, });
 
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
             var eventInfo = tableData.QueryOutput<IReadOnlyDictionary<Guid, ulong>>(
-                new DataOutputPath(EventStatsCooker.CookerPath, "EventCounts"));
+                new DataOutputPath(EventStatsCooker.CookerPath, "QuicEventCounts"));
 
             if (eventInfo == null)
             {
@@ -57,6 +57,5 @@ namespace QuicEventDataSource.Tables
             table.AddColumn(providerIDColumnConfig, guidProjector);
             table.AddColumn(eventCountColumnConfig, countProjector);
         }
-
     }
 }

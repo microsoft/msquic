@@ -1,9 +1,10 @@
 {
   "profiles": {
-    "TraceEventDataSource": {
+    "WPA": {
       "commandName": "Executable",
-      "executablePath": "Wpa_Testing\\wpa.exe",
-      "nativeDebugging": true
+      "executablePath": "f:\\xperf\\wpa.exe",
+      "commandLineArgs": "-addsearchdir $(TargetDir)",
+      "nativeDebugging": false
     }
   }
 }

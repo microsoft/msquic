@@ -14,25 +14,25 @@ using Microsoft.Performance.SDK.Extensibility.DataCooking.SourceDataCooking;
 
 namespace QuicEventDataSource.SourceDataCookers
 {
-    public sealed class EventStatsCooker
-        : BaseSourceCooker
+    public sealed class EventStatsCooker : BaseSourceCooker
     {
-        public const string CookerId = "EventStats";
+        private static Guid MsQuicEtwGuid = new Guid("ff15e657-4f26-570e-88ab-0796b258d11c");
+
+        public const string CookerId = "QuicEventStats";
         public static readonly DataCookerPath CookerPath = new DataCookerPath(QuicEventSourceParser.SourceId, CookerId);
 
         private readonly Dictionary<Guid, ulong> eventCounts;
 
         [DataOutput]
-        public IReadOnlyDictionary<Guid, ulong> EventCounts => new ReadOnlyDictionary<Guid, ulong>(this.eventCounts);
+        public IReadOnlyDictionary<Guid, ulong> QuicEventCounts => new ReadOnlyDictionary<Guid, ulong>(this.eventCounts);
 
         public override ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>());
 
-        public override string Description => "Event Stats";
+        public override string Description => "Quic Event Stats";
 
         public override SourceDataCookerOptions Options => SourceDataCookerOptions.ReceiveAllDataElements;
 
-        public EventStatsCooker()
-            : base(CookerId)
+        public EventStatsCooker() : base(CookerId)
         {
             this.eventCounts = new Dictionary<Guid, ulong>();
         }
