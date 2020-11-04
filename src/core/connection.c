@@ -273,7 +273,8 @@ Error:
             QUIC_CONTAINING_RECORD(
                 Connection->SourceCids.Next,
                 QUIC_CID_HASH_ENTRY,
-                Link));
+                Link),
+            QUIC_POOL_CIDHASH);
         Connection->SourceCids.Next = NULL;
     }
     QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
@@ -323,7 +324,7 @@ QuicConnFree(
                 QuicListRemoveHead(&Connection->DestCids),
                 QUIC_CID_QUIC_LIST_ENTRY,
                 Link);
-        QUIC_FREE(CID);
+        QUIC_FREE(CID, QUIC_POOL_CIDHASH);
     }
     if (Connection->State.Registered) {
         QuicDispatchLockAcquire(&Connection->Registration->ConnectionLock);
@@ -365,7 +366,7 @@ QuicConnFree(
         QUIC_FREE(Connection->RemoteServerName);
     }
     if (Connection->OrigDestCID != NULL) {
-        QUIC_FREE(Connection->OrigDestCID);
+        QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
     }
     if (Connection->HandshakeTP != NULL) {
         QuicPoolFree(
@@ -828,7 +829,7 @@ QuicConnGenerateNewSourceCid(
             return NULL;
         }
         if (!QuicBindingAddSourceConnectionID(Connection->Paths[0].Binding, SourceCid)) {
-            QUIC_FREE(SourceCid);
+            QUIC_FREE(SourceCid, QUIC_POOL_CIDHASH);
             SourceCid = NULL;
             if (++TryCount > QUIC_CID_MAX_COLLISION_RETRY) {
                 QuicTraceEvent(
@@ -2223,7 +2224,7 @@ QuicConnGenerateLocalTransportParameters(
                 LocalTP->OriginalDestinationConnectionID,
                 Connection->OrigDestCID->Data,
                 Connection->OrigDestCID->Length);
-            QUIC_FREE(Connection->OrigDestCID);
+            QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
             Connection->OrigDestCID = NULL;
 
             if (Connection->State.HandshakeUsedRetryPacket &&
@@ -2318,7 +2319,8 @@ QuicConnSetConfiguration(
         Connection->OrigDestCID =
             QUIC_ALLOC_NONPAGED(
                 sizeof(QUIC_CID) +
-                DestCid->CID.Length);
+                DestCid->CID.Length,
+                QUIC_POOL_CID);
         if (Connection->OrigDestCID == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -2406,7 +2408,7 @@ QuicConnValidateTransportParameterDraft27CIDs(
                 "Peer provided incorrect original destination CID in TP");
             return FALSE;
         } else {
-            QUIC_FREE(Connection->OrigDestCID);
+            QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
             Connection->OrigDestCID = NULL;
         }
 
@@ -2477,7 +2479,7 @@ QuicConnValidateTransportParameterCIDs(
                 "Original destination CID from TP doesn't match");
             return FALSE;
         }
-        QUIC_FREE(Connection->OrigDestCID);
+        QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
         Connection->OrigDestCID = NULL;
         if (Connection->State.HandshakeUsedRetryPacket) {
             if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID)) {
@@ -2746,7 +2748,7 @@ QuicConnUpdateDestCid(
             // so we must allocate a new one and free the old one.
             //
             QuicListEntryRemove(&DestCid->Link);
-            QUIC_FREE(DestCid);
+            QUIC_FREE(DestCid, QUIC_POOL_CIDHASH);
             DestCid =
                 QuicCidNewDestination(
                     Packet->SourceCidLen,
@@ -4250,7 +4252,7 @@ QuicConnRecvFrames(
                     &IsLastCid);
             if (SourceCid != NULL) {
                 BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
-                QUIC_FREE(SourceCid);
+                QUIC_FREE(SourceCid, QUIC_POOL_CIDHASH);
                 if (IsLastCid) {
                     QuicTraceEvent(
                         ConnError,
@@ -4513,7 +4515,7 @@ QuicConnRecvPostProcessing(
                             Connection,
                             NextSourceCid->CID.SequenceNumber,
                             CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data));
-                        QUIC_FREE(NextSourceCid);
+                        QUIC_FREE(NextSourceCid, QUIC_POOL_CIDHASH);
                     }
                 }
             } else {

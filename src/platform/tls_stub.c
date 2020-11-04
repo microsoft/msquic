@@ -477,7 +477,7 @@ QuicTlsUninitialize(
         }
 
         if (TlsContext->LocalTPBuffer != NULL) {
-            QUIC_FREE(TlsContext->LocalTPBuffer);
+            QUIC_FREE(TlsContext->LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
         }
 
         QUIC_FREE(TlsContext);

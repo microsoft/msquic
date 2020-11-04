@@ -237,7 +237,9 @@ MsQuicLibraryInitialize(
     MsQuicCalculatePartitionMask();
 
     MsQuicLib.PerProc =
-        QUIC_ALLOC_NONPAGED(MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP));
+        QUIC_ALLOC_NONPAGED(
+            MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP),
+            QUIC_POOL_PERPROC);
     if (MsQuicLib.PerProc == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -314,7 +316,7 @@ Error:
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
             }
-            QUIC_FREE(MsQuicLib.PerProc);
+            QUIC_FREE(MsQuicLib.PerProc, QUIC_POOL_PERPROC);
             MsQuicLib.PerProc = NULL;
         }
         if (MsQuicLib.Storage != NULL) {
@@ -402,7 +404,7 @@ MsQuicLibraryUninitialize(
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
     }
-    QUIC_FREE(MsQuicLib.PerProc);
+    QUIC_FREE(MsQuicLib.PerProc, QUIC_POOL_PERPROC);
     MsQuicLib.PerProc = NULL;
 
     for (uint8_t i = 0; i < ARRAYSIZE(MsQuicLib.StatelessRetryKeys); ++i) {
@@ -1113,7 +1115,7 @@ MsQuicOpen(
         goto Exit;
     }
 
-    QUIC_API_TABLE* Api = QUIC_ALLOC_NONPAGED(sizeof(QUIC_API_TABLE));
+    QUIC_API_TABLE* Api = QUIC_ALLOC_NONPAGED(sizeof(QUIC_API_TABLE), QUIC_POOL_API);
     if (Api == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -1185,7 +1187,7 @@ MsQuicClose(
         QuicTraceLogVerbose(
             LibraryMsQuicClose,
             "[ api] MsQuicClose");
-        QUIC_FREE(QuicApi);
+        QUIC_FREE(QuicApi, QUIC_POOL_API);
         MsQuicRelease();
     }
 }

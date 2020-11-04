@@ -810,7 +810,7 @@ QuicTlsInitialize(
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
-    QUIC_FREE(Config->LocalTPBuffer);
+    QUIC_FREE(Config->LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
 
     State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
 

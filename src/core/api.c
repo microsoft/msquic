@@ -369,7 +369,7 @@ MsQuicConnectionStart(
 Error:
 
     if (ServerNameCopy != NULL) {
-        QUIC_FREE(ServerNameCopy);
+        QUIC_FREE(ServerNameCopy, QUIC_POOL_TMP_ALLOC);
     }
 
     QuicTraceEvent(

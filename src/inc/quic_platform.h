@@ -71,10 +71,30 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_PERF      'frPQ'  // QPrf - QUIC perf code
 #define QUIC_POOL_TOOL      'loTQ'  // QTol - QUIC tool code
 
+#define QUIC_POOL_WORKER    'rkwQ' // Qwkr - QUIC Worker
+
+#define QUIC_POOL_LISTENER 'rslQ' // Qlsr - QUIC Listener
+
+#define QUIC_POOL_CID       'DICQ'  // QCID - QUIC CID
+#define QUIC_POOL_CIDHASH   'SHCQ'  // QCHS - QUIC CID Hash
+#define QUIC_POOL_CIDLIST   'TLCQ' // QCLT - QUIC CID List Entry
+#define QUIC_POOL_CIDPREFIX 'xpCQ' // QCpx - QUIC CID Prefix
+
 #define QUIC_POOL_ALPN      'LPAQ'  // QAPL - QUIC ALPN
 
+#define QUIC_POOL_RANGE 'gnrQ' // Qrng - QUIC Range
+
+#define QUIC_POOL_SENDBUF 'fbsQ' // Qsbf - QUIC Send Buffer
+#define QUIC_POOL_RECVBUF 'fbrQ' // Qsbf - QUIC Recv Buffer
+
+#define QUIC_POOL_TIMERWHEEL 'hwtQ' // Qtwh - QUIC Timer Wheel
+
+#define QUIC_POOL_REGISTRATION 'gerQ' // Qreg - QUIC Registration
 #define QUIC_POOL_CONFIG 'gfCQ' // QCfg - QUIC configuration
 #define QUIC_POOL_BINDING   'dbCQ'  // QCbd - QUIC Core binding
+
+#define QUIC_POOL_API 'ipaQ' // Qapi - QUIC API Table
+#define QUIC_POOL_PERPROC 'cppQ' // Qppc - QUIC Per Proc Context
 
 #define QUIC_POOL_PLATFORM_SENDCTX 'csPQ' // QPsc - QUIC Platform Send Context
 
@@ -99,6 +119,14 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_STORAGE   'tsPQ'  // QPst - QUIC Platform storage
 #define QUIC_POOL_HASHTABLE 'thPQ'  // QPht - QUIC Platform hashtable
 #define QUIC_POOL_HASHTABLE_MEMBER 'lhPQ'  // QPhl - QUIC Platform hashtable member lists
+
+#define QUIC_POOL_LOOKUP_HASHTABLE 'thLQ' // QLht - QUIC Lookup Hash Table
+#define QUIC_POOL_REMOTE_HASH 'shRQ' // QRsh - QUIC Remote Hash Entry
+
+#define QUIC_POOL_OPER_SRVNAME 'nsOQ' // QOsn - QUIC Operation Server Name
+#define QUIC_POOL_OPER_RESUMPTION 'srOQ' // QOrs - QUIC Operation Resumption
+
+#define QUIC_POOL_INITIAL_TOKEN 'ktiQ' // Qitk - QUIC Initial Token
 
 typedef enum QUIC_THREAD_FLAGS {
     QUIC_THREAD_FLAG_NONE               = 0x0000,

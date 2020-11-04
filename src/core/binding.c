@@ -175,7 +175,7 @@ Error:
             QuicDispatchLockUninitialize(&Binding->StatelessOperLock);
             QuicDispatchLockUninitialize(&Binding->ResetTokenLock);
             QuicDispatchRwLockUninitialize(&Binding->RwLock);
-            QUIC_FREE(Binding);
+            QUIC_FREE(Binding, QUIC_POOL_BINDING);
         }
     }
 
@@ -235,7 +235,7 @@ QuicBindingUninitialize(
         BindingDestroyed,
         "[bind][%p] Destroyed",
         Binding);
-    QUIC_FREE(Binding);
+    QUIC_FREE(Binding, QUIC_POOL_BINDING);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1313,7 +1313,7 @@ Exit:
 
     } else {
         NewConnection->SourceCids.Next = NULL;
-        QUIC_FREE(SourceCid);
+        QUIC_FREE(SourceCid, QUIC_POOL_CIDHASH);
         QuicConnRelease(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
 #pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
         QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);

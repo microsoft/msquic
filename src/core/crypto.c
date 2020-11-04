@@ -310,7 +310,7 @@ QuicCryptoInitializeTls(
             Connection,
             Status,
             "QuicTlsInitialize");
-        QUIC_FREE(TlsConfig.LocalTPBuffer);
+        QUIC_FREE(TlsConfig.LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
         goto Error;
     }
 
@@ -1896,7 +1896,7 @@ QuicCryptoEncodeServerTicket(
 Error:
 
     if (EncodedHSTP != NULL) {
-        QUIC_FREE(EncodedHSTP);
+        QUIC_FREE(EncodedHSTP, QUIC_POOL_TLS_TRANSPARAMS);
     }
 
     return Status;
@@ -2124,7 +2124,7 @@ QuicCryptoEncodeClientTicket(
 Error:
 
     if (EncodedServerTP != NULL) {
-        QUIC_FREE(EncodedServerTP);
+        QUIC_FREE(EncodedServerTP, QUIC_POOL_TLS_TRANSPARAMS);
     }
 
     return Status;

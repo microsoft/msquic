@@ -697,7 +697,7 @@ QuicWorkerPoolInitialize(
     QUIC_STATUS Status;
 
     QUIC_WORKER_POOL* WorkerPool =
-        QUIC_ALLOC_NONPAGED(sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
+        QUIC_ALLOC_NONPAGED(sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER), QUIC_POOL_WORKER);
     if (WorkerPool == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -734,7 +734,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (WorkerPool != NULL) {
-            QUIC_FREE(WorkerPool);
+            QUIC_FREE(WorkerPool, QUIC_POOL_WORKER);
         }
     }
 
@@ -751,7 +751,7 @@ QuicWorkerPoolUninitialize(
         QuicWorkerUninitialize(&WorkerPool->Workers[i]);
     }
 
-    QUIC_FREE(WorkerPool);
+    QUIC_FREE(WorkerPool, QUIC_POOL_WORKER);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

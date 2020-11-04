@@ -67,7 +67,7 @@ void EncodeDecodeAndCompare(
         QuicCryptoTlsDecodeTransportParameters(
             &JunkConnection, IsServer, TPBuffer, TPBufferLength, &Decoded);
 
-    QUIC_FREE(Buffer);
+    QUIC_FREE(Buffer, QUIC_POOL_TLS_TRANSPARAMS);
 
     ASSERT_TRUE(DecodedSuccessfully);
 

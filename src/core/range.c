@@ -36,7 +36,7 @@ QuicRangeUninitialize(
     )
 {
     if (Range->AllocLength != QUIC_RANGE_INITIAL_SUB_COUNT) {
-        QUIC_FREE(Range->SubRanges);
+        QUIC_FREE(Range->SubRanges, QUIC_POOL_RANGE);
     }
 }
 
@@ -72,7 +72,7 @@ QuicRangeGrow(
         return FALSE;
     }
 
-    QUIC_SUBRANGE* NewSubRanges = QUIC_ALLOC_NONPAGED(NewAllocSize);
+    QUIC_SUBRANGE* NewSubRanges = QUIC_ALLOC_NONPAGED(NewAllocSize, QUIC_POOL_RANGE);
     if (NewSubRanges == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -108,7 +108,7 @@ QuicRangeGrow(
     }
 
     if (Range->AllocLength != QUIC_RANGE_INITIAL_SUB_COUNT) {
-        QUIC_FREE(Range->SubRanges);
+        QUIC_FREE(Range->SubRanges, QUIC_POOL_RANGE);
     }
     Range->SubRanges = NewSubRanges;
     Range->AllocLength = NewAllocLength;
@@ -201,7 +201,7 @@ QuicRangeRemoveSubranges(
             NewSubRanges = Range->PreAllocSubRanges;
         } else {
             NewSubRanges =
-                QUIC_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * NewAllocLength);
+                QUIC_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * NewAllocLength, QUIC_POOL_RANGE);
             if (NewSubRanges == NULL) {
                 return FALSE;
             }
@@ -210,7 +210,7 @@ QuicRangeRemoveSubranges(
             NewSubRanges,
             Range->SubRanges,
             Range->UsedLength * sizeof(QUIC_SUBRANGE));
-        QUIC_FREE(Range->SubRanges);
+        QUIC_FREE(Range->SubRanges, QUIC_POOL_RANGE);
         Range->SubRanges = NewSubRanges;
         Range->AllocLength = NewAllocLength;
         return TRUE;
