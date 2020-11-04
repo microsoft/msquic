@@ -9,12 +9,13 @@ using System.Threading;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK.Extensibility.SourceParsing;
 using Microsoft.Performance.SDK.Processing;
+using MsQuicTracing.DataModel;
 
 namespace MsQuicTracing
 {
-    public sealed class QuicSourceParser : SourceParserBase<ETWTraceEvent, ETWTraceEventSource, Guid>
+    public sealed class QuicEtwParser : SourceParserBase<QuicEvent, object, Guid>
     {
-        public const string SourceId = "QUIC";
+        public const string SourceId = "MsQuicEtw";
 
         private static Guid EventTraceGuid = new Guid("68fdd900-4a3e-11d1-84f4-0000f80464e3");
         private static Guid SystemConfigExGuid = new Guid("9B79EE91-B5FD-41c0-A243-4248E266E9D0");
@@ -27,7 +28,7 @@ namespace MsQuicTracing
 
         public override DataSourceInfo DataSourceInfo => this.info ?? throw new InvalidOperationException("Data Source has not been processed");
 
-        public QuicSourceParser(IEnumerable<string> filePaths)
+        public QuicEtwParser(IEnumerable<string> filePaths)
         {
             this.filePaths = filePaths;
         }
@@ -37,12 +38,21 @@ namespace MsQuicTracing
             return evt.ProviderGuid == EventTraceGuid || evt.ProviderGuid == SystemConfigExGuid;
         }
 
-        public override void ProcessSource(ISourceDataProcessor<ETWTraceEvent, ETWTraceEventSource, Guid> dataProcessor, ILogger logger, IProgress<int> progress, CancellationToken cancellationToken)
+        public override void ProcessSource(ISourceDataProcessor<QuicEvent, object, Guid> dataProcessor, ILogger logger, IProgress<int> progress, CancellationToken cancellationToken)
         {
-            using var source = new ETWTraceEventSource(filePaths);
-            source.AllEvents += (evt) => ParseEvent(evt, dataProcessor, source, cancellationToken);
-
             DateTime? firstEvent = null;
+            using var source = new ETWTraceEventSource(filePaths);
+
+            source.AllEvents += (evt) =>
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    source.StopProcessing();
+                    return;
+                }
+
+                dataProcessor.ProcessDataElement(new QuicEvent(evt), source, cancellationToken);
+            };
 
             source.AllEvents += (evt) =>
             {
@@ -73,17 +83,6 @@ namespace MsQuicTracing
             {
                 this.info = new DataSourceInfo(0, (source.SessionEndTime.Ticks - source.SessionStartTime.Ticks) * 100, source.SessionStartTime.ToUniversalTime());
             }
-        }
-
-        private static void ParseEvent(TraceEvent evt, ISourceDataProcessor<ETWTraceEvent, ETWTraceEventSource, Guid> dataProcessor, ETWTraceEventSource source, CancellationToken cancellationToken)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                source.StopProcessing();
-                return;
-            }
-
-            dataProcessor.ProcessDataElement(new ETWTraceEvent(evt), source, cancellationToken);
         }
     }
 }

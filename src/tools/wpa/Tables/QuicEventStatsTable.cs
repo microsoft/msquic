@@ -9,7 +9,6 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Processing;
-using MsQuicTracing.SourceDataCookers;
 
 namespace MsQuicTracing.Tables
 {
@@ -21,7 +20,7 @@ namespace MsQuicTracing.Tables
            "QUIC Event Stats",
            "QUIC Event Stats for ETL",
            category: "Stats",
-           requiredDataCookers: new List<DataCookerPath> { QuicDataCooker.CookerPath });
+           requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
 
         private static readonly ColumnConfiguration eventIDColumnConfig =
             new ColumnConfiguration(
@@ -50,7 +49,7 @@ namespace MsQuicTracing.Tables
             Debug.Assert(!(tableBuilder is null) && !(tableData is null));
 
             var eventInfo = tableData.QueryOutput<IReadOnlyDictionary<ushort, ulong>>(
-                new DataOutputPath(QuicDataCooker.CookerPath, "EventCounts"));
+                new DataOutputPath(QuicEventCooker.CookerPath, "EventCounts"));
 
             if (eventInfo != null && eventInfo.Count != 0)
             {

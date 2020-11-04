@@ -7,13 +7,13 @@ using System;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK.Extensibility;
 
-namespace MsQuicTracing
+namespace MsQuicTracing.DataModel
 {
-    public readonly struct ETWTraceEvent : IKeyedDataType<Guid>
+    public readonly struct QuicEvent : IKeyedDataType<Guid>
     {
         public TraceEvent Event { get; }
 
-        public ETWTraceEvent(TraceEvent evt)
+        public QuicEvent(TraceEvent evt)
         {
             Event = evt;
         }

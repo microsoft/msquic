@@ -7,19 +7,19 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading;
-using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Extensibility.DataCooking;
 using Microsoft.Performance.SDK.Extensibility.DataCooking.SourceDataCooking;
+using MsQuicTracing.DataModel;
 
-namespace MsQuicTracing.SourceDataCookers
+namespace MsQuicTracing
 {
-    public sealed class QuicDataCooker : CookedDataReflector, ISourceDataCooker<ETWTraceEvent, ETWTraceEventSource, Guid>
+    public sealed class QuicEventCooker : CookedDataReflector, ISourceDataCooker<QuicEvent, object, Guid>
     {
         public const string CookerId = "QUIC";
 
-        public static readonly DataCookerPath CookerPath = new DataCookerPath(QuicSourceParser.SourceId, CookerId);
+        public static readonly DataCookerPath CookerPath = new DataCookerPath(QuicEtwParser.SourceId, CookerId);
 
         public ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>(new Guid[] { new Guid("ff15e657-4f26-570e-88ab-0796b258d11c") }));
 
@@ -32,18 +32,18 @@ namespace MsQuicTracing.SourceDataCookers
 
         public DataProductionStrategy DataProductionStrategy { get; }
 
-        public string Description => "QUIC Events";
+        public string Description => "MsQuic Event Cooker";
 
         public SourceDataCookerOptions Options => SourceDataCookerOptions.ReceiveAllDataElements;
 
         [DataOutput]
         public IReadOnlyDictionary<ushort, ulong> EventCounts => new ReadOnlyDictionary<ushort, ulong>(this.eventCounts);
 
-        public QuicDataCooker() : this(CookerPath)
+        public QuicEventCooker() : this(CookerPath)
         {
         }
 
-        private QuicDataCooker(DataCookerPath path) : base(path)
+        private QuicEventCooker(DataCookerPath path) : base(path)
         {
             this.Path = path;
         }
@@ -58,7 +58,7 @@ namespace MsQuicTracing.SourceDataCookers
 
         private readonly Dictionary<ushort, ulong> eventCounts = new Dictionary<ushort, ulong>();
 
-        public DataProcessingResult CookDataElement(ETWTraceEvent data, ETWTraceEventSource context, CancellationToken cancellationToken)
+        public DataProcessingResult CookDataElement(QuicEvent data, object context, CancellationToken cancellationToken)
         {
             if (!this.eventCounts.ContainsKey((ushort)data.Event.ID))
             {
