@@ -71,7 +71,7 @@ namespace MsQuicTracing
         {
             using var source = new ETWTraceEventSource(filePaths);
 
-            var currentEvent = new QuicEtwEvent();
+            QuicEtwEvent? currentEvent = null;
             source.AllEvents += (evt) =>
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -82,7 +82,14 @@ namespace MsQuicTracing
 
                 if (evt.ProviderGuid == MsQuicEtwGuid)
                 {
-                    currentEvent.Event = evt;
+                    if (currentEvent is null)
+                    {
+                        currentEvent = new QuicEtwEvent(evt);
+                    }
+                    else
+                    {
+                        currentEvent.Event = evt;
+                    }
                     dataProcessor.ProcessDataElement(currentEvent, source, cancellationToken);
                 }
             };

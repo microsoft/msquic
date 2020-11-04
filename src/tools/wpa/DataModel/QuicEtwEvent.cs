@@ -5,17 +5,21 @@
 
 using System;
 using Microsoft.Diagnostics.Tracing;
+using Microsoft.Performance.SDK.Extensibility;
 
 namespace MsQuicTracing.DataModel
 {
     public class QuicEtwEvent : QuicEventBase
     {
-#pragma warning disable CS8618
         public TraceEvent Event { get; set; }
-#pragma warning restore CS8618
 
         public override Guid Provider => Event.ProviderGuid;
 
         public override ushort ID => (ushort)Event.ID;
+
+        public QuicEtwEvent(TraceEvent evt)
+        {
+            Event = evt;
+        }
     }
 }
