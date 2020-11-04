@@ -208,12 +208,12 @@ QuicPoolInitialize(
     _Inout_ QUIC_POOL* Pool
     )
 {
-    UNREFERENCED_PARAMETER(Tag);
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     PlatDispatch->PoolInitialize(IsPaged, Size, Pool);
 #else
     UNREFERENCED_PARAMETER(IsPaged);
     Pool->Size = Size;
+    Pool->MemTag = Tag;
 #endif
 }
 
@@ -237,7 +237,7 @@ QuicPoolAlloc(
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->PoolAlloc(Pool);
 #else
-    void*Entry = QuicAlloc(Pool->Size, Pool->Tag);
+    void*Entry = QuicAlloc(Pool->Size, Pool->MemTag);
 
     if (Entry != NULL) {
         QuicZeroMemory(Entry, Pool->Size);
@@ -257,7 +257,7 @@ QuicPoolFree(
     PlatDispatch->PoolFree(Pool, Entry);
 #else
     UNREFERENCED_PARAMETER(Pool);
-    QuicFree(Entry, Pool->Tag);
+    QuicFree(Entry, Pool->MemTag);
 #endif
 }
 
