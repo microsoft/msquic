@@ -27,7 +27,7 @@ public:
 
     ~PerfServer() override {
         if (DataBuffer) {
-            QUIC_FREE(DataBuffer);
+            QUIC_FREE(DataBuffer, QUIC_POOL_PERF);
         }
     }
 

@@ -35,7 +35,7 @@ struct TlsContext
         QuicEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
 
         QuicZeroMemory(&State, sizeof(State));
-        State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000);
+        State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000, QUIC_POOL_TOOL);
         State.BufferAllocLength = 8000;
 
         QUIC_CREDENTIAL_CONFIG CredConfig = {
@@ -92,7 +92,7 @@ struct TlsContext
             QuicTlsSecConfigDelete(SecConfig);
         }
         QuicEventUninitialize(ProcessCompleteEvent);
-        QUIC_FREE(State.Buffer);
+        QUIC_FREE(State.Buffer, QUIC_POOL_TOOL);
         for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
             QuicPacketKeyFree(State.ReadKeys[i]);
             QuicPacketKeyFree(State.WriteKeys[i]);

@@ -61,11 +61,11 @@ QuicWorkerInitialize(
     QuicListInitializeHead(&Worker->Operations);
     QuicPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &Worker->StreamPool);
     QuicPoolInitialize(FALSE, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, QUIC_POOL_SBUF, &Worker->DefaultReceiveBufferPool);
-    QuicPoolInitialize(FALSE, sizeof(QUIC_SEND_REQUEST), QUIC_POOL_GENERIC, &Worker->SendRequestPool);
+    QuicPoolInitialize(FALSE, sizeof(QUIC_SEND_REQUEST), QUIC_POOL_SEND_REQUEST, &Worker->SendRequestPool);
     QuicSentPacketPoolInitialize(&Worker->SentPacketPool);
-    QuicPoolInitialize(FALSE, sizeof(QUIC_API_CONTEXT), QUIC_POOL_GENERIC, &Worker->ApiContextPool);
-    QuicPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), QUIC_POOL_GENERIC, &Worker->StatelessContextPool);
-    QuicPoolInitialize(FALSE, sizeof(QUIC_OPERATION), QUIC_POOL_GENERIC, &Worker->OperPool);
+    QuicPoolInitialize(FALSE, sizeof(QUIC_API_CONTEXT), QUIC_POOL_API_CTX, &Worker->ApiContextPool);
+    QuicPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), QUIC_POOL_STATELESS_CTX, &Worker->StatelessContextPool);
+    QuicPoolInitialize(FALSE, sizeof(QUIC_OPERATION), QUIC_POOL_OPER, &Worker->OperPool);
 
     Status = QuicTimerWheelInitialize(&Worker->TimerWheel);
     if (QUIC_FAILED(Status)) {
