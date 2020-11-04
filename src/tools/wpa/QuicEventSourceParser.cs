@@ -10,7 +10,7 @@ using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK.Extensibility.SourceParsing;
 using Microsoft.Performance.SDK.Processing;
 
-namespace QuicEventDataSource
+namespace MsQuicTracing
 {
     public sealed class QuicEventContext : IQuicEventContext
     {
@@ -41,11 +41,11 @@ namespace QuicEventDataSource
 
         public override string Id => SourceId;
 
-        private DataSourceInfo info;
+        private DataSourceInfo? info;
 
-        private IEnumerable<string> filePaths;
+        private readonly IEnumerable<string> filePaths;
 
-        public override DataSourceInfo DataSourceInfo => this.info;
+        public override DataSourceInfo DataSourceInfo => this.info ?? throw new InvalidOperationException("Data Source has not been processed");
 
         public QuicEventSourceParser(IEnumerable<string> filePaths)
         {
@@ -54,41 +54,39 @@ namespace QuicEventDataSource
 
         public override void ProcessSource(ISourceDataProcessor<ETWTraceEvent, IQuicEventContext, Guid> dataProcessor, ILogger logger, IProgress<int> progress, CancellationToken cancellationToken)
         {
-            using (var source = new ETWTraceEventSource(filePaths))
+            using var source = new ETWTraceEventSource(filePaths);
+            source.AllEvents += (evt) => ParseEvent(evt, dataProcessor, new QuicEventContext(source), source, cancellationToken);
+
+            DateTime? firstEvent = null;
+
+            source.AllEvents += (evt) =>
             {
-                source.AllEvents += (evt) => ParseEvent(evt, dataProcessor, new QuicEventContext(source), source, cancellationToken);
+                bool isOriginalHeader = source.SessionStartTime == evt.TimeStamp;
 
-                DateTime? firstEvent = null;
-
-                source.AllEvents += (evt) =>
+                if (!firstEvent.HasValue &&
+                    !isOriginalHeader &&
+                    !IsKnownSynthEvent(evt) &&
+                    evt.TimeStamp.Ticks != 0)
                 {
-                    bool isOriginalHeader = source.SessionStartTime == evt.TimeStamp;
-
-                    if (!firstEvent.HasValue &&
-                        !isOriginalHeader &&
-                        !IsKnownSynthEvent(evt) &&
-                        evt.TimeStamp.Ticks != 0)
-                    {
-                        firstEvent = evt.TimeStamp;
-                    }
-
-                    progress.Report((int)(evt.TimeStampRelativeMSec / source.SessionEndTimeRelativeMSec * 100));
-                };
-
-                source.Process();
-
-                if (firstEvent.HasValue)
-                {
-                    var deltaBetweenStartAndFirstTicks = firstEvent.Value.Ticks - source.SessionStartTime.Ticks;
-                    var firstRelativeNano = deltaBetweenStartAndFirstTicks * 100;
-
-                    var lastnano = firstRelativeNano + ((source.SessionEndTime.Ticks - firstEvent.Value.Ticks) * 100);
-                    this.info = new DataSourceInfo(firstRelativeNano, lastnano, firstEvent.Value.ToUniversalTime());
+                    firstEvent = evt.TimeStamp;
                 }
-                else
-                {
-                    this.info = new DataSourceInfo(0, (source.SessionEndTime.Ticks - source.SessionStartTime.Ticks) * 100, source.SessionStartTime.ToUniversalTime());
-                }
+
+                progress.Report((int)(evt.TimeStampRelativeMSec / source.SessionEndTimeRelativeMSec * 100));
+            };
+
+            source.Process();
+
+            if (firstEvent.HasValue)
+            {
+                var deltaBetweenStartAndFirstTicks = firstEvent.Value.Ticks - source.SessionStartTime.Ticks;
+                var firstRelativeNano = deltaBetweenStartAndFirstTicks * 100;
+
+                var lastnano = firstRelativeNano + ((source.SessionEndTime.Ticks - firstEvent.Value.Ticks) * 100);
+                this.info = new DataSourceInfo(firstRelativeNano, lastnano, firstEvent.Value.ToUniversalTime());
+            }
+            else
+            {
+                this.info = new DataSourceInfo(0, (source.SessionEndTime.Ticks - source.SessionStartTime.Ticks) * 100, source.SessionStartTime.ToUniversalTime());
             }
         }
 

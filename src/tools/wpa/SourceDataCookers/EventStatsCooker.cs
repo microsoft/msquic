@@ -12,7 +12,7 @@ using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Extensibility.DataCooking;
 using Microsoft.Performance.SDK.Extensibility.DataCooking.SourceDataCooking;
 
-namespace QuicEventDataSource.SourceDataCookers
+namespace MsQuicTracing.SourceDataCookers
 {
     public sealed class EventStatsCooker : BaseSourceCooker
     {

@@ -11,7 +11,7 @@ using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Extensibility.DataCooking;
 using Microsoft.Performance.SDK.Extensibility.DataCooking.SourceDataCooking;
 
-namespace QuicEventDataSource.SourceDataCookers
+namespace MsQuicTracing.SourceDataCookers
 {
     public abstract class BaseSourceCooker : CookedDataReflector, ISourceDataCooker<ETWTraceEvent, IQuicEventContext, Guid>
     {
@@ -39,7 +39,7 @@ namespace QuicEventDataSource.SourceDataCookers
 
         public virtual DataProductionStrategy DataProductionStrategy { get; }
 
-        public virtual void BeginDataCooking(ICookedDataRetrieval dataRetrieval, CancellationToken cancellationToken)
+        public virtual void BeginDataCooking(ICookedDataRetrieval dependencyRetrieval, CancellationToken cancellationToken)
         {
         }
 

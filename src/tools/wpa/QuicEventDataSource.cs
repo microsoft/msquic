@@ -3,11 +3,13 @@
 // Licensed under the MIT License.
 //
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.Performance.SDK.Processing;
 
-namespace QuicEventDataSource
+namespace MsQuicTracing
 {
     /// <summary>
     /// This custom data source defines processes MsQuic ETW events.
@@ -19,13 +21,15 @@ namespace QuicEventDataSource
     [FileDataSource("etl", "Event Trace Log")]
     public class QuicEventDataSource : CustomDataSourceBase
     {
-        IApplicationEnvironment applicationEnvironment;
+        private IApplicationEnvironment? applicationEnvironment;
 
         protected override ICustomDataProcessor CreateProcessorCore(
             IEnumerable<IDataSource> dataSources,
             IProcessorEnvironment processorEnvironment,
             ProcessorOptions options)
         {
+            Debug.Assert(!(applicationEnvironment is null));
+
             return new QuicEventDataProcessor(
                 new QuicEventSourceParser(dataSources.Select(x => x.GetUri().LocalPath).ToArray()),
                 options,

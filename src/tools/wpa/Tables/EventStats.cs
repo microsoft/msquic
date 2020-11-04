@@ -5,17 +5,18 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Processing;
-using QuicEventDataSource.SourceDataCookers;
+using MsQuicTracing.SourceDataCookers;
 
-namespace QuicEventDataSource.Tables
+namespace MsQuicTracing.Tables
 {
     [Table]
     public sealed class EventStats
     {
-        public static TableDescriptor TableDescriptor = new TableDescriptor(
+        public static readonly TableDescriptor TableDescriptor = new TableDescriptor(
            Guid.Parse("{EE2FA823-C447-4324-969C-BC8AE215B713}"),
            "Quic Event Stats",
            "Quic Event Stats for ETL",
@@ -34,6 +35,9 @@ namespace QuicEventDataSource.Tables
 
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
+            Debug.Assert(!(tableBuilder is null));
+            Debug.Assert(!(tableData is null));
+
             var eventInfo = tableData.QueryOutput<IReadOnlyDictionary<ushort, ulong>>(
                 new DataOutputPath(EventStatsCooker.CookerPath, "QuicEventCounts"));
 
