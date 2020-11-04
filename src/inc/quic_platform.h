@@ -123,10 +123,17 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_LOOKUP_HASHTABLE 'thLQ' // QLht - QUIC Lookup Hash Table
 #define QUIC_POOL_REMOTE_HASH 'shRQ' // QRsh - QUIC Remote Hash Entry
 
-#define QUIC_POOL_OPER_SRVNAME 'nsOQ' // QOsn - QUIC Operation Server Name
-#define QUIC_POOL_OPER_RESUMPTION 'srOQ' // QOrs - QUIC Operation Resumption
+#define QUIC_POOL_SERVERNAME 'nvsQ' // Qsvn - QUIC Server Name
+#define QUIC_POOL_APP_RESUMPTION_DATA 'draQ' // Qard - QUIC App Resumption Data
 
 #define QUIC_POOL_INITIAL_TOKEN 'ktiQ' // Qitk - QUIC Initial Token
+
+#define QUIC_POOL_CLOSE_REASON 'srcQ' // Qcrs - QUIC Close Reason
+
+#define QUIC_POOL_SERVER_CRYPTO_TICKET 'ktsQ' // Qstk - QUIC Crypto Server Ticket Buffer
+#define QUIC_POOL_CLIENT_CRYPTO_TICKET 'ktcQ' // Qctk - QUIC Crypto Client Ticket Buffer
+
+#define QUIC_POOL_TLS_BUFFER 'fbtQ' // Qtbf - QUIC Tls Buffer
 
 typedef enum QUIC_THREAD_FLAGS {
     QUIC_THREAD_FLAG_NONE               = 0x0000,

@@ -125,7 +125,7 @@ QuicCryptoInitialize(
         &Crypto->SparseAckRanges);
 
     Crypto->TlsState.BufferAllocLength = SendBufferLength;
-    Crypto->TlsState.Buffer = QUIC_ALLOC_NONPAGED(SendBufferLength);
+    Crypto->TlsState.Buffer = QUIC_ALLOC_NONPAGED(SendBufferLength, QUIC_POOL_TLS_BUFFER);
     if (Crypto->TlsState.Buffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1848,7 +1848,7 @@ QuicCryptoEncodeServerTicket(
         EncodedTPLength +
         AppDataLength);
 
-    TicketBuffer = QUIC_ALLOC_NONPAGED(TotalTicketLength);
+    TicketBuffer = QUIC_ALLOC_NONPAGED(TotalTicketLength, QUIC_POOL_SERVER_CRYPTO_TICKET);
     if (TicketBuffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -2081,7 +2081,7 @@ QuicCryptoEncodeClientTicket(
         EncodedTPLength +
         TicketLength);
 
-    ClientTicketBuffer = QUIC_ALLOC_NONPAGED(ClientTicketBufferLength);
+    ClientTicketBuffer = QUIC_ALLOC_NONPAGED(ClientTicketBufferLength, QUIC_POOL_CLIENT_CRYPTO_TICKET);
     if (ClientTicketBuffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
