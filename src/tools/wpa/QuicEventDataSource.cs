@@ -27,7 +27,7 @@ namespace MsQuicTracing
             IProcessorEnvironment processorEnvironment,
             ProcessorOptions options)
         {
-            if (applicationEnvironment == null)
+            if (applicationEnvironment is null)
             {
                 throw new InvalidOperationException("SetApplicationEnvironmentCore must be called before CreateProcessorCore");
             }

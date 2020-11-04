@@ -34,12 +34,12 @@ namespace MsQuicTracing.Tables
 
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
-            if (tableBuilder == null)
+            if (tableBuilder is null)
             {
                 throw new ArgumentNullException(nameof(tableBuilder));
             }
 
-            if (tableData == null)
+            if (tableData is null)
             {
                 throw new ArgumentNullException(nameof(tableData));
             }
