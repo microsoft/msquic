@@ -1707,7 +1707,7 @@ QuicDataPathBindingDelete(
     QuicRundownRelease(&Binding->Datapath->BindingsRundown);
 
     QuicRundownUninitialize(&Binding->Rundown);
-    QuicFree(Binding);
+    QUIC_FREE(Binding, QUIC_POOL_DATAPATH_BINDING);
 #endif
 }
 

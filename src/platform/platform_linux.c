@@ -395,11 +395,7 @@ QuicEventInitialize(
     QUIC_EVENT_OBJECT* EventObj = NULL;
     pthread_condattr_t Attr = {0};
 
-    //
-    // LINUX_TODO: Tag allocation would be useful here.
-    //
-
-    EventObj = QuicAlloc(sizeof(QUIC_EVENT_OBJECT));
+    EventObj = QUIC_ALLOC_NONPAGED(sizeof(QUIC_EVENT_OBJECT), QUIC_POOL_EVENT);
 
     //
     // MsQuic expects this call to be non failable.
@@ -429,7 +425,7 @@ QuicEventUninitialize(
     QUIC_FRE_ASSERT(pthread_cond_destroy(&EventObj->Cond) == 0);
     QUIC_FRE_ASSERT(pthread_mutex_destroy(&EventObj->Mutex) == 0);
 
-    QuicFree(EventObj);
+    QUIC_FREE(EventObj, QUIC_POOL_EVENT);
     EventObj = NULL;
 }
 

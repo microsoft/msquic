@@ -123,6 +123,7 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_API_CTX                   'xcaQ' // Qacx - QUIC API Context
 #define QUIC_POOL_STATELESS_CTX             'xcsQ' // Qscx - QUIC Stateless Context
 #define QUIC_POOL_OPER                      'rpoQ' // Qopr - QUIC Operation
+#define QUIC_POOL_EVENT                     'EVcQ' // QcEV - QUIC Event
 
 typedef enum QUIC_THREAD_FLAGS {
     QUIC_THREAD_FLAG_NONE               = 0x0000,
