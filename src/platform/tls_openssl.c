@@ -310,7 +310,7 @@ QuicTlsAddHandshakeDataCallback(
             NewBufferAllocLength <<= 1;
         }
 
-        uint8_t* NewBuffer = QUIC_ALLOC_NONPAGED(NewBufferAllocLength);
+        uint8_t* NewBuffer = QUIC_ALLOC_NONPAGED(NewBufferAllocLength, QUIC_POOL_TLS_BUFFER);
         if (NewBuffer == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -325,7 +325,7 @@ QuicTlsAddHandshakeDataCallback(
             NewBuffer,
             TlsState->Buffer,
             TlsState->BufferLength);
-        QUIC_FREE(TlsState->Buffer);
+        QUIC_FREE(TlsState->Buffer, QUIC_POOL_TLS_BUFFER);
         TlsState->Buffer = NewBuffer;
         TlsState->BufferAllocLength = NewBufferAllocLength;
     }
@@ -479,7 +479,7 @@ QuicTlsSecConfigCreate(
     // Create a security config.
     //
 
-    SecurityConfig = QuicAlloc(sizeof(QUIC_SEC_CONFIG));
+    SecurityConfig = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (SecurityConfig == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -703,7 +703,7 @@ QuicTlsSecConfigDelete(
         SecurityConfig->SSLCtx = NULL;
     }
 
-    QuicFree(SecurityConfig);
+    QUIC_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
 }
 
 QUIC_STATUS
@@ -717,7 +717,7 @@ QuicTlsInitialize(
     QUIC_TLS* TlsContext = NULL;
     uint16_t ServerNameLength = 0;
 
-    TlsContext = QuicAlloc(sizeof(QUIC_TLS));
+    TlsContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS), QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -757,7 +757,7 @@ QuicTlsInitialize(
                 goto Exit;
             }
 
-            TlsContext->SNI = QuicAlloc(ServerNameLength + 1);
+            TlsContext->SNI = QUIC_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
             if (TlsContext->SNI == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -839,7 +839,7 @@ QuicTlsUninitialize(
             "Cleaning up");
 
         if (TlsContext->SNI != NULL) {
-            QUIC_FREE(TlsContext->SNI);
+            QUIC_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
             TlsContext->SNI = NULL;
         }
 
@@ -848,7 +848,7 @@ QuicTlsUninitialize(
             TlsContext->Ssl = NULL;
         }
 
-        QUIC_FREE(TlsContext);
+        QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
         TlsContext = NULL;
     }
 }
@@ -1357,7 +1357,7 @@ QuicPacketKeyDerive(
     const uint16_t PacketKeyLength =
         sizeof(QUIC_PACKET_KEY) +
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
-    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
+    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength, QUIC_POOL_TLS_PACKETKEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1547,7 +1547,7 @@ QuicPacketKeyFree(
         if (Key->Type >= QUIC_PACKET_KEY_1_RTT) {
             QuicSecureZeroMemory(Key->TrafficSecret, sizeof(QUIC_SECRET));
         }
-        QUIC_FREE(Key);
+        QUIC_FREE(Key, QUIC_POOL_TLS_PACKETKEY);
     }
 }
 
