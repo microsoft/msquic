@@ -2468,13 +2468,13 @@ QuicHpKeyCreate(
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
-    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY), QUIC_POOL_TLS_HP_KEY);
+    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HP_KEY), QUIC_POOL_TLS_HP_KEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_KEY",
-            sizeof(QUIC_KEY));
+            "QUIC_HP_KEY",
+            sizeof(QUIC_HP_KEY));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
