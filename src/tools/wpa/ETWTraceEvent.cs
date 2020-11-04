@@ -7,7 +7,7 @@ using System;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK.Extensibility;
 
-namespace QuicEventDataSource
+namespace MsQuicTracing
 {
     public readonly struct ETWTraceEvent : IKeyedDataType<Guid>
     {
