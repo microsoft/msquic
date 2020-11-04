@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
@@ -15,13 +16,13 @@ using MsQuicTracing.DataModel;
 
 namespace MsQuicTracing
 {
-    public sealed class QuicEventCooker : CookedDataReflector, ISourceDataCooker<QuicEvent, object, Guid>
+    public sealed class QuicEventCooker : CookedDataReflector, ISourceDataCooker<QuicEventBase, object, Guid>
     {
         public const string CookerId = "QUIC";
 
-        public static readonly DataCookerPath CookerPath = new DataCookerPath(QuicEtwParser.SourceId, CookerId);
+        public static readonly DataCookerPath CookerPath = new DataCookerPath(QuicEventParser.SourceId, CookerId);
 
-        public ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>(new Guid[] { new Guid("ff15e657-4f26-570e-88ab-0796b258d11c") }));
+        public ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>());
 
         public DataCookerPath Path { get; }
 
@@ -37,7 +38,7 @@ namespace MsQuicTracing
         public SourceDataCookerOptions Options => SourceDataCookerOptions.ReceiveAllDataElements;
 
         [DataOutput]
-        public IReadOnlyDictionary<ushort, ulong> EventCounts => new ReadOnlyDictionary<ushort, ulong>(this.eventCounts);
+        public IReadOnlyDictionary<ushort, ulong> EventCounts => new ReadOnlyDictionary<ushort, ulong>(eventCounts);
 
         public QuicEventCooker() : this(CookerPath)
         {
@@ -45,7 +46,7 @@ namespace MsQuicTracing
 
         private QuicEventCooker(DataCookerPath path) : base(path)
         {
-            this.Path = path;
+            Path = path;
         }
 
         public void BeginDataCooking(ICookedDataRetrieval dependencyRetrieval, CancellationToken cancellationToken)
@@ -58,15 +59,17 @@ namespace MsQuicTracing
 
         private readonly Dictionary<ushort, ulong> eventCounts = new Dictionary<ushort, ulong>();
 
-        public DataProcessingResult CookDataElement(QuicEvent data, object context, CancellationToken cancellationToken)
+        public DataProcessingResult CookDataElement(QuicEventBase data, object context, CancellationToken cancellationToken)
         {
-            if (!this.eventCounts.ContainsKey((ushort)data.Event.ID))
+            Debug.Assert(!(data is null));
+
+            if (!eventCounts.ContainsKey(data.ID))
             {
-                this.eventCounts.Add((ushort)data.Event.ID, 1);
+                eventCounts.Add(data.ID, 1);
             }
             else
             {
-                this.eventCounts[(ushort)data.Event.ID]++;
+                eventCounts[data.ID]++;
             }
 
             return DataProcessingResult.Processed;

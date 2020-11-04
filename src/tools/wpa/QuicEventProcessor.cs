@@ -12,10 +12,10 @@ using MsQuicTracing.DataModel;
 
 namespace MsQuicTracing
 {
-    public class QuicEventProcessor : CustomDataProcessorBaseWithSourceParser<QuicEvent, object, Guid>
+    public class QuicEventProcessor : CustomDataProcessorBaseWithSourceParser<QuicEventBase, object, Guid>
     {
         internal QuicEventProcessor(
-            ISourceParser<QuicEvent, object, Guid> sourceParser,
+            ISourceParser<QuicEventBase, object, Guid> sourceParser,
             ProcessorOptions options,
             IApplicationEnvironment applicationEnvironment,
             IProcessorEnvironment processorEnvironment,

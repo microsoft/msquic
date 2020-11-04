@@ -3,7 +3,6 @@
 // Licensed under the MIT License.
 //
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -31,12 +30,12 @@ namespace MsQuicTracing
             Debug.Assert(!(applicationEnvironment is null));
 
             return new QuicEventProcessor(
-                new QuicEtwParser(dataSources.Select(x => x.GetUri().LocalPath).ToArray()),
+                new QuicEventParser(dataSources.Select(x => x.GetUri().LocalPath).ToArray(), QuicEventSourceType.ETW),
                 options,
-                this.applicationEnvironment,
+                applicationEnvironment,
                 processorEnvironment,
-                this.AllTables,
-                this.MetadataTables);
+                AllTables,
+                MetadataTables);
         }
 
         /// <summary>
