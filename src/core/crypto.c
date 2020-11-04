@@ -211,7 +211,7 @@ Exit:
             QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
         }
         if (Crypto->TlsState.Buffer != NULL) {
-            QUIC_FREE(Crypto->TlsState.Buffer);
+            QUIC_FREE(Crypto->TlsState.Buffer, QUIC_POOL_TLS_BUFFER);
             Crypto->TlsState.Buffer = NULL;
         }
     }
@@ -236,18 +236,18 @@ QuicCryptoUninitialize(
         Crypto->TLS = NULL;
     }
     if (Crypto->ResumptionTicket != NULL) {
-        QUIC_FREE(Crypto->ResumptionTicket);
+        QUIC_FREE(Crypto->ResumptionTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
         Crypto->ResumptionTicket = NULL;
     }
     if (Crypto->TlsState.NegotiatedAlpn != NULL &&
         QuicConnIsServer(QuicCryptoGetConnection(Crypto))) {
-        QUIC_FREE(Crypto->TlsState.NegotiatedAlpn);
+        QUIC_FREE(Crypto->TlsState.NegotiatedAlpn, QUIC_POOL_ALPN);
         Crypto->TlsState.NegotiatedAlpn = NULL;
     }
     if (Crypto->Initialized) {
         QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
         QuicRangeUninitialize(&Crypto->SparseAckRanges);
-        QUIC_FREE(Crypto->TlsState.Buffer);
+        QUIC_FREE(Crypto->TlsState.Buffer, QUIC_POOL_TLS_BUFFER);
         Crypto->TlsState.Buffer = NULL;
         Crypto->Initialized = FALSE;
     }
@@ -2214,7 +2214,7 @@ QuicCryptoDecodeClientTicket(
         goto Error;
     }
     if (TicketLength != 0) {
-        *ServerTicket = QUIC_ALLOC_NONPAGED((uint32_t)TicketLength);
+        *ServerTicket = QUIC_ALLOC_NONPAGED((uint32_t)TicketLength, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
         if (*ServerTicket == NULL) {
             QuicTraceEvent(
                 AllocFailure,

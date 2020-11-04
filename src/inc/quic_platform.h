@@ -132,6 +132,7 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 
 #define QUIC_POOL_SERVER_CRYPTO_TICKET 'ktsQ' // Qstk - QUIC Crypto Server Ticket Buffer
 #define QUIC_POOL_CLIENT_CRYPTO_TICKET 'ktcQ' // Qctk - QUIC Crypto Client Ticket Buffer
+#define QUIC_POOL_CRYPTO_RESUMPTION_TICKET 'ktrQ' // Qrtk - QUIC Crypto Resumption Ticket
 
 #define QUIC_POOL_TLS_BUFFER 'fbtQ' // Qtbf - QUIC Tls Buffer
 
