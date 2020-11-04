@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Extensibility.DataCooking;
@@ -13,7 +14,7 @@ using Microsoft.Performance.SDK.Extensibility.DataCooking.SourceDataCooking;
 
 namespace QuicEventDataSource.SourceDataCookers
 {
-    public abstract class BaseSourceCooker : CookedDataReflector, ISourceDataCooker<ETWTraceEvent, IQuicEventContext, Guid>
+    public abstract class BaseSourceCooker : CookedDataReflector, ISourceDataCooker<ETWTraceEvent, ETWTraceEventSource, Guid>
     {
         protected BaseSourceCooker(string cookerID) : this(new DataCookerPath(QuicEventSourceParser.SourceId, cookerID))
         {
@@ -43,7 +44,7 @@ namespace QuicEventDataSource.SourceDataCookers
         {
         }
 
-        public abstract DataProcessingResult CookDataElement(ETWTraceEvent data, IQuicEventContext context, CancellationToken cancellationToken);
+        public abstract DataProcessingResult CookDataElement(ETWTraceEvent data, ETWTraceEventSource context, CancellationToken cancellationToken);
 
         public virtual void EndDataCooking(CancellationToken cancellationToken)
         {

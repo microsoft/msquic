@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading;
+using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Extensibility.DataCooking;
@@ -37,7 +38,7 @@ namespace QuicEventDataSource.SourceDataCookers
             this.eventCounts = new Dictionary<ushort, ulong>();
         }
 
-        public override DataProcessingResult CookDataElement(ETWTraceEvent data, IQuicEventContext context, CancellationToken cancellationToken)
+        public override DataProcessingResult CookDataElement(ETWTraceEvent data, ETWTraceEventSource context, CancellationToken cancellationToken)
         {
             if (!this.eventCounts.ContainsKey((ushort)data.Event.ID))
             {

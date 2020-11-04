@@ -9,9 +9,9 @@ using Microsoft.Performance.SDK.Extensibility;
 
 namespace QuicEventDataSource
 {
-    public struct ETWTraceEvent : IKeyedDataType<Guid>
+    public readonly struct ETWTraceEvent : IKeyedDataType<Guid>
     {
-        public TraceEvent Event { get; private set; }
+        public TraceEvent Event { get; }
 
         public ETWTraceEvent(TraceEvent evt)
         {

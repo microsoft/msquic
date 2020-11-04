@@ -12,27 +12,7 @@ using Microsoft.Performance.SDK.Processing;
 
 namespace QuicEventDataSource
 {
-    public sealed class QuicEventContext : IQuicEventContext
-    {
-        private readonly ETWTraceEventSource source;
-
-        public string LogFileName => source.LogFileName;
-
-        public Version OSVersion => source.OSVersion;
-
-        public int CpuSpeedMHz => source.CpuSpeedMHz;
-
-        public int NumberOfProcessors => source.NumberOfProcessors;
-
-        public int PointerSize => source.PointerSize;
-
-        public QuicEventContext(ETWTraceEventSource source)
-        {
-            this.source = source;
-        }
-    }
-
-    public sealed class QuicEventSourceParser : SourceParserBase<ETWTraceEvent, IQuicEventContext, Guid>
+    public sealed class QuicEventSourceParser : SourceParserBase<ETWTraceEvent, ETWTraceEventSource, Guid>
     {
         public const string SourceId = "QuicEvent";
 
@@ -52,11 +32,16 @@ namespace QuicEventDataSource
             this.filePaths = filePaths;
         }
 
-        public override void ProcessSource(ISourceDataProcessor<ETWTraceEvent, IQuicEventContext, Guid> dataProcessor, ILogger logger, IProgress<int> progress, CancellationToken cancellationToken)
+        private static bool IsKnownSynthEvent(TraceEvent evt)
+        {
+            return evt.ProviderGuid == EventTraceGuid || evt.ProviderGuid == SystemConfigExGuid;
+        }
+
+        public override void ProcessSource(ISourceDataProcessor<ETWTraceEvent, ETWTraceEventSource, Guid> dataProcessor, ILogger logger, IProgress<int> progress, CancellationToken cancellationToken)
         {
             using (var source = new ETWTraceEventSource(filePaths))
             {
-                source.AllEvents += (evt) => ParseEvent(evt, dataProcessor, new QuicEventContext(source), source, cancellationToken);
+                source.AllEvents += (evt) => ParseEvent(evt, dataProcessor, source, cancellationToken);
 
                 DateTime? firstEvent = null;
 
@@ -92,12 +77,7 @@ namespace QuicEventDataSource
             }
         }
 
-        private static bool IsKnownSynthEvent(TraceEvent evt)
-        {
-            return evt.ProviderGuid == EventTraceGuid || evt.ProviderGuid == SystemConfigExGuid;
-        }
-
-        private static void ParseEvent(TraceEvent evt, ISourceDataProcessor<ETWTraceEvent, IQuicEventContext, Guid> dataProcessor, QuicEventContext context, ETWTraceEventSource source, CancellationToken cancellationToken)
+        private static void ParseEvent(TraceEvent evt, ISourceDataProcessor<ETWTraceEvent, ETWTraceEventSource, Guid> dataProcessor, ETWTraceEventSource source, CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
             {
@@ -105,9 +85,7 @@ namespace QuicEventDataSource
                 return;
             }
 
-            // TODO: Instead of creating a ETWTraceEvent each time, reuse existing one...
-            var result = dataProcessor.ProcessDataElement(new ETWTraceEvent(evt), context, cancellationToken);
-            // TODO: do something with the result
+            dataProcessor.ProcessDataElement(new ETWTraceEvent(evt), source, cancellationToken);
         }
     }
 }
