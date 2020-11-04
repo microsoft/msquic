@@ -61,68 +61,68 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 //
 
 #define QUIC_POOL_GENERIC                   'CIUQ' // QUIC - Generic QUIC
-#define QUIC_POOL_SILO                      'olsQ' // Qslo - QUIC Silo
-#define QUIC_POOL_CONN                      'noCQ' // QCon - QUIC connection
-#define QUIC_POOL_TP                        'PTCQ' // QCTP - QUIC connection transport parameters
-#define QUIC_POOL_STREAM                    'mtSQ' // QStm - QUIC stream
-#define QUIC_POOL_SBUF                      'fBSQ' // QSBf - QUIC stream buffer
-#define QUIC_POOL_META                      'MFSQ' // QSFM - QUIC sent frame metadata
-#define QUIC_POOL_DATA                      'atDQ' // QDta - QUIC datagram buffer
-#define QUIC_POOL_TEST                      'tsTQ' // QTst - QUIC test code
-#define QUIC_POOL_PERF                      'frPQ' // QPrf - QUIC perf code
-#define QUIC_POOL_TOOL                      'loTQ' // QTol - QUIC tool code
-#define QUIC_POOL_WORKER                    'rkwQ' // Qwkr - QUIC Worker
-#define QUIC_POOL_LISTENER                  'rslQ' // Qlsr - QUIC Listener
-#define QUIC_POOL_CID                       'DICQ' // QCID - QUIC CID
-#define QUIC_POOL_CIDHASH                   'SHCQ' // QCHS - QUIC CID Hash
-#define QUIC_POOL_CIDLIST                   'TLCQ' // QCLT - QUIC CID List Entry
-#define QUIC_POOL_CIDPREFIX                 'xpCQ' // QCpx - QUIC CID Prefix
-#define QUIC_POOL_ALPN                      'LPAQ' // QAPL - QUIC ALPN
-#define QUIC_POOL_RANGE                     'gnrQ' // Qrng - QUIC Range
-#define QUIC_POOL_SENDBUF                   'fbsQ' // Qsbf - QUIC Send Buffer
-#define QUIC_POOL_RECVBUF                   'fbrQ' // Qsbf - QUIC Recv Buffer
-#define QUIC_POOL_TIMERWHEEL                'hwtQ' // Qtwh - QUIC Timer Wheel
-#define QUIC_POOL_REGISTRATION              'gerQ' // Qreg - QUIC Registration
-#define QUIC_POOL_CONFIG                    'gfCQ' // QCfg - QUIC configuration
-#define QUIC_POOL_BINDING                   'dbCQ' // QCbd - QUIC Core binding
-#define QUIC_POOL_API                       'ipaQ' // Qapi - QUIC API Table
-#define QUIC_POOL_PERPROC                   'cppQ' // Qppc - QUIC Per Proc Context
-#define QUIC_POOL_PLATFORM_SENDCTX          'csPQ' // QPsc - QUIC Platform Send Context
-#define QUIC_POOL_TLS_ACHCTX                'atPQ' // QPta - QUIC Platform TLS ACH Context
-#define QUIC_POOL_TLS_SNI                   'ntPQ' // QPtn - QUIC Platform TLS SNI
-#define QUIC_POOL_TLS_PRINCIPAL             'rtPQ' // QPtn - QUIC Platform TLS Principal
-#define QUIC_POOL_TLS_CTX                   'ctPQ' // QPtc - QUIC Platform TLS Context
-#define QUIC_POOL_TLS_TRANSPARAMS           'ttPQ' // QPtc - QUIC Platform TLS Transport Parameters
-#define QUIC_POOL_TLS_RESUMPTION            'rtPQ' // QPtr - QUIC Platform TLS Resumption Buffer
-#define QUIC_POOL_TLS_SECCONF               'stPQ' // QPts - QUIC Platform TLS Sec Config
-#define QUIC_POOL_TLS_PACKETKEY             'kpPQ' // QPpk - QUIC Platform TLS Packet Key
-#define QUIC_POOL_TLS_KEY                   'ykPQ' // QPky - QUIC Platform TLS Key
-#define QUIC_POOL_TLS_HP_KEY                'khPQ' // QPhk - QUIC Platform TLS HP Key
-#define QUIC_POOL_TLS_HASH                  'htPQ' // QPth - QUIC Platform TLS Hash
-#define QUIC_POOL_TLS_EXTRAS                'xtPQ' // QPtx - QUIC Platform TLS Extra Data
-#define QUIC_POOL_TMP_ALLOC                 'atCQ' // QCta - QUIC temporary alloc
-#define QUIC_POOL_PLATFORM_TMP_ALLOC        'atPQ' // QPta - QUIC Platform temporary alloc
-#define QUIC_POOL_PLATFORM_PROC             'cpPQ' // QPpc - QUIC Platform Processor info
-#define QUIC_POOL_PLATFORM_GENERIC          'LTPQ' // QPLT - QUIC Platform generic
-#define QUIC_POOL_DATAPATH                  'pdPQ' // QPdp - QUIC Platform datapath
-#define QUIC_POOL_DATAPATH_BINDING          'dbPQ' // QDbd - QUIC Platform datapath binding
-#define QUIC_POOL_STORAGE                   'tsPQ' // QPst - QUIC Platform storage
-#define QUIC_POOL_HASHTABLE                 'thPQ' // QPht - QUIC Platform hashtable
-#define QUIC_POOL_HASHTABLE_MEMBER          'lhPQ' // QPhl - QUIC Platform hashtable member lists
-#define QUIC_POOL_LOOKUP_HASHTABLE          'thLQ' // QLht - QUIC Lookup Hash Table
-#define QUIC_POOL_REMOTE_HASH               'shRQ' // QRsh - QUIC Remote Hash Entry
-#define QUIC_POOL_SERVERNAME                'nvsQ' // Qsvn - QUIC Server Name
-#define QUIC_POOL_APP_RESUMPTION_DATA       'draQ' // Qard - QUIC App Resumption Data
-#define QUIC_POOL_INITIAL_TOKEN             'ktiQ' // Qitk - QUIC Initial Token
-#define QUIC_POOL_CLOSE_REASON              'srcQ' // Qcrs - QUIC Close Reason
-#define QUIC_POOL_SERVER_CRYPTO_TICKET      'ktsQ' // Qstk - QUIC Crypto Server Ticket Buffer
-#define QUIC_POOL_CLIENT_CRYPTO_TICKET      'ktcQ' // Qctk - QUIC Crypto Client Ticket Buffer
-#define QUIC_POOL_CRYPTO_RESUMPTION_TICKET  'ktrQ' // Qrtk - QUIC Crypto Resumption Ticket
-#define QUIC_POOL_TLS_BUFFER                'fbtQ' // Qtbf - QUIC Tls Buffer
-#define QUIC_POOL_SEND_REQUEST              'qrsQ' // Qsrq - QUIC Send Request
-#define QUIC_POOL_API_CTX                   'xcaQ' // Qacx - QUIC API Context
-#define QUIC_POOL_STATELESS_CTX             'xcsQ' // Qscx - QUIC Stateless Context
-#define QUIC_POOL_OPER                      'rpoQ' // Qopr - QUIC Operation
+#define QUIC_POOL_SILO                      'lscQ' // Qcsl - QUIC Silo
+#define QUIC_POOL_CONN                      'nccQ' // Qccn - QUIC connection
+#define QUIC_POOL_TP                        'tccQ' // Qcct - QUIC connection transport parameters
+#define QUIC_POOL_STREAM                    'tscQ' // Qcst - QUIC stream
+#define QUIC_POOL_SBUF                      'bscQ' // Qcsb - QUIC stream buffer
+#define QUIC_POOL_META                      'fscQ' // Qcsf - QUIC sent frame metadata
+#define QUIC_POOL_DATA                      'bdcQ' // Qcdb - QUIC datagram buffer
+#define QUIC_POOL_TEST                      'ctcQ' // Qctc - QUIC test code
+#define QUIC_POOL_PERF                      'cpcQ' // Qcpc - QUIC perf code
+#define QUIC_POOL_TOOL                      'otcQ' // Qcto - QUIC tool code
+#define QUIC_POOL_WORKER                    'kwcQ' // Qcwk - QUIC Worker
+#define QUIC_POOL_LISTENER                  'slcQ' // Qcls - QUIC Listener
+#define QUIC_POOL_CID                       'dccQ' // Qccd - QUIC CID
+#define QUIC_POOL_CIDHASH                   'hccQ' // Qcch - QUIC CID Hash
+#define QUIC_POOL_CIDLIST                   'lccQ' // Qccl - QUIC CID List Entry
+#define QUIC_POOL_CIDPREFIX                 'pccQ' // Qccp - QUIC CID Prefix
+#define QUIC_POOL_ALPN                      'lacQ' // Qcal - QUIC ALPN
+#define QUIC_POOL_RANGE                     'grcQ' // Qcrg - QUIC Range
+#define QUIC_POOL_SENDBUF                   'sbcQ' // Qcbs - QUIC Send Buffer
+#define QUIC_POOL_RECVBUF                   'rbcQ' // Qcbr - QUIC Recv Buffer
+#define QUIC_POOL_TIMERWHEEL                'wtcQ' // Qctw - QUIC Timer Wheel
+#define QUIC_POOL_REGISTRATION              'ercQ' // Qcre - QUIC Registration
+#define QUIC_POOL_CONFIG                    'fccQ' // Qccf - QUIC configuration
+#define QUIC_POOL_BINDING                   'bccQ' // Qccb - QUIC Core binding
+#define QUIC_POOL_API                       'tacQ' // Qcat - QUIC API Table
+#define QUIC_POOL_PERPROC                   'ppcQ' // Qcpp - QUIC Per Proc Context
+#define QUIC_POOL_PLATFORM_SENDCTX          'cscQ' // Qcsc - QUIC Platform Send Context
+#define QUIC_POOL_TLS_ACHCTX                'ctcQ' // Qctc - QUIC Platform TLS ACH Context
+#define QUIC_POOL_TLS_SNI                   'stcQ' // Qcts - QUIC Platform TLS SNI
+#define QUIC_POOL_TLS_PRINCIPAL             'rpcQ' // Qcpr - QUIC Platform TLS Principal
+#define QUIC_POOL_TLS_CTX                   'xccQ' // Qccx - QUIC Platform TLS Context
+#define QUIC_POOL_TLS_TRANSPARAMS           'ptcQ' // Qctp - QUIC Platform TLS Transport Parameters
+#define QUIC_POOL_TLS_RESUMPTION            'brcQ' // Qcrb - QUIC Platform TLS Resumption Buffer
+#define QUIC_POOL_TLS_SECCONF               'escQ' // Qcse - QUIC Platform TLS Sec Config
+#define QUIC_POOL_TLS_PACKETKEY             'kpcQ' // Qcpk - QUIC Platform TLS Packet Key
+#define QUIC_POOL_TLS_KEY                   'ktcQ' // Qctk - QUIC Platform TLS Key
+#define QUIC_POOL_TLS_HP_KEY                'phcQ' // Qchp - QUIC Platform TLS HP Key
+#define QUIC_POOL_TLS_HASH                  'shcQ' // Qchs - QUIC Platform TLS Hash
+#define QUIC_POOL_TLS_EXTRAS                'dxcQ' // Qcxd - QUIC Platform TLS Extra Data
+#define QUIC_POOL_TMP_ALLOC                 'atcQ' // Qcta - QUIC temporary alloc
+#define QUIC_POOL_PLATFORM_TMP_ALLOC        'tpcQ' // Qcpt - QUIC Platform temporary alloc
+#define QUIC_POOL_PLATFORM_PROC             'ipcQ' // Qcpi - QUIC Platform Processor info
+#define QUIC_POOL_PLATFORM_GENERIC          'ngcQ' // Qcgn - QUIC Platform generic
+#define QUIC_POOL_DATAPATH                  'pdcQ' // Qcdp - QUIC Platform datapath
+#define QUIC_POOL_DATAPATH_BINDING          'gdcQ' // Qcdg - QUIC Platform datapath binding
+#define QUIC_POOL_STORAGE                   'spcQ' // Qcps - QUIC Platform storage
+#define QUIC_POOL_HASHTABLE                 'thcQ' // Qcht - QUIC Platform hashtable
+#define QUIC_POOL_HASHTABLE_MEMBER          'mhcQ' // Qchm - QUIC Platform hashtable member lists
+#define QUIC_POOL_LOOKUP_HASHTABLE          'hlcQ' // Qclh - QUIC Lookup Hash Table
+#define QUIC_POOL_REMOTE_HASH               'ehcQ' // Qche - QUIC Remote Hash Entry
+#define QUIC_POOL_SERVERNAME                'nscQ' // Qcsn - QUIC Server Name
+#define QUIC_POOL_APP_RESUMPTION_DATA       'dacQ' // Qcad - QUIC App Resumption Data
+#define QUIC_POOL_INITIAL_TOKEN             'ticQ' // Qcit - QUIC Initial Token
+#define QUIC_POOL_CLOSE_REASON              'rccQ' // Qccr - QUIC Close Reason
+#define QUIC_POOL_SERVER_CRYPTO_TICKET      'cscQ' // Qccs - QUIC Crypto Server Ticket Buffer
+#define QUIC_POOL_CLIENT_CRYPTO_TICKET      'cccQ' // Qccc - QUIC Crypto Client Ticket Buffer
+#define QUIC_POOL_CRYPTO_RESUMPTION_TICKET  'trcQ' // Qcrt - QUIC Crypto Resumption Ticket
+#define QUIC_POOL_TLS_BUFFER                'btcQ' // Qctb - QUIC Tls Buffer
+#define QUIC_POOL_SEND_REQUEST              'rscQ' // Qcsr - QUIC Send Request
+#define QUIC_POOL_API_CTX                   'xacQ' // Qcax - QUIC API Context
+#define QUIC_POOL_STATELESS_CTX             'xscQ' // Qcsx - QUIC Stateless Context
+#define QUIC_POOL_OPER                      'pocQ' // Qcop - QUIC Operation
 #define QUIC_POOL_EVENT                     'EVcQ' // QcEV - QUIC Event
 
 typedef enum QUIC_THREAD_FLAGS {
