@@ -11,7 +11,7 @@ using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Extensibility.DataCooking;
 using Microsoft.Performance.SDK.Extensibility.DataCooking.SourceDataCooking;
 
-namespace MsQuicEtw.SourceDataCookers
+namespace MsQuicTracing.SourceDataCookers
 {
     public abstract class BaseSourceCooker : CookedDataReflector, ISourceDataCooker<ETWTraceEvent, IQuicEventContext, Guid>
     {

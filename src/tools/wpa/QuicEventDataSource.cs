@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Performance.SDK.Processing;
 
-namespace MsQuicEtw
+namespace MsQuicTracing
 {
     /// <summary>
     /// This custom data source defines processes MsQuic ETW events.

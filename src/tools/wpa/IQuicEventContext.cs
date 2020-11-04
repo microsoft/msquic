@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace MsQuicEtw
+namespace MsQuicTracing
 {
     public interface IQuicEventContext
     {

@@ -10,7 +10,7 @@ using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK.Extensibility.SourceParsing;
 using Microsoft.Performance.SDK.Processing;
 
-namespace MsQuicEtw
+namespace MsQuicTracing
 {
     public sealed class QuicEventContext : IQuicEventContext
     {

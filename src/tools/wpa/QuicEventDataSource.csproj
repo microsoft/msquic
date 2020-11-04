@@ -6,6 +6,9 @@
     <Nullable>enable</Nullable>
     <RootNamespace>MsQuicEtw</RootNamespace>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>1701;1702;CA1036;CA1815</NoWarn>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.3.1">
       <PrivateAssets>all</PrivateAssets>
