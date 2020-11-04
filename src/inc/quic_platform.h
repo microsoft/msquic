@@ -97,6 +97,8 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_TLS_SECCONF               'stPQ' // QPts - QUIC Platform TLS Sec Config
 #define QUIC_POOL_TLS_PACKETKEY             'kpPQ' // QPpk - QUIC Platform TLS Packet Key
 #define QUIC_POOL_TLS_KEY                   'ykPQ' // QPky - QUIC Platform TLS Key
+#define QUIC_POOL_TLS_HP_KEY                'khPQ' // QPhk - QUIC Platform TLS HP Key
+#define QUIC_POOL_TLS_HASH                  'htPQ' // QPth - QUIC Platform TLS Hash
 #define QUIC_POOL_TLS_EXTRAS                'xtPQ' // QPtx - QUIC Platform TLS Extra Data
 #define QUIC_POOL_TMP_ALLOC                 'atCQ' // QCta - QUIC temporary alloc
 #define QUIC_POOL_PLATFORM_TMP_ALLOC        'atPQ' // QPta - QUIC Platform temporary alloc

@@ -1240,7 +1240,7 @@ QuicTlsOnCertSelect(
     }
 
     if (ServerNameIndicationLength != 0) {
-        TlsContext->SNI = QUIC_ALLOC_PAGED((uint16_t)(ServerNameIndicationLength + 1, QUIC_POOL_TLS_SNI));
+        TlsContext->SNI = QUIC_ALLOC_PAGED((uint16_t)(ServerNameIndicationLength + 1), QUIC_POOL_TLS_SNI);
         if (TlsContext->SNI == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -2468,7 +2468,7 @@ QuicHpKeyCreate(
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
-    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY));
+    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY), QUIC_POOL_TLS_HP_KEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -2504,7 +2504,7 @@ QuicHpKeyFree(
         } else if (Key->Aead == QUIC_AEAD_AES_256_GCM) {
             EverCrypt_aes256_free(Key->case_aes256);
         }
-        QUIC_FREE(Key);
+        QUIC_FREE(Key, QUIC_POOL_TLS_HP_KEY);
     }
 }
 
@@ -2557,7 +2557,7 @@ QuicHashCreate(
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
-    QUIC_HASH* Hash = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASH) + SaltLength);
+    QUIC_HASH* Hash = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASH) + SaltLength, QUIC_POOL_TLS_HASH);
     if (Hash == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -2583,7 +2583,7 @@ QuicHashFree(
     )
 {
     if (Hash) {
-        QUIC_FREE(Hash);
+        QUIC_FREE(Hash, QUIC_POOL_TLS_HASH);
     }
 }
 
