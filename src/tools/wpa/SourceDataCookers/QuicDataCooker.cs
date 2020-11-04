@@ -15,20 +15,13 @@ using Microsoft.Performance.SDK.Extensibility.DataCooking.SourceDataCooking;
 
 namespace MsQuicTracing.SourceDataCookers
 {
-    public sealed class EventStatsCooker : CookedDataReflector, ISourceDataCooker<ETWTraceEvent, ETWTraceEventSource, Guid>
+    public sealed class QuicDataCooker : CookedDataReflector, ISourceDataCooker<ETWTraceEvent, ETWTraceEventSource, Guid>
     {
-        private static Guid MsQuicEtwGuid = new Guid("ff15e657-4f26-570e-88ab-0796b258d11c");
+        public const string CookerId = "QUIC";
 
-        public const string CookerId = "QuicEventStats";
+        public static readonly DataCookerPath CookerPath = new DataCookerPath(QuicSourceParser.SourceId, CookerId);
 
-        public static readonly DataCookerPath CookerPath = new DataCookerPath(QuicEventSourceParser.SourceId, CookerId);
-
-        private readonly Dictionary<ushort, ulong> eventCounts = new Dictionary<ushort, ulong>();
-
-        [DataOutput]
-        public IReadOnlyDictionary<ushort, ulong> QuicEventCounts => new ReadOnlyDictionary<ushort, ulong>(this.eventCounts);
-
-        public ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>(new Guid[] { MsQuicEtwGuid }));
+        public ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>(new Guid[] { new Guid("ff15e657-4f26-570e-88ab-0796b258d11c") }));
 
         public DataCookerPath Path { get; }
 
@@ -39,22 +32,31 @@ namespace MsQuicTracing.SourceDataCookers
 
         public DataProductionStrategy DataProductionStrategy { get; }
 
-        public string Description => "Quic Event Stats";
+        public string Description => "QUIC Events";
 
         public SourceDataCookerOptions Options => SourceDataCookerOptions.ReceiveAllDataElements;
 
-        public EventStatsCooker() : this(CookerPath)
+        [DataOutput]
+        public IReadOnlyDictionary<ushort, ulong> EventCounts => new ReadOnlyDictionary<ushort, ulong>(this.eventCounts);
+
+        public QuicDataCooker() : this(CookerPath)
         {
         }
 
-        private EventStatsCooker(DataCookerPath path) : base(path)
+        private QuicDataCooker(DataCookerPath path) : base(path)
         {
             this.Path = path;
         }
 
-        public void BeginDataCooking(ICookedDataRetrieval dataRetrieval, CancellationToken cancellationToken)
+        public void BeginDataCooking(ICookedDataRetrieval dependencyRetrieval, CancellationToken cancellationToken)
         {
         }
+
+        public void EndDataCooking(CancellationToken cancellationToken)
+        {
+        }
+
+        private readonly Dictionary<ushort, ulong> eventCounts = new Dictionary<ushort, ulong>();
 
         public DataProcessingResult CookDataElement(ETWTraceEvent data, ETWTraceEventSource context, CancellationToken cancellationToken)
         {
@@ -68,10 +70,6 @@ namespace MsQuicTracing.SourceDataCookers
             }
 
             return DataProcessingResult.Processed;
-        }
-
-        public void EndDataCooking(CancellationToken cancellationToken)
-        {
         }
     }
 }

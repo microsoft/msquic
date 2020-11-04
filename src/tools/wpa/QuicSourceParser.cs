@@ -12,9 +12,9 @@ using Microsoft.Performance.SDK.Processing;
 
 namespace MsQuicTracing
 {
-    public sealed class QuicEventSourceParser : SourceParserBase<ETWTraceEvent, ETWTraceEventSource, Guid>
+    public sealed class QuicSourceParser : SourceParserBase<ETWTraceEvent, ETWTraceEventSource, Guid>
     {
-        public const string SourceId = "QuicEvent";
+        public const string SourceId = "QUIC";
 
         private static Guid EventTraceGuid = new Guid("68fdd900-4a3e-11d1-84f4-0000f80464e3");
         private static Guid SystemConfigExGuid = new Guid("9B79EE91-B5FD-41c0-A243-4248E266E9D0");
@@ -27,7 +27,7 @@ namespace MsQuicTracing
 
         public override DataSourceInfo DataSourceInfo => this.info ?? throw new InvalidOperationException("Data Source has not been processed");
 
-        public QuicEventSourceParser(IEnumerable<string> filePaths)
+        public QuicSourceParser(IEnumerable<string> filePaths)
         {
             this.filePaths = filePaths;
         }

@@ -31,7 +31,7 @@ namespace MsQuicTracing
             Debug.Assert(!(applicationEnvironment is null));
 
             return new QuicEventDataProcessor(
-                new QuicEventSourceParser(dataSources.Select(x => x.GetUri().LocalPath).ToArray()),
+                new QuicSourceParser(dataSources.Select(x => x.GetUri().LocalPath).ToArray()),
                 options,
                 this.applicationEnvironment,
                 processorEnvironment,
