@@ -59,11 +59,15 @@ HpsClient::Init(
 
     uint32_t TmpProcCount = ActiveProcCount;
     if (TryGetValue(argc, argv, "threads", &TmpProcCount) && TmpProcCount < ActiveProcCount) {
+        if (TmpProcCount == 0) {
+            PrintHelp();
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
         ActiveProcCount = TmpProcCount;
     }
 
-    if (ActiveProcCount > HPS_MAX_WORKER_COUNT) {
-        ActiveProcCount = HPS_MAX_WORKER_COUNT;
+    if (ActiveProcCount > PERF_MAX_THREAD_COUNT) {
+        ActiveProcCount = PERF_MAX_THREAD_COUNT;
     }
 
     const char* target;
@@ -170,6 +174,25 @@ HpsClient::Wait(
     //    HPS, CreatedConnections, StartedConnections, CompletedConnections);
     Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
 
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+HpsClient::GetExtraDataMetadata(
+    _Out_ PerfExtraDataMetadata* Result
+    )
+{
+    Result->TestType = PerfTestType::HpsClient;
+    Result->ExtraDataLength = 0;
+}
+
+QUIC_STATUS
+HpsClient::GetExtraData(
+    _Out_writes_bytes_(*Length) uint8_t*,
+    _Inout_ uint32_t* Length
+    )
+{
+    *Length = 0;
     return QUIC_STATUS_SUCCESS;
 }
 

@@ -35,6 +35,7 @@ $NuGetPath = Join-Path $RootDir "nuget"
 $ClogVersion = "0.1.8"
 $ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v$ClogVersion"
 
+$MessagesAtEnd = New-Object Collections.Generic.List[string]
 
 function Install-ClogTool {
     param($ToolName)
@@ -49,8 +50,9 @@ function Install-ClogTool {
         Write-Host "Installing: $NuGetName"
         dotnet tool update --global --add-source $NuGetPath $ToolName
     } catch {
-        Write-Warning "Clog could not be installed. Building with logs will not work"
-        Write-Warning $_
+        $err = $_
+        $MessagesAtEnd.Add("$ToolName could not be installed. Building with logs will not work")
+        $MessagesAtEnd.Add($err.ToString())
     }
 }
 
@@ -151,4 +153,8 @@ if ($IsWindows) {
             Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
         }
     }
+}
+
+foreach ($errMsg in $MessagesAtEnd) {
+   Write-Warning $errMsg
 }

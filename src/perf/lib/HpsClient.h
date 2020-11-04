@@ -71,6 +71,17 @@ public:
         _In_ int Timeout
         ) override;
 
+    void
+    GetExtraDataMetadata(
+        _Out_ PerfExtraDataMetadata* Result
+        ) override;
+
+    QUIC_STATUS
+    GetExtraData(
+        _Out_writes_bytes_(*Length) uint8_t* Data,
+        _Inout_ uint32_t* Length
+        ) override;
+
     QUIC_STATUS
     ConnectionCallback(
         _In_ HpsWorkerContext* Context,
@@ -80,7 +91,7 @@ public:
 
     void StartConnection(HpsWorkerContext* Context);
 
-    HpsWorkerContext Contexts[HPS_MAX_WORKER_COUNT];
+    HpsWorkerContext Contexts[PERF_MAX_THREAD_COUNT];
     MsQuicRegistration Registration;
     MsQuicConfiguration Configuration {
         Registration,

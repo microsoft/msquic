@@ -25,6 +25,7 @@ Abstract:
 #include <quic_trace.h>
 #include <msquic.hpp>
 #include <msquichelper.h>
+#include "PerfBase.h"
 
 #ifndef _KERNEL_MODE
 #include <stdlib.h>
@@ -49,6 +50,24 @@ extern
 QUIC_STATUS
 QuicMainStop(
     _In_ int Timeout
+    );
+
+extern
+void
+QuicMainFree(
+    );
+
+extern
+QUIC_STATUS
+QuicMainGetExtraDataMetadata(
+    _Out_ PerfExtraDataMetadata* Metadata
+    );
+
+extern
+QUIC_STATUS
+QuicMainGetExtraData(
+    _Out_writes_bytes_(*Length) uint8_t* Data,
+    _Inout_ uint32_t* Length
     );
 
 extern volatile int BufferCurrent;
