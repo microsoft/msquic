@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Extensibility.SourceParsing;
 using Microsoft.Performance.SDK.Processing;
@@ -12,10 +13,10 @@ using Microsoft.Performance.SDK.Processing;
 namespace MsQuicTracing
 {
     public class QuicEventDataProcessor
-        : CustomDataProcessorBaseWithSourceParser<ETWTraceEvent, IQuicEventContext, Guid>
+        : CustomDataProcessorBaseWithSourceParser<ETWTraceEvent, ETWTraceEventSource, Guid>
     {
         internal QuicEventDataProcessor(
-            ISourceParser<ETWTraceEvent, IQuicEventContext, Guid> sourceParser,
+            ISourceParser<ETWTraceEvent, ETWTraceEventSource, Guid> sourceParser,
             ProcessorOptions options,
             IApplicationEnvironment applicationEnvironment,
             IProcessorEnvironment processorEnvironment,
