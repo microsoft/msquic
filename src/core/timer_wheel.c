@@ -202,6 +202,7 @@ QuicTimerWheelResize(
             QuicListInsertHead(Entry, &Connection->TimerLink);
         }
     }
+    QUIC_FREE(OldSlots);
 }
 
 //
