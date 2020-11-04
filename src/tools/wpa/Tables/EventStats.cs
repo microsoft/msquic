@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Processing;
@@ -34,15 +35,8 @@ namespace MsQuicTracing.Tables
 
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
-            if (tableBuilder is null)
-            {
-                throw new ArgumentNullException(nameof(tableBuilder));
-            }
-
-            if (tableData is null)
-            {
-                throw new ArgumentNullException(nameof(tableData));
-            }
+            Debug.Assert(!(tableBuilder is null));
+            Debug.Assert(!(tableData is null));
 
             var eventInfo = tableData.QueryOutput<IReadOnlyDictionary<ushort, ulong>>(
                 new DataOutputPath(EventStatsCooker.CookerPath, "QuicEventCounts"));

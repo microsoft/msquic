@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.Performance.SDK.Processing;
 
@@ -27,10 +28,7 @@ namespace MsQuicTracing
             IProcessorEnvironment processorEnvironment,
             ProcessorOptions options)
         {
-            if (applicationEnvironment is null)
-            {
-                throw new InvalidOperationException("SetApplicationEnvironmentCore must be called before CreateProcessorCore");
-            }
+            Debug.Assert(!(applicationEnvironment is null));
 
             return new QuicEventDataProcessor(
                 new QuicEventSourceParser(dataSources.Select(x => x.GetUri().LocalPath).ToArray()),

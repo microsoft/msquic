@@ -4,9 +4,7 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Nullable>enable</Nullable>
-    <RootNamespace>MsQuicEtw</RootNamespace>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <RootNamespace>MsQuicTracing</RootNamespace>
     <NoWarn>1701;1702;CA1036;CA1815</NoWarn>
   </PropertyGroup>
   <ItemGroup>
