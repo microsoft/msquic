@@ -8,9 +8,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Processing;
-using QuicEventDataSource.SourceDataCookers;
+using MsQuicEtw.SourceDataCookers;
 
-namespace QuicEventDataSource.Tables
+namespace MsQuicEtw.Tables
 {
     [Table]
     public sealed class EventStats

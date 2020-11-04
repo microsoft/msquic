@@ -9,7 +9,7 @@ using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Extensibility.SourceParsing;
 using Microsoft.Performance.SDK.Processing;
 
-namespace QuicEventDataSource
+namespace MsQuicEtw
 {
     public class QuicEventDataProcessor
         : CustomDataProcessorBaseWithSourceParser<ETWTraceEvent, IQuicEventContext, Guid>

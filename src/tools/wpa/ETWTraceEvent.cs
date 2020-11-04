@@ -7,7 +7,7 @@ using System;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK.Extensibility;
 
-namespace QuicEventDataSource
+namespace MsQuicEtw
 {
 #pragma warning disable CA1036 // Override methods on comparable types
 #pragma warning disable CA1815 // Override equals and operator equals on value types
