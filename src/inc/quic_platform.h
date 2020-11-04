@@ -60,7 +60,7 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 // Different pool tags used for marking allocations.
 //
 
-#define QUIC_POOL_GENERIC                   'CIUQ'  // QUIC - Generic QUIC
+#define QUIC_POOL_GENERIC                   'CIUQ' // QUIC - Generic QUIC
 #define QUIC_POOL_SILO                      'olsQ' // Qslo - QUIC Silo
 #define QUIC_POOL_CONN                      'noCQ' // QCon - QUIC connection
 #define QUIC_POOL_TP                        'PTCQ' // QCTP - QUIC connection transport parameters
