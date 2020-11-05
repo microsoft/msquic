@@ -16,15 +16,15 @@ using MsQuicTracing.DataModel;
 
 namespace MsQuicTracing
 {
-    public sealed class QuicEventCooker : CookedDataReflector, ISourceDataCooker<QuicEventBase, object, Guid>
+    public sealed class QuicEventCooker : CookedDataReflector, ISourceDataCooker<QuicEvent, object, Guid>
     {
-        public const string CookerId = "QUIC";
-
-        public static readonly DataCookerPath CookerPath = new DataCookerPath(QuicEventParser.SourceId, CookerId);
+        public static readonly DataCookerPath CookerPath = new DataCookerPath(QuicEventParser.SourceId, "QUIC");
 
         public ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>());
 
-        public DataCookerPath Path { get; }
+        public DataCookerPath Path => CookerPath;
+
+        public string Description => "MsQuic Event Cooker";
 
         public IReadOnlyDictionary<DataCookerPath, DataCookerDependencyType> DependencyTypes =>
             new Dictionary<DataCookerPath, DataCookerDependencyType>();
@@ -33,46 +33,31 @@ namespace MsQuicTracing
 
         public DataProductionStrategy DataProductionStrategy { get; }
 
-        public string Description => "MsQuic Event Cooker";
-
         public SourceDataCookerOptions Options => SourceDataCookerOptions.ReceiveAllDataElements;
 
         [DataOutput]
-        public IReadOnlyDictionary<ushort, ulong> EventCounts => new ReadOnlyDictionary<ushort, ulong>(eventCounts);
+        public QuicState State { get; } = new QuicState();
 
-        public QuicEventCooker() : this(CookerPath)
+        public QuicEventCooker() : base(CookerPath)
         {
-        }
-
-        private QuicEventCooker(DataCookerPath path) : base(path)
-        {
-            Path = path;
         }
 
         public void BeginDataCooking(ICookedDataRetrieval dependencyRetrieval, CancellationToken cancellationToken)
         {
         }
 
-        public void EndDataCooking(CancellationToken cancellationToken)
+        public DataProcessingResult CookDataElement(QuicEvent data, object context, CancellationToken cancellationToken)
         {
+            State.AddEvent(data);
+            return DataProcessingResult.Processed;
         }
 
-        private readonly Dictionary<ushort, ulong> eventCounts = new Dictionary<ushort, ulong>();
-
-        public DataProcessingResult CookDataElement(QuicEventBase data, object context, CancellationToken cancellationToken)
+        public void EndDataCooking(CancellationToken cancellationToken)
         {
-            Debug.Assert(!(data is null));
-
-            if (!eventCounts.ContainsKey(data.ID))
+            if (!cancellationToken.IsCancellationRequested)
             {
-                eventCounts.Add(data.ID, 1);
+                State.OnTraceComplete();
             }
-            else
-            {
-                eventCounts[data.ID]++;
-            }
-
-            return DataProcessingResult.Processed;
         }
     }
 }

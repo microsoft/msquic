@@ -19,7 +19,7 @@ namespace MsQuicTracing
         LTTng // TODO - Add support
     }
 
-    public sealed class QuicEventParser : SourceParserBase<QuicEventBase, object, Guid>
+    public sealed class QuicEventParser : SourceParserBase<QuicEvent, object, Guid>
     {
         public const string SourceId = "QUIC";
 
@@ -44,7 +44,7 @@ namespace MsQuicTracing
             this.sourceType = sourceType;
         }
 
-        public override void ProcessSource(ISourceDataProcessor<QuicEventBase, object, Guid> dataProcessor, ILogger logger, IProgress<int> progress, CancellationToken cancellationToken)
+        public override void ProcessSource(ISourceDataProcessor<QuicEvent, object, Guid> dataProcessor, ILogger logger, IProgress<int> progress, CancellationToken cancellationToken)
         {
             switch (sourceType)
             {
@@ -67,11 +67,10 @@ namespace MsQuicTracing
             return evt.ProviderGuid == EventTraceGuid || evt.ProviderGuid == SystemConfigExGuid;
         }
 
-        private void ProcessEtwSource(ISourceDataProcessor<QuicEventBase, object, Guid> dataProcessor, IProgress<int> progress, CancellationToken cancellationToken)
+        private void ProcessEtwSource(ISourceDataProcessor<QuicEvent, object, Guid> dataProcessor, IProgress<int> progress, CancellationToken cancellationToken)
         {
             using var source = new ETWTraceEventSource(filePaths);
 
-            QuicEtwEvent? currentEvent = null;
             source.AllEvents += (evt) =>
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -82,15 +81,7 @@ namespace MsQuicTracing
 
                 if (evt.ProviderGuid == MsQuicEtwGuid)
                 {
-                    if (currentEvent is null)
-                    {
-                        currentEvent = new QuicEtwEvent(evt);
-                    }
-                    else
-                    {
-                        currentEvent.Event = evt;
-                    }
-                    dataProcessor.ProcessDataElement(currentEvent, source, cancellationToken);
+                    dataProcessor.ProcessDataElement(new QuicEtwEvent(evt), source, cancellationToken);
                 }
             };
 

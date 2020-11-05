@@ -105,6 +105,12 @@ dotnet_style_prefer_conditional_expression_over_assignment = true:silent
 dotnet_style_prefer_conditional_expression_over_return = true:silent
 csharp_prefer_simple_default_expression = true:suggestion
 
+# Default severity for analyzer diagnostics with category 'Naming'
+dotnet_analyzer_diagnostic.category-Naming.severity = none
+
+# Default severity for analyzer diagnostics with category 'Design'
+dotnet_analyzer_diagnostic.category-Design.severity = none
+
 # Expression-bodied members
 csharp_style_expression_bodied_methods = true:silent
 csharp_style_expression_bodied_constructors = true:silent
@@ -158,6 +164,7 @@ dotnet_code_quality.ca1802.api_surface = private, internal
 dotnet_code_quality.CA2208.api_surface = public
 
 # C++ Files
+
 [*.{cpp,h,in}]
 curly_bracket_next_line = true
 indent_brace_style = Allman
