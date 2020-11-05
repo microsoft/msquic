@@ -386,9 +386,8 @@ typedef struct QUIC_TLS {
 
 typedef struct QUIC_HP_KEY {
     BCRYPT_KEY_HANDLE Key;
-    BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO* Info;
     QUIC_AEAD_TYPE Aead;
-    uint32_t AllocLength;
+    BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO Info[0];
 } QUIC_HP_KEY;
 
 _Success_(return==TRUE)
@@ -707,23 +706,25 @@ QuicTlsLibraryInitialize(
             "[ lib] ERROR, %u, %s.",
             Status,
             "Open ChaCha20-Poly1305 algorithm");
-        goto Error;
-    }
-
-    Status =
-        BCryptSetProperty(
-            QUIC_CHACHA20_POLY1305_ALG_HANDLE,
-            BCRYPT_CHAINING_MODE,
-            (PBYTE)BCRYPT_CHAIN_MODE_NA,
-            sizeof(BCRYPT_CHAIN_MODE_NA),
-            0);
-    if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "Set ChaCha20-Poly1305 chaining mode");
-        goto Error;
+        // ChaCha20-Poly1305 may not be supported on older OSes, so don't treat
+        // this failure as fatal.
+        Status = STATUS_SUCCESS;
+    } else {
+        Status =
+            BCryptSetProperty(
+                QUIC_CHACHA20_POLY1305_ALG_HANDLE,
+                BCRYPT_CHAINING_MODE,
+                (PBYTE)BCRYPT_CHAIN_MODE_NA,
+                sizeof(BCRYPT_CHAIN_MODE_NA),
+                0);
+        if (!NT_SUCCESS(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "Set ChaCha20-Poly1305 chaining mode");
+            goto Error;
+        }
     }
 
     QuicTraceLogVerbose(
@@ -3094,7 +3095,6 @@ QuicHpKeyCreate(
     }
 
     Key->Aead = AeadType;
-    Key->AllocLength = AllocLength;
 
     NTSTATUS Status =
         BCryptGenerateSymmetricKey(
@@ -3117,7 +3117,6 @@ QuicHpKeyCreate(
     }
 
     if (AeadType == QUIC_AEAD_CHACHA20_POLY1305) {
-        Key->Info = (BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO*)(Key + 1);
         BCRYPT_INIT_AUTH_MODE_INFO(*Key->Info);
         Key->Info->pbTag = (uint8_t*)(Key->Info + 1);
         Key->Info->cbTag = QUIC_ENCRYPTION_OVERHEAD;
@@ -3146,7 +3145,9 @@ QuicHpKeyFree(
 {
     if (Key) {
         BCryptDestroyKey(Key->Key);
-        QuicSecureZeroMemory(Key, Key->AllocLength);
+        if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
+            QuicSecureZeroMemory(Key->Info, sizeof(*Key->Info) + QUIC_ENCRYPTION_OVERHEAD);
+        }
         QUIC_FREE(Key, QUIC_POOL_TLS_HP_KEY);
     }
 }
