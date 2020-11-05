@@ -21,6 +21,7 @@
     <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="2.0.44" />
     <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent.SupportFiles" Version="1.0.17" />
     <PackageReference Include="Microsoft.Performance.SDK" Version="0.108.2" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(SolutionDir)LICENSE">

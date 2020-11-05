@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Processing;
+using MsQuicTracing.DataModel;
 
 namespace MsQuicTracing.Tables
 {
@@ -22,9 +23,9 @@ namespace MsQuicTracing.Tables
            category: "Stats",
            requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
 
-        private static readonly ColumnConfiguration eventIDColumnConfig =
+        private static readonly ColumnConfiguration objectTypeColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{7C382588-735D-4450-91A5-F4DF6BD4E42A}"), "Event ID"),
+                new ColumnMetadata(new Guid("{7C382588-735D-4450-91A5-F4DF6BD4E42A}"), "Object Type"),
                 new UIHints { Width = 80, });
 
         private static readonly ColumnConfiguration eventCountColumnConfig =
@@ -37,7 +38,7 @@ namespace MsQuicTracing.Tables
             {
                 Columns = new[]
                 {
-                     eventIDColumnConfig,
+                     objectTypeColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.GraphColumn,
                      eventCountColumnConfig,
@@ -48,18 +49,16 @@ namespace MsQuicTracing.Tables
         {
             Debug.Assert(!(tableBuilder is null) && !(tableData is null));
 
-            var eventInfo = tableData.QueryOutput<IReadOnlyDictionary<ushort, ulong>>(
-                new DataOutputPath(QuicEventCooker.CookerPath, "EventCounts"));
-
-            if (eventInfo != null && eventInfo.Count != 0)
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
+            if (quicState != null && quicState.ObjectEventCounts.Count != 0)
             {
-                var table = tableBuilder.SetRowCount(eventInfo.Count);
-                var keyValuePair = Projection.Index(eventInfo.ToList());
+                var table = tableBuilder.SetRowCount(quicState.ObjectEventCounts.Count);
+                var keyValuePair = Projection.Index(quicState.ObjectEventCounts.ToList());
 
-                var idProjector = keyValuePair.Compose(x => x.Key);
+                var idProjector = keyValuePair.Compose(x => x.Key.ToString());
                 var countProjector = keyValuePair.Compose(x => x.Value);
 
-                table.AddColumn(eventIDColumnConfig, idProjector);
+                table.AddColumn(objectTypeColumnConfig, idProjector);
                 table.AddColumn(eventCountColumnConfig, countProjector);
 
                 tableBuilder.SetDefaultTableConfiguration(tableConfig);
