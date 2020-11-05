@@ -214,6 +214,17 @@ typedef struct _SecPkgContext_SessionInfo
 
 #endif
 
+//
+// Defines until BCrypt.h updates
+//
+#ifndef BCRYPT_CHACHA20_POLY1305_ALGORITHM
+#define BCRYPT_CHACHA20_POLY1305_ALGORITHM L"CHACHA20_POLY1305"
+#endif
+
+#ifndef BCRYPT_CHACHA20_POLY1305_ALG_HANDLE
+#define BCRYPT_CHACHA20_POLY1305_ALG_HANDLE ((BCRYPT_ALG_HANDLE) 0x000003A1)
+#endif
+
 uint16_t QuicTlsTPHeaderSize = FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer);
 
 #define SecTrafficSecret_ClientEarlyData (SecTrafficSecret_Server + 1) // Hack to have my layer support 0-RTT
@@ -373,6 +384,13 @@ typedef struct QUIC_TLS {
 
 } QUIC_TLS;
 
+typedef struct QUIC_HP_KEY {
+    BCRYPT_KEY_HANDLE Key;
+    BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO* Info;
+    QUIC_AEAD_TYPE Aead;
+    uint32_t AllocLength;
+} QUIC_HP_KEY;
+
 _Success_(return==TRUE)
 BOOLEAN
 QuicPacketKeyCreate(
@@ -397,12 +415,14 @@ BCRYPT_ALG_HANDLE QUIC_HMAC_SHA384_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_HMAC_SHA512_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_AES_ECB_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_AES_GCM_ALG_HANDLE;
+BCRYPT_ALG_HANDLE QUIC_CHACHA20_POLY1305_ALG_HANDLE;
 #else
 BCRYPT_ALG_HANDLE QUIC_HMAC_SHA256_ALG_HANDLE = BCRYPT_HMAC_SHA256_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_HMAC_SHA384_ALG_HANDLE = BCRYPT_HMAC_SHA384_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_HMAC_SHA512_ALG_HANDLE = BCRYPT_HMAC_SHA512_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_AES_ECB_ALG_HANDLE = BCRYPT_AES_ECB_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_AES_GCM_ALG_HANDLE = BCRYPT_AES_GCM_ALG_HANDLE;
+BCRYPT_ALG_HANDLE QUIC_CHACHA20_POLY1305_ALG_HANDLE = BCRYPT_CHACHA20_POLY1305_ALG_HANDLE;
 #endif
 
 #ifndef _KERNEL_MODE
@@ -675,6 +695,37 @@ QuicTlsLibraryInitialize(
         goto Error;
     }
 
+    Status =
+        BCryptOpenAlgorithmProvider(
+            &QUIC_CHACHA20_POLY1305_ALG_HANDLE,
+            BCRYPT_CHACHA20_POLY1305_ALGORITHM,
+            MS_PRIMITIVE_PROVIDER,
+            BCRYPT_PROV_DISPATCH);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Open ChaCha20-Poly1305 algorithm");
+        goto Error;
+    }
+
+    Status =
+        BCryptSetProperty(
+            QUIC_CHACHA20_POLY1305_ALG_HANDLE,
+            BCRYPT_CHAINING_MODE,
+            (PBYTE)BCRYPT_CHAIN_MODE_NA,
+            sizeof(BCRYPT_CHAIN_MODE_NA),
+            0);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Set ChaCha20-Poly1305 chaining mode");
+        goto Error;
+    }
+
     QuicTraceLogVerbose(
         SchannelInitialized,
         "[ tls] Library initialized");
@@ -701,6 +752,10 @@ Error:
         if (QUIC_AES_GCM_ALG_HANDLE) {
             BCryptCloseAlgorithmProvider(QUIC_AES_GCM_ALG_HANDLE, 0);
             QUIC_AES_GCM_ALG_HANDLE = NULL;
+        }
+        if (QUIC_CHACHA20_POLY1305_ALG_HANDLE) {
+            BCryptCloseAlgorithmProvider(QUIC_CHACHA20_POLY1305_ALG_HANDLE, 0);
+            QUIC_CHACHA20_POLY1305_ALG_HANDLE = NULL;
         }
     }
 
@@ -2635,37 +2690,49 @@ QuicParseTrafficSecrets(
 {
     UNREFERENCED_PARAMETER(TlsContext);
 
-    if (wcscmp(TrafficSecrets->SymmetricAlgId, BCRYPT_AES_ALGORITHM) != 0) {
+    if (wcscmp(TrafficSecrets->SymmetricAlgId, BCRYPT_AES_ALGORITHM) == 0) {
+        if (wcscmp(TrafficSecrets->ChainingMode, BCRYPT_CHAIN_MODE_GCM) != 0) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Unsupported chaining mode");
+            return FALSE;
+        }
+        switch (TrafficSecrets->KeySize) {
+        case 16:
+            Secret->Aead = QUIC_AEAD_AES_128_GCM;
+            break;
+        case 32:
+            Secret->Aead = QUIC_AEAD_AES_256_GCM;
+            break;
+        default:
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Unsupported AES key size");
+            return FALSE;
+        }
+    } else if (wcscmp(TrafficSecrets->SymmetricAlgId, BCRYPT_CHACHA20_POLY1305_ALGORITHM) == 0) {
+        switch (TrafficSecrets->KeySize) {
+        case 32:
+            Secret->Aead = QUIC_AEAD_CHACHA20_POLY1305;
+            break;
+        default:
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Unsupported ChaCha key size");
+            return FALSE;
+        }
+    } else {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
             TlsContext->Connection,
             "Unsupported symmetric algorithm");
-        return FALSE;
-    }
-
-    if (wcscmp(TrafficSecrets->ChainingMode, BCRYPT_CHAIN_MODE_GCM) != 0) {
-        QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s.",
-            TlsContext->Connection,
-            "Unsupported chaining mode");
-        return FALSE;
-    }
-
-    switch (TrafficSecrets->KeySize) {
-    case 16:
-        Secret->Aead = QUIC_AEAD_AES_128_GCM;
-        break;
-    case 32:
-        Secret->Aead = QUIC_AEAD_AES_256_GCM;
-        break;
-    default:
-        QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s.",
-            TlsContext->Connection,
-            "Unsupported key size");
         return FALSE;
     }
 
@@ -2830,6 +2897,9 @@ QuicKeyCreate(
         KeyAlgHandle = QUIC_AES_GCM_ALG_HANDLE;
         break;
     case QUIC_AEAD_CHACHA20_POLY1305:
+        KeyLength = 32;
+        KeyAlgHandle = QUIC_CHACHA20_POLY1305_ALG_HANDLE;
+        break;
     default:
         return QUIC_STATUS_NOT_SUPPORTED;
     }
@@ -2985,24 +3055,51 @@ QuicHpKeyCreate(
     _Out_ QUIC_HP_KEY** NewKey
     )
 {
+    BCRYPT_ALG_HANDLE AlgHandle;
+    QUIC_HP_KEY* Key = NULL;
+    uint32_t AllocLength;
     uint8_t KeyLength;
 
     switch (AeadType) {
     case QUIC_AEAD_AES_128_GCM:
         KeyLength = 16;
+        AllocLength = sizeof(QUIC_HP_KEY);
+        AlgHandle = QUIC_AES_ECB_ALG_HANDLE;
         break;
     case QUIC_AEAD_AES_256_GCM:
         KeyLength = 32;
+        AllocLength = sizeof(QUIC_HP_KEY);
+        AlgHandle = QUIC_AES_ECB_ALG_HANDLE;
         break;
     case QUIC_AEAD_CHACHA20_POLY1305:
+        KeyLength = 32;
+        AllocLength =
+            sizeof(QUIC_HP_KEY) +
+            sizeof(BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO) +
+            QUIC_ENCRYPTION_OVERHEAD;
+        AlgHandle = QUIC_CHACHA20_POLY1305_ALG_HANDLE;
+        break;
     default:
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
+    Key = QUIC_ALLOC_NONPAGED(AllocLength, QUIC_POOL_TLS_HP_KEY);
+    if (Key == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_HP_KEY",
+            AllocLength);
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    Key->Aead = AeadType;
+    Key->AllocLength = AllocLength;
+
     NTSTATUS Status =
         BCryptGenerateSymmetricKey(
-            QUIC_AES_ECB_ALG_HANDLE,
-            (BCRYPT_KEY_HANDLE*)NewKey,
+            AlgHandle,
+            &Key->Key,
             NULL, // Let BCrypt manage the memory for this key.
             0,
             (uint8_t*)RawKey,
@@ -3013,11 +3110,30 @@ QuicHpKeyCreate(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "BCryptGenerateSymmetricKey (ECB)");
+            (AeadType == QUIC_AEAD_CHACHA20_POLY1305) ? 
+                "BCryptGenerateSymmetricKey (ChaCha)" :
+                "BCryptGenerateSymmetricKey (ECB)");
         goto Error;
     }
 
+    if (AeadType == QUIC_AEAD_CHACHA20_POLY1305) {
+        Key->Info = (BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO*)(Key + 1);
+        BCRYPT_INIT_AUTH_MODE_INFO(*Key->Info);
+        Key->Info->pbTag = (uint8_t*)(Key->Info + 1);
+        Key->Info->cbTag = QUIC_ENCRYPTION_OVERHEAD;
+        Key->Info->pbAuthData = NULL;
+        Key->Info->cbAuthData = 0;
+    }
+
+    *NewKey = Key;
+    Key = NULL;
+
 Error:
+
+    if (Key) {
+        QUIC_FREE(Key, QUIC_POOL_TLS_HP_KEY);
+        Key = NULL;
+    }
 
     return NtStatusToQuicStatus(Status);
 }
@@ -3029,7 +3145,9 @@ QuicHpKeyFree(
     )
 {
     if (Key) {
-        BCryptDestroyKey((BCRYPT_KEY_HANDLE)Key);
+        BCryptDestroyKey(Key->Key);
+        QuicSecureZeroMemory(Key, Key->AllocLength);
+        QUIC_FREE(Key, QUIC_POOL_TLS_HP_KEY);
     }
 }
 
@@ -3045,19 +3163,44 @@ QuicHpComputeMask(
     )
 {
     ULONG TempSize = 0;
-    QUIC_STATUS Status =
-        NtStatusToQuicStatus(
-        BCryptEncrypt(
-            (BCRYPT_KEY_HANDLE)Key,
-            (uint8_t*)Cipher,
-            QUIC_HP_SAMPLE_LENGTH * BatchSize,
-            NULL,
-            NULL,
-            0,
-            Mask,
-            QUIC_HP_SAMPLE_LENGTH * BatchSize,
-            &TempSize,
-            0));
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
+        uint8_t Zero[5] = {0};
+        Key->Info->cbNonce = QUIC_HP_SAMPLE_LENGTH;
+        for (uint32_t i = 0, Offset = 0; i < BatchSize; ++i, Offset += QUIC_HP_SAMPLE_LENGTH) {
+            Key->Info->pbNonce = (uint8_t*)(Cipher + Offset);
+            Status =
+                NtStatusToQuicStatus(
+                BCryptEncrypt(
+                    Key->Key,
+                    Zero,
+                    sizeof(Zero),
+                    Key->Info,
+                    NULL,   //Key->Info->pbNonce,
+                    0,      //QUIC_HP_SAMPLE_LENGTH,
+                    Mask + Offset, 
+                    QUIC_HP_SAMPLE_LENGTH, // This might fail because the Tag won't fit...
+                    &TempSize,
+                    0));
+            if (QUIC_FAILED(Status)) {
+                break;
+            }
+        }
+    } else {
+        Status =
+            NtStatusToQuicStatus(
+            BCryptEncrypt(
+                Key->Key,
+                (uint8_t*)Cipher,
+                QUIC_HP_SAMPLE_LENGTH * BatchSize,
+                NULL,
+                NULL,
+                0,
+                Mask,
+                QUIC_HP_SAMPLE_LENGTH * BatchSize,
+                &TempSize,
+                0));
+    }
     QuicTlsLogSecret("Cipher", Cipher, QUIC_HP_SAMPLE_LENGTH * BatchSize);
     QuicTlsLogSecret("HpMask", Mask, QUIC_HP_SAMPLE_LENGTH * BatchSize);
     return Status;
