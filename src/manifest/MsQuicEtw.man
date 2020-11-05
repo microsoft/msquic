@@ -15,7 +15,7 @@
           >
         <keywords>
           <!-- Can only use lower 32 bits of the mask. -->
-          <!-- Low bits are object type. -->
+          <!-- Low byte encodes object type. -->
           <keyword
               mask="0x0000000000000001"
               name="ut:Registration"
@@ -27,44 +27,40 @@
               symbol="KW_QUIC_CONFIGURATION"
               />
           <keyword
-              mask="0x0000000000000004"
+              mask="0x0000000000000003"
               name="ut:Listener"
               symbol="KW_QUIC_LISTENER"
               />
           <keyword
-              mask="0x0000000000000008"
+              mask="0x0000000000000004"
               name="ut:Worker"
               symbol="KW_QUIC_WORKER"
               />
           <keyword
-              mask="0x0000000000000010"
+              mask="0x0000000000000005"
               name="ut:Binding"
               symbol="KW_QUIC_BINDING"
               />
           <keyword
-              mask="0x0000000000000020"
+              mask="0x0000000000000006"
               name="ut:Connection"
               symbol="KW_QUIC_CONNECTION"
               />
           <keyword
-              mask="0x0000000000000040"
+              mask="0x0000000000000007"
               name="ut:Stream"
               symbol="KW_QUIC_STREAM"
               />
           <keyword
-              mask="0x0000000000000080"
+              mask="0x0000000000000008"
               name="ut:UDP"
               symbol="KW_QUIC_UDP"
               />
+          <!-- The second byte encodes event class/category. -->
           <keyword
               mask="0x0000000000000100"
               name="ut:Packet"
               symbol="KW_QUIC_PACKET"
-              />
-          <keyword
-              mask="0x0000000000000200"
-              name="ut:TLS"
-              symbol="KW_QUIC_TLS"
               />
           <keyword
               mask="0x0000000000000400"
@@ -81,7 +77,7 @@
               name="ut:Log"
               symbol="KW_QUIC_LOG"
               />
-          <!-- High bits are operation category. -->
+          <!-- High bits (4th byte) encode operation category. -->
           <keyword
               mask="0x0000000080000000"
               name="ut:LowVolume"
@@ -2723,7 +2719,7 @@
               />
           <!-- 8192 - 9215 | Tls Events -->
           <event
-              keywords="ut:TLS ut:LowVolume"
+              keywords="ut:Connection ut:LowVolume"
               level="win:Error"
               message="$(string.Etw.TlsError)"
               opcode="win:Info"
@@ -2732,7 +2728,7 @@
               value="8192"
               />
           <event
-              keywords="ut:TLS ut:LowVolume"
+              keywords="ut:Connection ut:LowVolume"
               level="win:Error"
               message="$(string.Etw.TlsErrorStatus)"
               opcode="win:Info"
@@ -2741,7 +2737,7 @@
               value="8193"
               />
           <event
-              keywords="ut:TLS"
+              keywords="ut:Connection"
               level="win:Verbose"
               message="$(string.Etw.TlsMessage)"
               opcode="win:Info"
