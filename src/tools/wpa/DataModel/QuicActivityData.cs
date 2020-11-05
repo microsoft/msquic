@@ -3,15 +3,17 @@
 // Licensed under the MIT License.
 //
 
+using Microsoft.Performance.SDK;
+
 namespace MsQuicTracing.DataModel
 {
     public readonly struct QuicActivityData
     {
-        public ulong TimeStamp { get; }
+        public Timestamp TimeStamp { get; }
 
-        public ulong Duration { get; }
+        public TimestampDelta Duration { get; }
 
-        internal QuicActivityData(ulong timeStamp, ulong duration)
+        internal QuicActivityData(Timestamp timeStamp, TimestampDelta duration)
         {
             TimeStamp = timeStamp;
             Duration = duration;

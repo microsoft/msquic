@@ -5,6 +5,7 @@
 
 using System;
 using Microsoft.Diagnostics.Tracing;
+using Microsoft.Performance.SDK;
 
 namespace MsQuicTracing.DataModel
 {
@@ -54,7 +55,7 @@ namespace MsQuicTracing.DataModel
 
         public override uint ThreadId { get; }
 
-        public override ulong TimeStamp { get; }
+        public override Timestamp TimeStamp { get; }
 
         public override QuicObjectType ObjectType { get; }
 
@@ -132,14 +133,14 @@ namespace MsQuicTracing.DataModel
             }
         }
 
-        internal QuicEtwEvent(TraceEvent evt)
+        internal QuicEtwEvent(TraceEvent evt, Timestamp timestamp)
         {
             Provider = evt.ProviderGuid;
             ID = (QuicEventId)evt.ID;
             PointerSize = evt.PointerSize;
             ProcessId = (uint)evt.ProcessID;
             ThreadId = (uint)evt.ThreadID;
-            TimeStamp = (ulong)evt.TimeStamp.Ticks; // TODO - units??
+            TimeStamp = timestamp;
             ObjectType = ComputeObjectType(evt);
             if (ObjectType != QuicObjectType.Global)
             {

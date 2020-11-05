@@ -4,6 +4,7 @@
 //
 
 using System.Collections.Generic;
+using Microsoft.Performance.SDK;
 
 namespace MsQuicTracing.DataModel
 {
@@ -27,13 +28,13 @@ namespace MsQuicTracing.DataModel
 
         private static ulong NextId = 1;
 
-        public ulong InitialTimeStamp { get; private set; }
+        public Timestamp InitialTimeStamp { get; private set; }
 
-        public ulong FinalTimeStamp { get; private set; }
+        public Timestamp FinalTimeStamp { get; private set; }
 
-        public ulong LastActiveTimeStamp { get; private set; }
+        public Timestamp LastActiveTimeStamp { get; private set; }
 
-        public ulong TotalActiveTime { get; private set; }
+        public TimestampDelta TotalActiveTime { get; private set; }
 
         public uint TotalConnections { get; private set; }
 
@@ -79,15 +80,15 @@ namespace MsQuicTracing.DataModel
             IdealProcessor = ushort.MaxValue;
             // TODO - ProcessorBitmap?
 
-            InitialTimeStamp = ulong.MaxValue;
-            FinalTimeStamp = ulong.MaxValue;
-            LastActiveTimeStamp = ulong.MaxValue;
-            TotalActiveTime = 0;
+            InitialTimeStamp = Timestamp.MaxValue;
+            FinalTimeStamp = Timestamp.MaxValue;
+            LastActiveTimeStamp = Timestamp.MaxValue;
+            TotalActiveTime = TimestampDelta.Zero;
         }
 
         internal void AddEvent(QuicEvent evt)
         {
-            if (InitialTimeStamp == ulong.MaxValue)
+            if (InitialTimeStamp == Timestamp.MaxValue)
             {
                 InitialTimeStamp = evt.TimeStamp;
             }
@@ -105,7 +106,7 @@ namespace MsQuicTracing.DataModel
                     var payload = evt.Payload as QuicWorkerActivityStateUpdatedPayload;
                     if (payload!.IsActive != 0)
                     {
-                        if (LastActiveTimeStamp != ulong.MaxValue)
+                        if (LastActiveTimeStamp != Timestamp.MaxValue)
                         {
                             TotalActiveTime += evt.TimeStamp - LastActiveTimeStamp;
                         }

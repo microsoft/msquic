@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Diagnostics.Tracing;
+using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility.SourceParsing;
 using Microsoft.Performance.SDK.Processing;
 using MsQuicTracing.DataModel;
@@ -70,6 +71,27 @@ namespace MsQuicTracing
         private void ProcessEtwSource(ISourceDataProcessor<QuicEvent, object, Guid> dataProcessor, IProgress<int> progress, CancellationToken cancellationToken)
         {
             using var source = new ETWTraceEventSource(filePaths);
+            long StartTime = 0;
+
+            source.AllEvents += (evt) =>
+            {
+                bool isOriginalHeader = source.SessionStartTime == evt.TimeStamp;
+
+                if (info == null &&
+                    !isOriginalHeader &&
+                    !IsKnownSynthEvent(evt) &&
+                    evt.TimeStamp.Ticks != 0)
+                {
+                    var deltaBetweenStartAndFirstTicks = evt.TimeStamp.Ticks - source.SessionStartTime.Ticks;
+                    var relativeNanoSeconds = deltaBetweenStartAndFirstTicks * 100;
+
+                    StartTime = evt.TimeStamp.Ticks;
+                    var lastnano = relativeNanoSeconds + ((source.SessionEndTime.Ticks - evt.TimeStamp.Ticks) * 100);
+                    info = new DataSourceInfo(relativeNanoSeconds, lastnano, evt.TimeStamp.ToUniversalTime());
+                }
+
+                progress.Report((int)(evt.TimeStampRelativeMSec / source.SessionEndTimeRelativeMSec * 100));
+            };
 
             source.AllEvents += (evt) =>
             {
@@ -81,37 +103,14 @@ namespace MsQuicTracing
 
                 if (evt.ProviderGuid == MsQuicEtwGuid)
                 {
-                    dataProcessor.ProcessDataElement(new QuicEtwEvent(evt), source, cancellationToken);
+                    var quicEvent = new QuicEtwEvent(evt, new Timestamp((evt.TimeStamp.Ticks - StartTime) * 100));
+                    dataProcessor.ProcessDataElement(quicEvent, this, cancellationToken);
                 }
-            };
-
-            DateTime? firstTime = null;
-            source.AllEvents += (evt) =>
-            {
-                bool isOriginalHeader = source.SessionStartTime == evt.TimeStamp;
-
-                if (!firstTime.HasValue &&
-                    !isOriginalHeader &&
-                    !IsKnownSynthEvent(evt) &&
-                    evt.TimeStamp.Ticks != 0)
-                {
-                    firstTime = evt.TimeStamp;
-                }
-
-                progress.Report((int)(evt.TimeStampRelativeMSec / source.SessionEndTimeRelativeMSec * 100));
             };
 
             source.Process();
 
-            if (firstTime.HasValue)
-            {
-                var deltaBetweenStartAndFirstTicks = firstTime.Value.Ticks - source.SessionStartTime.Ticks;
-                var firstRelativeNano = deltaBetweenStartAndFirstTicks * 100;
-
-                var lastnano = firstRelativeNano + ((source.SessionEndTime.Ticks - firstTime.Value.Ticks) * 100);
-                info = new DataSourceInfo(firstRelativeNano, lastnano, firstTime.Value.ToUniversalTime());
-            }
-            else
+            if (info == null)
             {
                 info = new DataSourceInfo(0, (source.SessionEndTime.Ticks - source.SessionStartTime.Ticks) * 100, source.SessionStartTime.ToUniversalTime());
             }

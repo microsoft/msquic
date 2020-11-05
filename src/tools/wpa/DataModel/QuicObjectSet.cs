@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Microsoft.Performance.SDK;
 
 namespace MsQuicTracing.DataModel
 {
@@ -18,9 +19,9 @@ namespace MsQuicTracing.DataModel
 
         ulong Id { get; }
 
-        ulong InitialTimeStamp { get; }
+        Timestamp InitialTimeStamp { get; }
 
-        ulong FinalTimeStamp { get; }
+        Timestamp FinalTimeStamp { get; }
     }
 
     public readonly struct QuicObjectKey : IEquatable<QuicObjectKey>
@@ -154,17 +155,12 @@ namespace MsQuicTracing.DataModel
             inactiveList.Sort((a, b) => (int)(a.Id - b.Id));
         }
 
-        public List<T> GetObjects(ulong beginTimeStamp, ulong endTimeStamp)
-        {
-            List<T> allObjects = new List<T>();
-            allObjects.AddRange(inactiveList.Where(it => it.InitialTimeStamp <= endTimeStamp && it.FinalTimeStamp >= beginTimeStamp));
-            allObjects.AddRange(activeTable.Where(it => it.Value.InitialTimeStamp <= endTimeStamp && it.Value.FinalTimeStamp >= beginTimeStamp).Select(it => it.Value));
-            return allObjects;
-        }
-
         public List<T> GetObjects()
         {
-            return GetObjects(ulong.MinValue, ulong.MaxValue);
+            List<T> allObjects = new List<T>();
+            allObjects.AddRange(inactiveList);
+            allObjects.AddRange(activeTable.Select(it => it.Value));
+            return allObjects;
         }
     }
 }

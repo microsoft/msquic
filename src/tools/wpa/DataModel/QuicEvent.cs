@@ -4,6 +4,7 @@
 //
 
 using System;
+using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
 
 namespace MsQuicTracing.DataModel
@@ -61,7 +62,7 @@ namespace MsQuicTracing.DataModel
 
         public abstract QuicEventId ID { get; }
 
-        public abstract ulong TimeStamp { get; }
+        public abstract Timestamp TimeStamp { get; }
 
         public abstract QuicObjectType ObjectType { get; }
 

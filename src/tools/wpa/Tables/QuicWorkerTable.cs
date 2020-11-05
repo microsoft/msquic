@@ -47,7 +47,7 @@ namespace MsQuicTracing.Tables
         private static readonly ColumnConfiguration weightColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{1f74ed75-a116-42f5-ae5d-ca3b398e4f2e}"), "Weight"),
-                new UIHints { AggregationMode = AggregationMode.Sum });
+                new UIHints { AggregationMode = AggregationMode.Sum, SortOrder = SortOrder.Descending });
 
         private static readonly ColumnConfiguration percentWeightColumnConfig =
             new ColumnConfiguration(
@@ -64,7 +64,7 @@ namespace MsQuicTracing.Tables
                 new ColumnMetadata(new Guid("{07638cdc-ae16-409c-9619-cf8e6e75fa71}"), "Duration"),
                 new UIHints { AggregationMode = AggregationMode.Sum });
 
-        private static readonly TableConfiguration tableConfig =
+        private static readonly TableConfiguration tableConfig1 =
             new TableConfiguration("Timeline by Worker")
             {
                 Columns = new[]
@@ -79,49 +79,27 @@ namespace MsQuicTracing.Tables
                      TableConfiguration.GraphColumn,
                      timeColumnConfig,
                      durationColumnConfig,
-                  }
+                }
             };
 
-        public static ulong ProjectId(ValueTuple<QuicWorker, QuicActivityData> data)
-        {
-            return data.Item1.Id;
-        }
-
-        public static uint ProjectProcessId(ValueTuple<QuicWorker, QuicActivityData> data)
-        {
-            return data.Item1.ProcessId;
-        }
-
-        public static uint ProjectThreadId(ValueTuple<QuicWorker, QuicActivityData> data)
-        {
-            return data.Item1.ThreadId;
-        }
-
-        public static uint ProjectCount(ValueTuple<QuicWorker, QuicActivityData> data)
-        {
-            return 1;
-        }
-
-        public static ulong ProjectWeight(ValueTuple<QuicWorker, QuicActivityData> data)
-        {
-            return data.Item2.Duration;
-        }
-
-        public static double ProjectPercentWeight(ValueTuple<QuicWorker, QuicActivityData> data)
-        {
-            ulong TimeNs = data.Item1.FinalTimeStamp - data.Item1.InitialTimeStamp;
-            return 100.0 * data.Item2.Duration / TimeNs;
-        }
-
-        public static Timestamp ProjectTime(ValueTuple<QuicWorker, QuicActivityData> data)
-        {
-            return new Timestamp((long)data.Item2.TimeStamp);
-        }
-
-        public static TimestampDelta ProjectDuration(ValueTuple<QuicWorker, QuicActivityData> data)
-        {
-            return new TimestampDelta((long)data.Item2.Duration);
-        }
+        private static readonly TableConfiguration tableConfig2 =
+            new TableConfiguration("Utilization by Worker")
+            {
+                Columns = new[]
+                {
+                     workerColumnConfig,
+                     TableConfiguration.PivotColumn,
+                     processIdColumnConfig,
+                     threadIdColumnConfig,
+                     countColumnConfig,
+                     weightColumnConfig,
+                     timeColumnConfig,
+                     durationColumnConfig,
+                     TableConfiguration.GraphColumn,
+                     percentWeightColumnConfig,
+                },
+                ChartType = ChartType.StackedLine
+            };
 
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
@@ -139,17 +117,60 @@ namespace MsQuicTracing.Tables
                 table.AddColumn(workerColumnConfig, dataProjection.Compose(ProjectId));
                 table.AddColumn(processIdColumnConfig, dataProjection.Compose(ProjectProcessId));
                 table.AddColumn(threadIdColumnConfig, dataProjection.Compose(ProjectThreadId));
-                table.AddColumn(countColumnConfig, dataProjection.Compose(ProjectCount));
+                table.AddColumn(countColumnConfig, Projection.Constant<uint>(1));
                 table.AddColumn(weightColumnConfig, dataProjection.Compose(ProjectWeight));
                 table.AddColumn(percentWeightColumnConfig, dataProjection.Compose(ProjectPercentWeight));
                 table.AddColumn(timeColumnConfig, dataProjection.Compose(ProjectTime));
                 table.AddColumn(durationColumnConfig, dataProjection.Compose(ProjectDuration));
 
-                tableConfig.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
-                tableConfig.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
+                tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
+                tableConfig1.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
+                tableBuilder.SetDefaultTableConfiguration(tableConfig1);
 
-                tableBuilder.SetDefaultTableConfiguration(tableConfig);
+                tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
+                tableConfig2.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
+                tableBuilder.AddTableConfiguration(tableConfig2);
             }
         }
+
+        #region Projections
+
+        private static ulong ProjectId(ValueTuple<QuicWorker, QuicActivityData> data)
+        {
+            return data.Item1.Id;
+        }
+
+        private static uint ProjectProcessId(ValueTuple<QuicWorker, QuicActivityData> data)
+        {
+            return data.Item1.ProcessId;
+        }
+
+        private static uint ProjectThreadId(ValueTuple<QuicWorker, QuicActivityData> data)
+        {
+            return data.Item1.ThreadId;
+        }
+
+        private static TimestampDelta ProjectWeight(ValueTuple<QuicWorker, QuicActivityData> data)
+        {
+            return data.Item2.Duration;
+        }
+
+        private static double ProjectPercentWeight(ValueTuple<QuicWorker, QuicActivityData> data)
+        {
+            TimestampDelta TimeNs = data.Item1.FinalTimeStamp - data.Item1.InitialTimeStamp;
+            return 100.0 * data.Item2.Duration.ToNanoseconds / TimeNs.ToNanoseconds;
+        }
+
+        private static Timestamp ProjectTime(ValueTuple<QuicWorker, QuicActivityData> data)
+        {
+            return data.Item2.TimeStamp;
+        }
+
+        private static TimestampDelta ProjectDuration(ValueTuple<QuicWorker, QuicActivityData> data)
+        {
+            return data.Item2.Duration;
+        }
+
+        #endregion
     }
 }
