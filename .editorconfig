@@ -164,7 +164,6 @@ dotnet_code_quality.ca1802.api_surface = private, internal
 dotnet_code_quality.CA2208.api_surface = public
 
 # C++ Files
-
 [*.{cpp,h,in}]
 curly_bracket_next_line = true
 indent_brace_style = Allman
