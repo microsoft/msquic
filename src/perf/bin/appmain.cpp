@@ -188,7 +188,7 @@ QuicKernelMain(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    char* Data = static_cast<char*>(QUIC_ALLOC_NONPAGED(TotalLength));
+    char* Data = static_cast<char*>(QUIC_ALLOC_NONPAGED(TotalLength, QUIC_POOL_PERF));
     if (!Data) {
         printf("Failed to allocate arguments to pass\n");
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -210,10 +210,10 @@ QuicKernelMain(
     QUIC_DBG_ASSERT(DataCurrent == (Data + TotalLength));
 
     constexpr uint32_t OutBufferSize = 1024 * 1000;
-    char* OutBuffer = (char*)QUIC_ALLOC_NONPAGED(OutBufferSize); // 1 MB
+    char* OutBuffer = (char*)QUIC_ALLOC_NONPAGED(OutBufferSize, QUIC_POOL_PERF); // 1 MB
     if (!OutBuffer) {
         printf("Failed to allocate space for output buffer\n");
-        QUIC_FREE(Data);
+        QUIC_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -222,20 +222,20 @@ QuicKernelMain(
 
     if (!DriverService.Initialize(QUIC_DRIVER_NAME, "msquicpriv\0")) {
         printf("Failed to initialize driver service\n");
-        QUIC_FREE(Data);
+        QUIC_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
     if (!DriverService.Start()) {
         printf("Starting Driver Service Failed\n");
         DriverService.Uninitialize();
-        QUIC_FREE(Data);
+        QUIC_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
 
     if (!DriverClient.Initialize((QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1), QUIC_DRIVER_NAME)) {
         printf("Intializing Driver Client Failed.\n");
         DriverService.Uninitialize();
-        QUIC_FREE(Data);
+        QUIC_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -243,7 +243,7 @@ QuicKernelMain(
     bool RunSuccess = false;
     if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength, 30000)) {
         printf("Failed To Run\n");
-        QUIC_FREE(Data);
+        QUIC_FREE(Data, QUIC_POOL_PERF);
 
         RunSuccess =
             DriverClient.Read(
@@ -258,7 +258,7 @@ QuicKernelMain(
         } else {
             printf("Failed to exit\n");
         }
-        QUIC_FREE(OutBuffer);
+        QUIC_FREE(OutBuffer, QUIC_POOL_PERF);
         DriverClient.Run(IOCTL_QUIC_FREE_PERF);
         DriverClient.Uninitialize();
         DriverService.Uninitialize();
@@ -317,8 +317,8 @@ QuicKernelMain(
         printf("Run end failed\n");
     }
 
-    QUIC_FREE(Data);
-    QUIC_FREE(OutBuffer);
+    QUIC_FREE(Data, QUIC_POOL_PERF);
+    QUIC_FREE(OutBuffer, QUIC_POOL_PERF);
     DriverClient.Run(IOCTL_QUIC_FREE_PERF);
 
     DriverClient.Uninitialize();

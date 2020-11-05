@@ -138,7 +138,7 @@ ThroughputClient::Init(
     QuicCopyMemory(TargetData.get(), Target, Len);
     TargetData[Len] = '\0';
 
-    DataBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + IoSize);
+    DataBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + IoSize, QUIC_POOL_PERF);
     if (!DataBuffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }

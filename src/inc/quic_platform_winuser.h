@@ -246,22 +246,24 @@ _Post_writable_byte_size_(ByteCount)
 DECLSPEC_ALLOCATOR
 void*
 QuicAlloc(
-    _In_ size_t ByteCount
+    _In_ size_t ByteCount,
+    _In_ uint32_t Tag
     );
 
 void
 QuicFree(
-    __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem
+    __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem,
+    _In_ uint32_t Tag
     );
 
-#define QUIC_ALLOC_PAGED(Size) QuicAlloc(Size)
-#define QUIC_ALLOC_NONPAGED(Size) QuicAlloc(Size)
-#define QUIC_FREE(Mem) QuicFree((void*)Mem)
-#define QUIC_FREE_TAG(Mem, Tag) QUIC_FREE(Mem)
+#define QUIC_ALLOC_PAGED(Size, Tag) QuicAlloc(Size, Tag)
+#define QUIC_ALLOC_NONPAGED(Size, Tag) QuicAlloc(Size, Tag)
+#define QUIC_FREE(Mem, Tag) QuicFree((void*)Mem, Tag)
 
 typedef struct QUIC_POOL {
     SLIST_HEADER ListHead;
     uint32_t Size;
+    uint32_t Tag;
 } QUIC_POOL;
 
 #define QUIC_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
@@ -287,9 +289,9 @@ QuicPoolInitialize(
     QUIC_DBG_ASSERT(Size >= sizeof(QUIC_POOL_ENTRY));
 #endif
     Pool->Size = Size;
+    Pool->Tag = Tag;
     InitializeSListHead(&(Pool)->ListHead);
     UNREFERENCED_PARAMETER(IsPaged);
-    UNREFERENCED_PARAMETER(Tag); // TODO - Use in debug mode?
 }
 
 inline
@@ -300,7 +302,7 @@ QuicPoolUninitialize(
 {
     void* Entry;
     while ((Entry = InterlockedPopEntrySList(&Pool->ListHead)) != NULL) {
-        QuicFree(Entry);
+        QuicFree(Entry, Pool->Tag);
     }
 }
 
@@ -315,7 +317,7 @@ QuicPoolAlloc(
 #else
     void* Entry = InterlockedPopEntrySList(&Pool->ListHead);
     if (Entry == NULL) {
-        Entry = QuicAlloc(Pool->Size);
+        Entry = QuicAlloc(Pool->Size, Pool->Tag);
     }
 #if DEBUG
     if (Entry != NULL) {
@@ -343,7 +345,7 @@ QuicPoolFree(
     ((QUIC_POOL_ENTRY*)Entry)->SpecialFlag = QUIC_POOL_SPECIAL_FLAG;
 #endif
     if (QueryDepthSList(&Pool->ListHead) >= QUIC_POOL_MAXIMUM_DEPTH) {
-        QuicFree(Entry);
+        QuicFree(Entry, Pool->Tag);
     } else {
         InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Entry);
     }

@@ -206,7 +206,7 @@ QuicTestConnect(
 
                 if (SessionResumption) {
                     Client.SetResumptionTicket(ResumptionTicket);
-                    QUIC_FREE(ResumptionTicket);
+                    QUIC_FREE(ResumptionTicket, QUIC_POOL_TEST);
                     Client.SetExpectedResumed(true);
                 }
 

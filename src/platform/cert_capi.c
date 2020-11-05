@@ -325,7 +325,7 @@ QuicCertMatchPrincipal(
         goto Exit;
     }
 
-    CertificateNames = QUIC_ALLOC_PAGED(Length);
+    CertificateNames = QUIC_ALLOC_PAGED(Length, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (CertificateNames == NULL) {
         goto Exit;
     }
@@ -354,7 +354,7 @@ QuicCertMatchPrincipal(
 Exit:
 
     if (CertificateNames != NULL) {
-        QUIC_FREE(CertificateNames);
+        QUIC_FREE(CertificateNames, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return MatchFound;
@@ -893,7 +893,7 @@ QuicCertValidateChain(
             goto Exit;
         }
 
-        ServerName = (LPWSTR)QUIC_ALLOC_PAGED(ServerNameLength * sizeof(WCHAR));
+        ServerName = (LPWSTR)QUIC_ALLOC_PAGED(ServerNameLength * sizeof(WCHAR), QUIC_POOL_PLATFORM_TMP_ALLOC);
         if (ServerName == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -927,7 +927,7 @@ Exit:
         CertFreeCertificateChain(ChainContext);
     }
     if (ServerName != NULL) {
-        QUIC_FREE(ServerName);
+        QUIC_FREE(ServerName, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Result;

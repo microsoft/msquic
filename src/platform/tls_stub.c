@@ -244,7 +244,7 @@ QuicStubAllocKey(
     size_t PacketKeySize =
         sizeof(QUIC_PACKET_KEY) +
         (Type == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
-    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeySize);
+    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeySize, QUIC_POOL_TLS_PACKETKEY);
     QUIC_FRE_ASSERT(Key != NULL);
     QuicZeroMemory(Key, PacketKeySize);
     Key->Type = Type;
@@ -303,7 +303,7 @@ QuicTlsSecConfigCreate(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete)")
-    QUIC_SEC_CONFIG* SecurityConfig = QUIC_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG));
+    QUIC_SEC_CONFIG* SecurityConfig = QUIC_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (SecurityConfig == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -345,7 +345,7 @@ QuicTlsSecConfigCreate(
 Error:
 
     if (SecurityConfig != NULL) {
-        QUIC_FREE(SecurityConfig);
+        QUIC_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
     }
 
     return Status;
@@ -361,7 +361,7 @@ QuicTlsSecConfigDelete(
     if (SecurityConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
         QuicCertFree(SecurityConfig->Certificate);
     }
-    QUIC_FREE(SecurityConfig);
+    QUIC_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -376,7 +376,7 @@ QuicTlsInitialize(
 
     UNREFERENCED_PARAMETER(State);
 
-    QUIC_TLS* TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS));
+    QUIC_TLS* TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS), QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -417,7 +417,7 @@ QuicTlsInitialize(
             goto Error;
         }
 
-        TlsContext->SNI = QUIC_ALLOC_PAGED(ServerNameLength + 1);
+        TlsContext->SNI = QUIC_ALLOC_PAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
         if (TlsContext->SNI == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -446,9 +446,9 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (TlsContext->SNI) {
-            QUIC_FREE(TlsContext->SNI);
+            QUIC_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
         }
-        QUIC_FREE(TlsContext);
+        QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
 
 Exit:
@@ -469,18 +469,18 @@ QuicTlsUninitialize(
             "Cleaning up");
 
         if (TlsContext->ResumptionTicketBuffer != NULL) {
-            QUIC_FREE(TlsContext->ResumptionTicketBuffer);
+            QUIC_FREE(TlsContext->ResumptionTicketBuffer, QUIC_POOL_TLS_RESUMPTION);
         }
 
         if (TlsContext->SNI != NULL) {
-            QUIC_FREE(TlsContext->SNI);
+            QUIC_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
         }
 
         if (TlsContext->LocalTPBuffer != NULL) {
-            QUIC_FREE(TlsContext->LocalTPBuffer);
+            QUIC_FREE(TlsContext->LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
         }
 
-        QUIC_FREE(TlsContext);
+        QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
 }
 
@@ -540,7 +540,7 @@ QuicTlsServerProcess(
                 const QUIC_TLS_SNI_EXT* SNI = (QUIC_TLS_SNI_EXT*)ExtList;
                 uint16_t NameLength = TlsReadUint16(SNI->NameLength);
                 if (NameLength != 0) {
-                    TlsContext->SNI = QUIC_ALLOC_PAGED(NameLength + 1);
+                    TlsContext->SNI = QUIC_ALLOC_PAGED(NameLength + 1, QUIC_POOL_TLS_SNI);
                     memcpy((char*)TlsContext->SNI, SNI->Name, NameLength);
                     ((char*)TlsContext->SNI)[NameLength] = 0;
                 }
@@ -1291,7 +1291,7 @@ QuicPacketKeyFree(
 {
     if (Key != NULL) {
         QuicKeyFree(Key->PacketKey);
-        QUIC_FREE(Key);
+        QUIC_FREE(Key, QUIC_POOL_TLS_PACKETKEY);
     }
 }
 
@@ -1322,7 +1322,7 @@ QuicKeyCreate(
     _Out_ QUIC_KEY** NewKey
     )
 {
-    QUIC_KEY *Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY));
+    QUIC_KEY *Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY), QUIC_POOL_TLS_KEY);
     QUIC_FRE_ASSERT(Key != NULL);
     Key->Secret = AeadType;
     for (uint16_t i = 0; i < QuicKeyLength(AeadType); ++i) {
@@ -1339,7 +1339,7 @@ QuicKeyFree(
     )
 {
     if (Key != NULL) {
-        QUIC_FREE(Key);
+        QUIC_FREE(Key, QUIC_POOL_TLS_KEY);
     }
 }
 

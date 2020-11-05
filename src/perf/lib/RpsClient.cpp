@@ -99,7 +99,7 @@ RpsClient::Init(
         WorkerCount = ThreadCount;
     }
 
-    RequestBuffer.Buffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + sizeof(uint64_t) + RequestLength);
+    RequestBuffer.Buffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + sizeof(uint64_t) + RequestLength, QUIC_POOL_PERF);
     if (!RequestBuffer.Buffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }

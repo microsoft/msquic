@@ -371,7 +371,7 @@ QuicProcessorContextInitialize(
     QuicPoolInitialize(
         TRUE,
         sizeof(QUIC_DATAPATH_SEND_CONTEXT),
-        QUIC_POOL_GENERIC,
+        QUIC_POOL_PLATFORM_SENDCTX,
         &ProcContext->SendContextPool);
 
     EpollFd = epoll_create1(EPOLL_CLOEXEC);
@@ -511,7 +511,7 @@ QuicDataPathInitialize(
         sizeof(QUIC_DATAPATH) +
             QuicProcMaxCount() * sizeof(QUIC_DATAPATH_PROC_CONTEXT);
 
-    QUIC_DATAPATH* Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength);
+    QUIC_DATAPATH* Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -551,7 +551,7 @@ Exit:
 
     if (Datapath != NULL) {
         QuicRundownUninitialize(&Datapath->BindingsRundown);
-        QUIC_FREE(Datapath);
+        QUIC_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 
     return Status;
@@ -578,7 +578,7 @@ QuicDataPathUninitialize(
     }
 
     QuicRundownUninitialize(&Datapath->BindingsRundown);
-    QUIC_FREE(Datapath);
+    QUIC_FREE(Datapath, QUIC_POOL_DATAPATH);
 #endif
 }
 
@@ -1583,7 +1583,7 @@ QuicDataPathBindingCreate(
         SocketCount * sizeof(QUIC_SOCKET_CONTEXT);
 
     QUIC_DATAPATH_BINDING* Binding =
-        (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength);
+        (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength, QUIC_POOL_DATAPATH_BINDING);
     if (Binding == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1666,7 +1666,7 @@ Exit:
             // TODO - Clean up socket contexts
             QuicRundownRelease(&Datapath->BindingsRundown);
             QuicRundownUninitialize(&Binding->Rundown);
-            QUIC_FREE(Binding);
+            QUIC_FREE(Binding, QUIC_POOL_DATAPATH_BINDING);
             Binding = NULL;
         }
     }
@@ -1707,7 +1707,7 @@ QuicDataPathBindingDelete(
     QuicRundownRelease(&Binding->Datapath->BindingsRundown);
 
     QuicRundownUninitialize(&Binding->Rundown);
-    QuicFree(Binding);
+    QUIC_FREE(Binding, QUIC_POOL_DATAPATH_BINDING);
 #endif
 }
 

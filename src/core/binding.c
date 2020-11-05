@@ -51,7 +51,7 @@ QuicBindingInitialize(
     uint8_t HashSalt[20];
     BOOLEAN HashTableInitialized = FALSE;
 
-    Binding = QUIC_ALLOC_NONPAGED(sizeof(QUIC_BINDING));
+    Binding = QUIC_ALLOC_NONPAGED(sizeof(QUIC_BINDING), QUIC_POOL_BINDING);
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -175,7 +175,7 @@ Error:
             QuicDispatchLockUninitialize(&Binding->StatelessOperLock);
             QuicDispatchLockUninitialize(&Binding->ResetTokenLock);
             QuicDispatchRwLockUninitialize(&Binding->RwLock);
-            QUIC_FREE(Binding);
+            QUIC_FREE(Binding, QUIC_POOL_BINDING);
         }
     }
 
@@ -235,7 +235,7 @@ QuicBindingUninitialize(
         BindingDestroyed,
         "[bind][%p] Destroyed",
         Binding);
-    QUIC_FREE(Binding);
+    QUIC_FREE(Binding, QUIC_POOL_BINDING);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -470,7 +470,7 @@ QuicBindingAcceptConnection(
     // used later in building up the TLS response.
     //
     uint16_t NegotiatedAlpnLength = 1 + Info->NegotiatedAlpn[-1];
-    uint8_t* NegotiatedAlpn = QUIC_ALLOC_NONPAGED(NegotiatedAlpnLength);
+    uint8_t* NegotiatedAlpn = QUIC_ALLOC_NONPAGED(NegotiatedAlpnLength, QUIC_POOL_ALPN);
     if (NegotiatedAlpn == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1313,7 +1313,7 @@ Exit:
 
     } else {
         NewConnection->SourceCids.Next = NULL;
-        QUIC_FREE(SourceCid);
+        QUIC_FREE(SourceCid, QUIC_POOL_CIDHASH);
         QuicConnRelease(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
 #pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
         QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);

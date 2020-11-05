@@ -337,7 +337,7 @@ void RunAttack()
     Writer = new PacketWriter(Version, Alpn, ServerName);
 
     QUIC_THREAD* Threads =
-        (QUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD));
+        (QUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD), QUIC_POOL_TOOL);
 
     uint32_t ProcCount = QuicProcActiveCount();
     TimeStart = QuicTimeMs64();
@@ -361,7 +361,7 @@ void RunAttack()
     uint64_t TimeEnd = QuicTimeMs64();
     printf("Packet Rate: %llu KHz\n", (unsigned long long)(TotalPacketCount) / QuicTimeDiff64(TimeStart, TimeEnd));
     printf("Bit Rate: %llu mbps\n", (unsigned long long)(8 * TotalByteCount) / (1000 * QuicTimeDiff64(TimeStart, TimeEnd)));
-    QUIC_FREE(Threads);
+    QUIC_FREE(Threads, QUIC_POOL_TOOL);
 
     delete Writer;
 }

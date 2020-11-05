@@ -436,7 +436,7 @@ QuicTlsUtf8ToWideChar(
         goto Error;
     }
 
-    Buffer = QUIC_ALLOC_NONPAGED(sizeof(WCHAR) * Size);
+    Buffer = QUIC_ALLOC_NONPAGED(sizeof(WCHAR) * Size, QUIC_POOL_TLS_SNI);
     if (Buffer == NULL) {
         Error = ERROR_NOT_ENOUGH_MEMORY;
         QuicTraceEvent(
@@ -471,7 +471,7 @@ QuicTlsUtf8ToWideChar(
 Error:
 
     if (Buffer != NULL) {
-        QUIC_FREE(Buffer);
+        QUIC_FREE(Buffer, QUIC_POOL_TLS_SNI);
     }
 
     return HRESULT_FROM_WIN32(Error);
@@ -483,7 +483,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsUtf8ToUnicodeString(
     _In_z_ const char* Input,
-    _Inout_ PUNICODE_STRING Output
+    _Inout_ PUNICODE_STRING Output,
+    _In_ uint32_t Tag
     )
 {
     QUIC_DBG_ASSERT(Input != NULL);
@@ -516,7 +517,7 @@ QuicTlsUtf8ToUnicodeString(
         goto Error;
     }
 
-    UnicodeString = QUIC_ALLOC_NONPAGED(RequiredSize);
+    UnicodeString = QUIC_ALLOC_NONPAGED(RequiredSize, Tag);
     if (UnicodeString == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -552,7 +553,7 @@ QuicTlsUtf8ToUnicodeString(
 
 Error:
     if (UnicodeString != NULL) {
-        QUIC_FREE(UnicodeString);
+        QUIC_FREE(UnicodeString, Tag);
         UnicodeString = NULL;
     }
     return Status;
@@ -745,7 +746,7 @@ QuicTlsAllocateAchContext(
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER Callback
     )
 {
-    QUIC_ACH_CONTEXT* AchContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_ACH_CONTEXT));
+    QUIC_ACH_CONTEXT* AchContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_ACH_CONTEXT), QUIC_POOL_TLS_ACHCTX);
     if (AchContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -776,7 +777,7 @@ QuicTlsFreeAchContext(
 {
 #ifdef _KERNEL_MODE
     if (AchContext->Principal.Buffer != NULL) {
-        QUIC_FREE(AchContext->Principal.Buffer);
+        QUIC_FREE(AchContext->Principal.Buffer, QUIC_POOL_TLS_PRINCIPAL);
         RtlZeroMemory(&AchContext->Principal, sizeof(AchContext->Principal));
     }
     if (AchContext->SspiContext != NULL) {
@@ -786,7 +787,7 @@ QuicTlsFreeAchContext(
     if (AchContext->SecConfig != NULL) {
         QuicTlsSecConfigDelete(AchContext->SecConfig);
     }
-    QUIC_FREE(AchContext);
+    QUIC_FREE(AchContext, QUIC_POOL_TLS_ACHCTX);
 }
 
 #ifdef _KERNEL_MODE
@@ -963,7 +964,7 @@ QuicTlsSecConfigCreate(
     }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete)")
-    AchContext->SecConfig = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG));
+    AchContext->SecConfig = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (AchContext->SecConfig == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1084,7 +1085,7 @@ QuicTlsSecConfigCreate(
 
     if (CredConfig->Principal != NULL) {
 
-        Status = QuicTlsUtf8ToUnicodeString(CredConfig->Principal, &AchContext->Principal);
+        Status = QuicTlsUtf8ToUnicodeString(CredConfig->Principal, &AchContext->Principal, QUIC_POOL_TLS_PRINCIPAL);
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -1281,7 +1282,7 @@ QuicTlsSecConfigDelete(
         FreeCredentialsHandle(&ServerConfig->CredentialHandle);
     }
 
-    QUIC_FREE(ServerConfig);
+    QUIC_FREE(ServerConfig, QUIC_POOL_TLS_SECCONF);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1313,7 +1314,7 @@ QuicTlsInitialize(
         goto Error;
     }
 
-    TlsContext = QUIC_ALLOC_NONPAGED(TlsSize);
+    TlsContext = QUIC_ALLOC_NONPAGED(TlsSize, QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1360,7 +1361,7 @@ QuicTlsInitialize(
 
     State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
     if (Config->ResumptionTicketBuffer != NULL) {
-        QUIC_FREE(Config->ResumptionTicketBuffer);
+        QUIC_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_TLS_RESUMPTION);
     }
 
     Status = QUIC_STATUS_SUCCESS;
@@ -1369,7 +1370,7 @@ QuicTlsInitialize(
 
 Error:
     if (TlsContext) {
-        QUIC_FREE(TlsContext);
+        QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
     return Status;
 }
@@ -1417,9 +1418,9 @@ QuicTlsUninitialize(
 
         QuicTlsResetSchannel(TlsContext);
         if (TlsContext->TransportParams != NULL) {
-            QUIC_FREE(TlsContext->TransportParams);
+            QUIC_FREE(TlsContext->TransportParams, QUIC_POOL_TLS_TRANSPARAMS);
         }
-        QUIC_FREE(TlsContext);
+        QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
 }
 
@@ -1483,7 +1484,7 @@ QuicTlsWriteDataToSchannel(
         if (TlsContext->SNI != NULL) {
 #ifdef _KERNEL_MODE
             TargetServerName = &ServerName;
-            QUIC_STATUS Status = QuicTlsUtf8ToUnicodeString(TlsContext->SNI, TargetServerName);
+            QUIC_STATUS Status = QuicTlsUtf8ToUnicodeString(TlsContext->SNI, TargetServerName, QUIC_POOL_TLS_SNI);
 #else
             QUIC_STATUS Status = QuicTlsUtf8ToWideChar(TlsContext->SNI, &TargetServerName);
 #endif
@@ -1753,7 +1754,7 @@ QuicTlsWriteDataToSchannel(
             // Done with the transport parameters. Clear them out so we don't
             // try to send them again.
             //
-            QUIC_FREE(TlsContext->TransportParams);
+            QUIC_FREE(TlsContext->TransportParams, QUIC_POOL_TLS_TRANSPARAMS);
             TlsContext->TransportParams = NULL;
         }
 
@@ -2084,11 +2085,11 @@ QuicTlsWriteDataToSchannel(
 
 #ifdef _KERNEL_MODE
     if (ServerName.Buffer != NULL) {
-        QUIC_FREE(ServerName.Buffer);
+        QUIC_FREE(ServerName.Buffer, QUIC_POOL_TLS_SNI);
     }
 #else
     if (TargetServerName != NULL) {
-        QUIC_FREE(TargetServerName);
+        QUIC_FREE(TargetServerName, QUIC_POOL_TLS_SNI);
     }
 #endif
 
@@ -2445,7 +2446,7 @@ QuicPacketKeyDerive(
     const uint16_t PacketKeyLength =
         sizeof(QUIC_PACKET_KEY) +
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
-    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
+    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength, QUIC_POOL_TLS_PACKETKEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -2743,7 +2744,7 @@ QuicPacketKeyFree(
         if (Key->Type >= QUIC_PACKET_KEY_1_RTT) {
             RtlSecureZeroMemory(Key->TrafficSecret, sizeof(QUIC_SECRET));
         }
-        QUIC_FREE(Key);
+        QUIC_FREE(Key, QUIC_POOL_TLS_PACKETKEY);
     }
 }
 

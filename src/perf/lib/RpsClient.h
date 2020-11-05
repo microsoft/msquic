@@ -169,7 +169,7 @@ public:
         QUIC_BUFFER* Buffer;
         QuicBufferScopeQuicAlloc() noexcept : Buffer(nullptr) { }
         operator QUIC_BUFFER* () noexcept { return Buffer; }
-        ~QuicBufferScopeQuicAlloc() noexcept { if (Buffer) { QUIC_FREE(Buffer); } }
+        ~QuicBufferScopeQuicAlloc() noexcept { if (Buffer) { QUIC_FREE(Buffer, QUIC_POOL_PERF); } }
     };
 
     QuicBufferScopeQuicAlloc RequestBuffer;

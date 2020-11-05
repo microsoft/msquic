@@ -79,7 +79,7 @@ TestConnection::~TestConnection()
     QuicEventUninitialize(EventPeerClosed);
     QuicEventUninitialize(EventConnectionComplete);
     if (ResumptionTicket) {
-        QUIC_FREE(ResumptionTicket);
+        QUIC_FREE(ResumptionTicket, QUIC_POOL_TEST);
     }
 }
 
@@ -817,7 +817,8 @@ TestConnection::HandleConnectionEvent(
             (QUIC_BUFFER*)
             QUIC_ALLOC_NONPAGED(
                 sizeof(QUIC_BUFFER) +
-                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
+                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength,
+                QUIC_POOL_TEST);
         if (ResumptionTicket) {
             ResumptionTicket->Buffer = (uint8_t*)(ResumptionTicket + 1);
             ResumptionTicket->Length = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;

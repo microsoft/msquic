@@ -273,7 +273,8 @@ Error:
             QUIC_CONTAINING_RECORD(
                 Connection->SourceCids.Next,
                 QUIC_CID_HASH_ENTRY,
-                Link));
+                Link),
+            QUIC_POOL_CIDHASH);
         Connection->SourceCids.Next = NULL;
     }
     QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
@@ -323,7 +324,7 @@ QuicConnFree(
                 QuicListRemoveHead(&Connection->DestCids),
                 QUIC_CID_QUIC_LIST_ENTRY,
                 Link);
-        QUIC_FREE(CID);
+        QUIC_FREE(CID, QUIC_POOL_CIDHASH);
     }
     if (Connection->State.Registered) {
         QuicDispatchLockAcquire(&Connection->Registration->ConnectionLock);
@@ -362,10 +363,10 @@ QuicConnFree(
         Connection->Configuration = NULL;
     }
     if (Connection->RemoteServerName != NULL) {
-        QUIC_FREE(Connection->RemoteServerName);
+        QUIC_FREE(Connection->RemoteServerName, QUIC_POOL_SERVERNAME);
     }
     if (Connection->OrigDestCID != NULL) {
-        QUIC_FREE(Connection->OrigDestCID);
+        QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
     }
     if (Connection->HandshakeTP != NULL) {
         QuicPoolFree(
@@ -462,7 +463,7 @@ QuicConnUninitialize(
     QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
 
     if (Connection->CloseReasonPhrase != NULL) {
-        QUIC_FREE(Connection->CloseReasonPhrase);
+        QUIC_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
     }
 }
 
@@ -828,7 +829,7 @@ QuicConnGenerateNewSourceCid(
             return NULL;
         }
         if (!QuicBindingAddSourceConnectionID(Connection->Paths[0].Binding, SourceCid)) {
-            QUIC_FREE(SourceCid);
+            QUIC_FREE(SourceCid, QUIC_POOL_CIDHASH);
             SourceCid = NULL;
             if (++TryCount > QUIC_CID_MAX_COLLISION_RETRY) {
                 QuicTraceEvent(
@@ -1585,13 +1586,13 @@ QuicConnTryClose(
         }
 
         if (Connection->CloseReasonPhrase != NULL) {
-            QUIC_FREE(Connection->CloseReasonPhrase);
+            QUIC_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
             Connection->CloseReasonPhrase = NULL;
         }
 
         if (RemoteReasonPhraseLength != 0) {
             Connection->CloseReasonPhrase =
-                QUIC_ALLOC_NONPAGED(RemoteReasonPhraseLength + 1);
+                QUIC_ALLOC_NONPAGED(RemoteReasonPhraseLength + 1, QUIC_POOL_CLOSE_REASON);
             if (Connection->CloseReasonPhrase != NULL) {
                 QuicCopyMemory(
                     Connection->CloseReasonPhrase,
@@ -1722,7 +1723,7 @@ QuicConnStart(
 
     if (Connection->State.ClosedLocally || Connection->State.Started) {
         if (ServerName != NULL) {
-            QUIC_FREE(ServerName);
+            QUIC_FREE(ServerName, QUIC_POOL_SERVERNAME);
         }
         return QUIC_STATUS_INVALID_STATE;
     }
@@ -1873,7 +1874,7 @@ QuicConnStart(
 Exit:
 
     if (ServerName != NULL) {
-        QUIC_FREE(ServerName);
+        QUIC_FREE(ServerName, QUIC_POOL_SERVERNAME);
     }
 
     if (QUIC_FAILED(Status)) {
@@ -1960,11 +1961,11 @@ QuicConnSendResumptionTicket(
 
 Error:
     if (TicketBuffer != NULL) {
-        QUIC_FREE(TicketBuffer);
+        QUIC_FREE(TicketBuffer, QUIC_POOL_SERVER_CRYPTO_TICKET);
     }
 
     if (AppResumptionData != NULL) {
-        QUIC_FREE(AppResumptionData);
+        QUIC_FREE(AppResumptionData, QUIC_POOL_APP_RESUMPTION_DATA);
     }
 
     return Status;
@@ -2072,7 +2073,7 @@ QuicConnRecvResumptionTicket(
                 "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
             (void)QuicConnIndicateEvent(Connection, &Event);
 
-            QUIC_FREE(ClientTicket);
+            QUIC_FREE(ClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
             ResumptionAccepted = TRUE;
         }
     }
@@ -2110,7 +2111,7 @@ QuicConnCleanupServerResumptionState(
         if (Crypto->Initialized) {
             QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
             QuicRangeUninitialize(&Crypto->SparseAckRanges);
-            QUIC_FREE(Crypto->TlsState.Buffer);
+            QUIC_FREE(Crypto->TlsState.Buffer, QUIC_POOL_TLS_BUFFER);
             Crypto->TlsState.Buffer = NULL;
             Crypto->Initialized = FALSE;
         }
@@ -2223,7 +2224,7 @@ QuicConnGenerateLocalTransportParameters(
                 LocalTP->OriginalDestinationConnectionID,
                 Connection->OrigDestCID->Data,
                 Connection->OrigDestCID->Length);
-            QUIC_FREE(Connection->OrigDestCID);
+            QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
             Connection->OrigDestCID = NULL;
 
             if (Connection->State.HandshakeUsedRetryPacket &&
@@ -2318,7 +2319,8 @@ QuicConnSetConfiguration(
         Connection->OrigDestCID =
             QUIC_ALLOC_NONPAGED(
                 sizeof(QUIC_CID) +
-                DestCid->CID.Length);
+                DestCid->CID.Length,
+                QUIC_POOL_CID);
         if (Connection->OrigDestCID == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -2406,7 +2408,7 @@ QuicConnValidateTransportParameterDraft27CIDs(
                 "Peer provided incorrect original destination CID in TP");
             return FALSE;
         } else {
-            QUIC_FREE(Connection->OrigDestCID);
+            QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
             Connection->OrigDestCID = NULL;
         }
 
@@ -2477,7 +2479,7 @@ QuicConnValidateTransportParameterCIDs(
                 "Original destination CID from TP doesn't match");
             return FALSE;
         }
-        QUIC_FREE(Connection->OrigDestCID);
+        QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
         Connection->OrigDestCID = NULL;
         if (Connection->State.HandshakeUsedRetryPacket) {
             if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID)) {
@@ -2746,7 +2748,7 @@ QuicConnUpdateDestCid(
             // so we must allocate a new one and free the old one.
             //
             QuicListEntryRemove(&DestCid->Link);
-            QUIC_FREE(DestCid);
+            QUIC_FREE(DestCid, QUIC_POOL_CIDHASH);
             DestCid =
                 QuicCidNewDestination(
                     Packet->SourceCidLen,
@@ -2939,7 +2941,7 @@ QuicConnRecvRetry(
     // Cache the Retry token.
     //
 
-    Connection->Send.InitialToken = QUIC_ALLOC_PAGED(TokenLength);
+    Connection->Send.InitialToken = QUIC_ALLOC_PAGED(TokenLength, QUIC_POOL_INITIAL_TOKEN);
     if (Connection->Send.InitialToken == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -3181,7 +3183,8 @@ QuicConnRecvHeader(
             Connection->OrigDestCID =
                 QUIC_ALLOC_NONPAGED(
                     sizeof(QUIC_CID) +
-                    Token.Encrypted.OrigConnIdLength);
+                    Token.Encrypted.OrigConnIdLength,
+                    QUIC_POOL_CID);
             if (Connection->OrigDestCID == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -3207,7 +3210,8 @@ QuicConnRecvHeader(
             Connection->OrigDestCID =
                 QUIC_ALLOC_NONPAGED(
                     sizeof(QUIC_CID) +
-                    Packet->DestCidLen);
+                    Packet->DestCidLen,
+                    QUIC_POOL_CID);
             if (Connection->OrigDestCID == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -4250,7 +4254,7 @@ QuicConnRecvFrames(
                     &IsLastCid);
             if (SourceCid != NULL) {
                 BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
-                QUIC_FREE(SourceCid);
+                QUIC_FREE(SourceCid, QUIC_POOL_CIDHASH);
                 if (IsLastCid) {
                     QuicTraceEvent(
                         ConnError,
@@ -4513,7 +4517,7 @@ QuicConnRecvPostProcessing(
                             Connection,
                             NextSourceCid->CID.SequenceNumber,
                             CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data));
-                        QUIC_FREE(NextSourceCid);
+                        QUIC_FREE(NextSourceCid, QUIC_POOL_CIDHASH);
                     }
                 }
             } else {
@@ -5402,14 +5406,14 @@ QuicConnParamSet(
         // Free any old data.
         //
         if (Connection->CloseReasonPhrase != NULL) {
-            QUIC_FREE(Connection->CloseReasonPhrase);
+            QUIC_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
         }
 
         //
         // Allocate new space.
         //
         Connection->CloseReasonPhrase =
-            QUIC_ALLOC_NONPAGED(BufferLength);
+            QUIC_ALLOC_NONPAGED(BufferLength, QUIC_POOL_CLOSE_REASON);
 
         if (Connection->CloseReasonPhrase != NULL) {
             QuicCopyMemory(

@@ -341,7 +341,8 @@ QuicCidNewRandomSource(
         (QUIC_CID_HASH_ENTRY*)
         QUIC_ALLOC_NONPAGED(
             sizeof(QUIC_CID_HASH_ENTRY) +
-            MsQuicLib.CidTotalLength);
+            MsQuicLib.CidTotalLength,
+            QUIC_POOL_CIDHASH);
 
     if (Entry != NULL) {
         Entry->Connection = Connection;

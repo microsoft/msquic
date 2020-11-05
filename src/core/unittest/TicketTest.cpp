@@ -89,8 +89,8 @@ TEST(ResumptionTicketTest, ClientEncDec)
     ASSERT_TRUE(memcmp(DecodedServerTicket, ServerTicket, sizeof(ServerTicket)) == 0);
     CompareTransportParameters(&ClientTP, &DecodedTP);
 
-    QUIC_FREE(EncodedClientTicket);
-    QUIC_FREE(DecodedServerTicket);
+    QUIC_FREE(EncodedClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
+    QUIC_FREE(DecodedServerTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
 }
 
 TEST(ResumptionTicketTest, ServerEncDec)
@@ -149,7 +149,7 @@ TEST(ResumptionTicketTest, ServerEncDec)
     ASSERT_TRUE(memcmp(AppData, DecodedAppData, sizeof(AppData)) == 0);
     CompareTransportParameters(&ServerTP, &DecodedTP);
 
-    QUIC_FREE(EncodedServerTicket);
+    QUIC_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
 
 TEST(ResumptionTicketTest, ServerEncDecNoAppData)
@@ -205,7 +205,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
     ASSERT_EQ(DecodedAppData, nullptr);
     CompareTransportParameters(&ServerTP, &DecodedServerTP);
 
-    QUIC_FREE(EncodedServerTicket);
+    QUIC_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
 
 TEST(ResumptionTicketTest, ClientServerEndToEnd)
@@ -301,7 +301,7 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
     ASSERT_TRUE(memcmp(AppData, DecodedAppData, sizeof(AppData)) == 0);
     CompareTransportParameters(&ServerTP, &DecodedServerTP);
 
-    QUIC_FREE(EncodedClientTicket);
-    QUIC_FREE(EncodedServerTicket);
-    QUIC_FREE(DecodedServerTicket);
+    QUIC_FREE(EncodedClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
+    QUIC_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
+    QUIC_FREE(DecodedServerTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
 }

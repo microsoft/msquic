@@ -311,6 +311,7 @@ QuicPacketValidateLongHeaderV1(
     return TRUE;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketGenerateRetryIntegrity(
     _In_reads_(QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH)
@@ -346,7 +347,7 @@ QuicPacketGenerateRetryIntegrity(
     }
 
     uint16_t RetryPseudoPacketLength = sizeof(uint8_t) + OrigDestCidLength + BufferLength;
-    RetryPseudoPacket = (uint8_t*)QUIC_ALLOC_PAGED(RetryPseudoPacketLength);
+    RetryPseudoPacket = (uint8_t*)QUIC_ALLOC_PAGED(RetryPseudoPacketLength, QUIC_POOL_TMP_ALLOC);
     if (RetryPseudoPacket == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -376,7 +377,7 @@ QuicPacketGenerateRetryIntegrity(
 
 Exit:
     if (RetryPseudoPacket != NULL) {
-        QUIC_FREE(RetryPseudoPacket);
+        QUIC_FREE(RetryPseudoPacket, QUIC_POOL_TMP_ALLOC);
     }
     QuicPacketKeyFree(RetryIntegrityKey);
     return Status;
