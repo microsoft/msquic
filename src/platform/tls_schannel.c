@@ -414,15 +414,14 @@ BCRYPT_ALG_HANDLE QUIC_HMAC_SHA384_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_HMAC_SHA512_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_AES_ECB_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_AES_GCM_ALG_HANDLE;
-BCRYPT_ALG_HANDLE QUIC_CHACHA20_POLY1305_ALG_HANDLE;
 #else
 BCRYPT_ALG_HANDLE QUIC_HMAC_SHA256_ALG_HANDLE = BCRYPT_HMAC_SHA256_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_HMAC_SHA384_ALG_HANDLE = BCRYPT_HMAC_SHA384_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_HMAC_SHA512_ALG_HANDLE = BCRYPT_HMAC_SHA512_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_AES_ECB_ALG_HANDLE = BCRYPT_AES_ECB_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_AES_GCM_ALG_HANDLE = BCRYPT_AES_GCM_ALG_HANDLE;
-BCRYPT_ALG_HANDLE QUIC_CHACHA20_POLY1305_ALG_HANDLE = BCRYPT_CHACHA20_POLY1305_ALG_HANDLE;
 #endif
+BCRYPT_ALG_HANDLE QUIC_CHACHA20_POLY1305_ALG_HANDLE = NULL;
 
 #ifndef _KERNEL_MODE
 
@@ -708,7 +707,7 @@ QuicTlsLibraryInitialize(
             "Open ChaCha20-Poly1305 algorithm");
         // ChaCha20-Poly1305 may not be supported on older OSes, so don't treat
         // this failure as fatal.
-        Status = STATUS_SUCCESS;
+        Status = QUIC_STATUS_SUCCESS;
     } else {
         Status =
             BCryptSetProperty(
@@ -762,10 +761,50 @@ Error:
 
     return NtStatusToQuicStatus(Status);
 #else
+    NTSTATUS Status =
+        BCryptOpenAlgorithmProvider(
+            &QUIC_CHACHA20_POLY1305_ALG_HANDLE,
+            BCRYPT_CHACHA20_POLY1305_ALGORITHM,
+            MS_PRIMITIVE_PROVIDER,
+            0);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Open ChaCha20-Poly1305 algorithm");
+        // ChaCha20-Poly1305 may not be supported on older OSes, so don't treat
+        // this failure as fatal.
+        Status = QUIC_STATUS_SUCCESS;
+    } else {
+        Status =
+            BCryptSetProperty(
+                QUIC_CHACHA20_POLY1305_ALG_HANDLE,
+                BCRYPT_CHAINING_MODE,
+                (PBYTE)BCRYPT_CHAIN_MODE_NA,
+                sizeof(BCRYPT_CHAIN_MODE_NA),
+                0);
+        if (!NT_SUCCESS(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "Set ChaCha20-Poly1305 chaining mode");
+            goto Error;
+        }
+    }
+
     QuicTraceLogVerbose(
         SchannelInitialized,
         "[ tls] Library initialized");
-    return QUIC_STATUS_SUCCESS;
+Error:
+    if (!NT_SUCCESS(Status)) {
+        if (QUIC_CHACHA20_POLY1305_ALG_HANDLE) {
+            BCryptCloseAlgorithmProvider(QUIC_CHACHA20_POLY1305_ALG_HANDLE, 0);
+            QUIC_CHACHA20_POLY1305_ALG_HANDLE = NULL;
+        }
+    }
+    return NtStatusToQuicStatus(Status);
 #endif
 }
 
@@ -786,6 +825,10 @@ QuicTlsLibraryUninitialize(
     QUIC_AES_ECB_ALG_HANDLE = NULL;
     QUIC_AES_GCM_ALG_HANDLE = NULL;
 #endif
+    if (QUIC_CHACHA20_POLY1305_ALG_HANDLE != NULL) {
+        BCryptCloseAlgorithmProvider(QUIC_CHACHA20_POLY1305_ALG_HANDLE, 0);
+        QUIC_CHACHA20_POLY1305_ALG_HANDLE = NULL;
+    }
     QuicTraceLogVerbose(
         SchannelUninitialized,
         "[ tls] Library uninitialized");
@@ -2716,6 +2759,14 @@ QuicParseTrafficSecrets(
             return FALSE;
         }
     } else if (wcscmp(TrafficSecrets->SymmetricAlgId, BCRYPT_CHACHA20_POLY1305_ALGORITHM) == 0) {
+        if (QUIC_CHACHA20_POLY1305_ALG_HANDLE == NULL) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Algorithm unsupported by TLS: ChaCha20-Poly1305");
+            return FALSE;
+        }
         switch (TrafficSecrets->KeySize) {
         case 32:
             Secret->Aead = QUIC_AEAD_CHACHA20_POLY1305;
@@ -2986,8 +3037,8 @@ QuicEncrypt(
             Buffer,
             BufferLength - QUIC_ENCRYPTION_OVERHEAD,
             &Info,
-            (uint8_t*)Iv,
-            QUIC_IV_LENGTH,
+            NULL,
+            0,
             Buffer,
             BufferLength,
             &CipherTextSize,
@@ -3033,8 +3084,8 @@ QuicDecrypt(
             Buffer,
             BufferLength - QUIC_ENCRYPTION_OVERHEAD,
             &Info,
-            (uint8_t*)Iv,
-            QUIC_IV_LENGTH,
+            NULL,
+            0,
             Buffer,
             BufferLength - QUIC_ENCRYPTION_OVERHEAD,
             &PlainTextSize,
@@ -3177,8 +3228,8 @@ QuicHpComputeMask(
                     Zero,
                     sizeof(Zero),
                     Key->Info,
-                    NULL,   //Key->Info->pbNonce,
-                    0,      //QUIC_HP_SAMPLE_LENGTH,
+                    NULL,
+                    0,
                     Mask + Offset, 
                     QUIC_HP_SAMPLE_LENGTH, // This might fail because the Tag won't fit...
                     &TempSize,
