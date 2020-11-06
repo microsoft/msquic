@@ -424,13 +424,7 @@ QuicRandom(
 #endif
 
 #ifdef DEBUG
-#ifdef _WIN64
-// 64 bit
-#define AllocOffset 16
-#else
-// 32 bit
-#define AllocOffset 8
-#endif
+#define AllocOffset (sizeof(void*) * 2)
 #endif
 
 _Ret_maybenull_
@@ -443,7 +437,6 @@ QuicAlloc(
     )
 {
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
-
 #ifdef QUIC_RANDOM_ALLOC_FAIL
     uint8_t Rand; QuicRandom(sizeof(Rand), &Rand);
     if ((Rand % 100) == 1) return NULL;
