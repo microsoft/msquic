@@ -9,13 +9,6 @@ using System.Runtime.InteropServices;
 
 namespace MsQuicTracing.DataModel
 {
-    public enum QuicScheduleState
-    {
-        Idle,
-        Queued,
-        Processing
-    }
-
     public enum QuicConnectionState
     {
         Unknown,
@@ -24,6 +17,43 @@ namespace MsQuicTracing.DataModel
         HandshakeComplete,
         Shutdown,
         Closed
+    }
+
+    public enum QuicExecutionType
+    {
+        Unknown,
+
+        OperApi,
+        OperFlushRecv,
+        OperUnreachable,
+        OperFlushStreamRecv,
+        OperFlushSend,
+        OperTlsComplete,
+        OperTimerExpired,
+        OperTraceRundown,
+        OperVersionNegotiation,
+        OperStatelessReset,
+        OperRetry,
+
+        ApiConnClose,
+        ApiConnShutdown,
+        ApiConnStart,
+        ApiStreamClose,
+        ApiStreamShutdown,
+        ApiStreamStart,
+        ApiStreamSend,
+        ApiStreamReceiveComplete,
+        ApiStreamReceiveSetEnabled,
+        ApiSetParam,
+        ApiGetParam,
+        ApiDatagramSend,
+
+        TimerPacing,
+        TimerAckDelay,
+        TimerLossDetection,
+        TimerKeepAlive,
+        TimerIdle,
+        TimerShutdown
     }
 
     [Flags]
@@ -40,6 +70,13 @@ namespace MsQuicTracing.DataModel
         App = 0x80
     }
 
+    public enum QuicScheduleState
+    {
+        Idle,
+        Queued,
+        Processing
+    }
+
     internal static class SpanHelpers
     {
         internal static T ReadValue<T>(this ref ReadOnlySpan<byte> data) where T : unmanaged
@@ -53,6 +90,8 @@ namespace MsQuicTracing.DataModel
             return pointerSize == 8 ? data.ReadValue<ulong>() : data.ReadValue<uint>();
         }
     }
+
+    #region Worker Event Payloads
 
     public class QuicWorkerCreatedPayload
     {
@@ -73,6 +112,10 @@ namespace MsQuicTracing.DataModel
         public uint QueueDelay { get; protected set; }
     }
 
+    #endregion
+
+    #region Connection Event Payloads
+
     public class QuicConnectionCreatedPayload
     {
         public uint IsServer { get; protected set; }
@@ -83,6 +126,21 @@ namespace MsQuicTracing.DataModel
     public class QuicConnectionScheduleStatePayload
     {
         public uint State { get; protected set; }
+    }
+
+    public class QuicConnectionExecOperPayload
+    {
+        public uint Type { get; protected set; }
+    }
+
+    public class QuicConnectionExecApiOperPayload
+    {
+        public uint Type { get; protected set; }
+    }
+
+    public class QuicConnectionExecTimerOperPayload
+    {
+        public uint Type { get; protected set; }
     }
 
     public class QuicConnectionAssignWorkerPayload
@@ -149,4 +207,6 @@ namespace MsQuicTracing.DataModel
 
         public ulong RecvTotalBytes { get; protected set; }
     }
+
+    #endregion
 }

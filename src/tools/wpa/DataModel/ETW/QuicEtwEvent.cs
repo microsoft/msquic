@@ -55,6 +55,8 @@ namespace MsQuicTracing.DataModel.ETW
 
         public override uint ThreadId { get; }
 
+        public override ushort Processor { get; }
+
         public override Timestamp TimeStamp { get; }
 
         public override QuicObjectType ObjectType { get; }
@@ -133,6 +135,12 @@ namespace MsQuicTracing.DataModel.ETW
                     return new QuicConnectionCreatedEtwPayload(data);
                 case QuicEventId.ConnScheduleState:
                     return new QuicConnectionScheduleStateEtwPayload(data);
+                case QuicEventId.ConnExecOper:
+                    return new QuicConnectionExecOperEtwPayload(data);
+                case QuicEventId.ConnExecApiOper:
+                    return new QuicConnectionExecApiOperEtwPayload(data);
+                case QuicEventId.ConnExecTimerOper:
+                    return new QuicConnectionExecTimerOperEtwPayload(data);
                 case QuicEventId.ConnAssignWorker:
                     return new QuicConnectionAssignWorkerEtwPayload(data, pointerSize);
                 case QuicEventId.ConnTransportShutdown:
@@ -159,6 +167,7 @@ namespace MsQuicTracing.DataModel.ETW
             PointerSize = evt.PointerSize;
             ProcessId = (uint)evt.ProcessID;
             ThreadId = (uint)evt.ThreadID;
+            Processor = (ushort)evt.ProcessorNumber;
             TimeStamp = timestamp;
             ObjectType = ComputeObjectType(evt);
             if (ObjectType != QuicObjectType.Global)
