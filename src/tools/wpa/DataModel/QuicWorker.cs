@@ -16,6 +16,10 @@ namespace MsQuicTracing.DataModel
 
         public static ushort DestroyedEventId => (ushort)QuicEventId.WorkerDestroyed;
 
+        public ulong Id { get; }
+
+        private static ulong NextId = 1;
+
         public ulong Pointer { get; }
 
         public uint ProcessId { get; }
@@ -23,10 +27,6 @@ namespace MsQuicTracing.DataModel
         public uint ThreadId { get; private set; }
 
         public ushort IdealProcessor { get; private set; }
-
-        public ulong Id { get; }
-
-        private static ulong NextId = 1;
 
         public Timestamp InitialTimeStamp { get; private set; }
 
@@ -78,7 +78,6 @@ namespace MsQuicTracing.DataModel
             ProcessId = processId;
             ThreadId = uint.MaxValue;
             IdealProcessor = ushort.MaxValue;
-            // TODO - ProcessorBitmap?
 
             InitialTimeStamp = Timestamp.MaxValue;
             FinalTimeStamp = Timestamp.MaxValue;
@@ -125,8 +124,32 @@ namespace MsQuicTracing.DataModel
             Events.Add(evt);
         }
 
-        /*internal void OnConnectionEvent(QuicEventBase quicEvent)
+        internal void OnConnectionEvent(QuicEvent evt)
         {
-        }*/
+            if (evt.ID == QuicEventId.ConnScheduleState)
+            {
+                var Payload = evt.Payload as QuicConnectionScheduleStatePayload;
+                if (Payload!.State == (uint)QuicScheduleState.Processing)
+                {
+                    if (ThreadId == uint.MaxValue)
+                    {
+                        ThreadId = evt.ThreadId;
+                    }
+
+                    FinalTimeStamp = evt.TimeStamp;
+                }
+            }
+        }
+
+        internal void OnConnectionAdded()
+        {
+            TotalConnections++;
+            CurrentConnections++;
+        }
+
+        internal void OnConnectionRemoved()
+        {
+            CurrentConnections--;
+        }
     }
 }

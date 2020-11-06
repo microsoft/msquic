@@ -4,46 +4,60 @@
 //
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MsQuicTracing.DataModel
 {
     public sealed class QuicState
     {
-        public Dictionary<QuicObjectType, ulong> ObjectEventCounts { get; } = new Dictionary<QuicObjectType, ulong>();
+        public List<QuicWorker> Workers => WorkerSet.GetObjects();
 
-        public QuicObjectSet<QuicWorker> Workers { get; } =
+        public List<QuicConnection> Connections => ConnectionSet.GetObjects();
+
+        private QuicObjectSet<QuicWorker> WorkerSet { get; } =
             new QuicObjectSet<QuicWorker>(QuicWorker.CreateEventId, QuicWorker.DestroyedEventId, QuicWorker.New);
+
+        private QuicObjectSet<QuicConnection> ConnectionSet { get; } =
+            new QuicObjectSet<QuicConnection>(QuicConnection.CreateEventId, QuicConnection.DestroyedEventId, QuicConnection.New);
 
         private List<QuicEvent> Events = new List<QuicEvent>();
 
-        internal void AddEvent(QuicEvent quicEvent)
+        internal void AddEvent(QuicEvent evt)
         {
-            if (!ObjectEventCounts.ContainsKey(quicEvent.ObjectType))
-            {
-                ObjectEventCounts.Add(quicEvent.ObjectType, 1);
-            }
-            else
-            {
-                ObjectEventCounts[quicEvent.ObjectType]++;
-            }
-
-            switch (quicEvent.ObjectType)
+            switch (evt.ObjectType)
             {
                 case QuicObjectType.Worker:
-                    var key = new QuicObjectKey(quicEvent.PointerSize, quicEvent.ObjectPointer, quicEvent.ProcessId);
-                    var value = Workers.FindOrCreateActive(key);
-                    value.AddEvent(quicEvent);
+                    WorkerSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt);
+                    break;
+                case QuicObjectType.Connection:
+                    ConnectionSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
                     break;
                 default:
                     break;
             }
 
-            Events.Add(quicEvent);
+            Events.Add(evt);
         }
 
         internal void OnTraceComplete()
         {
-            Workers.FinalizeObjects();
+            WorkerSet.FinalizeObjects();
+            ConnectionSet.FinalizeObjects();
+        }
+
+        internal QuicWorker FindOrCreateWorker(QuicObjectKey key)
+        {
+            return WorkerSet.FindOrCreateActive(key);
+        }
+
+        internal QuicWorker? GetWorkerFromThread(uint threadId)
+        {
+            var worker = WorkerSet.activeTable.Where(x => x.Value.ThreadId == threadId).Select(x => x.Value).FirstOrDefault();
+            if (worker is null)
+            {
+                worker = WorkerSet.inactiveList.Where(x => x.ThreadId == threadId).FirstOrDefault();
+            }
+            return worker;
         }
     }
 }

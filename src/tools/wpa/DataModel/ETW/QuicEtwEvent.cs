@@ -7,7 +7,7 @@ using System;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK;
 
-namespace MsQuicTracing.DataModel
+namespace MsQuicTracing.DataModel.ETW
 {
     [Flags]
     internal enum QuicEtwEventKeywords : ulong
@@ -128,6 +128,24 @@ namespace MsQuicTracing.DataModel
                     return new QuicWorkerActivityStateUpdatedEtwPayload(data);
                 case QuicEventId.WorkerQueueDelayUpdated:
                     return new QuicWorkerQueueDelayUpdatedEtwPayload(data);
+                case QuicEventId.ConnCreated:
+                    return new QuicConnectionCreatedEtwPayload(data);
+                case QuicEventId.ConnScheduleState:
+                    return new QuicConnectionScheduleStateEtwPayload(data);
+                case QuicEventId.ConnAssignWorker:
+                    return new QuicConnectionAssignWorkerEtwPayload(data, pointerSize);
+                case QuicEventId.ConnTransportShutdown:
+                    return new QuicConnectionTransportShutdownEtwPayload(data);
+                case QuicEventId.ConnAppShutdown:
+                    return new QuicConnectionAppShutdownEtwPayload(data);
+                case QuicEventId.ConnOutFlowStats:
+                    return new QuicConnectionOutFlowStatsEtwPayload(data);
+                case QuicEventId.ConnOutFlowBlocked:
+                    return new QuicConnectionOutFlowBlockedEtwPayload(data);
+                case QuicEventId.ConnInFlowStats:
+                    return new QuicConnectionInFlowStatsEtwPayload(data);
+                case QuicEventId.ConnStats:
+                    return new QuicConnectionStatsEtwPayload(data);
                 default:
                     return null;
             }

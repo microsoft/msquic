@@ -15,12 +15,12 @@ using MsQuicTracing.DataModel;
 namespace MsQuicTracing.Tables
 {
     [Table]
-    public sealed class QuicWorkerTable
+    public sealed class QuicWorkerActivityTable
     {
         public static readonly TableDescriptor TableDescriptor = new TableDescriptor(
            Guid.Parse("{605F8393-0260-45B1-85E5-381B7C3BADDE}"),
-           "QUIC Activity",
-           "QUIC Activity",
+           "QUIC Workers",
+           "QUIC Workers",
            category: "Computation",
            requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
 
@@ -71,11 +71,13 @@ namespace MsQuicTracing.Tables
                 {
                      workerColumnConfig,
                      TableConfiguration.PivotColumn,
+                     TableConfiguration.LeftFreezeColumn,
                      processIdColumnConfig,
                      threadIdColumnConfig,
                      countColumnConfig,
                      weightColumnConfig,
                      percentWeightColumnConfig,
+                     TableConfiguration.RightFreezeColumn,
                      TableConfiguration.GraphColumn,
                      timeColumnConfig,
                      durationColumnConfig,
@@ -89,12 +91,14 @@ namespace MsQuicTracing.Tables
                 {
                      workerColumnConfig,
                      TableConfiguration.PivotColumn,
+                     TableConfiguration.LeftFreezeColumn,
                      processIdColumnConfig,
                      threadIdColumnConfig,
                      countColumnConfig,
                      weightColumnConfig,
                      timeColumnConfig,
                      durationColumnConfig,
+                     TableConfiguration.RightFreezeColumn,
                      TableConfiguration.GraphColumn,
                      percentWeightColumnConfig,
                 },
@@ -106,31 +110,41 @@ namespace MsQuicTracing.Tables
             Debug.Assert(!(tableBuilder is null) && !(tableData is null));
 
             var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
-            if (quicState != null && quicState.Workers.Count != 0)
+            if (quicState == null)
             {
-                var data = quicState.Workers.GetObjects().SelectMany(
-                    x => x.ActivityEvents.Select(y => new ValueTuple<QuicWorker, QuicActivityData>(x, y))).ToArray();
-
-                var table = tableBuilder.SetRowCount(data.Length);
-                var dataProjection = Projection.Index(data);
-
-                table.AddColumn(workerColumnConfig, dataProjection.Compose(ProjectId));
-                table.AddColumn(processIdColumnConfig, dataProjection.Compose(ProjectProcessId));
-                table.AddColumn(threadIdColumnConfig, dataProjection.Compose(ProjectThreadId));
-                table.AddColumn(countColumnConfig, Projection.Constant<uint>(1));
-                table.AddColumn(weightColumnConfig, dataProjection.Compose(ProjectWeight));
-                table.AddColumn(percentWeightColumnConfig, dataProjection.Compose(ProjectPercentWeight));
-                table.AddColumn(timeColumnConfig, dataProjection.Compose(ProjectTime));
-                table.AddColumn(durationColumnConfig, dataProjection.Compose(ProjectDuration));
-
-                tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
-                tableConfig1.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
-                tableBuilder.SetDefaultTableConfiguration(tableConfig1);
-
-                tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
-                tableConfig2.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
-                tableBuilder.AddTableConfiguration(tableConfig2);
+                return;
             }
+
+            var workers = quicState.Workers;
+            if (workers.Count == 0)
+            {
+                return;
+            }
+
+            var data = workers.SelectMany(
+                x => x.ActivityEvents.Select(y => new ValueTuple<QuicWorker, QuicActivityData>(x, y))).ToArray();
+
+            var table = tableBuilder.SetRowCount(data.Length);
+            var dataProjection = Projection.Index(data);
+
+            table.AddColumn(workerColumnConfig, dataProjection.Compose(ProjectId));
+            table.AddColumn(processIdColumnConfig, dataProjection.Compose(ProjectProcessId));
+            table.AddColumn(threadIdColumnConfig, dataProjection.Compose(ProjectThreadId));
+            table.AddColumn(countColumnConfig, Projection.Constant<uint>(1));
+            table.AddColumn(weightColumnConfig, dataProjection.Compose(ProjectWeight));
+            table.AddColumn(percentWeightColumnConfig, dataProjection.Compose(ProjectPercentWeight));
+            table.AddColumn(timeColumnConfig, dataProjection.Compose(ProjectTime));
+            table.AddColumn(durationColumnConfig, dataProjection.Compose(ProjectDuration));
+
+            tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
+            tableConfig1.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
+            tableBuilder.AddTableConfiguration(tableConfig1);
+
+            tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
+            tableConfig2.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
+            tableBuilder.AddTableConfiguration(tableConfig2);
+
+            tableBuilder.SetDefaultTableConfiguration(tableConfig1);
         }
 
         #region Projections

@@ -5,23 +5,17 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using Microsoft.Performance.SDK;
 
 namespace MsQuicTracing.DataModel
 {
     public interface IQuicObject
     {
+        ulong Id { get; }
+
         ulong Pointer { get; }
 
         uint ProcessId { get; }
-
-        ulong Id { get; }
-
-        Timestamp InitialTimeStamp { get; }
-
-        Timestamp FinalTimeStamp { get; }
     }
 
     public readonly struct QuicObjectKey : IEquatable<QuicObjectKey>
@@ -40,6 +34,10 @@ namespace MsQuicTracing.DataModel
             {
                 return (int)pointer < 0;
             }
+        }
+
+        public QuicObjectKey(QuicEvent evt) : this(evt.PointerSize, evt.ObjectPointer, evt.ProcessId)
+        {
         }
 
         public QuicObjectKey(int pointerSize, ulong pointer, uint processId)
@@ -77,9 +75,9 @@ namespace MsQuicTracing.DataModel
 
     public sealed class QuicObjectSet<T> where T : class, IQuicObject
     {
-        private Dictionary<QuicObjectKey, T> activeTable = new Dictionary<QuicObjectKey, T>();
+        internal readonly Dictionary<QuicObjectKey, T> activeTable = new Dictionary<QuicObjectKey, T>();
 
-        private List<T> inactiveList = new List<T>();
+        internal readonly List<T> inactiveList = new List<T>();
 
         public int Count => activeTable.Count + inactiveList.Count;
 
