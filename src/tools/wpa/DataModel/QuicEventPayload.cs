@@ -208,5 +208,12 @@ namespace MsQuicTracing.DataModel
         public ulong RecvTotalBytes { get; protected set; }
     }
 
+    public class QuicConnectionOutFlowStreamStatsPayload
+    {
+        public ulong StreamFlowControl { get; protected set; }
+
+        public ulong StreamSendWindow { get; protected set; }
+    }
+
     #endregion
 }

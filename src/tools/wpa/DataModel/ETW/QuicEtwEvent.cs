@@ -155,6 +155,8 @@ namespace MsQuicTracing.DataModel.ETW
                     return new QuicConnectionInFlowStatsEtwPayload(data);
                 case QuicEventId.ConnStats:
                     return new QuicConnectionStatsEtwPayload(data);
+                case QuicEventId.ConnOutFlowStreamStats:
+                    return new QuicConnectionOutFlowStreamStatsEtwPayload(data);
                 default:
                     return null;
             }

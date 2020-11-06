@@ -151,5 +151,14 @@ namespace MsQuicTracing.DataModel.ETW
         }
     }
 
+    internal class QuicConnectionOutFlowStreamStatsEtwPayload : QuicConnectionOutFlowStreamStatsPayload
+    {
+        internal QuicConnectionOutFlowStreamStatsEtwPayload(ReadOnlySpan<byte> data)
+        {
+            StreamFlowControl = data.ReadValue<ulong>();
+            StreamSendWindow = data.ReadValue<ulong>();
+        }
+    }
+
     #endregion
 }

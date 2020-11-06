@@ -158,6 +158,94 @@ namespace MsQuicTracing.DataModel
             }
         }
 
+        public IReadOnlyList<QuicThroughputData> ThroughputEvents
+        {
+            get
+            {
+                var Resolution = new TimestampDelta(25 * 1000 * 1000); // 25 ms
+                bool initialTxRateSampled = false;
+                bool initialRxRateSampled = false;
+                var sample = new QuicThroughputData();
+
+                int eventCount = Events.Count;
+                int eventIndex = 0;
+
+                var tputevents = new List<QuicThroughputData>();
+                foreach (var evt in Events)
+                {
+                    if (eventIndex == 0)
+                    {
+                        sample.TimeStamp = evt.TimeStamp;
+                    }
+                    eventIndex++;
+
+                    if (evt.ID == QuicEventId.ConnOutFlowStats)
+                    {
+                        var payload = evt.Payload as QuicConnectionOutFlowStatsPayload;
+                        sample.RttUs = payload!.SmoothedRtt;
+                        sample.BytesSent = payload!.BytesSent;
+                        sample.BytesInFlight = payload!.BytesInFlight;
+                        sample.CongestionWindow = payload!.CongestionWindow;
+                        sample.BytesBufferedForSend = payload!.PostedBytes;
+                        sample.FlowControlAvailable = payload!.ConnectionFlowControl;
+                        if (!initialTxRateSampled)
+                        {
+                            initialTxRateSampled = true;
+                            sample.TxRate = sample.BytesSent;
+                        }
+                    }
+                    else if (evt.ID == QuicEventId.ConnInFlowStats)
+                    {
+                        var payload = evt.Payload as QuicConnectionInFlowStatsPayload;
+                        sample.BytesReceived = payload!.BytesRecv;
+                        if (!initialRxRateSampled)
+                        {
+                            initialRxRateSampled = true;
+                            sample.RxRate = sample.BytesReceived;
+                        }
+                    }
+                    else if (evt.ID == QuicEventId.ConnCongestion)
+                    {
+                        sample.CongestionEvents++;
+                    }
+                    else if (evt.ID == QuicEventId.ConnStats && sample.TimeStamp == Timestamp.Zero)
+                    {
+                        var payload = evt.Payload as QuicConnectionStatsPayload;
+                        sample.RttUs = payload!.SmoothedRtt;
+                        sample.BytesSent = payload!.SendTotalBytes;
+                        sample.BytesReceived = payload!.RecvTotalBytes;
+                        sample.CongestionEvents = payload!.CongestionCount;
+                    }
+                    else if (evt.ID == QuicEventId.ConnOutFlowStreamStats)
+                    {
+                        var payload = evt.Payload as QuicConnectionOutFlowStreamStatsPayload;
+                        sample.StreamFlowControlAvailable = payload!.StreamFlowControl;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+
+                    if (sample.TimeStamp + Resolution <= evt.TimeStamp || eventIndex == eventCount)
+                    {
+                        sample.Duration = evt.TimeStamp - sample.TimeStamp;
+                        sample.TxRate = ((sample.BytesSent - sample.TxRate) * 8 * 1000 * 1000 * 1000) / (ulong)sample.Duration.ToNanoseconds;
+                        sample.RxRate = ((sample.BytesReceived - sample.RxRate) * 8 * 1000 * 1000 * 1000) / (ulong)sample.Duration.ToNanoseconds;
+
+                        tputevents.Add(sample);
+
+                        sample.TimeStamp = evt.TimeStamp;
+                        sample.TxRate = sample.BytesSent;
+                        sample.RxRate = sample.BytesReceived;
+                        sample.CongestionEvents = 0;
+                    }
+
+                    eventIndex++;
+                }
+                return tputevents;
+            }
+        }
+
         internal QuicConnection(ulong pointer, uint processId)
         {
             Id = NextId++;
