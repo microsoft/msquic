@@ -145,10 +145,7 @@ namespace MsQuicTracing.DataModel
                             if (Worker == null)
                             {
                                 Worker = state.GetWorkerFromThread(evt.ThreadId);
-                                if (Worker != null)
-                                {
-                                    Worker.OnConnectionAdded();
-                                }
+                                Worker?.OnConnectionAdded();
                             }
                         }
                         break;
@@ -161,10 +158,7 @@ namespace MsQuicTracing.DataModel
                     }
                 case QuicEventId.ConnAssignWorker:
                     {
-                        if (Worker != null)
-                        {
-                            Worker.OnConnectionRemoved();
-                        }
+                        Worker?.OnConnectionRemoved();
                         var payload = evt.Payload as QuicConnectionAssignWorkerPayload;
                         var key = new QuicObjectKey(evt.PointerSize, payload!.WorkerPointer, evt.ProcessId);
                         Worker = state.FindOrCreateWorker(key);
@@ -223,10 +217,7 @@ namespace MsQuicTracing.DataModel
 
             FinalTimeStamp = evt.TimeStamp;
 
-            if (Worker != null)
-            {
-                Worker.OnConnectionEvent(evt);
-            }
+            Worker?.OnConnectionEvent(evt);
 
             Events.Add(evt);
         }

@@ -75,9 +75,9 @@ namespace MsQuicTracing.DataModel
 
     public sealed class QuicObjectSet<T> where T : class, IQuicObject
     {
-        internal Dictionary<QuicObjectKey, T> activeTable = new Dictionary<QuicObjectKey, T>();
+        internal readonly Dictionary<QuicObjectKey, T> activeTable = new Dictionary<QuicObjectKey, T>();
 
-        internal List<T> inactiveList = new List<T>();
+        internal readonly List<T> inactiveList = new List<T>();
 
         public int Count => activeTable.Count + inactiveList.Count;
 
