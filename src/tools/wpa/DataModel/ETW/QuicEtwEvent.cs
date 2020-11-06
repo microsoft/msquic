@@ -129,6 +129,7 @@ namespace MsQuicTracing.DataModel.ETW
                 case QuicEventId.WorkerQueueDelayUpdated:
                     return new QuicWorkerQueueDelayUpdatedEtwPayload(data);
                 case QuicEventId.ConnCreated:
+                case QuicEventId.ConnRundown:
                     return new QuicConnectionCreatedEtwPayload(data);
                 case QuicEventId.ConnScheduleState:
                     return new QuicConnectionScheduleStateEtwPayload(data);

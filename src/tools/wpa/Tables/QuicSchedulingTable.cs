@@ -15,62 +15,68 @@ using MsQuicTracing.DataModel;
 namespace MsQuicTracing.Tables
 {
     [Table]
-    public sealed class QuicWorkerActivityTable
+    public sealed class QuicSchedulingTable
     {
         public static readonly TableDescriptor TableDescriptor = new TableDescriptor(
-           Guid.Parse("{605F8393-0260-45B1-85E5-381B7C3BADDE}"),
-           "QUIC Workers",
-           "QUIC Workers",
+           Guid.Parse("{2bab73ef-6c49-41b2-9727-484c9d5dfe22}"),
+           "QUIC Scheduling",
+           "QUIC Scheduling",
            category: "Computation",
            requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
 
-        private static readonly ColumnConfiguration workerColumnConfig =
+        private static readonly ColumnConfiguration connectionColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{9e14c926-73be-4c7c-8b3a-447156fa422e}"), "Worker"),
-                new UIHints { Width = 80, AggregationMode = AggregationMode.UniqueCount });
+                new ColumnMetadata(new Guid("{4058604f-97c7-4dcb-8f5a-9031c9421224}"), "Connection"),
+                new UIHints { AggregationMode = AggregationMode.UniqueCount });
 
         private static readonly ColumnConfiguration processIdColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{da6c804b-2d19-5b9e-4941-ec903c62ba98}"), "Process (ID)"),
+                new ColumnMetadata(new Guid("{fd130acd-3b11-5fca-94f4-88f604a219ab}"), "Process (ID)"),
                 new UIHints { AggregationMode = AggregationMode.Max });
 
         private static readonly ColumnConfiguration threadIdColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{530749a6-4e3f-5ad3-91f8-91ec9332ab09}"), "ThreadId"),
+                new ColumnMetadata(new Guid("{63235373-e080-50fb-02d5-5057e3ba5d38}"), "ThreadId"),
                 new UIHints { AggregationMode = AggregationMode.Max });
+
+        private static readonly ColumnConfiguration stateColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{18066077-726d-52eb-6e0e-1b7e24a5c3fb}"), "State"),
+                new UIHints { AggregationMode = AggregationMode.UniqueCount });
 
         private static readonly ColumnConfiguration countColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{3c554919-7249-5268-42d1-bc57bf89dbee}"), "Count"),
+                new ColumnMetadata(new Guid("{c40b5bd3-62e4-5660-2ba2-530d1c691d79}"), "Count"),
                 new UIHints { AggregationMode = AggregationMode.Sum });
 
         private static readonly ColumnConfiguration weightColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{1f74ed75-a116-42f5-ae5d-ca3b398e4f2e}"), "Weight"),
+                new ColumnMetadata(new Guid("{8b2d0d77-c428-4e00-bcd4-08ae2f6e560b}"), "Weight"),
                 new UIHints { AggregationMode = AggregationMode.Sum, SortOrder = SortOrder.Descending });
 
         private static readonly ColumnConfiguration percentWeightColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{abe589d5-1ca1-401f-9734-527277cb87cb}"), "% Weight") { IsPercent = true },
+                new ColumnMetadata(new Guid("{65e75fe3-d0d0-4812-b4dd-51a1b5a23819}"), "% Weight") { IsPercent = true },
                 new UIHints { AggregationMode = AggregationMode.Sum });
 
         private static readonly ColumnConfiguration timeColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{21117af5-ae65-4358-95db-b63544458d03}"), "Time"),
+                new ColumnMetadata(new Guid("{25f6f72c-c393-467e-84a4-9796beee5804}"), "Time"),
                 new UIHints { AggregationMode = AggregationMode.Max });
 
         private static readonly ColumnConfiguration durationColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{07638cdc-ae16-409c-9619-cf8e6e75fa71}"), "Duration"),
+                new ColumnMetadata(new Guid("{6f77a9b0-ccee-4140-bf1c-b5d206d2f9f4}"), "Duration"),
                 new UIHints { AggregationMode = AggregationMode.Sum });
 
         private static readonly TableConfiguration tableConfig1 =
-            new TableConfiguration("Timeline by Process, Worker")
+            new TableConfiguration("Timeline by Process, Connection")
             {
                 Columns = new[]
                 {
                      processIdColumnConfig,
-                     workerColumnConfig,
+                     connectionColumnConfig,
+                     stateColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
                      threadIdColumnConfig,
@@ -85,15 +91,15 @@ namespace MsQuicTracing.Tables
             };
 
         private static readonly TableConfiguration tableConfig2 =
-            new TableConfiguration("Utilization by Process, Worker")
+            new TableConfiguration("Utilization by Process, Connection")
             {
                 Columns = new[]
                 {
                      processIdColumnConfig,
-                     workerColumnConfig,
+                     connectionColumnConfig,
+                     stateColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
-                     threadIdColumnConfig,
                      countColumnConfig,
                      weightColumnConfig,
                      timeColumnConfig,
@@ -102,7 +108,7 @@ namespace MsQuicTracing.Tables
                      TableConfiguration.GraphColumn,
                      percentWeightColumnConfig,
                 },
-                ChartType = ChartType.Line
+                ChartType = ChartType.StackedLine
             };
 
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
@@ -115,21 +121,22 @@ namespace MsQuicTracing.Tables
                 return;
             }
 
-            var workers = quicState.Workers;
-            if (workers.Count == 0)
+            var connections = quicState.Connections;
+            if (connections.Count == 0)
             {
                 return;
             }
 
-            var data = workers.SelectMany(
-                x => x.ActivityEvents.Select(y => new ValueTuple<QuicWorker, QuicActivityData>(x, y))).ToArray();
+            var data = connections.SelectMany(
+                x => x.ScheduleEvents.Select(y => new ValueTuple<QuicConnection, QuicScheduleData>(x, y))).ToArray();
 
             var table = tableBuilder.SetRowCount(data.Length);
             var dataProjection = Projection.Index(data);
 
-            table.AddColumn(workerColumnConfig, dataProjection.Compose(ProjectId));
+            table.AddColumn(connectionColumnConfig, dataProjection.Compose(ProjectId));
             table.AddColumn(processIdColumnConfig, dataProjection.Compose(ProjectProcessId));
             table.AddColumn(threadIdColumnConfig, dataProjection.Compose(ProjectThreadId));
+            table.AddColumn(stateColumnConfig, dataProjection.Compose(ProjectState));
             table.AddColumn(countColumnConfig, Projection.Constant<uint>(1));
             table.AddColumn(weightColumnConfig, dataProjection.Compose(ProjectWeight));
             table.AddColumn(percentWeightColumnConfig, dataProjection.Compose(ProjectPercentWeight));
@@ -139,13 +146,13 @@ namespace MsQuicTracing.Tables
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig1.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
             tableConfig1.InitialExpansionQuery = "[Series Name]:=\"Process (ID)\"";
-            tableConfig1.InitialSelectionQuery = "[Series Name]:=\"Worker\"";
+            tableConfig1.InitialSelectionQuery = "[Series Name]:=\"Connection\" OR [Series Name]:=\"State\"";
             tableBuilder.AddTableConfiguration(tableConfig1);
 
             tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig2.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
             tableConfig2.InitialExpansionQuery = "[Series Name]:=\"Process (ID)\"";
-            tableConfig2.InitialSelectionQuery = "[Series Name]:=\"Worker\"";
+            tableConfig2.InitialSelectionQuery = "[Series Name]:=\"State\"";
             tableBuilder.AddTableConfiguration(tableConfig2);
 
             tableBuilder.SetDefaultTableConfiguration(tableConfig1);
@@ -153,38 +160,43 @@ namespace MsQuicTracing.Tables
 
         #region Projections
 
-        private static ulong ProjectId(ValueTuple<QuicWorker, QuicActivityData> data)
+        private static ulong ProjectId(ValueTuple<QuicConnection, QuicScheduleData> data)
         {
             return data.Item1.Id;
         }
 
-        private static uint ProjectProcessId(ValueTuple<QuicWorker, QuicActivityData> data)
+        private static uint ProjectProcessId(ValueTuple<QuicConnection, QuicScheduleData> data)
         {
             return data.Item1.ProcessId;
         }
 
-        private static uint ProjectThreadId(ValueTuple<QuicWorker, QuicActivityData> data)
+        private static uint ProjectThreadId(ValueTuple<QuicConnection, QuicScheduleData> data)
         {
-            return data.Item1.ThreadId;
+            return data.Item2.ThreadId;
         }
 
-        private static TimestampDelta ProjectWeight(ValueTuple<QuicWorker, QuicActivityData> data)
+        private static string ProjectState(ValueTuple<QuicConnection, QuicScheduleData> data)
+        {
+            return data.Item2.State.ToString();
+        }
+
+        private static TimestampDelta ProjectWeight(ValueTuple<QuicConnection, QuicScheduleData> data)
         {
             return data.Item2.Duration;
         }
 
-        private static double ProjectPercentWeight(ValueTuple<QuicWorker, QuicActivityData> data)
+        private static double ProjectPercentWeight(ValueTuple<QuicConnection, QuicScheduleData> data)
         {
             TimestampDelta TimeNs = data.Item1.FinalTimeStamp - data.Item1.InitialTimeStamp;
             return 100.0 * data.Item2.Duration.ToNanoseconds / TimeNs.ToNanoseconds;
         }
 
-        private static Timestamp ProjectTime(ValueTuple<QuicWorker, QuicActivityData> data)
+        private static Timestamp ProjectTime(ValueTuple<QuicConnection, QuicScheduleData> data)
         {
             return data.Item2.TimeStamp;
         }
 
-        private static TimestampDelta ProjectDuration(ValueTuple<QuicWorker, QuicActivityData> data)
+        private static TimestampDelta ProjectDuration(ValueTuple<QuicConnection, QuicScheduleData> data)
         {
             return data.Item2.Duration;
         }
