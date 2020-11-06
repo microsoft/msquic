@@ -73,4 +73,33 @@ namespace MsQuicTracing.DataModel
             State = state;
         }
     }
+
+    public struct QuicThroughputData
+    {
+        public Timestamp TimeStamp { get; internal set; }
+
+        public TimestampDelta Duration { get; internal set; }
+
+        public uint RttUs { get; internal set; }
+
+        public ulong TxRate { get; internal set; } // bps
+
+        public ulong RxRate { get; internal set; } // bps
+
+        public ulong BytesSent { get; internal set; }
+
+        public ulong BytesReceived { get; internal set; }
+
+        public uint CongestionEvents { get; internal set; }
+
+        public ulong BytesInFlight { get; internal set; }
+
+        public uint CongestionWindow { get; internal set; }
+
+        public ulong BytesBufferedForSend { get; internal set; }
+
+        public ulong FlowControlAvailable { get; internal set; }
+
+        public ulong StreamFlowControlAvailable { get; internal set; }
+    }
 }
