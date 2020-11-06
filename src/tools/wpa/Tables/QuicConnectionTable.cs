@@ -78,8 +78,8 @@ namespace MsQuicTracing.Tables
             {
                 Columns = new[]
                 {
-                     connectionColumnConfig,
                      processIdColumnConfig,
+                     connectionColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
                      pointerColumnConfig,
@@ -127,6 +127,8 @@ namespace MsQuicTracing.Tables
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig1.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
+            tableConfig1.InitialExpansionQuery = "[Series Name]:=\"Process (ID)\"";
+            tableConfig1.InitialSelectionQuery = "[Series Name]:=\"Connection\"";
             tableBuilder.AddTableConfiguration(tableConfig1);
             tableBuilder.SetDefaultTableConfiguration(tableConfig1);
         }

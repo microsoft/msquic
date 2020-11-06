@@ -64,7 +64,7 @@ namespace MsQuicTracing.DataModel
                     {
                         if (lastEvent != null)
                         {
-                            var payload = evt.Payload as QuicConnectionScheduleStatePayload;
+                            var payload = lastEvent.Payload as QuicConnectionScheduleStatePayload;
                             scheduleEvents.Add(
                                 new QuicScheduleData(
                                     lastEvent.TimeStamp,
