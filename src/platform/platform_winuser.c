@@ -423,6 +423,16 @@ QuicRandom(
 
 #endif
 
+#ifdef DEBUG
+#ifdef _WIN64
+// 64 bit
+#define AllocOffset 16
+#else
+// 32 bit
+#define AllocOffset 8
+#endif
+#endif
+
 _Ret_maybenull_
 _Post_writable_byte_size_(ByteCount)
 DECLSPEC_ALLOCATOR
@@ -433,12 +443,19 @@ QuicAlloc(
     )
 {
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
-    UNREFERENCED_PARAMETER(Tag);
+
 #ifdef QUIC_RANDOM_ALLOC_FAIL
     uint8_t Rand; QuicRandom(sizeof(Rand), &Rand);
-    return ((Rand % 100) == 1) ? NULL : HeapAlloc(QuicPlatform.Heap, 0, ByteCount);
+    if ((Rand % 100) == 1) return NULL;
 #else
+#ifdef DEBUG
+    void* Alloc = HeapAlloc(QuicPlatform.Heap, 0, ByteCount + AllocOffset);
+    *((uint32_t*)Alloc) = Tag;
+    return (void*)((uint8_t*)Alloc + AllocOffset);
+#else
+    UNREFERENCED_PARAMETER(Tag);
     return HeapAlloc(QuicPlatform.Heap, 0, ByteCount);
+#endif
 #endif // QUIC_RANDOM_ALLOC_FAIL
 }
 
@@ -448,8 +465,15 @@ QuicFree(
     _In_ uint32_t Tag
     )
 {
+#ifdef DEBUG
+    void* ActualAlloc = (void*)((uint8_t*)Mem - AllocOffset);
+    uint32_t TagToCheck = *((uint32_t*)ActualAlloc);
+    QUIC_DBG_ASSERT(TagToCheck == Tag);
+    (void)HeapFree(QuicPlatform.Heap, 0, ActualAlloc);
+#else
     UNREFERENCED_PARAMETER(Tag);
     (void)HeapFree(QuicPlatform.Heap, 0, Mem);
+#endif
 }
 
 __declspec(noreturn)

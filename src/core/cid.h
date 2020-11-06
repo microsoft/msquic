@@ -222,7 +222,7 @@ QuicCidNewRandomDestination(
         QUIC_ALLOC_NONPAGED(
             sizeof(QUIC_CID_QUIC_LIST_ENTRY) +
             QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH,
-            QUIC_POOL_CIDHASH);
+            QUIC_POOL_CIDLIST);
 
     if (Entry != NULL) {
         QuicZeroMemory(&Entry->CID, sizeof(Entry->CID));
@@ -250,7 +250,7 @@ QuicCidNewDestination(
         QUIC_ALLOC_NONPAGED(
             sizeof(QUIC_CID_QUIC_LIST_ENTRY) +
             Length,
-            QUIC_POOL_CIDHASH);
+            QUIC_POOL_CIDLIST);
 
     if (Entry != NULL) {
         QuicZeroMemory(&Entry->CID, sizeof(Entry->CID));

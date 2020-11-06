@@ -324,7 +324,7 @@ QuicConnFree(
                 QuicListRemoveHead(&Connection->DestCids),
                 QUIC_CID_QUIC_LIST_ENTRY,
                 Link);
-        QUIC_FREE(CID, QUIC_POOL_CIDHASH);
+        QUIC_FREE(CID, QUIC_POOL_CIDLIST);
     }
     if (Connection->State.Registered) {
         QuicDispatchLockAcquire(&Connection->Registration->ConnectionLock);
@@ -2748,7 +2748,7 @@ QuicConnUpdateDestCid(
             // so we must allocate a new one and free the old one.
             //
             QuicListEntryRemove(&DestCid->Link);
-            QUIC_FREE(DestCid, QUIC_POOL_CIDHASH);
+            QUIC_FREE(DestCid, QUIC_POOL_CIDLIST);
             DestCid =
                 QuicCidNewDestination(
                     Packet->SourceCidLen,
