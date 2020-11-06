@@ -20,6 +20,28 @@ namespace MsQuicTracing.DataModel
         }
     }
 
+    public readonly struct QuicExecutionData
+    {
+        public Timestamp TimeStamp { get; }
+
+        public uint ThreadId { get; }
+
+        public ushort Processor { get; }
+
+        public TimestampDelta Duration { get; }
+
+        public QuicExecutionType Type { get; }
+
+        internal QuicExecutionData(Timestamp timeStamp, uint threadId, ushort procesor, TimestampDelta duration, QuicExecutionType type)
+        {
+            TimeStamp = timeStamp;
+            ThreadId = threadId;
+            Processor = procesor;
+            Duration = duration;
+            Type = type;
+        }
+    }
+
     public readonly struct QuicFlowBlockedData
     {
         public Timestamp TimeStamp { get; }

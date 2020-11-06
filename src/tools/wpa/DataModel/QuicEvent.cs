@@ -126,6 +126,8 @@ namespace MsQuicTracing.DataModel
 
         public abstract uint ThreadId { get; }
 
+        public abstract ushort Processor { get; }
+
         public abstract QuicEventId ID { get; }
 
         public abstract Timestamp TimeStamp { get; }

@@ -7,6 +7,8 @@ using System;
 
 namespace MsQuicTracing.DataModel.ETW
 {
+    #region Worker Event Payloads
+
     internal class QuicWorkerCreatedEtwPayload : QuicWorkerCreatedPayload
     {
         internal QuicWorkerCreatedEtwPayload(ReadOnlySpan<byte> data, int pointerSize)
@@ -33,6 +35,10 @@ namespace MsQuicTracing.DataModel.ETW
         }
     }
 
+    #endregion
+
+    #region Connection Event Payloads
+
     internal class QuicConnectionCreatedEtwPayload : QuicConnectionCreatedPayload
     {
         internal QuicConnectionCreatedEtwPayload(ReadOnlySpan<byte> data)
@@ -47,6 +53,30 @@ namespace MsQuicTracing.DataModel.ETW
         internal QuicConnectionScheduleStateEtwPayload(ReadOnlySpan<byte> data)
         {
             State = data.ReadValue<uint>();
+        }
+    }
+
+    internal class QuicConnectionExecOperEtwPayload : QuicConnectionExecOperPayload
+    {
+        internal QuicConnectionExecOperEtwPayload(ReadOnlySpan<byte> data)
+        {
+            Type = data.ReadValue<uint>();
+        }
+    }
+
+    internal class QuicConnectionExecApiOperEtwPayload : QuicConnectionExecApiOperPayload
+    {
+        internal QuicConnectionExecApiOperEtwPayload(ReadOnlySpan<byte> data)
+        {
+            Type = data.ReadValue<uint>();
+        }
+    }
+
+    internal class QuicConnectionExecTimerOperEtwPayload : QuicConnectionExecTimerOperPayload
+    {
+        internal QuicConnectionExecTimerOperEtwPayload(ReadOnlySpan<byte> data)
+        {
+            Type = data.ReadValue<uint>();
         }
     }
 
@@ -120,4 +150,6 @@ namespace MsQuicTracing.DataModel.ETW
             RecvTotalBytes = data.ReadValue<ulong>();
         }
     }
+
+    #endregion
 }

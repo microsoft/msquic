@@ -99,6 +99,65 @@ namespace MsQuicTracing.DataModel
             }
         }
 
+        public IReadOnlyList<QuicExecutionData> ExecutionEvents
+        {
+            get
+            {
+                var execEvents = new List<QuicExecutionData>();
+                QuicEvent? lastEvent = null;
+                foreach (var evt in Events)
+                {
+                    if (lastEvent != null &&
+                        (evt.ID == QuicEventId.ConnScheduleState ||
+                         evt.ID == QuicEventId.ConnExecOper ||
+                         evt.ID == QuicEventId.ConnExecApiOper ||
+                         evt.ID == QuicEventId.ConnExecTimerOper))
+                    {
+                        QuicExecutionType type = QuicExecutionType.Unknown;
+                        switch (lastEvent.ID)
+                        {
+                            case QuicEventId.ConnExecOper:
+                                {
+                                    var payload = lastEvent.Payload as QuicConnectionExecOperPayload;
+                                    type = (QuicExecutionType)((uint)QuicExecutionType.OperApi + payload!.Type);
+                                    break;
+                                }
+                            case QuicEventId.ConnExecApiOper:
+                                {
+                                    var payload = lastEvent.Payload as QuicConnectionExecApiOperPayload;
+                                    type = (QuicExecutionType)((uint)QuicExecutionType.ApiConnClose + payload!.Type);
+                                    break;
+                                }
+                            case QuicEventId.ConnExecTimerOper:
+                                {
+                                    var payload = lastEvent.Payload as QuicConnectionExecTimerOperPayload;
+                                    type = (QuicExecutionType)((uint)QuicExecutionType.TimerPacing + payload!.Type);
+                                    break;
+                                }
+                        }
+                        execEvents.Add(
+                            new QuicExecutionData(
+                                lastEvent.TimeStamp,
+                                lastEvent.ThreadId,
+                                lastEvent.Processor,
+                                evt.TimeStamp - lastEvent.TimeStamp,
+                                type));
+                    }
+                    if (evt.ID == QuicEventId.ConnScheduleState)
+                    {
+                        lastEvent = null;
+                    }
+                    else if (evt.ID == QuicEventId.ConnExecOper ||
+                         evt.ID == QuicEventId.ConnExecApiOper ||
+                         evt.ID == QuicEventId.ConnExecTimerOper)
+                    {
+                        lastEvent = evt;
+                    }
+                }
+                return execEvents;
+            }
+        }
+
         internal QuicConnection(ulong pointer, uint processId)
         {
             Id = NextId++;
