@@ -11,6 +11,7 @@ using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility.SourceParsing;
 using Microsoft.Performance.SDK.Processing;
 using MsQuicTracing.DataModel;
+using MsQuicTracing.DataModel.ETW;
 
 namespace MsQuicTracing
 {
