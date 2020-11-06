@@ -10,9 +10,9 @@ namespace MsQuicTracing.DataModel
 {
     public sealed class QuicState
     {
-        public List<QuicWorker> Workers => WorkerSet.GetObjects();
+        public IReadOnlyList<QuicWorker> Workers => WorkerSet.GetObjects();
 
-        public List<QuicConnection> Connections => ConnectionSet.GetObjects();
+        public IReadOnlyList<QuicConnection> Connections => ConnectionSet.GetObjects();
 
         private QuicObjectSet<QuicWorker> WorkerSet { get; } =
             new QuicObjectSet<QuicWorker>(QuicWorker.CreateEventId, QuicWorker.DestroyedEventId, QuicWorker.New);
@@ -20,7 +20,7 @@ namespace MsQuicTracing.DataModel
         private QuicObjectSet<QuicConnection> ConnectionSet { get; } =
             new QuicObjectSet<QuicConnection>(QuicConnection.CreateEventId, QuicConnection.DestroyedEventId, QuicConnection.New);
 
-        private List<QuicEvent> Events = new List<QuicEvent>();
+        private readonly List<QuicEvent> Events = new List<QuicEvent>();
 
         internal void AddEvent(QuicEvent evt)
         {

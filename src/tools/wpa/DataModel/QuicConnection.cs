@@ -50,7 +50,7 @@ namespace MsQuicTracing.DataModel
 
         //public List<QuicStream> Streams { get; } = new List<QuicStream>();
 
-        private List<QuicEvent> Events = new List<QuicEvent>();
+        private readonly List<QuicEvent> Events = new List<QuicEvent>();
 
         public IReadOnlyList<QuicScheduleData> ScheduleEvents
         {

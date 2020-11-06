@@ -99,12 +99,6 @@ dotnet_style_prefer_conditional_expression_over_assignment = true:silent
 dotnet_style_prefer_conditional_expression_over_return = true:silent
 csharp_prefer_simple_default_expression = true:suggestion
 
-# Default severity for analyzer diagnostics with category 'Naming'
-dotnet_analyzer_diagnostic.category-Naming.severity = none
-
-# Default severity for analyzer diagnostics with category 'Design'
-dotnet_analyzer_diagnostic.category-Design.severity = none
-
 # Expression-bodied members
 csharp_style_expression_bodied_methods = true:silent
 csharp_style_expression_bodied_constructors = true:silent

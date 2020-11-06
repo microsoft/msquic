@@ -40,7 +40,7 @@ namespace MsQuicTracing.DataModel
 
         public uint CurrentConnections { get; private set; }
 
-        private List<QuicEvent> Events = new List<QuicEvent>();
+        private readonly List<QuicEvent> Events = new List<QuicEvent>();
 
         public IReadOnlyList<QuicActivityData> ActivityEvents
         {
