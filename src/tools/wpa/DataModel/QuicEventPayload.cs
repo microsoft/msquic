@@ -42,10 +42,10 @@ namespace MsQuicTracing.DataModel
 
     internal static class SpanHelpers
     {
-        internal static T ReadValue<T>(this ref ReadOnlySpan<byte> data) where T : unmanaged
+        internal static unsafe T ReadValue<T>(this ref ReadOnlySpan<byte> data) where T : unmanaged
         {
             T val = MemoryMarshal.Cast<byte, T>(data)[0];
-            data = data.Slice(Unsafe.SizeOf<T>());
+            data = data.Slice(sizeof(T));
             return val;
         }
         internal static ulong ReadPointer(this ref ReadOnlySpan<byte> data, int pointerSize)
