@@ -160,7 +160,7 @@ namespace MsQuicTracing.DataModel.ETW
             }
         }
 
-        internal QuicEtwEvent(TraceEvent evt, Timestamp timestamp)
+        internal unsafe QuicEtwEvent(TraceEvent evt, Timestamp timestamp)
         {
             Provider = evt.ProviderGuid;
             ID = (QuicEventId)evt.ID;
@@ -170,15 +170,15 @@ namespace MsQuicTracing.DataModel.ETW
             Processor = (ushort)evt.ProcessorNumber;
             TimeStamp = timestamp;
             ObjectType = ComputeObjectType(evt);
+            ReadOnlySpan<byte> data = new ReadOnlySpan<byte>(evt.DataStart.ToPointer(), evt.EventDataLength);
             if (ObjectType != QuicObjectType.Global)
             {
-                ReadOnlySpan<byte> data = evt.EventData();
                 ObjectPointer = data.ReadPointer(PointerSize);
                 Payload = DecodePayload(ID, data, PointerSize);
             }
             else
             {
-                Payload = DecodePayload(ID, evt.EventData(), PointerSize);
+                Payload = DecodePayload(ID, data, PointerSize);
             }
         }
     }
