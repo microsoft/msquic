@@ -5,7 +5,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Nullable>enable</Nullable>
     <RootNamespace>MsQuicTracing</RootNamespace>
-    <NoWarn>1701;1702;CA1036;CA1815</NoWarn>
+    <NoWarn>1701;1702;CA1036;CA1815;CA1720;CA1008;CA1711;CA1028</NoWarn>
     <Authors>Microsoft</Authors>
     <Company>Microsoft Corporation</Company>
     <Copyright>Microsoft Corporation</Copyright>

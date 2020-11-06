@@ -48,6 +48,7 @@ namespace MsQuicTracing
 
         public DataProcessingResult CookDataElement(QuicEvent data, object context, CancellationToken cancellationToken)
         {
+            Debug.Assert(!(data is null));
             State.AddEvent(data);
             return DataProcessingResult.Processed;
         }

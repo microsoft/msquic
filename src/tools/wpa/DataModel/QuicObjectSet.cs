@@ -36,7 +36,7 @@ namespace MsQuicTracing.DataModel
             }
         }
 
-        public QuicObjectKey(QuicEvent evt) : this(evt.PointerSize, evt.ObjectPointer, evt.ProcessId)
+        internal QuicObjectKey(QuicEvent evt) : this(evt.PointerSize, evt.ObjectPointer, evt.ProcessId)
         {
         }
 
@@ -81,11 +81,11 @@ namespace MsQuicTracing.DataModel
 
         public int Count => activeTable.Count + inactiveList.Count;
 
-        private ushort CreateEventId;
+        private readonly ushort CreateEventId;
 
-        private ushort DestroyedEventId;
+        private readonly ushort DestroyedEventId;
 
-        private Func<ulong, uint, T> ObjectConstructor;
+        private readonly Func<ulong, uint, T> ObjectConstructor;
 
         public QuicObjectSet(ushort createEventId, ushort destroyedEventId, Func<ulong, uint, T> constructor)
         {
@@ -98,7 +98,7 @@ namespace MsQuicTracing.DataModel
 
         public T? RemoveActiveObject(QuicObjectKey key) => activeTable.Remove(key, out var value) ? value : null;
 
-        public T? FindById(UInt32 id)
+        public T? FindById(uint id)
         {
             T? value = activeTable.Where(it => it.Value.Id == id).Select(it => it.Value).FirstOrDefault();
             if (value is null)
@@ -153,7 +153,7 @@ namespace MsQuicTracing.DataModel
             inactiveList.Sort((a, b) => (int)(a.Id - b.Id));
         }
 
-        public List<T> GetObjects()
+        public IReadOnlyList<T> GetObjects()
         {
             List<T> allObjects = new List<T>();
             allObjects.AddRange(inactiveList);
