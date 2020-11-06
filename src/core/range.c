@@ -140,7 +140,9 @@ QuicRangeMakeSpace(
             if (Range->MaxAllocSize == QUIC_MAX_RANGE_ALLOC_SIZE ||
                 *Index == 0) {
                 return NULL;
-            } else if (*Index > 1) {
+            }
+
+            if (*Index > 1) {
                 memmove(
                     Range->SubRanges,
                     Range->SubRanges + 1,
@@ -278,7 +280,7 @@ QuicRangeAddRange(
                     QuicRangeCompare(&Key, Sub) == 0) {
                 --i;
             }
-            Sub = QuicRangeGet(Range, i);
+            QuicRangeGet(Range, i);
         } else {
             //
             // No overlapping range was found, so the index of the insert was
@@ -485,7 +487,9 @@ QuicRangeSetMin(
         Sub = QuicRangeGet(Range, i);
         if (Sub->Low >= Low) {
             break;
-        } else if (QuicRangeGetHigh(Sub) >= Low) {
+        }
+
+        if (QuicRangeGetHigh(Sub) >= Low) {
             Sub->Count -= Low - Sub->Low;
             Sub->Low = Low;
             break;
@@ -517,9 +521,8 @@ QuicRangeGetMinSafe(
     if (Range->UsedLength > 0) {
         *Value = QuicRangeGetMin(Range);
         return TRUE;
-    } else {
-        return FALSE;
     }
+    return FALSE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -542,7 +545,6 @@ QuicRangeGetMaxSafe(
     if (Range->UsedLength > 0) {
         *Value = QuicRangeGetMax(Range);
         return TRUE;
-    } else {
-        return FALSE;
     }
+    return FALSE;
 }

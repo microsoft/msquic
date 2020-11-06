@@ -358,7 +358,7 @@ QuicStreamClose(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamTraceRundown(
-    _In_ QUIC_STREAM* Stream
+    _In_ QUIC_STREAM* Stream // NOLINT
     )
 {
     QuicTraceEvent(
@@ -585,7 +585,6 @@ QuicStreamParamGet(
 
         if (!Stream->Flags.Started ||
             !Stream->Flags.LocalCloseAcked) {
-            Status = QUIC_STATUS_INVALID_STATE;
         }
 
         *BufferLength = sizeof(uint64_t);

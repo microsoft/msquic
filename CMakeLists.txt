@@ -547,6 +547,18 @@ if(QUIC_CODE_CHECK)
             # -hicpp-no-assembler
             # -hicpp-signed-bitwise
             # ...
+            -bugprone-sizeof-expression
+            -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+            -cppcoreguidelines-avoid-magic-numbers
+            -cppcoreguidelines-avoid-non-const-global-variables
+            -cppcoreguidelines-init-variables
+            -google-readability-todo
+            -hicpp-signed-bitwise
+            -llvmlibc-restrict-system-libc-headers
+            -misc-no-recursion # do you really need recursion?
+            -readability-avoid-const-params-in-decls
+            -readability-isolate-declaration
+            -readability-magic-numbers
         )
         string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
         set(CMAKE_C_CLANG_TIDY ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}

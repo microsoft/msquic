@@ -201,7 +201,6 @@ MsQuicListenerStart(
         goto Exit;
     }
 
-    Status = QUIC_STATUS_SUCCESS;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Listener = (QUIC_LISTENER*)Handle;
 
@@ -590,17 +589,11 @@ QuicListenerParamSet(
     QUIC_STATUS Status;
 
     UNREFERENCED_PARAMETER(Listener);
+    UNREFERENCED_PARAMETER(Param);
     UNREFERENCED_PARAMETER(BufferLength);
     UNREFERENCED_PARAMETER(Buffer);
 
-    switch (Param) {
-
-    default:
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        break;
-    }
-
-    return Status;
+    return QUIC_STATUS_INVALID_PARAMETER;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -114,7 +114,7 @@ Return Value:
     }
 
     for (ii = (sizeof(uint32_t) * 8); ii >= 0; --ii) {
-        TempMask = 1 << ii;
+        TempMask = 1UL << ii;
 
         if ((Mask & TempMask) != 0) {
             *Index = ii;

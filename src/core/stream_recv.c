@@ -160,7 +160,9 @@ QuicStreamProcessResetFrame(
             QuicConnTransportError(Stream->Connection, QUIC_ERROR_FINAL_SIZE_ERROR);
             return;
 
-        } else if (TotalRecvLength < FinalSize) {
+        }
+
+        if (TotalRecvLength < FinalSize) {
             //
             // The final offset is indicating that more data was sent than we
             // have actually received. Make sure to update our flow control
@@ -758,8 +760,9 @@ QuicStreamRecvFlush(
                 Stream->Flags.ReceiveEnabled = FALSE;
             }
             break;
+        }
 
-        } else if (Status == QUIC_STATUS_CONTINUE) {
+        if (Status == QUIC_STATUS_CONTINUE) {
             //
             // The app has explicitly indicated it wants to continue to
             // receive callbacks, even if all the data wasn't drained.

@@ -1,6 +1,35 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+find_program(CLANGTIDY NAMES clang-tidy)
+if(CLANGTIDY)
+    message(STATUS "Found clang-tidy: ${CLANGTIDY}")
+    set(CLANG_TIDY_CHECKS *
+        # add checks to ignore here, e.g.,
+        # -hicpp-no-assembler
+        # -hicpp-signed-bitwise
+        # ...
+        -cppcoreguidelines-init-variables
+        -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+        -google-readability-todo
+        -hicpp-signed-bitwise
+        -cppcoreguidelines-avoid-magic-numbers
+        -readability-magic-numbers
+        -readability-isolate-declaration
+        -bugprone-sizeof-expression
+        -misc-no-recursion # do you really need recursion?
+        -cppcoreguidelines-avoid-non-const-global-variables
+        -readability-avoid-const-params-in-decls
+        -llvmlibc-restrict-system-libc-headers
+    )
+    string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
+    set(CMAKE_C_CLANG_TIDY ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
+        -system-headers)
+    set(CMAKE_CXX_CLANG_TIDY ${CMAKE_C_CLANG_TIDY})
+else()
+    message(STATUS "clang-tidy not found")
+endif()
+
 set(SOURCES
     ack_tracker.c
     api.c

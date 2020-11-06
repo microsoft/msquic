@@ -13,7 +13,7 @@ Environment:
 
 --*/
 
-#define _GNU_SOURCE
+#define _GNU_SOURCE // NOLINT
 #include "platform_internal.h"
 #ifdef QUIC_CLOG
 #include "storage_linux.c.clog.h"
@@ -50,8 +50,8 @@ QuicStorageReadValue(
     _In_ QUIC_STORAGE* Storage,
     _In_opt_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
-        uint8_t * Buffer,
-    _Inout_ uint32_t * BufferLength
+        uint8_t * Buffer, // NOLINT
+    _Inout_ uint32_t * BufferLength // NOLINT
     )
 {
     UNREFERENCED_PARAMETER(Storage);

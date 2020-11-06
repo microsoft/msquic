@@ -483,14 +483,6 @@ QuicPathDecrementAllowance(
     _In_ uint32_t Amount
     );
 
-void
-QuicPktNumDecode(
-    _In_ uint8_t PacketNumberLength,
-    _In_reads_bytes_(PacketNumberLength)
-        const uint8_t* Buffer,
-    _Out_ uint64_t* PacketNumber
-    );
-
 uint64_t
 QuicPktNumDecompress(
     _In_ uint64_t ExpectedPacketNumber,
@@ -515,13 +507,6 @@ int
 QuicRangeCompare(
     const QUIC_RANGE_SEARCH_KEY* Key,
     const QUIC_SUBRANGE* Sub
-    );
-
-uint8_t*
-QuicVarIntEncode2Bytes(
-    _In_ QUIC_VAR_INT Value,
-    _Out_writes_bytes_(sizeof(uint16_t))
-        uint8_t* Buffer
     );
 
 uint64_t

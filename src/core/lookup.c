@@ -134,12 +134,10 @@ QuicLookupRebalance(
     if (Lookup->MaximizePartitioning) {
         PartitionCount = MsQuicLib.PartitionCount;
 
-    } else if (Lookup->PartitionCount > 0) {
-        PartitionCount = 1;
-
-    } else if (Lookup->PartitionCount == 0 &&
-        Lookup->SINGLE.Connection != NULL &&
-        Lookup->SINGLE.Connection != Connection) {
+    } else if (Lookup->PartitionCount > 0 ||
+               (Lookup->PartitionCount == 0 &&
+                Lookup->SINGLE.Connection != NULL &&
+                Lookup->SINGLE.Connection != Connection)) {
         PartitionCount = 1;
 
     } else {

@@ -318,13 +318,17 @@ QuicBindingRegisterListener(
 
         if (NewFamily > ExistingFamily) {
             break; // End of possible family matches. Done searching.
-        } else if (NewFamily != ExistingFamily) {
+        }
+
+        if (NewFamily != ExistingFamily) {
             continue;
         }
 
         if (!NewWildCard && ExistingWildCard) {
             break; // End of specific address matches. Done searching.
-        } else if (NewWildCard != ExistingWildCard) {
+        }
+
+        if (NewWildCard != ExistingWildCard) {
             continue;
         }
 
@@ -956,7 +960,7 @@ QuicBindingProcessStatelessOperation(
                 sizeof(Token),
                 (uint8_t*)&Token,
                 (uint16_t)SendDatagram->Length,
-                (uint8_t*)SendDatagram->Buffer);
+                SendDatagram->Buffer);
         QUIC_DBG_ASSERT(SendDatagram->Length != 0);
 
         QuicTraceLogVerbose(
@@ -1112,7 +1116,8 @@ QuicBindingPreprocessDatagram(
             if (Packet->DestCidLen == 0) {
                 QuicPacketLogDrop(Binding, Packet, "Zero length DestCid");
                 return FALSE;
-            } else if (Packet->DestCidLen < QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH) {
+            }
+            if (Packet->DestCidLen < QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH) {
                 QuicPacketLogDrop(Binding, Packet, "Less than min length CID on non-exclusive binding");
                 return FALSE;
             }
@@ -1467,7 +1472,9 @@ QuicBindingDeliverDatagrams(
                 QuicBindingQueueStatelessOperation(
                     Binding, QUIC_OPER_TYPE_RETRY, DatagramChain);
 
-        } else if (!DropPacket) {
+        }
+
+        if (!DropPacket) {
             Connection = QuicBindingCreateConnection(Binding, DatagramChain);
         }
     }
@@ -1618,7 +1625,6 @@ QuicBindingReceive(
         //
         if (!QuicBindingDeliverDatagrams(Binding, SubChain, SubChainLength)) {
             *ReleaseChainTail = SubChain;
-            ReleaseChainTail = SubChainTail;
         }
     }
 

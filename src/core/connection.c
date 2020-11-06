@@ -1612,7 +1612,7 @@ QuicConnTryClose(
             QuicConnLogStatistics(Connection);
         }
 
-        if (Flags & QUIC_CLOSE_APPLICATION) {
+        if (Flags & QUIC_CLOSE_APPLICATION) { // NOLINT
             QuicTraceEvent(
                 ConnAppShutdown,
                 "[conn][%p] App Shutdown: %llu (Remote=%hhu)",
@@ -2033,7 +2033,7 @@ QuicConnRecvResumptionTicket(
         ResumptionAccepted =
             QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
 
-        if (ResumptionAccepted) {
+        if (ResumptionAccepted) { // NOLINT
             QuicTraceEvent(
                 ConnServerResumeTicket,
                 "[conn][%p] Server app accepted resumption ticket",
@@ -2389,14 +2389,18 @@ QuicConnValidateTransportParameterDraft27CIDs(
                 Connection,
                 "Peer didn't provide the original destination CID in TP");
             return FALSE;
-        } else if (Connection->PeerTransportParams.OriginalDestinationConnectionIDLength != Connection->OrigDestCID->Length) {
+        }
+
+        if (Connection->PeerTransportParams.OriginalDestinationConnectionIDLength != Connection->OrigDestCID->Length) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
                 Connection,
                 "Peer provided incorrect length of original destination CID in TP");
             return FALSE;
-        } else if (
+        }
+
+        if (
             memcmp(
                 Connection->PeerTransportParams.OriginalDestinationConnectionID,
                 Connection->OrigDestCID->Data,
@@ -2407,10 +2411,10 @@ QuicConnValidateTransportParameterDraft27CIDs(
                 Connection,
                 "Peer provided incorrect original destination CID in TP");
             return FALSE;
-        } else {
-            QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
-            Connection->OrigDestCID = NULL;
         }
+
+        QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
+        Connection->OrigDestCID = NULL;
 
     } else if (!QuicConnIsServer(Connection)) {
         //
@@ -2758,11 +2762,11 @@ QuicConnUpdateDestCid(
                 Connection->Paths[0].DestCid = NULL;
                 QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, "Out of memory");
                 return FALSE;
-            } else {
-                Connection->Paths[0].DestCid = DestCid;
-                DestCid->CID.UsedLocally = TRUE;
-                QuicListInsertHead(&Connection->DestCids, &DestCid->Link);
             }
+
+            Connection->Paths[0].DestCid = DestCid;
+            DestCid->CID.UsedLocally = TRUE;
+            QuicListInsertHead(&Connection->DestCids, &DestCid->Link);
         }
 
         if (DestCid != NULL) {
@@ -3975,7 +3979,9 @@ QuicConnRecvFrames(
                         &UpdatedFlowControl);
                 if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
                     return FALSE;
-                } else if (QUIC_FAILED(Status)) {
+                }
+
+                if (QUIC_FAILED(Status)) {
                     QuicTraceEvent(
                         ConnError,
                         "[conn][%p] ERROR, %s.",
@@ -4911,7 +4917,6 @@ QuicConnRecvDatagrams(
             Batch,
             Cipher,
             &RecvState);
-        BatchCount = 0;
     }
 
     if (RecvState.ResetIdleTimeout) {
@@ -5416,10 +5421,12 @@ QuicConnParamSet(
             QUIC_ALLOC_NONPAGED(BufferLength, QUIC_POOL_CLOSE_REASON);
 
         if (Connection->CloseReasonPhrase != NULL) {
-            QuicCopyMemory(
-                Connection->CloseReasonPhrase,
-                Buffer,
-                BufferLength);
+            if (Buffer) {
+                QuicCopyMemory(
+                    Connection->CloseReasonPhrase,
+                    Buffer,
+                    BufferLength);
+            }
 
             Status = QUIC_STATUS_SUCCESS;
 

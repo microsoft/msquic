@@ -64,7 +64,7 @@ Abstract:
 // Helper to get the slot index for a given time.
 //
 #define TIME_TO_SLOT_INDEX(TimerWheel, TimeUs) \
-    ((US_TO_MS(TimeUs) / 1000) % TimerWheel->SlotCount)
+    ((US_TO_MS(TimeUs) / 1000) % (TimerWheel)->SlotCount)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS

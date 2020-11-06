@@ -13,16 +13,16 @@ Environment:
 
 --*/
 
-#define _GNU_SOURCE
+#define _GNU_SOURCE // NOLINT
 #include "platform_internal.h"
 #include "quic_platform.h"
+#include "quic_platform_dispatch.h"
+#include "quic_trace.h"
+#include <dlfcn.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <sched.h>
-#include <fcntl.h>
 #include <syslog.h>
-#include <dlfcn.h>
-#include "quic_trace.h"
-#include "quic_platform_dispatch.h"
 #ifdef QUIC_CLOG
 #include "platform_linux.c.clog.h"
 #endif
@@ -52,7 +52,7 @@ quic_bugcheck(
     // it is possible certain optimizations will cause inlining. asm technique
     // is the gcc documented way to prevent such optimizations.
     //
-    asm("");
+    asm(""); // NOLINT
 
     //
     // abort() sends a SIGABRT signal and it triggers termination and coredump.
@@ -70,7 +70,7 @@ QuicPlatformSystemLoad(
     // https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/pal/src/misc/tracepointprovider.cpp#L106
     //
 
-    int ShouldLoad = 1;
+    long ShouldLoad = 1;
 
     //
     // Check if loading the LTTng providers should be disabled.
@@ -93,7 +93,7 @@ QuicPlatformSystemLoad(
         return;
     }
 
-    int PathLen = strlen(Info.dli_fname);
+    size_t PathLen = strlen(Info.dli_fname);
 
     //
     // Find the length of the full path without the shared object name, including the trailing slash.
@@ -146,7 +146,7 @@ QuicPlatformInitialize(
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     QUIC_FRE_ASSERT(PlatDispatch != NULL);
 #else
-    RandomFd = open("/dev/urandom", O_RDONLY);
+    RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
         return (QUIC_STATUS)errno;
     }
@@ -271,7 +271,7 @@ QuicRefInitialize(
 
 void
 QuicRefIncrement(
-    _Inout_ QUIC_REF_COUNT* RefCount
+    _Inout_ QUIC_REF_COUNT* RefCount // NOLINT
     )
 {
     if (__atomic_add_fetch(RefCount, 1, __ATOMIC_SEQ_CST)) {
@@ -283,7 +283,7 @@ QuicRefIncrement(
 
 BOOLEAN
 QuicRefIncrementNonZero(
-    _Inout_ volatile QUIC_REF_COUNT* RefCount
+    _Inout_ volatile QUIC_REF_COUNT* RefCount // NOLINT
     )
 {
     QUIC_REF_COUNT NewValue = 0;
@@ -292,29 +292,32 @@ QuicRefIncrementNonZero(
     for (;;) {
         NewValue = OldValue + 1;
 
-        if ((QUIC_REF_COUNT)NewValue > 1) {
+        if (NewValue > 1) {
             if(__atomic_compare_exchange_n(RefCount, &OldValue, NewValue, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
                 return TRUE;
             }
-        } else if ((QUIC_REF_COUNT)NewValue == 1) {
-            return FALSE;
-        } else {
-            QUIC_FRE_ASSERT(false);
+        }
+
+        if (NewValue == 1) {
             return FALSE;
         }
+        QUIC_FRE_ASSERT(false);
+        return FALSE;
     }
 }
 
 BOOLEAN
 QuicRefDecrement(
-    _In_ QUIC_REF_COUNT* RefCount
+    _In_ QUIC_REF_COUNT* RefCount // NOLINT
     )
 {
     QUIC_REF_COUNT NewValue = __atomic_sub_fetch(RefCount, 1, __ATOMIC_SEQ_CST);
 
     if (NewValue > 0) {
         return FALSE;
-    } else if (NewValue == 0) {
+    }
+
+    if (NewValue == 0) {
         return TRUE;
     }
 
@@ -766,7 +769,7 @@ QuicThreadCreate(
 
 void
 QuicThreadDelete(
-    _Inout_ QUIC_THREAD* Thread
+    _Inout_ QUIC_THREAD* Thread // NOLINT
     )
 {
     UNREFERENCED_PARAMETER(Thread);
@@ -774,7 +777,7 @@ QuicThreadDelete(
 
 void
 QuicThreadWait(
-    _Inout_ QUIC_THREAD* Thread
+    _Inout_ QUIC_THREAD* Thread // NOLINT
     )
 {
     QUIC_DBG_ASSERT(pthread_equal(*Thread, pthread_self()) == 0);
@@ -792,9 +795,9 @@ QuicCurThreadID(
 
 void
 QuicPlatformLogAssert(
-    _In_z_ const char* File,
-    _In_ int Line,
-    _In_z_ const char* Expr
+    _In_z_ const char* File, // NOLINT
+    _In_ int Line, // NOLINT
+    _In_z_ const char* Expr // NOLINT
     )
 {
     QuicTraceEvent(

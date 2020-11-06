@@ -201,7 +201,7 @@ QuicCryptoInitialize(
 Exit:
 
     if (QUIC_FAILED(Status)) {
-        for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
+        for (size_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
             QuicPacketKeyFree(Crypto->TlsState.ReadKeys[i]);
             Crypto->TlsState.ReadKeys[i] = NULL;
             QuicPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
@@ -225,7 +225,7 @@ QuicCryptoUninitialize(
     _In_ QUIC_CRYPTO* Crypto
     )
 {
-    for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
+    for (size_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
         QuicPacketKeyFree(Crypto->TlsState.ReadKeys[i]);
         Crypto->TlsState.ReadKeys[i] = NULL;
         QuicPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
@@ -468,12 +468,14 @@ QuicCryptoGetNextEncryptLevel(
     if (Crypto->TlsState.BufferOffset1Rtt != 0 &&
         SendOffset >= Crypto->TlsState.BufferOffset1Rtt) {
         return QUIC_ENCRYPT_LEVEL_1_RTT;
-    } else if (Crypto->TlsState.BufferOffsetHandshake != 0 &&
+    }
+
+    if (Crypto->TlsState.BufferOffsetHandshake != 0 &&
         SendOffset >= Crypto->TlsState.BufferOffsetHandshake) {
         return QUIC_ENCRYPT_LEVEL_HANDSHAKE;
-    } else {
-        return QUIC_ENCRYPT_LEVEL_INITIAL;
     }
+
+    return QUIC_ENCRYPT_LEVEL_INITIAL;
 }
 
 //
@@ -522,7 +524,6 @@ QuicCryptoWriteOneFrame(
 
     Frame.Length = BufferLength - *Offset - HeaderLength;
     uint16_t LengthFieldByteCount = QuicVarIntSize(Frame.Length);
-    HeaderLength += LengthFieldByteCount;
     Frame.Length -= LengthFieldByteCount;
 
     //
@@ -803,7 +804,9 @@ QuicCryptoOnLoss(
         // Already completely acknowledged.
         //
         return FALSE;
-    } else if (Start < Crypto->UnAckedOffset) {
+    }
+
+    if (Start < Crypto->UnAckedOffset) {
         //
         // The 'lost' range overlaps with UNA. Move Start forward.
         //
@@ -828,13 +831,12 @@ QuicCryptoOnLoss(
                     //
                     return FALSE;
 
-                } else {
-                    //
-                    // The SACK only covers the beginning of the 'lost'
-                    // range. Move Start forward to the end of the SACK.
-                    //
-                    Start = Sack->Low + Sack->Count;
                 }
+                //
+                // The SACK only covers the beginning of the 'lost'
+                // range. Move Start forward to the end of the SACK.
+                //
+                Start = Sack->Low + Sack->Count;
 
             } else if (End <= Sack->Low + Sack->Count) {
                 //
@@ -991,7 +993,9 @@ QuicCryptoOnAck(
             QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, "Out of memory");
             return;
 
-        } else if (SacksUpdated) {
+        }
+
+        if (SacksUpdated) {
 
             //
             // Sack points to a new or expanded SACK, and any bytes that are
