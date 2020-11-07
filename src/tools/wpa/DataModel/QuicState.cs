@@ -64,6 +64,72 @@ namespace MsQuicTracing.DataModel
         {
             var apiEvents = new List<QuicApiData>();
 
+            Dictionary<ulong, Queue<QuicEvent>> ApiStartEvents = new Dictionary<ulong, Queue<QuicEvent>>();
+
+            Queue<QuicEvent> GetEventQueue(uint processId, uint threadId)
+            {
+                var hash = (((ulong)processId) << 32) | ((ulong)threadId);
+                if (!ApiStartEvents.TryGetValue(hash, out var queue)) {
+                    queue = new Queue<QuicEvent>();
+                    ApiStartEvents.Add(hash, queue);
+                }
+                return queue;
+            }
+
+            void Push(QuicEvent evt)
+            {
+                GetEventQueue(evt.ProcessId, evt.ThreadId).Enqueue(evt);
+            }
+
+            QuicEvent? Pop(uint processId, uint threadId)
+            {
+                var queue = GetEventQueue(processId, threadId);
+                if (queue.TryDequeue(out var evt))
+                {
+                    return evt;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            foreach (var evt in Events)
+            {
+                if (evt.ObjectType != QuicObjectType.Global)
+                {
+                    continue;
+                }
+
+                if (evt.ID == QuicEventId.ApiEnter)
+                {
+                    Push(evt);
+                }
+                else if (evt.ID == QuicEventId.ApiExit || evt.ID == QuicEventId.ApiExitStatus)
+                {
+                    var startEvent = Pop(evt.ProcessId, evt.ThreadId);
+                    if (startEvent != null)
+                    {
+                        // TODO
+                        /*
+                         *                     auto StartPayload = GetGlobalPayload(StartEvent);
+                    auto EndPayload = GetGlobalPayload(Event);
+                    // TODO - Only push back if in time range.
+                    Apis.push_back({
+                        (QuicApiType)StartPayload->ApiEnter.Type,
+                        (uint8_t)StartEvent->Processor, // What if end is different?
+                        StartEvent->ProcessId,
+                        StartEvent->ThreadId,
+                        StartEvent->TimeStamp,
+                        Event->TimeStamp - StartEvent->TimeStamp,
+                        ReadPointer(StartEvent->PointerSize, StartPayload->ApiEnter.Handle),
+                        (Event->Id == EventId_QuicApiExitStatus) ? EndPayload->ApiExitStatus.Status : 0,
+                    });
+                         */
+                    }
+                }
+            }
+
             return apiEvents;
         }
     }
