@@ -117,6 +117,13 @@ namespace MsQuicTracing.Tables
                 ChartType = ChartType.StackedLine
             };
 
+        public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableData is null));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
+            return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.ConnectionExec);
+        }
+
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
             Debug.Assert(!(tableBuilder is null) && !(tableData is null));
@@ -134,7 +141,8 @@ namespace MsQuicTracing.Tables
             }
 
             var data = connections.SelectMany(
-                x => x.ExecutionEvents.Select(y => new ValueTuple<QuicConnection, QuicExecutionData>(x, y))).ToArray();
+                x => x.GetExecutionEvents().Select(
+                    y => new ValueTuple<QuicConnection, QuicExecutionData>(x, y))).ToArray();
 
             var table = tableBuilder.SetRowCount(data.Length);
             var dataProjection = Projection.Index(data);

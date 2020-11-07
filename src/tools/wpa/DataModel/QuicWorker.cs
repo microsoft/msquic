@@ -42,33 +42,30 @@ namespace MsQuicTracing.DataModel
 
         private readonly List<QuicEvent> Events = new List<QuicEvent>();
 
-        public IReadOnlyList<QuicActivityData> ActivityEvents
+        public IReadOnlyList<QuicActivityData> GetActivityEvents()
         {
-            get
+            var activityEvents = new List<QuicActivityData>();
+            QuicEvent? lastEvent = null;
+            foreach (var evt in Events)
             {
-                var activityEvents = new List<QuicActivityData>();
-                QuicEvent? lastEvent = null;
-                foreach (var evt in Events)
+                if (evt.ID == QuicEventId.WorkerActivityStateUpdated)
                 {
-                    if (evt.ID == QuicEventId.WorkerActivityStateUpdated)
+                    var payload = evt.Payload as QuicWorkerActivityStateUpdatedPayload;
+                    if (payload!.IsActive == 0)
                     {
-                        var payload = evt.Payload as QuicWorkerActivityStateUpdatedPayload;
-                        if (payload!.IsActive == 0)
+                        if (!(lastEvent is null))
                         {
-                            if (!(lastEvent is null))
-                            {
-                                activityEvents.Add(new QuicActivityData(lastEvent.TimeStamp, evt.TimeStamp - lastEvent.TimeStamp));
-                                lastEvent = null;
-                            }
-                        }
-                        else if (lastEvent is null)
-                        {
-                            lastEvent = evt;
+                            activityEvents.Add(new QuicActivityData(lastEvent.TimeStamp, evt.TimeStamp - lastEvent.TimeStamp));
+                            lastEvent = null;
                         }
                     }
+                    else if (lastEvent is null)
+                    {
+                        lastEvent = evt;
+                    }
                 }
-                return activityEvents;
             }
+            return activityEvents;
         }
 
         internal QuicWorker(ulong pointer, uint processId)
@@ -85,7 +82,7 @@ namespace MsQuicTracing.DataModel
             TotalActiveTime = TimestampDelta.Zero;
         }
 
-        internal void AddEvent(QuicEvent evt)
+        internal void AddEvent(QuicEvent evt, QuicState state)
         {
             if (InitialTimeStamp == Timestamp.MaxValue)
             {
@@ -98,6 +95,7 @@ namespace MsQuicTracing.DataModel
                     IdealProcessor = (evt.Payload as QuicWorkerCreatedPayload)!.IdealProcessor;
                     break;
                 case QuicEventId.WorkerActivityStateUpdated:
+                    state.DataAvailableFlags |= QuicDataAvailableFlags.WorkerActivity;
                     if (ThreadId == uint.MaxValue)
                     {
                         ThreadId = evt.ThreadId;

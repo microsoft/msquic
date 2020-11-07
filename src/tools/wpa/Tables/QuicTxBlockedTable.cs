@@ -21,7 +21,7 @@ namespace MsQuicTracing.Tables
            Guid.Parse("{64efbf30-7f58-4af1-9b8e-2cd81ac0c530}"),
            "QUIC TX Blocked State",
            "QUIC TX Blocked State",
-           category: "Network",
+           category: "Communications",
            requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
 
         private static readonly ColumnConfiguration connectionColumnConfig =
@@ -105,6 +105,13 @@ namespace MsQuicTracing.Tables
                 ChartType = ChartType.StackedLine
             };
 
+        public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableData is null));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
+            return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.ConnectionFlowBlocked);
+        }
+
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
             Debug.Assert(!(tableBuilder is null) && !(tableData is null));
@@ -122,7 +129,7 @@ namespace MsQuicTracing.Tables
             }
 
             var data = connections.SelectMany(
-                x => x.FlowBlockedEvents
+                x => x.GetFlowBlockedEvents()
                     .Where(x => x.Flags != QuicFlowBlockedFlags.None)
                     .Select(y => new ValueTuple<QuicConnection, QuicFlowBlockedData>(x, y))).ToArray();
 

@@ -20,7 +20,7 @@ namespace MsQuicTracing.Tables
            Guid.Parse("{91B61BF7-E1F2-4F9F-8826-05DDBDD23252}"),
            "QUIC Connections",
            "QUIC Connections",
-           category: "Computation",
+           category: "System Activity",
            requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
 
         private static readonly ColumnConfiguration connectionColumnConfig =
@@ -94,6 +94,13 @@ namespace MsQuicTracing.Tables
                      durationColumnConfig,
                 }
             };
+
+        public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableData is null));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
+            return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.Connection);
+        }
 
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {

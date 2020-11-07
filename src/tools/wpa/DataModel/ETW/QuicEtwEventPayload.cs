@@ -182,4 +182,26 @@ namespace MsQuicTracing.DataModel.ETW
     }
 
     #endregion
+
+    #region Stream Event Payloads
+
+    internal class QuicStreamCreatedEtwPayload : QuicStreamCreatedPayload
+    {
+        internal QuicStreamCreatedEtwPayload(ReadOnlySpan<byte> data, int pointerSize)
+        {
+            Connection = data.ReadPointer(pointerSize);
+            ID = data.ReadValue<ulong>();
+            IsLocalOwned = data.ReadValue<byte>();
+        }
+    }
+
+    internal class QuicStreamOutFlowBlockedEtwPayload : QuicStreamOutFlowBlockedPayload
+    {
+        internal QuicStreamOutFlowBlockedEtwPayload(ReadOnlySpan<byte> data)
+        {
+            ReasonFlags = data.ReadValue<byte>();
+        }
+    }
+
+    #endregion
 }

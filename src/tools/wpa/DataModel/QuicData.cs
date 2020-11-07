@@ -3,10 +3,27 @@
 // Licensed under the MIT License.
 //
 
+using System;
 using Microsoft.Performance.SDK;
 
 namespace MsQuicTracing.DataModel
 {
+    [Flags]
+    public enum QuicDataAvailableFlags
+    {
+        None = 0x0000,
+        Api = 0x0001,
+        Worker = 0x0002,
+        WorkerActivity = 0x0004,
+        Connection = 0x0008,
+        ConnectionSchedule = 0x0010,
+        ConnectionFlowBlocked = 0x0020,
+        ConnectionExec = 0x0040,
+        ConnectionTput = 0x0080,
+        Stream = 0x0100,
+        StreamFlowBlocked = 0x0200
+    };
+
     public readonly struct QuicActivityData
     {
         public Timestamp TimeStamp { get; }

@@ -261,4 +261,22 @@ namespace MsQuicTracing.DataModel
     }
 
     #endregion
+
+    #region Stream Event Payloads
+
+    public class QuicStreamCreatedPayload
+    {
+        public ulong Connection { get; protected set; }
+
+        public ulong ID { get; protected set; }
+
+        public byte IsLocalOwned { get; protected set; }
+    }
+
+    public class QuicStreamOutFlowBlockedPayload
+    {
+        public byte ReasonFlags { get; protected set; }
+    }
+
+    #endregion
 }

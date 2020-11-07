@@ -327,9 +327,6 @@ function CMake-Build {
 
     if ($IsWindows) {
         Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
-        if (!$DisableTools) {
-            Copy-Item (Join-Path $BuildDir "obj" $Config "msquicetw.lib") $ArtifactsDir
-        }
         if ($PGO -and $Config -eq "Release") {
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
             $VSInstallationPath = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath
