@@ -113,7 +113,7 @@ namespace MsQuicTracing.DataModel
                             startEvent.ThreadId,
                             startEvent.TimeStamp,
                             evt.TimeStamp - startEvent.TimeStamp,
-                            startEvent.ObjectPointer, 
+                            startPayload.Handle,
                             (evt.ID == QuicEventId.ApiExitStatus) ? endPayload!.Status : 0));
                     }
                 }
