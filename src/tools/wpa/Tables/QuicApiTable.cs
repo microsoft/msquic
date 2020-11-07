@@ -57,7 +57,7 @@ namespace MsQuicTracing.Tables
         private static readonly ColumnConfiguration pointerColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{335877cd-f4e7-4cef-9898-9a951d696d41}"), "Pointer"),
-                new UIHints { });
+                new UIHints { CellFormat = ColumnFormats.HexFormat });
 
         private static readonly ColumnConfiguration resultColumnConfig =
             new ColumnConfiguration(
@@ -168,9 +168,9 @@ namespace MsQuicTracing.Tables
             return data.ThreadId;
         }
 
-        private static TimestampDelta ProjectCpu(QuicApiData data)
+        private static ushort ProjectCpu(QuicApiData data)
         {
-            return data.Duration;
+            return data.Processor;
         }
 
         private static ulong ProjectPointer(QuicApiData data)

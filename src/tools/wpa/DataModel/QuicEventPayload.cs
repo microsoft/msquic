@@ -4,7 +4,6 @@
 //
 
 using System;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace MsQuicTracing.DataModel
@@ -15,6 +14,7 @@ namespace MsQuicTracing.DataModel
         GetParam,
         RegistrationOpen,
         RegistrationClose,
+        RegistrationShutdown,
         ConfigurationOpen,
         ConfigurationClose,
         ConfigurationLoadCredential,
