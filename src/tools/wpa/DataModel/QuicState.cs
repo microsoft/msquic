@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using MsQuicTracing.DataModel.ETW;
 
 namespace MsQuicTracing.DataModel
 {
@@ -58,6 +59,61 @@ namespace MsQuicTracing.DataModel
                 worker = WorkerSet.inactiveList.Where(x => x.ThreadId == threadId).FirstOrDefault();
             }
             return worker;
+        }
+
+        public IReadOnlyList<QuicApiData> GetApiCalls()
+        {
+            var apiEvents = new List<QuicApiData>();
+
+            var ApiStartEvents = new Dictionary<ulong, Queue<QuicEvent>>();
+            Queue<QuicEvent> GetEventQueue(uint processId, uint threadId)
+            {
+                var hash = (((ulong)processId) << 32) | ((ulong)threadId);
+                if (!ApiStartEvents.TryGetValue(hash, out var queue)) {
+                    queue = new Queue<QuicEvent>();
+                    ApiStartEvents.Add(hash, queue);
+                }
+                return queue;
+            }
+
+            void Push(QuicEvent evt)
+            {
+                GetEventQueue(evt.ProcessId, evt.ThreadId).Enqueue(evt);
+            }
+
+            QuicEvent? Pop(uint processId, uint threadId)
+            {
+                var queue = GetEventQueue(processId, threadId);
+                return queue.TryDequeue(out var evt) ? evt : null;
+            }
+
+            foreach (var evt in Events)
+            {
+                if (evt.ID == QuicEventId.ApiEnter)
+                {
+                    Push(evt);
+                }
+                else if (evt.ID == QuicEventId.ApiExit || evt.ID == QuicEventId.ApiExitStatus)
+                {
+                    var startEvent = Pop(evt.ProcessId, evt.ThreadId);
+                    if (startEvent != null)
+                    {
+                        var startPayload = startEvent.Payload as QuicApiEnterEtwPayload;
+                        var endPayload = evt.Payload as QuicApiExitStatusEtwPayload;
+                        apiEvents.Add(new QuicApiData(
+                            (QuicApiType)startPayload!.Type,
+                            startEvent.Processor, // What if end is on a different processor?
+                            startEvent.ProcessId,
+                            startEvent.ThreadId,
+                            startEvent.TimeStamp,
+                            evt.TimeStamp - startEvent.TimeStamp,
+                            startPayload.Handle,
+                            endPayload?.Status ?? 0));
+                    }
+                }
+            }
+
+            return apiEvents;
         }
     }
 }

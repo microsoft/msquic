@@ -124,6 +124,10 @@ namespace MsQuicTracing.DataModel.ETW
         {
             switch (id)
             {
+                case QuicEventId.ApiEnter:
+                    return new QuicApiEnterEtwPayload(data, pointerSize);
+                case QuicEventId.ApiExitStatus:
+                    return new QuicApiExitStatusEtwPayload(data);
                 case QuicEventId.WorkerCreated:
                     return new QuicWorkerCreatedEtwPayload(data, pointerSize);
                 case QuicEventId.WorkerActivityStateUpdated:

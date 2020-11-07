@@ -20,6 +20,38 @@ namespace MsQuicTracing.DataModel
         }
     }
 
+    public readonly struct QuicApiData
+    {
+        public QuicApiType Type { get; }
+
+        public ushort Processor { get; }
+
+        public uint ProcessId { get; }
+
+        public uint ThreadId { get; }
+
+        public Timestamp TimeStamp { get; }
+
+        public TimestampDelta Duration { get; }
+
+        public ulong Pointer { get; }
+
+        public uint Result { get; }
+
+        internal QuicApiData(QuicApiType type, ushort procesor, uint processId, uint threadId,
+            Timestamp timeStamp, TimestampDelta duration, ulong pointer, uint result)
+        {
+            Type = type;
+            Processor = procesor;
+            ProcessId = processId;
+            ThreadId = threadId;
+            TimeStamp = timeStamp;
+            Duration = duration;
+            Pointer = pointer;
+            Result = result;
+        }
+    }
+
     public readonly struct QuicExecutionData
     {
         public Timestamp TimeStamp { get; }
@@ -46,11 +78,14 @@ namespace MsQuicTracing.DataModel
     {
         public Timestamp TimeStamp { get; }
 
+        public TimestampDelta Duration { get; }
+
         public QuicFlowBlockedFlags Flags { get; }
 
-        internal QuicFlowBlockedData(Timestamp timeStamp, QuicFlowBlockedFlags flags)
+        internal QuicFlowBlockedData(Timestamp timeStamp, TimestampDelta duration, QuicFlowBlockedFlags flags)
         {
             TimeStamp = timeStamp;
+            Duration = duration;
             Flags = flags;
         }
     }

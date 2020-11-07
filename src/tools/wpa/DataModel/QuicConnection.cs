@@ -84,16 +84,31 @@ namespace MsQuicTracing.DataModel
             get
             {
                 var flowBlockedEvents = new List<QuicFlowBlockedData>();
+                QuicEvent? lastEvent = null;
                 foreach (var evt in Events)
                 {
                     if (evt.ID == QuicEventId.ConnOutFlowBlocked)
                     {
-                        var payload = evt.Payload as QuicConnectionOutFlowBlockedPayload;
-                        flowBlockedEvents.Add(
-                            new QuicFlowBlockedData(
-                                evt.TimeStamp,
-                                (QuicFlowBlockedFlags)payload!.ReasonFlags));
+                        if (lastEvent != null)
+                        {
+                            var payload = lastEvent.Payload as QuicConnectionOutFlowBlockedPayload;
+                            flowBlockedEvents.Add(
+                                new QuicFlowBlockedData(
+                                    lastEvent.TimeStamp,
+                                    evt.TimeStamp - lastEvent.TimeStamp,
+                                    (QuicFlowBlockedFlags)payload!.ReasonFlags));
+                        }
+                        lastEvent = evt;
                     }
+                }
+                if (lastEvent != null)
+                {
+                    var payload = lastEvent.Payload as QuicConnectionOutFlowBlockedPayload;
+                    flowBlockedEvents.Add(
+                        new QuicFlowBlockedData(
+                            lastEvent.TimeStamp,
+                            FinalTimeStamp - lastEvent.TimeStamp,
+                            (QuicFlowBlockedFlags)payload!.ReasonFlags));
                 }
                 return flowBlockedEvents;
             }
