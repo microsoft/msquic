@@ -9,6 +9,35 @@ using System.Runtime.InteropServices;
 
 namespace MsQuicTracing.DataModel
 {
+    public enum QuicApiType
+    {
+        SetParam,
+        GetParam,
+        RegistrationOpen,
+        RegistrationClose,
+        ConfigurationOpen,
+        ConfigurationClose,
+        ConfigurationLoadCredential,
+        ListenerOpen,
+        ListenerClose,
+        ListenerStart,
+        ListenerStop,
+        ConnectionOpen,
+        ConnectionClose,
+        ConnectionShutdown,
+        ConnectionStart,
+        ConnectionSetConfiguration,
+        ConnectionSendResumptionTicket,
+        StreamOpen,
+        StreamClose,
+        StreamStart,
+        StreamShutdown,
+        StreamSend,
+        StreamReceiveComplete,
+        StreamReceiveSetEnabled,
+        StreamDatagramSend
+    }
+
     public enum QuicConnectionState
     {
         Unknown,
@@ -90,6 +119,22 @@ namespace MsQuicTracing.DataModel
             return pointerSize == 8 ? data.ReadValue<ulong>() : data.ReadValue<uint>();
         }
     }
+
+    #region Global Event Payloads
+
+    public class QuicApiEnterPayload
+    {
+        public uint Type { get; protected set; }
+
+        public ulong Handle { get; protected set; }
+    }
+
+    public class QuicApiExitStatusPayload
+    {
+        public uint Status { get; protected set; }
+    }
+
+    #endregion
 
     #region Worker Event Payloads
 

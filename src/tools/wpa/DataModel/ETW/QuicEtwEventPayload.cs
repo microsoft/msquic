@@ -7,6 +7,27 @@ using System;
 
 namespace MsQuicTracing.DataModel.ETW
 {
+    #region Global Event Payloads
+
+    internal class QuicApiEnterEtwPayload : QuicApiEnterPayload
+    {
+        internal QuicApiEnterEtwPayload(ReadOnlySpan<byte> data, int pointerSize)
+        {
+            Type = data.ReadValue<uint>();
+            Handle = data.ReadPointer(pointerSize);
+        }
+    }
+
+    internal class QuicApiExitStatusEtwPayload : QuicApiExitStatusPayload
+    {
+        internal QuicApiExitStatusEtwPayload(ReadOnlySpan<byte> data)
+        {
+            Status = data.ReadValue<uint>();
+        }
+    }
+
+    #endregion
+
     #region Worker Event Payloads
 
     internal class QuicWorkerCreatedEtwPayload : QuicWorkerCreatedPayload

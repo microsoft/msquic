@@ -59,5 +59,12 @@ namespace MsQuicTracing.DataModel
             }
             return worker;
         }
+
+        public IReadOnlyList<QuicApiData> GetApiCalls()
+        {
+            var apiEvents = new List<QuicApiData>();
+
+            return apiEvents;
+        }
     }
 }
