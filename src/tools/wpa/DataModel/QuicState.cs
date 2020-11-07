@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using MsQuicTracing.DataModel.ETW;
 
 namespace MsQuicTracing.DataModel
 {
@@ -103,23 +104,17 @@ namespace MsQuicTracing.DataModel
                     var startEvent = Pop(evt.ProcessId, evt.ThreadId);
                     if (startEvent != null)
                     {
-                        startEvent.
-                        // TODO
-                        /*
-                         *                     auto StartPayload = GetGlobalPayload(StartEvent);
-                    auto EndPayload = GetGlobalPayload(Event);
-                    // TODO - Only push back if in time range.
-                    Apis.push_back({
-                        (QuicApiType)StartPayload->ApiEnter.Type,
-                        (uint8_t)StartEvent->Processor, // What if end is different?
-                        StartEvent->ProcessId,
-                        StartEvent->ThreadId,
-                        StartEvent->TimeStamp,
-                        Event->TimeStamp - StartEvent->TimeStamp,
-                        ReadPointer(StartEvent->PointerSize, StartPayload->ApiEnter.Handle),
-                        (Event->Id == EventId_QuicApiExitStatus) ? EndPayload->ApiExitStatus.Status : 0,
-                    });
-                         */
+                        var startPayload = startEvent.Payload as QuicApiEnterEtwPayload;
+                        var endPayload = evt.Payload as QuicApiExitStatusEtwPayload;
+                        apiEvents.Add(new QuicApiData(
+                            (QuicApiType)startPayload!.Type,
+                            startEvent.Processor, // What if end is on a different processor
+                            startEvent.ProcessId,
+                            startEvent.ThreadId,
+                            startEvent.TimeStamp,
+                            evt.TimeStamp - startEvent.TimeStamp,
+                            startEvent.ObjectPointer, 
+                            (evt.ID == QuicEventId.ApiExitStatus) ? endPayload!.Status : 0));
                     }
                 }
             }
