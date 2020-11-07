@@ -65,8 +65,7 @@ namespace MsQuicTracing.DataModel
         {
             var apiEvents = new List<QuicApiData>();
 
-            Dictionary<ulong, Queue<QuicEvent>> ApiStartEvents = new Dictionary<ulong, Queue<QuicEvent>>();
-
+            var ApiStartEvents = new Dictionary<ulong, Queue<QuicEvent>>();
             Queue<QuicEvent> GetEventQueue(uint processId, uint threadId)
             {
                 var hash = (((ulong)processId) << 32) | ((ulong)threadId);
@@ -90,11 +89,6 @@ namespace MsQuicTracing.DataModel
 
             foreach (var evt in Events)
             {
-                if (evt.ObjectType != QuicObjectType.Global)
-                {
-                    continue;
-                }
-
                 if (evt.ID == QuicEventId.ApiEnter)
                 {
                     Push(evt);
@@ -108,13 +102,13 @@ namespace MsQuicTracing.DataModel
                         var endPayload = evt.Payload as QuicApiExitStatusEtwPayload;
                         apiEvents.Add(new QuicApiData(
                             (QuicApiType)startPayload!.Type,
-                            startEvent.Processor, // What if end is on a different processor
+                            startEvent.Processor, // What if end is on a different processor?
                             startEvent.ProcessId,
                             startEvent.ThreadId,
                             startEvent.TimeStamp,
                             evt.TimeStamp - startEvent.TimeStamp,
                             startPayload.Handle,
-                            (evt.ID == QuicEventId.ApiExitStatus) ? endPayload!.Status : 0));
+                            endPayload?.Status ?? 0));
                     }
                 }
             }

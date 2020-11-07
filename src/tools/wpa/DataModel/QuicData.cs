@@ -78,11 +78,14 @@ namespace MsQuicTracing.DataModel
     {
         public Timestamp TimeStamp { get; }
 
+        public TimestampDelta Duration { get; }
+
         public QuicFlowBlockedFlags Flags { get; }
 
-        internal QuicFlowBlockedData(Timestamp timeStamp, QuicFlowBlockedFlags flags)
+        internal QuicFlowBlockedData(Timestamp timeStamp, TimestampDelta duration, QuicFlowBlockedFlags flags)
         {
             TimeStamp = timeStamp;
+            Duration = duration;
             Flags = flags;
         }
     }
