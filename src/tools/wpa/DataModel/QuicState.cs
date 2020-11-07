@@ -84,14 +84,7 @@ namespace MsQuicTracing.DataModel
             QuicEvent? Pop(uint processId, uint threadId)
             {
                 var queue = GetEventQueue(processId, threadId);
-                if (queue.TryDequeue(out var evt))
-                {
-                    return evt;
-                }
-                else
-                {
-                    return null;
-                }
+                return queue.TryDequeue(out var evt) ? evt : null;
             }
 
             foreach (var evt in Events)
@@ -110,6 +103,7 @@ namespace MsQuicTracing.DataModel
                     var startEvent = Pop(evt.ProcessId, evt.ThreadId);
                     if (startEvent != null)
                     {
+                        startEvent.
                         // TODO
                         /*
                          *                     auto StartPayload = GetGlobalPayload(StartEvent);
