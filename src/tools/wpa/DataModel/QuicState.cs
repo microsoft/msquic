@@ -11,9 +11,13 @@ namespace MsQuicTracing.DataModel
 {
     public sealed class QuicState
     {
+        public QuicDataAvailableFlags DataAvailableFlags { get; internal set; } = QuicDataAvailableFlags.None;
+
         public IReadOnlyList<QuicWorker> Workers => WorkerSet.GetObjects();
 
         public IReadOnlyList<QuicConnection> Connections => ConnectionSet.GetObjects();
+
+        public IReadOnlyList<QuicStream> Streams => StreamSet.GetObjects();
 
         private QuicObjectSet<QuicWorker> WorkerSet { get; } =
             new QuicObjectSet<QuicWorker>(QuicWorker.CreateEventId, QuicWorker.DestroyedEventId, QuicWorker.New);
@@ -21,17 +25,33 @@ namespace MsQuicTracing.DataModel
         private QuicObjectSet<QuicConnection> ConnectionSet { get; } =
             new QuicObjectSet<QuicConnection>(QuicConnection.CreateEventId, QuicConnection.DestroyedEventId, QuicConnection.New);
 
+        private QuicObjectSet<QuicStream> StreamSet { get; } =
+            new QuicObjectSet<QuicStream>(QuicStream.CreateEventId, QuicStream.DestroyedEventId, QuicStream.New);
+
         private readonly List<QuicEvent> Events = new List<QuicEvent>();
 
         internal void AddEvent(QuicEvent evt)
         {
             switch (evt.ObjectType)
             {
+                case QuicObjectType.Global:
+                    if (evt.ID >= QuicEventId.ApiEnter &&
+                        evt.ID <= QuicEventId.ApiExitStatus)
+                    {
+                        DataAvailableFlags |= QuicDataAvailableFlags.Api;
+                    }
+                    break;
                 case QuicObjectType.Worker:
-                    WorkerSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt);
+                    DataAvailableFlags |= QuicDataAvailableFlags.Worker;
+                    WorkerSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
                     break;
                 case QuicObjectType.Connection:
+                    DataAvailableFlags |= QuicDataAvailableFlags.Connection;
                     ConnectionSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
+                    break;
+                case QuicObjectType.Stream:
+                    DataAvailableFlags |= QuicDataAvailableFlags.Stream;
+                    StreamSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
                     break;
                 default:
                     break;
@@ -44,6 +64,7 @@ namespace MsQuicTracing.DataModel
         {
             WorkerSet.FinalizeObjects();
             ConnectionSet.FinalizeObjects();
+            StreamSet.FinalizeObjects();
         }
 
         internal QuicWorker FindOrCreateWorker(QuicObjectKey key)
@@ -59,6 +80,11 @@ namespace MsQuicTracing.DataModel
                 worker = WorkerSet.inactiveList.Where(x => x.ThreadId == threadId).FirstOrDefault();
             }
             return worker;
+        }
+
+        internal QuicConnection FindOrCreateConnection(QuicObjectKey key)
+        {
+            return ConnectionSet.FindOrCreateActive(key);
         }
 
         public IReadOnlyList<QuicApiData> GetApiCalls()

@@ -21,7 +21,7 @@ namespace MsQuicTracing.Tables
            Guid.Parse("{547cc354-daad-4335-be62-cb6875c6f168}"),
            "QUIC RTT",
            "QUIC RTT",
-           category: "Network",
+           category: "Communications",
            requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
 
         private static readonly ColumnConfiguration connectionColumnConfig =
@@ -66,6 +66,13 @@ namespace MsQuicTracing.Tables
                 }
             };
 
+        public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableData is null));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
+            return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.ConnectionTput);
+        }
+
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
             Debug.Assert(!(tableBuilder is null) && !(tableData is null));
@@ -83,7 +90,8 @@ namespace MsQuicTracing.Tables
             }
 
             var data = connections.SelectMany(
-                x => x.ThroughputEvents.Select(y => new ValueTuple<QuicConnection, QuicThroughputData>(x, y))).ToArray();
+                x => x.GetThroughputEvents().Select(
+                    y => new ValueTuple<QuicConnection, QuicThroughputData>(x, y))).ToArray();
 
             var table = tableBuilder.SetRowCount(data.Length);
             var dataProjection = Projection.Index(data);

@@ -21,7 +21,7 @@ namespace MsQuicTracing.Tables
            Guid.Parse("{C0F061CE-9BC6-4752-9F73-ADBCC639CB2A}"),
            "QUIC TX Windows",
            "QUIC TX Windows",
-           category: "Network",
+           category: "Communications",
            requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
 
         private static readonly ColumnConfiguration connectionColumnConfig =
@@ -89,6 +89,13 @@ namespace MsQuicTracing.Tables
             }
         };
 
+        public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableData is null));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
+            return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.ConnectionTput);
+        }
+
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
             Debug.Assert(!(tableBuilder is null) && !(tableData is null));
@@ -108,7 +115,7 @@ namespace MsQuicTracing.Tables
             var data = new List<Data>();
             foreach (var conn in connections)
             {
-                foreach (var evt in conn.ThroughputEvents)
+                foreach (var evt in conn.GetThroughputEvents())
                 {
                     data.Add(new Data(conn, "InFlight", evt.TimeStamp, evt.Duration, evt.BytesInFlight));
                     data.Add(new Data(conn, "Buffered", evt.TimeStamp, evt.Duration, evt.BytesBufferedForSend));

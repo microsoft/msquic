@@ -161,6 +161,11 @@ namespace MsQuicTracing.DataModel.ETW
                     return new QuicConnectionStatsEtwPayload(data);
                 case QuicEventId.ConnOutFlowStreamStats:
                     return new QuicConnectionOutFlowStreamStatsEtwPayload(data);
+                case QuicEventId.StreamCreated:
+                case QuicEventId.StreamRundown:
+                    return new QuicStreamCreatedEtwPayload(data, pointerSize);
+                case QuicEventId.StreamOutFlowBlocked:
+                    return new QuicStreamOutFlowBlockedEtwPayload(data);
                 default:
                     return null;
             }
@@ -176,7 +181,7 @@ namespace MsQuicTracing.DataModel.ETW
             Processor = (ushort)evt.ProcessorNumber;
             TimeStamp = timestamp;
             ObjectType = ComputeObjectType(evt);
-            ReadOnlySpan<byte> data = new ReadOnlySpan<byte>(evt.DataStart.ToPointer(), evt.EventDataLength);
+            var data = new ReadOnlySpan<byte>(evt.DataStart.ToPointer(), evt.EventDataLength);
             if (ObjectType != QuicObjectType.Global)
             {
                 ObjectPointer = data.ReadPointer(PointerSize);

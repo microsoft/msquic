@@ -105,6 +105,13 @@ namespace MsQuicTracing.Tables
                 ChartType = ChartType.Line
             };
 
+        public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableData is null));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
+            return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.WorkerActivity);
+        }
+
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
             Debug.Assert(!(tableBuilder is null) && !(tableData is null));
@@ -122,7 +129,8 @@ namespace MsQuicTracing.Tables
             }
 
             var data = workers.SelectMany(
-                x => x.ActivityEvents.Select(y => new ValueTuple<QuicWorker, QuicActivityData>(x, y))).ToArray();
+                x => x.GetActivityEvents().Select(
+                    y => new ValueTuple<QuicWorker, QuicActivityData>(x, y))).ToArray();
 
             var table = tableBuilder.SetRowCount(data.Length);
             var dataProjection = Projection.Index(data);
