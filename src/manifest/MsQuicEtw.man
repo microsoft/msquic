@@ -531,6 +531,12 @@
                 name="Message"
                 />
           </template>
+          <template tid="tid_BOOL">
+            <data
+                inType="win:UInt8"
+                name="Value"
+                />
+          </template>
           <template tid="tid_LIBRARY_INIT">
             <data
                 inType="win:UInt32"
@@ -1780,6 +1786,15 @@
               symbol="QuicPerfCountersRundown"
               template="tid_LIBRARY_PERF_COUNTERS"
               value="15"
+              />
+          <event
+              keywords="ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.LibrarySendRetryStateUpdated)"
+              opcode="Global"
+              symbol="QuicLibrarySendRetryStateUpdated"
+              template="tid_BOOL"
+              value="16"
               />
           <!-- 1024 - 2047 | Registration Events -->
           <event
@@ -3336,6 +3351,10 @@
         <string
             id="Etw.PerfCountersRundown"
             value="[ lib] Perf counters Rundown"
+            />
+        <string
+            id="Etw.LibrarySendRetryStateUpdated"
+            value="[ lib] New SendRetryEnabled state, %1"
             />
         <!-- Map/enum strings -->
         <string

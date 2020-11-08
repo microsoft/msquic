@@ -38,6 +38,8 @@ namespace MsQuicTracing.DataModel
         ApiExit,
         ApiExitStatus,
         ApiWaitOperation,
+        PerfCountersRundown,
+        LibrarySendRetryStateUpdated,
 
         WorkerCreated = 2048,
         WorkerStart,
