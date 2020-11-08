@@ -1,7 +1,7 @@
 MsQuic
 ======
 
-MsQuic is a Microsoft implementation of the [IETF QUIC](https://tools.ietf.org/html/draft-ietf-quic-transport)
+MsQuic is a Microsoft implementation of the [IETF QUIC](https://datatracker.ietf.org/wg/quic/about/)
 protocol. It is cross platform, written in C and designed to be a general purpose QUIC library.
 
 > **Important** The QUIC protocol is currently in IETF last call (not RFC quite yet). MsQuic implements the latest published drafts.
