@@ -174,7 +174,7 @@ namespace MsQuicTracing.DataModel
             int eventCount = Events.Count;
             int eventIndex = 0;
 
-            var tputevents = new List<QuicThroughputData>();
+            var tputEvents = new List<QuicThroughputData>();
             foreach (var evt in Events)
             {
                 if (eventIndex == 0)
@@ -236,17 +236,15 @@ namespace MsQuicTracing.DataModel
                     sample.TxRate = ((sample.BytesSent - sample.TxRate) * 8 * 1000 * 1000 * 1000) / (ulong)sample.Duration.ToNanoseconds;
                     sample.RxRate = ((sample.BytesReceived - sample.RxRate) * 8 * 1000 * 1000 * 1000) / (ulong)sample.Duration.ToNanoseconds;
 
-                    tputevents.Add(sample);
+                    tputEvents.Add(sample);
 
                     sample.TimeStamp = evt.TimeStamp;
                     sample.TxRate = sample.BytesSent;
                     sample.RxRate = sample.BytesReceived;
                     sample.CongestionEvents = 0;
                 }
-
-                eventIndex++;
             }
-            return tputevents;
+            return tputEvents;
         }
 
         internal QuicConnection(ulong pointer, uint processId)

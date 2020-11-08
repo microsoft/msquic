@@ -114,6 +114,11 @@ namespace MsQuicTracing.DataModel
         StreamRecvState,
         StreamError,
         StreamErrorStatus,
+
+        DatapathSend = 9217,
+        DatapathRecv,
+        DatapathError,
+        DatapathErrorStatus,
     }
 
     public abstract class QuicEvent : IKeyedDataType<Guid>

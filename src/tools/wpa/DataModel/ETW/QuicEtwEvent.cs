@@ -166,6 +166,10 @@ namespace MsQuicTracing.DataModel.ETW
                     return new QuicStreamCreatedEtwPayload(data, pointerSize);
                 case QuicEventId.StreamOutFlowBlocked:
                     return new QuicStreamOutFlowBlockedEtwPayload(data);
+                case QuicEventId.DatapathSend:
+                    return new QuicDatapathSendEtwPayload(data);
+                case QuicEventId.DatapathRecv:
+                    return new QuicDatapathRecvEtwPayload(data);
                 default:
                     return null;
             }
