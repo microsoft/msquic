@@ -12,8 +12,7 @@ protocol. It is cross platform, written in C and designed to be a general purpos
 
 QUIC has many benefits when compared to existing "TLS over TCP" scenarios:
 
-  * Handshake authenticated with TLS 1.3.
-  * All packets are encrypted.
+  * All packets are encrypted and handshake is authenticated with TLS 1.3.
   * Parallel streams of (reliable and unreliable) application data.
   * Exchange application data in the first round trip (0-RTT).
   * Improved congestion control and loss recovery.
@@ -41,8 +40,7 @@ Drafts: [Transport](https://tools.ietf.org/html/draft-ietf-quic-transport), [TLS
 
 # Platform Support
 
-MsQuic currently officially supports the following platform configurations.
-Information on support for MsQuic itself is located in [Support.md.](./docs/Support.md)
+MsQuic currently officially supports the following platform configurations. Information on support for MsQuic itself is located in [Support.md.](./docs/Support.md)
 
 ## Windows 10
 
