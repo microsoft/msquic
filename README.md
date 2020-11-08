@@ -4,25 +4,22 @@ MsQuic
 MsQuic is a Microsoft implementation of the [IETF QUIC](https://tools.ietf.org/html/draft-ietf-quic-transport)
 protocol. It is cross platform, written in C and designed to be a general purpose QUIC library.
 
-> **Important** The MsQuic library, as well as the protocol itself, is still a work in progress. Version 1 is not yet finalized and may continue to experience breaking changes until it is finalized.
+> **Important** The QUIC protocol is currently in IETF last call (not RFC quite yet). MsQuic implements the latest published drafts.
 
 [![Build Status](https://dev.azure.com/ms/msquic/_apis/build/status/CI?branchName=main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) [![Test Status](https://img.shields.io/azure-devops/tests/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) [![Code Coverage](https://img.shields.io/azure-devops/coverage/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) ![CodeQL](https://github.com/microsoft/msquic/workflows/CodeQL/badge.svg?branch=main) [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/microsoft/msquic.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/microsoft/msquic/context:cpp)
 
 ## Protocol Features
 
-QUIC has many benefits when compared to existing TLS over TCP scenarios:
+QUIC has many benefits when compared to existing "TLS over TCP" scenarios:
 
-  * Handshake authenticated with TLS 1.3
-  * All packets are encrypted
-  * Parallel streams of application data.
-  * Reliable and unreliable delivery of application data.
+  * Handshake authenticated with TLS 1.3.
+  * All packets are encrypted.
+  * Parallel streams of (reliable and unreliable) application data.
   * Exchange application data in the first round trip (0-RTT).
-  * Improved (compared to TCP) congestion control and loss recovery.
+  * Improved congestion control and loss recovery.
   * Survives a change in the clients IP address or port.
   * Stateless load balancing.
   * Easily extendable for new features and extensions.
-
-> **Important** The QUIC spec is currently in IETF last call and should move to IESG review by Nov 2020. From there it will likely take a few months before it is finalized to RFC.
 
 Drafts: [Transport](https://tools.ietf.org/html/draft-ietf-quic-transport), [TLS](https://tools.ietf.org/html/draft-ietf-quic-tls), [Recovery](https://tools.ietf.org/html/draft-ietf-quic-recovery), [Datagram](https://tools.ietf.org/html/draft-ietf-quic-datagram), [Load Balancing](https://tools.ietf.org/html/draft-ietf-quic-load-balancers)
 
@@ -59,7 +56,7 @@ On Windows 10, MsQuic relies on built-in support from [Schannel](https://docs.mi
 
 On Linux, MsQuic relies on [OpenSSL](https://www.openssl.org/) for TLS 1.3 functionality.
 
-> **Important** This configuration relies on an [outstanding pull request](https://github.com/openssl/openssl/pull/8797) to OpenSSL master for QUIC/TLS support. It is still currently unknown as to when it will be merged into master. See [here](https://www.openssl.org/blog/blog/2020/02/17/QUIC-and-OpenSSL/) for more details.
+> **Important** This configuration relies on a fork of OpenSSL master for QUIC/TLS support. It is still currently unknown as to when mainline will support QUIC. See [here](https://www.openssl.org/blog/blog/2020/02/17/QUIC-and-OpenSSL/) for more details.
 
 > **Important** This configuration does not support 0-RTT. Complete integration with OpenSSL is an ongoing effort.
 
