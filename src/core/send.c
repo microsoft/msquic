@@ -45,7 +45,7 @@ QuicSendUninitialize(
     Send->DelayedAckTimerActive = FALSE;
 
     if (Send->InitialToken != NULL) {
-        QUIC_FREE(Send->InitialToken);
+        QUIC_FREE(Send->InitialToken, QUIC_POOL_INITIAL_TOKEN);
         Send->InitialToken = NULL;
     }
 

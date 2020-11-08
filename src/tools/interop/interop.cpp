@@ -38,6 +38,8 @@ QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
 };
 
 const QUIC_BUFFER HandshakeAlpns[] = {
+    { sizeof("hq-32") - 1, (uint8_t*)"hq-32" },
+    { sizeof("h3-32") - 1, (uint8_t*)"h3-32" },
     { sizeof("hq-31") - 1, (uint8_t*)"hq-31" },
     { sizeof("h3-31") - 1, (uint8_t*)"h3-31" },
     { sizeof("hq-30") - 1, (uint8_t*)"hq-30" },
@@ -51,6 +53,7 @@ const QUIC_BUFFER HandshakeAlpns[] = {
 };
 
 const QUIC_BUFFER DatapathAlpns[] = {
+    { sizeof("hq-32") - 1, (uint8_t*)"hq-32" },
     { sizeof("hq-31") - 1, (uint8_t*)"hq-31" },
     { sizeof("hq-30") - 1, (uint8_t*)"hq-30" },
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },

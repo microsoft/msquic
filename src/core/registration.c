@@ -29,7 +29,7 @@ QUIC_STATUS
 QUIC_API
 MsQuicRegistrationOpen(
     _In_opt_ const QUIC_REGISTRATION_CONFIG* Config,
-    _Outptr_ _At_(*Registration, __drv_allocatesMem(Mem)) _Pre_defensive_
+    _Outptr_ _At_(*NewRegistration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* NewRegistration
     )
 {
@@ -51,7 +51,10 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
-    Registration = QUIC_ALLOC_NONPAGED(sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
+    Registration =
+        QUIC_ALLOC_NONPAGED(
+            sizeof(QUIC_REGISTRATION) + AppNameLength + 1,
+            QUIC_POOL_REGISTRATION);
     if (Registration == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -159,7 +162,7 @@ Error:
         QuicRundownUninitialize(&Registration->Rundown);
         QuicDispatchLockUninitialize(&Registration->ConnectionLock);
         QuicLockUninitialize(&Registration->ConfigLock);
-        QUIC_FREE(Registration);
+        QUIC_FREE(Registration, QUIC_POOL_REGISTRATION);
     }
 
     QuicTraceEvent(
@@ -207,10 +210,10 @@ MsQuicRegistrationClose(
         QuicLockUninitialize(&Registration->ConfigLock);
 
         if (Registration->CidPrefix != NULL) {
-            QUIC_FREE(Registration->CidPrefix);
+            QUIC_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
         }
 
-        QUIC_FREE(Registration);
+        QUIC_FREE(Registration, QUIC_POOL_REGISTRATION);
 
         QuicTraceEvent(
             ApiExit,
@@ -389,7 +392,7 @@ QuicRegistrationParamSet(
 
         if (BufferLength == 0) {
             if (Registration->CidPrefix != NULL) {
-                QUIC_FREE(Registration->CidPrefix);
+                QUIC_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
                 Registration->CidPrefix = NULL;
             }
             Registration->CidPrefixLength = 0;
@@ -403,13 +406,13 @@ QuicRegistrationParamSet(
         }
 
         if (BufferLength > Registration->CidPrefixLength) {
-            uint8_t* NewCidPrefix = QUIC_ALLOC_NONPAGED(BufferLength);
+            uint8_t* NewCidPrefix = QUIC_ALLOC_NONPAGED(BufferLength, QUIC_POOL_CIDPREFIX);
             if (NewCidPrefix == NULL) {
                 Status = QUIC_STATUS_OUT_OF_MEMORY;
                 break;
             }
             QUIC_DBG_ASSERT(Registration->CidPrefix != NULL);
-            QUIC_FREE(Registration->CidPrefix);
+            QUIC_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
             Registration->CidPrefix = NewCidPrefix;
         }
 

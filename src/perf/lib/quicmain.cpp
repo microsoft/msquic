@@ -87,6 +87,7 @@ QuicMainStart(
         Status = QuicDataPathBindingCreate(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
         if (QUIC_FAILED(Status)) {
             QuicDataPathUninitialize(Datapath);
+            Datapath = nullptr;
             WriteOutput("Datapath Binding for shutdown failed to initialize: %d\n", Status);
             return Status;
         }
@@ -116,6 +117,7 @@ QuicMainStart(
         } else {
             PrintHelp();
             delete MsQuic;
+            MsQuic = nullptr;
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
@@ -149,27 +151,57 @@ QuicMainStop(
     _In_ int Timeout
     ) {
     if (TestToRun == nullptr) {
-        if (ServerMode) {
-            QuicDataPathBindingDelete(Binding);
-            QuicDataPathUninitialize(Datapath);
-            Datapath = nullptr;
-            Binding = nullptr;
-        }
         return QUIC_STATUS_SUCCESS;
     }
 
     QUIC_STATUS Status = TestToRun->Wait(Timeout);
+    return Status;
+}
+
+void
+QuicMainFree(
+    )
+{
     delete TestToRun;
+    TestToRun = nullptr;
     delete MsQuic;
-    if (ServerMode) {
+    MsQuic = nullptr;
+
+    if (Binding) {
         QuicDataPathBindingDelete(Binding);
-        QuicDataPathUninitialize(Datapath);
-        Datapath = nullptr;
         Binding = nullptr;
     }
-    MsQuic = nullptr;
-    TestToRun = nullptr;
-    return Status;
+    if (Datapath) {
+        QuicDataPathUninitialize(Datapath);
+        Datapath = nullptr;
+    }
+}
+
+QUIC_STATUS
+QuicMainGetExtraDataMetadata(
+    _Out_ PerfExtraDataMetadata* Metadata
+    )
+{
+    if (TestToRun == nullptr) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    TestToRun->GetExtraDataMetadata(Metadata);
+    return QUIC_STATUS_SUCCESS;
+}
+
+QUIC_STATUS
+QuicMainGetExtraData(
+    _Out_writes_bytes_(*Length) uint8_t* Data,
+    _Inout_ uint32_t* Length
+    )
+{
+    if (TestToRun == nullptr) {
+        *Length = 0;
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    return TestToRun->GetExtraData(Data, Length);
 }
 
 void

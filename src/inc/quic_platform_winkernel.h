@@ -254,10 +254,9 @@ QuicPlatformLogAssert(
 
 extern uint64_t QuicTotalMemory;
 
-#define QUIC_ALLOC_PAGED(Size) ExAllocatePool2(POOL_FLAG_PAGED | POOL_FLAG_UNINITIALIZED, Size, QUIC_POOL_GENERIC)
-#define QUIC_ALLOC_NONPAGED(Size) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, QUIC_POOL_GENERIC)
-#define QUIC_FREE(Mem) ExFreePool((void*)Mem)
-#define QUIC_FREE_TAG(Mem, Tag) ExFreePoolWithTag((void*)Mem, Tag)
+#define QUIC_ALLOC_PAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
+#define QUIC_ALLOC_NONPAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
+#define QUIC_FREE(Mem, Tag) ExFreePoolWithTag((void*)Mem, Tag)
 
 typedef LOOKASIDE_LIST_EX QUIC_POOL;
 
@@ -896,8 +895,8 @@ QuicRandom(
 #define QUIC_SILO_INVALID ((PESILO)(void*)(LONG_PTR)-1)
 
 #define QuicSiloGetCurrentServer() PsGetCurrentServerSilo()
-#define QuicSiloAddRef(Silo) if (Silo != NULL) { ObReferenceObjectWithTag(Silo, QUIC_POOL_GENERIC); }
-#define QuicSiloRelease(Silo) if (Silo != NULL) { ObDereferenceObjectWithTag(Silo, QUIC_POOL_GENERIC); }
+#define QuicSiloAddRef(Silo) if (Silo != NULL) { ObReferenceObjectWithTag(Silo, QUIC_POOL_SILO); }
+#define QuicSiloRelease(Silo) if (Silo != NULL) { ObDereferenceObjectWithTag(Silo, QUIC_POOL_SILO); }
 #define QuicSiloAttach(Silo) PsAttachSiloToCurrentThread(Silo)
 #define QuicSiloDetatch(PrevSilo) PsDetachSiloFromCurrentThread(PrevSilo)
 
@@ -940,7 +939,7 @@ QuicSetCurrentThreadProcessorAffinity(
     Affinity.Group = ProcInfo.Group;
     return
         ZwSetInformationThread(
-            PsGetCurrentThread(),
+            ZwCurrentThread(),
             ThreadGroupInformation,
             &Affinity,
             sizeof(Affinity));
@@ -958,7 +957,7 @@ QuicSetCurrentThreadGroupAffinity(
     if (QUIC_FAILED(
         Status =
             ZwQueryInformationThread(
-                PsGetCurrentThread(),
+                ZwCurrentThread(),
                 ThreadGroupInformation,
                 &ExistingAffinity,
                 sizeof(ExistingAffinity),
@@ -970,7 +969,7 @@ QuicSetCurrentThreadGroupAffinity(
     Affinity.Group = ProcessorGroup;
     return
         ZwSetInformationThread(
-            PsGetCurrentThread(),
+            ZwCurrentThread(),
             ThreadGroupInformation,
             &Affinity,
             sizeof(Affinity));

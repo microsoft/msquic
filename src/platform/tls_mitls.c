@@ -403,7 +403,7 @@ QuicTlsSecConfigCreate(
     }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete).")
-    QUIC_SEC_CONFIG* SecurityConfig = QUIC_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG));
+    QUIC_SEC_CONFIG* SecurityConfig = QUIC_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (SecurityConfig == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -495,7 +495,7 @@ QuicTlsSecConfigDelete(
         (SecurityConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT)) {
         QuicCertFree(SecurityConfig->Certificate);
     }
-    QUIC_FREE(SecurityConfig);
+    QUIC_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -516,7 +516,7 @@ QuicTlsInitialize(
 
     TlsSetValue(miTlsCurrentConnectionIndex, Config->Connection);
 
-    TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS) + sizeof(uint16_t) + Config->AlpnBufferLength);
+    TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS) + sizeof(uint16_t) + Config->AlpnBufferLength, QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -594,7 +594,7 @@ QuicTlsInitialize(
                 goto Error;
             }
 
-            TlsContext->SNI = QUIC_ALLOC_PAGED(ServerNameLength + 1);
+            TlsContext->SNI = QUIC_ALLOC_PAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
             if (TlsContext->SNI == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -668,9 +668,9 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (TlsContext->SNI) {
-            QUIC_FREE(TlsContext->SNI);
+            QUIC_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
         }
-        QUIC_FREE(TlsContext);
+        QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
 
 Exit:
@@ -694,18 +694,18 @@ QuicTlsUninitialize(
                     TlsContext->miTlsTicket.ticket,
                     QUIC_TLS_TICKET,
                     Buffer);
-            QUIC_FREE(SerializedTicket);
+            QUIC_FREE(SerializedTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
         }
 
         if (TlsContext->SNI != NULL) {
-            QUIC_FREE(TlsContext->SNI);
+            QUIC_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
         }
 
         if (TlsContext->Extensions[1].ext_data != NULL) {
-            QUIC_FREE(TlsContext->Extensions[1].ext_data);
+            QUIC_FREE(TlsContext->Extensions[1].ext_data, QUIC_POOL_TLS_TRANSPARAMS);
         }
 
-        QUIC_FREE(TlsContext);
+        QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
 }
 
@@ -1240,7 +1240,7 @@ QuicTlsOnCertSelect(
     }
 
     if (ServerNameIndicationLength != 0) {
-        TlsContext->SNI = QUIC_ALLOC_PAGED((uint16_t)(ServerNameIndicationLength + 1));
+        TlsContext->SNI = QUIC_ALLOC_PAGED((uint16_t)(ServerNameIndicationLength + 1), QUIC_POOL_TLS_SNI);
         if (TlsContext->SNI == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1402,37 +1402,37 @@ QuicTlsOnNegotiate(
                 "Failed to find a matching ALPN");
             goto Exit;
         }
-    }
 
-    //
-    // Decode and validate peer's QUIC transport parameters.
-    //
+        //
+        // Decode and validate peer's QUIC transport parameters.
+        //
 
-    if (!FFI_mitls_find_custom_extension(
-            TlsContext->IsServer,
-            RawExtensions,
-            RawExtensionsLength,
-            TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
-            &ExtensionData,
-            &ExtensionDataLength)) {
-        QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s.",
-            TlsContext->Connection,
-            "Missing QUIC transport parameters");
-        goto Exit;
-    }
+        if (!FFI_mitls_find_custom_extension(
+                TlsContext->IsServer,
+                RawExtensions,
+                RawExtensionsLength,
+                TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
+                &ExtensionData,
+                &ExtensionDataLength)) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Missing QUIC transport parameters");
+            goto Exit;
+        }
 
-    if (!TlsContext->ReceiveTPCallback(
-            TlsContext->Connection,
-            (uint16_t)ExtensionDataLength,
-            ExtensionData)) {
-        QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s.",
-            TlsContext->Connection,
-            "Failed to process the QUIC transport parameters");
-        goto Exit;
+        if (!TlsContext->ReceiveTPCallback(
+                TlsContext->Connection,
+                (uint16_t)ExtensionDataLength,
+                ExtensionData)) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Failed to process the QUIC transport parameters");
+            goto Exit;
+        }
     }
 
     Action = TLS_nego_accept;
@@ -1624,7 +1624,7 @@ QuicTlsOnTicketReady(
         sizeof(QUIC_TLS_TICKET) +
         (uint32_t)(Ticket->ticket_len + Ticket->session_len);
 
-    QUIC_TLS_TICKET *SerializedTicket = QUIC_ALLOC_NONPAGED(TotalSize);
+    QUIC_TLS_TICKET *SerializedTicket = QUIC_ALLOC_NONPAGED(TotalSize, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (SerializedTicket == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1650,7 +1650,7 @@ QuicTlsOnTicketReady(
         TotalSize,
         (uint8_t*)SerializedTicket);
 
-    QUIC_FREE(SerializedTicket);
+    QUIC_FREE(SerializedTicket, QUIC_POOL_PLATFORM_TMP_ALLOC);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1936,7 +1936,7 @@ QuicPacketKeyDerive(
     const uint16_t PacketKeyLength =
         sizeof(QUIC_PACKET_KEY) +
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
-    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
+    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength, QUIC_POOL_TLS_PACKETKEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -2148,7 +2148,7 @@ QuicPacketKeyCreate(
     const uint16_t PacketKeyLength =
         sizeof(QUIC_PACKET_KEY) +
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
-    Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
+    Key = QUIC_ALLOC_NONPAGED(PacketKeyLength, QUIC_POOL_TLS_PACKETKEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -2248,7 +2248,7 @@ QuicPacketKeyFree(
         if (Key->Type >= QUIC_PACKET_KEY_1_RTT) {
             RtlSecureZeroMemory(Key->TrafficSecret, sizeof(QUIC_SECRET));
         }
-        QUIC_FREE(Key);
+        QUIC_FREE(Key, QUIC_POOL_TLS_PACKETKEY);
     }
 }
 
@@ -2335,7 +2335,7 @@ QuicKeyCreate(
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
-    QUIC_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY));
+    QUIC_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY), QUIC_POOL_TLS_KEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -2360,7 +2360,7 @@ QuicKeyFree(
     )
 {
     if (Key) {
-        QUIC_FREE(Key);
+        QUIC_FREE(Key, QUIC_POOL_TLS_KEY);
     }
 }
 
@@ -2468,13 +2468,13 @@ QuicHpKeyCreate(
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
-    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY));
+    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HP_KEY), QUIC_POOL_TLS_HP_KEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_KEY",
-            sizeof(QUIC_KEY));
+            "QUIC_HP_KEY",
+            sizeof(QUIC_HP_KEY));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -2504,7 +2504,7 @@ QuicHpKeyFree(
         } else if (Key->Aead == QUIC_AEAD_AES_256_GCM) {
             EverCrypt_aes256_free(Key->case_aes256);
         }
-        QUIC_FREE(Key);
+        QUIC_FREE(Key, QUIC_POOL_TLS_HP_KEY);
     }
 }
 
@@ -2557,7 +2557,7 @@ QuicHashCreate(
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
-    QUIC_HASH* Hash = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASH) + SaltLength);
+    QUIC_HASH* Hash = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASH) + SaltLength, QUIC_POOL_TLS_HASH);
     if (Hash == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -2583,7 +2583,7 @@ QuicHashFree(
     )
 {
     if (Hash) {
-        QUIC_FREE(Hash);
+        QUIC_FREE(Hash, QUIC_POOL_TLS_HASH);
     }
 }
 

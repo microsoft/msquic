@@ -69,7 +69,7 @@ QuicStorageOpen(
             PathLength + 1);
     }
 
-    Storage = QUIC_ALLOC_PAGED(sizeof(QUIC_STORAGE));
+    Storage = QUIC_ALLOC_PAGED(sizeof(QUIC_STORAGE), QUIC_POOL_STORAGE);
     if (Storage == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -141,7 +141,7 @@ Exit:
         if (Storage->NotifyEvent != NULL) {
             CloseHandle(Storage->NotifyEvent);
         }
-        QUIC_FREE(Storage);
+        QUIC_FREE(Storage, QUIC_POOL_STORAGE);
     }
 
     return Status;
@@ -158,7 +158,7 @@ QuicStorageClose(
         RegCloseKey(Storage->RegKey);
         CloseThreadpoolWait(Storage->ThreadPoolWait);
         CloseHandle(Storage->NotifyEvent);
-        QUIC_FREE(Storage);
+        QUIC_FREE(Storage, QUIC_POOL_STORAGE);
     }
 }
 

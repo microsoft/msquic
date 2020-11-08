@@ -310,7 +310,7 @@ QuicTlsAddHandshakeDataCallback(
             NewBufferAllocLength <<= 1;
         }
 
-        uint8_t* NewBuffer = QUIC_ALLOC_NONPAGED(NewBufferAllocLength);
+        uint8_t* NewBuffer = QUIC_ALLOC_NONPAGED(NewBufferAllocLength, QUIC_POOL_TLS_BUFFER);
         if (NewBuffer == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -325,7 +325,7 @@ QuicTlsAddHandshakeDataCallback(
             NewBuffer,
             TlsState->Buffer,
             TlsState->BufferLength);
-        QUIC_FREE(TlsState->Buffer);
+        QUIC_FREE(TlsState->Buffer, QUIC_POOL_TLS_BUFFER);
         TlsState->Buffer = NewBuffer;
         TlsState->BufferAllocLength = NewBufferAllocLength;
     }
@@ -423,14 +423,6 @@ QuicTlsClientHelloCallback(
         return SSL_CLIENT_HELLO_ERROR;
     }
 
-    if (!TlsContext->ReceiveTPCallback(
-            TlsContext->Connection,
-            (uint16_t)TransportParamLen,
-            TransportParams)) {
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-        return SSL_CLIENT_HELLO_ERROR;
-    }
-
     return SSL_CLIENT_HELLO_SUCCESS;
 }
 
@@ -487,7 +479,7 @@ QuicTlsSecConfigCreate(
     // Create a security config.
     //
 
-    SecurityConfig = QuicAlloc(sizeof(QUIC_SEC_CONFIG));
+    SecurityConfig = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (SecurityConfig == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -711,7 +703,7 @@ QuicTlsSecConfigDelete(
         SecurityConfig->SSLCtx = NULL;
     }
 
-    QuicFree(SecurityConfig);
+    QUIC_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
 }
 
 QUIC_STATUS
@@ -725,7 +717,7 @@ QuicTlsInitialize(
     QUIC_TLS* TlsContext = NULL;
     uint16_t ServerNameLength = 0;
 
-    TlsContext = QuicAlloc(sizeof(QUIC_TLS));
+    TlsContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS), QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -765,7 +757,7 @@ QuicTlsInitialize(
                 goto Exit;
             }
 
-            TlsContext->SNI = QuicAlloc(ServerNameLength + 1);
+            TlsContext->SNI = QUIC_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
             if (TlsContext->SNI == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -818,7 +810,7 @@ QuicTlsInitialize(
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
-    QUIC_FREE(Config->LocalTPBuffer);
+    QUIC_FREE(Config->LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
 
     State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
 
@@ -847,7 +839,7 @@ QuicTlsUninitialize(
             "Cleaning up");
 
         if (TlsContext->SNI != NULL) {
-            QUIC_FREE(TlsContext->SNI);
+            QUIC_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
             TlsContext->SNI = NULL;
         }
 
@@ -856,7 +848,7 @@ QuicTlsUninitialize(
             TlsContext->Ssl = NULL;
         }
 
-        QUIC_FREE(TlsContext);
+        QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
         TlsContext = NULL;
     }
 }
@@ -902,6 +894,7 @@ QuicTlsReset(
     SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
     SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
 
+    QUIC_FRE_ASSERT(FALSE); // Currently unsupported!!
     /* TODO - Figure out if this is necessary.
     if (SSL_set_quic_transport_params(
             TlsContext->Ssl,
@@ -1364,7 +1357,7 @@ QuicPacketKeyDerive(
     const uint16_t PacketKeyLength =
         sizeof(QUIC_PACKET_KEY) +
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
-    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
+    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength, QUIC_POOL_TLS_PACKETKEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1554,7 +1547,7 @@ QuicPacketKeyFree(
         if (Key->Type >= QUIC_PACKET_KEY_1_RTT) {
             QuicSecureZeroMemory(Key->TrafficSecret, sizeof(QUIC_SECRET));
         }
-        QUIC_FREE(Key);
+        QUIC_FREE(Key, QUIC_POOL_TLS_PACKETKEY);
     }
 }
 

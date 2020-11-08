@@ -73,7 +73,10 @@ QuicProcessorInfoInit(
     uint32_t ProcessorsPerGroup = 0;
     uint32_t NumaNodeCount = 0;
 
-    QuicProcessorInfo = QUIC_ALLOC_NONPAGED(ActiveProcessorCount * sizeof(QUIC_PROCESSOR_INFO));
+    QuicProcessorInfo =
+        QUIC_ALLOC_NONPAGED(
+            ActiveProcessorCount * sizeof(QUIC_PROCESSOR_INFO),
+            QUIC_POOL_PLATFORM_PROC);
     if (QuicProcessorInfo == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -92,7 +95,7 @@ QuicProcessorInfoInit(
         goto Error;
     }
 
-    Buffer = QUIC_ALLOC_NONPAGED(BufferLength);
+    Buffer = QUIC_ALLOC_NONPAGED(BufferLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (Buffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -159,7 +162,7 @@ QuicProcessorInfoInit(
         goto Error;
     }
 
-    QuicProcessorGroupOffsets = QUIC_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint32_t));
+    QuicProcessorGroupOffsets = QUIC_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint32_t), QUIC_POOL_PLATFORM_PROC);
     if (QuicProcessorGroupOffsets == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -173,7 +176,7 @@ QuicProcessorInfoInit(
         QuicProcessorGroupOffsets[i] = i * ProcessorsPerGroup;
     }
 
-    QuicNumaMasks = QUIC_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t));
+    QuicNumaMasks = QUIC_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t), QUIC_POOL_PLATFORM_PROC);
     if (QuicNumaMasks == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -264,14 +267,14 @@ Next:
 
 Error:
 
-    QUIC_FREE(Buffer);
+    QUIC_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
     if (!Result) {
-        QUIC_FREE(QuicNumaMasks);
+        QUIC_FREE(QuicNumaMasks, QUIC_POOL_PLATFORM_PROC);
         QuicNumaMasks = NULL;
-        QUIC_FREE(QuicProcessorGroupOffsets);
+        QUIC_FREE(QuicProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
         QuicProcessorGroupOffsets = NULL;
-        QUIC_FREE(QuicProcessorInfo);
+        QUIC_FREE(QuicProcessorInfo, QUIC_POOL_PLATFORM_PROC);
         QuicProcessorInfo = NULL;
     }
 
@@ -346,11 +349,11 @@ QuicPlatformUninitialize(
 {
     QuicTlsLibraryUninitialize();
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
-    QUIC_FREE(QuicNumaMasks);
+    QUIC_FREE(QuicNumaMasks, QUIC_POOL_PLATFORM_PROC);
     QuicNumaMasks = NULL;
-    QUIC_FREE(QuicProcessorGroupOffsets);
+    QUIC_FREE(QuicProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
     QuicProcessorGroupOffsets = NULL;
-    QUIC_FREE(QuicProcessorInfo);
+    QUIC_FREE(QuicProcessorInfo, QUIC_POOL_PLATFORM_PROC);
     QuicProcessorInfo = NULL;
     HeapDestroy(QuicPlatform.Heap);
     QuicPlatform.Heap = NULL;
@@ -420,29 +423,50 @@ QuicRandom(
 
 #endif
 
+#ifdef DEBUG
+#define AllocOffset (sizeof(void*) * 2)
+#endif
+
 _Ret_maybenull_
 _Post_writable_byte_size_(ByteCount)
 DECLSPEC_ALLOCATOR
 void*
 QuicAlloc(
-    _In_ size_t ByteCount
+    _In_ size_t ByteCount,
+    _In_ uint32_t Tag
     )
 {
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
 #ifdef QUIC_RANDOM_ALLOC_FAIL
     uint8_t Rand; QuicRandom(sizeof(Rand), &Rand);
-    return ((Rand % 100) == 1) ? NULL : HeapAlloc(QuicPlatform.Heap, 0, ByteCount);
+    if ((Rand % 100) == 1) return NULL;
 #else
+#ifdef DEBUG
+    void* Alloc = HeapAlloc(QuicPlatform.Heap, 0, ByteCount + AllocOffset);
+    *((uint32_t*)Alloc) = Tag;
+    return (void*)((uint8_t*)Alloc + AllocOffset);
+#else
+    UNREFERENCED_PARAMETER(Tag);
     return HeapAlloc(QuicPlatform.Heap, 0, ByteCount);
+#endif
 #endif // QUIC_RANDOM_ALLOC_FAIL
 }
 
 void
 QuicFree(
-    __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem
+    __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem,
+    _In_ uint32_t Tag
     )
 {
+#ifdef DEBUG
+    void* ActualAlloc = (void*)((uint8_t*)Mem - AllocOffset);
+    uint32_t TagToCheck = *((uint32_t*)ActualAlloc);
+    QUIC_DBG_ASSERT(TagToCheck == Tag);
+    (void)HeapFree(QuicPlatform.Heap, 0, ActualAlloc);
+#else
+    UNREFERENCED_PARAMETER(Tag);
     (void)HeapFree(QuicPlatform.Heap, 0, Mem);
+#endif
 }
 
 __declspec(noreturn)

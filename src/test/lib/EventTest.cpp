@@ -316,7 +316,6 @@ QuicTestValidateConnectionEvents1(
     );
     ConnValidator Server(
         new(std::nothrow) ConnEventValidator* [6] {
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true), // This comes AFTER shutdown in miTLS
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true), // This comes AFTER shutdown in miTLS
@@ -375,7 +374,6 @@ QuicTestValidateConnectionEvents2(
     );
     ConnValidator Server(
         new(std::nothrow) ConnEventValidator* [4] {
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
@@ -442,9 +440,7 @@ QuicTestValidateConnectionEvents3(
     );
     ConnValidator Server(
         new(std::nothrow) ConnEventValidator* [8] {
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED, 0, true),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED, 0, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true, true), // This comes AFTER shutdown in miTLS
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true, true), // This comes AFTER shutdown in miTLS
@@ -469,7 +465,7 @@ QuicTestValidateConnectionEvents3(
             QUIC_PARAM_CONN_RESUMPTION_TICKET,
             ResumptionTicket->Length,
             ResumptionTicket->Buffer));
-    QUIC_FREE(ResumptionTicket);
+    QUIC_FREE(ResumptionTicket, QUIC_POOL_TEST);
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
@@ -582,7 +578,6 @@ QuicTestValidateStreamEvents1(
         });
     Server.SetExpectedEvents(
         new(std::nothrow) ConnEventValidator* [6] {
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
             new(std::nothrow) NewStreamEventValidator(&ServerStream),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
@@ -677,7 +672,6 @@ QuicTestValidateStreamEvents2(
         });
     Server.SetExpectedEvents(
         new(std::nothrow) ConnEventValidator* [6] {
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true), // This comes AFTER shutdown in miTLS
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true), // This comes AFTER shutdown in miTLS

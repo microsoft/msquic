@@ -142,13 +142,13 @@ protected:
         LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
         LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
 
-        ExpectedData = (char*)QUIC_ALLOC_NONPAGED(ExpectedDataSize);
+        ExpectedData = (char*)QUIC_ALLOC_NONPAGED(ExpectedDataSize, QUIC_POOL_TEST);
         ASSERT_NE(ExpectedData, nullptr);
     }
 
     static void TearDownTestSuite()
     {
-        QUIC_FREE(ExpectedData);
+        QUIC_FREE(ExpectedData, QUIC_POOL_TEST);
     }
 
     static void

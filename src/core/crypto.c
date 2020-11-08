@@ -125,7 +125,7 @@ QuicCryptoInitialize(
         &Crypto->SparseAckRanges);
 
     Crypto->TlsState.BufferAllocLength = SendBufferLength;
-    Crypto->TlsState.Buffer = QUIC_ALLOC_NONPAGED(SendBufferLength);
+    Crypto->TlsState.Buffer = QUIC_ALLOC_NONPAGED(SendBufferLength, QUIC_POOL_TLS_BUFFER);
     if (Crypto->TlsState.Buffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -211,7 +211,7 @@ Exit:
             QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
         }
         if (Crypto->TlsState.Buffer != NULL) {
-            QUIC_FREE(Crypto->TlsState.Buffer);
+            QUIC_FREE(Crypto->TlsState.Buffer, QUIC_POOL_TLS_BUFFER);
             Crypto->TlsState.Buffer = NULL;
         }
     }
@@ -236,18 +236,18 @@ QuicCryptoUninitialize(
         Crypto->TLS = NULL;
     }
     if (Crypto->ResumptionTicket != NULL) {
-        QUIC_FREE(Crypto->ResumptionTicket);
+        QUIC_FREE(Crypto->ResumptionTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
         Crypto->ResumptionTicket = NULL;
     }
     if (Crypto->TlsState.NegotiatedAlpn != NULL &&
         QuicConnIsServer(QuicCryptoGetConnection(Crypto))) {
-        QUIC_FREE(Crypto->TlsState.NegotiatedAlpn);
+        QUIC_FREE(Crypto->TlsState.NegotiatedAlpn, QUIC_POOL_ALPN);
         Crypto->TlsState.NegotiatedAlpn = NULL;
     }
     if (Crypto->Initialized) {
         QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
         QuicRangeUninitialize(&Crypto->SparseAckRanges);
-        QUIC_FREE(Crypto->TlsState.Buffer);
+        QUIC_FREE(Crypto->TlsState.Buffer, QUIC_POOL_TLS_BUFFER);
         Crypto->TlsState.Buffer = NULL;
         Crypto->Initialized = FALSE;
     }
@@ -310,7 +310,7 @@ QuicCryptoInitializeTls(
             Connection,
             Status,
             "QuicTlsInitialize");
-        QUIC_FREE(TlsConfig.LocalTPBuffer);
+        QUIC_FREE(TlsConfig.LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
         goto Error;
     }
 
@@ -342,14 +342,15 @@ QuicCryptoReset(
     Crypto->RecoveryEndOffset = 0;
     Crypto->InRecovery = FALSE;
 
-    if (ResetTls) {
+    UNREFERENCED_PARAMETER(ResetTls);
+    /*if (ResetTls) {
         Crypto->TlsState.BufferLength = 0;
         Crypto->TlsState.BufferTotalLength = 0;
 
         QuicTlsReset(Crypto->TLS);
         QuicCryptoProcessData(Crypto, TRUE);
 
-    } else {
+    } else*/ {
         QuicSendSetSendFlag(
             &QuicCryptoGetConnection(Crypto)->Send,
             QUIC_CONN_SEND_FLAG_CRYPTO);
@@ -1153,9 +1154,11 @@ QuicConnReceiveTP(
     _In_reads_(TPLength) const uint8_t* TPBuffer
     )
 {
+    QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
+
     if (!QuicCryptoTlsDecodeTransportParameters(
             Connection,
-            !QuicConnIsServer(Connection),
+            TRUE,
             TPBuffer,
             TPLength,
             &Connection->PeerTransportParams)) {
@@ -1556,6 +1559,8 @@ QuicCryptoProcessData(
                 goto Error;
             }
 
+            QuicConnProcessPeerTransportParameters(Connection, FALSE);
+
             QuicRecvBufferDrain(&Crypto->RecvBuffer, 0);
             QuicCryptoValidate(Crypto);
 
@@ -1843,7 +1848,7 @@ QuicCryptoEncodeServerTicket(
         EncodedTPLength +
         AppDataLength);
 
-    TicketBuffer = QUIC_ALLOC_NONPAGED(TotalTicketLength);
+    TicketBuffer = QUIC_ALLOC_NONPAGED(TotalTicketLength, QUIC_POOL_SERVER_CRYPTO_TICKET);
     if (TicketBuffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1891,7 +1896,7 @@ QuicCryptoEncodeServerTicket(
 Error:
 
     if (EncodedHSTP != NULL) {
-        QUIC_FREE(EncodedHSTP);
+        QUIC_FREE(EncodedHSTP, QUIC_POOL_TLS_TRANSPARAMS);
     }
 
     return Status;
@@ -2076,7 +2081,7 @@ QuicCryptoEncodeClientTicket(
         EncodedTPLength +
         TicketLength);
 
-    ClientTicketBuffer = QUIC_ALLOC_NONPAGED(ClientTicketBufferLength);
+    ClientTicketBuffer = QUIC_ALLOC_NONPAGED(ClientTicketBufferLength, QUIC_POOL_CLIENT_CRYPTO_TICKET);
     if (ClientTicketBuffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -2119,7 +2124,7 @@ QuicCryptoEncodeClientTicket(
 Error:
 
     if (EncodedServerTP != NULL) {
-        QUIC_FREE(EncodedServerTP);
+        QUIC_FREE(EncodedServerTP, QUIC_POOL_TLS_TRANSPARAMS);
     }
 
     return Status;
@@ -2209,7 +2214,7 @@ QuicCryptoDecodeClientTicket(
         goto Error;
     }
     if (TicketLength != 0) {
-        *ServerTicket = QUIC_ALLOC_NONPAGED((uint32_t)TicketLength);
+        *ServerTicket = QUIC_ALLOC_NONPAGED((uint32_t)TicketLength, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
         if (*ServerTicket == NULL) {
             QuicTraceEvent(
                 AllocFailure,

@@ -40,11 +40,12 @@ QuicFuzzerRecvMsg(
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 
 //
-// This is a (currently) undocumented socket IOCTL. It allows for creating
-// per-processor sockets for the same UDP port. This is used to get better
-// parallelization to improve performance.
+// This IOCTL allows for creating per-processor sockets for the same UDP port.
+// This is used to get better parallelization to improve performance.
 //
-#define SIO_SET_PORT_SHARING_PER_PROC_SOCKET  _WSAIOW(IOC_VENDOR,21)
+#ifndef SIO_CPU_AFFINITY
+#define SIO_CPU_AFFINITY  _WSAIOW(IOC_VENDOR,21)
+#endif
 
 //
 // Not yet available in the SDK. When available this code can be removed.
@@ -593,7 +594,7 @@ QuicDataPathInitialize(
         sizeof(QUIC_DATAPATH) +
         MaxProcCount * sizeof(QUIC_DATAPATH_PROC_CONTEXT);
 
-    Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength);
+    Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -660,7 +661,7 @@ QuicDataPathInitialize(
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_DATAPATH_SEND_CONTEXT),
-            QUIC_POOL_GENERIC,
+            QUIC_POOL_PLATFORM_SENDCTX,
             &Datapath->ProcContexts[i].SendContextPool);
 
         QuicPoolInitialize(
@@ -778,7 +779,7 @@ Error:
                 QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvDatagramPool);
             }
             QuicRundownUninitialize(&Datapath->BindingsRundown);
-            QUIC_FREE(Datapath);
+            QUIC_FREE(Datapath, QUIC_POOL_DATAPATH);
         }
         (void)WSACleanup();
     }
@@ -830,7 +831,7 @@ QuicDataPathUninitialize(
     }
 
     QuicRundownUninitialize(&Datapath->BindingsRundown);
-    QUIC_FREE(Datapath);
+    QUIC_FREE(Datapath, QUIC_POOL_DATAPATH);
 
     WSACleanup();
 }
@@ -916,7 +917,7 @@ QuicDataPathResolveAddress(
         goto Exit;
     }
 
-    HostNameW = QUIC_ALLOC_PAGED(sizeof(WCHAR) * Result);
+    HostNameW = QUIC_ALLOC_PAGED(sizeof(WCHAR) * Result, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (HostNameW == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -987,7 +988,7 @@ QuicDataPathResolveAddress(
 Exit:
 
     if (HostNameW != NULL) {
-        QUIC_FREE(HostNameW);
+        QUIC_FREE(HostNameW, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Status;
@@ -1020,7 +1021,7 @@ QuicDataPathBindingCreate(
         sizeof(QUIC_DATAPATH_BINDING) +
         SocketCount * sizeof(QUIC_UDP_SOCKET_CONTEXT);
 
-    Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength);
+    Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength, QUIC_POOL_DATAPATH_BINDING);
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1153,7 +1154,7 @@ QuicDataPathBindingCreate(
             Result =
                 WSAIoctl(
                     SocketContext->Socket,
-                    SIO_SET_PORT_SHARING_PER_PROC_SOCKET,
+                    SIO_CPU_AFFINITY,
                     &Processor,
                     sizeof(Processor),
                     NULL,
@@ -1168,7 +1169,7 @@ QuicDataPathBindingCreate(
                     "[ udp][%p] ERROR, %u, %s.",
                     Binding,
                     WsaError,
-                    "SIO_SET_PORT_SHARING_PER_PROC_SOCKET");
+                    "SIO_CPU_AFFINITY");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
@@ -1607,7 +1608,7 @@ QUIC_DISABLED_BY_FUZZER_END;
                     QuicRundownUninitialize(&SocketContext->UpcallRundown);
                 }
                 QuicRundownRelease(&Datapath->BindingsRundown);
-                QUIC_FREE(Binding);
+                QUIC_FREE(Binding, QUIC_POOL_DATAPATH_BINDING);
             }
         }
     }
@@ -1712,7 +1713,7 @@ QuicDataPathSocketContextShutdown(
             DatapathShutDownComplete,
             "[ udp][%p] Shut down (complete)",
             SocketContext->Binding);
-        QUIC_FREE(SocketContext->Binding);
+        QUIC_FREE(SocketContext->Binding, QUIC_POOL_DATAPATH_BINDING);
     }
 }
 
