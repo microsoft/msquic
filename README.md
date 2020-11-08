@@ -56,7 +56,7 @@ On Windows 10, MsQuic relies on built-in support from [Schannel](https://docs.mi
 
 On Linux, MsQuic relies on [OpenSSL](https://www.openssl.org/) for TLS 1.3 functionality.
 
-> **Important** This configuration relies on a fork of OpenSSL master for QUIC/TLS support. It is still currently unknown as to when mainline will support QUIC. See [here](https://www.openssl.org/blog/blog/2020/02/17/QUIC-and-OpenSSL/) for more details.
+> **Important** This configuration relies on a fork of OpenSSL for QUIC/TLS support. It is still currently unknown as to when mainline will support QUIC. See [here](https://www.openssl.org/blog/blog/2020/02/17/QUIC-and-OpenSSL/) for more details.
 
 > **Important** This configuration does not support 0-RTT. Complete integration with OpenSSL is an ongoing effort.
 
