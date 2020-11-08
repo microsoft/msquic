@@ -88,9 +88,9 @@ namespace MsQuicTracing.DataModel
 
         public ulong ReceiveEventCount { get; internal set; }
 
-        public ulong TxBatchRate => SendEventCount == 0 ? 0 : TxRate / SendEventCount;
+        public ulong TxBatchRate => SendEventCount == 0 ? 0 : BytesSent / SendEventCount;
 
-        public ulong RxBatchRate => ReceiveEventCount == 0 ? 0 : RxRate / ReceiveEventCount;
+        public ulong RxBatchRate => ReceiveEventCount == 0 ? 0 : BytesReceived / ReceiveEventCount;
     }
 
     public readonly struct QuicExecutionData
