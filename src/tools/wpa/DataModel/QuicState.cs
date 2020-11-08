@@ -19,6 +19,8 @@ namespace MsQuicTracing.DataModel
 
         public IReadOnlyList<QuicStream> Streams => StreamSet.GetObjects();
 
+        public IReadOnlyList<QuicDatapath> Datapaths => DatapathSet.GetObjects();
+
         private QuicObjectSet<QuicWorker> WorkerSet { get; } =
             new QuicObjectSet<QuicWorker>(QuicWorker.CreateEventId, QuicWorker.DestroyedEventId, QuicWorker.New);
 
@@ -27,6 +29,9 @@ namespace MsQuicTracing.DataModel
 
         private QuicObjectSet<QuicStream> StreamSet { get; } =
             new QuicObjectSet<QuicStream>(QuicStream.CreateEventId, QuicStream.DestroyedEventId, QuicStream.New);
+
+        private QuicObjectSet<QuicDatapath> DatapathSet { get; } =
+            new QuicObjectSet<QuicDatapath>(QuicDatapath.CreateEventId, QuicDatapath.DestroyedEventId, QuicDatapath.New);
 
         private readonly List<QuicEvent> Events = new List<QuicEvent>();
 
@@ -53,6 +58,9 @@ namespace MsQuicTracing.DataModel
                     DataAvailableFlags |= QuicDataAvailableFlags.Stream;
                     StreamSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
                     break;
+                case QuicObjectType.Datapath:
+                    DatapathSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
+                    break;
                 default:
                     break;
             }
@@ -65,6 +73,7 @@ namespace MsQuicTracing.DataModel
             WorkerSet.FinalizeObjects();
             ConnectionSet.FinalizeObjects();
             StreamSet.FinalizeObjects();
+            DatapathSet.FinalizeObjects();
         }
 
         internal QuicWorker FindOrCreateWorker(QuicObjectKey key)

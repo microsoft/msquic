@@ -21,7 +21,8 @@ namespace MsQuicTracing.DataModel
         ConnectionExec = 0x0040,
         ConnectionTput = 0x0080,
         Stream = 0x0100,
-        StreamFlowBlocked = 0x0200
+        StreamFlowBlocked = 0x0200,
+        Datapath = 0x0400
     };
 
     public readonly struct QuicActivityData
@@ -67,6 +68,29 @@ namespace MsQuicTracing.DataModel
             Pointer = pointer;
             Result = result;
         }
+    }
+
+    public struct QuicDatapathData
+    {
+        public Timestamp TimeStamp { get; internal set; }
+
+        public TimestampDelta Duration { get; internal set; }
+
+        public ulong TxRate { get; internal set; } // bps
+
+        public ulong RxRate { get; internal set; } // bps
+
+        public ulong BytesSent { get; internal set; }
+
+        public ulong BytesReceived { get; internal set; }
+
+        public ulong SendEventCount { get; internal set; }
+
+        public ulong ReceiveEventCount { get; internal set; }
+
+        public ulong TxBatchRate => SendEventCount == 0 ? 0 : TxRate / SendEventCount;
+
+        public ulong RxBatchRate => ReceiveEventCount == 0 ? 0 : RxRate / ReceiveEventCount;
     }
 
     public readonly struct QuicExecutionData

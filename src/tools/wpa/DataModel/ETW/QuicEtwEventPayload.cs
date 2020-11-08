@@ -204,4 +204,31 @@ namespace MsQuicTracing.DataModel.ETW
     }
 
     #endregion
+
+    #region Datapath Event Payloads
+
+    internal class QuicDatapathSendEtwPayload : QuicDatapathSendPayload
+    {
+        internal QuicDatapathSendEtwPayload(ReadOnlySpan<byte> data)
+        {
+            TotalSize = data.ReadValue<uint>();
+            BufferCount = data.ReadValue<byte>();
+            SegmentSize = data.ReadValue<ushort>();
+            RemoteAddress = data.ReadAddress();
+            LocalAddress = data.ReadAddress();
+        }
+    }
+
+    internal class QuicDatapathRecvEtwPayload : QuicDatapathRecvPayload
+    {
+        internal QuicDatapathRecvEtwPayload(ReadOnlySpan<byte> data)
+        {
+            TotalSize = data.ReadValue<uint>();
+            SegmentSize = data.ReadValue<ushort>();
+            LocalAddress = data.ReadAddress();
+            RemoteAddress = data.ReadAddress();
+        }
+    }
+
+    #endregion
 }

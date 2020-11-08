@@ -4,6 +4,7 @@
 //
 
 using System;
+using System.Net;
 using System.Runtime.InteropServices;
 
 namespace MsQuicTracing.DataModel
@@ -114,9 +115,33 @@ namespace MsQuicTracing.DataModel
             data = data.Slice(sizeof(T));
             return val;
         }
+
         internal static ulong ReadPointer(this ref ReadOnlySpan<byte> data, int pointerSize)
         {
             return pointerSize == 8 ? data.ReadValue<ulong>() : data.ReadValue<uint>();
+        }
+
+        internal static IPEndPoint ReadAddress(this ref ReadOnlySpan<byte> data)
+        {
+            byte length = data.ReadValue<byte>();
+            var buf = data.Slice(0, length);
+            data = data.Slice(length);
+
+            int family = buf[0] | ((ushort)buf[1] << 8);
+            int port = (ushort)buf[3] | ((ushort)buf[2] << 8);
+
+            if (family == 0) // unspecified
+            {
+                return new IPEndPoint(IPAddress.Any, port);
+            }
+            else if (family == 2) // v4
+            {
+                return new IPEndPoint(new IPAddress(buf.Slice(4, 4)), port);
+            }
+            else // v6
+            {
+                return new IPEndPoint(new IPAddress(buf.Slice(4, 16)), port);
+            }
         }
     }
 
@@ -276,6 +301,38 @@ namespace MsQuicTracing.DataModel
     public class QuicStreamOutFlowBlockedPayload
     {
         public byte ReasonFlags { get; protected set; }
+    }
+
+    #endregion
+
+    #region Datapath Event Payloads
+
+    public class QuicDatapathSendPayload
+    {
+        public uint TotalSize { get; protected set; }
+
+        public byte BufferCount { get; protected set; }
+
+        public ushort SegmentSize { get; protected set; }
+
+#pragma warning disable CS8618 // Non-nullable field is uninitialized.
+        public IPEndPoint RemoteAddress { get; protected set; }
+
+        public IPEndPoint LocalAddress { get; protected set; }
+#pragma warning restore CS8618 // Non-nullable field is uninitialized.
+    }
+
+    public class QuicDatapathRecvPayload
+    {
+        public uint TotalSize { get; protected set; }
+
+        public ushort SegmentSize { get; protected set; }
+
+#pragma warning disable CS8618 // Non-nullable field is uninitialized.
+        public IPEndPoint LocalAddress { get; protected set; }
+
+        public IPEndPoint RemoteAddress { get; protected set; }
+#pragma warning restore CS8618 // Non-nullable field is uninitialized.
     }
 
     #endregion
