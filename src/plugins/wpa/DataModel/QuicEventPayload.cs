@@ -68,6 +68,8 @@ namespace MsQuicTracing.DataModel
         ApiConnClose,
         ApiConnShutdown,
         ApiConnStart,
+        ApiConnSetConfiguration,
+        ApiConnSendResumptionTicket,
         ApiStreamClose,
         ApiStreamShutdown,
         ApiStreamStart,

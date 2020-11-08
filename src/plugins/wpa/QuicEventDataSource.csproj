@@ -13,6 +13,7 @@
     <RepositoryUrl>https://github.com/microsoft/msquic.git</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>MsQuic.DataSource</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.3.1">
@@ -30,6 +31,6 @@
     </None>
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="echo f | xcopy $(TargetPath) $(SolutionDir)artifacts\bin\wpa\$(Configuration)\$(TargetFileName) /Y" />
+    <Exec Command="echo f | xcopy $(TargetDir)$(TargetName).dll $(SolutionDir)artifacts\bin\wpa\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)$(TargetName).pdb $(SolutionDir)artifacts\bin\wpa\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)Microsoft.Diagnostics.FastSerialization.dll $(SolutionDir)artifacts\bin\wpa\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)Microsoft.Diagnostics.Tracing.TraceEvent.dll $(SolutionDir)artifacts\bin\wpa\$(Configuration)\ /Y" />
   </Target>
 </Project>
