@@ -390,14 +390,3 @@ QuicSendClearStreamSendFlag(
     _In_ QUIC_STREAM* Stream,
     _In_ uint32_t SendFlag
     );
-
-//
-// Invoked on receiving an ACK for a MTU probe packet.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicSendOnMtuProbePacketAcked(
-    _In_ QUIC_SEND* Send,
-    _In_ QUIC_PATH* Path,
-    _In_ QUIC_SENT_PACKET_METADATA* Packet
-    );
