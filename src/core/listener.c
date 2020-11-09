@@ -586,8 +586,6 @@ QuicListenerParamSet(
         const void* Buffer
     )
 {
-    QUIC_STATUS Status;
-
     UNREFERENCED_PARAMETER(Listener);
     UNREFERENCED_PARAMETER(Param);
     UNREFERENCED_PARAMETER(BufferLength);

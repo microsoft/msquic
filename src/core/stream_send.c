@@ -865,7 +865,6 @@ QuicStreamWriteStreamFrames(
         //
         // Find the first SACK after the selected offset.
         //
-        uint32_t i = 0;
         QUIC_SUBRANGE* Sack;
         if (Left == Stream->MaxSentLength) {
             //
@@ -873,6 +872,7 @@ QuicStreamWriteStreamFrames(
             //
             Sack = NULL;
         } else {
+            uint32_t i = 0;
             while ((Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i++)) != NULL &&
                 Sack->Low < Left) {
                 QUIC_DBG_ASSERT(Sack->Low + Sack->Count <= Left);

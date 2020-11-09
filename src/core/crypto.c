@@ -105,6 +105,7 @@ QuicCryptoInitialize(
             QUIC_MAX_TLS_SERVER_SEND_BUFFER : QUIC_MAX_TLS_CLIENT_SEND_BUFFER;
     uint16_t InitialRecvBufferLength =
         QuicConnIsServer(Connection) ?
+            // cppcheck-suppress duplicateValueTernary
             QUIC_MAX_TLS_CLIENT_SEND_BUFFER : QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE;
     const uint8_t* HandshakeCid;
     uint8_t HandshakeCidLength;
@@ -618,7 +619,6 @@ QuicCryptoWriteCryptoFrames(
         //
         // Find the first SACK after the selected offset.
         //
-        uint32_t i = 0;
         QUIC_SUBRANGE* Sack;
         if (Left == Crypto->MaxSentLength) {
             //
@@ -626,6 +626,7 @@ QuicCryptoWriteCryptoFrames(
             //
             Sack = NULL;
         } else {
+            uint32_t i = 0;
             while ((Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, i++)) != NULL &&
                 Sack->Low < (uint64_t)Left) {
                 QUIC_DBG_ASSERT(Sack->Low + Sack->Count <= (uint64_t)Left);

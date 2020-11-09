@@ -730,7 +730,7 @@ QuicPacketLogDrop(
     _In_z_ const char* Reason // NOLINT
     )
 {
-    const QUIC_RECV_DATAGRAM* Datagram = // NOLINT
+    const QUIC_RECV_DATAGRAM* Datagram = // cppcheck-suppress unreadVariable; NOLINT
         QuicDataPathRecvPacketToRecvDatagram(Packet);
 
     if (Packet->AssignedToConnection) {
@@ -764,7 +764,7 @@ QuicPacketLogDropWithValue(
     _In_ uint64_t Value // NOLINT
     )
 {
-    const QUIC_RECV_DATAGRAM* Datagram = // NOLINT
+    const QUIC_RECV_DATAGRAM* Datagram = // cppcheck-suppress unreadVariable; NOLINT
         QuicDataPathRecvPacketToRecvDatagram(Packet);
 
     if (Packet->AssignedToConnection) {

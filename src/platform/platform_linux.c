@@ -39,7 +39,7 @@ static const char TpLibName[] = "libmsquic.lttng.so";
 
 uint64_t QuicTotalMemory;
 
-__attribute__((noinline))
+__attribute__((noinline, noreturn))
 void
 quic_bugcheck(
     void
@@ -286,11 +286,10 @@ QuicRefIncrementNonZero(
     _Inout_ volatile QUIC_REF_COUNT* RefCount // NOLINT
     )
 {
-    QUIC_REF_COUNT NewValue = 0;
     QUIC_REF_COUNT OldValue = *RefCount;
 
     for (;;) {
-        NewValue = OldValue + 1;
+        QUIC_REF_COUNT NewValue = OldValue + 1;
 
         if (NewValue > 1) {
             if(__atomic_compare_exchange_n(RefCount, &OldValue, NewValue, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
@@ -498,7 +497,6 @@ QuicEventWaitWithTimeout(
     QUIC_EVENT_OBJECT* EventObj = Event;
     BOOLEAN WaitSatisfied = FALSE;
     struct timespec Ts = {0};
-    int Result = 0;
 
     //
     // Get absolute time.
@@ -510,7 +508,7 @@ QuicEventWaitWithTimeout(
 
     while (!EventObj->Signaled) {
 
-        Result = pthread_cond_timedwait(&EventObj->Cond, &EventObj->Mutex, &Ts);
+        int Result = pthread_cond_timedwait(&EventObj->Cond, &EventObj->Mutex, &Ts);
 
         if (Result == ETIMEDOUT) {
             WaitSatisfied = FALSE;

@@ -3130,22 +3130,20 @@ QuicConnRecvHeader(
 
     QUIC_FRE_ASSERT(QuicIsVersionSupported(Connection->Stats.QuicVersion));
 
-#if DEBUG
-    if (!Packet->IsShortHeader) {
-        if (Connection->State.ShareBinding) {
-            QUIC_DBG_ASSERT(Packet->DestCidLen >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
-        } else {
-            QUIC_DBG_ASSERT(Packet->DestCidLen == 0);
-        }
-    }
-#endif
-
     //
     // Begin non-version-independent logic. When future versions are supported,
     // there may be some switches based on packet version.
     //
 
     if (!Packet->IsShortHeader) {
+#if DEBUG
+        if (Connection->State.ShareBinding) {
+            QUIC_DBG_ASSERT(Packet->DestCidLen >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
+        } else {
+            QUIC_DBG_ASSERT(Packet->DestCidLen == 0);
+        }
+#endif
+
         if (Packet->LH->Type == QUIC_RETRY) {
             QuicConnRecvRetry(Connection, Packet);
             return FALSE;
@@ -4916,6 +4914,7 @@ QuicConnRecvDatagrams(
             Batch,
             Cipher,
             &RecvState);
+        // BatchCount = 0; // Value stored to 'BatchCount' is never read [clang-analyzer-deadcode.DeadStores]
     }
 
     if (RecvState.ResetIdleTimeout) {
@@ -5419,16 +5418,12 @@ QuicConnParamSet(
         Connection->CloseReasonPhrase =
             QUIC_ALLOC_NONPAGED(BufferLength, QUIC_POOL_CLOSE_REASON);
 
-        if (Connection->CloseReasonPhrase != NULL) {
-            if (Buffer) {
-                QuicCopyMemory(
-                    Connection->CloseReasonPhrase,
-                    Buffer,
-                    BufferLength);
-            }
-
+        if (Buffer && Connection->CloseReasonPhrase != NULL) {
+            QuicCopyMemory(
+                Connection->CloseReasonPhrase,
+                Buffer,
+                BufferLength);
             Status = QUIC_STATUS_SUCCESS;
-
         } else {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
         }
@@ -5839,9 +5834,9 @@ QuicConnParamGet(
         Stats->Misc.KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
 
         if (Param == QUIC_PARAM_CONN_STATISTICS_PLAT) {
-            Stats->Timing.Start = QuicTimeUs64ToPlat(Stats->Timing.Start);
-            Stats->Timing.InitialFlightEnd = QuicTimeUs64ToPlat(Stats->Timing.InitialFlightEnd);
-            Stats->Timing.HandshakeFlightEnd = QuicTimeUs64ToPlat(Stats->Timing.HandshakeFlightEnd);
+            Stats->Timing.Start = QuicTimeUs64ToPlat(Stats->Timing.Start); // cppcheck-suppress selfAssignment
+            Stats->Timing.InitialFlightEnd = QuicTimeUs64ToPlat(Stats->Timing.InitialFlightEnd); // cppcheck-suppress selfAssignment
+            Stats->Timing.HandshakeFlightEnd = QuicTimeUs64ToPlat(Stats->Timing.HandshakeFlightEnd); // cppcheck-suppress selfAssignment
         }
 
         *BufferLength = sizeof(QUIC_STATISTICS);

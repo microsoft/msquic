@@ -307,6 +307,7 @@ QuicPktNumEncode(
     )
 {
     for (uint8_t i = 0; i < PacketNumberLength; i++) {
+        // cppcheck-suppress objectIndex
         Buffer[PacketNumberLength - i - 1] = ((uint8_t*)&PacketNumber)[i];
     }
 }

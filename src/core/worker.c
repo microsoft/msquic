@@ -288,7 +288,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerToggleActivityState(
     _In_ QUIC_WORKER* Worker, // NOLINT
-    _In_ uint32_t Arg
+    _In_ uint32_t Arg // NOLINT
     )
 {
     Worker->IsActive = !Worker->IsActive;

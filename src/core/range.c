@@ -254,7 +254,6 @@ QuicRangeAddRange(
     _Out_ BOOLEAN* RangeUpdated
     )
 {
-    int result;
     uint32_t i;
     QUIC_SUBRANGE* Sub;
     QUIC_RANGE_SEARCH_KEY Key = { Low, Low + Count - 1 };
@@ -269,7 +268,7 @@ QuicRangeAddRange(
         // The new range is somewhere before the end of the of the last subrange
         // so we must search for the first overlapping or adjacent subrange.
         //
-        result = QuicRangeSearch(Range, &Key);
+        int result = QuicRangeSearch(Range, &Key);
         if (IS_FIND_INDEX(result)) {
             //
             // We found 'an' overlapping subrange. We need to ensure this is the

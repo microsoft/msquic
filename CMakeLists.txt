@@ -543,12 +543,9 @@ if(QUIC_CODE_CHECK)
     if(CLANGTIDY)
         message(STATUS "Found clang-tidy: ${CLANGTIDY}")
         set(CLANG_TIDY_CHECKS *
-            # add checks to ignore here, e.g.,
-            # -hicpp-no-assembler
-            # -hicpp-signed-bitwise
-            # ...
+            # add checks to ignore here:
+            -bugprone-macro-parentheses
             -bugprone-sizeof-expression
-            -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
             -cppcoreguidelines-avoid-magic-numbers
             -cppcoreguidelines-avoid-non-const-global-variables
             -cppcoreguidelines-init-variables
@@ -559,6 +556,12 @@ if(QUIC_CODE_CHECK)
             -readability-avoid-const-params-in-decls
             -readability-isolate-declaration
             -readability-magic-numbers
+            # these are finding potential logic issues, may want to comment when focusing on nits:
+            -clang-analyzer-core.CallAndMessage
+            -clang-analyzer-core.DivideZero
+            -clang-analyzer-core.NonNullParamChecker
+            -clang-analyzer-core.NullDereference
+            -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
         )
         string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
         set(CMAKE_C_CLANG_TIDY ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
@@ -572,6 +575,8 @@ if(QUIC_CODE_CHECK)
     if(CPPCHECK)
         message(STATUS "Found cppcheck: ${CPPCHECK}")
         set(CMAKE_C_CPPCHECK ${CPPCHECK} -q --inline-suppr
+            # these are finding potential logic issues, may want to remove comment when focusing on nits:
+            # --suppress=nullPointer --suppress=nullPointerRedundantCheck
             --enable=warning,style,performance,portability -D__linux__)
         set(CMAKE_CXX_CPPCHECK ${CMAKE_C_CPPCHECK})
     else()

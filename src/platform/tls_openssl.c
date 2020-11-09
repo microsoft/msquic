@@ -641,7 +641,7 @@ QuicTlsSecConfigCreate(
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
         BOOLEAN VerifyServerCertificate = TRUE; // !(Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION);
-        if (!VerifyServerCertificate) {
+        if (!VerifyServerCertificate) { // cppcheck-suppress knownConditionTrueFalse
             SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
         } else {
             SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_VERIFY_DEPTH);
@@ -910,7 +910,6 @@ QuicTlsUninitialize(
         }
 
         QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
-        TlsContext = NULL;
     }
 }
 
