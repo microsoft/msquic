@@ -90,8 +90,9 @@ namespace MsQuicTracing.DataModel
                 case QuicEventId.StreamRundown:
                     {
                         var payload = (evt.Payload as QuicStreamCreatedPayload);
-                        Connection = state.FindOrCreateConnection(new QuicObjectKey(evt.PointerSize, payload!.Connection, evt.ProcessId));
                         StreamId = payload!.ID;
+                        Connection = state.FindOrCreateConnection(new QuicObjectKey(evt.PointerSize, payload!.Connection, evt.ProcessId));
+                        Connection.OnStreamAdded(this);
                     }
                     break;
                 case QuicEventId.StreamOutFlowBlocked:

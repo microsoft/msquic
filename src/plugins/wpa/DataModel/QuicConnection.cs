@@ -48,7 +48,7 @@ namespace MsQuicTracing.DataModel
 
         public QuicWorker? Worker { get; private set; }
 
-        //public List<QuicStream> Streams { get; } = new List<QuicStream>();
+        public List<QuicStream> Streams { get; } = new List<QuicStream>();
 
         private readonly List<QuicEvent> Events = new List<QuicEvent>();
 
@@ -377,6 +377,11 @@ namespace MsQuicTracing.DataModel
             Worker?.OnConnectionEvent(evt);
 
             Events.Add(evt);
+        }
+
+        internal void OnStreamAdded(QuicStream stream)
+        {
+            Streams.Add(stream);
         }
     }
 }
