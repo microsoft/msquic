@@ -139,7 +139,7 @@ The following are generally required. Actual installations may vary.
 sudo apt-add-repository ppa:lttng/stable-2.10
 sudo apt-get update
 sudo apt-get install cmake
-sudo apt-get install build-essentials
+sudo apt-get install build-essential
 sudo apt-get install liblttng-ust-dev
 sudo apt-get install lttng-tools
 ```
