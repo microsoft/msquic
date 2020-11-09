@@ -804,36 +804,3 @@ QuicPlatformLogAssert(
         File,
         Expr);
 }
-
-int
-QuicLogLevelToPriority(
-    _In_ QUIC_TRACE_LEVEL Level
-    )
-{
-    //
-    // LINUX_TODO: Re-evaluate these mappings.
-    //
-
-    switch(Level) {
-        case QUIC_TRACE_LEVEL_DEV:
-            return LOG_DEBUG;
-        case QUIC_TRACE_LEVEL_VERBOSE:
-            return LOG_DEBUG;
-        case QUIC_TRACE_LEVEL_INFO:
-            return LOG_INFO;
-        case QUIC_TRACE_LEVEL_WARNING:
-            return LOG_WARNING;
-        case QUIC_TRACE_LEVEL_ERROR:
-            return LOG_ERR;
-        case QUIC_TRACE_LEVEL_PACKET_VERBOSE:
-            return LOG_DEBUG;
-        case QUIC_TRACE_LEVEL_PACKET_INFO:
-            return LOG_INFO;
-        case QUIC_TRACE_LEVEL_PACKET_WARNING:
-            return LOG_WARNING;
-        default:
-            return LOG_DEBUG;
-    }
-
-    return LOG_DEBUG;
-}

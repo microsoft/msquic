@@ -755,8 +755,6 @@ QuicDataPathInitialize(
                 "NtSetInformationThread(name)");
         }
 #endif
-
-        // TODO - Set thread priority higher to better match kernel at dispatch?
     }
 
     *NewDataPath = Datapath;
