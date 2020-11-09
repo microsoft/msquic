@@ -668,7 +668,6 @@ QuicDataPathPopulateTargetAddress(
         }
         Address->Ipv6 = *SockAddrIn6;
         return;
-
     }
 
     if (AddrInfo->ai_addr->sa_family == AF_INET) {

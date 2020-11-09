@@ -216,6 +216,7 @@ MsQuicLibraryInitialize(
             LibraryStorageOpenFailed,
             "[ lib] Failed to open global settings, 0x%x",
             Status);
+        // Non-fatal, as the process may not have access
     }
 
     MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.

@@ -585,6 +585,8 @@ QuicStreamParamGet(
 
         if (!Stream->Flags.Started ||
             !Stream->Flags.LocalCloseAcked) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
         }
 
         *BufferLength = sizeof(uint64_t);

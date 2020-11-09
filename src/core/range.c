@@ -279,7 +279,6 @@ QuicRangeAddRange(
                     QuicRangeCompare(&Key, Sub) == 0) {
                 --i;
             }
-            QuicRangeGet(Range, i);
         } else {
             //
             // No overlapping range was found, so the index of the insert was
