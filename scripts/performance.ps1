@@ -51,6 +51,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER TestToRun
     Run a specific test name
 
+.PARAMETER FailOnRegression
+    Fail tests on perf regression (Currently only throughput up)
+
 #>
 
 param (
@@ -111,7 +114,10 @@ param (
     [switch]$RecordQUIC = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$TestToRun = ""
+    [string]$TestToRun = "",
+
+    [Parameter(Mandatory = $false)]
+    [boolean]$FailOnRegression = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -209,7 +215,8 @@ Set-ScriptVariables -Local $Local `
                     -RecordQUIC $RecordQUIC `
                     -RemoteAddress $RemoteAddress `
                     -Session $Session `
-                    -Kernel $Kernel
+                    -Kernel $Kernel `
+                    -FailOnRegression $FailOnRegression
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {

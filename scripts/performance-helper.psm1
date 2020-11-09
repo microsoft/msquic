@@ -87,7 +87,7 @@ $WpaQUICLogProfileXml = `
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC, $RemoteAddress, $Session, $Kernel)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
@@ -100,6 +100,7 @@ function Set-ScriptVariables {
     $script:RemoteAddress = $RemoteAddress
     $script:Session = $Session
     $script:Kernel = $Kernel
+    $script:FailOnRegression = $FailOnRegression
     if ($null -ne $Session) {
         Invoke-Command -Session $Session -ScriptBlock {
             $ErrorActionPreference = "Stop"
@@ -566,6 +567,8 @@ class ThroughputTestPublishResult {
     }
 }
 
+$ThroughputUpRegressionThreshold = -5.0
+
 function Publish-ThroughputTestResults {
     param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ServerToClient, $ExePath)
 
@@ -589,6 +592,11 @@ function Publish-ThroughputTestResults {
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Master: $LastFormatted"
+        if ($FailOnRegression -and !$Local) {
+            if ($ServerToClient -eq $false -and $PercentDiff -lt $ThroughputUpRegressionThreshold) {
+                Write-Error "Performance regression. Failing Test"
+            }
+        }
     } else {
         Write-Output "Median: $CurrentFormatted"
     }
