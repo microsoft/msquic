@@ -29,20 +29,15 @@ namespace MsQuicTracing.Tables
                 new ColumnMetadata(new Guid("{D0612FB2-4243-4C13-9164-5D55837F7E04}"), "Type"),
                 new UIHints { AggregationMode = AggregationMode.UniqueCount });
 
+        private static readonly ColumnConfiguration countColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{9583D245-BD70-4BA3-A249-088F0D6C0D8C}"), "Count"),
+                new UIHints { AggregationMode = AggregationMode.Sum });
+
         private static readonly ColumnConfiguration timeColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{5DBA083B-F886-4D40-B112-77F91134A909}"), "Time"),
                 new UIHints { AggregationMode = AggregationMode.Max });
-
-        private static readonly ColumnConfiguration durationColumnConfig =
-            new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{CAB180F7-B400-4B12-96F7-8E7E07FCB3FE}"), "Duration"),
-                new UIHints { AggregationMode = AggregationMode.Sum });
-
-        private static readonly ColumnConfiguration rateColumnConfig =
-            new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{11AD5640-1E90-4E76-82AB-B47F2A908E13}"), "Rate"),
-                new UIHints { AggregationMode = AggregationMode.Average });
 
         private static readonly TableConfiguration tableConfig1 =
             new TableConfiguration("Creation/Destruction Rates")
@@ -52,21 +47,13 @@ namespace MsQuicTracing.Tables
                      typeColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
-                     durationColumnConfig,
                      timeColumnConfig,
                      TableConfiguration.RightFreezeColumn,
                      TableConfiguration.GraphColumn,
-                     rateColumnConfig,
-                }
+                     countColumnConfig,
+                },
+                AggregationOverTime = AggregationOverTime.Rate
             };
-
-        struct Data
-        {
-            internal bool Created { get; set; }
-            internal Timestamp TimeStamp { get; set; }
-            internal TimestampDelta Duration{ get; set; }
-            internal ulong Rate { get; set; }
-        };
 
         public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
         {
@@ -85,67 +72,21 @@ namespace MsQuicTracing.Tables
                 return;
             }
 
-            var rawEvents = quicState.Events;
-            if (rawEvents.Count == 0)
+            var events = quicState.Events
+                .Where(x => x.ID == QuicEventId.StreamCreated || x.ID == QuicEventId.StreamDestroyed).ToArray();
+            if (events.Length == 0)
             {
                 return;
             }
 
-            int eventCount = rawEvents.Count;
-            int eventIndex = 0;
-            var resolution = new TimestampDelta(25 * 1000 * 1000);
-
-            Data sample = new Data();
-            ulong createCount = 0;
-            ulong destroyCount = 0;
-
-            var data = new List<Data>();
-            foreach (var evt in rawEvents)
-            {
-                if (eventIndex == 0)
-                {
-                    sample.TimeStamp = evt.TimeStamp;
-                }
-                eventIndex++;
-
-                if (evt.ID == QuicEventId.StreamCreated)
-                {
-                    createCount++;
-                }
-                else if (evt.ID == QuicEventId.StreamDestroyed)
-                {
-                    destroyCount++;
-                }
-
-                if (sample.TimeStamp + resolution <= evt.TimeStamp || eventIndex == eventCount)
-                {
-                    sample.Duration = evt.TimeStamp - sample.TimeStamp;
-
-                    sample.Created = true;
-                    sample.Rate = (createCount * 1000 * 1000 * 1000) / (ulong)sample.Duration.ToNanoseconds;
-                    data.Add(sample);
-
-                    sample.Created = false;
-                    sample.Rate = (destroyCount * 1000 * 1000 * 1000) / (ulong)sample.Duration.ToNanoseconds;
-                    data.Add(sample);
-
-                    sample.TimeStamp = evt.TimeStamp;
-                    createCount = 0;
-                    destroyCount = 0;
-                }
-            }
-
-            var table = tableBuilder.SetRowCount(data.Count);
-            var dataProjection = Projection.Index(data);
+            var table = tableBuilder.SetRowCount(events.Length);
+            var dataProjection = Projection.Index(events);
 
             table.AddColumn(typeColumnConfig, dataProjection.Compose(ProjectType));
+            table.AddColumn(countColumnConfig, Projection.Constant<uint>(1));
             table.AddColumn(timeColumnConfig, dataProjection.Compose(ProjectTime));
-            table.AddColumn(durationColumnConfig, dataProjection.Compose(ProjectDuration));
-            table.AddColumn(rateColumnConfig, dataProjection.Compose(ProjectRate));
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
-            tableConfig1.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
-            //tableConfig1.InitialSelectionQuery = "[Series Name]:=\"Type\"";
             tableBuilder.AddTableConfiguration(tableConfig1);
 
             tableBuilder.SetDefaultTableConfiguration(tableConfig1);
@@ -153,24 +94,14 @@ namespace MsQuicTracing.Tables
 
         #region Projections
 
-        private static string ProjectType(Data data)
+        private static string ProjectType(QuicEvent evt)
         {
-            return data.Created ? "Create" : "Destroy";
+            return evt.ID == QuicEventId.StreamCreated ? "Stream Create" : "Stream Destroy";
         }
 
-        private static Timestamp ProjectTime(Data data)
+        private static Timestamp ProjectTime(QuicEvent evt)
         {
-            return data.TimeStamp;
-        }
-
-        private static TimestampDelta ProjectDuration(Data data)
-        {
-            return data.Duration;
-        }
-
-        private static ulong ProjectRate(Data data)
-        {
-            return data.Rate;
+            return evt.TimeStamp;
         }
 
         #endregion
