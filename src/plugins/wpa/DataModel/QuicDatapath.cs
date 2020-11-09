@@ -12,9 +12,9 @@ namespace MsQuicTracing.DataModel
     {
         public static QuicDatapath New(ulong pointer, uint processId) => new QuicDatapath(pointer, processId);
 
-        public static ushort CreateEventId => (ushort)0; // None
+        public static ushort CreateEventId => (ushort)QuicEventId.DatapathCreated;
 
-        public static ushort DestroyedEventId => (ushort)0; // None
+        public static ushort DestroyedEventId => (ushort)QuicEventId.DatapathDestroyed;
 
         public ulong Id { get; }
 

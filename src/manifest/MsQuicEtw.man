@@ -1630,6 +1630,12 @@
                 outType="win:SocketAddress"
                 />
           </template>
+          <template tid="tid_UDP">
+            <data
+                inType="win:Pointer"
+                name="UdpBinding"
+                />
+          </template>
           <template tid="tid_UDP_ERROR">
             <data
                 inType="win:Pointer"
@@ -1652,6 +1658,32 @@
             <data
                 inType="win:AnsiString"
                 name="ErrStr"
+                />
+          </template>
+          <template tid="tid_UDP_CREATE">
+            <data
+                inType="win:Pointer"
+                name="UdpBinding"
+                />
+            <data
+                inType="win:UInt8"
+                name="LocalAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="LocalAddrLength"
+                name="LocalAddr"
+                outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="RemoteAddrLength"
+                name="RemoteAddr"
+                outType="win:SocketAddress"
                 />
           </template>
         </templates>
@@ -2823,6 +2855,24 @@
               template="tid_UDP_STATUS_ERROR"
               value="9220"
               />
+          <event
+              keywords="ut:UDP ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.DatapathCreated)"
+              opcode="Datapath"
+              symbol="QuicDatapathCreated"
+              template="tid_UDP_CREATE"
+              value="9221"
+              />
+          <event
+              keywords="ut:UDP ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.DatapathDestroyed)"
+              opcode="Datapath"
+              symbol="QuicDatapathDestroyed"
+              template="tid_UDP"
+              value="9222"
+              />
           <!-- 10240 - 11263 | Logs (not events) -->
           <event
               keywords="ut:Log"
@@ -3331,6 +3381,14 @@
         <string
             id="Etw.DatapathErrorStatus"
             value="[ udp][%1] ERROR, %2, %3."
+            />
+        <string
+            id="Etw.DatapathCreated"
+            value="[ udp][%1] Created, local=%3, remote=%5"
+            />
+        <string
+            id="Etw.DatapathDestroyed"
+            value="[ udp][%1] Destroyed"
             />
         <string
             id="Etw.ApiEnter"
