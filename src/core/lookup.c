@@ -556,9 +556,7 @@ QuicLookupInsertRemoteHash(
 
     Connection->RemoteHashEntry = Entry;
 
-    InterlockedExchangeAdd64(
-        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+    QuicLibraryOnHandshakeConnectionAdded();
 
     if (UpdateRefCount) {
         QuicConnAddRef(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
@@ -847,9 +845,7 @@ QuicLookupRemoveRemoteHash(
     QUIC_CONNECTION* Connection = RemoteHashEntry->Connection;
     QUIC_DBG_ASSERT(Lookup->MaximizePartitioning);
 
-    InterlockedExchangeAdd64(
-        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-        -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+    QuicLibraryOnHandshakeConnectionRemoved();
 
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
     QUIC_DBG_ASSERT(Connection->RemoteHashEntry != NULL);

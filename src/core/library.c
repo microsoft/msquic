@@ -22,6 +22,12 @@ QuicLibApplyLoadBalancingSetting(
     void
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryEvaluateSendRetryState(
+    void
+    );
+
 //
 // Initializes all global variables.
 //
@@ -136,6 +142,10 @@ MsQuicLibraryOnSettingsChanged(
         //
         QuicLibApplyLoadBalancingSetting();
     }
+
+    MsQuicLib.HandshakeMemoryLimit =
+        (MsQuicLib.Settings.RetryMemoryLimit * QuicTotalMemory) / UINT16_MAX;
+    QuicLibraryEvaluateSendRetryState();
 
     if (UpdateRegistrations) {
         QuicLockAcquire(&MsQuicLib.Lock);
@@ -1511,6 +1521,11 @@ QuicTraceRundown(
             MsQuicLib.PartitionCount,
             QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
+        QuicTraceEvent(
+            LibrarySendRetryStateUpdated,
+            "[ lib] New SendRetryEnabled state, %hhu",
+            MsQuicLib.SendRetryEnabled);
+
         if (MsQuicLib.StatelessRegistration) {
             QuicRegistrationTraceRundown(MsQuicLib.StatelessRegistration);
         }
@@ -1617,4 +1632,46 @@ QuicLibraryGetCurrentStatelessRetryKey(
     MsQuicLib.CurrentStatelessRetryKey = !MsQuicLib.CurrentStatelessRetryKey;
 
     return NewKey;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryOnHandshakeConnectionAdded(
+    void
+    )
+{
+    InterlockedExchangeAdd64(
+        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+    QuicLibraryEvaluateSendRetryState();
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryOnHandshakeConnectionRemoved(
+    void
+    )
+{
+    InterlockedExchangeAdd64(
+        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+        -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+    QuicLibraryEvaluateSendRetryState();
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryEvaluateSendRetryState(
+    void
+    )
+{
+    BOOLEAN NewSendRetryState =
+        MsQuicLib.CurrentHandshakeMemoryUsage >= MsQuicLib.HandshakeMemoryLimit;
+
+    if (NewSendRetryState != MsQuicLib.SendRetryEnabled) {
+        MsQuicLib.SendRetryEnabled = NewSendRetryState;
+        QuicTraceEvent(
+            LibrarySendRetryStateUpdated,
+            "[ lib] New SendRetryEnabled state, %hhu",
+            NewSendRetryState);
+    }
 }

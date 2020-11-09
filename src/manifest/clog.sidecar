@@ -9529,6 +9529,33 @@
         "CustomSettings": null
       }
     },
+    "LibrarySendRetryStateUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] New SendRetryEnabled state, %hhu",
+      "UniqueId": "LibrarySendRetryStateUpdated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "MsQuicLib.SendRetryEnabled",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "PerfCountersRundown": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Perf counters Rundown, Counters=%!CID!",
@@ -22200,6 +22227,10 @@
       {
         "UniquenessHash": "4810c9e0-dcf7-bc55-81bb-684627b092b1",
         "TraceID": "LibraryRundown"
+      },
+      {
+        "UniquenessHash": "e1750b05-bb04-6a2d-d4d6-99892dd266cd",
+        "TraceID": "LibrarySendRetryStateUpdated"
       },
       {
         "UniquenessHash": "10ce7ee9-cfcc-e364-e24c-71e1913cb472",
