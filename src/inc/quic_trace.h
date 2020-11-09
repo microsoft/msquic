@@ -97,17 +97,6 @@ typedef enum QUIC_TRACE_API_TYPE {
     QUIC_TRACE_API_COUNT // Must be last
 } QUIC_TRACE_API_TYPE;
 
-typedef enum QUIC_TRACE_LEVEL {
-    QUIC_TRACE_LEVEL_DEV,
-    QUIC_TRACE_LEVEL_VERBOSE,
-    QUIC_TRACE_LEVEL_INFO,
-    QUIC_TRACE_LEVEL_WARNING,
-    QUIC_TRACE_LEVEL_ERROR,
-    QUIC_TRACE_LEVEL_PACKET_VERBOSE,
-    QUIC_TRACE_LEVEL_PACKET_INFO,
-    QUIC_TRACE_LEVEL_PACKET_WARNING
-} QUIC_TRACE_LEVEL;
-
 //
 // Called from the platform code to trigger a tracing rundown for all objects
 // in the current process (or kernel mode).

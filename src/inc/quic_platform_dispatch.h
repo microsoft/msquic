@@ -67,7 +67,6 @@ void
 typedef
 void
 (*QUIC_LOG)(
-    _In_ QUIC_TRACE_LEVEL Level,
     _In_ const char* Fmt,
     _In_ va_list args
     );
