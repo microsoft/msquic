@@ -33,7 +33,7 @@ namespace MsQuicTracing.DataModel
         private QuicObjectSet<QuicDatapath> DatapathSet { get; } =
             new QuicObjectSet<QuicDatapath>(QuicDatapath.CreateEventId, QuicDatapath.DestroyedEventId, QuicDatapath.New);
 
-        private readonly List<QuicEvent> Events = new List<QuicEvent>();
+        public List<QuicEvent> Events { get; } = new List<QuicEvent>();
 
         internal void AddEvent(QuicEvent evt)
         {
