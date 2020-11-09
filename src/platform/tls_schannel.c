@@ -221,10 +221,6 @@ typedef struct _SecPkgContext_SessionInfo
 #define BCRYPT_CHACHA20_POLY1305_ALGORITHM L"CHACHA20_POLY1305"
 #endif
 
-#ifndef BCRYPT_CHACHA20_POLY1305_ALG_HANDLE
-#define BCRYPT_CHACHA20_POLY1305_ALG_HANDLE ((BCRYPT_ALG_HANDLE) 0x000003A1)
-#endif
-
 uint16_t QuicTlsTPHeaderSize = FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer);
 
 #define SecTrafficSecret_ClientEarlyData (SecTrafficSecret_Server + 1) // Hack to have my layer support 0-RTT
@@ -311,6 +307,16 @@ typedef struct QUIC_ACH_CONTEXT {
     // Holds TLS configuration for the lifetime of the ACH call.
     //
     TLS_PARAMETERS TlsParameters;
+
+    //
+    // Holds the blocked algorithms for the lifetime of the ACH call.
+    //
+    CRYPTO_SETTINGS CryptoSettings[2];
+
+    //
+    // Holds the list of blocked chaining modes for the lifetime of the ACH call.
+    //
+    UNICODE_STRING BlockedChainingModes[1];
 
 } QUIC_ACH_CONTEXT;
 
@@ -705,8 +711,10 @@ QuicTlsLibraryInitialize(
             "[ lib] ERROR, %u, %s.",
             Status,
             "Open ChaCha20-Poly1305 algorithm");
+        //
         // ChaCha20-Poly1305 may not be supported on older OSes, so don't treat
         // this failure as fatal.
+        //
         Status = QUIC_STATUS_SUCCESS;
     } else {
         Status =
@@ -773,8 +781,10 @@ Error:
             "[ lib] ERROR, %u, %s.",
             Status,
             "Open ChaCha20-Poly1305 algorithm");
+        //
         // ChaCha20-Poly1305 may not be supported on older OSes, so don't treat
         // this failure as fatal.
+        //
         Status = QUIC_STATUS_SUCCESS;
     } else {
         Status =
@@ -857,6 +867,8 @@ QuicTlsAllocateAchContext(
         AchContext->CredConfig = *CredConfig;
         AchContext->CompletionContext = Context;
         AchContext->CompletionCallback = Callback;
+        AchContext->TlsParameters.pDisabledCrypto = AchContext->CryptoSettings;
+        AchContext->TlsParameters.cDisabledCrypto = ARRAYSIZE(AchContext->CryptoSettings);
         AchContext->Credentials.pTlsParameters = &AchContext->TlsParameters;
         AchContext->Credentials.cTlsParameters = 1;
 #ifdef _KERNEL_MODE
@@ -1096,8 +1108,31 @@ QuicTlsSecConfigCreate(
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_SERVER;
     }
     //
-    // TODO: Disallow AES_CCM_8 algorithm, which are undefined in the QUIC-TLS spec.
+    //  Disallow ChaCha20-Poly1305 until full support is possible.
     //
+    AchContext->CryptoSettings[0].eAlgorithmUsage = TlsParametersCngAlgUsageCipher;
+    AchContext->CryptoSettings[0].strCngAlgId = (UNICODE_STRING){
+        sizeof(BCRYPT_CHACHA20_POLY1305_ALGORITHM),
+        sizeof(BCRYPT_CHACHA20_POLY1305_ALGORITHM),
+        BCRYPT_CHACHA20_POLY1305_ALGORITHM};
+
+    //
+    // Disallow AES_CCM algorithm, since there's no support for it yet.
+    // and also disallows AES_CCM_8, which is undefined per QUIC spec.
+    //
+    AchContext->BlockedChainingModes[0] = (UNICODE_STRING){
+        sizeof(BCRYPT_CHAIN_MODE_CCM),
+        sizeof(BCRYPT_CHAIN_MODE_CCM),
+        BCRYPT_CHAIN_MODE_CCM};
+
+    AchContext->CryptoSettings[1].eAlgorithmUsage = TlsParametersCngAlgUsageCipher;
+    AchContext->CryptoSettings[1].rgstrChainingModes = AchContext->BlockedChainingModes;
+    AchContext->CryptoSettings[1].cChainingModes = ARRAYSIZE(AchContext->BlockedChainingModes);
+    AchContext->CryptoSettings[1].strCngAlgId = (UNICODE_STRING){
+        sizeof(BCRYPT_AES_ALGORITHM),
+        sizeof(BCRYPT_AES_ALGORITHM),
+        BCRYPT_AES_ALGORITHM};
+
 
 #ifdef _KERNEL_MODE
     if (IsClient) {
@@ -3217,7 +3252,11 @@ QuicHpComputeMask(
     ULONG TempSize = 0;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
-        uint8_t Zero[5] = {0};
+        //
+        // This doesn't work because it needs to set the counter value
+        // and BCrypt doesn't support that.
+        //
+        uint8_t Zero[5] = { 0, 0, 0, 0, 0 };
         Key->Info->cbNonce = QUIC_HP_SAMPLE_LENGTH;
         for (uint32_t i = 0, Offset = 0; i < BatchSize; ++i, Offset += QUIC_HP_SAMPLE_LENGTH) {
             Key->Info->pbNonce = (uint8_t*)(Cipher + Offset);
@@ -3231,7 +3270,7 @@ QuicHpComputeMask(
                     NULL,
                     0,
                     Mask + Offset, 
-                    QUIC_HP_SAMPLE_LENGTH, // This might fail because the Tag won't fit...
+                    QUIC_HP_SAMPLE_LENGTH, // This will fail because the Tag won't fit
                     &TempSize,
                     0));
             if (QUIC_FAILED(Status)) {
