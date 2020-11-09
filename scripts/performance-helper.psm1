@@ -538,6 +538,9 @@ function Write-Failures() {
     }
 }
 
+# Fail loopback tests if < 50%
+$LocalRegressionThreshold = -50.0
+
 function Get-LatestThroughputRemoteTestResults([ThroughputRequest]$Request) {
     $Uri = "https://msquicperformanceresults.azurewebsites.net/throughput/get"
     $RequestJson = ConvertTo-Json -InputObject $Request
@@ -608,6 +611,8 @@ function Publish-ThroughputTestResults {
             if ($Test.VariableName -ne "Encryption") {
                 $Failures.Add("Performance regression in $Test. $PercentDiffStr%")
             }
+        } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
+            $Failures.Add("Performance regression in $Test. $PercentDiffStr%")
         }
     } else {
         Write-Output "Median: $CurrentFormatted"
@@ -724,6 +729,8 @@ function Publish-RPSTestResults {
         Write-Output "Master: $LastFormatted"
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
             $Failures.Add("Performance regression in $Test. $PercentDiffStr%")
+        } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
+            $Failures.Add("Performance regression in $Test. $PercentDiffStr%")
         }
     } else {
         Write-Output "Median: $CurrentFormatted"
@@ -814,6 +821,8 @@ function Publish-HPSTestResults {
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Master: $LastFormatted"
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
+            $Failures.Add("Performance regression in $Test. $PercentDiffStr%")
+        } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
             $Failures.Add("Performance regression in $Test. $PercentDiffStr%")
         }
     } else {
