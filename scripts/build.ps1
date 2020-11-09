@@ -190,6 +190,9 @@ if (!$IsWindows -And $Platform -eq "uwp") {
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
+Get-ChildItem (Join-Path $RootDir build/)
+Get-ChildItem (Join-Path $RootDir build/windows/)
+Get-ChildItem (Join-Path $RootDir build/windows/x64_openssl/)
 Get-ChildItem (Join-Path $RootDir build/windows/x64_openssl/openssl/)
 Get-ChildItem (Join-Path $RootDir build/windows/x64_openssl/openssl/release)
 Get-ChildItem (Join-Path $RootDir build/windows/x64_openssl/openssl/release/lib)
