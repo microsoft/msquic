@@ -393,6 +393,11 @@ if(QUIC_TLS STREQUAL "openssl")
                 $<$<CONFIG:Release>:${OPENSSL_DIR}/release/include>)
         target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
 
+        message(STATUS "OPEN SSL Dir ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        if (EXISTS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+            message(STATUS "FILE Exists")
+        endif()
+
         if (QUIC_CI AND EXISTS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
             message(STATUS "Found existing OpenSSL cache, skipping openssl build")
         else()
