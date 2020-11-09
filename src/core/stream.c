@@ -257,7 +257,7 @@ QuicStreamStart(
         // stream data to be sent out now.
         //
         QuicSendQueueFlushForStream(
-            &Stream->Connection->Send, Stream, FALSE);
+            &Stream->Connection->Send, Stream, FALSE, FALSE);
     }
 
     Stream->Flags.SendOpen = !!(Flags & QUIC_STREAM_START_FLAG_IMMEDIATE);
@@ -265,7 +265,8 @@ QuicStreamStart(
         QuicSendSetStreamSendFlag(
             &Stream->Connection->Send,
             Stream,
-            QUIC_STREAM_SEND_FLAG_OPEN);
+            QUIC_STREAM_SEND_FLAG_OPEN,
+            FALSE);
     }
 
     Stream->MaxAllowedSendOffset =

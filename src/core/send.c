@@ -141,7 +141,8 @@ void
 QuicSendQueueFlushForStream(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
-    _In_ BOOLEAN WasPreviouslyQueued
+    _In_ BOOLEAN WasPreviouslyQueued,
+    _In_ BOOLEAN DelaySend
     )
 {
     if (!WasPreviouslyQueued) {
@@ -153,13 +154,18 @@ QuicSendQueueFlushForStream(
         QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND);
     }
 
-    if (Stream->Connection->State.Started) {
+    if (Stream->Connection->State.Started && !DelaySend) {
         //
         // Schedule the flush even if we didn't just queue the stream,
         // because it may have been previously blocked.
         //
         QuicSendQueueFlush(Send, REASON_STREAM_FLAGS);
     }
+
+    //
+    // TODO - If send was delayed by the app, under what conditions should we
+    // ignore that signal and queue anyways?
+    //
 }
 
 #if DEBUG
@@ -317,7 +323,8 @@ BOOLEAN
 QuicSendSetStreamSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
-    _In_ uint32_t SendFlags
+    _In_ uint32_t SendFlags,
+    _In_ BOOLEAN DelaySend
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
@@ -366,7 +373,11 @@ QuicSendSetStreamSendFlag(
             // Since this is new data for a started stream, we need to queue
             // up the send to flush the stream data.
             //
-            QuicSendQueueFlushForStream(Send, Stream, Stream->SendFlags != 0);
+            QuicSendQueueFlushForStream(
+                Send,
+                Stream,
+                Stream->SendFlags != 0,
+                DelaySend);
         }
         Stream->SendFlags |= SendFlags;
     }

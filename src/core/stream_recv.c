@@ -65,7 +65,8 @@ QuicStreamRecvShutdown(
     QuicSendSetStreamSendFlag(
         &Stream->Connection->Send,
         Stream,
-        QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+        QUIC_STREAM_SEND_FLAG_RECV_ABORT,
+        FALSE);
 
     //
     // Remove any flags we shouldn't be sending now the receive direction is
@@ -531,7 +532,8 @@ QuicStreamRecv(
         QuicSendSetStreamSendFlag(
             &Stream->Connection->Send,
             Stream,
-            QUIC_STREAM_SEND_FLAG_MAX_DATA);
+            QUIC_STREAM_SEND_FLAG_MAX_DATA,
+            FALSE);
 
         break;
     }
@@ -658,7 +660,8 @@ QuicStreamOnBytesDelivered(
     QuicSendSetStreamSendFlag(
         &Stream->Connection->Send,
         Stream,
-        QUIC_STREAM_SEND_FLAG_MAX_DATA);
+        QUIC_STREAM_SEND_FLAG_MAX_DATA,
+        FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
