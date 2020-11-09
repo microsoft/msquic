@@ -155,9 +155,7 @@ QuicCryptoTlsReadSniExtension(
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
-
     UNREFERENCED_PARAMETER(Connection);
-
     /*
       struct {
           NameType name_type;
