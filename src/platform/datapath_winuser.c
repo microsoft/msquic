@@ -1030,6 +1030,13 @@ QuicDataPathBindingCreate(
         goto Error;
     }
 
+    QuicTraceEvent(
+        DatapathCreated,
+        "[ udp][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        Binding,
+        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+
     ZeroMemory(Binding, BindingLength);
     Binding->Datapath = Datapath;
     Binding->ClientContext = RecvCallbackContext;
@@ -1569,6 +1576,10 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (Binding != NULL) {
+            QuicTraceEvent(
+                DatapathDestroyed,
+                "[ udp][%p] Destroyed",
+                Binding);
             if (Binding->SocketContextsOutstanding != 0) {
                 for (uint16_t i = 0; i < SocketCount; i++) {
                     QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
@@ -1621,9 +1632,9 @@ QuicDataPathBindingDelete(
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
-    QuicTraceLogVerbose(
-        DatapathShuttingDown,
-        "[ udp][%p] Shutting down",
+    QuicTraceEvent(
+        DatapathDestroyed,
+        "[ udp][%p] Destroyed",
         Binding);
 
     //
