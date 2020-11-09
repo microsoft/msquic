@@ -2400,8 +2400,7 @@ QuicConnValidateTransportParameterDraft27CIDs(
             return FALSE;
         }
 
-        if (
-            memcmp(
+        if (memcmp(
                 Connection->PeerTransportParams.OriginalDestinationConnectionID,
                 Connection->OrigDestCID->Data,
                 Connection->OrigDestCID->Length) != 0) {
