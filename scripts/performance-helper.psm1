@@ -580,8 +580,6 @@ class ThroughputTestPublishResult {
     }
 }
 
-$ThroughputUpRegressionThreshold = -5.0
-
 function Publish-ThroughputTestResults {
     param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ServerToClient, $ExePath)
 
@@ -605,9 +603,10 @@ function Publish-ThroughputTestResults {
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Master: $LastFormatted"
-        if ($FailOnRegression -and !$Local) {
-            if ($ServerToClient -eq $false -and $PercentDiff -lt $ThroughputUpRegressionThreshold) {
-                $Failures.Add("Performance regression in Throutput Up Test. $PercentDiffStr%")
+        if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
+            #Skip no encrypt
+            if ($Test.VariableName -ne "Encryption") {
+                $Failures.Add("Performance regression in $Test. $PercentDiffStr%")
             }
         }
     } else {
@@ -723,6 +722,9 @@ function Publish-RPSTestResults {
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Master: $LastFormatted"
+        if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
+            $Failures.Add("Performance regression in $Test. $PercentDiffStr%")
+        }
     } else {
         Write-Output "Median: $CurrentFormatted"
     }
@@ -811,6 +813,9 @@ function Publish-HPSTestResults {
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Master: $LastFormatted"
+        if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
+            $Failures.Add("Performance regression in $Test. $PercentDiffStr%")
+        }
     } else {
         Write-Output "Median: $CurrentFormatted"
     }
@@ -882,6 +887,7 @@ class TestRunDefinition {
     [boolean]$Loopback;
     [boolean]$AllowLoopback;
     [string[]]$Formats;
+    [boolean]$RegressionThreshold;
 
     TestRunDefinition (
         [TestDefinition]$existingDef,
@@ -903,6 +909,7 @@ class TestRunDefinition {
         $this.Loopback = $script:Local
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
+        $this.RegressionThreshold = $existingDef.RegressionThreshold
     }
 
     TestRunDefinition (
@@ -1085,6 +1092,7 @@ class TestDefinition {
     [string]$ResultsMatcher;
     [boolean]$AllowLoopback;
     [string[]]$Formats;
+    [boolean]$RegressionThreshold;
 
     [string]ToString() {
         $Platform = $this.Remote.Platform
