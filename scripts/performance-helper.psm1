@@ -525,6 +525,19 @@ class ThroughputRequest {
     }
 }
 
+$Failures = New-Object Collections.Generic.List[string]
+
+function Write-Failures() {
+    $DidFail = $false
+    foreach ($Failure in $Failures) {
+        $DidFail = $true
+        Write-Output $Failure
+    }
+    if ($DidFail) {
+        Write-Error "Performance test failures occured"
+    }
+}
+
 function Get-LatestThroughputRemoteTestResults([ThroughputRequest]$Request) {
     $Uri = "https://msquicperformanceresults.azurewebsites.net/throughput/get"
     $RequestJson = ConvertTo-Json -InputObject $Request
@@ -594,7 +607,7 @@ function Publish-ThroughputTestResults {
         Write-Output "Master: $LastFormatted"
         if ($FailOnRegression -and !$Local) {
             if ($ServerToClient -eq $false -and $PercentDiff -lt $ThroughputUpRegressionThreshold) {
-                Write-Error "Performance regression. Failing Test"
+                $Failures.Add("Performance regression in Throutput Up Test. $PercentDiffStr%")
             }
         }
     } else {
