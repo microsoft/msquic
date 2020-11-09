@@ -575,8 +575,32 @@ QuicLossDetectionOnPacketAcknowledged(
         }
     }
 
-    if (Path != NULL && Packet->Flags.IsPMTUD) {
-        QuicSendOnMtuProbePacketAcked(&Connection->Send, Path, Packet);
+    if (Path != NULL) {
+        uint16_t PacketMtu =
+            PacketSizeFromUdpPayloadSize(
+                QuicAddrGetFamily(&Path->RemoteAddress),
+                Packet->PacketLength);
+
+        if (!Path->IsMinMtuValidated &&
+            Packet->PacketLength >= QUIC_INITIAL_PACKET_LENGTH) {
+            Path->IsMinMtuValidated = TRUE;
+            QuicTraceLogConnInfo(
+                PathMinMtuValidated,
+                Connection,
+                "Path[%hhu] Minimum MTU validated",
+                Path->ID);
+        }
+
+        if (PacketMtu > Path->Mtu) {
+            Path->Mtu = PacketMtu;
+            QuicTraceLogConnInfo(
+                PathMtuUpdated,
+                Connection,
+                "Path[%hhu] MTU updated to %hu bytes",
+                Path->ID,
+                Path->Mtu);
+            QuicDatagramOnSendStateChanged(&Connection->Datagram);
+        }
     }
 
     QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);

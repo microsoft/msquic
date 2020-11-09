@@ -10549,6 +10549,84 @@
         "CustomSettings": null
       }
     },
+    "PathMinMtuValidated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Minimum MTU validated",
+      "UniqueId": "PathMinMtuValidated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Path->ID",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "PathMtuUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes",
+      "UniqueId": "PathMtuUpdated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Path->ID",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Path->Mtu",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "PathValidationTimeout": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%hhu] validation timed out",
@@ -12081,49 +12159,6 @@
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
         "EncodedPrefix": "[strm][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "PathMtuUpdated": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes",
-      "UniqueId": "PathMtuUpdated",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "QuicSendGetConnection(Send)",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Path->ID",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Path->Mtu",
-            "SuggestedTelemetryName": "arg4"
-          },
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -22341,6 +22376,14 @@
         "TraceID": "HandshakeConfirmedAck"
       },
       {
+        "UniquenessHash": "cda9bb97-fd6c-a4a5-a61c-2e2931d2ce2c",
+        "TraceID": "PathMinMtuValidated"
+      },
+      {
+        "UniquenessHash": "e4b7c3f7-0733-40b5-95d7-af81de6568ec",
+        "TraceID": "PathMtuUpdated"
+      },
+      {
         "UniquenessHash": "3ab19fcb-a837-77d2-82e3-a62d0361d98f",
         "TraceID": "PathValidationTimeout"
       },
@@ -22475,10 +22518,6 @@
       {
         "UniquenessHash": "3a9eb05d-dcdf-b054-391e-e360e5d27e51",
         "TraceID": "ClearSendFlags"
-      },
-      {
-        "UniquenessHash": "e4b7c3f7-0733-40b5-95d7-af81de6568ec",
-        "TraceID": "PathMtuUpdated"
       },
       {
         "UniquenessHash": "5ce88c6c-6ea0-1f73-2a1f-15301e6565c2",
