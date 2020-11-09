@@ -78,9 +78,9 @@ Then you will need to manually run "pwsh" to continue.
 ## Install Dependencies
 
 In order to installed the necessary dependencies, a copy of the .NET Core 3.1 SDK is required. Go to the following location and find the install page for your platform.
-   
+
  * [.NET Core](https://docs.microsoft.com/en-us/dotnet/core/install/)
-    
+
 After installing .NET Core, you will need to restart your terminal.
 
 For the very first time you build, it's recommend to make sure you have all the dependencies installed. You can ensure this by running:
@@ -128,6 +128,8 @@ The following section details how to build MsQuic purely with CMake commands.
 > **Please note** that since using CMake directly is not the recommended way of building MsQuic, it's likely that these instructions may fall out of date more often than the **Building with PowerShell** ones.
 
 Note that you will need to disable logging if building with CMake exclusively. Logging enabled requires .NET Core and at least the configuration from prepare-machine.ps1 in order to build.
+
+Note at minimum CMake 3.17 is required. The default installed with Ubuntu 18.04 is too old, and will not correctly build. Instructions for installing a newer version can be found here. https://apt.kitware.com/
 
 ## Install Dependencies
 
