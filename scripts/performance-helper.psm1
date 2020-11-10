@@ -939,6 +939,7 @@ class TestRunDefinition {
         $this.Loopback = $script:Local
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
+        $this.RegressionThreshold = $existingDef.RegressionThreshold
     }
 
     [string]ToString() {
