@@ -26,7 +26,6 @@ QUIC has many benefits when compared to existing "TLS over TCP" scenarios:
 
 MsQuic has several features that differentiates it from other QUIC implementations:
 
-  * Cross-platform support.
   * Optimized for client and server.
   * Optimized for maximal throughput and minimal latency.
   * Asynchronous IO.
