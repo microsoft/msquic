@@ -89,10 +89,15 @@ typedef struct QUIC_TLS {
 
 } QUIC_TLS;
 
+typedef struct QUIC_HP_KEY {
+    EVP_CIPHER_CTX* CipherCtx;
+    QUIC_AEAD_TYPE Aead;
+} QUIC_HP_KEY;
+
 //
 // Default list of Cipher used.
 //
-#define QUIC_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256"
+#define QUIC_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
 
 //
 // Default list of curves for ECDHE ciphers.
@@ -1825,9 +1830,20 @@ QuicHpKeyCreate(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const EVP_CIPHER *Aead;
+    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HP_KEY), QUIC_POOL_TLS_HP_KEY);
+    if (Key == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_HP_KEY",
+            sizeof(QUIC_HP_KEY));
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
 
-    EVP_CIPHER_CTX* CipherCtx = EVP_CIPHER_CTX_new();
-    if (CipherCtx == NULL) {
+    Key->Aead = AeadType;
+
+    Key->CipherCtx = EVP_CIPHER_CTX_new();
+    if (Key->CipherCtx == NULL) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1844,14 +1860,14 @@ QuicHpKeyCreate(
         Aead = EVP_aes_256_ecb();
         break;
     case QUIC_AEAD_CHACHA20_POLY1305:
-        Aead = EVP_chacha20_poly1305();
+        Aead = EVP_chacha20();
         break;
     default:
         Status = QUIC_STATUS_NOT_SUPPORTED;
         goto Exit;
     }
 
-    if (EVP_EncryptInit_ex(CipherCtx, Aead, NULL, RawKey, NULL) != 1) {
+    if (EVP_EncryptInit_ex(Key->CipherCtx, Aead, NULL, RawKey, NULL) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1860,12 +1876,12 @@ QuicHpKeyCreate(
         goto Exit;
     }
 
-    *NewKey = (QUIC_HP_KEY*)CipherCtx;
-    CipherCtx = NULL;
+    *NewKey = Key;
+    Key = NULL;
 
 Exit:
 
-    QuicHpKeyFree((QUIC_HP_KEY*)CipherCtx);
+    QuicHpKeyFree(Key);
 
     return Status;
 }
@@ -1875,7 +1891,10 @@ QuicHpKeyFree(
     _In_opt_ QUIC_HP_KEY* Key
     )
 {
-    EVP_CIPHER_CTX_free((EVP_CIPHER_CTX*)Key);
+    if (Key != NULL) {
+        EVP_CIPHER_CTX_free(Key->CipherCtx);
+        QUIC_FREE(Key, QUIC_POOL_TLS_HP_KEY);
+    }
 }
 
 QUIC_STATUS
@@ -1887,12 +1906,32 @@ QuicHpComputeMask(
     )
 {
     int OutLen = 0;
-    if (EVP_EncryptUpdate((EVP_CIPHER_CTX*)Key, Mask, &OutLen, Cipher, QUIC_HP_SAMPLE_LENGTH * BatchSize) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_EncryptUpdate failed");
-        return QUIC_STATUS_TLS_ERROR;
+    if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
+        uint8_t Zero[5] = { 0, 0, 0, 0, 0 };
+        for(uint32_t i = 0, Offset = 0; i < BatchSize; ++i, Offset += QUIC_HP_SAMPLE_LENGTH) {
+            if (EVP_EncryptInit_ex(Key->CipherCtx, NULL, NULL, NULL, Cipher + Offset) != 1) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "EVP_EncryptInit_ex failed");
+                return QUIC_STATUS_TLS_ERROR;
+            }
+            if (EVP_EncryptUpdate(Key->CipherCtx, Mask + Offset, &OutLen, Zero, sizeof(Zero)) != 1) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "EVP_EncryptUpdate (Cipher) failed");
+                return QUIC_STATUS_TLS_ERROR;
+            }
+        }
+    } else {
+        if (EVP_EncryptUpdate(Key->CipherCtx, Mask, &OutLen, Cipher, QUIC_HP_SAMPLE_LENGTH * BatchSize) != 1) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "EVP_EncryptUpdate failed");
+            return QUIC_STATUS_TLS_ERROR;
+        }
     }
     return QUIC_STATUS_SUCCESS;
 }
