@@ -61,7 +61,7 @@ QuicLookupUninitialize(
 #pragma warning(pop)
             QuicDispatchRwLockUninitialize(&Table->RwLock);
         }
-        QUIC_FREE(Lookup->HASH.Tables);
+        QUIC_FREE(Lookup->HASH.Tables, QUIC_POOL_LOOKUP_HASHTABLE);
     }
 
     if (Lookup->MaximizePartitioning) {
@@ -86,7 +86,9 @@ QuicLookupCreateHashTable(
     QUIC_FRE_ASSERT(PartitionCount > 0);
 
     Lookup->HASH.Tables =
-        QUIC_ALLOC_NONPAGED(sizeof(QUIC_PARTITIONED_HASHTABLE) * PartitionCount);
+        QUIC_ALLOC_NONPAGED(
+            sizeof(QUIC_PARTITIONED_HASHTABLE) * PartitionCount,
+            QUIC_POOL_LOOKUP_HASHTABLE);
 
     if (Lookup->HASH.Tables != NULL) {
 
@@ -102,7 +104,7 @@ QuicLookupCreateHashTable(
             for (uint16_t i = 0; i < Cleanup; i++) {
                 QuicHashtableUninitialize(&Lookup->HASH.Tables[i].Table);
             }
-            QUIC_FREE(Lookup->HASH.Tables);
+            QUIC_FREE(Lookup->HASH.Tables, QUIC_POOL_LOOKUP_HASHTABLE);
             Lookup->HASH.Tables = NULL;
         } else {
             Lookup->PartitionCount = PartitionCount;
@@ -230,7 +232,7 @@ QuicLookupRebalance(
                 QuicHashtableUninitialize(&PreviousTable[i].Table);
 #pragma warning(pop)
             }
-            QUIC_FREE(PreviousTable);
+            QUIC_FREE(PreviousTable, QUIC_POOL_LOOKUP_HASHTABLE);
         }
     }
 
@@ -530,7 +532,10 @@ QuicLookupInsertRemoteHash(
     _In_ BOOLEAN UpdateRefCount
     )
 {
-    QUIC_REMOTE_HASH_ENTRY* Entry = QUIC_ALLOC_NONPAGED(sizeof(QUIC_REMOTE_HASH_ENTRY) + RemoteCidLength);
+    QUIC_REMOTE_HASH_ENTRY* Entry =
+        QUIC_ALLOC_NONPAGED(
+            sizeof(QUIC_REMOTE_HASH_ENTRY) + RemoteCidLength,
+            QUIC_POOL_REMOTE_HASH);
     if (Entry == NULL) {
         return FALSE;
     }
@@ -551,9 +556,7 @@ QuicLookupInsertRemoteHash(
 
     Connection->RemoteHashEntry = Entry;
 
-    InterlockedExchangeAdd64(
-        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+    QuicLibraryOnHandshakeConnectionAdded();
 
     if (UpdateRefCount) {
         QuicConnAddRef(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
@@ -842,9 +845,7 @@ QuicLookupRemoveRemoteHash(
     QUIC_CONNECTION* Connection = RemoteHashEntry->Connection;
     QUIC_DBG_ASSERT(Lookup->MaximizePartitioning);
 
-    InterlockedExchangeAdd64(
-        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-        -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+    QuicLibraryOnHandshakeConnectionRemoved();
 
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
     QUIC_DBG_ASSERT(Connection->RemoteHashEntry != NULL);
@@ -855,7 +856,7 @@ QuicLookupRemoveRemoteHash(
     Connection->RemoteHashEntry = NULL;
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
 
-    QUIC_FREE(RemoteHashEntry);
+    QUIC_FREE(RemoteHashEntry, QUIC_POOL_REMOTE_HASH);
     QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
 }
 
@@ -880,7 +881,7 @@ QuicLookupRemoveLocalCids(
             CID->CID.IsInLookupTable = FALSE;
             ReleaseRefCount++;
         }
-        QUIC_FREE(CID);
+        QUIC_FREE(CID, QUIC_POOL_CIDHASH);
     }
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
 

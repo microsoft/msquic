@@ -854,7 +854,7 @@ QuicDataPathInitialize(
         sizeof(QUIC_DATAPATH) +
         QuicProcMaxCount() * sizeof(QUIC_DATAPATH_PROC_CONTEXT);
 
-    Datapath = QUIC_ALLOC_NONPAGED(DatapathLength);
+    Datapath = QUIC_ALLOC_NONPAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -890,7 +890,7 @@ QuicDataPathInitialize(
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_DATAPATH_SEND_CONTEXT),
-            QUIC_POOL_GENERIC,
+            QUIC_POOL_PLATFORM_SENDCTX,
             &Datapath->ProcContexts[i].SendContextPool);
 
         QuicSendBufferPoolInitialize(
@@ -1001,7 +1001,7 @@ Error:
         QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvBufferPools[0]);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvBufferPools[1]);
     }
-    QUIC_FREE(Datapath);
+    QUIC_FREE(Datapath, QUIC_POOL_DATAPATH);
 
 Exit:
 
@@ -1029,7 +1029,7 @@ QuicDataPathUninitialize(
         QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvBufferPools[0]);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvBufferPools[1]);
     }
-    QUIC_FREE(Datapath);
+    QUIC_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1151,7 +1151,7 @@ QuicDataPathResolveAddress(
     }
 
     UniHostName.MaximumLength = (USHORT)(sizeof(WCHAR) * HostNameLength);
-    UniHostName.Buffer = QUIC_ALLOC_PAGED(UniHostName.MaximumLength);
+    UniHostName.Buffer = QUIC_ALLOC_PAGED(UniHostName.MaximumLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (UniHostName.Buffer == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1242,7 +1242,7 @@ Error:
     }
 
     if (UniHostName.Buffer != NULL) {
-        QUIC_FREE(UniHostName.Buffer);
+        QUIC_FREE(UniHostName.Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Status;
@@ -1319,7 +1319,7 @@ QuicDataPathBindingCreate(
         sizeof(QUIC_DATAPATH_BINDING) +
         QuicProcMaxCount() * sizeof(QUIC_RUNDOWN_REF);
 
-    Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_NONPAGED(BindingSize);
+    Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_NONPAGED(BindingSize, QUIC_POOL_DATAPATH_BINDING);
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1335,6 +1335,13 @@ QuicDataPathBindingCreate(
     // use the output.
     //
     *NewBinding = Binding;
+
+    QuicTraceEvent(
+        DatapathCreated,
+        "[ udp][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        Binding,
+        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
     RtlZeroMemory(Binding, BindingSize);
     Binding->Datapath = Datapath;
@@ -1707,7 +1714,7 @@ QuicDataPathBindingDeleteComplete(
     for (uint32_t i = 0; i < QuicProcMaxCount(); ++i) {
         QuicRundownUninitialize(&Binding->Rundown[i]);
     }
-    QUIC_FREE(Binding);
+    QUIC_FREE(Binding, QUIC_POOL_DATAPATH_BINDING);
 }
 
 IO_COMPLETION_ROUTINE QuicDataPathCloseSocketIoCompletion;
@@ -1756,6 +1763,11 @@ QuicDataPathBindingDelete(
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
+    QuicTraceEvent(
+        DatapathDestroyed,
+        "[ udp][%p] Destroyed",
+        Binding);
+
     if (Binding->Socket != NULL) {
 
         for (uint32_t i = 0; i < QuicProcMaxCount(); ++i) {

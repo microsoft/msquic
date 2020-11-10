@@ -206,7 +206,7 @@ QuicTestConnect(
 
                 if (SessionResumption) {
                     Client.SetResumptionTicket(ResumptionTicket);
-                    QUIC_FREE(ResumptionTicket);
+                    QUIC_FREE(ResumptionTicket, QUIC_POOL_TEST);
                     Client.SetExpectedResumed(true);
                 }
 
@@ -818,7 +818,6 @@ QuicTestVersionNegotiation(
                 TEST_QUIC_SUCCEEDED(
                     Client.SetQuicVersion(168430090ul)); // Random reserved version to force VN.
 
-                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_VER_NEG_ERROR);
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
                         ClientConfiguration,
@@ -829,10 +828,9 @@ QuicTestVersionNegotiation(
                     return;
                 }
 
-                TEST_FALSE(Client.GetIsConnected());
-                TEST_TRUE(Client.GetTransportClosed());
-
-                TEST_EQUAL(nullptr, Server);
+                TEST_TRUE(Client.GetIsConnected());
+                TEST_TRUE(Client.GetStatistics().VersionNegotiation);
+                TEST_EQUAL(Client.GetQuicVersion(), LATEST_SUPPORTED_VERSION);
             }
         }
     }

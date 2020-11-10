@@ -88,6 +88,11 @@ typedef struct QUIC_LIBRARY {
     BOOLEAN InUse;
 
     //
+    // Indicates if the stateless retry feature is currently enabled.
+    //
+    BOOLEAN SendRetryEnabled;
+
+    //
     // Index for the current stateless retry token key.
     //
     BOOLEAN CurrentStatelessRetryKey;
@@ -156,7 +161,13 @@ typedef struct QUIC_LIBRARY {
     uint64_t ConnectionCorrelationId;
 
     //
-    // The estiamted current total memory usage for handshake connections.
+    // The maximum total memory usage for handshake connections before the retry
+    // feature gets enabled.
+    //
+    uint64_t HandshakeMemoryLimit;
+
+    //
+    // The estimated current total memory usage for handshake connections.
     //
     uint64_t CurrentHandshakeMemoryUsage;
 
@@ -341,7 +352,8 @@ QuicCidNewRandomSource(
         (QUIC_CID_HASH_ENTRY*)
         QUIC_ALLOC_NONPAGED(
             sizeof(QUIC_CID_HASH_ENTRY) +
-            MsQuicLib.CidTotalLength);
+            MsQuicLib.CidTotalLength,
+            QUIC_POOL_CIDHASH);
 
     if (Entry != NULL) {
         Entry->Connection = Connection;
@@ -485,4 +497,22 @@ _Ret_maybenull_
 QUIC_KEY*
 QuicLibraryGetStatelessRetryKeyForTimestamp(
     _In_ int64_t Timestamp
+    );
+
+//
+// Called when a new (server) connection is added in the handshake state.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryOnHandshakeConnectionAdded(
+    void
+    );
+
+//
+// Called when a connection leaves the handshake state.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryOnHandshakeConnectionRemoved(
+    void
     );

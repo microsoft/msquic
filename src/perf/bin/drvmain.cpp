@@ -40,6 +40,8 @@ typedef struct QUIC_DRIVER_CLIENT {
     WDFREQUEST Request;
     QUIC_THREAD Thread;
     bool Canceled;
+    bool CleanupHandleCancellation;
+    QUIC_LOCK CleanupLock;
 } QUIC_DRIVER_CLIENT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DRIVER_CLIENT, QuicPerfCtlGetFileContext);
@@ -401,6 +403,7 @@ QuicPerfCtlEvtFileCreate(
         }
 
         RtlZeroMemory(Client, sizeof(QUIC_DRIVER_CLIENT));
+        QuicLockInitialize(&Client->CleanupLock);
 
         //
         // Insert into the client list
@@ -472,8 +475,11 @@ QuicPerfCtlEvtFileCleanup(
         if (Client->Thread != nullptr) {
             QuicThreadWait(&Client->Thread);
             QuicThreadDelete(&Client->Thread);
+            Client->Thread = nullptr;
         }
         QuicEventUninitialize(Client->StopEvent);
+
+        QuicMainFree();
 
         //
         // Clean up globals.
@@ -499,6 +505,7 @@ QuicPerfCtlEvtIoCanceled(
     )
 {
     NTSTATUS Status;
+    
 
     WDFFILEOBJECT FileObject = WdfRequestGetFileObject(Request);
     if (FileObject == nullptr) {
@@ -521,6 +528,12 @@ QuicPerfCtlEvtIoCanceled(
         Client,
         Request);
 
+    QuicLockAcquire(&Client->CleanupLock);
+    if (Client->CleanupHandleCancellation) {
+        WdfRequestComplete(Request, STATUS_CANCELLED);
+    }
+    Client->CleanupHandleCancellation = true;
+    QuicLockRelease(&Client->CleanupLock);
     return;
 Error:
     WdfRequestComplete(Request, Status);
@@ -545,6 +558,9 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_CERTIFICATE_HASH),
     SIZE_MAX,
+    0,
+    0,
+    0,
     0
 };
 
@@ -570,9 +586,19 @@ QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
     QUIC_DRIVER_CLIENT* Client = (QUIC_DRIVER_CLIENT*)Context;
     WDFREQUEST Request = Client->Request;
 
+    WdfRequestMarkCancelable(Request, QuicPerfCtlEvtIoCanceled);
+    if (Client->Canceled) {
+        QuicTraceLogInfo(
+            PerformanceStopCancelled,
+            "[perf] Performance Stop Cancelled");
+        WdfRequestComplete(Request, STATUS_CANCELLED);
+        return;
+    }
+
     char* LocalBuffer = nullptr;
     DWORD ReturnedLength = 0;
     QUIC_STATUS StopStatus;
+    NTSTATUS Status;
 
     StopStatus =
         QuicMainStop(0);
@@ -585,9 +611,16 @@ QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
         return;
     }
 
-    WdfRequestUnmarkCancelable(Request);
+    QuicLockAcquire(&Client->CleanupLock);
+    Status = WdfRequestUnmarkCancelable(Request);
+    bool ExistingCancellation = Client->CleanupHandleCancellation;
+    Client->CleanupHandleCancellation = TRUE;
+    QuicLockRelease(&Client->CleanupLock);
+    if (Status == STATUS_CANCELLED && !ExistingCancellation) {
+        return;
+    }
 
-    NTSTATUS Status =
+    Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
             (size_t)BufferCurrent + 1,
@@ -641,8 +674,6 @@ QuicPerfCtlReadPrints(
             Request,
             Status,
             0);
-    } else {
-        WdfRequestMarkCancelable(Request, QuicPerfCtlEvtIoCanceled);
     }
 }
 
@@ -651,7 +682,8 @@ QuicPerfCtlStart(
     _In_ QUIC_DRIVER_CLIENT* Client,
     _In_ char* Arguments,
     _In_ int Length
-    ) {
+    )
+{
     char** Argv = new(std::nothrow) char* [Length];
     if (!Argv) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -673,6 +705,72 @@ QuicPerfCtlStart(
     delete[] Argv;
 
     return Status;
+}
+
+void
+QuicPerfCtlGetMetadata(
+    _In_ WDFREQUEST Request
+    )
+{
+    QUIC_STATUS QuicStatus;
+    PerfExtraDataMetadata Metadata;
+
+    QuicStatus = QuicMainGetExtraDataMetadata(&Metadata);
+    if (QUIC_FAILED(QuicStatus)) {
+        WdfRequestComplete(Request, QuicStatus);
+        return;
+    }
+
+    void* LocalBuffer = nullptr;
+
+    NTSTATUS Status =
+        WdfRequestRetrieveOutputBuffer(
+            Request,
+            sizeof(Metadata),
+            &LocalBuffer,
+            nullptr);
+    if (!NT_SUCCESS(Status)) {
+        WdfRequestComplete(Request, Status);
+        return;
+    }
+
+    QuicCopyMemory(LocalBuffer, &Metadata, sizeof(Metadata));
+    WdfRequestCompleteWithInformation(
+        Request,
+        Status,
+        sizeof(Metadata));
+}
+
+void
+QuicPerfCtlGetExtraData(
+    _In_ WDFREQUEST Request,
+    _In_ size_t OutputBufferLength
+    )
+{
+    QUIC_FRE_ASSERT(OutputBufferLength < UINT32_MAX);
+    uint8_t* LocalBuffer = nullptr;
+    uint32_t BufferLength = (uint32_t)OutputBufferLength;
+
+    NTSTATUS Status =
+        WdfRequestRetrieveOutputBuffer(
+            Request,
+            BufferLength,
+            (void**)&LocalBuffer,
+            nullptr);
+    if (!NT_SUCCESS(Status)) {
+        WdfRequestComplete(Request, Status);
+        return;
+    }
+
+    QUIC_STATUS QuicStatus =
+        QuicMainGetExtraData(
+            LocalBuffer,
+            &BufferLength);
+
+    WdfRequestCompleteWithInformation(
+        Request,
+        QuicStatus,
+        BufferLength);
 }
 
 VOID
@@ -727,6 +825,12 @@ QuicPerfCtlEvtIoDeviceControl(
         QuicPerfCtlReadPrints(
             Request,
             Client);
+        return;
+    } else if (IoControlCode == IOCTL_QUIC_GET_METADATA) {
+        QuicPerfCtlGetMetadata(Request);
+        return;
+    } else if (IoControlCode == IOCTL_QUIC_GET_EXTRA_DATA) {
+        QuicPerfCtlGetExtraData(Request, OutputBufferLength);
         return;
     }
 
@@ -793,6 +897,10 @@ QuicPerfCtlEvtIoDeviceControl(
                 &Params->Data,
                 Params->Length);
         break;
+    case IOCTL_QUIC_FREE_PERF:
+        QuicMainFree();
+        Status = QUIC_STATUS_SUCCESS;
+        break;
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;
@@ -807,6 +915,5 @@ Error:
 
     WdfRequestComplete(Request, Status);
     UNREFERENCED_PARAMETER(InputBufferLength);
-    UNREFERENCED_PARAMETER(OutputBufferLength);
     UNREFERENCED_PARAMETER(Queue);
 }

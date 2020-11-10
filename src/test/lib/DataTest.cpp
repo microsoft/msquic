@@ -97,7 +97,7 @@ struct PingStats
         QuicEventUninitialize(CompletionEvent);
         QuicZeroMemory(&CompletionEvent, sizeof(CompletionEvent));
         if (ResumptionTicket) {
-            QUIC_FREE(ResumptionTicket);
+            QUIC_FREE(ResumptionTicket, QUIC_POOL_TEST);
         }
     }
 };

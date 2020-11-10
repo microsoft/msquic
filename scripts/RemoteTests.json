@@ -53,7 +53,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Units": "kbps"
+        "Formats": ["{0} kbps"]
     },
     {
         "TestName": "ThroughputUp",
@@ -109,7 +109,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Units": "kbps"
+        "Formats": ["{0} kbps"]
     },
     {
         "TestName": "ThroughputDown",
@@ -153,7 +153,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Units": "kbps"
+        "Formats": ["{0} kbps"]
     },
     {
         "TestName": "ThroughputDown",
@@ -197,7 +197,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Units": "kbps"
+        "Formats": ["{0} kbps"]
     },
     {
         "TestName": "RPS",
@@ -227,12 +227,12 @@
             {
                 "Name": "ConnectionCount",
                 "Local": {
-                    "1000": "-conns:1000"
+                    "250": "-conns:250 -requests:7500"
                 },
                 "Remote": {
-                    "1000": ""
+                    "250": ""
                 },
-                "Default": "1000"
+                "Default": "250"
             },
             {
                 "Name": "RequestSize",
@@ -265,8 +265,8 @@
         "AllowLoopback": false,
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Result: (.*) RPS",
-        "Units": "RPS"
+        "ResultsMatcher": "Result: (.*) RPS, Min: (.*), Max: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), StdErr: (.*)",
+        "Formats": ["{0} RPS", "Minimum: {0}", "Maximum: {0}", "Percentiles: 50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "99.999th: {0}", "99.9999th: {0}", "Standard Error: {0}"]
     },
     {
         "TestName": "HPS",
@@ -297,6 +297,6 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": "Result: (.*) HPS.*",
-        "Units": "HPS"
+        "Formats": ["{0} HPS"]
     }
 ]

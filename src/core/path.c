@@ -134,6 +134,9 @@ QuicPathSetValid(
         // If the active path was just validated, then let's queue up a PMTUD
         // packet.
         //
+        // TODO - If minimum MTU was not validated, we might want to validate
+        // that first instead.
+        //
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PMTUD);
     }
 }
@@ -232,6 +235,12 @@ QuicPathSetActive(
 
         PrevActivePath.IsActive = FALSE;
         Path->IsActive = TRUE;
+        if (UdpPortChangeOnly) {
+            //
+            // We assume port only changes don't change the PMTU.
+            //
+            Path->IsMinMtuValidated = PrevActivePath.IsMinMtuValidated;
+        }
 
         Connection->Paths[0] = *Path;
         *Path = PrevActivePath;

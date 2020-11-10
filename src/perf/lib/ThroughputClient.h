@@ -25,7 +25,7 @@ public:
 
     ~ThroughputClient() override {
         if (DataBuffer) {
-            QUIC_FREE(DataBuffer);
+            QUIC_FREE(DataBuffer, QUIC_POOL_PERF);
         }
     }
 
@@ -45,13 +45,26 @@ public:
         _In_ int Timeout
         ) override;
 
+    void
+    GetExtraDataMetadata(
+        _Out_ PerfExtraDataMetadata* Result
+        ) override;
+
+    QUIC_STATUS
+    GetExtraData(
+        _Out_writes_bytes_(*Length) uint8_t* Data,
+        _Inout_ uint32_t* Length
+        ) override;
+
 private:
 
     struct ConnectionData {
         ConnectionData(_In_ ThroughputClient* Client) : Client{Client} { }
         ThroughputClient* Client;
         ConnectionScope Connection;
+#if DEBUG
         uint8_t Padding[16]; // Padding for Pools
+#endif
     };
 
     struct StreamContext {

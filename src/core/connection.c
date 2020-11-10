@@ -273,7 +273,8 @@ Error:
             QUIC_CONTAINING_RECORD(
                 Connection->SourceCids.Next,
                 QUIC_CID_HASH_ENTRY,
-                Link));
+                Link),
+            QUIC_POOL_CIDHASH);
         Connection->SourceCids.Next = NULL;
     }
     QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
@@ -323,7 +324,7 @@ QuicConnFree(
                 QuicListRemoveHead(&Connection->DestCids),
                 QUIC_CID_QUIC_LIST_ENTRY,
                 Link);
-        QUIC_FREE(CID);
+        QUIC_FREE(CID, QUIC_POOL_CIDLIST);
     }
     if (Connection->State.Registered) {
         QuicDispatchLockAcquire(&Connection->Registration->ConnectionLock);
@@ -362,10 +363,10 @@ QuicConnFree(
         Connection->Configuration = NULL;
     }
     if (Connection->RemoteServerName != NULL) {
-        QUIC_FREE(Connection->RemoteServerName);
+        QUIC_FREE(Connection->RemoteServerName, QUIC_POOL_SERVERNAME);
     }
     if (Connection->OrigDestCID != NULL) {
-        QUIC_FREE(Connection->OrigDestCID);
+        QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
     }
     if (Connection->HandshakeTP != NULL) {
         QuicPoolFree(
@@ -462,7 +463,7 @@ QuicConnUninitialize(
     QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
 
     if (Connection->CloseReasonPhrase != NULL) {
-        QUIC_FREE(Connection->CloseReasonPhrase);
+        QUIC_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
     }
 }
 
@@ -670,7 +671,7 @@ QuicConnIndicateEvent(
 {
     QUIC_STATUS Status;
     if (!Connection->State.HandleClosed) {
-        QUIC_CONN_VERIFY(Connection, Connection->State.HandleShutdown || Connection->ClientCallbackHandler != NULL);
+        QUIC_CONN_VERIFY(Connection, Connection->State.HandleShutdown || Connection->ClientCallbackHandler != NULL || !Connection->State.ExternalOwner);
         if (Connection->ClientCallbackHandler == NULL) {
             Status = QUIC_STATUS_INVALID_STATE;
             QuicTraceLogConnWarning(
@@ -828,7 +829,7 @@ QuicConnGenerateNewSourceCid(
             return NULL;
         }
         if (!QuicBindingAddSourceConnectionID(Connection->Paths[0].Binding, SourceCid)) {
-            QUIC_FREE(SourceCid);
+            QUIC_FREE(SourceCid, QUIC_POOL_CIDHASH);
             SourceCid = NULL;
             if (++TryCount > QUIC_CID_MAX_COLLISION_RETRY) {
                 QuicTraceEvent(
@@ -1585,13 +1586,13 @@ QuicConnTryClose(
         }
 
         if (Connection->CloseReasonPhrase != NULL) {
-            QUIC_FREE(Connection->CloseReasonPhrase);
+            QUIC_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
             Connection->CloseReasonPhrase = NULL;
         }
 
         if (RemoteReasonPhraseLength != 0) {
             Connection->CloseReasonPhrase =
-                QUIC_ALLOC_NONPAGED(RemoteReasonPhraseLength + 1);
+                QUIC_ALLOC_NONPAGED(RemoteReasonPhraseLength + 1, QUIC_POOL_CLOSE_REASON);
             if (Connection->CloseReasonPhrase != NULL) {
                 QuicCopyMemory(
                     Connection->CloseReasonPhrase,
@@ -1698,6 +1699,7 @@ QuicConnOnQuicVersionSet(
     case QUIC_VERSION_DRAFT_29:
     case QUIC_VERSION_DRAFT_30:
     case QUIC_VERSION_DRAFT_31:
+    case QUIC_VERSION_DRAFT_32:
     case QUIC_VERSION_MS_1:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
@@ -1721,7 +1723,7 @@ QuicConnStart(
 
     if (Connection->State.ClosedLocally || Connection->State.Started) {
         if (ServerName != NULL) {
-            QUIC_FREE(ServerName);
+            QUIC_FREE(ServerName, QUIC_POOL_SERVERNAME);
         }
         return QUIC_STATUS_INVALID_STATE;
     }
@@ -1872,7 +1874,7 @@ QuicConnStart(
 Exit:
 
     if (ServerName != NULL) {
-        QUIC_FREE(ServerName);
+        QUIC_FREE(ServerName, QUIC_POOL_SERVERNAME);
     }
 
     if (QUIC_FAILED(Status)) {
@@ -1959,11 +1961,11 @@ QuicConnSendResumptionTicket(
 
 Error:
     if (TicketBuffer != NULL) {
-        QUIC_FREE(TicketBuffer);
+        QUIC_FREE(TicketBuffer, QUIC_POOL_SERVER_CRYPTO_TICKET);
     }
 
     if (AppResumptionData != NULL) {
-        QUIC_FREE(AppResumptionData);
+        QUIC_FREE(AppResumptionData, QUIC_POOL_APP_RESUMPTION_DATA);
     }
 
     return Status;
@@ -2071,7 +2073,7 @@ QuicConnRecvResumptionTicket(
                 "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
             (void)QuicConnIndicateEvent(Connection, &Event);
 
-            QUIC_FREE(ClientTicket);
+            QUIC_FREE(ClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
             ResumptionAccepted = TRUE;
         }
     }
@@ -2109,7 +2111,7 @@ QuicConnCleanupServerResumptionState(
         if (Crypto->Initialized) {
             QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
             QuicRangeUninitialize(&Crypto->SparseAckRanges);
-            QUIC_FREE(Crypto->TlsState.Buffer);
+            QUIC_FREE(Crypto->TlsState.Buffer, QUIC_POOL_TLS_BUFFER);
             Crypto->TlsState.Buffer = NULL;
             Crypto->Initialized = FALSE;
         }
@@ -2222,7 +2224,7 @@ QuicConnGenerateLocalTransportParameters(
                 LocalTP->OriginalDestinationConnectionID,
                 Connection->OrigDestCID->Data,
                 Connection->OrigDestCID->Length);
-            QUIC_FREE(Connection->OrigDestCID);
+            QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
             Connection->OrigDestCID = NULL;
 
             if (Connection->State.HandshakeUsedRetryPacket &&
@@ -2317,7 +2319,8 @@ QuicConnSetConfiguration(
         Connection->OrigDestCID =
             QUIC_ALLOC_NONPAGED(
                 sizeof(QUIC_CID) +
-                DestCid->CID.Length);
+                DestCid->CID.Length,
+                QUIC_POOL_CID);
         if (Connection->OrigDestCID == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -2405,7 +2408,7 @@ QuicConnValidateTransportParameterDraft27CIDs(
                 "Peer provided incorrect original destination CID in TP");
             return FALSE;
         } else {
-            QUIC_FREE(Connection->OrigDestCID);
+            QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
             Connection->OrigDestCID = NULL;
         }
 
@@ -2476,7 +2479,7 @@ QuicConnValidateTransportParameterCIDs(
                 "Original destination CID from TP doesn't match");
             return FALSE;
         }
-        QUIC_FREE(Connection->OrigDestCID);
+        QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
         Connection->OrigDestCID = NULL;
         if (Connection->State.HandshakeUsedRetryPacket) {
             if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID)) {
@@ -2578,14 +2581,16 @@ QuicConnProcessPeerTransportParameters(
 
     QuicDatagramOnSendStateChanged(&Connection->Datagram);
 
-    if (Connection->State.Disable1RttEncrytion &&
-        Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION) {
-        QuicTraceLogConnInfo(
-            NegotiatedDisable1RttEncryption,
-            Connection,
-            "Negotiated Disable 1-RTT Encryption");
-    } else {
-        Connection->State.Disable1RttEncrytion = FALSE;
+    if (Connection->State.Started) {
+        if (Connection->State.Disable1RttEncrytion &&
+            Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION) {
+            QuicTraceLogConnInfo(
+                NegotiatedDisable1RttEncryption,
+                Connection,
+                "Negotiated Disable 1-RTT Encryption");
+        } else {
+            Connection->State.Disable1RttEncrytion = FALSE;
+        }
     }
 
     return;
@@ -2743,7 +2748,7 @@ QuicConnUpdateDestCid(
             // so we must allocate a new one and free the old one.
             //
             QuicListEntryRemove(&DestCid->Link);
-            QUIC_FREE(DestCid);
+            QUIC_FREE(DestCid, QUIC_POOL_CIDLIST);
             DestCid =
                 QuicCidNewDestination(
                     Packet->SourceCidLen,
@@ -2828,16 +2833,6 @@ QuicConnRecvVerNeg(
         }
     }
 
-    if (SupportedVersion != 0) { // TODO - Remove once version negotiation extension support is added.
-        QuicPacketLogDrop(Connection, Packet, "Version Negotation is unsupported");
-        QuicConnCloseLocally(
-            Connection,
-            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
-            (uint64_t)QUIC_STATUS_VER_NEG_ERROR,
-            NULL);
-        return;
-    }
-
     if (SupportedVersion == 0) {
         //
         // No match! Connection failure.
@@ -2854,11 +2849,9 @@ QuicConnRecvVerNeg(
         return;
     }
 
-    /* TODO - Add version negotiation extension support
     Connection->Stats.QuicVersion = SupportedVersion;
     QuicConnOnQuicVersionSet(Connection);
     QuicConnRestart(Connection, TRUE);
-    */
 }
 
 
@@ -2948,7 +2941,7 @@ QuicConnRecvRetry(
     // Cache the Retry token.
     //
 
-    Connection->Send.InitialToken = QUIC_ALLOC_PAGED(TokenLength);
+    Connection->Send.InitialToken = QUIC_ALLOC_PAGED(TokenLength, QUIC_POOL_INITIAL_TOKEN);
     if (Connection->Send.InitialToken == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -3190,7 +3183,8 @@ QuicConnRecvHeader(
             Connection->OrigDestCID =
                 QUIC_ALLOC_NONPAGED(
                     sizeof(QUIC_CID) +
-                    Token.Encrypted.OrigConnIdLength);
+                    Token.Encrypted.OrigConnIdLength,
+                    QUIC_POOL_CID);
             if (Connection->OrigDestCID == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -3216,7 +3210,8 @@ QuicConnRecvHeader(
             Connection->OrigDestCID =
                 QUIC_ALLOC_NONPAGED(
                     sizeof(QUIC_CID) +
-                    Packet->DestCidLen);
+                    Packet->DestCidLen,
+                    QUIC_POOL_CID);
             if (Connection->OrigDestCID == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -4259,7 +4254,7 @@ QuicConnRecvFrames(
                     &IsLastCid);
             if (SourceCid != NULL) {
                 BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
-                QUIC_FREE(SourceCid);
+                QUIC_FREE(SourceCid, QUIC_POOL_CIDHASH);
                 if (IsLastCid) {
                     QuicTraceEvent(
                         ConnError,
@@ -4336,8 +4331,6 @@ QuicConnRecvFrames(
                     break;
                 }
             }
-
-            // TODO - Do we care if there was no match? Possible fishing expedition?
 
             AckPacketImmediately = TRUE;
             break;
@@ -4522,7 +4515,7 @@ QuicConnRecvPostProcessing(
                             Connection,
                             NextSourceCid->CID.SequenceNumber,
                             CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data));
-                        QUIC_FREE(NextSourceCid);
+                        QUIC_FREE(NextSourceCid, QUIC_POOL_CIDHASH);
                     }
                 }
             } else {
@@ -5394,7 +5387,7 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_CLOSE_REASON_PHRASE:
 
-        if (BufferLength >= 513) { // TODO - Practically, must fit in 1 packet.
+        if (BufferLength >= 513) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -5411,14 +5404,14 @@ QuicConnParamSet(
         // Free any old data.
         //
         if (Connection->CloseReasonPhrase != NULL) {
-            QUIC_FREE(Connection->CloseReasonPhrase);
+            QUIC_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
         }
 
         //
         // Allocate new space.
         //
         Connection->CloseReasonPhrase =
-            QUIC_ALLOC_NONPAGED(BufferLength);
+            QUIC_ALLOC_NONPAGED(BufferLength, QUIC_POOL_CLOSE_REASON);
 
         if (Connection->CloseReasonPhrase != NULL) {
             QuicCopyMemory(
@@ -5493,6 +5486,15 @@ QuicConnParamSet(
         }
 
         if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        if (Connection->State.PeerTransportParameterValid &&
+            (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION))) {
+            //
+            // The peer did't negotiate the feature.
+            //
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }

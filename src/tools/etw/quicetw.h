@@ -86,6 +86,7 @@ typedef enum QUIC_EVENT_ID_GLOBAL {
     EventId_QuicApiExitStatus,
     EventId_QuicApiWaitOperation,
     EventId_QuicPerfCountersRundown,
+    EventId_QuicLibrarySendRetryStateUpdated,
 
     EventId_QuicLibraryCount
 } QUIC_EVENT_ID_GLOBAL;
@@ -129,6 +130,9 @@ typedef struct QUIC_EVENT_DATA_GLOBAL {
             uint16_t CounterLen;
             int64_t Counters[QUIC_PERF_COUNTER_MAX];
         } PerfCounters;
+        struct {
+            UINT8 Value;
+        } LibrarySendRetryStateUpdated;
     };
 } QUIC_EVENT_DATA_GLOBAL;
 #pragma pack(pop)

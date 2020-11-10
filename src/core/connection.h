@@ -544,7 +544,6 @@ typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
 
 //
 // Estimates the memory usage for a connection object in the handshake state.
-// TODO - Improve this estimate?
 //
 #define QUIC_CONN_HANDSHAKE_MEMORY_USAGE \
 ( \

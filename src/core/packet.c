@@ -19,6 +19,11 @@ Abstract:
 // The list is in priority order (highest to lowest).
 //
 const QUIC_VERSION_INFO QuicSupportedVersionList[] = {
+    { QUIC_VERSION_DRAFT_32,
+      { 0xaf, 0xbf, 0xec, 0x28, 0x99, 0x93, 0xd2, 0x4c, 0x9e, 0x97,
+        0x86, 0xf1, 0x9c, 0x61, 0x11, 0xe0, 0x43, 0x90, 0xa8, 0x99 },
+      { 0x8b, 0x0d, 0x37, 0xeb, 0x85, 0x35, 0x02, 0x2e, 0xbc, 0x8d, 0x76, 0xa2, 0x07, 0xd8, 0x0d, 0xf2,
+        0x26, 0x46, 0xec, 0x06, 0xdc, 0x80, 0x96, 0x42, 0xc3, 0x0a, 0x8b, 0xaa, 0x2b, 0xaa, 0xff, 0x4c } },
     { QUIC_VERSION_DRAFT_31,
       { 0xaf, 0xbf, 0xec, 0x28, 0x99, 0x93, 0xd2, 0x4c, 0x9e, 0x97,
         0x86, 0xf1, 0x9c, 0x61, 0x11, 0xe0, 0x43, 0x90, 0xa8, 0x99 },
@@ -306,6 +311,7 @@ QuicPacketValidateLongHeaderV1(
     return TRUE;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketGenerateRetryIntegrity(
     _In_reads_(QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH)
@@ -341,7 +347,7 @@ QuicPacketGenerateRetryIntegrity(
     }
 
     uint16_t RetryPseudoPacketLength = sizeof(uint8_t) + OrigDestCidLength + BufferLength;
-    RetryPseudoPacket = (uint8_t*)QUIC_ALLOC_PAGED(RetryPseudoPacketLength);
+    RetryPseudoPacket = (uint8_t*)QUIC_ALLOC_PAGED(RetryPseudoPacketLength, QUIC_POOL_TMP_ALLOC);
     if (RetryPseudoPacket == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -371,7 +377,7 @@ QuicPacketGenerateRetryIntegrity(
 
 Exit:
     if (RetryPseudoPacket != NULL) {
-        QUIC_FREE(RetryPseudoPacket);
+        QUIC_FREE(RetryPseudoPacket, QUIC_POOL_TMP_ALLOC);
     }
     QuicPacketKeyFree(RetryIntegrityKey);
     return Status;
@@ -597,6 +603,7 @@ QuicPacketLogHeader(
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_DRAFT_30:
         case QUIC_VERSION_DRAFT_31:
+        case QUIC_VERSION_DRAFT_32:
         case QUIC_VERSION_MS_1: {
             const QUIC_LONG_HEADER_V1 * const LongHdr =
                 (const QUIC_LONG_HEADER_V1 * const)Packet;
@@ -691,6 +698,7 @@ QuicPacketLogHeader(
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_DRAFT_30:
         case QUIC_VERSION_DRAFT_31:
+        case QUIC_VERSION_DRAFT_32:
         case QUIC_VERSION_MS_1: {
             const QUIC_SHORT_HEADER_V1 * const Header =
                 (const QUIC_SHORT_HEADER_V1 * const)Packet;

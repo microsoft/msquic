@@ -22,6 +22,12 @@ QuicLibApplyLoadBalancingSetting(
     void
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryEvaluateSendRetryState(
+    void
+    );
+
 //
 // Initializes all global variables.
 //
@@ -137,6 +143,10 @@ MsQuicLibraryOnSettingsChanged(
         QuicLibApplyLoadBalancingSetting();
     }
 
+    MsQuicLib.HandshakeMemoryLimit =
+        (MsQuicLib.Settings.RetryMemoryLimit * QuicTotalMemory) / UINT16_MAX;
+    QuicLibraryEvaluateSendRetryState();
+
     if (UpdateRegistrations) {
         QuicLockAcquire(&MsQuicLib.Lock);
 
@@ -237,7 +247,9 @@ MsQuicLibraryInitialize(
     MsQuicCalculatePartitionMask();
 
     MsQuicLib.PerProc =
-        QUIC_ALLOC_NONPAGED(MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP));
+        QUIC_ALLOC_NONPAGED(
+            MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP),
+            QUIC_POOL_PERPROC);
     if (MsQuicLib.PerProc == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -314,7 +326,7 @@ Error:
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
             }
-            QUIC_FREE(MsQuicLib.PerProc);
+            QUIC_FREE(MsQuicLib.PerProc, QUIC_POOL_PERPROC);
             MsQuicLib.PerProc = NULL;
         }
         if (MsQuicLib.Storage != NULL) {
@@ -402,7 +414,7 @@ MsQuicLibraryUninitialize(
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
     }
-    QUIC_FREE(MsQuicLib.PerProc);
+    QUIC_FREE(MsQuicLib.PerProc, QUIC_POOL_PERPROC);
     MsQuicLib.PerProc = NULL;
 
     for (uint8_t i = 0; i < ARRAYSIZE(MsQuicLib.StatelessRetryKeys); ++i) {
@@ -1113,7 +1125,7 @@ MsQuicOpen(
         goto Exit;
     }
 
-    QUIC_API_TABLE* Api = QUIC_ALLOC_NONPAGED(sizeof(QUIC_API_TABLE));
+    QUIC_API_TABLE* Api = QUIC_ALLOC_NONPAGED(sizeof(QUIC_API_TABLE), QUIC_POOL_API);
     if (Api == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -1185,7 +1197,7 @@ MsQuicClose(
         QuicTraceLogVerbose(
             LibraryMsQuicClose,
             "[ api] MsQuicClose");
-        QUIC_FREE(QuicApi);
+        QUIC_FREE(QuicApi, QUIC_POOL_API);
         MsQuicRelease();
     }
 }
@@ -1509,6 +1521,11 @@ QuicTraceRundown(
             MsQuicLib.PartitionCount,
             QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
+        QuicTraceEvent(
+            LibrarySendRetryStateUpdated,
+            "[ lib] New SendRetryEnabled state, %hhu",
+            MsQuicLib.SendRetryEnabled);
+
         if (MsQuicLib.StatelessRegistration) {
             QuicRegistrationTraceRundown(MsQuicLib.StatelessRegistration);
         }
@@ -1615,4 +1632,46 @@ QuicLibraryGetCurrentStatelessRetryKey(
     MsQuicLib.CurrentStatelessRetryKey = !MsQuicLib.CurrentStatelessRetryKey;
 
     return NewKey;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryOnHandshakeConnectionAdded(
+    void
+    )
+{
+    InterlockedExchangeAdd64(
+        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+    QuicLibraryEvaluateSendRetryState();
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryOnHandshakeConnectionRemoved(
+    void
+    )
+{
+    InterlockedExchangeAdd64(
+        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+        -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+    QuicLibraryEvaluateSendRetryState();
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryEvaluateSendRetryState(
+    void
+    )
+{
+    BOOLEAN NewSendRetryState =
+        MsQuicLib.CurrentHandshakeMemoryUsage >= MsQuicLib.HandshakeMemoryLimit;
+
+    if (NewSendRetryState != MsQuicLib.SendRetryEnabled) {
+        MsQuicLib.SendRetryEnabled = NewSendRetryState;
+        QuicTraceEvent(
+            LibrarySendRetryStateUpdated,
+            "[ lib] New SendRetryEnabled state, %hhu",
+            NewSendRetryState);
+    }
 }

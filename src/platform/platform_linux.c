@@ -113,7 +113,7 @@ QuicPlatformSystemLoad(
     size_t TpLibNameLen = strlen(TpLibName);
     size_t ProviderFullPathLength = TpLibNameLen + LastTrailingSlashLen + 1;
 
-    char* ProviderFullPath = QUIC_ALLOC_PAGED(ProviderFullPathLength);
+    char* ProviderFullPath = QUIC_ALLOC_PAGED(ProviderFullPathLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (ProviderFullPath == NULL) {
         return;
     }
@@ -128,7 +128,7 @@ QuicPlatformSystemLoad(
     //
     dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
 
-    QUIC_FREE(ProviderFullPath);
+    QUIC_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
 }
 
 void
@@ -169,9 +169,11 @@ QuicPlatformUninitialize(
 
 void*
 QuicAlloc(
-    _In_ size_t ByteCount
+    _In_ size_t ByteCount,
+    _In_ uint32_t Tag
     )
 {
+    UNREFERENCED_PARAMETER(Tag);
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->Alloc(ByteCount);
 #else
@@ -186,9 +188,11 @@ QuicAlloc(
 
 void
 QuicFree(
-    __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem
+    __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem,
+    _In_ uint32_t Tag
     )
 {
+    UNREFERENCED_PARAMETER(Tag);
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     PlatDispatch->Free(Mem);
 #else
@@ -204,12 +208,12 @@ QuicPoolInitialize(
     _Inout_ QUIC_POOL* Pool
     )
 {
-    UNREFERENCED_PARAMETER(Tag);
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     PlatDispatch->PoolInitialize(IsPaged, Size, Pool);
 #else
     UNREFERENCED_PARAMETER(IsPaged);
     Pool->Size = Size;
+    Pool->MemTag = Tag;
 #endif
 }
 
@@ -233,7 +237,7 @@ QuicPoolAlloc(
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->PoolAlloc(Pool);
 #else
-    void*Entry = QuicAlloc(Pool->Size);
+    void*Entry = QuicAlloc(Pool->Size, Pool->MemTag);
 
     if (Entry != NULL) {
         QuicZeroMemory(Entry, Pool->Size);
@@ -253,7 +257,7 @@ QuicPoolFree(
     PlatDispatch->PoolFree(Pool, Entry);
 #else
     UNREFERENCED_PARAMETER(Pool);
-    QuicFree(Entry);
+    QuicFree(Entry, Pool->MemTag);
 #endif
 }
 
@@ -391,11 +395,7 @@ QuicEventInitialize(
     QUIC_EVENT_OBJECT* EventObj = NULL;
     pthread_condattr_t Attr = {0};
 
-    //
-    // LINUX_TODO: Tag allocation would be useful here.
-    //
-
-    EventObj = QuicAlloc(sizeof(QUIC_EVENT_OBJECT));
+    EventObj = QUIC_ALLOC_NONPAGED(sizeof(QUIC_EVENT_OBJECT), QUIC_POOL_EVENT);
 
     //
     // MsQuic expects this call to be non failable.
@@ -425,7 +425,7 @@ QuicEventUninitialize(
     QUIC_FRE_ASSERT(pthread_cond_destroy(&EventObj->Cond) == 0);
     QUIC_FRE_ASSERT(pthread_mutex_destroy(&EventObj->Mutex) == 0);
 
-    QuicFree(EventObj);
+    QUIC_FREE(EventObj, QUIC_POOL_EVENT);
     EventObj = NULL;
 }
 
@@ -803,37 +803,4 @@ QuicPlatformLogAssert(
         (uint32_t)Line,
         File,
         Expr);
-}
-
-int
-QuicLogLevelToPriority(
-    _In_ QUIC_TRACE_LEVEL Level
-    )
-{
-    //
-    // LINUX_TODO: Re-evaluate these mappings.
-    //
-
-    switch(Level) {
-        case QUIC_TRACE_LEVEL_DEV:
-            return LOG_DEBUG;
-        case QUIC_TRACE_LEVEL_VERBOSE:
-            return LOG_DEBUG;
-        case QUIC_TRACE_LEVEL_INFO:
-            return LOG_INFO;
-        case QUIC_TRACE_LEVEL_WARNING:
-            return LOG_WARNING;
-        case QUIC_TRACE_LEVEL_ERROR:
-            return LOG_ERR;
-        case QUIC_TRACE_LEVEL_PACKET_VERBOSE:
-            return LOG_DEBUG;
-        case QUIC_TRACE_LEVEL_PACKET_INFO:
-            return LOG_INFO;
-        case QUIC_TRACE_LEVEL_PACKET_WARNING:
-            return LOG_WARNING;
-        default:
-            return LOG_DEBUG;
-    }
-
-    return LOG_DEBUG;
 }

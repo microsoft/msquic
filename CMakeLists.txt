@@ -1,8 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+cmake_minimum_required(VERSION 3.16)
+
 # Disable in-source builds to prevent source tree corruption.
-if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
   message(FATAL_ERROR "
 FATAL: In-source builds are not allowed.
        You should create a separate directory for build files.
@@ -210,7 +212,9 @@ else()
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
         CACHE INTERNAL "")
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)
+        list(APPEND QUIC_WARNING_FLAGS -Wno-strict-aliasing)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND QUIC_WARNING_FLAGS -Wno-missing-braces -Wno-microsoft-anon-tag)
     endif()
 endif()
@@ -452,11 +456,11 @@ if(QUIC_TLS STREQUAL "openssl")
             no-siv no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-des no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
             no-weak-ssl-ciphers no-shared no-tests --prefix=${OPENSSL_DIR})
         if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
-            set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure
+            set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure
                 linux-armv4 -DL_ENDIAN
                 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
         else()
-            set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config
+            set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
                 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
         endif()
         add_custom_target(mkdir_openssl_build

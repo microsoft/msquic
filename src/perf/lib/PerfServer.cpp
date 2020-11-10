@@ -49,7 +49,7 @@ PerfServer::Init(
 
     TryGetValue(argc, argv, "port", &Port);
 
-    DataBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE);
+    DataBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE, QUIC_POOL_PERF);
     if (!DataBuffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -95,6 +95,26 @@ PerfServer::Wait(
     return QUIC_STATUS_SUCCESS;
 }
 
+void
+PerfServer::GetExtraDataMetadata(
+    _Out_ PerfExtraDataMetadata* Result
+    )
+{
+    Result->TestType = PerfTestType::Server;
+    Result->ExtraDataLength = 0;
+}
+
+
+QUIC_STATUS
+PerfServer::GetExtraData(
+    _Out_writes_bytes_(*Length) uint8_t*,
+    _Inout_ uint32_t* Length
+    )
+{
+    *Length = 0;
+    return QUIC_STATUS_SUCCESS;
+}
+
 QUIC_STATUS
 PerfServer::ListenerCallback(
     _In_ HQUIC /*ListenerHandle*/,
@@ -104,15 +124,12 @@ PerfServer::ListenerCallback(
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
         BOOLEAN value = TRUE;
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                Event->NEW_CONNECTION.Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
-                sizeof(value),
-                &value))) {
-            WriteOutput("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n");
-        }
+        MsQuic->SetParam(
+            Event->NEW_CONNECTION.Connection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
+            sizeof(value),
+            &value);
         QUIC_CONNECTION_CALLBACK_HANDLER Handler =
             [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
                 return ((PerfServer*)Context)->

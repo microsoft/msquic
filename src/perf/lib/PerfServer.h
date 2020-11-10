@@ -27,7 +27,7 @@ public:
 
     ~PerfServer() override {
         if (DataBuffer) {
-            QUIC_FREE(DataBuffer);
+            QUIC_FREE(DataBuffer, QUIC_POOL_PERF);
         }
     }
 
@@ -45,6 +45,17 @@ public:
     QUIC_STATUS
     Wait(
         int Timeout
+        ) override;
+
+    void
+    GetExtraDataMetadata(
+        _Out_ PerfExtraDataMetadata* Result
+        ) override;
+
+    QUIC_STATUS
+    GetExtraData(
+        _Out_writes_bytes_(*Length) uint8_t* Data,
+        _Inout_ uint32_t* Length
         ) override;
 
 private:

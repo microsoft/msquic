@@ -137,20 +137,20 @@ protected:
             Connected(false) {
             QuicEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
             QuicZeroMemory(&State, sizeof(State));
-            State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000);
+            State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000, QUIC_POOL_TEST);
             State.BufferAllocLength = 8000;
         }
 
         ~TlsContext() {
             QuicTlsUninitialize(Ptr);
             QuicEventUninitialize(ProcessCompleteEvent);
-            QUIC_FREE(State.Buffer);
+            QUIC_FREE(State.Buffer, QUIC_POOL_TEST);
             for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
                 QuicPacketKeyFree(State.ReadKeys[i]);
                 QuicPacketKeyFree(State.WriteKeys[i]);
             }
             if (ResumptionTicket.Buffer) {
-                QUIC_FREE(ResumptionTicket.Buffer);
+                QUIC_FREE(ResumptionTicket.Buffer, QUIC_POOL_TEST);
             }
         }
 
@@ -167,7 +167,7 @@ protected:
             Config.AlpnBuffer = Alpn;
             Config.AlpnBufferLength = sizeof(Alpn);
             Config.LocalTPBuffer =
-                (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen);
+                (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
             Config.ProcessCompleteCallback = OnProcessComplete;
@@ -195,7 +195,7 @@ protected:
             Config.AlpnBuffer = MultipleAlpns ? MultiAlpn : Alpn;
             Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
             Config.LocalTPBuffer =
-                (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen);
+                (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
             Config.ProcessCompleteCallback = OnProcessComplete;
@@ -446,7 +446,7 @@ protected:
             auto Context = (TlsContext*)Connection;
             if (Context->ResumptionTicket.Buffer == nullptr) {
                 Context->ResumptionTicket.Buffer =
-                    (uint8_t*)QUIC_ALLOC_NONPAGED(TicketLength);
+                    (uint8_t*)QUIC_ALLOC_NONPAGED(TicketLength, QUIC_POOL_TEST);
                 QuicCopyMemory(
                     Context->ResumptionTicket.Buffer,
                     Ticket,

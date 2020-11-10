@@ -28,7 +28,7 @@ MsQuicConfigurationOpen(
         const QUIC_SETTINGS* Settings,
     _In_ uint32_t SettingsSize,
     _In_opt_ void* Context,
-    _Outptr_ _At_(*Configuration, __drv_allocatesMem(Mem)) _Pre_defensive_
+    _Outptr_ _At_(*NewConfiguration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* NewConfiguration
     )
 {
@@ -73,7 +73,7 @@ MsQuicConfigurationOpen(
     }
     QUIC_ANALYSIS_ASSERT(AlpnListLength <= UINT16_MAX);
 
-    Configuration = QUIC_ALLOC_NONPAGED(sizeof(QUIC_CONFIGURATION) + AlpnListLength);
+    Configuration = QUIC_ALLOC_NONPAGED(sizeof(QUIC_CONFIGURATION) + AlpnListLength, QUIC_POOL_CONFIG);
     if (Configuration == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -204,7 +204,7 @@ Error:
         QuicStorageClose(Configuration->Storage);
         QuicSiloRelease(Configuration->Silo);
 #endif
-        QUIC_FREE(Configuration);
+        QUIC_FREE(Configuration, QUIC_POOL_CONFIG);
     }
 
     QuicTraceEvent(
@@ -248,7 +248,7 @@ QuicConfigurationUninitialize(
         ConfigurationDestroyed,
         "[cnfg][%p] Destroyed",
         Configuration);
-    QUIC_FREE(Configuration);
+    QUIC_FREE(Configuration, QUIC_POOL_CONFIG);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

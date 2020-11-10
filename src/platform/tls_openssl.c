@@ -89,10 +89,15 @@ typedef struct QUIC_TLS {
 
 } QUIC_TLS;
 
+typedef struct QUIC_HP_KEY {
+    EVP_CIPHER_CTX* CipherCtx;
+    QUIC_AEAD_TYPE Aead;
+} QUIC_HP_KEY;
+
 //
 // Default list of Cipher used.
 //
-#define QUIC_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256"
+#define QUIC_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
 
 //
 // Default list of curves for ECDHE ciphers.
@@ -310,7 +315,7 @@ QuicTlsAddHandshakeDataCallback(
             NewBufferAllocLength <<= 1;
         }
 
-        uint8_t* NewBuffer = QUIC_ALLOC_NONPAGED(NewBufferAllocLength);
+        uint8_t* NewBuffer = QUIC_ALLOC_NONPAGED(NewBufferAllocLength, QUIC_POOL_TLS_BUFFER);
         if (NewBuffer == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -325,7 +330,7 @@ QuicTlsAddHandshakeDataCallback(
             NewBuffer,
             TlsState->Buffer,
             TlsState->BufferLength);
-        QUIC_FREE(TlsState->Buffer);
+        QUIC_FREE(TlsState->Buffer, QUIC_POOL_TLS_BUFFER);
         TlsState->Buffer = NewBuffer;
         TlsState->BufferAllocLength = NewBufferAllocLength;
     }
@@ -423,14 +428,6 @@ QuicTlsClientHelloCallback(
         return SSL_CLIENT_HELLO_ERROR;
     }
 
-    if (!TlsContext->ReceiveTPCallback(
-            TlsContext->Connection,
-            (uint16_t)TransportParamLen,
-            TransportParams)) {
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-        return SSL_CLIENT_HELLO_ERROR;
-    }
-
     return SSL_CLIENT_HELLO_SUCCESS;
 }
 
@@ -487,7 +484,7 @@ QuicTlsSecConfigCreate(
     // Create a security config.
     //
 
-    SecurityConfig = QuicAlloc(sizeof(QUIC_SEC_CONFIG));
+    SecurityConfig = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (SecurityConfig == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -711,7 +708,7 @@ QuicTlsSecConfigDelete(
         SecurityConfig->SSLCtx = NULL;
     }
 
-    QuicFree(SecurityConfig);
+    QUIC_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
 }
 
 QUIC_STATUS
@@ -725,7 +722,7 @@ QuicTlsInitialize(
     QUIC_TLS* TlsContext = NULL;
     uint16_t ServerNameLength = 0;
 
-    TlsContext = QuicAlloc(sizeof(QUIC_TLS));
+    TlsContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS), QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -765,7 +762,7 @@ QuicTlsInitialize(
                 goto Exit;
             }
 
-            TlsContext->SNI = QuicAlloc(ServerNameLength + 1);
+            TlsContext->SNI = QUIC_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
             if (TlsContext->SNI == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -818,7 +815,7 @@ QuicTlsInitialize(
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
-    QUIC_FREE(Config->LocalTPBuffer);
+    QUIC_FREE(Config->LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
 
     State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
 
@@ -847,7 +844,7 @@ QuicTlsUninitialize(
             "Cleaning up");
 
         if (TlsContext->SNI != NULL) {
-            QUIC_FREE(TlsContext->SNI);
+            QUIC_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
             TlsContext->SNI = NULL;
         }
 
@@ -856,7 +853,7 @@ QuicTlsUninitialize(
             TlsContext->Ssl = NULL;
         }
 
-        QUIC_FREE(TlsContext);
+        QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
         TlsContext = NULL;
     }
 }
@@ -902,6 +899,7 @@ QuicTlsReset(
     SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
     SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
 
+    QUIC_FRE_ASSERT(FALSE); // Currently unsupported!!
     /* TODO - Figure out if this is necessary.
     if (SSL_set_quic_transport_params(
             TlsContext->Ssl,
@@ -1364,7 +1362,7 @@ QuicPacketKeyDerive(
     const uint16_t PacketKeyLength =
         sizeof(QUIC_PACKET_KEY) +
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
-    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
+    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength, QUIC_POOL_TLS_PACKETKEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1554,7 +1552,7 @@ QuicPacketKeyFree(
         if (Key->Type >= QUIC_PACKET_KEY_1_RTT) {
             QuicSecureZeroMemory(Key->TrafficSecret, sizeof(QUIC_SECRET));
         }
-        QUIC_FREE(Key);
+        QUIC_FREE(Key, QUIC_POOL_TLS_PACKETKEY);
     }
 }
 
@@ -1832,9 +1830,20 @@ QuicHpKeyCreate(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const EVP_CIPHER *Aead;
+    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HP_KEY), QUIC_POOL_TLS_HP_KEY);
+    if (Key == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_HP_KEY",
+            sizeof(QUIC_HP_KEY));
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
 
-    EVP_CIPHER_CTX* CipherCtx = EVP_CIPHER_CTX_new();
-    if (CipherCtx == NULL) {
+    Key->Aead = AeadType;
+
+    Key->CipherCtx = EVP_CIPHER_CTX_new();
+    if (Key->CipherCtx == NULL) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1851,14 +1860,14 @@ QuicHpKeyCreate(
         Aead = EVP_aes_256_ecb();
         break;
     case QUIC_AEAD_CHACHA20_POLY1305:
-        Aead = EVP_chacha20_poly1305();
+        Aead = EVP_chacha20();
         break;
     default:
         Status = QUIC_STATUS_NOT_SUPPORTED;
         goto Exit;
     }
 
-    if (EVP_EncryptInit_ex(CipherCtx, Aead, NULL, RawKey, NULL) != 1) {
+    if (EVP_EncryptInit_ex(Key->CipherCtx, Aead, NULL, RawKey, NULL) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1867,12 +1876,12 @@ QuicHpKeyCreate(
         goto Exit;
     }
 
-    *NewKey = (QUIC_HP_KEY*)CipherCtx;
-    CipherCtx = NULL;
+    *NewKey = Key;
+    Key = NULL;
 
 Exit:
 
-    QuicHpKeyFree((QUIC_HP_KEY*)CipherCtx);
+    QuicHpKeyFree(Key);
 
     return Status;
 }
@@ -1882,7 +1891,10 @@ QuicHpKeyFree(
     _In_opt_ QUIC_HP_KEY* Key
     )
 {
-    EVP_CIPHER_CTX_free((EVP_CIPHER_CTX*)Key);
+    if (Key != NULL) {
+        EVP_CIPHER_CTX_free(Key->CipherCtx);
+        QUIC_FREE(Key, QUIC_POOL_TLS_HP_KEY);
+    }
 }
 
 QUIC_STATUS
@@ -1894,12 +1906,32 @@ QuicHpComputeMask(
     )
 {
     int OutLen = 0;
-    if (EVP_EncryptUpdate((EVP_CIPHER_CTX*)Key, Mask, &OutLen, Cipher, QUIC_HP_SAMPLE_LENGTH * BatchSize) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_EncryptUpdate failed");
-        return QUIC_STATUS_TLS_ERROR;
+    if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
+        uint8_t Zero[5] = { 0, 0, 0, 0, 0 };
+        for(uint32_t i = 0, Offset = 0; i < BatchSize; ++i, Offset += QUIC_HP_SAMPLE_LENGTH) {
+            if (EVP_EncryptInit_ex(Key->CipherCtx, NULL, NULL, NULL, Cipher + Offset) != 1) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "EVP_EncryptInit_ex failed");
+                return QUIC_STATUS_TLS_ERROR;
+            }
+            if (EVP_EncryptUpdate(Key->CipherCtx, Mask + Offset, &OutLen, Zero, sizeof(Zero)) != 1) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "EVP_EncryptUpdate (Cipher) failed");
+                return QUIC_STATUS_TLS_ERROR;
+            }
+        }
+    } else {
+        if (EVP_EncryptUpdate(Key->CipherCtx, Mask, &OutLen, Cipher, QUIC_HP_SAMPLE_LENGTH * BatchSize) != 1) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "EVP_EncryptUpdate failed");
+            return QUIC_STATUS_TLS_ERROR;
+        }
     }
     return QUIC_STATUS_SUCCESS;
 }
