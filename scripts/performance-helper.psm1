@@ -526,7 +526,6 @@ class ThroughputRequest {
 }
 
 $Failures = New-Object Collections.Generic.List[string]
-
 function Write-Failures() {
     $DidFail = $false
     foreach ($Failure in $Failures) {
@@ -538,9 +537,8 @@ function Write-Failures() {
     }
 }
 
-# Fail loopback tests if < 50%
-$LocalRegressionThreshold = -50.0
-
+# Fail loopback tests if < 80%
+$LocalRegressionThreshold = -80.0
 function Get-LatestThroughputRemoteTestResults([ThroughputRequest]$Request) {
     $Uri = "https://msquicperformanceresults.azurewebsites.net/throughput/get"
     $RequestJson = ConvertTo-Json -InputObject $Request
