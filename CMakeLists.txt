@@ -556,7 +556,7 @@ if(QUIC_CODE_CHECK)
             -readability-avoid-const-params-in-decls
             -readability-isolate-declaration
             -readability-magic-numbers
-            # these are finding potential logic issues, may want to comment when focusing on nits:
+            # these are finding potential logic issues, may want to suppress when focusing on nits:
             -clang-analyzer-core.CallAndMessage
             -clang-analyzer-core.DivideZero
             -clang-analyzer-core.NonNullParamChecker
@@ -564,9 +564,8 @@ if(QUIC_CODE_CHECK)
             -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
         )
         string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
-        set(CMAKE_C_CLANG_TIDY ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
+        set(CMAKE_C_CLANG_TIDY_AVAILABLE ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
             -system-headers)
-        set(CMAKE_CXX_CLANG_TIDY ${CMAKE_C_CLANG_TIDY})
     else()
         message(STATUS "clang-tidy not found")
     endif()
@@ -574,12 +573,11 @@ if(QUIC_CODE_CHECK)
     find_program(CPPCHECK NAMES cppcheck)
     if(CPPCHECK)
         message(STATUS "Found cppcheck: ${CPPCHECK}")
-        set(CMAKE_C_CPPCHECK ${CPPCHECK} -q --inline-suppr
+        set(CMAKE_C_CPPCHECK_AVAILABLE ${CPPCHECK} -q --inline-suppr
             --suppress=duplicateValueTernary
-            # these are finding potential logic issues, may want to remove comment when focusing on nits:
-            # --suppress=nullPointer --suppress=nullPointerRedundantCheck
+            # these are finding potential logic issues, may want to suppress when focusing on nits:
+            --suppress=nullPointer --suppress=nullPointerRedundantCheck
             --enable=warning,style,performance,portability -D__linux__)
-        set(CMAKE_CXX_CPPCHECK ${CMAKE_C_CPPCHECK})
     else()
         message(STATUS "cppcheck not found")
     endif()
