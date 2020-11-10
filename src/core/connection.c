@@ -671,7 +671,7 @@ QuicConnIndicateEvent(
 {
     QUIC_STATUS Status;
     if (!Connection->State.HandleClosed) {
-        QUIC_CONN_VERIFY(Connection, Connection->State.HandleShutdown || Connection->ClientCallbackHandler != NULL);
+        QUIC_CONN_VERIFY(Connection, Connection->State.HandleShutdown || Connection->ClientCallbackHandler != NULL || !Connection->State.ExternalOwner);
         if (Connection->ClientCallbackHandler == NULL) {
             Status = QUIC_STATUS_INVALID_STATE;
             QuicTraceLogConnWarning(
