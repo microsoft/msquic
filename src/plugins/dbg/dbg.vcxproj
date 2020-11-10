@@ -53,8 +53,8 @@
     <TargetName>quic</TargetName>
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
-    <OutDir>$(SolutionDir)artifacts\bin\windbg\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)build\windbg\$(Platform)_$(Configuration)\obj\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\artifacts\bin\windbg\$(Platform)_$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)..\..\build\windbg\$(Platform)_$(Configuration)\obj\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>

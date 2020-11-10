@@ -25,12 +25,12 @@
     <PackageReference Include="Microsoft.Performance.SDK" Version="0.108.2" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(SolutionDir)LICENSE">
+    <None Include="$(SolutionDir)..\..\LICENSE">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="echo f | xcopy $(TargetDir)$(TargetName).dll $(SolutionDir)artifacts\bin\wpa\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)$(TargetName).pdb $(SolutionDir)artifacts\bin\wpa\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)Microsoft.Diagnostics.FastSerialization.dll $(SolutionDir)artifacts\bin\wpa\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)Microsoft.Diagnostics.Tracing.TraceEvent.dll $(SolutionDir)artifacts\bin\wpa\$(Configuration)\ /Y" />
+    <Exec Command="echo f | xcopy $(TargetDir)$(TargetName).dll $(SolutionDir)..\..\artifacts\bin\wpa\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)$(TargetName).pdb $(SolutionDir)..\..\artifacts\bin\wpa\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)Microsoft.Diagnostics.FastSerialization.dll $(SolutionDir)..\..\artifacts\bin\wpa\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)Microsoft.Diagnostics.Tracing.TraceEvent.dll $(SolutionDir)..\..\artifacts\bin\wpa\$(Configuration)\ /Y" />
   </Target>
 </Project>
