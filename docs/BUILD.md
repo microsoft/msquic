@@ -89,7 +89,7 @@ For the very first time you build, it's recommend to make sure you have all the 
 ./scripts/prepare-machine.ps1 -Configuration Dev
 ```
 
-Note at minimum CMake 3.17 is required. Instructions for installing a the newest version on Ubuntu can be found here. https://apt.kitware.com/. The prepare-machine script will not do this for you.
+Note at minimum CMake 3.16 is required. Instructions for installing a the newest version on Ubuntu can be found here. https://apt.kitware.com/. The prepare-machine script will not do this for you.
 
 ### Additional Requirements on Windows
 
@@ -131,7 +131,7 @@ The following section details how to build MsQuic purely with CMake commands.
 
 Note that you will need to disable logging if building with CMake exclusively. Logging enabled requires .NET Core and at least the configuration from prepare-machine.ps1 in order to build.
 
-Note at minimum CMake 3.17 is required. Instructions for installing a the newest version on Ubuntu can be found here. https://apt.kitware.com/
+Note at minimum CMake 3.16 is required. Instructions for installing a the newest version on Ubuntu can be found here. https://apt.kitware.com/
 
 ## Install Dependencies
 
