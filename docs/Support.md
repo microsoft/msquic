@@ -10,7 +10,7 @@ This table describes the version, release date and end of support for MsQuic rel
 
 | Version | Fork Date | Release Date | Support Type | End of Support |
 | -- | -- | -- | -- | -- |
-| 1.0 | Oct 1 2020 | TBD | TBD | TBD |
+| 1.0 | Nov 13 2020 | TBD | TBD | TBD |
 
 \* Future release dates are subject to change.
 

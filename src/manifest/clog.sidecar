@@ -9529,6 +9529,33 @@
         "CustomSettings": null
       }
     },
+    "LibrarySendRetryStateUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] New SendRetryEnabled state, %hhu",
+      "UniqueId": "LibrarySendRetryStateUpdated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "MsQuicLib.SendRetryEnabled",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "PerfCountersRundown": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Perf counters Rundown, Counters=%!CID!",
@@ -10507,6 +10534,84 @@
           },
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "PathMinMtuValidated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Minimum MTU validated",
+      "UniqueId": "PathMinMtuValidated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Path->ID",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "PathMtuUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes",
+      "UniqueId": "PathMtuUpdated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Path->ID",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Path->Mtu",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
         }
       ],
       "macro": {
@@ -12054,49 +12159,6 @@
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
         "EncodedPrefix": "[strm][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "PathMtuUpdated": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes",
-      "UniqueId": "PathMtuUpdated",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "QuicSendGetConnection(Send)",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Path->ID",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Path->Mtu",
-            "SuggestedTelemetryName": "arg4"
-          },
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -15687,33 +15749,6 @@
         "CustomSettings": null
       }
     },
-    "DatapathCreate": {
-      "ModuleProperites": {},
-      "TraceString": "[ udp][%p] Created.",
-      "UniqueId": "DatapathCreate",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Binding",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogInfo",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "DatapathWorkerThreadStart": {
       "ModuleProperites": {},
       "TraceString": "[ udp][%p] Worker start",
@@ -15757,33 +15792,6 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogInfo",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "DatapathShuttingDown": {
-      "ModuleProperites": {},
-      "TraceString": "[ udp][%p] Shutting down",
-      "UniqueId": "DatapathShuttingDown",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Binding",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
         "EncodedPrefix": null,
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
@@ -15917,6 +15925,76 @@
           },
           "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg6"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathCreated": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+      "UniqueId": "DatapathCreated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathDestroyed": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] Destroyed",
+      "UniqueId": "DatapathDestroyed",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
         }
       ],
       "macro": {
@@ -22202,6 +22280,10 @@
         "TraceID": "LibraryRundown"
       },
       {
+        "UniquenessHash": "e1750b05-bb04-6a2d-d4d6-99892dd266cd",
+        "TraceID": "LibrarySendRetryStateUpdated"
+      },
+      {
         "UniquenessHash": "10ce7ee9-cfcc-e364-e24c-71e1913cb472",
         "TraceID": "PerfCountersRundown"
       },
@@ -22308,6 +22390,14 @@
       {
         "UniquenessHash": "eeb31991-927b-2f3c-bfb7-12b7dea50ead",
         "TraceID": "HandshakeConfirmedAck"
+      },
+      {
+        "UniquenessHash": "cda9bb97-fd6c-a4a5-a61c-2e2931d2ce2c",
+        "TraceID": "PathMinMtuValidated"
+      },
+      {
+        "UniquenessHash": "e4b7c3f7-0733-40b5-95d7-af81de6568ec",
+        "TraceID": "PathMtuUpdated"
       },
       {
         "UniquenessHash": "3ab19fcb-a837-77d2-82e3-a62d0361d98f",
@@ -22444,10 +22534,6 @@
       {
         "UniquenessHash": "3a9eb05d-dcdf-b054-391e-e360e5d27e51",
         "TraceID": "ClearSendFlags"
-      },
-      {
-        "UniquenessHash": "e4b7c3f7-0733-40b5-95d7-af81de6568ec",
-        "TraceID": "PathMtuUpdated"
       },
       {
         "UniquenessHash": "5ce88c6c-6ea0-1f73-2a1f-15301e6565c2",
@@ -22882,20 +22968,12 @@
         "TraceID": "CertOpenSslGetProcessAddressFailure"
       },
       {
-        "UniquenessHash": "eca69f63-4fd1-2302-5724-89ca1189754e",
-        "TraceID": "DatapathCreate"
-      },
-      {
         "UniquenessHash": "8200b193-6dab-1cc4-e8c0-c7963434388c",
         "TraceID": "DatapathWorkerThreadStart"
       },
       {
         "UniquenessHash": "8db9f276-e7e4-a879-8d66-04c080b4ed22",
         "TraceID": "DatapathWorkerThreadStop"
-      },
-      {
-        "UniquenessHash": "5b32401b-1842-9af0-ebab-67d1baf8fc7a",
-        "TraceID": "DatapathShuttingDown"
       },
       {
         "UniquenessHash": "8c0dc882-517e-cd8f-df0b-0b892d83bb00",
@@ -22908,6 +22986,14 @@
       {
         "UniquenessHash": "4a17af8c-bd56-a1f2-d3d6-b28b75030213",
         "TraceID": "DatapathRecv"
+      },
+      {
+        "UniquenessHash": "bf892b4a-1e02-799f-587c-a17d05c80159",
+        "TraceID": "DatapathCreated"
+      },
+      {
+        "UniquenessHash": "cab95979-24b5-0b36-044d-b1ab73d3aa37",
+        "TraceID": "DatapathDestroyed"
       },
       {
         "UniquenessHash": "94b78b13-9aec-bd06-569d-6b47607c66be",

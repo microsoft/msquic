@@ -31,7 +31,6 @@ $IncFiles = "msquic.h", "msquicp.h", "msquic_winkernel.h", "msquic_winuser.h"
 foreach ($File in $IncFiles) {
     Force-Copy (Join-Path $RootDir "src/inc/$File") $PackageDir
 }
-Force-Copy (Join-Path $RootDir "src/tools/etwlib/MsQuicEventCollection.h") $PackageDir
 Force-Copy (Join-Path $RootDir "src/manifest/MsQuic.wprp") $PackageDir
 Force-Copy (Join-Path $RootDir "src/manifest/MsQuicEtw.man") $PackageDir
 

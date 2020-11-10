@@ -78,9 +78,9 @@ Then you will need to manually run "pwsh" to continue.
 ## Install Dependencies
 
 In order to installed the necessary dependencies, a copy of the .NET Core 3.1 SDK is required. Go to the following location and find the install page for your platform.
-   
+
  * [.NET Core](https://docs.microsoft.com/en-us/dotnet/core/install/)
-    
+
 After installing .NET Core, you will need to restart your terminal.
 
 For the very first time you build, it's recommend to make sure you have all the dependencies installed. You can ensure this by running:
@@ -88,6 +88,8 @@ For the very first time you build, it's recommend to make sure you have all the 
 ```PowerShell
 ./scripts/prepare-machine.ps1 -Configuration Dev
 ```
+
+Note at minimum CMake 3.16 is required. Instructions for installing a the newest version on Ubuntu can be found here. https://apt.kitware.com/. The prepare-machine script will not do this for you.
 
 ### Additional Requirements on Windows
 
@@ -129,6 +131,8 @@ The following section details how to build MsQuic purely with CMake commands.
 
 Note that you will need to disable logging if building with CMake exclusively. Logging enabled requires .NET Core and at least the configuration from prepare-machine.ps1 in order to build.
 
+Note at minimum CMake 3.16 is required. Instructions for installing a the newest version on Ubuntu can be found here. https://apt.kitware.com/
+
 ## Install Dependencies
 
 ### Linux
@@ -139,7 +143,7 @@ The following are generally required. Actual installations may vary.
 sudo apt-add-repository ppa:lttng/stable-2.10
 sudo apt-get update
 sudo apt-get install cmake
-sudo apt-get install build-essentials
+sudo apt-get install build-essential
 sudo apt-get install liblttng-ust-dev
 sudo apt-get install lttng-tools
 ```

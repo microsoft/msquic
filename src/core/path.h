@@ -43,6 +43,11 @@ typedef struct QUIC_PATH {
     BOOLEAN IsPeerValidated : 1;
 
     //
+    // Indicates the minimum MTU has been validated.
+    //
+    BOOLEAN IsMinMtuValidated : 1;
+
+    //
     // Current value to encode in the short header spin bit field.
     //
     BOOLEAN SpinBit : 1;

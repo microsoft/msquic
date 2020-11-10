@@ -324,7 +324,7 @@ QuicConnFree(
                 QuicListRemoveHead(&Connection->DestCids),
                 QUIC_CID_QUIC_LIST_ENTRY,
                 Link);
-        QUIC_FREE(CID, QUIC_POOL_CIDHASH);
+        QUIC_FREE(CID, QUIC_POOL_CIDLIST);
     }
     if (Connection->State.Registered) {
         QuicDispatchLockAcquire(&Connection->Registration->ConnectionLock);
@@ -671,7 +671,7 @@ QuicConnIndicateEvent(
 {
     QUIC_STATUS Status;
     if (!Connection->State.HandleClosed) {
-        QUIC_CONN_VERIFY(Connection, Connection->State.HandleShutdown || Connection->ClientCallbackHandler != NULL);
+        QUIC_CONN_VERIFY(Connection, Connection->State.HandleShutdown || Connection->ClientCallbackHandler != NULL || !Connection->State.ExternalOwner);
         if (Connection->ClientCallbackHandler == NULL) {
             Status = QUIC_STATUS_INVALID_STATE;
             QuicTraceLogConnWarning(
@@ -2748,7 +2748,7 @@ QuicConnUpdateDestCid(
             // so we must allocate a new one and free the old one.
             //
             QuicListEntryRemove(&DestCid->Link);
-            QUIC_FREE(DestCid, QUIC_POOL_CIDHASH);
+            QUIC_FREE(DestCid, QUIC_POOL_CIDLIST);
             DestCid =
                 QuicCidNewDestination(
                     Packet->SourceCidLen,
@@ -4332,8 +4332,6 @@ QuicConnRecvFrames(
                 }
             }
 
-            // TODO - Do we care if there was no match? Possible fishing expedition?
-
             AckPacketImmediately = TRUE;
             break;
         }
@@ -5389,7 +5387,7 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_CLOSE_REASON_PHRASE:
 
-        if (BufferLength >= 513) { // TODO - Practically, must fit in 1 packet.
+        if (BufferLength >= 513) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }

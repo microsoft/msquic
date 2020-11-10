@@ -694,7 +694,7 @@ QuicTlsUninitialize(
                     TlsContext->miTlsTicket.ticket,
                     QUIC_TLS_TICKET,
                     Buffer);
-            QUIC_FREE(SerializedTicket, QUIC_POOL_TLS_EXTRAS);
+            QUIC_FREE(SerializedTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
         }
 
         if (TlsContext->SNI != NULL) {
@@ -702,7 +702,7 @@ QuicTlsUninitialize(
         }
 
         if (TlsContext->Extensions[1].ext_data != NULL) {
-            QUIC_FREE(TlsContext->Extensions[1].ext_data, QUIC_POOL_TLS_EXTRAS);
+            QUIC_FREE(TlsContext->Extensions[1].ext_data, QUIC_POOL_TLS_TRANSPARAMS);
         }
 
         QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
