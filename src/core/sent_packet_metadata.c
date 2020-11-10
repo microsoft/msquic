@@ -63,7 +63,7 @@ QuicSentPacketPoolInitialize(
     )
 {
     for (size_t i = 0; i < ARRAYSIZE(Pool->Pools); i++) {
-        uint16_t PacketMetadataSize =
+        size_t PacketMetadataSize =
             (i + 1) * sizeof(QUIC_SENT_FRAME_METADATA) +
             sizeof(QUIC_SENT_PACKET_METADATA);
 
