@@ -105,7 +105,6 @@ QuicCryptoInitialize(
             QUIC_MAX_TLS_SERVER_SEND_BUFFER : QUIC_MAX_TLS_CLIENT_SEND_BUFFER;
     uint16_t InitialRecvBufferLength =
         QuicConnIsServer(Connection) ?
-            // cppcheck-suppress duplicateValueTernary
             QUIC_MAX_TLS_CLIENT_SEND_BUFFER : QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE;
     const uint8_t* HandshakeCid;
     uint8_t HandshakeCidLength;

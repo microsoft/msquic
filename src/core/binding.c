@@ -1625,6 +1625,7 @@ QuicBindingReceive(
         //
         if (!QuicBindingDeliverDatagrams(Binding, SubChain, SubChainLength)) {
             *ReleaseChainTail = SubChain;
+            ReleaseChainTail = SubChainTail; // NOLINT
         }
     }
 

@@ -575,6 +575,7 @@ if(QUIC_CODE_CHECK)
     if(CPPCHECK)
         message(STATUS "Found cppcheck: ${CPPCHECK}")
         set(CMAKE_C_CPPCHECK ${CPPCHECK} -q --inline-suppr
+            --suppress=duplicateValueTernary
             # these are finding potential logic issues, may want to remove comment when focusing on nits:
             # --suppress=nullPointer --suppress=nullPointerRedundantCheck
             --enable=warning,style,performance,portability -D__linux__)
