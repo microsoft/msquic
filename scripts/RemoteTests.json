@@ -53,7 +53,8 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Formats": ["{0} kbps"]
+        "Formats": ["{0} kbps"],
+        "RegressionThreshold": "-8.0"
     },
     {
         "TestName": "ThroughputUp",
@@ -109,7 +110,8 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Formats": ["{0} kbps"]
+        "Formats": ["{0} kbps"],
+        "RegressionThreshold": "-10.0"
     },
     {
         "TestName": "ThroughputDown",
@@ -153,7 +155,8 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Formats": ["{0} kbps"]
+        "Formats": ["{0} kbps"],
+        "RegressionThreshold": "-8.0"
     },
     {
         "TestName": "ThroughputDown",
@@ -197,7 +200,8 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": ".*@ (.*) kbps.*",
-        "Formats": ["{0} kbps"]
+        "Formats": ["{0} kbps"],
+        "RegressionThreshold": "-10.0"
     },
     {
         "TestName": "RPS",
@@ -266,7 +270,8 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": "Result: (.*) RPS, Min: (.*), Max: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), StdErr: (.*)",
-        "Formats": ["{0} RPS", "Minimum: {0}", "Maximum: {0}", "Percentiles: 50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "99.999th: {0}", "99.9999th: {0}", "Standard Error: {0}"]
+        "Formats": ["{0} RPS", "Minimum: {0}", "Maximum: {0}", "Percentiles: 50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "99.999th: {0}", "99.9999th: {0}", "Standard Error: {0}"],
+        "RegressionThreshold": "-50.0"
     },
     {
         "TestName": "HPS",
@@ -297,6 +302,7 @@
         "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": "Result: (.*) HPS.*",
-        "Formats": ["{0} HPS"]
+        "Formats": ["{0} HPS"],
+        "RegressionThreshold": "-10.0"
     }
 ]
