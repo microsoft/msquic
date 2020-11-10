@@ -896,7 +896,7 @@ class TestRunDefinition {
     [boolean]$Loopback;
     [boolean]$AllowLoopback;
     [string[]]$Formats;
-    [boolean]$RegressionThreshold;
+    [double]$RegressionThreshold;
 
     TestRunDefinition (
         [TestDefinition]$existingDef,
@@ -1101,7 +1101,7 @@ class TestDefinition {
     [string]$ResultsMatcher;
     [boolean]$AllowLoopback;
     [string[]]$Formats;
-    [boolean]$RegressionThreshold;
+    [double]$RegressionThreshold;
 
     [string]ToString() {
         $Platform = $this.Remote.Platform
