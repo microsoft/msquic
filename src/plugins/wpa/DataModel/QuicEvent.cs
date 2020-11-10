@@ -121,6 +121,8 @@ namespace MsQuicTracing.DataModel
         DatapathRecv,
         DatapathError,
         DatapathErrorStatus,
+        DatapathCreated,
+        DatapathDestroyed,
     }
 
     public abstract class QuicEvent : IKeyedDataType<Guid>

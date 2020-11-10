@@ -671,7 +671,7 @@ QuicConnIndicateEvent(
 {
     QUIC_STATUS Status;
     if (!Connection->State.HandleClosed) {
-        QUIC_CONN_VERIFY(Connection, Connection->State.HandleShutdown || Connection->ClientCallbackHandler != NULL);
+        QUIC_CONN_VERIFY(Connection, Connection->State.HandleShutdown || Connection->ClientCallbackHandler != NULL || !Connection->State.ExternalOwner);
         if (Connection->ClientCallbackHandler == NULL) {
             Status = QUIC_STATUS_INVALID_STATE;
             QuicTraceLogConnWarning(
@@ -4332,8 +4332,6 @@ QuicConnRecvFrames(
                 }
             }
 
-            // TODO - Do we care if there was no match? Possible fishing expedition?
-
             AckPacketImmediately = TRUE;
             break;
         }
@@ -5389,7 +5387,7 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_CLOSE_REASON_PHRASE:
 
-        if (BufferLength >= 513) { // TODO - Practically, must fit in 1 packet.
+        if (BufferLength >= 513) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }

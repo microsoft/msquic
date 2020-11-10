@@ -898,6 +898,25 @@ QuicSendPathChallenges(
             continue;
         }
 
+        if (!Path->IsMinMtuValidated) {
+            //
+            // Path challenges need to be padded to at least the same as initial
+            // packets to validate min MTU.
+            //
+            Builder.MinimumDatagramLength =
+                MaxUdpPayloadSizeForFamily(
+                    QuicAddrGetFamily(&Builder.Path->RemoteAddress),
+                    QUIC_INITIAL_PACKET_LENGTH);
+
+            if ((uint32_t)Builder.MinimumDatagramLength > Builder.Datagram->Length) {
+                //
+                // If we're limited by amplification protection, just pad up to
+                // that limit instead.
+                //
+                Builder.MinimumDatagramLength = (uint16_t)Builder.Datagram->Length;
+            }
+        }
+
         uint16_t AvailableBufferLength =
             (uint16_t)Builder.Datagram->Length - Builder.EncryptionOverhead;
 
@@ -1241,26 +1260,4 @@ QuicSendProcessDelayedAckTimer(
     }
 
     QuicSendValidate(Send);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicSendOnMtuProbePacketAcked(
-    _In_ QUIC_SEND* Send,
-    _In_ QUIC_PATH* Path,
-    _In_ QUIC_SENT_PACKET_METADATA* Packet
-    )
-{
-    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
-    Path->Mtu =
-        PacketSizeFromUdpPayloadSize(
-            QuicAddrGetFamily(&Path->RemoteAddress),
-            Packet->PacketLength);
-    QuicTraceLogConnInfo(
-        PathMtuUpdated,
-        QuicSendGetConnection(Send),
-        "Path[%hhu] MTU updated to %hu bytes",
-        Path->ID,
-        Path->Mtu);
-    QuicDatagramOnSendStateChanged(&Connection->Datagram);
 }
