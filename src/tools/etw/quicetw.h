@@ -87,6 +87,8 @@ typedef enum QUIC_EVENT_ID_GLOBAL {
     EventId_QuicApiWaitOperation,
     EventId_QuicPerfCountersRundown,
     EventId_QuicLibrarySendRetryStateUpdated,
+    EventId_QuicInteropTestStart,
+    EventId_QuicInteropTestStop,
 
     EventId_QuicLibraryCount
 } QUIC_EVENT_ID_GLOBAL;

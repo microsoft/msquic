@@ -945,8 +945,16 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
 {
     auto TestContext = (InteropTestContext*)Context;
 
+    QuicTraceEvent(
+        InteropTestStart,
+        "[ntrp] Test Start, Server: %s, Port: %u, Tests: %x.",
+        PublicEndpoints[EndpointIndex].ServerName,
+        TestContext->Port,
+        (uint32_t)TestContext->Feature);
+
     uint32_t QuicVersion = 0;
     const char* Alpn = nullptr;
+    bool ThisTestFailed = false;
     if (RunInteropTest(
             PublicEndpoints[TestContext->EndpointIndex],
             TestContext->Port,
@@ -965,7 +973,17 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
         QuicLockRelease(&TestResultsLock);
     } else {
         TestFailed = true;
+        ThisTestFailed = true;
     }
+
+    QuicTraceEvent(
+        InteropTestStop,
+        "[ntrp] Test Stop, Server: %s, Port: %u, Tests: %x, Alpn: %s, Passed: %u.",
+        PublicEndpoints[EndpointIndex].ServerName,
+        TestContext->Port,
+        (uint32_t)TestContext->Feature,
+        Alpn,
+        !ThisTestFailed);
 
     free((void*)Alpn);
     delete TestContext;
