@@ -414,7 +414,7 @@ public:
                     &RandomTransportParameter));
         }
         if (SslKeyLogFile != nullptr) {
-            SslKeyLogBufferLen = 464;
+            SslKeyLogBufferLen = 2000;
             SslKeyLogBuffer = new uint8_t[SslKeyLogBufferLen];
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
@@ -635,20 +635,19 @@ public:
         return true;
     }
     void WriteSslKeyLogFile(const char* FileName) {
-        FILE* SslKeyLog = fopen(FileName, "wb");
+        FILE* SslKeyLog = fopen(FileName, "ab");
         if (SslKeyLog == nullptr) {
             printf("Failed to open sslkeylogfile %s\n", FileName);
             return;
         }
-        QUIC_SSLKEYLOG_ENTRY* CurrentEntry = (QUIC_SSLKEYLOG_ENTRY*)SslKeyLogBuffer;
-        uint32_t SslKeyLogBytesRead = 0;
-        while (CurrentEntry->Type != SSLKEYLOG_END && SslKeyLogBytesRead < SslKeyLogBufferLen) {
-            switch (CurrentEntry->Type) {
-                case CLIENT_HANDSHAKE_TRAFFIC_SECRET:
-            }
-            SslKeyLogBytesRead += CurrentEntry->Length + sizeof(QUIC_SSLKEYLOG_ENTRY);
-            CurrentEntry = (QUIC_SSLKEYLOG_ENTRY*)(((uint8_t*)CurrentEntry) + CurrentEntry->Length + sizeof(QUIC_SSLKEYLOG_ENTRY));
-        }
+        size_t SslKeyLogLength = strnlen((const char*)SslKeyLogBuffer, SslKeyLogBufferLen);
+        //
+        // Ensure there is a null at this location.
+        //
+        SslKeyLogBuffer[SslKeyLogLength] = 0;
+        fprintf(SslKeyLog, "%s\n", (const char*)SslKeyLogBuffer);
+        fflush(SslKeyLog);
+        fclose(SslKeyLog);
     }
 private:
     static
@@ -829,6 +828,9 @@ RunInteropTest(
                 !Connection.GetResumptionTicket(ResumptionTicket, ResumptionTicketLength)) {
                 break;
             }
+            if (SslKeyLogFile) {
+                Connection.WriteSslKeyLogFile(SslKeyLogFile);
+            }
         }
         InteropConnection Connection(Configuration, false, Feature == PostQuantum);
         if (Feature == Resumption) {
@@ -852,6 +854,9 @@ RunInteropTest(
             if (Success && CustomUrlPath) {
                 Success = Connection.SendHttpRequests();
             }
+            if (Success && SslKeyLogFile) {
+                Connection.WriteSslKeyLogFile(SslKeyLogFile);
+            }
         }
         delete [] ResumptionTicket;
         break;
@@ -868,6 +873,9 @@ RunInteropTest(
                 !Connection.GetResumptionTicket(ResumptionTicket, ResumptionTicketLength)) {
                 break;
             }
+            if (SslKeyLogFile) {
+                Connection.WriteSslKeyLogFile(SslKeyLogFile);
+            }
         }
         InteropConnection Connection(Configuration, false);
         if (Feature == ZeroRtt) {
@@ -882,6 +890,9 @@ RunInteropTest(
                 Success = Connection.UsedZeroRtt();
             } else {
                 Success = true;
+            }
+            if (Success && SslKeyLogFile) {
+                Connection.WriteSslKeyLogFile(SslKeyLogFile);
             }
         }
         delete [] ResumptionTicket;
@@ -902,6 +913,9 @@ RunInteropTest(
             if (Success && CustomUrlPath) {
                 Success = Connection.SendHttpRequests();
             }
+            if (Success && SslKeyLogFile) {
+                Connection.WriteSslKeyLogFile(SslKeyLogFile);
+            }
         }
         break;
     }
@@ -920,6 +934,9 @@ RunInteropTest(
             }
             if (Success && CustomUrlPath) {
                 Success = Connection.SendHttpRequests();
+            }
+            if (Success && SslKeyLogFile) {
+                Connection.WriteSslKeyLogFile(SslKeyLogFile);
             }
         }
         break;
@@ -967,6 +984,9 @@ RunInteropTest(
             const char* FileName = strrchr(Url.c_str(), '/') + 1;
             (void)remove(FileName);
         }
+    }
+    if (SslKeyLogFile && !Success) {
+        (void)remove(SslKeyLogFile);
     }
 
     return Success;

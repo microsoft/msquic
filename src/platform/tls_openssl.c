@@ -148,6 +148,28 @@ QuicTlsLibraryUninitialize(
 {
 }
 
+#ifdef QUIC_WIRESHARK_SUPPORT
+//
+// Defined here to prevent a dependence upon core headers
+//
+void
+QuicConnSslKeyLogFileWrite(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_z_ const char* Line
+    );
+
+static
+void
+QuicTlsSslKeyLogCallback(
+    const SSL *Ssl,
+    const char *Line
+    )
+{
+    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
+    QuicConnSslKeyLogFileWrite(TlsContext->Connection, Line);
+}
+#endif
+
 static
 int
 QuicTlsAlpnSelectCallback(
@@ -270,15 +292,6 @@ QuicTlsSetEncryptionSecretsCallback(
         TlsState->ReadKey = KeyType;
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
     }
-
-#ifdef QUIC_WIRESHARK_SUPPORT
-    QuicConnSslKeyLogWrite(
-        TlsContext->Connection,
-        KeyType,
-        ReadSecret,
-        WriteSecret,
-        SecretLen);
-#endif
 
     return 1;
 }
@@ -683,6 +696,9 @@ QuicTlsSecConfigCreate(
 
         SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, UINT32_MAX);
         SSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx, QuicTlsClientHelloCallback, NULL);
+#ifdef QUIC_WIRESHARK_SUPPORT
+        SSL_CTX_set_keylog_callback(SecurityConfig->SSLCtx, QuicTlsSslKeyLogCallback);
+#endif
     }
 
     //

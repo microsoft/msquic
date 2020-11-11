@@ -72,6 +72,9 @@ This script provides helpers for building msquic.
 .PARAMETER RandomAllocFail
     Enables random allocation failures.
 
+.PARAMETER WiresharkSupport
+    Enables export of traffic secrets for Wireshark.
+
 .EXAMPLE
     build.ps1
 
@@ -149,7 +152,10 @@ param (
     [switch]$CI = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$RandomAllocFail = $false
+    [switch]$RandomAllocFail = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$WiresharkSupport = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -295,6 +301,9 @@ function CMake-Generate {
     }
     if ($RandomAllocFail) {
         $Arguments += " -DQUIC_RANDOM_ALLOC_FAIL=on"
+    }
+    if ($WiresharkSupport) {
+        $Arguments += " -DQUIC_WIRESHARK_SUPPORT=on"
     }
     $Arguments += " ../../.."
 

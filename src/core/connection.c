@@ -5628,13 +5628,8 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_SSLKEYLOG_BUFFER:
 #ifdef QUIC_WIRESHARK_SUPPORT
-        //
-        // 64 is the number of bytes SHA512 outputs, which is the largest
-        // supported hash output for TLS 1.3.
-        // Add space on the end for the end entry.
-        //
-        if (BufferLength < ((64 + sizeof(QUIC_SSLKEYLOG_ENTRY)) * (MAX_SSLKEYLOG_TYPE - 1)) + sizeof(QUIC_SSLKEYLOG_ENTRY) ||
-            Buffer == NULL) {
+
+        if (BufferLength == 0 || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -5644,10 +5639,10 @@ QuicConnParamSet(
             break;
         }
 
-        Connection->SslKeyLogCurrentEntry = Buffer;
+        Connection->SslKeyLogBuffer = (uint8_t*)Buffer;
         Connection->SslKeyLogBytesRemaining = BufferLength;
 
-        ((QUIC_SSLKEYLOG_ENTRY*)Connection->SslKeyLogCurrentEntry)->Type = SSLKEYLOG_END;
+        Connection->SslKeyLogBuffer[0] = 0;
 
         Status = QUIC_STATUS_SUCCESS;
 #else
@@ -6431,68 +6426,31 @@ QuicConnDrainOperations(
 
 #ifdef QUIC_WIRESHARK_SUPPORT
 void
-QuicConnSslKeyLogWrite(
+QuicConnSslKeyLogFileWrite(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_PACKET_KEY_TYPE KeyType,
-    _In_reads_(SecretLen) const uint8_t* ReadSecret,
-    _In_reads_(SecretLen) const uint8_t* WriteSecret,
-    _In_ size_t SecretLen
+    _In_z_ const char* Line
     )
 {
-    QUIC_SSLKEYLOG_TYPE ReadSecretType = SSLKEYLOG_END;
-    QUIC_SSLKEYLOG_TYPE WriteSecretType = SSLKEYLOG_END;
-    QUIC_SSLKEYLOG_ENTRY* CurrentEntry = NULL;
-    switch(KeyType) {
-    case QUIC_PACKET_KEY_HANDSHAKE:
-        if (QuicConnIsServer(Connection)) {
-            ReadSecretType = CLIENT_HANDSHAKE_TRAFFIC_SECRET;
-            WriteSecretType = SERVER_HANDSHAKE_TRAFFIC_SECRET;
-        } else {
-            ReadSecretType = SERVER_HANDSHAKE_TRAFFIC_SECRET;
-            WriteSecretType = CLIENT_HANDSHAKE_TRAFFIC_SECRET;
+    if (Connection->SslKeyLogBuffer != NULL && Connection->SslKeyLogBytesRemaining > 0) {
+        size_t LineLen = strlen(Line);
+        //
+        // Append newline on previous log line.
+        //
+        if (Connection->SslKeyLogBytesRemaining > 0) {
+            *Connection->SslKeyLogBuffer = '\n';
+            Connection->SslKeyLogBuffer++;
+            Connection->SslKeyLogBytesRemaining--;
         }
-        break;
-    case QUIC_PACKET_KEY_1_RTT:
-        if (QuicConnIsServer(Connection)) {
-            ReadSecretType = CLIENT_TRAFFIC_SECRET_0;
-            WriteSecretType = SERVER_TRAFFIC_SECRET_0;
-        } else {
-            ReadSecretType = SERVER_TRAFFIC_SECRET_0;
-            WriteSecretType = CLIENT_TRAFFIC_SECRET_0;
+        memcpy(Connection->SslKeyLogBuffer, Line, min(LineLen, Connection->SslKeyLogBytesRemaining));
+        if (LineLen > Connection->SslKeyLogBytesRemaining) {
+             LineLen = Connection->SslKeyLogBytesRemaining;
         }
-        break;
-    case QUIC_PACKET_KEY_0_RTT:
+        Connection->SslKeyLogBytesRemaining -= (uint32_t)LineLen;
+        Connection->SslKeyLogBuffer += (uint32_t)LineLen;
         //
-        // 0-RTT is not supported yet.
+        // Null-terminate buffer.
         //
-        __fallthrough;
-    default:
-        //
-        // Any other key type should be skipped
-        //
-        return;
-        break;
-    }
-    if (Connection->SslKeyLogBytesRemaining < 2 * (sizeof(QUIC_SSLKEYLOG_ENTRY) + SecretLen)) {
-        return;
-    }
-    CurrentEntry = (QUIC_SSLKEYLOG_ENTRY*)Connection->SslKeyLogCurrentEntry;
-    CurrentEntry->Type = (uint8_t)ReadSecretType;
-    CurrentEntry->Length = (uint8_t)SecretLen;
-    memcpy(CurrentEntry->TrafficSecret, ReadSecret, SecretLen);
-    Connection->SslKeyLogCurrentEntry += SecretLen + sizeof(QUIC_SSLKEYLOG_ENTRY);
-    Connection->SslKeyLogBytesRemaining -= SecretLen + sizeof(QUIC_SSLKEYLOG_ENTRY);
-
-    CurrentEntry = (QUIC_SSLKEYLOG_ENTRY*)Connection->SslKeyLogCurrentEntry;
-    CurrentEntry->Type = (uint8_t)WriteSecretType;
-    CurrentEntry->Length = (uint8_t)SecretLen;
-    memcpy(CurrentEntry->TrafficSecret, WriteSecret, SecretLen);
-    Connection->SslKeyLogCurrentEntry += SecretLen + sizeof(QUIC_SSLKEYLOG_ENTRY);
-    Connection->SslKeyLogBytesRemaining -= SecretLen + sizeof(QUIC_SSLKEYLOG_ENTRY);
-
-    if (Connection->SslKeyLogBytesRemaining > 0) {
-        CurrentEntry = (QUIC_SSLKEYLOG_ENTRY*)Connection->SslKeyLogCurrentEntry;
-        CurrentEntry->Type = SSLKEYLOG_END;
+        *Connection->SslKeyLogBuffer = 0;
     }
 }
 #endif
