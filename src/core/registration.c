@@ -42,8 +42,9 @@ MsQuicRegistrationOpen(
 
     QuicTraceEvent(
         ApiEnter,
-        "[ api] Enter %u (0).",
-        QUIC_TRACE_API_REGISTRATION_OPEN);
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_REGISTRATION_OPEN,
+        NULL);
 
     if (NewRegistration == NULL || AppNameLength >= UINT8_MAX) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
