@@ -546,6 +546,7 @@ if(QUIC_CODE_CHECK)
             # add checks to ignore here:
             -bugprone-macro-parentheses
             -bugprone-sizeof-expression
+            -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
             -clang-diagnostic-microsoft-anon-tag
             -cppcoreguidelines-avoid-magic-numbers
             -cppcoreguidelines-avoid-non-const-global-variables
@@ -559,13 +560,6 @@ if(QUIC_CODE_CHECK)
             -readability-isolate-declaration
             -readability-magic-numbers
             -readability-non-const-parameter
-
-            # these are finding potential logic issues, may want to suppress when focusing on nits:
-            -clang-analyzer-core.CallAndMessage
-            -clang-analyzer-core.DivideZero
-            -clang-analyzer-core.NonNullParamChecker
-            -clang-analyzer-core.NullDereference
-            -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
         )
         string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
         set(CMAKE_C_CLANG_TIDY_AVAILABLE ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}

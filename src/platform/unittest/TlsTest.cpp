@@ -995,7 +995,7 @@ uint64_t InterlockedCounter(
     }
     End = QuicTimeUs64();
 
-    QUIC_FRE_ASSERT(Counter == LoopCount);
+    QUIC_FRE_ASSERT((uint64_t)Counter == LoopCount);
 
     return End - Start;
 }

@@ -17,6 +17,7 @@ set(SOURCES
 add_clog_library(msquiccoretest.clog STATIC ${SOURCES})
 
 add_executable(msquiccoretest ${SOURCES})
+target_compile_options(msquiccoretest PRIVATE ${QUIC_WARNING_FLAGS})
 
 target_include_directories(msquiccoretest PRIVATE ${PROJECT_SOURCE_DIR}/src/core)
 
