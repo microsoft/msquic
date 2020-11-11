@@ -136,7 +136,7 @@ TEST(ResumptionTicketTest, ServerEncDec)
     TEST_QUIC_SUCCEEDED(
         QuicCryptoDecodeServerTicket(
             nullptr,
-            EncodedServerTicketLength,
+            (uint16_t)EncodedServerTicketLength,
             EncodedServerTicket,
             NegotiatedAlpn,
             sizeof(NegotiatedAlpn),
@@ -193,7 +193,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
     TEST_QUIC_SUCCEEDED(
         QuicCryptoDecodeServerTicket(
             nullptr,
-            EncodedServerTicketLength,
+            (uint16_t)EncodedServerTicketLength,
             EncodedServerTicket,
             NegotiatedAlpn,
             sizeof(NegotiatedAlpn),
@@ -288,7 +288,7 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
     TEST_QUIC_SUCCEEDED(
         QuicCryptoDecodeServerTicket(
             nullptr,
-            EncodedServerTicketLength,
+            (uint16_t)EncodedServerTicketLength,
             EncodedServerTicket,
             NegotiatedAlpn,
             sizeof(NegotiatedAlpn),
