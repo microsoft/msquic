@@ -11,6 +11,9 @@ Abstract:
 --*/
 
 #include "interop.h"
+#ifdef QUIC_CLOG
+#include "interop.cpp.clog.h"
+#endif
 
 #define VERIFY_QUIC_SUCCESS(X) { \
     QUIC_STATUS s = X; \
@@ -945,9 +948,9 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
 {
     auto TestContext = (InteropTestContext*)Context;
 
-    QuicTraceEvent(
+    QuicTraceLogInfo(
         InteropTestStart,
-        "[ntrp] Test Start, Server: %s, Port: %u, Tests: %x.",
+        "[ntrp] Test Start, Server: %s, Port: %hu, Tests: 0x%x.",
         PublicEndpoints[EndpointIndex].ServerName,
         TestContext->Port,
         (uint32_t)TestContext->Feature);
@@ -968,7 +971,6 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
         }
         if (TestResults[TestContext->EndpointIndex].Alpn == nullptr) {
             TestResults[TestContext->EndpointIndex].Alpn = Alpn;
-            Alpn = nullptr;
         }
         QuicLockRelease(&TestResultsLock);
     } else {
@@ -976,16 +978,18 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
         ThisTestFailed = true;
     }
 
-    QuicTraceEvent(
+    QuicTraceLogInfo(
         InteropTestStop,
-        "[ntrp] Test Stop, Server: %s, Port: %u, Tests: %x, Alpn: %s, Passed: %u.",
+        "[ntrp] Test Stop, Server: %s, Port: %hu, Tests: 0x%x, Negotiated Alpn: %s, Passed: %s.",
         PublicEndpoints[EndpointIndex].ServerName,
         TestContext->Port,
         (uint32_t)TestContext->Feature,
         Alpn,
-        !ThisTestFailed);
+        ThisTestFailed ? "false" : "true");
 
-    free((void*)Alpn);
+    if (ThisTestFailed) {
+        free((void*)Alpn);
+    }
     delete TestContext;
 
     QUIC_THREAD_RETURN(0);

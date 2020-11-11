@@ -1686,42 +1686,6 @@
                 outType="win:SocketAddress"
                 />
           </template>
-          <template tid="tid_INTEROP_TEST_START">
-            <data
-                inType="win:AnsiString"
-                name="ServerStr"
-                />
-            <data
-                inType="win:UInt16"
-                name="Port"
-                />
-            <data
-                inType="win:HexInt32"
-                name="Tests"
-                />
-          </template>
-          <template tid="tid_INTEROP_TEST_STOP">
-            <data
-                inType="win:AnsiString"
-                name="ServerStr"
-                />
-            <data
-                inType="win:UInt16"
-                name="Port"
-                />
-            <data
-                inType="win:HexInt32"
-                name="Tests"
-                />
-            <data
-                inType="win:AnsiString"
-                name="Alpn"
-                />
-            <data
-                inType="win:UInt8"
-                name="Passed"
-                />
-          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -1863,24 +1827,6 @@
               symbol="QuicLibrarySendRetryStateUpdated"
               template="tid_BOOL"
               value="16"
-              />
-          <event
-              keywords="ut:LowVolume"
-              level="win:Error"
-              message="$(string.Etw.InteropTestStart)"
-              opcode="Global"
-              symbol="QuicInteropTestStart"
-              template="tid_INTEROP_TEST_START"
-              value="17"
-              />
-          <event
-              keywords="ut:LowVolume"
-              level="win:Error"
-              message="$(string.Etw.InteropTestStop)"
-              opcode="Global"
-              symbol="QuicInteropTestStop"
-              template="tid_INTEROP_TEST_STOP"
-              value="18"
               />
           <!-- 1024 - 2047 | Registration Events -->
           <event
@@ -3467,14 +3413,6 @@
         <string
             id="Etw.LibrarySendRetryStateUpdated"
             value="[ lib] New SendRetryEnabled state, %1"
-            />
-        <string
-            id="Etw.InteropTestStart"
-            value="[ntrp] Test Start, Server: %1, Port: %2, Tests: %3."
-            />
-        <string
-            id="Etw.InteropTestStop"
-            value="[ntrp] Test Stop, Server: %1, Port: %2, Tests: %3, Alpn: %4, Passed: %5."
             />
         <!-- Map/enum strings -->
         <string
