@@ -132,6 +132,8 @@ uint16_t CustomPort = 0;
 bool CustomUrlPath = false;
 std::vector<std::string> Urls;
 
+const char* SslKeyLogFile = nullptr;
+
 extern "C" void QuicTraceRundown(void) { }
 
 void
@@ -353,6 +355,8 @@ class InteropConnection {
     char* NegotiatedAlpn;
     const uint8_t* ResumptionTicket;
     uint32_t ResumptionTicketLength;
+    uint8_t* SslKeyLogBuffer;
+    uint32_t SslKeyLogBufferLen;
 public:
     bool VersionUnsupported : 1;
     bool Connected : 1;
@@ -364,6 +368,8 @@ public:
         NegotiatedAlpn(nullptr),
         ResumptionTicket(nullptr),
         ResumptionTicketLength(0),
+        SslKeyLogBuffer(nullptr),
+        SslKeyLogBufferLen(0),
         VersionUnsupported(false),
         Connected(false),
         Resumed(false),
@@ -407,6 +413,17 @@ public:
                     sizeof(RandomTransportParameter),
                     &RandomTransportParameter));
         }
+        if (SslKeyLogFile != nullptr) {
+            SslKeyLogBufferLen = 464;
+            SslKeyLogBuffer = new uint8_t[SslKeyLogBufferLen];
+            VERIFY_QUIC_SUCCESS(
+                MsQuic->SetParam(
+                    Connection,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_SSLKEYLOG_BUFFER,
+                    SslKeyLogBufferLen,
+                    SslKeyLogBuffer));
+        }
     }
     ~InteropConnection()
     {
@@ -423,6 +440,7 @@ public:
         QuicEventUninitialize(ConnectionComplete);
         delete [] NegotiatedAlpn;
         delete [] ResumptionTicket;
+        delete [] SslKeyLogBuffer;
     }
     bool SetKeepAlive(uint32_t KeepAliveMs) {
         QUIC_SETTINGS Settings{0};
@@ -615,6 +633,22 @@ public:
         TicketLength = ResumptionTicketLength;
         ResumptionTicket = nullptr;
         return true;
+    }
+    void WriteSslKeyLogFile(const char* FileName) {
+        FILE* SslKeyLog = fopen(FileName, "wb");
+        if (SslKeyLog == nullptr) {
+            printf("Failed to open sslkeylogfile %s\n", FileName);
+            return;
+        }
+        QUIC_SSLKEYLOG_ENTRY* CurrentEntry = (QUIC_SSLKEYLOG_ENTRY*)SslKeyLogBuffer;
+        uint32_t SslKeyLogBytesRead = 0;
+        while (CurrentEntry->Type != SSLKEYLOG_END && SslKeyLogBytesRead < SslKeyLogBufferLen) {
+            switch (CurrentEntry->Type) {
+                case CLIENT_HANDSHAKE_TRAFFIC_SECRET:
+            }
+            SslKeyLogBytesRead += CurrentEntry->Length + sizeof(QUIC_SSLKEYLOG_ENTRY);
+            CurrentEntry = (QUIC_SSLKEYLOG_ENTRY*)(((uint8_t*)CurrentEntry) + CurrentEntry->Length + sizeof(QUIC_SSLKEYLOG_ENTRY));
+        }
     }
 private:
     static
@@ -1196,6 +1230,8 @@ main(
     if (!CustomUrlPath) {
         Urls.push_back("/");
     }
+
+    TryGetValue(argc, argv, "sslkeylogfile", &SslKeyLogFile);
 
     const char* Target, *Custom;
     if (TryGetValue(argc, argv, "target", &Target)) {

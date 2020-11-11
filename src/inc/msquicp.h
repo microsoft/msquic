@@ -65,6 +65,25 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
     const uint8_t* Buffer;
 } QUIC_PRIVATE_TRANSPORT_PARAMETER;
 
+typedef enum QUIC_SSLKEYLOG_TYPE {
+    SSLKEYLOG_END = 0,
+    CLIENT_EARLY_TRAFFIC_SECRET,        // The early traffic secret for the client side
+    CLIENT_HANDSHAKE_TRAFFIC_SECRET,    // The handshake traffic secret for the client side
+    SERVER_HANDSHAKE_TRAFFIC_SECRET,    // The handshake traffic secret for the server side
+    CLIENT_TRAFFIC_SECRET_0,            // The first application traffic secret for the client side
+    SERVER_TRAFFIC_SECRET_0,            // The first application traffic secret for the server side
+    EARLY_EXPORTER_SECRET,              // The early exporter secret
+    EXPORTER_SECRET,                    // The exporter secret
+    MAX_SSLKEYLOG_TYPE
+} QUIC_SSLKEYLOG_TYPE;
+
+typedef struct QUIC_SSLKEYLOG_ENTRY {
+    uint8_t Type;
+    uint8_t Length;
+    _Field_size_(Length)
+    uint8_t TrafficSecret[0];
+} QUIC_SSLKEYLOG_ENTRY;
+
 //
 // The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
 //
@@ -78,6 +97,7 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_CONN_FORCE_KEY_UPDATE                0x80000001  // No payload
 #define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x80000002  // No payload
 #define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x80000003  // QUIC_PRIVATE_TRANSPORT_PARAMETER
+#define QUIC_PARAM_CONN_SSLKEYLOG_BUFFER                0x80000004  // Set-only; uint8_t[] >=464 bytes
 
 #if defined(__cplusplus)
 }

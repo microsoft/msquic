@@ -531,6 +531,19 @@ typedef struct QUIC_CONNECTION {
     //
     QUIC_PRIVATE_TRANSPORT_PARAMETER TestTransportParameter;
 
+#ifdef QUIC_WIRESHARK_SUPPORT
+    //
+    // Buffer to write SSLKEYLOG to. The app will have to parse
+    // the buffer once the connection is connected.
+    //
+    uint8_t* SslKeyLogCurrentEntry;
+
+    //
+    // Bytes of free space remaining in the buffer
+    //
+    uint32_t SslKeyLogBytesRemaining;
+#endif
+
 } QUIC_CONNECTION;
 
 typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
@@ -1354,3 +1367,17 @@ QuicConnParamGet(
     _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
     );
+
+#ifdef QUIC_WIRESHARK_SUPPORT
+//
+// Log TLS traffic secrets to SslKeyLog
+//
+void
+QuicConnSslKeyLogWrite(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PACKET_KEY_TYPE KeyType,
+    _In_reads_(SecretLen) const uint8_t* ReadSecret,
+    _In_reads_(SecretLen) const uint8_t* WriteSecret,
+    _In_ size_t SecretLen
+    );
+#endif

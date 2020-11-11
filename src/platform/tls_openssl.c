@@ -271,6 +271,15 @@ QuicTlsSetEncryptionSecretsCallback(
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
     }
 
+#ifdef QUIC_WIRESHARK_SUPPORT
+    QuicConnSslKeyLogWrite(
+        TlsContext->Connection,
+        KeyType,
+        ReadSecret,
+        WriteSecret,
+        SecretLen);
+#endif
+
     return 1;
 }
 
