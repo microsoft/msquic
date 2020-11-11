@@ -242,34 +242,36 @@ MsQuicRegistrationShutdown(
         QUIC_TRACE_API_REGISTRATION_SHUTDOWN,
         Handle);
 
+    if (Handle && Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
+        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-    QuicDispatchLockAcquire(&Registration->ConnectionLock);
+        QuicDispatchLockAcquire(&Registration->ConnectionLock);
 
-    QUIC_LIST_ENTRY* Entry = Registration->Connections.Flink;
-    while (Entry != &Registration->Connections) {
+        QUIC_LIST_ENTRY* Entry = Registration->Connections.Flink;
+        while (Entry != &Registration->Connections) {
 
-        QUIC_CONNECTION* Connection =
-            QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, RegistrationLink);
+            QUIC_CONNECTION* Connection =
+                QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, RegistrationLink);
 
-        if (InterlockedCompareExchange16(
-                (short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
+            if (InterlockedCompareExchange16(
+                    (short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
 
-            QUIC_OPERATION* Oper = &Connection->BackUpOper;
-            Oper->FreeAfterProcess = FALSE;
-            Oper->Type = QUIC_OPER_TYPE_API_CALL;
-            Oper->API_CALL.Context = &Connection->BackupApiContext;
-            Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
-            Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = Flags;
-            Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = ErrorCode;
-            QuicConnQueueHighestPriorityOper(Connection, Oper);
+                QUIC_OPERATION* Oper = &Connection->BackUpOper;
+                Oper->FreeAfterProcess = FALSE;
+                Oper->Type = QUIC_OPER_TYPE_API_CALL;
+                Oper->API_CALL.Context = &Connection->BackupApiContext;
+                Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
+                Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = Flags;
+                Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = ErrorCode;
+                QuicConnQueueHighestPriorityOper(Connection, Oper);
+            }
+
+            Entry = Entry->Flink;
         }
 
-        Entry = Entry->Flink;
+        QuicDispatchLockRelease(&Registration->ConnectionLock);
     }
-
-    QuicDispatchLockRelease(&Registration->ConnectionLock);
 
     QuicTraceEvent(
         ApiExit,
