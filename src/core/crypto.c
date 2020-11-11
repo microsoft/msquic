@@ -288,6 +288,9 @@ QuicCryptoInitializeTls(
     if (!QuicConnIsServer(Connection)) {
         TlsConfig.ServerName = Connection->RemoteServerName;
     }
+#ifdef QUIC_SSLKEYLOG_SUPPORT
+    TlsConfig.SslKeyLog = Connection->SslKeyLog;
+#endif
 
     TlsConfig.LocalTPBuffer =
         QuicCryptoTlsEncodeTransportParameters(
@@ -1343,6 +1346,22 @@ QuicCryptoProcessTlsCompletion(
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_DATA) {
+#ifdef QUIC_SSLKEYLOG_SUPPORT
+        //
+        // Parse the client initial to populate the SSLKEYLOG with the
+        // ClientRandom
+        //
+        if (!QuicConnIsServer(Connection) &&
+            Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_INITIAL &&
+            Crypto->TlsState.BufferLength > 0) {
+            QUIC_NEW_CONNECTION_INFO Info = { 0 };
+            QuicCryptoTlsReadInitial(
+                Connection,
+                Crypto->TlsState.Buffer,
+                Crypto->TlsState.BufferLength,
+                &Info);
+        }
+#endif
         QuicSendSetSendFlag(
             &QuicCryptoGetConnection(Crypto)->Send,
             QUIC_CONN_SEND_FLAG_CRYPTO);

@@ -5627,9 +5627,9 @@ QuicConnParamSet(
         break;
 
     case QUIC_PARAM_CONN_SSLKEYLOG_BUFFER:
-#ifdef QUIC_WIRESHARK_SUPPORT
+#ifdef QUIC_SSLKEYLOG_SUPPORT
 
-        if (BufferLength == 0 || Buffer == NULL) {
+        if (BufferLength != sizeof(QUIC_SSLKEYLOG) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -5639,10 +5639,9 @@ QuicConnParamSet(
             break;
         }
 
-        Connection->SslKeyLogBuffer = (uint8_t*)Buffer;
-        Connection->SslKeyLogBytesRemaining = BufferLength;
+        Connection->SslKeyLog = (QUIC_SSLKEYLOG*)Buffer;
 
-        Connection->SslKeyLogBuffer[0] = 0;
+        QuicZeroMemory(Connection->SslKeyLog, sizeof(*Connection->SslKeyLog));
 
         Status = QUIC_STATUS_SUCCESS;
 #else
@@ -6423,34 +6422,3 @@ QuicConnDrainOperations(
 
     return HasMoreWorkToDo;
 }
-
-#ifdef QUIC_WIRESHARK_SUPPORT
-void
-QuicConnSslKeyLogFileWrite(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_z_ const char* Line
-    )
-{
-    if (Connection->SslKeyLogBuffer != NULL && Connection->SslKeyLogBytesRemaining > 0) {
-        size_t LineLen = strlen(Line);
-        //
-        // Append newline on previous log line.
-        //
-        if (Connection->SslKeyLogBytesRemaining > 0) {
-            *Connection->SslKeyLogBuffer = '\n';
-            Connection->SslKeyLogBuffer++;
-            Connection->SslKeyLogBytesRemaining--;
-        }
-        memcpy(Connection->SslKeyLogBuffer, Line, min(LineLen, Connection->SslKeyLogBytesRemaining));
-        if (LineLen > Connection->SslKeyLogBytesRemaining) {
-             LineLen = Connection->SslKeyLogBytesRemaining;
-        }
-        Connection->SslKeyLogBytesRemaining -= (uint32_t)LineLen;
-        Connection->SslKeyLogBuffer += (uint32_t)LineLen;
-        //
-        // Null-terminate buffer.
-        //
-        *Connection->SslKeyLogBuffer = 0;
-    }
-}
-#endif

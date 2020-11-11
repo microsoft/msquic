@@ -65,6 +65,26 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
     const uint8_t* Buffer;
 } QUIC_PRIVATE_TRANSPORT_PARAMETER;
 
+#define QUIC_SSLKEYLOG_MAX_SECRET_LEN 64
+typedef struct QUIC_SSLKEYLOG {
+    uint8_t ClientRandom[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
+    uint8_t ClientEarlyTrafficSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
+    uint8_t ClientHandshakeTrafficSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
+    uint8_t ServerHandshakeTrafficSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
+    uint8_t ClientTrafficSecret0[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
+    uint8_t ServerTrafficSecret0[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
+    uint8_t EarlyExporterSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
+    uint8_t ExporterSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
+    uint8_t ClientRandomLength;
+    uint8_t ClientEarlyTrafficSecretLength;
+    uint8_t ClientHandshakeTrafficSecretLength;
+    uint8_t ServerHandshakeTrafficSecretLength;
+    uint8_t ClientTrafficSecret0Length;
+    uint8_t ServerTrafficSecret0Length;
+    uint8_t EarlyExporterSecretLength;
+    uint8_t ExporterSecretLength;
+} QUIC_SSLKEYLOG;
+
 //
 // The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
 //
@@ -78,7 +98,7 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_CONN_FORCE_KEY_UPDATE                0x80000001  // No payload
 #define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x80000002  // No payload
 #define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x80000003  // QUIC_PRIVATE_TRANSPORT_PARAMETER
-#define QUIC_PARAM_CONN_SSLKEYLOG_BUFFER                0x80000004  // Set-only; uint8_t[] >=464 bytes
+#define QUIC_PARAM_CONN_SSLKEYLOG_BUFFER                0x80000004  // Set-only, sizeof(QUIC_SSLKEYLOG)
 
 #if defined(__cplusplus)
 }

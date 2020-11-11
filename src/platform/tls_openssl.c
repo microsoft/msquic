@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+#include "msquicp.h"
 
 #define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
 #include "openssl/ssl.h"
@@ -87,6 +88,13 @@ typedef struct QUIC_TLS {
     QUIC_CONNECTION* Connection;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
+#ifdef QUIC_SSLKEYLOG_SUPPORT
+    //
+    // Struct to log TLS traffic secrets.
+    //
+    QUIC_SSLKEYLOG* SslKeyLog;
+#endif
+
 } QUIC_TLS;
 
 typedef struct QUIC_HP_KEY {
@@ -147,28 +155,6 @@ QuicTlsLibraryUninitialize(
     )
 {
 }
-
-#ifdef QUIC_WIRESHARK_SUPPORT
-//
-// Defined here to prevent a dependence upon core headers
-//
-void
-QuicConnSslKeyLogFileWrite(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_z_ const char* Line
-    );
-
-static
-void
-QuicTlsSslKeyLogCallback(
-    const SSL *Ssl,
-    const char *Line
-    )
-{
-    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
-    QuicConnSslKeyLogFileWrite(TlsContext->Connection, Line);
-}
-#endif
 
 static
 int
@@ -292,6 +278,43 @@ QuicTlsSetEncryptionSecretsCallback(
         TlsState->ReadKey = KeyType;
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
     }
+
+#ifdef QUIC_SSLKEYLOG_SUPPORT
+    if (TlsContext->SslKeyLog != NULL && SecretLen <= QUIC_SSLKEYLOG_MAX_SECRET_LEN) {
+        switch (KeyType) {
+        case QUIC_PACKET_KEY_HANDSHAKE:
+            if (TlsContext->IsServer) {
+                memcpy(TlsContext->SslKeyLog->ClientHandshakeTrafficSecret, ReadSecret, SecretLen);
+                memcpy(TlsContext->SslKeyLog->ServerHandshakeTrafficSecret, WriteSecret, SecretLen);
+            } else {
+                memcpy(TlsContext->SslKeyLog->ClientHandshakeTrafficSecret, WriteSecret, SecretLen);
+                memcpy(TlsContext->SslKeyLog->ServerHandshakeTrafficSecret, ReadSecret, SecretLen);
+            }
+            TlsContext->SslKeyLog->ClientHandshakeTrafficSecretLength = (uint8_t)SecretLen;
+            TlsContext->SslKeyLog->ServerHandshakeTrafficSecretLength = (uint8_t)SecretLen;
+            break;
+        case QUIC_PACKET_KEY_1_RTT:
+            if (TlsContext->IsServer) {
+                memcpy(TlsContext->SslKeyLog->ClientTrafficSecret0, ReadSecret, SecretLen);
+                memcpy(TlsContext->SslKeyLog->ServerTrafficSecret0, WriteSecret, SecretLen);
+            } else {
+                memcpy(TlsContext->SslKeyLog->ClientTrafficSecret0, WriteSecret, SecretLen);
+                memcpy(TlsContext->SslKeyLog->ServerTrafficSecret0, ReadSecret, SecretLen);
+            }
+            TlsContext->SslKeyLog->ClientTrafficSecret0Length = (uint8_t)SecretLen;
+            TlsContext->SslKeyLog->ServerTrafficSecret0Length = (uint8_t)SecretLen;
+            break;
+        case QUIC_PACKET_KEY_0_RTT:
+            if (!TlsContext->IsServer) {
+                memcpy(TlsContext->SslKeyLog->ClientEarlyTrafficSecret, WriteSecret, SecretLen);
+                TlsContext->SslKeyLog->ClientEarlyTrafficSecretLength = (uint8_t)SecretLen;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+#endif
 
     return 1;
 }
@@ -696,9 +719,6 @@ QuicTlsSecConfigCreate(
 
         SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, UINT32_MAX);
         SSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx, QuicTlsClientHelloCallback, NULL);
-#ifdef QUIC_WIRESHARK_SUPPORT
-        SSL_CTX_set_keylog_callback(SecurityConfig->SSLCtx, QuicTlsSslKeyLogCallback);
-#endif
     }
 
     //
@@ -766,6 +786,9 @@ QuicTlsInitialize(
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
+#ifdef QUIC_SSLKEYLOG_SUPPORT
+    TlsContext->SslKeyLog = Config->SslKeyLog;
+#endif
 
     QuicTraceLogConnVerbose(
         OpenSslContextCreated,

@@ -422,6 +422,9 @@ QuicCryptoTlsReadClientHello(
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
+#ifdef QUIC_SSLKEYLOG_SUPPORT
+    , _Inout_opt_ QUIC_SSLKEYLOG* SslKeyLog
+#endif
     )
 {
     /*
@@ -466,6 +469,12 @@ QuicCryptoTlsReadClientHello(
             "Parse error. ReadTlsClientHello #2");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
+#ifdef QUIC_SSLKEYLOG_SUPPORT
+    if (SslKeyLog != NULL) {
+        memcpy(SslKeyLog->ClientRandom, Buffer, TLS_RANDOM_LENGTH);
+        SslKeyLog->ClientRandomLength = TLS_RANDOM_LENGTH;
+    }
+#endif
     BufferLength -= TLS_RANDOM_LENGTH;
     Buffer += TLS_RANDOM_LENGTH;
 
@@ -608,7 +617,11 @@ QuicCryptoTlsReadInitial(
                 Connection,
                 Buffer + TLS_MESSAGE_HEADER_LENGTH,
                 MessageLength,
-                Info);
+                Info
+#ifdef QUIC_SSLKEYLOG_SUPPORT
+                , Connection->SslKeyLog
+#endif
+                );
         if (QUIC_FAILED(Status)) {
             return Status;
         }
