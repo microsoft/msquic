@@ -174,6 +174,7 @@ QuicTimerWheelResize(
                     QUIC_CONNECTION,
                     TimerLink);
             uint64_t ExpirationTime = QuicConnGetNextExpirationTime(Connection);
+            QUIC_DBG_ASSERT(TimerWheel->SlotCount != 0);
             uint32_t SlotIndex = TIME_TO_SLOT_INDEX(TimerWheel, ExpirationTime);
 
             //
@@ -326,6 +327,7 @@ QuicTimerWheelUpdateConnection(
 
     } else {
 
+        QUIC_DBG_ASSERT(TimerWheel->SlotCount != 0);
         uint32_t SlotIndex = TIME_TO_SLOT_INDEX(TimerWheel, ExpirationTime);
 
         //
