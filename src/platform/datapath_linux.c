@@ -2052,6 +2052,7 @@ QuicDataPathBindingSend(
     if (!Binding->Connected) {
         Mhdr.msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
         CMsg = CMSG_NXTHDR(&Mhdr, CMsg);
+        QUIC_DBG_ASSERT(LocalAddress != NULL);
         QUIC_DBG_ASSERT(CMsg != NULL);
         if (RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
             CMsg->cmsg_level = IPPROTO_IP;
