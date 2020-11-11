@@ -86,6 +86,7 @@ QuicRangeGrow(
     // Move the items to the new array and make room for the next index to write.
     //
 
+    QUIC_DBG_ASSERT(Range->SubRanges != 0);
     if (NextIndex == 0) {
         memcpy(
             NewSubRanges + 1,
@@ -151,6 +152,7 @@ QuicRangeMakeSpace(
             (*Index)--; // Actually going to be inserting 1 before where requested.
         }
     } else {
+        QUIC_DBG_ASSERT(Range->SubRanges != 0);
         if (*Index == 0) {
             memmove(
                 Range->SubRanges + 1,
