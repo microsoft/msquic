@@ -254,12 +254,12 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
             &EncodedServerTicketLength));
 
     ASSERT_NE(EncodedServerTicket, nullptr);
-    ASSERT_NE(EncodedServerTicketLength, 0);
+    ASSERT_NE((uint16_t)EncodedServerTicketLength, 0);
 
     TEST_QUIC_SUCCEEDED(
         QuicCryptoEncodeClientTicket(
             nullptr,
-            EncodedServerTicketLength,
+            (uint16_t)EncodedServerTicketLength,
             EncodedServerTicket,
             &ClientTP,
             QUIC_VERSION_LATEST,
@@ -267,7 +267,7 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
             &EncodedClientTicketLength));
 
     ASSERT_NE(EncodedClientTicket, nullptr);
-    ASSERT_NE(EncodedClientTicketLength, 0);
+    ASSERT_NE((uint16_t)EncodedClientTicketLength, 0);
 
     TEST_QUIC_SUCCEEDED(
         QuicCryptoDecodeClientTicket(
