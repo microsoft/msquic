@@ -188,7 +188,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
             &EncodedServerTicketLength));
 
     ASSERT_NE(EncodedServerTicket, nullptr);
-    ASSERT_NE(EncodedServerTicketLength, 0);
+    ASSERT_NE((uint16_t)EncodedServerTicketLength, 0);
 
     TEST_QUIC_SUCCEEDED(
         QuicCryptoDecodeServerTicket(
