@@ -173,7 +173,7 @@ TEST_P(AckFrameTest, DecodeAckFrameFail) {
         Buffer[2] = 1; // ACK Delay
         Buffer[3] = 0; // ACK range count
         Buffer[4] = 5; // First ACK range
-        for (uint8_t TestValue : {64, 255}) {
+        for (uint8_t TestValue = 64; TestValue <= 255; TestValue++) {
             for (uint8_t i = 1; i < 8; ++i) {
                 Offset = 1;
                 InvalidFrame = FALSE;
@@ -1184,7 +1184,7 @@ struct ConnectionCloseFrameParams {
             ConnectionCloseFrameParams Frame;
             Frame.Buffer[0] = (uint8_t)Type;
 
-            for (uint8_t TestValue : {65, 255}) {
+            for (uint8_t TestValue = 65; TestValue <= 255; TestValue++) {
                 for (uint32_t i = 1; i < 4; ++i) {
                     Frame.Buffer[1] = (i & 1) ? TestValue : 0;
 
