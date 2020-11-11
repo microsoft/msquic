@@ -317,11 +317,9 @@ namespace MsQuicTracing.DataModel
 
         public ushort SegmentSize { get; protected set; }
 
-#pragma warning disable CS8618 // Non-nullable field is uninitialized.
-        public IPEndPoint RemoteAddress { get; protected set; }
+        public IPEndPoint RemoteAddress { get; protected set; } = null!;
 
-        public IPEndPoint LocalAddress { get; protected set; }
-#pragma warning restore CS8618 // Non-nullable field is uninitialized.
+        public IPEndPoint LocalAddress { get; protected set; } = null!;
     }
 
     public class QuicDatapathRecvPayload
@@ -330,11 +328,9 @@ namespace MsQuicTracing.DataModel
 
         public ushort SegmentSize { get; protected set; }
 
-#pragma warning disable CS8618 // Non-nullable field is uninitialized.
-        public IPEndPoint LocalAddress { get; protected set; }
+        public IPEndPoint LocalAddress { get; protected set; } = null!;
 
-        public IPEndPoint RemoteAddress { get; protected set; }
-#pragma warning restore CS8618 // Non-nullable field is uninitialized.
+        public IPEndPoint RemoteAddress { get; protected set; } = null!;
     }
 
     #endregion
