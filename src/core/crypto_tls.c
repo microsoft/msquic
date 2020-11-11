@@ -248,7 +248,7 @@ QuicCryptoTlsReadSniExtension(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoTlsReadAlpnExtension(
-    _In_ QUIC_CONNECTION* Connection, // NOLINT
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint16_t BufferLength,
@@ -1153,7 +1153,7 @@ QuicCryptoTlsDecodeTransportParameters(
         }
 
         QUIC_VAR_INT ParamLength;
-        if (!QuicVarIntDecode(TPLen, TPBuf, &Offset, &ParamLength)) { // NOLINT
+        if (!QuicVarIntDecode(TPLen, TPBuf, &Offset, &ParamLength)) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
@@ -1178,7 +1178,7 @@ QuicCryptoTlsDecodeTransportParameters(
         switch (Id) {
 
         case QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID:
-            if (Length > QUIC_MAX_CONNECTION_ID_LENGTH_V1) { // NOLINT
+            if (Length > QUIC_MAX_CONNECTION_ID_LENGTH_V1) {
                 QuicTraceEvent(
                     ConnErrorStatus,
                     "[conn][%p] ERROR, %u, %s.",
@@ -1228,7 +1228,7 @@ QuicCryptoTlsDecodeTransportParameters(
             break;
 
         case QUIC_TP_ID_STATELESS_RESET_TOKEN:
-            if (Length != QUIC_STATELESS_RESET_TOKEN_LENGTH) { // NOLINT
+            if (Length != QUIC_STATELESS_RESET_TOKEN_LENGTH) {
                 QuicTraceEvent(
                     ConnErrorStatus,
                     "[conn][%p] ERROR, %u, %s.",
@@ -1561,7 +1561,7 @@ QuicCryptoTlsDecodeTransportParameters(
             break;
 
         case QUIC_TP_ID_RETRY_SOURCE_CONNECTION_ID:
-            if (Length > QUIC_MAX_CONNECTION_ID_LENGTH_V1) { // NOLINT
+            if (Length > QUIC_MAX_CONNECTION_ID_LENGTH_V1) {
                 QuicTraceEvent(
                     ConnErrorStatus,
                     "[conn][%p] ERROR, %u, %s.",

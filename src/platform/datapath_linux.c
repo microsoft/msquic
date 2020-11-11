@@ -13,7 +13,6 @@ Environment:
 
 --*/
 
-#define _GNU_SOURCE // NOLINT
 #include "platform_internal.h"
 #include "quic_platform_dispatch.h"
 #include <arpa/inet.h>
@@ -1773,8 +1772,8 @@ QUIC_STATUS
 QuicDataPathBindingGetParam(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint32_t Param,
-    _Inout_ uint32_t* BufferLength, // NOLINT
-    _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer // NOLINT
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE

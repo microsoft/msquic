@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #define QUIC_TEST_APIS 1
-#define _CRT_SECURE_NO_WARNINGS // NOLINT
+#define _CRT_SECURE_NO_WARNINGS // NOLINT bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp
 
 #include "openssl/ec.h"
 #include "openssl/err.h"
@@ -274,7 +274,7 @@ static char* QuicTestPrivateKeyFilename = (char*)"localhost_key.pem";
 #endif
 
 typedef struct QUIC_CREDENTIAL_CONFIG_INTERNAL {
-    QUIC_CREDENTIAL_CONFIG; // NOLINT
+    QUIC_CREDENTIAL_CONFIG;
     QUIC_CERTIFICATE_FILE CertFile;
 #ifdef _WIN32
     char TempPath [MAX_PATH];
@@ -423,7 +423,7 @@ QuicPlatFreeSelfSignedCert(
     char RmCmd[32] = {0};
     strncpy(RmCmd, "rm -rf ", 7 + 1);
     strncat(RmCmd, Params->TempDir, sizeof(RmCmd) - strlen(RmCmd) - 1);
-    if (system(RmCmd) == -1) { // NOLINT
+    if (system(RmCmd) == -1) { // NOLINT cert-env33-c
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",

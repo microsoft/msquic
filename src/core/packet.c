@@ -727,7 +727,7 @@ void
 QuicPacketLogDrop(
     _In_ const void* Owner, // Binding or Connection depending on state
     _In_ const QUIC_RECV_PACKET* Packet,
-    _In_z_ const char* Reason // NOLINT
+    _In_z_ const char* Reason
     )
 {
     const QUIC_RECV_DATAGRAM* Datagram = // cppcheck-suppress unreadVariable; NOLINT
@@ -760,8 +760,8 @@ void
 QuicPacketLogDropWithValue(
     _In_ const void* Owner, // Binding or Connection depending on state
     _In_ const QUIC_RECV_PACKET* Packet,
-    _In_z_ const char* Reason, // NOLINT
-    _In_ uint64_t Value // NOLINT
+    _In_z_ const char* Reason,
+    _In_ uint64_t Value
     )
 {
     const QUIC_RECV_DATAGRAM* Datagram = // cppcheck-suppress unreadVariable; NOLINT

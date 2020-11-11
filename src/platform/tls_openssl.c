@@ -978,7 +978,7 @@ QuicTlsProcessData(
     _In_ QUIC_TLS* TlsContext,
     _In_ QUIC_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength) const uint8_t* Buffer,
-    _Inout_ uint32_t* BufferLength, // NOLINT
+    _Inout_ uint32_t* BufferLength,
     _Inout_ QUIC_TLS_PROCESS_STATE* State
     )
 {
@@ -1173,7 +1173,7 @@ Exit:
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessDataComplete(
     _In_ QUIC_TLS* TlsContext,
-    _Out_ uint32_t * ConsumedBuffer // NOLINT
+    _Out_ uint32_t * ConsumedBuffer
     )
 {
     UNREFERENCED_PARAMETER(TlsContext);
@@ -1201,7 +1201,7 @@ QUIC_STATUS
 QuicTlsParamGet(
     _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
-    _Inout_ uint32_t* BufferLength, // NOLINT
+    _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
     )

@@ -13,7 +13,6 @@ Environment:
 
 --*/
 
-#define _GNU_SOURCE // NOLINT
 #include "platform_internal.h"
 #include "quic_platform.h"
 #include "quic_platform_dispatch.h"
@@ -52,7 +51,7 @@ quic_bugcheck(
     // it is possible certain optimizations will cause inlining. asm technique
     // is the gcc documented way to prevent such optimizations.
     //
-    asm(""); // NOLINT
+    asm("");
 
     //
     // abort() sends a SIGABRT signal and it triggers termination and coredump.
@@ -271,7 +270,7 @@ QuicRefInitialize(
 
 void
 QuicRefIncrement(
-    _Inout_ QUIC_REF_COUNT* RefCount // NOLINT
+    _Inout_ QUIC_REF_COUNT* RefCount
     )
 {
     if (__atomic_add_fetch(RefCount, 1, __ATOMIC_SEQ_CST)) {
@@ -283,7 +282,7 @@ QuicRefIncrement(
 
 BOOLEAN
 QuicRefIncrementNonZero(
-    _Inout_ volatile QUIC_REF_COUNT* RefCount // NOLINT
+    _Inout_ volatile QUIC_REF_COUNT* RefCount
     )
 {
     QUIC_REF_COUNT OldValue = *RefCount;
@@ -307,7 +306,7 @@ QuicRefIncrementNonZero(
 
 BOOLEAN
 QuicRefDecrement(
-    _In_ QUIC_REF_COUNT* RefCount // NOLINT
+    _In_ QUIC_REF_COUNT* RefCount
     )
 {
     QUIC_REF_COUNT NewValue = __atomic_sub_fetch(RefCount, 1, __ATOMIC_SEQ_CST);
@@ -767,7 +766,7 @@ QuicThreadCreate(
 
 void
 QuicThreadDelete(
-    _Inout_ QUIC_THREAD* Thread // NOLINT
+    _Inout_ QUIC_THREAD* Thread
     )
 {
     UNREFERENCED_PARAMETER(Thread);
@@ -775,7 +774,7 @@ QuicThreadDelete(
 
 void
 QuicThreadWait(
-    _Inout_ QUIC_THREAD* Thread // NOLINT
+    _Inout_ QUIC_THREAD* Thread
     )
 {
     QUIC_DBG_ASSERT(pthread_equal(*Thread, pthread_self()) == 0);
@@ -793,9 +792,9 @@ QuicCurThreadID(
 
 void
 QuicPlatformLogAssert(
-    _In_z_ const char* File, // NOLINT
-    _In_ int Line, // NOLINT
-    _In_z_ const char* Expr // NOLINT
+    _In_z_ const char* File,
+    _In_ int Line,
+    _In_z_ const char* Expr
     )
 {
     QuicTraceEvent(

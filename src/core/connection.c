@@ -1612,7 +1612,7 @@ QuicConnTryClose(
             QuicConnLogStatistics(Connection);
         }
 
-        if (Flags & QUIC_CLOSE_APPLICATION) { // NOLINT
+        if (Flags & QUIC_CLOSE_APPLICATION) {
             QuicTraceEvent(
                 ConnAppShutdown,
                 "[conn][%p] App Shutdown: %llu (Remote=%hhu)",
@@ -2033,7 +2033,7 @@ QuicConnRecvResumptionTicket(
         ResumptionAccepted =
             QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
 
-        if (ResumptionAccepted) { // NOLINT
+        if (ResumptionAccepted) {
             QuicTraceEvent(
                 ConnServerResumeTicket,
                 "[conn][%p] Server app accepted resumption ticket",

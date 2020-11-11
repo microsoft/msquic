@@ -358,7 +358,7 @@ MsQuicConfigurationLoadCredential(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConfigurationTraceRundown(
-    _In_ QUIC_CONFIGURATION* Configuration // NOLINT
+    _In_ QUIC_CONFIGURATION* Configuration
     )
 {
     QuicTraceEvent(

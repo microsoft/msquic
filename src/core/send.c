@@ -118,7 +118,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendQueueFlush(
     _In_ QUIC_SEND* Send,
-    _In_ QUIC_SEND_FLUSH_REASON Reason // NOLINT
+    _In_ QUIC_SEND_FLUSH_REASON Reason
     )
 {
     if (!Send->FlushOperationPending && QuicSendCanSendFlagsNow(Send)) {

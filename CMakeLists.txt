@@ -211,7 +211,7 @@ if (WIN32)
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
     set(QUIC_COMMON_FLAGS "")
-    set(QUIC_COMMON_DEFINES "")
+    set(QUIC_COMMON_DEFINES _GNU_SOURCE)
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
         CACHE INTERNAL "")
@@ -546,16 +546,20 @@ if(QUIC_CODE_CHECK)
             # add checks to ignore here:
             -bugprone-macro-parentheses
             -bugprone-sizeof-expression
+            -clang-diagnostic-microsoft-anon-tag
             -cppcoreguidelines-avoid-magic-numbers
             -cppcoreguidelines-avoid-non-const-global-variables
             -cppcoreguidelines-init-variables
             -google-readability-todo
+            -hicpp-no-assembler
             -hicpp-signed-bitwise
             -llvmlibc-restrict-system-libc-headers
             -misc-no-recursion # do you really need recursion?
             -readability-avoid-const-params-in-decls
             -readability-isolate-declaration
             -readability-magic-numbers
+            -readability-non-const-parameter
+
             # these are finding potential logic issues, may want to suppress when focusing on nits:
             -clang-analyzer-core.CallAndMessage
             -clang-analyzer-core.DivideZero
@@ -574,7 +578,7 @@ if(QUIC_CODE_CHECK)
     if(CPPCHECK)
         message(STATUS "Found cppcheck: ${CPPCHECK}")
         set(CMAKE_C_CPPCHECK_AVAILABLE ${CPPCHECK} -q --inline-suppr
-            --suppress=duplicateValueTernary
+            --suppress=duplicateValueTernary --suppress=objectIndex
             # these are finding potential logic issues, may want to suppress when focusing on nits:
             --suppress=nullPointer --suppress=nullPointerRedundantCheck
             --enable=warning,style,performance,portability -D__linux__)

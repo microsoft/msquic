@@ -38,7 +38,7 @@ QuicWorkerUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicWorkerInitialize(
-    _In_opt_ const void* Owner, // NOLINT
+    _In_opt_ const void* Owner,
     _In_ uint16_t ThreadFlags,
     _In_ uint16_t IdealProcessor,
     _Inout_ QUIC_WORKER* Worker
@@ -287,8 +287,8 @@ QuicWorkerQueueOperation(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerToggleActivityState(
-    _In_ QUIC_WORKER* Worker, // NOLINT
-    _In_ uint32_t Arg // NOLINT
+    _In_ QUIC_WORKER* Worker,
+    _In_ uint32_t Arg
     )
 {
     Worker->IsActive = !Worker->IsActive;

@@ -358,7 +358,7 @@ QuicStreamClose(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamTraceRundown(
-    _In_ QUIC_STREAM* Stream // NOLINT
+    _In_ QUIC_STREAM* Stream
     )
 {
     QuicTraceEvent(
@@ -367,7 +367,7 @@ QuicStreamTraceRundown(
         Stream,
         Stream->Connection,
         Stream->ID,
-        (!QuicConnIsServer(Stream->Connection) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
+        ((!QuicConnIsServer(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
     QuicTraceEvent(
         StreamOutFlowBlocked,
         "[strm][%p] Send Blocked Flags: %hhu",
