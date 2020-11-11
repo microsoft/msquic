@@ -230,7 +230,6 @@ struct ResetStreamFrameParams {
 
     static auto GenerateDecodeFailParams() {
         std::vector<ResetStreamFrameParams> Params;
-        const uint16_t BufferLength = 4;
         for (uint32_t i = 1; i < 8; ++i) {
             ResetStreamFrameParams Temp;
             Temp.Buffer[0] = QUIC_FRAME_RESET_STREAM;
