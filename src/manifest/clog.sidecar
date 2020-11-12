@@ -15749,33 +15749,6 @@
         "CustomSettings": null
       }
     },
-    "DatapathCreate": {
-      "ModuleProperites": {},
-      "TraceString": "[ udp][%p] Created.",
-      "UniqueId": "DatapathCreate",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Binding",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogInfo",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "DatapathWorkerThreadStart": {
       "ModuleProperites": {},
       "TraceString": "[ udp][%p] Worker start",
@@ -15819,33 +15792,6 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogInfo",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "DatapathShuttingDown": {
-      "ModuleProperites": {},
-      "TraceString": "[ udp][%p] Shutting down",
-      "UniqueId": "DatapathShuttingDown",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "Binding",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
         "EncodedPrefix": null,
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
@@ -15979,6 +15925,76 @@
           },
           "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg6"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathCreated": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+      "UniqueId": "DatapathCreated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathDestroyed": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] Destroyed",
+      "UniqueId": "DatapathDestroyed",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
         }
       ],
       "macro": {
@@ -20785,6 +20801,108 @@
         },
         "CustomSettings": null
       }
+    },
+    "InteropTestStart": {
+      "ModuleProperites": {},
+      "TraceString": "[ntrp] Test Start, Server: %s, Port: %hu, Tests: 0x%x.",
+      "UniqueId": "InteropTestStart",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "PublicEndpoints[EndpointIndex].ServerName",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "TestContext->Port",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "(uint32_t)TestContext->Feature",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "InteropTestStop": {
+      "ModuleProperites": {},
+      "TraceString": "[ntrp] Test Stop, Server: %s, Port: %hu, Tests: 0x%x, Negotiated Alpn: %s, Passed: %s.",
+      "UniqueId": "InteropTestStop",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "PublicEndpoints[EndpointIndex].ServerName",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "TestContext->Port",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "(uint32_t)TestContext->Feature",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "Alpn",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "ThisTestFailed ? \"false\" : \"true\"",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
     }
   },
   "Version": 1,
@@ -22952,20 +23070,12 @@
         "TraceID": "CertOpenSslGetProcessAddressFailure"
       },
       {
-        "UniquenessHash": "eca69f63-4fd1-2302-5724-89ca1189754e",
-        "TraceID": "DatapathCreate"
-      },
-      {
         "UniquenessHash": "8200b193-6dab-1cc4-e8c0-c7963434388c",
         "TraceID": "DatapathWorkerThreadStart"
       },
       {
         "UniquenessHash": "8db9f276-e7e4-a879-8d66-04c080b4ed22",
         "TraceID": "DatapathWorkerThreadStop"
-      },
-      {
-        "UniquenessHash": "5b32401b-1842-9af0-ebab-67d1baf8fc7a",
-        "TraceID": "DatapathShuttingDown"
       },
       {
         "UniquenessHash": "8c0dc882-517e-cd8f-df0b-0b892d83bb00",
@@ -22978,6 +23088,14 @@
       {
         "UniquenessHash": "4a17af8c-bd56-a1f2-d3d6-b28b75030213",
         "TraceID": "DatapathRecv"
+      },
+      {
+        "UniquenessHash": "bf892b4a-1e02-799f-587c-a17d05c80159",
+        "TraceID": "DatapathCreated"
+      },
+      {
+        "UniquenessHash": "cab95979-24b5-0b36-044d-b1ab73d3aa37",
+        "TraceID": "DatapathDestroyed"
       },
       {
         "UniquenessHash": "94b78b13-9aec-bd06-569d-6b47607c66be",
@@ -23626,6 +23744,14 @@
       {
         "UniquenessHash": "78d1c2fe-fbce-b603-004e-f2026093416c",
         "TraceID": "TestHookDropLimitAddrSend"
+      },
+      {
+        "UniquenessHash": "e98e6411-dfab-d3a6-e7bd-d1782209846d",
+        "TraceID": "InteropTestStart"
+      },
+      {
+        "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
+        "TraceID": "InteropTestStop"
       }
     ]
   }

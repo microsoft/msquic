@@ -6,6 +6,8 @@ protocol. It is cross platform, written in C and designed to be a general purpos
 
 > **Important** The QUIC protocol is currently in IETF last call (not RFC quite yet). MsQuic implements the latest published drafts.
 
+IETF Drafts: [Transport](https://tools.ietf.org/html/draft-ietf-quic-transport), [TLS](https://tools.ietf.org/html/draft-ietf-quic-tls), [Recovery](https://tools.ietf.org/html/draft-ietf-quic-recovery), [Datagram](https://tools.ietf.org/html/draft-ietf-quic-datagram), [Load Balancing](https://tools.ietf.org/html/draft-ietf-quic-load-balancers)
+
 [![Build Status](https://dev.azure.com/ms/msquic/_apis/build/status/CI?branchName=main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) [![Test Status](https://img.shields.io/azure-devops/tests/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) [![Code Coverage](https://img.shields.io/azure-devops/coverage/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) ![CodeQL](https://github.com/microsoft/msquic/workflows/CodeQL/badge.svg?branch=main) [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/microsoft/msquic.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/microsoft/msquic/context:cpp)
 
 ## Protocol Features
@@ -20,51 +22,22 @@ QUIC has many benefits when compared to existing "TLS over TCP" scenarios:
   * Stateless load balancing.
   * Easily extendable for new features and extensions.
 
-Drafts: [Transport](https://tools.ietf.org/html/draft-ietf-quic-transport), [TLS](https://tools.ietf.org/html/draft-ietf-quic-tls), [Recovery](https://tools.ietf.org/html/draft-ietf-quic-recovery), [Datagram](https://tools.ietf.org/html/draft-ietf-quic-datagram), [Load Balancing](https://tools.ietf.org/html/draft-ietf-quic-load-balancers)
-
-> **Important** Several QUIC protocol features are not yet fully implemented:
->
->  * 0-RTT
->  * Client-side Migration
->  * Server Preferred Address
->  * Path MTU Discovery
-
 ## Library Features
 
-  * Cross-platform support.
+MsQuic has several features that differentiates it from other QUIC implementations:
+
   * Optimized for client and server.
   * Optimized for maximal throughput and minimal latency.
   * Asynchronous IO.
-  * Receive side scaling (RSS).
+  * Receive side scaling ([RSS](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-receive-side-scaling)) support.
   * UDP send and receive coalescing support.
-
-# Platform Support
-
-MsQuic currently officially supports the following platform configurations. Information on support for MsQuic itself is located in [Support.md.](./docs/Support.md)
-
-## Windows 10
-
-On Windows 10, MsQuic relies on built-in support from [Schannel](https://docs.microsoft.com/en-us/windows/win32/com/schannel) for TLS 1.3 functionality. MsQuic is shipped in-box in the Windows kernel in the form of the `msquic.sys` driver, to support built-in HTTP and SMB features. User mode applications use `msquic.dll` (built from here) and package it with their app.
-
-> **Important** This configuration requires running the latest [Windows Insider Preview Builds](https://insider.windows.com/en-us/) for Schannel's TLS 1.3 support.
-
-> **Important** This configuration does not support 0-RTT due to Schannel's current lack of support.
-
-## Linux
-
-On Linux, MsQuic relies on [OpenSSL](https://www.openssl.org/) for TLS 1.3 functionality.
-
-> **Important** This configuration relies on a fork of OpenSSL for QUIC/TLS support. It is still currently unknown as to when mainline will support QUIC. See [here](https://www.openssl.org/blog/blog/2020/02/17/QUIC-and-OpenSSL/) for more details.
-
-> **Important** This configuration does not support 0-RTT. Complete integration with OpenSSL is an ongoing effort.
-
-## Other
-
-For testing or experimentation purposes, MsQuic may be built with other configurations, but they are not to be considered officially supported unless they are listed above. Any bugs found while using these configurations may be looked at, but no guarantees are provided that they will be fixed.
 
 # Documentation
 
   * For frequently asked questions, see the [FAQs](./docs/FAQ.md).
+  * For platform support details, see the [Platforms docs](./docs/Platforms.md).
+  * For release details, see the [Release docs](./docs/Release.md).
+  * For performance data, see the [Performance dashboard](https://aka.ms/msquicperformance).
   * For building the MsQuic library, see the [Build docs](./docs/BUILD.md).
   * For using the MsQuic API, see the [API docs](./docs/API.md) or the [Sample](./src/tools/sample/sample.cpp).
   * For deploying with MsQuic, see the [Deployment docs](./docs/Deployment.md).

@@ -6,7 +6,7 @@ At this time there is no plan to open source the rest of Windows.
 
 > When is this shipping with Windows?
 
-The kernel mode version, msquic.sys, will ship in future Windows releases. For more details see our [support and release documentation](Support.md).
+The kernel mode version, msquic.sys, will ship in future Windows releases. For more details see our [support and release documentation](Release.md).
 
 > Why isn’t there an HTTP/3 implementation along with MsQuic?
 

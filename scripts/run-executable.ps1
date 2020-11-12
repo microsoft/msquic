@@ -155,9 +155,9 @@ function Start-Executable {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         if ($EnableAppVerifier) {
-            where.exe appverif.exe
+            where.exe appverif.exe | Out-Null
             if ($LastExitCode -eq 0) {
-                appverif.exe /verify $Path
+                appverif.exe /verify $Path | Out-Null
             } else {
                 Write-Warning "Application Verifier not installed!"
                 $EnableAppVerifier = $false;
@@ -278,6 +278,7 @@ function Wait-Executable($Exe) {
             $KeepOutput = $true
         }
     } catch {
+        Log $_
         Log "Treating exception as failure!"
         $KeepOutput = $true
         throw

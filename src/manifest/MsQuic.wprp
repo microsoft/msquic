@@ -60,6 +60,11 @@
         <Keyword Value="0x7FFFFF"/>
       </Keywords>
     </EventProvider>
+    <EventProvider Id="EP_BCryptWpp" Name="A74EFE00-14BE-4ef9-9DA9-1484D5473302" Level="5">
+      <Keywords>
+        <Keyword Value="0xFFFFFFFF"/>
+      </Keywords>
+    </EventProvider>
     <EventProvider Id="EP_TaefEtw" Name="40c4df8b-00a9-5159-62bc-9bbc5ee78a29" Level="4">
       <Keywords>
         <Keyword Value="0xFFFF"/>
