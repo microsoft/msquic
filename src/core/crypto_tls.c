@@ -472,7 +472,7 @@ QuicCryptoTlsReadClientHello(
 #ifdef QUIC_SSLKEYLOG_SUPPORT
     if (SslKeyLog != NULL) {
         memcpy(SslKeyLog->ClientRandom, Buffer, TLS_RANDOM_LENGTH);
-        SslKeyLog->ClientRandomLength = TLS_RANDOM_LENGTH;
+        SslKeyLog->IsSet.ClientRandom = TRUE;
     }
 #endif
     BufferLength -= TLS_RANDOM_LENGTH;

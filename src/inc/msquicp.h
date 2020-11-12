@@ -65,9 +65,9 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
     const uint8_t* Buffer;
 } QUIC_PRIVATE_TRANSPORT_PARAMETER;
 
-#define QUIC_SSLKEYLOG_MAX_SECRET_LEN 64
+#define QUIC_SSLKEYLOG_MAX_SECRET_LEN 48
 typedef struct QUIC_SSLKEYLOG {
-    uint8_t ClientRandom[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
+    uint8_t ClientRandom[32];
     uint8_t ClientEarlyTrafficSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
     uint8_t ClientHandshakeTrafficSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
     uint8_t ServerHandshakeTrafficSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
@@ -75,14 +75,17 @@ typedef struct QUIC_SSLKEYLOG {
     uint8_t ServerTrafficSecret0[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
     uint8_t EarlyExporterSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
     uint8_t ExporterSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
-    uint8_t ClientRandomLength;
-    uint8_t ClientEarlyTrafficSecretLength;
-    uint8_t ClientHandshakeTrafficSecretLength;
-    uint8_t ServerHandshakeTrafficSecretLength;
-    uint8_t ClientTrafficSecret0Length;
-    uint8_t ServerTrafficSecret0Length;
-    uint8_t EarlyExporterSecretLength;
-    uint8_t ExporterSecretLength;
+    uint8_t SecretLength;
+    struct {
+        uint8_t ClientRandom : 1;
+        uint8_t ClientEarlyTrafficSecret : 1;
+        uint8_t ClientHandshakeTrafficSecret : 1;
+        uint8_t ServerHandshakeTrafficSecret : 1;
+        uint8_t ClientTrafficSecret0 : 1;
+        uint8_t ServerTrafficSecret0 : 1;
+        uint8_t EarlyExporterSecret : 1;
+        uint8_t ExporterSecret : 1;
+    } IsSet;
 } QUIC_SSLKEYLOG;
 
 //

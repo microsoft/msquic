@@ -278,9 +278,9 @@ QuicTlsSetEncryptionSecretsCallback(
         TlsState->ReadKey = KeyType;
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
     }
-
 #ifdef QUIC_SSLKEYLOG_SUPPORT
     if (TlsContext->SslKeyLog != NULL && SecretLen <= QUIC_SSLKEYLOG_MAX_SECRET_LEN) {
+        TlsContext->SslKeyLog->SecretLength = (uint8_t)SecretLen;
         switch (KeyType) {
         case QUIC_PACKET_KEY_HANDSHAKE:
             if (TlsContext->IsServer) {
@@ -290,8 +290,8 @@ QuicTlsSetEncryptionSecretsCallback(
                 memcpy(TlsContext->SslKeyLog->ClientHandshakeTrafficSecret, WriteSecret, SecretLen);
                 memcpy(TlsContext->SslKeyLog->ServerHandshakeTrafficSecret, ReadSecret, SecretLen);
             }
-            TlsContext->SslKeyLog->ClientHandshakeTrafficSecretLength = (uint8_t)SecretLen;
-            TlsContext->SslKeyLog->ServerHandshakeTrafficSecretLength = (uint8_t)SecretLen;
+            TlsContext->SslKeyLog->IsSet.ClientHandshakeTrafficSecret = TRUE;
+            TlsContext->SslKeyLog->IsSet.ServerHandshakeTrafficSecret = TRUE;
             break;
         case QUIC_PACKET_KEY_1_RTT:
             if (TlsContext->IsServer) {
@@ -301,13 +301,13 @@ QuicTlsSetEncryptionSecretsCallback(
                 memcpy(TlsContext->SslKeyLog->ClientTrafficSecret0, WriteSecret, SecretLen);
                 memcpy(TlsContext->SslKeyLog->ServerTrafficSecret0, ReadSecret, SecretLen);
             }
-            TlsContext->SslKeyLog->ClientTrafficSecret0Length = (uint8_t)SecretLen;
-            TlsContext->SslKeyLog->ServerTrafficSecret0Length = (uint8_t)SecretLen;
+            TlsContext->SslKeyLog->IsSet.ClientTrafficSecret0 = TRUE;
+            TlsContext->SslKeyLog->IsSet.ServerTrafficSecret0 = TRUE;
             break;
         case QUIC_PACKET_KEY_0_RTT:
             if (!TlsContext->IsServer) {
                 memcpy(TlsContext->SslKeyLog->ClientEarlyTrafficSecret, WriteSecret, SecretLen);
-                TlsContext->SslKeyLog->ClientEarlyTrafficSecretLength = (uint8_t)SecretLen;
+                TlsContext->SslKeyLog->IsSet.ClientEarlyTrafficSecret = TRUE;
             }
             break;
         default:
