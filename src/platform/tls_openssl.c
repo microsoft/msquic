@@ -279,7 +279,7 @@ QuicTlsSetEncryptionSecretsCallback(
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
     }
 #ifdef QUIC_TLS_SECRETS_SUPPORT
-    if (TlsContext->TlsSecrets != NULL && SecretLen <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
+    if (TlsContext->TlsSecrets != NULL) {
         TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         switch (KeyType) {
         case QUIC_PACKET_KEY_HANDSHAKE:

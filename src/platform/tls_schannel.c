@@ -2047,8 +2047,7 @@ QuicTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         "Reading Handshake data starts now");
 #ifdef QUIC_TLS_SECRETS_SUPPORT
-                    if (TlsContext->TlsSecrets != NULL &&
-                        NewPeerTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
+                    if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
                             memcpy(
@@ -2081,8 +2080,7 @@ QuicTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         "Reading 1-RTT data starts now");
 #ifdef QUIC_TLS_SECRETS_SUPPORT
-                    if (TlsContext->TlsSecrets != NULL &&
-                        NewPeerTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
+                    if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
                             memcpy(
@@ -2112,8 +2110,7 @@ QuicTlsWriteDataToSchannel(
                 QUIC_FRE_ASSERT(FALSE); // TODO - Finish the 0-RTT logic.
 #ifdef QUIC_TLS_SECRETS_SUPPORT
                 QUIC_FRE_ASSERT(!TlsContext->IsServer);
-                if (TlsContext->TlsSecrets != NULL &&
-                    NewOwnTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
+                if (TlsContext->TlsSecrets != NULL) {
                     TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
                     memcpy(
                         TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
@@ -2144,8 +2141,7 @@ QuicTlsWriteDataToSchannel(
                         "Writing Handshake data starts at %u",
                         State->BufferOffsetHandshake);
 #ifdef QUIC_TLS_SECRETS_SUPPORT
-                    if (TlsContext->TlsSecrets != NULL &&
-                        NewOwnTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
+                    if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
                             memcpy(
@@ -2185,8 +2181,7 @@ QuicTlsWriteDataToSchannel(
                             "Writing 1-RTT data starts at %u",
                             State->BufferOffset1Rtt);
 #ifdef QUIC_TLS_SECRETS_SUPPORT
-                        if (TlsContext->TlsSecrets != NULL &&
-                            NewOwnTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
+                        if (TlsContext->TlsSecrets != NULL) {
                             TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
                             if (TlsContext->IsServer) {
                                 memcpy(

@@ -285,6 +285,13 @@ typedef struct QUIC_TLS {
     //
     mitls_extension Extensions[2];
 
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+    //
+    // Optional pointer to struct to store TLS secrets.
+    //
+    QUIC_TLS_SECRETS* TlsSecrets;
+#endif
+
 } QUIC_TLS;
 
 DWORD miTlsCurrentConnectionIndex = TLS_OUT_OF_INDEXES; // Thread-local storage index
@@ -560,6 +567,10 @@ QuicTlsInitialize(
     TlsContext->miTlsConfig.cipher_suites = QUIC_SUPPORTED_CIPHER_SUITES;
     TlsContext->miTlsConfig.nego_callback = QuicTlsOnNegotiate;
     TlsContext->miTlsConfig.cert_callbacks = &TlsContext->miTlsCertCallbacks;
+
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+    TlsContext->TlsSecrets = Config->TlsSecrets;
+#endif
 
     if (Config->IsServer) {
 
@@ -2224,6 +2235,39 @@ QuicPacketKeyCreate(
         Key->TrafficSecret->Aead = (QUIC_AEAD_TYPE)CopySecret->ae;
         QuicCopyMemory(Key->TrafficSecret->Secret, CopySecret->secret, QUIC_HASH_MAX_SIZE);
     }
+
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+    if (TlsContext->TlsSecrets != NULL) {
+        switch (KeyType) {
+        case QUIC_PACKET_KEY_1_RTT: {
+            quic_secret ClientReadSecret, ServerReadSecret;
+            if (FFI_mitls_quic_get_record_secrets(
+                TlsContext->miTlsState,
+                &ClientReadSecret,
+                &ServerReadSecret)) {
+                TlsContext->TlsSecrets->SecretLength = (uint8_t)QuicHashLength(ServerReadSecret.hash - 3);
+                memcpy(
+                    TlsContext->TlsSecrets->ServerTrafficSecret0,
+                    ServerReadSecret.secret,
+                    TlsContext->TlsSecrets->SecretLength);
+                TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+                memcpy(
+                    TlsContext->TlsSecrets->ClientTrafficSecret0,
+                    ClientReadSecret.secret,
+                    TlsContext->TlsSecrets->SecretLength);
+                TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+            }
+            break;
+        }
+        default:
+            //
+            // miTls doesn't provide an interface to get the intermediate
+            // traffic secrets, so only 1-RTT keys can be decrypted.
+            //
+            break;
+        }
+    }
+#endif
 
     *NewKey = Key;
     Key = NULL;
