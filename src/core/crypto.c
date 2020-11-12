@@ -288,6 +288,9 @@ QuicCryptoInitializeTls(
     if (!QuicConnIsServer(Connection)) {
         TlsConfig.ServerName = Connection->RemoteServerName;
     }
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+    TlsConfig.TlsSecrets = Connection->TlsSecrets;
+#endif
 
     TlsConfig.LocalTPBuffer =
         QuicCryptoTlsEncodeTransportParameters(
@@ -1343,6 +1346,28 @@ QuicCryptoProcessTlsCompletion(
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_DATA) {
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+        //
+        // Parse the client initial to populate the TlsSecrets with the
+        // ClientRandom
+        //
+        if (Connection->TlsSecrets != NULL &&
+            !QuicConnIsServer(Connection) &&
+            Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_INITIAL &&
+            Crypto->TlsState.BufferLength > 0) {
+            QUIC_NEW_CONNECTION_INFO Info = { 0 };
+            QuicCryptoTlsReadInitial(
+                Connection,
+                Crypto->TlsState.Buffer,
+                Crypto->TlsState.BufferLength,
+                &Info,
+                Connection->TlsSecrets);
+            //
+            // Connection is done with TlsSecrets, clean up.
+            //
+            Connection->TlsSecrets = NULL;
+        }
+#endif
         QuicSendSetSendFlag(
             &QuicCryptoGetConnection(Crypto)->Send,
             QUIC_CONN_SEND_FLAG_CRYPTO);
@@ -1546,7 +1571,16 @@ QuicCryptoProcessData(
                     Connection,
                     Buffer.Buffer,
                     Buffer.Length,
-                    &Info);
+                    &Info
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+                    //
+                    // On server, TLS is initialized before the listener
+                    // is told about the connection, so TlsSecrets is still
+                    // NULL.
+                    //
+                    ,  NULL
+#endif
+                    );
             if (QUIC_FAILED(Status)) {
                 QuicConnTransportError(
                     Connection,

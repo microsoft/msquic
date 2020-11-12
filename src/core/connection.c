@@ -5626,6 +5626,27 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_CONN_TLS_SECRETS:
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+
+        if (BufferLength != sizeof(QUIC_TLS_SECRETS) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Connection->TlsSecrets = (QUIC_TLS_SECRETS*)Buffer;
+        QuicZeroMemory(Connection->TlsSecrets, sizeof(*Connection->TlsSecrets));
+        Status = QUIC_STATUS_SUCCESS;
+#else
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+#endif
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
