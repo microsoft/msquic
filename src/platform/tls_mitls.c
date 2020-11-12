@@ -2242,9 +2242,9 @@ QuicPacketKeyCreate(
         case QUIC_PACKET_KEY_1_RTT: {
             quic_secret ClientReadSecret, ServerReadSecret;
             if (FFI_mitls_quic_get_record_secrets(
-                TlsContext->miTlsState,
-                &ClientReadSecret,
-                &ServerReadSecret)) {
+                    TlsContext->miTlsState,
+                    &ClientReadSecret,
+                    &ServerReadSecret)) {
                 TlsContext->TlsSecrets->SecretLength = (uint8_t)QuicHashLength(ServerReadSecret.hash - 3);
                 memcpy(
                     TlsContext->TlsSecrets->ServerTrafficSecret0,
@@ -2257,6 +2257,10 @@ QuicPacketKeyCreate(
                     TlsContext->TlsSecrets->SecretLength);
                 TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
             }
+            //
+            // We're done with the TlsSecrets.
+            //
+            TlsContext->TlsSecrets = NULL;
             break;
         }
         default:

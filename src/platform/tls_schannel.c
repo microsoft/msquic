@@ -2203,6 +2203,15 @@ QuicTlsWriteDataToSchannel(
             }
         }
 
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+        if (SecStatus == SEC_E_OK) {
+            //
+            // We're done with the TlsSecrets.
+            //
+            TlsContext->TlsSecrets = NULL;
+        }
+#endif
+
         if (OutputTokenBuffer != NULL && OutputTokenBuffer->cbBuffer > 0) {
             //
             // There is output data to send back.

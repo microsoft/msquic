@@ -1360,7 +1360,12 @@ QuicCryptoProcessTlsCompletion(
                 Connection,
                 Crypto->TlsState.Buffer,
                 Crypto->TlsState.BufferLength,
-                &Info);
+                &Info,
+                Connection->TlsSecrets);
+            //
+            // Connection is done with TlsSecrets, clean up.
+            //
+            Connection->TlsSecrets = NULL;
         }
 #endif
         QuicSendSetSendFlag(
@@ -1566,7 +1571,16 @@ QuicCryptoProcessData(
                     Connection,
                     Buffer.Buffer,
                     Buffer.Length,
-                    &Info);
+                    &Info
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+                    //
+                    // On server, TLS is initialized before the listener
+                    // is told about the connection, so TlsSecrets is still
+                    // NULL.
+                    //
+                    ,  NULL
+#endif
+                    );
             if (QUIC_FAILED(Status)) {
                 QuicConnTransportError(
                     Connection,

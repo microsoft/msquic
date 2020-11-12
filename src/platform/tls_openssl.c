@@ -303,6 +303,10 @@ QuicTlsSetEncryptionSecretsCallback(
             }
             TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
             TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+            //
+            // We're done with the TlsSecrets.
+            //
+            TlsContext->TlsSecrets = NULL;
             break;
         case QUIC_PACKET_KEY_0_RTT:
             if (!TlsContext->IsServer) {

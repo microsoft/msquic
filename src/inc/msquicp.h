@@ -65,16 +65,13 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
     const uint8_t* Buffer;
 } QUIC_PRIVATE_TRANSPORT_PARAMETER;
 
+//
+// This struct enables QUIC applications to support SSLKEYLOGFILE
+// for debugging packet captures with e.g. Wireshark.
+//
+
 #define QUIC_TLS_SECRETS_MAX_SECRET_LEN 64
 typedef struct QUIC_TLS_SECRETS {
-    uint8_t ClientRandom[32];
-    uint8_t ClientEarlyTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
-    uint8_t ClientHandshakeTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
-    uint8_t ServerHandshakeTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
-    uint8_t ClientTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
-    uint8_t ServerTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
-    uint8_t EarlyExporterSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
-    uint8_t ExporterSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
     uint8_t SecretLength;
     struct {
         uint8_t ClientRandom : 1;
@@ -84,8 +81,14 @@ typedef struct QUIC_TLS_SECRETS {
         uint8_t ClientTrafficSecret0 : 1;
         uint8_t ServerTrafficSecret0 : 1;
         uint8_t EarlyExporterSecret : 1;
-        uint8_t ExporterSecret : 1;
     } IsSet;
+    uint8_t ClientRandom[32];
+    uint8_t ClientEarlyTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ClientHandshakeTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ServerHandshakeTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ClientTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ServerTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t EarlyExporterSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
 } QUIC_TLS_SECRETS;
 
 //
