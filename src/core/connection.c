@@ -5627,7 +5627,7 @@ QuicConnParamSet(
         break;
 
     case QUIC_PARAM_CONN_TLS_SECRETS:
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
 
         if (BufferLength != sizeof(QUIC_TLS_SECRETS) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;

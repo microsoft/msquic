@@ -135,9 +135,9 @@ typedef struct QUIC_TLS_CONFIG {
     //
     QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveResumptionCallback;
 
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
     //
-    // Storage for TLS traffic secrets when QUIC_TLSSECRETS_SUPPORT is enabled,
+    // Storage for TLS traffic secrets when QUIC_TLS_SECRETS_SUPPORT is enabled,
     // and the connection has the parameter set to enable logging.
     //
     QUIC_TLS_SECRETS* TlsSecrets;

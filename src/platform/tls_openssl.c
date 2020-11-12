@@ -87,7 +87,7 @@ typedef struct QUIC_TLS {
     QUIC_CONNECTION* Connection;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
     //
     // Optional struct to log TLS traffic secrets.
     // Only non-null when the connection is configured to log these.
@@ -278,7 +278,7 @@ QuicTlsSetEncryptionSecretsCallback(
         TlsState->ReadKey = KeyType;
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
     }
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
     if (TlsContext->TlsSecrets != NULL && SecretLen <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
         TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         switch (KeyType) {
@@ -786,7 +786,7 @@ QuicTlsInitialize(
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
     TlsContext->TlsSecrets = Config->TlsSecrets;
 #endif
 

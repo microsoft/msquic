@@ -388,7 +388,7 @@ typedef struct QUIC_TLS {
     //
     SEC_BUFFER_WORKSPACE Workspace;
 
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
     //
     // Optional struct to log TLS traffic secrets.
     // Only non-null when the connection is configured to log these.
@@ -1477,7 +1477,7 @@ QuicTlsInitialize(
     TlsContext->ReceiveTicketCallback = Config->ReceiveResumptionCallback;
     TlsContext->SNI = Config->ServerName;
     TlsContext->SecConfig = Config->SecConfig;
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
     TlsContext->TlsSecrets = Config->TlsSecrets;
 #endif
 
@@ -2046,7 +2046,7 @@ QuicTlsWriteDataToSchannel(
                         SchannelReadHandshakeStart,
                         TlsContext->Connection,
                         "Reading Handshake data starts now");
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
                     if (TlsContext->TlsSecrets != NULL &&
                         NewPeerTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
@@ -2080,7 +2080,7 @@ QuicTlsWriteDataToSchannel(
                         SchannelRead1RttStart,
                         TlsContext->Connection,
                         "Reading 1-RTT data starts now");
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
                     if (TlsContext->TlsSecrets != NULL &&
                         NewPeerTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
@@ -2110,7 +2110,7 @@ QuicTlsWriteDataToSchannel(
             Result |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
             if (NewOwnTrafficSecrets[i]->TrafficSecretType == SecTrafficSecret_ClientEarlyData) {
                 QUIC_FRE_ASSERT(FALSE); // TODO - Finish the 0-RTT logic.
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
                 QUIC_FRE_ASSERT(!TlsContext->IsServer);
                 if (TlsContext->TlsSecrets != NULL &&
                     NewOwnTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
@@ -2143,7 +2143,7 @@ QuicTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         "Writing Handshake data starts at %u",
                         State->BufferOffsetHandshake);
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
                     if (TlsContext->TlsSecrets != NULL &&
                         NewOwnTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
@@ -2184,7 +2184,7 @@ QuicTlsWriteDataToSchannel(
                             TlsContext->Connection,
                             "Writing 1-RTT data starts at %u",
                             State->BufferOffset1Rtt);
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
                         if (TlsContext->TlsSecrets != NULL &&
                             NewOwnTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
                             TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;

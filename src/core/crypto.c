@@ -288,7 +288,7 @@ QuicCryptoInitializeTls(
     if (!QuicConnIsServer(Connection)) {
         TlsConfig.ServerName = Connection->RemoteServerName;
     }
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
     TlsConfig.TlsSecrets = Connection->TlsSecrets;
 #endif
 
@@ -1346,7 +1346,7 @@ QuicCryptoProcessTlsCompletion(
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_DATA) {
-#ifdef QUIC_TLSSECRETS_SUPPORT
+#ifdef QUIC_TLS_SECRETS_SUPPORT
         //
         // Parse the client initial to populate the TlsSecrets with the
         // ClientRandom

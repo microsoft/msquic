@@ -303,7 +303,7 @@ function CMake-Generate {
         $Arguments += " -DQUIC_RANDOM_ALLOC_FAIL=on"
     }
     if ($TlsSecretsSupport) {
-        $Arguments += " -DQUIC_TLSSECRETS_SUPPORT=on"
+        $Arguments += " -DQUIC_TLS_SECRETS_SUPPORT=on"
     }
     $Arguments += " ../../.."
 
