@@ -128,7 +128,7 @@ private:
 
 struct HttpConnection {
     HttpConnection(HQUIC connection) :
-        QuicConnection(connection), RefCount(1), SslKeyLogFile(nullptr) {
+        QuicConnection(connection), SslKeyLogFile(nullptr), TlsSecrets({}), RefCount(1)  {
         MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicCallbackHandler, this);
     }
     ~HttpConnection() {

@@ -602,18 +602,6 @@ WriteSslKeyLogFile(
             TempHexBuffer);
     }
 
-    if (TlsSecrets.IsSet.EarlyExporterSecret) {
-        EncodeHexBuffer(
-            TlsSecrets.EarlyExporterSecret,
-            TlsSecrets.SecretLength,
-            TempHexBuffer);
-        fprintf(
-            File,
-            "EARLY_EXPORTER_SECRET_0 %s %s\n",
-            ClientRandomBuffer,
-            TempHexBuffer);
-    }
-
     fflush(File);
     fclose(File);
 }
