@@ -388,6 +388,14 @@ typedef struct QUIC_TLS {
     //
     SEC_BUFFER_WORKSPACE Workspace;
 
+#ifdef QUIC_TLSSECRETS_SUPPORT
+    //
+    // Optional struct to log TLS traffic secrets.
+    // Only non-null when the connection is configured to log these.
+    //
+    QUIC_TLS_SECRETS* TlsSecrets;
+#endif
+
 } QUIC_TLS;
 
 typedef struct QUIC_HP_KEY {
@@ -1469,6 +1477,9 @@ QuicTlsInitialize(
     TlsContext->ReceiveTicketCallback = Config->ReceiveResumptionCallback;
     TlsContext->SNI = Config->ServerName;
     TlsContext->SecConfig = Config->SecConfig;
+#ifdef QUIC_TLSSECRETS_SUPPORT
+    TlsContext->TlsSecrets = Config->TlsSecrets;
+#endif
 
     QuicTraceLogConnVerbose(
         SchannelContextCreated,
@@ -2035,6 +2046,25 @@ QuicTlsWriteDataToSchannel(
                         SchannelReadHandshakeStart,
                         TlsContext->Connection,
                         "Reading Handshake data starts now");
+#ifdef QUIC_TLSSECRETS_SUPPORT
+                    if (TlsContext->TlsSecrets != NULL &&
+                        NewPeerTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
+                        TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
+                        if (TlsContext->IsServer) {
+                            memcpy(
+                                TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
+                                NewPeerTrafficSecrets[i]->TrafficSecret,
+                                NewPeerTrafficSecrets[i]->TrafficSecretSize);
+                            TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
+                        } else {
+                            memcpy(
+                                TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
+                                NewPeerTrafficSecrets[i]->TrafficSecret,
+                                NewPeerTrafficSecrets[i]->TrafficSecretSize);
+                            TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
+                        }
+                    }
+#endif
                 } else if (State->ReadKey == QUIC_PACKET_KEY_HANDSHAKE) {
                     if (!QuicPacketKeyCreate(
                             TlsContext,
@@ -2050,6 +2080,25 @@ QuicTlsWriteDataToSchannel(
                         SchannelRead1RttStart,
                         TlsContext->Connection,
                         "Reading 1-RTT data starts now");
+#ifdef QUIC_TLSSECRETS_SUPPORT
+                    if (TlsContext->TlsSecrets != NULL &&
+                        NewPeerTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
+                        TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
+                        if (TlsContext->IsServer) {
+                            memcpy(
+                                TlsContext->TlsSecrets->ClientTrafficSecret0,
+                                NewPeerTrafficSecrets[i]->TrafficSecret,
+                                NewPeerTrafficSecrets[i]->TrafficSecretSize);
+                            TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+                        } else {
+                            memcpy(
+                                TlsContext->TlsSecrets->ServerTrafficSecret0,
+                                NewPeerTrafficSecrets[i]->TrafficSecret,
+                                NewPeerTrafficSecrets[i]->TrafficSecretSize);
+                            TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+                        }
+                    }
+#endif
                 }
             }
         }
@@ -2061,6 +2110,18 @@ QuicTlsWriteDataToSchannel(
             Result |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
             if (NewOwnTrafficSecrets[i]->TrafficSecretType == SecTrafficSecret_ClientEarlyData) {
                 QUIC_FRE_ASSERT(FALSE); // TODO - Finish the 0-RTT logic.
+#ifdef QUIC_TLSSECRETS_SUPPORT
+                QUIC_FRE_ASSERT(!TlsContext->IsServer);
+                if (TlsContext->TlsSecrets != NULL &&
+                    NewOwnTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
+                    TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
+                    memcpy(
+                        TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
+                        NewOwnTrafficSecrets[i]->TrafficSecret,
+                        NewOwnTrafficSecrets[i]->TrafficSecretSize);
+                    TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+                }
+#endif
             } else {
                 if (State->WriteKey == QUIC_PACKET_KEY_INITIAL) {
                     if (!QuicPacketKeyCreate(
@@ -2082,6 +2143,25 @@ QuicTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         "Writing Handshake data starts at %u",
                         State->BufferOffsetHandshake);
+#ifdef QUIC_TLSSECRETS_SUPPORT
+                    if (TlsContext->TlsSecrets != NULL &&
+                        NewOwnTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
+                        TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
+                        if (TlsContext->IsServer) {
+                            memcpy(
+                                TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
+                                NewOwnTrafficSecrets[i]->TrafficSecret,
+                                NewOwnTrafficSecrets[i]->TrafficSecretSize);
+                            TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
+                        } else {
+                            memcpy(
+                                TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
+                                NewOwnTrafficSecrets[i]->TrafficSecret,
+                                NewOwnTrafficSecrets[i]->TrafficSecretSize);
+                            TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
+                        }
+                    }
+#endif
                 } else if (State->WriteKey == QUIC_PACKET_KEY_HANDSHAKE) {
                     if (!TlsContext->IsServer && State->BufferOffsetHandshake == State->BufferOffset1Rtt) {
                         State->BufferOffset1Rtt = // HACK - Currently Schannel has weird output for 1-RTT start
@@ -2104,6 +2184,25 @@ QuicTlsWriteDataToSchannel(
                             TlsContext->Connection,
                             "Writing 1-RTT data starts at %u",
                             State->BufferOffset1Rtt);
+#ifdef QUIC_TLSSECRETS_SUPPORT
+                        if (TlsContext->TlsSecrets != NULL &&
+                            NewOwnTrafficSecrets[i]->TrafficSecretSize <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
+                            TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
+                            if (TlsContext->IsServer) {
+                                memcpy(
+                                    TlsContext->TlsSecrets->ServerTrafficSecret0,
+                                    NewOwnTrafficSecrets[i]->TrafficSecret,
+                                    NewOwnTrafficSecrets[i]->TrafficSecretSize);
+                                TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+                            } else {
+                                memcpy(
+                                    TlsContext->TlsSecrets->ClientTrafficSecret0,
+                                    NewOwnTrafficSecrets[i]->TrafficSecret,
+                                    NewOwnTrafficSecrets[i]->TrafficSecretSize);
+                                TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+                            }
+                        }
+#endif
                     }
                 }
             }
