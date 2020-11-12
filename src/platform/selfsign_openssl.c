@@ -191,7 +191,7 @@ QuicTlsGenerateSelfSignedCert(
         goto Exit;
     }
 
-    Fd = fopen(PrivateKeyFileName, "wbe");
+    Fd = fopen(PrivateKeyFileName, "wb");
 
     if (Fd == NULL) {
         QuicTraceEvent(
@@ -216,7 +216,7 @@ QuicTlsGenerateSelfSignedCert(
     fclose(Fd);
     Fd = NULL;
 
-    Fd = fopen(CertFileName, "wbe");
+    Fd = fopen(CertFileName, "wb");
 
     if (Fd == NULL) {
         QuicTraceEvent(

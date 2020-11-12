@@ -573,7 +573,7 @@ if(QUIC_CODE_CHECK)
         message(STATUS "Found cppcheck: ${CPPCHECK}")
         set(CMAKE_C_CPPCHECK_AVAILABLE ${CPPCHECK} -q --inline-suppr
             --suppress=duplicateValueTernary --suppress=objectIndex
-            --suppress=varFuncNullUB
+            --suppress=varFuncNullUB --suppress=android-cloexec-fopen
             # these are finding potential logic issues, may want to suppress when focusing on nits:
             --suppress=nullPointer --suppress=nullPointerRedundantCheck
             --enable=warning,style,performance,portability -D__linux__)
