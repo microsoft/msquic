@@ -66,8 +66,9 @@ struct StreamValidator {
         QuicEventUninitialize(Complete);
     }
     void ValidateEvent(_Inout_ QUIC_STREAM_EVENT* Event) {
-        if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE) { // Ignore send completion events
-            return;
+        if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE ||
+            Event->Type == QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE) {
+            return;// Ignore these type of events
         }
 
         do {
