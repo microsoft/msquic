@@ -34,6 +34,8 @@ if [ "$ROLE" == "client" ]; then
     /wait-for-it.sh sim:57832 -s -t 30
     cd /downloads || exit
 
+    CLIENT_PARAMS = "-sslkeylogfile:$SSLKEYLOGFILE"
+
     case "$TESTCASE" in
     "resumption")
         CLIENT_PARAMS="-test:R $CLIENT_PARAMS"

@@ -10,7 +10,6 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-#include "msquicp.h"
 
 #define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
 #include "openssl/ssl.h"

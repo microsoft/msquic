@@ -2180,7 +2180,6 @@ QuicPacketKeyCreate(
     }
 
     memcpy(Key->Iv, RecordKey.aead_iv, QUIC_IV_LENGTH);
-
     if (KeyType == QUIC_PACKET_KEY_1_RTT) {
         quic_secret ClientReadSecret, ServerReadSecret;
         Result =

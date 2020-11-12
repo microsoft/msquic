@@ -65,7 +65,7 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
     const uint8_t* Buffer;
 } QUIC_PRIVATE_TRANSPORT_PARAMETER;
 
-#define QUIC_TLS_SECRETS_MAX_SECRET_LEN 48
+#define QUIC_TLS_SECRETS_MAX_SECRET_LEN 64
 typedef struct QUIC_TLS_SECRETS {
     uint8_t ClientRandom[32];
     uint8_t ClientEarlyTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
