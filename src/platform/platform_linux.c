@@ -294,12 +294,15 @@ QuicRefIncrementNonZero(
             if(__atomic_compare_exchange_n(RefCount, &OldValue, NewValue, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
                 return TRUE;
             }
-        } else if (NewValue == 1) {
-            return FALSE;
-        } else {
-            QUIC_FRE_ASSERT(false);
+            continue;
+        }
+
+        if (NewValue == 1) {
             return FALSE;
         }
+
+        QUIC_FRE_ASSERT(false);
+        return FALSE;
     }
 }
 
