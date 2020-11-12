@@ -72,7 +72,7 @@ This script provides helpers for building msquic.
 .PARAMETER RandomAllocFail
     Enables random allocation failures.
 
-.PARAMETER SslKeyLogSupport
+.PARAMETER TlsSecretsSupport
     Enables export of traffic secrets.
 
 .EXAMPLE
@@ -155,7 +155,7 @@ param (
     [switch]$RandomAllocFail = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$SslKeyLogSupport = $false
+    [switch]$TlsSecretsSupport = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -302,8 +302,8 @@ function CMake-Generate {
     if ($RandomAllocFail) {
         $Arguments += " -DQUIC_RANDOM_ALLOC_FAIL=on"
     }
-    if ($SslKeyLogSupport) {
-        $Arguments += " -DQUIC_SSLKEYLOG_SUPPORT=on"
+    if ($TlsSecretsSupport) {
+        $Arguments += " -DQUIC_TLSSECRETS_SUPPORT=on"
     }
     $Arguments += " ../../.."
 

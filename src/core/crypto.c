@@ -288,8 +288,8 @@ QuicCryptoInitializeTls(
     if (!QuicConnIsServer(Connection)) {
         TlsConfig.ServerName = Connection->RemoteServerName;
     }
-#ifdef QUIC_SSLKEYLOG_SUPPORT
-    TlsConfig.SslKeyLog = Connection->SslKeyLog;
+#ifdef QUIC_TLSSECRETS_SUPPORT
+    TlsConfig.TlsSecrets = Connection->TlsSecrets;
 #endif
 
     TlsConfig.LocalTPBuffer =
@@ -1346,12 +1346,13 @@ QuicCryptoProcessTlsCompletion(
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_DATA) {
-#ifdef QUIC_SSLKEYLOG_SUPPORT
+#ifdef QUIC_TLSSECRETS_SUPPORT
         //
-        // Parse the client initial to populate the SSLKEYLOG with the
+        // Parse the client initial to populate the TlsSecrets with the
         // ClientRandom
         //
-        if (!QuicConnIsServer(Connection) &&
+        if (Connection->TlsSecrets != NULL &&
+            !QuicConnIsServer(Connection) &&
             Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_INITIAL &&
             Crypto->TlsState.BufferLength > 0) {
             QUIC_NEW_CONNECTION_INFO Info = { 0 };

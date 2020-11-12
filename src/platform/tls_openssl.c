@@ -88,11 +88,12 @@ typedef struct QUIC_TLS {
     QUIC_CONNECTION* Connection;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
-#ifdef QUIC_SSLKEYLOG_SUPPORT
+#ifdef QUIC_TLSSECRETS_SUPPORT
     //
-    // Struct to log TLS traffic secrets.
+    // Optional struct to log TLS traffic secrets.
+    // Only non-null when the connection is configured to log these.
     //
-    QUIC_SSLKEYLOG* SslKeyLog;
+    QUIC_TLS_SECRETS* TlsSecrets;
 #endif
 
 } QUIC_TLS;
@@ -278,36 +279,36 @@ QuicTlsSetEncryptionSecretsCallback(
         TlsState->ReadKey = KeyType;
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
     }
-#ifdef QUIC_SSLKEYLOG_SUPPORT
-    if (TlsContext->SslKeyLog != NULL && SecretLen <= QUIC_SSLKEYLOG_MAX_SECRET_LEN) {
-        TlsContext->SslKeyLog->SecretLength = (uint8_t)SecretLen;
+#ifdef QUIC_TLSSECRETS_SUPPORT
+    if (TlsContext->TlsSecrets != NULL && SecretLen <= QUIC_TLS_SECRETS_MAX_SECRET_LEN) {
+        TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         switch (KeyType) {
         case QUIC_PACKET_KEY_HANDSHAKE:
             if (TlsContext->IsServer) {
-                memcpy(TlsContext->SslKeyLog->ClientHandshakeTrafficSecret, ReadSecret, SecretLen);
-                memcpy(TlsContext->SslKeyLog->ServerHandshakeTrafficSecret, WriteSecret, SecretLen);
+                memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret, ReadSecret, SecretLen);
+                memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret, WriteSecret, SecretLen);
             } else {
-                memcpy(TlsContext->SslKeyLog->ClientHandshakeTrafficSecret, WriteSecret, SecretLen);
-                memcpy(TlsContext->SslKeyLog->ServerHandshakeTrafficSecret, ReadSecret, SecretLen);
+                memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret, WriteSecret, SecretLen);
+                memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret, ReadSecret, SecretLen);
             }
-            TlsContext->SslKeyLog->IsSet.ClientHandshakeTrafficSecret = TRUE;
-            TlsContext->SslKeyLog->IsSet.ServerHandshakeTrafficSecret = TRUE;
+            TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
+            TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
             break;
         case QUIC_PACKET_KEY_1_RTT:
             if (TlsContext->IsServer) {
-                memcpy(TlsContext->SslKeyLog->ClientTrafficSecret0, ReadSecret, SecretLen);
-                memcpy(TlsContext->SslKeyLog->ServerTrafficSecret0, WriteSecret, SecretLen);
+                memcpy(TlsContext->TlsSecrets->ClientTrafficSecret0, ReadSecret, SecretLen);
+                memcpy(TlsContext->TlsSecrets->ServerTrafficSecret0, WriteSecret, SecretLen);
             } else {
-                memcpy(TlsContext->SslKeyLog->ClientTrafficSecret0, WriteSecret, SecretLen);
-                memcpy(TlsContext->SslKeyLog->ServerTrafficSecret0, ReadSecret, SecretLen);
+                memcpy(TlsContext->TlsSecrets->ClientTrafficSecret0, WriteSecret, SecretLen);
+                memcpy(TlsContext->TlsSecrets->ServerTrafficSecret0, ReadSecret, SecretLen);
             }
-            TlsContext->SslKeyLog->IsSet.ClientTrafficSecret0 = TRUE;
-            TlsContext->SslKeyLog->IsSet.ServerTrafficSecret0 = TRUE;
+            TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+            TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
             break;
         case QUIC_PACKET_KEY_0_RTT:
             if (!TlsContext->IsServer) {
-                memcpy(TlsContext->SslKeyLog->ClientEarlyTrafficSecret, WriteSecret, SecretLen);
-                TlsContext->SslKeyLog->IsSet.ClientEarlyTrafficSecret = TRUE;
+                memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret, WriteSecret, SecretLen);
+                TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
             }
             break;
         default:
@@ -786,8 +787,8 @@ QuicTlsInitialize(
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
-#ifdef QUIC_SSLKEYLOG_SUPPORT
-    TlsContext->SslKeyLog = Config->SslKeyLog;
+#ifdef QUIC_TLSSECRETS_SUPPORT
+    TlsContext->TlsSecrets = Config->TlsSecrets;
 #endif
 
     QuicTraceLogConnVerbose(

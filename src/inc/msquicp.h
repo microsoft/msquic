@@ -65,16 +65,16 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
     const uint8_t* Buffer;
 } QUIC_PRIVATE_TRANSPORT_PARAMETER;
 
-#define QUIC_SSLKEYLOG_MAX_SECRET_LEN 48
-typedef struct QUIC_SSLKEYLOG {
+#define QUIC_TLS_SECRETS_MAX_SECRET_LEN 48
+typedef struct QUIC_TLS_SECRETS {
     uint8_t ClientRandom[32];
-    uint8_t ClientEarlyTrafficSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
-    uint8_t ClientHandshakeTrafficSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
-    uint8_t ServerHandshakeTrafficSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
-    uint8_t ClientTrafficSecret0[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
-    uint8_t ServerTrafficSecret0[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
-    uint8_t EarlyExporterSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
-    uint8_t ExporterSecret[QUIC_SSLKEYLOG_MAX_SECRET_LEN];
+    uint8_t ClientEarlyTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ClientHandshakeTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ServerHandshakeTrafficSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ClientTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ServerTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t EarlyExporterSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ExporterSecret[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
     uint8_t SecretLength;
     struct {
         uint8_t ClientRandom : 1;
@@ -86,7 +86,7 @@ typedef struct QUIC_SSLKEYLOG {
         uint8_t EarlyExporterSecret : 1;
         uint8_t ExporterSecret : 1;
     } IsSet;
-} QUIC_SSLKEYLOG;
+} QUIC_TLS_SECRETS;
 
 //
 // The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
@@ -101,7 +101,7 @@ typedef struct QUIC_SSLKEYLOG {
 #define QUIC_PARAM_CONN_FORCE_KEY_UPDATE                0x80000001  // No payload
 #define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x80000002  // No payload
 #define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x80000003  // QUIC_PRIVATE_TRANSPORT_PARAMETER
-#define QUIC_PARAM_CONN_SSLKEYLOG_BUFFER                0x80000004  // Set-only, sizeof(QUIC_SSLKEYLOG)
+#define QUIC_PARAM_CONN_TLS_SECRETS                     0x80000004  // QUIC_TLS_SECRETS (SSLKEYLOGFILE compatible)
 
 #if defined(__cplusplus)
 }

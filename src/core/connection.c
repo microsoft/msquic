@@ -5626,10 +5626,10 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_SSLKEYLOG_BUFFER:
-#ifdef QUIC_SSLKEYLOG_SUPPORT
+    case QUIC_PARAM_CONN_TLS_SECRETS:
+#ifdef QUIC_TLSSECRETS_SUPPORT
 
-        if (BufferLength != sizeof(QUIC_SSLKEYLOG) || Buffer == NULL) {
+        if (BufferLength != sizeof(QUIC_TLS_SECRETS) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -5639,10 +5639,8 @@ QuicConnParamSet(
             break;
         }
 
-        Connection->SslKeyLog = (QUIC_SSLKEYLOG*)Buffer;
-
-        QuicZeroMemory(Connection->SslKeyLog, sizeof(*Connection->SslKeyLog));
-
+        Connection->TlsSecrets = (QUIC_TLS_SECRETS*)Buffer;
+        QuicZeroMemory(Connection->TlsSecrets, sizeof(*Connection->TlsSecrets));
         Status = QUIC_STATUS_SUCCESS;
 #else
         Status = QUIC_STATUS_NOT_SUPPORTED;

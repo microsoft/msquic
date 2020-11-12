@@ -24,7 +24,7 @@ extern "C" {
 typedef struct QUIC_SEC_CONFIG QUIC_SEC_CONFIG;
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 typedef struct QUIC_TLS QUIC_TLS;
-typedef struct QUIC_SSLKEYLOG QUIC_SSLKEYLOG;
+typedef struct QUIC_TLS_SECRETS QUIC_TLS_SECRETS;
 
 #define TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION   0x0010  // Host Byte Order
 #define TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS                0xffa5  // Host Byte Order
@@ -135,11 +135,12 @@ typedef struct QUIC_TLS_CONFIG {
     //
     QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveResumptionCallback;
 
-#ifdef QUIC_SSLKEYLOG_SUPPORT
+#ifdef QUIC_TLSSECRETS_SUPPORT
     //
-    // Storage for TLS traffic secrets when QUIC_SSLKEYLOG_SUPPORT is enabled.
+    // Storage for TLS traffic secrets when QUIC_TLSSECRETS_SUPPORT is enabled,
+    // and the connection has the parameter set to enable logging.
     //
-    QUIC_SSLKEYLOG* SslKeyLog;
+    QUIC_TLS_SECRETS* TlsSecrets;
 #endif
 
 } QUIC_TLS_CONFIG;
