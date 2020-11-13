@@ -451,6 +451,7 @@ QuicStreamShutdown(
             Stream,
             !!(Flags & QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL),
             !!(Flags & QUIC_STREAM_SHUTDOWN_SILENT),
+            FALSE,
             ErrorCode);
     }
 

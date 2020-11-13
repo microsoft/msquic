@@ -255,7 +255,7 @@ QuicStreamProcessStopSendingFrame(
         // The peer has requested that we stop sending. Close abortively.
         //
         QuicStreamSendShutdown(
-            Stream, FALSE, FALSE, QUIC_ERROR_NO_ERROR);
+            Stream, FALSE, FALSE, FALSE, QUIC_ERROR_NO_ERROR);
     }
 }
 

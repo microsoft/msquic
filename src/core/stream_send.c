@@ -105,6 +105,7 @@ QuicStreamSendShutdown(
     _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN Graceful,
     _In_ BOOLEAN Silent,
+    _In_ BOOLEAN DelaySend,
     _In_ QUIC_VAR_INT ErrorCode   // Only for !Graceful
     )
 {
@@ -151,7 +152,7 @@ QuicStreamSendShutdown(
             &Stream->Connection->Send,
             Stream,
             QUIC_STREAM_SEND_FLAG_FIN,
-            FALSE);
+            DelaySend);
 
     } else {
 
@@ -571,7 +572,12 @@ QuicStreamSendFlush(
             //
             // Gracefully shutdown the send direction if the flag is set.
             //
-            QuicStreamSendShutdown(Stream, TRUE, FALSE, 0);
+            QuicStreamSendShutdown(
+                Stream,
+                TRUE,
+                FALSE,
+                !!(SendRequest->Flags & QUIC_SEND_FLAG_DELAY_SEND),
+                0);
         }
 
         QuicSendSetStreamSendFlag(

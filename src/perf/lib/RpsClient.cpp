@@ -133,7 +133,7 @@ QUIC_THREAD_CALLBACK(RpsWorkerThread, Context)
             InterlockedDecrement((long*)&Worker->RequestCount);
             auto Connection = Worker->GetConnection();
             if (!Connection) break; // Means we're shutting down
-            Connection->SendRequest();
+            Connection->SendRequest(Worker->RequestCount != 0);
         }
         QuicEventWaitForever(Worker->WakeEvent);
     }
@@ -403,7 +403,7 @@ RpsConnectionContext::StreamCallback(
 }
 
 void
-RpsConnectionContext::SendRequest() {
+RpsConnectionContext::SendRequest(bool DelaySend) {
 
     QUIC_STREAM_CALLBACK_HANDLER Handler =
         [](HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
@@ -427,12 +427,16 @@ RpsConnectionContext::SendRequest() {
             StrmContext,
             &Stream))) {
         InterlockedIncrement64((int64_t*)&Worker->Client->StartedRequests);
+        QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN;
+        if (DelaySend) {
+            Flags |= QUIC_SEND_FLAG_DELAY_SEND;
+        }
         if (QUIC_FAILED(
             MsQuic->StreamSend(
                 Stream,
                 Worker->Client->RequestBuffer,
                 1,
-                QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN,
+                Flags,
                 nullptr))) {
             MsQuic->StreamClose(Stream);
             Worker->Client->StreamContextAllocator.Free(StrmContext);
@@ -449,7 +453,7 @@ RpsWorkerContext::QueueSendRequest() {
             InterlockedIncrement((long*)&RequestCount);
             QuicEventSet(WakeEvent);
         } else {
-            GetConnection()->SendRequest(); // Inline if thread isn't running
+            GetConnection()->SendRequest(false); // Inline if thread isn't running
         }
     }
 }

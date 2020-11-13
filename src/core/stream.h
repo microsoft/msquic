@@ -689,6 +689,7 @@ QuicStreamSendShutdown(
     _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN Graceful,
     _In_ BOOLEAN Silent,
+    _In_ BOOLEAN DelaySend,
     _In_ QUIC_VAR_INT ErrorCode   // Only for !Graceful
     );
 
