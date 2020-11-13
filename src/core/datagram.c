@@ -77,23 +77,12 @@ QuicDatagramInitialize(
     _In_ QUIC_DATAGRAM* Datagram
     )
 {
-    Datagram->ReceiveEnabled = FALSE;
     Datagram->SendEnabled = TRUE;
     Datagram->MaxSendLength = UINT16_MAX;
     Datagram->PrioritySendQueueTail = &Datagram->SendQueue;
     Datagram->SendQueueTail = &Datagram->SendQueue;
     QuicDispatchLockInitialize(&Datagram->ApiQueueLock);
     QuicDatagramValidate(Datagram);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicDatagramSetReceiveEnabledState(
-    _In_ QUIC_DATAGRAM* Datagram,
-    _In_ BOOLEAN Enabled
-    )
-{
-    Datagram->ReceiveEnabled = Enabled;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -557,7 +546,8 @@ QuicDatagramProcessFrame(
     _Inout_ uint16_t* Offset
     )
 {
-    QUIC_DBG_ASSERT(Datagram->ReceiveEnabled);
+    QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
+    QUIC_DBG_ASSERT(Connection->Settings.DatagramReceiveEnabled);
 
     QUIC_DATAGRAM_EX Frame;
     if (!QuicDatagramFrameDecode(FrameType, BufferLength, Buffer, Offset, &Frame)) {
@@ -577,7 +567,6 @@ QuicDatagramProcessFrame(
         Event.DATAGRAM_RECEIVED.Flags = 0;
     }
 
-    QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
     QuicTraceLogConnVerbose(
         IndicateDatagramReceived,
         Connection,
