@@ -2173,7 +2173,7 @@ QuicConnGenerateLocalTransportParameters(
             SourceCid->CID.Length);
     }
 
-    if (Connection->Datagram.ReceiveEnabled) {
+    if (Connection->Settings.DatagramReceiveEnabled) {
         LocalTP->Flags |= QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE;
         LocalTP->MaxDatagramFrameSize = QUIC_DEFAULT_MAX_DATAGRAM_LENGTH;
     }
@@ -4399,7 +4399,7 @@ QuicConnRecvFrames(
 
         case QUIC_FRAME_DATAGRAM:
         case QUIC_FRAME_DATAGRAM_1: {
-            if (!Connection->Datagram.ReceiveEnabled) {
+            if (!Connection->Settings.DatagramReceiveEnabled) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
@@ -5467,14 +5467,15 @@ QuicConnParamSet(
             break;
         }
 
-        Connection->Datagram.ReceiveEnabled = *(BOOLEAN*)Buffer;
+        Connection->Settings.DatagramReceiveEnabled = *(BOOLEAN*)Buffer;
+        Connection->Settings.IsSet.DatagramReceiveEnabled = TRUE;
         Status = QUIC_STATUS_SUCCESS;
 
         QuicTraceLogConnVerbose(
             DatagramReceiveEnableUpdated,
             Connection,
             "Updated datagram receive enabled to %hhu",
-            Connection->Datagram.ReceiveEnabled);
+            Connection->Settings.DatagramReceiveEnabled);
 
         break;
 
@@ -5624,6 +5625,27 @@ QuicConnParamSet(
             Connection->TestTransportParameter.Length);
 
         Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_TLS_SECRETS:
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+
+        if (BufferLength != sizeof(QUIC_TLS_SECRETS) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Connection->TlsSecrets = (QUIC_TLS_SECRETS*)Buffer;
+        QuicZeroMemory(Connection->TlsSecrets, sizeof(*Connection->TlsSecrets));
+        Status = QUIC_STATUS_SUCCESS;
+#else
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+#endif
         break;
 
     default:
@@ -5950,7 +5972,7 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(BOOLEAN);
-        *(BOOLEAN*)Buffer = Connection->Datagram.ReceiveEnabled;
+        *(BOOLEAN*)Buffer = Connection->Settings.DatagramReceiveEnabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -6029,7 +6051,6 @@ QuicConnApplyNewSettings(
 
         Connection->Paths[0].SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
         Connection->Paths[0].RttVariance = Connection->Paths[0].SmoothedRtt / 2;
-        Connection->Datagram.ReceiveEnabled = Connection->Settings.DatagramReceiveEnabled;
 
         if (Connection->Settings.ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
             Connection->HandshakeTP == NULL) {

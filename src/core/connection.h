@@ -531,6 +531,14 @@ typedef struct QUIC_CONNECTION {
     //
     QUIC_PRIVATE_TRANSPORT_PARAMETER TestTransportParameter;
 
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+    //
+    // Struct to log TLS traffic secrets. The app will have to read and
+    // format the struct once the connection is connected.
+    //
+    QUIC_TLS_SECRETS* TlsSecrets;
+#endif
+
 } QUIC_CONNECTION;
 
 typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {

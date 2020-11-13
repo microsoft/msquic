@@ -69,6 +69,7 @@ main(
     //
     uint16_t LocalPort = DEFAULT_QUIC_HTTP_SERVER_PORT;
     BOOLEAN Retry = DEFAULT_QUIC_HTTP_SERVER_RETRY;
+    const char* SslKeyLogFileParam = nullptr;
     TryGetValue(argc, argv, "port", &LocalPort);
     TryGetValue(argc, argv, "retry", &Retry);
     if (Retry) {
@@ -76,6 +77,7 @@ main(
         printf("Enabling forced RETRY on server.\n");
     }
     TryGetValue(argc, argv, "upload", &UploadFolderPath);
+    TryGetValue(argc, argv, "sslkeylogfile", &SslKeyLogFileParam);
 
     //
     // Required parameters.
@@ -107,7 +109,7 @@ main(
     }
 
     {
-        HttpServer Server(Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &ListenAddr);
+        HttpServer Server(Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &ListenAddr, SslKeyLogFileParam);
         if (!GetValue(argc, argv, "noexit")) {
             printf("Press Enter to exit.\n\n");
             getchar();

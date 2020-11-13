@@ -132,6 +132,8 @@ uint16_t CustomPort = 0;
 bool CustomUrlPath = false;
 std::vector<std::string> Urls;
 
+const char* SslKeyLogFileParam = nullptr;
+
 extern "C" void QuicTraceRundown(void) { }
 
 void
@@ -353,6 +355,8 @@ class InteropConnection {
     char* NegotiatedAlpn;
     const uint8_t* ResumptionTicket;
     uint32_t ResumptionTicketLength;
+    QUIC_TLS_SECRETS TlsSecrets;
+    const char* SslKeyLogFile;
 public:
     bool VersionUnsupported : 1;
     bool Connected : 1;
@@ -364,6 +368,8 @@ public:
         NegotiatedAlpn(nullptr),
         ResumptionTicket(nullptr),
         ResumptionTicketLength(0),
+        TlsSecrets({}),
+        SslKeyLogFile(SslKeyLogFileParam),
         VersionUnsupported(false),
         Connected(false),
         Resumed(false),
@@ -407,9 +413,25 @@ public:
                     sizeof(RandomTransportParameter),
                     &RandomTransportParameter));
         }
+        if (SslKeyLogFile != nullptr) {
+            QUIC_STATUS Status =
+                MsQuic->SetParam(
+                    Connection,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_TLS_SECRETS,
+                    sizeof(TlsSecrets),
+                    (uint8_t*)&TlsSecrets);
+            if (QUIC_FAILED(Status)) {
+                SslKeyLogFile = nullptr;
+                VERIFY_QUIC_SUCCESS(Status);
+            }
+        }
     }
     ~InteropConnection()
     {
+        if (SslKeyLogFile != nullptr) {
+            WriteSslKeyLogFile(SslKeyLogFile, TlsSecrets);
+        }
         for (InteropStream* Stream : Streams) {
             delete Stream;
         }
@@ -1196,6 +1218,8 @@ main(
     if (!CustomUrlPath) {
         Urls.push_back("/");
     }
+
+    TryGetValue(argc, argv, "sslkeylogfile", &SslKeyLogFileParam);
 
     const char* Target, *Custom;
     if (TryGetValue(argc, argv, "target", &Target)) {
