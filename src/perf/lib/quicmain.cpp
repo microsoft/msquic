@@ -69,7 +69,11 @@ QuicMainStart(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    const char* TestName = GetValue(argc, argv, "test");
+    const char* TestName = GetValue(argc, argv, "TestName");
+    if (TestName == nullptr) {
+        TestName = GetValue(argc, argv, "test");
+    }
+
     ServerMode = TestName == nullptr;
 
     QUIC_STATUS Status;
