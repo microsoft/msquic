@@ -70,7 +70,6 @@ if [ "$ROLE" == "client" ]; then
     SERVER=$(echo $REQ | cut -d'/' -f3 | cut -d':' -f1)
     echo "Connecting to $SERVER"
     echo "Client params (before files):$CLIENT_PARAMS"
-    echo "SSLKEYLOGFILE:$SSLKEYLOGFILE"
 
     if [ "$TESTCASE" == "multiconnect" ]; then
         for REQ in $REQUESTS; do
