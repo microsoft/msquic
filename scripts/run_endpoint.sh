@@ -34,7 +34,7 @@ if [ "$ROLE" == "client" ]; then
     /wait-for-it.sh sim:57832 -s -t 30
     cd /downloads || exit
 
-    CLIENT_PARAMS="-sslkeylogfile:${$SSLKEYLOGFILE} $CLIENT_PARAMS"
+    CLIENT_PARAMS="-sslkeylogfile:$SSLKEYLOGFILE $CLIENT_PARAMS"
 
     case "$TESTCASE" in
     "resumption")
@@ -69,6 +69,8 @@ if [ "$ROLE" == "client" ]; then
     REQ=${REQS[0]}
     SERVER=$(echo $REQ | cut -d'/' -f3 | cut -d':' -f1)
     echo "Connecting to $SERVER"
+    echo "Client params (before files):$CLIENT_PARAMS"
+    echo "SSLKEYLOGFILE:$SSLKEYLOGFILE"
 
     if [ "$TESTCASE" == "multiconnect" ]; then
         for REQ in $REQUESTS; do
