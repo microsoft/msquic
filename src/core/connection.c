@@ -5468,6 +5468,8 @@ QuicConnParamSet(
         }
 
         Connection->Datagram.ReceiveEnabled = *(BOOLEAN*)Buffer;
+        Connection->Settings.DatagramReceiveEnabled = *(BOOLEAN*)Buffer;
+        Connection->Settings.IsSet.DatagramReceiveEnabled = TRUE;
         Status = QUIC_STATUS_SUCCESS;
 
         QuicTraceLogConnVerbose(
@@ -6050,9 +6052,12 @@ QuicConnApplyNewSettings(
 
         Connection->Paths[0].SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
         Connection->Paths[0].RttVariance = Connection->Paths[0].SmoothedRtt / 2;
-        Connection->Datagram.ReceiveEnabled = Connection->Settings.DatagramReceiveEnabled;
+        if (Connection->Settings.IsSet.DatagramReceiveEnabled) {
+            Connection->Datagram.ReceiveEnabled = Connection->Settings.DatagramReceiveEnabled;
+        }
 
-        if (Connection->Settings.ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
+        if (Connection->Settings.IsSet.ServerResumptionLevel &&
+            Connection->Settings.ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
             Connection->HandshakeTP == NULL) {
             QUIC_DBG_ASSERT(!Connection->State.Started);
             Connection->HandshakeTP =
