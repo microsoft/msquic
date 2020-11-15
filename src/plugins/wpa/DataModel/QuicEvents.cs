@@ -783,6 +783,35 @@ namespace MsQuicTracing.DataModel
         }
     }
 
+    public class QuicStreamErrorEvent : QuicEvent
+    {
+        public string ErrorString { get; }
+
+        public override string PayloadString => string.Format("ERROR, {0}", ErrorString);
+
+        internal QuicStreamErrorEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, string errorString) :
+            base(QuicEventId.StreamError, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            ErrorString = errorString;
+        }
+    }
+
+    public class QuicStreamErrorStatusEvent : QuicEvent
+    {
+        public uint Status { get; }
+
+        public string ErrorString { get; }
+
+        public override string PayloadString => string.Format("ERROR, {0}, {1}", Status, ErrorString);
+
+        internal QuicStreamErrorStatusEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, uint status, string errorString) :
+            base(QuicEventId.StreamErrorStatus, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            Status = status;
+            ErrorString = errorString;
+        }
+    }
+
     #endregion
 
     #region Datapath Events
@@ -864,6 +893,35 @@ namespace MsQuicTracing.DataModel
             SegmentSize = segmentSize;
             RemoteAddress = remoteAddress;
             LocalAddress = localAddress;
+        }
+    }
+
+    public class QuicDatapathErrorEvent : QuicEvent
+    {
+        public string ErrorString { get; }
+
+        public override string PayloadString => string.Format("ERROR, {0}", ErrorString);
+
+        internal QuicDatapathErrorEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, string errorString) :
+            base(QuicEventId.DatapathError, QuicObjectType.Datapath, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            ErrorString = errorString;
+        }
+    }
+
+    public class QuicDatapathErrorStatusEvent : QuicEvent
+    {
+        public uint Status { get; }
+
+        public string ErrorString { get; }
+
+        public override string PayloadString => string.Format("ERROR, {0}, {1}", Status, ErrorString);
+
+        internal QuicDatapathErrorStatusEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, uint status, string errorString) :
+            base(QuicEventId.DatapathErrorStatus, QuicObjectType.Datapath, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            Status = status;
+            ErrorString = errorString;
         }
     }
 
