@@ -4,6 +4,9 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK;
 
@@ -43,28 +46,79 @@ namespace MsQuicTracing.DataModel.ETW
         Datapath
     }
 
-    internal class QuicEtwEvent : QuicEvent
+    internal unsafe ref struct EtwDataReader
     {
-        public override Guid Provider { get; }
+        private ReadOnlySpan<byte> Data;
 
-        public override QuicEventId ID { get; }
+        private readonly int PointerSize;
 
-        public override int PointerSize { get; }
+        internal EtwDataReader(void* pointer, int length, int pointerSize)
+        {
+            Data = new ReadOnlySpan<byte>(pointer, length);
+            PointerSize = pointerSize;
+        }
 
-        public override uint ProcessId { get; }
+        internal unsafe T ReadValue<T>() where T : unmanaged
+        {
+            T val = MemoryMarshal.Cast<byte, T>(Data)[0];
+            Data = Data.Slice(sizeof(T));
+            return val;
+        }
 
-        public override uint ThreadId { get; }
+        internal byte ReadByte() => ReadValue<byte>();
 
-        public override ushort Processor { get; }
+        internal ushort ReadUShort() => ReadValue<ushort>();
 
-        public override Timestamp TimeStamp { get; }
+        internal uint ReadUInt() => ReadValue<uint>();
 
-        public override QuicObjectType ObjectType { get; }
+        internal ulong ReadULong() => ReadValue<ulong>();
 
-        public override ulong ObjectPointer { get; }
+        internal ulong ReadPointer()
+        {
+            return PointerSize == 8 ? ReadValue<ulong>() : ReadValue<uint>();
+        }
 
-        public override object? Payload { get; }
+        internal string ReadString()
+        {
+            var chars = new List<char>();
+            while (true)
+            {
+                byte c = ReadValue<byte>();
+                if (c == 0)
+                {
+                    break;
+                }
+                chars.Add((char)c);
+            }
+            return new string(chars.ToArray());
+        }
 
+        internal IPEndPoint ReadAddress()
+        {
+            byte length = ReadValue<byte>();
+            var buf = Data.Slice(0, length);
+            Data = Data.Slice(length);
+
+            int family = buf[0] | ((ushort)buf[1] << 8);
+            int port = (ushort)buf[3] | ((ushort)buf[2] << 8);
+
+            if (family == 0) // unspecified
+            {
+                return new IPEndPoint(IPAddress.Any, port);
+            }
+            else if (family == 2) // v4
+            {
+                return new IPEndPoint(new IPAddress(buf.Slice(4, 4)), port);
+            }
+            else // v6
+            {
+                return new IPEndPoint(new IPAddress(buf.Slice(4, 16)), port);
+            }
+        }
+    }
+
+    internal static class QuicEtwEvent
+    {
         private static QuicObjectType ComputeObjectType(TraceEvent evt)
         {
             if ((byte)evt.Opcode >= (byte)QuicEtwEventOpcode.Global)
@@ -120,80 +174,80 @@ namespace MsQuicTracing.DataModel.ETW
             }
         }
 
-        private static object? DecodePayload(QuicEventId id, ReadOnlySpan<byte> data, int pointerSize)
+        internal static unsafe QuicEvent? TryCreate(TraceEvent evt, Timestamp timestamp)
         {
+            var id = (QuicEventId)evt.ID;
+            var processor = (ushort)evt.ProcessorNumber;
+            var processId = (uint)evt.ProcessID;
+            var threadId = (uint)evt.ThreadID;
+            var pointerSize = evt.PointerSize;
+            var data = new EtwDataReader(evt.DataStart.ToPointer(), evt.EventDataLength, pointerSize);
+
             switch (id)
             {
                 case QuicEventId.ApiEnter:
-                    return new QuicApiEnterEtwPayload(data, pointerSize);
+                    return new QuicApiEnterEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadPointer());
+                case QuicEventId.ApiExit:
+                    return new QuicApiExitEvent(timestamp, processor, processId, threadId, pointerSize);
                 case QuicEventId.ApiExitStatus:
-                    return new QuicApiExitStatusEtwPayload(data);
+                    return new QuicApiExitStatusEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
+
                 case QuicEventId.WorkerCreated:
-                    return new QuicWorkerCreatedEtwPayload(data, pointerSize);
+                    return new QuicWorkerCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUShort(), data.ReadPointer());
                 case QuicEventId.WorkerActivityStateUpdated:
-                    return new QuicWorkerActivityStateUpdatedEtwPayload(data);
+                    return new QuicWorkerActivityStateUpdatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte(), data.ReadUInt());
                 case QuicEventId.WorkerQueueDelayUpdated:
-                    return new QuicWorkerQueueDelayUpdatedEtwPayload(data);
+                    return new QuicWorkerQueueDelayUpdatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt());
+
                 case QuicEventId.ConnCreated:
                 case QuicEventId.ConnRundown:
-                    return new QuicConnectionCreatedEtwPayload(data);
+                    return new QuicConnectionCreatedEvent(id, timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadULong());
+                case QuicEventId.ConnDestroyed:
+                    return new QuicConnectionDestroyedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
                 case QuicEventId.ConnScheduleState:
-                    return new QuicConnectionScheduleStateEtwPayload(data);
+                    return new QuicConnectionScheduleStateEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt());
                 case QuicEventId.ConnExecOper:
-                    return new QuicConnectionExecOperEtwPayload(data);
+                    return new QuicConnectionExecOperEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt());
                 case QuicEventId.ConnExecApiOper:
-                    return new QuicConnectionExecApiOperEtwPayload(data);
+                    return new QuicConnectionExecApiOperEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt());
                 case QuicEventId.ConnExecTimerOper:
-                    return new QuicConnectionExecTimerOperEtwPayload(data);
+                    return new QuicConnectionExecTimerOperEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt());
                 case QuicEventId.ConnAssignWorker:
-                    return new QuicConnectionAssignWorkerEtwPayload(data, pointerSize);
+                    return new QuicConnectionAssignWorkerEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadPointer());
                 case QuicEventId.ConnTransportShutdown:
-                    return new QuicConnectionTransportShutdownEtwPayload(data);
+                    return new QuicConnectionTransportShutdownEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadByte(), data.ReadByte());
                 case QuicEventId.ConnAppShutdown:
-                    return new QuicConnectionAppShutdownEtwPayload(data);
+                    return new QuicConnectionAppShutdownEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadByte());
                 case QuicEventId.ConnOutFlowStats:
-                    return new QuicConnectionOutFlowStatsEtwPayload(data);
+                    return new QuicConnectionOutFlowStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong(), data.ReadULong(), data.ReadUInt());
                 case QuicEventId.ConnOutFlowBlocked:
-                    return new QuicConnectionOutFlowBlockedEtwPayload(data);
+                    return new QuicConnectionOutFlowBlockedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
                 case QuicEventId.ConnInFlowStats:
-                    return new QuicConnectionInFlowStatsEtwPayload(data);
+                    return new QuicConnectionInFlowStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong());
                 case QuicEventId.ConnStats:
-                    return new QuicConnectionStatsEtwPayload(data);
+                    return new QuicConnectionStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong());
                 case QuicEventId.ConnOutFlowStreamStats:
-                    return new QuicConnectionOutFlowStreamStatsEtwPayload(data);
+                    return new QuicConnectionOutFlowStreamStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadULong());
+                case QuicEventId.ConnLogError:
+                case QuicEventId.ConnLogWarning:
+                case QuicEventId.ConnLogInfo:
+                case QuicEventId.ConnLogVerbose:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicConnectionMessageEvent(id, timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadString());
+
                 case QuicEventId.StreamCreated:
                 case QuicEventId.StreamRundown:
-                    return new QuicStreamCreatedEtwPayload(data, pointerSize);
+                    return new QuicStreamCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadPointer(), data.ReadULong(), data.ReadByte());
                 case QuicEventId.StreamOutFlowBlocked:
-                    return new QuicStreamOutFlowBlockedEtwPayload(data);
+                    return new QuicStreamOutFlowBlockedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
+
                 case QuicEventId.DatapathSend:
-                    return new QuicDatapathSendEtwPayload(data);
+                    return new QuicDatapathSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadByte(), data.ReadUShort(), data.ReadAddress(), data.ReadAddress());
                 case QuicEventId.DatapathRecv:
-                    return new QuicDatapathRecvEtwPayload(data);
+                    return new QuicDatapathRecvEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUShort(), data.ReadAddress(), data.ReadAddress());
+
                 default:
                     return null;
-            }
-        }
-
-        internal unsafe QuicEtwEvent(TraceEvent evt, Timestamp timestamp)
-        {
-            Provider = evt.ProviderGuid;
-            ID = (QuicEventId)evt.ID;
-            PointerSize = evt.PointerSize;
-            ProcessId = (uint)evt.ProcessID;
-            ThreadId = (uint)evt.ThreadID;
-            Processor = (ushort)evt.ProcessorNumber;
-            TimeStamp = timestamp;
-            ObjectType = ComputeObjectType(evt);
-            var data = new ReadOnlySpan<byte>(evt.DataStart.ToPointer(), evt.EventDataLength);
-            if (ObjectType != QuicObjectType.Global)
-            {
-                ObjectPointer = data.ReadPointer(PointerSize);
-                Payload = DecodePayload(ID, data, PointerSize);
-            }
-            else
-            {
-                Payload = DecodePayload(ID, data, PointerSize);
             }
         }
     }

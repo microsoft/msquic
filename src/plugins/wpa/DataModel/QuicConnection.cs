@@ -50,7 +50,7 @@ namespace MsQuicTracing.DataModel
 
         public List<QuicStream> Streams { get; } = new List<QuicStream>();
 
-        private readonly List<QuicEvent> Events = new List<QuicEvent>();
+        public List<QuicEvent> Events { get; } = new List<QuicEvent>();
 
         public IReadOnlyList<QuicScheduleData> GetScheduleEvents()
         {
@@ -62,13 +62,13 @@ namespace MsQuicTracing.DataModel
                 {
                     if (lastEvent != null)
                     {
-                        var payload = lastEvent.Payload as QuicConnectionScheduleStatePayload;
+                        var _evt = lastEvent as QuicConnectionScheduleStateEvent;
                         scheduleEvents.Add(
                             new QuicScheduleData(
                                 lastEvent.TimeStamp,
                                 evt.TimeStamp - lastEvent.TimeStamp,
                                 lastEvent.ThreadId,
-                                (QuicScheduleState)payload!.State));
+                                (QuicScheduleState)_evt!.State));
                     }
                     lastEvent = evt;
                 }
@@ -86,24 +86,24 @@ namespace MsQuicTracing.DataModel
                 {
                     if (lastEvent != null)
                     {
-                        var payload = lastEvent.Payload as QuicConnectionOutFlowBlockedPayload;
+                        var _evt = lastEvent as QuicConnectionOutFlowBlockedEvent;
                         flowBlockedEvents.Add(
                             new QuicFlowBlockedData(
                                 lastEvent.TimeStamp,
                                 evt.TimeStamp - lastEvent.TimeStamp,
-                                (QuicFlowBlockedFlags)payload!.ReasonFlags));
+                                (QuicFlowBlockedFlags)_evt!.ReasonFlags));
                     }
                     lastEvent = evt;
                 }
             }
             if (lastEvent != null)
             {
-                var payload = lastEvent.Payload as QuicConnectionOutFlowBlockedPayload;
+                var _evt = lastEvent as QuicConnectionOutFlowBlockedEvent;
                 flowBlockedEvents.Add(
                     new QuicFlowBlockedData(
                         lastEvent.TimeStamp,
                         FinalTimeStamp - lastEvent.TimeStamp,
-                        (QuicFlowBlockedFlags)payload!.ReasonFlags));
+                        (QuicFlowBlockedFlags)_evt!.ReasonFlags));
             }
             return flowBlockedEvents;
         }
@@ -125,20 +125,20 @@ namespace MsQuicTracing.DataModel
                     {
                         case QuicEventId.ConnExecOper:
                             {
-                                var payload = lastEvent.Payload as QuicConnectionExecOperPayload;
-                                type = (QuicExecutionType)((uint)QuicExecutionType.OperApi + payload!.Type);
+                                var _evt = lastEvent as QuicConnectionExecOperEvent;
+                                type = (QuicExecutionType)((uint)QuicExecutionType.OperApi + _evt!.Type);
                                 break;
                             }
                         case QuicEventId.ConnExecApiOper:
                             {
-                                var payload = lastEvent.Payload as QuicConnectionExecApiOperPayload;
-                                type = (QuicExecutionType)((uint)QuicExecutionType.ApiConnClose + payload!.Type);
+                                var _evt = lastEvent as QuicConnectionExecApiOperEvent;
+                                type = (QuicExecutionType)((uint)QuicExecutionType.ApiConnClose + _evt!.Type);
                                 break;
                             }
                         case QuicEventId.ConnExecTimerOper:
                             {
-                                var payload = lastEvent.Payload as QuicConnectionExecTimerOperPayload;
-                                type = (QuicExecutionType)((uint)QuicExecutionType.TimerPacing + payload!.Type);
+                                var _evt = lastEvent as QuicConnectionExecTimerOperEvent;
+                                type = (QuicExecutionType)((uint)QuicExecutionType.TimerPacing + _evt!.Type);
                                 break;
                             }
                     }
@@ -185,13 +185,13 @@ namespace MsQuicTracing.DataModel
 
                 if (evt.ID == QuicEventId.ConnOutFlowStats)
                 {
-                    var payload = evt.Payload as QuicConnectionOutFlowStatsPayload;
-                    sample.RttUs = payload!.SmoothedRtt;
-                    sample.BytesSent = payload!.BytesSent;
-                    sample.BytesInFlight = payload!.BytesInFlight;
-                    sample.CongestionWindow = payload!.CongestionWindow;
-                    sample.BytesBufferedForSend = payload!.PostedBytes;
-                    sample.FlowControlAvailable = payload!.ConnectionFlowControl;
+                    var _evt = evt as QuicConnectionOutFlowStatsEvent;
+                    sample.RttUs = _evt!.SmoothedRtt;
+                    sample.BytesSent = _evt!.BytesSent;
+                    sample.BytesInFlight = _evt!.BytesInFlight;
+                    sample.CongestionWindow = _evt!.CongestionWindow;
+                    sample.BytesBufferedForSend = _evt!.PostedBytes;
+                    sample.FlowControlAvailable = _evt!.ConnectionFlowControl;
                     if (!initialTxRateSampled)
                     {
                         initialTxRateSampled = true;
@@ -200,8 +200,8 @@ namespace MsQuicTracing.DataModel
                 }
                 else if (evt.ID == QuicEventId.ConnInFlowStats)
                 {
-                    var payload = evt.Payload as QuicConnectionInFlowStatsPayload;
-                    sample.BytesReceived = payload!.BytesRecv;
+                    var _evt = evt as QuicConnectionInFlowStatsEvent;
+                    sample.BytesReceived = _evt!.BytesRecv;
                     if (!initialRxRateSampled)
                     {
                         initialRxRateSampled = true;
@@ -214,16 +214,16 @@ namespace MsQuicTracing.DataModel
                 }
                 else if (evt.ID == QuicEventId.ConnStats && sample.TimeStamp == Timestamp.Zero)
                 {
-                    var payload = evt.Payload as QuicConnectionStatsPayload;
-                    sample.RttUs = payload!.SmoothedRtt;
-                    sample.BytesSent = payload!.SendTotalBytes;
-                    sample.BytesReceived = payload!.RecvTotalBytes;
-                    sample.CongestionEvents = payload!.CongestionCount;
+                    var _evt = evt as QuicConnectionStatsEvent;
+                    sample.RttUs = _evt!.SmoothedRtt;
+                    sample.BytesSent = _evt!.SendTotalBytes;
+                    sample.BytesReceived = _evt!.RecvTotalBytes;
+                    sample.CongestionEvents = _evt!.CongestionCount;
                 }
                 else if (evt.ID == QuicEventId.ConnOutFlowStreamStats)
                 {
-                    var payload = evt.Payload as QuicConnectionOutFlowStreamStatsPayload;
-                    sample.StreamFlowControlAvailable = payload!.StreamFlowControl;
+                    var _evt = evt as QuicConnectionOutFlowStreamStatsEvent;
+                    sample.StreamFlowControlAvailable = _evt!.StreamFlowControl;
                 }
                 else
                 {
@@ -272,10 +272,10 @@ namespace MsQuicTracing.DataModel
                 case QuicEventId.ConnCreated:
                 case QuicEventId.ConnRundown:
                     {
-                        var Payload = (evt.Payload as QuicConnectionCreatedPayload);
-                        CorrelationId = Payload!.CorrelationId;
+                        var _evt = evt as QuicConnectionCreatedEvent;
+                        CorrelationId = _evt!.CorrelationId;
                         State = QuicConnectionState.Allocated;
-                        IsServer = Payload!.IsServer != 0;
+                        IsServer = _evt!.IsServer != 0;
                         IsHandshakeComplete = false;
                     }
                     break;
@@ -288,8 +288,8 @@ namespace MsQuicTracing.DataModel
                 case QuicEventId.ConnScheduleState:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionSchedule;
-                        var Payload = (evt.Payload as QuicConnectionScheduleStatePayload);
-                        if (Payload!.State == (uint)QuicScheduleState.Processing)
+                        var _evt = evt as QuicConnectionScheduleStateEvent;
+                        if (_evt!.State == (uint)QuicScheduleState.Processing)
                         {
                             if (Worker == null)
                             {
@@ -309,27 +309,27 @@ namespace MsQuicTracing.DataModel
                 case QuicEventId.ConnAssignWorker:
                     {
                         Worker?.OnConnectionRemoved();
-                        var payload = evt.Payload as QuicConnectionAssignWorkerPayload;
-                        var key = new QuicObjectKey(evt.PointerSize, payload!.WorkerPointer, evt.ProcessId);
+                        var _evt = evt as QuicConnectionAssignWorkerEvent;
+                        var key = new QuicObjectKey(evt.PointerSize, _evt!.WorkerPointer, evt.ProcessId);
                         Worker = state.FindOrCreateWorker(key);
                         Worker.OnConnectionAdded();
                         break;
                     }
                 case QuicEventId.ConnTransportShutdown:
                     {
-                        var payload = evt.Payload as QuicConnectionTransportShutdownPayload;
+                        var _evt = evt as QuicConnectionTransportShutdownEvent;
                         State = QuicConnectionState.Shutdown;
                         IsAppShutdown = false;
-                        IsShutdownRemote = payload!.IsRemoteShutdown != 0;
+                        IsShutdownRemote = _evt!.IsRemoteShutdown != 0;
                         ShutdownTimeStamp = evt.TimeStamp;
                         break;
                     }
                 case QuicEventId.ConnAppShutdown:
                     {
-                        var payload = evt.Payload as QuicConnectionAppShutdownPayload;
+                        var _evt = evt as QuicConnectionAppShutdownEvent;
                         State = QuicConnectionState.Shutdown;
                         IsAppShutdown = true;
-                        IsShutdownRemote = payload!.IsRemoteShutdown != 0;
+                        IsShutdownRemote = _evt!.IsRemoteShutdown != 0;
                         ShutdownTimeStamp = evt.TimeStamp;
                         break;
                     }
@@ -341,14 +341,14 @@ namespace MsQuicTracing.DataModel
                 case QuicEventId.ConnOutFlowStats:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionTput;
-                        var payload = evt.Payload as QuicConnectionOutFlowStatsPayload;
-                        BytesSent = payload!.BytesSent;
+                        var _evt = evt as QuicConnectionOutFlowStatsEvent;
+                        BytesSent = _evt!.BytesSent;
                         break;
                     }
                 case QuicEventId.ConnOutFlowBlocked:
                     {
-                        var payload = evt.Payload as QuicConnectionOutFlowBlockedPayload;
-                        if (payload!.ReasonFlags != 0)
+                        var _evt = evt as QuicConnectionOutFlowBlockedEvent;
+                        if (_evt!.ReasonFlags != 0)
                         {
                             state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionFlowBlocked;
                         }
@@ -356,16 +356,16 @@ namespace MsQuicTracing.DataModel
                     }
                 case QuicEventId.ConnInFlowStats:
                     {
-                        var payload = evt.Payload as QuicConnectionInFlowStatsPayload;
-                        BytesReceived = payload!.BytesRecv;
+                        var _evt = evt as QuicConnectionInFlowStatsEvent;
+                        BytesReceived = _evt!.BytesRecv;
                         break;
                     }
                 case QuicEventId.ConnStats:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionTput;
-                        var payload = evt.Payload as QuicConnectionStatsPayload;
-                        BytesSent = payload!.SendTotalBytes;
-                        BytesReceived = payload!.RecvTotalBytes;
+                        var _evt = evt as QuicConnectionStatsEvent;
+                        BytesSent = _evt!.SendTotalBytes;
+                        BytesReceived = _evt!.RecvTotalBytes;
                         break;
                     }
                 default:

@@ -7,8 +7,17 @@ using System;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
 
+#pragma warning disable CA1305 // Specify IFormatProvider
+#pragma warning disable CA2211 // Non-constant fields should not be visible
+
 namespace MsQuicTracing.DataModel
 {
+    public enum QuicEventParseMode
+    {
+        Full,
+        WpaFilter
+    }
+
     public enum QuicObjectType
     {
         Global,
@@ -125,36 +134,83 @@ namespace MsQuicTracing.DataModel
         DatapathDestroyed,
     }
 
-    public abstract class QuicEvent : IKeyedDataType<Guid>
+    //
+    // The base class for all QUIC events.
+    //
+    public class QuicEvent : IKeyedDataType<Guid>
     {
-        public abstract Guid Provider { get; }
+        //
+        // Global configuration to control how parsing works. Defaults to WPA filter mode.
+        //
+        public static QuicEventParseMode ParseMode = QuicEventParseMode.WpaFilter;
 
-        public abstract int PointerSize { get; }
+        //
+        // The provider GUID used for MsQuic ETW on Windows.
+        //
+        public static readonly Guid ProviderGuid = new Guid("ff15e657-4f26-570e-88ab-0796b258d11c");
 
-        public abstract uint ProcessId { get; }
+        public QuicEventId ID { get; }
 
-        public abstract uint ThreadId { get; }
+        public QuicObjectType ObjectType { get; }
 
-        public abstract ushort Processor { get; }
+        public Timestamp TimeStamp { get; }
 
-        public abstract QuicEventId ID { get; }
+        public ushort Processor { get; }
 
-        public abstract Timestamp TimeStamp { get; }
+        public uint ProcessId { get; }
 
-        public abstract QuicObjectType ObjectType { get; }
+        public uint ThreadId { get; }
 
-        public abstract ulong ObjectPointer { get; }
+        public int PointerSize { get; }
 
-        public abstract object? Payload { get; }
+        public ulong ObjectPointer { get; }
 
-        #region IKeyedDataType
+        public virtual string PrefixString => PrefixStrings[(int)ObjectType];
+
+        public virtual string HeaderString =>
+            string.Format("|{0,2}|{1,5:X}|{2,5:X}|{3}|{4}|{5:X}|",
+                Processor, ProcessId, ThreadId, TimeStamp.ToTimeSpan, PrefixString, ObjectPointer);
+
+        public virtual string PayloadString => string.Format("[{0}]", ID);
+
+        public override string ToString()
+        {
+            return string.Format("{0} {1}", HeaderString, PayloadString);
+        }
+
+        #region Internal
+
+        static readonly string[] PrefixStrings = new string[]
+        {
+            " lib",
+            " reg",
+            "cnfg",
+            "wrkr",
+            "list",
+            "bind",
+            "conn",
+            "strm",
+            " udp"
+        };
+
+        internal QuicEvent(QuicEventId id, QuicObjectType objectType, Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer = 0)
+        {
+            ID = id;
+            ObjectType = objectType;
+            TimeStamp = timestamp;
+            Processor = processor;
+            ProcessId = processId;
+            ThreadId = threadId;
+            PointerSize = pointerSize;
+            ObjectPointer = objectPointer;
+        }
 
         public int CompareTo(Guid other)
         {
-            return Provider.CompareTo(other);
+            return ProviderGuid.CompareTo(other);
         }
 
-        public Guid GetKey() => Provider;
+        public Guid GetKey() => ProviderGuid;
 
         #endregion
     }

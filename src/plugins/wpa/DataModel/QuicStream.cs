@@ -44,24 +44,24 @@ namespace MsQuicTracing.DataModel
                 {
                     if (lastEvent != null)
                     {
-                        var payload = lastEvent.Payload as QuicStreamOutFlowBlockedPayload;
+                        var _evt = lastEvent as QuicStreamOutFlowBlockedEvent;
                         flowBlockedEvents.Add(
                             new QuicFlowBlockedData(
                                 lastEvent.TimeStamp,
                                 evt.TimeStamp - lastEvent.TimeStamp,
-                                (QuicFlowBlockedFlags)payload!.ReasonFlags));
+                                (QuicFlowBlockedFlags)_evt!.ReasonFlags));
                     }
                     lastEvent = evt;
                 }
             }
             if (lastEvent != null)
             {
-                var payload = lastEvent.Payload as QuicStreamOutFlowBlockedPayload;
+                var _evt = lastEvent as QuicStreamOutFlowBlockedEvent;
                 flowBlockedEvents.Add(
                     new QuicFlowBlockedData(
                         lastEvent.TimeStamp,
                         FinalTimeStamp - lastEvent.TimeStamp,
-                        (QuicFlowBlockedFlags)payload!.ReasonFlags));
+                        (QuicFlowBlockedFlags)_evt!.ReasonFlags));
             }
             return flowBlockedEvents;
         }
@@ -89,9 +89,9 @@ namespace MsQuicTracing.DataModel
                 case QuicEventId.StreamCreated:
                 case QuicEventId.StreamRundown:
                     {
-                        var payload = (evt.Payload as QuicStreamCreatedPayload);
-                        StreamId = payload!.ID;
-                        Connection = state.FindOrCreateConnection(new QuicObjectKey(evt.PointerSize, payload!.Connection, evt.ProcessId));
+                        var _evt = evt as QuicStreamCreatedEvent;
+                        StreamId = _evt!.StreamID;
+                        Connection = state.FindOrCreateConnection(new QuicObjectKey(evt.PointerSize, _evt!.Connection, evt.ProcessId));
                         Connection.OnStreamAdded(this);
                     }
                     break;

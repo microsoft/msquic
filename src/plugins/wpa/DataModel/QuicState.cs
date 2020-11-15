@@ -133,17 +133,17 @@ namespace MsQuicTracing.DataModel
                     var startEvent = Pop(evt.ProcessId, evt.ThreadId);
                     if (startEvent != null)
                     {
-                        var startPayload = startEvent.Payload as QuicApiEnterEtwPayload;
-                        var endPayload = evt.Payload as QuicApiExitStatusEtwPayload;
+                        var _startEvent = startEvent as QuicApiEnterEvent;
+                        var _endEvent = evt as QuicApiExitStatusEvent;
                         apiEvents.Add(new QuicApiData(
-                            (QuicApiType)startPayload!.Type,
+                            (QuicApiType)_startEvent!.Type,
                             startEvent.Processor, // What if end is on a different processor?
                             startEvent.ProcessId,
                             startEvent.ThreadId,
                             startEvent.TimeStamp,
                             evt.TimeStamp - startEvent.TimeStamp,
-                            startPayload.Handle,
-                            endPayload?.Status ?? 0));
+                            _startEvent.Handle,
+                            _endEvent?.Status ?? 0));
                     }
                 }
             }

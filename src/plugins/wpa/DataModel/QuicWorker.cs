@@ -50,8 +50,8 @@ namespace MsQuicTracing.DataModel
             {
                 if (evt.ID == QuicEventId.WorkerActivityStateUpdated)
                 {
-                    var payload = evt.Payload as QuicWorkerActivityStateUpdatedPayload;
-                    if (payload!.IsActive == 0)
+                    var _evt = evt as QuicWorkerActivityStateUpdatedEvent;
+                    if (_evt!.IsActive == 0)
                     {
                         if (!(lastEvent is null))
                         {
@@ -92,7 +92,7 @@ namespace MsQuicTracing.DataModel
             switch (evt.ID)
             {
                 case QuicEventId.WorkerCreated:
-                    IdealProcessor = (evt.Payload as QuicWorkerCreatedPayload)!.IdealProcessor;
+                    IdealProcessor = (evt as QuicWorkerCreatedEvent)!.IdealProcessor;
                     break;
                 case QuicEventId.WorkerActivityStateUpdated:
                     state.DataAvailableFlags |= QuicDataAvailableFlags.WorkerActivity;
@@ -100,8 +100,8 @@ namespace MsQuicTracing.DataModel
                     {
                         ThreadId = evt.ThreadId;
                     }
-                    var payload = evt.Payload as QuicWorkerActivityStateUpdatedPayload;
-                    if (payload!.IsActive != 0)
+                    var _evt = evt as QuicWorkerActivityStateUpdatedEvent;
+                    if (_evt!.IsActive != 0)
                     {
                         if (LastActiveTimeStamp != Timestamp.MaxValue)
                         {
@@ -126,8 +126,8 @@ namespace MsQuicTracing.DataModel
         {
             if (evt.ID == QuicEventId.ConnScheduleState)
             {
-                var Payload = evt.Payload as QuicConnectionScheduleStatePayload;
-                if (Payload!.State == (uint)QuicScheduleState.Processing)
+                var _evt = evt as QuicConnectionScheduleStateEvent;
+                if (_evt!.State == (uint)QuicScheduleState.Processing)
                 {
                     if (ThreadId == uint.MaxValue)
                     {

@@ -62,7 +62,6 @@ namespace MsQuicTracing
 
         private static readonly Guid EventTraceGuid = new Guid("68fdd900-4a3e-11d1-84f4-0000f80464e3");
         private static readonly Guid SystemConfigExGuid = new Guid("9B79EE91-B5FD-41c0-A243-4248E266E9D0");
-        private static readonly Guid MsQuicEtwGuid = new Guid("ff15e657-4f26-570e-88ab-0796b258d11c");
 
         private static bool IsKnownSynthEvent(TraceEvent evt)
         {
@@ -102,10 +101,13 @@ namespace MsQuicTracing
                     return;
                 }
 
-                if (evt.ProviderGuid == MsQuicEtwGuid)
+                if (evt.ProviderGuid == QuicEvent.ProviderGuid)
                 {
-                    var quicEvent = new QuicEtwEvent(evt, new Timestamp((evt.TimeStamp.Ticks - StartTime) * 100));
-                    dataProcessor.ProcessDataElement(quicEvent, this, cancellationToken);
+                    var quicEvent = QuicEtwEvent.TryCreate(evt, new Timestamp((evt.TimeStamp.Ticks - StartTime) * 100));
+                    if (quicEvent != null)
+                    {
+                        dataProcessor.ProcessDataElement(quicEvent, this, cancellationToken);
+                    }
                 }
             };
 

@@ -57,14 +57,14 @@ namespace MsQuicTracing.DataModel
 
                 if (evt.ID == QuicEventId.DatapathSend)
                 {
-                    var payload = evt.Payload as QuicDatapathSendPayload;
-                    sample.BytesSent += payload!.TotalSize;
+                    var _evt = evt as QuicDatapathSendEvent;
+                    sample.BytesSent += _evt!.TotalSize;
                     sample.SendEventCount++;
                 }
                 else if (evt.ID == QuicEventId.DatapathRecv)
                 {
-                    var payload = evt.Payload as QuicDatapathRecvPayload;
-                    sample.BytesReceived += payload!.TotalSize;
+                    var _evt = evt as QuicDatapathRecvEvent;
+                    sample.BytesReceived += _evt!.TotalSize;
                     sample.ReceiveEventCount++;
                 }
                 else
@@ -104,16 +104,16 @@ namespace MsQuicTracing.DataModel
                 case QuicEventId.DatapathSend:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.Datapath;
-                        var payload = (evt.Payload as QuicDatapathSendPayload);
-                        BytesSent += payload!.TotalSize;
+                        var _evt = evt as QuicDatapathSendEvent;
+                        BytesSent += _evt!.TotalSize;
                         SendEventCount++;
                         break;
                     }
                 case QuicEventId.DatapathRecv:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.Datapath;
-                        var payload = (evt.Payload as QuicDatapathRecvPayload);
-                        BytesReceived += payload!.TotalSize;
+                        var _evt = evt as QuicDatapathRecvEvent;
+                        BytesReceived += _evt!.TotalSize;
                         ReceiveEventCount++;
                         break;
                     }
