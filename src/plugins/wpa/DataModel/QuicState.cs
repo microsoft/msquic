@@ -39,8 +39,8 @@ namespace MsQuicTracing.DataModel
             switch (evt.ObjectType)
             {
                 case QuicObjectType.Global:
-                    if (evt.ID >= QuicEventId.ApiEnter &&
-                        evt.ID <= QuicEventId.ApiExitStatus)
+                    if (evt.EventId >= QuicEventId.ApiEnter &&
+                        evt.EventId <= QuicEventId.ApiExitStatus)
                     {
                         DataAvailableFlags |= QuicDataAvailableFlags.Api;
                     }
@@ -123,11 +123,11 @@ namespace MsQuicTracing.DataModel
 
             foreach (var evt in Events)
             {
-                if (evt.ID == QuicEventId.ApiEnter)
+                if (evt.EventId == QuicEventId.ApiEnter)
                 {
                     Push(evt);
                 }
-                else if (evt.ID == QuicEventId.ApiExit || evt.ID == QuicEventId.ApiExitStatus)
+                else if (evt.EventId == QuicEventId.ApiExit || evt.EventId == QuicEventId.ApiExitStatus)
                 {
                     var startEvent = Pop(evt.ProcessId, evt.ThreadId);
                     if (startEvent != null)

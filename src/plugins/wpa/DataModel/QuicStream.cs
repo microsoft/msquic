@@ -40,7 +40,7 @@ namespace MsQuicTracing.DataModel
             QuicEvent? lastEvent = null;
             foreach (var evt in Events)
             {
-                if (evt.ID == QuicEventId.StreamOutFlowBlocked)
+                if (evt.EventId == QuicEventId.StreamOutFlowBlocked)
                 {
                     if (lastEvent != null)
                     {
@@ -84,7 +84,7 @@ namespace MsQuicTracing.DataModel
                 InitialTimeStamp = evt.TimeStamp;
             }
 
-            switch (evt.ID)
+            switch (evt.EventId)
             {
                 case QuicEventId.StreamCreated:
                 case QuicEventId.StreamRundown:

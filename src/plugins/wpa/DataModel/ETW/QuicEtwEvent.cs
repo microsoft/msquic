@@ -169,6 +169,8 @@ namespace MsQuicTracing.DataModel.ETW
                     return new QuicConnectionCreatedEvent(id, timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadULong());
                 case QuicEventId.ConnDestroyed:
                     return new QuicConnectionDestroyedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
+                case QuicEventId.ConnHandshakeComplete:
+                    return new QuicConnectionHandshakeCompleteEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
                 case QuicEventId.ConnScheduleState:
                     return new QuicConnectionScheduleStateEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt());
                 case QuicEventId.ConnExecOper:
@@ -183,12 +185,16 @@ namespace MsQuicTracing.DataModel.ETW
                     return new QuicConnectionTransportShutdownEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadByte(), data.ReadByte());
                 case QuicEventId.ConnAppShutdown:
                     return new QuicConnectionAppShutdownEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadByte());
+                case QuicEventId.ConnHandleClosed:
+                    return new QuicConnectionHandleClosedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
                 case QuicEventId.ConnOutFlowStats:
                     return new QuicConnectionOutFlowStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong(), data.ReadULong(), data.ReadUInt());
                 case QuicEventId.ConnOutFlowBlocked:
                     return new QuicConnectionOutFlowBlockedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
                 case QuicEventId.ConnInFlowStats:
                     return new QuicConnectionInFlowStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong());
+                case QuicEventId.ConnCongestion:
+                    return new QuicConnectionCongestionEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
                 case QuicEventId.ConnStats:
                     return new QuicConnectionStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong());
                 case QuicEventId.ConnOutFlowStreamStats:
@@ -205,11 +211,24 @@ namespace MsQuicTracing.DataModel.ETW
                     return new QuicStreamCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadPointer(), data.ReadULong(), data.ReadByte());
                 case QuicEventId.StreamOutFlowBlocked:
                     return new QuicStreamOutFlowBlockedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
+                case QuicEventId.StreamDestroyed:
+                    return new QuicStreamDestroyedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
 
                 case QuicEventId.DatapathSend:
                     return new QuicDatapathSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadByte(), data.ReadUShort(), data.ReadAddress(), data.ReadAddress());
                 case QuicEventId.DatapathRecv:
                     return new QuicDatapathRecvEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUShort(), data.ReadAddress(), data.ReadAddress());
+                case QuicEventId.DatapathCreated:
+                    return new QuicDatapathCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadAddress(), data.ReadAddress());
+                case QuicEventId.DatapathDestroyed:
+                    return new QuicDatapathDestroyedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
+
+                case QuicEventId.LogError:
+                case QuicEventId.LogWarning:
+                case QuicEventId.LogInfo:
+                case QuicEventId.LogVerbose:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryMessageEvent(id, timestamp, processor, processId, threadId, pointerSize, data.ReadString());
 
                 default:
                     return null;

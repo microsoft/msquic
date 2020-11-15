@@ -131,6 +131,11 @@ namespace MsQuicTracing.DataModel
         DatapathErrorStatus,
         DatapathCreated,
         DatapathDestroyed,
+
+        LogError = 10240,
+        LogWarning,
+        LogInfo,
+        LogVerbose
     }
 
     //
@@ -148,7 +153,7 @@ namespace MsQuicTracing.DataModel
         //
         public static readonly Guid ProviderGuid = new Guid("ff15e657-4f26-570e-88ab-0796b258d11c");
 
-        public QuicEventId ID { get; }
+        public QuicEventId EventId { get; }
 
         public QuicObjectType ObjectType { get; }
 
@@ -168,12 +173,12 @@ namespace MsQuicTracing.DataModel
 
         public virtual string HeaderString =>
             ObjectType == QuicObjectType.Global ?
-                string.Format("|{0,2}|{1,5:X}|{2,5:X}|{3}|{4}|",
+                string.Format("[{0,2}][{1,5:X}][{2,5:X}][{3}][{4}]",
                     Processor, ProcessId, ThreadId, TimeStamp.ToTimeSpan, PrefixString) :
-                string.Format("|{0,2}|{1,5:X}|{2,5:X}|{3}|{4}|{5:X}|",
+                string.Format("[{0,2}][{1,5:X}][{2,5:X}][{3}][{4}][{5:X}]",
                     Processor, ProcessId, ThreadId, TimeStamp.ToTimeSpan, PrefixString, ObjectPointer);
 
-        public virtual string PayloadString => string.Format("[{0}]", ID);
+        public virtual string PayloadString => string.Format("[{0}]", EventId);
 
         public override string ToString()
         {
@@ -197,7 +202,7 @@ namespace MsQuicTracing.DataModel
 
         internal QuicEvent(QuicEventId id, QuicObjectType objectType, Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer = 0)
         {
-            ID = id;
+            EventId = id;
             ObjectType = objectType;
             TimeStamp = timestamp;
             Processor = processor;

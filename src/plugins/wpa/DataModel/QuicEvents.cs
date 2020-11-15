@@ -370,6 +370,28 @@ namespace MsQuicTracing.DataModel
         }
     }
 
+    public class QuicLibraryMessageEvent : QuicEvent
+    {
+        public string Message { get; }
+
+        public override string PayloadString => Message;
+
+        public override string HeaderString =>
+            string.Format("[{0,2}][{1,5:X}][{2,5:X}][{3}]",
+                Processor, ProcessId, ThreadId, TimeStamp.ToTimeSpan);
+
+        public override string ToString()
+        {
+            return string.Format("{0}{1}", HeaderString, PayloadString);
+        }
+
+        internal QuicLibraryMessageEvent(QuicEventId id, Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, string message) :
+            base(id, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+            Message = message;
+        }
+    }
+
     #endregion
 
     #region Worker Events
@@ -440,6 +462,16 @@ namespace MsQuicTracing.DataModel
 
         internal QuicConnectionDestroyedEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
             base(QuicEventId.ConnDestroyed, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+        }
+    }
+
+    public class QuicConnectionHandshakeCompleteEvent : QuicEvent
+    {
+        public override string PayloadString => "Handshake complete";
+
+        internal QuicConnectionHandshakeCompleteEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
+            base(QuicEventId.ConnHandshakeComplete, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
         {
         }
     }
@@ -558,6 +590,16 @@ namespace MsQuicTracing.DataModel
         }
     }
 
+    public class QuicConnectionHandleClosedEvent : QuicEvent
+    {
+        public override string PayloadString => "Handle closed";
+
+        internal QuicConnectionHandleClosedEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
+            base(QuicEventId.ConnHandleClosed, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+        }
+    }
+
     public class QuicConnectionOutFlowStatsEvent : QuicEvent
     {
         public ulong BytesSent { get; }
@@ -630,6 +672,16 @@ namespace MsQuicTracing.DataModel
         }
     }
 
+    public class QuicConnectionCongestionEvent : QuicEvent
+    {
+        public override string PayloadString => "Congestion event";
+
+        internal QuicConnectionCongestionEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
+            base(QuicEventId.ConnCongestion, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+        }
+    }
+
     public class QuicConnectionStatsEvent : QuicEvent
     {
         public uint SmoothedRtt { get; }
@@ -677,7 +729,7 @@ namespace MsQuicTracing.DataModel
 
     public class QuicConnectionMessageEvent : QuicEvent
     {
-        public string Message { get; } = null!;
+        public string Message { get; }
 
         public override string PayloadString => Message;
 
@@ -710,6 +762,16 @@ namespace MsQuicTracing.DataModel
         }
     }
 
+    public class QuicStreamDestroyedEvent : QuicEvent
+    {
+        public override string PayloadString => "Destroyed";
+
+        internal QuicStreamDestroyedEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
+            base(QuicEventId.StreamDestroyed, QuicObjectType.Stream, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+        }
+    }
+
     public class QuicStreamOutFlowBlockedEvent : QuicEvent
     {
         public byte ReasonFlags { get; }
@@ -725,6 +787,33 @@ namespace MsQuicTracing.DataModel
 
     #region Datapath Events
 
+    public class QuicDatapathCreatedEvent : QuicEvent
+    {
+        public IPEndPoint LocalAddress { get; }
+
+        public IPEndPoint RemoteAddress { get; }
+
+        public override string PayloadString =>
+            string.Format("Created, local={0} remote={1}", LocalAddress, RemoteAddress);
+
+        internal QuicDatapathCreatedEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, IPEndPoint localAddress, IPEndPoint remoteAddress) :
+            base(QuicEventId.DatapathCreated, QuicObjectType.Datapath, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            LocalAddress = localAddress;
+            RemoteAddress = remoteAddress;
+        }
+    }
+
+    public class QuicDatapathDestroyedEvent : QuicEvent
+    {
+        public override string PayloadString => "Destroyed";
+
+        internal QuicDatapathDestroyedEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer) :
+            base(QuicEventId.DatapathDestroyed, QuicObjectType.Datapath, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+        }
+    }
+
     public class QuicDatapathSendEvent : QuicEvent
     {
         public uint TotalSize { get; }
@@ -733,9 +822,13 @@ namespace MsQuicTracing.DataModel
 
         public ushort SegmentSize { get; }
 
-        public IPEndPoint RemoteAddress { get; } = null!;
+        public IPEndPoint RemoteAddress { get; }
 
-        public IPEndPoint LocalAddress { get; } = null!;
+        public IPEndPoint LocalAddress { get; }
+
+        public override string PayloadString =>
+            string.Format("Send {0} bytes in {1} buffers (segment={2}) Src={3} Dst={4}",
+                TotalSize, BufferCount, SegmentSize, LocalAddress, RemoteAddress);
 
         internal QuicDatapathSendEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer,
                                        uint totalSize, byte bufferCount, ushort segmentSize, IPEndPoint remoteAddress, IPEndPoint localAddress) :
@@ -755,9 +848,13 @@ namespace MsQuicTracing.DataModel
 
         public ushort SegmentSize { get; }
 
-        public IPEndPoint LocalAddress { get; } = null!;
+        public IPEndPoint LocalAddress { get; }
 
-        public IPEndPoint RemoteAddress { get; } = null!;
+        public IPEndPoint RemoteAddress { get; }
+
+        public override string PayloadString =>
+            string.Format("Recv {0} bytes (segment={1}) Src={2} Dst={3}",
+                TotalSize, SegmentSize, RemoteAddress, LocalAddress);
 
         internal QuicDatapathRecvEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer,
                                        uint totalSize, ushort segmentSize, IPEndPoint remoteAddress, IPEndPoint localAddress) :

@@ -55,13 +55,13 @@ namespace MsQuicTracing.DataModel
                 }
                 eventIndex++;
 
-                if (evt.ID == QuicEventId.DatapathSend)
+                if (evt.EventId == QuicEventId.DatapathSend)
                 {
                     var _evt = evt as QuicDatapathSendEvent;
                     sample.BytesSent += _evt!.TotalSize;
                     sample.SendEventCount++;
                 }
-                else if (evt.ID == QuicEventId.DatapathRecv)
+                else if (evt.EventId == QuicEventId.DatapathRecv)
                 {
                     var _evt = evt as QuicDatapathRecvEvent;
                     sample.BytesReceived += _evt!.TotalSize;
@@ -99,7 +99,7 @@ namespace MsQuicTracing.DataModel
 
         internal void AddEvent(QuicEvent evt, QuicState state)
         {
-            switch (evt.ID)
+            switch (evt.EventId)
             {
                 case QuicEventId.DatapathSend:
                     {

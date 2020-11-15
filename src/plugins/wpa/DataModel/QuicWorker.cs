@@ -48,7 +48,7 @@ namespace MsQuicTracing.DataModel
             QuicEvent? lastEvent = null;
             foreach (var evt in Events)
             {
-                if (evt.ID == QuicEventId.WorkerActivityStateUpdated)
+                if (evt.EventId == QuicEventId.WorkerActivityStateUpdated)
                 {
                     var _evt = evt as QuicWorkerActivityStateUpdatedEvent;
                     if (_evt!.IsActive == 0)
@@ -89,7 +89,7 @@ namespace MsQuicTracing.DataModel
                 InitialTimeStamp = evt.TimeStamp;
             }
 
-            switch (evt.ID)
+            switch (evt.EventId)
             {
                 case QuicEventId.WorkerCreated:
                     IdealProcessor = (evt as QuicWorkerCreatedEvent)!.IdealProcessor;
@@ -124,7 +124,7 @@ namespace MsQuicTracing.DataModel
 
         internal void OnConnectionEvent(QuicEvent evt)
         {
-            if (evt.ID == QuicEventId.ConnScheduleState)
+            if (evt.EventId == QuicEventId.ConnScheduleState)
             {
                 var _evt = evt as QuicConnectionScheduleStateEvent;
                 if (_evt!.State == (uint)QuicScheduleState.Processing)

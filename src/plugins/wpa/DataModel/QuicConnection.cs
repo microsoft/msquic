@@ -58,7 +58,7 @@ namespace MsQuicTracing.DataModel
             QuicEvent? lastEvent = null;
             foreach (var evt in Events)
             {
-                if (evt.ID == QuicEventId.ConnScheduleState)
+                if (evt.EventId == QuicEventId.ConnScheduleState)
                 {
                     if (lastEvent != null)
                     {
@@ -82,7 +82,7 @@ namespace MsQuicTracing.DataModel
             QuicEvent? lastEvent = null;
             foreach (var evt in Events)
             {
-                if (evt.ID == QuicEventId.ConnOutFlowBlocked)
+                if (evt.EventId == QuicEventId.ConnOutFlowBlocked)
                 {
                     if (lastEvent != null)
                     {
@@ -115,32 +115,23 @@ namespace MsQuicTracing.DataModel
             foreach (var evt in Events)
             {
                 if (lastEvent != null &&
-                    (evt.ID == QuicEventId.ConnScheduleState ||
-                        evt.ID == QuicEventId.ConnExecOper ||
-                        evt.ID == QuicEventId.ConnExecApiOper ||
-                        evt.ID == QuicEventId.ConnExecTimerOper))
+                    (evt.EventId == QuicEventId.ConnScheduleState ||
+                        evt.EventId == QuicEventId.ConnExecOper ||
+                        evt.EventId == QuicEventId.ConnExecApiOper ||
+                        evt.EventId == QuicEventId.ConnExecTimerOper))
                 {
                     QuicExecutionType type = QuicExecutionType.Unknown;
-                    switch (lastEvent.ID)
+                    switch (lastEvent.EventId)
                     {
                         case QuicEventId.ConnExecOper:
-                            {
-                                var _evt = lastEvent as QuicConnectionExecOperEvent;
-                                type = (QuicExecutionType)((uint)QuicExecutionType.OperApi + _evt!.Type);
-                                break;
-                            }
+                            type = (lastEvent as QuicConnectionExecOperEvent)!.ExecutionType;
+                            break;
                         case QuicEventId.ConnExecApiOper:
-                            {
-                                var _evt = lastEvent as QuicConnectionExecApiOperEvent;
-                                type = (QuicExecutionType)((uint)QuicExecutionType.ApiConnClose + _evt!.Type);
-                                break;
-                            }
+                            type = (lastEvent as QuicConnectionExecApiOperEvent)!.ExecutionType;
+                            break;
                         case QuicEventId.ConnExecTimerOper:
-                            {
-                                var _evt = lastEvent as QuicConnectionExecTimerOperEvent;
-                                type = (QuicExecutionType)((uint)QuicExecutionType.TimerPacing + _evt!.Type);
-                                break;
-                            }
+                            type = (lastEvent as QuicConnectionExecTimerOperEvent)!.ExecutionType;
+                            break;
                     }
                     execEvents.Add(
                         new QuicExecutionData(
@@ -150,13 +141,13 @@ namespace MsQuicTracing.DataModel
                             evt.TimeStamp - lastEvent.TimeStamp,
                             type));
                 }
-                if (evt.ID == QuicEventId.ConnScheduleState)
+                if (evt.EventId == QuicEventId.ConnScheduleState)
                 {
                     lastEvent = null;
                 }
-                else if (evt.ID == QuicEventId.ConnExecOper ||
-                        evt.ID == QuicEventId.ConnExecApiOper ||
-                        evt.ID == QuicEventId.ConnExecTimerOper)
+                else if (evt.EventId == QuicEventId.ConnExecOper ||
+                        evt.EventId == QuicEventId.ConnExecApiOper ||
+                        evt.EventId == QuicEventId.ConnExecTimerOper)
                 {
                     lastEvent = evt;
                 }
@@ -183,7 +174,7 @@ namespace MsQuicTracing.DataModel
                 }
                 eventIndex++;
 
-                if (evt.ID == QuicEventId.ConnOutFlowStats)
+                if (evt.EventId == QuicEventId.ConnOutFlowStats)
                 {
                     var _evt = evt as QuicConnectionOutFlowStatsEvent;
                     sample.RttUs = _evt!.SmoothedRtt;
@@ -198,7 +189,7 @@ namespace MsQuicTracing.DataModel
                         sample.TxRate = sample.BytesSent;
                     }
                 }
-                else if (evt.ID == QuicEventId.ConnInFlowStats)
+                else if (evt.EventId == QuicEventId.ConnInFlowStats)
                 {
                     var _evt = evt as QuicConnectionInFlowStatsEvent;
                     sample.BytesReceived = _evt!.BytesRecv;
@@ -208,11 +199,11 @@ namespace MsQuicTracing.DataModel
                         sample.RxRate = sample.BytesReceived;
                     }
                 }
-                else if (evt.ID == QuicEventId.ConnCongestion)
+                else if (evt.EventId == QuicEventId.ConnCongestion)
                 {
                     sample.CongestionEvents++;
                 }
-                else if (evt.ID == QuicEventId.ConnStats && sample.TimeStamp == Timestamp.Zero)
+                else if (evt.EventId == QuicEventId.ConnStats && sample.TimeStamp == Timestamp.Zero)
                 {
                     var _evt = evt as QuicConnectionStatsEvent;
                     sample.RttUs = _evt!.SmoothedRtt;
@@ -220,7 +211,7 @@ namespace MsQuicTracing.DataModel
                     sample.BytesReceived = _evt!.RecvTotalBytes;
                     sample.CongestionEvents = _evt!.CongestionCount;
                 }
-                else if (evt.ID == QuicEventId.ConnOutFlowStreamStats)
+                else if (evt.EventId == QuicEventId.ConnOutFlowStreamStats)
                 {
                     var _evt = evt as QuicConnectionOutFlowStreamStatsEvent;
                     sample.StreamFlowControlAvailable = _evt!.StreamFlowControl;
@@ -267,7 +258,7 @@ namespace MsQuicTracing.DataModel
                 InitialTimeStamp = evt.TimeStamp;
             }
 
-            switch (evt.ID)
+            switch (evt.EventId)
             {
                 case QuicEventId.ConnCreated:
                 case QuicEventId.ConnRundown:
