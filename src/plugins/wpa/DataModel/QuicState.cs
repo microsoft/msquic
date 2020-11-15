@@ -5,7 +5,6 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using MsQuicTracing.DataModel.ETW;
 
 namespace MsQuicTracing.DataModel
 {
@@ -136,7 +135,7 @@ namespace MsQuicTracing.DataModel
                         var _startEvent = startEvent as QuicApiEnterEvent;
                         var _endEvent = evt as QuicApiExitStatusEvent;
                         apiEvents.Add(new QuicApiData(
-                            (QuicApiType)_startEvent!.Type,
+                            _startEvent!.ApiType,
                             startEvent.Processor, // What if end is on a different processor?
                             startEvent.ProcessId,
                             startEvent.ThreadId,

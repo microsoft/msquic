@@ -37,7 +37,7 @@ namespace MsQuicTracing.DataModel
         LibraryUninitialized,
         LibraryAddRef,
         LibraryRelease,
-        LibraryWorkerPoolInit,
+        LibraryServerInit,
         AllocFailure,
         LibraryRundown,
         LibraryError,
@@ -168,8 +168,11 @@ namespace MsQuicTracing.DataModel
         public virtual string PrefixString => PrefixStrings[(int)ObjectType];
 
         public virtual string HeaderString =>
-            string.Format("|{0,2}|{1,5:X}|{2,5:X}|{3}|{4}|{5:X}|",
-                Processor, ProcessId, ThreadId, TimeStamp.ToTimeSpan, PrefixString, ObjectPointer);
+            ObjectType == QuicObjectType.Global ?
+                string.Format("|{0,2}|{1,5:X}|{2,5:X}|{3}|{4}|",
+                    Processor, ProcessId, ThreadId, TimeStamp.ToTimeSpan, PrefixString) :
+                string.Format("|{0,2}|{1,5:X}|{2,5:X}|{3}|{4}|{5:X}|",
+                    Processor, ProcessId, ThreadId, TimeStamp.ToTimeSpan, PrefixString, ObjectPointer);
 
         public virtual string PayloadString => string.Format("[{0}]", ID);
 

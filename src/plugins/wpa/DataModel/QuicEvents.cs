@@ -42,6 +42,24 @@ namespace MsQuicTracing.DataModel
         StreamDatagramSend
     }
 
+    public enum QuicConnectionState
+    {
+        Unknown,
+        Allocated,
+        Started,
+        HandshakeComplete,
+        Shutdown,
+        Closed
+    }
+
+    [Flags]
+    public enum QuicDatapathFeatures
+    {
+        RecvSideScaling = 1,
+        RecvCoalescing = 2,
+        SendSegmentation = 4
+    }
+
     public enum QuicErrorCode
     {
         NO_ERROR = 0x0,
@@ -61,16 +79,6 @@ namespace MsQuicTracing.DataModel
         CRYPTO_USER_CANCELED = 0x116,
         CRYPTO_HANDSHAKE_FAILURE = 0x128,
         CRYPTO_NO_APPLICATION_PROTOCOL = 0x178,
-    }
-
-    public enum QuicConnectionState
-    {
-        Unknown,
-        Allocated,
-        Started,
-        HandshakeComplete,
-        Shutdown,
-        Closed
     }
 
     public enum QuicExecutionType
@@ -135,15 +143,160 @@ namespace MsQuicTracing.DataModel
 
     #region Global Events
 
+    public class QuicLibraryInitializedEvent : QuicEvent
+    {
+        public uint PartitionCount { get; }
+
+        public uint DatapathFeatures { get; }
+
+        public QuicDatapathFeatures Features => (QuicDatapathFeatures)DatapathFeatures;
+
+        public override string PayloadString =>
+            string.Format("Initialized, PartitionCount={0} DatapathFeatures=[{1}]", PartitionCount, Features);
+
+        internal QuicLibraryInitializedEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, uint partitionCount, uint datapathFeatures) :
+            base(QuicEventId.LibraryInitialized, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+            PartitionCount = partitionCount;
+            DatapathFeatures = datapathFeatures;
+        }
+    }
+
+    public class QuicLibraryUninitializedEvent : QuicEvent
+    {
+        public override string PayloadString => "Uninitialized";
+
+        internal QuicLibraryUninitializedEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize) :
+            base(QuicEventId.LibraryUninitialized, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+        }
+    }
+
+    public class QuicLibraryAddRefEvent : QuicEvent
+    {
+        public override string PayloadString => "AddRef";
+
+        internal QuicLibraryAddRefEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize) :
+            base(QuicEventId.LibraryAddRef, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+        }
+    }
+
+    public class QuicLibraryReleaseEvent : QuicEvent
+    {
+        public override string PayloadString => "Release";
+
+        internal QuicLibraryReleaseEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize) :
+            base(QuicEventId.LibraryRelease, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+        }
+    }
+
+    public class QuicLibraryServerInitEvent : QuicEvent
+    {
+        public override string PayloadString => "Shared server state initializing";
+
+        internal QuicLibraryServerInitEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize) :
+            base(QuicEventId.LibraryServerInit, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+        }
+    }
+
+    public class QuicAllocFailureEvent : QuicEvent
+    {
+        public string Description { get; }
+
+        public ulong ByteCount { get; }
+
+        public override string PayloadString =>
+            string.Format("Allocation of '{0}' failed. ({1} bytes)", Description, ByteCount);
+
+        internal QuicAllocFailureEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, string description, ulong byteCount) :
+            base(QuicEventId.AllocFailure, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+            Description = description;
+            ByteCount = byteCount;
+        }
+    }
+
+    public class QuicLibraryRundownEvent : QuicEvent
+    {
+        public uint PartitionCount { get; }
+
+        public uint DatapathFeatures { get; }
+
+        public QuicDatapathFeatures Features => (QuicDatapathFeatures)DatapathFeatures;
+
+        public override string PayloadString =>
+            string.Format("Rundown, PartitionCount={0} DatapathFeatures=[{1}]", PartitionCount, Features);
+
+        internal QuicLibraryRundownEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, uint partitionCount, uint datapathFeatures) :
+            base(QuicEventId.LibraryRundown, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+            PartitionCount = partitionCount;
+            DatapathFeatures = datapathFeatures;
+        }
+    }
+
+    public class QuicLibraryErrorEvent : QuicEvent
+    {
+        public string ErrorString { get; }
+
+        public override string PayloadString => string.Format("ERROR, {0}", ErrorString);
+
+        internal QuicLibraryErrorEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, string errorString) :
+            base(QuicEventId.LibraryError, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+            ErrorString = errorString;
+        }
+    }
+
+    public class QuicLibraryErrorStatusEvent : QuicEvent
+    {
+        public uint Status { get; }
+
+        public string ErrorString { get; }
+
+        public override string PayloadString => string.Format("ERROR, {0}, {1}", Status, ErrorString);
+
+        internal QuicLibraryErrorStatusEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, uint status, string errorString) :
+            base(QuicEventId.LibraryErrorStatus, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+            Status = status;
+            ErrorString = errorString;
+        }
+    }
+
+    public class QuicLibraryAssertEvent : QuicEvent
+    {
+        public uint Line { get; }
+
+        public string File { get; }
+
+        public string Expression { get; }
+
+        public override string PayloadString => string.Format("ASSERT, {0}:{1} - {2}", File, Line, Expression);
+
+        internal QuicLibraryAssertEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, uint line, string file, string expression) :
+            base(QuicEventId.LibraryAssert, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+            Line = line;
+            File = file;
+            Expression = expression;
+        }
+    }
+
     public class QuicApiEnterEvent : QuicEvent
     {
         public uint Type { get; }
+
+        public QuicApiType ApiType => (QuicApiType)Type;
 
         public ulong Handle { get; }
 
         public override string PrefixString => " api";
 
-        public override string PayloadString => string.Format("Enter {0} ({1:X})", Type, Handle);
+        public override string PayloadString => string.Format("Enter {0} ({1:X})", ApiType, Handle);
 
         internal QuicApiEnterEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, uint type, ulong handle) :
             base(QuicEventId.ApiEnter, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
@@ -177,6 +330,43 @@ namespace MsQuicTracing.DataModel
             base(QuicEventId.ApiExitStatus, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
         {
             Status = status;
+        }
+    }
+
+    public class QuicApiWaitOperationEvent : QuicEvent
+    {
+        public override string PrefixString => " api";
+
+        public override string PayloadString => "Waiting on operation";
+
+        internal QuicApiWaitOperationEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize) :
+            base(QuicEventId.ApiWaitOperation, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+        }
+    }
+
+    public class QuicPerfCountersRundownEvent : QuicEvent
+    {
+        //public ulong[] Counters { get; } = null!; // TODO
+
+        public override string PayloadString => "Perf counters Rundown";
+
+        internal QuicPerfCountersRundownEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize) :
+            base(QuicEventId.PerfCountersRundown, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+        }
+    }
+
+    public class QuicLibrarySendRetryStateUpdatedEvent : QuicEvent
+    {
+        public byte Value { get; }
+
+        public override string PayloadString => string.Format("New SendRetryEnabled state, {0}", Value != 0);
+
+        internal QuicLibrarySendRetryStateUpdatedEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, byte value) :
+            base(QuicEventId.LibrarySendRetryStateUpdated, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize)
+        {
+            Value = value;
         }
     }
 

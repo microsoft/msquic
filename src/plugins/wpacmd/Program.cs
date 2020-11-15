@@ -27,16 +27,11 @@ namespace MsQuicEtw
             QuicEvent.ParseMode = QuicEventParseMode.Full;
 
             //
-            // Create our runtime environment, enabling cookers and
-            // adding inputs.
+            // Create our runtime environment, enabling cookers and adding inputs.
             //
             var runtime = Engine.Create();
             runtime.AddFile(args[0]);
             runtime.EnableCooker(QuicEventCooker.CookerPath);
-
-            //
-            // Process our data.
-            //
             Console.WriteLine("Processing...");
             var results = runtime.Process();
 
@@ -44,12 +39,13 @@ namespace MsQuicEtw
             // Access our cooked data.
             //
             var quicState = results.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
-            if (quicState == null)
+
+            foreach (var evt in quicState.Events)
             {
-                return;
+                Console.WriteLine(evt);
             }
 
-            Console.WriteLine("Conn, Process ID, Pointer");
+            /*Console.WriteLine("Conn, Process ID, Pointer");
             foreach (var conn in quicState.Connections)
             {
                 Console.WriteLine($"{conn.Id}, {conn.ProcessId}, {conn.Pointer}");
@@ -57,7 +53,7 @@ namespace MsQuicEtw
                 {
                     Console.WriteLine(evt);
                 }
-            }
+            }*/
         }
     }
 }

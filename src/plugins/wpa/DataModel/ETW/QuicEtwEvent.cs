@@ -4,9 +4,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK;
 
@@ -44,77 +41,6 @@ namespace MsQuicTracing.DataModel.ETW
         Connection,
         Stream,
         Datapath
-    }
-
-    internal unsafe ref struct EtwDataReader
-    {
-        private ReadOnlySpan<byte> Data;
-
-        private readonly int PointerSize;
-
-        internal EtwDataReader(void* pointer, int length, int pointerSize)
-        {
-            Data = new ReadOnlySpan<byte>(pointer, length);
-            PointerSize = pointerSize;
-        }
-
-        internal unsafe T ReadValue<T>() where T : unmanaged
-        {
-            T val = MemoryMarshal.Cast<byte, T>(Data)[0];
-            Data = Data.Slice(sizeof(T));
-            return val;
-        }
-
-        internal byte ReadByte() => ReadValue<byte>();
-
-        internal ushort ReadUShort() => ReadValue<ushort>();
-
-        internal uint ReadUInt() => ReadValue<uint>();
-
-        internal ulong ReadULong() => ReadValue<ulong>();
-
-        internal ulong ReadPointer()
-        {
-            return PointerSize == 8 ? ReadValue<ulong>() : ReadValue<uint>();
-        }
-
-        internal string ReadString()
-        {
-            var chars = new List<char>();
-            while (true)
-            {
-                byte c = ReadValue<byte>();
-                if (c == 0)
-                {
-                    break;
-                }
-                chars.Add((char)c);
-            }
-            return new string(chars.ToArray());
-        }
-
-        internal IPEndPoint ReadAddress()
-        {
-            byte length = ReadValue<byte>();
-            var buf = Data.Slice(0, length);
-            Data = Data.Slice(length);
-
-            int family = buf[0] | ((ushort)buf[1] << 8);
-            int port = (ushort)buf[3] | ((ushort)buf[2] << 8);
-
-            if (family == 0) // unspecified
-            {
-                return new IPEndPoint(IPAddress.Any, port);
-            }
-            else if (family == 2) // v4
-            {
-                return new IPEndPoint(new IPAddress(buf.Slice(4, 4)), port);
-            }
-            else // v6
-            {
-                return new IPEndPoint(new IPAddress(buf.Slice(4, 16)), port);
-            }
-        }
     }
 
     internal static class QuicEtwEvent
@@ -181,16 +107,55 @@ namespace MsQuicTracing.DataModel.ETW
             var processId = (uint)evt.ProcessID;
             var threadId = (uint)evt.ThreadID;
             var pointerSize = evt.PointerSize;
-            var data = new EtwDataReader(evt.DataStart.ToPointer(), evt.EventDataLength, pointerSize);
+            var data = new QuicEtwDataReader(evt.DataStart.ToPointer(), evt.EventDataLength, pointerSize);
 
             switch (id)
             {
+                case QuicEventId.LibraryInitialized:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryInitializedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadUInt());
+                case QuicEventId.LibraryUninitialized:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryUninitializedEvent(timestamp, processor, processId, threadId, pointerSize);
+                case QuicEventId.LibraryAddRef:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryAddRefEvent(timestamp, processor, processId, threadId, pointerSize);
+                case QuicEventId.LibraryRelease:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryReleaseEvent(timestamp, processor, processId, threadId, pointerSize);
+                case QuicEventId.LibraryServerInit:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryServerInitEvent(timestamp, processor, processId, threadId, pointerSize);
+                case QuicEventId.AllocFailure:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicAllocFailureEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadString(), data.ReadULong());
+                case QuicEventId.LibraryRundown:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryRundownEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadUInt());
+                case QuicEventId.LibraryError:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryErrorEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadString());
+                case QuicEventId.LibraryErrorStatus:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryErrorStatusEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadString());
+                case QuicEventId.LibraryAssert:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibraryAssertEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadString(), data.ReadString());
                 case QuicEventId.ApiEnter:
                     return new QuicApiEnterEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadPointer());
                 case QuicEventId.ApiExit:
                     return new QuicApiExitEvent(timestamp, processor, processId, threadId, pointerSize);
                 case QuicEventId.ApiExitStatus:
                     return new QuicApiExitStatusEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
+                case QuicEventId.ApiWaitOperation:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicApiWaitOperationEvent(timestamp, processor, processId, threadId, pointerSize);
+                case QuicEventId.PerfCountersRundown:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicPerfCountersRundownEvent(timestamp, processor, processId, threadId, pointerSize);
+                case QuicEventId.LibrarySendRetryStateUpdated:
+                    if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
+                    return new QuicLibrarySendRetryStateUpdatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadByte());
 
                 case QuicEventId.WorkerCreated:
                     return new QuicWorkerCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUShort(), data.ReadPointer());
