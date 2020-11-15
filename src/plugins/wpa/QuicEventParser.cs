@@ -13,6 +13,8 @@ using Microsoft.Performance.SDK.Processing;
 using MsQuicTracing.DataModel;
 using MsQuicTracing.DataModel.ETW;
 
+#pragma warning disable CA1031 // Do not catch general exception types
+
 namespace MsQuicTracing
 {
     public enum QuicEventSourceType
@@ -103,10 +105,17 @@ namespace MsQuicTracing
 
                 if (evt.ProviderGuid == QuicEvent.ProviderGuid)
                 {
-                    var quicEvent = QuicEtwEvent.TryCreate(evt, new Timestamp((evt.TimeStamp.Ticks - StartTime) * 100));
-                    if (quicEvent != null)
+                    try
                     {
-                        dataProcessor.ProcessDataElement(quicEvent, this, cancellationToken);
+                        var quicEvent = QuicEtwEvent.TryCreate(evt, new Timestamp((evt.TimeStamp.Ticks - StartTime) * 100));
+                        if (quicEvent != null)
+                        {
+                            dataProcessor.ProcessDataElement(quicEvent, this, cancellationToken);
+                        }
+                    }
+                    catch
+                    {
+
                     }
                 }
             };

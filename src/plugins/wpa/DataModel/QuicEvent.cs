@@ -8,7 +8,6 @@ using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
 
 #pragma warning disable CA1305 // Specify IFormatProvider
-#pragma warning disable CA2211 // Non-constant fields should not be visible
 
 namespace MsQuicTracing.DataModel
 {
@@ -142,7 +141,7 @@ namespace MsQuicTracing.DataModel
         //
         // Global configuration to control how parsing works. Defaults to WPA filter mode.
         //
-        public static QuicEventParseMode ParseMode = QuicEventParseMode.WpaFilter;
+        public static QuicEventParseMode ParseMode { get; set; } = QuicEventParseMode.WpaFilter;
 
         //
         // The provider GUID used for MsQuic ETW on Windows.
