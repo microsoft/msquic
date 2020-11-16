@@ -150,6 +150,21 @@ namespace MsQuicTracing.DataModel
         }
     }
 
+    public enum QuicTputDataType
+    {
+        Tx,
+        Rx
+    }
+
+    public struct QuicRawTputData
+    {
+        public Timestamp TimeStamp { get; internal set; }
+
+        public ulong Value { get; internal set; }
+
+        public QuicTputDataType Type { get; internal set; }
+    }
+
     public struct QuicThroughputData
     {
         public Timestamp TimeStamp { get; internal set; }

@@ -155,6 +155,41 @@ namespace MsQuicTracing.DataModel
             return execEvents;
         }
 
+        public IReadOnlyList<QuicRawTputData> GetRawTputEvents()
+        {
+            var tx = new QuicRawTputData() { Type = QuicTputDataType.Tx };
+            var rx = new QuicRawTputData() { Type = QuicTputDataType.Rx };
+
+            var tputEvents = new List<QuicRawTputData>();
+            foreach (var evt in Events)
+            {
+                if (evt.EventId == QuicEventId.ConnOutFlowStats)
+                {
+                    var _evt = evt as QuicConnectionOutFlowStatsEvent;
+                    if (_evt!.BytesSent != tx.Value)
+                    {
+                        tx.Value = (_evt!.BytesSent - tx.Value) * 8;
+                        tx.TimeStamp = evt.TimeStamp;
+                        tputEvents.Add(tx);
+                        tx.Value = _evt!.BytesSent;
+                    }
+                }
+                else if (evt.EventId == QuicEventId.ConnInFlowStats)
+                {
+                    var _evt = evt as QuicConnectionInFlowStatsEvent;
+                    if (_evt!.BytesRecv != rx.Value)
+                    {
+                        rx.Value = (_evt!.BytesRecv - rx.Value) * 8;
+                        rx.TimeStamp = evt.TimeStamp;
+                        tputEvents.Add(rx);
+                        rx.Value = _evt!.BytesRecv;
+                    }
+                }
+            }
+
+            return tputEvents;
+        }
+
         public IReadOnlyList<QuicThroughputData> GetThroughputEvents(long resolutionNanoSec = 25 * 1000 * 1000) // 25 ms default
         {
             var Resolution = new TimestampDelta(resolutionNanoSec);

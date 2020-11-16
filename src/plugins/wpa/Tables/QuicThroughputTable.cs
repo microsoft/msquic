@@ -44,15 +44,10 @@ namespace MsQuicTracing.Tables
                 new ColumnMetadata(new Guid("{5534a76a-18af-4811-a920-59b77b957dd0}"), "Time"),
                 new UIHints { AggregationMode = AggregationMode.Max });
 
-        private static readonly ColumnConfiguration durationColumnConfig =
+        private static readonly ColumnConfiguration bitsColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{691f2346-9544-4a94-bced-7ac476f63532}"), "Duration"),
+                new ColumnMetadata(new Guid("{1ad097ad-11a0-40c3-9425-d9255512be82}"), "Bits"),
                 new UIHints { AggregationMode = AggregationMode.Sum });
-
-        private static readonly ColumnConfiguration rateColumnConfig =
-            new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{1ad097ad-11a0-40c3-9425-d9255512be82}"), "Rate"),
-                new UIHints { AggregationMode = AggregationMode.Average });
 
         private static readonly TableConfiguration tableConfig1 =
             new TableConfiguration("TX/RX Rates by Connection")
@@ -65,29 +60,12 @@ namespace MsQuicTracing.Tables
                      TableConfiguration.LeftFreezeColumn,
                      processIdColumnConfig,
                      timeColumnConfig,
-                     durationColumnConfig,
                      TableConfiguration.RightFreezeColumn,
                      TableConfiguration.GraphColumn,
-                     rateColumnConfig,
-                }
+                     bitsColumnConfig,
+                },
+                AggregationOverTime = AggregationOverTime.Rate
             };
-
-        readonly struct Data
-        {
-            internal QuicConnection Connection { get; }
-            internal bool Tx { get; }
-            internal Timestamp Time { get; }
-            internal TimestampDelta Duration { get; }
-            internal ulong Rate { get; }
-            internal Data(QuicConnection connection, bool tx, Timestamp time, TimestampDelta duration, ulong rate)
-            {
-                Connection = connection;
-                Tx = tx;
-                Time = time;
-                Duration = duration;
-                Rate = rate;
-            }
-        };
 
         public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
         {
@@ -101,39 +79,22 @@ namespace MsQuicTracing.Tables
             Debug.Assert(!(tableBuilder is null) && !(tableData is null));
 
             var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
-            if (quicState == null)
-            {
-                return;
-            }
 
-            var connections = quicState.Connections;
-            if (connections.Count == 0)
-            {
-                return;
-            }
+            var data = quicState.Connections.SelectMany(
+                x => x.GetRawTputEvents()
+                    .Where(y => y.Type == QuicTputDataType.Tx || y.Type == QuicTputDataType.Rx)
+                    .Select(y => new ValueTuple<QuicConnection, QuicRawTputData>(x, y))).ToArray();
 
-            var data = new List<Data>();
-            foreach (var conn in connections)
-            {
-                foreach (var evt in conn.GetThroughputEvents())
-                {
-                    data.Add(new Data(conn, true, evt.TimeStamp, evt.Duration, evt.TxRate));
-                    data.Add(new Data(conn, false, evt.TimeStamp, evt.Duration, evt.RxRate));
-                }
-            }
-
-            var table = tableBuilder.SetRowCount(data.Count);
+            var table = tableBuilder.SetRowCount(data.Length);
             var dataProjection = Projection.Index(data);
 
             table.AddColumn(connectionColumnConfig, dataProjection.Compose(ProjectId));
             table.AddColumn(processIdColumnConfig, dataProjection.Compose(ProjectProcessId));
             table.AddColumn(typeColumnConfig, dataProjection.Compose(ProjectType));
             table.AddColumn(timeColumnConfig, dataProjection.Compose(ProjectTime));
-            table.AddColumn(durationColumnConfig, dataProjection.Compose(ProjectDuration));
-            table.AddColumn(rateColumnConfig, dataProjection.Compose(ProjectRate));
+            table.AddColumn(bitsColumnConfig, dataProjection.Compose(ProjectBits));
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
-            tableConfig1.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
             tableConfig1.InitialSelectionQuery = "[Series Name]:=\"Type\"";
             tableBuilder.AddTableConfiguration(tableConfig1);
 
@@ -142,34 +103,29 @@ namespace MsQuicTracing.Tables
 
         #region Projections
 
-        private static ulong ProjectId(Data data)
+        private static ulong ProjectId(ValueTuple<QuicConnection, QuicRawTputData> data)
         {
-            return data.Connection.Id;
+            return data.Item1.Id;
         }
 
-        private static uint ProjectProcessId(Data data)
+        private static uint ProjectProcessId(ValueTuple<QuicConnection, QuicRawTputData> data)
         {
-            return data.Connection.ProcessId;
+            return data.Item1.ProcessId;
         }
 
-        private static string ProjectType(Data data)
+        private static string ProjectType(ValueTuple<QuicConnection, QuicRawTputData> data)
         {
-            return data.Tx ? "TX" : "RX";
+            return data.Item2.Type.ToString();
         }
 
-        private static Timestamp ProjectTime(Data data)
+        private static Timestamp ProjectTime(ValueTuple<QuicConnection, QuicRawTputData> data)
         {
-            return data.Time;
+            return data.Item2.TimeStamp;
         }
 
-        private static TimestampDelta ProjectDuration(Data data)
+        private static ulong ProjectBits(ValueTuple<QuicConnection, QuicRawTputData> data)
         {
-            return data.Duration;
-        }
-
-        private static ulong ProjectRate(Data data)
-        {
-            return data.Rate;
+            return data.Item2.Value;
         }
 
         #endregion
