@@ -5,7 +5,6 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using MsQuicTracing.DataModel.ETW;
 
 namespace MsQuicTracing.DataModel
 {
@@ -40,8 +39,8 @@ namespace MsQuicTracing.DataModel
             switch (evt.ObjectType)
             {
                 case QuicObjectType.Global:
-                    if (evt.ID >= QuicEventId.ApiEnter &&
-                        evt.ID <= QuicEventId.ApiExitStatus)
+                    if (evt.EventId >= QuicEventId.ApiEnter &&
+                        evt.EventId <= QuicEventId.ApiExitStatus)
                     {
                         DataAvailableFlags |= QuicDataAvailableFlags.Api;
                     }
@@ -124,26 +123,26 @@ namespace MsQuicTracing.DataModel
 
             foreach (var evt in Events)
             {
-                if (evt.ID == QuicEventId.ApiEnter)
+                if (evt.EventId == QuicEventId.ApiEnter)
                 {
                     Push(evt);
                 }
-                else if (evt.ID == QuicEventId.ApiExit || evt.ID == QuicEventId.ApiExitStatus)
+                else if (evt.EventId == QuicEventId.ApiExit || evt.EventId == QuicEventId.ApiExitStatus)
                 {
                     var startEvent = Pop(evt.ProcessId, evt.ThreadId);
                     if (startEvent != null)
                     {
-                        var startPayload = startEvent.Payload as QuicApiEnterEtwPayload;
-                        var endPayload = evt.Payload as QuicApiExitStatusEtwPayload;
+                        var _startEvent = startEvent as QuicApiEnterEvent;
+                        var _endEvent = evt as QuicApiExitStatusEvent;
                         apiEvents.Add(new QuicApiData(
-                            (QuicApiType)startPayload!.Type,
+                            _startEvent!.ApiType,
                             startEvent.Processor, // What if end is on a different processor?
                             startEvent.ProcessId,
                             startEvent.ThreadId,
                             startEvent.TimeStamp,
                             evt.TimeStamp - startEvent.TimeStamp,
-                            startPayload.Handle,
-                            endPayload?.Status ?? 0));
+                            _startEvent.Handle,
+                            _endEvent?.Status ?? 0));
                     }
                 }
             }
