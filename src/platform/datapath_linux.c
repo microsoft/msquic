@@ -13,14 +13,13 @@ Environment:
 
 --*/
 
-#define _GNU_SOURCE
 #include "platform_internal.h"
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
+#include "quic_platform_dispatch.h"
+#include <arpa/inet.h>
 #include <inttypes.h>
 #include <linux/in6.h>
-#include <arpa/inet.h>
-#include "quic_platform_dispatch.h"
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
 #ifdef QUIC_CLOG
 #include "datapath_linux.c.clog.h"
 #endif
@@ -665,18 +664,19 @@ QuicDataPathPopulateTargetAddress(
             SockAddrIn->sin_port = SockAddrIn6->sin6_port;
 
             return;
-        } else {
-            Address->Ipv6 = *SockAddrIn6;
-            return;
         }
-    } else if (AddrInfo->ai_addr->sa_family == AF_INET) {
+        Address->Ipv6 = *SockAddrIn6;
+        return;
+    }
+
+    if (AddrInfo->ai_addr->sa_family == AF_INET) {
         QUIC_DBG_ASSERT(sizeof(struct sockaddr_in) == AddrInfo->ai_addrlen);
         SockAddrIn = (struct sockaddr_in*)AddrInfo->ai_addr;
         Address->Ipv4 = *SockAddrIn;
         return;
-    } else {
-        QUIC_FRE_ASSERT(FALSE);
     }
+
+    QUIC_FRE_ASSERT(FALSE);
 }
 
 QUIC_STATUS
@@ -1172,7 +1172,7 @@ QuicSocketContextPrepareReceive(
 
     SocketContext->RecvIov.iov_base = SocketContext->CurrentRecvBlock->RecvPacket.Buffer;
     SocketContext->CurrentRecvBlock->RecvPacket.BufferLength = SocketContext->RecvIov.iov_len;
-    SocketContext->CurrentRecvBlock->RecvPacket.Tuple = (QUIC_TUPLE*)&SocketContext->CurrentRecvBlock->Tuple;
+    SocketContext->CurrentRecvBlock->RecvPacket.Tuple = &SocketContext->CurrentRecvBlock->Tuple;
 
     QuicZeroMemory(&SocketContext->RecvMsgHdr, sizeof(SocketContext->RecvMsgHdr));
     QuicZeroMemory(&SocketContext->RecvMsgControl, sizeof(SocketContext->RecvMsgControl));
@@ -1542,9 +1542,8 @@ QuicSocketContextProcessEvents(
                         "recvmsg failed");
                 }
                 break;
-            } else {
-                QuicSocketContextRecvComplete(SocketContext, ProcContext, Ret);
             }
+            QuicSocketContextRecvComplete(SocketContext, ProcContext, Ret);
         }
     }
 
@@ -1795,15 +1794,15 @@ QuicDataPathBindingGetParam(
 
 QUIC_RECV_DATAGRAM*
 QuicDataPathRecvPacketToRecvDatagram(
-    _In_ const QUIC_RECV_PACKET* const RecvContext
+    _In_ const QUIC_RECV_PACKET* const Packet
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->DatapathRecvContextToRecvPacket(RecvContext);
+    return PlatDispatch->DatapathRecvContextToRecvPacket(Packet);
 #else
     QUIC_DATAPATH_RECV_BLOCK* RecvBlock =
         (QUIC_DATAPATH_RECV_BLOCK*)
-            ((char *)RecvContext - sizeof(QUIC_DATAPATH_RECV_BLOCK));
+            ((char *)Packet - sizeof(QUIC_DATAPATH_RECV_BLOCK));
 
     return &RecvBlock->RecvPacket;
 #endif
@@ -1811,14 +1810,14 @@ QuicDataPathRecvPacketToRecvDatagram(
 
 QUIC_RECV_PACKET*
 QuicDataPathRecvDatagramToRecvPacket(
-    _In_ const QUIC_RECV_DATAGRAM* const RecvPacket
+    _In_ const QUIC_RECV_DATAGRAM* const Datagram
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->DatapathRecvPacketToRecvContext(RecvPacket);
+    return PlatDispatch->DatapathRecvPacketToRecvContext(Datagram);
 #else
     QUIC_DATAPATH_RECV_BLOCK* RecvBlock =
-        QUIC_CONTAINING_RECORD(RecvPacket, QUIC_DATAPATH_RECV_BLOCK, RecvPacket);
+        QUIC_CONTAINING_RECORD(Datagram, QUIC_DATAPATH_RECV_BLOCK, RecvPacket);
 
     return (QUIC_RECV_PACKET*)(RecvBlock + 1);
 #endif
@@ -2053,6 +2052,7 @@ QuicDataPathBindingSend(
     if (!Binding->Connected) {
         Mhdr.msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
         CMsg = CMSG_NXTHDR(&Mhdr, CMsg);
+        QUIC_DBG_ASSERT(LocalAddress != NULL);
         QUIC_DBG_ASSERT(CMsg != NULL);
         if (RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
             CMsg->cmsg_level = IPPROTO_IP;
