@@ -77,33 +77,21 @@ namespace MsQuicTracing
 
             source.AllEvents += (evt) =>
             {
-                bool isOriginalHeader = source.SessionStartTime == evt.TimeStamp;
-
-                if (info == null &&
-                    !isOriginalHeader &&
-                    !IsKnownSynthEvent(evt) &&
-                    evt.TimeStamp.Ticks != 0)
-                {
-                    var deltaBetweenStartAndFirstTicks = evt.TimeStamp.Ticks - source.SessionStartTime.Ticks;
-                    var relativeNanoSeconds = deltaBetweenStartAndFirstTicks * 100;
-
-                    StartTime = evt.TimeStamp.Ticks;
-                    var lastnano = relativeNanoSeconds + ((source.SessionEndTime.Ticks - evt.TimeStamp.Ticks) * 100);
-                    info = new DataSourceInfo(relativeNanoSeconds, lastnano, evt.TimeStamp.ToUniversalTime());
-                }
-
-                progress.Report((int)(evt.TimeStampRelativeMSec / source.SessionEndTimeRelativeMSec * 100));
-            };
-
-            source.AllEvents += (evt) =>
-            {
                 if (cancellationToken.IsCancellationRequested)
                 {
                     source.StopProcessing();
                     return;
                 }
 
-                if (evt.ProviderGuid == QuicEvent.ProviderGuid)
+                if (info == null && evt.TimeStamp.Ticks != 0 && !IsKnownSynthEvent(evt))
+                {
+                    StartTime = evt.TimeStamp.Ticks;
+
+                    var firstEventNano = (evt.TimeStamp.Ticks - source.SessionStartTime.Ticks) * 100;
+                    var lastEventNano = (source.SessionEndTime.Ticks - source.SessionStartTime.Ticks) * 100;
+                    info = new DataSourceInfo(firstEventNano, lastEventNano, evt.TimeStamp.ToUniversalTime());
+                }
+                else if (evt.ProviderGuid == QuicEvent.ProviderGuid)
                 {
                     try
                     {
@@ -117,6 +105,8 @@ namespace MsQuicTracing
                     {
                     }
                 }
+
+                progress.Report((int)(evt.TimeStampRelativeMSec / source.SessionEndTimeRelativeMSec * 100));
             };
 
             source.Process();

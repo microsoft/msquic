@@ -40,12 +40,12 @@ namespace MsQuicEtw
             //
             var quicState = results.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
 
-            foreach (var evt in quicState.Events)
+            /*foreach (var evt in quicState.Events)
             {
                 Console.WriteLine(evt);
-            }
+            }*/
 
-            /*Console.WriteLine("Conn, Process ID, Pointer");
+            Console.WriteLine("Conn, Process ID, Pointer");
             foreach (var conn in quicState.Connections)
             {
                 Console.WriteLine($"{conn.Id}, {conn.ProcessId}, {conn.Pointer}");
@@ -53,7 +53,7 @@ namespace MsQuicEtw
                 {
                     Console.WriteLine(evt);
                 }
-            }*/
+            }
         }
     }
 }

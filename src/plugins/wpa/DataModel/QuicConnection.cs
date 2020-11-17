@@ -155,10 +155,84 @@ namespace MsQuicTracing.DataModel
             return execEvents;
         }
 
+        internal enum QuicSampleMode
+        {
+            Value,
+            Diff,
+            Drop
+        }
+
+        internal struct QuicRawTputSample
+        {
+            QuicRawTputData Data;
+            ulong LastValue;
+            bool LastValueSet;
+            QuicSampleMode SampleMode;
+            internal QuicRawTputSample(QuicTputDataType type, QuicSampleMode sampleMode = QuicSampleMode.Value)
+            {
+                Data = new QuicRawTputData() { Type = type };
+                LastValue = 0;
+                LastValueSet = false;
+                SampleMode = sampleMode;
+            }
+            internal void Update(ulong NewValue, Timestamp NewTimestamp, ref List<QuicRawTputData> Events)
+            {
+                if (NewValue == LastValue) return;
+                if (SampleMode == QuicSampleMode.Drop)
+                {
+                    if (NewValue > LastValue)
+                    {
+                        LastValue = NewValue;
+                        return;
+                    }
+                }
+
+                if (LastValueSet)
+                {
+                    Data.Duration = NewTimestamp - Data.TimeStamp;
+                    Events.Add(Data);
+                }
+
+                Data.TimeStamp = NewTimestamp;
+                if (SampleMode == QuicSampleMode.Value)
+                {
+                    Data.Value = NewValue;
+                }
+                else if (SampleMode == QuicSampleMode.Diff)
+                {
+                    Data.Value = NewValue - LastValue;
+                }
+                else
+                {
+                    Data.Value = LastValue - NewValue;
+                }
+                LastValue = NewValue;
+                LastValueSet = true;
+            }
+            internal void Finalize(Timestamp FinalTimestamp, ref List<QuicRawTputData> Events)
+            {
+                if (LastValueSet)
+                {
+                    Data.Duration = FinalTimestamp - Data.TimeStamp;
+                    Events.Add(Data);
+                }
+            }
+        }
+
         public IReadOnlyList<QuicRawTputData> GetRawTputEvents()
         {
-            var tx = new QuicRawTputData() { Type = QuicTputDataType.Tx };
-            var rx = new QuicRawTputData() { Type = QuicTputDataType.Rx };
+            if (Events.Count == 0) return new List<QuicRawTputData>();
+
+            var tx = new QuicRawTputSample(QuicTputDataType.Tx, QuicSampleMode.Diff);
+            var txAck = new QuicRawTputSample(QuicTputDataType.TxAck, QuicSampleMode.Drop);
+            var txUdp = new QuicRawTputSample(QuicTputDataType.TxUdp);
+            var rx = new QuicRawTputSample(QuicTputDataType.Rx, QuicSampleMode.Diff);
+            var rtt = new QuicRawTputSample(QuicTputDataType.Rtt);
+            var inFlight = new QuicRawTputSample(QuicTputDataType.InFlight);
+            var cwnd = new QuicRawTputSample(QuicTputDataType.CWnd);
+            var posted = new QuicRawTputSample(QuicTputDataType.Bufferred);
+            var connFC = new QuicRawTputSample(QuicTputDataType.ConnFC);
+            var streamFC = new QuicRawTputSample(QuicTputDataType.StreamFC);
 
             var tputEvents = new List<QuicRawTputData>();
             foreach (var evt in Events)
@@ -166,110 +240,44 @@ namespace MsQuicTracing.DataModel
                 if (evt.EventId == QuicEventId.ConnOutFlowStats)
                 {
                     var _evt = evt as QuicConnectionOutFlowStatsEvent;
-                    if (_evt!.BytesSent != tx.Value)
-                    {
-                        tx.Value = (_evt!.BytesSent - tx.Value) * 8;
-                        tx.TimeStamp = evt.TimeStamp;
-                        tputEvents.Add(tx);
-                        tx.Value = _evt!.BytesSent;
-                    }
+                    tx.Update(_evt!.BytesSent, evt.TimeStamp, ref tputEvents);
+                    txAck.Update(_evt!.BytesInFlight, evt.TimeStamp, ref tputEvents);
+                    rtt.Update(_evt!.SmoothedRtt, evt.TimeStamp, ref tputEvents);
+                    inFlight.Update(_evt!.BytesInFlight, evt.TimeStamp, ref tputEvents);
+                    cwnd.Update(_evt!.CongestionWindow, evt.TimeStamp, ref tputEvents);
+                    posted.Update(_evt!.PostedBytes, evt.TimeStamp, ref tputEvents);
+                    connFC.Update(_evt!.ConnectionFlowControl, evt.TimeStamp, ref tputEvents);
                 }
                 else if (evt.EventId == QuicEventId.ConnInFlowStats)
                 {
                     var _evt = evt as QuicConnectionInFlowStatsEvent;
-                    if (_evt!.BytesRecv != rx.Value)
-                    {
-                        rx.Value = (_evt!.BytesRecv - rx.Value) * 8;
-                        rx.TimeStamp = evt.TimeStamp;
-                        tputEvents.Add(rx);
-                        rx.Value = _evt!.BytesRecv;
-                    }
-                }
-            }
-
-            return tputEvents;
-        }
-
-        public IReadOnlyList<QuicThroughputData> GetThroughputEvents(long resolutionNanoSec = 25 * 1000 * 1000) // 25 ms default
-        {
-            var Resolution = new TimestampDelta(resolutionNanoSec);
-            bool initialTxRateSampled = false;
-            bool initialRxRateSampled = false;
-            var sample = new QuicThroughputData();
-
-            int eventCount = Events.Count;
-            int eventIndex = 0;
-
-            var tputEvents = new List<QuicThroughputData>();
-            foreach (var evt in Events)
-            {
-                if (eventIndex == 0)
-                {
-                    sample.TimeStamp = evt.TimeStamp;
-                }
-                eventIndex++;
-
-                if (evt.EventId == QuicEventId.ConnOutFlowStats)
-                {
-                    var _evt = evt as QuicConnectionOutFlowStatsEvent;
-                    sample.RttUs = _evt!.SmoothedRtt;
-                    sample.BytesSent = _evt!.BytesSent;
-                    sample.BytesInFlight = _evt!.BytesInFlight;
-                    sample.CongestionWindow = _evt!.CongestionWindow;
-                    sample.BytesBufferedForSend = _evt!.PostedBytes;
-                    sample.FlowControlAvailable = _evt!.ConnectionFlowControl;
-                    if (!initialTxRateSampled)
-                    {
-                        initialTxRateSampled = true;
-                        sample.TxRate = sample.BytesSent;
-                    }
-                }
-                else if (evt.EventId == QuicEventId.ConnInFlowStats)
-                {
-                    var _evt = evt as QuicConnectionInFlowStatsEvent;
-                    sample.BytesReceived = _evt!.BytesRecv;
-                    if (!initialRxRateSampled)
-                    {
-                        initialRxRateSampled = true;
-                        sample.RxRate = sample.BytesReceived;
-                    }
-                }
-                else if (evt.EventId == QuicEventId.ConnCongestion)
-                {
-                    sample.CongestionEvents++;
-                }
-                else if (evt.EventId == QuicEventId.ConnStats && sample.TimeStamp == Timestamp.Zero)
-                {
-                    var _evt = evt as QuicConnectionStatsEvent;
-                    sample.RttUs = _evt!.SmoothedRtt;
-                    sample.BytesSent = _evt!.SendTotalBytes;
-                    sample.BytesReceived = _evt!.RecvTotalBytes;
-                    sample.CongestionEvents = _evt!.CongestionCount;
+                    rx.Update(_evt!.BytesRecv, evt.TimeStamp, ref tputEvents);
                 }
                 else if (evt.EventId == QuicEventId.ConnOutFlowStreamStats)
                 {
                     var _evt = evt as QuicConnectionOutFlowStreamStatsEvent;
-                    sample.StreamFlowControlAvailable = _evt!.StreamFlowControl;
+                    streamFC.Update(_evt!.StreamFlowControl, evt.TimeStamp, ref tputEvents);
                 }
-                else
+                else if (evt.EventId == QuicEventId.DatapathSend)
                 {
-                    continue;
-                }
-
-                if (sample.TimeStamp + Resolution <= evt.TimeStamp || eventIndex == eventCount)
-                {
-                    sample.Duration = evt.TimeStamp - sample.TimeStamp;
-                    sample.TxRate = ((sample.BytesSent - sample.TxRate) * 8 * 1000 * 1000 * 1000) / (ulong)sample.Duration.ToNanoseconds;
-                    sample.RxRate = ((sample.BytesReceived - sample.RxRate) * 8 * 1000 * 1000 * 1000) / (ulong)sample.Duration.ToNanoseconds;
-
-                    tputEvents.Add(sample);
-
-                    sample.TimeStamp = evt.TimeStamp;
-                    sample.TxRate = sample.BytesSent;
-                    sample.RxRate = sample.BytesReceived;
-                    sample.CongestionEvents = 0;
+                    var _evt = evt as QuicDatapathSendEvent;
+                    txUdp.Update(_evt!.TotalSize, evt.TimeStamp, ref tputEvents);
                 }
             }
+
+            var FinalTimeStamp = Events[Events.Count - 1].TimeStamp;
+
+            tx.Finalize(FinalTimeStamp, ref tputEvents);
+            txAck.Finalize(FinalTimeStamp, ref tputEvents);
+            txUdp.Finalize(FinalTimeStamp, ref tputEvents);
+            rx.Finalize(FinalTimeStamp, ref tputEvents);
+            rtt.Finalize(FinalTimeStamp, ref tputEvents);
+            inFlight.Finalize(FinalTimeStamp, ref tputEvents);
+            cwnd.Finalize(FinalTimeStamp, ref tputEvents);
+            posted.Finalize(FinalTimeStamp, ref tputEvents);
+            connFC.Finalize(FinalTimeStamp, ref tputEvents);
+            streamFC.Finalize(FinalTimeStamp, ref tputEvents);
+
             return tputEvents;
         }
 
@@ -284,6 +292,15 @@ namespace MsQuicTracing.DataModel
             InitialTimeStamp = Timestamp.MaxValue;
             FinalTimeStamp = Timestamp.MaxValue;
             ShutdownTimeStamp = Timestamp.MaxValue;
+        }
+
+        private void TrySetWorker(QuicEvent evt, QuicState state)
+        {
+            if (Worker == null)
+            {
+                Worker = state.GetWorkerFromThread(evt.ProcessId, evt.ThreadId);
+                Worker?.OnConnectionAdded();
+            }
         }
 
         internal void AddEvent(QuicEvent evt, QuicState state)
@@ -317,11 +334,7 @@ namespace MsQuicTracing.DataModel
                         var _evt = evt as QuicConnectionScheduleStateEvent;
                         if (_evt!.State == (uint)QuicScheduleState.Processing)
                         {
-                            if (Worker == null)
-                            {
-                                Worker = state.GetWorkerFromThread(evt.ThreadId);
-                                Worker?.OnConnectionAdded();
-                            }
+                            TrySetWorker(evt, state);
                         }
                         break;
                     }
@@ -330,6 +343,7 @@ namespace MsQuicTracing.DataModel
                 case QuicEventId.ConnExecTimerOper:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionExec;
+                        TrySetWorker(evt, state);
                         break;
                     }
                 case QuicEventId.ConnAssignWorker:
@@ -369,6 +383,7 @@ namespace MsQuicTracing.DataModel
                         state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionTput;
                         var _evt = evt as QuicConnectionOutFlowStatsEvent;
                         BytesSent = _evt!.BytesSent;
+                        TrySetWorker(evt, state);
                         break;
                     }
                 case QuicEventId.ConnOutFlowBlocked:
@@ -384,6 +399,7 @@ namespace MsQuicTracing.DataModel
                     {
                         var _evt = evt as QuicConnectionInFlowStatsEvent;
                         BytesReceived = _evt!.BytesRecv;
+                        TrySetWorker(evt, state);
                         break;
                     }
                 case QuicEventId.ConnStats:
@@ -400,7 +416,7 @@ namespace MsQuicTracing.DataModel
 
             FinalTimeStamp = evt.TimeStamp;
 
-            Worker?.OnConnectionEvent(evt);
+            Worker?.OnConnectionEvent(this, evt);
 
             Events.Add(evt);
         }
