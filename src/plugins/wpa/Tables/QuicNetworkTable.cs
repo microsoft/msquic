@@ -164,9 +164,8 @@ namespace MsQuicTracing.Tables
             table.AddColumn(rttColumnConfig, dataProjection.Compose(ProjectRtt));
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
-            tableConfig1.InitialSelectionQuery = "[Type]:=\"Tx\" OR [Type]:=\"Rx\"";
-            tableConfig1.InitialFilterQuery =
-                "[Type]:<>\"Tx\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"TxUdp\" AND [Type]:<>\"Rx\"";
+            tableConfig1.InitialSelectionQuery = "[Series Name]:=\"Type\"";
+            tableConfig1.InitialFilterQuery = "[Type]:<>\"Tx\" AND [Type]:<>\"Rx\"";
             tableBuilder.AddTableConfiguration(tableConfig1);
 
             tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
