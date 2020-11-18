@@ -318,7 +318,7 @@ QuicPerfCounterAdd(
     _In_ int64_t Value
     )
 {
-    QUIC_DBG_ASSERT(Type < QUIC_PERF_COUNTER_MAX);
+    QUIC_DBG_ASSERT(Type >= 0 && Type < QUIC_PERF_COUNTER_MAX);
     uint32_t ProcIndex = QuicProcCurrentNumber();
     QUIC_DBG_ASSERT(ProcIndex < (uint32_t)MsQuicLib.PartitionCount);
     InterlockedExchangeAdd64(&(MsQuicLib.PerProc[ProcIndex].PerfCounters[Type]), Value);
