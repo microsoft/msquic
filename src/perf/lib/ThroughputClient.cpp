@@ -33,6 +33,7 @@ PrintHelp(
         "  -ip:<0/4/6>                 A hint for the resolving the hostname to an IP address. (def:0)\n"
         "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
         "  -sendbuf:<0/1>              Whether to use send buffering. (def:1)\n"
+        "  -pacing:<0/1>               Whether to use pacing. (def:1)\n"
         "  -upload:<####>              The length of data to send. (def:0)\n"
         "  -download:<####>            The length of data to request/receive. (def:0)\n"
         "  -iosize:<####>              The size of each send request queued. (def:%u)\n"
@@ -125,6 +126,7 @@ ThroughputClient::Init(
     }
 
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffer);
+    TryGetValue(argc, argv, "pacing", &UsePacing);
 
     IoSize = PERF_DEFAULT_IO_SIZE;
     TryGetValue(argc, argv, "iosize", &IoSize);
@@ -199,10 +201,16 @@ ThroughputClient::Start(
 
     Shutdown.ConnHandle = ConnData->Connection.Handle;
 
-    if (!UseSendBuffer) {
+    if (!UseSendBuffer || !UsePacing) {
         QUIC_SETTINGS Settings{0};
-        Settings.SendBufferingEnabled = FALSE;
-        Settings.IsSet.SendBufferingEnabled = TRUE;
+        if (!UseSendBuffer) {
+            Settings.SendBufferingEnabled = FALSE;
+            Settings.IsSet.SendBufferingEnabled = TRUE;
+        }
+        if (!UsePacing) {
+            Settings.PacingEnabled = FALSE;
+            Settings.IsSet.PacingEnabled = TRUE;
+        }
         Status =
             MsQuic->SetParam(
                 ConnData->Connection,
@@ -211,7 +219,7 @@ ThroughputClient::Start(
                 sizeof(Settings),
                 &Settings);
         if (QUIC_FAILED(Status)) {
-            WriteOutput("Failed Disable Send Buffering 0x%x\n", Status);
+            WriteOutput("MsQuic->SetParam (CONN_SETTINGS) failed! 0x%x\n", Status);
             return Status;
         }
     }

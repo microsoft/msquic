@@ -118,6 +118,7 @@ private:
     QUIC_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
     uint8_t UseSendBuffer {TRUE};
+    uint8_t UsePacing {TRUE};
     uint8_t UseEncryption {TRUE};
     QUIC_ADDR LocalIpAddr;
     uint16_t Port {PERF_DEFAULT_PORT};
