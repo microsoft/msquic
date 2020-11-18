@@ -80,12 +80,20 @@ namespace MsQuicTracing.DataModel
             return WorkerSet.FindOrCreateActive(key);
         }
 
-        internal QuicWorker? GetWorkerFromThread(uint threadId)
+        internal QuicWorker? GetWorkerFromThread(uint processId, uint threadId)
         {
-            var worker = WorkerSet.activeTable.Where(x => x.Value.ThreadId == threadId).Select(x => x.Value).FirstOrDefault();
+            var worker =
+                WorkerSet.activeTable
+                    .Where(x => x.Value.ProcessId == processId &&
+                                x.Value.ThreadId == threadId)
+                    .Select(x => x.Value).FirstOrDefault();
             if (worker is null)
             {
-                worker = WorkerSet.inactiveList.Where(x => x.ThreadId == threadId).FirstOrDefault();
+                worker =
+                    WorkerSet.inactiveList
+                        .Where(x => x.ProcessId == processId &&
+                                    x.ThreadId == threadId)
+                        .FirstOrDefault();
             }
             return worker;
         }

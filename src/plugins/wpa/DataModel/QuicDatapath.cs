@@ -107,6 +107,12 @@ namespace MsQuicTracing.DataModel
                         var _evt = evt as QuicDatapathSendEvent;
                         BytesSent += _evt!.TotalSize;
                         SendEventCount++;
+
+                        var worker = state.GetWorkerFromThread(evt.ProcessId, evt.ThreadId);
+                        if (worker != null && worker.LastConnection != null)
+                        {
+                            worker.LastConnection.AddEvent(evt, state);
+                        }
                         break;
                     }
                 case QuicEventId.DatapathRecv:

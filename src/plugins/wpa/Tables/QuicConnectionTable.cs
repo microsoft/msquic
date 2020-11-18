@@ -74,14 +74,14 @@ namespace MsQuicTracing.Tables
                 new UIHints { AggregationMode = AggregationMode.Sum });
 
         private static readonly TableConfiguration tableConfig1 =
-            new TableConfiguration("Timeline by Process, Connection")
+            new TableConfiguration("Timeline by Connection")
             {
                 Columns = new[]
                 {
-                     processIdColumnConfig,
                      connectionColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
+                     processIdColumnConfig,
                      pointerColumnConfig,
                      correlationIdColumnConfig,
                      isServerColumnConfig,

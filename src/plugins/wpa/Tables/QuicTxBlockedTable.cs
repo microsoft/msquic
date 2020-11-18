@@ -29,6 +29,11 @@ namespace MsQuicTracing.Tables
                 new ColumnMetadata(new Guid("{d85077b7-abbc-4f1b-b34e-c003f3cc2369}"), "Connection"),
                 new UIHints { AggregationMode = AggregationMode.UniqueCount });
 
+        private static readonly ColumnConfiguration streamColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{701943BA-0748-4CD5-A61A-0270E7E45C9A}"), "Stream"),
+                new UIHints { AggregationMode = AggregationMode.UniqueCount });
+
         private static readonly ColumnConfiguration processIdColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{7fd859c3-e483-415f-adbe-abb5d754906d}"), "Process (ID)"),
@@ -65,15 +70,16 @@ namespace MsQuicTracing.Tables
                 new UIHints { AggregationMode = AggregationMode.Sum });
 
         private static readonly TableConfiguration tableConfig1 =
-            new TableConfiguration("Timeline by Process, Connection")
+            new TableConfiguration("Timeline by Connection")
             {
                 Columns = new[]
                 {
-                     processIdColumnConfig,
                      connectionColumnConfig,
+                     streamColumnConfig,
                      reasonColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
+                     processIdColumnConfig,
                      countColumnConfig,
                      weightColumnConfig,
                      percentWeightColumnConfig,
@@ -85,15 +91,16 @@ namespace MsQuicTracing.Tables
             };
 
         private static readonly TableConfiguration tableConfig2 =
-            new TableConfiguration("Utilization by Process, Connection")
+            new TableConfiguration("Utilization by Connection")
             {
                 Columns = new[]
                 {
-                     processIdColumnConfig,
                      connectionColumnConfig,
+                     streamColumnConfig,
                      reasonColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
+                     processIdColumnConfig,
                      countColumnConfig,
                      weightColumnConfig,
                      timeColumnConfig,
@@ -112,6 +119,20 @@ namespace MsQuicTracing.Tables
             return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.ConnectionFlowBlocked);
         }
 
+        internal struct Data
+        {
+            internal QuicConnection Connection;
+            internal QuicStream? Stream;
+            internal QuicFlowBlockedData BlockedData;
+
+            internal Data(QuicConnection connection, QuicFlowBlockedData blockedData, QuicStream? stream = null)
+            {
+                Connection = connection;
+                Stream = stream;
+                BlockedData = blockedData;
+            }
+        }
+
         public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
         {
             Debug.Assert(!(tableBuilder is null) && !(tableData is null));
@@ -128,15 +149,24 @@ namespace MsQuicTracing.Tables
                 return;
             }
 
-            var data = connections.SelectMany(
-                x => x.GetFlowBlockedEvents()
-                    .Where(x => x.Flags != QuicFlowBlockedFlags.None)
-                    .Select(y => new ValueTuple<QuicConnection, QuicFlowBlockedData>(x, y))).ToArray();
+            var connData =
+                connections.SelectMany(
+                    x => x.GetFlowBlockedEvents()
+                        .Where(x => x.Flags != QuicFlowBlockedFlags.None)
+                        .Select(y => new Data(x, y)));
+           var streamData =
+                connections.SelectMany(
+                    x => x.Streams.SelectMany(
+                        y => y.GetFlowBlockedEvents()
+                        .Where(z => z.Flags != QuicFlowBlockedFlags.None)
+                        .Select(z => new Data(x, z, y))));
+            var data = connData.Concat(streamData).ToArray();
 
             var table = tableBuilder.SetRowCount(data.Length);
             var dataProjection = Projection.Index(data);
 
             table.AddColumn(connectionColumnConfig, dataProjection.Compose(ProjectId));
+            table.AddColumn(streamColumnConfig, dataProjection.Compose(ProjectStreamId));
             table.AddColumn(processIdColumnConfig, dataProjection.Compose(ProjectProcessId));
             table.AddColumn(reasonColumnConfig, dataProjection.Compose(ProjectReason));
             table.AddColumn(countColumnConfig, Projection.Constant<uint>(1));
@@ -147,13 +177,11 @@ namespace MsQuicTracing.Tables
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig1.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
-            tableConfig1.InitialExpansionQuery = "[Series Name]:=\"Process (ID)\"";
             tableConfig1.InitialSelectionQuery = "[Series Name]:=\"Connection\" OR [Series Name]:=\"Reason\"";
             tableBuilder.AddTableConfiguration(tableConfig1);
 
             tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig2.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
-            tableConfig2.InitialExpansionQuery = "[Series Name]:=\"Process (ID)\"";
             tableConfig2.InitialSelectionQuery = "[Series Name]:=\"Reason\"";
             tableBuilder.AddTableConfiguration(tableConfig2);
 
@@ -162,72 +190,77 @@ namespace MsQuicTracing.Tables
 
         #region Projections
 
-        private static ulong ProjectId(ValueTuple<QuicConnection, QuicFlowBlockedData> data)
+        private static ulong ProjectId(Data data)
         {
-            return data.Item1.Id;
+            return data.Connection.Id;
         }
 
-        private static uint ProjectProcessId(ValueTuple<QuicConnection, QuicFlowBlockedData> data)
+        private static ulong ProjectStreamId(Data data)
         {
-            return data.Item1.ProcessId;
+            return data.Stream?.Id ?? 0;
         }
 
-        private static string ProjectReason(ValueTuple<QuicConnection, QuicFlowBlockedData> data)
+        private static uint ProjectProcessId(Data data)
         {
-            if (data.Item2.Flags.HasFlag(QuicFlowBlockedFlags.Scheduling))
+            return data.Connection.ProcessId;
+        }
+
+        private static string ProjectReason(Data data)
+        {
+            if (data.BlockedData.Flags.HasFlag(QuicFlowBlockedFlags.Scheduling))
             {
                 return "Scheduling";
             }
-            if (data.Item2.Flags.HasFlag(QuicFlowBlockedFlags.Pacing))
+            if (data.BlockedData.Flags.HasFlag(QuicFlowBlockedFlags.Pacing))
             {
                 return "Pacing";
             }
-            if (data.Item2.Flags.HasFlag(QuicFlowBlockedFlags.AmplificationProtection))
+            if (data.BlockedData.Flags.HasFlag(QuicFlowBlockedFlags.AmplificationProtection))
             {
                 return "Amplification Protection";
             }
-            if (data.Item2.Flags.HasFlag(QuicFlowBlockedFlags.CongestionControl))
+            if (data.BlockedData.Flags.HasFlag(QuicFlowBlockedFlags.CongestionControl))
             {
                 return "Congestion Control";
             }
-            if (data.Item2.Flags.HasFlag(QuicFlowBlockedFlags.ConnFlowControl))
+            if (data.BlockedData.Flags.HasFlag(QuicFlowBlockedFlags.ConnFlowControl))
             {
                 return "Connection Flow Control";
             }
-            if (data.Item2.Flags.HasFlag(QuicFlowBlockedFlags.StreamFlowControl))
+            if (data.BlockedData.Flags.HasFlag(QuicFlowBlockedFlags.StreamFlowControl))
             {
                 return "Stream Flow Control";
             }
-            if (data.Item2.Flags.HasFlag(QuicFlowBlockedFlags.App))
+            if (data.BlockedData.Flags.HasFlag(QuicFlowBlockedFlags.App))
             {
                 return "App";
             }
-            if (data.Item2.Flags.HasFlag(QuicFlowBlockedFlags.StreamIdFlowControl))
+            if (data.BlockedData.Flags.HasFlag(QuicFlowBlockedFlags.StreamIdFlowControl))
             {
                 return "Stream ID Flow Control";
             }
             return "None";
         }
 
-        private static TimestampDelta ProjectWeight(ValueTuple<QuicConnection, QuicFlowBlockedData> data)
+        private static TimestampDelta ProjectWeight(Data data)
         {
-            return data.Item2.Duration;
+            return data.BlockedData.Duration;
         }
 
-        private static double ProjectPercentWeight(ValueTuple<QuicConnection, QuicFlowBlockedData> data)
+        private static double ProjectPercentWeight(Data data)
         {
-            TimestampDelta TimeNs = data.Item1.FinalTimeStamp - data.Item1.InitialTimeStamp;
-            return 100.0 * data.Item2.Duration.ToNanoseconds / TimeNs.ToNanoseconds;
+            TimestampDelta TimeNs = data.Connection.FinalTimeStamp - data.Connection.InitialTimeStamp;
+            return 100.0 * data.BlockedData.Duration.ToNanoseconds / TimeNs.ToNanoseconds;
         }
 
-        private static Timestamp ProjectTime(ValueTuple<QuicConnection, QuicFlowBlockedData> data)
+        private static Timestamp ProjectTime(Data data)
         {
-            return data.Item2.TimeStamp;
+            return data.BlockedData.TimeStamp;
         }
 
-        private static TimestampDelta ProjectDuration(ValueTuple<QuicConnection, QuicFlowBlockedData> data)
+        private static TimestampDelta ProjectDuration(Data data)
         {
-            return data.Item2.Duration;
+            return data.BlockedData.Duration;
         }
 
         #endregion

@@ -40,6 +40,8 @@ namespace MsQuicTracing.DataModel
 
         public uint CurrentConnections { get; private set; }
 
+        internal QuicConnection? LastConnection { get; private set; }
+
         private readonly List<QuicEvent> Events = new List<QuicEvent>();
 
         public IReadOnlyList<QuicActivityData> GetActivityEvents()
@@ -80,6 +82,8 @@ namespace MsQuicTracing.DataModel
             FinalTimeStamp = Timestamp.MaxValue;
             LastActiveTimeStamp = Timestamp.MaxValue;
             TotalActiveTime = TimestampDelta.Zero;
+
+            LastConnection = null;
         }
 
         internal void AddEvent(QuicEvent evt, QuicState state)
@@ -111,6 +115,7 @@ namespace MsQuicTracing.DataModel
                     else
                     {
                         LastActiveTimeStamp = evt.TimeStamp;
+                        LastConnection = null;
                     }
                     break;
                 default:
@@ -122,7 +127,7 @@ namespace MsQuicTracing.DataModel
             Events.Add(evt);
         }
 
-        internal void OnConnectionEvent(QuicEvent evt)
+        internal void OnConnectionEvent(QuicConnection connection, QuicEvent evt)
         {
             if (evt.EventId == QuicEventId.ConnScheduleState)
             {
@@ -135,7 +140,16 @@ namespace MsQuicTracing.DataModel
                     }
 
                     FinalTimeStamp = evt.TimeStamp;
+                    LastConnection = connection;
                 }
+                else
+                {
+                    LastConnection = null;
+                }
+            }
+            else if (evt.EventId == QuicEventId.ConnOutFlowStats)
+            {
+                LastConnection = connection;
             }
         }
 
