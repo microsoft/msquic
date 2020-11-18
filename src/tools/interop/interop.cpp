@@ -1070,7 +1070,9 @@ RunInteropTests()
 {
     const uint16_t* Ports = CustomPort == 0 ? PublicPorts : &CustomPort;
     const uint32_t PortsCount = CustomPort == 0 ? PublicPortsCount : 1;
+    uint32_t StartTime = 0, StopTime = 0;
 
+    StartTime = QuicTimeMs32();
     for (uint32_t b = 0; b < PortsCount; ++b) {
         for (uint32_t c = 0; c < QuicTestFeatureCount; ++c) {
             if (TestCases & (1 << c)) {
@@ -1089,6 +1091,7 @@ RunInteropTests()
         QuicThreadWait(&Threads[i]);
         QuicThreadDelete(&Threads[i]);
     }
+    StopTime = QuicTimeMs32();
 
     printf("\n%12s  %s    %s   %s\n", "TARGET", QuicTestFeatureCodes, "VERSION", "ALPN");
     printf(" ============================================\n");
@@ -1099,6 +1102,11 @@ RunInteropTests()
     } else {
         PrintTestResults((uint32_t)EndpointIndex);
     }
+    printf("\n");
+    printf(
+        "Total execution time: %u.%03us\n",
+        (StopTime - StartTime) / 1000,
+        (StopTime - StartTime) % 1000);
     printf("\n");
 }
 
