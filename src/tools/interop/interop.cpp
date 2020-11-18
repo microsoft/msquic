@@ -1104,7 +1104,7 @@ RunInteropTests()
     }
     printf("\n");
     printf(
-        "Total execution time: %u.%us\n",
+        "Total execution time: %u.%03us\n",
         (StopTime - StartTime) / 1000,
         (StopTime - StartTime) % 1000);
     printf("\n");
