@@ -80,7 +80,11 @@ $p.Start() | Out-Null
 Sleep -Seconds 1
 
 # CSV header
-Write-Host "RttMs, BottleneckMbps, BottleneckBufferPackets, RandomLossDenominator, RandomReorderDenominator, ReorderDelayDeltaMs, DurationMs, Pacing, RateKbps"
+$Header = "RttMs, BottleneckMbps, BottleneckBufferPackets, RandomLossDenominator, RandomReorderDenominator, ReorderDelayDeltaMs, DurationMs, Pacing, RateKbps"
+for ($i = 0; $i -lt $NumIterations; $i++) {
+	$Header += ", RawRateKbps$($i+1)"
+}
+Write-Host $Header
 
 # Loop over all the network emulation configurations.
 foreach ($ThisRttMs in $RttMs) {
@@ -127,7 +131,11 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
 		# Grab the average result and write the CSV output.
 		$RateKbps = [int]($Results | Measure-Object -Average).Average
-		Write-Host "$ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $ThisDurationMs, $ThisPacing, $RateKbps"
+		$Row = "$ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $ThisDurationMs, $ThisPacing, $RateKbps"
+		for ($i = 0; $i -lt $NumIterations; $i++) {
+			$Row += ", $($Results[$i])"
+		}
+		Write-Host $Row
 	}}
 
 }}}}}}
