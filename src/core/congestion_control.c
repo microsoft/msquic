@@ -173,8 +173,9 @@ QuicCongestionControlGetSendAllowance(
     } else {
 
         //
-        // We are pacing, so calculate the current send allowance based on the
-        // time since the last send times the pacing rate (CWND / RTT).
+        // We are pacing, so split the congestion window into chunks which are
+        // spread out over the RTT. Calculate the current send allowance (chunk
+        // size) as the time since the last send times the pacing rate (CWND / RTT).
         //
 
         //
