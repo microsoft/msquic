@@ -34,9 +34,9 @@ PrintHelp(
         "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
         "  -sendbuf:<0/1>              Whether to use send buffering. (def:1)\n"
         "  -pacing:<0/1>               Whether to use pacing. (def:1)\n"
-        "  -upload:<####>              The length of data to send. (def:0)\n"
-        "  -download:<####>            The length of data to request/receive. (def:0)\n"
-        "  -timed:<####>               The indicates the upload/download arg time (ms). (def:0)\n"
+        "  -timed:<0/1>                The indicates the upload/download arg time (ms). (def:0)\n"
+        "  -upload:<####>              The length of data (or time with -timed:1 arg) to send. (def:0)\n"
+        "  -download:<####>            The length of data (or time with -timed:1 arg) to request/receive. (def:0)\n"
         "  -iosize:<####>              The size of each send request queued. (def:%u)\n"
         "\n",
         PERF_DEFAULT_PORT,
