@@ -59,7 +59,6 @@ namespace MsQuicTracing.DataModel.ETW
 
         internal IPEndPoint ReadAddress()
         {
-
             byte length = ReadValue<byte>();
             if (length == 0)
             {
