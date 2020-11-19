@@ -60,6 +60,10 @@ namespace MsQuicTracing.DataModel.ETW
         internal IPEndPoint ReadAddress()
         {
             byte length = ReadValue<byte>();
+            if (length == 0)
+            {
+                return new IPEndPoint(IPAddress.None, 0);
+            }
             var buf = Data.Slice(0, length);
             Data = Data.Slice(length);
 
