@@ -33,8 +33,10 @@ PrintHelp(
         "  -ip:<0/4/6>                 A hint for the resolving the hostname to an IP address. (def:0)\n"
         "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
         "  -sendbuf:<0/1>              Whether to use send buffering. (def:1)\n"
+        "  -pacing:<0/1>               Whether to use pacing. (def:1)\n"
         "  -upload:<####>              The length of data to send. (def:0)\n"
         "  -download:<####>            The length of data to request/receive. (def:0)\n"
+        "  -timed:<####>               The indicates the upload/download arg time (ms). (def:0)\n"
         "  -iosize:<####>              The size of each send request queued. (def:%u)\n"
         "\n",
         PERF_DEFAULT_PORT,
@@ -125,6 +127,8 @@ ThroughputClient::Init(
     }
 
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffer);
+    TryGetValue(argc, argv, "pacing", &UsePacing);
+    TryGetValue(argc, argv, "timed", &TimedTransfer);
 
     IoSize = PERF_DEFAULT_IO_SIZE;
     TryGetValue(argc, argv, "iosize", &IoSize);
@@ -146,7 +150,8 @@ ThroughputClient::Init(
 
     if (DownloadLength) {
         DataBuffer->Length = sizeof(uint64_t);
-        *(uint64_t*)(DataBuffer->Buffer) = QuicByteSwapUint64(DownloadLength);
+        *(uint64_t*)(DataBuffer->Buffer) =
+            TimedTransfer ? UINT64_MAX : QuicByteSwapUint64(DownloadLength);
     } else {
         DataBuffer->Length = IoSize;
         *(uint64_t*)(DataBuffer->Buffer) = QuicByteSwapUint64(0); // Zero-length request
@@ -199,10 +204,16 @@ ThroughputClient::Start(
 
     Shutdown.ConnHandle = ConnData->Connection.Handle;
 
-    if (!UseSendBuffer) {
+    if (!UseSendBuffer || !UsePacing) {
         QUIC_SETTINGS Settings{0};
-        Settings.SendBufferingEnabled = FALSE;
-        Settings.IsSet.SendBufferingEnabled = TRUE;
+        if (!UseSendBuffer) {
+            Settings.SendBufferingEnabled = FALSE;
+            Settings.IsSet.SendBufferingEnabled = TRUE;
+        }
+        if (!UsePacing) {
+            Settings.PacingEnabled = FALSE;
+            Settings.IsSet.PacingEnabled = TRUE;
+        }
         Status =
             MsQuic->SetParam(
                 ConnData->Connection,
@@ -211,7 +222,7 @@ ThroughputClient::Start(
                 sizeof(Settings),
                 &Settings);
         if (QUIC_FAILED(Status)) {
-            WriteOutput("Failed Disable Send Buffering 0x%x\n", Status);
+            WriteOutput("MsQuic->SetParam (CONN_SETTINGS) failed! 0x%x\n", Status);
             return Status;
         }
     }
@@ -376,6 +387,14 @@ ThroughputClient::StreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         StrmContext->BytesCompleted += Event->RECEIVE.TotalBufferLength;
+        if (StrmContext->Client->TimedTransfer) {
+            if (QuicTimeDiff64(StrmContext->StartTime, QuicTimeUs64()) >= MS_TO_US(DownloadLength)) {
+                MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE, 0);
+                StrmContext->Complete = true;
+            }
+        } else if (StrmContext->BytesCompleted == DownloadLength) {
+            StrmContext->Complete = true;
+        }
         break;
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
         if (UploadLength) {
@@ -388,7 +407,9 @@ ThroughputClient::StreamCallback(
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
-        WriteOutput("Stream aborted\n");
+        if (!StrmContext->Complete) {
+            WriteOutput("Stream aborted\n");
+        }
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
@@ -396,8 +417,7 @@ ThroughputClient::StreamCallback(
         uint64_t ElapsedMicroseconds = StrmContext->EndTime - StrmContext->StartTime;
         uint32_t SendRate = (uint32_t)((StrmContext->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
-        if (StrmContext->BytesCompleted != 0 &&
-            (StrmContext->BytesCompleted == UploadLength || StrmContext->BytesCompleted == DownloadLength)) {
+        if (StrmContext->Complete) {
             WriteOutput(
                 "Result: %llu bytes @ %u kbps (%u.%03u ms).\n",
                 (unsigned long long)StrmContext->BytesCompleted,
@@ -434,10 +454,10 @@ ThroughputClient::SendData(
     _In_ StreamContext* Context
     )
 {
-    while (Context->BytesSent < UploadLength &&
-           Context->OutstandingBytes < Context->IdealSendBuffer) {
+    while (!Context->Complete && Context->OutstandingBytes < Context->IdealSendBuffer) {
 
-        uint64_t BytesLeftToSend = UploadLength - Context->BytesSent;
+        uint64_t BytesLeftToSend =
+            TimedTransfer ? UINT64_MAX : (UploadLength - Context->BytesSent);
         uint32_t DataLength = IoSize;
         QUIC_BUFFER* Buffer = DataBuffer;
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
@@ -448,6 +468,12 @@ ThroughputClient::SendData(
             Context->LastBuffer.Length = DataLength;
             Buffer = &Context->LastBuffer;
             Flags = QUIC_SEND_FLAG_FIN;
+            Context->Complete = TRUE;
+
+        } else if (TimedTransfer &&
+                   QuicTimeDiff64(Context->StartTime, QuicTimeUs64()) >= MS_TO_US(UploadLength)) {
+            Flags = QUIC_SEND_FLAG_FIN;
+            Context->Complete = TRUE;
         }
 
         Context->BytesSent += DataLength;
