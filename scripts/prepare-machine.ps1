@@ -7,6 +7,15 @@ on the provided configuration.
 .PARAMETER Configuration
     The type of configuration to install dependencies for.
 
+.PARAMETER InitSubmodules
+    Dynamically initializes submodules based Tls and Extra configuration knobs.
+
+.PARAMETER Tls
+    The TLS library in use.
+
+.PARAMETER Extra
+    Any extra build flags being used.
+
 .EXAMPLE
     prepare-machine.ps1 -Configuration Build
 
@@ -24,10 +33,10 @@ param (
     [switch]$InitSubmodules,
 
     [Parameter(Mandatory = $false)]
-    [string]$Tls,
+    [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$Extra
+    [string]$Extra = ""
 )
 
 #Requires -RunAsAdministrator

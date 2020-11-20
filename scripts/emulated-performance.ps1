@@ -5,6 +5,15 @@ This script runs performance tests with various emulated network conditions. Not
 this script requires duonic to be preinstalled on the system and quicperf.exe to
 be in the current directory.
 
+.PARAMETER Config
+    Specifies the build configuration to test.
+
+.PARAMETER Arch
+    The CPU architecture to test.
+
+.PARAMETER Tls
+    The TLS library test.
+
 .PARAMETER RttMs
     The round trip time(s) for the emulated network.
 
@@ -103,8 +112,12 @@ if ($IsWindows) {
     $QuicPerf = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/quicperf"
 }
 
-Get-NetAdapter
-ipconfig -all
+# TEMP
+C:\duonic\duonic.ps1 -uninstall
+C:\duonic\duonic.ps1 -install
+
+Get-NetAdapter | Write-Debug
+ipconfig -all | Write-Debug
 
 # Start the perf server listening.
 $pinfo = New-Object System.Diagnostics.ProcessStartInfo
