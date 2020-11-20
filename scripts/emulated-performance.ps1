@@ -5,6 +5,15 @@ This script runs performance tests with various emulated network conditions. Not
 this script requires duonic to be preinstalled on the system and quicperf.exe to
 be in the current directory.
 
+.PARAMETER Config
+    Specifies the build configuration to test.
+
+.PARAMETER Arch
+    The CPU architecture to test.
+
+.PARAMETER Tls
+    The TLS library test.
+
 .PARAMETER RttMs
     The round trip time(s) for the emulated network.
 
@@ -37,6 +46,17 @@ be in the current directory.
 #>
 
 param (
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("Debug", "Release")]
+    [string]$Config = "Release",
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("x86", "x64", "arm", "arm64")]
+    [string]$Arch = "x64",
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
     [Int32[]]$RttMs = 60,
@@ -69,9 +89,32 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Default TLS based on current platform.
+if ("" -eq $Tls) {
+    if ($IsWindows) {
+        $Tls = "schannel"
+    } else {
+        $Tls = "openssl"
+    }
+}
+
+# Root directory of the project.
+$RootDir = Split-Path $PSScriptRoot -Parent
+
+# Path to the quicperf exectuable.
+$QuicPerf = $null
+if ($IsWindows) {
+    $QuicPerf = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\quicperf.exe"
+} else {
+    $QuicPerf = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/quicperf"
+}
+
+Get-NetAdapter | Write-Debug
+ipconfig -all | Write-Debug
+
 # Start the perf server listening.
 $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-$pinfo.FileName = Join-Path $PSScriptRoot "quicperf.exe"
+$pinfo.FileName = $QuicPerf
 $pinfo.Arguments = "-selfsign:1"
 $pinfo.UseShellExecute = $false
 $p = New-Object System.Diagnostics.Process
@@ -86,6 +129,15 @@ for ($i = 0; $i -lt $NumIterations; $i++) {
 }
 Write-Host $Header
 
+# Turn on RDQ for duonic.
+Set-NetAdapterAdvancedProperty duo? -DisplayName RdqEnabled -RegistryValue 1 -NoRestart
+
+# The RDQ buffer limit is by packets and not bytes, so turn off LSO to avoid
+# strange behavior. This makes RDQ behave more like a real middlebox on the
+# network (such a middlebox would only see packets after LSO sends are split
+# into MTU-sized packets).
+Set-NetAdapterLso duo? -IPv4Enabled $false -IPv6Enabled $false -NoRestart
+
 # Loop over all the network emulation configurations.
 foreach ($ThisRttMs in $RttMs) {
 foreach ($ThisBottleneckMbps in $BottleneckMbps) {
@@ -96,17 +148,16 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
     # Configure duonic for the desired network emulation options.
     Write-Debug "Configure NIC: Rtt=$ThisRttMs ms, Bottneck=[$ThisBottleneckMbps mbps, $ThisBottleneckBufferPackets packets], RandomLoss=1/$ThisRandomLossDenominator, ReorderDelayDelta=$ThisReorderDelayDeltaMs ms, RandomReorder=1/$ThisRandomReorderDenominator"
-    $Output =
-        .\duonic.ps1 -Rdq `
-            -RttMs ([int]($ThisRttMs)) `
-            -BottleneckMbps $ThisBottleneckMbps `
-            -BottleneckBufferPackets $ThisBottleneckBufferPackets `
-            -RandomLossDenominator $ThisRandomLossDenominator `
-            -ReorderDelayDeltaMs $ThisReorderDelayDeltaMs `
-            -RandomReorderDenominator $ThisRandomReorderDenominator
-    if (!$Output.Contains("Done.")) {
-        Write-Error $Output
-    }
+    $DelayMs = [convert]::ToInt32([int]($ThisRttMs)/2)
+    Set-NetAdapterAdvancedProperty duo? -DisplayName DelayMs -RegistryValue $DelayMs -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName RateLimitMbps -RegistryValue $ThisBottleneckMbps -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName QueueLimitPackets -RegistryValue $ThisBottleneckBufferPackets -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName RandomLossDenominator -RegistryValue $ThisRandomLossDenominator -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName ReorderDelayDeltaMs -RegistryValue $ThisRandomReorderDenominator -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName RandomReorderDenominator -RegistryValue $ThisReorderDelayDeltaMs -NoRestart
+    Write-Debug "Restarting NIC"
+    Restart-NetAdapter duo?
+    Start-Sleep 5 # (wait for duonic to restart)
 
     # Loop over all the test configurations.
     foreach ($ThisDurationMs in $DurationMs) {
@@ -118,8 +169,8 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         for ($i = 0; $i -lt $NumIterations; $i++) {
 
             # Run the throughput upload test with the current configuration.
-            $Output = .\quicperf.exe -test:tput -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing
-            if (!$Output.Contains("App Main returning status 0")) {
+            $Output = iex "$QuicPerf -test:tput -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
+            if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:")) {
                 Write-Error $Output
             }
 
