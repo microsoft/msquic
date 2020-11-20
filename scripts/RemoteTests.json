@@ -303,6 +303,6 @@
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": "Result: (.*) HPS.*",
         "Formats": ["{0} HPS"],
-        "RegressionThreshold": "-18.0"
+        "RegressionThreshold": "-40.0"
     }
 ]
