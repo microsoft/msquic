@@ -37,6 +37,17 @@ be in the current directory.
 #>
 
 param (
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("Debug", "Release")]
+    [string]$Config = "Release",
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("x86", "x64", "arm", "arm64")]
+    [string]$Arch = "x64",
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
     [Int32[]]$RttMs = 60,
@@ -63,15 +74,35 @@ param (
     [Int32[]]$Pacing = (0, 1),
 
     [Parameter(Mandatory = $false)]
-    [Int32]$NumIterations = 1
+    [Int32]$NumIterations = 1,
+
+    [Parameter(Mandatory = $false)]
+    [string]$BaseBath = ""
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Default TLS based on current platform.
+if ("" -eq $Tls) {
+    if ($IsWindows) {
+        $Tls = "schannel"
+    } else {
+        $Tls = "openssl"
+    }
+}
+
+# Path to the quicperf exectuable.
+$QuicPerf = $null
+if ($IsWindows) {
+    $QuicPerf = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\quicperf.exe"
+} else {
+    $QuicPerf = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/quicperf"
+}
+
 # Start the perf server listening.
 $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-$pinfo.FileName = Join-Path $PSScriptRoot "quicperf.exe"
+$pinfo.FileName = $QuicPerf
 $pinfo.Arguments = "-selfsign:1"
 $pinfo.UseShellExecute = $false
 $p = New-Object System.Diagnostics.Process
@@ -124,7 +155,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         for ($i = 0; $i -lt $NumIterations; $i++) {
 
             # Run the throughput upload test with the current configuration.
-            $Output = .\quicperf.exe -test:tput -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing
+            $Output = iex "$QuicPerf -test:tput -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
             if (!$Output.Contains("App Main returning status 0")) {
                 Write-Error $Output
             }
