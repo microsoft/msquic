@@ -92,6 +92,9 @@ if ("" -eq $Tls) {
     }
 }
 
+# Root directory of the project.
+$RootDir = Split-Path $PSScriptRoot -Parent
+
 # Path to the quicperf exectuable.
 $QuicPerf = $null
 if ($IsWindows) {
