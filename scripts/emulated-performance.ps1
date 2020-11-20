@@ -103,6 +103,9 @@ if ($IsWindows) {
     $QuicPerf = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/quicperf"
 }
 
+Get-NetAdapter
+ipconfig -all
+
 # Start the perf server listening.
 $pinfo = New-Object System.Diagnostics.ProcessStartInfo
 $pinfo.FileName = $QuicPerf
@@ -161,7 +164,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
             # Run the throughput upload test with the current configuration.
             $Output = iex "$QuicPerf -test:tput -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
-            if (!$Output.Contains("App Main returning status 0")) {
+            if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:")) {
                 Write-Error $Output
             }
 

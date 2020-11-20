@@ -18,7 +18,16 @@ on the provided configuration.
 param (
     [Parameter(Mandatory = $true)]
     [ValidateSet("Build", "Test", "Dev")]
-    [string]$Configuration
+    [string]$Configuration,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InitSubmodules,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Tls,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Extra
 )
 
 #Requires -RunAsAdministrator
@@ -36,6 +45,31 @@ $ClogVersion = "0.1.8"
 $ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v$ClogVersion"
 
 $MessagesAtEnd = New-Object Collections.Generic.List[string]
+
+if ($InitSubmodules) {
+
+    # Default TLS based on current platform.
+    if ("" -eq $Tls) {
+        if ($IsWindows) {
+            $Tls = "schannel"
+        } else {
+            $Tls = "openssl"
+        }
+
+        if ($Tls -eq "openssl") {
+            Write-Host "Initializing openssl submodule"
+            git submodule update --remote submodules/openssl
+        } elseif ($Tls -eq "mitls") {
+            Write-Host "Initializing everest submodule"
+            git submodule update --remote submodules/everest
+        }
+
+        if (!$Extra.Contains("-DisableTest")) {
+            Write-Host "Initializing googletest submodule"
+            git submodule update --remote submodules/googletest
+        }
+    }
+}
 
 function Install-ClogTool {
     param($ToolName)
