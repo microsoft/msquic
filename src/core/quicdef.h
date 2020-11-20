@@ -343,12 +343,7 @@ QUIC_STATIC_ASSERT(
 //
 // The number of milliseconds between pacing chunks.
 //
-#define QUIC_SEND_PACING_INTERVAL               15
-
-//
-// The minimum number of packets to send per pacing chunk.
-//
-#define QUIC_SEND_PACING_MIN_CHUNK              4u
+#define QUIC_SEND_PACING_INTERVAL               2
 
 //
 // The maximum number of bytes to send in a given key phase
