@@ -36,10 +36,10 @@ param (
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$Extra = ""
+    [string]$Extra = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Kernel,
+    [switch]$Kernel
 )
 
 #Requires -RunAsAdministrator
