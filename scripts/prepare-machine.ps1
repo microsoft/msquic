@@ -55,19 +55,19 @@ if ($InitSubmodules) {
         } else {
             $Tls = "openssl"
         }
+    }
 
-        if ($Tls -eq "openssl") {
-            Write-Host "Initializing openssl submodule"
-            git submodule update --remote submodules/openssl
-        } elseif ($Tls -eq "mitls") {
-            Write-Host "Initializing everest submodule"
-            git submodule update --remote submodules/everest
-        }
+    if ($Tls -eq "openssl") {
+        Write-Host "Initializing openssl submodule"
+        git submodule update --remote submodules/openssl
+    } elseif ($Tls -eq "mitls") {
+        Write-Host "Initializing everest submodule"
+        git submodule update --remote submodules/everest
+    }
 
-        if (!$Extra.Contains("-DisableTest")) {
-            Write-Host "Initializing googletest submodule"
-            git submodule update --remote submodules/googletest
-        }
+    if (!$Extra.Contains("-DisableTest")) {
+        Write-Host "Initializing googletest submodule"
+        git submodule update --remote submodules/googletest
     }
 }
 
