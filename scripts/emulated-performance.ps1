@@ -113,6 +113,7 @@ if ($IsWindows) {
 }
 
 # TEMP
+cp c:\windows\system32\dswdevice.exe C:\duonic\
 C:\duonic\duonic.ps1 -uninstall
 C:\duonic\duonic.ps1 -install
 

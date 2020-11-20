@@ -37,6 +37,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [string]$Extra = ""
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Kernel,
 )
 
 #Requires -RunAsAdministrator
@@ -77,6 +80,11 @@ if ($InitSubmodules) {
     if (!$Extra.Contains("-DisableTest")) {
         Write-Host "Initializing googletest submodule"
         git submodule update --remote submodules/googletest
+
+        if ($Kernel) {
+            Write-Host "Initializing wil submodule"
+            git submodule update --remote submodules/wil
+        }
     }
 }
 
