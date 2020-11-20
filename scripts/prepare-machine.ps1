@@ -71,22 +71,22 @@ if ($InitSubmodules) {
 
     if ($Tls -eq "openssl") {
         Write-Host "Initializing openssl submodule"
-        git submodule init openssl
+        git submodule init submodules/openssl
         git submodule update
     } elseif ($Tls -eq "mitls") {
         Write-Host "Initializing everest submodule"
-        git submodule init everest
+        git submodule init submodules/everest
         git submodule update
     }
 
     if (!$Extra.Contains("-DisableTest")) {
         Write-Host "Initializing googletest submodule"
-        git submodule init googletest
+        git submodule init submodules/googletest
         git submodule update
 
         if ($Kernel) {
             Write-Host "Initializing wil submodule"
-            git submodule init wil
+            git submodule init submodules/wil
             git submodule update
         }
     }

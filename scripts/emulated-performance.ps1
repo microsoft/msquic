@@ -112,11 +112,6 @@ if ($IsWindows) {
     $QuicPerf = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/quicperf"
 }
 
-# TEMP
-cp c:\windows\system32\dswdevice.exe C:\duonic\
-C:\duonic\duonic.ps1 -uninstall
-C:\duonic\duonic.ps1 -install
-
 Get-NetAdapter | Write-Debug
 ipconfig -all | Write-Debug
 
