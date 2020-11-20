@@ -83,10 +83,7 @@ param (
     [Int32[]]$Pacing = (0, 1),
 
     [Parameter(Mandatory = $false)]
-    [Int32]$NumIterations = 1,
-
-    [Parameter(Mandatory = $false)]
-    [string]$BaseBath = ""
+    [Int32]$NumIterations = 1
 )
 
 Set-StrictMode -Version 'Latest'

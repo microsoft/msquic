@@ -16,6 +16,9 @@ on the provided configuration.
 .PARAMETER Extra
     Any extra build flags being used.
 
+.PARAMETER Kernel
+    Indicates build is for kernel mode.
+
 .EXAMPLE
     prepare-machine.ps1 -Configuration Build
 
