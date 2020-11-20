@@ -86,6 +86,15 @@ for ($i = 0; $i -lt $NumIterations; $i++) {
 }
 Write-Host $Header
 
+# Turn on RDQ for duonic.
+Set-NetAdapterAdvancedProperty duo? -DisplayName RdqEnabled -RegistryValue 1 -NoRestart
+
+# The RDQ buffer limit is by packets and not bytes, so turn off LSO to avoid
+# strange behavior. This makes RDQ behave more like a real middlebox on the
+# network (such a middlebox would only see packets after LSO sends are split
+# into MTU-sized packets).
+Set-NetAdapterLso duo? -IPv4Enabled $false -IPv6Enabled $false -NoRestart
+
 # Loop over all the network emulation configurations.
 foreach ($ThisRttMs in $RttMs) {
 foreach ($ThisBottleneckMbps in $BottleneckMbps) {
@@ -96,17 +105,14 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
     # Configure duonic for the desired network emulation options.
     Write-Debug "Configure NIC: Rtt=$ThisRttMs ms, Bottneck=[$ThisBottleneckMbps mbps, $ThisBottleneckBufferPackets packets], RandomLoss=1/$ThisRandomLossDenominator, ReorderDelayDelta=$ThisReorderDelayDeltaMs ms, RandomReorder=1/$ThisRandomReorderDenominator"
-    $Output =
-        .\duonic.ps1 -Rdq `
-            -RttMs ([int]($ThisRttMs)) `
-            -BottleneckMbps $ThisBottleneckMbps `
-            -BottleneckBufferPackets $ThisBottleneckBufferPackets `
-            -RandomLossDenominator $ThisRandomLossDenominator `
-            -ReorderDelayDeltaMs $ThisReorderDelayDeltaMs `
-            -RandomReorderDenominator $ThisRandomReorderDenominator
-    if (!$Output.Contains("Done.")) {
-        Write-Error $Output
-    }
+    Set-NetAdapterAdvancedProperty duo? -DisplayName DelayMs -RegistryValue ([convert]::ToInt32($ThisRttMs/2)) -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName RateLimitMbps -RegistryValue $ThisBottleneckMbps -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName QueueLimitPackets -RegistryValue $ThisBottleneckBufferPackets -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName RandomLossDenominator -RegistryValue $ThisRandomLossDenominator -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName ReorderDelayDeltaMs -RegistryValue $ThisRandomReorderDenominator -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName RandomReorderDenominator -RegistryValue $ThisReorderDelayDeltaMs -NoRestart
+    Restart-NetAdapter duo?
+    Start-Sleep 5 # (wait for duonic to restart)
 
     # Loop over all the test configurations.
     foreach ($ThisDurationMs in $DurationMs) {
