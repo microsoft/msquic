@@ -7,6 +7,18 @@ on the provided configuration.
 .PARAMETER Configuration
     The type of configuration to install dependencies for.
 
+.PARAMETER InitSubmodules
+    Dynamically initializes submodules based Tls and Extra configuration knobs.
+
+.PARAMETER Tls
+    The TLS library in use.
+
+.PARAMETER Extra
+    Any extra build flags being used.
+
+.PARAMETER Kernel
+    Indicates build is for kernel mode.
+
 .EXAMPLE
     prepare-machine.ps1 -Configuration Build
 
@@ -18,7 +30,19 @@ on the provided configuration.
 param (
     [Parameter(Mandatory = $true)]
     [ValidateSet("Build", "Test", "Dev")]
-    [string]$Configuration
+    [string]$Configuration,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InitSubmodules,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Tls = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$Extra = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Kernel
 )
 
 #Requires -RunAsAdministrator
@@ -32,10 +56,44 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $NuGetPath = Join-Path $RootDir "nuget"
 
 # Well-known location for clog packages.
-$ClogVersion = "0.1.8"
+$ClogVersion = "0.1.9"
 $ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v$ClogVersion"
 
 $MessagesAtEnd = New-Object Collections.Generic.List[string]
+
+if ($InitSubmodules) {
+
+    # Default TLS based on current platform.
+    if ("" -eq $Tls) {
+        if ($IsWindows) {
+            $Tls = "schannel"
+        } else {
+            $Tls = "openssl"
+        }
+    }
+
+    if ($Tls -eq "openssl") {
+        Write-Host "Initializing openssl submodule"
+        git submodule init submodules/openssl
+        git submodule update
+    } elseif ($Tls -eq "mitls") {
+        Write-Host "Initializing everest submodule"
+        git submodule init submodules/everest
+        git submodule update
+    }
+
+    if (!$Extra.Contains("-DisableTest")) {
+        Write-Host "Initializing googletest submodule"
+        git submodule init submodules/googletest
+        git submodule update
+
+        if ($Kernel) {
+            Write-Host "Initializing wil submodule"
+            git submodule init submodules/wil
+            git submodule update
+        }
+    }
+}
 
 function Install-ClogTool {
     param($ToolName)

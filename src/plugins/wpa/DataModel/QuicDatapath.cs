@@ -55,16 +55,16 @@ namespace MsQuicTracing.DataModel
                 }
                 eventIndex++;
 
-                if (evt.ID == QuicEventId.DatapathSend)
+                if (evt.EventId == QuicEventId.DatapathSend)
                 {
-                    var payload = evt.Payload as QuicDatapathSendPayload;
-                    sample.BytesSent += payload!.TotalSize;
+                    var _evt = evt as QuicDatapathSendEvent;
+                    sample.BytesSent += _evt!.TotalSize;
                     sample.SendEventCount++;
                 }
-                else if (evt.ID == QuicEventId.DatapathRecv)
+                else if (evt.EventId == QuicEventId.DatapathRecv)
                 {
-                    var payload = evt.Payload as QuicDatapathRecvPayload;
-                    sample.BytesReceived += payload!.TotalSize;
+                    var _evt = evt as QuicDatapathRecvEvent;
+                    sample.BytesReceived += _evt!.TotalSize;
                     sample.ReceiveEventCount++;
                 }
                 else
@@ -99,21 +99,27 @@ namespace MsQuicTracing.DataModel
 
         internal void AddEvent(QuicEvent evt, QuicState state)
         {
-            switch (evt.ID)
+            switch (evt.EventId)
             {
                 case QuicEventId.DatapathSend:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.Datapath;
-                        var payload = (evt.Payload as QuicDatapathSendPayload);
-                        BytesSent += payload!.TotalSize;
+                        var _evt = evt as QuicDatapathSendEvent;
+                        BytesSent += _evt!.TotalSize;
                         SendEventCount++;
+
+                        var worker = state.GetWorkerFromThread(evt.ProcessId, evt.ThreadId);
+                        if (worker != null && worker.LastConnection != null)
+                        {
+                            worker.LastConnection.AddEvent(evt, state);
+                        }
                         break;
                     }
                 case QuicEventId.DatapathRecv:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.Datapath;
-                        var payload = (evt.Payload as QuicDatapathRecvPayload);
-                        BytesReceived += payload!.TotalSize;
+                        var _evt = evt as QuicDatapathRecvEvent;
+                        BytesReceived += _evt!.TotalSize;
                         ReceiveEventCount++;
                         break;
                     }

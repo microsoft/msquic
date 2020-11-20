@@ -13,6 +13,8 @@ using Microsoft.Performance.SDK.Processing;
 using MsQuicTracing.DataModel;
 using MsQuicTracing.DataModel.ETW;
 
+#pragma warning disable CA1031 // Do not catch general exception types
+
 namespace MsQuicTracing
 {
     public enum QuicEventSourceType
@@ -62,7 +64,6 @@ namespace MsQuicTracing
 
         private static readonly Guid EventTraceGuid = new Guid("68fdd900-4a3e-11d1-84f4-0000f80464e3");
         private static readonly Guid SystemConfigExGuid = new Guid("9B79EE91-B5FD-41c0-A243-4248E266E9D0");
-        private static readonly Guid MsQuicEtwGuid = new Guid("ff15e657-4f26-570e-88ab-0796b258d11c");
 
         private static bool IsKnownSynthEvent(TraceEvent evt)
         {
@@ -76,37 +77,36 @@ namespace MsQuicTracing
 
             source.AllEvents += (evt) =>
             {
-                bool isOriginalHeader = source.SessionStartTime == evt.TimeStamp;
-
-                if (info == null &&
-                    !isOriginalHeader &&
-                    !IsKnownSynthEvent(evt) &&
-                    evt.TimeStamp.Ticks != 0)
-                {
-                    var deltaBetweenStartAndFirstTicks = evt.TimeStamp.Ticks - source.SessionStartTime.Ticks;
-                    var relativeNanoSeconds = deltaBetweenStartAndFirstTicks * 100;
-
-                    StartTime = evt.TimeStamp.Ticks;
-                    var lastnano = relativeNanoSeconds + ((source.SessionEndTime.Ticks - evt.TimeStamp.Ticks) * 100);
-                    info = new DataSourceInfo(relativeNanoSeconds, lastnano, evt.TimeStamp.ToUniversalTime());
-                }
-
-                progress.Report((int)(evt.TimeStampRelativeMSec / source.SessionEndTimeRelativeMSec * 100));
-            };
-
-            source.AllEvents += (evt) =>
-            {
                 if (cancellationToken.IsCancellationRequested)
                 {
                     source.StopProcessing();
                     return;
                 }
 
-                if (evt.ProviderGuid == MsQuicEtwGuid)
+                if (info == null && evt.TimeStamp.Ticks != 0 && !IsKnownSynthEvent(evt))
                 {
-                    var quicEvent = new QuicEtwEvent(evt, new Timestamp((evt.TimeStamp.Ticks - StartTime) * 100));
-                    dataProcessor.ProcessDataElement(quicEvent, this, cancellationToken);
+                    StartTime = evt.TimeStamp.Ticks;
+
+                    var firstEventNano = (evt.TimeStamp.Ticks - source.SessionStartTime.Ticks) * 100;
+                    var lastEventNano = (source.SessionEndTime.Ticks - source.SessionStartTime.Ticks) * 100;
+                    info = new DataSourceInfo(firstEventNano, lastEventNano, evt.TimeStamp.ToUniversalTime());
                 }
+                else if (evt.ProviderGuid == QuicEvent.ProviderGuid)
+                {
+                    try
+                    {
+                        var quicEvent = QuicEtwEvent.TryCreate(evt, new Timestamp((evt.TimeStamp.Ticks - StartTime) * 100));
+                        if (quicEvent != null)
+                        {
+                            dataProcessor.ProcessDataElement(quicEvent, this, cancellationToken);
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                progress.Report((int)(evt.TimeStampRelativeMSec / source.SessionEndTimeRelativeMSec * 100));
             };
 
             source.Process();

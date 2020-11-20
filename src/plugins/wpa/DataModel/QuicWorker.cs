@@ -40,6 +40,8 @@ namespace MsQuicTracing.DataModel
 
         public uint CurrentConnections { get; private set; }
 
+        internal QuicConnection? LastConnection { get; private set; }
+
         private readonly List<QuicEvent> Events = new List<QuicEvent>();
 
         public IReadOnlyList<QuicActivityData> GetActivityEvents()
@@ -48,10 +50,10 @@ namespace MsQuicTracing.DataModel
             QuicEvent? lastEvent = null;
             foreach (var evt in Events)
             {
-                if (evt.ID == QuicEventId.WorkerActivityStateUpdated)
+                if (evt.EventId == QuicEventId.WorkerActivityStateUpdated)
                 {
-                    var payload = evt.Payload as QuicWorkerActivityStateUpdatedPayload;
-                    if (payload!.IsActive == 0)
+                    var _evt = evt as QuicWorkerActivityStateUpdatedEvent;
+                    if (_evt!.IsActive == 0)
                     {
                         if (!(lastEvent is null))
                         {
@@ -80,6 +82,8 @@ namespace MsQuicTracing.DataModel
             FinalTimeStamp = Timestamp.MaxValue;
             LastActiveTimeStamp = Timestamp.MaxValue;
             TotalActiveTime = TimestampDelta.Zero;
+
+            LastConnection = null;
         }
 
         internal void AddEvent(QuicEvent evt, QuicState state)
@@ -89,10 +93,10 @@ namespace MsQuicTracing.DataModel
                 InitialTimeStamp = evt.TimeStamp;
             }
 
-            switch (evt.ID)
+            switch (evt.EventId)
             {
                 case QuicEventId.WorkerCreated:
-                    IdealProcessor = (evt.Payload as QuicWorkerCreatedPayload)!.IdealProcessor;
+                    IdealProcessor = (evt as QuicWorkerCreatedEvent)!.IdealProcessor;
                     break;
                 case QuicEventId.WorkerActivityStateUpdated:
                     state.DataAvailableFlags |= QuicDataAvailableFlags.WorkerActivity;
@@ -100,8 +104,8 @@ namespace MsQuicTracing.DataModel
                     {
                         ThreadId = evt.ThreadId;
                     }
-                    var payload = evt.Payload as QuicWorkerActivityStateUpdatedPayload;
-                    if (payload!.IsActive != 0)
+                    var _evt = evt as QuicWorkerActivityStateUpdatedEvent;
+                    if (_evt!.IsActive != 0)
                     {
                         if (LastActiveTimeStamp != Timestamp.MaxValue)
                         {
@@ -111,6 +115,7 @@ namespace MsQuicTracing.DataModel
                     else
                     {
                         LastActiveTimeStamp = evt.TimeStamp;
+                        LastConnection = null;
                     }
                     break;
                 default:
@@ -122,12 +127,12 @@ namespace MsQuicTracing.DataModel
             Events.Add(evt);
         }
 
-        internal void OnConnectionEvent(QuicEvent evt)
+        internal void OnConnectionEvent(QuicConnection connection, QuicEvent evt)
         {
-            if (evt.ID == QuicEventId.ConnScheduleState)
+            if (evt.EventId == QuicEventId.ConnScheduleState)
             {
-                var Payload = evt.Payload as QuicConnectionScheduleStatePayload;
-                if (Payload!.State == (uint)QuicScheduleState.Processing)
+                var _evt = evt as QuicConnectionScheduleStateEvent;
+                if (_evt!.State == (uint)QuicScheduleState.Processing)
                 {
                     if (ThreadId == uint.MaxValue)
                     {
@@ -135,7 +140,16 @@ namespace MsQuicTracing.DataModel
                     }
 
                     FinalTimeStamp = evt.TimeStamp;
+                    LastConnection = connection;
                 }
+                else
+                {
+                    LastConnection = null;
+                }
+            }
+            else if (evt.EventId == QuicEventId.ConnOutFlowStats)
+            {
+                LastConnection = connection;
             }
         }
 

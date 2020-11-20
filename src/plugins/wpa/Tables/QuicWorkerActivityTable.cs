@@ -65,14 +65,14 @@ namespace MsQuicTracing.Tables
                 new UIHints { AggregationMode = AggregationMode.Sum });
 
         private static readonly TableConfiguration tableConfig1 =
-            new TableConfiguration("Timeline by Process, Worker")
+            new TableConfiguration("Timeline by Worker")
             {
                 Columns = new[]
                 {
-                     processIdColumnConfig,
                      workerColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
+                     processIdColumnConfig,
                      threadIdColumnConfig,
                      countColumnConfig,
                      weightColumnConfig,
@@ -85,14 +85,14 @@ namespace MsQuicTracing.Tables
             };
 
         private static readonly TableConfiguration tableConfig2 =
-            new TableConfiguration("Utilization by Process, Worker")
+            new TableConfiguration("Utilization by Worker")
             {
                 Columns = new[]
                 {
-                     processIdColumnConfig,
                      workerColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
+                     processIdColumnConfig,
                      threadIdColumnConfig,
                      countColumnConfig,
                      weightColumnConfig,

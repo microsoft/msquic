@@ -97,7 +97,7 @@ namespace MsQuicTracing.Tables
             };
 
         private static readonly TableConfiguration tableConfig2 =
-            new TableConfiguration("Utilization by Connection, CPU")
+            new TableConfiguration("Utilization by Connection")
             {
                 Columns = new[]
                 {

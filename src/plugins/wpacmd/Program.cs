@@ -21,56 +21,38 @@ namespace MsQuicEtw
                 return;
             }
 
-            var sampleFile = args[0];
+            //
+            // Enable full event and payload parsing.
+            //
+            QuicEvent.ParseMode = QuicEventParseMode.Full;
 
             //
-            // Create our runtime environment, enabling cookers and
-            // adding inputs.
+            // Create our runtime environment, enabling cookers and adding inputs.
             //
-
-            var runtime = Engine.Create(
-                new EngineCreateInfo
-                {
-                    //
-                    // Set this to from where you want to load your
-                    // addins. The SDK by default will deploy your project,
-                    // which is why we used that here. Production applications
-                    // will more than likely use a different location (or
-                    // a location specified by the user.)
-                    //
-
-                    ExtensionDirectory = Environment.CurrentDirectory
-                });
-
-            runtime.AddFile(sampleFile);
-
-            //
-            // Enable the cooker to data processing
-            //
-
+            var runtime = Engine.Create();
+            runtime.AddFile(args[0]);
             runtime.EnableCooker(QuicEventCooker.CookerPath);
-
-            //
-            // Process our data.
-            //
-
+            Console.WriteLine("Processing...");
             var results = runtime.Process();
 
             //
             // Access our cooked data.
             //
-
             var quicState = results.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
-            if (quicState == null)
-            {
-                return;
-            }
 
-            Console.WriteLine("Timestamp, ID");
-
-            foreach (var evt in quicState.Events)
+            /*foreach (var evt in quicState.Events)
             {
-                Console.WriteLine($"{evt.TimeStamp}, {evt.ID}");
+                Console.WriteLine(evt);
+            }*/
+
+            Console.WriteLine("Conn, Process ID, Pointer");
+            foreach (var conn in quicState.Connections)
+            {
+                Console.WriteLine($"{conn.Id}, {conn.ProcessId}, {conn.Pointer}");
+                foreach (var evt in conn.Events)
+                {
+                    Console.WriteLine(evt);
+                }
             }
         }
     }

@@ -73,7 +73,7 @@ namespace MsQuicTracing.Tables
             }
 
             var events = quicState.Events
-                .Where(x => x.ID == QuicEventId.StreamCreated || x.ID == QuicEventId.StreamDestroyed).ToArray();
+                .Where(x => x.EventId == QuicEventId.StreamCreated || x.EventId == QuicEventId.StreamDestroyed).ToArray();
             if (events.Length == 0)
             {
                 return;
@@ -96,7 +96,7 @@ namespace MsQuicTracing.Tables
 
         private static string ProjectType(QuicEvent evt)
         {
-            return evt.ID == QuicEventId.StreamCreated ? "Stream Create" : "Stream Destroy";
+            return evt.EventId == QuicEventId.StreamCreated ? "Stream Create" : "Stream Destroy";
         }
 
         private static Timestamp ProjectTime(QuicEvent evt)
