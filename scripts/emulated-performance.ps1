@@ -139,12 +139,14 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
     # Configure duonic for the desired network emulation options.
     Write-Debug "Configure NIC: Rtt=$ThisRttMs ms, Bottneck=[$ThisBottleneckMbps mbps, $ThisBottleneckBufferPackets packets], RandomLoss=1/$ThisRandomLossDenominator, ReorderDelayDelta=$ThisReorderDelayDeltaMs ms, RandomReorder=1/$ThisRandomReorderDenominator"
-    Set-NetAdapterAdvancedProperty duo? -DisplayName DelayMs -RegistryValue ([convert]::ToInt32($ThisRttMs/2)) -NoRestart
+    $DelayMs = [convert]::ToInt32([int]($ThisRttMs)/2)
+    Set-NetAdapterAdvancedProperty duo? -DisplayName DelayMs -RegistryValue $DelayMs -NoRestart
     Set-NetAdapterAdvancedProperty duo? -DisplayName RateLimitMbps -RegistryValue $ThisBottleneckMbps -NoRestart
     Set-NetAdapterAdvancedProperty duo? -DisplayName QueueLimitPackets -RegistryValue $ThisBottleneckBufferPackets -NoRestart
     Set-NetAdapterAdvancedProperty duo? -DisplayName RandomLossDenominator -RegistryValue $ThisRandomLossDenominator -NoRestart
     Set-NetAdapterAdvancedProperty duo? -DisplayName ReorderDelayDeltaMs -RegistryValue $ThisRandomReorderDenominator -NoRestart
     Set-NetAdapterAdvancedProperty duo? -DisplayName RandomReorderDenominator -RegistryValue $ThisReorderDelayDeltaMs -NoRestart
+    Write-Debug "Restarting NIC"
     Restart-NetAdapter duo?
     Start-Sleep 5 # (wait for duonic to restart)
 
