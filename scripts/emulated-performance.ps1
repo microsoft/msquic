@@ -110,6 +110,9 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 
 # Folder for log files.
 $LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf" (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+if ($LogProfile -ne "None") {
+    New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
+}
 
 # Path to the quicperf exectuable.
 $QuicPerf = $null
