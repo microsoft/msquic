@@ -83,7 +83,11 @@ param (
     [Int32[]]$Pacing = (0, 1),
 
     [Parameter(Mandatory = $false)]
-    [Int32]$NumIterations = 1
+    [Int32]$NumIterations = 1,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("None", "Datapath.Light", "Datapath.Verbose", "Performance.Light", "Performance.Verbose")]
+    [string]$LogProfile = "None"
 )
 
 Set-StrictMode -Version 'Latest'
@@ -100,6 +104,12 @@ if ("" -eq $Tls) {
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
+
+# Script for controlling loggings.
+$LogScript = Join-Path $RootDir "scripts" "log.ps1"
+
+# Folder for log files.
+$LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf" (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 
 # Path to the quicperf exectuable.
 $QuicPerf = $null
@@ -168,10 +178,22 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         Write-Debug "Run upload test: Duration=$ThisDurationMs ms, Pacing=$ThisPacing"
         for ($i = 0; $i -lt $NumIterations; $i++) {
 
+            if ($LogProfile -ne "None") {
+                & $LogScript -Start -Profile $LogProfile | Out-Null
+            }
+
             # Run the throughput upload test with the current configuration.
             $Output = iex "$QuicPerf -test:tput -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
             if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:")) {
+                if ($LogProfile -ne "None") {
+                    & $LogScript -Cancel
+                }
                 Write-Error $Output
+            }
+
+            if ($LogProfile -ne "None") {
+                $TestLogDir = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$RateKbps.etl"
+                & $LogScript -Stop -OutputDirectory $TestLogDir -RawLogOnly
             }
 
             # Grab the result output text.
