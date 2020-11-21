@@ -191,15 +191,15 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
                 Write-Error $Output
             }
 
-            if ($LogProfile -ne "None") {
-                $TestLogDir = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$RateKbps.etl"
-                & $LogScript -Stop -OutputDirectory $TestLogDir -RawLogOnly
-            }
-
             # Grab the result output text.
             $Result = $Output.Split([Environment]::NewLine)[-2]
             Write-Debug $Result
             $Results.Add([int]$Result.Split(" ")[4]) | Out-Null
+
+            if ($LogProfile -ne "None") {
+                $TestLogDir = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$Result.etl"
+                & $LogScript -Stop -OutputDirectory $TestLogDir -RawLogOnly
+            }
         }
 
         # Grab the average result and write the CSV output.
