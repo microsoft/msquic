@@ -12,4 +12,5 @@ add_executable(quicperf ${SOURCES} histogram/hdr_histogram.c)
 
 set_property(TARGET quicperf PROPERTY FOLDER "perf")
 
-target_link_libraries(quicperf inc warnings perflib msquic platform perfbin.clog)
+find_package(Threads)
+target_link_libraries(quicperf inc warnings perflib msquic platform perfbin.clog ${CMAKE_THREAD_LIBS_INIT})
