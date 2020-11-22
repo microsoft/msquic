@@ -94,7 +94,6 @@ if ($IsLinux) {
 # Start log collection.
 function Log-Start {
     if ($IsWindows) {
-        Write-Debug "Starting WPR logs: $($WprpFile)!$($Profile)"
         wpr.exe -start "$($WprpFile)!$($Profile)" -filemode -instancename $InstanceName 2>&1
     } else {
         if (Test-Path $TempDir) {

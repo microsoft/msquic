@@ -112,6 +112,7 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 $LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf" (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 if ($LogProfile -ne "None") {
     New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
+    dir $LogScript | Write-Debug
 }
 
 # Path to the quicperf exectuable.
@@ -182,7 +183,8 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         for ($i = 0; $i -lt $NumIterations; $i++) {
 
             if ($LogProfile -ne "None") {
-                & $LogScript -Start -Profile $LogProfile | Write-Debug
+                Write-Debug "Starting logs: Profile=$LogProfile"
+                & $LogScript -Start -Profile $LogProfile | Out-Null
             }
 
             # Run the throughput upload test with the current configuration.
