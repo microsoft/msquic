@@ -203,13 +203,14 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
                 Write-Error $Output
             }
 
-            # Grab the result output text.
+            # Grab the result from the output text.
             $Result = $Output.Split([Environment]::NewLine)[-2]
             Write-Debug $Result
-            $Results.Add([int]$Result.Split(" ")[4]) | Out-Null
+            $Rate = [int]$Result.Split(" ")[4]
+            $Results.Add($Rate) | Out-Null
 
             if ($LogProfile -ne "None") {
-                $TestLogDir = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$Result"
+                $TestLogDir = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$Rate"
                 mkdir $TestLogDir | Out-Null
                 Write-Debug "Stopping logs: TestLogDir=$TestLogDir"
                 try {
