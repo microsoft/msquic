@@ -111,6 +111,11 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 # Folder for log files.
 $LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf" (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 if ($LogProfile -ne "None") {
+    try {
+        Write-Debug "Canceling any already running logs"
+        & $LogScript -Cancel
+    } catch {
+    }
     New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
     dir $LogScript | Write-Debug
 }
@@ -183,14 +188,11 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         for ($i = 0; $i -lt $NumIterations; $i++) {
 
             if ($LogProfile -ne "None") {
-                Write-Debug "Starting logs: Profile=$LogProfile"
                 try {
-                    & $LogScript -Start -Profile $LogProfile
-                    Write-Debug "Logging started"
+                    & $LogScript -Start -Profile $LogProfile | Out-Null
                 } catch {
                     Write-Debug "Logging exception"
                 }
-                Write-Debug "Logging continued"
             }
 
             # Run the throughput upload test with the current configuration.
@@ -198,7 +200,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             $Output = iex "$QuicPerf -test:tput -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
             if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:")) {
                 if ($LogProfile -ne "None") {
-                    & $LogScript -Cancel
+                    & $LogScript -Cancel | Out-Null
                 }
                 Write-Error $Output
             }
@@ -212,14 +214,11 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             if ($LogProfile -ne "None") {
                 $TestLogDir = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$Rate"
                 mkdir $TestLogDir | Out-Null
-                Write-Debug "Stopping logs: TestLogDir=$TestLogDir"
                 try {
-                    & $LogScript -Stop -OutputDirectory $TestLogDir -RawLogOnly
-                    Write-Debug "Logging stopped"
+                    & $LogScript -Stop -OutputDirectory $TestLogDir -RawLogOnly | Out-Null
                 } catch {
                     Write-Debug "Logging exception"
                 }
-                Write-Debug "Logging continued"
             }
         }
 
