@@ -185,7 +185,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             if ($LogProfile -ne "None") {
                 Write-Debug "Starting logs: Profile=$LogProfile"
                 try {
-                    & $LogScript -Start -Profile $LogProfile | Out-Null
+                    & $LogScript -Start -Profile $LogProfile
                     Write-Debug "Logging started"
                 } catch {
                     Write-Debug "Logging exception"
@@ -209,8 +209,16 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             $Results.Add([int]$Result.Split(" ")[4]) | Out-Null
 
             if ($LogProfile -ne "None") {
-                $TestLogDir = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$Result.etl"
-                & $LogScript -Stop -OutputDirectory $TestLogDir -RawLogOnly | Write-Debug
+                $TestLogDir = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$Result"
+                mkdir $TestLogDir | Out-Null
+                Write-Debug "Stopping logs: TestLogDir=$TestLogDir"
+                try {
+                    & $LogScript -Stop -OutputDirectory $TestLogDir -RawLogOnly
+                    Write-Debug "Logging stopped"
+                } catch {
+                    Write-Debug "Logging exception"
+                }
+                Write-Debug "Logging continued"
             }
         }
 
