@@ -184,7 +184,13 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
             if ($LogProfile -ne "None") {
                 Write-Debug "Starting logs: Profile=$LogProfile"
-                & $LogScript -Start -Profile $LogProfile | Out-Null
+                try {
+                    & $LogScript -Start -Profile $LogProfile | Out-Null
+                    Write-Debug "Logging started"
+                } catch {
+                    Write-Debug "Logging exception"
+                }
+                Write-Debug "Logging continued"
             }
 
             # Run the throughput upload test with the current configuration.
