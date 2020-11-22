@@ -111,7 +111,7 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 # Folder for log files.
 $LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf" (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 if ($LogProfile -ne "None") {
-    New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
+    New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
 }
 
 # Path to the quicperf exectuable.
@@ -182,7 +182,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         for ($i = 0; $i -lt $NumIterations; $i++) {
 
             if ($LogProfile -ne "None") {
-                & $LogScript -Start -Profile $LogProfile | Out-Null
+                & $LogScript -Start -Profile $LogProfile | Write-Debug
             }
 
             # Run the throughput upload test with the current configuration.
@@ -201,7 +201,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
             if ($LogProfile -ne "None") {
                 $TestLogDir = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$Result.etl"
-                & $LogScript -Stop -OutputDirectory $TestLogDir -RawLogOnly
+                & $LogScript -Stop -OutputDirectory $TestLogDir -RawLogOnly | Write-Debug
             }
         }
 
