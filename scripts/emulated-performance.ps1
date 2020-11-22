@@ -186,6 +186,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             }
 
             # Run the throughput upload test with the current configuration.
+            Write-Debug "Run upload test: Iteration=$($i + 1)"
             $Output = iex "$QuicPerf -test:tput -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
             if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:")) {
                 if ($LogProfile -ne "None") {
