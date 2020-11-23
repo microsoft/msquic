@@ -83,7 +83,11 @@ param (
     [Int32[]]$Pacing = (0, 1),
 
     [Parameter(Mandatory = $false)]
-    [Int32]$NumIterations = 1
+    [Int32]$NumIterations = 1,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("None", "Datapath.Light", "Datapath.Verbose", "Performance.Light", "Performance.Verbose")]
+    [string]$LogProfile = "None"
 )
 
 Set-StrictMode -Version 'Latest'
@@ -100,6 +104,21 @@ if ("" -eq $Tls) {
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
+
+# Script for controlling loggings.
+$LogScript = Join-Path $RootDir "scripts" "log.ps1"
+
+# Folder for log files.
+$LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf" (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+if ($LogProfile -ne "None") {
+    try {
+        Write-Debug "Canceling any already running logs"
+        & $LogScript -Cancel
+    } catch {
+    }
+    New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
+    dir $LogScript | Write-Debug
+}
 
 # Path to the quicperf exectuable.
 $QuicPerf = $null
@@ -168,16 +187,39 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         Write-Debug "Run upload test: Duration=$ThisDurationMs ms, Pacing=$ThisPacing"
         for ($i = 0; $i -lt $NumIterations; $i++) {
 
+            if ($LogProfile -ne "None") {
+                try {
+                    & $LogScript -Start -Profile $LogProfile | Out-Null
+                } catch {
+                    Write-Debug "Logging exception"
+                }
+            }
+
             # Run the throughput upload test with the current configuration.
+            Write-Debug "Run upload test: Iteration=$($i + 1)"
             $Output = iex "$QuicPerf -test:tput -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
             if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:")) {
+                if ($LogProfile -ne "None") {
+                    & $LogScript -Cancel | Out-Null
+                }
                 Write-Error $Output
             }
 
-            # Grab the result output text.
+            # Grab the result from the output text.
             $Result = $Output.Split([Environment]::NewLine)[-2]
             Write-Debug $Result
-            $Results.Add([int]$Result.Split(" ")[4]) | Out-Null
+            $Rate = [int]$Result.Split(" ")[4]
+            $Results.Add($Rate) | Out-Null
+
+            if ($LogProfile -ne "None") {
+                $TestLogDir = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$Rate"
+                mkdir $TestLogDir | Out-Null
+                try {
+                    & $LogScript -Stop -OutputDirectory $TestLogDir -RawLogOnly | Out-Null
+                } catch {
+                    Write-Debug "Logging exception"
+                }
+            }
         }
 
         # Grab the average result and write the CSV output.
