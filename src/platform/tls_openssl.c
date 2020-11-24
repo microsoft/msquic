@@ -341,7 +341,7 @@ QuicTlsAddHandshakeDataCallback(
         OpenSslAddHandshakeData,
         TlsContext->Connection,
         "Sending %llu handshake bytes (Level = %u)",
-        Length,
+        (uint64_t)Length,
         Level);
 
     if (Length + TlsState->BufferLength > 0xF000) {
