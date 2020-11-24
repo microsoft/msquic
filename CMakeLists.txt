@@ -511,7 +511,7 @@ if(QUIC_TLS STREQUAL "openssl")
             DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
         add_library(OpenSSL_Crypto STATIC IMPORTED)
-        set_target_properites(OpenSSL_Crypto PROPERTIES
+        set_target_properties(OpenSSL_Crypto PROPERTIES
             IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             IMPORTED_LINK_INTERFACE_LANGUAGES "C")
 
@@ -520,7 +520,7 @@ if(QUIC_TLS STREQUAL "openssl")
         file(MAKE_DIRECTORY ${OPENSSL_DIR}/include)
 
         add_library(OpenSSL STATIC IMPORTED)
-        set_target_properites(OpenSSL PROPERTIES
+        set_target_properties(OpenSSL PROPERTIES
             IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
             IMPORTED_LINK_INTERFACE_LANGUAGES "C")
 
