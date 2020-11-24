@@ -6,7 +6,7 @@
 add_library(inc INTERFACE)
 
 target_compile_options(inc INTERFACE ${QUIC_C_FLAGS})
-target_compile_options(inc INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}> /permissive-)
+target_compile_options(inc INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
 
 target_compile_definitions(inc INTERFACE ${QUIC_COMMON_DEFINES})
 target_include_directories(inc INTERFACE ${QUIC_INCLUDE_DIR})
