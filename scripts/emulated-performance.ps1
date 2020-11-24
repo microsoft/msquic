@@ -166,7 +166,7 @@ foreach ($ThisRandomReorderDenominator in $RandomReorderDenominator) {
 foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
     # Calculate BDP in 'packets'
-    $BDP = [double]($ThisRttMs * $ThisBottleneckMbps * 8.0) / 1.5
+    $BDP = [double]($ThisRttMs * $ThisBottleneckMbps) / (1.5 * 8.0)
     $ThisBottleneckBufferPackets = [int]($BDP * $ThisBottleneckQueueRatio * 1.1)
 
     # Configure duonic for the desired network emulation options.
