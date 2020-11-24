@@ -13,8 +13,6 @@ endif()
 
 message(STATUS "CMAKE Version: ${CMAKE_VERSION}")
 
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
-
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
@@ -33,6 +31,10 @@ else()
     else()
         message(WARNING "CMake version too old to support Policy 0091; CRT static linking won't work")
     endif()
+endif()
+
+if (POLICY CMP0111)
+    cmake_policy(SET CMP0111 NEW)
 endif()
 
 project(msquic)
@@ -384,16 +386,41 @@ endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     if (WIN32)
+        if (QUIC_UWP_BUILD)
+            message(FATAL_ERROR "UWP is not supported with OpenSSL")
+        endif()
+
+        if (${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm64")
+            set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64-ARM")
+        elseif (${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm")
+            set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32-ARM")
+        elseif (${CMAKE_GENERATOR_PLATFORM} STREQUAL "Win32")
+            set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32")
+        elseif (${CMAKE_GENERATOR_PLATFORM} STREQUAL "x64")
+            set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64A")
+        else()
+            message(FATAL_ERROR "Unknown Generator Platform ${CMAKE_GENERATOR_PLATFORM}")
+        endif()
+
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
 
         add_library(OpenSSL_Crypto STATIC IMPORTED)
         set_property(TARGET OpenSSL_Crypto PROPERTY IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
         set_property(TARGET OpenSSL_Crypto PROPERTY IMPORTED_LOCATION_DEBUG   ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 
+        set_target_properties(OpenSSL_Crypto PROPERTIES
+            MAP_IMPORTED_CONFIG_MINSIZEREL Release
+            MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
+        )
 
         add_library(OpenSSL STATIC IMPORTED)
         set_property(TARGET OpenSSL PROPERTY IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
         set_property(TARGET OpenSSL PROPERTY IMPORTED_LOCATION_DEBUG   ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+
+        set_target_properties(OpenSSL PROPERTIES
+            MAP_IMPORTED_CONFIG_MINSIZEREL Release
+            MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
+        )
 
         target_include_directories(OpenSSL INTERFACE
                 $<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
@@ -414,7 +441,7 @@ if(QUIC_TLS STREQUAL "openssl")
                 no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
                 no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
                 no-siv no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-des no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
-                no-weak-ssl-ciphers no-shared no-tests VC-WIN64A)
+                no-weak-ssl-ciphers no-shared no-tests ${QUIC_OPENSSL_WIN_ARCH})
 
             add_custom_target(mkdir_openssl_build_debug
                 COMMAND if not exist \"${QUIC_BUILD_DIR}/submodules/openssl/debug\" mkdir \"${QUIC_BUILD_DIR}/submodules/openssl/debug\" 2> NUL)
