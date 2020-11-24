@@ -20,8 +20,8 @@ be in the current directory.
 .PARAMETER BottleneckMbps
     The maximum rate(s) for the emulated network.
 
-.PARAMETER BottleneckBufferPackets
-    The maximum buffer size(s), in packets, for the emulated network.
+.PARAMETER BottleneckQueueRatio
+    The queue length as a ratio of BDP for the emulated network.
 
 .PARAMETER RandomLossDenominator
     For N > 0, indicates a random drop chance of 1 / N packets in the emulated network.
@@ -65,7 +65,7 @@ param (
     [Int32[]]$BottleneckMbps = 20,
 
     [Parameter(Mandatory = $false)]
-    [Int32[]]$BottleneckBufferPackets = 1000,
+    [double[]]$BottleneckQueueRatio = 1.0,
 
     [Parameter(Mandatory = $false)]
     [Int32[]]$RandomLossDenominator = 0,
@@ -160,10 +160,14 @@ Set-NetAdapterLso duo? -IPv4Enabled $false -IPv6Enabled $false -NoRestart
 # Loop over all the network emulation configurations.
 foreach ($ThisRttMs in $RttMs) {
 foreach ($ThisBottleneckMbps in $BottleneckMbps) {
-foreach ($ThisBottleneckBufferPackets in $BottleneckBufferPackets) {
+foreach ($ThisBottleneckQueueRatio in $BottleneckQueueRatio) {
 foreach ($ThisRandomLossDenominator in $RandomLossDenominator) {
 foreach ($ThisRandomReorderDenominator in $RandomReorderDenominator) {
 foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
+
+    # Calculate BDP in 'packets'
+    $BDP = [double]($ThisRttMs * $ThisBottleneckMbps * 8.0) / 1.5
+    $ThisBottleneckBufferPackets = [int]($BDP * $ThisBottleneckQueueRatio * 1.1)
 
     # Configure duonic for the desired network emulation options.
     Write-Debug "Configure NIC: Rtt=$ThisRttMs ms, Bottneck=[$ThisBottleneckMbps mbps, $ThisBottleneckBufferPackets packets], RandomLoss=1/$ThisRandomLossDenominator, ReorderDelayDelta=$ThisReorderDelayDeltaMs ms, RandomReorder=1/$ThisRandomReorderDenominator"
