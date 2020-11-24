@@ -405,22 +405,22 @@ if(QUIC_TLS STREQUAL "openssl")
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
 
         add_library(OpenSSL_Crypto STATIC IMPORTED)
-        set_property(TARGET OpenSSL_Crypto PROPERTY IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
-        set_property(TARGET OpenSSL_Crypto PROPERTY IMPORTED_LOCATION_DEBUG   ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
-
         set_target_properties(OpenSSL_Crypto PROPERTIES
-            MAP_IMPORTED_CONFIG_MINSIZEREL Release
-            MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
-        )
+            IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
+            IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+            MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
+            MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
 
         add_library(OpenSSL STATIC IMPORTED)
-        set_property(TARGET OpenSSL PROPERTY IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-        set_property(TARGET OpenSSL PROPERTY IMPORTED_LOCATION_DEBUG   ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-
         set_target_properties(OpenSSL PROPERTIES
-            MAP_IMPORTED_CONFIG_MINSIZEREL Release
-            MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
-        )
+            IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
+            IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+            MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
+            MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
 
         target_include_directories(OpenSSL INTERFACE
                 $<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
@@ -511,13 +511,19 @@ if(QUIC_TLS STREQUAL "openssl")
             DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
         add_library(OpenSSL_Crypto STATIC IMPORTED)
-        set_property(TARGET OpenSSL_Crypto PROPERTY IMPORTED_LOCATION   ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+        set_target_properites(OpenSSL_Crypto PROPERTIES
+            IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LINK_INTERFACE_LANGUAGES "C")
+
         add_dependencies(OpenSSL_Crypto OpenSSL_Build)
 
         file(MAKE_DIRECTORY ${OPENSSL_DIR}/include)
 
         add_library(OpenSSL STATIC IMPORTED)
-        set_property(TARGET OpenSSL PROPERTY IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+        set_target_properites(OpenSSL PROPERTIES
+            IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LINK_INTERFACE_LANGUAGES "C")
+
         target_include_directories(OpenSSL INTERFACE ${OPENSSL_DIR}/include)
         target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
         add_dependencies(OpenSSL OpenSSL_Build)
