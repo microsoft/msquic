@@ -343,7 +343,7 @@ QUIC_STATIC_ASSERT(
 //
 // The number of milliseconds between pacing chunks.
 //
-#define QUIC_SEND_PACING_INTERVAL               2
+#define QUIC_SEND_PACING_INTERVAL               1
 
 //
 // The maximum number of bytes to send in a given key phase
