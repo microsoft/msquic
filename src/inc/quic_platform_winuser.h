@@ -37,6 +37,7 @@ Environment:
 #pragma warning(disable:26036)
 #pragma warning(disable:28252)
 #pragma warning(disable:28253)
+#pragma warning(disable:5105) // The conformant preprocessor along with the newest SDK throws this warning for a macro.
 #include <windows.h>
 #include <winsock2.h>
 #include <iphlpapi.h>
@@ -142,10 +143,12 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     );
 
+#define QUIC_WIDE_STRING(_str) L##_str
+
 #define QUIC_ASSERT_ACTION(_exp) \
     ((!(_exp)) ? \
         (QuicPlatformLogAssert(__FILE__, __LINE__, #_exp), \
-         __annotation(L"Debug", L"AssertFail", L#_exp), \
+         __annotation(L"Debug", L"AssertFail", QUIC_WIDE_STRING(#_exp)), \
          DbgRaiseAssertionFailure(), FALSE) : \
         TRUE)
 
