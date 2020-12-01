@@ -269,7 +269,7 @@ QuicCongestionControlOnCongestionEvent(
     Cc->SlowStartThreshold =
     Cc->CongestionWindow =
         max(
-            (uint32_t)Connection->Paths[0].Mtu * Cc->InitialWindowPackets,
+            (uint32_t)Connection->Paths[0].Mtu * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS,
             Cc->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10);
 }
 
