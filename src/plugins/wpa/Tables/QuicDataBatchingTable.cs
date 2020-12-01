@@ -24,11 +24,6 @@ namespace MsQuicTracing.Tables
            category: "Communications",
            requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
 
-        private static readonly ColumnConfiguration datapathColumnConfig =
-            new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{EA4E4C1E-E36F-4E02-83E0-70C07EBD9395}"), "Datapath"),
-                new UIHints { AggregationMode = AggregationMode.UniqueCount });
-
         private static readonly ColumnConfiguration typeColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{3CDB23BF-C6B1-4A21-A809-5683D31C5993}"), "Type"),
@@ -44,14 +39,9 @@ namespace MsQuicTracing.Tables
                 new ColumnMetadata(new Guid("{69545071-7165-4BD3-84BC-9052C310FF33}"), "Time"),
                 new UIHints { AggregationMode = AggregationMode.Max });
 
-        private static readonly ColumnConfiguration durationColumnConfig =
+        private static readonly ColumnConfiguration bytesColumnConfig =
             new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{C1E78678-10B5-43BD-A600-1D5BCC59D48E}"), "Duration"),
-                new UIHints { AggregationMode = AggregationMode.Sum });
-
-        private static readonly ColumnConfiguration rateColumnConfig =
-            new ColumnConfiguration(
-                new ColumnMetadata(new Guid("{910E9271-9964-49B1-A4BA-668AF89BDF7E}"), "Rate"),
+                new ColumnMetadata(new Guid("{910E9271-9964-49B1-A4BA-668AF89BDF7E}"), "Bytes"),
                 new UIHints { AggregationMode = AggregationMode.Average });
 
         private static readonly TableConfiguration tableConfig1 =
@@ -59,35 +49,16 @@ namespace MsQuicTracing.Tables
             {
                 Columns = new[]
                 {
-                     datapathColumnConfig,
                      typeColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
                      processIdColumnConfig,
                      timeColumnConfig,
-                     durationColumnConfig,
                      TableConfiguration.RightFreezeColumn,
                      TableConfiguration.GraphColumn,
-                     rateColumnConfig,
+                     bytesColumnConfig,
                 }
             };
-
-        readonly struct Data
-        {
-            internal QuicDatapath Datapath { get; }
-            internal bool Tx { get; }
-            internal Timestamp Time { get; }
-            internal TimestampDelta Duration { get; }
-            internal ulong Rate { get; }
-            internal Data(QuicDatapath datapath, bool tx, Timestamp time, TimestampDelta duration, ulong rate)
-            {
-                Datapath = datapath;
-                Tx = tx;
-                Time = time;
-                Duration = duration;
-                Rate = rate;
-            }
-        };
 
         public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
         {
@@ -106,35 +77,22 @@ namespace MsQuicTracing.Tables
                 return;
             }
 
-            var datapaths = quicState.Datapaths;
-            if (datapaths.Count == 0)
+            var events = quicState.Events
+                .Where(x => x.EventId == QuicEventId.DatapathSend || x.EventId == QuicEventId.DatapathRecv).ToArray();
+            if (events.Length == 0)
             {
                 return;
             }
 
-            var data = new List<Data>();
-            foreach (var datapath in datapaths)
-            {
-                foreach (var evt in datapath.GetDatapathEvents())
-                {
-                    data.Add(new Data(datapath, true, evt.TimeStamp, evt.Duration, evt.TxBatchRate));
-                    data.Add(new Data(datapath, false, evt.TimeStamp, evt.Duration, evt.RxBatchRate));
-                }
-            }
+            var table = tableBuilder.SetRowCount(events.Length);
+            var dataProjection = Projection.Index(events);
 
-            var table = tableBuilder.SetRowCount(data.Count);
-            var dataProjection = Projection.Index(data);
-
-            table.AddColumn(datapathColumnConfig, dataProjection.Compose(ProjectId));
             table.AddColumn(processIdColumnConfig, dataProjection.Compose(ProjectProcessId));
             table.AddColumn(typeColumnConfig, dataProjection.Compose(ProjectType));
             table.AddColumn(timeColumnConfig, dataProjection.Compose(ProjectTime));
-            table.AddColumn(durationColumnConfig, dataProjection.Compose(ProjectDuration));
-            table.AddColumn(rateColumnConfig, dataProjection.Compose(ProjectRate));
+            table.AddColumn(bytesColumnConfig, dataProjection.Compose(ProjectBytes));
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
-            tableConfig1.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
-            tableConfig1.InitialSelectionQuery = "[Series Name]:=\"Type\"";
             tableBuilder.AddTableConfiguration(tableConfig1);
 
             tableBuilder.SetDefaultTableConfiguration(tableConfig1);
@@ -142,34 +100,31 @@ namespace MsQuicTracing.Tables
 
         #region Projections
 
-        private static ulong ProjectId(Data data)
+        private static uint ProjectProcessId(QuicEvent evt)
         {
-            return data.Datapath.Id;
+            return evt.ProcessId;
         }
 
-        private static uint ProjectProcessId(Data data)
+        private static string ProjectType(QuicEvent evt)
         {
-            return data.Datapath.ProcessId;
+            return (evt.EventId == QuicEventId.DatapathSend) ? "TX" : "RX";
         }
 
-        private static string ProjectType(Data data)
+        private static Timestamp ProjectTime(QuicEvent evt)
         {
-            return data.Tx ? "TX" : "RX";
+            return evt.TimeStamp;
         }
 
-        private static Timestamp ProjectTime(Data data)
+        private static uint ProjectBytes(QuicEvent evt)
         {
-            return data.Time;
-        }
-
-        private static TimestampDelta ProjectDuration(Data data)
-        {
-            return data.Duration;
-        }
-
-        private static ulong ProjectRate(Data data)
-        {
-            return data.Rate;
+            if (evt.EventId == QuicEventId.DatapathSend)
+            {
+                return (evt as QuicDatapathSendEvent)!.TotalSize;
+            }
+            else
+            {
+                return (evt as QuicDatapathRecvEvent)!.TotalSize;
+            }
         }
 
         #endregion
