@@ -85,6 +85,14 @@ QuicStreamInitialize(
         }
     }
 
+#if 1 // Special case code to force bugcheck or failure. Will be removed when no longer needed.
+    QUIC_FRE_ASSERT(Connection->Settings.StreamRecvBufferDefault != 0x80000000u);
+    if (Connection->Settings.StreamRecvBufferDefault == 0x40000000u) {
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        goto Exit;
+    }
+#endif
+
     InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
         PreallocatedRecvBuffer = QuicPoolAlloc(&Worker->DefaultReceiveBufferPool);
