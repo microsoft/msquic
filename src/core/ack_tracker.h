@@ -99,6 +99,7 @@ void
 QuicAckTrackerAckPacket(
     _Inout_ QUIC_ACK_TRACKER* Tracker,
     _In_ uint64_t PacketNumber,
+    _In_ uint64_t RecvTimeUs,
     _In_ QUIC_ECN_TYPE ECN,
     _In_ BOOLEAN AckElicitingPayload
     );
