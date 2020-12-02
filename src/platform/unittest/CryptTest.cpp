@@ -10,6 +10,7 @@
 #include "quic_tls.h"
 
 #include "msquichelper.h"
+#include <iomanip>
 #ifdef QUIC_CLOG
 #include "CryptTest.cpp.clog.h"
 #endif
@@ -254,6 +255,92 @@ TEST_F(CryptTest, WellKnownClientInitial)
     QuicPacketKeyFree(State.ReadKeys[0]);
     QuicPacketKeyFree(State.WriteKeys[0]);
     QuicPacketKeyFree(NewPacketKey);
+}
+
+void PrintHpMask(
+    _In_z_ const char* Prefix,
+    _In_reads_bytes_(Length)
+        const uint8_t* const Buffer,
+    _In_ size_t Length
+    )
+{
+    std::cout << Prefix << std::hex;
+    for (uint32_t i = 0; i < Length; i++) {
+        std::cout << std::setfill('0') << std::setw(2) << (unsigned int)Buffer[i] && 0xff;
+    }
+    std::cout << std::dec << std::endl;
+}
+
+TEST_F(CryptTest, HpMaskChaCha20)
+{
+    const uint8_t RawKey[] =
+        {0, 1, 2, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15,
+        16, 17, 18, 19, 20, 21, 22, 23,
+        24, 25, 26, 27, 28, 29, 30, 31};
+    const uint8_t Sample[] =
+        {0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0};
+    uint8_t Mask[16] = {0};
+    QUIC_HP_KEY* HpKey = nullptr;
+    VERIFY_QUIC_SUCCESS(QuicHpKeyCreate(QUIC_AEAD_CHACHA20_POLY1305, RawKey, &HpKey));
+    VERIFY_QUIC_SUCCESS(QuicHpComputeMask(HpKey, 1, Sample, Mask));
+
+    const uint8_t ExpectedMask[] = {0x39, 0xfd, 0x2b, 0x7d, 0xd9};
+
+    if (memcmp(ExpectedMask, Mask, sizeof(ExpectedMask)) != 0) {
+        PrintHpMask("Expected Mask:     ", ExpectedMask, sizeof(ExpectedMask));
+        PrintHpMask("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
+        FAIL();
+    }
+}
+
+TEST_F(CryptTest, HpMaskAes256)
+{
+    const uint8_t RawKey[] =
+        {0, 1, 2, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15,
+        16, 17, 18, 19, 20, 21, 22, 23,
+        24, 25, 26, 27, 28, 29, 30, 31};
+    const uint8_t Sample[] =
+        {0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0};
+    uint8_t Mask[16] = {0};
+    QUIC_HP_KEY* HpKey = nullptr;
+    VERIFY_QUIC_SUCCESS(QuicHpKeyCreate(QUIC_AEAD_AES_256_GCM, RawKey, &HpKey));
+    VERIFY_QUIC_SUCCESS(QuicHpComputeMask(HpKey, 1, Sample, Mask));
+
+    const uint8_t ExpectedMask[] = {0xf2, 0x90, 0x00, 0xb6, 0x2a};
+
+    if (memcmp(ExpectedMask, Mask, sizeof(ExpectedMask)) != 0) {
+        PrintHpMask("Expected Mask:     ", ExpectedMask, sizeof(ExpectedMask));
+        PrintHpMask("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
+        FAIL();
+    }
+}
+
+TEST_F(CryptTest, HpMaskAes128)
+{
+    const uint8_t RawKey[] =
+        {0, 1, 2, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15,
+        16, 17, 18, 19, 20, 21, 22, 23,
+        24, 25, 26, 27, 28, 29, 30, 31};
+    const uint8_t Sample[] =
+        {0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0};
+    uint8_t Mask[16] = {0};
+    QUIC_HP_KEY* HpKey = nullptr;
+    VERIFY_QUIC_SUCCESS(QuicHpKeyCreate(QUIC_AEAD_AES_128_GCM, RawKey, &HpKey));
+    VERIFY_QUIC_SUCCESS(QuicHpComputeMask(HpKey, 1, Sample, Mask));
+
+    const uint8_t ExpectedMask[] = {0xc6, 0xa1, 0x3b, 0x37, 0x87};
+
+    if (memcmp(ExpectedMask, Mask, sizeof(ExpectedMask)) != 0) {
+        PrintHpMask("Expected Mask:     ", ExpectedMask, sizeof(ExpectedMask));
+        PrintHpMask("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
+        FAIL();
+    }
 }
 
 TEST_P(CryptTest, Encryption)
