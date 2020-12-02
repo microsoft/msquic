@@ -242,6 +242,8 @@ typedef struct QUIC_CONN_STATS {
 
         uint32_t CongestionCount;
         uint32_t PersistentCongestionCount;
+
+        uint32_t FlushTimeUs;           // Average time spent flushing send
     } Send;
 
     struct {
@@ -255,6 +257,8 @@ typedef struct QUIC_CONN_STATS {
 
         uint64_t TotalBytes;            // Sum of UDP payloads
         uint64_t TotalStreamBytes;      // Sum of stream payloads
+
+        uint32_t FlushTimeUs;           // Average time spent flushing receive
     } Recv;
 
     struct {

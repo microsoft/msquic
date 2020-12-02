@@ -586,8 +586,13 @@ QuicStreamOnBytesDelivered(
         if (Stream->RecvBuffer.VirtualBufferLength <
             Stream->Connection->Settings.ConnFlowControlWindow) {
 
+            const uint32_t TimeWindowUs =
+                Stream->Connection->Paths[0].MinRtt +
+                Stream->Connection->Stats.Send.FlushTimeUs +
+                Stream->Connection->Stats.Recv.FlushTimeUs;
+
             uint32_t TimeThreshold = (uint32_t)
-                ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].MinRtt) / RecvBufferDrainThreshold);
+                ((Stream->RecvWindowBytesDelivered * TimeWindowUs) / RecvBufferDrainThreshold);
             if (QuicTimeDiff32(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
 
                 //
