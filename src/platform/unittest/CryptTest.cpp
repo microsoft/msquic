@@ -257,20 +257,6 @@ TEST_F(CryptTest, WellKnownClientInitial)
     QuicPacketKeyFree(NewPacketKey);
 }
 
-void PrintHpMask(
-    _In_z_ const char* Prefix,
-    _In_reads_bytes_(Length)
-        const uint8_t* const Buffer,
-    _In_ size_t Length
-    )
-{
-    std::cout << Prefix << std::hex;
-    for (uint32_t i = 0; i < Length; i++) {
-        std::cout << std::setfill('0') << std::setw(2) << (unsigned int)Buffer[i] && 0xff;
-    }
-    std::cout << std::dec << std::endl;
-}
-
 TEST_F(CryptTest, HpMaskChaCha20)
 {
     const uint8_t RawKey[] =
@@ -289,8 +275,8 @@ TEST_F(CryptTest, HpMaskChaCha20)
     const uint8_t ExpectedMask[] = {0x39, 0xfd, 0x2b, 0x7d, 0xd9};
 
     if (memcmp(ExpectedMask, Mask, sizeof(ExpectedMask)) != 0) {
-        PrintHpMask("Expected Mask:     ", ExpectedMask, sizeof(ExpectedMask));
-        PrintHpMask("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
+        LogTestBuffer("Expected Mask:     ", ExpectedMask, sizeof(ExpectedMask));
+        LogTestBuffer("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
         FAIL();
     }
 }
@@ -313,8 +299,8 @@ TEST_F(CryptTest, HpMaskAes256)
     const uint8_t ExpectedMask[] = {0xf2, 0x90, 0x00, 0xb6, 0x2a};
 
     if (memcmp(ExpectedMask, Mask, sizeof(ExpectedMask)) != 0) {
-        PrintHpMask("Expected Mask:     ", ExpectedMask, sizeof(ExpectedMask));
-        PrintHpMask("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
+        LogTestBuffer("Expected Mask:     ", ExpectedMask, sizeof(ExpectedMask));
+        LogTestBuffer("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
         FAIL();
     }
 }
@@ -337,8 +323,8 @@ TEST_F(CryptTest, HpMaskAes128)
     const uint8_t ExpectedMask[] = {0xc6, 0xa1, 0x3b, 0x37, 0x87};
 
     if (memcmp(ExpectedMask, Mask, sizeof(ExpectedMask)) != 0) {
-        PrintHpMask("Expected Mask:     ", ExpectedMask, sizeof(ExpectedMask));
-        PrintHpMask("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
+        LogTestBuffer("Expected Mask:     ", ExpectedMask, sizeof(ExpectedMask));
+        LogTestBuffer("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
         FAIL();
     }
 }
