@@ -3699,6 +3699,7 @@ QuicConnRecvFrames(
     BOOLEAN Closed = Connection->State.ClosedLocally || Connection->State.ClosedRemotely;
     const uint8_t* Payload = Packet->Buffer + Packet->HeaderLength;
     uint16_t PayloadLength = Packet->PayloadLength;
+    uint64_t RecvTime = QuicTimeUs64();
 
     uint16_t Offset = 0;
     while (Offset < PayloadLength) {
@@ -4464,6 +4465,7 @@ Done:
         QuicAckTrackerAckPacket(
             &Connection->Packets[EncryptLevel]->AckTracker,
             Packet->PacketNumber,
+            RecvTime,
             ECN,
             AckPacketImmediately);
     }
