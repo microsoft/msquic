@@ -986,7 +986,6 @@ QuicSendFlush(
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
     QUIC_STREAM* Stream = NULL;
     uint32_t StreamPacketCount = 0;
-    uint64_t StartTimeUs = QuicTimeUs64();
 
     if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PATH_CHALLENGE) {
         Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
@@ -1185,14 +1184,6 @@ QuicSendFlush(
     }
 
     QuicPacketBuilderCleanup(&Builder);
-
-    uint32_t ElapsedTimeUs = (uint32_t)QuicTimeDiff64(StartTimeUs, QuicTimeUs64());
-    if (Connection->Stats.Send.FlushTimeUs == 0) {
-        Connection->Stats.Send.FlushTimeUs = ElapsedTimeUs;
-    } else {
-        Connection->Stats.Send.FlushTimeUs =
-            (7 * Connection->Stats.Send.FlushTimeUs + ElapsedTimeUs) / 8;
-    }
 
     QuicTraceLogConnVerbose(
         SendFlushComplete,

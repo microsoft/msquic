@@ -4979,7 +4979,6 @@ QuicConnFlushRecv(
 {
     uint32_t ReceiveQueueCount;
     QUIC_RECV_DATAGRAM* ReceiveQueue;
-    uint64_t StartTimeUs = QuicTimeUs64();
 
     QuicDispatchLockAcquire(&Connection->ReceiveQueueLock);
     ReceiveQueueCount = Connection->ReceiveQueueCount;
@@ -4991,14 +4990,6 @@ QuicConnFlushRecv(
 
     QuicConnRecvDatagrams(
         Connection, ReceiveQueue, ReceiveQueueCount, FALSE);
-
-    uint32_t ElapsedTimeUs = (uint32_t)QuicTimeDiff64(StartTimeUs, QuicTimeUs64());
-    if (Connection->Stats.Recv.FlushTimeUs == 0) {
-        Connection->Stats.Recv.FlushTimeUs = ElapsedTimeUs;
-    } else {
-        Connection->Stats.Recv.FlushTimeUs =
-            (7 * Connection->Stats.Recv.FlushTimeUs + ElapsedTimeUs) / 8;
-    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
