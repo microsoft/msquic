@@ -6,7 +6,7 @@
 if [ -n "$TESTCASE" ]; then
     case "$TESTCASE" in
     # TODO: add supported test cases here
-    "versionnegotiation"|"handshake"|"transfer"|"retry"|"multiconnect"|"keyupdate")
+    "versionnegotiation"|"handshake"|"transfer"|"retry"|"multiconnect"|"keyupdate"|"chacha20")
         ;;
     *)
         exit 127
@@ -57,6 +57,9 @@ if [ "$ROLE" == "client" ]; then
         ;;
     "keyupdate")
         CLIENT_PARAMS="-test:U $CLIENT_PARAMS"
+        ;;
+    "chacha20")
+        CLIENT_PARAMS="-test:H $CLIENT_PARAMS"
         ;;
     *)
         CLIENT_PARAMS="-test:D $CLIENT_PARAMS"
