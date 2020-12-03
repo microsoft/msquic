@@ -162,7 +162,7 @@ QuicPcpInitialize(
     QUIC_DBG_ASSERT(GatewayAddressesCount != 0);
 
     PcpContextSize = sizeof(QUIC_PCP) + (GatewayAddressesCount * sizeof(QUIC_DATAPATH_BINDING*));
-    PcpContext = (QUIC_PCP*)QUIC_ALLOC_PAGED(PcpContextSize);
+    PcpContext = (QUIC_PCP*)QUIC_ALLOC_PAGED(PcpContextSize, QUIC_POOL_PCP);
     if (PcpContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -205,7 +205,7 @@ Exit:
     }
 
     if (GatewayAddresses != NULL) {
-        QUIC_FREE(GatewayAddresses);
+        QUIC_FREE(GatewayAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
     }
 
     return Status;
@@ -225,7 +225,7 @@ QuicPcpUninitialize(
         }
     }
 
-    QUIC_FREE(PcpContext);
+    QUIC_FREE(PcpContext, QUIC_POOL_PCP);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

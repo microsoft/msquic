@@ -890,7 +890,7 @@ QuicDataPathGetGatewayAddresses(
                 &AdapterAddressesSize);
         if (Error == ERROR_BUFFER_OVERFLOW) {
             free(AdapterAddresses);
-            AdapterAddresses = QUIC_ALLOC_NONPAGED(AdapterAddressesSize);
+            AdapterAddresses = QUIC_ALLOC_NONPAGED(AdapterAddressesSize, QUIC_POOL_DATAPATH_ADDRESSES);
             if (!AdapterAddresses) {
                 Error = ERROR_NOT_ENOUGH_MEMORY;
                 QuicTraceEvent(
@@ -927,7 +927,7 @@ QuicDataPathGetGatewayAddresses(
         goto Exit;
     }
 
-    *GatewayAddresses = QUIC_ALLOC_NONPAGED(Index * sizeof(QUIC_ADDR));
+    *GatewayAddresses = QUIC_ALLOC_NONPAGED(Index * sizeof(QUIC_ADDR), QUIC_POOL_DATAPATH_ADDRESSES);
     if (*GatewayAddresses == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -951,7 +951,7 @@ QuicDataPathGetGatewayAddresses(
 
 Exit:
 
-    QUIC_FREE(AdapterAddresses);
+    QUIC_FREE(AdapterAddresses, QUIC_POQUIC_POOL_DATAPATH_ADDRESSESOL_DATAPATH);
 
     return Status;
 }
