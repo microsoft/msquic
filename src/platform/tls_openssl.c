@@ -1959,20 +1959,20 @@ QuicHpComputeMask(
 {
     int OutLen = 0;
     if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
-        uint8_t Zero[5] = { 0, 0, 0, 0, 0 };
-        for(uint32_t i = 0, Offset = 0; i < BatchSize; ++i, Offset += QUIC_HP_SAMPLE_LENGTH) {
+        static const uint8_t Zero[] = { 0, 0, 0, 0, 0 };
+        for (uint32_t i = 0, Offset = 0; i < BatchSize; ++i, Offset += QUIC_HP_SAMPLE_LENGTH) {
             if (EVP_EncryptInit_ex(Key->CipherCtx, NULL, NULL, NULL, Cipher + Offset) != 1) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "EVP_EncryptInit_ex failed");
+                    "EVP_EncryptInit_ex (hp) failed");
                 return QUIC_STATUS_TLS_ERROR;
             }
             if (EVP_EncryptUpdate(Key->CipherCtx, Mask + Offset, &OutLen, Zero, sizeof(Zero)) != 1) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "EVP_EncryptUpdate (Cipher) failed");
+                    "EVP_EncryptUpdate (hp) failed");
                 return QUIC_STATUS_TLS_ERROR;
             }
         }
