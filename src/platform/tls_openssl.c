@@ -87,6 +87,14 @@ typedef struct QUIC_TLS {
     QUIC_CONNECTION* Connection;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+    //
+    // Optional struct to log TLS traffic secrets.
+    // Only non-null when the connection is configured to log these.
+    //
+    QUIC_TLS_SECRETS* TlsSecrets;
+#endif
+
 } QUIC_TLS;
 
 typedef struct QUIC_HP_KEY {
@@ -270,6 +278,47 @@ QuicTlsSetEncryptionSecretsCallback(
         TlsState->ReadKey = KeyType;
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
     }
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+    if (TlsContext->TlsSecrets != NULL) {
+        TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
+        switch (KeyType) {
+        case QUIC_PACKET_KEY_HANDSHAKE:
+            if (TlsContext->IsServer) {
+                memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret, ReadSecret, SecretLen);
+                memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret, WriteSecret, SecretLen);
+            } else {
+                memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret, WriteSecret, SecretLen);
+                memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret, ReadSecret, SecretLen);
+            }
+            TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
+            TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
+            break;
+        case QUIC_PACKET_KEY_1_RTT:
+            if (TlsContext->IsServer) {
+                memcpy(TlsContext->TlsSecrets->ClientTrafficSecret0, ReadSecret, SecretLen);
+                memcpy(TlsContext->TlsSecrets->ServerTrafficSecret0, WriteSecret, SecretLen);
+            } else {
+                memcpy(TlsContext->TlsSecrets->ClientTrafficSecret0, WriteSecret, SecretLen);
+                memcpy(TlsContext->TlsSecrets->ServerTrafficSecret0, ReadSecret, SecretLen);
+            }
+            TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+            TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+            //
+            // We're done with the TlsSecrets.
+            //
+            TlsContext->TlsSecrets = NULL;
+            break;
+        case QUIC_PACKET_KEY_0_RTT:
+            if (!TlsContext->IsServer) {
+                memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret, WriteSecret, SecretLen);
+                TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+#endif
 
     return 1;
 }
@@ -292,7 +341,7 @@ QuicTlsAddHandshakeDataCallback(
         OpenSslAddHandshakeData,
         TlsContext->Connection,
         "Sending %llu handshake bytes (Level = %u)",
-        Length,
+        (uint64_t)Length,
         Level);
 
     if (Length + TlsState->BufferLength > 0xF000) {
@@ -741,6 +790,9 @@ QuicTlsInitialize(
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+    TlsContext->TlsSecrets = Config->TlsSecrets;
+#endif
 
     QuicTraceLogConnVerbose(
         OpenSslContextCreated,
@@ -1907,20 +1959,20 @@ QuicHpComputeMask(
 {
     int OutLen = 0;
     if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
-        uint8_t Zero[5] = { 0, 0, 0, 0, 0 };
-        for(uint32_t i = 0, Offset = 0; i < BatchSize; ++i, Offset += QUIC_HP_SAMPLE_LENGTH) {
+        static const uint8_t Zero[] = { 0, 0, 0, 0, 0 };
+        for (uint32_t i = 0, Offset = 0; i < BatchSize; ++i, Offset += QUIC_HP_SAMPLE_LENGTH) {
             if (EVP_EncryptInit_ex(Key->CipherCtx, NULL, NULL, NULL, Cipher + Offset) != 1) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "EVP_EncryptInit_ex failed");
+                    "EVP_EncryptInit_ex (hp) failed");
                 return QUIC_STATUS_TLS_ERROR;
             }
             if (EVP_EncryptUpdate(Key->CipherCtx, Mask + Offset, &OutLen, Zero, sizeof(Zero)) != 1) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "EVP_EncryptUpdate (Cipher) failed");
+                    "EVP_EncryptUpdate (hp) failed");
                 return QUIC_STATUS_TLS_ERROR;
             }
         }

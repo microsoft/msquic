@@ -33,12 +33,6 @@ typedef struct QUIC_DATAGRAM {
     uint16_t MaxSendLength;
 
     //
-    // Indicates that datagrams are enabled locally, which means we are willing
-    // to receive them.
-    //
-    BOOLEAN ReceiveEnabled : 1;
-
-    //
     // Indicates that datagrams are allowed by the peer and can be queued up to
     // send.
     //
@@ -56,13 +50,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicDatagramUninitialize(
     _In_ QUIC_DATAGRAM* Datagram
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicDatagramSetReceiveEnabledState(
-    _In_ QUIC_DATAGRAM* Datagram,
-    _In_ BOOLEAN Enabled
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -164,8 +164,12 @@ QuicEtwCallback(
 #pragma warning(pop)
 
 #define QuicTraceEventEnabled(Name) EventEnabledQuic##Name()
+#if defined(_MSVC_TRADITIONAL) && _MSVC_TRADITIONAL
 #define _QuicTraceEvent(Name, Args) EventWriteQuic##Name##Args
 #define QuicTraceEvent(Name, Fmt, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
+#else
+#define QuicTraceEvent(Name, Fmt, ...) EventWriteQuic##Name (__VA_ARGS__)
+#endif
 
 #define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
 

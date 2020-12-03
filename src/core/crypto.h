@@ -275,6 +275,9 @@ QuicCryptoTlsReadInitial(
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+    , _Inout_opt_ QUIC_TLS_SECRETS* TlsSecrets
+#endif
     );
 
 //

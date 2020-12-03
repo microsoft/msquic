@@ -87,7 +87,7 @@ $WpaQUICLogProfileXml = `
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC, $RemoteAddress, $Session, $Kernel)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
@@ -100,6 +100,7 @@ function Set-ScriptVariables {
     $script:RemoteAddress = $RemoteAddress
     $script:Session = $Session
     $script:Kernel = $Kernel
+    $script:FailOnRegression = $FailOnRegression
     if ($null -ne $Session) {
         Invoke-Command -Session $Session -ScriptBlock {
             $ErrorActionPreference = "Stop"
@@ -524,6 +525,20 @@ class ThroughputRequest {
     }
 }
 
+$Failures = New-Object Collections.Generic.List[string]
+function Write-Failures() {
+    $DidFail = $false
+    foreach ($Failure in $Failures) {
+        $DidFail = $true
+        Write-Output $Failure
+    }
+    if ($DidFail) {
+        Write-Error "Performance test failures occurred"
+    }
+}
+
+# Fail loopback tests if < 80%
+$LocalRegressionThreshold = -80.0
 function Get-LatestThroughputRemoteTestResults([ThroughputRequest]$Request) {
     $Uri = "https://msquicperformanceresults.azurewebsites.net/throughput/get"
     $RequestJson = ConvertTo-Json -InputObject $Request
@@ -589,6 +604,14 @@ function Publish-ThroughputTestResults {
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Master: $LastFormatted"
+        if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
+            #Skip no encrypt
+            if ($Test.VariableName -ne "Encryption") {
+                $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
+            }
+        } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
+            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold")
+        }
     } else {
         Write-Output "Median: $CurrentFormatted"
     }
@@ -702,6 +725,11 @@ function Publish-RPSTestResults {
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Master: $LastFormatted"
+        if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
+            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
+        } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
+            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold")
+        }
     } else {
         Write-Output "Median: $CurrentFormatted"
     }
@@ -790,6 +818,11 @@ function Publish-HPSTestResults {
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Master: $LastFormatted"
+        if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
+            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
+        } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
+            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold")
+        }
     } else {
         Write-Output "Median: $CurrentFormatted"
     }
@@ -861,6 +894,7 @@ class TestRunDefinition {
     [boolean]$Loopback;
     [boolean]$AllowLoopback;
     [string[]]$Formats;
+    [double]$RegressionThreshold;
 
     TestRunDefinition (
         [TestDefinition]$existingDef,
@@ -882,6 +916,7 @@ class TestRunDefinition {
         $this.Loopback = $script:Local
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
+        $this.RegressionThreshold = $existingDef.RegressionThreshold
     }
 
     TestRunDefinition (
@@ -902,6 +937,7 @@ class TestRunDefinition {
         $this.Loopback = $script:Local
         $this.AllowLoopback = $existingDef.AllowLoopback
         $this.Formats = $existingDef.Formats
+        $this.RegressionThreshold = $existingDef.RegressionThreshold
     }
 
     [string]ToString() {
@@ -1064,6 +1100,7 @@ class TestDefinition {
     [string]$ResultsMatcher;
     [boolean]$AllowLoopback;
     [string[]]$Formats;
+    [double]$RegressionThreshold;
 
     [string]ToString() {
         $Platform = $this.Remote.Platform

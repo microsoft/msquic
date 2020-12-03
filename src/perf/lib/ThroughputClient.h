@@ -82,6 +82,7 @@ private:
         uint64_t StartTime{0};
         uint64_t EndTime{0};
         QUIC_BUFFER LastBuffer;
+        bool Complete{0};
     };
 
     QUIC_STATUS
@@ -118,7 +119,9 @@ private:
     QUIC_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
     uint8_t UseSendBuffer {TRUE};
+    uint8_t UsePacing {TRUE};
     uint8_t UseEncryption {TRUE};
+    uint8_t TimedTransfer {FALSE};
     QUIC_ADDR LocalIpAddr;
     uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};

@@ -21,7 +21,7 @@ Abstract:
 
 uint16_t QuicTlsTPHeaderSize = 0;
 
-#define QUIC_SUPPORTED_CIPHER_SUITES        "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256"
+#define QUIC_SUPPORTED_CIPHER_SUITES        "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
 #define QUIC_SERVER_SIGNATURE_ALGORITHMS    "ECDSA+SHA256:ECDSA+SHA384:ECDSA+SHA512:RSAPSS+SHA256:RSAPSS+SHA384:RSAPSS+SHA512"
 #define QUIC_CLIENT_SIGNATURE_ALGORITHMS    "ECDSA+SHA256:ECDSA+SHA384:ECDSA+SHA512:RSAPSS+SHA256:RSAPSS+SHA384:RSAPSS+SHA512"
 #if QUIC_PROD_MITLS
@@ -284,6 +284,13 @@ typedef struct QUIC_TLS {
     // Storage for encoded TLS extensions.
     //
     mitls_extension Extensions[2];
+
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+    //
+    // Optional pointer to struct to store TLS secrets.
+    //
+    QUIC_TLS_SECRETS* TlsSecrets;
+#endif
 
 } QUIC_TLS;
 
@@ -560,6 +567,10 @@ QuicTlsInitialize(
     TlsContext->miTlsConfig.cipher_suites = QUIC_SUPPORTED_CIPHER_SUITES;
     TlsContext->miTlsConfig.nego_callback = QuicTlsOnNegotiate;
     TlsContext->miTlsConfig.cert_callbacks = &TlsContext->miTlsCertCallbacks;
+
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+    TlsContext->TlsSecrets = Config->TlsSecrets;
+#endif
 
     if (Config->IsServer) {
 
@@ -2169,6 +2180,7 @@ QuicPacketKeyCreate(
         Result = FALSE;
         goto Error;
     }
+    QuicTlsLogSecret((rw == QUIC_Reader) ? "read key" : "write key", RecordKey.aead_key, QuicKeyLength((QUIC_AEAD_TYPE)RecordKey.alg));
 
     if (QUIC_FAILED(
         QuicHpKeyCreate(
@@ -2178,9 +2190,10 @@ QuicPacketKeyCreate(
         Result = FALSE;
         goto Error;
     }
+    QuicTlsLogSecret((rw == QUIC_Reader) ? "read hp" : "write hp", RecordKey.pne_key, QuicKeyLength((QUIC_AEAD_TYPE)RecordKey.alg));
 
     memcpy(Key->Iv, RecordKey.aead_iv, QUIC_IV_LENGTH);
-
+    QuicTlsLogSecret("static iv", Key->Iv, QUIC_IV_LENGTH);
     if (KeyType == QUIC_PACKET_KEY_1_RTT) {
         quic_secret ClientReadSecret, ServerReadSecret;
         Result =
@@ -2225,6 +2238,43 @@ QuicPacketKeyCreate(
         Key->TrafficSecret->Aead = (QUIC_AEAD_TYPE)CopySecret->ae;
         QuicCopyMemory(Key->TrafficSecret->Secret, CopySecret->secret, QUIC_HASH_MAX_SIZE);
     }
+
+#ifdef QUIC_TLS_SECRETS_SUPPORT
+    if (TlsContext->TlsSecrets != NULL) {
+        switch (KeyType) {
+        case QUIC_PACKET_KEY_1_RTT: {
+            quic_secret ClientReadSecret, ServerReadSecret;
+            if (FFI_mitls_quic_get_record_secrets(
+                    TlsContext->miTlsState,
+                    &ClientReadSecret,
+                    &ServerReadSecret)) {
+                TlsContext->TlsSecrets->SecretLength = (uint8_t)QuicHashLength(ServerReadSecret.hash - 3);
+                memcpy(
+                    TlsContext->TlsSecrets->ServerTrafficSecret0,
+                    ServerReadSecret.secret,
+                    TlsContext->TlsSecrets->SecretLength);
+                TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+                memcpy(
+                    TlsContext->TlsSecrets->ClientTrafficSecret0,
+                    ClientReadSecret.secret,
+                    TlsContext->TlsSecrets->SecretLength);
+                TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+            }
+            //
+            // We're done with the TlsSecrets.
+            //
+            TlsContext->TlsSecrets = NULL;
+            break;
+        }
+        default:
+            //
+            // miTls doesn't provide an interface to get the intermediate
+            // traffic secrets, so only 1-RTT keys can be decrypted.
+            //
+            break;
+        }
+    }
+#endif
 
     *NewKey = Key;
     Key = NULL;
@@ -2526,9 +2576,9 @@ QuicHpComputeMask(
         } else if (Key->Aead == QUIC_AEAD_AES_256_GCM) {
             EverCrypt_aes256_compute(Key->case_aes256, Cipher, Mask);
         } else if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
-            uint8_t zero[5] = {0};
+            static const uint8_t zero[] = {0, 0, 0, 0, 0};
             uint32_t ctr = Cipher[0] + (Cipher[1] << 8) + (Cipher[2] << 16) + (Cipher[3] << 24);
-            EverCrypt_Cipher_chacha20(5, Mask, Cipher+4, (uint8_t*)Key->case_chacha20, zero, ctr);
+            EverCrypt_Cipher_chacha20(sizeof(zero), Mask, (uint8_t*)zero, (uint8_t*)Key->case_chacha20, Cipher+4, ctr);
         } else {
             return QUIC_STATUS_NOT_SUPPORTED;
         }

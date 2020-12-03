@@ -287,7 +287,7 @@ QUIC_STATIC_ASSERT(
 // The flow control window is doubled when more than (1 / ratio) of the current
 // window is delivered to the app within 1 RTT.
 //
-#define QUIC_RECV_BUFFER_DRAIN_RATIO            8
+#define QUIC_RECV_BUFFER_DRAIN_RATIO            4
 
 //
 // The default value for send buffering being enabled or not.
@@ -343,12 +343,7 @@ QUIC_STATIC_ASSERT(
 //
 // The number of milliseconds between pacing chunks.
 //
-#define QUIC_SEND_PACING_INTERVAL               15
-
-//
-// The minimum number of packets to send per pacing chunk.
-//
-#define QUIC_SEND_PACING_MIN_CHUNK              4u
+#define QUIC_SEND_PACING_INTERVAL               1
 
 //
 // The maximum number of bytes to send in a given key phase

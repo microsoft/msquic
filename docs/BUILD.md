@@ -1,6 +1,6 @@
 # Building MsQuic
 
-MsQuic uses [CMake](https://cmake.org/) to generate build files.
+The full MsQuic build system relies on [CMake](https://cmake.org/) (3.16 or better), [.NET Core](https://dotnet.microsoft.com/download/dotnet-core) (Core 3.1 or 5.0 SDK) and [Powershell](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell) (7.0 or better) on all platforms.
 
 > **Note** - clone the repo recursively or run `git submodule update --init --recursive`
 to get all the submodules.

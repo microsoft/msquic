@@ -7,8 +7,16 @@ using System;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
 
+#pragma warning disable CA1305 // Specify IFormatProvider
+
 namespace MsQuicTracing.DataModel
 {
+    public enum QuicEventParseMode
+    {
+        Full,
+        WpaFilter
+    }
+
     public enum QuicObjectType
     {
         Global,
@@ -28,7 +36,7 @@ namespace MsQuicTracing.DataModel
         LibraryUninitialized,
         LibraryAddRef,
         LibraryRelease,
-        LibraryWorkerPoolInit,
+        LibraryServerInit,
         AllocFailure,
         LibraryRundown,
         LibraryError,
@@ -41,6 +49,14 @@ namespace MsQuicTracing.DataModel
         PerfCountersRundown,
         LibrarySendRetryStateUpdated,
 
+        RegistrationCreated = 1024,
+        RegistrationDestroyed,
+        RegistrationCleanup,
+        RegistrationRundown,
+        RegistrationError,
+        RegistrationErrorStatus,
+        RegistrationShutdown,
+
         WorkerCreated = 2048,
         WorkerStart,
         WorkerStop,
@@ -50,6 +66,21 @@ namespace MsQuicTracing.DataModel
         WorkerCleanup,
         WorkerError,
         WorkerErrorStatus,
+
+        ConfigurationCreated = 3072,
+        ConfigurationDestroyed,
+        ConfigurationCleanup,
+        QuicConfigurationRundown = 3076,
+        ConfigurationError,
+        QuicConfigurationErrorStatus,
+
+        ListenerCreated = 4096,
+        ListenerDestroyed,
+        ListenerStarted,
+        ListenerStopped,
+        ListenerRundown,
+        ListenerError,
+        ListenerErrorStatus,
 
         ConnCreated = 5120,
         ConnDestroyed,
@@ -116,6 +147,24 @@ namespace MsQuicTracing.DataModel
         StreamRecvState,
         StreamError,
         StreamErrorStatus,
+        StreamLogError,
+        StreamLogWarning,
+        StreamLogInfo,
+        StreamLogVerbose,
+
+        BindingCreated = 7168,
+        BindingRundown,
+        BindingDestroyed,
+        BindingCleanup,
+        BindingDropPacket,
+        BindingDropPacketEx,
+        BindingError,
+        BindingErrorStatus,
+        BindingExecOper,
+
+        TlsError = 8192,
+        TlsErrorStatus,
+        TlsMessage,
 
         DatapathSend = 9217,
         DatapathRecv,
@@ -123,38 +172,93 @@ namespace MsQuicTracing.DataModel
         DatapathErrorStatus,
         DatapathCreated,
         DatapathDestroyed,
+
+        LogError = 10240,
+        LogWarning,
+        LogInfo,
+        LogVerbose
     }
 
-    public abstract class QuicEvent : IKeyedDataType<Guid>
+    //
+    // The base class for all QUIC events.
+    //
+    public class QuicEvent : IKeyedDataType<Guid>
     {
-        public abstract Guid Provider { get; }
+        //
+        // Global configuration to control how parsing works. Defaults to WPA filter mode.
+        //
+        public static QuicEventParseMode ParseMode { get; set; } = QuicEventParseMode.WpaFilter;
 
-        public abstract int PointerSize { get; }
+        //
+        // The provider GUID used for MsQuic ETW on Windows.
+        //
+        public static readonly Guid ProviderGuid = new Guid("ff15e657-4f26-570e-88ab-0796b258d11c");
 
-        public abstract uint ProcessId { get; }
+        public QuicEventId EventId { get; }
 
-        public abstract uint ThreadId { get; }
+        public QuicObjectType ObjectType { get; }
 
-        public abstract ushort Processor { get; }
+        public Timestamp TimeStamp { get; }
 
-        public abstract QuicEventId ID { get; }
+        public ushort Processor { get; }
 
-        public abstract Timestamp TimeStamp { get; }
+        public uint ProcessId { get; }
 
-        public abstract QuicObjectType ObjectType { get; }
+        public uint ThreadId { get; }
 
-        public abstract ulong ObjectPointer { get; }
+        public int PointerSize { get; }
 
-        public abstract object? Payload { get; }
+        public ulong ObjectPointer { get; }
 
-        #region IKeyedDataType
+        public virtual string PrefixString => PrefixStrings[(int)ObjectType];
+
+        public virtual string HeaderString =>
+            ObjectType == QuicObjectType.Global ?
+                string.Format("[{0,2}][{1,5:X}][{2,5:X}][{3}][{4}]",
+                    Processor, ProcessId, ThreadId, TimeStamp.ToTimeSpan, PrefixString) :
+                string.Format("[{0,2}][{1,5:X}][{2,5:X}][{3}][{4}][{5:X}]",
+                    Processor, ProcessId, ThreadId, TimeStamp.ToTimeSpan, PrefixString, ObjectPointer);
+
+        public virtual string PayloadString => string.Format("[{0}]", EventId);
+
+        public override string ToString()
+        {
+            return string.Format("{0} {1}", HeaderString, PayloadString);
+        }
+
+        #region Internal
+
+        static readonly string[] PrefixStrings = new string[]
+        {
+            " lib",
+            " reg",
+            "cnfg",
+            "wrkr",
+            "list",
+            "bind",
+            "conn",
+            "strm",
+            " udp"
+        };
+
+        internal QuicEvent(QuicEventId id, QuicObjectType objectType, Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer = 0)
+        {
+            EventId = id;
+            ObjectType = objectType;
+            TimeStamp = timestamp;
+            Processor = processor;
+            ProcessId = processId;
+            ThreadId = threadId;
+            PointerSize = pointerSize;
+            ObjectPointer = objectPointer;
+        }
 
         public int CompareTo(Guid other)
         {
-            return Provider.CompareTo(other);
+            return ProviderGuid.CompareTo(other);
         }
 
-        public Guid GetKey() => Provider;
+        public Guid GetKey() => ProviderGuid;
 
         #endregion
     }

@@ -11,6 +11,9 @@ Abstract:
 --*/
 
 #include "interop.h"
+#ifdef QUIC_CLOG
+#include "interop.cpp.clog.h"
+#endif
 
 #define VERIFY_QUIC_SUCCESS(X) { \
     QUIC_STATUS s = X; \
@@ -128,6 +131,8 @@ uint16_t CustomPort = 0;
 
 bool CustomUrlPath = false;
 std::vector<std::string> Urls;
+
+const char* SslKeyLogFileParam = nullptr;
 
 extern "C" void QuicTraceRundown(void) { }
 
@@ -350,6 +355,8 @@ class InteropConnection {
     char* NegotiatedAlpn;
     const uint8_t* ResumptionTicket;
     uint32_t ResumptionTicketLength;
+    QUIC_TLS_SECRETS TlsSecrets;
+    const char* SslKeyLogFile;
 public:
     bool VersionUnsupported : 1;
     bool Connected : 1;
@@ -361,6 +368,8 @@ public:
         NegotiatedAlpn(nullptr),
         ResumptionTicket(nullptr),
         ResumptionTicketLength(0),
+        TlsSecrets({}),
+        SslKeyLogFile(SslKeyLogFileParam),
         VersionUnsupported(false),
         Connected(false),
         Resumed(false),
@@ -404,9 +413,25 @@ public:
                     sizeof(RandomTransportParameter),
                     &RandomTransportParameter));
         }
+        if (SslKeyLogFile != nullptr) {
+            QUIC_STATUS Status =
+                MsQuic->SetParam(
+                    Connection,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_TLS_SECRETS,
+                    sizeof(TlsSecrets),
+                    (uint8_t*)&TlsSecrets);
+            if (QUIC_FAILED(Status)) {
+                SslKeyLogFile = nullptr;
+                VERIFY_QUIC_SUCCESS(Status);
+            }
+        }
     }
     ~InteropConnection()
     {
+        if (SslKeyLogFile != nullptr) {
+            WriteSslKeyLogFile(SslKeyLogFile, TlsSecrets);
+        }
         for (InteropStream* Stream : Streams) {
             delete Stream;
         }
@@ -945,8 +970,16 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
 {
     auto TestContext = (InteropTestContext*)Context;
 
+    QuicTraceLogInfo(
+        InteropTestStart,
+        "[ntrp] Test Start, Server: %s, Port: %hu, Tests: 0x%x.",
+        PublicEndpoints[EndpointIndex].ServerName,
+        TestContext->Port,
+        (uint32_t)TestContext->Feature);
+
     uint32_t QuicVersion = 0;
     const char* Alpn = nullptr;
+    bool ThisTestFailed = false;
     if (RunInteropTest(
             PublicEndpoints[TestContext->EndpointIndex],
             TestContext->Port,
@@ -960,14 +993,25 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
         }
         if (TestResults[TestContext->EndpointIndex].Alpn == nullptr) {
             TestResults[TestContext->EndpointIndex].Alpn = Alpn;
-            Alpn = nullptr;
         }
         QuicLockRelease(&TestResultsLock);
     } else {
         TestFailed = true;
+        ThisTestFailed = true;
     }
 
-    free((void*)Alpn);
+    QuicTraceLogInfo(
+        InteropTestStop,
+        "[ntrp] Test Stop, Server: %s, Port: %hu, Tests: 0x%x, Negotiated Alpn: %s, Passed: %s.",
+        PublicEndpoints[EndpointIndex].ServerName,
+        TestContext->Port,
+        (uint32_t)TestContext->Feature,
+        Alpn,
+        ThisTestFailed ? "false" : "true");
+
+    if (ThisTestFailed) {
+        free((void*)Alpn);
+    }
     delete TestContext;
 
     QUIC_THREAD_RETURN(0);
@@ -1026,7 +1070,9 @@ RunInteropTests()
 {
     const uint16_t* Ports = CustomPort == 0 ? PublicPorts : &CustomPort;
     const uint32_t PortsCount = CustomPort == 0 ? PublicPortsCount : 1;
+    uint32_t StartTime = 0, StopTime = 0;
 
+    StartTime = QuicTimeMs32();
     for (uint32_t b = 0; b < PortsCount; ++b) {
         for (uint32_t c = 0; c < QuicTestFeatureCount; ++c) {
             if (TestCases & (1 << c)) {
@@ -1045,6 +1091,7 @@ RunInteropTests()
         QuicThreadWait(&Threads[i]);
         QuicThreadDelete(&Threads[i]);
     }
+    StopTime = QuicTimeMs32();
 
     printf("\n%12s  %s    %s   %s\n", "TARGET", QuicTestFeatureCodes, "VERSION", "ALPN");
     printf(" ============================================\n");
@@ -1055,6 +1102,11 @@ RunInteropTests()
     } else {
         PrintTestResults((uint32_t)EndpointIndex);
     }
+    printf("\n");
+    printf(
+        "Total execution time: %u.%03us\n",
+        (StopTime - StartTime) / 1000,
+        (StopTime - StartTime) % 1000);
     printf("\n");
 }
 
@@ -1174,6 +1226,8 @@ main(
     if (!CustomUrlPath) {
         Urls.push_back("/");
     }
+
+    TryGetValue(argc, argv, "sslkeylogfile", &SslKeyLogFileParam);
 
     const char* Target, *Custom;
     if (TryGetValue(argc, argv, "target", &Target)) {

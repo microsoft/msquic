@@ -126,6 +126,11 @@ TestConnection::NewStream(
 {
     auto Stream = TestStream::FromConnectionHandle(QuicConnection, StreamShutdownHandler, Flags);
 
+    if (Stream == nullptr) {
+        // Failure reason has already been logged by FromConnectionHandle
+        return nullptr;
+    }
+
     if (StartType != NEW_STREAM_START_NONE) {
         QUIC_STATUS Status =
             Stream->Start(
