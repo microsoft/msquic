@@ -105,7 +105,7 @@ typedef struct QUIC_HP_KEY {
 //
 // Default list of Cipher used.
 //
-#define QUIC_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256"
+#define QUIC_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
 
 //
 // Default list of curves for ECDHE ciphers.
@@ -1965,14 +1965,14 @@ QuicHpComputeMask(
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "EVP_EncryptInit_ex failed");
+                    "EVP_EncryptInit_ex (hp) failed");
                 return QUIC_STATUS_TLS_ERROR;
             }
             if (EVP_EncryptUpdate(Key->CipherCtx, Mask + Offset, &OutLen, Zero, sizeof(Zero)) != 1) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "EVP_EncryptUpdate (Cipher) failed");
+                    "EVP_EncryptUpdate (hp) failed");
                 return QUIC_STATUS_TLS_ERROR;
             }
         }

@@ -8,11 +8,6 @@ if [ -n "$TESTCASE" ]; then
     # TODO: add supported test cases here
     "versionnegotiation"|"handshake"|"transfer"|"retry"|"multiconnect"|"keyupdate")
         ;;
-    "chacha20")
-        if [ "$ROLE" == "client" ]; then
-            exit 127
-        fi
-        ;;
     *)
         exit 127
         ;;
