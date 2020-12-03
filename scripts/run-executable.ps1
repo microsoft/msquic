@@ -318,7 +318,7 @@ function Wait-Executable($Exe) {
                 if ($CodeCoverage) {
                     & $LogScript -Cancel | Out-Null
                 } else {
-                    & $LogScript -Stop -OutputDirectory $LogDir -Tmfpath (Join-Path $RootDir "artifacts" "tmf")
+                    & $LogScript -Stop -OutputPath $LogDir -Tmfpath (Join-Path $RootDir "artifacts" "tmf")
                 }
             }
 

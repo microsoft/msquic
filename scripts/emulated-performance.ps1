@@ -219,7 +219,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
                 $TestLogDir = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$Rate"
                 mkdir $TestLogDir | Out-Null
                 try {
-                    & $LogScript -Stop -OutputDirectory $TestLogDir -RawLogOnly | Out-Null
+                    & $LogScript -Stop -OutputPath $TestLogDir -RawLogOnly | Out-Null
                 } catch {
                     Write-Debug "Logging exception"
                 }

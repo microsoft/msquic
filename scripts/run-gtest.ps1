@@ -466,7 +466,7 @@ function Wait-TestCase($TestCase) {
         if ($KeepOutputOnSuccess -or $ProcessCrashed -or $AnyTestFailed) {
 
             if ($LogProfile -ne "None") {
-                & $LogScript -Stop -OutputDirectory $TestCase.LogDir
+                & $LogScript -Stop -OutputPath $TestCase.LogDir
             }
 
             if ($stdout) {
