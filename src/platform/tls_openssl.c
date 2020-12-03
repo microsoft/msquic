@@ -12,22 +12,20 @@ Abstract:
 #include "platform_internal.h"
 
 #define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
-#include "openssl/ssl.h"
-
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
-#include "openssl/err.h"
-#pragma warning(pop)
-#else
-#include "openssl/err.h"
 #endif
-
+#include "openssl/ssl.h"
+#include "openssl/err.h"
 #include "openssl/kdf.h"
 #include "openssl/rsa.h"
 #include "openssl/x509.h"
 #include "openssl/pem.h"
 #include "openssl/hmac.h"
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 #ifdef QUIC_CLOG
 #include "tls_openssl.c.clog.h"
 #endif
