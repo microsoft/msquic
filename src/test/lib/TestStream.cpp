@@ -75,6 +75,9 @@ TestStream::FromConnectionHandle(
     auto Stream = new(std::nothrow) TestStream(QuicStreamHandle, StreamShutdownHandler, IsUnidirectionalStream, true);
     if (Stream == nullptr || !Stream->IsValid()) {
         TEST_FAILURE("Failed to create new TestStream.");
+        if (Stream == nullptr) {
+            MsQuic->StreamClose(QuicStreamHandle);
+        }
         delete Stream;
         return nullptr;
     }
