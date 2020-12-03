@@ -216,10 +216,9 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             $Results.Add($Rate) | Out-Null
 
             if ($LogProfile -ne "None") {
-                $TestLogDir = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$Rate"
-                mkdir $TestLogDir | Out-Null
+                $TestLogPath = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisDurationMs.$ThisPacing.$i.$Rate"
                 try {
-                    & $LogScript -Stop -OutputDirectory $TestLogDir -RawLogOnly | Out-Null
+                    & $LogScript -Stop -OutputPath $TestLogPath -RawLogOnly | Out-Null
                 } catch {
                     Write-Debug "Logging exception"
                 }

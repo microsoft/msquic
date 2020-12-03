@@ -32,8 +32,8 @@ if ($Clean) {
 }
 
 foreach ($File in $Files) {
-    clog -p windows --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
-    clog -p windows_kernel --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
-    clog -p stubs --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
-    clog -p linux --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
+    clog -p windows --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --OutputPath "$OutputDir"
+    clog -p windows_kernel --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --OutputPath "$OutputDir"
+    clog -p stubs --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --OutputPath "$OutputDir"
+    clog -p linux --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --OutputPath "$OutputDir"
 }
