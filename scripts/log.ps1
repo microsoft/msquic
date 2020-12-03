@@ -173,7 +173,7 @@ function Log-Stop {
         Invoke-Expression "lttng stop $InstanceName" | Write-Debug
 
         $LTTNGTarFile = $OutputPath + ".tgz"
-        $BableTraceFile = $OutputPath ".babel.txt"
+        $BableTraceFile = $OutputPath + ".babel.txt"
 
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile $TempDir | Write-Debug
