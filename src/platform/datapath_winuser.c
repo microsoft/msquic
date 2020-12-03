@@ -951,7 +951,7 @@ QuicDataPathGetGatewayAddresses(
 
 Exit:
 
-    QUIC_FREE(AdapterAddresses, QUIC_POQUIC_POOL_DATAPATH_ADDRESSESOL_DATAPATH);
+    QUIC_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
 
     return Status;
 }
