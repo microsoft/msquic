@@ -13,6 +13,10 @@ Abstract:
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "platform_internal.h"
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
+#endif
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 #include "openssl/kdf.h"
@@ -20,6 +24,9 @@ Abstract:
 #include "openssl/rsa.h"
 #include "openssl/x509.h"
 #include "openssl/pem.h"
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 #ifdef QUIC_CLOG
 #include "selfsign_openssl.c.clog.h"
 #endif
