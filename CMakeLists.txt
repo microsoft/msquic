@@ -203,8 +203,7 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
 if (WIN32)
-    # XXX remove /WX  while refactoring
-    set(QUIC_WARNING_FLAGS /W4 /sdl CACHE INTERNAL "")
+    set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         list(APPEND QUIC_COMMON_FLAGS /MP)
@@ -213,8 +212,7 @@ if (WIN32)
 else()
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES _GNU_SOURCE)
-    # XXX remove -Werror while refactoring
-    set(QUIC_WARNING_FLAGS -Wall -Wextra -Wformat=2 -Wno-type-limits
+    set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
         CACHE INTERNAL "")
     if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)
