@@ -173,7 +173,7 @@ TEST_P(AckFrameTest, DecodeAckFrameFail) {
         Buffer[2] = 1; // ACK Delay
         Buffer[3] = 0; // ACK range count
         Buffer[4] = 5; // First ACK range
-        for (auto TestValue : {64, 255}) {
+        for (uint8_t TestValue : {64, 255}) {
             for (uint8_t i = 1; i < 8; ++i) {
                 Offset = 1;
                 InvalidFrame = FALSE;
