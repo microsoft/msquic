@@ -288,7 +288,7 @@ TEST_F(CryptTest, WellKnownChaChaPoly)
 
     ASSERT_EQ(0, memcmp(Iv, ExpectedNonce.Data, sizeof(Iv)));
 
-    ASSERT_EQ(ExpectedHeader.Length + 1, sizeof(PacketBuffer) - Sample.Length);
+    ASSERT_EQ((size_t)ExpectedHeader.Length + 1, sizeof(PacketBuffer) - Sample.Length);
     ASSERT_EQ(0, memcmp(Sample.Data, PacketBuffer + ExpectedHeader.Length + 1, Sample.Length));
 
     uint8_t HpMask[16];

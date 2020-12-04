@@ -107,14 +107,13 @@ Return Value:
 --*/
 {
     int ii = 0;
-    uint32_t TempMask = 0;
 
     if (Mask == 0 || Index == 0) {
         return 0;
     }
 
     for (ii = (sizeof(uint32_t) * 8); ii >= 0; --ii) {
-        TempMask = 1 << ii;
+        uint32_t TempMask = 1UL << ii;
 
         if ((Mask & TempMask) != 0) {
             *Index = ii;
