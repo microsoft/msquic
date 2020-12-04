@@ -179,7 +179,7 @@ InterlockedIncrement64(
 // Assertion interfaces.
 //
 
-__attribute__((noinline))
+__attribute__((noinline, noreturn))
 void
 quic_bugcheck(
     void
