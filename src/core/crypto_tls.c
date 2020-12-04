@@ -74,7 +74,7 @@ QuicTpIdIsReserved(
     // for integer values of N are reserved to exercise the requirement that
     // unknown transport parameters be ignored.
     //
-    return (ID % 31ull) == 27ull;
+    return (ID % 31ULL) == 27ULL;
 }
 
 static
@@ -107,7 +107,7 @@ TlsReadUint24(
 //
 
 #define TlsTransportParamLength(Id, Length) \
-    (QuicVarIntSize(Id) + QuicVarIntSize(Length) + Length)
+    (QuicVarIntSize(Id) + QuicVarIntSize(Length) + (Length))
 
 static
 uint8_t*
@@ -155,6 +155,7 @@ QuicCryptoTlsReadSniExtension(
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
+    UNREFERENCED_PARAMETER(Connection);
     /*
       struct {
           NameType name_type;
@@ -1084,13 +1085,12 @@ QuicCryptoTlsEncodeTransportParameters(
         QUIC_TEL_ASSERT(FinalTPLength == RequiredTPLen);
         QUIC_FREE(TPBufBase, QUIC_POOL_TLS_TRANSPARAMS);
         return NULL;
-    } else {
-        QuicTraceLogConnVerbose(
-            EncodeTPEnd,
-            Connection,
-            "Encoded %hu bytes for QUIC TP",
-            (uint16_t)FinalTPLength);
     }
+    QuicTraceLogConnVerbose(
+        EncodeTPEnd,
+        Connection,
+        "Encoded %hu bytes for QUIC TP",
+        (uint16_t)FinalTPLength);
 
     return TPBufBase;
 }
@@ -1140,7 +1140,7 @@ QuicCryptoTlsDecodeTransportParameters(
 
         if (Id < (8 * sizeof(uint64_t))) { // We only duplicate detection for the first 64 IDs.
 
-            if (ParamsPresent & (1ull << Id)) {
+            if (ParamsPresent & (1ULL << Id)) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
@@ -1149,7 +1149,7 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
 
-            ParamsPresent |= (1ull << Id);
+            ParamsPresent |= (1ULL << Id);
         }
 
         QUIC_VAR_INT ParamLength;
@@ -1173,7 +1173,7 @@ QuicCryptoTlsDecodeTransportParameters(
 
         uint16_t VarIntLength = 0;
     #define TRY_READ_VAR_INT(Param) \
-        QuicVarIntDecode(Length, TPBuf + Offset, &VarIntLength, &Param)
+        QuicVarIntDecode(Length, TPBuf + Offset, &VarIntLength, &(Param))
 
         switch (Id) {
 

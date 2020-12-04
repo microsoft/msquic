@@ -1200,7 +1200,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessPeerTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ BOOLEAN FromCache
+    _In_ BOOLEAN FromResumptionTicket
     );
 
 //

@@ -64,7 +64,7 @@ Abstract:
 // Helper to get the slot index for a given time.
 //
 #define TIME_TO_SLOT_INDEX(TimerWheel, TimeUs) \
-    ((US_TO_MS(TimeUs) / 1000) % TimerWheel->SlotCount)
+    ((US_TO_MS(TimeUs) / 1000) % (TimerWheel)->SlotCount)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -174,6 +174,7 @@ QuicTimerWheelResize(
                     QUIC_CONNECTION,
                     TimerLink);
             uint64_t ExpirationTime = QuicConnGetNextExpirationTime(Connection);
+            QUIC_DBG_ASSERT(TimerWheel->SlotCount != 0);
             uint32_t SlotIndex = TIME_TO_SLOT_INDEX(TimerWheel, ExpirationTime);
 
             //
@@ -326,6 +327,7 @@ QuicTimerWheelUpdateConnection(
 
     } else {
 
+        QUIC_DBG_ASSERT(TimerWheel->SlotCount != 0);
         uint32_t SlotIndex = TIME_TO_SLOT_INDEX(TimerWheel, ExpirationTime);
 
         //

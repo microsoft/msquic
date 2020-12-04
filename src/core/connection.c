@@ -2389,15 +2389,18 @@ QuicConnValidateTransportParameterDraft27CIDs(
                 Connection,
                 "Peer didn't provide the original destination CID in TP");
             return FALSE;
-        } else if (Connection->PeerTransportParams.OriginalDestinationConnectionIDLength != Connection->OrigDestCID->Length) {
+        }
+
+        if (Connection->PeerTransportParams.OriginalDestinationConnectionIDLength != Connection->OrigDestCID->Length) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
                 Connection,
                 "Peer provided incorrect length of original destination CID in TP");
             return FALSE;
-        } else if (
-            memcmp(
+        }
+
+        if (memcmp(
                 Connection->PeerTransportParams.OriginalDestinationConnectionID,
                 Connection->OrigDestCID->Data,
                 Connection->OrigDestCID->Length) != 0) {
@@ -2407,10 +2410,10 @@ QuicConnValidateTransportParameterDraft27CIDs(
                 Connection,
                 "Peer provided incorrect original destination CID in TP");
             return FALSE;
-        } else {
-            QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
-            Connection->OrigDestCID = NULL;
         }
+
+        QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
+        Connection->OrigDestCID = NULL;
 
     } else if (!QuicConnIsServer(Connection)) {
         //
@@ -2758,11 +2761,11 @@ QuicConnUpdateDestCid(
                 Connection->Paths[0].DestCid = NULL;
                 QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, "Out of memory");
                 return FALSE;
-            } else {
-                Connection->Paths[0].DestCid = DestCid;
-                DestCid->CID.UsedLocally = TRUE;
-                QuicListInsertHead(&Connection->DestCids, &DestCid->Link);
             }
+
+            Connection->Paths[0].DestCid = DestCid;
+            DestCid->CID.UsedLocally = TRUE;
+            QuicListInsertHead(&Connection->DestCids, &DestCid->Link);
         }
 
         if (DestCid != NULL) {
@@ -3127,22 +3130,20 @@ QuicConnRecvHeader(
 
     QUIC_FRE_ASSERT(QuicIsVersionSupported(Connection->Stats.QuicVersion));
 
-#if DEBUG
-    if (!Packet->IsShortHeader) {
-        if (Connection->State.ShareBinding) {
-            QUIC_DBG_ASSERT(Packet->DestCidLen >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
-        } else {
-            QUIC_DBG_ASSERT(Packet->DestCidLen == 0);
-        }
-    }
-#endif
-
     //
     // Begin non-version-independent logic. When future versions are supported,
     // there may be some switches based on packet version.
     //
 
     if (!Packet->IsShortHeader) {
+#if DEBUG
+        if (Connection->State.ShareBinding) {
+            QUIC_DBG_ASSERT(Packet->DestCidLen >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
+        } else {
+            QUIC_DBG_ASSERT(Packet->DestCidLen == 0);
+        }
+#endif
+
         if (Packet->LH->Type == QUIC_RETRY) {
             QuicConnRecvRetry(Connection, Packet);
             return FALSE;
@@ -3975,7 +3976,9 @@ QuicConnRecvFrames(
                         &UpdatedFlowControl);
                 if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
                     return FALSE;
-                } else if (QUIC_FAILED(Status)) {
+                }
+
+                if (QUIC_FAILED(Status)) {
                     QuicTraceEvent(
                         ConnError,
                         "[conn][%p] ERROR, %s.",
@@ -4911,7 +4914,7 @@ QuicConnRecvDatagrams(
             Batch,
             Cipher,
             &RecvState);
-        BatchCount = 0;
+        // BatchCount = 0; // Value stored to 'BatchCount' is never read [clang-analyzer-deadcode.DeadStores]
     }
 
     if (RecvState.ResetIdleTimeout) {
@@ -5415,14 +5418,12 @@ QuicConnParamSet(
         Connection->CloseReasonPhrase =
             QUIC_ALLOC_NONPAGED(BufferLength, QUIC_POOL_CLOSE_REASON);
 
-        if (Connection->CloseReasonPhrase != NULL) {
+        if (Buffer && Connection->CloseReasonPhrase != NULL) {
             QuicCopyMemory(
                 Connection->CloseReasonPhrase,
                 Buffer,
                 BufferLength);
-
             Status = QUIC_STATUS_SUCCESS;
-
         } else {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
         }
@@ -5833,9 +5834,9 @@ QuicConnParamGet(
         Stats->Misc.KeyUpdateCount = Connection->Stats.Misc.KeyUpdateCount;
 
         if (Param == QUIC_PARAM_CONN_STATISTICS_PLAT) {
-            Stats->Timing.Start = QuicTimeUs64ToPlat(Stats->Timing.Start);
-            Stats->Timing.InitialFlightEnd = QuicTimeUs64ToPlat(Stats->Timing.InitialFlightEnd);
-            Stats->Timing.HandshakeFlightEnd = QuicTimeUs64ToPlat(Stats->Timing.HandshakeFlightEnd);
+            Stats->Timing.Start = QuicTimeUs64ToPlat(Stats->Timing.Start); // cppcheck-suppress selfAssignment
+            Stats->Timing.InitialFlightEnd = QuicTimeUs64ToPlat(Stats->Timing.InitialFlightEnd); // cppcheck-suppress selfAssignment
+            Stats->Timing.HandshakeFlightEnd = QuicTimeUs64ToPlat(Stats->Timing.HandshakeFlightEnd); // cppcheck-suppress selfAssignment
         }
 
         *BufferLength = sizeof(QUIC_STATISTICS);

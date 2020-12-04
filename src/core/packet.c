@@ -364,7 +364,6 @@ QuicPacketGenerateRetryIntegrity(
     QuicCopyMemory(RetryPseudoPacketCursor, OrigDestCid, OrigDestCidLength);
     RetryPseudoPacketCursor += OrigDestCidLength;
     QuicCopyMemory(RetryPseudoPacketCursor, Buffer, BufferLength);
-    RetryPseudoPacketCursor += BufferLength;
 
     Status =
         QuicEncrypt(
@@ -460,8 +459,6 @@ QuicPacketEncodeRetryV1(
         return 0;
     }
 
-    HeaderBuffer += QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1;
-
     return RequiredBufferLength;
 }
 
@@ -546,8 +543,8 @@ QuicLongHeaderTypeToString(uint8_t Type)
     case QUIC_0_RTT_PROTECTED:      return "0P";
     case QUIC_HANDSHAKE:            return "HS";
     case QUIC_RETRY:                return "R";
+    default:                        return "INVALID";
     }
-    return "INVALID";
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -733,7 +730,7 @@ QuicPacketLogDrop(
     _In_z_ const char* Reason
     )
 {
-    const QUIC_RECV_DATAGRAM* Datagram =
+    const QUIC_RECV_DATAGRAM* Datagram = // cppcheck-suppress unreadVariable; NOLINT
         QuicDataPathRecvPacketToRecvDatagram(Packet);
 
     if (Packet->AssignedToConnection) {
@@ -767,7 +764,7 @@ QuicPacketLogDropWithValue(
     _In_ uint64_t Value
     )
 {
-    const QUIC_RECV_DATAGRAM* Datagram =
+    const QUIC_RECV_DATAGRAM* Datagram = // cppcheck-suppress unreadVariable; NOLINT
         QuicDataPathRecvPacketToRecvDatagram(Packet);
 
     if (Packet->AssignedToConnection) {
