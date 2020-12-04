@@ -4914,7 +4914,7 @@ QuicConnRecvDatagrams(
             Batch,
             Cipher,
             &RecvState);
-        // BatchCount = 0; // Value stored to 'BatchCount' is never read [clang-analyzer-deadcode.DeadStores]
+        BatchCount = 0; // cppcheck-suppress unreadVariable; NOLINT
     }
 
     if (RecvState.ResetIdleTimeout) {
