@@ -211,8 +211,9 @@ if (WIN32)
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
     set(QUIC_COMMON_FLAGS "")
-    set(QUIC_COMMON_DEFINES "")
-    set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
+    set(QUIC_COMMON_DEFINES _GNU_SOURCE)
+    # XXX remove -Werror while refactoring
+    set(QUIC_WARNING_FLAGS -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
         CACHE INTERNAL "")
     if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)
@@ -543,15 +544,28 @@ if(QUIC_CODE_CHECK)
     if(CLANGTIDY)
         message(STATUS "Found clang-tidy: ${CLANGTIDY}")
         set(CLANG_TIDY_CHECKS *
-            # add checks to ignore here, e.g.,
-            # -hicpp-no-assembler
-            # -hicpp-signed-bitwise
-            # ...
+            # add checks to ignore here:
+            -android-cloexec-fopen
+            -bugprone-macro-parentheses
+            -bugprone-sizeof-expression
+            -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+            -clang-diagnostic-microsoft-anon-tag
+            -cppcoreguidelines-avoid-magic-numbers
+            -cppcoreguidelines-avoid-non-const-global-variables
+            -cppcoreguidelines-init-variables
+            -google-readability-todo
+            -hicpp-no-assembler
+            -hicpp-signed-bitwise
+            -llvmlibc-restrict-system-libc-headers
+            -misc-no-recursion # do you really need recursion?
+            -readability-avoid-const-params-in-decls
+            -readability-isolate-declaration
+            -readability-magic-numbers
+            -readability-non-const-parameter
         )
         string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
-        set(CMAKE_C_CLANG_TIDY ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
+        set(CMAKE_C_CLANG_TIDY_AVAILABLE ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
             -system-headers)
-        set(CMAKE_CXX_CLANG_TIDY ${CMAKE_C_CLANG_TIDY})
     else()
         message(STATUS "clang-tidy not found")
     endif()
@@ -559,9 +573,12 @@ if(QUIC_CODE_CHECK)
     find_program(CPPCHECK NAMES cppcheck)
     if(CPPCHECK)
         message(STATUS "Found cppcheck: ${CPPCHECK}")
-        set(CMAKE_C_CPPCHECK ${CPPCHECK} -q --inline-suppr
+        set(CMAKE_C_CPPCHECK_AVAILABLE ${CPPCHECK} -q --inline-suppr
+            --suppress=duplicateValueTernary --suppress=objectIndex
+            --suppress=varFuncNullUB
+            # these are finding potential logic issues, may want to suppress when focusing on nits:
+            --suppress=nullPointer --suppress=nullPointerRedundantCheck
             --enable=warning,style,performance,portability -D__linux__)
-        set(CMAKE_CXX_CPPCHECK ${CMAKE_C_CPPCHECK})
     else()
         message(STATUS "cppcheck not found")
     endif()
