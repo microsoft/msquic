@@ -564,7 +564,7 @@ if(QUIC_CODE_CHECK)
         )
         string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
         set(CMAKE_C_CLANG_TIDY_AVAILABLE ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
-            -system-headers)
+            -system-headers --warnings-as-errors=*)
     else()
         message(STATUS "clang-tidy not found")
     endif()
