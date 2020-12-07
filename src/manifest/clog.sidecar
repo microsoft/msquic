@@ -2710,7 +2710,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Connection->Datagram.ReceiveEnabled",
+            "UserSuppliedTrimmed": "Connection->Settings.DatagramReceiveEnabled",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "hhu",
@@ -13543,7 +13543,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "(!QuicConnIsServer(Stream->Connection) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER))",
+            "UserSuppliedTrimmed": "((!QuicConnIsServer(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER))",
             "SuggestedTelemetryName": "arg5"
           },
           "DefinationEncoding": "hhu",
@@ -18555,6 +18555,41 @@
         "CustomSettings": null
       }
     },
+    "OpenSslQuicDataErrorStr": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] SSL_provide_quic_data failed: %s",
+      "UniqueId": "OpenSslQuicDataErrorStr",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSuppliedTrimmed": "ERR_error_string(ERR_get_error(), buf)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnError",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
     "OpenSslHandshakeErrorStr": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TLS handshake error: %s",
@@ -18570,7 +18605,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "ERR_error_string(ERR_get_error(), NULL)",
+            "UserSuppliedTrimmed": "ERR_error_string(ERR_get_error(), buf)",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",
@@ -18907,7 +18942,7 @@
         },
         {
           "VariableInfo": {
-            "UserSuppliedTrimmed": "Length",
+            "UserSuppliedTrimmed": "(uint64_t)Length",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -23432,6 +23467,10 @@
       {
         "UniquenessHash": "c7b17ffc-7649-6294-b6d0-cf4bbf4bc8cb",
         "TraceID": "OpenSslAlert"
+      },
+      {
+        "UniquenessHash": "33c7b405-30d7-b1d6-1c60-91d15920e2dc",
+        "TraceID": "OpenSslQuicDataErrorStr"
       },
       {
         "UniquenessHash": "04956959-ecb5-9bea-dd79-ca22765f2c95",

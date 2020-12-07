@@ -1023,7 +1023,7 @@ QuicTlsProcessData(
             *BufferLength) != 1) {
         char buf[256];
         QuicTraceLogConnError(
-            OpenSslHandshakeErrorStr,
+            OpenSslQuicDataErrorStr,
             TlsContext->Connection,
             "SSL_provide_quic_data failed: %s",
             ERR_error_string(ERR_get_error(), buf));
