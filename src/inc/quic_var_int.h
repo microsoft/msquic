@@ -27,7 +27,7 @@ Abstract:
 //
 // The maximum value that can be encoded in a QUIC variable-length integer.
 //
-#define QUIC_VAR_INT_MAX ((1ULL << 62) - 1)
+#define QUIC_VAR_INT_MAX ((1ULL << 62U) - 1)
 
 //
 // Represents a variable-length integer.

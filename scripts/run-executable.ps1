@@ -109,7 +109,7 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 $ExeName = Split-Path $Path -Leaf
 $CoverageName = "$(Split-Path $Path -LeafBase).cov"
 
-# Folder for log files.
+# Path for log files.
 $LogDir = Join-Path $RootDir "artifacts" "logs" $ExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
 
@@ -318,7 +318,7 @@ function Wait-Executable($Exe) {
                 if ($CodeCoverage) {
                     & $LogScript -Cancel | Out-Null
                 } else {
-                    & $LogScript -Stop -OutputDirectory $LogDir -Tmfpath (Join-Path $RootDir "artifacts" "tmf")
+                    & $LogScript -Stop -OutputPath (Join-Path $LogDir "quic") -Tmfpath (Join-Path $RootDir "artifacts" "tmf")
                 }
             }
 

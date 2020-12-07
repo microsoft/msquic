@@ -211,7 +211,7 @@ QuicListRemoveHead(
     )
 {
     QuicListEntryValidate(ListHead);
-    QUIC_LIST_ENTRY* Entry = ListHead->Flink;
+    QUIC_LIST_ENTRY* Entry = ListHead->Flink; // cppcheck-suppress shadowFunction
     QUIC_LIST_ENTRY* Flink = Entry->Flink;
     ListHead->Flink = Flink;
     Flink->Blink = ListHead;

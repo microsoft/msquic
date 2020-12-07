@@ -16,13 +16,13 @@ Abstract:
 #pragma warning(push)
 #pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
 #endif
-#include "openssl/ssl.h"
 #include "openssl/err.h"
-#include "openssl/kdf.h"
-#include "openssl/rsa.h"
-#include "openssl/x509.h"
-#include "openssl/pem.h"
 #include "openssl/hmac.h"
+#include "openssl/kdf.h"
+#include "openssl/pem.h"
+#include "openssl/rsa.h"
+#include "openssl/ssl.h"
+#include "openssl/x509.h"
 #ifdef _WIN32
 #pragma warning(pop)
 #endif
@@ -205,15 +205,15 @@ QuicTlsNegotiatedCiphers(
     )
 {
     switch (SSL_CIPHER_get_id(SSL_get_current_cipher(TlsContext->Ssl))) {
-    case 0x03001301u: // TLS_AES_128_GCM_SHA256
+    case 0x03001301U: // TLS_AES_128_GCM_SHA256
         *AeadType = QUIC_AEAD_AES_128_GCM;
         *HashType = QUIC_HASH_SHA256;
         break;
-    case 0x03001302u: // TLS_AES_256_GCM_SHA384
+    case 0x03001302U: // TLS_AES_256_GCM_SHA384
         *AeadType = QUIC_AEAD_AES_256_GCM;
         *HashType = QUIC_HASH_SHA384;
         break;
-    case 0x03001303u: // TLS_CHACHA20_POLY1305_SHA256
+    case 0x03001303U: // TLS_CHACHA20_POLY1305_SHA256
         *AeadType = QUIC_AEAD_CHACHA20_POLY1305;
         *HashType = QUIC_HASH_SHA256;
         break;
@@ -523,9 +523,13 @@ QuicTlsSecConfigCreate(
     } else {
         if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_NONE) {
             return QUIC_STATUS_INVALID_PARAMETER; // Required for server
-        } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+        }
+
+        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
             return QUIC_STATUS_NOT_SUPPORTED; // Only support file currently
-        } else if (CertFile == NULL ||
+        }
+
+        if (CertFile == NULL ||
             CertFile->CertificateFile == NULL ||
             CertFile->PrivateKeyFile == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
@@ -644,7 +648,7 @@ QuicTlsSecConfigCreate(
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
         BOOLEAN VerifyServerCertificate = TRUE; // !(Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION);
-        if (!VerifyServerCertificate) {
+        if (!VerifyServerCertificate) { // cppcheck-suppress knownConditionTrueFalse
             SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
         } else {
             SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_VERIFY_DEPTH);
@@ -913,7 +917,6 @@ QuicTlsUninitialize(
         }
 
         QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
-        TlsContext = NULL;
     }
 }
 
@@ -1177,11 +1180,11 @@ Exit:
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessDataComplete(
     _In_ QUIC_TLS* TlsContext,
-    _Out_ uint32_t * BufferConsumed
+    _Out_ uint32_t * ConsumedBuffer
     )
 {
     UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(BufferConsumed);
+    UNREFERENCED_PARAMETER(ConsumedBuffer);
     return QUIC_TLS_RESULT_ERROR;
 }
 
@@ -1233,7 +1236,7 @@ QuicTlsLogSecret(
     #define HEX_TO_CHAR(x) ((x) > 9 ? ('a' + ((x) - 10)) : '0' + (x))
     char SecretStr[256 + 1] = {0};
     QUIC_DBG_ASSERT(Length * 2 < sizeof(SecretStr));
-    for (uint8_t i = 0; i < Length; i++) {
+    for (uint32_t i = 0; i < Length; i++) {
         SecretStr[i*2]     = HEX_TO_CHAR(Secret[i] >> 4);
         SecretStr[i*2 + 1] = HEX_TO_CHAR(Secret[i] & 0xf);
     }
@@ -1966,20 +1969,20 @@ QuicHpComputeMask(
 {
     int OutLen = 0;
     if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
-        uint8_t Zero[5] = { 0, 0, 0, 0, 0 };
-        for(uint32_t i = 0, Offset = 0; i < BatchSize; ++i, Offset += QUIC_HP_SAMPLE_LENGTH) {
+        static const uint8_t Zero[] = { 0, 0, 0, 0, 0 };
+        for (uint32_t i = 0, Offset = 0; i < BatchSize; ++i, Offset += QUIC_HP_SAMPLE_LENGTH) {
             if (EVP_EncryptInit_ex(Key->CipherCtx, NULL, NULL, NULL, Cipher + Offset) != 1) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "EVP_EncryptInit_ex failed");
+                    "EVP_EncryptInit_ex (hp) failed");
                 return QUIC_STATUS_TLS_ERROR;
             }
             if (EVP_EncryptUpdate(Key->CipherCtx, Mask + Offset, &OutLen, Zero, sizeof(Zero)) != 1) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "EVP_EncryptUpdate (Cipher) failed");
+                    "EVP_EncryptUpdate (hp) failed");
                 return QUIC_STATUS_TLS_ERROR;
             }
         }

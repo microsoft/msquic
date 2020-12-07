@@ -180,15 +180,15 @@ TEST_P(AckFrameTest, DecodeAckFrameFail) {
                 //
                 // ECT(0) COunt
                 //
-                Buffer[5] = (i & 1) ? TestValue : 0;
+                Buffer[5] = (i & 1) ? (uint8_t)TestValue : 0;
                 //
                 // ECT(1) Count
                 //
-                Buffer[6] = (i & 2) ? TestValue : 0;
+                Buffer[6] = (i & 2) ? (uint8_t)TestValue : 0;
                 //
                 // ECN-CE Count
                 //
-                Buffer[7] = (i & 4) ? TestValue : 0;
+                Buffer[7] = (i & 4) ? (uint8_t)TestValue : 0;
 
                 ASSERT_FALSE(QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &DecodedAckBlocks, &DecodedEcn, &AckDelay));
 
@@ -230,7 +230,6 @@ struct ResetStreamFrameParams {
 
     static auto GenerateDecodeFailParams() {
         std::vector<ResetStreamFrameParams> Params;
-        const uint16_t BufferLength = 4;
         for (uint32_t i = 1; i < 8; ++i) {
             ResetStreamFrameParams Temp;
             Temp.Buffer[0] = QUIC_FRAME_RESET_STREAM;
@@ -741,7 +740,7 @@ TEST_P(MaxStreamsFrameTest, DecodeMaxStreamsFrameFail) {
     uint8_t Buffer[BufferLength];
     uint16_t Offset;
     for (uint32_t i = 0; i < 2; ++i) {
-        Buffer[0] = GetParam() ? QUIC_FRAME_MAX_STREAMS : QUIC_FRAME_MAX_STREAMS_1;
+        Buffer[0] = (uint8_t)(GetParam() ? QUIC_FRAME_MAX_STREAMS : QUIC_FRAME_MAX_STREAMS_1);
         Buffer[1] = (i & 1) ? 64 : 255;
         Offset = 1;
         ASSERT_FALSE(QuicMaxStreamsFrameDecode((QUIC_FRAME_TYPE) Buffer[0], BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -885,7 +884,7 @@ TEST_P(StreamsBlockedFrameTest, DecodeStreamsBlockedFrameFail) {
     uint8_t Buffer[BufferLength];
     uint16_t Offset;
     for (uint32_t i = 0; i < 2; ++i) {
-        Buffer[0] = GetParam() ? QUIC_FRAME_STREAMS_BLOCKED : QUIC_FRAME_STREAMS_BLOCKED_1;
+        Buffer[0] = (uint8_t)(GetParam() ? QUIC_FRAME_STREAMS_BLOCKED : QUIC_FRAME_STREAMS_BLOCKED_1);
         Buffer[1] = (i & 1) ? 64 : 255;
         Offset = 1;
         ASSERT_FALSE(QuicStreamsBlockedFrameDecode((QUIC_FRAME_TYPE) Buffer[0], BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -1180,19 +1179,19 @@ struct ConnectionCloseFrameParams {
 
     static auto GenerateDecodeFailParams() {
         std::vector<ConnectionCloseFrameParams> Params;
-        for (uint8_t Type : {QUIC_FRAME_CONNECTION_CLOSE, QUIC_FRAME_CONNECTION_CLOSE_1}) {
+        for (auto Type : {QUIC_FRAME_CONNECTION_CLOSE, QUIC_FRAME_CONNECTION_CLOSE_1}) {
             ConnectionCloseFrameParams Frame;
-            Frame.Buffer[0] = Type;
+            Frame.Buffer[0] = (uint8_t)Type;
 
-            for (int TestValue : {65, 255}) {
+            for (auto TestValue : {65, 255}) {
                 for (uint32_t i = 1; i < 4; ++i) {
-                    Frame.Buffer[1] = (i & 1) ? TestValue : 0;
+                    Frame.Buffer[1] = (i & 1) ? (uint8_t)TestValue : 0;
 
                     if (Type == QUIC_FRAME_CONNECTION_CLOSE) {
                         for (uint32_t j = 0; j < 2; ++j) {
-                            Frame.Buffer[2] = (j & 1) ? TestValue : 0;
+                            Frame.Buffer[2] = (j & 1) ? (uint8_t)TestValue : 0;
 
-                            Frame.Buffer[3] = (i & 2) ? TestValue : 0;
+                            Frame.Buffer[3] = (i & 2) ? (uint8_t)TestValue : 0;
                             if (Frame.Buffer[3]  > 0) {
                                 Frame.Buffer[4] = 'Z';
                             } else {
@@ -1203,7 +1202,7 @@ struct ConnectionCloseFrameParams {
                             Params.push_back(Frame);
                         }
                     } else {
-                        Frame.Buffer[2] = (i & 2) ? TestValue : 0;
+                        Frame.Buffer[2] = (i & 2) ? (uint8_t)TestValue : 0;
                         if (Frame.Buffer[2]  > 0) {
                             Frame.Buffer[3] = 'Z';
                         } else {
