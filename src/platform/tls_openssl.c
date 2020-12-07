@@ -1040,7 +1040,7 @@ QuicTlsProcessData(
             case SSL_ERROR_WANT_WRITE:
                 goto Exit;
 
-            case SSL_ERROR_SSL:
+            case SSL_ERROR_SSL: {
                 char buf[256];
                 QuicTraceLogConnError(
                     OpenSslHandshakeErrorStr,
@@ -1049,6 +1049,7 @@ QuicTlsProcessData(
                     ERR_error_string(ERR_get_error(), buf));
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
+            }
 
             default:
                 QuicTraceLogConnError(
@@ -1138,7 +1139,7 @@ QuicTlsProcessData(
         case SSL_ERROR_WANT_WRITE:
             goto Exit;
 
-        case SSL_ERROR_SSL:
+        case SSL_ERROR_SSL: {
             char buf[256];
             QuicTraceLogConnError(
                 OpenSslHandshakeErrorStr,
@@ -1147,6 +1148,7 @@ QuicTlsProcessData(
                 ERR_error_string(ERR_get_error(), buf));
             TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
             goto Exit;
+        }
 
         default:
             QuicTraceLogConnError(
