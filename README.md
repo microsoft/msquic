@@ -46,5 +46,3 @@ MsQuic has several features that differentiates it from other QUIC implementatio
 # Contributing
 
 For information on contributing, please see our [contribution guidlines](./.github/CONTRIBUTING.md).
-
-> **Important** - We are still bringing up important regression tests for the core code. Until they are onboarded, any external contributions to the [core](./src/core) or kernel mode files in the [platform](./src/platform) will not be accepted. This is only a **temporary restriction** and we are working to complete it by the end of 2020.
