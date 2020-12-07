@@ -1021,6 +1021,12 @@ QuicTlsProcessData(
             (OSSL_ENCRYPTION_LEVEL)TlsContext->State->ReadKey,
             Buffer,
             *BufferLength) != 1) {
+        char buf[256];
+        QuicTraceLogConnError(
+            OpenSslHandshakeErrorStr,
+            TlsContext->Connection,
+            "SSL_provide_quic_data failed: %s",
+            ERR_error_string(ERR_get_error(), buf));
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
         goto Exit;
     }
@@ -1035,11 +1041,12 @@ QuicTlsProcessData(
                 goto Exit;
 
             case SSL_ERROR_SSL:
+                char buf[256];
                 QuicTraceLogConnError(
                     OpenSslHandshakeErrorStr,
                     TlsContext->Connection,
                     "TLS handshake error: %s",
-                    ERR_error_string(ERR_get_error(), NULL));
+                    ERR_error_string(ERR_get_error(), buf));
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
 
@@ -1132,11 +1139,12 @@ QuicTlsProcessData(
             goto Exit;
 
         case SSL_ERROR_SSL:
+            char buf[256];
             QuicTraceLogConnError(
                 OpenSslHandshakeErrorStr,
                 TlsContext->Connection,
                 "TLS handshake error: %s",
-                ERR_error_string(ERR_get_error(), NULL));
+                ERR_error_string(ERR_get_error(), buf));
             TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
             goto Exit;
 
