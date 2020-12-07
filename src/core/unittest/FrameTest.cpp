@@ -180,15 +180,15 @@ TEST_P(AckFrameTest, DecodeAckFrameFail) {
                 //
                 // ECT(0) COunt
                 //
-                Buffer[5] = (i & 1) ? TestValue : 0;
+                Buffer[5] = (i & 1) ? (uint8_t)TestValue : 0;
                 //
                 // ECT(1) Count
                 //
-                Buffer[6] = (i & 2) ? TestValue : 0;
+                Buffer[6] = (i & 2) ? (uint8_t)TestValue : 0;
                 //
                 // ECN-CE Count
                 //
-                Buffer[7] = (i & 4) ? TestValue : 0;
+                Buffer[7] = (i & 4) ? (uint8_t)TestValue : 0;
 
                 ASSERT_FALSE(QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &DecodedAckBlocks, &DecodedEcn, &AckDelay));
 
@@ -1185,13 +1185,13 @@ struct ConnectionCloseFrameParams {
 
             for (auto TestValue : {65, 255}) {
                 for (uint32_t i = 1; i < 4; ++i) {
-                    Frame.Buffer[1] = (i & 1) ? TestValue : 0;
+                    Frame.Buffer[1] = (i & 1) ? (uint8_t)TestValue : 0;
 
                     if (Type == QUIC_FRAME_CONNECTION_CLOSE) {
                         for (uint32_t j = 0; j < 2; ++j) {
-                            Frame.Buffer[2] = (j & 1) ? TestValue : 0;
+                            Frame.Buffer[2] = (j & 1) ? (uint8_t)TestValue : 0;
 
-                            Frame.Buffer[3] = (i & 2) ? TestValue : 0;
+                            Frame.Buffer[3] = (i & 2) ? (uint8_t)TestValue : 0;
                             if (Frame.Buffer[3]  > 0) {
                                 Frame.Buffer[4] = 'Z';
                             } else {
@@ -1202,7 +1202,7 @@ struct ConnectionCloseFrameParams {
                             Params.push_back(Frame);
                         }
                     } else {
-                        Frame.Buffer[2] = (i & 2) ? TestValue : 0;
+                        Frame.Buffer[2] = (i & 2) ? (uint8_t)TestValue : 0;
                         if (Frame.Buffer[2]  > 0) {
                             Frame.Buffer[3] = 'Z';
                         } else {
