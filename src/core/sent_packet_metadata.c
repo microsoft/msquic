@@ -62,8 +62,8 @@ QuicSentPacketPoolInitialize(
     _Inout_ QUIC_SENT_PACKET_POOL* Pool
     )
 {
-    for (uint8_t i = 0; i < ARRAYSIZE(Pool->Pools); i++) {
-        uint16_t PacketMetadataSize =
+    for (uint32_t i = 0; i < ARRAYSIZE(Pool->Pools); i++) {
+        uint32_t PacketMetadataSize =
             (i + 1) * sizeof(QUIC_SENT_FRAME_METADATA) +
             sizeof(QUIC_SENT_PACKET_METADATA);
 
@@ -81,7 +81,7 @@ QuicSentPacketPoolUninitialize(
     _In_ QUIC_SENT_PACKET_POOL* Pool
     )
 {
-    for (uint8_t i = 0; i < ARRAYSIZE(Pool->Pools); i++) {
+    for (size_t i = 0; i < ARRAYSIZE(Pool->Pools); i++) {
         QuicPoolUninitialize(Pool->Pools + i);
     }
 }

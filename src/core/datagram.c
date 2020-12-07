@@ -19,7 +19,7 @@ Abstract:
 #define QUIC_DATAGRAM_OVERHEAD(CidLength) \
 (\
     MIN_SHORT_HEADER_LENGTH_V1 + \
-    CidLength + \
+    (CidLength) + \
     DATAGRAM_FRAME_HEADER_LENGTH \
 )
 
@@ -487,7 +487,7 @@ QuicDatagramWriteFrame(
                 SendRequest->TotalLength,
                 &Builder->DatagramLength,
                 AvailableBufferLength,
-                (uint8_t*)Builder->Datagram->Buffer);
+                Builder->Datagram->Buffer);
         if (!HadRoomForDatagram) {
             //
             // We didn't have room to frame this datagram. This should only

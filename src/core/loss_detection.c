@@ -890,7 +890,9 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 PrevPacket = Packet;
                 Packet = Packet->Next;
                 continue;
-            } else if (Packet->PacketNumber + QUIC_PACKET_REORDER_THRESHOLD < LossDetection->LargestAck) {
+            }
+
+            if (Packet->PacketNumber + QUIC_PACKET_REORDER_THRESHOLD < LossDetection->LargestAck) {
                 if (!NonretransmittableHandshakePacket) {
                     QuicTraceLogVerbose(
                         PacketTxLostFack,

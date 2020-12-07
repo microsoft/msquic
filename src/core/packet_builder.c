@@ -297,7 +297,7 @@ QuicPacketBuilderPrepare(
         Builder->HeaderLength = 0;
 
         uint8_t* Header =
-            (uint8_t*)Builder->Datagram->Buffer + Builder->DatagramLength;
+            Builder->Datagram->Buffer + Builder->DatagramLength;
         uint16_t BufferSpaceAvailable =
             (uint16_t)Builder->Datagram->Length - Builder->DatagramLength;
 
@@ -619,7 +619,7 @@ QuicPacketBuilderFinalize(
     QUIC_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
 
     uint8_t* Header =
-        (uint8_t*)Builder->Datagram->Buffer + Builder->PacketStart;
+        Builder->Datagram->Buffer + Builder->PacketStart;
     uint16_t PayloadLength =
         Builder->DatagramLength - (Builder->PacketStart + Builder->HeaderLength);
     uint16_t ExpectedFinalDatagramLength =

@@ -47,7 +47,7 @@ typedef struct QUIC_HANDLE *HQUIC;
 //
 // The maximum value that can be encoded in a 62-bit integer.
 //
-#define QUIC_UINT62_MAX ((1ULL << 62) - 1)
+#define QUIC_UINT62_MAX ((1ULL << 62U) - 1)
 
 //
 // Represents a 62-bit integer.
@@ -193,7 +193,7 @@ typedef enum QUIC_DATAGRAM_SEND_STATE {
 // by MsQuic.
 //
 #define QUIC_DATAGRAM_SEND_STATE_IS_FINAL(State) \
-    (State >= QUIC_DATAGRAM_SEND_LOST_DISCARDED)
+    ((State) >= QUIC_DATAGRAM_SEND_LOST_DISCARDED)
 
 
 typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.

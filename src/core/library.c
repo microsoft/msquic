@@ -216,7 +216,7 @@ MsQuicLibraryInitialize(
             LibraryStorageOpenFailed,
             "[ lib] Failed to open global settings, 0x%x",
             Status);
-        Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
+        // Non-fatal, as the process may not have access
     }
 
     MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
@@ -417,7 +417,7 @@ MsQuicLibraryUninitialize(
     QUIC_FREE(MsQuicLib.PerProc, QUIC_POOL_PERPROC);
     MsQuicLib.PerProc = NULL;
 
-    for (uint8_t i = 0; i < ARRAYSIZE(MsQuicLib.StatelessRetryKeys); ++i) {
+    for (size_t i = 0; i < ARRAYSIZE(MsQuicLib.StatelessRetryKeys); ++i) {
         QuicKeyFree(MsQuicLib.StatelessRetryKeys[i]);
         MsQuicLib.StatelessRetryKeys[i] = NULL;
     }
@@ -1566,25 +1566,29 @@ QuicLibraryGetStatelessRetryKeyForTimestamp(
 {
     if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey] - QUIC_STATELESS_RETRY_KEY_LIFETIME_MS) {
         //
-        // Timestamp is before the begining of the previous key's validity window.
+        // Timestamp is before the beginning of the previous key's validity window.
         //
         return NULL;
-    } else if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey]) {
+    }
+
+    if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey]) {
         if (MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey] == NULL) {
             return NULL;
         }
         return MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey];
-    } else if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[MsQuicLib.CurrentStatelessRetryKey]) {
+    }
+
+    if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[MsQuicLib.CurrentStatelessRetryKey]) {
         if (MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey] == NULL) {
             return NULL;
         }
         return MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
-    } else {
-        //
-        // Timestamp is after the end of the latest key's validity window.
-        //
-        return NULL;
     }
+
+    //
+    // Timestamp is after the end of the latest key's validity window.
+    //
+    return NULL;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
