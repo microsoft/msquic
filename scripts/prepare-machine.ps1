@@ -56,7 +56,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $NuGetPath = Join-Path $RootDir "nuget"
 
 # Well-known location for clog packages.
-$ClogVersion = "0.1.9"
+$ClogVersion = "0.2.0"
 $ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v$ClogVersion"
 
 $MessagesAtEnd = New-Object Collections.Generic.List[string]
