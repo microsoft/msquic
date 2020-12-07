@@ -28,12 +28,12 @@ $OutputDir = Join-Path $RootDir "build" "tmp"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 if ($Clean) {
-    Remove-Item $Sidecar -Force | Out-Null
+    Remove-Item $Sidecar -Force -ErrorAction Ignore | Out-Null
 }
 
 foreach ($File in $Files) {
-    clog -p windows --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --OutputPath "$OutputDir"
-    clog -p windows_kernel --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --OutputPath "$OutputDir"
-    clog -p stubs --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --OutputPath "$OutputDir"
-    clog -p linux --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --OutputPath "$OutputDir"
+    clog -p windows --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
+    clog -p windows_kernel --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
+    clog -p stubs --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
+    clog -p linux --scopePrefix "QUIC" -s $Sidecar -c $ConfigFile -i $File --outputDirectory "$OutputDir"
 }
