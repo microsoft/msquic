@@ -1005,30 +1005,30 @@ QuicTlsProcessData(
         goto Exit;
     }
 
+    TlsContext->State = State;
+    TlsContext->ResultFlags = 0;
+
     if (*BufferLength != 0) {
         QuicTraceLogConnVerbose(
             OpenSslProcessData,
             TlsContext->Connection,
             "Processing %u received bytes",
             *BufferLength);
-    }
 
-    TlsContext->State = State;
-    TlsContext->ResultFlags = 0;
-
-    if (SSL_provide_quic_data(
-            TlsContext->Ssl,
-            (OSSL_ENCRYPTION_LEVEL)TlsContext->State->ReadKey,
-            Buffer,
-            *BufferLength) != 1) {
-        char buf[256];
-        QuicTraceLogConnError(
-            OpenSslQuicDataErrorStr,
-            TlsContext->Connection,
-            "SSL_provide_quic_data failed: %s",
-            ERR_error_string(ERR_get_error(), buf));
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-        goto Exit;
+        if (SSL_provide_quic_data(
+                TlsContext->Ssl,
+                (OSSL_ENCRYPTION_LEVEL)TlsContext->State->ReadKey,
+                Buffer,
+                *BufferLength) != 1) {
+            char buf[256];
+            QuicTraceLogConnError(
+                OpenSslQuicDataErrorStr,
+                TlsContext->Connection,
+                "SSL_provide_quic_data failed: %s",
+                ERR_error_string(ERR_get_error(), buf));
+            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+            goto Exit;
+        }
     }
 
     if (!State->HandshakeComplete) {
