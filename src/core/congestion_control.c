@@ -164,7 +164,7 @@ QuicCongestionControlGetSendAllowance(
         !TimeSinceLastSendValid ||
         !Connection->Settings.PacingEnabled ||
         !Connection->Paths[0].GotFirstRttSample ||
-        Connection->Paths[0].SmoothedRtt < MS_TO_US(15)) {
+        Connection->Paths[0].SmoothedRtt < MS_TO_US(QUIC_SEND_PACING_INTERVAL)) {
         //
         // We're not in the necessary state to pace.
         //

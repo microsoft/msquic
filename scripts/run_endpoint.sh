@@ -58,6 +58,9 @@ if [ "$ROLE" == "client" ]; then
     "keyupdate")
         CLIENT_PARAMS="-test:U $CLIENT_PARAMS"
         ;;
+    "chacha20")
+        CLIENT_PARAMS="-test:H $CLIENT_PARAMS"
+        ;;
     *)
         CLIENT_PARAMS="-test:D $CLIENT_PARAMS"
         ;;

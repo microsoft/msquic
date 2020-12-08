@@ -134,12 +134,10 @@ QuicLookupRebalance(
     if (Lookup->MaximizePartitioning) {
         PartitionCount = MsQuicLib.PartitionCount;
 
-    } else if (Lookup->PartitionCount > 0) {
-        PartitionCount = 1;
-
-    } else if (Lookup->PartitionCount == 0 &&
-        Lookup->SINGLE.Connection != NULL &&
-        Lookup->SINGLE.Connection != Connection) {
+    } else if (Lookup->PartitionCount > 0 ||
+               (Lookup->PartitionCount == 0 &&
+                Lookup->SINGLE.Connection != NULL &&
+                Lookup->SINGLE.Connection != Connection)) {
         PartitionCount = 1;
 
     } else {
@@ -202,14 +200,14 @@ QuicLookupRebalance(
 
             QUIC_PARTITIONED_HASHTABLE* PreviousTable = PreviousLookup;
             for (uint16_t i = 0; i < PreviousPartitionCount; i++) {
-                QUIC_HASHTABLE_ENTRY* Entry;
                 QUIC_HASHTABLE_ENUMERATOR Enumerator;
 #pragma warning(push)
 #pragma warning(disable:6001)
                 QuicHashtableEnumerateBegin(&PreviousTable[i].Table, &Enumerator);
 #pragma warning(pop)
                 while (TRUE) {
-                    Entry = QuicHashtableEnumerateNext(&PreviousTable[i].Table, &Enumerator);
+                    QUIC_HASHTABLE_ENTRY* Entry =
+                        QuicHashtableEnumerateNext(&PreviousTable[i].Table, &Enumerator);
                     if (Entry == NULL) {
                         QuicHashtableEnumerateEnd(&PreviousTable[i].Table, &Enumerator);
                         break;

@@ -85,6 +85,19 @@ QuicStreamInitialize(
         }
     }
 
+#if 1 // Special case code to force bugcheck or failure. Will be removed when no longer needed.
+    QUIC_FRE_ASSERT(Connection->Settings.StreamRecvBufferDefault != 0x80000000U);
+    if (Connection->Settings.StreamRecvBufferDefault == 0x40000000U) {
+        QuicTraceEvent(
+            StreamError,
+            "[strm][%p] ERROR, %s.",
+            Stream,
+            "Unsupported receive buffer size");
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        goto Exit;
+    }
+#endif
+
     InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
         PreallocatedRecvBuffer = QuicPoolAlloc(&Worker->DefaultReceiveBufferPool);
@@ -355,7 +368,7 @@ QuicStreamTraceRundown(
         Stream,
         Stream->Connection,
         Stream->ID,
-        (!QuicConnIsServer(Stream->Connection) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
+        ((!QuicConnIsServer(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
     QuicTraceEvent(
         StreamOutFlowBlocked,
         "[strm][%p] Send Blocked Flags: %hhu",
@@ -575,6 +588,7 @@ QuicStreamParamGet(
         if (!Stream->Flags.Started ||
             !Stream->Flags.LocalCloseAcked) {
             Status = QUIC_STATUS_INVALID_STATE;
+            break;
         }
 
         *BufferLength = sizeof(uint64_t);

@@ -51,7 +51,7 @@ QuicAckHeaderEncode(
     Buffer = QuicVarIntEncode(Frame->LargestAcknowledged, Buffer);
     Buffer = QuicVarIntEncode(Frame->AckDelay, Buffer);
     Buffer = QuicVarIntEncode(Frame->AdditionalAckBlockCount, Buffer);
-    Buffer = QuicVarIntEncode(Frame->FirstAckBlock, Buffer);
+    QuicVarIntEncode(Frame->FirstAckBlock, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -96,7 +96,7 @@ QuicAckBlockEncode(
 
     Buffer = Buffer + *Offset;
     Buffer = QuicVarIntEncode(Block->Gap, Buffer);
-    Buffer = QuicVarIntEncode(Block->AckBlock, Buffer);
+    QuicVarIntEncode(Block->AckBlock, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -140,7 +140,7 @@ QuicAckEcnEncode(
     Buffer = Buffer + *Offset;
     Buffer = QuicVarIntEncode(Ecn->ECT_0_Count, Buffer);
     Buffer = QuicVarIntEncode(Ecn->ECT_1_Count, Buffer);
-    Buffer = QuicVarIntEncode(Ecn->CE_Count, Buffer);
+    QuicVarIntEncode(Ecn->CE_Count, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -363,7 +363,7 @@ QuicResetStreamFrameEncode(
     Buffer = QuicUint8Encode(QUIC_FRAME_RESET_STREAM, Buffer);
     Buffer = QuicVarIntEncode(Frame->StreamID, Buffer);
     Buffer = QuicVarIntEncode(Frame->ErrorCode, Buffer);
-    Buffer = QuicVarIntEncode(Frame->FinalSize, Buffer);
+    QuicVarIntEncode(Frame->FinalSize, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -408,7 +408,7 @@ QuicStopSendingFrameEncode(
     Buffer = Buffer + *Offset;
     Buffer = QuicUint8Encode(QUIC_FRAME_STOP_SENDING, Buffer);
     Buffer = QuicVarIntEncode(Frame->StreamID, Buffer);
-    Buffer = QuicVarIntEncode(Frame->ErrorCode, Buffer);
+    QuicVarIntEncode(Frame->ErrorCode, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -632,7 +632,7 @@ QuicMaxDataFrameEncode(
 
     Buffer = Buffer + *Offset;
     Buffer = QuicUint8Encode(QUIC_FRAME_MAX_DATA, Buffer);
-    Buffer = QuicVarIntEncode(Frame->MaximumData, Buffer);
+    QuicVarIntEncode(Frame->MaximumData, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -675,7 +675,7 @@ QuicMaxStreamDataFrameEncode(
     Buffer = Buffer + *Offset;
     Buffer = QuicUint8Encode(QUIC_FRAME_MAX_STREAM_DATA, Buffer);
     Buffer = QuicVarIntEncode(Frame->StreamID, Buffer);
-    Buffer = QuicVarIntEncode(Frame->MaximumData, Buffer);
+    QuicVarIntEncode(Frame->MaximumData, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -722,7 +722,7 @@ QuicMaxStreamsFrameEncode(
                 QUIC_FRAME_MAX_STREAMS :
                 QUIC_FRAME_MAX_STREAMS_1,
             Buffer);
-    Buffer = QuicVarIntEncode(Frame->MaximumStreams, Buffer);
+    QuicVarIntEncode(Frame->MaximumStreams, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -765,7 +765,7 @@ QuicDataBlockedFrameEncode(
 
     Buffer = Buffer + *Offset;
     Buffer = QuicUint8Encode(QUIC_FRAME_DATA_BLOCKED, Buffer);
-    Buffer = QuicVarIntEncode(Frame->DataLimit, Buffer);
+    QuicVarIntEncode(Frame->DataLimit, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -808,7 +808,7 @@ QuicStreamDataBlockedFrameEncode(
     Buffer = Buffer + *Offset;
     Buffer = QuicUint8Encode(QUIC_FRAME_STREAM_DATA_BLOCKED, Buffer);
     Buffer = QuicVarIntEncode(Frame->StreamID, Buffer);
-    Buffer = QuicVarIntEncode(Frame->StreamDataLimit, Buffer);
+    QuicVarIntEncode(Frame->StreamDataLimit, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -855,7 +855,7 @@ QuicStreamsBlockedFrameEncode(
                 QUIC_FRAME_STREAMS_BLOCKED :
                 QUIC_FRAME_STREAMS_BLOCKED_1,
             Buffer);
-    Buffer = QuicVarIntEncode(Frame->StreamLimit, Buffer);
+    QuicVarIntEncode(Frame->StreamLimit, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -960,7 +960,7 @@ QuicRetireConnectionIDFrameEncode(
 
     Buffer = Buffer + *Offset;
     Buffer = QuicUint8Encode(QUIC_FRAME_RETIRE_CONNECTION_ID, Buffer);
-    Buffer = QuicVarIntEncode(Frame->Sequence, Buffer);
+    QuicVarIntEncode(Frame->Sequence, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;

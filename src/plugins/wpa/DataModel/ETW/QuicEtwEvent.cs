@@ -220,6 +220,8 @@ namespace MsQuicTracing.DataModel.ETW
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicStreamErrorStatusEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadString());
 
+                case (QuicEventId)9216: // Temporary, while there are still builds out there generating this old event
+                    return new QuicDatapathSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadByte(), data.ReadUShort(), data.ReadAddress(), new System.Net.IPEndPoint(0,0));
                 case QuicEventId.DatapathSend:
                     return new QuicDatapathSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadByte(), data.ReadUShort(), data.ReadAddress(), data.ReadAddress());
                 case QuicEventId.DatapathRecv:

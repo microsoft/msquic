@@ -13,16 +13,15 @@ Environment:
 
 --*/
 
-#define _GNU_SOURCE
 #include "platform_internal.h"
 #include "quic_platform.h"
+#include "quic_platform_dispatch.h"
+#include "quic_trace.h"
+#include <dlfcn.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <sched.h>
-#include <fcntl.h>
 #include <syslog.h>
-#include <dlfcn.h>
-#include "quic_trace.h"
-#include "quic_platform_dispatch.h"
 #ifdef QUIC_CLOG
 #include "platform_linux.c.clog.h"
 #endif
@@ -39,7 +38,7 @@ static const char TpLibName[] = "libmsquic.lttng.so";
 
 uint64_t QuicTotalMemory;
 
-__attribute__((noinline))
+__attribute__((noinline, noreturn))
 void
 quic_bugcheck(
     void
@@ -70,7 +69,7 @@ QuicPlatformSystemLoad(
     // https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/pal/src/misc/tracepointprovider.cpp#L106
     //
 
-    int ShouldLoad = 1;
+    long ShouldLoad = 1;
 
     //
     // Check if loading the LTTng providers should be disabled.
@@ -93,7 +92,7 @@ QuicPlatformSystemLoad(
         return;
     }
 
-    int PathLen = strlen(Info.dli_fname);
+    size_t PathLen = strlen(Info.dli_fname);
 
     //
     // Find the length of the full path without the shared object name, including the trailing slash.
@@ -146,7 +145,7 @@ QuicPlatformInitialize(
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     QUIC_FRE_ASSERT(PlatDispatch != NULL);
 #else
-    RandomFd = open("/dev/urandom", O_RDONLY);
+    RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
         return (QUIC_STATUS)errno;
     }
@@ -286,22 +285,24 @@ QuicRefIncrementNonZero(
     _Inout_ volatile QUIC_REF_COUNT* RefCount
     )
 {
-    QUIC_REF_COUNT NewValue = 0;
     QUIC_REF_COUNT OldValue = *RefCount;
 
     for (;;) {
-        NewValue = OldValue + 1;
+        QUIC_REF_COUNT NewValue = OldValue + 1;
 
-        if ((QUIC_REF_COUNT)NewValue > 1) {
+        if (NewValue > 1) {
             if(__atomic_compare_exchange_n(RefCount, &OldValue, NewValue, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
                 return TRUE;
             }
-        } else if ((QUIC_REF_COUNT)NewValue == 1) {
-            return FALSE;
-        } else {
-            QUIC_FRE_ASSERT(false);
+            continue;
+        }
+
+        if (NewValue == 1) {
             return FALSE;
         }
+
+        QUIC_FRE_ASSERT(false);
+        return FALSE;
     }
 }
 
@@ -314,7 +315,9 @@ QuicRefDecrement(
 
     if (NewValue > 0) {
         return FALSE;
-    } else if (NewValue == 0) {
+    }
+
+    if (NewValue == 0) {
         return TRUE;
     }
 
@@ -495,7 +498,6 @@ QuicEventWaitWithTimeout(
     QUIC_EVENT_OBJECT* EventObj = Event;
     BOOLEAN WaitSatisfied = FALSE;
     struct timespec Ts = {0};
-    int Result = 0;
 
     //
     // Get absolute time.
@@ -507,7 +509,7 @@ QuicEventWaitWithTimeout(
 
     while (!EventObj->Signaled) {
 
-        Result = pthread_cond_timedwait(&EventObj->Cond, &EventObj->Mutex, &Ts);
+        int Result = pthread_cond_timedwait(&EventObj->Cond, &EventObj->Mutex, &Ts);
 
         if (Result == ETIMEDOUT) {
             WaitSatisfied = FALSE;

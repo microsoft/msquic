@@ -300,29 +300,30 @@ QuicStreamSendCanWriteDataFrames(
         // Flow control doesn't block opening a new stream.
         //
         return TRUE;
+    }
 
-    } else if (RECOV_WINDOW_OPEN(Stream)) {
+    if (RECOV_WINDOW_OPEN(Stream)) {
         //
         // We have some bytes to recover. Since these bytes are being
         // retransmitted, we can ignore flow control.
         //
         return TRUE;
+    }
 
-    } else if (Stream->NextSendOffset == Stream->QueuedSendOffset) {
+    if (Stream->NextSendOffset == Stream->QueuedSendOffset) {
         //
         // No unsent data. Can send only if a FIN is needed.
         //
         return !!(Stream->SendFlags & QUIC_STREAM_SEND_FLAG_FIN);
-
-    } else {
-        //
-        // Some unsent data. Can send only if flow control will allow.
-        //
-        QUIC_SEND* Send = &Stream->Connection->Send;
-        return
-            Stream->NextSendOffset < Stream->MaxAllowedSendOffset &&
-            Send->OrderedStreamBytesSent < Send->PeerMaxData;
     }
+
+    //
+    // Some unsent data. Can send only if flow control will allow.
+    //
+    QUIC_SEND* Send = &Stream->Connection->Send;
+    return
+        Stream->NextSendOffset < Stream->MaxAllowedSendOffset &&
+        Send->OrderedStreamBytesSent < Send->PeerMaxData;
 }
 
 BOOLEAN
@@ -873,7 +874,6 @@ QuicStreamWriteStreamFrames(
         //
         // Find the first SACK after the selected offset.
         //
-        uint32_t i = 0;
         QUIC_SUBRANGE* Sack;
         if (Left == Stream->MaxSentLength) {
             //
@@ -881,6 +881,7 @@ QuicStreamWriteStreamFrames(
             //
             Sack = NULL;
         } else {
+            uint32_t i = 0;
             while ((Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i++)) != NULL &&
                 Sack->Low < Left) {
                 QUIC_DBG_ASSERT(Sack->Low + Sack->Count <= Left);
@@ -1044,7 +1045,7 @@ QuicStreamSendWrite(
                 &Frame,
                 &Builder->DatagramLength,
                 AvailableBufferLength,
-                (uint8_t*)Builder->Datagram->Buffer)) {
+                Builder->Datagram->Buffer)) {
 
             Stream->SendFlags &= ~QUIC_STREAM_SEND_FLAG_MAX_DATA;
             if (QuicPacketBuilderAddStreamFrame(Builder, Stream, QUIC_FRAME_MAX_STREAM_DATA)) {
@@ -1063,7 +1064,7 @@ QuicStreamSendWrite(
                 &Frame,
                 &Builder->DatagramLength,
                 AvailableBufferLength,
-                (uint8_t*)Builder->Datagram->Buffer)) {
+                Builder->Datagram->Buffer)) {
 
             Stream->SendFlags &= ~QUIC_STREAM_SEND_FLAG_SEND_ABORT;
             if (QuicPacketBuilderAddStreamFrame(Builder, Stream, QUIC_FRAME_RESET_STREAM)) {
@@ -1082,7 +1083,7 @@ QuicStreamSendWrite(
                 &Frame,
                 &Builder->DatagramLength,
                 AvailableBufferLength,
-                (uint8_t*)Builder->Datagram->Buffer)) {
+                Builder->Datagram->Buffer)) {
 
             Stream->SendFlags &= ~QUIC_STREAM_SEND_FLAG_RECV_ABORT;
             if (QuicPacketBuilderAddStreamFrame(Builder, Stream, QUIC_FRAME_STOP_SENDING)) {
@@ -1102,7 +1103,7 @@ QuicStreamSendWrite(
             Builder->PacketType == QUIC_INITIAL,
             Builder->Metadata,
             &StreamFrameLength,
-            (uint8_t*)Builder->Datagram->Buffer + Builder->DatagramLength);
+            Builder->Datagram->Buffer + Builder->DatagramLength);
 
         if (StreamFrameLength > 0) {
             QUIC_DBG_ASSERT(StreamFrameLength <= AvailableBufferLength - Builder->DatagramLength);
@@ -1128,7 +1129,7 @@ QuicStreamSendWrite(
                 &Frame,
                 &Builder->DatagramLength,
                 AvailableBufferLength,
-                (uint8_t*)Builder->Datagram->Buffer)) {
+                Builder->Datagram->Buffer)) {
 
             Stream->SendFlags &= ~QUIC_STREAM_SEND_FLAG_DATA_BLOCKED;
             if (QuicPacketBuilderAddStreamFrame(Builder, Stream, QUIC_FRAME_STREAM_DATA_BLOCKED)) {

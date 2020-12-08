@@ -501,13 +501,11 @@ QuicSendWriteFrames(
                 &Frame,
                 &Builder->DatagramLength,
                 AvailableBufferLength,
-                (uint8_t*)Builder->Datagram->Buffer)) {
+                Builder->Datagram->Buffer)) {
 
             Send->SendFlags &= ~(QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
             (void)QuicPacketBuilderAddFrame(
                 Builder, IsApplicationClose ? QUIC_FRAME_CONNECTION_CLOSE_1 : QUIC_FRAME_CONNECTION_CLOSE, FALSE);
-        } else {
-            RanOutOfRoom = TRUE;
         }
 
         return TRUE;
@@ -538,7 +536,7 @@ QuicSendWriteFrames(
                     &Frame,
                     &Builder->DatagramLength,
                     AvailableBufferLength,
-                    (uint8_t*)Builder->Datagram->Buffer)) {
+                    Builder->Datagram->Buffer)) {
 
                 TempPath->SendResponse = FALSE;
                 QuicCopyMemory(
@@ -587,7 +585,7 @@ QuicSendWriteFrames(
                     &Frame,
                     &Builder->DatagramLength,
                     AvailableBufferLength,
-                    (uint8_t*)Builder->Datagram->Buffer)) {
+                    Builder->Datagram->Buffer)) {
 
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_DATA_BLOCKED;
                 if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_DATA_BLOCKED, TRUE)) {
@@ -606,7 +604,7 @@ QuicSendWriteFrames(
                     &Frame,
                     &Builder->DatagramLength,
                     AvailableBufferLength,
-                    (uint8_t*)Builder->Datagram->Buffer)) {
+                    Builder->Datagram->Buffer)) {
 
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_MAX_DATA;
                 if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_MAX_DATA, TRUE)) {
@@ -629,7 +627,7 @@ QuicSendWriteFrames(
                     &Frame,
                     &Builder->DatagramLength,
                     AvailableBufferLength,
-                    (uint8_t*)Builder->Datagram->Buffer)) {
+                    Builder->Datagram->Buffer)) {
 
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_MAX_STREAMS_BIDI;
                 if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_MAX_STREAMS, TRUE)) {
@@ -652,7 +650,7 @@ QuicSendWriteFrames(
                     &Frame,
                     &Builder->DatagramLength,
                     AvailableBufferLength,
-                    (uint8_t*)Builder->Datagram->Buffer)) {
+                    Builder->Datagram->Buffer)) {
 
                 Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_MAX_STREAMS_UNI;
                 if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_MAX_STREAMS_1, TRUE)) {
@@ -825,7 +823,9 @@ QuicSendCanSendStreamNow(
 
     if (Connection->Crypto.TlsState.WriteKey == QUIC_PACKET_KEY_1_RTT) {
         return QuicStreamCanSendNow(Stream, FALSE);
-    } else if (Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] != NULL) {
+    }
+
+    if (Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] != NULL) {
         return QuicStreamCanSendNow(Stream, TRUE);
     }
 

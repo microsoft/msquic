@@ -86,6 +86,7 @@ QuicRangeGrow(
     // Move the items to the new array and make room for the next index to write.
     //
 
+    QUIC_DBG_ASSERT(Range->SubRanges != 0);
     if (NextIndex == 0) {
         memcpy(
             NewSubRanges + 1,
@@ -140,7 +141,9 @@ QuicRangeMakeSpace(
             if (Range->MaxAllocSize == QUIC_MAX_RANGE_ALLOC_SIZE ||
                 *Index == 0) {
                 return NULL;
-            } else if (*Index > 1) {
+            }
+
+            if (*Index > 1) {
                 memmove(
                     Range->SubRanges,
                     Range->SubRanges + 1,
@@ -149,6 +152,7 @@ QuicRangeMakeSpace(
             (*Index)--; // Actually going to be inserting 1 before where requested.
         }
     } else {
+        QUIC_DBG_ASSERT(Range->SubRanges != 0);
         if (*Index == 0) {
             memmove(
                 Range->SubRanges + 1,
@@ -252,7 +256,6 @@ QuicRangeAddRange(
     _Out_ BOOLEAN* RangeUpdated
     )
 {
-    int result;
     uint32_t i;
     QUIC_SUBRANGE* Sub;
     QUIC_RANGE_SEARCH_KEY Key = { Low, Low + Count - 1 };
@@ -267,7 +270,7 @@ QuicRangeAddRange(
         // The new range is somewhere before the end of the of the last subrange
         // so we must search for the first overlapping or adjacent subrange.
         //
-        result = QuicRangeSearch(Range, &Key);
+        int result = QuicRangeSearch(Range, &Key);
         if (IS_FIND_INDEX(result)) {
             //
             // We found 'an' overlapping subrange. We need to ensure this is the
@@ -278,7 +281,6 @@ QuicRangeAddRange(
                     QuicRangeCompare(&Key, Sub) == 0) {
                 --i;
             }
-            Sub = QuicRangeGet(Range, i);
         } else {
             //
             // No overlapping range was found, so the index of the insert was
@@ -485,7 +487,9 @@ QuicRangeSetMin(
         Sub = QuicRangeGet(Range, i);
         if (Sub->Low >= Low) {
             break;
-        } else if (QuicRangeGetHigh(Sub) >= Low) {
+        }
+
+        if (QuicRangeGetHigh(Sub) >= Low) {
             Sub->Count -= Low - Sub->Low;
             Sub->Low = Low;
             break;
@@ -517,9 +521,8 @@ QuicRangeGetMinSafe(
     if (Range->UsedLength > 0) {
         *Value = QuicRangeGetMin(Range);
         return TRUE;
-    } else {
-        return FALSE;
     }
+    return FALSE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -542,7 +545,6 @@ QuicRangeGetMaxSafe(
     if (Range->UsedLength > 0) {
         *Value = QuicRangeGetMax(Range);
         return TRUE;
-    } else {
-        return FALSE;
     }
+    return FALSE;
 }

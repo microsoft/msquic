@@ -155,14 +155,14 @@ protected:
         }
 
         void InitializeServer(
-            const QUIC_SEC_CONFIG* SecConfig,
+            const QUIC_SEC_CONFIG* SecConfiguration,
             bool MultipleAlpns = false,
             uint16_t TPLen = 64
             )
         {
             QUIC_TLS_CONFIG Config = {0};
             Config.IsServer = TRUE;
-            Config.SecConfig = (QUIC_SEC_CONFIG*)SecConfig;
+            Config.SecConfig = (QUIC_SEC_CONFIG*)SecConfiguration;
             UNREFERENCED_PARAMETER(MultipleAlpns); // The server must always send back the negotiated ALPN.
             Config.AlpnBuffer = Alpn;
             Config.AlpnBufferLength = sizeof(Alpn);
@@ -183,7 +183,7 @@ protected:
         }
 
         void InitializeClient(
-            QUIC_SEC_CONFIG* SecConfig,
+            QUIC_SEC_CONFIG* SecConfiguration,
             bool MultipleAlpns = false,
             uint16_t TPLen = 64,
             QUIC_BUFFER* Ticket = nullptr
@@ -191,7 +191,7 @@ protected:
         {
             QUIC_TLS_CONFIG Config = {0};
             Config.IsServer = FALSE;
-            Config.SecConfig = SecConfig;
+            Config.SecConfig = SecConfiguration;
             Config.AlpnBuffer = MultipleAlpns ? MultiAlpn : Alpn;
             Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
             Config.LocalTPBuffer =
@@ -995,7 +995,7 @@ uint64_t InterlockedCounter(
     }
     End = QuicTimeUs64();
 
-    QUIC_FRE_ASSERT(Counter == LoopCount);
+    QUIC_FRE_ASSERT((uint64_t)Counter == LoopCount);
 
     return End - Start;
 }

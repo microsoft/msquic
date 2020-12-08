@@ -10,16 +10,16 @@ Abstract:
 --*/
 
 #define QUIC_TEST_APIS 1
-#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS // NOLINT bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp
 
-#include "platform_internal.h"
-#include "openssl/ssl.h"
+#include "openssl/ec.h"
 #include "openssl/err.h"
 #include "openssl/kdf.h"
-#include "openssl/ec.h"
-#include "openssl/rsa.h"
-#include "openssl/x509.h"
 #include "openssl/pem.h"
+#include "openssl/rsa.h"
+#include "openssl/ssl.h"
+#include "openssl/x509.h"
+#include "platform_internal.h"
 #ifdef QUIC_CLOG
 #include "selfsign_openssl.c.clog.h"
 #endif
@@ -410,11 +410,11 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPlatFreeSelfSignedCert(
-    _In_ const QUIC_CREDENTIAL_CONFIG* _Params
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     )
 {
     QUIC_CREDENTIAL_CONFIG_INTERNAL* Params =
-        (QUIC_CREDENTIAL_CONFIG_INTERNAL*)_Params;
+        (QUIC_CREDENTIAL_CONFIG_INTERNAL*)CredConfig;
 
 #ifdef _WIN32
     DeleteFileA(Params->CertFilepath);
@@ -422,8 +422,8 @@ QuicPlatFreeSelfSignedCert(
 #else
     char RmCmd[32] = {0};
     strncpy(RmCmd, "rm -rf ", 7 + 1);
-    strcat(RmCmd, Params->TempDir);
-    if (system(RmCmd) == -1) {
+    strncat(RmCmd, Params->TempDir, sizeof(RmCmd) - strlen(RmCmd) - 1);
+    if (system(RmCmd) == -1) { // NOLINT cert-env33-c
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
