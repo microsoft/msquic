@@ -187,7 +187,7 @@ QuicCongestionControlGetSendAllowance(
         uint64_t EstimatedWnd = QuicCongestionControlPredictNextWindow(Cc);
 
         SendAllowance =
-            (uint32_t)((EstimatedWnd * TimeSinceLastSend) / Connection->Paths[0].SmoothedRtt);
+            (uint32_t)((EstimatedWnd * TimeSinceLastSend) / Connection->Paths[0].MaxRtt);
         if (SendAllowance > (Cc->CongestionWindow - Cc->BytesInFlight)) {
             SendAllowance = Cc->CongestionWindow - Cc->BytesInFlight;
         }
