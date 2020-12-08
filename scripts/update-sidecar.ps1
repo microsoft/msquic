@@ -28,7 +28,7 @@ $OutputDir = Join-Path $RootDir "build" "tmp"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 if ($Clean) {
-    Remove-Item $Sidecar -Force | Out-Null
+    Remove-Item $Sidecar -Force -ErrorAction Ignore | Out-Null
 }
 
 foreach ($File in $Files) {
