@@ -515,7 +515,7 @@ QuicTlsSecConfigCreate(
         return QUIC_STATUS_NOT_SUPPORTED; // Not currently supported
     }
 
-    QUIC_CERTIFICATE_FILE_PROTECTED* CertFile = CredConfig->CertificateFile;
+    QUIC_CERTIFICATE_FILE_PROTECTED* CertFile = CredConfig->CertificateFileProtected;
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
         if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
