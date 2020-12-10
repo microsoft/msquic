@@ -87,7 +87,8 @@ typedef enum QUIC_CREDENTIAL_TYPE {
     QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
     QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
     QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
-    QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE,
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED
 } QUIC_CREDENTIAL_TYPE;
 
 typedef enum QUIC_CREDENTIAL_FLAGS {
@@ -228,6 +229,12 @@ typedef struct QUIC_CERTIFICATE_FILE {
     const char *CertificateFile;
 } QUIC_CERTIFICATE_FILE;
 
+typedef struct QUIC_CERTIFICATE_FILE_PROTECTED {
+    const char *PrivateKeyFile;
+    const char *CertificateFile;
+    const char *CertificatePassword;
+} QUIC_CERTIFICATE_FILE_PROTECTED;
+
 typedef void QUIC_CERTIFICATE; // Platform specific certificate context object
 
 typedef struct QUIC_CREDENTIAL_CONFIG {
@@ -238,6 +245,7 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
         QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore;
         QUIC_CERTIFICATE* CertificateContext;
         QUIC_CERTIFICATE_FILE* CertificateFile;
+        QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected;
     };
     const char* Principal;
     void* TicketKey; // Optional, 44 byte array

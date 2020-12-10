@@ -487,6 +487,14 @@ SSL_QUIC_METHOD OpenSslQuicCallbacks = {
     QuicTlsSendAlertCallback
 };
 
+QUIC_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_CERTIFICATE_FILE, PrivateKeyFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, PrivateKeyFile),
+    "Mismatch (private key) in certificate file structs");
+
+QUIC_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_CERTIFICATE_FILE, CertificateFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, CertificateFile),
+    "Mismatch (certificate file) in certificate file structs");
+
 QUIC_STATUS
 QuicTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
@@ -507,7 +515,7 @@ QuicTlsSecConfigCreate(
         return QUIC_STATUS_NOT_SUPPORTED; // Not currently supported
     }
 
-    QUIC_CERTIFICATE_FILE* CertFile = CredConfig->CertificateFile;
+    QUIC_CERTIFICATE_FILE_PROTECTED* CertFile = CredConfig->CertificateFile;
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
         if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
@@ -518,15 +526,23 @@ QuicTlsSecConfigCreate(
             return QUIC_STATUS_INVALID_PARAMETER; // Required for server
         }
 
-        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
-            return QUIC_STATUS_NOT_SUPPORTED; // Only support file currently
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+            if (CertFile == NULL ||
+                CertFile->CertificateFile == NULL ||
+                CertFile->PrivateKeyFile == NULL) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+        } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+            if (CertFile == NULL ||
+                CertFile->CertificateFile == NULL ||
+                CertFile->PrivateKeyFile == NULL ||
+                CertFile->CertificatePassword == NULL) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+        } else {
+            return QUIC_STATUS_NOT_SUPPORTED; // Only support file types currently
         }
 
-        if (CertFile == NULL ||
-            CertFile->CertificateFile == NULL ||
-            CertFile->PrivateKeyFile == NULL) {
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -684,6 +700,11 @@ QuicTlsSecConfigCreate(
         //
         // Set the server certs.
         //
+
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+            SSL_CTX_set_default_passwd_cb_userdata(
+                SecurityConfig->SSLCtx, CertFile->CertificatePassword);
+        }
 
         Ret =
             SSL_CTX_use_PrivateKey_file(
