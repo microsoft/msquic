@@ -703,7 +703,7 @@ QuicTlsSecConfigCreate(
 
         if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
             SSL_CTX_set_default_passwd_cb_userdata(
-                SecurityConfig->SSLCtx, CertFile->CertificatePassword);
+                SecurityConfig->SSLCtx, (void*)CertFile->CertificatePassword);
         }
 
         Ret =
