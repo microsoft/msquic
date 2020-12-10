@@ -97,7 +97,6 @@ ThroughputClient::Init(
         }
     }
 
-    // TODO: Core, since we need to support kernel mode
 #ifdef QUIC_COMPARTMENT_ID
     uint16_t CompartmentId;
     if (TryGetValue(argc, argv, "comp",  &CompartmentId)) {
@@ -287,8 +286,6 @@ ThroughputClient::Start(
         return Status;
     }
 
-    StrmContext->StartTime = QuicTimeUs64();
-
     if (DownloadLength) {
         MsQuic->StreamSend(
             StrmContext->Stream.Handle,
@@ -312,6 +309,8 @@ ThroughputClient::Start(
     } else {
         SendData(StrmContext);
     }
+
+    StrmContext->StartTime = QuicTimeUs64();
 
     Status =
         MsQuic->ConnectionStart(

@@ -34,8 +34,8 @@ be in the current directory.
 .PARAMETER ReorderDelayDeltaMs
     The extra delay applied to any reordered packets in the emulated network.
 
-.PARAMETER DurationMs
-    The duration(s) of each test run over the emulated network.
+.PARAMETER Length
+    The length(s), in bytes, of each test run over the emulated network.
 
 .PARAMETER Pacing
     The pacing enabled/disable flag(s) used for each test run over the emulated network.
@@ -77,7 +77,7 @@ param (
     [Int32[]]$ReorderDelayDeltaMs = 0,
 
     [Parameter(Mandatory = $false)]
-    [Int32[]]$DurationMs = 10000,
+    [Int32[]]$Length = 1000000,
 
     [Parameter(Mandatory = $false)]
     [Int32[]]$Pacing = (0, 1),
@@ -104,6 +104,9 @@ if ("" -eq $Tls) {
         $Tls = "openssl"
     }
 }
+
+$ProtoNames = ("quic", "tcp")
+$PacingNames = ("burst", "paced")
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
@@ -174,9 +177,9 @@ if ($UseTcp.Contains(1)) {
 Sleep -Seconds 1
 
 # CSV header
-$Header = "RttMs, BottleneckMbps, BottleneckBufferPackets, RandomLossDenominator, RandomReorderDenominator, ReorderDelayDeltaMs, Tcp, DurationMs, Pacing, RateKbps"
+$Header = "RttMs, RateMbps, QueuePackets, Loss, Reorder, ReorderDelayMs, Proto, Pacing, Length"
 for ($i = 0; $i -lt $NumIterations; $i++) {
-    $Header += ", RawRateKbps$($i+1)"
+    $Header += ", RateKbps$($i+1)"
 }
 Write-Host $Header
 
@@ -216,12 +219,13 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
     # Loop over all the test configurations.
     foreach ($ThisUseTcp in $UseTcp) {
-    foreach ($ThisDurationMs in $DurationMs) {
     foreach ($ThisPacing in $Pacing) {
+    foreach ($ThisLength in $Length) {
 
-        # Run through all the iterations and keep track of the results.
-        $Results = [System.Collections.ArrayList]@()
-        Write-Debug "Run upload test: Duration=$ThisDurationMs ms, Pacing=$ThisPacing"
+        # Run through all the iterations.
+        Write-Debug "Run upload test: Proto=$($ProtoNames[$ThisUseTcp]), Pacing=$($PacingNames[$ThisPacing]), Length=$ThisLength bytes"
+        Write-Host -NoNewLine "$ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, 1/$ThisRandomLossDenominator, 1/$ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $($ProtoNames[$ThisUseTcp]), $($PacingNames[$ThisPacing]), $ThisLength"
+
         for ($i = 0; $i -lt $NumIterations; $i++) {
 
             if ($LogProfile -ne "None") {
@@ -237,7 +241,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
             $Rate = 0
             if ($ThisUseTcp -eq 0) {
-                $Command = "$QuicPerf -test:tput -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
+                $Command = "$QuicPerf -test:tput -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisLength -pacing:$ThisPacing"
                 Write-Debug $Command
                 $Output = [string](iex $Command)
                 Write-Debug $Output
@@ -253,9 +257,8 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
                 $Rate = [int]$Output.Split(" ")[6]
 
             } else {
-                $EstimatedLength = ($ThisBottleneckMbps * $ThisDurationMs * 1000) / 8;
                 $IoSize = 50000 # netput default
-                $IoCount = 1 + ($EstimatedLength / $IoSize)
+                $IoCount = $ThisLength / $IoSize
                 $Command = "$NetPut -c 192.168.1.11 -b 192.168.1.12 -tx -ss $IoSize -n $IoCount"
                 Write-Debug $Command
                 $Output = [string](iex $Command)
@@ -272,11 +275,11 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
                 $Rate = [int](([double]$Output.Split(" ")[-2]) * 1000.0)
             }
 
-            Write-Debug "$Rate Kbps"
-            $Results.Add($Rate) | Out-Null
+            # Write the CSV output.
+            Write-Host -NoNewLine ", $Rate"
 
             if ($LogProfile -ne "None") {
-                $TestLogPath = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisUseTcp.$ThisDurationMs.$ThisPacing.$i.$Rate"
+                $TestLogPath = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$($ProtoNames[$ThisUseTcp]).$($PacingNames[$ThisPacing]).$ThisLength.$i.$Rate"
                 try {
                     & $LogScript -Stop -OutputPath $TestLogPath -RawLogOnly | Out-Null
                 } catch {
@@ -285,13 +288,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             }
         }
 
-        # Grab the average result and write the CSV output.
-        $RateKbps = [int]($Results | Measure-Object -Average).Average
-        $Row = "$ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $ThisUseTcp, $ThisDurationMs, $ThisPacing, $RateKbps"
-        for ($i = 0; $i -lt $NumIterations; $i++) {
-            $Row += ", $($Results[$i])"
-        }
-        Write-Host $Row
+        Write-Host ""
     }}}
 
 }}}}}}
