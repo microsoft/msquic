@@ -387,7 +387,7 @@ QuicCryptoTlsReadExtensions(
             }
 
         } else if (
-            Connection->Stats.QuicVersion == QUIC_VERSION_1 &&
+            Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_29 &&
             ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS) {
             if (!QuicCryptoTlsDecodeTransportParameters(
                     Connection,
@@ -399,7 +399,7 @@ QuicCryptoTlsReadExtensions(
             }
             FoundTransportParameters = TRUE;
         } else if (
-            Connection->Stats.QuicVersion != QUIC_VERSION_1 &&
+            Connection->Stats.QuicVersion == QUIC_VERSION_DRAFT_29 &&
             ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT) {
             if (!QuicCryptoTlsDecodeTransportParameters(
                     Connection,
