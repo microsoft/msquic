@@ -490,7 +490,7 @@ SSL_QUIC_METHOD OpenSslQuicCallbacks = {
 QUIC_STATUS
 QuicTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _Out_ EVP_PKEY** EvpPrivateKey,
+    _Out_ RSA** EvpPrivateKey,
     _Out_ X509** X509Cert);
 
 QUIC_STATUS
@@ -531,20 +531,21 @@ QuicTlsSecConfigCreate(
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
         } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
-            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE) {
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE ||
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
 #ifndef _WIN32
-            return QUIC_STATUS_INVALID_PARAMETER; // Only supported on windows.
+            return QUIC_STATUS_NOT_SUPPORTED; // Only supported on windows.
 #endif
             // Windows parameters checked later
         } else {
-            return QUIC_STATUS_INVALID_PARAMETER;
+            return QUIC_STATUS_NOT_SUPPORTED;
         }
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
-    EVP_PKEY* PrivateKey = NULL;
+    RSA* RsaKey = NULL;
     X509* X509Cert = NULL;
 
     //
@@ -729,31 +730,25 @@ QuicTlsSecConfigCreate(
                 goto Exit;
             }
         } else {
-#ifdef _WIN32
             Status =
                 QuicTlsExtractPrivateKey(
                     CredConfig,
-                    &PrivateKey,
+                    &RsaKey,
                     &X509Cert);
             if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    Status,
-                    "QuicTlsExtractPrivateKey failed");
                 goto Exit;
             }
 
             Ret =
-                SSL_CTX_use_PrivateKey(
+                SSL_CTX_use_RSAPrivateKey(
                     SecurityConfig->SSLCtx,
-                    PrivateKey);
+                    RsaKey);
             if (Ret != 1) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
                     ERR_get_error(),
-                    "SSL_CTX_use_PrivateKey_file failed");
+                    "SSL_CTX_use_RSAPrivateKey_file failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -771,10 +766,6 @@ QuicTlsSecConfigCreate(
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
-#else
-            Status = QUIC_STATUS_INVALID_STATE;
-            goto Exit;
-#endif
         }
 
         Ret = SSL_CTX_check_private_key(SecurityConfig->SSLCtx);
@@ -787,7 +778,6 @@ QuicTlsSecConfigCreate(
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
-        
 
         SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, UINT32_MAX);
         SSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx, QuicTlsClientHelloCallback, NULL);
@@ -816,8 +806,8 @@ Exit:
         X509_free(X509Cert);
     }
 
-    if (PrivateKey != NULL) {
-        EVP_PKEY_free(PrivateKey);
+    if (RsaKey != NULL) {
+        RSA_free(RsaKey);
     }
 
     return Status;

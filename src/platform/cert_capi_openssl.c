@@ -28,14 +28,14 @@ Environment:
 #include "cert_capi_openssl.c.clog.h"
 #endif
 
+#ifdef _WIN32
 #include <wincrypt.h>
 #include <msquic.h>
-
 
 QUIC_STATUS
 QuicTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _Out_ EVP_PKEY** EvpPrivateKey,
+    _Out_ RSA** RsaKey,
     _Out_ X509** X509Cert
     )
 {
@@ -43,16 +43,20 @@ QuicTlsExtractPrivateKey(
     BYTE* KeyData = NULL;
     RSA* Rsa = NULL;
     DWORD KeyLength = 0;
-    EVP_PKEY* PrivateKey = NULL;
     NCRYPT_KEY_HANDLE KeyHandle = 0;
     PCCERT_CONTEXT CertCtx = NULL;
     X509* X509CertStorage = NULL;
     QUIC_STATUS Status;
-
+    int Ret = 0;
 
     if (QUIC_FAILED(
         Status =
             QuicCertCreate(CredConfig, &Cert))) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicCertCreate");
         goto Exit;
     }
 
@@ -62,13 +66,15 @@ QuicTlsExtractPrivateKey(
             NULL,
             (const unsigned char**)&CertCtx->pbCertEncoded,
             CertCtx->cbCertEncoded);
-
     if (X509CertStorage == NULL) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "d2i_X509 failed");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    // TODO Null Check This
     KeyHandle = (NCRYPT_KEY_HANDLE)QuicCertGetPrivateKey(Cert);
     if (KeyHandle == 0) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
@@ -94,9 +100,13 @@ QuicTlsExtractPrivateKey(
         goto Exit;
     }
 
-    KeyData = QUIC_ALLOC_NONPAGED(KeyLength, QUIC_POOL_TMP_ALLOC);
+    KeyData = QUIC_ALLOC_NONPAGED(KeyLength, QUIC_POOL_TLS_RSA);
     if (KeyData == NULL) {
-        // TODO Logging
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "RSA Key",
+            KeyLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -111,19 +121,31 @@ QuicTlsExtractPrivateKey(
             KeyLength,
             &KeyLength,
             0))) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "NCryptExportKey failed. Need exportable certificate");
         goto Exit;
     }
 
     BCRYPT_RSAKEY_BLOB* Blob = (BCRYPT_RSAKEY_BLOB*)KeyData;
 
     if (Blob->Magic != BCRYPT_RSAFULLPRIVATE_MAGIC) {
-        // Invalid Cert
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "NCryptExportKey resulted in incorrect magic number");
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Exit;
     }
 
     Rsa = RSA_new();
     if (Rsa == NULL) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "RSA_new failed");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -135,33 +157,47 @@ QuicTlsExtractPrivateKey(
     // d is the private exponent
     BIGNUM* d = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1, Blob->cbModulus, NULL);
 
-    // TODO Error checking
-    RSA_set0_key(Rsa, n, e, d);
+    Ret = RSA_set0_key(Rsa, n, e, d);
+    if (Ret != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "RSA_set0_key failed");
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
 
     // p and q are the first and second factor of n
     BIGNUM* p = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus, Blob->cbPrime1, NULL);
     BIGNUM* q = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1, Blob->cbPrime2, NULL);
 
-    RSA_set0_factors(Rsa, p, q);
+    Ret = RSA_set0_factors(Rsa, p, q);
+    if (Ret != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "RSA_set0_factors failed");
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
 
     // dmp1, dmq1 and iqmp are the exponents and coefficient for CRT calculations
     BIGNUM* dmp1 = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2, Blob->cbPrime1, NULL);
     BIGNUM* dmq1 = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1, Blob->cbPrime2, NULL);
     BIGNUM* iqmp = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1 + Blob->cbPrime2, Blob->cbPrime1, NULL);
 
-    RSA_set0_crt_params(Rsa, dmp1, dmq1, iqmp);
-
-    PrivateKey = EVP_PKEY_new();
-    if (PrivateKey == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
+    Ret = RSA_set0_crt_params(Rsa, dmp1, dmq1, iqmp);
+    if (Ret != 1) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "RSA_set0_crt_params failed");
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    EVP_PKEY_assign_RSA(PrivateKey, Rsa);
-
+    *RsaKey = Rsa;
     Rsa = NULL;
-    *EvpPrivateKey = PrivateKey;
-    PrivateKey = NULL;
     *X509Cert = X509CertStorage;
     X509CertStorage = NULL;
     Status = QUIC_STATUS_SUCCESS;
@@ -171,25 +207,35 @@ Exit:
         X509_free(X509CertStorage);
     }
 
-    if (PrivateKey != NULL) {
-        EVP_PKEY_free(PrivateKey);
-    }
-
     if (Rsa != NULL) {
         RSA_free(Rsa);
     }
 
     if (KeyData != NULL) {
-        QUIC_FREE(KeyData, QUIC_POOL_TMP_ALLOC); // TODO Add tag
+        QUIC_FREE(KeyData, QUIC_POOL_TLS_RSA);
     }
 
     if (CertCtx != NULL) {
         QuicCertDeletePrivateKey((void*)CertCtx);
     }
 
-    if (Cert != NULL) {
+    if (Cert != NULL && CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
         QuicCertFree(Cert);
     }
 
     return Status;
 }
+#else
+QUIC_STATUS
+QuicTlsExtractPrivateKey(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _Out_ EVP_PKEY** EvpPrivateKey,
+    _Out_ X509** X509Cert
+    )
+{
+    UNREFERENCED_PARAMETER(CredConfig);
+    UNREFERENCED_PARAMETER(EvpPrivateKey);
+    UNREFERENCED_PARAMETER(X509Cert);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+#endif
