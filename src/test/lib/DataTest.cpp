@@ -690,8 +690,6 @@ QuicTestClientDisconnect(
 
             Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
         }
-
-        (void)Client->WaitForShutdownComplete();
     }
 }
 
