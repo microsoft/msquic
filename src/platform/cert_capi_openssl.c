@@ -240,8 +240,8 @@ Exit:
         QUIC_FREE(KeyData, QUIC_POOL_TLS_RSA);
     }
 
-    if (CertCtx != NULL) {
-        QuicCertDeletePrivateKey((void*)CertCtx);
+    if (KeyHandle != 0) {
+        QuicCertDeletePrivateKey((void*)KeyHandle);
     }
 
     if (Cert != NULL && CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
