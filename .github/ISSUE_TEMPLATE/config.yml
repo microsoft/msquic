@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: :question: Comment, Question or Problem
+    url: https://github.com/microsoft/msquic/discussions
+    about: Please direct general discussion here.
+  - name: :bangbang: Report a security vulnerability
+    url: https://msrc.microsoft.com/create-report
+    about: Please report security vulnerabilities here.
