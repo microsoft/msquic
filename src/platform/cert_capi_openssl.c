@@ -48,6 +48,7 @@ QuicTlsExtractPrivateKey(
     X509* X509CertStorage = NULL;
     DWORD ExportPolicyProperty = 0;
     DWORD ExportPolicyLength = 0;
+    unsigned char* TempCertEncoded = NULL;
     QUIC_STATUS Status;
     int Ret = 0;
 
@@ -63,10 +64,14 @@ QuicTlsExtractPrivateKey(
     }
 
     CertCtx = (PCCERT_CONTEXT)Cert;
+    //
+    // d2i_X509 incremements the the cert variable, so it must be stored in a temp.
+    //
+    TempCertEncoded = CertCtx->pbCertEncoded;
     X509CertStorage =
         d2i_X509(
             NULL,
-            (const unsigned char**)&CertCtx->pbCertEncoded,
+            &TempCertEncoded,
             CertCtx->cbCertEncoded);
     if (X509CertStorage == NULL) {
         QuicTraceEvent(
@@ -91,8 +96,9 @@ QuicTlsExtractPrivateKey(
             sizeof(ExportPolicyProperty),
             &ExportPolicyLength, 0))) {
         QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status
             "NCryptGetProperty failed");
         goto Exit;
     }
@@ -102,6 +108,9 @@ QuicTlsExtractPrivateKey(
             LibraryError,
             "[ lib] ERROR, %s.",
             "Requested certificate does not support exporting. An exportable certificate is required");
+        //
+        // This probably should be a specific error.
+        //
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -121,7 +130,7 @@ QuicTlsExtractPrivateKey(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "NCryptExportKey failed. Need exportable certificate");
+            "NCryptExportKey failed.");
         goto Exit;
     }
 
@@ -150,7 +159,7 @@ QuicTlsExtractPrivateKey(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "NCryptExportKey failed. Need exportable certificate");
+            "NCryptExportKey failed.");
         goto Exit;
     }
 
@@ -174,6 +183,17 @@ QuicTlsExtractPrivateKey(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
+
+    //
+    // There is no automatic way to convert from a CNG representation of a
+    // private key to an OpenSSL representation. So in order for this to
+    // work, we must manually deconstruct the key from CNG, and construct it
+    // again in OpenSSL. The key ens up being the same, just represented
+    // differently.
+    // This was found using the following StackOverflow answer, with the
+    // author giving permissions to use it.
+    // https://stackoverflow.com/a/60181045
+    //
 
     // n is the modulus common to both public and private key
     BIGNUM* n = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp, Blob->cbModulus, NULL);
