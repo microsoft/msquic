@@ -46,6 +46,8 @@ QuicTlsExtractPrivateKey(
     NCRYPT_KEY_HANDLE KeyHandle = 0;
     PCCERT_CONTEXT CertCtx = NULL;
     X509* X509CertStorage = NULL;
+    DWORD ExportPolicyProperty = 0;
+    DWORD ExportPolicyLength = 0;
     QUIC_STATUS Status;
     int Ret = 0;
 
@@ -78,6 +80,29 @@ QuicTlsExtractPrivateKey(
     KeyHandle = (NCRYPT_KEY_HANDLE)QuicCertGetPrivateKey(Cert);
     if (KeyHandle == 0) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Exit;
+    }
+
+    if (FAILED(Status =
+        NCryptGetProperty(
+            KeyHandle,
+            NCRYPT_EXPORT_POLICY_PROPERTY,
+            (PBYTE)&ExportPolicyProperty,
+            sizeof(ExportPolicyProperty),
+            &ExportPolicyLength, 0))) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "NCryptGetProperty failed");
+        goto Exit;
+    }
+
+    if ((ExportPolicyProperty & NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG) == 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Requested certificate does not support exporting. An exportable certificate is required");
+        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
