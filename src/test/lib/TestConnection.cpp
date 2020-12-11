@@ -23,10 +23,10 @@ TestConnection::TestConnection(
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false),
     ExpectedResumed(false), ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
-    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
+    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR), EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
-    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr), EventDeleted(nullptr)
+    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
 {
     QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -49,10 +49,10 @@ TestConnection::TestConnection(
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false),
     ExpectedResumed(false), ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
-    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
+    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR), EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
-    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr), EventDeleted(nullptr)
+    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
 {
     QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
