@@ -641,13 +641,12 @@ QuicTestClientDisconnect(
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-        TestConnection* Client;
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             Listener.Context = &ServerAcceptCtx;
 
-            Client =
+            TestConnection* Client =
                 NewPingConnection(
                     Registration,
                     &ClientStats,
