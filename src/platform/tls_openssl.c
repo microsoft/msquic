@@ -58,6 +58,11 @@ typedef struct QUIC_TLS {
     BOOLEAN IsServer;
 
     //
+    // The TLS extension type for the QUIC transport parameters.
+    //
+    uint16_t QuicTpExtType;
+
+    //
     // The ALPN buffer.
     //
     uint16_t AlpnBufferLength;
@@ -469,7 +474,7 @@ QuicTlsClientHelloCallback(
 
     if (!SSL_client_hello_get0_ext(
             Ssl,
-            TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
+            TlsContext->QuicTpExtType,
             &TransportParams,
             &TransportParamLen)) {
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
@@ -791,6 +796,7 @@ QuicTlsInitialize(
     TlsContext->Connection = Config->Connection;
     TlsContext->IsServer = Config->IsServer;
     TlsContext->SecConfig = Config->SecConfig;
+    TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
@@ -862,7 +868,7 @@ QuicTlsInitialize(
     if (SSL_set_quic_transport_params(
             TlsContext->Ssl,
             Config->LocalTPBuffer,
-            Config->LocalTPLength) != 1) {
+            Config->LocalTPLength) != 1) { // %$*&@$!!!!!!
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",

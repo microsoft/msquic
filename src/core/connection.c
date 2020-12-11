@@ -1694,12 +1694,8 @@ QuicConnOnQuicVersionSet(
         Connection->Stats.QuicVersion);
 
     switch (Connection->Stats.QuicVersion) {
-    case QUIC_VERSION_DRAFT_27:
-    case QUIC_VERSION_DRAFT_28:
+    case QUIC_VERSION_1:
     case QUIC_VERSION_DRAFT_29:
-    case QUIC_VERSION_DRAFT_30:
-    case QUIC_VERSION_DRAFT_31:
-    case QUIC_VERSION_DRAFT_32:
     case QUIC_VERSION_MS_1:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
@@ -2164,14 +2160,12 @@ QuicConnGenerateLocalTransportParameters(
         LocalTP->AckDelayExponent = Connection->AckDelayExponent;
     }
 
-    if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
-        LocalTP->Flags |= QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID;
-        LocalTP->InitialSourceConnectionIDLength = SourceCid->CID.Length;
-        QuicCopyMemory(
-            LocalTP->InitialSourceConnectionID,
-            SourceCid->CID.Data,
-            SourceCid->CID.Length);
-    }
+    LocalTP->Flags |= QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID;
+    LocalTP->InitialSourceConnectionIDLength = SourceCid->CID.Length;
+    QuicCopyMemory(
+        LocalTP->InitialSourceConnectionID,
+        SourceCid->CID.Data,
+        SourceCid->CID.Length);
 
     if (Connection->Settings.DatagramReceiveEnabled) {
         LocalTP->Flags |= QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE;
@@ -2227,8 +2221,7 @@ QuicConnGenerateLocalTransportParameters(
             QUIC_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
             Connection->OrigDestCID = NULL;
 
-            if (Connection->State.HandshakeUsedRetryPacket &&
-                Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
+            if (Connection->State.HandshakeUsedRetryPacket) {
                 QUIC_DBG_ASSERT(SourceCid->Link.Next != NULL);
                 const QUIC_CID_HASH_ENTRY* PrevSourceCid =
                     QUIC_CONTAINING_RECORD(
@@ -2559,17 +2552,10 @@ QuicConnProcessPeerTransportParameters(
         }
 
         //
-        // Version draft-28 and later fully validate all exchanged connection IDs.
-        // Version draft-27 only validates in the Retry scenario.
+        // Fully validate all exchanged connection IDs.
         //
-        if (Connection->Stats.QuicVersion == QUIC_VERSION_DRAFT_27) {
-            if (!QuicConnValidateTransportParameterDraft27CIDs(Connection)) {
-                goto Error;
-            }
-        } else {
-            if (!QuicConnValidateTransportParameterCIDs(Connection)) {
-                goto Error;
-            }
+        if (!QuicConnValidateTransportParameterCIDs(Connection)) {
+            goto Error;
         }
     }
 
@@ -3204,9 +3190,7 @@ QuicConnRecvHeader(
 
             QuicPathSetValid(Connection, Path, QUIC_PATH_VALID_INITIAL_TOKEN);
 
-        } else if (
-            Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27 &&
-            Connection->OrigDestCID == NULL) {
+        } else if (Connection->OrigDestCID == NULL) {
 
             Connection->OrigDestCID =
                 QUIC_ALLOC_NONPAGED(

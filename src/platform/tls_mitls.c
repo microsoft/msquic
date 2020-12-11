@@ -218,6 +218,11 @@ typedef struct QUIC_TLS {
     uint8_t TlsKeyScheduleSet : 1;
 
     //
+    // The TLS extension type for the QUIC transport parameters.
+    //
+    uint16_t QuicTpExtType;
+
+    //
     // The TLS configuration information and credentials.
     //
     QUIC_SEC_CONFIG* SecConfig;
@@ -541,6 +546,7 @@ QuicTlsInitialize(
     //
     TlsContext->IsServer = Config->IsServer;
     TlsContext->SecConfig = Config->SecConfig;
+    TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->CurrentReaderKey = -1;
     TlsContext->CurrentWriterKey = -1;
     TlsContext->Connection = Config->Connection;
@@ -557,7 +563,7 @@ QuicTlsInitialize(
         Config->AlpnBuffer,
         Config->AlpnBufferLength);
 
-    TlsContext->Extensions[1].ext_type = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
+    TlsContext->Extensions[1].ext_type = Config->TPType;
     TlsContext->Extensions[1].ext_data_len = Config->LocalTPLength;
     TlsContext->Extensions[1].ext_data = Config->LocalTPBuffer;
 
@@ -1422,7 +1428,7 @@ QuicTlsOnNegotiate(
                 TlsContext->IsServer,
                 RawExtensions,
                 RawExtensionsLength,
-                TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
+                TlsContext->QuicTpExtType,
                 &ExtensionData,
                 &ExtensionDataLength)) {
             QuicTraceEvent(

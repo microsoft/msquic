@@ -28,8 +28,7 @@ typedef enum eTlsHandshakeType {
 typedef enum eTlsExtensions {
     TlsExt_ServerName = 0x00,
     TlsExt_AppProtocolNegotiation = 0x10,
-    TlsExt_SessionTicket = 0x23,
-    TlsExt_QuicTransportParameters = 0xffa5,
+    TlsExt_SessionTicket = 0x23
 } eTlsExtensions;
 
 typedef enum eSniNameType {
@@ -133,7 +132,7 @@ typedef struct QUIC_TLS_SESSION_TICKET_EXT {
 } QUIC_TLS_SESSION_TICKET_EXT;
 
 typedef struct QUIC_TLS_QUIC_TP_EXT {
-    uint8_t ExtType[2];                 // TlsExt_QuicTransportParameters
+    uint8_t ExtType[2];
     uint8_t ExtLen[2];
     uint8_t TP[0];
 } QUIC_TLS_QUIC_TP_EXT;
@@ -202,6 +201,11 @@ typedef struct QUIC_TLS {
 
     BOOLEAN IsServer : 1;
     BOOLEAN EarlyDataAttempted : 1;
+
+    //
+    // The TLS extension type for the QUIC transport parameters.
+    //
+    uint16_t QuicTpExtType;
 
     QUIC_FAKE_TLS_MESSAGE_TYPE LastMessageType; // Last message sent.
 
@@ -390,6 +394,7 @@ QuicTlsInitialize(
     QuicZeroMemory(TlsContext, sizeof(QUIC_TLS));
 
     TlsContext->IsServer = Config->IsServer;
+    TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->LocalTPBuffer = Config->LocalTPBuffer;
@@ -563,11 +568,7 @@ QuicTlsServerProcess(
                 }
                 break;
             }
-            case TlsExt_QuicTransportParameters: {
-                break; // Unused
-            }
             default:
-                QUIC_FRE_ASSERT(FALSE);
                 break;
             }
 
@@ -671,7 +672,7 @@ QuicTlsServerProcess(
             (QUIC_TLS_QUIC_TP_EXT*)
             (ServerMessage->SERVER_HANDSHAKE.Certificate +
              SecurityConfig->FormatLength + ExtListLength);
-        TlsWriteUint16(QuicTP->ExtType, TlsExt_QuicTransportParameters);
+        TlsWriteUint16(QuicTP->ExtType, TlsContext->QuicTpExtType);
         TlsWriteUint16(QuicTP->ExtLen, (uint16_t)TlsContext->LocalTPLength);
         memcpy(QuicTP->TP, TlsContext->LocalTPBuffer, TlsContext->LocalTPLength);
         ExtListLength += 4 + (uint16_t)TlsContext->LocalTPLength;
@@ -827,7 +828,7 @@ QuicTlsClientProcess(
         QUIC_TLS_QUIC_TP_EXT* QuicTP =
             (QUIC_TLS_QUIC_TP_EXT*)
             (ClientMessage->CLIENT_INITIAL.ExtList + ExtListLength);
-        TlsWriteUint16(QuicTP->ExtType, TlsExt_QuicTransportParameters);
+        TlsWriteUint16(QuicTP->ExtType, TlsContext->QuicTpExtType);
         TlsWriteUint16(QuicTP->ExtLen, (uint16_t)TlsContext->LocalTPLength);
         memcpy(QuicTP->TP, TlsContext->LocalTPBuffer, TlsContext->LocalTPLength);
         ExtListLength += 4 + (uint16_t)TlsContext->LocalTPLength;
@@ -889,8 +890,7 @@ QuicTlsClientProcess(
                 uint16_t ExtLength = TlsReadUint16(ExtList + 2);
                 QUIC_FRE_ASSERT(ExtLength + 4 <= ExtListLength);
 
-                switch (ExtType) {
-                case TlsExt_AppProtocolNegotiation: {
+                if (ExtType == TlsExt_AppProtocolNegotiation) {
                     const QUIC_TLS_ALPN_EXT* AlpnList = (QUIC_TLS_ALPN_EXT*)ExtList;
                     State->NegotiatedAlpn =
                         QuicTlsAlpnFindInList(
@@ -906,19 +906,13 @@ QuicTlsClientProcess(
                             "ALPN Mismatch");
                         *ResultFlags |= QUIC_TLS_RESULT_ERROR;
                     }
-                    break;
-                }
-                case TlsExt_QuicTransportParameters: {
+
+                } else if (ExtType == TlsContext->QuicTpExtType) {
                     const QUIC_TLS_QUIC_TP_EXT* QuicTP = (QUIC_TLS_QUIC_TP_EXT*)ExtList;
                     TlsContext->ReceiveTPCallback(
                         TlsContext->Connection,
                         ExtLength,
                         QuicTP->TP);
-                    break;
-                }
-                default:
-                    QUIC_FRE_ASSERT(FALSE);
-                    break;
                 }
 
                 ExtList += ExtLength + 4;

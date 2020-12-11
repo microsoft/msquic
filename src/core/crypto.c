@@ -292,6 +292,10 @@ QuicCryptoInitializeTls(
     TlsConfig.TlsSecrets = Connection->TlsSecrets;
 #endif
 
+    TlsConfig.TPType =
+        Connection->Stats.QuicVersion == QUIC_VERSION_1 ?
+            TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS :
+            TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT;
     TlsConfig.LocalTPBuffer =
         QuicCryptoTlsEncodeTransportParameters(
             Connection,

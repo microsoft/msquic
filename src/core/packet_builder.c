@@ -307,12 +307,8 @@ QuicPacketBuilderPrepare(
             Builder->PacketNumberLength = 4; // TODO - Determine correct length based on BDP.
 
             switch (Connection->Stats.QuicVersion) {
-            case QUIC_VERSION_DRAFT_27:
-            case QUIC_VERSION_DRAFT_28:
+            case QUIC_VERSION_1:
             case QUIC_VERSION_DRAFT_29:
-            case QUIC_VERSION_DRAFT_30:
-            case QUIC_VERSION_DRAFT_31:
-            case QUIC_VERSION_DRAFT_32:
             case QUIC_VERSION_MS_1:
                 Builder->HeaderLength =
                     QuicPacketEncodeShortHeaderV1(
@@ -334,12 +330,8 @@ QuicPacketBuilderPrepare(
         } else { // Long Header
 
             switch (Connection->Stats.QuicVersion) {
-            case QUIC_VERSION_DRAFT_27:
-            case QUIC_VERSION_DRAFT_28:
+            case QUIC_VERSION_1:
             case QUIC_VERSION_DRAFT_29:
-            case QUIC_VERSION_DRAFT_30:
-            case QUIC_VERSION_DRAFT_31:
-            case QUIC_VERSION_DRAFT_32:
             case QUIC_VERSION_MS_1:
             default:
                 Builder->HeaderLength =
@@ -664,12 +656,8 @@ QuicPacketBuilderFinalize(
 
     if (Builder->PacketType != SEND_PACKET_SHORT_HEADER_TYPE) {
         switch (Connection->Stats.QuicVersion) {
-        case QUIC_VERSION_DRAFT_27:
-        case QUIC_VERSION_DRAFT_28:
+        case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
-        case QUIC_VERSION_DRAFT_30:
-        case QUIC_VERSION_DRAFT_31:
-        case QUIC_VERSION_DRAFT_32:
         case QUIC_VERSION_MS_1:
         default:
             QuicVarIntEncode2Bytes(
