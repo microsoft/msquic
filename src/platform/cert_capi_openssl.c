@@ -98,7 +98,7 @@ QuicTlsExtractPrivateKey(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status
+            Status,
             "NCryptGetProperty failed");
         goto Exit;
     }
@@ -188,7 +188,7 @@ QuicTlsExtractPrivateKey(
     // There is no automatic way to convert from a CNG representation of a
     // private key to an OpenSSL representation. So in order for this to
     // work, we must manually deconstruct the key from CNG, and construct it
-    // again in OpenSSL. The key ens up being the same, just represented
+    // again in OpenSSL. The key ends up being the same, just represented
     // differently.
     // This was found using the following StackOverflow answer, with the
     // author giving permissions to use it.
