@@ -73,6 +73,7 @@ class TestConnection
     QUIC_EVENT EventPeerClosed;
     QUIC_EVENT EventShutdownComplete;
     QUIC_EVENT EventResumptionTicketReceived;
+    QUIC_EVENT* EventDeleted;
 
     NEW_STREAM_CALLBACK_HANDLER NewStreamCallback;
     CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER ShutdownCompleteCallback;
@@ -122,6 +123,8 @@ public:
     bool IsValid() const { return QuicConnection != nullptr; }
 
     void SetAutoDelete() { AutoDelete = true; }
+
+    void SetDeletedEvent(QUIC_EVENT* Event) { EventDeleted = Event; }
 
     QUIC_STATUS
     Start(

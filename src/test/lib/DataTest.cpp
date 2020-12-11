@@ -640,6 +640,7 @@ QuicTestClientDisconnect(
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         TestConnection* Client;
+        EventScope EventClientDeleted(true);
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
@@ -653,6 +654,8 @@ QuicTestClientDisconnect(
             if (Client == nullptr) {
                 return;
             }
+
+            Client->SetDeletedEvent(&EventClientDeleted.Handle);
 
             Client->SetExpectedTransportCloseStatus(ClientStats.ExpectedCloseStatus);
             TEST_QUIC_SUCCEEDED(Client->SetDisconnectTimeout(1000)); // ms
@@ -689,6 +692,10 @@ QuicTestClientDisconnect(
             QuicSleep(15); // Sleep for just a bit.
 
             Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+        }
+
+        if (!QuicEventWaitWithTimeout(EventClientDeleted.Handle, TestWaitTimeout)) {
+            TEST_FAILURE("Wait for EventClientDeleted timed out after %u ms.", TestWaitTimeout);
         }
     }
 }

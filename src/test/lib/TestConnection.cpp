@@ -26,7 +26,7 @@ TestConnection::TestConnection(
     ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
-    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
+    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr), EventDeleted(nullptr)
 {
     QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -52,7 +52,7 @@ TestConnection::TestConnection(
     ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
-    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
+    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr), EventDeleted(nullptr)
 {
     QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -80,6 +80,9 @@ TestConnection::~TestConnection()
     QuicEventUninitialize(EventConnectionComplete);
     if (ResumptionTicket) {
         QUIC_FREE(ResumptionTicket, QUIC_POOL_TEST);
+    }
+    if (EventDeleted) {
+        QuicEventSet(*EventDeleted);
     }
 }
 
