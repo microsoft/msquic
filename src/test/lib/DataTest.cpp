@@ -615,6 +615,8 @@ QuicTestClientDisconnect(
     PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE,
         StopListenerFirst ? QUIC_STATUS_CONNECTION_TIMEOUT : QUIC_STATUS_ABORTED);
 
+    EventScope EventClientDeleted(true);
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -640,7 +642,6 @@ QuicTestClientDisconnect(
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         TestConnection* Client;
-        EventScope EventClientDeleted(true);
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
