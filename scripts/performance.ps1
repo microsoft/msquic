@@ -367,16 +367,16 @@ function Invoke-Test {
     } finally {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
         Write-Debug $RemoteResults.ToString()
-    }
 
-    Stop-Tracing -Exe $LocalExe
+        Stop-Tracing -Exe $LocalExe
 
-    if ($Record) {
-        if ($Local) {
-            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
-        } else {
-            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
-            Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
+        if ($Record) {
+            if ($Local) {
+                Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
+            } else {
+                Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
+                Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
+            }
         }
     }
 
