@@ -615,6 +615,8 @@ QuicTestClientDisconnect(
     PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE,
         StopListenerFirst ? QUIC_STATUS_CONNECTION_TIMEOUT : QUIC_STATUS_ABORTED);
 
+    EventScope EventClientDeleted(true);
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -639,13 +641,12 @@ QuicTestClientDisconnect(
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-        TestConnection* Client;
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             Listener.Context = &ServerAcceptCtx;
 
-            Client =
+            TestConnection* Client =
                 NewPingConnection(
                     Registration,
                     &ClientStats,
@@ -653,6 +654,8 @@ QuicTestClientDisconnect(
             if (Client == nullptr) {
                 return;
             }
+
+            Client->SetDeletedEvent(&EventClientDeleted.Handle);
 
             Client->SetExpectedTransportCloseStatus(ClientStats.ExpectedCloseStatus);
             TEST_QUIC_SUCCEEDED(Client->SetDisconnectTimeout(1000)); // ms
@@ -691,7 +694,9 @@ QuicTestClientDisconnect(
             Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
         }
 
-        (void)Client->WaitForShutdownComplete();
+        if (!QuicEventWaitWithTimeout(EventClientDeleted.Handle, TestWaitTimeout)) {
+            TEST_FAILURE("Wait for EventClientDeleted timed out after %u ms.", TestWaitTimeout);
+        }
     }
 }
 
