@@ -349,15 +349,14 @@ QuicCryptoReset(
     Crypto->RecoveryEndOffset = 0;
     Crypto->InRecovery = FALSE;
 
-    UNREFERENCED_PARAMETER(ResetTls);
-    /*if (ResetTls) {
+    if (ResetTls) {
         Crypto->TlsState.BufferLength = 0;
         Crypto->TlsState.BufferTotalLength = 0;
 
         QuicTlsReset(Crypto->TLS);
         QuicCryptoProcessData(Crypto, TRUE);
 
-    } else*/ {
+    } else {
         QuicSendSetSendFlag(
             &QuicCryptoGetConnection(Crypto)->Send,
             QUIC_CONN_SEND_FLAG_CRYPTO);

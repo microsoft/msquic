@@ -27,9 +27,9 @@ typedef enum eTlsHandshakeType {
 } eTlsHandshakeType;
 
 typedef enum eTlsExtensions {
-    TlsExt_ServerName                   = 0x00,
-    TlsExt_AppProtocolNegotiation       = 0x10,
-    TlsExt_SessionTicket                = 0x23
+    TlsExt_ServerName               = 0x00,
+    TlsExt_AppProtocolNegotiation   = 0x10,
+    TlsExt_SessionTicket            = 0x23,
 } eTlsExtensions;
 
 typedef enum eSniNameType {

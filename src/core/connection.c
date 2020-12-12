@@ -1919,6 +1919,7 @@ QuicConnRestart(
     QuicLossDetectionReset(&Connection->LossDetection);
     QuicCryptoReset(&Connection->Crypto, CompleteReset);
 }
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnSendResumptionTicket(
