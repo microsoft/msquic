@@ -124,6 +124,7 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_STATELESS_CTX             'C3cQ' // Qc3C - QUIC Stateless Context
 #define QUIC_POOL_OPER                      'D3cQ' // Qc3D - QUIC Operation
 #define QUIC_POOL_EVENT                     'E3cQ' // Qc3E - QUIC Event
+#define QUIC_POOL_TLS_RSA                   'F3cQ' // Qc3F - QUIC Platform NCrypt RSA Key
 
 typedef enum QUIC_THREAD_FLAGS {
     QUIC_THREAD_FLAG_NONE               = 0x0000,
