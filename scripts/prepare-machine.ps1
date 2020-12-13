@@ -132,19 +132,15 @@ if ($IsWindows) {
         $NasmExe = Join-Path $NasmPath "nasm.exe"
         if (!(Test-Path $NasmExe)) {
             New-Item -Path .\build -ItemType Directory -Force
+            $NasmArch = "win64"
+            if (![System.Environment]::Is64BitOperatingSystem) {
+                $NasmArch = "win32"
+            }
             try {
-                if ([System.Environment]::Is64BitOperatingSystem) {
-                    Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-win64.zip" -OutFile "build\nasm.zip"
-                } else {
-                    Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win32/nasm-$NasmVersion-win32.zip" -OutFile "build\nasm.zip"
-                }
+                Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-$NasmArch.zip" -OutFile "build\nasm.zip"
             } catch {
                 # Mirror fallback
-                if ([System.Environment]::Is64BitOperatingSystem) {
-                    Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-win64.zip" -OutFile "build\nasm.zip"
-                } else {
-                    Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-win32.zip" -OutFile "build\nasm.zip"
-                }
+                Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "build\nasm.zip"
             }
             Expand-Archive -Path "build\nasm.zip" -DestinationPath $env:Programfiles -Force
             $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
