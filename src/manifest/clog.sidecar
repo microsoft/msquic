@@ -8499,7 +8499,7 @@
     },
     "OpenSslHandshakeErrorStr": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] TLS handshake error: %s",
+      "TraceString": "[conn][%p] TLS handshake error: %s, file:%s:%d",
       "UniqueId": "OpenSslHandshakeErrorStr",
       "splitArgs": [
         {
@@ -8509,6 +8509,14 @@
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceLogConnError"
@@ -12076,7 +12084,7 @@
         "TraceID": "OpenSslQuicDataErrorStr"
       },
       {
-        "UniquenessHash": "04956959-ecb5-9bea-dd79-ca22765f2c95",
+        "UniquenessHash": "ea63635a-adff-b833-abb2-009297ee0ca0",
         "TraceID": "OpenSslHandshakeErrorStr"
       },
       {

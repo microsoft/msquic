@@ -1042,11 +1042,16 @@ QuicTlsProcessData(
 
             case SSL_ERROR_SSL: {
                 char buf[256];
+                const char* file;
+                int line;
+                ERR_error_string_n(ERR_get_error_line(&file, &line), buf, sizeof(buf));
                 QuicTraceLogConnError(
                     OpenSslHandshakeErrorStr,
                     TlsContext->Connection,
-                    "TLS handshake error: %s",
-                    ERR_error_string(ERR_get_error(), buf));
+                    "TLS handshake error: %s, file:%s:%d",
+                    buf,
+                    file,
+                    line);
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
             }
@@ -1141,11 +1146,16 @@ QuicTlsProcessData(
 
         case SSL_ERROR_SSL: {
             char buf[256];
+            const char* file;
+            int line;
+            ERR_error_string_n(ERR_get_error_line(&file, &line), buf, sizeof(buf));
             QuicTraceLogConnError(
                 OpenSslHandshakeErrorStr,
                 TlsContext->Connection,
-                "TLS handshake error: %s",
-                ERR_error_string(ERR_get_error(), buf));
+                "TLS handshake error: %s, file:%s:%d",
+                buf,
+                file,
+                line);
             TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
             goto Exit;
         }
