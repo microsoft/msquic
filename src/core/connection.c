@@ -1931,7 +1931,8 @@ QuicConnRestart(
         QUIC_TRANSPORT_PARAMETERS LocalTP = { 0 };
         QUIC_STATUS Status =
             QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
-        QUIC_FRE_ASSERT(Status); UNREFERENCED_PARAMETER(Status); // Can't fail since it passed already.
+        QUIC_FRE_ASSERT(QUIC_SUCCEEDED(Status)); // Can't fail since it passed already.
+        UNREFERENCED_PARAMETER(Status);
 
         Status =
             QuicCryptoInitializeTls(
