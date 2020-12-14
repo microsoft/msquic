@@ -1109,7 +1109,7 @@ QuicTlsProcessData(
                     OpenSslHandshakeErrorStr,
                     TlsContext->Connection,
                     "TLS handshake error: %s, file:%s:%d",
-                    buf,
+                    "",
                     file,
                     line);
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
@@ -1213,7 +1213,7 @@ QuicTlsProcessData(
                 OpenSslHandshakeErrorStr,
                 TlsContext->Connection,
                 "TLS handshake error: %s, file:%s:%d",
-                buf,
+                "",
                 file,
                 line);
             TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
