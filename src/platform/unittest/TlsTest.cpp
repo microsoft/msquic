@@ -274,7 +274,7 @@ protected:
                 }
             }
 
-            std::cout << "Processing " << *BufferLength << " bytes of type " << DataType << std::endl;
+            //std::cout << "Processing " << *BufferLength << " bytes of type " << DataType << std::endl;
 
             auto Result =
                 QuicTlsProcessData(
@@ -535,6 +535,7 @@ protected:
         }
     };
 
+    static
     void
     DoHandshake(
         TlsContext& ServerContext,
@@ -543,7 +544,7 @@ protected:
         bool SendResumptionTicket = false
         )
     {
-        std::cout << "==DoHandshake==" << std::endl;
+        //std::cout << "==DoHandshake==" << std::endl;
 
         auto Result = ClientContext.ProcessData(nullptr);
         ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
@@ -566,6 +567,18 @@ protected:
 
             Result = ClientContext.ProcessData(&ServerContext.State, FragmentSize);
         }
+    }
+
+    static QUIC_THREAD_CALLBACK(HandshakeAsync, Context)
+    {
+        TlsTest* This = (TlsTest*)Context;
+        for (uint32_t i = 0; i < 100; ++i) {
+            TlsContext ServerContext, ClientContext;
+            ServerContext.InitializeServer(This->ServerSecConfig);
+            ClientContext.InitializeClient(This->ClientSecConfigNoCertValidation);
+            DoHandshake(ServerContext, ClientContext);
+        }
+        QUIC_THREAD_RETURN(0);
     }
 
     int64_t
@@ -645,6 +658,29 @@ TEST_F(TlsTest, Handshake)
     ServerContext.InitializeServer(ServerSecConfig);
     ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
     DoHandshake(ServerContext, ClientContext);
+}
+
+TEST_F(TlsTest, HandshakeParallel)
+{
+    QUIC_THREAD_CONFIG Config = {
+        0,
+        0,
+        "TlsWorker",
+        HandshakeAsync,
+        this
+    };
+
+    QUIC_THREAD Threads[64];
+    QuicZeroMemory(&Threads, sizeof(Threads));
+
+    for (uint32_t i = 0; i < ARRAYSIZE(Threads); ++i) {
+        VERIFY_QUIC_SUCCESS(QuicThreadCreate(&Config, &Threads[i]));
+    }
+
+    for (uint32_t i = 0; i < ARRAYSIZE(Threads); ++i) {
+        QuicThreadWait(&Threads[i]);
+        QuicThreadDelete(&Threads[i]);
+    }
 }
 
 #ifndef QUIC_DISABLE_0RTT_TESTS
