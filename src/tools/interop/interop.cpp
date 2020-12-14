@@ -1047,7 +1047,7 @@ PrintTestResults(
     if (TestResults[Endpoint].QuicVersion == 0) {
         printf("%12s  %s\n", PublicEndpoints[Endpoint].ImplementationName, ResultCodes);
     } else {
-        printf("%12s  %s  0x%X  %s\n", PublicEndpoints[Endpoint].ImplementationName,
+        printf("%12s  %s  0x%08X  %s\n", PublicEndpoints[Endpoint].ImplementationName,
             ResultCodes, TestResults[Endpoint].QuicVersion,
             TestResults[Endpoint].Alpn);
     }
