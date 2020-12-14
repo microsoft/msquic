@@ -328,15 +328,6 @@ QuicTlsUninitialize(
     );
 
 //
-// Resets an existing TLS interface.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsReset(
-    _In_ QUIC_TLS* TlsContext
-    );
-
-//
 // Called to process any data received from the peer. In the case of the client,
 // the initial call is made with no input buffer to generate the initial output.
 // The returned QUIC_TLS_RESULT_FLAGS and QUIC_TLS_PROCESS_STATE are update with

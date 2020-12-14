@@ -727,40 +727,6 @@ QuicTlsUninitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsReset(
-    _In_ QUIC_TLS* TlsContext
-    )
-{
-    QUIC_DBG_ASSERT(TlsContext->IsServer == FALSE);
-
-    TlsSetValue(miTlsCurrentConnectionIndex, TlsContext->Connection);
-
-    TlsContext->BufferLength = 0;
-    TlsContext->CurrentReaderKey = -1;
-    TlsContext->CurrentWriterKey = -1;
-    TlsContext->TlsKeyScheduleSet = FALSE;
-
-    //
-    // Free old miTLS state.
-    //
-    FFI_mitls_quic_free(TlsContext->miTlsState);
-    TlsContext->miTlsState = NULL;
-
-    //
-    // Reinitialize new miTLS state.
-    //
-    if (!FFI_mitls_quic_create(&TlsContext->miTlsState, &TlsContext->miTlsConfig)) {
-        QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s.",
-            TlsContext->Connection,
-            "FFI_mitls_quic_create failed");
-        QUIC_DBG_ASSERT(FALSE);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
     _In_ QUIC_TLS* TlsContext,

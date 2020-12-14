@@ -1576,23 +1576,6 @@ QuicTlsUninitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsReset(
-    _In_ QUIC_TLS* TlsContext
-    )
-{
-    QuicTraceLogConnInfo(
-        SchannelContextReset,
-        TlsContext->Connection,
-        "Resetting TLS state");
-
-    //
-    // Clean up and then re-create Schannel state.
-    //
-    QuicTlsResetSchannel(TlsContext);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsWriteDataToSchannel(
     _In_ QUIC_TLS* TlsContext,

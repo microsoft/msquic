@@ -270,6 +270,16 @@ QuicCryptoInitializeTls(
     QUIC_DBG_ASSERT(SecConfig != NULL);
     QUIC_DBG_ASSERT(Connection->Configuration != NULL);
 
+    Crypto->MaxSentLength = 0;
+    Crypto->UnAckedOffset = 0;
+    Crypto->NextSendOffset = 0;
+    Crypto->RecoveryNextOffset = 0;
+    Crypto->RecoveryEndOffset = 0;
+    Crypto->InRecovery = FALSE;
+
+    Crypto->TlsState.BufferLength = 0;
+    Crypto->TlsState.BufferTotalLength = 0;
+
     TlsConfig.IsServer = IsServer;
     if (IsServer) {
         TlsConfig.AlpnBuffer = Crypto->TlsState.NegotiatedAlpn;
@@ -333,8 +343,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoReset(
-    _In_ QUIC_CRYPTO* Crypto,
-    _In_ BOOLEAN ResetTls
+    _In_ QUIC_CRYPTO* Crypto
     )
 {
     QUIC_DBG_ASSERT(!QuicConnIsServer(QuicCryptoGetConnection(Crypto)));
@@ -349,18 +358,9 @@ QuicCryptoReset(
     Crypto->RecoveryEndOffset = 0;
     Crypto->InRecovery = FALSE;
 
-    if (ResetTls) {
-        Crypto->TlsState.BufferLength = 0;
-        Crypto->TlsState.BufferTotalLength = 0;
-
-        QuicTlsReset(Crypto->TLS);
-        QuicCryptoProcessData(Crypto, TRUE);
-
-    } else {
-        QuicSendSetSendFlag(
-            &QuicCryptoGetConnection(Crypto)->Send,
-            QUIC_CONN_SEND_FLAG_CRYPTO);
-    }
+    QuicSendSetSendFlag(
+        &QuicCryptoGetConnection(Crypto)->Send,
+        QUIC_CONN_SEND_FLAG_CRYPTO);
 
     QuicCryptoValidate(Crypto);
 }

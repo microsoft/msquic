@@ -1917,7 +1917,27 @@ QuicConnRestart(
     QuicCongestionControlReset(&Connection->CongestionControl);
     QuicSendReset(&Connection->Send);
     QuicLossDetectionReset(&Connection->LossDetection);
-    QuicCryptoReset(&Connection->Crypto, CompleteReset);
+
+    if (CompleteReset) {
+        QUIC_DBG_ASSERT(Connection->Configuration != NULL);
+
+        QUIC_TRANSPORT_PARAMETERS LocalTP = { 0 };
+        QUIC_STATUS Status =
+            QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
+        QUIC_FRE_ASSERT(Status); UNREFERENCED_PARAMETER(Status); // Can't fail since it passed already.
+
+        Status =
+            QuicCryptoInitializeTls(
+                &Connection->Crypto,
+                Connection->Configuration->SecurityConfig,
+                &LocalTP);
+        if (QUIC_FAILED(Status)) {
+            QuicConnFatalError(Connection, Status, NULL);
+        }
+
+    } else {
+        QuicCryptoReset(&Connection->Crypto);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

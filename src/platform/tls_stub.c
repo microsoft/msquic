@@ -491,21 +491,6 @@ QuicTlsUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicTlsReset(
-    _In_ QUIC_TLS* TlsContext
-    )
-{
-    QuicTraceLogConnInfo(
-        StubTlsContextReset,
-        TlsContext->Connection,
-        "Resetting TLS state");
-
-    QUIC_FRE_ASSERT(TlsContext->IsServer == FALSE);
-    TlsContext->LastMessageType = QUIC_TLS_MESSAGE_INVALID;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
 QuicTlsServerProcess(
     _In_ QUIC_TLS* TlsContext,
     _Out_ QUIC_TLS_RESULT_FLAGS* ResultFlags,
