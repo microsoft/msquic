@@ -153,3 +153,6 @@ Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
 $OutputFolder = Join-Path $RootDir "artifacts" "mergedPerfResults"
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
 Copy-Item -Recurse -Path "$CommitFolder\*" $OutputFolder
+
+$env:GIT_REDIRECT_STDERR = '2>&1'
+git status
