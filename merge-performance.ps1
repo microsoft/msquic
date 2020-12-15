@@ -36,6 +36,11 @@ class TestCommitModel {
     [Collections.Generic.List[TestModel]]$Tests;
 }
 
+class CommitsFileModel {
+    [string]$CommitHash;
+    [datetime]$Date;
+}
+
 class ThroughputTestPublishResult {
     [string]$MachineName;
     [string]$PlatformName;
@@ -121,11 +126,21 @@ foreach ($File in $Files) {
     $CommitModel.Tests.Add($Model)
 }
 
-$Formatted = $CommitModel | ConvertTo-Json -Depth 100
+$CpuLimitedData = $CommitModel | ConvertTo-Json -Depth 100
 
 $BranchName = 'main' # chosen by random dice roll
 
-$CommitFolder = Join-Path $RootDir 'data' $BranchName $CommitModel.CommitHash
+$BranchFolder = Join-Path $RootDir 'data' $BranchName
+$CommitFolder = Join-Path $BranchFolder $CommitModel.CommitHash
 New-Item -Path $CommitFolder -ItemType "directory" -Force
 $DataFileName = Join-Path $CommitFolder "cpu_data.json"
-Out-File -FilePath $DataFileName -InputObject $Formatted -Force
+Out-File -FilePath $DataFileName -InputObject $CpuLimitedData -Force
+
+$CommitsFile = Join-Path $BranchFolder "commits.json"
+$CommitsContents = Get-Content $CommitsFile | ConvertFrom-Json
+$NewCommit = [CommitsFileModel]::new();
+$NewCommit.CommitHash = $CommitModel.CommitHash;
+$NewCommit.Date = $CommitModel.Date;
+$CommitsContents += $NewCommit;
+$NewCommitsContents = $CommitsContents | Sort-Object -Property CommitHash -Unique | Sort-Object -Property Date -Descending -Unique | ConvertTo-Json
+Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
