@@ -83,6 +83,7 @@ $Files = Get-ChildItem -Path $ResultsPath -Recurse -File;
 
 $CommitModel = [TestCommitModel]::new()
 $CommitModel.Tests = New-Object Collections.Generic.List[TestModel]
+$BranchName = ""
 
 foreach ($File in $Files) {
     $Data = Get-Content $File | ConvertFrom-Json;
@@ -92,6 +93,12 @@ foreach ($File in $Files) {
         $CommitModel.Date = Get-Date
     } elseif ($CommitModel.CommitHash -ne $Data.CommitHash) {
         Write-Error "Mismatched commit hashes"
+    }
+
+    if ($null -eq $BranchName) {
+        $BranchName = $Data.AuthKey
+    } elseif ($BranchName -ne $Data.AuthKey) {
+        Write-Error "Mismatched branch names"
     }
 
     $Model = [TestModel]::new();
@@ -127,8 +134,6 @@ foreach ($File in $Files) {
 
 $CpuLimitedData = $CommitModel | ConvertTo-Json -Depth 100
 
-$BranchName = 'main' # chosen by random dice roll
-
 $BranchFolder = Join-Path $RootDir 'data' $BranchName
 $CommitFolder = Join-Path $BranchFolder $CommitModel.CommitHash
 New-Item -Path $CommitFolder -ItemType "directory" -Force | Out-Null
@@ -143,7 +148,6 @@ $NewCommit.Date = $CommitModel.Date;
 $CommitsContents += $NewCommit;
 $NewCommitsContents = $CommitsContents | Sort-Object -Property CommitHash -Unique | Sort-Object -Property Date -Descending -Unique | ConvertTo-Json
 Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
-
 
 # Copy entire commit folder to outputs
 $OutputFolder = Join-Path $RootDir "artifacts" "mergedPerfResults"
