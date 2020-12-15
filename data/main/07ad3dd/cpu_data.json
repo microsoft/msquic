@@ -4,6 +4,7 @@
   "Tests": [
     {
       "PlatformName": "Linux_x64_openssl",
+      "TestName": "Throughput",
       "MachineName": "fv-az152",
       "TputConfig": {
         "Loopback": true,
@@ -25,11 +26,11 @@
         1342334.0,
         1179617.0,
         1410102.0
-      ],
-      "TestName": "Throughput"
+      ]
     },
     {
       "PlatformName": "Linux_x64_openssl",
+      "TestName": "Throughput",
       "MachineName": "fv-az152",
       "TputConfig": {
         "Loopback": true,
@@ -51,11 +52,11 @@
         957216.0,
         952453.0,
         1015641.0
-      ],
-      "TestName": "Throughput"
+      ]
     },
     {
       "PlatformName": "Windows_x64_schannel",
+      "TestName": "Throughput",
       "MachineName": "TK5-3WP09R0629",
       "TputConfig": {
         "Loopback": false,
@@ -77,11 +78,11 @@
         4684390.0,
         7205311.0,
         4620232.0
-      ],
-      "TestName": "Throughput"
+      ]
     },
     {
       "PlatformName": "Windows_x64_schannel",
+      "TestName": "Throughput",
       "MachineName": "TK5-3WP09R0629",
       "TputConfig": {
         "Loopback": false,
@@ -103,11 +104,11 @@
         3011843.0,
         3897946.0,
         3026790.0
-      ],
-      "TestName": "Throughput"
+      ]
     },
     {
       "PlatformName": "Windows_x64_mitls",
+      "TestName": "Throughput",
       "MachineName": "TK5-3WP09R0627",
       "TputConfig": {
         "Loopback": true,
@@ -129,11 +130,11 @@
         9746986.0,
         14396658.0,
         9558190.0
-      ],
-      "TestName": "Throughput"
+      ]
     },
     {
       "PlatformName": "Windows_x64_mitls",
+      "TestName": "Throughput",
       "MachineName": "TK5-3WP09R0627",
       "TputConfig": {
         "Loopback": true,
@@ -155,11 +156,11 @@
         2381903.0,
         2245155.0,
         2382291.0
-      ],
-      "TestName": "Throughput"
+      ]
     },
     {
       "PlatformName": "Windows_x64_schannel",
+      "TestName": "Throughput",
       "MachineName": "TK5-3WP09R0629",
       "TputConfig": {
         "Loopback": true,
@@ -181,11 +182,11 @@
         8231579.0,
         12405187.0,
         7925245.0
-      ],
-      "TestName": "Throughput"
+      ]
     },
     {
       "PlatformName": "Windows_x64_schannel",
+      "TestName": "Throughput",
       "MachineName": "TK5-3WP09R0629",
       "TputConfig": {
         "Loopback": true,
@@ -207,8 +208,7 @@
         5188740.0,
         4226565.0,
         5121289.0
-      ],
-      "TestName": "Throughput"
+      ]
     }
   ]
 }

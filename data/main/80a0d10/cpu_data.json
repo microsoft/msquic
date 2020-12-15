@@ -4,6 +4,7 @@
   "Tests": [
     {
       "PlatformName": "Linux_x64_openssl",
+      "TestName": "Throughput",
       "MachineName": "fv-az47-401",
       "TputConfig": {
         "Loopback": true,
@@ -20,11 +21,11 @@
         1647984.0,
         1596883.0,
         1663479.0
-      ],
-      "TestName": "Throughput"
+      ]
     },
     {
       "PlatformName": "Linux_x64_openssl",
+      "TestName": "Throughput",
       "MachineName": "fv-az47-401",
       "TputConfig": {
         "Loopback": true,
@@ -41,11 +42,11 @@
         1411659.0,
         1438278.0,
         1402815.0
-      ],
-      "TestName": "Throughput"
+      ]
     },
     {
       "PlatformName": "Linux_x64_openssl",
+      "TestName": "Throughput",
       "MachineName": "fv-az47-401",
       "TputConfig": {
         "Loopback": true,
@@ -62,11 +63,11 @@
         1347332.0,
         1360929.0,
         1401673.0
-      ],
-      "TestName": "Throughput"
+      ]
     },
     {
       "PlatformName": "Linux_x64_openssl",
+      "TestName": "Throughput",
       "MachineName": "fv-az47-401",
       "TputConfig": {
         "Loopback": true,
@@ -83,11 +84,11 @@
         1224818.0,
         1320012.0,
         1267416.0
-      ],
-      "TestName": "Throughput"
+      ]
     },
     {
       "PlatformName": "Linux_x64_openssl",
+      "TestName": "Throughput",
       "MachineName": "fv-az47-401",
       "TputConfig": {
         "Loopback": true,
@@ -104,8 +105,7 @@
         1164887.0,
         1200531.0,
         1233123.0
-      ],
-      "TestName": "Throughput"
+      ]
     }
   ]
 }
