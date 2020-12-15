@@ -1,0 +1,214 @@
+{
+  "CommitHash": "4088c46",
+  "Date": "2020-08-03T19:06:01.5461428",
+  "Tests": [
+    {
+      "PlatformName": "Linux_x64_openssl",
+      "MachineName": "fv-az143",
+      "TputConfig": {
+        "Loopback": true,
+        "Encryption": false,
+        "SendBuffering": false,
+        "NumberOfStreams": 1,
+        "ServerToClient": false
+      },
+      "RpsConfig": null,
+      "HpsConfig": null,
+      "Results": [
+        1249810.0,
+        1231306.0,
+        1245842.0,
+        1267027.0,
+        1230958.0,
+        1274068.0,
+        1293402.0,
+        1201207.0,
+        1215713.0,
+        1302890.0
+      ],
+      "TestName": "Throughput"
+    },
+    {
+      "PlatformName": "Linux_x64_openssl",
+      "MachineName": "fv-az143",
+      "TputConfig": {
+        "Loopback": true,
+        "Encryption": true,
+        "SendBuffering": false,
+        "NumberOfStreams": 1,
+        "ServerToClient": false
+      },
+      "RpsConfig": null,
+      "HpsConfig": null,
+      "Results": [
+        830582.0,
+        793051.0,
+        624643.0,
+        661401.0,
+        803779.0,
+        727634.0,
+        761946.0,
+        691416.0,
+        786823.0,
+        790278.0
+      ],
+      "TestName": "Throughput"
+    },
+    {
+      "PlatformName": "Windows_x64_schannel",
+      "MachineName": "TK5-3WP09R0627",
+      "TputConfig": {
+        "Loopback": false,
+        "Encryption": false,
+        "SendBuffering": false,
+        "NumberOfStreams": 1,
+        "ServerToClient": false
+      },
+      "RpsConfig": null,
+      "HpsConfig": null,
+      "Results": [
+        4697407.0,
+        7400531.0,
+        4815195.0,
+        7379757.0,
+        4834705.0,
+        7346992.0,
+        4729134.0,
+        7363407.0,
+        4798638.0,
+        7421353.0
+      ],
+      "TestName": "Throughput"
+    },
+    {
+      "PlatformName": "Windows_x64_schannel",
+      "MachineName": "TK5-3WP09R0627",
+      "TputConfig": {
+        "Loopback": false,
+        "Encryption": true,
+        "SendBuffering": false,
+        "NumberOfStreams": 1,
+        "ServerToClient": false
+      },
+      "RpsConfig": null,
+      "HpsConfig": null,
+      "Results": [
+        2951896.0,
+        3933476.0,
+        3032835.0,
+        4054427.0,
+        3096664.0,
+        3363479.0,
+        3117296.0,
+        4031952.0,
+        3089281.0,
+        4027750.0
+      ],
+      "TestName": "Throughput"
+    },
+    {
+      "PlatformName": "Windows_x64_mitls",
+      "MachineName": "TK5-3WP09R0629",
+      "TputConfig": {
+        "Loopback": true,
+        "Encryption": false,
+        "SendBuffering": false,
+        "NumberOfStreams": 1,
+        "ServerToClient": false
+      },
+      "RpsConfig": null,
+      "HpsConfig": null,
+      "Results": [
+        8257791.0,
+        12647691.0,
+        8119634.0,
+        12736500.0,
+        7920094.0,
+        11957234.0,
+        8020295.0,
+        12356395.0,
+        8113425.0,
+        12673819.0
+      ],
+      "TestName": "Throughput"
+    },
+    {
+      "PlatformName": "Windows_x64_mitls",
+      "MachineName": "TK5-3WP09R0629",
+      "TputConfig": {
+        "Loopback": true,
+        "Encryption": true,
+        "SendBuffering": false,
+        "NumberOfStreams": 1,
+        "ServerToClient": false
+      },
+      "RpsConfig": null,
+      "HpsConfig": null,
+      "Results": [
+        2245756.0,
+        2339407.0,
+        2184167.0,
+        2344265.0,
+        2178218.0,
+        2352330.0,
+        2293601.0,
+        2181855.0,
+        2352798.0,
+        2245805.0
+      ],
+      "TestName": "Throughput"
+    },
+    {
+      "PlatformName": "Windows_x64_schannel",
+      "MachineName": "TK5-3WP09R0627",
+      "TputConfig": {
+        "Loopback": true,
+        "Encryption": false,
+        "SendBuffering": false,
+        "NumberOfStreams": 1,
+        "ServerToClient": false
+      },
+      "RpsConfig": null,
+      "HpsConfig": null,
+      "Results": [
+        10168168.0,
+        10328264.0,
+        13953423.0,
+        10375717.0,
+        12381073.0,
+        10018057.0,
+        14342148.0,
+        10564424.0,
+        14272435.0,
+        10330872.0
+      ],
+      "TestName": "Throughput"
+    },
+    {
+      "PlatformName": "Windows_x64_schannel",
+      "MachineName": "TK5-3WP09R0627",
+      "TputConfig": {
+        "Loopback": true,
+        "Encryption": true,
+        "SendBuffering": false,
+        "NumberOfStreams": 1,
+        "ServerToClient": false
+      },
+      "RpsConfig": null,
+      "HpsConfig": null,
+      "Results": [
+        5458729.0,
+        4873785.0,
+        5515177.0,
+        4862414.0,
+        5535826.0,
+        4762002.0,
+        5510317.0,
+        4895038.0,
+        5476488.0,
+        4761251.0
+      ],
+      "TestName": "Throughput"
+    }
+  ]
+}
