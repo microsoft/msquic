@@ -84,7 +84,6 @@ $Files = Get-ChildItem -Path $ResultsPath -Recurse -File;
 $CommitModel = [TestCommitModel]::new()
 $CommitModel.Tests = New-Object Collections.Generic.List[TestModel]
 
-
 foreach ($File in $Files) {
     $Data = Get-Content $File | ConvertFrom-Json;
 
@@ -132,7 +131,7 @@ $BranchName = 'main' # chosen by random dice roll
 
 $BranchFolder = Join-Path $RootDir 'data' $BranchName
 $CommitFolder = Join-Path $BranchFolder $CommitModel.CommitHash
-New-Item -Path $CommitFolder -ItemType "directory" -Force
+New-Item -Path $CommitFolder -ItemType "directory" -Force | Out-Null
 $DataFileName = Join-Path $CommitFolder "cpu_data.json"
 Out-File -FilePath $DataFileName -InputObject $CpuLimitedData -Force
 
@@ -144,3 +143,9 @@ $NewCommit.Date = $CommitModel.Date;
 $CommitsContents += $NewCommit;
 $NewCommitsContents = $CommitsContents | Sort-Object -Property CommitHash -Unique | Sort-Object -Property Date -Descending -Unique | ConvertTo-Json
 Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
+
+
+# Copy entire commit folder to outputs
+$OutputFolder = Join-Path $RootDir "artifacts" "mergedPerfResults"
+New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
+Copy-Item -Recurse -Path "$CommitFolder\*" $OutputFolder
