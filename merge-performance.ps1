@@ -187,14 +187,14 @@ $OutputFolder = Join-Path $RootDir "artifacts" "mergedPerfResults"
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
 Copy-Item -Recurse -Path "$CommitFolder\*" $OutputFolder
 
+$env:GIT_REDIRECT_STDERR = '2>&1'
+Set-Location $RootDir
+
+# Set Git Config Info
+git config user.email "quicdev@microsoft.com"
+git config user.name "QUIC Dev Bot"
+
 if ($PublishResults) {
-    $env:GIT_REDIRECT_STDERR = '2>&1'
-    Set-Location $RootDir
-
-    # Set Git Config Info
-    git config user.email "quicdev@microsoft.com"
-    git config user.name "QUIC Dev Bot"
-
     git config --global credential.helper store
     Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:MAPPED_DEPLOYMENT_KEY):x-oauth-basic@github.com`n"
 
@@ -203,4 +203,7 @@ if ($PublishResults) {
     git commit -m "Commit Test Results for ${$CommitModel.CommitHash}"
     git pull
     git push
+} else {
+    git add .
+    git status
 }
