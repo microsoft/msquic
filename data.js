@@ -5,24 +5,50 @@ var dataRawWinKernelx64SchannelThroughput = [{t: new Date(1608158450575), y: 483
 var dataAverageWinKernelx64SchannelThroughput = [{t: new Date(1608158450575), y: 4900563.4}, {t: new Date(1608153965344), y: 5870801}, {t: new Date(1607979091539), y: 5889491.4}, {t: new Date(1607809185749), y: 5817844.4}, {t: new Date(1607725490353), y: 5966023.8}, {t: new Date(1607714493012), y: 5834598.6}, {t: new Date(1607393245873), y: 5846715.6}, {t: new Date(1607375889516), y: 5694617.8}, {t: new Date(1607372636361), y: 5815128}, {t: new Date(1607135235923), y: 5749457.2}, {t: new Date(1607037844434), y: 5861390.4}, {t: new Date(1607023657557), y: 5769375}, {t: new Date(1607017250933), y: 5804399}]
 var dataLabels = [new Date(1608156663944), new Date(1608153965344), new Date(1607979091539), new Date(1607811287270), new Date(1607809185749), new Date(1607725490353), new Date(1607714493012), new Date(1607393245873), new Date(1607375889516), new Date(1607372636361), new Date(1607366448667), new Date(1607135235923), new Date(1607037844434), new Date(1607023657557), new Date(1607017250933), new Date(1607014014554)]
 
+// Different data point colors
+var dataColorWinKernelx64Schannel = "rgb(0, 255, 0)"
+
+// Useful configuration values
+var dataLineWidth = 2
+var dataRawPointRadius = 5
+
+// Global option configuration
+Chart.defaults.global.responsive = true
+Chart.defaults.global.title.fontSize = 16
+Chart.defaults.global.tooltips.mode = 'index'
+Chart.defaults.global.tooltips.intersect = true
+
+// Time axis used for all charts
+var timeAxis = {
+    type: 'time',
+    time: {
+        unit: 'day'
+    },
+    display: true,
+    scaleLabel: {
+        display: true,
+        labelString: 'Date'
+    }
+};
+
 var chartDataThroughput = {
     labels: dataLabels,
     datasets: [{
         type: "scatter",
         label: "Windows Kernel (raw)",
-        backgroundColor: "rgb(0, 255, 0)",
-        pointBorderColor: "rgb(0, 255, 0)",
-        borderColor: "rgb(0, 255, 0)",
+        backgroundColor: dataColorWinKernelx64Schannel,
+        pointBorderColor: dataColorWinKernelx64Schannel,
+        borderColor: dataColorWinKernelx64Schannel,
         pointStyle: "crossRot",
-        pointRadius: 5,
+        pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWinKernelx64SchannelThroughput,
     }, {
         type: "line",
         label: "Windows Kernel (average)",
-        backgroundColor: "rgb(0, 255, 0)",
-        borderColor: "rgb(0, 255, 0)",
-        borderWidth: 2,
+        backgroundColor: dataColorWinKernelx64Schannel,
+        borderColor: dataColorWinKernelx64Schannel,
+        borderWidth: dataLineWidth,
         pointRadius: 0,
         tension: 0,
         data: dataAverageWinKernelx64SchannelThroughput,
@@ -31,28 +57,11 @@ var chartDataThroughput = {
 };
 
 var chartOptionsThroughput = {
-    responsive: true,
     title: {
-        display: true,
         text: 'Single Connection Throughput',
-        fontSize: 16
-    },
-    tooltips: {
-        mode: 'index',
-        intersect: true
     },
     scales: {
-        xAxes: [{
-            type: 'time',
-            time: {
-                unit: 'day'
-            },
-            display: true,
-            scaleLabel: {
-                display: true,
-                labelString: 'Date'
-            }
-        }],
+        xAxes: [timeAxis],
         yAxes: [{
             display: true,
             scaleLabel: {
@@ -68,17 +77,18 @@ var chartDataRPS = {
     datasets: [{
         type: "scatter",
         label: "Windows Kernel (raw)",
-        backgroundColor: "rgb(0, 255, 0)",
-        pointBorderColor: "rgb(0, 255, 0)",
+        backgroundColor: dataColorWinKernelx64Schannel,
+        pointBorderColor: dataColorWinKernelx64Schannel,
         pointStyle: "crossRot",
-        pointRadius: 5,
+        pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWinKernelx64SchannelThroughput,
     }, {
         type: "line",
         label: "Windows Kernel (average)",
-        backgroundColor: "rgb(0, 255, 0)",
-        borderColor: "rgb(0, 255, 0)",
+        backgroundColor: dataColorWinKernelx64Schannel,
+        borderColor: dataColorWinKernelx64Schannel,
+        borderWidth: dataLineWidth,
         pointRadius: 0,
         tension: 0,
         data: dataAverageWinKernelx64SchannelThroughput,
@@ -89,22 +99,10 @@ var chartDataRPS = {
 var chartOptionsRPS = {
     responsive: true,
     title: {
-        display: true,
         text: 'RPS',
-        fontSize: 16
-    },
-    tooltips: {
-        mode: 'index',
-        intersect: true
     },
     scales: {
-        xAxes: [{
-            display: true,
-            scaleLabel: {
-                display: true,
-                labelString: 'Date'
-            }
-        }],
+        xAxes: [timeAxis],
         yAxes: [{
             display: true,
             scaleLabel: {
@@ -120,17 +118,18 @@ var chartDataHPS = {
     datasets: [{
         type: "scatter",
         label: "Windows Kernel (raw)",
-        backgroundColor: "rgb(0, 255, 0)",
-        pointBorderColor: "rgb(0, 255, 0)",
+        backgroundColor: dataColorWinKernelx64Schannel,
+        pointBorderColor: dataColorWinKernelx64Schannel,
         pointStyle: "crossRot",
-        pointRadius: 5,
+        pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWinKernelx64SchannelThroughput,
     }, {
         type: "line",
         label: "Windows Kernel (average)",
-        backgroundColor: "rgb(0, 255, 0)",
-        borderColor: "rgb(0, 255, 0)",
+        backgroundColor: dataColorWinKernelx64Schannel,
+        borderColor: dataColorWinKernelx64Schannel,
+        borderWidth: dataLineWidth,
         pointRadius: 0,
         tension: 0,
         data: dataAverageWinKernelx64SchannelThroughput,
@@ -141,22 +140,10 @@ var chartDataHPS = {
 var chartOptionsHPS = {
     responsive: true,
     title: {
-        display: true,
         text: 'HPS',
-        fontSize: 16
-    },
-    tooltips: {
-        mode: 'index',
-        intersect: true
     },
     scales: {
-        xAxes: [{
-            display: true,
-            scaleLabel: {
-                display: true,
-                labelString: 'Date'
-            }
-        }],
+        xAxes: [timeAxis],
         yAxes: [{
             display: true,
             scaleLabel: {
