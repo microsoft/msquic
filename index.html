@@ -7,8 +7,8 @@
     <meta property="og:description" content="The latest MsQuic performance data" />
     <meta name="description" content="The latest MsQuic performance data" />
     <meta name="keywords" content=", github, microsoft, quic, performance" />
-    <link rel="icon" href="/assets/favicon.png">
-  	<title>
+    <link rel="icon" href="./assets/favicon.png">
+    <title>
       MsQuic Performance Dashboard
     </title>
     <script src="Chart.min.js"></script>
@@ -16,17 +16,8 @@
 
 <body>
     <h1>MsQuic Performance Dashboard</h1>
-    <div style="width: 75%">
-        <div class="chartjs-size-monitor">
-            <div class="chartjs-size-monitor-expand">
-                <div class=""></div>
-            </div>
-            <div class="chartjs-size-monitor-shrink">
-                <div class=""></div>
-            </div>
-        </div>
-        <canvas id="canvas" style="display: block; height: 605px; width: 1215px;" width="2126" height="1058"
-            class="chartjs-render-monitor"></canvas>
+    <div style="width: 60%">
+        <canvas id="canvas" class="chartjs-render-monitor"></canvas>
     </div>
     <script>
         var chartData = {
