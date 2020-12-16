@@ -1,7 +1,7 @@
 <#
 
 .SYNOPSIS
-This takes merged performance results and generates graphs to display. 
+This takes merged performance results and generates graphs to display.
 This is ran from merge-performance.ps1
 
 #>
@@ -10,7 +10,10 @@ Using module .\mergetypes.psm1
 
 param (
     [Parameter(Mandatory = $true)]
-    [string]$BranchFolder
+    [string]$BranchFolder,
+
+    [Parameter(Mandatory = $false)]
+    [int]$DaysToReceive = 30
 )
 
 Set-StrictMode -Version 'Latest'
@@ -28,7 +31,7 @@ function Get-CommitHistory {
 
     $CurrentDate = Get-Date
     $PastDate = $CurrentDate.AddDays(-$DaysToReceive)
-    
+
     $CommitsFile = Join-Path $BranchFolder "commits.json"
     $CommitsContents = Get-Content $CommitsFile | ConvertFrom-Json | Where-Object -Property Date -GE $PastDate
 
@@ -120,7 +123,7 @@ function Get-RawTestDataJs {
         [Parameter(Mandatory = $true)]
         $TestList
     )
-    
+
     $DataVal = ""
     foreach ($Test in $TestList) {
         $TimeUnix = ([DateTimeOffset]$Test.Date).ToUnixTimeMilliseconds();
@@ -141,7 +144,7 @@ function Get-AverageDataJs {
         [Parameter(Mandatory = $true)]
         $TestList
     )
-    
+
     $DataVal = ""
     foreach ($Test in $TestList) {
         $TimeUnix = ([DateTimeOffset]$Test.Date).ToUnixTimeMilliseconds();
@@ -216,7 +219,7 @@ function Get-ThroughputTestsJs {
     return $DataFile
 }
 
-$CommitHistory = Get-CommitHistory -DaysToReceive 14 -BranchFolder $BranchFolder
+$CommitHistory = Get-CommitHistory -DaysToReceive $DaysToReceive -BranchFolder $BranchFolder
 $CpuCommitData = Get-CpuCommitData -CommitHistory $CommitHistory -BranchFolder $BranchFolder
 
 $DataFileIn = Join-Path $PSScriptRoot "data.js.in"

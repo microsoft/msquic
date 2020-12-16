@@ -69,7 +69,7 @@ class HPSTestPublishResult {
 }
 
 # Root directory of the project.
-$RootDir = $PSScriptRoot 
+$RootDir = $PSScriptRoot
 $ResultsPath = Join-Path $RootDir "artifacts/PerfDataResults/*.json"
 
 # Enumerate files
@@ -141,7 +141,7 @@ if (Test-Path -Path $CommitsFile -PathType Leaf) {
     $NewCommit.Date = $CommitModel.Date;
     $CommitsContents += $NewCommit;
     $NewCommitsContents = $CommitsContents | Sort-Object -Property CommitHash -Unique | Sort-Object -Property Date -Descending -Unique | ConvertTo-Json
-    
+
 } else {
     $CommitsArr = @($NewCommit)
     $NewCommitsContents = $CommitsArr | ConvertTo-Json
