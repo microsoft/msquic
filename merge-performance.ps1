@@ -11,6 +11,9 @@ This merges performance results into a single group of built files.
 
 #>
 
+
+Using module .\mergetypes.psm1;
+
 param (
     [Parameter(Mandatory = $false)]
     [string]$Branch = "refs/heads/main",
@@ -30,45 +33,6 @@ if ($PublishResults) {
     if ($null -eq $Env:MAPPED_DEPLOYMENT_KEY -or "" -eq $Env:MAPPED_DEPLOYMENT_KEY) {
         Write-Error "PAT for GitHub Repo doesn't exist!"
     }
-}
-
-class ThroughputConfiguration {
-    [boolean]$Loopback;
-    [boolean]$Encryption;
-    [boolean]$SendBuffering;
-    [int]$NumberOfStreams;
-    [boolean]$ServerToClient;
-}
-
-class HpsConfiguration {
-}
-
-class RpsConfiguration {
-    [int]$ConnectionCount;
-    [int]$RequestSize;
-    [int]$ResponseSize;
-    [int]$ParallelRequests;
-}
-
-class TestModel {
-    [string]$PlatformName;
-    [string]$TestName;
-    [string]$MachineName;
-    [ThroughputConfiguration]$TputConfig;
-    [RpsConfiguration]$RpsConfig;
-    [HpsConfiguration]$HpsConfig;
-    [double[]]$Results;
-}
-
-class TestCommitModel {
-    [string]$CommitHash;
-    [datetime]$Date;
-    [Collections.Generic.List[TestModel]]$Tests;
-}
-
-class CommitsFileModel {
-    [string]$CommitHash;
-    [datetime]$Date;
 }
 
 class ThroughputTestPublishResult {
@@ -182,6 +146,10 @@ if (Test-Path -Path $CommitsFile -PathType Leaf) {
 }
 Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
 
+$GraphScript = Join-Path $RootDir generate-graphs.ps1
+
+& $GraphScript -Model $CommitModel -CommitFolder $CommitFolder -BranchFolder $BranchFolder
+
 # Copy entire commit folder to outputs
 $OutputFolder = Join-Path $RootDir "artifacts" "mergedPerfResults"
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
@@ -190,17 +158,20 @@ Copy-Item -Recurse -Path "$CommitFolder\*" $OutputFolder
 $env:GIT_REDIRECT_STDERR = '2>&1'
 Set-Location $RootDir
 
-# Set Git Config Info
-git config user.email "quicdev@microsoft.com"
-git config user.name "QUIC Dev Bot"
-
 if ($PublishResults) {
+
     git config --global credential.helper store
-    Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:MAPPED_DEPLOYMENT_KEY):x-oauth-basic@github.com`n"
+    Add-Content "$env:HOME\.git-credentials" "https://$($env:MAPPED_DEPLOYMENT_KEY):x-oauth-basic@github.com`n"
+
+    # Set Git Config Info
+    git config user.email "quicdev@microsoft.com"
+    git config user.name "QUIC Dev Bot"
+
+    $CommitHash = $CommitModel.CommitHash
 
     git add .
     git status
-    git commit -m "Commit Test Results for ${$CommitModel.CommitHash}"
+    git commit -m "Commit Test Results for $CommitHash"
     git pull
     git push
 } else {
