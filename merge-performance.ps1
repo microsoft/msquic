@@ -165,4 +165,5 @@ New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
 Copy-Item -Recurse -Path "$CommitFolder\*" $OutputFolder
 
 $env:GIT_REDIRECT_STDERR = '2>&1'
+Set-Location $RootDir
 git status
