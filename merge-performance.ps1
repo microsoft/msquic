@@ -1,5 +1,36 @@
+<#
+
+.SYNOPSIS
+This merges performance results into a single group of built files.
+
+.EXAMPLE
+    merge-performance.ps1
+
+.EXAMPLE
+    merge-performance.ps1 -Branch /refs/heads/release/xxxx -PublishResults
+
+#>
+
+param (
+    [Parameter(Mandatory = $false)]
+    [string]$Branch = "refs/heads/main",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$PublishResults = $false
+)
+
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+# Remove the 'refs/heads/' prefix.
+$BranchName = $Branch.Substring(11);
+
+# Verify the PAT environmental variable is set.
+if ($PublishResults) {
+    if ($null -eq $Env:MAPPED_DEPLOYMENT_KEY -or "" -eq $Env:MAPPED_DEPLOYMENT_KEY) {
+        Write-Error "PAT for GitHub Repo doesn't exist!"
+    }
+}
 
 class ThroughputConfiguration {
     [boolean]$Loopback;
@@ -10,7 +41,6 @@ class ThroughputConfiguration {
 }
 
 class HpsConfiguration {
-
 }
 
 class RpsConfiguration {
@@ -83,7 +113,6 @@ $Files = Get-ChildItem -Path $ResultsPath -Recurse -File;
 
 $CommitModel = [TestCommitModel]::new()
 $CommitModel.Tests = New-Object Collections.Generic.List[TestModel]
-$BranchName = $null
 
 foreach ($File in $Files) {
     $Data = Get-Content $File | ConvertFrom-Json;
@@ -93,12 +122,6 @@ foreach ($File in $Files) {
         $CommitModel.Date = Get-Date
     } elseif ($CommitModel.CommitHash -ne $Data.CommitHash) {
         Write-Error "Mismatched commit hashes"
-    }
-
-    if ($null -eq $BranchName) {
-        $BranchName = $Data.AuthKey
-    } elseif ($BranchName -ne $Data.AuthKey) {
-        Write-Error "Mismatched branch names"
     }
 
     $Model = [TestModel]::new();
@@ -164,7 +187,20 @@ $OutputFolder = Join-Path $RootDir "artifacts" "mergedPerfResults"
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
 Copy-Item -Recurse -Path "$CommitFolder\*" $OutputFolder
 
-$env:GIT_REDIRECT_STDERR = '2>&1'
-Set-Location $RootDir
-git add .
-git status
+if ($PublishResults) {
+    $env:GIT_REDIRECT_STDERR = '2>&1'
+    Set-Location $RootDir
+
+    # Set Git Config Info
+    git config user.email "quicdev@microsoft.com"
+    git config user.name "QUIC Dev Bot"
+
+    git config --global credential.helper store
+    Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:MAPPED_DEPLOYMENT_KEY):x-oauth-basic@github.com`n"
+
+    git add .
+    git status
+    git commit -m "Commit Test Results for ${$CommitModel.CommitHash}"
+    git pull
+    git push
+}
