@@ -141,12 +141,22 @@ $DataFileName = Join-Path $CommitFolder "cpu_data.json"
 Out-File -FilePath $DataFileName -InputObject $CpuLimitedData -Force
 
 $CommitsFile = Join-Path $BranchFolder "commits.json"
-$CommitsContents = Get-Content $CommitsFile | ConvertFrom-Json
 $NewCommit = [CommitsFileModel]::new();
 $NewCommit.CommitHash = $CommitModel.CommitHash;
 $NewCommit.Date = $CommitModel.Date;
-$CommitsContents += $NewCommit;
-$NewCommitsContents = $CommitsContents | Sort-Object -Property CommitHash -Unique | Sort-Object -Property Date -Descending -Unique | ConvertTo-Json
+$NewCommitsContents = $null
+if (Test-Path -Path $CommitsFile -PathType Leaf) {
+    $CommitsContents = Get-Content $CommitsFile | ConvertFrom-Json
+    $NewCommit = [CommitsFileModel]::new();
+    $NewCommit.CommitHash = $CommitModel.CommitHash;
+    $NewCommit.Date = $CommitModel.Date;
+    $CommitsContents += $NewCommit;
+    $NewCommitsContents = $CommitsContents | Sort-Object -Property CommitHash -Unique | Sort-Object -Property Date -Descending -Unique | ConvertTo-Json
+    
+} else {
+    $CommitsArr = @($NewCommit)
+    $NewCommitsContents = $CommitsArr | ConvertTo-Json
+}
 Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
 
 # Copy entire commit folder to outputs
