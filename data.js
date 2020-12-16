@@ -162,3 +162,103 @@ var chartOptionsThroughput = {
         }]
     }
 };
+
+var chartDataRPS = {
+    labels: [1, 2, 3, 4, 5, 6],
+    datasets: [{
+        type: "scatter",
+        label: "Windows Kernel (raw)",
+        backgroundColor: "rgb(0, 255, 0)",
+        pointBorderColor: "rgb(0, 255, 0)",
+        pointStyle: "crossRot",
+        pointRadius: 5,
+        pointBorderWidth: 2,
+        data: dataRawThroughput,
+    }, {
+        type: "line",
+        label: "Windows Kernel (average)",
+        backgroundColor: "rgb(0, 255, 0)",
+        borderColor: "rgb(0, 255, 0)",
+        tension: 0,
+        data: dataAverageThroughput,
+        fill: false
+    }]
+};
+
+var chartOptionsRPS = {
+    responsive: true,
+    title: {
+        display: true,
+        text: 'RPS'
+    },
+    tooltips: {
+        mode: 'index',
+        intersect: true
+    },
+    scales: {
+        xAxes: [{
+            display: true,
+            scaleLabel: {
+                display: true,
+                labelString: 'Date'
+            }
+        }],
+        yAxes: [{
+            display: true,
+            scaleLabel: {
+                display: true,
+                labelString: 'RPS'
+            }
+        }]
+    }
+};
+
+var chartDataHPS = {
+    labels: [1, 2, 3, 4, 5, 6],
+    datasets: [{
+        type: "scatter",
+        label: "Windows Kernel (raw)",
+        backgroundColor: "rgb(0, 255, 0)",
+        pointBorderColor: "rgb(0, 255, 0)",
+        pointStyle: "crossRot",
+        pointRadius: 5,
+        pointBorderWidth: 2,
+        data: dataRawThroughput,
+    }, {
+        type: "line",
+        label: "Windows Kernel (average)",
+        backgroundColor: "rgb(0, 255, 0)",
+        borderColor: "rgb(0, 255, 0)",
+        tension: 0,
+        data: dataAverageThroughput,
+        fill: false
+    }]
+};
+
+var chartOptionsHPS = {
+    responsive: true,
+    title: {
+        display: true,
+        text: 'HPS'
+    },
+    tooltips: {
+        mode: 'index',
+        intersect: true
+    },
+    scales: {
+        xAxes: [{
+            display: true,
+            scaleLabel: {
+                display: true,
+                labelString: 'Date'
+            }
+        }],
+        yAxes: [{
+            display: true,
+            scaleLabel: {
+                display: true,
+                labelString: 'HPS'
+            }
+        }]
+    }
+};

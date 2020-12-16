@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta property="og:title" content="MsQuic Performance Dashboard" />
@@ -13,19 +14,36 @@
     <script src="Chart.min.js"></script>
     <script src="data.js"></script>
 </head>
+
 <body>
     <h1>MsQuic Performance Dashboard</h1>
-    <div style="width: 60%">
-        <canvas id="canvasThroughput" class="chartjs-render-monitor"></canvas>
+    <div>
+        <div style="width: 30%; float: left; padding: 20px;">
+            <canvas id="canvasThroughput" class="chartjs-render-monitor"></canvas>
+        </div>
+        <div style="width: 30%; float: left; padding: 20px;">
+            <canvas id="canvasRPS" class="chartjs-render-monitor"></canvas>
+        </div>
+        <div style="width: 30%; float: left; padding: 20px;">
+            <canvas id="canvasHPS" class="chartjs-render-monitor"></canvas>
+        </div>
     </div>
     <script>
         window.onload = function () {
-            var ctx = document.getElementById('canvasThroughput').getContext('2d');
-            window.myMixedChart = new Chart(ctx, {
+            new Chart(document.getElementById('canvasThroughput').getContext('2d'), {
                 data: chartDataThroughput,
                 options: chartOptionsThroughput
+            });
+            new Chart(document.getElementById('canvasRPS').getContext('2d'), {
+                data: chartDataRPS,
+                options: chartOptionsRPS
+            });
+            new Chart(document.getElementById('canvasHPS').getContext('2d'), {
+                data: chartDataHPS,
+                options: chartOptionsHPS
             });
         };
     </script>
 </body>
+
 </html>
