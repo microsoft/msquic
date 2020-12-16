@@ -83,7 +83,7 @@ $Files = Get-ChildItem -Path $ResultsPath -Recurse -File;
 
 $CommitModel = [TestCommitModel]::new()
 $CommitModel.Tests = New-Object Collections.Generic.List[TestModel]
-$BranchName = ""
+$BranchName = $null
 
 foreach ($File in $Files) {
     $Data = Get-Content $File | ConvertFrom-Json;
