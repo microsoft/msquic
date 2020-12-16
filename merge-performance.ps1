@@ -150,7 +150,7 @@ Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
 
 $GraphScript = Join-Path $RootDir generate-graphs.ps1
 
-& $GraphScript -Model $CommitModel -CommitFolder $CommitFolder -BranchFolder $BranchFolder
+& $GraphScript -BranchFolder $BranchFolder
 
 # Copy entire commit folder to outputs
 $OutputFolder = Join-Path $RootDir "artifacts" "mergedPerfResults"

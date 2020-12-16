@@ -1,12 +1,25 @@
 /*!
  * Automatically generated data
  */
-var dataRawWinKernelx64SchannelThroughput = RAW_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT
-var dataAverageWinKernelx64SchannelThroughput = AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT
-var dataLabels = DATA_LABELS
+var dataRawWinKernelx64SchannelThroughput = RAW_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_UP
+var dataAverageWinKernelx64SchannelThroughput = AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_UP
+
+var dataRawWindowsx64SchannelThroughput = RAW_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_UP
+var dataAverageWindowsx64SchannelThroughput = AVERAGE_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_UP
+
+var dataRawWindowsx64OpensslThroughput = RAW_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_UP
+var dataAverageWindowsx64OpensslThroughput = AVERAGE_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_UP
+
+var dataRawWinKernelx64SchannelThroughput = RAW_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_DOWN
+var dataAverageWinKernelx64SchannelThroughput = AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_DOWN
+
+var dataRawWindowsx64SchannelThroughput = RAW_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_DOWN
+var dataAverageWindowsx64SchannelThroughput = AVERAGE_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_DOWN
+
+var dataRawWindowsx64OpensslThroughput = RAW_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_DOWN
+var dataAverageWindowsx64OpensslThroughput = AVERAGE_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_DOWN
 
 var chartDataThroughput = {
-    labels: dataLabels,
     datasets: [{
         type: "scatter",
         label: "Windows Kernel (raw)",
@@ -60,7 +73,6 @@ var chartOptionsThroughput = {
 };
 
 var chartDataRPS = {
-    labels: dataLabels,
     datasets: [{
         type: "scatter",
         label: "Windows Kernel (raw)",
@@ -110,7 +122,6 @@ var chartOptionsRPS = {
 };
 
 var chartDataHPS = {
-    labels: dataLabels,
     datasets: [{
         type: "scatter",
         label: "Windows Kernel (raw)",

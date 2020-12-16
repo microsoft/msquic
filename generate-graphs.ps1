@@ -10,12 +10,6 @@ Using module .\mergetypes.psm1
 
 param (
     [Parameter(Mandatory = $true)]
-    [TestCommitModel]$Model,
-
-    [Parameter(Mandatory = $true)]
-    [string]$CommitFolder,
-
-    [Parameter(Mandatory = $true)]
     [string]$BranchFolder
 )
 
@@ -121,25 +115,6 @@ function Get-ThroughputTests {
     return $Tests
 }
 
-function Get-LabelsJs {
-    param (
-        [Parameter(Mandatory = $true)]
-        [CommitsFileModel[]]$CommitList
-    )
-
-    $LabelVal = ""
-    foreach ($Commit in $CommitList) {
-        $TimeUnix = ([DateTimeOffset]$Commit.Date).ToUnixTimeMilliseconds();
-        $Label = "new Date($TimeUnix)"
-        if ($LabelVal -eq "") {
-            $LabelVal = $Label
-        } else {
-            $LabelVal = "$LabelVal, $Label"
-        }
-    }
-    return "[$LabelVal]"
-}
-
 function Get-RawTestDataJs {
     param (
         [Parameter(Mandatory = $true)]
@@ -181,41 +156,73 @@ function Get-AverageDataJs {
     return "[$DataVal]"
 }
 
-# Do Stuff Here
+function Get-ThroughputPlatformTests {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory = $true)]
+        $DataFile,
+
+        [Parameter(Mandatory = $true)]
+        [Collections.Generic.List[ThroughputTest]]$ThroughputTests,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RawReplaceName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$AvgReplaceName
+    )
+
+    $RawData = Get-RawTestDataJs -TestList $ThroughputTests
+    $AvgData = Get-AverageDataJs -TestList $ThroughputTests
+
+    $DataFile = $DataFile.Replace($RawReplaceName, $RawData)
+    $DataFile = $DataFile.Replace($AvgReplaceName, $AvgData)
+
+    return $DataFile
+}
+
+
+
+function Get-ThroughputTestsJs {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory = $true)]
+        $DataFile,
+
+        [Parameter(Mandatory = $true)]
+        [TestCommitModel[]]$CpuCommitData
+    )
+
+    # Dict<Config, Dict<Platform, List<Tests>>>
+    $ThroughputTests = Get-ThroughputTests -CommitData $CpuCommitData
+    
+    $UploadDefault = Get-ThroughputDefault -Download $false
+
+    $DownloadDefault = Get-ThroughputDefault -Download $true
+
+    $UploadTests = $ThroughputTests[$UploadDefault];
+    $DownloadTests = $ThroughputTests[$DownloadDefault];
+
+    $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Windows_x64_schannel"] -RawReplaceName "RAW_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_UP" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_UP"
+    $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Winkernel_x64_schannel"] -RawReplaceName "RAW_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_UP" -AvgReplaceName "AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_UP"
+    $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Windows_x64_openssl"] -RawReplaceName "RAW_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_UP" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_UP"
+    # $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Linux_x64_openssl"] -RawReplaceName "RAW_DATA_LINUX_X64_OPENSSL_THROUGHPUT" -AvgReplaceName "AVERAGE_DATA_LINUX_X64_OPENSSL_THROUGHPUT"
+
+    $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Windows_x64_schannel"] -RawReplaceName "RAW_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_DOWN" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_DOWN"
+    $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Winkernel_x64_schannel"] -RawReplaceName "RAW_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_DOWN" -AvgReplaceName "AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_DOWN"
+    $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Windows_x64_openssl"] -RawReplaceName "RAW_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_DOWN" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_DOWN"
+    # $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Linux_x64_openssl"] -RawReplaceName "RAW_DATA_LINUX_X64_OPENSSL_THROUGHPUT" -AvgReplaceName "AVERAGE_DATA_LINUX_X64_OPENSSL_THROUGHPUT"
+
+    return $DataFile
+}
+
 $CommitHistory = Get-CommitHistory -DaysToReceive 14 -BranchFolder $BranchFolder
 $CpuCommitData = Get-CpuCommitData -CommitHistory $CommitHistory -BranchFolder $BranchFolder
-
-$DataLabels = Get-LabelsJs -CommitList $CommitHistory
-
-$ThroughputTests = Get-ThroughputTests -CommitData $CpuCommitData
-
-$UploadDefault = Get-ThroughputDefault -Download $false
-
-$DefaultThroughputUploadTests = $ThroughputTests[$UploadDefault];
-
-$KernelModeTests = $DefaultThroughputUploadTests["Winkernel_x64_schannel"]
-
-$KmRawData = Get-RawTestDataJs -TestList $KernelModeTests
-$KmAverageData = Get-AverageDataJs -TestList $KernelModeTests
 
 $DataFileIn = Join-Path $PSScriptRoot "data.js.in"
 $DataFileContents = Get-Content $DataFileIn
 
-$DataFileContents = $DataFileContents.Replace("RAW_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT", $KmRawData)
-$DataFileContents = $DataFileContents.Replace("AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT", $KmAverageData)
-$DataFileContents = $DataFileContents.Replace("DATA_LABELS", $DataLabels)
+$DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
 
 $DataFileOut = Join-Path $PSScriptRoot "data.js"
 $DataFileContents | Set-Content $DataFileOut
-
-# $A = [ThroughputConfiguration]::new()
-# $B = [ThroughputConfiguration]::new()
-
-# $Dictionary = [Collections.Generic.Dictionary[ThroughputConfiguration, string]]::new()
-# $Dictionary.Add($A, "42")
-# $Dictionary.Add($B, "42")
-
-# Write-Host $Dictionary.Count
-
-
-#Write-Host $CpuCommitData
