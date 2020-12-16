@@ -11,6 +11,9 @@ This merges performance results into a single group of built files.
 
 #>
 
+
+Using module .\mergetypes.psm1;
+
 param (
     [Parameter(Mandatory = $false)]
     [string]$Branch = "refs/heads/main",
@@ -30,45 +33,6 @@ if ($PublishResults) {
     if ($null -eq $Env:MAPPED_DEPLOYMENT_KEY -or "" -eq $Env:MAPPED_DEPLOYMENT_KEY) {
         Write-Error "PAT for GitHub Repo doesn't exist!"
     }
-}
-
-class ThroughputConfiguration {
-    [boolean]$Loopback;
-    [boolean]$Encryption;
-    [boolean]$SendBuffering;
-    [int]$NumberOfStreams;
-    [boolean]$ServerToClient;
-}
-
-class HpsConfiguration {
-}
-
-class RpsConfiguration {
-    [int]$ConnectionCount;
-    [int]$RequestSize;
-    [int]$ResponseSize;
-    [int]$ParallelRequests;
-}
-
-class TestModel {
-    [string]$PlatformName;
-    [string]$TestName;
-    [string]$MachineName;
-    [ThroughputConfiguration]$TputConfig;
-    [RpsConfiguration]$RpsConfig;
-    [HpsConfiguration]$HpsConfig;
-    [double[]]$Results;
-}
-
-class TestCommitModel {
-    [string]$CommitHash;
-    [datetime]$Date;
-    [Collections.Generic.List[TestModel]]$Tests;
-}
-
-class CommitsFileModel {
-    [string]$CommitHash;
-    [datetime]$Date;
 }
 
 class ThroughputTestPublishResult {
@@ -181,6 +145,10 @@ if (Test-Path -Path $CommitsFile -PathType Leaf) {
     $NewCommitsContents = $CommitsArr | ConvertTo-Json
 }
 Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
+
+$GraphScript = Join-Path $RootDir generate-graphs.ps1
+
+& $GraphScript -Model $CommitModel -CommitFolder $CommitFolder
 
 # Copy entire commit folder to outputs
 $OutputFolder = Join-Path $RootDir "artifacts" "mergedPerfResults"
