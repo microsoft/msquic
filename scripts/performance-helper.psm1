@@ -228,6 +228,21 @@ function Get-GitHash {
     return $CurrentCommitHash
 }
 
+function Get-CurrentBranch {
+    param($RepoDir)
+    $CurrentLoc = Get-Location
+    Set-Location -Path $RepoDir | Out-Null
+    $env:GIT_REDIRECT_STDERR = '2>&1'
+    $CurrentBranchName = $null
+    try {
+        $CurrentBranchName = git rev-parse --abbrev-ref HEAD
+    } catch {
+        Write-Debug "Failed to get branch name from git"
+    }
+    Set-Location -Path $CurrentLoc | Out-Null
+    return $CurrentBranchName
+}
+
 function Get-ExePath {
     param ($PathRoot, $Platform, $IsRemote)
     if ($IsRemote) {
@@ -582,7 +597,7 @@ class ThroughputTestPublishResult {
 }
 
 function Publish-ThroughputTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ServerToClient, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentBranch, $OutputDir, $ServerToClient, $ExePath)
 
     $Request = [ThroughputRequest]::new($Test, $ServerToClient)
 
@@ -623,6 +638,7 @@ function Publish-ThroughputTestResults {
             $MachineName = $env:AGENT_MACHINENAME
         }
         $Results = [ThroughputTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
+        $Results.AuthKey = $CurrentBranch;
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
@@ -694,7 +710,7 @@ class RPSTestPublishResult {
 }
 
 function Publish-RPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentBranch, $OutputDir, $ExePath)
 
     $Request = [RPSRequest]::new($Test)
 
@@ -741,6 +757,7 @@ function Publish-RPSTestResults {
             $MachineName = $env:AGENT_MACHINENAME
         }
         $Results = [RPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
+        $Results.AuthKey = $CurrentBranch;
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
@@ -796,7 +813,7 @@ class HPSTestPublishResult {
 }
 
 function Publish-HPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $OutputDir, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentBranch, $OutputDir, $ExePath)
 
     $Request = [HPSRequest]::new($Test)
 
@@ -834,6 +851,7 @@ function Publish-HPSTestResults {
             $MachineName = $env:AGENT_MACHINENAME
         }
         $Results = [HPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
+        $Results.AuthKey = $CurrentBranch;
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
@@ -845,16 +863,16 @@ function Publish-HPSTestResults {
 #endregion
 
 function Publish-TestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $CurrentBranch, $OutputDir, $ExePath)
 
     if ($Test.TestName -eq "ThroughputUp") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $false -ExePath $ExePath
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentBranch $CurrentBranch -OutputDir $OutputDir -ServerToClient $false -ExePath $ExePath
     } elseif ($Test.TestName -eq "ThroughputDown") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ServerToClient $true -ExePath $ExePath
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentBranch $CurrentBranch -OutputDir $OutputDir -ServerToClient $true -ExePath $ExePath
     } elseif ($Test.TestName -eq "RPS") {
-        Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ExePath $ExePath
+        Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentBranch $CurrentBranch -OutputDir $OutputDir -ExePath $ExePath
     } elseif ($Test.TestName -eq "HPS") {
-        Publish-HPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir -ExePath $ExePath
+        Publish-HPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentBranch $CurrentBranch -OutputDir $OutputDir -ExePath $ExePath
     } else {
         Write-Host "Unknown Test Type"
     }
