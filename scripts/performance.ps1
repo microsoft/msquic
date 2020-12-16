@@ -241,6 +241,7 @@ if ($Local) {
 }
 
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
+$CurrentBranch = Get-CurrentBranch -RepoDir $RootDir
 
 if ($PGO -and $Local) {
     # PGO needs the server and client executing out of separate directories.
@@ -390,6 +391,7 @@ function Invoke-Test {
     Publish-TestResults -Test $Test `
                         -AllRunsResults $AllRunsResults `
                         -CurrentCommitHash $CurrentCommitHash `
+                        -CurrentBranch $CurrentBranch `
                         -OutputDir $OutputDir `
                         -ExePath $LocalExe
 }
