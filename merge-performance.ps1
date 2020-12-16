@@ -78,12 +78,14 @@ $Files = Get-ChildItem -Path $ResultsPath -Recurse -File;
 $CommitModel = [TestCommitModel]::new()
 $CommitModel.Tests = New-Object Collections.Generic.List[TestModel]
 
+$TestDate = [DateTime]::UtcNow
+
 foreach ($File in $Files) {
     $Data = Get-Content $File | ConvertFrom-Json;
 
     if ($null -eq $CommitModel.CommitHash) {
         $CommitModel.CommitHash = $Data.CommitHash;
-        $CommitModel.Date = Get-Date
+        $CommitModel.Date = $TestDate
     } elseif ($CommitModel.CommitHash -ne $Data.CommitHash) {
         Write-Error "Mismatched commit hashes"
     }
