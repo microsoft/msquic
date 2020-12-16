@@ -43,7 +43,7 @@ param (
     [switch]$Stream = $false,
 
     [Parameter(Mandatory = $false, ParameterSetName='Start')]
-    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
+    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
     [string]$Profile = "Full.Light",
 
     [Parameter(Mandatory = $false, ParameterSetName='Cancel')]
