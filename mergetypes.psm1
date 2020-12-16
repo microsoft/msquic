@@ -43,15 +43,3 @@ class CommitsFileModel {
     [string]$CommitHash;
     [datetime]$Date;
 }
-
-function Get-CommitHistory {
-    param (
-        [Parameter(Mandatory = $true)]
-        [int]$DaysToReceive = 14,
-
-        [Parameter(Mandatory = $true)]
-        [CommitsFileModel]$BranchFolder
-    )
-    
-
-}

@@ -161,7 +161,7 @@ Set-Location $RootDir
 if ($PublishResults) {
 
     git config --global credential.helper store
-    Add-Content "$env:HOME\.git-credentials" "https://$($env:MAPPED_DEPLOYMENT_KEY):x-oauth-basic@github.com`n"
+    Set-Content -Path "$env:HOME\.git-credentials" -Value "https://$($env:MAPPED_DEPLOYMENT_KEY):x-oauth-basic@github.com`n" -NoNewLine
 
     # Set Git Config Info
     git config user.email "quicdev@microsoft.com"
