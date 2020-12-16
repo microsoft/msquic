@@ -65,10 +65,10 @@ Then you will need to run the following first (as a work around):
 
 ```
 sudo apt-get remove libicu57
-wget http://security.ubuntu.com/ubuntu/pool/main/i/icu/libicu55_55.1-7ubuntu0.4_amd64.deb
-sudo dpkg -i libicu55_55.1-7ubuntu0.4_amd64.deb
-wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.0.0_1.0.2g-1ubuntu4.15_amd64.deb
-sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.15_amd64.deb
+wget http://security.ubuntu.com/ubuntu/pool/main/i/icu/libicu55_55.1-7ubuntu0.5_amd64.deb
+sudo dpkg -i libicu55_55.1-7ubuntu0.5_amd64.deb
+wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.0.0_1.0.2g-1ubuntu4.18_amd64.deb
+sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.18_amd64.deb
 ```
 
 Then you will need to manually run "pwsh" to continue.
