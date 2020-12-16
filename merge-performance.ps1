@@ -158,8 +158,6 @@ Copy-Item -Recurse -Path "$CommitFolder\*" $OutputFolder
 $env:GIT_REDIRECT_STDERR = '2>&1'
 Set-Location $RootDir
 
-
-
 if ($PublishResults) {
 
     git config --global credential.helper store
@@ -169,9 +167,11 @@ if ($PublishResults) {
     git config user.email "quicdev@microsoft.com"
     git config user.name "QUIC Dev Bot"
 
+    $CommitHash = $CommitModel.CommitHash
+
     git add .
     git status
-    git commit -m "Commit Test Results for ${$CommitModel.CommitHash}"
+    git commit -m "Commit Test Results for $CommitHash"
     git pull
     git push
 } else {
