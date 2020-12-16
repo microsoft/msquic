@@ -69,7 +69,7 @@ class HPSTestPublishResult {
 }
 
 # Root directory of the project.
-$RootDir = $PSScriptRoot 
+$RootDir = $PSScriptRoot
 $ResultsPath = Join-Path $RootDir "artifacts/PerfDataResults/*.json"
 
 # Enumerate files
@@ -141,7 +141,7 @@ if (Test-Path -Path $CommitsFile -PathType Leaf) {
     $NewCommit.Date = $CommitModel.Date;
     $CommitsContents += $NewCommit;
     $NewCommitsContents = $CommitsContents | Sort-Object -Property CommitHash -Unique | Sort-Object -Property Date -Descending -Unique | ConvertTo-Json
-    
+
 } else {
     $CommitsArr = @($NewCommit)
     $NewCommitsContents = $CommitsArr | ConvertTo-Json
@@ -150,7 +150,7 @@ Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
 
 $GraphScript = Join-Path $RootDir generate-graphs.ps1
 
-& $GraphScript -Model $CommitModel -CommitFolder $CommitFolder -BranchFolder $BranchFolder
+& $GraphScript -CommitFolder $CommitFolder -BranchFolder $BranchFolder
 
 # Copy entire commit folder to outputs
 $OutputFolder = Join-Path $RootDir "artifacts" "mergedPerfResults"
