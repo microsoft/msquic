@@ -97,7 +97,6 @@ var chartDataRPS = {
 };
 
 var chartOptionsRPS = {
-    responsive: true,
     title: {
         text: 'RPS',
     },
@@ -138,7 +137,6 @@ var chartDataHPS = {
 };
 
 var chartOptionsHPS = {
-    responsive: true,
     title: {
         text: 'HPS',
     },
