@@ -34,7 +34,8 @@ var chartOptionsThroughput = {
     responsive: true,
     title: {
         display: true,
-        text: 'Throughput'
+        text: 'Single Connection Throughput',
+        fontSize: 16
     },
     tooltips: {
         mode: 'index',
@@ -89,7 +90,8 @@ var chartOptionsRPS = {
     responsive: true,
     title: {
         display: true,
-        text: 'RPS'
+        text: 'RPS',
+        fontSize: 16
     },
     tooltips: {
         mode: 'index',
@@ -140,7 +142,8 @@ var chartOptionsHPS = {
     responsive: true,
     title: {
         display: true,
-        text: 'HPS'
+        text: 'HPS',
+        fontSize: 16
     },
     tooltips: {
         mode: 'index',
