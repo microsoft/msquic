@@ -13,10 +13,14 @@ param (
     [TestCommitModel]$Model,
 
     [Parameter(Mandatory = $true)]
-    [string]$CommitFolder
+    [string]$CommitFolder,
+
+    [Parameter(Mandatory = $true)]
+    [string]$BranchFolder
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Do Stuff Here
+

@@ -148,7 +148,7 @@ Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
 
 $GraphScript = Join-Path $RootDir generate-graphs.ps1
 
-& $GraphScript -Model $CommitModel -CommitFolder $CommitFolder
+& $GraphScript -Model $CommitModel -CommitFolder $CommitFolder -BranchFolder $BranchFolder
 
 # Copy entire commit folder to outputs
 $OutputFolder = Join-Path $RootDir "artifacts" "mergedPerfResults"
@@ -158,13 +158,16 @@ Copy-Item -Recurse -Path "$CommitFolder\*" $OutputFolder
 $env:GIT_REDIRECT_STDERR = '2>&1'
 Set-Location $RootDir
 
-# Set Git Config Info
-git config user.email "quicdev@microsoft.com"
-git config user.name "QUIC Dev Bot"
+
 
 if ($PublishResults) {
+
     git config --global credential.helper store
-    Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:MAPPED_DEPLOYMENT_KEY):x-oauth-basic@github.com`n"
+    Add-Content "$env:HOME\.git-credentials" "https://$($env:MAPPED_DEPLOYMENT_KEY):x-oauth-basic@github.com`n"
+
+    # Set Git Config Info
+    git config user.email "quicdev@microsoft.com"
+    git config user.name "QUIC Dev Bot"
 
     git add .
     git status
