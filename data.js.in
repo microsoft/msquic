@@ -62,7 +62,7 @@ var timeAxis = {
     display: true,
     scaleLabel: {
         display: true,
-        labelString: 'Date'
+        labelString: 'Commit Date'
     }
 };
 
@@ -187,7 +187,7 @@ var chartDataRPS = {
 
 var chartOptionsRPS = {
     title: {
-        text: 'RPS',
+        text: 'Requests per Second',
     },
     scales: {
         xAxes: [timeAxis],
@@ -226,7 +226,7 @@ var chartDataHPS = {
 
 var chartOptionsHPS = {
     title: {
-        text: 'HPS',
+        text: 'Handshakes per Second',
     },
     scales: {
         xAxes: [timeAxis],
