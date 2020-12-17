@@ -63,18 +63,18 @@
     <label for="userosl">Windows User - OpenSSL</label><br>
     <h2>CPU Limited Tests</h2>
     <p>
-        The data is generated for several different build configurations and
-        scenarios. The specifics on each scenario are described
+        Data is shown for several different build configurations and
+        scenarios. Scenarios are described
         <a href="https://github.com/nibanks/quic-perf/blob/master/draft-banks-quic-performance.md">here</a>.
-        Each data set is a combination of OS/platform (Windows Kernel, Windows User, or Linux User) and the
-        TLS library (Schannel, OpenSSL) used. The tests are run on two physical
-        machines connected by a 50 Gbps switch (with 40 Gbps NICs), so the tests
-        are practically limited by the CPU.
+        Each dataset comes from a particular OS/platform (Windows Kernel, Windows User, Linux User) and
+        TLS library (Schannel, OpenSSL). The tests are run on two physical
+        machines connected by a 50Gbps switch (with 40Gbps NICs), so the tests
+        are assumed to be limited by the CPU rather than a network bottleneck.
     </p>
     <h3>Single Connection Throughput</h3>
     <p>
-        This test consists of transferring data over a single QUIC connection,
-        single stream in one direction as fast as possible. The test measures the
+        This test consists of transferring data over a single QUIC connection with a
+        single stream in one direction as fast as possible. The metric is the
         average throughput over the lifetime of the connection.
     </p>
     <div style="width: 70%; padding: 20px">
@@ -82,18 +82,17 @@
     </div>
     <h3>Requests per Second</h3>
     <p>
-        This test consists creating many parallel connections and then sending
-        requests (and waiting for the responses) as fast as possible. The test
-        measures the average number of responses received per second over the
-        test run.
+        This test creates many parallel connections and sends requests (and waits
+        for the responses) as fast as possible. The test measures the average number
+        of responses received per second over the test run.
     </p>
     <div style="width: 70%; padding: 20px">
         <canvas id="canvasRPS" class="chartjs-render-monitor"></canvas>
     </div>
-    <h3>Handshake per Second</h3>
+    <h3>Handshakes per Second</h3>
     <p>
         This test consists creating new connections (handshakes) as fast as
-        possible. The test measures the average connection handshake completion
+        possible. The test measures the average handshake completion
         rate over the test run.
     </p>
     <div style="width: 70%; padding: 20px">
