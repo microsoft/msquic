@@ -74,7 +74,8 @@
     <h3>Single Connection Throughput</h3>
     <p>
         This test consists of transferring data over a single QUIC connection,
-        single stream in one direction as fast as possible.
+        single stream in one direction as fast as possible. The test measures the
+        average throughput over the lifetime of the connection.
     </p>
     <div style="width: 70%; padding: 20px">
         <canvas id="canvasThroughput" class="chartjs-render-monitor"></canvas>
@@ -82,14 +83,18 @@
     <h3>Requests per Second</h3>
     <p>
         This test consists creating many parallel connections and then sending
-        requests (and waiting for the responses) as fast as possible.
+        requests (and waiting for the responses) as fast as possible. The test
+        measures the average number of responses received per second over the
+        test run.
     </p>
     <div style="width: 70%; padding: 20px">
         <canvas id="canvasRPS" class="chartjs-render-monitor"></canvas>
     </div>
     <h3>Handshake per Second</h3>
     <p>
-        This test consists creating new connections (handshakes) as fast as possible.
+        This test consists creating new connections (handshakes) as fast as
+        possible. The test measures the average connection handshake completion
+        rate over the test run.
     </p>
     <div style="width: 70%; padding: 20px">
         <canvas id="canvasHPS" class="chartjs-render-monitor"></canvas>
