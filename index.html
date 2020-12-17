@@ -37,7 +37,6 @@
         p {
             font-size: 12pt;
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-            width: 70%;
         }
     </style>
 </head>
@@ -60,7 +59,7 @@
         <input type="checkbox" id="winopenssl" checked="true">
         <label for="userosl">Windows User - OpenSSL</label><br>
     </div>
-    <div style="margin-left: 160px;">
+    <div style="margin-left: 160px; width: 80%;">
         <h1>MsQuic Performance Dashboard</h1>
         <p>
             This page shows performance-related data for MsQuic and is automatically
@@ -83,7 +82,7 @@
             single stream in one direction as fast as possible. The metric is the
             average throughput over the lifetime of the connection.
         </p>
-        <div style="width: 70%; padding: 20px; background-color: rgb(240, 240, 240);">
+        <div style="padding: 20px; background-color: rgb(240, 240, 240);">
             <canvas id="canvasThroughput" class="chartjs-render-monitor"></canvas>
         </div>
         <h3>Requests per Second</h3>
@@ -92,7 +91,7 @@
             for the responses) as fast as possible. The test measures the average number
             of responses received per second over the test run.
         </p>
-        <div style="width: 70%; padding: 20px; background-color: rgb(240, 240, 240);">
+        <div style="padding: 20px; background-color: rgb(240, 240, 240);">
             <canvas id="canvasRPS" class="chartjs-render-monitor"></canvas>
         </div>
         <h3>Handshakes per Second</h3>
@@ -101,7 +100,7 @@
             possible. The test measures the average handshake completion
             rate over the test run.
         </p>
-        <div style="width: 70%; padding: 20px; background-color: rgb(240, 240, 240);">
+        <div style="padding: 20px; background-color: rgb(240, 240, 240);">
             <canvas id="canvasHPS" class="chartjs-render-monitor"></canvas>
         </div>
     </div>
