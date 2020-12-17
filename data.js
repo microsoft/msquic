@@ -46,12 +46,18 @@ var dataColorWindowsx64Openssl = "rgb(255, 0, 0)"
 var dataLineWidth = 2
 var dataRawPointRadius = 5
 
+function tooltipSort(a, b, data) {
+    return data.datasets[a.datasetIndex].sortOrder - data.datasets[b.datasetIndex].sortOrder;
+}
+
 // Global option configuration
 Chart.defaults.global.responsive = true
 Chart.defaults.global.title.display = true
 Chart.defaults.global.title.fontSize = 16
-// Chart.defaults.global.tooltips.mode = 'index'
-// Chart.defaults.global.tooltips.intersect = true
+Chart.defaults.global.tooltips.mode = 'x'
+Chart.defaults.global.tooltips.intersect = true
+Chart.defaults.global.tooltips.position = 'nearest'
+Chart.defaults.global.tooltips.itemSort = tooltipSort
 
 // Time axis used for all charts
 var timeAxis = {
@@ -136,19 +142,9 @@ var chartDataThroughput = {
     }]
 };
 
-function tooltipSort(a, b, data) {
-    return data.datasets[a.datasetIndex].sortOrder - data.datasets[b.datasetIndex].sortOrder;
-}
-
 var chartOptionsThroughput = {
     title: {
         text: 'Single Connection Throughput',
-    },
-    tooltips: {
-        mode: 'x',
-        position: 'nearest',
-        intersect: true,
-        itemSort: tooltipSort
     },
     scales: {
         xAxes: [timeAxis],
@@ -172,16 +168,18 @@ var chartDataRPS = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWinKernelx64SchannelRps,
+        sortOrder: 2
     }, {
         type: "line",
         label: "Windows Kernel (average)",
         backgroundColor: dataColorWinKernelx64Schannel,
         borderColor: dataColorWinKernelx64Schannel,
         borderWidth: dataLineWidth,
-        pointRadius: 0,
+        pointRadius: dataRawPointRadius,
         tension: 0,
         data: dataAverageWinKernelx64SchannelRps,
-        fill: false
+        fill: false,
+        sortOrder: 1
     }]
 };
 
@@ -211,16 +209,18 @@ var chartDataHPS = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWinKernelx64SchannelHps,
+        sortOrder: 2
     }, {
         type: "line",
         label: "Windows Kernel (average)",
         backgroundColor: dataColorWinKernelx64Schannel,
         borderColor: dataColorWinKernelx64Schannel,
         borderWidth: dataLineWidth,
-        pointRadius: 0,
+        pointRadius: dataRawPointRadius,
         tension: 0,
         data: dataAverageWinKernelx64SchannelHps,
-        fill: false
+        fill: false,
+        sortOrder: 1
     }]
 };
 
