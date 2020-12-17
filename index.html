@@ -12,31 +12,73 @@
         MsQuic Performance Dashboard
     </title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@1.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@1.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.7"></script>
     <script src="data.js"></script>
     <script src="dataTemplate.js"></script>
     <style>
         h1 {
-            font-size: 22pt;
+            font-size: 26pt;
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
         }
+
         h2 {
-            font-size: 16pt;
+            font-size: 20pt;
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+
+        h3 {
+            font-size: 14pt;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+
+        p {
+            font-size: 12pt;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            width: 70%;
         }
     </style>
 </head>
 
 <body>
     <h1>MsQuic Performance Dashboard</h1>
-    <div style="width: 70%; padding: top=20px">
-        <h2>Single Connection Throughput</h2>
+    <p>
+        This page contains performance related data for MsQuic and is automatically
+        generated via our <a href="https://dev.azure.com/ms/msquic/_build?definitionId=347&_a=summary">CI pipeline</a>.
+    </p>
+    <h2>CPU Limited Tests</h2>
+    <p>
+        The data is generated for several different build configurations and
+        scenarios. Generally, the specific on each scenario are described
+        <a href="https://github.com/nibanks/quic-perf/blob/master/draft-banks-quic-performance.md">here</a>.
+        Each data set is a combination of OS/platform (Windows Kernel, Windows User, or Linux User) and the
+        TLS library (Schannel, OpenSSL) used. The tests are run on two physical
+        machines connected by a 50 Gbps switch (with 40 Gbps NICs), so the tests
+        are practically limited by the CPU.
+    </p>
+    <h3>Single Connection Throughput</h3>
+    <p>
+        This test consists of transferring data over a single QUIC connection,
+        single stream in one direction as fast as possible.
+    </p>
+    <div style="width: 70%; padding: 20px">
         <canvas id="canvasThroughput" class="chartjs-render-monitor"></canvas>
-        <h2>Requests per Second</h2>
+    </div>
+    <h3>Requests per Second</h3>
+    <p>
+        This test consists creating many parallel connections and then sending
+        requests (and waiting for the responses) as fast as possible.
+    </p>
+    <div style="width: 70%; padding: 20px">
         <canvas id="canvasRPS" class="chartjs-render-monitor"></canvas>
-        <h2>Handshake per Second</h2>
+    </div>
+    <h3>Handshake per Second</h3>
+    <p>
+        This test consists creating new connections (handshakes) as fast as possible.
+    </p>
+    <div style="width: 70%; padding: 20px">
         <canvas id="canvasHPS" class="chartjs-render-monitor"></canvas>
     </div>
     <script>
