@@ -48,6 +48,19 @@
         This page contains performance related data for MsQuic and is automatically
         generated via our <a href="https://dev.azure.com/ms/msquic/_build?definitionId=347&_a=summary">CI pipeline</a>.
     </p>
+    <input type="radio" id="rawpdt" name="pointDisplayType" value="raw">
+    <label for="rawpdt">Raw Points</label>
+    <input type="radio" id="avgpdt" name="pointDisplayType" value="avg" checked="true">
+    <label for="avgpdt">Average Line</label>
+    <input type="radio" id="bothpdt" name="pointDisplayType" value="both">
+    <label for="bothpdt">Both</label>
+    <br><br>
+    <input type="checkbox" id="kernel" checked="true">
+    <label for="kernel">Windows Kernel</label><br>
+    <input type="checkbox" id="winschannel" checked="true">
+    <label for="usersch">Windows User - Schannel</label><br>
+    <input type="checkbox" id="winopenssl" checked="true">
+    <label for="userosl">Windows User - OpenSSL</label><br>
     <h2>CPU Limited Tests</h2>
     <p>
         The data is generated for several different build configurations and
@@ -82,20 +95,7 @@
         <canvas id="canvasHPS" class="chartjs-render-monitor"></canvas>
     </div>
     <script>
-        window.onload = function () {
-            new Chart(document.getElementById('canvasThroughput').getContext('2d'), {
-                data: chartDataThroughput,
-                options: chartOptionsThroughput
-            });
-            new Chart(document.getElementById('canvasRPS').getContext('2d'), {
-                data: chartDataRPS,
-                options: chartOptionsRPS
-            });
-            new Chart(document.getElementById('canvasHPS').getContext('2d'), {
-                data: chartDataHPS,
-                options: chartOptionsHPS
-            });
-        };
+
     </script>
 </body>
 
