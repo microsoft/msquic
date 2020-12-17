@@ -58,6 +58,15 @@ function beforeBodyPlacement(tooltipItem, data) {
     return "Commit Hash: " + commitDatePairs[datapoint.rawTime]
 }
 
+function labelChange(tooltipItem, data) {
+    var dataset = data.datasets[tooltipItem.datasetIndex]
+    if (dataset.label.includes('(average)')) {
+        return "Average: " + tooltipItem.value
+    } else {
+        return "Raw:       " + tooltipItem.value
+    }
+}
+
 // Global option configuration
 Chart.defaults.global.responsive = true
 Chart.defaults.global.title.display = true
@@ -158,7 +167,8 @@ var chartOptionsThroughput = {
     },
     tooltips: {
         callbacks: {
-            beforeBody: beforeBodyPlacement
+            beforeBody: beforeBodyPlacement,
+            label: labelChange
         }
     },
     scales: {

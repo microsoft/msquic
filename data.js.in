@@ -58,6 +58,10 @@ function beforeBodyPlacement(tooltipItem, data) {
     return "Commit Hash: " + commitDatePairs[datapoint.rawTime]
 }
 
+function labelChange(tooltipItem) {
+    console.log(tooltipItem)
+}
+
 // Global option configuration
 Chart.defaults.global.responsive = true
 Chart.defaults.global.title.display = true
