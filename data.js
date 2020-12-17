@@ -155,7 +155,7 @@ var chartDataRPS = {
         pointStyle: "crossRot",
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
-        data: dataRawWinKernelx64SchannelThroughput,
+        data: dataRawWinKernelx64SchannelRps,
     }, {
         type: "line",
         label: "Windows Kernel (average)",
@@ -164,7 +164,7 @@ var chartDataRPS = {
         borderWidth: dataLineWidth,
         pointRadius: 0,
         tension: 0,
-        data: dataAverageWinKernelx64SchannelThroughput,
+        data: dataAverageWinKernelx64SchannelRps,
         fill: false
     }]
 };
@@ -194,7 +194,7 @@ var chartDataHPS = {
         pointStyle: "crossRot",
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
-        data: dataRawWinKernelx64SchannelThroughput,
+        data: dataRawWinKernelx64SchannelHps,
     }, {
         type: "line",
         label: "Windows Kernel (average)",
@@ -203,7 +203,7 @@ var chartDataHPS = {
         borderWidth: dataLineWidth,
         pointRadius: 0,
         tension: 0,
-        data: dataAverageWinKernelx64SchannelThroughput,
+        data: dataAverageWinKernelx64SchannelHps,
         fill: false
     }]
 };
