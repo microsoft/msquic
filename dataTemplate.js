@@ -28,8 +28,6 @@ function labelChange(tooltipItem, data) {
 
 // Global option configuration
 Chart.defaults.global.responsive = true
-Chart.defaults.global.title.display = true
-Chart.defaults.global.title.fontSize = 16
 Chart.defaults.global.tooltips.mode = 'x'
 Chart.defaults.global.tooltips.intersect = true
 Chart.defaults.global.tooltips.position = 'nearest'
@@ -157,9 +155,6 @@ var chartDataThroughput = {
 };
 
 var chartOptionsThroughput = {
-    title: {
-        text: 'Single Connection Throughput',
-    },
     tooltips: tooltipsObject,
     scales: {
         xAxes: [timeAxis],
@@ -247,9 +242,6 @@ var chartDataRPS = {
 };
 
 var chartOptionsRPS = {
-    title: {
-        text: 'Requests per Second',
-    },
     tooltips: tooltipsObject,
     scales: {
         xAxes: [timeAxis],
@@ -339,9 +331,6 @@ var chartDataHPS = {
 };
 
 var chartOptionsHPS = {
-    title: {
-        text: 'Handshakes per Second',
-    },
     tooltips: tooltipsObject,
     scales: {
         xAxes: [timeAxis],
