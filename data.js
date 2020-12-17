@@ -68,7 +68,9 @@ var timeAxis = {
     display: true,
     scaleLabel: {
         display: true,
-        labelString: 'Commit Date'
+        labelString: 'Commit Date',
+        fontSize: 14,
+        fontStyle: 'bold'
     }
 };
 
@@ -152,7 +154,9 @@ var chartOptionsThroughput = {
             display: true,
             scaleLabel: {
                 display: true,
-                labelString: 'Throughput (kbps)'
+                labelString: 'Throughput (kbps)',
+                fontSize: 14,
+                fontStyle: 'bold'
             }
         }]
     }
@@ -193,7 +197,9 @@ var chartOptionsRPS = {
             display: true,
             scaleLabel: {
                 display: true,
-                labelString: 'RPS'
+                labelString: 'RPS',
+                fontSize: 14,
+                fontStyle: 'bold'
             }
         }]
     }
@@ -234,7 +240,9 @@ var chartOptionsHPS = {
             display: true,
             scaleLabel: {
                 display: true,
-                labelString: 'HPS'
+                labelString: 'HPS',
+                fontSize: 14,
+                fontStyle: 'bold'
             }
         }]
     }
