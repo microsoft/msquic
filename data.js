@@ -48,6 +48,7 @@ var dataRawPointRadius = 5
 
 // Global option configuration
 Chart.defaults.global.responsive = true
+Chart.defaults.global.title.display = true
 Chart.defaults.global.title.fontSize = 16
 Chart.defaults.global.tooltips.mode = 'index'
 Chart.defaults.global.tooltips.intersect = true
