@@ -57,6 +57,50 @@ function Get-CpuCommitData {
     return $CpuData
 }
 
+
+function Get-RawTestDataJs {
+    param (
+        [Parameter(Mandatory = $true)]
+        $TestList
+    )
+
+    $DataVal = ""
+    foreach ($Test in $TestList) {
+        $TimeUnix = ([DateTimeOffset]$Test.Date).ToUnixTimeMilliseconds();
+        foreach ($Result in $Test.Results) {
+            $Data = "{t: new Date($TimeUnix), y: $Result}"
+            if ($DataVal -eq "") {
+                $DataVal = $Data
+            } else {
+                $DataVal = "$DataVal, $Data"
+            }
+        }
+    }
+    return "[$DataVal]"
+}
+
+function Get-AverageDataJs {
+    param (
+        [Parameter(Mandatory = $true)]
+        $TestList
+    )
+
+    $DataVal = ""
+    foreach ($Test in $TestList) {
+        $TimeUnix = ([DateTimeOffset]$Test.Date).ToUnixTimeMilliseconds();
+        $Average = ($Test.Results  | Measure-Object -Average).Average
+        $Data = "{t: new Date($TimeUnix), y: $Average}"
+        if ($DataVal -eq "") {
+            $DataVal = $Data
+        } else {
+            $DataVal = "$DataVal, $Data"
+        }
+    }
+    return "[$DataVal]"
+}
+
+#region THROUGHPUT
+
 function Get-ThroughputDefault {
     [OutputType([ThroughputConfiguration])]
     param (
@@ -118,47 +162,6 @@ function Get-ThroughputTests {
     return $Tests
 }
 
-function Get-RawTestDataJs {
-    param (
-        [Parameter(Mandatory = $true)]
-        $TestList
-    )
-
-    $DataVal = ""
-    foreach ($Test in $TestList) {
-        $TimeUnix = ([DateTimeOffset]$Test.Date).ToUnixTimeMilliseconds();
-        foreach ($Result in $Test.Results) {
-            $Data = "{t: new Date($TimeUnix), y: $Result}"
-            if ($DataVal -eq "") {
-                $DataVal = $Data
-            } else {
-                $DataVal = "$DataVal, $Data"
-            }
-        }
-    }
-    return "[$DataVal]"
-}
-
-function Get-AverageDataJs {
-    param (
-        [Parameter(Mandatory = $true)]
-        $TestList
-    )
-
-    $DataVal = ""
-    foreach ($Test in $TestList) {
-        $TimeUnix = ([DateTimeOffset]$Test.Date).ToUnixTimeMilliseconds();
-        $Average = ($Test.Results  | Measure-Object -Average).Average
-        $Data = "{t: new Date($TimeUnix), y: $Average}"
-        if ($DataVal -eq "") {
-            $DataVal = $Data
-        } else {
-            $DataVal = "$DataVal, $Data"
-        }
-    }
-    return "[$DataVal]"
-}
-
 function Get-ThroughputPlatformTests {
     [OutputType([string])]
     param (
@@ -184,8 +187,6 @@ function Get-ThroughputPlatformTests {
     return $DataFile
 }
 
-
-
 function Get-ThroughputTestsJs {
     [OutputType([string])]
     param (
@@ -209,15 +210,233 @@ function Get-ThroughputTestsJs {
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Windows_x64_schannel"] -RawReplaceName "RAW_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_UP" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_UP"
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Winkernel_x64_schannel"] -RawReplaceName "RAW_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_UP" -AvgReplaceName "AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_UP"
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Windows_x64_openssl"] -RawReplaceName "RAW_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_UP" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_UP"
-    # $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Linux_x64_openssl"] -RawReplaceName "RAW_DATA_LINUX_X64_OPENSSL_THROUGHPUT" -AvgReplaceName "AVERAGE_DATA_LINUX_X64_OPENSSL_THROUGHPUT"
 
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Windows_x64_schannel"] -RawReplaceName "RAW_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_DOWN" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_DOWN"
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Winkernel_x64_schannel"] -RawReplaceName "RAW_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_DOWN" -AvgReplaceName "AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_DOWN"
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Windows_x64_openssl"] -RawReplaceName "RAW_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_DOWN" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_DOWN"
-    # $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Linux_x64_openssl"] -RawReplaceName "RAW_DATA_LINUX_X64_OPENSSL_THROUGHPUT" -AvgReplaceName "AVERAGE_DATA_LINUX_X64_OPENSSL_THROUGHPUT"
 
     return $DataFile
 }
+
+#endregion
+
+#region RPS
+
+function Get-RPSDefault {
+    [OutputType([RpsConfiguration])]
+    param (
+    )
+    $RpsConfig = [RpsConfiguration]::new();
+    $RpsConfig.ConnectionCount = 250;
+    $RpsConfig.ParallelRequests = 30;
+    $RpsConfig.RequestSize = 0;
+    $RpsConfig.ResponseSize = 4096;
+    return $RpsConfig
+}
+
+class RpsTest {
+    [string]$CommitHash;
+    [datetime]$Date;
+    [string]$MachineName;
+    [double[]]$Results;
+}
+
+function Get-RpsTests {
+    [OutputType([Collections.Generic.Dictionary[RpsConfiguration, Collections.Generic.Dictionary[string, Collections.Generic.List[RpsTest]]   ]])]
+    param (
+        [Parameter(Mandatory = $true)]
+        [TestCommitModel[]]$CommitData
+    )
+    $Tests = [Collections.Generic.Dictionary[RpsConfiguration, Collections.Generic.Dictionary[string, Collections.Generic.List[RpsTest]]   ]]::new()
+
+    foreach ($CommitModel in $CommitData) {
+        foreach ($Test in $CommitModel.Tests) {
+            if ($null -eq $Test.RpsConfig) {
+                continue
+            }
+            if ($Tests.ContainsKey($Test.RpsConfig)) {
+                $TestDict = $Tests[$Test.RpsConfig];
+            } else {
+                $TestDict = [Collections.Generic.Dictionary[string, Collections.Generic.List[RpsTest]]]::new();
+                $Tests.Add($Test.RpsConfig, $TestDict)
+            }
+            $NewTest = [RpsTest]::new();
+            $NewTest.CommitHash = $CommitModel.CommitHash
+            $NewTest.Date = $CommitModel.Date;
+            $NewTest.MachineName = $Test.MachineName;
+            $NewTest.Results = $Test.Results;
+
+            if ($TestDict.ContainsKey($Test.PlatformName)) {
+                $PlatformList = $TestDict[$Test.PlatformName]
+            } else {
+                $PlatformList = [ Collections.Generic.List[RpsTest]]::new()
+                $TestDict.Add($Test.PlatformName, $PlatformList)
+            }
+
+            $PlatformList.Add($NewTest);
+        }
+    }
+
+    return $Tests
+}
+
+function Get-RpsPlatformTests {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory = $true)]
+        $DataFile,
+
+        [Parameter(Mandatory = $true)]
+        [Collections.Generic.List[RpsTest]]$RpsTests,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RawReplaceName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$AvgReplaceName
+    )
+
+    $RawData = Get-RawTestDataJs -TestList $RpsTests
+    $AvgData = Get-AverageDataJs -TestList $RpsTests
+
+    $DataFile = $DataFile.Replace($RawReplaceName, $RawData)
+    $DataFile = $DataFile.Replace($AvgReplaceName, $AvgData)
+
+    return $DataFile
+}
+
+function Get-RpsTestsJs {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory = $true)]
+        $DataFile,
+
+        [Parameter(Mandatory = $true)]
+        [TestCommitModel[]]$CpuCommitData
+    )
+
+    # Dict<Config, Dict<Platform, List<Tests>>>
+    $RpsTests = Get-RpsTests -CommitData $CpuCommitData
+    
+    $RpsDefault = Get-RpsDefault;
+
+    $RpsTestConfig = $RpsTests[$RpsDefault];
+
+    $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["Windows_x64_schannel"] -RawReplaceName "RAW_DATA_WINDOWS_X64_SCHANNEL_RPS" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_SCHANNEL_RPS"
+    $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["Winkernel_x64_schannel"] -RawReplaceName "RAW_DATA_WINKERNEL_X64_SCHANNEL_RPS" -AvgReplaceName "AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_RPS"
+    $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["Windows_x64_openssl"] -RawReplaceName "RAW_DATA_WINDOWS_X64_OPENSSL_RPS" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_OPENSSL_RPS"
+
+    return $DataFile
+}
+
+#endregion
+
+#region HPS
+
+function Get-HPSDefault {
+    [OutputType([HpsConfiguration])]
+    param (
+    )
+    $RpsConfig = [HpsConfiguration]::new();
+    return $RpsConfig
+}
+
+class HpsTest {
+    [string]$CommitHash;
+    [datetime]$Date;
+    [string]$MachineName;
+    [double[]]$Results;
+}
+
+function Get-HpsTests {
+    [OutputType([Collections.Generic.Dictionary[HpsConfiguration, Collections.Generic.Dictionary[string, Collections.Generic.List[HpsTest]]   ]])]
+    param (
+        [Parameter(Mandatory = $true)]
+        [TestCommitModel[]]$CommitData
+    )
+    $Tests = [Collections.Generic.Dictionary[HpsConfiguration, Collections.Generic.Dictionary[string, Collections.Generic.List[HpsTest]]   ]]::new()
+
+    foreach ($CommitModel in $CommitData) {
+        foreach ($Test in $CommitModel.Tests) {
+            if ($null -eq $Test.HpsConfig) {
+                continue
+            }
+            if ($Tests.ContainsKey($Test.HpsConfig)) {
+                $TestDict = $Tests[$Test.HpsConfig];
+            } else {
+                $TestDict = [Collections.Generic.Dictionary[string, Collections.Generic.List[HpsTest]]]::new();
+                $Tests.Add($Test.HpsConfig, $TestDict)
+            }
+            $NewTest = [HpsTest]::new();
+            $NewTest.CommitHash = $CommitModel.CommitHash
+            $NewTest.Date = $CommitModel.Date;
+            $NewTest.MachineName = $Test.MachineName;
+            $NewTest.Results = $Test.Results;
+
+            if ($TestDict.ContainsKey($Test.PlatformName)) {
+                $PlatformList = $TestDict[$Test.PlatformName]
+            } else {
+                $PlatformList = [ Collections.Generic.List[HpsTest]]::new()
+                $TestDict.Add($Test.PlatformName, $PlatformList)
+            }
+
+            $PlatformList.Add($NewTest);
+        }
+    }
+
+    return $Tests
+}
+
+function Get-HpsPlatformTests {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory = $true)]
+        $DataFile,
+
+        [Parameter(Mandatory = $true)]
+        [Collections.Generic.List[HpsTest]]$HpsTests,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RawReplaceName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$AvgReplaceName
+    )
+
+    $RawData = Get-RawTestDataJs -TestList $HpsTests
+    $AvgData = Get-AverageDataJs -TestList $HpsTests
+
+    $DataFile = $DataFile.Replace($RawReplaceName, $RawData)
+    $DataFile = $DataFile.Replace($AvgReplaceName, $AvgData)
+
+    return $DataFile
+}
+
+function Get-HpsTestsJs {
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory = $true)]
+        $DataFile,
+
+        [Parameter(Mandatory = $true)]
+        [TestCommitModel[]]$CpuCommitData
+    )
+
+    # Dict<Config, Dict<Platform, List<Tests>>>
+    $HpsTests = Get-HpsTests -CommitData $CpuCommitData
+    
+    $HpsDefault = Get-HpsDefault;
+
+    $HpsTestConfig = $HpsTests[$HpsDefault];
+
+    $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["Windows_x64_schannel"] -RawReplaceName "RAW_DATA_WINDOWS_X64_SCHANNEL_HPS" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_SCHANNEL_HPS"
+    $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["Winkernel_x64_schannel"] -RawReplaceName "RAW_DATA_WINKERNEL_X64_SCHANNEL_HPS" -AvgReplaceName "AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_HPS"
+    $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["Windows_x64_openssl"] -RawReplaceName "RAW_DATA_WINDOWS_X64_OPENSSL_HPS" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_OPENSSL_HPS"
+
+    return $DataFile
+}
+
+#endregion
 
 $CommitHistory = Get-CommitHistory -DaysToReceive $DaysToReceive -BranchFolder $BranchFolder
 $CpuCommitData = Get-CpuCommitData -CommitHistory $CommitHistory -BranchFolder $BranchFolder
@@ -226,6 +445,8 @@ $DataFileIn = Join-Path $PSScriptRoot "data.js.in"
 $DataFileContents = Get-Content $DataFileIn
 
 $DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
+$DataFileContents = Get-RpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
+$DataFileContents = Get-HpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
 
 $DataFileOut = Join-Path $PSScriptRoot "data.js"
 $DataFileContents | Set-Content $DataFileOut
