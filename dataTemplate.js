@@ -96,7 +96,9 @@ var chartOptionsThroughput = {
             display: true,
             scaleLabel: {
                 display: true,
-                labelString: 'Throughput (kbps)'
+                labelString: 'Throughput (kbps)',
+                fontSize: 14,
+                fontStyle: 'bold'
             }
         }]
     },
