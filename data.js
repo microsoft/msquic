@@ -76,6 +76,11 @@ Chart.defaults.global.tooltips.intersect = true
 Chart.defaults.global.tooltips.position = 'nearest'
 Chart.defaults.global.tooltips.itemSort = tooltipSort
 
+var callbackObjects = {
+    beforeBody: beforeBodyPlacement,
+    label: labelChange
+}
+
 // Time axis used for all charts
 var timeAxis = {
     type: 'time',
@@ -166,10 +171,7 @@ var chartOptionsThroughput = {
         text: 'Single Connection Throughput',
     },
     tooltips: {
-        callbacks: {
-            beforeBody: beforeBodyPlacement,
-            label: labelChange
-        }
+        callbacks: callbackObjects
     },
     scales: {
         xAxes: [timeAxis],
@@ -255,6 +257,9 @@ var chartDataRPS = {
 var chartOptionsRPS = {
     title: {
         text: 'Requests per Second',
+    },
+    tooltips: {
+        callbacks: callbackObjects
     },
     scales: {
         xAxes: [timeAxis],
@@ -342,6 +347,9 @@ var chartDataHPS = {
 var chartOptionsHPS = {
     title: {
         text: 'Handshakes per Second',
+    },
+    tooltips: {
+        callbacks: callbackObjects
     },
     scales: {
         xAxes: [timeAxis],
