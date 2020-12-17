@@ -44,7 +44,7 @@ var dataColorWindowsx64Openssl = "rgb(255, 0, 0)"
 
 // Useful configuration values
 var dataLineWidth = 2
-var dataRawPointRadius = 5
+var dataRawPointRadius = 4
 
 function tooltipSort(a, b, data) {
     return data.datasets[a.datasetIndex].sortOrder - data.datasets[b.datasetIndex].sortOrder;
