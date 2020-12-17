@@ -76,9 +76,24 @@ Chart.defaults.global.tooltips.intersect = true
 Chart.defaults.global.tooltips.position = 'nearest'
 Chart.defaults.global.tooltips.itemSort = tooltipSort
 
-var callbackObjects = {
-    beforeBody: beforeBodyPlacement,
-    label: labelChange
+var tooltipsObject = {
+    callbacks : {
+        beforeBody: beforeBodyPlacement,
+        label: labelChange
+    }
+}
+
+var pluginObject = {
+    zoom: {
+        pan: {
+            enabled: true,
+            mode: 'x'
+        },
+        zoom: {
+            enabled: true,
+            mode: 'x'
+        }
+    }
 }
 
 // Time axis used for all charts
@@ -173,9 +188,7 @@ var chartOptionsThroughput = {
     title: {
         text: 'Single Connection Throughput',
     },
-    tooltips: {
-        callbacks: callbackObjects
-    },
+    tooltips: tooltipsObject,
     scales: {
         xAxes: [timeAxis],
         yAxes: [{
@@ -185,7 +198,8 @@ var chartOptionsThroughput = {
                 labelString: 'Throughput (kbps)'
             }
         }]
-    }
+    },
+    plugins: pluginObject
 };
 
 var chartDataRPS = {
@@ -264,9 +278,7 @@ var chartOptionsRPS = {
     title: {
         text: 'Requests per Second',
     },
-    tooltips: {
-        callbacks: callbackObjects
-    },
+    tooltips: tooltipsObject,
     scales: {
         xAxes: [timeAxis],
         yAxes: [{
@@ -278,7 +290,8 @@ var chartOptionsRPS = {
                 fontStyle: 'bold'
             }
         }]
-    }
+    },
+    plugins: pluginObject
 };
 
 var chartDataHPS = {
@@ -357,9 +370,7 @@ var chartOptionsHPS = {
     title: {
         text: 'Handshakes per Second',
     },
-    tooltips: {
-        callbacks: callbackObjects
-    },
+    tooltips: tooltipsObject,
     scales: {
         xAxes: [timeAxis],
         yAxes: [{
@@ -371,5 +382,6 @@ var chartOptionsHPS = {
                 fontStyle: 'bold'
             }
         }]
-    }
+    },
+    plugins: pluginObject
 };
