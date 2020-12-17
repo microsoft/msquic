@@ -107,7 +107,8 @@ var chartDataThroughput = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWinKernelx64SchannelThroughput,
-        sortOrder: 2
+        sortOrder: 2,
+        hidden: true,
     }, {
         type: "line",
         label: "Windows Kernel (average)",
@@ -129,7 +130,8 @@ var chartDataThroughput = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWindowsx64SchannelThroughput,
-        sortOrder: 11
+        sortOrder: 11,
+        hidden: true,
     }, {
         type: "line",
         label: "Windows User - Schannel (average)",
@@ -151,7 +153,8 @@ var chartDataThroughput = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWindowsx64OpensslThroughput,
-        sortOrder: 21
+        sortOrder: 21,
+        hidden: true,
     }, {
         type: "line",
         label: "Windows User - OpenSSL (average)",
@@ -195,7 +198,8 @@ var chartDataRPS = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWinKernelx64SchannelRps,
-        sortOrder: 2
+        sortOrder: 2,
+        hidden: true,
     }, {
         type: "line",
         label: "Windows Kernel (average)",
@@ -217,7 +221,8 @@ var chartDataRPS = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWindowsx64SchannelRps,
-        sortOrder: 11
+        sortOrder: 11,
+        hidden: true,
     }, {
         type: "line",
         label: "Windows User - Schannel (average)",
@@ -239,7 +244,8 @@ var chartDataRPS = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWindowsx64OpensslRps,
-        sortOrder: 21
+        sortOrder: 21,
+        hidden: true,
     }, {
         type: "line",
         label: "Windows User - OpenSSL (average)",
@@ -285,7 +291,8 @@ var chartDataHPS = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWinKernelx64SchannelHps,
-        sortOrder: 2
+        sortOrder: 2,
+        hidden: true,
     }, {
         type: "line",
         label: "Windows Kernel (average)",
@@ -307,7 +314,8 @@ var chartDataHPS = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWindowsx64SchannelHps,
-        sortOrder: 11
+        sortOrder: 11,
+        hidden: true,
     }, {
         type: "line",
         label: "Windows User - Schannel (average)",
@@ -329,7 +337,8 @@ var chartDataHPS = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWindowsx64OpensslHps,
-        sortOrder: 21
+        sortOrder: 21,
+        hidden: true,
     }, {
         type: "line",
         label: "Windows User - OpenSSL (average)",
