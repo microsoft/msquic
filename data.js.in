@@ -199,6 +199,50 @@ var chartDataRPS = {
         data: dataAverageWinKernelx64SchannelRps,
         fill: false,
         sortOrder: 1
+    }, {
+        type: "scatter",
+        label: "Windows User - Schannel (raw)",
+        backgroundColor: dataColorWindownsx64Schannel,
+        pointBorderColor: dataColorWindownsx64Schannel,
+        borderColor: dataColorWindownsx64Schannel,
+        pointStyle: "crossRot",
+        pointRadius: dataRawPointRadius,
+        pointBorderWidth: 2,
+        data: dataRawWindowsx64SchannelRps,
+        sortOrder: 11
+    }, {
+        type: "line",
+        label: "Windows User - Schannel (average)",
+        backgroundColor: dataColorWindownsx64Schannel,
+        borderColor: dataColorWindownsx64Schannel,
+        borderWidth: dataLineWidth,
+        pointRadius: dataRawPointRadius,
+        tension: 0,
+        data: dataAverageWindowsx64SchannelRps,
+        fill: false,
+        sortOrder: 10
+    }, {
+        type: "scatter",
+        label: "Windows User - OpenSSL (raw)",
+        backgroundColor: dataColorWindowsx64Openssl,
+        pointBorderColor: dataColorWindowsx64Openssl,
+        borderColor: dataColorWindowsx64Openssl,
+        pointStyle: "crossRot",
+        pointRadius: dataRawPointRadius,
+        pointBorderWidth: 2,
+        data: dataRawWindowsx64OpensslRps,
+        sortOrder: 21
+    }, {
+        type: "line",
+        label: "Windows User - OpenSSL (average)",
+        backgroundColor: dataColorWindowsx64Openssl,
+        borderColor: dataColorWindowsx64Openssl,
+        borderWidth: dataLineWidth,
+        pointRadius: dataRawPointRadius,
+        tension: 0,
+        data: dataAverageWindowsx64OpensslRps,
+        fill: false,
+        sortOrder: 20
     }]
 };
 
@@ -242,6 +286,50 @@ var chartDataHPS = {
         data: dataAverageWinKernelx64SchannelHps,
         fill: false,
         sortOrder: 1
+    }, {
+        type: "scatter",
+        label: "Windows User - Schannel (raw)",
+        backgroundColor: dataColorWindownsx64Schannel,
+        pointBorderColor: dataColorWindownsx64Schannel,
+        borderColor: dataColorWindownsx64Schannel,
+        pointStyle: "crossRot",
+        pointRadius: dataRawPointRadius,
+        pointBorderWidth: 2,
+        data: dataRawWindowsx64SchannelHps,
+        sortOrder: 11
+    }, {
+        type: "line",
+        label: "Windows User - Schannel (average)",
+        backgroundColor: dataColorWindownsx64Schannel,
+        borderColor: dataColorWindownsx64Schannel,
+        borderWidth: dataLineWidth,
+        pointRadius: dataRawPointRadius,
+        tension: 0,
+        data: dataAverageWindowsx64SchannelHps,
+        fill: false,
+        sortOrder: 10
+    }, {
+        type: "scatter",
+        label: "Windows User - OpenSSL (raw)",
+        backgroundColor: dataColorWindowsx64Openssl,
+        pointBorderColor: dataColorWindowsx64Openssl,
+        borderColor: dataColorWindowsx64Openssl,
+        pointStyle: "crossRot",
+        pointRadius: dataRawPointRadius,
+        pointBorderWidth: 2,
+        data: dataRawWindowsx64OpensslHps,
+        sortOrder: 21
+    }, {
+        type: "line",
+        label: "Windows User - OpenSSL (average)",
+        backgroundColor: dataColorWindowsx64Openssl,
+        borderColor: dataColorWindowsx64Openssl,
+        borderWidth: dataLineWidth,
+        pointRadius: dataRawPointRadius,
+        tension: 0,
+        data: dataAverageWindowsx64OpensslHps,
+        fill: false,
+        sortOrder: 20
     }]
 };
 
