@@ -19,11 +19,11 @@
     <script src="dataTemplate.js"></script>
     <style>
         h1 {
-            font-size: large;
+            font-size: 22pt;
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
         }
         h2 {
-            font-size: medium;
+            font-size: 16pt;
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
         }
     </style>
@@ -31,16 +31,13 @@
 
 <body>
     <h1>MsQuic Performance Dashboard</h1>
-    <div>
-        <div style="width: 80%; padding: 20px;">
-            <canvas id="canvasThroughput" class="chartjs-render-monitor"></canvas>
-        </div>
-        <div style="width: 80%; padding: 20px;">
-            <canvas id="canvasRPS" class="chartjs-render-monitor"></canvas>
-        </div>
-        <div style="width: 80%; padding: 20px;">
-            <canvas id="canvasHPS" class="chartjs-render-monitor"></canvas>
-        </div>
+    <div style="width: 70%; padding: top=20px">
+        <h2>Single Connection Throughput</h2>
+        <canvas id="canvasThroughput" class="chartjs-render-monitor"></canvas>
+        <h2>Requests per Second</h2>
+        <canvas id="canvasRPS" class="chartjs-render-monitor"></canvas>
+        <h2>Handshake per Second</h2>
+        <canvas id="canvasHPS" class="chartjs-render-monitor"></canvas>
     </div>
     <script>
         window.onload = function () {
