@@ -83,6 +83,13 @@ var timeAxis = {
 
 var chartOptionsThroughput = {
     tooltips: tooltipsObject,
+    onClick: function(a, activeElements) {
+        if (activeElements.length === 0) return
+        var dataset = this.config.data.datasets[activeElements[0]._datasetIndex]
+        var rawTime = dataset.data[activeElements[0]._index].rawTime
+        var commitHash = commitDatePairs[rawTime]
+        window.open("https://github.com/microsoft/msquic/commit/" + commitHash)
+    },
     scales: {
         xAxes: [timeAxis],
         yAxes: [{
