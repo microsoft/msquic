@@ -39,6 +39,8 @@ var dataAverageWindowsx64OpensslHps = [{t: new Date(1608158450575), y: 1532.8}, 
 
 // Different data point colors
 var dataColorWinKernelx64Schannel = "rgb(0, 255, 0)"
+var dataColorWindownsx64Schannel = "rgb(0, 0, 255)"
+var dataColorWindowsx64Openssl = "rgb(255, 0, 0)"
 
 // Useful configuration values
 var dataLineWidth = 2
@@ -83,6 +85,46 @@ var chartDataThroughput = {
         pointRadius: 0,
         tension: 0,
         data: dataAverageWinKernelx64SchannelThroughput,
+        fill: false
+    }, {
+        type: "scatter",
+        label: "Windows User - Schannel (raw)",
+        backgroundColor: dataColorWindownsx64Schannel,
+        pointBorderColor: dataColorWindownsx64Schannel,
+        borderColor: dataColorWindownsx64Schannel,
+        pointStyle: "crossRot",
+        pointRadius: dataRawPointRadius,
+        pointBorderWidth: 2,
+        data: dataRawWindowsx64SchannelThroughput,
+    }, {
+        type: "line",
+        label: "Windows User - Schannel (average)",
+        backgroundColor: dataColorWindownsx64Schannel,
+        borderColor: dataColorWindownsx64Schannel,
+        borderWidth: dataLineWidth,
+        pointRadius: 0,
+        tension: 0,
+        data: dataAverageWindowsx64SchannelThroughput,
+        fill: false
+    }, {
+        type: "scatter",
+        label: "Windows User - OpenSSL (raw)",
+        backgroundColor: dataColorWindowsx64Openssl,
+        pointBorderColor: dataColorWindowsx64Openssl,
+        borderColor: dataColorWindowsx64Openssl,
+        pointStyle: "crossRot",
+        pointRadius: dataRawPointRadius,
+        pointBorderWidth: 2,
+        data: dataRawWindowsx64OpensslThroughput,
+    }, {
+        type: "line",
+        label: "Windows User - OpenSSL (average)",
+        backgroundColor: dataColorWindowsx64Openssl,
+        borderColor: dataColorWindowsx64Openssl,
+        borderWidth: dataLineWidth,
+        pointRadius: 0,
+        tension: 0,
+        data: dataAverageWindowsx64OpensslThroughput,
         fill: false
     }]
 };
