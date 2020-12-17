@@ -37,6 +37,8 @@ var dataAverageWindowsx64SchannelHps = AVERAGE_DATA_WINDOWS_X64_SCHANNEL_HPS
 var dataRawWindowsx64OpensslHps = RAW_DATA_WINDOWS_X64_OPENSSL_HPS
 var dataAverageWindowsx64OpensslHps = AVERAGE_DATA_WINDOWS_X64_OPENSSL_HPS
 
+var commitDatePairs = COMMIT_DATE_PAIR
+
 // Different data point colors
 var dataColorWinKernelx64Schannel = "rgb(0, 255, 0)"
 var dataColorWindownsx64Schannel = "rgb(0, 0, 255)"
@@ -48,6 +50,12 @@ var dataRawPointRadius = 5
 
 function tooltipSort(a, b, data) {
     return data.datasets[a.datasetIndex].sortOrder - data.datasets[b.datasetIndex].sortOrder;
+}
+
+function beforeBodyPlacement(tooltipItem, data) {
+    var dataset = data.datasets[tooltipItem[0].datasetIndex]
+    var datapoint = dataset.data[tooltipItem[0].index]
+    return "Commit Hash: " + commitDatePairs[datapoint.rawTime]
 }
 
 // Global option configuration
@@ -145,6 +153,11 @@ var chartDataThroughput = {
 var chartOptionsThroughput = {
     title: {
         text: 'Single Connection Throughput',
+    },
+    tooltips: {
+        callbacks: {
+            beforeBody: beforeBodyPlacement
+        }
     },
     scales: {
         xAxes: [timeAxis],

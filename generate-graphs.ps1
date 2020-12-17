@@ -57,6 +57,25 @@ function Get-CpuCommitData {
     return $CpuData
 }
 
+function Get-CommitTimePairJs {
+    param (
+        [Parameter(Mandatory = $true)]
+        [CommitsFileModel[]]$CommitModel
+    )
+
+    $DataVal = ""
+    foreach ($Pair in $CommitModel) {
+        $TimeUnix = ([DateTimeOffset]$Pair.Date).ToUnixTimeMilliseconds();
+        $Hash = $Pair.CommitHash
+        $Data = "'$TimeUnix': '$Hash'"
+        if ($DataVal -eq "") {
+            $DataVal = $Data
+        } else {
+            $DataVal = "$DataVal, $Data"
+        }
+    }
+    return "{$DataVal}"
+}
 
 function Get-RawTestDataJs {
     param (
@@ -68,7 +87,7 @@ function Get-RawTestDataJs {
     foreach ($Test in $TestList) {
         $TimeUnix = ([DateTimeOffset]$Test.Date).ToUnixTimeMilliseconds();
         foreach ($Result in $Test.Results) {
-            $Data = "{t: new Date($TimeUnix), y: $Result}"
+            $Data = "{t: new Date($TimeUnix), rawTime: $TimeUnix, y: $Result}"
             if ($DataVal -eq "") {
                 $DataVal = $Data
             } else {
@@ -89,7 +108,7 @@ function Get-AverageDataJs {
     foreach ($Test in $TestList) {
         $TimeUnix = ([DateTimeOffset]$Test.Date).ToUnixTimeMilliseconds();
         $Average = ($Test.Results  | Measure-Object -Average).Average
-        $Data = "{t: new Date($TimeUnix), y: $Average}"
+        $Data = "{t: new Date($TimeUnix), rawTime: $TimeUnix, y: $Average}"
         if ($DataVal -eq "") {
             $DataVal = $Data
         } else {
@@ -443,6 +462,8 @@ $CpuCommitData = Get-CpuCommitData -CommitHistory $CommitHistory -BranchFolder $
 
 $DataFileIn = Join-Path $PSScriptRoot "data.js.in"
 $DataFileContents = Get-Content $DataFileIn
+
+$DataFileContents = $DataFileContents.Replace("COMMIT_DATE_PAIR", (Get-CommitTimePairJs -CommitModel $CommitHistory))
 
 $DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
 $DataFileContents = Get-RpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
