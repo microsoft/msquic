@@ -463,6 +463,14 @@ $CpuCommitData = Get-CpuCommitData -CommitHistory $CommitHistory -BranchFolder $
 $DataFileIn = Join-Path $PSScriptRoot "data.js.in"
 $DataFileContents = Get-Content $DataFileIn
 
+$FirstAndLast = $CommitHistory | Sort-Object -Property Date | Select-Object -Index 0, ($CommitHistory.Count - 1)
+
+$NewestDateString = ([DateTimeOffset]$FirstAndLast[1].Date).ToUnixTimeMilliseconds() + 86400000
+$OldestDateString = ([DateTimeOffset]$FirstAndLast[0].Date).ToUnixTimeMilliseconds() - 86400000
+
+$DataFileContents = $DataFileContents.Replace("NEWEST_DATE", "new Date($NewestDateString)")
+$DataFileContents = $DataFileContents.Replace("OLDEST_DATE", "new Date($OldestDateString)")
+
 $DataFileContents = $DataFileContents.Replace("COMMIT_DATE_PAIR", (Get-CommitTimePairJs -CommitModel $CommitHistory))
 
 $DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
