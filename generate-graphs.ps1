@@ -465,8 +465,8 @@ $DataFileContents = Get-Content $DataFileIn
 
 $FirstAndLast = $CommitHistory | Sort-Object -Property Date | Select-Object -Index 0, ($CommitHistory.Count - 1)
 
-$NewestDateString = ([DateTimeOffset]$FirstAndLast[1].Date).ToUnixTimeMilliseconds() + 86400000
-$OldestDateString = ([DateTimeOffset]$FirstAndLast[0].Date).ToUnixTimeMilliseconds() - 86400000
+$NewestDateString = ([DateTimeOffset]$FirstAndLast[1].Date).ToUnixTimeMilliseconds()
+$OldestDateString = ([DateTimeOffset]$FirstAndLast[0].Date).ToUnixTimeMilliseconds()
 
 $DataFileContents = $DataFileContents.Replace("NEWEST_DATE", "new Date($NewestDateString)")
 $DataFileContents = $DataFileContents.Replace("OLDEST_DATE", "new Date($OldestDateString)")

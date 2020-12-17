@@ -70,6 +70,7 @@ var pluginObject = {
 // Time axis used for all charts
 var timeAxis = {
     type: 'time',
+    offset: true,
     time: {
         unit: 'day'
     },
