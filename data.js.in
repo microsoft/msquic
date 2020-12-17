@@ -50,8 +50,8 @@ var dataRawPointRadius = 5
 Chart.defaults.global.responsive = true
 Chart.defaults.global.title.display = true
 Chart.defaults.global.title.fontSize = 16
-Chart.defaults.global.tooltips.mode = 'index'
-Chart.defaults.global.tooltips.intersect = true
+// Chart.defaults.global.tooltips.mode = 'index'
+// Chart.defaults.global.tooltips.intersect = true
 
 // Time axis used for all charts
 var timeAxis = {
@@ -77,16 +77,18 @@ var chartDataThroughput = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWinKernelx64SchannelThroughput,
+        sortOrder: 2
     }, {
         type: "line",
         label: "Windows Kernel (average)",
         backgroundColor: dataColorWinKernelx64Schannel,
         borderColor: dataColorWinKernelx64Schannel,
         borderWidth: dataLineWidth,
-        pointRadius: 0,
+        pointRadius: dataRawPointRadius,
         tension: 0,
         data: dataAverageWinKernelx64SchannelThroughput,
-        fill: false
+        fill: false,
+        sortOrder: 1
     }, {
         type: "scatter",
         label: "Windows User - Schannel (raw)",
@@ -97,16 +99,18 @@ var chartDataThroughput = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWindowsx64SchannelThroughput,
+        sortOrder: 11
     }, {
         type: "line",
         label: "Windows User - Schannel (average)",
         backgroundColor: dataColorWindownsx64Schannel,
         borderColor: dataColorWindownsx64Schannel,
         borderWidth: dataLineWidth,
-        pointRadius: 0,
+        pointRadius: dataRawPointRadius,
         tension: 0,
         data: dataAverageWindowsx64SchannelThroughput,
-        fill: false
+        fill: false,
+        sortOrder: 10
     }, {
         type: "scatter",
         label: "Windows User - OpenSSL (raw)",
@@ -117,22 +121,34 @@ var chartDataThroughput = {
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
         data: dataRawWindowsx64OpensslThroughput,
+        sortOrder: 21
     }, {
         type: "line",
         label: "Windows User - OpenSSL (average)",
         backgroundColor: dataColorWindowsx64Openssl,
         borderColor: dataColorWindowsx64Openssl,
         borderWidth: dataLineWidth,
-        pointRadius: 0,
+        pointRadius: dataRawPointRadius,
         tension: 0,
         data: dataAverageWindowsx64OpensslThroughput,
-        fill: false
+        fill: false,
+        sortOrder: 20
     }]
 };
+
+function tooltipSort(a, b, data) {
+    return data.datasets[a.datasetIndex].sortOrder - data.datasets[b.datasetIndex].sortOrder;
+}
 
 var chartOptionsThroughput = {
     title: {
         text: 'Single Connection Throughput',
+    },
+    tooltips: {
+        mode: 'x',
+        position: 'nearest',
+        intersect: true,
+        itemSort: tooltipSort
     },
     scales: {
         xAxes: [timeAxis],
