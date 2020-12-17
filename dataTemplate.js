@@ -81,79 +81,6 @@ var timeAxis = {
     }
 };
 
-var chartDataThroughput = {
-    datasets: [{
-        type: "scatter",
-        label: "Windows Kernel (raw)",
-        backgroundColor: dataColorWinKernelx64Schannel,
-        pointBorderColor: dataColorWinKernelx64Schannel,
-        borderColor: dataColorWinKernelx64Schannel,
-        pointStyle: "crossRot",
-        pointRadius: dataRawPointRadius,
-        pointBorderWidth: 2,
-        data: dataRawWinKernelx64SchannelThroughput,
-        sortOrder: 2,
-        hidden: true,
-    }, {
-        type: "line",
-        label: "Windows Kernel (average)",
-        backgroundColor: dataColorWinKernelx64Schannel,
-        borderColor: dataColorWinKernelx64Schannel,
-        borderWidth: dataLineWidth,
-        pointRadius: dataRawPointRadius,
-        tension: 0,
-        data: dataAverageWinKernelx64SchannelThroughput,
-        fill: false,
-        sortOrder: 1
-    }, {
-        type: "scatter",
-        label: "Windows User - Schannel (raw)",
-        backgroundColor: dataColorWindownsx64Schannel,
-        pointBorderColor: dataColorWindownsx64Schannel,
-        borderColor: dataColorWindownsx64Schannel,
-        pointStyle: "crossRot",
-        pointRadius: dataRawPointRadius,
-        pointBorderWidth: 2,
-        data: dataRawWindowsx64SchannelThroughput,
-        sortOrder: 11,
-        hidden: true,
-    }, {
-        type: "line",
-        label: "Windows User - Schannel (average)",
-        backgroundColor: dataColorWindownsx64Schannel,
-        borderColor: dataColorWindownsx64Schannel,
-        borderWidth: dataLineWidth,
-        pointRadius: dataRawPointRadius,
-        tension: 0,
-        data: dataAverageWindowsx64SchannelThroughput,
-        fill: false,
-        sortOrder: 10
-    }, {
-        type: "scatter",
-        label: "Windows User - OpenSSL (raw)",
-        backgroundColor: dataColorWindowsx64Openssl,
-        pointBorderColor: dataColorWindowsx64Openssl,
-        borderColor: dataColorWindowsx64Openssl,
-        pointStyle: "crossRot",
-        pointRadius: dataRawPointRadius,
-        pointBorderWidth: 2,
-        data: dataRawWindowsx64OpensslThroughput,
-        sortOrder: 21,
-        hidden: true,
-    }, {
-        type: "line",
-        label: "Windows User - OpenSSL (average)",
-        backgroundColor: dataColorWindowsx64Openssl,
-        borderColor: dataColorWindowsx64Openssl,
-        borderWidth: dataLineWidth,
-        pointRadius: dataRawPointRadius,
-        tension: 0,
-        data: dataAverageWindowsx64OpensslThroughput,
-        fill: false,
-        sortOrder: 20
-    }]
-};
-
 var chartOptionsThroughput = {
     tooltips: tooltipsObject,
     scales: {
@@ -167,78 +94,6 @@ var chartOptionsThroughput = {
         }]
     },
     plugins: pluginObject
-};
-
-var chartDataRPS = {
-    datasets: [{
-        type: "scatter",
-        label: "Windows Kernel (raw)",
-        backgroundColor: dataColorWinKernelx64Schannel,
-        pointBorderColor: dataColorWinKernelx64Schannel,
-        pointStyle: "crossRot",
-        pointRadius: dataRawPointRadius,
-        pointBorderWidth: 2,
-        data: dataRawWinKernelx64SchannelRps,
-        sortOrder: 2,
-        hidden: true,
-    }, {
-        type: "line",
-        label: "Windows Kernel (average)",
-        backgroundColor: dataColorWinKernelx64Schannel,
-        borderColor: dataColorWinKernelx64Schannel,
-        borderWidth: dataLineWidth,
-        pointRadius: dataRawPointRadius,
-        tension: 0,
-        data: dataAverageWinKernelx64SchannelRps,
-        fill: false,
-        sortOrder: 1
-    }, {
-        type: "scatter",
-        label: "Windows User - Schannel (raw)",
-        backgroundColor: dataColorWindownsx64Schannel,
-        pointBorderColor: dataColorWindownsx64Schannel,
-        borderColor: dataColorWindownsx64Schannel,
-        pointStyle: "crossRot",
-        pointRadius: dataRawPointRadius,
-        pointBorderWidth: 2,
-        data: dataRawWindowsx64SchannelRps,
-        sortOrder: 11,
-        hidden: true,
-    }, {
-        type: "line",
-        label: "Windows User - Schannel (average)",
-        backgroundColor: dataColorWindownsx64Schannel,
-        borderColor: dataColorWindownsx64Schannel,
-        borderWidth: dataLineWidth,
-        pointRadius: dataRawPointRadius,
-        tension: 0,
-        data: dataAverageWindowsx64SchannelRps,
-        fill: false,
-        sortOrder: 10
-    }, {
-        type: "scatter",
-        label: "Windows User - OpenSSL (raw)",
-        backgroundColor: dataColorWindowsx64Openssl,
-        pointBorderColor: dataColorWindowsx64Openssl,
-        borderColor: dataColorWindowsx64Openssl,
-        pointStyle: "crossRot",
-        pointRadius: dataRawPointRadius,
-        pointBorderWidth: 2,
-        data: dataRawWindowsx64OpensslRps,
-        sortOrder: 21,
-        hidden: true,
-    }, {
-        type: "line",
-        label: "Windows User - OpenSSL (average)",
-        backgroundColor: dataColorWindowsx64Openssl,
-        borderColor: dataColorWindowsx64Openssl,
-        borderWidth: dataLineWidth,
-        pointRadius: dataRawPointRadius,
-        tension: 0,
-        data: dataAverageWindowsx64OpensslRps,
-        fill: false,
-        sortOrder: 20
-    }]
 };
 
 var chartOptionsRPS = {
@@ -258,78 +113,6 @@ var chartOptionsRPS = {
     plugins: pluginObject
 };
 
-var chartDataHPS = {
-    datasets: [{
-        type: "scatter",
-        label: "Windows Kernel (raw)",
-        backgroundColor: dataColorWinKernelx64Schannel,
-        pointBorderColor: dataColorWinKernelx64Schannel,
-        pointStyle: "crossRot",
-        pointRadius: dataRawPointRadius,
-        pointBorderWidth: 2,
-        data: dataRawWinKernelx64SchannelHps,
-        sortOrder: 2,
-        hidden: true,
-    }, {
-        type: "line",
-        label: "Windows Kernel (average)",
-        backgroundColor: dataColorWinKernelx64Schannel,
-        borderColor: dataColorWinKernelx64Schannel,
-        borderWidth: dataLineWidth,
-        pointRadius: dataRawPointRadius,
-        tension: 0,
-        data: dataAverageWinKernelx64SchannelHps,
-        fill: false,
-        sortOrder: 1
-    }, {
-        type: "scatter",
-        label: "Windows User - Schannel (raw)",
-        backgroundColor: dataColorWindownsx64Schannel,
-        pointBorderColor: dataColorWindownsx64Schannel,
-        borderColor: dataColorWindownsx64Schannel,
-        pointStyle: "crossRot",
-        pointRadius: dataRawPointRadius,
-        pointBorderWidth: 2,
-        data: dataRawWindowsx64SchannelHps,
-        sortOrder: 11,
-        hidden: true,
-    }, {
-        type: "line",
-        label: "Windows User - Schannel (average)",
-        backgroundColor: dataColorWindownsx64Schannel,
-        borderColor: dataColorWindownsx64Schannel,
-        borderWidth: dataLineWidth,
-        pointRadius: dataRawPointRadius,
-        tension: 0,
-        data: dataAverageWindowsx64SchannelHps,
-        fill: false,
-        sortOrder: 10
-    }, {
-        type: "scatter",
-        label: "Windows User - OpenSSL (raw)",
-        backgroundColor: dataColorWindowsx64Openssl,
-        pointBorderColor: dataColorWindowsx64Openssl,
-        borderColor: dataColorWindowsx64Openssl,
-        pointStyle: "crossRot",
-        pointRadius: dataRawPointRadius,
-        pointBorderWidth: 2,
-        data: dataRawWindowsx64OpensslHps,
-        sortOrder: 21,
-        hidden: true,
-    }, {
-        type: "line",
-        label: "Windows User - OpenSSL (average)",
-        backgroundColor: dataColorWindowsx64Openssl,
-        borderColor: dataColorWindowsx64Openssl,
-        borderWidth: dataLineWidth,
-        pointRadius: dataRawPointRadius,
-        tension: 0,
-        data: dataAverageWindowsx64OpensslHps,
-        fill: false,
-        sortOrder: 20
-    }]
-};
-
 var chartOptionsHPS = {
     tooltips: tooltipsObject,
     scales: {
@@ -345,4 +128,191 @@ var chartOptionsHPS = {
         }]
     },
     plugins: pluginObject
+};
+
+function createDatasets(rawKernel, avgKernel, rawUserSchannel, avgUserSchannel, rawUserOpenssl, avgUserOpenssl) {
+    return {
+        datasets: [{
+            type: "scatter",
+            label: "Windows Kernel (raw)",
+            backgroundColor: dataColorWinKernelx64Schannel,
+            pointBorderColor: dataColorWinKernelx64Schannel,
+            pointStyle: "crossRot",
+            pointRadius: dataRawPointRadius,
+            pointBorderWidth: 2,
+            data: rawKernel,
+            sortOrder: 2,
+            hidden: true,
+            hiddenType: true,
+            hiddenPlatform: false,
+            isRaw: true,
+            platform: 'kernel'
+        }, {
+            type: "line",
+            label: "Windows Kernel (average)",
+            backgroundColor: dataColorWinKernelx64Schannel,
+            borderColor: dataColorWinKernelx64Schannel,
+            borderWidth: dataLineWidth,
+            pointRadius: dataRawPointRadius,
+            tension: 0,
+            data: avgKernel,
+            fill: false,
+            sortOrder: 1,
+            hidden: false,
+            hiddenType: false,
+            hiddenPlatform: false,
+            isRaw: false,
+            platform: 'kernel'
+        }, {
+            type: "scatter",
+            label: "Windows User - Schannel (raw)",
+            backgroundColor: dataColorWindownsx64Schannel,
+            pointBorderColor: dataColorWindownsx64Schannel,
+            borderColor: dataColorWindownsx64Schannel,
+            pointStyle: "crossRot",
+            pointRadius: dataRawPointRadius,
+            pointBorderWidth: 2,
+            data: rawUserSchannel,
+            sortOrder: 11,
+            hidden: true,
+            hiddenType: true,
+            hiddenPlatform: false,
+            isRaw: true,
+            platform: 'winschannel'
+        }, {
+            type: "line",
+            label: "Windows User - Schannel (average)",
+            backgroundColor: dataColorWindownsx64Schannel,
+            borderColor: dataColorWindownsx64Schannel,
+            borderWidth: dataLineWidth,
+            pointRadius: dataRawPointRadius,
+            tension: 0,
+            data: avgUserSchannel,
+            fill: false,
+            sortOrder: 10,
+            hidden: false,
+            hiddenType: false,
+            hiddenPlatform: false,
+            isRaw: false,
+            platform: 'winschannel'
+        }, {
+            type: "scatter",
+            label: "Windows User - OpenSSL (raw)",
+            backgroundColor: dataColorWindowsx64Openssl,
+            pointBorderColor: dataColorWindowsx64Openssl,
+            borderColor: dataColorWindowsx64Openssl,
+            pointStyle: "crossRot",
+            pointRadius: dataRawPointRadius,
+            pointBorderWidth: 2,
+            data: rawUserOpenssl,
+            sortOrder: 21,
+            hidden: true,
+            hiddenType: true,
+            hiddenPlatform: false,
+            isRaw: true,
+            platform: 'winopenssl'
+        }, {
+            type: "line",
+            label: "Windows User - OpenSSL (average)",
+            backgroundColor: dataColorWindowsx64Openssl,
+            borderColor: dataColorWindowsx64Openssl,
+            borderWidth: dataLineWidth,
+            pointRadius: dataRawPointRadius,
+            tension: 0,
+            data: avgUserOpenssl,
+            fill: false,
+            sortOrder: 20,
+            hidden: false,
+            hiddenType: false,
+            hiddenPlatform: false,
+            isRaw: false,
+            platform: 'winopenssl'
+        }]
+    };
+}
+
+var chartDataThroughput = null;
+var chartDataRPS = null;
+var chartDataHPS = null;
+
+var tputChart = null;
+var rpsChart = null;
+var hpsChart = null;
+
+function updateDataset(dataset) {
+    dataset.hidden = dataset.hiddenType | dataset.hiddenPlatform
+}
+
+function updateChartDisplayPoints(chart, value) {
+    var setRaw = true
+    var setAvg = true
+    if (value === 'both') {
+        setRaw = false
+        setAvg = false
+    } else if (value === 'raw') {
+        setRaw = false
+    } else if (value === 'avg') {
+        setAvg = false
+    }
+    for (const val of chart.data.datasets) {
+        if (val.isRaw) {
+            val.hiddenType = setRaw
+        } else {
+            val.hiddenType = setAvg
+        }
+        updateDataset(val)
+    }
+    chart.update()
+}
+
+function updateChartPlatforms(chart, platform, checked) {
+    for (const val of chart.data.datasets) {
+        if (val.platform === platform) {
+            val.hiddenPlatform = !checked
+        }
+        updateDataset(val)
+    }
+    chart.update()
+}
+
+function onRadioChange(event) {
+    var value = event.srcElement.value;
+    updateChartDisplayPoints(tputChart, value)
+    updateChartDisplayPoints(rpsChart, value)
+    updateChartDisplayPoints(hpsChart, value)
+}
+
+function onPlatformChange(event) {
+    var platform = event.srcElement.id
+    var checked = event.srcElement.checked
+    updateChartPlatforms(tputChart, platform, checked)
+    updateChartPlatforms(rpsChart, platform, checked)
+    updateChartPlatforms(hpsChart, platform, checked)
+}
+
+window.onload = function() {
+    chartDataThroughput = createDatasets(dataRawWinKernelx64SchannelThroughput, dataAverageWinKernelx64SchannelThroughput, dataRawWindowsx64SchannelThroughput, dataAverageWindowsx64SchannelThroughput, dataRawWindowsx64OpensslThroughput, dataAverageWindowsx64OpensslThroughput)
+    chartDataRPS = createDatasets(dataRawWinKernelx64SchannelRps, dataAverageWinKernelx64SchannelRps, dataRawWindowsx64SchannelRps, dataAverageWindowsx64SchannelRps, dataRawWindowsx64OpensslRps, dataAverageWindowsx64OpensslRps)
+    chartDataHPS = createDatasets(dataRawWinKernelx64SchannelHps, dataAverageWinKernelx64SchannelHps, dataRawWindowsx64SchannelHps, dataAverageWindowsx64SchannelHps, dataRawWindowsx64OpensslHps, dataAverageWindowsx64OpensslHps)
+
+    tputChart = new Chart(document.getElementById('canvasThroughput').getContext('2d'), {
+        data: chartDataThroughput,
+        options: chartOptionsThroughput
+    });
+    rpsChart = new Chart(document.getElementById('canvasRPS').getContext('2d'), {
+        data: chartDataRPS,
+        options: chartOptionsRPS
+    });
+    hpsChart = new Chart(document.getElementById('canvasHPS').getContext('2d'), {
+        data: chartDataHPS,
+        options: chartOptionsHPS
+    });
+
+    document.getElementById('rawpdt').onclick = onRadioChange
+    document.getElementById('avgpdt').onclick = onRadioChange
+    document.getElementById('bothpdt').onclick = onRadioChange
+
+    document.getElementById('kernel').onclick = onPlatformChange
+    document.getElementById('winschannel').onclick = onPlatformChange
+    document.getElementById('winopenssl').onclick = onPlatformChange
 };
