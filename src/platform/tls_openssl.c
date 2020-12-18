@@ -865,10 +865,14 @@ QuicTlsInitialize(
         SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
     }
 
+    SSL_set_quic_use_legacy_codepoint(
+        TlsContext->Ssl,
+        TlsContext->QuicTpExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT);
+
     if (SSL_set_quic_transport_params(
             TlsContext->Ssl,
             Config->LocalTPBuffer,
-            Config->LocalTPLength) != 1) { // %$*&@$!!!!!!
+            Config->LocalTPLength) != 1) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
