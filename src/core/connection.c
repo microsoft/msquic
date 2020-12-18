@@ -2764,14 +2764,13 @@ QuicConnRecvVerNeg(
 
         uint32_t ServerVersion;
         QuicCopyMemory(&ServerVersion, &ServerVersionList[i], sizeof(ServerVersion));
-        ServerVersion = QuicByteSwapUint32(ServerVersion);
 
         QuicTraceLogConnVerbose(
             VerNegItem,
             Connection,
             "  Ver[%d]: 0x%x",
             i,
-            ServerVersion);
+            QuicByteSwapUint32(ServerVersion));
 
         //
         // Check to see if this is the current version.
@@ -2785,8 +2784,7 @@ QuicConnRecvVerNeg(
         // Check to see if this is supported, if we haven't already found a
         // supported version.
         //
-        if (SupportedVersion == 0 &&
-            QuicIsVersionSupported(ServerVersion)) {
+        if (SupportedVersion == 0 && QuicIsVersionSupported(ServerVersion)) {
             SupportedVersion = ServerVersion;
         }
     }
