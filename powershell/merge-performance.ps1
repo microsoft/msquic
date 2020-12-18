@@ -29,8 +29,8 @@ if ($Branch.StartsWith("refs/heads/")) {
     # Remove the 'refs/heads/' prefix.
     $BranchName = $Branch.Substring(11);
 } else {
-    # Reformat 'refs/pull/1/merge' to 'pr/1'
-    $BranchName = "pr/$($Branch.Split('/')[2])"
+    # Reformat 'refs/pull/1/merge' to 'pr-1'
+    $BranchName = "pr-$($Branch.Split('/')[2])"
 }
 
 Write-Host "Using branch name = '$BranchName'"
