@@ -253,6 +253,12 @@ typedef struct QUIC_TLS {
     QUIC_TLS_PROCESS_STATE* State;
 
     //
+    // Client resumption ticket buffer.
+    //
+    const uint8_t* ResumptionTicketBuffer;
+    uint32_t ResumptionTicketLength;
+
+    //
     // Callback handlers and input connection.
     //
     QUIC_CONNECTION* Connection;
@@ -547,6 +553,8 @@ QuicTlsInitialize(
     TlsContext->ProcessCompleteCallback = Config->ProcessCompleteCallback;
     TlsContext->ReceiveTicketCallback = Config->ReceiveResumptionCallback;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
+    TlsContext->ResumptionTicketLength = Config->ResumptionTicketLength;
+    TlsContext->ResumptionTicketBuffer = Config->ResumptionTicketBuffer;
 
     TlsContext->Extensions[0].ext_type = TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION;
     TlsContext->Extensions[0].ext_data_len = sizeof(uint16_t) + Config->AlpnBufferLength;
@@ -706,6 +714,10 @@ QuicTlsUninitialize(
                     QUIC_TLS_TICKET,
                     Buffer);
             QUIC_FREE(SerializedTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+        }
+
+        if (TlsContext->ResumptionTicketBuffer != NULL) {
+            QUIC_FREE(TlsContext->ResumptionTicketBuffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
         }
 
         if (TlsContext->SNI != NULL) {

@@ -1506,7 +1506,7 @@ QuicTlsInitialize(
 
     State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
     if (Config->ResumptionTicketBuffer != NULL) {
-        QUIC_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_TLS_RESUMPTION);
+        QUIC_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
     }
 
     Status = QUIC_STATUS_SUCCESS;
