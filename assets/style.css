@@ -20,14 +20,21 @@ p {
 
 .sidebar {
     height: 100%;
-    width: 160px;
+    width: 180px;
     position: fixed;
     background-color: #c7c0c0;
     top: 0;
     left: 0;
 }
 
-.graph-background {
+.summary-graph {
+    float: left;
+    width: 31%;
+    padding: 10px;
+    background-color: rgb(240, 240, 240);
+}
+
+.graph {
     padding: 20px;
     background-color: rgb(240, 240, 240);
 }
