@@ -21,8 +21,8 @@ Abstract:
 
 #define QUIC_CERT_CREATION_EVENT_NAME       L"MsQuicCertEvent"
 #define QUIC_CERT_CREATION_EVENT_WAIT       10000
-#define QUIC_CERTIFICATE_TEST_FRIENDLY_NAME L"MsQuicTestCert"
-#define QUIC_KEY_CONTAINER_NAME             L"MsQuicSelfSignKey"
+#define QUIC_CERTIFICATE_TEST_FRIENDLY_NAME L"MsQuicTestCert2"
+#define QUIC_KEY_CONTAINER_NAME             L"MsQuicSelfSignKey2"
 #define QUIC_KEY_SIZE                       2048
 
 void
@@ -449,6 +449,7 @@ GetPrivateRsaKey(
 
     PCERT_PUBLIC_KEY_INFO CertPubKeyInfo = NULL;
     DWORD KeyUsageProperty = NCRYPT_ALLOW_SIGNING_FLAG;
+    DWORD ExportPolicyProperty = NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG;
     NCRYPT_PROV_HANDLE Provider = (NCRYPT_PROV_HANDLE)NULL;
     DWORD KeySize = QUIC_KEY_SIZE;
 
@@ -539,6 +540,20 @@ ReadKey:
             "[ lib] ERROR, %u, %s.",
             hr,
             "NCryptSetProperty NCRYPT_KEY_USAGE_PROPERTY failed");
+        goto Cleanup;
+    }
+
+    if (FAILED(hr = NCryptSetProperty(
+            *Key,
+            NCRYPT_EXPORT_POLICY_PROPERTY,
+            (PBYTE)&ExportPolicyProperty,
+            sizeof(ExportPolicyProperty),
+            0))) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "NCryptSetProperty NCRYPT_EXPORT_POLICY_PROPERTY failed");
         goto Cleanup;
     }
 

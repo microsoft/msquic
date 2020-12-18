@@ -241,6 +241,7 @@ if ($Local) {
 }
 
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
+$CurrentBranch = Get-CurrentBranch -RepoDir $RootDir
 
 if ($PGO -and $Local) {
     # PGO needs the server and client executing out of separate directories.
@@ -367,16 +368,16 @@ function Invoke-Test {
     } finally {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
         Write-Debug $RemoteResults.ToString()
-    }
 
-    Stop-Tracing -Exe $LocalExe
+        Stop-Tracing -Exe $LocalExe
 
-    if ($Record) {
-        if ($Local) {
-            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
-        } else {
-            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
-            Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
+        if ($Record) {
+            if ($Local) {
+                Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
+            } else {
+                Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
+                Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
+            }
         }
     }
 
@@ -390,6 +391,7 @@ function Invoke-Test {
     Publish-TestResults -Test $Test `
                         -AllRunsResults $AllRunsResults `
                         -CurrentCommitHash $CurrentCommitHash `
+                        -CurrentBranch $CurrentBranch `
                         -OutputDir $OutputDir `
                         -ExePath $LocalExe
 }

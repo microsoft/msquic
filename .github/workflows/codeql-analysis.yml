@@ -28,11 +28,6 @@ jobs:
           fetch-depth: 2
           submodules: 'recursive'
 
-      # If this run was triggered by a pull request event, then checkout
-      # the head of the pull request instead of the merge commit.
-      - run: git checkout HEAD^2
-        if: ${{ github.event_name == 'pull_request' }}
-
       # Install dependencies and build submodules before starting analysis.
       - run: |
          sudo apt-add-repository ppa:lttng/stable-2.11
