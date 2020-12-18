@@ -319,6 +319,11 @@ QuicCryptoInitializeTls(
         goto Error;
     }
 
+    if (Crypto->TLS != NULL) {
+        QuicTlsUninitialize(Crypto->TLS);
+        Crypto->TLS = NULL;
+    }
+
     Status = QuicTlsInitialize(&TlsConfig, &Crypto->TlsState, &Crypto->TLS);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
