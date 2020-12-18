@@ -25,8 +25,15 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Remove the 'refs/heads/' prefix.
-$BranchName = $Branch.Substring(11);
+if ($Branch.StartsWith("refs/heads/")) {
+    # Remove the 'refs/heads/' prefix.
+    $BranchName = $Branch.Substring(11);
+} else {
+    # Reformat 'refs/pull/1/merge' to 'pr/1'
+    $BranchName = "pr/$($BranchName.Split('/')[2])"
+}
+
+Write-Host "Using branch name = '$BranchName'"
 
 # Verify the PAT environmental variable is set.
 if ($PublishResults) {
