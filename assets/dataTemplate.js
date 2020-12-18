@@ -1,7 +1,7 @@
 // Different data point colors
-var dataColorWinKernelx64Schannel = "rgb(0, 255, 0)"
-var dataColorWindowsx64Schannel = "rgb(0, 0, 255)"
-var dataColorWindowsx64Openssl = "rgb(255, 0, 0)"
+var dataColorWinKernelx64Schannel = "#11a718"
+var dataColorWindowsx64Schannel = "#0062ff"
+var dataColorWindowsx64Openssl = "#ff3c00"
 
 // Useful configuration values
 var dataLineWidth = 2

@@ -83,27 +83,27 @@ p {
 }
 
 input:checked + .kernel {
-    background-color: #00ff00;
+    background-color: #11a718;
 }
 
 input:focus + .kernel {
-    box-shadow: 0 0 1px #00ff00;
+    box-shadow: 0 0 1px #11a718;
 }
 
 input:checked + .winschannel {
-    background-color: #0000ff;
+    background-color: #0062ff;
 }
 
 input:focus + .winschannel {
-    box-shadow: 0 0 1px #0000ff;
+    box-shadow: 0 0 1px #0062ff;
 }
 
 input:checked + .winopenssl {
-    background-color: #ff0000;
+    background-color: #ff3c00;
 }
 
 input:focus + .winopenssl {
-    box-shadow: 0 0 1px #ff0000;
+    box-shadow: 0 0 1px #ff3c00;
 }
 
 input:checked + .slider:before {
