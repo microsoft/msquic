@@ -10,7 +10,7 @@ Using module .\mergetypes.psm1
 
 param (
     [Parameter(Mandatory = $true)]
-    [string]$BranchFolder,
+    [string]$BranchName,
 
     [Parameter(Mandatory = $false)]
     [int]$DaysToReceive = 30
@@ -218,7 +218,7 @@ function Get-ThroughputTestsJs {
 
     # Dict<Config, Dict<Platform, List<Tests>>>
     $ThroughputTests = Get-ThroughputTests -CommitData $CpuCommitData
-    
+
     $UploadDefault = Get-ThroughputDefault -Download $false
 
     $DownloadDefault = Get-ThroughputDefault -Download $true
@@ -336,7 +336,7 @@ function Get-RpsTestsJs {
 
     # Dict<Config, Dict<Platform, List<Tests>>>
     $RpsTests = Get-RpsTests -CommitData $CpuCommitData
-    
+
     $RpsDefault = Get-RpsDefault;
 
     $RpsTestConfig = $RpsTests[$RpsDefault];
@@ -443,7 +443,7 @@ function Get-HpsTestsJs {
 
     # Dict<Config, Dict<Platform, List<Tests>>>
     $HpsTests = Get-HpsTests -CommitData $CpuCommitData
-    
+
     $HpsDefault = Get-HpsDefault;
 
     $HpsTestConfig = $HpsTests[$HpsDefault];
@@ -457,10 +457,13 @@ function Get-HpsTestsJs {
 
 #endregion
 
+$RootDir = Split-Path $PSScriptRoot -Parent
+$BranchFolder = Join-Path $RootDir 'data' $BranchName
+
 $CommitHistory = Get-CommitHistory -DaysToReceive $DaysToReceive -BranchFolder $BranchFolder
 $CpuCommitData = Get-CpuCommitData -CommitHistory $CommitHistory -BranchFolder $BranchFolder
 
-$DataFileIn = Join-Path $PSScriptRoot "data.js.in"
+$DataFileIn = Join-Path $RootDir "assets" "data.js.in"
 $DataFileContents = Get-Content $DataFileIn
 
 $FirstAndLast = $CommitHistory | Sort-Object -Property Date | Select-Object -Index 0, ($CommitHistory.Count - 1)
@@ -477,5 +480,5 @@ $DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommit
 $DataFileContents = Get-RpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
 $DataFileContents = Get-HpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
 
-$DataFileOut = Join-Path $PSScriptRoot "data.js"
+$DataFileOut = Join-Path $RootDir "assets" $BranchName "data.js"
 $DataFileContents | Set-Content $DataFileOut
