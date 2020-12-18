@@ -1095,31 +1095,7 @@ QuicTlsProcessData(
 
     QUIC_TLS_RESULT_FLAGS ResultFlags = 0;
 
-    if (QuicTlsHasValidMessageToProcess(TlsContext, *BufferLength, Buffer)) {
-        QUIC_FRE_ASSERT(DataType == QUIC_TLS_CRYPTO_DATA);
-
-        uint16_t PrevBufferLength = State->BufferLength;
-        if (TlsContext->IsServer) {
-            QuicTlsServerProcess(TlsContext, &ResultFlags, State, BufferLength, Buffer);
-        } else {
-            QuicTlsClientProcess(TlsContext, &ResultFlags, State, BufferLength, Buffer);
-        }
-
-        QuicTraceLogConnInfo(
-            StubTlsConsumedData,
-            TlsContext->Connection,
-            "Consumed %u bytes",
-            *BufferLength);
-
-        if (State->BufferLength > PrevBufferLength) {
-            QuicTraceLogConnInfo(
-                StubTlsProducedData,
-                TlsContext->Connection,
-                "Produced %hu bytes",
-                (State->BufferLength - PrevBufferLength));
-        }
-
-    } else if (DataType == QUIC_TLS_TICKET_DATA) {
+    if (DataType == QUIC_TLS_TICKET_DATA) {
         QUIC_FRE_ASSERT(TlsContext->IsServer);
 
         uint16_t PrevBufferLength = State->BufferLength;
@@ -1150,6 +1126,31 @@ QuicTlsProcessData(
                 "Produced %hu bytes",
                 (State->BufferLength - PrevBufferLength));
         }
+
+    } else if (QuicTlsHasValidMessageToProcess(TlsContext, *BufferLength, Buffer)) {
+        QUIC_FRE_ASSERT(DataType == QUIC_TLS_CRYPTO_DATA);
+
+        uint16_t PrevBufferLength = State->BufferLength;
+        if (TlsContext->IsServer) {
+            QuicTlsServerProcess(TlsContext, &ResultFlags, State, BufferLength, Buffer);
+        } else {
+            QuicTlsClientProcess(TlsContext, &ResultFlags, State, BufferLength, Buffer);
+        }
+
+        QuicTraceLogConnInfo(
+            StubTlsConsumedData,
+            TlsContext->Connection,
+            "Consumed %u bytes",
+            *BufferLength);
+
+        if (State->BufferLength > PrevBufferLength) {
+            QuicTraceLogConnInfo(
+                StubTlsProducedData,
+                TlsContext->Connection,
+                "Produced %hu bytes",
+                (State->BufferLength - PrevBufferLength));
+        }
+
     } else {
         *BufferLength = 0;
     }
