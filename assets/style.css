@@ -27,15 +27,19 @@ p {
     left: 0;
 }
 
-.summary-graph {
+.summary-graph-outer {
     float: left;
-    width: 31%;
-    padding: 10px;
+    width: 32%;
+    padding: 10px 10px 20px 10px;
+}
+
+.summary-graph {
+    padding: 5px;
     background-color: rgb(240, 240, 240);
 }
 
 .graph {
-    padding: 20px;
+    padding: 10px;
     background-color: rgb(240, 240, 240);
 }
 

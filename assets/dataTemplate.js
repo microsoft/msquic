@@ -96,7 +96,8 @@ function createSummaryChartOptions(title, yName) {
     return {
         title: {
             display: true,
-            text: title
+            text: title,
+            fontSize: 16
         },
         tooltips: tooltipsObject,
         scales: {
