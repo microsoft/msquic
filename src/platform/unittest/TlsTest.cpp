@@ -166,6 +166,7 @@ protected:
             UNREFERENCED_PARAMETER(MultipleAlpns); // The server must always send back the negotiated ALPN.
             Config.AlpnBuffer = Alpn;
             Config.AlpnBufferLength = sizeof(Alpn);
+            Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
@@ -194,6 +195,7 @@ protected:
             Config.SecConfig = SecConfiguration;
             Config.AlpnBuffer = MultipleAlpns ? MultiAlpn : Alpn;
             Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
+            Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
