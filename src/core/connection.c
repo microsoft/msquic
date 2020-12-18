@@ -2762,16 +2762,21 @@ QuicConnRecvVerNeg(
         "Received Version Negotation:");
     for (uint16_t i = 0; i < ServerVersionListLength; i++) {
 
+        uint32_t ServerVersion;
+        QuicCopyMemory(&ServerVersion, &ServerVersionList[i], sizeof(ServerVersion));
+        ServerVersion = QuicByteSwapUint32(ServerVersion);
+
         QuicTraceLogConnVerbose(
             VerNegItem,
             Connection,
-            "  Ver[%d]: 0x%x", i,
-            QuicByteSwapUint32(ServerVersionList[i]));
+            "  Ver[%d]: 0x%x",
+            i,
+            ServerVersion);
 
         //
         // Check to see if this is the current version.
         //
-        if (ServerVersionList[i] == Connection->Stats.QuicVersion) {
+        if (ServerVersion == Connection->Stats.QuicVersion) {
             QuicPacketLogDrop(Connection, Packet, "Version Negotation that includes the current version");
             return;
         }
@@ -2781,8 +2786,8 @@ QuicConnRecvVerNeg(
         // supported version.
         //
         if (SupportedVersion == 0 &&
-            QuicIsVersionSupported(ServerVersionList[i])) {
-            SupportedVersion = ServerVersionList[i];
+            QuicIsVersionSupported(ServerVersion)) {
+            SupportedVersion = ServerVersion;
         }
     }
 
