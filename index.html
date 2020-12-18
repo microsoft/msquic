@@ -38,26 +38,129 @@
             font-size: 12pt;
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
         }
+
+        .sidebar {
+            height: 100%;
+            width: 160px;
+            position: fixed;
+            background-color: #c7c0c0;
+            top: 0;
+            left: 0;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            height: 34px;
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        /* The slider */
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 50%;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        input:checked + .kernel {
+            background-color: #00ff00;
+        }
+
+        input:focus + .kernel {
+            box-shadow: 0 0 1px #00ff00;
+        }
+
+        input:checked + .winschannel {
+            background-color: #0000ff;
+        }
+
+        input:focus + .winschannel {
+            box-shadow: 0 0 1px #0000ff;
+        }
+
+        input:checked + .winopenssl {
+            background-color: #ff0000;
+        }
+
+        input:focus + .winopenssl {
+            box-shadow: 0 0 1px #ff0000;
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(90%);
+            -ms-transform: translateX(90%);
+            transform: translateX(90%);
+        }
+
+        .centered {
+            display: block;
+            text-align: center;
+        }
+
+        .platform-label {
+            display: block;
+            text-align: center;
+        }
+
     </style>
 </head>
 
 <body>
-    <div style="height: 100%; width: 160px; position: fixed; background-color: #c7c0c0; top: 0; left: 0;">
-        <b>Data Points</b><br>
-        <input type="radio" id="rawpdt" name="pointDisplayType" value="raw">
-        <label for="rawpdt">Raw Points</label><br>
-        <input type="radio" id="avgpdt" name="pointDisplayType" value="avg" checked="true">
-        <label for="avgpdt">Average Line</label><br>
-        <input type="radio" id="bothpdt" name="pointDisplayType" value="both">
-        <label for="bothpdt">Both</label>
-        <br><br>
-        <b>Platforms</b><br>
-        <input type="checkbox" id="kernel" checked="true">
-        <label for="kernel">Windows Kernel</label><br>
-        <input type="checkbox" id="winschannel" checked="true">
-        <label for="usersch">Windows User - Schannel</label><br>
-        <input type="checkbox" id="winopenssl" checked="true">
-        <label for="userosl">Windows User - OpenSSL</label><br>
+    <div class="sidebar">
+        <b class="centered">Data Points</b>
+        <div>
+            <input type="radio" id="rawpdt" name="pointDisplayType" value="raw">
+            <label for="rawpdt">Raw Points</label><br>
+            <input type="radio" id="avgpdt" name="pointDisplayType" value="avg" checked="true">
+            <label for="avgpdt">Average Line</label><br>
+            <input type="radio" id="bothpdt" name="pointDisplayType" value="both">
+            <label for="bothpdt">Both</label>
+        </div>
+        <br>
+        <b class="centered">Platforms</b>
+        <label class="platform-label" for="kernel">Windows Kernel</label>
+
+        <label class="switch">
+            <input class="kernel" type="checkbox" id="kernel" checked="true">
+            <span class="slider kernel"></span>
+        </label>
+        
+        <label class="platform-label" for="winschannel">Win User - Schannel</label>
+        <label class="switch">
+            <input class="winschannel" type="checkbox" id="winschannel" checked="true">
+            <span class="slider winschannel"></span>
+        </label>
+        
+        <label class="platform-label" for="winopenssl">Win User - OpenSSL</label>
+        <label class="switch">
+            <input class="winopenssl" type="checkbox" id="winopenssl" checked="true">
+            <span class="slider winopenssl"></span>
+        </label>
     </div>
     <div style="margin-left: 160px; width: 80%;">
         <h1>MsQuic Performance Dashboard</h1>
@@ -82,7 +185,7 @@
             single stream in one direction as fast as possible. The metric is the
             average throughput over the lifetime of the connection.
         </p>
-        <div style="padding: 20px; background-color: rgb(240, 240, 240);">
+        <div class="graph-background">
             <canvas id="canvasThroughput" class="chartjs-render-monitor"></canvas>
         </div>
         <h3>Requests per Second</h3>
@@ -91,7 +194,7 @@
             for the responses) as fast as possible. The test measures the average number
             of responses received per second over the test run.
         </p>
-        <div style="padding: 20px; background-color: rgb(240, 240, 240);">
+        <div class="graph-background">
             <canvas id="canvasRPS" class="chartjs-render-monitor"></canvas>
         </div>
         <h3>Handshakes per Second</h3>
@@ -100,10 +203,9 @@
             possible. The test measures the average handshake completion
             rate over the test run.
         </p>
-        <div style="padding: 20px; background-color: rgb(240, 240, 240);">
+        <div class="graph-background">
             <canvas id="canvasHPS" class="chartjs-render-monitor"></canvas>
         </div>
     </div>
 </body>
-
 </html>

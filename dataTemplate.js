@@ -32,6 +32,7 @@ Chart.defaults.global.tooltips.mode = 'x'
 Chart.defaults.global.tooltips.intersect = true
 Chart.defaults.global.tooltips.position = 'nearest'
 Chart.defaults.global.tooltips.itemSort = tooltipSort
+Chart.defaults.global.legend.display = false
 
 var tooltipsObject = {
     callbacks : {
