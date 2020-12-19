@@ -468,8 +468,12 @@ $DataFileContents = Get-Content $DataFileIn
 
 $FirstAndLast = $CommitHistory | Sort-Object -Property Date | Select-Object -Index 0, ($CommitHistory.Count - 1)
 
-$NewestDateString = ([DateTimeOffset]$FirstAndLast[1].Date).ToUnixTimeMilliseconds()
 $OldestDateString = ([DateTimeOffset]$FirstAndLast[0].Date).ToUnixTimeMilliseconds()
+if ($FirstAndLast.Count -eq 1) {
+    $NewestDateString = ([DateTimeOffset]$FirstAndLast[0].Date).ToUnixTimeMilliseconds()
+} else {
+    $NewestDateString = ([DateTimeOffset]$FirstAndLast[1].Date).ToUnixTimeMilliseconds()
+}
 
 $DataFileContents = $DataFileContents.Replace("NEWEST_DATE", "new Date($NewestDateString)")
 $DataFileContents = $DataFileContents.Replace("OLDEST_DATE", "new Date($OldestDateString)")
@@ -480,5 +484,7 @@ $DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommit
 $DataFileContents = Get-RpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
 $DataFileContents = Get-HpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
 
-$DataFileOut = Join-Path $RootDir "assets" $BranchName "data.js"
+$OutputFolder = Join-Path $RootDir "assets" $BranchName
+New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
+$DataFileOut = Join-Path $OutputFolder "data.js"
 $DataFileContents | Set-Content $DataFileOut

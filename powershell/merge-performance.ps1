@@ -142,16 +142,16 @@ $NewCommit.CommitHash = $CommitModel.CommitHash;
 $NewCommit.Date = $CommitModel.Date;
 $NewCommitsContents = $null
 if (Test-Path -Path $CommitsFile -PathType Leaf) {
-    $CommitsContents = Get-Content $CommitsFile | ConvertFrom-Json
+    $CommitsContents = Get-Content $CommitsFile | ConvertFrom-Json -NoEnumerate
     $NewCommit = [CommitsFileModel]::new();
     $NewCommit.CommitHash = $CommitModel.CommitHash;
     $NewCommit.Date = $CommitModel.Date;
     $CommitsContents += $NewCommit;
-    $NewCommitsContents = $CommitsContents | Sort-Object -Property CommitHash -Unique | Sort-Object -Property Date -Descending -Unique | ConvertTo-Json
+    $NewCommitsContents = $CommitsContents | Sort-Object -Property CommitHash -Unique | Sort-Object -Property Date -Descending -Unique | ConvertTo-Json -AsArray
 
 } else {
     $CommitsArr = @($NewCommit)
-    $NewCommitsContents = $CommitsArr | ConvertTo-Json
+    $NewCommitsContents = $CommitsArr | ConvertTo-Json -AsArray
 }
 Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
 
