@@ -142,8 +142,7 @@ QuicCryptoInitializeTls(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoReset(
-    _In_ QUIC_CRYPTO* Crypto,
-    _In_ BOOLEAN ResetTls
+    _In_ QUIC_CRYPTO* Crypto
     );
 
 //

@@ -26,7 +26,8 @@ typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 typedef struct QUIC_TLS QUIC_TLS;
 
 #define TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION   0x0010  // Host Byte Order
-#define TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS                0xffa5  // Host Byte Order
+#define TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT          0xffa5  // Host Byte Order
+#define TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS                0x0039  // Host Byte Order
 
 //
 // The size of the header required by the TLS layer.
@@ -99,6 +100,11 @@ typedef struct QUIC_TLS_CONFIG {
     //
     const uint8_t* AlpnBuffer;
     uint16_t AlpnBufferLength;
+
+    //
+    // TLS Extension code type for transport parameters.
+    //
+    uint16_t TPType;
 
     //
     // Name of the server we are connecting to (client side only).
@@ -310,15 +316,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsUninitialize(
     _In_opt_ QUIC_TLS* TlsContext
-    );
-
-//
-// Resets an existing TLS interface.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsReset(
-    _In_ QUIC_TLS* TlsContext
     );
 
 //
