@@ -114,6 +114,7 @@ function createSummaryChartOptions(title, yName) {
 function createChartOptions(name) {
     return {
         tooltips: tooltipsObject,
+        onClick: chartOnCick,
         scales: {
             xAxes: [timeAxis],
             yAxes: [{
