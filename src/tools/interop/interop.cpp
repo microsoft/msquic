@@ -41,27 +41,15 @@ QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
 };
 
 const QUIC_BUFFER HandshakeAlpns[] = {
-    { sizeof("hq-32") - 1, (uint8_t*)"hq-32" },
-    { sizeof("h3-32") - 1, (uint8_t*)"h3-32" },
-    { sizeof("hq-31") - 1, (uint8_t*)"hq-31" },
-    { sizeof("h3-31") - 1, (uint8_t*)"h3-31" },
-    { sizeof("hq-30") - 1, (uint8_t*)"hq-30" },
-    { sizeof("h3-30") - 1, (uint8_t*)"h3-30" },
+    { sizeof("hq-interop") - 1, (uint8_t*)"hq-interop" },
+    { sizeof("h3") - 1, (uint8_t*)"h3" },
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
     { sizeof("h3-29") - 1, (uint8_t*)"h3-29" },
-    { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
-    { sizeof("h3-28") - 1, (uint8_t*)"h3-28" },
-    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
-    { sizeof("h3-27") - 1, (uint8_t*)"h3-27" }
 };
 
 const QUIC_BUFFER DatapathAlpns[] = {
-    { sizeof("hq-32") - 1, (uint8_t*)"hq-32" },
-    { sizeof("hq-31") - 1, (uint8_t*)"hq-31" },
-    { sizeof("hq-30") - 1, (uint8_t*)"hq-30" },
+    { sizeof("hq-interop") - 1, (uint8_t*)"hq-interop" },
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
-    { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
-    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
 };
 
 const QUIC_BUFFER DatagramAlpns[] = {
@@ -1037,7 +1025,7 @@ PrintTestResults(
     if (TestResults[Endpoint].QuicVersion == 0) {
         printf("%12s  %s\n", PublicEndpoints[Endpoint].ImplementationName, ResultCodes);
     } else {
-        printf("%12s  %s  0x%X  %s\n", PublicEndpoints[Endpoint].ImplementationName,
+        printf("%12s  %s  0x%08X  %s\n", PublicEndpoints[Endpoint].ImplementationName,
             ResultCodes, TestResults[Endpoint].QuicVersion,
             TestResults[Endpoint].Alpn);
     }

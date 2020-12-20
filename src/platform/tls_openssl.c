@@ -58,6 +58,11 @@ typedef struct QUIC_TLS {
     BOOLEAN IsServer;
 
     //
+    // The TLS extension type for the QUIC transport parameters.
+    //
+    uint16_t QuicTpExtType;
+
+    //
     // The ALPN buffer.
     //
     uint16_t AlpnBufferLength;
@@ -420,7 +425,7 @@ QuicTlsClientHelloCallback(
 
     if (!SSL_client_hello_get0_ext(
             Ssl,
-            TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
+            TlsContext->QuicTpExtType,
             &TransportParams,
             &TransportParamLen)) {
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
@@ -738,6 +743,7 @@ QuicTlsInitialize(
     TlsContext->Connection = Config->Connection;
     TlsContext->IsServer = Config->IsServer;
     TlsContext->SecConfig = Config->SecConfig;
+    TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
@@ -803,6 +809,10 @@ QuicTlsInitialize(
         SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
     }
 
+    SSL_set_quic_use_legacy_codepoint(
+        TlsContext->Ssl,
+        TlsContext->QuicTpExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT);
+
     if (SSL_set_quic_transport_params(
             TlsContext->Ssl,
             Config->LocalTPBuffer,
@@ -856,66 +866,6 @@ QuicTlsUninitialize(
         QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
         TlsContext = NULL;
     }
-}
-
-void
-QuicTlsReset(
-    _In_ QUIC_TLS* TlsContext
-    )
-{
-    QuicTraceLogConnInfo(
-        OpenSslContextReset,
-        TlsContext->Connection,
-        "Resetting TLS state");
-
-    QUIC_DBG_ASSERT(TlsContext->IsServer == FALSE);
-
-    //
-    // Free the old SSL state.
-    //
-
-    if (TlsContext->Ssl != NULL) {
-        SSL_free(TlsContext->Ssl);
-        TlsContext->Ssl = NULL;
-    }
-
-    //
-    // Create a new SSL state.
-    //
-
-    TlsContext->Ssl = SSL_new(TlsContext->SecConfig->SSLCtx);
-    if (TlsContext->Ssl == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "SSL_new failed");
-        QUIC_DBG_ASSERT(FALSE);
-        goto Exit;
-    }
-
-    SSL_set_app_data(TlsContext->Ssl, TlsContext);
-
-    SSL_set_connect_state(TlsContext->Ssl);
-    SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
-    SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
-
-    QUIC_FRE_ASSERT(FALSE); // Currently unsupported!!
-    /* TODO - Figure out if this is necessary.
-    if (SSL_set_quic_transport_params(
-            TlsContext->Ssl,
-            Config->LocalTPBuffer,
-            Config->LocalTPLength) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "SSL_set_quic_transport_params failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }*/
-
-Exit:
-
-    return;
 }
 
 QUIC_TLS_RESULT_FLAGS
