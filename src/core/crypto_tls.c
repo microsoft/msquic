@@ -30,7 +30,6 @@ typedef enum eTlsExtensions {
     TlsExt_ServerName               = 0x00,
     TlsExt_AppProtocolNegotiation   = 0x10,
     TlsExt_SessionTicket            = 0x23,
-    TlsExt_QuicTransportParameters  = 0xffa5
 } eTlsExtensions;
 
 typedef enum eSniNameType {
@@ -387,7 +386,21 @@ QuicCryptoTlsReadExtensions(
                 return Status;
             }
 
-        } else if (ExtType == TlsExt_QuicTransportParameters) {
+        } else if (
+            Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_29 &&
+            ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS) {
+            if (!QuicCryptoTlsDecodeTransportParameters(
+                    Connection,
+                    FALSE,
+                    Buffer,
+                    ExtLen,
+                    &Connection->PeerTransportParams)) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+            FoundTransportParameters = TRUE;
+        } else if (
+            Connection->Stats.QuicVersion == QUIC_VERSION_DRAFT_29 &&
+            ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT) {
             if (!QuicCryptoTlsDecodeTransportParameters(
                     Connection,
                     FALSE,
