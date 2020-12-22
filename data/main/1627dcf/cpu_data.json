@@ -1,6 +1,6 @@
 {
   "CommitHash": "1627dcf",
-  "Date": "2020-10-09T19:59:17.0810152",
+  "Date": 1602269080000,
   "Tests": [
     {
       "PlatformName": "Windows_x64_openssl",

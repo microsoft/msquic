@@ -1,6 +1,6 @@
 {
   "CommitHash": "ca85764",
-  "Date": "2020-08-03T19:46:21.2704317",
+  "Date": 1596481392000,
   "Tests": [
     {
       "PlatformName": "Linux_x64_openssl",

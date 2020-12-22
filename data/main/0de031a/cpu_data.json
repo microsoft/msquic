@@ -1,6 +1,6 @@
 {
   "CommitHash": "0de031a",
-  "Date": "2020-10-13T15:28:53.3535872",
+  "Date": 1602600271000,
   "Tests": [
     {
       "PlatformName": "Windows_x64_mitls",

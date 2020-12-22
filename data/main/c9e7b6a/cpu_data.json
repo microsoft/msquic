@@ -1,6 +1,6 @@
 {
   "CommitHash": "c9e7b6a",
-  "Date": "2020-09-05T01:32:24.8642793",
+  "Date": 1599267674000,
   "Tests": [
     {
       "PlatformName": "Windows_x64_schannel",

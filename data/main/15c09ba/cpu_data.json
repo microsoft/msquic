@@ -1,6 +1,6 @@
 {
   "CommitHash": "15c09ba",
-  "Date": "2020-09-01T17:14:36.52257",
+  "Date": 1598978716000,
   "Tests": [
     {
       "PlatformName": "Winkernel_x64_schannel",

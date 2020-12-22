@@ -65,7 +65,7 @@ function Get-CommitTimePairJs {
 
     $DataVal = ""
     foreach ($Pair in $CommitModel) {
-        $TimeUnix = ([DateTimeOffset]$Pair.Date).ToUnixTimeMilliseconds();
+        $TimeUnix = $Pair.Date;
         $Hash = $Pair.CommitHash
         $Data = "'$TimeUnix': '$Hash'"
         if ($DataVal -eq "") {
@@ -85,7 +85,7 @@ function Get-RawTestDataJs {
 
     $DataVal = ""
     foreach ($Test in $TestList) {
-        $TimeUnix = ([DateTimeOffset]$Test.Date).ToUnixTimeMilliseconds();
+        $TimeUnix = $Test.Date;
         foreach ($Result in $Test.Results) {
             $Data = "{t: new Date($TimeUnix), rawTime: $TimeUnix, y: $Result}"
             if ($DataVal -eq "") {
@@ -106,7 +106,7 @@ function Get-AverageDataJs {
 
     $DataVal = ""
     foreach ($Test in $TestList) {
-        $TimeUnix = ([DateTimeOffset]$Test.Date).ToUnixTimeMilliseconds();
+        $TimeUnix = $Test.Date;
         $Average = ($Test.Results  | Measure-Object -Average).Average
         $Data = "{t: new Date($TimeUnix), rawTime: $TimeUnix, y: $Average}"
         if ($DataVal -eq "") {
@@ -468,11 +468,11 @@ $DataFileContents = Get-Content $DataFileIn
 
 $FirstAndLast = $CommitHistory | Sort-Object -Property Date | Select-Object -Index 0, ($CommitHistory.Count - 1)
 
-$OldestDateString = ([DateTimeOffset]$FirstAndLast[0].Date).ToUnixTimeMilliseconds()
+$OldestDateString = $FirstAndLast[0].Date;
 if ($FirstAndLast.Count -eq 1) {
-    $NewestDateString = ([DateTimeOffset]$FirstAndLast[0].Date).ToUnixTimeMilliseconds()
+    $NewestDateString = $FirstAndLast[0].Date;
 } else {
-    $NewestDateString = ([DateTimeOffset]$FirstAndLast[1].Date).ToUnixTimeMilliseconds()
+    $NewestDateString = $FirstAndLast[1].Date;
 }
 
 $DataFileContents = $DataFileContents.Replace("NEWEST_DATE", "new Date($NewestDateString)")
