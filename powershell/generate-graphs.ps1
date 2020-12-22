@@ -31,9 +31,10 @@ function Get-CommitHistory {
 
     $CurrentDate = Get-Date
     $PastDate = $CurrentDate.AddDays(-$DaysToReceive)
+    $PastDateUnix = ([DateTimeOffset]$PastDate).ToUnixTimeMilliseconds()
 
     $CommitsFile = Join-Path $BranchFolder "commits.json"
-    $CommitsContents = Get-Content $CommitsFile | ConvertFrom-Json | Where-Object -Property Date -GE $PastDate
+    $CommitsContents = Get-Content $CommitsFile | ConvertFrom-Json | Where-Object -Property Date -GE $PastDateUnix
 
     return $CommitsContents
 }
