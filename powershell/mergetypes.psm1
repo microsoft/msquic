@@ -65,11 +65,11 @@ class TestModel {
 
 class TestCommitModel {
     [string]$CommitHash;
-    [datetime]$Date;
+    [long]$Date;
     [Collections.Generic.List[TestModel]]$Tests;
 }
 
 class CommitsFileModel {
     [string]$CommitHash;
-    [datetime]$Date;
+    [long]$Date;
 }

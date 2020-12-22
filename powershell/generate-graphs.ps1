@@ -137,7 +137,7 @@ function Get-ThroughputDefault {
 
 class ThroughputTest {
     [string]$CommitHash;
-    [datetime]$Date;
+    [long]$Date;
     [string]$MachineName;
     [double[]]$Results;
 }
@@ -255,7 +255,7 @@ function Get-RPSDefault {
 
 class RpsTest {
     [string]$CommitHash;
-    [datetime]$Date;
+    [long]$Date;
     [string]$MachineName;
     [double[]]$Results;
 }
@@ -362,7 +362,7 @@ function Get-HPSDefault {
 
 class HpsTest {
     [string]$CommitHash;
-    [datetime]$Date;
+    [long]$Date;
     [string]$MachineName;
     [double[]]$Results;
 }
