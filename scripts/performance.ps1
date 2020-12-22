@@ -117,7 +117,10 @@ param (
     [string]$TestToRun = "",
 
     [Parameter(Mandatory = $false)]
-    [boolean]$FailOnRegression = $false
+    [boolean]$FailOnRegression = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ForceBranchName = $null
 )
 
 Set-StrictMode -Version 'Latest'
@@ -305,7 +308,9 @@ if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
     $BranchName = $PrBranchName
 }
 
-Write-Host "Branch Name: $BranchName"
+if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
+    $BranchName = $ForceBranchName
+}
 
 $LastCommitHash = Get-LatestCommitHash -Branch $BranchName
 $PreviousResults = Get-LatestCpuTestResult -Branch $BranchName -CommitHash $LastCommitHash

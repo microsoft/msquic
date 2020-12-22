@@ -948,7 +948,7 @@ function Publish-HPSTestResults {
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
-    $FullLastResult = Get-LatestHPSRemoteTestResults -CpuDate $PreviousResults -Request $Request
+    $FullLastResult = Get-LatestHPSRemoteTestResults -CpuData $PreviousResults -Request $Request
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($null -ne $FullLastResult) {
