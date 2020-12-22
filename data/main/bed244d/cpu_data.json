@@ -1,6 +1,6 @@
 {
   "CommitHash": "bed244d",
-  "Date": "2020-08-19T17:07:41.6284352",
+  "Date": 1597852325000,
   "Tests": [
     {
       "PlatformName": "Windows_x64_schannel",

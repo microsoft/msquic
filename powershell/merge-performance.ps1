@@ -85,14 +85,12 @@ $Files = Get-ChildItem -Path $ResultsPath -Recurse -File;
 $CommitModel = [TestCommitModel]::new()
 $CommitModel.Tests = New-Object Collections.Generic.List[TestModel]
 
-$TestDate = [DateTime]::UtcNow
-
 foreach ($File in $Files) {
     $Data = Get-Content $File | ConvertFrom-Json;
 
     if ($null -eq $CommitModel.CommitHash) {
         $CommitModel.CommitHash = $Data.CommitHash;
-        $CommitModel.Date = $TestDate
+        $CommitModel.Date = $Data.AuthKey # Change when we can rename this field after DB removal
     } elseif ($CommitModel.CommitHash -ne $Data.CommitHash) {
         Write-Error "Mismatched commit hashes"
     }
