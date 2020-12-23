@@ -228,19 +228,35 @@ function Get-GitHash {
     return $CurrentCommitHash
 }
 
+function Get-CommitDate {
+    param($RepoDir)
+    $CurrentLoc = Get-Location
+    Set-Location -Path $RepoDir | Out-Null
+    $env:GIT_REDIRECT_STDERR = '2>&1'
+    $CurrentCommitDate = $null
+    try {
+        $CurrentCommitDate = git show -s --format=%ct
+        $CurrentCommitDate = [DateTimeOffset]::FromUnixTimeSeconds($CurrentCommitDate).ToUnixTimeMilliseconds()
+    } catch {
+        Write-Debug "Failed to get commit date from git"
+    }
+    Set-Location -Path $CurrentLoc | Out-Null
+    return $CurrentCommitDate
+}
+
 function Get-CurrentBranch {
     param($RepoDir)
     $CurrentLoc = Get-Location
     Set-Location -Path $RepoDir | Out-Null
     $env:GIT_REDIRECT_STDERR = '2>&1'
-    $CurrentBranchName = $null
+    $CurrentBranch = $null
     try {
-        $CurrentBranchName = git rev-parse --abbrev-ref HEAD
+        $CurrentBranch = git branch --show-current
     } catch {
-        Write-Debug "Failed to get branch name from git"
+        Write-Debug "Failed to get commit date from git"
     }
     Set-Location -Path $CurrentLoc | Out-Null
-    return $CurrentBranchName
+    return $CurrentBranch
 }
 
 function Get-ExePath {
@@ -414,7 +430,7 @@ function Merge-PGOCounts {
 function PrintDumpCallStack($DumpFile, $ExePath) {
     $env:_NT_SYMBOL_PATH = Split-Path $ExePath
     try {
-        if ($env:BUILD_BUILDNUMBER -ne $null) {
+        if ($null -ne $env:BUILD_BUILDNUMBER) {
             $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
         }
         $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
@@ -517,7 +533,68 @@ function Get-TestResult($Results, $Matcher) {
     }
 }
 
+function Get-LatestCommitHash([string]$Branch) {
+    $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/commits.json"
+    Write-Debug "Requesting: $Uri"
+    try {
+        $AllCommits = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
+        Write-Debug "Result: $AllCommits"
+        $LatestResult = ($AllCommits | Sort-Object -Property Date -Descending)[0]
+        Write-Debug "Latest Commit: $LatestResult"
+    return $LatestResult.CommitHash
+    } catch {
+        return ""
+    }
+}
+
+function Get-LatestCpuTestResult([string]$Branch, [string]$CommitHash) {
+    $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/cpu_data.json"
+    Write-Debug "Requesting: $Uri"
+    try {
+        $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
+        Write-Debug "Result: $LatestResult"
+    return $LatestResult
+    } catch {
+        return ""
+    }
+}
+
+$Failures = New-Object Collections.Generic.List[string]
+function Write-Failures() {
+    $DidFail = $false
+    foreach ($Failure in $Failures) {
+        $DidFail = $true
+        Write-Output $Failure
+    }
+    if ($DidFail) {
+        Write-Error "Performance test failures occurred"
+    }
+}
+
+# Fail loopback tests if < 80%
+$LocalRegressionThreshold = -80.0
+
 #region Throughput Publish
+
+class ThroughputConfiguration {
+    [boolean]$Loopback;
+    [boolean]$Encryption;
+    [boolean]$SendBuffering;
+    [int]$NumberOfStreams;
+    [boolean]$ServerToClient;
+
+    [int] GetHashCode() {
+        return [HashCode]::Combine($this.Loopback, $this.Encryption, $this.SendBuffering, $this.NumberOfStreams, $this.ServerToClient)
+    }
+
+    [boolean] Equals([Object]$other) {
+        return $this.Encryption -eq $other.Encryption -and
+        $this.Loopback -eq $other.Loopback -and
+        $this.NumberOfStreams -eq $other.NumberOfStreams -and
+        $this.SendBuffering -eq $other.SendBuffering -and
+        $this.ServerToClient -eq $other.ServerToClient
+    }
+}
 
 class ThroughputRequest {
     [string]$PlatformName;
@@ -538,29 +615,30 @@ class ThroughputRequest {
         $this.NumberOfStreams = 1;
         $this.ServerToClient = $ServerToClient;
     }
-}
 
-$Failures = New-Object Collections.Generic.List[string]
-function Write-Failures() {
-    $DidFail = $false
-    foreach ($Failure in $Failures) {
-        $DidFail = $true
-        Write-Output $Failure
-    }
-    if ($DidFail) {
-        Write-Error "Performance test failures occurred"
+    [ThroughputConfiguration] GetConfiguration() {
+        $TputConfig = [ThroughputConfiguration]::new();
+        $TputConfig.Encryption = $this.Encryption;
+        $TputConfig.Loopback = $this.Loopback;
+        $TputConfig.NumberOfStreams = $this.NumberOfStreams;
+        $TputConfig.SendBuffering = $this.SendBuffering;
+        $TputConfig.ServerToClient = $this.ServerToClient;
+        return $TputConfig;
     }
 }
 
-# Fail loopback tests if < 80%
-$LocalRegressionThreshold = -80.0
-function Get-LatestThroughputRemoteTestResults([ThroughputRequest]$Request) {
-    $Uri = "https://msquicperformanceresults.azurewebsites.net/throughput/get"
-    $RequestJson = ConvertTo-Json -InputObject $Request
-    Write-Debug "Requesting: $Uri with $RequestJson"
-    $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
-    Write-Debug "Result: $LatestResult"
-    return $LatestResult
+function Get-LatestThroughputRemoteTestResults($CpuData, [ThroughputRequest]$Request) {
+    $TestConfig = $Request.GetConfiguration()
+    foreach ($Test in $CpuData.Tests) {
+        if ($null -eq $Test.TputConfig) {
+            continue;
+        }
+        
+        if ($TestConfig -eq $Test.TputConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+            return $Test
+        }
+    }
+    return $null
 }
 
 class ThroughputTestPublishResult {
@@ -597,17 +675,17 @@ class ThroughputTestPublishResult {
 }
 
 function Publish-ThroughputTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentBranch, $OutputDir, $ServerToClient, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ServerToClient, $ExePath)
 
     $Request = [ThroughputRequest]::new($Test, $ServerToClient)
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
-    $FullLastResult = Get-LatestThroughputRemoteTestResults -Request $Request
+    $FullLastResult = Get-LatestThroughputRemoteTestResults -CpuData $PreviousResults -Request $Request
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
-    if ($FullLastResult -ne "") {
-        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
+    if ($null -ne $FullLastResult) {
+        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.Results
         if ($MedianLastResult -eq 0) {
             Write-Error "Cannot have a last result median of 0"
         }
@@ -638,7 +716,7 @@ function Publish-ThroughputTestResults {
             $MachineName = $env:AGENT_MACHINENAME
         }
         $Results = [ThroughputTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
-        $Results.AuthKey = $CurrentBranch;
+        $Results.AuthKey = $CurrentCommitDate;
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
@@ -650,6 +728,24 @@ function Publish-ThroughputTestResults {
 #endregion
 
 #region RPS Publish
+
+class RpsConfiguration {
+    [int]$ConnectionCount;
+    [int]$RequestSize;
+    [int]$ResponseSize;
+    [int]$ParallelRequests;
+
+    [int] GetHashCode() {
+        return [HashCode]::Combine($this.ConnectionCount, $this.RequestSize, $this.ResponseSize, $this.ParallelRequests)
+    }
+
+    [boolean] Equals([Object]$other) {
+        return $this.ConnectionCount -eq $other.ConnectionCount -and
+        $this.RequestSize -eq $other.RequestSize -and
+        $this.ResponseSize -eq $other.ResponseSize -and
+        $this.ParallelRequests -eq $other.ParallelRequests
+    }
+}
 
 class RPSRequest {
     [string]$PlatformName;
@@ -667,15 +763,29 @@ class RPSRequest {
         $this.ResponseSize = $Test.VariableValues["ResponseSize"];
         $this.ParallelRequests = 30;
     }
+
+    [RpsConfiguration] GetConfiguration() {
+        $RpsConfig = [RpsConfiguration]::new();
+        $RpsConfig.ConnectionCount = $this.ConnectionCount;
+        $RpsConfig.RequestSize = $this.RequestSize;
+        $RpsConfig.ResponseSize = $this.ResponseSize;
+        $RpsConfig.ParallelRequests = $this.ParallelRequests;
+        return $RpsConfig;
+    }
 }
 
-function Get-LatestRPSRemoteTestResults([RPSRequest]$Request) {
-    $Uri = "https://msquicperformanceresults.azurewebsites.net/RPS/get"
-    $RequestJson = ConvertTo-Json -InputObject $Request
-    Write-Debug "Requesting: $Uri with $RequestJson"
-    $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
-    Write-Debug "Result: $LatestResult"
-    return $LatestResult
+function Get-LatestRPSRemoteTestResults($CpuData, [RpsRequest]$Request) {
+    $TestConfig = $Request.GetConfiguration()
+    foreach ($Test in $CpuData.Tests) {
+        if ($null -eq $Test.RpsConfig) {
+            continue;
+        }
+        
+        if ($TestConfig -eq $Test.RpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+            return $Test
+        }
+    }
+    return $null
 }
 
 class RPSTestPublishResult {
@@ -710,7 +820,7 @@ class RPSTestPublishResult {
 }
 
 function Publish-RPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentBranch, $OutputDir, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ExePath)
 
     $Request = [RPSRequest]::new($Test)
 
@@ -725,11 +835,11 @@ function Publish-RPSTestResults {
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
-    $FullLastResult = Get-LatestRPSRemoteTestResults -Request $Request
+    $FullLastResult = Get-LatestRPSRemoteTestResults -CpuData $PreviousResults -Request $Request
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
-    if ($FullLastResult -ne "") {
-        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
+    if ($null -ne $FullLastResult) {
+        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.Results
         if ($MedianLastResult -eq 0) {
             Write-Error "Cannot have a last result median of 0"
         }
@@ -757,7 +867,7 @@ function Publish-RPSTestResults {
             $MachineName = $env:AGENT_MACHINENAME
         }
         $Results = [RPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
-        $Results.AuthKey = $CurrentBranch;
+        $Results.AuthKey = $CurrentCommitDate;
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
@@ -770,6 +880,16 @@ function Publish-RPSTestResults {
 
 #region HPS Publish
 
+class HpsConfiguration {
+    [int] GetHashCode() {
+        return 7;
+    }
+
+    [boolean] Equals([Object]$other) {
+        return $true
+    }
+}
+
 class HPSRequest {
     [string]$PlatformName;
 
@@ -778,15 +898,25 @@ class HPSRequest {
     ) {
         $this.PlatformName = $Test.ToTestPlatformString();
     }
+
+    [HpsConfiguration] GetConfiguration() {
+        $Config = [HpsConfiguration]::new();
+        return $Config;
+    }
 }
 
-function Get-LatestHPSRemoteTestResults([HPSRequest]$Request) {
-    $Uri = "https://msquicperformanceresults.azurewebsites.net/HPS/get"
-    $RequestJson = ConvertTo-Json -InputObject $Request
-    Write-Debug "Requesting: $Uri with $RequestJson"
-    $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
-    Write-Debug "Result: $LatestResult"
-    return $LatestResult
+function Get-LatestHPSRemoteTestResults($CpuData, [HpsRequest]$Request) {
+    $TestConfig = $Request.GetConfiguration()
+    foreach ($Test in $CpuData.Tests) {
+        if ($null -eq $Test.HpsConfig) {
+            continue;
+        }
+        
+        if ($TestConfig -eq $Test.HpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+            return $Test
+        }
+    }
+    return $null
 }
 
 class HPSTestPublishResult {
@@ -813,17 +943,17 @@ class HPSTestPublishResult {
 }
 
 function Publish-HPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentBranch, $OutputDir, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ExePath)
 
     $Request = [HPSRequest]::new($Test)
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
-    $FullLastResult = Get-LatestHPSRemoteTestResults -Request $Request
+    $FullLastResult = Get-LatestHPSRemoteTestResults -CpuData $PreviousResults -Request $Request
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
-    if ($FullLastResult -ne "") {
-        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
+    if ($null -ne $FullLastResult) {
+        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.Results
         if ($MedianLastResult -eq 0) {
             Write-Error "Cannot have a last result median of 0"
         }
@@ -851,7 +981,7 @@ function Publish-HPSTestResults {
             $MachineName = $env:AGENT_MACHINENAME
         }
         $Results = [HPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
-        $Results.AuthKey = $CurrentBranch;
+        $Results.AuthKey = $CurrentCommitDate;
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
@@ -863,16 +993,16 @@ function Publish-HPSTestResults {
 #endregion
 
 function Publish-TestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $CurrentBranch, $OutputDir, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ExePath)
 
     if ($Test.TestName -eq "ThroughputUp") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentBranch $CurrentBranch -OutputDir $OutputDir -ServerToClient $false -ExePath $ExePath
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ServerToClient $false -ExePath $ExePath
     } elseif ($Test.TestName -eq "ThroughputDown") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentBranch $CurrentBranch -OutputDir $OutputDir -ServerToClient $true -ExePath $ExePath
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ServerToClient $true -ExePath $ExePath
     } elseif ($Test.TestName -eq "RPS") {
-        Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentBranch $CurrentBranch -OutputDir $OutputDir -ExePath $ExePath
+        Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ExePath $ExePath
     } elseif ($Test.TestName -eq "HPS") {
-        Publish-HPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentBranch $CurrentBranch -OutputDir $OutputDir -ExePath $ExePath
+        Publish-HPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ExePath $ExePath
     } else {
         Write-Host "Unknown Test Type"
     }

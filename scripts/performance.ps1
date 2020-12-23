@@ -117,7 +117,10 @@ param (
     [string]$TestToRun = "",
 
     [Parameter(Mandatory = $false)]
-    [boolean]$FailOnRegression = $false
+    [boolean]$FailOnRegression = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ForceBranchName = $null
 )
 
 Set-StrictMode -Version 'Latest'
@@ -241,7 +244,7 @@ if ($Local) {
 }
 
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
-$CurrentBranch = Get-CurrentBranch -RepoDir $RootDir
+$CurrentCommitDate = Get-CommitDate -RepoDir $RootDir
 
 if ($PGO -and $Local) {
     # PGO needs the server and client executing out of separate directories.
@@ -287,6 +290,30 @@ function LocalTeardown {
 
 $RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true
 $LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false
+
+# See if we are an AZP PR
+$PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
+if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
+    # Mainline build, just get branch name
+    $AzpBranchName = $env:BUILD_SOURCEBRANCH
+    if ([string]::IsNullOrWhiteSpace($AzpBranchName)) {
+        # Non azure build
+        $BranchName = Get-CurrentBranch -RepoDir $RootDir
+    } else {
+        # Azure Build
+        $BranchName = $AzpBranchName.Substring(11);
+    }
+} else {
+    # PR Build
+    $BranchName = $PrBranchName
+}
+
+if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
+    $BranchName = $ForceBranchName
+}
+
+$LastCommitHash = Get-LatestCommitHash -Branch $BranchName
+$PreviousResults = Get-LatestCpuTestResult -Branch $BranchName -CommitHash $LastCommitHash
 
 function Invoke-Test {
     param ($Test)
@@ -391,7 +418,8 @@ function Invoke-Test {
     Publish-TestResults -Test $Test `
                         -AllRunsResults $AllRunsResults `
                         -CurrentCommitHash $CurrentCommitHash `
-                        -CurrentBranch $CurrentBranch `
+                        -CurrentCommitDate $CurrentCommitDate `
+                        -PreviousResults $PreviousResults `
                         -OutputDir $OutputDir `
                         -ExePath $LocalExe
 }
