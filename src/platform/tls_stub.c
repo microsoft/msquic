@@ -474,7 +474,7 @@ QuicTlsUninitialize(
             "Cleaning up");
 
         if (TlsContext->ResumptionTicketBuffer != NULL) {
-            QUIC_FREE(TlsContext->ResumptionTicketBuffer, QUIC_POOL_TLS_RESUMPTION);
+            QUIC_FREE(TlsContext->ResumptionTicketBuffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
         }
 
         if (TlsContext->SNI != NULL) {
