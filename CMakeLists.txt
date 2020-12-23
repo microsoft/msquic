@@ -403,30 +403,47 @@ if(QUIC_TLS STREQUAL "openssl")
 
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
 
-        add_library(OpenSSL_Crypto STATIC IMPORTED)
-        set_target_properties(OpenSSL_Crypto PROPERTIES
+        add_library(OpenSSL_Crypto_Debug STATIC IMPORTED)
+        set_target_properties(OpenSSL_Crypto_Debug PROPERTIES
             IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C")
+
+        add_library(OpenSSL_Debug STATIC IMPORTED)
+        set_target_properties(OpenSSL_Debug PROPERTIES
+            IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C")
+
+        target_include_directories(OpenSSL_Debug INTERFACE
+                ${OPENSSL_DIR}/debug/include)
+        target_link_libraries(OpenSSL_Debug INTERFACE OpenSSL_Crypto_Debug)
+
+
+        add_library(OpenSSL_Crypto_Release STATIC IMPORTED)
+        set_target_properties(OpenSSL_Crypto_Release PROPERTIES
             IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
-            IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
             MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
             MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
 
-        add_library(OpenSSL STATIC IMPORTED)
-        set_target_properties(OpenSSL PROPERTIES
-            IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+        add_library(OpenSSL_Release STATIC IMPORTED)
+        set_target_properties(OpenSSL_Release PROPERTIES
             IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
             IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
-            IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
             MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
             MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
 
-        target_include_directories(OpenSSL INTERFACE
-                $<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
-                $<$<CONFIG:Release>:${OPENSSL_DIR}/release/include>)
-        target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
+        target_include_directories(OpenSSL_Release INTERFACE
+                ${OPENSSL_DIR}/release/include)
+        target_link_libraries(OpenSSL_Release INTERFACE OpenSSL_Crypto_Release)
+
+        add_library(OpenSSL INTERFACE)
+        target_link_libraries(OpenSSL INTERFACE 
+                $<$<CONFIG:Debug>:OpenSSL_Debug>
+                $<$<CONFIG:Release>:OpenSSL_Release>)
 
         if (QUIC_CI AND EXISTS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+            message(STATUS "Found existing OpenSSL cache, skipping openssl build")
+        elsief (QUIC_CI AND EXISTS ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
             message(STATUS "Found existing OpenSSL cache, skipping openssl build")
         else()
             file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
@@ -444,8 +461,6 @@ if(QUIC_TLS STREQUAL "openssl")
 
             add_custom_target(mkdir_openssl_build_debug
                 COMMAND if not exist \"${QUIC_BUILD_DIR}/submodules/openssl/debug\" mkdir \"${QUIC_BUILD_DIR}/submodules/openssl/debug\" 2> NUL)
-            add_custom_target(mkdir_openssl_build_release
-                COMMAND if not exist \"${QUIC_BUILD_DIR}/submodules/openssl/release\" mkdir \"${QUIC_BUILD_DIR}/submodules/openssl/release\" 2> NUL)
             add_custom_command(
                 DEPENDS mkdir_openssl_build_debug
                 WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
@@ -454,7 +469,15 @@ if(QUIC_TLS STREQUAL "openssl")
                 COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug
                 COMMAND nmake
                 COMMAND nmake install_dev)
+            add_custom_target(OpenSSL_Build_Debug
+                DEPENDS ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+                DEPENDS ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
+            add_dependencies(OpenSSL_Crypto_Debug OpenSSL_Build_Debug)
+            add_dependencies(OpenSSL_Debug OpenSSL_Build_Debug)
+
+            add_custom_target(mkdir_openssl_build_release
+                COMMAND if not exist \"${QUIC_BUILD_DIR}/submodules/openssl/release\" mkdir \"${QUIC_BUILD_DIR}/submodules/openssl/release\" 2> NUL)
             add_custom_command(
                 DEPENDS mkdir_openssl_build_release
                 WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
@@ -463,17 +486,13 @@ if(QUIC_TLS STREQUAL "openssl")
                 COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release
                 COMMAND nmake
                 COMMAND nmake install_dev)
-
-            add_custom_target(OpenSSL_Build_Debug
-                DEPENDS ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-                DEPENDS ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-
             add_custom_target(OpenSSL_Build_Release
                 DEPENDS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
                 DEPENDS ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-            add_dependencies(OpenSSL_Crypto OpenSSL_Build_Release OpenSSL_Build_Debug)
-            add_dependencies(OpenSSL OpenSSL_Build_Release OpenSSL_Build_Debug)
+            add_dependencies(OpenSSL_Crypto_Release OpenSSL_Build_Release)
+            add_dependencies(OpenSSL_Release OpenSSL_Build_Release)
+
         endif()
     else()
         # Configure and build OpenSSL.
