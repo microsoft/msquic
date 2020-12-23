@@ -1,6 +1,6 @@
 {
   "CommitHash": "b25f137",
-  "Date": 1608665328,
+  "Date": 1608665328000,
   "Tests": [
     {
       "PlatformName": "Linux_x64_openssl",
