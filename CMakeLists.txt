@@ -463,10 +463,7 @@ if(QUIC_TLS STREQUAL "openssl")
 
             add_custom_target(OpenSSL_Build
                 DEPENDS $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
-
                 WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug,${QUIC_BUILD_DIR}/submodules/openssl/release>
-
-                COMMAND nmake
                 COMMAND nmake install_dev)
 
             add_library(OpenSSL_Build_Tgt INTERFACE)
