@@ -236,6 +236,7 @@ function Get-CommitDate {
     $CurrentCommitDate = $null
     try {
         $CurrentCommitDate = git show -s --format=%ct
+        $CurrentCommitDate = [DateTimeOffset]::FromUnixTimeSeconds($CurrentCommitDate).ToUnixTimeMilliseconds()
     } catch {
         Write-Debug "Failed to get commit date from git"
     }
