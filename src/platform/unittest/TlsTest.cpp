@@ -150,7 +150,7 @@ protected:
                 QuicPacketKeyFree(State.WriteKeys[i]);
             }
             if (ResumptionTicket.Buffer) {
-                QUIC_FREE(ResumptionTicket.Buffer, QUIC_POOL_TEST);
+                QUIC_FREE(ResumptionTicket.Buffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
             }
         }
 
@@ -448,7 +448,7 @@ protected:
             auto Context = (TlsContext*)Connection;
             if (Context->ResumptionTicket.Buffer == nullptr) {
                 Context->ResumptionTicket.Buffer =
-                    (uint8_t*)QUIC_ALLOC_NONPAGED(TicketLength, QUIC_POOL_TEST);
+                    (uint8_t*)QUIC_ALLOC_NONPAGED(TicketLength, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
                 QuicCopyMemory(
                     Context->ResumptionTicket.Buffer,
                     Ticket,
