@@ -417,7 +417,6 @@ if(QUIC_TLS STREQUAL "openssl")
                 ${OPENSSL_DIR}/debug/include)
         target_link_libraries(OpenSSL_Debug INTERFACE OpenSSL_Crypto_Debug)
 
-
         add_library(OpenSSL_Crypto_Release STATIC IMPORTED)
         set_target_properties(OpenSSL_Crypto_Release PROPERTIES
             IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
