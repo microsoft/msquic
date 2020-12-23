@@ -426,7 +426,7 @@ if(QUIC_TLS STREQUAL "openssl")
 
         if (QUIC_CI AND EXISTS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
             message(STATUS "Found existing OpenSSL cache, skipping openssl build")
-        elsief (QUIC_CI AND EXISTS ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+        elseif (QUIC_CI AND EXISTS ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
             message(STATUS "Found existing OpenSSL cache, skipping openssl build")
         else()
             file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
