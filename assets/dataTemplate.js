@@ -9,8 +9,6 @@ var dataRawPointRadius = 4
 
 // Global option configuration
 Chart.defaults.global.responsive = true
-Chart.defaults.global.tooltips.mode = 'x'
-Chart.defaults.global.tooltips.intersect = true
 Chart.defaults.global.tooltips.position = 'nearest'
 Chart.defaults.global.tooltips.itemSort = tooltipSort
 Chart.defaults.global.legend.display = false
@@ -56,7 +54,17 @@ var tooltipsObject = {
     callbacks : {
         beforeBody: beforeBodyPlacement,
         label: labelChange
-    }
+    },
+    mode: "x",
+    intersect: true
+}
+
+var tooltipsSummaryObject = {
+    callbacks : {
+        beforeBody: beforeBodyPlacement
+    },
+    mode: "nearest",
+    intersect: false
 }
 
 var timeAxis = {
@@ -99,7 +107,7 @@ function createSummaryChartOptions(title, yName) {
             text: title,
             fontSize: 16
         },
-        tooltips: tooltipsObject,
+        tooltips: tooltipsSummaryObject,
         scales: {
             xAxes: [timeAxis],
             yAxes: [{
