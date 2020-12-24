@@ -449,14 +449,12 @@ if(QUIC_TLS STREQUAL "openssl")
 
             add_custom_command(
                 DEPENDS mkdir_openssl_build_debug
-
                 WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
                 OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile
                 COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug)
 
             add_custom_command(
                 DEPENDS mkdir_openssl_build_release
-
                 WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
                 OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/release/makefile
                 COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release)
