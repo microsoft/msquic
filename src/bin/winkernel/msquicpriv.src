@@ -3,3 +3,4 @@ NAME msquicpriv.sys
 EXPORTS
     MsQuicOpen
     MsQuicClose
+    MsQuicSetWorkerThreadCallback

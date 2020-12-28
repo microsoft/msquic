@@ -546,9 +546,28 @@ QuicWorkerProcessConnection(
     }
 }
 
+static QUIC_WORKER_CALLBACK_HANDLER WorkerHandler;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicSetWorkerThreadCallback(
+    _In_ QUIC_WORKER_CALLBACK_HANDLER Handler
+    )
+{
+    QuicLockAcquire(&MsQuicLib.Lock);
+    WorkerHandler = Handler;
+    QuicLockRelease(&MsQuicLib.Lock);
+    return QUIC_STATUS_SUCCESS;
+}
+
 QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
 {
     QUIC_WORKER* Worker = (QUIC_WORKER*)Context;
+    QUIC_WORKER_CALLBACK_HANDLER Handler;
+    QuicLockAcquire(&MsQuicLib.Lock);
+    Handler = WorkerHandler;
+    QuicLockRelease(&MsQuicLib.Lock);
 
     Worker->ThreadID = QuicCurThreadID();
     Worker->IsActive = TRUE;
@@ -556,6 +575,10 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
         WorkerStart,
         "[wrkr][%p] Start",
         Worker);
+
+    if (Handler != NULL) {
+        Handler(QUIC_WORKER_STARTED);
+    }
 
     //
     // TODO - Review how often QuicTimeUs64() is called in the thread. Perhaps
@@ -677,6 +700,10 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
         --Dequeue;
     }
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, Dequeue);
+
+    if (Handler != NULL) {
+        Handler(QUIC_WORKER_STOPPED);
+    }
 
     QuicTraceEvent(
         WorkerStop,

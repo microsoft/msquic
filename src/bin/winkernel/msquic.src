@@ -3,3 +3,4 @@ NAME msquic.sys
 EXPORTS
     MsQuicOpen
     MsQuicClose
+    MsQuicSetWorkerThreadCallback

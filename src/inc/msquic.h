@@ -1154,6 +1154,39 @@ MsQuicClose(
     _In_ _Pre_defensive_ const QUIC_API_TABLE* QuicApi
     );
 
+//
+// Event type for worker thread starting and stopping.
+//
+typedef enum QUIC_WORKER_EVENT_TYPE {
+    QUIC_WORKER_STARTED = 0,
+    QUIC_WORKER_STOPPED = 1
+} QUIC_WORKER_EVENT_TYPE;
+
+//
+// Callback handler for worker thread starting and stopping.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_WORKER_CALLBACK)
+void
+(QUIC_API QUIC_WORKER_CALLBACK)(
+    _In_ QUIC_WORKER_EVENT_TYPE EventType
+    );
+
+typedef QUIC_WORKER_CALLBACK *QUIC_WORKER_CALLBACK_HANDLER;
+
+//
+// Provide a handler to be called whenever a worker thread that user code
+// might see is started or stopped. This needs to be called before MsQuicOpen
+// to be guaranteed to work correctly. 
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicSetWorkerThreadCallback(
+    _In_ QUIC_WORKER_CALLBACK_HANDLER Handler
+    );
+
 #if defined(__cplusplus)
 }
 #endif
