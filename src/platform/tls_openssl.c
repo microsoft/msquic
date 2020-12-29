@@ -9,6 +9,7 @@ Abstract:
 
 --*/
 
+#define _CRT_SECURE_NO_WARNINGS
 #include "platform_internal.h"
 
 #define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
@@ -499,9 +500,10 @@ int QuicTlsPasswordCallback(
     _In_ void* UserData
     )
 {
+    UNREFERENCED_PARAMETER(RwFlag);
     strncpy(Buffer, (char*)UserData, Size);
     Buffer[Size - 1] = '\0';
-    return strlen(Buffer);
+    return (int)strlen(Buffer);
 }
 
 QUIC_STATUS
@@ -719,7 +721,7 @@ QuicTlsSecConfigCreate(
             SSL_CTX_set_default_passwd_cb_userdata(
                 SecurityConfig->SSLCtx, (void*)CredConfig->CertificatePassword);
             SSL_CTX_set_default_passwd_cb(
-                SecurityConfig->SSLCtx, (void*)QuicTlsPasswordCallback);
+                SecurityConfig->SSLCtx, QuicTlsPasswordCallback);
         }
 
         if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
