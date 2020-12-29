@@ -393,7 +393,7 @@ ServerLoadConfiguration(
         if (Password != nullptr) {
             Config.CertFileProtected.CertificateFile = (char*)Cert;
             Config.CertFileProtected.PrivateKeyFile = (char*)KeyFile;
-            Config.CertFileProtected.CertificatePassword = (char*)Password;
+            Config.CertFileProtected.PrivateKeyPassword = (char*)Password;
             Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED;
             Config.CredConfig.CertificateFileProtected = &Config.CertFileProtected;
         } else {
