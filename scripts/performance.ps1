@@ -117,7 +117,10 @@ param (
     [string]$TestToRun = "",
 
     [Parameter(Mandatory = $false)]
-    [boolean]$FailOnRegression = $false
+    [boolean]$FailOnRegression = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ForceBranchName = $null
 )
 
 Set-StrictMode -Version 'Latest'
@@ -241,6 +244,7 @@ if ($Local) {
 }
 
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
+$CurrentCommitDate = Get-CommitDate -RepoDir $RootDir
 
 if ($PGO -and $Local) {
     # PGO needs the server and client executing out of separate directories.
@@ -286,6 +290,30 @@ function LocalTeardown {
 
 $RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true
 $LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false
+
+# See if we are an AZP PR
+$PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
+if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
+    # Mainline build, just get branch name
+    $AzpBranchName = $env:BUILD_SOURCEBRANCH
+    if ([string]::IsNullOrWhiteSpace($AzpBranchName)) {
+        # Non azure build
+        $BranchName = Get-CurrentBranch -RepoDir $RootDir
+    } else {
+        # Azure Build
+        $BranchName = $AzpBranchName.Substring(11);
+    }
+} else {
+    # PR Build
+    $BranchName = $PrBranchName
+}
+
+if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
+    $BranchName = $ForceBranchName
+}
+
+$LastCommitHash = Get-LatestCommitHash -Branch $BranchName
+$PreviousResults = Get-LatestCpuTestResult -Branch $BranchName -CommitHash $LastCommitHash
 
 function Invoke-Test {
     param ($Test)
@@ -367,16 +395,16 @@ function Invoke-Test {
     } finally {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
         Write-Debug $RemoteResults.ToString()
-    }
 
-    Stop-Tracing -Exe $LocalExe
+        Stop-Tracing -Exe $LocalExe
 
-    if ($Record) {
-        if ($Local) {
-            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
-        } else {
-            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
-            Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
+        if ($Record) {
+            if ($Local) {
+                Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
+            } else {
+                Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
+                Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
+            }
         }
     }
 
@@ -390,6 +418,8 @@ function Invoke-Test {
     Publish-TestResults -Test $Test `
                         -AllRunsResults $AllRunsResults `
                         -CurrentCommitHash $CurrentCommitHash `
+                        -CurrentCommitDate $CurrentCommitDate `
+                        -PreviousResults $PreviousResults `
                         -OutputDir $OutputDir `
                         -ExePath $LocalExe
 }

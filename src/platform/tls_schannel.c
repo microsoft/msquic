@@ -353,6 +353,11 @@ typedef struct QUIC_TLS {
     BOOLEAN ApplicationKeyRead : 1;
 
     //
+    // The TLS extension type for the QUIC transport parameters.
+    //
+    uint16_t QuicTpExtType;
+
+    //
     // Cached server name indication.
     //
     const char* SNI;
@@ -1475,6 +1480,7 @@ QuicTlsInitialize(
     TlsContext->Connection = Config->Connection;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
     TlsContext->ReceiveTicketCallback = Config->ReceiveResumptionCallback;
+    TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->SNI = Config->ServerName;
     TlsContext->SecConfig = Config->SecConfig;
 #ifdef QUIC_TLS_SECRETS_SUPPORT
@@ -1497,7 +1503,7 @@ QuicTlsInitialize(
     memcpy(&AlpnList->ProtocolList, Config->AlpnBuffer, Config->AlpnBufferLength);
 
     TlsContext->TransportParams = (SEND_GENERIC_TLS_EXTENSION*)Config->LocalTPBuffer;
-    TlsContext->TransportParams->ExtensionType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
+    TlsContext->TransportParams->ExtensionType = Config->TPType;
     TlsContext->TransportParams->HandshakeType =
         Config->IsServer ? TlsHandshake_EncryptedExtensions : TlsHandshake_ClientHello;
     TlsContext->TransportParams->Flags = 0;
@@ -1506,7 +1512,7 @@ QuicTlsInitialize(
 
     State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
     if (Config->ResumptionTicketBuffer != NULL) {
-        QUIC_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_TLS_RESUMPTION);
+        QUIC_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
     }
 
     Status = QUIC_STATUS_SUCCESS;
@@ -1567,23 +1573,6 @@ QuicTlsUninitialize(
         }
         QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsReset(
-    _In_ QUIC_TLS* TlsContext
-    )
-{
-    QuicTraceLogConnInfo(
-        SchannelContextReset,
-        TlsContext->Connection,
-        "Resetting TLS state");
-
-    //
-    // Clean up and then re-create Schannel state.
-    //
-    QuicTlsResetSchannel(TlsContext);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1743,8 +1732,7 @@ QuicTlsWriteDataToSchannel(
         //
         SubscribeExt.Flags = 0;
         SubscribeExt.SubscriptionsCount = 1;
-        SubscribeExt.Subscriptions[0].ExtensionType =
-            TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
+        SubscribeExt.Subscriptions[0].ExtensionType = TlsContext->QuicTpExtType;
         SubscribeExt.Subscriptions[0].HandshakeType =
             TlsContext->IsServer ? TlsHandshake_ClientHello : TlsHandshake_EncryptedExtensions;
 
@@ -3299,7 +3287,7 @@ QuicHpKeyCreate(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            (AeadType == QUIC_AEAD_CHACHA20_POLY1305) ? 
+            (AeadType == QUIC_AEAD_CHACHA20_POLY1305) ?
                 "BCryptGenerateSymmetricKey (ChaCha)" :
                 "BCryptGenerateSymmetricKey (ECB)");
         goto Error;
@@ -3372,7 +3360,7 @@ QuicHpComputeMask(
                     Key->Info,
                     NULL,
                     0,
-                    Mask + Offset, 
+                    Mask + Offset,
                     QUIC_HP_SAMPLE_LENGTH, // This will fail because the Tag won't fit
                     &TempSize,
                     0));

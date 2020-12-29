@@ -178,27 +178,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${QUIC_OUTPUT_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
-if (QUIC_ENABLE_LOGGING)
-    execute_process(COMMAND clog --installDirectory ${QUIC_BUILD_DIR}/clog)
-
-    set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
-    set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
-    set(CLOG_INCLUDE_DIRECTORY ${QUIC_BUILD_DIR}/clog)
-    set(CMAKE_CLOG_GENERATE_FILE ${QUIC_BUILD_DIR}/clog/CLog.cmake)
-    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
-    include(${CMAKE_CLOG_GENERATE_FILE})
-
-    function(add_clog_library)
-        CLOG_GENERATE_TARGET(${ARGV})
-        target_link_libraries(${ARGV0} PRIVATE inc)
-        set_property(TARGET ${ARGV0} PROPERTY FOLDER "clog")
-    endfunction()
-else()
-    function(add_clog_library)
-        add_library(${ARGV0} INTERFACE)
-    endfunction()
-endif()
-
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
@@ -356,7 +335,6 @@ else()
         message(STATUS "Disabling tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE stubs)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
-        list(APPEND QUIC_WARNING_FLAGS -Wno-unused-parameter -Wno-unused-variable)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl")
@@ -408,8 +386,7 @@ if(QUIC_TLS STREQUAL "openssl")
         set_target_properties(OpenSSL_Crypto PROPERTIES
             IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-            IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
-            IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
             MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
             MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
 
@@ -417,18 +394,19 @@ if(QUIC_TLS STREQUAL "openssl")
         set_target_properties(OpenSSL PROPERTIES
             IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
             IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
-            IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
             MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
             MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
 
         target_include_directories(OpenSSL INTERFACE
-                $<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
-                $<$<CONFIG:Release>:${OPENSSL_DIR}/release/include>)
+            $<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
+            $<$<CONFIG:Release>:${OPENSSL_DIR}/release/include>)
         target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
 
-        if (QUIC_CI AND EXISTS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
-            message(STATUS "Found existing OpenSSL cache, skipping openssl build")
+        if (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Release" AND EXISTS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+            message(STATUS "Found existing OpenSSL Release cache, skipping openssl build")
+        elseif (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Debug" AND EXISTS ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+            message(STATUS "Found existing OpenSSL Debug cache, skipping openssl build")
         else()
             file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
             file(MAKE_DIRECTORY ${OPENSSL_DIR}/release/include)
@@ -447,34 +425,28 @@ if(QUIC_TLS STREQUAL "openssl")
                 COMMAND if not exist \"${QUIC_BUILD_DIR}/submodules/openssl/debug\" mkdir \"${QUIC_BUILD_DIR}/submodules/openssl/debug\" 2> NUL)
             add_custom_target(mkdir_openssl_build_release
                 COMMAND if not exist \"${QUIC_BUILD_DIR}/submodules/openssl/release\" mkdir \"${QUIC_BUILD_DIR}/submodules/openssl/release\" 2> NUL)
+
             add_custom_command(
                 DEPENDS mkdir_openssl_build_debug
                 WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
-                OUTPUT ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-                OUTPUT ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-                COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug
-                COMMAND nmake
-                COMMAND nmake install_dev)
+                OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile
+                COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug)
 
             add_custom_command(
                 DEPENDS mkdir_openssl_build_release
                 WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
-                OUTPUT ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-                OUTPUT ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-                COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release
-                COMMAND nmake
+                OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/release/makefile
+                COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release)
+
+            add_custom_target(OpenSSL_Build
+                DEPENDS $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
+                WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug,${QUIC_BUILD_DIR}/submodules/openssl/release>
                 COMMAND nmake install_dev)
 
-            add_custom_target(OpenSSL_Build_Debug
-                DEPENDS ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-                DEPENDS ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+            add_library(OpenSSL_Build_Tgt INTERFACE)
+            add_dependencies(OpenSSL_Build_Tgt OpenSSL_Build)
 
-            add_custom_target(OpenSSL_Build_Release
-                DEPENDS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-                DEPENDS ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-
-            add_dependencies(OpenSSL_Crypto OpenSSL_Build_Release OpenSSL_Build_Debug)
-            add_dependencies(OpenSSL OpenSSL_Build_Release OpenSSL_Build_Debug)
+            target_link_libraries(OpenSSL INTERFACE OpenSSL_Build_Tgt)
         endif()
     else()
         # Configure and build OpenSSL.
@@ -528,6 +500,27 @@ if(QUIC_TLS STREQUAL "openssl")
         target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
         add_dependencies(OpenSSL OpenSSL_Build)
     endif()
+endif()
+
+if (QUIC_ENABLE_LOGGING)
+    execute_process(COMMAND clog --installDirectory ${QUIC_BUILD_DIR}/clog)
+
+    set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
+    set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
+    set(CLOG_INCLUDE_DIRECTORY ${QUIC_BUILD_DIR}/clog)
+    set(CMAKE_CLOG_GENERATE_FILE ${QUIC_BUILD_DIR}/clog/CLog.cmake)
+    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
+    include(${CMAKE_CLOG_GENERATE_FILE})
+
+    function(add_clog_library)
+        CLOG_GENERATE_TARGET(${ARGV})
+        target_link_libraries(${ARGV0} PRIVATE inc)
+        set_property(TARGET ${ARGV0} PROPERTY FOLDER "clog")
+    endfunction()
+else()
+    function(add_clog_library)
+        add_library(${ARGV0} INTERFACE)
+    endfunction()
 endif()
 
 if(QUIC_TLS STREQUAL "mitls")

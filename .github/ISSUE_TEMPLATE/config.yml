@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: "\U00002753 Comment, Question or Problem"
+    url: https://github.com/microsoft/msquic/discussions
+    about: Please direct general discussion here.

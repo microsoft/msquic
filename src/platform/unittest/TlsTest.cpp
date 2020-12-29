@@ -150,7 +150,7 @@ protected:
                 QuicPacketKeyFree(State.WriteKeys[i]);
             }
             if (ResumptionTicket.Buffer) {
-                QUIC_FREE(ResumptionTicket.Buffer, QUIC_POOL_TEST);
+                QUIC_FREE(ResumptionTicket.Buffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
             }
         }
 
@@ -166,6 +166,7 @@ protected:
             UNREFERENCED_PARAMETER(MultipleAlpns); // The server must always send back the negotiated ALPN.
             Config.AlpnBuffer = Alpn;
             Config.AlpnBufferLength = sizeof(Alpn);
+            Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
@@ -194,6 +195,7 @@ protected:
             Config.SecConfig = SecConfiguration;
             Config.AlpnBuffer = MultipleAlpns ? MultiAlpn : Alpn;
             Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
+            Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
@@ -274,7 +276,7 @@ protected:
                 }
             }
 
-            std::cout << "Processing " << *BufferLength << " bytes of type " << DataType << std::endl;
+            //std::cout << "Processing " << *BufferLength << " bytes of type " << DataType << std::endl;
 
             auto Result =
                 QuicTlsProcessData(
@@ -446,7 +448,7 @@ protected:
             auto Context = (TlsContext*)Connection;
             if (Context->ResumptionTicket.Buffer == nullptr) {
                 Context->ResumptionTicket.Buffer =
-                    (uint8_t*)QUIC_ALLOC_NONPAGED(TicketLength, QUIC_POOL_TEST);
+                    (uint8_t*)QUIC_ALLOC_NONPAGED(TicketLength, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
                 QuicCopyMemory(
                     Context->ResumptionTicket.Buffer,
                     Ticket,
@@ -535,6 +537,7 @@ protected:
         }
     };
 
+    static
     void
     DoHandshake(
         TlsContext& ServerContext,
@@ -543,7 +546,7 @@ protected:
         bool SendResumptionTicket = false
         )
     {
-        std::cout << "==DoHandshake==" << std::endl;
+        //std::cout << "==DoHandshake==" << std::endl;
 
         auto Result = ClientContext.ProcessData(nullptr);
         ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
@@ -566,6 +569,18 @@ protected:
 
             Result = ClientContext.ProcessData(&ServerContext.State, FragmentSize);
         }
+    }
+
+    static QUIC_THREAD_CALLBACK(HandshakeAsync, Context)
+    {
+        TlsTest* This = (TlsTest*)Context;
+        for (uint32_t i = 0; i < 100; ++i) {
+            TlsContext ServerContext, ClientContext;
+            ServerContext.InitializeServer(This->ServerSecConfig);
+            ClientContext.InitializeClient(This->ClientSecConfigNoCertValidation);
+            DoHandshake(ServerContext, ClientContext);
+        }
+        QUIC_THREAD_RETURN(0);
     }
 
     int64_t
@@ -645,6 +660,29 @@ TEST_F(TlsTest, Handshake)
     ServerContext.InitializeServer(ServerSecConfig);
     ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
     DoHandshake(ServerContext, ClientContext);
+}
+
+TEST_F(TlsTest, HandshakeParallel)
+{
+    QUIC_THREAD_CONFIG Config = {
+        0,
+        0,
+        "TlsWorker",
+        HandshakeAsync,
+        this
+    };
+
+    QUIC_THREAD Threads[64];
+    QuicZeroMemory(&Threads, sizeof(Threads));
+
+    for (uint32_t i = 0; i < ARRAYSIZE(Threads); ++i) {
+        VERIFY_QUIC_SUCCESS(QuicThreadCreate(&Config, &Threads[i]));
+    }
+
+    for (uint32_t i = 0; i < ARRAYSIZE(Threads); ++i) {
+        QuicThreadWait(&Threads[i]);
+        QuicThreadDelete(&Threads[i]);
+    }
 }
 
 #ifndef QUIC_DISABLE_0RTT_TESTS
