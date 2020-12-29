@@ -3,7 +3,6 @@ LIBRARY msquic_fuzz
 EXPORTS
     MsQuicOpen
     MsQuicClose
-    MsQuicSetWorkerThreadCallback
     MsQuicFuzzInit
     MsQuicFuzzSimulateReceive
     MsQuicFuzzRegisterSendCallback

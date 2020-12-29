@@ -122,6 +122,7 @@ MsQuicRegistrationOpen(
             Registration,
             WorkerThreadFlags,
             Registration->NoPartitioning ? 1 : MsQuicLib.PartitionCount,
+            Config->WorkerStateHandler,
             &Registration->WorkerPool);
     if (QUIC_FAILED(Status)) {
         goto Error;

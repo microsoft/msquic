@@ -41,6 +41,7 @@ QuicWorkerInitialize(
     _In_opt_ const void* Owner,
     _In_ uint16_t ThreadFlags,
     _In_ uint16_t IdealProcessor,
+    _In_opt_ QUIC_WORKER_CALLBACK_HANDLER WorkerStateHandler,
     _Inout_ QUIC_WORKER* Worker
     )
 {
@@ -55,6 +56,7 @@ QuicWorkerInitialize(
 
     Worker->Enabled = TRUE;
     Worker->IdealProcessor = IdealProcessor;
+    Worker->WorkerStateHandler = WorkerStateHandler;
     QuicDispatchLockInitialize(&Worker->Lock);
     QuicEventInitialize(&Worker->Ready, FALSE, FALSE);
     QuicListInitializeHead(&Worker->Connections);
@@ -546,28 +548,9 @@ QuicWorkerProcessConnection(
     }
 }
 
-static QUIC_WORKER_CALLBACK_HANDLER WorkerHandler;
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicSetWorkerThreadCallback(
-    _In_ QUIC_WORKER_CALLBACK_HANDLER Handler
-    )
-{
-    QuicLockAcquire(&MsQuicLib.Lock);
-    WorkerHandler = Handler;
-    QuicLockRelease(&MsQuicLib.Lock);
-    return QUIC_STATUS_SUCCESS;
-}
-
 QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
 {
     QUIC_WORKER* Worker = (QUIC_WORKER*)Context;
-    QUIC_WORKER_CALLBACK_HANDLER Handler;
-    QuicLockAcquire(&MsQuicLib.Lock);
-    Handler = WorkerHandler;
-    QuicLockRelease(&MsQuicLib.Lock);
 
     Worker->ThreadID = QuicCurThreadID();
     Worker->IsActive = TRUE;
@@ -576,8 +559,8 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
         "[wrkr][%p] Start",
         Worker);
 
-    if (Handler != NULL) {
-        Handler(QUIC_WORKER_STARTED);
+    if (Worker->WorkerStateHandler != NULL) {
+        Worker->WorkerStateHandler(QUIC_WORKER_STARTED);
     }
 
     //
@@ -701,8 +684,8 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
     }
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, Dequeue);
 
-    if (Handler != NULL) {
-        Handler(QUIC_WORKER_STOPPED);
+    if (Worker->WorkerStateHandler != NULL) {
+        Worker->WorkerStateHandler(QUIC_WORKER_STOPPED);
     }
 
     QuicTraceEvent(
@@ -718,6 +701,7 @@ QuicWorkerPoolInitialize(
     _In_opt_ const void* Owner,
     _In_ uint16_t ThreadFlags,
     _In_ uint16_t WorkerCount,
+    _In_opt_ QUIC_WORKER_CALLBACK_HANDLER WorkerStateHandler,
     _Out_ QUIC_WORKER_POOL** NewWorkerPool
     )
 {
@@ -745,7 +729,7 @@ QuicWorkerPoolInitialize(
     //
 
     for (uint16_t i = 0; i < WorkerCount; i++) {
-        Status = QuicWorkerInitialize(Owner, ThreadFlags, i, &WorkerPool->Workers[i]);
+        Status = QuicWorkerInitialize(Owner, ThreadFlags, i, WorkerStateHandler, &WorkerPool->Workers[i]);
         if (QUIC_FAILED(Status)) {
             for (uint16_t j = 0; j < i; j++) {
                 QuicWorkerUninitialize(&WorkerPool->Workers[j]);

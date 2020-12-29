@@ -75,6 +75,8 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     QUIC_POOL StatelessContextPool; // QUIC_STATELESS_CONTEXT
     QUIC_POOL OperPool; // QUIC_OPERATION
 
+    QUIC_WORKER_CALLBACK_HANDLER WorkerStateHandler;
+
 } QUIC_WORKER;
 
 //
@@ -123,6 +125,7 @@ QuicWorkerPoolInitialize(
     _In_opt_ const void* Owner,
     _In_ uint16_t ThreadFlags,
     _In_ uint16_t WorkerCount,
+    _In_opt_ QUIC_WORKER_CALLBACK_HANDLER WorkerStateHandler,
     _Out_ QUIC_WORKER_POOL** WorkerPool
     );
 

@@ -65,8 +65,6 @@ This doesn't mean the app isn't allowed to do any work in the callback. In fact,
 
 One important aspect of this design is that all blocking calls invoked on a callback always happen inline (to prevent deadlocks), and will supercede any calls in progress or queued from a separate thread.
 
-In some cases, a user might need access to when these worker threads are created and destroyed. To enable this, [MsQuicSetWorkerThreadCallback](api/MsQuicSetWorkerThreadCallback.md) can be used before **MsQuicOpen** to give a callback that is called on the worker when these worker threads are started and stopped.
-
 # API Objects
 
 ## Library Function Table
