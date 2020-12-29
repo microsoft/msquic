@@ -9,7 +9,6 @@ Abstract:
 
 --*/
 
-#define _CRT_SECURE_NO_WARNINGS
 #include "platform_internal.h"
 
 #define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
@@ -493,18 +492,29 @@ SSL_QUIC_METHOD OpenSslQuicCallbacks = {
     QuicTlsSendAlertCallback
 };
 
-int QuicTlsPasswordCallback(
-    _Out_ char* Buffer,
-    _In_ int Size,
-    _In_ int RwFlag,
-    _In_ void* UserData
-    )
-{
-    UNREFERENCED_PARAMETER(RwFlag);
-    strncpy(Buffer, (char*)UserData, Size);
-    Buffer[Size - 1] = '\0';
-    return (int)strlen(Buffer);
-}
+QUIC_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_CERTIFICATE_FILE, PrivateKeyFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, PrivateKeyFile),
+    "Mismatch (private key) in certificate file structs");
+
+QUIC_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_CERTIFICATE_FILE, CertificateFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, CertificateFile),
+    "Mismatch (certificate file) in certificate file structs");
+
+QUIC_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_CERTIFICATE_HASH, ShaHash) == FIELD_OFFSET(QUIC_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY, ShaHash),
+    "Mismatch (sha hash) in certificate hash structs");
+
+QUIC_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE, Flags) == FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY, Flags),
+    "Mismatch (flags) in certificate hash store structs");
+
+QUIC_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE, ShaHash) == FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY, ShaHash),
+    "Mismatch (sha hash) in certificate hash store structs");
+
+QUIC_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE, StoreName) == FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY, StoreName),
+    "Mismatch (store name) in certificate hash store structs");
 
 QUIC_STATUS
 QuicTlsExtractPrivateKey(
@@ -547,9 +557,18 @@ QuicTlsSecConfigCreate(
                 CredConfig->CertificateFile->PrivateKeyFile == NULL) {
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
+        } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+            if (CredConfig->CertificateFileProtected == NULL ||
+                CredConfig->CertificateFileProtected->CertificateFile == NULL ||
+                CredConfig->CertificateFileProtected->PrivateKeyFile == NULL ||
+                CredConfig->CertificateFileProtected->PrivateKeyPassword == NULL) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
         } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
             CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE ||
-            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT ||
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY ||
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY) {
 #ifndef _WIN32
             return QUIC_STATUS_NOT_SUPPORTED; // Only supported on windows.
 #endif
@@ -717,14 +736,13 @@ QuicTlsSecConfigCreate(
         // Set the server certs.
         //
 
-        if (CredConfig->Type & QUIC_CREDENTIAL_TYPE_CERTIFICATE_PASSWORD_PROTECTED) {
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
             SSL_CTX_set_default_passwd_cb_userdata(
-                SecurityConfig->SSLCtx, (void*)CredConfig->CertificatePassword);
-            SSL_CTX_set_default_passwd_cb(
-                SecurityConfig->SSLCtx, QuicTlsPasswordCallback);
+                SecurityConfig->SSLCtx, (void*)CredConfig->CertificateFileProtected->PrivateKeyPassword);
         }
 
-        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ||
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
             Ret =
                 SSL_CTX_use_PrivateKey_file(
                     SecurityConfig->SSLCtx,

@@ -507,8 +507,9 @@ QuicCertCreate(
 {
     QUIC_STATUS Status;
 
-    if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
-        if (CredConfig->CertificateContext == NULL && CredConfig->Principal == NULL) {
+    if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
+        CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY) {
+        if (CredConfig->CertificateHash == NULL && CredConfig->Principal == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
             Status =
@@ -518,7 +519,8 @@ QuicCertCreate(
                     NewCertificate);
         }
 
-    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE) {
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE || 
+               CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY) {
         if (CredConfig->CertificateHashStore == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {

@@ -83,17 +83,14 @@ typedef enum QUIC_LOAD_BALANCING_MODE {
 } QUIC_LOAD_BALANCING_MODE;
 
 typedef enum QUIC_CREDENTIAL_TYPE {
-    QUIC_CREDENTIAL_TYPE_NONE = 0x0,
-    QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH = 0x1,
-    QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE = 0x2,
-    QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT = 0x3,
-    QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE = 0x4, 
-    //
-    // First 4 bits are used to specify type.
-    // Next group of bits are flags used to add on extensions
-    //
-    QUIC_CREDENTIAL_TYPE_CERTIFICATE_PASSWORD_PROTECTED = 0x10,
-    QUIC_CREDENTIAL_TYPE_CERTIFICATE_EXPLICIT_PRIVATE_KEY = 0x20
+    QUIC_CREDENTIAL_TYPE_NONE,
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, 
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED,
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY, 
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY
 } QUIC_CREDENTIAL_TYPE;
 
 typedef enum QUIC_CREDENTIAL_FLAGS {
@@ -223,16 +220,34 @@ typedef struct QUIC_CERTIFICATE_HASH {
     uint8_t ShaHash[20];
 } QUIC_CERTIFICATE_HASH;
 
+typedef struct QUIC_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY {
+    uint8_t ShaHash[20];
+    const char *ExplicitPrivateKey;
+} QUIC_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY;
+
 typedef struct QUIC_CERTIFICATE_HASH_STORE {
     QUIC_CERTIFICATE_HASH_STORE_FLAGS Flags;
     uint8_t ShaHash[20];
     char StoreName[128];
 } QUIC_CERTIFICATE_HASH_STORE;
 
+typedef struct QUIC_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY {
+    QUIC_CERTIFICATE_HASH_STORE_FLAGS Flags;
+    uint8_t ShaHash[20];
+    char StoreName[128];
+    const char *ExplicitPrivateKey;
+} QUIC_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY;
+
 typedef struct QUIC_CERTIFICATE_FILE {
     const char *PrivateKeyFile;
     const char *CertificateFile;
 } QUIC_CERTIFICATE_FILE;
+
+typedef struct QUIC_CERTIFICATE_FILE_PROTECTED {
+    const char *PrivateKeyFile;
+    const char *CertificateFile;
+    const char *PrivateKeyPassword;
+} QUIC_CERTIFICATE_FILE_PROTECTED;
 
 typedef void QUIC_CERTIFICATE; // Platform specific certificate context object
 
@@ -241,17 +256,16 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
     QUIC_CREDENTIAL_FLAGS Flags;
     union {
         QUIC_CERTIFICATE_HASH* CertificateHash;
+        QUIC_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY* CertificateHashExplicitPKey;
         QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore;
+        QUIC_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY* CertificateHashStoreExplicitPKey;
         QUIC_CERTIFICATE* CertificateContext;
         QUIC_CERTIFICATE_FILE* CertificateFile;
+        QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected;
     };
     const char* Principal;
     void* TicketKey; // Optional, 44 byte array
     QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
-    union {
-        const char* CertificatePassword;
-        const char* ExplicitPrivateKey;
-    };
 } QUIC_CREDENTIAL_CONFIG;
 
 //

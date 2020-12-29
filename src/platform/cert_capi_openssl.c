@@ -46,6 +46,7 @@ QuicTlsExtractPrivateKey(
     NCRYPT_KEY_HANDLE KeyHandle = 0;
     PCCERT_CONTEXT CertCtx = NULL;
     X509* X509CertStorage = NULL;
+    BIO* ExplicitPKeyBIO = NULL;
     DWORD ExportPolicyProperty = 0;
     DWORD ExportPolicyLength = 0;
     unsigned char* TempCertEncoded = NULL;
@@ -82,163 +83,196 @@ QuicTlsExtractPrivateKey(
         goto Exit;
     }
 
-    KeyHandle = (NCRYPT_KEY_HANDLE)QuicCertGetPrivateKey(Cert);
-    if (KeyHandle == 0) {
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Exit;
-    }
+    if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY || 
+        CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY) {
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY) {
+            ExplicitPKeyBIO = 
+                BIO_new_mem_buf(
+                    CredConfig->CertificateHashExplicitPKey->ExplicitPrivateKey,
+                    -1);
+        } else {
+            ExplicitPKeyBIO = 
+                BIO_new_mem_buf(
+                    CredConfig->CertificateHashStoreExplicitPKey->ExplicitPrivateKey,
+                    -1);
+        }
+        if (ExplicitPKeyBIO == NULL) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "BIO_new_mem_buf failed");
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
+        Rsa = PEM_read_bio_RSAPrivateKey(ExplicitPKeyBIO, NULL, 0, NULL);
+        BIO_free(ExplicitPKeyBIO);
+        if (Rsa == NULL) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "PEM_read_bio_RSAPrivateKey failed");
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
+    } else {
+        KeyHandle = (NCRYPT_KEY_HANDLE)QuicCertGetPrivateKey(Cert);
+        if (KeyHandle == 0) {
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+            goto Exit;
+        }
 
-    if (FAILED(Status =
-        NCryptGetProperty(
-            KeyHandle,
-            NCRYPT_EXPORT_POLICY_PROPERTY,
-            (PBYTE)&ExportPolicyProperty,
-            sizeof(ExportPolicyProperty),
-            &ExportPolicyLength, 0))) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "NCryptGetProperty failed");
-        goto Exit;
-    }
+        if (FAILED(Status =
+            NCryptGetProperty(
+                KeyHandle,
+                NCRYPT_EXPORT_POLICY_PROPERTY,
+                (PBYTE)&ExportPolicyProperty,
+                sizeof(ExportPolicyProperty),
+                &ExportPolicyLength, 0))) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "NCryptGetProperty failed");
+            goto Exit;
+        }
 
-    if ((ExportPolicyProperty & NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG) == 0) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Requested certificate does not support exporting. An exportable certificate is required");
-        //
-        // This probably should be a specific error.
-        //
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
+        if ((ExportPolicyProperty & NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG) == 0) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Requested certificate does not support exporting. An exportable certificate is required");
+            //
+            // This probably should be a specific error.
+            //
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Exit;
+        }
 
-    if (FAILED(
-        Status =
+        if (FAILED(
+            Status =
+                NCryptExportKey(
+                    KeyHandle,
+                    0,
+                    BCRYPT_RSAFULLPRIVATE_BLOB,
+                    NULL,
+                    NULL,
+                    0,
+                    &KeyLength,
+                    0))) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "NCryptExportKey failed.");
+            goto Exit;
+        }
+
+        KeyData = QUIC_ALLOC_NONPAGED(KeyLength, QUIC_POOL_TLS_RSA);
+        if (KeyData == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "RSA Key",
+                KeyLength);
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
+
+        if (FAILED(Status =
             NCryptExportKey(
                 KeyHandle,
                 0,
                 BCRYPT_RSAFULLPRIVATE_BLOB,
                 NULL,
-                NULL,
-                0,
+                KeyData,
+                KeyLength,
                 &KeyLength,
                 0))) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "NCryptExportKey failed.");
-        goto Exit;
-    }
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "NCryptExportKey failed.");
+            goto Exit;
+        }
 
-    KeyData = QUIC_ALLOC_NONPAGED(KeyLength, QUIC_POOL_TLS_RSA);
-    if (KeyData == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "RSA Key",
-            KeyLength);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
+        BCRYPT_RSAKEY_BLOB* Blob = (BCRYPT_RSAKEY_BLOB*)KeyData;
 
-    if (FAILED(Status =
-        NCryptExportKey(
-            KeyHandle,
-            0,
-            BCRYPT_RSAFULLPRIVATE_BLOB,
-            NULL,
-            KeyData,
-            KeyLength,
-            &KeyLength,
-            0))) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "NCryptExportKey failed.");
-        goto Exit;
-    }
+        if (Blob->Magic != BCRYPT_RSAFULLPRIVATE_MAGIC) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "NCryptExportKey resulted in incorrect magic number");
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+            goto Exit;
+        }
 
-    BCRYPT_RSAKEY_BLOB* Blob = (BCRYPT_RSAKEY_BLOB*)KeyData;
+        Rsa = RSA_new();
+        if (Rsa == NULL) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "RSA_new failed");
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
 
-    if (Blob->Magic != BCRYPT_RSAFULLPRIVATE_MAGIC) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "NCryptExportKey resulted in incorrect magic number");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Exit;
-    }
+        //
+        // There is no automatic way to convert from a CNG representation of a
+        // private key to an OpenSSL representation. So in order for this to
+        // work, we must manually deconstruct the key from CNG, and construct it
+        // again in OpenSSL. The key ends up being the same, just represented
+        // differently.
+        // This was found using the following StackOverflow answer, with the
+        // author giving permissions to use it.
+        // https://stackoverflow.com/a/60181045
+        //
 
-    Rsa = RSA_new();
-    if (Rsa == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_new failed");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
+        // n is the modulus common to both public and private key
+        BIGNUM* n = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp, Blob->cbModulus, NULL);
+        // e is the public exponent
+        BIGNUM* e = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB), Blob->cbPublicExp, NULL);
+        // d is the private exponent
+        BIGNUM* d = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1, Blob->cbModulus, NULL);
 
-    //
-    // There is no automatic way to convert from a CNG representation of a
-    // private key to an OpenSSL representation. So in order for this to
-    // work, we must manually deconstruct the key from CNG, and construct it
-    // again in OpenSSL. The key ends up being the same, just represented
-    // differently.
-    // This was found using the following StackOverflow answer, with the
-    // author giving permissions to use it.
-    // https://stackoverflow.com/a/60181045
-    //
+        Ret = RSA_set0_key(Rsa, n, e, d);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "RSA_set0_key failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
 
-    // n is the modulus common to both public and private key
-    BIGNUM* n = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp, Blob->cbModulus, NULL);
-    // e is the public exponent
-    BIGNUM* e = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB), Blob->cbPublicExp, NULL);
-    // d is the private exponent
-    BIGNUM* d = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1, Blob->cbModulus, NULL);
+        // p and q are the first and second factor of n
+        BIGNUM* p = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus, Blob->cbPrime1, NULL);
+        BIGNUM* q = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1, Blob->cbPrime2, NULL);
 
-    Ret = RSA_set0_key(Rsa, n, e, d);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_set0_key failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
+        Ret = RSA_set0_factors(Rsa, p, q);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "RSA_set0_factors failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
 
-    // p and q are the first and second factor of n
-    BIGNUM* p = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus, Blob->cbPrime1, NULL);
-    BIGNUM* q = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1, Blob->cbPrime2, NULL);
+        // dmp1, dmq1 and iqmp are the exponents and coefficient for CRT calculations
+        BIGNUM* dmp1 = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2, Blob->cbPrime1, NULL);
+        BIGNUM* dmq1 = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1, Blob->cbPrime2, NULL);
+        BIGNUM* iqmp = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1 + Blob->cbPrime2, Blob->cbPrime1, NULL);
 
-    Ret = RSA_set0_factors(Rsa, p, q);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_set0_factors failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    // dmp1, dmq1 and iqmp are the exponents and coefficient for CRT calculations
-    BIGNUM* dmp1 = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2, Blob->cbPrime1, NULL);
-    BIGNUM* dmq1 = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1, Blob->cbPrime2, NULL);
-    BIGNUM* iqmp = BN_bin2bn(KeyData + sizeof(BCRYPT_RSAKEY_BLOB) + Blob->cbPublicExp + Blob->cbModulus + Blob->cbPrime1 + Blob->cbPrime2 + Blob->cbPrime1 + Blob->cbPrime2, Blob->cbPrime1, NULL);
-
-    Ret = RSA_set0_crt_params(Rsa, dmp1, dmq1, iqmp);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_set0_crt_params failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
+        Ret = RSA_set0_crt_params(Rsa, dmp1, dmq1, iqmp);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "RSA_set0_crt_params failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
     }
 
     *RsaKey = Rsa;
