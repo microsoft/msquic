@@ -5,7 +5,7 @@ This script will download all faulure logs, along with their associated builds, 
 
 .PARAMETER AccessToken
     Specifies the AccessToken used to access the artifacts. This token only needs Build (Read)
-    permissions.
+    permissions. This can also be read from an AZP_ACCESS_TOKEN environment variable if not passed in.
 
     PATs can be grabbed by using the instructions at the following link.
     https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page
@@ -20,8 +20,8 @@ This script will download all faulure logs, along with their associated builds, 
 #>
 
 param (
-    [Parameter(Mandatory = $true)]
-    [string]$AccessToken,
+    [Parameter(Mandatory = $false)]
+    [string]$AccessToken = $null,
 
     [Parameter(Mandatory = $true)]
     [string]$BuildNumber
@@ -29,6 +29,13 @@ param (
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($AccessToken)) {
+    $AccessToken = $env:AZP_ACCESS_TOKEN
+    if ([string]::IsNullOrWhiteSpace($AccessToken)) {
+        Write-Error "No access token found in either parameters or AZP_ACCESS_TOKEN env variable"
+    }
+}
 
 $RootDir = Split-Path $PSScriptRoot -Parent
 $LogsFolder = Join-Path $RootDir "artifacts" "failurelogs"
