@@ -584,6 +584,7 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
             BAIL_ON_NULL_CONNECTION(Connection);
             auto Buffer = &Buffers[GetRandom(BufferCount)];
             MsQuic->DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), nullptr);
+            QUIC_FRE_ASSERT(false);
         }
         default:
             break;
