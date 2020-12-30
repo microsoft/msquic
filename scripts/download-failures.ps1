@@ -7,6 +7,10 @@ This script will download all faulure logs, along with their associated builds, 
     Specifies the AccessToken used to access the artifacts. This token only needs Build (Read)
     permissions.
 
+    PATs can be grabbed by using the instructions at the following link.
+    https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page
+    It only needs to support Build (Read)
+
 .PARAMETER BuildNumber
     Specifies the build number to grab artifacts from
 
