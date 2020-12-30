@@ -24,60 +24,85 @@ param (
     [string]$AccessToken = $null,
 
     [Parameter(Mandatory = $true)]
-    [string]$BuildNumber
+    [string]$BuildNumber,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("None", "All", "LogsOnly")]
+    [string]$Download = "None",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$List = $false
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-if ([string]::IsNullOrWhiteSpace($AccessToken)) {
-    $AccessToken = $env:AZP_ACCESS_TOKEN
-    if ([string]::IsNullOrWhiteSpace($AccessToken)) {
-        Write-Error "No access token found in either parameters or AZP_ACCESS_TOKEN env variable"
-    }
-}
-
 $RootDir = Split-Path $PSScriptRoot -Parent
 $LogsFolder = Join-Path $RootDir "artifacts" "failurelogs"
 $BuildLogFolder = Join-Path $LogsFolder $BuildNumber
-New-Item -Path $LogsFolder -ItemType Directory -Force | Out-Null
 
-$URL = "https://dev.azure.com/ms/msquic/_apis/build/builds/$BuildNumber"
-
-$AzureDevOpsAuthenicationHeader = @{Authorization = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$($AccessToken)")) }
-
-$Artifacts =  Invoke-RestMethod -Uri "$URL/artifacts" -Method "GET" -ContentType "application/json" -Headers $AzureDevOpsAuthenicationHeader
-
-if ($Artifacts.count -eq 0) {
-    Write-Error "No Artifacts found"
+function Get-Build {
+    $URL = "https://dev.azure.com/ms/msquic/_apis/build/builds/$BuildNumber"
+    $Artifacts =  Invoke-RestMethod -Uri "$URL/artifacts" -Method "GET" -ContentType "application/json"
+    if ($Artifacts.count -eq 0) {
+        Write-Error "No Artifacts found"
+    }
+    return $Artifacts
 }
 
-$ContainerId = $null
+function Get-Logs {
+    param (
+        [Parameter(Mandatory =$true)]
+        $Artifacts
+    )
 
-#Find Artifacts container id
-foreach ($Artifact in $Artifacts.value) {
-    if ($Artifact.name -eq "artifacts") {
-        $ContainerId = $Artifact.resource.data
-        $ContainerId = $ContainerId.Substring(2)
+
+    New-Item -Path $LogsFolder -ItemType Directory -Force | Out-Null
+
+    # Check to see if we have any "logs" artifacts
+    foreach ($Artifact in $Artifacts.value) {
+        if ($Artifact.name -ne "logs") {
+            continue
+        }
+
+        # Download logs artifact
+        $ArtifactUrl = $Artifact.resource.downloadUrl
+        $ArtifactsZip = Join-Path $LogsFolder "Logs_$BuildNumber.zip"
+        Invoke-WebRequest -Uri $ArtifactUrl -Method "GET" -OutFile $ArtifactsZip
+        Expand-Archive -Path $ArtifactsZip -DestinationPath $BuildLogFolder -Force
         break
     }
 }
 
-if ($null -eq $ContainerId) {
-    Write-Error "Artifacts for build not found"
-}
+function Get-Artifacts {
+    param (
+        [Parameter(Mandatory =$true)]
+        $Artifacts
+    )
 
-# Check to see if we have any "logs" artifacts
-foreach ($Artifact in $Artifacts.value) {
-    if ($Artifact.name -ne "logs") {
-        continue
+    if ([string]::IsNullOrWhiteSpace($AccessToken)) {
+        $AccessToken = $env:AZP_ACCESS_TOKEN
+        if ([string]::IsNullOrWhiteSpace($AccessToken)) {
+            Write-Error "No access token found in either parameters or AZP_ACCESS_TOKEN env variable"
+        }
     }
 
-    # Download logs artifact
-    $ArtifactUrl = $Artifact.resource.downloadUrl
-    $ArtifactsZip = Join-Path $LogsFolder "Logs_$BuildNumber.zip"
-    Invoke-WebRequest -Uri $ArtifactUrl -Method "GET" -OutFile $ArtifactsZip
-    Expand-Archive -Path $ArtifactsZip -DestinationPath $BuildLogFolder -Force
+    $AzureDevOpsAuthenicationHeader = @{Authorization = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$($AccessToken)")) }
+
+    $ContainerId = $null
+
+    #Find Artifacts container id
+    foreach ($Artifact in $Artifacts.value) {
+        if ($Artifact.name -eq "artifacts") {
+            $ContainerId = $Artifact.resource.data
+            $ContainerId = $ContainerId.Substring(2)
+            break
+        }
+    }
+
+    if ($null -eq $ContainerId) {
+        Write-Error "Artifacts for build not found"
+    }
 
     $ContainerRootUri = "https://dev.azure.com/ms/_apis/resources/Containers/$ContainerId" + "?itemPath=artifacts/bin/"
 
@@ -95,6 +120,78 @@ foreach ($Artifact in $Artifacts.value) {
         Write-Host $BinFolder
         Expand-Archive -Path $DownloadFile -DestinationPath $BinFolder -Force
     }
-
-    break
 }
+
+class Test {
+    [string]$Platform
+    [string]$Config
+    [string]$Executable
+    [string]$TestName
+    [System.IO.DirectoryInfo]$Folder
+
+    Test([string]$Platform, [string]$Config, [string]$Executable, [string]$TestName, [System.IO.DirectoryInfo]$Folder) {
+        $this.Platform = $Platform
+        $this.Config = $Config
+        $this.Executable = $Executable
+        $this.Folder = $Folder
+        $this.TestName = $TestName
+    }
+
+    [string]ToString() {
+        return "{0} ({1}_{2})" -f $this.TestName, $this.Platform, $this.Config
+    }
+}
+
+function Get-TestList {
+    $TestList = @()
+    $OperatingSystems = Get-ChildItem -Path "$BuildLogFolder/logs"
+    foreach ($OSDir in $OperatingSystems) {
+        $Platform = $OSDir.Name
+        $Configs = Get-ChildItem -Path $OSDir
+        foreach ($ConfigDir in $Configs) {
+            $Config = $ConfigDir.Name
+            $TestExecutables = Get-ChildItem $ConfigDir
+            foreach ($ExeDir in $TestExecutables) {
+                $ExeName = $ExeDir.Name
+                $Dates = Get-ChildItem -Path $ExeDir
+                foreach ($DateDir in $Dates) {
+                    $Tests = Get-ChildItem -Path $DateDir
+                    foreach ($TestDir in $Tests) {
+                        $TestName = $TestDir.Name
+                        $Test = [Test]::new($Platform, $Config, $ExeName, $TestName, $TestDir)
+                        $TestList += $Test
+                    }
+                }
+            }
+        }
+    }
+    return $TestList
+}
+
+if ($Download -eq "All" -or $Download -eq "LogsOnly") {
+    $Artifacts = Get-Build
+    Get-Logs -Artifacts $Artifacts
+    if ($Download -eq "All") {
+        Get-Artifacts -Artifacts $Artifacts
+    }
+}
+
+if ($List) {
+    $TestList = Get-TestList
+
+    Write-Host "Test List:"
+    $Count = 1
+    foreach ($Test in $TestList) {
+        Write-Host ("`t${Count}: " + $Test.ToString())
+        $Count++
+    }
+    [ValidateScript({$_ -ge 0 -and $_ -lt $Count})]
+    [int]$Selection = Read-Host "Select a test to view, or 0 to exit"
+    if ($Selection -ne 0) {
+        $Test = $TestList[$Selection - 1]
+        #TODO See what a test dump looks like
+        $Test
+    }
+}
+
+
