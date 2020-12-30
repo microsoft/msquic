@@ -633,6 +633,28 @@ typedef struct QUIC_THREAD_CONFIG {
     void* Context;
 } QUIC_THREAD_CONFIG;
 
+#ifdef QUIC_USE_CUSTOM_THREAD_CONTEXT
+
+//
+// Extension point that allows additional platform specific logic to be executed
+// for every thread created. The platform must define QUIC_USE_CUSTOM_THREAD_CONTEXT
+// and implement the QuicThreadCustomStart function. QuicThreadCustomStart MUST
+// call the Callback passed in.
+//
+
+typedef struct QUIC_THREAD_CUSTOM_CONTEXT {
+    LPTHREAD_START_ROUTINE Callback;
+    void* Context;
+} QUIC_THREAD_CUSTOM_CONTEXT;
+
+void*
+QuicThreadCustomStart(
+    __drv_freesMem(CustomContext) _Frees_ptr_
+        QUIC_THREAD_CUSTOM_CONTEXT* CustomContext
+    );
+
+#endif // QUIC_USE_CUSTOM_THREAD_CONTEXT
+
 QUIC_STATUS
 QuicThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,
