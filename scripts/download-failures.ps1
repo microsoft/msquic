@@ -10,6 +10,9 @@ This script will download all faulure logs, along with their associated builds, 
 .PARAMETER BuildNumber
     Specifies the build number to grab artifacts from
 
+.EXAMPLE
+    download-failures.ps1 -AccessToken GetAccessTokenFromAzureHere -BuildNumber BuildNumberFromAzure
+
 #>
 
 param (
