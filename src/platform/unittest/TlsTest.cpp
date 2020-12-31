@@ -1086,17 +1086,3 @@ TEST_F(TlsTest, LockPerfTest)
 }
 
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());
-
-#ifndef _KERNEL_MODE
-TEST(FailureTest, HardCrash) {
-    QUIC_FRE_ASSERT(false);
-}
-
-TEST(FailureTest, FatalTestFailure) {
-    FAIL();
-}
-
-TEST(FailureTest, NonFatalTestFailure) {
-    ADD_FAILURE();
-}
-#endif
