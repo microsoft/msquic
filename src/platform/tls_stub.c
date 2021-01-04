@@ -926,17 +926,24 @@ QuicTlsClientProcess(
                     break;
                 }
 
-                if (!QuicCertValidateChain(
-                        ServerCert,
-                        TlsContext->SNI,
-                        TlsContext->SecConfig->Flags)) {
-                    QuicTraceEvent(
-                        TlsError,
-                        "[ tls][%p] ERROR, %s.",
-                        TlsContext->Connection,
-                        "QuicCertValidateChain Mismatch");
+                if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) {
+                    // TODO - Upcall
                     *ResultFlags |= QUIC_TLS_RESULT_ERROR;
                     break;
+                } else {
+
+                    if (!QuicCertValidateChain(
+                            ServerCert,
+                            TlsContext->SNI,
+                            TlsContext->SecConfig->Flags)) {
+                        QuicTraceEvent(
+                            TlsError,
+                            "[ tls][%p] ERROR, %s.",
+                            TlsContext->Connection,
+                            "QuicCertValidateChain Mismatch");
+                        *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                        break;
+                    }
                 }
             }
 

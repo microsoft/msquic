@@ -190,6 +190,22 @@ QuicTlsAlpnSelectCallback(
     return SSL_TLSEXT_ERR_OK;
 }
 
+static
+int
+QuicTlsCertificateVerifyCallback(
+    X509_STORE_CTX* x509_ctx,
+    void* app_ctx
+    )
+{
+    SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
+    UNREFERENCED_PARAMETER(app_ctx);
+
+    // TODO - Upcall
+
+    return -1;
+}
+
 QUIC_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
 QUIC_STATIC_ASSERT((int)ssl_encryption_early_data == (int)QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
 QUIC_STATIC_ASSERT((int)ssl_encryption_handshake == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
@@ -658,9 +674,12 @@ QuicTlsSecConfigCreate(
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-        BOOLEAN VerifyServerCertificate = TRUE; // !(Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION);
-        if (!VerifyServerCertificate) { // cppcheck-suppress knownConditionTrueFalse
-            SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
+        if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) {
+            SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_NONE, NULL);
+
+        } else if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) {
+            SSL_CTX_set_cert_verify_callback(SecurityConfig->SSLCtx, QuicTlsCertificateVerifyCallback, NULL);
+
         } else {
             SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_VERIFY_DEPTH);
 

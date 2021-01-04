@@ -1936,6 +1936,12 @@ QuicTlsWriteDataToSchannel(
                     Result |= QUIC_TLS_RESULT_ERROR;
                     break;
                 }
+
+                if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) {
+                    // TODO - Upcall validation
+                    Result |= QUIC_TLS_RESULT_ERROR;
+                    break;
+                }
             }
 
             SecPkgContext_SessionInfo SessionInfo;

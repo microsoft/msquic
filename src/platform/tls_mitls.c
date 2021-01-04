@@ -1549,6 +1549,12 @@ QuicTlsOnCertVerify(
         goto Error;
     }
 
+    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) {
+        // TODO - Upcall validation
+        // Result = 1;
+        goto Error;
+    }
+
     if (!QuicCertValidateChain(
             Certificate,
             TlsContext->SNI,
