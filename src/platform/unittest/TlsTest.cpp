@@ -77,7 +77,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             QuicTlsSecConfigCreate(
                 SelfSignedCertParams,
-                &TlsContext::TlsCallbacks,
+                &TlsContext::TlsServerCallbacks,
                 &ServerSecConfig,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfig);
@@ -91,7 +91,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             QuicTlsSecConfigCreate(
                 &ClientCredConfig,
-                &TlsContext::TlsCallbacks,
+                &TlsContext::TlsClientCallbacks,
                 &ClientSecConfig,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfig);
@@ -100,7 +100,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             QuicTlsSecConfigCreate(
                 &ClientCredConfig,
-                &TlsContext::TlsCallbacks,
+                &TlsContext::TlsClientCallbacks,
                 &ClientSecConfigNoCertValidation,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfigNoCertValidation);
@@ -130,7 +130,8 @@ protected:
 
         QUIC_TLS_PROCESS_STATE State;
 
-        static QUIC_TLS_CALLBACKS TlsCallbacks;
+        static const QUIC_TLS_CALLBACKS TlsServerCallbacks;
+        static const QUIC_TLS_CALLBACKS TlsClientCallbacks;
 
         bool Connected;
         bool Key0RttReady;
@@ -644,10 +645,16 @@ protected:
     }
 };
 
-QUIC_TLS_CALLBACKS TlsTest::TlsContext::TlsCallbacks = {
+const QUIC_TLS_CALLBACKS TlsTest::TlsContext::TlsServerCallbacks = {
     TlsTest::TlsContext::OnProcessComplete,
     TlsTest::TlsContext::OnRecvQuicTP,
     TlsTest::TlsContext::OnRecvTicketServer
+};
+
+const QUIC_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
+    TlsTest::TlsContext::OnProcessComplete,
+    TlsTest::TlsContext::OnRecvQuicTP,
+    TlsTest::TlsContext::OnRecvTicketClient
 };
 
 const QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
