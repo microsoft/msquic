@@ -43,9 +43,14 @@ struct TlsContext
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
             NULL, NULL, NULL, NULL
         };
+        QUIC_TLS_CALLBACKS TlsCallbacks = {
+            OnProcessComplete,
+            OnRecvQuicTP,
+            NULL
+        };
         VERIFY_QUIC_SUCCESS(
             QuicTlsSecConfigCreate(
-                &CredConfig, &SecConfig, OnSecConfigCreateComplete));
+                &CredConfig, &TlsCallbacks, &SecConfig, OnSecConfigCreateComplete));
 
         QUIC_CONNECTION Connection = {0};
 
@@ -75,8 +80,6 @@ struct TlsContext
             printf("Failed to encode transport parameters!\n");
         }
         Config.Connection = (QUIC_CONNECTION*)this;
-        Config.ProcessCompleteCallback = OnProcessComplete;
-        Config.ReceiveTPCallback = OnRecvQuicTP;
         Config.ServerName = Sni;
 
         VERIFY_QUIC_SUCCESS(

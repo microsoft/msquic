@@ -27,6 +27,12 @@ QUIC_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 QUIC_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
 QUIC_TLS_RECEIVE_TICKET_CALLBACK QuicConnRecvResumptionTicket;
 
+QUIC_TLS_CALLBACKS QuicTlsCallbacks = {
+    QuicTlsProcessDataCompleteCallback,
+    QuicConnReceiveTP,
+    QuicConnRecvResumptionTicket
+};
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoDumpSendState(
@@ -292,9 +298,6 @@ QuicCryptoInitializeTls(
     TlsConfig.Connection = Connection;
     TlsConfig.ResumptionTicketBuffer = Crypto->ResumptionTicket;
     TlsConfig.ResumptionTicketLength = Crypto->ResumptionTicketLength;
-    TlsConfig.ProcessCompleteCallback = QuicTlsProcessDataCompleteCallback;
-    TlsConfig.ReceiveTPCallback = QuicConnReceiveTP;
-    TlsConfig.ReceiveResumptionCallback = QuicConnRecvResumptionTicket;
     if (!QuicConnIsServer(Connection)) {
         TlsConfig.ServerName = Connection->RemoteServerName;
     }

@@ -191,6 +191,7 @@ typedef struct QUIC_SEC_CONFIG {
 
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
+    QUIC_TLS_CALLBACKS Callbacks;
     QUIC_CERTIFICATE* Certificate;
     uint16_t FormatLength;
     uint8_t FormatBuffer[SIZEOF_CERT_CHAIN_LIST_LENGTH];
@@ -212,8 +213,6 @@ typedef struct QUIC_TLS {
     QUIC_SEC_CONFIG* SecConfig;
 
     QUIC_CONNECTION* Connection;
-    QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
-    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicketCallback;
 
     uint16_t AlpnBufferLength;
     const uint8_t* AlpnBuffer;
@@ -281,6 +280,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ const QUIC_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
@@ -316,6 +316,7 @@ QuicTlsSecConfigCreate(
     QuicZeroMemory(SecurityConfig, sizeof(QUIC_SEC_CONFIG));
     SecurityConfig->Type = CredConfig->Type;
     SecurityConfig->Flags = CredConfig->Flags;
+    SecurityConfig->Callbacks = *TlsCallbacks;
 
     if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
         if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE &&
@@ -401,8 +402,6 @@ QuicTlsInitialize(
     TlsContext->LocalTPLength = Config->LocalTPLength;
     TlsContext->SecConfig = Config->SecConfig;
     TlsContext->Connection = Config->Connection;
-    TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
-    TlsContext->ReceiveTicketCallback = Config->ReceiveResumptionCallback;
 
     QuicTraceLogConnVerbose(
         StubTlsContextCreated,
@@ -541,7 +540,7 @@ QuicTlsServerProcess(
             }
             case TlsExt_SessionTicket: {
                 TlsContext->EarlyDataAttempted = TRUE;
-                if (TlsContext->ReceiveTicketCallback(
+                if (TlsContext->SecConfig->Callbacks.ReceiveTicket(
                         TlsContext->Connection,
                         ExtLength,
                         ((QUIC_TLS_SESSION_TICKET_EXT*)ExtList)->Ticket)) {
@@ -894,7 +893,7 @@ QuicTlsClientProcess(
 
                 } else if (ExtType == TlsContext->QuicTpExtType) {
                     const QUIC_TLS_QUIC_TP_EXT* QuicTP = (QUIC_TLS_QUIC_TP_EXT*)ExtList;
-                    TlsContext->ReceiveTPCallback(
+                    TlsContext->SecConfig->Callbacks.ReceiveTP(
                         TlsContext->Connection,
                         ExtLength,
                         QuicTP->TP);
@@ -1013,7 +1012,7 @@ QuicTlsClientProcess(
 
         QUIC_FRE_ASSERT(ServerMessageLength < UINT16_MAX);
 
-        (void)TlsContext->ReceiveTicketCallback(
+        (void)TlsContext-SecConfig->Callbacks.>ReceiveTicket(
             TlsContext->Connection,
             ServerMessageLength,
             ServerMessage->TICKET.Ticket);
