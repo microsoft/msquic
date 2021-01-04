@@ -1012,7 +1012,7 @@ QuicTlsClientProcess(
 
         QUIC_FRE_ASSERT(ServerMessageLength < UINT16_MAX);
 
-        (void)TlsContext-SecConfig->Callbacks.>ReceiveTicket(
+        (void)TlsContext->SecConfig->Callbacks.ReceiveTicket(
             TlsContext->Connection,
             ServerMessageLength,
             ServerMessage->TICKET.Ticket);
