@@ -336,6 +336,7 @@ MsQuicConfigurationLoadCredential(
         Status =
             QuicTlsSecConfigCreate(
                 CredConfig,
+                &QuicTlsCallbacks,
                 Configuration,
                 MsQuicConfigurationLoadCredentialComplete);
         if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) ||

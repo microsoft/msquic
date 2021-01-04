@@ -11,6 +11,11 @@ Abstract:
 --*/
 
 //
+// Set of callbacks for TLS.
+//
+extern QUIC_TLS_CALLBACKS QuicTlsCallbacks;
+
+//
 // Stream of TLS data.
 //
 typedef struct QUIC_CRYPTO {

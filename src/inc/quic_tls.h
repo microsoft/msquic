@@ -77,6 +77,25 @@ BOOLEAN
 
 typedef QUIC_TLS_RECEIVE_TICKET_CALLBACK *QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER;
 
+typedef struct QUIC_TLS_CALLBACKS {
+
+    //
+    // Invoked for the completion of process calls that were pending.
+    //
+    QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER ProcessComplete;
+
+    //
+    // Invoked when QUIC transport parameters are received.
+    //
+    QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTP;
+
+    //
+    // Invoked when a resumption ticket is received.
+    //
+    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicket;
+
+} QUIC_TLS_CALLBACKS;
+
 //
 // The input configuration for creation of a TLS context.
 //
@@ -125,21 +144,6 @@ typedef struct QUIC_TLS_CONFIG {
     //
     const uint8_t* LocalTPBuffer;
     uint32_t LocalTPLength;
-
-    //
-    // Invoked for the completion of process calls that were pending.
-    //
-    QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER ProcessCompleteCallback;
-
-    //
-    // Invoked when QUIC transport parameters are received.
-    //
-    QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
-
-    //
-    // Invoked when a resumption ticket is received.
-    //
-    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveResumptionCallback;
 
 #ifdef QUIC_TLS_SECRETS_SUPPORT
     //
@@ -293,6 +297,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ const QUIC_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     );
