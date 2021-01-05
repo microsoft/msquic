@@ -723,6 +723,7 @@ RunClient(
     QUIC_STATUS Status;
     const char* ResumptionTicketString = nullptr;
     HQUIC Connection = nullptr;
+    const uint32_t Version = 0xff00001dU; // IETF draft 29
 
     //
     // Allocate a new connection object.
@@ -746,11 +747,21 @@ RunClient(
     }
 
     //
+    // Default to using the draft-29 version for now, since it's more
+    // universally supported by the TLS abstractions currently.
+    //
+    if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_QUIC_VERSION, sizeof(Version), &Version))) {
+        printf("SetParam(QUIC_PARAM_CONN_QUIC_VERSION) failed, 0x%x!\n", Status);
+        goto Error;
+    }
+
+    //
     // Get the target / server name or IP from the command line.
     //
     const char* Target;
     if ((Target = GetValue(argc, argv, "target")) == nullptr) {
         printf("Must specify '-target' argument!\n");
+        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 
