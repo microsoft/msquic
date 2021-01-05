@@ -127,6 +127,7 @@ param (
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
 # Validate the the kernel switch.
 if ($Kernel -and !$IsWindows) {

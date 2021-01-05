@@ -2,6 +2,7 @@
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
 #region Stack Walk Profiles
 
