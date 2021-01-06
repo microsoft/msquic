@@ -640,7 +640,8 @@ typedef struct QUIC_THREAD_CONFIG {
 // for every thread created. The platform must define QUIC_USE_CUSTOM_THREAD_CONTEXT
 // and implement the QuicThreadCustomStart function. QuicThreadCustomStart MUST
 // call the Callback passed in. QuicThreadCustomStart MUST also free
-// CustomContext before returning.
+// CustomContext (via QUIC_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD)) before
+// returning.
 //
 
 typedef struct QUIC_THREAD_CUSTOM_CONTEXT {
@@ -648,11 +649,7 @@ typedef struct QUIC_THREAD_CUSTOM_CONTEXT {
     void* Context;
 } QUIC_THREAD_CUSTOM_CONTEXT;
 
-void*
-QuicThreadCustomStart(
-    __drv_freesMem(CustomContext) _Frees_ptr_
-        QUIC_THREAD_CUSTOM_CONTEXT* CustomContext
-    );
+QUIC_THREAD_CALLBACK(QuicThreadCustomStart, CustomContext); // QUIC_THREAD_CUSTOM_CONTEXT* CustomContext
 
 #endif // QUIC_USE_CUSTOM_THREAD_CONTEXT
 
