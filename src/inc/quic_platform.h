@@ -93,7 +93,7 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_TLS_PRINCIPAL             'D1cQ' // Qc1D - QUIC Platform TLS Principal
 #define QUIC_POOL_TLS_CTX                   'E1cQ' // Qc1E - QUIC Platform TLS Context
 #define QUIC_POOL_TLS_TRANSPARAMS           'F1cQ' // Qc1F - QUIC Platform TLS Transport Parameters
-#define QUIC_POOL_TLS_RESUMPTION            '02cQ' // Qc20 - QUIC Platform TLS Resumption Buffer
+#define QUIC_POOL_CUSTOM_THREAD             '02cQ' // Qc20 - QUIC Platform Customm Thread Context
 #define QUIC_POOL_TLS_SECCONF               '12cQ' // Qc21 - QUIC Platform TLS Sec Config
 #define QUIC_POOL_TLS_PACKETKEY             '22cQ' // Qc22 - QUIC Platform TLS Packet Key
 #define QUIC_POOL_TLS_KEY                   '32cQ' // Qc23 - QUIC Platform TLS Key

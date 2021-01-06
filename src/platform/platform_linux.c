@@ -736,7 +736,8 @@ QuicThreadCreate(
 
 #ifdef QUIC_USE_CUSTOM_THREAD_CONTEXT
 
-    QUIC_THREAD_CUSTOM_CONTEXT* CustomContext = malloc(sizeof(QUIC_THREAD_CUSTOM_CONTEXT));
+    QUIC_THREAD_CUSTOM_CONTEXT* CustomContext =
+        QUIC_ALLOC_NONPAGED(sizeof(QUIC_THREAD_CUSTOM_CONTEXT), QUIC_POOL_CUSTOM_THREAD);
     if (CustomContext == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -755,7 +756,7 @@ QuicThreadCreate(
             "[ lib] ERROR, %u, %s.",
             Status,
             "pthread_create failed");
-        free(CustomContext);
+        QUIC_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD);
     }
 
 #else // QUIC_USE_CUSTOM_THREAD_CONTEXT
