@@ -98,7 +98,7 @@ struct DrillSender {
         _In_ QUIC_RECV_DATA* RecvBufferChain
         )
     {
-        QuicDataPathBindingReturnRecvDatagrams(RecvBufferChain);
+        QuicRecvDataReturn(RecvBufferChain);
     }
 
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -186,12 +186,12 @@ struct DrillSender {
         QUIC_ADDR LocalAddress;
         QuicDataPathBindingGetLocalAddress(Binding, &LocalAddress);
 
-        QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-            QuicDataPathBindingAllocSendContext(
+        QUIC_SEND_DATA* SendContext =
+            QuicSendDataAlloc(
                 Binding, QUIC_ECN_NON_ECT, DatagramLength);
 
         QUIC_BUFFER* SendBuffer =
-            QuicDataPathBindingAllocSendDatagram(SendContext, DatagramLength);
+            QuicSendDataAllocBuffer(SendContext, DatagramLength);
 
         if (SendBuffer == nullptr) {
             TEST_FAILURE("Buffer null");

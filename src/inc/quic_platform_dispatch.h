@@ -155,7 +155,7 @@ void
     );
 
 typedef
-QUIC_DATAPATH_SEND_CONTEXT*
+QUIC_SEND_DATA*
 (*QUIC_DATAPATH_BINDING_ALLOC_SEND_CONTEXT)(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint16_t MaxPacketSize
@@ -164,27 +164,27 @@ QUIC_DATAPATH_SEND_CONTEXT*
 typedef
 void
 (*QUIC_DATAPATH_BINDING_FREE_SEND_CONTEXT)(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _In_ QUIC_SEND_DATA* SendContext
     );
 
 typedef
 QUIC_BUFFER*
 (*QUIC_DATAPATH_BINDING_ALLOC_SEND_BUFFER)(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ QUIC_SEND_DATA* SendContext,
     _In_ uint16_t MaxBufferLength
     );
 
 typedef
 void
 (*QUIC_DATAPATH_BINDING_FREE_SEND_BUFFER)(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ QUIC_SEND_DATA* SendContext,
     _In_ QUIC_BUFFER* SendBuffer
     );
 
 typedef
 BOOLEAN
 (*QUIC_DATAPATH_BINDING_IS_SEND_CONTEXT_FULL)(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _In_ QUIC_SEND_DATA* SendContext
     );
 
 typedef
@@ -193,7 +193,7 @@ QUIC_STATUS
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _In_ QUIC_SEND_DATA* SendContext
     );
 
 typedef

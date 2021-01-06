@@ -5,7 +5,7 @@
 
 Abstract:
 
-    QUIC Datapath User Mode Unit test
+    QUIC Datapath Unit test
 
 --*/
 
@@ -155,8 +155,8 @@ protected:
     static void
     EmptyReceiveCallback(
         _In_ QUIC_DATAPATH_BINDING* /* Binding */,
-        _In_ void * /* RecvContext */,
-        _In_ QUIC_RECV_DATA* /* RecvPacketChain */
+        _In_ void* /* RecvContext */,
+        _In_ QUIC_RECV_DATA* /* RecvDataChain */
         )
     {
     }
@@ -164,7 +164,7 @@ protected:
     static void
     EmptyUnreachableCallback(
         _In_ QUIC_DATAPATH_BINDING* /* Binding */,
-        _In_ void * /* Context */,
+        _In_ void* /* Context */,
         _In_ const QUIC_ADDR* /* RemoteAddress */
         )
     {
@@ -172,37 +172,37 @@ protected:
 
     static void
     DataRecvCallback(
-        _In_ QUIC_DATAPATH_BINDING* binding,
-        _In_ void * recvContext,
-        _In_ QUIC_RECV_DATA* recvBufferChain
+        _In_ QUIC_DATAPATH_BINDING* Binding,
+        _In_ void* Context,
+        _In_ QUIC_RECV_DATA* RecvDataChain
         )
     {
-        DataRecvContext* RecvContext = (DataRecvContext*)recvContext;
+        DataRecvContext* RecvContext = (DataRecvContext*)Context;
         ASSERT_NE(nullptr, RecvContext);
 
-        QUIC_RECV_DATA* recvBuffer = recvBufferChain;
+        QUIC_RECV_DATA* RecvData = RecvDataChain;
 
-        while (recvBuffer != NULL) {
-            ASSERT_EQ(recvBuffer->BufferLength, ExpectedDataSize);
-            ASSERT_EQ(0, memcmp(recvBuffer->Buffer, ExpectedData, ExpectedDataSize));
+        while (RecvData != NULL) {
+            ASSERT_EQ(RecvData->BufferLength, ExpectedDataSize);
+            ASSERT_EQ(0, memcmp(RecvData->Buffer, ExpectedData, ExpectedDataSize));
 
-            if (recvBuffer->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->ServerAddress.Ipv4.sin_port) {
+            if (RecvData->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->ServerAddress.Ipv4.sin_port) {
 
                 auto ServerSendContext =
-                    QuicDataPathBindingAllocSendContext(binding, QUIC_ECN_NON_ECT, 0);
+                    QuicSendDataAlloc(Binding, QUIC_ECN_NON_ECT, 0);
                 ASSERT_NE(nullptr, ServerSendContext);
 
                 auto ServerDatagram =
-                    QuicDataPathBindingAllocSendDatagram(ServerSendContext, ExpectedDataSize);
+                    QuicSendDataAllocBuffer(ServerSendContext, ExpectedDataSize);
                 ASSERT_NE(nullptr, ServerDatagram);
 
-                memcpy(ServerDatagram->Buffer, recvBuffer->Buffer, recvBuffer->BufferLength);
+                memcpy(ServerDatagram->Buffer, RecvData->Buffer, RecvData->BufferLength);
 
                 VERIFY_QUIC_SUCCESS(
                     QuicDataPathBindingSend(
-                        binding,
-                        &recvBuffer->Tuple->LocalAddress,
-                        &recvBuffer->Tuple->RemoteAddress,
+                        Binding,
+                        &RecvData->Tuple->LocalAddress,
+                        &RecvData->Tuple->RemoteAddress,
                         ServerSendContext
                     ));
 
@@ -210,48 +210,48 @@ protected:
                 QuicEventSet(RecvContext->ClientCompletion);
             }
 
-            recvBuffer = recvBuffer->Next;
+            RecvData = RecvData->Next;
         }
 
-        QuicDataPathBindingReturnRecvDatagrams(recvBufferChain);
+        QuicRecvDataReturn(RecvDataChain);
     }
 
     static void
     DataRecvCallbackECT0(
-        _In_ QUIC_DATAPATH_BINDING* binding,
-        _In_ void * recvContext,
-        _In_ QUIC_RECV_DATA* recvBufferChain
+        _In_ QUIC_DATAPATH_BINDING* Binding,
+        _In_ void* Context,
+        _In_ QUIC_RECV_DATA* RecvDataChain
         )
     {
-        DataRecvContext* RecvContext = (DataRecvContext*)recvContext;
+        DataRecvContext* RecvContext = (DataRecvContext*)Context;
         ASSERT_NE(nullptr, RecvContext);
 
-        QUIC_RECV_DATA* recvBuffer = recvBufferChain;
+        QUIC_RECV_DATA* RecvData = RecvDataChain;
 
-        while (recvBuffer != NULL) {
-            ASSERT_EQ(recvBuffer->BufferLength, ExpectedDataSize);
-            ASSERT_EQ(0, memcmp(recvBuffer->Buffer, ExpectedData, ExpectedDataSize));
+        while (RecvData != NULL) {
+            ASSERT_EQ(RecvData->BufferLength, ExpectedDataSize);
+            ASSERT_EQ(0, memcmp(RecvData->Buffer, ExpectedData, ExpectedDataSize));
 
-            if (recvBuffer->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->ServerAddress.Ipv4.sin_port) {
+            if (RecvData->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->ServerAddress.Ipv4.sin_port) {
 
-                QUIC_ECN_TYPE ecn = (QUIC_ECN_TYPE)recvBuffer->TypeOfService;
+                QUIC_ECN_TYPE ecn = (QUIC_ECN_TYPE)RecvData->TypeOfService;
 
                 auto ServerSendContext =
-                    QuicDataPathBindingAllocSendContext(binding, QUIC_ECN_ECT_0, 0);
+                    QuicSendDataAlloc(Binding, QUIC_ECN_ECT_0, 0);
                 ASSERT_NE(nullptr, ServerSendContext);
 
                 auto ServerDatagram =
-                    QuicDataPathBindingAllocSendDatagram(ServerSendContext, ExpectedDataSize);
+                    QuicSendDataAllocBuffer(ServerSendContext, ExpectedDataSize);
                 ASSERT_NE(nullptr, ServerDatagram);
                 ASSERT_EQ(ecn, QUIC_ECN_ECT_0);
 
-                memcpy(ServerDatagram->Buffer, recvBuffer->Buffer, recvBuffer->BufferLength);
+                memcpy(ServerDatagram->Buffer, RecvData->Buffer, RecvData->BufferLength);
 
                 VERIFY_QUIC_SUCCESS(
                     QuicDataPathBindingSend(
-                        binding,
-                        &recvBuffer->Tuple->LocalAddress,
-                        &recvBuffer->Tuple->RemoteAddress,
+                        Binding,
+                        &RecvData->Tuple->LocalAddress,
+                        &RecvData->Tuple->RemoteAddress,
                         ServerSendContext
                     ));
 
@@ -259,10 +259,10 @@ protected:
                 QuicEventSet(RecvContext->ClientCompletion);
             }
 
-            recvBuffer = recvBuffer->Next;
+            RecvData = RecvData->Next;
         }
 
-        QuicDataPathBindingReturnRecvDatagrams(recvBufferChain);
+        QuicRecvDataReturn(RecvDataChain);
     }
 };
 
@@ -272,18 +272,18 @@ QuicAddr DataPathTest::LocalIPv6;
 
 TEST_F(DataPathTest, Initialize)
 {
-    QUIC_DATAPATH* datapath = nullptr;
+    QUIC_DATAPATH* Datapath = nullptr;
 
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
             EmptyReceiveCallback,
             EmptyUnreachableCallback,
-            &datapath));
-    ASSERT_NE(datapath, nullptr);
+            &Datapath));
+    ASSERT_NE(Datapath, nullptr);
 
     QuicDataPathUninitialize(
-        datapath);
+        Datapath);
 }
 
 TEST_F(DataPathTest, InitializeInvalid)
@@ -295,57 +295,57 @@ TEST_F(DataPathTest, InitializeInvalid)
             EmptyUnreachableCallback,
             nullptr));
 
-    QUIC_DATAPATH* datapath = nullptr;
+    QUIC_DATAPATH* Datapath = nullptr;
     ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
         QuicDataPathInitialize(
             0,
             nullptr,
             EmptyUnreachableCallback,
-            &datapath));
+            &Datapath));
     ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
         QuicDataPathInitialize(
             0,
             EmptyReceiveCallback,
             nullptr,
-            &datapath));
+            &Datapath));
 }
 
 TEST_F(DataPathTest, Bind)
 {
-    QUIC_DATAPATH* datapath = nullptr;
-    QUIC_DATAPATH_BINDING* binding = nullptr;
+    QUIC_DATAPATH* Datapath = nullptr;
+    QUIC_DATAPATH_BINDING* Binding = nullptr;
 
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
             EmptyReceiveCallback,
             EmptyUnreachableCallback,
-            &datapath));
-    ASSERT_NE(datapath, nullptr);
+            &Datapath));
+    ASSERT_NE(Datapath, nullptr);
 
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
-            datapath,
+            Datapath,
             QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             nullptr,
             nullptr,
-            &binding));
-    ASSERT_NE(nullptr, binding);
+            &Binding));
+    ASSERT_NE(nullptr, Binding);
 
     QUIC_ADDR Address;
-    QuicDataPathBindingGetLocalAddress(binding, &Address);
+    QuicDataPathBindingGetLocalAddress(Binding, &Address);
     ASSERT_NE(Address.Ipv4.sin_port, (uint16_t)0);
 
-    QuicDataPathBindingDelete(binding);
+    QuicDataPathBindingDelete(Binding);
 
     QuicDataPathUninitialize(
-        datapath);
+        Datapath);
 }
 
 TEST_F(DataPathTest, Rebind)
 {
-    QUIC_DATAPATH* datapath = nullptr;
+    QUIC_DATAPATH* Datapath = nullptr;
     QUIC_DATAPATH_BINDING* binding1 = nullptr;
     QUIC_DATAPATH_BINDING* binding2 = nullptr;
 
@@ -354,12 +354,12 @@ TEST_F(DataPathTest, Rebind)
             0,
             EmptyReceiveCallback,
             EmptyUnreachableCallback,
-            &datapath));
-    ASSERT_NE(nullptr, datapath);
+            &Datapath));
+    ASSERT_NE(nullptr, Datapath);
 
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
-            datapath,
+            Datapath,
             QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             nullptr,
@@ -373,7 +373,7 @@ TEST_F(DataPathTest, Rebind)
 
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
-            datapath,
+            Datapath,
             QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             nullptr,
@@ -389,12 +389,12 @@ TEST_F(DataPathTest, Rebind)
     QuicDataPathBindingDelete(binding2);
 
     QuicDataPathUninitialize(
-        datapath);
+        Datapath);
 }
 
 TEST_P(DataPathTest, Data)
 {
-    QUIC_DATAPATH* datapath = nullptr;
+    QUIC_DATAPATH* Datapath = nullptr;
     QUIC_DATAPATH_BINDING* server = nullptr;
     QUIC_DATAPATH_BINDING* client = nullptr;
     auto serverAddress = GetNewLocalAddr();
@@ -408,15 +408,15 @@ TEST_P(DataPathTest, Data)
             0,
             DataRecvCallback,
             EmptyUnreachableCallback,
-            &datapath));
-    ASSERT_NE(nullptr, datapath);
+            &Datapath));
+    ASSERT_NE(nullptr, Datapath);
 
     QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
             QuicDataPathBindingCreate(
-                datapath,
+                Datapath,
                 QUIC_DATAPATH_BINDING_UDP,
                 &serverAddress.SockAddr,
                 nullptr,
@@ -438,7 +438,7 @@ TEST_P(DataPathTest, Data)
 
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
-            datapath,
+            Datapath,
             QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             &serverAddress.SockAddr,
@@ -447,11 +447,11 @@ TEST_P(DataPathTest, Data)
     ASSERT_NE(nullptr, client);
 
     auto ClientSendContext =
-        QuicDataPathBindingAllocSendContext(client, QUIC_ECN_NON_ECT, 0);
+        QuicSendDataAlloc(client, QUIC_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     auto ClientDatagram =
-        QuicDataPathBindingAllocSendDatagram(ClientSendContext, ExpectedDataSize);
+        QuicSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientDatagram);
 
     memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
@@ -472,14 +472,14 @@ TEST_P(DataPathTest, Data)
     QuicDataPathBindingDelete(server);
 
     QuicDataPathUninitialize(
-        datapath);
+        Datapath);
 
     QuicEventUninitialize(RecvContext.ClientCompletion);
 }
 
 TEST_P(DataPathTest, DataRebind)
 {
-    QUIC_DATAPATH* datapath = nullptr;
+    QUIC_DATAPATH* Datapath = nullptr;
     QUIC_DATAPATH_BINDING* server = nullptr;
     QUIC_DATAPATH_BINDING* client = nullptr;
     auto serverAddress = GetNewLocalAddr();
@@ -493,15 +493,15 @@ TEST_P(DataPathTest, DataRebind)
             0,
             DataRecvCallback,
             EmptyUnreachableCallback,
-            &datapath));
-    ASSERT_NE(nullptr, datapath);
+            &Datapath));
+    ASSERT_NE(nullptr, Datapath);
 
     QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
             QuicDataPathBindingCreate(
-                datapath,
+                Datapath,
                 QUIC_DATAPATH_BINDING_UDP,
                 &serverAddress.SockAddr,
                 nullptr,
@@ -523,7 +523,7 @@ TEST_P(DataPathTest, DataRebind)
 
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
-            datapath,
+            Datapath,
             QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             &serverAddress.SockAddr,
@@ -532,11 +532,11 @@ TEST_P(DataPathTest, DataRebind)
     ASSERT_NE(nullptr, client);
 
     auto ClientSendContext =
-        QuicDataPathBindingAllocSendContext(client, QUIC_ECN_NON_ECT, 0);
+        QuicSendDataAlloc(client, QUIC_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     auto ClientDatagram =
-        QuicDataPathBindingAllocSendDatagram(ClientSendContext, ExpectedDataSize);
+        QuicSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientDatagram);
 
     memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
@@ -559,7 +559,7 @@ TEST_P(DataPathTest, DataRebind)
 
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
-            datapath,
+            Datapath,
             QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             &serverAddress.SockAddr,
@@ -568,11 +568,11 @@ TEST_P(DataPathTest, DataRebind)
     ASSERT_NE(nullptr, client);
 
     ClientSendContext =
-        QuicDataPathBindingAllocSendContext(client, QUIC_ECN_NON_ECT, 0);
+        QuicSendDataAlloc(client, QUIC_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     ClientDatagram =
-        QuicDataPathBindingAllocSendDatagram(ClientSendContext, ExpectedDataSize);
+        QuicSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientDatagram);
 
     memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
@@ -592,14 +592,14 @@ TEST_P(DataPathTest, DataRebind)
     QuicDataPathBindingDelete(server);
 
     QuicDataPathUninitialize(
-        datapath);
+        Datapath);
 
     QuicEventUninitialize(RecvContext.ClientCompletion);
 }
 
 TEST_P(DataPathTest, DataECT0)
 {
-    QUIC_DATAPATH* datapath = nullptr;
+    QUIC_DATAPATH* Datapath = nullptr;
     QUIC_DATAPATH_BINDING* server = nullptr;
     QUIC_DATAPATH_BINDING* client = nullptr;
     auto serverAddress = GetNewLocalAddr();
@@ -613,15 +613,15 @@ TEST_P(DataPathTest, DataECT0)
             0,
             DataRecvCallbackECT0,
             EmptyUnreachableCallback,
-            &datapath));
-    ASSERT_NE(nullptr, datapath);
+            &Datapath));
+    ASSERT_NE(nullptr, Datapath);
 
     QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
             QuicDataPathBindingCreate(
-                datapath,
+                Datapath,
                 QUIC_DATAPATH_BINDING_UDP,
                 &serverAddress.SockAddr,
                 nullptr,
@@ -643,7 +643,7 @@ TEST_P(DataPathTest, DataECT0)
 
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
-            datapath,
+            Datapath,
             QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             &serverAddress.SockAddr,
@@ -652,11 +652,11 @@ TEST_P(DataPathTest, DataECT0)
     ASSERT_NE(nullptr, client);
 
     auto ClientSendContext =
-        QuicDataPathBindingAllocSendContext(client, QUIC_ECN_ECT_0, 0);
+        QuicSendDataAlloc(client, QUIC_ECN_ECT_0, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     auto ClientDatagram =
-        QuicDataPathBindingAllocSendDatagram(ClientSendContext, ExpectedDataSize);
+        QuicSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientDatagram);
 
     memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
@@ -677,7 +677,7 @@ TEST_P(DataPathTest, DataECT0)
     QuicDataPathBindingDelete(server);
 
     QuicDataPathUninitialize(
-        datapath);
+        Datapath);
 
     QuicEventUninitialize(RecvContext.ClientCompletion);
 }

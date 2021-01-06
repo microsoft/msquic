@@ -58,7 +58,7 @@ QuicPacketSpaceUninitialize(
         do {
             Datagram->QueuedOnConnection = FALSE;
         } while ((Datagram = Datagram->Next) != NULL);
-        QuicDataPathBindingReturnRecvDatagrams(Packets->DeferredDatagrams);
+        QuicRecvDataReturn(Packets->DeferredDatagrams);
     }
 
     QuicAckTrackerUninitialize(&Packets->AckTracker);

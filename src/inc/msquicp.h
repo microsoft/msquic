@@ -21,7 +21,7 @@ extern "C" {
 #endif
 
 typedef struct QUIC_RECV_DATA QUIC_RECV_DATA;
-typedef struct QUIC_DATAPATH_SEND_CONTEXT QUIC_DATAPATH_SEND_CONTEXT;
+typedef struct QUIC_SEND_DATA QUIC_SEND_DATA;
 
 //
 // Returns TRUE to drop the packet.
@@ -42,7 +42,7 @@ BOOLEAN
 (QUIC_API * QUIC_TEST_DATAPATH_SEND_HOOK)(
     _Inout_ QUIC_ADDR* RemoteAddress,
     _Inout_opt_ QUIC_ADDR* LocalAddress,
-    _Inout_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _Inout_ QUIC_SEND_DATA* SendContext
     );
 
 typedef struct QUIC_TEST_DATAPATH_HOOKS {

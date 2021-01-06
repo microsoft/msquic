@@ -90,7 +90,7 @@ UdpRecvCallback(
     _In_ QUIC_RECV_DATA* RecvBufferChain
     )
 {
-    QuicDataPathBindingReturnRecvDatagrams(RecvBufferChain);
+    QuicRecvDataReturn(RecvBufferChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -114,20 +114,20 @@ void RunAttackRandom(QUIC_DATAPATH_BINDING* Binding, uint16_t Length, bool Valid
 
     while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
 
-        QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-            QuicDataPathBindingAllocSendContext(
+        QUIC_SEND_DATA* SendContext =
+            QuicSendDataAlloc(
                 Binding, QUIC_ECN_NON_ECT, Length);
         if (SendContext == nullptr) {
-            printf("QuicDataPathBindingAllocSendContext failed\n");
+            printf("QuicSendDataAlloc failed\n");
             return;
         }
 
-        while (!QuicDataPathBindingIsSendContextFull(SendContext)) {
+        while (!QuicSendDataIsFull(SendContext)) {
             QUIC_BUFFER* SendBuffer =
-                QuicDataPathBindingAllocSendDatagram(SendContext, Length);
+                QuicSendDataAllocBuffer(SendContext, Length);
             if (SendBuffer == nullptr) {
-                printf("QuicDataPathBindingAllocSendDatagram failed\n");
-                QuicDataPathBindingFreeSendContext(SendContext);
+                printf("QuicSendDataAllocBuffer failed\n");
+                QuicSendDataFree(SendContext);
                 return;
             }
 
@@ -217,15 +217,15 @@ void RunAttackValidInitial(QUIC_DATAPATH_BINDING* Binding)
 
     while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
 
-        QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-            QuicDataPathBindingAllocSendContext(
+        QUIC_SEND_DATA* SendContext =
+            QuicSendDataAlloc(
                 Binding, QUIC_ECN_NON_ECT, DatagramLength);
         VERIFY(SendContext);
 
         while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs &&
-            !QuicDataPathBindingIsSendContextFull(SendContext)) {
+            !QuicSendDataIsFull(SendContext)) {
             QUIC_BUFFER* SendBuffer =
-                QuicDataPathBindingAllocSendDatagram(SendContext, DatagramLength);
+                QuicSendDataAllocBuffer(SendContext, DatagramLength);
             VERIFY(SendBuffer);
 
             (*DestCid)++; (*SrcCid)++;

@@ -138,7 +138,7 @@ struct DatapathHook
     Send(
         _Inout_ QUIC_ADDR* /* RemoteAddress */,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
+        _Inout_ struct QUIC_SEND_DATA* /* SendContext */
         ) {
         return FALSE; // Don't drop by default
     }
@@ -168,7 +168,7 @@ class DatapathHooks
     SendCallback(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* LocalAddress,
-        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* SendContext
+        _Inout_ struct QUIC_SEND_DATA* SendContext
         ) {
         return Instance->Send(RemoteAddress, LocalAddress, SendContext);
     }
@@ -239,7 +239,7 @@ class DatapathHooks
     Send(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* LocalAddress,
-        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* SendContext
+        _Inout_ struct QUIC_SEND_DATA* SendContext
         ) {
         BOOLEAN Result = FALSE;
         QuicDispatchLockAcquire(&Lock);
@@ -385,7 +385,7 @@ struct ReplaceAddressHelper : public DatapathHook
     Send(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
+        _Inout_ struct QUIC_SEND_DATA* /* SendContext */
         ) {
         if (QuicAddrCompare(RemoteAddress, &New)) {
             *RemoteAddress = Original;
@@ -445,7 +445,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
     Send(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
+        _Inout_ struct QUIC_SEND_DATA* /* SendContext */
         ) {
         if (QuicAddrCompare(RemoteAddress, &New)) {
             if (AllowPacketCount == 0) {

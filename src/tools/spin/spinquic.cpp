@@ -709,7 +709,7 @@ BOOLEAN QUIC_API DatapathHookReceiveCallback(struct QUIC_RECV_DATA* /* Datagram 
     return (RandomValue % 100) < Settings.LossPercent;
 }
 
-BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_ADDR* /* LocalAddress */, struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */)
+BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_ADDR* /* LocalAddress */, struct QUIC_SEND_DATA* /* SendContext */)
 {
     return FALSE; // Don't drop
 }

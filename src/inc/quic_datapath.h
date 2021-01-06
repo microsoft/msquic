@@ -36,6 +36,9 @@ extern "C" {
 //
 #define QUIC_UDP_HEADER_SIZE 8
 
+//
+// Different types of Explicit Congestion Notifications
+//
 typedef enum QUIC_ECN_TYPE {
 
     QUIC_ECN_NON_ECT = 0x0, // Non ECN-Capable Transport, Non-ECT
@@ -46,8 +49,7 @@ typedef enum QUIC_ECN_TYPE {
 } QUIC_ECN_TYPE;
 
 //
-// Helper to get the ECN type from the Type of Service field of a recieved
-// datagram.
+// Helper to get the ECN type from the Type of Service field of recieved data.
 //
 #define QUIC_ECN_FROM_TOS(ToS) (QUIC_ECN_TYPE)((ToS) & 0x3)
 
@@ -126,7 +128,7 @@ typedef struct QUIC_RECV_PACKET QUIC_RECV_PACKET;
 //
 // Structure that maintains the 'per send' context.
 //
-typedef struct QUIC_DATAPATH_SEND_CONTEXT QUIC_DATAPATH_SEND_CONTEXT;
+typedef struct QUIC_SEND_DATA QUIC_SEND_DATA;
 
 //
 // Structure to represent data buffers received.
@@ -144,7 +146,7 @@ typedef struct QUIC_TUPLE {
 typedef struct QUIC_RECV_DATA {
 
     //
-    // The next receive datagram in the chain.
+    // The next receive data in the chain.
     //
     struct QUIC_RECV_DATA* Next;
 
@@ -165,7 +167,7 @@ typedef struct QUIC_RECV_DATA {
     uint16_t BufferLength;
 
     //
-    // The partition ID of the received datagram.
+    // The partition ID of the received data.
     //
     uint16_t PartitionIndex;
 
@@ -184,19 +186,19 @@ typedef struct QUIC_RECV_DATA {
 } QUIC_RECV_DATA;
 
 //
-// Gets the corresponding recv datagram from its context pointer.
+// Gets the corresponding receive data from its context pointer.
 //
 QUIC_RECV_DATA*
-QuicDataPathRecvPacketToRecvDatagram(
-    _In_ const QUIC_RECV_PACKET* const Packet
+QuicDataPathRecvPacketToRecvData(
+    _In_ const QUIC_RECV_PACKET* const RecvPacket
     );
 
 //
-// Gets the corresponding client context from its recv datagram pointer.
+// Gets the corresponding client context from its receive data pointer.
 //
 QUIC_RECV_PACKET*
-QuicDataPathRecvDatagramToRecvPacket(
-    _In_ const QUIC_RECV_DATA* const Datagram
+QuicDataPathRecvDataToRecvPacket(
+    _In_ const QUIC_RECV_DATA* const RecvData
     );
 
 //
@@ -209,7 +211,7 @@ void
 (QUIC_DATAPATH_RECEIVE_CALLBACK)(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ void* Context,
-    _In_ QUIC_RECV_DATA* DatagramChain
+    _In_ QUIC_RECV_DATA* RecvDataChain
     );
 
 typedef QUIC_DATAPATH_RECEIVE_CALLBACK *QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER;
@@ -228,7 +230,6 @@ void
     );
 
 typedef QUIC_DATAPATH_UNREACHABLE_CALLBACK *QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER;
-
 
 //
 // Function pointer type for send complete callbacks.
@@ -372,53 +373,51 @@ QuicDataPathBindingGetRemoteAddress(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingReturnRecvDatagrams(
-    _In_opt_ QUIC_RECV_DATA* DatagramChain
+QuicRecvDataReturn(
+    _In_opt_ QUIC_RECV_DATA* RecvDataChain
     );
 
 //
 // Allocates a new send context to be used to call QuicDataPathBindingSend. It
-// can be freed with QuicDataPathBindingFreeSendContext too.
+// can be freed with QuicSendDataFree too.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
-QUIC_DATAPATH_SEND_CONTEXT*
-QuicDataPathBindingAllocSendContext(
+QUIC_SEND_DATA*
+QuicSendDataAlloc(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     );
 
 //
-// Frees a send context returned from a previous call to
-// QuicDataPathBindingAllocSendContext.
+// Frees a send context returned from a previous call to QuicSendDataAlloc.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingFreeSendContext(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+QuicSendDataFree(
+    _In_ QUIC_SEND_DATA* SendData
     );
 
 //
-// Allocates a new UDP datagram buffer for sending.
+// Allocates a new data buffer for sending.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
-QuicDataPathBindingAllocSendDatagram(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+QuicSendDataAllocBuffer(
+    _In_ QUIC_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     );
 
 //
-// Frees a datagram buffer returned from a previous call to
-// QuicDataPathBindingAllocSendDatagram.
+// Frees a data buffer returned from a previous call to QuicSendDataAllocBuffer.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingFreeSendDatagram(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
-    _In_ QUIC_BUFFER* SendDatagram
+QuicSendDataFreeBuffer(
+    _In_ QUIC_SEND_DATA* SendData,
+    _In_ QUIC_BUFFER* Buffer
     );
 
 //
@@ -426,13 +425,12 @@ QuicDataPathBindingFreeSendDatagram(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicDataPathBindingIsSendContextFull(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+QuicSendDataIsFull(
+    _In_ QUIC_SEND_DATA* SendData
     );
 
 //
-// Sends data to a remote host. Note, the buffer must remain valid for
-// the duration of the send operation.
+// Sends the data over the binding.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
@@ -440,7 +438,7 @@ QuicDataPathBindingSend(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _In_ QUIC_SEND_DATA* SendData
     );
 
 //

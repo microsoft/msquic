@@ -157,7 +157,7 @@ QuicConnAlloc(
     if (IsServer) {
 
         const QUIC_RECV_PACKET* Packet =
-            QuicDataPathRecvDatagramToRecvPacket(Datagram);
+            QuicDataPathRecvDataToRecvPacket(Datagram);
 
         Connection->Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
         if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_IP) {
@@ -345,7 +345,7 @@ QuicConnFree(
         do {
             Datagram->QueuedOnConnection = FALSE;
         } while ((Datagram = Datagram->Next) != NULL);
-        QuicDataPathBindingReturnRecvDatagrams(Connection->ReceiveQueue);
+        QuicRecvDataReturn(Connection->ReceiveQueue);
         Connection->ReceiveQueue = NULL;
     }
     QUIC_PATH* Path = &Connection->Paths[0];
@@ -2563,10 +2563,10 @@ QuicConnQueueRecvDatagrams(
 {
     QUIC_RECV_DATA** DatagramChainTail = &DatagramChain->Next;
     DatagramChain->QueuedOnConnection = TRUE;
-    QuicDataPathRecvDatagramToRecvPacket(DatagramChain)->AssignedToConnection = TRUE;
+    QuicDataPathRecvDataToRecvPacket(DatagramChain)->AssignedToConnection = TRUE;
     while (*DatagramChainTail != NULL) {
         (*DatagramChainTail)->QueuedOnConnection = TRUE;
-        QuicDataPathRecvDatagramToRecvPacket(*DatagramChainTail)->AssignedToConnection = TRUE;
+        QuicDataPathRecvDataToRecvPacket(*DatagramChainTail)->AssignedToConnection = TRUE;
         DatagramChainTail = &((*DatagramChainTail)->Next);
     }
 
@@ -2593,9 +2593,9 @@ QuicConnQueueRecvDatagrams(
         QUIC_RECV_DATA* Datagram = DatagramChain;
         do {
             Datagram->QueuedOnConnection = FALSE;
-            QuicPacketLogDrop(Connection, QuicDataPathRecvDatagramToRecvPacket(Datagram), "Max queue limit reached");
+            QuicPacketLogDrop(Connection, QuicDataPathRecvDataToRecvPacket(Datagram), "Max queue limit reached");
         } while ((Datagram = Datagram->Next) != NULL);
-        QuicDataPathBindingReturnRecvDatagrams(DatagramChain);
+        QuicRecvDataReturn(DatagramChain);
         return;
     }
 
@@ -3016,7 +3016,7 @@ QuicConnGetKeyOrDeferDatagram(
                 while (*Tail != NULL) {
                     Tail = &((*Tail)->Next);
                 }
-                *Tail = QuicDataPathRecvPacketToRecvDatagram(Packet);
+                *Tail = QuicDataPathRecvPacketToRecvData(Packet);
                 (*Tail)->Next = NULL;
             }
         }
@@ -4580,7 +4580,7 @@ QuicConnRecvDatagramBatch(
     uint8_t HpMask[QUIC_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
 
     QUIC_DBG_ASSERT(BatchCount > 0 && BatchCount <= QUIC_MAX_CRYPTO_BATCH_COUNT);
-    QUIC_RECV_PACKET* Packet = QuicDataPathRecvDatagramToRecvPacket(Datagrams[0]);
+    QUIC_RECV_PACKET* Packet = QuicDataPathRecvDataToRecvPacket(Datagrams[0]);
 
     QuicTraceLogConnVerbose(
         UdpRecvBatch,
@@ -4611,7 +4611,7 @@ QuicConnRecvDatagramBatch(
     for (uint8_t i = 0; i < BatchCount; ++i) {
         QUIC_DBG_ASSERT(Datagrams[i]->Allocated);
         QUIC_ECN_TYPE ECN = QUIC_ECN_FROM_TOS(Datagrams[i]->TypeOfService);
-        Packet = QuicDataPathRecvDatagramToRecvPacket(Datagrams[i]);
+        Packet = QuicDataPathRecvDataToRecvPacket(Datagrams[i]);
         if (QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * QUIC_HP_SAMPLE_LENGTH) &&
             QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
@@ -4700,7 +4700,7 @@ QuicConnRecvDatagrams(
         Datagram->Next = NULL;
 
         QUIC_RECV_PACKET* Packet =
-            QuicDataPathRecvDatagramToRecvPacket(Datagram);
+            QuicDataPathRecvDataToRecvPacket(Datagram);
         QUIC_DBG_ASSERT(Packet != NULL);
 
         QUIC_DBG_ASSERT(Packet->DecryptionDeferred == IsDeferred);
@@ -4849,7 +4849,7 @@ QuicConnRecvDatagrams(
                         &RecvState);
                     BatchCount = 0;
                 }
-                QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
+                QuicRecvDataReturn(ReleaseChain);
                 ReleaseChain = NULL;
                 ReleaseChainTail = &ReleaseChain;
                 ReleaseChainCount = 0;
@@ -4873,7 +4873,7 @@ QuicConnRecvDatagrams(
     }
 
     if (ReleaseChain != NULL) {
-        QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
+        QuicRecvDataReturn(ReleaseChain);
     }
 
     if (QuicConnIsServer(Connection) &&
@@ -4966,7 +4966,7 @@ QuicConnDiscardDeferred0Rtt(
         DeferredDatagrams = DeferredDatagrams->Next;
 
         const QUIC_RECV_PACKET* Packet =
-            QuicDataPathRecvDatagramToRecvPacket(Datagram);
+            QuicDataPathRecvDataToRecvPacket(Datagram);
         if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT) {
             QuicPacketLogDrop(Connection, Packet, "0-RTT rejected");
             Packets->DeferredDatagramsCount--;
@@ -4979,7 +4979,7 @@ QuicConnDiscardDeferred0Rtt(
     }
 
     if (ReleaseChain != NULL) {
-        QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
+        QuicRecvDataReturn(ReleaseChain);
     }
 }
 

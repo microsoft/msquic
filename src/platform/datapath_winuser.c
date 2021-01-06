@@ -134,7 +134,7 @@ typedef struct QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT {
 //
 // Send context.
 //
-typedef struct QUIC_DATAPATH_SEND_CONTEXT {
+typedef struct QUIC_SEND_DATA {
 
     //
     // The Overlapped structure for I/O completion.
@@ -176,7 +176,7 @@ typedef struct QUIC_DATAPATH_SEND_CONTEXT {
     //
     WSABUF ClientBuffer;
 
-} QUIC_DATAPATH_SEND_CONTEXT;
+} QUIC_SEND_DATA;
 
 //
 // Per-socket state.
@@ -393,7 +393,7 @@ typedef struct QUIC_DATAPATH {
 } QUIC_DATAPATH;
 
 QUIC_RECV_DATA*
-QuicDataPathRecvPacketToRecvDatagram(
+QuicDataPathRecvPacketToRecvData(
     _In_ const QUIC_RECV_PACKET* const Context
     )
 {
@@ -404,7 +404,7 @@ QuicDataPathRecvPacketToRecvDatagram(
 }
 
 QUIC_RECV_PACKET*
-QuicDataPathRecvDatagramToRecvPacket(
+QuicDataPathRecvDataToRecvPacket(
     _In_ const QUIC_RECV_DATA* const Datagram
     )
 {
@@ -660,7 +660,7 @@ QuicDataPathInitialize(
 
         QuicPoolInitialize(
             FALSE,
-            sizeof(QUIC_DATAPATH_SEND_CONTEXT),
+            sizeof(QUIC_SEND_DATA),
             QUIC_POOL_PLATFORM_SENDCTX,
             &Datapath->ProcContexts[i].SendContextPool);
 
@@ -1962,8 +1962,8 @@ QuicDataPathRecvComplete(
 
     } else if (IoResult == QUIC_STATUS_SUCCESS) {
 
-        QUIC_RECV_DATA* DatagramChain = NULL;
-        QUIC_RECV_DATA** DatagramChainTail = &DatagramChain;
+        QUIC_RECV_DATA* RecvDataChain = NULL;
+        QUIC_RECV_DATA** DatagramChainTail = &RecvDataChain;
 
         QUIC_DATAPATH* Datapath = SocketContext->Binding->Datapath;
         QUIC_RECV_DATA* Datagram;
@@ -2097,11 +2097,11 @@ QuicDataPathRecvComplete(
         }
 
         QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
-        QUIC_DBG_ASSERT(DatagramChain);
+        QUIC_DBG_ASSERT(RecvDataChain);
 
 #ifdef QUIC_FUZZER
         if (MsQuicFuzzerContext.RecvCallback) {
-            QUIC_RECV_DATA *_DatagramIter = DatagramChain;
+            QUIC_RECV_DATA *_DatagramIter = RecvDataChain;
 
             while (_DatagramIter) {
                 MsQuicFuzzerContext.RecvCallback(
@@ -2116,7 +2116,7 @@ QuicDataPathRecvComplete(
         SocketContext->Binding->Datapath->RecvHandler(
             SocketContext->Binding,
             SocketContext->Binding->ClientContext,
-            DatagramChain);
+            RecvDataChain);
 
     } else {
         QuicTraceEvent(
@@ -2136,8 +2136,8 @@ Drop:
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingReturnRecvDatagrams(
-    _In_opt_ QUIC_RECV_DATA* DatagramChain
+QuicRecvDataReturn(
+    _In_opt_ QUIC_RECV_DATA* RecvDataChain
     )
 {
     QUIC_RECV_DATA* Datagram;
@@ -2145,8 +2145,8 @@ QuicDataPathBindingReturnRecvDatagrams(
     LONG BatchedBufferCount = 0;
     QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* BatchedInternalContext = NULL;
 
-    while ((Datagram = DatagramChain) != NULL) {
-        DatagramChain = DatagramChain->Next;
+    while ((Datagram = RecvDataChain) != NULL) {
+        RecvDataChain = RecvDataChain->Next;
 
         QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalBufferContext =
             QuicDataPathDatagramToInternalDatagramContext(Datagram);
@@ -2188,8 +2188,8 @@ QuicDataPathBindingReturnRecvDatagrams(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
-QUIC_DATAPATH_SEND_CONTEXT*
-QuicDataPathBindingAllocSendContext(
+QUIC_SEND_DATA*
+QuicSendDataAlloc(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
@@ -2200,7 +2200,7 @@ QuicDataPathBindingAllocSendContext(
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext =
         &Binding->Datapath->ProcContexts[GetCurrentProcessorNumber()];
 
-    QUIC_DATAPATH_SEND_CONTEXT* SendContext =
+    QUIC_SEND_DATA* SendContext =
         QuicPoolAlloc(&ProcContext->SendContextPool);
 
     if (SendContext != NULL) {
@@ -2220,8 +2220,8 @@ QuicDataPathBindingAllocSendContext(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingFreeSendContext(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+QuicSendDataFree(
+    _In_ QUIC_SEND_DATA* SendContext
     )
 {
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
@@ -2239,7 +2239,7 @@ QuicDataPathBindingFreeSendContext(
 static
 BOOLEAN
 QuicSendContextCanAllocSendSegment(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ QUIC_SEND_DATA* SendContext,
     _In_ UINT16 MaxBufferLength
     )
 {
@@ -2258,7 +2258,7 @@ QuicSendContextCanAllocSendSegment(
 static
 BOOLEAN
 QuicSendContextCanAllocSend(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ QUIC_SEND_DATA* SendContext,
     _In_ UINT16 MaxBufferLength
     )
 {
@@ -2271,7 +2271,7 @@ QuicSendContextCanAllocSend(
 static
 void
 QuicSendContextFinalizeSendBuffer(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ QUIC_SEND_DATA* SendContext,
     _In_ BOOLEAN IsSendingImmediately
     )
 {
@@ -2316,7 +2316,7 @@ _Success_(return != NULL)
 static
 WSABUF*
 QuicSendContextAllocBuffer(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ QUIC_SEND_DATA* SendContext,
     _In_ QUIC_POOL* BufferPool
     )
 {
@@ -2336,7 +2336,7 @@ _Success_(return != NULL)
 static
 QUIC_BUFFER*
 QuicSendContextAllocPacketBuffer(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ QUIC_SEND_DATA* SendContext,
     _In_ UINT16 MaxBufferLength
     )
 {
@@ -2352,7 +2352,7 @@ _Success_(return != NULL)
 static
 QUIC_BUFFER*
 QuicSendContextAllocSegmentBuffer(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ QUIC_SEND_DATA* SendContext,
     _In_ UINT16 MaxBufferLength
     )
 {
@@ -2391,8 +2391,8 @@ QuicSendContextAllocSegmentBuffer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
-QuicDataPathBindingAllocSendDatagram(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+QuicSendDataAllocBuffer(
+    _In_ QUIC_SEND_DATA* SendContext,
     _In_ UINT16 MaxBufferLength
     )
 {
@@ -2415,8 +2415,8 @@ QuicDataPathBindingAllocSendDatagram(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingFreeSendDatagram(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+QuicSendDataFreeBuffer(
+    _In_ QUIC_SEND_DATA* SendContext,
     _In_ QUIC_BUFFER* Datagram
     )
 {
@@ -2447,8 +2447,8 @@ QuicDataPathBindingFreeSendDatagram(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicDataPathBindingIsSendContextFull(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+QuicSendDataIsFull(
+    _In_ QUIC_SEND_DATA* SendContext
     )
 {
     return !QuicSendContextCanAllocSend(SendContext, SendContext->SegmentSize);
@@ -2457,7 +2457,7 @@ QuicDataPathBindingIsSendContextFull(
 void
 QuicSendContextComplete(
     _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ QUIC_SEND_DATA* SendContext,
     _In_ ULONG IoResult
     )
 {
@@ -2471,7 +2471,7 @@ QuicSendContextComplete(
             "WSASendMsg completion");
     }
 
-    QuicDataPathBindingFreeSendContext(SendContext);
+    QuicSendDataFree(SendContext);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2480,7 +2480,7 @@ QuicDataPathBindingSend(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _In_ QUIC_SEND_DATA* SendContext
     )
 {
     QUIC_STATUS Status;
@@ -2639,7 +2639,7 @@ QuicDataPathBindingSend(
 Exit:
 
     if (QUIC_FAILED(Status)) {
-        QuicDataPathBindingFreeSendContext(SendContext);
+        QuicSendDataFree(SendContext);
     }
 
     return Status;
@@ -2724,10 +2724,10 @@ QuicDataPathWorkerThread(
 
         } else {
 
-            QUIC_DATAPATH_SEND_CONTEXT* SendContext =
+            QUIC_SEND_DATA* SendContext =
                 CONTAINING_RECORD(
                     Overlapped,
-                    QUIC_DATAPATH_SEND_CONTEXT,
+                    QUIC_SEND_DATA,
                     Overlapped);
 
             QuicSendContextComplete(
