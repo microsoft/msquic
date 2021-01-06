@@ -61,7 +61,7 @@ _Success_(return != NULL)
 QUIC_CONNECTION*
 QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
-    _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram
+    _In_opt_ const QUIC_RECV_DATA* const Datagram
     )
 {
     BOOLEAN IsServer = Datagram != NULL;
@@ -341,7 +341,7 @@ QuicConnFree(
         QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
     }
     if (Connection->ReceiveQueue != NULL) {
-        QUIC_RECV_DATAGRAM* Datagram = Connection->ReceiveQueue;
+        QUIC_RECV_DATA* Datagram = Connection->ReceiveQueue;
         do {
             Datagram->QueuedOnConnection = FALSE;
         } while ((Datagram = Datagram->Next) != NULL);
@@ -2557,11 +2557,11 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueRecvDatagrams(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_RECV_DATAGRAM* DatagramChain,
+    _In_ QUIC_RECV_DATA* DatagramChain,
     _In_ uint32_t DatagramChainLength
     )
 {
-    QUIC_RECV_DATAGRAM** DatagramChainTail = &DatagramChain->Next;
+    QUIC_RECV_DATA** DatagramChainTail = &DatagramChain->Next;
     DatagramChain->QueuedOnConnection = TRUE;
     QuicDataPathRecvDatagramToRecvPacket(DatagramChain)->AssignedToConnection = TRUE;
     while (*DatagramChainTail != NULL) {
@@ -2590,7 +2590,7 @@ QuicConnQueueRecvDatagrams(
     QuicDispatchLockRelease(&Connection->ReceiveQueueLock);
 
     if (DatagramChain != NULL) {
-        QUIC_RECV_DATAGRAM* Datagram = DatagramChain;
+        QUIC_RECV_DATA* Datagram = DatagramChain;
         do {
             Datagram->QueuedOnConnection = FALSE;
             QuicPacketLogDrop(Connection, QuicDataPathRecvDatagramToRecvPacket(Datagram), "Max queue limit reached");
@@ -3012,7 +3012,7 @@ QuicConnGetKeyOrDeferDatagram(
                 // Add it to the list of pending packets that are waiting on a
                 // key to decrypt with.
                 //
-                QUIC_RECV_DATAGRAM** Tail = &Packets->DeferredDatagrams;
+                QUIC_RECV_DATA** Tail = &Packets->DeferredDatagrams;
                 while (*Tail != NULL) {
                     Tail = &((*Tail)->Next);
                 }
@@ -4571,7 +4571,7 @@ QuicConnRecvDatagramBatch(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint8_t BatchCount,
-    _In_reads_(BatchCount) QUIC_RECV_DATAGRAM** Datagrams,
+    _In_reads_(BatchCount) QUIC_RECV_DATA** Datagrams,
     _In_reads_(BatchCount * QUIC_HP_SAMPLE_LENGTH)
         const uint8_t* Cipher,
     _Inout_ QUIC_RECEIVE_PROCESSING_STATE* RecvState
@@ -4647,13 +4647,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRecvDatagrams(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_RECV_DATAGRAM* DatagramChain,
+    _In_ QUIC_RECV_DATA* DatagramChain,
     _In_ uint32_t DatagramChainCount,
     _In_ BOOLEAN IsDeferred
     )
 {
-    QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
-    QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
+    QUIC_RECV_DATA* ReleaseChain = NULL;
+    QUIC_RECV_DATA** ReleaseChainTail = &ReleaseChain;
     uint32_t ReleaseChainCount = 0;
     QUIC_RECEIVE_PROCESSING_STATE RecvState = { FALSE, FALSE, 0 };
     RecvState.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
@@ -4688,11 +4688,11 @@ QuicConnRecvDatagrams(
     //
 
     uint8_t BatchCount = 0;
-    QUIC_RECV_DATAGRAM* Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
+    QUIC_RECV_DATA* Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
     uint8_t Cipher[QUIC_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
     QUIC_PATH* CurrentPath = NULL;
 
-    QUIC_RECV_DATAGRAM* Datagram;
+    QUIC_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
         QUIC_DBG_ASSERT(Datagram->Allocated);
         QUIC_DBG_ASSERT(Datagram->QueuedOnConnection);
@@ -4932,7 +4932,7 @@ QuicConnFlushRecv(
     )
 {
     uint32_t ReceiveQueueCount;
-    QUIC_RECV_DATAGRAM* ReceiveQueue;
+    QUIC_RECV_DATA* ReceiveQueue;
 
     QuicDispatchLockAcquire(&Connection->ReceiveQueueLock);
     ReceiveQueueCount = Connection->ReceiveQueueCount;
@@ -4952,17 +4952,17 @@ QuicConnDiscardDeferred0Rtt(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
-    QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
+    QUIC_RECV_DATA* ReleaseChain = NULL;
+    QUIC_RECV_DATA** ReleaseChainTail = &ReleaseChain;
     QUIC_PACKET_SPACE* Packets = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
     QUIC_DBG_ASSERT(Packets != NULL);
 
-    QUIC_RECV_DATAGRAM* DeferredDatagrams = Packets->DeferredDatagrams;
-    QUIC_RECV_DATAGRAM** DeferredDatagramsTail = &Packets->DeferredDatagrams;
+    QUIC_RECV_DATA* DeferredDatagrams = Packets->DeferredDatagrams;
+    QUIC_RECV_DATA** DeferredDatagramsTail = &Packets->DeferredDatagrams;
     Packets->DeferredDatagrams = NULL;
 
     while (DeferredDatagrams != NULL) {
-        QUIC_RECV_DATAGRAM* Datagram = DeferredDatagrams;
+        QUIC_RECV_DATA* Datagram = DeferredDatagrams;
         DeferredDatagrams = DeferredDatagrams->Next;
 
         const QUIC_RECV_PACKET* Packet =
@@ -5000,7 +5000,7 @@ QuicConnFlushDeferred(
         QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
 
         if (Packets->DeferredDatagrams != NULL) {
-            QUIC_RECV_DATAGRAM* DeferredDatagrams = Packets->DeferredDatagrams;
+            QUIC_RECV_DATA* DeferredDatagrams = Packets->DeferredDatagrams;
             uint8_t DeferredDatagramsCount = Packets->DeferredDatagramsCount;
 
             Packets->DeferredDatagramsCount = 0;

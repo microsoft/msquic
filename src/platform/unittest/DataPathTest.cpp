@@ -156,7 +156,7 @@ protected:
     EmptyReceiveCallback(
         _In_ QUIC_DATAPATH_BINDING* /* Binding */,
         _In_ void * /* RecvContext */,
-        _In_ QUIC_RECV_DATAGRAM* /* RecvPacketChain */
+        _In_ QUIC_RECV_DATA* /* RecvPacketChain */
         )
     {
     }
@@ -174,13 +174,13 @@ protected:
     DataRecvCallback(
         _In_ QUIC_DATAPATH_BINDING* binding,
         _In_ void * recvContext,
-        _In_ QUIC_RECV_DATAGRAM* recvBufferChain
+        _In_ QUIC_RECV_DATA* recvBufferChain
         )
     {
         DataRecvContext* RecvContext = (DataRecvContext*)recvContext;
         ASSERT_NE(nullptr, RecvContext);
 
-        QUIC_RECV_DATAGRAM* recvBuffer = recvBufferChain;
+        QUIC_RECV_DATA* recvBuffer = recvBufferChain;
 
         while (recvBuffer != NULL) {
             ASSERT_EQ(recvBuffer->BufferLength, ExpectedDataSize);
@@ -220,13 +220,13 @@ protected:
     DataRecvCallbackECT0(
         _In_ QUIC_DATAPATH_BINDING* binding,
         _In_ void * recvContext,
-        _In_ QUIC_RECV_DATAGRAM* recvBufferChain
+        _In_ QUIC_RECV_DATA* recvBufferChain
         )
     {
         DataRecvContext* RecvContext = (DataRecvContext*)recvContext;
         ASSERT_NE(nullptr, RecvContext);
 
-        QUIC_RECV_DATAGRAM* recvBuffer = recvBufferChain;
+        QUIC_RECV_DATA* recvBuffer = recvBufferChain;
 
         while (recvBuffer != NULL) {
             ASSERT_EQ(recvBuffer->BufferLength, ExpectedDataSize);

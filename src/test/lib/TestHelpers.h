@@ -127,7 +127,7 @@ struct DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
+        _Inout_ struct QUIC_RECV_DATA* /* Datagram */
         ) {
         return FALSE; // Don't drop by default
     }
@@ -156,7 +156,7 @@ class DatapathHooks
     BOOLEAN
     QUIC_API
     ReceiveCallback(
-        _Inout_ struct QUIC_RECV_DATAGRAM* Datagram
+        _Inout_ struct QUIC_RECV_DATA* Datagram
         ) {
         return Instance->Receive(Datagram);
     }
@@ -219,7 +219,7 @@ class DatapathHooks
 
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATAGRAM* Datagram
+        _Inout_ struct QUIC_RECV_DATA* Datagram
         ) {
         BOOLEAN Result = FALSE;
         QuicDispatchLockAcquire(&Lock);
@@ -312,7 +312,7 @@ struct RandomLossHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
+        _Inout_ struct QUIC_RECV_DATA* /* Datagram */
         ) {
         uint8_t RandomValue;
         QuicRandom(sizeof(RandomValue), &RandomValue);
@@ -339,7 +339,7 @@ struct SelectiveLossHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
+        _Inout_ struct QUIC_RECV_DATA* /* Datagram */
         ) {
         if (DropPacketCount == 0) {
             return FALSE;
@@ -366,7 +366,7 @@ struct ReplaceAddressHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATAGRAM* Datagram
+        _Inout_ struct QUIC_RECV_DATA* Datagram
         ) {
         if (QuicAddrCompare(
                 &Datagram->Tuple->RemoteAddress,
@@ -419,7 +419,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATAGRAM* Datagram
+        _Inout_ struct QUIC_RECV_DATA* Datagram
         ) {
         if (QuicAddrCompare(
                 &Datagram->Tuple->RemoteAddress,

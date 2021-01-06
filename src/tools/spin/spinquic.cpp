@@ -702,7 +702,7 @@ QUIC_THREAD_CALLBACK(ClientSpin, Context)
     QUIC_THREAD_RETURN(0);
 }
 
-BOOLEAN QUIC_API DatapathHookReceiveCallback(struct QUIC_RECV_DATAGRAM* /* Datagram */)
+BOOLEAN QUIC_API DatapathHookReceiveCallback(struct QUIC_RECV_DATA* /* Datagram */)
 {
     uint8_t RandomValue;
     QuicRandom(sizeof(RandomValue), &RandomValue);

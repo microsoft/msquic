@@ -44,7 +44,7 @@ typedef struct QUIC_DATAPATH_RECV_BLOCK {
     //
     // The recv buffer used by MsQuic.
     //
-    QUIC_RECV_DATAGRAM RecvPacket;
+    QUIC_RECV_DATA RecvPacket;
 
     //
     // Represents the address (source and destination) information of the
@@ -1243,7 +1243,7 @@ QuicSocketContextRecvComplete(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     QUIC_DBG_ASSERT(SocketContext->CurrentRecvBlock != NULL);
-    QUIC_RECV_DATAGRAM* RecvPacket = &SocketContext->CurrentRecvBlock->RecvPacket;
+    QUIC_RECV_DATA* RecvPacket = &SocketContext->CurrentRecvBlock->RecvPacket;
     SocketContext->CurrentRecvBlock = NULL;
 
     BOOLEAN FoundLocalAddr = FALSE;
@@ -1794,7 +1794,7 @@ QuicDataPathBindingGetParam(
 #endif
 }
 
-QUIC_RECV_DATAGRAM*
+QUIC_RECV_DATA*
 QuicDataPathRecvPacketToRecvDatagram(
     _In_ const QUIC_RECV_PACKET* const Packet
     )
@@ -1812,7 +1812,7 @@ QuicDataPathRecvPacketToRecvDatagram(
 
 QUIC_RECV_PACKET*
 QuicDataPathRecvDatagramToRecvPacket(
-    _In_ const QUIC_RECV_DATAGRAM* const Datagram
+    _In_ const QUIC_RECV_DATA* const Datagram
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
@@ -1827,7 +1827,7 @@ QuicDataPathRecvDatagramToRecvPacket(
 
 void
 QuicDataPathBindingReturnRecvDatagrams(
-    _In_opt_ QUIC_RECV_DATAGRAM* DatagramChain
+    _In_opt_ QUIC_RECV_DATA* DatagramChain
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
@@ -1835,7 +1835,7 @@ QuicDataPathBindingReturnRecvDatagrams(
         PlatDispatch->DatapathBindingReturnRecvPacket(DatagramChain);
     }
 #else
-    QUIC_RECV_DATAGRAM* Datagram;
+    QUIC_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
         DatagramChain = DatagramChain->Next;
         QUIC_DATAPATH_RECV_BLOCK* RecvBlock =

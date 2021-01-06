@@ -447,35 +447,35 @@ QuicSendBufferPoolAlloc(
         Tag, \
         0)
 
-QUIC_RECV_DATAGRAM*
+QUIC_RECV_DATA*
 QuicDataPathRecvPacketToRecvDatagram(
     _In_ const QUIC_RECV_PACKET* const Context
     )
 {
-    return (QUIC_RECV_DATAGRAM*)
+    return (QUIC_RECV_DATA*)
         (((PUCHAR)Context) -
             sizeof(QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT) -
-            sizeof(QUIC_RECV_DATAGRAM));
+            sizeof(QUIC_RECV_DATA));
 }
 
 QUIC_RECV_PACKET*
 QuicDataPathRecvDatagramToRecvPacket(
-    _In_ const QUIC_RECV_DATAGRAM* const Datagram
+    _In_ const QUIC_RECV_DATA* const Datagram
     )
 {
     return (QUIC_RECV_PACKET*)
         (((PUCHAR)Datagram) +
-            sizeof(QUIC_RECV_DATAGRAM) +
+            sizeof(QUIC_RECV_DATA) +
             sizeof(QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT));
 }
 
 QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*
 QuicDataPathDatagramToInternalDatagramContext(
-    _In_ QUIC_RECV_DATAGRAM* Datagram
+    _In_ QUIC_RECV_DATA* Datagram
     )
 {
     return (QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*)
-        (((PUCHAR)Datagram) + sizeof(QUIC_RECV_DATAGRAM));
+        (((PUCHAR)Datagram) + sizeof(QUIC_RECV_DATA));
 }
 
 IO_COMPLETION_ROUTINE QuicDataPathIoCompletion;
@@ -868,7 +868,7 @@ QuicDataPathInitialize(
     Datapath->WskDispatch.WskReceiveFromEvent = QuicDataPathSocketReceive;
     Datapath->DatagramStride =
         ALIGN_UP(
-            sizeof(QUIC_RECV_DATAGRAM) +
+            sizeof(QUIC_RECV_DATA) +
             sizeof(QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT) +
             ClientRecvContextLength,
             PVOID);
@@ -1923,8 +1923,8 @@ QuicDataPathSocketReceive(
 
     PWSK_DATAGRAM_INDICATION ReleaseChain = NULL;
     PWSK_DATAGRAM_INDICATION* ReleaseChainTail = &ReleaseChain;
-    QUIC_RECV_DATAGRAM* DatagramChain = NULL;
-    QUIC_RECV_DATAGRAM** DatagramChainTail = &DatagramChain;
+    QUIC_RECV_DATA* DatagramChain = NULL;
+    QUIC_RECV_DATA** DatagramChainTail = &DatagramChain;
 
     UNREFERENCED_PARAMETER(Flags);
 
@@ -1939,7 +1939,7 @@ QuicDataPathSocketReceive(
 
         QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = NULL;
         QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext;
-        QUIC_RECV_DATAGRAM* Datagram = NULL;
+        QUIC_RECV_DATA* Datagram = NULL;
 
         if (DataIndication->Buffer.Mdl == NULL ||
             DataIndication->Buffer.Length == 0) {
@@ -2154,7 +2154,7 @@ QuicDataPathSocketReceive(
                 RecvContext->ReferenceCount = 0;
                 RecvContext->Tuple.LocalAddress = LocalAddr;
                 RecvContext->Tuple.RemoteAddress = RemoteAddr;
-                Datagram = (QUIC_RECV_DATAGRAM*)(RecvContext + 1);
+                Datagram = (QUIC_RECV_DATA*)(RecvContext + 1);
             }
 
             QUIC_DBG_ASSERT(Datagram != NULL);
@@ -2204,7 +2204,7 @@ QuicDataPathSocketReceive(
                 MdlOffset = 0;
             }
 
-            Datagram = (QUIC_RECV_DATAGRAM*)
+            Datagram = (QUIC_RECV_DATA*)
                 (((PUCHAR)Datagram) +
                     Binding->Datapath->DatagramStride);
         }
@@ -2256,7 +2256,7 @@ QuicDataPathSocketReceive(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicDataPathBindingReturnRecvDatagrams(
-    _In_opt_ QUIC_RECV_DATAGRAM* DatagramChain
+    _In_opt_ QUIC_RECV_DATA* DatagramChain
     )
 {
     QUIC_DATAPATH_BINDING* Binding = NULL;
@@ -2267,7 +2267,7 @@ QuicDataPathBindingReturnRecvDatagrams(
     LONG BatchedBufferCount = 0;
     QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* BatchedInternalContext = NULL;
 
-    QUIC_RECV_DATAGRAM* Datagram;
+    QUIC_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
 
         QUIC_DBG_ASSERT(Datagram->Allocated);

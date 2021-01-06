@@ -179,7 +179,7 @@ typedef struct QUIC_STATELESS_CONTEXT {
     QUIC_ADDR RemoteAddress;
     QUIC_LIST_ENTRY ListEntry;
     QUIC_HASHTABLE_ENTRY TableEntry;
-    QUIC_RECV_DATAGRAM* Datagram;
+    QUIC_RECV_DATA* Datagram;
     uint32_t CreationTimeMs;
     uint8_t HasBindingRef : 1;
     uint8_t IsProcessed : 1;

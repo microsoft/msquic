@@ -476,7 +476,7 @@ QuicLibraryOnListenerRegistered(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
 QuicLibraryGetWorker(
-    _In_ const _In_ QUIC_RECV_DATAGRAM* Datagram
+    _In_ const _In_ QUIC_RECV_DATA* Datagram
     );
 
 //

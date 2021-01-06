@@ -20,7 +20,7 @@ Abstract:
 extern "C" {
 #endif
 
-typedef struct QUIC_RECV_DATAGRAM QUIC_RECV_DATAGRAM;
+typedef struct QUIC_RECV_DATA QUIC_RECV_DATA;
 typedef struct QUIC_DATAPATH_SEND_CONTEXT QUIC_DATAPATH_SEND_CONTEXT;
 
 //
@@ -30,7 +30,7 @@ typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 (QUIC_API * QUIC_TEST_DATAPATH_RECEIVE_HOOK)(
-    _Inout_ QUIC_RECV_DATAGRAM* Datagram
+    _Inout_ QUIC_RECV_DATA* Datagram
     );
 
 //

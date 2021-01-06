@@ -71,7 +71,7 @@ typedef struct QUIC_PACKET_SPACE {
     // List of received QUIC_RECV_DATAGRAMs that we don't have the key
     // for yet.
     //
-    QUIC_RECV_DATAGRAM* DeferredDatagrams;
+    QUIC_RECV_DATA* DeferredDatagrams;
 
     //
     // Information related to packets that have been received and need to be

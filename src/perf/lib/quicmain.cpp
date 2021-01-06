@@ -212,7 +212,7 @@ void
 DatapathReceive(
     _In_ QUIC_DATAPATH_BINDING*,
     _In_ void* Context,
-    _In_ QUIC_RECV_DATAGRAM*
+    _In_ QUIC_RECV_DATA*
     )
 {
     QUIC_EVENT* Event = static_cast<QUIC_EVENT*>(Context);

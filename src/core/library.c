@@ -1493,7 +1493,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
 QUIC_NO_SANITIZE("implicit-conversion")
 QuicLibraryGetWorker(
-    _In_ const _In_ QUIC_RECV_DATAGRAM* Datagram
+    _In_ const _In_ QUIC_RECV_DATA* Datagram
     )
 {
     QUIC_DBG_ASSERT(MsQuicLib.StatelessRegistration != NULL);

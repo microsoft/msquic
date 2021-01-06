@@ -568,7 +568,7 @@ QUIC_STATELESS_CONTEXT*
 QuicBindingCreateStatelessOperation(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_WORKER* Worker,
-    _In_ QUIC_RECV_DATAGRAM* Datagram
+    _In_ QUIC_RECV_DATA* Datagram
     )
 {
     uint32_t TimeMs = QuicTimeMs32();
@@ -688,7 +688,7 @@ BOOLEAN
 QuicBindingQueueStatelessOperation(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_OPERATION_TYPE OperType,
-    _In_ QUIC_RECV_DATAGRAM* Datagram
+    _In_ QUIC_RECV_DATA* Datagram
     )
 {
     if (MsQuicLib.StatelessRegistration == NULL) {
@@ -739,7 +739,7 @@ QuicBindingProcessStatelessOperation(
     )
 {
     QUIC_BINDING* Binding = StatelessCtx->Binding;
-    QUIC_RECV_DATAGRAM* RecvDatagram = StatelessCtx->Datagram;
+    QUIC_RECV_DATA* RecvDatagram = StatelessCtx->Datagram;
     QUIC_RECV_PACKET* RecvPacket =
         QuicDataPathRecvDatagramToRecvPacket(RecvDatagram);
     QUIC_BUFFER* SendDatagram = NULL;
@@ -1030,7 +1030,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingQueueStatelessReset(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_RECV_DATAGRAM* Datagram
+    _In_ QUIC_RECV_DATA* Datagram
     )
 {
     QUIC_DBG_ASSERT(!Binding->Exclusive);
@@ -1062,7 +1062,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingPreprocessDatagram(
     _In_ QUIC_BINDING* Binding,
-    _Inout_ QUIC_RECV_DATAGRAM* Datagram,
+    _Inout_ QUIC_RECV_DATA* Datagram,
     _Out_ BOOLEAN* ReleaseDatagram
     )
 {
@@ -1159,7 +1159,7 @@ QuicBindingValidateRetryToken(
         return FALSE;
     }
 
-    const QUIC_RECV_DATAGRAM* Datagram =
+    const QUIC_RECV_DATA* Datagram =
         QuicDataPathRecvPacketToRecvDatagram(Packet);
     if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Tuple->RemoteAddress)) {
         QuicPacketLogDrop(Binding, Packet, "Retry Token Addr Mismatch");
@@ -1214,7 +1214,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_CONNECTION*
 QuicBindingCreateConnection(
     _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_RECV_DATAGRAM* const Datagram
+    _In_ const QUIC_RECV_DATA* const Datagram
     )
 {
     //
@@ -1338,7 +1338,7 @@ _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 BOOLEAN
 QuicBindingDeliverDatagrams(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_RECV_DATAGRAM* DatagramChain,
+    _In_ QUIC_RECV_DATA* DatagramChain,
     _In_ uint32_t DatagramChainLength
     )
 {
@@ -1492,7 +1492,7 @@ void
 QuicBindingReceive(
     _In_ QUIC_DATAPATH_BINDING* DatapathBinding,
     _In_ void* RecvCallbackContext,
-    _In_ QUIC_RECV_DATAGRAM* DatagramChain
+    _In_ QUIC_RECV_DATA* DatagramChain
     )
 {
     UNREFERENCED_PARAMETER(DatapathBinding);
@@ -1500,11 +1500,11 @@ QuicBindingReceive(
     QUIC_DBG_ASSERT(DatagramChain != NULL);
 
     QUIC_BINDING* Binding = (QUIC_BINDING*)RecvCallbackContext;
-    QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
-    QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
-    QUIC_RECV_DATAGRAM* SubChain = NULL;
-    QUIC_RECV_DATAGRAM** SubChainTail = &SubChain;
-    QUIC_RECV_DATAGRAM** SubChainDataTail = &SubChain;
+    QUIC_RECV_DATA* ReleaseChain = NULL;
+    QUIC_RECV_DATA** ReleaseChainTail = &ReleaseChain;
+    QUIC_RECV_DATA* SubChain = NULL;
+    QUIC_RECV_DATA** SubChainTail = &SubChain;
+    QUIC_RECV_DATA** SubChainDataTail = &SubChain;
     uint32_t SubChainLength = 0;
     uint32_t TotalChainLength = 0;
     uint32_t TotalDatagramBytes = 0;
@@ -1519,7 +1519,7 @@ QuicBindingReceive(
     // connection it was delivered to.
     //
 
-    QUIC_RECV_DATAGRAM* Datagram;
+    QUIC_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
         TotalChainLength++;
         TotalDatagramBytes += Datagram->BufferLength;

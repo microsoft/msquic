@@ -95,7 +95,7 @@ struct DrillSender {
     DrillUdpRecvCallback(
         _In_ QUIC_DATAPATH_BINDING* /* Binding */,
         _In_ void* /* Context */,
-        _In_ QUIC_RECV_DATAGRAM* RecvBufferChain
+        _In_ QUIC_RECV_DATA* RecvBufferChain
         )
     {
         QuicDataPathBindingReturnRecvDatagrams(RecvBufferChain);

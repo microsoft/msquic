@@ -139,14 +139,14 @@ typedef struct QUIC_TUPLE {
 } QUIC_TUPLE;
 
 //
-// Structure to represent received UDP datagrams.
+// Structure to represent received UDP datagrams or TCP data.
 //
-typedef struct QUIC_RECV_DATAGRAM {
+typedef struct QUIC_RECV_DATA {
 
     //
     // The next receive datagram in the chain.
     //
-    struct QUIC_RECV_DATAGRAM* Next;
+    struct QUIC_RECV_DATA* Next;
 
     //
     // Contains the 4 tuple.
@@ -181,12 +181,12 @@ typedef struct QUIC_RECV_DATAGRAM {
     uint8_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint8_t QueuedOnConnection : 1; // Used for debugging.
 
-} QUIC_RECV_DATAGRAM;
+} QUIC_RECV_DATA;
 
 //
 // Gets the corresponding recv datagram from its context pointer.
 //
-QUIC_RECV_DATAGRAM*
+QUIC_RECV_DATA*
 QuicDataPathRecvPacketToRecvDatagram(
     _In_ const QUIC_RECV_PACKET* const Packet
     );
@@ -196,7 +196,7 @@ QuicDataPathRecvPacketToRecvDatagram(
 //
 QUIC_RECV_PACKET*
 QuicDataPathRecvDatagramToRecvPacket(
-    _In_ const QUIC_RECV_DATAGRAM* const Datagram
+    _In_ const QUIC_RECV_DATA* const Datagram
     );
 
 //
@@ -209,7 +209,7 @@ void
 (QUIC_DATAPATH_RECEIVE_CALLBACK)(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ void* Context,
-    _In_ QUIC_RECV_DATAGRAM* DatagramChain
+    _In_ QUIC_RECV_DATA* DatagramChain
     );
 
 typedef QUIC_DATAPATH_RECEIVE_CALLBACK *QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER;
@@ -373,7 +373,7 @@ QuicDataPathBindingGetRemoteAddress(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicDataPathBindingReturnRecvDatagrams(
-    _In_opt_ QUIC_RECV_DATAGRAM* DatagramChain
+    _In_opt_ QUIC_RECV_DATA* DatagramChain
     );
 
 //
