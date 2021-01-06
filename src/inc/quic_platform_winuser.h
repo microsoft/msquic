@@ -780,6 +780,26 @@ typedef HANDLE QUIC_THREAD;
 
 #define QUIC_THREAD_RETURN(Status) return (DWORD)(Status)
 
+#ifdef QUIC_USE_CUSTOM_THREAD_CONTEXT
+
+//
+// Extension point that allows additional platform specific logic to be executed
+// for every thread created. The platform must define QUIC_USE_CUSTOM_THREAD_CONTEXT
+// and implement the QuicThreadCustomStart function. QuicThreadCustomStart MUST
+// call the Callback passed in. QuicThreadCustomStart MUST also free
+// CustomContext (via QUIC_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD)) before
+// returning.
+//
+
+typedef struct QUIC_THREAD_CUSTOM_CONTEXT {
+    LPTHREAD_START_ROUTINE Callback;
+    void* Context;
+} QUIC_THREAD_CUSTOM_CONTEXT;
+
+QUIC_THREAD_CALLBACK(QuicThreadCustomStart, CustomContext); // QUIC_THREAD_CUSTOM_CONTEXT* CustomContext
+
+#endif // QUIC_USE_CUSTOM_THREAD_CONTEXT
+
 inline
 QUIC_STATUS
 QuicThreadCreate(
@@ -787,6 +807,32 @@ QuicThreadCreate(
     _Out_ QUIC_THREAD* Thread
     )
 {
+#ifdef QUIC_USE_CUSTOM_THREAD_CONTEXT
+    QUIC_THREAD_CUSTOM_CONTEXT* CustomContext =
+        QUIC_ALLOC_NONPAGED(sizeof(QUIC_THREAD_CUSTOM_CONTEXT), QUIC_POOL_CUSTOM_THREAD);
+    if (CustomContext == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Custom thread context",
+            sizeof(QUIC_THREAD_CUSTOM_CONTEXT));
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    CustomContext->Callback = Config->Callback;
+    CustomContext->Context = Config->Context;
+    *Thread =
+        CreateThread(
+            NULL,
+            0,
+            QuicThreadCustomStart,
+            CustomContext,
+            0,
+            NULL);
+    if (*Thread == NULL) {
+        QUIC_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD);
+        return GetLastError();
+    }
+#else // QUIC_USE_CUSTOM_THREAD_CONTEXT
     *Thread =
         CreateThread(
             NULL,
@@ -798,6 +844,7 @@ QuicThreadCreate(
     if (*Thread == NULL) {
         return GetLastError();
     }
+#endif // QUIC_USE_CUSTOM_THREAD_CONTEXT
     const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[Config->IdealProcessor];
     GROUP_AFFINITY Group = {0};
     if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {

@@ -734,6 +734,33 @@ QuicThreadCreate(
         }
     }
 
+#ifdef QUIC_USE_CUSTOM_THREAD_CONTEXT
+
+    QUIC_THREAD_CUSTOM_CONTEXT* CustomContext =
+        QUIC_ALLOC_NONPAGED(sizeof(QUIC_THREAD_CUSTOM_CONTEXT), QUIC_POOL_CUSTOM_THREAD);
+    if (CustomContext == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Custom thread context",
+            sizeof(QUIC_THREAD_CUSTOM_CONTEXT));
+    }
+    CustomContext->Callback = Config->Callback;
+    CustomContext->Context = Config->Context;
+
+    if (pthread_create(Thread, &Attr, QuicThreadCustomStart, CustomContext)) {
+        Status = errno;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "pthread_create failed");
+        QUIC_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD);
+    }
+
+#else // QUIC_USE_CUSTOM_THREAD_CONTEXT
+
     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
         Status = errno;
         QuicTraceEvent(
@@ -742,6 +769,8 @@ QuicThreadCreate(
             Status,
             "pthread_create failed");
     }
+
+#endif // !QUIC_USE_CUSTOM_THREAD_CONTEXT
 
 #ifndef __GLIBC__
     if (Status == QUIC_STATUS_SUCCESS) {
