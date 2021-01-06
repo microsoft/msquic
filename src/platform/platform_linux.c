@@ -749,7 +749,7 @@ QuicThreadCreate(
     CustomContext->Callback = Config->Callback;
     CustomContext->Context = Config->Context;
 
-    if (pthread_create(Thread, &Attr, QuicThreadCustomStart, CustomContext)) {
+    if (pthread_create(Thread, &Attr, (LPTHREAD_START_ROUTINE)QuicThreadCustomStart, CustomContext)) {
         Status = errno;
         QuicTraceEvent(
             LibraryErrorStatus,
