@@ -163,6 +163,7 @@ struct DrillSender {
         Status =
             QuicDataPathBindingCreate(
                 Datapath,
+                QUIC_DATAPATH_BINDING_UDP,
                 nullptr,
                 &ServerAddress,
                 this,

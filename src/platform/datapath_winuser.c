@@ -1002,6 +1002,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathBindingCreate(
     _In_ QUIC_DATAPATH* Datapath,
+    _In_ QUIC_DATAPATH_BINDING_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
@@ -1014,6 +1015,8 @@ QuicDataPathBindingCreate(
     uint16_t SocketCount = (RemoteAddress == NULL) ? Datapath->ProcCount : 1;
     int Result;
     int Option;
+
+    UNREFERENCED_PARAMETER(Type);
 
     BindingLength =
         sizeof(QUIC_DATAPATH_BINDING) +

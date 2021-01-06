@@ -1559,12 +1559,14 @@ QuicSocketContextProcessEvents(
 QUIC_STATUS
 QuicDataPathBindingCreate(
     _In_ QUIC_DATAPATH* Datapath,
+    _In_ QUIC_DATAPATH_BINDING_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
     _Out_ QUIC_DATAPATH_BINDING** NewBinding
     )
 {
+    UNREFERENCED_PARAMETER(Type);
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return
         PlatDispatch->DatapathBindingCreate(

@@ -326,6 +326,7 @@ TEST_F(DataPathTest, Bind)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
             datapath,
+            QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             nullptr,
             nullptr,
@@ -359,6 +360,7 @@ TEST_F(DataPathTest, Rebind)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
             datapath,
+            QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             nullptr,
             nullptr,
@@ -372,6 +374,7 @@ TEST_F(DataPathTest, Rebind)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
             datapath,
+            QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             nullptr,
             nullptr,
@@ -414,6 +417,7 @@ TEST_P(DataPathTest, Data)
         Status =
             QuicDataPathBindingCreate(
                 datapath,
+                QUIC_DATAPATH_BINDING_UDP,
                 &serverAddress.SockAddr,
                 nullptr,
                 &RecvContext,
@@ -435,6 +439,7 @@ TEST_P(DataPathTest, Data)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
             datapath,
+            QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
@@ -497,6 +502,7 @@ TEST_P(DataPathTest, DataRebind)
         Status =
             QuicDataPathBindingCreate(
                 datapath,
+                QUIC_DATAPATH_BINDING_UDP,
                 &serverAddress.SockAddr,
                 nullptr,
                 &RecvContext,
@@ -518,6 +524,7 @@ TEST_P(DataPathTest, DataRebind)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
             datapath,
+            QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
@@ -553,6 +560,7 @@ TEST_P(DataPathTest, DataRebind)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
             datapath,
+            QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
@@ -614,6 +622,7 @@ TEST_P(DataPathTest, DataECT0)
         Status =
             QuicDataPathBindingCreate(
                 datapath,
+                QUIC_DATAPATH_BINDING_UDP,
                 &serverAddress.SockAddr,
                 nullptr,
                 &RecvContext,
@@ -635,6 +644,7 @@ TEST_P(DataPathTest, DataECT0)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathBindingCreate(
             datapath,
+            QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,

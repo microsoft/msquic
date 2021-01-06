@@ -301,6 +301,7 @@ QUIC_THREAD_CALLBACK(RunAttackThread, /* Context */)
     QUIC_STATUS Status =
         QuicDataPathBindingCreate(
             Datapath,
+            QUIC_DATAPATH_BINDING_UDP,
             nullptr,
             &ServerAddress,
             nullptr,

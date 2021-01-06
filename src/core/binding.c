@@ -128,6 +128,7 @@ QuicBindingInitialize(
     Status =
         QuicDataPathBindingCreate(
             MsQuicLib.Datapath,
+            QUIC_DATAPATH_BINDING_UDP,
             LocalAddress,
             RemoteAddress,
             Binding,

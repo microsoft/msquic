@@ -52,11 +52,6 @@ typedef enum QUIC_ECN_TYPE {
 #define QUIC_ECN_FROM_TOS(ToS) (QUIC_ECN_TYPE)((ToS) & 0x3)
 
 //
-// The minimum allowed IP MTU for QUIC.
-//
-#define QUIC_MIN_MTU 1280
-
-//
 // The maximum IP MTU this implementation supports for QUIC.
 //
 #define QUIC_MAX_MTU 1500
@@ -118,7 +113,7 @@ PacketSizeFromUdpPayloadSize(
 typedef struct QUIC_BUFFER QUIC_BUFFER;
 
 //
-// Declaration for the DataPath context structures.
+// Declaration for the datapath context structures.
 //
 typedef struct QUIC_DATAPATH QUIC_DATAPATH;
 typedef struct QUIC_DATAPATH_BINDING QUIC_DATAPATH_BINDING;
@@ -127,6 +122,11 @@ typedef struct QUIC_DATAPATH_BINDING QUIC_DATAPATH_BINDING;
 // Can be defined to whatever the client needs.
 //
 typedef struct QUIC_RECV_PACKET QUIC_RECV_PACKET;
+
+//
+// Structure that maintains the 'per send' context.
+//
+typedef struct QUIC_DATAPATH_SEND_CONTEXT QUIC_DATAPATH_SEND_CONTEXT;
 
 //
 // Structure to represent data buffers received.
@@ -157,7 +157,7 @@ typedef struct QUIC_RECV_DATAGRAM {
     // The data buffer containing the received bytes.
     //
     _Field_size_(BufferLength)
-    uint8_t * Buffer;
+    uint8_t* Buffer;
 
     //
     // Length of the valid data in Buffer.
@@ -200,7 +200,7 @@ QuicDataPathRecvDatagramToRecvPacket(
     );
 
 //
-// Function pointer type for Datapath receive callbacks.
+// Function pointer type for datapath receive callbacks.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -215,7 +215,7 @@ void
 typedef QUIC_DATAPATH_RECEIVE_CALLBACK *QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER;
 
 //
-// Function pointer type for Datapath port unreachable callbacks.
+// Function pointer type for datapath port unreachable callbacks.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -247,12 +247,7 @@ void
 typedef QUIC_DATAPATH_SEND_COMPLETE *QUIC_DATAPATH_SEND_COMPLETE_HANDLER;
 
 //
-// Structure that maintains the 'per send' context for QuicDataPath.
-//
-typedef struct QUIC_DATAPATH_SEND_CONTEXT QUIC_DATAPATH_SEND_CONTEXT;
-
-//
-// Opens a new handle to the QUIC Datapath library.
+// Opens a new handle to the QUIC datapath.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -260,16 +255,16 @@ QuicDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_ QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvCallback,
     _In_ QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableCallback,
-    _Out_ QUIC_DATAPATH* *NewDatapath
+    _Out_ QUIC_DATAPATH** NewDatapath
     );
 
 //
-// Closes a QUIC Datapath library handle.
+// Closes a QUIC datapath handle.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicDataPathUninitialize(
-    _In_ QUIC_DATAPATH* Datapath
+    _In_ QUIC_DATAPATH* datapath
     );
 
 #define QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
@@ -306,8 +301,13 @@ QuicDataPathResolveAddress(
     );
 
 //
-// The following APIs are specific to a single UDP port abstraction.
+// The following APIs are specific to a single UDP or TCP socket abstraction.
 //
+
+typedef enum QUIC_DATAPATH_BINDING_TYPE {
+    QUIC_DATAPATH_BINDING_UDP   = 0,
+    QUIC_DATAPATH_BINDING_TCP   = 1
+} QUIC_DATAPATH_BINDING_TYPE;
 
 //
 // Creates a datapath binding handle for the given local address and/or remote
@@ -318,6 +318,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathBindingCreate(
     _In_ QUIC_DATAPATH* Datapath,
+    _In_ QUIC_DATAPATH_BINDING_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
@@ -336,8 +337,7 @@ QuicDataPathBindingDelete(
     );
 
 //
-// Queries the locally bound interface's MTU. Returns QUIC_MIN_MTU if not
-// already bound.
+// Queries the locally bound interface's MTU.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
@@ -452,7 +452,7 @@ QuicDataPathBindingSetParam(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength) const uint8_t * Buffer
+    _In_reads_bytes_(BufferLength) const uint8_t* Buffer
     );
 
 //
@@ -464,7 +464,7 @@ QuicDataPathBindingGetParam(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer
+    _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
     );
 
 #if defined(__cplusplus)
