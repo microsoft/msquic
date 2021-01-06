@@ -170,6 +170,8 @@ typedef struct QUIC_SEC_CONFIG {
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
 
+    QUIC_TLS_CALLBACKS Callbacks;
+
     //
     // The certificate context, used for signing.
     //
@@ -261,9 +263,6 @@ typedef struct QUIC_TLS {
     // Callback handlers and input connection.
     //
     QUIC_CONNECTION* Connection;
-    QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER ProcessCompleteCallback;
-    QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
-    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicketCallback;
 
     //
     // miTLS Config.
@@ -391,6 +390,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ const QUIC_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
@@ -422,6 +422,7 @@ QuicTlsSecConfigCreate(
 
     SecurityConfig->Type = CredConfig->Type;
     SecurityConfig->Flags = CredConfig->Flags;
+    SecurityConfig->Callbacks = *TlsCallbacks;
     SecurityConfig->Certificate = NULL;
     SecurityConfig->PrivateKey = NULL;
     SecurityConfig->FormatLength = 0;
@@ -550,9 +551,6 @@ QuicTlsInitialize(
     TlsContext->CurrentReaderKey = -1;
     TlsContext->CurrentWriterKey = -1;
     TlsContext->Connection = Config->Connection;
-    TlsContext->ProcessCompleteCallback = Config->ProcessCompleteCallback;
-    TlsContext->ReceiveTicketCallback = Config->ReceiveResumptionCallback;
-    TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
 
     TlsContext->Extensions[0].ext_type = TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION;
     TlsContext->Extensions[0].ext_data_len = sizeof(uint16_t) + Config->AlpnBufferLength;
@@ -783,7 +781,7 @@ QuicTlsProcessData(
             // the completed callback.
             //
             ResultFlags = QUIC_TLS_RESULT_PENDING;
-            TlsContext->ProcessCompleteCallback(TlsContext->Connection);
+            TlsContext->SecConfig->Callbacks.ProcessComplete(TlsContext->Connection);
 
         } else {
 
@@ -813,7 +811,7 @@ QuicTlsProcessData(
                 "FFI_mitls_quic_send_ticket failed");
             ResultFlags |= QUIC_TLS_RESULT_ERROR;
         } else {
-            TlsContext->ProcessCompleteCallback(TlsContext->Connection);
+            TlsContext->SecConfig->Callbacks.ProcessComplete(TlsContext->Connection);
             ResultFlags |= QUIC_TLS_RESULT_PENDING;
         }
     }
@@ -970,7 +968,7 @@ QuicTlsProcessDataComplete(
                         break;
                     }
                     QUIC_FRE_ASSERT(TicketLen <= UINT32_MAX);
-                    if (!TlsContext->ReceiveTicketCallback(
+                    if (!TlsContext->SecConfig->Callbacks.ReceiveTicket(
                             TlsContext->Connection,
                             (uint32_t)TicketLen, Ticket)) {
                         //
@@ -1405,7 +1403,7 @@ QuicTlsOnNegotiate(
             goto Exit;
         }
 
-        if (!TlsContext->ReceiveTPCallback(
+        if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
                 TlsContext->Connection,
                 (uint16_t)ExtensionDataLength,
                 ExtensionData)) {
@@ -1628,7 +1626,7 @@ QuicTlsOnTicketReady(
         Ticket->session,
         SerializedTicket->SessionLength);
 
-    (void)TlsContext->ReceiveTicketCallback(
+    (void)TlsContext->SecConfig->Callbacks.ReceiveTicket(
         TlsContext->Connection,
         TotalSize,
         (uint8_t*)SerializedTicket);

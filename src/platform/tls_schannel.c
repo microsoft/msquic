@@ -246,6 +246,11 @@ typedef struct QUIC_SEC_CONFIG {
     //
     QUIC_CREDENTIAL_FLAGS Flags;
 
+    //
+    // Callbacks for TLS.
+    //
+    QUIC_TLS_CALLBACKS Callbacks;
+
 } QUIC_SEC_CONFIG;
 
 typedef struct QUIC_ACH_CONTEXT {
@@ -385,8 +390,6 @@ typedef struct QUIC_TLS {
     // Callback context and handler for QUIC TP.
     //
     QUIC_CONNECTION* Connection;
-    QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
-    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicketCallback;
 
     //
     // Workspace for sec buffers pass into ISC/ASC.
@@ -1027,6 +1030,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ const QUIC_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
@@ -1102,6 +1106,7 @@ QuicTlsSecConfigCreate(
     RtlZeroMemory(AchContext->SecConfig, sizeof(QUIC_SEC_CONFIG));
     SecInvalidateHandle(&AchContext->SecConfig->CredentialHandle);
     AchContext->SecConfig->Flags = CredConfig->Flags;
+    AchContext->SecConfig->Callbacks = *TlsCallbacks;
 
     PSCH_CREDENTIALS Credentials = &AchContext->Credentials;
 
@@ -1478,8 +1483,6 @@ QuicTlsInitialize(
 
     TlsContext->IsServer = Config->IsServer;
     TlsContext->Connection = Config->Connection;
-    TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
-    TlsContext->ReceiveTicketCallback = Config->ReceiveResumptionCallback;
     TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->SNI = Config->ServerName;
     TlsContext->SecConfig = Config->SecConfig;
@@ -2237,7 +2240,7 @@ QuicTlsWriteDataToSchannel(
         // We received the peer's transport parameters and need to decode
         // them.
         //
-        if (!TlsContext->ReceiveTPCallback(
+        if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
                 TlsContext->Connection,
                 (uint16_t)(TlsExtensionBuffer->cbBuffer - 4),
                 ((uint8_t*)TlsExtensionBuffer->pvBuffer) + 4)) {
@@ -2352,7 +2355,7 @@ QuicTlsProcessData(
         // We need to wait for the handshake to be complete before setting
         // the flag, since we don't know if we've received the ticket yet.
         //
-        (void)TlsContext->ReceiveTicketCallback(
+        (void)TlsContext->SecConfig->Callbacks.ReceiveTicket(
             TlsContext->Connection,
             0,
             NULL);

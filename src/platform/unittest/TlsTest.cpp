@@ -77,6 +77,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             QuicTlsSecConfigCreate(
                 SelfSignedCertParams,
+                &TlsContext::TlsServerCallbacks,
                 &ServerSecConfig,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfig);
@@ -90,6 +91,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             QuicTlsSecConfigCreate(
                 &ClientCredConfig,
+                &TlsContext::TlsClientCallbacks,
                 &ClientSecConfig,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfig);
@@ -98,6 +100,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             QuicTlsSecConfigCreate(
                 &ClientCredConfig,
+                &TlsContext::TlsClientCallbacks,
                 &ClientSecConfigNoCertValidation,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfigNoCertValidation);
@@ -126,6 +129,9 @@ protected:
         QUIC_EVENT ProcessCompleteEvent;
 
         QUIC_TLS_PROCESS_STATE State;
+
+        static const QUIC_TLS_CALLBACKS TlsServerCallbacks;
+        static const QUIC_TLS_CALLBACKS TlsClientCallbacks;
 
         bool Connected;
         bool Key0RttReady;
@@ -171,9 +177,6 @@ protected:
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
-            Config.ProcessCompleteCallback = OnProcessComplete;
-            Config.ReceiveTPCallback = OnRecvQuicTP;
-            Config.ReceiveResumptionCallback = OnRecvTicketServer;
             State.NegotiatedAlpn = Alpn;
 
             VERIFY_QUIC_SUCCESS(
@@ -200,9 +203,6 @@ protected:
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
-            Config.ProcessCompleteCallback = OnProcessComplete;
-            Config.ReceiveTPCallback = OnRecvQuicTP;
-            Config.ReceiveResumptionCallback = OnRecvTicketClient;
             Config.ServerName = "localhost";
             if (Ticket) {
                 Config.ResumptionTicketBuffer = Ticket->Buffer;
@@ -643,6 +643,18 @@ protected:
 
         return End - Start;
     }
+};
+
+const QUIC_TLS_CALLBACKS TlsTest::TlsContext::TlsServerCallbacks = {
+    TlsTest::TlsContext::OnProcessComplete,
+    TlsTest::TlsContext::OnRecvQuicTP,
+    TlsTest::TlsContext::OnRecvTicketServer
+};
+
+const QUIC_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
+    TlsTest::TlsContext::OnProcessComplete,
+    TlsTest::TlsContext::OnRecvQuicTP,
+    TlsTest::TlsContext::OnRecvTicketClient
 };
 
 const QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;

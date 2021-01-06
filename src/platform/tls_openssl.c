@@ -35,8 +35,12 @@ typedef struct QUIC_SEC_CONFIG {
     //
     // The SSL context associated with the sec config.
     //
-
     SSL_CTX *SSLCtx;
+
+    //
+    // Callbacks for TLS.
+    //
+    QUIC_TLS_CALLBACKS Callbacks;
 
 } QUIC_SEC_CONFIG;
 
@@ -90,7 +94,6 @@ typedef struct QUIC_TLS {
     // Callback context and handler for QUIC TP.
     //
     QUIC_CONNECTION* Connection;
-    QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
 #ifdef QUIC_TLS_SECRETS_SUPPORT
     //
@@ -501,6 +504,7 @@ QuicTlsExtractPrivateKey(
 QUIC_STATUS
 QuicTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ const QUIC_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
@@ -565,6 +569,8 @@ QuicTlsSecConfigCreate(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
+
+    SecurityConfig->Callbacks = *TlsCallbacks;
 
     //
     // Create the a SSL context for the security config.
@@ -859,7 +865,6 @@ QuicTlsInitialize(
     TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
-    TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
 #ifdef QUIC_TLS_SECRETS_SUPPORT
     TlsContext->TlsSecrets = Config->TlsSecrets;
 #endif
@@ -1116,7 +1121,7 @@ QuicTlsProcessData(
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
             }
-            if (!TlsContext->ReceiveTPCallback(
+            if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
                     TlsContext->Connection,
                     (uint16_t)TransportParamLen,
                     TransportParams)) {
