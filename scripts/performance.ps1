@@ -177,7 +177,7 @@ if (!$IsWindows) {
 
 
 if ($TestsFile -eq "") {
-    $TestsFile = Join-Path $PSScriptRoot "RemoteTests.json"
+    $TestsFile = Join-Path $PSScriptRoot "FullMatrixTests.json"
 }
 
 if ($Local) {
