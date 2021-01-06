@@ -1226,7 +1226,7 @@ QuicLibraryLookupBinding(
 #endif
 
         QUIC_ADDR BindingLocalAddr;
-        QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &BindingLocalAddr);
+        QuicSocketGetLocalAddress(Binding->Socket, &BindingLocalAddr);
 
         if (!QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
             continue;
@@ -1238,7 +1238,7 @@ QuicLibraryLookupBinding(
             }
 
             QUIC_ADDR BindingRemoteAddr;
-            QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &BindingRemoteAddr);
+            QuicSocketGetRemoteAddress(Binding->Socket, &BindingRemoteAddr);
             if (!QuicAddrCompare(RemoteAddress, &BindingRemoteAddr)) {
                 continue;
             }
@@ -1336,7 +1336,7 @@ NewBinding:
         goto Exit;
     }
 
-    QuicDataPathBindingGetLocalAddress((*NewBinding)->DatapathBinding, &NewLocalAddress);
+    QuicSocketGetLocalAddress((*NewBinding)->Socket, &NewLocalAddress);
 
     QuicDispatchLockAcquire(&MsQuicLib.DatapathLock);
 

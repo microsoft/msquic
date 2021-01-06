@@ -205,7 +205,7 @@ typedef struct QUIC_BINDING {
     //
     // The datapath binding.
     //
-    QUIC_DATAPATH_BINDING* DatapathBinding;
+    QUIC_SOCKET* Socket;
 
     //
     // Lock for accessing the listeners.

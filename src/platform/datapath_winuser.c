@@ -184,9 +184,9 @@ typedef struct QUIC_SEND_DATA {
 typedef struct QUIC_UDP_SOCKET_CONTEXT {
 
     //
-    // Parent QUIC_DATAPATH_BINDING.
+    // Parent QUIC_SOCKET.
     //
-    QUIC_DATAPATH_BINDING* Binding;
+    QUIC_SOCKET* Binding;
 
     //
     // UDP socket used for sending/receiving datagrams.
@@ -218,7 +218,7 @@ typedef struct QUIC_UDP_SOCKET_CONTEXT {
 //
 // Per-port state. Multiple sockets are created on each port.
 //
-typedef struct QUIC_DATAPATH_BINDING {
+typedef struct QUIC_SOCKET {
 
     //
     // Flag indicates the binding has a default remote destination.
@@ -265,7 +265,7 @@ typedef struct QUIC_DATAPATH_BINDING {
     //
     QUIC_UDP_SOCKET_CONTEXT SocketContexts[0];
 
-} QUIC_DATAPATH_BINDING;
+} QUIC_SOCKET;
 
 //
 // Represents a single IO completion port and thread for processing work that
@@ -993,24 +993,24 @@ Exit:
 }
 
 QUIC_STATUS
-QuicDataPathBindingStartReceive(
+QuicSocketStartReceive(
     _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext,
     _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingCreate(
+QuicSocketCreate(
     _In_ QUIC_DATAPATH* Datapath,
-    _In_ QUIC_DATAPATH_BINDING_TYPE Type,
+    _In_ QUIC_SOCKET_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
-    _Out_ QUIC_DATAPATH_BINDING** NewBinding
+    _Out_ QUIC_SOCKET** NewBinding
     )
 {
     QUIC_STATUS Status;
-    QUIC_DATAPATH_BINDING* Binding = NULL;
+    QUIC_SOCKET* Binding = NULL;
     uint32_t BindingLength;
     uint16_t SocketCount = (RemoteAddress == NULL) ? Datapath->ProcCount : 1;
     int Result;
@@ -1019,15 +1019,15 @@ QuicDataPathBindingCreate(
     UNREFERENCED_PARAMETER(Type);
 
     BindingLength =
-        sizeof(QUIC_DATAPATH_BINDING) +
+        sizeof(QUIC_SOCKET) +
         SocketCount * sizeof(QUIC_UDP_SOCKET_CONTEXT);
 
-    Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength, QUIC_POOL_DATAPATH_BINDING);
+    Binding = (QUIC_SOCKET*)QUIC_ALLOC_PAGED(BindingLength, QUIC_POOL_SOCKET);
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_DATAPATH_BINDING",
+            "QUIC_SOCKET",
             BindingLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -1565,7 +1565,7 @@ QUIC_DISABLED_BY_FUZZER_END;
             Binding->Connected ? Binding->ConnectedProcessorAffinity : i;
 
         Status =
-            QuicDataPathBindingStartReceive(
+            QuicSocketStartReceive(
                 &Binding->SocketContexts[i],
                 &Datapath->ProcContexts[Processor]);
         if (QUIC_FAILED(Status)) {
@@ -1620,7 +1620,7 @@ QUIC_DISABLED_BY_FUZZER_END;
                     QuicRundownUninitialize(&SocketContext->UpcallRundown);
                 }
                 QuicRundownRelease(&Datapath->BindingsRundown);
-                QUIC_FREE(Binding, QUIC_POOL_DATAPATH_BINDING);
+                QUIC_FREE(Binding, QUIC_POOL_SOCKET);
             }
         }
     }
@@ -1630,8 +1630,8 @@ QUIC_DISABLED_BY_FUZZER_END;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathBindingDelete(
-    _In_ QUIC_DATAPATH_BINDING* Binding
+QuicSocketDelete(
+    _In_ QUIC_SOCKET* Binding
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
@@ -1725,14 +1725,14 @@ QuicDataPathSocketContextShutdown(
             DatapathShutDownComplete,
             "[ udp][%p] Shut down (complete)",
             SocketContext->Binding);
-        QUIC_FREE(SocketContext->Binding, QUIC_POOL_DATAPATH_BINDING);
+        QUIC_FREE(SocketContext->Binding, QUIC_POOL_SOCKET);
     }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 UINT16
-QuicDataPathBindingGetLocalMtu(
-    _In_ QUIC_DATAPATH_BINDING* Binding
+QuicSocketGetLocalMtu(
+    _In_ QUIC_SOCKET* Binding
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
@@ -1741,8 +1741,8 @@ QuicDataPathBindingGetLocalMtu(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingGetLocalAddress(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketGetLocalAddress(
+    _In_ QUIC_SOCKET* Binding,
     _Out_ QUIC_ADDR* Address
     )
 {
@@ -1752,8 +1752,8 @@ QuicDataPathBindingGetLocalAddress(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingGetRemoteAddress(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketGetRemoteAddress(
+    _In_ QUIC_SOCKET* Binding,
     _Out_ QUIC_ADDR* Address
     )
 {
@@ -1762,7 +1762,7 @@ QuicDataPathBindingGetRemoteAddress(
 }
 
 QUIC_DATAPATH_INTERNAL_RECV_CONTEXT*
-QuicDataPathBindingAllocRecvContext(
+QuicSocketAllocRecvContext(
     _In_ QUIC_DATAPATH* Datapath,
     _In_ UINT16 ProcIndex
     )
@@ -1780,7 +1780,7 @@ QuicDataPathBindingAllocRecvContext(
 }
 
 void
-QuicDataPathBindingHandleUnreachableError(
+QuicSocketHandleUnreachableError(
     _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext,
     _In_ ULONG ErrorCode
     )
@@ -1808,7 +1808,7 @@ QuicDataPathBindingHandleUnreachableError(
 }
 
 QUIC_STATUS
-QuicDataPathBindingStartReceive(
+QuicSocketStartReceive(
     _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext,
     _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
@@ -1823,7 +1823,7 @@ QuicDataPathBindingStartReceive(
     //
     if (SocketContext->CurrentRecvContext == NULL) {
         SocketContext->CurrentRecvContext =
-            QuicDataPathBindingAllocRecvContext(
+            QuicSocketAllocRecvContext(
                 Datapath,
                 ProcContext->Index);
 
@@ -1868,7 +1868,7 @@ Retry_recv:
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
             if (WsaError == WSAECONNRESET) {
-                QuicDataPathBindingHandleUnreachableError(SocketContext, (ULONG)WsaError);
+                QuicSocketHandleUnreachableError(SocketContext, (ULONG)WsaError);
                 goto Retry_recv;
             } else {
                 QuicTraceEvent(
@@ -1941,7 +1941,7 @@ QuicDataPathRecvComplete(
 
     } else if (IsUnreachableErrorCode(IoResult)) {
 
-        QuicDataPathBindingHandleUnreachableError(SocketContext, IoResult);
+        QuicSocketHandleUnreachableError(SocketContext, IoResult);
 
     } else if (IoResult == ERROR_MORE_DATA ||
         (IoResult == NO_ERROR && SocketContext->RecvWsaBuf.len < NumberOfBytesTransferred)) {
@@ -2131,7 +2131,7 @@ Drop:
     //
     // Try to start a new receive.
     //
-    (void)QuicDataPathBindingStartReceive(SocketContext, ProcContext);
+    (void)QuicSocketStartReceive(SocketContext, ProcContext);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2190,7 +2190,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_SEND_DATA*
 QuicSendDataAlloc(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_SOCKET* Binding,
     _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     )
@@ -2476,8 +2476,8 @@ QuicSendContextComplete(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingSend(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketSend(
+    _In_ QUIC_SOCKET* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ QUIC_SEND_DATA* SendContext
@@ -2747,8 +2747,8 @@ QuicDataPathWorkerThread(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingSetParam(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketSetParam(
+    _In_ QUIC_SOCKET* Binding,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength) const UINT8 * Buffer
@@ -2763,8 +2763,8 @@ QuicDataPathBindingSetParam(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingGetParam(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketGetParam(
+    _In_ QUIC_SOCKET* Binding,
     _In_ uint32_t Param,
     _Inout_ PUINT32 BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) UINT8 * Buffer
@@ -2798,7 +2798,7 @@ QuicFuzzerReceiveInject(
     }
 
     QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
-        QuicDataPathBindingAllocRecvContext(
+        QuicSocketAllocRecvContext(
             Socket->Binding->Datapath,
             (UINT16)GetCurrentProcessorNumber());
 

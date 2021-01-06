@@ -126,13 +126,13 @@ QuicBindingInitialize(
 #endif
 
     Status =
-        QuicDataPathBindingCreate(
+        QuicSocketCreate(
             MsQuicLib.Datapath,
-            QUIC_DATAPATH_BINDING_UDP,
+            QUIC_SOCKET_UDP,
             LocalAddress,
             RemoteAddress,
             Binding,
-            &Binding->DatapathBinding);
+            &Binding->Socket);
 
 #ifdef QUIC_COMPARTMENT_ID
     if (RevertCompartmentId) {
@@ -151,13 +151,13 @@ QuicBindingInitialize(
     }
 
     QUIC_ADDR DatapathLocalAddr, DatapathRemoteAddr;
-    QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
-    QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
+    QuicSocketGetLocalAddress(Binding->Socket, &DatapathLocalAddr);
+    QuicSocketGetRemoteAddress(Binding->Socket, &DatapathRemoteAddr);
     QuicTraceEvent(
         BindingCreated,
         "[bind][%p] Created, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
         Binding,
-        Binding->DatapathBinding,
+        Binding->Socket,
         CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
         CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
@@ -201,7 +201,7 @@ QuicBindingUninitialize(
     // Delete the datapath binding. This function blocks until all receive
     // upcalls have completed.
     //
-    QuicDataPathBindingDelete(Binding->DatapathBinding);
+    QuicSocketDelete(Binding->Socket);
 
     //
     // Clean up any leftover stateless operations being tracked.
@@ -248,13 +248,13 @@ QuicBindingTraceRundown(
     // TODO - Trace datapath binding
 
     QUIC_ADDR DatapathLocalAddr, DatapathRemoteAddr;
-    QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
-    QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
+    QuicSocketGetLocalAddress(Binding->Socket, &DatapathLocalAddr);
+    QuicSocketGetRemoteAddress(Binding->Socket, &DatapathRemoteAddr);
     QuicTraceEvent(
         BindingRundown,
         "[bind][%p] Rundown, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
         Binding,
-        Binding->DatapathBinding,
+        Binding->Socket,
         CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
         CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
@@ -754,7 +754,7 @@ QuicBindingProcessStatelessOperation(
 
     QUIC_SEND_DATA* SendContext =
         QuicSendDataAlloc(
-            Binding->DatapathBinding,
+            Binding->Socket,
             QUIC_ECN_NON_ECT,
             0);
     if (SendContext == NULL) {
@@ -1490,12 +1490,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 void
 QuicBindingReceive(
-    _In_ QUIC_DATAPATH_BINDING* DatapathBinding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ void* RecvCallbackContext,
     _In_ QUIC_RECV_DATA* DatagramChain
     )
 {
-    UNREFERENCED_PARAMETER(DatapathBinding);
+    UNREFERENCED_PARAMETER(Socket);
     QUIC_DBG_ASSERT(RecvCallbackContext != NULL);
     QUIC_DBG_ASSERT(DatagramChain != NULL);
 
@@ -1639,12 +1639,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
 void
 QuicBindingUnreachable(
-    _In_ QUIC_DATAPATH_BINDING* DatapathBinding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ void* Context,
     _In_ const QUIC_ADDR* RemoteAddress
     )
 {
-    UNREFERENCED_PARAMETER(DatapathBinding);
+    UNREFERENCED_PARAMETER(Socket);
     QUIC_DBG_ASSERT(Context != NULL);
     QUIC_DBG_ASSERT(RemoteAddress != NULL);
 
@@ -1695,8 +1695,8 @@ QuicBindingSend(
             Status = QUIC_STATUS_SUCCESS;
         } else {
             Status =
-                QuicDataPathBindingSend(
-                    Binding->DatapathBinding,
+                QuicSocketSend(
+                    Binding->Socket,
                     &LocalAddressCopy,
                     &RemoteAddressCopy,
                     SendContext);
@@ -1711,8 +1711,8 @@ QuicBindingSend(
     } else {
 #endif
         Status =
-            QuicDataPathBindingSend(
-                Binding->DatapathBinding,
+            QuicSocketSend(
+                Binding->Socket,
                 LocalAddress,
                 RemoteAddress,
                 SendContext);

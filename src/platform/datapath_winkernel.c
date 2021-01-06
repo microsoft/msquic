@@ -124,7 +124,7 @@ typedef struct QUIC_DATAPATH_INTERNAL_RECV_CONTEXT {
         PWSK_DATAGRAM_INDICATION DataIndication;
     };
 
-    QUIC_DATAPATH_BINDING* Binding;
+    QUIC_SOCKET* Binding;
 
     ULONG ReferenceCount;
 
@@ -199,7 +199,7 @@ typedef struct QUIC_DATAPATH_SEND_BUFFER {
 //
 typedef struct QUIC_SEND_DATA {
 
-    QUIC_DATAPATH_BINDING* Binding;
+    QUIC_SOCKET* Binding;
 
     //
     // The owning processor context.
@@ -280,7 +280,7 @@ typedef struct _WSK_DATAGRAM_SOCKET {
 //
 // Per-port state.
 //
-typedef struct QUIC_DATAPATH_BINDING {
+typedef struct QUIC_SOCKET {
 
     //
     // Flag indicates the binding has a default remote destination.
@@ -340,7 +340,7 @@ typedef struct QUIC_DATAPATH_BINDING {
 
     QUIC_RUNDOWN_REF Rundown[0]; // Per-proc
 
-} QUIC_DATAPATH_BINDING;
+} QUIC_SOCKET;
 
 //
 // Represents the per-processor state of the datapath context.
@@ -1232,7 +1232,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS
 QuicDataPathSetControlSocket(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_SOCKET* Binding,
     _In_ WSK_CONTROL_SOCKET_TYPE RequestType,
     _In_ ULONG ControlCode,
     _In_ ULONG Level,
@@ -1276,18 +1276,18 @@ QuicDataPathSetControlSocket(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingCreate(
+QuicSocketCreate(
     _In_ QUIC_DATAPATH* Datapath,
-    _In_ QUIC_DATAPATH_BINDING_TYPE Type,
+    _In_ QUIC_SOCKET_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
-    _Out_ QUIC_DATAPATH_BINDING** NewBinding
+    _Out_ QUIC_SOCKET** NewBinding
     )
 {
     QUIC_STATUS Status = STATUS_SUCCESS;
     size_t BindingSize;
-    QUIC_DATAPATH_BINDING* Binding = NULL;
+    QUIC_SOCKET* Binding = NULL;
     uint32_t Option;
 
     UNREFERENCED_PARAMETER(Type);
@@ -1298,15 +1298,15 @@ QuicDataPathBindingCreate(
     }
 
     BindingSize =
-        sizeof(QUIC_DATAPATH_BINDING) +
+        sizeof(QUIC_SOCKET) +
         QuicProcMaxCount() * sizeof(QUIC_RUNDOWN_REF);
 
-    Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_NONPAGED(BindingSize, QUIC_POOL_DATAPATH_BINDING);
+    Binding = (QUIC_SOCKET*)QUIC_ALLOC_NONPAGED(BindingSize, QUIC_POOL_SOCKET);
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_DATAPATH_BINDING",
+            "QUIC_SOCKET",
             BindingSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -1676,7 +1676,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (Binding != NULL) {
-            QuicDataPathBindingDelete(Binding);
+            QuicSocketDelete(Binding);
         }
     }
 
@@ -1685,15 +1685,15 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathBindingDeleteComplete(
-    _In_ QUIC_DATAPATH_BINDING* Binding
+QuicSocketDeleteComplete(
+    _In_ QUIC_SOCKET* Binding
 )
 {
     IoCleanupIrp(&Binding->Irp);
     for (uint32_t i = 0; i < QuicProcMaxCount(); ++i) {
         QuicRundownUninitialize(&Binding->Rundown[i]);
     }
-    QUIC_FREE(Binding, QUIC_POOL_DATAPATH_BINDING);
+    QUIC_FREE(Binding, QUIC_POOL_SOCKET);
 }
 
 IO_COMPLETION_ROUTINE QuicDataPathCloseSocketIoCompletion;
@@ -1713,7 +1713,7 @@ QuicDataPathCloseSocketIoCompletion(
     NT_ASSERT(Context);
 
     if (Irp->PendingReturned) {
-        QUIC_DATAPATH_BINDING* Binding = (QUIC_DATAPATH_BINDING*)Context;
+        QUIC_SOCKET* Binding = (QUIC_SOCKET*)Context;
 
 #pragma prefast(suppress: 28182, "SAL doesn't understand how callbacks work.")
         if (QUIC_FAILED(Binding->Irp.IoStatus.Status)) {
@@ -1725,7 +1725,7 @@ QuicDataPathCloseSocketIoCompletion(
                 "WskCloseSocket completion");
         }
 
-        QuicDataPathBindingDeleteComplete(Binding);
+        QuicSocketDeleteComplete(Binding);
     }
 
     //
@@ -1737,8 +1737,8 @@ QuicDataPathCloseSocketIoCompletion(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathBindingDelete(
-    _In_ QUIC_DATAPATH_BINDING* Binding
+QuicSocketDelete(
+    _In_ QUIC_SOCKET* Binding
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
@@ -1782,13 +1782,13 @@ QuicDataPathBindingDelete(
         }
     }
 
-    QuicDataPathBindingDeleteComplete(Binding);
+    QuicSocketDeleteComplete(Binding);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicDataPathBindingSetContext(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketSetContext(
+    _In_ QUIC_SOCKET* Binding,
     _In_opt_ void* Context
     )
 {
@@ -1805,8 +1805,8 @@ QuicDataPathBindingSetContext(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void*
-QuicDataPathBindingGetContext(
-    _In_ QUIC_DATAPATH_BINDING* Binding
+QuicSocketGetContext(
+    _In_ QUIC_SOCKET* Binding
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
@@ -1815,8 +1815,8 @@ QuicDataPathBindingGetContext(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 UINT16
-QuicDataPathBindingGetLocalMtu(
-    _In_ QUIC_DATAPATH_BINDING* Binding
+QuicSocketGetLocalMtu(
+    _In_ QUIC_SOCKET* Binding
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
@@ -1825,8 +1825,8 @@ QuicDataPathBindingGetLocalMtu(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingGetLocalAddress(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketGetLocalAddress(
+    _In_ QUIC_SOCKET* Binding,
     _Out_ QUIC_ADDR* Address
     )
 {
@@ -1836,8 +1836,8 @@ QuicDataPathBindingGetLocalAddress(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingGetRemoteAddress(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketGetRemoteAddress(
+    _In_ QUIC_SOCKET* Binding,
     _Out_ QUIC_ADDR* Address
     )
 {
@@ -1847,7 +1847,7 @@ QuicDataPathBindingGetRemoteAddress(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_DATAPATH_INTERNAL_RECV_CONTEXT*
-QuicDataPathBindingAllocRecvContext(
+QuicSocketAllocRecvContext(
     _In_ QUIC_DATAPATH* Datapath,
     _In_ UINT16 ProcIndex,
     _In_ BOOLEAN IsUro
@@ -1914,7 +1914,7 @@ QuicDataPathSocketReceive(
 
     QUIC_DBG_ASSERT(Context != NULL);
 
-    QUIC_DATAPATH_BINDING* Binding = (QUIC_DATAPATH_BINDING*)Context;
+    QUIC_SOCKET* Binding = (QUIC_SOCKET*)Context;
 
     uint32_t CurProcNumber = QuicProcCurrentNumber();
     if (!QuicRundownAcquire(&Binding->Rundown[CurProcNumber])) {
@@ -2111,7 +2111,7 @@ QuicDataPathSocketReceive(
 
             if (RecvContext == NULL) {
                 RecvContext =
-                    QuicDataPathBindingAllocRecvContext(
+                    QuicSocketAllocRecvContext(
                         Binding->Datapath,
                         (UINT16)CurProcNumber,
                         IsCoalesced);
@@ -2259,7 +2259,7 @@ QuicRecvDataReturn(
     _In_opt_ QUIC_RECV_DATA* RecvDataChain
     )
 {
-    QUIC_DATAPATH_BINDING* Binding = NULL;
+    QUIC_SOCKET* Binding = NULL;
     PWSK_DATAGRAM_INDICATION DataIndication = NULL;
     PWSK_DATAGRAM_INDICATION DataIndications = NULL;
     PWSK_DATAGRAM_INDICATION* DataIndicationTail = &DataIndications;
@@ -2338,7 +2338,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_SEND_DATA*
 QuicSendDataAlloc(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_SOCKET* Binding,
     _In_ QUIC_ECN_TYPE ECN,
     _In_ UINT16 MaxPacketSize
     )
@@ -2712,7 +2712,7 @@ QuicDataPathSendComplete(
 
     QUIC_SEND_DATA* SendContext = Context;
     QUIC_DBG_ASSERT(SendContext != NULL);
-    QUIC_DATAPATH_BINDING* Binding = SendContext->Binding;
+    QUIC_SOCKET* Binding = SendContext->Binding;
 
     if (!NT_SUCCESS(Irp->IoStatus.Status)) {
         QuicTraceEvent(
@@ -2733,7 +2733,7 @@ QuicDataPathSendComplete(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingPrepareSendContext(
+QuicSocketPrepareSendContext(
     _In_ QUIC_SEND_DATA* SendContext
     )
 {
@@ -2755,8 +2755,8 @@ QuicDataPathBindingPrepareSendContext(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingSend(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketSend(
+    _In_ QUIC_SOCKET* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ QUIC_SEND_DATA* SendContext
@@ -2772,7 +2772,7 @@ QuicDataPathBindingSend(
     //
     // Initialize IRP and MDLs for sending.
     //
-    QuicDataPathBindingPrepareSendContext(SendContext);
+    QuicSocketPrepareSendContext(SendContext);
 
     SendContext->Binding = Binding;
 
@@ -2868,8 +2868,8 @@ QuicDataPathBindingSend(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingSetParam(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketSetParam(
+    _In_ QUIC_SOCKET* Binding,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength) const UINT8 * Buffer
@@ -2884,8 +2884,8 @@ QuicDataPathBindingSetParam(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingGetParam(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketGetParam(
+    _In_ QUIC_SOCKET* Binding,
     _In_ uint32_t Param,
     _Inout_ PUINT32 BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) UINT8 * Buffer

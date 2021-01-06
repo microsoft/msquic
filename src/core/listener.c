@@ -290,8 +290,8 @@ MsQuicListenerStart(
     }
 
     if (PortUnspecified) {
-        QuicDataPathBindingGetLocalAddress(
-            Listener->Binding->DatapathBinding,
+        QuicSocketGetLocalAddress(
+            Listener->Binding->Socket,
             &BindingLocalAddress);
         QuicAddrSetPort(
             &Listener->LocalAddress,

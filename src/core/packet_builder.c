@@ -184,7 +184,7 @@ QuicPacketBuilderPrepare(
         if (Builder->SendContext == NULL) {
             Builder->SendContext =
                 QuicSendDataAlloc(
-                    Builder->Path->Binding->DatapathBinding,
+                    Builder->Path->Binding->Socket,
                     QUIC_ECN_NON_ECT,
                     IsPathMtuDiscovery ?
                         0 :

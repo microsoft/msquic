@@ -112,13 +112,15 @@ PacketSizeFromUdpPayloadSize(
         UdpPayloadSize + QUIC_MIN_IPV6_HEADER_SIZE + QUIC_UDP_HEADER_SIZE;
 }
 
-typedef struct QUIC_BUFFER QUIC_BUFFER;
-
 //
-// Declaration for the datapath context structures.
+// The top level datapath handle type.
 //
 typedef struct QUIC_DATAPATH QUIC_DATAPATH;
-typedef struct QUIC_DATAPATH_BINDING QUIC_DATAPATH_BINDING;
+
+//
+// Represents a UDP or TCP abstraction.
+//
+typedef struct QUIC_SOCKET QUIC_SOCKET;
 
 //
 // Can be defined to whatever the client needs.
@@ -129,6 +131,11 @@ typedef struct QUIC_RECV_PACKET QUIC_RECV_PACKET;
 // Structure that maintains the 'per send' context.
 //
 typedef struct QUIC_SEND_DATA QUIC_SEND_DATA;
+
+//
+// Contains a pointer and length.
+//
+typedef struct QUIC_BUFFER QUIC_BUFFER;
 
 //
 // Structure to represent data buffers received.
@@ -209,7 +216,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 void
 (QUIC_DATAPATH_RECEIVE_CALLBACK)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ void* Context,
     _In_ QUIC_RECV_DATA* RecvDataChain
     );
@@ -224,7 +231,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
 void
 (QUIC_DATAPATH_UNREACHABLE_CALLBACK)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ void* Context,
     _In_ const QUIC_ADDR* RemoteAddress
     );
@@ -239,7 +246,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_SEND_COMPLETE)
 void
 (QUIC_DATAPATH_SEND_COMPLETE)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ void* ClientContext,
     _In_ QUIC_STATUS CompletionStatus,
     _In_ uint32_t NumBytesSent
@@ -305,36 +312,36 @@ QuicDataPathResolveAddress(
 // The following APIs are specific to a single UDP or TCP socket abstraction.
 //
 
-typedef enum QUIC_DATAPATH_BINDING_TYPE {
-    QUIC_DATAPATH_BINDING_UDP   = 0,
-    QUIC_DATAPATH_BINDING_TCP   = 1
-} QUIC_DATAPATH_BINDING_TYPE;
+typedef enum QUIC_SOCKET_TYPE {
+    QUIC_SOCKET_UDP   = 0,
+    QUIC_SOCKET_TCP   = 1
+} QUIC_SOCKET_TYPE;
 
 //
-// Creates a datapath binding handle for the given local address and/or remote
+// Creates a datapath socket handle for the given local address and/or remote
 // address. This function immediately registers for receive upcalls from the
-// UDP layer below.
+// layer below.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingCreate(
+QuicSocketCreate(
     _In_ QUIC_DATAPATH* Datapath,
-    _In_ QUIC_DATAPATH_BINDING_TYPE Type,
+    _In_ QUIC_SOCKET_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
-    _Out_ QUIC_DATAPATH_BINDING** Binding
+    _Out_ QUIC_SOCKET** Socket
     );
 
 //
-// Deletes a UDP binding. This function blocks on all outstandind upcalls and on
+// Deletes a socket. This function blocks on all outstandind upcalls and on
 // return guarantees no further callbacks will occur. DO NOT call this function
 // on an upcall!
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathBindingDelete(
-    _In_ QUIC_DATAPATH_BINDING* Binding
+QuicSocketDelete(
+    _In_ QUIC_SOCKET* Socket
     );
 
 //
@@ -342,8 +349,8 @@ QuicDataPathBindingDelete(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
-QuicDataPathBindingGetLocalMtu(
-    _In_ QUIC_DATAPATH_BINDING* Binding
+QuicSocketGetLocalMtu(
+    _In_ QUIC_SOCKET* Socket
     );
 
 //
@@ -351,19 +358,19 @@ QuicDataPathBindingGetLocalMtu(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingGetLocalAddress(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketGetLocalAddress(
+    _In_ QUIC_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     );
 
 //
-// Queries the connected remote IP address. Only valid if the binding was
+// Queries the connected remote IP address. Only valid if the socket was
 // initially created with a remote address.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingGetRemoteAddress(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketGetRemoteAddress(
+    _In_ QUIC_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     );
 
@@ -378,14 +385,14 @@ QuicRecvDataReturn(
     );
 
 //
-// Allocates a new send context to be used to call QuicDataPathBindingSend. It
+// Allocates a new send context to be used to call QuicSocketSend. It
 // can be freed with QuicSendDataFree too.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_SEND_DATA*
 QuicSendDataAlloc(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     );
@@ -430,36 +437,36 @@ QuicSendDataIsFull(
     );
 
 //
-// Sends the data over the binding.
+// Sends the data over the socket.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingSend(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketSend(
+    _In_ QUIC_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ QUIC_SEND_DATA* SendData
     );
 
 //
-// Sets a parameter on the binding.
+// Sets a parameter on the socket.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingSetParam(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketSetParam(
+    _In_ QUIC_SOCKET* Socket,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength) const uint8_t* Buffer
     );
 
 //
-// Sets a parameter on the binding.
+// Sets a parameter on the socket.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingGetParam(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketGetParam(
+    _In_ QUIC_SOCKET* Socket,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer

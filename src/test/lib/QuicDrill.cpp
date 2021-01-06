@@ -86,14 +86,14 @@ QuicDrillConnectionCallbackHandler(
 
 struct DrillSender {
     QUIC_DATAPATH* Datapath;
-    QUIC_DATAPATH_BINDING* Binding;
+    QUIC_SOCKET* Binding;
     QUIC_ADDR ServerAddress;
 
     _IRQL_requires_max_(DISPATCH_LEVEL)
     _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
     static void
     DrillUdpRecvCallback(
-        _In_ QUIC_DATAPATH_BINDING* /* Binding */,
+        _In_ QUIC_SOCKET* /* Binding */,
         _In_ void* /* Context */,
         _In_ QUIC_RECV_DATA* RecvBufferChain
         )
@@ -105,7 +105,7 @@ struct DrillSender {
     _Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
     static void
     DrillUdpUnreachCallback(
-        _In_ QUIC_DATAPATH_BINDING* /* Binding */,
+        _In_ QUIC_SOCKET* /* Binding */,
         _In_ void* /* Context */,
         _In_ const QUIC_ADDR* /* RemoteAddress */
         )
@@ -116,7 +116,7 @@ struct DrillSender {
 
     ~DrillSender() {
         if (Binding != nullptr) {
-            QuicDataPathBindingDelete(Binding);
+            QuicSocketDelete(Binding);
         }
 
         if (Datapath != nullptr) {
@@ -161,9 +161,9 @@ struct DrillSender {
         }
 
         Status =
-            QuicDataPathBindingCreate(
+            QuicSocketCreate(
                 Datapath,
-                QUIC_DATAPATH_BINDING_UDP,
+                QUIC_SOCKET_UDP,
                 nullptr,
                 &ServerAddress,
                 this,
@@ -184,7 +184,7 @@ struct DrillSender {
         const uint16_t DatagramLength = (uint16_t) PacketBuffer->size();
 
         QUIC_ADDR LocalAddress;
-        QuicDataPathBindingGetLocalAddress(Binding, &LocalAddress);
+        QuicSocketGetLocalAddress(Binding, &LocalAddress);
 
         QUIC_SEND_DATA* SendContext =
             QuicSendDataAlloc(
@@ -205,7 +205,7 @@ struct DrillSender {
         memcpy(SendBuffer->Buffer, PacketBuffer->data(), DatagramLength);
 
         Status =
-            QuicDataPathBindingSend(
+            QuicSocketSend(
                 Binding,
                 &LocalAddress,
                 &ServerAddress,

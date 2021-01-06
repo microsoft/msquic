@@ -1395,9 +1395,9 @@ struct Lookup : Struct {
     }
 };
 
-struct DatapathBinding : Struct {
+struct Socket : Struct {
 
-    DatapathBinding(ULONG64 Addr) : Struct("msquic!QUIC_DATAPATH_BINDING", Addr) { }
+    Socket(ULONG64 Addr) : Struct("msquic!QUIC_SOCKET", Addr) { }
 
     IpAddress GetLocalAddress() {
         return IpAddress(AddrOf("LocalAddress"));
@@ -1436,8 +1436,8 @@ struct Binding : Struct {
         return Lookup(AddrOf("Lookup"));
     }
 
-    DatapathBinding GetDatapathBinding() {
-        return DatapathBinding(ReadPointer("DatapathBinding"));
+    Socket GetSocket() {
+        return Socket(ReadPointer("Socket"));
     }
 };
 

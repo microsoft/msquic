@@ -1832,8 +1832,8 @@ QuicConnStart(
     }
 
     Connection->State.LocalAddressSet = TRUE;
-    QuicDataPathBindingGetLocalAddress(
-        Path->Binding->DatapathBinding,
+    QuicSocketGetLocalAddress(
+        Path->Binding->Socket,
         &Path->LocalAddress);
     QuicTraceEvent(
         ConnLocalAddrAdded,
@@ -2165,8 +2165,8 @@ QuicConnGenerateLocalTransportParameters(
     LocalTP->InitialMaxStreamDataUni = Connection->Settings.StreamRecvWindowDefault;
     LocalTP->MaxUdpPayloadSize =
         MaxUdpPayloadSizeFromMTU(
-            QuicDataPathBindingGetLocalMtu(
-                Connection->Paths[0].Binding->DatapathBinding));
+            QuicSocketGetLocalMtu(
+                Connection->Paths[0].Binding->Socket));
     LocalTP->MaxAckDelay =
         Connection->Settings.MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
     LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
@@ -5255,8 +5255,8 @@ QuicConnParamSet(
                 Connection,
                 CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
 
-            QuicDataPathBindingGetLocalAddress(
-                Connection->Paths[0].Binding->DatapathBinding,
+            QuicSocketGetLocalAddress(
+                Connection->Paths[0].Binding->Socket,
                 &Connection->Paths[0].LocalAddress);
 
             QuicTraceEvent(

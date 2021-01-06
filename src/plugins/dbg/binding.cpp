@@ -20,7 +20,7 @@ EXT_COMMAND(
 {
     Binding Binding(GetUnnamedArgU64(0));
     auto Lookup = Binding.GetLookup();
-    auto DatapathBinding = Binding.GetDatapathBinding();
+    auto Socket = Binding.GetSocket();
 
     Dml("\n<b>BINDING</b> (<link cmd=\"dt msquic!QUIC_BINDING 0x%I64X\">raw</link>)\n"
         "\n"
@@ -38,8 +38,8 @@ EXT_COMMAND(
         Binding.RefCount(),
         Lookup.CidCount(),
         Lookup.PartitionCount(),
-        DatapathBinding.GetLocalAddress().IpString,
-        DatapathBinding.GetRemoteAddress().IpString);
+        Socket.GetLocalAddress().IpString,
+        Socket.GetRemoteAddress().IpString);
 
     bool HasAtLeastOne = false;
     auto Listeners = Binding.GetListeners();

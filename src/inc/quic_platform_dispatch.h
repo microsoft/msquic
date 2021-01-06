@@ -114,92 +114,94 @@ QUIC_STATUS
 
 typedef
 QUIC_STATUS
-(*QUIC_DATAPATH_BINDING_CREATE)(
+(*QUIC_SOCKET_CREATE)(
     _In_ QUIC_DATAPATH* Datapath,
+    _In_ QUIC_SOCKET_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
-    _Out_ QUIC_DATAPATH_BINDING** Binding
+    _Out_ QUIC_SOCKET** Socket
     );
 
 typedef
 void
-(*QUIC_DATAPATH_BINDING_DELETE)(
-    _In_ QUIC_DATAPATH_BINDING* Binding
+(*QUIC_SOCKET_DELETE)(
+    _In_ QUIC_SOCKET* Socket
     );
 
 typedef
 uint16_t
-(*QUIC_DATPATH_BINDING_GET_LOCAL_MTU)(
-    _In_ QUIC_DATAPATH_BINDING* Binding
+(*QUIC_DATPATH_Socket_GET_LOCAL_MTU)(
+    _In_ QUIC_SOCKET* Socket
     );
 
 typedef
 void
-(*QUIC_DATAPATH_BINDING_GET_LOCAL_ADDRESS)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+(*QUIC_SOCKET_GET_LOCAL_ADDRESS)(
+    _In_ QUIC_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     );
 
 typedef
 void
-(*QUIC_DATAPATH_BINDING_GET_REMOTE_ADDRESS)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+(*QUIC_SOCKET_GET_REMOTE_ADDRESS)(
+    _In_ QUIC_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     );
 
 typedef
 void
-(*QUIC_DATAPATH_BINDING_RETURN_RECV_BUFFER)(
-    _In_ QUIC_RECV_DATA* RecvPacketChain
+(*QUIC_RECV_DATA_RETURN)(
+    _In_ QUIC_RECV_DATA* RecvDataChain
     );
 
 typedef
 QUIC_SEND_DATA*
-(*QUIC_DATAPATH_BINDING_ALLOC_SEND_CONTEXT)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+(*QUIC_SEND_DATA_ALLOC)(
+    _In_ QUIC_SOCKET* Socket,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     );
 
 typedef
 void
-(*QUIC_DATAPATH_BINDING_FREE_SEND_CONTEXT)(
-    _In_ QUIC_SEND_DATA* SendContext
+(*QUIC_SEND_DATA_FREE)(
+    _In_ QUIC_SEND_DATA* SendData
     );
 
 typedef
 QUIC_BUFFER*
-(*QUIC_DATAPATH_BINDING_ALLOC_SEND_BUFFER)(
-    _In_ QUIC_SEND_DATA* SendContext,
+(*QUIC_SEND_DATA_ALLOC_BUFFER)(
+    _In_ QUIC_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     );
 
 typedef
 void
-(*QUIC_DATAPATH_BINDING_FREE_SEND_BUFFER)(
-    _In_ QUIC_SEND_DATA* SendContext,
-    _In_ QUIC_BUFFER* SendBuffer
+(*QUIC_SEND_DATA_FREE_BUFFER)(
+    _In_ QUIC_SEND_DATA* SendData,
+    _In_ QUIC_BUFFER* Buffer
     );
 
 typedef
 BOOLEAN
-(*QUIC_DATAPATH_BINDING_IS_SEND_CONTEXT_FULL)(
-    _In_ QUIC_SEND_DATA* SendContext
+(*QUIC_SEND_DATA_IS_FULL)(
+    _In_ QUIC_SEND_DATA* SendData
     );
 
 typedef
 QUIC_STATUS
-(*QUIC_DATAPATH_BINDING_SEND)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+(*QUIC_SOCKET_SEND)(
+    _In_ QUIC_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_SEND_DATA* SendContext
+    _In_ QUIC_SEND_DATA* SendData
     );
 
 typedef
 QUIC_STATUS
-(*QUIC_DATAPATH_BINDING_SET_PARAM)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+(*QUIC_SOCKET_SET_PARAM)(
+    _In_ QUIC_SOCKET* Socket,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength) const uint8_t * Buffer
@@ -207,8 +209,8 @@ QUIC_STATUS
 
 typedef
 QUIC_STATUS
-(*QUIC_DATAPATH_BINDING_GET_PARAM)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+(*QUIC_SOCKET_GET_PARAM)(
+    _In_ QUIC_SOCKET* Socket,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer
@@ -220,7 +222,6 @@ QUIC_STATUS
     _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) void* Buffer
     );
-
 
 typedef struct QUIC_PLATFORM_DISPATCH {
     QUIC_ALLOC Alloc;
@@ -240,20 +241,20 @@ typedef struct QUIC_PLATFORM_DISPATCH {
     QUIC_DATAPATH_RECVBUFFER_TO_RECVCONTEXT DatapathRecvPacketToRecvContext;
     QUIC_DATAPATH_IS_PADDING_PREFERRED DatapathIsPaddingPreferred;
     QUIC_DATAPATH_RESOLVE_ADDRESS DatapathResolveAddress;
-    QUIC_DATAPATH_BINDING_CREATE DatapathBindingCreate;
-    QUIC_DATAPATH_BINDING_DELETE DatapathBindingDelete;
-    QUIC_DATPATH_BINDING_GET_LOCAL_MTU DatapathBindingGetLocalMtu;
-    QUIC_DATAPATH_BINDING_GET_LOCAL_ADDRESS DatapathBindingGetLocalAddress;
-    QUIC_DATAPATH_BINDING_GET_REMOTE_ADDRESS DatapathBindingGetRemoteAddress;
-    QUIC_DATAPATH_BINDING_RETURN_RECV_BUFFER DatapathBindingReturnRecvPacket;
-    QUIC_DATAPATH_BINDING_ALLOC_SEND_CONTEXT DatapathBindingAllocSendContext;
-    QUIC_DATAPATH_BINDING_FREE_SEND_CONTEXT DatapathBindingFreeSendContext;
-    QUIC_DATAPATH_BINDING_IS_SEND_CONTEXT_FULL DatapathBindingIsSendContextFull;
-    QUIC_DATAPATH_BINDING_ALLOC_SEND_BUFFER DatapathBindingAllocSendBuffer;
-    QUIC_DATAPATH_BINDING_FREE_SEND_BUFFER DatapathBindingFreeSendBuffer;
-    QUIC_DATAPATH_BINDING_SEND DatapathBindingSend;
-    QUIC_DATAPATH_BINDING_SET_PARAM DatapathBindingSetParam;
-    QUIC_DATAPATH_BINDING_GET_PARAM DatapathBindingGetParam;
+    QUIC_SOCKET_CREATE SocketCreate;
+    QUIC_SOCKET_DELETE SocketDelete;
+    QUIC_DATPATH_Socket_GET_LOCAL_MTU SocketGetLocalMtu;
+    QUIC_SOCKET_GET_LOCAL_ADDRESS SocketGetLocalAddress;
+    QUIC_SOCKET_GET_REMOTE_ADDRESS SocketGetRemoteAddress;
+    QUIC_RECV_DATA_RETURN RecvDataReturn;
+    QUIC_SEND_DATA_ALLOC QuicSendDataAlloc;
+    QUIC_SEND_DATA_FREE QuicSendDataFree;
+    QUIC_SEND_DATA_IS_FULL QuicSendDataIsFull;
+    QUIC_SEND_DATA_ALLOC_BUFFER QuicSendDataAllocBuffer;
+    QUIC_SEND_DATA_FREE_BUFFER QuicSendDataFreeBuffer;
+    QUIC_SOCKET_SEND SocketSend;
+    QUIC_SOCKET_SET_PARAM SocketSetParam;
+    QUIC_SOCKET_GET_PARAM SocketGetParam;
 
 } QUIC_PLATFORM_DISPATCH;
 
