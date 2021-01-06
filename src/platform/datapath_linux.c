@@ -1566,7 +1566,6 @@ QuicSocketCreate(
     _Out_ QUIC_SOCKET** NewBinding
     )
 {
-    UNREFERENCED_PARAMETER(Type);
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return
         PlatDispatch->SocketCreate(
@@ -1578,6 +1577,10 @@ QuicSocketCreate(
             NewBinding);
 #else
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (Type != QUIC_SOCKET_UDP) {
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
 
     uint32_t SocketCount = Datapath->ProcCount; // TODO - Only use 1 for client (RemoteAddress != NULL) bindings?
     size_t BindingLength =

@@ -1290,7 +1290,10 @@ QuicSocketCreate(
     QUIC_SOCKET* Binding = NULL;
     uint32_t Option;
 
-    UNREFERENCED_PARAMETER(Type);
+    if (Type != QUIC_SOCKET_UDP) {
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        goto Error;
+    }
 
     if (Datapath == NULL || NewBinding == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;

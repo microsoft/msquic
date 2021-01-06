@@ -94,8 +94,8 @@ static_assert(
     ErrorCode == ERROR_PORT_UNREACHABLE \
 )
 
-typedef struct QUIC_UDP_SOCKET_CONTEXT QUIC_UDP_SOCKET_CONTEXT;
-typedef struct QUIC_DATAPATH_PROC_CONTEXT QUIC_DATAPATH_PROC_CONTEXT;
+typedef struct QUIC_DATAPATH_PROC QUIC_DATAPATH_PROC;   // Per-processor datapath state.
+typedef struct QUIC_SOCKET_PROC QUIC_SOCKET_PROC;       // Per-processor socket state.
 
 //
 // Internal receive context.
@@ -144,7 +144,7 @@ typedef struct QUIC_SEND_DATA {
     //
     // The owning processor context.
     //
-    QUIC_DATAPATH_PROC_CONTEXT* Owner;
+    QUIC_DATAPATH_PROC* Owner;
 
     //
     // The total buffer size for WsaBuffers.
@@ -179,14 +179,14 @@ typedef struct QUIC_SEND_DATA {
 } QUIC_SEND_DATA;
 
 //
-// Per-socket state.
+// Per-processor socket state.
 //
-typedef struct QUIC_UDP_SOCKET_CONTEXT {
+typedef struct QUIC_SOCKET_PROC {
 
     //
     // Parent QUIC_SOCKET.
     //
-    QUIC_SOCKET* Binding;
+    QUIC_SOCKET* Parent;
 
     //
     // UDP socket used for sending/receiving datagrams.
@@ -203,6 +203,8 @@ typedef struct QUIC_UDP_SOCKET_CONTEXT {
     // populate to indicate the result of the receive.
     //
 
+    union {
+    struct {
     WSABUF RecvWsaBuf;
     char RecvWsaMsgControlBuf[
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
@@ -210,10 +212,13 @@ typedef struct QUIC_UDP_SOCKET_CONTEXT {
         WSA_CMSG_SPACE(sizeof(INT))             // IP_ECN
         ];
     WSAMSG RecvWsaMsgHdr;
+    };
+    SOCKET AcceptSocket;
+    };
     QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* CurrentRecvContext;
     OVERLAPPED RecvOverlapped;
 
-} QUIC_UDP_SOCKET_CONTEXT;
+} QUIC_SOCKET_PROC;
 
 //
 // Per-port state. Multiple sockets are created on each port.
@@ -223,7 +228,12 @@ typedef struct QUIC_SOCKET {
     //
     // Flag indicates the binding has a default remote destination.
     //
-    BOOLEAN Connected : 1;
+    uint8_t Connected : 1;
+
+    //
+    // Socket type.
+    //
+    uint8_t Type : 2; // QUIC_SOCKET_TYPE
 
     //
     // The index of the affinitized receive processor for a connected socket.
@@ -251,9 +261,9 @@ typedef struct QUIC_SOCKET {
     UINT16 Mtu;
 
     //
-    // The number of socket contexts that still need to be cleaned up.
+    // The number of per-processor socket contexts that still need to be cleaned up.
     //
-    short volatile SocketContextsOutstanding;
+    short volatile ProcsOutstanding;
 
     //
     // Client context pointer.
@@ -261,9 +271,9 @@ typedef struct QUIC_SOCKET {
     void *ClientContext;
 
     //
-    // Socket contexts for this port.
+    // Per-processor socket contexts.
     //
-    QUIC_UDP_SOCKET_CONTEXT SocketContexts[0];
+    QUIC_SOCKET_PROC Processors[0];
 
 } QUIC_SOCKET;
 
@@ -271,7 +281,7 @@ typedef struct QUIC_SOCKET {
 // Represents a single IO completion port and thread for processing work that
 // is completed on a single processor.
 //
-typedef struct QUIC_DATAPATH_PROC_CONTEXT {
+typedef struct QUIC_DATAPATH_PROC {
 
     //
     // Parent datapath.
@@ -279,7 +289,7 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT {
     QUIC_DATAPATH* Datapath;
 
     //
-    // IO Completion Binding used for the processing completions on the socket.
+    // IO Completion Socket used for the processing completions on the socket.
     //
     HANDLE IOCP;
 
@@ -320,7 +330,7 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT {
     //
     QUIC_POOL RecvDatagramPool;
 
-} QUIC_DATAPATH_PROC_CONTEXT;
+} QUIC_DATAPATH_PROC;
 
 //
 // Main structure for tracking all UDP abstractions.
@@ -355,7 +365,7 @@ typedef struct QUIC_DATAPATH {
     //
     // Rundown for waiting on binding cleanup.
     //
-    QUIC_RUNDOWN_REF BindingsRundown;
+    QUIC_RUNDOWN_REF SocketsRundown;
 
     //
     // The client callback function pointers.
@@ -388,7 +398,7 @@ typedef struct QUIC_DATAPATH {
     //
     // Per-processor completion contexts.
     //
-    QUIC_DATAPATH_PROC_CONTEXT ProcContexts[0];
+    QUIC_DATAPATH_PROC Processors[0];
 
 } QUIC_DATAPATH;
 
@@ -592,7 +602,7 @@ QuicDataPathInitialize(
 
     DatapathLength =
         sizeof(QUIC_DATAPATH) +
-        MaxProcCount * sizeof(QUIC_DATAPATH_PROC_CONTEXT);
+        MaxProcCount * sizeof(QUIC_DATAPATH_PROC);
 
     Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
@@ -610,7 +620,7 @@ QuicDataPathInitialize(
     Datapath->UnreachableHandler = UnreachableCallback;
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = (uint16_t)MaxProcCount;
-    QuicRundownInitialize(&Datapath->BindingsRundown);
+    QuicRundownInitialize(&Datapath->SocketsRundown);
 
     QuicDataPathQueryRssScalabilityInfo(Datapath);
     QuicDataPathQuerySockoptSupport(Datapath);
@@ -655,40 +665,40 @@ QuicDataPathInitialize(
         // our per UDP socket receives maintain their RSS core all the way up.
         //
 
-        Datapath->ProcContexts[i].Datapath = Datapath;
-        Datapath->ProcContexts[i].Index = i;
+        Datapath->Processors[i].Datapath = Datapath;
+        Datapath->Processors[i].Index = i;
 
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_SEND_DATA),
             QUIC_POOL_PLATFORM_SENDCTX,
-            &Datapath->ProcContexts[i].SendContextPool);
+            &Datapath->Processors[i].SendContextPool);
 
         QuicPoolInitialize(
             FALSE,
             MAX_UDP_PAYLOAD_LENGTH,
             QUIC_POOL_DATA,
-            &Datapath->ProcContexts[i].SendBufferPool);
+            &Datapath->Processors[i].SendBufferPool);
 
         QuicPoolInitialize(
             FALSE,
             QUIC_LARGE_SEND_BUFFER_SIZE,
             QUIC_POOL_DATA,
-            &Datapath->ProcContexts[i].LargeSendBufferPool);
+            &Datapath->Processors[i].LargeSendBufferPool);
 
         QuicPoolInitialize(
             FALSE,
             RecvDatagramLength,
             QUIC_POOL_DATA,
-            &Datapath->ProcContexts[i].RecvDatagramPool);
+            &Datapath->Processors[i].RecvDatagramPool);
 
-        Datapath->ProcContexts[i].IOCP =
+        Datapath->Processors[i].IOCP =
             CreateIoCompletionPort(
                 INVALID_HANDLE_VALUE,
                 NULL,
                 0,
                 1);
-        if (Datapath->ProcContexts[i].IOCP == NULL) {
+        if (Datapath->Processors[i].IOCP == NULL) {
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -699,15 +709,15 @@ QuicDataPathInitialize(
             goto Error;
         }
 
-        Datapath->ProcContexts[i].CompletionThread =
+        Datapath->Processors[i].CompletionThread =
             CreateThread(
                 NULL,
                 0,
                 QuicDataPathWorkerThread,
-                &Datapath->ProcContexts[i],
+                &Datapath->Processors[i],
                 0,
                 NULL);
-        if (Datapath->ProcContexts[i].CompletionThread == NULL) {
+        if (Datapath->Processors[i].CompletionThread == NULL) {
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -723,7 +733,7 @@ QuicDataPathInitialize(
         Group.Mask = (KAFFINITY)(1llu << ProcInfo->Index);
         Group.Group = ProcInfo->Group;
         if (!SetThreadGroupAffinity(
-                Datapath->ProcContexts[i].CompletionThread,
+                Datapath->Processors[i].CompletionThread,
                 &Group,
                 NULL)) {
             DWORD LastError = GetLastError();
@@ -737,13 +747,13 @@ QuicDataPathInitialize(
         }
 
 #ifdef QUIC_UWP_BUILD
-        SetThreadDescription(Datapath->ProcContexts[i].CompletionThread, L"quic_datapath");
+        SetThreadDescription(Datapath->Processors[i].CompletionThread, L"quic_datapath");
 #else
         THREAD_NAME_INFORMATION ThreadNameInfo;
         RtlInitUnicodeString(&ThreadNameInfo.ThreadName, L"quic_datapath");
         NTSTATUS NtStatus =
             NtSetInformationThread(
-                Datapath->ProcContexts[i].CompletionThread,
+                Datapath->Processors[i].CompletionThread,
                 ThreadNameInformation,
                 &ThreadNameInfo,
                 sizeof(ThreadNameInfo));
@@ -765,18 +775,18 @@ Error:
     if (QUIC_FAILED(Status)) {
         if (Datapath != NULL) {
             for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
-                if (Datapath->ProcContexts[i].IOCP) {
-                    CloseHandle(Datapath->ProcContexts[i].IOCP);
+                if (Datapath->Processors[i].IOCP) {
+                    CloseHandle(Datapath->Processors[i].IOCP);
                 }
-                if (Datapath->ProcContexts[i].CompletionThread) {
-                    CloseHandle(Datapath->ProcContexts[i].CompletionThread);
+                if (Datapath->Processors[i].CompletionThread) {
+                    CloseHandle(Datapath->Processors[i].CompletionThread);
                 }
-                QuicPoolUninitialize(&Datapath->ProcContexts[i].SendContextPool);
-                QuicPoolUninitialize(&Datapath->ProcContexts[i].SendBufferPool);
-                QuicPoolUninitialize(&Datapath->ProcContexts[i].LargeSendBufferPool);
-                QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvDatagramPool);
+                QuicPoolUninitialize(&Datapath->Processors[i].SendContextPool);
+                QuicPoolUninitialize(&Datapath->Processors[i].SendBufferPool);
+                QuicPoolUninitialize(&Datapath->Processors[i].LargeSendBufferPool);
+                QuicPoolUninitialize(&Datapath->Processors[i].RecvDatagramPool);
             }
-            QuicRundownUninitialize(&Datapath->BindingsRundown);
+            QuicRundownUninitialize(&Datapath->SocketsRundown);
             QUIC_FREE(Datapath, QUIC_POOL_DATAPATH);
         }
         (void)WSACleanup();
@@ -800,7 +810,7 @@ QuicDataPathUninitialize(
     //
     // Wait for all outstanding binding to clean up.
     //
-    QuicRundownReleaseAndWait(&Datapath->BindingsRundown);
+    QuicRundownReleaseAndWait(&Datapath->SocketsRundown);
 
     //
     // Disable processing on the completion threads and kick the IOCPs to make
@@ -809,26 +819,26 @@ QuicDataPathUninitialize(
     Datapath->Shutdown = TRUE;
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
         PostQueuedCompletionStatus(
-            Datapath->ProcContexts[i].IOCP, 0, (ULONG_PTR)NULL, NULL);
+            Datapath->Processors[i].IOCP, 0, (ULONG_PTR)NULL, NULL);
     }
 
     //
     // Wait for the worker threads to finish up. Then clean it up.
     //
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
-        WaitForSingleObject(Datapath->ProcContexts[i].CompletionThread, INFINITE);
-        CloseHandle(Datapath->ProcContexts[i].CompletionThread);
+        WaitForSingleObject(Datapath->Processors[i].CompletionThread, INFINITE);
+        CloseHandle(Datapath->Processors[i].CompletionThread);
     }
 
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
-        CloseHandle(Datapath->ProcContexts[i].IOCP);
-        QuicPoolUninitialize(&Datapath->ProcContexts[i].SendContextPool);
-        QuicPoolUninitialize(&Datapath->ProcContexts[i].SendBufferPool);
-        QuicPoolUninitialize(&Datapath->ProcContexts[i].LargeSendBufferPool);
-        QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvDatagramPool);
+        CloseHandle(Datapath->Processors[i].IOCP);
+        QuicPoolUninitialize(&Datapath->Processors[i].SendContextPool);
+        QuicPoolUninitialize(&Datapath->Processors[i].SendBufferPool);
+        QuicPoolUninitialize(&Datapath->Processors[i].LargeSendBufferPool);
+        QuicPoolUninitialize(&Datapath->Processors[i].RecvDatagramPool);
     }
 
-    QuicRundownUninitialize(&Datapath->BindingsRundown);
+    QuicRundownUninitialize(&Datapath->SocketsRundown);
     QUIC_FREE(Datapath, QUIC_POOL_DATAPATH);
 
     WSACleanup();
@@ -994,8 +1004,14 @@ Exit:
 
 QUIC_STATUS
 QuicSocketStartReceive(
-    _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext,
-    _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
+    _In_ QUIC_SOCKET_PROC* SocketProc,
+    _In_ QUIC_DATAPATH_PROC* DatapathProc
+    );
+
+QUIC_STATUS
+QuicSocketStartAccept(
+    _In_ QUIC_SOCKET_PROC* SocketProc,
+    _In_ QUIC_DATAPATH_PROC* DatapathProc
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1006,29 +1022,27 @@ QuicSocketCreate(
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
-    _Out_ QUIC_SOCKET** NewBinding
+    _Out_ QUIC_SOCKET** NewSocket
     )
 {
     QUIC_STATUS Status;
-    QUIC_SOCKET* Binding = NULL;
-    uint32_t BindingLength;
-    uint16_t SocketCount = (RemoteAddress == NULL) ? Datapath->ProcCount : 1;
     int Result;
     int Option;
+    BOOLEAN IsUdpSocket = Type == QUIC_SOCKET_UDP;
+    BOOLEAN IsServerSocket = RemoteAddress == NULL;
+    uint16_t SocketCount = (IsUdpSocket && IsServerSocket) ? Datapath->ProcCount : 1;
 
-    UNREFERENCED_PARAMETER(Type);
+    QUIC_DBG_ASSERT(Type != QUIC_SOCKET_TCP_LISTENER || RemoteAddress == NULL);
 
-    BindingLength =
-        sizeof(QUIC_SOCKET) +
-        SocketCount * sizeof(QUIC_UDP_SOCKET_CONTEXT);
-
-    Binding = (QUIC_SOCKET*)QUIC_ALLOC_PAGED(BindingLength, QUIC_POOL_SOCKET);
-    if (Binding == NULL) {
+    uint32_t SocketLength =
+        sizeof(QUIC_SOCKET) + SocketCount * sizeof(QUIC_SOCKET_PROC);
+    QUIC_SOCKET* Socket = QUIC_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
+    if (Socket == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_SOCKET",
-            BindingLength);
+            SocketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -1036,51 +1050,51 @@ QuicSocketCreate(
     QuicTraceEvent(
         DatapathCreated,
         "[ udp][%p] Created, local=%!ADDR!, remote=%!ADDR!",
-        Binding,
+        Socket,
         CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
-    ZeroMemory(Binding, BindingLength);
-    Binding->Datapath = Datapath;
-    Binding->ClientContext = RecvCallbackContext;
-    Binding->Connected = (RemoteAddress != NULL);
+    ZeroMemory(Socket, SocketLength);
+    Socket->Datapath = Datapath;
+    Socket->ClientContext = RecvCallbackContext;
+    Socket->Connected = (RemoteAddress != NULL);
     if (LocalAddress) {
-        QuicConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
+        QuicConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
     } else {
-        Binding->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
+        Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
-    Binding->Mtu = QUIC_MAX_MTU;
-    QuicRundownAcquire(&Datapath->BindingsRundown);
+    Socket->Mtu = QUIC_MAX_MTU;
+    QuicRundownAcquire(&Datapath->SocketsRundown);
 
     for (uint16_t i = 0; i < SocketCount; i++) {
-        Binding->SocketContexts[i].Binding = Binding;
-        Binding->SocketContexts[i].Socket = INVALID_SOCKET;
-        Binding->SocketContexts[i].RecvWsaBuf.len =
+        Socket->Processors[i].Socket = Socket;
+        Socket->Processors[i].Socket = INVALID_SOCKET;
+        Socket->Processors[i].RecvWsaBuf.len =
             (Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING) ?
                 MAX_URO_PAYLOAD_LENGTH :
-                Binding->Mtu - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE;
-        QuicRundownInitialize(&Binding->SocketContexts[i].UpcallRundown);
+                Socket->Mtu - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE;
+        QuicRundownInitialize(&Socket->Processors[i].UpcallRundown);
     }
 
     for (uint16_t i = 0; i < SocketCount; i++) {
 
-        QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
+        QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[i];
         uint16_t AffinitizedProcessor = (uint16_t)i;
 
-        SocketContext->Socket =
+        SocketProc->Socket =
             WSASocketW(
                 AF_INET6,
-                SOCK_DGRAM,
-                IPPROTO_UDP,
+                IsUdpSocket ? SOCK_DGRAM : SOCK_STREAM,
+                IsUdpSocket ? IPPROTO_UDP : IPPROTO_TCP,
                 NULL,
                 0,
                 WSA_FLAG_OVERLAPPED);
-        if (SocketContext->Socket == INVALID_SOCKET) {
+        if (SocketProc->Socket == INVALID_SOCKET) {
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                Binding,
+                Socket,
                 WsaError,
                 "WSASocketW");
             Status = HRESULT_FROM_WIN32(WsaError);
@@ -1095,7 +1109,7 @@ QuicSocketCreate(
 
             Result =
                 WSAIoctl(
-                    SocketContext->Socket,
+                    SocketProc->Socket,
                     SIO_GET_EXTENSION_FUNCTION_POINTER,
                     &WSASendMsgGuid,
                     sizeof(WSASendMsgGuid),
@@ -1109,7 +1123,7 @@ QuicSocketCreate(
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[ udp][%p] ERROR, %u, %s.",
-                    Binding,
+                    Socket,
                     WsaError,
                     "SIO_GET_EXTENSION_FUNCTION_POINTER (WSASendMsg)");
                 Status = HRESULT_FROM_WIN32(WsaError);
@@ -1125,7 +1139,7 @@ QuicSocketCreate(
 
             Result =
                 WSAIoctl(
-                    SocketContext->Socket,
+                    SocketProc->Socket,
                     SIO_GET_EXTENSION_FUNCTION_POINTER,
                     &WSARecvMsgGuid,
                     sizeof(WSARecvMsgGuid),
@@ -1139,7 +1153,7 @@ QuicSocketCreate(
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[ udp][%p] ERROR, %u, %s.",
-                    Binding,
+                    Socket,
                     WsaError,
                     "SIO_GET_EXTENSION_FUNCTION_POINTER (WSARecvMsg)");
                 Status = HRESULT_FROM_WIN32(WsaError);
@@ -1150,7 +1164,7 @@ QuicSocketCreate(
         }
 
 #ifdef QUIC_FUZZER
-        MsQuicFuzzerContext.Socket = SocketContext;
+        MsQuicFuzzerContext.Socket = SocketProc;
         MsQuicFuzzerContext.RealSendMsg = (PVOID)Datapath->WSASendMsg;
         MsQuicFuzzerContext.RealRecvMsg = (PVOID)Datapath->WSARecvMsg;
         Datapath->WSASendMsg = QuicFuzzerSendMsg;
@@ -1161,7 +1175,7 @@ QuicSocketCreate(
             uint16_t Processor = i; // API only supports 16-bit proc index.
             Result =
                 WSAIoctl(
-                    SocketContext->Socket,
+                    SocketProc->Socket,
                     SIO_CPU_AFFINITY,
                     &Processor,
                     sizeof(Processor),
@@ -1175,7 +1189,7 @@ QuicSocketCreate(
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[ udp][%p] ERROR, %u, %s.",
-                    Binding,
+                    Socket,
                     WsaError,
                     "SIO_CPU_AFFINITY");
                 Status = HRESULT_FROM_WIN32(WsaError);
@@ -1186,7 +1200,7 @@ QuicSocketCreate(
         Option = FALSE;
         Result =
             setsockopt(
-                SocketContext->Socket,
+                SocketProc->Socket,
                 IPPROTO_IPV6,
                 IPV6_V6ONLY,
                 (char*)&Option,
@@ -1196,7 +1210,7 @@ QuicSocketCreate(
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                Binding,
+                Socket,
                 WsaError,
                 "Set IPV6_V6ONLY");
             Status = HRESULT_FROM_WIN32(WsaError);
@@ -1206,7 +1220,7 @@ QuicSocketCreate(
         Option = TRUE;
         Result =
             setsockopt(
-                SocketContext->Socket,
+                SocketProc->Socket,
                 IPPROTO_IP,
                 IP_DONTFRAGMENT,
                 (char*)&Option,
@@ -1216,7 +1230,7 @@ QuicSocketCreate(
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                Binding,
+                Socket,
                 WsaError,
                 "Set IP_DONTFRAGMENT");
             Status = HRESULT_FROM_WIN32(WsaError);
@@ -1226,7 +1240,7 @@ QuicSocketCreate(
         Option = TRUE;
         Result =
             setsockopt(
-                SocketContext->Socket,
+                SocketProc->Socket,
                 IPPROTO_IPV6,
                 IPV6_DONTFRAG,
                 (char*)&Option,
@@ -1236,7 +1250,7 @@ QuicSocketCreate(
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                Binding,
+                Socket,
                 WsaError,
                 "Set IPV6_DONTFRAG");
             Status = HRESULT_FROM_WIN32(WsaError);
@@ -1246,7 +1260,7 @@ QuicSocketCreate(
         Option = TRUE;
         Result =
             setsockopt(
-                SocketContext->Socket,
+                SocketProc->Socket,
                 IPPROTO_IPV6,
                 IPV6_PKTINFO,
                 (char*)&Option,
@@ -1256,7 +1270,7 @@ QuicSocketCreate(
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                Binding,
+                Socket,
                 WsaError,
                 "Set IPV6_PKTINFO");
             Status = HRESULT_FROM_WIN32(WsaError);
@@ -1266,7 +1280,7 @@ QuicSocketCreate(
         Option = TRUE;
         Result =
             setsockopt(
-                SocketContext->Socket,
+                SocketProc->Socket,
                 IPPROTO_IP,
                 IP_PKTINFO,
                 (char*)&Option,
@@ -1276,7 +1290,7 @@ QuicSocketCreate(
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                Binding,
+                Socket,
                 WsaError,
                 "Set IP_PKTINFO");
             Status = HRESULT_FROM_WIN32(WsaError);
@@ -1286,7 +1300,7 @@ QuicSocketCreate(
         Option = TRUE;
         Result =
             setsockopt(
-                SocketContext->Socket,
+                SocketProc->Socket,
                 IPPROTO_IPV6,
                 IPV6_ECN,
                 (char*)&Option,
@@ -1296,7 +1310,7 @@ QuicSocketCreate(
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                Binding,
+                Socket,
                 WsaError,
                 "Set IPV6_ECN");
             Status = HRESULT_FROM_WIN32(WsaError);
@@ -1306,7 +1320,7 @@ QuicSocketCreate(
         Option = TRUE;
         Result =
             setsockopt(
-                SocketContext->Socket,
+                SocketProc->Socket,
                 IPPROTO_IP,
                 IP_ECN,
                 (char*)&Option,
@@ -1316,7 +1330,7 @@ QuicSocketCreate(
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                Binding,
+                Socket,
                 WsaError,
                 "Set IP_ECN");
             Status = HRESULT_FROM_WIN32(WsaError);
@@ -1330,7 +1344,7 @@ QuicSocketCreate(
         Option = MAXINT32;
         Result =
             setsockopt(
-                SocketContext->Socket,
+                SocketProc->Socket,
                 SOL_SOCKET,
                 SO_RCVBUF,
                 (char*)&Option,
@@ -1340,7 +1354,7 @@ QuicSocketCreate(
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                Binding,
+                Socket,
                 WsaError,
                 "Set SO_RCVBUF");
             Status = HRESULT_FROM_WIN32(WsaError);
@@ -1352,7 +1366,7 @@ QuicSocketCreate(
             Option = MAX_URO_PAYLOAD_LENGTH;
             Result =
                 setsockopt(
-                    SocketContext->Socket,
+                    SocketProc->Socket,
                     IPPROTO_UDP,
                     UDP_RECV_MAX_COALESCED_SIZE,
                     (char*)&Option,
@@ -1362,7 +1376,7 @@ QuicSocketCreate(
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[ udp][%p] ERROR, %u, %s.",
-                    Binding,
+                    Socket,
                     WsaError,
                     "Set UDP_RECV_MAX_COALESCED_SIZE");
                 Status = HRESULT_FROM_WIN32(WsaError);
@@ -1377,13 +1391,13 @@ QuicSocketCreate(
         // inline, if possible.
         //
         if (!SetFileCompletionNotificationModes(
-                (HANDLE)SocketContext->Socket,
+                (HANDLE)SocketProc->Socket,
                 FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                Binding,
+                Socket,
                 LastError,
                 "SetFileCompletionNotificationModes");
             Status = HRESULT_FROM_WIN32(LastError);
@@ -1394,15 +1408,15 @@ QUIC_DISABLED_BY_FUZZER_START;
 
         Result =
             bind(
-                SocketContext->Socket,
-                (PSOCKADDR)&Binding->LocalAddress,
-                sizeof(Binding->LocalAddress));
+                SocketProc->Socket,
+                (PSOCKADDR)&Socket->LocalAddress,
+                sizeof(Socket->LocalAddress));
         if (Result == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                Binding,
+                Socket,
                 WsaError,
                 "bind");
             Status = HRESULT_FROM_WIN32(WsaError);
@@ -1419,7 +1433,7 @@ QUIC_DISABLED_BY_FUZZER_START;
 
             Result =
                 connect(
-                    SocketContext->Socket,
+                    SocketProc->Socket,
                     (PSOCKADDR)&MappedRemoteAddress,
                     sizeof(MappedRemoteAddress));
             if (Result == SOCKET_ERROR) {
@@ -1427,7 +1441,7 @@ QUIC_DISABLED_BY_FUZZER_START;
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[ udp][%p] ERROR, %u, %s.",
-                    Binding,
+                    Socket,
                     WsaError,
                     "connect");
                 Status = HRESULT_FROM_WIN32(WsaError);
@@ -1465,7 +1479,7 @@ QUIC_DISABLED_BY_FUZZER_END;
 
                 Result =
                     WSAIoctl(
-                        SocketContext->Socket,
+                        SocketProc->Socket,
                         SIO_QUERY_RSS_PROCESSOR_INFO,
                         NULL,
                         0,
@@ -1479,7 +1493,7 @@ QUIC_DISABLED_BY_FUZZER_END;
                     QuicTraceLogWarning(
                         DatapathQueryProcessorAffinityFailed,
                         "[ udp][%p] WSAIoctl for SIO_QUERY_RSS_PROCESSOR_INFO failed, 0x%x",
-                        Binding,
+                        Socket,
                         WsaError);
                 } else {
                     AffinitizedProcessor =
@@ -1488,20 +1502,20 @@ QUIC_DISABLED_BY_FUZZER_END;
             }
 #endif
 
-            Binding->ConnectedProcessorAffinity = AffinitizedProcessor;
+            Socket->ConnectedProcessorAffinity = AffinitizedProcessor;
         }
 
-        if (Datapath->ProcContexts[AffinitizedProcessor].IOCP !=
+        if (Datapath->Processors[AffinitizedProcessor].IOCP !=
             CreateIoCompletionPort(
-                (HANDLE)SocketContext->Socket,
-                Datapath->ProcContexts[AffinitizedProcessor].IOCP,
-                (ULONG_PTR)SocketContext,
+                (HANDLE)SocketProc->Socket,
+                Datapath->Processors[AffinitizedProcessor].IOCP,
+                (ULONG_PTR)SocketProc,
                 0)) {
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                Binding,
+                Socket,
                 LastError,
                 "CreateIoCompletionPort");
             Status = HRESULT_FROM_WIN32(LastError);
@@ -1518,18 +1532,18 @@ QUIC_DISABLED_BY_FUZZER_END;
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-            int AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
+            int AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
             Result =
                 getsockname(
-                    SocketContext->Socket,
-                    (PSOCKADDR)&Binding->LocalAddress,
+                    SocketProc->Socket,
+                    (PSOCKADDR)&Socket->LocalAddress,
                     &AssignedLocalAddressLength);
             if (Result == SOCKET_ERROR) {
                 int WsaError = WSAGetLastError();
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[ udp][%p] ERROR, %u, %s.",
-                    Binding,
+                    Socket,
                     WsaError,
                     "getsockaddress");
                 Status = HRESULT_FROM_WIN32(WsaError);
@@ -1537,7 +1551,7 @@ QUIC_DISABLED_BY_FUZZER_START;
             }
 
             if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-                QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+                QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
             }
 
 QUIC_DISABLED_BY_FUZZER_END;
@@ -1545,31 +1559,57 @@ QUIC_DISABLED_BY_FUZZER_END;
         }
     }
 
-    QuicConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
+    QuicConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
     if (RemoteAddress != NULL) {
-        Binding->RemoteAddress = *RemoteAddress;
+        Socket->RemoteAddress = *RemoteAddress;
     } else {
-        Binding->RemoteAddress.Ipv4.sin_port = 0;
+        Socket->RemoteAddress.Ipv4.sin_port = 0;
     }
 
     //
     // Must set output pointer before starting receive path, as the receive path
     // will try to use the output.
     //
-    *NewBinding = Binding;
+    *NewSocket = Socket;
 
-    Binding->SocketContextsOutstanding = (short)SocketCount;
+    Socket->ProcsOutstanding = (short)SocketCount;
     for (uint16_t i = 0; i < SocketCount; i++) {
         uint16_t Processor =
-            Binding->Connected ? Binding->ConnectedProcessorAffinity : i;
+            Socket->Connected ? Socket->ConnectedProcessorAffinity : i;
 
-        Status =
-            QuicSocketStartReceive(
-                &Binding->SocketContexts[i],
-                &Datapath->ProcContexts[Processor]);
-        if (QUIC_FAILED(Status)) {
-            goto Error;
+        if (Type != QUIC_SOCKET_TCP_LISTENER) {
+            Status =
+                QuicSocketStartReceive(
+                    &Socket->Processors[i],
+                    &Datapath->Processors[Processor]);
+            if (QUIC_FAILED(Status)) {
+                goto Error;
+            }
+        } else {
+            Result =
+                listen(
+                    &Socket->Processors[i].Socket,
+                    10);
+            if (Result == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[ udp][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "listen");
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+
+            Status =
+                QuicSocketStartAccept(
+                    &Socket->Processors[i],
+                    &Datapath->Processors[Processor]);
+            if (QUIC_FAILED(Status)) {
+                goto Error;
+            }
         }
     }
 
@@ -1578,21 +1618,21 @@ QUIC_DISABLED_BY_FUZZER_END;
 Error:
 
     if (QUIC_FAILED(Status)) {
-        if (Binding != NULL) {
+        if (Socket != NULL) {
             QuicTraceEvent(
                 DatapathDestroyed,
                 "[ udp][%p] Destroyed",
-                Binding);
-            if (Binding->SocketContextsOutstanding != 0) {
+                Socket);
+            if (Socket->ProcsOutstanding != 0) {
                 for (uint16_t i = 0; i < SocketCount; i++) {
-                    QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
+                    QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[i];
                     uint16_t Processor =
-                         Binding->Connected ? Binding->ConnectedProcessorAffinity : i;
+                         Socket->Connected ? Socket->ConnectedProcessorAffinity : i;
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-                    CancelIo((HANDLE)SocketContext->Socket);
-                    closesocket(SocketContext->Socket);
+                    CancelIo((HANDLE)SocketProc->Socket);
+                    closesocket(SocketProc->Socket);
 
 QUIC_DISABLED_BY_FUZZER_END;
 
@@ -1600,27 +1640,27 @@ QUIC_DISABLED_BY_FUZZER_END;
                     // Queue a completion to clean up the socket context.
                     //
                     PostQueuedCompletionStatus(
-                        Binding->Datapath->ProcContexts[Processor].IOCP,
+                        Socket->Datapath->Processors[Processor].IOCP,
                         UINT32_MAX,
-                        (ULONG_PTR)SocketContext,
-                        &SocketContext->RecvOverlapped);
+                        (ULONG_PTR)SocketProc,
+                        &SocketProc->RecvOverlapped);
                 }
             } else {
                 for (uint16_t i = 0; i < SocketCount; i++) {
-                    QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
+                    QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[i];
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-                    if (SocketContext->Socket != INVALID_SOCKET) {
-                        closesocket(SocketContext->Socket);
+                    if (SocketProc->Socket != INVALID_SOCKET) {
+                        closesocket(SocketProc->Socket);
                     }
 
 QUIC_DISABLED_BY_FUZZER_END;
 
-                    QuicRundownUninitialize(&SocketContext->UpcallRundown);
+                    QuicRundownUninitialize(&SocketProc->UpcallRundown);
                 }
-                QuicRundownRelease(&Datapath->BindingsRundown);
-                QUIC_FREE(Binding, QUIC_POOL_SOCKET);
+                QuicRundownRelease(&Datapath->SocketsRundown);
+                QUIC_FREE(Socket, QUIC_POOL_SOCKET);
             }
         }
     }
@@ -1631,14 +1671,14 @@ QUIC_DISABLED_BY_FUZZER_END;
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSocketDelete(
-    _In_ QUIC_SOCKET* Binding
+    _In_ QUIC_SOCKET* Socket
     )
 {
-    QUIC_DBG_ASSERT(Binding != NULL);
+    QUIC_DBG_ASSERT(Socket != NULL);
     QuicTraceEvent(
         DatapathDestroyed,
         "[ udp][%p] Destroyed",
-        Binding);
+        Socket);
 
     //
     // The function is called by the upper layer when it is completely done
@@ -1647,118 +1687,118 @@ QuicSocketDelete(
     // upcalls on different threads will be completed.
     //
 
-    QUIC_DATAPATH* Datapath = Binding->Datapath;
+    QUIC_DATAPATH* Datapath = Socket->Datapath;
 
-    if (Binding->Connected) {
-        QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[0];
-        uint32_t Processor = Binding->ConnectedProcessorAffinity;
+    if (Socket->Connected) {
+        QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[0];
+        uint32_t Processor = Socket->ConnectedProcessorAffinity;
         QUIC_DBG_ASSERT(
-            Datapath->ProcContexts[Processor].ThreadId != GetCurrentThreadId());
-        QuicRundownReleaseAndWait(&SocketContext->UpcallRundown);
+            Datapath->Processors[Processor].ThreadId != GetCurrentThreadId());
+        QuicRundownReleaseAndWait(&SocketProc->UpcallRundown);
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-        CancelIo((HANDLE)SocketContext->Socket);
-        closesocket(SocketContext->Socket);
+        CancelIo((HANDLE)SocketProc->Socket);
+        closesocket(SocketProc->Socket);
 
 QUIC_DISABLED_BY_FUZZER_END;
 
         PostQueuedCompletionStatus(
-            Datapath->ProcContexts[Processor].IOCP,
+            Datapath->Processors[Processor].IOCP,
             UINT32_MAX,
-            (ULONG_PTR)SocketContext,
-            &SocketContext->RecvOverlapped);
+            (ULONG_PTR)SocketProc,
+            &SocketProc->RecvOverlapped);
 
     } else {
         for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
-            QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
+            QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[i];
             QUIC_DBG_ASSERT(
-                Datapath->ProcContexts[i].ThreadId != GetCurrentThreadId());
-            QuicRundownReleaseAndWait(&SocketContext->UpcallRundown);
+                Datapath->Processors[i].ThreadId != GetCurrentThreadId());
+            QuicRundownReleaseAndWait(&SocketProc->UpcallRundown);
         }
         for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
-            QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
+            QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[i];
             uint32_t Processor = i;
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-            CancelIo((HANDLE)SocketContext->Socket);
-            closesocket(SocketContext->Socket);
+            CancelIo((HANDLE)SocketProc->Socket);
+            closesocket(SocketProc->Socket);
 
 QUIC_DISABLED_BY_FUZZER_END;
 
             PostQueuedCompletionStatus(
-                Datapath->ProcContexts[Processor].IOCP,
+                Datapath->Processors[Processor].IOCP,
                 UINT32_MAX,
-                (ULONG_PTR)SocketContext,
-                &SocketContext->RecvOverlapped);
+                (ULONG_PTR)SocketProc,
+                &SocketProc->RecvOverlapped);
         }
     }
 
     QuicTraceLogVerbose(
         DatapathShutDownReturn,
         "[ udp][%p] Shut down (return)",
-        Binding);
+        Socket);
 }
 
 void
 QuicDataPathSocketContextShutdown(
-    _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext
+    _In_ QUIC_SOCKET_PROC* SocketProc
     )
 {
-    if (SocketContext->CurrentRecvContext != NULL) {
+    if (SocketProc->CurrentRecvContext != NULL) {
         QuicPoolFree(
-            SocketContext->CurrentRecvContext->OwningPool,
-            SocketContext->CurrentRecvContext);
-        SocketContext->CurrentRecvContext = NULL;
+            SocketProc->CurrentRecvContext->OwningPool,
+            SocketProc->CurrentRecvContext);
+        SocketProc->CurrentRecvContext = NULL;
     }
 
-    QuicRundownUninitialize(&SocketContext->UpcallRundown);
+    QuicRundownUninitialize(&SocketProc->UpcallRundown);
 
     if (InterlockedDecrement16(
-            &SocketContext->Binding->SocketContextsOutstanding) == 0) {
+            &SocketProc->Parent->ProcsOutstanding) == 0) {
         //
         // Last socket context cleaned up, so now the binding can be freed.
         //
-        QuicRundownRelease(&SocketContext->Binding->Datapath->BindingsRundown);
+        QuicRundownRelease(&SocketProc->Parent->Datapath->SocketsRundown);
         QuicTraceLogVerbose(
             DatapathShutDownComplete,
             "[ udp][%p] Shut down (complete)",
-            SocketContext->Binding);
-        QUIC_FREE(SocketContext->Binding, QUIC_POOL_SOCKET);
+            SocketProc->Socket);
+        QUIC_FREE(SocketProc->Socket, QUIC_POOL_SOCKET);
     }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 UINT16
 QuicSocketGetLocalMtu(
-    _In_ QUIC_SOCKET* Binding
+    _In_ QUIC_SOCKET* Socket
     )
 {
-    QUIC_DBG_ASSERT(Binding != NULL);
-    return Binding->Mtu;
+    QUIC_DBG_ASSERT(Socket != NULL);
+    return Socket->Mtu;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSocketGetLocalAddress(
-    _In_ QUIC_SOCKET* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     )
 {
-    QUIC_DBG_ASSERT(Binding != NULL);
-    *Address = Binding->LocalAddress;
+    QUIC_DBG_ASSERT(Socket != NULL);
+    *Address = Socket->LocalAddress;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSocketGetRemoteAddress(
-    _In_ QUIC_SOCKET* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     )
 {
-    QUIC_DBG_ASSERT(Binding != NULL);
-    *Address = Binding->RemoteAddress;
+    QUIC_DBG_ASSERT(Socket != NULL);
+    *Address = Socket->RemoteAddress;
 }
 
 QUIC_DATAPATH_INTERNAL_RECV_CONTEXT*
@@ -1768,11 +1808,11 @@ QuicSocketAllocRecvContext(
     )
 {
     QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
-        QuicPoolAlloc(&Datapath->ProcContexts[ProcIndex].RecvDatagramPool);
+        QuicPoolAlloc(&Datapath->Processors[ProcIndex].RecvDatagramPool);
 
     if (RecvContext != NULL) {
         RecvContext->OwningPool =
-            &Datapath->ProcContexts[ProcIndex].RecvDatagramPool;
+            &Datapath->Processors[ProcIndex].RecvDatagramPool;
         RecvContext->ReferenceCount = 0;
     }
 
@@ -1781,12 +1821,12 @@ QuicSocketAllocRecvContext(
 
 void
 QuicSocketHandleUnreachableError(
-    _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext,
+    _In_ QUIC_SOCKET_PROC* SocketProc,
     _In_ ULONG ErrorCode
     )
 {
     PSOCKADDR_INET RemoteAddr =
-        &SocketContext->CurrentRecvContext->Tuple.RemoteAddress;
+        &SocketProc->CurrentRecvContext->Tuple.RemoteAddress;
     UNREFERENCED_PARAMETER(ErrorCode);
 
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
@@ -1795,86 +1835,86 @@ QuicSocketHandleUnreachableError(
     QuicTraceLogVerbose(
         DatapathUnreachableWithError,
         "[ udp][%p] Received unreachable error (0x%x) from %!ADDR!",
-        SocketContext->Binding,
+        SocketProc->Socket,
         ErrorCode,
         CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
 
-    QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->UnreachableHandler);
-    SocketContext->Binding->Datapath->UnreachableHandler(
-        SocketContext->Binding,
-        SocketContext->Binding->ClientContext,
+    QUIC_DBG_ASSERT(SocketProc->Parent->Datapath->UnreachableHandler);
+    SocketProc->Parent->Datapath->UnreachableHandler(
+        SocketProc->Parent,
+        SocketProc->Parent->ClientContext,
         RemoteAddr);
 }
 
 QUIC_STATUS
 QuicSocketStartReceive(
-    _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext,
-    _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
+    _In_ QUIC_SOCKET_PROC* SocketProc,
+    _In_ QUIC_DATAPATH_PROC* DatapathProc
     )
 {
     QUIC_STATUS Status;
-    QUIC_DATAPATH* Datapath = SocketContext->Binding->Datapath;
+    QUIC_DATAPATH* Datapath = SocketProc->Parent->Datapath;
     int Result;
     DWORD BytesRecv = 0;
 
     //
     // Get a receive buffer we can pass to WinSock.
     //
-    if (SocketContext->CurrentRecvContext == NULL) {
-        SocketContext->CurrentRecvContext =
+    if (SocketProc->CurrentRecvContext == NULL) {
+        SocketProc->CurrentRecvContext =
             QuicSocketAllocRecvContext(
                 Datapath,
-                ProcContext->Index);
+                DatapathProc->Index);
 
-        if (SocketContext->CurrentRecvContext == NULL) {
+        if (SocketProc->CurrentRecvContext == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
     }
 
     RtlZeroMemory(
-        &SocketContext->RecvOverlapped,
-        sizeof(SocketContext->RecvOverlapped));
+        &SocketProc->RecvOverlapped,
+        sizeof(SocketProc->RecvOverlapped));
 
-    SocketContext->RecvWsaBuf.buf =
-        ((CHAR*)SocketContext->CurrentRecvContext) + Datapath->RecvPayloadOffset;
+    SocketProc->RecvWsaBuf.buf =
+        ((CHAR*)SocketProc->CurrentRecvContext) + Datapath->RecvPayloadOffset;
 
     RtlZeroMemory(
-        &SocketContext->RecvWsaMsgHdr,
-        sizeof(SocketContext->RecvWsaMsgHdr));
+        &SocketProc->RecvWsaMsgHdr,
+        sizeof(SocketProc->RecvWsaMsgHdr));
 
-    SocketContext->RecvWsaMsgHdr.name =
-        (PSOCKADDR)&SocketContext->CurrentRecvContext->Tuple.RemoteAddress;
-    SocketContext->RecvWsaMsgHdr.namelen =
-        sizeof(SocketContext->CurrentRecvContext->Tuple.RemoteAddress);
+    SocketProc->RecvWsaMsgHdr.name =
+        (PSOCKADDR)&SocketProc->CurrentRecvContext->Tuple.RemoteAddress;
+    SocketProc->RecvWsaMsgHdr.namelen =
+        sizeof(SocketProc->CurrentRecvContext->Tuple.RemoteAddress);
 
-    SocketContext->RecvWsaMsgHdr.lpBuffers = &SocketContext->RecvWsaBuf;
-    SocketContext->RecvWsaMsgHdr.dwBufferCount = 1;
+    SocketProc->RecvWsaMsgHdr.lpBuffers = &SocketProc->RecvWsaBuf;
+    SocketProc->RecvWsaMsgHdr.dwBufferCount = 1;
 
-    SocketContext->RecvWsaMsgHdr.Control.buf = SocketContext->RecvWsaMsgControlBuf;
-    SocketContext->RecvWsaMsgHdr.Control.len = sizeof(SocketContext->RecvWsaMsgControlBuf);
+    SocketProc->RecvWsaMsgHdr.Control.buf = SocketProc->RecvWsaMsgControlBuf;
+    SocketProc->RecvWsaMsgHdr.Control.len = sizeof(SocketProc->RecvWsaMsgControlBuf);
 
 Retry_recv:
 
     Result =
-        SocketContext->Binding->Datapath->WSARecvMsg(
-            SocketContext->Socket,
-            &SocketContext->RecvWsaMsgHdr,
+        SocketProc->Parent->Datapath->WSARecvMsg(
+            SocketProc->Socket,
+            &SocketProc->RecvWsaMsgHdr,
             &BytesRecv,
-            &SocketContext->RecvOverlapped,
+            &SocketProc->RecvOverlapped,
             NULL);
     if (Result == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
             if (WsaError == WSAECONNRESET) {
-                QuicSocketHandleUnreachableError(SocketContext, (ULONG)WsaError);
+                QuicSocketHandleUnreachableError(SocketProc, (ULONG)WsaError);
                 goto Retry_recv;
             } else {
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[ udp][%p] ERROR, %u, %s.",
-                    SocketContext->Binding,
+                    SocketProc->Socket,
                     WsaError,
                     "WSARecvMsg");
                 Status = HRESULT_FROM_WIN32(WsaError);
@@ -1886,15 +1926,140 @@ Retry_recv:
         // Manually post IO completion if receive completed synchronously.
         //
         if (!PostQueuedCompletionStatus(
-                ProcContext->IOCP,
+                DatapathProc->IOCP,
                 BytesRecv,
-                (ULONG_PTR)SocketContext,
-                &SocketContext->RecvOverlapped)) {
+                (ULONG_PTR)SocketProc,
+                &SocketProc->RecvOverlapped)) {
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
+                SocketProc->Socket,
+                LastError,
+                "PostQueuedCompletionStatus");
+            Status = HRESULT_FROM_WIN32(LastError);
+            goto Error;
+        }
+    }
+
+    Status = QUIC_STATUS_SUCCESS;
+
+Error:
+
+    return Status;
+}
+
+QUIC_STATUS
+QuicSocketStartAccept(
+    _In_ QUIC_SOCKET_PROC* SocketProc,
+    _In_ QUIC_DATAPATH_PROC* DatapathProc
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_DATAPATH* Datapath = SocketProc->Parent->Datapath;
+    int Result;
+    int Option;
+    DWORD BytesRecv = 0;
+
+    //
+    // Get a receive buffer we can pass to WinSock.
+    //
+    if (SocketProc->CurrentRecvContext == NULL) {
+        SocketProc->CurrentRecvContext =
+            QuicSocketAllocRecvContext(
+                Datapath,
+                DatapathProc->Index);
+
+        if (SocketProc->CurrentRecvContext == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
+        }
+    }
+
+    SocketProc->AcceptSocket =
+        WSASocketW(
+            AF_INET6,
+            SOCK_STREAM,
+            IPPROTO_TCP,
+            NULL,
+            0,
+            WSA_FLAG_OVERLAPPED);
+    if (SocketProc->AcceptSocket == INVALID_SOCKET) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            WsaError,
+            "WSASocketW (accept)");
+        Status = HRESULT_FROM_WIN32(WsaError);
+        goto Error;
+    }
+
+    Option = FALSE;
+    Result =
+        setsockopt(
+            SocketProc->AcceptSocket,
+            IPPROTO_IPV6,
+            IPV6_V6ONLY,
+            (char*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            WsaError,
+            "Set IPV6_V6ONLY (accept)");
+        Status = HRESULT_FROM_WIN32(WsaError);
+        goto Error;
+    }
+
+    RtlZeroMemory(
+        &SocketProc->RecvOverlapped,
+        sizeof(SocketProc->RecvOverlapped));
+
+    // TODO - Complete initialization
+
+Retry_recv:
+
+    Result =
+        AcceptEx(
+            SocketProc->Socket,
+            SocketProc->AcceptSocket,
+            &SocketProc->CurrentRecvContext->Tuple,
+            0,                          // dwReceiveDataLength
+            sizeof(QUIC_ADDR),          // dwLocalAddressLength
+            sizeof(QUIC_ADDR),          // dwRemoteAddressLength
+            &BytesRecv,
+            &SocketProc->RecvOverlapped);
+    if (Result == SOCKET_ERROR) {
+        int WsaError = WSAGetLastError();
+        if (WsaError != WSA_IO_PENDING) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                SocketProc->Socket,
+                WsaError,
+                "AcceptEx");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+    } else {
+        //
+        // Manually post IO completion if receive completed synchronously.
+        //
+        if (!PostQueuedCompletionStatus(
+                DatapathProc->IOCP,
+                BytesRecv,
+                (ULONG_PTR)SocketProc,
+                &SocketProc->RecvOverlapped)) {
+            DWORD LastError = GetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                SocketProc->Socket,
                 LastError,
                 "PostQueuedCompletionStatus");
             Status = HRESULT_FROM_WIN32(LastError);
@@ -1911,8 +2076,8 @@ Error:
 
 void
 QuicDataPathRecvComplete(
-    _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext,
-    _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext,
+    _In_ QUIC_DATAPATH_PROC* DatapathProc,
+    _In_ QUIC_SOCKET_PROC* SocketProc,
     _In_ ULONG IoResult,
     _In_ UINT16 NumberOfBytesTransferred
     )
@@ -1923,10 +2088,10 @@ QuicDataPathRecvComplete(
     // inline. Otherwise, we remove it as the current because we are giving
     // it to the client.
     //
-    QUIC_DBG_ASSERT(SocketContext->CurrentRecvContext != NULL);
-    QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = SocketContext->CurrentRecvContext;
+    QUIC_DBG_ASSERT(SocketProc->CurrentRecvContext != NULL);
+    QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = SocketProc->CurrentRecvContext;
     if (IoResult == NO_ERROR) {
-        SocketContext->CurrentRecvContext = NULL;
+        SocketProc->CurrentRecvContext = NULL;
     }
 
     PSOCKADDR_INET RemoteAddr = &RecvContext->Tuple.RemoteAddress;
@@ -1941,10 +2106,10 @@ QuicDataPathRecvComplete(
 
     } else if (IsUnreachableErrorCode(IoResult)) {
 
-        QuicSocketHandleUnreachableError(SocketContext, IoResult);
+        QuicSocketHandleUnreachableError(SocketProc, IoResult);
 
     } else if (IoResult == ERROR_MORE_DATA ||
-        (IoResult == NO_ERROR && SocketContext->RecvWsaBuf.len < NumberOfBytesTransferred)) {
+        (IoResult == NO_ERROR && SocketProc->RecvWsaBuf.len < NumberOfBytesTransferred)) {
 
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
@@ -1952,7 +2117,7 @@ QuicDataPathRecvComplete(
         QuicTraceLogVerbose(
             DatapathTooLarge,
             "[ udp][%p] Received larger than expected datagram from %!ADDR!",
-            SocketContext->Binding,
+            SocketProc->Socket,
             CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
 
@@ -1965,7 +2130,7 @@ QuicDataPathRecvComplete(
         QUIC_RECV_DATA* RecvDataChain = NULL;
         QUIC_RECV_DATA** DatagramChainTail = &RecvDataChain;
 
-        QUIC_DATAPATH* Datapath = SocketContext->Binding->Datapath;
+        QUIC_DATAPATH* Datapath = SocketProc->Parent->Datapath;
         QUIC_RECV_DATA* Datagram;
         PUCHAR RecvPayload = ((PUCHAR)RecvContext) + Datapath->RecvPayloadOffset;
 
@@ -1975,16 +2140,16 @@ QuicDataPathRecvComplete(
         BOOLEAN IsCoalesced = FALSE;
         INT ECN = 0;
 
-        for (WSACMSGHDR *CMsg = WSA_CMSG_FIRSTHDR(&SocketContext->RecvWsaMsgHdr);
+        for (WSACMSGHDR *CMsg = WSA_CMSG_FIRSTHDR(&SocketProc->RecvWsaMsgHdr);
             CMsg != NULL;
-            CMsg = WSA_CMSG_NXTHDR(&SocketContext->RecvWsaMsgHdr, CMsg)) {
+            CMsg = WSA_CMSG_NXTHDR(&SocketProc->RecvWsaMsgHdr, CMsg)) {
 
             if (CMsg->cmsg_level == IPPROTO_IPV6) {
                 if (CMsg->cmsg_type == IPV6_PKTINFO) {
                     PIN6_PKTINFO PktInfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(CMsg);
                     LocalAddr->si_family = QUIC_ADDRESS_FAMILY_INET6;
                     LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
-                    LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                    LocalAddr->Ipv6.sin6_port = SocketProc->Parent->LocalAddress.Ipv6.sin6_port;
                     QuicConvertFromMappedV6(LocalAddr, LocalAddr);
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
                     FoundLocalAddr = TRUE;
@@ -1997,7 +2162,7 @@ QuicDataPathRecvComplete(
                     PIN_PKTINFO PktInfo = (PIN_PKTINFO)WSA_CMSG_DATA(CMsg);
                     LocalAddr->si_family = QUIC_ADDRESS_FAMILY_INET;
                     LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
-                    LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                    LocalAddr->Ipv4.sin_port = SocketProc->Parent->LocalAddress.Ipv6.sin6_port;
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
                     FoundLocalAddr = TRUE;
                 } else if (CMsg->cmsg_type == IP_ECN) {
@@ -2023,7 +2188,7 @@ QuicDataPathRecvComplete(
             QuicTraceLogWarning(
                 DatapathMissingInfo,
                 "[ udp][%p] WSARecvMsg completion is missing IP_PKTINFO",
-                SocketContext->Binding);
+                SocketProc->Socket);
             goto Drop;
         }
 
@@ -2031,7 +2196,7 @@ QuicDataPathRecvComplete(
             QuicTraceLogWarning(
                 DatapathRecvEmpty,
                 "[ udp][%p] Dropping datagram with empty payload.",
-                SocketContext->Binding);
+                SocketProc->Socket);
             goto Drop;
         }
 
@@ -2040,13 +2205,13 @@ QuicDataPathRecvComplete(
         QuicTraceEvent(
             DatapathRecv,
             "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-            SocketContext->Binding,
+            SocketProc->Socket,
             NumberOfBytesTransferred,
             MessageLength,
             CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
             CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
-        QUIC_DBG_ASSERT(NumberOfBytesTransferred <= SocketContext->RecvWsaBuf.len);
+        QUIC_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
 
         Datagram = (QUIC_RECV_DATA*)(RecvContext + 1);
 
@@ -2069,7 +2234,7 @@ QuicDataPathRecvComplete(
             Datagram->Buffer = RecvPayload;
             Datagram->BufferLength = MessageLength;
             Datagram->Tuple = &RecvContext->Tuple;
-            Datagram->PartitionIndex = ProcContext->Index;
+            Datagram->PartitionIndex = DatapathProc->Index;
             Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
@@ -2085,18 +2250,18 @@ QuicDataPathRecvComplete(
 
             Datagram = (QUIC_RECV_DATA*)
                 (((PUCHAR)Datagram) +
-                    SocketContext->Binding->Datapath->DatagramStride);
+                    SocketProc->Parent->Datapath->DatagramStride);
 
             if (IsCoalesced && ++MessageCount == URO_MAX_DATAGRAMS_PER_INDICATION) {
                 QuicTraceLogWarning(
                     DatapathUroPreallocExceeded,
                     "[ udp][%p] Exceeded URO preallocation capacity.",
-                    SocketContext->Binding);
+                    SocketProc->Socket);
                 break;
             }
         }
 
-        QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
+        QUIC_DBG_ASSERT(SocketProc->Parent->Datapath->RecvHandler);
         QUIC_DBG_ASSERT(RecvDataChain);
 
 #ifdef QUIC_FUZZER
@@ -2113,16 +2278,16 @@ QuicDataPathRecvComplete(
         }
 #endif
 
-        SocketContext->Binding->Datapath->RecvHandler(
-            SocketContext->Binding,
-            SocketContext->Binding->ClientContext,
+        SocketProc->Parent->Datapath->RecvHandler(
+            SocketProc->Parent,
+            SocketProc->Parent->ClientContext,
             RecvDataChain);
 
     } else {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[ udp][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
+            SocketProc->Socket,
             IoResult,
             "WSARecvMsg completion");
     }
@@ -2131,7 +2296,7 @@ Drop:
     //
     // Try to start a new receive.
     //
-    (void)QuicSocketStartReceive(SocketContext, ProcContext);
+    (void)QuicSocketStartReceive(SocketProc, DatapathProc);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2190,24 +2355,24 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_SEND_DATA*
 QuicSendDataAlloc(
-    _In_ QUIC_SOCKET* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     )
 {
-    QUIC_DBG_ASSERT(Binding != NULL);
+    QUIC_DBG_ASSERT(Socket != NULL);
 
-    QUIC_DATAPATH_PROC_CONTEXT* ProcContext =
-        &Binding->Datapath->ProcContexts[GetCurrentProcessorNumber()];
+    QUIC_DATAPATH_PROC* DatapathProc =
+        &Socket->Datapath->Processors[GetCurrentProcessorNumber()];
 
     QUIC_SEND_DATA* SendContext =
-        QuicPoolAlloc(&ProcContext->SendContextPool);
+        QuicPoolAlloc(&DatapathProc->SendContextPool);
 
     if (SendContext != NULL) {
-        SendContext->Owner = ProcContext;
+        SendContext->Owner = DatapathProc;
         SendContext->ECN = ECN;
         SendContext->SegmentSize =
-            (Binding->Datapath->Features & QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION)
+            (Socket->Datapath->Features & QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION)
                 ? MaxPacketSize : 0;
         SendContext->TotalSize = 0;
         SendContext->WsaBufferCount = 0;
@@ -2224,16 +2389,16 @@ QuicSendDataFree(
     _In_ QUIC_SEND_DATA* SendContext
     )
 {
-    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
+    QUIC_DATAPATH_PROC* DatapathProc = SendContext->Owner;
     QUIC_POOL* BufferPool =
         SendContext->SegmentSize > 0 ?
-            &ProcContext->LargeSendBufferPool : &ProcContext->SendBufferPool;
+            &DatapathProc->LargeSendBufferPool : &DatapathProc->SendBufferPool;
 
     for (UINT8 i = 0; i < SendContext->WsaBufferCount; ++i) {
         QuicPoolFree(BufferPool, SendContext->WsaBuffers[i].buf);
     }
 
-    QuicPoolFree(&ProcContext->SendContextPool, SendContext);
+    QuicPoolFree(&DatapathProc->SendContextPool, SendContext);
 }
 
 static
@@ -2359,7 +2524,7 @@ QuicSendContextAllocSegmentBuffer(
     QUIC_DBG_ASSERT(SendContext->SegmentSize > 0);
     QUIC_DBG_ASSERT(MaxBufferLength <= SendContext->SegmentSize);
 
-    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
+    QUIC_DATAPATH_PROC* DatapathProc = SendContext->Owner;
     WSABUF* WsaBuffer;
 
     if (SendContext->ClientBuffer.buf != NULL &&
@@ -2372,7 +2537,7 @@ QuicSendContextAllocSegmentBuffer(
         return (QUIC_BUFFER*)&SendContext->ClientBuffer;
     }
 
-    WsaBuffer = QuicSendContextAllocBuffer(SendContext, &ProcContext->LargeSendBufferPool);
+    WsaBuffer = QuicSendContextAllocBuffer(SendContext, &DatapathProc->LargeSendBufferPool);
     if (WsaBuffer == NULL) {
         return NULL;
     }
@@ -2423,20 +2588,20 @@ QuicSendDataFreeBuffer(
     //
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
-    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
+    QUIC_DATAPATH_PROC* DatapathProc = SendContext->Owner;
     PCHAR TailBuffer = SendContext->WsaBuffers[SendContext->WsaBufferCount - 1].buf;
 
     if (SendContext->SegmentSize == 0) {
         QUIC_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
 
-        QuicPoolFree(&ProcContext->SendBufferPool, Datagram->Buffer);
+        QuicPoolFree(&DatapathProc->SendBufferPool, Datagram->Buffer);
         --SendContext->WsaBufferCount;
     } else {
         TailBuffer += SendContext->WsaBuffers[SendContext->WsaBufferCount - 1].len;
         QUIC_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
 
         if (SendContext->WsaBuffers[SendContext->WsaBufferCount - 1].len == 0) {
-            QuicPoolFree(&ProcContext->LargeSendBufferPool, Datagram->Buffer);
+            QuicPoolFree(&DatapathProc->LargeSendBufferPool, Datagram->Buffer);
             --SendContext->WsaBufferCount;
         }
 
@@ -2456,17 +2621,17 @@ QuicSendDataIsFull(
 
 void
 QuicSendContextComplete(
-    _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext,
+    _In_ QUIC_SOCKET_PROC* SocketProc,
     _In_ QUIC_SEND_DATA* SendContext,
     _In_ ULONG IoResult
     )
 {
-    UNREFERENCED_PARAMETER(SocketContext);
+    UNREFERENCED_PARAMETER(SocketProc);
     if (IoResult != QUIC_STATUS_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[ udp][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
+            SocketProc->Socket,
             IoResult,
             "WSASendMsg completion");
     }
@@ -2477,7 +2642,7 @@ QuicSendContextComplete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicSocketSend(
-    _In_ QUIC_SOCKET* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ QUIC_SEND_DATA* SendContext
@@ -2485,13 +2650,13 @@ QuicSocketSend(
 {
     QUIC_STATUS Status;
     QUIC_DATAPATH* Datapath;
-    QUIC_UDP_SOCKET_CONTEXT* SocketContext;
+    QUIC_SOCKET_PROC* SocketProc;
     SOCKET Socket;
     int Result;
     DWORD BytesSent;
 
     QUIC_DBG_ASSERT(
-        Binding != NULL && LocalAddress != NULL &&
+        Socket != NULL && LocalAddress != NULL &&
         RemoteAddress != NULL && SendContext != NULL);
 
     if (SendContext->WsaBufferCount == 0) {
@@ -2501,14 +2666,14 @@ QuicSocketSend(
 
     QuicSendContextFinalizeSendBuffer(SendContext, TRUE);
 
-    Datapath = Binding->Datapath;
-    SocketContext = &Binding->SocketContexts[Binding->Connected ? 0 : GetCurrentProcessorNumber()];
-    Socket = SocketContext->Socket;
+    Datapath = Socket->Datapath;
+    SocketProc = &Socket->Processors[Socket->Connected ? 0 : GetCurrentProcessorNumber()];
+    Socket = SocketProc->Socket;
 
     QuicTraceEvent(
         DatapathSend,
         "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-        Binding,
+        Socket,
         SendContext->TotalSize,
         SendContext->WsaBufferCount,
         SendContext->SegmentSize,
@@ -2531,7 +2696,7 @@ QuicSocketSend(
 
     WSAMSG WSAMhdr;
     WSAMhdr.dwFlags = 0;
-    if (Binding->Connected) {
+    if (Socket->Connected) {
         WSAMhdr.name = NULL;
         WSAMhdr.namelen = 0;
     } else {
@@ -2546,7 +2711,7 @@ QuicSocketSend(
     PWSACMSGHDR CMsg = NULL;
     if (LocalAddress->si_family == QUIC_ADDRESS_FAMILY_INET) {
 
-        if (!Binding->Connected) {
+        if (!Socket->Connected) {
             WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(IN_PKTINFO));
             CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
             CMsg->cmsg_level = IPPROTO_IP;
@@ -2567,7 +2732,7 @@ QuicSocketSend(
 
     } else {
 
-        if (!Binding->Connected) {
+        if (!Socket->Connected) {
             WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(IN6_PKTINFO));
             CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
             CMsg->cmsg_level = IPPROTO_IPV6;
@@ -2618,7 +2783,7 @@ QuicSocketSend(
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
+                SocketProc->Socket,
                 WsaError,
                 "WSASendMsg");
             Status = HRESULT_FROM_WIN32(WsaError);
@@ -2629,7 +2794,7 @@ QuicSocketSend(
         // Completed synchronously.
         //
         QuicSendContextComplete(
-            SocketContext,
+            SocketProc,
             SendContext,
             QUIC_STATUS_SUCCESS);
     }
@@ -2651,39 +2816,39 @@ QuicDataPathWorkerThread(
     _In_ void* CompletionContext
     )
 {
-    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = (QUIC_DATAPATH_PROC_CONTEXT*)CompletionContext;
+    QUIC_DATAPATH_PROC* DatapathProc = (QUIC_DATAPATH_PROC*)CompletionContext;
 
     QuicTraceLogInfo(
         DatapathWorkerThreadStart,
         "[ udp][%p] Worker start",
-        ProcContext);
+        DatapathProc);
 
-    QUIC_DBG_ASSERT(ProcContext != NULL);
-    QUIC_DBG_ASSERT(ProcContext->Datapath != NULL);
+    QUIC_DBG_ASSERT(DatapathProc != NULL);
+    QUIC_DBG_ASSERT(DatapathProc->Datapath != NULL);
 
-    QUIC_UDP_SOCKET_CONTEXT* SocketContext;
+    QUIC_SOCKET_PROC* SocketProc;
     LPOVERLAPPED Overlapped;
     DWORD NumberOfBytesTransferred;
     ULONG IoResult;
 
-    ProcContext->ThreadId = GetCurrentThreadId();
+    DatapathProc->ThreadId = GetCurrentThreadId();
 
     while (TRUE) {
 
         BOOL Result =
             GetQueuedCompletionStatus(
-                ProcContext->IOCP,
+                DatapathProc->IOCP,
                 &NumberOfBytesTransferred,
-                (PULONG_PTR)&SocketContext,
+                (PULONG_PTR)&SocketProc,
                 &Overlapped,
                 INFINITE);
 
-        if (ProcContext->Datapath->Shutdown) {
+        if (DatapathProc->Datapath->Shutdown) {
             break;
         }
 
         QUIC_DBG_ASSERT(Overlapped != NULL);
-        QUIC_DBG_ASSERT(SocketContext != NULL);
+        QUIC_DBG_ASSERT(SocketProc != NULL);
 
         IoResult = Result ? NO_ERROR : GetLastError();
 
@@ -2691,15 +2856,15 @@ QuicDataPathWorkerThread(
         // Overlapped either points to the send or receive OVERLAPPED for this
         // socket.
         //
-        if (Overlapped == &SocketContext->RecvOverlapped) {
+        if (Overlapped == &SocketProc->RecvOverlapped) {
 
             if (NumberOfBytesTransferred == UINT32_MAX) {
                 //
                 // The socket context is being shutdown. Run the clean up logic.
                 //
-                QuicDataPathSocketContextShutdown(SocketContext);
+                QuicDataPathSocketContextShutdown(SocketProc);
 
-            } else if (QuicRundownAcquire(&SocketContext->UpcallRundown)) {
+            } else if (QuicRundownAcquire(&SocketProc->UpcallRundown)) {
                 //
                 // We only allow for receiving UINT16 worth of bytes at a time,
                 // which should be plenty for an IPv4 or IPv6 UDP datagram.
@@ -2714,12 +2879,12 @@ QuicDataPathWorkerThread(
                 // Handle the receive indication and queue a new receive.
                 //
                 QuicDataPathRecvComplete(
-                    ProcContext,
-                    SocketContext,
+                    DatapathProc,
+                    SocketProc,
                     IoResult,
                     (UINT16)NumberOfBytesTransferred);
 
-                QuicRundownRelease(&SocketContext->UpcallRundown);
+                QuicRundownRelease(&SocketProc->UpcallRundown);
             }
 
         } else {
@@ -2731,7 +2896,7 @@ QuicDataPathWorkerThread(
                     Overlapped);
 
             QuicSendContextComplete(
-                SocketContext,
+                SocketProc,
                 SendContext,
                 IoResult);
         }
@@ -2740,7 +2905,7 @@ QuicDataPathWorkerThread(
     QuicTraceLogInfo(
         DatapathWorkerThreadStop,
         "[ udp][%p] Worker stop",
-        ProcContext);
+        DatapathProc);
 
     return NO_ERROR;
 }
@@ -2748,13 +2913,13 @@ QuicDataPathWorkerThread(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSocketSetParam(
-    _In_ QUIC_SOCKET* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength) const UINT8 * Buffer
     )
 {
-    UNREFERENCED_PARAMETER(Binding);
+    UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(Param);
     UNREFERENCED_PARAMETER(BufferLength);
     UNREFERENCED_PARAMETER(Buffer);
@@ -2764,13 +2929,13 @@ QuicSocketSetParam(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSocketGetParam(
-    _In_ QUIC_SOCKET* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ uint32_t Param,
     _Inout_ PUINT32 BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) UINT8 * Buffer
     )
 {
-    UNREFERENCED_PARAMETER(Binding);
+    UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(Param);
     UNREFERENCED_PARAMETER(BufferLength);
     UNREFERENCED_PARAMETER(Buffer);
@@ -2791,7 +2956,7 @@ QuicFuzzerReceiveInject(
         return;
     }
 
-    QUIC_UDP_SOCKET_CONTEXT* Socket = (QUIC_UDP_SOCKET_CONTEXT*)MsQuicFuzzerContext.Socket;
+    QUIC_SOCKET_PROC* Socket = (QUIC_SOCKET_PROC*)MsQuicFuzzerContext.Socket;
 
     if (!Socket) {
         return;
@@ -2799,7 +2964,7 @@ QuicFuzzerReceiveInject(
 
     QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
         QuicSocketAllocRecvContext(
-            Socket->Binding->Datapath,
+            Socket->Socket->Datapath,
             (UINT16)GetCurrentProcessorNumber());
 
     if (!RecvContext) {
@@ -2815,7 +2980,7 @@ QuicFuzzerReceiveInject(
     Datagram->Tuple = &RecvContext->Tuple;
     Datagram->Allocated = TRUE;
     Datagram->QueuedOnConnection = FALSE;
-    Datagram->Buffer = ((PUCHAR)RecvContext) + Socket->Binding->Datapath->RecvPayloadOffset;
+    Datagram->Buffer = ((PUCHAR)RecvContext) + Socket->Socket->Datapath->RecvPayloadOffset;
 
     memcpy(Datagram->Buffer, PacketData, Datagram->BufferLength);
 
@@ -2826,9 +2991,9 @@ QuicFuzzerReceiveInject(
             Datagram->BufferLength);
     }
 
-    Socket->Binding->Datapath->RecvHandler(
-            Socket->Binding,
-            Socket->Binding->ClientContext,
+    Socket->Socket->Datapath->RecvHandler(
+            Socket->Socket,
+            Socket->Socket->ClientContext,
             Datagram);
 }
 

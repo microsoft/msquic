@@ -313,14 +313,14 @@ QuicDataPathResolveAddress(
 //
 
 typedef enum QUIC_SOCKET_TYPE {
-    QUIC_SOCKET_UDP   = 0,
-    QUIC_SOCKET_TCP   = 1
+    QUIC_SOCKET_UDP             = 0,
+    QUIC_SOCKET_TCP             = 1,
+    QUIC_SOCKET_TCP_LISTENER    = 2
 } QUIC_SOCKET_TYPE;
 
 //
 // Creates a datapath socket handle for the given local address and/or remote
-// address. This function immediately registers for receive upcalls from the
-// layer below.
+// address. This function immediately registers for upcalls from the layer below.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
