@@ -375,13 +375,17 @@ main(
     )
 {
     int ErrorCode = -1;
+    const QUIC_DATAPATH_CALLBACKS DatapathCallbacks = {
+        NULL,
+        UdpRecvCallback,
+        UdpUnreachCallback,
+    };
 
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
     QuicDataPathInitialize(
         0,
-        UdpRecvCallback,
-        UdpUnreachCallback,
+        &DatapathCallbacks,
         &Datapath);
 
     if (argc < 2) {

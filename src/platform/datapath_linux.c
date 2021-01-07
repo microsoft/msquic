@@ -485,21 +485,20 @@ QuicProcessorContextUninitialize(
 QUIC_STATUS
 QuicDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
-    _In_ QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvCallback,
-    _In_ QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableCallback,
-    _Out_ QUIC_DATAPATH* *NewDataPath
+    _In_ const QUIC_DATAPATH_CALLBACKS* Callback,
+    _Out_ QUIC_DATAPATH** NewDataPath
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return
         PlatDispatch->DatapathInitialize(
             ClientRecvContextLength,
-            RecvCallback,
-            UnreachableCallback,
+            Callback,
             NewDataPath);
 #else
-    if (RecvCallback == NULL ||
-        UnreachableCallback == NULL ||
+    if (Callback == NULL ||
+        Callback->Receive == NULL ||
+        Callback->Unreachable == NULL ||
         NewDataPath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -522,8 +521,8 @@ QuicDataPathInitialize(
     }
 
     QuicZeroMemory(Datapath, DatapathLength);
-    Datapath->RecvHandler = RecvCallback;
-    Datapath->UnreachHandler = UnreachableCallback;
+    Datapath->RecvHandler = Callback->Receive;
+    Datapath->UnreachHandler = Callback->Unreachable;
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = QuicProcMaxCount();
     Datapath->MaxSendBatchSize = QUIC_MAX_BATCH_SEND;

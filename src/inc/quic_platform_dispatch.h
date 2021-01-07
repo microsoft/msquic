@@ -87,9 +87,8 @@ typedef
 QUIC_STATUS
 (*QUIC_DATAPATH_INITIALIZE)(
     _In_ uint32_t ClientRecvContextLength,
-    _In_ QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvCallback,
-    _In_ QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableCallback,
-    _Out_ QUIC_DATAPATH* *NewDatapath
+    _In_ const QUIC_DATAPATH_CALLBACKS* Callback,
+    _Out_ QUIC_DATAPATH** NewDatapath
     );
 
 typedef

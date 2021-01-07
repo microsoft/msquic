@@ -50,12 +50,16 @@ struct QuicAddr
 
     void Resolve(QUIC_ADDRESS_FAMILY af, const char* hostname) {
         UNREFERENCED_PARAMETER(af);
+        const QUIC_DATAPATH_CALLBACKS DatapathCallback = {
+            NULL,
+            (QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER)(1),
+            (QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER)(1),
+        };
         QUIC_DATAPATH* Datapath = nullptr;
         if (QUIC_FAILED(
             QuicDataPathInitialize(
                 0,
-                (QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER)(1),
-                (QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER)(1),
+                &DatapathCallback,
                 &Datapath))) {
             GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
         }
@@ -264,6 +268,24 @@ protected:
 
         QuicRecvDataReturn(RecvDataChain);
     }
+
+    const QUIC_DATAPATH_CALLBACKS EmptyDatapathCallbacks = {
+        NULL,
+        EmptyReceiveCallback,
+        EmptyUnreachableCallback,
+    };
+
+    const QUIC_DATAPATH_CALLBACKS RecvDatapathCallbacks = {
+        NULL,
+        DataRecvCallback,
+        EmptyUnreachableCallback,
+    };
+
+    const QUIC_DATAPATH_CALLBACKS RecvECT0DatapathCallbacks = {
+        NULL,
+        DataRecvCallbackECT0,
+        EmptyUnreachableCallback,
+    };
 };
 
 volatile uint16_t DataPathTest::NextPort;
@@ -277,8 +299,7 @@ TEST_F(DataPathTest, Initialize)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            EmptyReceiveCallback,
-            EmptyUnreachableCallback,
+            &EmptyDatapathCallbacks,
             &Datapath));
     ASSERT_NE(Datapath, nullptr);
 
@@ -288,25 +309,38 @@ TEST_F(DataPathTest, Initialize)
 
 TEST_F(DataPathTest, InitializeInvalid)
 {
+    const QUIC_DATAPATH_CALLBACKS DatapathCallbacksInvalid1 = {
+        NULL,
+        NULL,
+        EmptyUnreachableCallback,
+    };
+    const QUIC_DATAPATH_CALLBACKS DatapathCallbacksInvalid2 = {
+        NULL,
+        EmptyReceiveCallback,
+        NULL,
+    };
+
     ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
         QuicDataPathInitialize(
             0,
-            EmptyReceiveCallback,
-            EmptyUnreachableCallback,
+            &EmptyDatapathCallbacks,
             nullptr));
 
     QUIC_DATAPATH* Datapath = nullptr;
     ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
         QuicDataPathInitialize(
             0,
-            nullptr,
-            EmptyUnreachableCallback,
+            NULL,
             &Datapath));
     ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
         QuicDataPathInitialize(
             0,
-            EmptyReceiveCallback,
-            nullptr,
+            &DatapathCallbacksInvalid1,
+            &Datapath));
+    ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
+        QuicDataPathInitialize(
+            0,
+            &DatapathCallbacksInvalid2,
             &Datapath));
 }
 
@@ -318,8 +352,7 @@ TEST_F(DataPathTest, Bind)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            EmptyReceiveCallback,
-            EmptyUnreachableCallback,
+            &EmptyDatapathCallbacks,
             &Datapath));
     ASSERT_NE(Datapath, nullptr);
 
@@ -352,8 +385,7 @@ TEST_F(DataPathTest, Rebind)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            EmptyReceiveCallback,
-            EmptyUnreachableCallback,
+            &EmptyDatapathCallbacks,
             &Datapath));
     ASSERT_NE(nullptr, Datapath);
 
@@ -406,8 +438,7 @@ TEST_P(DataPathTest, Data)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            DataRecvCallback,
-            EmptyUnreachableCallback,
+            &RecvDatapathCallbacks,
             &Datapath));
     ASSERT_NE(nullptr, Datapath);
 
@@ -491,8 +522,7 @@ TEST_P(DataPathTest, DataRebind)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            DataRecvCallback,
-            EmptyUnreachableCallback,
+            &RecvDatapathCallbacks,
             &Datapath));
     ASSERT_NE(nullptr, Datapath);
 
@@ -611,8 +641,7 @@ TEST_P(DataPathTest, DataECT0)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            DataRecvCallbackECT0,
-            EmptyUnreachableCallback,
+            &RecvECT0DatapathCallbacks,
             &Datapath));
     ASSERT_NE(nullptr, Datapath);
 

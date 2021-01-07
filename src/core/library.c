@@ -191,6 +191,11 @@ MsQuicLibraryInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN PlatformInitialized = FALSE;
     uint32_t DefaultMaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
+    const QUIC_DATAPATH_CALLBACKS DatapathCallbacks = {
+        NULL,
+        QuicBindingReceive,
+        QuicBindingUnreachable
+    };
 
     Status = QuicPlatformInitialize();
     if (QUIC_FAILED(Status)) {
@@ -283,8 +288,7 @@ MsQuicLibraryInitialize(
     Status =
         QuicDataPathInitialize(
             sizeof(QUIC_RECV_PACKET),
-            QuicBindingReceive,
-            QuicBindingUnreachable,
+            &DatapathCallbacks,
             &MsQuicLib.Datapath);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(

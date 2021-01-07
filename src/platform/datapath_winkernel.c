@@ -823,8 +823,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
-    _In_ QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvCallback,
-    _In_ QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableCallback,
+    _In_ const QUIC_DATAPATH_CALLBACKS* Callback,
     _Out_ QUIC_DATAPATH* *NewDataPath
     )
 {
@@ -839,7 +838,10 @@ QuicDataPathInitialize(
         WSK_EVENT_RECEIVE_FROM
     };
 
-    if (RecvCallback == NULL || UnreachableCallback == NULL || NewDataPath == NULL) {
+    if (Callback == NULL ||
+        Callback->Receive == NULL ||
+        Callback->Unreachable == NULL ||
+        NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         Datapath = NULL;
         goto Exit;
@@ -861,8 +863,8 @@ QuicDataPathInitialize(
     }
 
     RtlZeroMemory(Datapath, DatapathLength);
-    Datapath->RecvHandler = RecvCallback;
-    Datapath->UnreachableHandler = UnreachableCallback;
+    Datapath->RecvHandler = Callback->Receive;
+    Datapath->UnreachableHandler = Callback->Unreachable;
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = (uint32_t)QuicProcMaxCount();
     Datapath->WskDispatch.WskReceiveFromEvent = QuicDataPathSocketReceive;
