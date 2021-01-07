@@ -54,17 +54,6 @@ ZwQueryValueKey(
     );
 
 //
-// Copied from wdm.h
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-NTSYSAPI
-NTSTATUS
-NTAPI
-ZwClose(
-    _In_ HANDLE Handle
-    );
-
-//
 // Copied from zwapi_x.h
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
