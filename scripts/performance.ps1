@@ -178,6 +178,12 @@ if (!$IsWindows) {
 
 if ($TestsFile -eq "") {
     $TestsFile = Join-Path $PSScriptRoot "RemoteTests.json"
+} elseif (-not (Test-Path $TestsFile)) {
+    $TestsFile = Join-Path $PSScriptRoot $TestsFile
+}
+
+if (-not (Test-Path $TestsFile)) {
+    Write-Error "Test file to run not found"
 }
 
 if ($Local) {
