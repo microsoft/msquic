@@ -153,6 +153,12 @@ if (Test-Path -Path $CommitsFile -PathType Leaf) {
 }
 Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
 
+$HistogramFilesPaths = Join-Path $RootDir "artifacts/PerfDataResults/histogram*.txt"
+$HistogramFiles = Get-ChildItem -Path $HistogramFilesPaths -Recurse -File;
+$HistogramDir = Join-Path $CommitFolder "RpsLatency"
+New-Item -Path $HistogramDir -ItemType "directory" -Force | Out-Null
+$HistogramFiles | Copy-Item -Destination $HistogramDir
+
 $GraphScript = Join-Path $PSScriptRoot generate-graphs.ps1
 
 & $GraphScript -BranchName $BranchName

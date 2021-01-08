@@ -39,6 +39,19 @@ function Get-CommitHistory {
     return $CommitsContents
 }
 
+function Get-LatestCommit {
+    [OutputType([CommitsFileModel[]])]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$BranchFolder
+    )
+
+    $CommitsFile = Join-Path $BranchFolder "commits.json"
+    $CommitsContents = Get-Content $CommitsFile | ConvertFrom-Json | Select-Object -First 1
+
+    return $CommitsContents[0]
+}
+
 function Get-CpuCommitData {
     [OutputType([TestCommitModel[]])]
     param (
@@ -458,6 +471,44 @@ function Get-HpsTestsJs {
 
 #endregion
 
+#region latency
+function Get-LatencyDataJs {
+    param (
+        $File)
+
+    $Data = Get-Content -Path $File
+    $DataVal = ""
+    foreach ($Line in $Data) {
+        if ([string]::IsNullOrWhiteSpace($Line)) {
+            continue;
+        }
+        if ($Line.Trim().StartsWith("#")) {
+            continue;
+        }
+        if ($Line.Trim().StartsWith("Value")) {
+            continue;
+        }
+        $Split = $Line.Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries);
+        $XVal = $Split[3];
+        $YVal = $Split[0];
+        $OutVar = 0.0
+        if (![double]::TryParse($XVal, [Ref]$OutVar) -or ![double]::TryParse($YVal, [Ref]$OutVar)) {
+            continue
+        }
+        #$XVal = 100.0 - (100.0 / $XVal);
+        $ToWrite = "{x: $XVal, y: $YVal}"
+        if ($DataVal -eq "") {
+            $DataVal = $ToWrite
+        } else {
+            $DataVal = "$DataVal, $ToWrite"
+        }
+
+        # [{x: ..., y: ...}, {}]
+    }
+    return "[$DataVal]"
+}
+#endregion
+
 $RootDir = Split-Path $PSScriptRoot -Parent
 $BranchFolder = Join-Path $RootDir 'data' $BranchName
 
@@ -485,7 +536,24 @@ $DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommit
 $DataFileContents = Get-RpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
 $DataFileContents = Get-HpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
 
+# Grab Latency Data
+$LatestCommit = Get-LatestCommit -BranchFolder $BranchFolder
+$LatencyFolder = Join-Path $BranchFolder $LatestCommit.CommitHash "RpsLatency"
+$WinOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_openssl_Default.txt"
+$WinSchannelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_schannel_Default.txt"
+$WinKernelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Winkernel_x64_schannel_Default.txt"
+
+$WinOpenSslData = Get-LatencyDataJs -File $WinOpenSslLatencyFile
+$WinSchannelData = Get-LatencyDataJs -File $WinSchannelLatencyFile
+$WinKernelData = Get-LatencyDataJs -File $WinKernelLatencyFile
+
+$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_OPENSSL", $WinOpenSslData)
+$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_SCHANNEL", $WinSchannelData)
+$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINKERNEL", $WinKernelData)
+
 $OutputFolder = Join-Path $RootDir "assets" $BranchName
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
 $DataFileOut = Join-Path $OutputFolder "data.js"
 $DataFileContents | Set-Content $DataFileOut
+
+

@@ -18,6 +18,7 @@ Chart.defaults.scale.display = true
 var tputChart = null;
 var rpsChart = null;
 var hpsChart = null;
+var rpsLatencyChart = null;
 
 function tooltipSort(a, b, data) {
     return data.datasets[a.datasetIndex].sortOrder - data.datasets[b.datasetIndex].sortOrder;
@@ -119,6 +120,43 @@ function createSummaryChartOptions(title, yName) {
     };
 }
 
+var scaleDict = {
+    1: '0%',
+    10: '90%',
+    100: '99%',
+    1000: '99.9%',
+    10000: '99.99%',
+    100000: '99.999%',
+    1000000: '99.9999%',
+    10000000: '99.99999%',
+    100000000: '99.999999%'
+}
+
+function createLatencyChartOptions(name) {
+    return {
+        scales: {
+            xAxes: [{
+                display: true,
+                type: 'logarithmic',
+                afterBuildTicks: function(scale) {
+                    scale.ticks = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000]
+                },
+                ticks: {
+                    callback: function(value) {
+                        return scaleDict[value]
+                    }
+                },
+                scaleLabel: createScaleLabel('Percentile')
+            }],
+            yAxes: [{
+                display: true,
+                
+                scaleLabel: createScaleLabel(name),
+            }]
+        }
+    }
+}
+
 function createChartOptions(name) {
     return {
         tooltips: tooltipsObject,
@@ -133,10 +171,10 @@ function createChartOptions(name) {
     };
 }
 
-function createRawDataset(plaftorm, color, dataset) {
+function createRawDataset(platform, color, dataset) {
     return {
         type: "scatter",
-        label: plaftorm + " (raw)",
+        label: platform + " (raw)",
         backgroundColor: color,
         pointBorderColor: color,
         pointStyle: "crossRot",
@@ -148,14 +186,14 @@ function createRawDataset(plaftorm, color, dataset) {
         hiddenType: true,
         hiddenPlatform: false,
         isRaw: true,
-        platform: plaftorm
+        platform: platform
     };
 }
 
-function createAverageDataset(plaftorm, color, dataset) {
+function createAverageDataset(platform, color, dataset) {
     return {
         type: "line",
-        label: plaftorm + " (average)",
+        label: platform + " (average)",
         backgroundColor: color,
         borderColor: color,
         borderWidth: dataLineWidth,
@@ -168,14 +206,14 @@ function createAverageDataset(plaftorm, color, dataset) {
         hiddenType: false,
         hiddenPlatform: false,
         isRaw: false,
-        platform: plaftorm
+        platform: platform
     };
 }
 
-function createAverageSummaryDataset(plaftorm, color, dataset) {
+function createAverageSummaryDataset(platform, color, dataset) {
     return {
         type: "line",
-        label: plaftorm + " (average)",
+        label: platform + " (average)",
         backgroundColor: color,
         borderColor: color,
         borderWidth: dataLineWidth,
@@ -188,8 +226,38 @@ function createAverageSummaryDataset(plaftorm, color, dataset) {
         hiddenType: false,
         hiddenPlatform: false,
         isRaw: false,
-        platform: plaftorm
+        platform: platform
     };
+}
+
+function createLatencyDataset(platform, color, dataset) {
+    return {
+        type: "line",
+        label: platform,
+        backgroundColor: color,
+        borderColor: color,
+        borderWidth: dataLineWidth,
+        pointRadius: 0,
+        tension: 0,
+        fill: false,
+        data: dataset,
+        sortOrder: 1,
+        hidden: false,
+        hiddenType: false,
+        hiddenPlatform: false,
+        isRaw: false,
+        platform: platform
+    }
+}
+
+function createLatencyDatasets(winOpenssl, winSchannel, winKernel) {
+    return {
+        datasets: [
+            createLatencyDataset("Windows Kernel", dataColorWinKernelx64Schannel, winKernel),
+            createLatencyDataset("Windows User Schannel", dataColorWindowsx64Schannel, winSchannel),
+            createLatencyDataset("Windows User OpenSSL", dataColorWindowsx64Openssl, winOpenssl)
+        ]
+    }
 }
 
 function createDatasets(rawKernel, avgKernel, rawUserSchannel, avgUserSchannel, rawUserOpenssl, avgUserOpenssl) {
@@ -256,6 +324,7 @@ function onRadioChange(event) {
     updateChartDisplayPoints(tputChart, value)
     updateChartDisplayPoints(rpsChart, value)
     updateChartDisplayPoints(hpsChart, value)
+    updateChartDisplayPoints(rpsLatencyChart, value)
 }
 
 function onPlatformChange(event) {
@@ -264,6 +333,7 @@ function onPlatformChange(event) {
     updateChartPlatforms(tputChart, platform, checked)
     updateChartPlatforms(rpsChart, platform, checked)
     updateChartPlatforms(hpsChart, platform, checked)
+    updateChartPlatforms(rpsLatencyChart, platform, checked)
 }
 
 window.onload = function() {
@@ -293,6 +363,11 @@ window.onload = function() {
     hpsChart = new Chart(document.getElementById('canvasHPS').getContext('2d'), {
         data: createDatasets(dataRawWinKernelx64SchannelHps, dataAverageWinKernelx64SchannelHps, dataRawWindowsx64SchannelHps, dataAverageWindowsx64SchannelHps, dataRawWindowsx64OpensslHps, dataAverageWindowsx64OpensslHps),
         options: createChartOptions('HPS')
+    });
+
+    rpsLatencyChart = new Chart(document.getElementById('canvasRPSLatency').getContext('2d'), {
+        data: createLatencyDatasets(dataRpsLatencyWindowsOpenSsl, dataRpsLatencyWindowsSchannel, dataRpsLatencyWinKernel),
+        options: createLatencyChartOptions('RPS Latency')
     });
 
     document.getElementById('rawpdt').onclick = onRadioChange
