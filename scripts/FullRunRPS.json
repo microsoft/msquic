@@ -3,7 +3,7 @@
         "Exe": "quicperf",
         "Arguments": "-selfsign:1"
     },
-    "FullMatrix": false,
+    "FullMatrix": true,
     "Tests": [
         {
             "TestName": "RPS",
