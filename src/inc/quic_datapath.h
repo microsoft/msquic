@@ -218,8 +218,8 @@ void
 (QUIC_DATAPATH_ACCEPT_CALLBACK)(
     _In_ QUIC_SOCKET* ListenerSocket,
     _In_ void* ListenerContext,
-    _In_ QUIC_SOCKET* ClientSocket,
-    _Out_ void** ClientContext
+    _In_ QUIC_SOCKET* AcceptSocket,
+    _Out_ void** AcceptClientContext
     );
 
 typedef QUIC_DATAPATH_ACCEPT_CALLBACK *QUIC_DATAPATH_ACCEPT_CALLBACK_HANDLER;
@@ -356,7 +356,7 @@ QuicSocketCreate(
     _In_ QUIC_SOCKET_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
-    _In_opt_ void* RecvCallbackContext,
+    _In_opt_ void* CallbackContext,
     _Out_ QUIC_SOCKET** Socket
     );
 

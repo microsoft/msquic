@@ -157,6 +157,16 @@ protected:
     }
 
     static void
+    EmptyAcceptCallback(
+        _In_ QUIC_SOCKET* /* ListenerSocket */,
+        _In_ void* /* ListenerContext */,
+        _In_ QUIC_SOCKET* /* ClientSocket */,
+        _Out_ void** /* ClientContext */
+        )
+    {
+    }
+
+    static void
     EmptyReceiveCallback(
         _In_ QUIC_SOCKET* /* Socket */,
         _In_ void* /* RecvContext */,
@@ -175,7 +185,7 @@ protected:
     }
 
     static void
-    DataRecvCallback(
+    UdpDataRecvCallback(
         _In_ QUIC_SOCKET* Socket,
         _In_ void* Context,
         _In_ QUIC_RECV_DATA* RecvDataChain
@@ -221,7 +231,7 @@ protected:
     }
 
     static void
-    DataRecvCallbackECT0(
+    UdpDataRecvCallbackECT0(
         _In_ QUIC_SOCKET* Socket,
         _In_ void* Context,
         _In_ QUIC_RECV_DATA* RecvDataChain
@@ -269,21 +279,49 @@ protected:
         QuicRecvDataReturn(RecvDataChain);
     }
 
+    static void
+    TcpAcceptCallback(
+        _In_ QUIC_SOCKET* /* ListenerSocket */,
+        _In_ void* ListenerContext,
+        _In_ QUIC_SOCKET* ClientSocket,
+        _Out_ void** /* ClientContext */
+        )
+    {
+        QUIC_SOCKET** ServerSocket = (QUIC_SOCKET**)ListenerContext;
+        *ServerSocket = ClientSocket;
+    }
+
+    static void
+    TcpDataRecvCallback(
+        _In_ QUIC_SOCKET* /* Socket */,
+        _In_ void* /* Context */,
+        _In_ QUIC_RECV_DATA* RecvDataChain
+        )
+    {
+        QuicRecvDataReturn(RecvDataChain);
+    }
+
     const QUIC_DATAPATH_CALLBACKS EmptyDatapathCallbacks = {
-        NULL,
+        EmptyAcceptCallback,
         EmptyReceiveCallback,
         EmptyUnreachableCallback,
     };
 
-    const QUIC_DATAPATH_CALLBACKS RecvDatapathCallbacks = {
-        NULL,
-        DataRecvCallback,
+    const QUIC_DATAPATH_CALLBACKS UdpRecvDatapathCallbacks = {
+        EmptyAcceptCallback,
+        UdpDataRecvCallback,
         EmptyUnreachableCallback,
     };
 
-    const QUIC_DATAPATH_CALLBACKS RecvECT0DatapathCallbacks = {
-        NULL,
-        DataRecvCallbackECT0,
+    const QUIC_DATAPATH_CALLBACKS UdpRecvECT0DatapathCallbacks = {
+        EmptyAcceptCallback,
+        UdpDataRecvCallbackECT0,
+        EmptyUnreachableCallback,
+    };
+
+    const QUIC_DATAPATH_CALLBACKS TcpRecvDatapathCallbacks = {
+        TcpAcceptCallback,
+        TcpDataRecvCallback,
         EmptyUnreachableCallback,
     };
 };
@@ -344,7 +382,7 @@ TEST_F(DataPathTest, InitializeInvalid)
             &Datapath));
 }
 
-TEST_F(DataPathTest, Bind)
+TEST_F(DataPathTest, UdpBind)
 {
     QUIC_DATAPATH* Datapath = nullptr;
     QUIC_SOCKET* Socket = nullptr;
@@ -376,7 +414,7 @@ TEST_F(DataPathTest, Bind)
         Datapath);
 }
 
-TEST_F(DataPathTest, Rebind)
+TEST_F(DataPathTest, UdpRebind)
 {
     QUIC_DATAPATH* Datapath = nullptr;
     QUIC_SOCKET* binding1 = nullptr;
@@ -424,7 +462,7 @@ TEST_F(DataPathTest, Rebind)
         Datapath);
 }
 
-TEST_P(DataPathTest, Data)
+TEST_P(DataPathTest, UdpData)
 {
     QUIC_DATAPATH* Datapath = nullptr;
     QUIC_SOCKET* server = nullptr;
@@ -438,7 +476,7 @@ TEST_P(DataPathTest, Data)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            &RecvDatapathCallbacks,
+            &UdpRecvDatapathCallbacks,
             &Datapath));
     ASSERT_NE(nullptr, Datapath);
 
@@ -508,7 +546,7 @@ TEST_P(DataPathTest, Data)
     QuicEventUninitialize(RecvContext.ClientCompletion);
 }
 
-TEST_P(DataPathTest, DataRebind)
+TEST_P(DataPathTest, UdpDataRebind)
 {
     QUIC_DATAPATH* Datapath = nullptr;
     QUIC_SOCKET* server = nullptr;
@@ -522,7 +560,7 @@ TEST_P(DataPathTest, DataRebind)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            &RecvDatapathCallbacks,
+            &UdpRecvDatapathCallbacks,
             &Datapath));
     ASSERT_NE(nullptr, Datapath);
 
@@ -627,7 +665,7 @@ TEST_P(DataPathTest, DataRebind)
     QuicEventUninitialize(RecvContext.ClientCompletion);
 }
 
-TEST_P(DataPathTest, DataECT0)
+TEST_P(DataPathTest, UdpDataECT0)
 {
     QUIC_DATAPATH* Datapath = nullptr;
     QUIC_SOCKET* server = nullptr;
@@ -641,7 +679,7 @@ TEST_P(DataPathTest, DataECT0)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            &RecvECT0DatapathCallbacks,
+            &UdpRecvECT0DatapathCallbacks,
             &Datapath));
     ASSERT_NE(nullptr, Datapath);
 
@@ -709,6 +747,174 @@ TEST_P(DataPathTest, DataECT0)
         Datapath);
 
     QuicEventUninitialize(RecvContext.ClientCompletion);
+}
+
+TEST_F(DataPathTest, TcpListener)
+{
+    QUIC_DATAPATH* Datapath = nullptr;
+    QUIC_SOCKET* Socket = nullptr;
+
+    VERIFY_QUIC_SUCCESS(
+        QuicDataPathInitialize(
+            0,
+            &EmptyDatapathCallbacks,
+            &Datapath));
+    ASSERT_NE(Datapath, nullptr);
+
+    VERIFY_QUIC_SUCCESS(
+        QuicSocketCreate(
+            Datapath,
+            QUIC_SOCKET_TCP_LISTENER,
+            nullptr,
+            nullptr,
+            nullptr,
+            &Socket));
+    ASSERT_NE(nullptr, Socket);
+
+    QUIC_ADDR Address;
+    QuicSocketGetLocalAddress(Socket, &Address);
+    ASSERT_NE(Address.Ipv4.sin_port, (uint16_t)0);
+
+    QuicSocketDelete(Socket);
+
+    QuicDataPathUninitialize(
+        Datapath);
+}
+
+TEST_P(DataPathTest, TcpConnect)
+{
+    QUIC_DATAPATH* Datapath = nullptr;
+    QUIC_SOCKET* Listener = nullptr;
+    QUIC_SOCKET* Server = nullptr;
+    QUIC_SOCKET* Client = nullptr;
+    auto serverAddress = GetNewLocalAddr();
+
+    VERIFY_QUIC_SUCCESS(
+        QuicDataPathInitialize(
+            0,
+            &TcpRecvDatapathCallbacks,
+            &Datapath));
+    ASSERT_NE(Datapath, nullptr);
+
+    QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
+    while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
+        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Status =
+            QuicSocketCreate(
+                Datapath,
+                QUIC_SOCKET_TCP_LISTENER,
+                &serverAddress.SockAddr,
+                nullptr,
+                &Server,
+                &Listener);
+#ifdef _WIN32
+        if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
+            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
+                htons(serverAddress.SockAddr.Ipv4.sin_port) << std::endl;
+        }
+#endif //_WIN32
+    }
+    VERIFY_QUIC_SUCCESS(Status);
+    ASSERT_NE(nullptr, Listener);
+
+    QUIC_ADDR Address;
+    QuicSocketGetLocalAddress(Listener, &Address);
+    ASSERT_NE(Address.Ipv4.sin_port, (uint16_t)0);
+    serverAddress.SetPort(Address.Ipv4.sin_port);
+
+    VERIFY_QUIC_SUCCESS(
+        QuicSocketCreate(
+            Datapath,
+            QUIC_SOCKET_TCP,
+            nullptr,
+            &serverAddress.SockAddr,
+            nullptr,
+            &Client));
+    ASSERT_NE(nullptr, Client);
+
+    //ASSERT_TRUE(QuicEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+    QuicSleep(1000);
+
+    ASSERT_NE(nullptr, Server);
+
+    QuicSocketDelete(Client);
+    QuicSocketDelete(Server);
+    QuicSocketDelete(Listener);
+
+    QuicDataPathUninitialize(
+        Datapath);
+}
+
+TEST_F(DataPathTest, TcpData)
+{
+    QUIC_DATAPATH* Datapath = nullptr;
+    QUIC_SOCKET* Listener = nullptr;
+    QUIC_SOCKET* Server = nullptr;
+    QUIC_SOCKET* Client = nullptr;
+
+    VERIFY_QUIC_SUCCESS(
+        QuicDataPathInitialize(
+            0,
+            &TcpRecvDatapathCallbacks,
+            &Datapath));
+    ASSERT_NE(Datapath, nullptr);
+
+    VERIFY_QUIC_SUCCESS(
+        QuicSocketCreate(
+            Datapath,
+            QUIC_SOCKET_TCP_LISTENER,
+            nullptr,
+            nullptr,
+            &Client,
+            &Listener));
+    ASSERT_NE(nullptr, Listener);
+
+    QUIC_ADDR ServerAddress;
+    QuicSocketGetLocalAddress(Listener, &ServerAddress);
+    ASSERT_NE(ServerAddress.Ipv4.sin_port, (uint16_t)0);
+
+    VERIFY_QUIC_SUCCESS(
+        QuicSocketCreate(
+            Datapath,
+            QUIC_SOCKET_TCP,
+            nullptr,
+            &ServerAddress,
+            nullptr,
+            &Client));
+    ASSERT_NE(nullptr, Client);
+
+    auto ClientSendContext =
+        QuicSendDataAlloc(Client, QUIC_ECN_NON_ECT, 0);
+    ASSERT_NE(nullptr, ClientSendContext);
+
+    auto ClientDatagram =
+        QuicSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
+    ASSERT_NE(nullptr, ClientDatagram);
+
+    memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
+
+    QUIC_ADDR ClientAddress;
+    QuicSocketGetLocalAddress(Client, &ClientAddress);
+
+    VERIFY_QUIC_SUCCESS(
+        QuicSocketSend(
+            Client,
+            &ClientAddress,
+            &ServerAddress,
+            ClientSendContext));
+
+    //ASSERT_TRUE(QuicEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+    QuicSleep(1000);
+
+    ASSERT_NE(nullptr, Server);
+
+    QuicSocketDelete(Client);
+    QuicSocketDelete(Server);
+    QuicSocketDelete(Listener);
+
+    QuicDataPathUninitialize(
+        Datapath);
 }
 
 INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());
