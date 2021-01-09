@@ -1928,19 +1928,19 @@ QuicSocketAllocRecvContext(
 
 QUIC_STATUS
 QuicSocketStartAccept(
-    _In_ QUIC_SOCKET_PROC* SocketProc,
+    _In_ QUIC_SOCKET_PROC* ListenerSocketProc,
     _In_ QUIC_DATAPATH_PROC* DatapathProc
     )
 {
     QUIC_STATUS Status;
-    QUIC_DATAPATH* Datapath = SocketProc->Parent->Datapath;
+    QUIC_DATAPATH* Datapath = ListenerSocketProc->Parent->Datapath;
     DWORD BytesRecv = 0;
     int Result;
 
     //
     // Initialize a server socket to accept.
     //
-    if (SocketProc->AcceptSocket == NULL) {
+    if (ListenerSocketProc->AcceptSocket == NULL) {
         Status =
             QuicSocketCreate(
                 Datapath,
@@ -1948,33 +1948,33 @@ QuicSocketStartAccept(
                 NULL,
                 NULL,
                 NULL,
-                &SocketProc->AcceptSocket);
+                &ListenerSocketProc->AcceptSocket);
         if (QUIC_FAILED(Status)) {
             goto Error;
         }
     }
 
     RtlZeroMemory(
-        &SocketProc->Overlapped,
-        sizeof(SocketProc->Overlapped));
+        &ListenerSocketProc->Overlapped,
+        sizeof(ListenerSocketProc->Overlapped));
 
     Result =
         Datapath->AcceptEx(
-            SocketProc->Socket,
-            SocketProc->AcceptSocket->Processors[0].Socket,
-            &SocketProc->AcceptSocket->LocalAddress,
-            0,                                                  // dwReceiveDataLength
-            sizeof(SocketProc->AcceptSocket->LocalAddress)+16,     // dwLocalAddressLength
-            sizeof(SocketProc->AcceptSocket->RemoteAddress)+16,    // dwRemoteAddressLength
+            ListenerSocketProc->Socket,
+            ListenerSocketProc->AcceptSocket->Processors[0].Socket,
+            &ListenerSocketProc->AcceptSocket->LocalAddress,
+            0,                                                          // dwReceiveDataLength
+            sizeof(ListenerSocketProc->AcceptSocket->LocalAddress)+16,  // dwLocalAddressLength
+            sizeof(ListenerSocketProc->AcceptSocket->RemoteAddress)+16, // dwRemoteAddressLength
             &BytesRecv,
-            &SocketProc->Overlapped);
+            &ListenerSocketProc->Overlapped);
     if (Result == FALSE) {
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                SocketProc->Parent,
+                ListenerSocketProc->Parent,
                 WsaError,
                 "AcceptEx");
             Status = HRESULT_FROM_WIN32(WsaError);
@@ -1987,13 +1987,13 @@ QuicSocketStartAccept(
         if (!PostQueuedCompletionStatus(
                 DatapathProc->IOCP,
                 BytesRecv,
-                (ULONG_PTR)SocketProc,
-                &SocketProc->Overlapped)) {
+                (ULONG_PTR)ListenerSocketProc,
+                &ListenerSocketProc->Overlapped)) {
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                SocketProc->Parent,
+                ListenerSocketProc->Parent,
                 LastError,
                 "PostQueuedCompletionStatus");
             Status = HRESULT_FROM_WIN32(LastError);
@@ -2079,7 +2079,7 @@ QuicDataPathAcceptComplete(
             goto Error;
         }
 
-        ListenerSocketProc->Parent->Internal = FALSE;
+        AcceptSocketProc->Parent->Internal = FALSE;
         ListenerSocketProc->Parent->Datapath->AcceptHandler(
             ListenerSocketProc->Parent,
             ListenerSocketProc->Parent->ClientContext,
