@@ -114,7 +114,10 @@
         </div>
         <h3>Requests Per Second Latency</h3>
         <p>
-            This displays the latency results from the latest RPS test
+            This displays latency results in microseconds in a histogram of 
+            percentiles from the last RPS run. This is computed by using the
+            latency time of every request during the RPS run that computed the
+            above graph.
         </p>
         <div class="graph">
             <canvas id="canvasRPSLatency" class="chartjs-render-monitor"></canvas>

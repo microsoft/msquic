@@ -367,7 +367,7 @@ window.onload = function() {
 
     rpsLatencyChart = new Chart(document.getElementById('canvasRPSLatency').getContext('2d'), {
         data: createLatencyDatasets(dataRpsLatencyWindowsOpenSsl, dataRpsLatencyWindowsSchannel, dataRpsLatencyWinKernel),
-        options: createLatencyChartOptions('RPS Latency')
+        options: createLatencyChartOptions('RPS Latency (μs)')
     });
 
     document.getElementById('rawpdt').onclick = onRadioChange
