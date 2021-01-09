@@ -629,15 +629,18 @@ class ThroughputRequest {
 }
 
 function Get-LatestThroughputRemoteTestResults($CpuData, [ThroughputRequest]$Request) {
-    $TestConfig = $Request.GetConfiguration()
-    foreach ($Test in $CpuData.Tests) {
-        if ($null -eq $Test.TputConfig) {
-            continue;
-        }
+    try {
+        $TestConfig = $Request.GetConfiguration()
+        foreach ($Test in $CpuData.Tests) {
+            if ($null -eq $Test.TputConfig) {
+                continue;
+            }
 
-        if ($TestConfig -eq $Test.TputConfig -and $Request.PlatformName -eq $Test.PlatformName) {
-            return $Test
+            if ($TestConfig -eq $Test.TputConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                return $Test
+            }
         }
+    } catch {
     }
     return $null
 }
@@ -776,15 +779,18 @@ class RPSRequest {
 }
 
 function Get-LatestRPSRemoteTestResults($CpuData, [RpsRequest]$Request) {
-    $TestConfig = $Request.GetConfiguration()
-    foreach ($Test in $CpuData.Tests) {
-        if ($null -eq $Test.RpsConfig) {
-            continue;
-        }
+    try {
+        $TestConfig = $Request.GetConfiguration()
+        foreach ($Test in $CpuData.Tests) {
+            if ($null -eq $Test.RpsConfig) {
+                continue;
+            }
 
-        if ($TestConfig -eq $Test.RpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
-            return $Test
+            if ($TestConfig -eq $Test.RpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                return $Test
+            }
         }
+    } catch {
     }
     return $null
 }
@@ -907,15 +913,18 @@ class HPSRequest {
 }
 
 function Get-LatestHPSRemoteTestResults($CpuData, [HpsRequest]$Request) {
-    $TestConfig = $Request.GetConfiguration()
-    foreach ($Test in $CpuData.Tests) {
-        if ($null -eq $Test.HpsConfig) {
-            continue;
-        }
+    try {
+        $TestConfig = $Request.GetConfiguration()
+        foreach ($Test in $CpuData.Tests) {
+            if ($null -eq $Test.HpsConfig) {
+                continue;
+            }
 
-        if ($TestConfig -eq $Test.HpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
-            return $Test
+            if ($TestConfig -eq $Test.HpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                return $Test
+            }
         }
+    } catch {
     }
     return $null
 }
