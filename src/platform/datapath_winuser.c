@@ -1769,8 +1769,16 @@ QuicSocketDelete(
     QUIC_DATAPATH* Datapath = Socket->Datapath;
 
     if (Socket->Internal) {
-
-        closesocket(Socket->Processors[0].Socket);
+        QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[0];
+        if (closesocket(SocketProc->Socket) == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "closesocket");
+        }
         QuicDataPathSocketContextShutdown(&Socket->Processors[0]);
 
     } else if (Socket->HasFixedRemoteAddress || Socket->Type != QUIC_SOCKET_UDP) {
@@ -1783,7 +1791,15 @@ QuicSocketDelete(
 QUIC_DISABLED_BY_FUZZER_START;
 
         CancelIo((HANDLE)SocketProc->Socket);
-        closesocket(SocketProc->Socket);
+        if (closesocket(SocketProc->Socket) == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "closesocket");
+        }
 
 QUIC_DISABLED_BY_FUZZER_END;
 
@@ -1948,11 +1964,11 @@ QuicSocketStartAccept(
             SocketProc->AcceptSocket->Processors[0].Socket,
             &SocketProc->AcceptSocket->LocalAddress,
             0,                                                  // dwReceiveDataLength
-            sizeof(SocketProc->AcceptSocket->LocalAddress),     // dwLocalAddressLength
-            sizeof(SocketProc->AcceptSocket->RemoteAddress),    // dwRemoteAddressLength
+            sizeof(SocketProc->AcceptSocket->LocalAddress)+16,     // dwLocalAddressLength
+            sizeof(SocketProc->AcceptSocket->RemoteAddress)+16,    // dwRemoteAddressLength
             &BytesRecv,
             &SocketProc->Overlapped);
-    if (Result == SOCKET_ERROR) {
+    if (Result == FALSE) {
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
             QuicTraceEvent(
@@ -1995,7 +2011,7 @@ Error:
 void
 QuicDataPathAcceptComplete(
     _In_ QUIC_DATAPATH_PROC* DatapathProc,
-    _In_ QUIC_SOCKET_PROC* SocketProc,
+    _In_ QUIC_SOCKET_PROC* ListenerSocketProc,
     _In_ ULONG IoResult
     )
 {
@@ -2008,8 +2024,8 @@ QuicDataPathAcceptComplete(
     }
 
     if (IoResult == QUIC_STATUS_SUCCESS) {
-        QUIC_DBG_ASSERT(SocketProc->AcceptSocket != NULL);
-        QUIC_SOCKET_PROC* AcceptSocketProc = &SocketProc->AcceptSocket->Processors[0];
+        QUIC_DBG_ASSERT(ListenerSocketProc->AcceptSocket != NULL);
+        QUIC_SOCKET_PROC* AcceptSocketProc = &ListenerSocketProc->AcceptSocket->Processors[0];
 
         AcceptSocketProc->Parent->ConnectComplete = TRUE;
         AcceptSocketProc->Parent->ConnectedProcessorAffinity = 0;
@@ -2018,7 +2034,7 @@ QuicDataPathAcceptComplete(
         QuicTraceEvent(
             DatapathErrorStatus,
             "[ udp][%p] ERROR, %u, %s.",
-            SocketProc->Parent,
+            ListenerSocketProc->Parent,
             0,
             "AcceptEx Completed!");
 
@@ -2027,14 +2043,14 @@ QuicDataPathAcceptComplete(
                 AcceptSocketProc->Socket,
                 SOL_SOCKET,
                 SO_UPDATE_ACCEPT_CONTEXT,
-                (char*)&SocketProc->Socket,
-                sizeof(SocketProc->Socket));
+                (char*)&ListenerSocketProc->Socket,
+                sizeof(ListenerSocketProc->Socket));
         if (Result == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                SocketProc->AcceptSocket,
+                ListenerSocketProc->AcceptSocket,
                 WsaError,
                 "Set UPDATE_ACCEPT_CONTEXT");
             goto Error;
@@ -2050,7 +2066,7 @@ QuicDataPathAcceptComplete(
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[ udp][%p] ERROR, %u, %s.",
-                SocketProc->AcceptSocket,
+                ListenerSocketProc->AcceptSocket,
                 LastError,
                 "CreateIoCompletionPort (accepted)");
             goto Error;
@@ -2063,34 +2079,34 @@ QuicDataPathAcceptComplete(
             goto Error;
         }
 
-        SocketProc->Parent->Internal = FALSE;
-        SocketProc->Parent->Datapath->AcceptHandler(
-            SocketProc->Parent,
-            SocketProc->Parent->ClientContext,
-            SocketProc->AcceptSocket,
-            &SocketProc->AcceptSocket->ClientContext);
-        SocketProc->AcceptSocket = NULL;
+        ListenerSocketProc->Parent->Internal = FALSE;
+        ListenerSocketProc->Parent->Datapath->AcceptHandler(
+            ListenerSocketProc->Parent,
+            ListenerSocketProc->Parent->ClientContext,
+            ListenerSocketProc->AcceptSocket,
+            &ListenerSocketProc->AcceptSocket->ClientContext);
+        ListenerSocketProc->AcceptSocket = NULL;
 
     } else {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[ udp][%p] ERROR, %u, %s.",
-            SocketProc->Parent,
+            ListenerSocketProc->Parent,
             IoResult,
             "AcceptEx completion");
     }
 
 Error:
 
-    if (SocketProc->AcceptSocket != NULL) {
-        QuicSocketDelete(SocketProc->AcceptSocket);
-        SocketProc->AcceptSocket = NULL;
+    if (ListenerSocketProc->AcceptSocket != NULL) {
+        QuicSocketDelete(ListenerSocketProc->AcceptSocket);
+        ListenerSocketProc->AcceptSocket = NULL;
     }
 
     //
     // Try to start a new accept.
     //
-    (void)QuicSocketStartAccept(SocketProc, DatapathProc);
+    (void)QuicSocketStartAccept(ListenerSocketProc, DatapathProc);
 }
 
 void
@@ -2236,7 +2252,6 @@ Retry_recv:
     }
     if (Result == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
-        QUIC_DBG_ASSERT(WsaError == WSA_IO_PENDING);
         if (WsaError != WSA_IO_PENDING) {
             if (WsaError == WSAECONNRESET) {
                 QuicSocketHandleUnreachableError(SocketProc, (ULONG)WsaError);
