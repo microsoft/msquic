@@ -834,7 +834,7 @@ TEST_P(DataPathTest, TcpConnect)
     ASSERT_NE(nullptr, Client);
 
     //ASSERT_TRUE(QuicEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
-    QuicSleep(1000);
+    QuicSleep(100);
 
     ASSERT_NE(nullptr, Server);
 
@@ -846,12 +846,13 @@ TEST_P(DataPathTest, TcpConnect)
         Datapath);
 }
 
-TEST_F(DataPathTest, TcpData)
+TEST_P(DataPathTest, TcpData)
 {
     QUIC_DATAPATH* Datapath = nullptr;
     QUIC_SOCKET* Listener = nullptr;
     QUIC_SOCKET* Server = nullptr;
     QUIC_SOCKET* Client = nullptr;
+    auto serverAddress = GetNewLocalAddr();
 
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
@@ -860,26 +861,39 @@ TEST_F(DataPathTest, TcpData)
             &Datapath));
     ASSERT_NE(Datapath, nullptr);
 
-    VERIFY_QUIC_SUCCESS(
-        QuicSocketCreate(
-            Datapath,
-            QUIC_SOCKET_TCP_LISTENER,
-            nullptr,
-            nullptr,
-            &Client,
-            &Listener));
+    QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
+    while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
+        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Status =
+            QuicSocketCreate(
+                Datapath,
+                QUIC_SOCKET_TCP_LISTENER,
+                &serverAddress.SockAddr,
+                nullptr,
+                &Server,
+                &Listener);
+#ifdef _WIN32
+        if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
+            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
+                htons(serverAddress.SockAddr.Ipv4.sin_port) << std::endl;
+        }
+#endif //_WIN32
+    }
+    VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, Listener);
 
     QUIC_ADDR ServerAddress;
     QuicSocketGetLocalAddress(Listener, &ServerAddress);
     ASSERT_NE(ServerAddress.Ipv4.sin_port, (uint16_t)0);
+    serverAddress.SetPort(ServerAddress.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
         QuicSocketCreate(
             Datapath,
             QUIC_SOCKET_TCP,
             nullptr,
-            &ServerAddress,
+            &serverAddress.SockAddr,
             nullptr,
             &Client));
     ASSERT_NE(nullptr, Client);
@@ -897,6 +911,8 @@ TEST_F(DataPathTest, TcpData)
     QUIC_ADDR ClientAddress;
     QuicSocketGetLocalAddress(Client, &ClientAddress);
 
+    QuicSleep(100); // Wait for connected
+
     VERIFY_QUIC_SUCCESS(
         QuicSocketSend(
             Client,
@@ -905,7 +921,7 @@ TEST_F(DataPathTest, TcpData)
             ClientSendContext));
 
     //ASSERT_TRUE(QuicEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
-    QuicSleep(1000);
+    QuicSleep(100);
 
     ASSERT_NE(nullptr, Server);
 

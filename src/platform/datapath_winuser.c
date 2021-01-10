@@ -220,7 +220,13 @@ typedef struct QUIC_SOCKET_PROC {
     //
     // TCP Listener socket data
     //
+    struct {
     QUIC_SOCKET* AcceptSocket;
+    char AcceptAddrSpace[
+        sizeof(SOCKADDR_INET) + 16 +
+        sizeof(SOCKADDR_INET) + 16
+        ];
+    };
     };
     OVERLAPPED Overlapped;
 
@@ -1548,7 +1554,6 @@ QUIC_DISABLED_BY_FUZZER_START;
                         Status = HRESULT_FROM_WIN32(WsaError);
                         goto Error;
                     }
-                    Socket->ConnectComplete = TRUE;
 
                 } else {
 
@@ -1637,6 +1642,10 @@ QUIC_DISABLED_BY_FUZZER_END;
         Socket->RemoteAddress = *RemoteAddress;
     } else {
         Socket->RemoteAddress.Ipv4.sin_port = 0;
+    }
+
+    if (Type == QUIC_SOCKET_UDP) {
+        Socket->ConnectComplete = TRUE;
     }
 
     //
@@ -1786,6 +1795,20 @@ QuicSocketDelete(
         uint32_t Processor = Socket->ConnectedProcessorAffinity;
         QUIC_DBG_ASSERT(
             Datapath->Processors[Processor].ThreadId != GetCurrentThreadId());
+        if (Socket->Type == QUIC_SOCKET_TCP ||
+        Socket->Type == QUIC_SOCKET_TCP_SERVER) {
+            if (shutdown(SocketProc->Socket, SD_BOTH) == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                if (WsaError != WSAENOTCONN) {
+                    QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[ udp][%p] ERROR, %u, %s.",
+                        Socket,
+                        WsaError,
+                        "shutdown");
+                }
+            }
+        }
         QuicRundownReleaseAndWait(&SocketProc->UpcallRundown);
 
 QUIC_DISABLED_BY_FUZZER_START;
@@ -1962,10 +1985,10 @@ QuicSocketStartAccept(
         Datapath->AcceptEx(
             ListenerSocketProc->Socket,
             ListenerSocketProc->AcceptSocket->Processors[0].Socket,
-            &ListenerSocketProc->AcceptSocket->LocalAddress,
-            0,                                                          // dwReceiveDataLength
-            sizeof(ListenerSocketProc->AcceptSocket->LocalAddress)+16,  // dwLocalAddressLength
-            sizeof(ListenerSocketProc->AcceptSocket->RemoteAddress)+16, // dwRemoteAddressLength
+            &ListenerSocketProc->AcceptAddrSpace,
+            0,                          // dwReceiveDataLength
+            sizeof(SOCKADDR_INET)+16,   // dwLocalAddressLength
+            sizeof(SOCKADDR_INET)+16,   // dwRemoteAddressLength
             &BytesRecv,
             &ListenerSocketProc->Overlapped);
     if (Result == FALSE) {
@@ -2026,6 +2049,7 @@ QuicDataPathAcceptComplete(
     if (IoResult == QUIC_STATUS_SUCCESS) {
         QUIC_DBG_ASSERT(ListenerSocketProc->AcceptSocket != NULL);
         QUIC_SOCKET_PROC* AcceptSocketProc = &ListenerSocketProc->AcceptSocket->Processors[0];
+        QUIC_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
 
         AcceptSocketProc->Parent->ConnectComplete = TRUE;
         AcceptSocketProc->Parent->ConnectedProcessorAffinity = 0;
@@ -2253,7 +2277,8 @@ Retry_recv:
     if (Result == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
-            if (WsaError == WSAECONNRESET) {
+            if (SocketProc->Parent->Type == QUIC_SOCKET_UDP &&
+                WsaError == WSAECONNRESET) {
                 QuicSocketHandleUnreachableError(SocketProc, (ULONG)WsaError);
                 goto Retry_recv;
             } else {
@@ -2318,7 +2343,9 @@ QuicDataPathRecvComplete(
     PSOCKADDR_INET RemoteAddr = &RecvContext->Tuple.RemoteAddress;
     PSOCKADDR_INET LocalAddr = &RecvContext->Tuple.LocalAddress;
 
-    if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
+    if (IoResult == WSAENOTSOCK ||
+        IoResult == WSA_OPERATION_ABORTED ||
+        IoResult == ERROR_NETNAME_DELETED) {
         //
         // Error from shutdown, silently ignore. Return immediately so the
         // receive doesn't get reposted.
@@ -2361,6 +2388,7 @@ QuicDataPathRecvComplete(
         BOOLEAN IsCoalesced = FALSE;
         INT ECN = 0;
 
+        if (SocketProc->Parent->Type == QUIC_SOCKET_UDP) {
         for (WSACMSGHDR *CMsg = WSA_CMSG_FIRSTHDR(&SocketProc->RecvWsaMsgHdr);
             CMsg != NULL;
             CMsg = WSA_CMSG_NXTHDR(&SocketProc->RecvWsaMsgHdr, CMsg)) {
@@ -2422,6 +2450,7 @@ QuicDataPathRecvComplete(
         }
 
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
+        }
 
         QuicTraceEvent(
             DatapathRecv,
@@ -2987,14 +3016,26 @@ QuicSocketSend(
     // Start the async send.
     //
     RtlZeroMemory(&SendContext->Overlapped, sizeof(OVERLAPPED));
-    Result =
-        Datapath->WSASendMsg(
-            SocketProc->Socket,
-            &WSAMhdr,
-            0,
-            &BytesSent,
-            &SendContext->Overlapped,
-            NULL);
+    if (Socket->Type == QUIC_SOCKET_UDP) {
+        Result =
+            Datapath->WSASendMsg(
+                SocketProc->Socket,
+                &WSAMhdr,
+                0,
+                &BytesSent,
+                &SendContext->Overlapped,
+                NULL);
+    } else {
+        Result =
+            WSASend(
+                SocketProc->Socket,
+                SendContext->WsaBuffers,
+                SendContext->WsaBufferCount,
+                &BytesSent,
+                0,
+                &SendContext->Overlapped,
+                NULL);
+    }
 
     if (Result == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
@@ -3077,6 +3118,13 @@ QuicDataPathWorkerThread(
         //
         if (Overlapped == &SocketProc->Overlapped) {
 
+            /*QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                SocketProc->Parent,
+                IoResult,
+                "Overlapped Complete");*/
+
             if (NumberOfBytesTransferred == UINT32_MAX) {
                 //
                 // The socket context is being shutdown. Run the clean up logic.
@@ -3128,6 +3176,13 @@ QuicDataPathWorkerThread(
             }
 
         } else {
+
+            /*QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                SocketProc->Parent,
+                IoResult,
+                "Overlapped Complete (send)");*/
 
             QUIC_SEND_DATA* SendContext =
                 CONTAINING_RECORD(
