@@ -105,7 +105,7 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_PLATFORM_PROC             '92cQ' // Qc29 - QUIC Platform Processor info
 #define QUIC_POOL_PLATFORM_GENERIC          'A2cQ' // Qc2A - QUIC Platform generic
 #define QUIC_POOL_DATAPATH                  'B2cQ' // Qc2B - QUIC Platform datapath
-#define QUIC_POOL_SOCKET          'C2cQ' // Qc2C - QUIC Platform datapath binding
+#define QUIC_POOL_SOCKET                    'C2cQ' // Qc2C - QUIC Platform socket
 #define QUIC_POOL_STORAGE                   'D2cQ' // Qc2D - QUIC Platform storage
 #define QUIC_POOL_HASHTABLE                 'E2cQ' // Qc2E - QUIC Platform hashtable
 #define QUIC_POOL_HASHTABLE_MEMBER          'F2cQ' // Qc2F - QUIC Platform hashtable member lists
