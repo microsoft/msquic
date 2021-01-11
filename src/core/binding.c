@@ -126,9 +126,8 @@ QuicBindingInitialize(
 #endif
 
     Status =
-        QuicSocketCreate(
+        QuicSocketCreateUdp(
             MsQuicLib.Datapath,
-            QUIC_SOCKET_UDP,
             LocalAddress,
             RemoteAddress,
             Binding,

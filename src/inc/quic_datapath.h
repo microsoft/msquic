@@ -338,24 +338,44 @@ QuicDataPathResolveAddress(
 // The following APIs are specific to a single UDP or TCP socket abstraction.
 //
 
-typedef enum QUIC_SOCKET_TYPE {
-    QUIC_SOCKET_UDP             = 0,
-    QUIC_SOCKET_TCP_LISTENER    = 1,
-    QUIC_SOCKET_TCP             = 2,
-    QUIC_SOCKET_TCP_SERVER      = 3     // Used internally only!
-} QUIC_SOCKET_TYPE;
-
 //
-// Creates a datapath socket handle for the given local address and/or remote
-// address. This function immediately registers for upcalls from the layer below.
+// Creates a UDP socket for the given local address and/or remote address. This
+// function immediately registers for receive upcalls from the layer below.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketCreate(
+QuicSocketCreateUdp(
     _In_ QUIC_DATAPATH* Datapath,
-    _In_ QUIC_SOCKET_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* CallbackContext,
+    _Out_ QUIC_SOCKET** Socket
+    );
+
+//
+// Creates a TCP socket for the (optional) (optional) given local address and
+// remote address. This function immediately registers for upcalls from the
+// layer below.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSocketCreateTcp(
+    _In_ QUIC_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* CallbackContext,
+    _Out_ QUIC_SOCKET** Socket
+    );
+
+//
+// Creates a TCP listener socket for the (optional) given local address. This
+// function immediately registers for accept upcalls from the layer below.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSocketCreateTcpListener(
+    _In_ QUIC_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ void* CallbackContext,
     _Out_ QUIC_SOCKET** Socket
     );

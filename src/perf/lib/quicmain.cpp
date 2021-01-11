@@ -93,7 +93,7 @@ QuicMainStart(
         }
 
         QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
-        Status = QuicSocketCreate(Datapath, QUIC_SOCKET_UDP, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
+        Status = QuicSocketCreateUdp(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
         if (QUIC_FAILED(Status)) {
             QuicDataPathUninitialize(Datapath);
             Datapath = nullptr;

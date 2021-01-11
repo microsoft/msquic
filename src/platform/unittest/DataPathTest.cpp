@@ -395,9 +395,8 @@ TEST_F(DataPathTest, UdpBind)
     ASSERT_NE(Datapath, nullptr);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreate(
+        QuicSocketCreateUdp(
             Datapath,
-            QUIC_SOCKET_UDP,
             nullptr,
             nullptr,
             nullptr,
@@ -428,9 +427,8 @@ TEST_F(DataPathTest, UdpRebind)
     ASSERT_NE(nullptr, Datapath);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreate(
+        QuicSocketCreateUdp(
             Datapath,
-            QUIC_SOCKET_UDP,
             nullptr,
             nullptr,
             nullptr,
@@ -442,9 +440,8 @@ TEST_F(DataPathTest, UdpRebind)
     ASSERT_NE(Address1.Ipv4.sin_port, (uint16_t)0);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreate(
+        QuicSocketCreateUdp(
             Datapath,
-            QUIC_SOCKET_UDP,
             nullptr,
             nullptr,
             nullptr,
@@ -484,9 +481,8 @@ TEST_P(DataPathTest, UdpData)
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
-            QuicSocketCreate(
+            QuicSocketCreateUdp(
                 Datapath,
-                QUIC_SOCKET_UDP,
                 &serverAddress.SockAddr,
                 nullptr,
                 &RecvContext,
@@ -506,9 +502,8 @@ TEST_P(DataPathTest, UdpData)
     serverAddress.SetPort(RecvContext.ServerAddress.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreate(
+        QuicSocketCreateUdp(
             Datapath,
-            QUIC_SOCKET_UDP,
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
@@ -568,9 +563,8 @@ TEST_P(DataPathTest, UdpDataRebind)
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
-            QuicSocketCreate(
+            QuicSocketCreateUdp(
                 Datapath,
-                QUIC_SOCKET_UDP,
                 &serverAddress.SockAddr,
                 nullptr,
                 &RecvContext,
@@ -590,9 +584,8 @@ TEST_P(DataPathTest, UdpDataRebind)
     serverAddress.SetPort(RecvContext.ServerAddress.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreate(
+        QuicSocketCreateUdp(
             Datapath,
-            QUIC_SOCKET_UDP,
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
@@ -626,9 +619,8 @@ TEST_P(DataPathTest, UdpDataRebind)
     QuicEventReset(RecvContext.ClientCompletion);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreate(
+        QuicSocketCreateUdp(
             Datapath,
-            QUIC_SOCKET_UDP,
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
@@ -687,9 +679,8 @@ TEST_P(DataPathTest, UdpDataECT0)
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
-            QuicSocketCreate(
+            QuicSocketCreateUdp(
                 Datapath,
-                QUIC_SOCKET_UDP,
                 &serverAddress.SockAddr,
                 nullptr,
                 &RecvContext,
@@ -709,9 +700,8 @@ TEST_P(DataPathTest, UdpDataECT0)
     serverAddress.SetPort(RecvContext.ServerAddress.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreate(
+        QuicSocketCreateUdp(
             Datapath,
-            QUIC_SOCKET_UDP,
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
@@ -762,10 +752,8 @@ TEST_F(DataPathTest, TcpListener)
     ASSERT_NE(Datapath, nullptr);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreate(
+        QuicSocketCreateTcpListener(
             Datapath,
-            QUIC_SOCKET_TCP_LISTENER,
-            nullptr,
             nullptr,
             nullptr,
             &Socket));
@@ -800,11 +788,9 @@ TEST_P(DataPathTest, TcpConnect)
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
-            QuicSocketCreate(
+            QuicSocketCreateTcpListener(
                 Datapath,
-                QUIC_SOCKET_TCP_LISTENER,
                 &serverAddress.SockAddr,
-                nullptr,
                 &Server,
                 &Listener);
 #ifdef _WIN32
@@ -824,9 +810,8 @@ TEST_P(DataPathTest, TcpConnect)
     serverAddress.SetPort(Address.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreate(
+        QuicSocketCreateTcp(
             Datapath,
-            QUIC_SOCKET_TCP,
             nullptr,
             &serverAddress.SockAddr,
             nullptr,
@@ -865,11 +850,9 @@ TEST_P(DataPathTest, TcpData)
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
-            QuicSocketCreate(
+            QuicSocketCreateTcpListener(
                 Datapath,
-                QUIC_SOCKET_TCP_LISTENER,
                 &serverAddress.SockAddr,
-                nullptr,
                 &Server,
                 &Listener);
 #ifdef _WIN32
@@ -889,9 +872,8 @@ TEST_P(DataPathTest, TcpData)
     serverAddress.SetPort(ServerAddress.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreate(
+        QuicSocketCreateTcp(
             Datapath,
-            QUIC_SOCKET_TCP,
             nullptr,
             &serverAddress.SockAddr,
             nullptr,

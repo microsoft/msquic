@@ -1556,9 +1556,8 @@ QuicSocketContextProcessEvents(
 //
 
 QUIC_STATUS
-QuicSocketCreate(
+QuicSocketCreateUdp(
     _In_ QUIC_DATAPATH* Datapath,
-    _In_ QUIC_SOCKET_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
@@ -1576,10 +1575,6 @@ QuicSocketCreate(
             NewBinding);
 #else
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-    if (Type != QUIC_SOCKET_UDP) {
-        return QUIC_STATUS_NOT_SUPPORTED;
-    }
 
     uint32_t SocketCount = Datapath->ProcCount; // TODO - Only use 1 for client (RemoteAddress != NULL) bindings?
     size_t BindingLength =

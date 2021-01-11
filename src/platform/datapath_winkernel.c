@@ -1278,9 +1278,8 @@ QuicDataPathSetControlSocket(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketCreate(
+QuicSocketCreateUdp(
     _In_ QUIC_DATAPATH* Datapath,
-    _In_ QUIC_SOCKET_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
@@ -1291,11 +1290,6 @@ QuicSocketCreate(
     size_t BindingSize;
     QUIC_SOCKET* Binding = NULL;
     uint32_t Option;
-
-    if (Type != QUIC_SOCKET_UDP) {
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        goto Error;
-    }
 
     if (Datapath == NULL || NewBinding == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;

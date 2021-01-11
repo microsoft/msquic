@@ -97,6 +97,13 @@ static_assert(
 typedef struct QUIC_DATAPATH_PROC QUIC_DATAPATH_PROC;   // Per-processor datapath state.
 typedef struct QUIC_SOCKET_PROC QUIC_SOCKET_PROC;       // Per-processor socket state.
 
+typedef enum QUIC_SOCKET_TYPE {
+    QUIC_SOCKET_UDP             = 0,
+    QUIC_SOCKET_TCP_LISTENER    = 1,
+    QUIC_SOCKET_TCP             = 2,
+    QUIC_SOCKET_TCP_SERVER      = 3
+} QUIC_SOCKET_TYPE;
+
 //
 // Internal receive context.
 //
@@ -260,7 +267,7 @@ typedef struct QUIC_SOCKET {
     //
     // The index of the affinitized receive processor for a connected socket.
     //
-    uint16_t ConnectedProcessorAffinity;
+    uint16_t ProcessorAffinity;
 
     //
     // Parent datapath.
@@ -465,6 +472,18 @@ QuicDataPathDatagramToInternalDatagramContext(
     return (QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*)
         (((PUCHAR)Datagram) + sizeof(QUIC_RECV_DATA));
 }
+
+QUIC_STATUS
+QuicSocketStartReceive(
+    _In_ QUIC_SOCKET_PROC* SocketProc,
+    _In_ QUIC_DATAPATH_PROC* DatapathProc
+    );
+
+QUIC_STATUS
+QuicSocketStartAccept(
+    _In_ QUIC_SOCKET_PROC* SocketProc,
+    _In_ QUIC_DATAPATH_PROC* DatapathProc
+    );
 
 //
 // Callback function for IOCP Worker Thread.
@@ -1145,23 +1164,10 @@ Exit:
     return Status;
 }
 
-QUIC_STATUS
-QuicSocketStartReceive(
-    _In_ QUIC_SOCKET_PROC* SocketProc,
-    _In_ QUIC_DATAPATH_PROC* DatapathProc
-    );
-
-QUIC_STATUS
-QuicSocketStartAccept(
-    _In_ QUIC_SOCKET_PROC* SocketProc,
-    _In_ QUIC_DATAPATH_PROC* DatapathProc
-    );
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketCreate(
+QuicSocketCreateUdp(
     _In_ QUIC_DATAPATH* Datapath,
-    _In_ QUIC_SOCKET_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
@@ -1171,12 +1177,8 @@ QuicSocketCreate(
     QUIC_STATUS Status;
     int Result;
     int Option;
-    BOOLEAN IsUdpSocket = Type == QUIC_SOCKET_UDP;
     BOOLEAN IsServerSocket = RemoteAddress == NULL;
-    uint16_t SocketCount = (IsUdpSocket && IsServerSocket) ? Datapath->ProcCount : 1;
-
-    QUIC_DBG_ASSERT(Type != QUIC_SOCKET_TCP_LISTENER || RemoteAddress == NULL);
-    QUIC_DBG_ASSERT(Type != QUIC_SOCKET_TCP_LISTENER || Datapath->AcceptHandler != NULL);
+    uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
 
     uint32_t SocketLength =
         sizeof(QUIC_SOCKET) + SocketCount * sizeof(QUIC_SOCKET_PROC);
@@ -1202,8 +1204,8 @@ QuicSocketCreate(
     Socket->Datapath = Datapath;
     Socket->ClientContext = RecvCallbackContext;
     Socket->HasFixedRemoteAddress = (RemoteAddress != NULL);
-    Socket->Internal = (Type == QUIC_SOCKET_TCP_SERVER);
-    Socket->Type = Type;
+    Socket->Internal = FALSE;
+    Socket->Type = QUIC_SOCKET_UDP;
     if (LocalAddress) {
         QuicConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
     } else {
@@ -1215,12 +1217,10 @@ QuicSocketCreate(
     for (uint16_t i = 0; i < SocketCount; i++) {
         Socket->Processors[i].Parent = Socket;
         Socket->Processors[i].Socket = INVALID_SOCKET;
-        if (Type != QUIC_SOCKET_TCP_LISTENER) {
-            Socket->Processors[i].RecvWsaBuf.len =
-                (Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING) ?
-                    MAX_URO_PAYLOAD_LENGTH :
-                    Socket->Mtu - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE;
-        }
+        Socket->Processors[i].RecvWsaBuf.len =
+            (Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING) ?
+                MAX_URO_PAYLOAD_LENGTH :
+                Socket->Mtu - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE;
         QuicRundownInitialize(&Socket->Processors[i].UpcallRundown);
     }
 
@@ -1233,8 +1233,8 @@ QuicSocketCreate(
         SocketProc->Socket =
             WSASocketW(
                 AF_INET6,
-                IsUdpSocket ? SOCK_DGRAM : SOCK_STREAM,
-                IsUdpSocket ? IPPROTO_UDP : IPPROTO_TCP,
+                SOCK_DGRAM,
+                IPPROTO_UDP,
                 NULL,
                 0,
                 WSA_FLAG_OVERLAPPED);
@@ -1274,201 +1274,199 @@ QuicSocketCreate(
             goto Error;
         }
 
-        if (IsUdpSocket) {
-            if (RemoteAddress == NULL) {
-                uint16_t Processor = i; // API only supports 16-bit proc index.
-                Result =
-                    WSAIoctl(
-                        SocketProc->Socket,
-                        SIO_CPU_AFFINITY,
-                        &Processor,
-                        sizeof(Processor),
-                        NULL,
-                        0,
-                        &BytesReturned,
-                        NULL,
-                        NULL);
-                if (Result != NO_ERROR) {
-                    int WsaError = WSAGetLastError();
-                    QuicTraceEvent(
-                        DatapathErrorStatus,
-                        "[ udp][%p] ERROR, %u, %s.",
-                        Socket,
-                        WsaError,
-                        "SIO_CPU_AFFINITY");
-                    Status = HRESULT_FROM_WIN32(WsaError);
-                    goto Error;
-                }
-            }
-
-            Option = TRUE;
+        if (RemoteAddress == NULL) {
+            uint16_t Processor = i; // API only supports 16-bit proc index.
             Result =
-                setsockopt(
+                WSAIoctl(
                     SocketProc->Socket,
-                    IPPROTO_IP,
-                    IP_DONTFRAGMENT,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
+                    SIO_CPU_AFFINITY,
+                    &Processor,
+                    sizeof(Processor),
+                    NULL,
+                    0,
+                    &BytesReturned,
+                    NULL,
+                    NULL);
+            if (Result != NO_ERROR) {
                 int WsaError = WSAGetLastError();
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[ udp][%p] ERROR, %u, %s.",
                     Socket,
                     WsaError,
-                    "Set IP_DONTFRAGMENT");
+                    "SIO_CPU_AFFINITY");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
+        }
 
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    SocketProc->Socket,
-                    IPPROTO_IPV6,
-                    IPV6_DONTFRAG,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set IPV6_DONTFRAG");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketProc->Socket,
+                IPPROTO_IP,
+                IP_DONTFRAGMENT,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set IP_DONTFRAGMENT");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
 
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    SocketProc->Socket,
-                    IPPROTO_IPV6,
-                    IPV6_PKTINFO,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set IPV6_PKTINFO");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketProc->Socket,
+                IPPROTO_IPV6,
+                IPV6_DONTFRAG,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set IPV6_DONTFRAG");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
 
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    SocketProc->Socket,
-                    IPPROTO_IP,
-                    IP_PKTINFO,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set IP_PKTINFO");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketProc->Socket,
+                IPPROTO_IPV6,
+                IPV6_PKTINFO,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set IPV6_PKTINFO");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
 
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    SocketProc->Socket,
-                    IPPROTO_IPV6,
-                    IPV6_ECN,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set IPV6_ECN");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketProc->Socket,
+                IPPROTO_IP,
+                IP_PKTINFO,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set IP_PKTINFO");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
 
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    SocketProc->Socket,
-                    IPPROTO_IP,
-                    IP_ECN,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set IP_ECN");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketProc->Socket,
+                IPPROTO_IPV6,
+                IPV6_ECN,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set IPV6_ECN");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
 
-            //
-            // The socket is shared by multiple endpoints, so increase the receive
-            // buffer size.
-            //
-            Option = MAXINT32;
-            Result =
-                setsockopt(
-                    SocketProc->Socket,
-                    SOL_SOCKET,
-                    SO_RCVBUF,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set SO_RCVBUF");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketProc->Socket,
+                IPPROTO_IP,
+                IP_ECN,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set IP_ECN");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+
+        //
+        // The socket is shared by multiple endpoints, so increase the receive
+        // buffer size.
+        //
+        Option = MAXINT32;
+        Result =
+            setsockopt(
+                SocketProc->Socket,
+                SOL_SOCKET,
+                SO_RCVBUF,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set SO_RCVBUF");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
 
 #ifdef UDP_RECV_MAX_COALESCED_SIZE
-            if (Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING) {
-                Option = MAX_URO_PAYLOAD_LENGTH;
-                Result =
-                    setsockopt(
-                        SocketProc->Socket,
-                        IPPROTO_UDP,
-                        UDP_RECV_MAX_COALESCED_SIZE,
-                        (char*)&Option,
-                        sizeof(Option));
-                if (Result == SOCKET_ERROR) {
-                    int WsaError = WSAGetLastError();
-                    QuicTraceEvent(
-                        DatapathErrorStatus,
-                        "[ udp][%p] ERROR, %u, %s.",
-                        Socket,
-                        WsaError,
-                        "Set UDP_RECV_MAX_COALESCED_SIZE");
-                    Status = HRESULT_FROM_WIN32(WsaError);
-                    goto Error;
-                }
+        if (Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING) {
+            Option = MAX_URO_PAYLOAD_LENGTH;
+            Result =
+                setsockopt(
+                    SocketProc->Socket,
+                    IPPROTO_UDP,
+                    UDP_RECV_MAX_COALESCED_SIZE,
+                    (char*)&Option,
+                    sizeof(Option));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[ udp][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "Set UDP_RECV_MAX_COALESCED_SIZE");
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
             }
-#endif
         }
+#endif
 
         //
         // Disable automatic IO completions being queued if the call completes
@@ -1492,35 +1490,54 @@ QuicSocketCreate(
         if (RemoteAddress != NULL) {
             AffinitizedProcessor =
                 ((uint16_t)QuicProcCurrentNumber()) % Datapath->ProcCount;
-            Socket->ConnectedProcessorAffinity = AffinitizedProcessor;
+            Socket->ProcessorAffinity = AffinitizedProcessor;
         }
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-        if (Type != QUIC_SOCKET_TCP_SERVER) {
+        if (Datapath->Processors[AffinitizedProcessor].IOCP !=
+            CreateIoCompletionPort(
+                (HANDLE)SocketProc->Socket,
+                Datapath->Processors[AffinitizedProcessor].IOCP,
+                (ULONG_PTR)SocketProc,
+                0)) {
+            DWORD LastError = GetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                LastError,
+                "CreateIoCompletionPort");
+            Status = HRESULT_FROM_WIN32(LastError);
+            goto Error;
+        }
 
-            if (Datapath->Processors[AffinitizedProcessor].IOCP !=
-                CreateIoCompletionPort(
-                    (HANDLE)SocketProc->Socket,
-                    Datapath->Processors[AffinitizedProcessor].IOCP,
-                    (ULONG_PTR)SocketProc,
-                    0)) {
-                DWORD LastError = GetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
-                    Socket,
-                    LastError,
-                    "CreateIoCompletionPort");
-                Status = HRESULT_FROM_WIN32(LastError);
-                goto Error;
-            }
+        Result =
+            bind(
+                SocketProc->Socket,
+                (PSOCKADDR)&Socket->LocalAddress,
+                sizeof(Socket->LocalAddress));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "bind");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+
+        if (RemoteAddress != NULL) {
+            SOCKADDR_INET MappedRemoteAddress = { 0 };
+            QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
             Result =
-                bind(
+                connect(
                     SocketProc->Socket,
-                    (PSOCKADDR)&Socket->LocalAddress,
-                    sizeof(Socket->LocalAddress));
+                    (PSOCKADDR)&MappedRemoteAddress,
+                    sizeof(MappedRemoteAddress));
             if (Result == SOCKET_ERROR) {
                 int WsaError = WSAGetLastError();
                 QuicTraceEvent(
@@ -1528,108 +1545,40 @@ QUIC_DISABLED_BY_FUZZER_START;
                     "[ udp][%p] ERROR, %u, %s.",
                     Socket,
                     WsaError,
-                    "bind");
+                    "connect");
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+        }
+
+        if (i == 0) {
+
+            //
+            // If no specific local port was indicated, then the stack just
+            // assigned this socket a port. We need to query it and use it for
+            // all the other sockets we are going to create.
+            //
+
+            int AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
+            Result =
+                getsockname(
+                    SocketProc->Socket,
+                    (PSOCKADDR)&Socket->LocalAddress,
+                    &AssignedLocalAddressLength);
+            if (Result == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[ udp][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "getsockaddress");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
 
-            if (RemoteAddress != NULL) {
-                SOCKADDR_INET MappedRemoteAddress = { 0 };
-                QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
-
-                if (Type == QUIC_SOCKET_UDP) {
-                    Result =
-                        connect(
-                            SocketProc->Socket,
-                            (PSOCKADDR)&MappedRemoteAddress,
-                            sizeof(MappedRemoteAddress));
-                    if (Result == SOCKET_ERROR) {
-                        int WsaError = WSAGetLastError();
-                        QuicTraceEvent(
-                            DatapathErrorStatus,
-                            "[ udp][%p] ERROR, %u, %s.",
-                            Socket,
-                            WsaError,
-                            "connect");
-                        Status = HRESULT_FROM_WIN32(WsaError);
-                        goto Error;
-                    }
-
-                } else {
-
-                    Result =
-                        Datapath->ConnectEx(
-                            SocketProc->Socket,
-                            (PSOCKADDR)&MappedRemoteAddress,
-                            sizeof(MappedRemoteAddress),
-                            NULL,
-                            0,
-                            &BytesReturned,
-                            &SocketProc->Overlapped);
-                    if (Result == FALSE) {
-                        int WsaError = WSAGetLastError();
-                        if (WsaError != WSA_IO_PENDING) {
-                            QuicTraceEvent(
-                                DatapathErrorStatus,
-                                "[ udp][%p] ERROR, %u, %s.",
-                                Socket,
-                                WsaError,
-                                "AcceptEx");
-                            Status = HRESULT_FROM_WIN32(WsaError);
-                            goto Error;
-                        }
-                    } else {
-                        //
-                        // Manually post IO completion if connect completed synchronously.
-                        //
-                        if (!PostQueuedCompletionStatus(
-                                Datapath->Processors[AffinitizedProcessor].IOCP,
-                                BytesReturned,
-                                (ULONG_PTR)SocketProc,
-                                &SocketProc->Overlapped)) {
-                            DWORD LastError = GetLastError();
-                            QuicTraceEvent(
-                                DatapathErrorStatus,
-                                "[ udp][%p] ERROR, %u, %s.",
-                                Socket,
-                                LastError,
-                                "PostQueuedCompletionStatus");
-                            Status = HRESULT_FROM_WIN32(LastError);
-                            goto Error;
-                        }
-    }
-                }
-            }
-
-            if (i == 0) {
-
-                //
-                // If no specific local port was indicated, then the stack just
-                // assigned this socket a port. We need to query it and use it for
-                // all the other sockets we are going to create.
-                //
-
-                int AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
-                Result =
-                    getsockname(
-                        SocketProc->Socket,
-                        (PSOCKADDR)&Socket->LocalAddress,
-                        &AssignedLocalAddressLength);
-                if (Result == SOCKET_ERROR) {
-                    int WsaError = WSAGetLastError();
-                    QuicTraceEvent(
-                        DatapathErrorStatus,
-                        "[ udp][%p] ERROR, %u, %s.",
-                        Socket,
-                        WsaError,
-                        "getsockaddress");
-                    Status = HRESULT_FROM_WIN32(WsaError);
-                    goto Error;
-                }
-
-                if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-                    QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
-                }
+            if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
+                QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
             }
         }
 
@@ -1644,9 +1593,7 @@ QUIC_DISABLED_BY_FUZZER_END;
         Socket->RemoteAddress.Ipv4.sin_port = 0;
     }
 
-    if (Type == QUIC_SOCKET_UDP) {
-        Socket->ConnectComplete = TRUE;
-    }
+    Socket->ConnectComplete = TRUE;
 
     //
     // Must set output pointer before starting receive path, as the receive path
@@ -1657,41 +1604,14 @@ QUIC_DISABLED_BY_FUZZER_END;
     Socket->ProcsOutstanding = (short)SocketCount;
     for (uint16_t i = 0; i < SocketCount; i++) {
         uint16_t Processor =
-            Socket->HasFixedRemoteAddress ? Socket->ConnectedProcessorAffinity : i;
+            Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : i;
 
-        if (Type == QUIC_SOCKET_TCP_LISTENER) {
-            Result =
-                listen(
-                    Socket->Processors[i].Socket,
-                    100);
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "listen");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
-
-            Status =
-                QuicSocketStartAccept(
-                    &Socket->Processors[i],
-                    &Datapath->Processors[Processor]);
-            if (QUIC_FAILED(Status)) {
-                goto Error;
-            }
-
-        } else if (Type == QUIC_SOCKET_UDP) {
-            Status =
-                QuicSocketStartReceive(
-                    &Socket->Processors[i],
-                    &Datapath->Processors[Processor]);
-            if (QUIC_FAILED(Status)) {
-                goto Error;
-            }
+        Status =
+            QuicSocketStartReceive(
+                &Socket->Processors[i],
+                &Datapath->Processors[Processor]);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
         }
     }
 
@@ -1709,7 +1629,7 @@ Error:
                 for (uint16_t i = 0; i < SocketCount; i++) {
                     QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[i];
                     uint16_t Processor =
-                         Socket->HasFixedRemoteAddress ? Socket->ConnectedProcessorAffinity : i;
+                         Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : i;
 
 QUIC_DISABLED_BY_FUZZER_START;
 
@@ -1741,6 +1661,550 @@ QUIC_DISABLED_BY_FUZZER_END;
 
                     QuicRundownUninitialize(&SocketProc->UpcallRundown);
                 }
+                QuicRundownRelease(&Datapath->SocketsRundown);
+                QUIC_FREE(Socket, QUIC_POOL_SOCKET);
+            }
+        }
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSocketCreateTcpInternal(
+    _In_ QUIC_DATAPATH* Datapath,
+    _In_ QUIC_SOCKET_TYPE Type,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* RecvCallbackContext,
+    _Out_ QUIC_SOCKET** NewSocket
+    )
+{
+    QUIC_STATUS Status;
+    int Result;
+    int Option;
+    DWORD BytesReturned;
+
+    QUIC_SOCKET_PROC* SocketProc = NULL;
+    uint32_t SocketLength = sizeof(QUIC_SOCKET) + sizeof(QUIC_SOCKET_PROC);
+    QUIC_SOCKET* Socket = QUIC_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
+    if (Socket == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_SOCKET",
+            SocketLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    QuicTraceEvent(
+        DatapathCreated,
+        "[ udp][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        Socket,
+        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+
+    ZeroMemory(Socket, SocketLength);
+    Socket->Datapath = Datapath;
+    Socket->ClientContext = RecvCallbackContext;
+    Socket->HasFixedRemoteAddress = TRUE;
+    Socket->Internal = (Type == QUIC_SOCKET_TCP_SERVER);
+    Socket->Type = Type;
+    if (LocalAddress) {
+        QuicConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
+    } else {
+        Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
+    }
+    if (RemoteAddress) {
+        Socket->ProcessorAffinity =
+            ((uint16_t)QuicProcCurrentNumber()) % Datapath->ProcCount;
+    }
+    Socket->Mtu = QUIC_MAX_MTU;
+    QuicRundownAcquire(&Datapath->SocketsRundown);
+
+    SocketProc = &Socket->Processors[0];
+    SocketProc->Parent = Socket;
+    SocketProc->Socket = INVALID_SOCKET;
+    SocketProc->RecvWsaBuf.len = MAX_URO_PAYLOAD_LENGTH;
+    QuicRundownInitialize(&SocketProc->UpcallRundown);
+
+    SocketProc->Socket =
+        WSASocketW(
+            AF_INET6,
+            SOCK_STREAM,
+            IPPROTO_TCP,
+            NULL,
+            0,
+            WSA_FLAG_OVERLAPPED);
+    if (SocketProc->Socket == INVALID_SOCKET) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Socket,
+            WsaError,
+            "WSASocketW");
+        Status = HRESULT_FROM_WIN32(WsaError);
+        goto Error;
+    }
+
+    Option = FALSE;
+    Result =
+        setsockopt(
+            SocketProc->Socket,
+            IPPROTO_IPV6,
+            IPV6_V6ONLY,
+            (char*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Socket,
+            WsaError,
+            "Set IPV6_V6ONLY");
+        Status = HRESULT_FROM_WIN32(WsaError);
+        goto Error;
+    }
+
+    //
+    // Disable automatic IO completions being queued if the call completes
+    // synchronously. This is because we want to be able to complete sends
+    // inline, if possible.
+    //
+    if (!SetFileCompletionNotificationModes(
+            (HANDLE)SocketProc->Socket,
+            FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
+        DWORD LastError = GetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Socket,
+            LastError,
+            "SetFileCompletionNotificationModes");
+        Status = HRESULT_FROM_WIN32(LastError);
+        goto Error;
+    }
+
+    if (Type != QUIC_SOCKET_TCP_SERVER) {
+
+        if (Datapath->Processors[Socket->ProcessorAffinity].IOCP !=
+            CreateIoCompletionPort(
+                (HANDLE)SocketProc->Socket,
+                Datapath->Processors[Socket->ProcessorAffinity].IOCP,
+                (ULONG_PTR)SocketProc,
+                0)) {
+            DWORD LastError = GetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                LastError,
+                "CreateIoCompletionPort");
+            Status = HRESULT_FROM_WIN32(LastError);
+            goto Error;
+        }
+
+        Result =
+            bind(
+                SocketProc->Socket,
+                (PSOCKADDR)&Socket->LocalAddress,
+                sizeof(Socket->LocalAddress));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "bind");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+
+        if (RemoteAddress != NULL) {
+            SOCKADDR_INET MappedRemoteAddress = { 0 };
+            QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+
+            Result =
+                Datapath->ConnectEx(
+                    SocketProc->Socket,
+                    (PSOCKADDR)&MappedRemoteAddress,
+                    sizeof(MappedRemoteAddress),
+                    NULL,
+                    0,
+                    &BytesReturned,
+                    &SocketProc->Overlapped);
+            if (Result == FALSE) {
+                int WsaError = WSAGetLastError();
+                if (WsaError != WSA_IO_PENDING) {
+                    QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[ udp][%p] ERROR, %u, %s.",
+                        Socket,
+                        WsaError,
+                        "AcceptEx");
+                    Status = HRESULT_FROM_WIN32(WsaError);
+                    goto Error;
+                }
+            } else {
+                //
+                // Manually post IO completion if connect completed synchronously.
+                //
+                if (!PostQueuedCompletionStatus(
+                        Datapath->Processors[Socket->ProcessorAffinity].IOCP,
+                        BytesReturned,
+                        (ULONG_PTR)SocketProc,
+                        &SocketProc->Overlapped)) {
+                    DWORD LastError = GetLastError();
+                    QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[ udp][%p] ERROR, %u, %s.",
+                        Socket,
+                        LastError,
+                        "PostQueuedCompletionStatus");
+                    Status = HRESULT_FROM_WIN32(LastError);
+                    goto Error;
+                }
+            }
+        }
+
+        //
+        // If no specific local port was indicated, then the stack just
+        // assigned this socket a port. We need to query it and use it for
+        // all the other sockets we are going to create.
+        //
+
+        int AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
+        Result =
+            getsockname(
+                SocketProc->Socket,
+                (PSOCKADDR)&Socket->LocalAddress,
+                &AssignedLocalAddressLength);
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "getsockaddress");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+
+        if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
+            QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
+        }
+    }
+
+    QuicConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
+
+    if (RemoteAddress != NULL) {
+        Socket->RemoteAddress = *RemoteAddress;
+    } else {
+        Socket->RemoteAddress.Ipv4.sin_port = 0;
+    }
+
+    Socket->ProcsOutstanding = 1;
+
+    *NewSocket = Socket;
+
+    Status = QUIC_STATUS_SUCCESS;
+
+Error:
+
+    if (QUIC_FAILED(Status)) {
+        if (Socket != NULL) {
+            QuicTraceEvent(
+                DatapathDestroyed,
+                "[ udp][%p] Destroyed",
+                Socket);
+            if (Socket->ProcsOutstanding != 0) {
+
+                CancelIo((HANDLE)SocketProc->Socket);
+                closesocket(SocketProc->Socket);
+
+                //
+                // Queue a completion to clean up the socket context.
+                //
+                PostQueuedCompletionStatus(
+                    Socket->Datapath->Processors[Socket->ProcessorAffinity].IOCP,
+                    UINT32_MAX,
+                    (ULONG_PTR)SocketProc,
+                    &SocketProc->Overlapped);
+            } else {
+
+                if (SocketProc->Socket != INVALID_SOCKET) {
+                    closesocket(SocketProc->Socket);
+                }
+                QuicRundownUninitialize(&SocketProc->UpcallRundown);
+
+                QuicRundownRelease(&Datapath->SocketsRundown);
+                QUIC_FREE(Socket, QUIC_POOL_SOCKET);
+            }
+        }
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSocketCreateTcp(
+    _In_ QUIC_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* CallbackContext,
+    _Out_ QUIC_SOCKET** Socket
+    )
+{
+    return
+        QuicSocketCreateTcpInternal(
+            Datapath,
+            QUIC_SOCKET_TCP,
+            LocalAddress,
+            RemoteAddress,
+            CallbackContext,
+            Socket);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSocketCreateTcpListener(
+    _In_ QUIC_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ void* RecvCallbackContext,
+    _Out_ QUIC_SOCKET** NewSocket
+    )
+{
+    QUIC_STATUS Status;
+    int Result;
+    int Option;
+
+    QUIC_DBG_ASSERT(Datapath->AcceptHandler != NULL);
+
+    QUIC_SOCKET_PROC* SocketProc = NULL;
+    uint32_t SocketLength = sizeof(QUIC_SOCKET) + sizeof(QUIC_SOCKET_PROC);
+    QUIC_SOCKET* Socket = QUIC_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
+    if (Socket == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_SOCKET",
+            SocketLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    QuicTraceEvent(
+        DatapathCreated,
+        "[ udp][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        Socket,
+        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CLOG_BYTEARRAY(0, NULL));
+
+    ZeroMemory(Socket, SocketLength);
+    Socket->Datapath = Datapath;
+    Socket->ClientContext = RecvCallbackContext;
+    Socket->HasFixedRemoteAddress = FALSE;
+    Socket->Internal = FALSE;
+    Socket->Type = QUIC_SOCKET_TCP_LISTENER;
+    if (LocalAddress) {
+        QuicConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
+    } else {
+        Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
+    }
+    Socket->Mtu = QUIC_MAX_MTU;
+    QuicRundownAcquire(&Datapath->SocketsRundown);
+
+    SocketProc = &Socket->Processors[0];
+    SocketProc->Parent = Socket;
+    SocketProc->Socket = INVALID_SOCKET;
+    QuicRundownInitialize(&SocketProc->UpcallRundown);
+
+    SocketProc->Socket =
+        WSASocketW(
+            AF_INET6,
+            SOCK_STREAM,
+            IPPROTO_TCP,
+            NULL,
+            0,
+            WSA_FLAG_OVERLAPPED);
+    if (SocketProc->Socket == INVALID_SOCKET) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Socket,
+            WsaError,
+            "WSASocketW");
+        Status = HRESULT_FROM_WIN32(WsaError);
+        goto Error;
+    }
+
+    Option = FALSE;
+    Result =
+        setsockopt(
+            SocketProc->Socket,
+            IPPROTO_IPV6,
+            IPV6_V6ONLY,
+            (char*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Socket,
+            WsaError,
+            "Set IPV6_V6ONLY");
+        Status = HRESULT_FROM_WIN32(WsaError);
+        goto Error;
+    }
+
+    //
+    // Disable automatic IO completions being queued if the call completes
+    // synchronously. This is because we want to be able to complete sends
+    // inline, if possible.
+    //
+    if (!SetFileCompletionNotificationModes(
+            (HANDLE)SocketProc->Socket,
+            FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
+        DWORD LastError = GetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Socket,
+            LastError,
+            "SetFileCompletionNotificationModes");
+        Status = HRESULT_FROM_WIN32(LastError);
+        goto Error;
+    }
+
+    if (Datapath->Processors[Socket->ProcessorAffinity].IOCP !=
+        CreateIoCompletionPort(
+            (HANDLE)SocketProc->Socket,
+            Datapath->Processors[Socket->ProcessorAffinity].IOCP,
+            (ULONG_PTR)SocketProc,
+            0)) {
+        DWORD LastError = GetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Socket,
+            LastError,
+            "CreateIoCompletionPort");
+        Status = HRESULT_FROM_WIN32(LastError);
+        goto Error;
+    }
+
+    Result =
+        bind(
+            SocketProc->Socket,
+            (PSOCKADDR)&Socket->LocalAddress,
+            sizeof(Socket->LocalAddress));
+    if (Result == SOCKET_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Socket,
+            WsaError,
+            "bind");
+        Status = HRESULT_FROM_WIN32(WsaError);
+        goto Error;
+    }
+
+    //
+    // If no specific local port was indicated, then the stack just
+    // assigned this socket a port. We need to query it and use it for
+    // all the other sockets we are going to create.
+    //
+
+    int AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
+    Result =
+        getsockname(
+            SocketProc->Socket,
+            (PSOCKADDR)&Socket->LocalAddress,
+            &AssignedLocalAddressLength);
+    if (Result == SOCKET_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Socket,
+            WsaError,
+            "getsockaddress");
+        Status = HRESULT_FROM_WIN32(WsaError);
+        goto Error;
+    }
+
+    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
+        QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
+    }
+
+    QuicConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
+
+    Result =
+        listen(
+            SocketProc->Socket,
+            100);
+    if (Result == SOCKET_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Socket,
+            WsaError,
+            "listen");
+        Status = HRESULT_FROM_WIN32(WsaError);
+        goto Error;
+    }
+
+    Socket->ProcsOutstanding = 1;
+
+    Status =
+        QuicSocketStartAccept(
+            SocketProc,
+            &Datapath->Processors[Socket->ProcessorAffinity]);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    *NewSocket = Socket;
+    Status = QUIC_STATUS_SUCCESS;
+
+Error:
+
+    if (QUIC_FAILED(Status)) {
+        if (Socket != NULL) {
+            QuicTraceEvent(
+                DatapathDestroyed,
+                "[ udp][%p] Destroyed",
+                Socket);
+            if (Socket->ProcsOutstanding != 0) {
+                CancelIo((HANDLE)SocketProc->Socket);
+                closesocket(SocketProc->Socket);
+
+                //
+                // Queue a completion to clean up the socket context.
+                //
+                PostQueuedCompletionStatus(
+                    Datapath->Processors[Socket->ProcessorAffinity].IOCP,
+                    UINT32_MAX,
+                    (ULONG_PTR)SocketProc,
+                    &SocketProc->Overlapped);
+            } else {
+
+                if (SocketProc->Socket != INVALID_SOCKET) {
+                    closesocket(SocketProc->Socket);
+                }
+                QuicRundownUninitialize(&SocketProc->UpcallRundown);
+
                 QuicRundownRelease(&Datapath->SocketsRundown);
                 QUIC_FREE(Socket, QUIC_POOL_SOCKET);
             }
@@ -1792,7 +2256,7 @@ QuicSocketDelete(
 
     } else if (Socket->HasFixedRemoteAddress || Socket->Type != QUIC_SOCKET_UDP) {
         QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[0];
-        uint32_t Processor = Socket->ConnectedProcessorAffinity;
+        uint32_t Processor = Socket->ProcessorAffinity;
         QUIC_DBG_ASSERT(
             Datapath->Processors[Processor].ThreadId != GetCurrentThreadId());
         if (Socket->Type == QUIC_SOCKET_TCP ||
@@ -1965,7 +2429,7 @@ QuicSocketStartAccept(
     //
     if (ListenerSocketProc->AcceptSocket == NULL) {
         Status =
-            QuicSocketCreate(
+            QuicSocketCreateTcpInternal(
                 Datapath,
                 QUIC_SOCKET_TCP_SERVER,
                 NULL,
@@ -2052,7 +2516,7 @@ QuicDataPathAcceptComplete(
         QUIC_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
 
         AcceptSocketProc->Parent->ConnectComplete = TRUE;
-        AcceptSocketProc->Parent->ConnectedProcessorAffinity = 0;
+        AcceptSocketProc->Parent->ProcessorAffinity = 0;
         // TODO - Query for RSS info
 
         QuicTraceEvent(

@@ -299,15 +299,14 @@ QUIC_THREAD_CALLBACK(RunAttackThread, /* Context */)
 {
     QUIC_SOCKET* Binding;
     QUIC_STATUS Status =
-        QuicSocketCreate(
+        QuicSocketCreateUdp(
             Datapath,
-            QUIC_SOCKET_UDP,
             nullptr,
             &ServerAddress,
             nullptr,
             &Binding);
     if (QUIC_FAILED(Status)) {
-        printf("QuicSocketCreate failed, 0x%x\n", Status);
+        printf("QuicSocketCreateUdp failed, 0x%x\n", Status);
         QUIC_THREAD_RETURN(Status);
     }
 

@@ -165,9 +165,8 @@ struct DrillSender {
         }
 
         Status =
-            QuicSocketCreate(
+            QuicSocketCreateUdp(
                 Datapath,
-                QUIC_SOCKET_UDP,
                 nullptr,
                 &ServerAddress,
                 this,

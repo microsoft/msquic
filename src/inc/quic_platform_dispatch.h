@@ -130,7 +130,7 @@ void
 
 typedef
 uint16_t
-(*QUIC_DATPATH_Socket_GET_LOCAL_MTU)(
+(*QUIC_DATPATH_SOCKET_GET_LOCAL_MTU)(
     _In_ QUIC_SOCKET* Socket
     );
 
@@ -242,15 +242,15 @@ typedef struct QUIC_PLATFORM_DISPATCH {
     QUIC_DATAPATH_RESOLVE_ADDRESS DatapathResolveAddress;
     QUIC_SOCKET_CREATE SocketCreate;
     QUIC_SOCKET_DELETE SocketDelete;
-    QUIC_DATPATH_Socket_GET_LOCAL_MTU SocketGetLocalMtu;
+    QUIC_DATPATH_SOCKET_GET_LOCAL_MTU SocketGetLocalMtu;
     QUIC_SOCKET_GET_LOCAL_ADDRESS SocketGetLocalAddress;
     QUIC_SOCKET_GET_REMOTE_ADDRESS SocketGetRemoteAddress;
     QUIC_RECV_DATA_RETURN RecvDataReturn;
-    QUIC_SEND_DATA_ALLOC QuicSendDataAlloc;
-    QUIC_SEND_DATA_FREE QuicSendDataFree;
-    QUIC_SEND_DATA_IS_FULL QuicSendDataIsFull;
-    QUIC_SEND_DATA_ALLOC_BUFFER QuicSendDataAllocBuffer;
-    QUIC_SEND_DATA_FREE_BUFFER QuicSendDataFreeBuffer;
+    QUIC_SEND_DATA_ALLOC SendDataAlloc;
+    QUIC_SEND_DATA_FREE SendDataFree;
+    QUIC_SEND_DATA_IS_FULL SendDataIsFull;
+    QUIC_SEND_DATA_ALLOC_BUFFER SendDataAllocBuffer;
+    QUIC_SEND_DATA_FREE_BUFFER SendDataFreeBuffer;
     QUIC_SOCKET_SEND SocketSend;
     QUIC_SOCKET_SET_PARAM SocketSetParam;
     QUIC_SOCKET_GET_PARAM SocketGetParam;
