@@ -81,12 +81,11 @@ QuicMainStart(
     if (ServerMode) {
         Datapath = nullptr;
         Binding = nullptr;
-        const QUIC_DATAPATH_CALLBACKS DatapathCallbacks = {
-            NULL,
+        const QUIC_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
             DatapathReceive,
             DatapathUnreachable
         };
-        Status = QuicDataPathInitialize(0, &DatapathCallbacks, &Datapath);
+        Status = QuicDataPathInitialize(0, &DatapathCallbacks, NULL, &Datapath);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
             return Status;

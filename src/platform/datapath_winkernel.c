@@ -398,10 +398,9 @@ typedef struct QUIC_DATAPATH {
     WSK_CLIENT_DATAGRAM_DISPATCH WskDispatch;
 
     //
-    // The client callback function pointers.
+    // The UDP callback function pointers.
     //
-    QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvHandler;
-    QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableHandler;
+    QUIC_UDP_DATAPATH_CALLBACKS UdpHandlers;
 
     //
     // The size of the buffer to allocate for client's receive context structure.
@@ -823,7 +822,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
-    _In_ const QUIC_DATAPATH_CALLBACKS* Callback,
+    _In_opt_ const QUIC_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
+    _In_opt_ const QUIC_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _Out_ QUIC_DATAPATH* *NewDataPath
     )
 {
@@ -838,13 +838,18 @@ QuicDataPathInitialize(
         WSK_EVENT_RECEIVE_FROM
     };
 
-    if (Callback == NULL ||
-        Callback->Receive == NULL ||
-        Callback->Unreachable == NULL ||
-        NewDataPath == NULL) {
+    UNREFERENCED_PARAMETER(TcpCallbacks);
+    if (NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         Datapath = NULL;
         goto Exit;
+    }
+    if (UdpCallbacks != NULL) {
+        if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            Datapath = NULL;
+            goto Exit;
+        }
     }
 
     DatapathLength =
@@ -863,8 +868,9 @@ QuicDataPathInitialize(
     }
 
     RtlZeroMemory(Datapath, DatapathLength);
-    Datapath->RecvHandler = Callback->Receive;
-    Datapath->UnreachableHandler = Callback->Unreachable;
+    if (UdpCallbacks) {
+        Datapath->UdpHandlers = *UdpCallbacks;
+    }
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = (uint32_t)QuicProcMaxCount();
     Datapath->WskDispatch.WskReceiveFromEvent = QuicDataPathSocketReceive;
@@ -1683,6 +1689,40 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSocketCreateTcp(
+    _In_ QUIC_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* CallbackContext,
+    _Out_ QUIC_SOCKET** Socket
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    UNREFERENCED_PARAMETER(LocalAddress);
+    UNREFERENCED_PARAMETER(RemoteAddress);
+    UNREFERENCED_PARAMETER(CallbackContext);
+    UNREFERENCED_PARAMETER(Socket);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSocketCreateTcpListener(
+    _In_ QUIC_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ void* CallbackContext,
+    _Out_ QUIC_SOCKET** Socket
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    UNREFERENCED_PARAMETER(LocalAddress);
+    UNREFERENCED_PARAMETER(CallbackContext);
+    UNREFERENCED_PARAMETER(Socket);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSocketDeleteComplete(
     _In_ QUIC_SOCKET* Binding
@@ -2036,8 +2076,8 @@ QuicDataPathSocketReceive(
                 CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
 #endif
 
-            QUIC_DBG_ASSERT(Binding->Datapath->UnreachableHandler);
-            Binding->Datapath->UnreachableHandler(
+            QUIC_DBG_ASSERT(Binding->Datapath->UdpHandlers.Unreachable);
+            Binding->Datapath->UdpHandlers.Unreachable(
                 Binding,
                 Binding->ClientContext,
                 &RemoteAddr);
@@ -2234,7 +2274,7 @@ QuicDataPathSocketReceive(
         //
         // Indicate all accepted datagrams.
         //
-        Binding->Datapath->RecvHandler(
+        Binding->Datapath->UdpHandlers.Receive(
             Binding,
             Binding->ClientContext,
             RecvDataChain);

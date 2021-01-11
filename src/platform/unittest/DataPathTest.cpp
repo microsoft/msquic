@@ -50,16 +50,12 @@ struct QuicAddr
 
     void Resolve(QUIC_ADDRESS_FAMILY af, const char* hostname) {
         UNREFERENCED_PARAMETER(af);
-        const QUIC_DATAPATH_CALLBACKS DatapathCallback = {
-            NULL,
-            (QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER)(1),
-            (QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER)(1),
-        };
         QUIC_DATAPATH* Datapath = nullptr;
         if (QUIC_FAILED(
             QuicDataPathInitialize(
                 0,
-                &DatapathCallback,
+                NULL,
+                NULL,
                 &Datapath))) {
             GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
         }
@@ -154,16 +150,6 @@ protected:
     static void TearDownTestSuite()
     {
         QUIC_FREE(ExpectedData, QUIC_POOL_TEST);
-    }
-
-    static void
-    EmptyAcceptCallback(
-        _In_ QUIC_SOCKET* /* ListenerSocket */,
-        _In_ void* /* ListenerContext */,
-        _In_ QUIC_SOCKET* /* ClientSocket */,
-        _Out_ void** /* ClientContext */
-        )
-    {
     }
 
     static void
@@ -280,6 +266,25 @@ protected:
     }
 
     static void
+    EmptyAcceptCallback(
+        _In_ QUIC_SOCKET* /* ListenerSocket */,
+        _In_ void* /* ListenerContext */,
+        _In_ QUIC_SOCKET* /* ClientSocket */,
+        _Out_ void** /* ClientContext */
+        )
+    {
+    }
+
+    static void
+    EmptyConnectCallback(
+        _In_ QUIC_SOCKET* /* Socket */,
+        _In_ void* /* Context */,
+        _In_ BOOLEAN /* Connected */
+        )
+    {
+    }
+
+    static void
     TcpAcceptCallback(
         _In_ QUIC_SOCKET* /* ListenerSocket */,
         _In_ void* ListenerContext,
@@ -292,6 +297,15 @@ protected:
     }
 
     static void
+    TcpConnectCallback(
+        _In_ QUIC_SOCKET* /* Socket */,
+        _In_ void* /* Context */,
+        _In_ BOOLEAN /* Connected */
+        )
+    {
+    }
+
+    static void
     TcpDataRecvCallback(
         _In_ QUIC_SOCKET* /* Socket */,
         _In_ void* /* Context */,
@@ -301,28 +315,31 @@ protected:
         QuicRecvDataReturn(RecvDataChain);
     }
 
-    const QUIC_DATAPATH_CALLBACKS EmptyDatapathCallbacks = {
-        EmptyAcceptCallback,
+    const QUIC_UDP_DATAPATH_CALLBACKS EmptyUdpCallbacks = {
         EmptyReceiveCallback,
         EmptyUnreachableCallback,
     };
 
-    const QUIC_DATAPATH_CALLBACKS UdpRecvDatapathCallbacks = {
-        EmptyAcceptCallback,
+    const QUIC_UDP_DATAPATH_CALLBACKS UdpRecvCallbacks = {
         UdpDataRecvCallback,
         EmptyUnreachableCallback,
     };
 
-    const QUIC_DATAPATH_CALLBACKS UdpRecvECT0DatapathCallbacks = {
-        EmptyAcceptCallback,
+    const QUIC_UDP_DATAPATH_CALLBACKS UdpRecvECT0Callbacks = {
         UdpDataRecvCallbackECT0,
         EmptyUnreachableCallback,
     };
 
-    const QUIC_DATAPATH_CALLBACKS TcpRecvDatapathCallbacks = {
+    const QUIC_TCP_DATAPATH_CALLBACKS EmptyTcpCallbacks = {
+        EmptyAcceptCallback,
+        EmptyConnectCallback,
+        EmptyReceiveCallback,
+    };
+
+    const QUIC_TCP_DATAPATH_CALLBACKS TcpRecvCallbacks = {
         TcpAcceptCallback,
+        TcpConnectCallback,
         TcpDataRecvCallback,
-        EmptyUnreachableCallback,
     };
 };
 
@@ -337,7 +354,30 @@ TEST_F(DataPathTest, Initialize)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            &EmptyDatapathCallbacks,
+            nullptr,
+            nullptr,
+            &Datapath));
+    ASSERT_NE(Datapath, nullptr);
+
+    QuicDataPathUninitialize(
+        Datapath);
+
+    VERIFY_QUIC_SUCCESS(
+        QuicDataPathInitialize(
+            0,
+            &EmptyUdpCallbacks,
+            nullptr,
+            &Datapath));
+    ASSERT_NE(Datapath, nullptr);
+
+    QuicDataPathUninitialize(
+        Datapath);
+
+    VERIFY_QUIC_SUCCESS(
+        QuicDataPathInitialize(
+            0,
+            nullptr,
+            &EmptyTcpCallbacks,
             &Datapath));
     ASSERT_NE(Datapath, nullptr);
 
@@ -347,38 +387,34 @@ TEST_F(DataPathTest, Initialize)
 
 TEST_F(DataPathTest, InitializeInvalid)
 {
-    const QUIC_DATAPATH_CALLBACKS DatapathCallbacksInvalid1 = {
-        NULL,
-        NULL,
+    const QUIC_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks1 = {
+        nullptr,
         EmptyUnreachableCallback,
     };
-    const QUIC_DATAPATH_CALLBACKS DatapathCallbacksInvalid2 = {
-        NULL,
+    const QUIC_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks2 = {
         EmptyReceiveCallback,
-        NULL,
+        nullptr,
     };
 
     ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
         QuicDataPathInitialize(
             0,
-            &EmptyDatapathCallbacks,
+            nullptr,
+            nullptr,
             nullptr));
 
     QUIC_DATAPATH* Datapath = nullptr;
     ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
         QuicDataPathInitialize(
             0,
-            NULL,
+            &InvalidUdpCallbacks1,
+            nullptr,
             &Datapath));
     ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
         QuicDataPathInitialize(
             0,
-            &DatapathCallbacksInvalid1,
-            &Datapath));
-    ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
-        QuicDataPathInitialize(
-            0,
-            &DatapathCallbacksInvalid2,
+            &InvalidUdpCallbacks2,
+            nullptr,
             &Datapath));
 }
 
@@ -390,7 +426,8 @@ TEST_F(DataPathTest, UdpBind)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            &EmptyDatapathCallbacks,
+            &EmptyUdpCallbacks,
+            nullptr,
             &Datapath));
     ASSERT_NE(Datapath, nullptr);
 
@@ -422,7 +459,8 @@ TEST_F(DataPathTest, UdpRebind)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            &EmptyDatapathCallbacks,
+            &EmptyUdpCallbacks,
+            nullptr,
             &Datapath));
     ASSERT_NE(nullptr, Datapath);
 
@@ -473,7 +511,8 @@ TEST_P(DataPathTest, UdpData)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            &UdpRecvDatapathCallbacks,
+            &UdpRecvCallbacks,
+            nullptr,
             &Datapath));
     ASSERT_NE(nullptr, Datapath);
 
@@ -555,7 +594,8 @@ TEST_P(DataPathTest, UdpDataRebind)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            &UdpRecvDatapathCallbacks,
+            &UdpRecvCallbacks,
+            nullptr,
             &Datapath));
     ASSERT_NE(nullptr, Datapath);
 
@@ -671,7 +711,8 @@ TEST_P(DataPathTest, UdpDataECT0)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            &UdpRecvECT0DatapathCallbacks,
+            &UdpRecvECT0Callbacks,
+            nullptr,
             &Datapath));
     ASSERT_NE(nullptr, Datapath);
 
@@ -747,7 +788,8 @@ TEST_F(DataPathTest, TcpListener)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            &EmptyDatapathCallbacks,
+            nullptr,
+            &EmptyTcpCallbacks,
             &Datapath));
     ASSERT_NE(Datapath, nullptr);
 
@@ -780,7 +822,8 @@ TEST_P(DataPathTest, TcpConnect)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            &TcpRecvDatapathCallbacks,
+            nullptr,
+            &TcpRecvCallbacks,
             &Datapath));
     ASSERT_NE(Datapath, nullptr);
 
@@ -842,7 +885,8 @@ TEST_P(DataPathTest, TcpData)
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            &TcpRecvDatapathCallbacks,
+            nullptr,
+            &TcpRecvCallbacks,
             &Datapath));
     ASSERT_NE(Datapath, nullptr);
 

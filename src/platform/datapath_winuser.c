@@ -407,11 +407,14 @@ typedef struct QUIC_DATAPATH {
     QUIC_RUNDOWN_REF SocketsRundown;
 
     //
-    // The client callback function pointers.
+    // The UDP callback function pointers.
     //
-    QUIC_DATAPATH_ACCEPT_CALLBACK_HANDLER AcceptHandler;
-    QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvHandler;
-    QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableHandler;
+    QUIC_UDP_DATAPATH_CALLBACKS UdpHandlers;
+
+    //
+    // The TCP callback function pointers.
+    //
+    QUIC_TCP_DATAPATH_CALLBACKS TcpHandlers;
 
     //
     // Size of the client's QUIC_RECV_PACKET.
@@ -722,8 +725,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
-    _In_ const QUIC_DATAPATH_CALLBACKS* Callbacks,
-    _Out_ QUIC_DATAPATH* *NewDataPath
+    _In_opt_ const QUIC_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
+    _In_opt_ const QUIC_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _Out_ QUIC_DATAPATH** NewDataPath
     )
 {
     int WsaError;
@@ -738,13 +742,26 @@ QuicDataPathInitialize(
         MaxProcCount = UINT16_MAX - 1;
     }
 
-    if (Callbacks == NULL ||
-        Callbacks->Receive == NULL ||
-        Callbacks->Unreachable == NULL ||
-        NewDataPath == NULL) {
+    if (NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         Datapath = NULL;
         goto Exit;
+    }
+    if (UdpCallbacks != NULL) {
+        if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            Datapath = NULL;
+            goto Exit;
+        }
+    }
+    if (TcpCallbacks != NULL) {
+        if (TcpCallbacks->Accept == NULL ||
+            TcpCallbacks->Connect == NULL ||
+            TcpCallbacks->Receive == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            Datapath = NULL;
+            goto Exit;
+        }
     }
 
     if ((WsaError = WSAStartup(MAKEWORD(2, 2), &WsaData)) != 0) {
@@ -774,9 +791,12 @@ QuicDataPathInitialize(
     }
 
     RtlZeroMemory(Datapath, DatapathLength);
-    Datapath->AcceptHandler = Callbacks->Accept;
-    Datapath->RecvHandler = Callbacks->Receive;
-    Datapath->UnreachableHandler = Callbacks->Unreachable;
+    if (UdpCallbacks) {
+        Datapath->UdpHandlers = *UdpCallbacks;
+    }
+    if (TcpCallbacks) {
+        Datapath->TcpHandlers = *TcpCallbacks;
+    }
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = (uint16_t)MaxProcCount;
     QuicRundownInitialize(&Datapath->SocketsRundown);
@@ -1179,6 +1199,8 @@ QuicSocketCreateUdp(
     int Option;
     BOOLEAN IsServerSocket = RemoteAddress == NULL;
     uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
+
+    QUIC_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
 
     uint32_t SocketLength =
         sizeof(QUIC_SOCKET) + SocketCount * sizeof(QUIC_SOCKET_PROC);
@@ -1686,6 +1708,8 @@ QuicSocketCreateTcpInternal(
     int Option;
     DWORD BytesReturned;
 
+    QUIC_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
+
     QUIC_SOCKET_PROC* SocketProc = NULL;
     uint32_t SocketLength = sizeof(QUIC_SOCKET) + sizeof(QUIC_SOCKET_PROC);
     QUIC_SOCKET* Socket = QUIC_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
@@ -1985,7 +2009,7 @@ QuicSocketCreateTcpListener(
     int Result;
     int Option;
 
-    QUIC_DBG_ASSERT(Datapath->AcceptHandler != NULL);
+    QUIC_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
     QUIC_SOCKET_PROC* SocketProc = NULL;
     uint32_t SocketLength = sizeof(QUIC_SOCKET) + sizeof(QUIC_SOCKET_PROC);
@@ -2568,7 +2592,7 @@ QuicDataPathAcceptComplete(
         }
 
         AcceptSocketProc->Parent->Internal = FALSE;
-        ListenerSocketProc->Parent->Datapath->AcceptHandler(
+        ListenerSocketProc->Parent->Datapath->TcpHandlers.Accept(
             ListenerSocketProc->Parent,
             ListenerSocketProc->Parent->ClientContext,
             ListenerSocketProc->AcceptSocket,
@@ -2615,7 +2639,6 @@ QuicDataPathConnectComplete(
     // TODO - Upcall to the app
 
     if (IoResult == QUIC_STATUS_SUCCESS) {
-        SocketProc->Parent->ConnectComplete = TRUE;
 
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -2623,6 +2646,12 @@ QuicDataPathConnectComplete(
             SocketProc->Parent,
             0,
             "ConnectEx Completed!");
+
+        SocketProc->Parent->ConnectComplete = TRUE;
+        SocketProc->Parent->Datapath->TcpHandlers.Connect(
+            SocketProc->Parent,
+            SocketProc->Parent->ClientContext,
+            TRUE);
 
         //
         // Try to start a new receive.
@@ -2636,6 +2665,11 @@ QuicDataPathConnectComplete(
             SocketProc->Parent,
             IoResult,
             "ConnectEx completion");
+
+        SocketProc->Parent->Datapath->TcpHandlers.Connect(
+            SocketProc->Parent,
+            SocketProc->Parent->ClientContext,
+            FALSE);
     }
 }
 
@@ -2660,8 +2694,7 @@ QuicSocketHandleUnreachableError(
         CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
 
-    QUIC_DBG_ASSERT(SocketProc->Parent->Datapath->UnreachableHandler);
-    SocketProc->Parent->Datapath->UnreachableHandler(
+    SocketProc->Parent->Datapath->UdpHandlers.Unreachable(
         SocketProc->Parent,
         SocketProc->Parent->ClientContext,
         RemoteAddr);
@@ -2975,7 +3008,6 @@ QuicDataPathRecvComplete(
             }
         }
 
-        QUIC_DBG_ASSERT(SocketProc->Parent->Datapath->RecvHandler);
         QUIC_DBG_ASSERT(RecvDataChain);
 
 #ifdef QUIC_FUZZER
@@ -2992,10 +3024,17 @@ QuicDataPathRecvComplete(
         }
 #endif
 
-        SocketProc->Parent->Datapath->RecvHandler(
-            SocketProc->Parent,
-            SocketProc->Parent->ClientContext,
-            RecvDataChain);
+        if (SocketProc->Parent->Type == QUIC_SOCKET_UDP) {
+            SocketProc->Parent->Datapath->UdpHandlers.Receive(
+                SocketProc->Parent,
+                SocketProc->Parent->ClientContext,
+                RecvDataChain);
+        } else {
+            SocketProc->Parent->Datapath->TcpHandlers.Receive(
+                SocketProc->Parent,
+                SocketProc->Parent->ClientContext,
+                RecvDataChain);
+        }
 
     } else {
         QuicTraceEvent(

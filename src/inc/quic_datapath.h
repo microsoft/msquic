@@ -225,6 +225,21 @@ void
 typedef QUIC_DATAPATH_ACCEPT_CALLBACK *QUIC_DATAPATH_ACCEPT_CALLBACK_HANDLER;
 
 //
+// Function pointer type for datapath TCP connect/disconnect callbacks.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(QUIC_DATAPATH_CONNECT_CALLBACK)
+void
+(QUIC_DATAPATH_CONNECT_CALLBACK)(
+    _In_ QUIC_SOCKET* Socket,
+    _In_ void* Context,
+    _In_ BOOLEAN Connected
+    );
+
+typedef QUIC_DATAPATH_CONNECT_CALLBACK *QUIC_DATAPATH_CONNECT_CALLBACK_HANDLER;
+
+//
 // Function pointer type for datapath receive callbacks.
 //
 typedef
@@ -255,15 +270,25 @@ void
 typedef QUIC_DATAPATH_UNREACHABLE_CALLBACK *QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER;
 
 //
-// Callback function pointers used by the datapath.
+// UDP Callback function pointers used by the datapath.
 //
-typedef struct QUIC_DATAPATH_CALLBACKS {
+typedef struct QUIC_UDP_DATAPATH_CALLBACKS {
 
-    QUIC_DATAPATH_ACCEPT_CALLBACK_HANDLER Accept;
     QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER Receive;
     QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER Unreachable;
 
-} QUIC_DATAPATH_CALLBACKS;
+} QUIC_UDP_DATAPATH_CALLBACKS;
+
+//
+// TCP Callback function pointers used by the datapath.
+//
+typedef struct QUIC_TCP_DATAPATH_CALLBACKS {
+
+    QUIC_DATAPATH_ACCEPT_CALLBACK_HANDLER Accept;
+    QUIC_DATAPATH_CONNECT_CALLBACK_HANDLER Connect;
+    QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER Receive;
+
+} QUIC_TCP_DATAPATH_CALLBACKS;
 
 //
 // Function pointer type for send complete callbacks.
@@ -288,7 +313,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
-    _In_ const QUIC_DATAPATH_CALLBACKS* Callbacks,
+    _In_opt_ const QUIC_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
+    _In_opt_ const QUIC_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _Out_ QUIC_DATAPATH** NewDatapath
     );
 

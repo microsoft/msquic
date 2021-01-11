@@ -146,15 +146,11 @@ main(int argc, char **argv)
 
     if (ServerIp == nullptr) {
         QUIC_DATAPATH* Datapath = nullptr;
-        const QUIC_DATAPATH_CALLBACKS DatapathCallbacks = {
-            NULL,
-            (QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER)(1),
-            (QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER)(1),
-        };
         if (QUIC_FAILED(
             QuicDataPathInitialize(
                 0,
-                &DatapathCallbacks,
+                NULL,
+                NULL,
                 &Datapath))) {
             printf("QuicDataPathInitialize failed.\n");
             exit(1);

@@ -131,8 +131,7 @@ struct DrillSender {
         _In_ uint16_t NetworkPort
         )
     {
-        const QUIC_DATAPATH_CALLBACKS DatapathCallbacks = {
-            NULL,
+        const QUIC_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
             DrillUdpRecvCallback,
             DrillUdpUnreachCallback,
         };
@@ -140,6 +139,7 @@ struct DrillSender {
             QuicDataPathInitialize(
                 0,
                 &DatapathCallbacks,
+                NULL,
                 &Datapath);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Datapath init failed 0x%x", Status);
