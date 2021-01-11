@@ -18,11 +18,11 @@ Abstract:
 #endif
 
 #ifdef PRIVATE_LIBRARY
-DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\quicperfdrv");
-DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceSymLink, L"\\DosDevices\\quicperfdrvpriv");
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperfdrv");
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperfdrvpriv");
 #else
-DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\quicperfdrv");
-DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceSymLink, L"\\DosDevices\\quicperfdrvpriv");
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperfdrv");
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperfdrvpriv");
 #endif
 
 typedef struct QUIC_DEVICE_EXTENSION {
