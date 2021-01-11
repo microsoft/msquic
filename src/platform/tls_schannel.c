@@ -1340,7 +1340,7 @@ QuicTlsSecConfigCreate(
                 KernelMode,
                 &Thread,
                 NULL);
-        NtClose(ThreadHandle);
+        ZwClose(ThreadHandle);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,

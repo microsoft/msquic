@@ -55,6 +55,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSYSAPI
 NTSTATUS
 NTAPI
+ZwClose(
+    _In_ HANDLE Handle
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSYSAPI
+NTSTATUS
+NTAPI
 ZwQueryInformationThread (
     _In_ HANDLE ThreadHandle,
     _In_ THREADINFOCLASS ThreadInformationClass,
@@ -839,7 +847,7 @@ QuicThreadCreate(
         Status = QUIC_STATUS_SUCCESS;
     }
 Cleanup:
-    NtClose(ThreadHandle);
+    ZwClose(ThreadHandle);
 Error:
     return Status;
 }
