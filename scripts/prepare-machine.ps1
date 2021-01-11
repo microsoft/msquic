@@ -42,7 +42,10 @@ param (
     [string]$Extra = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Kernel
+    [switch]$Kernel,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$FailOnError
 )
 
 #Requires -RunAsAdministrator
@@ -108,6 +111,9 @@ function Install-ClogTool {
         Write-Host "Installing: $NuGetName"
         dotnet tool update --global --add-source $NuGetPath $ToolName
     } catch {
+        if ($FailOnError) {
+            Write-Error $_
+        }
         $err = $_
         $MessagesAtEnd.Add("$ToolName could not be installed. Building with logs will not work")
         $MessagesAtEnd.Add($err.ToString())
