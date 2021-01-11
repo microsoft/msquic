@@ -17,7 +17,7 @@ Abstract:
 
     A certificate needs to be available for the server to function.
 
-    On windows, the following powershell command can be used to generate a self
+    On Windows, the following PowerShell command can be used to generate a self
     signed certificate with the correct settings. This works for both Schannel
     and OpenSSL TLS providers, assuming the KeyExportPolicy parameter is set to
     Exportable. The Thumbprint received from the command is then passed to this
@@ -25,11 +25,11 @@ Abstract:
 
     New-SelfSignedCertificate -DnsName $env:computername,localhost -FriendlyName MsQuic-Test -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable
 
-    On linux, the following command can be used to generate a self signed
+    On Linux, the following command can be used to generate a self signed
     certificate that works with the OpenSSL TLS Provider. This can also be used
-    for Windows OpenSSL, however we recommend the cert store method above for
-    ease of use. Currently key files with password protections are not supported.
-    With these files, they can be passed to the sample with
+    for Windows OpenSSL, however we recommend the certificate store method above
+    for ease of use. Currently key files with password protections are not
+    supported. With these files, they can be passed to the sample with
     -cert_file:path/to/server.cert -key_file path/to/server.key
 
     openssl req  -nodes -new -x509  -keyout server.key -out server.cert
