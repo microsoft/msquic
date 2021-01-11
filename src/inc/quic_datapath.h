@@ -36,6 +36,9 @@ extern "C" {
 //
 #define QUIC_UDP_HEADER_SIZE 8
 
+//
+// Different types of Explicit Congestion Notifications
+//
 typedef enum QUIC_ECN_TYPE {
 
     QUIC_ECN_NON_ECT = 0x0, // Non ECN-Capable Transport, Non-ECT
@@ -46,15 +49,9 @@ typedef enum QUIC_ECN_TYPE {
 } QUIC_ECN_TYPE;
 
 //
-// Helper to get the ECN type from the Type of Service field of a recieved
-// datagram.
+// Helper to get the ECN type from the Type of Service field of recieved data.
 //
 #define QUIC_ECN_FROM_TOS(ToS) (QUIC_ECN_TYPE)((ToS) & 0x3)
-
-//
-// The minimum allowed IP MTU for QUIC.
-//
-#define QUIC_MIN_MTU 1280
 
 //
 // The maximum IP MTU this implementation supports for QUIC.
@@ -115,18 +112,30 @@ PacketSizeFromUdpPayloadSize(
         UdpPayloadSize + QUIC_MIN_IPV6_HEADER_SIZE + QUIC_UDP_HEADER_SIZE;
 }
 
-typedef struct QUIC_BUFFER QUIC_BUFFER;
-
 //
-// Declaration for the DataPath context structures.
+// The top level datapath handle type.
 //
 typedef struct QUIC_DATAPATH QUIC_DATAPATH;
-typedef struct QUIC_DATAPATH_BINDING QUIC_DATAPATH_BINDING;
+
+//
+// Represents a UDP or TCP abstraction.
+//
+typedef struct QUIC_SOCKET QUIC_SOCKET;
 
 //
 // Can be defined to whatever the client needs.
 //
 typedef struct QUIC_RECV_PACKET QUIC_RECV_PACKET;
+
+//
+// Structure that maintains the 'per send' context.
+//
+typedef struct QUIC_SEND_DATA QUIC_SEND_DATA;
+
+//
+// Contains a pointer and length.
+//
+typedef struct QUIC_BUFFER QUIC_BUFFER;
 
 //
 // Structure to represent data buffers received.
@@ -139,14 +148,14 @@ typedef struct QUIC_TUPLE {
 } QUIC_TUPLE;
 
 //
-// Structure to represent received UDP datagrams.
+// Structure to represent received UDP datagrams or TCP data.
 //
-typedef struct QUIC_RECV_DATAGRAM {
+typedef struct QUIC_RECV_DATA {
 
     //
-    // The next receive datagram in the chain.
+    // The next receive data in the chain.
     //
-    struct QUIC_RECV_DATAGRAM* Next;
+    struct QUIC_RECV_DATA* Next;
 
     //
     // Contains the 4 tuple.
@@ -157,7 +166,7 @@ typedef struct QUIC_RECV_DATAGRAM {
     // The data buffer containing the received bytes.
     //
     _Field_size_(BufferLength)
-    uint8_t * Buffer;
+    uint8_t* Buffer;
 
     //
     // Length of the valid data in Buffer.
@@ -165,7 +174,7 @@ typedef struct QUIC_RECV_DATAGRAM {
     uint16_t BufferLength;
 
     //
-    // The partition ID of the received datagram.
+    // The partition ID of the received data.
     //
     uint16_t PartitionIndex;
 
@@ -181,54 +190,105 @@ typedef struct QUIC_RECV_DATAGRAM {
     uint8_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint8_t QueuedOnConnection : 1; // Used for debugging.
 
-} QUIC_RECV_DATAGRAM;
+} QUIC_RECV_DATA;
 
 //
-// Gets the corresponding recv datagram from its context pointer.
+// Gets the corresponding receive data from its context pointer.
 //
-QUIC_RECV_DATAGRAM*
-QuicDataPathRecvPacketToRecvDatagram(
-    _In_ const QUIC_RECV_PACKET* const Packet
+QUIC_RECV_DATA*
+QuicDataPathRecvPacketToRecvData(
+    _In_ const QUIC_RECV_PACKET* const RecvPacket
     );
 
 //
-// Gets the corresponding client context from its recv datagram pointer.
+// Gets the corresponding client context from its receive data pointer.
 //
 QUIC_RECV_PACKET*
-QuicDataPathRecvDatagramToRecvPacket(
-    _In_ const QUIC_RECV_DATAGRAM* const Datagram
+QuicDataPathRecvDataToRecvPacket(
+    _In_ const QUIC_RECV_DATA* const RecvData
     );
 
 //
-// Function pointer type for Datapath receive callbacks.
+// Function pointer type for datapath TCP accept callbacks.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(QUIC_DATAPATH_ACCEPT_CALLBACK)
+void
+(QUIC_DATAPATH_ACCEPT_CALLBACK)(
+    _In_ QUIC_SOCKET* ListenerSocket,
+    _In_ void* ListenerContext,
+    _In_ QUIC_SOCKET* AcceptSocket,
+    _Out_ void** AcceptClientContext
+    );
+
+typedef QUIC_DATAPATH_ACCEPT_CALLBACK *QUIC_DATAPATH_ACCEPT_CALLBACK_HANDLER;
+
+//
+// Function pointer type for datapath TCP connect/disconnect callbacks.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(QUIC_DATAPATH_CONNECT_CALLBACK)
+void
+(QUIC_DATAPATH_CONNECT_CALLBACK)(
+    _In_ QUIC_SOCKET* Socket,
+    _In_ void* Context,
+    _In_ BOOLEAN Connected
+    );
+
+typedef QUIC_DATAPATH_CONNECT_CALLBACK *QUIC_DATAPATH_CONNECT_CALLBACK_HANDLER;
+
+//
+// Function pointer type for datapath receive callbacks.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 void
 (QUIC_DATAPATH_RECEIVE_CALLBACK)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ void* Context,
-    _In_ QUIC_RECV_DATAGRAM* DatagramChain
+    _In_ QUIC_RECV_DATA* RecvDataChain
     );
 
 typedef QUIC_DATAPATH_RECEIVE_CALLBACK *QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER;
 
 //
-// Function pointer type for Datapath port unreachable callbacks.
+// Function pointer type for datapath port unreachable callbacks.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
 void
 (QUIC_DATAPATH_UNREACHABLE_CALLBACK)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ void* Context,
     _In_ const QUIC_ADDR* RemoteAddress
     );
 
 typedef QUIC_DATAPATH_UNREACHABLE_CALLBACK *QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER;
 
+//
+// UDP Callback function pointers used by the datapath.
+//
+typedef struct QUIC_UDP_DATAPATH_CALLBACKS {
+
+    QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER Receive;
+    QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER Unreachable;
+
+} QUIC_UDP_DATAPATH_CALLBACKS;
+
+//
+// TCP Callback function pointers used by the datapath.
+//
+typedef struct QUIC_TCP_DATAPATH_CALLBACKS {
+
+    QUIC_DATAPATH_ACCEPT_CALLBACK_HANDLER Accept;
+    QUIC_DATAPATH_CONNECT_CALLBACK_HANDLER Connect;
+    QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER Receive;
+
+} QUIC_TCP_DATAPATH_CALLBACKS;
 
 //
 // Function pointer type for send complete callbacks.
@@ -238,7 +298,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_SEND_COMPLETE)
 void
 (QUIC_DATAPATH_SEND_COMPLETE)(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ void* ClientContext,
     _In_ QUIC_STATUS CompletionStatus,
     _In_ uint32_t NumBytesSent
@@ -247,29 +307,24 @@ void
 typedef QUIC_DATAPATH_SEND_COMPLETE *QUIC_DATAPATH_SEND_COMPLETE_HANDLER;
 
 //
-// Structure that maintains the 'per send' context for QuicDataPath.
-//
-typedef struct QUIC_DATAPATH_SEND_CONTEXT QUIC_DATAPATH_SEND_CONTEXT;
-
-//
-// Opens a new handle to the QUIC Datapath library.
+// Opens a new handle to the QUIC datapath.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
-    _In_ QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvCallback,
-    _In_ QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableCallback,
-    _Out_ QUIC_DATAPATH* *NewDatapath
+    _In_opt_ const QUIC_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
+    _In_opt_ const QUIC_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _Out_ QUIC_DATAPATH** NewDatapath
     );
 
 //
-// Closes a QUIC Datapath library handle.
+// Closes a QUIC datapath handle.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicDataPathUninitialize(
-    _In_ QUIC_DATAPATH* Datapath
+    _In_ QUIC_DATAPATH* datapath
     );
 
 #define QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
@@ -306,43 +361,70 @@ QuicDataPathResolveAddress(
     );
 
 //
-// The following APIs are specific to a single UDP port abstraction.
+// The following APIs are specific to a single UDP or TCP socket abstraction.
 //
 
 //
-// Creates a datapath binding handle for the given local address and/or remote
-// address. This function immediately registers for receive upcalls from the
-// UDP layer below.
+// Creates a UDP socket for the given (optional) local address and/or (optional)
+// remote address. This function immediately registers for receive upcalls from
+// the layer below.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingCreate(
+QuicSocketCreateUdp(
     _In_ QUIC_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
-    _In_opt_ void* RecvCallbackContext,
-    _Out_ QUIC_DATAPATH_BINDING** Binding
+    _In_opt_ void* CallbackContext,
+    _Out_ QUIC_SOCKET** Socket
     );
 
 //
-// Deletes a UDP binding. This function blocks on all outstandind upcalls and on
+// Creates a TCP socket for the given (optional) local address and (required)
+// remote address. This function immediately registers for upcalls from the
+// layer below.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSocketCreateTcp(
+    _In_ QUIC_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* CallbackContext,
+    _Out_ QUIC_SOCKET** Socket
+    );
+
+//
+// Creates a TCP listener socket for the given (optional) local address. This
+// function immediately registers for accept upcalls from the layer below.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicSocketCreateTcpListener(
+    _In_ QUIC_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ void* CallbackContext,
+    _Out_ QUIC_SOCKET** Socket
+    );
+
+//
+// Deletes a socket. This function blocks on all outstandind upcalls and on
 // return guarantees no further callbacks will occur. DO NOT call this function
 // on an upcall!
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathBindingDelete(
-    _In_ QUIC_DATAPATH_BINDING* Binding
+QuicSocketDelete(
+    _In_ QUIC_SOCKET* Socket
     );
 
 //
-// Queries the locally bound interface's MTU. Returns QUIC_MIN_MTU if not
-// already bound.
+// Queries the locally bound interface's MTU.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
-QuicDataPathBindingGetLocalMtu(
-    _In_ QUIC_DATAPATH_BINDING* Binding
+QuicSocketGetLocalMtu(
+    _In_ QUIC_SOCKET* Socket
     );
 
 //
@@ -350,19 +432,19 @@ QuicDataPathBindingGetLocalMtu(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingGetLocalAddress(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketGetLocalAddress(
+    _In_ QUIC_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     );
 
 //
-// Queries the connected remote IP address. Only valid if the binding was
+// Queries the connected remote IP address. Only valid if the socket was
 // initially created with a remote address.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingGetRemoteAddress(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketGetRemoteAddress(
+    _In_ QUIC_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     );
 
@@ -372,53 +454,51 @@ QuicDataPathBindingGetRemoteAddress(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingReturnRecvDatagrams(
-    _In_opt_ QUIC_RECV_DATAGRAM* DatagramChain
+QuicRecvDataReturn(
+    _In_opt_ QUIC_RECV_DATA* RecvDataChain
     );
 
 //
-// Allocates a new send context to be used to call QuicDataPathBindingSend. It
-// can be freed with QuicDataPathBindingFreeSendContext too.
+// Allocates a new send context to be used to call QuicSocketSend. It
+// can be freed with QuicSendDataFree too.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
-QUIC_DATAPATH_SEND_CONTEXT*
-QuicDataPathBindingAllocSendContext(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QUIC_SEND_DATA*
+QuicSendDataAlloc(
+    _In_ QUIC_SOCKET* Socket,
     _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     );
 
 //
-// Frees a send context returned from a previous call to
-// QuicDataPathBindingAllocSendContext.
+// Frees a send context returned from a previous call to QuicSendDataAlloc.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingFreeSendContext(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+QuicSendDataFree(
+    _In_ QUIC_SEND_DATA* SendData
     );
 
 //
-// Allocates a new UDP datagram buffer for sending.
+// Allocates a new data buffer for sending.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
-QuicDataPathBindingAllocSendDatagram(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+QuicSendDataAllocBuffer(
+    _In_ QUIC_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     );
 
 //
-// Frees a datagram buffer returned from a previous call to
-// QuicDataPathBindingAllocSendDatagram.
+// Frees a data buffer returned from a previous call to QuicSendDataAllocBuffer.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicDataPathBindingFreeSendDatagram(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
-    _In_ QUIC_BUFFER* SendDatagram
+QuicSendDataFreeBuffer(
+    _In_ QUIC_SEND_DATA* SendData,
+    _In_ QUIC_BUFFER* Buffer
     );
 
 //
@@ -426,45 +506,44 @@ QuicDataPathBindingFreeSendDatagram(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicDataPathBindingIsSendContextFull(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+QuicSendDataIsFull(
+    _In_ QUIC_SEND_DATA* SendData
     );
 
 //
-// Sends data to a remote host. Note, the buffer must remain valid for
-// the duration of the send operation.
+// Sends the data over the socket.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingSend(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketSend(
+    _In_ QUIC_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _In_ QUIC_SEND_DATA* SendData
     );
 
 //
-// Sets a parameter on the binding.
+// Sets a parameter on the socket.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingSetParam(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketSetParam(
+    _In_ QUIC_SOCKET* Socket,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength) const uint8_t * Buffer
+    _In_reads_bytes_(BufferLength) const uint8_t* Buffer
     );
 
 //
-// Sets a parameter on the binding.
+// Sets a parameter on the socket.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathBindingGetParam(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+QuicSocketGetParam(
+    _In_ QUIC_SOCKET* Socket,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer
+    _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
     );
 
 #if defined(__cplusplus)

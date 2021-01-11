@@ -183,8 +183,8 @@ QuicPacketBuilderPrepare(
 
         if (Builder->SendContext == NULL) {
             Builder->SendContext =
-                QuicDataPathBindingAllocSendContext(
-                    Builder->Path->Binding->DatapathBinding,
+                QuicSendDataAlloc(
+                    Builder->Path->Binding->Socket,
                     QUIC_ECN_NON_ECT,
                     IsPathMtuDiscovery ?
                         0 :
@@ -211,7 +211,7 @@ QuicPacketBuilderPrepare(
         }
 
         Builder->Datagram =
-            QuicDataPathBindingAllocSendDatagram(
+            QuicSendDataAllocBuffer(
                 Builder->SendContext,
                 NewDatagramLength);
         if (Builder->Datagram == NULL) {
@@ -585,7 +585,7 @@ QuicPacketBuilderFinalize(
             Builder->DatagramLength -= Builder->HeaderLength;
 
             if (Builder->DatagramLength == 0) {
-                QuicDataPathBindingFreeSendDatagram(Builder->SendContext, Builder->Datagram);
+                QuicSendDataFreeBuffer(Builder->SendContext, Builder->Datagram);
                 Builder->Datagram = NULL;
             }
         }
@@ -859,7 +859,7 @@ Exit:
             Builder->TotalDatagramsLength += Builder->DatagramLength;
         }
 
-        if (FlushBatchedDatagrams || QuicDataPathBindingIsSendContextFull(Builder->SendContext)) {
+        if (FlushBatchedDatagrams || QuicSendDataIsFull(Builder->SendContext)) {
             if (Builder->BatchCount != 0) {
                 QuicPacketBuilderFinalizeHeaderProtection(Builder);
             }

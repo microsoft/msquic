@@ -191,6 +191,10 @@ MsQuicLibraryInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN PlatformInitialized = FALSE;
     uint32_t DefaultMaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
+    const QUIC_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        QuicBindingReceive,
+        QuicBindingUnreachable
+    };
 
     Status = QuicPlatformInitialize();
     if (QUIC_FAILED(Status)) {
@@ -283,8 +287,8 @@ MsQuicLibraryInitialize(
     Status =
         QuicDataPathInitialize(
             sizeof(QUIC_RECV_PACKET),
-            QuicBindingReceive,
-            QuicBindingUnreachable,
+            &DatapathCallbacks,
+            NULL,                   // TcpCallbacks
             &MsQuicLib.Datapath);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -1226,7 +1230,7 @@ QuicLibraryLookupBinding(
 #endif
 
         QUIC_ADDR BindingLocalAddr;
-        QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &BindingLocalAddr);
+        QuicSocketGetLocalAddress(Binding->Socket, &BindingLocalAddr);
 
         if (!QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
             continue;
@@ -1238,7 +1242,7 @@ QuicLibraryLookupBinding(
             }
 
             QUIC_ADDR BindingRemoteAddr;
-            QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &BindingRemoteAddr);
+            QuicSocketGetRemoteAddress(Binding->Socket, &BindingRemoteAddr);
             if (!QuicAddrCompare(RemoteAddress, &BindingRemoteAddr)) {
                 continue;
             }
@@ -1336,7 +1340,7 @@ NewBinding:
         goto Exit;
     }
 
-    QuicDataPathBindingGetLocalAddress((*NewBinding)->DatapathBinding, &NewLocalAddress);
+    QuicSocketGetLocalAddress((*NewBinding)->Socket, &NewLocalAddress);
 
     QuicDispatchLockAcquire(&MsQuicLib.DatapathLock);
 
@@ -1493,7 +1497,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
 QUIC_NO_SANITIZE("implicit-conversion")
 QuicLibraryGetWorker(
-    _In_ const _In_ QUIC_RECV_DATAGRAM* Datagram
+    _In_ const _In_ QUIC_RECV_DATA* Datagram
     )
 {
     QUIC_DBG_ASSERT(MsQuicLib.StatelessRegistration != NULL);

@@ -54,11 +54,11 @@ QuicPacketSpaceUninitialize(
     // Release any pending packets back to the binding.
     //
     if (Packets->DeferredDatagrams != NULL) {
-        QUIC_RECV_DATAGRAM* Datagram = Packets->DeferredDatagrams;
+        QUIC_RECV_DATA* Datagram = Packets->DeferredDatagrams;
         do {
             Datagram->QueuedOnConnection = FALSE;
         } while ((Datagram = Datagram->Next) != NULL);
-        QuicDataPathBindingReturnRecvDatagrams(Packets->DeferredDatagrams);
+        QuicRecvDataReturn(Packets->DeferredDatagrams);
     }
 
     QuicAckTrackerUninitialize(&Packets->AckTracker);

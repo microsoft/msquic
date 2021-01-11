@@ -165,7 +165,7 @@ _Ret_maybenull_
 QUIC_PATH*
 QuicConnGetPathForDatagram(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_RECV_DATAGRAM* Datagram
+    _In_ const QUIC_RECV_DATA* Datagram
     )
 {
     for (uint8_t i = 0; i < Connection->PathsCount; ++i) {

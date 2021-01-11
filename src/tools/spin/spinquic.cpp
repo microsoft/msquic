@@ -702,14 +702,14 @@ QUIC_THREAD_CALLBACK(ClientSpin, Context)
     QUIC_THREAD_RETURN(0);
 }
 
-BOOLEAN QUIC_API DatapathHookReceiveCallback(struct QUIC_RECV_DATAGRAM* /* Datagram */)
+BOOLEAN QUIC_API DatapathHookReceiveCallback(struct QUIC_RECV_DATA* /* Datagram */)
 {
     uint8_t RandomValue;
     QuicRandom(sizeof(RandomValue), &RandomValue);
     return (RandomValue % 100) < Settings.LossPercent;
 }
 
-BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_ADDR* /* LocalAddress */, struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */)
+BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_ADDR* /* LocalAddress */, struct QUIC_SEND_DATA* /* SendContext */)
 {
     return FALSE; // Don't drop
 }

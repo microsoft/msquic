@@ -702,8 +702,8 @@ QuicPacketLogDrop(
     _In_z_ const char* Reason
     )
 {
-    const QUIC_RECV_DATAGRAM* Datagram = // cppcheck-suppress unreadVariable; NOLINT
-        QuicDataPathRecvPacketToRecvDatagram(Packet);
+    const QUIC_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
+        QuicDataPathRecvPacketToRecvData(Packet);
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
@@ -736,8 +736,8 @@ QuicPacketLogDropWithValue(
     _In_ uint64_t Value
     )
 {
-    const QUIC_RECV_DATAGRAM* Datagram = // cppcheck-suppress unreadVariable; NOLINT
-        QuicDataPathRecvPacketToRecvDatagram(Packet);
+    const QUIC_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
+        QuicDataPathRecvPacketToRecvData(Packet);
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);

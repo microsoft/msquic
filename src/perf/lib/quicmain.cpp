@@ -30,7 +30,7 @@ PerfBase* TestToRun;
 QUIC_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
 QUIC_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 QUIC_DATAPATH* Datapath;
-QUIC_DATAPATH_BINDING* Binding;
+QUIC_SOCKET* Binding;
 bool ServerMode = false;
 
 static
@@ -81,14 +81,18 @@ QuicMainStart(
     if (ServerMode) {
         Datapath = nullptr;
         Binding = nullptr;
-        Status = QuicDataPathInitialize(0, DatapathReceive, DatapathUnreachable, &Datapath);
+        const QUIC_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+            DatapathReceive,
+            DatapathUnreachable
+        };
+        Status = QuicDataPathInitialize(0, &DatapathCallbacks, NULL, &Datapath);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
             return Status;
         }
 
         QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
-        Status = QuicDataPathBindingCreate(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
+        Status = QuicSocketCreateUdp(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
         if (QUIC_FAILED(Status)) {
             QuicDataPathUninitialize(Datapath);
             Datapath = nullptr;
@@ -172,7 +176,7 @@ QuicMainFree(
     MsQuic = nullptr;
 
     if (Binding) {
-        QuicDataPathBindingDelete(Binding);
+        QuicSocketDelete(Binding);
         Binding = nullptr;
     }
     if (Datapath) {
@@ -210,9 +214,9 @@ QuicMainGetExtraData(
 
 void
 DatapathReceive(
-    _In_ QUIC_DATAPATH_BINDING*,
+    _In_ QUIC_SOCKET*,
     _In_ void* Context,
-    _In_ QUIC_RECV_DATAGRAM*
+    _In_ QUIC_RECV_DATA*
     )
 {
     QUIC_EVENT* Event = static_cast<QUIC_EVENT*>(Context);
@@ -221,7 +225,7 @@ DatapathReceive(
 
 void
 DatapathUnreachable(
-    _In_ QUIC_DATAPATH_BINDING*,
+    _In_ QUIC_SOCKET*,
     _In_ void*,
     _In_ const QUIC_ADDR*
     )

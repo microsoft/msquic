@@ -234,7 +234,7 @@ QUIC_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be power 
 // Path MTU discovery will always start with/initialize with the smallest
 // allowable MTU for QUIC (1280 bytes).
 //
-#define QUIC_DEFAULT_PATH_MTU                   QUIC_MIN_MTU
+#define QUIC_DEFAULT_PATH_MTU                   1280    // TODO - Use 1200 instead
 
 //
 // The maximum time an app callback can take before we log a warning.

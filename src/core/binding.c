@@ -126,12 +126,12 @@ QuicBindingInitialize(
 #endif
 
     Status =
-        QuicDataPathBindingCreate(
+        QuicSocketCreateUdp(
             MsQuicLib.Datapath,
             LocalAddress,
             RemoteAddress,
             Binding,
-            &Binding->DatapathBinding);
+            &Binding->Socket);
 
 #ifdef QUIC_COMPARTMENT_ID
     if (RevertCompartmentId) {
@@ -150,13 +150,13 @@ QuicBindingInitialize(
     }
 
     QUIC_ADDR DatapathLocalAddr, DatapathRemoteAddr;
-    QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
-    QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
+    QuicSocketGetLocalAddress(Binding->Socket, &DatapathLocalAddr);
+    QuicSocketGetRemoteAddress(Binding->Socket, &DatapathRemoteAddr);
     QuicTraceEvent(
         BindingCreated,
         "[bind][%p] Created, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
         Binding,
-        Binding->DatapathBinding,
+        Binding->Socket,
         CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
         CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
@@ -200,7 +200,7 @@ QuicBindingUninitialize(
     // Delete the datapath binding. This function blocks until all receive
     // upcalls have completed.
     //
-    QuicDataPathBindingDelete(Binding->DatapathBinding);
+    QuicSocketDelete(Binding->Socket);
 
     //
     // Clean up any leftover stateless operations being tracked.
@@ -247,13 +247,13 @@ QuicBindingTraceRundown(
     // TODO - Trace datapath binding
 
     QUIC_ADDR DatapathLocalAddr, DatapathRemoteAddr;
-    QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
-    QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
+    QuicSocketGetLocalAddress(Binding->Socket, &DatapathLocalAddr);
+    QuicSocketGetRemoteAddress(Binding->Socket, &DatapathRemoteAddr);
     QuicTraceEvent(
         BindingRundown,
         "[bind][%p] Rundown, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
         Binding,
-        Binding->DatapathBinding,
+        Binding->Socket,
         CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
         CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
@@ -567,7 +567,7 @@ QUIC_STATELESS_CONTEXT*
 QuicBindingCreateStatelessOperation(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_WORKER* Worker,
-    _In_ QUIC_RECV_DATAGRAM* Datagram
+    _In_ QUIC_RECV_DATA* Datagram
     )
 {
     uint32_t TimeMs = QuicTimeMs32();
@@ -614,7 +614,7 @@ QuicBindingCreateStatelessOperation(
     }
 
     if (Binding->StatelessOperCount >= QUIC_MAX_BINDING_STATELESS_OPERATIONS) {
-        QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
+        QuicPacketLogDrop(Binding, QuicDataPathRecvDataToRecvPacket(Datagram),
             "Max binding operations reached");
         goto Exit;
     }
@@ -632,7 +632,7 @@ QuicBindingCreateStatelessOperation(
             QUIC_CONTAINING_RECORD(TableEntry, QUIC_STATELESS_CONTEXT, TableEntry);
 
         if (QuicAddrCompare(&ExistingCtx->RemoteAddress, RemoteAddress)) {
-            QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
+            QuicPacketLogDrop(Binding, QuicDataPathRecvDataToRecvPacket(Datagram),
                 "Already in stateless oper table");
             goto Exit;
         }
@@ -648,7 +648,7 @@ QuicBindingCreateStatelessOperation(
     StatelessCtx =
         (QUIC_STATELESS_CONTEXT*)QuicPoolAlloc(&Worker->StatelessContextPool);
     if (StatelessCtx == NULL) {
-        QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
+        QuicPacketLogDrop(Binding, QuicDataPathRecvDataToRecvPacket(Datagram),
             "Alloc failure for stateless oper ctx");
         goto Exit;
     }
@@ -687,18 +687,18 @@ BOOLEAN
 QuicBindingQueueStatelessOperation(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_OPERATION_TYPE OperType,
-    _In_ QUIC_RECV_DATAGRAM* Datagram
+    _In_ QUIC_RECV_DATA* Datagram
     )
 {
     if (MsQuicLib.StatelessRegistration == NULL) {
-        QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
+        QuicPacketLogDrop(Binding, QuicDataPathRecvDataToRecvPacket(Datagram),
             "NULL stateless registration");
         return FALSE;
     }
 
     QUIC_WORKER* Worker = QuicLibraryGetWorker(Datagram);
     if (QuicWorkerIsOverloaded(Worker)) {
-        QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
+        QuicPacketLogDrop(Binding, QuicDataPathRecvDataToRecvPacket(Datagram),
             "Stateless worker overloaded (stateless oper)");
         return FALSE;
     }
@@ -718,7 +718,7 @@ QuicBindingQueueStatelessOperation(
             sizeof(QUIC_OPERATION));
         QuicPacketLogDrop(
             Binding,
-            QuicDataPathRecvDatagramToRecvPacket(Datagram),
+            QuicDataPathRecvDataToRecvPacket(Datagram),
             "Alloc failure for stateless operation");
         QuicBindingReleaseStatelessOperation(Context, FALSE);
         return FALSE;
@@ -738,9 +738,9 @@ QuicBindingProcessStatelessOperation(
     )
 {
     QUIC_BINDING* Binding = StatelessCtx->Binding;
-    QUIC_RECV_DATAGRAM* RecvDatagram = StatelessCtx->Datagram;
+    QUIC_RECV_DATA* RecvDatagram = StatelessCtx->Datagram;
     QUIC_RECV_PACKET* RecvPacket =
-        QuicDataPathRecvDatagramToRecvPacket(RecvDatagram);
+        QuicDataPathRecvDataToRecvPacket(RecvDatagram);
     QUIC_BUFFER* SendDatagram = NULL;
 
     QUIC_DBG_ASSERT(RecvPacket->ValidatedHeaderInv);
@@ -751,9 +751,9 @@ QuicBindingProcessStatelessOperation(
         Binding,
         OperationType);
 
-    QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-        QuicDataPathBindingAllocSendContext(
-            Binding->DatapathBinding,
+    QUIC_SEND_DATA* SendContext =
+        QuicSendDataAlloc(
+            Binding->Socket,
             QUIC_ECN_NON_ECT,
             0);
     if (SendContext == NULL) {
@@ -779,7 +779,7 @@ QuicBindingProcessStatelessOperation(
             ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t); // Our actual supported versions
 
         SendDatagram =
-            QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
+            QuicSendDataAllocBuffer(SendContext, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -859,7 +859,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_DBG_ASSERT(PacketLength >= QUIC_MIN_STATELESS_RESET_PACKET_LENGTH);
 
         SendDatagram =
-            QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
+            QuicSendDataAllocBuffer(SendContext, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -899,7 +899,7 @@ QuicBindingProcessStatelessOperation(
 
         uint16_t PacketLength = QuicPacketMaxBufferSizeForRetryV1();
         SendDatagram =
-            QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
+            QuicSendDataAllocBuffer(SendContext, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -989,7 +989,7 @@ QuicBindingProcessStatelessOperation(
 Exit:
 
     if (SendContext != NULL) {
-        QuicDataPathBindingFreeSendContext(SendContext);
+        QuicSendDataFree(SendContext);
     }
 }
 
@@ -1003,7 +1003,7 @@ QuicBindingReleaseStatelessOperation(
     QUIC_BINDING* Binding = StatelessCtx->Binding;
 
     if (ReturnDatagram) {
-        QuicDataPathBindingReturnRecvDatagrams(StatelessCtx->Datagram);
+        QuicRecvDataReturn(StatelessCtx->Datagram);
     }
     StatelessCtx->Datagram = NULL;
 
@@ -1029,14 +1029,14 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingQueueStatelessReset(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_RECV_DATAGRAM* Datagram
+    _In_ QUIC_RECV_DATA* Datagram
     )
 {
     QUIC_DBG_ASSERT(!Binding->Exclusive);
     QUIC_DBG_ASSERT(!((QUIC_SHORT_HEADER_V1*)Datagram->Buffer)->IsLongHeader);
 
     if (Datagram->BufferLength <= QUIC_MIN_STATELESS_RESET_PACKET_LENGTH) {
-        QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
+        QuicPacketLogDrop(Binding, QuicDataPathRecvDataToRecvPacket(Datagram),
             "Packet too short for stateless reset");
         return FALSE;
     }
@@ -1047,7 +1047,7 @@ QuicBindingQueueStatelessReset(
         // a connection ID. Without a connection ID, a stateless reset token
         // cannot be generated.
         //
-        QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
+        QuicPacketLogDrop(Binding, QuicDataPathRecvDataToRecvPacket(Datagram),
             "No stateless reset on exclusive binding");
         return FALSE;
     }
@@ -1061,11 +1061,11 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingPreprocessDatagram(
     _In_ QUIC_BINDING* Binding,
-    _Inout_ QUIC_RECV_DATAGRAM* Datagram,
+    _Inout_ QUIC_RECV_DATA* Datagram,
     _Out_ BOOLEAN* ReleaseDatagram
     )
 {
-    QUIC_RECV_PACKET* Packet = QuicDataPathRecvDatagramToRecvPacket(Datagram);
+    QUIC_RECV_PACKET* Packet = QuicDataPathRecvDataToRecvPacket(Datagram);
     QuicZeroMemory(Packet, sizeof(QUIC_RECV_PACKET));
     Packet->Buffer = Datagram->Buffer;
     Packet->BufferLength = Datagram->BufferLength;
@@ -1158,8 +1158,8 @@ QuicBindingValidateRetryToken(
         return FALSE;
     }
 
-    const QUIC_RECV_DATAGRAM* Datagram =
-        QuicDataPathRecvPacketToRecvDatagram(Packet);
+    const QUIC_RECV_DATA* Datagram =
+        QuicDataPathRecvPacketToRecvData(Packet);
     if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Tuple->RemoteAddress)) {
         QuicPacketLogDrop(Binding, Packet, "Retry Token Addr Mismatch");
         return FALSE;
@@ -1213,7 +1213,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_CONNECTION*
 QuicBindingCreateConnection(
     _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_RECV_DATAGRAM* const Datagram
+    _In_ const QUIC_RECV_DATA* const Datagram
     )
 {
     //
@@ -1222,7 +1222,7 @@ QuicBindingCreateConnection(
     // QuicLookupAddRemoteHash.
     //
 
-    QUIC_RECV_PACKET* Packet = QuicDataPathRecvDatagramToRecvPacket(Datagram);
+    QUIC_RECV_PACKET* Packet = QuicDataPathRecvDataToRecvPacket(Datagram);
 
     //
     // Pick a stateless worker to process the client hello and if successful,
@@ -1264,7 +1264,7 @@ QuicBindingCreateConnection(
     //
 
     if (!QuicLibraryTryAddRefBinding(Binding)) {
-        QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
+        QuicPacketLogDrop(Binding, QuicDataPathRecvDataToRecvPacket(Datagram),
             "Clean up in progress");
         goto Exit;
     }
@@ -1337,12 +1337,12 @@ _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 BOOLEAN
 QuicBindingDeliverDatagrams(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_RECV_DATAGRAM* DatagramChain,
+    _In_ QUIC_RECV_DATA* DatagramChain,
     _In_ uint32_t DatagramChainLength
     )
 {
     QUIC_RECV_PACKET* Packet =
-            QuicDataPathRecvDatagramToRecvPacket(DatagramChain);
+            QuicDataPathRecvDataToRecvPacket(DatagramChain);
     QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
 
     //
@@ -1489,21 +1489,21 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 void
 QuicBindingReceive(
-    _In_ QUIC_DATAPATH_BINDING* DatapathBinding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ void* RecvCallbackContext,
-    _In_ QUIC_RECV_DATAGRAM* DatagramChain
+    _In_ QUIC_RECV_DATA* DatagramChain
     )
 {
-    UNREFERENCED_PARAMETER(DatapathBinding);
+    UNREFERENCED_PARAMETER(Socket);
     QUIC_DBG_ASSERT(RecvCallbackContext != NULL);
     QUIC_DBG_ASSERT(DatagramChain != NULL);
 
     QUIC_BINDING* Binding = (QUIC_BINDING*)RecvCallbackContext;
-    QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
-    QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
-    QUIC_RECV_DATAGRAM* SubChain = NULL;
-    QUIC_RECV_DATAGRAM** SubChainTail = &SubChain;
-    QUIC_RECV_DATAGRAM** SubChainDataTail = &SubChain;
+    QUIC_RECV_DATA* ReleaseChain = NULL;
+    QUIC_RECV_DATA** ReleaseChainTail = &ReleaseChain;
+    QUIC_RECV_DATA* SubChain = NULL;
+    QUIC_RECV_DATA** SubChainTail = &SubChain;
+    QUIC_RECV_DATA** SubChainDataTail = &SubChain;
     uint32_t SubChainLength = 0;
     uint32_t TotalChainLength = 0;
     uint32_t TotalDatagramBytes = 0;
@@ -1518,7 +1518,7 @@ QuicBindingReceive(
     // connection it was delivered to.
     //
 
-    QUIC_RECV_DATAGRAM* Datagram;
+    QUIC_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
         TotalChainLength++;
         TotalDatagramBytes += Datagram->BufferLength;
@@ -1530,7 +1530,7 @@ QuicBindingReceive(
         Datagram->Next = NULL;
 
         QUIC_RECV_PACKET* Packet =
-            QuicDataPathRecvDatagramToRecvPacket(Datagram);
+            QuicDataPathRecvDataToRecvPacket(Datagram);
         QuicZeroMemory(Packet, sizeof(QUIC_RECV_PACKET));
         Packet->Buffer = Datagram->Buffer;
         Packet->BufferLength = Datagram->BufferLength;
@@ -1576,7 +1576,7 @@ QuicBindingReceive(
         //
         QUIC_RECV_PACKET* SubChainPacket =
             SubChain == NULL ?
-                NULL : QuicDataPathRecvDatagramToRecvPacket(SubChain);
+                NULL : QuicDataPathRecvDataToRecvPacket(SubChain);
         if (!Binding->Exclusive && SubChain != NULL &&
             (Packet->DestCidLen != SubChainPacket->DestCidLen ||
              memcmp(Packet->DestCid, SubChainPacket->DestCid, Packet->DestCidLen) != 0)) {
@@ -1626,7 +1626,7 @@ QuicBindingReceive(
     }
 
     if (ReleaseChain != NULL) {
-        QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
+        QuicRecvDataReturn(ReleaseChain);
     }
 
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_RECV, TotalChainLength);
@@ -1638,12 +1638,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
 void
 QuicBindingUnreachable(
-    _In_ QUIC_DATAPATH_BINDING* DatapathBinding,
+    _In_ QUIC_SOCKET* Socket,
     _In_ void* Context,
     _In_ const QUIC_ADDR* RemoteAddress
     )
 {
-    UNREFERENCED_PARAMETER(DatapathBinding);
+    UNREFERENCED_PARAMETER(Socket);
     QUIC_DBG_ASSERT(Context != NULL);
     QUIC_DBG_ASSERT(RemoteAddress != NULL);
 
@@ -1666,7 +1666,7 @@ QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ QUIC_SEND_DATA* SendContext,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend
     )
@@ -1690,12 +1690,12 @@ QuicBindingSend(
                 BindingSendTestDrop,
                 "[bind][%p] Test dropped packet",
                 Binding);
-            QuicDataPathBindingFreeSendContext(SendContext);
+            QuicSendDataFree(SendContext);
             Status = QUIC_STATUS_SUCCESS;
         } else {
             Status =
-                QuicDataPathBindingSend(
-                    Binding->DatapathBinding,
+                QuicSocketSend(
+                    Binding->Socket,
                     &LocalAddressCopy,
                     &RemoteAddressCopy,
                     SendContext);
@@ -1710,8 +1710,8 @@ QuicBindingSend(
     } else {
 #endif
         Status =
-            QuicDataPathBindingSend(
-                Binding->DatapathBinding,
+            QuicSocketSend(
+                Binding->Socket,
                 LocalAddress,
                 RemoteAddress,
                 SendContext);

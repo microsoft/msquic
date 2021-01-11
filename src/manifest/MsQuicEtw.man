@@ -1353,7 +1353,7 @@
                 />
             <data
                 inType="win:Pointer"
-                name="DatapathBinding"
+                name="Socket"
                 />
             <data
                 inType="win:UInt8"

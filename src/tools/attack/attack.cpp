@@ -85,49 +85,49 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 void
 UdpRecvCallback(
-    _In_ QUIC_DATAPATH_BINDING* /* Binding */,
+    _In_ QUIC_SOCKET* /* Binding */,
     _In_ void* /* Context */,
-    _In_ QUIC_RECV_DATAGRAM* RecvBufferChain
+    _In_ QUIC_RECV_DATA* RecvBufferChain
     )
 {
-    QuicDataPathBindingReturnRecvDatagrams(RecvBufferChain);
+    QuicRecvDataReturn(RecvBufferChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
 void
 UdpUnreachCallback(
-    _In_ QUIC_DATAPATH_BINDING* /* Binding */,
+    _In_ QUIC_SOCKET* /* Binding */,
     _In_ void* /* Context */,
     _In_ const QUIC_ADDR* /* RemoteAddress */
     )
 {
 }
 
-void RunAttackRandom(QUIC_DATAPATH_BINDING* Binding, uint16_t Length, bool ValidQuic)
+void RunAttackRandom(QUIC_SOCKET* Binding, uint16_t Length, bool ValidQuic)
 {
     QUIC_ADDR LocalAddress;
-    QuicDataPathBindingGetLocalAddress(Binding, &LocalAddress);
+    QuicSocketGetLocalAddress(Binding, &LocalAddress);
 
     uint64_t ConnectionId = 0;
     QuicRandom(sizeof(ConnectionId), &ConnectionId);
 
     while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
 
-        QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-            QuicDataPathBindingAllocSendContext(
+        QUIC_SEND_DATA* SendContext =
+            QuicSendDataAlloc(
                 Binding, QUIC_ECN_NON_ECT, Length);
         if (SendContext == nullptr) {
-            printf("QuicDataPathBindingAllocSendContext failed\n");
+            printf("QuicSendDataAlloc failed\n");
             return;
         }
 
-        while (!QuicDataPathBindingIsSendContextFull(SendContext)) {
+        while (!QuicSendDataIsFull(SendContext)) {
             QUIC_BUFFER* SendBuffer =
-                QuicDataPathBindingAllocSendDatagram(SendContext, Length);
+                QuicSendDataAllocBuffer(SendContext, Length);
             if (SendBuffer == nullptr) {
-                printf("QuicDataPathBindingAllocSendDatagram failed\n");
-                QuicDataPathBindingFreeSendContext(SendContext);
+                printf("QuicSendDataAllocBuffer failed\n");
+                QuicSendDataFree(SendContext);
                 return;
             }
 
@@ -157,7 +157,7 @@ void RunAttackRandom(QUIC_DATAPATH_BINDING* Binding, uint16_t Length, bool Valid
 
         VERIFY(
         QUIC_SUCCEEDED(
-        QuicDataPathBindingSend(
+        QuicSocketSend(
             Binding,
             &LocalAddress,
             &ServerAddress,
@@ -178,14 +178,14 @@ void printf_buf(const char* name, void* buf, uint32_t len)
 #define printf_buf(name, buf, len)
 #endif
 
-void RunAttackValidInitial(QUIC_DATAPATH_BINDING* Binding)
+void RunAttackValidInitial(QUIC_SOCKET* Binding)
 {
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH;
     const uint64_t PacketNumber = 0;
 
     QUIC_ADDR LocalAddress;
-    QuicDataPathBindingGetLocalAddress(Binding, &LocalAddress);
+    QuicSocketGetLocalAddress(Binding, &LocalAddress);
 
     uint8_t Packet[512] = {0};
     uint16_t PacketLength, HeaderLength;
@@ -217,15 +217,15 @@ void RunAttackValidInitial(QUIC_DATAPATH_BINDING* Binding)
 
     while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
 
-        QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-            QuicDataPathBindingAllocSendContext(
+        QUIC_SEND_DATA* SendContext =
+            QuicSendDataAlloc(
                 Binding, QUIC_ECN_NON_ECT, DatagramLength);
         VERIFY(SendContext);
 
         while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs &&
-            !QuicDataPathBindingIsSendContextFull(SendContext)) {
+            !QuicSendDataIsFull(SendContext)) {
             QUIC_BUFFER* SendBuffer =
-                QuicDataPathBindingAllocSendDatagram(SendContext, DatagramLength);
+                QuicSendDataAllocBuffer(SendContext, DatagramLength);
             VERIFY(SendBuffer);
 
             (*DestCid)++; (*SrcCid)++;
@@ -287,7 +287,7 @@ void RunAttackValidInitial(QUIC_DATAPATH_BINDING* Binding)
 
         VERIFY(
         QUIC_SUCCEEDED(
-        QuicDataPathBindingSend(
+        QuicSocketSend(
             Binding,
             &LocalAddress,
             &ServerAddress,
@@ -297,16 +297,16 @@ void RunAttackValidInitial(QUIC_DATAPATH_BINDING* Binding)
 
 QUIC_THREAD_CALLBACK(RunAttackThread, /* Context */)
 {
-    QUIC_DATAPATH_BINDING* Binding;
+    QUIC_SOCKET* Binding;
     QUIC_STATUS Status =
-        QuicDataPathBindingCreate(
+        QuicSocketCreateUdp(
             Datapath,
             nullptr,
             &ServerAddress,
             nullptr,
             &Binding);
     if (QUIC_FAILED(Status)) {
-        printf("QuicDataPathBindingCreate failed, 0x%x\n", Status);
+        printf("QuicSocketCreateUdp failed, 0x%x\n", Status);
         QUIC_THREAD_RETURN(Status);
     }
 
@@ -327,7 +327,7 @@ QUIC_THREAD_CALLBACK(RunAttackThread, /* Context */)
         break;
     }
 
-    QuicDataPathBindingDelete(Binding);
+    QuicSocketDelete(Binding);
 
     QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
@@ -374,13 +374,17 @@ main(
     )
 {
     int ErrorCode = -1;
+    const QUIC_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        UdpRecvCallback,
+        UdpUnreachCallback,
+    };
 
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
     QuicDataPathInitialize(
         0,
-        UdpRecvCallback,
-        UdpUnreachCallback,
+        &DatapathCallbacks,
+        NULL,
         &Datapath);
 
     if (argc < 2) {
