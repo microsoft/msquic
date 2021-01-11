@@ -365,8 +365,9 @@ QuicDataPathResolveAddress(
 //
 
 //
-// Creates a UDP socket for the given local address and/or remote address. This
-// function immediately registers for receive upcalls from the layer below.
+// Creates a UDP socket for the given (optional) local address and/or (optional)
+// remote address. This function immediately registers for receive upcalls from
+// the layer below.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -379,7 +380,7 @@ QuicSocketCreateUdp(
     );
 
 //
-// Creates a TCP socket for the (optional) (optional) given local address and
+// Creates a TCP socket for the given (optional) local address and (required)
 // remote address. This function immediately registers for upcalls from the
 // layer below.
 //
@@ -394,7 +395,7 @@ QuicSocketCreateTcp(
     );
 
 //
-// Creates a TCP listener socket for the (optional) given local address. This
+// Creates a TCP listener socket for the given (optional) local address. This
 // function immediately registers for accept upcalls from the layer below.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

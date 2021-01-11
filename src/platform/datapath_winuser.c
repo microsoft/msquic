@@ -260,6 +260,11 @@ typedef struct QUIC_SOCKET {
     uint8_t ConnectComplete : 1;
 
     //
+    // Flag indicates the socket indicated a disconnect event.
+    //
+    uint8_t DisconnectIndicated : 1;
+
+    //
     // Flag indicates the socket has not been exposed externally yet.
     //
     uint8_t Internal : 1;
@@ -2284,7 +2289,8 @@ QuicSocketDelete(
         QUIC_DBG_ASSERT(
             Datapath->Processors[Processor].ThreadId != GetCurrentThreadId());
         if (Socket->Type == QUIC_SOCKET_TCP ||
-        Socket->Type == QUIC_SOCKET_TCP_SERVER) {
+            Socket->Type == QUIC_SOCKET_TCP_SERVER) {
+            SocketProc->Parent->DisconnectIndicated = TRUE;
             if (shutdown(SocketProc->Socket, SD_BOTH) == SOCKET_ERROR) {
                 int WsaError = WSAGetLastError();
                 if (WsaError != WSAENOTCONN) {
@@ -2818,7 +2824,7 @@ Error:
 }
 
 void
-QuicDataPathRecvComplete(
+QuicDataPathUdpRecvComplete(
     _In_ QUIC_DATAPATH_PROC* DatapathProc,
     _In_ QUIC_SOCKET_PROC* SocketProc,
     _In_ ULONG IoResult,
@@ -2840,9 +2846,7 @@ QuicDataPathRecvComplete(
     PSOCKADDR_INET RemoteAddr = &RecvContext->Tuple.RemoteAddress;
     PSOCKADDR_INET LocalAddr = &RecvContext->Tuple.LocalAddress;
 
-    if (IoResult == WSAENOTSOCK ||
-        IoResult == WSA_OPERATION_ABORTED ||
-        IoResult == ERROR_NETNAME_DELETED) {
+    if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
         //
         // Error from shutdown, silently ignore. Return immediately so the
         // receive doesn't get reposted.
@@ -2885,7 +2889,6 @@ QuicDataPathRecvComplete(
         BOOLEAN IsCoalesced = FALSE;
         INT ECN = 0;
 
-        if (SocketProc->Parent->Type == QUIC_SOCKET_UDP) {
         for (WSACMSGHDR *CMsg = WSA_CMSG_FIRSTHDR(&SocketProc->RecvWsaMsgHdr);
             CMsg != NULL;
             CMsg = WSA_CMSG_NXTHDR(&SocketProc->RecvWsaMsgHdr, CMsg)) {
@@ -2947,7 +2950,6 @@ QuicDataPathRecvComplete(
         }
 
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
-        }
 
         QuicTraceEvent(
             DatapathRecv,
@@ -3024,17 +3026,111 @@ QuicDataPathRecvComplete(
         }
 #endif
 
-        if (SocketProc->Parent->Type == QUIC_SOCKET_UDP) {
-            SocketProc->Parent->Datapath->UdpHandlers.Receive(
+        SocketProc->Parent->Datapath->UdpHandlers.Receive(
+            SocketProc->Parent,
+            SocketProc->Parent->ClientContext,
+            RecvDataChain);
+
+    } else {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            IoResult,
+            "WSARecvMsg completion");
+    }
+
+Drop:
+    //
+    // Try to start a new receive.
+    //
+    (void)QuicSocketStartReceive(SocketProc, DatapathProc);
+}
+
+void
+QuicDataPathTcpRecvComplete(
+    _In_ QUIC_DATAPATH_PROC* DatapathProc,
+    _In_ QUIC_SOCKET_PROC* SocketProc,
+    _In_ ULONG IoResult,
+    _In_ UINT16 NumberOfBytesTransferred
+    )
+{
+    //
+    // Copy the current receive buffer locally. On error cases, we leave the
+    // buffer set as the current receive buffer because we are only using it
+    // inline. Otherwise, we remove it as the current because we are giving
+    // it to the client.
+    //
+    QUIC_DBG_ASSERT(SocketProc->CurrentRecvContext != NULL);
+    QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = SocketProc->CurrentRecvContext;
+    if (IoResult == NO_ERROR) {
+        SocketProc->CurrentRecvContext = NULL;
+    }
+
+    PSOCKADDR_INET RemoteAddr = &RecvContext->Tuple.RemoteAddress;
+    PSOCKADDR_INET LocalAddr = &RecvContext->Tuple.LocalAddress;
+
+    if (IoResult == WSAENOTSOCK ||
+        IoResult == WSA_OPERATION_ABORTED ||
+        IoResult == ERROR_NETNAME_DELETED) {
+        //
+        // Error from shutdown, silently ignore. Return immediately so the
+        // receive doesn't get reposted.
+        //
+        if (!SocketProc->Parent->DisconnectIndicated) {
+            SocketProc->Parent->DisconnectIndicated = TRUE;
+            SocketProc->Parent->Datapath->TcpHandlers.Connect(
                 SocketProc->Parent,
                 SocketProc->Parent->ClientContext,
-                RecvDataChain);
-        } else {
-            SocketProc->Parent->Datapath->TcpHandlers.Receive(
-                SocketProc->Parent,
-                SocketProc->Parent->ClientContext,
-                RecvDataChain);
+                FALSE);
         }
+        return;
+
+    } else if (IoResult == QUIC_STATUS_SUCCESS) {
+
+        if (NumberOfBytesTransferred == 0) {
+            if (!SocketProc->Parent->DisconnectIndicated) {
+                SocketProc->Parent->DisconnectIndicated = TRUE;
+                SocketProc->Parent->Datapath->TcpHandlers.Connect(
+                    SocketProc->Parent,
+                    SocketProc->Parent->ClientContext,
+                    FALSE);
+            }
+            goto Drop;
+        }
+
+        QuicTraceEvent(
+            DatapathRecv,
+            "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+            SocketProc->Parent,
+            NumberOfBytesTransferred,
+            NumberOfBytesTransferred,
+            CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+
+        QUIC_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
+
+        QUIC_DATAPATH* Datapath = SocketProc->Parent->Datapath;
+        QUIC_RECV_DATA* Data = (QUIC_RECV_DATA*)(RecvContext + 1);
+
+        QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext =
+            QuicDataPathDatagramToInternalDatagramContext(Data);
+        InternalDatagramContext->RecvContext = RecvContext;
+
+        Data->Next = NULL;
+        Data->Buffer = ((PUCHAR)RecvContext) + Datapath->RecvPayloadOffset;
+        Data->BufferLength = NumberOfBytesTransferred;
+        Data->Tuple = &RecvContext->Tuple;
+        Data->PartitionIndex = DatapathProc->Index;
+        Data->TypeOfService = 0;
+        Data->Allocated = TRUE;
+        Data->QueuedOnConnection = FALSE;
+        RecvContext->ReferenceCount++;
+
+        SocketProc->Parent->Datapath->TcpHandlers.Receive(
+            SocketProc->Parent,
+            SocketProc->Parent->ClientContext,
+            Data);
 
     } else {
         QuicTraceEvent(
@@ -3636,25 +3732,7 @@ QuicDataPathWorkerThread(
 
             } else if (QuicRundownAcquire(&SocketProc->UpcallRundown)) {
 
-                if (SocketProc->Parent->Type == QUIC_SOCKET_TCP_LISTENER) {
-                    //
-                    // Handle the accept indication and queue a new accept.
-                    //
-                    QuicDataPathAcceptComplete(
-                        DatapathProc,
-                        SocketProc,
-                        IoResult);
-
-                } else if (!SocketProc->Parent->ConnectComplete) {
-                    //
-                    // Handle the accept indication and queue a new accept.
-                    //
-                    QuicDataPathConnectComplete(
-                        DatapathProc,
-                        SocketProc,
-                        IoResult);
-
-                } else {
+                if (SocketProc->Parent->Type == QUIC_SOCKET_UDP) {
                     //
                     // We only allow for receiving UINT16 worth of bytes at a time,
                     // which should be plenty for an IPv4 or IPv6 UDP datagram.
@@ -3668,7 +3746,36 @@ QuicDataPathWorkerThread(
                     //
                     // Handle the receive indication and queue a new receive.
                     //
-                    QuicDataPathRecvComplete(
+                    QuicDataPathUdpRecvComplete(
+                        DatapathProc,
+                        SocketProc,
+                        IoResult,
+                        (UINT16)NumberOfBytesTransferred);
+
+                } else if (SocketProc->Parent->Type == QUIC_SOCKET_TCP_LISTENER) {
+                    //
+                    // Handle the accept indication and queue a new accept.
+                    //
+                    QuicDataPathAcceptComplete(
+                        DatapathProc,
+                        SocketProc,
+                        IoResult);
+
+                } else if (!SocketProc->Parent->ConnectComplete) {
+
+                    //
+                    // Handle the accept indication and queue a new accept.
+                    //
+                    QuicDataPathConnectComplete(
+                        DatapathProc,
+                        SocketProc,
+                        IoResult);
+                } else {
+
+                    //
+                    // Handle the receive indication and queue a new receive.
+                    //
+                    QuicDataPathTcpRecvComplete(
                         DatapathProc,
                         SocketProc,
                         IoResult,
