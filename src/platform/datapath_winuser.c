@@ -840,9 +840,7 @@ QuicDataPathInitialize(
         MessageCount * Datapath->DatagramStride;
 
     uint32_t RecvDatagramLength =
-        Datapath->RecvPayloadOffset +
-            ((Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING) ?
-                MAX_URO_PAYLOAD_LENGTH : MAX_UDP_PAYLOAD_LENGTH);
+        Datapath->RecvPayloadOffset + MAX_URO_PAYLOAD_LENGTH;
 
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
 
@@ -3138,7 +3136,7 @@ QuicDataPathTcpRecvComplete(
             "[ udp][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             IoResult,
-            "WSARecvMsg completion");
+            "WSARecv completion");
     }
 
 Drop:
