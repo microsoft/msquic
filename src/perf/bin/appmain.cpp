@@ -405,6 +405,7 @@ main(
         printf("Entering kernel mode main\n");
         RetVal = QuicKernelMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, PrivateTestLibrary, FileName);
 #else
+        UNREFERENCED_PARAMETER(PrivateTestLibrary);
         QUIC_FRE_ASSERT(FALSE);
 #endif
     } else {
