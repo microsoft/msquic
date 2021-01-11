@@ -209,6 +209,11 @@ function Copy-Artifacts {
             # This will still throw if a file cannot successfuly be deleted
         }
         robocopy $From $SmbDir /e /IS /IT /IM | Out-Null
+        if ($LASTERRORCODE -ne 1) {
+            Write-Error "Robocopy failed: $LASTERRORCODE"
+        } else {
+            $global:LASTERRORCODE = 0
+        }
     } else {
         Invoke-TestCommand $Session -ScriptBlock {
             param ($To)
@@ -1004,7 +1009,6 @@ function Publish-HPSTestResults {
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
-        Write-Output "Finished Writing Publish File"
     } elseif (!$Publish) {
         Write-Debug "Failed to publish because of missing commit hash"
     }
