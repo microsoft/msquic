@@ -201,19 +201,18 @@ function Copy-Artifacts {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
     param ([string]$From, [string]$To, [boolean]$SmbCopy)
     Remove-PerfServices
-    Invoke-TestCommand $Session -ScriptBlock {
-        param ($To)
-        try {
-            Remove-Item -Path "$To/*" -Recurse -Force
-        } catch [System.Management.Automation.ItemNotFoundException] {
-            # Ignore Not Found for when the directory does not exist
-            # This will still throw if a file cannot successfuly be deleted
-        }
-
-    } -ArgumentList $To
     if ($SmbCopy) {
-        robocopy $From $To /e
+        robocopy $From $To /e /IS /IT /IM
     } else {
+        Invoke-TestCommand $Session -ScriptBlock {
+            param ($To)
+            try {
+                Remove-Item -Path "$To/*" -Recurse -Force
+            } catch [System.Management.Automation.ItemNotFoundException] {
+                # Ignore Not Found for when the directory does not exist
+                # This will still throw if a file cannot successfuly be deleted
+            }
+        } -ArgumentList $To
         Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse -Force
     }
 }
