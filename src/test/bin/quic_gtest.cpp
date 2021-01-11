@@ -985,9 +985,9 @@ int main(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
         if (strcmp("--kernel", argv[i]) == 0) {
             TestingKernelMode = true;
-        }
-        if (strcmp("--privateLibrary", argv[i]) == 0) {
-            PrivateTestLibrary = true;
+            if (strcmp("--kernelPriv", argv[i]) == 0) {
+                PrivateTestLibrary = true;
+            }
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);

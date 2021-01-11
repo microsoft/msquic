@@ -342,7 +342,7 @@ function Invoke-RemoteExe {
     } -ArgumentList $Exe
 
     if ($Kernel) {
-        $RunArgs = "--kernel --privateLibrary $RunArgs"
+        $RunArgs = "--kernelPriv $RunArgs"
     }
 
     Write-Debug "Running Remote: $Exe $RunArgs"

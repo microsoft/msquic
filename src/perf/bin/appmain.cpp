@@ -23,7 +23,7 @@ Abstract:
 #include "PerfIoctls.h"
 #include "quic_driver_helpers.h"
 
-#define QUIC_DRIVER_NAME   "quicperfdrv"
+#define QUIC_DRIVER_NAME            "quicperfdrv"
 #define QUIC_DRIVER_NAME_PRIVATE    "quicperfdrvpriv"
 
 #endif
@@ -371,6 +371,9 @@ main(
         if (strcmp("--kernel", argv[i]) == 0) {
 #ifdef _WIN32
             TestingKernelMode = true;
+            if (strcmp("--kernelPriv", argv[i]) == 0) {
+                PrivateTestLibrary = true;
+            }
 #else
             printf("Cannot run kernel mode tests on non windows platforms\n");
             RetVal = QUIC_STATUS_NOT_SUPPORTED;
@@ -380,8 +383,6 @@ main(
             KeyboardWait = true;
         } else if (strncmp("--extraOutputFile", argv[i], 17) == 0) {
             FileName = argv[i] + 18;
-        } else if (strcmp("--privateLibrary", argv[i]) == 0) {
-            PrivateTestLibrary = true;
         } else {
             ArgValues[ArgCount] = argv[i];
             ArgCount++;
