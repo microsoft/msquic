@@ -239,15 +239,22 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
-# Join path in script to ensure right platform separator
-$RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
-    Join-Path (Get-Location) "Tests"
-}
-
 $LocalDirectory = Join-Path $RootDir "artifacts/bin"
+$UsingSmbPath = $false
 
 if ($Local) {
     $RemoteDirectory = $LocalDirectory
+} else {
+    # See if remote SMB path exists
+    if (Test-Path "\\$ComputerName\Tests") {
+        $UsingSmbPath = $true
+        $RemoteDirectory = "\\$ComputerName\Tests"
+    } else {
+        # Join path in script to ensure right platform separator
+        $RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
+            Join-Path (Get-Location) "Tests"
+        }
+    }
 }
 
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
@@ -462,7 +469,7 @@ try {
     }
 
     if (!$SkipDeploy -and !$Local) {
-        Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory
+        Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbCopy $UsingSmbPath
     }
 
     foreach ($Test in $Tests.Tests) {

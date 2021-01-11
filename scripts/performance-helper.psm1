@@ -199,7 +199,7 @@ function Wait-ForRemote {
 
 function Copy-Artifacts {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
-    param ([string]$From, [string]$To)
+    param ([string]$From, [string]$To, [boolean]$SmbCopy)
     Remove-PerfServices
     Invoke-TestCommand $Session -ScriptBlock {
         param ($To)
@@ -211,7 +211,11 @@ function Copy-Artifacts {
         }
 
     } -ArgumentList $To
-    Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse -Force
+    if ($SmbCopy) {
+        robocopy $From $To /e
+    } else {
+        Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse -Force
+    }
 }
 
 function Get-GitHash {
