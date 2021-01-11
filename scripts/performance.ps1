@@ -240,15 +240,17 @@ $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($Re
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 $LocalDirectory = Join-Path $RootDir "artifacts/bin"
-$UsingSmbPath = $false
+$RemoteDirectorySMB = $null
 
 if ($Local) {
     $RemoteDirectory = $LocalDirectory
 } else {
     # See if remote SMB path exists
     if (Test-Path "\\$ComputerName\Tests") {
-        $UsingSmbPath = $true
-        $RemoteDirectory = "\\$ComputerName\Tests"
+        $RemoteDirectorySMB = "\\$ComputerName\Tests"
+        $RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
+            (Get-SmbShare -Name Tests).Path
+        }
     } else {
         # Join path in script to ensure right platform separator
         $RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
@@ -469,7 +471,7 @@ try {
     }
 
     if (!$SkipDeploy -and !$Local) {
-        Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbCopy $UsingSmbPath
+        Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbDir $RemoteDirectorySMB
     }
 
     foreach ($Test in $Tests.Tests) {
