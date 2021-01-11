@@ -1004,6 +1004,7 @@ function Publish-HPSTestResults {
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
+        Write-Output "Finished Writing Publish File"
     } elseif (!$Publish) {
         Write-Debug "Failed to publish because of missing commit hash"
     }

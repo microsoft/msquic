@@ -494,3 +494,4 @@ try {
     }
     LocalTeardown($LocalDataCache)
 }
+Write-Host "Finishing"
