@@ -310,12 +310,12 @@ function Get-ExeName {
 function Remove-PerfServices {
     if ($IsWindows) {
         Invoke-TestCommand -Session $Session -ScriptBlock {
-            if ($null -ne (Get-Service -Name "quicperf" -ErrorAction Ignore)) {
+            if ($null -ne (Get-Service -Name "quicperfdrvpriv" -ErrorAction Ignore)) {
                 try {
-                    net.exe stop quicperf /y | Out-Null
+                    net.exe stop quicperfdrvpriv /y | Out-Null
                 }
                 catch {}
-                sc.exe delete quicperf /y | Out-Null
+                sc.exe delete quicperfdrvpriv /y | Out-Null
             }
             if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
                 try {
@@ -342,7 +342,7 @@ function Invoke-RemoteExe {
     } -ArgumentList $Exe
 
     if ($Kernel) {
-        $RunArgs = "--kernel $RunArgs"
+        $RunArgs = "--kernel --privateLibrary $RunArgs"
     }
 
     Write-Debug "Running Remote: $Exe $RunArgs"
@@ -370,7 +370,7 @@ function Invoke-RemoteExe {
         $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
 
         if ($Kernel) {
-            Copy-Item (Join-Path $KernelDir "quicperf.sys") (Split-Path $Exe -Parent)
+            Copy-Item (Join-Path $KernelDir "quicperfdrvpriv.sys") (Split-Path $Exe -Parent)
             Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $Exe -Parent)
             sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Exe -Parent) "msquicpriv.sys") start= demand | Out-Null
             net.exe start msquicpriv
@@ -381,7 +381,7 @@ function Invoke-RemoteExe {
         # Uninstall the kernel mode test driver and revert the msquic driver.
         if ($Kernel) {
             net.exe stop msquicpriv /y | Out-Null
-            sc.exe delete quicperf | Out-Null
+            sc.exe delete quicperfdrvpriv | Out-Null
             sc.exe delete msquicpriv | Out-Null
         }
 

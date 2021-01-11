@@ -17,8 +17,13 @@ Abstract:
 #include "drivermain.cpp.clog.h"
 #endif
 
-DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperf");
-DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperf");
+#ifdef PRIVATE_LIBRARY
+DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\quicperfdrv");
+DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceSymLink, L"\\DosDevices\\quicperfdrvpriv");
+#else
+DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\quicperfdrv");
+DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceSymLink, L"\\DosDevices\\quicperfdrvpriv");
+#endif
 
 typedef struct QUIC_DEVICE_EXTENSION {
     EX_PUSH_LOCK Lock;
@@ -505,7 +510,7 @@ QuicPerfCtlEvtIoCanceled(
     )
 {
     NTSTATUS Status;
-    
+
 
     WDFFILEOBJECT FileObject = WdfRequestGetFileObject(Request);
     if (FileObject == nullptr) {
