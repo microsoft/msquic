@@ -208,7 +208,7 @@ function Copy-Artifacts {
             # Ignore Not Found for when the directory does not exist
             # This will still throw if a file cannot successfuly be deleted
         }
-        robocopy $From $SmbDir /e /IS /IT /IM
+        robocopy $From $SmbDir /e /IS /IT /IM | Out-Null
     } else {
         Invoke-TestCommand $Session -ScriptBlock {
             param ($To)
