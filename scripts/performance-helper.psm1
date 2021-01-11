@@ -199,19 +199,33 @@ function Wait-ForRemote {
 
 function Copy-Artifacts {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
-    param ([string]$From, [string]$To)
+    param ([string]$From, [string]$To, [string]$SmbDir)
     Remove-PerfServices
-    Invoke-TestCommand $Session -ScriptBlock {
-        param ($To)
+    if ($null -ne $SmbDir) {
         try {
-            Remove-Item -Path "$To/*" -Recurse -Force
+            Remove-Item -Path "$SmbDir/*" -Recurse -Force
         } catch [System.Management.Automation.ItemNotFoundException] {
             # Ignore Not Found for when the directory does not exist
             # This will still throw if a file cannot successfuly be deleted
         }
-
-    } -ArgumentList $To
-    Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse -Force
+        robocopy $From $SmbDir /e /IS /IT /IM | Out-Null
+        if ($LASTEXITCODE -ne 1) {
+            Write-Error "Robocopy failed: $LASTEXITCODE"
+        } else {
+            $global:LASTEXITCODE = 0
+        }
+    } else {
+        Invoke-TestCommand $Session -ScriptBlock {
+            param ($To)
+            try {
+                Remove-Item -Path "$To/*" -Recurse -Force
+            } catch [System.Management.Automation.ItemNotFoundException] {
+                # Ignore Not Found for when the directory does not exist
+                # This will still throw if a file cannot successfuly be deleted
+            }
+        } -ArgumentList $To
+        Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse -Force
+    }
 }
 
 function Get-GitHash {
