@@ -983,7 +983,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 int main(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
-        if (strcmp("--kernel", argv[i]) == 0) {
+        if (strcmp("--kernel", argv[i]) == 0 || strcmp("--kernelPriv", argv[i]) == 0) {
             TestingKernelMode = true;
             if (strcmp("--kernelPriv", argv[i]) == 0) {
                 PrivateTestLibrary = true;

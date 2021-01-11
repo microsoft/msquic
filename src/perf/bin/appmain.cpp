@@ -368,7 +368,7 @@ main(
     }
 
     for (int i = 0; i < argc; ++i) {
-        if (strcmp("--kernel", argv[i]) == 0) {
+        if (strcmp("--kernel", argv[i]) == 0 || strcmp("--kernelPriv", argv[i]) == 0) {
 #ifdef _WIN32
             TestingKernelMode = true;
             if (strcmp("--kernelPriv", argv[i]) == 0) {
