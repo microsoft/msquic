@@ -209,10 +209,10 @@ function Copy-Artifacts {
             # This will still throw if a file cannot successfuly be deleted
         }
         robocopy $From $SmbDir /e /IS /IT /IM | Out-Null
-        if ($LASTERRORCODE -ne 1) {
-            Write-Error "Robocopy failed: $LASTERRORCODE"
+        if ($LASTEXITCODE -ne 1) {
+            Write-Error "Robocopy failed: $LASTEXITCODE"
         } else {
-            $global:LASTERRORCODE = 0
+            $global:LASTEXITCODE = 0
         }
     } else {
         Invoke-TestCommand $Session -ScriptBlock {
