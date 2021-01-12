@@ -48,7 +48,7 @@ QuicPacketBuilderInitialize(
     Builder->PacketBatchSent = FALSE;
     Builder->PacketBatchRetransmittable = FALSE;
     Builder->Metadata = &Builder->MetadataStorage.Metadata;
-    Builder->EncryptionOverhead = QUIC_ENCRYPTION_OVERHEAD;
+    Builder->EncryptionOverhead = CXPLAT_ENCRYPTION_OVERHEAD;
     Builder->TotalDatagramsLength = 0;
 
     if (Connection->SourceCids.Next == NULL) {
@@ -544,7 +544,7 @@ QuicPacketBuilderFinalizeHeaderProtection(
     }
 
     for (uint8_t i = 0; i < Builder->BatchCount; ++i) {
-        uint16_t Offset = i * QUIC_HP_SAMPLE_LENGTH;
+        uint16_t Offset = i * CXPLAT_HP_SAMPLE_LENGTH;
         uint8_t* Header = Builder->HeaderBatch[i];
         Header[0] ^= (Builder->HpMask[Offset] & 0x1f); // Bottom 5 bits for SH
         Header += 1 + Builder->Path->DestCid->CID.Length;
@@ -702,7 +702,7 @@ QuicPacketBuilderFinalize(
 
         uint8_t* Payload = Header + Builder->HeaderLength;
 
-        uint8_t Iv[QUIC_MAX_IV_LENGTH];
+        uint8_t Iv[CXPLAT_MAX_IV_LENGTH];
         QuicCryptoCombineIvAndPacketNumber(Builder->Key->Iv, (uint8_t*) &Builder->Metadata->PacketNumber, Iv);
 
         QUIC_STATUS Status;
@@ -731,9 +731,9 @@ QuicPacketBuilderFinalize(
                 //
 
                 CxPlatCopyMemory(
-                    Builder->CipherBatch + Builder->BatchCount * QUIC_HP_SAMPLE_LENGTH,
+                    Builder->CipherBatch + Builder->BatchCount * CXPLAT_HP_SAMPLE_LENGTH,
                     PnStart + 4,
-                    QUIC_HP_SAMPLE_LENGTH);
+                    CXPLAT_HP_SAMPLE_LENGTH);
                 Builder->HeaderBatch[Builder->BatchCount] = Header;
 
                 if (++Builder->BatchCount == QUIC_MAX_CRYPTO_BATCH_COUNT) {

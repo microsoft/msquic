@@ -1563,7 +1563,7 @@ QuicTraceRundown(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_maybenull_
-QUIC_KEY*
+CXPLAT_KEY*
 QuicLibraryGetStatelessRetryKeyForTimestamp(
     _In_ int64_t Timestamp
     )
@@ -1597,7 +1597,7 @@ QuicLibraryGetStatelessRetryKeyForTimestamp(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_maybenull_
-QUIC_KEY*
+CXPLAT_KEY*
 QuicLibraryGetCurrentStatelessRetryKey(
     void
     )
@@ -1617,12 +1617,12 @@ QuicLibraryGetCurrentStatelessRetryKey(
 
     int64_t ExpirationTime = StartTime + QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
 
-    QUIC_KEY* NewKey;
-    uint8_t RawKey[QUIC_AEAD_AES_256_GCM_SIZE];
+    CXPLAT_KEY* NewKey;
+    uint8_t RawKey[CXPLAT_AEAD_AES_256_GCM_SIZE];
     CxPlatRandom(sizeof(RawKey), RawKey);
     QUIC_STATUS Status =
         CxPlatKeyCreate(
-            QUIC_AEAD_AES_256_GCM,
+            CXPLAT_AEAD_AES_256_GCM,
             RawKey,
             &NewKey);
     if (QUIC_FAILED(Status)) {

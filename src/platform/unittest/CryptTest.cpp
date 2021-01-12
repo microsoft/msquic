@@ -37,8 +37,8 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
 
     struct QuicKey
     {
-        QUIC_KEY* Ptr;
-        QuicKey(QUIC_AEAD_TYPE AeadType, const uint8_t* const RawKey) : Ptr(NULL) {
+        CXPLAT_KEY* Ptr;
+        QuicKey(CXPLAT_AEAD_TYPE AeadType, const uint8_t* const RawKey) : Ptr(NULL) {
             QUIC_STATUS Status = CxPlatKeyCreate(AeadType, RawKey, &Ptr);
             if (Status == QUIC_STATUS_NOT_SUPPORTED) {
                 GTEST_SKIP_NO_RETURN_(": AEAD Type unsupported");
@@ -54,7 +54,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
 
         bool
         Encrypt(
-            _In_reads_bytes_(QUIC_IV_LENGTH)
+            _In_reads_bytes_(CXPLAT_IV_LENGTH)
                 const uint8_t* const Iv,
             _In_ uint16_t AuthDataLength,
             _In_reads_bytes_opt_(AuthDataLength)
@@ -77,7 +77,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
 
         bool
         Decrypt(
-            _In_reads_bytes_(QUIC_IV_LENGTH)
+            _In_reads_bytes_(CXPLAT_IV_LENGTH)
                 const uint8_t* const Iv,
             _In_ uint16_t AuthDataLength,
             _In_reads_bytes_opt_(AuthDataLength)
@@ -101,9 +101,9 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
 
     struct QuicHash
     {
-        QUIC_HASH* Ptr;
+        CXPLAT_HASH* Ptr;
         QuicHash(
-            _In_ QUIC_HASH_TYPE HashType,
+            _In_ CXPLAT_HASH_TYPE HashType,
             _In_reads_(SaltLength)
                 const uint8_t* const Salt,
             _In_ uint32_t SaltLength
@@ -189,7 +189,7 @@ TEST_F(CryptTest, WellKnownClientInitial)
             &State.ReadKeys[QUIC_PACKET_KEY_INITIAL],
             &State.WriteKeys[QUIC_PACKET_KEY_INITIAL]));
 
-    uint8_t Iv[QUIC_IV_LENGTH];
+    uint8_t Iv[CXPLAT_IV_LENGTH];
     QuicCryptoCombineIvAndPacketNumber(State.WriteKeys[0]->Iv, (uint8_t*) &InitialPacketNumber, Iv);
 
     VERIFY_QUIC_SUCCESS(
@@ -238,7 +238,7 @@ TEST_F(CryptTest, WellKnownClientInitial)
     //
     // Little hack to convert the initial key to a 1-RTT key for a key update test.
     //
-    uint8_t PacketKeyBuffer[sizeof(QUIC_SECRET) + sizeof(QUIC_PACKET_KEY)] = {0};
+    uint8_t PacketKeyBuffer[sizeof(CXPLAT_SECRET) + sizeof(QUIC_PACKET_KEY)] = {0};
     QUIC_PACKET_KEY* PacketKey = (QUIC_PACKET_KEY*)PacketKeyBuffer;
     memcpy(PacketKey, State.ReadKeys[0], sizeof(QUIC_PACKET_KEY));
     PacketKey->Type = QUIC_PACKET_KEY_1_RTT;
@@ -268,12 +268,12 @@ TEST_F(CryptTest, WellKnownChaChaPoly)
     const QuicBuffer Sample("5e5cd55c41f69080575d7999c25a5bfb");
     const QuicBuffer EncryptedHeader("4cfe4189");
     uint8_t PacketBuffer[21];
-    QUIC_SECRET Secret{};
+    CXPLAT_SECRET Secret{};
     QUIC_PACKET_KEY* PacketKey;
     const uint64_t PacketNumber = 654360564ull;
 
-    Secret.Hash = QUIC_HASH_SHA256;
-    Secret.Aead = QUIC_AEAD_CHACHA20_POLY1305;
+    Secret.Hash = CXPLAT_HASH_SHA256;
+    Secret.Aead = CXPLAT_AEAD_CHACHA20_POLY1305;
     memcpy(Secret.Secret, SecretBuffer.Data, SecretBuffer.Length);
 
     ASSERT_EQ(sizeof(PacketBuffer), EncryptedPacket.Length);
@@ -283,7 +283,7 @@ TEST_F(CryptTest, WellKnownChaChaPoly)
 
     ASSERT_EQ(0, memcmp(ExpectedIv.Data, PacketKey->Iv, sizeof(PacketKey->Iv)));
 
-    uint8_t Iv[QUIC_IV_LENGTH];
+    uint8_t Iv[CXPLAT_IV_LENGTH];
     QuicCryptoCombineIvAndPacketNumber(PacketKey->Iv, (uint8_t*) &PacketNumber, Iv);
 
     ASSERT_EQ(0, memcmp(Iv, ExpectedNonce.Data, sizeof(Iv)));
@@ -335,8 +335,8 @@ TEST_F(CryptTest, HpMaskChaCha20)
         {0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0};
     uint8_t Mask[16] = {0};
-    QUIC_HP_KEY* HpKey = nullptr;
-    VERIFY_QUIC_SUCCESS(CxPlatHpKeyCreate(QUIC_AEAD_CHACHA20_POLY1305, RawKey, &HpKey));
+    CXPLAT_HP_KEY* HpKey = nullptr;
+    VERIFY_QUIC_SUCCESS(CxPlatHpKeyCreate(CXPLAT_AEAD_CHACHA20_POLY1305, RawKey, &HpKey));
     VERIFY_QUIC_SUCCESS(CxPlatHpComputeMask(HpKey, 1, Sample, Mask));
 
     const uint8_t ExpectedMask[] = {0x39, 0xfd, 0x2b, 0x7d, 0xd9};
@@ -359,8 +359,8 @@ TEST_F(CryptTest, HpMaskAes256)
         {0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0};
     uint8_t Mask[16] = {0};
-    QUIC_HP_KEY* HpKey = nullptr;
-    VERIFY_QUIC_SUCCESS(CxPlatHpKeyCreate(QUIC_AEAD_AES_256_GCM, RawKey, &HpKey));
+    CXPLAT_HP_KEY* HpKey = nullptr;
+    VERIFY_QUIC_SUCCESS(CxPlatHpKeyCreate(CXPLAT_AEAD_AES_256_GCM, RawKey, &HpKey));
     VERIFY_QUIC_SUCCESS(CxPlatHpComputeMask(HpKey, 1, Sample, Mask));
 
     const uint8_t ExpectedMask[] = {0xf2, 0x90, 0x00, 0xb6, 0x2a};
@@ -383,8 +383,8 @@ TEST_F(CryptTest, HpMaskAes128)
         {0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0};
     uint8_t Mask[16] = {0};
-    QUIC_HP_KEY* HpKey = nullptr;
-    VERIFY_QUIC_SUCCESS(CxPlatHpKeyCreate(QUIC_AEAD_AES_128_GCM, RawKey, &HpKey));
+    CXPLAT_HP_KEY* HpKey = nullptr;
+    VERIFY_QUIC_SUCCESS(CxPlatHpKeyCreate(CXPLAT_AEAD_AES_128_GCM, RawKey, &HpKey));
     VERIFY_QUIC_SUCCESS(CxPlatHpComputeMask(HpKey, 1, Sample, Mask));
 
     const uint8_t ExpectedMask[] = {0xc6, 0xa1, 0x3b, 0x37, 0x87};
@@ -402,11 +402,11 @@ TEST_P(CryptTest, Encryption)
     int AEAD = GetParam();
 
     uint8_t RawKey[32];
-    uint8_t Iv[QUIC_IV_LENGTH];
+    uint8_t Iv[CXPLAT_IV_LENGTH];
     uint8_t AuthData[12];
     uint8_t Buffer[128];
 
-    QuicKey Key((QUIC_AEAD_TYPE)AEAD, RawKey);
+    QuicKey Key((CXPLAT_AEAD_TYPE)AEAD, RawKey);
     if (Key.Ptr == NULL) return;
 
     //
@@ -467,11 +467,11 @@ TEST_P(CryptTest, HashWellKnown)
     CxPlatZeroMemory(Input, sizeof(Input));
     Input[0] = 0xaa;
 
-    uint8_t Output[QUIC_HASH_MAX_SIZE];
+    uint8_t Output[CXPLAT_HASH_MAX_SIZE];
     CxPlatZeroMemory(Output, sizeof(Output));
-    const uint16_t OutputLength = CxPlatHashLength((QUIC_HASH_TYPE)HASH);
+    const uint16_t OutputLength = CxPlatHashLength((CXPLAT_HASH_TYPE)HASH);
 
-    QuicHash Hash((QUIC_HASH_TYPE)HASH, Salt, sizeof(Salt));
+    QuicHash Hash((CXPLAT_HASH_TYPE)HASH, Salt, sizeof(Salt));
     if (Hash.Ptr == NULL) return;
 
     ASSERT_TRUE(
@@ -490,14 +490,14 @@ TEST_P(CryptTest, HashRandom)
 
     uint8_t Salt[20];
     uint8_t Input[256];
-    uint8_t Output[QUIC_HASH_MAX_SIZE];
-    uint8_t Output2[QUIC_HASH_MAX_SIZE];
-    const uint16_t OutputLength = CxPlatHashLength((QUIC_HASH_TYPE)HASH);
+    uint8_t Output[CXPLAT_HASH_MAX_SIZE];
+    uint8_t Output2[CXPLAT_HASH_MAX_SIZE];
+    const uint16_t OutputLength = CxPlatHashLength((CXPLAT_HASH_TYPE)HASH);
 
     CxPlatRandom(sizeof(Salt), Salt);
     CxPlatRandom(sizeof(Input), Input);
 
-    QuicHash Hash((QUIC_HASH_TYPE)HASH, Salt, sizeof(Salt));
+    QuicHash Hash((CXPLAT_HASH_TYPE)HASH, Salt, sizeof(Salt));
     if (Hash.Ptr == NULL) return;
 
     ASSERT_TRUE(

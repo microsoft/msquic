@@ -22,8 +22,8 @@ Abstract:
 #define QUIC_CERT_CREATION_EVENT_NAME       L"MsQuicCertEvent"
 #define QUIC_CERT_CREATION_EVENT_WAIT       10000
 #define QUIC_CERTIFICATE_TEST_FRIENDLY_NAME L"MsQuicTestCert2"
-#define QUIC_KEY_CONTAINER_NAME             L"MsQuicSelfSignKey2"
-#define QUIC_KEY_SIZE                       2048
+#define CXPLAT_KEY_CONTAINER_NAME             L"MsQuicSelfSignKey2"
+#define CXPLAT_KEY_SIZE                       2048
 
 void
 CleanTestCertificatesFromStore(BOOLEAN UserStore)
@@ -451,7 +451,7 @@ GetPrivateRsaKey(
     DWORD KeyUsageProperty = NCRYPT_ALLOW_SIGNING_FLAG;
     DWORD ExportPolicyProperty = NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG;
     NCRYPT_PROV_HANDLE Provider = (NCRYPT_PROV_HANDLE)NULL;
-    DWORD KeySize = QUIC_KEY_SIZE;
+    DWORD KeySize = CXPLAT_KEY_SIZE;
 
     *Key = (NCRYPT_KEY_HANDLE)NULL;
 
@@ -476,7 +476,7 @@ ReadKey:
         NCryptOpenKey(
             Provider,
             Key,
-            QUIC_KEY_CONTAINER_NAME,
+            CXPLAT_KEY_CONTAINER_NAME,
             0,
             NCRYPT_SILENT_FLAG);
     if (hr == ERROR_SUCCESS) {
@@ -501,7 +501,7 @@ ReadKey:
             Provider,
             Key,
             NCRYPT_RSA_ALGORITHM,
-            QUIC_KEY_CONTAINER_NAME,
+            CXPLAT_KEY_CONTAINER_NAME,
             0,
             0);
     if (hr == NTE_EXISTS) {
@@ -685,7 +685,7 @@ CreateSelfSignedCertificate(
     //
     // Create the certificate
     //
-    KeyProvInfo.pwszContainerName   = QUIC_KEY_CONTAINER_NAME;
+    KeyProvInfo.pwszContainerName   = CXPLAT_KEY_CONTAINER_NAME;
     KeyProvInfo.pwszProvName        = MS_KEY_STORAGE_PROVIDER;
     KeyProvInfo.dwProvType          = 0;
     KeyProvInfo.dwFlags             = NCRYPT_SILENT_FLAG;

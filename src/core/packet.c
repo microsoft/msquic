@@ -305,9 +305,9 @@ QuicPacketGenerateRetryIntegrity(
         uint8_t* IntegrityField
     )
 {
-    QUIC_SECRET Secret;
-    Secret.Hash = QUIC_HASH_SHA256;
-    Secret.Aead = QUIC_AEAD_AES_128_GCM;
+    CXPLAT_SECRET Secret;
+    Secret.Hash = CXPLAT_HASH_SHA256;
+    Secret.Aead = CXPLAT_AEAD_AES_128_GCM;
     CxPlatCopyMemory(
         Secret.Secret,
         IntegritySecret,

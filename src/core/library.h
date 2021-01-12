@@ -210,7 +210,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Keys used for encryption of stateless retry tokens.
     //
-    QUIC_KEY* StatelessRetryKeys[2];
+    CXPLAT_KEY* StatelessRetryKeys[2];
 
     //
     // Timestamp when the current stateless retry key expires.
@@ -484,7 +484,7 @@ QuicLibraryGetWorker(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_maybenull_
-QUIC_KEY*
+CXPLAT_KEY*
 QuicLibraryGetCurrentStatelessRetryKey(
     void
     );
@@ -494,7 +494,7 @@ QuicLibraryGetCurrentStatelessRetryKey(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_maybenull_
-QUIC_KEY*
+CXPLAT_KEY*
 QuicLibraryGetStatelessRetryKeyForTimestamp(
     _In_ int64_t Timestamp
     );

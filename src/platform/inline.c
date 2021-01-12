@@ -135,12 +135,12 @@ CxPlatHashSimple(
 
 uint16_t
 CxPlatHashLength(
-    QUIC_HASH_TYPE Type
+    CXPLAT_HASH_TYPE Type
     );
 
 uint16_t
 CxPlatKeyLength(
-    QUIC_AEAD_TYPE Type
+    CXPLAT_AEAD_TYPE Type
     );
 
 uint64_t

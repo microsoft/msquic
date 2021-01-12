@@ -183,9 +183,9 @@ typedef struct QUIC_FAKE_TLS_MESSAGE {
 
 #pragma pack(pop)
 
-typedef struct QUIC_KEY {
+typedef struct CXPLAT_KEY {
     uint64_t Secret;
-} QUIC_KEY;
+} CXPLAT_KEY;
 
 typedef struct QUIC_SEC_CONFIG {
 
@@ -240,23 +240,23 @@ __drv_allocatesMem(Mem)
 QUIC_PACKET_KEY*
 CxPlatStubAllocKey(
     _In_ QUIC_PACKET_KEY_TYPE Type,
-    _In_reads_(QUIC_AEAD_AES_256_GCM_SIZE)
+    _In_reads_(CXPLAT_AEAD_AES_256_GCM_SIZE)
         const uint8_t* Secret
     )
 {
     size_t PacketKeySize =
         sizeof(QUIC_PACKET_KEY) +
-        (Type == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
+        (Type == QUIC_PACKET_KEY_1_RTT ? sizeof(CXPLAT_SECRET) : 0);
     QUIC_PACKET_KEY *Key = CXPLAT_ALLOC_NONPAGED(PacketKeySize, QUIC_POOL_TLS_PACKETKEY);
     CXPLAT_FRE_ASSERT(Key != NULL);
     CxPlatZeroMemory(Key, PacketKeySize);
     Key->Type = Type;
-    CxPlatKeyCreate(QUIC_AEAD_AES_256_GCM, Secret, &Key->PacketKey);
-    Key->HeaderKey = (QUIC_HP_KEY*)0x1;
+    CxPlatKeyCreate(CXPLAT_AEAD_AES_256_GCM, Secret, &Key->PacketKey);
+    Key->HeaderKey = (CXPLAT_HP_KEY*)0x1;
     if (Type == QUIC_PACKET_KEY_1_RTT) {
-        Key->TrafficSecret[0].Hash = QUIC_HASH_SHA256;
-        Key->TrafficSecret[0].Aead = QUIC_AEAD_AES_256_GCM;
-        CxPlatCopyMemory(Key->TrafficSecret[0].Secret, Secret, QUIC_AEAD_AES_256_GCM_SIZE);
+        Key->TrafficSecret[0].Hash = CXPLAT_HASH_SHA256;
+        Key->TrafficSecret[0].Aead = CXPLAT_AEAD_AES_256_GCM;
+        CxPlatCopyMemory(Key->TrafficSecret[0].Secret, Secret, CXPLAT_AEAD_AES_256_GCM_SIZE);
     }
     return Key;
 }
@@ -585,7 +585,7 @@ CxPlatTlsServerProcess(
             break;
         }
 
-        uint8_t HandshakeSecret[QUIC_AEAD_AES_256_GCM_SIZE];
+        uint8_t HandshakeSecret[CXPLAT_AEAD_AES_256_GCM_SIZE];
         CxPlatRandom(sizeof(HandshakeSecret), HandshakeSecret);
 
         uint16_t MessageLength = MinMessageLengths[QUIC_TLS_MESSAGE_SERVER_INITIAL];
@@ -593,7 +593,7 @@ CxPlatTlsServerProcess(
         ServerMessage->Type = QUIC_TLS_MESSAGE_SERVER_INITIAL;
         ServerMessage->SERVER_INITIAL.EarlyDataAccepted =
             State->EarlyDataState == QUIC_TLS_EARLY_DATA_ACCEPTED;
-        memcpy(ServerMessage->SERVER_INITIAL.HandshakeSecret, HandshakeSecret, QUIC_AEAD_AES_256_GCM_SIZE);
+        memcpy(ServerMessage->SERVER_INITIAL.HandshakeSecret, HandshakeSecret, CXPLAT_AEAD_AES_256_GCM_SIZE);
 
         State->BufferLength = MessageLength;
         State->BufferTotalLength = MessageLength;
@@ -611,7 +611,7 @@ CxPlatTlsServerProcess(
 
         if (State->EarlyDataState == QUIC_TLS_EARLY_DATA_ACCEPTED) {
             *ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
-            uint8_t Secret[QUIC_AEAD_AES_256_GCM_SIZE];
+            uint8_t Secret[CXPLAT_AEAD_AES_256_GCM_SIZE];
             CxPlatZeroMemory(Secret, sizeof(Secret));
             State->ReadKeys[QUIC_PACKET_KEY_0_RTT] = CxPlatStubAllocKey(QUIC_PACKET_KEY_0_RTT, Secret);
         }
@@ -624,7 +624,7 @@ CxPlatTlsServerProcess(
         State->WriteKey = QUIC_PACKET_KEY_HANDSHAKE;
         State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] = CxPlatStubAllocKey(QUIC_PACKET_KEY_HANDSHAKE, HandshakeSecret);
 
-        uint8_t OneRttSecret[QUIC_AEAD_AES_256_GCM_SIZE];
+        uint8_t OneRttSecret[CXPLAT_AEAD_AES_256_GCM_SIZE];
         CxPlatRandom(sizeof(OneRttSecret), OneRttSecret);
 
         MessageLength =
@@ -634,7 +634,7 @@ CxPlatTlsServerProcess(
             4 + (uint16_t)TlsContext->LocalTPLength;
         TlsWriteUint24(ServerMessage->Length, MessageLength - 4);
         ServerMessage->Type = QUIC_TLS_MESSAGE_SERVER_HANDSHAKE;
-        memcpy(ServerMessage->SERVER_HANDSHAKE.OneRttSecret, OneRttSecret, QUIC_AEAD_AES_256_GCM_SIZE);
+        memcpy(ServerMessage->SERVER_HANDSHAKE.OneRttSecret, OneRttSecret, CXPLAT_AEAD_AES_256_GCM_SIZE);
         ServerMessage->SERVER_HANDSHAKE.CertificateLength = SecurityConfig->FormatLength;
         memcpy(ServerMessage->SERVER_HANDSHAKE.Certificate, SecurityConfig->FormatBuffer, SecurityConfig->FormatLength);
 
@@ -828,7 +828,7 @@ CxPlatTlsClientProcess(
 
         if (TlsContext->EarlyDataAttempted) {
             State->WriteKey = QUIC_PACKET_KEY_0_RTT;
-            uint8_t Secret[QUIC_AEAD_AES_256_GCM_SIZE];
+            uint8_t Secret[CXPLAT_AEAD_AES_256_GCM_SIZE];
             CxPlatZeroMemory(Secret, sizeof(Secret));
             State->WriteKeys[QUIC_PACKET_KEY_0_RTT] = CxPlatStubAllocKey(QUIC_PACKET_KEY_0_RTT, Secret);
         }
@@ -1214,7 +1214,7 @@ _When_(WriteKey != NULL, _At_(*WriteKey, __drv_allocatesMem(Mem)))
 QUIC_STATUS
 QuicPacketKeyCreateInitial(
     _In_ BOOLEAN IsServer,
-    _In_reads_(QUIC_VERSION_SALT_LENGTH)
+    _In_reads_(CXPLAT_VERSION_SALT_LENGTH)
         const uint8_t* const Salt, // Version Specific
     _In_ uint8_t CIDLength,
     _In_reads_(CIDLength)
@@ -1225,13 +1225,13 @@ QuicPacketKeyCreateInitial(
 {
     UNREFERENCED_PARAMETER(IsServer);
 
-    uint8_t Secret[QUIC_AEAD_AES_256_GCM_SIZE];
+    uint8_t Secret[CXPLAT_AEAD_AES_256_GCM_SIZE];
     CxPlatZeroMemory(Secret, sizeof(Secret));
-    for (uint8_t i = 0; i < QUIC_VERSION_SALT_LENGTH; ++i) {
-        Secret[i % QUIC_AEAD_AES_256_GCM_SIZE] += Salt[i];
+    for (uint8_t i = 0; i < CXPLAT_VERSION_SALT_LENGTH; ++i) {
+        Secret[i % CXPLAT_AEAD_AES_256_GCM_SIZE] += Salt[i];
     }
     for (uint8_t i = 0; i < CIDLength; ++i) {
-        Secret[(i + QUIC_VERSION_SALT_LENGTH) % QUIC_AEAD_AES_256_GCM_SIZE] += CID[i];
+        Secret[(i + CXPLAT_VERSION_SALT_LENGTH) % CXPLAT_AEAD_AES_256_GCM_SIZE] += CID[i];
     }
 
     if (ReadKey != NULL) {
@@ -1247,7 +1247,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicPacketKeyDerive(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
-    _In_ const QUIC_SECRET* const Secret,
+    _In_ const CXPLAT_SECRET* const Secret,
     _In_z_ const char* const SecretName,
     _In_ BOOLEAN CreateHpKey,
     _Out_ QUIC_PACKET_KEY **NewKey
@@ -1256,7 +1256,7 @@ QuicPacketKeyDerive(
     UNREFERENCED_PARAMETER(Secret);
     UNREFERENCED_PARAMETER(SecretName);
     UNREFERENCED_PARAMETER(CreateHpKey);
-    uint8_t NullSecret[QUIC_AEAD_AES_256_GCM_SIZE];
+    uint8_t NullSecret[CXPLAT_AEAD_AES_256_GCM_SIZE];
     CxPlatZeroMemory(NullSecret, sizeof(NullSecret));
     *NewKey = CxPlatStubAllocKey(KeyType, NullSecret);
     return QUIC_STATUS_SUCCESS;
@@ -1293,15 +1293,15 @@ QuicPacketKeyUpdate(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatKeyCreate(
-    _In_ QUIC_AEAD_TYPE AeadType,
-    _When_(AeadType == QUIC_AEAD_AES_128_GCM, _In_reads_(16))
-    _When_(AeadType == QUIC_AEAD_AES_256_GCM, _In_reads_(32))
-    _When_(AeadType == QUIC_AEAD_CHACHA20_POLY1305, _In_reads_(32))
+    _In_ CXPLAT_AEAD_TYPE AeadType,
+    _When_(AeadType == CXPLAT_AEAD_AES_128_GCM, _In_reads_(16))
+    _When_(AeadType == CXPLAT_AEAD_AES_256_GCM, _In_reads_(32))
+    _When_(AeadType == CXPLAT_AEAD_CHACHA20_POLY1305, _In_reads_(32))
         const uint8_t* const RawKey,
-    _Out_ QUIC_KEY** NewKey
+    _Out_ CXPLAT_KEY** NewKey
     )
 {
-    QUIC_KEY *Key = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_KEY), QUIC_POOL_TLS_KEY);
+    CXPLAT_KEY *Key = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_KEY), QUIC_POOL_TLS_KEY);
     CXPLAT_FRE_ASSERT(Key != NULL);
     Key->Secret = AeadType;
     for (uint16_t i = 0; i < CxPlatKeyLength(AeadType); ++i) {
@@ -1314,7 +1314,7 @@ CxPlatKeyCreate(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatKeyFree(
-    _In_opt_ QUIC_KEY* Key
+    _In_opt_ CXPLAT_KEY* Key
     )
 {
     if (Key != NULL) {
@@ -1325,22 +1325,22 @@ CxPlatKeyFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatEncrypt(
-    _In_ QUIC_KEY* Key,
-    _In_reads_bytes_(QUIC_IV_LENGTH)
+    _In_ CXPLAT_KEY* Key,
+    _In_reads_bytes_(CXPLAT_IV_LENGTH)
         const uint8_t* const Iv,
     _In_ uint16_t AuthDataLength,
     _In_reads_bytes_opt_(AuthDataLength)
         const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
-    _When_(BufferLength > QUIC_ENCRYPTION_OVERHEAD, _Inout_updates_bytes_(BufferLength))
-    _When_(BufferLength <= QUIC_ENCRYPTION_OVERHEAD, _Out_writes_bytes_(BufferLength))
+    _When_(BufferLength > CXPLAT_ENCRYPTION_OVERHEAD, _Inout_updates_bytes_(BufferLength))
+    _When_(BufferLength <= CXPLAT_ENCRYPTION_OVERHEAD, _Out_writes_bytes_(BufferLength))
         uint8_t* Buffer
     )
 {
     UNREFERENCED_PARAMETER(Iv);
     UNREFERENCED_PARAMETER(AuthDataLength);
     UNREFERENCED_PARAMETER(AuthData);
-    uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
+    uint16_t PlainTextLength = BufferLength - CXPLAT_ENCRYPTION_OVERHEAD;
     CxPlatCopyMemory(Buffer + PlainTextLength, &Key->Secret, sizeof(Key->Secret));
     CxPlatZeroMemory(Buffer + PlainTextLength + sizeof(Key->Secret), sizeof(uint64_t));
     return QUIC_STATUS_SUCCESS;
@@ -1349,8 +1349,8 @@ CxPlatEncrypt(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatDecrypt(
-    _In_ QUIC_KEY* Key,
-    _In_reads_bytes_(QUIC_IV_LENGTH)
+    _In_ CXPLAT_KEY* Key,
+    _In_reads_bytes_(CXPLAT_IV_LENGTH)
         const uint8_t* const Iv,
     _In_ uint16_t AuthDataLength,
     _In_reads_bytes_opt_(AuthDataLength)
@@ -1363,7 +1363,7 @@ CxPlatDecrypt(
     UNREFERENCED_PARAMETER(Iv);
     UNREFERENCED_PARAMETER(AuthDataLength);
     UNREFERENCED_PARAMETER(AuthData);
-    uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
+    uint16_t PlainTextLength = BufferLength - CXPLAT_ENCRYPTION_OVERHEAD;
     if (memcmp(Buffer + PlainTextLength, &Key->Secret, sizeof(Key->Secret)) != 0) {
         return QUIC_STATUS_INVALID_PARAMETER;
     } else {
@@ -1374,24 +1374,24 @@ CxPlatDecrypt(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatHpKeyCreate(
-    _In_ QUIC_AEAD_TYPE AeadType,
-    _When_(AeadType == QUIC_AEAD_AES_128_GCM, _In_reads_(16))
-    _When_(AeadType == QUIC_AEAD_AES_256_GCM, _In_reads_(32))
-    _When_(AeadType == QUIC_AEAD_CHACHA20_POLY1305, _In_reads_(32))
+    _In_ CXPLAT_AEAD_TYPE AeadType,
+    _When_(AeadType == CXPLAT_AEAD_AES_128_GCM, _In_reads_(16))
+    _When_(AeadType == CXPLAT_AEAD_AES_256_GCM, _In_reads_(32))
+    _When_(AeadType == CXPLAT_AEAD_CHACHA20_POLY1305, _In_reads_(32))
         const uint8_t* const RawKey,
-    _Out_ QUIC_HP_KEY** NewKey
+    _Out_ CXPLAT_HP_KEY** NewKey
     )
 {
     UNREFERENCED_PARAMETER(AeadType);
     UNREFERENCED_PARAMETER(RawKey);
-    *NewKey = (QUIC_HP_KEY*)0x1;
+    *NewKey = (CXPLAT_HP_KEY*)0x1;
     return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatHpKeyFree(
-    _In_opt_ QUIC_HP_KEY* Key
+    _In_opt_ CXPLAT_HP_KEY* Key
     )
 {
     UNREFERENCED_PARAMETER(Key);
@@ -1400,41 +1400,41 @@ CxPlatHpKeyFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatHpComputeMask(
-    _In_ QUIC_HP_KEY* Key,
+    _In_ CXPLAT_HP_KEY* Key,
     _In_ uint8_t BatchSize,
-    _In_reads_bytes_(QUIC_HP_SAMPLE_LENGTH * BatchSize)
+    _In_reads_bytes_(CXPLAT_HP_SAMPLE_LENGTH * BatchSize)
         const uint8_t* const Cipher,
-    _Out_writes_bytes_(QUIC_HP_SAMPLE_LENGTH * BatchSize)
+    _Out_writes_bytes_(CXPLAT_HP_SAMPLE_LENGTH * BatchSize)
         uint8_t* Mask
     )
 {
     UNREFERENCED_PARAMETER(Key);
     UNREFERENCED_PARAMETER(Cipher);
-    CxPlatZeroMemory(Mask, BatchSize * QUIC_HP_SAMPLE_LENGTH);
+    CxPlatZeroMemory(Mask, BatchSize * CXPLAT_HP_SAMPLE_LENGTH);
     return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatHashCreate(
-    _In_ QUIC_HASH_TYPE HashType,
+    _In_ CXPLAT_HASH_TYPE HashType,
     _In_reads_(SaltLength)
         const uint8_t* const Salt,
     _In_ uint32_t SaltLength,
-    _Out_ QUIC_HASH** NewHash
+    _Out_ CXPLAT_HASH** NewHash
     )
 {
     UNREFERENCED_PARAMETER(HashType);
     UNREFERENCED_PARAMETER(Salt);
     UNREFERENCED_PARAMETER(SaltLength);
-    *NewHash = (QUIC_HASH*)0x1;
+    *NewHash = (CXPLAT_HASH*)0x1;
     return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatHashFree(
-    _In_opt_ QUIC_HASH* Hash
+    _In_opt_ CXPLAT_HASH* Hash
     )
 {
     UNREFERENCED_PARAMETER(Hash);
@@ -1443,7 +1443,7 @@ CxPlatHashFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatHashCompute(
-    _In_ QUIC_HASH* Hash,
+    _In_ CXPLAT_HASH* Hash,
     _In_reads_(InputLength)
         const uint8_t* const Input,
     _In_ uint32_t InputLength,

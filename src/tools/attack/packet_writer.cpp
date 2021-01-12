@@ -300,11 +300,11 @@ PacketWriter::WriteClientInitialPacket(
     }
 
     QuicVarIntEncode2Bytes(
-        PacketNumberLength + CryptoBufferLength + QUIC_ENCRYPTION_OVERHEAD,
+        PacketNumberLength + CryptoBufferLength + CXPLAT_ENCRYPTION_OVERHEAD,
         Buffer + PayloadLengthOffset);
     *HeaderLength = *PacketLength;
 
     CxPlatCopyMemory(Buffer + *PacketLength, CryptoBuffer, CryptoBufferLength);
     *PacketLength += CryptoBufferLength;
-    *PacketLength += QUIC_ENCRYPTION_OVERHEAD;
+    *PacketLength += CXPLAT_ENCRYPTION_OVERHEAD;
 }

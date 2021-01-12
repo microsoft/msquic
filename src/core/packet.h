@@ -5,7 +5,7 @@
 
 --*/
 
-#define QUIC_VERSION_SALT_LENGTH 20
+#define CXPLAT_VERSION_SALT_LENGTH 20
 #define QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH 32
 
 typedef struct QUIC_VERSION_INFO {
@@ -18,7 +18,7 @@ typedef struct QUIC_VERSION_INFO {
     //
     // Version specific salt.
     //
-    uint8_t Salt[QUIC_VERSION_SALT_LENGTH];
+    uint8_t Salt[CXPLAT_VERSION_SALT_LENGTH];
 
     //
     // Version specific Retry integrity secret.
@@ -199,7 +199,7 @@ typedef struct QUIC_RETRY_V1 {
     sizeof(uint8_t) \
 )
 
-#define QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1 QUIC_ENCRYPTION_OVERHEAD
+#define QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1 CXPLAT_ENCRYPTION_OVERHEAD
 
 //
 // Represents the short header format. All values in Network Byte order.

@@ -3197,7 +3197,7 @@ QuicConnRecvHeader(
 
     if (Packet->Encrypted &&
         Connection->State.HeaderProtectionEnabled &&
-        Packet->PayloadLength < 4 + QUIC_HP_SAMPLE_LENGTH) {
+        Packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
         QuicPacketLogDrop(Connection, Packet, "Too short for HP");
         return FALSE;
     }
@@ -3221,7 +3221,7 @@ QuicConnRecvHeader(
     CxPlatCopyMemory(
         Cipher,
         Packet->Buffer + Packet->HeaderLength + 4,
-        QUIC_HP_SAMPLE_LENGTH);
+        CXPLAT_HP_SAMPLE_LENGTH);
 
     return TRUE;
 }
@@ -3311,7 +3311,7 @@ QuicConnRecvPrepareDecrypt(
     // Ensure minimum encrypted payload length.
     //
     if (Packet->Encrypted &&
-        Packet->PayloadLength < QUIC_ENCRYPTION_OVERHEAD) {
+        Packet->PayloadLength < CXPLAT_ENCRYPTION_OVERHEAD) {
         QuicPacketLogDrop(Connection, Packet, "Payload length less than encryption tag");
         return FALSE;
     }
@@ -3394,7 +3394,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QUIC_STATELESS_RESET_TOKEN_LENGTH);
     }
 
-    uint8_t Iv[QUIC_MAX_IV_LENGTH];
+    uint8_t Iv[CXPLAT_MAX_IV_LENGTH];
     QuicCryptoCombineIvAndPacketNumber(
         Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->Iv,
         (uint8_t*) &Packet->PacketNumber,
@@ -3465,7 +3465,7 @@ QuicConnRecvDecryptAndAuthenticate(
         Connection->Stats.Recv.DecryptionFailures++;
         QuicPacketLogDrop(Connection, Packet, "Decryption failure");
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL);
-        if (Connection->Stats.Recv.DecryptionFailures >= QUIC_AEAD_INTEGRITY_LIMIT) {
+        if (Connection->Stats.Recv.DecryptionFailures >= CXPLAT_AEAD_INTEGRITY_LIMIT) {
             QuicConnTransportError(Connection, QUIC_ERROR_AEAD_LIMIT_REACHED);
         }
 
@@ -3496,7 +3496,7 @@ QuicConnRecvDecryptAndAuthenticate(
     // Account for updated payload length after decryption.
     //
     if (Packet->Encrypted) {
-        Packet->PayloadLength -= QUIC_ENCRYPTION_OVERHEAD;
+        Packet->PayloadLength -= CXPLAT_ENCRYPTION_OVERHEAD;
     }
 
     //
@@ -4572,12 +4572,12 @@ QuicConnRecvDatagramBatch(
     _In_ QUIC_PATH* Path,
     _In_ uint8_t BatchCount,
     _In_reads_(BatchCount) CXPLAT_RECV_DATA** Datagrams,
-    _In_reads_(BatchCount * QUIC_HP_SAMPLE_LENGTH)
+    _In_reads_(BatchCount * CXPLAT_HP_SAMPLE_LENGTH)
         const uint8_t* Cipher,
     _Inout_ QUIC_RECEIVE_PROCESSING_STATE* RecvState
     )
 {
-    uint8_t HpMask[QUIC_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
+    uint8_t HpMask[CXPLAT_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
 
     CXPLAT_DBG_ASSERT(BatchCount > 0 && BatchCount <= QUIC_MAX_CRYPTO_BATCH_COUNT);
     CXPLAT_RECV_PACKET* Packet = CxPlatDataPathRecvDataToRecvPacket(Datagrams[0]);
@@ -4605,7 +4605,7 @@ QuicConnRecvDatagramBatch(
             return;
         }
     } else {
-        CxPlatZeroMemory(HpMask, BatchCount * QUIC_HP_SAMPLE_LENGTH);
+        CxPlatZeroMemory(HpMask, BatchCount * CXPLAT_HP_SAMPLE_LENGTH);
     }
 
     for (uint8_t i = 0; i < BatchCount; ++i) {
@@ -4613,7 +4613,7 @@ QuicConnRecvDatagramBatch(
         CXPLAT_ECN_TYPE ECN = CXPLAT_ECN_FROM_TOS(Datagrams[i]->TypeOfService);
         Packet = CxPlatDataPathRecvDataToRecvPacket(Datagrams[i]);
         if (QuicConnRecvPrepareDecrypt(
-                Connection, Packet, HpMask + i * QUIC_HP_SAMPLE_LENGTH) &&
+                Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) &&
             QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
             QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
 
@@ -4689,7 +4689,7 @@ QuicConnRecvDatagrams(
 
     uint8_t BatchCount = 0;
     CXPLAT_RECV_DATA* Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
-    uint8_t Cipher[QUIC_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
+    uint8_t Cipher[CXPLAT_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
     QUIC_PATH* CurrentPath = NULL;
 
     CXPLAT_RECV_DATA* Datagram;
@@ -4761,7 +4761,7 @@ QuicConnRecvDatagrams(
             if (!QuicConnRecvHeader(
                     Connection,
                     Packet,
-                    Cipher + BatchCount * QUIC_HP_SAMPLE_LENGTH)) {
+                    Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH)) {
                 if (Packet->DecryptionDeferred) {
                     Connection->Stats.Recv.TotalPackets--; // Don't count the packet right now.
                 } else {
@@ -4787,9 +4787,9 @@ QuicConnRecvDatagrams(
                     Cipher,
                     &RecvState);
                 CxPlatMoveMemory(
-                    Cipher + BatchCount * QUIC_HP_SAMPLE_LENGTH,
+                    Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH,
                     Cipher,
-                    QUIC_HP_SAMPLE_LENGTH);
+                    CXPLAT_HP_SAMPLE_LENGTH);
                 BatchCount = 0;
             }
 

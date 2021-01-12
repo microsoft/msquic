@@ -468,7 +468,7 @@ protected:
         uint16_t
         Overhead()
         {
-            return QUIC_ENCRYPTION_OVERHEAD;
+            return CXPLAT_ENCRYPTION_OVERHEAD;
         }
 
         bool
@@ -481,7 +481,7 @@ protected:
             _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
             )
         {
-            uint8_t Iv[QUIC_IV_LENGTH];
+            uint8_t Iv[CXPLAT_IV_LENGTH];
             QuicCryptoCombineIvAndPacketNumber(Ptr->Iv, (uint8_t*) &PacketNumber, Iv);
 
             return
@@ -505,7 +505,7 @@ protected:
             _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
             )
         {
-            uint8_t Iv[QUIC_IV_LENGTH];
+            uint8_t Iv[CXPLAT_IV_LENGTH];
             QuicCryptoCombineIvAndPacketNumber(Ptr->Iv, (uint8_t*) &PacketNumber, Iv);
 
             return

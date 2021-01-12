@@ -7,7 +7,7 @@ Abstract:
 
     A dynamically resizing hash table implementation.
 
-    Currently QUIC_HASH_TABLE only supports "weak" enumeration. "Weak"
+    Currently CXPLAT_HASH_TABLE only supports "weak" enumeration. "Weak"
     enumeration means enumeration that requires exclusive access to the table
     during the entire enumeration.
 

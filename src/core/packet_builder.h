@@ -44,12 +44,12 @@ typedef struct QUIC_PACKET_BUILDER {
     //
     // Cipher text across multiple packets to batch header protection.
     //
-    uint8_t CipherBatch[QUIC_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
+    uint8_t CipherBatch[CXPLAT_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
 
     //
     // Output header protection mask.
     //
-    uint8_t HpMask[QUIC_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
+    uint8_t HpMask[CXPLAT_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
 
 
     //

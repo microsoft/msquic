@@ -20,7 +20,7 @@ typedef struct QUIC_RETRY_TOKEN_CONTENTS {
         uint8_t OrigConnId[QUIC_MAX_CONNECTION_ID_LENGTH_V1];
         uint8_t OrigConnIdLength;
     } Encrypted;
-    uint8_t EncryptionTag[QUIC_ENCRYPTION_OVERHEAD];
+    uint8_t EncryptionTag[CXPLAT_ENCRYPTION_OVERHEAD];
 } QUIC_RETRY_TOKEN_CONTENTS;
 
 //
@@ -225,7 +225,7 @@ typedef struct QUIC_BINDING {
     //
     // Used for generating stateless reset hashes.
     //
-    QUIC_HASH* ResetTokenHash;
+    CXPLAT_HASH* ResetTokenHash;
     CXPLAT_DISPATCH_LOCK ResetTokenLock;
 
     //
@@ -452,20 +452,20 @@ QuicRetryTokenDecrypt(
     //
     CxPlatCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
-    uint8_t Iv[QUIC_MAX_IV_LENGTH];
-    if (MsQuicLib.CidTotalLength >= QUIC_IV_LENGTH) {
-        CxPlatCopyMemory(Iv, Packet->DestCid, QUIC_IV_LENGTH);
-        for (uint8_t i = QUIC_IV_LENGTH; i < MsQuicLib.CidTotalLength; ++i) {
-            Iv[i % QUIC_IV_LENGTH] ^= Packet->DestCid[i];
+    uint8_t Iv[CXPLAT_MAX_IV_LENGTH];
+    if (MsQuicLib.CidTotalLength >= CXPLAT_IV_LENGTH) {
+        CxPlatCopyMemory(Iv, Packet->DestCid, CXPLAT_IV_LENGTH);
+        for (uint8_t i = CXPLAT_IV_LENGTH; i < MsQuicLib.CidTotalLength; ++i) {
+            Iv[i % CXPLAT_IV_LENGTH] ^= Packet->DestCid[i];
         }
     } else {
-        CxPlatZeroMemory(Iv, QUIC_IV_LENGTH);
+        CxPlatZeroMemory(Iv, CXPLAT_IV_LENGTH);
         CxPlatCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
     }
 
     CxPlatDispatchLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 
-    QUIC_KEY* StatelessRetryKey =
+    CXPLAT_KEY* StatelessRetryKey =
         QuicLibraryGetStatelessRetryKeyForTimestamp(
             Token->Authenticated.Timestamp);
     if (StatelessRetryKey == NULL) {

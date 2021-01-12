@@ -232,7 +232,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             *OrigSrcCid = *SrcCid;
             memcpy(SendBuffer->Buffer, Packet, PacketLength);
 
-            printf_buf("cleartext", SendBuffer->Buffer, PacketLength - QUIC_ENCRYPTION_OVERHEAD);
+            printf_buf("cleartext", SendBuffer->Buffer, PacketLength - CXPLAT_ENCRYPTION_OVERHEAD);
 
             QUIC_PACKET_KEY* WriteKey;
             VERIFY(
@@ -248,7 +248,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             printf_buf("salt", InitialSalt.Data, InitialSalt.Length);
             printf_buf("cid", DestCid, sizeof(uint64_t));
 
-            uint8_t Iv[QUIC_IV_LENGTH];
+            uint8_t Iv[CXPLAT_IV_LENGTH];
             QuicCryptoCombineIvAndPacketNumber(
                 WriteKey->Iv, (uint8_t*)&PacketNumber, Iv);
 

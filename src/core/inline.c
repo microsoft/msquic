@@ -222,11 +222,11 @@ QuicCryptoHasPendingCryptoFrame(
 
 void
 QuicCryptoCombineIvAndPacketNumber(
-    _In_reads_bytes_(QUIC_IV_LENGTH)
+    _In_reads_bytes_(CXPLAT_IV_LENGTH)
         const uint8_t* const IvIn,
     _In_reads_bytes_(sizeof(uint64_t))
         const uint8_t* const PacketNumber,
-    _Out_writes_bytes_(QUIC_IV_LENGTH)
+    _Out_writes_bytes_(CXPLAT_IV_LENGTH)
         uint8_t* IvOut
     );
 

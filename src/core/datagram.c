@@ -68,7 +68,7 @@ QuicCalculateDatagramLength(
     return
         MaxUdpPayloadSizeForFamily(Family, Mtu) -
         QUIC_DATAGRAM_OVERHEAD(CidLength) -
-        QUIC_ENCRYPTION_OVERHEAD;
+        CXPLAT_ENCRYPTION_OVERHEAD;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
