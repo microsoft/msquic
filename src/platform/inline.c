@@ -168,7 +168,7 @@ CxPlatTimeAtOrBefore32(
     );
 
 void
-CxPlatTraceStubVarArgs(
+QuicTraceStubVarArgs(
     _In_ const void* Fmt,
     ...
     );

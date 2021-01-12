@@ -195,7 +195,7 @@ QuicEtwCallback(
 
 inline
 void
-CxPlatTraceStubVarArgs(
+QuicTraceStubVarArgs(
     _In_ const void* Fmt,
     ...
     )
@@ -203,22 +203,22 @@ CxPlatTraceStubVarArgs(
     UNREFERENCED_PARAMETER(Fmt);
 }
 
-#define QuicTraceLogError(X,...)            CxPlatTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogWarning(X,...)          CxPlatTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogInfo(X,...)             CxPlatTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogVerbose(X,...)          CxPlatTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogError(X,...)            QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogWarning(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogInfo(X,...)             QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogVerbose(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
 
-#define QuicTraceLogConnError(X,...)        CxPlatTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogConnWarning(X,...)      CxPlatTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogConnInfo(X,...)         CxPlatTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogConnVerbose(X,...)      CxPlatTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnError(X,...)        QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnWarning(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnInfo(X,...)         QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnVerbose(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
 
 #define QuicTraceLogStreamVerboseEnabled() FALSE
 
-#define QuicTraceLogStreamError(X,...)      CxPlatTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogStreamWarning(X,...)    CxPlatTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogStreamInfo(X,...)       CxPlatTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogStreamVerbose(X,...)    CxPlatTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamError(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamWarning(X,...)    QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamInfo(X,...)       QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(X,...)    QuicTraceStubVarArgs(__VA_ARGS__)
 
 #endif // QUIC_LOGS_STUB
 
