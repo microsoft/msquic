@@ -124,7 +124,7 @@ void WINAPI EventCallback(_In_ PEVENT_RECORD ev)
         return;
     }
 
-    CXPLAT_EVENT_TYPE EventType = GetEventType(ev->EventHeader.EventDescriptor.Id);
+    QUIC_EVENT_TYPE EventType = GetEventType(ev->EventHeader.EventDescriptor.Id);
     _Analysis_assume_(EventType >= 0);
     if (EventType >= EventType_Count) {
         printf("WARNING: Unknown Event Type: %u\n", (UINT32)EventType);
@@ -202,7 +202,7 @@ BOOLEAN CollectTrace(void)
     Properties->LogFileMode = EVENT_TRACE_FILE_MODE_SEQUENTIAL;
     Properties->MaximumFileSize = 10;  // 10 MB
     Properties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
-    Properties->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(QuicEtwSessionName); 
+    Properties->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(QuicEtwSessionName);
     memcpy(PropertiesBuffer + Properties->LogFileNameOffset, QuicEtwFileName, sizeof(QuicEtwFileName));
 
     ULONG Err = StartTrace(&Trace.Handle, QuicEtwSessionName, Properties);

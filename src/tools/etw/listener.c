@@ -14,7 +14,7 @@ NewListener(
     _In_ PEVENT_RECORD ev
     )
 {
-    CXPLAT_EVENT_DATA_LISTENER* EvData = (CXPLAT_EVENT_DATA_LISTENER*)ev->UserData;
+    QUIC_EVENT_DATA_LISTENER* EvData = (QUIC_EVENT_DATA_LISTENER*)ev->UserData;
 
     // Move the old listener out of the set if this pointer is being reused.
     (void)ObjectSetRemoveActive(&Listeners, EvData->ListenerPtr);
@@ -34,7 +34,7 @@ NewListener(
 
 LISTENER* GetListenerFromEvent(PEVENT_RECORD ev)
 {
-    CXPLAT_EVENT_DATA_LISTENER* EvData = (CXPLAT_EVENT_DATA_LISTENER*)ev->UserData;
+    QUIC_EVENT_DATA_LISTENER* EvData = (QUIC_EVENT_DATA_LISTENER*)ev->UserData;
 
     LISTENER* Listener;
     if (GetEventId(ev->EventHeader.EventDescriptor.Id) == EventId_QuicListenerCreated ||
@@ -65,7 +65,7 @@ ListenerEventCallback(
 {
     LISTENER* Listener = GetListenerFromEvent(ev);
     *ObjectId = Listener->Id;
-    
+
     UNREFERENCED_PARAMETER(TraceEvent);
     UNREFERENCED_PARAMETER(InitialTimestamp);
 }

@@ -253,7 +253,7 @@ LibraryEventCallback(
     _Out_ ULONG64* InitialTimestamp
     )
 {
-    CXPLAT_EVENT_DATA_GLOBAL* EvData = (CXPLAT_EVENT_DATA_GLOBAL*)ev->UserData;
+    QUIC_EVENT_DATA_GLOBAL* EvData = (QUIC_EVENT_DATA_GLOBAL*)ev->UserData;
 
     UNREFERENCED_PARAMETER(ObjectId);
     UNREFERENCED_PARAMETER(TraceEvent);

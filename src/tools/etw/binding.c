@@ -14,7 +14,7 @@ NewBinding(
     _In_ PEVENT_RECORD ev
     )
 {
-    CXPLAT_EVENT_DATA_BINDING* EvData = (CXPLAT_EVENT_DATA_BINDING*)ev->UserData;
+    QUIC_EVENT_DATA_BINDING* EvData = (QUIC_EVENT_DATA_BINDING*)ev->UserData;
 
     // Move the old binding out of the set if this pointer is being reused.
     (void)ObjectSetRemoveActive(&Bindings, EvData->BindingPtr);
@@ -34,7 +34,7 @@ NewBinding(
 
 BINDING* GetBindingFromEvent(PEVENT_RECORD ev)
 {
-    CXPLAT_EVENT_DATA_BINDING* EvData = (CXPLAT_EVENT_DATA_BINDING*)ev->UserData;
+    QUIC_EVENT_DATA_BINDING* EvData = (QUIC_EVENT_DATA_BINDING*)ev->UserData;
 
     BINDING* Binding;
     if (GetEventId(ev->EventHeader.EventDescriptor.Id) == EventId_QuicBindingCreated ||
@@ -65,7 +65,7 @@ BindingEventCallback(
 {
     BINDING* Binding = GetBindingFromEvent(ev);
     *ObjectId = Binding->Id;
-    
+
     UNREFERENCED_PARAMETER(TraceEvent);
     UNREFERENCED_PARAMETER(InitialTimestamp);
 }

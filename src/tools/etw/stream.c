@@ -14,7 +14,7 @@ NewStream(
     _In_ PEVENT_RECORD ev
     )
 {
-    CXPLAT_EVENT_DATA_STREAM* EvData = (CXPLAT_EVENT_DATA_STREAM*)ev->UserData;
+    QUIC_EVENT_DATA_STREAM* EvData = (QUIC_EVENT_DATA_STREAM*)ev->UserData;
 
     // Move the old stream out of the set if this pointer is being reused.
     (void)ObjectSetRemoveActive(&Streams, EvData->StreamPtr);
@@ -47,7 +47,7 @@ NewStream(
 
 STREAM* GetStreamFromEvent(PEVENT_RECORD ev)
 {
-    CXPLAT_EVENT_DATA_STREAM* EvData = (CXPLAT_EVENT_DATA_STREAM*)ev->UserData;
+    QUIC_EVENT_DATA_STREAM* EvData = (QUIC_EVENT_DATA_STREAM*)ev->UserData;
 
     STREAM* Stream;
     if (GetEventId(ev->EventHeader.EventDescriptor.Id) == EventId_QuicStreamCreated ||
