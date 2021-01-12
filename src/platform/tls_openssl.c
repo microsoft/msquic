@@ -186,17 +186,17 @@ CxPlatTlsAlpnSelectCallback(
     // NegotiatedAlpn variable.
     //
 
-    QUIC_DBG_ASSERT(TlsContext->State->NegotiatedAlpn != NULL);
+    CXPLAT_DBG_ASSERT(TlsContext->State->NegotiatedAlpn != NULL);
     *OutLen = TlsContext->State->NegotiatedAlpn[0];
     *Out = TlsContext->State->NegotiatedAlpn + 1;
 
     return SSL_TLSEXT_ERR_OK;
 }
 
-QUIC_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
-QUIC_STATIC_ASSERT((int)ssl_encryption_early_data == (int)QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
-QUIC_STATIC_ASSERT((int)ssl_encryption_handshake == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
-QUIC_STATIC_ASSERT((int)ssl_encryption_application == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)ssl_encryption_early_data == (int)QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)ssl_encryption_handshake == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)ssl_encryption_application == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
 
 void
 CxPlatTlsNegotiatedCiphers(
@@ -219,7 +219,7 @@ CxPlatTlsNegotiatedCiphers(
         *HashType = QUIC_HASH_SHA256;
         break;
     default:
-        QUIC_FRE_ASSERT(FALSE);
+        CXPLAT_FRE_ASSERT(FALSE);
     }
 }
 
@@ -245,9 +245,9 @@ CxPlatTlsSetEncryptionSecretsCallback(
 
     QUIC_SECRET Secret;
     CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
-    QuicCopyMemory(Secret.Secret, WriteSecret, SecretLen);
+    CxPlatCopyMemory(Secret.Secret, WriteSecret, SecretLen);
 
-    QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
+    CXPLAT_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
     Status =
         CxPlatPacketKeyDerive(
             KeyType,
@@ -262,9 +262,9 @@ CxPlatTlsSetEncryptionSecretsCallback(
 
     TlsState->WriteKey = KeyType;
     TlsContext->ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
-    QuicCopyMemory(Secret.Secret, ReadSecret, SecretLen);
+    CxPlatCopyMemory(Secret.Secret, ReadSecret, SecretLen);
 
-    QUIC_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
+    CXPLAT_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
     Status =
         CxPlatPacketKeyDerive(
             KeyType,
@@ -343,7 +343,7 @@ CxPlatTlsAddHandshakeDataCallback(
     QUIC_TLS_PROCESS_STATE* TlsState = TlsContext->State;
 
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
-    QUIC_DBG_ASSERT(KeyType == 0 || TlsState->WriteKeys[KeyType] != NULL);
+    CXPLAT_DBG_ASSERT(KeyType == 0 || TlsState->WriteKeys[KeyType] != NULL);
 
     QuicTraceLogConnVerbose(
         OpenSslAddHandshakeData,
@@ -372,7 +372,7 @@ CxPlatTlsAddHandshakeDataCallback(
             NewBufferAllocLength <<= 1;
         }
 
-        uint8_t* NewBuffer = QUIC_ALLOC_NONPAGED(NewBufferAllocLength, QUIC_POOL_TLS_BUFFER);
+        uint8_t* NewBuffer = CXPLAT_ALLOC_NONPAGED(NewBufferAllocLength, CXPLAT_POOL_TLS_BUFFER);
         if (NewBuffer == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -383,11 +383,11 @@ CxPlatTlsAddHandshakeDataCallback(
             return -1;
         }
 
-        QuicCopyMemory(
+        CxPlatCopyMemory(
             NewBuffer,
             TlsState->Buffer,
             TlsState->BufferLength);
-        QUIC_FREE(TlsState->Buffer, QUIC_POOL_TLS_BUFFER);
+        CXPLAT_FREE(TlsState->Buffer, CXPLAT_POOL_TLS_BUFFER);
         TlsState->Buffer = NewBuffer;
         TlsState->BufferAllocLength = NewBufferAllocLength;
     }
@@ -417,7 +417,7 @@ CxPlatTlsAddHandshakeDataCallback(
         break;
     }
 
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         TlsState->Buffer + TlsState->BufferLength,
         Data,
         Length);
@@ -559,7 +559,7 @@ CxPlatTlsSecConfigCreate(
     // Create a security config.
     //
 
-    SecurityConfig = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
+    SecurityConfig = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG), CXPLAT_POOL_TLS_SECCONF);
     if (SecurityConfig == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -832,7 +832,7 @@ CxPlatTlsSecConfigDelete(
         SecurityConfig->SSLCtx = NULL;
     }
 
-    QUIC_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
+    CXPLAT_FREE(SecurityConfig, CXPLAT_POOL_TLS_SECCONF);
 }
 
 QUIC_STATUS
@@ -846,7 +846,7 @@ CxPlatTlsInitialize(
     QUIC_TLS* TlsContext = NULL;
     uint16_t ServerNameLength = 0;
 
-    TlsContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS), QUIC_POOL_TLS_CTX);
+    TlsContext = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_TLS), CXPLAT_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -857,7 +857,7 @@ CxPlatTlsInitialize(
         goto Exit;
     }
 
-    QuicZeroMemory(TlsContext, sizeof(QUIC_TLS));
+    CxPlatZeroMemory(TlsContext, sizeof(QUIC_TLS));
 
     TlsContext->Connection = Config->Connection;
     TlsContext->IsServer = Config->IsServer;
@@ -889,7 +889,7 @@ CxPlatTlsInitialize(
                 goto Exit;
             }
 
-            TlsContext->SNI = QUIC_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
+            TlsContext->SNI = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, CXPLAT_POOL_TLS_SNI);
             if (TlsContext->SNI == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -946,7 +946,7 @@ CxPlatTlsInitialize(
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
-    QUIC_FREE(Config->LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
+    CXPLAT_FREE(Config->LocalTPBuffer, CXPLAT_POOL_TLS_TRANSPARAMS);
 
     State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
 
@@ -975,7 +975,7 @@ CxPlatTlsUninitialize(
             "Cleaning up");
 
         if (TlsContext->SNI != NULL) {
-            QUIC_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
+            CXPLAT_FREE(TlsContext->SNI, CXPLAT_POOL_TLS_SNI);
             TlsContext->SNI = NULL;
         }
 
@@ -984,7 +984,7 @@ CxPlatTlsUninitialize(
             TlsContext->Ssl = NULL;
         }
 
-        QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
+        CXPLAT_FREE(TlsContext, CXPLAT_POOL_TLS_CTX);
     }
 }
 
@@ -1000,7 +1000,7 @@ CxPlatTlsProcessData(
     int Ret = 0;
     int Err = 0;
 
-    QUIC_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
+    CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
     if (DataType == QUIC_TLS_TICKET_DATA) {
         TlsContext->ResultFlags = QUIC_TLS_RESULT_ERROR;
@@ -1243,7 +1243,7 @@ CxPlatTlsLogSecret(
 {
     #define HEX_TO_CHAR(x) ((x) > 9 ? ('a' + ((x) - 10)) : '0' + (x))
     char SecretStr[256 + 1] = {0};
-    QUIC_DBG_ASSERT(Length * 2 < sizeof(SecretStr));
+    CXPLAT_DBG_ASSERT(Length * 2 < sizeof(SecretStr));
     for (uint32_t i = 0; i < Length; i++) {
         SecretStr[i*2]     = HEX_TO_CHAR(Secret[i] >> 4);
         SecretStr[i*2 + 1] = HEX_TO_CHAR(Secret[i] & 0xf);
@@ -1269,7 +1269,7 @@ CxPlatHkdfFormatLabel(
     _Inout_ uint32_t* const DataLength
     )
 {
-    QUIC_DBG_ASSERT(strlen(Label) <= UINT8_MAX - QUIC_HKDF_PREFIX_LEN);
+    CXPLAT_DBG_ASSERT(strlen(Label) <= UINT8_MAX - QUIC_HKDF_PREFIX_LEN);
     uint8_t LabelLength = (uint8_t)strlen(Label);
 
     Data[0] = HashLength >> 8;
@@ -1405,7 +1405,7 @@ Error:
     CxPlatHashFree(InitialHash);
     CxPlatHashFree(DerivedHash);
 
-    QuicSecureZeroMemory(InitialSecret, sizeof(InitialSecret));
+    CxPlatSecureZeroMemory(InitialSecret, sizeof(InitialSecret));
 
     return Status;
 }
@@ -1423,16 +1423,16 @@ CxPlatPacketKeyDerive(
     const uint16_t SecretLength = CxPlatHashLength(Secret->Hash);
     const uint16_t KeyLength = CxPlatKeyLength(Secret->Aead);
 
-    QUIC_DBG_ASSERT(SecretLength >= KeyLength);
-    QUIC_DBG_ASSERT(SecretLength >= QUIC_IV_LENGTH);
-    QUIC_DBG_ASSERT(SecretLength <= QUIC_HASH_MAX_SIZE);
+    CXPLAT_DBG_ASSERT(SecretLength >= KeyLength);
+    CXPLAT_DBG_ASSERT(SecretLength >= QUIC_IV_LENGTH);
+    CXPLAT_DBG_ASSERT(SecretLength <= QUIC_HASH_MAX_SIZE);
 
     CxPlatTlsLogSecret(SecretName, Secret->Secret, SecretLength);
 
     const uint16_t PacketKeyLength =
         sizeof(QUIC_PACKET_KEY) +
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
-    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength, QUIC_POOL_TLS_PACKETKEY);
+    QUIC_PACKET_KEY *Key = CXPLAT_ALLOC_NONPAGED(PacketKeyLength, CXPLAT_POOL_TLS_PACKETKEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1441,7 +1441,7 @@ CxPlatPacketKeyDerive(
             PacketKeyLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    QuicZeroMemory(Key, sizeof(QUIC_PACKET_KEY));
+    CxPlatZeroMemory(Key, sizeof(QUIC_PACKET_KEY));
     Key->Type = KeyType;
 
     QUIC_HASH* Hash = NULL;
@@ -1518,7 +1518,7 @@ CxPlatPacketKeyDerive(
     }
 
     if (KeyType == QUIC_PACKET_KEY_1_RTT) {
-        QuicCopyMemory(Key->TrafficSecret, Secret, sizeof(QUIC_SECRET));
+        CxPlatCopyMemory(Key->TrafficSecret, Secret, sizeof(QUIC_SECRET));
     }
 
     *NewKey = Key;
@@ -1529,7 +1529,7 @@ Error:
     CxPlatPacketKeyFree(Key);
     CxPlatHashFree(Hash);
 
-    QuicSecureZeroMemory(Temp, sizeof(Temp));
+    CxPlatSecureZeroMemory(Temp, sizeof(Temp));
 
     return Status;
 }
@@ -1605,8 +1605,8 @@ Error:
     CxPlatPacketKeyFree(ReadKey);
     CxPlatPacketKeyFree(WriteKey);
 
-    QuicSecureZeroMemory(ClientInitial.Secret, sizeof(ClientInitial.Secret));
-    QuicSecureZeroMemory(ServerInitial.Secret, sizeof(ServerInitial.Secret));
+    CxPlatSecureZeroMemory(ClientInitial.Secret, sizeof(ClientInitial.Secret));
+    CxPlatSecureZeroMemory(ServerInitial.Secret, sizeof(ServerInitial.Secret));
 
     return Status;
 }
@@ -1620,9 +1620,9 @@ CxPlatPacketKeyFree(
         CxPlatKeyFree(Key->PacketKey);
         CxPlatHpKeyFree(Key->HeaderKey);
         if (Key->Type >= QUIC_PACKET_KEY_1_RTT) {
-            QuicSecureZeroMemory(Key->TrafficSecret, sizeof(QUIC_SECRET));
+            CxPlatSecureZeroMemory(Key->TrafficSecret, sizeof(QUIC_SECRET));
         }
-        QUIC_FREE(Key, QUIC_POOL_TLS_PACKETKEY);
+        CXPLAT_FREE(Key, CXPLAT_POOL_TLS_PACKETKEY);
     }
 }
 
@@ -1672,8 +1672,8 @@ CxPlatPacketKeyUpdate(
             FALSE,
             NewKey);
 
-    QuicSecureZeroMemory(&NewTrafficSecret, sizeof(QUIC_SECRET));
-    QuicSecureZeroMemory(OldKey->TrafficSecret, sizeof(QUIC_SECRET));
+    CxPlatSecureZeroMemory(&NewTrafficSecret, sizeof(QUIC_SECRET));
+    CxPlatSecureZeroMemory(OldKey->TrafficSecret, sizeof(QUIC_SECRET));
 
 Error:
 
@@ -1769,7 +1769,7 @@ CxPlatEncrypt(
         uint8_t* Buffer
     )
 {
-    QUIC_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
+    CXPLAT_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
 
     const uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
     uint8_t *Tag = Buffer + PlainTextLength;
@@ -1831,7 +1831,7 @@ CxPlatDecrypt(
     _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
     )
 {
-    QUIC_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
+    CXPLAT_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
 
     const uint16_t CipherTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
     uint8_t *Tag = Buffer + CipherTextLength;
@@ -1900,7 +1900,7 @@ CxPlatHpKeyCreate(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const EVP_CIPHER *Aead;
-    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HP_KEY), QUIC_POOL_TLS_HP_KEY);
+    QUIC_HP_KEY* Key = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_HP_KEY), CXPLAT_POOL_TLS_HP_KEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1963,7 +1963,7 @@ CxPlatHpKeyFree(
 {
     if (Key != NULL) {
         EVP_CIPHER_CTX_free(Key->CipherCtx);
-        QUIC_FREE(Key, QUIC_POOL_TLS_HP_KEY);
+        CXPLAT_FREE(Key, CXPLAT_POOL_TLS_HP_KEY);
     }
 }
 
@@ -2122,6 +2122,6 @@ CxPlatHashCompute(
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
-    QUIC_FRE_ASSERT(ActualOutputSize == OutputLength);
+    CXPLAT_FRE_ASSERT(ActualOutputSize == OutputLength);
     return QUIC_STATUS_SUCCESS;
 }

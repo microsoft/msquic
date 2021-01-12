@@ -63,7 +63,7 @@ NewWorker(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_WORKER* EvData = (QUIC_EVENT_DATA_WORKER*)ev->UserData;
+    CXPLAT_EVENT_DATA_WORKER* EvData = (CXPLAT_EVENT_DATA_WORKER*)ev->UserData;
 
     // Move the old worker out of the set if this pointer is being reused.
     (void)ObjectSetRemoveActive(&Workers, EvData->WorkerPtr);
@@ -91,7 +91,7 @@ NewWorker(
 
 WORKER* GetWorkerFromEvent(PEVENT_RECORD ev)
 {
-    QUIC_EVENT_DATA_WORKER* EvData = (QUIC_EVENT_DATA_WORKER*)ev->UserData;
+    CXPLAT_EVENT_DATA_WORKER* EvData = (CXPLAT_EVENT_DATA_WORKER*)ev->UserData;
 
     WORKER* Worker;
     if (GetEventId(ev->EventHeader.EventDescriptor.Id) == EventId_QuicWorkerCreated) {
@@ -307,7 +307,7 @@ WorkerEventCallback(
     WORKER* Worker = GetWorkerFromEvent(ev);
     *ObjectId = Worker->Id;
 
-    QUIC_EVENT_DATA_WORKER* EvData = (QUIC_EVENT_DATA_WORKER*)ev->UserData;
+    CXPLAT_EVENT_DATA_WORKER* EvData = (CXPLAT_EVENT_DATA_WORKER*)ev->UserData;
 
     if (Cmd.Command == COMMAND_WORKER_TRACE && Worker->Id == Cmd.SelectedId) {
         *TraceEvent = TRUE;

@@ -20,7 +20,7 @@ struct PingTracker {
     uint64_t StartTime;
     uint64_t CompleteTime;
 
-    QUIC_EVENT Done;
+    CXPLAT_EVENT Done;
 
     PingTracker() :
         RefCount(1), BytesSent(0), BytesReceived(0), StartTime(0), CompleteTime(0) {

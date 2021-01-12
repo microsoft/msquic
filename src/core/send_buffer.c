@@ -85,7 +85,7 @@ QuicSendBufferAlloc(
     _In_ uint32_t Size
     )
 {
-    uint8_t* Buf = (uint8_t*)QUIC_ALLOC_NONPAGED(Size, QUIC_POOL_SENDBUF);
+    uint8_t* Buf = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Size, CXPLAT_POOL_SENDBUF);
 
     if (Buf != NULL) {
         SendBuffer->BufferedBytes += Size;
@@ -108,7 +108,7 @@ QuicSendBufferFree(
     _In_ uint32_t Size
     )
 {
-    QUIC_FREE(Buf, QUIC_POOL_SENDBUF);
+    CXPLAT_FREE(Buf, CXPLAT_POOL_SENDBUF);
     SendBuffer->BufferedBytes -= Size;
 }
 
@@ -146,7 +146,7 @@ QuicSendBufferFill(
     QUIC_SEND_REQUEST* Req;
     QUIC_LIST_ENTRY* Entry;
 
-    QUIC_DBG_ASSERT(Connection->Settings.SendBufferingEnabled);
+    CXPLAT_DBG_ASSERT(Connection->Settings.SendBufferingEnabled);
 
     Entry = Connection->Send.SendStreams.Flink;
     while (QuicSendBufferHasSpace(&Connection->SendBuffer) && Entry != &(Connection->Send.SendStreams)) {
@@ -165,9 +165,9 @@ QuicSendBufferFill(
         while (Req != NULL && !!(Req->Flags & QUIC_SEND_FLAG_BUFFERED)) {
             Req = Req->Next;
         }
-        QUIC_DBG_ASSERT(Req == Stream->SendBufferBookmark);
+        CXPLAT_DBG_ASSERT(Req == Stream->SendBufferBookmark);
         while (Req != NULL) {
-            QUIC_DBG_ASSERT(!(Req->Flags & QUIC_SEND_FLAG_BUFFERED));
+            CXPLAT_DBG_ASSERT(!(Req->Flags & QUIC_SEND_FLAG_BUFFERED));
             Req = Req->Next;
         }
 #endif

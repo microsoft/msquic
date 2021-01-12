@@ -183,7 +183,7 @@ struct DrillSender {
         )
     {
         QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-        QUIC_FRE_ASSERT(PacketBuffer->size() <= UINT16_MAX);
+        CXPLAT_FRE_ASSERT(PacketBuffer->size() <= UINT16_MAX);
         const uint16_t DatagramLength = (uint16_t) PacketBuffer->size();
 
         QUIC_ADDR LocalAddress;

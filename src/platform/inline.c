@@ -72,13 +72,13 @@ CxPlatListMoveItems(
 
 void
 CxPlatListPushEntry(
-    _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem QUIC_SINGLE_LIST_ENTRY* Entry
+    _Inout_ CXPLAT_SINGLE_LIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_SINGLE_LIST_ENTRY* Entry
     );
 
-QUIC_SINGLE_LIST_ENTRY*
+CXPLAT_SINGLE_LIST_ENTRY*
 CxPlatListPopEntry(
-    _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead
+    _Inout_ CXPLAT_SINGLE_LIST_ENTRY* ListHead
     );
 
 long

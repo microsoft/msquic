@@ -69,13 +69,13 @@ CxPlatStorageOpen(
             PathLength + 1);
     }
 
-    Storage = QUIC_ALLOC_PAGED(sizeof(QUIC_STORAGE), QUIC_POOL_STORAGE);
+    Storage = CXPLAT_ALLOC_PAGED(sizeof(QUIC_STORAGE), CXPLAT_POOL_STORAGE);
     if (Storage == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    QuicZeroMemory(Storage, sizeof(QUIC_STORAGE));
+    CxPlatZeroMemory(Storage, sizeof(QUIC_STORAGE));
     Storage->Callback = Callback;
     Storage->CallbackContext = CallbackContext;
 
@@ -141,7 +141,7 @@ Exit:
         if (Storage->NotifyEvent != NULL) {
             CloseHandle(Storage->NotifyEvent);
         }
-        QUIC_FREE(Storage, QUIC_POOL_STORAGE);
+        CXPLAT_FREE(Storage, CXPLAT_POOL_STORAGE);
     }
 
     return Status;
@@ -158,7 +158,7 @@ CxPlatStorageClose(
         RegCloseKey(Storage->RegKey);
         CloseThreadpoolWait(Storage->ThreadPoolWait);
         CloseHandle(Storage->NotifyEvent);
-        QUIC_FREE(Storage, QUIC_POOL_STORAGE);
+        CXPLAT_FREE(Storage, CXPLAT_POOL_STORAGE);
     }
 }
 
@@ -174,7 +174,7 @@ CxPlatStorageRegKeyChangeCallback(
     UNREFERENCED_PARAMETER(Instance);
     UNREFERENCED_PARAMETER(Wait);
     UNREFERENCED_PARAMETER(WaitResult);
-    QUIC_DBG_ASSERT(Context);
+    CXPLAT_DBG_ASSERT(Context);
 
     QUIC_STORAGE* Storage = (QUIC_STORAGE*)Context;
     Storage->Callback(Storage->CallbackContext);

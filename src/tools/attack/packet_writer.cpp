@@ -24,7 +24,7 @@ struct TlsContext
     QUIC_TLS* Ptr;
     QUIC_SEC_CONFIG* SecConfig;
     QUIC_TLS_PROCESS_STATE State;
-    QUIC_EVENT ProcessCompleteEvent;
+    CXPLAT_EVENT ProcessCompleteEvent;
     uint8_t AlpnListBuffer[256];
 
     TlsContext(_In_z_ const char* Alpn, _In_z_ const char* Sni) :
@@ -34,8 +34,8 @@ struct TlsContext
         memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
         CxPlatEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
 
-        QuicZeroMemory(&State, sizeof(State));
-        State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000, QUIC_POOL_TOOL);
+        CxPlatZeroMemory(&State, sizeof(State));
+        State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, CXPLAT_POOL_TOOL);
         State.BufferAllocLength = 8000;
 
         QUIC_CREDENTIAL_CONFIG CredConfig = {
@@ -95,7 +95,7 @@ struct TlsContext
             CxPlatTlsSecConfigDelete(SecConfig);
         }
         CxPlatEventUninitialize(ProcessCompleteEvent);
-        QUIC_FREE(State.Buffer, QUIC_POOL_TOOL);
+        CXPLAT_FREE(State.Buffer, CXPLAT_POOL_TOOL);
         for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
             CxPlatPacketKeyFree(State.ReadKeys[i]);
             CxPlatPacketKeyFree(State.WriteKeys[i]);
@@ -190,7 +190,7 @@ public:
                     &BufferLength);
 
             PeerState->BufferLength -= (uint16_t)BufferLength;
-            QuicMoveMemory(
+            CxPlatMoveMemory(
                 PeerState->Buffer,
                 PeerState->Buffer + BufferLength,
                 PeerState->BufferLength);
@@ -304,7 +304,7 @@ PacketWriter::WriteClientInitialPacket(
         Buffer + PayloadLengthOffset);
     *HeaderLength = *PacketLength;
 
-    QuicCopyMemory(Buffer + *PacketLength, CryptoBuffer, CryptoBufferLength);
+    CxPlatCopyMemory(Buffer + *PacketLength, CryptoBuffer, CryptoBufferLength);
     *PacketLength += CryptoBufferLength;
     *PacketLength += QUIC_ENCRYPTION_OVERHEAD;
 }

@@ -126,7 +126,7 @@ typedef struct QUIC_PATH {
 
 } QUIC_PATH;
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_PATH) < 256,
     "Ensure path struct stays small since we prealloc them");
 

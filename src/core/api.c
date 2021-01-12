@@ -96,7 +96,7 @@ MsQuicConnectionClose(
 {
     QUIC_CONNECTION* Connection;
 
-    QUIC_PASSIVE_CODE();
+    CXPLAT_PASSIVE_CODE();
 
     QuicTraceEvent(
         ApiEnter,
@@ -122,7 +122,7 @@ MsQuicConnectionClose(
 
     } else {
 
-        QUIC_EVENT CompletionEvent;
+        CXPLAT_EVENT CompletionEvent;
         QUIC_OPERATION Oper = { 0 };
         QUIC_API_CONTEXT ApiCtx;
 
@@ -150,7 +150,7 @@ MsQuicConnectionClose(
     // Connection can only be released by the application after the released
     // flag was set, in response to the CONN_CLOSE operation was processed.
     //
-    QUIC_TEL_ASSERT(Connection->State.HandleClosed);
+    CXPLAT_TEL_ASSERT(Connection->State.HandleClosed);
 
     //
     // Release the reference to the Connection.
@@ -189,8 +189,8 @@ MsQuicConnectionShutdown(
     } else if (IS_STREAM_HANDLE(Handle)) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_STREAM* Stream = (QUIC_STREAM*)Handle;
-        QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
-        QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+        CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+        CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
         Connection = Stream->Connection;
     } else {
         goto Error;
@@ -251,7 +251,7 @@ MsQuicConnectionStart(
     QUIC_OPERATION* Oper;
     char* ServerNameCopy = NULL;
 
-    QUIC_PASSIVE_CODE();
+    CXPLAT_PASSIVE_CODE();
 
     QuicTraceEvent(
         ApiEnter,
@@ -282,8 +282,8 @@ MsQuicConnectionStart(
     } else if (IS_STREAM_HANDLE(Handle)) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_STREAM* Stream = (QUIC_STREAM*)Handle;
-        QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
-        QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+        CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+        CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
         Connection = Stream->Connection;
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -324,7 +324,7 @@ MsQuicConnectionStart(
         // Allocate copy of the server name, to save with the connection.
         //
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed by the connection.")
-        ServerNameCopy = QUIC_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_SERVERNAME);
+        ServerNameCopy = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, CXPLAT_POOL_SERVERNAME);
         if (ServerNameCopy == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
@@ -335,12 +335,12 @@ MsQuicConnectionStart(
             goto Error;
         }
 
-        QuicCopyMemory(ServerNameCopy, ServerName, ServerNameLength);
+        CxPlatCopyMemory(ServerNameCopy, ServerName, ServerNameLength);
         ServerNameCopy[ServerNameLength] = 0;
     }
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
-    QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
+    CXPLAT_DBG_ASSERT(!QuicConnIsServer(Connection));
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -369,7 +369,7 @@ MsQuicConnectionStart(
 Error:
 
     if (ServerNameCopy != NULL) {
-        QUIC_FREE(ServerNameCopy, QUIC_POOL_SERVERNAME);
+        CXPLAT_FREE(ServerNameCopy, CXPLAT_POOL_SERVERNAME);
     }
 
     QuicTraceEvent(
@@ -393,7 +393,7 @@ MsQuicConnectionSetConfiguration(
     QUIC_CONFIGURATION* Configuration;
     QUIC_OPERATION* Oper;
 
-    QUIC_PASSIVE_CODE();
+    CXPLAT_PASSIVE_CODE();
 
     QuicTraceEvent(
         ApiEnter,
@@ -413,8 +413,8 @@ MsQuicConnectionSetConfiguration(
     } else if (IS_STREAM_HANDLE(Handle)) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_STREAM* Stream = (QUIC_STREAM*)Handle;
-        QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
-        QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+        CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+        CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
         Connection = Stream->Connection;
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -441,7 +441,7 @@ MsQuicConnectionSetConfiguration(
     }
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
-    QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+    CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -489,7 +489,7 @@ MsQuicConnectionSendResumptionTicket(
     QUIC_OPERATION* Oper;
     uint8_t* ResumptionDataCopy = NULL;
 
-    QUIC_PASSIVE_CODE();
+    CXPLAT_PASSIVE_CODE();
 
     QuicTraceEvent(
         ApiEnter,
@@ -514,8 +514,8 @@ MsQuicConnectionSendResumptionTicket(
     } else if (IS_STREAM_HANDLE(Handle)) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_STREAM* Stream = (QUIC_STREAM*)Handle;
-        QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
-        QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+        CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+        CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
         Connection = Stream->Connection;
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -538,7 +538,7 @@ MsQuicConnectionSendResumptionTicket(
     }
 
     if (DataLength > 0) {
-        ResumptionDataCopy = QUIC_ALLOC_NONPAGED(DataLength, QUIC_POOL_APP_RESUMPTION_DATA);
+        ResumptionDataCopy = CXPLAT_ALLOC_NONPAGED(DataLength, CXPLAT_POOL_APP_RESUMPTION_DATA);
         if (ResumptionDataCopy == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
@@ -548,7 +548,7 @@ MsQuicConnectionSendResumptionTicket(
                 DataLength);
             goto Error;
         }
-        QuicCopyMemory(ResumptionDataCopy, ResumptionData, DataLength);
+        CxPlatCopyMemory(ResumptionDataCopy, ResumptionData, DataLength);
     }
 
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
@@ -576,7 +576,7 @@ MsQuicConnectionSendResumptionTicket(
 Error:
 
     if (ResumptionDataCopy != NULL) {
-        QUIC_FREE(ResumptionDataCopy, QUIC_POOL_APP_RESUMPTION_DATA);
+        CXPLAT_FREE(ResumptionDataCopy, CXPLAT_POOL_APP_RESUMPTION_DATA);
     }
 
     QuicTraceEvent(
@@ -620,8 +620,8 @@ MsQuicStreamOpen(
     } else if (IS_STREAM_HANDLE(Handle)) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_STREAM* Stream = (QUIC_STREAM*)Handle;
-        QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
-        QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+        CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+        CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
         Connection = Stream->Connection;
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -672,7 +672,7 @@ MsQuicStreamClose(
     QUIC_STREAM* Stream;
     QUIC_CONNECTION* Connection;
 
-    QUIC_PASSIVE_CODE();
+    CXPLAT_PASSIVE_CODE();
 
     QuicTraceEvent(
         ApiEnter,
@@ -687,8 +687,8 @@ MsQuicStreamClose(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Stream = (QUIC_STREAM*)Handle;
 
-    QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
-    QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
     Connection = Stream->Connection;
 
@@ -719,7 +719,7 @@ MsQuicStreamClose(
             }
         }
 
-        QUIC_EVENT CompletionEvent;
+        CXPLAT_EVENT CompletionEvent;
         QUIC_OPERATION Oper = { 0 };
         QUIC_API_CONTEXT ApiCtx;
 
@@ -778,8 +778,8 @@ MsQuicStreamStart(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Stream = (QUIC_STREAM*)Handle;
 
-    QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
-    QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
     Connection = Stream->Connection;
 
@@ -830,7 +830,7 @@ MsQuicStreamStart(
 
         QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
 
-        QUIC_EVENT CompletionEvent;
+        CXPLAT_EVENT CompletionEvent;
         QUIC_OPERATION Oper = { 0 };
         QUIC_API_CONTEXT ApiCtx;
 
@@ -920,8 +920,8 @@ MsQuicStreamShutdown(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Stream = (QUIC_STREAM*)Handle;
 
-    QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
-    QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
     Connection = Stream->Connection;
 
@@ -1004,8 +1004,8 @@ MsQuicStreamSend(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Stream = (QUIC_STREAM*)Handle;
 
-    QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
-    QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
     Connection = Stream->Connection;
 
@@ -1053,7 +1053,7 @@ MsQuicStreamSend(
     SendRequest->TotalLength = TotalLength;
     SendRequest->ClientContext = ClientSendContext;
 
-    QuicDispatchLockAcquire(&Stream->ApiSendRequestLock);
+    CxPlatDispatchLockAcquire(&Stream->ApiSendRequestLock);
     if (!Stream->Flags.SendEnabled) {
         Status = QUIC_STATUS_INVALID_STATE;
     } else {
@@ -1065,7 +1065,7 @@ MsQuicStreamSend(
         *ApiSendRequestsTail = SendRequest;
         Status = QUIC_STATUS_SUCCESS;
     }
-    QuicDispatchLockRelease(&Stream->ApiSendRequestLock);
+    CxPlatDispatchLockRelease(&Stream->ApiSendRequestLock);
 
     if (QUIC_FAILED(Status)) {
         CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
@@ -1138,8 +1138,8 @@ MsQuicStreamReceiveSetEnabled(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Stream = (QUIC_STREAM*)Handle;
 
-    QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
-    QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
     Connection = Stream->Connection;
 
@@ -1212,8 +1212,8 @@ MsQuicStreamReceiveComplete(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Stream = (QUIC_STREAM*)Handle;
 
-    QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
-    QUIC_TEL_ASSERT(!Stream->Flags.Freed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
     Connection = Stream->Connection;
 
@@ -1279,7 +1279,7 @@ MsQuicSetParam(
         const void* Buffer
     )
 {
-    QUIC_PASSIVE_CODE();
+    CXPLAT_PASSIVE_CODE();
 
     if ((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -1312,7 +1312,7 @@ MsQuicSetParam(
     }
 
     QUIC_CONNECTION* Connection;
-    QUIC_EVENT CompletionEvent;
+    CXPLAT_EVENT CompletionEvent;
 
     if (Handle->Type == QUIC_HANDLE_TYPE_STREAM) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
@@ -1389,7 +1389,7 @@ MsQuicGetParam(
         void* Buffer
     )
 {
-    QUIC_PASSIVE_CODE();
+    CXPLAT_PASSIVE_CODE();
 
     if (((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) ||
         BufferLength == NULL) {
@@ -1423,7 +1423,7 @@ MsQuicGetParam(
     }
 
     QUIC_CONNECTION* Connection;
-    QUIC_EVENT CompletionEvent;
+    CXPLAT_EVENT CompletionEvent;
 
     if (Handle->Type == QUIC_HANDLE_TYPE_STREAM) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
@@ -1519,7 +1519,7 @@ MsQuicDatagramSend(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Connection = (QUIC_CONNECTION*)Handle;
 
-    QUIC_TEL_ASSERT(!Connection->State.Freed);
+    CXPLAT_TEL_ASSERT(!Connection->State.Freed);
 
     TotalLength = 0;
     for (uint32_t i = 0; i < BufferCount; ++i) {

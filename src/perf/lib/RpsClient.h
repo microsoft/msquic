@@ -50,21 +50,21 @@ struct RpsConnectionContext {
 
 struct RpsWorkerContext {
     class RpsClient* Client {nullptr};
-    QUIC_LOCK Lock;
+    CXPLAT_LOCK Lock;
     QUIC_LIST_ENTRY Connections;
-    QUIC_THREAD Thread;
-    QUIC_EVENT WakeEvent;
+    CXPLAT_THREAD Thread;
+    CXPLAT_EVENT WakeEvent;
     bool ThreadStarted {false};
     uint32_t RequestCount {0};
     RpsWorkerContext() {
-        QuicLockInitialize(&Lock);
+        CxPlatLockInitialize(&Lock);
         CxPlatEventInitialize(&WakeEvent, FALSE, FALSE);
         CxPlatListInitializeHead(&Connections);
     }
     ~RpsWorkerContext() {
         WaitForWorker();
         CxPlatEventUninitialize(WakeEvent);
-        QuicLockUninitialize(&Lock);
+        CxPlatLockUninitialize(&Lock);
     }
     void WaitForWorker() {
         if (ThreadStarted) {
@@ -75,14 +75,14 @@ struct RpsWorkerContext {
         }
     }
     void Uninitialize() {
-        QuicLockAcquire(&Lock);
+        CxPlatLockAcquire(&Lock);
         CxPlatListInitializeHead(&Connections);
-        QuicLockRelease(&Lock);
+        CxPlatLockRelease(&Lock);
         WaitForWorker();
     }
     RpsConnectionContext* GetConnection() {
         RpsConnectionContext* Connection = nullptr;
-        QuicLockAcquire(&Lock);
+        CxPlatLockAcquire(&Lock);
         if (!CxPlatListIsEmpty(&Connections)) {
             Connection =
                 QUIC_CONTAINING_RECORD(
@@ -91,14 +91,14 @@ struct RpsWorkerContext {
                     Link);
             CxPlatListInsertTail(&Connections, &Connection->Link);
         }
-        QuicLockRelease(&Lock);
+        CxPlatLockRelease(&Lock);
         return Connection;
     }
     void QueueConnection(RpsConnectionContext* Connection) {
         Connection->Worker = this;
-        QuicLockAcquire(&Lock);
+        CxPlatLockAcquire(&Lock);
         CxPlatListInsertTail(&Connections, &Connection->Link);
-        QuicLockRelease(&Lock);
+        CxPlatLockRelease(&Lock);
     }
     void QueueSendRequest();
 };
@@ -120,7 +120,7 @@ public:
 
     QUIC_STATUS
     Start(
-        _In_ QUIC_EVENT* StopEvent
+        _In_ CXPLAT_EVENT* StopEvent
         ) override;
 
     QUIC_STATUS
@@ -169,11 +169,11 @@ public:
         QUIC_BUFFER* Buffer;
         QuicBufferScopeQuicAlloc() noexcept : Buffer(nullptr) { }
         operator QUIC_BUFFER* () noexcept { return Buffer; }
-        ~QuicBufferScopeQuicAlloc() noexcept { if (Buffer) { QUIC_FREE(Buffer, QUIC_POOL_PERF); } }
+        ~QuicBufferScopeQuicAlloc() noexcept { if (Buffer) { CXPLAT_FREE(Buffer, CXPLAT_POOL_PERF); } }
     };
 
     QuicBufferScopeQuicAlloc RequestBuffer;
-    QUIC_EVENT* CompletionEvent {nullptr};
+    CXPLAT_EVENT* CompletionEvent {nullptr};
     QUIC_ADDR LocalAddresses[RPS_MAX_CLIENT_PORT_COUNT];
     uint32_t ActiveConnections {0};
     EventScope AllConnected {true};

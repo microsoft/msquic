@@ -151,7 +151,7 @@ CxPlatToeplitzHashCompute(
     uint32_t BaseOffset = HashInputOffset * NIBBLES_PER_BYTE;
     uint32_t Result = 0;
 
-    QUIC_DBG_ASSERT(
+    CXPLAT_DBG_ASSERT(
         (BaseOffset + HashInputLength * NIBBLES_PER_BYTE) <= QUIC_TOEPLITZ_LOOKUP_TABLE_COUNT);
 
     for (uint32_t i = 0; i < HashInputLength; i++) {

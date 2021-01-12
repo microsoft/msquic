@@ -32,8 +32,8 @@ QuicStreamSetValidate(
     CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
     while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
         const QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
-        QUIC_DBG_ASSERT(Stream->Type == QUIC_HANDLE_TYPE_STREAM);
-        QUIC_DBG_ASSERT(Stream->Connection == Connection);
+        CXPLAT_DBG_ASSERT(Stream->Type == QUIC_HANDLE_TYPE_STREAM);
+        CXPLAT_DBG_ASSERT(Stream->Connection == Connection);
         UNREFERENCED_PARAMETER(Stream);
     }
     CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
@@ -51,7 +51,7 @@ QuicStreamSetInitialize(
     CxPlatListInitializeHead(&StreamSet->ClosedStreams);
 #if DEBUG
     CxPlatListInitializeHead(&StreamSet->AllStreams);
-    QuicDispatchLockInitialize(&StreamSet->AllStreamsLock);
+    CxPlatDispatchLockInitialize(&StreamSet->AllStreamsLock);
 #endif
 }
 
@@ -65,7 +65,7 @@ QuicStreamSetUninitialize(
         CxPlatHashtableUninitialize(StreamSet->StreamTable);
     }
 #if DEBUG
-    QuicDispatchLockUninitialize(&StreamSet->AllStreamsLock);
+    CxPlatDispatchLockUninitialize(&StreamSet->AllStreamsLock);
 #endif
 }
 
@@ -186,7 +186,7 @@ QuicStreamSetReleaseStream(
     uint8_t Flags = (uint8_t)(Stream->ID & STREAM_ID_MASK);
     QUIC_STREAM_TYPE_INFO* Info = &StreamSet->Types[Flags];
 
-    QUIC_DBG_ASSERT(Info->CurrentStreamCount != 0);
+    CXPLAT_DBG_ASSERT(Info->CurrentStreamCount != 0);
     Info->CurrentStreamCount--;
 
     if ((Flags & STREAM_ID_FLAG_IS_SERVER) == QuicConnIsServer(Stream->Connection)) {
@@ -668,7 +668,7 @@ QuicStreamSetGetStreamForPeer(
             } else if (Stream->Flags.HandleClosed) {
                 Stream = NULL; // App accepted but immediately closed the stream.
             } else {
-                QUIC_FRE_ASSERTMSG(
+                CXPLAT_FRE_ASSERTMSG(
                     Stream->ClientCallbackHandler != NULL,
                     "App MUST set callback handler!");
             }

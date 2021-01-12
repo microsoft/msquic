@@ -83,7 +83,7 @@ typedef struct QUIC_API_CONTEXT {
     //
     // Used for synchronous operations (see above).
     //
-    QUIC_EVENT* Completed;
+    CXPLAT_EVENT* Completed;
 
     union {
         struct {
@@ -278,7 +278,7 @@ typedef struct QUIC_OPERATION_QUEUE {
     //
     // Queue of pending operations.
     //
-    QUIC_DISPATCH_LOCK Lock;
+    CXPLAT_DISPATCH_LOCK Lock;
     QUIC_LIST_ENTRY List;
 
 } QUIC_OPERATION_QUEUE;

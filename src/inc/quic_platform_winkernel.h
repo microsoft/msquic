@@ -150,9 +150,9 @@ CxPlatUninitialize(
 // Assertion Interfaces
 //
 
-#define QUIC_STATIC_ASSERT(X,Y) static_assert(X,Y)
+#define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X,Y)
 
-#define QUIC_ANALYSIS_ASSERT(X) __analysis_assert(X)
+#define CXPLAT_ANALYSIS_ASSERT(X) __analysis_assert(X)
 
 //
 // Logs the assertion failure to ETW.
@@ -187,57 +187,57 @@ CxPlatLogAssert(
 #if defined(_PREFAST_)
 // _Analysis_assume_ will never result in any code generation for _exp,
 // so using it will not have runtime impact, even if _exp has side effects.
-#define QUIC_ANALYSIS_ASSUME(_exp) _Analysis_assume_(_exp)
+#define CXPLAT_ANALYSIS_ASSUME(_exp) _Analysis_assume_(_exp)
 #else // _PREFAST_
-// QUIC_ANALYSIS_ASSUME ensures that _exp is parsed in non-analysis compile.
+// CXPLAT_ANALYSIS_ASSUME ensures that _exp is parsed in non-analysis compile.
 // On DEBUG, it's guaranteed to be parsed as part of the normal compile, but
 // with non-DEBUG, use __noop to ensure _exp is parseable but without code
 // generation.
 #if DEBUG
-#define QUIC_ANALYSIS_ASSUME(_exp) ((void) 0)
+#define CXPLAT_ANALYSIS_ASSUME(_exp) ((void) 0)
 #else // DEBUG
-#define QUIC_ANALYSIS_ASSUME(_exp) __noop(_exp)
+#define CXPLAT_ANALYSIS_ASSUME(_exp) __noop(_exp)
 #endif // DEBUG
 #endif // _PREFAST_
 
 //
 // MsQuic uses three types of asserts:
 //
-//  QUIC_DBG_ASSERT - Asserts that are too expensive to evaluate all the time.
-//  QUIC_TEL_ASSERT - Asserts that are acceptable to always evaluate, but not
+//  CXPLAT_DBG_ASSERT - Asserts that are too expensive to evaluate all the time.
+//  CXPLAT_TEL_ASSERT - Asserts that are acceptable to always evaluate, but not
 //                    always crash the system.
-//  QUIC_FRE_ASSERT - Asserts that must always crash the system.
+//  CXPLAT_FRE_ASSERT - Asserts that must always crash the system.
 //
 
 #if DEBUG
-#define QUIC_DBG_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
-#define QUIC_DBG_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_DBG_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
+#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
 #else
-#define QUIC_DBG_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), 0)
-#define QUIC_DBG_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), 0)
+#define CXPLAT_DBG_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
+#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
 #endif
 
 #if DEBUG
-#define QUIC_TEL_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
-#define QUIC_TEL_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
-#define QUIC_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-     (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
+#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
+     (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
 #else
 #ifdef MICROSOFT_TELEMETRY_ASSERT
-#define QUIC_TEL_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_KM(_exp))
-#define QUIC_TEL_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG_KM(_exp, _msg))
-#define QUIC_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-    (QUIC_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG_WITH_ARGS_KM(_exp, _msg, _origin, _bucketArg1, _bucketArg2))
+#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_KM(_exp))
+#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG_KM(_exp, _msg))
+#define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
+    (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG_WITH_ARGS_KM(_exp, _msg, _origin, _bucketArg1, _bucketArg2))
 #else
-#define QUIC_TEL_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), 0)
-#define QUIC_TEL_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), 0)
-#define QUIC_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-    (QUIC_ANALYSIS_ASSUME(_exp), 0)
+#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
+#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
+#define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
+    (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
 #endif
 #endif
 
-#define QUIC_FRE_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
-#define QUIC_FRE_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_FRE_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
+#define CXPLAT_FRE_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
 
 //
 // Verifier is enabled.
@@ -248,27 +248,27 @@ CxPlatLogAssert(
 //
 // Debugger check.
 //
-#define QuicDebuggerPresent() KD_DEBUGGER_ENABLED
+#define CxPlatDebuggerPresent() KD_DEBUGGER_ENABLED
 
 //
 // Interrupt ReQuest Level
 //
 
-#define QUIC_IRQL() KeGetCurrentIrql()
+#define CXPLAT_IRQL() KeGetCurrentIrql()
 
-#define QUIC_PASSIVE_CODE() QUIC_DBG_ASSERT(QUIC_IRQL() == PASSIVE_LEVEL)
+#define CXPLAT_PASSIVE_CODE() CXPLAT_DBG_ASSERT(CXPLAT_IRQL() == PASSIVE_LEVEL)
 
 //
 // Allocation/Memory Interfaces
 //
 
-extern uint64_t QuicTotalMemory;
+extern uint64_t CxPlatTotalMemory;
 
-#define QUIC_ALLOC_PAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
-#define QUIC_ALLOC_NONPAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
-#define QUIC_FREE(Mem, Tag) ExFreePoolWithTag((void*)Mem, Tag)
+#define CXPLAT_ALLOC_PAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
+#define CXPLAT_ALLOC_NONPAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
+#define CXPLAT_FREE(Mem, Tag) ExFreePoolWithTag((void*)Mem, Tag)
 
-typedef LOOKASIDE_LIST_EX QUIC_POOL;
+typedef LOOKASIDE_LIST_EX CXPLAT_POOL;
 
 #define CxPlatPoolInitialize(IsPaged, Size, Tag, Pool) \
     ExInitializeLookasideListEx( \
@@ -285,14 +285,14 @@ typedef LOOKASIDE_LIST_EX QUIC_POOL;
 #define CxPlatPoolAlloc(Pool) ExAllocateFromLookasideListEx(Pool)
 #define CxPlatPoolFree(Pool, Entry) ExFreeToLookasideListEx(Pool, Entry)
 
-#define QuicZeroMemory RtlZeroMemory
-#define QuicCopyMemory RtlCopyMemory
-#define QuicMoveMemory RtlMoveMemory
-#define QuicSecureZeroMemory RtlSecureZeroMemory
+#define CxPlatZeroMemory RtlZeroMemory
+#define CxPlatCopyMemory RtlCopyMemory
+#define CxPlatMoveMemory RtlMoveMemory
+#define CxPlatSecureZeroMemory RtlSecureZeroMemory
 
-#define QuicByteSwapUint16 RtlUshortByteSwap
-#define QuicByteSwapUint32 RtlUlongByteSwap
-#define QuicByteSwapUint64 RtlUlonglongByteSwap
+#define CxPlatByteSwapUint16 RtlUshortByteSwap
+#define CxPlatByteSwapUint32 RtlUlongByteSwap
+#define CxPlatByteSwapUint64 RtlUlonglongByteSwap
 
 //
 // Locking Interfaces
@@ -343,47 +343,47 @@ ExfReleasePushLockShared(
     PEX_PUSH_LOCK PushLock
     );
 
-typedef EX_PUSH_LOCK QUIC_LOCK;
+typedef EX_PUSH_LOCK CXPLAT_LOCK;
 
-#define QuicLockInitialize(Lock) ExInitializePushLock(Lock)
-#define QuicLockUninitialize(Lock)
-#define QuicLockAcquire(Lock) KeEnterCriticalRegion(); ExfAcquirePushLockExclusive(Lock)
-#define QuicLockRelease(Lock) ExfReleasePushLockExclusive(Lock); KeLeaveCriticalRegion()
+#define CxPlatLockInitialize(Lock) ExInitializePushLock(Lock)
+#define CxPlatLockUninitialize(Lock)
+#define CxPlatLockAcquire(Lock) KeEnterCriticalRegion(); ExfAcquirePushLockExclusive(Lock)
+#define CxPlatLockRelease(Lock) ExfReleasePushLockExclusive(Lock); KeLeaveCriticalRegion()
 
-typedef struct QUIC_DISPATCH_LOCK {
+typedef struct CXPLAT_DISPATCH_LOCK {
     KSPIN_LOCK SpinLock;
     KIRQL PrevIrql;
-} QUIC_DISPATCH_LOCK;
+} CXPLAT_DISPATCH_LOCK;
 
-#define QuicDispatchLockInitialize(Lock) KeInitializeSpinLock(&(Lock)->SpinLock)
-#define QuicDispatchLockUninitialize(Lock)
+#define CxPlatDispatchLockInitialize(Lock) KeInitializeSpinLock(&(Lock)->SpinLock)
+#define CxPlatDispatchLockUninitialize(Lock)
 #if defined(_AMD64_) || defined(_ARM64_)
-#define QuicDispatchLockAcquire(Lock) (Lock)->PrevIrql = KeAcquireSpinLockRaiseToDpc(&(Lock)->SpinLock)
+#define CxPlatDispatchLockAcquire(Lock) (Lock)->PrevIrql = KeAcquireSpinLockRaiseToDpc(&(Lock)->SpinLock)
 #else
-#define QuicDispatchLockAcquire(Lock) KeAcquireSpinLock(&(Lock)->SpinLock, &(Lock)->PrevIrql)
+#define CxPlatDispatchLockAcquire(Lock) KeAcquireSpinLock(&(Lock)->SpinLock, &(Lock)->PrevIrql)
 #endif
-#define QuicDispatchLockRelease(Lock) KeReleaseSpinLock(&(Lock)->SpinLock, (Lock)->PrevIrql)
+#define CxPlatDispatchLockRelease(Lock) KeReleaseSpinLock(&(Lock)->SpinLock, (Lock)->PrevIrql)
 
-typedef EX_PUSH_LOCK QUIC_RW_LOCK;
+typedef EX_PUSH_LOCK CXPLAT_RW_LOCK;
 
-#define QuicRwLockInitialize(Lock) ExInitializePushLock(Lock)
-#define QuicRwLockUninitialize(Lock)
-#define QuicRwLockAcquireShared(Lock) KeEnterCriticalRegion(); ExfAcquirePushLockShared(Lock)
-#define QuicRwLockAcquireExclusive(Lock) KeEnterCriticalRegion(); ExfAcquirePushLockExclusive(Lock)
-#define QuicRwLockReleaseShared(Lock) ExfReleasePushLockShared(Lock); KeLeaveCriticalRegion()
-#define QuicRwLockReleaseExclusive(Lock) ExfReleasePushLockExclusive(Lock); KeLeaveCriticalRegion()
+#define CxPlatRwLockInitialize(Lock) ExInitializePushLock(Lock)
+#define CxPlatRwLockUninitialize(Lock)
+#define CxPlatRwLockAcquireShared(Lock) KeEnterCriticalRegion(); ExfAcquirePushLockShared(Lock)
+#define CxPlatRwLockAcquireExclusive(Lock) KeEnterCriticalRegion(); ExfAcquirePushLockExclusive(Lock)
+#define CxPlatRwLockReleaseShared(Lock) ExfReleasePushLockShared(Lock); KeLeaveCriticalRegion()
+#define CxPlatRwLockReleaseExclusive(Lock) ExfReleasePushLockExclusive(Lock); KeLeaveCriticalRegion()
 
-typedef struct QUIC_DISPATCH_RW_LOCK {
+typedef struct CXPLAT_DISPATCH_RW_LOCK {
     EX_SPIN_LOCK SpinLock;
     KIRQL PrevIrql;
-} QUIC_DISPATCH_RW_LOCK;
+} CXPLAT_DISPATCH_RW_LOCK;
 
-#define QuicDispatchRwLockInitialize(Lock) (Lock)->SpinLock = 0
-#define QuicDispatchRwLockUninitialize(Lock)
-#define QuicDispatchRwLockAcquireShared(Lock) (Lock)->PrevIrql = ExAcquireSpinLockShared(&(Lock)->SpinLock)
-#define QuicDispatchRwLockAcquireExclusive(Lock) (Lock)->PrevIrql = ExAcquireSpinLockExclusive(&(Lock)->SpinLock)
-#define QuicDispatchRwLockReleaseShared(Lock) ExReleaseSpinLockShared(&(Lock)->SpinLock, (Lock)->PrevIrql)
-#define QuicDispatchRwLockReleaseExclusive(Lock) ExReleaseSpinLockExclusive(&(Lock)->SpinLock, (Lock)->PrevIrql)
+#define CxPlatDispatchRwLockInitialize(Lock) (Lock)->SpinLock = 0
+#define CxPlatDispatchRwLockUninitialize(Lock)
+#define CxPlatDispatchRwLockAcquireShared(Lock) (Lock)->PrevIrql = ExAcquireSpinLockShared(&(Lock)->SpinLock)
+#define CxPlatDispatchRwLockAcquireExclusive(Lock) (Lock)->PrevIrql = ExAcquireSpinLockExclusive(&(Lock)->SpinLock)
+#define CxPlatDispatchRwLockReleaseShared(Lock) ExReleaseSpinLockShared(&(Lock)->SpinLock, (Lock)->PrevIrql)
+#define CxPlatDispatchRwLockReleaseExclusive(Lock) ExReleaseSpinLockExclusive(&(Lock)->SpinLock, (Lock)->PrevIrql)
 
 //
 // Reference Count Interface
@@ -411,23 +411,23 @@ typedef struct QUIC_DISPATCH_RW_LOCK {
 #define QuicReadLongPtrNoFence ReadNoFence
 #endif
 
-typedef LONG_PTR QUIC_REF_COUNT;
+typedef LONG_PTR CXPLAT_REF_COUNT;
 
 inline
 void
 CxPlatRefInitialize(
-    _Out_ QUIC_REF_COUNT* RefCount
+    _Out_ CXPLAT_REF_COUNT* RefCount
     )
 {
     *RefCount = 1;
 }
 
-#define QuicRefUninitialize(RefCount)
+#define CxPlatRefUninitialize(RefCount)
 
 inline
 void
 CxPlatRefIncrement(
-    _Inout_ QUIC_REF_COUNT* RefCount
+    _Inout_ CXPLAT_REF_COUNT* RefCount
     )
 {
     if (QuicIncrementLongPtrNoFence(RefCount) > 1) {
@@ -440,12 +440,12 @@ CxPlatRefIncrement(
 inline
 BOOLEAN
 CxPlatRefIncrementNonZero(
-    _Inout_ volatile QUIC_REF_COUNT *RefCount,
+    _Inout_ volatile CXPLAT_REF_COUNT *RefCount,
     _In_ ULONG Bias
     )
 {
-    QUIC_REF_COUNT NewValue;
-    QUIC_REF_COUNT OldValue;
+    CXPLAT_REF_COUNT NewValue;
+    CXPLAT_REF_COUNT OldValue;
 
     PrefetchForWrite(RefCount);
     OldValue = QuicReadLongPtrNoFence(RefCount);
@@ -474,10 +474,10 @@ CxPlatRefIncrementNonZero(
 inline
 BOOLEAN
 CxPlatRefDecrement(
-    _Inout_ QUIC_REF_COUNT* RefCount
+    _Inout_ CXPLAT_REF_COUNT* RefCount
     )
 {
-    QUIC_REF_COUNT NewValue;
+    CXPLAT_REF_COUNT NewValue;
 
     //
     // A release fence is required to ensure all guarded memory accesses are
@@ -507,7 +507,7 @@ CxPlatRefDecrement(
 // Event Interfaces
 //
 
-typedef KEVENT QUIC_EVENT;
+typedef KEVENT CXPLAT_EVENT;
 #define CxPlatEventInitialize(Event, ManualReset, InitialState) \
     KeInitializeEvent(Event, ManualReset ? NotificationEvent : SynchronizationEvent, InitialState)
 #define CxPlatEventUninitialize(Event) UNREFERENCED_PARAMETER(Event)
@@ -518,7 +518,7 @@ typedef KEVENT QUIC_EVENT;
 inline
 NTSTATUS
 _CxPlatEventWaitWithTimeout(
-    _In_ QUIC_EVENT* Event,
+    _In_ CXPLAT_EVENT* Event,
     _In_ uint32_t TimeoutMs
     )
 {
@@ -590,7 +590,7 @@ QuicTimePlatToUs64(
 //
 inline
 uint64_t
-QuicTimeUs64ToPlat(
+CxPlatTimeUs64ToPlat(
     uint64_t TimeUs
     )
 {
@@ -602,15 +602,15 @@ QuicTimeUs64ToPlat(
 }
 
 #define CxPlatTimeUs64() QuicTimePlatToUs64(QuicTimePlat())
-#define QuicTimeUs32() (uint32_t)CxPlatTimeUs64()
-#define QuicTimeMs64() US_TO_MS(CxPlatTimeUs64())
-#define QuicTimeMs32() (uint32_t)QuicTimeMs64()
+#define CxPlatTimeUs32() (uint32_t)CxPlatTimeUs64()
+#define CxPlatTimeMs64() US_TO_MS(CxPlatTimeUs64())
+#define CxPlatTimeMs32() (uint32_t)CxPlatTimeMs64()
 
 #define UNIX_EPOCH_AS_FILE_TIME 0x19db1ded53e8000ll
 
 inline
 int64_t
-QuicTimeEpochMs64(
+CxPlatTimeEpochMs64(
     )
 {
     LARGE_INTEGER SystemTime;
@@ -687,7 +687,7 @@ CxPlatSleep(
     _In_ uint32_t DurationMs
     )
 {
-    QUIC_DBG_ASSERT(DurationMs != (uint32_t)-1);
+    CXPLAT_DBG_ASSERT(DurationMs != (uint32_t)-1);
 
     KTIMER SleepTimer;
     LARGE_INTEGER TimerValue;
@@ -703,16 +703,16 @@ CxPlatSleep(
 // Create Thread Interfaces
 //
 
-typedef struct QUIC_THREAD_CONFIG {
+typedef struct CXPLAT_THREAD_CONFIG {
     uint16_t Flags;
     uint16_t IdealProcessor;
     _Field_z_ const char* Name;
     KSTART_ROUTINE* Callback;
     void* Context;
-} QUIC_THREAD_CONFIG;
+} CXPLAT_THREAD_CONFIG;
 
-typedef struct _ETHREAD *QUIC_THREAD;
-#define QUIC_THREAD_CALLBACK(FuncName, CtxVarName)  \
+typedef struct _ETHREAD *CXPLAT_THREAD;
+#define CXPLAT_THREAD_CALLBACK(FuncName, CtxVarName)  \
     _Function_class_(KSTART_ROUTINE)                \
     _IRQL_requires_same_                            \
     void                                            \
@@ -720,13 +720,13 @@ typedef struct _ETHREAD *QUIC_THREAD;
       _In_ void* CtxVarName                         \
       )
 
-#define QUIC_THREAD_RETURN(Status) PsTerminateSystemThread(Status)
+#define CXPLAT_THREAD_RETURN(Status) PsTerminateSystemThread(Status)
 
 inline
 QUIC_STATUS
 CxPlatThreadCreate(
-    _In_ QUIC_THREAD_CONFIG* Config,
-    _Out_ QUIC_THREAD* Thread
+    _In_ CXPLAT_THREAD_CONFIG* Config,
+    _Out_ CXPLAT_THREAD* Thread
     )
 {
     QUIC_STATUS Status;
@@ -740,7 +740,7 @@ CxPlatThreadCreate(
             NULL,
             Config->Callback,
             Config->Context);
-    QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+    CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
     if (QUIC_FAILED(Status)) {
         *Thread = NULL;
         goto Error;
@@ -753,7 +753,7 @@ CxPlatThreadCreate(
             KernelMode,
             (void**)Thread,
             NULL);
-    QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+    CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
     if (QUIC_FAILED(Status)) {
         *Thread = NULL;
         goto Cleanup;
@@ -763,14 +763,14 @@ CxPlatThreadCreate(
         KeGetProcessorNumberFromIndex(
             Config->IdealProcessor,
             &Processor);
-    QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+    CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
     if (QUIC_FAILED(Status)) {
         goto Cleanup;
     }
     IdealProcessor = Processor;
-    if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
+    if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
         GROUP_AFFINITY Affinity;
-        QuicZeroMemory(&Affinity, sizeof(Affinity));
+        CxPlatZeroMemory(&Affinity, sizeof(Affinity));
         Affinity.Group = Processor.Group;
         Affinity.Mask = (1ull << Processor.Number);
         Status =
@@ -779,7 +779,7 @@ CxPlatThreadCreate(
                 ThreadGroupInformation,
                 &Affinity,
                 sizeof(Affinity));
-        QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
         if (QUIC_FAILED(Status)) {
             goto Cleanup;
         }
@@ -792,7 +792,7 @@ CxPlatThreadCreate(
                 RelationNumaNode,
                 &Info,
                 &InfoLength);
-        QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
         if (QUIC_FAILED(Status)) {
             goto Cleanup;
         }
@@ -802,24 +802,24 @@ CxPlatThreadCreate(
                 ThreadGroupInformation,
                 &Info.NumaNode.GroupMask,
                 sizeof(GROUP_AFFINITY));
-        QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
         if (QUIC_FAILED(Status)) {
             goto Cleanup;
         }
     }
-    if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
+    if (Config->Flags & CXPLAT_THREAD_FLAG_SET_IDEAL_PROC) {
         Status =
             ZwSetInformationThread(
                 ThreadHandle,
                 ThreadIdealProcessorEx,
                 &IdealProcessor, // Don't pass in Processor because this overwrites on output.
                 sizeof(IdealProcessor));
-        QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
         if (QUIC_FAILED(Status)) {
             goto Cleanup;
         }
     }
-    if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
+    if (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY) {
         KeSetBasePriorityThread(
             (PKTHREAD)(*Thread),
             IO_NETWORK_INCREMENT + 1);
@@ -834,7 +834,7 @@ CxPlatThreadCreate(
                 &UnicodeNameLength,
                 Config->Name,
                 (ULONG)strnlen(Config->Name, 64));
-        QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
         UnicodeName.Length = (USHORT)UnicodeNameLength;
 #define ThreadNameInformation ((THREADINFOCLASS)38)
         Status =
@@ -843,7 +843,7 @@ CxPlatThreadCreate(
                 ThreadNameInformation,
                 &UnicodeName,
                 sizeof(UNICODE_STRING));
-        QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
         Status = QUIC_STATUS_SUCCESS;
     }
 Cleanup:
@@ -859,8 +859,8 @@ Error:
         KernelMode, \
         FALSE, \
         NULL)
-typedef ULONG_PTR QUIC_THREAD_ID;
-#define CxPlatCurThreadID() ((QUIC_THREAD_ID)PsGetCurrentThreadId())
+typedef ULONG_PTR CXPLAT_THREAD_ID;
+#define CxPlatCurThreadID() ((CXPLAT_THREAD_ID)PsGetCurrentThreadId())
 
 //
 // Processor Count and Index
@@ -874,7 +874,7 @@ typedef ULONG_PTR QUIC_THREAD_ID;
 // Rundown Protection Interfaces
 //
 
-typedef EX_RUNDOWN_REF QUIC_RUNDOWN_REF;
+typedef EX_RUNDOWN_REF CXPLAT_RUNDOWN_REF;
 #define CxPlatRundownInitialize(Rundown) ExInitializeRundownProtection(Rundown)
 #define CxPlatRundownInitializeDisabled(Rundown) (Rundown)->Count = EX_RUNDOWN_ACTIVE
 #define CxPlatRundownReInitialize(Rundown) ExReInitializeRundownProtection(Rundown)
@@ -905,8 +905,8 @@ CxPlatRandom(
 #define QUIC_SILO_INVALID ((PESILO)(void*)(LONG_PTR)-1)
 
 #define QuicSiloGetCurrentServer() PsGetCurrentServerSilo()
-#define QuicSiloAddRef(Silo) if (Silo != NULL) { ObReferenceObjectWithTag(Silo, QUIC_POOL_SILO); }
-#define QuicSiloRelease(Silo) if (Silo != NULL) { ObDereferenceObjectWithTag(Silo, QUIC_POOL_SILO); }
+#define QuicSiloAddRef(Silo) if (Silo != NULL) { ObReferenceObjectWithTag(Silo, CXPLAT_POOL_SILO); }
+#define QuicSiloRelease(Silo) if (Silo != NULL) { ObDereferenceObjectWithTag(Silo, CXPLAT_POOL_SILO); }
 #define QuicSiloAttach(Silo) PsAttachSiloToCurrentThread(Silo)
 #define QuicSiloDetatch(PrevSilo) PsDetachSiloFromCurrentThread(PrevSilo)
 
@@ -932,7 +932,7 @@ NdisSetThreadObjectCompartmentId(
 
 inline
 QUIC_STATUS
-QuicSetCurrentThreadProcessorAffinity(
+CxPlatSetCurrentThreadProcessorAffinity(
     _In_ uint16_t ProcessorIndex
     )
 {
@@ -957,7 +957,7 @@ QuicSetCurrentThreadProcessorAffinity(
 
 inline
 QUIC_STATUS
-QuicSetCurrentThreadGroupAffinity(
+CxPlatSetCurrentThreadGroupAffinity(
     _In_ uint16_t ProcessorGroup
     )
 {
@@ -989,7 +989,7 @@ QuicSetCurrentThreadGroupAffinity(
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     NdisSetThreadObjectCompartmentId(PsGetCurrentThread(), CompartmentId)
 
-#define QUIC_CPUID(FunctionId, eax, ebx, ecx, dx)
+#define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, dx)
 
 #if defined(__cplusplus)
 }

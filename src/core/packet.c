@@ -144,7 +144,7 @@ QuicPacketValidateInvariant(
 
         if (!Packet->IsShortHeader) {
 
-            QUIC_DBG_ASSERT(Packet->SourceCid != NULL);
+            CXPLAT_DBG_ASSERT(Packet->SourceCid != NULL);
 
             if (Packet->SourceCidLen != SourceCidLen ||
                 memcmp(Packet->SourceCid, SourceCid, SourceCidLen) != 0) {
@@ -187,9 +187,9 @@ QuicPacketValidateLongHeaderV1(
     // The Packet->Invariant part of the header has already been validated. No need
     // to check that portion of the header again.
     //
-    QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
-    QUIC_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
-    QUIC_DBG_ASSERT(Packet->LH->Type != QUIC_RETRY); // Retry uses a different code path.
+    CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
+    CXPLAT_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
+    CXPLAT_DBG_ASSERT(Packet->LH->Type != QUIC_RETRY); // Retry uses a different code path.
 
     if (Packet->DestCidLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1 ||
         Packet->SourceCidLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1) {
@@ -200,7 +200,7 @@ QuicPacketValidateLongHeaderV1(
     //
     // Validate acceptable types.
     //
-    QUIC_DBG_ASSERT(IsServer == 0 || IsServer == 1);
+    CXPLAT_DBG_ASSERT(IsServer == 0 || IsServer == 1);
     if (QUIC_HEADER_TYPE_ALLOWED[IsServer][Packet->LH->Type] == FALSE) {
         QuicPacketLogDropWithValue(Owner, Packet, "Invalid client/server packet type", Packet->LH->Type);
         return FALSE;
@@ -308,7 +308,7 @@ QuicPacketGenerateRetryIntegrity(
     QUIC_SECRET Secret;
     Secret.Hash = QUIC_HASH_SHA256;
     Secret.Aead = QUIC_AEAD_AES_128_GCM;
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Secret.Secret,
         IntegritySecret,
         QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH);
@@ -327,7 +327,7 @@ QuicPacketGenerateRetryIntegrity(
     }
 
     uint16_t RetryPseudoPacketLength = sizeof(uint8_t) + OrigDestCidLength + BufferLength;
-    RetryPseudoPacket = (uint8_t*)QUIC_ALLOC_PAGED(RetryPseudoPacketLength, QUIC_POOL_TMP_ALLOC);
+    RetryPseudoPacket = (uint8_t*)CXPLAT_ALLOC_PAGED(RetryPseudoPacketLength, CXPLAT_POOL_TMP_ALLOC);
     if (RetryPseudoPacket == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -341,9 +341,9 @@ QuicPacketGenerateRetryIntegrity(
 
     *RetryPseudoPacketCursor = OrigDestCidLength;
     RetryPseudoPacketCursor++;
-    QuicCopyMemory(RetryPseudoPacketCursor, OrigDestCid, OrigDestCidLength);
+    CxPlatCopyMemory(RetryPseudoPacketCursor, OrigDestCid, OrigDestCidLength);
     RetryPseudoPacketCursor += OrigDestCidLength;
-    QuicCopyMemory(RetryPseudoPacketCursor, Buffer, BufferLength);
+    CxPlatCopyMemory(RetryPseudoPacketCursor, Buffer, BufferLength);
 
     Status =
         CxPlatEncrypt(
@@ -356,7 +356,7 @@ QuicPacketGenerateRetryIntegrity(
 
 Exit:
     if (RetryPseudoPacket != NULL) {
-        QUIC_FREE(RetryPseudoPacket, QUIC_POOL_TMP_ALLOC);
+        CXPLAT_FREE(RetryPseudoPacket, CXPLAT_POOL_TMP_ALLOC);
     }
     CxPlatPacketKeyFree(RetryIntegrityKey);
     return Status;
@@ -426,7 +426,7 @@ QuicPacketEncodeRetryV1(
             break;
         }
     }
-    QUIC_FRE_ASSERT(VersionInfo != NULL);
+    CXPLAT_FRE_ASSERT(VersionInfo != NULL);
 
     if (QUIC_FAILED(
         QuicPacketGenerateRetryIntegrity(
@@ -451,10 +451,10 @@ QuicPacketDecodeRetryTokenV1(
     _Out_ uint16_t* TokenLength
     )
 {
-    QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
-    QUIC_DBG_ASSERT(Packet->ValidatedHeaderVer);
-    QUIC_DBG_ASSERT(Packet->Invariant->IsLongHeader);
-    QUIC_DBG_ASSERT(Packet->LH->Type == QUIC_INITIAL);
+    CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
+    CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderVer);
+    CXPLAT_DBG_ASSERT(Packet->Invariant->IsLongHeader);
+    CXPLAT_DBG_ASSERT(Packet->LH->Type == QUIC_INITIAL);
 
     uint16_t Offset =
         sizeof(QUIC_LONG_HEADER_V1) +
@@ -465,10 +465,10 @@ QuicPacketDecodeRetryTokenV1(
     QUIC_VAR_INT TokenLengthVarInt = 0;
     BOOLEAN Success = QuicVarIntDecode(
         Packet->BufferLength, Packet->Buffer, &Offset, &TokenLengthVarInt);
-    QUIC_DBG_ASSERT(Success); // Was previously validated.
+    CXPLAT_DBG_ASSERT(Success); // Was previously validated.
     UNREFERENCED_PARAMETER(Success);
 
-    QUIC_DBG_ASSERT(Offset + TokenLengthVarInt <= Packet->BufferLength); // Was previously validated.
+    CXPLAT_DBG_ASSERT(Offset + TokenLengthVarInt <= Packet->BufferLength); // Was previously validated.
     *Token = Packet->Buffer + Offset;
     *TokenLength = (uint16_t)TokenLengthVarInt;
 }
@@ -486,8 +486,8 @@ QuicPacketValidateShortHeaderV1(
     // to check any additional lengths as the cleartext part of the version
     // specific header isn't any larger than the Packet->Invariant.
     //
-    QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
-    QUIC_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
+    CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
+    CXPLAT_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
 
     //
     // Check the Fixed bit to ensure it is set to 1.
@@ -688,7 +688,7 @@ QuicPacketLogHeader(
         }
 
         default:
-            QUIC_FRE_ASSERT(FALSE);
+            CXPLAT_FRE_ASSERT(FALSE);
             break;
         }
     }

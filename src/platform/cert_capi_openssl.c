@@ -134,7 +134,7 @@ CxPlatTlsExtractPrivateKey(
         goto Exit;
     }
 
-    KeyData = QUIC_ALLOC_NONPAGED(KeyLength, QUIC_POOL_TLS_RSA);
+    KeyData = CXPLAT_ALLOC_NONPAGED(KeyLength, CXPLAT_POOL_TLS_RSA);
     if (KeyData == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -257,7 +257,7 @@ Exit:
     }
 
     if (KeyData != NULL) {
-        QUIC_FREE(KeyData, QUIC_POOL_TLS_RSA);
+        CXPLAT_FREE(KeyData, CXPLAT_POOL_TLS_RSA);
     }
 
     if (KeyHandle != 0) {

@@ -124,7 +124,7 @@ void WINAPI EventCallback(_In_ PEVENT_RECORD ev)
         return;
     }
 
-    QUIC_EVENT_TYPE EventType = GetEventType(ev->EventHeader.EventDescriptor.Id);
+    CXPLAT_EVENT_TYPE EventType = GetEventType(ev->EventHeader.EventDescriptor.Id);
     _Analysis_assume_(EventType >= 0);
     if (EventType >= EventType_Count) {
         printf("WARNING: Unknown Event Type: %u\n", (UINT32)EventType);

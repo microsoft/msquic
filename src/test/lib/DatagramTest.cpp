@@ -15,7 +15,7 @@ Abstract:
 #endif
 
 struct ServerAcceptContext {
-    QUIC_EVENT NewConnectionReady;
+    CXPLAT_EVENT NewConnectionReady;
     TestConnection** NewConnection;
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {

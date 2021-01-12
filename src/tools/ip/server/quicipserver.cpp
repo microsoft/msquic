@@ -47,7 +47,7 @@ ServerStreamCallback(
 {
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        QUIC_FREE(Event->SEND_COMPLETE.ClientContext, QUIC_POOL_TOOL);
+        CXPLAT_FREE(Event->SEND_COMPLETE.ClientContext, CXPLAT_POOL_TOOL);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->StreamClose(Stream);
@@ -66,7 +66,7 @@ ServerSendIp(
     QUIC_STATUS Status;
     HQUIC Stream = nullptr;
 
-    auto SendBufferRaw = QUIC_ALLOC_PAGED(sizeof(QUIC_BUFFER) + sizeof(QUIC_ADDR), QUIC_POOL_TOOL);
+    auto SendBufferRaw = CXPLAT_ALLOC_PAGED(sizeof(QUIC_BUFFER) + sizeof(QUIC_ADDR), CXPLAT_POOL_TOOL);
     if (SendBufferRaw == nullptr) {
         return;
     }
@@ -77,7 +77,7 @@ ServerSendIp(
 
     if (QUIC_FAILED(Status = MsQuic->GetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_REMOTE_ADDRESS, &SendBuffer->Length, SendBuffer->Buffer))) {
         printf("GetParam(CONN_REMOTE_ADDRESS) failed, 0x%x!\n", Status);
-        QUIC_FREE(SendBuffer, QUIC_POOL_TOOL);
+        CXPLAT_FREE(SendBuffer, CXPLAT_POOL_TOOL);
         return;
     }
 
@@ -94,7 +94,7 @@ ServerSendIp(
 
     if (QUIC_FAILED(Status = MsQuic->StreamSend(Stream, SendBuffer, 1, QUIC_SEND_FLAG_FIN, SendBuffer))) {
         printf("StreamSend failed, 0x%x!\n", Status);
-        QUIC_FREE(SendBufferRaw, QUIC_POOL_TOOL);
+        CXPLAT_FREE(SendBufferRaw, CXPLAT_POOL_TOOL);
         MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
     }
 }

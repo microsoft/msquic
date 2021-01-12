@@ -103,9 +103,9 @@ typedef UINT64 uint64_t;
 // Swaps byte orders between host and network endianness.
 //
 #ifdef RtlUshortByteSwap
-#define QuicNetByteSwapShort(x) RtlUshortByteSwap(x)
+#define CxPlatNetByteSwapShort(x) RtlUshortByteSwap(x)
 #else
-#define QuicNetByteSwapShort(x) ((uint16_t)((((x) & 0x00ff) << 8) | (((x) & 0xff00) >> 8)))
+#define CxPlatNetByteSwapShort(x) ((uint16_t)((((x) & 0x00ff) << 8) | (((x) & 0xff00) >> 8)))
 #endif
 
 //
@@ -207,7 +207,7 @@ CxPlatAddrGetPort(
     _In_ const QUIC_ADDR* const Addr
     )
 {
-    return QuicNetByteSwapShort(Addr->Ipv4.sin_port);
+    return CxPlatNetByteSwapShort(Addr->Ipv4.sin_port);
 }
 
 inline
@@ -217,7 +217,7 @@ CxPlatAddrSetPort(
     _In_ uint16_t Port // Host byte order
     )
 {
-    Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
+    Addr->Ipv4.sin_port = CxPlatNetByteSwapShort(Port);
 }
 
 inline
@@ -284,7 +284,7 @@ CxPlatAddrFromString(
     _Out_ QUIC_ADDR* Addr
     )
 {
-    Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
+    Addr->Ipv4.sin_port = CxPlatNetByteSwapShort(Port);
     if (RtlIpv4StringToAddressExA(AddrStr, FALSE, &Addr->Ipv4.sin_addr, &Addr->Ipv4.sin_port) == STATUS_SUCCESS) {
         Addr->si_family = QUIC_ADDRESS_FAMILY_INET;
     } else if (RtlIpv6StringToAddressExA(AddrStr, &Addr->Ipv6.sin6_addr, &Addr->Ipv6.sin6_scope_id, &Addr->Ipv6.sin6_port) == STATUS_SUCCESS) {

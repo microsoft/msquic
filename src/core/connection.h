@@ -329,7 +329,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The current worker thread ID. 0 if not being processed right now.
     //
-    QUIC_THREAD_ID WorkerThreadID;
+    CXPLAT_THREAD_ID WorkerThreadID;
 
     //
     // The server ID for the connection ID.
@@ -402,7 +402,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The list of connection IDs used for receiving.
     //
-    QUIC_SINGLE_LIST_ENTRY SourceCids;
+    CXPLAT_SINGLE_LIST_ENTRY SourceCids;
 
     //
     // The list of connection IDs used for sending. Given to us by the peer.
@@ -425,7 +425,7 @@ typedef struct QUIC_CONNECTION {
     uint32_t ReceiveQueueCount;
     QUIC_RECV_DATA* ReceiveQueue;
     QUIC_RECV_DATA** ReceiveQueueTail;
-    QUIC_DISPATCH_LOCK ReceiveQueueLock;
+    CXPLAT_DISPATCH_LOCK ReceiveQueueLock;
 
     //
     // The queue of operations to process.
@@ -564,10 +564,10 @@ typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
 
 #ifdef QuicVerifierEnabledByAddr
 #define QUIC_CONN_VERIFY(Connection, Expr) \
-    if (Connection->State.IsVerifying) { QUIC_FRE_ASSERT(Expr); }
+    if (Connection->State.IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
 #elif defined(QuicVerifierEnabled)
 #define QUIC_CONN_VERIFY(Connection, Expr) \
-    if (MsQuicLib.IsVerifying) { QUIC_FRE_ASSERT(Expr); }
+    if (MsQuicLib.IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
 #else
 #define QUIC_CONN_VERIFY(Connection, Expr)
 #endif
@@ -859,7 +859,7 @@ QuicConnValidate(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    QUIC_FRE_ASSERT(!Connection->State.Freed);
+    CXPLAT_FRE_ASSERT(!Connection->State.Freed);
 }
 #else
 #define QuicConnValidate(Connection)
@@ -904,18 +904,18 @@ QuicConnRelease(
     QuicConnValidate(Connection);
 
 #if DEBUG
-    QUIC_TEL_ASSERT(Connection->RefTypeCount[Ref] > 0);
+    CXPLAT_TEL_ASSERT(Connection->RefTypeCount[Ref] > 0);
     uint16_t result = (uint16_t)InterlockedDecrement16((volatile short*)&Connection->RefTypeCount[Ref]);
-    QUIC_TEL_ASSERT(result != 0xFFFF);
+    CXPLAT_TEL_ASSERT(result != 0xFFFF);
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif
 
-    QUIC_DBG_ASSERT(Connection->RefCount > 0);
+    CXPLAT_DBG_ASSERT(Connection->RefCount > 0);
     if (InterlockedDecrement((volatile long*)&Connection->RefCount) == 0) {
 #if DEBUG
         for (uint32_t i = 0; i < QUIC_CONN_REF_COUNT; i++) {
-            QUIC_TEL_ASSERT(Connection->RefTypeCount[i] == 0);
+            CXPLAT_TEL_ASSERT(Connection->RefTypeCount[i] == 0);
         }
 #endif
         if (Ref == QUIC_CONN_REF_LOOKUP_RESULT) {
@@ -924,7 +924,7 @@ QuicConnRelease(
             // datapath binding being deleted on a callback. Instead, queue the
             // connection to be released by the worker.
             //
-            QUIC_DBG_ASSERT(Connection->Worker != NULL);
+            CXPLAT_DBG_ASSERT(Connection->Worker != NULL);
             QuicWorkerQueueConnection(Connection->Worker, Connection);
         } else {
             QuicConnFree(Connection);
@@ -1035,7 +1035,7 @@ QuicConnGetSourceCidFromSeq(
     _Out_ BOOLEAN* IsLastCid
     )
 {
-    for (QUIC_SINGLE_LIST_ENTRY** Entry = &Connection->SourceCids.Next;
+    for (CXPLAT_SINGLE_LIST_ENTRY** Entry = &Connection->SourceCids.Next;
             *Entry != NULL;
             Entry = &(*Entry)->Next) {
         QUIC_CID_HASH_ENTRY* SourceCid =
@@ -1076,7 +1076,7 @@ QuicConnGetSourceCidFromBuf(
         const uint8_t* CidBuffer
     )
 {
-    for (QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
+    for (CXPLAT_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
             Entry != NULL;
             Entry = Entry->Next) {
         QUIC_CID_HASH_ENTRY* SourceCid =

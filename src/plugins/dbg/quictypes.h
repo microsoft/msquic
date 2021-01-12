@@ -223,7 +223,7 @@ LinkEntryToType(
 
 struct SingleListEntry : Struct {
 
-    SingleListEntry(ULONG64 addr) : Struct("msquic!QUIC_SINGLE_LIST_ENTRY", addr) {
+    SingleListEntry(ULONG64 addr) : Struct("msquic!CXPLAT_SINGLE_LIST_ENTRY", addr) {
     }
 
     ULONG64 Next() {
@@ -1458,9 +1458,9 @@ struct QuicLibrary : Struct {
     }
 
     UINT64 TotalMemory() {
-        UINT64 QuicTotalMemory;
-        ReadTypeAtAddr<UINT64>(GetExpression("msquic!QuicTotalMemory"), &QuicTotalMemory);
-        return QuicTotalMemory;
+        UINT64 CxPlatTotalMemory;
+        ReadTypeAtAddr<UINT64>(GetExpression("msquic!CxPlatTotalMemory"), &CxPlatTotalMemory);
+        return CxPlatTotalMemory;
     }
 
     UINT64 RetryHandshakeMemoryLimit() {

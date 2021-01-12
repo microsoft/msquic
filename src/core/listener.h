@@ -37,7 +37,7 @@ typedef struct QUIC_LISTENER {
     //
     // Rundown for unregistering from a binding.
     //
-    QUIC_RUNDOWN_REF Rundown;
+    CXPLAT_RUNDOWN_REF Rundown;
 
     //
     // The address that the listener is listening on.

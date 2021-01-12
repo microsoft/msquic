@@ -22,8 +22,8 @@ Supported Platforms:
 
 #include <msquic.h>
 
-#ifndef QUIC_DBG_ASSERT
-#define QUIC_DBG_ASSERT(X) // no-op if not already defined
+#ifndef CXPLAT_DBG_ASSERT
+#define CXPLAT_DBG_ASSERT(X) // no-op if not already defined
 #endif
 
 struct QuicAddr {
@@ -50,7 +50,7 @@ struct QuicAddr {
         CxPlatAddrSetPort(&SockAddr, Port);
     }
     void IncrementPort() {
-        QUIC_DBG_ASSERT(CxPlatAddrGetPort(&SockAddr) != 0xFFFF);
+        CXPLAT_DBG_ASSERT(CxPlatAddrGetPort(&SockAddr) != 0xFFFF);
         CxPlatAddrSetPort(&SockAddr, (uint16_t)1 + CxPlatAddrGetPort(&SockAddr));
     }
     void IncrementAddr() {
@@ -495,12 +495,12 @@ struct QuicBufferScope {
 //
 
 struct EventScope {
-    QUIC_EVENT Handle;
+    CXPLAT_EVENT Handle;
     EventScope() noexcept { CxPlatEventInitialize(&Handle, FALSE, FALSE); }
     EventScope(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
-    EventScope(QUIC_EVENT event) noexcept : Handle(event) { }
+    EventScope(CXPLAT_EVENT event) noexcept : Handle(event) { }
     ~EventScope() noexcept { CxPlatEventUninitialize(Handle); }
-    operator QUIC_EVENT() const noexcept { return Handle; }
+    operator CXPLAT_EVENT() const noexcept { return Handle; }
 };
 
 #endif

@@ -45,7 +45,7 @@ MsQuicListenerOpen(
 
     Registration = (QUIC_REGISTRATION*)RegistrationHandle;
 
-    Listener = QUIC_ALLOC_NONPAGED(sizeof(QUIC_LISTENER), QUIC_POOL_LISTENER);
+    Listener = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_LISTENER), CXPLAT_POOL_LISTENER);
     if (Listener == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -56,7 +56,7 @@ MsQuicListenerOpen(
         goto Error;
     }
 
-    QuicZeroMemory(Listener, sizeof(QUIC_LISTENER));
+    CxPlatZeroMemory(Listener, sizeof(QUIC_LISTENER));
     Listener->Type = QUIC_HANDLE_TYPE_LISTENER;
     Listener->Registration = Registration;
     Listener->ClientCallbackHandler = Handler;
@@ -69,7 +69,7 @@ MsQuicListenerOpen(
 #endif
 
     BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
-    QUIC_DBG_ASSERT(Result); UNREFERENCED_PARAMETER(Result);
+    CXPLAT_DBG_ASSERT(Result); UNREFERENCED_PARAMETER(Result);
 
     QuicTraceEvent(
         ListenerCreated,
@@ -84,7 +84,7 @@ Error:
     if (QUIC_FAILED(Status)) {
 
         if (Listener != NULL) {
-            QUIC_FREE(Listener, QUIC_POOL_LISTENER);
+            CXPLAT_FREE(Listener, CXPLAT_POOL_LISTENER);
         }
     }
 
@@ -108,7 +108,7 @@ MsQuicListenerClose(
         return;
     }
 
-    QUIC_TEL_ASSERT(Handle->Type == QUIC_HANDLE_TYPE_LISTENER);
+    CXPLAT_TEL_ASSERT(Handle->Type == QUIC_HANDLE_TYPE_LISTENER);
     _Analysis_assume_(Handle->Type == QUIC_HANDLE_TYPE_LISTENER);
     if (Handle->Type != QUIC_HANDLE_TYPE_LISTENER) {
         return;
@@ -140,8 +140,8 @@ MsQuicListenerClose(
     QuicSiloRelease(Listener->Silo);
 #endif
 
-    QUIC_DBG_ASSERT(Listener->AlpnList == NULL);
-    QUIC_FREE(Listener, QUIC_POOL_LISTENER);
+    CXPLAT_DBG_ASSERT(Listener->AlpnList == NULL);
+    CXPLAT_FREE(Listener, CXPLAT_POOL_LISTENER);
     CxPlatRundownRelease(&Registration->Rundown);
 
     QuicTraceEvent(
@@ -194,7 +194,7 @@ MsQuicListenerStart(
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
-    QUIC_ANALYSIS_ASSERT(AlpnListLength <= UINT16_MAX);
+    CXPLAT_ANALYSIS_ASSERT(AlpnListLength <= UINT16_MAX);
 
     if (LocalAddress && !CxPlatAddrIsValid(LocalAddress)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -209,7 +209,7 @@ MsQuicListenerStart(
         goto Exit;
     }
 
-    AlpnList = QUIC_ALLOC_NONPAGED(AlpnListLength, QUIC_POOL_ALPN);
+    AlpnList = CXPLAT_ALLOC_NONPAGED(AlpnListLength, CXPLAT_POOL_ALPN);
     if (AlpnList == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -227,7 +227,7 @@ MsQuicListenerStart(
         AlpnList[0] = (uint8_t)AlpnBuffers[i].Length;
         AlpnList++;
 
-        QuicCopyMemory(
+        CxPlatCopyMemory(
             AlpnList,
             AlpnBuffers[i].Buffer,
             AlpnBuffers[i].Length);
@@ -235,11 +235,11 @@ MsQuicListenerStart(
     }
 
     if (LocalAddress != NULL) {
-        QuicCopyMemory(&Listener->LocalAddress, LocalAddress, sizeof(QUIC_ADDR));
+        CxPlatCopyMemory(&Listener->LocalAddress, LocalAddress, sizeof(QUIC_ADDR));
         Listener->WildCard = CxPlatAddrIsWildCard(LocalAddress);
         PortUnspecified = CxPlatAddrGetPort(LocalAddress) == 0;
     } else {
-        QuicZeroMemory(&Listener->LocalAddress, sizeof(Listener->LocalAddress));
+        CxPlatZeroMemory(&Listener->LocalAddress, sizeof(Listener->LocalAddress));
         Listener->WildCard = TRUE;
         PortUnspecified = TRUE;
     }
@@ -255,7 +255,7 @@ MsQuicListenerStart(
 
     QuicLibraryOnListenerRegistered(Listener);
 
-    QUIC_TEL_ASSERT(Listener->Binding == NULL);
+    CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
     Status =
         QuicLibraryGetBinding(
 #ifdef QUIC_COMPARTMENT_ID
@@ -313,7 +313,7 @@ Error:
             Listener->Binding = NULL;
         }
         if (Listener->AlpnList != NULL) {
-            QUIC_FREE(Listener->AlpnList, QUIC_POOL_ALPN);
+            CXPLAT_FREE(Listener->AlpnList, CXPLAT_POOL_ALPN);
             Listener->AlpnList = NULL;
         }
         Listener->AlpnListLength = 0;
@@ -353,7 +353,7 @@ MsQuicListenerStop(
             CxPlatRundownReleaseAndWait(&Listener->Rundown);
 
             if (Listener->AlpnList != NULL) {
-                QUIC_FREE(Listener->AlpnList, QUIC_POOL_ALPN);
+                CXPLAT_FREE(Listener->AlpnList, CXPLAT_POOL_ALPN);
                 Listener->AlpnList = NULL;
             }
 
@@ -397,7 +397,7 @@ QuicListenerIndicateEvent(
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
 {
-    QUIC_FRE_ASSERT(Listener->ClientCallbackHandler);
+    CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
     return
         Listener->ClientCallbackHandler(
             (HQUIC)Listener,
@@ -424,7 +424,7 @@ QuicListenerFindAlpnInList(
     //
 
     while (AlpnListLength != 0) {
-        QUIC_ANALYSIS_ASSUME(AlpnList[0] + 1 <= AlpnListLength);
+        CXPLAT_ANALYSIS_ASSUME(AlpnList[0] + 1 <= AlpnListLength);
         const uint8_t* Result =
             CxPlatTlsAlpnFindInList(
                 OtherAlpnListLength,
@@ -484,8 +484,8 @@ QuicListenerClaimConnection(
     _In_ const QUIC_NEW_CONNECTION_INFO* Info
     )
 {
-    QUIC_DBG_ASSERT(Listener != NULL);
-    QUIC_DBG_ASSERT(Connection->State.ExternalOwner == FALSE);
+    CXPLAT_DBG_ASSERT(Listener != NULL);
+    CXPLAT_DBG_ASSERT(Connection->State.ExternalOwner == FALSE);
 
     //
     // Internally, the connection matches the listener. Update the associated
@@ -529,7 +529,7 @@ QuicListenerClaimConnection(
     // The application layer has accepted the connection and provided a server
     // certificate.
     //
-    QUIC_FRE_ASSERTMSG(
+    CXPLAT_FRE_ASSERTMSG(
         Connection->ClientCallbackHandler != NULL,
         "App MUST set callback handler!");
 
@@ -622,7 +622,7 @@ QuicListenerParamGet(
         }
 
         *BufferLength = sizeof(QUIC_ADDR);
-        QuicCopyMemory(Buffer, &Listener->LocalAddress, sizeof(QUIC_ADDR));
+        CxPlatCopyMemory(Buffer, &Listener->LocalAddress, sizeof(QUIC_ADDR));
 
         Status = QUIC_STATUS_SUCCESS;
         break;

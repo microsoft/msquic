@@ -15,7 +15,7 @@ Abstract:
 #endif
 
 struct ServerAcceptContext {
-    QUIC_EVENT NewConnectionReady;
+    CXPLAT_EVENT NewConnectionReady;
     TestConnection** NewConnection;
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {
@@ -62,7 +62,7 @@ struct PingStats
 
     volatile long ConnectionsComplete;
 
-    QUIC_EVENT CompletionEvent;
+    CXPLAT_EVENT CompletionEvent;
 
     QUIC_BUFFER* ResumptionTicket {nullptr};
 
@@ -95,9 +95,9 @@ struct PingStats
 
     ~PingStats() {
         CxPlatEventUninitialize(CompletionEvent);
-        QuicZeroMemory(&CompletionEvent, sizeof(CompletionEvent));
+        CxPlatZeroMemory(&CompletionEvent, sizeof(CompletionEvent));
         if (ResumptionTicket) {
-            QUIC_FREE(ResumptionTicket, QUIC_POOL_TEST);
+            CXPLAT_FREE(ResumptionTicket, CXPLAT_POOL_TEST);
         }
     }
 };
@@ -1629,7 +1629,7 @@ QuicTestReceiveResume(
                     TEST_FAILURE("Server failed to get shutdown before timeout!");
                     return;
                 }
-                QuicSecureZeroMemory(ServerContext.PendingBuffer, SendSize);
+                CxPlatSecureZeroMemory(ServerContext.PendingBuffer, SendSize);
             }
             //
             // Indicate the buffer has been consumed.

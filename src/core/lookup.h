@@ -36,7 +36,7 @@ typedef struct QUIC_LOOKUP {
     //
     // Lock for accessing the lookup data.
     //
-    QUIC_DISPATCH_RW_LOCK RwLock;
+    CXPLAT_DISPATCH_RW_LOCK RwLock;
 
     //
     // The number of partitions used for lookup tables. Value of 0 (default)
@@ -167,7 +167,7 @@ void
 QuicLookupRemoveLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CID_HASH_ENTRY* SourceCid,
-    _In_ QUIC_SINGLE_LIST_ENTRY** Entry
+    _In_ CXPLAT_SINGLE_LIST_ENTRY** Entry
     );
 
 //

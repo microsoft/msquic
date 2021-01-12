@@ -190,7 +190,7 @@ typedef struct QUIC_STREAM {
     //
     // Number of references to the handle.
     //
-    QUIC_REF_COUNT RefCount;
+    CXPLAT_REF_COUNT RefCount;
 
 #if DEBUG
     short RefTypeCount[QUIC_STREAM_REF_COUNT];
@@ -260,7 +260,7 @@ typedef struct QUIC_STREAM {
     // send operation. That operation moves the send request onto the
     // SendRequests list.
     //
-    QUIC_DISPATCH_LOCK ApiSendRequestLock;
+    CXPLAT_DISPATCH_LOCK ApiSendRequestLock;
     QUIC_SEND_REQUEST* ApiSendRequests;
 
     //
@@ -588,8 +588,8 @@ QuicStreamAddRef(
     _In_ QUIC_STREAM_REF Ref
     )
 {
-    QUIC_DBG_ASSERT(Stream->Connection);
-    QUIC_DBG_ASSERT(Stream->RefCount > 0);
+    CXPLAT_DBG_ASSERT(Stream->Connection);
+    CXPLAT_DBG_ASSERT(Stream->RefCount > 0);
 
 #if DEBUG
     InterlockedIncrement16((volatile short*)&Stream->RefTypeCount[Ref]);
@@ -613,13 +613,13 @@ QuicStreamRelease(
     _In_ QUIC_STREAM_REF Ref
     )
 {
-    QUIC_DBG_ASSERT(Stream->Connection);
-    QUIC_TEL_ASSERT(Stream->RefCount > 0);
+    CXPLAT_DBG_ASSERT(Stream->Connection);
+    CXPLAT_TEL_ASSERT(Stream->RefCount > 0);
 
 #if DEBUG
-    QUIC_TEL_ASSERT(Stream->RefTypeCount[Ref] > 0);
+    CXPLAT_TEL_ASSERT(Stream->RefTypeCount[Ref] > 0);
     uint16_t result = (uint16_t)InterlockedDecrement16((volatile short*)&Stream->RefTypeCount[Ref]);
-    QUIC_TEL_ASSERT(result != 0xFFFF);
+    CXPLAT_TEL_ASSERT(result != 0xFFFF);
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif
@@ -627,7 +627,7 @@ QuicStreamRelease(
     if (CxPlatRefDecrement(&Stream->RefCount)) {
 #if DEBUG
         for (uint32_t i = 0; i < QUIC_STREAM_REF_COUNT; i++) {
-            QUIC_TEL_ASSERT(Stream->RefTypeCount[i] == 0);
+            CXPLAT_TEL_ASSERT(Stream->RefTypeCount[i] == 0);
         }
 #endif
         QuicStreamFree(Stream);

@@ -84,7 +84,7 @@ CxPlatKeyLength(
     case QUIC_AEAD_AES_256_GCM:
     case QUIC_AEAD_CHACHA20_POLY1305: return 32;
     default:
-        QUIC_FRE_ASSERT(FALSE);
+        CXPLAT_FRE_ASSERT(FALSE);
         return 0;
     }
 }
@@ -121,7 +121,7 @@ CxPlatHashLength(
     case QUIC_HASH_SHA384: return 48;
     case QUIC_HASH_SHA512: return 64;
     default:
-        QUIC_FRE_ASSERT(FALSE);
+        CXPLAT_FRE_ASSERT(FALSE);
         return 0;
     }
 }

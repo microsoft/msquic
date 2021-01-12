@@ -30,7 +30,7 @@ extern "C" void QuicTraceRundown(void) { }
 
 struct ConnectionContext {
     bool GotConnected;
-    QUIC_EVENT Complete;
+    CXPLAT_EVENT Complete;
 };
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -61,7 +61,7 @@ ConnectionHandler(
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
+CXPLAT_THREAD_CALLBACK(TestReachability, _Alpn)
 {
     QUIC_BUFFER Alpn;
     Alpn.Buffer = (uint8_t*)_Alpn;
@@ -80,7 +80,7 @@ QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
     }
 
     QUIC_CREDENTIAL_CONFIG CredConfig;
-    QuicZeroMemory(&CredConfig, sizeof(CredConfig));
+    CxPlatZeroMemory(&CredConfig, sizeof(CredConfig));
     CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT; // TODO - Disable certificate validation?
 
     if (QUIC_FAILED(MsQuic->ConfigurationLoadCredential(Configuration, &CredConfig))) {
@@ -117,7 +117,7 @@ QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
         printf("  %6s  unreachable\n", (char*)_Alpn);
     }
 
-    QUIC_THREAD_RETURN(0);
+    CXPLAT_THREAD_RETURN(0);
 }
 
 int
@@ -184,12 +184,12 @@ main(int argc, char **argv)
 
     printf("\n%s:%hu:\n\n", ServerName, Port);
 
-    std::vector<QUIC_THREAD> Threads;
-    QUIC_THREAD_CONFIG Config = { 0, 0, "reach_worker", TestReachability, nullptr };
+    std::vector<CXPLAT_THREAD> Threads;
+    CXPLAT_THREAD_CONFIG Config = { 0, 0, "reach_worker", TestReachability, nullptr };
 
     if (InputAlpn != nullptr) {
         Config.Context = (void*)InputAlpn;
-        QUIC_THREAD Thread;
+        CXPLAT_THREAD Thread;
         if (QUIC_FAILED(CxPlatThreadCreate(&Config, &Thread))) {
             printf("CxPlatThreadCreate failed.\n");
             exit(1);
@@ -198,7 +198,7 @@ main(int argc, char **argv)
     } else {
         for (auto ALPN : ALPNs) {
             Config.Context = (void*)ALPN;
-            QUIC_THREAD Thread;
+            CXPLAT_THREAD Thread;
             if (QUIC_FAILED(CxPlatThreadCreate(&Config, &Thread))) {
                 printf("CxPlatThreadCreate failed.\n");
                 exit(1);

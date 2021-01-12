@@ -25,7 +25,7 @@ typedef struct QUIC_CONFIGURATION {
     //
     // Reference count for tracking lifetime.
     //
-    QUIC_REF_COUNT RefCount;
+    CXPLAT_REF_COUNT RefCount;
 
     //
     // The TLS security configurations.

@@ -25,7 +25,7 @@ QuicRangeInitialize(
     Range->UsedLength = 0;
     Range->AllocLength = QUIC_RANGE_INITIAL_SUB_COUNT;
     Range->MaxAllocSize = MaxAllocSize;
-    QUIC_FRE_ASSERT(sizeof(QUIC_SUBRANGE) * QUIC_RANGE_INITIAL_SUB_COUNT < MaxAllocSize);
+    CXPLAT_FRE_ASSERT(sizeof(QUIC_SUBRANGE) * QUIC_RANGE_INITIAL_SUB_COUNT < MaxAllocSize);
     Range->SubRanges = Range->PreAllocSubRanges;
 }
 
@@ -36,7 +36,7 @@ QuicRangeUninitialize(
     )
 {
     if (Range->AllocLength != QUIC_RANGE_INITIAL_SUB_COUNT) {
-        QUIC_FREE(Range->SubRanges, QUIC_POOL_RANGE);
+        CXPLAT_FREE(Range->SubRanges, CXPLAT_POOL_RANGE);
     }
 }
 
@@ -63,7 +63,7 @@ QuicRangeGrow(
 
     uint32_t NewAllocLength = Range->AllocLength << 1; // Grow by a factor of 2.
     uint32_t NewAllocSize = NewAllocLength * sizeof(QUIC_SUBRANGE);
-    QUIC_FRE_ASSERTMSG(NewAllocSize > sizeof(QUIC_SUBRANGE), "Range alloc arithmetic underflow.");
+    CXPLAT_FRE_ASSERTMSG(NewAllocSize > sizeof(QUIC_SUBRANGE), "Range alloc arithmetic underflow.");
     if (NewAllocSize > Range->MaxAllocSize) {
         //
         // Don't log anything as this will be the common case after we hit the
@@ -72,7 +72,7 @@ QuicRangeGrow(
         return FALSE;
     }
 
-    QUIC_SUBRANGE* NewSubRanges = QUIC_ALLOC_NONPAGED(NewAllocSize, QUIC_POOL_RANGE);
+    QUIC_SUBRANGE* NewSubRanges = CXPLAT_ALLOC_NONPAGED(NewAllocSize, CXPLAT_POOL_RANGE);
     if (NewSubRanges == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -86,7 +86,7 @@ QuicRangeGrow(
     // Move the items to the new array and make room for the next index to write.
     //
 
-    QUIC_DBG_ASSERT(Range->SubRanges != 0);
+    CXPLAT_DBG_ASSERT(Range->SubRanges != 0);
     if (NextIndex == 0) {
         memcpy(
             NewSubRanges + 1,
@@ -109,7 +109,7 @@ QuicRangeGrow(
     }
 
     if (Range->AllocLength != QUIC_RANGE_INITIAL_SUB_COUNT) {
-        QUIC_FREE(Range->SubRanges, QUIC_POOL_RANGE);
+        CXPLAT_FREE(Range->SubRanges, CXPLAT_POOL_RANGE);
     }
     Range->SubRanges = NewSubRanges;
     Range->AllocLength = NewAllocLength;
@@ -129,7 +129,7 @@ QuicRangeMakeSpace(
     _Inout_ uint32_t* Index
     )
 {
-    QUIC_DBG_ASSERT(*Index <= Range->UsedLength);
+    CXPLAT_DBG_ASSERT(*Index <= Range->UsedLength);
 
     if (Range->UsedLength == Range->AllocLength) {
         if (!QuicRangeGrow(Range, *Index)) {
@@ -152,7 +152,7 @@ QuicRangeMakeSpace(
             (*Index)--; // Actually going to be inserting 1 before where requested.
         }
     } else {
-        QUIC_DBG_ASSERT(Range->SubRanges != 0);
+        CXPLAT_DBG_ASSERT(Range->SubRanges != 0);
         if (*Index == 0) {
             memmove(
                 Range->SubRanges + 1,
@@ -182,8 +182,8 @@ QuicRangeRemoveSubranges(
     _In_ uint32_t Count
     )
 {
-    QUIC_DBG_ASSERT(Count > 0);
-    QUIC_DBG_ASSERT(Index + Count <= Range->UsedLength);
+    CXPLAT_DBG_ASSERT(Count > 0);
+    CXPLAT_DBG_ASSERT(Index + Count <= Range->UsedLength);
 
     if (Index + Count < Range->UsedLength) {
         memmove(
@@ -205,7 +205,7 @@ QuicRangeRemoveSubranges(
             NewSubRanges = Range->PreAllocSubRanges;
         } else {
             NewSubRanges =
-                QUIC_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * NewAllocLength, QUIC_POOL_RANGE);
+                CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * NewAllocLength, CXPLAT_POOL_RANGE);
             if (NewSubRanges == NULL) {
                 return FALSE;
             }
@@ -214,7 +214,7 @@ QuicRangeRemoveSubranges(
             NewSubRanges,
             Range->SubRanges,
             Range->UsedLength * sizeof(QUIC_SUBRANGE));
-        QUIC_FREE(Range->SubRanges, QUIC_POOL_RANGE);
+        CXPLAT_FREE(Range->SubRanges, CXPLAT_POOL_RANGE);
         Range->SubRanges = NewSubRanges;
         Range->AllocLength = NewAllocLength;
         return TRUE;

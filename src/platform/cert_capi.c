@@ -268,7 +268,7 @@ PopulatePaddingParams(
         Padding->Pss.pszAlgId = HashAlg;
         Padding->Pss.cbSalt = SaltSize;
     } else {
-        QUIC_DBG_ASSERT(FALSE);
+        CXPLAT_DBG_ASSERT(FALSE);
     }
 }
 
@@ -325,7 +325,7 @@ CxPlatCertMatchPrincipal(
         goto Exit;
     }
 
-    CertificateNames = QUIC_ALLOC_PAGED(Length, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    CertificateNames = CXPLAT_ALLOC_PAGED(Length, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
     if (CertificateNames == NULL) {
         goto Exit;
     }
@@ -354,7 +354,7 @@ CxPlatCertMatchPrincipal(
 Exit:
 
     if (CertificateNames != NULL) {
-        QUIC_FREE(CertificateNames, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(CertificateNames, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return MatchFound;
@@ -408,7 +408,7 @@ CxPlatCertLookupHash(
     QUIC_STATUS Status;
     HCERTSTORE CertStore;
 
-    QUIC_DBG_ASSERT(CertHash != NULL || Principal != NULL);
+    CXPLAT_DBG_ASSERT(CertHash != NULL || Principal != NULL);
 
     CertStore =
         CertOpenStore(
@@ -709,7 +709,7 @@ CxPlatCertFormat(
         //
         // Just encode list of zero cert chains.
         //
-        QuicZeroMemory(Offset, SIZEOF_CERT_CHAIN_LIST_LENGTH);
+        CxPlatZeroMemory(Offset, SIZEOF_CERT_CHAIN_LIST_LENGTH);
         Offset += SIZEOF_CERT_CHAIN_LIST_LENGTH;
         goto Exit;
     }
@@ -893,7 +893,7 @@ CxPlatCertValidateChain(
             goto Exit;
         }
 
-        ServerName = (LPWSTR)QUIC_ALLOC_PAGED(ServerNameLength * sizeof(WCHAR), QUIC_POOL_PLATFORM_TMP_ALLOC);
+        ServerName = (LPWSTR)CXPLAT_ALLOC_PAGED(ServerNameLength * sizeof(WCHAR), CXPLAT_POOL_PLATFORM_TMP_ALLOC);
         if (ServerName == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -927,7 +927,7 @@ Exit:
         CertFreeCertificateChain(ChainContext);
     }
     if (ServerName != NULL) {
-        QUIC_FREE(ServerName, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(ServerName, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Result;
@@ -959,7 +959,7 @@ CxPlatCertGetPrivateKey(
         goto Exit;
     }
 
-    QUIC_DBG_ASSERT(FreeKey);
+    CXPLAT_DBG_ASSERT(FreeKey);
 
     if (KeySpec != CERT_NCRYPT_KEY_SPEC) {
         QuicTraceEvent(

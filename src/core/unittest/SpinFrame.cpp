@@ -77,7 +77,7 @@ TEST(SpinFrame, SpinFrame1000000)
                 break; // no-op
             case QUIC_FRAME_ACK:
             case QUIC_FRAME_ACK_1:
-                QuicZeroMemory(&Ecn, sizeof(Ecn));
+                CxPlatZeroMemory(&Ecn, sizeof(Ecn));
                 if (QuicAckFrameDecode((QUIC_FRAME_TYPE) FrameType, BufferLength, Buffer, &Offset, &InvalidFrame, &AckBlocks, &Ecn, &AckDelay)) {
                     SuccessfulDecodes++;
                 } else {

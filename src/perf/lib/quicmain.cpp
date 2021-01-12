@@ -59,7 +59,7 @@ QUIC_STATUS
 QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ QUIC_EVENT* StopEvent,
+    _In_ CXPLAT_EVENT* StopEvent,
     _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     ) {
     argc--; argv++; // Skip app name
@@ -219,7 +219,7 @@ DatapathReceive(
     _In_ QUIC_RECV_DATA*
     )
 {
-    QUIC_EVENT* Event = static_cast<QUIC_EVENT*>(Context);
+    CXPLAT_EVENT* Event = static_cast<CXPLAT_EVENT*>(Context);
     CxPlatEventSet(*Event);
 }
 

@@ -67,7 +67,7 @@ RpsClient::Init(
     if (!Target.get()) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    QuicCopyMemory(Target.get(), target, Len);
+    CxPlatCopyMemory(Target.get(), target, Len);
     Target[Len] = '\0';
 
     TryGetValue(argc, argv, "runtime", &RunTime);
@@ -99,13 +99,13 @@ RpsClient::Init(
         WorkerCount = ThreadCount;
     }
 
-    RequestBuffer.Buffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + sizeof(uint64_t) + RequestLength, QUIC_POOL_PERF);
+    RequestBuffer.Buffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + sizeof(uint64_t) + RequestLength, CXPLAT_POOL_PERF);
     if (!RequestBuffer.Buffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     RequestBuffer.Buffer->Length = sizeof(uint64_t) + RequestLength;
     RequestBuffer.Buffer->Buffer = (uint8_t*)(RequestBuffer.Buffer + 1);
-    *(uint64_t*)(RequestBuffer.Buffer->Buffer) = QuicByteSwapUint64(ResponseLength);
+    *(uint64_t*)(RequestBuffer.Buffer->Buffer) = CxPlatByteSwapUint64(ResponseLength);
     for (uint32_t i = 0; i < RequestLength; ++i) {
         RequestBuffer.Buffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
     }
@@ -119,12 +119,12 @@ RpsClient::Init(
     if (LatencyValues == nullptr) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    QuicZeroMemory(LatencyValues.get(), (size_t)(sizeof(uint32_t) * MaxLatencyIndex));
+    CxPlatZeroMemory(LatencyValues.get(), (size_t)(sizeof(uint32_t) * MaxLatencyIndex));
 
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_THREAD_CALLBACK(RpsWorkerThread, Context)
+CXPLAT_THREAD_CALLBACK(RpsWorkerThread, Context)
 {
     auto Worker = (RpsWorkerContext*)Context;
 
@@ -138,19 +138,19 @@ QUIC_THREAD_CALLBACK(RpsWorkerThread, Context)
         CxPlatEventWaitForever(Worker->WakeEvent);
     }
 
-    QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
+    CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
 
 QUIC_STATUS
 RpsClient::Start(
-    _In_ QUIC_EVENT* StopEvent
+    _In_ CXPLAT_EVENT* StopEvent
     ) {
     CompletionEvent = StopEvent;
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint32_t i = 0; i < WorkerCount; ++i) {
-        auto ThreadFlags = AffinitizeWorkers ? QUIC_THREAD_FLAG_SET_AFFINITIZE : QUIC_THREAD_FLAG_NONE;
-        QUIC_THREAD_CONFIG ThreadConfig = {
+        auto ThreadFlags = AffinitizeWorkers ? CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_NONE;
+        CXPLAT_THREAD_CONFIG ThreadConfig = {
             (uint16_t)ThreadFlags,
             (uint16_t)i,
             "RPS Worker",
@@ -186,7 +186,7 @@ RpsClient::Start(
         ActiveProcCount -= 2;
     }
     for (uint32_t i = 0; i < ConnectionCount; ++i) {
-        Status = QuicSetCurrentThreadProcessorAffinity((uint16_t)(i % ActiveProcCount));
+        Status = CxPlatSetCurrentThreadProcessorAffinity((uint16_t)(i % ActiveProcCount));
         if (QUIC_FAILED(Status)) {
             WriteOutput("Setting Thread Group Failed 0x%x\n", Status);
             return Status;
@@ -282,7 +282,7 @@ RpsClient::Start(
     if (ThreadToSetAffinityTo > 2) {
         ThreadToSetAffinityTo -= 2;
         Status =
-            QuicSetCurrentThreadProcessorAffinity((uint16_t)ThreadToSetAffinityTo);
+            CxPlatSetCurrentThreadProcessorAffinity((uint16_t)ThreadToSetAffinityTo);
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -314,7 +314,7 @@ RpsClient::GetExtraDataMetadata(
 {
     Result->TestType = PerfTestType::RpsClient;
     uint64_t DataLength = sizeof(RunTime) + sizeof(CachedCompletedRequests) + (CachedCompletedRequests * sizeof(uint32_t));
-    QUIC_FRE_ASSERT(DataLength <= UINT32_MAX); // TODO Limit values properly
+    CXPLAT_FRE_ASSERT(DataLength <= UINT32_MAX); // TODO Limit values properly
     Result->ExtraDataLength = (uint32_t)DataLength;
 }
 
@@ -324,17 +324,17 @@ RpsClient::GetExtraData(
     _Inout_ uint32_t* Length
     )
 {
-    QUIC_FRE_ASSERT(*Length > sizeof(RunTime) + sizeof(CachedCompletedRequests));
-    QuicCopyMemory(Data, &RunTime, sizeof(RunTime));
+    CXPLAT_FRE_ASSERT(*Length > sizeof(RunTime) + sizeof(CachedCompletedRequests));
+    CxPlatCopyMemory(Data, &RunTime, sizeof(RunTime));
     Data += sizeof(RunTime);
-    QuicCopyMemory(Data, &CachedCompletedRequests, sizeof(CachedCompletedRequests));
+    CxPlatCopyMemory(Data, &CachedCompletedRequests, sizeof(CachedCompletedRequests));
     Data += sizeof(RunTime);
     uint64_t BufferLength = *Length - sizeof(RunTime) - sizeof(CachedCompletedRequests);
     if (BufferLength > CachedCompletedRequests * sizeof(uint32_t)) {
         BufferLength = CachedCompletedRequests * sizeof(uint32_t);
         *Length = (uint32_t)(BufferLength + sizeof(RunTime) + sizeof(CachedCompletedRequests));
     }
-    QuicCopyMemory(Data, LatencyValues.get(), (uint32_t)BufferLength);
+    CxPlatCopyMemory(Data, LatencyValues.get(), (uint32_t)BufferLength);
     return QUIC_STATUS_SUCCESS;
 }
 

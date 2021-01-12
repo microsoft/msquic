@@ -210,7 +210,7 @@ typedef struct QUIC_BINDING {
     //
     // Lock for accessing the listeners.
     //
-    QUIC_DISPATCH_RW_LOCK RwLock;
+    CXPLAT_DISPATCH_RW_LOCK RwLock;
 
     //
     // The listeners registered on this binding.
@@ -226,15 +226,15 @@ typedef struct QUIC_BINDING {
     // Used for generating stateless reset hashes.
     //
     QUIC_HASH* ResetTokenHash;
-    QUIC_DISPATCH_LOCK ResetTokenLock;
+    CXPLAT_DISPATCH_LOCK ResetTokenLock;
 
     //
     // Stateless operation tracking structures.
     //
-    QUIC_DISPATCH_LOCK StatelessOperLock;
+    CXPLAT_DISPATCH_LOCK StatelessOperLock;
     QUIC_HASHTABLE StatelessOperTable;
     QUIC_LIST_ENTRY StatelessOperList;
-    QUIC_POOL StatelessOperCtxPool;
+    CXPLAT_POOL StatelessOperCtxPool;
     uint32_t StatelessOperCount;
 
     struct {
@@ -350,7 +350,7 @@ void
 QuicBindingRemoveSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_CID_HASH_ENTRY* SourceCid,
-    _In_ QUIC_SINGLE_LIST_ENTRY** Entry
+    _In_ CXPLAT_SINGLE_LIST_ENTRY** Entry
     );
 
 //
@@ -450,26 +450,26 @@ QuicRetryTokenDecrypt(
     //
     // Copy the token locally so as to not effect the original packet buffer,
     //
-    QuicCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
+    CxPlatCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
     uint8_t Iv[QUIC_MAX_IV_LENGTH];
     if (MsQuicLib.CidTotalLength >= QUIC_IV_LENGTH) {
-        QuicCopyMemory(Iv, Packet->DestCid, QUIC_IV_LENGTH);
+        CxPlatCopyMemory(Iv, Packet->DestCid, QUIC_IV_LENGTH);
         for (uint8_t i = QUIC_IV_LENGTH; i < MsQuicLib.CidTotalLength; ++i) {
             Iv[i % QUIC_IV_LENGTH] ^= Packet->DestCid[i];
         }
     } else {
-        QuicZeroMemory(Iv, QUIC_IV_LENGTH);
-        QuicCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
+        CxPlatZeroMemory(Iv, QUIC_IV_LENGTH);
+        CxPlatCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
     }
 
-    QuicDispatchLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+    CxPlatDispatchLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 
     QUIC_KEY* StatelessRetryKey =
         QuicLibraryGetStatelessRetryKeyForTimestamp(
             Token->Authenticated.Timestamp);
     if (StatelessRetryKey == NULL) {
-        QuicDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+        CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
         return FALSE;
     }
 
@@ -482,6 +482,6 @@ QuicRetryTokenDecrypt(
             sizeof(Token->Encrypted) + sizeof(Token->EncryptionTag),
             (uint8_t*)&Token->Encrypted);
 
-    QuicDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+    CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
     return QUIC_SUCCEEDED(Status);
 }

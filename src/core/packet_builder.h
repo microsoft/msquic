@@ -144,7 +144,7 @@ typedef struct QUIC_PACKET_BUILDER {
 
 } QUIC_PACKET_BUILDER;
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_PACKET_BUILDER) < 1024,
     L"Packet builder should be small enough to fit on the stack.");
 
@@ -239,7 +239,7 @@ QuicPacketBuilderAddFrame(
     _In_ BOOLEAN IsAckEliciting
     )
 {
-    QUIC_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
+    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
     Builder->Metadata->Frames[Builder->Metadata->FrameCount].Type = FrameType;
     Builder->Metadata->Flags.IsAckEliciting |= IsAckEliciting;
     return ++Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET;

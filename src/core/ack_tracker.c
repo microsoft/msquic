@@ -78,7 +78,7 @@ QuicAckTrackerReset(
     Tracker->LargestPacketNumberRecvTime = 0;
     Tracker->AlreadyWrittenAckFrame = FALSE;
     Tracker->NonZeroRecvECN = FALSE;
-    QuicZeroMemory(&Tracker->ReceivedECN, sizeof(Tracker->ReceivedECN));
+    CxPlatZeroMemory(&Tracker->ReceivedECN, sizeof(Tracker->ReceivedECN));
     QuicRangeReset(&Tracker->PacketNumbersToAck);
     QuicRangeReset(&Tracker->PacketNumbersReceived);
 }
@@ -114,7 +114,7 @@ QuicAckTrackerAckPacket(
     // so this is guaranteed to only receive non-duplicated packets.
     //
 
-    QUIC_DBG_ASSERT(PacketNumber <= QUIC_VAR_INT_MAX);
+    CXPLAT_DBG_ASSERT(PacketNumber <= QUIC_VAR_INT_MAX);
 
     uint64_t CurLargestPacketNumber;
     if (QuicRangeGetMaxSafe(&Tracker->PacketNumbersToAck, &CurLargestPacketNumber) &&
@@ -223,7 +223,7 @@ QuicAckTrackerAckFrameEncode(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    QUIC_DBG_ASSERT(QuicAckTrackerHasPacketsToAck(Tracker));
+    CXPLAT_DBG_ASSERT(QuicAckTrackerHasPacketsToAck(Tracker));
 
     uint64_t AckDelay =
         CxPlatTimeDiff64(Tracker->LargestPacketNumberRecvTime, CxPlatTimeUs64());

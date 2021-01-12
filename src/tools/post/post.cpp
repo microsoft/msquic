@@ -38,7 +38,7 @@ uint16_t Port = 4433;
 const char* ServerName = "localhost";
 const char* FilePath = nullptr;
 FILE* File = nullptr;
-QUIC_EVENT SendReady;
+CXPLAT_EVENT SendReady;
 bool TransferCanceled = false;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -144,7 +144,7 @@ main(
     HQUIC Stream = nullptr;
 
     QUIC_CREDENTIAL_CONFIG CredConfig;
-    QuicZeroMemory(&CredConfig, sizeof(CredConfig));
+    CxPlatZeroMemory(&CredConfig, sizeof(CredConfig));
     CredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
     CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_CLIENT;
 

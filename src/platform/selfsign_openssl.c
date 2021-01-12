@@ -302,7 +302,7 @@ CxPlatPlatGetSelfSignedCert(
         return NULL;
     }
 
-    QuicZeroMemory(Params, sizeof(*Params));
+    CxPlatZeroMemory(Params, sizeof(*Params));
     Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
     Params->CertificateFile = &Params->CertFile;
     Params->CertFile.CertificateFile = Params->CertFilepath;
@@ -360,27 +360,27 @@ CxPlatPlatGetSelfSignedCert(
         goto Error;
     }
 
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Params->CertFilepath,
         Params->TempDir,
         strlen(Params->TempDir));
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Params->CertFilepath + strlen(Params->TempDir),
         "/",
         1);
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Params->CertFilepath + strlen(Params->TempDir) + 1,
         QuicTestCertFilename,
         strlen(QuicTestCertFilename));
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Params->PrivateKeyFilepath,
         Params->TempDir,
         strlen(Params->TempDir));
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Params->PrivateKeyFilepath + strlen(Params->TempDir),
         "/",
         1);
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Params->PrivateKeyFilepath + strlen(Params->TempDir) + 1,
         QuicTestPrivateKeyFilename,
         strlen(QuicTestPrivateKeyFilename));

@@ -634,7 +634,7 @@ QuicPacketTraceType(
     );
 
 int64_t
-QuicTimeEpochMs64(
+CxPlatTimeEpochMs64(
     void
     );
 

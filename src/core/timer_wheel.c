@@ -77,7 +77,7 @@ QuicTimerWheelInitialize(
     TimerWheel->NextConnection = NULL;
     TimerWheel->SlotCount = QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT;
     TimerWheel->Slots =
-        QUIC_ALLOC_NONPAGED(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY), QUIC_POOL_TIMERWHEEL);
+        CXPLAT_ALLOC_NONPAGED(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY), CXPLAT_POOL_TIMERWHEEL);
     if (TimerWheel->Slots == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -112,13 +112,13 @@ QuicTimerWheelUninitialize(
                     "Still in timer wheel! Connection was likely leaked!");
                 Entry = Entry->Flink;
             }
-            QUIC_TEL_ASSERT(CxPlatListIsEmpty(&TimerWheel->Slots[i]));
+            CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&TimerWheel->Slots[i]));
         }
-        QUIC_TEL_ASSERT(TimerWheel->ConnectionCount == 0);
-        QUIC_TEL_ASSERT(TimerWheel->NextConnection == NULL);
-        QUIC_TEL_ASSERT(TimerWheel->NextExpirationTime == UINT64_MAX);
+        CXPLAT_TEL_ASSERT(TimerWheel->ConnectionCount == 0);
+        CXPLAT_TEL_ASSERT(TimerWheel->NextConnection == NULL);
+        CXPLAT_TEL_ASSERT(TimerWheel->NextExpirationTime == UINT64_MAX);
 
-        QUIC_FREE(TimerWheel->Slots, QUIC_POOL_TIMERWHEEL);
+        CXPLAT_FREE(TimerWheel->Slots, CXPLAT_POOL_TIMERWHEEL);
     }
 }
 
@@ -137,7 +137,7 @@ QuicTimerWheelResize(
     }
 
     QUIC_LIST_ENTRY* NewSlots =
-        QUIC_ALLOC_NONPAGED(NewSlotCount * sizeof(QUIC_LIST_ENTRY), QUIC_POOL_TIMERWHEEL);
+        CXPLAT_ALLOC_NONPAGED(NewSlotCount * sizeof(QUIC_LIST_ENTRY), CXPLAT_POOL_TIMERWHEEL);
     if (NewSlots == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -174,7 +174,7 @@ QuicTimerWheelResize(
                     QUIC_CONNECTION,
                     TimerLink);
             uint64_t ExpirationTime = QuicConnGetNextExpirationTime(Connection);
-            QUIC_DBG_ASSERT(TimerWheel->SlotCount != 0);
+            CXPLAT_DBG_ASSERT(TimerWheel->SlotCount != 0);
             uint32_t SlotIndex = TIME_TO_SLOT_INDEX(TimerWheel, ExpirationTime);
 
             //
@@ -203,7 +203,7 @@ QuicTimerWheelResize(
             CxPlatListInsertHead(Entry, &Connection->TimerLink);
         }
     }
-    QUIC_FREE(OldSlots, QUIC_POOL_TIMERWHEEL);
+    CXPLAT_FREE(OldSlots, CXPLAT_POOL_TIMERWHEEL);
 }
 
 //
@@ -327,7 +327,7 @@ QuicTimerWheelUpdateConnection(
 
     } else {
 
-        QUIC_DBG_ASSERT(TimerWheel->SlotCount != 0);
+        CXPLAT_DBG_ASSERT(TimerWheel->SlotCount != 0);
         uint32_t SlotIndex = TIME_TO_SLOT_INDEX(TimerWheel, ExpirationTime);
 
         //

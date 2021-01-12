@@ -52,9 +52,9 @@ MsQuicRegistrationOpen(
     }
 
     Registration =
-        QUIC_ALLOC_NONPAGED(
+        CXPLAT_ALLOC_NONPAGED(
             sizeof(QUIC_REGISTRATION) + AppNameLength + 1,
-            QUIC_POOL_REGISTRATION);
+            CXPLAT_POOL_REGISTRATION);
     if (Registration == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -72,14 +72,14 @@ MsQuicRegistrationOpen(
     Registration->ExecProfile = Config == NULL ? QUIC_EXECUTION_PROFILE_LOW_LATENCY : Config->ExecutionProfile;
     Registration->CidPrefixLength = 0;
     Registration->CidPrefix = NULL;
-    QuicLockInitialize(&Registration->ConfigLock);
+    CxPlatLockInitialize(&Registration->ConfigLock);
     CxPlatListInitializeHead(&Registration->Configurations);
-    QuicDispatchLockInitialize(&Registration->ConnectionLock);
+    CxPlatDispatchLockInitialize(&Registration->ConnectionLock);
     CxPlatListInitializeHead(&Registration->Connections);
     CxPlatRundownInitialize(&Registration->Rundown);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
-        QuicCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
+        CxPlatCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
     } else {
         Registration->AppName[0] = '\0';
     }
@@ -88,11 +88,11 @@ MsQuicRegistrationOpen(
     switch (Registration->ExecProfile) {
     default:
     case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
-        WorkerThreadFlags = QUIC_THREAD_FLAG_NONE;
+        WorkerThreadFlags = CXPLAT_THREAD_FLAG_NONE;
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT:
         WorkerThreadFlags =
-            QUIC_THREAD_FLAG_SET_AFFINITIZE;
+            CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
         Registration->SplitPartitioning = TRUE;
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER:
@@ -101,7 +101,7 @@ MsQuicRegistrationOpen(
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME:
         WorkerThreadFlags =
-            QUIC_THREAD_FLAG_SET_AFFINITIZE;
+            CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
         break;
     }
 
@@ -148,9 +148,9 @@ MsQuicRegistrationOpen(
 #endif
 
     if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
-        QuicLockAcquire(&MsQuicLib.Lock);
+        CxPlatLockAcquire(&MsQuicLib.Lock);
         CxPlatListInsertTail(&MsQuicLib.Registrations, &Registration->Link);
-        QuicLockRelease(&MsQuicLib.Lock);
+        CxPlatLockRelease(&MsQuicLib.Lock);
     }
 
     *NewRegistration = (HQUIC)Registration;
@@ -160,9 +160,9 @@ Error:
 
     if (Registration != NULL) {
         CxPlatRundownUninitialize(&Registration->Rundown);
-        QuicDispatchLockUninitialize(&Registration->ConnectionLock);
-        QuicLockUninitialize(&Registration->ConfigLock);
-        QUIC_FREE(Registration, QUIC_POOL_REGISTRATION);
+        CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
+        CxPlatLockUninitialize(&Registration->ConfigLock);
+        CXPLAT_FREE(Registration, CXPLAT_POOL_REGISTRATION);
     }
 
     QuicTraceEvent(
@@ -197,23 +197,23 @@ MsQuicRegistrationClose(
             Registration);
 
         if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
-            QuicLockAcquire(&MsQuicLib.Lock);
+            CxPlatLockAcquire(&MsQuicLib.Lock);
             CxPlatListEntryRemove(&Registration->Link);
-            QuicLockRelease(&MsQuicLib.Lock);
+            CxPlatLockRelease(&MsQuicLib.Lock);
         }
 
         CxPlatRundownReleaseAndWait(&Registration->Rundown);
 
         QuicWorkerPoolUninitialize(Registration->WorkerPool);
         CxPlatRundownUninitialize(&Registration->Rundown);
-        QuicDispatchLockUninitialize(&Registration->ConnectionLock);
-        QuicLockUninitialize(&Registration->ConfigLock);
+        CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
+        CxPlatLockUninitialize(&Registration->ConfigLock);
 
         if (Registration->CidPrefix != NULL) {
-            QUIC_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
+            CXPLAT_FREE(Registration->CidPrefix, CXPLAT_POOL_CIDPREFIX);
         }
 
-        QUIC_FREE(Registration, QUIC_POOL_REGISTRATION);
+        CXPLAT_FREE(Registration, CXPLAT_POOL_REGISTRATION);
 
         QuicTraceEvent(
             ApiExit,
@@ -230,8 +230,8 @@ MsQuicRegistrationShutdown(
     _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode
     )
 {
-    QUIC_DBG_ASSERT(Handle != NULL);
-    QUIC_DBG_ASSERT(Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION);
+    CXPLAT_DBG_ASSERT(Handle != NULL);
+    CXPLAT_DBG_ASSERT(Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION);
 
     if (ErrorCode > QUIC_UINT62_MAX) {
         return;
@@ -247,7 +247,7 @@ MsQuicRegistrationShutdown(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-        QuicDispatchLockAcquire(&Registration->ConnectionLock);
+        CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
 
         QUIC_LIST_ENTRY* Entry = Registration->Connections.Flink;
         while (Entry != &Registration->Connections) {
@@ -271,7 +271,7 @@ MsQuicRegistrationShutdown(
             Entry = Entry->Flink;
         }
 
-        QuicDispatchLockRelease(&Registration->ConnectionLock);
+        CxPlatDispatchLockRelease(&Registration->ConnectionLock);
     }
 
     QuicTraceEvent(
@@ -291,7 +291,7 @@ QuicRegistrationTraceRundown(
         Registration,
         Registration->AppName);
 
-    QuicLockAcquire(&Registration->ConfigLock);
+    CxPlatLockAcquire(&Registration->ConfigLock);
 
     for (QUIC_LIST_ENTRY* Link = Registration->Configurations.Flink;
         Link != &Registration->Configurations;
@@ -300,9 +300,9 @@ QuicRegistrationTraceRundown(
             QUIC_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
     }
 
-    QuicLockRelease(&Registration->ConfigLock);
+    CxPlatLockRelease(&Registration->ConfigLock);
 
-    QuicDispatchLockAcquire(&Registration->ConnectionLock);
+    CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
 
     for (QUIC_LIST_ENTRY* Link = Registration->Connections.Flink;
         Link != &Registration->Connections;
@@ -311,7 +311,7 @@ QuicRegistrationTraceRundown(
             QUIC_CONTAINING_RECORD(Link, QUIC_CONNECTION, RegistrationLink));
     }
 
-    QuicDispatchLockRelease(&Registration->ConnectionLock);
+    CxPlatDispatchLockRelease(&Registration->ConnectionLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -320,7 +320,7 @@ QuicRegistrationSettingsChanged(
     _Inout_ QUIC_REGISTRATION* Registration
     )
 {
-    QuicLockAcquire(&Registration->ConfigLock);
+    CxPlatLockAcquire(&Registration->ConfigLock);
 
     for (QUIC_LIST_ENTRY* Link = Registration->Configurations.Flink;
         Link != &Registration->Configurations;
@@ -329,7 +329,7 @@ QuicRegistrationSettingsChanged(
             QUIC_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
     }
 
-    QuicLockRelease(&Registration->ConfigLock);
+    CxPlatLockRelease(&Registration->ConfigLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -388,7 +388,7 @@ QuicRegistrationParamSet(
     if (Param == QUIC_PARAM_REGISTRATION_CID_PREFIX) {
         if (BufferLength == 0) {
             if (Registration->CidPrefix != NULL) {
-                QUIC_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
+                CXPLAT_FREE(Registration->CidPrefix, CXPLAT_POOL_CIDPREFIX);
                 Registration->CidPrefix = NULL;
             }
             Registration->CidPrefixLength = 0;
@@ -400,12 +400,12 @@ QuicRegistrationParamSet(
         }
 
         if (BufferLength > Registration->CidPrefixLength) {
-            uint8_t* NewCidPrefix = QUIC_ALLOC_NONPAGED(BufferLength, QUIC_POOL_CIDPREFIX);
+            uint8_t* NewCidPrefix = CXPLAT_ALLOC_NONPAGED(BufferLength, CXPLAT_POOL_CIDPREFIX);
             if (NewCidPrefix == NULL) {
                 return QUIC_STATUS_OUT_OF_MEMORY;
             }
-            QUIC_DBG_ASSERT(Registration->CidPrefix != NULL);
-            QUIC_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
+            CXPLAT_DBG_ASSERT(Registration->CidPrefix != NULL);
+            CXPLAT_FREE(Registration->CidPrefix, CXPLAT_POOL_CIDPREFIX);
             Registration->CidPrefix = NewCidPrefix;
         }
 

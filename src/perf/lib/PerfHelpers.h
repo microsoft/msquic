@@ -42,7 +42,7 @@ QUIC_STATUS
 QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ QUIC_EVENT* StopEvent,
+    _In_ CXPLAT_EVENT* StopEvent,
     _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     );
 
@@ -112,7 +112,7 @@ WriteOutput(
         return 0;
     }
     int Start = End - Length;
-    QuicCopyMemory(Buffer + Start, Buf, Length);
+    CxPlatCopyMemory(Buffer + Start, Buf, Length);
 
 
     return Length;
@@ -189,12 +189,12 @@ WriteOutput(
 struct CountHelper {
     long RefCount;
 
-    QUIC_EVENT* Done;
+    CXPLAT_EVENT* Done;
 
     CountHelper() :
         RefCount{1}, Done{} {}
 
-    CountHelper(QUIC_EVENT* Done) :
+    CountHelper(CXPLAT_EVENT* Done) :
         RefCount{1}, Done{Done} { }
 
     bool
@@ -254,11 +254,11 @@ constexpr _Ty&& QuicForward(
 }
 
 class QuicPoolBufferAllocator {
-    QUIC_POOL Pool;
+    CXPLAT_POOL Pool;
     bool Initialized {false};
 public:
     QuicPoolBufferAllocator() {
-        QuicZeroMemory(&Pool, sizeof(Pool));
+        CxPlatZeroMemory(&Pool, sizeof(Pool));
     }
 
     ~QuicPoolBufferAllocator() {
@@ -269,8 +269,8 @@ public:
     }
 
     void Initialize(uint32_t Size, bool Paged = false) {
-        QUIC_DBG_ASSERT(Initialized == false);
-        CxPlatPoolInitialize(Paged, Size, QUIC_POOL_PERF, &Pool);
+        CXPLAT_DBG_ASSERT(Initialized == false);
+        CxPlatPoolInitialize(Paged, Size, CXPLAT_POOL_PERF, &Pool);
         Initialized = true;
     }
 
@@ -288,10 +288,10 @@ public:
 
 template<typename T, bool Paged = false>
 class QuicPoolAllocator {
-    QUIC_POOL Pool;
+    CXPLAT_POOL Pool;
 public:
     QuicPoolAllocator() noexcept {
-        CxPlatPoolInitialize(Paged, sizeof(T), QUIC_POOL_PERF, &Pool);
+        CxPlatPoolInitialize(Paged, sizeof(T), CXPLAT_POOL_PERF, &Pool);
     }
 
     ~QuicPoolAllocator() noexcept {

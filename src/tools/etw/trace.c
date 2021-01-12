@@ -94,7 +94,7 @@ const char* ApiTypeStr[] = {
     "DATAGRAM_SEND"
 };
 
-QUIC_STATIC_ASSERT(ARRAYSIZE(ApiTypeStr) == QUIC_API_COUNT, "Keep the count in sync with array");
+CXPLAT_STATIC_ASSERT(ARRAYSIZE(ApiTypeStr) == QUIC_API_COUNT, "Keep the count in sync with array");
 
 const char* SendFlushReasonStr[] = {
     "Flags",
@@ -122,7 +122,7 @@ QuicTraceGlobalEvent(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_GLOBAL* EvData = (QUIC_EVENT_DATA_GLOBAL*)ev->UserData;
+    CXPLAT_EVENT_DATA_GLOBAL* EvData = (CXPLAT_EVENT_DATA_GLOBAL*)ev->UserData;
 
     switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
     case EventId_QuicLibraryInitialized: {
@@ -316,7 +316,7 @@ QuicTraceRegistrationEvent(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_REGISTRATION* EvData = (QUIC_EVENT_DATA_REGISTRATION*)ev->UserData;
+    CXPLAT_EVENT_DATA_REGISTRATION* EvData = (CXPLAT_EVENT_DATA_REGISTRATION*)ev->UserData;
 
     switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
     case EventId_QuicRegistrationCreated: {
@@ -357,7 +357,7 @@ QuicTraceWorkerEvent(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_WORKER* EvData = (QUIC_EVENT_DATA_WORKER*)ev->UserData;
+    CXPLAT_EVENT_DATA_WORKER* EvData = (CXPLAT_EVENT_DATA_WORKER*)ev->UserData;
 
     switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
     case EventId_QuicWorkerCreated: {
@@ -421,7 +421,7 @@ QuicTraceSessionEvent(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_SESSION* EvData = (QUIC_EVENT_DATA_SESSION*)ev->UserData;
+    CXPLAT_EVENT_DATA_SESSION* EvData = (CXPLAT_EVENT_DATA_SESSION*)ev->UserData;
 
     switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
     case EventId_QuicSessionCreated: {
@@ -467,7 +467,7 @@ QuicTraceListenerEvent(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_LISTENER* EvData = (QUIC_EVENT_DATA_LISTENER*)ev->UserData;
+    CXPLAT_EVENT_DATA_LISTENER* EvData = (CXPLAT_EVENT_DATA_LISTENER*)ev->UserData;
 
     switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
     case EventId_QuicListenerCreated: {
@@ -558,7 +558,7 @@ QuicTraceConnEvent(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_CONNECTION* EvData = (QUIC_EVENT_DATA_CONNECTION*)ev->UserData;
+    CXPLAT_EVENT_DATA_CONNECTION* EvData = (CXPLAT_EVENT_DATA_CONNECTION*)ev->UserData;
 
     switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
     case EventId_QuicConnCreated: {
@@ -883,7 +883,7 @@ QuicTraceStreamEvent(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_STREAM* EvData = (QUIC_EVENT_DATA_STREAM*)ev->UserData;
+    CXPLAT_EVENT_DATA_STREAM* EvData = (CXPLAT_EVENT_DATA_STREAM*)ev->UserData;
 
     switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
     case EventId_QuicStreamCreated: {
@@ -967,7 +967,7 @@ QuicTraceBindingEvent(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_BINDING* EvData = (QUIC_EVENT_DATA_BINDING*)ev->UserData;
+    CXPLAT_EVENT_DATA_BINDING* EvData = (CXPLAT_EVENT_DATA_BINDING*)ev->UserData;
 
     switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
     case EventId_QuicBindingCreated: {
@@ -1046,7 +1046,7 @@ QuicTraceTlsEvent(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_TLS* EvData = (QUIC_EVENT_DATA_TLS*)ev->UserData;
+    CXPLAT_EVENT_DATA_TLS* EvData = (CXPLAT_EVENT_DATA_TLS*)ev->UserData;
 
     switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
     case EventId_QuicTlsError: {
@@ -1073,7 +1073,7 @@ QuicTraceDatapathEvent(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_DATAPATH* EvData = (QUIC_EVENT_DATA_DATAPATH*)ev->UserData;
+    CXPLAT_EVENT_DATA_DATAPATH* EvData = (CXPLAT_EVENT_DATA_DATAPATH*)ev->UserData;
 
     switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
     case EventId_QuicDatapathSend: {
@@ -1136,7 +1136,7 @@ QuicTraceLogEvent(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_LOG* EvData = (QUIC_EVENT_DATA_LOG*)ev->UserData;
+    CXPLAT_EVENT_DATA_LOG* EvData = (CXPLAT_EVENT_DATA_LOG*)ev->UserData;
 
     switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
     case EventId_QuicLogError:
@@ -1200,7 +1200,7 @@ QuicTraceEvent(
         NS100_TO_US(ev->EventHeader.TimeStamp.QuadPart - InitialTimestamp) / 1000,
         NS100_TO_US(ev->EventHeader.TimeStamp.QuadPart - InitialTimestamp) % 1000);
 
-    QUIC_EVENT_TYPE EventType = GetEventType(ev->EventHeader.EventDescriptor.Id);
+    CXPLAT_EVENT_TYPE EventType = GetEventType(ev->EventHeader.EventDescriptor.Id);
     if (TracePrefix[EventType] != NULL) {
         printf(TracePrefix[EventType], ObjectId);
     }

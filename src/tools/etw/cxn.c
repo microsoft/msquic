@@ -112,7 +112,7 @@ NewCxn(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_CONNECTION* EvData = (QUIC_EVENT_DATA_CONNECTION*)ev->UserData;
+    CXPLAT_EVENT_DATA_CONNECTION* EvData = (CXPLAT_EVENT_DATA_CONNECTION*)ev->UserData;
 
     // Move the old CXN out of the set if this pointer is being reused.
     CXN* Cxn = (CXN*)ObjectSetRemoveActive(&Cxns, EvData->CxnPtr);
@@ -196,7 +196,7 @@ FreeCxn(
 
 CXN* GetCxnFromEvent(PEVENT_RECORD ev)
 {
-    QUIC_EVENT_DATA_CONNECTION* EvData = (QUIC_EVENT_DATA_CONNECTION*)ev->UserData;
+    CXPLAT_EVENT_DATA_CONNECTION* EvData = (CXPLAT_EVENT_DATA_CONNECTION*)ev->UserData;
 
     CXN* Cxn;
     if (GetEventId(ev->EventHeader.EventDescriptor.Id) == EventId_QuicConnCreated) {
@@ -240,7 +240,7 @@ CXN* GetCxnFromEvent(PEVENT_RECORD ev)
 
 CXN* GetCxnFromTlsEvent(PEVENT_RECORD ev)
 {
-    QUIC_EVENT_DATA_TLS* EvData = (QUIC_EVENT_DATA_TLS*)ev->UserData;
+    CXPLAT_EVENT_DATA_TLS* EvData = (CXPLAT_EVENT_DATA_TLS*)ev->UserData;
 
     CXN* Cxn;
     if ((Cxn = (CXN*)ObjectSetGetActive(&Cxns, EvData->CxnPtr)) == NULL) {
@@ -583,7 +583,7 @@ ConnEventCallback(
     _Out_ ULONG64* InitialTimestamp
     )
 {
-    QUIC_EVENT_DATA_CONNECTION* EvData = (QUIC_EVENT_DATA_CONNECTION*)ev->UserData;
+    CXPLAT_EVENT_DATA_CONNECTION* EvData = (CXPLAT_EVENT_DATA_CONNECTION*)ev->UserData;
 
     CXN* Cxn = GetCxnFromEvent(ev);
     *ObjectId = Cxn->Id;

@@ -86,8 +86,8 @@ CxPlatStorageRegKeyChangeCallback(
 typedef struct QUIC_STORAGE {
 
     HKEY RegKey;
-    QUIC_LOCK Lock;
-    QUIC_EVENT* CleanupEvent;
+    CXPLAT_LOCK Lock;
+    CXPLAT_EVENT* CleanupEvent;
     WORK_QUEUE_ITEM WorkItem;
     IO_STATUS_BLOCK IoStatusBlock;
     QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback;
@@ -97,7 +97,7 @@ typedef struct QUIC_STORAGE {
 
 //
 // Converts a UTF-8 string to a UNICODE_STRING object. The variable must be
-// freed with QUIC_FREE when done with it.
+// freed with CXPLAT_FREE when done with it.
 //
 QUIC_STATUS
 CxPlatConvertUtf8ToUnicode(
@@ -129,7 +129,7 @@ CxPlatConvertUtf8ToUnicode(
     }
 
     PUNICODE_STRING UnicodeString =
-        QUIC_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
 
     if (UnicodeString == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -148,7 +148,7 @@ CxPlatConvertUtf8ToUnicode(
             (ULONG)Utf8Length);
 
     if (QUIC_FAILED(Status)) {
-        QUIC_FREE(UnicodeString, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(UnicodeString, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
         return Status;
     }
 
@@ -198,14 +198,14 @@ CxPlatStorageOpen(
             NULL);
     }
 
-    Storage = QUIC_ALLOC_NONPAGED(sizeof(QUIC_STORAGE), QUIC_POOL_STORAGE);
+    Storage = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_STORAGE), CXPLAT_POOL_STORAGE);
     if (Storage == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    QuicZeroMemory(Storage, sizeof(QUIC_STORAGE));
-    QuicLockInitialize(&Storage->Lock);
+    CxPlatZeroMemory(Storage, sizeof(QUIC_STORAGE));
+    CxPlatLockInitialize(&Storage->Lock);
     Storage->Callback = Callback;
     Storage->CallbackContext = CallbackContext;
 
@@ -248,14 +248,14 @@ CxPlatStorageOpen(
 Exit:
 
     if (PathUnicode != NULL) {
-        QUIC_FREE(PathUnicode, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(PathUnicode, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
     }
     if (Storage != NULL) {
         if (Storage->RegKey != NULL) {
             ZwClose(Storage->RegKey);
         }
-        QuicLockUninitialize(&Storage->Lock);
-        QUIC_FREE(Storage, QUIC_POOL_STORAGE);
+        CxPlatLockUninitialize(&Storage->Lock);
+        CXPLAT_FREE(Storage, CXPLAT_POOL_STORAGE);
     }
 
     return Status;
@@ -268,19 +268,19 @@ CxPlatStorageClose(
     )
 {
     if (Storage != NULL) {
-        QUIC_EVENT CleanupEvent;
+        CXPLAT_EVENT CleanupEvent;
         CxPlatEventInitialize(&CleanupEvent, TRUE, FALSE);
 
-        QuicLockAcquire(&Storage->Lock);
+        CxPlatLockAcquire(&Storage->Lock);
         ZwClose(Storage->RegKey); // Triggers one final notif change callback.
         Storage->RegKey = NULL;
         Storage->CleanupEvent = &CleanupEvent;
-        QuicLockRelease(&Storage->Lock);
+        CxPlatLockRelease(&Storage->Lock);
 
         CxPlatEventWaitForever(CleanupEvent);
         CxPlatEventUninitialize(CleanupEvent);
-        QuicLockUninitialize(&Storage->Lock);
-        QUIC_FREE(Storage, QUIC_POOL_STORAGE);
+        CxPlatLockUninitialize(&Storage->Lock);
+        CXPLAT_FREE(Storage, CXPLAT_POOL_STORAGE);
     }
 }
 
@@ -292,11 +292,11 @@ CxPlatStorageRegKeyChangeCallback(
     )
 {
     QUIC_STORAGE* Storage = (QUIC_STORAGE*)Context;
-    QUIC_EVENT* CleanupEvent = NULL;
+    CXPLAT_EVENT* CleanupEvent = NULL;
 
-    QuicLockAcquire(&Storage->Lock);
+    CxPlatLockAcquire(&Storage->Lock);
     if (Storage->CleanupEvent == NULL) {
-        QUIC_DBG_ASSERT(Storage->RegKey != NULL);
+        CXPLAT_DBG_ASSERT(Storage->RegKey != NULL);
         Storage->Callback(Storage->CallbackContext);
         ZwNotifyChangeKey(
             Storage->RegKey,
@@ -312,7 +312,7 @@ CxPlatStorageRegKeyChangeCallback(
     } else {
         CleanupEvent = Storage->CleanupEvent;
     }
-    QuicLockRelease(&Storage->Lock);
+    CxPlatLockRelease(&Storage->Lock);
 
     if (CleanupEvent != NULL) {
         CxPlatEventSet(*CleanupEvent);
@@ -367,7 +367,7 @@ CxPlatStorageReadValue(
     } else {
 
         ULONG InfoLength = BASE_KEY_INFO_LENGTH + *BufferLength;
-        PKEY_VALUE_PARTIAL_INFORMATION Info = QUIC_ALLOC_PAGED(InfoLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        PKEY_VALUE_PARTIAL_INFORMATION Info = CXPLAT_ALLOC_PAGED(InfoLength, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
         if (Info == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
@@ -382,17 +382,17 @@ CxPlatStorageReadValue(
                 InfoLength,
                 &InfoLength);
         if (QUIC_SUCCEEDED(Status)) {
-            QUIC_DBG_ASSERT(*BufferLength == Info->DataLength);
+            CXPLAT_DBG_ASSERT(*BufferLength == Info->DataLength);
             memcpy(Buffer, Info->Data, Info->DataLength);
         }
 
-        QUIC_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(Info, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
     }
 
 Exit:
 
     if (NameUnicode != NULL) {
-        QUIC_FREE(NameUnicode, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(NameUnicode, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Status;

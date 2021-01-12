@@ -14,7 +14,7 @@ NewSession(
     _In_ PEVENT_RECORD ev
     )
 {
-    QUIC_EVENT_DATA_SESSION* EvData = (QUIC_EVENT_DATA_SESSION*)ev->UserData;
+    CXPLAT_EVENT_DATA_SESSION* EvData = (CXPLAT_EVENT_DATA_SESSION*)ev->UserData;
 
     // Move the old session out of the set if this pointer is being reused.
     (void)ObjectSetRemoveActive(&Sessions, EvData->SessionPtr);
@@ -34,7 +34,7 @@ NewSession(
 
 SESSION* GetSessionFromEvent(PEVENT_RECORD ev)
 {
-    QUIC_EVENT_DATA_SESSION* EvData = (QUIC_EVENT_DATA_SESSION*)ev->UserData;
+    CXPLAT_EVENT_DATA_SESSION* EvData = (CXPLAT_EVENT_DATA_SESSION*)ev->UserData;
 
     SESSION* Session;
     if (GetEventId(ev->EventHeader.EventDescriptor.Id) == EventId_QuicSessionCreated) {

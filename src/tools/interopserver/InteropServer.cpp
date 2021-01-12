@@ -110,7 +110,7 @@ main(
             printf("Press Enter to exit.\n\n");
             getchar();
         } else {
-            QUIC_EVENT Event;
+            CXPLAT_EVENT Event;
             CxPlatEventInitialize(&Event, TRUE, FALSE);
             printf("Waiting forever.\n\n");
             CxPlatEventWaitForever(Event);

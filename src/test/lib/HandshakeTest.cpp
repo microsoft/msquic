@@ -85,7 +85,7 @@ QuicTestPrimeResumption(
 }
 
 struct ServerAcceptContext {
-    QUIC_EVENT NewConnectionReady;
+    CXPLAT_EVENT NewConnectionReady;
     TestConnection** NewConnection;
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {
@@ -206,7 +206,7 @@ QuicTestConnect(
 
                 if (SessionResumption) {
                     Client.SetResumptionTicket(ResumptionTicket);
-                    QUIC_FREE(ResumptionTicket, QUIC_POOL_TEST);
+                    CXPLAT_FREE(ResumptionTicket, CXPLAT_POOL_TEST);
                     Client.SetExpectedResumed(true);
                 }
 

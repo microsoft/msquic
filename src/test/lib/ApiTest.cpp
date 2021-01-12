@@ -400,7 +400,7 @@ AutoShutdownConnectionCallback(
 {
     if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
         if (Context != nullptr) {
-            if (!CxPlatEventWaitWithTimeout(*(QUIC_EVENT*)Context, 1000)) {
+            if (!CxPlatEventWaitWithTimeout(*(CXPLAT_EVENT*)Context, 1000)) {
                 TEST_FAILURE("Peer never signaled connected event");
             }
         }
@@ -435,7 +435,7 @@ ResumptionFailConnectionCallback(
                 QUIC_STATUS_INVALID_STATE,
                 Status);
         }
-        CxPlatEventSet(*(QUIC_EVENT*)Context);
+        CxPlatEventSet(*(CXPLAT_EVENT*)Context);
         return QUIC_STATUS_SUCCESS;
     } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
         MsQuic->ConnectionClose(Connection);
@@ -469,7 +469,7 @@ ListenerFailSendResumeCallback(
         return false;
     }
     MsQuic->SetCallbackHandler(ConnectionHandle, (void*)ResumptionFailConnectionCallback, Listener->Context);
-    CxPlatEventSet(*(QUIC_EVENT*)Listener->Context);
+    CxPlatEventSet(*(CXPLAT_EVENT*)Listener->Context);
     return true;
 }
 #endif
@@ -861,7 +861,7 @@ void QuicTestValidateConnection()
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
 
-        QUIC_EVENT Event;
+        CXPLAT_EVENT Event;
         CxPlatEventInitialize(&Event, FALSE, FALSE);
         MyListener.Context = &Event;
 
@@ -1352,7 +1352,7 @@ void QuicTestValidateStream(bool Connect)
 
 class SecConfigTestContext {
 public:
-    QUIC_EVENT Event;
+    CXPLAT_EVENT Event;
     QUIC_STATUS Expected;
     bool Failed;
 

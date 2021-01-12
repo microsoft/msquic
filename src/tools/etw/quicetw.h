@@ -44,7 +44,7 @@ typedef ObjEventCallback* ObjEventHandler;
 
 extern const char* ApiTypeStr[QUIC_API_COUNT];
 
-typedef enum QUIC_EVENT_TYPE {
+typedef enum CXPLAT_EVENT_TYPE {
     EventType_Global,
     EventType_Registration,
     EventType_Worker,
@@ -58,11 +58,11 @@ typedef enum QUIC_EVENT_TYPE {
     EventType_Log,
 
     EventType_Count
-} QUIC_EVENT_TYPE;
+} CXPLAT_EVENT_TYPE;
 
-inline QUIC_EVENT_TYPE GetEventType(USHORT Id)
+inline CXPLAT_EVENT_TYPE GetEventType(USHORT Id)
 {
-    return (QUIC_EVENT_TYPE)((Id >> 10) & 0xF);
+    return (CXPLAT_EVENT_TYPE)((Id >> 10) & 0xF);
 }
 
 inline USHORT GetEventId(USHORT Id)
@@ -70,7 +70,7 @@ inline USHORT GetEventId(USHORT Id)
     return Id & 0x3FF;
 }
 
-typedef enum QUIC_EVENT_ID_GLOBAL {
+typedef enum CXPLAT_EVENT_ID_GLOBAL {
     EventId_QuicLibraryInitialized = 1,
     EventId_QuicLibraryUninitialized,
     EventId_QuicLibraryAddRef,
@@ -89,7 +89,7 @@ typedef enum QUIC_EVENT_ID_GLOBAL {
     EventId_QuicLibrarySendRetryStateUpdated,
 
     EventId_QuicLibraryCount
-} QUIC_EVENT_ID_GLOBAL;
+} CXPLAT_EVENT_ID_GLOBAL;
 
 #define QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
 #define QUIC_DATAPATH_FEATURE_RECV_COALESCING       0x0002
@@ -97,7 +97,7 @@ typedef enum QUIC_EVENT_ID_GLOBAL {
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct QUIC_EVENT_DATA_GLOBAL {
+typedef struct CXPLAT_EVENT_DATA_GLOBAL {
     union {
         struct {
             UINT32 PartitionCount;
@@ -134,10 +134,10 @@ typedef struct QUIC_EVENT_DATA_GLOBAL {
             UINT8 Value;
         } LibrarySendRetryStateUpdated;
     };
-} QUIC_EVENT_DATA_GLOBAL;
+} CXPLAT_EVENT_DATA_GLOBAL;
 #pragma pack(pop)
 
-typedef enum QUIC_EVENT_ID_REGISTRATION {
+typedef enum CXPLAT_EVENT_ID_REGISTRATION {
     EventId_QuicRegistrationCreated,
     EventId_QuicRegistrationDestroyed,
     EventId_QuicRegistrationCleanup,
@@ -146,11 +146,11 @@ typedef enum QUIC_EVENT_ID_REGISTRATION {
     EventId_QuicRegistrationErrorStatus,
 
     EventId_QuicRegistrationCount
-} QUIC_EVENT_ID_REGISTRATION;
+} CXPLAT_EVENT_ID_REGISTRATION;
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct QUIC_EVENT_DATA_REGISTRATION {
+typedef struct CXPLAT_EVENT_DATA_REGISTRATION {
     ULONG_PTR RegistrationPtr;
     union {
         struct {
@@ -164,10 +164,10 @@ typedef struct QUIC_EVENT_DATA_REGISTRATION {
             char ErrStr[1];
         } ErrorStatus;
     };
-} QUIC_EVENT_DATA_REGISTRATION;
+} CXPLAT_EVENT_DATA_REGISTRATION;
 #pragma pack(pop)
 
-typedef enum QUIC_EVENT_ID_WORKER {
+typedef enum CXPLAT_EVENT_ID_WORKER {
     EventId_QuicWorkerCreated,
     EventId_QuicWorkerStart,
     EventId_QuicWorkerStop,
@@ -179,11 +179,11 @@ typedef enum QUIC_EVENT_ID_WORKER {
     EventId_QuicWorkerErrorStatus,
 
     EventId_QuicWorkerCount
-} QUIC_EVENT_ID_WORKER;
+} CXPLAT_EVENT_ID_WORKER;
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct QUIC_EVENT_DATA_WORKER {
+typedef struct CXPLAT_EVENT_DATA_WORKER {
     ULONG_PTR WorkerPtr;
     union {
         struct {
@@ -205,10 +205,10 @@ typedef struct QUIC_EVENT_DATA_WORKER {
             char ErrStr[1];
         } ErrorStatus;
     };
-} QUIC_EVENT_DATA_WORKER;
+} CXPLAT_EVENT_DATA_WORKER;
 #pragma pack(pop)
 
-typedef enum QUIC_EVENT_ID_SESSION {
+typedef enum CXPLAT_EVENT_ID_SESSION {
     EventId_QuicSessionCreated,
     EventId_QuicSessionDestroyed,
     EventId_QuicSessionCleanup,
@@ -218,11 +218,11 @@ typedef enum QUIC_EVENT_ID_SESSION {
     EventId_QuicSessionErrorStatus,
 
     EventId_QuicSessionCount
-} QUIC_EVENT_ID_SESSION;
+} CXPLAT_EVENT_ID_SESSION;
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct QUIC_EVENT_DATA_SESSION {
+typedef struct CXPLAT_EVENT_DATA_SESSION {
     ULONG_PTR SessionPtr;
     union {
         struct {
@@ -241,10 +241,10 @@ typedef struct QUIC_EVENT_DATA_SESSION {
             char ErrStr[1];
         } ErrorStatus;
     };
-} QUIC_EVENT_DATA_SESSION;
+} CXPLAT_EVENT_DATA_SESSION;
 #pragma pack(pop)
 
-typedef enum QUIC_EVENT_ID_LISTENER {
+typedef enum CXPLAT_EVENT_ID_LISTENER {
     EventId_QuicListenerCreated,
     EventId_QuicListenerDestroyed,
     EventId_QuicListenerStarted,
@@ -254,11 +254,11 @@ typedef enum QUIC_EVENT_ID_LISTENER {
     EventId_QuicListenerErrorStatus,
 
     EventId_QuicListenerCount
-} QUIC_EVENT_ID_LISTENER;
+} CXPLAT_EVENT_ID_LISTENER;
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct QUIC_EVENT_DATA_LISTENER {
+typedef struct CXPLAT_EVENT_DATA_LISTENER {
     ULONG_PTR ListenerPtr;
     union {
         struct {
@@ -277,10 +277,10 @@ typedef struct QUIC_EVENT_DATA_LISTENER {
             char ErrStr[1];
         } ErrorStatus;
     };
-} QUIC_EVENT_DATA_LISTENER;
+} CXPLAT_EVENT_DATA_LISTENER;
 #pragma pack(pop)
 
-typedef enum QUIC_EVENT_ID_CONNECTION {
+typedef enum CXPLAT_EVENT_ID_CONNECTION {
     EventId_QuicConnCreated,
     EventId_QuicConnDestroyed,
     EventId_QuicConnHandshakeComplete,
@@ -338,11 +338,11 @@ typedef enum QUIC_EVENT_ID_CONNECTION {
     EventId_QuicConnPacketStats,
 
     EventId_QuicConnCount
-} QUIC_EVENT_ID_CONNECTION;
+} CXPLAT_EVENT_ID_CONNECTION;
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct QUIC_EVENT_DATA_CONNECTION {
+typedef struct CXPLAT_EVENT_DATA_CONNECTION {
     ULONG_PTR CxnPtr;
     union {
         struct {
@@ -492,10 +492,10 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
             UINT64 RecvDecryptionFailures;
         } PacketStats;
     };
-} QUIC_EVENT_DATA_CONNECTION;
+} CXPLAT_EVENT_DATA_CONNECTION;
 #pragma pack(pop)
 
-typedef enum QUIC_EVENT_ID_STREAM {
+typedef enum CXPLAT_EVENT_ID_STREAM {
     EventId_QuicStreamCreated,
     EventId_QuicStreamDestroyed,
     EventId_QuicStreamOutFlowBlocked,
@@ -510,14 +510,14 @@ typedef enum QUIC_EVENT_ID_STREAM {
     EventId_QuicStreamLogVerbose,
 
     EventId_QuicStreamCount
-} QUIC_EVENT_ID_STREAM;
+} CXPLAT_EVENT_ID_STREAM;
 
 #define STREAM_ID_FLAG_IS_SERVER        0b01
 #define STREAM_ID_FLAG_IS_UNI_DIR       0b10
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct QUIC_EVENT_DATA_STREAM {
+typedef struct CXPLAT_EVENT_DATA_STREAM {
     ULONG_PTR StreamPtr;
     union {
         struct {
@@ -545,10 +545,10 @@ typedef struct QUIC_EVENT_DATA_STREAM {
             char Msg[1];
         } Log;
     };
-} QUIC_EVENT_DATA_STREAM;
+} CXPLAT_EVENT_DATA_STREAM;
 #pragma pack(pop)
 
-typedef enum QUIC_EVENT_ID_BINDING {
+typedef enum CXPLAT_EVENT_ID_BINDING {
     EventId_QuicBindingCreated,
     EventId_QuicBindingRundown,
     EventId_QuicBindingDestroyed,
@@ -560,11 +560,11 @@ typedef enum QUIC_EVENT_ID_BINDING {
     EventId_QuicBindingExecOper,
 
     EventId_QuicBindingCount
-} QUIC_EVENT_ID_BINDING;
+} CXPLAT_EVENT_ID_BINDING;
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct QUIC_EVENT_DATA_BINDING {
+typedef struct CXPLAT_EVENT_DATA_BINDING {
     ULONG_PTR BindingPtr;
     union {
         struct {
@@ -589,20 +589,20 @@ typedef struct QUIC_EVENT_DATA_BINDING {
             UINT32 Type;
         } ExecOper;
     };
-} QUIC_EVENT_DATA_BINDING;
+} CXPLAT_EVENT_DATA_BINDING;
 #pragma pack(pop)
 
-typedef enum QUIC_EVENT_ID_TLS {
+typedef enum CXPLAT_EVENT_ID_TLS {
     EventId_QuicTlsError,
     EventId_QuicTlsErrorStatus,
     EventId_QuicTlsMessage,
 
     EventId_QuicTlsCount
-} QUIC_EVENT_ID_TLS;
+} CXPLAT_EVENT_ID_TLS;
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct QUIC_EVENT_DATA_TLS {
+typedef struct CXPLAT_EVENT_DATA_TLS {
     ULONG_PTR CxnPtr;
     union {
         struct {
@@ -616,10 +616,10 @@ typedef struct QUIC_EVENT_DATA_TLS {
             char Str[1];
         } Message;
     };
-} QUIC_EVENT_DATA_TLS;
+} CXPLAT_EVENT_DATA_TLS;
 #pragma pack(pop)
 
-typedef enum QUIC_EVENT_ID_DATAPATH {
+typedef enum CXPLAT_EVENT_ID_DATAPATH {
     EventId_QuicDatapathDEPRECATED,
     EventId_QuicDatapathSend,
     EventId_QuicDatapathRecv,
@@ -627,11 +627,11 @@ typedef enum QUIC_EVENT_ID_DATAPATH {
     EventId_QuicDatapathErrorStatus,
 
     EventId_QuicDatapathCount
-} QUIC_EVENT_ID_DATAPATH;
+} CXPLAT_EVENT_ID_DATAPATH;
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct QUIC_EVENT_DATA_DATAPATH {
+typedef struct CXPLAT_EVENT_DATA_DATAPATH {
     ULONG_PTR BindingPtr;
     union {
         struct {
@@ -653,23 +653,23 @@ typedef struct QUIC_EVENT_DATA_DATAPATH {
             char ErrStr[1];
         } ErrorStatus;
     };
-} QUIC_EVENT_DATA_DATAPATH;
+} CXPLAT_EVENT_DATA_DATAPATH;
 #pragma pack(pop)
 
-typedef enum QUIC_EVENT_ID_LOG {
+typedef enum CXPLAT_EVENT_ID_LOG {
     EventId_QuicLogError,
     EventId_QuicLogWarning,
     EventId_QuicLogInfo,
     EventId_QuicLogVerbose,
 
     EventId_QuicLogCount
-} QUIC_EVENT_ID_LOG;
+} CXPLAT_EVENT_ID_LOG;
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct QUIC_EVENT_DATA_LOG {
+typedef struct CXPLAT_EVENT_DATA_LOG {
     char Msg[1];
-} QUIC_EVENT_DATA_LOG;
+} CXPLAT_EVENT_DATA_LOG;
 #pragma pack(pop)
 
 inline void AddrToString(const SOCKADDR_INET* Addr, _Out_ char AddrStr[INET6_ADDRSTRLEN])

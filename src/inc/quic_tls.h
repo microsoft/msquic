@@ -254,7 +254,7 @@ typedef struct QUIC_TLS_PROCESS_STATE {
     uint32_t BufferOffset1Rtt;
 
     //
-    // Holds the TLS data to be sent. Use QUIC_ALLOC_NONPAGED and QUIC_FREE
+    // Holds the TLS data to be sent. Use CXPLAT_ALLOC_NONPAGED and CXPLAT_FREE
     // to allocate and free the memory.
     //
     uint8_t* Buffer;
@@ -406,7 +406,7 @@ CxPlatTlsAlpnFindInList(
     )
 {
     while (AlpnListLength != 0) {
-        QUIC_DBG_ASSERT(AlpnList[0] + 1 <= AlpnListLength);
+        CXPLAT_DBG_ASSERT(AlpnList[0] + 1 <= AlpnListLength);
         if (AlpnList[0] == FindAlpnLength &&
             memcmp(AlpnList+1, FindAlpn, FindAlpnLength) == 0) {
             return AlpnList;

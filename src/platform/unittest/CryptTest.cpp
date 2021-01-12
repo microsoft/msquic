@@ -461,14 +461,14 @@ TEST_P(CryptTest, HashWellKnown)
     };
 
     uint8_t Salt[20];
-    QuicZeroMemory(Salt, sizeof(Salt));
+    CxPlatZeroMemory(Salt, sizeof(Salt));
     Salt[0] = 0xff;
     uint8_t Input[256];
-    QuicZeroMemory(Input, sizeof(Input));
+    CxPlatZeroMemory(Input, sizeof(Input));
     Input[0] = 0xaa;
 
     uint8_t Output[QUIC_HASH_MAX_SIZE];
-    QuicZeroMemory(Output, sizeof(Output));
+    CxPlatZeroMemory(Output, sizeof(Output));
     const uint16_t OutputLength = CxPlatHashLength((QUIC_HASH_TYPE)HASH);
 
     QuicHash Hash((QUIC_HASH_TYPE)HASH, Salt, sizeof(Salt));

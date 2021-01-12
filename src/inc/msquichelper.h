@@ -209,7 +209,7 @@ ConvertArgToAddress(
         //
         // Explicitly zero, otherwise kernel mode errors
         //
-        QuicZeroMemory(Address, sizeof(*Address));
+        CxPlatZeroMemory(Address, sizeof(*Address));
         CxPlatAddrSetFamily(Address, QUIC_ADDRESS_FAMILY_UNSPEC);
         CxPlatAddrSetPort(Address, Port);
         return TRUE;
@@ -412,7 +412,7 @@ GetServerConfigurationFromArgs(
     )
 {
     QUIC_CREDENTIAL_CONFIG_HELPER Helper;
-    QuicZeroMemory(&Helper, sizeof(Helper));
+    CxPlatZeroMemory(&Helper, sizeof(Helper));
     const QUIC_CREDENTIAL_CONFIG* Config = &Helper.CredConfig;
     Helper.CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
 

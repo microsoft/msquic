@@ -126,7 +126,7 @@ protected:
     {
         QUIC_TLS* Ptr;
         QUIC_SEC_CONFIG* SecConfig;
-        QUIC_EVENT ProcessCompleteEvent;
+        CXPLAT_EVENT ProcessCompleteEvent;
 
         QUIC_TLS_PROCESS_STATE State;
 
@@ -142,21 +142,21 @@ protected:
             SecConfig(nullptr),
             Connected(false) {
             CxPlatEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
-            QuicZeroMemory(&State, sizeof(State));
-            State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000, QUIC_POOL_TEST);
+            CxPlatZeroMemory(&State, sizeof(State));
+            State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, CXPLAT_POOL_TEST);
             State.BufferAllocLength = 8000;
         }
 
         ~TlsContext() {
             CxPlatTlsUninitialize(Ptr);
             CxPlatEventUninitialize(ProcessCompleteEvent);
-            QUIC_FREE(State.Buffer, QUIC_POOL_TEST);
+            CXPLAT_FREE(State.Buffer, CXPLAT_POOL_TEST);
             for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
                 CxPlatPacketKeyFree(State.ReadKeys[i]);
                 CxPlatPacketKeyFree(State.WriteKeys[i]);
             }
             if (ResumptionTicket.Buffer) {
-                QUIC_FREE(ResumptionTicket.Buffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+                CXPLAT_FREE(ResumptionTicket.Buffer, CXPLAT_POOL_CRYPTO_RESUMPTION_TICKET);
             }
         }
 
@@ -174,7 +174,7 @@ protected:
             Config.AlpnBufferLength = sizeof(Alpn);
             Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
             Config.LocalTPBuffer =
-                (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
+                (uint8_t*)CXPLAT_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, CXPLAT_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
             State.NegotiatedAlpn = Alpn;
@@ -200,7 +200,7 @@ protected:
             Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
             Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
             Config.LocalTPBuffer =
-                (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
+                (uint8_t*)CXPLAT_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, CXPLAT_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
             Config.ServerName = "localhost";
@@ -392,7 +392,7 @@ protected:
                         DataType);
 
                 PeerState->BufferLength -= BufferLength;
-                QuicMoveMemory(
+                CxPlatMoveMemory(
                     PeerState->Buffer,
                     PeerState->Buffer + BufferLength,
                     PeerState->BufferLength);
@@ -448,8 +448,8 @@ protected:
             auto Context = (TlsContext*)Connection;
             if (Context->ResumptionTicket.Buffer == nullptr) {
                 Context->ResumptionTicket.Buffer =
-                    (uint8_t*)QUIC_ALLOC_NONPAGED(TicketLength, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
-                QuicCopyMemory(
+                    (uint8_t*)CXPLAT_ALLOC_NONPAGED(TicketLength, CXPLAT_POOL_CRYPTO_RESUMPTION_TICKET);
+                CxPlatCopyMemory(
                     Context->ResumptionTicket.Buffer,
                     Ticket,
                     TicketLength);
@@ -571,7 +571,7 @@ protected:
         }
     }
 
-    static QUIC_THREAD_CALLBACK(HandshakeAsync, Context)
+    static CXPLAT_THREAD_CALLBACK(HandshakeAsync, Context)
     {
         TlsTest* This = (TlsTest*)Context;
         for (uint32_t i = 0; i < 100; ++i) {
@@ -580,7 +580,7 @@ protected:
             ClientContext.InitializeClient(This->ClientSecConfigNoCertValidation);
             DoHandshake(ServerContext, ClientContext);
         }
-        QUIC_THREAD_RETURN(0);
+        CXPLAT_THREAD_RETURN(0);
     }
 
     int64_t
@@ -676,7 +676,7 @@ TEST_F(TlsTest, Handshake)
 
 TEST_F(TlsTest, HandshakeParallel)
 {
-    QUIC_THREAD_CONFIG Config = {
+    CXPLAT_THREAD_CONFIG Config = {
         0,
         0,
         "TlsWorker",
@@ -684,8 +684,8 @@ TEST_F(TlsTest, HandshakeParallel)
         this
     };
 
-    QUIC_THREAD Threads[64];
-    QuicZeroMemory(&Threads, sizeof(Threads));
+    CXPLAT_THREAD Threads[64];
+    CxPlatZeroMemory(&Threads, sizeof(Threads));
 
     for (uint32_t i = 0; i < ARRAYSIZE(Threads); ++i) {
         VERIFY_QUIC_SUCCESS(CxPlatThreadCreate(&Config, &Threads[i]));
@@ -1013,21 +1013,21 @@ uint64_t LockedCounter(
     )
 {
     uint64_t Start, End;
-    QUIC_DISPATCH_LOCK Lock;
+    CXPLAT_DISPATCH_LOCK Lock;
     uint64_t Counter = 0;
 
-    QuicDispatchLockInitialize(&Lock);
+    CxPlatDispatchLockInitialize(&Lock);
     Start = CxPlatTimeUs64();
     for (uint64_t j = 0; j < LoopCount; ++j) {
-        QuicDispatchLockAcquire(&Lock);
+        CxPlatDispatchLockAcquire(&Lock);
         Counter++;
-        QuicDispatchLockRelease(&Lock);
+        CxPlatDispatchLockRelease(&Lock);
     }
     End = CxPlatTimeUs64();
 
-    QuicDispatchLockUninitialize(&Lock);
+    CxPlatDispatchLockUninitialize(&Lock);
 
-    QUIC_FRE_ASSERT(Counter == LoopCount);
+    CXPLAT_FRE_ASSERT(Counter == LoopCount);
 
     return End - Start;
 }
@@ -1045,7 +1045,7 @@ uint64_t InterlockedCounter(
     }
     End = CxPlatTimeUs64();
 
-    QUIC_FRE_ASSERT((uint64_t)Counter == LoopCount);
+    CXPLAT_FRE_ASSERT((uint64_t)Counter == LoopCount);
 
     return End - Start;
 }
@@ -1062,7 +1062,7 @@ uint64_t UnlockedCounter(
     }
     End = CxPlatTimeUs64();
 
-    QUIC_FRE_ASSERT(Counter == LoopCount);
+    CXPLAT_FRE_ASSERT(Counter == LoopCount);
 
     return End - Start;
 }

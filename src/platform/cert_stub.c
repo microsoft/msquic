@@ -102,7 +102,7 @@ CxPlatCertFormat(
     if (BufferLength < SIZEOF_CERT_CHAIN_LIST_LENGTH) {
         return 0;
     }
-    QuicZeroMemory(Buffer, SIZEOF_CERT_CHAIN_LIST_LENGTH); // Encode 0 length cert chain.
+    CxPlatZeroMemory(Buffer, SIZEOF_CERT_CHAIN_LIST_LENGTH); // Encode 0 length cert chain.
     return SIZEOF_CERT_CHAIN_LIST_LENGTH;
 }
 

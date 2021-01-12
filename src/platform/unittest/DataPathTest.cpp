@@ -45,7 +45,7 @@ struct QuicAddr
     }
 
     QuicAddr() {
-        QuicZeroMemory(this, sizeof(*this));
+        CxPlatZeroMemory(this, sizeof(*this));
     }
 
     void Resolve(QUIC_ADDRESS_FAMILY af, const char* hostname) {
@@ -72,16 +72,16 @@ struct QuicAddr
 
 struct UdpRecvContext {
     QUIC_ADDR ServerAddress;
-    QUIC_EVENT ClientCompletion;
+    CXPLAT_EVENT ClientCompletion;
 };
 
 struct TcpClientContext {
     bool Connected : 1;
     bool Disconnected : 1;
     bool Received : 1;
-    QUIC_EVENT ConnectEvent;
-    QUIC_EVENT DisconnectEvent;
-    QUIC_EVENT ReceiveEvent;
+    CXPLAT_EVENT ConnectEvent;
+    CXPLAT_EVENT DisconnectEvent;
+    CXPLAT_EVENT ReceiveEvent;
     TcpClientContext() : Connected(false), Disconnected(false), Received(false) {
         CxPlatEventInitialize(&ConnectEvent, FALSE, FALSE);
         CxPlatEventInitialize(&DisconnectEvent, FALSE, FALSE);
@@ -98,7 +98,7 @@ struct TcpListenerContext {
     QUIC_SOCKET* Server;
     TcpClientContext ServerContext;
     bool Accepted : 1;
-    QUIC_EVENT AcceptEvent;
+    CXPLAT_EVENT AcceptEvent;
     TcpListenerContext() : Server(nullptr), Accepted(false) {
         CxPlatEventInitialize(&AcceptEvent, FALSE, FALSE);
     }
@@ -120,7 +120,7 @@ protected:
     uint16_t
     GetNextPort()
     {
-        return QuicNetByteSwapShort((uint16_t)InterlockedIncrement16((volatile short*)&NextPort));
+        return CxPlatNetByteSwapShort((uint16_t)InterlockedIncrement16((volatile short*)&NextPort));
     }
 
     //
@@ -175,13 +175,13 @@ protected:
         LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
         LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
 
-        ExpectedData = (char*)QUIC_ALLOC_NONPAGED(ExpectedDataSize, QUIC_POOL_TEST);
+        ExpectedData = (char*)CXPLAT_ALLOC_NONPAGED(ExpectedDataSize, CXPLAT_POOL_TEST);
         ASSERT_NE(ExpectedData, nullptr);
     }
 
     static void TearDownTestSuite()
     {
-        QUIC_FREE(ExpectedData, QUIC_POOL_TEST);
+        CXPLAT_FREE(ExpectedData, CXPLAT_POOL_TEST);
     }
 
     static void

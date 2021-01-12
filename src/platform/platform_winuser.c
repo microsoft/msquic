@@ -19,7 +19,7 @@ Environment:
 #endif
 
 uint64_t QuicPlatformPerfFreq;
-uint64_t QuicTotalMemory;
+uint64_t CxPlatTotalMemory;
 QUIC_PLATFORM QuicPlatform = { NULL };
 QUIC_PROCESSOR_INFO* QuicProcessorInfo;
 uint64_t* QuicNumaMasks;
@@ -74,9 +74,9 @@ CxPlatProcessorInfoInit(
     uint32_t NumaNodeCount = 0;
 
     QuicProcessorInfo =
-        QUIC_ALLOC_NONPAGED(
+        CXPLAT_ALLOC_NONPAGED(
             ActiveProcessorCount * sizeof(QUIC_PROCESSOR_INFO),
-            QUIC_POOL_PLATFORM_PROC);
+            CXPLAT_POOL_PLATFORM_PROC);
     if (QuicProcessorInfo == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -95,7 +95,7 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    Buffer = QUIC_ALLOC_NONPAGED(BufferLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    Buffer = CXPLAT_ALLOC_NONPAGED(BufferLength, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
     if (Buffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -127,7 +127,7 @@ CxPlatProcessorInfoInit(
             }
         } else if (Info->Relationship == RelationGroup) {
             if (ProcessorGroupCount == 0) {
-                QUIC_DBG_ASSERT(Info->Group.ActiveGroupCount != 0);
+                CXPLAT_DBG_ASSERT(Info->Group.ActiveGroupCount != 0);
                 ProcessorGroupCount = Info->Group.ActiveGroupCount;
                 ProcessorsPerGroup = Info->Group.GroupInfo[0].ActiveProcessorCount;
             }
@@ -135,7 +135,7 @@ CxPlatProcessorInfoInit(
         Offset += Info->Size;
     }
 
-    QUIC_DBG_ASSERT(ProcessorGroupCount != 0);
+    CXPLAT_DBG_ASSERT(ProcessorGroupCount != 0);
     if (ProcessorGroupCount == 0) {
         QuicTraceEvent(
             LibraryError,
@@ -144,7 +144,7 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    QUIC_DBG_ASSERT(ProcessorsPerGroup != 0);
+    CXPLAT_DBG_ASSERT(ProcessorsPerGroup != 0);
     if (ProcessorsPerGroup == 0) {
         QuicTraceEvent(
             LibraryError,
@@ -153,7 +153,7 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    QUIC_DBG_ASSERT(NumaNodeCount != 0);
+    CXPLAT_DBG_ASSERT(NumaNodeCount != 0);
     if (NumaNodeCount == 0) {
         QuicTraceEvent(
             LibraryError,
@@ -162,7 +162,7 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    QuicProcessorGroupOffsets = QUIC_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint32_t), QUIC_POOL_PLATFORM_PROC);
+    QuicProcessorGroupOffsets = CXPLAT_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint32_t), CXPLAT_POOL_PLATFORM_PROC);
     if (QuicProcessorGroupOffsets == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -176,7 +176,7 @@ CxPlatProcessorInfoInit(
         QuicProcessorGroupOffsets[i] = i * ProcessorsPerGroup;
     }
 
-    QuicNumaMasks = QUIC_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t), QUIC_POOL_PLATFORM_PROC);
+    QuicNumaMasks = CXPLAT_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t), CXPLAT_POOL_PLATFORM_PROC);
     if (QuicNumaMasks == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -212,7 +212,7 @@ CxPlatProcessorInfoInit(
                 for (WORD i = 0; i < Info->Group.ActiveGroupCount; ++i) {
                     uint32_t IndexToSet = Index - ProcessorOffset;
                     if (IndexToSet < Info->Group.GroupInfo[i].ActiveProcessorCount) {
-                        QUIC_DBG_ASSERT(IndexToSet < 64);
+                        CXPLAT_DBG_ASSERT(IndexToSet < 64);
                         QuicProcessorInfo[Index].Group = i;
                         QuicProcessorInfo[Index].Index = IndexToSet;
                         QuicProcessorInfo[Index].MaskInGroup = 1ull << IndexToSet;
@@ -267,14 +267,14 @@ Next:
 
 Error:
 
-    QUIC_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    CXPLAT_FREE(Buffer, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
 
     if (!Result) {
-        QUIC_FREE(QuicNumaMasks, QUIC_POOL_PLATFORM_PROC);
+        CXPLAT_FREE(QuicNumaMasks, CXPLAT_POOL_PLATFORM_PROC);
         QuicNumaMasks = NULL;
-        QUIC_FREE(QuicProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
+        CXPLAT_FREE(QuicProcessorGroupOffsets, CXPLAT_POOL_PLATFORM_PROC);
         QuicProcessorGroupOffsets = NULL;
-        QUIC_FREE(QuicProcessorInfo, QUIC_POOL_PLATFORM_PROC);
+        CXPLAT_FREE(QuicProcessorInfo, CXPLAT_POOL_PLATFORM_PROC);
         QuicProcessorInfo = NULL;
     }
 
@@ -322,12 +322,12 @@ CxPlatInitialize(
         goto Error;
     }
 
-    QuicTotalMemory = memInfo.ullTotalPageFile;
+    CxPlatTotalMemory = memInfo.ullTotalPageFile;
 
     QuicTraceLogInfo(
         WindowsUserInitialized,
         "[ dll] Initialized (AvailMem = %llu bytes)",
-        QuicTotalMemory);
+        CxPlatTotalMemory);
 
 Error:
 
@@ -348,12 +348,12 @@ CxPlatUninitialize(
     )
 {
     CxPlatTlsLibraryUninitialize();
-    QUIC_DBG_ASSERT(QuicPlatform.Heap);
-    QUIC_FREE(QuicNumaMasks, QUIC_POOL_PLATFORM_PROC);
+    CXPLAT_DBG_ASSERT(QuicPlatform.Heap);
+    CXPLAT_FREE(QuicNumaMasks, CXPLAT_POOL_PLATFORM_PROC);
     QuicNumaMasks = NULL;
-    QUIC_FREE(QuicProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
+    CXPLAT_FREE(QuicProcessorGroupOffsets, CXPLAT_POOL_PLATFORM_PROC);
     QuicProcessorGroupOffsets = NULL;
-    QUIC_FREE(QuicProcessorInfo, QUIC_POOL_PLATFORM_PROC);
+    CXPLAT_FREE(QuicProcessorInfo, CXPLAT_POOL_PLATFORM_PROC);
     QuicProcessorInfo = NULL;
     HeapDestroy(QuicPlatform.Heap);
     QuicPlatform.Heap = NULL;
@@ -436,7 +436,7 @@ CxPlatAlloc(
     _In_ uint32_t Tag
     )
 {
-    QUIC_DBG_ASSERT(QuicPlatform.Heap);
+    CXPLAT_DBG_ASSERT(QuicPlatform.Heap);
 #ifdef QUIC_RANDOM_ALLOC_FAIL
     uint8_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
     if ((Rand % 100) == 1) return NULL;
@@ -461,7 +461,7 @@ CxPlatFree(
 #ifdef DEBUG
     void* ActualAlloc = (void*)((uint8_t*)Mem - AllocOffset);
     uint32_t TagToCheck = *((uint32_t*)ActualAlloc);
-    QUIC_DBG_ASSERT(TagToCheck == Tag);
+    CXPLAT_DBG_ASSERT(TagToCheck == Tag);
     (void)HeapFree(QuicPlatform.Heap, 0, ActualAlloc);
 #else
     UNREFERENCED_PARAMETER(Tag);
@@ -476,7 +476,7 @@ KrmlExit(
     )
 {
     UNREFERENCED_PARAMETER(n);
-    QUIC_FRE_ASSERTMSG(FALSE, "miTLS hit a fatal error");
+    CXPLAT_FRE_ASSERTMSG(FALSE, "miTLS hit a fatal error");
 }
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW

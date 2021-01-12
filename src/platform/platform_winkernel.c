@@ -57,7 +57,7 @@ typedef struct _SYSTEM_BASIC_INFORMATION {
 
 
 uint64_t QuicPlatformPerfFreq;
-uint64_t QuicTotalMemory;
+uint64_t CxPlatTotalMemory;
 QUIC_PLATFORM QuicPlatform = { NULL, NULL };
 
 INITCODE
@@ -134,7 +134,7 @@ CxPlatInitialize(
             "BCryptOpenAlgorithmProvider (RNG)");
         goto Error;
     }
-    QUIC_DBG_ASSERT(QuicPlatform.RngAlgorithm != NULL);
+    CXPLAT_DBG_ASSERT(QuicPlatform.RngAlgorithm != NULL);
 
     Status =
         ZwQuerySystemInformation(
@@ -162,13 +162,13 @@ CxPlatInitialize(
     // TODO - Apparently this can be increased via hot memory add. Figure out
     // how to know when to update this value.
     //
-    QuicTotalMemory = (uint64_t)Sbi.NumberOfPhysicalPages * (uint64_t)Sbi.PageSize;
+    CxPlatTotalMemory = (uint64_t)Sbi.NumberOfPhysicalPages * (uint64_t)Sbi.PageSize;
 
     QuicTraceLogInfo(
         WindowsKernelInitialized,
         "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
         Sbi.PageSize,
-        QuicTotalMemory);
+        CxPlatTotalMemory);
 
 Error:
 
@@ -227,7 +227,7 @@ CxPlatRandom(
     //
     // Use the algorithm we initialized for DISPATCH_LEVEL usage.
     //
-    QUIC_DBG_ASSERT(QuicPlatform.RngAlgorithm != NULL);
+    CXPLAT_DBG_ASSERT(QuicPlatform.RngAlgorithm != NULL);
     return (QUIC_STATUS)
         BCryptGenRandom(
             QuicPlatform.RngAlgorithm,

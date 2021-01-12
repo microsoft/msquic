@@ -108,11 +108,11 @@ struct QuicTestResults {
 };
 
 QuicTestResults TestResults[ARRAYSIZE(PublicEndpoints)];
-QUIC_LOCK TestResultsLock;
+CXPLAT_LOCK TestResultsLock;
 
 const uint32_t MaxThreadCount =
     PublicPortsCount * PublicEndpointsCount * QuicTestFeatureCount;
-QUIC_THREAD Threads[MaxThreadCount];
+CXPLAT_THREAD Threads[MaxThreadCount];
 uint32_t CurrentThreadCount;
 
 uint16_t CustomPort = 0;
@@ -156,7 +156,7 @@ public:
 
 class InteropStream {
     HQUIC Stream;
-    QUIC_EVENT RequestComplete;
+    CXPLAT_EVENT RequestComplete;
     GetRequest SendRequest;
     const char* RequestPath;
     const char* FileName;
@@ -241,7 +241,7 @@ public:
         )
     {
         InteropStream* pThis = (InteropStream*)Context;
-        int64_t Now = QuicTimeMs64();
+        int64_t Now = CxPlatTimeMs64();
         switch (Event->Type) {
         case QUIC_STREAM_EVENT_RECEIVE:
             if (CustomUrlPath) {
@@ -335,11 +335,11 @@ class InteropConnection {
     HQUIC Configuration;
     HQUIC Connection;
     std::vector<InteropStream*> Streams;
-    QUIC_EVENT ConnectionComplete;
-    QUIC_EVENT RequestComplete;
-    QUIC_EVENT QuackAckReceived;
-    QUIC_EVENT ShutdownComplete;
-    QUIC_EVENT TicketReceived;
+    CXPLAT_EVENT ConnectionComplete;
+    CXPLAT_EVENT RequestComplete;
+    CXPLAT_EVENT QuackAckReceived;
+    CXPLAT_EVENT ShutdownComplete;
+    CXPLAT_EVENT TicketReceived;
     char* NegotiatedAlpn;
     const uint8_t* ResumptionTicket;
     uint32_t ResumptionTicketLength;
@@ -764,7 +764,7 @@ RunInteropTest(
             &Configuration));
 
     QUIC_CREDENTIAL_CONFIG CredConfig;
-    QuicZeroMemory(&CredConfig, sizeof(CredConfig));
+    CxPlatZeroMemory(&CredConfig, sizeof(CredConfig));
     CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 
     VERIFY_QUIC_SUCCESS(
@@ -954,7 +954,7 @@ struct InteropTestContext {
     QuicTestFeature Feature;
 };
 
-QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
+CXPLAT_THREAD_CALLBACK(InteropTestCallback, Context)
 {
     auto TestContext = (InteropTestContext*)Context;
 
@@ -974,7 +974,7 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
             TestContext->Feature,
             QuicVersion,
             Alpn)) {
-        QuicLockAcquire(&TestResultsLock);
+        CxPlatLockAcquire(&TestResultsLock);
         TestResults[TestContext->EndpointIndex].Features |= TestContext->Feature;
         if (TestResults[TestContext->EndpointIndex].QuicVersion == 0) {
             TestResults[TestContext->EndpointIndex].QuicVersion = QuicVersion;
@@ -982,7 +982,7 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
         if (TestResults[TestContext->EndpointIndex].Alpn == nullptr) {
             TestResults[TestContext->EndpointIndex].Alpn = Alpn;
         }
-        QuicLockRelease(&TestResultsLock);
+        CxPlatLockRelease(&TestResultsLock);
     } else {
         TestFailed = true;
         ThisTestFailed = true;
@@ -1002,7 +1002,7 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
     }
     delete TestContext;
 
-    QUIC_THREAD_RETURN(0);
+    CXPLAT_THREAD_RETURN(0);
 }
 
 void
@@ -1017,7 +1017,7 @@ StartTest(
     TestContext->Port = Port;
     TestContext->Feature = Feature;
 
-    QUIC_THREAD_CONFIG ThreadConfig = {
+    CXPLAT_THREAD_CONFIG ThreadConfig = {
         0,
         0,
         "QuicInterop",
@@ -1060,7 +1060,7 @@ RunInteropTests()
     const uint32_t PortsCount = CustomPort == 0 ? PublicPortsCount : 1;
     uint32_t StartTime = 0, StopTime = 0;
 
-    StartTime = QuicTimeMs32();
+    StartTime = CxPlatTimeMs32();
     for (uint32_t b = 0; b < PortsCount; ++b) {
         for (uint32_t c = 0; c < QuicTestFeatureCount; ++c) {
             if (TestCases & (1 << c)) {
@@ -1079,7 +1079,7 @@ RunInteropTests()
         CxPlatThreadWait(&Threads[i]);
         CxPlatThreadDelete(&Threads[i]);
     }
-    StopTime = QuicTimeMs32();
+    StopTime = CxPlatTimeMs32();
 
     printf("\n%12s  %s    %s   %s\n", "TARGET", QuicTestFeatureCodes, "VERSION", "ALPN");
     printf(" ============================================\n");
@@ -1192,7 +1192,7 @@ main(
         return Status;
     }
 
-    QuicLockInitialize(&TestResultsLock);
+    CxPlatLockInitialize(&TestResultsLock);
 
     if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed, 0x%x!\n", Status);
@@ -1252,7 +1252,7 @@ Error:
         MsQuicClose(MsQuic);
     }
 
-    QuicLockUninitialize(&TestResultsLock);
+    CxPlatLockUninitialize(&TestResultsLock);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 

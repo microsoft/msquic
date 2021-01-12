@@ -82,7 +82,7 @@ HpsClient::Init(
     if (!Target.get()) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    QuicCopyMemory(Target.get(), target, Len);
+    CxPlatCopyMemory(Target.get(), target, Len);
     Target[Len] = '\0';
 
     TryGetValue(argc, argv, "runtime", &RunTime);
@@ -92,7 +92,7 @@ HpsClient::Init(
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_THREAD_CALLBACK(HpsWorkerThread, _Context)
+CXPLAT_THREAD_CALLBACK(HpsWorkerThread, _Context)
 {
     auto Context = (HpsWorkerContext*)_Context;
 
@@ -105,12 +105,12 @@ QUIC_THREAD_CALLBACK(HpsWorkerThread, _Context)
         }
     }
 
-    QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
+    CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
 
 QUIC_STATUS
 HpsClient::Start(
-    _In_ QUIC_EVENT* StopEvent
+    _In_ CXPLAT_EVENT* StopEvent
     ) {
     CompletionEvent = StopEvent;
 
@@ -119,8 +119,8 @@ HpsClient::Start(
         Contexts[Proc].pThis = this;
         Contexts[Proc].Processor = (uint16_t)Proc;
 
-        QUIC_THREAD_CONFIG ThreadConfig = {
-            QUIC_THREAD_FLAG_SET_AFFINITIZE,
+        CXPLAT_THREAD_CONFIG ThreadConfig = {
+            CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
             (uint16_t)Proc,
             "HPS Worker",
             HpsWorkerThread,
@@ -138,7 +138,7 @@ HpsClient::Start(
     if (ThreadToSetAffinityTo > 2) {
         ThreadToSetAffinityTo -= 2;
         Status =
-            QuicSetCurrentThreadProcessorAffinity((uint16_t)ThreadToSetAffinityTo);
+            CxPlatSetCurrentThreadProcessorAffinity((uint16_t)ThreadToSetAffinityTo);
     }
 
     return Status;

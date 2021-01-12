@@ -33,34 +33,34 @@ void*
 
 typedef
 void
-(*QUIC_FREE)(
+(*CXPLAT_FREE)(
     _Inout_ void* Mem
     );
 
 typedef
 void
-(*QUIC_POOL_INITIALIZE)(
+(*CXPLAT_POOL_INITIALIZE)(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
-    _Inout_ QUIC_POOL* Pool
+    _Inout_ CXPLAT_POOL* Pool
     );
 
 typedef
 void
-(*QUIC_POOL_UNINITIALIZE)(
-    _Inout_ QUIC_POOL* Pool
+(*CXPLAT_POOL_UNINITIALIZE)(
+    _Inout_ CXPLAT_POOL* Pool
     );
 
 typedef
 void*
-(*QUIC_POOL_ALLOC)(
-    _Inout_ QUIC_POOL* Pool
+(*CXPLAT_POOL_ALLOC)(
+    _Inout_ CXPLAT_POOL* Pool
     );
 
 typedef
 void
-(*QUIC_POOL_FREE)(
-    _Inout_ QUIC_POOL* Pool,
+(*CXPLAT_POOL_FREE)(
+    _Inout_ CXPLAT_POOL* Pool,
     _In_ void* Entry
     );
 
@@ -224,11 +224,11 @@ QUIC_STATUS
 
 typedef struct QUIC_PLATFORM_DISPATCH {
     QUIC_ALLOC Alloc;
-    QUIC_FREE Free;
-    QUIC_POOL_INITIALIZE PoolInitialize;
-    QUIC_POOL_UNINITIALIZE PoolUninitialize;
-    QUIC_POOL_ALLOC PoolAlloc;
-    QUIC_POOL_FREE PoolFree;
+    CXPLAT_FREE Free;
+    CXPLAT_POOL_INITIALIZE PoolInitialize;
+    CXPLAT_POOL_UNINITIALIZE PoolUninitialize;
+    CXPLAT_POOL_ALLOC PoolAlloc;
+    CXPLAT_POOL_FREE PoolFree;
 
     QUIC_LOG Log;
 

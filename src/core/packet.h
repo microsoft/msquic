@@ -339,7 +339,7 @@ QuicPktNumDecompress(
     _In_ uint8_t CompressedPacketNumberBytes
     )
 {
-    QUIC_DBG_ASSERT(CompressedPacketNumberBytes < 8);
+    CXPLAT_DBG_ASSERT(CompressedPacketNumberBytes < 8);
     const uint64_t Mask = 0xFFFFFFFFFFFFFFFF << (8 * CompressedPacketNumberBytes);
     const uint64_t PacketNumberInc = (~Mask) + 1;
     uint64_t PacketNumber = (Mask & ExpectedPacketNumber) | CompressedPacketNumber;
@@ -444,7 +444,7 @@ QuicPacketEncodeLongHeaderV1(
     }
     *PayloadLengthOffset = (uint16_t)(HeaderBuffer - Buffer);
     HeaderBuffer += sizeof(uint16_t); // Skip PayloadLength.
-    PacketNumber = QuicByteSwapUint32(PacketNumber);
+    PacketNumber = CxPlatByteSwapUint32(PacketNumber);
     memcpy(HeaderBuffer, &PacketNumber, sizeof(PacketNumber));
     *PacketNumberLength = sizeof(PacketNumber);
 
@@ -510,7 +510,7 @@ QuicPacketEncodeShortHeaderV1(
         uint8_t* Buffer
     )
 {
-    QUIC_DBG_ASSERT(PacketNumberLength != 0 && PacketNumberLength <= 4);
+    CXPLAT_DBG_ASSERT(PacketNumberLength != 0 && PacketNumberLength <= 4);
 
     uint16_t RequiredBufferLength =
         sizeof(QUIC_SHORT_HEADER_V1) +

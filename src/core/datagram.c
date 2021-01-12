@@ -36,20 +36,20 @@ QuicDatagramValidate(
     // items in its queue. Otherwise, sending will have an error case.
     //
     if (QuicConnIsClosed(Connection)) {
-        QUIC_DBG_ASSERT(Datagram->SendQueue == NULL);
-        QUIC_DBG_ASSERT((Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) == 0);
+        CXPLAT_DBG_ASSERT(Datagram->SendQueue == NULL);
+        CXPLAT_DBG_ASSERT((Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) == 0);
     } else if ((Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) != 0) {
-        QUIC_DBG_ASSERT(Datagram->SendQueue != NULL);
+        CXPLAT_DBG_ASSERT(Datagram->SendQueue != NULL);
     } else if (Connection->State.PeerTransportParameterValid) {
-        QUIC_DBG_ASSERT(Datagram->SendQueue == NULL);
+        CXPLAT_DBG_ASSERT(Datagram->SendQueue == NULL);
     }
 
     if (!Datagram->SendEnabled) {
-        QUIC_DBG_ASSERT(Datagram->MaxSendLength == 0);
+        CXPLAT_DBG_ASSERT(Datagram->MaxSendLength == 0);
     } else {
         QUIC_SEND_REQUEST* SendRequest = Datagram->SendQueue;
         while (SendRequest) {
-            QUIC_DBG_ASSERT(SendRequest->TotalLength <= (uint64_t)Datagram->MaxSendLength);
+            CXPLAT_DBG_ASSERT(SendRequest->TotalLength <= (uint64_t)Datagram->MaxSendLength);
             SendRequest = SendRequest->Next;
         }
     }
@@ -81,7 +81,7 @@ QuicDatagramInitialize(
     Datagram->MaxSendLength = UINT16_MAX;
     Datagram->PrioritySendQueueTail = &Datagram->SendQueue;
     Datagram->SendQueueTail = &Datagram->SendQueue;
-    QuicDispatchLockInitialize(&Datagram->ApiQueueLock);
+    CxPlatDispatchLockInitialize(&Datagram->ApiQueueLock);
     QuicDatagramValidate(Datagram);
 }
 
@@ -130,7 +130,7 @@ QuicDatagramCompleteSend(
     _Out_ void** ClientContext
     )
 {
-    QuicCopyMemory(ClientContext, &SendRequest->ClientContext, sizeof(*ClientContext));
+    CxPlatCopyMemory(ClientContext, &SendRequest->ClientContext, sizeof(*ClientContext));
     QuicDatagramIndicateSendStateChange(
         Connection,
         ClientContext,
@@ -145,9 +145,9 @@ QuicDatagramUninitialize(
     )
 {
     QuicDatagramSendShutdown(Datagram);
-    QUIC_DBG_ASSERT(Datagram->SendQueue == NULL);
-    QUIC_DBG_ASSERT(Datagram->ApiQueue == NULL);
-    QuicDispatchLockUninitialize(&Datagram->ApiQueueLock);
+    CXPLAT_DBG_ASSERT(Datagram->SendQueue == NULL);
+    CXPLAT_DBG_ASSERT(Datagram->ApiQueue == NULL);
+    CxPlatDispatchLockUninitialize(&Datagram->ApiQueueLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -167,12 +167,12 @@ QuicDatagramSendShutdown(
         Connection,
         "Datagram send shutdown");
 
-    QuicDispatchLockAcquire(&Datagram->ApiQueueLock);
+    CxPlatDispatchLockAcquire(&Datagram->ApiQueueLock);
     Datagram->SendEnabled = FALSE;
     Datagram->MaxSendLength = 0;
     QUIC_SEND_REQUEST* ApiQueue = Datagram->ApiQueue;
     Datagram->ApiQueue = NULL;
-    QuicDispatchLockRelease(&Datagram->ApiQueueLock);
+    CxPlatDispatchLockRelease(&Datagram->ApiQueueLock);
 
     QuicSendClearSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
 
@@ -330,7 +330,7 @@ QuicDatagramQueueSend(
     BOOLEAN QueueOper = TRUE;
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
 
-    QuicDispatchLockAcquire(&Datagram->ApiQueueLock);
+    CxPlatDispatchLockAcquire(&Datagram->ApiQueueLock);
     if (!Datagram->SendEnabled) {
         QuicTraceEvent(
             ConnError,
@@ -356,7 +356,7 @@ QuicDatagramQueueSend(
             Status = QUIC_STATUS_SUCCESS;
         }
     }
-    QuicDispatchLockRelease(&Datagram->ApiQueueLock);
+    CxPlatDispatchLockRelease(&Datagram->ApiQueueLock);
 
     if (QUIC_FAILED(Status)) {
         CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
@@ -396,10 +396,10 @@ QuicDatagramSendFlush(
     _In_ QUIC_DATAGRAM* Datagram
     )
 {
-    QuicDispatchLockAcquire(&Datagram->ApiQueueLock);
+    CxPlatDispatchLockAcquire(&Datagram->ApiQueueLock);
     QUIC_SEND_REQUEST* ApiQueue = Datagram->ApiQueue;
     Datagram->ApiQueue = NULL;
-    QuicDispatchLockRelease(&Datagram->ApiQueueLock);
+    CxPlatDispatchLockRelease(&Datagram->ApiQueueLock);
     uint64_t TotalBytesSent = 0;
 
     if (ApiQueue == NULL) {
@@ -413,8 +413,8 @@ QuicDatagramSendFlush(
         ApiQueue = ApiQueue->Next;
         SendRequest->Next = NULL;
 
-        QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
-        QUIC_TEL_ASSERT(Datagram->SendEnabled);
+        CXPLAT_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
+        CXPLAT_TEL_ASSERT(Datagram->SendEnabled);
 
         if (SendRequest->TotalLength > (uint64_t)Datagram->MaxSendLength || QuicConnIsClosed(Connection)) {
             QuicDatagramCancelSend(Connection, SendRequest);
@@ -444,7 +444,7 @@ QuicDatagramSendFlush(
     }
 
     if (Connection->State.PeerTransportParameterValid && Datagram->SendQueue != NULL) {
-        QUIC_DBG_ASSERT(Datagram->SendEnabled);
+        CXPLAT_DBG_ASSERT(Datagram->SendEnabled);
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
     }
 
@@ -460,7 +460,7 @@ QuicDatagramWriteFrame(
     )
 {
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
-    QUIC_DBG_ASSERT(Datagram->SendEnabled);
+    CXPLAT_DBG_ASSERT(Datagram->SendEnabled);
     BOOLEAN Result = FALSE;
 
     QuicDatagramValidate(Datagram);
@@ -470,12 +470,12 @@ QuicDatagramWriteFrame(
 
         if (Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT &&
             !(SendRequest->Flags & QUIC_SEND_FLAG_ALLOW_0_RTT)) {
-            QUIC_DBG_ASSERT(FALSE);
+            CXPLAT_DBG_ASSERT(FALSE);
             Result = FALSE;
             goto Exit; // This datagram isn't allowed in 0-RTT.
         }
 
-        QUIC_DBG_ASSERT(SendRequest->TotalLength <= Datagram->MaxSendLength);
+        CXPLAT_DBG_ASSERT(SendRequest->TotalLength <= Datagram->MaxSendLength);
 
         uint16_t AvailableBufferLength =
             (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead;
@@ -495,7 +495,7 @@ QuicDatagramWriteFrame(
             // it means we have a bug where we allowed a datagram to be queued
             // (or stay queued, after max length changed) that was too big.
             //
-            QUIC_DBG_ASSERT(
+            CXPLAT_DBG_ASSERT(
                 Builder->Datagram->Length < Datagram->MaxSendLength ||
                 Builder->Metadata->FrameCount != 0 ||
                 Builder->PacketStart != 0);
@@ -547,7 +547,7 @@ QuicDatagramProcessFrame(
     )
 {
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
-    QUIC_DBG_ASSERT(Connection->Settings.DatagramReceiveEnabled);
+    CXPLAT_DBG_ASSERT(Connection->Settings.DatagramReceiveEnabled);
 
     QUIC_DATAGRAM_EX Frame;
     if (!QuicDatagramFrameDecode(FrameType, BufferLength, Buffer, Offset, &Frame)) {

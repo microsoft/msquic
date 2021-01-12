@@ -112,7 +112,7 @@ void RunAttackRandom(QUIC_SOCKET* Binding, uint16_t Length, bool ValidQuic)
     uint64_t ConnectionId = 0;
     CxPlatRandom(sizeof(ConnectionId), &ConnectionId);
 
-    while (CxPlatTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
+    while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs) {
 
         QUIC_SEND_DATA* SendContext =
             CxPlatSendDataAlloc(
@@ -143,7 +143,7 @@ void RunAttackRandom(QUIC_SOCKET* Binding, uint16_t Length, bool ValidQuic)
                 Header->Version = QUIC_VERSION_LATEST;
                 Header->DestCidLength = 8;
                 ConnectionId++;
-                QuicCopyMemory(Header->DestCid, &ConnectionId, sizeof(ConnectionId));
+                CxPlatCopyMemory(Header->DestCid, &ConnectionId, sizeof(ConnectionId));
                 Header->DestCid[8] = 8;
                 Header->DestCid[17] = 0;
                 QuicVarIntEncode(
@@ -215,14 +215,14 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
     CxPlatRandom(sizeof(uint64_t), DestCid);
     CxPlatRandom(sizeof(uint64_t), SrcCid);
 
-    while (CxPlatTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
+    while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs) {
 
         QUIC_SEND_DATA* SendContext =
             CxPlatSendDataAlloc(
                 Binding, QUIC_ECN_NON_ECT, DatagramLength);
         VERIFY(SendContext);
 
-        while (CxPlatTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs &&
+        while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs &&
             !CxPlatSendDataIsFull(SendContext)) {
             QUIC_BUFFER* SendBuffer =
                 CxPlatSendDataAllocBuffer(SendContext, DatagramLength);
@@ -295,7 +295,7 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
     }
 }
 
-QUIC_THREAD_CALLBACK(RunAttackThread, /* Context */)
+CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
 {
     QUIC_SOCKET* Binding;
     QUIC_STATUS Status =
@@ -307,7 +307,7 @@ QUIC_THREAD_CALLBACK(RunAttackThread, /* Context */)
             &Binding);
     if (QUIC_FAILED(Status)) {
         printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);
-        QUIC_THREAD_RETURN(Status);
+        CXPLAT_THREAD_RETURN(Status);
     }
 
     switch (AttackType) {
@@ -329,22 +329,22 @@ QUIC_THREAD_CALLBACK(RunAttackThread, /* Context */)
 
     CxPlatSocketDelete(Binding);
 
-    QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
+    CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
 
 void RunAttack()
 {
     Writer = new PacketWriter(Version, Alpn, ServerName);
 
-    QUIC_THREAD* Threads =
-        (QUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD), QUIC_POOL_TOOL);
+    CXPLAT_THREAD* Threads =
+        (CXPLAT_THREAD*)CXPLAT_ALLOC_PAGED(ThreadCount * sizeof(CXPLAT_THREAD), CXPLAT_POOL_TOOL);
 
     uint32_t ProcCount = CxPlatProcActiveCount();
-    TimeStart = QuicTimeMs64();
+    TimeStart = CxPlatTimeMs64();
 
     for (uint32_t i = 0; i < ThreadCount; ++i) {
-        QUIC_THREAD_CONFIG ThreadConfig = {
-            QUIC_THREAD_FLAG_SET_AFFINITIZE,
+        CXPLAT_THREAD_CONFIG ThreadConfig = {
+            CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
             (uint8_t)(i % ProcCount),
             "AttackRunner",
             RunAttackThread,
@@ -358,10 +358,10 @@ void RunAttack()
         CxPlatThreadDelete(&Threads[i]);
     }
 
-    uint64_t TimeEnd = QuicTimeMs64();
+    uint64_t TimeEnd = CxPlatTimeMs64();
     printf("Packet Rate: %llu KHz\n", (unsigned long long)(TotalPacketCount) / CxPlatTimeDiff64(TimeStart, TimeEnd));
     printf("Bit Rate: %llu mbps\n", (unsigned long long)(8 * TotalByteCount) / (1000 * CxPlatTimeDiff64(TimeStart, TimeEnd)));
-    QUIC_FREE(Threads, QUIC_POOL_TOOL);
+    CXPLAT_FREE(Threads, CXPLAT_POOL_TOOL);
 
     delete Writer;
 }

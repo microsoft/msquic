@@ -71,7 +71,7 @@ typedef struct QUIC_REGISTRATION {
     //
     // Protects access to the Configurations list.
     //
-    QUIC_LOCK ConfigLock;
+    CXPLAT_LOCK ConfigLock;
 
     //
     // List of all configurations for this registration.
@@ -81,7 +81,7 @@ typedef struct QUIC_REGISTRATION {
     //
     // Protects access to the Connections list.
     //
-    QUIC_DISPATCH_LOCK ConnectionLock;
+    CXPLAT_DISPATCH_LOCK ConnectionLock;
 
     //
     // List of all connections for this registration.
@@ -91,7 +91,7 @@ typedef struct QUIC_REGISTRATION {
     //
     // Rundown for all child objects.
     //
-    QUIC_RUNDOWN_REF Rundown;
+    CXPLAT_RUNDOWN_REF Rundown;
 
     //
     // Name of the application layer.
@@ -103,10 +103,10 @@ typedef struct QUIC_REGISTRATION {
 
 #ifdef QuicVerifierEnabledByAddr
 #define QUIC_REG_VERIFY(Registration, Expr) \
-    if (Registration->IsVerifying) { QUIC_FRE_ASSERT(Expr); }
+    if (Registration->IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
 #elif defined(QuicVerifierEnabled)
 #define QUIC_REG_VERIFY(Registration, Expr) \
-    if (MsQuicLib.IsVerifying) { QUIC_FRE_ASSERT(Expr); }
+    if (MsQuicLib.IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
 #else
 #define QUIC_REG_VERIFY(Registration, Expr)
 #endif

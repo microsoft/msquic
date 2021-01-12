@@ -113,14 +113,14 @@ ThroughputClient::Init(
 
     QUIC_STATUS Status;
 
-    if (QUIC_FAILED(Status = QuicSetCurrentThreadGroupAffinity(0))) {
+    if (QUIC_FAILED(Status = CxPlatSetCurrentThreadGroupAffinity(0))) {
         WriteOutput("Failed to set thread group affinity\n");
         return Status;
     }
 
     uint16_t CpuCore;
     if (TryGetValue(argc, argv, "core", &CpuCore)) {
-        if (QUIC_FAILED(Status = QuicSetCurrentThreadProcessorAffinity(CpuCore))) {
+        if (QUIC_FAILED(Status = CxPlatSetCurrentThreadProcessorAffinity(CpuCore))) {
             WriteOutput("Failed to set core\n");
             return Status;
         }
@@ -139,10 +139,10 @@ ThroughputClient::Init(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     TargetData.reset(LocalTarget);
-    QuicCopyMemory(TargetData.get(), Target, Len);
+    CxPlatCopyMemory(TargetData.get(), Target, Len);
     TargetData[Len] = '\0';
 
-    DataBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + IoSize, QUIC_POOL_PERF);
+    DataBuffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + IoSize, CXPLAT_POOL_PERF);
     if (!DataBuffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -151,10 +151,10 @@ ThroughputClient::Init(
     if (DownloadLength) {
         DataBuffer->Length = sizeof(uint64_t);
         *(uint64_t*)(DataBuffer->Buffer) =
-            TimedTransfer ? UINT64_MAX : QuicByteSwapUint64(DownloadLength);
+            TimedTransfer ? UINT64_MAX : CxPlatByteSwapUint64(DownloadLength);
     } else {
         DataBuffer->Length = IoSize;
-        *(uint64_t*)(DataBuffer->Buffer) = QuicByteSwapUint64(0); // Zero-length request
+        *(uint64_t*)(DataBuffer->Buffer) = CxPlatByteSwapUint64(0); // Zero-length request
         for (uint32_t i = 0; i < IoSize - sizeof(uint64_t); ++i) {
             DataBuffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
         }
@@ -174,7 +174,7 @@ struct ShutdownWrapper {
 
 QUIC_STATUS
 ThroughputClient::Start(
-    _In_ QUIC_EVENT* StopEvnt
+    _In_ CXPLAT_EVENT* StopEvnt
     ) {
     ShutdownWrapper Shutdown;
     this->StopEvent = StopEvnt;

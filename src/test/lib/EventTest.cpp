@@ -14,8 +14,8 @@ Abstract:
 #include "EventTest.cpp.clog.h"
 #endif
 
-#define QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION   1
-#define QUIC_EVENT_ACTION_SHUTDOWN_STREAM       2
+#define CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION   1
+#define CXPLAT_EVENT_ACTION_SHUTDOWN_STREAM       2
 
 struct StreamEventValidator {
     bool Success;
@@ -32,10 +32,10 @@ struct StreamEventValidator {
             return;
         }
         Success = true;
-        if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_STREAM) {
+        if (Actions & CXPLAT_EVENT_ACTION_SHUTDOWN_STREAM) {
             MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, 0);
         }
-        if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION) {
+        if (Actions & CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION) {
             MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         }
     }
@@ -46,7 +46,7 @@ struct StreamValidator {
     HQUIC Handle;
     StreamEventValidator** ExpectedEvents;
     uint32_t CurrentEvent;
-    QUIC_EVENT Complete;
+    CXPLAT_EVENT Complete;
     StreamValidator(StreamEventValidator** expectedEvents) :
         Handle(nullptr), ExpectedEvents(expectedEvents), CurrentEvent(0) {
         CxPlatEventInitialize(&Complete, TRUE, FALSE);
@@ -104,7 +104,7 @@ struct ConnEventValidator {
             }
         }
         Success = true;
-        if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION) {
+        if (Actions & CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION) {
             MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         }
     }
@@ -116,7 +116,7 @@ struct ConnValidator {
     HQUIC Configuration;
     ConnEventValidator** ExpectedEvents;
     uint32_t CurrentEvent;
-    QUIC_EVENT Complete;
+    CXPLAT_EVENT Complete;
     ConnValidator(HQUIC Configuration = nullptr) :
         Handle(nullptr), Configuration(Configuration),
         ExpectedEvents(nullptr), CurrentEvent(0) {
@@ -309,7 +309,7 @@ QuicTestValidateConnectionEvents1(
     ConnValidator Client(
         new(std::nothrow) ConnEventValidator* [4] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
@@ -374,7 +374,7 @@ QuicTestValidateConnectionEvents2(
     );
     ConnValidator Server(
         new(std::nothrow) ConnEventValidator* [4] {
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         },
@@ -433,7 +433,7 @@ QuicTestValidateConnectionEvents3(
     ConnValidator Client(
         new(std::nothrow) ConnEventValidator* [4] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION, false, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION, false, true),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
@@ -465,7 +465,7 @@ QuicTestValidateConnectionEvents3(
             QUIC_PARAM_CONN_RESUMPTION_TICKET,
             ResumptionTicket->Length,
             ResumptionTicket->Buffer));
-    QUIC_FREE(ResumptionTicket, QUIC_POOL_TEST);
+    CXPLAT_FREE(ResumptionTicket, CXPLAT_POOL_TEST);
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
@@ -554,13 +554,13 @@ QuicTestValidateStreamEvents1(
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
-            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE, CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION),
             nullptr
         });
     StreamValidator ServerStream(
         new(std::nothrow) StreamEventValidator* [5] {
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
-            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN, QUIC_EVENT_ACTION_SHUTDOWN_STREAM),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN, CXPLAT_EVENT_ACTION_SHUTDOWN_STREAM),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE),
             nullptr
@@ -664,7 +664,7 @@ QuicTestValidateStreamEvents2(
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED, 0, true), // TODO - Schannel does resumption regardless
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),

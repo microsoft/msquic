@@ -45,7 +45,7 @@ typedef struct QUIC_MIPKI_LIBRARY {
     DECLARE_FUNC(mipki_validate_chain);
     DECLARE_FUNC(mipki_free_chain);
 
-    QUIC_LOCK Lock;
+    CXPLAT_LOCK Lock;
     mipki_state *State;
 
 } QUIC_MIPKI_LIBRARY;
@@ -142,7 +142,7 @@ CxPlatCertLibraryInitialize(
         goto Error;
     }
 
-    QuicLockInitialize(&miPKI.Lock);
+    CxPlatLockInitialize(&miPKI.Lock);
 
     Status = QUIC_STATUS_SUCCESS;
 
@@ -168,7 +168,7 @@ CxPlatCertLibraryUninitialize(
     )
 {
     if (miPKI.Libmipki != NULL) {
-        QuicLockUninitialize(&miPKI.Lock);
+        CxPlatLockUninitialize(&miPKI.Lock);
         miPKI.mipki_free(miPKI.State);
         FreeLibrary(miPKI.Libmipki);
         miPKI.Libmipki = NULL;
@@ -187,7 +187,7 @@ CxPlatCertSelect(
     _Out_ UINT16 *SelectedSignature
     )
 {
-    QuicLockAcquire(&miPKI.Lock);
+    CxPlatLockAcquire(&miPKI.Lock);
 
     mipki_chain Certificate =
         miPKI.mipki_select_certificate(
@@ -198,7 +198,7 @@ CxPlatCertSelect(
             SignatureAlgorithmsLength,
             SelectedSignature);
 
-    QuicLockRelease(&miPKI.Lock);
+    CxPlatLockRelease(&miPKI.Lock);
 
     return (QUIC_CERTIFICATE*)Certificate;
 }
@@ -210,7 +210,7 @@ CxPlatCertParseChain(
     _In_reads_(ChainBufferLength) const BYTE *ChainBuffer
     )
 {
-    QuicLockAcquire(&miPKI.Lock);
+    CxPlatLockAcquire(&miPKI.Lock);
 
     mipki_chain Certificate =
         miPKI.mipki_parse_chain(
@@ -218,7 +218,7 @@ CxPlatCertParseChain(
             (const char*)ChainBuffer,
             ChainBufferLength);
 
-    QuicLockRelease(&miPKI.Lock);
+    CxPlatLockRelease(&miPKI.Lock);
 
     return (QUIC_CERTIFICATE*)Certificate;
 }
@@ -232,7 +232,7 @@ CxPlatCertFormat(
         BYTE* Buffer
     )
 {
-    QuicLockAcquire(&miPKI.Lock);
+    CxPlatLockAcquire(&miPKI.Lock);
 
     size_t Result =
         miPKI.mipki_format_chain(
@@ -241,7 +241,7 @@ CxPlatCertFormat(
             (char*)Buffer,
             BufferLength);
 
-    QuicLockRelease(&miPKI.Lock);
+    CxPlatLockRelease(&miPKI.Lock);
 
     return Result;
 }
@@ -256,7 +256,7 @@ CxPlatCertValidateChain(
 {
     UNREFERENCED_PARAMETER(IgnoreFlags);
 
-    QuicLockAcquire(&miPKI.Lock);
+    CxPlatLockAcquire(&miPKI.Lock);
 
     int Result =
         miPKI.mipki_validate_chain(
@@ -264,7 +264,7 @@ CxPlatCertValidateChain(
             (mipki_chain)Certificate,
             Host);
 
-    QuicLockRelease(&miPKI.Lock);
+    CxPlatLockRelease(&miPKI.Lock);
 
     return Result == 0 ? FALSE : TRUE;
 }
@@ -282,7 +282,7 @@ CxPlatCertSign(
     _Inout_ size_t *SignatureLength
     )
 {
-    QuicLockAcquire(&miPKI.Lock);
+    CxPlatLockAcquire(&miPKI.Lock);
 
     int Result =
         miPKI.mipki_sign_verify(
@@ -295,7 +295,7 @@ CxPlatCertSign(
             SignatureLength,
             MIPKI_SIGN);
 
-    QuicLockRelease(&miPKI.Lock);
+    CxPlatLockRelease(&miPKI.Lock);
 
     return Result == 0 ? FALSE : TRUE;
 }
@@ -313,7 +313,7 @@ CxPlatCertVerify(
     _In_ size_t SignatureLength
     )
 {
-    QuicLockAcquire(&miPKI.Lock);
+    CxPlatLockAcquire(&miPKI.Lock);
 
     int Result =
         miPKI.mipki_sign_verify(
@@ -328,7 +328,7 @@ CxPlatCertVerify(
 
     miPKI.mipki_free_chain(miPKI.State, Certificate);
 
-    QuicLockRelease(&miPKI.Lock);
+    CxPlatLockRelease(&miPKI.Lock);
 
     return Result == 0 ? FALSE : TRUE;
 }

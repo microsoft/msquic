@@ -310,7 +310,7 @@ QuicCryptoUpdateKeyPhase (
 //
 // Encode all state the server needs to resume the connection into a ticket
 // ready to be passed to TLS.
-// The buffer returned in Ticket needs to be freed with QUIC_FREE().
+// The buffer returned in Ticket needs to be freed with CXPLAT_FREE().
 // Note: Connection is only used for logging and may be NULL for testing.
 //
 QUIC_STATUS
@@ -353,7 +353,7 @@ QuicCryptoDecodeServerTicket(
 
 //
 // Encodes necessary data into the client ticket to enable connection resumption.
-// The pointer held by ClientTicket needs to be freed by QUIC_FREE().
+// The pointer held by ClientTicket needs to be freed by CXPLAT_FREE().
 // Note: Connection is only used for logging and may be NULL for testing.
 //
 QUIC_STATUS
@@ -371,7 +371,7 @@ QuicCryptoEncodeClientTicket(
 
 //
 // Decodes and returns data necessary to resume a connection from a client ticket.
-// The buffer held in ServerTicket must be freed with QUIC_FREE().
+// The buffer held in ServerTicket must be freed with CXPLAT_FREE().
 // Note: Connection is only used for logging and my be NULL for testing.
 //
 QUIC_STATUS

@@ -34,7 +34,7 @@ QuicPacketSpaceInitialize(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    QuicZeroMemory(Packets, sizeof(QUIC_PACKET_SPACE));
+    CxPlatZeroMemory(Packets, sizeof(QUIC_PACKET_SPACE));
     Packets->Connection = Connection;
     Packets->EncryptLevel = EncryptLevel;
     QuicAckTrackerInitialize(&Packets->AckTracker);

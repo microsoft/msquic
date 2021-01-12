@@ -20,7 +20,7 @@ typedef struct QUIC_DATAGRAM {
     // send queue.
     //
     QUIC_SEND_REQUEST* ApiQueue;
-    QUIC_DISPATCH_LOCK ApiQueueLock;
+    CXPLAT_DISPATCH_LOCK ApiQueueLock;
 
     //
     // The maximum datagram frame we allow the peer to send.

@@ -512,7 +512,7 @@ QuicSettingsLoad(
     }
 
     if (!Settings->IsSet.IdleTimeoutMs) {
-        QUIC_STATIC_ASSERT(sizeof(MultiValue) == sizeof(Settings->IdleTimeoutMs), "These must be the same size");
+        CXPLAT_STATIC_ASSERT(sizeof(MultiValue) == sizeof(Settings->IdleTimeoutMs), "These must be the same size");
         ValueLen = sizeof(MultiValue);
         if (QUIC_SUCCEEDED(
             CxPlatStorageReadValue(
@@ -532,7 +532,7 @@ QuicSettingsLoad(
     }
 
     if (!Settings->IsSet.HandshakeIdleTimeoutMs) {
-        QUIC_STATIC_ASSERT(sizeof(MultiValue) == sizeof(Settings->HandshakeIdleTimeoutMs), "These must be the same size");
+        CXPLAT_STATIC_ASSERT(sizeof(MultiValue) == sizeof(Settings->HandshakeIdleTimeoutMs), "These must be the same size");
         ValueLen = sizeof(MultiValue);
         if (QUIC_SUCCEEDED(
             CxPlatStorageReadValue(

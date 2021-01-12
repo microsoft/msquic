@@ -26,7 +26,7 @@ CxPlatPlatGetSelfSignedCert(
 
     QUIC_CREDENTIAL_CONFIG* Params = malloc(sizeof(QUIC_CREDENTIAL_CONFIG));
     if (Params != NULL) {
-        QuicZeroMemory(Params, sizeof(*Params));
+        CxPlatZeroMemory(Params, sizeof(*Params));
         Params->Type = QUIC_CREDENTIAL_TYPE_NULL;
     }
     return Params;

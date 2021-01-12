@@ -149,7 +149,7 @@ class DatapathHooks
     static QUIC_TEST_DATAPATH_HOOKS FuncTable;
 
     DatapathHook* Hooks;
-    QUIC_DISPATCH_LOCK Lock;
+    CXPLAT_DISPATCH_LOCK Lock;
 
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -222,7 +222,7 @@ class DatapathHooks
         _Inout_ struct QUIC_RECV_DATA* Datagram
         ) {
         BOOLEAN Result = FALSE;
-        QuicDispatchLockAcquire(&Lock);
+        CxPlatDispatchLockAcquire(&Lock);
         DatapathHook* Iter = Hooks;
         while (Iter) {
             if (Iter->Receive(Datagram)) {
@@ -231,7 +231,7 @@ class DatapathHooks
             }
             Iter = Iter->Next;
         }
-        QuicDispatchLockRelease(&Lock);
+        CxPlatDispatchLockRelease(&Lock);
         return Result;
     }
 
@@ -242,7 +242,7 @@ class DatapathHooks
         _Inout_ struct QUIC_SEND_DATA* SendContext
         ) {
         BOOLEAN Result = FALSE;
-        QuicDispatchLockAcquire(&Lock);
+        CxPlatDispatchLockAcquire(&Lock);
         DatapathHook* Iter = Hooks;
         while (Iter) {
             if (Iter->Send(RemoteAddress, LocalAddress, SendContext)) {
@@ -251,7 +251,7 @@ class DatapathHooks
             }
             Iter = Iter->Next;
         }
-        QuicDispatchLockRelease(&Lock);
+        CxPlatDispatchLockRelease(&Lock);
         return Result;
     }
 
@@ -260,36 +260,36 @@ public:
     static DatapathHooks* Instance;
 
     DatapathHooks() : Hooks(nullptr) {
-        QuicDispatchLockInitialize(&Lock);
+        CxPlatDispatchLockInitialize(&Lock);
     }
 
     ~DatapathHooks() {
-        QuicDispatchLockUninitialize(&Lock);
+        CxPlatDispatchLockUninitialize(&Lock);
     }
 
     void AddHook(DatapathHook* Hook) {
-        QuicDispatchLockAcquire(&Lock);
+        CxPlatDispatchLockAcquire(&Lock);
         DatapathHook** Iter = &Hooks;
         while (*Iter != nullptr) {
             Iter = &((*Iter)->Next);
         }
         *Iter = Hook;
         bool DoRegister = Hooks == Hook;
-        QuicDispatchLockRelease(&Lock);
+        CxPlatDispatchLockRelease(&Lock);
         if (DoRegister) {
             Register();
         }
     }
 
     void RemoveHook(DatapathHook* Hook) {
-        QuicDispatchLockAcquire(&Lock);
+        CxPlatDispatchLockAcquire(&Lock);
         DatapathHook** Iter = &Hooks;
         while (*Iter != Hook) {
             Iter = &((*Iter)->Next);
         }
         *Iter = Hook->Next;
         bool DoUnregister = Hooks == nullptr;
-        QuicDispatchLockRelease(&Lock);
+        CxPlatDispatchLockRelease(&Lock);
         if (DoUnregister) {
             Unregister();
         }
