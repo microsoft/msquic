@@ -311,7 +311,7 @@ function Start-TestCase([String]$Name) {
         $Arguments += " --gtest_break_on_failure"
     }
     if ($Kernel -ne "") {
-        $Arguments += " --kernel --privateLibrary"
+        $Arguments += " --kernelPriv"
     }
 
     # Start the test process and return some information about the test case.
@@ -345,7 +345,7 @@ function Start-AllTestCases {
         $Arguments += " --gtest_break_on_failure"
     }
     if ($Kernel -ne "") {
-        $Arguments += " --kernel --privateLibrary"
+        $Arguments += " --kernelPriv"
     }
 
     # Start the test process and return some information about the test case.

@@ -23,7 +23,8 @@ Abstract:
 #include "PerfIoctls.h"
 #include "quic_driver_helpers.h"
 
-#define QUIC_DRIVER_NAME   "quicperf"
+#define QUIC_DRIVER_NAME            "quicperfdrv"
+#define QUIC_DRIVER_NAME_PRIVATE    "quicperfdrvpriv"
 
 #endif
 
@@ -171,6 +172,7 @@ QuicKernelMain(
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ bool /*KeyboardWait*/,
     _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedParams,
+    _In_ bool PrivateTestLibrary,
     _In_opt_z_ const char* FileName
     )
 {
@@ -220,7 +222,17 @@ QuicKernelMain(
     QuicDriverService DriverService;
     QuicDriverClient DriverClient;
 
-    if (!DriverService.Initialize(QUIC_DRIVER_NAME, "msquicpriv\0")) {
+    const char* DriverName;
+    const char* DependentDriverNames;
+    if (PrivateTestLibrary) {
+        DriverName = QUIC_DRIVER_NAME_PRIVATE;
+        DependentDriverNames = "msquicpriv\0";
+    } else {
+        DriverName = QUIC_DRIVER_NAME;
+        DependentDriverNames = "msquic\0";
+    }
+
+    if (!DriverService.Initialize(DriverName, DependentDriverNames)) {
         printf("Failed to initialize driver service\n");
         QUIC_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
@@ -232,7 +244,7 @@ QuicKernelMain(
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    if (!DriverClient.Initialize((QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1), QUIC_DRIVER_NAME)) {
+    if (!DriverClient.Initialize((QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1), DriverName)) {
         printf("Intializing Driver Client Failed.\n");
         DriverService.Uninitialize();
         QUIC_FREE(Data, QUIC_POOL_PERF);
@@ -340,6 +352,7 @@ main(
     bool TestingKernelMode = false;
     bool KeyboardWait = false;
     const char* FileName = nullptr;
+    bool PrivateTestLibrary = false;
 
     UniquePtr<char*[]> ArgValues = UniquePtr<char*[]>(new char*[argc]);
 
@@ -355,9 +368,12 @@ main(
     }
 
     for (int i = 0; i < argc; ++i) {
-        if (strcmp("--kernel", argv[i]) == 0) {
+        if (strcmp("--kernel", argv[i]) == 0 || strcmp("--kernelPriv", argv[i]) == 0) {
 #ifdef _WIN32
             TestingKernelMode = true;
+            if (strcmp("--kernelPriv", argv[i]) == 0) {
+                PrivateTestLibrary = true;
+            }
 #else
             printf("Cannot run kernel mode tests on non windows platforms\n");
             RetVal = QUIC_STATUS_NOT_SUPPORTED;
@@ -387,8 +403,9 @@ main(
     if (TestingKernelMode) {
 #ifdef _WIN32
         printf("Entering kernel mode main\n");
-        RetVal = QuicKernelMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, FileName);
+        RetVal = QuicKernelMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, PrivateTestLibrary, FileName);
 #else
+        UNREFERENCED_PARAMETER(PrivateTestLibrary);
         QUIC_FRE_ASSERT(FALSE);
 #endif
     } else {
