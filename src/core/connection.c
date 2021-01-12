@@ -610,7 +610,7 @@ QuicConnTraceRundownOper(
                     CLOG_BYTEARRAY(sizeof(Connection->Paths[i].RemoteAddress), &Connection->Paths[i].RemoteAddress));
             }
         }
-        for (CXPLAT_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
+        for (CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
                 Entry != NULL;
                 Entry = Entry->Next) {
             const QUIC_CID_HASH_ENTRY* SourceCid =
@@ -864,7 +864,7 @@ QuicConnGenerateNewSourceCid(
         SourceCid->CID.IsInitial = TRUE;
         CxPlatListPushEntry(&Connection->SourceCids, &SourceCid->Link);
     } else {
-        CXPLAT_SINGLE_LIST_ENTRY** Tail = &Connection->SourceCids.Next;
+        CXPLAT_SLIST_ENTRY** Tail = &Connection->SourceCids.Next;
         while (*Tail != NULL) {
             Tail = &(*Tail)->Next;
         }
@@ -881,7 +881,7 @@ QuicConnSourceCidsCount(
     )
 {
     uint8_t Count = 0;
-    const CXPLAT_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
+    const CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
     while (Entry != NULL) {
         ++Count;
         Entry = Entry->Next;
@@ -916,7 +916,7 @@ QuicConnGenerateNewSourceCids(
     uint8_t NewCidCount;
     if (ReplaceExistingCids) {
         NewCidCount = Connection->SourceCidLimit;
-        CXPLAT_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
+        CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
         while (Entry != NULL) {
             QUIC_CID_HASH_ENTRY* SourceCid =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CID_HASH_ENTRY, Link);

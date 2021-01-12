@@ -173,7 +173,7 @@ QuicLookupRebalance(
             //
 
             if (PreviousLookup != NULL) {
-                CXPLAT_SINGLE_LIST_ENTRY* Entry =
+                CXPLAT_SLIST_ENTRY* Entry =
                     ((QUIC_CONNECTION*)PreviousLookup)->SourceCids.Next;
 
                 while (Entry != NULL) {
@@ -280,7 +280,7 @@ QuicCidMatchConnection(
     _In_ uint8_t Length
     )
 {
-    for (CXPLAT_SINGLE_LIST_ENTRY* Link = Connection->SourceCids.Next;
+    for (CXPLAT_SLIST_ENTRY* Link = Connection->SourceCids.Next;
         Link != NULL;
         Link = Link->Next) {
 
@@ -822,7 +822,7 @@ void
 QuicLookupRemoveLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CID_HASH_ENTRY* SourceCid,
-    _In_ CXPLAT_SINGLE_LIST_ENTRY** Entry
+    _In_ CXPLAT_SLIST_ENTRY** Entry
     )
 {
     CxPlatDispatchRwLockAcquireExclusive(&Lookup->RwLock);
@@ -897,7 +897,7 @@ QuicLookupMoveLocalConnectionIDs(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    CXPLAT_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
+    CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
 
     CxPlatDispatchRwLockAcquireExclusive(&LookupSrc->RwLock);
     while (Entry != NULL) {

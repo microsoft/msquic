@@ -650,7 +650,7 @@ QuicSendWriteFrames(
 
             BOOLEAN HasMoreCidsToSend = FALSE;
             BOOLEAN MaxFrameLimitHit = FALSE;
-            for (CXPLAT_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
+            for (CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
                     Entry != NULL;
                     Entry = Entry->Next) {
                 QUIC_CID_HASH_ENTRY* SourceCid =

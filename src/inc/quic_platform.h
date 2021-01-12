@@ -44,9 +44,9 @@ typedef struct QUIC_LIST_ENTRY {
     struct QUIC_LIST_ENTRY* Blink;
 } QUIC_LIST_ENTRY;
 
-typedef struct CXPLAT_SINGLE_LIST_ENTRY {
-    struct CXPLAT_SINGLE_LIST_ENTRY* Next;
-} CXPLAT_SINGLE_LIST_ENTRY;
+typedef struct CXPLAT_SLIST_ENTRY {
+    struct CXPLAT_SLIST_ENTRY* Next;
+} CXPLAT_SLIST_ENTRY;
 
 #ifndef FORCEINLINE
 #if (_MSC_VER >= 1200)
@@ -285,8 +285,8 @@ CxPlatListMoveItems(
 FORCEINLINE
 void
 CxPlatListPushEntry(
-    _Inout_ CXPLAT_SINGLE_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem CXPLAT_SINGLE_LIST_ENTRY* Entry
+    _Inout_ CXPLAT_SLIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_SLIST_ENTRY* Entry
     )
 {
     Entry->Next = ListHead->Next;
@@ -294,12 +294,12 @@ CxPlatListPushEntry(
 }
 
 FORCEINLINE
-CXPLAT_SINGLE_LIST_ENTRY*
+CXPLAT_SLIST_ENTRY*
 CxPlatListPopEntry(
-    _Inout_ CXPLAT_SINGLE_LIST_ENTRY* ListHead
+    _Inout_ CXPLAT_SLIST_ENTRY* ListHead
     )
 {
-    CXPLAT_SINGLE_LIST_ENTRY* FirstEntry = ListHead->Next;
+    CXPLAT_SLIST_ENTRY* FirstEntry = ListHead->Next;
     if (FirstEntry != NULL) {
         ListHead->Next = FirstEntry->Next;
     }

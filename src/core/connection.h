@@ -402,7 +402,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The list of connection IDs used for receiving.
     //
-    CXPLAT_SINGLE_LIST_ENTRY SourceCids;
+    CXPLAT_SLIST_ENTRY SourceCids;
 
     //
     // The list of connection IDs used for sending. Given to us by the peer.
@@ -1035,7 +1035,7 @@ QuicConnGetSourceCidFromSeq(
     _Out_ BOOLEAN* IsLastCid
     )
 {
-    for (CXPLAT_SINGLE_LIST_ENTRY** Entry = &Connection->SourceCids.Next;
+    for (CXPLAT_SLIST_ENTRY** Entry = &Connection->SourceCids.Next;
             *Entry != NULL;
             Entry = &(*Entry)->Next) {
         QUIC_CID_HASH_ENTRY* SourceCid =
@@ -1076,7 +1076,7 @@ QuicConnGetSourceCidFromBuf(
         const uint8_t* CidBuffer
     )
 {
-    for (CXPLAT_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
+    for (CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
             Entry != NULL;
             Entry = Entry->Next) {
         QUIC_CID_HASH_ENTRY* SourceCid =

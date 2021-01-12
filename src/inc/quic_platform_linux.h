@@ -261,7 +261,7 @@ typedef struct CXPLAT_POOL {
     // List of free entries.
     //
 
-    CXPLAT_SINGLE_LIST_ENTRY ListHead;
+    CXPLAT_SLIST_ENTRY ListHead;
 
     //
     // Number of free entries in the list.

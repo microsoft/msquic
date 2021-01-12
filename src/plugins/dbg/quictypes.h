@@ -223,7 +223,7 @@ LinkEntryToType(
 
 struct SingleListEntry : Struct {
 
-    SingleListEntry(ULONG64 addr) : Struct("msquic!CXPLAT_SINGLE_LIST_ENTRY", addr) {
+    SingleListEntry(ULONG64 addr) : Struct("msquic!CXPLAT_SLIST_ENTRY", addr) {
     }
 
     ULONG64 Next() {
