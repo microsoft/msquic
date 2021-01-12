@@ -19,7 +19,7 @@ Abstract:
     or build configurations can have their own desired behavior. The following
     configuration options are currently supported:
 
-    CXPLAT_EVENTS_STUB            No-op all Events
+    QUIC_EVENTS_STUB            No-op all Events
     QUIC_EVENTS_MANIFEST_ETW    Write to Windows ETW framework
 
     QUIC_LOGS_STUB              No-op all Logs
@@ -32,8 +32,8 @@ Abstract:
 #pragma once
 
 #if !defined(QUIC_CLOG)
-#if !defined(CXPLAT_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW)
-#error "Must define one CXPLAT_EVENTS_*"
+#if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW)
+#error "Must define one QUIC_EVENTS_*"
 #endif
 
 #if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_MANIFEST_ETW)
@@ -121,7 +121,7 @@ QuicTraceRundown(
 
 #else
 
-#ifdef CXPLAT_EVENTS_STUB
+#ifdef QUIC_EVENTS_STUB
 
 #define QuicTraceEventEnabled(Name) FALSE
 
@@ -139,7 +139,7 @@ QuicTraceEventStubVarArgs(
 
 #define CLOG_BYTEARRAY(Len, Data) (Len)
 
-#endif // CXPLAT_EVENTS_STUB
+#endif // QUIC_EVENTS_STUB
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 
