@@ -27,7 +27,7 @@ Environment:
 
 typedef
 void*
-(*QUIC_ALLOC)(
+(*CXPLAT_ALLOC)(
     _In_ size_t ByteCount
     );
 
@@ -39,7 +39,7 @@ void
 
 typedef
 void
-(*QUIC_POOL_INITIALIZE)(
+(*CXPLAT_POOL_INITIALIZE)(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
     _Inout_ CXPLAT_POOL* Pool
@@ -47,26 +47,26 @@ void
 
 typedef
 void
-(*QUIC_POOL_UNINITIALIZE)(
+(*CXPLAT_POOL_UNINITIALIZE)(
     _Inout_ CXPLAT_POOL* Pool
     );
 
 typedef
 void*
-(*QUIC_POOL_ALLOC)(
+(*CXPLAT_POOL_ALLOC)(
     _Inout_ CXPLAT_POOL* Pool
     );
 
 typedef
 void
-(*QUIC_POOL_FREE)(
+(*CXPLAT_POOL_FREE)(
     _Inout_ CXPLAT_POOL* Pool,
     _In_ void* Entry
     );
 
 typedef
 void
-(*QUIC_LOG)(
+(*CXPLAT_LOG)(
     _In_ const char* Fmt,
     _In_ va_list args
     );
@@ -130,7 +130,7 @@ void
 
 typedef
 uint16_t
-(*QUIC_DATPATH_SOCKET_GET_LOCAL_MTU)(
+(*CXPLAT_DATPATH_SOCKET_GET_LOCAL_MTU)(
     _In_ CXPLAT_SOCKET* Socket
     );
 
@@ -217,22 +217,22 @@ QUIC_STATUS
 
 typedef
 QUIC_STATUS
-(*QUIC_RANDOM)(
+(*CXPLAT_RANDOM)(
     _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) void* Buffer
     );
 
 typedef struct CX_PLATFORM_DISPATCH {
-    QUIC_ALLOC Alloc;
+    CXPLAT_ALLOC Alloc;
     CXPLAT_FREE Free;
-    QUIC_POOL_INITIALIZE PoolInitialize;
-    QUIC_POOL_UNINITIALIZE PoolUninitialize;
-    QUIC_POOL_ALLOC PoolAlloc;
-    QUIC_POOL_FREE PoolFree;
+    CXPLAT_POOL_INITIALIZE PoolInitialize;
+    CXPLAT_POOL_UNINITIALIZE PoolUninitialize;
+    CXPLAT_POOL_ALLOC PoolAlloc;
+    CXPLAT_POOL_FREE PoolFree;
 
-    QUIC_LOG Log;
+    CXPLAT_LOG Log;
 
-    QUIC_RANDOM Random;
+    CXPLAT_RANDOM Random;
 
     CXPLAT_DATAPATH_INITIALIZE DatapathInitialize;
     CXPLAT_DATAPATH_UNINITIALIZE DatapathUninitialize;
@@ -242,7 +242,7 @@ typedef struct CX_PLATFORM_DISPATCH {
     CXPLAT_DATAPATH_RESOLVE_ADDRESS DatapathResolveAddress;
     CXPLAT_SOCKET_CREATE SocketCreate;
     CXPLAT_SOCKET_DELETE SocketDelete;
-    QUIC_DATPATH_SOCKET_GET_LOCAL_MTU SocketGetLocalMtu;
+    CXPLAT_DATPATH_SOCKET_GET_LOCAL_MTU SocketGetLocalMtu;
     CXPLAT_SOCKET_GET_LOCAL_ADDRESS SocketGetLocalAddress;
     CXPLAT_SOCKET_GET_REMOTE_ADDRESS SocketGetRemoteAddress;
     CXPLAT_RECV_DATA_RETURN RecvDataReturn;

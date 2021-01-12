@@ -15,7 +15,7 @@ Abstract:
     bytes it should keep posted.
 
     We copy requests into fixed-sized blocks when possible, and fall back on
-    QUIC_ALLOC for large send requests.
+    CXPLAT_ALLOC for large send requests.
 
     We buffer send requests until we've buffered AT LEAST the desired number
     of bytes, rather than using the ideal buffer size as a hard limit. This
