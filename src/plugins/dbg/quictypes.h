@@ -307,10 +307,10 @@ struct HashTable : Struct {
     ULONG64 BucketHead;
     ULONG64 Entry;
 
-    HashTable(ULONG64 addr) : Struct("msquic!QUIC_HASHTABLE", addr) {
+    HashTable(ULONG64 addr) : Struct("msquic!CXPLAT_HASHTABLE", addr) {
         TableSize = ReadType<ULONG>("TableSize");
         Directory = ReadPointer("Directory");
-        GetFieldOffset("msquic!QUIC_HASHTABLE_ENTRY", "Linkage", &EntryLinksOffset);
+        GetFieldOffset("msquic!CXPLAT_HASHTABLE_ENTRY", "Linkage", &EntryLinksOffset);
         Indirection = (TableSize <= KDEXT_RTL_HT_SECOND_LEVEL_DIR_SIZE) ? 1 : 2;
 
         ReadBucketHead = true;

@@ -17,7 +17,7 @@ Abstract:
 typedef struct QUIC_CACHEALIGN QUIC_PARTITIONED_HASHTABLE {
 
     CXPLAT_DISPATCH_RW_LOCK RwLock;
-    QUIC_HASHTABLE Table;
+    CXPLAT_HASHTABLE Table;
 
 } QUIC_PARTITIONED_HASHTABLE;
 
@@ -94,7 +94,7 @@ QuicLookupCreateHashTable(
 
         uint16_t Cleanup = 0;
         for (uint16_t i = 0; i < PartitionCount; i++) {
-            if (!CxPlatHashtableInitializeEx(&Lookup->HASH.Tables[i].Table, QUIC_HASH_MIN_SIZE)) {
+            if (!CxPlatHashtableInitializeEx(&Lookup->HASH.Tables[i].Table, CXPLAT_HASH_MIN_SIZE)) {
                 Cleanup = i;
                 break;
             }
@@ -200,13 +200,13 @@ QuicLookupRebalance(
 
             QUIC_PARTITIONED_HASHTABLE* PreviousTable = PreviousLookup;
             for (uint16_t i = 0; i < PreviousPartitionCount; i++) {
-                QUIC_HASHTABLE_ENUMERATOR Enumerator;
+                CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
 #pragma warning(push)
 #pragma warning(disable:6001)
                 CxPlatHashtableEnumerateBegin(&PreviousTable[i].Table, &Enumerator);
 #pragma warning(pop)
                 while (TRUE) {
-                    QUIC_HASHTABLE_ENTRY* Entry =
+                    CXPLAT_HASHTABLE_ENTRY* Entry =
                         CxPlatHashtableEnumerateNext(&PreviousTable[i].Table, &Enumerator);
                     if (Entry == NULL) {
                         CxPlatHashtableEnumerateEnd(&PreviousTable[i].Table, &Enumerator);
@@ -250,7 +250,7 @@ QuicLookupMaximizePartitioning(
     if (!Lookup->MaximizePartitioning) {
         Result =
             CxPlatHashtableInitializeEx(
-                &Lookup->RemoteHashTable, QUIC_HASH_MIN_SIZE);
+                &Lookup->RemoteHashTable, CXPLAT_HASH_MIN_SIZE);
         if (Result) {
             Lookup->MaximizePartitioning = TRUE;
             Result = QuicLookupRebalance(Lookup, NULL);
@@ -303,15 +303,15 @@ QuicCidMatchConnection(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_CONNECTION*
 QuicHashLookupConnection(
-    _In_ QUIC_HASHTABLE* Table,
+    _In_ CXPLAT_HASHTABLE* Table,
     _In_reads_(Length)
         const uint8_t* const DestCid,
     _In_ uint8_t Length,
     _In_ uint32_t Hash
     )
 {
-    QUIC_HASHTABLE_LOOKUP_CONTEXT Context;
-    QUIC_HASHTABLE_ENTRY* TableEntry =
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+    CXPLAT_HASHTABLE_ENTRY* TableEntry =
         CxPlatHashtableLookup(Table, Hash, &Context);
 
     while (TableEntry != NULL) {
@@ -412,8 +412,8 @@ QuicLookupFindConnectionByRemoteHashInternal(
     _In_ uint32_t Hash
     )
 {
-    QUIC_HASHTABLE_LOOKUP_CONTEXT Context;
-    QUIC_HASHTABLE_ENTRY* TableEntry =
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+    CXPLAT_HASHTABLE_ENTRY* TableEntry =
         CxPlatHashtableLookup(&Lookup->RemoteHashTable, Hash, &Context);
 
     while (TableEntry != NULL) {

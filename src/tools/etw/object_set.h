@@ -26,7 +26,7 @@ inline ULONG HashPtr(ULONG64 ObjPtr)
 }
 
 typedef struct _OBJECT {
-    QUIC_HASHTABLE_ENTRY ActiveEntry;
+    CXPLAT_HASHTABLE_ENTRY ActiveEntry;
     struct _OBJECT* InactiveNext;
     ULONG Id;
     ULONG64 Ptr;
@@ -40,7 +40,7 @@ void
 
 typedef struct _OBJECT_SET {
     OBJECT_FREE_FN FreeFn;
-    QUIC_HASHTABLE* Active;
+    CXPLAT_HASHTABLE* Active;
     OBJECT* Inactive;
     ULONG NextId;
 } OBJECT_SET;
@@ -63,8 +63,8 @@ inline void ObjectSetDestroy(_Inout_ OBJECT_SET* Set)
 {
     if (Set->NextId == 0) return;
 
-    QUIC_HASHTABLE_ENUMERATOR Enumerator;
-    QUIC_HASHTABLE_ENTRY* Entry;
+    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
     OBJECT* Obj;
 
     CxPlatHashtableEnumerateBegin(Set->Active, &Enumerator);
@@ -96,8 +96,8 @@ inline void ObjectSetReset(_Inout_ OBJECT_SET* Set)
 
 inline OBJECT* ObjectSetGetActive(_Inout_ OBJECT_SET* Set, ULONG64 ObjPtr)
 {
-    QUIC_HASHTABLE_ENTRY* Entry;
-    QUIC_HASHTABLE_LOOKUP_CONTEXT Ctx;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Ctx;
     OBJECT* Obj = NULL;
 
     Entry = CxPlatHashtableLookup(Set->Active, HashPtr(ObjPtr), &Ctx);
@@ -130,8 +130,8 @@ inline OBJECT* ObjectSetRemoveActive(_Inout_ OBJECT_SET* Set, ULONG64 ObjPtr)
 
 inline OBJECT* ObjectSetGetId(_Inout_ OBJECT_SET* Set, ULONG Id)
 {
-    QUIC_HASHTABLE_ENUMERATOR Enumerator;
-    QUIC_HASHTABLE_ENTRY* Entry;
+    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
 
     CxPlatHashtableEnumerateBegin(Set->Active, &Enumerator);
     for (;;) {
@@ -160,8 +160,8 @@ inline OBJECT* ObjectSetGetId(_Inout_ OBJECT_SET* Set, ULONG Id)
 
 inline OBJECT** ObjectSetSort(_Inout_ OBJECT_SET* Set, _In_opt_ int (__cdecl * CompareFn)(const void *, const void *))
 {
-    QUIC_HASHTABLE_ENUMERATOR Enumerator;
-    QUIC_HASHTABLE_ENTRY* Entry;
+    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
     OBJECT** ObjArray;
     OBJECT* Obj;
 

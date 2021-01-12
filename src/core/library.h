@@ -220,7 +220,7 @@ typedef struct QUIC_LIBRARY {
     //
     // The Toeplitz hash used for hashing received long header packets.
     //
-    QUIC_TOEPLITZ_HASH ToeplitzHash;
+    CXPLAT_TOEPLITZ_HASH ToeplitzHash;
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     //

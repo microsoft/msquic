@@ -73,7 +73,7 @@ QuicBindingInitialize(
     CxPlatDispatchLockInitialize(&Binding->StatelessOperLock);
     CxPlatListInitializeHead(&Binding->Listeners);
     QuicLookupInitialize(&Binding->Lookup);
-    if (!CxPlatHashtableInitializeEx(&Binding->StatelessOperTable, QUIC_HASH_MIN_SIZE)) {
+    if (!CxPlatHashtableInitializeEx(&Binding->StatelessOperTable, CXPLAT_HASH_MIN_SIZE)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -623,8 +623,8 @@ QuicBindingCreateStatelessOperation(
     // Check for pre-existing operations already in the tracking structures.
     //
 
-    QUIC_HASHTABLE_LOOKUP_CONTEXT Context;
-    QUIC_HASHTABLE_ENTRY* TableEntry =
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+    CXPLAT_HASHTABLE_ENTRY* TableEntry =
         CxPlatHashtableLookup(&Binding->StatelessOperTable, Hash, &Context);
 
     while (TableEntry != NULL) {

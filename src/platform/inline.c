@@ -123,7 +123,7 @@ _Must_inspect_result_
 _Success_(return != 0)
 BOOLEAN
 CxPlatHashtableInitializeEx(
-    _Inout_ QUIC_HASHTABLE* HashTable,
+    _Inout_ CXPLAT_HASHTABLE* HashTable,
     _In_ uint32_t InitialSize
     );
 

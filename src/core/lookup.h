@@ -9,7 +9,7 @@ typedef struct QUIC_PARTITIONED_HASHTABLE QUIC_PARTITIONED_HASHTABLE;
 
 typedef struct QUIC_REMOTE_HASH_ENTRY {
 
-    QUIC_HASHTABLE_ENTRY Entry;
+    CXPLAT_HASHTABLE_ENTRY Entry;
     QUIC_CONNECTION* Connection;
     QUIC_ADDR RemoteAddress;
     uint8_t RemoteCidLength;
@@ -67,7 +67,7 @@ typedef struct QUIC_LOOKUP {
     //
     // Remote Hash lookup.
     //
-    QUIC_HASHTABLE RemoteHashTable;
+    CXPLAT_HASHTABLE RemoteHashTable;
 
 } QUIC_LOOKUP;
 

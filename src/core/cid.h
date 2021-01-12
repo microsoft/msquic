@@ -144,7 +144,7 @@ typedef struct QUIC_CID_CXPLAT_LIST_ENTRY {
 
 typedef struct QUIC_CID_HASH_ENTRY {
 
-    QUIC_HASHTABLE_ENTRY Entry;
+    CXPLAT_HASHTABLE_ENTRY Entry;
     CXPLAT_SLIST_ENTRY Link;
     QUIC_CONNECTION* Connection;
     QUIC_CID CID;

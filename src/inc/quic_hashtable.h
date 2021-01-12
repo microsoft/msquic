@@ -15,7 +15,7 @@ Usage examples:
 
     void
     ExampleInsert(
-        QUIC_HASHTABLE* Table,
+        CXPLAT_HASHTABLE* Table,
         PEXAMPLE_OBJECT Obj
         )
     {
@@ -25,7 +25,7 @@ Usage examples:
 
     void
     ExampleRemove(
-        QUIC_HASHTABLE* Table,
+        CXPLAT_HASHTABLE* Table,
         PEXAMPLE_OBJECT Obj
         )
     {
@@ -34,12 +34,12 @@ Usage examples:
 
     PEXAMPLE_OBJECT
     ExampleLookup(
-        QUIC_HASHTABLE* Table,
+        CXPLAT_HASHTABLE* Table,
         EXAMPLE_OBJECT_ATTRIBUTE Attrib
         )
     {
-        QUIC_HASHTABLE_LOOKUP_CONTEXT Context;
-        QUIC_HASHTABLE_ENTRY* Entry;
+        CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+        CXPLAT_HASHTABLE_ENTRY* Entry;
 
         Entry = CxPlatHashtableLookup(Table, ExampleAttribHash(Attrib), &Context);
         while (Entry != NULL) {
@@ -55,11 +55,11 @@ Usage examples:
 
     void
     ExampleEnumeration(
-        QUIC_HASHTABLE* Table
+        CXPLAT_HASHTABLE* Table
         )
     {
-        QUIC_HASHTABLE_ENTRY* Entry;
-        QUIC_HASHTABLE_ENUMERATOR Enumerator;
+        CXPLAT_HASHTABLE_ENTRY* Entry;
+        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
 
         CxPlatHashtableEnumerateBegin(Table, &Enumerator);
         for (;;) {
@@ -80,16 +80,16 @@ Usage examples:
 
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 
-#define QUIC_HASH_ALLOCATED_HEADER 0x00000001
+#define CXPLAT_HASH_ALLOCATED_HEADER 0x00000001
 
-#define QUIC_HASH_MIN_SIZE 128
+#define CXPLAT_HASH_MIN_SIZE 128
 
-typedef struct QUIC_HASHTABLE_ENTRY {
+typedef struct CXPLAT_HASHTABLE_ENTRY {
     CXPLAT_LIST_ENTRY Linkage;
     uint64_t Signature;
-} QUIC_HASHTABLE_ENTRY;
+} CXPLAT_HASHTABLE_ENTRY;
 
-typedef struct QUIC_HASHTABLE_LOOKUP_CONTEXT {
+typedef struct CXPLAT_HASHTABLE_LOOKUP_CONTEXT {
     //
     // Brief background on each of the parameters and their justification:
     // 1. ChainHead stores the pointer to a bucket. This is needed since our
@@ -110,25 +110,25 @@ typedef struct QUIC_HASHTABLE_LOOKUP_CONTEXT {
     CXPLAT_LIST_ENTRY* ChainHead;
     CXPLAT_LIST_ENTRY* PrevLinkage;
     uint64_t Signature;
-} QUIC_HASHTABLE_LOOKUP_CONTEXT;
+} CXPLAT_HASHTABLE_LOOKUP_CONTEXT;
 
-typedef struct QUIC_HASHTABLE_ENUMERATOR {
+typedef struct CXPLAT_HASHTABLE_ENUMERATOR {
     union {
-       QUIC_HASHTABLE_ENTRY HashEntry;
+       CXPLAT_HASHTABLE_ENTRY HashEntry;
        CXPLAT_LIST_ENTRY* CurEntry;
     };
     CXPLAT_LIST_ENTRY* ChainHead;
     uint32_t BucketIndex;
-} QUIC_HASHTABLE_ENUMERATOR;
+} CXPLAT_HASHTABLE_ENUMERATOR;
 
-typedef struct QUIC_HASHTABLE {
+typedef struct CXPLAT_HASHTABLE {
 
     // Entries initialized at creation
     uint32_t Flags;
 
     // Entries used in bucket computation.
     uint32_t TableSize;
-#ifdef QUIC_HASHTABLE_RESIZE_SUPPORT
+#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
     uint32_t Pivot;
     uint32_t DivisorMask;
 #endif
@@ -145,14 +145,14 @@ typedef struct QUIC_HASHTABLE {
         CXPLAT_LIST_ENTRY** FirstLevelDir; // When TableSize > HT_SECOND_LEVEL_DIR_MIN_SIZE
     };
 
-} QUIC_HASHTABLE;
+} CXPLAT_HASHTABLE;
 
 _Must_inspect_result_
 _Success_(return != FALSE)
 BOOLEAN
 CxPlatHashtableInitialize(
     _Inout_ _When_(NULL == *HashTable, _At_(*HashTable, __drv_allocatesMem(Mem) _Post_notnull_))
-        QUIC_HASHTABLE** HashTable,
+        CXPLAT_HASHTABLE** HashTable,
     _In_ uint32_t InitialSize
     );
 
@@ -161,7 +161,7 @@ _Must_inspect_result_
 _Success_(return != FALSE)
 BOOLEAN
 CxPlatHashtableInitializeEx(
-    _Inout_ QUIC_HASHTABLE* HashTable,
+    _Inout_ CXPLAT_HASHTABLE* HashTable,
     _In_ uint32_t InitialSize
     )
 {
@@ -171,73 +171,73 @@ CxPlatHashtableInitializeEx(
 void
 CxPlatHashtableUninitialize(
     _In_
-    _When_((HashTable->Flags & QUIC_HASH_ALLOCATED_HEADER), __drv_freesMem(Mem) _Post_invalid_)
+    _When_((HashTable->Flags & CXPLAT_HASH_ALLOCATED_HEADER), __drv_freesMem(Mem) _Post_invalid_)
     _At_(HashTable->Directory, __drv_freesMem(Mem) _Post_invalid_)
-        QUIC_HASHTABLE* HashTable
+        CXPLAT_HASHTABLE* HashTable
     );
 
 void
 CxPlatHashtableInsert(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _In_ __drv_aliasesMem QUIC_HASHTABLE_ENTRY* Entry,
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _In_ __drv_aliasesMem CXPLAT_HASHTABLE_ENTRY* Entry,
     _In_ uint64_t Signature,
-    _Inout_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
+    _Inout_opt_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context
     );
 
 void
 CxPlatHashtableRemove(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _In_ QUIC_HASHTABLE_ENTRY* Entry,
-    _Inout_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _In_ CXPLAT_HASHTABLE_ENTRY* Entry,
+    _Inout_opt_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context
     );
 
 _Must_inspect_result_
-QUIC_HASHTABLE_ENTRY*
+CXPLAT_HASHTABLE_ENTRY*
 CxPlatHashtableLookup(
-    _In_ QUIC_HASHTABLE* HashTable,
+    _In_ CXPLAT_HASHTABLE* HashTable,
     _In_ uint64_t Signature,
-    _Out_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
+    _Out_opt_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context
     );
 
 _Must_inspect_result_
-QUIC_HASHTABLE_ENTRY*
+CXPLAT_HASHTABLE_ENTRY*
 CxPlatHashtableLookupNext(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _Inout_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _Inout_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context
     );
 
 void
 CxPlatHashtableEnumerateBegin(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _Out_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _Out_ CXPLAT_HASHTABLE_ENUMERATOR* Enumerator
     );
 
 _Must_inspect_result_
-QUIC_HASHTABLE_ENTRY*
+CXPLAT_HASHTABLE_ENTRY*
 CxPlatHashtableEnumerateNext(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _Inout_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _Inout_ CXPLAT_HASHTABLE_ENUMERATOR* Enumerator
     );
 
 void
 CxPlatHashtableEnumerateEnd(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _Inout_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _Inout_ CXPLAT_HASHTABLE_ENUMERATOR* Enumerator
     );
 
-#ifdef QUIC_HASHTABLE_RESIZE_SUPPORT
+#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
 
 BOOLEAN
 CxPlatHashTableExpand(
-    _Inout_ QUIC_HASHTABLE* HashTable
+    _Inout_ CXPLAT_HASHTABLE* HashTable
     );
 
 BOOLEAN
 CxPlatHashTableContract(
-    _Inout_ QUIC_HASHTABLE* HashTable
+    _Inout_ CXPLAT_HASHTABLE* HashTable
     );
 
-#endif // QUIC_HASHTABLE_RESIZE_SUPPORT
+#endif // CXPLAT_HASHTABLE_RESIZE_SUPPORT
 
 //
 // Simple helper hash function.

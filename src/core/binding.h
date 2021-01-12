@@ -232,7 +232,7 @@ typedef struct QUIC_BINDING {
     // Stateless operation tracking structures.
     //
     CXPLAT_DISPATCH_LOCK StatelessOperLock;
-    QUIC_HASHTABLE StatelessOperTable;
+    CXPLAT_HASHTABLE StatelessOperTable;
     CXPLAT_LIST_ENTRY StatelessOperList;
     CXPLAT_POOL StatelessOperCtxPool;
     uint32_t StatelessOperCount;

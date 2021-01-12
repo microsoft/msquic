@@ -306,7 +306,7 @@ CxPlatListPopEntry(
     return FirstEntry;
 }
 
-#include "quic_hashtable.h"
+#include "CXPLAT_HASHTABLE.h"
 #include "quic_toeplitz.h"
 
 //

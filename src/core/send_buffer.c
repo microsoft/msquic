@@ -267,8 +267,8 @@ QuicSendBufferConnectionAdjust(
     if (NewIdealBytes > Connection->SendBuffer.IdealBytes) {
         Connection->SendBuffer.IdealBytes = NewIdealBytes;
 
-        QUIC_HASHTABLE_ENUMERATOR Enumerator;
-        QUIC_HASHTABLE_ENTRY* Entry;
+        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+        CXPLAT_HASHTABLE_ENTRY* Entry;
         CxPlatHashtableEnumerateBegin(Connection->Streams.StreamTable, &Enumerator);
         while ((Entry = CxPlatHashtableEnumerateNext(Connection->Streams.StreamTable, &Enumerator)) != NULL) {
             QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);

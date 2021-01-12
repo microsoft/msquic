@@ -178,7 +178,7 @@ typedef struct QUIC_STATELESS_CONTEXT {
     QUIC_WORKER* Worker;
     QUIC_ADDR RemoteAddress;
     CXPLAT_LIST_ENTRY ListEntry;
-    QUIC_HASHTABLE_ENTRY TableEntry;
+    CXPLAT_HASHTABLE_ENTRY TableEntry;
     QUIC_RECV_DATA* Datagram;
     uint32_t CreationTimeMs;
     uint8_t HasBindingRef : 1;

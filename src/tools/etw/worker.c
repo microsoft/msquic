@@ -130,8 +130,8 @@ GetWorkerFromThreadId(
     _In_ ULONG ThreadId
     )
 {
-    QUIC_HASHTABLE_ENUMERATOR Enumerator;
-    QUIC_HASHTABLE_ENTRY* Entry;
+    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
 
     CxPlatHashtableEnumerateBegin(Workers.Active, &Enumerator);
     for (;;) {

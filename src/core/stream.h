@@ -200,7 +200,7 @@ typedef struct QUIC_STREAM {
         //
         // The entry in the connection's hashtable of streams.
         //
-        QUIC_HASHTABLE_ENTRY TableEntry;
+        CXPLAT_HASHTABLE_ENTRY TableEntry;
 
         //
         // The entry in the connection's list of closed streams to clean up.

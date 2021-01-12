@@ -27,8 +27,8 @@ QuicStreamSetValidate(
         return; // No streams have been created.
     }
     QUIC_CONNECTION* Connection = QuicStreamSetGetConnection(StreamSet);
-    QUIC_HASHTABLE_ENUMERATOR Enumerator;
-    QUIC_HASHTABLE_ENTRY* Entry;
+    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
     CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
     while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
         const QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
@@ -79,8 +79,8 @@ QuicStreamSetTraceRundown(
         return; // No streams have been created yet.
     }
 
-    QUIC_HASHTABLE_ENUMERATOR Enumerator;
-    QUIC_HASHTABLE_ENTRY* Entry;
+    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
     CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
     while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
         QuicStreamTraceRundown(
@@ -101,7 +101,7 @@ QuicStreamSetInsertStream(
         //
         // Lazily initialize the hash table.
         //
-        if (!CxPlatHashtableInitialize(&StreamSet->StreamTable, QUIC_HASH_MIN_SIZE)) {
+        if (!CxPlatHashtableInitialize(&StreamSet->StreamTable, CXPLAT_HASH_MIN_SIZE)) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
@@ -130,8 +130,8 @@ QuicStreamSetLookupStream(
         return NULL; // No streams have been created yet.
     }
 
-    QUIC_HASHTABLE_LOOKUP_CONTEXT Context;
-    QUIC_HASHTABLE_ENTRY* Entry =
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+    CXPLAT_HASHTABLE_ENTRY* Entry =
         CxPlatHashtableLookup(StreamSet->StreamTable, (uint32_t)ID, &Context);
     while (Entry != NULL) {
         QUIC_STREAM* Stream =
@@ -154,8 +154,8 @@ QuicStreamSetShutdown(
         return; // No streams have been created.
     }
 
-    QUIC_HASHTABLE_ENUMERATOR Enumerator;
-    QUIC_HASHTABLE_ENTRY* Entry;
+    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
     CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
     while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
         QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
@@ -282,8 +282,8 @@ QuicStreamSetInitializeTransportParameters(
     }
 
     if (StreamSet->StreamTable != NULL) {
-        QUIC_HASHTABLE_ENUMERATOR Enumerator;
-        QUIC_HASHTABLE_ENTRY* Entry;
+        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+        CXPLAT_HASHTABLE_ENTRY* Entry;
         CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
         while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
             QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
@@ -374,8 +374,8 @@ QuicStreamSetUpdateMaxStreams(
         BOOLEAN FlushSend = FALSE;
         if (StreamSet->StreamTable != NULL) {
 
-            QUIC_HASHTABLE_ENUMERATOR Enumerator;
-            QUIC_HASHTABLE_ENTRY* Entry;
+            CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+            CXPLAT_HASHTABLE_ENTRY* Entry;
             CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
             while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
                 QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
@@ -468,8 +468,8 @@ QuicStreamSetGetFlowControlSummary(
     *SendWindow = 0;
 
     if (StreamSet->StreamTable != NULL) {
-        QUIC_HASHTABLE_ENUMERATOR Enumerator;
-        QUIC_HASHTABLE_ENTRY* Entry;
+        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+        CXPLAT_HASHTABLE_ENTRY* Entry;
         CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
         while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
             QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
