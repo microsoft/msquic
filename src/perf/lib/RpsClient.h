@@ -34,7 +34,7 @@ struct StreamContext {
 };
 
 struct RpsConnectionContext {
-    QUIC_LIST_ENTRY Link; // For Worker's connection queue
+    CXPLAT_LIST_ENTRY Link; // For Worker's connection queue
     RpsWorkerContext* Worker {nullptr};
     HQUIC Handle {nullptr};
     operator HQUIC() const { return Handle; }
@@ -51,7 +51,7 @@ struct RpsConnectionContext {
 struct RpsWorkerContext {
     class RpsClient* Client {nullptr};
     CXPLAT_LOCK Lock;
-    QUIC_LIST_ENTRY Connections;
+    CXPLAT_LIST_ENTRY Connections;
     CXPLAT_THREAD Thread;
     CXPLAT_EVENT WakeEvent;
     bool ThreadStarted {false};

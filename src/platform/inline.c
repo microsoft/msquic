@@ -33,41 +33,41 @@ MaxUdpPayloadSizeForFamily(
 
 void
 CxPlatListInitializeHead(
-    _Out_ QUIC_LIST_ENTRY* ListHead
+    _Out_ CXPLAT_LIST_ENTRY* ListHead
     );
 
 _Must_inspect_result_
 BOOLEAN
 CxPlatListIsEmpty(
-    _In_ const QUIC_LIST_ENTRY* ListHead
+    _In_ const CXPLAT_LIST_ENTRY* ListHead
     );
 
 void
 CxPlatListInsertHead(
-    _Inout_ QUIC_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* Entry
     );
 
 void
 CxPlatListInsertTail(
-    _Inout_ QUIC_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* Entry
     );
 
-QUIC_LIST_ENTRY*
+CXPLAT_LIST_ENTRY*
 CxPlatListRemoveHead(
-    _Inout_ QUIC_LIST_ENTRY* ListHead
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead
     );
 
 BOOLEAN
 CxPlatListEntryRemove(
-    _In_ QUIC_LIST_ENTRY* Entry
+    _In_ CXPLAT_LIST_ENTRY* Entry
     );
 
 void
 CxPlatListMoveItems(
-    _In_ QUIC_LIST_ENTRY* Source,
-    _Out_ QUIC_LIST_ENTRY* Destination
+    _In_ CXPLAT_LIST_ENTRY* Source,
+    _Out_ CXPLAT_LIST_ENTRY* Destination
     );
 
 void

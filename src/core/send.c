@@ -52,7 +52,7 @@ QuicSendUninitialize(
     //
     // Release all the stream refs.
     //
-    QUIC_LIST_ENTRY* Entry = Send->SendStreams.Flink;
+    CXPLAT_LIST_ENTRY* Entry = Send->SendStreams.Flink;
     while (Entry != &Send->SendStreams) {
 
         QUIC_STREAM* Stream =
@@ -716,13 +716,13 @@ QuicSendWriteFrames(
 
             BOOLEAN HasMoreCidsToSend = FALSE;
             BOOLEAN MaxFrameLimitHit = FALSE;
-            for (QUIC_LIST_ENTRY* Entry = Connection->DestCids.Flink;
+            for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
                     Entry != &Connection->DestCids;
                     Entry = Entry->Flink) {
-                QUIC_CID_QUIC_LIST_ENTRY* DestCid =
+                QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
                     QUIC_CONTAINING_RECORD(
                         Entry,
-                        QUIC_CID_QUIC_LIST_ENTRY,
+                        QUIC_CID_CXPLAT_LIST_ENTRY,
                         Link);
                 if (!DestCid->CID.NeedsToSend) {
                     continue;
@@ -827,7 +827,7 @@ QuicSendGetNextStream(
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
     CXPLAT_DBG_ASSERT(!QuicConnIsClosed(Connection) || CxPlatListIsEmpty(&Send->SendStreams));
 
-    QUIC_LIST_ENTRY* Entry = Send->SendStreams.Flink;
+    CXPLAT_LIST_ENTRY* Entry = Send->SendStreams.Flink;
     while (Entry != &Send->SendStreams) {
 
         //

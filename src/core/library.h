@@ -184,12 +184,12 @@ typedef struct QUIC_LIBRARY {
     //
     // List of all registrations in the current process (or kernel).
     //
-    QUIC_LIST_ENTRY Registrations;
+    CXPLAT_LIST_ENTRY Registrations;
 
     //
     // List of all UDP bindings in the current process (or kernel).
     //
-    QUIC_LIST_ENTRY Bindings;
+    CXPLAT_LIST_ENTRY Bindings;
 
     //
     // Contains all (server) connections currently not in an app's registration.

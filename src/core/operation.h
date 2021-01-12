@@ -177,7 +177,7 @@ typedef struct QUIC_STATELESS_CONTEXT {
     QUIC_BINDING* Binding;
     QUIC_WORKER* Worker;
     QUIC_ADDR RemoteAddress;
-    QUIC_LIST_ENTRY ListEntry;
+    CXPLAT_LIST_ENTRY ListEntry;
     QUIC_HASHTABLE_ENTRY TableEntry;
     QUIC_RECV_DATA* Datagram;
     uint32_t CreationTimeMs;
@@ -191,7 +191,7 @@ typedef struct QUIC_STATELESS_CONTEXT {
 //
 typedef struct QUIC_OPERATION {
 
-    QUIC_LIST_ENTRY Link;
+    CXPLAT_LIST_ENTRY Link;
     QUIC_OPERATION_TYPE Type;
 
     //
@@ -279,7 +279,7 @@ typedef struct QUIC_OPERATION_QUEUE {
     // Queue of pending operations.
     //
     CXPLAT_DISPATCH_LOCK Lock;
-    QUIC_LIST_ENTRY List;
+    CXPLAT_LIST_ENTRY List;
 
 } QUIC_OPERATION_QUEUE;
 

@@ -20,7 +20,7 @@ typedef struct QUIC_LISTENER {
     //
     // The link in the binding's list of listeners.
     //
-    QUIC_LIST_ENTRY Link;
+    CXPLAT_LIST_ENTRY Link;
 
     //
     // The top level registration.

@@ -552,7 +552,7 @@ QuicLossDetectionOnPacketAcknowledged(
         }
 
         case QUIC_FRAME_RETIRE_CONNECTION_ID: {
-            QUIC_CID_QUIC_LIST_ENTRY* DestCid =
+            QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
                 QuicConnGetDestCidFromSeq(
                     Connection,
                     Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
@@ -726,7 +726,7 @@ QuicLossDetectionRetransmitFrames(
         }
 
         case QUIC_FRAME_RETIRE_CONNECTION_ID: {
-            QUIC_CID_QUIC_LIST_ENTRY* DestCid =
+            QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
                 QuicConnGetDestCidFromSeq(
                     Connection,
                     Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
@@ -1490,7 +1490,7 @@ QuicLossDetectionScheduleProbe(
         //
         // Check to see if any streams have fresh data to send out.
         //
-        for (QUIC_LIST_ENTRY* Entry = Connection->Send.SendStreams.Flink;
+        for (CXPLAT_LIST_ENTRY* Entry = Connection->Send.SendStreams.Flink;
             Entry != &Connection->Send.SendStreams;
             Entry = Entry->Flink) {
 

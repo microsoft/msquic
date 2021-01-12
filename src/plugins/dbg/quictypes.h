@@ -233,7 +233,7 @@ struct SingleListEntry : Struct {
 
 struct ListEntry : Struct {
 
-    ListEntry(ULONG64 addr) : Struct("msquic!QUIC_LIST_ENTRY", addr) {
+    ListEntry(ULONG64 addr) : Struct("msquic!CXPLAT_LIST_ENTRY", addr) {
     }
 
     ULONG64 Flink() {
@@ -350,7 +350,7 @@ struct HashTable : Struct {
 
             if (!ReadPointerFromStructAddr(
                     Entry,
-                    "msquic!QUIC_LIST_ENTRY",
+                    "msquic!CXPLAT_LIST_ENTRY",
                     "Flink",
                     &Entry)) {
                 dprintf("Failed to walk bucket %08lx at %p\n", Bucket, BucketHead);

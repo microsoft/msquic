@@ -150,7 +150,7 @@ MsQuicLibraryOnSettingsChanged(
     if (UpdateRegistrations) {
         CxPlatLockAcquire(&MsQuicLib.Lock);
 
-        for (QUIC_LIST_ENTRY* Link = MsQuicLib.Registrations.Flink;
+        for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Registrations.Flink;
             Link != &MsQuicLib.Registrations;
             Link = Link->Flink) {
             QuicRegistrationSettingsChanged(
@@ -1216,7 +1216,7 @@ QuicLibraryLookupBinding(
     _In_opt_ const QUIC_ADDR* RemoteAddress
     )
 {
-    for (QUIC_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
+    for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
         Link != &MsQuicLib.Bindings;
         Link = Link->Flink) {
 
@@ -1534,7 +1534,7 @@ QuicTraceRundown(
             QuicRegistrationTraceRundown(MsQuicLib.StatelessRegistration);
         }
 
-        for (QUIC_LIST_ENTRY* Link = MsQuicLib.Registrations.Flink;
+        for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Registrations.Flink;
             Link != &MsQuicLib.Registrations;
             Link = Link->Flink) {
             QuicRegistrationTraceRundown(
@@ -1542,7 +1542,7 @@ QuicTraceRundown(
         }
 
         CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
-        for (QUIC_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
+        for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
             Link != &MsQuicLib.Bindings;
             Link = Link->Flink) {
             QuicBindingTraceRundown(

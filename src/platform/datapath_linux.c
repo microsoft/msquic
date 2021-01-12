@@ -87,7 +87,7 @@ typedef struct QUIC_SEND_DATA {
     //
     // Linkage to pending send list.
     //
-    QUIC_LIST_ENTRY PendingSendLinkage;
+    CXPLAT_LIST_ENTRY PendingSendLinkage;
 
     //
     // Indicates if the send is pending.
@@ -180,7 +180,7 @@ typedef struct QUIC_SOCKET_CONTEXT {
     //
     // The head of list containg all pending sends on this socket.
     //
-    QUIC_LIST_ENTRY PendingSendContextHead;
+    CXPLAT_LIST_ENTRY PendingSendContextHead;
 
 } QUIC_SOCKET_CONTEXT;
 

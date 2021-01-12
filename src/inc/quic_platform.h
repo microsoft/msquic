@@ -39,10 +39,10 @@ Supported Environments:
 #define QUIC_CONTAINING_RECORD(address, type, field) \
     ((type *)((uint8_t*)(address) - offsetof(type, field)))
 
-typedef struct QUIC_LIST_ENTRY {
-    struct QUIC_LIST_ENTRY* Flink;
-    struct QUIC_LIST_ENTRY* Blink;
-} QUIC_LIST_ENTRY;
+typedef struct CXPLAT_LIST_ENTRY {
+    struct CXPLAT_LIST_ENTRY* Flink;
+    struct CXPLAT_LIST_ENTRY* Blink;
+} CXPLAT_LIST_ENTRY;
 
 typedef struct CXPLAT_SLIST_ENTRY {
     struct CXPLAT_SLIST_ENTRY* Next;
@@ -159,7 +159,7 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 FORCEINLINE
 void
 CxPlatListInitializeHead(
-    _Out_ QUIC_LIST_ENTRY* ListHead
+    _Out_ CXPLAT_LIST_ENTRY* ListHead
     )
 {
     ListHead->Flink = ListHead->Blink = ListHead;
@@ -169,7 +169,7 @@ _Must_inspect_result_
 FORCEINLINE
 BOOLEAN
 CxPlatListIsEmpty(
-    _In_ const QUIC_LIST_ENTRY* ListHead
+    _In_ const CXPLAT_LIST_ENTRY* ListHead
     )
 {
     return (BOOLEAN)(ListHead->Flink == ListHead);
@@ -178,12 +178,12 @@ CxPlatListIsEmpty(
 FORCEINLINE
 void
 CxPlatListInsertHead(
-    _Inout_ QUIC_LIST_ENTRY* ListHead,
-    _Out_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead,
+    _Out_ __drv_aliasesMem CXPLAT_LIST_ENTRY* Entry
     )
 {
     QuicListEntryValidate(ListHead);
-    QUIC_LIST_ENTRY* Flink = ListHead->Flink;
+    CXPLAT_LIST_ENTRY* Flink = ListHead->Flink;
     Entry->Flink = Flink;
     Entry->Blink = ListHead;
     Flink->Blink = Entry;
@@ -193,12 +193,12 @@ CxPlatListInsertHead(
 FORCEINLINE
 void
 CxPlatListInsertTail(
-    _Inout_ QUIC_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* Entry
     )
 {
     QuicListEntryValidate(ListHead);
-    QUIC_LIST_ENTRY* Blink = ListHead->Blink;
+    CXPLAT_LIST_ENTRY* Blink = ListHead->Blink;
     Entry->Flink = ListHead;
     Entry->Blink = Blink;
     Blink->Flink = Entry;
@@ -206,14 +206,14 @@ CxPlatListInsertTail(
 }
 
 FORCEINLINE
-QUIC_LIST_ENTRY*
+CXPLAT_LIST_ENTRY*
 CxPlatListRemoveHead(
-    _Inout_ QUIC_LIST_ENTRY* ListHead
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead
     )
 {
     QuicListEntryValidate(ListHead);
-    QUIC_LIST_ENTRY* Entry = ListHead->Flink; // cppcheck-suppress shadowFunction
-    QUIC_LIST_ENTRY* Flink = Entry->Flink;
+    CXPLAT_LIST_ENTRY* Entry = ListHead->Flink; // cppcheck-suppress shadowFunction
+    CXPLAT_LIST_ENTRY* Flink = Entry->Flink;
     ListHead->Flink = Flink;
     Flink->Blink = ListHead;
     return Entry;
@@ -222,12 +222,12 @@ CxPlatListRemoveHead(
 FORCEINLINE
 BOOLEAN
 CxPlatListEntryRemove(
-    _In_ QUIC_LIST_ENTRY* Entry
+    _In_ CXPLAT_LIST_ENTRY* Entry
     )
 {
     QuicListEntryValidate(Entry);
-    QUIC_LIST_ENTRY* Flink = Entry->Flink;
-    QUIC_LIST_ENTRY* Blink = Entry->Blink;
+    CXPLAT_LIST_ENTRY* Flink = Entry->Flink;
+    CXPLAT_LIST_ENTRY* Blink = Entry->Blink;
     Blink->Flink = Flink;
     Flink->Blink = Blink;
     return (BOOLEAN)(Flink == Blink);
@@ -236,8 +236,8 @@ CxPlatListEntryRemove(
 inline
 void
 CxPlatListMoveItems(
-    _Inout_ QUIC_LIST_ENTRY* Source,
-    _Inout_ QUIC_LIST_ENTRY* Destination
+    _Inout_ CXPLAT_LIST_ENTRY* Source,
+    _Inout_ CXPLAT_LIST_ENTRY* Destination
     )
 {
     //

@@ -85,7 +85,7 @@ Usage examples:
 #define QUIC_HASH_MIN_SIZE 128
 
 typedef struct QUIC_HASHTABLE_ENTRY {
-    QUIC_LIST_ENTRY Linkage;
+    CXPLAT_LIST_ENTRY Linkage;
     uint64_t Signature;
 } QUIC_HASHTABLE_ENTRY;
 
@@ -107,17 +107,17 @@ typedef struct QUIC_HASHTABLE_LOOKUP_CONTEXT {
     // 3. Signature is used primarily as a safety check in insertion. This field
     //    must match the Signature of the entry being inserted.
     //
-    QUIC_LIST_ENTRY* ChainHead;
-    QUIC_LIST_ENTRY* PrevLinkage;
+    CXPLAT_LIST_ENTRY* ChainHead;
+    CXPLAT_LIST_ENTRY* PrevLinkage;
     uint64_t Signature;
 } QUIC_HASHTABLE_LOOKUP_CONTEXT;
 
 typedef struct QUIC_HASHTABLE_ENUMERATOR {
     union {
        QUIC_HASHTABLE_ENTRY HashEntry;
-       QUIC_LIST_ENTRY* CurEntry;
+       CXPLAT_LIST_ENTRY* CurEntry;
     };
-    QUIC_LIST_ENTRY* ChainHead;
+    CXPLAT_LIST_ENTRY* ChainHead;
     uint32_t BucketIndex;
 } QUIC_HASHTABLE_ENUMERATOR;
 
@@ -141,8 +141,8 @@ typedef struct QUIC_HASHTABLE {
     // For internal use only.
     union {
         void* Directory;
-        QUIC_LIST_ENTRY* SecondLevelDir; // When TableSize <= HT_SECOND_LEVEL_DIR_MIN_SIZE
-        QUIC_LIST_ENTRY** FirstLevelDir; // When TableSize > HT_SECOND_LEVEL_DIR_MIN_SIZE
+        CXPLAT_LIST_ENTRY* SecondLevelDir; // When TableSize <= HT_SECOND_LEVEL_DIR_MIN_SIZE
+        CXPLAT_LIST_ENTRY** FirstLevelDir; // When TableSize > HT_SECOND_LEVEL_DIR_MIN_SIZE
     };
 
 } QUIC_HASHTABLE;

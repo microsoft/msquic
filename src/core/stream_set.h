@@ -49,13 +49,13 @@ typedef struct QUIC_STREAM_SET {
     //
     // The list of streams that are completely closed and need to be released.
     //
-    QUIC_LIST_ENTRY ClosedStreams;
+    CXPLAT_LIST_ENTRY ClosedStreams;
 
 #if DEBUG
     //
     // The list of allocated streams for leak tracking.
     //
-    QUIC_LIST_ENTRY AllStreams;
+    CXPLAT_LIST_ENTRY AllStreams;
     CXPLAT_DISPATCH_LOCK AllStreamsLock;
 #endif
 

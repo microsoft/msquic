@@ -275,18 +275,18 @@ typedef struct QUIC_CONNECTION {
     //
     // Link into the registrations's list of connections.
     //
-    QUIC_LIST_ENTRY RegistrationLink;
+    CXPLAT_LIST_ENTRY RegistrationLink;
 
     //
     // Link in the worker's connection queue.
     // N.B. Multi-threaded access, synchronized by worker's connection lock.
     //
-    QUIC_LIST_ENTRY WorkerLink;
+    CXPLAT_LIST_ENTRY WorkerLink;
 
     //
     // Link in the timer wheel's list.
     //
-    QUIC_LIST_ENTRY TimerLink;
+    CXPLAT_LIST_ENTRY TimerLink;
 
     //
     // The worker that is processing this connection.
@@ -407,7 +407,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The list of connection IDs used for sending. Given to us by the peer.
     //
-    QUIC_LIST_ENTRY DestCids;
+    CXPLAT_LIST_ENTRY DestCids;
 
     //
     // The original CID used by the Client in its first Initial packet.
@@ -1097,20 +1097,20 @@ QuicConnGetSourceCidFromBuf(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
-QUIC_CID_QUIC_LIST_ENTRY*
+QUIC_CID_CXPLAT_LIST_ENTRY*
 QuicConnGetDestCidFromSeq(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_VAR_INT SequenceNumber,
     _In_ BOOLEAN RemoveFromList
     )
 {
-    for (QUIC_LIST_ENTRY* Entry = Connection->DestCids.Flink;
+    for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
             Entry != &Connection->DestCids;
             Entry = Entry->Flink) {
-        QUIC_CID_QUIC_LIST_ENTRY* DestCid =
+        QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
             QUIC_CONTAINING_RECORD(
                 Entry,
-                QUIC_CID_QUIC_LIST_ENTRY,
+                QUIC_CID_CXPLAT_LIST_ENTRY,
                 Link);
         if (DestCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {

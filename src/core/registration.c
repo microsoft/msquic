@@ -249,7 +249,7 @@ MsQuicRegistrationShutdown(
 
         CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
 
-        QUIC_LIST_ENTRY* Entry = Registration->Connections.Flink;
+        CXPLAT_LIST_ENTRY* Entry = Registration->Connections.Flink;
         while (Entry != &Registration->Connections) {
 
             QUIC_CONNECTION* Connection =
@@ -293,7 +293,7 @@ QuicRegistrationTraceRundown(
 
     CxPlatLockAcquire(&Registration->ConfigLock);
 
-    for (QUIC_LIST_ENTRY* Link = Registration->Configurations.Flink;
+    for (CXPLAT_LIST_ENTRY* Link = Registration->Configurations.Flink;
         Link != &Registration->Configurations;
         Link = Link->Flink) {
         QuicConfigurationTraceRundown(
@@ -304,7 +304,7 @@ QuicRegistrationTraceRundown(
 
     CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
 
-    for (QUIC_LIST_ENTRY* Link = Registration->Connections.Flink;
+    for (CXPLAT_LIST_ENTRY* Link = Registration->Connections.Flink;
         Link != &Registration->Connections;
         Link = Link->Flink) {
         QuicConnQueueTraceRundown(
@@ -322,7 +322,7 @@ QuicRegistrationSettingsChanged(
 {
     CxPlatLockAcquire(&Registration->ConfigLock);
 
-    for (QUIC_LIST_ENTRY* Link = Registration->Configurations.Flink;
+    for (CXPLAT_LIST_ENTRY* Link = Registration->Configurations.Flink;
         Link != &Registration->Configurations;
         Link = Link->Flink) {
         QuicConfigurationSettingsChanged(

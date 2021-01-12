@@ -259,7 +259,7 @@ QuicBindingTraceRundown(
 
     CxPlatDispatchRwLockAcquireShared(&Binding->RwLock);
 
-    for (QUIC_LIST_ENTRY* Link = Binding->Listeners.Flink;
+    for (CXPLAT_LIST_ENTRY* Link = Binding->Listeners.Flink;
         Link != &Binding->Listeners;
         Link = Link->Flink) {
         QuicListenerTraceRundown(
@@ -305,7 +305,7 @@ QuicBindingRegisterListener(
     // only if there isn't a direct match prexisting in the list.
     //
 
-    QUIC_LIST_ENTRY* Link;
+    CXPLAT_LIST_ENTRY* Link;
     for (Link = Binding->Listeners.Flink;
         Link != &Binding->Listeners;
         Link = Link->Flink) {
@@ -393,7 +393,7 @@ QuicBindingGetListener(
 
     CxPlatDispatchRwLockAcquireShared(&Binding->RwLock);
 
-    for (QUIC_LIST_ENTRY* Link = Binding->Listeners.Flink;
+    for (CXPLAT_LIST_ENTRY* Link = Binding->Listeners.Flink;
         Link != &Binding->Listeners;
         Link = Link->Flink) {
 

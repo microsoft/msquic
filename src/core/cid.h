@@ -134,13 +134,13 @@ typedef struct QUIC_CID {
 
 } QUIC_CID;
 
-typedef struct QUIC_CID_QUIC_LIST_ENTRY {
+typedef struct QUIC_CID_CXPLAT_LIST_ENTRY {
 
-    QUIC_LIST_ENTRY Link;
+    CXPLAT_LIST_ENTRY Link;
     uint8_t ResetToken[QUIC_STATELESS_RESET_TOKEN_LENGTH];
     QUIC_CID CID;
 
-} QUIC_CID_QUIC_LIST_ENTRY;
+} QUIC_CID_CXPLAT_LIST_ENTRY;
 
 typedef struct QUIC_CID_HASH_ENTRY {
 
@@ -213,14 +213,14 @@ QuicCidNewSource(
 //
 inline
 _Success_(return != NULL)
-QUIC_CID_QUIC_LIST_ENTRY*
+QUIC_CID_CXPLAT_LIST_ENTRY*
 QuicCidNewRandomDestination(
     )
 {
-    QUIC_CID_QUIC_LIST_ENTRY* Entry =
-        (QUIC_CID_QUIC_LIST_ENTRY*)
+    QUIC_CID_CXPLAT_LIST_ENTRY* Entry =
+        (QUIC_CID_CXPLAT_LIST_ENTRY*)
         CXPLAT_ALLOC_NONPAGED(
-            sizeof(QUIC_CID_QUIC_LIST_ENTRY) +
+            sizeof(QUIC_CID_CXPLAT_LIST_ENTRY) +
             QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH,
             QUIC_POOL_CIDLIST);
 
@@ -238,17 +238,17 @@ QuicCidNewRandomDestination(
 //
 inline
 _Success_(return != NULL)
-QUIC_CID_QUIC_LIST_ENTRY*
+QUIC_CID_CXPLAT_LIST_ENTRY*
 QuicCidNewDestination(
     _In_ uint8_t Length,
     _In_reads_(Length)
         const uint8_t* const Data
     )
 {
-    QUIC_CID_QUIC_LIST_ENTRY* Entry =
-        (QUIC_CID_QUIC_LIST_ENTRY*)
+    QUIC_CID_CXPLAT_LIST_ENTRY* Entry =
+        (QUIC_CID_CXPLAT_LIST_ENTRY*)
         CXPLAT_ALLOC_NONPAGED(
-            sizeof(QUIC_CID_QUIC_LIST_ENTRY) +
+            sizeof(QUIC_CID_CXPLAT_LIST_ENTRY) +
             Length,
             QUIC_POOL_CIDLIST);
 

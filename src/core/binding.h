@@ -163,7 +163,7 @@ typedef struct QUIC_BINDING {
     //
     // The link in the library's global list of bindings.
     //
-    QUIC_LIST_ENTRY Link;
+    CXPLAT_LIST_ENTRY Link;
 
     //
     // Indicates whether the binding is exclusively owned already. Defaults
@@ -215,7 +215,7 @@ typedef struct QUIC_BINDING {
     //
     // The listeners registered on this binding.
     //
-    QUIC_LIST_ENTRY Listeners;
+    CXPLAT_LIST_ENTRY Listeners;
 
     //
     // Lookup tables for connection IDs.
@@ -233,7 +233,7 @@ typedef struct QUIC_BINDING {
     //
     CXPLAT_DISPATCH_LOCK StatelessOperLock;
     QUIC_HASHTABLE StatelessOperTable;
-    QUIC_LIST_ENTRY StatelessOperList;
+    CXPLAT_LIST_ENTRY StatelessOperList;
     CXPLAT_POOL StatelessOperCtxPool;
     uint32_t StatelessOperCount;
 

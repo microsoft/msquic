@@ -61,7 +61,7 @@ typedef struct QUIC_REGISTRATION {
     //
     // Link into the global library's Registrations list.
     //
-    QUIC_LIST_ENTRY Link;
+    CXPLAT_LIST_ENTRY Link;
 
     //
     // Set of workers that manage most of the processing work.
@@ -76,7 +76,7 @@ typedef struct QUIC_REGISTRATION {
     //
     // List of all configurations for this registration.
     //
-    QUIC_LIST_ENTRY Configurations;
+    CXPLAT_LIST_ENTRY Configurations;
 
     //
     // Protects access to the Connections list.
@@ -86,7 +86,7 @@ typedef struct QUIC_REGISTRATION {
     //
     // List of all connections for this registration.
     //
-    QUIC_LIST_ENTRY Connections;
+    CXPLAT_LIST_ENTRY Connections;
 
     //
     // Rundown for all child objects.

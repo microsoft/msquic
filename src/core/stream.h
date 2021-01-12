@@ -205,19 +205,19 @@ typedef struct QUIC_STREAM {
         //
         // The entry in the connection's list of closed streams to clean up.
         //
-        QUIC_LIST_ENTRY ClosedLink;
+        CXPLAT_LIST_ENTRY ClosedLink;
     };
 
     //
     // The list entry in the output module's send list.
     //
-    QUIC_LIST_ENTRY SendLink;
+    CXPLAT_LIST_ENTRY SendLink;
 
 #if DEBUG
     //
     // The list entry in the stream set's list of all allocated streams.
     //
-    QUIC_LIST_ENTRY AllStreamsLink;
+    CXPLAT_LIST_ENTRY AllStreamsLink;
 #endif
 
     //

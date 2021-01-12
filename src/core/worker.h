@@ -58,12 +58,12 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     //
     // Queue of connections with operations to be processed.
     //
-    QUIC_LIST_ENTRY Connections;
+    CXPLAT_LIST_ENTRY Connections;
 
     //
     // Queue of stateless operations to be processed.
     //
-    QUIC_LIST_ENTRY Operations;
+    CXPLAT_LIST_ENTRY Operations;
     uint32_t OperationCount;
     uint64_t DroppedOperationCount;
 

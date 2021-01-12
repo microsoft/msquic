@@ -202,7 +202,7 @@ QuicOperationQueueClear(
     _In_ QUIC_OPERATION_QUEUE* OperQ
     )
 {
-    QUIC_LIST_ENTRY OldList;
+    CXPLAT_LIST_ENTRY OldList;
     CxPlatListInitializeHead(&OldList);
 
     CxPlatDispatchLockAcquire(&OperQ->Lock);

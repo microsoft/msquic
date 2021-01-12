@@ -90,7 +90,7 @@ typedef struct QUIC_PATH {
     //
     // The destination CID used for sending on this path.
     //
-    QUIC_CID_QUIC_LIST_ENTRY* DestCid;
+    QUIC_CID_CXPLAT_LIST_ENTRY* DestCid;
 
     //
     // Used on the server side until the client's IP address has been validated

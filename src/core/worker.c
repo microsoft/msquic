@@ -402,7 +402,7 @@ QuicWorkerProcessTimers(
     //
     // Get the list of all connections with expired timers from the timer wheel.
     //
-    QUIC_LIST_ENTRY ExpiredTimers;
+    CXPLAT_LIST_ENTRY ExpiredTimers;
     CxPlatListInitializeHead(&ExpiredTimers);
     uint64_t TimeNow = CxPlatTimeUs64();
     QuicTimerWheelGetExpired(&Worker->TimerWheel, TimeNow, &ExpiredTimers);
@@ -411,7 +411,7 @@ QuicWorkerProcessTimers(
     // Indicate to all the connections that have expired timers.
     //
     while (!CxPlatListIsEmpty(&ExpiredTimers)) {
-        QUIC_LIST_ENTRY* Entry = CxPlatListRemoveHead(&ExpiredTimers);
+        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&ExpiredTimers);
         Entry->Flink = NULL;
 
         QUIC_CONNECTION* Connection =

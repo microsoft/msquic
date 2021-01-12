@@ -77,12 +77,12 @@ QuicTimerWheelInitialize(
     TimerWheel->NextConnection = NULL;
     TimerWheel->SlotCount = QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT;
     TimerWheel->Slots =
-        CXPLAT_ALLOC_NONPAGED(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY), QUIC_POOL_TIMERWHEEL);
+        CXPLAT_ALLOC_NONPAGED(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY), QUIC_POOL_TIMERWHEEL);
     if (TimerWheel->Slots == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "timerwheel slots",
-            QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY));
+            QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -101,8 +101,8 @@ QuicTimerWheelUninitialize(
 {
     if (TimerWheel->Slots != NULL) {
         for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
-            QUIC_LIST_ENTRY* ListHead = &TimerWheel->Slots[i];
-            QUIC_LIST_ENTRY* Entry = ListHead->Flink;
+            CXPLAT_LIST_ENTRY* ListHead = &TimerWheel->Slots[i];
+            CXPLAT_LIST_ENTRY* Entry = ListHead->Flink;
             while (Entry != ListHead) {
                 QUIC_CONNECTION* Connection =
                     QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
@@ -136,13 +136,13 @@ QuicTimerWheelResize(
         return;
     }
 
-    QUIC_LIST_ENTRY* NewSlots =
-        CXPLAT_ALLOC_NONPAGED(NewSlotCount * sizeof(QUIC_LIST_ENTRY), QUIC_POOL_TIMERWHEEL);
+    CXPLAT_LIST_ENTRY* NewSlots =
+        CXPLAT_ALLOC_NONPAGED(NewSlotCount * sizeof(CXPLAT_LIST_ENTRY), QUIC_POOL_TIMERWHEEL);
     if (NewSlots == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "timerwheel slots (realloc)",
-            NewSlotCount * sizeof(QUIC_LIST_ENTRY));
+            NewSlotCount * sizeof(CXPLAT_LIST_ENTRY));
         return;
     }
 
@@ -157,7 +157,7 @@ QuicTimerWheelResize(
     }
 
     uint32_t OldSlotCount = TimerWheel->SlotCount;
-    QUIC_LIST_ENTRY* OldSlots = TimerWheel->Slots;
+    CXPLAT_LIST_ENTRY* OldSlots = TimerWheel->Slots;
 
     TimerWheel->SlotCount = NewSlotCount;
     TimerWheel->Slots = NewSlots;
@@ -182,8 +182,8 @@ QuicTimerWheelResize(
             // the slot's list in reverse order, with the assumption that most new
             // timers will on average be later than existing ones.
             //
-            QUIC_LIST_ENTRY* ListHead = &TimerWheel->Slots[SlotIndex];
-            QUIC_LIST_ENTRY* Entry = ListHead->Blink;
+            CXPLAT_LIST_ENTRY* ListHead = &TimerWheel->Slots[SlotIndex];
+            CXPLAT_LIST_ENTRY* Entry = ListHead->Blink;
 
             while (Entry != ListHead) {
                 QUIC_CONNECTION* ConnectionEntry =
@@ -335,8 +335,8 @@ QuicTimerWheelUpdateConnection(
         // the slot's list in reverse order, with the assumption that most new
         // timers will on average be later than existing ones.
         //
-        QUIC_LIST_ENTRY* ListHead = &TimerWheel->Slots[SlotIndex];
-        QUIC_LIST_ENTRY* Entry = ListHead->Blink;
+        CXPLAT_LIST_ENTRY* ListHead = &TimerWheel->Slots[SlotIndex];
+        CXPLAT_LIST_ENTRY* Entry = ListHead->Blink;
 
         while (Entry != ListHead) {
             QUIC_CONNECTION* ConnectionEntry =
@@ -425,7 +425,7 @@ void
 QuicTimerWheelGetExpired(
     _Inout_ QUIC_TIMER_WHEEL* TimerWheel,
     _In_ uint64_t TimeNow,
-    _Inout_ QUIC_LIST_ENTRY* OutputListHead
+    _Inout_ CXPLAT_LIST_ENTRY* OutputListHead
     )
 {
     //
@@ -433,8 +433,8 @@ QuicTimerWheelGetExpired(
     // expired timers.
     //
     for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
-        QUIC_LIST_ENTRY* ListHead = &TimerWheel->Slots[i];
-        QUIC_LIST_ENTRY* Entry = ListHead->Flink;
+        CXPLAT_LIST_ENTRY* ListHead = &TimerWheel->Slots[i];
+        CXPLAT_LIST_ENTRY* Entry = ListHead->Flink;
         while (Entry != ListHead) {
             QUIC_CONNECTION* ConnectionEntry =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);

@@ -20,7 +20,7 @@ typedef struct QUIC_CONFIGURATION {
     //
     // Link in the parent registration's Configurations list.
     //
-    QUIC_LIST_ENTRY Link;
+    CXPLAT_LIST_ENTRY Link;
 
     //
     // Reference count for tracking lifetime.

@@ -171,10 +171,10 @@ QuicCryptoInitialize(
 
     } else {
         CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
-        QUIC_CID_QUIC_LIST_ENTRY* DestCid =
+        QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
             QUIC_CONTAINING_RECORD(
                 Connection->DestCids.Flink,
-                QUIC_CID_QUIC_LIST_ENTRY,
+                QUIC_CID_CXPLAT_LIST_ENTRY,
                 Link);
 
         HandshakeCid = DestCid->CID.Data;

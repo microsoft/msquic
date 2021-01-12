@@ -144,7 +144,7 @@ QuicSendBufferFill(
     //
 
     QUIC_SEND_REQUEST* Req;
-    QUIC_LIST_ENTRY* Entry;
+    CXPLAT_LIST_ENTRY* Entry;
 
     CXPLAT_DBG_ASSERT(Connection->Settings.SendBufferingEnabled);
 

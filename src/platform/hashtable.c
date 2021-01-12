@@ -214,7 +214,7 @@ Return Value:
 static
 void
 CxPlatInitializeSecondLevelDir(
-    _Out_writes_all_(NumberOfBucketsToInitialize) QUIC_LIST_ENTRY* SecondLevelDir,
+    _Out_writes_all_(NumberOfBucketsToInitialize) CXPLAT_LIST_ENTRY* SecondLevelDir,
     _In_ uint32_t NumberOfBucketsToInitialize
     )
 /*++
@@ -239,7 +239,7 @@ Arguments:
 static
 QUIC_HASHTABLE_ENTRY*
 CxPlatFlinkToHashEntry(
-    _In_ QUIC_LIST_ENTRY* *FlinkPtr
+    _In_ CXPLAT_LIST_ENTRY* *FlinkPtr
     )
 /*++
 
@@ -263,7 +263,7 @@ Return Value:
 }
 
 static
-QUIC_LIST_ENTRY*
+CXPLAT_LIST_ENTRY*
 CxPlatGetChainHead(
     _In_ const QUIC_HASHTABLE* HashTable,
     _In_range_(<, HashTable->TableSize) uint32_t BucketIndex
@@ -297,7 +297,7 @@ Return Value:
 --*/
 {
     uint32_t SecondLevelIndex;
-    QUIC_LIST_ENTRY* SecondLevelDir;
+    CXPLAT_LIST_ENTRY* SecondLevelDir;
 
     CXPLAT_DBG_ASSERT(BucketIndex < HashTable->TableSize);
 
@@ -401,13 +401,13 @@ Return Value:
     //
     uint32_t BucketIndex = CxPlatGetBucketIndex(HashTable, Signature);
 
-    QUIC_LIST_ENTRY* BucketPtr = CxPlatGetChainHead(HashTable, BucketIndex);
+    CXPLAT_LIST_ENTRY* BucketPtr = CxPlatGetChainHead(HashTable, BucketIndex);
     CXPLAT_DBG_ASSERT(NULL != BucketPtr);
 
-    QUIC_LIST_ENTRY* CurEntry = BucketPtr;
+    CXPLAT_LIST_ENTRY* CurEntry = BucketPtr;
     while (CurEntry->Flink != BucketPtr) {
 
-        QUIC_LIST_ENTRY* NextEntry = CurEntry->Flink;
+        CXPLAT_LIST_ENTRY* NextEntry = CurEntry->Flink;
         QUIC_HASHTABLE_ENTRY* NextHashEntry = CxPlatFlinkToHashEntry(&NextEntry->Flink);
 
         if ((QUIC_HASH_RESERVED_SIGNATURE == NextHashEntry->Signature) ||
@@ -516,14 +516,14 @@ Return Value:
 
         Table->SecondLevelDir =
             CXPLAT_ALLOC_NONPAGED(
-                CxPlatComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY),
+                CxPlatComputeSecondLevelDirSize(0) * sizeof(CXPLAT_LIST_ENTRY),
                 QUIC_POOL_HASHTABLE_MEMBER);
         if (Table->SecondLevelDir == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "second level dir (0)",
-                CxPlatComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
+                CxPlatComputeSecondLevelDirSize(0) * sizeof(CXPLAT_LIST_ENTRY));
             CxPlatHashtableUninitialize(Table);
             return FALSE;
         }
@@ -542,7 +542,7 @@ Return Value:
 
         Table->FirstLevelDir =
             CXPLAT_ALLOC_NONPAGED(
-                sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE,
+                sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE,
                 QUIC_POOL_HASHTABLE_MEMBER);
         if (Table->FirstLevelDir == NULL) {
             CxPlatHashtableUninitialize(Table);
@@ -550,20 +550,20 @@ Return Value:
         }
 
         CxPlatZeroMemory(Table->FirstLevelDir,
-            sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
+            sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
 
         for (uint32_t i = 0; i <= FirstLevelIndex; i++) {
 
             Table->FirstLevelDir[i] =
                 CXPLAT_ALLOC_NONPAGED(
-                    CxPlatComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY),
+                    CxPlatComputeSecondLevelDirSize(i) * sizeof(CXPLAT_LIST_ENTRY),
                     QUIC_POOL_HASHTABLE_MEMBER);
             if (Table->FirstLevelDir[i] == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "second level dir (i)",
-                    CxPlatComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
+                    CxPlatComputeSecondLevelDirSize(i) * sizeof(CXPLAT_LIST_ENTRY));
                 CxPlatHashtableUninitialize(Table);
                 return FALSE;
             }
@@ -633,7 +633,7 @@ Arguments:
                  FirstLevelIndex < HT_FIRST_LEVEL_DIR_SIZE;
                  FirstLevelIndex++) {
 
-                QUIC_LIST_ENTRY* SecondLevelDir =
+                CXPLAT_LIST_ENTRY* SecondLevelDir =
                     HashTable->FirstLevelDir[FirstLevelIndex];
                 if (NULL == SecondLevelDir) {
                     break;
@@ -845,7 +845,7 @@ Return Value:
 
     CxPlatPopulateContext(HashTable, ContextPtr, Signature);
 
-    QUIC_LIST_ENTRY* CurEntry = ContextPtr->PrevLinkage->Flink;
+    CXPLAT_LIST_ENTRY* CurEntry = ContextPtr->PrevLinkage->Flink;
     if (ContextPtr->ChainHead == CurEntry) {
         return NULL;
     }
@@ -905,7 +905,7 @@ Return Value:
     //
     // We know that the next entry is a valid, kosher entry,
     //
-    QUIC_LIST_ENTRY* CurEntry = Context->PrevLinkage->Flink;
+    CXPLAT_LIST_ENTRY* CurEntry = Context->PrevLinkage->Flink;
     CXPLAT_DBG_ASSERT(CurEntry != Context->ChainHead);
     CXPLAT_DBG_ASSERT(QUIC_HASH_RESERVED_SIGNATURE !=
            (CxPlatFlinkToHashEntry(&CurEntry->Flink)->Signature));
@@ -917,7 +917,7 @@ Return Value:
         return NULL;
     }
 
-    QUIC_LIST_ENTRY* NextEntry;
+    CXPLAT_LIST_ENTRY* NextEntry;
     QUIC_HASHTABLE_ENTRY* NextHashEntry;
     if (HashTable->NumEnumerators == 0) {
         NextEntry = CurEntry->Flink;
@@ -1050,7 +1050,7 @@ Return Value:
     //
     for (uint32_t i = Enumerator->BucketIndex; i < HashTable->TableSize; i++) {
 
-        QUIC_LIST_ENTRY* CurEntry, *ChainHead;
+        CXPLAT_LIST_ENTRY* CurEntry, *ChainHead;
         if (i == Enumerator->BucketIndex) {
             //
             // If this is the first bucket, start searching from enumerator.
@@ -1067,7 +1067,7 @@ Return Value:
 
         while (CurEntry->Flink != ChainHead) {
 
-            QUIC_LIST_ENTRY* NextEntry = CurEntry->Flink;
+            CXPLAT_LIST_ENTRY* NextEntry = CurEntry->Flink;
             QUIC_HASHTABLE_ENTRY* NextHashEntry = CxPlatFlinkToHashEntry(&NextEntry->Flink);
             if (QUIC_HASH_RESERVED_SIGNATURE != NextHashEntry->Signature) {
                 CxPlatListEntryRemove(&(Enumerator->HashEntry.Linkage));
@@ -1175,19 +1175,19 @@ CxPlatHashTableExpand(
     // is about to be expanded.
     //
 
-    QUIC_LIST_ENTRY* SecondLevelDir;
-    QUIC_LIST_ENTRY** FirstLevelDir;
+    CXPLAT_LIST_ENTRY* SecondLevelDir;
+    CXPLAT_LIST_ENTRY** FirstLevelDir;
     if (HT_SECOND_LEVEL_DIR_MIN_SIZE == HashTable->TableSize) {
 
-        SecondLevelDir = (QUIC_LIST_ENTRY*)HashTable->SecondLevelDir;
-        FirstLevelDir = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
+        SecondLevelDir = (CXPLAT_LIST_ENTRY*)HashTable->SecondLevelDir;
+        FirstLevelDir = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
 
         if (FirstLevelDir == NULL) {
             return FALSE;
         }
 
         CxPlatZeroMemory(FirstLevelDir,
-                      sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
+                      sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
 
         FirstLevelDir[0] = SecondLevelDir;
 
@@ -1205,7 +1205,7 @@ CxPlatHashTableExpand(
         //
         SecondLevelDir =
             CXPLAT_ALLOC_NONPAGED(
-                CxPlatComputeSecondLevelDirSize(FirstLevelIndex) * sizeof(QUIC_LIST_ENTRY));
+                CxPlatComputeSecondLevelDirSize(FirstLevelIndex) * sizeof(CXPLAT_LIST_ENTRY));
         if (NULL == SecondLevelDir) {
 
             //
@@ -1233,19 +1233,19 @@ CxPlatHashTableExpand(
     // The allocations are out of the way. Now actually increase
     // the Table size and split the pivot bucket.
     //
-    QUIC_LIST_ENTRY* ChainToBeSplit =
+    CXPLAT_LIST_ENTRY* ChainToBeSplit =
         CxPlatGetChainHead(HashTable, HashTable->Pivot);
     HashTable->Pivot++;
 
-    QUIC_LIST_ENTRY* NewChain = &(SecondLevelDir[SecondLevelIndex]);
+    CXPLAT_LIST_ENTRY* NewChain = &(SecondLevelDir[SecondLevelIndex]);
     CxPlatListInitializeHead(NewChain);
 
     if (!CxPlatListIsEmpty(ChainToBeSplit)) {
 
-        QUIC_LIST_ENTRY* CurEntry = ChainToBeSplit;
+        CXPLAT_LIST_ENTRY* CurEntry = ChainToBeSplit;
         while (CurEntry->Flink != ChainToBeSplit) {
 
-            QUIC_LIST_ENTRY* NextEntry = CurEntry->Flink;
+            CXPLAT_LIST_ENTRY* NextEntry = CurEntry->Flink;
             QUIC_HASHTABLE_ENTRY* NextHashEntry =
                 CxPlatFlinkToHashEntry(&NextEntry->Flink);
 
@@ -1325,8 +1325,8 @@ CxPlatHashTableContract(
     // the bucket that was the last bucket before table size was lowered, the
     // index of the last bucket is exactly equal to the current table size.
     //
-    QUIC_LIST_ENTRY* ChainToBeMoved = CxPlatGetChainHead(HashTable, HashTable->TableSize - 1);
-    QUIC_LIST_ENTRY* CombinedChain = CxPlatGetChainHead(HashTable, HashTable->Pivot);
+    CXPLAT_LIST_ENTRY* ChainToBeMoved = CxPlatGetChainHead(HashTable, HashTable->TableSize - 1);
+    CXPLAT_LIST_ENTRY* CombinedChain = CxPlatGetChainHead(HashTable, HashTable->Pivot);
 
     HashTable->TableSize--;
 
@@ -1342,16 +1342,16 @@ CxPlatHashTableContract(
         HashTable->NonEmptyBuckets--;
     }
 
-    QUIC_LIST_ENTRY* CurEntry = CombinedChain;
+    CXPLAT_LIST_ENTRY* CurEntry = CombinedChain;
     while (!CxPlatListIsEmpty(ChainToBeMoved)) {
 
-        QUIC_LIST_ENTRY* EntryToBeMoved = CxPlatListRemoveHead(ChainToBeMoved);
+        CXPLAT_LIST_ENTRY* EntryToBeMoved = CxPlatListRemoveHead(ChainToBeMoved);
         QUIC_HASHTABLE_ENTRY* HashEntryToBeMoved =
             CxPlatFlinkToHashEntry(&EntryToBeMoved->Flink);
 
         while (CurEntry->Flink != CombinedChain) {
 
-            QUIC_LIST_ENTRY* NextEntry = CurEntry->Flink;
+            CXPLAT_LIST_ENTRY* NextEntry = CurEntry->Flink;
             QUIC_HASHTABLE_ENTRY* NextHashEntry =
                 CxPlatFlinkToHashEntry(&NextEntry->Flink);
 
@@ -1375,8 +1375,8 @@ CxPlatHashTableContract(
 
     if (SecondLevelIndex == 0) {
 
-        QUIC_LIST_ENTRY** FirstLevelDir = HashTable->FirstLevelDir;
-        QUIC_LIST_ENTRY* SecondLevelDir = FirstLevelDir[FirstLevelIndex];
+        CXPLAT_LIST_ENTRY** FirstLevelDir = HashTable->FirstLevelDir;
+        CXPLAT_LIST_ENTRY* SecondLevelDir = FirstLevelDir[FirstLevelIndex];
 
         CXPLAT_FREE(SecondLevelDir);
         FirstLevelDir[FirstLevelIndex] = NULL;
