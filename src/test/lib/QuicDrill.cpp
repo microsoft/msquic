@@ -146,7 +146,7 @@ struct DrillSender {
             return Status;
         }
 
-        CxPlatAddrSetFamily(&ServerAddress, Family);
+        QuicAddrSetFamily(&ServerAddress, Family);
 
         Status =
             CxPlatDataPathResolveAddress(

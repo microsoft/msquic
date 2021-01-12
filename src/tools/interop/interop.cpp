@@ -566,9 +566,9 @@ public:
                 &LocalAddress))) {
             return FALSE;
         }
-        uint16_t PrevPort = CxPlatAddrGetPort(&LocalAddress);
+        uint16_t PrevPort = QuicAddrGetPort(&LocalAddress);
         for (uint16_t i = 1236; i <= 1246; ++i) {
-            CxPlatAddrSetPort(&LocalAddress, PrevPort + i);
+            QuicAddrSetPort(&LocalAddress, PrevPort + i);
             if (QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,

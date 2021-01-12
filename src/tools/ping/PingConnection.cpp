@@ -142,7 +142,7 @@ PingConnection::QueueDatagram(
 
 bool
 PingConnection::Connect(_In_ HQUIC ClientConfiguration) {
-    if (CxPlatAddrGetFamily(&PingConfig.LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
+    if (QuicAddrGetFamily(&PingConfig.LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
@@ -166,9 +166,9 @@ PingConnection::Connect(_In_ HQUIC ClientConfiguration) {
         MsQuic->ConnectionStart(
             QuicConnection,
             ClientConfiguration,
-            CxPlatAddrGetFamily(&PingConfig.Client.RemoteIpAddr),
+            QuicAddrGetFamily(&PingConfig.Client.RemoteIpAddr),
             PingConfig.Client.Target,
-            CxPlatAddrGetPort(&PingConfig.Client.RemoteIpAddr)))) {
+            QuicAddrGetPort(&PingConfig.Client.RemoteIpAddr)))) {
         Tracker->CompleteItem(0, 0);
         return false;
     }

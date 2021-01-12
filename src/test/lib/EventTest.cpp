@@ -337,9 +337,9 @@ QuicTestValidateConnectionEvents1(
         MsQuic->ConnectionStart(
             Client.Handle,
             ClientConfiguration,
-            CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
-                CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
     TEST_TRUE(CxPlatEventWaitWithTimeout(Client.Complete, 2000));
@@ -393,9 +393,9 @@ QuicTestValidateConnectionEvents2(
         MsQuic->ConnectionStart(
             Client.Handle,
             ClientConfiguration,
-            CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
-                CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
     TEST_TRUE(CxPlatEventWaitWithTimeout(Client.Complete, 2000));
@@ -470,9 +470,9 @@ QuicTestValidateConnectionEvents3(
         MsQuic->ConnectionStart(
             Client.Handle,
             ClientConfiguration,
-            CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
-            CxPlatAddrGetPort(&ServerLocalAddr.SockAddr)));
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+            QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
     TEST_TRUE(CxPlatEventWaitWithTimeout(Client.Complete, 2000));
     TEST_TRUE(CxPlatEventWaitWithTimeout(Server.Complete, 1000));
@@ -606,9 +606,9 @@ QuicTestValidateStreamEvents1(
         MsQuic->ConnectionStart(
             Client.Handle,
             ClientConfiguration,
-            CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
-                CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
     TEST_TRUE(CxPlatEventWaitWithTimeout(Client.Complete, 2000));
@@ -695,9 +695,9 @@ QuicTestValidateStreamEvents2(
         MsQuic->ConnectionStart(
             Client.Handle,
             ClientConfiguration,
-            CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
-                CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
     TEST_TRUE(CxPlatEventWaitWithTimeout(Client.Complete, 2000));

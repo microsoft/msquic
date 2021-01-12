@@ -33,31 +33,31 @@ struct QuicAddr {
     }
     QuicAddr(QUIC_ADDRESS_FAMILY af) {
         memset(&SockAddr, 0, sizeof(SockAddr));
-        CxPlatAddrSetFamily(&SockAddr, af);
+        QuicAddrSetFamily(&SockAddr, af);
     }
     QuicAddr(QUIC_ADDRESS_FAMILY af, uint16_t Port) {
         memset(&SockAddr, 0, sizeof(SockAddr));
-        CxPlatAddrSetFamily(&SockAddr, af);
-        CxPlatAddrSetPort(&SockAddr, Port);
+        QuicAddrSetFamily(&SockAddr, af);
+        QuicAddrSetPort(&SockAddr, Port);
     }
     QuicAddr(QUIC_ADDRESS_FAMILY af, bool /*unused*/) {
         memset(&SockAddr, 0, sizeof(SockAddr));
-        CxPlatAddrSetFamily(&SockAddr, af);
-        CxPlatAddrSetToLoopback(&SockAddr);
+        QuicAddrSetFamily(&SockAddr, af);
+        QuicAddrSetToLoopback(&SockAddr);
     }
     QuicAddr(const QuicAddr &Addr, uint16_t Port) {
         SockAddr = Addr.SockAddr;
-        CxPlatAddrSetPort(&SockAddr, Port);
+        QuicAddrSetPort(&SockAddr, Port);
     }
     void IncrementPort() {
-        CXPLAT_DBG_ASSERT(CxPlatAddrGetPort(&SockAddr) != 0xFFFF);
-        CxPlatAddrSetPort(&SockAddr, (uint16_t)1 + CxPlatAddrGetPort(&SockAddr));
+        CXPLAT_DBG_ASSERT(QuicAddrGetPort(&SockAddr) != 0xFFFF);
+        QuicAddrSetPort(&SockAddr, (uint16_t)1 + QuicAddrGetPort(&SockAddr));
     }
     void IncrementAddr() {
-        CxPlatAddrIncrement(&SockAddr);
+        QuicAddrIncrement(&SockAddr);
     }
-    uint16_t GetPort() const { return CxPlatAddrGetPort(&SockAddr); }
-    void SetPort(uint16_t Port) noexcept { CxPlatAddrSetPort(&SockAddr, Port); }
+    uint16_t GetPort() const { return QuicAddrGetPort(&SockAddr); }
+    void SetPort(uint16_t Port) noexcept { QuicAddrSetPort(&SockAddr, Port); }
 };
 
 template<class T>

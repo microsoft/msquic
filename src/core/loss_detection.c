@@ -578,7 +578,7 @@ QuicLossDetectionOnPacketAcknowledged(
     if (Path != NULL) {
         uint16_t PacketMtu =
             PacketSizeFromUdpPayloadSize(
-                CxPlatAddrGetFamily(&Path->RemoteAddress),
+                QuicAddrGetFamily(&Path->RemoteAddress),
                 Packet->PacketLength);
 
         if (!Path->IsMinMtuValidated &&

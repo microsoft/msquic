@@ -165,8 +165,8 @@ main(int argc, char **argv)
         }
         CxPlatDataPathUninitialize(Datapath);
     } else {
-        if (!CxPlatAddrFromString(ServerIp, Port, &ServerAddress)) {
-            printf("CxPlatAddrFromString failed.\n");
+        if (!QuicAddrFromString(ServerIp, Port, &ServerAddress)) {
+            printf("QuicAddrFromString failed.\n");
             exit(1);
         }
     }

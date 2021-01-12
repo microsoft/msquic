@@ -426,9 +426,9 @@ main(
                 printf("Failed to resolve IP address of '%s'.\n", ServerName);
                 goto Error;
             }
-            CxPlatAddrSetPort(&ServerAddress, ATTACK_PORT_DEFAULT);
+            QuicAddrSetPort(&ServerAddress, ATTACK_PORT_DEFAULT);
         } else {
-            if (!CxPlatAddrFromString(IpAddress, ATTACK_PORT_DEFAULT, &ServerAddress)) {
+            if (!QuicAddrFromString(IpAddress, ATTACK_PORT_DEFAULT, &ServerAddress)) {
                 printf("Invalid -ip:'%s' specified!\n", IpAddress);
                 goto Error;
             }

@@ -368,15 +368,15 @@ struct ReplaceAddressHelper : public DatapathHook
     Receive(
         _Inout_ struct QUIC_RECV_DATA* Datagram
         ) {
-        if (CxPlatAddrCompare(
+        if (QuicAddrCompare(
                 &Datagram->Tuple->RemoteAddress,
                 &Original)) {
             Datagram->Tuple->RemoteAddress = New;
             QuicTraceLogVerbose(
                 TestHookReplaceAddrRecv,
                 "[test][hook] Recv Addr :%hu => :%hu",
-                CxPlatAddrGetPort(&Original),
-                CxPlatAddrGetPort(&New));
+                QuicAddrGetPort(&Original),
+                QuicAddrGetPort(&New));
         }
         return FALSE;
     }
@@ -387,14 +387,14 @@ struct ReplaceAddressHelper : public DatapathHook
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
         _Inout_ struct QUIC_SEND_DATA* /* SendContext */
         ) {
-        if (CxPlatAddrCompare(RemoteAddress, &New)) {
+        if (QuicAddrCompare(RemoteAddress, &New)) {
             *RemoteAddress = Original;
             QuicTraceLogVerbose(
                 TestHookReplaceAddrSend,
                 "[test][hook] Send Addr :%hu => :%hu",
-                CxPlatAddrGetPort(&New),
-                CxPlatAddrGetPort(&Original));
-        } else if (CxPlatAddrCompare(RemoteAddress, &Original)) {
+                QuicAddrGetPort(&New),
+                QuicAddrGetPort(&Original));
+        } else if (QuicAddrCompare(RemoteAddress, &Original)) {
             QuicTraceLogVerbose(
                 TestHookDropOldAddrSend,
                 "[test][hook] Dropping send to old addr");
@@ -421,7 +421,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
     Receive(
         _Inout_ struct QUIC_RECV_DATA* Datagram
         ) {
-        if (CxPlatAddrCompare(
+        if (QuicAddrCompare(
                 &Datagram->Tuple->RemoteAddress,
                 &Original)) {
             if (AllowPacketCount == 0) {
@@ -435,8 +435,8 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
             QuicTraceLogVerbose(
                 TestHookReplaceAddrRecv,
                 "[test][hook] Recv Addr :%hu => :%hu",
-                CxPlatAddrGetPort(&Original),
-                CxPlatAddrGetPort(&New));
+                QuicAddrGetPort(&Original),
+                QuicAddrGetPort(&New));
         }
         return FALSE;
     }
@@ -447,7 +447,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
         _Inout_ struct QUIC_SEND_DATA* /* SendContext */
         ) {
-        if (CxPlatAddrCompare(RemoteAddress, &New)) {
+        if (QuicAddrCompare(RemoteAddress, &New)) {
             if (AllowPacketCount == 0) {
                 QuicTraceLogVerbose(
                     TestHookDropLimitAddrSend,
@@ -459,9 +459,9 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
             QuicTraceLogVerbose(
                 TestHookReplaceAddrSend,
                 "[test][hook] Send Addr :%hu => :%hu",
-                CxPlatAddrGetPort(&New),
-                CxPlatAddrGetPort(&Original));
-        } else if (CxPlatAddrCompare(RemoteAddress, &Original)) {
+                QuicAddrGetPort(&New),
+                QuicAddrGetPort(&Original));
+        } else if (QuicAddrCompare(RemoteAddress, &Original)) {
             QuicTraceLogVerbose(
                 TestHookDropOldAddrSend,
                 "[test][hook] Dropping send to old addr");

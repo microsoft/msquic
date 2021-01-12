@@ -162,7 +162,7 @@ QuicConnAlloc(
         Connection->Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
         if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_IP) {
             CxPlatRandom(1, Connection->ServerID); // Randomize the first byte.
-            if (CxPlatAddrGetFamily(&Datagram->Tuple->LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
+            if (QuicAddrGetFamily(&Datagram->Tuple->LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
                 CxPlatCopyMemory(
                     Connection->ServerID + 1,
                     &Datagram->Tuple->LocalAddress.Ipv4.sin_addr,
@@ -1729,7 +1729,7 @@ QuicConnStart(
     if (!Connection->State.RemoteAddressSet) {
 
         CXPLAT_DBG_ASSERT(ServerName != NULL);
-        CxPlatAddrSetFamily(&Path->RemoteAddress, Family);
+        QuicAddrSetFamily(&Path->RemoteAddress, Family);
 
 #ifdef QUIC_COMPARTMENT_ID
         BOOLEAN RevertCompartmentId = FALSE;
@@ -1770,7 +1770,7 @@ QuicConnStart(
         Connection->State.RemoteAddressSet = TRUE;
     }
 
-    CxPlatAddrSetPort(&Path->RemoteAddress, ServerPort);
+    QuicAddrSetPort(&Path->RemoteAddress, ServerPort);
     QuicTraceEvent(
         ConnRemoteAddrAdded,
         "[conn][%p] New Remote IP: %!ADDR!",
@@ -3131,7 +3131,7 @@ QuicConnRecvHeader(
             }
 
             CXPLAT_DBG_ASSERT(Token.Encrypted.OrigConnIdLength <= sizeof(Token.Encrypted.OrigConnId));
-            CXPLAT_DBG_ASSERT(CxPlatAddrCompare(&Path->RemoteAddress, &Token.Encrypted.RemoteAddress));
+            CXPLAT_DBG_ASSERT(QuicAddrCompare(&Path->RemoteAddress, &Token.Encrypted.RemoteAddress));
             CXPLAT_DBG_ASSERT(Connection->OrigDestCID == NULL);
 
             Connection->OrigDestCID =
@@ -5032,7 +5032,7 @@ QuicConnProcessUdpUnreachable(
             Connection,
             "Ignoring received unreachable event");
 
-    } else if (CxPlatAddrCompare(&Connection->Paths[0].RemoteAddress, RemoteAddress)) {
+    } else if (QuicAddrCompare(&Connection->Paths[0].RemoteAddress, RemoteAddress)) {
         QuicTraceLogConnInfo(
             Unreachable,
             Connection,
@@ -5205,7 +5205,7 @@ QuicConnParamSet(
 
         const QUIC_ADDR* LocalAddress = (const QUIC_ADDR*)Buffer;
 
-        if (!CxPlatAddrIsValid(LocalAddress)) {
+        if (!QuicAddrIsValid(LocalAddress)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }

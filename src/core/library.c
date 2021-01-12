@@ -1232,7 +1232,7 @@ QuicLibraryLookupBinding(
         QUIC_ADDR BindingLocalAddr;
         CxPlatSocketGetLocalAddress(Binding->Socket, &BindingLocalAddr);
 
-        if (!CxPlatAddrCompare(LocalAddress, &BindingLocalAddr)) {
+        if (!QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
             continue;
         }
 
@@ -1243,7 +1243,7 @@ QuicLibraryLookupBinding(
 
             QUIC_ADDR BindingRemoteAddr;
             CxPlatSocketGetRemoteAddress(Binding->Socket, &BindingRemoteAddr);
-            if (!CxPlatAddrCompare(RemoteAddress, &BindingRemoteAddr)) {
+            if (!QuicAddrCompare(RemoteAddress, &BindingRemoteAddr)) {
                 continue;
             }
 

@@ -293,7 +293,7 @@ QuicBindingRegisterListener(
 
     const QUIC_ADDR* NewAddr = &NewListener->LocalAddress;
     const BOOLEAN NewWildCard = NewListener->WildCard;
-    const QUIC_ADDRESS_FAMILY NewFamily = CxPlatAddrGetFamily(NewAddr);
+    const QUIC_ADDRESS_FAMILY NewFamily = QuicAddrGetFamily(NewAddr);
 
     CxPlatDispatchRwLockAcquireExclusive(&Binding->RwLock);
 
@@ -314,7 +314,7 @@ QuicBindingRegisterListener(
             QUIC_CONTAINING_RECORD(Link, QUIC_LISTENER, Link);
         const QUIC_ADDR* ExistingAddr = &ExistingListener->LocalAddress;
         const BOOLEAN ExistingWildCard = ExistingListener->WildCard;
-        const QUIC_ADDRESS_FAMILY ExistingFamily = CxPlatAddrGetFamily(ExistingAddr);
+        const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
 
         if (NewFamily > ExistingFamily) {
             break; // End of possible family matches. Done searching.
@@ -332,7 +332,7 @@ QuicBindingRegisterListener(
             continue;
         }
 
-        if (NewFamily != QUIC_ADDRESS_FAMILY_UNSPEC && !CxPlatAddrCompareIp(NewAddr, ExistingAddr)) {
+        if (NewFamily != QUIC_ADDRESS_FAMILY_UNSPEC && !QuicAddrCompareIp(NewAddr, ExistingAddr)) {
             continue;
         }
 
@@ -387,7 +387,7 @@ QuicBindingGetListener(
     QUIC_LISTENER* Listener = NULL;
 
     const QUIC_ADDR* Addr = Info->LocalAddress;
-    const QUIC_ADDRESS_FAMILY Family = CxPlatAddrGetFamily(Addr);
+    const QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(Addr);
 
     BOOLEAN FailedAlpnMatch = FALSE;
 
@@ -401,12 +401,12 @@ QuicBindingGetListener(
             QUIC_CONTAINING_RECORD(Link, QUIC_LISTENER, Link);
         const QUIC_ADDR* ExistingAddr = &ExistingListener->LocalAddress;
         const BOOLEAN ExistingWildCard = ExistingListener->WildCard;
-        const QUIC_ADDRESS_FAMILY ExistingFamily = CxPlatAddrGetFamily(ExistingAddr);
+        const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
         FailedAlpnMatch = FALSE;
 
         if (ExistingFamily != QUIC_ADDRESS_FAMILY_UNSPEC) {
             if (Family != ExistingFamily ||
-                (!ExistingWildCard && !CxPlatAddrCompareIp(Addr, ExistingAddr))) {
+                (!ExistingWildCard && !QuicAddrCompareIp(Addr, ExistingAddr))) {
                 continue; // No IP match.
             }
         }
@@ -572,7 +572,7 @@ QuicBindingCreateStatelessOperation(
 {
     uint32_t TimeMs = CxPlatTimeMs32();
     const QUIC_ADDR* RemoteAddress = &Datagram->Tuple->RemoteAddress;
-    uint32_t Hash = CxPlatAddrHash(RemoteAddress);
+    uint32_t Hash = QuicAddrHash(RemoteAddress);
     QUIC_STATELESS_CONTEXT* StatelessCtx = NULL;
 
     CxPlatDispatchLockAcquire(&Binding->StatelessOperLock);
@@ -631,7 +631,7 @@ QuicBindingCreateStatelessOperation(
         const QUIC_STATELESS_CONTEXT* ExistingCtx =
             QUIC_CONTAINING_RECORD(TableEntry, QUIC_STATELESS_CONTEXT, TableEntry);
 
-        if (CxPlatAddrCompare(&ExistingCtx->RemoteAddress, RemoteAddress)) {
+        if (QuicAddrCompare(&ExistingCtx->RemoteAddress, RemoteAddress)) {
             QuicPacketLogDrop(Binding, CxPlatDataPathRecvDataToRecvPacket(Datagram),
                 "Already in stateless oper table");
             goto Exit;
@@ -1160,7 +1160,7 @@ QuicBindingValidateRetryToken(
 
     const QUIC_RECV_DATA* Datagram =
         CxPlatDataPathRecvPacketToRecvData(Packet);
-    if (!CxPlatAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Tuple->RemoteAddress)) {
+    if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Tuple->RemoteAddress)) {
         QuicPacketLogDrop(Binding, Packet, "Retry Token Addr Mismatch");
         return FALSE;
     }

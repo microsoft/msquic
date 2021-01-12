@@ -283,7 +283,7 @@ HpsClient::StartConnection(
         return;
     }
 
-    bool LocalAddrSet = CxPlatAddrGetPort(&Context->LocalAddrs[Context->NextLocalAddr]) != 0;
+    bool LocalAddrSet = QuicAddrGetPort(&Context->LocalAddrs[Context->NextLocalAddr]) != 0;
     if (LocalAddrSet) {
         Status =
             MsQuic->SetParam(

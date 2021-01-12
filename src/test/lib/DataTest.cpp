@@ -539,9 +539,9 @@ QuicTestServerDisconnect(
             TEST_QUIC_SUCCEEDED(
                 Client->Start(
                     ClientConfiguration,
-                    CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
+                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
                     QUIC_LOCALHOST_FOR_AF(
-                        CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                        QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                     ServerLocalAddr.GetPort()));
 
             CxPlatSleep(500); // Sleep for a little bit.

@@ -242,7 +242,7 @@ ThroughputClient::Start(
         }
     }
 
-    if (CxPlatAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
+    if (QuicAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
         MsQuic->SetParam(
             ConnData->Connection,
             QUIC_PARAM_LEVEL_CONNECTION,

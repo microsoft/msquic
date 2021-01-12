@@ -155,8 +155,8 @@ RunServer(
     Settings.IsSet.IdleTimeoutMs = TRUE;
 
     QUIC_ADDR Address = {};
-    CxPlatAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
-    CxPlatAddrSetPort(&Address, UdpPort);
+    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
+    QuicAddrSetPort(&Address, UdpPort);
 
     Configuration =
         GetServerConfigurationFromArgs(

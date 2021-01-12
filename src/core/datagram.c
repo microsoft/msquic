@@ -275,7 +275,7 @@ QuicDatagramOnSendStateChanged(
             const QUIC_PATH* Path = &Connection->Paths[0];
             MtuMaxSendLength =
                 QuicCalculateDatagramLength(
-                    CxPlatAddrGetFamily(&Path->RemoteAddress),
+                    QuicAddrGetFamily(&Path->RemoteAddress),
                     Path->Mtu,
                     Path->DestCid->CID.Length);
         }

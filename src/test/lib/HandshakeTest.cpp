@@ -69,8 +69,8 @@ QuicTestPrimeResumption(
         TEST_QUIC_SUCCEEDED(
             Client.Start(
                 ClientConfiguration,
-                CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
-                QUIC_LOCALHOST_FOR_AF(CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+                QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                 ServerLocalAddr.GetPort()));
         if (Client.WaitForConnectionComplete()) {
             TEST_TRUE(Client.GetIsConnected());
@@ -355,7 +355,7 @@ QuicTestNatPortRebind(
                     QuicAddr ServerRemoteAddr;
                     TEST_QUIC_SUCCEEDED(Server->GetRemoteAddr(ServerRemoteAddr));
                     if (Server->GetPeerAddrChanged() &&
-                        CxPlatAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
+                        QuicAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
                         ServerAddressUpdated = true;
                         break;
                     }
@@ -452,7 +452,7 @@ QuicTestNatAddrRebind(
                     QuicAddr ServerRemoteAddr;
                     TEST_QUIC_SUCCEEDED(Server->GetRemoteAddr(ServerRemoteAddr));
                     if (Server->GetPeerAddrChanged() &&
-                        CxPlatAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
+                        QuicAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
                         ServerAddressUpdated = true;
                         break;
                     }
@@ -685,7 +685,7 @@ QuicTestConnectAndIdle(
                         ClientConfiguration,
                         QUIC_ADDRESS_FAMILY_UNSPEC,
                         QUIC_LOCALHOST_FOR_AF(
-                            CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                            QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {

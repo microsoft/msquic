@@ -196,7 +196,7 @@ MsQuicListenerStart(
     }
     CXPLAT_ANALYSIS_ASSERT(AlpnListLength <= UINT16_MAX);
 
-    if (LocalAddress && !CxPlatAddrIsValid(LocalAddress)) {
+    if (LocalAddress && !QuicAddrIsValid(LocalAddress)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -236,8 +236,8 @@ MsQuicListenerStart(
 
     if (LocalAddress != NULL) {
         CxPlatCopyMemory(&Listener->LocalAddress, LocalAddress, sizeof(QUIC_ADDR));
-        Listener->WildCard = CxPlatAddrIsWildCard(LocalAddress);
-        PortUnspecified = CxPlatAddrGetPort(LocalAddress) == 0;
+        Listener->WildCard = QuicAddrIsWildCard(LocalAddress);
+        PortUnspecified = QuicAddrGetPort(LocalAddress) == 0;
     } else {
         CxPlatZeroMemory(&Listener->LocalAddress, sizeof(Listener->LocalAddress));
         Listener->WildCard = TRUE;
@@ -249,9 +249,9 @@ MsQuicListenerStart(
     // (if available) UDP port and then manually filter on the specific address
     // (if available) at the QUIC layer.
     //
-    CxPlatAddrSetFamily(&BindingLocalAddress, QUIC_ADDRESS_FAMILY_INET6);
-    CxPlatAddrSetPort(&BindingLocalAddress,
-        PortUnspecified ? 0 : CxPlatAddrGetPort(LocalAddress));
+    QuicAddrSetFamily(&BindingLocalAddress, QUIC_ADDRESS_FAMILY_INET6);
+    QuicAddrSetPort(&BindingLocalAddress,
+        PortUnspecified ? 0 : QuicAddrGetPort(LocalAddress));
 
     QuicLibraryOnListenerRegistered(Listener);
 
@@ -293,9 +293,9 @@ MsQuicListenerStart(
         CxPlatSocketGetLocalAddress(
             Listener->Binding->Socket,
             &BindingLocalAddress);
-        CxPlatAddrSetPort(
+        QuicAddrSetPort(
             &Listener->LocalAddress,
-            CxPlatAddrGetPort(&BindingLocalAddress));
+            QuicAddrGetPort(&BindingLocalAddress));
     }
 
     QuicTraceEvent(

@@ -67,8 +67,8 @@ PerfServer::Start(
     _In_ CXPLAT_EVENT* _StopEvent
     ) {
     QUIC_ADDR Address;
-    CxPlatAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
-    CxPlatAddrSetPort(&Address, Port);
+    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
+    QuicAddrSetPort(&Address, Port);
 
     StopEvent = _StopEvent;
 

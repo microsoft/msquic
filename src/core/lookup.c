@@ -420,7 +420,7 @@ QuicLookupFindConnectionByRemoteHashInternal(
         QUIC_REMOTE_HASH_ENTRY* Entry =
             QUIC_CONTAINING_RECORD(TableEntry, QUIC_REMOTE_HASH_ENTRY, Entry);
 
-        if (CxPlatAddrCompare(RemoteAddress, &Entry->RemoteAddress) &&
+        if (QuicAddrCompare(RemoteAddress, &Entry->RemoteAddress) &&
             RemoteCidLength == Entry->RemoteCidLength &&
             memcmp(RemoteCid, Entry->RemoteCid, RemoteCidLength) == 0) {
 #if QUIC_DEBUG_HASHTABLE_LOOKUP

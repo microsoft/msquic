@@ -184,90 +184,90 @@ CxPlatTlsAlpnFindInList(
     );
 
 BOOLEAN
-CxPlatAddrFamilyIsValid(
+QuicAddrFamilyIsValid(
     _In_ QUIC_ADDRESS_FAMILY Family
     );
 
 BOOLEAN
-CxPlatAddrIsValid(
+QuicAddrIsValid(
     _In_ const QUIC_ADDR* const Addr
     );
 
 BOOLEAN
-CxPlatAddrCompareIp(
+QuicAddrCompareIp(
     _In_ const QUIC_ADDR* const Addr1,
     _In_ const QUIC_ADDR* const Addr2
     );
 
 BOOLEAN
-CxPlatAddrCompare(
+QuicAddrCompare(
     _In_ const QUIC_ADDR* const Addr1,
     _In_ const QUIC_ADDR* const Addr2
     );
 
 uint16_t
-CxPlatAddrGetFamily(
+QuicAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
     );
 
 void
-CxPlatAddrSetFamily(
+QuicAddrSetFamily(
     _In_ QUIC_ADDR* Addr,
     _In_ uint16_t Family
     );
 
 uint16_t
-CxPlatAddrGetPort(
+QuicAddrGetPort(
     _In_ const QUIC_ADDR* const Addr
     );
 
 void
-CxPlatAddrSetPort(
+QuicAddrSetPort(
     _Out_ QUIC_ADDR* Addr,
     _In_ uint16_t Port
     );
 
 void
-CxPlatAddrIncrement(
+QuicAddrIncrement(
     _Inout_ QUIC_ADDR* Addr
     );
 
 void
-CxPlatAddrSetToLoopback(
+QuicAddrSetToLoopback(
     _Inout_ QUIC_ADDR* Addr
     );
 
 uint32_t
-CxPlatAddrHash(
+QuicAddrHash(
     _In_ const QUIC_ADDR* Addr
     );
 
 BOOLEAN
-CxPlatAddrIsWildCard(
+QuicAddrIsWildCard(
     _In_ const QUIC_ADDR* const Addr
     );
 
 BOOLEAN
-CxPlatAddr4FromString(
+QuicAddr4FromString(
     _In_z_ const char* AddrStr,
     _Out_ QUIC_ADDR* Addr
     );
 
 BOOLEAN
-CxPlatAddr6FromString(
+QuicAddr6FromString(
     _In_z_ const char* AddrStr,
     _Out_ QUIC_ADDR* Addr
     );
 
 BOOLEAN
-CxPlatAddrFromString(
+QuicAddrFromString(
     _In_z_ const char* AddrStr,
     _In_ uint16_t Port, // Host byte order
     _Out_ QUIC_ADDR* Addr
     );
 
 BOOLEAN
-CxPlatAddrToString(
+QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,
     _Out_ QUIC_ADDR_STR* AddrStr
     );

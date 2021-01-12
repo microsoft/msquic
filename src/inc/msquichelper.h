@@ -128,7 +128,7 @@ GetRemoteAddr(
             &addrLen,
             &addr);
     if (QUIC_SUCCEEDED(status)) {
-        CxPlatAddrToString(&addr, &addrStr);
+        QuicAddrToString(&addr, &addrStr);
     }
     return addrStr;
 }
@@ -210,11 +210,11 @@ ConvertArgToAddress(
         // Explicitly zero, otherwise kernel mode errors
         //
         CxPlatZeroMemory(Address, sizeof(*Address));
-        CxPlatAddrSetFamily(Address, QUIC_ADDRESS_FAMILY_UNSPEC);
-        CxPlatAddrSetPort(Address, Port);
+        QuicAddrSetFamily(Address, QUIC_ADDRESS_FAMILY_UNSPEC);
+        QuicAddrSetPort(Address, Port);
         return TRUE;
     }
-    return CxPlatAddrFromString(Arg, Port, Address);
+    return QuicAddrFromString(Arg, Port, Address);
 }
 
 inline uint8_t DecodeHexChar(char c)

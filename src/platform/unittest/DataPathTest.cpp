@@ -28,7 +28,7 @@ struct QuicAddr
     QUIC_ADDR SockAddr;
 
     uint16_t Port() {
-        if (CxPlatAddrGetFamily(&SockAddr) == QUIC_ADDRESS_FAMILY_INET) {
+        if (QuicAddrGetFamily(&SockAddr) == QUIC_ADDRESS_FAMILY_INET) {
             return SockAddr.Ipv4.sin_port;
         } else {
             return SockAddr.Ipv6.sin6_port;
@@ -37,7 +37,7 @@ struct QuicAddr
 
     #undef SetPort
     void SetPort(uint16_t port) {
-        if (CxPlatAddrGetFamily(&SockAddr) == QUIC_ADDRESS_FAMILY_INET) {
+        if (QuicAddrGetFamily(&SockAddr) == QUIC_ADDRESS_FAMILY_INET) {
             SockAddr.Ipv4.sin_port = port;
         } else {
             SockAddr.Ipv6.sin6_port = port;
@@ -120,7 +120,7 @@ protected:
     uint16_t
     GetNextPort()
     {
-        return CxPlatNetByteSwapShort((uint16_t)InterlockedIncrement16((volatile short*)&NextPort));
+        return QuicNetByteSwapShort((uint16_t)InterlockedIncrement16((volatile short*)&NextPort));
     }
 
     //

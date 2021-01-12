@@ -455,8 +455,8 @@ RunServer(
     // addresses and the given UDP port.
     //
     QUIC_ADDR Address = {};
-    CxPlatAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
-    CxPlatAddrSetPort(&Address, UdpPort);
+    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
+    QuicAddrSetPort(&Address, UdpPort);
 
     //
     // Load the server configuration based on the command line.

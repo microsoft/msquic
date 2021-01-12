@@ -551,7 +551,7 @@ QuicPacketHash(
 {
     uint32_t Key, Offset;
 
-    if (CxPlatAddrGetFamily(RemoteAddress) == QUIC_ADDRESS_FAMILY_INET) {
+    if (QuicAddrGetFamily(RemoteAddress) == QUIC_ADDRESS_FAMILY_INET) {
         Key =
             CxPlatToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,

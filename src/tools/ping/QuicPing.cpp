@@ -126,9 +126,9 @@ ParseCommonCommands(
     uint16_t port = DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &port);
     if (PingConfig.ServerMode) {
-        CxPlatAddrSetPort(&PingConfig.LocalIpAddr, port);
+        QuicAddrSetPort(&PingConfig.LocalIpAddr, port);
     } else {
-        CxPlatAddrSetPort(&PingConfig.Client.RemoteIpAddr, port);
+        QuicAddrSetPort(&PingConfig.Client.RemoteIpAddr, port);
     }
 
     uint16_t useEncryption = DEFAULT_USE_ENCRYPTION;
@@ -285,8 +285,8 @@ ParseClientCommand(
     uint16_t ip;
     if (TryGetValue(argc, argv, "ip", &ip)) {
         switch (ip) {
-        case 4: CxPlatAddrSetFamily(&PingConfig.Client.RemoteIpAddr, QUIC_ADDRESS_FAMILY_INET); break;
-        case 6: CxPlatAddrSetFamily(&PingConfig.Client.RemoteIpAddr, QUIC_ADDRESS_FAMILY_INET6); break;
+        case 4: QuicAddrSetFamily(&PingConfig.Client.RemoteIpAddr, QUIC_ADDRESS_FAMILY_INET); break;
+        case 6: QuicAddrSetFamily(&PingConfig.Client.RemoteIpAddr, QUIC_ADDRESS_FAMILY_INET6); break;
         }
     }
 

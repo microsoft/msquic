@@ -189,7 +189,7 @@ QuicPacketBuilderPrepare(
                     IsPathMtuDiscovery ?
                         0 :
                         MaxUdpPayloadSizeForFamily(
-                            CxPlatAddrGetFamily(&Builder->Path->RemoteAddress),
+                            QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                             DatagramSize));
             if (Builder->SendContext == NULL) {
                 QuicTraceEvent(
@@ -203,7 +203,7 @@ QuicPacketBuilderPrepare(
 
         uint16_t NewDatagramLength =
             MaxUdpPayloadSizeForFamily(
-                CxPlatAddrGetFamily(&Builder->Path->RemoteAddress),
+                QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                 IsPathMtuDiscovery ? QUIC_MAX_MTU : DatagramSize);
         if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) &&
             NewDatagramLength > Connection->PeerTransportParams.MaxUdpPayloadSize) {
@@ -250,7 +250,7 @@ QuicPacketBuilderPrepare(
             //
             Builder->MinimumDatagramLength =
                 MaxUdpPayloadSizeForFamily(
-                    CxPlatAddrGetFamily(&Builder->Path->RemoteAddress),
+                    QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                     QUIC_INITIAL_PACKET_LENGTH);
 
             if ((uint32_t)Builder->MinimumDatagramLength > Builder->Datagram->Length) {
