@@ -19,7 +19,7 @@ Abstract:
 #include <EverCrypt.h>
 #include <mitlsffi.h>
 
-uint16_t QuicTlsTPHeaderSize = 0;
+uint16_t CxPlatTlsTPHeaderSize = 0;
 
 #define QUIC_SUPPORTED_CIPHER_SUITES        "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
 #define QUIC_SERVER_SIGNATURE_ALGORITHMS    "ECDSA+SHA256:ECDSA+SHA384:ECDSA+SHA512:RSAPSS+SHA256:RSAPSS+SHA384:RSAPSS+SHA512"
@@ -414,7 +414,7 @@ CxPlatTlsSecConfigCreate(
         }
     }
 
-#pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete).")
+#pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (CxPlatTlsSecConfigDelete).")
     QUIC_SEC_CONFIG* SecurityConfig = CXPLAT_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (SecurityConfig == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -569,7 +569,7 @@ CxPlatTlsInitialize(
     TlsContext->miTlsConfig.exts = TlsContext->Extensions;
     TlsContext->miTlsConfig.exts_count = ARRAYSIZE(TlsContext->Extensions);
     TlsContext->miTlsConfig.cipher_suites = QUIC_SUPPORTED_CIPHER_SUITES;
-    TlsContext->miTlsConfig.nego_callback = QuicTlsOnNegotiate;
+    TlsContext->miTlsConfig.nego_callback = CxPlatTlsOnNegotiate;
     TlsContext->miTlsConfig.cert_callbacks = &TlsContext->miTlsCertCallbacks;
 
 #ifdef QUIC_TLS_SECRETS_SUPPORT
@@ -583,9 +583,9 @@ CxPlatTlsInitialize(
         TlsContext->miTlsConfig.is_server = TRUE;
         TlsContext->miTlsConfig.callback_state = TlsContext;
 
-        TlsContext->miTlsCertCallbacks.select = QuicTlsOnCertSelect;
-        TlsContext->miTlsCertCallbacks.format = QuicTlsOnCertFormat;
-        TlsContext->miTlsCertCallbacks.sign = QuicTlsOnCertSign;
+        TlsContext->miTlsCertCallbacks.select = CxPlatTlsOnCertSelect;
+        TlsContext->miTlsCertCallbacks.format = CxPlatTlsOnCertFormat;
+        TlsContext->miTlsCertCallbacks.sign = CxPlatTlsOnCertSign;
 
         //
         // Specific algorithm depending on the cert we are using.
@@ -653,8 +653,8 @@ CxPlatTlsInitialize(
         TlsContext->miTlsConfig.host_name = TlsContext->SNI;
         TlsContext->miTlsConfig.callback_state = TlsContext;
 
-        TlsContext->miTlsConfig.ticket_callback = QuicTlsOnTicketReady;
-        TlsContext->miTlsCertCallbacks.verify = QuicTlsOnCertVerify;
+        TlsContext->miTlsConfig.ticket_callback = CxPlatTlsOnTicketReady;
+        TlsContext->miTlsCertCallbacks.verify = CxPlatTlsOnCertVerify;
 
         //
         // List of supported algorithms for the client.

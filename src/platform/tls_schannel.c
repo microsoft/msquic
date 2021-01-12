@@ -221,7 +221,7 @@ typedef struct _SecPkgContext_SessionInfo
 #define BCRYPT_CHACHA20_POLY1305_ALGORITHM L"CHACHA20_POLY1305"
 #endif
 
-uint16_t QuicTlsTPHeaderSize = FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer);
+uint16_t CxPlatTlsTPHeaderSize = FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer);
 
 #define SecTrafficSecret_ClientEarlyData (SecTrafficSecret_Server + 1) // Hack to have my layer support 0-RTT
 
@@ -929,7 +929,7 @@ CxPlatTlsSspiNotifyCallback(
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "NULL CallbackData to QuicTlsSspiNotifyCallback");
+            "NULL CallbackData to CxPlatTlsSspiNotifyCallback");
         return;
     }
     QUIC_ACH_CONTEXT* AchContext = CallbackData;
@@ -960,7 +960,7 @@ CxPlatTlsSspiNotifyCallback(
     }
 }
 
-const static UNICODE_STRING QuicTlsPackageName = RTL_CONSTANT_STRING(L"Schannel");
+const static UNICODE_STRING CxPlatTlsPackageName = RTL_CONSTANT_STRING(L"Schannel");
 
 typedef struct TLS_WORKER_CONTEXT {
     NTSTATUS CompletionStatus;
@@ -985,7 +985,7 @@ CxPlatTlsAchHelper(
         SspiAcquireCredentialsHandleAsyncW(
             AchContext->SspiContext,
             IsClient ? NULL : &AchContext->Principal,
-            (PSECURITY_STRING)&QuicTlsPackageName,
+            (PSECURITY_STRING)&CxPlatTlsPackageName,
             IsClient ? SECPKG_CRED_OUTBOUND : SECPKG_CRED_INBOUND,
             NULL,
             &AchContext->Credentials,
@@ -1091,7 +1091,7 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-#pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete)")
+#pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (CxPlatTlsSecConfigDelete)")
     AchContext->SecConfig = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (AchContext->SecConfig == NULL) {
         QuicTraceEvent(
@@ -1231,7 +1231,7 @@ CxPlatTlsSecConfigCreate(
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "Invalid flags passed in to QuicTlsSecConfigCreate");
+            "Invalid flags passed in to CxPlatTlsSecConfigCreate");
         goto Error;
     }
 
@@ -1291,7 +1291,7 @@ CxPlatTlsSecConfigCreate(
     SecStatus =
         SspiSetAsyncNotifyCallback(
             AchContext->SspiContext,
-            QuicTlsSspiNotifyCallback,
+            CxPlatTlsSspiNotifyCallback,
             AchContext);
     if (SecStatus != SEC_E_OK) {
         QuicTraceEvent(
@@ -1321,14 +1321,14 @@ CxPlatTlsSecConfigCreate(
                 NULL,
                 NULL,
                 NULL,
-                QuicTlsAchWorker,
+                CxPlatTlsAchWorker,
                 &ThreadContext);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
-                "PsCreateSystemThread(QuicTlsAchWorker)");
+                "PsCreateSystemThread(CxPlatTlsAchWorker)");
             goto Error;
         }
         void* Thread = NULL;
@@ -1346,7 +1346,7 @@ CxPlatTlsSecConfigCreate(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
-                "ObReferenceObjectByHandle(QuicTlsAchWorker)");
+                "ObReferenceObjectByHandle(CxPlatTlsAchWorker)");
             goto Error;
         }
         KeWaitForSingleObject(Thread, Executive, KernelMode, FALSE, NULL);

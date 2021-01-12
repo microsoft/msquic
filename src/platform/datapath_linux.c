@@ -424,7 +424,7 @@ CxPlatProcessorContextInitialize(
         0,
         0,
         NULL,
-        QuicDataPathWorkerThread,
+        CxPlatDataPathWorkerThread,
         ProcContext
     };
 

@@ -213,7 +213,7 @@ CxPlatStorageOpen(
 #pragma warning(disable: 4996)
     ExInitializeWorkItem(
         &Storage->WorkItem,
-        QuicStorageRegKeyChangeCallback,
+        CxPlatStorageRegKeyChangeCallback,
         Storage);
 #pragma warning(pop)
 

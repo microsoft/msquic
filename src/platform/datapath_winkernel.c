@@ -381,7 +381,7 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT {
 
 //
 // Structure that maintains all the internal state for the
-// QuicDataPath interface.
+// CxPlatDataPath interface.
 //
 typedef struct QUIC_DATAPATH {
 
@@ -438,7 +438,7 @@ CxPlatSendBufferPoolAlloc(
 #define QuicSendBufferPoolInitialize(Size, Tag, Pool) \
     ExInitializeLookasideListEx( \
         Pool, \
-        QuicSendBufferPoolAlloc, \
+        CxPlatSendBufferPoolAlloc, \
         NULL, \
         NonPagedPoolNx, \
         0, \
@@ -477,7 +477,7 @@ CxPlatDataPathDatagramToInternalDatagramContext(
         (((PUCHAR)Datagram) + sizeof(QUIC_RECV_DATA));
 }
 
-IO_COMPLETION_ROUTINE QuicDataPathIoCompletion;
+IO_COMPLETION_ROUTINE CxPlatDataPathIoCompletion;
 
 //
 // Used for all WSK IoCompletion routines
@@ -525,7 +525,7 @@ CxPlatDataPathQueryRssScalabilityInfo(
     IoInitializeIrp(Irp, sizeof(IrpBuffer), 1);
     IoSetCompletionRoutine(
         Irp,
-        QuicDataPathIoCompletion,
+        CxPlatDataPathIoCompletion,
         &CompletionEvent,
         TRUE,
         TRUE,
@@ -571,7 +571,7 @@ CxPlatDataPathQueryRssScalabilityInfo(
     IoReuseIrp(Irp, STATUS_SUCCESS);
     IoSetCompletionRoutine(
         Irp,
-        QuicDataPathIoCompletion,
+        CxPlatDataPathIoCompletion,
         &CompletionEvent,
         TRUE,
         TRUE,
@@ -620,7 +620,7 @@ Error:
         IoReuseIrp(Irp, STATUS_SUCCESS);
         IoSetCompletionRoutine(
             Irp,
-            QuicDataPathIoCompletion,
+            CxPlatDataPathIoCompletion,
             &CompletionEvent,
             TRUE,
             TRUE,
@@ -657,7 +657,7 @@ CxPlatDataPathQuerySockoptSupport(
     IoInitializeIrp(Irp, sizeof(IrpBuffer), 1);
     IoSetCompletionRoutine(
         Irp,
-        QuicDataPathIoCompletion,
+        CxPlatDataPathIoCompletion,
         &CompletionEvent,
         TRUE,
         TRUE,
@@ -706,7 +706,7 @@ CxPlatDataPathQuerySockoptSupport(
         IoReuseIrp(Irp, STATUS_SUCCESS);
         IoSetCompletionRoutine(
             Irp,
-            QuicDataPathIoCompletion,
+            CxPlatDataPathIoCompletion,
             &CompletionEvent,
             TRUE,
             TRUE,
@@ -754,7 +754,7 @@ CxPlatDataPathQuerySockoptSupport(
         IoReuseIrp(Irp, STATUS_SUCCESS);
         IoSetCompletionRoutine(
             Irp,
-            QuicDataPathIoCompletion,
+            CxPlatDataPathIoCompletion,
             &CompletionEvent,
             TRUE,
             TRUE,
@@ -802,7 +802,7 @@ Error:
         IoReuseIrp(Irp, STATUS_SUCCESS);
         IoSetCompletionRoutine(
             Irp,
-            QuicDataPathIoCompletion,
+            CxPlatDataPathIoCompletion,
             &CompletionEvent,
             TRUE,
             TRUE,
@@ -873,7 +873,7 @@ CxPlatDataPathInitialize(
     }
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = (uint32_t)CxPlatProcMaxCount();
-    Datapath->WskDispatch.WskReceiveFromEvent = QuicDataPathSocketReceive;
+    Datapath->WskDispatch.WskReceiveFromEvent = CxPlatDataPathSocketReceive;
     Datapath->DatagramStride =
         ALIGN_UP(
             sizeof(QUIC_RECV_DATA) +
@@ -1076,7 +1076,7 @@ CxPlatDataPathResolveAddressWithHint(
 
     IoSetCompletionRoutine(
         Irp,
-        QuicDataPathIoCompletion,
+        CxPlatDataPathIoCompletion,
         &CompletionEvent,
         TRUE,
         TRUE,
@@ -1252,7 +1252,7 @@ CxPlatDataPathSetControlSocket(
     IoReuseIrp(&Binding->Irp, STATUS_SUCCESS);
     IoSetCompletionRoutine(
         &Binding->Irp,
-        QuicDataPathIoCompletion,
+        CxPlatDataPathIoCompletion,
         &Binding->WskCompletionEvent,
         TRUE,
         TRUE,
@@ -1351,7 +1351,7 @@ CxPlatSocketCreateUdp(
         1);
     IoSetCompletionRoutine(
         &Binding->Irp,
-        QuicDataPathIoCompletion,
+        CxPlatDataPathIoCompletion,
         &Binding->WskCompletionEvent,
         TRUE,
         TRUE,
@@ -1557,7 +1557,7 @@ CxPlatSocketCreateUdp(
     IoReuseIrp(&Binding->Irp, STATUS_SUCCESS);
     IoSetCompletionRoutine(
         &Binding->Irp,
-        QuicDataPathIoCompletion,
+        CxPlatDataPathIoCompletion,
         &Binding->WskCompletionEvent,
         TRUE,
         TRUE,
@@ -1628,7 +1628,7 @@ CxPlatSocketCreateUdp(
     IoReuseIrp(&Binding->Irp, STATUS_SUCCESS);
     IoSetCompletionRoutine(
         &Binding->Irp,
-        QuicDataPathIoCompletion,
+        CxPlatDataPathIoCompletion,
         &Binding->WskCompletionEvent,
         TRUE,
         TRUE,
@@ -1735,7 +1735,7 @@ CxPlatSocketDeleteComplete(
     CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
 }
 
-IO_COMPLETION_ROUTINE QuicDataPathCloseSocketIoCompletion;
+IO_COMPLETION_ROUTINE CxPlatDataPathCloseSocketIoCompletion;
 
 //
 // Completion callbacks for IRP used with WskCloseSocket
@@ -1795,7 +1795,7 @@ CxPlatSocketDelete(
         IoReuseIrp(&Binding->Irp, STATUS_SUCCESS);
         IoSetCompletionRoutine(
             &Binding->Irp,
-            QuicDataPathCloseSocketIoCompletion,
+            CxPlatDataPathCloseSocketIoCompletion,
             Binding,
             TRUE,
             TRUE,
@@ -2737,7 +2737,7 @@ CxPlatSendDataIsFull(
     return !CxPlatSendContextCanAllocSend(SendContext, SendContext->SegmentSize);
 }
 
-IO_COMPLETION_ROUTINE QuicDataPathSendComplete;
+IO_COMPLETION_ROUTINE CxPlatDataPathSendComplete;
 
 _Use_decl_annotations_
 NTSTATUS
@@ -2785,7 +2785,7 @@ CxPlatSocketPrepareSendContext(
 
     IoSetCompletionRoutine(
         &SendContext->Irp,
-        QuicDataPathSendComplete,
+        CxPlatDataPathSendComplete,
         SendContext,
         TRUE,
         TRUE,

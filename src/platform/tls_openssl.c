@@ -23,7 +23,7 @@ Abstract:
 #include "tls_openssl.c.clog.h"
 #endif
 
-uint16_t QuicTlsTPHeaderSize = 0;
+uint16_t CxPlatTlsTPHeaderSize = 0;
 
 //
 // The QUIC sec config object. Created once per listener on server side and
@@ -489,10 +489,10 @@ CxPlatTlsClientHelloCallback(
 }
 
 SSL_QUIC_METHOD OpenSslQuicCallbacks = {
-    QuicTlsSetEncryptionSecretsCallback,
-    QuicTlsAddHandshakeDataCallback,
-    QuicTlsFlushFlightCallback,
-    QuicTlsSendAlertCallback
+    CxPlatTlsSetEncryptionSecretsCallback,
+    CxPlatTlsAddHandshakeDataCallback,
+    CxPlatTlsFlushFlightCallback,
+    CxPlatTlsSendAlertCallback
 };
 
 QUIC_STATUS
@@ -703,7 +703,7 @@ CxPlatTlsSecConfigCreate(
         SSL_CTX_clear_options(SecurityConfig->SSLCtx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
         SSL_CTX_set_mode(SecurityConfig->SSLCtx, SSL_MODE_RELEASE_BUFFERS);
 
-        SSL_CTX_set_alpn_select_cb(SecurityConfig->SSLCtx, QuicTlsAlpnSelectCallback, NULL);
+        SSL_CTX_set_alpn_select_cb(SecurityConfig->SSLCtx, CxPlatTlsAlpnSelectCallback, NULL);
 
         //
         // Set the server certs.
@@ -789,7 +789,7 @@ CxPlatTlsSecConfigCreate(
         }
 
         SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, UINT32_MAX);
-        SSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx, QuicTlsClientHelloCallback, NULL);
+        SSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx, CxPlatTlsClientHelloCallback, NULL);
     }
 
     //
