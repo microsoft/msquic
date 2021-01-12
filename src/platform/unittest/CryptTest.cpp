@@ -14,7 +14,7 @@
 #include "CryptTest.cpp.clog.h"
 #endif
 
-#ifndef CXPLAT_TLS_STUB
+#ifndef QUIC_TLS_STUB
 
 void
 LogTestBuffer(
