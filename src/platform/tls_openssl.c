@@ -249,7 +249,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
 
     CXPLAT_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
     Status =
-        CxPlatPacketKeyDerive(
+        QuicPacketKeyDerive(
             KeyType,
             &Secret,
             "write secret",
@@ -266,7 +266,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
 
     CXPLAT_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
     Status =
-        CxPlatPacketKeyDerive(
+        QuicPacketKeyDerive(
             KeyType,
             &Secret,
             "read secret",
@@ -1412,7 +1412,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatPacketKeyDerive(
+QuicPacketKeyDerive(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_ const QUIC_SECRET* const Secret,
     _In_z_ const char* const SecretName,
@@ -1526,7 +1526,7 @@ CxPlatPacketKeyDerive(
 
 Error:
 
-    CxPlatPacketKeyFree(Key);
+    QuicPacketKeyFree(Key);
     CxPlatHashFree(Hash);
 
     CxPlatSecureZeroMemory(Temp, sizeof(Temp));
@@ -1538,7 +1538,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _When_(NewReadKey != NULL, _At_(*NewReadKey, __drv_allocatesMem(Mem)))
 _When_(NewWriteKey != NULL, _At_(*NewWriteKey, __drv_allocatesMem(Mem)))
 QUIC_STATUS
-CxPlatPacketKeyCreateInitial(
+QuicPacketKeyCreateInitial(
     _In_ BOOLEAN IsServer,
     _In_reads_(QUIC_VERSION_SALT_LENGTH)
         const uint8_t* const Salt,  // Version Specific
@@ -1566,7 +1566,7 @@ CxPlatPacketKeyCreateInitial(
 
     if (NewWriteKey != NULL) {
         Status =
-            CxPlatPacketKeyDerive(
+            QuicPacketKeyDerive(
                 QUIC_PACKET_KEY_INITIAL,
                 IsServer ? &ServerInitial : &ClientInitial,
                 IsServer ? "srv secret" : "cli secret",
@@ -1579,7 +1579,7 @@ CxPlatPacketKeyCreateInitial(
 
     if (NewReadKey != NULL) {
         Status =
-            CxPlatPacketKeyDerive(
+            QuicPacketKeyDerive(
                 QUIC_PACKET_KEY_INITIAL,
                 IsServer ? &ClientInitial : &ServerInitial,
                 IsServer ? "cli secret" : "srv secret",
@@ -1602,8 +1602,8 @@ CxPlatPacketKeyCreateInitial(
 
 Error:
 
-    CxPlatPacketKeyFree(ReadKey);
-    CxPlatPacketKeyFree(WriteKey);
+    QuicPacketKeyFree(ReadKey);
+    QuicPacketKeyFree(WriteKey);
 
     CxPlatSecureZeroMemory(ClientInitial.Secret, sizeof(ClientInitial.Secret));
     CxPlatSecureZeroMemory(ServerInitial.Secret, sizeof(ServerInitial.Secret));
@@ -1612,7 +1612,7 @@ Error:
 }
 
 void
-CxPlatPacketKeyFree(
+QuicPacketKeyFree(
     _In_opt_ QUIC_PACKET_KEY* Key
     )
 {
@@ -1627,7 +1627,7 @@ CxPlatPacketKeyFree(
 }
 
 QUIC_STATUS
-CxPlatPacketKeyUpdate(
+QuicPacketKeyUpdate(
     _In_ QUIC_PACKET_KEY* OldKey,
     _Out_ QUIC_PACKET_KEY** NewKey
     )
@@ -1665,7 +1665,7 @@ CxPlatPacketKeyUpdate(
     NewTrafficSecret.Aead = OldKey->TrafficSecret->Aead;
 
     Status =
-        CxPlatPacketKeyDerive(
+        QuicPacketKeyDerive(
             QUIC_PACKET_KEY_1_RTT,
             &NewTrafficSecret,
             "update traffic secret",

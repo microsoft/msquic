@@ -316,7 +316,7 @@ QuicPacketGenerateRetryIntegrity(
     uint8_t* RetryPseudoPacket = NULL;
     QUIC_PACKET_KEY* RetryIntegrityKey = NULL;
     QUIC_STATUS Status =
-        CxPlatPacketKeyDerive(
+        QuicPacketKeyDerive(
             QUIC_PACKET_KEY_INITIAL,
             &Secret,
             "RetryIntegrity",
@@ -358,7 +358,7 @@ Exit:
     if (RetryPseudoPacket != NULL) {
         CXPLAT_FREE(RetryPseudoPacket, QUIC_POOL_TMP_ALLOC);
     }
-    CxPlatPacketKeyFree(RetryIntegrityKey);
+    QuicPacketKeyFree(RetryIntegrityKey);
     return Status;
 }
 

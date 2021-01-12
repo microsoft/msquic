@@ -237,7 +237,7 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
             QUIC_PACKET_KEY* WriteKey;
             VERIFY(
             QUIC_SUCCEEDED(
-            CxPlatPacketKeyCreateInitial(
+            QuicPacketKeyCreateInitial(
                 FALSE,
                 InitialSalt.Data,
                 sizeof(uint64_t),
@@ -272,7 +272,7 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
             printf_buf("cipher_text", SendBuffer->Buffer + HeaderLength, 16);
             printf_buf("hp_mask", HpMask, 16);
 
-            CxPlatPacketKeyFree(WriteKey);
+            QuicPacketKeyFree(WriteKey);
 
             SendBuffer->Buffer[0] ^= HpMask[0] & 0x0F;
             for (uint8_t i = 0; i < 4; ++i) {

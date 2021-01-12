@@ -181,7 +181,7 @@ TEST_F(CryptTest, WellKnownClientInitial)
 
     QUIC_TLS_PROCESS_STATE State = {0};
     VERIFY_QUIC_SUCCESS(
-        CxPlatPacketKeyCreateInitial(
+        QuicPacketKeyCreateInitial(
             FALSE,
             InitialSalt.Data,
             (uint8_t)ConnectionID.Length,
@@ -244,16 +244,16 @@ TEST_F(CryptTest, WellKnownClientInitial)
     PacketKey->Type = QUIC_PACKET_KEY_1_RTT;
 
     QUIC_PACKET_KEY* NewPacketKey = NULL;
-    VERIFY_QUIC_SUCCESS(CxPlatPacketKeyUpdate(PacketKey, &NewPacketKey));
+    VERIFY_QUIC_SUCCESS(QuicPacketKeyUpdate(PacketKey, &NewPacketKey));
 
     const QuicBuffer ExpectedTrafficSecret("53dd8c90e78fc6ea92864f791865be060d933be0824befcb2b59ac901f306035");
     //LogTestBuffer("ExpectedTrafficSecret", ExpectedTrafficSecret.Data, ExpectedTrafficSecret.Length);
     //LogTestBuffer("  ActualTrafficSecret", NewPacketKey->TrafficSecret[0].Secret, ExpectedTrafficSecret.Length);
     ASSERT_EQ(0, memcmp(ExpectedTrafficSecret.Data, NewPacketKey->TrafficSecret[0].Secret, ExpectedTrafficSecret.Length));
 
-    CxPlatPacketKeyFree(State.ReadKeys[0]);
-    CxPlatPacketKeyFree(State.WriteKeys[0]);
-    CxPlatPacketKeyFree(NewPacketKey);
+    QuicPacketKeyFree(State.ReadKeys[0]);
+    QuicPacketKeyFree(State.WriteKeys[0]);
+    QuicPacketKeyFree(NewPacketKey);
 }
 
 TEST_F(CryptTest, WellKnownChaChaPoly)
@@ -279,7 +279,7 @@ TEST_F(CryptTest, WellKnownChaChaPoly)
     ASSERT_EQ(sizeof(PacketBuffer), EncryptedPacket.Length);
     memcpy(PacketBuffer, EncryptedPacket.Data, sizeof(PacketBuffer));
 
-    VERIFY_QUIC_SUCCESS(CxPlatPacketKeyDerive(QUIC_PACKET_KEY_1_RTT, &Secret, "WellKnownChaChaPoly", TRUE, &PacketKey));
+    VERIFY_QUIC_SUCCESS(QuicPacketKeyDerive(QUIC_PACKET_KEY_1_RTT, &Secret, "WellKnownChaChaPoly", TRUE, &PacketKey));
 
     ASSERT_EQ(0, memcmp(ExpectedIv.Data, PacketKey->Iv, sizeof(PacketKey->Iv)));
 
@@ -321,7 +321,7 @@ TEST_F(CryptTest, WellKnownChaChaPoly)
         GTEST_MESSAGE_AT_(__FILE__, __LINE__, "Decrypted payload is incorrect", ::testing::TestPartResult::kFatalFailure);
     }
 
-    CxPlatPacketKeyFree(PacketKey);
+    QuicPacketKeyFree(PacketKey);
 }
 
 TEST_F(CryptTest, HpMaskChaCha20)

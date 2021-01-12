@@ -2924,8 +2924,8 @@ QuicConnRecvRetry(
     //
     // Update the Initial packet's key based on the new CID.
     //
-    CxPlatPacketKeyFree(Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL]);
-    CxPlatPacketKeyFree(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
+    QuicPacketKeyFree(Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL]);
+    QuicPacketKeyFree(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
     Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] = NULL;
     Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] = NULL;
 
@@ -2939,7 +2939,7 @@ QuicConnRecvRetry(
     QUIC_STATUS Status;
     if (QUIC_FAILED(
         Status =
-        CxPlatPacketKeyCreateInitial(
+        QuicPacketKeyCreateInitial(
             QuicConnIsServer(Connection),
             VersionInfo->Salt,
             DestCid->CID.Length,

@@ -182,7 +182,7 @@ QuicCryptoInitialize(
     }
 
     Status =
-        CxPlatPacketKeyCreateInitial(
+        QuicPacketKeyCreateInitial(
             QuicConnIsServer(Connection),
             Salt,
             HandshakeCidLength,
@@ -208,9 +208,9 @@ Exit:
 
     if (QUIC_FAILED(Status)) {
         for (size_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
-            CxPlatPacketKeyFree(Crypto->TlsState.ReadKeys[i]);
+            QuicPacketKeyFree(Crypto->TlsState.ReadKeys[i]);
             Crypto->TlsState.ReadKeys[i] = NULL;
-            CxPlatPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
+            QuicPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
             Crypto->TlsState.WriteKeys[i] = NULL;
         }
         if (RecvBufferInitialized) {
@@ -232,9 +232,9 @@ QuicCryptoUninitialize(
     )
 {
     for (size_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
-        CxPlatPacketKeyFree(Crypto->TlsState.ReadKeys[i]);
+        QuicPacketKeyFree(Crypto->TlsState.ReadKeys[i]);
         Crypto->TlsState.ReadKeys[i] = NULL;
-        CxPlatPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
+        QuicPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
         Crypto->TlsState.WriteKeys[i] = NULL;
     }
     if (Crypto->TLS != NULL) {
@@ -411,8 +411,8 @@ QuicCryptoDiscardKeys(
         "Discarding key type = %hhu",
         KeyType);
 
-    CxPlatPacketKeyFree(Crypto->TlsState.WriteKeys[KeyType]);
-    CxPlatPacketKeyFree(Crypto->TlsState.ReadKeys[KeyType]);
+    QuicPacketKeyFree(Crypto->TlsState.WriteKeys[KeyType]);
+    QuicPacketKeyFree(Crypto->TlsState.ReadKeys[KeyType]);
     Crypto->TlsState.WriteKeys[KeyType] = NULL;
     Crypto->TlsState.ReadKeys[KeyType] = NULL;
 
@@ -1715,7 +1715,7 @@ QuicCryptoGenerateNewKeys(
         // Make New packet key.
         //
         Status =
-            CxPlatPacketKeyUpdate(
+            QuicPacketKeyUpdate(
                 Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],
                 NewReadKey);
         if (QUIC_FAILED(Status)) {
@@ -1729,7 +1729,7 @@ QuicCryptoGenerateNewKeys(
         }
 
         Status =
-            CxPlatPacketKeyUpdate(
+            QuicPacketKeyUpdate(
                 Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT],
                 NewWriteKey);
         if (QUIC_FAILED(Status)) {
@@ -1746,7 +1746,7 @@ QuicCryptoGenerateNewKeys(
 Error:
 
     if (QUIC_FAILED(Status)) {
-        CxPlatPacketKeyFree(*NewReadKey);
+        QuicPacketKeyFree(*NewReadKey);
         *NewReadKey = NULL;
     } else {
         QuicTraceEvent(
@@ -1769,7 +1769,7 @@ QuicCryptoUpdateKeyPhase(
     // Free the old read key state (if it exists).
     //
     QUIC_PACKET_KEY** Old = &Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT_OLD];
-    CxPlatPacketKeyFree(*Old);
+    QuicPacketKeyFree(*Old);
 
     QUIC_PACKET_KEY** Current = &Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT];
     QUIC_PACKET_KEY** New = &Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT_NEW];
@@ -1794,7 +1794,7 @@ QuicCryptoUpdateKeyPhase(
     // Free the old write key state (if it exists).
     //
     Old = &Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT_OLD];
-    CxPlatPacketKeyFree(*Old);
+    QuicPacketKeyFree(*Old);
 
     Current = &Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT];
     New = &Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT_NEW];

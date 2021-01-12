@@ -97,8 +97,8 @@ struct TlsContext
         CxPlatEventUninitialize(ProcessCompleteEvent);
         CXPLAT_FREE(State.Buffer, QUIC_POOL_TOOL);
         for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
-            CxPlatPacketKeyFree(State.ReadKeys[i]);
-            CxPlatPacketKeyFree(State.WriteKeys[i]);
+            QuicPacketKeyFree(State.ReadKeys[i]);
+            QuicPacketKeyFree(State.WriteKeys[i]);
         }
     }
 

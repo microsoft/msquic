@@ -152,8 +152,8 @@ protected:
             CxPlatEventUninitialize(ProcessCompleteEvent);
             CXPLAT_FREE(State.Buffer, QUIC_POOL_TEST);
             for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
-                CxPlatPacketKeyFree(State.ReadKeys[i]);
-                CxPlatPacketKeyFree(State.WriteKeys[i]);
+                QuicPacketKeyFree(State.ReadKeys[i]);
+                QuicPacketKeyFree(State.WriteKeys[i]);
             }
             if (ResumptionTicket.Buffer) {
                 CXPLAT_FREE(ResumptionTicket.Buffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
@@ -887,11 +887,11 @@ TEST_P(TlsTest, KeyUpdate)
     QUIC_PACKET_KEY* UpdateWriteKey = nullptr, *UpdateReadKey = nullptr;
 
     VERIFY_QUIC_SUCCESS(
-        CxPlatPacketKeyUpdate(
+        QuicPacketKeyUpdate(
             ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT],
             &UpdateWriteKey));
     VERIFY_QUIC_SUCCESS(
-        CxPlatPacketKeyUpdate(
+        QuicPacketKeyUpdate(
             ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT],
             &UpdateReadKey));
 
@@ -952,8 +952,8 @@ TEST_P(TlsTest, KeyUpdate)
             sizeof(Buffer),
             Buffer));
 
-    CxPlatPacketKeyFree(UpdateWriteKey);
-    CxPlatPacketKeyFree(UpdateReadKey);
+    QuicPacketKeyFree(UpdateWriteKey);
+    QuicPacketKeyFree(UpdateReadKey);
 }
 
 

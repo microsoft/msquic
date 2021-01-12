@@ -414,7 +414,7 @@ typedef struct QUIC_HP_KEY {
 
 _Success_(return==TRUE)
 BOOLEAN
-CxPlatPacketKeyCreate(
+QuicPacketKeyCreate(
     _Inout_ QUIC_TLS* TlsContext,
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_z_ const char* const SecretName,
@@ -2023,7 +2023,7 @@ CxPlatTlsWriteDataToSchannel(
                 CXPLAT_FRE_ASSERT(FALSE); // TODO - Finish the 0-RTT logic.
             } else {
                 if (State->ReadKey == QUIC_PACKET_KEY_INITIAL) {
-                    if (!CxPlatPacketKeyCreate(
+                    if (!QuicPacketKeyCreate(
                             TlsContext,
                             QUIC_PACKET_KEY_HANDSHAKE,
                             "peer handshake traffic secret",
@@ -2056,7 +2056,7 @@ CxPlatTlsWriteDataToSchannel(
                     }
 #endif
                 } else if (State->ReadKey == QUIC_PACKET_KEY_HANDSHAKE) {
-                    if (!CxPlatPacketKeyCreate(
+                    if (!QuicPacketKeyCreate(
                             TlsContext,
                             QUIC_PACKET_KEY_1_RTT,
                             "peer application traffic secret",
@@ -2112,7 +2112,7 @@ CxPlatTlsWriteDataToSchannel(
 #endif
             } else {
                 if (State->WriteKey == QUIC_PACKET_KEY_INITIAL) {
-                    if (!CxPlatPacketKeyCreate(
+                    if (!QuicPacketKeyCreate(
                             TlsContext,
                             QUIC_PACKET_KEY_HANDSHAKE,
                             "own handshake traffic secret",
@@ -2154,7 +2154,7 @@ CxPlatTlsWriteDataToSchannel(
                         State->BufferOffset1Rtt = // HACK - Currently Schannel has weird output for 1-RTT start
                             State->BufferTotalLength + NewOwnTrafficSecrets[i]->MsgSequenceEnd;
                     } else {
-                        if (!CxPlatPacketKeyCreate(
+                        if (!QuicPacketKeyCreate(
                                 TlsContext,
                                 QUIC_PACKET_KEY_1_RTT,
                                 "own application traffic secret",
@@ -2654,7 +2654,7 @@ Error:
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-CxPlatPacketKeyDerive(
+QuicPacketKeyDerive(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_ const QUIC_SECRET* const Secret,
     _In_z_ const char* const SecretName,
@@ -2768,7 +2768,7 @@ CxPlatPacketKeyDerive(
 
 Error:
 
-    CxPlatPacketKeyFree(Key);
+    QuicPacketKeyFree(Key);
     CxPlatHashFree(Hash);
 
     RtlSecureZeroMemory(Temp, sizeof(Temp));
@@ -2780,7 +2780,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _When_(NewReadKey != NULL, _At_(*NewReadKey, __drv_allocatesMem(Mem)))
 _When_(NewWriteKey != NULL, _At_(*NewWriteKey, __drv_allocatesMem(Mem)))
 QUIC_STATUS
-CxPlatPacketKeyCreateInitial(
+QuicPacketKeyCreateInitial(
     _In_ BOOLEAN IsServer,
     _In_reads_(QUIC_VERSION_SALT_LENGTH)
         const uint8_t* const Salt,  // Version Specific
@@ -2808,7 +2808,7 @@ CxPlatPacketKeyCreateInitial(
 
     if (NewWriteKey != NULL) {
         Status =
-            CxPlatPacketKeyDerive(
+            QuicPacketKeyDerive(
                 QUIC_PACKET_KEY_INITIAL,
                 IsServer ? &ServerInitial : &ClientInitial,
                 IsServer ? "srv secret" : "cli secret",
@@ -2821,7 +2821,7 @@ CxPlatPacketKeyCreateInitial(
 
     if (NewReadKey != NULL) {
         Status =
-            CxPlatPacketKeyDerive(
+            QuicPacketKeyDerive(
                 QUIC_PACKET_KEY_INITIAL,
                 IsServer ? &ClientInitial : &ServerInitial,
                 IsServer ? "cli secret" : "srv secret",
@@ -2844,8 +2844,8 @@ CxPlatPacketKeyCreateInitial(
 
 Error:
 
-    CxPlatPacketKeyFree(ReadKey);
-    CxPlatPacketKeyFree(WriteKey);
+    QuicPacketKeyFree(ReadKey);
+    QuicPacketKeyFree(WriteKey);
 
     RtlSecureZeroMemory(ClientInitial.Secret, sizeof(ClientInitial.Secret));
     RtlSecureZeroMemory(ServerInitial.Secret, sizeof(ServerInitial.Secret));
@@ -2942,7 +2942,7 @@ CxPlatParseTrafficSecrets(
 
 _Success_(return==TRUE)
 BOOLEAN
-CxPlatPacketKeyCreate(
+QuicPacketKeyCreate(
     _Inout_ QUIC_TLS* TlsContext,
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_z_ const char* const SecretName,
@@ -2959,7 +2959,7 @@ CxPlatPacketKeyCreate(
     }
 
     Status =
-        CxPlatPacketKeyDerive(
+        QuicPacketKeyDerive(
             KeyType,
             &Secret,
             SecretName,
@@ -2971,7 +2971,7 @@ CxPlatPacketKeyCreate(
             "[ tls][%p] ERROR, %u, %s.",
             TlsContext->Connection,
             Status,
-            "CxPlatPacketKeyDerive");
+            "QuicPacketKeyDerive");
         goto Error;
     }
 
@@ -2982,7 +2982,7 @@ Error:
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatPacketKeyFree(
+QuicPacketKeyFree(
     _In_opt_ __drv_freesMem(Mem) QUIC_PACKET_KEY* Key
     )
 {
@@ -2999,7 +2999,7 @@ CxPlatPacketKeyFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _At_(*NewKey, __drv_allocatesMem(Mem))
 QUIC_STATUS
-CxPlatPacketKeyUpdate(
+QuicPacketKeyUpdate(
     _In_ QUIC_PACKET_KEY* OldKey,
     _Out_ QUIC_PACKET_KEY** NewKey
     )
@@ -3037,7 +3037,7 @@ CxPlatPacketKeyUpdate(
     NewTrafficSecret.Aead = OldKey->TrafficSecret->Aead;
 
     Status =
-        CxPlatPacketKeyDerive(
+        QuicPacketKeyDerive(
             QUIC_PACKET_KEY_1_RTT,
             &NewTrafficSecret,
             "update traffic secret",

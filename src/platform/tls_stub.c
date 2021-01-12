@@ -1212,7 +1212,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _When_(ReadKey != NULL, _At_(*ReadKey, __drv_allocatesMem(Mem)))
 _When_(WriteKey != NULL, _At_(*WriteKey, __drv_allocatesMem(Mem)))
 QUIC_STATUS
-CxPlatPacketKeyCreateInitial(
+QuicPacketKeyCreateInitial(
     _In_ BOOLEAN IsServer,
     _In_reads_(QUIC_VERSION_SALT_LENGTH)
         const uint8_t* const Salt, // Version Specific
@@ -1245,7 +1245,7 @@ CxPlatPacketKeyCreateInitial(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatPacketKeyDerive(
+QuicPacketKeyDerive(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_ const QUIC_SECRET* const Secret,
     _In_z_ const char* const SecretName,
@@ -1264,7 +1264,7 @@ CxPlatPacketKeyDerive(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatPacketKeyFree(
+QuicPacketKeyFree(
     _In_opt_ __drv_freesMem(Mem) QUIC_PACKET_KEY* Key
     )
 {
@@ -1277,7 +1277,7 @@ CxPlatPacketKeyFree(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _At_(*NewKey, __drv_allocatesMem(Mem))
 QUIC_STATUS
-CxPlatPacketKeyUpdate(
+QuicPacketKeyUpdate(
     _In_ QUIC_PACKET_KEY* OldKey,
     _Out_ QUIC_PACKET_KEY** NewKey
     )
