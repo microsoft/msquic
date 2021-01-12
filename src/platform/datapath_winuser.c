@@ -516,7 +516,7 @@ QuicDataPathQueryRssScalabilityInfo(
         int WsaError = WSAGetLastError();
         QuicTraceLogWarning(
             DatapathOpenTcpSocketFailed,
-            "[ udp] RSS helper socket failed to open, 0x%x",
+            "[data] RSS helper socket failed to open, 0x%x",
             WsaError);
         goto Error;
     }
@@ -536,7 +536,7 @@ QuicDataPathQueryRssScalabilityInfo(
         int WsaError = WSAGetLastError();
         QuicTraceLogWarning(
             DatapathQueryRssProcessorInfoFailed,
-            "[ udp] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
+            "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
             WsaError);
         goto Error;
     }
@@ -571,7 +571,7 @@ QuicDataPathQuerySockoptSupport(
         int WsaError = WSAGetLastError();
         QuicTraceLogWarning(
             DatapathOpenUdpSocketFailed,
-            "[ udp] UDP send segmentation helper socket failed to open, 0x%x",
+            "[data] UDP send segmentation helper socket failed to open, 0x%x",
             WsaError);
         goto Error;
     }
@@ -686,7 +686,7 @@ QuicDataPathQuerySockoptSupport(
         int WsaError = WSAGetLastError();
         QuicTraceLogWarning(
             DatapathQueryUdpSendMsgFailed,
-            "[ udp] Query for UDP_SEND_MSG_SIZE failed, 0x%x",
+            "[data] Query for UDP_SEND_MSG_SIZE failed, 0x%x",
             WsaError);
     } else {
         Datapath->Features |= QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION;
@@ -709,7 +709,7 @@ QuicDataPathQuerySockoptSupport(
         int WsaError = WSAGetLastError();
         QuicTraceLogWarning(
             DatapathQueryRecvMaxCoalescedSizeFailed,
-            "[ udp] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
+            "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
             WsaError);
     } else {
         Datapath->Features |= QUIC_DATAPATH_FEATURE_RECV_COALESCING;
@@ -1220,7 +1220,7 @@ QuicSocketCreateUdp(
 
     QuicTraceEvent(
         DatapathCreated,
-        "[ udp][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
         CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
@@ -1267,7 +1267,7 @@ QuicSocketCreateUdp(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "WSASocketW");
@@ -1291,7 +1291,7 @@ QuicSocketCreateUdp(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "Set IPV6_V6ONLY");
@@ -1316,7 +1316,7 @@ QuicSocketCreateUdp(
                 int WsaError = WSAGetLastError();
                 QuicTraceEvent(
                     DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
+                    "[data][%p] ERROR, %u, %s.",
                     Socket,
                     WsaError,
                     "SIO_CPU_AFFINITY");
@@ -1337,7 +1337,7 @@ QuicSocketCreateUdp(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "Set IP_DONTFRAGMENT");
@@ -1357,7 +1357,7 @@ QuicSocketCreateUdp(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "Set IPV6_DONTFRAG");
@@ -1377,7 +1377,7 @@ QuicSocketCreateUdp(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "Set IPV6_PKTINFO");
@@ -1397,7 +1397,7 @@ QuicSocketCreateUdp(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "Set IP_PKTINFO");
@@ -1417,7 +1417,7 @@ QuicSocketCreateUdp(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "Set IPV6_ECN");
@@ -1437,7 +1437,7 @@ QuicSocketCreateUdp(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "Set IP_ECN");
@@ -1461,7 +1461,7 @@ QuicSocketCreateUdp(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "Set SO_RCVBUF");
@@ -1483,7 +1483,7 @@ QuicSocketCreateUdp(
                 int WsaError = WSAGetLastError();
                 QuicTraceEvent(
                     DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
+                    "[data][%p] ERROR, %u, %s.",
                     Socket,
                     WsaError,
                     "Set UDP_RECV_MAX_COALESCED_SIZE");
@@ -1504,7 +1504,7 @@ QuicSocketCreateUdp(
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 LastError,
                 "SetFileCompletionNotificationModes");
@@ -1529,7 +1529,7 @@ QUIC_DISABLED_BY_FUZZER_START;
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 LastError,
                 "CreateIoCompletionPort");
@@ -1546,7 +1546,7 @@ QUIC_DISABLED_BY_FUZZER_START;
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "bind");
@@ -1567,7 +1567,7 @@ QUIC_DISABLED_BY_FUZZER_START;
                 int WsaError = WSAGetLastError();
                 QuicTraceEvent(
                     DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
+                    "[data][%p] ERROR, %u, %s.",
                     Socket,
                     WsaError,
                     "connect");
@@ -1594,7 +1594,7 @@ QUIC_DISABLED_BY_FUZZER_START;
                 int WsaError = WSAGetLastError();
                 QuicTraceEvent(
                     DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
+                    "[data][%p] ERROR, %u, %s.",
                     Socket,
                     WsaError,
                     "getsockaddress");
@@ -1648,7 +1648,7 @@ Error:
         if (Socket != NULL) {
             QuicTraceEvent(
                 DatapathDestroyed,
-                "[ udp][%p] Destroyed",
+                "[data][%p] Destroyed",
                 Socket);
             if (Socket->ProcsOutstanding != 0) {
                 for (uint16_t i = 0; i < SocketCount; i++) {
@@ -1728,7 +1728,7 @@ QuicSocketCreateTcpInternal(
 
     QuicTraceEvent(
         DatapathCreated,
-        "[ udp][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
         CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
@@ -1769,7 +1769,7 @@ QuicSocketCreateTcpInternal(
         int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Socket,
             WsaError,
             "WSASocketW");
@@ -1789,7 +1789,7 @@ QuicSocketCreateTcpInternal(
         int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Socket,
             WsaError,
             "Set IPV6_V6ONLY");
@@ -1808,7 +1808,7 @@ QuicSocketCreateTcpInternal(
         DWORD LastError = GetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Socket,
             LastError,
             "SetFileCompletionNotificationModes");
@@ -1827,7 +1827,7 @@ QuicSocketCreateTcpInternal(
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 LastError,
                 "CreateIoCompletionPort");
@@ -1844,7 +1844,7 @@ QuicSocketCreateTcpInternal(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "bind");
@@ -1870,7 +1870,7 @@ QuicSocketCreateTcpInternal(
                 if (WsaError != WSA_IO_PENDING) {
                     QuicTraceEvent(
                         DatapathErrorStatus,
-                        "[ udp][%p] ERROR, %u, %s.",
+                        "[data][%p] ERROR, %u, %s.",
                         Socket,
                         WsaError,
                         "AcceptEx");
@@ -1889,7 +1889,7 @@ QuicSocketCreateTcpInternal(
                     DWORD LastError = GetLastError();
                     QuicTraceEvent(
                         DatapathErrorStatus,
-                        "[ udp][%p] ERROR, %u, %s.",
+                        "[data][%p] ERROR, %u, %s.",
                         Socket,
                         LastError,
                         "PostQueuedCompletionStatus");
@@ -1915,7 +1915,7 @@ QuicSocketCreateTcpInternal(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "getsockaddress");
@@ -1948,7 +1948,7 @@ Error:
         if (Socket != NULL) {
             QuicTraceEvent(
                 DatapathDestroyed,
-                "[ udp][%p] Destroyed",
+                "[data][%p] Destroyed",
                 Socket);
             if (Socket->ProcsOutstanding != 0) {
 
@@ -2029,7 +2029,7 @@ QuicSocketCreateTcpListener(
 
     QuicTraceEvent(
         DatapathCreated,
-        "[ udp][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
         CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CLOG_BYTEARRAY(0, NULL));
@@ -2065,7 +2065,7 @@ QuicSocketCreateTcpListener(
         int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Socket,
             WsaError,
             "WSASocketW");
@@ -2085,7 +2085,7 @@ QuicSocketCreateTcpListener(
         int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Socket,
             WsaError,
             "Set IPV6_V6ONLY");
@@ -2104,7 +2104,7 @@ QuicSocketCreateTcpListener(
         DWORD LastError = GetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Socket,
             LastError,
             "SetFileCompletionNotificationModes");
@@ -2121,7 +2121,7 @@ QuicSocketCreateTcpListener(
         DWORD LastError = GetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Socket,
             LastError,
             "CreateIoCompletionPort");
@@ -2138,7 +2138,7 @@ QuicSocketCreateTcpListener(
         int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Socket,
             WsaError,
             "bind");
@@ -2162,7 +2162,7 @@ QuicSocketCreateTcpListener(
         int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Socket,
             WsaError,
             "getsockaddress");
@@ -2184,7 +2184,7 @@ QuicSocketCreateTcpListener(
         int WsaError = WSAGetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Socket,
             WsaError,
             "listen");
@@ -2211,7 +2211,7 @@ Error:
         if (Socket != NULL) {
             QuicTraceEvent(
                 DatapathDestroyed,
-                "[ udp][%p] Destroyed",
+                "[data][%p] Destroyed",
                 Socket);
             if (Socket->ProcsOutstanding != 0) {
                 CancelIo((HANDLE)SocketProc->Socket);
@@ -2256,7 +2256,7 @@ QuicSocketDelete(
     QUIC_DBG_ASSERT(Socket != NULL);
     QuicTraceEvent(
         DatapathDestroyed,
-        "[ udp][%p] Destroyed",
+        "[data][%p] Destroyed",
         Socket);
 
     //
@@ -2274,7 +2274,7 @@ QuicSocketDelete(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "closesocket");
@@ -2294,7 +2294,7 @@ QuicSocketDelete(
                 if (WsaError != WSAENOTCONN) {
                     QuicTraceEvent(
                         DatapathErrorStatus,
-                        "[ udp][%p] ERROR, %u, %s.",
+                        "[data][%p] ERROR, %u, %s.",
                         Socket,
                         WsaError,
                         "shutdown");
@@ -2310,7 +2310,7 @@ QUIC_DISABLED_BY_FUZZER_START;
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
                 "closesocket");
@@ -2352,7 +2352,7 @@ QUIC_DISABLED_BY_FUZZER_END;
 
     QuicTraceLogVerbose(
         DatapathShutDownReturn,
-        "[ udp][%p] Shut down (return)",
+        "[data][%p] Shut down (return)",
         Socket);
 }
 
@@ -2385,7 +2385,7 @@ QuicDataPathSocketContextShutdown(
         QuicRundownRelease(&SocketProc->Parent->Datapath->SocketsRundown);
         QuicTraceLogVerbose(
             DatapathShutDownComplete,
-            "[ udp][%p] Shut down (complete)",
+            "[data][%p] Shut down (complete)",
             SocketProc->Parent);
         QUIC_FREE(SocketProc->Parent, QUIC_POOL_SOCKET);
     }
@@ -2488,7 +2488,7 @@ QuicSocketStartAccept(
         if (WsaError != WSA_IO_PENDING) {
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 ListenerSocketProc->Parent,
                 WsaError,
                 "AcceptEx");
@@ -2507,7 +2507,7 @@ QuicSocketStartAccept(
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 ListenerSocketProc->Parent,
                 LastError,
                 "PostQueuedCompletionStatus");
@@ -2549,7 +2549,7 @@ QuicDataPathAcceptComplete(
 
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             ListenerSocketProc->Parent,
             0,
             "AcceptEx Completed!");
@@ -2565,7 +2565,7 @@ QuicDataPathAcceptComplete(
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 ListenerSocketProc->AcceptSocket,
                 WsaError,
                 "Set UPDATE_ACCEPT_CONTEXT");
@@ -2581,7 +2581,7 @@ QuicDataPathAcceptComplete(
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 ListenerSocketProc->AcceptSocket,
                 LastError,
                 "CreateIoCompletionPort (accepted)");
@@ -2606,7 +2606,7 @@ QuicDataPathAcceptComplete(
     } else {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             ListenerSocketProc->Parent,
             IoResult,
             "AcceptEx completion");
@@ -2646,7 +2646,7 @@ QuicDataPathConnectComplete(
 
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             0,
             "ConnectEx Completed!");
@@ -2665,7 +2665,7 @@ QuicDataPathConnectComplete(
     } else {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             IoResult,
             "ConnectEx completion");
@@ -2692,7 +2692,7 @@ QuicSocketHandleUnreachableError(
 #if QUIC_CLOG
     QuicTraceLogVerbose(
         DatapathUnreachableWithError,
-        "[ udp][%p] Received unreachable error (0x%x) from %!ADDR!",
+        "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
         SocketProc->Parent,
         ErrorCode,
         CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
@@ -2785,7 +2785,7 @@ Retry_recv:
             } else {
                 QuicTraceEvent(
                     DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
+                    "[data][%p] ERROR, %u, %s.",
                     SocketProc->Parent,
                     WsaError,
                     "WSARecvMsg");
@@ -2805,7 +2805,7 @@ Retry_recv:
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 SocketProc->Parent,
                 LastError,
                 "PostQueuedCompletionStatus");
@@ -2863,7 +2863,7 @@ QuicDataPathUdpRecvComplete(
 #if QUIC_CLOG
         QuicTraceLogVerbose(
             DatapathTooLarge,
-            "[ udp][%p] Received larger than expected datagram from %!ADDR!",
+            "[data][%p] Received larger than expected datagram from %!ADDR!",
             SocketProc->Parent,
             CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
@@ -2934,7 +2934,7 @@ QuicDataPathUdpRecvComplete(
             //
             QuicTraceLogWarning(
                 DatapathMissingInfo,
-                "[ udp][%p] WSARecvMsg completion is missing IP_PKTINFO",
+                "[data][%p] WSARecvMsg completion is missing IP_PKTINFO",
                 SocketProc->Parent);
             goto Drop;
         }
@@ -2942,7 +2942,7 @@ QuicDataPathUdpRecvComplete(
         if (NumberOfBytesTransferred == 0) {
             QuicTraceLogWarning(
                 DatapathRecvEmpty,
-                "[ udp][%p] Dropping datagram with empty payload.",
+                "[data][%p] Dropping datagram with empty payload.",
                 SocketProc->Parent);
             goto Drop;
         }
@@ -2951,7 +2951,7 @@ QuicDataPathUdpRecvComplete(
 
         QuicTraceEvent(
             DatapathRecv,
-            "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             SocketProc->Parent,
             NumberOfBytesTransferred,
             MessageLength,
@@ -3002,7 +3002,7 @@ QuicDataPathUdpRecvComplete(
             if (IsCoalesced && ++MessageCount == URO_MAX_DATAGRAMS_PER_INDICATION) {
                 QuicTraceLogWarning(
                     DatapathUroPreallocExceeded,
-                    "[ udp][%p] Exceeded URO preallocation capacity.",
+                    "[data][%p] Exceeded URO preallocation capacity.",
                     SocketProc->Parent);
                 break;
             }
@@ -3032,7 +3032,7 @@ QuicDataPathUdpRecvComplete(
     } else {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             IoResult,
             "WSARecvMsg completion");
@@ -3099,7 +3099,7 @@ QuicDataPathTcpRecvComplete(
 
         QuicTraceEvent(
             DatapathRecv,
-            "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             SocketProc->Parent,
             NumberOfBytesTransferred,
             NumberOfBytesTransferred,
@@ -3133,7 +3133,7 @@ QuicDataPathTcpRecvComplete(
     } else {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             IoResult,
             "WSARecv completion");
@@ -3477,7 +3477,7 @@ QuicSendContextComplete(
     if (IoResult != QUIC_STATUS_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             IoResult,
             "WSASendMsg completion");
@@ -3517,7 +3517,7 @@ QuicSocketSend(
 
     QuicTraceEvent(
         DatapathSend,
-        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Socket,
         SendContext->TotalSize,
         SendContext->WsaBufferCount,
@@ -3639,7 +3639,7 @@ QuicSocketSend(
         if (WsaError != WSA_IO_PENDING) {
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 SocketProc->Parent,
                 WsaError,
                 "WSASendMsg");
@@ -3677,7 +3677,7 @@ QuicDataPathWorkerThread(
 
     QuicTraceLogInfo(
         DatapathWorkerThreadStart,
-        "[ udp][%p] Worker start",
+        "[data][%p] Worker start",
         DatapathProc);
 
     QUIC_DBG_ASSERT(DatapathProc != NULL);
@@ -3717,7 +3717,7 @@ QuicDataPathWorkerThread(
 
             /*QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 SocketProc->Parent,
                 IoResult,
                 "Overlapped Complete");*/
@@ -3787,7 +3787,7 @@ QuicDataPathWorkerThread(
 
             /*QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 SocketProc->Parent,
                 IoResult,
                 "Overlapped Complete (send)");*/
@@ -3807,7 +3807,7 @@ QuicDataPathWorkerThread(
 
     QuicTraceLogInfo(
         DatapathWorkerThreadStop,
-        "[ udp][%p] Worker stop",
+        "[data][%p] Worker stop",
         DatapathProc);
 
     return NO_ERROR;

@@ -1163,7 +1163,7 @@ const char* TracePrefix[EventType_Count] = {
     "[strm][%.5u] ",
     "[bind][%.5u] ",
     "[ tls][%.5u] ",
-    "[ udp][%.5u] ",
+    "[data][%.5u] ",
     NULL
 };
 

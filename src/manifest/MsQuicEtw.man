@@ -3368,27 +3368,27 @@
             />
         <string
             id="Etw.DatapathSend"
-            value="[ udp][%1] Send %2 bytes in %3 buffers (segment=%4) Dst=%6 Src=%8"
+            value="[data][%1] Send %2 bytes in %3 buffers (segment=%4) Dst=%6 Src=%8"
             />
         <string
             id="Etw.DatapathRecv"
-            value="[ udp][%1] Recv %2 bytes (segment=%3) Src=%5 Dst=%7"
+            value="[data][%1] Recv %2 bytes (segment=%3) Src=%5 Dst=%7"
             />
         <string
             id="Etw.DatapathError"
-            value="[ udp][%1] ERROR, %2."
+            value="[data][%1] ERROR, %2."
             />
         <string
             id="Etw.DatapathErrorStatus"
-            value="[ udp][%1] ERROR, %2, %3."
+            value="[data][%1] ERROR, %2, %3."
             />
         <string
             id="Etw.DatapathCreated"
-            value="[ udp][%1] Created, local=%3, remote=%5"
+            value="[data][%1] Created, local=%3, remote=%5"
             />
         <string
             id="Etw.DatapathDestroyed"
-            value="[ udp][%1] Destroyed"
+            value="[data][%1] Destroyed"
             />
         <string
             id="Etw.ApiEnter"
