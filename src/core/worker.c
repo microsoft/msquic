@@ -59,13 +59,13 @@ QuicWorkerInitialize(
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
     CxPlatListInitializeHead(&Worker->Connections);
     CxPlatListInitializeHead(&Worker->Operations);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_STREAM), CXPLAT_POOL_STREAM, &Worker->StreamPool);
-    CxPlatPoolInitialize(FALSE, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, CXPLAT_POOL_SBUF, &Worker->DefaultReceiveBufferPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_SEND_REQUEST), CXPLAT_POOL_SEND_REQUEST, &Worker->SendRequestPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &Worker->StreamPool);
+    CxPlatPoolInitialize(FALSE, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, QUIC_POOL_SBUF, &Worker->DefaultReceiveBufferPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_SEND_REQUEST), QUIC_POOL_SEND_REQUEST, &Worker->SendRequestPool);
     QuicSentPacketPoolInitialize(&Worker->SentPacketPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_API_CONTEXT), CXPLAT_POOL_API_CTX, &Worker->ApiContextPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), CXPLAT_POOL_STATELESS_CTX, &Worker->StatelessContextPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_OPERATION), CXPLAT_POOL_OPER, &Worker->OperPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_API_CONTEXT), QUIC_POOL_API_CTX, &Worker->ApiContextPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), QUIC_POOL_STATELESS_CTX, &Worker->StatelessContextPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_OPERATION), QUIC_POOL_OPER, &Worker->OperPool);
 
     Status = QuicTimerWheelInitialize(&Worker->TimerWheel);
     if (QUIC_FAILED(Status)) {
@@ -697,7 +697,7 @@ QuicWorkerPoolInitialize(
     QUIC_STATUS Status;
 
     QUIC_WORKER_POOL* WorkerPool =
-        CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER), CXPLAT_POOL_WORKER);
+        CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER), QUIC_POOL_WORKER);
     if (WorkerPool == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -734,7 +734,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (WorkerPool != NULL) {
-            CXPLAT_FREE(WorkerPool, CXPLAT_POOL_WORKER);
+            CXPLAT_FREE(WorkerPool, QUIC_POOL_WORKER);
         }
     }
 
@@ -751,7 +751,7 @@ QuicWorkerPoolUninitialize(
         QuicWorkerUninitialize(&WorkerPool->Workers[i]);
     }
 
-    CXPLAT_FREE(WorkerPool, CXPLAT_POOL_WORKER);
+    CXPLAT_FREE(WorkerPool, QUIC_POOL_WORKER);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

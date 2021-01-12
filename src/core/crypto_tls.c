@@ -827,7 +827,7 @@ QuicCryptoTlsEncodeTransportParameters(
         return NULL;
     }
 
-    uint8_t* TPBufBase = CXPLAT_ALLOC_NONPAGED(QuicTlsTPHeaderSize + RequiredTPLen, CXPLAT_POOL_TLS_TRANSPARAMS);
+    uint8_t* TPBufBase = CXPLAT_ALLOC_NONPAGED(QuicTlsTPHeaderSize + RequiredTPLen, QUIC_POOL_TLS_TRANSPARAMS);
     if (TPBufBase == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1096,7 +1096,7 @@ QuicCryptoTlsEncodeTransportParameters(
             Connection,
             "Encoding error! Length mismatch.");
         CXPLAT_TEL_ASSERT(FinalTPLength == RequiredTPLen);
-        CXPLAT_FREE(TPBufBase, CXPLAT_POOL_TLS_TRANSPARAMS);
+        CXPLAT_FREE(TPBufBase, QUIC_POOL_TLS_TRANSPARAMS);
         return NULL;
     }
     QuicTraceLogConnVerbose(

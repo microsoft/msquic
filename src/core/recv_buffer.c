@@ -68,7 +68,7 @@ QuicRecvBufferInitialize(
         RecvBuffer->Buffer = PreallocatedBuffer;
     } else {
         RecvBuffer->PreallocatedBuffer = NULL;
-        RecvBuffer->Buffer = CXPLAT_ALLOC_NONPAGED(AllocBufferLength, CXPLAT_POOL_RECVBUF);
+        RecvBuffer->Buffer = CXPLAT_ALLOC_NONPAGED(AllocBufferLength, QUIC_POOL_RECVBUF);
         if (RecvBuffer->Buffer == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -104,12 +104,12 @@ QuicRecvBufferUninitialize(
 {
     QuicRangeUninitialize(&RecvBuffer->WrittenRanges);
     if (RecvBuffer->Buffer != RecvBuffer->PreallocatedBuffer) {
-        CXPLAT_FREE(RecvBuffer->Buffer, CXPLAT_POOL_RECVBUF);
+        CXPLAT_FREE(RecvBuffer->Buffer, QUIC_POOL_RECVBUF);
     }
     RecvBuffer->Buffer = NULL;
     if (RecvBuffer->OldBuffer != NULL &&
         RecvBuffer->OldBuffer != RecvBuffer->PreallocatedBuffer) {
-        CXPLAT_FREE(RecvBuffer->OldBuffer, CXPLAT_POOL_RECVBUF);
+        CXPLAT_FREE(RecvBuffer->OldBuffer, QUIC_POOL_RECVBUF);
     }
     RecvBuffer->OldBuffer = NULL;
 }
@@ -165,7 +165,7 @@ QuicRecvBufferResize(
 
         uint32_t Span = QuicRecvBufferGetSpan(RecvBuffer);
 
-        uint8_t* NewBuffer = CXPLAT_ALLOC_NONPAGED(TargetBufferLength, CXPLAT_POOL_RECVBUF);
+        uint8_t* NewBuffer = CXPLAT_ALLOC_NONPAGED(TargetBufferLength, QUIC_POOL_RECVBUF);
         if (NewBuffer == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
@@ -192,7 +192,7 @@ QuicRecvBufferResize(
         if (RecvBuffer->ExternalBufferReference && RecvBuffer->OldBuffer == NULL) {
             RecvBuffer->OldBuffer = RecvBuffer->Buffer;
         } else if (RecvBuffer->Buffer != RecvBuffer->PreallocatedBuffer) {
-            CXPLAT_FREE(RecvBuffer->Buffer, CXPLAT_POOL_RECVBUF);
+            CXPLAT_FREE(RecvBuffer->Buffer, QUIC_POOL_RECVBUF);
         }
 
         RecvBuffer->Buffer = NewBuffer;
@@ -471,7 +471,7 @@ QuicRecvBufferDrain(
 
     if (RecvBuffer->OldBuffer != NULL) {
         if (RecvBuffer->OldBuffer != RecvBuffer->PreallocatedBuffer) {
-            CXPLAT_FREE(RecvBuffer->OldBuffer, CXPLAT_POOL_RECVBUF);
+            CXPLAT_FREE(RecvBuffer->OldBuffer, QUIC_POOL_RECVBUF);
         }
         RecvBuffer->OldBuffer = NULL;
     }

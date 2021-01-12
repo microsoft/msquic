@@ -337,7 +337,7 @@ void RunAttack()
     Writer = new PacketWriter(Version, Alpn, ServerName);
 
     CXPLAT_THREAD* Threads =
-        (CXPLAT_THREAD*)CXPLAT_ALLOC_PAGED(ThreadCount * sizeof(CXPLAT_THREAD), CXPLAT_POOL_TOOL);
+        (CXPLAT_THREAD*)CXPLAT_ALLOC_PAGED(ThreadCount * sizeof(CXPLAT_THREAD), QUIC_POOL_TOOL);
 
     uint32_t ProcCount = CxPlatProcActiveCount();
     TimeStart = CxPlatTimeMs64();
@@ -361,7 +361,7 @@ void RunAttack()
     uint64_t TimeEnd = CxPlatTimeMs64();
     printf("Packet Rate: %llu KHz\n", (unsigned long long)(TotalPacketCount) / CxPlatTimeDiff64(TimeStart, TimeEnd));
     printf("Bit Rate: %llu mbps\n", (unsigned long long)(8 * TotalByteCount) / (1000 * CxPlatTimeDiff64(TimeStart, TimeEnd)));
-    CXPLAT_FREE(Threads, CXPLAT_POOL_TOOL);
+    CXPLAT_FREE(Threads, QUIC_POOL_TOOL);
 
     delete Writer;
 }

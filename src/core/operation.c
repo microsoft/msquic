@@ -95,14 +95,14 @@ QuicOperationFree(
         if (ApiCtx->Type == QUIC_API_TYPE_CONN_START) {
             QuicConfigurationRelease(ApiCtx->CONN_START.Configuration);
             if (ApiCtx->CONN_START.ServerName != NULL) {
-                CXPLAT_FREE(ApiCtx->CONN_START.ServerName, CXPLAT_POOL_SERVERNAME);
+                CXPLAT_FREE(ApiCtx->CONN_START.ServerName, QUIC_POOL_SERVERNAME);
             }
         } else if (ApiCtx->Type == QUIC_API_TYPE_CONN_SET_CONFIGURATION) {
             QuicConfigurationRelease(ApiCtx->CONN_SET_CONFIGURATION.Configuration);
         } else if (ApiCtx->Type == QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET) {
             if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData != NULL) {
                 CXPLAT_DBG_ASSERT(ApiCtx->CONN_SEND_RESUMPTION_TICKET.AppDataLength != 0);
-                CXPLAT_FREE(ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData, CXPLAT_POOL_APP_RESUMPTION_DATA);
+                CXPLAT_FREE(ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData, QUIC_POOL_APP_RESUMPTION_DATA);
             }
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_START) {
             CXPLAT_DBG_ASSERT(ApiCtx->Completed == NULL);

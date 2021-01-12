@@ -143,20 +143,20 @@ protected:
             Connected(false) {
             CxPlatEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
             CxPlatZeroMemory(&State, sizeof(State));
-            State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, CXPLAT_POOL_TEST);
+            State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, QUIC_POOL_TEST);
             State.BufferAllocLength = 8000;
         }
 
         ~TlsContext() {
             CxPlatTlsUninitialize(Ptr);
             CxPlatEventUninitialize(ProcessCompleteEvent);
-            CXPLAT_FREE(State.Buffer, CXPLAT_POOL_TEST);
+            CXPLAT_FREE(State.Buffer, QUIC_POOL_TEST);
             for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
                 CxPlatPacketKeyFree(State.ReadKeys[i]);
                 CxPlatPacketKeyFree(State.WriteKeys[i]);
             }
             if (ResumptionTicket.Buffer) {
-                CXPLAT_FREE(ResumptionTicket.Buffer, CXPLAT_POOL_CRYPTO_RESUMPTION_TICKET);
+                CXPLAT_FREE(ResumptionTicket.Buffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
             }
         }
 
@@ -174,7 +174,7 @@ protected:
             Config.AlpnBufferLength = sizeof(Alpn);
             Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
             Config.LocalTPBuffer =
-                (uint8_t*)CXPLAT_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, CXPLAT_POOL_TLS_TRANSPARAMS);
+                (uint8_t*)CXPLAT_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
             State.NegotiatedAlpn = Alpn;
@@ -200,7 +200,7 @@ protected:
             Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
             Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
             Config.LocalTPBuffer =
-                (uint8_t*)CXPLAT_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, CXPLAT_POOL_TLS_TRANSPARAMS);
+                (uint8_t*)CXPLAT_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
             Config.ServerName = "localhost";
@@ -448,7 +448,7 @@ protected:
             auto Context = (TlsContext*)Connection;
             if (Context->ResumptionTicket.Buffer == nullptr) {
                 Context->ResumptionTicket.Buffer =
-                    (uint8_t*)CXPLAT_ALLOC_NONPAGED(TicketLength, CXPLAT_POOL_CRYPTO_RESUMPTION_TICKET);
+                    (uint8_t*)CXPLAT_ALLOC_NONPAGED(TicketLength, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
                 CxPlatCopyMemory(
                     Context->ResumptionTicket.Buffer,
                     Ticket,

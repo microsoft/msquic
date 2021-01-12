@@ -45,7 +45,7 @@ MsQuicListenerOpen(
 
     Registration = (QUIC_REGISTRATION*)RegistrationHandle;
 
-    Listener = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_LISTENER), CXPLAT_POOL_LISTENER);
+    Listener = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_LISTENER), QUIC_POOL_LISTENER);
     if (Listener == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -84,7 +84,7 @@ Error:
     if (QUIC_FAILED(Status)) {
 
         if (Listener != NULL) {
-            CXPLAT_FREE(Listener, CXPLAT_POOL_LISTENER);
+            CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
         }
     }
 
@@ -141,7 +141,7 @@ MsQuicListenerClose(
 #endif
 
     CXPLAT_DBG_ASSERT(Listener->AlpnList == NULL);
-    CXPLAT_FREE(Listener, CXPLAT_POOL_LISTENER);
+    CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
     CxPlatRundownRelease(&Registration->Rundown);
 
     QuicTraceEvent(
@@ -209,7 +209,7 @@ MsQuicListenerStart(
         goto Exit;
     }
 
-    AlpnList = CXPLAT_ALLOC_NONPAGED(AlpnListLength, CXPLAT_POOL_ALPN);
+    AlpnList = CXPLAT_ALLOC_NONPAGED(AlpnListLength, QUIC_POOL_ALPN);
     if (AlpnList == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -313,7 +313,7 @@ Error:
             Listener->Binding = NULL;
         }
         if (Listener->AlpnList != NULL) {
-            CXPLAT_FREE(Listener->AlpnList, CXPLAT_POOL_ALPN);
+            CXPLAT_FREE(Listener->AlpnList, QUIC_POOL_ALPN);
             Listener->AlpnList = NULL;
         }
         Listener->AlpnListLength = 0;
@@ -353,7 +353,7 @@ MsQuicListenerStop(
             CxPlatRundownReleaseAndWait(&Listener->Rundown);
 
             if (Listener->AlpnList != NULL) {
-                CXPLAT_FREE(Listener->AlpnList, CXPLAT_POOL_ALPN);
+                CXPLAT_FREE(Listener->AlpnList, QUIC_POOL_ALPN);
                 Listener->AlpnList = NULL;
             }
 

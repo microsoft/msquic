@@ -856,7 +856,7 @@ CxPlatDataPathInitialize(
         sizeof(QUIC_DATAPATH) +
         CxPlatProcMaxCount() * sizeof(QUIC_DATAPATH_PROC_CONTEXT);
 
-    Datapath = CXPLAT_ALLOC_NONPAGED(DatapathLength, CXPLAT_POOL_DATAPATH);
+    Datapath = CXPLAT_ALLOC_NONPAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -893,41 +893,41 @@ CxPlatDataPathInitialize(
         CxPlatPoolInitialize(
             FALSE,
             sizeof(QUIC_SEND_DATA),
-            CXPLAT_POOL_PLATFORM_SENDCTX,
+            QUIC_POOL_PLATFORM_SENDCTX,
             &Datapath->ProcContexts[i].SendContextPool);
 
         QuicSendBufferPoolInitialize(
             sizeof(QUIC_DATAPATH_SEND_BUFFER) + MAX_UDP_PAYLOAD_LENGTH,
-            CXPLAT_POOL_DATA,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].SendBufferPool);
 
         QuicSendBufferPoolInitialize(
             sizeof(QUIC_DATAPATH_SEND_BUFFER) + QUIC_LARGE_SEND_BUFFER_SIZE,
-            CXPLAT_POOL_DATA,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].LargeSendBufferPool);
 
         CxPlatPoolInitialize(
             FALSE,
             RecvDatagramLength,
-            CXPLAT_POOL_DATA,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].RecvDatagramPools[0]);
 
         CxPlatPoolInitialize(
             FALSE,
             UroDatagramLength,
-            CXPLAT_POOL_DATA,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].RecvDatagramPools[1]);
 
         CxPlatPoolInitialize(
             FALSE,
             4096,
-            CXPLAT_POOL_DATA,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].RecvBufferPools[0]);
 
         CxPlatPoolInitialize(
             FALSE,
             65536,
-            CXPLAT_POOL_DATA,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].RecvBufferPools[1]);
 
         Datapath->ProcContexts[i].OutstandingPendingBytes = 0;
@@ -1004,7 +1004,7 @@ Error:
         CxPlatPoolUninitialize(&Datapath->ProcContexts[i].RecvBufferPools[0]);
         CxPlatPoolUninitialize(&Datapath->ProcContexts[i].RecvBufferPools[1]);
     }
-    CXPLAT_FREE(Datapath, CXPLAT_POOL_DATAPATH);
+    CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 
 Exit:
 
@@ -1032,7 +1032,7 @@ CxPlatDataPathUninitialize(
         CxPlatPoolUninitialize(&Datapath->ProcContexts[i].RecvBufferPools[0]);
         CxPlatPoolUninitialize(&Datapath->ProcContexts[i].RecvBufferPools[1]);
     }
-    CXPLAT_FREE(Datapath, CXPLAT_POOL_DATAPATH);
+    CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1139,7 +1139,7 @@ CxPlatDataPathResolveAddress(
     }
 
     UniHostName.MaximumLength = (USHORT)(sizeof(WCHAR) * HostNameLength);
-    UniHostName.Buffer = CXPLAT_ALLOC_PAGED(UniHostName.MaximumLength, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+    UniHostName.Buffer = CXPLAT_ALLOC_PAGED(UniHostName.MaximumLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (UniHostName.Buffer == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1230,7 +1230,7 @@ Error:
     }
 
     if (UniHostName.Buffer != NULL) {
-        CXPLAT_FREE(UniHostName.Buffer, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(UniHostName.Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Status;
@@ -1306,7 +1306,7 @@ CxPlatSocketCreateUdp(
         sizeof(QUIC_SOCKET) +
         CxPlatProcMaxCount() * sizeof(CXPLAT_RUNDOWN_REF);
 
-    Binding = (QUIC_SOCKET*)CXPLAT_ALLOC_NONPAGED(BindingSize, CXPLAT_POOL_SOCKET);
+    Binding = (QUIC_SOCKET*)CXPLAT_ALLOC_NONPAGED(BindingSize, QUIC_POOL_SOCKET);
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1732,7 +1732,7 @@ CxPlatSocketDeleteComplete(
     for (uint32_t i = 0; i < CxPlatProcMaxCount(); ++i) {
         CxPlatRundownUninitialize(&Binding->Rundown[i]);
     }
-    CXPLAT_FREE(Binding, CXPLAT_POOL_SOCKET);
+    CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
 }
 
 IO_COMPLETION_ROUTINE QuicDataPathCloseSocketIoCompletion;

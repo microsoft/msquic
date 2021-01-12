@@ -97,7 +97,7 @@ struct PingStats
         CxPlatEventUninitialize(CompletionEvent);
         CxPlatZeroMemory(&CompletionEvent, sizeof(CompletionEvent));
         if (ResumptionTicket) {
-            CXPLAT_FREE(ResumptionTicket, CXPLAT_POOL_TEST);
+            CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
         }
     }
 };

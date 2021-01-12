@@ -51,7 +51,7 @@ QuicBindingInitialize(
     uint8_t HashSalt[20];
     BOOLEAN HashTableInitialized = FALSE;
 
-    Binding = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BINDING), CXPLAT_POOL_BINDING);
+    Binding = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BINDING), QUIC_POOL_BINDING);
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -175,7 +175,7 @@ Error:
             CxPlatDispatchLockUninitialize(&Binding->StatelessOperLock);
             CxPlatDispatchLockUninitialize(&Binding->ResetTokenLock);
             CxPlatDispatchRwLockUninitialize(&Binding->RwLock);
-            CXPLAT_FREE(Binding, CXPLAT_POOL_BINDING);
+            CXPLAT_FREE(Binding, QUIC_POOL_BINDING);
         }
     }
 
@@ -235,7 +235,7 @@ QuicBindingUninitialize(
         BindingDestroyed,
         "[bind][%p] Destroyed",
         Binding);
-    CXPLAT_FREE(Binding, CXPLAT_POOL_BINDING);
+    CXPLAT_FREE(Binding, QUIC_POOL_BINDING);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -474,7 +474,7 @@ QuicBindingAcceptConnection(
     // used later in building up the TLS response.
     //
     uint16_t NegotiatedAlpnLength = 1 + Info->NegotiatedAlpn[-1];
-    uint8_t* NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength, CXPLAT_POOL_ALPN);
+    uint8_t* NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength, QUIC_POOL_ALPN);
     if (NegotiatedAlpn == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1318,7 +1318,7 @@ Exit:
 
     } else {
         NewConnection->SourceCids.Next = NULL;
-        CXPLAT_FREE(SourceCid, CXPLAT_POOL_CIDHASH);
+        CXPLAT_FREE(SourceCid, QUIC_POOL_CIDHASH);
         QuicConnRelease(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
 #pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
         QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);

@@ -905,8 +905,8 @@ CxPlatRandom(
 #define QUIC_SILO_INVALID ((PESILO)(void*)(LONG_PTR)-1)
 
 #define QuicSiloGetCurrentServer() PsGetCurrentServerSilo()
-#define QuicSiloAddRef(Silo) if (Silo != NULL) { ObReferenceObjectWithTag(Silo, CXPLAT_POOL_SILO); }
-#define QuicSiloRelease(Silo) if (Silo != NULL) { ObDereferenceObjectWithTag(Silo, CXPLAT_POOL_SILO); }
+#define QuicSiloAddRef(Silo) if (Silo != NULL) { ObReferenceObjectWithTag(Silo, QUIC_POOL_SILO); }
+#define QuicSiloRelease(Silo) if (Silo != NULL) { ObDereferenceObjectWithTag(Silo, QUIC_POOL_SILO); }
 #define QuicSiloAttach(Silo) PsAttachSiloToCurrentThread(Silo)
 #define QuicSiloDetatch(PrevSilo) PsDetachSiloFromCurrentThread(PrevSilo)
 

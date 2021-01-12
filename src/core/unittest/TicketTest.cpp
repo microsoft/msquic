@@ -89,8 +89,8 @@ TEST(ResumptionTicketTest, ClientEncDec)
     ASSERT_TRUE(memcmp(DecodedServerTicket, ServerTicket, sizeof(ServerTicket)) == 0);
     CompareTransportParameters(&ClientTP, &DecodedTP);
 
-    CXPLAT_FREE(EncodedClientTicket, CXPLAT_POOL_CLIENT_CRYPTO_TICKET);
-    CXPLAT_FREE(DecodedServerTicket, CXPLAT_POOL_CRYPTO_RESUMPTION_TICKET);
+    CXPLAT_FREE(EncodedClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
+    CXPLAT_FREE(DecodedServerTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
 }
 
 TEST(ResumptionTicketTest, ServerEncDec)
@@ -149,7 +149,7 @@ TEST(ResumptionTicketTest, ServerEncDec)
     ASSERT_TRUE(memcmp(AppData, DecodedAppData, sizeof(AppData)) == 0);
     CompareTransportParameters(&ServerTP, &DecodedTP);
 
-    CXPLAT_FREE(EncodedServerTicket, CXPLAT_POOL_SERVER_CRYPTO_TICKET);
+    CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
 
 TEST(ResumptionTicketTest, ServerEncDecNoAppData)
@@ -205,7 +205,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
     ASSERT_EQ(DecodedAppData, nullptr);
     CompareTransportParameters(&ServerTP, &DecodedServerTP);
 
-    CXPLAT_FREE(EncodedServerTicket, CXPLAT_POOL_SERVER_CRYPTO_TICKET);
+    CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
 
 TEST(ResumptionTicketTest, ClientServerEndToEnd)
@@ -301,7 +301,7 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
     ASSERT_TRUE(memcmp(AppData, DecodedAppData, sizeof(AppData)) == 0);
     CompareTransportParameters(&ServerTP, &DecodedServerTP);
 
-    CXPLAT_FREE(EncodedClientTicket, CXPLAT_POOL_CLIENT_CRYPTO_TICKET);
-    CXPLAT_FREE(EncodedServerTicket, CXPLAT_POOL_SERVER_CRYPTO_TICKET);
-    CXPLAT_FREE(DecodedServerTicket, CXPLAT_POOL_CRYPTO_RESUMPTION_TICKET);
+    CXPLAT_FREE(EncodedClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
+    CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
+    CXPLAT_FREE(DecodedServerTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
 }

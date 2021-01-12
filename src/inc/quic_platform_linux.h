@@ -290,7 +290,7 @@ typedef struct CXPLAT_POOL {
 
 } CXPLAT_POOL;
 
-#define CXPLAT_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+#define QUIC_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 
 void
 CxPlatPoolInitialize(
@@ -640,7 +640,7 @@ typedef struct CXPLAT_THREAD_CONFIG {
 // for every thread created. The platform must define CXPLAT_USE_CUSTOM_THREAD_CONTEXT
 // and implement the CxPlatThreadCustomStart function. CxPlatThreadCustomStart MUST
 // call the Callback passed in. CxPlatThreadCustomStart MUST also free
-// CustomContext (via CXPLAT_FREE(CustomContext, CXPLAT_POOL_CUSTOM_THREAD)) before
+// CustomContext (via CXPLAT_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD)) before
 // returning.
 //
 

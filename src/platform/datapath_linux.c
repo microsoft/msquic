@@ -355,17 +355,17 @@ CxPlatProcessorContextInitialize(
     CxPlatPoolInitialize(
         TRUE,
         RecvPacketLength,
-        CXPLAT_POOL_DATA,
+        QUIC_POOL_DATA,
         &ProcContext->RecvBlockPool);
     CxPlatPoolInitialize(
         TRUE,
         MAX_UDP_PAYLOAD_LENGTH,
-        CXPLAT_POOL_DATA,
+        QUIC_POOL_DATA,
         &ProcContext->SendBufferPool);
     CxPlatPoolInitialize(
         TRUE,
         sizeof(QUIC_SEND_DATA),
-        CXPLAT_POOL_PLATFORM_SENDCTX,
+        QUIC_POOL_PLATFORM_SENDCTX,
         &ProcContext->SendContextPool);
 
     EpollFd = epoll_create1(EPOLL_CLOEXEC);
@@ -508,7 +508,7 @@ CxPlatDataPathInitialize(
         sizeof(QUIC_DATAPATH) +
             CxPlatProcMaxCount() * sizeof(QUIC_DATAPATH_PROC_CONTEXT);
 
-    QUIC_DATAPATH* Datapath = (QUIC_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, CXPLAT_POOL_DATAPATH);
+    QUIC_DATAPATH* Datapath = (QUIC_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -549,7 +549,7 @@ Exit:
 
     if (Datapath != NULL) {
         CxPlatRundownUninitialize(&Datapath->BindingsRundown);
-        CXPLAT_FREE(Datapath, CXPLAT_POOL_DATAPATH);
+        CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 
     return Status;
@@ -576,7 +576,7 @@ CxPlatDataPathUninitialize(
     }
 
     CxPlatRundownUninitialize(&Datapath->BindingsRundown);
-    CXPLAT_FREE(Datapath, CXPLAT_POOL_DATAPATH);
+    CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 #endif
 }
 
@@ -1584,7 +1584,7 @@ CxPlatSocketCreateUdp(
         SocketCount * sizeof(QUIC_SOCKET_CONTEXT);
 
     QUIC_SOCKET* Binding =
-        (QUIC_SOCKET*)CXPLAT_ALLOC_PAGED(BindingLength, CXPLAT_POOL_SOCKET);
+        (QUIC_SOCKET*)CXPLAT_ALLOC_PAGED(BindingLength, QUIC_POOL_SOCKET);
     if (Binding == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1673,7 +1673,7 @@ Exit:
             // TODO - Clean up socket contexts
             CxPlatRundownRelease(&Datapath->BindingsRundown);
             CxPlatRundownUninitialize(&Binding->Rundown);
-            CXPLAT_FREE(Binding, CXPLAT_POOL_SOCKET);
+            CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
             Binding = NULL;
         }
     }
@@ -1748,7 +1748,7 @@ CxPlatSocketDelete(
     CxPlatRundownRelease(&Binding->Datapath->BindingsRundown);
 
     CxPlatRundownUninitialize(&Binding->Rundown);
-    CXPLAT_FREE(Binding, CXPLAT_POOL_SOCKET);
+    CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
 #endif
 }
 

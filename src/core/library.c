@@ -253,7 +253,7 @@ MsQuicLibraryInitialize(
     MsQuicLib.PerProc =
         CXPLAT_ALLOC_NONPAGED(
             MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP),
-            CXPLAT_POOL_PERPROC);
+            QUIC_POOL_PERPROC);
     if (MsQuicLib.PerProc == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -267,17 +267,17 @@ MsQuicLibraryInitialize(
         CxPlatPoolInitialize(
             FALSE,
             sizeof(QUIC_CONNECTION),
-            CXPLAT_POOL_CONN,
+            QUIC_POOL_CONN,
             &MsQuicLib.PerProc[i].ConnectionPool);
         CxPlatPoolInitialize(
             FALSE,
             sizeof(QUIC_TRANSPORT_PARAMETERS),
-            CXPLAT_POOL_TP,
+            QUIC_POOL_TP,
             &MsQuicLib.PerProc[i].TransportParamPool);
         CxPlatPoolInitialize(
             FALSE,
             sizeof(QUIC_PACKET_SPACE),
-            CXPLAT_POOL_TP,
+            QUIC_POOL_TP,
             &MsQuicLib.PerProc[i].PacketSpacePool);
         CxPlatZeroMemory(
             &MsQuicLib.PerProc[i].PerfCounters,
@@ -330,7 +330,7 @@ Error:
                 CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
                 CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
             }
-            CXPLAT_FREE(MsQuicLib.PerProc, CXPLAT_POOL_PERPROC);
+            CXPLAT_FREE(MsQuicLib.PerProc, QUIC_POOL_PERPROC);
             MsQuicLib.PerProc = NULL;
         }
         if (MsQuicLib.Storage != NULL) {
@@ -418,7 +418,7 @@ MsQuicLibraryUninitialize(
         CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
         CxPlatPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
     }
-    CXPLAT_FREE(MsQuicLib.PerProc, CXPLAT_POOL_PERPROC);
+    CXPLAT_FREE(MsQuicLib.PerProc, QUIC_POOL_PERPROC);
     MsQuicLib.PerProc = NULL;
 
     for (size_t i = 0; i < ARRAYSIZE(MsQuicLib.StatelessRetryKeys); ++i) {
@@ -1129,7 +1129,7 @@ MsQuicOpen(
         goto Exit;
     }
 
-    QUIC_API_TABLE* Api = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_API_TABLE), CXPLAT_POOL_API);
+    QUIC_API_TABLE* Api = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_API_TABLE), QUIC_POOL_API);
     if (Api == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -1201,7 +1201,7 @@ MsQuicClose(
         QuicTraceLogVerbose(
             LibraryMsQuicClose,
             "[ api] MsQuicClose");
-        CXPLAT_FREE(QuicApi, CXPLAT_POOL_API);
+        CXPLAT_FREE(QuicApi, QUIC_POOL_API);
         MsQuicRelease();
     }
 }

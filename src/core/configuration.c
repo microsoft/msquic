@@ -73,7 +73,7 @@ MsQuicConfigurationOpen(
     }
     CXPLAT_ANALYSIS_ASSERT(AlpnListLength <= UINT16_MAX);
 
-    Configuration = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CONFIGURATION) + AlpnListLength, CXPLAT_POOL_CONFIG);
+    Configuration = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CONFIGURATION) + AlpnListLength, QUIC_POOL_CONFIG);
     if (Configuration == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -204,7 +204,7 @@ Error:
         CxPlatStorageClose(Configuration->Storage);
         QuicSiloRelease(Configuration->Silo);
 #endif
-        CXPLAT_FREE(Configuration, CXPLAT_POOL_CONFIG);
+        CXPLAT_FREE(Configuration, QUIC_POOL_CONFIG);
     }
 
     QuicTraceEvent(
@@ -248,7 +248,7 @@ QuicConfigurationUninitialize(
         ConfigurationDestroyed,
         "[cnfg][%p] Destroyed",
         Configuration);
-    CXPLAT_FREE(Configuration, CXPLAT_POOL_CONFIG);
+    CXPLAT_FREE(Configuration, QUIC_POOL_CONFIG);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

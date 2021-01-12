@@ -558,7 +558,7 @@ QuicLossDetectionOnPacketAcknowledged(
                     Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
                     TRUE);
             if (DestCid != NULL) {
-                CXPLAT_FREE(DestCid, CXPLAT_POOL_CIDLIST);
+                CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
             }
             break;
         }

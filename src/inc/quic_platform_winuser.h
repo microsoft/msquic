@@ -269,14 +269,14 @@ typedef struct CXPLAT_POOL {
     uint32_t Tag;
 } CXPLAT_POOL;
 
-#define CXPLAT_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+#define QUIC_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 
 #if DEBUG
-typedef struct CXPLAT_POOL_ENTRY {
+typedef struct QUIC_POOL_ENTRY {
     SLIST_ENTRY ListHead;
     uint32_t SpecialFlag;
-} CXPLAT_POOL_ENTRY;
-#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAA
+} QUIC_POOL_ENTRY;
+#define QUIC_POOL_SPECIAL_FLAG    0xAAAAAAAA
 #endif
 
 inline
@@ -289,7 +289,7 @@ CxPlatPoolInitialize(
     )
 {
 #if DEBUG
-    CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
+    CXPLAT_DBG_ASSERT(Size >= sizeof(QUIC_POOL_ENTRY));
 #endif
     Pool->Size = Size;
     Pool->Tag = Tag;
@@ -324,7 +324,7 @@ CxPlatPoolAlloc(
     }
 #if DEBUG
     if (Entry != NULL) {
-        ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = 0;
+        ((QUIC_POOL_ENTRY*)Entry)->SpecialFlag = 0;
     }
 #endif
     return Entry;
@@ -344,10 +344,10 @@ CxPlatPoolFree(
     return;
 #else
 #if DEBUG
-    CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
-    ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
+    CXPLAT_DBG_ASSERT(((QUIC_POOL_ENTRY*)Entry)->SpecialFlag != QUIC_POOL_SPECIAL_FLAG);
+    ((QUIC_POOL_ENTRY*)Entry)->SpecialFlag = QUIC_POOL_SPECIAL_FLAG;
 #endif
-    if (QueryDepthSList(&Pool->ListHead) >= CXPLAT_POOL_MAXIMUM_DEPTH) {
+    if (QueryDepthSList(&Pool->ListHead) >= QUIC_POOL_MAXIMUM_DEPTH) {
         CxPlatFree(Entry, Pool->Tag);
     } else {
         InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Entry);
@@ -787,7 +787,7 @@ typedef HANDLE CXPLAT_THREAD;
 // for every thread created. The platform must define CXPLAT_USE_CUSTOM_THREAD_CONTEXT
 // and implement the CxPlatThreadCustomStart function. CxPlatThreadCustomStart MUST
 // call the Callback passed in. CxPlatThreadCustomStart MUST also free
-// CustomContext (via CXPLAT_FREE(CustomContext, CXPLAT_POOL_CUSTOM_THREAD)) before
+// CustomContext (via CXPLAT_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD)) before
 // returning.
 //
 
@@ -809,7 +809,7 @@ CxPlatThreadCreate(
 {
 #ifdef CXPLAT_USE_CUSTOM_THREAD_CONTEXT
     CXPLAT_THREAD_CUSTOM_CONTEXT* CustomContext =
-        CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT), CXPLAT_POOL_CUSTOM_THREAD);
+        CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT), QUIC_POOL_CUSTOM_THREAD);
     if (CustomContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -829,7 +829,7 @@ CxPlatThreadCreate(
             0,
             NULL);
     if (*Thread == NULL) {
-        CXPLAT_FREE(CustomContext, CXPLAT_POOL_CUSTOM_THREAD);
+        CXPLAT_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD);
         return GetLastError();
     }
 #else // CXPLAT_USE_CUSTOM_THREAD_CONTEXT

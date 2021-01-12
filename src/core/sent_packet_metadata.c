@@ -70,7 +70,7 @@ QuicSentPacketPoolInitialize(
         CxPlatPoolInitialize(
             FALSE,  // IsPaged
             PacketMetadataSize,
-            CXPLAT_POOL_META,
+            QUIC_POOL_META,
             Pool->Pools + i);
     }
 }

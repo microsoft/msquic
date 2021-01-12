@@ -784,7 +784,7 @@ CxPlatDataPathInitialize(
         sizeof(QUIC_DATAPATH) +
         MaxProcCount * sizeof(QUIC_DATAPATH_PROC);
 
-    Datapath = (QUIC_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, CXPLAT_POOL_DATAPATH);
+    Datapath = (QUIC_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -856,25 +856,25 @@ CxPlatDataPathInitialize(
         CxPlatPoolInitialize(
             FALSE,
             sizeof(QUIC_SEND_DATA),
-            CXPLAT_POOL_PLATFORM_SENDCTX,
+            QUIC_POOL_PLATFORM_SENDCTX,
             &Datapath->Processors[i].SendContextPool);
 
         CxPlatPoolInitialize(
             FALSE,
             MAX_UDP_PAYLOAD_LENGTH,
-            CXPLAT_POOL_DATA,
+            QUIC_POOL_DATA,
             &Datapath->Processors[i].SendBufferPool);
 
         CxPlatPoolInitialize(
             FALSE,
             QUIC_LARGE_SEND_BUFFER_SIZE,
-            CXPLAT_POOL_DATA,
+            QUIC_POOL_DATA,
             &Datapath->Processors[i].LargeSendBufferPool);
 
         CxPlatPoolInitialize(
             FALSE,
             RecvDatagramLength,
-            CXPLAT_POOL_DATA,
+            QUIC_POOL_DATA,
             &Datapath->Processors[i].RecvDatagramPool);
 
         Datapath->Processors[i].IOCP =
@@ -972,7 +972,7 @@ Error:
                 CxPlatPoolUninitialize(&Datapath->Processors[i].RecvDatagramPool);
             }
             CxPlatRundownUninitialize(&Datapath->SocketsRundown);
-            CXPLAT_FREE(Datapath, CXPLAT_POOL_DATAPATH);
+            CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         }
         (void)WSACleanup();
     }
@@ -1024,7 +1024,7 @@ CxPlatDataPathUninitialize(
     }
 
     CxPlatRundownUninitialize(&Datapath->SocketsRundown);
-    CXPLAT_FREE(Datapath, CXPLAT_POOL_DATAPATH);
+    CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 
     WSACleanup();
 }
@@ -1110,7 +1110,7 @@ CxPlatDataPathResolveAddress(
         goto Exit;
     }
 
-    HostNameW = CXPLAT_ALLOC_PAGED(sizeof(WCHAR) * Result, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+    HostNameW = CXPLAT_ALLOC_PAGED(sizeof(WCHAR) * Result, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (HostNameW == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1181,7 +1181,7 @@ CxPlatDataPathResolveAddress(
 Exit:
 
     if (HostNameW != NULL) {
-        CXPLAT_FREE(HostNameW, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(HostNameW, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Status;
@@ -1207,7 +1207,7 @@ CxPlatSocketCreateUdp(
 
     uint32_t SocketLength =
         sizeof(QUIC_SOCKET) + SocketCount * sizeof(QUIC_SOCKET_PROC);
-    QUIC_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, CXPLAT_POOL_SOCKET);
+    QUIC_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
     if (Socket == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1687,7 +1687,7 @@ QUIC_DISABLED_BY_FUZZER_END;
                     CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
                 }
                 CxPlatRundownRelease(&Datapath->SocketsRundown);
-                CXPLAT_FREE(Socket, CXPLAT_POOL_SOCKET);
+                CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
             }
         }
     }
@@ -1715,7 +1715,7 @@ CxPlatSocketCreateTcpInternal(
 
     QUIC_SOCKET_PROC* SocketProc = NULL;
     uint32_t SocketLength = sizeof(QUIC_SOCKET) + sizeof(QUIC_SOCKET_PROC);
-    QUIC_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, CXPLAT_POOL_SOCKET);
+    QUIC_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
     if (Socket == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1971,7 +1971,7 @@ Error:
                 CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
 
                 CxPlatRundownRelease(&Datapath->SocketsRundown);
-                CXPLAT_FREE(Socket, CXPLAT_POOL_SOCKET);
+                CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
             }
         }
     }
@@ -2016,7 +2016,7 @@ CxPlatSocketCreateTcpListener(
 
     QUIC_SOCKET_PROC* SocketProc = NULL;
     uint32_t SocketLength = sizeof(QUIC_SOCKET) + sizeof(QUIC_SOCKET_PROC);
-    QUIC_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, CXPLAT_POOL_SOCKET);
+    QUIC_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
     if (Socket == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -2233,7 +2233,7 @@ Error:
                 CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
 
                 CxPlatRundownRelease(&Datapath->SocketsRundown);
-                CXPLAT_FREE(Socket, CXPLAT_POOL_SOCKET);
+                CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
             }
         }
     }
@@ -2387,7 +2387,7 @@ CxPlatDataPathSocketContextShutdown(
             DatapathShutDownComplete,
             "[data][%p] Shut down (complete)",
             SocketProc->Parent);
-        CXPLAT_FREE(SocketProc->Parent, CXPLAT_POOL_SOCKET);
+        CXPLAT_FREE(SocketProc->Parent, QUIC_POOL_SOCKET);
     }
 }
 

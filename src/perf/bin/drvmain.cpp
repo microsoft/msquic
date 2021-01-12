@@ -79,44 +79,44 @@ QuicPerfCtlUninitialize(
     );
 
 void* __cdecl operator new (size_t Size) {
-    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, CXPLAT_POOL_PERF);
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_PERF);
 }
 
 _Ret_maybenull_ _Post_writable_byte_size_(_Size)
 void* __cdecl operator new (size_t Size, const std::nothrow_t&) throw(){
-    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, CXPLAT_POOL_PERF);
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_PERF);
 }
 
 void __cdecl operator delete (_In_opt_ void* Mem) {
     if (Mem != nullptr) {
-        ExFreePoolWithTag(Mem, CXPLAT_POOL_PERF);
+        ExFreePoolWithTag(Mem, QUIC_POOL_PERF);
     }
 }
 
 void __cdecl operator delete (_In_opt_ void* Mem, _In_opt_ size_t) {
     if (Mem != nullptr) {
-        ExFreePoolWithTag(Mem, CXPLAT_POOL_PERF);
+        ExFreePoolWithTag(Mem, QUIC_POOL_PERF);
     }
 }
 
 void* __cdecl operator new[] (size_t Size) {
-    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, CXPLAT_POOL_PERF);
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_PERF);
 }
 
 _Ret_maybenull_ _Post_writable_byte_size_(_Size)
 void* __cdecl operator new[] (size_t Size, const std::nothrow_t&) throw(){
-    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, CXPLAT_POOL_PERF);
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_PERF);
 }
 
 void __cdecl operator delete[] (_In_opt_ void* Mem) {
     if (Mem != nullptr) {
-        ExFreePoolWithTag(Mem, CXPLAT_POOL_PERF);
+        ExFreePoolWithTag(Mem, QUIC_POOL_PERF);
     }
 }
 
 void __cdecl operator delete[] (_In_opt_ void* Mem, _In_opt_ size_t) {
     if (Mem != nullptr) {
-        ExFreePoolWithTag(Mem, CXPLAT_POOL_PERF);
+        ExFreePoolWithTag(Mem, QUIC_POOL_PERF);
     }
 }
 
@@ -157,7 +157,7 @@ DriverEntry(
     WDF_DRIVER_CONFIG_INIT(&Config, NULL);
     Config.EvtDriverUnload = QuicPerfDriverUnload;
     Config.DriverInitFlags = WdfDriverInitNonPnpDriver;
-    Config.DriverPoolTag = CXPLAT_POOL_PERF;
+    Config.DriverPoolTag = QUIC_POOL_PERF;
 
     Status =
         WdfDriverCreate(

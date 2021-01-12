@@ -77,7 +77,7 @@ QuicTimerWheelInitialize(
     TimerWheel->NextConnection = NULL;
     TimerWheel->SlotCount = QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT;
     TimerWheel->Slots =
-        CXPLAT_ALLOC_NONPAGED(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY), CXPLAT_POOL_TIMERWHEEL);
+        CXPLAT_ALLOC_NONPAGED(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY), QUIC_POOL_TIMERWHEEL);
     if (TimerWheel->Slots == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -118,7 +118,7 @@ QuicTimerWheelUninitialize(
         CXPLAT_TEL_ASSERT(TimerWheel->NextConnection == NULL);
         CXPLAT_TEL_ASSERT(TimerWheel->NextExpirationTime == UINT64_MAX);
 
-        CXPLAT_FREE(TimerWheel->Slots, CXPLAT_POOL_TIMERWHEEL);
+        CXPLAT_FREE(TimerWheel->Slots, QUIC_POOL_TIMERWHEEL);
     }
 }
 
@@ -137,7 +137,7 @@ QuicTimerWheelResize(
     }
 
     QUIC_LIST_ENTRY* NewSlots =
-        CXPLAT_ALLOC_NONPAGED(NewSlotCount * sizeof(QUIC_LIST_ENTRY), CXPLAT_POOL_TIMERWHEEL);
+        CXPLAT_ALLOC_NONPAGED(NewSlotCount * sizeof(QUIC_LIST_ENTRY), QUIC_POOL_TIMERWHEEL);
     if (NewSlots == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -203,7 +203,7 @@ QuicTimerWheelResize(
             CxPlatListInsertHead(Entry, &Connection->TimerLink);
         }
     }
-    CXPLAT_FREE(OldSlots, CXPLAT_POOL_TIMERWHEEL);
+    CXPLAT_FREE(OldSlots, QUIC_POOL_TIMERWHEEL);
 }
 
 //

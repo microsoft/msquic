@@ -112,7 +112,7 @@ CxPlatSystemLoad(
     size_t TpLibNameLen = strlen(TpLibName);
     size_t ProviderFullPathLength = TpLibNameLen + LastTrailingSlashLen + 1;
 
-    char* ProviderFullPath = CXPLAT_ALLOC_PAGED(ProviderFullPathLength, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+    char* ProviderFullPath = CXPLAT_ALLOC_PAGED(ProviderFullPathLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (ProviderFullPath == NULL) {
         return;
     }
@@ -127,7 +127,7 @@ CxPlatSystemLoad(
     //
     dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
 
-    CXPLAT_FREE(ProviderFullPath, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+    CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
 }
 
 void
@@ -398,7 +398,7 @@ CxPlatEventInitialize(
     CXPLAT_EVENT_OBJECT* EventObj = NULL;
     pthread_condattr_t Attr = {0};
 
-    EventObj = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_EVENT_OBJECT), CXPLAT_POOL_EVENT);
+    EventObj = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_EVENT_OBJECT), QUIC_POOL_EVENT);
 
     //
     // MsQuic expects this call to be non failable.
@@ -428,7 +428,7 @@ CxPlatEventUninitialize(
     CXPLAT_FRE_ASSERT(pthread_cond_destroy(&EventObj->Cond) == 0);
     CXPLAT_FRE_ASSERT(pthread_mutex_destroy(&EventObj->Mutex) == 0);
 
-    CXPLAT_FREE(EventObj, CXPLAT_POOL_EVENT);
+    CXPLAT_FREE(EventObj, QUIC_POOL_EVENT);
     EventObj = NULL;
 }
 
@@ -737,7 +737,7 @@ CxPlatThreadCreate(
 #ifdef CXPLAT_USE_CUSTOM_THREAD_CONTEXT
 
     CXPLAT_THREAD_CUSTOM_CONTEXT* CustomContext =
-        CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT), CXPLAT_POOL_CUSTOM_THREAD);
+        CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT), QUIC_POOL_CUSTOM_THREAD);
     if (CustomContext == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -756,7 +756,7 @@ CxPlatThreadCreate(
             "[ lib] ERROR, %u, %s.",
             Status,
             "pthread_create failed");
-        CXPLAT_FREE(CustomContext, CXPLAT_POOL_CUSTOM_THREAD);
+        CXPLAT_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD);
     }
 
 #else // CXPLAT_USE_CUSTOM_THREAD_CONTEXT

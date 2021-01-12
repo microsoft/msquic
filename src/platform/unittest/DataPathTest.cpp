@@ -175,13 +175,13 @@ protected:
         LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
         LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
 
-        ExpectedData = (char*)CXPLAT_ALLOC_NONPAGED(ExpectedDataSize, CXPLAT_POOL_TEST);
+        ExpectedData = (char*)CXPLAT_ALLOC_NONPAGED(ExpectedDataSize, QUIC_POOL_TEST);
         ASSERT_NE(ExpectedData, nullptr);
     }
 
     static void TearDownTestSuite()
     {
-        CXPLAT_FREE(ExpectedData, CXPLAT_POOL_TEST);
+        CXPLAT_FREE(ExpectedData, QUIC_POOL_TEST);
     }
 
     static void

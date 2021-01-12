@@ -54,7 +54,7 @@ MsQuicRegistrationOpen(
     Registration =
         CXPLAT_ALLOC_NONPAGED(
             sizeof(QUIC_REGISTRATION) + AppNameLength + 1,
-            CXPLAT_POOL_REGISTRATION);
+            QUIC_POOL_REGISTRATION);
     if (Registration == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -162,7 +162,7 @@ Error:
         CxPlatRundownUninitialize(&Registration->Rundown);
         CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
         CxPlatLockUninitialize(&Registration->ConfigLock);
-        CXPLAT_FREE(Registration, CXPLAT_POOL_REGISTRATION);
+        CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
     }
 
     QuicTraceEvent(
@@ -210,10 +210,10 @@ MsQuicRegistrationClose(
         CxPlatLockUninitialize(&Registration->ConfigLock);
 
         if (Registration->CidPrefix != NULL) {
-            CXPLAT_FREE(Registration->CidPrefix, CXPLAT_POOL_CIDPREFIX);
+            CXPLAT_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
         }
 
-        CXPLAT_FREE(Registration, CXPLAT_POOL_REGISTRATION);
+        CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
 
         QuicTraceEvent(
             ApiExit,
@@ -388,7 +388,7 @@ QuicRegistrationParamSet(
     if (Param == QUIC_PARAM_REGISTRATION_CID_PREFIX) {
         if (BufferLength == 0) {
             if (Registration->CidPrefix != NULL) {
-                CXPLAT_FREE(Registration->CidPrefix, CXPLAT_POOL_CIDPREFIX);
+                CXPLAT_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
                 Registration->CidPrefix = NULL;
             }
             Registration->CidPrefixLength = 0;
@@ -400,12 +400,12 @@ QuicRegistrationParamSet(
         }
 
         if (BufferLength > Registration->CidPrefixLength) {
-            uint8_t* NewCidPrefix = CXPLAT_ALLOC_NONPAGED(BufferLength, CXPLAT_POOL_CIDPREFIX);
+            uint8_t* NewCidPrefix = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_CIDPREFIX);
             if (NewCidPrefix == NULL) {
                 return QUIC_STATUS_OUT_OF_MEMORY;
             }
             CXPLAT_DBG_ASSERT(Registration->CidPrefix != NULL);
-            CXPLAT_FREE(Registration->CidPrefix, CXPLAT_POOL_CIDPREFIX);
+            CXPLAT_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
             Registration->CidPrefix = NewCidPrefix;
         }
 

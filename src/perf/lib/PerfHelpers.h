@@ -270,7 +270,7 @@ public:
 
     void Initialize(uint32_t Size, bool Paged = false) {
         CXPLAT_DBG_ASSERT(Initialized == false);
-        CxPlatPoolInitialize(Paged, Size, CXPLAT_POOL_PERF, &Pool);
+        CxPlatPoolInitialize(Paged, Size, QUIC_POOL_PERF, &Pool);
         Initialized = true;
     }
 
@@ -291,7 +291,7 @@ class QuicPoolAllocator {
     CXPLAT_POOL Pool;
 public:
     QuicPoolAllocator() noexcept {
-        CxPlatPoolInitialize(Paged, sizeof(T), CXPLAT_POOL_PERF, &Pool);
+        CxPlatPoolInitialize(Paged, sizeof(T), QUIC_POOL_PERF, &Pool);
     }
 
     ~QuicPoolAllocator() noexcept {

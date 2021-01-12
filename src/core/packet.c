@@ -327,7 +327,7 @@ QuicPacketGenerateRetryIntegrity(
     }
 
     uint16_t RetryPseudoPacketLength = sizeof(uint8_t) + OrigDestCidLength + BufferLength;
-    RetryPseudoPacket = (uint8_t*)CXPLAT_ALLOC_PAGED(RetryPseudoPacketLength, CXPLAT_POOL_TMP_ALLOC);
+    RetryPseudoPacket = (uint8_t*)CXPLAT_ALLOC_PAGED(RetryPseudoPacketLength, QUIC_POOL_TMP_ALLOC);
     if (RetryPseudoPacket == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -356,7 +356,7 @@ QuicPacketGenerateRetryIntegrity(
 
 Exit:
     if (RetryPseudoPacket != NULL) {
-        CXPLAT_FREE(RetryPseudoPacket, CXPLAT_POOL_TMP_ALLOC);
+        CXPLAT_FREE(RetryPseudoPacket, QUIC_POOL_TMP_ALLOC);
     }
     CxPlatPacketKeyFree(RetryIntegrityKey);
     return Status;

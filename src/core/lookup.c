@@ -61,7 +61,7 @@ QuicLookupUninitialize(
 #pragma warning(pop)
             CxPlatDispatchRwLockUninitialize(&Table->RwLock);
         }
-        CXPLAT_FREE(Lookup->HASH.Tables, CXPLAT_POOL_LOOKUP_HASHTABLE);
+        CXPLAT_FREE(Lookup->HASH.Tables, QUIC_POOL_LOOKUP_HASHTABLE);
     }
 
     if (Lookup->MaximizePartitioning) {
@@ -88,7 +88,7 @@ QuicLookupCreateHashTable(
     Lookup->HASH.Tables =
         CXPLAT_ALLOC_NONPAGED(
             sizeof(QUIC_PARTITIONED_HASHTABLE) * PartitionCount,
-            CXPLAT_POOL_LOOKUP_HASHTABLE);
+            QUIC_POOL_LOOKUP_HASHTABLE);
 
     if (Lookup->HASH.Tables != NULL) {
 
@@ -104,7 +104,7 @@ QuicLookupCreateHashTable(
             for (uint16_t i = 0; i < Cleanup; i++) {
                 CxPlatHashtableUninitialize(&Lookup->HASH.Tables[i].Table);
             }
-            CXPLAT_FREE(Lookup->HASH.Tables, CXPLAT_POOL_LOOKUP_HASHTABLE);
+            CXPLAT_FREE(Lookup->HASH.Tables, QUIC_POOL_LOOKUP_HASHTABLE);
             Lookup->HASH.Tables = NULL;
         } else {
             Lookup->PartitionCount = PartitionCount;
@@ -230,7 +230,7 @@ QuicLookupRebalance(
                 CxPlatHashtableUninitialize(&PreviousTable[i].Table);
 #pragma warning(pop)
             }
-            CXPLAT_FREE(PreviousTable, CXPLAT_POOL_LOOKUP_HASHTABLE);
+            CXPLAT_FREE(PreviousTable, QUIC_POOL_LOOKUP_HASHTABLE);
         }
     }
 
@@ -533,7 +533,7 @@ QuicLookupInsertRemoteHash(
     QUIC_REMOTE_HASH_ENTRY* Entry =
         CXPLAT_ALLOC_NONPAGED(
             sizeof(QUIC_REMOTE_HASH_ENTRY) + RemoteCidLength,
-            CXPLAT_POOL_REMOTE_HASH);
+            QUIC_POOL_REMOTE_HASH);
     if (Entry == NULL) {
         return FALSE;
     }
@@ -854,7 +854,7 @@ QuicLookupRemoveRemoteHash(
     Connection->RemoteHashEntry = NULL;
     CxPlatDispatchRwLockReleaseExclusive(&Lookup->RwLock);
 
-    CXPLAT_FREE(RemoteHashEntry, CXPLAT_POOL_REMOTE_HASH);
+    CXPLAT_FREE(RemoteHashEntry, QUIC_POOL_REMOTE_HASH);
     QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
 }
 
@@ -879,7 +879,7 @@ QuicLookupRemoveLocalCids(
             CID->CID.IsInLookupTable = FALSE;
             ReleaseRefCount++;
         }
-        CXPLAT_FREE(CID, CXPLAT_POOL_CIDHASH);
+        CXPLAT_FREE(CID, QUIC_POOL_CIDHASH);
     }
     CxPlatDispatchRwLockReleaseExclusive(&Lookup->RwLock);
 

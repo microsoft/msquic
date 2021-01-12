@@ -129,7 +129,7 @@ CxPlatConvertUtf8ToUnicode(
     }
 
     PUNICODE_STRING UnicodeString =
-        CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
     if (UnicodeString == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -148,7 +148,7 @@ CxPlatConvertUtf8ToUnicode(
             (ULONG)Utf8Length);
 
     if (QUIC_FAILED(Status)) {
-        CXPLAT_FREE(UnicodeString, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(UnicodeString, QUIC_POOL_PLATFORM_TMP_ALLOC);
         return Status;
     }
 
@@ -198,7 +198,7 @@ CxPlatStorageOpen(
             NULL);
     }
 
-    Storage = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_STORAGE), CXPLAT_POOL_STORAGE);
+    Storage = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_STORAGE), QUIC_POOL_STORAGE);
     if (Storage == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -248,14 +248,14 @@ CxPlatStorageOpen(
 Exit:
 
     if (PathUnicode != NULL) {
-        CXPLAT_FREE(PathUnicode, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(PathUnicode, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
     if (Storage != NULL) {
         if (Storage->RegKey != NULL) {
             ZwClose(Storage->RegKey);
         }
         CxPlatLockUninitialize(&Storage->Lock);
-        CXPLAT_FREE(Storage, CXPLAT_POOL_STORAGE);
+        CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
 
     return Status;
@@ -280,7 +280,7 @@ CxPlatStorageClose(
         CxPlatEventWaitForever(CleanupEvent);
         CxPlatEventUninitialize(CleanupEvent);
         CxPlatLockUninitialize(&Storage->Lock);
-        CXPLAT_FREE(Storage, CXPLAT_POOL_STORAGE);
+        CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
 }
 
@@ -367,7 +367,7 @@ CxPlatStorageReadValue(
     } else {
 
         ULONG InfoLength = BASE_KEY_INFO_LENGTH + *BufferLength;
-        PKEY_VALUE_PARTIAL_INFORMATION Info = CXPLAT_ALLOC_PAGED(InfoLength, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+        PKEY_VALUE_PARTIAL_INFORMATION Info = CXPLAT_ALLOC_PAGED(InfoLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
         if (Info == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
@@ -386,13 +386,13 @@ CxPlatStorageReadValue(
             memcpy(Buffer, Info->Data, Info->DataLength);
         }
 
-        CXPLAT_FREE(Info, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
 Exit:
 
     if (NameUnicode != NULL) {
-        CXPLAT_FREE(NameUnicode, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(NameUnicode, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Status;

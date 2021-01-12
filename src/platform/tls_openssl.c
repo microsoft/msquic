@@ -372,7 +372,7 @@ CxPlatTlsAddHandshakeDataCallback(
             NewBufferAllocLength <<= 1;
         }
 
-        uint8_t* NewBuffer = CXPLAT_ALLOC_NONPAGED(NewBufferAllocLength, CXPLAT_POOL_TLS_BUFFER);
+        uint8_t* NewBuffer = CXPLAT_ALLOC_NONPAGED(NewBufferAllocLength, QUIC_POOL_TLS_BUFFER);
         if (NewBuffer == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -387,7 +387,7 @@ CxPlatTlsAddHandshakeDataCallback(
             NewBuffer,
             TlsState->Buffer,
             TlsState->BufferLength);
-        CXPLAT_FREE(TlsState->Buffer, CXPLAT_POOL_TLS_BUFFER);
+        CXPLAT_FREE(TlsState->Buffer, QUIC_POOL_TLS_BUFFER);
         TlsState->Buffer = NewBuffer;
         TlsState->BufferAllocLength = NewBufferAllocLength;
     }
@@ -559,7 +559,7 @@ CxPlatTlsSecConfigCreate(
     // Create a security config.
     //
 
-    SecurityConfig = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG), CXPLAT_POOL_TLS_SECCONF);
+    SecurityConfig = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (SecurityConfig == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -832,7 +832,7 @@ CxPlatTlsSecConfigDelete(
         SecurityConfig->SSLCtx = NULL;
     }
 
-    CXPLAT_FREE(SecurityConfig, CXPLAT_POOL_TLS_SECCONF);
+    CXPLAT_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
 }
 
 QUIC_STATUS
@@ -846,7 +846,7 @@ CxPlatTlsInitialize(
     QUIC_TLS* TlsContext = NULL;
     uint16_t ServerNameLength = 0;
 
-    TlsContext = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_TLS), CXPLAT_POOL_TLS_CTX);
+    TlsContext = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_TLS), QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -889,7 +889,7 @@ CxPlatTlsInitialize(
                 goto Exit;
             }
 
-            TlsContext->SNI = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, CXPLAT_POOL_TLS_SNI);
+            TlsContext->SNI = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
             if (TlsContext->SNI == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -946,7 +946,7 @@ CxPlatTlsInitialize(
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
-    CXPLAT_FREE(Config->LocalTPBuffer, CXPLAT_POOL_TLS_TRANSPARAMS);
+    CXPLAT_FREE(Config->LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
 
     State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
 
@@ -975,7 +975,7 @@ CxPlatTlsUninitialize(
             "Cleaning up");
 
         if (TlsContext->SNI != NULL) {
-            CXPLAT_FREE(TlsContext->SNI, CXPLAT_POOL_TLS_SNI);
+            CXPLAT_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
             TlsContext->SNI = NULL;
         }
 
@@ -984,7 +984,7 @@ CxPlatTlsUninitialize(
             TlsContext->Ssl = NULL;
         }
 
-        CXPLAT_FREE(TlsContext, CXPLAT_POOL_TLS_CTX);
+        CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
 }
 
@@ -1432,7 +1432,7 @@ CxPlatPacketKeyDerive(
     const uint16_t PacketKeyLength =
         sizeof(QUIC_PACKET_KEY) +
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
-    QUIC_PACKET_KEY *Key = CXPLAT_ALLOC_NONPAGED(PacketKeyLength, CXPLAT_POOL_TLS_PACKETKEY);
+    QUIC_PACKET_KEY *Key = CXPLAT_ALLOC_NONPAGED(PacketKeyLength, QUIC_POOL_TLS_PACKETKEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1622,7 +1622,7 @@ CxPlatPacketKeyFree(
         if (Key->Type >= QUIC_PACKET_KEY_1_RTT) {
             CxPlatSecureZeroMemory(Key->TrafficSecret, sizeof(QUIC_SECRET));
         }
-        CXPLAT_FREE(Key, CXPLAT_POOL_TLS_PACKETKEY);
+        CXPLAT_FREE(Key, QUIC_POOL_TLS_PACKETKEY);
     }
 }
 
@@ -1900,7 +1900,7 @@ CxPlatHpKeyCreate(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const EVP_CIPHER *Aead;
-    QUIC_HP_KEY* Key = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_HP_KEY), CXPLAT_POOL_TLS_HP_KEY);
+    QUIC_HP_KEY* Key = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_HP_KEY), QUIC_POOL_TLS_HP_KEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1963,7 +1963,7 @@ CxPlatHpKeyFree(
 {
     if (Key != NULL) {
         EVP_CIPHER_CTX_free(Key->CipherCtx);
-        CXPLAT_FREE(Key, CXPLAT_POOL_TLS_HP_KEY);
+        CXPLAT_FREE(Key, QUIC_POOL_TLS_HP_KEY);
     }
 }
 

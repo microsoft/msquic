@@ -190,7 +190,7 @@ QuicKernelMain(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    char* Data = static_cast<char*>(CXPLAT_ALLOC_NONPAGED(TotalLength, CXPLAT_POOL_PERF));
+    char* Data = static_cast<char*>(CXPLAT_ALLOC_NONPAGED(TotalLength, QUIC_POOL_PERF));
     if (!Data) {
         printf("Failed to allocate arguments to pass\n");
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -212,10 +212,10 @@ QuicKernelMain(
     CXPLAT_DBG_ASSERT(DataCurrent == (Data + TotalLength));
 
     constexpr uint32_t OutBufferSize = 1024 * 1000;
-    char* OutBuffer = (char*)CXPLAT_ALLOC_NONPAGED(OutBufferSize, CXPLAT_POOL_PERF); // 1 MB
+    char* OutBuffer = (char*)CXPLAT_ALLOC_NONPAGED(OutBufferSize, QUIC_POOL_PERF); // 1 MB
     if (!OutBuffer) {
         printf("Failed to allocate space for output buffer\n");
-        CXPLAT_FREE(Data, CXPLAT_POOL_PERF);
+        CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -234,20 +234,20 @@ QuicKernelMain(
 
     if (!DriverService.Initialize(DriverName, DependentDriverNames)) {
         printf("Failed to initialize driver service\n");
-        CXPLAT_FREE(Data, CXPLAT_POOL_PERF);
+        CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
     if (!DriverService.Start()) {
         printf("Starting Driver Service Failed\n");
         DriverService.Uninitialize();
-        CXPLAT_FREE(Data, CXPLAT_POOL_PERF);
+        CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
 
     if (!DriverClient.Initialize((QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1), DriverName)) {
         printf("Intializing Driver Client Failed.\n");
         DriverService.Uninitialize();
-        CXPLAT_FREE(Data, CXPLAT_POOL_PERF);
+        CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -255,7 +255,7 @@ QuicKernelMain(
     bool RunSuccess = false;
     if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength, 30000)) {
         printf("Failed To Run\n");
-        CXPLAT_FREE(Data, CXPLAT_POOL_PERF);
+        CXPLAT_FREE(Data, QUIC_POOL_PERF);
 
         RunSuccess =
             DriverClient.Read(
@@ -270,7 +270,7 @@ QuicKernelMain(
         } else {
             printf("Failed to exit\n");
         }
-        CXPLAT_FREE(OutBuffer, CXPLAT_POOL_PERF);
+        CXPLAT_FREE(OutBuffer, QUIC_POOL_PERF);
         DriverClient.Run(IOCTL_CXPLAT_FREE_PERF);
         DriverClient.Uninitialize();
         DriverService.Uninitialize();
@@ -329,8 +329,8 @@ QuicKernelMain(
         printf("Run end failed\n");
     }
 
-    CXPLAT_FREE(Data, CXPLAT_POOL_PERF);
-    CXPLAT_FREE(OutBuffer, CXPLAT_POOL_PERF);
+    CXPLAT_FREE(Data, QUIC_POOL_PERF);
+    CXPLAT_FREE(OutBuffer, QUIC_POOL_PERF);
     DriverClient.Run(IOCTL_CXPLAT_FREE_PERF);
 
     DriverClient.Uninitialize();

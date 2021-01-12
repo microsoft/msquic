@@ -465,7 +465,7 @@ QuicTestValidateConnectionEvents3(
             QUIC_PARAM_CONN_RESUMPTION_TICKET,
             ResumptionTicket->Length,
             ResumptionTicket->Buffer));
-    CXPLAT_FREE(ResumptionTicket, CXPLAT_POOL_TEST);
+    CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,

@@ -27,7 +27,7 @@ public:
 
     ~PerfServer() override {
         if (DataBuffer) {
-            CXPLAT_FREE(DataBuffer, CXPLAT_POOL_PERF);
+            CXPLAT_FREE(DataBuffer, QUIC_POOL_PERF);
         }
     }
 

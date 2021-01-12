@@ -45,7 +45,7 @@ QuicSendUninitialize(
     Send->DelayedAckTimerActive = FALSE;
 
     if (Send->InitialToken != NULL) {
-        CXPLAT_FREE(Send->InitialToken, CXPLAT_POOL_INITIAL_TOKEN);
+        CXPLAT_FREE(Send->InitialToken, QUIC_POOL_INITIAL_TOKEN);
         Send->InitialToken = NULL;
     }
 

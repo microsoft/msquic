@@ -79,7 +79,7 @@ TestConnection::~TestConnection()
     CxPlatEventUninitialize(EventPeerClosed);
     CxPlatEventUninitialize(EventConnectionComplete);
     if (ResumptionTicket) {
-        CXPLAT_FREE(ResumptionTicket, CXPLAT_POOL_TEST);
+        CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
     }
     if (EventDeleted) {
         CxPlatEventSet(*EventDeleted);
@@ -826,7 +826,7 @@ TestConnection::HandleConnectionEvent(
             CXPLAT_ALLOC_NONPAGED(
                 sizeof(QUIC_BUFFER) +
                 Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength,
-                CXPLAT_POOL_TEST);
+                QUIC_POOL_TEST);
         if (ResumptionTicket) {
             ResumptionTicket->Buffer = (uint8_t*)(ResumptionTicket + 1);
             ResumptionTicket->Length = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;

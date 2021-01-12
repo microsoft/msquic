@@ -479,7 +479,7 @@ Return Value:
     uint32_t LocalFlags = 0;
     QUIC_HASHTABLE* Table;
     if (*HashTable == NULL) {
-        Table = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_HASHTABLE), CXPLAT_POOL_HASHTABLE);
+        Table = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_HASHTABLE), QUIC_POOL_HASHTABLE);
         if (Table == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -517,7 +517,7 @@ Return Value:
         Table->SecondLevelDir =
             CXPLAT_ALLOC_NONPAGED(
                 CxPlatComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY),
-                CXPLAT_POOL_HASHTABLE_MEMBER);
+                QUIC_POOL_HASHTABLE_MEMBER);
         if (Table->SecondLevelDir == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -543,7 +543,7 @@ Return Value:
         Table->FirstLevelDir =
             CXPLAT_ALLOC_NONPAGED(
                 sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE,
-                CXPLAT_POOL_HASHTABLE_MEMBER);
+                QUIC_POOL_HASHTABLE_MEMBER);
         if (Table->FirstLevelDir == NULL) {
             CxPlatHashtableUninitialize(Table);
             return FALSE;
@@ -557,7 +557,7 @@ Return Value:
             Table->FirstLevelDir[i] =
                 CXPLAT_ALLOC_NONPAGED(
                     CxPlatComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY),
-                    CXPLAT_POOL_HASHTABLE_MEMBER);
+                    QUIC_POOL_HASHTABLE_MEMBER);
             if (Table->FirstLevelDir[i] == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -615,7 +615,7 @@ Arguments:
     if (HashTable->TableSize <= HT_SECOND_LEVEL_DIR_MIN_SIZE) {
 
         if (HashTable->SecondLevelDir != NULL) {
-            CXPLAT_FREE(HashTable->SecondLevelDir, CXPLAT_POOL_HASHTABLE_MEMBER);
+            CXPLAT_FREE(HashTable->SecondLevelDir, QUIC_POOL_HASHTABLE_MEMBER);
         }
 
     } else {
@@ -652,7 +652,7 @@ Arguments:
                 }
 #endif
 
-                CXPLAT_FREE(SecondLevelDir, CXPLAT_POOL_HASHTABLE_MEMBER);
+                CXPLAT_FREE(SecondLevelDir, QUIC_POOL_HASHTABLE_MEMBER);
             }
 
 #if DEBUG
@@ -661,12 +661,12 @@ Arguments:
             }
 #endif
 
-            CXPLAT_FREE(HashTable->FirstLevelDir, CXPLAT_POOL_HASHTABLE_MEMBER);
+            CXPLAT_FREE(HashTable->FirstLevelDir, QUIC_POOL_HASHTABLE_MEMBER);
         }
     }
 
     if (HashTable->Flags & QUIC_HASH_ALLOCATED_HEADER) {
-        CXPLAT_FREE(HashTable, CXPLAT_POOL_HASHTABLE);
+        CXPLAT_FREE(HashTable, QUIC_POOL_HASHTABLE);
     }
 }
 

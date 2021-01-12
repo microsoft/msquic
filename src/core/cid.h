@@ -165,7 +165,7 @@ QuicCidNewNullSource(
     QUIC_CID_HASH_ENTRY* Entry =
         (QUIC_CID_HASH_ENTRY*)CXPLAT_ALLOC_NONPAGED(
             sizeof(QUIC_CID_HASH_ENTRY),
-            CXPLAT_POOL_CIDHASH);
+            QUIC_POOL_CIDHASH);
 
     if (Entry != NULL) {
         Entry->Connection = Connection;
@@ -193,7 +193,7 @@ QuicCidNewSource(
         CXPLAT_ALLOC_NONPAGED(
             sizeof(QUIC_CID_HASH_ENTRY) +
             Length,
-            CXPLAT_POOL_CIDHASH);
+            QUIC_POOL_CIDHASH);
 
     if (Entry != NULL) {
         Entry->Connection = Connection;
@@ -222,7 +222,7 @@ QuicCidNewRandomDestination(
         CXPLAT_ALLOC_NONPAGED(
             sizeof(QUIC_CID_QUIC_LIST_ENTRY) +
             QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH,
-            CXPLAT_POOL_CIDLIST);
+            QUIC_POOL_CIDLIST);
 
     if (Entry != NULL) {
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
@@ -250,7 +250,7 @@ QuicCidNewDestination(
         CXPLAT_ALLOC_NONPAGED(
             sizeof(QUIC_CID_QUIC_LIST_ENTRY) +
             Length,
-            CXPLAT_POOL_CIDLIST);
+            QUIC_POOL_CIDLIST);
 
     if (Entry != NULL) {
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));

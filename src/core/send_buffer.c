@@ -85,7 +85,7 @@ QuicSendBufferAlloc(
     _In_ uint32_t Size
     )
 {
-    uint8_t* Buf = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Size, CXPLAT_POOL_SENDBUF);
+    uint8_t* Buf = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Size, QUIC_POOL_SENDBUF);
 
     if (Buf != NULL) {
         SendBuffer->BufferedBytes += Size;
@@ -108,7 +108,7 @@ QuicSendBufferFree(
     _In_ uint32_t Size
     )
 {
-    CXPLAT_FREE(Buf, CXPLAT_POOL_SENDBUF);
+    CXPLAT_FREE(Buf, QUIC_POOL_SENDBUF);
     SendBuffer->BufferedBytes -= Size;
 }
 

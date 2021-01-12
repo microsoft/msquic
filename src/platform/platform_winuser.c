@@ -76,7 +76,7 @@ CxPlatProcessorInfoInit(
     QuicProcessorInfo =
         CXPLAT_ALLOC_NONPAGED(
             ActiveProcessorCount * sizeof(QUIC_PROCESSOR_INFO),
-            CXPLAT_POOL_PLATFORM_PROC);
+            QUIC_POOL_PLATFORM_PROC);
     if (QuicProcessorInfo == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -95,7 +95,7 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    Buffer = CXPLAT_ALLOC_NONPAGED(BufferLength, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+    Buffer = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (Buffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -162,7 +162,7 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    QuicProcessorGroupOffsets = CXPLAT_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint32_t), CXPLAT_POOL_PLATFORM_PROC);
+    QuicProcessorGroupOffsets = CXPLAT_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint32_t), QUIC_POOL_PLATFORM_PROC);
     if (QuicProcessorGroupOffsets == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -176,7 +176,7 @@ CxPlatProcessorInfoInit(
         QuicProcessorGroupOffsets[i] = i * ProcessorsPerGroup;
     }
 
-    QuicNumaMasks = CXPLAT_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t), CXPLAT_POOL_PLATFORM_PROC);
+    QuicNumaMasks = CXPLAT_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t), QUIC_POOL_PLATFORM_PROC);
     if (QuicNumaMasks == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -267,14 +267,14 @@ Next:
 
 Error:
 
-    CXPLAT_FREE(Buffer, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+    CXPLAT_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
     if (!Result) {
-        CXPLAT_FREE(QuicNumaMasks, CXPLAT_POOL_PLATFORM_PROC);
+        CXPLAT_FREE(QuicNumaMasks, QUIC_POOL_PLATFORM_PROC);
         QuicNumaMasks = NULL;
-        CXPLAT_FREE(QuicProcessorGroupOffsets, CXPLAT_POOL_PLATFORM_PROC);
+        CXPLAT_FREE(QuicProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
         QuicProcessorGroupOffsets = NULL;
-        CXPLAT_FREE(QuicProcessorInfo, CXPLAT_POOL_PLATFORM_PROC);
+        CXPLAT_FREE(QuicProcessorInfo, QUIC_POOL_PLATFORM_PROC);
         QuicProcessorInfo = NULL;
     }
 
@@ -349,11 +349,11 @@ CxPlatUninitialize(
 {
     CxPlatTlsLibraryUninitialize();
     CXPLAT_DBG_ASSERT(QuicPlatform.Heap);
-    CXPLAT_FREE(QuicNumaMasks, CXPLAT_POOL_PLATFORM_PROC);
+    CXPLAT_FREE(QuicNumaMasks, QUIC_POOL_PLATFORM_PROC);
     QuicNumaMasks = NULL;
-    CXPLAT_FREE(QuicProcessorGroupOffsets, CXPLAT_POOL_PLATFORM_PROC);
+    CXPLAT_FREE(QuicProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
     QuicProcessorGroupOffsets = NULL;
-    CXPLAT_FREE(QuicProcessorInfo, CXPLAT_POOL_PLATFORM_PROC);
+    CXPLAT_FREE(QuicProcessorInfo, QUIC_POOL_PLATFORM_PROC);
     QuicProcessorInfo = NULL;
     HeapDestroy(QuicPlatform.Heap);
     QuicPlatform.Heap = NULL;

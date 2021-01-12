@@ -325,7 +325,7 @@ CxPlatCertMatchPrincipal(
         goto Exit;
     }
 
-    CertificateNames = CXPLAT_ALLOC_PAGED(Length, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+    CertificateNames = CXPLAT_ALLOC_PAGED(Length, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (CertificateNames == NULL) {
         goto Exit;
     }
@@ -354,7 +354,7 @@ CxPlatCertMatchPrincipal(
 Exit:
 
     if (CertificateNames != NULL) {
-        CXPLAT_FREE(CertificateNames, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(CertificateNames, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return MatchFound;
@@ -893,7 +893,7 @@ CxPlatCertValidateChain(
             goto Exit;
         }
 
-        ServerName = (LPWSTR)CXPLAT_ALLOC_PAGED(ServerNameLength * sizeof(WCHAR), CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+        ServerName = (LPWSTR)CXPLAT_ALLOC_PAGED(ServerNameLength * sizeof(WCHAR), QUIC_POOL_PLATFORM_TMP_ALLOC);
         if (ServerName == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -927,7 +927,7 @@ Exit:
         CertFreeCertificateChain(ChainContext);
     }
     if (ServerName != NULL) {
-        CXPLAT_FREE(ServerName, CXPLAT_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(ServerName, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Result;

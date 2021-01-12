@@ -35,7 +35,7 @@ struct TlsContext
         CxPlatEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
 
         CxPlatZeroMemory(&State, sizeof(State));
-        State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, CXPLAT_POOL_TOOL);
+        State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, QUIC_POOL_TOOL);
         State.BufferAllocLength = 8000;
 
         QUIC_CREDENTIAL_CONFIG CredConfig = {
@@ -95,7 +95,7 @@ struct TlsContext
             CxPlatTlsSecConfigDelete(SecConfig);
         }
         CxPlatEventUninitialize(ProcessCompleteEvent);
-        CXPLAT_FREE(State.Buffer, CXPLAT_POOL_TOOL);
+        CXPLAT_FREE(State.Buffer, QUIC_POOL_TOOL);
         for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
             CxPlatPacketKeyFree(State.ReadKeys[i]);
             CxPlatPacketKeyFree(State.WriteKeys[i]);
