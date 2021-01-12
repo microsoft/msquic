@@ -179,7 +179,7 @@ public:
         ReceivedResponse(false),
         UsedZeroRtt(false)
     {
-        QuicEventInitialize(&RequestComplete, TRUE, FALSE);
+        CxPlatEventInitialize(&RequestComplete, TRUE, FALSE);
 
         VERIFY_QUIC_SUCCESS(
             MsQuic->StreamOpen(
@@ -191,11 +191,11 @@ public:
     }
     ~InteropStream() {
         MsQuic->StreamClose(Stream);
-        QuicEventUninitialize(RequestComplete);
+        CxPlatEventUninitialize(RequestComplete);
     }
 
     bool SendHttpRequest(bool WaitForResponse = true) {
-        QuicEventReset(RequestComplete);
+        CxPlatEventReset(RequestComplete);
         if (QUIC_FAILED(
             MsQuic->StreamStart(
                 Stream,
@@ -225,7 +225,7 @@ public:
 
     bool WaitForHttpResponse() {
         return
-            QuicEventWaitWithTimeout(RequestComplete, WaitTimeoutMs) &&
+            CxPlatEventWaitWithTimeout(RequestComplete, WaitTimeoutMs) &&
             ReceivedResponse;
     }
 
@@ -267,13 +267,13 @@ public:
                     }
                     TotalBytesWritten += DataLength;
                 }
-                int64_t ReceiveDuration = (int64_t)(pThis->LastReceiveTime == 0) ? 0 : QuicTimeDiff64(pThis->LastReceiveTime, Now);
-                int64_t ReceiveTimeDiff = (int64_t)QuicTimeDiff64(pThis->LastReceiveDuration, ReceiveDuration);
+                int64_t ReceiveDuration = (int64_t)(pThis->LastReceiveTime == 0) ? 0 : CxPlatTimeDiff64(pThis->LastReceiveTime, Now);
+                int64_t ReceiveTimeDiff = (int64_t)CxPlatTimeDiff64(pThis->LastReceiveDuration, ReceiveDuration);
                 printf(
                     "%s: Wrote %llu bytes.(%llu ms/%lld ms/%lld ms)\n",
                     pThis->FileName,
                     (unsigned long long)TotalBytesWritten,
-                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now),
+                    (unsigned long long)CxPlatTimeDiff64(pThis->DownloadStartTime, Now),
                     (long long)ReceiveDuration,
                     (long long)ReceiveTimeDiff);
                 pThis->LastReceiveTime = Now;
@@ -286,9 +286,9 @@ public:
             if (CustomUrlPath) {
                 printf("%s: Peer aborted send! (%llu ms)\n",
                     pThis->FileName,
-                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now));
+                    (unsigned long long)CxPlatTimeDiff64(pThis->DownloadStartTime, Now));
             }
-            QuicEventSet(pThis->RequestComplete);
+            CxPlatEventSet(pThis->RequestComplete);
             break;
         case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
             if (pThis->File) {
@@ -297,7 +297,7 @@ public:
                 pThis->File = nullptr;
                 printf("%s: Completed download! (%llu ms)\n",
                     pThis->FileName,
-                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now));
+                    (unsigned long long)CxPlatTimeDiff64(pThis->DownloadStartTime, Now));
             }
             pThis->ReceivedResponse = true;
             break;
@@ -305,7 +305,7 @@ public:
             if (pThis->File) {
                 printf("%s: Request closed incomplete. (%llu ms)\n",
                     pThis->FileName,
-                    (unsigned long long)QuicTimeDiff64(pThis->DownloadStartTime, Now));
+                    (unsigned long long)CxPlatTimeDiff64(pThis->DownloadStartTime, Now));
                 fclose(pThis->File); // Didn't get closed properly.
                 pThis->File = nullptr;
             }
@@ -321,7 +321,7 @@ public:
                 Length > 0) {
                 pThis->UsedZeroRtt = true;
             }
-            QuicEventSet(pThis->RequestComplete);
+            CxPlatEventSet(pThis->RequestComplete);
             break;
         }
         default:
@@ -363,11 +363,11 @@ public:
         Resumed(false),
         ReceivedQuackAck(false)
     {
-        QuicEventInitialize(&ConnectionComplete, TRUE, FALSE);
-        QuicEventInitialize(&RequestComplete, TRUE, FALSE);
-        QuicEventInitialize(&QuackAckReceived, TRUE, FALSE);
-        QuicEventInitialize(&ShutdownComplete, TRUE, FALSE);
-        QuicEventInitialize(&TicketReceived, TRUE, FALSE);
+        CxPlatEventInitialize(&ConnectionComplete, TRUE, FALSE);
+        CxPlatEventInitialize(&RequestComplete, TRUE, FALSE);
+        CxPlatEventInitialize(&QuackAckReceived, TRUE, FALSE);
+        CxPlatEventInitialize(&ShutdownComplete, TRUE, FALSE);
+        CxPlatEventInitialize(&TicketReceived, TRUE, FALSE);
 
         VERIFY_QUIC_SUCCESS(
             MsQuic->ConnectionOpen(
@@ -426,11 +426,11 @@ public:
         Streams.clear();
         Shutdown();
         MsQuic->ConnectionClose(Connection);
-        QuicEventUninitialize(TicketReceived);
-        QuicEventUninitialize(ShutdownComplete);
-        QuicEventUninitialize(RequestComplete);
-        QuicEventUninitialize(QuackAckReceived);
-        QuicEventUninitialize(ConnectionComplete);
+        CxPlatEventUninitialize(TicketReceived);
+        CxPlatEventUninitialize(ShutdownComplete);
+        CxPlatEventUninitialize(RequestComplete);
+        CxPlatEventUninitialize(QuackAckReceived);
+        CxPlatEventUninitialize(ConnectionComplete);
         delete [] NegotiatedAlpn;
         delete [] ResumptionTicket;
     }
@@ -478,7 +478,7 @@ public:
                 QUIC_ADDRESS_FAMILY_UNSPEC,
                 ServerName,
                 ServerPort))) {
-            QuicEventWaitWithTimeout(ConnectionComplete, WaitTimeoutMs);
+            CxPlatEventWaitWithTimeout(ConnectionComplete, WaitTimeoutMs);
         }
         return Connected;
     }
@@ -490,7 +490,7 @@ public:
         return WaitForShutdownComplete();
     }
     bool WaitForShutdownComplete() {
-        return QuicEventWaitWithTimeout(ShutdownComplete, WaitTimeoutMs);
+        return CxPlatEventWaitWithTimeout(ShutdownComplete, WaitTimeoutMs);
     }
     bool SendHttpRequests(bool WaitForResponse = true) {
         for (auto& Url : Urls) {
@@ -531,11 +531,11 @@ public:
     }
     bool WaitForQuackAck() {
         return
-            QuicEventWaitWithTimeout(QuackAckReceived, WaitTimeoutMs) &&
+            CxPlatEventWaitWithTimeout(QuackAckReceived, WaitTimeoutMs) &&
             ReceivedQuackAck;
     }
     bool WaitForTicket() {
-        return QuicEventWaitWithTimeout(TicketReceived, WaitTimeoutMs);
+        return CxPlatEventWaitWithTimeout(TicketReceived, WaitTimeoutMs);
     }
     bool UsedZeroRtt() {
         bool Result = true;
@@ -566,9 +566,9 @@ public:
                 &LocalAddress))) {
             return FALSE;
         }
-        uint16_t PrevPort = QuicAddrGetPort(&LocalAddress);
+        uint16_t PrevPort = CxPlatAddrGetPort(&LocalAddress);
         for (uint16_t i = 1236; i <= 1246; ++i) {
-            QuicAddrSetPort(&LocalAddress, PrevPort + i);
+            CxPlatAddrSetPort(&LocalAddress, PrevPort + i);
             if (QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     Connection,
@@ -648,7 +648,7 @@ private:
             if (Event->CONNECTED.SessionResumed) {
                 pThis->Resumed = true;
             }
-            QuicEventSet(pThis->ConnectionComplete);
+            CxPlatEventSet(pThis->ConnectionComplete);
             break;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
             if (Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status == QUIC_STATUS_VER_NEG_ERROR) {
@@ -656,15 +656,15 @@ private:
             }
             __fallthrough;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
-            QuicEventSet(pThis->RequestComplete);
-            QuicEventSet(pThis->QuackAckReceived);
-            QuicEventSet(pThis->ConnectionComplete);
+            CxPlatEventSet(pThis->RequestComplete);
+            CxPlatEventSet(pThis->QuackAckReceived);
+            CxPlatEventSet(pThis->ConnectionComplete);
             break;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-            QuicEventSet(pThis->RequestComplete);
-            QuicEventSet(pThis->QuackAckReceived);
-            QuicEventSet(pThis->ConnectionComplete);
-            QuicEventSet(pThis->ShutdownComplete);
+            CxPlatEventSet(pThis->RequestComplete);
+            CxPlatEventSet(pThis->QuackAckReceived);
+            CxPlatEventSet(pThis->ConnectionComplete);
+            CxPlatEventSet(pThis->ShutdownComplete);
             break;
         case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
             MsQuic->SetCallbackHandler(
@@ -674,7 +674,7 @@ private:
             if (Event->DATAGRAM_RECEIVED.Buffer->Length == QuackAckBuffer.Length &&
                 !memcmp(Event->DATAGRAM_RECEIVED.Buffer->Buffer, QuackAckBuffer.Buffer, QuackAckBuffer.Length)) {
                 pThis->ReceivedQuackAck = true;
-                QuicEventSet(pThis->QuackAckReceived);
+                CxPlatEventSet(pThis->QuackAckReceived);
             }
             break;
         case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
@@ -684,7 +684,7 @@ private:
                 (uint8_t*)pThis->ResumptionTicket,
                 Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket,
                 Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
-            QuicEventSet(pThis->TicketReceived);
+            CxPlatEventSet(pThis->TicketReceived);
             break;
         default:
             break;
@@ -870,7 +870,7 @@ RunInteropTest(
             Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
-            QuicSleep(2000); // Allow keep alive packets to trigger key updates.
+            CxPlatSleep(2000); // Allow keep alive packets to trigger key updates.
             QUIC_STATISTICS Stats;
             if (Connection.GetStatistics(Stats)) {
                 Success = Stats.Misc.KeyUpdateCount > 1;
@@ -887,7 +887,7 @@ RunInteropTest(
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
-            QuicSleep(250);
+            CxPlatSleep(250);
             if (Connection.SetDisconnectTimeout(1000) &&
                 Connection.ForceCidUpdate() &&
                 Connection.SetKeepAlive(50) &&
@@ -906,7 +906,7 @@ RunInteropTest(
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
             Connection.GetNegotiatedAlpn(NegotiatedAlpn);
-            QuicSleep(250);
+            CxPlatSleep(250);
             if (Connection.SetDisconnectTimeout(1000) &&
                 Connection.SimulateNatRebinding() &&
                 Connection.SetKeepAlive(50) &&
@@ -1026,10 +1026,10 @@ StartTest(
     };
 
     VERIFY_QUIC_SUCCESS(
-        QuicThreadCreate(&ThreadConfig, &Threads[CurrentThreadCount++]));
+        CxPlatThreadCreate(&ThreadConfig, &Threads[CurrentThreadCount++]));
 
     if (RunSerially) {
-        QuicThreadWait(&Threads[CurrentThreadCount-1]);
+        CxPlatThreadWait(&Threads[CurrentThreadCount-1]);
     }
 }
 
@@ -1076,8 +1076,8 @@ RunInteropTests()
     }
 
     for (uint32_t i = 0; i < CurrentThreadCount; ++i) {
-        QuicThreadWait(&Threads[i]);
-        QuicThreadDelete(&Threads[i]);
+        CxPlatThreadWait(&Threads[i]);
+        CxPlatThreadDelete(&Threads[i]);
     }
     StopTime = QuicTimeMs32();
 
@@ -1181,14 +1181,14 @@ main(
 
     RunSerially = GetValue(argc, argv, "serial") != nullptr;
 
-    QuicPlatformSystemLoad();
+    CxPlatSystemLoad();
 
     QUIC_STATUS Status;
     const QUIC_REGISTRATION_CONFIG RegConfig = { "quicinterop", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
 
-    if (QUIC_FAILED(Status = QuicPlatformInitialize())) {
-        printf("QuicPlatformInitialize failed, 0x%x!\n", Status);
-        QuicPlatformSystemUnload();
+    if (QUIC_FAILED(Status = CxPlatInitialize())) {
+        printf("CxPlatInitialize failed, 0x%x!\n", Status);
+        CxPlatSystemUnload();
         return Status;
     }
 
@@ -1253,8 +1253,8 @@ Error:
     }
 
     QuicLockUninitialize(&TestResultsLock);
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return (int)Status;
 }

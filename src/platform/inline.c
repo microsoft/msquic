@@ -32,52 +32,52 @@ MaxUdpPayloadSizeForFamily(
     );
 
 void
-QuicListInitializeHead(
+CxPlatListInitializeHead(
     _Out_ QUIC_LIST_ENTRY* ListHead
     );
 
 _Must_inspect_result_
 BOOLEAN
-QuicListIsEmpty(
+CxPlatListIsEmpty(
     _In_ const QUIC_LIST_ENTRY* ListHead
     );
 
 void
-QuicListInsertHead(
+CxPlatListInsertHead(
     _Inout_ QUIC_LIST_ENTRY* ListHead,
     _Inout_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
     );
 
 void
-QuicListInsertTail(
+CxPlatListInsertTail(
     _Inout_ QUIC_LIST_ENTRY* ListHead,
     _Inout_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
     );
 
 QUIC_LIST_ENTRY*
-QuicListRemoveHead(
+CxPlatListRemoveHead(
     _Inout_ QUIC_LIST_ENTRY* ListHead
     );
 
 BOOLEAN
-QuicListEntryRemove(
+CxPlatListEntryRemove(
     _In_ QUIC_LIST_ENTRY* Entry
     );
 
 void
-QuicListMoveItems(
+CxPlatListMoveItems(
     _In_ QUIC_LIST_ENTRY* Source,
     _Out_ QUIC_LIST_ENTRY* Destination
     );
 
 void
-QuicListPushEntry(
+CxPlatListPushEntry(
     _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead,
     _Inout_ __drv_aliasesMem QUIC_SINGLE_LIST_ENTRY* Entry
     );
 
 QUIC_SINGLE_LIST_ENTRY*
-QuicListPopEntry(
+CxPlatListPopEntry(
     _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead
     );
 
@@ -122,59 +122,59 @@ InterlockedIncrement64(
 _Must_inspect_result_
 _Success_(return != 0)
 BOOLEAN
-QuicHashtableInitializeEx(
+CxPlatHashtableInitializeEx(
     _Inout_ QUIC_HASHTABLE* HashTable,
     _In_ uint32_t InitialSize
     );
 
 uint32_t
-QuicHashSimple(
+CxPlatHashSimple(
     _In_ uint16_t Length,
     _In_reads_(Length) const uint8_t* Buffer
     );
 
 uint16_t
-QuicHashLength(
+CxPlatHashLength(
     QUIC_HASH_TYPE Type
     );
 
 uint16_t
-QuicKeyLength(
+CxPlatKeyLength(
     QUIC_AEAD_TYPE Type
     );
 
 uint64_t
-QuicTimeDiff64(
+CxPlatTimeDiff64(
     _In_ uint64_t T1,
     _In_ uint64_t T2
     );
 
 uint32_t
-QuicTimeDiff32(
+CxPlatTimeDiff32(
     _In_ uint32_t T1,
     _In_ uint32_t T2
     );
 
 BOOLEAN
-QuicTimeAtOrBefore64(
+CxPlatTimeAtOrBefore64(
     _In_ uint64_t T1,
     _In_ uint64_t T2
     );
 
 BOOLEAN
-QuicTimeAtOrBefore32(
+CxPlatTimeAtOrBefore32(
     _In_ uint32_t T1,
     _In_ uint32_t T2
     );
 
 void
-QuicTraceStubVarArgs(
+CxPlatTraceStubVarArgs(
     _In_ const void* Fmt,
     ...
     );
 
 const uint8_t*
-QuicTlsAlpnFindInList(
+CxPlatTlsAlpnFindInList(
     _In_ uint16_t AlpnListLength,
     _In_reads_(AlpnListLength)
         const uint8_t* AlpnList,
@@ -184,90 +184,90 @@ QuicTlsAlpnFindInList(
     );
 
 BOOLEAN
-QuicAddrFamilyIsValid(
+CxPlatAddrFamilyIsValid(
     _In_ QUIC_ADDRESS_FAMILY Family
     );
 
 BOOLEAN
-QuicAddrIsValid(
+CxPlatAddrIsValid(
     _In_ const QUIC_ADDR* const Addr
     );
 
 BOOLEAN
-QuicAddrCompareIp(
+CxPlatAddrCompareIp(
     _In_ const QUIC_ADDR* const Addr1,
     _In_ const QUIC_ADDR* const Addr2
     );
 
 BOOLEAN
-QuicAddrCompare(
+CxPlatAddrCompare(
     _In_ const QUIC_ADDR* const Addr1,
     _In_ const QUIC_ADDR* const Addr2
     );
 
 uint16_t
-QuicAddrGetFamily(
+CxPlatAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
     );
 
 void
-QuicAddrSetFamily(
+CxPlatAddrSetFamily(
     _In_ QUIC_ADDR* Addr,
     _In_ uint16_t Family
     );
 
 uint16_t
-QuicAddrGetPort(
+CxPlatAddrGetPort(
     _In_ const QUIC_ADDR* const Addr
     );
 
 void
-QuicAddrSetPort(
+CxPlatAddrSetPort(
     _Out_ QUIC_ADDR* Addr,
     _In_ uint16_t Port
     );
 
 void
-QuicAddrIncrement(
+CxPlatAddrIncrement(
     _Inout_ QUIC_ADDR* Addr
     );
 
 void
-QuicAddrSetToLoopback(
+CxPlatAddrSetToLoopback(
     _Inout_ QUIC_ADDR* Addr
     );
 
 uint32_t
-QuicAddrHash(
+CxPlatAddrHash(
     _In_ const QUIC_ADDR* Addr
     );
 
 BOOLEAN
-QuicAddrIsWildCard(
+CxPlatAddrIsWildCard(
     _In_ const QUIC_ADDR* const Addr
     );
 
 BOOLEAN
-QuicAddr4FromString(
+CxPlatAddr4FromString(
     _In_z_ const char* AddrStr,
     _Out_ QUIC_ADDR* Addr
     );
 
 BOOLEAN
-QuicAddr6FromString(
+CxPlatAddr6FromString(
     _In_z_ const char* AddrStr,
     _Out_ QUIC_ADDR* Addr
     );
 
 BOOLEAN
-QuicAddrFromString(
+CxPlatAddrFromString(
     _In_z_ const char* AddrStr,
     _In_ uint16_t Port, // Host byte order
     _Out_ QUIC_ADDR* Addr
     );
 
 BOOLEAN
-QuicAddrToString(
+CxPlatAddrToString(
     _In_ const QUIC_ADDR* Addr,
     _Out_ QUIC_ADDR_STR* AddrStr
     );

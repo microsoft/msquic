@@ -128,7 +128,7 @@ GetRemoteAddr(
             &addrLen,
             &addr);
     if (QUIC_SUCCEEDED(status)) {
-        QuicAddrToString(&addr, &addrStr);
+        CxPlatAddrToString(&addr, &addrStr);
     }
     return addrStr;
 }
@@ -210,11 +210,11 @@ ConvertArgToAddress(
         // Explicitly zero, otherwise kernel mode errors
         //
         QuicZeroMemory(Address, sizeof(*Address));
-        QuicAddrSetFamily(Address, QUIC_ADDRESS_FAMILY_UNSPEC);
-        QuicAddrSetPort(Address, Port);
+        CxPlatAddrSetFamily(Address, QUIC_ADDRESS_FAMILY_UNSPEC);
+        CxPlatAddrSetPort(Address, Port);
         return TRUE;
     }
-    return QuicAddrFromString(Arg, Port, Address);
+    return CxPlatAddrFromString(Arg, Port, Address);
 }
 
 inline uint8_t DecodeHexChar(char c)
@@ -450,7 +450,7 @@ GetServerConfigurationFromArgs(
 
 #ifdef QUIC_TEST_APIS
     } else if (GetValue(argc, argv, "selfsign")) {
-        Config = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+        Config = CxPlatPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
         if (!Config) {
             return nullptr;
         }
@@ -486,7 +486,7 @@ GetServerConfigurationFromArgs(
 
 #ifdef QUIC_TEST_APIS
     if (!Configuration && Config != &Helper.CredConfig) {
-        QuicPlatFreeSelfSignedCert(Config);
+        CxPlatPlatFreeSelfSignedCert(Config);
     }
 #endif
 
@@ -503,7 +503,7 @@ FreeServerConfiguration(
 #ifdef QUIC_TEST_APIS
     auto SelfSignedConfig = (const QUIC_CREDENTIAL_CONFIG*)MsQuic->GetContext(Configuration);
     if (SelfSignedConfig) {
-        QuicPlatFreeSelfSignedCert(SelfSignedConfig);
+        CxPlatPlatFreeSelfSignedCert(SelfSignedConfig);
     }
 #endif
     MsQuic->ConfigurationClose(Configuration);

@@ -133,17 +133,17 @@ GetWorkerFromThreadId(
     QUIC_HASHTABLE_ENUMERATOR Enumerator;
     QUIC_HASHTABLE_ENTRY* Entry;
 
-    QuicHashtableEnumerateBegin(Workers.Active, &Enumerator);
+    CxPlatHashtableEnumerateBegin(Workers.Active, &Enumerator);
     for (;;) {
-        Entry = QuicHashtableEnumerateNext(Workers.Active, &Enumerator);
+        Entry = CxPlatHashtableEnumerateNext(Workers.Active, &Enumerator);
         if (Entry == NULL) {
-            QuicHashtableEnumerateEnd(Workers.Active, &Enumerator);
+            CxPlatHashtableEnumerateEnd(Workers.Active, &Enumerator);
             break;
         }
         WORKER* Worker = CONTAINING_RECORD(Entry, WORKER, ActiveEntry);
         if (Worker->ThreadId != 0 &&
             Worker->ThreadId == ThreadId) {
-            QuicHashtableEnumerateEnd(Workers.Active, &Enumerator);
+            CxPlatHashtableEnumerateEnd(Workers.Active, &Enumerator);
             return Worker;
         }
     }

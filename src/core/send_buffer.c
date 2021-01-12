@@ -269,14 +269,14 @@ QuicSendBufferConnectionAdjust(
 
         QUIC_HASHTABLE_ENUMERATOR Enumerator;
         QUIC_HASHTABLE_ENTRY* Entry;
-        QuicHashtableEnumerateBegin(Connection->Streams.StreamTable, &Enumerator);
-        while ((Entry = QuicHashtableEnumerateNext(Connection->Streams.StreamTable, &Enumerator)) != NULL) {
+        CxPlatHashtableEnumerateBegin(Connection->Streams.StreamTable, &Enumerator);
+        while ((Entry = CxPlatHashtableEnumerateNext(Connection->Streams.StreamTable, &Enumerator)) != NULL) {
             QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
             if (Stream->Flags.SendEnabled) {
                 QuicSendBufferStreamAdjust(Stream);
             }
         }
-        QuicHashtableEnumerateEnd(Connection->Streams.StreamTable, &Enumerator);
+        CxPlatHashtableEnumerateEnd(Connection->Streams.StreamTable, &Enumerator);
 
         if (Connection->Settings.SendBufferingEnabled) {
             QuicSendBufferFill(Connection);

@@ -217,7 +217,7 @@ QuicCongestionControlUpdateBlockedState(
         } else {
             QuicConnRemoveOutFlowBlockedReason(
                 Connection, QUIC_FLOW_BLOCKED_CONGESTION_CONTROL);
-            Connection->Send.LastFlushTime = QuicTimeUs64(); // Reset last flush time
+            Connection->Send.LastFlushTime = CxPlatTimeUs64(); // Reset last flush time
             return TRUE;
         }
     }
@@ -393,18 +393,18 @@ QuicCongestionControlOnDataAcknowledged(
         // growth during the gap.
         //
         if (Cc->TimeOfLastAckValid) {
-            uint64_t TimeSinceLastAck = QuicTimeDiff64(Cc->TimeOfLastAck, TimeNow);
+            uint64_t TimeSinceLastAck = CxPlatTimeDiff64(Cc->TimeOfLastAck, TimeNow);
             if (TimeSinceLastAck > Cc->SendIdleTimeoutMs &&
                 TimeSinceLastAck > US_TO_MS(Connection->Paths[0].SmoothedRtt + 4 * Connection->Paths[0].RttVariance)) {
                 Cc->TimeOfCongAvoidStart += TimeSinceLastAck;
-                if (QuicTimeAtOrBefore64(TimeNow, Cc->TimeOfCongAvoidStart)) {
+                if (CxPlatTimeAtOrBefore64(TimeNow, Cc->TimeOfCongAvoidStart)) {
                     Cc->TimeOfCongAvoidStart = TimeNow;
                 }
             }
         }
 
         uint64_t TimeInCongAvoid =
-            QuicTimeDiff64(Cc->TimeOfCongAvoidStart, QuicTimeMs64());
+            CxPlatTimeDiff64(Cc->TimeOfCongAvoidStart, QuicTimeMs64());
         if (TimeInCongAvoid > UINT32_MAX) {
             TimeInCongAvoid = UINT32_MAX;
         }

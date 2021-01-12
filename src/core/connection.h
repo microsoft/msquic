@@ -1114,7 +1114,7 @@ QuicConnGetDestCidFromSeq(
                 Link);
         if (DestCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {
-                QuicListEntryRemove(Entry);
+                CxPlatListEntryRemove(Entry);
             }
             return DestCid;
         }

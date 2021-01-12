@@ -316,7 +316,7 @@ QuicPacketGenerateRetryIntegrity(
     uint8_t* RetryPseudoPacket = NULL;
     QUIC_PACKET_KEY* RetryIntegrityKey = NULL;
     QUIC_STATUS Status =
-        QuicPacketKeyDerive(
+        CxPlatPacketKeyDerive(
             QUIC_PACKET_KEY_INITIAL,
             &Secret,
             "RetryIntegrity",
@@ -346,7 +346,7 @@ QuicPacketGenerateRetryIntegrity(
     QuicCopyMemory(RetryPseudoPacketCursor, Buffer, BufferLength);
 
     Status =
-        QuicEncrypt(
+        CxPlatEncrypt(
             RetryIntegrityKey->PacketKey,
             RetryIntegrityKey->Iv,
             RetryPseudoPacketLength,
@@ -358,7 +358,7 @@ Exit:
     if (RetryPseudoPacket != NULL) {
         QUIC_FREE(RetryPseudoPacket, QUIC_POOL_TMP_ALLOC);
     }
-    QuicPacketKeyFree(RetryIntegrityKey);
+    CxPlatPacketKeyFree(RetryIntegrityKey);
     return Status;
 }
 
@@ -394,7 +394,7 @@ QuicPacketEncodeRetryV1(
     QUIC_RETRY_V1* Header = (QUIC_RETRY_V1*)Buffer;
 
     uint8_t RandomBits;
-    QuicRandom(sizeof(RandomBits), &RandomBits);
+    CxPlatRandom(sizeof(RandomBits), &RandomBits);
 
     Header->IsLongHeader    = TRUE;
     Header->FixedBit        = 1;
@@ -703,7 +703,7 @@ QuicPacketLogDrop(
     )
 {
     const QUIC_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
-        QuicDataPathRecvPacketToRecvData(Packet);
+        CxPlatDataPathRecvPacketToRecvData(Packet);
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
@@ -737,7 +737,7 @@ QuicPacketLogDropWithValue(
     )
 {
     const QUIC_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
-        QuicDataPathRecvPacketToRecvData(Packet);
+        CxPlatDataPathRecvPacketToRecvData(Packet);
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);

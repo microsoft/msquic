@@ -590,7 +590,7 @@ QuicStreamOnBytesDelivered(
 
             uint32_t TimeThreshold = (uint32_t)
                 ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
-            if (QuicTimeDiff32(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
+            if (CxPlatTimeDiff32(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
 
                 //
                 // Buffer tuning:

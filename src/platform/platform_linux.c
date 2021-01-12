@@ -60,7 +60,7 @@ quic_bugcheck(
 }
 
 void
-QuicPlatformSystemLoad(
+CxPlatSystemLoad(
     void
     )
 {
@@ -131,14 +131,14 @@ QuicPlatformSystemLoad(
 }
 
 void
-QuicPlatformSystemUnload(
+CxPlatSystemUnload(
     void
     )
 {
 }
 
 QUIC_STATUS
-QuicPlatformInitialize(
+CxPlatInitialize(
     void
     )
 {
@@ -157,7 +157,7 @@ QuicPlatformInitialize(
 }
 
 void
-QuicPlatformUninitialize(
+CxPlatUninitialize(
     void
     )
 {
@@ -167,7 +167,7 @@ QuicPlatformUninitialize(
 }
 
 void*
-QuicAlloc(
+CxPlatAlloc(
     _In_ size_t ByteCount,
     _In_ uint32_t Tag
     )
@@ -177,7 +177,7 @@ QuicAlloc(
     return PlatDispatch->Alloc(ByteCount);
 #else
 #ifdef QUIC_RANDOM_ALLOC_FAIL
-    uint8_t Rand; QuicRandom(sizeof(Rand), &Rand);
+    uint8_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
     return ((Rand % 100) == 1) ? NULL : malloc(ByteCount);
 #else
     return malloc(ByteCount);
@@ -186,7 +186,7 @@ QuicAlloc(
 }
 
 void
-QuicFree(
+CxPlatFree(
     __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem,
     _In_ uint32_t Tag
     )
@@ -200,7 +200,7 @@ QuicFree(
 }
 
 void
-QuicPoolInitialize(
+CxPlatPoolInitialize(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
@@ -217,7 +217,7 @@ QuicPoolInitialize(
 }
 
 void
-QuicPoolUninitialize(
+CxPlatPoolUninitialize(
     _Inout_ QUIC_POOL* Pool
     )
 {
@@ -229,14 +229,14 @@ QuicPoolUninitialize(
 }
 
 void*
-QuicPoolAlloc(
+CxPlatPoolAlloc(
     _Inout_ QUIC_POOL* Pool
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->PoolAlloc(Pool);
 #else
-    void*Entry = QuicAlloc(Pool->Size, Pool->MemTag);
+    void*Entry = CxPlatAlloc(Pool->Size, Pool->MemTag);
 
     if (Entry != NULL) {
         QuicZeroMemory(Entry, Pool->Size);
@@ -247,7 +247,7 @@ QuicPoolAlloc(
 }
 
 void
-QuicPoolFree(
+CxPlatPoolFree(
     _Inout_ QUIC_POOL* Pool,
     _In_ void* Entry
     )
@@ -256,12 +256,12 @@ QuicPoolFree(
     PlatDispatch->PoolFree(Pool, Entry);
 #else
     UNREFERENCED_PARAMETER(Pool);
-    QuicFree(Entry, Pool->MemTag);
+    CxPlatFree(Entry, Pool->MemTag);
 #endif
 }
 
 void
-QuicRefInitialize(
+CxPlatRefInitialize(
     _Inout_ QUIC_REF_COUNT* RefCount
     )
 {
@@ -269,7 +269,7 @@ QuicRefInitialize(
 }
 
 void
-QuicRefIncrement(
+CxPlatRefIncrement(
     _Inout_ QUIC_REF_COUNT* RefCount
     )
 {
@@ -281,7 +281,7 @@ QuicRefIncrement(
 }
 
 BOOLEAN
-QuicRefIncrementNonZero(
+CxPlatRefIncrementNonZero(
     _Inout_ volatile QUIC_REF_COUNT* RefCount
     )
 {
@@ -307,7 +307,7 @@ QuicRefIncrementNonZero(
 }
 
 BOOLEAN
-QuicRefDecrement(
+CxPlatRefDecrement(
     _In_ QUIC_REF_COUNT* RefCount
     )
 {
@@ -327,25 +327,25 @@ QuicRefDecrement(
 }
 
 void
-QuicRundownInitialize(
+CxPlatRundownInitialize(
     _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
 {
-    QuicRefInitialize(&((Rundown)->RefCount));
-    QuicEventInitialize(&((Rundown)->RundownComplete), false, false);
+    CxPlatRefInitialize(&((Rundown)->RefCount));
+    CxPlatEventInitialize(&((Rundown)->RundownComplete), false, false);
 }
 
 void
-QuicRundownInitializeDisabled(
+CxPlatRundownInitializeDisabled(
     _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
 {
     (Rundown)->RefCount = 0;
-    QuicEventInitialize(&((Rundown)->RundownComplete), false, false);
+    CxPlatEventInitialize(&((Rundown)->RundownComplete), false, false);
 }
 
 void
-QuicRundownReInitialize(
+CxPlatRundownReInitialize(
     _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
 {
@@ -353,43 +353,43 @@ QuicRundownReInitialize(
 }
 
 void
-QuicRundownUninitialize(
+CxPlatRundownUninitialize(
     _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
 {
-    QuicEventUninitialize((Rundown)->RundownComplete);
+    CxPlatEventUninitialize((Rundown)->RundownComplete);
 }
 
 BOOLEAN
-QuicRundownAcquire(
+CxPlatRundownAcquire(
     _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
 {
-    return QuicRefIncrementNonZero(&(Rundown)->RefCount);
+    return CxPlatRefIncrementNonZero(&(Rundown)->RefCount);
 }
 
 void
-QuicRundownRelease(
+CxPlatRundownRelease(
     _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
 {
-    if (QuicRefDecrement(&(Rundown)->RefCount)) {
-        QuicEventSet((Rundown)->RundownComplete);
+    if (CxPlatRefDecrement(&(Rundown)->RefCount)) {
+        CxPlatEventSet((Rundown)->RundownComplete);
     }
 }
 
 void
-QuicRundownReleaseAndWait(
+CxPlatRundownReleaseAndWait(
     _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
 {
-    if (!QuicRefDecrement(&(Rundown)->RefCount)) {
-        QuicEventWaitForever((Rundown)->RundownComplete);
+    if (!CxPlatRefDecrement(&(Rundown)->RefCount)) {
+        CxPlatEventWaitForever((Rundown)->RundownComplete);
     }
 }
 
 void
-QuicEventInitialize(
+CxPlatEventInitialize(
     _Out_ QUIC_EVENT* Event,
     _In_ BOOLEAN ManualReset,
     _In_ BOOLEAN InitialState
@@ -419,7 +419,7 @@ QuicEventInitialize(
 }
 
 void
-QuicEventUninitialize(
+CxPlatEventUninitialize(
     _Inout_ QUIC_EVENT Event
     )
 {
@@ -433,7 +433,7 @@ QuicEventUninitialize(
 }
 
 void
-QuicEventSet(
+CxPlatEventSet(
     _Inout_ QUIC_EVENT Event
     )
 {
@@ -453,7 +453,7 @@ QuicEventSet(
 }
 
 void
-QuicEventReset(
+CxPlatEventReset(
     _Inout_ QUIC_EVENT Event
     )
 {
@@ -465,7 +465,7 @@ QuicEventReset(
 }
 
 void
-QuicEventWaitForever(
+CxPlatEventWaitForever(
     _Inout_ QUIC_EVENT Event
     )
 {
@@ -490,7 +490,7 @@ QuicEventWaitForever(
 }
 
 BOOLEAN
-QuicEventWaitWithTimeout(
+CxPlatEventWaitWithTimeout(
     _Inout_ QUIC_EVENT Event,
     _In_ uint32_t TimeoutMs
     )
@@ -503,7 +503,7 @@ QuicEventWaitWithTimeout(
     // Get absolute time.
     //
 
-    QuicGetAbsoluteTime(TimeoutMs, &Ts);
+    CxPlatGetAbsoluteTime(TimeoutMs, &Ts);
 
     QUIC_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
 
@@ -534,7 +534,7 @@ Exit:
 }
 
 uint64_t
-QuicTimespecToUs(
+CxPlatTimespecToUs(
     _In_ const struct timespec *Time
     )
 {
@@ -542,7 +542,7 @@ QuicTimespecToUs(
 }
 
 uint64_t
-QuicGetTimerResolution(
+CxPlatGetTimerResolution(
     void
     )
 {
@@ -550,11 +550,11 @@ QuicGetTimerResolution(
     int ErrorCode = clock_getres(CLOCK_MONOTONIC, &Res);
     QUIC_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
-    return QuicTimespecToUs(&Res);
+    return CxPlatTimespecToUs(&Res);
 }
 
 uint64_t
-QuicTimeUs64(
+CxPlatTimeUs64(
     void
     )
 {
@@ -562,11 +562,11 @@ QuicTimeUs64(
     int ErrorCode = clock_gettime(CLOCK_MONOTONIC, &CurrTime);
     QUIC_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
-    return QuicTimespecToUs(&CurrTime);
+    return CxPlatTimespecToUs(&CurrTime);
 }
 
 void
-QuicGetAbsoluteTime(
+CxPlatGetAbsoluteTime(
     _In_ unsigned long DeltaMs,
     _Out_ struct timespec *Time
     )
@@ -591,7 +591,7 @@ QuicGetAbsoluteTime(
 }
 
 void
-QuicSleep(
+CxPlatSleep(
     _In_ uint32_t DurationMs
     )
 {
@@ -607,7 +607,7 @@ QuicSleep(
 }
 
 uint32_t
-QuicProcMaxCount(
+CxPlatProcMaxCount(
     void
     )
 {
@@ -615,7 +615,7 @@ QuicProcMaxCount(
 }
 
 uint32_t
-QuicProcActiveCount(
+CxPlatProcActiveCount(
     void
     )
 {
@@ -623,7 +623,7 @@ QuicProcActiveCount(
 }
 
 uint32_t
-QuicProcCurrentNumber(
+CxPlatProcCurrentNumber(
     void
     )
 {
@@ -631,7 +631,7 @@ QuicProcCurrentNumber(
 }
 
 QUIC_STATUS
-QuicRandom(
+CxPlatRandom(
     _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) void* Buffer
     )
@@ -647,7 +647,7 @@ QuicRandom(
 }
 
 void
-QuicConvertToMappedV6(
+CxPlatConvertToMappedV6(
     _In_ const QUIC_ADDR* InAddr,
     _Out_ QUIC_ADDR* OutAddr
     )
@@ -667,7 +667,7 @@ QuicConvertToMappedV6(
 }
 
 void
-QuicConvertFromMappedV6(
+CxPlatConvertFromMappedV6(
     _In_ const QUIC_ADDR* InAddr,
     _Out_ QUIC_ADDR* OutAddr
     )
@@ -688,7 +688,7 @@ QuicConvertFromMappedV6(
 }
 
 QUIC_STATUS
-QuicThreadCreate(
+CxPlatThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,
     _Out_ QUIC_THREAD* Thread
     )
@@ -796,7 +796,7 @@ QuicThreadCreate(
 }
 
 void
-QuicThreadDelete(
+CxPlatThreadDelete(
     _Inout_ QUIC_THREAD* Thread
     )
 {
@@ -804,7 +804,7 @@ QuicThreadDelete(
 }
 
 void
-QuicThreadWait(
+CxPlatThreadWait(
     _Inout_ QUIC_THREAD* Thread
     )
 {
@@ -813,7 +813,7 @@ QuicThreadWait(
 }
 
 uint32_t
-QuicCurThreadID(
+CxPlatCurThreadID(
     void
     )
 {
@@ -822,7 +822,7 @@ QuicCurThreadID(
 }
 
 void
-QuicPlatformLogAssert(
+CxPlatLogAssert(
     _In_z_ const char* File,
     _In_ int Line,
     _In_z_ const char* Expr

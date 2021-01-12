@@ -64,7 +64,7 @@ class SpinQuicWatchdog {
     static
     QUIC_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
         auto This = (SpinQuicWatchdog*)Context;
-        if (!QuicEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
+        if (!CxPlatEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
             printf("Watchdog timeout fired!\n");
             QUIC_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
         }
@@ -72,18 +72,18 @@ class SpinQuicWatchdog {
     }
 public:
     SpinQuicWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
-        QuicEventInitialize(&ShutdownEvent, TRUE, FALSE);
+        CxPlatEventInitialize(&ShutdownEvent, TRUE, FALSE);
         QUIC_THREAD_CONFIG Config = { 0 };
         Config.Name = "spin_watchdog";
         Config.Callback = WatchdogThreadCallback;
         Config.Context = this;
-        ASSERT_ON_FAILURE(QuicThreadCreate(&Config, &WatchdogThread));
+        ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &WatchdogThread));
     }
     ~SpinQuicWatchdog() {
-        QuicEventSet(ShutdownEvent);
-        QuicThreadWait(&WatchdogThread);
-        QuicThreadDelete(&WatchdogThread);
-        QuicEventUninitialize(ShutdownEvent);
+        CxPlatEventSet(ShutdownEvent);
+        CxPlatThreadWait(&WatchdogThread);
+        CxPlatThreadDelete(&WatchdogThread);
+        CxPlatEventUninitialize(ShutdownEvent);
     }
 };
 
@@ -420,7 +420,7 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
 
     uint64_t OpCount = 0;
     while (++OpCount != Settings.MaxOperationCount &&
-        QuicTimeDiff64(StartTimeMs, QuicTimeMs64()) < Settings.RunTimeMs) {
+        CxPlatTimeDiff64(StartTimeMs, QuicTimeMs64()) < Settings.RunTimeMs) {
 
         if (Listeners) {
             auto Value = GetRandom(100);
@@ -431,8 +431,8 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
             } else if (Value >= 40) {
                 for (auto &Listener : *Listeners) {
                     QUIC_ADDR sockAddr = { 0 };
-                    QuicAddrSetFamily(&sockAddr, GetRandom(2) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC);
-                    QuicAddrSetPort(&sockAddr, GetRandomFromVector(Settings.Ports));
+                    CxPlatAddrSetFamily(&sockAddr, GetRandom(2) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC);
+                    CxPlatAddrSetPort(&sockAddr, GetRandomFromVector(Settings.Ports));
                     MsQuic->ListenerStart(Listener, &Alpns[GetRandom(AlpnCount)], 1, &sockAddr);
                 }
             } else {
@@ -445,7 +445,7 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
     #define BAIL_ON_NULL_CONNECTION(Connection) \
         if (Connection == nullptr) { \
             if (IsServer) { \
-                QuicSleep(100); \
+                CxPlatSleep(100); \
             } \
             continue; \
         }
@@ -619,7 +619,7 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
 
     ASSERT_ON_NOT(ServerConfiguration);
 
-    auto CredConfig = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+    auto CredConfig = CxPlatPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
     ASSERT_ON_NOT(CredConfig);
 
     ASSERT_ON_FAILURE(
@@ -634,8 +634,8 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
             ASSERT_ON_FAILURE(MsQuic->ListenerOpen(Registration, SpinQuicServerHandleListenerEvent, &Connections, &Listener));
 
             QUIC_ADDR sockAddr = { 0 };
-            QuicAddrSetFamily(&sockAddr, GetRandom(2) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC);
-            QuicAddrSetPort(&sockAddr, pt);
+            CxPlatAddrSetFamily(&sockAddr, GetRandom(2) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC);
+            CxPlatAddrSetPort(&sockAddr, pt);
 
             ASSERT_ON_FAILURE(MsQuic->ListenerStart(Listener, &Alpns[i], 1, &sockAddr));
             Listeners.push_back(Listener);
@@ -669,7 +669,7 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
     }
 
     MsQuic->ConfigurationClose(ServerConfiguration);
-    QuicPlatFreeSelfSignedCert(CredConfig);
+    CxPlatPlatFreeSelfSignedCert(CredConfig);
 
     QUIC_THREAD_RETURN(0);
 }
@@ -705,7 +705,7 @@ QUIC_THREAD_CALLBACK(ClientSpin, Context)
 BOOLEAN QUIC_API DatapathHookReceiveCallback(struct QUIC_RECV_DATA* /* Datagram */)
 {
     uint8_t RandomValue;
-    QuicRandom(sizeof(RandomValue), &RandomValue);
+    CxPlatRandom(sizeof(RandomValue), &RandomValue);
     return (RandomValue % 100) < Settings.LossPercent;
 }
 
@@ -758,8 +758,8 @@ main(int argc, char **argv)
         PrintHelpText();
     }
 
-    QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
+    CxPlatSystemLoad();
+    CxPlatInitialize();
 
     uint32_t SessionCount = 4;
     uint32_t RepeatCount = 1;
@@ -890,13 +890,13 @@ main(int argc, char **argv)
         if (RunServer) {
             Config.Name = "spin_server";
             Config.Callback = ServerSpin;
-            ASSERT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[0]));
+            ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[0]));
         }
 
         if (RunClient) {
             Config.Name = "spin_client";
             Config.Callback = ClientSpin;
-            ASSERT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[1]));
+            ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[1]));
         }
 
         //
@@ -904,13 +904,13 @@ main(int argc, char **argv)
         //
 
         if (RunClient) {
-            QuicThreadWait(&Threads[1]);
-            QuicThreadDelete(&Threads[1]);
+            CxPlatThreadWait(&Threads[1]);
+            CxPlatThreadDelete(&Threads[1]);
         }
 
         if (RunServer) {
-            QuicThreadWait(&Threads[0]);
-            QuicThreadDelete(&Threads[0]);
+            CxPlatThreadWait(&Threads[0]);
+            CxPlatThreadDelete(&Threads[0]);
         }
 
         //

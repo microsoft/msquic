@@ -51,7 +51,7 @@ ConnectionHandler(
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->ConnectionClose(Connection);
-        QuicEventSet(Context->Complete);
+        CxPlatEventSet(Context->Complete);
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         return QUIC_STATUS_NOT_SUPPORTED;
@@ -89,7 +89,7 @@ QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
     }
 
     ConnectionContext Context = { false };
-    QuicEventInitialize(&Context.Complete, TRUE, FALSE);
+    CxPlatEventInitialize(&Context.Complete, TRUE, FALSE);
 
     HQUIC Connection = nullptr;
     if (QUIC_FAILED(MsQuic->ConnectionOpen(Registration, ConnectionHandler, &Context, &Connection))) {
@@ -108,8 +108,8 @@ QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
     }
 
     MsQuic->ConfigurationClose(Configuration);
-    QuicEventWaitForever(Context.Complete);
-    QuicEventUninitialize(Context.Complete);
+    CxPlatEventWaitForever(Context.Complete);
+    CxPlatEventUninitialize(Context.Complete);
 
     if (Context.GotConnected) {
         printf("  %6s    reachable\n", (char*)_Alpn);
@@ -141,32 +141,32 @@ main(int argc, char **argv)
     TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "alpn", &InputAlpn);
 
-    QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
+    CxPlatSystemLoad();
+    CxPlatInitialize();
 
     if (ServerIp == nullptr) {
         QUIC_DATAPATH* Datapath = nullptr;
         if (QUIC_FAILED(
-            QuicDataPathInitialize(
+            CxPlatDataPathInitialize(
                 0,
                 NULL,
                 NULL,
                 &Datapath))) {
-            printf("QuicDataPathInitialize failed.\n");
+            printf("CxPlatDataPathInitialize failed.\n");
             exit(1);
         }
         if (QUIC_FAILED(
-            QuicDataPathResolveAddress(
+            CxPlatDataPathResolveAddress(
                 Datapath,
                 ServerName,
                 &ServerAddress))) {
             printf("Failed to resolve IP address of '%s'.\n", ServerName);
             exit(1);
         }
-        QuicDataPathUninitialize(Datapath);
+        CxPlatDataPathUninitialize(Datapath);
     } else {
-        if (!QuicAddrFromString(ServerIp, Port, &ServerAddress)) {
-            printf("QuicAddrFromString failed.\n");
+        if (!CxPlatAddrFromString(ServerIp, Port, &ServerAddress)) {
+            printf("CxPlatAddrFromString failed.\n");
             exit(1);
         }
     }
@@ -190,8 +190,8 @@ main(int argc, char **argv)
     if (InputAlpn != nullptr) {
         Config.Context = (void*)InputAlpn;
         QUIC_THREAD Thread;
-        if (QUIC_FAILED(QuicThreadCreate(&Config, &Thread))) {
-            printf("QuicThreadCreate failed.\n");
+        if (QUIC_FAILED(CxPlatThreadCreate(&Config, &Thread))) {
+            printf("CxPlatThreadCreate failed.\n");
             exit(1);
         }
         Threads.push_back(Thread);
@@ -199,8 +199,8 @@ main(int argc, char **argv)
         for (auto ALPN : ALPNs) {
             Config.Context = (void*)ALPN;
             QUIC_THREAD Thread;
-            if (QUIC_FAILED(QuicThreadCreate(&Config, &Thread))) {
-                printf("QuicThreadCreate failed.\n");
+            if (QUIC_FAILED(CxPlatThreadCreate(&Config, &Thread))) {
+                printf("CxPlatThreadCreate failed.\n");
                 exit(1);
             }
             Threads.push_back(Thread);
@@ -208,16 +208,16 @@ main(int argc, char **argv)
     }
 
     for (auto Thread : Threads) {
-        QuicThreadWait(&Thread);
-        QuicThreadDelete(&Thread);
+        CxPlatThreadWait(&Thread);
+        CxPlatThreadDelete(&Thread);
     }
 
     MsQuic->RegistrationClose(Registration);
 
     MsQuicClose(MsQuic);
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return 0;
 }

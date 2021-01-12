@@ -87,7 +87,7 @@ QuicTimerWheelInitialize(
     }
 
     for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
-        QuicListInitializeHead(&TimerWheel->Slots[i]);
+        CxPlatListInitializeHead(&TimerWheel->Slots[i]);
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -112,7 +112,7 @@ QuicTimerWheelUninitialize(
                     "Still in timer wheel! Connection was likely leaked!");
                 Entry = Entry->Flink;
             }
-            QUIC_TEL_ASSERT(QuicListIsEmpty(&TimerWheel->Slots[i]));
+            QUIC_TEL_ASSERT(CxPlatListIsEmpty(&TimerWheel->Slots[i]));
         }
         QUIC_TEL_ASSERT(TimerWheel->ConnectionCount == 0);
         QUIC_TEL_ASSERT(TimerWheel->NextConnection == NULL);
@@ -153,7 +153,7 @@ QuicTimerWheelResize(
         NewSlotCount);
 
     for (uint32_t i = 0; i < NewSlotCount; ++i) {
-        QuicListInitializeHead(&NewSlots[i]);
+        CxPlatListInitializeHead(&NewSlots[i]);
     }
 
     uint32_t OldSlotCount = TimerWheel->SlotCount;
@@ -167,10 +167,10 @@ QuicTimerWheelResize(
         // Iterate through each old slot, remove all connections and add them
         // to the new slots.
         //
-        while (!QuicListIsEmpty(&OldSlots[i])) {
+        while (!CxPlatListIsEmpty(&OldSlots[i])) {
             QUIC_CONNECTION* Connection =
                 QUIC_CONTAINING_RECORD(
-                    QuicListRemoveHead(&OldSlots[i]),
+                    CxPlatListRemoveHead(&OldSlots[i]),
                     QUIC_CONNECTION,
                     TimerLink);
             uint64_t ExpirationTime = QuicConnGetNextExpirationTime(Connection);
@@ -200,7 +200,7 @@ QuicTimerWheelResize(
             //
             // Insert after the current entry.
             //
-            QuicListInsertHead(Entry, &Connection->TimerLink);
+            CxPlatListInsertHead(Entry, &Connection->TimerLink);
         }
     }
     QUIC_FREE(OldSlots, QUIC_POOL_TIMERWHEEL);
@@ -224,7 +224,7 @@ QuicTimerWheelUpdate(
     // expiration time.
     //
     for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
-        if (!QuicListIsEmpty(&TimerWheel->Slots[i])) {
+        if (!CxPlatListIsEmpty(&TimerWheel->Slots[i])) {
             QUIC_CONNECTION* ConnectionEntry =
                 QUIC_CONTAINING_RECORD(
                     TimerWheel->Slots[i].Flink,
@@ -270,7 +270,7 @@ QuicTimerWheelRemoveConnection(
             "[time][%p] Removing Connection %p.",
             TimerWheel,
             Connection);
-        QuicListEntryRemove(&Connection->TimerLink);
+        CxPlatListEntryRemove(&Connection->TimerLink);
         Connection->TimerLink.Flink = NULL;
         TimerWheel->ConnectionCount--;
 
@@ -293,7 +293,7 @@ QuicTimerWheelUpdateConnection(
         //
         // Connection is already in the timer wheel, so remove it first.
         //
-        QuicListEntryRemove(&Connection->TimerLink);
+        CxPlatListEntryRemove(&Connection->TimerLink);
 
         if (ExpirationTime == UINT64_MAX) {
             TimerWheel->ConnectionCount--;
@@ -353,7 +353,7 @@ QuicTimerWheelUpdateConnection(
         //
         // Insert after the current entry.
         //
-        QuicListInsertHead(Entry, &Connection->TimerLink);
+        CxPlatListInsertHead(Entry, &Connection->TimerLink);
 
         QuicTraceLogVerbose(
             TimerWheelUpdateConnection,
@@ -396,7 +396,7 @@ QuicTimerWheelGetWaitTime(
 {
     uint64_t Delay;
     if (TimerWheel->NextExpirationTime != UINT64_MAX) {
-        uint64_t TimeNow = QuicTimeUs64();
+        uint64_t TimeNow = CxPlatTimeUs64();
         if (TimerWheel->NextExpirationTime <= TimeNow) {
             //
             // The next timer is already in the past. It needs to be processed
@@ -443,8 +443,8 @@ QuicTimerWheelGetExpired(
                 break;
             }
             Entry = Entry->Flink;
-            QuicListEntryRemove(&ConnectionEntry->TimerLink);
-            QuicListInsertTail(OutputListHead, &ConnectionEntry->TimerLink);
+            CxPlatListEntryRemove(&ConnectionEntry->TimerLink);
+            CxPlatListInsertTail(OutputListHead, &ConnectionEntry->TimerLink);
             TimerWheel->ConnectionCount--;
         }
     }

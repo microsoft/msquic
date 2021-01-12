@@ -226,7 +226,7 @@ QuicAckTrackerAckFrameEncode(
     QUIC_DBG_ASSERT(QuicAckTrackerHasPacketsToAck(Tracker));
 
     uint64_t AckDelay =
-        QuicTimeDiff64(Tracker->LargestPacketNumberRecvTime, QuicTimeUs64());
+        CxPlatTimeDiff64(Tracker->LargestPacketNumberRecvTime, CxPlatTimeUs64());
 
     AckDelay >>= Builder->Connection->AckDelayExponent;
 

@@ -100,7 +100,7 @@ extern QUIC_PLATFORM QuicPlatform;
 //
 inline
 void
-QuicConvertToMappedV6(
+CxPlatConvertToMappedV6(
     _In_ const QUIC_ADDR* InAddr,
     _Out_ QUIC_ADDR* OutAddr
     )
@@ -125,7 +125,7 @@ QuicConvertToMappedV6(
 #pragma warning(disable: 6101) // Intentially don't overwrite output if unable to convert
 inline
 void
-QuicConvertFromMappedV6(
+CxPlatConvertFromMappedV6(
     _In_ const QUIC_ADDR* InAddr,
     _Out_ QUIC_ADDR* OutAddr
     )
@@ -150,11 +150,11 @@ QuicConvertFromMappedV6(
 //
 
 QUIC_STATUS
-QuicTlsLibraryInitialize(
+CxPlatTlsLibraryInitialize(
     void
     );
 
 void
-QuicTlsLibraryUninitialize(
+CxPlatTlsLibraryUninitialize(
     void
     );

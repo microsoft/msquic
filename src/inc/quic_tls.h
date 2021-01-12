@@ -295,7 +295,7 @@ typedef QUIC_SEC_CONFIG_CREATE_COMPLETE *QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicTlsSecConfigCreate(
+CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_ const QUIC_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
@@ -307,7 +307,7 @@ QuicTlsSecConfigCreate(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicTlsSecConfigDelete(
+CxPlatTlsSecConfigDelete(
     __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
         QUIC_SEC_CONFIG* SecurityConfig
     );
@@ -317,7 +317,7 @@ QuicTlsSecConfigDelete(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicTlsInitialize(
+CxPlatTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _Out_ QUIC_TLS** NewTlsContext
@@ -328,7 +328,7 @@ QuicTlsInitialize(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicTlsUninitialize(
+CxPlatTlsUninitialize(
     _In_opt_ QUIC_TLS* TlsContext
     );
 
@@ -344,7 +344,7 @@ QuicTlsUninitialize(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
-QuicTlsProcessData(
+CxPlatTlsProcessData(
     _In_ QUIC_TLS* TlsContext,
     _In_ QUIC_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength)
@@ -358,7 +358,7 @@ QuicTlsProcessData(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
-QuicTlsProcessDataComplete(
+CxPlatTlsProcessDataComplete(
     _In_ QUIC_TLS* TlsContext,
     _Out_ uint32_t * ConsumedBuffer
     );
@@ -368,7 +368,7 @@ QuicTlsProcessDataComplete(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicTlsParamSet(
+CxPlatTlsParamSet(
     _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
@@ -381,7 +381,7 @@ QuicTlsParamSet(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicTlsParamGet(
+CxPlatTlsParamGet(
     _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
@@ -396,7 +396,7 @@ QuicTlsParamGet(
 //
 inline
 const uint8_t*
-QuicTlsAlpnFindInList(
+CxPlatTlsAlpnFindInList(
     _In_ uint16_t AlpnListLength,
     _In_reads_(AlpnListLength)
         const uint8_t* AlpnList,

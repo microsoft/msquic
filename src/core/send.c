@@ -32,7 +32,7 @@ QuicSendInitialize(
     _In_ const QUIC_SETTINGS* Settings
     )
 {
-    QuicListInitializeHead(&Send->SendStreams);
+    CxPlatListInitializeHead(&Send->SendStreams);
     Send->MaxData = Settings->ConnFlowControlWindow;
 }
 
@@ -149,7 +149,7 @@ QuicSendQueueFlushForStream(
         // Not previously queued, so add the stream to the end of the queue.
         //
         QUIC_DBG_ASSERT(Stream->SendLink.Flink == NULL);
-        QuicListInsertTail(&Send->SendStreams, &Stream->SendLink);
+        CxPlatListInsertTail(&Send->SendStreams, &Stream->SendLink);
         QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND);
     }
 
@@ -240,11 +240,11 @@ QuicSendSetSendFlag(
         //
         // Remove any queued up streams.
         //
-        while (!QuicListIsEmpty(&Send->SendStreams)) {
+        while (!CxPlatListIsEmpty(&Send->SendStreams)) {
 
             QUIC_STREAM* Stream =
                 QUIC_CONTAINING_RECORD(
-                    QuicListRemoveHead(&Send->SendStreams), QUIC_STREAM, SendLink);
+                    CxPlatListRemoveHead(&Send->SendStreams), QUIC_STREAM, SendLink);
 
             QUIC_DBG_ASSERT(Stream->SendFlags != 0);
             Stream->SendFlags = 0;
@@ -402,7 +402,7 @@ QuicSendClearStreamSendFlag(
             // Since there are no flags left, remove the stream from the queue.
             //
             QUIC_DBG_ASSERT(Stream->SendLink.Flink != NULL);
-            QuicListEntryRemove(&Stream->SendLink);
+            CxPlatListEntryRemove(&Stream->SendLink);
             Stream->SendLink.Flink = NULL;
             QuicStreamRelease(Stream, QUIC_STREAM_REF_SEND);
         }
@@ -825,7 +825,7 @@ QuicSendGetNextStream(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
-    QUIC_DBG_ASSERT(!QuicConnIsClosed(Connection) || QuicListIsEmpty(&Send->SendStreams));
+    QUIC_DBG_ASSERT(!QuicConnIsClosed(Connection) || CxPlatListIsEmpty(&Send->SendStreams));
 
     QUIC_LIST_ENTRY* Entry = Send->SendStreams.Flink;
     while (Entry != &Send->SendStreams) {
@@ -847,8 +847,8 @@ QuicSendGetNextStream(
                 //
                 // Move the stream to the end of the queue.
                 //
-                QuicListEntryRemove(&Stream->SendLink);
-                QuicListInsertTail(&Send->SendStreams, &Stream->SendLink);
+                CxPlatListEntryRemove(&Stream->SendLink);
+                CxPlatListInsertTail(&Send->SendStreams, &Stream->SendLink);
 
                 *PacketCount = QUIC_STREAM_SEND_BATCH_COUNT;
 
@@ -905,7 +905,7 @@ QuicSendPathChallenges(
             //
             Builder.MinimumDatagramLength =
                 MaxUdpPayloadSizeForFamily(
-                    QuicAddrGetFamily(&Builder.Path->RemoteAddress),
+                    CxPlatAddrGetFamily(&Builder.Path->RemoteAddress),
                     QUIC_INITIAL_PACKET_LENGTH);
 
             if ((uint32_t)Builder.MinimumDatagramLength > Builder.Datagram->Length) {
@@ -972,7 +972,7 @@ QuicSendFlush(
     QuicConnRemoveOutFlowBlockedReason(
         Connection, QUIC_FLOW_BLOCKED_SCHEDULING | QUIC_FLOW_BLOCKED_PACING);
 
-    if (Send->SendFlags == 0 && QuicListIsEmpty(&Send->SendStreams)) {
+    if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
         return TRUE;
     }
 
@@ -1113,7 +1113,7 @@ QuicSendFlush(
                 // If the stream no longer has anything to send, remove it from the
                 // list and release Send's reference on it.
                 //
-                QuicListEntryRemove(&Stream->SendLink);
+                CxPlatListEntryRemove(&Stream->SendLink);
                 Stream->SendLink.Flink = NULL;
                 QuicStreamRelease(Stream, QUIC_STREAM_REF_SEND);
                 Stream = NULL;

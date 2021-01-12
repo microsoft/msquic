@@ -98,7 +98,7 @@ QuicConfigurationAddRef(
     _In_ QUIC_CONFIGURATION* Configuration
     )
 {
-    QuicRefIncrement(&Configuration->RefCount);
+    CxPlatRefIncrement(&Configuration->RefCount);
 }
 
 //
@@ -110,7 +110,7 @@ QuicConfigurationRelease(
     _In_ QUIC_CONFIGURATION* Configuration
     )
 {
-    if (QuicRefDecrement(&Configuration->RefCount)) {
+    if (CxPlatRefDecrement(&Configuration->RefCount)) {
         QuicConfigurationUninitialize(Configuration);
     }
 }

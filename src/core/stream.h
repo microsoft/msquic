@@ -597,7 +597,7 @@ QuicStreamAddRef(
     UNREFERENCED_PARAMETER(Ref);
 #endif
 
-    QuicRefIncrement(&Stream->RefCount);
+    CxPlatRefIncrement(&Stream->RefCount);
 }
 
 //
@@ -624,7 +624,7 @@ QuicStreamRelease(
     UNREFERENCED_PARAMETER(Ref);
 #endif
 
-    if (QuicRefDecrement(&Stream->RefCount)) {
+    if (CxPlatRefDecrement(&Stream->RefCount)) {
 #if DEBUG
         for (uint32_t i = 0; i < QUIC_STREAM_REF_COUNT; i++) {
             QUIC_TEL_ASSERT(Stream->RefTypeCount[i] == 0);

@@ -33,31 +33,31 @@ struct QuicAddr {
     }
     QuicAddr(QUIC_ADDRESS_FAMILY af) {
         memset(&SockAddr, 0, sizeof(SockAddr));
-        QuicAddrSetFamily(&SockAddr, af);
+        CxPlatAddrSetFamily(&SockAddr, af);
     }
     QuicAddr(QUIC_ADDRESS_FAMILY af, uint16_t Port) {
         memset(&SockAddr, 0, sizeof(SockAddr));
-        QuicAddrSetFamily(&SockAddr, af);
-        QuicAddrSetPort(&SockAddr, Port);
+        CxPlatAddrSetFamily(&SockAddr, af);
+        CxPlatAddrSetPort(&SockAddr, Port);
     }
     QuicAddr(QUIC_ADDRESS_FAMILY af, bool /*unused*/) {
         memset(&SockAddr, 0, sizeof(SockAddr));
-        QuicAddrSetFamily(&SockAddr, af);
-        QuicAddrSetToLoopback(&SockAddr);
+        CxPlatAddrSetFamily(&SockAddr, af);
+        CxPlatAddrSetToLoopback(&SockAddr);
     }
     QuicAddr(const QuicAddr &Addr, uint16_t Port) {
         SockAddr = Addr.SockAddr;
-        QuicAddrSetPort(&SockAddr, Port);
+        CxPlatAddrSetPort(&SockAddr, Port);
     }
     void IncrementPort() {
-        QUIC_DBG_ASSERT(QuicAddrGetPort(&SockAddr) != 0xFFFF);
-        QuicAddrSetPort(&SockAddr, (uint16_t)1 + QuicAddrGetPort(&SockAddr));
+        QUIC_DBG_ASSERT(CxPlatAddrGetPort(&SockAddr) != 0xFFFF);
+        CxPlatAddrSetPort(&SockAddr, (uint16_t)1 + CxPlatAddrGetPort(&SockAddr));
     }
     void IncrementAddr() {
-        QuicAddrIncrement(&SockAddr);
+        CxPlatAddrIncrement(&SockAddr);
     }
-    uint16_t GetPort() const { return QuicAddrGetPort(&SockAddr); }
-    void SetPort(uint16_t Port) noexcept { QuicAddrSetPort(&SockAddr, Port); }
+    uint16_t GetPort() const { return CxPlatAddrGetPort(&SockAddr); }
+    void SetPort(uint16_t Port) noexcept { CxPlatAddrSetPort(&SockAddr, Port); }
 };
 
 template<class T>
@@ -496,10 +496,10 @@ struct QuicBufferScope {
 
 struct EventScope {
     QUIC_EVENT Handle;
-    EventScope() noexcept { QuicEventInitialize(&Handle, FALSE, FALSE); }
-    EventScope(bool ManualReset) noexcept { QuicEventInitialize(&Handle, ManualReset, FALSE); }
+    EventScope() noexcept { CxPlatEventInitialize(&Handle, FALSE, FALSE); }
+    EventScope(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
     EventScope(QUIC_EVENT event) noexcept : Handle(event) { }
-    ~EventScope() noexcept { QuicEventUninitialize(Handle); }
+    ~EventScope() noexcept { CxPlatEventUninitialize(Handle); }
     operator QUIC_EVENT() const noexcept { return Handle; }
 };
 

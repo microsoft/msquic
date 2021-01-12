@@ -32,7 +32,7 @@ struct TlsContext
 
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
         memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
-        QuicEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
+        CxPlatEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
 
         QuicZeroMemory(&State, sizeof(State));
         State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000, QUIC_POOL_TOOL);
@@ -49,7 +49,7 @@ struct TlsContext
             NULL
         };
         VERIFY_QUIC_SUCCESS(
-            QuicTlsSecConfigCreate(
+            CxPlatTlsSecConfigCreate(
                 &CredConfig, &TlsCallbacks, &SecConfig, OnSecConfigCreateComplete));
 
         QUIC_CONNECTION Connection = {0};
@@ -83,22 +83,22 @@ struct TlsContext
         Config.ServerName = Sni;
 
         VERIFY_QUIC_SUCCESS(
-            QuicTlsInitialize(
+            CxPlatTlsInitialize(
                 &Config,
                 &State,
                 &Ptr));
     }
 
     ~TlsContext() {
-        QuicTlsUninitialize(Ptr);
+        CxPlatTlsUninitialize(Ptr);
         if (SecConfig) {
-            QuicTlsSecConfigDelete(SecConfig);
+            CxPlatTlsSecConfigDelete(SecConfig);
         }
-        QuicEventUninitialize(ProcessCompleteEvent);
+        CxPlatEventUninitialize(ProcessCompleteEvent);
         QUIC_FREE(State.Buffer, QUIC_POOL_TOOL);
         for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
-            QuicPacketKeyFree(State.ReadKeys[i]);
-            QuicPacketKeyFree(State.WriteKeys[i]);
+            CxPlatPacketKeyFree(State.ReadKeys[i]);
+            CxPlatPacketKeyFree(State.WriteKeys[i]);
         }
     }
 
@@ -124,18 +124,18 @@ private:
         _In_ uint32_t * BufferLength
         )
     {
-        QuicEventReset(ProcessCompleteEvent);
+        CxPlatEventReset(ProcessCompleteEvent);
 
         auto Result =
-            QuicTlsProcessData(
+            CxPlatTlsProcessData(
                 Ptr,
                 QUIC_TLS_CRYPTO_DATA,
                 Buffer,
                 BufferLength,
                 &State);
         if (Result & QUIC_TLS_RESULT_PENDING) {
-            QuicEventWaitForever(ProcessCompleteEvent);
-            Result = QuicTlsProcessDataComplete(Ptr, BufferLength);
+            CxPlatEventWaitForever(ProcessCompleteEvent);
+            Result = CxPlatTlsProcessDataComplete(Ptr, BufferLength);
         }
 
         if (Result & QUIC_TLS_RESULT_ERROR) {
@@ -206,7 +206,7 @@ private:
         _In_ QUIC_CONNECTION* Connection
         )
     {
-        QuicEventSet(((TlsContext*)Connection)->ProcessCompleteEvent);
+        CxPlatEventSet(((TlsContext*)Connection)->ProcessCompleteEvent);
     }
 
     static BOOLEAN

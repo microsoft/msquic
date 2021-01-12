@@ -474,7 +474,7 @@ QuicRetryTokenDecrypt(
     }
 
     QUIC_STATUS Status =
-        QuicDecrypt(
+        CxPlatDecrypt(
             StatelessRetryKey,
             Iv,
             sizeof(Token->Authenticated),

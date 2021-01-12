@@ -67,8 +67,8 @@ PerfServer::Start(
     _In_ QUIC_EVENT* _StopEvent
     ) {
     QUIC_ADDR Address;
-    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
-    QuicAddrSetPort(&Address, Port);
+    CxPlatAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
+    CxPlatAddrSetPort(&Address, Port);
 
     StopEvent = _StopEvent;
 
@@ -87,9 +87,9 @@ PerfServer::Wait(
     _In_ int Timeout
     ) {
     if (Timeout > 0) {
-        QuicEventWaitWithTimeout(*StopEvent, Timeout);
+        CxPlatEventWaitWithTimeout(*StopEvent, Timeout);
     } else {
-        QuicEventWaitForever(*StopEvent);
+        CxPlatEventWaitForever(*StopEvent);
     }
     Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
     return QUIC_STATUS_SUCCESS;

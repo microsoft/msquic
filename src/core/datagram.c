@@ -119,7 +119,7 @@ QuicDatagramCancelSend(
         Connection,
         &SendRequest->ClientContext,
         QUIC_DATAGRAM_SEND_CANCELED);
-    QuicPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+    CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -135,7 +135,7 @@ QuicDatagramCompleteSend(
         Connection,
         ClientContext,
         QUIC_DATAGRAM_SEND_SENT);
-    QuicPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+    CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -275,7 +275,7 @@ QuicDatagramOnSendStateChanged(
             const QUIC_PATH* Path = &Connection->Paths[0];
             MtuMaxSendLength =
                 QuicCalculateDatagramLength(
-                    QuicAddrGetFamily(&Path->RemoteAddress),
+                    CxPlatAddrGetFamily(&Path->RemoteAddress),
                     Path->Mtu,
                     Path->DestCid->CID.Length);
         }
@@ -359,7 +359,7 @@ QuicDatagramQueueSend(
     QuicDispatchLockRelease(&Datagram->ApiQueueLock);
 
     if (QUIC_FAILED(Status)) {
-        QuicPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+        CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
         goto Exit;
     }
 

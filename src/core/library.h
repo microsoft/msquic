@@ -248,7 +248,7 @@ QuicLibraryGetCurrentPartition(
     void
     )
 {
-    return ((uint16_t)QuicProcCurrentNumber()) % MsQuicLib.PartitionCount;
+    return ((uint16_t)CxPlatProcCurrentNumber()) % MsQuicLib.PartitionCount;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -268,7 +268,7 @@ QuicPartitionIdCreate(
     // ID.
     //
     uint16_t PartitionId;
-    QuicRandom(sizeof(PartitionId), &PartitionId);
+    CxPlatRandom(sizeof(PartitionId), &PartitionId);
     return (PartitionId & ~MsQuicLib.PartitionMask) | BaseIndex;
 }
 
@@ -319,7 +319,7 @@ QuicPerfCounterAdd(
     )
 {
     QUIC_DBG_ASSERT(Type >= 0 && Type < QUIC_PERF_COUNTER_MAX);
-    uint32_t ProcIndex = QuicProcCurrentNumber();
+    uint32_t ProcIndex = CxPlatProcCurrentNumber();
     QUIC_DBG_ASSERT(ProcIndex < (uint32_t)MsQuicLib.PartitionCount);
     InterlockedExchangeAdd64(&(MsQuicLib.PerProc[ProcIndex].PerfCounters[Type]), Value);
 }
@@ -364,7 +364,7 @@ QuicCidNewRandomSource(
         if (ServerID != NULL) {
             QuicCopyMemory(Data, ServerID, MsQuicLib.CidServerIdLength);
         } else {
-            QuicRandom(MsQuicLib.CidServerIdLength, Data);
+            CxPlatRandom(MsQuicLib.CidServerIdLength, Data);
         }
         Data += MsQuicLib.CidServerIdLength;
 
@@ -377,7 +377,7 @@ QuicCidNewRandomSource(
             Data += PrefixLength;
         }
 
-        QuicRandom(MSQUIC_CID_PAYLOAD_LENGTH - PrefixLength, Data);
+        CxPlatRandom(MSQUIC_CID_PAYLOAD_LENGTH - PrefixLength, Data);
     }
 
     return Entry;

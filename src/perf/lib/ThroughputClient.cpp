@@ -242,7 +242,7 @@ ThroughputClient::Start(
         }
     }
 
-    if (QuicAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
+    if (CxPlatAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
         MsQuic->SetParam(
             ConnData->Connection,
             QUIC_PARAM_LEVEL_CONNECTION,
@@ -287,7 +287,7 @@ ThroughputClient::Start(
         return Status;
     }
 
-    StrmContext->StartTime = QuicTimeUs64();
+    StrmContext->StartTime = CxPlatTimeUs64();
 
     if (DownloadLength) {
         MsQuic->StreamSend(
@@ -334,9 +334,9 @@ ThroughputClient::Wait(
     _In_ int Timeout
     ) {
     if (Timeout > 0) {
-        QuicEventWaitWithTimeout(*StopEvent, Timeout);
+        CxPlatEventWaitWithTimeout(*StopEvent, Timeout);
     } else {
-        QuicEventWaitForever(*StopEvent);
+        CxPlatEventWaitForever(*StopEvent);
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -370,7 +370,7 @@ ThroughputClient::ConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         ConnectionDataAllocator.Free(ConnData);
-        QuicEventSet(*StopEvent);
+        CxPlatEventSet(*StopEvent);
         break;
     default:
         break;
@@ -388,7 +388,7 @@ ThroughputClient::StreamCallback(
     case QUIC_STREAM_EVENT_RECEIVE:
         StrmContext->BytesCompleted += Event->RECEIVE.TotalBufferLength;
         if (StrmContext->Client->TimedTransfer) {
-            if (QuicTimeDiff64(StrmContext->StartTime, QuicTimeUs64()) >= MS_TO_US(DownloadLength)) {
+            if (CxPlatTimeDiff64(StrmContext->StartTime, CxPlatTimeUs64()) >= MS_TO_US(DownloadLength)) {
                 MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE, 0);
                 StrmContext->Complete = true;
             }
@@ -413,7 +413,7 @@ ThroughputClient::StreamCallback(
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
-        StrmContext->EndTime = QuicTimeUs64();
+        StrmContext->EndTime = CxPlatTimeUs64();
         uint64_t ElapsedMicroseconds = StrmContext->EndTime - StrmContext->StartTime;
         uint32_t SendRate = (uint32_t)((StrmContext->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
@@ -471,7 +471,7 @@ ThroughputClient::SendData(
             Context->Complete = TRUE;
 
         } else if (TimedTransfer &&
-                   QuicTimeDiff64(Context->StartTime, QuicTimeUs64()) >= MS_TO_US(UploadLength)) {
+                   CxPlatTimeDiff64(Context->StartTime, CxPlatTimeUs64()) >= MS_TO_US(UploadLength)) {
             Flags = QUIC_SEND_FLAG_FIN;
             Context->Complete = TRUE;
         }

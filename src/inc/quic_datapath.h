@@ -196,7 +196,7 @@ typedef struct QUIC_RECV_DATA {
 // Gets the corresponding receive data from its context pointer.
 //
 QUIC_RECV_DATA*
-QuicDataPathRecvPacketToRecvData(
+CxPlatDataPathRecvPacketToRecvData(
     _In_ const QUIC_RECV_PACKET* const RecvPacket
     );
 
@@ -204,7 +204,7 @@ QuicDataPathRecvPacketToRecvData(
 // Gets the corresponding client context from its receive data pointer.
 //
 QUIC_RECV_PACKET*
-QuicDataPathRecvDataToRecvPacket(
+CxPlatDataPathRecvDataToRecvPacket(
     _In_ const QUIC_RECV_DATA* const RecvData
     );
 
@@ -311,7 +311,7 @@ typedef QUIC_DATAPATH_SEND_COMPLETE *QUIC_DATAPATH_SEND_COMPLETE_HANDLER;
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathInitialize(
+CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const QUIC_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const QUIC_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
@@ -323,7 +323,7 @@ QuicDataPathInitialize(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathUninitialize(
+CxPlatDataPathUninitialize(
     _In_ QUIC_DATAPATH* datapath
     );
 
@@ -336,7 +336,7 @@ QuicDataPathUninitialize(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
-QuicDataPathGetSupportedFeatures(
+CxPlatDataPathGetSupportedFeatures(
     _In_ QUIC_DATAPATH* Datapath
     );
 
@@ -345,7 +345,7 @@ QuicDataPathGetSupportedFeatures(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicDataPathIsPaddingPreferred(
+CxPlatDataPathIsPaddingPreferred(
     _In_ QUIC_DATAPATH* Datapath
     );
 
@@ -354,7 +354,7 @@ QuicDataPathIsPaddingPreferred(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathResolveAddress(
+CxPlatDataPathResolveAddress(
     _In_ QUIC_DATAPATH* Datapath,
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR* Address
@@ -371,7 +371,7 @@ QuicDataPathResolveAddress(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketCreateUdp(
+CxPlatSocketCreateUdp(
     _In_ QUIC_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
@@ -386,7 +386,7 @@ QuicSocketCreateUdp(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketCreateTcp(
+CxPlatSocketCreateTcp(
     _In_ QUIC_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
@@ -400,7 +400,7 @@ QuicSocketCreateTcp(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketCreateTcpListener(
+CxPlatSocketCreateTcpListener(
     _In_ QUIC_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ void* CallbackContext,
@@ -414,7 +414,7 @@ QuicSocketCreateTcpListener(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicSocketDelete(
+CxPlatSocketDelete(
     _In_ QUIC_SOCKET* Socket
     );
 
@@ -423,7 +423,7 @@ QuicSocketDelete(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
-QuicSocketGetLocalMtu(
+CxPlatSocketGetLocalMtu(
     _In_ QUIC_SOCKET* Socket
     );
 
@@ -432,7 +432,7 @@ QuicSocketGetLocalMtu(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicSocketGetLocalAddress(
+CxPlatSocketGetLocalAddress(
     _In_ QUIC_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     );
@@ -443,7 +443,7 @@ QuicSocketGetLocalAddress(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicSocketGetRemoteAddress(
+CxPlatSocketGetRemoteAddress(
     _In_ QUIC_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     );
@@ -454,7 +454,7 @@ QuicSocketGetRemoteAddress(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicRecvDataReturn(
+CxPlatRecvDataReturn(
     _In_opt_ QUIC_RECV_DATA* RecvDataChain
     );
 
@@ -465,7 +465,7 @@ QuicRecvDataReturn(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_SEND_DATA*
-QuicSendDataAlloc(
+CxPlatSendDataAlloc(
     _In_ QUIC_SOCKET* Socket,
     _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
@@ -476,7 +476,7 @@ QuicSendDataAlloc(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicSendDataFree(
+CxPlatSendDataFree(
     _In_ QUIC_SEND_DATA* SendData
     );
 
@@ -486,7 +486,7 @@ QuicSendDataFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
-QuicSendDataAllocBuffer(
+CxPlatSendDataAllocBuffer(
     _In_ QUIC_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     );
@@ -496,7 +496,7 @@ QuicSendDataAllocBuffer(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicSendDataFreeBuffer(
+CxPlatSendDataFreeBuffer(
     _In_ QUIC_SEND_DATA* SendData,
     _In_ QUIC_BUFFER* Buffer
     );
@@ -506,7 +506,7 @@ QuicSendDataFreeBuffer(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicSendDataIsFull(
+CxPlatSendDataIsFull(
     _In_ QUIC_SEND_DATA* SendData
     );
 
@@ -515,7 +515,7 @@ QuicSendDataIsFull(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicSocketSend(
+CxPlatSocketSend(
     _In_ QUIC_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
@@ -527,7 +527,7 @@ QuicSocketSend(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketSetParam(
+CxPlatSocketSetParam(
     _In_ QUIC_SOCKET* Socket,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
@@ -539,7 +539,7 @@ QuicSocketSetParam(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketGetParam(
+CxPlatSocketGetParam(
     _In_ QUIC_SOCKET* Socket,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,

@@ -85,16 +85,16 @@ QuicMainStart(
             DatapathReceive,
             DatapathUnreachable
         };
-        Status = QuicDataPathInitialize(0, &DatapathCallbacks, NULL, &Datapath);
+        Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, NULL, &Datapath);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
             return Status;
         }
 
         QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
-        Status = QuicSocketCreateUdp(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
+        Status = CxPlatSocketCreateUdp(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
         if (QUIC_FAILED(Status)) {
-            QuicDataPathUninitialize(Datapath);
+            CxPlatDataPathUninitialize(Datapath);
             Datapath = nullptr;
             WriteOutput("Datapath Binding for shutdown failed to initialize: %d\n", Status);
             return Status;
@@ -176,11 +176,11 @@ QuicMainFree(
     MsQuic = nullptr;
 
     if (Binding) {
-        QuicSocketDelete(Binding);
+        CxPlatSocketDelete(Binding);
         Binding = nullptr;
     }
     if (Datapath) {
-        QuicDataPathUninitialize(Datapath);
+        CxPlatDataPathUninitialize(Datapath);
         Datapath = nullptr;
     }
 }
@@ -220,7 +220,7 @@ DatapathReceive(
     )
 {
     QUIC_EVENT* Event = static_cast<QUIC_EVENT*>(Context);
-    QuicEventSet(*Event);
+    CxPlatEventSet(*Event);
 }
 
 void

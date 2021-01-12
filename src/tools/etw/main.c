@@ -608,8 +608,8 @@ main(
     BOOLEAN LoadManifest = FALSE;
     wchar_t ManifestFilePath[256] = {0};
 
-    QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
+    CxPlatSystemLoad();
+    CxPlatInitialize();
 
     if (argc < 2) {
         InvalidUsage();
@@ -734,8 +734,8 @@ Done:
         TdhUnloadManifest(ManifestFilePath);
     }
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return Err;
 }

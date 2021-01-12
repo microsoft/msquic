@@ -52,7 +52,7 @@ typedef struct QUIC_TOEPLITZ_HASH {
 // Initializes the Toeplitz hash structure. Toeplitz->HashKey must be set first.
 //
 void
-QuicToeplitzHashInitialize(
+CxPlatToeplitzHashInitialize(
     _Inout_ QUIC_TOEPLITZ_HASH* Toeplitz
     );
 
@@ -60,7 +60,7 @@ QuicToeplitzHashInitialize(
 // Computes a Toeplitz hash.
 //
 uint32_t
-QuicToeplitzHashCompute(
+CxPlatToeplitzHashCompute(
     _In_ const QUIC_TOEPLITZ_HASH* Toeplitz,
     _In_reads_(HashInputLength)
         const uint8_t* HashInput,

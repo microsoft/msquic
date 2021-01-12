@@ -19,7 +19,7 @@ Usage examples:
         PEXAMPLE_OBJECT Obj
         )
     {
-        QuicHashtableInsert(
+        CxPlatHashtableInsert(
             Table, &Obj->HashtableEntry, ExampleAttribHash(Obj->Attrib));
     }
 
@@ -29,7 +29,7 @@ Usage examples:
         PEXAMPLE_OBJECT Obj
         )
     {
-        QuicHashtableRemove(Table, &Obj->HashtableEntry);
+        CxPlatHashtableRemove(Table, &Obj->HashtableEntry);
     }
 
     PEXAMPLE_OBJECT
@@ -41,14 +41,14 @@ Usage examples:
         QUIC_HASHTABLE_LOOKUP_CONTEXT Context;
         QUIC_HASHTABLE_ENTRY* Entry;
 
-        Entry = QuicHashtableLookup(Table, ExampleAttribHash(Attrib), &Context);
+        Entry = CxPlatHashtableLookup(Table, ExampleAttribHash(Attrib), &Context);
         while (Entry != NULL) {
             PEXAMPLE_OBJECT Obj =
                 CONTAINING_RECORD(Entry, EXAMPLE_OBJECT, HashTableEntry);
             if (Obj->Attrib == Attrib) {
                 return Obj;
             }
-            Entry = QuicHashtableLookupNext(Table, &Context);
+            Entry = CxPlatHashtableLookupNext(Table, &Context);
         }
         return NULL;
     }
@@ -61,9 +61,9 @@ Usage examples:
         QUIC_HASHTABLE_ENTRY* Entry;
         QUIC_HASHTABLE_ENUMERATOR Enumerator;
 
-        QuicHashtableEnumerateBegin(Table, &Enumerator);
+        CxPlatHashtableEnumerateBegin(Table, &Enumerator);
         for (;;) {
-            Entry = QuicHashtableEnumerateNext(Table, &Enumerator);
+            Entry = CxPlatHashtableEnumerateNext(Table, &Enumerator);
             if (Entry == NULL) {
                 break;
             }
@@ -71,7 +71,7 @@ Usage examples:
                 CONTAINING_RECORD(Entry, EXAMPLE_OBJECT, HashTableEntry);
             ExampleVisitObject(Obj);
         }
-        QuicHashtableEnumerateEnd(Table, &Enumerator);
+        CxPlatHashtableEnumerateEnd(Table, &Enumerator);
     }
 
 --*/
@@ -150,7 +150,7 @@ typedef struct QUIC_HASHTABLE {
 _Must_inspect_result_
 _Success_(return != FALSE)
 BOOLEAN
-QuicHashtableInitialize(
+CxPlatHashtableInitialize(
     _Inout_ _When_(NULL == *HashTable, _At_(*HashTable, __drv_allocatesMem(Mem) _Post_notnull_))
         QUIC_HASHTABLE** HashTable,
     _In_ uint32_t InitialSize
@@ -160,16 +160,16 @@ inline
 _Must_inspect_result_
 _Success_(return != FALSE)
 BOOLEAN
-QuicHashtableInitializeEx(
+CxPlatHashtableInitializeEx(
     _Inout_ QUIC_HASHTABLE* HashTable,
     _In_ uint32_t InitialSize
     )
 {
-    return QuicHashtableInitialize(&HashTable, InitialSize);
+    return CxPlatHashtableInitialize(&HashTable, InitialSize);
 }
 
 void
-QuicHashtableUninitialize(
+CxPlatHashtableUninitialize(
     _In_
     _When_((HashTable->Flags & QUIC_HASH_ALLOCATED_HEADER), __drv_freesMem(Mem) _Post_invalid_)
     _At_(HashTable->Directory, __drv_freesMem(Mem) _Post_invalid_)
@@ -177,7 +177,7 @@ QuicHashtableUninitialize(
     );
 
 void
-QuicHashtableInsert(
+CxPlatHashtableInsert(
     _In_ QUIC_HASHTABLE* HashTable,
     _In_ __drv_aliasesMem QUIC_HASHTABLE_ENTRY* Entry,
     _In_ uint64_t Signature,
@@ -185,7 +185,7 @@ QuicHashtableInsert(
     );
 
 void
-QuicHashtableRemove(
+CxPlatHashtableRemove(
     _In_ QUIC_HASHTABLE* HashTable,
     _In_ QUIC_HASHTABLE_ENTRY* Entry,
     _Inout_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
@@ -193,7 +193,7 @@ QuicHashtableRemove(
 
 _Must_inspect_result_
 QUIC_HASHTABLE_ENTRY*
-QuicHashtableLookup(
+CxPlatHashtableLookup(
     _In_ QUIC_HASHTABLE* HashTable,
     _In_ uint64_t Signature,
     _Out_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
@@ -201,26 +201,26 @@ QuicHashtableLookup(
 
 _Must_inspect_result_
 QUIC_HASHTABLE_ENTRY*
-QuicHashtableLookupNext(
+CxPlatHashtableLookupNext(
     _In_ QUIC_HASHTABLE* HashTable,
     _Inout_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
     );
 
 void
-QuicHashtableEnumerateBegin(
+CxPlatHashtableEnumerateBegin(
     _In_ QUIC_HASHTABLE* HashTable,
     _Out_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
     );
 
 _Must_inspect_result_
 QUIC_HASHTABLE_ENTRY*
-QuicHashtableEnumerateNext(
+CxPlatHashtableEnumerateNext(
     _In_ QUIC_HASHTABLE* HashTable,
     _Inout_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
     );
 
 void
-QuicHashtableEnumerateEnd(
+CxPlatHashtableEnumerateEnd(
     _In_ QUIC_HASHTABLE* HashTable,
     _Inout_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
     );
@@ -228,12 +228,12 @@ QuicHashtableEnumerateEnd(
 #ifdef QUIC_HASHTABLE_RESIZE_SUPPORT
 
 BOOLEAN
-QuicHashTableExpand(
+CxPlatHashTableExpand(
     _Inout_ QUIC_HASHTABLE* HashTable
     );
 
 BOOLEAN
-QuicHashTableContract(
+CxPlatHashTableContract(
     _Inout_ QUIC_HASHTABLE* HashTable
     );
 
@@ -245,7 +245,7 @@ QuicHashTableContract(
 inline
 QUIC_NO_SANITIZE("unsigned-integer-overflow")
 uint32_t
-QuicHashSimple(
+CxPlatHashSimple(
     _In_ uint16_t Length,
     _In_reads_(Length)
         const uint8_t* const Buffer

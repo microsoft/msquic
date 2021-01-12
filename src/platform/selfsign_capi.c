@@ -940,7 +940,7 @@ Done:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
-QuicPlatGetSelfSignedCert(
+CxPlatPlatGetSelfSignedCert(
     _In_ QUIC_SELF_SIGN_CERT_TYPE Type
     )
 {
@@ -966,7 +966,7 @@ QuicPlatGetSelfSignedCert(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatFreeSelfSignedCert(
+CxPlatPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* Params
     )
 {

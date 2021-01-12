@@ -45,9 +45,9 @@ main(
 
     if (QUIC_SUCCEEDED(MsQuicGetPublicIP(Target, Unsecure, &LocalAddress, &PublicAddress))) {
         QUIC_ADDR_STR AddrStr = { 0 };
-        QuicAddrToString(&LocalAddress, &AddrStr);
+        CxPlatAddrToString(&LocalAddress, &AddrStr);
         printf(" Local IP: %s\n", AddrStr.Address);
-        QuicAddrToString(&PublicAddress, &AddrStr);
+        CxPlatAddrToString(&PublicAddress, &AddrStr);
         printf("Public IP: %s\n", AddrStr.Address);
     } else {
         printf("Failed!\n");

@@ -57,7 +57,7 @@ QuicLookupUninitialize(
             QUIC_DBG_ASSERT(Table->Table.NumEntries == 0);
 #pragma warning(push)
 #pragma warning(disable:6001)
-            QuicHashtableUninitialize(&Table->Table);
+            CxPlatHashtableUninitialize(&Table->Table);
 #pragma warning(pop)
             QuicDispatchRwLockUninitialize(&Table->RwLock);
         }
@@ -66,7 +66,7 @@ QuicLookupUninitialize(
 
     if (Lookup->MaximizePartitioning) {
         QUIC_DBG_ASSERT(Lookup->RemoteHashTable.NumEntries == 0);
-        QuicHashtableUninitialize(&Lookup->RemoteHashTable);
+        CxPlatHashtableUninitialize(&Lookup->RemoteHashTable);
     }
 
     QuicDispatchRwLockUninitialize(&Lookup->RwLock);
@@ -94,7 +94,7 @@ QuicLookupCreateHashTable(
 
         uint16_t Cleanup = 0;
         for (uint16_t i = 0; i < PartitionCount; i++) {
-            if (!QuicHashtableInitializeEx(&Lookup->HASH.Tables[i].Table, QUIC_HASH_MIN_SIZE)) {
+            if (!CxPlatHashtableInitializeEx(&Lookup->HASH.Tables[i].Table, QUIC_HASH_MIN_SIZE)) {
                 Cleanup = i;
                 break;
             }
@@ -102,7 +102,7 @@ QuicLookupCreateHashTable(
         }
         if (Cleanup != 0) {
             for (uint16_t i = 0; i < Cleanup; i++) {
-                QuicHashtableUninitialize(&Lookup->HASH.Tables[i].Table);
+                CxPlatHashtableUninitialize(&Lookup->HASH.Tables[i].Table);
             }
             QUIC_FREE(Lookup->HASH.Tables, QUIC_POOL_LOOKUP_HASHTABLE);
             Lookup->HASH.Tables = NULL;
@@ -184,7 +184,7 @@ QuicLookupRebalance(
                             Link);
                     (void)QuicLookupInsertLocalCid(
                         Lookup,
-                        QuicHashSimple(CID->CID.Length, CID->CID.Data),
+                        CxPlatHashSimple(CID->CID.Length, CID->CID.Data),
                         CID,
                         FALSE);
                     Entry = Entry->Next;
@@ -203,16 +203,16 @@ QuicLookupRebalance(
                 QUIC_HASHTABLE_ENUMERATOR Enumerator;
 #pragma warning(push)
 #pragma warning(disable:6001)
-                QuicHashtableEnumerateBegin(&PreviousTable[i].Table, &Enumerator);
+                CxPlatHashtableEnumerateBegin(&PreviousTable[i].Table, &Enumerator);
 #pragma warning(pop)
                 while (TRUE) {
                     QUIC_HASHTABLE_ENTRY* Entry =
-                        QuicHashtableEnumerateNext(&PreviousTable[i].Table, &Enumerator);
+                        CxPlatHashtableEnumerateNext(&PreviousTable[i].Table, &Enumerator);
                     if (Entry == NULL) {
-                        QuicHashtableEnumerateEnd(&PreviousTable[i].Table, &Enumerator);
+                        CxPlatHashtableEnumerateEnd(&PreviousTable[i].Table, &Enumerator);
                         break;
                     }
-                    QuicHashtableRemove(&PreviousTable[i].Table, Entry, NULL);
+                    CxPlatHashtableRemove(&PreviousTable[i].Table, Entry, NULL);
 
                     QUIC_CID_HASH_ENTRY *CID =
                         QUIC_CONTAINING_RECORD(
@@ -221,13 +221,13 @@ QuicLookupRebalance(
                             Entry);
                     (void)QuicLookupInsertLocalCid(
                         Lookup,
-                        QuicHashSimple(CID->CID.Length, CID->CID.Data),
+                        CxPlatHashSimple(CID->CID.Length, CID->CID.Data),
                         CID,
                         FALSE);
                 }
 #pragma warning(push)
 #pragma warning(disable:6001)
-                QuicHashtableUninitialize(&PreviousTable[i].Table);
+                CxPlatHashtableUninitialize(&PreviousTable[i].Table);
 #pragma warning(pop)
             }
             QUIC_FREE(PreviousTable, QUIC_POOL_LOOKUP_HASHTABLE);
@@ -249,13 +249,13 @@ QuicLookupMaximizePartitioning(
 
     if (!Lookup->MaximizePartitioning) {
         Result =
-            QuicHashtableInitializeEx(
+            CxPlatHashtableInitializeEx(
                 &Lookup->RemoteHashTable, QUIC_HASH_MIN_SIZE);
         if (Result) {
             Lookup->MaximizePartitioning = TRUE;
             Result = QuicLookupRebalance(Lookup, NULL);
             if (!Result) {
-                    QuicHashtableUninitialize(&Lookup->RemoteHashTable);
+                    CxPlatHashtableUninitialize(&Lookup->RemoteHashTable);
                 Lookup->MaximizePartitioning = FALSE;
             }
         }
@@ -312,7 +312,7 @@ QuicHashLookupConnection(
 {
     QUIC_HASHTABLE_LOOKUP_CONTEXT Context;
     QUIC_HASHTABLE_ENTRY* TableEntry =
-        QuicHashtableLookup(Table, Hash, &Context);
+        CxPlatHashtableLookup(Table, Hash, &Context);
 
     while (TableEntry != NULL) {
         QUIC_CID_HASH_ENTRY* CIDEntry =
@@ -323,7 +323,7 @@ QuicHashLookupConnection(
             return CIDEntry->Connection;
         }
 
-        TableEntry = QuicHashtableLookupNext(Table, &Context);
+        TableEntry = CxPlatHashtableLookupNext(Table, &Context);
     }
 
     return NULL;
@@ -414,13 +414,13 @@ QuicLookupFindConnectionByRemoteHashInternal(
 {
     QUIC_HASHTABLE_LOOKUP_CONTEXT Context;
     QUIC_HASHTABLE_ENTRY* TableEntry =
-        QuicHashtableLookup(&Lookup->RemoteHashTable, Hash, &Context);
+        CxPlatHashtableLookup(&Lookup->RemoteHashTable, Hash, &Context);
 
     while (TableEntry != NULL) {
         QUIC_REMOTE_HASH_ENTRY* Entry =
             QUIC_CONTAINING_RECORD(TableEntry, QUIC_REMOTE_HASH_ENTRY, Entry);
 
-        if (QuicAddrCompare(RemoteAddress, &Entry->RemoteAddress) &&
+        if (CxPlatAddrCompare(RemoteAddress, &Entry->RemoteAddress) &&
             RemoteCidLength == Entry->RemoteCidLength &&
             memcmp(RemoteCid, Entry->RemoteCid, RemoteCidLength) == 0) {
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
@@ -434,7 +434,7 @@ QuicLookupFindConnectionByRemoteHashInternal(
             return Entry->Connection;
         }
 
-        TableEntry = QuicHashtableLookupNext(&Lookup->RemoteHashTable, &Context);
+        TableEntry = CxPlatHashtableLookupNext(&Lookup->RemoteHashTable, &Context);
     }
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
@@ -487,7 +487,7 @@ QuicLookupInsertLocalCid(
         QUIC_PARTITIONED_HASHTABLE* Table = &Lookup->HASH.Tables[PartitionIndex];
 
         QuicDispatchRwLockAcquireExclusive(&Table->RwLock);
-        QuicHashtableInsert(
+        CxPlatHashtableInsert(
             &Table->Table,
             &SourceCid->Entry,
             Hash,
@@ -546,7 +546,7 @@ QuicLookupInsertRemoteHash(
         RemoteCid,
         RemoteCidLength);
 
-    QuicHashtableInsert(
+    CxPlatHashtableInsert(
         &Lookup->RemoteHashTable,
         &Entry->Entry,
         Hash,
@@ -617,7 +617,7 @@ QuicLookupRemoveLocalCidInt(
         PartitionIndex %= Lookup->PartitionCount;
         QUIC_PARTITIONED_HASHTABLE* Table = &Lookup->HASH.Tables[PartitionIndex];
         QuicDispatchRwLockAcquireExclusive(&Table->RwLock);
-        QuicHashtableRemove(&Table->Table, &SourceCid->Entry, NULL);
+        CxPlatHashtableRemove(&Table->Table, &SourceCid->Entry, NULL);
         QuicDispatchRwLockReleaseExclusive(&Table->RwLock);
     }
 }
@@ -631,7 +631,7 @@ QuicLookupFindConnectionByLocalCid(
     _In_ uint8_t CIDLen
     )
 {
-    uint32_t Hash = QuicHashSimple(CIDLen, CID);
+    uint32_t Hash = CxPlatHashSimple(CIDLen, CID);
 
     QuicDispatchRwLockAcquireShared(&Lookup->RwLock);
 
@@ -731,7 +731,7 @@ QuicLookupAddLocalCid(
 {
     BOOLEAN Result;
     QUIC_CONNECTION* ExistingConnection;
-    uint32_t Hash = QuicHashSimple(SourceCid->CID.Length, SourceCid->CID.Data);
+    uint32_t Hash = CxPlatHashSimple(SourceCid->CID.Length, SourceCid->CID.Data);
 
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
 
@@ -847,7 +847,7 @@ QuicLookupRemoveRemoteHash(
 
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
     QUIC_DBG_ASSERT(Connection->RemoteHashEntry != NULL);
-    QuicHashtableRemove(
+    CxPlatHashtableRemove(
         &Lookup->RemoteHashTable,
         &RemoteHashEntry->Entry,
         NULL);
@@ -871,7 +871,7 @@ QuicLookupRemoveLocalCids(
     while (Connection->SourceCids.Next != NULL) {
         QUIC_CID_HASH_ENTRY *CID =
             QUIC_CONTAINING_RECORD(
-                QuicListPopEntry(&Connection->SourceCids),
+                CxPlatListPopEntry(&Connection->SourceCids),
                 QUIC_CID_HASH_ENTRY,
                 Link);
         if (CID->CID.IsInLookupTable) {
@@ -927,7 +927,7 @@ QuicLookupMoveLocalConnectionIDs(
             BOOLEAN Result =
                 QuicLookupInsertLocalCid(
                     LookupDest,
-                    QuicHashSimple(CID->CID.Length, CID->CID.Data),
+                    CxPlatHashSimple(CID->CID.Length, CID->CID.Data),
                     CID,
                     TRUE);
             QUIC_DBG_ASSERT(Result);

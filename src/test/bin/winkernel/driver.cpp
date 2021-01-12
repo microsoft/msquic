@@ -111,15 +111,15 @@ Return Value:
     WDFDRIVER Driver;
     BOOLEAN PlatformInitialized = FALSE;
 
-    QuicPlatformSystemLoad(DriverObject, RegistryPath);
+    CxPlatSystemLoad(DriverObject, RegistryPath);
 
-    Status = QuicPlatformInitialize();
+    Status = CxPlatInitialize();
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "QuicPlatformInitialize failed");
+            "CxPlatInitialize failed");
         goto Error;
     }
     PlatformInitialized = TRUE;
@@ -171,9 +171,9 @@ Error:
 
     if (!NT_SUCCESS(Status)) {
         if (PlatformInitialized) {
-            QuicPlatformUninitialize();
+            CxPlatUninitialize();
         }
-        QuicPlatformSystemUnload();
+        CxPlatSystemUnload();
     }
 
     return Status;
@@ -210,7 +210,7 @@ Arguments:
         TestDriverStopped,
         "[test] Stopped");
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 }
 

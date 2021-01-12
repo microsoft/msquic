@@ -98,7 +98,7 @@ struct DrillSender {
         _In_ QUIC_RECV_DATA* RecvBufferChain
         )
     {
-        QuicRecvDataReturn(RecvBufferChain);
+        CxPlatRecvDataReturn(RecvBufferChain);
     }
 
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -116,11 +116,11 @@ struct DrillSender {
 
     ~DrillSender() {
         if (Binding != nullptr) {
-            QuicSocketDelete(Binding);
+            CxPlatSocketDelete(Binding);
         }
 
         if (Datapath != nullptr) {
-            QuicDataPathUninitialize(Datapath);
+            CxPlatDataPathUninitialize(Datapath);
         }
     }
 
@@ -136,7 +136,7 @@ struct DrillSender {
             DrillUdpUnreachCallback,
         };
         QUIC_STATUS Status =
-            QuicDataPathInitialize(
+            CxPlatDataPathInitialize(
                 0,
                 &DatapathCallbacks,
                 NULL,
@@ -146,10 +146,10 @@ struct DrillSender {
             return Status;
         }
 
-        QuicAddrSetFamily(&ServerAddress, Family);
+        CxPlatAddrSetFamily(&ServerAddress, Family);
 
         Status =
-            QuicDataPathResolveAddress(
+            CxPlatDataPathResolveAddress(
                 Datapath,
                 HostName,
                 &ServerAddress);
@@ -165,7 +165,7 @@ struct DrillSender {
         }
 
         Status =
-            QuicSocketCreateUdp(
+            CxPlatSocketCreateUdp(
                 Datapath,
                 nullptr,
                 &ServerAddress,
@@ -187,14 +187,14 @@ struct DrillSender {
         const uint16_t DatagramLength = (uint16_t) PacketBuffer->size();
 
         QUIC_ADDR LocalAddress;
-        QuicSocketGetLocalAddress(Binding, &LocalAddress);
+        CxPlatSocketGetLocalAddress(Binding, &LocalAddress);
 
         QUIC_SEND_DATA* SendContext =
-            QuicSendDataAlloc(
+            CxPlatSendDataAlloc(
                 Binding, QUIC_ECN_NON_ECT, DatagramLength);
 
         QUIC_BUFFER* SendBuffer =
-            QuicSendDataAllocBuffer(SendContext, DatagramLength);
+            CxPlatSendDataAllocBuffer(SendContext, DatagramLength);
 
         if (SendBuffer == nullptr) {
             TEST_FAILURE("Buffer null");
@@ -208,7 +208,7 @@ struct DrillSender {
         memcpy(SendBuffer->Buffer, PacketBuffer->data(), DatagramLength);
 
         Status =
-            QuicSocketSend(
+            CxPlatSocketSend(
                 Binding,
                 &LocalAddress,
                 &ServerAddress,
@@ -305,7 +305,7 @@ QuicDrillInitialPacketFailureTest(
         //
         // Generously wait for server to process packet.
         //
-        QuicSleep(100);
+        CxPlatSleep(100);
 
         Status = Listener.GetStatistics(Stats);
         if (QUIC_FAILED(Status)) {

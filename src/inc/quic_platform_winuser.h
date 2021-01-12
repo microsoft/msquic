@@ -91,7 +91,7 @@ extern "C" {
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatformSystemLoad(
+CxPlatSystemLoad(
     void
     );
 
@@ -100,7 +100,7 @@ QuicPlatformSystemLoad(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatformSystemUnload(
+CxPlatSystemUnload(
     void
     );
 
@@ -110,7 +110,7 @@ QuicPlatformSystemUnload(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicPlatformInitialize(
+CxPlatInitialize(
     void
     );
 
@@ -120,7 +120,7 @@ QuicPlatformInitialize(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatformUninitialize(
+CxPlatUninitialize(
     void
     );
 
@@ -137,7 +137,7 @@ QuicPlatformUninitialize(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicPlatformLogAssert(
+CxPlatLogAssert(
     _In_z_ const char* File,
     _In_ int Line,
     _In_z_ const char* Expr
@@ -147,14 +147,14 @@ QuicPlatformLogAssert(
 
 #define QUIC_ASSERT_ACTION(_exp) \
     ((!(_exp)) ? \
-        (QuicPlatformLogAssert(__FILE__, __LINE__, #_exp), \
+        (CxPlatLogAssert(__FILE__, __LINE__, #_exp), \
          __annotation(L"Debug", L"AssertFail", QUIC_WIDE_STRING(#_exp)), \
          DbgRaiseAssertionFailure(), FALSE) : \
         TRUE)
 
 #define QUIC_ASSERTMSG_ACTION(_msg, _exp) \
     ((!(_exp)) ? \
-        (QuicPlatformLogAssert(__FILE__, __LINE__, #_exp), \
+        (CxPlatLogAssert(__FILE__, __LINE__, #_exp), \
          __annotation(L"Debug", L"AssertFail", L##_msg), \
          DbgRaiseAssertionFailure(), FALSE) : \
         TRUE)
@@ -248,20 +248,20 @@ _Ret_maybenull_
 _Post_writable_byte_size_(ByteCount)
 DECLSPEC_ALLOCATOR
 void*
-QuicAlloc(
+CxPlatAlloc(
     _In_ size_t ByteCount,
     _In_ uint32_t Tag
     );
 
 void
-QuicFree(
+CxPlatFree(
     __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem,
     _In_ uint32_t Tag
     );
 
-#define QUIC_ALLOC_PAGED(Size, Tag) QuicAlloc(Size, Tag)
-#define QUIC_ALLOC_NONPAGED(Size, Tag) QuicAlloc(Size, Tag)
-#define QUIC_FREE(Mem, Tag) QuicFree((void*)Mem, Tag)
+#define QUIC_ALLOC_PAGED(Size, Tag) CxPlatAlloc(Size, Tag)
+#define QUIC_ALLOC_NONPAGED(Size, Tag) CxPlatAlloc(Size, Tag)
+#define QUIC_FREE(Mem, Tag) CxPlatFree((void*)Mem, Tag)
 
 typedef struct QUIC_POOL {
     SLIST_HEADER ListHead;
@@ -281,7 +281,7 @@ typedef struct QUIC_POOL_ENTRY {
 
 inline
 void
-QuicPoolInitialize(
+CxPlatPoolInitialize(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
@@ -299,28 +299,28 @@ QuicPoolInitialize(
 
 inline
 void
-QuicPoolUninitialize(
+CxPlatPoolUninitialize(
     _Inout_ QUIC_POOL* Pool
     )
 {
     void* Entry;
     while ((Entry = InterlockedPopEntrySList(&Pool->ListHead)) != NULL) {
-        QuicFree(Entry, Pool->Tag);
+        CxPlatFree(Entry, Pool->Tag);
     }
 }
 
 inline
 void*
-QuicPoolAlloc(
+CxPlatPoolAlloc(
     _Inout_ QUIC_POOL* Pool
     )
 {
 #if QUIC_DISABLE_MEM_POOL
-    return QuicAlloc(Pool->Size);
+    return CxPlatAlloc(Pool->Size);
 #else
     void* Entry = InterlockedPopEntrySList(&Pool->ListHead);
     if (Entry == NULL) {
-        Entry = QuicAlloc(Pool->Size, Pool->Tag);
+        Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
     }
 #if DEBUG
     if (Entry != NULL) {
@@ -333,14 +333,14 @@ QuicPoolAlloc(
 
 inline
 void
-QuicPoolFree(
+CxPlatPoolFree(
     _Inout_ QUIC_POOL* Pool,
     _In_ void* Entry
     )
 {
 #if QUIC_DISABLE_MEM_POOL
     UNREFERENCED_PARAMETER(Pool);
-    QuicFree(Entry);
+    CxPlatFree(Entry);
     return;
 #else
 #if DEBUG
@@ -348,7 +348,7 @@ QuicPoolFree(
     ((QUIC_POOL_ENTRY*)Entry)->SpecialFlag = QUIC_POOL_SPECIAL_FLAG;
 #endif
     if (QueryDepthSList(&Pool->ListHead) >= QUIC_POOL_MAXIMUM_DEPTH) {
-        QuicFree(Entry, Pool->Tag);
+        CxPlatFree(Entry, Pool->Tag);
     } else {
         InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Entry);
     }
@@ -430,7 +430,7 @@ typedef LONG_PTR QUIC_REF_COUNT;
 
 inline
 void
-QuicRefInitialize(
+CxPlatRefInitialize(
     _Out_ QUIC_REF_COUNT* RefCount
     )
 {
@@ -441,7 +441,7 @@ QuicRefInitialize(
 
 inline
 void
-QuicRefIncrement(
+CxPlatRefIncrement(
     _Inout_ QUIC_REF_COUNT* RefCount
     )
 {
@@ -454,7 +454,7 @@ QuicRefIncrement(
 
 inline
 BOOLEAN
-QuicRefIncrementNonZero(
+CxPlatRefIncrementNonZero(
     _Inout_ volatile QUIC_REF_COUNT *RefCount,
     _In_ ULONG Bias
     )
@@ -488,7 +488,7 @@ QuicRefIncrementNonZero(
 
 inline
 BOOLEAN
-QuicRefDecrement(
+CxPlatRefDecrement(
     _Inout_ QUIC_REF_COUNT* RefCount
     )
 {
@@ -524,13 +524,13 @@ QuicRefDecrement(
 
 typedef HANDLE QUIC_EVENT;
 
-#define QuicEventInitialize(Event, ManualReset, InitialState) \
+#define CxPlatEventInitialize(Event, ManualReset, InitialState) \
     *(Event) = CreateEvent(NULL, ManualReset, InitialState, NULL)
-#define QuicEventUninitialize(Event) CloseHandle(Event)
-#define QuicEventSet(Event) SetEvent(Event)
-#define QuicEventReset(Event) ResetEvent(Event)
-#define QuicEventWaitForever(Event) WaitForSingleObject(Event, INFINITE)
-#define QuicEventWaitWithTimeout(Event, timeoutMs) \
+#define CxPlatEventUninitialize(Event) CloseHandle(Event)
+#define CxPlatEventSet(Event) SetEvent(Event)
+#define CxPlatEventReset(Event) ResetEvent(Event)
+#define CxPlatEventWaitForever(Event) WaitForSingleObject(Event, INFINITE)
+#define CxPlatEventWaitWithTimeout(Event, timeoutMs) \
     (WAIT_OBJECT_0 == WaitForSingleObject(Event, timeoutMs))
 
 //
@@ -556,7 +556,7 @@ NtQueryTimerResolution(
 //
 inline
 uint64_t
-QuicGetTimerResolution()
+CxPlatGetTimerResolution()
 {
     ULONG MaximumTime, MinimumTime, CurrentTime;
     NtQueryTimerResolution(&MaximumTime, &MinimumTime, &CurrentTime);
@@ -621,9 +621,9 @@ QuicTimeUs64ToPlat(
         ((Low + ((High % 1000000) << 32)) / QuicPlatformPerfFreq);
 }
 
-#define QuicTimeUs64() QuicTimePlatToUs64(QuicTimePlat())
-#define QuicTimeUs32() (uint32_t)QuicTimeUs64()
-#define QuicTimeMs64() US_TO_MS(QuicTimeUs64())
+#define CxPlatTimeUs64() QuicTimePlatToUs64(QuicTimePlat())
+#define QuicTimeUs32() (uint32_t)CxPlatTimeUs64()
+#define QuicTimeMs64() US_TO_MS(CxPlatTimeUs64())
 #define QuicTimeMs32() (uint32_t)QuicTimeMs64()
 
 #define UNIX_EPOCH_AS_FILE_TIME 0x19db1ded53e8000ll
@@ -643,7 +643,7 @@ QuicTimeEpochMs64(
 //
 inline
 uint64_t
-QuicTimeDiff64(
+CxPlatTimeDiff64(
     _In_ uint64_t T1,     // First time measured
     _In_ uint64_t T2      // Second time measured
     )
@@ -659,7 +659,7 @@ QuicTimeDiff64(
 //
 inline
 uint32_t
-QuicTimeDiff32(
+CxPlatTimeDiff32(
     _In_ uint32_t T1,     // First time measured
     _In_ uint32_t T2      // Second time measured
     )
@@ -676,7 +676,7 @@ QuicTimeDiff32(
 //
 inline
 BOOLEAN
-QuicTimeAtOrBefore64(
+CxPlatTimeAtOrBefore64(
     _In_ uint64_t T1,
     _In_ uint64_t T2
     )
@@ -692,7 +692,7 @@ QuicTimeAtOrBefore64(
 //
 inline
 BOOLEAN
-QuicTimeAtOrBefore32(
+CxPlatTimeAtOrBefore32(
     _In_ uint32_t T1,
     _In_ uint32_t T2
     )
@@ -700,7 +700,7 @@ QuicTimeAtOrBefore32(
     return (int32_t)(T1 - T2) <= 0;
 }
 
-#define QuicSleep(ms) Sleep(ms)
+#define CxPlatSleep(ms) Sleep(ms)
 
 //
 // Processor Count and Index
@@ -719,13 +719,13 @@ extern QUIC_PROCESSOR_INFO* QuicProcessorInfo;
 extern uint64_t* QuicNumaMasks;
 extern uint32_t* QuicProcessorGroupOffsets;
 
-#define QuicProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
-#define QuicProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
+#define CxPlatProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
+#define CxPlatProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint32_t
-QuicProcCurrentNumber(
+CxPlatProcCurrentNumber(
     void
     ) {
     PROCESSOR_NUMBER ProcNumber;
@@ -802,7 +802,7 @@ QUIC_THREAD_CALLBACK(QuicThreadCustomStart, CustomContext); // QUIC_THREAD_CUSTO
 
 inline
 QUIC_STATUS
-QuicThreadCreate(
+CxPlatThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,
     _Out_ QUIC_THREAD* Thread
     )
@@ -883,10 +883,10 @@ QuicThreadCreate(
     }
     return QUIC_STATUS_SUCCESS;
 }
-#define QuicThreadDelete(Thread) CloseHandle(*(Thread))
-#define QuicThreadWait(Thread) WaitForSingleObject(*(Thread), INFINITE)
+#define CxPlatThreadDelete(Thread) CloseHandle(*(Thread))
+#define CxPlatThreadWait(Thread) WaitForSingleObject(*(Thread), INFINITE)
 typedef uint32_t QUIC_THREAD_ID;
-#define QuicCurThreadID() GetCurrentThreadId()
+#define CxPlatCurThreadID() GetCurrentThreadId()
 
 //
 // Rundown Protection Interfaces
@@ -906,21 +906,21 @@ typedef struct QUIC_RUNDOWN_REF {
 
 } QUIC_RUNDOWN_REF;
 
-#define QuicRundownInitialize(Rundown) \
-    QuicRefInitialize(&(Rundown)->RefCount); \
+#define CxPlatRundownInitialize(Rundown) \
+    CxPlatRefInitialize(&(Rundown)->RefCount); \
     (Rundown)->RundownComplete = CreateEvent(NULL, FALSE, FALSE, NULL)
-#define QuicRundownInitializeDisabled(Rundown) \
+#define CxPlatRundownInitializeDisabled(Rundown) \
     (Rundown)->RefCount = 0; \
     (Rundown)->RundownComplete = CreateEvent(NULL, FALSE, FALSE, NULL)
-#define QuicRundownReInitialize(Rundown) (Rundown)->RefCount = 1
-#define QuicRundownUninitialize(Rundown) CloseHandle((Rundown)->RundownComplete)
-#define QuicRundownAcquire(Rundown) QuicRefIncrementNonZero(&(Rundown)->RefCount, 1)
-#define QuicRundownRelease(Rundown) \
-    if (QuicRefDecrement(&(Rundown)->RefCount)) { \
+#define CxPlatRundownReInitialize(Rundown) (Rundown)->RefCount = 1
+#define CxPlatRundownUninitialize(Rundown) CloseHandle((Rundown)->RundownComplete)
+#define CxPlatRundownAcquire(Rundown) CxPlatRefIncrementNonZero(&(Rundown)->RefCount, 1)
+#define CxPlatRundownRelease(Rundown) \
+    if (CxPlatRefDecrement(&(Rundown)->RefCount)) { \
         SetEvent((Rundown)->RundownComplete); \
     }
-#define QuicRundownReleaseAndWait(Rundown) \
-    if (!QuicRefDecrement(&(Rundown)->RefCount)) { \
+#define CxPlatRundownReleaseAndWait(Rundown) \
+    if (!CxPlatRefDecrement(&(Rundown)->RefCount)) { \
         WaitForSingleObject((Rundown)->RundownComplete, INFINITE); \
     }
 
@@ -933,7 +933,7 @@ typedef struct QUIC_RUNDOWN_REF {
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicRandom(
+CxPlatRandom(
     _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) void* Buffer
     );

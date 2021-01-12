@@ -61,14 +61,14 @@ TEST(SpinFrame, SpinFrame1000000)
     for (uint32_t Counter = 0; Counter < 1000000; ++Counter) {
         Offset = 0;
 
-        TEST_QUIC_SUCCEEDED(QuicRandom(sizeof(BufferLength), &BufferLength));
+        TEST_QUIC_SUCCEEDED(CxPlatRandom(sizeof(BufferLength), &BufferLength));
 
         if (BufferLength > 0) {
-            TEST_QUIC_SUCCEEDED(QuicRandom(BufferLength, Buffer));
+            TEST_QUIC_SUCCEEDED(CxPlatRandom(BufferLength, Buffer));
         }
 
         do {
-            TEST_QUIC_SUCCEEDED(QuicRandom(sizeof(FrameType), &FrameType));
+            TEST_QUIC_SUCCEEDED(CxPlatRandom(sizeof(FrameType), &FrameType));
         } while (!QUIC_FRAME_IS_KNOWN(FrameType));
 
         switch(FrameType) {

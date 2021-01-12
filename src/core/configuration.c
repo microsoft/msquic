@@ -88,7 +88,7 @@ MsQuicConfigurationOpen(
     Configuration->Type = QUIC_HANDLE_TYPE_CONFIGURATION;
     Configuration->ClientContext = Context;
     Configuration->Registration = Registration;
-    QuicRefInitialize(&Configuration->RefCount);
+    CxPlatRefInitialize(&Configuration->RefCount);
 
     Configuration->AlpnListLength = (uint16_t)AlpnListLength;
     AlpnList = Configuration->AlpnList;
@@ -129,7 +129,7 @@ MsQuicConfigurationOpen(
         // read in the default silo settings.
         //
         Status =
-            QuicStorageOpen(
+            CxPlatStorageOpen(
                 NULL,
                 (QUIC_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
                 Configuration,
@@ -152,7 +152,7 @@ MsQuicConfigurationOpen(
             Registration->AppName,
             Registration->AppNameLength);
         Status =
-            QuicStorageOpen(
+            CxPlatStorageOpen(
                 SpecificAppKey,
                 (QUIC_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
                 Configuration,
@@ -187,11 +187,11 @@ MsQuicConfigurationOpen(
 
     QuicConfigurationSettingsChanged(Configuration);
 
-    BOOLEAN Result = QuicRundownAcquire(&Registration->Rundown);
+    BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
     QUIC_FRE_ASSERT(Result);
 
     QuicLockAcquire(&Registration->ConfigLock);
-    QuicListInsertTail(&Registration->Configurations, &Configuration->Link);
+    CxPlatListInsertTail(&Registration->Configurations, &Configuration->Link);
     QuicLockRelease(&Registration->ConfigLock);
 
     *NewConfiguration = (HQUIC)Configuration;
@@ -199,9 +199,9 @@ MsQuicConfigurationOpen(
 Error:
 
     if (QUIC_FAILED(Status) && Configuration != NULL) {
-        QuicStorageClose(Configuration->AppSpecificStorage);
+        CxPlatStorageClose(Configuration->AppSpecificStorage);
 #ifdef QUIC_SILO
-        QuicStorageClose(Configuration->Storage);
+        CxPlatStorageClose(Configuration->Storage);
         QuicSiloRelease(Configuration->Silo);
 #endif
         QUIC_FREE(Configuration, QUIC_POOL_CONFIG);
@@ -229,20 +229,20 @@ QuicConfigurationUninitialize(
         Configuration);
 
     QuicLockAcquire(&Configuration->Registration->ConfigLock);
-    QuicListEntryRemove(&Configuration->Link);
+    CxPlatListEntryRemove(&Configuration->Link);
     QuicLockRelease(&Configuration->Registration->ConfigLock);
 
     if (Configuration->SecurityConfig != NULL) {
-        QuicTlsSecConfigDelete(Configuration->SecurityConfig);
+        CxPlatTlsSecConfigDelete(Configuration->SecurityConfig);
     }
 
-    QuicStorageClose(Configuration->AppSpecificStorage);
+    CxPlatStorageClose(Configuration->AppSpecificStorage);
 #ifdef QUIC_SILO
-    QuicStorageClose(Configuration->Storage);
+    CxPlatStorageClose(Configuration->Storage);
     QuicSiloRelease(Configuration->Silo);
 #endif
 
-    QuicRundownRelease(&Configuration->Registration->Rundown);
+    CxPlatRundownRelease(&Configuration->Registration->Rundown);
 
     QuicTraceEvent(
         ConfigurationDestroyed,
@@ -334,7 +334,7 @@ MsQuicConfigurationLoadCredential(
         QuicConfigurationAddRef(Configuration);
 
         Status =
-            QuicTlsSecConfigCreate(
+            CxPlatTlsSecConfigCreate(
                 CredConfig,
                 &QuicTlsCallbacks,
                 Configuration,

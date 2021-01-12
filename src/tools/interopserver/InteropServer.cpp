@@ -111,9 +111,9 @@ main(
             getchar();
         } else {
             QUIC_EVENT Event;
-            QuicEventInitialize(&Event, TRUE, FALSE);
+            CxPlatEventInitialize(&Event, TRUE, FALSE);
             printf("Waiting forever.\n\n");
-            QuicEventWaitForever(Event);
+            CxPlatEventWaitForever(Event);
         }
     }
 

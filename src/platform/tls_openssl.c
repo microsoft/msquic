@@ -131,7 +131,7 @@ typedef struct QUIC_HP_KEY {
 char *QuicOpenSslClientTrustedCert = NULL;
 
 QUIC_STATUS
-QuicTlsLibraryInitialize(
+CxPlatTlsLibraryInitialize(
     void
     )
 {
@@ -158,7 +158,7 @@ QuicTlsLibraryInitialize(
 }
 
 void
-QuicTlsLibraryUninitialize(
+CxPlatTlsLibraryUninitialize(
     void
     )
 {
@@ -166,7 +166,7 @@ QuicTlsLibraryUninitialize(
 
 static
 int
-QuicTlsAlpnSelectCallback(
+CxPlatTlsAlpnSelectCallback(
     _In_ SSL *Ssl,
     _Out_writes_bytes_(Outlen) const unsigned char **Out,
     _Out_ unsigned char *OutLen,
@@ -199,7 +199,7 @@ QUIC_STATIC_ASSERT((int)ssl_encryption_handshake == (int)QUIC_PACKET_KEY_HANDSHA
 QUIC_STATIC_ASSERT((int)ssl_encryption_application == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
 
 void
-QuicTlsNegotiatedCiphers(
+CxPlatTlsNegotiatedCiphers(
     _In_ QUIC_TLS* TlsContext,
     _Out_ QUIC_AEAD_TYPE *AeadType,
     _Out_ QUIC_HASH_TYPE *HashType
@@ -224,7 +224,7 @@ QuicTlsNegotiatedCiphers(
 }
 
 int
-QuicTlsSetEncryptionSecretsCallback(
+CxPlatTlsSetEncryptionSecretsCallback(
     _In_ SSL *Ssl,
     _In_ OSSL_ENCRYPTION_LEVEL Level,
     _In_reads_(SecretLen) const uint8_t* ReadSecret,
@@ -244,12 +244,12 @@ QuicTlsSetEncryptionSecretsCallback(
         Level);
 
     QUIC_SECRET Secret;
-    QuicTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
+    CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
     QuicCopyMemory(Secret.Secret, WriteSecret, SecretLen);
 
     QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
     Status =
-        QuicPacketKeyDerive(
+        CxPlatPacketKeyDerive(
             KeyType,
             &Secret,
             "write secret",
@@ -266,7 +266,7 @@ QuicTlsSetEncryptionSecretsCallback(
 
     QUIC_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
     Status =
-        QuicPacketKeyDerive(
+        CxPlatPacketKeyDerive(
             KeyType,
             &Secret,
             "read secret",
@@ -332,7 +332,7 @@ QuicTlsSetEncryptionSecretsCallback(
 }
 
 int
-QuicTlsAddHandshakeDataCallback(
+CxPlatTlsAddHandshakeDataCallback(
     _In_ SSL *Ssl,
     _In_ OSSL_ENCRYPTION_LEVEL Level,
     _In_reads_(Length) const uint8_t *Data,
@@ -430,7 +430,7 @@ QuicTlsAddHandshakeDataCallback(
 }
 
 int
-QuicTlsFlushFlightCallback(
+CxPlatTlsFlushFlightCallback(
     _In_ SSL *Ssl
     )
 {
@@ -439,7 +439,7 @@ QuicTlsFlushFlightCallback(
 }
 
 int
-QuicTlsSendAlertCallback(
+CxPlatTlsSendAlertCallback(
     _In_ SSL *Ssl,
     _In_ enum ssl_encryption_level_t Level,
     _In_ uint8_t Alert
@@ -463,7 +463,7 @@ QuicTlsSendAlertCallback(
 }
 
 int
-QuicTlsClientHelloCallback(
+CxPlatTlsClientHelloCallback(
     _In_ SSL *Ssl,
     _Out_opt_ int *Alert,
     _In_ void *arg
@@ -496,13 +496,13 @@ SSL_QUIC_METHOD OpenSslQuicCallbacks = {
 };
 
 QUIC_STATUS
-QuicTlsExtractPrivateKey(
+CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _Out_ RSA** EvpPrivateKey,
     _Out_ X509** X509Cert);
 
 QUIC_STATUS
-QuicTlsSecConfigCreate(
+CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_ const QUIC_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
@@ -740,7 +740,7 @@ QuicTlsSecConfigCreate(
             }
         } else {
             Status =
-                QuicTlsExtractPrivateKey(
+                CxPlatTlsExtractPrivateKey(
                     CredConfig,
                     &RsaKey,
                     &X509Cert);
@@ -808,7 +808,7 @@ QuicTlsSecConfigCreate(
 Exit:
 
     if (SecurityConfig != NULL) {
-        QuicTlsSecConfigDelete(SecurityConfig);
+        CxPlatTlsSecConfigDelete(SecurityConfig);
     }
 
     if (X509Cert != NULL) {
@@ -823,7 +823,7 @@ Exit:
 }
 
 void
-QuicTlsSecConfigDelete(
+CxPlatTlsSecConfigDelete(
     _In_ QUIC_SEC_CONFIG* SecurityConfig
     )
 {
@@ -836,7 +836,7 @@ QuicTlsSecConfigDelete(
 }
 
 QUIC_STATUS
-QuicTlsInitialize(
+CxPlatTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _Out_ QUIC_TLS** NewTlsContext
@@ -956,7 +956,7 @@ QuicTlsInitialize(
 Exit:
 
     if (TlsContext != NULL) {
-        QuicTlsUninitialize(TlsContext);
+        CxPlatTlsUninitialize(TlsContext);
         TlsContext = NULL;
     }
 
@@ -964,7 +964,7 @@ Exit:
 }
 
 void
-QuicTlsUninitialize(
+CxPlatTlsUninitialize(
     _In_opt_ QUIC_TLS* TlsContext
     )
 {
@@ -989,7 +989,7 @@ QuicTlsUninitialize(
 }
 
 QUIC_TLS_RESULT_FLAGS
-QuicTlsProcessData(
+CxPlatTlsProcessData(
     _In_ QUIC_TLS* TlsContext,
     _In_ QUIC_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength) const uint8_t* Buffer,
@@ -1083,7 +1083,7 @@ QuicTlsProcessData(
                 goto Exit;
             }
             TlsContext->State->NegotiatedAlpn =
-                QuicTlsAlpnFindInList(
+                CxPlatTlsAlpnFindInList(
                     TlsContext->AlpnBufferLength,
                     TlsContext->AlpnBuffer,
                     (uint8_t)NegotiatedAlpnLength,
@@ -1186,7 +1186,7 @@ Exit:
 }
 
 QUIC_TLS_RESULT_FLAGS
-QuicTlsProcessDataComplete(
+CxPlatTlsProcessDataComplete(
     _In_ QUIC_TLS* TlsContext,
     _Out_ uint32_t * ConsumedBuffer
     )
@@ -1197,7 +1197,7 @@ QuicTlsProcessDataComplete(
 }
 
 QUIC_STATUS
-QuicTlsParamSet(
+CxPlatTlsParamSet(
     _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
@@ -1213,7 +1213,7 @@ QuicTlsParamSet(
 }
 
 QUIC_STATUS
-QuicTlsParamGet(
+CxPlatTlsParamGet(
     _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
@@ -1234,7 +1234,7 @@ QuicTlsParamGet(
 
 #ifdef DEBUG
 void
-QuicTlsLogSecret(
+CxPlatTlsLogSecret(
     _In_z_ const char* const Prefix,
     _In_reads_(Length)
         const uint8_t* const Secret,
@@ -1256,12 +1256,12 @@ QuicTlsLogSecret(
         SecretStr);
 }
 #else
-#define QuicTlsLogSecret(Prefix, Secret, Length) UNREFERENCED_PARAMETER(Prefix);
+#define CxPlatTlsLogSecret(Prefix, Secret, Length) UNREFERENCED_PARAMETER(Prefix);
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicHkdfFormatLabel(
+CxPlatHkdfFormatLabel(
     _In_z_ const char* const Label,
     _In_ uint16_t HashLength,
     _Out_writes_all_(5 + QUIC_HKDF_PREFIX_LEN + strlen(Label))
@@ -1286,11 +1286,11 @@ QuicHkdfFormatLabel(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicHkdfExpandLabel(
+CxPlatHkdfExpandLabel(
     _In_ QUIC_HASH* Hash,
     _In_z_ const char* const Label,
     _In_ uint16_t KeyLength,
-    _In_ uint32_t OutputLength, // Writes QuicHashLength(HashType) bytes.
+    _In_ uint32_t OutputLength, // Writes CxPlatHashLength(HashType) bytes.
     _Out_writes_all_(OutputLength)
         uint8_t* const Output
     )
@@ -1299,10 +1299,10 @@ QuicHkdfExpandLabel(
     uint32_t LabelLength = sizeof(LabelBuffer);
 
     _Analysis_assume_(strlen(Label) <= 23);
-    QuicHkdfFormatLabel(Label, KeyLength, LabelBuffer, &LabelLength);
+    CxPlatHkdfFormatLabel(Label, KeyLength, LabelBuffer, &LabelLength);
 
     return
-        QuicHashCompute(
+        CxPlatHashCompute(
             Hash,
             LabelBuffer,
             LabelLength,
@@ -1312,7 +1312,7 @@ QuicHkdfExpandLabel(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicTlsDeriveInitialSecrets(
+CxPlatTlsDeriveInitialSecrets(
     _In_reads_(QUIC_VERSION_SALT_LENGTH)
         const uint8_t* const Salt,
     _In_reads_(CIDLength)
@@ -1327,10 +1327,10 @@ QuicTlsDeriveInitialSecrets(
     QUIC_HASH* DerivedHash = NULL;
     uint8_t InitialSecret[QUIC_HASH_SHA256_SIZE];
 
-    QuicTlsLogSecret("init cid", CID, CIDLength);
+    CxPlatTlsLogSecret("init cid", CID, CIDLength);
 
     Status =
-        QuicHashCreate(
+        CxPlatHashCreate(
             QUIC_HASH_SHA256,
             Salt,
             QUIC_VERSION_SALT_LENGTH,
@@ -1343,7 +1343,7 @@ QuicTlsDeriveInitialSecrets(
     // Extract secret for client and server secret expansion.
     //
     Status =
-        QuicHashCompute(
+        CxPlatHashCompute(
             InitialHash,
             CID,
             CIDLength,
@@ -1353,13 +1353,13 @@ QuicTlsDeriveInitialSecrets(
         goto Error;
     }
 
-    QuicTlsLogSecret("init secret", InitialSecret, sizeof(InitialSecret));
+    CxPlatTlsLogSecret("init secret", InitialSecret, sizeof(InitialSecret));
 
     //
     // Create hash for client and server secret expansion.
     //
     Status =
-        QuicHashCreate(
+        CxPlatHashCreate(
             QUIC_HASH_SHA256,
             InitialSecret,
             sizeof(InitialSecret),
@@ -1374,7 +1374,7 @@ QuicTlsDeriveInitialSecrets(
     ClientInitial->Hash = QUIC_HASH_SHA256;
     ClientInitial->Aead = QUIC_AEAD_AES_128_GCM;
     Status =
-        QuicHkdfExpandLabel(
+        CxPlatHkdfExpandLabel(
             DerivedHash,
             "client in",
             sizeof(InitialSecret),
@@ -1390,7 +1390,7 @@ QuicTlsDeriveInitialSecrets(
     ServerInitial->Hash = QUIC_HASH_SHA256;
     ServerInitial->Aead = QUIC_AEAD_AES_128_GCM;
     Status =
-        QuicHkdfExpandLabel(
+        CxPlatHkdfExpandLabel(
             DerivedHash,
             "server in",
             sizeof(InitialSecret),
@@ -1402,8 +1402,8 @@ QuicTlsDeriveInitialSecrets(
 
 Error:
 
-    QuicHashFree(InitialHash);
-    QuicHashFree(DerivedHash);
+    CxPlatHashFree(InitialHash);
+    CxPlatHashFree(DerivedHash);
 
     QuicSecureZeroMemory(InitialSecret, sizeof(InitialSecret));
 
@@ -1412,7 +1412,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicPacketKeyDerive(
+CxPlatPacketKeyDerive(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_ const QUIC_SECRET* const Secret,
     _In_z_ const char* const SecretName,
@@ -1420,14 +1420,14 @@ QuicPacketKeyDerive(
     _Out_ QUIC_PACKET_KEY **NewKey
     )
 {
-    const uint16_t SecretLength = QuicHashLength(Secret->Hash);
-    const uint16_t KeyLength = QuicKeyLength(Secret->Aead);
+    const uint16_t SecretLength = CxPlatHashLength(Secret->Hash);
+    const uint16_t KeyLength = CxPlatKeyLength(Secret->Aead);
 
     QUIC_DBG_ASSERT(SecretLength >= KeyLength);
     QUIC_DBG_ASSERT(SecretLength >= QUIC_IV_LENGTH);
     QUIC_DBG_ASSERT(SecretLength <= QUIC_HASH_MAX_SIZE);
 
-    QuicTlsLogSecret(SecretName, Secret->Secret, SecretLength);
+    CxPlatTlsLogSecret(SecretName, Secret->Secret, SecretLength);
 
     const uint16_t PacketKeyLength =
         sizeof(QUIC_PACKET_KEY) +
@@ -1448,7 +1448,7 @@ QuicPacketKeyDerive(
     uint8_t Temp[QUIC_HASH_MAX_SIZE];
 
     QUIC_STATUS Status =
-        QuicHashCreate(
+        CxPlatHashCreate(
             Secret->Hash,
             Secret->Secret,
             SecretLength,
@@ -1458,7 +1458,7 @@ QuicPacketKeyDerive(
     }
 
     Status =
-        QuicHkdfExpandLabel(
+        CxPlatHkdfExpandLabel(
             Hash,
             "quic iv",
             QUIC_IV_LENGTH,
@@ -1469,10 +1469,10 @@ QuicPacketKeyDerive(
     }
 
     memcpy(Key->Iv, Temp, QUIC_IV_LENGTH);
-    QuicTlsLogSecret("static iv", Key->Iv, QUIC_IV_LENGTH);
+    CxPlatTlsLogSecret("static iv", Key->Iv, QUIC_IV_LENGTH);
 
     Status =
-        QuicHkdfExpandLabel(
+        CxPlatHkdfExpandLabel(
             Hash,
             "quic key",
             KeyLength,
@@ -1482,10 +1482,10 @@ QuicPacketKeyDerive(
         goto Error;
     }
 
-    QuicTlsLogSecret("key", Temp, KeyLength);
+    CxPlatTlsLogSecret("key", Temp, KeyLength);
 
     Status =
-        QuicKeyCreate(
+        CxPlatKeyCreate(
             Secret->Aead,
             Temp,
             &Key->PacketKey);
@@ -1495,7 +1495,7 @@ QuicPacketKeyDerive(
 
     if (CreateHpKey) {
         Status =
-            QuicHkdfExpandLabel(
+            CxPlatHkdfExpandLabel(
                 Hash,
                 "quic hp",
                 KeyLength,
@@ -1505,10 +1505,10 @@ QuicPacketKeyDerive(
             goto Error;
         }
 
-        QuicTlsLogSecret("hp", Temp, KeyLength);
+        CxPlatTlsLogSecret("hp", Temp, KeyLength);
 
         Status =
-            QuicHpKeyCreate(
+            CxPlatHpKeyCreate(
                 Secret->Aead,
                 Temp,
                 &Key->HeaderKey);
@@ -1526,8 +1526,8 @@ QuicPacketKeyDerive(
 
 Error:
 
-    QuicPacketKeyFree(Key);
-    QuicHashFree(Hash);
+    CxPlatPacketKeyFree(Key);
+    CxPlatHashFree(Hash);
 
     QuicSecureZeroMemory(Temp, sizeof(Temp));
 
@@ -1538,7 +1538,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _When_(NewReadKey != NULL, _At_(*NewReadKey, __drv_allocatesMem(Mem)))
 _When_(NewWriteKey != NULL, _At_(*NewWriteKey, __drv_allocatesMem(Mem)))
 QUIC_STATUS
-QuicPacketKeyCreateInitial(
+CxPlatPacketKeyCreateInitial(
     _In_ BOOLEAN IsServer,
     _In_reads_(QUIC_VERSION_SALT_LENGTH)
         const uint8_t* const Salt,  // Version Specific
@@ -1554,7 +1554,7 @@ QuicPacketKeyCreateInitial(
     QUIC_PACKET_KEY* ReadKey = NULL, *WriteKey = NULL;
 
     Status =
-        QuicTlsDeriveInitialSecrets(
+        CxPlatTlsDeriveInitialSecrets(
             Salt,
             CID,
             CIDLength,
@@ -1566,7 +1566,7 @@ QuicPacketKeyCreateInitial(
 
     if (NewWriteKey != NULL) {
         Status =
-            QuicPacketKeyDerive(
+            CxPlatPacketKeyDerive(
                 QUIC_PACKET_KEY_INITIAL,
                 IsServer ? &ServerInitial : &ClientInitial,
                 IsServer ? "srv secret" : "cli secret",
@@ -1579,7 +1579,7 @@ QuicPacketKeyCreateInitial(
 
     if (NewReadKey != NULL) {
         Status =
-            QuicPacketKeyDerive(
+            CxPlatPacketKeyDerive(
                 QUIC_PACKET_KEY_INITIAL,
                 IsServer ? &ClientInitial : &ServerInitial,
                 IsServer ? "cli secret" : "srv secret",
@@ -1602,8 +1602,8 @@ QuicPacketKeyCreateInitial(
 
 Error:
 
-    QuicPacketKeyFree(ReadKey);
-    QuicPacketKeyFree(WriteKey);
+    CxPlatPacketKeyFree(ReadKey);
+    CxPlatPacketKeyFree(WriteKey);
 
     QuicSecureZeroMemory(ClientInitial.Secret, sizeof(ClientInitial.Secret));
     QuicSecureZeroMemory(ServerInitial.Secret, sizeof(ServerInitial.Secret));
@@ -1612,13 +1612,13 @@ Error:
 }
 
 void
-QuicPacketKeyFree(
+CxPlatPacketKeyFree(
     _In_opt_ QUIC_PACKET_KEY* Key
     )
 {
     if (Key != NULL) {
-        QuicKeyFree(Key->PacketKey);
-        QuicHpKeyFree(Key->HeaderKey);
+        CxPlatKeyFree(Key->PacketKey);
+        CxPlatHpKeyFree(Key->HeaderKey);
         if (Key->Type >= QUIC_PACKET_KEY_1_RTT) {
             QuicSecureZeroMemory(Key->TrafficSecret, sizeof(QUIC_SECRET));
         }
@@ -1627,7 +1627,7 @@ QuicPacketKeyFree(
 }
 
 QUIC_STATUS
-QuicPacketKeyUpdate(
+CxPlatPacketKeyUpdate(
     _In_ QUIC_PACKET_KEY* OldKey,
     _Out_ QUIC_PACKET_KEY** NewKey
     )
@@ -1638,10 +1638,10 @@ QuicPacketKeyUpdate(
 
     QUIC_HASH* Hash = NULL;
     QUIC_SECRET NewTrafficSecret;
-    const uint16_t SecretLength = QuicHashLength(OldKey->TrafficSecret->Hash);
+    const uint16_t SecretLength = CxPlatHashLength(OldKey->TrafficSecret->Hash);
 
     QUIC_STATUS Status =
-        QuicHashCreate(
+        CxPlatHashCreate(
             OldKey->TrafficSecret->Hash,
             OldKey->TrafficSecret->Secret,
             SecretLength,
@@ -1651,7 +1651,7 @@ QuicPacketKeyUpdate(
     }
 
     Status =
-        QuicHkdfExpandLabel(
+        CxPlatHkdfExpandLabel(
             Hash,
             "quic ku",
             SecretLength,
@@ -1665,7 +1665,7 @@ QuicPacketKeyUpdate(
     NewTrafficSecret.Aead = OldKey->TrafficSecret->Aead;
 
     Status =
-        QuicPacketKeyDerive(
+        CxPlatPacketKeyDerive(
             QUIC_PACKET_KEY_1_RTT,
             &NewTrafficSecret,
             "update traffic secret",
@@ -1677,13 +1677,13 @@ QuicPacketKeyUpdate(
 
 Error:
 
-    QuicHashFree(Hash);
+    CxPlatHashFree(Hash);
 
     return Status;
 }
 
 QUIC_STATUS
-QuicKeyCreate(
+CxPlatKeyCreate(
     _In_ QUIC_AEAD_TYPE AeadType,
     _When_(AeadType == QUIC_AEAD_AES_128_GCM, _In_reads_(16))
     _When_(AeadType == QUIC_AEAD_AES_256_GCM, _In_reads_(32))
@@ -1744,13 +1744,13 @@ QuicKeyCreate(
 
 Exit:
 
-    QuicKeyFree((QUIC_KEY*)CipherCtx);
+    CxPlatKeyFree((QUIC_KEY*)CipherCtx);
 
     return Status;
 }
 
 void
-QuicKeyFree(
+CxPlatKeyFree(
     _In_opt_ QUIC_KEY* Key
     )
 {
@@ -1758,7 +1758,7 @@ QuicKeyFree(
 }
 
 QUIC_STATUS
-QuicEncrypt(
+CxPlatEncrypt(
     _In_ QUIC_KEY* Key,
     _In_reads_bytes_(QUIC_IV_LENGTH) const uint8_t* const Iv,
     _In_ uint16_t AuthDataLength,
@@ -1822,7 +1822,7 @@ QuicEncrypt(
 }
 
 QUIC_STATUS
-QuicDecrypt(
+CxPlatDecrypt(
     _In_ QUIC_KEY* Key,
     _In_reads_bytes_(QUIC_IV_LENGTH) const uint8_t* const Iv,
     _In_ uint16_t AuthDataLength,
@@ -1889,7 +1889,7 @@ QuicDecrypt(
 }
 
 QUIC_STATUS
-QuicHpKeyCreate(
+CxPlatHpKeyCreate(
     _In_ QUIC_AEAD_TYPE AeadType,
     _When_(AeadType == QUIC_AEAD_AES_128_GCM, _In_reads_(16))
     _When_(AeadType == QUIC_AEAD_AES_256_GCM, _In_reads_(32))
@@ -1951,13 +1951,13 @@ QuicHpKeyCreate(
 
 Exit:
 
-    QuicHpKeyFree(Key);
+    CxPlatHpKeyFree(Key);
 
     return Status;
 }
 
 void
-QuicHpKeyFree(
+CxPlatHpKeyFree(
     _In_opt_ QUIC_HP_KEY* Key
     )
 {
@@ -1968,7 +1968,7 @@ QuicHpKeyFree(
 }
 
 QUIC_STATUS
-QuicHpComputeMask(
+CxPlatHpComputeMask(
     _In_ QUIC_HP_KEY* Key,
     _In_ uint8_t BatchSize,
     _In_reads_bytes_(QUIC_HP_SAMPLE_LENGTH * BatchSize) const uint8_t* const Cipher,
@@ -2024,7 +2024,7 @@ typedef struct QUIC_HASH {
 } QUIC_HASH;
 
 QUIC_STATUS
-QuicHashCreate(
+CxPlatHashCreate(
     _In_ QUIC_HASH_TYPE HashType,
     _In_reads_(SaltLength) const uint8_t* const Salt,
     _In_ uint32_t SaltLength,
@@ -2073,13 +2073,13 @@ QuicHashCreate(
 
 Exit:
 
-    QuicHashFree((QUIC_HASH*)HashContext);
+    CxPlatHashFree((QUIC_HASH*)HashContext);
 
     return Status;
 }
 
 void
-QuicHashFree(
+CxPlatHashFree(
     _In_opt_ QUIC_HASH* Hash
     )
 {
@@ -2087,7 +2087,7 @@ QuicHashFree(
 }
 
 QUIC_STATUS
-QuicHashCompute(
+CxPlatHashCompute(
     _In_ QUIC_HASH* Hash,
     _In_reads_(InputLength) const uint8_t* const Input,
     _In_ uint32_t InputLength,

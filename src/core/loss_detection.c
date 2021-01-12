@@ -338,7 +338,7 @@ QuicLossDetectionUpdateTimer(
     // doesn't end up firing early.
     //
 
-    uint32_t Delay = QuicTimeDiff32(TimeNow, TimeFires);
+    uint32_t Delay = CxPlatTimeDiff32(TimeNow, TimeFires);
 
     //
     // Limit the timeout to the remainder of the disconnect timeout if there is
@@ -347,7 +347,7 @@ QuicLossDetectionUpdateTimer(
     uint32_t MaxDelay;
     if (OldestPacket != NULL) {
         MaxDelay =
-            QuicTimeDiff32(
+            CxPlatTimeDiff32(
                 TimeNow,
                 OldestPacket->SentTime + MS_TO_US(Connection->Settings.DisconnectTimeoutMs));
     } else {
@@ -578,7 +578,7 @@ QuicLossDetectionOnPacketAcknowledged(
     if (Path != NULL) {
         uint16_t PacketMtu =
             PacketSizeFromUdpPayloadSize(
-                QuicAddrGetFamily(&Path->RemoteAddress),
+                CxPlatAddrGetFamily(&Path->RemoteAddress),
                 Packet->PacketLength);
 
         if (!Path->IsMinMtuValidated &&
@@ -751,7 +751,7 @@ QuicLossDetectionRetransmitFrames(
                 uint32_t ValidationTimeout =
                     max(QuicLossDetectionComputeProbeTimeout(LossDetection, Path, 3),
                         6 * MS_TO_US(Connection->Settings.InitialRttMs));
-                if (QuicTimeDiff32(Path->PathValidationStartTime, TimeNow) > ValidationTimeout) {
+                if (CxPlatTimeDiff32(Path->PathValidationStartTime, TimeNow) > ValidationTimeout) {
                     QuicTraceLogConnInfo(
                         PathValidationTimeout,
                         Connection,
@@ -847,7 +847,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 2);
         while ((Packet = LossDetection->LostPackets) != NULL &&
                 Packet->PacketNumber < LossDetection->LargestAck &&
-                QuicTimeDiff32(Packet->SentTime, TimeNow) > TwoPto) {
+                CxPlatTimeDiff32(Packet->SentTime, TimeNow) > TwoPto) {
             QuicTraceLogVerbose(
                 PacketTxForget,
                 "[%c][TX][%llu] Forgetting",
@@ -909,14 +909,14 @@ QuicLossDetectionDetectAndHandleLostPackets(
                         QUIC_TRACE_PACKET_LOSS_FACK);
                 }
             } else if (Packet->PacketNumber < LossDetection->LargestAck &&
-                        QuicTimeAtOrBefore32(Packet->SentTime + TimeReorderThreshold, TimeNow)) {
+                        CxPlatTimeAtOrBefore32(Packet->SentTime + TimeReorderThreshold, TimeNow)) {
                 if (!NonretransmittableHandshakePacket) {
                     QuicTraceLogVerbose(
                         PacketTxLostRack,
                         "[%c][TX][%llu] Lost: RACK %lu ms",
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
-                        QuicTimeDiff32(Packet->SentTime, TimeNow));
+                        CxPlatTimeDiff32(Packet->SentTime, TimeNow));
                     QuicTraceEvent(
                         ConnPacketLost,
                         "[conn][%p][TX][%llu] %hhu Lost: %hhu",
@@ -1312,7 +1312,7 @@ QuicLossDetectionProcessAckBlocks(
             return;
         }
 
-        uint32_t PacketRtt = QuicTimeDiff32(Packet->SentTime, TimeNow);
+        uint32_t PacketRtt = CxPlatTimeDiff32(Packet->SentTime, TimeNow);
         QuicTraceLogVerbose(
             PacketTxAcked,
             "[%c][TX][%llu] ACKed (%u.%03u ms)",
@@ -1575,7 +1575,7 @@ QuicLossDetectionProcessTimerOperation(
     uint32_t TimeNow = QuicTimeUs32();
 
     if (OldestPacket != NULL &&
-        QuicTimeDiff32(OldestPacket->SentTime, TimeNow) >=
+        CxPlatTimeDiff32(OldestPacket->SentTime, TimeNow) >=
             MS_TO_US(Connection->Settings.DisconnectTimeoutMs)) {
         //
         // OldestPacket has been in the SentPackets list for at least

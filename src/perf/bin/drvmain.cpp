@@ -138,15 +138,15 @@ DriverEntry(
     WDFDRIVER Driver;
     BOOLEAN PlatformInitialized = FALSE;
 
-    QuicPlatformSystemLoad(DriverObject, RegistryPath);
+    CxPlatSystemLoad(DriverObject, RegistryPath);
 
-    Status = QuicPlatformInitialize();
+    Status = CxPlatInitialize();
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "QuicPlatformInitialize failed");
+            "CxPlatInitialize failed");
         goto Error;
     }
     PlatformInitialized = TRUE;
@@ -191,9 +191,9 @@ Error:
 
     if (!NT_SUCCESS(Status)) {
         if (PlatformInitialized) {
-            QuicPlatformUninitialize();
+            CxPlatUninitialize();
         }
-        QuicPlatformSystemUnload();
+        CxPlatSystemUnload();
     }
 
     return Status;
@@ -215,8 +215,8 @@ QuicPerfDriverUnload(
         PerfDriverStopped,
         "[perf] Stopped");
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 }
 
 _No_competing_thread_
@@ -426,7 +426,7 @@ QuicPerfCtlEvtFileCreate(
         //
         QuicPerfClient = Client;
         InterlockedExchange((volatile LONG*)&BufferCurrent, 0);
-        QuicEventInitialize(&Client->StopEvent, true, false);
+        CxPlatEventInitialize(&Client->StopEvent, true, false);
     } while (false);
 
     ExfReleasePushLockExclusive(&QuicPerfCtlExtension->Lock);
@@ -475,14 +475,14 @@ QuicPerfCtlEvtFileCleanup(
             Client);
 
         Client->Canceled = true;
-        QuicEventSet(Client->StopEvent);
+        CxPlatEventSet(Client->StopEvent);
 
         if (Client->Thread != nullptr) {
-            QuicThreadWait(&Client->Thread);
-            QuicThreadDelete(&Client->Thread);
+            CxPlatThreadWait(&Client->Thread);
+            CxPlatThreadDelete(&Client->Thread);
             Client->Thread = nullptr;
         }
-        QuicEventUninitialize(Client->StopEvent);
+        CxPlatEventUninitialize(Client->StopEvent);
 
         QuicMainFree();
 
@@ -525,7 +525,7 @@ QuicPerfCtlEvtIoCanceled(
     }
 
     Client->Canceled = true;
-    QuicEventSet(Client->StopEvent);
+    CxPlatEventSet(Client->StopEvent);
 
     QuicTraceLogWarning(
         PerfControlClientCanceledRequest,
@@ -667,12 +667,12 @@ QuicPerfCtlReadPrints(
     ThreadConfig.Callback = PerformanceWaitForStopThreadCb;
     ThreadConfig.Context = Client;
     Client->Request = Request;
-    if (QUIC_FAILED(Status = QuicThreadCreate(&ThreadConfig, &Client->Thread))) {
+    if (QUIC_FAILED(Status = CxPlatThreadCreate(&ThreadConfig, &Client->Thread))) {
         if (Client->Thread) {
             Client->Canceled = true;
-            QuicEventSet(Client->StopEvent);
-            QuicThreadWait(&Client->Thread);
-            QuicThreadDelete(&Client->Thread);
+            CxPlatEventSet(Client->StopEvent);
+            CxPlatThreadWait(&Client->Thread);
+            CxPlatThreadDelete(&Client->Thread);
             Client->Thread = nullptr;
         }
         WdfRequestCompleteWithInformation(

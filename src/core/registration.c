@@ -73,10 +73,10 @@ MsQuicRegistrationOpen(
     Registration->CidPrefixLength = 0;
     Registration->CidPrefix = NULL;
     QuicLockInitialize(&Registration->ConfigLock);
-    QuicListInitializeHead(&Registration->Configurations);
+    CxPlatListInitializeHead(&Registration->Configurations);
     QuicDispatchLockInitialize(&Registration->ConnectionLock);
-    QuicListInitializeHead(&Registration->Connections);
-    QuicRundownInitialize(&Registration->Rundown);
+    CxPlatListInitializeHead(&Registration->Connections);
+    CxPlatRundownInitialize(&Registration->Rundown);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
         QuicCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
@@ -149,7 +149,7 @@ MsQuicRegistrationOpen(
 
     if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
         QuicLockAcquire(&MsQuicLib.Lock);
-        QuicListInsertTail(&MsQuicLib.Registrations, &Registration->Link);
+        CxPlatListInsertTail(&MsQuicLib.Registrations, &Registration->Link);
         QuicLockRelease(&MsQuicLib.Lock);
     }
 
@@ -159,7 +159,7 @@ MsQuicRegistrationOpen(
 Error:
 
     if (Registration != NULL) {
-        QuicRundownUninitialize(&Registration->Rundown);
+        CxPlatRundownUninitialize(&Registration->Rundown);
         QuicDispatchLockUninitialize(&Registration->ConnectionLock);
         QuicLockUninitialize(&Registration->ConfigLock);
         QUIC_FREE(Registration, QUIC_POOL_REGISTRATION);
@@ -198,14 +198,14 @@ MsQuicRegistrationClose(
 
         if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
             QuicLockAcquire(&MsQuicLib.Lock);
-            QuicListEntryRemove(&Registration->Link);
+            CxPlatListEntryRemove(&Registration->Link);
             QuicLockRelease(&MsQuicLib.Lock);
         }
 
-        QuicRundownReleaseAndWait(&Registration->Rundown);
+        CxPlatRundownReleaseAndWait(&Registration->Rundown);
 
         QuicWorkerPoolUninitialize(Registration->WorkerPool);
-        QuicRundownUninitialize(&Registration->Rundown);
+        CxPlatRundownUninitialize(&Registration->Rundown);
         QuicDispatchLockUninitialize(&Registration->ConnectionLock);
         QuicLockUninitialize(&Registration->ConfigLock);
 

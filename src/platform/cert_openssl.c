@@ -68,7 +68,7 @@ LogGetProcAddressFailure(
 }
 
 QUIC_STATUS
-QuicCertLibraryInitialize(
+CxPlatCertLibraryInitialize(
     void
     )
 {
@@ -163,7 +163,7 @@ Error:
 }
 
 void
-QuicCertLibraryUninitialize(
+CxPlatCertLibraryUninitialize(
     void
     )
 {
@@ -177,7 +177,7 @@ QuicCertLibraryUninitialize(
 
 _Success_(return != NULL)
 QUIC_CERTIFICATE*
-QuicCertSelect(
+CxPlatCertSelect(
     _In_reads_opt_(ServerNameIndiciationLength)
         const char* ServerNameIndiciation,
     size_t ServerNameIndiciationLength,
@@ -205,7 +205,7 @@ QuicCertSelect(
 
 _Success_(return != NULL)
 QUIC_CERTIFICATE*
-QuicCertParseChain(
+CxPlatCertParseChain(
     _In_ size_t ChainBufferLength,
     _In_reads_(ChainBufferLength) const BYTE *ChainBuffer
     )
@@ -225,7 +225,7 @@ QuicCertParseChain(
 
 _Success_(return != 0)
 size_t
-QuicCertFormat(
+CxPlatCertFormat(
     _In_ QUIC_CERTIFICATE* Certificate,
     _In_ size_t BufferLength,
     _Out_writes_to_(BufferLength, return)
@@ -248,7 +248,7 @@ QuicCertFormat(
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertValidateChain(
+CxPlatCertValidateChain(
     _In_ QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ const char* Host,
     _In_ uint32_t IgnoreFlags
@@ -271,7 +271,7 @@ QuicCertValidateChain(
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertSign(
+CxPlatCertSign(
     _In_ QUIC_CERTIFICATE* Certificate,
     _In_ const UINT16 SignatureAlgorithm,
     _In_reads_(CertListToBeSignedLength)
@@ -302,7 +302,7 @@ QuicCertSign(
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertVerify(
+CxPlatCertVerify(
     _In_ QUIC_CERTIFICATE* Certificate,
     _In_ const UINT16 SignatureAlgorithm,
     _In_reads_(CertListToBeSignedLength)

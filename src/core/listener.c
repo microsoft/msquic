@@ -61,14 +61,14 @@ MsQuicListenerOpen(
     Listener->Registration = Registration;
     Listener->ClientCallbackHandler = Handler;
     Listener->ClientContext = Context;
-    QuicRundownInitializeDisabled(&Listener->Rundown);
+    CxPlatRundownInitializeDisabled(&Listener->Rundown);
 
 #ifdef QUIC_SILO
     Listener->Silo = QuicSiloGetCurrentServer();
     QuicSiloAddRef(Listener->Silo);
 #endif
 
-    BOOLEAN Result = QuicRundownAcquire(&Registration->Rundown);
+    BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
     QUIC_DBG_ASSERT(Result); UNREFERENCED_PARAMETER(Result);
 
     QuicTraceEvent(
@@ -129,7 +129,7 @@ MsQuicListenerClose(
     //
     MsQuicListenerStop(Handle);
 
-    QuicRundownUninitialize(&Listener->Rundown);
+    CxPlatRundownUninitialize(&Listener->Rundown);
 
     QuicTraceEvent(
         ListenerDestroyed,
@@ -142,7 +142,7 @@ MsQuicListenerClose(
 
     QUIC_DBG_ASSERT(Listener->AlpnList == NULL);
     QUIC_FREE(Listener, QUIC_POOL_LISTENER);
-    QuicRundownRelease(&Registration->Rundown);
+    CxPlatRundownRelease(&Registration->Rundown);
 
     QuicTraceEvent(
         ApiExit,
@@ -196,7 +196,7 @@ MsQuicListenerStart(
     }
     QUIC_ANALYSIS_ASSERT(AlpnListLength <= UINT16_MAX);
 
-    if (LocalAddress && !QuicAddrIsValid(LocalAddress)) {
+    if (LocalAddress && !CxPlatAddrIsValid(LocalAddress)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -236,8 +236,8 @@ MsQuicListenerStart(
 
     if (LocalAddress != NULL) {
         QuicCopyMemory(&Listener->LocalAddress, LocalAddress, sizeof(QUIC_ADDR));
-        Listener->WildCard = QuicAddrIsWildCard(LocalAddress);
-        PortUnspecified = QuicAddrGetPort(LocalAddress) == 0;
+        Listener->WildCard = CxPlatAddrIsWildCard(LocalAddress);
+        PortUnspecified = CxPlatAddrGetPort(LocalAddress) == 0;
     } else {
         QuicZeroMemory(&Listener->LocalAddress, sizeof(Listener->LocalAddress));
         Listener->WildCard = TRUE;
@@ -249,9 +249,9 @@ MsQuicListenerStart(
     // (if available) UDP port and then manually filter on the specific address
     // (if available) at the QUIC layer.
     //
-    QuicAddrSetFamily(&BindingLocalAddress, QUIC_ADDRESS_FAMILY_INET6);
-    QuicAddrSetPort(&BindingLocalAddress,
-        PortUnspecified ? 0 : QuicAddrGetPort(LocalAddress));
+    CxPlatAddrSetFamily(&BindingLocalAddress, QUIC_ADDRESS_FAMILY_INET6);
+    CxPlatAddrSetPort(&BindingLocalAddress,
+        PortUnspecified ? 0 : CxPlatAddrGetPort(LocalAddress));
 
     QuicLibraryOnListenerRegistered(Listener);
 
@@ -276,7 +276,7 @@ MsQuicListenerStart(
         goto Error;
     }
 
-    QuicRundownReInitialize(&Listener->Rundown);
+    CxPlatRundownReInitialize(&Listener->Rundown);
 
     if (!QuicBindingRegisterListener(Listener->Binding, Listener)) {
         QuicTraceEvent(
@@ -284,18 +284,18 @@ MsQuicListenerStart(
             "[list][%p] ERROR, %s.",
             Listener,
             "Register with binding");
-        QuicRundownReleaseAndWait(&Listener->Rundown);
+        CxPlatRundownReleaseAndWait(&Listener->Rundown);
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
 
     if (PortUnspecified) {
-        QuicSocketGetLocalAddress(
+        CxPlatSocketGetLocalAddress(
             Listener->Binding->Socket,
             &BindingLocalAddress);
-        QuicAddrSetPort(
+        CxPlatAddrSetPort(
             &Listener->LocalAddress,
-            QuicAddrGetPort(&BindingLocalAddress));
+            CxPlatAddrGetPort(&BindingLocalAddress));
     }
 
     QuicTraceEvent(
@@ -350,7 +350,7 @@ MsQuicListenerStop(
             QuicLibraryReleaseBinding(Listener->Binding);
             Listener->Binding = NULL;
 
-            QuicRundownReleaseAndWait(&Listener->Rundown);
+            CxPlatRundownReleaseAndWait(&Listener->Rundown);
 
             if (Listener->AlpnList != NULL) {
                 QUIC_FREE(Listener->AlpnList, QUIC_POOL_ALPN);
@@ -426,7 +426,7 @@ QuicListenerFindAlpnInList(
     while (AlpnListLength != 0) {
         QUIC_ANALYSIS_ASSUME(AlpnList[0] + 1 <= AlpnListLength);
         const uint8_t* Result =
-            QuicTlsAlpnFindInList(
+            CxPlatTlsAlpnFindInList(
                 OtherAlpnListLength,
                 OtherAlpnList,
                 AlpnList[0],

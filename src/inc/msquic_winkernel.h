@@ -127,7 +127,7 @@ typedef SOCKADDR_INET QUIC_ADDR;
 
 inline
 BOOLEAN
-QuicAddrIsValid(
+CxPlatAddrIsValid(
     _In_ const QUIC_ADDR* const Addr
     )
 {
@@ -139,7 +139,7 @@ QuicAddrIsValid(
 
 inline
 BOOLEAN
-QuicAddrCompareIp(
+CxPlatAddrCompareIp(
     _In_ const QUIC_ADDR* const Addr1,
     _In_ const QUIC_ADDR* const Addr2
     )
@@ -153,7 +153,7 @@ QuicAddrCompareIp(
 
 inline
 BOOLEAN
-QuicAddrCompare(
+CxPlatAddrCompare(
     _In_ const QUIC_ADDR* const Addr1,
     _In_ const QUIC_ADDR* const Addr2
     )
@@ -162,12 +162,12 @@ QuicAddrCompare(
         Addr1->Ipv4.sin_port != Addr2->Ipv4.sin_port) {
         return FALSE;
     }
-    return QuicAddrCompareIp(Addr1, Addr2);
+    return CxPlatAddrCompareIp(Addr1, Addr2);
 }
 
 inline
 BOOLEAN
-QuicAddrIsWildCard(
+CxPlatAddrIsWildCard(
     _In_ const QUIC_ADDR* const Addr
     )
 {
@@ -184,7 +184,7 @@ QuicAddrIsWildCard(
 
 inline
 QUIC_ADDRESS_FAMILY
-QuicAddrGetFamily(
+CxPlatAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
     )
 {
@@ -193,7 +193,7 @@ QuicAddrGetFamily(
 
 inline
 void
-QuicAddrSetFamily(
+CxPlatAddrSetFamily(
     _Out_ QUIC_ADDR* Addr,
     _In_ QUIC_ADDRESS_FAMILY Family
     )
@@ -203,7 +203,7 @@ QuicAddrSetFamily(
 
 inline
 uint16_t // Returns in host byte order.
-QuicAddrGetPort(
+CxPlatAddrGetPort(
     _In_ const QUIC_ADDR* const Addr
     )
 {
@@ -212,7 +212,7 @@ QuicAddrGetPort(
 
 inline
 void
-QuicAddrSetPort(
+CxPlatAddrSetPort(
     _Inout_ QUIC_ADDR* Addr,
     _In_ uint16_t Port // Host byte order
     )
@@ -222,7 +222,7 @@ QuicAddrSetPort(
 
 inline
 void
-QuicAddrSetToLoopback(
+CxPlatAddrSetToLoopback(
     _Inout_ QUIC_ADDR* Addr
     )
 {
@@ -239,7 +239,7 @@ QuicAddrSetToLoopback(
 //
 inline
 void
-QuicAddrIncrement(
+CxPlatAddrIncrement(
     _Inout_ QUIC_ADDR* Addr
     )
 {
@@ -252,7 +252,7 @@ QuicAddrIncrement(
 
 inline
 uint32_t
-QuicAddrHash(
+CxPlatAddrHash(
     _In_ const QUIC_ADDR* Addr
     )
 {
@@ -278,7 +278,7 @@ QuicAddrHash(
 
 inline
 BOOLEAN
-QuicAddrFromString(
+CxPlatAddrFromString(
     _In_z_ const char* AddrStr,
     _In_ uint16_t Port, // Host byte order
     _Out_ QUIC_ADDR* Addr
@@ -304,7 +304,7 @@ typedef struct QUIC_ADDR_STR {
 
 inline
 BOOLEAN
-QuicAddrToString(
+CxPlatAddrToString(
     _In_ const QUIC_ADDR* Addr,
     _Out_ QUIC_ADDR_STR* AddrStr
     )

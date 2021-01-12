@@ -32,15 +32,15 @@ protected:
     ~TlsTest()
     {
         if (ClientSecConfigNoCertValidation) {
-            QuicTlsSecConfigDelete(ClientSecConfigNoCertValidation);
+            CxPlatTlsSecConfigDelete(ClientSecConfigNoCertValidation);
             ClientSecConfigNoCertValidation = nullptr;
         }
         if (ClientSecConfig) {
-            QuicTlsSecConfigDelete(ClientSecConfig);
+            CxPlatTlsSecConfigDelete(ClientSecConfig);
             ClientSecConfig = nullptr;
         }
         if (ServerSecConfig) {
-            QuicTlsSecConfigDelete(ServerSecConfig);
+            CxPlatTlsSecConfigDelete(ServerSecConfig);
             ServerSecConfig = nullptr;
         }
     }
@@ -62,20 +62,20 @@ protected:
 
     static void SetUpTestSuite()
     {
-        SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+        SelfSignedCertParams = CxPlatPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
         ASSERT_NE(nullptr, SelfSignedCertParams);
     }
 
     static void TearDownTestSuite()
     {
-        QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
+        CxPlatPlatFreeSelfSignedCert(SelfSignedCertParams);
         SelfSignedCertParams = nullptr;
     }
 
     void SetUp() override
     {
         VERIFY_QUIC_SUCCESS(
-            QuicTlsSecConfigCreate(
+            CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,
                 &TlsContext::TlsServerCallbacks,
                 &ServerSecConfig,
@@ -89,7 +89,7 @@ protected:
             NULL
         };
         VERIFY_QUIC_SUCCESS(
-            QuicTlsSecConfigCreate(
+            CxPlatTlsSecConfigCreate(
                 &ClientCredConfig,
                 &TlsContext::TlsClientCallbacks,
                 &ClientSecConfig,
@@ -98,7 +98,7 @@ protected:
 
         ClientCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
         VERIFY_QUIC_SUCCESS(
-            QuicTlsSecConfigCreate(
+            CxPlatTlsSecConfigCreate(
                 &ClientCredConfig,
                 &TlsContext::TlsClientCallbacks,
                 &ClientSecConfigNoCertValidation,
@@ -109,15 +109,15 @@ protected:
     void TearDown() override
     {
         if (ClientSecConfigNoCertValidation) {
-            QuicTlsSecConfigDelete(ClientSecConfigNoCertValidation);
+            CxPlatTlsSecConfigDelete(ClientSecConfigNoCertValidation);
             ClientSecConfigNoCertValidation = nullptr;
         }
         if (ClientSecConfig) {
-            QuicTlsSecConfigDelete(ClientSecConfig);
+            CxPlatTlsSecConfigDelete(ClientSecConfig);
             ClientSecConfig = nullptr;
         }
         if (ServerSecConfig) {
-            QuicTlsSecConfigDelete(ServerSecConfig);
+            CxPlatTlsSecConfigDelete(ServerSecConfig);
             ServerSecConfig = nullptr;
         }
     }
@@ -141,19 +141,19 @@ protected:
             Ptr(nullptr),
             SecConfig(nullptr),
             Connected(false) {
-            QuicEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
+            CxPlatEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
             QuicZeroMemory(&State, sizeof(State));
             State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000, QUIC_POOL_TEST);
             State.BufferAllocLength = 8000;
         }
 
         ~TlsContext() {
-            QuicTlsUninitialize(Ptr);
-            QuicEventUninitialize(ProcessCompleteEvent);
+            CxPlatTlsUninitialize(Ptr);
+            CxPlatEventUninitialize(ProcessCompleteEvent);
             QUIC_FREE(State.Buffer, QUIC_POOL_TEST);
             for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
-                QuicPacketKeyFree(State.ReadKeys[i]);
-                QuicPacketKeyFree(State.WriteKeys[i]);
+                CxPlatPacketKeyFree(State.ReadKeys[i]);
+                CxPlatPacketKeyFree(State.WriteKeys[i]);
             }
             if (ResumptionTicket.Buffer) {
                 QUIC_FREE(ResumptionTicket.Buffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
@@ -180,7 +180,7 @@ protected:
             State.NegotiatedAlpn = Alpn;
 
             VERIFY_QUIC_SUCCESS(
-                QuicTlsInitialize(
+                CxPlatTlsInitialize(
                     &Config,
                     &State,
                     &Ptr));
@@ -211,7 +211,7 @@ protected:
             }
 
             VERIFY_QUIC_SUCCESS(
-                QuicTlsInitialize(
+                CxPlatTlsInitialize(
                     &Config,
                     &State,
                     &Ptr));
@@ -265,7 +265,7 @@ protected:
             _In_ QUIC_TLS_DATA_TYPE DataType
             )
         {
-            QuicEventReset(ProcessCompleteEvent);
+            CxPlatEventReset(ProcessCompleteEvent);
 
             EXPECT_TRUE(Buffer != nullptr || *BufferLength == 0);
             if (Buffer != nullptr) {
@@ -279,15 +279,15 @@ protected:
             //std::cout << "Processing " << *BufferLength << " bytes of type " << DataType << std::endl;
 
             auto Result =
-                QuicTlsProcessData(
+                CxPlatTlsProcessData(
                     Ptr,
                     DataType,
                     Buffer,
                     BufferLength,
                     &State);
             if (Result & QUIC_TLS_RESULT_PENDING) {
-                QuicEventWaitForever(ProcessCompleteEvent);
-                Result = QuicTlsProcessDataComplete(Ptr, BufferLength);
+                CxPlatEventWaitForever(ProcessCompleteEvent);
+                Result = CxPlatTlsProcessDataComplete(Ptr, BufferLength);
             }
 
             if (!ExpectError) {
@@ -409,7 +409,7 @@ protected:
             _In_ QUIC_CONNECTION* Connection
             )
         {
-            QuicEventSet(((TlsContext*)Connection)->ProcessCompleteEvent);
+            CxPlatEventSet(((TlsContext*)Connection)->ProcessCompleteEvent);
         }
 
         static BOOLEAN
@@ -486,7 +486,7 @@ protected:
 
             return
                 QUIC_STATUS_SUCCESS ==
-                QuicEncrypt(
+                CxPlatEncrypt(
                     Ptr->PacketKey,
                     Iv,
                     HeaderLength,
@@ -510,7 +510,7 @@ protected:
 
             return
                 QUIC_STATUS_SUCCESS ==
-                QuicDecrypt(
+                CxPlatDecrypt(
                     Ptr->PacketKey,
                     Iv,
                     HeaderLength,
@@ -529,7 +529,7 @@ protected:
         {
             return
                 QUIC_STATUS_SUCCESS ==
-                QuicHpComputeMask(
+                CxPlatHpComputeMask(
                     Ptr->HeaderKey,
                     1,
                     Cipher,
@@ -595,7 +595,7 @@ protected:
         uint16_t OverHead = Key.Overhead();
 
         uint64_t Start, End;
-        Start = QuicTimeUs64();
+        Start = CxPlatTimeUs64();
 
         for (uint64_t j = 0; j < LoopCount; ++j) {
             Key.Encrypt(
@@ -606,7 +606,7 @@ protected:
                 Buffer);
         }
 
-        End = QuicTimeUs64();
+        End = CxPlatTimeUs64();
 
         return End - Start;
     }
@@ -624,7 +624,7 @@ protected:
         uint8_t Mask[16];
 
         uint64_t Start, End;
-        Start = QuicTimeUs64();
+        Start = CxPlatTimeUs64();
 
         for (uint64_t j = 0; j < LoopCount; ++j) {
             Key.Encrypt(
@@ -639,7 +639,7 @@ protected:
             }
         }
 
-        End = QuicTimeUs64();
+        End = CxPlatTimeUs64();
 
         return End - Start;
     }
@@ -688,12 +688,12 @@ TEST_F(TlsTest, HandshakeParallel)
     QuicZeroMemory(&Threads, sizeof(Threads));
 
     for (uint32_t i = 0; i < ARRAYSIZE(Threads); ++i) {
-        VERIFY_QUIC_SUCCESS(QuicThreadCreate(&Config, &Threads[i]));
+        VERIFY_QUIC_SUCCESS(CxPlatThreadCreate(&Config, &Threads[i]));
     }
 
     for (uint32_t i = 0; i < ARRAYSIZE(Threads); ++i) {
-        QuicThreadWait(&Threads[i]);
-        QuicThreadDelete(&Threads[i]);
+        CxPlatThreadWait(&Threads[i]);
+        CxPlatThreadDelete(&Threads[i]);
     }
 }
 
@@ -887,11 +887,11 @@ TEST_P(TlsTest, KeyUpdate)
     QUIC_PACKET_KEY* UpdateWriteKey = nullptr, *UpdateReadKey = nullptr;
 
     VERIFY_QUIC_SUCCESS(
-        QuicPacketKeyUpdate(
+        CxPlatPacketKeyUpdate(
             ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT],
             &UpdateWriteKey));
     VERIFY_QUIC_SUCCESS(
-        QuicPacketKeyUpdate(
+        CxPlatPacketKeyUpdate(
             ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT],
             &UpdateReadKey));
 
@@ -952,8 +952,8 @@ TEST_P(TlsTest, KeyUpdate)
             sizeof(Buffer),
             Buffer));
 
-    QuicPacketKeyFree(UpdateWriteKey);
-    QuicPacketKeyFree(UpdateReadKey);
+    CxPlatPacketKeyFree(UpdateWriteKey);
+    CxPlatPacketKeyFree(UpdateReadKey);
 }
 
 
@@ -1017,13 +1017,13 @@ uint64_t LockedCounter(
     uint64_t Counter = 0;
 
     QuicDispatchLockInitialize(&Lock);
-    Start = QuicTimeUs64();
+    Start = CxPlatTimeUs64();
     for (uint64_t j = 0; j < LoopCount; ++j) {
         QuicDispatchLockAcquire(&Lock);
         Counter++;
         QuicDispatchLockRelease(&Lock);
     }
-    End = QuicTimeUs64();
+    End = CxPlatTimeUs64();
 
     QuicDispatchLockUninitialize(&Lock);
 
@@ -1039,11 +1039,11 @@ uint64_t InterlockedCounter(
     uint64_t Start, End;
     int64_t Counter = 0;
 
-    Start = QuicTimeUs64();
+    Start = CxPlatTimeUs64();
     for (uint64_t j = 0; j < LoopCount; ++j) {
         InterlockedIncrement64(&Counter);
     }
-    End = QuicTimeUs64();
+    End = CxPlatTimeUs64();
 
     QUIC_FRE_ASSERT((uint64_t)Counter == LoopCount);
 
@@ -1056,11 +1056,11 @@ uint64_t UnlockedCounter(
 {
     uint64_t Start, End;
     uint64_t Counter = 0;
-    Start = QuicTimeUs64();
+    Start = CxPlatTimeUs64();
     for (uint64_t j = 0; j < LoopCount; ++j) {
         Counter++;
     }
-    End = QuicTimeUs64();
+    End = CxPlatTimeUs64();
 
     QUIC_FRE_ASSERT(Counter == LoopCount);
 

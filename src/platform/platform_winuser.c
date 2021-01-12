@@ -27,7 +27,7 @@ uint32_t* QuicProcessorGroupOffsets;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatformSystemLoad(
+CxPlatSystemLoad(
     void
     )
 {
@@ -45,7 +45,7 @@ QuicPlatformSystemLoad(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatformSystemUnload(
+CxPlatSystemUnload(
     void
     )
 {
@@ -59,7 +59,7 @@ QuicPlatformSystemUnload(
 }
 
 BOOLEAN
-QuicProcessorInfoInit(
+CxPlatProcessorInfoInit(
     void
     )
 {
@@ -68,7 +68,7 @@ QuicProcessorInfoInit(
     uint8_t* Buffer = NULL;
     uint32_t Offset;
 
-    uint32_t ActiveProcessorCount = QuicProcActiveCount();
+    uint32_t ActiveProcessorCount = CxPlatProcActiveCount();
     uint32_t ProcessorGroupCount = 0;
     uint32_t ProcessorsPerGroup = 0;
     uint32_t NumaNodeCount = 0;
@@ -283,7 +283,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicPlatformInitialize(
+CxPlatInitialize(
     void
     )
 {
@@ -297,11 +297,11 @@ QuicPlatformInitialize(
         goto Error;
     }
 
-    if (!QuicProcessorInfoInit()) {
+    if (!CxPlatProcessorInfoInit()) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "QuicProcessorInfoInit failed");
+            "CxPlatProcessorInfoInit failed");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -317,7 +317,7 @@ QuicPlatformInitialize(
         goto Error;
     }
 
-    Status = QuicTlsLibraryInitialize();
+    Status = CxPlatTlsLibraryInitialize();
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -343,11 +343,11 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatformUninitialize(
+CxPlatUninitialize(
     void
     )
 {
-    QuicTlsLibraryUninitialize();
+    CxPlatTlsLibraryUninitialize();
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
     QUIC_FREE(QuicNumaMasks, QUIC_POOL_PLATFORM_PROC);
     QuicNumaMasks = NULL;
@@ -364,7 +364,7 @@ QuicPlatformUninitialize(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicPlatformLogAssert(
+CxPlatLogAssert(
     _In_z_ const char* File,
     _In_ int Line,
     _In_z_ const char* Expr
@@ -392,7 +392,7 @@ uint8_t QUIC_FUZZ_RND_IDX = 0;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicRandom(
+CxPlatRandom(
     _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) void* Buffer
     )
@@ -405,7 +405,7 @@ QuicRandom(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicRandom(
+CxPlatRandom(
     _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) void* Buffer
     )
@@ -431,14 +431,14 @@ _Ret_maybenull_
 _Post_writable_byte_size_(ByteCount)
 DECLSPEC_ALLOCATOR
 void*
-QuicAlloc(
+CxPlatAlloc(
     _In_ size_t ByteCount,
     _In_ uint32_t Tag
     )
 {
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
 #ifdef QUIC_RANDOM_ALLOC_FAIL
-    uint8_t Rand; QuicRandom(sizeof(Rand), &Rand);
+    uint8_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
     if ((Rand % 100) == 1) return NULL;
 #else
 #ifdef DEBUG
@@ -453,7 +453,7 @@ QuicAlloc(
 }
 
 void
-QuicFree(
+CxPlatFree(
     __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem,
     _In_ uint32_t Tag
     )

@@ -83,7 +83,7 @@ RpsClient::Init(
         AffinitizeWorkers = Affinitize != 0;
     }
 
-    WorkerCount = QuicProcActiveCount();
+    WorkerCount = CxPlatProcActiveCount();
     if (WorkerCount > PERF_MAX_THREAD_COUNT) {
         WorkerCount = PERF_MAX_THREAD_COUNT;
     }
@@ -135,7 +135,7 @@ QUIC_THREAD_CALLBACK(RpsWorkerThread, Context)
             if (!Connection) break; // Means we're shutting down
             Connection->SendRequest();
         }
-        QuicEventWaitForever(Worker->WakeEvent);
+        CxPlatEventWaitForever(Worker->WakeEvent);
     }
 
     QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
@@ -158,7 +158,7 @@ RpsClient::Start(
             &Workers[i]
         };
 
-        Status = QuicThreadCreate(&ThreadConfig, &Workers[i].Thread);
+        Status = CxPlatThreadCreate(&ThreadConfig, &Workers[i].Thread);
         if (QUIC_FAILED(Status)) {
             return Status;
         }
@@ -178,7 +178,7 @@ RpsClient::Start(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    uint32_t ActiveProcCount = QuicProcActiveCount();
+    uint32_t ActiveProcCount = CxPlatProcActiveCount();
     if (ActiveProcCount >= 60) {
         //
         // If we have enough cores, leave 2 cores for OS overhead
@@ -264,21 +264,21 @@ RpsClient::Start(
         }
     }
 
-    if (!QuicEventWaitWithTimeout(AllConnected.Handle, RPS_ALL_CONNECT_TIMEOUT)) {
+    if (!CxPlatEventWaitWithTimeout(AllConnected.Handle, RPS_ALL_CONNECT_TIMEOUT)) {
         WriteOutput("Timeout waiting for connections.\n");
         Running = false;
         return QUIC_STATUS_CONNECTION_TIMEOUT;
     }
 
     WriteOutput("All Connected! Waiting for idle.\n");
-    QuicSleep(RPS_IDLE_WAIT);
+    CxPlatSleep(RPS_IDLE_WAIT);
 
     WriteOutput("Start sending request...\n");
     for (uint32_t i = 0; i < RequestCount; ++i) {
         Connections[i % ConnectionCount].Worker->QueueSendRequest();
     }
 
-    uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
+    uint32_t ThreadToSetAffinityTo = CxPlatProcActiveCount();
     if (ThreadToSetAffinityTo > 2) {
         ThreadToSetAffinityTo -= 2;
         Status =
@@ -296,7 +296,7 @@ RpsClient::Wait(
         Timeout = RunTime;
     }
 
-    QuicEventWaitWithTimeout(*CompletionEvent, Timeout);
+    CxPlatEventWaitWithTimeout(*CompletionEvent, Timeout);
 
     Running = false;
     for (uint32_t i = 0; i < WorkerCount; ++i) {
@@ -346,7 +346,7 @@ RpsClient::ConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         if ((uint32_t)InterlockedIncrement64((int64_t*)&ActiveConnections) == ConnectionCount) {
-            QuicEventSet(AllConnected.Handle);
+            CxPlatEventSet(AllConnected.Handle);
         }
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
@@ -370,8 +370,8 @@ RpsConnectionContext::StreamCallback(
     case QUIC_STREAM_EVENT_RECEIVE:
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN) {
             uint64_t ToPlaceIndex = (uint64_t)InterlockedIncrement64((int64_t*)&Worker->Client->CompletedRequests) - 1;
-            uint64_t EndTime = QuicTimeUs64();
-            uint64_t Delta = QuicTimeDiff64(StrmContext->StartTime, EndTime);
+            uint64_t EndTime = CxPlatTimeUs64();
+            uint64_t Delta = CxPlatTimeDiff64(StrmContext->StartTime, EndTime);
             if (ToPlaceIndex < Worker->Client->MaxLatencyIndex) {
                 if (Delta > UINT32_MAX) {
                     Delta = UINT32_MAX;
@@ -415,7 +415,7 @@ RpsConnectionContext::SendRequest() {
                     Event);
         };
 
-    uint64_t StartTime = QuicTimeUs64();
+    uint64_t StartTime = CxPlatTimeUs64();
     StreamContext* StrmContext = Worker->Client->StreamContextAllocator.Alloc(this, StartTime);
 
     HQUIC Stream = nullptr;
@@ -447,7 +447,7 @@ RpsWorkerContext::QueueSendRequest() {
     if (Client->Running) {
         if (ThreadStarted) {
             InterlockedIncrement((long*)&RequestCount);
-            QuicEventSet(WakeEvent);
+            CxPlatEventSet(WakeEvent);
         } else {
             GetConnection()->SendRequest(); // Inline if thread isn't running
         }

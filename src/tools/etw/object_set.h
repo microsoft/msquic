@@ -53,7 +53,7 @@ inline void ObjectSetCreate(_Inout_ OBJECT_SET* Set)
     }
     Set->NextId = 1; // 0 is a sentinel
     Set->Inactive = NULL;
-    if (!QuicHashtableInitialize(&Set->Active, 65536)) {
+    if (!CxPlatHashtableInitialize(&Set->Active, 65536)) {
         printf("RtlCreateHashTableEx failed!\n");
         exit(1);
     }
@@ -67,15 +67,15 @@ inline void ObjectSetDestroy(_Inout_ OBJECT_SET* Set)
     QUIC_HASHTABLE_ENTRY* Entry;
     OBJECT* Obj;
 
-    QuicHashtableEnumerateBegin(Set->Active, &Enumerator);
+    CxPlatHashtableEnumerateBegin(Set->Active, &Enumerator);
     for (;;) {
-        Entry = QuicHashtableEnumerateNext(Set->Active, &Enumerator);
+        Entry = CxPlatHashtableEnumerateNext(Set->Active, &Enumerator);
         if (Entry == NULL) {
-            QuicHashtableEnumerateEnd(Set->Active, &Enumerator);
+            CxPlatHashtableEnumerateEnd(Set->Active, &Enumerator);
             break;
         }
         Obj = CONTAINING_RECORD(Entry, OBJECT, ActiveEntry);
-        QuicHashtableRemove(Set->Active, &Obj->ActiveEntry, NULL);
+        CxPlatHashtableRemove(Set->Active, &Obj->ActiveEntry, NULL);
         Set->FreeFn(Obj);
     }
 
@@ -100,28 +100,28 @@ inline OBJECT* ObjectSetGetActive(_Inout_ OBJECT_SET* Set, ULONG64 ObjPtr)
     QUIC_HASHTABLE_LOOKUP_CONTEXT Ctx;
     OBJECT* Obj = NULL;
 
-    Entry = QuicHashtableLookup(Set->Active, HashPtr(ObjPtr), &Ctx);
+    Entry = CxPlatHashtableLookup(Set->Active, HashPtr(ObjPtr), &Ctx);
     while (Entry != NULL) {
         OBJECT* o = CONTAINING_RECORD(Entry, OBJECT, ActiveEntry);
         if (o->Ptr == ObjPtr) {
             Obj = o;
             break;
         }
-        Entry = QuicHashtableLookupNext(Set->Active, &Ctx);
+        Entry = CxPlatHashtableLookupNext(Set->Active, &Ctx);
     }
     return Obj;
 }
 
 inline void ObjectSetAddActive(_Inout_ OBJECT_SET* Set, _In_ OBJECT* Obj)
 {
-    QuicHashtableInsert(Set->Active, &Obj->ActiveEntry, HashPtr(Obj->Ptr), NULL);
+    CxPlatHashtableInsert(Set->Active, &Obj->ActiveEntry, HashPtr(Obj->Ptr), NULL);
 }
 
 inline OBJECT* ObjectSetRemoveActive(_Inout_ OBJECT_SET* Set, ULONG64 ObjPtr)
 {
     OBJECT* Obj = ObjectSetGetActive(Set, ObjPtr);
     if (Obj != NULL) {
-        QuicHashtableRemove(Set->Active, &Obj->ActiveEntry, NULL);
+        CxPlatHashtableRemove(Set->Active, &Obj->ActiveEntry, NULL);
         Obj->InactiveNext = Set->Inactive;
         Set->Inactive = Obj;
     }
@@ -133,16 +133,16 @@ inline OBJECT* ObjectSetGetId(_Inout_ OBJECT_SET* Set, ULONG Id)
     QUIC_HASHTABLE_ENUMERATOR Enumerator;
     QUIC_HASHTABLE_ENTRY* Entry;
 
-    QuicHashtableEnumerateBegin(Set->Active, &Enumerator);
+    CxPlatHashtableEnumerateBegin(Set->Active, &Enumerator);
     for (;;) {
-        Entry = QuicHashtableEnumerateNext(Set->Active, &Enumerator);
+        Entry = CxPlatHashtableEnumerateNext(Set->Active, &Enumerator);
         if (Entry == NULL) {
-            QuicHashtableEnumerateEnd(Set->Active, &Enumerator);
+            CxPlatHashtableEnumerateEnd(Set->Active, &Enumerator);
             break;
         }
         OBJECT* Obj = CONTAINING_RECORD(Entry, OBJECT, ActiveEntry);
         if (Obj->Id == Id) {
-            QuicHashtableEnumerateEnd(Set->Active, &Enumerator);
+            CxPlatHashtableEnumerateEnd(Set->Active, &Enumerator);
             return Obj;
         }
     }
@@ -176,11 +176,11 @@ inline OBJECT** ObjectSetSort(_Inout_ OBJECT_SET* Set, _In_opt_ int (__cdecl * C
         exit(1);
     }
 
-    QuicHashtableEnumerateBegin(Set->Active, &Enumerator);
+    CxPlatHashtableEnumerateBegin(Set->Active, &Enumerator);
     for (;;) {
-        Entry = QuicHashtableEnumerateNext(Set->Active, &Enumerator);
+        Entry = CxPlatHashtableEnumerateNext(Set->Active, &Enumerator);
         if (Entry == NULL) {
-            QuicHashtableEnumerateEnd(Set->Active, &Enumerator);
+            CxPlatHashtableEnumerateEnd(Set->Active, &Enumerator);
             break;
         }
         Obj = CONTAINING_RECORD(Entry, OBJECT, ActiveEntry);

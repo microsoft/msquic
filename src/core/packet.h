@@ -551,26 +551,26 @@ QuicPacketHash(
 {
     uint32_t Key, Offset;
 
-    if (QuicAddrGetFamily(RemoteAddress) == QUIC_ADDRESS_FAMILY_INET) {
+    if (CxPlatAddrGetFamily(RemoteAddress) == QUIC_ADDRESS_FAMILY_INET) {
         Key =
-            QuicToeplitzHashCompute(
+            CxPlatToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,
                 ((uint8_t*)RemoteAddress) + QUIC_ADDR_V4_PORT_OFFSET,
                 2, 0);
         Key ^=
-            QuicToeplitzHashCompute(
+            CxPlatToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,
                 ((uint8_t*)RemoteAddress) + QUIC_ADDR_V4_IP_OFFSET,
                 4, 2);
         Offset = 2 + 4;
     } else {
         Key =
-            QuicToeplitzHashCompute(
+            CxPlatToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,
                 ((uint8_t*)RemoteAddress) + QUIC_ADDR_V6_PORT_OFFSET,
                 2, 0);
         Key ^=
-            QuicToeplitzHashCompute(
+            CxPlatToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,
                 ((uint8_t*)RemoteAddress) + QUIC_ADDR_V6_IP_OFFSET,
                 16, 2);
@@ -579,7 +579,7 @@ QuicPacketHash(
 
     if (RemoteCidLength != 0) {
         Key ^=
-            QuicToeplitzHashCompute(
+            CxPlatToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,
                 RemoteCid,
                 min(RemoteCidLength, QUIC_MAX_CONNECTION_ID_LENGTH_V1),

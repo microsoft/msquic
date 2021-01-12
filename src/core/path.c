@@ -169,10 +169,10 @@ QuicConnGetPathForDatagram(
     )
 {
     for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
-        if (!QuicAddrCompare(
+        if (!CxPlatAddrCompare(
                 &Datagram->Tuple->LocalAddress,
                 &Connection->Paths[i].LocalAddress) ||
-            !QuicAddrCompare(
+            !CxPlatAddrCompare(
                 &Datagram->Tuple->RemoteAddress,
                 &Connection->Paths[i].RemoteAddress)) {
             if (!Connection->State.HandshakeConfirmed) {
@@ -228,8 +228,8 @@ QuicPathSetActive(
         Path->IsActive = TRUE;
     } else {
         UdpPortChangeOnly =
-            QuicAddrGetFamily(&Path->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].RemoteAddress) &&
-            QuicAddrCompareIp(&Path->RemoteAddress, &Connection->Paths[0].RemoteAddress);
+            CxPlatAddrGetFamily(&Path->RemoteAddress) == CxPlatAddrGetFamily(&Connection->Paths[0].RemoteAddress) &&
+            CxPlatAddrCompareIp(&Path->RemoteAddress, &Connection->Paths[0].RemoteAddress);
 
         QUIC_PATH PrevActivePath = Connection->Paths[0];
 

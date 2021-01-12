@@ -39,7 +39,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
     {
         QUIC_KEY* Ptr;
         QuicKey(QUIC_AEAD_TYPE AeadType, const uint8_t* const RawKey) : Ptr(NULL) {
-            QUIC_STATUS Status = QuicKeyCreate(AeadType, RawKey, &Ptr);
+            QUIC_STATUS Status = CxPlatKeyCreate(AeadType, RawKey, &Ptr);
             if (Status == QUIC_STATUS_NOT_SUPPORTED) {
                 GTEST_SKIP_NO_RETURN_(": AEAD Type unsupported");
                 return;
@@ -49,7 +49,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
         }
 
         ~QuicKey() {
-            QuicKeyFree(Ptr);
+            CxPlatKeyFree(Ptr);
         }
 
         bool
@@ -66,7 +66,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
         {
             return
                 QUIC_STATUS_SUCCESS ==
-                QuicEncrypt(
+                CxPlatEncrypt(
                     Ptr,
                     Iv,
                     AuthDataLength,
@@ -89,7 +89,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
         {
             return
                 QUIC_STATUS_SUCCESS ==
-                QuicDecrypt(
+                CxPlatDecrypt(
                     Ptr,
                     Iv,
                     AuthDataLength,
@@ -108,7 +108,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
                 const uint8_t* const Salt,
             _In_ uint32_t SaltLength
             ) : Ptr(NULL) {
-            QUIC_STATUS Status = QuicHashCreate(HashType, Salt, SaltLength, &Ptr);
+            QUIC_STATUS Status = CxPlatHashCreate(HashType, Salt, SaltLength, &Ptr);
             if (Status == QUIC_STATUS_NOT_SUPPORTED) {
                 GTEST_SKIP_NO_RETURN_(": HASH Type unsupported");
                 return;
@@ -118,7 +118,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
         }
 
         ~QuicHash() {
-            QuicHashFree(Ptr);
+            CxPlatHashFree(Ptr);
         }
 
         bool
@@ -133,7 +133,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
         {
             return
                 QUIC_STATUS_SUCCESS ==
-                QuicHashCompute(
+                CxPlatHashCompute(
                     Ptr,
                     Input,
                     InputLength,
@@ -181,7 +181,7 @@ TEST_F(CryptTest, WellKnownClientInitial)
 
     QUIC_TLS_PROCESS_STATE State = {0};
     VERIFY_QUIC_SUCCESS(
-        QuicPacketKeyCreateInitial(
+        CxPlatPacketKeyCreateInitial(
             FALSE,
             InitialSalt.Data,
             (uint8_t)ConnectionID.Length,
@@ -193,7 +193,7 @@ TEST_F(CryptTest, WellKnownClientInitial)
     QuicCryptoCombineIvAndPacketNumber(State.WriteKeys[0]->Iv, (uint8_t*) &InitialPacketNumber, Iv);
 
     VERIFY_QUIC_SUCCESS(
-        QuicEncrypt(
+        CxPlatEncrypt(
             State.WriteKeys[0]->PacketKey,
             Iv,
             InitialPacketHeader.Length,
@@ -208,7 +208,7 @@ TEST_F(CryptTest, WellKnownClientInitial)
 
     uint8_t HpMask[16];
     VERIFY_QUIC_SUCCESS(
-        QuicHpComputeMask(
+        CxPlatHpComputeMask(
             State.WriteKeys[0]->HeaderKey,
             1,
             PacketBuffer + InitialPacketHeader.Length,
@@ -244,16 +244,16 @@ TEST_F(CryptTest, WellKnownClientInitial)
     PacketKey->Type = QUIC_PACKET_KEY_1_RTT;
 
     QUIC_PACKET_KEY* NewPacketKey = NULL;
-    VERIFY_QUIC_SUCCESS(QuicPacketKeyUpdate(PacketKey, &NewPacketKey));
+    VERIFY_QUIC_SUCCESS(CxPlatPacketKeyUpdate(PacketKey, &NewPacketKey));
 
     const QuicBuffer ExpectedTrafficSecret("53dd8c90e78fc6ea92864f791865be060d933be0824befcb2b59ac901f306035");
     //LogTestBuffer("ExpectedTrafficSecret", ExpectedTrafficSecret.Data, ExpectedTrafficSecret.Length);
     //LogTestBuffer("  ActualTrafficSecret", NewPacketKey->TrafficSecret[0].Secret, ExpectedTrafficSecret.Length);
     ASSERT_EQ(0, memcmp(ExpectedTrafficSecret.Data, NewPacketKey->TrafficSecret[0].Secret, ExpectedTrafficSecret.Length));
 
-    QuicPacketKeyFree(State.ReadKeys[0]);
-    QuicPacketKeyFree(State.WriteKeys[0]);
-    QuicPacketKeyFree(NewPacketKey);
+    CxPlatPacketKeyFree(State.ReadKeys[0]);
+    CxPlatPacketKeyFree(State.WriteKeys[0]);
+    CxPlatPacketKeyFree(NewPacketKey);
 }
 
 TEST_F(CryptTest, WellKnownChaChaPoly)
@@ -279,7 +279,7 @@ TEST_F(CryptTest, WellKnownChaChaPoly)
     ASSERT_EQ(sizeof(PacketBuffer), EncryptedPacket.Length);
     memcpy(PacketBuffer, EncryptedPacket.Data, sizeof(PacketBuffer));
 
-    VERIFY_QUIC_SUCCESS(QuicPacketKeyDerive(QUIC_PACKET_KEY_1_RTT, &Secret, "WellKnownChaChaPoly", TRUE, &PacketKey));
+    VERIFY_QUIC_SUCCESS(CxPlatPacketKeyDerive(QUIC_PACKET_KEY_1_RTT, &Secret, "WellKnownChaChaPoly", TRUE, &PacketKey));
 
     ASSERT_EQ(0, memcmp(ExpectedIv.Data, PacketKey->Iv, sizeof(PacketKey->Iv)));
 
@@ -293,7 +293,7 @@ TEST_F(CryptTest, WellKnownChaChaPoly)
 
     uint8_t HpMask[16];
     VERIFY_QUIC_SUCCESS(
-        QuicHpComputeMask(
+        CxPlatHpComputeMask(
             PacketKey->HeaderKey,
             1,
             PacketBuffer + ExpectedHeader.Length + 1,
@@ -308,7 +308,7 @@ TEST_F(CryptTest, WellKnownChaChaPoly)
     ASSERT_EQ(0, memcmp(PacketBuffer, ExpectedHeader.Data, ExpectedHeader.Length));
 
     VERIFY_QUIC_SUCCESS(
-        QuicDecrypt(
+        CxPlatDecrypt(
             PacketKey->PacketKey,
             Iv,
             ExpectedHeader.Length,
@@ -321,7 +321,7 @@ TEST_F(CryptTest, WellKnownChaChaPoly)
         GTEST_MESSAGE_AT_(__FILE__, __LINE__, "Decrypted payload is incorrect", ::testing::TestPartResult::kFatalFailure);
     }
 
-    QuicPacketKeyFree(PacketKey);
+    CxPlatPacketKeyFree(PacketKey);
 }
 
 TEST_F(CryptTest, HpMaskChaCha20)
@@ -336,8 +336,8 @@ TEST_F(CryptTest, HpMaskChaCha20)
         0, 0, 0, 0, 0, 0, 0, 0};
     uint8_t Mask[16] = {0};
     QUIC_HP_KEY* HpKey = nullptr;
-    VERIFY_QUIC_SUCCESS(QuicHpKeyCreate(QUIC_AEAD_CHACHA20_POLY1305, RawKey, &HpKey));
-    VERIFY_QUIC_SUCCESS(QuicHpComputeMask(HpKey, 1, Sample, Mask));
+    VERIFY_QUIC_SUCCESS(CxPlatHpKeyCreate(QUIC_AEAD_CHACHA20_POLY1305, RawKey, &HpKey));
+    VERIFY_QUIC_SUCCESS(CxPlatHpComputeMask(HpKey, 1, Sample, Mask));
 
     const uint8_t ExpectedMask[] = {0x39, 0xfd, 0x2b, 0x7d, 0xd9};
 
@@ -360,8 +360,8 @@ TEST_F(CryptTest, HpMaskAes256)
         0, 0, 0, 0, 0, 0, 0, 0};
     uint8_t Mask[16] = {0};
     QUIC_HP_KEY* HpKey = nullptr;
-    VERIFY_QUIC_SUCCESS(QuicHpKeyCreate(QUIC_AEAD_AES_256_GCM, RawKey, &HpKey));
-    VERIFY_QUIC_SUCCESS(QuicHpComputeMask(HpKey, 1, Sample, Mask));
+    VERIFY_QUIC_SUCCESS(CxPlatHpKeyCreate(QUIC_AEAD_AES_256_GCM, RawKey, &HpKey));
+    VERIFY_QUIC_SUCCESS(CxPlatHpComputeMask(HpKey, 1, Sample, Mask));
 
     const uint8_t ExpectedMask[] = {0xf2, 0x90, 0x00, 0xb6, 0x2a};
 
@@ -384,8 +384,8 @@ TEST_F(CryptTest, HpMaskAes128)
         0, 0, 0, 0, 0, 0, 0, 0};
     uint8_t Mask[16] = {0};
     QUIC_HP_KEY* HpKey = nullptr;
-    VERIFY_QUIC_SUCCESS(QuicHpKeyCreate(QUIC_AEAD_AES_128_GCM, RawKey, &HpKey));
-    VERIFY_QUIC_SUCCESS(QuicHpComputeMask(HpKey, 1, Sample, Mask));
+    VERIFY_QUIC_SUCCESS(CxPlatHpKeyCreate(QUIC_AEAD_AES_128_GCM, RawKey, &HpKey));
+    VERIFY_QUIC_SUCCESS(CxPlatHpComputeMask(HpKey, 1, Sample, Mask));
 
     const uint8_t ExpectedMask[] = {0xc6, 0xa1, 0x3b, 0x37, 0x87};
 
@@ -469,7 +469,7 @@ TEST_P(CryptTest, HashWellKnown)
 
     uint8_t Output[QUIC_HASH_MAX_SIZE];
     QuicZeroMemory(Output, sizeof(Output));
-    const uint16_t OutputLength = QuicHashLength((QUIC_HASH_TYPE)HASH);
+    const uint16_t OutputLength = CxPlatHashLength((QUIC_HASH_TYPE)HASH);
 
     QuicHash Hash((QUIC_HASH_TYPE)HASH, Salt, sizeof(Salt));
     if (Hash.Ptr == NULL) return;
@@ -492,10 +492,10 @@ TEST_P(CryptTest, HashRandom)
     uint8_t Input[256];
     uint8_t Output[QUIC_HASH_MAX_SIZE];
     uint8_t Output2[QUIC_HASH_MAX_SIZE];
-    const uint16_t OutputLength = QuicHashLength((QUIC_HASH_TYPE)HASH);
+    const uint16_t OutputLength = CxPlatHashLength((QUIC_HASH_TYPE)HASH);
 
-    QuicRandom(sizeof(Salt), Salt);
-    QuicRandom(sizeof(Input), Input);
+    CxPlatRandom(sizeof(Salt), Salt);
+    CxPlatRandom(sizeof(Input), Input);
 
     QuicHash Hash((QUIC_HASH_TYPE)HASH, Salt, sizeof(Salt));
     if (Hash.Ptr == NULL) return;

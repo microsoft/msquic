@@ -219,7 +219,7 @@ extern char *QuicOpenSslClientTrustedCert;
 
 inline
 BOOLEAN
-QuicAddrFamilyIsValid(
+CxPlatAddrFamilyIsValid(
     _In_ QUIC_ADDRESS_FAMILY Family
     )
 {
@@ -231,16 +231,16 @@ QuicAddrFamilyIsValid(
 
 inline
 BOOLEAN
-QuicAddrIsValid(
+CxPlatAddrIsValid(
     _In_ const QUIC_ADDR* const Addr
     )
 {
-    return QuicAddrFamilyIsValid(Addr->Ip.sa_family);
+    return CxPlatAddrFamilyIsValid(Addr->Ip.sa_family);
 }
 
 inline
 BOOLEAN
-QuicAddrCompareIp(
+CxPlatAddrCompareIp(
     _In_ const QUIC_ADDR* const Addr1,
     _In_ const QUIC_ADDR* const Addr2
     )
@@ -254,7 +254,7 @@ QuicAddrCompareIp(
 
 inline
 BOOLEAN
-QuicAddrCompare(
+CxPlatAddrCompare(
     _In_ const QUIC_ADDR* const Addr1,
     _In_ const QUIC_ADDR* const Addr2
     )
@@ -273,7 +273,7 @@ QuicAddrCompare(
 
 inline
 QUIC_ADDRESS_FAMILY
-QuicAddrGetFamily(
+CxPlatAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
     )
 {
@@ -282,7 +282,7 @@ QuicAddrGetFamily(
 
 inline
 void
-QuicAddrSetFamily(
+CxPlatAddrSetFamily(
     _In_ QUIC_ADDR* Addr,
     _In_ QUIC_ADDRESS_FAMILY Family
     )
@@ -292,7 +292,7 @@ QuicAddrSetFamily(
 
 inline
 uint16_t
-QuicAddrGetPort(
+CxPlatAddrGetPort(
     _In_ const QUIC_ADDR* const Addr
     )
 {
@@ -305,7 +305,7 @@ QuicAddrGetPort(
 
 inline
 void
-QuicAddrSetPort(
+CxPlatAddrSetPort(
     _Out_ QUIC_ADDR* Addr,
     _In_ uint16_t Port
     )
@@ -322,7 +322,7 @@ QuicAddrSetPort(
 //
 inline
 void
-QuicAddrIncrement(
+CxPlatAddrIncrement(
     _Inout_ QUIC_ADDR* Addr
     )
 {
@@ -335,7 +335,7 @@ QuicAddrIncrement(
 
 inline
 void
-QuicAddrSetToLoopback(
+CxPlatAddrSetToLoopback(
     _Inout_ QUIC_ADDR* Addr
     )
 {
@@ -349,7 +349,7 @@ QuicAddrSetToLoopback(
 inline
 uint32_t
 QUIC_NO_SANITIZE("unsigned-integer-overflow")
-QuicAddrHash(
+CxPlatAddrHash(
     _In_ const QUIC_ADDR* Addr
     )
 {
@@ -373,7 +373,7 @@ QuicAddrHash(
 
 inline
 BOOLEAN
-QuicAddrIsWildCard(
+CxPlatAddrIsWildCard(
     _In_ const QUIC_ADDR* const Addr
     )
 {
@@ -390,7 +390,7 @@ QuicAddrIsWildCard(
 
 inline
 BOOLEAN
-QuicAddr4FromString(
+CxPlatAddr4FromString(
     _In_z_ const char* AddrStr,
     _Out_ QUIC_ADDR* Addr
     )
@@ -428,7 +428,7 @@ QuicAddr4FromString(
 
 inline
 BOOLEAN
-QuicAddr6FromString(
+CxPlatAddr6FromString(
     _In_z_ const char* AddrStr,
     _Out_ QUIC_ADDR* Addr
     )
@@ -462,7 +462,7 @@ QuicAddr6FromString(
 
 inline
 BOOLEAN
-QuicAddrFromString(
+CxPlatAddrFromString(
     _In_z_ const char* AddrStr,
     _In_ uint16_t Port, // Host byte order
     _Out_ QUIC_ADDR* Addr
@@ -470,8 +470,8 @@ QuicAddrFromString(
 {
     Addr->Ipv4.sin_port = htons(Port);
     return
-        QuicAddr4FromString(AddrStr, Addr) ||
-        QuicAddr6FromString(AddrStr, Addr);
+        CxPlatAddr4FromString(AddrStr, Addr) ||
+        CxPlatAddr6FromString(AddrStr, Addr);
 }
 
 //
@@ -483,7 +483,7 @@ typedef struct QUIC_ADDR_STR {
 
 inline
 BOOLEAN
-QuicAddrToString(
+CxPlatAddrToString(
     _In_ const QUIC_ADDR* Addr,
     _Out_ QUIC_ADDR_STR* AddrStr
     )

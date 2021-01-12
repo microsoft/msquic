@@ -114,7 +114,7 @@ MsQuicConnectionClose(
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (Connection->WorkerThreadID == QuicCurThreadID()) {
+    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -131,7 +131,7 @@ MsQuicConnectionClose(
         Oper.API_CALL.Context = &ApiCtx;
 
         ApiCtx.Type = QUIC_API_TYPE_CONN_CLOSE;
-        QuicEventInitialize(&CompletionEvent, TRUE, FALSE);
+        CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
         ApiCtx.Completed = &CompletionEvent;
         ApiCtx.Status = NULL;
 
@@ -142,8 +142,8 @@ MsQuicConnectionClose(
         QuicTraceEvent(
             ApiWaitOperation,
             "[ api] Waiting on operation");
-        QuicEventWaitForever(CompletionEvent);
-        QuicEventUninitialize(CompletionEvent);
+        CxPlatEventWaitForever(CompletionEvent);
+        CxPlatEventUninitialize(CompletionEvent);
     }
 
     //
@@ -203,7 +203,7 @@ MsQuicConnectionShutdown(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
     QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == QuicCurThreadID()) ||
+        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
 
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
@@ -694,7 +694,7 @@ MsQuicStreamClose(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (Connection->WorkerThreadID == QuicCurThreadID()) {
+    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -728,7 +728,7 @@ MsQuicStreamClose(
         Oper.API_CALL.Context = &ApiCtx;
 
         ApiCtx.Type = QUIC_API_TYPE_STRM_CLOSE;
-        QuicEventInitialize(&CompletionEvent, TRUE, FALSE);
+        CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
         ApiCtx.Completed = &CompletionEvent;
         ApiCtx.Status = NULL;
         ApiCtx.STRM_CLOSE.Stream = Stream;
@@ -740,8 +740,8 @@ MsQuicStreamClose(
         QuicTraceEvent(
             ApiWaitOperation,
             "[ api] Waiting on operation");
-        QuicEventWaitForever(CompletionEvent);
-        QuicEventUninitialize(CompletionEvent);
+        CxPlatEventWaitForever(CompletionEvent);
+        CxPlatEventUninitialize(CompletionEvent);
     }
 
 Error:
@@ -790,7 +790,7 @@ MsQuicStreamStart(
         goto Exit;
     }
 
-    if (Connection->WorkerThreadID == QuicCurThreadID()) {
+    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -839,7 +839,7 @@ MsQuicStreamStart(
         Oper.API_CALL.Context = &ApiCtx;
 
         ApiCtx.Type = QUIC_API_TYPE_STRM_START;
-        QuicEventInitialize(&CompletionEvent, TRUE, FALSE);
+        CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
         ApiCtx.Completed = &CompletionEvent;
         ApiCtx.Status = &Status;
         ApiCtx.STRM_START.Stream = Stream;
@@ -852,8 +852,8 @@ MsQuicStreamStart(
         QuicTraceEvent(
             ApiWaitOperation,
             "[ api] Waiting on operation");
-        QuicEventWaitForever(CompletionEvent);
-        QuicEventUninitialize(CompletionEvent);
+        CxPlatEventWaitForever(CompletionEvent);
+        CxPlatEventUninitialize(CompletionEvent);
     }
 
 Exit:
@@ -927,7 +927,7 @@ MsQuicStreamShutdown(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
     QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == QuicCurThreadID()) ||
+        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
 
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
@@ -1011,7 +1011,7 @@ MsQuicStreamSend(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
     QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == QuicCurThreadID()) ||
+        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
 
     TotalLength = 0;
@@ -1035,7 +1035,7 @@ MsQuicStreamSend(
     }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicStreamCompleteSendRequest).")
-    SendRequest = QuicPoolAlloc(&Connection->Worker->SendRequestPool);
+    SendRequest = CxPlatPoolAlloc(&Connection->Worker->SendRequestPool);
     if (SendRequest == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1068,7 +1068,7 @@ MsQuicStreamSend(
     QuicDispatchLockRelease(&Stream->ApiSendRequestLock);
 
     if (QUIC_FAILED(Status)) {
-        QuicPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+        CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
         goto Exit;
     }
 
@@ -1145,7 +1145,7 @@ MsQuicStreamReceiveSetEnabled(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
     QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == QuicCurThreadID()) ||
+        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
 
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
@@ -1219,7 +1219,7 @@ MsQuicStreamReceiveComplete(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
     QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == QuicCurThreadID()) ||
+        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
 
     if (!Stream->Flags.Started || !Stream->Flags.ReceiveCallPending) {
@@ -1328,7 +1328,7 @@ MsQuicSetParam(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (Connection->WorkerThreadID == QuicCurThreadID()) {
+    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -1346,7 +1346,7 @@ MsQuicSetParam(
     Oper.API_CALL.Context = &ApiCtx;
 
     ApiCtx.Type = QUIC_API_TYPE_SET_PARAM;
-    QuicEventInitialize(&CompletionEvent, TRUE, FALSE);
+    CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
     ApiCtx.Completed = &CompletionEvent;
     ApiCtx.Status = &Status;
     ApiCtx.SET_PARAM.Handle = Handle;
@@ -1362,8 +1362,8 @@ MsQuicSetParam(
     QuicTraceEvent(
         ApiWaitOperation,
         "[ api] Waiting on operation");
-    QuicEventWaitForever(CompletionEvent);
-    QuicEventUninitialize(CompletionEvent);
+    CxPlatEventWaitForever(CompletionEvent);
+    CxPlatEventUninitialize(CompletionEvent);
 
 Error:
 
@@ -1439,7 +1439,7 @@ MsQuicGetParam(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (Connection->WorkerThreadID == QuicCurThreadID()) {
+    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -1457,7 +1457,7 @@ MsQuicGetParam(
     Oper.API_CALL.Context = &ApiCtx;
 
     ApiCtx.Type = QUIC_API_TYPE_GET_PARAM;
-    QuicEventInitialize(&CompletionEvent, TRUE, FALSE);
+    CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
     ApiCtx.Completed = &CompletionEvent;
     ApiCtx.Status = &Status;
     ApiCtx.GET_PARAM.Handle = Handle;
@@ -1473,8 +1473,8 @@ MsQuicGetParam(
     QuicTraceEvent(
         ApiWaitOperation,
         "[ api] Waiting on operation");
-    QuicEventWaitForever(CompletionEvent);
-    QuicEventUninitialize(CompletionEvent);
+    CxPlatEventWaitForever(CompletionEvent);
+    CxPlatEventUninitialize(CompletionEvent);
 
 Error:
 
@@ -1537,7 +1537,7 @@ MsQuicDatagramSend(
     }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (...).")
-    SendRequest = QuicPoolAlloc(&Connection->Worker->SendRequestPool);
+    SendRequest = CxPlatPoolAlloc(&Connection->Worker->SendRequestPool);
     if (SendRequest == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;

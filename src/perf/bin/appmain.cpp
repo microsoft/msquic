@@ -126,7 +126,7 @@ QuicUserMain(
     if (KeyboardWait) {
         printf("Press enter to exit\n");
         getchar();
-        QuicEventSet(StopEvent);
+        CxPlatEventSet(StopEvent);
     }
 
     Status = QuicMainStop(0);
@@ -361,8 +361,8 @@ main(
     }
     int ArgCount = 0;
 
-    QuicPlatformSystemLoad();
-    if (QUIC_FAILED(QuicPlatformInitialize())) {
+    CxPlatSystemLoad();
+    if (QUIC_FAILED(CxPlatInitialize())) {
         printf("Platform failed to initialize\n");
         goto Exit;
     }
@@ -390,7 +390,7 @@ main(
     }
 
     SelfSignedCredConfig =
-        QuicPlatGetSelfSignedCert(
+        CxPlatPlatGetSelfSignedCert(
             TestingKernelMode ?
                 QUIC_SELF_SIGN_CERT_MACHINE :
                 QUIC_SELF_SIGN_CERT_USER);
@@ -414,11 +414,11 @@ main(
 
 Exit:
     if (SelfSignedCredConfig) {
-        QuicPlatFreeSelfSignedCert(SelfSignedCredConfig);
+        CxPlatPlatFreeSelfSignedCert(SelfSignedCredConfig);
     }
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return RetVal;
 }

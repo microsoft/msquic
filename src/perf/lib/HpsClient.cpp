@@ -49,7 +49,7 @@ HpsClient::Init(
         return Configuration.GetInitStatus();
     }
 
-    ActiveProcCount = QuicProcActiveCount();
+    ActiveProcCount = CxPlatProcActiveCount();
     if (ActiveProcCount >= 60) {
         //
         // If we have enough cores, leave 2 cores for OS overhead
@@ -98,7 +98,7 @@ QUIC_THREAD_CALLBACK(HpsWorkerThread, _Context)
 
     while (!Context->pThis->Shutdown) {
         if ((uint32_t)Context->OutstandingConnections == Context->pThis->Parallel) {
-            QuicEventWaitForever(Context->WakeEvent);
+            CxPlatEventWaitForever(Context->WakeEvent);
         } else {
             InterlockedIncrement(&Context->OutstandingConnections);
             Context->pThis->StartConnection(Context);
@@ -127,14 +127,14 @@ HpsClient::Start(
             &Contexts[Proc]
         };
 
-        Status = QuicThreadCreate(&ThreadConfig, &Contexts[Proc].Thread);
+        Status = CxPlatThreadCreate(&ThreadConfig, &Contexts[Proc].Thread);
         if (QUIC_FAILED(Status)) {
             break;
         }
         Contexts[Proc].ThreadStarted = true;
     }
 
-    uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
+    uint32_t ThreadToSetAffinityTo = CxPlatProcActiveCount();
     if (ThreadToSetAffinityTo > 2) {
         ThreadToSetAffinityTo -= 2;
         Status =
@@ -153,11 +153,11 @@ HpsClient::Wait(
     }
 
     WriteOutput("Waiting %d ms!\n", Timeout);
-    QuicEventWaitWithTimeout(*CompletionEvent, Timeout);
+    CxPlatEventWaitWithTimeout(*CompletionEvent, Timeout);
 
     Shutdown = true;
     for (uint32_t i = 0; i < ActiveProcCount; ++i) {
-        QuicEventSet(Contexts[i].WakeEvent);
+        CxPlatEventSet(Contexts[i].WakeEvent);
     }
 
     for (uint32_t i  = 0; i < ActiveProcCount; i++) {
@@ -208,13 +208,13 @@ HpsClient::ConnectionCallback(
         MsQuic->ConnectionShutdown(ConnectionHandle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         InterlockedDecrement(&Context->OutstandingConnections);
         if (!Shutdown) {
-            QuicEventSet(Context->WakeEvent);
+            CxPlatEventSet(Context->WakeEvent);
         }
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         if (!Shutdown && !Event->SHUTDOWN_COMPLETE.HandshakeCompleted) {
             InterlockedDecrement(&Context->OutstandingConnections);
-            QuicEventSet(Context->WakeEvent);
+            CxPlatEventSet(Context->WakeEvent);
         }
         if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
             MsQuic->ConnectionClose(ConnectionHandle);
@@ -283,7 +283,7 @@ HpsClient::StartConnection(
         return;
     }
 
-    bool LocalAddrSet = QuicAddrGetPort(&Context->LocalAddrs[Context->NextLocalAddr]) != 0;
+    bool LocalAddrSet = CxPlatAddrGetPort(&Context->LocalAddrs[Context->NextLocalAddr]) != 0;
     if (LocalAddrSet) {
         Status =
             MsQuic->SetParam(

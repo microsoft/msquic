@@ -28,7 +28,7 @@ Abstract:
 // Generates a self signed cert using low level OpenSSL APIs.
 //
 QUIC_STATUS
-QuicTlsGenerateSelfSignedCert(
+CxPlatTlsGenerateSelfSignedCert(
     _In_z_ char *CertFileName,
     _In_z_ char *PrivateKeyFileName,
     _In_z_ char *SNI
@@ -290,7 +290,7 @@ typedef struct QUIC_CREDENTIAL_CONFIG_INTERNAL {
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
-QuicPlatGetSelfSignedCert(
+CxPlatPlatGetSelfSignedCert(
     _In_ QUIC_SELF_SIGN_CERT_TYPE Type
     )
 {
@@ -387,7 +387,7 @@ QuicPlatGetSelfSignedCert(
 #endif
 
     if (QUIC_FAILED(
-        QuicTlsGenerateSelfSignedCert(
+        CxPlatTlsGenerateSelfSignedCert(
             Params->CertFilepath,
             Params->PrivateKeyFilepath,
             (char *)"localhost"))) {
@@ -409,7 +409,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatFreeSelfSignedCert(
+CxPlatPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     )
 {

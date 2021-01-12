@@ -22,7 +22,7 @@
 
 #define ATTACK_TIMEOUT_DEFAULT_MS (60 * 1000)
 
-#define ATTACK_THREADS_DEFAULT QuicProcActiveCount()
+#define ATTACK_THREADS_DEFAULT CxPlatProcActiveCount()
 
 #define ATTACK_PORT_DEFAULT 443
 
@@ -90,7 +90,7 @@ UdpRecvCallback(
     _In_ QUIC_RECV_DATA* RecvBufferChain
     )
 {
-    QuicRecvDataReturn(RecvBufferChain);
+    CxPlatRecvDataReturn(RecvBufferChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -107,31 +107,31 @@ UdpUnreachCallback(
 void RunAttackRandom(QUIC_SOCKET* Binding, uint16_t Length, bool ValidQuic)
 {
     QUIC_ADDR LocalAddress;
-    QuicSocketGetLocalAddress(Binding, &LocalAddress);
+    CxPlatSocketGetLocalAddress(Binding, &LocalAddress);
 
     uint64_t ConnectionId = 0;
-    QuicRandom(sizeof(ConnectionId), &ConnectionId);
+    CxPlatRandom(sizeof(ConnectionId), &ConnectionId);
 
-    while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
+    while (CxPlatTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
 
         QUIC_SEND_DATA* SendContext =
-            QuicSendDataAlloc(
+            CxPlatSendDataAlloc(
                 Binding, QUIC_ECN_NON_ECT, Length);
         if (SendContext == nullptr) {
-            printf("QuicSendDataAlloc failed\n");
+            printf("CxPlatSendDataAlloc failed\n");
             return;
         }
 
-        while (!QuicSendDataIsFull(SendContext)) {
+        while (!CxPlatSendDataIsFull(SendContext)) {
             QUIC_BUFFER* SendBuffer =
-                QuicSendDataAllocBuffer(SendContext, Length);
+                CxPlatSendDataAllocBuffer(SendContext, Length);
             if (SendBuffer == nullptr) {
-                printf("QuicSendDataAllocBuffer failed\n");
-                QuicSendDataFree(SendContext);
+                printf("CxPlatSendDataAllocBuffer failed\n");
+                CxPlatSendDataFree(SendContext);
                 return;
             }
 
-            QuicRandom(Length, SendBuffer->Buffer);
+            CxPlatRandom(Length, SendBuffer->Buffer);
 
             if (ValidQuic) {
                 QUIC_LONG_HEADER_V1* Header =
@@ -157,7 +157,7 @@ void RunAttackRandom(QUIC_SOCKET* Binding, uint16_t Length, bool ValidQuic)
 
         VERIFY(
         QUIC_SUCCEEDED(
-        QuicSocketSend(
+        CxPlatSocketSend(
             Binding,
             &LocalAddress,
             &ServerAddress,
@@ -185,7 +185,7 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
     const uint64_t PacketNumber = 0;
 
     QUIC_ADDR LocalAddress;
-    QuicSocketGetLocalAddress(Binding, &LocalAddress);
+    CxPlatSocketGetLocalAddress(Binding, &LocalAddress);
 
     uint8_t Packet[512] = {0};
     uint16_t PacketLength, HeaderLength;
@@ -212,20 +212,20 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
         return;
     }
 
-    QuicRandom(sizeof(uint64_t), DestCid);
-    QuicRandom(sizeof(uint64_t), SrcCid);
+    CxPlatRandom(sizeof(uint64_t), DestCid);
+    CxPlatRandom(sizeof(uint64_t), SrcCid);
 
-    while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
+    while (CxPlatTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
 
         QUIC_SEND_DATA* SendContext =
-            QuicSendDataAlloc(
+            CxPlatSendDataAlloc(
                 Binding, QUIC_ECN_NON_ECT, DatagramLength);
         VERIFY(SendContext);
 
-        while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs &&
-            !QuicSendDataIsFull(SendContext)) {
+        while (CxPlatTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs &&
+            !CxPlatSendDataIsFull(SendContext)) {
             QUIC_BUFFER* SendBuffer =
-                QuicSendDataAllocBuffer(SendContext, DatagramLength);
+                CxPlatSendDataAllocBuffer(SendContext, DatagramLength);
             VERIFY(SendBuffer);
 
             (*DestCid)++; (*SrcCid)++;
@@ -237,7 +237,7 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
             QUIC_PACKET_KEY* WriteKey;
             VERIFY(
             QUIC_SUCCEEDED(
-            QuicPacketKeyCreateInitial(
+            CxPlatPacketKeyCreateInitial(
                 FALSE,
                 InitialSalt.Data,
                 sizeof(uint64_t),
@@ -252,7 +252,7 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
             QuicCryptoCombineIvAndPacketNumber(
                 WriteKey->Iv, (uint8_t*)&PacketNumber, Iv);
 
-            QuicEncrypt(
+            CxPlatEncrypt(
                 WriteKey->PacketKey,
                 Iv,
                 HeaderLength,
@@ -263,7 +263,7 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
             printf_buf("encrypted", SendBuffer->Buffer, PacketLength);
 
             uint8_t HpMask[16];
-            QuicHpComputeMask(
+            CxPlatHpComputeMask(
                 WriteKey->HeaderKey,
                 1,
                 SendBuffer->Buffer + HeaderLength,
@@ -272,7 +272,7 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
             printf_buf("cipher_text", SendBuffer->Buffer + HeaderLength, 16);
             printf_buf("hp_mask", HpMask, 16);
 
-            QuicPacketKeyFree(WriteKey);
+            CxPlatPacketKeyFree(WriteKey);
 
             SendBuffer->Buffer[0] ^= HpMask[0] & 0x0F;
             for (uint8_t i = 0; i < 4; ++i) {
@@ -287,7 +287,7 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
 
         VERIFY(
         QUIC_SUCCEEDED(
-        QuicSocketSend(
+        CxPlatSocketSend(
             Binding,
             &LocalAddress,
             &ServerAddress,
@@ -299,14 +299,14 @@ QUIC_THREAD_CALLBACK(RunAttackThread, /* Context */)
 {
     QUIC_SOCKET* Binding;
     QUIC_STATUS Status =
-        QuicSocketCreateUdp(
+        CxPlatSocketCreateUdp(
             Datapath,
             nullptr,
             &ServerAddress,
             nullptr,
             &Binding);
     if (QUIC_FAILED(Status)) {
-        printf("QuicSocketCreateUdp failed, 0x%x\n", Status);
+        printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);
         QUIC_THREAD_RETURN(Status);
     }
 
@@ -327,7 +327,7 @@ QUIC_THREAD_CALLBACK(RunAttackThread, /* Context */)
         break;
     }
 
-    QuicSocketDelete(Binding);
+    CxPlatSocketDelete(Binding);
 
     QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
@@ -339,7 +339,7 @@ void RunAttack()
     QUIC_THREAD* Threads =
         (QUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD), QUIC_POOL_TOOL);
 
-    uint32_t ProcCount = QuicProcActiveCount();
+    uint32_t ProcCount = CxPlatProcActiveCount();
     TimeStart = QuicTimeMs64();
 
     for (uint32_t i = 0; i < ThreadCount; ++i) {
@@ -350,17 +350,17 @@ void RunAttack()
             RunAttackThread,
             nullptr
         };
-        QuicThreadCreate(&ThreadConfig, &Threads[i]);
+        CxPlatThreadCreate(&ThreadConfig, &Threads[i]);
     }
 
     for (uint32_t i = 0; i < ThreadCount; ++i) {
-        QuicThreadWait(&Threads[i]);
-        QuicThreadDelete(&Threads[i]);
+        CxPlatThreadWait(&Threads[i]);
+        CxPlatThreadDelete(&Threads[i]);
     }
 
     uint64_t TimeEnd = QuicTimeMs64();
-    printf("Packet Rate: %llu KHz\n", (unsigned long long)(TotalPacketCount) / QuicTimeDiff64(TimeStart, TimeEnd));
-    printf("Bit Rate: %llu mbps\n", (unsigned long long)(8 * TotalByteCount) / (1000 * QuicTimeDiff64(TimeStart, TimeEnd)));
+    printf("Packet Rate: %llu KHz\n", (unsigned long long)(TotalPacketCount) / CxPlatTimeDiff64(TimeStart, TimeEnd));
+    printf("Bit Rate: %llu mbps\n", (unsigned long long)(8 * TotalByteCount) / (1000 * CxPlatTimeDiff64(TimeStart, TimeEnd)));
     QUIC_FREE(Threads, QUIC_POOL_TOOL);
 
     delete Writer;
@@ -379,9 +379,9 @@ main(
         UdpUnreachCallback,
     };
 
-    QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
-    QuicDataPathInitialize(
+    CxPlatSystemLoad();
+    CxPlatInitialize();
+    CxPlatDataPathInitialize(
         0,
         &DatapathCallbacks,
         NULL,
@@ -419,16 +419,16 @@ main(
                 goto Error;
             }
             if (QUIC_FAILED(
-                QuicDataPathResolveAddress(
+                CxPlatDataPathResolveAddress(
                     Datapath,
                     ServerName,
                     &ServerAddress))) {
                 printf("Failed to resolve IP address of '%s'.\n", ServerName);
                 goto Error;
             }
-            QuicAddrSetPort(&ServerAddress, ATTACK_PORT_DEFAULT);
+            CxPlatAddrSetPort(&ServerAddress, ATTACK_PORT_DEFAULT);
         } else {
-            if (!QuicAddrFromString(IpAddress, ATTACK_PORT_DEFAULT, &ServerAddress)) {
+            if (!CxPlatAddrFromString(IpAddress, ATTACK_PORT_DEFAULT, &ServerAddress)) {
                 printf("Invalid -ip:'%s' specified!\n", IpAddress);
                 goto Error;
             }
@@ -445,9 +445,9 @@ main(
 
 Error:
 
-    QuicDataPathUninitialize(Datapath);
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatDataPathUninitialize(Datapath);
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return ErrorCode;
 }

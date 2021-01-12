@@ -168,7 +168,7 @@ MsQuicGetPublicIPEx(
         goto Error;
     }
 
-    if (QUIC_ADDRESS_FAMILY_UNSPEC != QuicAddrGetFamily(LocalAddress)) {
+    if (QUIC_ADDRESS_FAMILY_UNSPEC != CxPlatAddrGetFamily(LocalAddress)) {
         if (QUIC_FAILED(Context.Status = Context.MsQuic->SetParam(Context.Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_LOCAL_ADDRESS, sizeof(QUIC_ADDR), LocalAddress))) {
             QUIC_PRINTF("SetParam(CONN_LOCAL_ADDRESS) failed, 0x%x!\n", Context.Status);
             goto Error;
@@ -178,7 +178,7 @@ MsQuicGetPublicIPEx(
     Context.Status = QUIC_IP_DEFAULT_STATUS;
 
     QUIC_STATUS Status; // Don't use Context.Status as it might overwrite real error on success.
-    if (QUIC_FAILED(Status = Context.MsQuic->ConnectionStart(Context.Connection, Context.Configuration, QuicAddrGetFamily(LocalAddress), Target, UdpPort))) {
+    if (QUIC_FAILED(Status = Context.MsQuic->ConnectionStart(Context.Connection, Context.Configuration, CxPlatAddrGetFamily(LocalAddress), Target, UdpPort))) {
         Context.Status = Status;
         QUIC_PRINTF("ConnectionStart failed, 0x%x!\n", Context.Status);
         Context.MsQuic->ConnectionClose(Context.Connection);

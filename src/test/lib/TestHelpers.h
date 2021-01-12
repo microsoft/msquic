@@ -206,7 +206,7 @@ class DatapathHooks
                     &Value))) {
                 break;
             }
-            QuicSleep(100); // Let the current datapath queue drain.
+            CxPlatSleep(100); // Let the current datapath queue drain.
         }
         if (TryCount == 20) {
             TEST_FAILURE("Failed to disable test datapath hook");
@@ -315,7 +315,7 @@ struct RandomLossHelper : public DatapathHook
         _Inout_ struct QUIC_RECV_DATA* /* Datagram */
         ) {
         uint8_t RandomValue;
-        QuicRandom(sizeof(RandomValue), &RandomValue);
+        CxPlatRandom(sizeof(RandomValue), &RandomValue);
         auto Result = (RandomValue % 100) < LossPercentage;
         if (Result) {
             QuicTraceLogVerbose(
@@ -368,15 +368,15 @@ struct ReplaceAddressHelper : public DatapathHook
     Receive(
         _Inout_ struct QUIC_RECV_DATA* Datagram
         ) {
-        if (QuicAddrCompare(
+        if (CxPlatAddrCompare(
                 &Datagram->Tuple->RemoteAddress,
                 &Original)) {
             Datagram->Tuple->RemoteAddress = New;
             QuicTraceLogVerbose(
                 TestHookReplaceAddrRecv,
                 "[test][hook] Recv Addr :%hu => :%hu",
-                QuicAddrGetPort(&Original),
-                QuicAddrGetPort(&New));
+                CxPlatAddrGetPort(&Original),
+                CxPlatAddrGetPort(&New));
         }
         return FALSE;
     }
@@ -387,14 +387,14 @@ struct ReplaceAddressHelper : public DatapathHook
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
         _Inout_ struct QUIC_SEND_DATA* /* SendContext */
         ) {
-        if (QuicAddrCompare(RemoteAddress, &New)) {
+        if (CxPlatAddrCompare(RemoteAddress, &New)) {
             *RemoteAddress = Original;
             QuicTraceLogVerbose(
                 TestHookReplaceAddrSend,
                 "[test][hook] Send Addr :%hu => :%hu",
-                QuicAddrGetPort(&New),
-                QuicAddrGetPort(&Original));
-        } else if (QuicAddrCompare(RemoteAddress, &Original)) {
+                CxPlatAddrGetPort(&New),
+                CxPlatAddrGetPort(&Original));
+        } else if (CxPlatAddrCompare(RemoteAddress, &Original)) {
             QuicTraceLogVerbose(
                 TestHookDropOldAddrSend,
                 "[test][hook] Dropping send to old addr");
@@ -421,7 +421,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
     Receive(
         _Inout_ struct QUIC_RECV_DATA* Datagram
         ) {
-        if (QuicAddrCompare(
+        if (CxPlatAddrCompare(
                 &Datagram->Tuple->RemoteAddress,
                 &Original)) {
             if (AllowPacketCount == 0) {
@@ -435,8 +435,8 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
             QuicTraceLogVerbose(
                 TestHookReplaceAddrRecv,
                 "[test][hook] Recv Addr :%hu => :%hu",
-                QuicAddrGetPort(&Original),
-                QuicAddrGetPort(&New));
+                CxPlatAddrGetPort(&Original),
+                CxPlatAddrGetPort(&New));
         }
         return FALSE;
     }
@@ -447,7 +447,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
         _Inout_ struct QUIC_SEND_DATA* /* SendContext */
         ) {
-        if (QuicAddrCompare(RemoteAddress, &New)) {
+        if (CxPlatAddrCompare(RemoteAddress, &New)) {
             if (AllowPacketCount == 0) {
                 QuicTraceLogVerbose(
                     TestHookDropLimitAddrSend,
@@ -459,9 +459,9 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
             QuicTraceLogVerbose(
                 TestHookReplaceAddrSend,
                 "[test][hook] Send Addr :%hu => :%hu",
-                QuicAddrGetPort(&New),
-                QuicAddrGetPort(&Original));
-        } else if (QuicAddrCompare(RemoteAddress, &Original)) {
+                CxPlatAddrGetPort(&New),
+                CxPlatAddrGetPort(&Original));
+        } else if (CxPlatAddrCompare(RemoteAddress, &Original)) {
             QuicTraceLogVerbose(
                 TestHookDropOldAddrSend,
                 "[test][hook] Dropping send to old addr");

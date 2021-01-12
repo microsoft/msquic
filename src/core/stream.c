@@ -32,7 +32,7 @@ QuicStreamInitialize(
     uint32_t InitialRecvBufferLength;
     QUIC_WORKER* Worker = Connection->Worker;
 
-    Stream = QuicPoolAlloc(&Worker->StreamPool);
+    Stream = CxPlatPoolAlloc(&Worker->StreamPool);
     if (Stream == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -51,7 +51,7 @@ QuicStreamInitialize(
     Stream->RefCount = 1;
     Stream->SendRequestsTail = &Stream->SendRequests;
     QuicDispatchLockInitialize(&Stream->ApiSendRequestLock);
-    QuicRefInitialize(&Stream->RefCount);
+    CxPlatRefInitialize(&Stream->RefCount);
     QuicRangeInitialize(
         QUIC_MAX_RANGE_ALLOC_SIZE,
         &Stream->SparseAckRanges);
@@ -100,7 +100,7 @@ QuicStreamInitialize(
 
     InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
-        PreallocatedRecvBuffer = QuicPoolAlloc(&Worker->DefaultReceiveBufferPool);
+        PreallocatedRecvBuffer = CxPlatPoolAlloc(&Worker->DefaultReceiveBufferPool);
         if (PreallocatedRecvBuffer == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
@@ -123,7 +123,7 @@ QuicStreamInitialize(
 
 #if DEBUG
     QuicDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
-    QuicListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
+    CxPlatListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
     QuicDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
 
@@ -138,10 +138,10 @@ Exit:
     if (Stream) {
         QuicDispatchLockUninitialize(&Stream->ApiSendRequestLock);
         Stream->Flags.Freed = TRUE;
-        QuicPoolFree(&Worker->StreamPool, Stream);
+        CxPlatPoolFree(&Worker->StreamPool, Stream);
     }
     if (PreallocatedRecvBuffer) {
-        QuicPoolFree(&Worker->DefaultReceiveBufferPool, PreallocatedRecvBuffer);
+        CxPlatPoolFree(&Worker->DefaultReceiveBufferPool, PreallocatedRecvBuffer);
     }
 
     return Status;
@@ -170,7 +170,7 @@ QuicStreamFree(
 
 #if DEBUG
     QuicDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
-    QuicListEntryRemove(&Stream->AllStreamsLink);
+    CxPlatListEntryRemove(&Stream->AllStreamsLink);
     QuicDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
 
@@ -180,13 +180,13 @@ QuicStreamFree(
     QuicRefUninitialize(&Stream->RefCount);
 
     if (Stream->RecvBuffer.PreallocatedBuffer) {
-        QuicPoolFree(
+        CxPlatPoolFree(
             &Worker->DefaultReceiveBufferPool,
             Stream->RecvBuffer.PreallocatedBuffer);
     }
 
     Stream->Flags.Freed = TRUE;
-    QuicPoolFree(&Worker->StreamPool, Stream);
+    CxPlatPoolFree(&Worker->StreamPool, Stream);
 
     QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 

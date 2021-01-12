@@ -58,38 +58,38 @@ struct RpsWorkerContext {
     uint32_t RequestCount {0};
     RpsWorkerContext() {
         QuicLockInitialize(&Lock);
-        QuicEventInitialize(&WakeEvent, FALSE, FALSE);
-        QuicListInitializeHead(&Connections);
+        CxPlatEventInitialize(&WakeEvent, FALSE, FALSE);
+        CxPlatListInitializeHead(&Connections);
     }
     ~RpsWorkerContext() {
         WaitForWorker();
-        QuicEventUninitialize(WakeEvent);
+        CxPlatEventUninitialize(WakeEvent);
         QuicLockUninitialize(&Lock);
     }
     void WaitForWorker() {
         if (ThreadStarted) {
-            QuicEventSet(WakeEvent);
-            QuicThreadWait(&Thread);
-            QuicThreadDelete(&Thread);
+            CxPlatEventSet(WakeEvent);
+            CxPlatThreadWait(&Thread);
+            CxPlatThreadDelete(&Thread);
             ThreadStarted = false;
         }
     }
     void Uninitialize() {
         QuicLockAcquire(&Lock);
-        QuicListInitializeHead(&Connections);
+        CxPlatListInitializeHead(&Connections);
         QuicLockRelease(&Lock);
         WaitForWorker();
     }
     RpsConnectionContext* GetConnection() {
         RpsConnectionContext* Connection = nullptr;
         QuicLockAcquire(&Lock);
-        if (!QuicListIsEmpty(&Connections)) {
+        if (!CxPlatListIsEmpty(&Connections)) {
             Connection =
                 QUIC_CONTAINING_RECORD(
-                    QuicListRemoveHead(&Connections),
+                    CxPlatListRemoveHead(&Connections),
                     RpsConnectionContext,
                     Link);
-            QuicListInsertTail(&Connections, &Connection->Link);
+            CxPlatListInsertTail(&Connections, &Connection->Link);
         }
         QuicLockRelease(&Lock);
         return Connection;
@@ -97,7 +97,7 @@ struct RpsWorkerContext {
     void QueueConnection(RpsConnectionContext* Connection) {
         Connection->Worker = this;
         QuicLockAcquire(&Lock);
-        QuicListInsertTail(&Connections, &Connection->Link);
+        CxPlatListInsertTail(&Connections, &Connection->Link);
         QuicLockRelease(&Lock);
     }
     void QueueSendRequest();

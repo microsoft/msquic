@@ -227,7 +227,7 @@ QuicCidNewRandomDestination(
     if (Entry != NULL) {
         QuicZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH;
-        QuicRandom(QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH, Entry->CID.Data);
+        CxPlatRandom(QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH, Entry->CID.Data);
     }
 
     return Entry;

@@ -76,7 +76,7 @@ ZwNotifyChangeKey(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 __drv_functionClass(WORKER_THREAD_ROUTINE)
 void
-QuicStorageRegKeyChangeCallback(
+CxPlatStorageRegKeyChangeCallback(
     _In_ void* Context
     );
 
@@ -100,7 +100,7 @@ typedef struct QUIC_STORAGE {
 // freed with QUIC_FREE when done with it.
 //
 QUIC_STATUS
-QuicConvertUtf8ToUnicode(
+CxPlatConvertUtf8ToUnicode(
     _In_z_ const char * Utf8String,
     _Out_ PUNICODE_STRING * NewUnicodeString
     )
@@ -161,7 +161,7 @@ DECLARE_CONST_UNICODE_STRING(BaseKeyPath, QUIC_BASE_REG_PATH);
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicStorageOpen(
+CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
     _In_ QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
@@ -174,7 +174,7 @@ QuicStorageOpen(
     QUIC_STORAGE* Storage = NULL;
 
     if (Path != NULL) {
-        Status = QuicConvertUtf8ToUnicode(Path, &PathUnicode);
+        Status = CxPlatConvertUtf8ToUnicode(Path, &PathUnicode);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
@@ -263,13 +263,13 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicStorageClose(
+CxPlatStorageClose(
     _In_opt_ QUIC_STORAGE* Storage
     )
 {
     if (Storage != NULL) {
         QUIC_EVENT CleanupEvent;
-        QuicEventInitialize(&CleanupEvent, TRUE, FALSE);
+        CxPlatEventInitialize(&CleanupEvent, TRUE, FALSE);
 
         QuicLockAcquire(&Storage->Lock);
         ZwClose(Storage->RegKey); // Triggers one final notif change callback.
@@ -277,8 +277,8 @@ QuicStorageClose(
         Storage->CleanupEvent = &CleanupEvent;
         QuicLockRelease(&Storage->Lock);
 
-        QuicEventWaitForever(CleanupEvent);
-        QuicEventUninitialize(CleanupEvent);
+        CxPlatEventWaitForever(CleanupEvent);
+        CxPlatEventUninitialize(CleanupEvent);
         QuicLockUninitialize(&Storage->Lock);
         QUIC_FREE(Storage, QUIC_POOL_STORAGE);
     }
@@ -287,7 +287,7 @@ QuicStorageClose(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 __drv_functionClass(WORKER_THREAD_ROUTINE)
 void
-QuicStorageRegKeyChangeCallback(
+CxPlatStorageRegKeyChangeCallback(
     _In_ void* Context
     )
 {
@@ -315,7 +315,7 @@ QuicStorageRegKeyChangeCallback(
     QuicLockRelease(&Storage->Lock);
 
     if (CleanupEvent != NULL) {
-        QuicEventSet(*CleanupEvent);
+        CxPlatEventSet(*CleanupEvent);
     }
 }
 
@@ -323,7 +323,7 @@ QuicStorageRegKeyChangeCallback(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicStorageReadValue(
+CxPlatStorageReadValue(
     _In_ QUIC_STORAGE* Storage,
     _In_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
@@ -335,7 +335,7 @@ QuicStorageReadValue(
     PUNICODE_STRING NameUnicode;
 
     if (Name != NULL) {
-        Status = QuicConvertUtf8ToUnicode(Name, &NameUnicode);
+        Status = CxPlatConvertUtf8ToUnicode(Name, &NameUnicode);
         if (QUIC_FAILED(Status)) {
             return Status;
         }

@@ -350,7 +350,7 @@ QuicSettingsLoad(
     if (!Settings->IsSet.SendBufferingEnabled) {
         Value = QUIC_DEFAULT_SEND_BUFFERING_ENABLE;
         ValueLen = sizeof(Value);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_SEND_BUFFERING_DEFAULT,
             (uint8_t*)&Value,
@@ -361,7 +361,7 @@ QuicSettingsLoad(
     if (!Settings->IsSet.PacingEnabled) {
         Value = QUIC_DEFAULT_SEND_PACING;
         ValueLen = sizeof(Value);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_SEND_PACING_DEFAULT,
             (uint8_t*)&Value,
@@ -372,7 +372,7 @@ QuicSettingsLoad(
     if (!Settings->IsSet.MigrationEnabled) {
         Value = QUIC_DEFAULT_MIGRATION_ENABLED;
         ValueLen = sizeof(Value);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_MIGRATION_ENABLED,
             (uint8_t*)&Value,
@@ -383,7 +383,7 @@ QuicSettingsLoad(
     if (!Settings->IsSet.DatagramReceiveEnabled) {
         Value = QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED;
         ValueLen = sizeof(Value);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED,
             (uint8_t*)&Value,
@@ -394,7 +394,7 @@ QuicSettingsLoad(
     if (!Settings->IsSet.MaxOperationsPerDrain) {
         Value = QUIC_MAX_OPERATIONS_PER_DRAIN;
         ValueLen = sizeof(Value);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN,
             (uint8_t*)&Value,
@@ -407,7 +407,7 @@ QuicSettingsLoad(
     if (!Settings->IsSet.RetryMemoryLimit) {
         Value = QUIC_DEFAULT_RETRY_MEMORY_FRACTION;
         ValueLen = sizeof(Value);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_RETRY_MEMORY_FRACTION,
             (uint8_t*)&Value,
@@ -421,7 +421,7 @@ QuicSettingsLoad(
         !MsQuicLib.InUse) {
         Value = QUIC_DEFAULT_LOAD_BALANCING_MODE;
         ValueLen = sizeof(Value);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_LOAD_BALANCING_MODE,
             (uint8_t*)&Value,
@@ -434,7 +434,7 @@ QuicSettingsLoad(
     if (!Settings->IsSet.MaxWorkerQueueDelayUs) {
         Value = QUIC_MAX_WORKER_QUEUE_DELAY;
         ValueLen = sizeof(Value);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_MAX_WORKER_QUEUE_DELAY,
             (uint8_t*)&Value,                               // Read as ms
@@ -444,7 +444,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.MaxStatelessOperations) {
         ValueLen = sizeof(Settings->MaxStatelessOperations);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_MAX_STATELESS_OPERATIONS,
             (uint8_t*)&Settings->MaxStatelessOperations,
@@ -453,7 +453,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.InitialWindowPackets) {
         ValueLen = sizeof(Settings->InitialWindowPackets);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_INITIAL_WINDOW_PACKETS,
             (uint8_t*)&Settings->InitialWindowPackets,
@@ -462,7 +462,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.SendIdleTimeoutMs) {
         ValueLen = sizeof(Settings->SendIdleTimeoutMs);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_SEND_IDLE_TIMEOUT_MS,
             (uint8_t*)&Settings->SendIdleTimeoutMs,
@@ -471,7 +471,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.InitialRttMs) {
         ValueLen = sizeof(Settings->InitialRttMs);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_INITIAL_RTT,
             (uint8_t*)&Settings->InitialRttMs,
@@ -480,7 +480,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.MaxAckDelayMs) {
         ValueLen = sizeof(Settings->MaxAckDelayMs);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_MAX_ACK_DELAY,
             (uint8_t*)&Settings->MaxAckDelayMs,
@@ -492,7 +492,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.DisconnectTimeoutMs) {
         ValueLen = sizeof(Settings->DisconnectTimeoutMs);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_DISCONNECT_TIMEOUT,
             (uint8_t*)&Settings->DisconnectTimeoutMs,
@@ -504,7 +504,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.KeepAliveIntervalMs) {
         ValueLen = sizeof(Settings->KeepAliveIntervalMs);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_KEEP_ALIVE_INTERVAL,
             (uint8_t*)&Settings->KeepAliveIntervalMs,
@@ -515,7 +515,7 @@ QuicSettingsLoad(
         QUIC_STATIC_ASSERT(sizeof(MultiValue) == sizeof(Settings->IdleTimeoutMs), "These must be the same size");
         ValueLen = sizeof(MultiValue);
         if (QUIC_SUCCEEDED(
-            QuicStorageReadValue(
+            CxPlatStorageReadValue(
                 Storage,
                 QUIC_SETTING_IDLE_TIMEOUT,
                 MultiValue.Array,
@@ -535,7 +535,7 @@ QuicSettingsLoad(
         QUIC_STATIC_ASSERT(sizeof(MultiValue) == sizeof(Settings->HandshakeIdleTimeoutMs), "These must be the same size");
         ValueLen = sizeof(MultiValue);
         if (QUIC_SUCCEEDED(
-            QuicStorageReadValue(
+            CxPlatStorageReadValue(
                 Storage,
                 QUIC_SETTING_HANDSHAKE_IDLE_TIMEOUT,
                 MultiValue.Array,
@@ -553,7 +553,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.TlsClientMaxSendBuffer) {
         ValueLen = sizeof(Settings->TlsClientMaxSendBuffer);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_MAX_TLS_CLIENT_SEND_BUFFER,
             (uint8_t*)&Settings->TlsClientMaxSendBuffer,
@@ -562,7 +562,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.TlsServerMaxSendBuffer) {
         ValueLen = sizeof(Settings->TlsServerMaxSendBuffer);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_MAX_TLS_SERVER_SEND_BUFFER,
             (uint8_t*)&Settings->TlsServerMaxSendBuffer,
@@ -571,7 +571,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.StreamRecvWindowDefault) {
         ValueLen = sizeof(Settings->StreamRecvWindowDefault);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_STREAM_FC_WINDOW_SIZE,
             (uint8_t*)&Settings->StreamRecvWindowDefault,
@@ -580,7 +580,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.StreamRecvBufferDefault) {
         ValueLen = sizeof(Settings->StreamRecvBufferDefault);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_STREAM_RECV_BUFFER_SIZE,
             (uint8_t*)&Settings->StreamRecvBufferDefault,
@@ -593,7 +593,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.ConnFlowControlWindow) {
         ValueLen = sizeof(Settings->ConnFlowControlWindow);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_CONN_FLOW_CONTROL_WINDOW,
             (uint8_t*)&Settings->ConnFlowControlWindow,
@@ -602,7 +602,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.MaxBytesPerKey) {
         ValueLen = sizeof(Settings->MaxBytesPerKey);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_MAX_BYTES_PER_KEY_PHASE,
             (uint8_t*)&Settings->MaxBytesPerKey,
@@ -614,7 +614,7 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.ServerResumptionLevel) {
         ValueLen = sizeof(Value);
-        QuicStorageReadValue(
+        CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_SERVER_RESUMPTION_LEVEL,
             (uint8_t*)&Value,

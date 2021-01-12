@@ -31,17 +31,17 @@ struct HpsWorkerContext {
     HpsWorkerContext() {
         QuicZeroMemory(&RemoteAddr, sizeof(RemoteAddr));
         QuicZeroMemory(&LocalAddrs, sizeof(LocalAddrs));
-        QuicEventInitialize(&WakeEvent, FALSE, TRUE);
+        CxPlatEventInitialize(&WakeEvent, FALSE, TRUE);
     }
     ~HpsWorkerContext() {
         WaitForWorker();
-        QuicEventUninitialize(WakeEvent);
+        CxPlatEventUninitialize(WakeEvent);
     }
     void WaitForWorker() {
         if (ThreadStarted) {
-            QuicEventSet(WakeEvent);
-            QuicThreadWait(&Thread);
-            QuicThreadDelete(&Thread);
+            CxPlatEventSet(WakeEvent);
+            CxPlatThreadWait(&Thread);
+            CxPlatThreadDelete(&Thread);
             ThreadStarted = false;
         }
     }

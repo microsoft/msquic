@@ -65,11 +65,11 @@ QuicPacketBuilderInitialize(
             QUIC_CID_HASH_ENTRY,
             Link);
 
-    uint64_t TimeNow = QuicTimeUs64();
+    uint64_t TimeNow = CxPlatTimeUs64();
     uint64_t TimeSinceLastSend;
     if (Connection->Send.LastFlushTimeValid) {
         TimeSinceLastSend =
-            QuicTimeDiff64(Connection->Send.LastFlushTime, TimeNow);
+            CxPlatTimeDiff64(Connection->Send.LastFlushTime, TimeNow);
     } else {
         TimeSinceLastSend = 0;
     }
@@ -183,13 +183,13 @@ QuicPacketBuilderPrepare(
 
         if (Builder->SendContext == NULL) {
             Builder->SendContext =
-                QuicSendDataAlloc(
+                CxPlatSendDataAlloc(
                     Builder->Path->Binding->Socket,
                     QUIC_ECN_NON_ECT,
                     IsPathMtuDiscovery ?
                         0 :
                         MaxUdpPayloadSizeForFamily(
-                            QuicAddrGetFamily(&Builder->Path->RemoteAddress),
+                            CxPlatAddrGetFamily(&Builder->Path->RemoteAddress),
                             DatagramSize));
             if (Builder->SendContext == NULL) {
                 QuicTraceEvent(
@@ -203,7 +203,7 @@ QuicPacketBuilderPrepare(
 
         uint16_t NewDatagramLength =
             MaxUdpPayloadSizeForFamily(
-                QuicAddrGetFamily(&Builder->Path->RemoteAddress),
+                CxPlatAddrGetFamily(&Builder->Path->RemoteAddress),
                 IsPathMtuDiscovery ? QUIC_MAX_MTU : DatagramSize);
         if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) &&
             NewDatagramLength > Connection->PeerTransportParams.MaxUdpPayloadSize) {
@@ -211,7 +211,7 @@ QuicPacketBuilderPrepare(
         }
 
         Builder->Datagram =
-            QuicSendDataAllocBuffer(
+            CxPlatSendDataAllocBuffer(
                 Builder->SendContext,
                 NewDatagramLength);
         if (Builder->Datagram == NULL) {
@@ -250,7 +250,7 @@ QuicPacketBuilderPrepare(
             //
             Builder->MinimumDatagramLength =
                 MaxUdpPayloadSizeForFamily(
-                    QuicAddrGetFamily(&Builder->Path->RemoteAddress),
+                    CxPlatAddrGetFamily(&Builder->Path->RemoteAddress),
                     QUIC_INITIAL_PACKET_LENGTH);
 
             if ((uint32_t)Builder->MinimumDatagramLength > Builder->Datagram->Length) {
@@ -533,7 +533,7 @@ QuicPacketBuilderFinalizeHeaderProtection(
     QUIC_STATUS Status;
     if (QUIC_FAILED(
         Status =
-        QuicHpComputeMask(
+        CxPlatHpComputeMask(
             Builder->Key->HeaderKey,
             Builder->BatchCount,
             Builder->CipherBatch,
@@ -585,7 +585,7 @@ QuicPacketBuilderFinalize(
             Builder->DatagramLength -= Builder->HeaderLength;
 
             if (Builder->DatagramLength == 0) {
-                QuicSendDataFreeBuffer(Builder->SendContext, Builder->Datagram);
+                CxPlatSendDataFreeBuffer(Builder->SendContext, Builder->Datagram);
                 Builder->Datagram = NULL;
             }
         }
@@ -623,7 +623,7 @@ QuicPacketBuilderFinalize(
 
         FinalQuicPacket = TRUE;
 
-        if (!FlushBatchedDatagrams && QuicDataPathIsPaddingPreferred(MsQuicLib.Datapath)) {
+        if (!FlushBatchedDatagrams && CxPlatDataPathIsPaddingPreferred(MsQuicLib.Datapath)) {
             //
             // When buffering multiple datagrams in a single contiguous buffer
             // (at the datapath layer), all but the last datagram needs to be
@@ -708,7 +708,7 @@ QuicPacketBuilderFinalize(
         QUIC_STATUS Status;
         if (QUIC_FAILED(
             Status =
-            QuicEncrypt(
+            CxPlatEncrypt(
                 Builder->Key->PacketKey,
                 Iv,
                 Builder->HeaderLength,
@@ -750,7 +750,7 @@ QuicPacketBuilderFinalize(
 
                 if (QUIC_FAILED(
                     Status =
-                    QuicHpComputeMask(
+                    CxPlatHpComputeMask(
                         Builder->Key->HeaderKey,
                         1,
                         PnStart + 4,
@@ -859,7 +859,7 @@ Exit:
             Builder->TotalDatagramsLength += Builder->DatagramLength;
         }
 
-        if (FlushBatchedDatagrams || QuicSendDataIsFull(Builder->SendContext)) {
+        if (FlushBatchedDatagrams || CxPlatSendDataIsFull(Builder->SendContext)) {
             if (Builder->BatchCount != 0) {
                 QuicPacketBuilderFinalizeHeaderProtection(Builder);
             }

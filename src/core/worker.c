@@ -56,16 +56,16 @@ QuicWorkerInitialize(
     Worker->Enabled = TRUE;
     Worker->IdealProcessor = IdealProcessor;
     QuicDispatchLockInitialize(&Worker->Lock);
-    QuicEventInitialize(&Worker->Ready, FALSE, FALSE);
-    QuicListInitializeHead(&Worker->Connections);
-    QuicListInitializeHead(&Worker->Operations);
-    QuicPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &Worker->StreamPool);
-    QuicPoolInitialize(FALSE, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, QUIC_POOL_SBUF, &Worker->DefaultReceiveBufferPool);
-    QuicPoolInitialize(FALSE, sizeof(QUIC_SEND_REQUEST), QUIC_POOL_SEND_REQUEST, &Worker->SendRequestPool);
+    CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
+    CxPlatListInitializeHead(&Worker->Connections);
+    CxPlatListInitializeHead(&Worker->Operations);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &Worker->StreamPool);
+    CxPlatPoolInitialize(FALSE, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, QUIC_POOL_SBUF, &Worker->DefaultReceiveBufferPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_SEND_REQUEST), QUIC_POOL_SEND_REQUEST, &Worker->SendRequestPool);
     QuicSentPacketPoolInitialize(&Worker->SentPacketPool);
-    QuicPoolInitialize(FALSE, sizeof(QUIC_API_CONTEXT), QUIC_POOL_API_CTX, &Worker->ApiContextPool);
-    QuicPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), QUIC_POOL_STATELESS_CTX, &Worker->StatelessContextPool);
-    QuicPoolInitialize(FALSE, sizeof(QUIC_OPERATION), QUIC_POOL_OPER, &Worker->OperPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_API_CONTEXT), QUIC_POOL_API_CTX, &Worker->ApiContextPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), QUIC_POOL_STATELESS_CTX, &Worker->StatelessContextPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_OPERATION), QUIC_POOL_OPER, &Worker->OperPool);
 
     Status = QuicTimerWheelInitialize(&Worker->TimerWheel);
     if (QUIC_FAILED(Status)) {
@@ -80,14 +80,14 @@ QuicWorkerInitialize(
         Worker
     };
 
-    Status = QuicThreadCreate(&ThreadConfig, &Worker->Thread);
+    Status = CxPlatThreadCreate(&ThreadConfig, &Worker->Thread);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             WorkerErrorStatus,
             "[wrkr][%p] ERROR, %u, %s.",
             Worker,
             Status,
-            "QuicThreadCreate");
+            "CxPlatThreadCreate");
         goto Error;
     }
 
@@ -119,23 +119,23 @@ QuicWorkerUninitialize(
     //
     // Wait for the thread to finish.
     //
-    QuicEventSet(Worker->Ready);
+    CxPlatEventSet(Worker->Ready);
     if (Worker->Thread) {
-        QuicThreadWait(&Worker->Thread);
-        QuicThreadDelete(&Worker->Thread);
+        CxPlatThreadWait(&Worker->Thread);
+        CxPlatThreadDelete(&Worker->Thread);
     }
 
-    QUIC_TEL_ASSERT(QuicListIsEmpty(&Worker->Connections));
-    QUIC_TEL_ASSERT(QuicListIsEmpty(&Worker->Operations));
+    QUIC_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Connections));
+    QUIC_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Operations));
 
-    QuicPoolUninitialize(&Worker->StreamPool);
-    QuicPoolUninitialize(&Worker->DefaultReceiveBufferPool);
-    QuicPoolUninitialize(&Worker->SendRequestPool);
+    CxPlatPoolUninitialize(&Worker->StreamPool);
+    CxPlatPoolUninitialize(&Worker->DefaultReceiveBufferPool);
+    CxPlatPoolUninitialize(&Worker->SendRequestPool);
     QuicSentPacketPoolUninitialize(&Worker->SentPacketPool);
-    QuicPoolUninitialize(&Worker->ApiContextPool);
-    QuicPoolUninitialize(&Worker->StatelessContextPool);
-    QuicPoolUninitialize(&Worker->OperPool);
-    QuicEventUninitialize(Worker->Ready);
+    CxPlatPoolUninitialize(&Worker->ApiContextPool);
+    CxPlatPoolUninitialize(&Worker->StatelessContextPool);
+    CxPlatPoolUninitialize(&Worker->OperPool);
+    CxPlatEventUninitialize(Worker->Ready);
     QuicDispatchLockUninitialize(&Worker->Lock);
     QuicTimerWheelUninitialize(&Worker->TimerWheel);
 
@@ -167,8 +167,8 @@ QuicWorkerIsIdle(
     )
 {
     return
-        QuicListIsEmpty(&Worker->Connections) &&
-        QuicListIsEmpty(&Worker->Operations);
+        CxPlatListIsEmpty(&Worker->Connections) &&
+        CxPlatListIsEmpty(&Worker->Operations);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -193,7 +193,7 @@ QuicWorkerQueueConnection(
             Connection,
             QUIC_SCHEDULE_QUEUED);
         QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
-        QuicListInsertTail(&Worker->Connections, &Connection->WorkerLink);
+        CxPlatListInsertTail(&Worker->Connections, &Connection->WorkerLink);
         ConnectionQueued = TRUE;
     } else {
         WakeWorkerThread = FALSE;
@@ -208,7 +208,7 @@ QuicWorkerQueueConnection(
     }
 
     if (WakeWorkerThread) {
-        QuicEventSet(Worker->Ready);
+        CxPlatEventSet(Worker->Ready);
     }
 }
 
@@ -233,13 +233,13 @@ QuicWorkerMoveConnection(
             Connection,
             QUIC_SCHEDULE_QUEUED);
         QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
-        QuicListInsertTail(&Worker->Connections, &Connection->WorkerLink);
+        CxPlatListInsertTail(&Worker->Connections, &Connection->WorkerLink);
     }
 
     QuicDispatchLockRelease(&Worker->Lock);
 
     if (WakeWorkerThread) {
-        QuicEventSet(Worker->Ready);
+        CxPlatEventSet(Worker->Ready);
     }
 }
 
@@ -257,7 +257,7 @@ QuicWorkerQueueOperation(
         QuicLibraryTryAddRefBinding(Operation->STATELESS.Context->Binding)) {
         Operation->STATELESS.Context->HasBindingRef = TRUE;
         WakeWorkerThread = QuicWorkerIsIdle(Worker);
-        QuicListInsertTail(&Worker->Operations, &Operation->Link);
+        CxPlatListInsertTail(&Worker->Operations, &Operation->Link);
         Worker->OperationCount++;
         Operation = NULL;
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
@@ -272,12 +272,12 @@ QuicWorkerQueueOperation(
     if (Operation != NULL) {
         const QUIC_BINDING* Binding = Operation->STATELESS.Context->Binding;
         const QUIC_RECV_PACKET* Packet =
-            QuicDataPathRecvDataToRecvPacket(
+            CxPlatDataPathRecvDataToRecvPacket(
                 Operation->STATELESS.Context->Datagram);
         QuicPacketLogDrop(Binding, Packet, "Worker operation limit reached");
         QuicOperationFree(Worker, Operation);
     } else if (WakeWorkerThread) {
-        QuicEventSet(Worker->Ready);
+        CxPlatEventSet(Worker->Ready);
     }
 }
 
@@ -340,12 +340,12 @@ QuicWorkerGetNextConnection(
     if (Worker->Enabled) {
         QuicDispatchLockAcquire(&Worker->Lock);
 
-        if (QuicListIsEmpty(&Worker->Connections)) {
+        if (CxPlatListIsEmpty(&Worker->Connections)) {
             Connection = NULL;
         } else {
             Connection =
                 QUIC_CONTAINING_RECORD(
-                    QuicListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
+                    CxPlatListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
             QUIC_DBG_ASSERT(!Connection->WorkerProcessing);
             QUIC_DBG_ASSERT(Connection->HasQueuedWork);
             Connection->HasQueuedWork = FALSE;
@@ -377,7 +377,7 @@ QuicWorkerGetNextOperation(
         } else {
             Operation =
                 QUIC_CONTAINING_RECORD(
-                    QuicListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
+                    CxPlatListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
 #if DEBUG
             Operation->Link.Flink = NULL;
 #endif
@@ -403,15 +403,15 @@ QuicWorkerProcessTimers(
     // Get the list of all connections with expired timers from the timer wheel.
     //
     QUIC_LIST_ENTRY ExpiredTimers;
-    QuicListInitializeHead(&ExpiredTimers);
-    uint64_t TimeNow = QuicTimeUs64();
+    CxPlatListInitializeHead(&ExpiredTimers);
+    uint64_t TimeNow = CxPlatTimeUs64();
     QuicTimerWheelGetExpired(&Worker->TimerWheel, TimeNow, &ExpiredTimers);
 
     //
     // Indicate to all the connections that have expired timers.
     //
-    while (!QuicListIsEmpty(&ExpiredTimers)) {
-        QUIC_LIST_ENTRY* Entry = QuicListRemoveHead(&ExpiredTimers);
+    while (!CxPlatListIsEmpty(&ExpiredTimers)) {
+        QUIC_LIST_ENTRY* Entry = CxPlatListRemoveHead(&ExpiredTimers);
         Entry->Flink = NULL;
 
         QUIC_CONNECTION* Connection =
@@ -442,7 +442,7 @@ QuicWorkerProcessConnection(
     if (Connection->Stats.Schedule.LastQueueTime != 0) {
         QuicWorkerUpdateQueueDelay(
             Worker,
-            QuicTimeDiff32(
+            CxPlatTimeDiff32(
                 Connection->Stats.Schedule.LastQueueTime,
                 QuicTimeUs32()));
     }
@@ -499,7 +499,7 @@ QuicWorkerProcessConnection(
     if (!Connection->State.UpdateWorker) {
         if (Connection->HasQueuedWork) {
             Connection->Stats.Schedule.LastQueueTime = QuicTimeUs32();
-            QuicListInsertTail(&Worker->Connections, &Connection->WorkerLink);
+            CxPlatListInsertTail(&Worker->Connections, &Connection->WorkerLink);
             QuicTraceEvent(
                 ConnScheduleState,
                 "[conn][%p] Scheduling: %u",
@@ -550,7 +550,7 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
 {
     QUIC_WORKER* Worker = (QUIC_WORKER*)Context;
 
-    Worker->ThreadID = QuicCurThreadID();
+    Worker->ThreadID = CxPlatCurThreadID();
     Worker->IsActive = TRUE;
     QuicTraceEvent(
         WorkerStart,
@@ -558,7 +558,7 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
         Worker);
 
     //
-    // TODO - Review how often QuicTimeUs64() is called in the thread. Perhaps
+    // TODO - Review how often CxPlatTimeUs64() is called in the thread. Perhaps
     // we can get it down to once per loop, passing the value along.
     //
 
@@ -619,7 +619,7 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
             QuicWorkerToggleActivityState(Worker, (uint32_t)Delay);
             QuicWorkerResetQueueDelay(Worker);
             BOOLEAN ReadySet =
-                QuicEventWaitWithTimeout(Worker->Ready, (uint32_t)Delay);
+                CxPlatEventWaitWithTimeout(Worker->Ready, (uint32_t)Delay);
             QuicWorkerToggleActivityState(Worker, ReadySet);
 
             if (!ReadySet) {
@@ -632,7 +632,7 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
             //
             QuicWorkerToggleActivityState(Worker, UINT32_MAX);
             QuicWorkerResetQueueDelay(Worker);
-            QuicEventWaitForever(Worker->Ready);
+            CxPlatEventWaitForever(Worker->Ready);
             QuicWorkerToggleActivityState(Worker, TRUE);
         }
     }
@@ -645,10 +645,10 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
     // remaining references on connections.
     //
     int64_t Dequeue = 0;
-    while (!QuicListIsEmpty(&Worker->Connections)) {
+    while (!CxPlatListIsEmpty(&Worker->Connections)) {
         QUIC_CONNECTION* Connection =
             QUIC_CONTAINING_RECORD(
-                QuicListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
+                CxPlatListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
         if (!Connection->State.ExternalOwner) {
             //
             // If there is no external owner, shut down the connection so that
@@ -666,10 +666,10 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, Dequeue);
 
     Dequeue = 0;
-    while (!QuicListIsEmpty(&Worker->Operations)) {
+    while (!CxPlatListIsEmpty(&Worker->Operations)) {
         QUIC_OPERATION* Operation =
             QUIC_CONTAINING_RECORD(
-                QuicListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
+                CxPlatListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
 #if DEBUG
         Operation->Link.Flink = NULL;
 #endif

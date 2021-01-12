@@ -49,7 +49,7 @@ struct StreamValidator {
     QUIC_EVENT Complete;
     StreamValidator(StreamEventValidator** expectedEvents) :
         Handle(nullptr), ExpectedEvents(expectedEvents), CurrentEvent(0) {
-        QuicEventInitialize(&Complete, TRUE, FALSE);
+        CxPlatEventInitialize(&Complete, TRUE, FALSE);
     }
     ~StreamValidator() {
         if (Handle) {
@@ -60,7 +60,7 @@ struct StreamValidator {
             delete ExpectedEvents[i];
         }
         delete [] ExpectedEvents;
-        QuicEventUninitialize(Complete);
+        CxPlatEventUninitialize(Complete);
     }
     void ValidateEvent(_Inout_ QUIC_STREAM_EVENT* Event) {
         do {
@@ -71,7 +71,7 @@ struct StreamValidator {
                  ++CurrentEvent);
 
         if (ExpectedEvents[++CurrentEvent] == nullptr) {
-            QuicEventSet(Complete);
+            CxPlatEventSet(Complete);
         }
     }
     bool Success() const { return ExpectedEvents[CurrentEvent] == nullptr; }
@@ -120,12 +120,12 @@ struct ConnValidator {
     ConnValidator(HQUIC Configuration = nullptr) :
         Handle(nullptr), Configuration(Configuration),
         ExpectedEvents(nullptr), CurrentEvent(0) {
-        QuicEventInitialize(&Complete, TRUE, FALSE);
+        CxPlatEventInitialize(&Complete, TRUE, FALSE);
     }
     ConnValidator(ConnEventValidator** expectedEvents, HQUIC Configuration = nullptr) :
         Handle(nullptr), Configuration(Configuration),
         ExpectedEvents(expectedEvents), CurrentEvent(0) {
-        QuicEventInitialize(&Complete, TRUE, FALSE);
+        CxPlatEventInitialize(&Complete, TRUE, FALSE);
     }
     ~ConnValidator() {
         if (Handle) {
@@ -138,7 +138,7 @@ struct ConnValidator {
             }
             delete [] ExpectedEvents;
         }
-        QuicEventUninitialize(Complete);
+        CxPlatEventUninitialize(Complete);
     }
     void SetExpectedEvents(ConnEventValidator** expectedEvents) {
         ExpectedEvents = expectedEvents;
@@ -161,7 +161,7 @@ struct ConnValidator {
                  ++CurrentEvent);
 
         if (ExpectedEvents[++CurrentEvent] == nullptr) {
-            QuicEventSet(Complete);
+            CxPlatEventSet(Complete);
         }
     }
     bool Success() const { return ExpectedEvents[CurrentEvent] == nullptr; }
@@ -337,13 +337,13 @@ QuicTestValidateConnectionEvents1(
         MsQuic->ConnectionStart(
             Client.Handle,
             ClientConfiguration,
-            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
-                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
-    TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
-    TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Client.Complete, 2000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Server.Complete, 1000));
 }
 
 void
@@ -393,13 +393,13 @@ QuicTestValidateConnectionEvents2(
         MsQuic->ConnectionStart(
             Client.Handle,
             ClientConfiguration,
-            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
-                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
-    TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
-    TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Client.Complete, 2000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Server.Complete, 1000));
 }
 
 void
@@ -470,12 +470,12 @@ QuicTestValidateConnectionEvents3(
         MsQuic->ConnectionStart(
             Client.Handle,
             ClientConfiguration,
-            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-            QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+            CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_LOCALHOST_FOR_AF(CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
+            CxPlatAddrGetPort(&ServerLocalAddr.SockAddr)));
 
-    TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
-    TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Client.Complete, 2000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Server.Complete, 1000));
 }
 
 void QuicTestValidateConnectionEvents()
@@ -606,13 +606,13 @@ QuicTestValidateStreamEvents1(
         MsQuic->ConnectionStart(
             Client.Handle,
             ClientConfiguration,
-            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
-                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
-    TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
-    TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Client.Complete, 2000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Server.Complete, 1000));
 
     } // Stream scope
     } // Connections scope
@@ -695,13 +695,13 @@ QuicTestValidateStreamEvents2(
         MsQuic->ConnectionStart(
             Client.Handle,
             ClientConfiguration,
-            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
-                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
-    TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
-    TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Client.Complete, 2000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Server.Complete, 1000));
 
     } // Stream scope
     } // Connections scope

@@ -126,9 +126,9 @@ ParseCommonCommands(
     uint16_t port = DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &port);
     if (PingConfig.ServerMode) {
-        QuicAddrSetPort(&PingConfig.LocalIpAddr, port);
+        CxPlatAddrSetPort(&PingConfig.LocalIpAddr, port);
     } else {
-        QuicAddrSetPort(&PingConfig.Client.RemoteIpAddr, port);
+        CxPlatAddrSetPort(&PingConfig.Client.RemoteIpAddr, port);
     }
 
     uint16_t useEncryption = DEFAULT_USE_ENCRYPTION;
@@ -285,8 +285,8 @@ ParseClientCommand(
     uint16_t ip;
     if (TryGetValue(argc, argv, "ip", &ip)) {
         switch (ip) {
-        case 4: QuicAddrSetFamily(&PingConfig.Client.RemoteIpAddr, QUIC_ADDRESS_FAMILY_INET); break;
-        case 6: QuicAddrSetFamily(&PingConfig.Client.RemoteIpAddr, QUIC_ADDRESS_FAMILY_INET6); break;
+        case 4: CxPlatAddrSetFamily(&PingConfig.Client.RemoteIpAddr, QUIC_ADDRESS_FAMILY_INET); break;
+        case 6: CxPlatAddrSetFamily(&PingConfig.Client.RemoteIpAddr, QUIC_ADDRESS_FAMILY_INET6); break;
         }
     }
 
@@ -333,8 +333,8 @@ main(
     uint16_t execProfile = DEFAULT_EXECUTION_PROFILE;
     QUIC_REGISTRATION_CONFIG RegConfig = { "quicping", DEFAULT_EXECUTION_PROFILE };
 
-    QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
+    CxPlatSystemLoad();
+    CxPlatInitialize();
 
     if (argc < 2) {
         PrintUsage();
@@ -374,8 +374,8 @@ main(
 
 Error:
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return ErrorCode;
 }

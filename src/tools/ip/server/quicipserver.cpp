@@ -155,8 +155,8 @@ RunServer(
     Settings.IsSet.IdleTimeoutMs = TRUE;
 
     QUIC_ADDR Address = {};
-    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
-    QuicAddrSetPort(&Address, UdpPort);
+    CxPlatAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
+    CxPlatAddrSetPort(&Address, UdpPort);
 
     Configuration =
         GetServerConfigurationFromArgs(
@@ -203,12 +203,12 @@ main(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     )
 {
-    QuicPlatformSystemLoad();
+    CxPlatSystemLoad();
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    if (QUIC_FAILED(Status = QuicPlatformInitialize())) {
-        printf("QuicPlatformInitialize failed, 0x%x!\n", Status);
-        QuicPlatformSystemUnload();
+    if (QUIC_FAILED(Status = CxPlatInitialize())) {
+        printf("CxPlatInitialize failed, 0x%x!\n", Status);
+        CxPlatSystemUnload();
         return Status;
     }
 
@@ -233,8 +233,8 @@ Error:
         MsQuicClose(MsQuic);
     }
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return (int)Status;
 }

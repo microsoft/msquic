@@ -204,7 +204,7 @@ struct CountHelper {
         if (InterlockedDecrement(&RefCount) == 0) {
             return true;
         } else {
-            return !QuicEventWaitWithTimeout(*Done, Milliseconds);
+            return !CxPlatEventWaitWithTimeout(*Done, Milliseconds);
         }
     }
 
@@ -214,7 +214,7 @@ struct CountHelper {
         if (InterlockedDecrement(&RefCount) == 0) {
             return;
         } else {
-            QuicEventWaitForever(*Done);
+            CxPlatEventWaitForever(*Done);
         }
     }
 
@@ -228,7 +228,7 @@ struct CountHelper {
     CompleteItem(
         ) {
         if (InterlockedDecrement(&RefCount) == 0) {
-            QuicEventSet(*Done);
+            CxPlatEventSet(*Done);
         }
     }
 };
@@ -263,26 +263,26 @@ public:
 
     ~QuicPoolBufferAllocator() {
         if (Initialized) {
-            QuicPoolUninitialize(&Pool);
+            CxPlatPoolUninitialize(&Pool);
             Initialized = false;
         }
     }
 
     void Initialize(uint32_t Size, bool Paged = false) {
         QUIC_DBG_ASSERT(Initialized == false);
-        QuicPoolInitialize(Paged, Size, QUIC_POOL_PERF, &Pool);
+        CxPlatPoolInitialize(Paged, Size, QUIC_POOL_PERF, &Pool);
         Initialized = true;
     }
 
     uint8_t* Alloc() {
-        return static_cast<uint8_t*>(QuicPoolAlloc(&Pool));
+        return static_cast<uint8_t*>(CxPlatPoolAlloc(&Pool));
     }
 
     void Free(uint8_t* Buf) {
         if (Buf == nullptr) {
             return;
         }
-        QuicPoolFree(&Pool, Buf);
+        CxPlatPoolFree(&Pool, Buf);
     }
 };
 
@@ -291,16 +291,16 @@ class QuicPoolAllocator {
     QUIC_POOL Pool;
 public:
     QuicPoolAllocator() noexcept {
-        QuicPoolInitialize(Paged, sizeof(T), QUIC_POOL_PERF, &Pool);
+        CxPlatPoolInitialize(Paged, sizeof(T), QUIC_POOL_PERF, &Pool);
     }
 
     ~QuicPoolAllocator() noexcept {
-        QuicPoolUninitialize(&Pool);
+        CxPlatPoolUninitialize(&Pool);
     }
 
     template <class... Args>
     T* Alloc(Args&&... args) noexcept {
-        void* Raw = QuicPoolAlloc(&Pool);
+        void* Raw = CxPlatPoolAlloc(&Pool);
         if (Raw == nullptr) {
             return nullptr;
         }
@@ -312,6 +312,6 @@ public:
             return;
         }
         Obj->~T();
-        QuicPoolFree(&Pool, Obj);
+        CxPlatPoolFree(&Pool, Obj);
     }
 };

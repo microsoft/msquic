@@ -63,7 +63,7 @@ QUIC_PLATFORM QuicPlatform = { NULL, NULL };
 INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatformSystemLoad(
+CxPlatSystemLoad(
     _In_ PDRIVER_OBJECT DriverObject,
     _In_ PUNICODE_STRING RegistryPath
     )
@@ -90,7 +90,7 @@ QuicPlatformSystemLoad(
 PAGEDX
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatformSystemUnload(
+CxPlatSystemUnload(
     void
     )
 {
@@ -112,7 +112,7 @@ QuicPlatformSystemUnload(
 PAGEDX
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicPlatformInitialize(
+CxPlatInitialize(
     void
     )
 {
@@ -148,13 +148,13 @@ QuicPlatformInitialize(
         goto Error;
     }
 
-    Status = QuicTlsLibraryInitialize();
+    Status = CxPlatTlsLibraryInitialize();
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "QuicTlsLibraryInitialize");
+            "CxPlatTlsLibraryInitialize");
         goto Error;
     }
 
@@ -185,12 +185,12 @@ Error:
 PAGEDX
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatformUninitialize(
+CxPlatUninitialize(
     void
     )
 {
     PAGED_CODE();
-    QuicTlsLibraryUninitialize();
+    CxPlatTlsLibraryUninitialize();
     BCryptCloseAlgorithmProvider(QuicPlatform.RngAlgorithm, 0);
     QuicPlatform.RngAlgorithm = NULL;
     QuicTraceLogInfo(
@@ -200,7 +200,7 @@ QuicPlatformUninitialize(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicPlatformLogAssert(
+CxPlatLogAssert(
     _In_z_ const char* File,
     _In_ int Line,
     _In_z_ const char* Expr
@@ -219,7 +219,7 @@ QuicPlatformLogAssert(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicRandom(
+CxPlatRandom(
     _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) void* Buffer
     )

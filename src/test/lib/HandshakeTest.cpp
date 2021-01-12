@@ -69,8 +69,8 @@ QuicTestPrimeResumption(
         TEST_QUIC_SUCCEEDED(
             Client.Start(
                 ClientConfiguration,
-                QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-                QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr),
+                QUIC_LOCALHOST_FOR_AF(CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
                 ServerLocalAddr.GetPort()));
         if (Client.WaitForConnectionComplete()) {
             TEST_TRUE(Client.GetIsConnected());
@@ -89,10 +89,10 @@ struct ServerAcceptContext {
     TestConnection** NewConnection;
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {
-        QuicEventInitialize(&NewConnectionReady, TRUE, FALSE);
+        CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);
     }
     ~ServerAcceptContext() {
-        QuicEventUninitialize(NewConnectionReady);
+        CxPlatEventUninitialize(NewConnectionReady);
     }
 };
 
@@ -113,7 +113,7 @@ ListenerAcceptConnection(
         return false;
     }
     (*AcceptContext->NewConnection)->SetHasRandomLoss(Listener->GetHasRandomLoss());
-    QuicEventSet(AcceptContext->NewConnectionReady);
+    CxPlatEventSet(AcceptContext->NewConnectionReady);
     return true;
 }
 
@@ -218,7 +218,7 @@ QuicTestConnect(
                         ServerLocalAddr.GetPort()));
 
                 if (AsyncConfiguration) {
-                    if (!QuicEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
+                    if (!CxPlatEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
                         TEST_FAILURE("Timed out waiting for server accept.");
                     } else if (Server == nullptr) {
                         TEST_FAILURE("Failed to accept server connection.");
@@ -340,7 +340,7 @@ QuicTestNatPortRebind(
                 QuicAddr OrigLocalAddr;
                 TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(OrigLocalAddr));
                 QuicAddr NewLocalAddr(OrigLocalAddr, 1);
-                QuicSleep(100);
+                CxPlatSleep(100);
 
                 ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr);
                 TEST_FALSE(Client.GetIsShutdown());
@@ -350,12 +350,12 @@ QuicTestNatPortRebind(
                 uint32_t Try = 0;
                 do {
                     if (Try != 0) {
-                        QuicSleep(200);
+                        CxPlatSleep(200);
                     }
                     QuicAddr ServerRemoteAddr;
                     TEST_QUIC_SUCCEEDED(Server->GetRemoteAddr(ServerRemoteAddr));
                     if (Server->GetPeerAddrChanged() &&
-                        QuicAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
+                        CxPlatAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
                         ServerAddressUpdated = true;
                         break;
                     }
@@ -437,7 +437,7 @@ QuicTestNatAddrRebind(
                 TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(OrigLocalAddr));
                 QuicAddr NewLocalAddr(OrigLocalAddr, 1);
                 NewLocalAddr.IncrementAddr();
-                QuicSleep(100);
+                CxPlatSleep(100);
 
                 ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr);
                 TEST_FALSE(Client.GetIsShutdown());
@@ -447,12 +447,12 @@ QuicTestNatAddrRebind(
                 uint32_t Try = 0;
                 do {
                     if (Try != 0) {
-                        QuicSleep(200);
+                        CxPlatSleep(200);
                     }
                     QuicAddr ServerRemoteAddr;
                     TEST_QUIC_SUCCEEDED(Server->GetRemoteAddr(ServerRemoteAddr));
                     if (Server->GetPeerAddrChanged() &&
-                        QuicAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
+                        CxPlatAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
                         ServerAddressUpdated = true;
                         break;
                     }
@@ -536,13 +536,13 @@ QuicTestPathValidationTimeout(
                 QuicAddr OrigLocalAddr;
                 TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(OrigLocalAddr));
                 QuicAddr NewLocalAddr(OrigLocalAddr, 1);
-                QuicSleep(100);
+                CxPlatSleep(100);
 
                 ReplaceAddressThenDropHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr, 1);
                 TEST_FALSE(Client.GetIsShutdown());
                 Client.SetKeepAlive(25);
 
-                QuicSleep(200);
+                CxPlatSleep(200);
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, QUIC_TEST_NO_ERROR);
             }
 
@@ -616,12 +616,12 @@ QuicTestChangeMaxStreamID(
 
                 TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount(101));
                 TEST_EQUAL(101, Client.GetPeerBidiStreamCount());
-                QuicSleep(100);
+                CxPlatSleep(100);
                 TEST_EQUAL(101, Server->GetLocalBidiStreamCount());
 
                 TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount(100));
                 TEST_EQUAL(100, Server->GetPeerBidiStreamCount());
-                QuicSleep(100);
+                CxPlatSleep(100);
                 TEST_EQUAL(100, Client.GetLocalBidiStreamCount());
 
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
@@ -685,7 +685,7 @@ QuicTestConnectAndIdle(
                         ClientConfiguration,
                         QUIC_ADDRESS_FAMILY_UNSPEC,
                         QUIC_LOCALHOST_FOR_AF(
-                            QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                            CxPlatAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
@@ -706,7 +706,7 @@ QuicTestConnectAndIdle(
                     TEST_QUIC_SUCCEEDED(Client.SetKeepAlive(1000));
                 }
 
-                QuicSleep(4000); // Wait for the first idle period to expire.
+                CxPlatSleep(4000); // Wait for the first idle period to expire.
 
                 if (EnableKeepAlive) {
                     TEST_FALSE(Client.GetIsShutdown());
@@ -1086,7 +1086,7 @@ QuicTestKeyUpdate(
 
                 for (uint16_t i = 0; i < Iterations; ++i) {
 
-                    QuicSleep(100);
+                    CxPlatSleep(100);
 
                     if (ClientKeyUpdate) {
                         TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
@@ -1102,16 +1102,16 @@ QuicTestKeyUpdate(
                     //
                     TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount((uint16_t)(101+i)));
                     TEST_EQUAL((uint16_t)(101+i), Client.GetPeerBidiStreamCount());
-                    QuicSleep(100);
+                    CxPlatSleep(100);
                     TEST_EQUAL((uint16_t)(101+i), Server->GetLocalBidiStreamCount());
 
                     TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount((uint16_t)(100+i)));
                     TEST_EQUAL((uint16_t)(100+i), Server->GetPeerBidiStreamCount());
-                    QuicSleep(100);
+                    CxPlatSleep(100);
                     TEST_EQUAL((uint16_t)(100+i), Client.GetLocalBidiStreamCount());
                 }
 
-                QuicSleep(100);
+                CxPlatSleep(100);
 
                 QUIC_STATISTICS Stats = Client.GetStatistics();
                 if (Stats.Recv.DecryptionFailures) {
@@ -1210,22 +1210,22 @@ QuicTestCidUpdate(
 
                 for (uint16_t i = 0; i < Iterations; ++i) {
 
-                    QuicSleep(100);
+                    CxPlatSleep(100);
 
                     TEST_QUIC_SUCCEEDED(Client.ForceCidUpdate());
 
                     TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount((uint16_t)(101+i)));
                     TEST_EQUAL((uint16_t)(101+i), Client.GetPeerBidiStreamCount());
-                    QuicSleep(100);
+                    CxPlatSleep(100);
                     TEST_EQUAL((uint16_t)(101+i), Server->GetLocalBidiStreamCount());
 
                     TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount((uint16_t)(100+i)));
                     TEST_EQUAL((uint16_t)(100+i), Server->GetPeerBidiStreamCount());
-                    QuicSleep(100);
+                    CxPlatSleep(100);
                     TEST_EQUAL((uint16_t)(100+i), Client.GetLocalBidiStreamCount());
                 }
 
-                QuicSleep(100);
+                CxPlatSleep(100);
 
                 QUIC_STATISTICS Stats = Client.GetStatistics();
                 if (Stats.Recv.DecryptionFailures) {

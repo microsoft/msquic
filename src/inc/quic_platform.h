@@ -158,7 +158,7 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_THREAD_FLAGS);
 
 FORCEINLINE
 void
-QuicListInitializeHead(
+CxPlatListInitializeHead(
     _Out_ QUIC_LIST_ENTRY* ListHead
     )
 {
@@ -168,7 +168,7 @@ QuicListInitializeHead(
 _Must_inspect_result_
 FORCEINLINE
 BOOLEAN
-QuicListIsEmpty(
+CxPlatListIsEmpty(
     _In_ const QUIC_LIST_ENTRY* ListHead
     )
 {
@@ -177,7 +177,7 @@ QuicListIsEmpty(
 
 FORCEINLINE
 void
-QuicListInsertHead(
+CxPlatListInsertHead(
     _Inout_ QUIC_LIST_ENTRY* ListHead,
     _Out_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
     )
@@ -192,7 +192,7 @@ QuicListInsertHead(
 
 FORCEINLINE
 void
-QuicListInsertTail(
+CxPlatListInsertTail(
     _Inout_ QUIC_LIST_ENTRY* ListHead,
     _Inout_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
     )
@@ -207,7 +207,7 @@ QuicListInsertTail(
 
 FORCEINLINE
 QUIC_LIST_ENTRY*
-QuicListRemoveHead(
+CxPlatListRemoveHead(
     _Inout_ QUIC_LIST_ENTRY* ListHead
     )
 {
@@ -221,7 +221,7 @@ QuicListRemoveHead(
 
 FORCEINLINE
 BOOLEAN
-QuicListEntryRemove(
+CxPlatListEntryRemove(
     _In_ QUIC_LIST_ENTRY* Entry
     )
 {
@@ -235,7 +235,7 @@ QuicListEntryRemove(
 
 inline
 void
-QuicListMoveItems(
+CxPlatListMoveItems(
     _Inout_ QUIC_LIST_ENTRY* Source,
     _Inout_ QUIC_LIST_ENTRY* Destination
     )
@@ -243,9 +243,9 @@ QuicListMoveItems(
     //
     // If there are items, copy them.
     //
-    if (!QuicListIsEmpty(Source)) {
+    if (!CxPlatListIsEmpty(Source)) {
 
-        if (QuicListIsEmpty(Destination)) {
+        if (CxPlatListIsEmpty(Destination)) {
 
             //
             // Copy the links of the Source.
@@ -278,13 +278,13 @@ QuicListMoveItems(
         //
         // Reset the Source to empty list.
         //
-        QuicListInitializeHead(Source);
+        CxPlatListInitializeHead(Source);
     }
 }
 
 FORCEINLINE
 void
-QuicListPushEntry(
+CxPlatListPushEntry(
     _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead,
     _Inout_ __drv_aliasesMem QUIC_SINGLE_LIST_ENTRY* Entry
     )
@@ -295,7 +295,7 @@ QuicListPushEntry(
 
 FORCEINLINE
 QUIC_SINGLE_LIST_ENTRY*
-QuicListPopEntry(
+CxPlatListPopEntry(
     _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead
     )
 {
@@ -328,13 +328,13 @@ typedef enum QUIC_SELF_SIGN_CERT_TYPE {
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
-QuicPlatGetSelfSignedCert(
+CxPlatPlatGetSelfSignedCert(
     _In_ QUIC_SELF_SIGN_CERT_TYPE Type
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatFreeSelfSignedCert(
+CxPlatPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     );
 
