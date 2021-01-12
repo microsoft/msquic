@@ -770,7 +770,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "eventfd failed");
@@ -792,7 +792,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "epoll_ctl(EPOLL_CTL_ADD) failed");
@@ -811,7 +811,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "socket failed");
@@ -833,7 +833,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "setsockopt(IPV6_V6ONLY) failed");
@@ -862,7 +862,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "setsockopt(IP_MTU_DISCOVER) failed");
@@ -881,7 +881,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "setsockopt(IPV6_DONTFRAG) failed");
@@ -910,7 +910,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "setsockopt(IPV6_RECVPKTINFO) failed");
@@ -929,7 +929,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "setsockopt(IP_PKTINFO) failed");
@@ -952,7 +952,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "setsockopt(IPV6_RECVTCLASS) failed");
@@ -971,7 +971,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "setsockopt(IP_RECVTOS) failed");
@@ -994,7 +994,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "setsockopt(SO_RCVBUF) failed");
@@ -1016,7 +1016,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "setsockopt(SO_REUSEADDR) failed");
@@ -1037,7 +1037,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "bind failed");
@@ -1062,7 +1062,7 @@ QuicSocketContextInitialize(
             Status = errno;
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Binding,
                 Status,
                 "connect failed");
@@ -1086,7 +1086,7 @@ QuicSocketContextInitialize(
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "getsockname failed");
@@ -1215,7 +1215,7 @@ QuicSocketContextStartReceive(
         Status = Ret;
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             SocketContext->Binding,
             Status,
             "epoll_ctl failed");
@@ -1298,7 +1298,7 @@ QuicSocketContextRecvComplete(
 
     QuicTraceEvent(
         DatapathRecv,
-        "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+        "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
         (uint32_t)BytesTransferred,
@@ -1352,7 +1352,7 @@ QuicSocketContextPendSend(
         if (Ret != 0) {
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 SocketContext->Binding,
                 errno,
                 "epoll_ctl failed");
@@ -1424,7 +1424,7 @@ QuicSocketContextSendComplete(
             Status = Ret;
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 SocketContext->Binding,
                 Status,
                 "epoll_ctl failed");
@@ -1495,14 +1495,14 @@ QuicSocketContextProcessEvents(
         if (Ret < 0) {
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 SocketContext->Binding,
                 errno,
                 "getsockopt(SO_ERROR) failed");
         } else {
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 SocketContext->Binding,
                 ErrNum,
                 "Socket error event");
@@ -1535,7 +1535,7 @@ QuicSocketContextProcessEvents(
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
                     QuicTraceEvent(
                         DatapathErrorStatus,
-                        "[ udp][%p] ERROR, %u, %s.",
+                        "[data][%p] ERROR, %u, %s.",
                         SocketContext->Binding,
                         errno,
                         "recvmsg failed");
@@ -1597,7 +1597,7 @@ QuicSocketCreateUdp(
 
     QuicTraceEvent(
         DatapathCreated,
-        "[ udp][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Binding,
         CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
@@ -1668,7 +1668,7 @@ Exit:
         if (Binding != NULL) {
             QuicTraceEvent(
                 DatapathDestroyed,
-                "[ udp][%p] Destroyed",
+                "[data][%p] Destroyed",
                 Binding);
             // TODO - Clean up socket contexts
             QuicRundownRelease(&Datapath->BindingsRundown);
@@ -1727,7 +1727,7 @@ QuicSocketDelete(
     QUIC_DBG_ASSERT(Binding != NULL);
     QuicTraceEvent(
         DatapathDestroyed,
-        "[ udp][%p] Destroyed",
+        "[data][%p] Destroyed",
         Binding);
 
     //
@@ -2053,7 +2053,7 @@ QuicSocketSend(
 
     QuicTraceEvent(
         DatapathSend,
-        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Binding,
         TotalSize,
         SendContext->BufferCount,
@@ -2130,7 +2130,7 @@ QuicSocketSend(
             Status = errno;
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 SocketContext->Binding,
                 Status,
                 "sendmsg failed");
@@ -2184,7 +2184,7 @@ QuicDataPathWorkerThread(
 
     QuicTraceLogInfo(
         DatapathWorkerThreadStart,
-        "[ udp][%p] Worker start",
+        "[data][%p] Worker start",
         ProcContext);
 
     const size_t EpollEventCtMax = 16; // TODO: Experiment.
@@ -2219,7 +2219,7 @@ QuicDataPathWorkerThread(
 
     QuicTraceLogInfo(
         DatapathWorkerThreadStop,
-        "[ udp][%p] Worker stop",
+        "[data][%p] Worker stop",
         ProcContext);
 
     return NO_ERROR;

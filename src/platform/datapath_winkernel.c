@@ -550,7 +550,7 @@ QuicDataPathQueryRssScalabilityInfo(
     } else if (QUIC_FAILED(Status)) {
         QuicTraceLogWarning(
             DatapathOpenTcpSocketFailed,
-            "[ udp] RSS helper socket failed to open, 0x%x",
+            "[data] RSS helper socket failed to open, 0x%x",
             Status);
         goto Error;
     }
@@ -560,7 +560,7 @@ QuicDataPathQueryRssScalabilityInfo(
     if (QUIC_FAILED(Status)) {
         QuicTraceLogWarning(
             DatapathOpenTcpSocketFailedAsync,
-            "[ udp] RSS helper socket failed to open (async), 0x%x",
+            "[data] RSS helper socket failed to open (async), 0x%x",
             Status);
         goto Error;
     }
@@ -595,7 +595,7 @@ QuicDataPathQueryRssScalabilityInfo(
     } else if (QUIC_FAILED(Status)) {
         QuicTraceLogWarning(
             DatapathQueryRssScalabilityInfoFailed,
-            "[ udp] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
+            "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
             Status);
         goto Error;
     }
@@ -605,7 +605,7 @@ QuicDataPathQueryRssScalabilityInfo(
     if (QUIC_FAILED(Status)) {
         QuicTraceLogWarning(
             DatapathQueryRssScalabilityInfoFailedAsync,
-            "[ udp] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed (async), 0x%x",
+            "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed (async), 0x%x",
             Status);
         goto Error;
     }
@@ -682,7 +682,7 @@ QuicDataPathQuerySockoptSupport(
     } else if (QUIC_FAILED(Status)) {
         QuicTraceLogWarning(
             DatapathOpenUdpSocketFailed,
-            "[ udp] UDP send segmentation helper socket failed to open, 0x%x",
+            "[data] UDP send segmentation helper socket failed to open, 0x%x",
             Status);
         goto Error;
     }
@@ -692,7 +692,7 @@ QuicDataPathQuerySockoptSupport(
     if (QUIC_FAILED(Status)) {
         QuicTraceLogWarning(
             DatapathOpenUdpSocketFailedAsync,
-            "[ udp] UDP send segmentation helper socket failed to open (async), 0x%x",
+            "[data] UDP send segmentation helper socket failed to open (async), 0x%x",
             Status);
         goto Error;
     }
@@ -730,7 +730,7 @@ QuicDataPathQuerySockoptSupport(
         } else if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 DatapathQueryUdpSendMsgFailed,
-                "[ udp] Query for UDP_SEND_MSG_SIZE failed, 0x%x",
+                "[data] Query for UDP_SEND_MSG_SIZE failed, 0x%x",
                 Status);
             break;
         }
@@ -739,7 +739,7 @@ QuicDataPathQuerySockoptSupport(
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 DatapathQueryUdpSendMsgFailedAsync,
-                "[ udp] Query for UDP_SEND_MSG_SIZE failed (async), 0x%x",
+                "[data] Query for UDP_SEND_MSG_SIZE failed (async), 0x%x",
                 Status);
             break;
         }
@@ -778,7 +778,7 @@ QuicDataPathQuerySockoptSupport(
         } else if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 DatapathQueryRecvMaxCoalescedSizeFailed,
-                "[ udp] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
+                "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
                 Status);
             break;
         }
@@ -787,7 +787,7 @@ QuicDataPathQuerySockoptSupport(
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 DatapathQueryRecvMaxCoalescedSizeFailedAsync,
-                "[ udp] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x",
+                "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x",
                 Status);
             break;
         }
@@ -1325,7 +1325,7 @@ QuicSocketCreateUdp(
 
     QuicTraceEvent(
         DatapathCreated,
-        "[ udp][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Binding,
         CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
@@ -1376,7 +1376,7 @@ QuicSocketCreateUdp(
     } else if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "WskSocket");
@@ -1388,7 +1388,7 @@ QuicSocketCreateUdp(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "WskSocket completion");
@@ -1412,7 +1412,7 @@ QuicSocketCreateUdp(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "Set IPV6_V6ONLY");
@@ -1431,7 +1431,7 @@ QuicSocketCreateUdp(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "Set IP_DONTFRAGMENT");
@@ -1450,7 +1450,7 @@ QuicSocketCreateUdp(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "Set IPV6_DONTFRAG");
@@ -1469,7 +1469,7 @@ QuicSocketCreateUdp(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "Set IPV6_PKTINFO");
@@ -1488,7 +1488,7 @@ QuicSocketCreateUdp(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "Set IP_PKTINFO");
@@ -1507,7 +1507,7 @@ QuicSocketCreateUdp(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "Set IPV6_RECVERR");
@@ -1526,7 +1526,7 @@ QuicSocketCreateUdp(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "Set IP_RECVERR");
@@ -1546,7 +1546,7 @@ QuicSocketCreateUdp(
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Binding,
                 Status,
                 "Set UDP_RECV_MAX_COALESCED_SIZE");
@@ -1577,7 +1577,7 @@ QuicSocketCreateUdp(
     } else if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "WskBind");
@@ -1589,7 +1589,7 @@ QuicSocketCreateUdp(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "WskBind completion");
@@ -1611,7 +1611,7 @@ QuicSocketCreateUdp(
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Binding,
                 Status,
                 "Set SIO_WSK_SET_REMOTE_ADDRESS");
@@ -1646,7 +1646,7 @@ QuicSocketCreateUdp(
     } else if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "WskGetLocalAddress");
@@ -1658,7 +1658,7 @@ QuicSocketCreateUdp(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "WskGetLocalAddress completion");
@@ -1758,7 +1758,7 @@ QuicDataPathCloseSocketIoCompletion(
         if (QUIC_FAILED(Binding->Irp.IoStatus.Status)) {
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Binding,
                 Binding->Irp.IoStatus.Status,
                 "WskCloseSocket completion");
@@ -1783,7 +1783,7 @@ QuicSocketDelete(
     QUIC_DBG_ASSERT(Binding != NULL);
     QuicTraceEvent(
         DatapathDestroyed,
-        "[ udp][%p] Destroyed",
+        "[data][%p] Destroyed",
         Binding);
 
     if (Binding->Socket != NULL) {
@@ -1814,7 +1814,7 @@ QuicSocketDelete(
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
+                "[data][%p] ERROR, %u, %s.",
                 Binding,
                 Status,
                 "WskCloseSocket");
@@ -2117,7 +2117,7 @@ QuicDataPathSocketReceive(
 
         QuicTraceEvent(
             DatapathRecv,
-            "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             Binding,
             (uint32_t)DataLength,
             MessageLength,
@@ -2756,7 +2756,7 @@ QuicDataPathSendComplete(
     if (!NT_SUCCESS(Irp->IoStatus.Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Irp->IoStatus.Status,
             "WskSendMessages completion");
@@ -2817,7 +2817,7 @@ QuicSocketSend(
 
     QuicTraceEvent(
         DatapathSend,
-        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Binding,
         SendContext->TotalSize,
         SendContext->WskBufferCount,
@@ -2893,7 +2893,7 @@ QuicSocketSend(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
             "WskSendMessages");
