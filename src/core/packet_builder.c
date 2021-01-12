@@ -60,7 +60,7 @@ QuicPacketBuilderInitialize(
     }
 
     Builder->SourceCid =
-        QUIC_CONTAINING_RECORD(
+        CXPLAT_CONTAINING_RECORD(
             Connection->SourceCids.Next,
             QUIC_CID_HASH_ENTRY,
             Link);

@@ -207,7 +207,7 @@ QuicBindingUninitialize(
     //
     while (!CxPlatListIsEmpty(&Binding->StatelessOperList)) {
         QUIC_STATELESS_CONTEXT* StatelessCtx =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&Binding->StatelessOperList),
                 QUIC_STATELESS_CONTEXT,
                 ListEntry);
@@ -263,7 +263,7 @@ QuicBindingTraceRundown(
         Link != &Binding->Listeners;
         Link = Link->Flink) {
         QuicListenerTraceRundown(
-            QUIC_CONTAINING_RECORD(Link, QUIC_LISTENER, Link));
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_LISTENER, Link));
     }
 
     CxPlatDispatchRwLockReleaseShared(&Binding->RwLock);
@@ -311,7 +311,7 @@ QuicBindingRegisterListener(
         Link = Link->Flink) {
 
         const QUIC_LISTENER* ExistingListener =
-            QUIC_CONTAINING_RECORD(Link, QUIC_LISTENER, Link);
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_LISTENER, Link);
         const QUIC_ADDR* ExistingAddr = &ExistingListener->LocalAddress;
         const BOOLEAN ExistingWildCard = ExistingListener->WildCard;
         const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
@@ -398,7 +398,7 @@ QuicBindingGetListener(
         Link = Link->Flink) {
 
         QUIC_LISTENER* ExistingListener =
-            QUIC_CONTAINING_RECORD(Link, QUIC_LISTENER, Link);
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_LISTENER, Link);
         const QUIC_ADDR* ExistingAddr = &ExistingListener->LocalAddress;
         const BOOLEAN ExistingWildCard = ExistingListener->WildCard;
         const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
@@ -582,7 +582,7 @@ QuicBindingCreateStatelessOperation(
     //
     while (!CxPlatListIsEmpty(&Binding->StatelessOperList)) {
         QUIC_STATELESS_CONTEXT* OldStatelessCtx =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 Binding->StatelessOperList.Flink,
                 QUIC_STATELESS_CONTEXT,
                 ListEntry);
@@ -629,7 +629,7 @@ QuicBindingCreateStatelessOperation(
 
     while (TableEntry != NULL) {
         const QUIC_STATELESS_CONTEXT* ExistingCtx =
-            QUIC_CONTAINING_RECORD(TableEntry, QUIC_STATELESS_CONTEXT, TableEntry);
+            CXPLAT_CONTAINING_RECORD(TableEntry, QUIC_STATELESS_CONTEXT, TableEntry);
 
         if (QuicAddrCompare(&ExistingCtx->RemoteAddress, RemoteAddress)) {
             QuicPacketLogDrop(Binding, CxPlatDataPathRecvDataToRecvPacket(Datagram),
@@ -1249,7 +1249,7 @@ QuicBindingCreateConnection(
     BOOLEAN BindingRefAdded = FALSE;
     CXPLAT_DBG_ASSERT(NewConnection->SourceCids.Next != NULL);
     QUIC_CID_HASH_ENTRY* SourceCid =
-        QUIC_CONTAINING_RECORD(
+        CXPLAT_CONTAINING_RECORD(
             NewConnection->SourceCids.Next,
             QUIC_CID_HASH_ENTRY,
             Link);

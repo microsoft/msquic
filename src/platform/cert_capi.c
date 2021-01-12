@@ -179,7 +179,7 @@ HashHandleFromTLS(
     }
 }
 
-#define QUIC_CERTIFICATE_MAX_HASH_SIZE 64
+#define CXPLAT_CERTIFICATE_MAX_HASH_SIZE 64
 
 static
 _Success_(return != 0)
@@ -1027,7 +1027,7 @@ CxPlatCertSign(
     }
 
     DWORD HashSize = HashSizeFromTLS(SignatureAlgorithm);
-    if (HashSize == 0 || HashSize > QUIC_CERTIFICATE_MAX_HASH_SIZE) {
+    if (HashSize == 0 || HashSize > CXPLAT_CERTIFICATE_MAX_HASH_SIZE) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1047,7 +1047,7 @@ CxPlatCertSign(
     }
 
     BOOLEAN Result = FALSE;
-    BYTE HashBuf[QUIC_CERTIFICATE_MAX_HASH_SIZE] = { 0 };
+    BYTE HashBuf[CXPLAT_CERTIFICATE_MAX_HASH_SIZE] = { 0 };
     CXPLAT_SIGN_PADDING Padding = { 0 };
 
     NTSTATUS Status =
@@ -1170,7 +1170,7 @@ CxPlatCertVerify(
     }
 
     DWORD HashSize = HashSizeFromTLS(SignatureAlgorithm);
-    if (HashSize == 0 || HashSize > QUIC_CERTIFICATE_MAX_HASH_SIZE) {
+    if (HashSize == 0 || HashSize > CXPLAT_CERTIFICATE_MAX_HASH_SIZE) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1180,7 +1180,7 @@ CxPlatCertVerify(
     }
 
     BOOLEAN Result = FALSE;
-    BYTE HashBuf[QUIC_CERTIFICATE_MAX_HASH_SIZE] = { 0 };
+    BYTE HashBuf[CXPLAT_CERTIFICATE_MAX_HASH_SIZE] = { 0 };
     BCRYPT_KEY_HANDLE PublicKey = (ULONG_PTR)NULL;
     CXPLAT_SIGN_PADDING Padding = { 0 };
 

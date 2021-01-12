@@ -259,7 +259,7 @@ Return Value:
 
 --*/
 {
-    return QUIC_CONTAINING_RECORD(FlinkPtr, CXPLAT_HASHTABLE_ENTRY, Linkage);
+    return CXPLAT_CONTAINING_RECORD(FlinkPtr, CXPLAT_HASHTABLE_ENTRY, Linkage);
 }
 
 static

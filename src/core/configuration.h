@@ -30,7 +30,7 @@ typedef struct QUIC_CONFIGURATION {
     //
     // The TLS security configurations.
     //
-    QUIC_SEC_CONFIG* SecurityConfig;
+    CXPLAT_SEC_CONFIG* SecurityConfig;
 
 #ifdef QUIC_COMPARTMENT_ID
     //

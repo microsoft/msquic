@@ -30,7 +30,7 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 //
 // TODO: Support batching.
 //
-#define QUIC_MAX_BATCH_SEND 1
+#define CXPLAT_MAX_BATCH_SEND 1
 
 //
 // A receive block to receive a UDP packet over the sockets.
@@ -118,8 +118,8 @@ typedef struct CXPLAT_SEND_DATA {
     //
     size_t BufferCount;
     size_t CurrentIndex;
-    QUIC_BUFFER Buffers[QUIC_MAX_BATCH_SEND];
-    struct iovec Iovs[QUIC_MAX_BATCH_SEND];
+    QUIC_BUFFER Buffers[CXPLAT_MAX_BATCH_SEND];
+    struct iovec Iovs[CXPLAT_MAX_BATCH_SEND];
 
 } CXPLAT_SEND_DATA;
 
@@ -525,7 +525,7 @@ CxPlatDataPathInitialize(
     }
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = CxPlatProcMaxCount();
-    Datapath->MaxSendBatchSize = QUIC_MAX_BATCH_SEND;
+    Datapath->MaxSendBatchSize = CXPLAT_MAX_BATCH_SEND;
     CxPlatRundownInitialize(&Datapath->BindingsRundown);
 
     //
@@ -1135,7 +1135,7 @@ CxPlatSocketContextUninitializeComplete(
 
     while (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
         CxPlatSendDataFree(
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&SocketContext->PendingSendContextHead),
                 CXPLAT_SEND_DATA,
                 PendingSendLinkage));
@@ -1436,7 +1436,7 @@ CxPlatSocketContextSendComplete(
 
     while (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
         CXPLAT_SEND_DATA* SendContext =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&SocketContext->PendingSendContextHead),
                 CXPLAT_SEND_DATA,
                 PendingSendLinkage);
@@ -1471,7 +1471,7 @@ CxPlatSocketContextProcessEvents(
     uint8_t EventType = *(uint8_t*)EventPtr;
     CXPLAT_SOCKET_CONTEXT* SocketContext =
         (CXPLAT_SOCKET_CONTEXT*)(
-            (uint8_t*)QUIC_CONTAINING_RECORD(EventPtr, CXPLAT_SOCKET_CONTEXT, EventContexts) -
+            (uint8_t*)CXPLAT_CONTAINING_RECORD(EventPtr, CXPLAT_SOCKET_CONTEXT, EventContexts) -
             EventType);
 
     if (EventType == QUIC_SOCK_EVENT_CLEANUP) {
@@ -1853,7 +1853,7 @@ CxPlatDataPathRecvDataToRecvPacket(
     return PlatDispatch->DatapathRecvPacketToRecvContext(Datagram);
 #else
     CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-        QUIC_CONTAINING_RECORD(Datagram, CXPLAT_DATAPATH_RECV_BLOCK, RecvPacket);
+        CXPLAT_CONTAINING_RECORD(Datagram, CXPLAT_DATAPATH_RECV_BLOCK, RecvPacket);
 
     return (CXPLAT_RECV_PACKET*)(RecvBlock + 1);
 #endif
@@ -1873,7 +1873,7 @@ CxPlatRecvDataReturn(
     while ((Datagram = RecvDataChain) != NULL) {
         RecvDataChain = RecvDataChain->Next;
         CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-            QUIC_CONTAINING_RECORD(Datagram, CXPLAT_DATAPATH_RECV_BLOCK, RecvPacket);
+            CXPLAT_CONTAINING_RECORD(Datagram, CXPLAT_DATAPATH_RECV_BLOCK, RecvPacket);
         CxPlatPoolFree(RecvBlock->OwningPool, RecvBlock);
     }
 #endif

@@ -105,7 +105,7 @@ QuicTimerWheelUninitialize(
             CXPLAT_LIST_ENTRY* Entry = ListHead->Flink;
             while (Entry != ListHead) {
                 QUIC_CONNECTION* Connection =
-                    QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
+                    CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
                 QuicTraceLogConnWarning(
                     StillInTimerWheel,
                     Connection,
@@ -169,7 +169,7 @@ QuicTimerWheelResize(
         //
         while (!CxPlatListIsEmpty(&OldSlots[i])) {
             QUIC_CONNECTION* Connection =
-                QUIC_CONTAINING_RECORD(
+                CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&OldSlots[i]),
                     QUIC_CONNECTION,
                     TimerLink);
@@ -187,7 +187,7 @@ QuicTimerWheelResize(
 
             while (Entry != ListHead) {
                 QUIC_CONNECTION* ConnectionEntry =
-                    QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
+                    CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
                 uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
 
                 if (ExpirationTime > EntryExpirationTime) {
@@ -226,7 +226,7 @@ QuicTimerWheelUpdate(
     for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
         if (!CxPlatListIsEmpty(&TimerWheel->Slots[i])) {
             QUIC_CONNECTION* ConnectionEntry =
-                QUIC_CONTAINING_RECORD(
+                CXPLAT_CONTAINING_RECORD(
                     TimerWheel->Slots[i].Flink,
                     QUIC_CONNECTION,
                     TimerLink);
@@ -340,7 +340,7 @@ QuicTimerWheelUpdateConnection(
 
         while (Entry != ListHead) {
             QUIC_CONNECTION* ConnectionEntry =
-                QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
             uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
 
             if (ExpirationTime > EntryExpirationTime) {
@@ -437,7 +437,7 @@ QuicTimerWheelGetExpired(
         CXPLAT_LIST_ENTRY* Entry = ListHead->Flink;
         while (Entry != ListHead) {
             QUIC_CONNECTION* ConnectionEntry =
-                QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
             uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
             if (EntryExpirationTime > TimeNow) {
                 break;

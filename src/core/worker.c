@@ -344,7 +344,7 @@ QuicWorkerGetNextConnection(
             Connection = NULL;
         } else {
             Connection =
-                QUIC_CONTAINING_RECORD(
+                CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
             CXPLAT_DBG_ASSERT(!Connection->WorkerProcessing);
             CXPLAT_DBG_ASSERT(Connection->HasQueuedWork);
@@ -376,7 +376,7 @@ QuicWorkerGetNextOperation(
             Operation = NULL;
         } else {
             Operation =
-                QUIC_CONTAINING_RECORD(
+                CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
 #if DEBUG
             Operation->Link.Flink = NULL;
@@ -415,7 +415,7 @@ QuicWorkerProcessTimers(
         Entry->Flink = NULL;
 
         QUIC_CONNECTION* Connection =
-            QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
+            CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
 
         Connection->WorkerThreadID = Worker->ThreadID;
         QuicConfigurationAttachSilo(Connection->Configuration);
@@ -647,7 +647,7 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
     int64_t Dequeue = 0;
     while (!CxPlatListIsEmpty(&Worker->Connections)) {
         QUIC_CONNECTION* Connection =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
         if (!Connection->State.ExternalOwner) {
             //
@@ -668,7 +668,7 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
     Dequeue = 0;
     while (!CxPlatListIsEmpty(&Worker->Operations)) {
         QUIC_OPERATION* Operation =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
 #if DEBUG
         Operation->Link.Flink = NULL;

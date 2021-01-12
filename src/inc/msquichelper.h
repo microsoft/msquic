@@ -450,7 +450,7 @@ GetServerConfigurationFromArgs(
 
 #ifdef QUIC_TEST_APIS
     } else if (GetValue(argc, argv, "selfsign")) {
-        Config = CxPlatPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+        Config = CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER);
         if (!Config) {
             return nullptr;
         }

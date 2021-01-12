@@ -1495,7 +1495,7 @@ QuicLossDetectionScheduleProbe(
             Entry = Entry->Flink) {
 
             QUIC_STREAM* Stream =
-                QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
             if (QuicStreamCanSendNow(Stream, FALSE)) {
                 if (--NumPackets == 0) {
                     return;

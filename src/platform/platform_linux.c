@@ -26,7 +26,7 @@ Environment:
 #include "platform_linux.c.clog.h"
 #endif
 
-#define QUIC_MAX_LOG_MSG_LEN        1024 // Bytes
+#define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
 
 #ifdef CX_PLATFORM_DISPATCH_TABLE
 CX_PLATFORM_DISPATCH* PlatDispatch = NULL;

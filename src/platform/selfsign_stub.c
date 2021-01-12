@@ -19,7 +19,7 @@ Abstract:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
 CxPlatPlatGetSelfSignedCert(
-    _In_ QUIC_SELF_SIGN_CERT_TYPE Type
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type
     )
 {
     UNREFERENCED_PARAMETER(Type);
@@ -27,7 +27,7 @@ CxPlatPlatGetSelfSignedCert(
     QUIC_CREDENTIAL_CONFIG* Params = malloc(sizeof(QUIC_CREDENTIAL_CONFIG));
     if (Params != NULL) {
         CxPlatZeroMemory(Params, sizeof(*Params));
-        Params->Type = QUIC_CREDENTIAL_TYPE_NULL;
+        Params->Type = CXPLAT_CREDENTIAL_TYPE_NULL;
     }
     return Params;
 }

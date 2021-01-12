@@ -36,7 +36,7 @@ Supported Environments:
 #define MS_TO_S(x)      ((x) / 1000)
 #define S_TO_MS(x)      ((x) * 1000)
 
-#define QUIC_CONTAINING_RECORD(address, type, field) \
+#define CXPLAT_CONTAINING_RECORD(address, type, field) \
     ((type *)((uint8_t*)(address) - offsetof(type, field)))
 
 typedef struct CXPLAT_LIST_ENTRY {
@@ -321,15 +321,15 @@ extern "C" {
 
 typedef struct QUIC_CREDENTIAL_CONFIG QUIC_CREDENTIAL_CONFIG;
 
-typedef enum QUIC_SELF_SIGN_CERT_TYPE {
-    QUIC_SELF_SIGN_CERT_USER,
-    QUIC_SELF_SIGN_CERT_MACHINE
-} QUIC_SELF_SIGN_CERT_TYPE;
+typedef enum CXPLAT_SELF_SIGN_CERT_TYPE {
+    CXPLAT_SELF_SIGN_CERT_USER,
+    CXPLAT_SELF_SIGN_CERT_MACHINE
+} CXPLAT_SELF_SIGN_CERT_TYPE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
 CxPlatPlatGetSelfSignedCert(
-    _In_ QUIC_SELF_SIGN_CERT_TYPE Type
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

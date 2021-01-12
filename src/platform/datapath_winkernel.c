@@ -66,13 +66,13 @@ typedef enum {
 // 60K is the largest buffer most NICs can offload without any software
 // segmentation. Current generation NICs advertise (60K < limit <= 64K).
 //
-#define QUIC_LARGE_SEND_BUFFER_SIZE         0xF000
+#define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xF000
 
 //
 // The maximum number of pages that memory allocated for our UDP payload
 // buffers might span.
 //
-#define MAX_BUFFER_PAGE_USAGE               ((QUIC_LARGE_SEND_BUFFER_SIZE / PAGE_SIZE) + 2)
+#define MAX_BUFFER_PAGE_USAGE               ((CXPLAT_LARGE_SEND_BUFFER_SIZE / PAGE_SIZE) + 2)
 
 //
 // The maximum size of the MDL to accomodate the maximum UDP payload buffer.
@@ -82,7 +82,7 @@ typedef enum {
 //
 // The maximum number of UDP datagrams that can be sent with one call.
 //
-#define QUIC_MAX_BATCH_SEND                 6
+#define CXPLAT_MAX_BATCH_SEND                 6
 
 //
 // The maximum number of UDP datagrams to preallocate for URO.
@@ -902,7 +902,7 @@ CxPlatDataPathInitialize(
             &Datapath->ProcContexts[i].SendBufferPool);
 
         QuicSendBufferPoolInitialize(
-            sizeof(CXPLAT_DATAPATH_SEND_BUFFER) + QUIC_LARGE_SEND_BUFFER_SIZE,
+            sizeof(CXPLAT_DATAPATH_SEND_BUFFER) + CXPLAT_LARGE_SEND_BUFFER_SIZE,
             QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].LargeSendBufferPool);
 
@@ -2445,7 +2445,7 @@ CxPlatSendContextCanAllocSendSegment(
     CXPLAT_DBG_ASSERT(SendContext->WskBufferCount > 0);
 
     ULONG BytesAvailable =
-        QUIC_LARGE_SEND_BUFFER_SIZE -
+        CXPLAT_LARGE_SEND_BUFFER_SIZE -
         (ULONG)SendContext->TailBuf->Link.Buffer.Length -
         SendContext->ClientBuffer.Length;
 
@@ -2461,7 +2461,7 @@ CxPlatSendContextCanAllocSend(
     )
 {
     return
-        (SendContext->WskBufferCount < QUIC_MAX_BATCH_SEND) ||
+        (SendContext->WskBufferCount < CXPLAT_MAX_BATCH_SEND) ||
         ((SendContext->SegmentSize > 0) &&
             CxPlatSendContextCanAllocSendSegment(SendContext, MaxBufferLength));
 }

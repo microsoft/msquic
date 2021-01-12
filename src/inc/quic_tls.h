@@ -21,7 +21,7 @@ extern "C" {
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4214)  // nonstandard extension used: bit field types other than int
 
-typedef struct QUIC_SEC_CONFIG QUIC_SEC_CONFIG;
+typedef struct CXPLAT_SEC_CONFIG CXPLAT_SEC_CONFIG;
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 typedef struct CXPLAT_TLS CXPLAT_TLS;
 typedef struct CXPLAT_TLS_SECRETS CXPLAT_TLS_SECRETS;
@@ -111,7 +111,7 @@ typedef struct CXPLAT_TLS_CONFIG {
     //
     // The TLS configuration information and credentials.
     //
-    QUIC_SEC_CONFIG* SecConfig;
+    CXPLAT_SEC_CONFIG* SecConfig;
 
     //
     // The Application Layer Protocol Negotiation TLS extension buffer to send
@@ -279,16 +279,16 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
+_Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
 void
-(QUIC_API QUIC_SEC_CONFIG_CREATE_COMPLETE)(
+(QUIC_API CXPLAT_SEC_CONFIG_CREATE_COMPLETE)(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
     _In_ QUIC_STATUS Status,
-    _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
+    _In_opt_ CXPLAT_SEC_CONFIG* SecurityConfig
     );
 
-typedef QUIC_SEC_CONFIG_CREATE_COMPLETE *QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER;
+typedef CXPLAT_SEC_CONFIG_CREATE_COMPLETE *CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER;
 
 //
 // Creates a new TLS security configuration.
@@ -299,7 +299,7 @@ CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
-    _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
+    _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     );
 
 //
@@ -309,7 +309,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsSecConfigDelete(
     __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
-        QUIC_SEC_CONFIG* SecurityConfig
+        CXPLAT_SEC_CONFIG* SecurityConfig
     );
 
 //

@@ -178,7 +178,7 @@ QuicLookupRebalance(
 
                 while (Entry != NULL) {
                     QUIC_CID_HASH_ENTRY *CID =
-                        QUIC_CONTAINING_RECORD(
+                        CXPLAT_CONTAINING_RECORD(
                             Entry,
                             QUIC_CID_HASH_ENTRY,
                             Link);
@@ -215,7 +215,7 @@ QuicLookupRebalance(
                     CxPlatHashtableRemove(&PreviousTable[i].Table, Entry, NULL);
 
                     QUIC_CID_HASH_ENTRY *CID =
-                        QUIC_CONTAINING_RECORD(
+                        CXPLAT_CONTAINING_RECORD(
                             Entry,
                             QUIC_CID_HASH_ENTRY,
                             Entry);
@@ -285,7 +285,7 @@ QuicCidMatchConnection(
         Link = Link->Next) {
 
         const QUIC_CID_HASH_ENTRY* const Entry =
-            QUIC_CONTAINING_RECORD(Link, const QUIC_CID_HASH_ENTRY, Link);
+            CXPLAT_CONTAINING_RECORD(Link, const QUIC_CID_HASH_ENTRY, Link);
 
         if (Length == Entry->CID.Length &&
             (Length == 0 || memcmp(DestCid, Entry->CID.Data, Length) == 0)) {
@@ -316,7 +316,7 @@ QuicHashLookupConnection(
 
     while (TableEntry != NULL) {
         QUIC_CID_HASH_ENTRY* CIDEntry =
-            QUIC_CONTAINING_RECORD(TableEntry, QUIC_CID_HASH_ENTRY, Entry);
+            CXPLAT_CONTAINING_RECORD(TableEntry, QUIC_CID_HASH_ENTRY, Entry);
 
         if (CIDEntry->CID.Length == Length &&
             memcmp(DestCid, CIDEntry->CID.Data, Length) == 0) {
@@ -418,7 +418,7 @@ QuicLookupFindConnectionByRemoteHashInternal(
 
     while (TableEntry != NULL) {
         QUIC_REMOTE_HASH_ENTRY* Entry =
-            QUIC_CONTAINING_RECORD(TableEntry, QUIC_REMOTE_HASH_ENTRY, Entry);
+            CXPLAT_CONTAINING_RECORD(TableEntry, QUIC_REMOTE_HASH_ENTRY, Entry);
 
         if (QuicAddrCompare(RemoteAddress, &Entry->RemoteAddress) &&
             RemoteCidLength == Entry->RemoteCidLength &&
@@ -870,7 +870,7 @@ QuicLookupRemoveLocalCids(
     CxPlatDispatchRwLockAcquireExclusive(&Lookup->RwLock);
     while (Connection->SourceCids.Next != NULL) {
         QUIC_CID_HASH_ENTRY *CID =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 CxPlatListPopEntry(&Connection->SourceCids),
                 QUIC_CID_HASH_ENTRY,
                 Link);
@@ -902,7 +902,7 @@ QuicLookupMoveLocalConnectionIDs(
     CxPlatDispatchRwLockAcquireExclusive(&LookupSrc->RwLock);
     while (Entry != NULL) {
         QUIC_CID_HASH_ENTRY *CID =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
@@ -919,7 +919,7 @@ QuicLookupMoveLocalConnectionIDs(
     Entry = Connection->SourceCids.Next;
     while (Entry != NULL) {
         QUIC_CID_HASH_ENTRY *CID =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);

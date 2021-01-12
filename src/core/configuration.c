@@ -276,14 +276,14 @@ MsQuicConfigurationClose(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
+_Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
 void
 QUIC_API
 MsQuicConfigurationLoadCredentialComplete(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
     _In_ QUIC_STATUS Status,
-    _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
+    _In_opt_ CXPLAT_SEC_CONFIG* SecurityConfig
     )
 {
     QUIC_CONFIGURATION* Configuration = (QUIC_CONFIGURATION*)Context;

@@ -253,7 +253,7 @@ MsQuicRegistrationShutdown(
         while (Entry != &Registration->Connections) {
 
             QUIC_CONNECTION* Connection =
-                QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, RegistrationLink);
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, RegistrationLink);
 
             if (InterlockedCompareExchange16(
                     (short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
@@ -297,7 +297,7 @@ QuicRegistrationTraceRundown(
         Link != &Registration->Configurations;
         Link = Link->Flink) {
         QuicConfigurationTraceRundown(
-            QUIC_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
     }
 
     CxPlatLockRelease(&Registration->ConfigLock);
@@ -308,7 +308,7 @@ QuicRegistrationTraceRundown(
         Link != &Registration->Connections;
         Link = Link->Flink) {
         QuicConnQueueTraceRundown(
-            QUIC_CONTAINING_RECORD(Link, QUIC_CONNECTION, RegistrationLink));
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_CONNECTION, RegistrationLink));
     }
 
     CxPlatDispatchLockRelease(&Registration->ConnectionLock);
@@ -326,7 +326,7 @@ QuicRegistrationSettingsChanged(
         Link != &Registration->Configurations;
         Link = Link->Flink) {
         QuicConfigurationSettingsChanged(
-            QUIC_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
     }
 
     CxPlatLockRelease(&Registration->ConfigLock);

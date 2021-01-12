@@ -392,8 +392,8 @@ main(
     SelfSignedCredConfig =
         CxPlatPlatGetSelfSignedCert(
             TestingKernelMode ?
-                QUIC_SELF_SIGN_CERT_MACHINE :
-                QUIC_SELF_SIGN_CERT_USER);
+                CXPLAT_SELF_SIGN_CERT_MACHINE :
+                CXPLAT_SELF_SIGN_CERT_USER);
     if (!SelfSignedCredConfig) {
         printf("Creating self signed certificate failed\n");
         RetVal = QUIC_STATUS_INTERNAL_ERROR;

@@ -35,7 +35,7 @@ typedef enum eSniNameType {
     TlsExt_Sni_NameType_HostName = 0
 } eSniNameType;
 
-typedef enum QUIC_FAKE_TLS_MESSAGE_TYPE {
+typedef enum CXPLAT_FAKE_TLS_MESSAGE_TYPE {
 
     CXPLAT_TLS_MESSAGE_INVALID,
     CXPLAT_TLS_MESSAGE_CLIENT_INITIAL,
@@ -45,7 +45,7 @@ typedef enum QUIC_FAKE_TLS_MESSAGE_TYPE {
     CXPLAT_TLS_MESSAGE_TICKET,
     CXPLAT_TLS_MESSAGE_MAX
 
-} QUIC_FAKE_TLS_MESSAGE_TYPE;
+} CXPLAT_FAKE_TLS_MESSAGE_TYPE;
 
 CXPLAT_STATIC_ASSERT(
     (uint32_t)CXPLAT_TLS_MESSAGE_CLIENT_INITIAL == (uint32_t)TlsHandshake_ClientHello,
@@ -187,7 +187,7 @@ typedef struct CXPLAT_KEY {
     uint64_t Secret;
 } CXPLAT_KEY;
 
-typedef struct QUIC_SEC_CONFIG {
+typedef struct CXPLAT_SEC_CONFIG {
 
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
@@ -196,7 +196,7 @@ typedef struct QUIC_SEC_CONFIG {
     uint16_t FormatLength;
     uint8_t FormatBuffer[SIZEOF_CERT_CHAIN_LIST_LENGTH];
 
-} QUIC_SEC_CONFIG;
+} CXPLAT_SEC_CONFIG;
 
 typedef struct CXPLAT_TLS {
 
@@ -208,9 +208,9 @@ typedef struct CXPLAT_TLS {
     //
     uint16_t QuicTpExtType;
 
-    QUIC_FAKE_TLS_MESSAGE_TYPE LastMessageType; // Last message sent.
+    CXPLAT_FAKE_TLS_MESSAGE_TYPE LastMessageType; // Last message sent.
 
-    QUIC_SEC_CONFIG* SecConfig;
+    CXPLAT_SEC_CONFIG* SecConfig;
 
     QUIC_CONNECTION* Connection;
 
@@ -282,7 +282,7 @@ CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
-    _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
+    _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS &&
@@ -307,20 +307,20 @@ CxPlatTlsSecConfigCreate(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (CxPlatTlsSecConfigDelete)")
-    QUIC_SEC_CONFIG* SecurityConfig = CXPLAT_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
+    CXPLAT_SEC_CONFIG* SecurityConfig = CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (SecurityConfig == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
-    CxPlatZeroMemory(SecurityConfig, sizeof(QUIC_SEC_CONFIG));
+    CxPlatZeroMemory(SecurityConfig, sizeof(CXPLAT_SEC_CONFIG));
     SecurityConfig->Type = CredConfig->Type;
     SecurityConfig->Flags = CredConfig->Flags;
     SecurityConfig->Callbacks = *TlsCallbacks;
 
     if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
         if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE &&
-            CredConfig->Type != QUIC_CREDENTIAL_TYPE_NULL) {
+            CredConfig->Type != CXPLAT_CREDENTIAL_TYPE_NULL) {
             Status = CxPlatCertCreate(CredConfig, &SecurityConfig->Certificate);
             if (QUIC_FAILED(Status)) {
                 goto Error;
@@ -360,7 +360,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsSecConfigDelete(
     __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
-        QUIC_SEC_CONFIG* SecurityConfig
+        CXPLAT_SEC_CONFIG* SecurityConfig
     )
 {
     if (SecurityConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
@@ -560,7 +560,7 @@ CxPlatTlsServerProcess(
             ExtListLength -= ExtLength + 4;
         }
 
-        const QUIC_SEC_CONFIG* SecurityConfig = TlsContext->SecConfig;
+        const CXPLAT_SEC_CONFIG* SecurityConfig = TlsContext->SecConfig;
         CXPLAT_FRE_ASSERT(SecurityConfig != NULL);
 
         if (MaxServerMessageLength < MinMessageLengths[CXPLAT_TLS_MESSAGE_SERVER_INITIAL]) {

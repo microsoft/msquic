@@ -22,7 +22,7 @@
 struct TlsContext
 {
     CXPLAT_TLS* Ptr;
-    QUIC_SEC_CONFIG* SecConfig;
+    CXPLAT_SEC_CONFIG* SecConfig;
     CXPLAT_TLS_PROCESS_STATE State;
     CXPLAT_EVENT ProcessCompleteEvent;
     uint8_t AlpnListBuffer[256];
@@ -104,17 +104,17 @@ struct TlsContext
 
 private:
 
-    _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
+    _Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
     static void
     QUIC_API
     OnSecConfigCreateComplete(
         _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
         _In_opt_ void* Context,
         _In_ QUIC_STATUS /* Status */,
-        _In_opt_ QUIC_SEC_CONFIG* SecConfig
+        _In_opt_ CXPLAT_SEC_CONFIG* SecConfig
         )
     {
-        *(QUIC_SEC_CONFIG**)Context = SecConfig;
+        *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
     }
 
     CXPLAT_TLS_RESULT_FLAGS

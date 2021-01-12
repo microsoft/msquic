@@ -31,7 +31,7 @@ typedef void (MITLS_CALLCONV *Fn_mipki_free_chain)(mipki_state *st, mipki_chain 
 
 #define DECLARE_FUNC(Func) Fn_ ## Func Func
 
-typedef struct QUIC_MIPKI_LIBRARY {
+typedef struct CXPLAT_MIPKI_LIBRARY {
 
     HMODULE Libmipki;
 
@@ -48,9 +48,9 @@ typedef struct QUIC_MIPKI_LIBRARY {
     CXPLAT_LOCK Lock;
     mipki_state *State;
 
-} QUIC_MIPKI_LIBRARY;
+} CXPLAT_MIPKI_LIBRARY;
 
-QUIC_MIPKI_LIBRARY miPKI = { 0 };
+CXPLAT_MIPKI_LIBRARY miPKI = { 0 };
 
 static
 inline

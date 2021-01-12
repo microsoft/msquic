@@ -115,7 +115,7 @@ QuicAckTrackerGetPacketSpace(
     _In_ QUIC_ACK_TRACKER* Tracker
     )
 {
-    return QUIC_CONTAINING_RECORD(Tracker, QUIC_PACKET_SPACE, AckTracker);
+    return CXPLAT_CONTAINING_RECORD(Tracker, QUIC_PACKET_SPACE, AckTracker);
 }
 
 //

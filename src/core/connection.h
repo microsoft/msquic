@@ -618,7 +618,7 @@ QuicStreamSetGetConnection(
     _In_ QUIC_STREAM_SET* StreamSet
     )
 {
-    return QUIC_CONTAINING_RECORD(StreamSet, QUIC_CONNECTION, Streams);
+    return CXPLAT_CONTAINING_RECORD(StreamSet, QUIC_CONNECTION, Streams);
 }
 
 //
@@ -631,7 +631,7 @@ QuicCryptoGetConnection(
     _In_ QUIC_CRYPTO* Crypto
     )
 {
-    return QUIC_CONTAINING_RECORD(Crypto, QUIC_CONNECTION, Crypto);
+    return CXPLAT_CONTAINING_RECORD(Crypto, QUIC_CONNECTION, Crypto);
 }
 
 //
@@ -644,7 +644,7 @@ QuicSendGetConnection(
     _In_ QUIC_SEND* Send
     )
 {
-    return QUIC_CONTAINING_RECORD(Send, QUIC_CONNECTION, Send);
+    return CXPLAT_CONTAINING_RECORD(Send, QUIC_CONNECTION, Send);
 }
 
 //
@@ -657,7 +657,7 @@ QuicCongestionControlGetConnection(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    return QUIC_CONTAINING_RECORD(Cc, QUIC_CONNECTION, CongestionControl);
+    return CXPLAT_CONTAINING_RECORD(Cc, QUIC_CONNECTION, CongestionControl);
 }
 
 //
@@ -670,7 +670,7 @@ QuicLossDetectionGetConnection(
     _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    return QUIC_CONTAINING_RECORD(LossDetection, QUIC_CONNECTION, LossDetection);
+    return CXPLAT_CONTAINING_RECORD(LossDetection, QUIC_CONNECTION, LossDetection);
 }
 
 //
@@ -683,7 +683,7 @@ QuicDatagramGetConnection(
     _In_ const QUIC_DATAGRAM* const Datagram
     )
 {
-    return QUIC_CONTAINING_RECORD(Datagram, QUIC_CONNECTION, Datagram);
+    return CXPLAT_CONTAINING_RECORD(Datagram, QUIC_CONNECTION, Datagram);
 }
 
 inline
@@ -1039,7 +1039,7 @@ QuicConnGetSourceCidFromSeq(
             *Entry != NULL;
             Entry = &(*Entry)->Next) {
         QUIC_CID_HASH_ENTRY* SourceCid =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 *Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
@@ -1080,7 +1080,7 @@ QuicConnGetSourceCidFromBuf(
             Entry != NULL;
             Entry = Entry->Next) {
         QUIC_CID_HASH_ENTRY* SourceCid =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
@@ -1108,7 +1108,7 @@ QuicConnGetDestCidFromSeq(
             Entry != &Connection->DestCids;
             Entry = Entry->Flink) {
         QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 Entry,
                 QUIC_CID_CXPLAT_LIST_ENTRY,
                 Link);

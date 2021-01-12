@@ -22,9 +22,9 @@ const uint8_t MultiAlpn[] = { 1, 'C', 1, 'A', 1, 'B' };
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
 protected:
-    QUIC_SEC_CONFIG* ServerSecConfig {nullptr};
-    QUIC_SEC_CONFIG* ClientSecConfig {nullptr};
-    QUIC_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
+    CXPLAT_SEC_CONFIG* ServerSecConfig {nullptr};
+    CXPLAT_SEC_CONFIG* ClientSecConfig {nullptr};
+    CXPLAT_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
     static const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
 
     TlsTest() { }
@@ -45,24 +45,24 @@ protected:
         }
     }
 
-    _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
+    _Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
     static void
     QUIC_API
     OnSecConfigCreateComplete(
         _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
         _In_opt_ void* Context,
         _In_ QUIC_STATUS Status,
-        _In_opt_ QUIC_SEC_CONFIG* SecConfig
+        _In_opt_ CXPLAT_SEC_CONFIG* SecConfig
         )
     {
         VERIFY_QUIC_SUCCESS(Status);
         ASSERT_NE(nullptr, SecConfig);
-        *(QUIC_SEC_CONFIG**)Context = SecConfig;
+        *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
     }
 
     static void SetUpTestSuite()
     {
-        SelfSignedCertParams = CxPlatPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+        SelfSignedCertParams = CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER);
         ASSERT_NE(nullptr, SelfSignedCertParams);
     }
 
@@ -125,7 +125,7 @@ protected:
     struct TlsContext
     {
         CXPLAT_TLS* Ptr;
-        QUIC_SEC_CONFIG* SecConfig;
+        CXPLAT_SEC_CONFIG* SecConfig;
         CXPLAT_EVENT ProcessCompleteEvent;
 
         CXPLAT_TLS_PROCESS_STATE State;
@@ -161,14 +161,14 @@ protected:
         }
 
         void InitializeServer(
-            const QUIC_SEC_CONFIG* SecConfiguration,
+            const CXPLAT_SEC_CONFIG* SecConfiguration,
             bool MultipleAlpns = false,
             uint16_t TPLen = 64
             )
         {
             CXPLAT_TLS_CONFIG Config = {0};
             Config.IsServer = TRUE;
-            Config.SecConfig = (QUIC_SEC_CONFIG*)SecConfiguration;
+            Config.SecConfig = (CXPLAT_SEC_CONFIG*)SecConfiguration;
             UNREFERENCED_PARAMETER(MultipleAlpns); // The server must always send back the negotiated ALPN.
             Config.AlpnBuffer = Alpn;
             Config.AlpnBufferLength = sizeof(Alpn);
@@ -187,7 +187,7 @@ protected:
         }
 
         void InitializeClient(
-            QUIC_SEC_CONFIG* SecConfiguration,
+            CXPLAT_SEC_CONFIG* SecConfiguration,
             bool MultipleAlpns = false,
             uint16_t TPLen = 64,
             QUIC_BUFFER* Ticket = nullptr

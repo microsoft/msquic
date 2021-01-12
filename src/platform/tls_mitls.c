@@ -21,15 +21,15 @@ Abstract:
 
 uint16_t CxPlatTlsTPHeaderSize = 0;
 
-#define QUIC_SUPPORTED_CIPHER_SUITES        "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
-#define QUIC_SERVER_SIGNATURE_ALGORITHMS    "ECDSA+SHA256:ECDSA+SHA384:ECDSA+SHA512:RSAPSS+SHA256:RSAPSS+SHA384:RSAPSS+SHA512"
-#define QUIC_CLIENT_SIGNATURE_ALGORITHMS    "ECDSA+SHA256:ECDSA+SHA384:ECDSA+SHA512:RSAPSS+SHA256:RSAPSS+SHA384:RSAPSS+SHA512"
-#if QUIC_PROD_MITLS
-#define QUIC_SERVER_NAMED_GROUPS            "P-521:P-384:P-256:X25519:FFDHE4096:FFDHE3072:FFDHE2048"
-#define QUIC_CLIENT_NAMED_GROUPS            "P-384:P-256:X25519"
+#define CXPLAT_SUPPORTED_CIPHER_SUITES        "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
+#define CXPLAT_SERVER_SIGNATURE_ALGORITHMS    "ECDSA+SHA256:ECDSA+SHA384:ECDSA+SHA512:RSAPSS+SHA256:RSAPSS+SHA384:RSAPSS+SHA512"
+#define CXPLAT_CLIENT_SIGNATURE_ALGORITHMS    "ECDSA+SHA256:ECDSA+SHA384:ECDSA+SHA512:RSAPSS+SHA256:RSAPSS+SHA384:RSAPSS+SHA512"
+#if CXPLAT_PROD_MITLS
+#define CXPLAT_SERVER_NAMED_GROUPS            "P-521:P-384:P-256:X25519:FFDHE4096:FFDHE3072:FFDHE2048"
+#define CXPLAT_CLIENT_NAMED_GROUPS            "P-384:P-256:X25519"
 #else
-#define QUIC_SERVER_NAMED_GROUPS            "X25519"
-#define QUIC_CLIENT_NAMED_GROUPS            "X25519"
+#define CXPLAT_SERVER_NAMED_GROUPS            "X25519"
+#define CXPLAT_CLIENT_NAMED_GROUPS            "X25519"
 #endif
 
 //
@@ -165,7 +165,7 @@ QuicPacketKeyCreate(
 //
 // TLS Security Config
 //
-typedef struct QUIC_SEC_CONFIG {
+typedef struct CXPLAT_SEC_CONFIG {
 
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
@@ -184,7 +184,7 @@ typedef struct QUIC_SEC_CONFIG {
     uint16_t FormatLength;
     uint8_t FormatBuffer[CXPLAT_TLS_MAX_MESSAGE_LENGTH];
 
-} QUIC_SEC_CONFIG;
+} CXPLAT_SEC_CONFIG;
 
 //
 // Contiguous memory representation of a ticket.
@@ -227,7 +227,7 @@ typedef struct CXPLAT_TLS {
     //
     // The TLS configuration information and credentials.
     //
-    QUIC_SEC_CONFIG* SecConfig;
+    CXPLAT_SEC_CONFIG* SecConfig;
 
     //
     // Server Name Indication.
@@ -392,7 +392,7 @@ CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
-    _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
+    _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS &&
@@ -415,7 +415,7 @@ CxPlatTlsSecConfigCreate(
     }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (CxPlatTlsSecConfigDelete).")
-    QUIC_SEC_CONFIG* SecurityConfig = CXPLAT_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
+    CXPLAT_SEC_CONFIG* SecurityConfig = CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (SecurityConfig == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -498,7 +498,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsSecConfigDelete(
     __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
-        QUIC_SEC_CONFIG* SecurityConfig
+        CXPLAT_SEC_CONFIG* SecurityConfig
     )
 {
     if (SecurityConfig->PrivateKey != NULL) {
@@ -568,7 +568,7 @@ CxPlatTlsInitialize(
     TlsContext->miTlsConfig.enable_0rtt = TRUE;
     TlsContext->miTlsConfig.exts = TlsContext->Extensions;
     TlsContext->miTlsConfig.exts_count = ARRAYSIZE(TlsContext->Extensions);
-    TlsContext->miTlsConfig.cipher_suites = QUIC_SUPPORTED_CIPHER_SUITES;
+    TlsContext->miTlsConfig.cipher_suites = CXPLAT_SUPPORTED_CIPHER_SUITES;
     TlsContext->miTlsConfig.nego_callback = CxPlatTlsOnNegotiate;
     TlsContext->miTlsConfig.cert_callbacks = &TlsContext->miTlsCertCallbacks;
 
@@ -590,8 +590,8 @@ CxPlatTlsInitialize(
         //
         // Specific algorithm depending on the cert we are using.
         //
-        TlsContext->miTlsConfig.signature_algorithms = QUIC_SERVER_SIGNATURE_ALGORITHMS;
-        TlsContext->miTlsConfig.named_groups = QUIC_SERVER_NAMED_GROUPS;
+        TlsContext->miTlsConfig.signature_algorithms = CXPLAT_SERVER_SIGNATURE_ALGORITHMS;
+        TlsContext->miTlsConfig.named_groups = CXPLAT_SERVER_NAMED_GROUPS;
 
     } else {
         TlsContext->miTlsConfig.is_server = FALSE;
@@ -659,8 +659,8 @@ CxPlatTlsInitialize(
         //
         // List of supported algorithms for the client.
         //
-        TlsContext->miTlsConfig.signature_algorithms = QUIC_CLIENT_SIGNATURE_ALGORITHMS;
-        TlsContext->miTlsConfig.named_groups = QUIC_CLIENT_NAMED_GROUPS;
+        TlsContext->miTlsConfig.signature_algorithms = CXPLAT_CLIENT_SIGNATURE_ALGORITHMS;
+        TlsContext->miTlsConfig.named_groups = CXPLAT_CLIENT_NAMED_GROUPS;
     }
 
     //
@@ -1185,7 +1185,7 @@ CxPlatTlsOnCertSelect(
     UNREFERENCED_PARAMETER(AlpnBuffer);
     UNREFERENCED_PARAMETER(AlpnBufferLength);
     CXPLAT_TLS* TlsContext = (CXPLAT_TLS*)Context;
-    const QUIC_SEC_CONFIG* SecurityConfig = NULL;
+    const CXPLAT_SEC_CONFIG* SecurityConfig = NULL;
 
     CXPLAT_DBG_ASSERT(TlsContext);
     CXPLAT_DBG_ASSERT(TlsContext->IsServer);
@@ -1443,7 +1443,7 @@ CxPlatTlsOnCertFormat(
 {
     CXPLAT_TLS* TlsContext = (CXPLAT_TLS*)Context;
     CXPLAT_DBG_ASSERT(TlsContext);
-    QUIC_SEC_CONFIG* SecurityConfig = (QUIC_SEC_CONFIG*)SecContext;
+    CXPLAT_SEC_CONFIG* SecurityConfig = (CXPLAT_SEC_CONFIG*)SecContext;
     CXPLAT_DBG_ASSERT(SecurityConfig);
 
     QuicTraceLogConnVerbose(
@@ -1474,7 +1474,7 @@ CxPlatTlsOnCertSign(
 {
     CXPLAT_TLS* TlsContext = (CXPLAT_TLS*)Context;
     CXPLAT_DBG_ASSERT(TlsContext);
-    QUIC_SEC_CONFIG* SecurityConfig = (QUIC_SEC_CONFIG*)SecContext;
+    CXPLAT_SEC_CONFIG* SecurityConfig = (CXPLAT_SEC_CONFIG*)SecContext;
     CXPLAT_DBG_ASSERT(SecurityConfig);
 
     QuicTraceLogConnVerbose(

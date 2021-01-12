@@ -54,17 +54,17 @@ CxPlatStorageOpen(
     QUIC_STATUS Status;
     CXPLAT_STORAGE* Storage = NULL;
 
-    char FullKeyName[256] = QUIC_BASE_REG_PATH;
+    char FullKeyName[256] = CXPLAT_BASE_REG_PATH;
 
     if (Path != NULL) {
         size_t PathLength = strlen(Path);
-        if (PathLength + sizeof(QUIC_BASE_REG_PATH) > sizeof(FullKeyName)) {
+        if (PathLength + sizeof(CXPLAT_BASE_REG_PATH) > sizeof(FullKeyName)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Exit;
         }
 
         memcpy(
-            FullKeyName + sizeof(QUIC_BASE_REG_PATH) - 1,
+            FullKeyName + sizeof(CXPLAT_BASE_REG_PATH) - 1,
             Path,
             PathLength + 1);
     }

@@ -270,7 +270,7 @@ Error:
     }
     if (Datagram != NULL && Connection->SourceCids.Next != NULL) {
         CXPLAT_FREE(
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 Connection->SourceCids.Next,
                 QUIC_CID_HASH_ENTRY,
                 Link),
@@ -311,7 +311,7 @@ QuicConnFree(
 #if DEBUG
     while (!CxPlatListIsEmpty(&Connection->Streams.AllStreams)) {
         QUIC_STREAM *Stream =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&Connection->Streams.AllStreams),
                 QUIC_STREAM,
                 AllStreamsLink);
@@ -320,7 +320,7 @@ QuicConnFree(
 #endif
     while (!CxPlatListIsEmpty(&Connection->DestCids)) {
         QUIC_CID_CXPLAT_LIST_ENTRY *CID =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&Connection->DestCids),
                 QUIC_CID_CXPLAT_LIST_ENTRY,
                 Link);
@@ -614,7 +614,7 @@ QuicConnTraceRundownOper(
                 Entry != NULL;
                 Entry = Entry->Next) {
             const QUIC_CID_HASH_ENTRY* SourceCid =
-                QUIC_CONTAINING_RECORD(
+                CXPLAT_CONTAINING_RECORD(
                     Entry,
                     QUIC_CID_HASH_ENTRY,
                     Link);
@@ -630,7 +630,7 @@ QuicConnTraceRundownOper(
                 Entry != &Connection->DestCids;
                 Entry = Entry->Flink) {
             const QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
-                QUIC_CONTAINING_RECORD(
+                CXPLAT_CONTAINING_RECORD(
                     Entry,
                     QUIC_CID_CXPLAT_LIST_ENTRY,
                     Link);
@@ -919,7 +919,7 @@ QuicConnGenerateNewSourceCids(
         CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
         while (Entry != NULL) {
             QUIC_CID_HASH_ENTRY* SourceCid =
-                QUIC_CONTAINING_RECORD(Entry, QUIC_CID_HASH_ENTRY, Link);
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_CID_HASH_ENTRY, Link);
             SourceCid->CID.Retired = TRUE;
             Entry = Entry->Next;
         }
@@ -950,7 +950,7 @@ QuicConnGetUnusedDestCid(
             Entry != &Connection->DestCids;
             Entry = Entry->Flink) {
         QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 Entry,
                 QUIC_CID_CXPLAT_LIST_ENTRY,
                 Link);
@@ -1023,7 +1023,7 @@ QuicConnOnRetirePriorToUpdated(
             Entry != &Connection->DestCids;
             Entry = Entry->Flink) {
         QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 Entry,
                 QUIC_CID_CXPLAT_LIST_ENTRY,
                 Link);
@@ -2154,7 +2154,7 @@ QuicConnGenerateLocalTransportParameters(
 
     CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
     const QUIC_CID_HASH_ENTRY* SourceCid =
-        QUIC_CONTAINING_RECORD(
+        CXPLAT_CONTAINING_RECORD(
             Connection->SourceCids.Next,
             QUIC_CID_HASH_ENTRY,
             Link);
@@ -2253,7 +2253,7 @@ QuicConnGenerateLocalTransportParameters(
             if (Connection->State.HandshakeUsedRetryPacket) {
                 CXPLAT_DBG_ASSERT(SourceCid->Link.Next != NULL);
                 const QUIC_CID_HASH_ENTRY* PrevSourceCid =
-                    QUIC_CONTAINING_RECORD(
+                    CXPLAT_CONTAINING_RECORD(
                         SourceCid->Link.Next,
                         QUIC_CID_HASH_ENTRY,
                         Link);
@@ -2330,7 +2330,7 @@ QuicConnSetConfiguration(
 
         CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
         const QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 Connection->DestCids.Flink,
                 QUIC_CID_CXPLAT_LIST_ENTRY,
                 Link);
@@ -2406,7 +2406,7 @@ QuicConnValidateTransportParameterCIDs(
     }
 
     const QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
-        QUIC_CONTAINING_RECORD(
+        CXPLAT_CONTAINING_RECORD(
             Connection->DestCids.Flink,
             QUIC_CID_CXPLAT_LIST_ENTRY,
             Link);
@@ -2492,7 +2492,7 @@ QuicConnProcessPeerTransportParameters(
             CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
             CXPLAT_DBG_ASSERT(!QuicConnIsServer(Connection));
             QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
-                QUIC_CONTAINING_RECORD(
+                CXPLAT_CONTAINING_RECORD(
                     Connection->DestCids.Flink,
                     QUIC_CID_CXPLAT_LIST_ENTRY,
                     Link);
@@ -2663,7 +2663,7 @@ QuicConnUpdateDestCid(
 
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
     QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
-        QUIC_CONTAINING_RECORD(
+        CXPLAT_CONTAINING_RECORD(
             Connection->DestCids.Flink,
             QUIC_CID_CXPLAT_LIST_ENTRY,
             Link);
@@ -2866,7 +2866,7 @@ QuicConnRecvRetry(
 
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
     const QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
-        QUIC_CONTAINING_RECORD(
+        CXPLAT_CONTAINING_RECORD(
             Connection->DestCids.Flink,
             QUIC_CID_CXPLAT_LIST_ENTRY,
             Link);
@@ -2931,7 +2931,7 @@ QuicConnRecvRetry(
 
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
     DestCid =
-        QUIC_CONTAINING_RECORD(
+        CXPLAT_CONTAINING_RECORD(
             Connection->DestCids.Flink,
             QUIC_CID_CXPLAT_LIST_ENTRY,
             Link);
@@ -3425,7 +3425,7 @@ QuicConnRecvDecryptAndAuthenticate(
                 // we have a match.
                 //
                 QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
-                    QUIC_CONTAINING_RECORD(
+                    CXPLAT_CONTAINING_RECORD(
                         Entry,
                         QUIC_CID_CXPLAT_LIST_ENTRY,
                         Link);
@@ -4454,7 +4454,7 @@ QuicConnRecvPostProcessing(
             if (SourceCid->CID.IsInitial) {
                 if (QuicConnIsServer(Connection) && SourceCid->Link.Next != NULL) {
                     QUIC_CID_HASH_ENTRY* NextSourceCid =
-                        QUIC_CONTAINING_RECORD(
+                        CXPLAT_CONTAINING_RECORD(
                             SourceCid->Link.Next,
                             QUIC_CID_HASH_ENTRY,
                             Link);

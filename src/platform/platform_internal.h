@@ -21,7 +21,7 @@
 #include <msquic.h>
 #include <msquicp.h>
 
-#define QUIC_CREDENTIAL_TYPE_NULL ((QUIC_CREDENTIAL_TYPE)0xF0000000)    // Stub-only special case type
+#define CXPLAT_CREDENTIAL_TYPE_NULL ((QUIC_CREDENTIAL_TYPE)0xF0000000)    // Stub-only special case type
 
 #ifdef QUIC_FUZZER
 #include "msquic_fuzz.h"
@@ -38,7 +38,7 @@
 
 #ifdef _KERNEL_MODE
 
-#define QUIC_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
+#define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
 typedef struct CX_PLATFORM {
 
@@ -60,7 +60,7 @@ typedef struct CX_PLATFORM {
 #include <crtdbg.h>
 #endif
 
-#define QUIC_BASE_REG_PATH "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
+#define CXPLAT_BASE_REG_PATH "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
 typedef struct CX_PLATFORM {
 

@@ -154,7 +154,7 @@ MsQuicLibraryOnSettingsChanged(
             Link != &MsQuicLib.Registrations;
             Link = Link->Flink) {
             QuicRegistrationSettingsChanged(
-                QUIC_CONTAINING_RECORD(Link, QUIC_REGISTRATION, Link));
+                CXPLAT_CONTAINING_RECORD(Link, QUIC_REGISTRATION, Link));
         }
 
         CxPlatLockRelease(&MsQuicLib.Lock);
@@ -1221,7 +1221,7 @@ QuicLibraryLookupBinding(
         Link = Link->Flink) {
 
         QUIC_BINDING* Binding =
-            QUIC_CONTAINING_RECORD(Link, QUIC_BINDING, Link);
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_BINDING, Link);
 
 #ifdef QUIC_COMPARTMENT_ID
         if (CompartmentId != Binding->CompartmentId) {
@@ -1538,7 +1538,7 @@ QuicTraceRundown(
             Link != &MsQuicLib.Registrations;
             Link = Link->Flink) {
             QuicRegistrationTraceRundown(
-                QUIC_CONTAINING_RECORD(Link, QUIC_REGISTRATION, Link));
+                CXPLAT_CONTAINING_RECORD(Link, QUIC_REGISTRATION, Link));
         }
 
         CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
@@ -1546,7 +1546,7 @@ QuicTraceRundown(
             Link != &MsQuicLib.Bindings;
             Link = Link->Flink) {
             QuicBindingTraceRundown(
-                QUIC_CONTAINING_RECORD(Link, QUIC_BINDING, Link));
+                CXPLAT_CONTAINING_RECORD(Link, QUIC_BINDING, Link));
         }
         CxPlatDispatchLockRelease(&MsQuicLib.DatapathLock);
 

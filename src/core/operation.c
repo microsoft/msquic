@@ -181,7 +181,7 @@ QuicOperationDequeue(
     } else {
         OperQ->ActivelyProcessing = TRUE;
         Oper =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&OperQ->List), QUIC_OPERATION, Link);
 #if DEBUG
         Oper->Link.Flink = NULL;
@@ -214,7 +214,7 @@ QuicOperationQueueClear(
 
     while (!CxPlatListIsEmpty(&OldList)) {
         QUIC_OPERATION* Oper =
-            QUIC_CONTAINING_RECORD(CxPlatListRemoveHead(&OldList), QUIC_OPERATION, Link);
+            CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&OldList), QUIC_OPERATION, Link);
         --OperationsDequeued;
 #if DEBUG
         Oper->Link.Flink = NULL;

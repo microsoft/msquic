@@ -136,7 +136,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoInitializeTls(
     _Inout_ QUIC_CRYPTO* Crypto,
-    _In_ QUIC_SEC_CONFIG* SecConfig,
+    _In_ CXPLAT_SEC_CONFIG* SecConfig,
     _In_ const QUIC_TRANSPORT_PARAMETERS* Params
     );
 

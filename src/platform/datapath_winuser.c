@@ -59,7 +59,7 @@ CxPlatFuzzerRecvMsg(
 //
 // The maximum number of UDP datagrams that can be sent with one call.
 //
-#define QUIC_MAX_BATCH_SEND                 7
+#define CXPLAT_MAX_BATCH_SEND                 7
 
 //
 // The maximum UDP receive coalescing payload.
@@ -69,7 +69,7 @@ CxPlatFuzzerRecvMsg(
 //
 // The maximum single buffer size for sending coalesced payloads.
 //
-#define QUIC_LARGE_SEND_BUFFER_SIZE         0xFFFF
+#define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
 
 //
 // The maximum number of UDP datagrams to preallocate for URO.
@@ -176,7 +176,7 @@ typedef struct CXPLAT_SEND_DATA {
     //
     // Contains all the datagram buffers to pass to the socket.
     //
-    WSABUF WsaBuffers[QUIC_MAX_BATCH_SEND];
+    WSABUF WsaBuffers[CXPLAT_MAX_BATCH_SEND];
 
     //
     // The WSABUF returned to the client for segmented sends.
@@ -820,7 +820,7 @@ CxPlatDataPathInitialize(
         // together, since send batching is guaranteed to be supported if USO
         // is.
         //
-        Datapath->MaxSendBatchSize = QUIC_MAX_BATCH_SEND;
+        Datapath->MaxSendBatchSize = CXPLAT_MAX_BATCH_SEND;
     } else {
         Datapath->MaxSendBatchSize = 1;
     }
@@ -867,7 +867,7 @@ CxPlatDataPathInitialize(
 
         CxPlatPoolInitialize(
             FALSE,
-            QUIC_LARGE_SEND_BUFFER_SIZE,
+            CXPLAT_LARGE_SEND_BUFFER_SIZE,
             QUIC_POOL_DATA,
             &Datapath->Processors[i].LargeSendBufferPool);
 
@@ -3260,7 +3260,7 @@ CxPlatSendContextCanAllocSendSegment(
     CXPLAT_DBG_ASSERT(SendContext->WsaBufferCount <= SendContext->Owner->Datapath->MaxSendBatchSize);
 
     ULONG BytesAvailable =
-        QUIC_LARGE_SEND_BUFFER_SIZE -
+        CXPLAT_LARGE_SEND_BUFFER_SIZE -
             SendContext->WsaBuffers[SendContext->WsaBufferCount - 1].len -
             SendContext->ClientBuffer.len;
 

@@ -619,7 +619,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
 
     ASSERT_ON_NOT(ServerConfiguration);
 
-    auto CredConfig = CxPlatPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+    auto CredConfig = CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER);
     ASSERT_ON_NOT(CredConfig);
 
     ASSERT_ON_FAILURE(

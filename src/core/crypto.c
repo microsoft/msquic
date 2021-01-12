@@ -161,7 +161,7 @@ QuicCryptoInitialize(
     if (QuicConnIsServer(Connection)) {
         CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
         QUIC_CID_HASH_ENTRY* SourceCid =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 Connection->SourceCids.Next,
                 QUIC_CID_HASH_ENTRY,
                 Link);
@@ -172,7 +172,7 @@ QuicCryptoInitialize(
     } else {
         CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
         QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
-            QUIC_CONTAINING_RECORD(
+            CXPLAT_CONTAINING_RECORD(
                 Connection->DestCids.Flink,
                 QUIC_CID_CXPLAT_LIST_ENTRY,
                 Link);
@@ -263,7 +263,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoInitializeTls(
     _Inout_ QUIC_CRYPTO* Crypto,
-    _In_ QUIC_SEC_CONFIG* SecConfig,
+    _In_ CXPLAT_SEC_CONFIG* SecConfig,
     _In_ const QUIC_TRANSPORT_PARAMETERS* Params
     )
 {

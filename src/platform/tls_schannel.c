@@ -234,7 +234,7 @@ uint16_t CxPlatTlsTPHeaderSize = FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer
 const WORD TlsHandshake_ClientHello = 0x01;
 const WORD TlsHandshake_EncryptedExtensions = 0x08;
 
-typedef struct QUIC_SEC_CONFIG {
+typedef struct CXPLAT_SEC_CONFIG {
 
     //
     // Acquired credential handle.
@@ -251,7 +251,7 @@ typedef struct QUIC_SEC_CONFIG {
     //
     CXPLAT_TLS_CALLBACKS Callbacks;
 
-} QUIC_SEC_CONFIG;
+} CXPLAT_SEC_CONFIG;
 
 typedef struct QUIC_ACH_CONTEXT {
 
@@ -268,7 +268,7 @@ typedef struct QUIC_ACH_CONTEXT {
     //
     // Caller-registered callback to signal credential acquisition is complete.
     //
-    QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionCallback;
+    CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionCallback;
 
 #ifdef _KERNEL_MODE
     //
@@ -301,7 +301,7 @@ typedef struct QUIC_ACH_CONTEXT {
     //
     // Security config to pass back to the caller.
     //
-    QUIC_SEC_CONFIG* SecConfig;
+    CXPLAT_SEC_CONFIG* SecConfig;
 
     //
     // Holds the credentials configuration for the lifetime of the ACH call.
@@ -375,7 +375,7 @@ typedef struct CXPLAT_TLS {
     //
     // SecurityConfig information for this TLS stream.
     //
-    QUIC_SEC_CONFIG* SecConfig;
+    CXPLAT_SEC_CONFIG* SecConfig;
 
     SEC_APPLICATION_PROTOCOLS* ApplicationProtocols;
 
@@ -431,19 +431,19 @@ QuicPacketKeyCreate(
 #endif
 
 #ifdef _KERNEL_MODE
-BCRYPT_ALG_HANDLE QUIC_HMAC_SHA256_ALG_HANDLE;
-BCRYPT_ALG_HANDLE QUIC_HMAC_SHA384_ALG_HANDLE;
-BCRYPT_ALG_HANDLE QUIC_HMAC_SHA512_ALG_HANDLE;
-BCRYPT_ALG_HANDLE QUIC_AES_ECB_ALG_HANDLE;
-BCRYPT_ALG_HANDLE QUIC_AES_GCM_ALG_HANDLE;
+BCRYPT_ALG_HANDLE CXPLAT_HMAC_SHA256_ALG_HANDLE;
+BCRYPT_ALG_HANDLE CXPLAT_HMAC_SHA384_ALG_HANDLE;
+BCRYPT_ALG_HANDLE CXPLAT_HMAC_SHA512_ALG_HANDLE;
+BCRYPT_ALG_HANDLE CXPLAT_AES_ECB_ALG_HANDLE;
+BCRYPT_ALG_HANDLE CXPLAT_AES_GCM_ALG_HANDLE;
 #else
-BCRYPT_ALG_HANDLE QUIC_HMAC_SHA256_ALG_HANDLE = BCRYPT_HMAC_SHA256_ALG_HANDLE;
-BCRYPT_ALG_HANDLE QUIC_HMAC_SHA384_ALG_HANDLE = BCRYPT_HMAC_SHA384_ALG_HANDLE;
-BCRYPT_ALG_HANDLE QUIC_HMAC_SHA512_ALG_HANDLE = BCRYPT_HMAC_SHA512_ALG_HANDLE;
-BCRYPT_ALG_HANDLE QUIC_AES_ECB_ALG_HANDLE = BCRYPT_AES_ECB_ALG_HANDLE;
-BCRYPT_ALG_HANDLE QUIC_AES_GCM_ALG_HANDLE = BCRYPT_AES_GCM_ALG_HANDLE;
+BCRYPT_ALG_HANDLE CXPLAT_HMAC_SHA256_ALG_HANDLE = BCRYPT_HMAC_SHA256_ALG_HANDLE;
+BCRYPT_ALG_HANDLE CXPLAT_HMAC_SHA384_ALG_HANDLE = BCRYPT_HMAC_SHA384_ALG_HANDLE;
+BCRYPT_ALG_HANDLE CXPLAT_HMAC_SHA512_ALG_HANDLE = BCRYPT_HMAC_SHA512_ALG_HANDLE;
+BCRYPT_ALG_HANDLE CXPLAT_AES_ECB_ALG_HANDLE = BCRYPT_AES_ECB_ALG_HANDLE;
+BCRYPT_ALG_HANDLE CXPLAT_AES_GCM_ALG_HANDLE = BCRYPT_AES_GCM_ALG_HANDLE;
 #endif
-BCRYPT_ALG_HANDLE QUIC_CHACHA20_POLY1305_ALG_HANDLE = NULL;
+BCRYPT_ALG_HANDLE CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
 
 #ifndef _KERNEL_MODE
 
@@ -610,7 +610,7 @@ CxPlatTlsLibraryInitialize(
     ULONG Flags = BCRYPT_ALG_HANDLE_HMAC_FLAG | BCRYPT_PROV_DISPATCH;
     NTSTATUS Status =
         BCryptOpenAlgorithmProvider(
-            &QUIC_HMAC_SHA256_ALG_HANDLE,
+            &CXPLAT_HMAC_SHA256_ALG_HANDLE,
             BCRYPT_SHA256_ALGORITHM,
             MS_PRIMITIVE_PROVIDER,
             Flags);
@@ -625,7 +625,7 @@ CxPlatTlsLibraryInitialize(
 
     Status =
         BCryptOpenAlgorithmProvider(
-            &QUIC_HMAC_SHA384_ALG_HANDLE,
+            &CXPLAT_HMAC_SHA384_ALG_HANDLE,
             BCRYPT_SHA384_ALGORITHM,
             MS_PRIMITIVE_PROVIDER,
             Flags);
@@ -640,7 +640,7 @@ CxPlatTlsLibraryInitialize(
 
     Status =
         BCryptOpenAlgorithmProvider(
-            &QUIC_HMAC_SHA512_ALG_HANDLE,
+            &CXPLAT_HMAC_SHA512_ALG_HANDLE,
             BCRYPT_SHA512_ALGORITHM,
             MS_PRIMITIVE_PROVIDER,
             Flags);
@@ -655,7 +655,7 @@ CxPlatTlsLibraryInitialize(
 
     Status =
         BCryptOpenAlgorithmProvider(
-            &QUIC_AES_ECB_ALG_HANDLE,
+            &CXPLAT_AES_ECB_ALG_HANDLE,
             BCRYPT_AES_ALGORITHM,
             MS_PRIMITIVE_PROVIDER,
             BCRYPT_PROV_DISPATCH);
@@ -670,7 +670,7 @@ CxPlatTlsLibraryInitialize(
 
     Status =
         BCryptSetProperty(
-            QUIC_AES_ECB_ALG_HANDLE,
+            CXPLAT_AES_ECB_ALG_HANDLE,
             BCRYPT_CHAINING_MODE,
             (PBYTE)BCRYPT_CHAIN_MODE_ECB,
             sizeof(BCRYPT_CHAIN_MODE_ECB),
@@ -686,7 +686,7 @@ CxPlatTlsLibraryInitialize(
 
     Status =
         BCryptOpenAlgorithmProvider(
-            &QUIC_AES_GCM_ALG_HANDLE,
+            &CXPLAT_AES_GCM_ALG_HANDLE,
             BCRYPT_AES_ALGORITHM,
             MS_PRIMITIVE_PROVIDER,
             BCRYPT_PROV_DISPATCH);
@@ -701,7 +701,7 @@ CxPlatTlsLibraryInitialize(
 
     Status =
         BCryptSetProperty(
-            QUIC_AES_GCM_ALG_HANDLE,
+            CXPLAT_AES_GCM_ALG_HANDLE,
             BCRYPT_CHAINING_MODE,
             (PBYTE)BCRYPT_CHAIN_MODE_GCM,
             sizeof(BCRYPT_CHAIN_MODE_GCM),
@@ -717,7 +717,7 @@ CxPlatTlsLibraryInitialize(
 
     Status =
         BCryptOpenAlgorithmProvider(
-            &QUIC_CHACHA20_POLY1305_ALG_HANDLE,
+            &CXPLAT_CHACHA20_POLY1305_ALG_HANDLE,
             BCRYPT_CHACHA20_POLY1305_ALGORITHM,
             MS_PRIMITIVE_PROVIDER,
             BCRYPT_PROV_DISPATCH);
@@ -735,7 +735,7 @@ CxPlatTlsLibraryInitialize(
     } else {
         Status =
             BCryptSetProperty(
-                QUIC_CHACHA20_POLY1305_ALG_HANDLE,
+                CXPLAT_CHACHA20_POLY1305_ALG_HANDLE,
                 BCRYPT_CHAINING_MODE,
                 (PBYTE)BCRYPT_CHAIN_MODE_NA,
                 sizeof(BCRYPT_CHAIN_MODE_NA),
@@ -757,29 +757,29 @@ CxPlatTlsLibraryInitialize(
 Error:
 
     if (!NT_SUCCESS(Status)) {
-        if (QUIC_HMAC_SHA256_ALG_HANDLE) {
-            BCryptCloseAlgorithmProvider(QUIC_HMAC_SHA256_ALG_HANDLE, 0);
-            QUIC_HMAC_SHA256_ALG_HANDLE = NULL;
+        if (CXPLAT_HMAC_SHA256_ALG_HANDLE) {
+            BCryptCloseAlgorithmProvider(CXPLAT_HMAC_SHA256_ALG_HANDLE, 0);
+            CXPLAT_HMAC_SHA256_ALG_HANDLE = NULL;
         }
-        if (QUIC_HMAC_SHA384_ALG_HANDLE) {
-            BCryptCloseAlgorithmProvider(QUIC_HMAC_SHA384_ALG_HANDLE, 0);
-            QUIC_HMAC_SHA384_ALG_HANDLE = NULL;
+        if (CXPLAT_HMAC_SHA384_ALG_HANDLE) {
+            BCryptCloseAlgorithmProvider(CXPLAT_HMAC_SHA384_ALG_HANDLE, 0);
+            CXPLAT_HMAC_SHA384_ALG_HANDLE = NULL;
         }
-        if (QUIC_HMAC_SHA512_ALG_HANDLE) {
-            BCryptCloseAlgorithmProvider(QUIC_HMAC_SHA512_ALG_HANDLE, 0);
-            QUIC_HMAC_SHA512_ALG_HANDLE = NULL;
+        if (CXPLAT_HMAC_SHA512_ALG_HANDLE) {
+            BCryptCloseAlgorithmProvider(CXPLAT_HMAC_SHA512_ALG_HANDLE, 0);
+            CXPLAT_HMAC_SHA512_ALG_HANDLE = NULL;
         }
-        if (QUIC_AES_ECB_ALG_HANDLE) {
-            BCryptCloseAlgorithmProvider(QUIC_AES_ECB_ALG_HANDLE, 0);
-            QUIC_AES_ECB_ALG_HANDLE = NULL;
+        if (CXPLAT_AES_ECB_ALG_HANDLE) {
+            BCryptCloseAlgorithmProvider(CXPLAT_AES_ECB_ALG_HANDLE, 0);
+            CXPLAT_AES_ECB_ALG_HANDLE = NULL;
         }
-        if (QUIC_AES_GCM_ALG_HANDLE) {
-            BCryptCloseAlgorithmProvider(QUIC_AES_GCM_ALG_HANDLE, 0);
-            QUIC_AES_GCM_ALG_HANDLE = NULL;
+        if (CXPLAT_AES_GCM_ALG_HANDLE) {
+            BCryptCloseAlgorithmProvider(CXPLAT_AES_GCM_ALG_HANDLE, 0);
+            CXPLAT_AES_GCM_ALG_HANDLE = NULL;
         }
-        if (QUIC_CHACHA20_POLY1305_ALG_HANDLE) {
-            BCryptCloseAlgorithmProvider(QUIC_CHACHA20_POLY1305_ALG_HANDLE, 0);
-            QUIC_CHACHA20_POLY1305_ALG_HANDLE = NULL;
+        if (CXPLAT_CHACHA20_POLY1305_ALG_HANDLE) {
+            BCryptCloseAlgorithmProvider(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE, 0);
+            CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
         }
     }
 
@@ -787,7 +787,7 @@ Error:
 #else
     NTSTATUS Status =
         BCryptOpenAlgorithmProvider(
-            &QUIC_CHACHA20_POLY1305_ALG_HANDLE,
+            &CXPLAT_CHACHA20_POLY1305_ALG_HANDLE,
             BCRYPT_CHACHA20_POLY1305_ALGORITHM,
             MS_PRIMITIVE_PROVIDER,
             0);
@@ -805,7 +805,7 @@ Error:
     } else {
         Status =
             BCryptSetProperty(
-                QUIC_CHACHA20_POLY1305_ALG_HANDLE,
+                CXPLAT_CHACHA20_POLY1305_ALG_HANDLE,
                 BCRYPT_CHAINING_MODE,
                 (PBYTE)BCRYPT_CHAIN_MODE_NA,
                 sizeof(BCRYPT_CHAIN_MODE_NA),
@@ -825,9 +825,9 @@ Error:
         "[ tls] Library initialized");
 Error:
     if (!NT_SUCCESS(Status)) {
-        if (QUIC_CHACHA20_POLY1305_ALG_HANDLE) {
-            BCryptCloseAlgorithmProvider(QUIC_CHACHA20_POLY1305_ALG_HANDLE, 0);
-            QUIC_CHACHA20_POLY1305_ALG_HANDLE = NULL;
+        if (CXPLAT_CHACHA20_POLY1305_ALG_HANDLE) {
+            BCryptCloseAlgorithmProvider(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE, 0);
+            CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
         }
     }
     return NtStatusToQuicStatus(Status);
@@ -840,20 +840,20 @@ CxPlatTlsLibraryUninitialize(
     )
 {
 #ifdef _KERNEL_MODE
-    BCryptCloseAlgorithmProvider(QUIC_HMAC_SHA256_ALG_HANDLE, 0);
-    BCryptCloseAlgorithmProvider(QUIC_HMAC_SHA384_ALG_HANDLE, 0);
-    BCryptCloseAlgorithmProvider(QUIC_HMAC_SHA512_ALG_HANDLE, 0);
-    BCryptCloseAlgorithmProvider(QUIC_AES_ECB_ALG_HANDLE, 0);
-    BCryptCloseAlgorithmProvider(QUIC_AES_GCM_ALG_HANDLE, 0);
-    QUIC_HMAC_SHA256_ALG_HANDLE = NULL;
-    QUIC_HMAC_SHA384_ALG_HANDLE = NULL;
-    QUIC_HMAC_SHA512_ALG_HANDLE = NULL;
-    QUIC_AES_ECB_ALG_HANDLE = NULL;
-    QUIC_AES_GCM_ALG_HANDLE = NULL;
+    BCryptCloseAlgorithmProvider(CXPLAT_HMAC_SHA256_ALG_HANDLE, 0);
+    BCryptCloseAlgorithmProvider(CXPLAT_HMAC_SHA384_ALG_HANDLE, 0);
+    BCryptCloseAlgorithmProvider(CXPLAT_HMAC_SHA512_ALG_HANDLE, 0);
+    BCryptCloseAlgorithmProvider(CXPLAT_AES_ECB_ALG_HANDLE, 0);
+    BCryptCloseAlgorithmProvider(CXPLAT_AES_GCM_ALG_HANDLE, 0);
+    CXPLAT_HMAC_SHA256_ALG_HANDLE = NULL;
+    CXPLAT_HMAC_SHA384_ALG_HANDLE = NULL;
+    CXPLAT_HMAC_SHA512_ALG_HANDLE = NULL;
+    CXPLAT_AES_ECB_ALG_HANDLE = NULL;
+    CXPLAT_AES_GCM_ALG_HANDLE = NULL;
 #endif
-    if (QUIC_CHACHA20_POLY1305_ALG_HANDLE != NULL) {
-        BCryptCloseAlgorithmProvider(QUIC_CHACHA20_POLY1305_ALG_HANDLE, 0);
-        QUIC_CHACHA20_POLY1305_ALG_HANDLE = NULL;
+    if (CXPLAT_CHACHA20_POLY1305_ALG_HANDLE != NULL) {
+        BCryptCloseAlgorithmProvider(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE, 0);
+        CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
     }
     QuicTraceLogVerbose(
         SchannelUninitialized,
@@ -868,7 +868,7 @@ QUIC_ACH_CONTEXT*
 CxPlatTlsAllocateAchContext(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
-    _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER Callback
+    _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER Callback
     )
 {
     QUIC_ACH_CONTEXT* AchContext = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_ACH_CONTEXT), QUIC_POOL_TLS_ACHCTX);
@@ -934,9 +934,9 @@ CxPlatTlsSspiNotifyCallback(
     }
     QUIC_ACH_CONTEXT* AchContext = CallbackData;
     BOOLEAN IsAsync = !!(AchContext->CredConfig.Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS);
-    QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionCallback = AchContext->CompletionCallback;
+    CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionCallback = AchContext->CompletionCallback;
     void* CompletionContext = AchContext->CompletionContext;
-    QUIC_SEC_CONFIG* SecConfig = AchContext->SecConfig;
+    CXPLAT_SEC_CONFIG* SecConfig = AchContext->SecConfig;
     AchContext->SecConfig = NULL;
     SECURITY_STATUS Status = SspiGetAsyncCallStatus(Handle);
     AchContext->CompletionStatus = SecStatusToQuicStatus(Status);
@@ -1032,7 +1032,7 @@ CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
-    _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
+    _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
     CXPLAT_DBG_ASSERT(CredConfig && CompletionHandler);
@@ -1092,18 +1092,18 @@ CxPlatTlsSecConfigCreate(
     }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (CxPlatTlsSecConfigDelete)")
-    AchContext->SecConfig = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
+    AchContext->SecConfig = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (AchContext->SecConfig == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_SEC_CONFIG",
-            sizeof(QUIC_SEC_CONFIG));
+            "CXPLAT_SEC_CONFIG",
+            sizeof(CXPLAT_SEC_CONFIG));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
-    RtlZeroMemory(AchContext->SecConfig, sizeof(QUIC_SEC_CONFIG));
+    RtlZeroMemory(AchContext->SecConfig, sizeof(CXPLAT_SEC_CONFIG));
     SecInvalidateHandle(&AchContext->SecConfig->CredentialHandle);
     AchContext->SecConfig->Flags = CredConfig->Flags;
     AchContext->SecConfig->Callbacks = *TlsCallbacks;
@@ -1427,7 +1427,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsSecConfigDelete(
-    __drv_freesMem(ServerConfig) _Frees_ptr_ _In_ QUIC_SEC_CONFIG* ServerConfig
+    __drv_freesMem(ServerConfig) _Frees_ptr_ _In_ CXPLAT_SEC_CONFIG* ServerConfig
     )
 {
     if (SecIsValidHandle(&ServerConfig->CredentialHandle)) {
@@ -2888,7 +2888,7 @@ CxPlatParseTrafficSecrets(
             return FALSE;
         }
     } else if (wcscmp(TrafficSecrets->SymmetricAlgId, BCRYPT_CHACHA20_POLY1305_ALGORITHM) == 0) {
-        if (QUIC_CHACHA20_POLY1305_ALG_HANDLE == NULL) {
+        if (CXPLAT_CHACHA20_POLY1305_ALG_HANDLE == NULL) {
             QuicTraceEvent(
                 TlsError,
                 "[ tls][%p] ERROR, %s.",
@@ -3071,15 +3071,15 @@ CxPlatKeyCreate(
     switch (AeadType) {
     case CXPLAT_AEAD_AES_128_GCM:
         KeyLength = 16;
-        KeyAlgHandle = QUIC_AES_GCM_ALG_HANDLE;
+        KeyAlgHandle = CXPLAT_AES_GCM_ALG_HANDLE;
         break;
     case CXPLAT_AEAD_AES_256_GCM:
         KeyLength = 32;
-        KeyAlgHandle = QUIC_AES_GCM_ALG_HANDLE;
+        KeyAlgHandle = CXPLAT_AES_GCM_ALG_HANDLE;
         break;
     case CXPLAT_AEAD_CHACHA20_POLY1305:
         KeyLength = 32;
-        KeyAlgHandle = QUIC_CHACHA20_POLY1305_ALG_HANDLE;
+        KeyAlgHandle = CXPLAT_CHACHA20_POLY1305_ALG_HANDLE;
         break;
     default:
         return QUIC_STATUS_NOT_SUPPORTED;
@@ -3245,12 +3245,12 @@ CxPlatHpKeyCreate(
     case CXPLAT_AEAD_AES_128_GCM:
         KeyLength = 16;
         AllocLength = sizeof(CXPLAT_HP_KEY);
-        AlgHandle = QUIC_AES_ECB_ALG_HANDLE;
+        AlgHandle = CXPLAT_AES_ECB_ALG_HANDLE;
         break;
     case CXPLAT_AEAD_AES_256_GCM:
         KeyLength = 32;
         AllocLength = sizeof(CXPLAT_HP_KEY);
-        AlgHandle = QUIC_AES_ECB_ALG_HANDLE;
+        AlgHandle = CXPLAT_AES_ECB_ALG_HANDLE;
         break;
     case CXPLAT_AEAD_CHACHA20_POLY1305:
         KeyLength = 32;
@@ -3258,7 +3258,7 @@ CxPlatHpKeyCreate(
             sizeof(CXPLAT_HP_KEY) +
             sizeof(BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO) +
             CXPLAT_ENCRYPTION_OVERHEAD;
-        AlgHandle = QUIC_CHACHA20_POLY1305_ALG_HANDLE;
+        AlgHandle = CXPLAT_CHACHA20_POLY1305_ALG_HANDLE;
         break;
     default:
         return QUIC_STATUS_NOT_SUPPORTED;
@@ -3405,13 +3405,13 @@ CxPlatHashCreate(
 
     switch (HashType) {
     case CXPLAT_HASH_SHA256:
-        HashAlgHandle = QUIC_HMAC_SHA256_ALG_HANDLE;
+        HashAlgHandle = CXPLAT_HMAC_SHA256_ALG_HANDLE;
         break;
     case CXPLAT_HASH_SHA384:
-        HashAlgHandle = QUIC_HMAC_SHA384_ALG_HANDLE;
+        HashAlgHandle = CXPLAT_HMAC_SHA384_ALG_HANDLE;
         break;
     case CXPLAT_HASH_SHA512:
-        HashAlgHandle = QUIC_HMAC_SHA512_ALG_HANDLE;
+        HashAlgHandle = CXPLAT_HMAC_SHA512_ALG_HANDLE;
         break;
     default:
         return QUIC_STATUS_NOT_SUPPORTED;

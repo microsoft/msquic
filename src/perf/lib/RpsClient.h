@@ -85,7 +85,7 @@ struct RpsWorkerContext {
         CxPlatLockAcquire(&Lock);
         if (!CxPlatListIsEmpty(&Connections)) {
             Connection =
-                QUIC_CONTAINING_RECORD(
+                CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Connections),
                     RpsConnectionContext,
                     Link);

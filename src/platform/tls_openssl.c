@@ -30,7 +30,7 @@ uint16_t CxPlatTlsTPHeaderSize = 0;
 // once per connection on client side.
 //
 
-typedef struct QUIC_SEC_CONFIG {
+typedef struct CXPLAT_SEC_CONFIG {
 
     //
     // The SSL context associated with the sec config.
@@ -42,7 +42,7 @@ typedef struct QUIC_SEC_CONFIG {
     //
     CXPLAT_TLS_CALLBACKS Callbacks;
 
-} QUIC_SEC_CONFIG;
+} CXPLAT_SEC_CONFIG;
 
 //
 // A TLS context associated per connection.
@@ -53,7 +53,7 @@ typedef struct CXPLAT_TLS {
     //
     // The TLS configuration information and credentials.
     //
-    QUIC_SEC_CONFIG* SecConfig;
+    CXPLAT_SEC_CONFIG* SecConfig;
 
     //
     // Indicates if this context belongs to server side or client side
@@ -506,7 +506,7 @@ CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
-    _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
+    _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS &&
@@ -551,7 +551,7 @@ CxPlatTlsSecConfigCreate(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
-    QUIC_SEC_CONFIG* SecurityConfig = NULL;
+    CXPLAT_SEC_CONFIG* SecurityConfig = NULL;
     RSA* RsaKey = NULL;
     X509* X509Cert = NULL;
 
@@ -559,13 +559,13 @@ CxPlatTlsSecConfigCreate(
     // Create a security config.
     //
 
-    SecurityConfig = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
+    SecurityConfig = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (SecurityConfig == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_SEC_CONFIG",
-            sizeof(QUIC_SEC_CONFIG));
+            "CXPLAT_SEC_CONFIG",
+            sizeof(CXPLAT_SEC_CONFIG));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -824,7 +824,7 @@ Exit:
 
 void
 CxPlatTlsSecConfigDelete(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
+    _In_ CXPLAT_SEC_CONFIG* SecurityConfig
     )
 {
     if (SecurityConfig->SSLCtx != NULL) {

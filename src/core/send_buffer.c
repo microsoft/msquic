@@ -151,7 +151,7 @@ QuicSendBufferFill(
     Entry = Connection->Send.SendStreams.Flink;
     while (QuicSendBufferHasSpace(&Connection->SendBuffer) && Entry != &(Connection->Send.SendStreams)) {
 
-        QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
+        QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
         Entry = Entry->Flink;
 
 #if DEBUG
@@ -271,7 +271,7 @@ QuicSendBufferConnectionAdjust(
         CXPLAT_HASHTABLE_ENTRY* Entry;
         CxPlatHashtableEnumerateBegin(Connection->Streams.StreamTable, &Enumerator);
         while ((Entry = CxPlatHashtableEnumerateNext(Connection->Streams.StreamTable, &Enumerator)) != NULL) {
-            QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+            QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
             if (Stream->Flags.SendEnabled) {
                 QuicSendBufferStreamAdjust(Stream);
             }

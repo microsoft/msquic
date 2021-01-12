@@ -129,7 +129,7 @@ WriteOutput(
                 Helper.Create(
                     MsQuic,
                     Registration,
-                    QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
+                    CXPLAT_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
                     &Config->SelfSignedSecurityHash,
                     nullptr);
 #else
@@ -181,9 +181,9 @@ WriteOutput(
         }
     }
 
-    operator QUIC_SEC_CONFIG*() const { return SecurityConfig; }
+    operator CXPLAT_SEC_CONFIG*() const { return SecurityConfig; }
 
-    QUIC_SEC_CONFIG* SecurityConfig {nullptr};
+    CXPLAT_SEC_CONFIG* SecurityConfig {nullptr};
 };*/
 
 struct CountHelper {

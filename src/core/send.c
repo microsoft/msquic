@@ -56,7 +56,7 @@ QuicSendUninitialize(
     while (Entry != &Send->SendStreams) {
 
         QUIC_STREAM* Stream =
-            QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
+            CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
         CXPLAT_DBG_ASSERT(Stream->SendFlags != 0);
 
         Entry = Entry->Flink;
@@ -243,7 +243,7 @@ QuicSendSetSendFlag(
         while (!CxPlatListIsEmpty(&Send->SendStreams)) {
 
             QUIC_STREAM* Stream =
-                QUIC_CONTAINING_RECORD(
+                CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Send->SendStreams), QUIC_STREAM, SendLink);
 
             CXPLAT_DBG_ASSERT(Stream->SendFlags != 0);
@@ -654,7 +654,7 @@ QuicSendWriteFrames(
                     Entry != NULL;
                     Entry = Entry->Next) {
                 QUIC_CID_HASH_ENTRY* SourceCid =
-                    QUIC_CONTAINING_RECORD(
+                    CXPLAT_CONTAINING_RECORD(
                         Entry,
                         QUIC_CID_HASH_ENTRY,
                         Link);
@@ -720,7 +720,7 @@ QuicSendWriteFrames(
                     Entry != &Connection->DestCids;
                     Entry = Entry->Flink) {
                 QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
-                    QUIC_CONTAINING_RECORD(
+                    CXPLAT_CONTAINING_RECORD(
                         Entry,
                         QUIC_CID_CXPLAT_LIST_ENTRY,
                         Link);
@@ -835,7 +835,7 @@ QuicSendGetNextStream(
         // streams repeatedly as we loop.
         //
 
-        QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
+        QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
 
         //
         // Make sure, given the current state of the connection and the stream,
