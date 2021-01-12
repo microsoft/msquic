@@ -9,7 +9,7 @@ if (QUIC_CODE_CHECK)
     set(CMAKE_CXX_CPPCHECK ${CMAKE_C_CPPCHECK_AVAILABLE})
 endif()
 
-if("${QUIC_PLATFORM}" STREQUAL "windows")
+if("${CX_PLATFORM}" STREQUAL "windows")
     set(SOURCES
         datapath_winuser.c
         hashtable.c
@@ -18,7 +18,7 @@ if("${QUIC_PLATFORM}" STREQUAL "windows")
         toeplitz.c
     )
 else()
-    if(QUIC_PLATFORM STREQUAL "linux")
+    if(CX_PLATFORM STREQUAL "linux")
         set(SOURCES
             datapath_linux.c
             hashtable.c
@@ -39,18 +39,18 @@ else()
     endif()
 endif()
 
-if (QUIC_TLS STREQUAL "schannel")
+if (CXPLAT_TLS STREQUAL "schannel")
     message(STATUS "Configuring for SChannel")
     set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c tls_schannel.c)
-elseif(QUIC_TLS STREQUAL "openssl")
+elseif(CXPLAT_TLS STREQUAL "openssl")
     message(STATUS "Configuring for OpenSSL")
     set(SOURCES ${SOURCES} tls_openssl.c cert_capi_openssl.c)
-    if ("${QUIC_PLATFORM}" STREQUAL "windows")
+    if ("${CX_PLATFORM}" STREQUAL "windows")
         set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c)
     else()
         set(SOURCES ${SOURCES} selfsign_openssl.c)
     endif()
-elseif(QUIC_TLS STREQUAL "mitls")
+elseif(CXPLAT_TLS STREQUAL "mitls")
     message(STATUS "Configuring for miTLS")
     set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c tls_mitls.c)
     set(EXTRA_PLATFORM_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/submodules/everest/msquic/msvc/include)
@@ -72,8 +72,8 @@ set_property(TARGET platform PROPERTY FOLDER "libraries")
 
 target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 
-if(QUIC_TLS STREQUAL "openssl")
+if(CXPLAT_TLS STREQUAL "openssl")
     target_link_libraries(platform PUBLIC OpenSSL)
-elseif(QUIC_TLS STREQUAL "mitls")
+elseif(CXPLAT_TLS STREQUAL "mitls")
     target_link_libraries(platform PUBLIC kremlib evercrypt mitls quiccrypto)
 endif()

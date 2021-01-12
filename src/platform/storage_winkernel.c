@@ -83,17 +83,17 @@ CxPlatStorageRegKeyChangeCallback(
 //
 // The storage context returned that abstracts a registry key handle.
 //
-typedef struct QUIC_STORAGE {
+typedef struct CXPLAT_STORAGE {
 
     HKEY RegKey;
     CXPLAT_LOCK Lock;
     CXPLAT_EVENT* CleanupEvent;
     WORK_QUEUE_ITEM WorkItem;
     IO_STATUS_BLOCK IoStatusBlock;
-    QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback;
+    CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback;
     void* CallbackContext;
 
-} QUIC_STORAGE;
+} CXPLAT_STORAGE;
 
 //
 // Converts a UTF-8 string to a UNICODE_STRING object. The variable must be
@@ -163,15 +163,15 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
-    _Out_ QUIC_STORAGE** NewStorage
+    _Out_ CXPLAT_STORAGE** NewStorage
     )
 {
     QUIC_STATUS Status;
     OBJECT_ATTRIBUTES Attributes;
     PUNICODE_STRING PathUnicode = NULL;
-    QUIC_STORAGE* Storage = NULL;
+    CXPLAT_STORAGE* Storage = NULL;
 
     if (Path != NULL) {
         Status = CxPlatConvertUtf8ToUnicode(Path, &PathUnicode);
@@ -198,13 +198,13 @@ CxPlatStorageOpen(
             NULL);
     }
 
-    Storage = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_STORAGE), QUIC_POOL_STORAGE);
+    Storage = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_STORAGE), QUIC_POOL_STORAGE);
     if (Storage == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    CxPlatZeroMemory(Storage, sizeof(QUIC_STORAGE));
+    CxPlatZeroMemory(Storage, sizeof(CXPLAT_STORAGE));
     CxPlatLockInitialize(&Storage->Lock);
     Storage->Callback = Callback;
     Storage->CallbackContext = CallbackContext;
@@ -264,7 +264,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatStorageClose(
-    _In_opt_ QUIC_STORAGE* Storage
+    _In_opt_ CXPLAT_STORAGE* Storage
     )
 {
     if (Storage != NULL) {
@@ -291,7 +291,7 @@ CxPlatStorageRegKeyChangeCallback(
     _In_ void* Context
     )
 {
-    QUIC_STORAGE* Storage = (QUIC_STORAGE*)Context;
+    CXPLAT_STORAGE* Storage = (CXPLAT_STORAGE*)Context;
     CXPLAT_EVENT* CleanupEvent = NULL;
 
     CxPlatLockAcquire(&Storage->Lock);
@@ -324,7 +324,7 @@ CxPlatStorageRegKeyChangeCallback(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageReadValue(
-    _In_ QUIC_STORAGE* Storage,
+    _In_ CXPLAT_STORAGE* Storage,
     _In_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
         UINT8 * Buffer,

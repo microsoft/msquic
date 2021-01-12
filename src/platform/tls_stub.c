@@ -37,27 +37,27 @@ typedef enum eSniNameType {
 
 typedef enum QUIC_FAKE_TLS_MESSAGE_TYPE {
 
-    QUIC_TLS_MESSAGE_INVALID,
-    QUIC_TLS_MESSAGE_CLIENT_INITIAL,
-    QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE,
-    QUIC_TLS_MESSAGE_SERVER_INITIAL,
-    QUIC_TLS_MESSAGE_SERVER_HANDSHAKE,
-    QUIC_TLS_MESSAGE_TICKET,
-    QUIC_TLS_MESSAGE_MAX
+    CXPLAT_TLS_MESSAGE_INVALID,
+    CXPLAT_TLS_MESSAGE_CLIENT_INITIAL,
+    CXPLAT_TLS_MESSAGE_CLIENT_HANDSHAKE,
+    CXPLAT_TLS_MESSAGE_SERVER_INITIAL,
+    CXPLAT_TLS_MESSAGE_SERVER_HANDSHAKE,
+    CXPLAT_TLS_MESSAGE_TICKET,
+    CXPLAT_TLS_MESSAGE_MAX
 
 } QUIC_FAKE_TLS_MESSAGE_TYPE;
 
 CXPLAT_STATIC_ASSERT(
-    (uint32_t)QUIC_TLS_MESSAGE_CLIENT_INITIAL == (uint32_t)TlsHandshake_ClientHello,
+    (uint32_t)CXPLAT_TLS_MESSAGE_CLIENT_INITIAL == (uint32_t)TlsHandshake_ClientHello,
     "Stub need to fake client hello exactly");
 
 const uint16_t MinMessageLengths[] = {
-    0,                              // QUIC_TLS_MESSAGE_INVALID
-    0,                              // QUIC_TLS_MESSAGE_CLIENT_INITIAL (Dynamic)
-    7 + 1,                          // QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE
-    7 + 1 + 32,                     // QUIC_TLS_MESSAGE_SERVER_INITIAL
-    7 + 4 + 32,                     // QUIC_TLS_MESSAGE_SERVER_HANDSHAKE
-    4                               // QUIC_TLS_MESSAGE_TICKET
+    0,                              // CXPLAT_TLS_MESSAGE_INVALID
+    0,                              // CXPLAT_TLS_MESSAGE_CLIENT_INITIAL (Dynamic)
+    7 + 1,                          // CXPLAT_TLS_MESSAGE_CLIENT_HANDSHAKE
+    7 + 1 + 32,                     // CXPLAT_TLS_MESSAGE_SERVER_INITIAL
+    7 + 4 + 32,                     // CXPLAT_TLS_MESSAGE_SERVER_HANDSHAKE
+    4                               // CXPLAT_TLS_MESSAGE_TICKET
 };
 
 static
@@ -109,35 +109,35 @@ TlsWriteUint24(
 #pragma pack(push)
 #pragma pack(1)
 
-typedef struct QUIC_TLS_SNI_EXT {
+typedef struct CXPLAT_TLS_SNI_EXT {
     uint8_t ExtType[2];                 // TlsExt_ServerName
     uint8_t ExtLen[2];
     uint8_t ListLen[2];
     uint8_t NameType;                   // TlsExt_Sni_NameType_HostName
     uint8_t NameLength[2];
     uint8_t Name[0];
-} QUIC_TLS_SNI_EXT;
+} CXPLAT_TLS_SNI_EXT;
 
-typedef struct QUIC_TLS_ALPN_EXT {
+typedef struct CXPLAT_TLS_ALPN_EXT {
     uint8_t ExtType[2];                 // TlsExt_AppProtocolNegotiation
     uint8_t ExtLen[2];
     uint8_t AlpnListLength[2];
     uint8_t AlpnList[0];
-} QUIC_TLS_ALPN_EXT;
+} CXPLAT_TLS_ALPN_EXT;
 
-typedef struct QUIC_TLS_SESSION_TICKET_EXT {
+typedef struct CXPLAT_TLS_SESSION_TICKET_EXT {
     uint8_t ExtType[2];                 // TlsExt_SessionTicket
     uint8_t ExtLen[2];
     uint8_t Ticket[0];
-} QUIC_TLS_SESSION_TICKET_EXT;
+} CXPLAT_TLS_SESSION_TICKET_EXT;
 
-typedef struct QUIC_TLS_QUIC_TP_EXT {
+typedef struct CXPLAT_TLS_QUIC_TP_EXT {
     uint8_t ExtType[2];
     uint8_t ExtLen[2];
     uint8_t TP[0];
-} QUIC_TLS_QUIC_TP_EXT;
+} CXPLAT_TLS_QUIC_TP_EXT;
 
-typedef struct QUIC_TLS_CLIENT_HELLO { // All multi-byte fields are Network Byte Order
+typedef struct CXPLAT_TLS_CLIENT_HELLO { // All multi-byte fields are Network Byte Order
     uint8_t Version[2];
     uint8_t Random[TLS_RANDOM_LENGTH];
     uint8_t SessionIdLength;            // 0
@@ -147,17 +147,17 @@ typedef struct QUIC_TLS_CLIENT_HELLO { // All multi-byte fields are Network Byte
 
     uint8_t ExtListLength[2];
     uint8_t ExtList[0];
-    // QUIC_TLS_SNI_EXT
-    // QUIC_TLS_ALPN_EXT
-    // QUIC_TLS_SESSION_TICKET_EXT
-    // QUIC_TLS_QUIC_TP_EXT
-} QUIC_TLS_CLIENT_HELLO;
+    // CXPLAT_TLS_SNI_EXT
+    // CXPLAT_TLS_ALPN_EXT
+    // CXPLAT_TLS_SESSION_TICKET_EXT
+    // CXPLAT_TLS_QUIC_TP_EXT
+} CXPLAT_TLS_CLIENT_HELLO;
 
 typedef struct QUIC_FAKE_TLS_MESSAGE {
     uint8_t Type;
     uint8_t Length[3]; // Uses TLS 24-bit length encoding
     union {
-        QUIC_TLS_CLIENT_HELLO CLIENT_INITIAL;
+        CXPLAT_TLS_CLIENT_HELLO CLIENT_INITIAL;
         struct {
             uint8_t Success;
         } CLIENT_HANDSHAKE;
@@ -172,8 +172,8 @@ typedef struct QUIC_FAKE_TLS_MESSAGE {
             uint16_t ExtListLength;
             uint8_t Certificate[0];
             // uint8_t ExtList[0];
-            // QUIC_TLS_ALPN_EXT
-            // QUIC_TLS_QUIC_TP_EXT
+            // CXPLAT_TLS_ALPN_EXT
+            // CXPLAT_TLS_QUIC_TP_EXT
         } SERVER_HANDSHAKE;
         struct {
             uint8_t Ticket[0];
@@ -191,14 +191,14 @@ typedef struct QUIC_SEC_CONFIG {
 
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
-    QUIC_TLS_CALLBACKS Callbacks;
+    CXPLAT_TLS_CALLBACKS Callbacks;
     QUIC_CERTIFICATE* Certificate;
     uint16_t FormatLength;
     uint8_t FormatBuffer[SIZEOF_CERT_CHAIN_LIST_LENGTH];
 
 } QUIC_SEC_CONFIG;
 
-typedef struct QUIC_TLS {
+typedef struct CXPLAT_TLS {
 
     BOOLEAN IsServer : 1;
     BOOLEAN EarlyDataAttempted : 1;
@@ -225,11 +225,11 @@ typedef struct QUIC_TLS {
     const uint8_t* LocalTPBuffer;
     uint32_t LocalTPLength;
 
-} QUIC_TLS;
+} CXPLAT_TLS;
 
 char
 GetTlsIdentifier(
-    _In_ const QUIC_TLS* TlsContext
+    _In_ const CXPLAT_TLS* TlsContext
     )
 {
     const char IDs[2] = { 'C', 'S' };
@@ -280,7 +280,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _In_ const QUIC_TLS_CALLBACKS* TlsCallbacks,
+    _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
@@ -372,27 +372,27 @@ CxPlatTlsSecConfigDelete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsInitialize(
-    _In_ const QUIC_TLS_CONFIG* Config,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State,
-    _Out_ QUIC_TLS** NewTlsContext
+    _In_ const CXPLAT_TLS_CONFIG* Config,
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State,
+    _Out_ CXPLAT_TLS** NewTlsContext
     )
 {
     QUIC_STATUS Status;
 
     UNREFERENCED_PARAMETER(State);
 
-    QUIC_TLS* TlsContext = CXPLAT_ALLOC_PAGED(sizeof(QUIC_TLS), QUIC_POOL_TLS_CTX);
+    CXPLAT_TLS* TlsContext = CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_TLS), QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_TLS",
-            sizeof(QUIC_TLS));
+            "CXPLAT_TLS",
+            sizeof(CXPLAT_TLS));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    CxPlatZeroMemory(TlsContext, sizeof(QUIC_TLS));
+    CxPlatZeroMemory(TlsContext, sizeof(CXPLAT_TLS));
 
     TlsContext->IsServer = Config->IsServer;
     TlsContext->QuicTpExtType = Config->TPType;
@@ -463,7 +463,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsUninitialize(
-    _In_opt_ QUIC_TLS* TlsContext
+    _In_opt_ CXPLAT_TLS* TlsContext
     )
 {
     if (TlsContext != NULL) {
@@ -491,9 +491,9 @@ CxPlatTlsUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsServerProcess(
-    _In_ QUIC_TLS* TlsContext,
-    _Out_ QUIC_TLS_RESULT_FLAGS* ResultFlags,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State,
+    _In_ CXPLAT_TLS* TlsContext,
+    _Out_ CXPLAT_TLS_RESULT_FLAGS* ResultFlags,
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State,
     _Inout_ uint32_t * BufferLength,
     _In_reads_bytes_(*BufferLength) const uint8_t * Buffer
     )
@@ -512,8 +512,8 @@ CxPlatTlsServerProcess(
 
     switch (TlsContext->LastMessageType) {
 
-    case QUIC_TLS_MESSAGE_INVALID: {
-        CXPLAT_FRE_ASSERT(ClientMessage->Type == QUIC_TLS_MESSAGE_CLIENT_INITIAL);
+    case CXPLAT_TLS_MESSAGE_INVALID: {
+        CXPLAT_FRE_ASSERT(ClientMessage->Type == CXPLAT_TLS_MESSAGE_CLIENT_INITIAL);
 
         TlsContext->EarlyDataAttempted = FALSE;
 
@@ -526,7 +526,7 @@ CxPlatTlsServerProcess(
 
             switch (ExtType) {
             case TlsExt_ServerName: {
-                const QUIC_TLS_SNI_EXT* SNI = (QUIC_TLS_SNI_EXT*)ExtList;
+                const CXPLAT_TLS_SNI_EXT* SNI = (CXPLAT_TLS_SNI_EXT*)ExtList;
                 uint16_t NameLength = TlsReadUint16(SNI->NameLength);
                 if (NameLength != 0) {
                     TlsContext->SNI = CXPLAT_ALLOC_PAGED(NameLength + 1, QUIC_POOL_TLS_SNI);
@@ -543,12 +543,12 @@ CxPlatTlsServerProcess(
                 if (TlsContext->SecConfig->Callbacks.ReceiveTicket(
                         TlsContext->Connection,
                         ExtLength,
-                        ((QUIC_TLS_SESSION_TICKET_EXT*)ExtList)->Ticket)) {
+                        ((CXPLAT_TLS_SESSION_TICKET_EXT*)ExtList)->Ticket)) {
                     State->SessionResumed = TRUE;
-                    State->EarlyDataState = QUIC_TLS_EARLY_DATA_ACCEPTED;
+                    State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
                 } else {
                     State->SessionResumed = FALSE;
-                    State->EarlyDataState = QUIC_TLS_EARLY_DATA_REJECTED;
+                    State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_REJECTED;
                 }
                 break;
             }
@@ -563,8 +563,8 @@ CxPlatTlsServerProcess(
         const QUIC_SEC_CONFIG* SecurityConfig = TlsContext->SecConfig;
         CXPLAT_FRE_ASSERT(SecurityConfig != NULL);
 
-        if (MaxServerMessageLength < MinMessageLengths[QUIC_TLS_MESSAGE_SERVER_INITIAL]) {
-            *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        if (MaxServerMessageLength < MinMessageLengths[CXPLAT_TLS_MESSAGE_SERVER_INITIAL]) {
+            *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             break;
         }
 
@@ -581,18 +581,18 @@ CxPlatTlsServerProcess(
                 "[ tls][%p] ERROR, %s.",
                 TlsContext->Connection,
                 "CxPlatCertSelect failed");
-            *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+            *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             break;
         }
 
         uint8_t HandshakeSecret[CXPLAT_AEAD_AES_256_GCM_SIZE];
         CxPlatRandom(sizeof(HandshakeSecret), HandshakeSecret);
 
-        uint16_t MessageLength = MinMessageLengths[QUIC_TLS_MESSAGE_SERVER_INITIAL];
+        uint16_t MessageLength = MinMessageLengths[CXPLAT_TLS_MESSAGE_SERVER_INITIAL];
         TlsWriteUint24(ServerMessage->Length, MessageLength - 4);
-        ServerMessage->Type = QUIC_TLS_MESSAGE_SERVER_INITIAL;
+        ServerMessage->Type = CXPLAT_TLS_MESSAGE_SERVER_INITIAL;
         ServerMessage->SERVER_INITIAL.EarlyDataAccepted =
-            State->EarlyDataState == QUIC_TLS_EARLY_DATA_ACCEPTED;
+            State->EarlyDataState == CXPLAT_TLS_EARLY_DATA_ACCEPTED;
         memcpy(ServerMessage->SERVER_INITIAL.HandshakeSecret, HandshakeSecret, CXPLAT_AEAD_AES_256_GCM_SIZE);
 
         State->BufferLength = MessageLength;
@@ -604,23 +604,23 @@ CxPlatTlsServerProcess(
         MaxServerMessageLength =
             State->BufferAllocLength - State->BufferLength;
 
-        if (MaxServerMessageLength < MinMessageLengths[QUIC_TLS_MESSAGE_SERVER_HANDSHAKE] + SecurityConfig->FormatLength + TlsContext->LocalTPLength) {
-            *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        if (MaxServerMessageLength < MinMessageLengths[CXPLAT_TLS_MESSAGE_SERVER_HANDSHAKE] + SecurityConfig->FormatLength + TlsContext->LocalTPLength) {
+            *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             break;
         }
 
-        if (State->EarlyDataState == QUIC_TLS_EARLY_DATA_ACCEPTED) {
-            *ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
+        if (State->EarlyDataState == CXPLAT_TLS_EARLY_DATA_ACCEPTED) {
+            *ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
             uint8_t Secret[CXPLAT_AEAD_AES_256_GCM_SIZE];
             CxPlatZeroMemory(Secret, sizeof(Secret));
             State->ReadKeys[QUIC_PACKET_KEY_0_RTT] = CxPlatStubAllocKey(QUIC_PACKET_KEY_0_RTT, Secret);
         }
 
-        *ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
+        *ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
         State->ReadKey = QUIC_PACKET_KEY_HANDSHAKE;
         State->ReadKeys[QUIC_PACKET_KEY_HANDSHAKE] = CxPlatStubAllocKey(QUIC_PACKET_KEY_HANDSHAKE, HandshakeSecret);
 
-        *ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
+        *ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
         State->WriteKey = QUIC_PACKET_KEY_HANDSHAKE;
         State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] = CxPlatStubAllocKey(QUIC_PACKET_KEY_HANDSHAKE, HandshakeSecret);
 
@@ -628,12 +628,12 @@ CxPlatTlsServerProcess(
         CxPlatRandom(sizeof(OneRttSecret), OneRttSecret);
 
         MessageLength =
-            MinMessageLengths[QUIC_TLS_MESSAGE_SERVER_HANDSHAKE] +
+            MinMessageLengths[CXPLAT_TLS_MESSAGE_SERVER_HANDSHAKE] +
             SecurityConfig->FormatLength +
             6 + TlsContext->AlpnBufferLength +
             4 + (uint16_t)TlsContext->LocalTPLength;
         TlsWriteUint24(ServerMessage->Length, MessageLength - 4);
-        ServerMessage->Type = QUIC_TLS_MESSAGE_SERVER_HANDSHAKE;
+        ServerMessage->Type = CXPLAT_TLS_MESSAGE_SERVER_HANDSHAKE;
         memcpy(ServerMessage->SERVER_HANDSHAKE.OneRttSecret, OneRttSecret, CXPLAT_AEAD_AES_256_GCM_SIZE);
         ServerMessage->SERVER_HANDSHAKE.CertificateLength = SecurityConfig->FormatLength;
         memcpy(ServerMessage->SERVER_HANDSHAKE.Certificate, SecurityConfig->FormatBuffer, SecurityConfig->FormatLength);
@@ -642,8 +642,8 @@ CxPlatTlsServerProcess(
 
         CXPLAT_FRE_ASSERT(State->NegotiatedAlpn != NULL);
 
-        QUIC_TLS_ALPN_EXT* ALPN =
-            (QUIC_TLS_ALPN_EXT*)
+        CXPLAT_TLS_ALPN_EXT* ALPN =
+            (CXPLAT_TLS_ALPN_EXT*)
             (ServerMessage->SERVER_HANDSHAKE.Certificate +
              SecurityConfig->FormatLength + ExtListLength);
         TlsWriteUint16(ALPN->ExtType, TlsExt_AppProtocolNegotiation);
@@ -652,8 +652,8 @@ CxPlatTlsServerProcess(
         memcpy(ALPN->AlpnList, State->NegotiatedAlpn, State->NegotiatedAlpn[0]+1);
         ExtListLength += 7 + State->NegotiatedAlpn[0];
 
-        QUIC_TLS_QUIC_TP_EXT* QuicTP =
-            (QUIC_TLS_QUIC_TP_EXT*)
+        CXPLAT_TLS_QUIC_TP_EXT* QuicTP =
+            (CXPLAT_TLS_QUIC_TP_EXT*)
             (ServerMessage->SERVER_HANDSHAKE.Certificate +
              SecurityConfig->FormatLength + ExtListLength);
         TlsWriteUint16(QuicTP->ExtType, TlsContext->QuicTpExtType);
@@ -666,20 +666,20 @@ CxPlatTlsServerProcess(
         State->BufferLength += MessageLength;
         State->BufferTotalLength += MessageLength;
         State->BufferOffset1Rtt = State->BufferTotalLength;
-        *ResultFlags |= QUIC_TLS_RESULT_DATA;
+        *ResultFlags |= CXPLAT_TLS_RESULT_DATA;
 
-        *ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
+        *ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
         State->WriteKey = QUIC_PACKET_KEY_1_RTT;
         State->WriteKeys[QUIC_PACKET_KEY_1_RTT] = CxPlatStubAllocKey(QUIC_PACKET_KEY_1_RTT, OneRttSecret);
 
         DrainLength = (uint16_t)TlsReadUint24(ClientMessage->Length) + 4;
 
-        TlsContext->LastMessageType = QUIC_TLS_MESSAGE_SERVER_HANDSHAKE;
+        TlsContext->LastMessageType = CXPLAT_TLS_MESSAGE_SERVER_HANDSHAKE;
         break;
     }
 
-    case QUIC_TLS_MESSAGE_SERVER_HANDSHAKE: {
-        if (ClientMessage->Type == QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE) {
+    case CXPLAT_TLS_MESSAGE_SERVER_HANDSHAKE: {
+        if (ClientMessage->Type == CXPLAT_TLS_MESSAGE_CLIENT_HANDSHAKE) {
 
             if (ClientMessage->CLIENT_HANDSHAKE.Success == FALSE) {
                 QuicTraceEvent(
@@ -687,11 +687,11 @@ CxPlatTlsServerProcess(
                     "[ tls][%p] ERROR, %s.",
                     TlsContext->Connection,
                     "Failure client finish");
-                *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 break;
             }
 
-            *ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
+            *ResultFlags |= CXPLAT_TLS_RESULT_COMPLETE;
 
             QuicTraceLogConnInfo(
                 StubTlsHandshakeComplete,
@@ -700,7 +700,7 @@ CxPlatTlsServerProcess(
 
             TlsContext->SecConfig = NULL;
 
-            *ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
+            *ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
             State->ReadKey = QUIC_PACKET_KEY_1_RTT;
             State->ReadKeys[QUIC_PACKET_KEY_1_RTT] = CxPlatStubAllocKey(QUIC_PACKET_KEY_1_RTT, State->WriteKeys[QUIC_PACKET_KEY_1_RTT]->TrafficSecret[0].Secret);
             State->HandshakeComplete = TRUE;
@@ -712,7 +712,7 @@ CxPlatTlsServerProcess(
                 TlsContext->Connection,
                 ClientMessage->Type,
                 "Invalid message");
-            *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+            *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             break;
         }
 
@@ -728,7 +728,7 @@ CxPlatTlsServerProcess(
             TlsContext->Connection,
             TlsContext->LastMessageType,
             "Invalid last message");
-        *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
         break;
     }
     }
@@ -739,9 +739,9 @@ CxPlatTlsServerProcess(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsClientProcess(
-    _In_ QUIC_TLS* TlsContext,
-    _Out_ QUIC_TLS_RESULT_FLAGS* ResultFlags,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State,
+    _In_ CXPLAT_TLS* TlsContext,
+    _Out_ CXPLAT_TLS_RESULT_FLAGS* ResultFlags,
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State,
     _Inout_ uint32_t* BufferLength,
     _In_reads_bytes_(*BufferLength) const uint8_t * Buffer
     )
@@ -760,7 +760,7 @@ CxPlatTlsClientProcess(
 
     switch (TlsContext->LastMessageType) {
 
-    case QUIC_TLS_MESSAGE_INVALID: {
+    case CXPLAT_TLS_MESSAGE_INVALID: {
 
         ClientMessage->Type = TlsHandshake_ClientHello;
 
@@ -772,7 +772,7 @@ CxPlatTlsClientProcess(
         uint16_t ExtListLength = 0;
 
         if (TlsContext->SNI != NULL) {
-            QUIC_TLS_SNI_EXT* SNI = (QUIC_TLS_SNI_EXT*)ClientMessage->CLIENT_INITIAL.ExtList;
+            CXPLAT_TLS_SNI_EXT* SNI = (CXPLAT_TLS_SNI_EXT*)ClientMessage->CLIENT_INITIAL.ExtList;
             uint16_t SniNameLength = (uint16_t)strlen(TlsContext->SNI);
             TlsWriteUint16(SNI->ExtType, TlsExt_ServerName);
             TlsWriteUint16(SNI->ExtLen, 5 + SniNameLength);
@@ -783,8 +783,8 @@ CxPlatTlsClientProcess(
             ExtListLength += 9 + SniNameLength;
         }
 
-        QUIC_TLS_ALPN_EXT* ALPN =
-            (QUIC_TLS_ALPN_EXT*)
+        CXPLAT_TLS_ALPN_EXT* ALPN =
+            (CXPLAT_TLS_ALPN_EXT*)
             (ClientMessage->CLIENT_INITIAL.ExtList + ExtListLength);
         TlsWriteUint16(ALPN->ExtType, TlsExt_AppProtocolNegotiation);
         TlsWriteUint16(ALPN->ExtLen, 2 + TlsContext->AlpnBufferLength);
@@ -795,8 +795,8 @@ CxPlatTlsClientProcess(
         if (TlsContext->ResumptionTicketBuffer != NULL) {
             TlsContext->EarlyDataAttempted = TRUE;
 
-            QUIC_TLS_SESSION_TICKET_EXT* Ticket =
-                (QUIC_TLS_SESSION_TICKET_EXT*)
+            CXPLAT_TLS_SESSION_TICKET_EXT* Ticket =
+                (CXPLAT_TLS_SESSION_TICKET_EXT*)
                 (ClientMessage->CLIENT_INITIAL.ExtList + ExtListLength);
             TlsWriteUint16(Ticket->ExtType, TlsExt_SessionTicket);
             TlsWriteUint16(Ticket->ExtLen, (uint16_t)TlsContext->ResumptionTicketLength);
@@ -809,8 +809,8 @@ CxPlatTlsClientProcess(
             TlsContext->EarlyDataAttempted = FALSE;
         }
 
-        QUIC_TLS_QUIC_TP_EXT* QuicTP =
-            (QUIC_TLS_QUIC_TP_EXT*)
+        CXPLAT_TLS_QUIC_TP_EXT* QuicTP =
+            (CXPLAT_TLS_QUIC_TP_EXT*)
             (ClientMessage->CLIENT_INITIAL.ExtList + ExtListLength);
         TlsWriteUint16(QuicTP->ExtType, TlsContext->QuicTpExtType);
         TlsWriteUint16(QuicTP->ExtLen, (uint16_t)TlsContext->LocalTPLength);
@@ -819,10 +819,10 @@ CxPlatTlsClientProcess(
 
         TlsWriteUint16(ClientMessage->CLIENT_INITIAL.ExtListLength, ExtListLength);
 
-        uint16_t MessageLength = sizeof(QUIC_TLS_CLIENT_HELLO) + ExtListLength + 4;
+        uint16_t MessageLength = sizeof(CXPLAT_TLS_CLIENT_HELLO) + ExtListLength + 4;
         TlsWriteUint24(ClientMessage->Length, MessageLength - 4);
 
-        *ResultFlags |= QUIC_TLS_RESULT_DATA;
+        *ResultFlags |= CXPLAT_TLS_RESULT_DATA;
         State->BufferLength = MessageLength;
         State->BufferTotalLength = MessageLength;
 
@@ -833,37 +833,37 @@ CxPlatTlsClientProcess(
             State->WriteKeys[QUIC_PACKET_KEY_0_RTT] = CxPlatStubAllocKey(QUIC_PACKET_KEY_0_RTT, Secret);
         }
 
-        TlsContext->LastMessageType = QUIC_TLS_MESSAGE_CLIENT_INITIAL;
+        TlsContext->LastMessageType = CXPLAT_TLS_MESSAGE_CLIENT_INITIAL;
         break;
     }
 
-    case QUIC_TLS_MESSAGE_CLIENT_INITIAL: {
-        if (ServerMessage->Type == QUIC_TLS_MESSAGE_SERVER_INITIAL) {
+    case CXPLAT_TLS_MESSAGE_CLIENT_INITIAL: {
+        if (ServerMessage->Type == CXPLAT_TLS_MESSAGE_SERVER_INITIAL) {
 
             if (TlsContext->EarlyDataAttempted) {
                 State->SessionResumed = ServerMessage->SERVER_INITIAL.EarlyDataAccepted;
                 State->EarlyDataState =
                     ServerMessage->SERVER_INITIAL.EarlyDataAccepted ?
-                        QUIC_TLS_EARLY_DATA_ACCEPTED :
-                        QUIC_TLS_EARLY_DATA_REJECTED;
+                        CXPLAT_TLS_EARLY_DATA_ACCEPTED :
+                        CXPLAT_TLS_EARLY_DATA_REJECTED;
                 if (!ServerMessage->SERVER_INITIAL.EarlyDataAccepted) {
-                    *ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_REJECT;
+                    *ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_REJECT;
                 } else {
-                    *ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
+                    *ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
                 }
             }
 
             State->BufferOffsetHandshake = State->BufferTotalLength;
 
-            *ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
+            *ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
             State->ReadKey = QUIC_PACKET_KEY_HANDSHAKE;
             State->ReadKeys[QUIC_PACKET_KEY_HANDSHAKE] = CxPlatStubAllocKey(QUIC_PACKET_KEY_HANDSHAKE, ServerMessage->SERVER_INITIAL.HandshakeSecret);
 
-            *ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
+            *ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
             State->WriteKey = QUIC_PACKET_KEY_HANDSHAKE;
             State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] = CxPlatStubAllocKey(QUIC_PACKET_KEY_HANDSHAKE, ServerMessage->SERVER_INITIAL.HandshakeSecret);
 
-        } else if (ServerMessage->Type == QUIC_TLS_MESSAGE_SERVER_HANDSHAKE) {
+        } else if (ServerMessage->Type == CXPLAT_TLS_MESSAGE_SERVER_HANDSHAKE) {
 
             const uint8_t* ExtList =
                     ServerMessage->SERVER_HANDSHAKE.Certificate +
@@ -875,7 +875,7 @@ CxPlatTlsClientProcess(
                 CXPLAT_FRE_ASSERT(ExtLength + 4 <= ExtListLength);
 
                 if (ExtType == TlsExt_AppProtocolNegotiation) {
-                    const QUIC_TLS_ALPN_EXT* AlpnList = (QUIC_TLS_ALPN_EXT*)ExtList;
+                    const CXPLAT_TLS_ALPN_EXT* AlpnList = (CXPLAT_TLS_ALPN_EXT*)ExtList;
                     State->NegotiatedAlpn =
                         CxPlatTlsAlpnFindInList(
                             TlsContext->AlpnBufferLength,
@@ -888,11 +888,11 @@ CxPlatTlsClientProcess(
                             "[ tls][%p] ERROR, %s.",
                             TlsContext->Connection,
                             "ALPN Mismatch");
-                        *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                        *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                     }
 
                 } else if (ExtType == TlsContext->QuicTpExtType) {
-                    const QUIC_TLS_QUIC_TP_EXT* QuicTP = (QUIC_TLS_QUIC_TP_EXT*)ExtList;
+                    const CXPLAT_TLS_QUIC_TP_EXT* QuicTP = (CXPLAT_TLS_QUIC_TP_EXT*)ExtList;
                     TlsContext->SecConfig->Callbacks.ReceiveTP(
                         TlsContext->Connection,
                         ExtLength,
@@ -921,7 +921,7 @@ CxPlatTlsClientProcess(
                         "[ tls][%p] ERROR, %s.",
                         TlsContext->Connection,
                         "CxPlatCertParseChain Mismatch");
-                    *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                    *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                     break;
                 }
 
@@ -934,43 +934,43 @@ CxPlatTlsClientProcess(
                         "[ tls][%p] ERROR, %s.",
                         TlsContext->Connection,
                         "CxPlatCertValidateChain Mismatch");
-                    *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                    *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                     break;
                 }
             }
 
             State->HandshakeComplete = TRUE;
-            *ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
+            *ResultFlags |= CXPLAT_TLS_RESULT_COMPLETE;
 
             QuicTraceLogConnInfo(
                 StubTlsHandshakeComplete,
                 TlsContext->Connection,
                 "Handshake complete");
 
-            if (MaxClientMessageLength < MinMessageLengths[QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE]) {
-                *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+            if (MaxClientMessageLength < MinMessageLengths[CXPLAT_TLS_MESSAGE_CLIENT_HANDSHAKE]) {
+                *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 break;
             }
 
-            uint16_t MessageLength = MinMessageLengths[QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE];
+            uint16_t MessageLength = MinMessageLengths[CXPLAT_TLS_MESSAGE_CLIENT_HANDSHAKE];
             TlsWriteUint24(ClientMessage->Length, MessageLength - 4);
-            ClientMessage->Type = QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE;
+            ClientMessage->Type = CXPLAT_TLS_MESSAGE_CLIENT_HANDSHAKE;
             ClientMessage->CLIENT_HANDSHAKE.Success = TRUE;
 
-            *ResultFlags |= QUIC_TLS_RESULT_DATA;
+            *ResultFlags |= CXPLAT_TLS_RESULT_DATA;
             State->BufferLength += MessageLength;
             State->BufferTotalLength += MessageLength;
             State->BufferOffset1Rtt = State->BufferTotalLength;
 
-            *ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
+            *ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
             State->ReadKey = QUIC_PACKET_KEY_1_RTT;
             State->ReadKeys[QUIC_PACKET_KEY_1_RTT] = CxPlatStubAllocKey(QUIC_PACKET_KEY_1_RTT, ServerMessage->SERVER_HANDSHAKE.OneRttSecret);
 
-            *ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
+            *ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
             State->WriteKey = QUIC_PACKET_KEY_1_RTT;
             State->WriteKeys[QUIC_PACKET_KEY_1_RTT] = CxPlatStubAllocKey(QUIC_PACKET_KEY_1_RTT, ServerMessage->SERVER_HANDSHAKE.OneRttSecret);
 
-            TlsContext->LastMessageType = QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE;
+            TlsContext->LastMessageType = CXPLAT_TLS_MESSAGE_CLIENT_HANDSHAKE;
 
         } else {
             QuicTraceEvent(
@@ -979,7 +979,7 @@ CxPlatTlsClientProcess(
                 TlsContext->Connection,
                 ServerMessage->Type,
                 "Invalid message");
-            *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+            *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             break;
         }
 
@@ -988,15 +988,15 @@ CxPlatTlsClientProcess(
         break;
     }
 
-    case QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE: {
-        if (ServerMessage->Type != QUIC_TLS_MESSAGE_TICKET) {
+    case CXPLAT_TLS_MESSAGE_CLIENT_HANDSHAKE: {
+        if (ServerMessage->Type != CXPLAT_TLS_MESSAGE_TICKET) {
             QuicTraceEvent(
                 TlsErrorStatus,
                 "[ tls][%p] ERROR, %u, %s.",
                 TlsContext->Connection,
                 ServerMessage->Type,
                 "Invalid message");
-            *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+            *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             break;
         }
 
@@ -1028,7 +1028,7 @@ CxPlatTlsClientProcess(
             TlsContext->Connection,
             TlsContext->LastMessageType,
             "Invalid last message");
-        *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
         break;
     }
     }
@@ -1038,14 +1038,14 @@ CxPlatTlsClientProcess(
 
 BOOLEAN
 CxPlatTlsHasValidMessageToProcess(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t* Buffer
     )
 {
     if (!TlsContext->IsServer &&
-        TlsContext->LastMessageType == QUIC_TLS_MESSAGE_INVALID &&
+        TlsContext->LastMessageType == CXPLAT_TLS_MESSAGE_INVALID &&
         BufferLength == 0) {
         return TRUE;
     }
@@ -1074,14 +1074,14 @@ CxPlatTlsHasValidMessageToProcess(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_RESULT_FLAGS
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessData(
-    _In_ QUIC_TLS* TlsContext,
-    _In_ QUIC_TLS_DATA_TYPE DataType,
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ CXPLAT_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     )
 {
     if (*BufferLength) {
@@ -1092,9 +1092,9 @@ CxPlatTlsProcessData(
             *BufferLength);
     }
 
-    QUIC_TLS_RESULT_FLAGS ResultFlags = 0;
+    CXPLAT_TLS_RESULT_FLAGS ResultFlags = 0;
 
-    if (DataType == QUIC_TLS_TICKET_DATA) {
+    if (DataType == CXPLAT_TLS_TICKET_DATA) {
         CXPLAT_FRE_ASSERT(TlsContext->IsServer);
 
         uint16_t PrevBufferLength = State->BufferLength;
@@ -1102,21 +1102,21 @@ CxPlatTlsProcessData(
             (QUIC_FAKE_TLS_MESSAGE*)(State->Buffer + State->BufferLength);
         uint16_t MaxServerMessageLength =
             State->BufferAllocLength - State->BufferLength;
-        if (MaxServerMessageLength < MinMessageLengths[QUIC_TLS_MESSAGE_TICKET] + *BufferLength) {
-            ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        if (MaxServerMessageLength < MinMessageLengths[CXPLAT_TLS_MESSAGE_TICKET] + *BufferLength) {
+            ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Error;
         }
 
-        uint16_t MessageLength = MinMessageLengths[QUIC_TLS_MESSAGE_TICKET] + (uint16_t)*BufferLength;
+        uint16_t MessageLength = MinMessageLengths[CXPLAT_TLS_MESSAGE_TICKET] + (uint16_t)*BufferLength;
         TlsWriteUint24(ServerMessage->Length, MessageLength - 4);
-        ServerMessage->Type = QUIC_TLS_MESSAGE_TICKET;
+        ServerMessage->Type = CXPLAT_TLS_MESSAGE_TICKET;
         memcpy(ServerMessage->TICKET.Ticket, Buffer, *BufferLength);
 
-        ResultFlags |= QUIC_TLS_RESULT_DATA;
+        ResultFlags |= CXPLAT_TLS_RESULT_DATA;
         State->BufferLength += MessageLength;
         State->BufferTotalLength += MessageLength;
 
-        TlsContext->LastMessageType = QUIC_TLS_MESSAGE_TICKET;
+        TlsContext->LastMessageType = CXPLAT_TLS_MESSAGE_TICKET;
 
         if (State->BufferLength > PrevBufferLength) {
             QuicTraceLogConnInfo(
@@ -1127,7 +1127,7 @@ CxPlatTlsProcessData(
         }
 
     } else if (CxPlatTlsHasValidMessageToProcess(TlsContext, *BufferLength, Buffer)) {
-        CXPLAT_FRE_ASSERT(DataType == QUIC_TLS_CRYPTO_DATA);
+        CXPLAT_FRE_ASSERT(DataType == CXPLAT_TLS_CRYPTO_DATA);
 
         uint16_t PrevBufferLength = State->BufferLength;
         if (TlsContext->IsServer) {
@@ -1159,21 +1159,21 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_RESULT_FLAGS
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessDataComplete(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _Out_ uint32_t * BufferConsumed
     )
 {
     UNREFERENCED_PARAMETER(TlsContext);
     UNREFERENCED_PARAMETER(BufferConsumed);
-    return QUIC_TLS_RESULT_ERROR;
+    return CXPLAT_TLS_RESULT_ERROR;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamSet(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -1190,7 +1190,7 @@ CxPlatTlsParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamGet(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)

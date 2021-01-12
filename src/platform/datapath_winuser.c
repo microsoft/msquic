@@ -913,7 +913,7 @@ CxPlatDataPathInitialize(
             goto Error;
         }
 
-        const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[i];
+        const CXPLAT_PROCESSOR_INFO* ProcInfo = &CxPlatProcessorInfo[i];
         GROUP_AFFINITY Group = {0};
         Group.Mask = (KAFFINITY)(1llu << ProcInfo->Index);
         Group.Group = ProcInfo->Group;

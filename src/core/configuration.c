@@ -131,7 +131,7 @@ MsQuicConfigurationOpen(
         Status =
             CxPlatStorageOpen(
                 NULL,
-                (QUIC_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
+                (CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
                 Configuration,
                 &Configuration->Storage);
         if (QUIC_FAILED(Status)) {
@@ -154,7 +154,7 @@ MsQuicConfigurationOpen(
         Status =
             CxPlatStorageOpen(
                 SpecificAppKey,
-                (QUIC_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
+                (CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
                 Configuration,
                 &Configuration->AppSpecificStorage);
         if (QUIC_FAILED(Status)) {
@@ -370,7 +370,7 @@ QuicConfigurationTraceRundown(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_STORAGE_CHANGE_CALLBACK)
+_Function_class_(CXPLAT_STORAGE_CHANGE_CALLBACK)
 void
 QuicConfigurationSettingsChanged(
     _Inout_ QUIC_CONFIGURATION* Configuration

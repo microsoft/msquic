@@ -138,16 +138,16 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 #endif
 
 #ifdef _KERNEL_MODE
-#define QUIC_PLATFORM_TYPE 1
+#define CX_PLATFORM_TYPE 1
 #include <quic_platform_winkernel.h>
 #elif _WIN32
-#define QUIC_PLATFORM_TYPE 2
+#define CX_PLATFORM_TYPE 2
 #include <quic_platform_winuser.h>
-#elif QUIC_PLATFORM_LINUX
-#define QUIC_PLATFORM_TYPE 3
+#elif CX_PLATFORM_LINUX
+#define CX_PLATFORM_TYPE 3
 #include <quic_platform_linux.h>
 #else
-#define QUIC_PLATFORM_TYPE 0xFF
+#define CX_PLATFORM_TYPE 0xFF
 #error "Unsupported Platform"
 #endif
 

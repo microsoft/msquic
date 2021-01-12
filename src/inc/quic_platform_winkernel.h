@@ -16,7 +16,7 @@ Environment:
 
 #pragma once
 
-#ifndef QUIC_PLATFORM_TYPE
+#ifndef CX_PLATFORM_TYPE
 #error "Must be included from quic_platform.h"
 #endif
 
@@ -126,7 +126,7 @@ CxPlatSystemUnload(
 
 //
 // Initializes the PAL library. Calls to this and
-// QuicPlatformUninitialize must be serialized and cannot overlap.
+// CxPlatformUninitialize must be serialized and cannot overlap.
 //
 PAGEDX
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -137,7 +137,7 @@ CxPlatInitialize(
 
 //
 // Uninitializes the PAL library. Calls to this and
-// QuicPlatformInitialize must be serialized and cannot overlap.
+// CxPlatformInitialize must be serialized and cannot overlap.
 //
 PAGEDX
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -548,7 +548,7 @@ CxPlatGetTimerResolution()
 //
 // Performance counter frequency.
 //
-extern uint64_t QuicPlatformPerfFreq;
+extern uint64_t CxPlatPerfFreq;
 
 //
 // Returns the current time in platform specific time units.
@@ -573,7 +573,7 @@ QuicTimePlatToUs64(
 {
     //
     // Multiply by a big number (1000000, to convert seconds to microseconds)
-    // and divide by a big number (QuicPlatformPerfFreq, to convert counts to secs).
+    // and divide by a big number (CxPlatPerfFreq, to convert counts to secs).
     //
     // Avoid overflow with separate multiplication/division of the high and low
     // bits. Taken from TcpConvertPerformanceCounterToMicroseconds.
@@ -581,8 +581,8 @@ QuicTimePlatToUs64(
     uint64_t High = (Count >> 32) * 1000000;
     uint64_t Low = (Count & 0xFFFFFFFF) * 1000000;
     return
-        ((High / QuicPlatformPerfFreq) << 32) +
-        ((Low + ((High % QuicPlatformPerfFreq) << 32)) / QuicPlatformPerfFreq);
+        ((High / CxPlatPerfFreq) << 32) +
+        ((Low + ((High % CxPlatPerfFreq) << 32)) / CxPlatPerfFreq);
 }
 
 //
@@ -594,8 +594,8 @@ CxPlatTimeUs64ToPlat(
     uint64_t TimeUs
     )
 {
-    uint64_t High = (TimeUs >> 32) * QuicPlatformPerfFreq;
-    uint64_t Low = (TimeUs & 0xFFFFFFFF) * QuicPlatformPerfFreq;
+    uint64_t High = (TimeUs >> 32) * CxPlatPerfFreq;
+    uint64_t Low = (TimeUs & 0xFFFFFFFF) * CxPlatPerfFreq;
     return
         ((High / 1000000) << 32) +
         ((Low + ((High % 1000000) << 32)) / 1000000);

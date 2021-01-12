@@ -15,11 +15,11 @@ Environment:
 
 #pragma once
 
-#ifndef QUIC_PLATFORM_TYPE
+#ifndef CX_PLATFORM_TYPE
 #error "Must be included from quic_platform.h"
 #endif
 
-#ifndef QUIC_PLATFORM_LINUX
+#ifndef CX_PLATFORM_LINUX
 #error "Incorrectly including Linux Platform Header from non-Linux platfrom"
 #endif
 

@@ -40,7 +40,7 @@
 
 #define QUIC_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
-typedef struct QUIC_PLATFORM {
+typedef struct CX_PLATFORM {
 
     PDRIVER_OBJECT DriverObject;
 
@@ -49,7 +49,7 @@ typedef struct QUIC_PLATFORM {
     //
     BCRYPT_ALG_HANDLE RngAlgorithm;
 
-} QUIC_PLATFORM;
+} CX_PLATFORM;
 
 #elif _WIN32
 
@@ -62,22 +62,22 @@ typedef struct QUIC_PLATFORM {
 
 #define QUIC_BASE_REG_PATH "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
-typedef struct QUIC_PLATFORM {
+typedef struct CX_PLATFORM {
 
     //
     // Heap used for all allocations.
     //
     HANDLE Heap;
 
-} QUIC_PLATFORM;
+} CX_PLATFORM;
 
-#elif QUIC_PLATFORM_LINUX
+#elif CX_PLATFORM_LINUX
 
-typedef struct QUIC_PLATFORM {
+typedef struct CX_PLATFORM {
 
     void* Reserved; // Nothing right now.
 
-} QUIC_PLATFORM;
+} CX_PLATFORM;
 
 #else
 
@@ -91,7 +91,7 @@ typedef struct QUIC_PLATFORM {
 //
 // Global Platform variables/state.
 //
-extern QUIC_PLATFORM QuicPlatform;
+extern CX_PLATFORM CxPlatform;
 
 #if _WIN32 // Some Windows Helpers
 

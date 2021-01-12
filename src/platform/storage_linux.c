@@ -21,9 +21,9 @@ Environment:
 QUIC_STATUS
 CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
-    _Out_ QUIC_STORAGE** NewStorage
+    _Out_ CXPLAT_STORAGE** NewStorage
     )
 {
     UNREFERENCED_PARAMETER(Path);
@@ -36,7 +36,7 @@ CxPlatStorageOpen(
 
 void
 CxPlatStorageClose(
-    _In_opt_ QUIC_STORAGE* Storage
+    _In_opt_ CXPLAT_STORAGE* Storage
     )
 {
     UNREFERENCED_PARAMETER(Storage);
@@ -46,7 +46,7 @@ CxPlatStorageClose(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageReadValue(
-    _In_ QUIC_STORAGE* Storage,
+    _In_ CXPLAT_STORAGE* Storage,
     _In_opt_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
         uint8_t * Buffer,

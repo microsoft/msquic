@@ -486,7 +486,7 @@ CxPlatDataPathInitialize(
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return
         PlatDispatch->DatapathInitialize(
             ClientRecvContextLength,
@@ -565,7 +565,7 @@ CxPlatDataPathUninitialize(
         return;
     }
 
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->DatapathUninitialize(Datapath);
 #else
     CxPlatRundownReleaseAndWait(&Datapath->BindingsRundown);
@@ -595,7 +595,7 @@ CxPlatDataPathIsPaddingPreferred(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->DatapathIsPaddingPreferred(Datapath);
 #else
     UNREFERENCED_PARAMETER(Datapath);
@@ -685,7 +685,7 @@ CxPlatDataPathResolveAddress(
     _Inout_ QUIC_ADDR* Address
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->DatapathResolveAddress(Datapath, HostName, Address);
 #else
     UNREFERENCED_PARAMETER(Datapath);
@@ -1564,7 +1564,7 @@ CxPlatSocketCreateUdp(
     _Out_ CXPLAT_SOCKET** NewBinding
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return
         PlatDispatch->SocketCreate(
             Datapath,
@@ -1721,7 +1721,7 @@ CxPlatSocketDelete(
     _Inout_ CXPLAT_SOCKET* Binding
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->SocketDelete(Binding);
 #else
     CXPLAT_DBG_ASSERT(Binding != NULL);
@@ -1758,7 +1758,7 @@ CxPlatSocketGetLocalAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->SocketGetLocalAddress(Binding, Address);
 #else
     CXPLAT_DBG_ASSERT(Binding != NULL);
@@ -1772,7 +1772,7 @@ CxPlatSocketGetRemoteAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->SocketGetRemoteAddress(Binding, Address);
 #else
     CXPLAT_DBG_ASSERT(Binding != NULL);
@@ -1788,7 +1788,7 @@ CxPlatSocketSetParam(
     _In_reads_bytes_(BufferLength) const uint8_t * Buffer
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return
         PlatDispatch->SocketSetParam(
             Binding,
@@ -1812,7 +1812,7 @@ CxPlatSocketGetParam(
     _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return
         PlatDispatch->SocketGetParam(
             Binding,
@@ -1833,7 +1833,7 @@ CxPlatDataPathRecvPacketToRecvData(
     _In_ const CXPLAT_RECV_PACKET* const Packet
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->DatapathRecvContextToRecvPacket(Packet);
 #else
     CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
@@ -1849,7 +1849,7 @@ CxPlatDataPathRecvDataToRecvPacket(
     _In_ const CXPLAT_RECV_DATA* const Datagram
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->DatapathRecvPacketToRecvContext(Datagram);
 #else
     CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
@@ -1864,7 +1864,7 @@ CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     if (RecvDataChain != NULL) {
         PlatDispatch->SocketReturnRecvPacket(RecvDataChain);
     }
@@ -1886,7 +1886,7 @@ CxPlatSendDataAlloc(
     _In_ uint16_t MaxPacketSize
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return
         PlatDispatch->SendDataAlloc(
             Binding,
@@ -1924,7 +1924,7 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendContext
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->SendDataFree(SendContext);
 #else
     size_t i = 0;
@@ -1945,7 +1945,7 @@ CxPlatSendDataAllocBuffer(
     _In_ uint16_t MaxBufferLength
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return
         PlatDispatch->SendDataAllocBuffer(
             SendContext,
@@ -1998,7 +1998,7 @@ CxPlatSendDataFreeBuffer(
     _In_ QUIC_BUFFER* Buffer
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->SendDataFreeBuffer(SendContext, Buffer);
 #else
     CxPlatPoolFree(&SendContext->Owner->SendBufferPool, Buffer->Buffer);
@@ -2018,7 +2018,7 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendContext
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return
         PlatDispatch->SocketSend(
             Binding,
@@ -2147,7 +2147,7 @@ Exit:
     }
 
     return Status;
-#endif // QUIC_PLATFORM_DISPATCH_TABLE
+#endif // CX_PLATFORM_DISPATCH_TABLE
 }
 
 uint16_t
@@ -2155,7 +2155,7 @@ CxPlatSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET* Binding
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->SocketGetLocalMtu(Binding);
 #else
     CXPLAT_DBG_ASSERT(Binding != NULL);
@@ -2230,7 +2230,7 @@ CxPlatSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendContext
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->SendDataIsFull(SendContext);
 #else
     return SendContext->BufferCount == SendContext->Owner->Datapath->MaxSendBatchSize;

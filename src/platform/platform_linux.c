@@ -28,8 +28,8 @@ Environment:
 
 #define QUIC_MAX_LOG_MSG_LEN        1024 // Bytes
 
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-QUIC_PLATFORM_DISPATCH* PlatDispatch = NULL;
+#ifdef CX_PLATFORM_DISPATCH_TABLE
+CX_PLATFORM_DISPATCH* PlatDispatch = NULL;
 #else
 int RandomFd; // Used for reading random numbers.
 #endif
@@ -142,7 +142,7 @@ CxPlatInitialize(
     void
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     CXPLAT_FRE_ASSERT(PlatDispatch != NULL);
 #else
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
@@ -161,7 +161,7 @@ CxPlatUninitialize(
     void
     )
 {
-#ifndef QUIC_PLATFORM_DISPATCH_TABLE
+#ifndef CX_PLATFORM_DISPATCH_TABLE
     close(RandomFd);
 #endif
 }
@@ -173,7 +173,7 @@ CxPlatAlloc(
     )
 {
     UNREFERENCED_PARAMETER(Tag);
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->Alloc(ByteCount);
 #else
 #ifdef QUIC_RANDOM_ALLOC_FAIL
@@ -182,7 +182,7 @@ CxPlatAlloc(
 #else
     return malloc(ByteCount);
 #endif // QUIC_RANDOM_ALLOC_FAIL
-#endif // QUIC_PLATFORM_DISPATCH_TABLE
+#endif // CX_PLATFORM_DISPATCH_TABLE
 }
 
 void
@@ -192,7 +192,7 @@ CxPlatFree(
     )
 {
     UNREFERENCED_PARAMETER(Tag);
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->Free(Mem);
 #else
     free(Mem);
@@ -207,7 +207,7 @@ CxPlatPoolInitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->PoolInitialize(IsPaged, Size, Pool);
 #else
     UNREFERENCED_PARAMETER(IsPaged);
@@ -221,7 +221,7 @@ CxPlatPoolUninitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->PoolUninitialize(Pool);
 #else
     UNREFERENCED_PARAMETER(Pool);
@@ -233,7 +233,7 @@ CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->PoolAlloc(Pool);
 #else
     void*Entry = CxPlatAlloc(Pool->Size, Pool->MemTag);
@@ -252,7 +252,7 @@ CxPlatPoolFree(
     _In_ void* Entry
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->PoolFree(Pool, Entry);
 #else
     UNREFERENCED_PARAMETER(Pool);
@@ -636,7 +636,7 @@ CxPlatRandom(
     _Out_writes_bytes_(BufferLen) void* Buffer
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->Random(BufferLen, Buffer);
 #else
     if (read(RandomFd, Buffer, BufferLen) == -1) {

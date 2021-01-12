@@ -13,7 +13,7 @@ Abstract:
 //
 // Set of callbacks for TLS.
 //
-extern QUIC_TLS_CALLBACKS QuicTlsCallbacks;
+extern CXPLAT_TLS_CALLBACKS QuicTlsCallbacks;
 
 //
 // Stream of TLS data.
@@ -43,13 +43,13 @@ typedef struct QUIC_CRYPTO {
     //
     // The TLS context for processing handshake messages.
     //
-    QUIC_TLS* TLS;
+    CXPLAT_TLS* TLS;
 
     //
     // Send State
     //
 
-    QUIC_TLS_PROCESS_STATE TlsState;
+    CXPLAT_TLS_PROCESS_STATE TlsState;
 
     //
     // The length of bytes that have been sent at least once.
@@ -279,8 +279,8 @@ QuicCryptoTlsReadInitial(
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
-#ifdef QUIC_TLS_SECRETS_SUPPORT
-    , _Inout_opt_ QUIC_TLS_SECRETS* TlsSecrets
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
+    , _Inout_opt_ CXPLAT_TLS_SECRETS* TlsSecrets
 #endif
     );
 
@@ -386,5 +386,3 @@ QuicCryptoDecodeClientTicket(
     _Out_ uint32_t* ServerTicketLength,
     _Out_ uint32_t* QuicVersion
     );
-
-

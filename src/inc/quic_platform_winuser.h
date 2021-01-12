@@ -16,7 +16,7 @@ Environment:
 
 #pragma once
 
-#ifndef QUIC_PLATFORM_TYPE
+#ifndef CX_PLATFORM_TYPE
 #error "Must be included from quic_platform.h"
 #endif
 
@@ -106,7 +106,7 @@ CxPlatSystemUnload(
 
 //
 // Initializes the PAL library. Calls to this and
-// QuicPlatformUninitialize must be serialized and cannot overlap.
+// CxPlatformUninitialize must be serialized and cannot overlap.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -116,7 +116,7 @@ CxPlatInitialize(
 
 //
 // Uninitializes the PAL library. Calls to this and
-// QuicPlatformInitialize must be serialized and cannot overlap.
+// CxPlatformInitialize must be serialized and cannot overlap.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -566,7 +566,7 @@ CxPlatGetTimerResolution()
 //
 // Performance counter frequency.
 //
-extern uint64_t QuicPlatformPerfFreq;
+extern uint64_t CxPlatPerfFreq;
 
 //
 // Returns the current time in platform specific time units.
@@ -593,7 +593,7 @@ QuicTimePlatToUs64(
 {
     //
     // Multiply by a big number (1000000, to convert seconds to microseconds)
-    // and divide by a big number (QuicPlatformPerfFreq, to convert counts to secs).
+    // and divide by a big number (CxPlatPerfFreq, to convert counts to secs).
     //
     // Avoid overflow with separate multiplication/division of the high and low
     // bits. Taken from TcpConvertPerformanceCounterToMicroseconds.
@@ -601,8 +601,8 @@ QuicTimePlatToUs64(
     uint64_t High = (Count >> 32) * 1000000;
     uint64_t Low = (Count & 0xFFFFFFFF) * 1000000;
     return
-        ((High / QuicPlatformPerfFreq) << 32) +
-        ((Low + ((High % QuicPlatformPerfFreq) << 32)) / QuicPlatformPerfFreq);
+        ((High / CxPlatPerfFreq) << 32) +
+        ((Low + ((High % CxPlatPerfFreq) << 32)) / CxPlatPerfFreq);
 }
 
 //
@@ -614,11 +614,11 @@ CxPlatTimeUs64ToPlat(
     uint64_t TimeUs
     )
 {
-    uint64_t High = (TimeUs >> 32) * QuicPlatformPerfFreq;
-    uint64_t Low = (TimeUs & 0xFFFFFFFF) * QuicPlatformPerfFreq;
+    uint64_t High = (TimeUs >> 32) * CxPlatPerfFreq;
+    uint64_t Low = (TimeUs & 0xFFFFFFFF) * CxPlatPerfFreq;
     return
         ((High / 1000000) << 32) +
-        ((Low + ((High % 1000000) << 32)) / QuicPlatformPerfFreq);
+        ((Low + ((High % 1000000) << 32)) / CxPlatPerfFreq);
 }
 
 #define CxPlatTimeUs64() QuicTimePlatToUs64(QuicTimePlat())
@@ -713,11 +713,11 @@ typedef struct {
     uint32_t NumaNode;
     uint64_t MaskInGroup;
 
-} QUIC_PROCESSOR_INFO;
+} CXPLAT_PROCESSOR_INFO;
 
-extern QUIC_PROCESSOR_INFO* QuicProcessorInfo;
-extern uint64_t* QuicNumaMasks;
-extern uint32_t* QuicProcessorGroupOffsets;
+extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
+extern uint64_t* CxPlatNumaMasks;
+extern uint32_t* CxPlatProcessorGroupOffsets;
 
 #define CxPlatProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
 #define CxPlatProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
@@ -730,7 +730,7 @@ CxPlatProcCurrentNumber(
     ) {
     PROCESSOR_NUMBER ProcNumber;
     GetCurrentProcessorNumberEx(&ProcNumber);
-    return QuicProcessorGroupOffsets[ProcNumber.Group] + ProcNumber.Number;
+    return CxPlatProcessorGroupOffsets[ProcNumber.Group] + ProcNumber.Number;
 }
 
 
@@ -845,12 +845,12 @@ CxPlatThreadCreate(
         return GetLastError();
     }
 #endif // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
-    const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[Config->IdealProcessor];
+    const CXPLAT_PROCESSOR_INFO* ProcInfo = &CxPlatProcessorInfo[Config->IdealProcessor];
     GROUP_AFFINITY Group = {0};
     if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
         Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
     } else {
-        Group.Mask = (KAFFINITY)QuicNumaMasks[ProcInfo->NumaNode];  // Fixed NUMA node
+        Group.Mask = (KAFFINITY)CxPlatNumaMasks[ProcInfo->NumaNode];  // Fixed NUMA node
     }
     Group.Group = ProcInfo->Group;
     SetThreadGroupAffinity(*Thread, &Group, NULL);
@@ -955,7 +955,7 @@ CxPlatSetCurrentThreadProcessorAffinity(
     _In_ uint16_t ProcessorIndex
     )
 {
-    const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[ProcessorIndex];
+    const CXPLAT_PROCESSOR_INFO* ProcInfo = &CxPlatProcessorInfo[ProcessorIndex];
     GROUP_AFFINITY Group = {0};
     Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);
     Group.Group = ProcInfo->Group;

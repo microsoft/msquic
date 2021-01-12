@@ -48,9 +48,9 @@ typedef struct QUIC_CONFIGURATION {
     //
     // Handle to persistent storage (registry).
     //
-    QUIC_STORAGE* Storage; // Only necessary if it could be in a different silo.
+    CXPLAT_STORAGE* Storage; // Only necessary if it could be in a different silo.
 #endif
-    QUIC_STORAGE* AppSpecificStorage;
+    CXPLAT_STORAGE* AppSpecificStorage;
 
     //
     // Configurable (app & registry) settings.
@@ -128,7 +128,7 @@ QuicConfigurationTraceRundown(
 // Global or local settings were changed.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_STORAGE_CHANGE_CALLBACK)
+_Function_class_(CXPLAT_STORAGE_CHANGE_CALLBACK)
 void
 QuicConfigurationSettingsChanged(
     _Inout_ QUIC_CONFIGURATION* Configuration

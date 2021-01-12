@@ -18,12 +18,12 @@ Environment:
 #include "platform_winuser.c.clog.h"
 #endif
 
-uint64_t QuicPlatformPerfFreq;
+uint64_t CxPlatPerfFreq;
 uint64_t CxPlatTotalMemory;
-QUIC_PLATFORM QuicPlatform = { NULL };
-QUIC_PROCESSOR_INFO* QuicProcessorInfo;
-uint64_t* QuicNumaMasks;
-uint32_t* QuicProcessorGroupOffsets;
+CX_PLATFORM CxPlatform = { NULL };
+CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
+uint64_t* CxPlatNumaMasks;
+uint32_t* CxPlatProcessorGroupOffsets;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -35,8 +35,8 @@ CxPlatSystemLoad(
     EventRegisterMicrosoft_Quic();
 #endif
 
-    (void)QueryPerformanceFrequency((LARGE_INTEGER*)&QuicPlatformPerfFreq);
-    QuicPlatform.Heap = NULL;
+    (void)QueryPerformanceFrequency((LARGE_INTEGER*)&CxPlatPerfFreq);
+    CxPlatform.Heap = NULL;
 
     QuicTraceLogInfo(
         WindowsUserLoaded,
@@ -73,16 +73,16 @@ CxPlatProcessorInfoInit(
     uint32_t ProcessorsPerGroup = 0;
     uint32_t NumaNodeCount = 0;
 
-    QuicProcessorInfo =
+    CxPlatProcessorInfo =
         CXPLAT_ALLOC_NONPAGED(
-            ActiveProcessorCount * sizeof(QUIC_PROCESSOR_INFO),
+            ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO),
             QUIC_POOL_PLATFORM_PROC);
-    if (QuicProcessorInfo == NULL) {
+    if (CxPlatProcessorInfo == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QuicProcessorInfo",
-            ActiveProcessorCount * sizeof(QUIC_PROCESSOR_INFO));
+            "CxPlatProcessorInfo",
+            ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
         goto Error;
     }
 
@@ -162,26 +162,26 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    QuicProcessorGroupOffsets = CXPLAT_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint32_t), QUIC_POOL_PLATFORM_PROC);
-    if (QuicProcessorGroupOffsets == NULL) {
+    CxPlatProcessorGroupOffsets = CXPLAT_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint32_t), QUIC_POOL_PLATFORM_PROC);
+    if (CxPlatProcessorGroupOffsets == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QuicProcessorGroupOffsets",
+            "CxPlatProcessorGroupOffsets",
             ProcessorGroupCount * sizeof(uint32_t));
         goto Error;
     }
 
     for (uint32_t i = 0; i < ProcessorGroupCount; ++i) {
-        QuicProcessorGroupOffsets[i] = i * ProcessorsPerGroup;
+        CxPlatProcessorGroupOffsets[i] = i * ProcessorsPerGroup;
     }
 
-    QuicNumaMasks = CXPLAT_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t), QUIC_POOL_PLATFORM_PROC);
-    if (QuicNumaMasks == NULL) {
+    CxPlatNumaMasks = CXPLAT_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t), QUIC_POOL_PLATFORM_PROC);
+    if (CxPlatNumaMasks == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QuicNumaMasks",
+            "CxPlatNumaMasks",
             NumaNodeCount * sizeof(uint64_t));
         goto Error;
     }
@@ -196,7 +196,7 @@ CxPlatProcessorInfoInit(
         PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
             (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
         if (Info->Relationship == RelationNumaNode) {
-            QuicNumaMasks[Info->NumaNode.NodeNumber] = (uint64_t)Info->NumaNode.GroupMask.Mask;
+            CxPlatNumaMasks[Info->NumaNode.NodeNumber] = (uint64_t)Info->NumaNode.GroupMask.Mask;
         }
         Offset += Info->Size;
     }
@@ -213,9 +213,9 @@ CxPlatProcessorInfoInit(
                     uint32_t IndexToSet = Index - ProcessorOffset;
                     if (IndexToSet < Info->Group.GroupInfo[i].ActiveProcessorCount) {
                         CXPLAT_DBG_ASSERT(IndexToSet < 64);
-                        QuicProcessorInfo[Index].Group = i;
-                        QuicProcessorInfo[Index].Index = IndexToSet;
-                        QuicProcessorInfo[Index].MaskInGroup = 1ull << IndexToSet;
+                        CxPlatProcessorInfo[Index].Group = i;
+                        CxPlatProcessorInfo[Index].Index = IndexToSet;
+                        CxPlatProcessorInfo[Index].MaskInGroup = 1ull << IndexToSet;
                         goto FindNumaNode;
                     }
                     ProcessorOffset += Info->Group.GroupInfo[i].ActiveProcessorCount;
@@ -237,16 +237,16 @@ FindNumaNode:
             PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
                 (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
             if (Info->Relationship == RelationNumaNode) {
-                if (Info->NumaNode.GroupMask.Group == QuicProcessorInfo[Index].Group &&
-                    (Info->NumaNode.GroupMask.Mask & QuicProcessorInfo[Index].MaskInGroup) != 0) {
-                    QuicProcessorInfo[Index].NumaNode = Info->NumaNode.NodeNumber;
+                if (Info->NumaNode.GroupMask.Group == CxPlatProcessorInfo[Index].Group &&
+                    (Info->NumaNode.GroupMask.Mask & CxPlatProcessorInfo[Index].MaskInGroup) != 0) {
+                    CxPlatProcessorInfo[Index].NumaNode = Info->NumaNode.NodeNumber;
                     QuicTraceLogInfo(
                         ProcessorInfo,
                         "[ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]",
                         Index,
-                        QuicProcessorInfo[Index].Group,
-                        QuicProcessorInfo[Index].Index,
-                        QuicProcessorInfo[Index].NumaNode);
+                        CxPlatProcessorInfo[Index].Group,
+                        CxPlatProcessorInfo[Index].Index,
+                        CxPlatProcessorInfo[Index].NumaNode);
                     goto Next;
                 }
             }
@@ -270,12 +270,12 @@ Error:
     CXPLAT_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
     if (!Result) {
-        CXPLAT_FREE(QuicNumaMasks, QUIC_POOL_PLATFORM_PROC);
-        QuicNumaMasks = NULL;
-        CXPLAT_FREE(QuicProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
-        QuicProcessorGroupOffsets = NULL;
-        CXPLAT_FREE(QuicProcessorInfo, QUIC_POOL_PLATFORM_PROC);
-        QuicProcessorInfo = NULL;
+        CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
+        CxPlatNumaMasks = NULL;
+        CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
+        CxPlatProcessorGroupOffsets = NULL;
+        CXPLAT_FREE(CxPlatProcessorInfo, QUIC_POOL_PLATFORM_PROC);
+        CxPlatProcessorInfo = NULL;
     }
 
     return Result;
@@ -291,8 +291,8 @@ CxPlatInitialize(
     MEMORYSTATUSEX memInfo;
     memInfo.dwLength = sizeof(MEMORYSTATUSEX);
 
-    QuicPlatform.Heap = HeapCreate(0, 0, 0);
-    if (QuicPlatform.Heap == NULL) {
+    CxPlatform.Heap = HeapCreate(0, 0, 0);
+    if (CxPlatform.Heap == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -332,9 +332,9 @@ CxPlatInitialize(
 Error:
 
     if (QUIC_FAILED(Status)) {
-        if (QuicPlatform.Heap) {
-            HeapDestroy(QuicPlatform.Heap);
-            QuicPlatform.Heap = NULL;
+        if (CxPlatform.Heap) {
+            HeapDestroy(CxPlatform.Heap);
+            CxPlatform.Heap = NULL;
         }
     }
 
@@ -348,15 +348,15 @@ CxPlatUninitialize(
     )
 {
     CxPlatTlsLibraryUninitialize();
-    CXPLAT_DBG_ASSERT(QuicPlatform.Heap);
-    CXPLAT_FREE(QuicNumaMasks, QUIC_POOL_PLATFORM_PROC);
-    QuicNumaMasks = NULL;
-    CXPLAT_FREE(QuicProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
-    QuicProcessorGroupOffsets = NULL;
-    CXPLAT_FREE(QuicProcessorInfo, QUIC_POOL_PLATFORM_PROC);
-    QuicProcessorInfo = NULL;
-    HeapDestroy(QuicPlatform.Heap);
-    QuicPlatform.Heap = NULL;
+    CXPLAT_DBG_ASSERT(CxPlatform.Heap);
+    CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
+    CxPlatNumaMasks = NULL;
+    CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
+    CxPlatProcessorGroupOffsets = NULL;
+    CXPLAT_FREE(CxPlatProcessorInfo, QUIC_POOL_PLATFORM_PROC);
+    CxPlatProcessorInfo = NULL;
+    HeapDestroy(CxPlatform.Heap);
+    CxPlatform.Heap = NULL;
     QuicTraceLogInfo(
         WindowsUserUninitialized,
         "[ dll] Uninitialized");
@@ -436,18 +436,18 @@ CxPlatAlloc(
     _In_ uint32_t Tag
     )
 {
-    CXPLAT_DBG_ASSERT(QuicPlatform.Heap);
+    CXPLAT_DBG_ASSERT(CxPlatform.Heap);
 #ifdef QUIC_RANDOM_ALLOC_FAIL
     uint8_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
     if ((Rand % 100) == 1) return NULL;
 #else
 #ifdef DEBUG
-    void* Alloc = HeapAlloc(QuicPlatform.Heap, 0, ByteCount + AllocOffset);
+    void* Alloc = HeapAlloc(CxPlatform.Heap, 0, ByteCount + AllocOffset);
     *((uint32_t*)Alloc) = Tag;
     return (void*)((uint8_t*)Alloc + AllocOffset);
 #else
     UNREFERENCED_PARAMETER(Tag);
-    return HeapAlloc(QuicPlatform.Heap, 0, ByteCount);
+    return HeapAlloc(CxPlatform.Heap, 0, ByteCount);
 #endif
 #endif // QUIC_RANDOM_ALLOC_FAIL
 }
@@ -462,10 +462,10 @@ CxPlatFree(
     void* ActualAlloc = (void*)((uint8_t*)Mem - AllocOffset);
     uint32_t TagToCheck = *((uint32_t*)ActualAlloc);
     CXPLAT_DBG_ASSERT(TagToCheck == Tag);
-    (void)HeapFree(QuicPlatform.Heap, 0, ActualAlloc);
+    (void)HeapFree(CxPlatform.Heap, 0, ActualAlloc);
 #else
     UNREFERENCED_PARAMETER(Tag);
-    (void)HeapFree(QuicPlatform.Heap, 0, Mem);
+    (void)HeapFree(CxPlatform.Heap, 0, Mem);
 #endif
 }
 

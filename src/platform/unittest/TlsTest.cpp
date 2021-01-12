@@ -124,14 +124,14 @@ protected:
 
     struct TlsContext
     {
-        QUIC_TLS* Ptr;
+        CXPLAT_TLS* Ptr;
         QUIC_SEC_CONFIG* SecConfig;
         CXPLAT_EVENT ProcessCompleteEvent;
 
-        QUIC_TLS_PROCESS_STATE State;
+        CXPLAT_TLS_PROCESS_STATE State;
 
-        static const QUIC_TLS_CALLBACKS TlsServerCallbacks;
-        static const QUIC_TLS_CALLBACKS TlsClientCallbacks;
+        static const CXPLAT_TLS_CALLBACKS TlsServerCallbacks;
+        static const CXPLAT_TLS_CALLBACKS TlsClientCallbacks;
 
         bool Connected;
         bool Key0RttReady;
@@ -166,7 +166,7 @@ protected:
             uint16_t TPLen = 64
             )
         {
-            QUIC_TLS_CONFIG Config = {0};
+            CXPLAT_TLS_CONFIG Config = {0};
             Config.IsServer = TRUE;
             Config.SecConfig = (QUIC_SEC_CONFIG*)SecConfiguration;
             UNREFERENCED_PARAMETER(MultipleAlpns); // The server must always send back the negotiated ALPN.
@@ -193,7 +193,7 @@ protected:
             QUIC_BUFFER* Ticket = nullptr
             )
         {
-            QUIC_TLS_CONFIG Config = {0};
+            CXPLAT_TLS_CONFIG Config = {0};
             Config.IsServer = FALSE;
             Config.SecConfig = SecConfiguration;
             Config.AlpnBuffer = MultipleAlpns ? MultiAlpn : Alpn;
@@ -255,14 +255,14 @@ protected:
             return MessagesLength;
         }
 
-        QUIC_TLS_RESULT_FLAGS
+        CXPLAT_TLS_RESULT_FLAGS
         ProcessData(
             _In_ QUIC_PACKET_KEY_TYPE BufferKey,
             _In_reads_bytes_(*BufferLength)
                 const uint8_t * Buffer,
             _In_ uint32_t * BufferLength,
             _In_ bool ExpectError,
-            _In_ QUIC_TLS_DATA_TYPE DataType
+            _In_ CXPLAT_TLS_DATA_TYPE DataType
             )
         {
             CxPlatEventReset(ProcessCompleteEvent);
@@ -270,9 +270,9 @@ protected:
             EXPECT_TRUE(Buffer != nullptr || *BufferLength == 0);
             if (Buffer != nullptr) {
                 EXPECT_EQ(BufferKey, State.ReadKey);
-                if (DataType != QUIC_TLS_TICKET_DATA) {
+                if (DataType != CXPLAT_TLS_TICKET_DATA) {
                     *BufferLength = GetCompleteTlsMessagesLength(Buffer, *BufferLength);
-                    if (*BufferLength == 0) return (QUIC_TLS_RESULT_FLAGS)0;
+                    if (*BufferLength == 0) return (CXPLAT_TLS_RESULT_FLAGS)0;
                 }
             }
 
@@ -285,19 +285,19 @@ protected:
                     Buffer,
                     BufferLength,
                     &State);
-            if (Result & QUIC_TLS_RESULT_PENDING) {
+            if (Result & CXPLAT_TLS_RESULT_PENDING) {
                 CxPlatEventWaitForever(ProcessCompleteEvent);
                 Result = CxPlatTlsProcessDataComplete(Ptr, BufferLength);
             }
 
             if (!ExpectError) {
-                EXPECT_TRUE((Result & QUIC_TLS_RESULT_ERROR) == 0);
+                EXPECT_TRUE((Result & CXPLAT_TLS_RESULT_ERROR) == 0);
             }
 
             return Result;
         }
 
-        QUIC_TLS_RESULT_FLAGS
+        CXPLAT_TLS_RESULT_FLAGS
         ProcessFragmentedData(
             _In_ QUIC_PACKET_KEY_TYPE BufferKey,
             _In_reads_bytes_(BufferLength)
@@ -305,7 +305,7 @@ protected:
             _In_ uint32_t BufferLength,
             _In_ uint32_t FragmentSize,
             _In_ bool ExpectError,
-            _In_ QUIC_TLS_DATA_TYPE DataType
+            _In_ CXPLAT_TLS_DATA_TYPE DataType
             )
         {
             uint32_t Result = 0;
@@ -329,21 +329,21 @@ protected:
                     ConsumedBuffer = min(ConsumedBuffer, BufferLength);
                 }
 
-            } while (BufferLength != 0 && !(Result & QUIC_TLS_RESULT_ERROR));
+            } while (BufferLength != 0 && !(Result & CXPLAT_TLS_RESULT_ERROR));
 
-            return (QUIC_TLS_RESULT_FLAGS)Result;
+            return (CXPLAT_TLS_RESULT_FLAGS)Result;
         }
 
     public:
 
         QUIC_BUFFER ResumptionTicket {0, nullptr};
 
-        QUIC_TLS_RESULT_FLAGS
+        CXPLAT_TLS_RESULT_FLAGS
         ProcessData(
-            _Inout_ QUIC_TLS_PROCESS_STATE* PeerState,
+            _Inout_ CXPLAT_TLS_PROCESS_STATE* PeerState,
             _In_ uint32_t FragmentSize = DefaultFragmentSize,
             _In_ bool ExpectError = false,
-            _In_ QUIC_TLS_DATA_TYPE DataType = QUIC_TLS_CRYPTO_DATA
+            _In_ CXPLAT_TLS_DATA_TYPE DataType = CXPLAT_TLS_CRYPTO_DATA
             )
         {
             if (PeerState == nullptr) {
@@ -397,9 +397,9 @@ protected:
                     PeerState->Buffer + BufferLength,
                     PeerState->BufferLength);
 
-            } while (PeerState->BufferLength != 0 && !(Result & QUIC_TLS_RESULT_ERROR));
+            } while (PeerState->BufferLength != 0 && !(Result & CXPLAT_TLS_RESULT_ERROR));
 
-            return (QUIC_TLS_RESULT_FLAGS)Result;
+            return (CXPLAT_TLS_RESULT_FLAGS)Result;
         }
 
     private:
@@ -549,23 +549,23 @@ protected:
         //std::cout << "==DoHandshake==" << std::endl;
 
         auto Result = ClientContext.ProcessData(nullptr);
-        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
 
         Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize);
-        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
         ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
         Result = ClientContext.ProcessData(&ServerContext.State, FragmentSize);
-        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
-        ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
         ASSERT_NE(nullptr, ClientContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
         Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize);
-        ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
 
         if (SendResumptionTicket) {
-            Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize, false, QUIC_TLS_TICKET_DATA);
-            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+            Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize, false, CXPLAT_TLS_TICKET_DATA);
+            ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
 
             Result = ClientContext.ProcessData(&ServerContext.State, FragmentSize);
         }
@@ -645,13 +645,13 @@ protected:
     }
 };
 
-const QUIC_TLS_CALLBACKS TlsTest::TlsContext::TlsServerCallbacks = {
+const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsServerCallbacks = {
     TlsTest::TlsContext::OnProcessComplete,
     TlsTest::TlsContext::OnRecvQuicTP,
     TlsTest::TlsContext::OnRecvTicketServer
 };
 
-const QUIC_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
+const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
     TlsTest::TlsContext::OnProcessComplete,
     TlsTest::TlsContext::OnRecvQuicTP,
     TlsTest::TlsContext::OnRecvTicketClient
@@ -771,34 +771,34 @@ TEST_F(TlsTest, HandshakesInterleaved)
     ClientContext2.InitializeClient(ClientSecConfigNoCertValidation);
 
     auto Result = ClientContext1.ProcessData(nullptr);
-    ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
 
     Result = ClientContext2.ProcessData(nullptr);
-    ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
 
     Result = ServerContext1.ProcessData(&ClientContext1.State);
-    ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
     ASSERT_NE(nullptr, ServerContext1.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
     Result = ServerContext2.ProcessData(&ClientContext2.State);
-    ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
     ASSERT_NE(nullptr, ServerContext2.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
     Result = ClientContext1.ProcessData(&ServerContext1.State);
-    ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
-    ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
     ASSERT_NE(nullptr, ClientContext1.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
     Result = ClientContext2.ProcessData(&ServerContext2.State);
-    ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
-    ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
     ASSERT_NE(nullptr, ClientContext2.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
     Result = ServerContext1.ProcessData(&ClientContext1.State);
-    ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
 
     Result = ServerContext2.ProcessData(&ClientContext2.State);
-    ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
 }
 
 TEST_F(TlsTest, CertificateError)
@@ -808,14 +808,14 @@ TEST_F(TlsTest, CertificateError)
     ClientContext.InitializeClient(ClientSecConfig);
     {
         auto Result = ClientContext.ProcessData(nullptr);
-        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
 
         Result = ServerContext.ProcessData(&ClientContext.State);
-        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
         ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
         Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
-        ASSERT_TRUE(Result & QUIC_TLS_RESULT_ERROR);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
         ASSERT_EQ(ClientContext.State.AlertCode, UnknownCaError);
     }
 }

@@ -21,9 +21,9 @@
 
 struct TlsContext
 {
-    QUIC_TLS* Ptr;
+    CXPLAT_TLS* Ptr;
     QUIC_SEC_CONFIG* SecConfig;
-    QUIC_TLS_PROCESS_STATE State;
+    CXPLAT_TLS_PROCESS_STATE State;
     CXPLAT_EVENT ProcessCompleteEvent;
     uint8_t AlpnListBuffer[256];
 
@@ -43,7 +43,7 @@ struct TlsContext
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
             NULL, NULL, NULL, NULL
         };
-        QUIC_TLS_CALLBACKS TlsCallbacks = {
+        CXPLAT_TLS_CALLBACKS TlsCallbacks = {
             OnProcessComplete,
             OnRecvQuicTP,
             NULL
@@ -69,7 +69,7 @@ struct TlsContext
         TP.InitialSourceConnectionIDLength = sizeof(uint64_t);
         *(uint64_t*)&TP.InitialSourceConnectionID[0] = MagicCid;
 
-        QUIC_TLS_CONFIG Config = {0};
+        CXPLAT_TLS_CONFIG Config = {0};
         Config.IsServer = FALSE;
         Config.SecConfig = SecConfig;
         Config.AlpnBuffer = AlpnListBuffer;
@@ -117,7 +117,7 @@ private:
         *(QUIC_SEC_CONFIG**)Context = SecConfig;
     }
 
-    QUIC_TLS_RESULT_FLAGS
+    CXPLAT_TLS_RESULT_FLAGS
     ProcessData(
         _In_reads_bytes_(*BufferLength)
             const uint8_t * Buffer,
@@ -129,16 +129,16 @@ private:
         auto Result =
             CxPlatTlsProcessData(
                 Ptr,
-                QUIC_TLS_CRYPTO_DATA,
+                CXPLAT_TLS_CRYPTO_DATA,
                 Buffer,
                 BufferLength,
                 &State);
-        if (Result & QUIC_TLS_RESULT_PENDING) {
+        if (Result & CXPLAT_TLS_RESULT_PENDING) {
             CxPlatEventWaitForever(ProcessCompleteEvent);
             Result = CxPlatTlsProcessDataComplete(Ptr, BufferLength);
         }
 
-        if (Result & QUIC_TLS_RESULT_ERROR) {
+        if (Result & CXPLAT_TLS_RESULT_ERROR) {
             printf("Failed to process data!\n");
             exit(0);
         }
@@ -148,9 +148,9 @@ private:
 
 public:
 
-    QUIC_TLS_RESULT_FLAGS
+    CXPLAT_TLS_RESULT_FLAGS
     ProcessData(
-        _Inout_ QUIC_TLS_PROCESS_STATE* PeerState = nullptr
+        _Inout_ CXPLAT_TLS_PROCESS_STATE* PeerState = nullptr
         )
     {
         if (PeerState == nullptr) {
@@ -196,7 +196,7 @@ public:
                 PeerState->BufferLength);
         }
 
-        return (QUIC_TLS_RESULT_FLAGS)Result;
+        return (CXPLAT_TLS_RESULT_FLAGS)Result;
     }
 
 private:

@@ -2979,13 +2979,13 @@ QuicConnGetKeyOrDeferDatagram(
         //
 
         if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT &&
-            Connection->Crypto.TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_UNKNOWN) {
+            Connection->Crypto.TlsState.EarlyDataState != CXPLAT_TLS_EARLY_DATA_UNKNOWN) {
             //
             // We don't have the 0-RTT key, but we aren't in an unknown
             // "early data" state, so it must be rejected/unsupported. Just drop
             // the packets.
             //
-            CXPLAT_DBG_ASSERT(Connection->Crypto.TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_ACCEPTED);
+            CXPLAT_DBG_ASSERT(Connection->Crypto.TlsState.EarlyDataState != CXPLAT_TLS_EARLY_DATA_ACCEPTED);
             QuicPacketLogDrop(Connection, Packet, "0-RTT not currently accepted");
 
         } else {
@@ -5582,9 +5582,9 @@ QuicConnParamSet(
         break;
 
     case QUIC_PARAM_CONN_TLS_SECRETS:
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
 
-        if (BufferLength != sizeof(QUIC_TLS_SECRETS) || Buffer == NULL) {
+        if (BufferLength != sizeof(CXPLAT_TLS_SECRETS) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -5594,7 +5594,7 @@ QuicConnParamSet(
             break;
         }
 
-        Connection->TlsSecrets = (QUIC_TLS_SECRETS*)Buffer;
+        Connection->TlsSecrets = (CXPLAT_TLS_SECRETS*)Buffer;
         CxPlatZeroMemory(Connection->TlsSecrets, sizeof(*Connection->TlsSecrets));
         Status = QUIC_STATUS_SUCCESS;
 #else

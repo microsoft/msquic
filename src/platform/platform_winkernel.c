@@ -56,9 +56,9 @@ typedef struct _SYSTEM_BASIC_INFORMATION {
 } SYSTEM_BASIC_INFORMATION, *PSYSTEM_BASIC_INFORMATION;
 
 
-uint64_t QuicPlatformPerfFreq;
+uint64_t CxPlatPerfFreq;
 uint64_t CxPlatTotalMemory;
-QUIC_PLATFORM QuicPlatform = { NULL, NULL };
+CX_PLATFORM CxPlatform = { NULL, NULL };
 
 INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -78,9 +78,9 @@ CxPlatSystemLoad(
     InitializeTelemetryAssertsKM(RegistryPath);
 #endif
 
-    QuicPlatform.DriverObject = DriverObject;
-    (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&QuicPlatformPerfFreq);
-    QuicPlatform.RngAlgorithm = NULL;
+    CxPlatform.DriverObject = DriverObject;
+    (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&CxPlatPerfFreq);
+    CxPlatform.RngAlgorithm = NULL;
 
     QuicTraceLogInfo(
         WindowsKernelLoaded,
@@ -122,7 +122,7 @@ CxPlatInitialize(
 
     QUIC_STATUS Status =
         BCryptOpenAlgorithmProvider(
-            &QuicPlatform.RngAlgorithm,
+            &CxPlatform.RngAlgorithm,
             BCRYPT_RNG_ALGORITHM,
             NULL,
             BCRYPT_PROV_DISPATCH);
@@ -134,7 +134,7 @@ CxPlatInitialize(
             "BCryptOpenAlgorithmProvider (RNG)");
         goto Error;
     }
-    CXPLAT_DBG_ASSERT(QuicPlatform.RngAlgorithm != NULL);
+    CXPLAT_DBG_ASSERT(CxPlatform.RngAlgorithm != NULL);
 
     Status =
         ZwQuerySystemInformation(
@@ -173,9 +173,9 @@ CxPlatInitialize(
 Error:
 
     if (QUIC_FAILED(Status)) {
-        if (QuicPlatform.RngAlgorithm != NULL) {
-            BCryptCloseAlgorithmProvider(QuicPlatform.RngAlgorithm, 0);
-            QuicPlatform.RngAlgorithm = NULL;
+        if (CxPlatform.RngAlgorithm != NULL) {
+            BCryptCloseAlgorithmProvider(CxPlatform.RngAlgorithm, 0);
+            CxPlatform.RngAlgorithm = NULL;
         }
     }
 
@@ -191,8 +191,8 @@ CxPlatUninitialize(
 {
     PAGED_CODE();
     CxPlatTlsLibraryUninitialize();
-    BCryptCloseAlgorithmProvider(QuicPlatform.RngAlgorithm, 0);
-    QuicPlatform.RngAlgorithm = NULL;
+    BCryptCloseAlgorithmProvider(CxPlatform.RngAlgorithm, 0);
+    CxPlatform.RngAlgorithm = NULL;
     QuicTraceLogInfo(
         WindowsKernelUninitialized,
         "[ sys] Uninitialized");
@@ -227,10 +227,10 @@ CxPlatRandom(
     //
     // Use the algorithm we initialized for DISPATCH_LEVEL usage.
     //
-    CXPLAT_DBG_ASSERT(QuicPlatform.RngAlgorithm != NULL);
+    CXPLAT_DBG_ASSERT(CxPlatform.RngAlgorithm != NULL);
     return (QUIC_STATUS)
         BCryptGenRandom(
-            QuicPlatform.RngAlgorithm,
+            CxPlatform.RngAlgorithm,
             (uint8_t*)Buffer,
             BufferLen,
             0);

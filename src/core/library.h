@@ -174,7 +174,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Handle to global persistent storage (registry).
     //
-    QUIC_STORAGE* Storage;
+    CXPLAT_STORAGE* Storage;
 
     //
     // Datapath instance for the library.

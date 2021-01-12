@@ -32,27 +32,27 @@ CxPlatStorageRegKeyChangeCallback(
 //
 // The storage context returned that abstracts a registry key handle.
 //
-typedef struct QUIC_STORAGE {
+typedef struct CXPLAT_STORAGE {
 
     HKEY RegKey;
     HANDLE NotifyEvent;
     PTP_WAIT ThreadPoolWait;
-    QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback;
+    CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback;
     void* CallbackContext;
 
-} QUIC_STORAGE;
+} CXPLAT_STORAGE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
-    _Out_ QUIC_STORAGE** NewStorage
+    _Out_ CXPLAT_STORAGE** NewStorage
     )
 {
     QUIC_STATUS Status;
-    QUIC_STORAGE* Storage = NULL;
+    CXPLAT_STORAGE* Storage = NULL;
 
     char FullKeyName[256] = QUIC_BASE_REG_PATH;
 
@@ -69,13 +69,13 @@ CxPlatStorageOpen(
             PathLength + 1);
     }
 
-    Storage = CXPLAT_ALLOC_PAGED(sizeof(QUIC_STORAGE), QUIC_POOL_STORAGE);
+    Storage = CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_STORAGE), QUIC_POOL_STORAGE);
     if (Storage == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    CxPlatZeroMemory(Storage, sizeof(QUIC_STORAGE));
+    CxPlatZeroMemory(Storage, sizeof(CXPLAT_STORAGE));
     Storage->Callback = Callback;
     Storage->CallbackContext = CallbackContext;
 
@@ -150,7 +150,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatStorageClose(
-    _In_opt_ QUIC_STORAGE* Storage
+    _In_opt_ CXPLAT_STORAGE* Storage
     )
 {
     if (Storage != NULL) {
@@ -176,7 +176,7 @@ CxPlatStorageRegKeyChangeCallback(
     UNREFERENCED_PARAMETER(WaitResult);
     CXPLAT_DBG_ASSERT(Context);
 
-    QUIC_STORAGE* Storage = (QUIC_STORAGE*)Context;
+    CXPLAT_STORAGE* Storage = (CXPLAT_STORAGE*)Context;
     Storage->Callback(Storage->CallbackContext);
 
     if (NO_ERROR ==
@@ -193,7 +193,7 @@ CxPlatStorageRegKeyChangeCallback(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageReadValue(
-    _In_ QUIC_STORAGE* Storage,
+    _In_ CXPLAT_STORAGE* Storage,
     _In_opt_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
         UINT8 * Buffer,

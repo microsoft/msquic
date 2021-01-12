@@ -14,7 +14,7 @@
 #include "CryptTest.cpp.clog.h"
 #endif
 
-#ifndef QUIC_TLS_STUB
+#ifndef CXPLAT_TLS_STUB
 
 void
 LogTestBuffer(
@@ -179,7 +179,7 @@ TEST_F(CryptTest, WellKnownClientInitial)
     memcpy(PacketBuffer, InitialPacketHeader.Data, InitialPacketHeader.Length);
     memcpy(PacketBuffer + InitialPacketHeader.Length, InitialPacketPayload.Data, InitialPacketPayload.Length);
 
-    QUIC_TLS_PROCESS_STATE State = {0};
+    CXPLAT_TLS_PROCESS_STATE State = {0};
     VERIFY_QUIC_SUCCESS(
         QuicPacketKeyCreateInitial(
             FALSE,
@@ -517,4 +517,4 @@ TEST_P(CryptTest, HashRandom)
 
 INSTANTIATE_TEST_SUITE_P(CryptTest, CryptTest, ::testing::Values(0, 1, 2));
 
-#endif // QUIC_TLS_STUB
+#endif // CXPLAT_TLS_STUB

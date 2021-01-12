@@ -162,7 +162,7 @@ MsQuicLibraryOnSettingsChanged(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_STORAGE_CHANGE_CALLBACK)
+_Function_class_(CXPLAT_STORAGE_CHANGE_CALLBACK)
 void
 MsQuicLibraryReadSettings(
     _In_opt_ void* Context

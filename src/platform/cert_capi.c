@@ -22,10 +22,10 @@ Environment:
 #include <wincrypt.h>
 #include <msquic.h>
 
-typedef union QUIC_SIGN_PADDING {
+typedef union CXPLAT_SIGN_PADDING {
     BCRYPT_PKCS1_PADDING_INFO Pkcs1;
     BCRYPT_PSS_PADDING_INFO Pss;
-} QUIC_SIGN_PADDING;
+} CXPLAT_SIGN_PADDING;
 
 //
 // Map the TLS signature to the OID value expected in a certificate.
@@ -256,7 +256,7 @@ PaddingTypeFromTLS(
 static
 void
 PopulatePaddingParams(
-    _Inout_ QUIC_SIGN_PADDING* Padding,
+    _Inout_ CXPLAT_SIGN_PADDING* Padding,
     _In_ DWORD PaddingType,
     _In_z_ PCWSTR HashAlg,
     _In_ DWORD SaltSize
@@ -1048,7 +1048,7 @@ CxPlatCertSign(
 
     BOOLEAN Result = FALSE;
     BYTE HashBuf[QUIC_CERTIFICATE_MAX_HASH_SIZE] = { 0 };
-    QUIC_SIGN_PADDING Padding = { 0 };
+    CXPLAT_SIGN_PADDING Padding = { 0 };
 
     NTSTATUS Status =
         BCryptHash(
@@ -1182,7 +1182,7 @@ CxPlatCertVerify(
     BOOLEAN Result = FALSE;
     BYTE HashBuf[QUIC_CERTIFICATE_MAX_HASH_SIZE] = { 0 };
     BCRYPT_KEY_HANDLE PublicKey = (ULONG_PTR)NULL;
-    QUIC_SIGN_PADDING Padding = { 0 };
+    CXPLAT_SIGN_PADDING Padding = { 0 };
 
     NTSTATUS Status =
         BCryptHash(

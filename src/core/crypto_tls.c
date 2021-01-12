@@ -436,8 +436,8 @@ QuicCryptoTlsReadClientHello(
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
-#ifdef QUIC_TLS_SECRETS_SUPPORT
-    , _Inout_opt_ QUIC_TLS_SECRETS* TlsSecrets
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
+    , _Inout_opt_ CXPLAT_TLS_SECRETS* TlsSecrets
 #endif
     )
 {
@@ -483,7 +483,7 @@ QuicCryptoTlsReadClientHello(
             "Parse error. ReadTlsClientHello #2");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     if (TlsSecrets != NULL) {
         memcpy(TlsSecrets->ClientRandom, Buffer, TLS_RANDOM_LENGTH);
         TlsSecrets->IsSet.ClientRandom = TRUE;
@@ -605,8 +605,8 @@ QuicCryptoTlsReadInitial(
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
-#ifdef QUIC_TLS_SECRETS_SUPPORT
-    , _Inout_opt_ QUIC_TLS_SECRETS* TlsSecrets
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
+    , _Inout_opt_ CXPLAT_TLS_SECRETS* TlsSecrets
 #endif
     )
 {
@@ -635,7 +635,7 @@ QuicCryptoTlsReadInitial(
                 Buffer + TLS_MESSAGE_HEADER_LENGTH,
                 MessageLength,
                 Info
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                 , TlsSecrets
 #endif
                 );

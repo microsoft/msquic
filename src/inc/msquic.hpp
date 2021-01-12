@@ -488,7 +488,7 @@ struct QuicBufferScope {
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
 };
 
-#ifdef QUIC_PLATFORM_TYPE
+#ifdef CX_PLATFORM_TYPE
 
 //
 // Abstractions for platform specific types/interfaces

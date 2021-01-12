@@ -16,7 +16,7 @@ Environment:
 
 #pragma once
 
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
 
 #include "quic_platform.h"
 #include "quic_datapath.h"
@@ -222,7 +222,7 @@ QUIC_STATUS
     _Out_writes_bytes_(BufferLen) void* Buffer
     );
 
-typedef struct QUIC_PLATFORM_DISPATCH {
+typedef struct CX_PLATFORM_DISPATCH {
     QUIC_ALLOC Alloc;
     CXPLAT_FREE Free;
     QUIC_POOL_INITIALIZE PoolInitialize;
@@ -255,8 +255,8 @@ typedef struct QUIC_PLATFORM_DISPATCH {
     CXPLAT_SOCKET_SET_PARAM SocketSetParam;
     CXPLAT_SOCKET_GET_PARAM SocketGetParam;
 
-} QUIC_PLATFORM_DISPATCH;
+} CX_PLATFORM_DISPATCH;
 
-extern QUIC_PLATFORM_DISPATCH* PlatDispatch;
+extern CX_PLATFORM_DISPATCH* PlatDispatch;
 
-#endif // QUIC_PLATFORM_DISPATCH_TABLE
+#endif // CX_PLATFORM_DISPATCH_TABLE

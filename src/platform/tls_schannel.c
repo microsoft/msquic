@@ -249,7 +249,7 @@ typedef struct QUIC_SEC_CONFIG {
     //
     // Callbacks for TLS.
     //
-    QUIC_TLS_CALLBACKS Callbacks;
+    CXPLAT_TLS_CALLBACKS Callbacks;
 
 } QUIC_SEC_CONFIG;
 
@@ -349,7 +349,7 @@ typedef struct _SEC_BUFFER_WORKSPACE {
 
 } SEC_BUFFER_WORKSPACE;
 
-typedef struct QUIC_TLS {
+typedef struct CXPLAT_TLS {
 
     BOOLEAN IsServer : 1;
     BOOLEAN GeneratedFirstPayload : 1;
@@ -396,15 +396,15 @@ typedef struct QUIC_TLS {
     //
     SEC_BUFFER_WORKSPACE Workspace;
 
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     //
     // Optional struct to log TLS traffic secrets.
     // Only non-null when the connection is configured to log these.
     //
-    QUIC_TLS_SECRETS* TlsSecrets;
+    CXPLAT_TLS_SECRETS* TlsSecrets;
 #endif
 
-} QUIC_TLS;
+} CXPLAT_TLS;
 
 typedef struct CXPLAT_HP_KEY {
     BCRYPT_KEY_HANDLE Key;
@@ -415,7 +415,7 @@ typedef struct CXPLAT_HP_KEY {
 _Success_(return==TRUE)
 BOOLEAN
 QuicPacketKeyCreate(
-    _Inout_ QUIC_TLS* TlsContext,
+    _Inout_ CXPLAT_TLS* TlsContext,
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_z_ const char* const SecretName,
     _In_ const SEC_TRAFFIC_SECRETS* TrafficSecrets,
@@ -1030,7 +1030,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _In_ const QUIC_TLS_CALLBACKS* TlsCallbacks,
+    _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
@@ -1440,9 +1440,9 @@ CxPlatTlsSecConfigDelete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsInitialize(
-    _In_ const QUIC_TLS_CONFIG* Config,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State,
-    _Out_ QUIC_TLS** NewTlsContext
+    _In_ const CXPLAT_TLS_CONFIG* Config,
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State,
+    _Out_ CXPLAT_TLS** NewTlsContext
     )
 {
     UNREFERENCED_PARAMETER(Config->Connection);
@@ -1451,10 +1451,10 @@ CxPlatTlsInitialize(
         (ULONG)(Config->AlpnBufferLength +
             FIELD_OFFSET(SEC_APPLICATION_PROTOCOLS, ProtocolLists) +
             FIELD_OFFSET(SEC_APPLICATION_PROTOCOL_LIST, ProtocolList));
-    const size_t TlsSize = sizeof(QUIC_TLS) + (size_t)AppProtocolsSize;
+    const size_t TlsSize = sizeof(CXPLAT_TLS) + (size_t)AppProtocolsSize;
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_TLS* TlsContext = NULL;
+    CXPLAT_TLS* TlsContext = NULL;
 
     if (Config->IsServer != !(Config->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
         QuicTraceEvent(
@@ -1471,8 +1471,8 @@ CxPlatTlsInitialize(
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_TLS",
-            sizeof(QUIC_TLS));
+            "CXPLAT_TLS",
+            sizeof(CXPLAT_TLS));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -1486,7 +1486,7 @@ CxPlatTlsInitialize(
     TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->SNI = Config->ServerName;
     TlsContext->SecConfig = Config->SecConfig;
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     TlsContext->TlsSecrets = Config->TlsSecrets;
 #endif
 
@@ -1513,7 +1513,7 @@ CxPlatTlsInitialize(
     TlsContext->TransportParams->BufferSize =
         (uint16_t)(Config->LocalTPLength - FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer));
 
-    State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
+    State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
     if (Config->ResumptionTicketBuffer != NULL) {
         CXPLAT_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
     }
@@ -1534,7 +1534,7 @@ inline
 static
 void
 CxPlatTlsResetSchannel(
-    _In_ QUIC_TLS* TlsContext
+    _In_ CXPLAT_TLS* TlsContext
     )
 {
     if (SecIsValidHandle(&TlsContext->SchannelContext)) {
@@ -1561,7 +1561,7 @@ CxPlatTlsResetSchannel(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsUninitialize(
-    _In_opt_ QUIC_TLS* TlsContext
+    _In_opt_ CXPLAT_TLS* TlsContext
     )
 {
     if (TlsContext != NULL) {
@@ -1579,13 +1579,13 @@ CxPlatTlsUninitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_RESULT_FLAGS
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsWriteDataToSchannel(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _In_reads_(*InBufferLength)
         const uint8_t* InBuffer,
     _Inout_ uint32_t* InBufferLength,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     )
 {
 #ifdef _KERNEL_MODE
@@ -1632,7 +1632,7 @@ CxPlatTlsWriteDataToSchannel(
                     TlsContext->Connection,
                     Status,
                     "Convert SNI to unicode");
-                return QUIC_TLS_RESULT_ERROR;
+                return CXPLAT_TLS_RESULT_ERROR;
             }
         }
 
@@ -1806,7 +1806,7 @@ CxPlatTlsWriteDataToSchannel(
                 NULL);
     }
 
-    QUIC_TLS_RESULT_FLAGS Result = 0;
+    CXPLAT_TLS_RESULT_FLAGS Result = 0;
 
     SecBuffer* ExtraBuffer = NULL;
     SecBuffer* MissingBuffer = NULL;
@@ -1881,7 +1881,7 @@ CxPlatTlsWriteDataToSchannel(
                 "[ tls][%p] ERROR, %s.",
                 TlsContext->Connection,
                 "No QUIC TP received");
-            Result |= QUIC_TLS_RESULT_ERROR;
+            Result |= CXPLAT_TLS_RESULT_ERROR;
             break;
         }
 
@@ -1909,7 +1909,7 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         SecStatus,
                         "query negotiated ALPN");
-                    Result |= QUIC_TLS_RESULT_ERROR;
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
                     break;
                 }
                 if (NegotiatedAlpn.ProtoNegoStatus != SecApplicationProtocolNegotiationStatus_Success) {
@@ -1919,7 +1919,7 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         NegotiatedAlpn.ProtoNegoStatus,
                         "ALPN negotiation status");
-                    Result |= QUIC_TLS_RESULT_ERROR;
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
                     break;
                 }
                 const SEC_APPLICATION_PROTOCOL_LIST* AlpnList =
@@ -1936,7 +1936,7 @@ CxPlatTlsWriteDataToSchannel(
                         "[ tls][%p] ERROR, %s.",
                         TlsContext->Connection,
                         "ALPN Mismatch");
-                    Result |= QUIC_TLS_RESULT_ERROR;
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
                     break;
                 }
             }
@@ -1954,7 +1954,7 @@ CxPlatTlsWriteDataToSchannel(
                     TlsContext->Connection,
                     SecStatus,
                     "query session info");
-                Result |= QUIC_TLS_RESULT_ERROR;
+                Result |= CXPLAT_TLS_RESULT_ERROR;
                 break;
             }
             if (SessionInfo.dwFlags & SSL_SESSION_RECONNECT) {
@@ -1967,7 +1967,7 @@ CxPlatTlsWriteDataToSchannel(
                 "Handshake complete (resume=%hu)",
                 State->SessionResumed);
             State->HandshakeComplete = TRUE;
-            Result |= QUIC_TLS_RESULT_COMPLETE;
+            Result |= CXPLAT_TLS_RESULT_COMPLETE;
         }
 
         __fallthrough;
@@ -1991,7 +1991,7 @@ CxPlatTlsWriteDataToSchannel(
                     State->AlertCode,
                     "TLS alert message received");
             }
-            Result |= QUIC_TLS_RESULT_ERROR;
+            Result |= CXPLAT_TLS_RESULT_ERROR;
             break;
         }
 
@@ -2018,7 +2018,7 @@ CxPlatTlsWriteDataToSchannel(
         // Update our "read" key state based on any new peer keys being available.
         //
         for (uint8_t i = 0; i < NewPeerTrafficSecretsCount; ++i) {
-            Result |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
+            Result |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
             if (NewPeerTrafficSecrets[i]->TrafficSecretType == SecTrafficSecret_ClientEarlyData) {
                 CXPLAT_FRE_ASSERT(FALSE); // TODO - Finish the 0-RTT logic.
             } else {
@@ -2029,7 +2029,7 @@ CxPlatTlsWriteDataToSchannel(
                             "peer handshake traffic secret",
                             NewPeerTrafficSecrets[i],
                             &State->ReadKeys[QUIC_PACKET_KEY_HANDSHAKE])) {
-                        Result |= QUIC_TLS_RESULT_ERROR;
+                        Result |= CXPLAT_TLS_RESULT_ERROR;
                         break;
                     }
                     State->ReadKey = QUIC_PACKET_KEY_HANDSHAKE;
@@ -2037,7 +2037,7 @@ CxPlatTlsWriteDataToSchannel(
                         SchannelReadHandshakeStart,
                         TlsContext->Connection,
                         "Reading Handshake data starts now");
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                     if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
@@ -2062,7 +2062,7 @@ CxPlatTlsWriteDataToSchannel(
                             "peer application traffic secret",
                             NewPeerTrafficSecrets[i],
                             &State->ReadKeys[QUIC_PACKET_KEY_1_RTT])) {
-                        Result |= QUIC_TLS_RESULT_ERROR;
+                        Result |= CXPLAT_TLS_RESULT_ERROR;
                         break;
                     }
                     State->ReadKey = QUIC_PACKET_KEY_1_RTT;
@@ -2070,7 +2070,7 @@ CxPlatTlsWriteDataToSchannel(
                         SchannelRead1RttStart,
                         TlsContext->Connection,
                         "Reading 1-RTT data starts now");
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                     if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
@@ -2096,10 +2096,10 @@ CxPlatTlsWriteDataToSchannel(
         // Update our "write" state based on any of our own keys being available
         //
         for (uint8_t i = 0; i < NewOwnTrafficSecretsCount; ++i) {
-            Result |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
+            Result |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
             if (NewOwnTrafficSecrets[i]->TrafficSecretType == SecTrafficSecret_ClientEarlyData) {
                 CXPLAT_FRE_ASSERT(FALSE); // TODO - Finish the 0-RTT logic.
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                 CXPLAT_FRE_ASSERT(!TlsContext->IsServer);
                 if (TlsContext->TlsSecrets != NULL) {
                     TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
@@ -2118,7 +2118,7 @@ CxPlatTlsWriteDataToSchannel(
                             "own handshake traffic secret",
                             NewOwnTrafficSecrets[i],
                             &State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE])) {
-                        Result |= QUIC_TLS_RESULT_ERROR;
+                        Result |= CXPLAT_TLS_RESULT_ERROR;
                         break;
                     }
                     State->BufferOffsetHandshake =
@@ -2131,7 +2131,7 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         "Writing Handshake data starts at %u",
                         State->BufferOffsetHandshake);
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                     if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
@@ -2160,7 +2160,7 @@ CxPlatTlsWriteDataToSchannel(
                                 "own application traffic secret",
                                 NewOwnTrafficSecrets[i],
                                 &State->WriteKeys[QUIC_PACKET_KEY_1_RTT])) {
-                            Result |= QUIC_TLS_RESULT_ERROR;
+                            Result |= CXPLAT_TLS_RESULT_ERROR;
                             break;
                         }
                         //State->BufferOffset1Rtt = // Currently have to get the offset from the Handshake "end"
@@ -2171,7 +2171,7 @@ CxPlatTlsWriteDataToSchannel(
                             TlsContext->Connection,
                             "Writing 1-RTT data starts at %u",
                             State->BufferOffset1Rtt);
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                         if (TlsContext->TlsSecrets != NULL) {
                             TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
                             if (TlsContext->IsServer) {
@@ -2194,7 +2194,7 @@ CxPlatTlsWriteDataToSchannel(
             }
         }
 
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
         if (SecStatus == SEC_E_OK) {
             //
             // We're done with the TlsSecrets.
@@ -2207,7 +2207,7 @@ CxPlatTlsWriteDataToSchannel(
             //
             // There is output data to send back.
             //
-            Result |= QUIC_TLS_RESULT_DATA;
+            Result |= CXPLAT_TLS_RESULT_DATA;
             TlsContext->GeneratedFirstPayload = TRUE;
 
             CXPLAT_FRE_ASSERT(OutputTokenBuffer->cbBuffer <= 0xFFFF);
@@ -2232,7 +2232,7 @@ CxPlatTlsWriteDataToSchannel(
                 "[ tls][%p] ERROR, %s.",
                 TlsContext->Connection,
                 "QUIC TP wasn't present");
-            Result |= QUIC_TLS_RESULT_ERROR;
+            Result |= CXPLAT_TLS_RESULT_ERROR;
             break;
         }
 
@@ -2249,12 +2249,12 @@ CxPlatTlsWriteDataToSchannel(
                 "[ tls][%p] ERROR, %s.",
                 TlsContext->Connection,
                 "Process QUIC TP");
-            Result |= QUIC_TLS_RESULT_ERROR;
+            Result |= CXPLAT_TLS_RESULT_ERROR;
             break;
         }
 
         TlsContext->PeerTransportParamsReceived = TRUE;
-        Result |= QUIC_TLS_RESULT_CONTINUE;
+        Result |= CXPLAT_TLS_RESULT_CONTINUE;
 
         break;
 
@@ -2298,7 +2298,7 @@ CxPlatTlsWriteDataToSchannel(
                     State->AlertCode,
                     "TLS alert message received");
             }
-            Result |= QUIC_TLS_RESULT_ERROR;
+            Result |= CXPLAT_TLS_RESULT_ERROR;
         }
         *InBufferLength = 0;
         QuicTraceEvent(
@@ -2307,7 +2307,7 @@ CxPlatTlsWriteDataToSchannel(
             TlsContext->Connection,
             SecStatus,
             "Accept/InitializeSecurityContext");
-        Result |= QUIC_TLS_RESULT_ERROR;
+        Result |= CXPLAT_TLS_RESULT_ERROR;
         break;
     }
 
@@ -2326,19 +2326,19 @@ CxPlatTlsWriteDataToSchannel(
 
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_RESULT_FLAGS
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessData(
-    _In_ QUIC_TLS* TlsContext,
-    _In_ QUIC_TLS_DATA_TYPE DataType,
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ CXPLAT_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     )
 {
-    QUIC_TLS_RESULT_FLAGS Result = 0;
-    if (DataType == QUIC_TLS_TICKET_DATA) {
-        Result = QUIC_TLS_RESULT_ERROR;
+    CXPLAT_TLS_RESULT_FLAGS Result = 0;
+    if (DataType == CXPLAT_TLS_TICKET_DATA) {
+        Result = CXPLAT_TLS_RESULT_ERROR;
 
         QuicTraceLogConnVerbose(
             SchannelIgnoringTicket,
@@ -2373,19 +2373,19 @@ CxPlatTlsProcessData(
             Buffer,
             BufferLength,
             State);
-    if ((Result & QUIC_TLS_RESULT_ERROR) != 0) {
+    if ((Result & CXPLAT_TLS_RESULT_ERROR) != 0) {
         goto Error;
     }
 
-    if (Result & QUIC_TLS_RESULT_CONTINUE) {
-        Result &= ~QUIC_TLS_RESULT_CONTINUE;
+    if (Result & CXPLAT_TLS_RESULT_CONTINUE) {
+        Result &= ~CXPLAT_TLS_RESULT_CONTINUE;
         Result |=
             CxPlatTlsWriteDataToSchannel(
                 TlsContext,
                 Buffer,
                 BufferLength,
                 State);
-        if ((Result & QUIC_TLS_RESULT_ERROR) != 0) {
+        if ((Result & CXPLAT_TLS_RESULT_ERROR) != 0) {
             goto Error;
         }
     }
@@ -2396,21 +2396,21 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_RESULT_FLAGS
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessDataComplete(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _Out_ uint32_t * BufferConsumed
     )
 {
     UNREFERENCED_PARAMETER(TlsContext);
     *BufferConsumed = 0;
-    return QUIC_TLS_RESULT_ERROR;
+    return CXPLAT_TLS_RESULT_ERROR;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamSet(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -2427,7 +2427,7 @@ CxPlatTlsParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamGet(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Inout_updates_bytes_opt_(*BufferLength)
@@ -2856,7 +2856,7 @@ Error:
 _Success_(return != FALSE)
 BOOLEAN
 CxPlatParseTrafficSecrets(
-    _In_ const QUIC_TLS* TlsContext,
+    _In_ const CXPLAT_TLS* TlsContext,
     _In_ const SEC_TRAFFIC_SECRETS* TrafficSecrets,
     _Out_ CXPLAT_SECRET* Secret
     )
@@ -2943,7 +2943,7 @@ CxPlatParseTrafficSecrets(
 _Success_(return==TRUE)
 BOOLEAN
 QuicPacketKeyCreate(
-    _Inout_ QUIC_TLS* TlsContext,
+    _Inout_ CXPLAT_TLS* TlsContext,
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_z_ const char* const SecretName,
     _In_ const SEC_TRAFFIC_SECRETS* TrafficSecrets,

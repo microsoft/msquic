@@ -23,8 +23,8 @@ extern "C" {
 
 typedef struct QUIC_SEC_CONFIG QUIC_SEC_CONFIG;
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
-typedef struct QUIC_TLS QUIC_TLS;
-typedef struct QUIC_TLS_SECRETS QUIC_TLS_SECRETS;
+typedef struct CXPLAT_TLS CXPLAT_TLS;
+typedef struct CXPLAT_TLS_SECRETS CXPLAT_TLS_SECRETS;
 
 #define TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION   0x0010  // Host Byte Order
 #define TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT          0xffa5  // Host Byte Order
@@ -41,11 +41,11 @@ extern uint16_t CxPlatTlsTPHeaderSize;
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-(QUIC_TLS_PROCESS_COMPLETE_CALLBACK)(
+(CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK)(
     _In_ QUIC_CONNECTION* Connection
     );
 
-typedef QUIC_TLS_PROCESS_COMPLETE_CALLBACK *QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER;
+typedef CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK *CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER;
 
 //
 // Callback for indicating received QUIC TP parameters. Callback always happens
@@ -54,13 +54,13 @@ typedef QUIC_TLS_PROCESS_COMPLETE_CALLBACK *QUIC_TLS_PROCESS_COMPLETE_CALLBACK_H
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
-(QUIC_TLS_RECEIVE_TP_CALLBACK)(
+(CXPLAT_TLS_RECEIVE_TP_CALLBACK)(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint16_t TPLength,
     _In_reads_(TPLength) const uint8_t* TPBuffer
     );
 
-typedef QUIC_TLS_RECEIVE_TP_CALLBACK *QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER;
+typedef CXPLAT_TLS_RECEIVE_TP_CALLBACK *CXPLAT_TLS_RECEIVE_TP_CALLBACK_HANDLER;
 
 //
 // Callback for indicating received resumption ticket. Callback always happens
@@ -69,37 +69,37 @@ typedef QUIC_TLS_RECEIVE_TP_CALLBACK *QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER;
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
-(QUIC_TLS_RECEIVE_TICKET_CALLBACK)(
+(CXPLAT_TLS_RECEIVE_TICKET_CALLBACK)(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t TicketLength,
     _In_reads_(TicketLength) const uint8_t* Ticket
     );
 
-typedef QUIC_TLS_RECEIVE_TICKET_CALLBACK *QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER;
+typedef CXPLAT_TLS_RECEIVE_TICKET_CALLBACK *CXPLAT_TLS_RECEIVE_TICKET_CALLBACK_HANDLER;
 
-typedef struct QUIC_TLS_CALLBACKS {
+typedef struct CXPLAT_TLS_CALLBACKS {
 
     //
     // Invoked for the completion of process calls that were pending.
     //
-    QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER ProcessComplete;
+    CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER ProcessComplete;
 
     //
     // Invoked when QUIC transport parameters are received.
     //
-    QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTP;
+    CXPLAT_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTP;
 
     //
     // Invoked when a resumption ticket is received.
     //
-    QUIC_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicket;
+    CXPLAT_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicket;
 
-} QUIC_TLS_CALLBACKS;
+} CXPLAT_TLS_CALLBACKS;
 
 //
 // The input configuration for creation of a TLS context.
 //
-typedef struct QUIC_TLS_CONFIG {
+typedef struct CXPLAT_TLS_CONFIG {
 
     BOOLEAN IsServer;
 
@@ -145,56 +145,56 @@ typedef struct QUIC_TLS_CONFIG {
     const uint8_t* LocalTPBuffer;
     uint32_t LocalTPLength;
 
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     //
-    // Storage for TLS traffic secrets when QUIC_TLS_SECRETS_SUPPORT is enabled,
+    // Storage for TLS traffic secrets when CXPLAT_TLS_SECRETS_SUPPORT is enabled,
     // and the connection has the parameter set to enable logging.
     //
-    QUIC_TLS_SECRETS* TlsSecrets;
+    CXPLAT_TLS_SECRETS* TlsSecrets;
 #endif
 
-} QUIC_TLS_CONFIG;
+} CXPLAT_TLS_CONFIG;
 
 //
 // Different possible results after writing new TLS data.
 //
-typedef enum QUIC_TLS_RESULT_FLAGS {
+typedef enum CXPLAT_TLS_RESULT_FLAGS {
 
-    QUIC_TLS_RESULT_CONTINUE            = 0x0001, // Needs immediate call again. (Used internally to schannel)
-    QUIC_TLS_RESULT_PENDING             = 0x0002, // The call is pending.
-    QUIC_TLS_RESULT_DATA                = 0x0004, // Data ready to be sent.
-    QUIC_TLS_RESULT_READ_KEY_UPDATED    = 0x0008, // ReadKey variable has been updated.
-    QUIC_TLS_RESULT_WRITE_KEY_UPDATED   = 0x0010, // WriteKey variable has been updated.
-    QUIC_TLS_RESULT_EARLY_DATA_ACCEPT   = 0x0020, // The server accepted the early (0-RTT) data.
-    QUIC_TLS_RESULT_EARLY_DATA_REJECT   = 0x0040, // The server rejected the early (0-RTT) data.
-    QUIC_TLS_RESULT_COMPLETE            = 0x0080, // Handshake complete.
-    QUIC_TLS_RESULT_ERROR               = 0x8000  // An error occured.
+    CXPLAT_TLS_RESULT_CONTINUE            = 0x0001, // Needs immediate call again. (Used internally to schannel)
+    CXPLAT_TLS_RESULT_PENDING             = 0x0002, // The call is pending.
+    CXPLAT_TLS_RESULT_DATA                = 0x0004, // Data ready to be sent.
+    CXPLAT_TLS_RESULT_READ_KEY_UPDATED    = 0x0008, // ReadKey variable has been updated.
+    CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED   = 0x0010, // WriteKey variable has been updated.
+    CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT   = 0x0020, // The server accepted the early (0-RTT) data.
+    CXPLAT_TLS_RESULT_EARLY_DATA_REJECT   = 0x0040, // The server rejected the early (0-RTT) data.
+    CXPLAT_TLS_RESULT_COMPLETE            = 0x0080, // Handshake complete.
+    CXPLAT_TLS_RESULT_ERROR               = 0x8000  // An error occured.
 
-} QUIC_TLS_RESULT_FLAGS;
+} CXPLAT_TLS_RESULT_FLAGS;
 
-typedef enum QUIC_TLS_DATA_TYPE {
+typedef enum CXPLAT_TLS_DATA_TYPE {
 
-    QUIC_TLS_CRYPTO_DATA,
-    QUIC_TLS_TICKET_DATA
+    CXPLAT_TLS_CRYPTO_DATA,
+    CXPLAT_TLS_TICKET_DATA
 
-} QUIC_TLS_DATA_TYPE;
+} CXPLAT_TLS_DATA_TYPE;
 
 //
 // Different possible results after writing new TLS data.
 //
-typedef enum QUIC_TLS_EARLY_DATA_STATE {
+typedef enum CXPLAT_TLS_EARLY_DATA_STATE {
 
-    QUIC_TLS_EARLY_DATA_UNKNOWN,
-    QUIC_TLS_EARLY_DATA_UNSUPPORTED,
-    QUIC_TLS_EARLY_DATA_REJECTED,
-    QUIC_TLS_EARLY_DATA_ACCEPTED
+    CXPLAT_TLS_EARLY_DATA_UNKNOWN,
+    CXPLAT_TLS_EARLY_DATA_UNSUPPORTED,
+    CXPLAT_TLS_EARLY_DATA_REJECTED,
+    CXPLAT_TLS_EARLY_DATA_ACCEPTED
 
-} QUIC_TLS_EARLY_DATA_STATE;
+} CXPLAT_TLS_EARLY_DATA_STATE;
 
 //
 // The output processing state.
 //
-typedef struct QUIC_TLS_PROCESS_STATE {
+typedef struct CXPLAT_TLS_PROCESS_STATE {
 
     //
     // Indicates TLS has completed the handshake phase of its exchange.
@@ -209,7 +209,7 @@ typedef struct QUIC_TLS_PROCESS_STATE {
     //
     // Indicates the state of early data support.
     //
-    QUIC_TLS_EARLY_DATA_STATE EarlyDataState;
+    CXPLAT_TLS_EARLY_DATA_STATE EarlyDataState;
 
     //
     // The key that newly received data should be decrypted and read with.
@@ -275,7 +275,7 @@ typedef struct QUIC_TLS_PROCESS_STATE {
     //
     QUIC_PACKET_KEY* WriteKeys[QUIC_PACKET_KEY_COUNT];
 
-} QUIC_TLS_PROCESS_STATE;
+} CXPLAT_TLS_PROCESS_STATE;
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -297,7 +297,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _In_ const QUIC_TLS_CALLBACKS* TlsCallbacks,
+    _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     );
@@ -318,9 +318,9 @@ CxPlatTlsSecConfigDelete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsInitialize(
-    _In_ const QUIC_TLS_CONFIG* Config,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State,
-    _Out_ QUIC_TLS** NewTlsContext
+    _In_ const CXPLAT_TLS_CONFIG* Config,
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State,
+    _Out_ CXPLAT_TLS** NewTlsContext
     );
 
 //
@@ -329,37 +329,37 @@ CxPlatTlsInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsUninitialize(
-    _In_opt_ QUIC_TLS* TlsContext
+    _In_opt_ CXPLAT_TLS* TlsContext
     );
 
 //
 // Called to process any data received from the peer. In the case of the client,
 // the initial call is made with no input buffer to generate the initial output.
-// The returned QUIC_TLS_RESULT_FLAGS and QUIC_TLS_PROCESS_STATE are update with
+// The returned CXPLAT_TLS_RESULT_FLAGS and CXPLAT_TLS_PROCESS_STATE are update with
 // any state changes as a result of the call. If the call returns
-// QUIC_TLS_RESULT_PENDING, then the registered QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER
+// CXPLAT_TLS_RESULT_PENDING, then the registered CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER
 // will be triggered at a later date; at which the QUIC code must then call
 // QuicTlsProcessDataComplete to complete the operation and get the resulting
 // flags.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_RESULT_FLAGS
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessData(
-    _In_ QUIC_TLS* TlsContext,
-    _In_ QUIC_TLS_DATA_TYPE DataType,
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ CXPLAT_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     );
 
 //
 // Called when in response to receiving a process completed callback.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_RESULT_FLAGS
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessDataComplete(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _Out_ uint32_t * ConsumedBuffer
     );
 
@@ -369,7 +369,7 @@ CxPlatTlsProcessDataComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamSet(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -382,7 +382,7 @@ CxPlatTlsParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamGet(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Inout_updates_bytes_opt_(*BufferLength)

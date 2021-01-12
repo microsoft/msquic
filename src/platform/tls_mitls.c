@@ -35,7 +35,7 @@ uint16_t CxPlatTlsTPHeaderSize = 0;
 //
 // The maximum message buffer length.
 //
-#define QUIC_TLS_MAX_MESSAGE_LENGTH (8 * 1024)
+#define CXPLAT_TLS_MAX_MESSAGE_LENGTH (8 * 1024)
 
 const QUIC_PACKET_KEY_TYPE miTlsKeyTypes[2][4] =
 {
@@ -155,7 +155,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicPacketKeyCreate(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_ int Epoch,
     _In_ quic_direction rw,
@@ -170,7 +170,7 @@ typedef struct QUIC_SEC_CONFIG {
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
 
-    QUIC_TLS_CALLBACKS Callbacks;
+    CXPLAT_TLS_CALLBACKS Callbacks;
 
     //
     // The certificate context, used for signing.
@@ -182,26 +182,26 @@ typedef struct QUIC_SEC_CONFIG {
     // Formatted certificate bytes for sending on the wire.
     //
     uint16_t FormatLength;
-    uint8_t FormatBuffer[QUIC_TLS_MAX_MESSAGE_LENGTH];
+    uint8_t FormatBuffer[CXPLAT_TLS_MAX_MESSAGE_LENGTH];
 
 } QUIC_SEC_CONFIG;
 
 //
 // Contiguous memory representation of a ticket.
 //
-typedef struct QUIC_TLS_TICKET {
+typedef struct CXPLAT_TLS_TICKET {
 
     uint32_t TicketLength;
     uint32_t SessionLength;
     _Field_size_(TicketLength + SessionLength)
     uint8_t Buffer[0];
 
-} QUIC_TLS_TICKET;
+} CXPLAT_TLS_TICKET;
 
 //
 // The TLS interface context.
 //
-typedef struct QUIC_TLS {
+typedef struct CXPLAT_TLS {
 
     //
     // Flag indicating if the TLS represents a server.
@@ -257,7 +257,7 @@ typedef struct QUIC_TLS {
     //
     // Process state for the outstanding process call.
     //
-    QUIC_TLS_PROCESS_STATE* State;
+    CXPLAT_TLS_PROCESS_STATE* State;
 
     //
     // Callback handlers and input connection.
@@ -289,14 +289,14 @@ typedef struct QUIC_TLS {
     //
     mitls_extension Extensions[2];
 
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     //
     // Optional pointer to struct to store TLS secrets.
     //
-    QUIC_TLS_SECRETS* TlsSecrets;
+    CXPLAT_TLS_SECRETS* TlsSecrets;
 #endif
 
-} QUIC_TLS;
+} CXPLAT_TLS;
 
 DWORD miTlsCurrentConnectionIndex = TLS_OUT_OF_INDEXES; // Thread-local storage index
 
@@ -390,7 +390,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _In_ const QUIC_TLS_CALLBACKS* TlsCallbacks,
+    _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
@@ -514,13 +514,13 @@ CxPlatTlsSecConfigDelete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsInitialize(
-    _In_ const QUIC_TLS_CONFIG* Config,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State,
-    _Out_ QUIC_TLS** NewTlsContext
+    _In_ const CXPLAT_TLS_CONFIG* Config,
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State,
+    _Out_ CXPLAT_TLS** NewTlsContext
     )
 {
     QUIC_STATUS Status;
-    QUIC_TLS* TlsContext;
+    CXPLAT_TLS* TlsContext;
 
     CXPLAT_DBG_ASSERT(Config != NULL);
     CXPLAT_DBG_ASSERT(NewTlsContext != NULL);
@@ -529,18 +529,18 @@ CxPlatTlsInitialize(
 
     TlsSetValue(miTlsCurrentConnectionIndex, Config->Connection);
 
-    TlsContext = CXPLAT_ALLOC_PAGED(sizeof(QUIC_TLS) + sizeof(uint16_t) + Config->AlpnBufferLength, QUIC_POOL_TLS_CTX);
+    TlsContext = CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_TLS) + sizeof(uint16_t) + Config->AlpnBufferLength, QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_TLS",
-            sizeof(QUIC_TLS) + sizeof(uint16_t) + Config->AlpnBufferLength);
+            "CXPLAT_TLS",
+            sizeof(CXPLAT_TLS) + sizeof(uint16_t) + Config->AlpnBufferLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    CxPlatZeroMemory(TlsContext, sizeof(QUIC_TLS));
+    CxPlatZeroMemory(TlsContext, sizeof(CXPLAT_TLS));
 
     //
     // Initialize internal variables.
@@ -572,7 +572,7 @@ CxPlatTlsInitialize(
     TlsContext->miTlsConfig.nego_callback = CxPlatTlsOnNegotiate;
     TlsContext->miTlsConfig.cert_callbacks = &TlsContext->miTlsCertCallbacks;
 
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     TlsContext->TlsSecrets = Config->TlsSecrets;
 #endif
 
@@ -628,10 +628,10 @@ CxPlatTlsInitialize(
                     TlsContext->Connection,
                     "Using 0-RTT ticket.");
 
-                QUIC_TLS_TICKET* SerializedTicket =
-                    (QUIC_TLS_TICKET*)Config->ResumptionTicketBuffer;
+                CXPLAT_TLS_TICKET* SerializedTicket =
+                    (CXPLAT_TLS_TICKET*)Config->ResumptionTicketBuffer;
                 if (SerializedTicket->SessionLength + SerializedTicket->TicketLength
-                    != Config->ResumptionTicketLength - sizeof(QUIC_TLS_TICKET)) {
+                    != Config->ResumptionTicketLength - sizeof(CXPLAT_TLS_TICKET)) {
                     QuicTraceEvent(
                         TlsError,
                         "[ tls][%p] ERROR, %s.",
@@ -696,7 +696,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsUninitialize(
-    _In_opt_ QUIC_TLS* TlsContext
+    _In_opt_ CXPLAT_TLS* TlsContext
     )
 {
     if (TlsContext != NULL) {
@@ -704,10 +704,10 @@ CxPlatTlsUninitialize(
         FFI_mitls_quic_free(TlsContext->miTlsState);
 
         if (TlsContext->miTlsTicket.ticket != NULL) {
-            QUIC_TLS_TICKET* SerializedTicket =
+            CXPLAT_TLS_TICKET* SerializedTicket =
                 CONTAINING_RECORD(
                     TlsContext->miTlsTicket.ticket,
-                    QUIC_TLS_TICKET,
+                    CXPLAT_TLS_TICKET,
                     Buffer);
             CXPLAT_FREE(SerializedTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
         }
@@ -725,17 +725,17 @@ CxPlatTlsUninitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_RESULT_FLAGS
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessData(
-    _In_ QUIC_TLS* TlsContext,
-    _In_ QUIC_TLS_DATA_TYPE DataType,
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ CXPLAT_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     )
 {
-    QUIC_TLS_RESULT_FLAGS ResultFlags = 0;
+    CXPLAT_TLS_RESULT_FLAGS ResultFlags = 0;
     uint32_t ConsumedBytes;
 
     CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
@@ -744,13 +744,13 @@ CxPlatTlsProcessData(
 
     TlsContext->State = State;
 
-    if (DataType == QUIC_TLS_CRYPTO_DATA) {
+    if (DataType == CXPLAT_TLS_CRYPTO_DATA) {
 
         //
         // Validate buffer lengths.
         //
-        if (TlsContext->BufferLength + *BufferLength > QUIC_TLS_MAX_MESSAGE_LENGTH) {
-            ResultFlags = QUIC_TLS_RESULT_ERROR;
+        if (TlsContext->BufferLength + *BufferLength > CXPLAT_TLS_MAX_MESSAGE_LENGTH) {
+            ResultFlags = CXPLAT_TLS_RESULT_ERROR;
             QuicTraceEvent(
                 TlsError,
                 "[ tls][%p] ERROR, %s.",
@@ -780,7 +780,7 @@ CxPlatTlsProcessData(
             // Indicate that we will return pending, but just immediately invoke
             // the completed callback.
             //
-            ResultFlags = QUIC_TLS_RESULT_PENDING;
+            ResultFlags = CXPLAT_TLS_RESULT_PENDING;
             TlsContext->SecConfig->Callbacks.ProcessComplete(TlsContext->Connection);
 
         } else {
@@ -794,7 +794,7 @@ CxPlatTlsProcessData(
         }
 
     } else {
-        CXPLAT_DBG_ASSERT(DataType == QUIC_TLS_TICKET_DATA);
+        CXPLAT_DBG_ASSERT(DataType == CXPLAT_TLS_TICKET_DATA);
 
         CXPLAT_DBG_ASSERT(TlsContext->IsServer);
 
@@ -809,10 +809,10 @@ CxPlatTlsProcessData(
                 "[ tls][%p] ERROR, %s.",
                 TlsContext->Connection,
                 "FFI_mitls_quic_send_ticket failed");
-            ResultFlags |= QUIC_TLS_RESULT_ERROR;
+            ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
         } else {
             TlsContext->SecConfig->Callbacks.ProcessComplete(TlsContext->Connection);
-            ResultFlags |= QUIC_TLS_RESULT_PENDING;
+            ResultFlags |= CXPLAT_TLS_RESULT_PENDING;
         }
     }
 
@@ -822,14 +822,14 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_TLS_RESULT_FLAGS
+CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessDataComplete(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _Out_ uint32_t * BufferConsumed
     )
 {
-    QUIC_TLS_RESULT_FLAGS ResultFlags = 0;
-    QUIC_TLS_PROCESS_STATE* State = TlsContext->State;
+    CXPLAT_TLS_RESULT_FLAGS ResultFlags = 0;
+    CXPLAT_TLS_PROCESS_STATE* State = TlsContext->State;
 
     if (TlsContext->IsServer) {
         CXPLAT_DBG_ASSERT(TlsContext->State->HandshakeComplete || TlsContext->Buffer != NULL);
@@ -839,7 +839,7 @@ CxPlatTlsProcessDataComplete(
 
     uint32_t BufferOffset = 0;
 
-    while (!(ResultFlags & QUIC_TLS_RESULT_ERROR)) {
+    while (!(ResultFlags & CXPLAT_TLS_RESULT_ERROR)) {
 
         quic_process_ctx Context = {
             TlsContext->Buffer + BufferOffset,              // input
@@ -866,7 +866,7 @@ CxPlatTlsProcessDataComplete(
                 Context.tls_error,
                 Context.tls_error_desc);
             State->AlertCode = Context.tls_error;
-            ResultFlags |= QUIC_TLS_RESULT_ERROR;
+            ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             break;
         }
 
@@ -889,7 +889,7 @@ CxPlatTlsProcessDataComplete(
         State->BufferTotalLength += (uint16_t)Context.output_len;
 
         if (Context.output_len != 0) {
-            ResultFlags |= QUIC_TLS_RESULT_DATA;
+            ResultFlags |= CXPLAT_TLS_RESULT_DATA;
         }
 
         if (Context.flags & QFLAG_COMPLETE && !State->HandshakeComplete) {
@@ -898,7 +898,7 @@ CxPlatTlsProcessDataComplete(
                 TlsContext->Connection,
                 "Handshake complete");
             State->HandshakeComplete = TRUE;
-            ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
+            ResultFlags |= CXPLAT_TLS_RESULT_COMPLETE;
         }
 
         if (Context.flags & QFLAG_REJECTED_0RTT) {
@@ -906,9 +906,9 @@ CxPlatTlsProcessDataComplete(
                 TlsContext->EarlyDataAttempted = TRUE;
             }
             if (TlsContext->EarlyDataAttempted) {
-                ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_REJECT;
+                ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_REJECT;
             }
-            State->EarlyDataState = QUIC_TLS_EARLY_DATA_REJECTED;
+            State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_REJECTED;
             QuicTraceLogConnVerbose(
                 miTlsEarlyDataRejected,
                 TlsContext->Connection,
@@ -934,7 +934,7 @@ CxPlatTlsProcessDataComplete(
                     //
                     // We know early data is accepted if we get 0-RTT keys.
                     //
-                    ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
+                    ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
                     QuicTraceLogConnVerbose(
                         miTlsEarlyDataAccepted,
                         TlsContext->Connection,
@@ -942,7 +942,7 @@ CxPlatTlsProcessDataComplete(
                     TlsContext->TlsKeySchedule = 1; // 0-RTT allowed.
                     State->SessionResumed = TRUE;
                     TlsContext->EarlyDataAttempted = TRUE;
-                    State->EarlyDataState = QUIC_TLS_EARLY_DATA_ACCEPTED;
+                    State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
                     //
                     // Get resumption data from the client hello
                     //
@@ -964,7 +964,7 @@ CxPlatTlsProcessDataComplete(
                             "FFI_mitls_get_hello_summary failed, cookie_len: %zu, ticket_len: %zu",
                             CookieLen,
                             TicketLen);
-                        ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                        ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                         break;
                     }
                     CXPLAT_FRE_ASSERT(TicketLen <= UINT32_MAX);
@@ -975,9 +975,9 @@ CxPlatTlsProcessDataComplete(
                         // QUIC or the app rejected the resumption ticket.
                         // Abandon the early data and continue the handshake.
                         //
-                        ResultFlags &= ~QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
-                        ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_REJECT;
-                        State->EarlyDataState = QUIC_TLS_EARLY_DATA_REJECTED;
+                        ResultFlags &= ~CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
+                        ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_REJECT;
+                        State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_REJECTED;
                         State->SessionResumed = FALSE;
                     }
                     if (Cookie) {
@@ -1052,9 +1052,9 @@ CxPlatTlsProcessDataComplete(
                             // the 1-RTT keys and we haven't received any 0-RTT
                             // rejected event/flag from miTLS.
                             //
-                            ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
+                            ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
                             State->SessionResumed = TRUE;
-                            State->EarlyDataState = QUIC_TLS_EARLY_DATA_ACCEPTED;
+                            State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
                             QuicTraceLogConnVerbose(
                                 miTlsEarlyDataAccepted,
                                 TlsContext->Connection,
@@ -1068,7 +1068,7 @@ CxPlatTlsProcessDataComplete(
                 }
             }
 
-            ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
+            ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
             State->ReadKey = NewKeyType;
             TlsContext->CurrentReaderKey = Context.cur_reader_key;
 
@@ -1077,7 +1077,7 @@ CxPlatTlsProcessDataComplete(
                 //
                 // Must always have corresponding write key for every read key.
                 //
-                ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
+                ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
                 State->WriteKey = QUIC_PACKET_KEY_HANDSHAKE;
             }
         }
@@ -1140,12 +1140,12 @@ CxPlatTlsProcessDataComplete(
                 break;
             }
 
-            ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
+            ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
             TlsContext->CurrentWriterKey = Context.cur_writer_key;
 
             if (NewKeyType > State->WriteKey &&
                 NewKeyType != QUIC_PACKET_KEY_0_RTT) {
-                ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
+                ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
                 State->WriteKey = NewKeyType;
             }
         }
@@ -1184,7 +1184,7 @@ CxPlatTlsOnCertSelect(
 {
     UNREFERENCED_PARAMETER(AlpnBuffer);
     UNREFERENCED_PARAMETER(AlpnBufferLength);
-    QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
+    CXPLAT_TLS* TlsContext = (CXPLAT_TLS*)Context;
     const QUIC_SEC_CONFIG* SecurityConfig = NULL;
 
     CXPLAT_DBG_ASSERT(TlsContext);
@@ -1292,7 +1292,7 @@ CxPlatTlsOnNegotiate(
     _Inout_ size_t *CookieLength
     )
 {
-    QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
+    CXPLAT_TLS* TlsContext = (CXPLAT_TLS*)Context;
     CXPLAT_DBG_ASSERT(TlsContext);
 
     mitls_nego_action Action = TLS_nego_abort;
@@ -1441,7 +1441,7 @@ CxPlatTlsOnCertFormat(
     uint8_t Buffer[MAX_CHAIN_LEN]
     )
 {
-    QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
+    CXPLAT_TLS* TlsContext = (CXPLAT_TLS*)Context;
     CXPLAT_DBG_ASSERT(TlsContext);
     QUIC_SEC_CONFIG* SecurityConfig = (QUIC_SEC_CONFIG*)SecContext;
     CXPLAT_DBG_ASSERT(SecurityConfig);
@@ -1472,7 +1472,7 @@ CxPlatTlsOnCertSign(
     uint8_t *Signature
     )
 {
-    QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
+    CXPLAT_TLS* TlsContext = (CXPLAT_TLS*)Context;
     CXPLAT_DBG_ASSERT(TlsContext);
     QUIC_SEC_CONFIG* SecurityConfig = (QUIC_SEC_CONFIG*)SecContext;
     CXPLAT_DBG_ASSERT(SecurityConfig);
@@ -1514,7 +1514,7 @@ CxPlatTlsOnCertVerify(
     size_t SignatureLength
     )
 {
-    QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
+    CXPLAT_TLS* TlsContext = (CXPLAT_TLS*)Context;
     CXPLAT_DBG_ASSERT(TlsContext);
 
     QuicTraceLogConnVerbose(
@@ -1587,7 +1587,7 @@ CxPlatTlsOnTicketReady(
     const mitls_ticket *Ticket
     )
 {
-    QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
+    CXPLAT_TLS* TlsContext = (CXPLAT_TLS*)Context;
     CXPLAT_DBG_ASSERT(TlsContext);
 
     QuicTraceLogConnVerbose(
@@ -1602,15 +1602,15 @@ CxPlatTlsOnTicketReady(
     CXPLAT_DBG_ASSERT(Ticket->ticket_len + Ticket->session_len >= Ticket->ticket_len);
 
     uint32_t TotalSize =
-        sizeof(QUIC_TLS_TICKET) +
+        sizeof(CXPLAT_TLS_TICKET) +
         (uint32_t)(Ticket->ticket_len + Ticket->session_len);
 
-    QUIC_TLS_TICKET *SerializedTicket = CXPLAT_ALLOC_NONPAGED(TotalSize, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    CXPLAT_TLS_TICKET *SerializedTicket = CXPLAT_ALLOC_NONPAGED(TotalSize, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (SerializedTicket == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_TLS_TICKET",
+            "CXPLAT_TLS_TICKET",
             TotalSize);
         return;
     }
@@ -1637,7 +1637,7 @@ CxPlatTlsOnTicketReady(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamSet(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -1662,7 +1662,7 @@ CxPlatTlsParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamGet(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
@@ -2100,7 +2100,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicPacketKeyCreate(
-    _In_ QUIC_TLS* TlsContext,
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_ int Epoch,
     _In_ quic_direction rw,
@@ -2209,7 +2209,7 @@ QuicPacketKeyCreate(
         CxPlatCopyMemory(Key->TrafficSecret->Secret, CopySecret->secret, CXPLAT_HASH_MAX_SIZE);
     }
 
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     if (TlsContext->TlsSecrets != NULL) {
         switch (KeyType) {
         case QUIC_PACKET_KEY_1_RTT: {
