@@ -185,7 +185,7 @@ QuicPacketBuilderPrepare(
             Builder->SendContext =
                 CxPlatSendDataAlloc(
                     Builder->Path->Binding->Socket,
-                    QUIC_ECN_NON_ECT,
+                    CXPLAT_ECN_NON_ECT,
                     IsPathMtuDiscovery ?
                         0 :
                         MaxUdpPayloadSizeForFamily(
@@ -204,7 +204,7 @@ QuicPacketBuilderPrepare(
         uint16_t NewDatagramLength =
             MaxUdpPayloadSizeForFamily(
                 QuicAddrGetFamily(&Builder->Path->RemoteAddress),
-                IsPathMtuDiscovery ? QUIC_MAX_MTU : DatagramSize);
+                IsPathMtuDiscovery ? CXPLAT_MAX_MTU : DatagramSize);
         if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) &&
             NewDatagramLength > Connection->PeerTransportParams.MaxUdpPayloadSize) {
             NewDatagramLength = (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize;
@@ -778,7 +778,7 @@ QuicPacketBuilderFinalize(
         // key phase, and update the keys. Only for 1-RTT keys.
         //
         if (Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE &&
-            PacketSpace->CurrentKeyPhaseBytesSent + QUIC_MAX_MTU >=
+            PacketSpace->CurrentKeyPhaseBytesSent + CXPLAT_MAX_MTU >=
                 Connection->Settings.MaxBytesPerKey &&
             !PacketSpace->AwaitingKeyPhaseConfirmation &&
             Connection->State.HandshakeConfirmed) {

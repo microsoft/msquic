@@ -1397,7 +1397,7 @@ struct Lookup : Struct {
 
 struct Socket : Struct {
 
-    Socket(ULONG64 Addr) : Struct("msquic!QUIC_SOCKET", Addr) { }
+    Socket(ULONG64 Addr) : Struct("msquic!CXPLAT_SOCKET", Addr) { }
 
     IpAddress GetLocalAddress() {
         return IpAddress(AddrOf("LocalAddress"));

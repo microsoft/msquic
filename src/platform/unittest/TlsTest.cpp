@@ -174,8 +174,8 @@ protected:
             Config.AlpnBufferLength = sizeof(Alpn);
             Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
             Config.LocalTPBuffer =
-                (uint8_t*)CXPLAT_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
-            Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
+                (uint8_t*)CXPLAT_ALLOC_NONPAGED(CxPlatTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
+            Config.LocalTPLength = CxPlatTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
             State.NegotiatedAlpn = Alpn;
 
@@ -200,8 +200,8 @@ protected:
             Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
             Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
             Config.LocalTPBuffer =
-                (uint8_t*)CXPLAT_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
-            Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
+                (uint8_t*)CXPLAT_ALLOC_NONPAGED(CxPlatTlsTPHeaderSize + TPLen, QUIC_POOL_TLS_TRANSPARAMS);
+            Config.LocalTPLength = CxPlatTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
             Config.ServerName = "localhost";
             if (Ticket) {

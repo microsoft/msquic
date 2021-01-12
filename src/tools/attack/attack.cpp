@@ -26,7 +26,7 @@
 
 #define ATTACK_PORT_DEFAULT 443
 
-static QUIC_DATAPATH* Datapath;
+static CXPLAT_DATAPATH* Datapath;
 static PacketWriter* Writer;
 
 static uint32_t AttackType;
@@ -82,29 +82,29 @@ struct StrBuffer
 };
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 void
 UdpRecvCallback(
-    _In_ QUIC_SOCKET* /* Binding */,
+    _In_ CXPLAT_SOCKET* /* Binding */,
     _In_ void* /* Context */,
-    _In_ QUIC_RECV_DATA* RecvBufferChain
+    _In_ CXPLAT_RECV_DATA* RecvBufferChain
     )
 {
     CxPlatRecvDataReturn(RecvBufferChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)
 void
 UdpUnreachCallback(
-    _In_ QUIC_SOCKET* /* Binding */,
+    _In_ CXPLAT_SOCKET* /* Binding */,
     _In_ void* /* Context */,
     _In_ const QUIC_ADDR* /* RemoteAddress */
     )
 {
 }
 
-void RunAttackRandom(QUIC_SOCKET* Binding, uint16_t Length, bool ValidQuic)
+void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
 {
     QUIC_ADDR LocalAddress;
     CxPlatSocketGetLocalAddress(Binding, &LocalAddress);
@@ -114,9 +114,9 @@ void RunAttackRandom(QUIC_SOCKET* Binding, uint16_t Length, bool ValidQuic)
 
     while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs) {
 
-        QUIC_SEND_DATA* SendContext =
+        CXPLAT_SEND_DATA* SendContext =
             CxPlatSendDataAlloc(
-                Binding, QUIC_ECN_NON_ECT, Length);
+                Binding, CXPLAT_ECN_NON_ECT, Length);
         if (SendContext == nullptr) {
             printf("CxPlatSendDataAlloc failed\n");
             return;
@@ -178,7 +178,7 @@ void printf_buf(const char* name, void* buf, uint32_t len)
 #define printf_buf(name, buf, len)
 #endif
 
-void RunAttackValidInitial(QUIC_SOCKET* Binding)
+void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 {
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH;
@@ -217,9 +217,9 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
 
     while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs) {
 
-        QUIC_SEND_DATA* SendContext =
+        CXPLAT_SEND_DATA* SendContext =
             CxPlatSendDataAlloc(
-                Binding, QUIC_ECN_NON_ECT, DatagramLength);
+                Binding, CXPLAT_ECN_NON_ECT, DatagramLength);
         VERIFY(SendContext);
 
         while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs &&
@@ -297,7 +297,7 @@ void RunAttackValidInitial(QUIC_SOCKET* Binding)
 
 CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
 {
-    QUIC_SOCKET* Binding;
+    CXPLAT_SOCKET* Binding;
     QUIC_STATUS Status =
         CxPlatSocketCreateUdp(
             Datapath,
@@ -374,7 +374,7 @@ main(
     )
 {
     int ErrorCode = -1;
-    const QUIC_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         UdpRecvCallback,
         UdpUnreachCallback,
     };

@@ -57,10 +57,10 @@ void EncodeDecodeAndCompare(
             &JunkConnection, IsServer, Original, NULL, &BufferLength);
     ASSERT_NE(nullptr, Buffer);
 
-    ASSERT_TRUE(UINT16_MAX >= (BufferLength - QuicTlsTPHeaderSize));
+    ASSERT_TRUE(UINT16_MAX >= (BufferLength - CxPlatTlsTPHeaderSize));
 
-    auto TPBuffer = Buffer + QuicTlsTPHeaderSize;
-    uint16_t TPBufferLength = (uint16_t)(BufferLength - QuicTlsTPHeaderSize);
+    auto TPBuffer = Buffer + CxPlatTlsTPHeaderSize;
+    uint16_t TPBufferLength = (uint16_t)(BufferLength - CxPlatTlsTPHeaderSize);
 
     QUIC_TRANSPORT_PARAMETERS Decoded;
     BOOLEAN DecodedSuccessfully =

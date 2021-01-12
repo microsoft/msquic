@@ -827,18 +827,18 @@ QuicCryptoTlsEncodeTransportParameters(
         return NULL;
     }
 
-    uint8_t* TPBufBase = CXPLAT_ALLOC_NONPAGED(QuicTlsTPHeaderSize + RequiredTPLen, QUIC_POOL_TLS_TRANSPARAMS);
+    uint8_t* TPBufBase = CXPLAT_ALLOC_NONPAGED(CxPlatTlsTPHeaderSize + RequiredTPLen, QUIC_POOL_TLS_TRANSPARAMS);
     if (TPBufBase == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "TP buffer",
-            QuicTlsTPHeaderSize + RequiredTPLen);
+            CxPlatTlsTPHeaderSize + RequiredTPLen);
         return NULL;
     }
 
-    *TPLen = (uint32_t)(QuicTlsTPHeaderSize + RequiredTPLen);
-    uint8_t* TPBuf = TPBufBase + QuicTlsTPHeaderSize;
+    *TPLen = (uint32_t)(CxPlatTlsTPHeaderSize + RequiredTPLen);
+    uint8_t* TPBuf = TPBufBase + CxPlatTlsTPHeaderSize;
 
     //
     // Now that we have allocated the exact size, we can freely write to the
@@ -1088,7 +1088,7 @@ QuicCryptoTlsEncodeTransportParameters(
             TestParam->Length);
     }
 
-    size_t FinalTPLength = (TPBuf - (TPBufBase + QuicTlsTPHeaderSize));
+    size_t FinalTPLength = (TPBuf - (TPBufBase + CxPlatTlsTPHeaderSize));
     if (FinalTPLength != RequiredTPLen) {
         QuicTraceEvent(
             ConnError,

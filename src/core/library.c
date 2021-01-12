@@ -191,7 +191,7 @@ MsQuicLibraryInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN PlatformInitialized = FALSE;
     uint32_t DefaultMaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
-    const QUIC_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         QuicBindingReceive,
         QuicBindingUnreachable
     };
@@ -286,7 +286,7 @@ MsQuicLibraryInitialize(
 
     Status =
         CxPlatDataPathInitialize(
-            sizeof(QUIC_RECV_PACKET),
+            sizeof(CXPLAT_RECV_PACKET),
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
             &MsQuicLib.Datapath);
@@ -1497,7 +1497,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
 QUIC_NO_SANITIZE("implicit-conversion")
 QuicLibraryGetWorker(
-    _In_ const _In_ QUIC_RECV_DATA* Datagram
+    _In_ const _In_ CXPLAT_RECV_DATA* Datagram
     )
 {
     CXPLAT_DBG_ASSERT(MsQuicLib.StatelessRegistration != NULL);

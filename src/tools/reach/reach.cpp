@@ -145,7 +145,7 @@ main(int argc, char **argv)
     CxPlatInitialize();
 
     if (ServerIp == nullptr) {
-        QUIC_DATAPATH* Datapath = nullptr;
+        CXPLAT_DATAPATH* Datapath = nullptr;
         if (QUIC_FAILED(
             CxPlatDataPathInitialize(
                 0,

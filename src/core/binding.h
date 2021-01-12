@@ -26,7 +26,7 @@ typedef struct QUIC_RETRY_TOKEN_CONTENTS {
 //
 // The per recv buffer context type.
 //
-typedef struct QUIC_RECV_PACKET {
+typedef struct CXPLAT_RECV_PACKET {
 
     //
     // The bytes that represent the fully decoded packet number.
@@ -144,7 +144,7 @@ typedef struct QUIC_RECV_PACKET {
     //
     BOOLEAN HasNonProbingFrame : 1;
 
-} QUIC_RECV_PACKET;
+} CXPLAT_RECV_PACKET;
 
 typedef enum QUIC_BINDING_LOOKUP_TYPE {
 
@@ -205,7 +205,7 @@ typedef struct QUIC_BINDING {
     //
     // The datapath binding.
     //
-    QUIC_SOCKET* Socket;
+    CXPLAT_SOCKET* Socket;
 
     //
     // Lock for accessing the listeners.
@@ -250,8 +250,8 @@ typedef struct QUIC_BINDING {
 //
 // Global callbacks for all QUIC UDP bindings.
 //
-QUIC_DATAPATH_RECEIVE_CALLBACK QuicBindingReceive;
-QUIC_DATAPATH_UNREACHABLE_CALLBACK QuicBindingUnreachable;
+CXPLAT_DATAPATH_RECEIVE_CALLBACK QuicBindingReceive;
+CXPLAT_DATAPATH_UNREACHABLE_CALLBACK QuicBindingUnreachable;
 
 //
 // Initializes a new binding.
@@ -416,7 +416,7 @@ QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend
     );
@@ -441,7 +441,7 @@ inline
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRetryTokenDecrypt(
-    _In_ const QUIC_RECV_PACKET* const Packet,
+    _In_ const CXPLAT_RECV_PACKET* const Packet,
     _In_reads_(sizeof(QUIC_RETRY_TOKEN_CONTENTS))
         const uint8_t* TokenBuffer,
     _Out_ QUIC_RETRY_TOKEN_CONTENTS* Token

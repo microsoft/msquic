@@ -24,45 +24,45 @@ extern "C" {
 //
 // The minimum IPv4 header size.
 //
-#define QUIC_MIN_IPV4_HEADER_SIZE 20
+#define CXPLAT_MIN_IPV4_HEADER_SIZE 20
 
 //
 // The minimum IPv6 header size.
 //
-#define QUIC_MIN_IPV6_HEADER_SIZE 40
+#define CXPLAT_MIN_IPV6_HEADER_SIZE 40
 
 //
 // The number of bytes in a UDP header.
 //
-#define QUIC_UDP_HEADER_SIZE 8
+#define CXPLAT_UDP_HEADER_SIZE 8
 
 //
 // Different types of Explicit Congestion Notifications
 //
-typedef enum QUIC_ECN_TYPE {
+typedef enum CXPLAT_ECN_TYPE {
 
-    QUIC_ECN_NON_ECT = 0x0, // Non ECN-Capable Transport, Non-ECT
-    QUIC_ECN_ECT_1   = 0x1, // ECN Capable Transport, ECT(1)
-    QUIC_ECN_ECT_0   = 0x2, // ECN Capable Transport, ECT(0)
-    QUIC_ECN_CE      = 0x3  // Congestion Encountered, CE
+    CXPLAT_ECN_NON_ECT = 0x0, // Non ECN-Capable Transport, Non-ECT
+    CXPLAT_ECN_ECT_1   = 0x1, // ECN Capable Transport, ECT(1)
+    CXPLAT_ECN_ECT_0   = 0x2, // ECN Capable Transport, ECT(0)
+    CXPLAT_ECN_CE      = 0x3  // Congestion Encountered, CE
 
-} QUIC_ECN_TYPE;
+} CXPLAT_ECN_TYPE;
 
 //
 // Helper to get the ECN type from the Type of Service field of recieved data.
 //
-#define QUIC_ECN_FROM_TOS(ToS) (QUIC_ECN_TYPE)((ToS) & 0x3)
+#define CXPLAT_ECN_FROM_TOS(ToS) (CXPLAT_ECN_TYPE)((ToS) & 0x3)
 
 //
 // The maximum IP MTU this implementation supports for QUIC.
 //
-#define QUIC_MAX_MTU 1500
+#define CXPLAT_MAX_MTU 1500
 
 //
 // The buffer size that must be allocated to fit the maximum UDP payload we
 // support.
 //
-#define MAX_UDP_PAYLOAD_LENGTH (QUIC_MAX_MTU - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE)
+#define MAX_UDP_PAYLOAD_LENGTH (CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE)
 
 //
 // Helper function for calculating the length of a UDP packet, for a given
@@ -77,7 +77,7 @@ MaxUdpPayloadSizeFromMTU(
     _In_ uint16_t Mtu
     )
 {
-    return  Mtu - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE;
+    return  Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
 }
 
 //
@@ -92,8 +92,8 @@ MaxUdpPayloadSizeForFamily(
     )
 {
     return Family == QUIC_ADDRESS_FAMILY_INET ?
-        Mtu - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE :
-        Mtu - QUIC_MIN_IPV6_HEADER_SIZE - QUIC_UDP_HEADER_SIZE;
+        Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE :
+        Mtu - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
 }
 
 //
@@ -108,29 +108,29 @@ PacketSizeFromUdpPayloadSize(
     )
 {
     return Family == QUIC_ADDRESS_FAMILY_INET ?
-        UdpPayloadSize + QUIC_MIN_IPV4_HEADER_SIZE + QUIC_UDP_HEADER_SIZE :
-        UdpPayloadSize + QUIC_MIN_IPV6_HEADER_SIZE + QUIC_UDP_HEADER_SIZE;
+        UdpPayloadSize + CXPLAT_MIN_IPV4_HEADER_SIZE + CXPLAT_UDP_HEADER_SIZE :
+        UdpPayloadSize + CXPLAT_MIN_IPV6_HEADER_SIZE + CXPLAT_UDP_HEADER_SIZE;
 }
 
 //
 // The top level datapath handle type.
 //
-typedef struct QUIC_DATAPATH QUIC_DATAPATH;
+typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 
 //
 // Represents a UDP or TCP abstraction.
 //
-typedef struct QUIC_SOCKET QUIC_SOCKET;
+typedef struct CXPLAT_SOCKET CXPLAT_SOCKET;
 
 //
 // Can be defined to whatever the client needs.
 //
-typedef struct QUIC_RECV_PACKET QUIC_RECV_PACKET;
+typedef struct CXPLAT_RECV_PACKET CXPLAT_RECV_PACKET;
 
 //
 // Structure that maintains the 'per send' context.
 //
-typedef struct QUIC_SEND_DATA QUIC_SEND_DATA;
+typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
 
 //
 // Contains a pointer and length.
@@ -140,27 +140,27 @@ typedef struct QUIC_BUFFER QUIC_BUFFER;
 //
 // Structure to represent data buffers received.
 //
-typedef struct QUIC_TUPLE {
+typedef struct CXPLAT_TUPLE {
 
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
 
-} QUIC_TUPLE;
+} CXPLAT_TUPLE;
 
 //
 // Structure to represent received UDP datagrams or TCP data.
 //
-typedef struct QUIC_RECV_DATA {
+typedef struct CXPLAT_RECV_DATA {
 
     //
     // The next receive data in the chain.
     //
-    struct QUIC_RECV_DATA* Next;
+    struct CXPLAT_RECV_DATA* Next;
 
     //
     // Contains the 4 tuple.
     //
-    QUIC_TUPLE* Tuple;
+    CXPLAT_TUPLE* Tuple;
 
     //
     // The data buffer containing the received bytes.
@@ -190,22 +190,22 @@ typedef struct QUIC_RECV_DATA {
     uint8_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint8_t QueuedOnConnection : 1; // Used for debugging.
 
-} QUIC_RECV_DATA;
+} CXPLAT_RECV_DATA;
 
 //
 // Gets the corresponding receive data from its context pointer.
 //
-QUIC_RECV_DATA*
+CXPLAT_RECV_DATA*
 CxPlatDataPathRecvPacketToRecvData(
-    _In_ const QUIC_RECV_PACKET* const RecvPacket
+    _In_ const CXPLAT_RECV_PACKET* const RecvPacket
     );
 
 //
 // Gets the corresponding client context from its receive data pointer.
 //
-QUIC_RECV_PACKET*
+CXPLAT_RECV_PACKET*
 CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const QUIC_RECV_DATA* const RecvData
+    _In_ const CXPLAT_RECV_DATA* const RecvData
     );
 
 //
@@ -213,98 +213,98 @@ CxPlatDataPathRecvDataToRecvPacket(
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_ACCEPT_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
 void
-(QUIC_DATAPATH_ACCEPT_CALLBACK)(
-    _In_ QUIC_SOCKET* ListenerSocket,
+(CXPLAT_DATAPATH_ACCEPT_CALLBACK)(
+    _In_ CXPLAT_SOCKET* ListenerSocket,
     _In_ void* ListenerContext,
-    _In_ QUIC_SOCKET* AcceptSocket,
+    _In_ CXPLAT_SOCKET* AcceptSocket,
     _Out_ void** AcceptClientContext
     );
 
-typedef QUIC_DATAPATH_ACCEPT_CALLBACK *QUIC_DATAPATH_ACCEPT_CALLBACK_HANDLER;
+typedef CXPLAT_DATAPATH_ACCEPT_CALLBACK *CXPLAT_DATAPATH_ACCEPT_CALLBACK_HANDLER;
 
 //
 // Function pointer type for datapath TCP connect/disconnect callbacks.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_CONNECT_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_CONNECT_CALLBACK)
 void
-(QUIC_DATAPATH_CONNECT_CALLBACK)(
-    _In_ QUIC_SOCKET* Socket,
+(CXPLAT_DATAPATH_CONNECT_CALLBACK)(
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ void* Context,
     _In_ BOOLEAN Connected
     );
 
-typedef QUIC_DATAPATH_CONNECT_CALLBACK *QUIC_DATAPATH_CONNECT_CALLBACK_HANDLER;
+typedef CXPLAT_DATAPATH_CONNECT_CALLBACK *CXPLAT_DATAPATH_CONNECT_CALLBACK_HANDLER;
 
 //
 // Function pointer type for datapath receive callbacks.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 void
-(QUIC_DATAPATH_RECEIVE_CALLBACK)(
-    _In_ QUIC_SOCKET* Socket,
+(CXPLAT_DATAPATH_RECEIVE_CALLBACK)(
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ void* Context,
-    _In_ QUIC_RECV_DATA* RecvDataChain
+    _In_ CXPLAT_RECV_DATA* RecvDataChain
     );
 
-typedef QUIC_DATAPATH_RECEIVE_CALLBACK *QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER;
+typedef CXPLAT_DATAPATH_RECEIVE_CALLBACK *CXPLAT_DATAPATH_RECEIVE_CALLBACK_HANDLER;
 
 //
 // Function pointer type for datapath port unreachable callbacks.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)
 void
-(QUIC_DATAPATH_UNREACHABLE_CALLBACK)(
-    _In_ QUIC_SOCKET* Socket,
+(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)(
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ void* Context,
     _In_ const QUIC_ADDR* RemoteAddress
     );
 
-typedef QUIC_DATAPATH_UNREACHABLE_CALLBACK *QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER;
+typedef CXPLAT_DATAPATH_UNREACHABLE_CALLBACK *CXPLAT_DATAPATH_UNREACHABLE_CALLBACK_HANDLER;
 
 //
 // UDP Callback function pointers used by the datapath.
 //
-typedef struct QUIC_UDP_DATAPATH_CALLBACKS {
+typedef struct CXPLAT_UDP_DATAPATH_CALLBACKS {
 
-    QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER Receive;
-    QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER Unreachable;
+    CXPLAT_DATAPATH_RECEIVE_CALLBACK_HANDLER Receive;
+    CXPLAT_DATAPATH_UNREACHABLE_CALLBACK_HANDLER Unreachable;
 
-} QUIC_UDP_DATAPATH_CALLBACKS;
+} CXPLAT_UDP_DATAPATH_CALLBACKS;
 
 //
 // TCP Callback function pointers used by the datapath.
 //
-typedef struct QUIC_TCP_DATAPATH_CALLBACKS {
+typedef struct CXPLAT_TCP_DATAPATH_CALLBACKS {
 
-    QUIC_DATAPATH_ACCEPT_CALLBACK_HANDLER Accept;
-    QUIC_DATAPATH_CONNECT_CALLBACK_HANDLER Connect;
-    QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER Receive;
+    CXPLAT_DATAPATH_ACCEPT_CALLBACK_HANDLER Accept;
+    CXPLAT_DATAPATH_CONNECT_CALLBACK_HANDLER Connect;
+    CXPLAT_DATAPATH_RECEIVE_CALLBACK_HANDLER Receive;
 
-} QUIC_TCP_DATAPATH_CALLBACKS;
+} CXPLAT_TCP_DATAPATH_CALLBACKS;
 
 //
 // Function pointer type for send complete callbacks.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_SEND_COMPLETE)
+_Function_class_(CXPLAT_DATAPATH_SEND_COMPLETE)
 void
-(QUIC_DATAPATH_SEND_COMPLETE)(
-    _In_ QUIC_SOCKET* Socket,
+(CXPLAT_DATAPATH_SEND_COMPLETE)(
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ void* ClientContext,
     _In_ QUIC_STATUS CompletionStatus,
     _In_ uint32_t NumBytesSent
     );
 
-typedef QUIC_DATAPATH_SEND_COMPLETE *QUIC_DATAPATH_SEND_COMPLETE_HANDLER;
+typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
 //
 // Opens a new handle to the QUIC datapath.
@@ -313,9 +313,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ const QUIC_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
-    _In_opt_ const QUIC_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _Out_ QUIC_DATAPATH** NewDatapath
+    _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
+    _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _Out_ CXPLAT_DATAPATH** NewDatapath
     );
 
 //
@@ -324,12 +324,12 @@ CxPlatDataPathInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDataPathUninitialize(
-    _In_ QUIC_DATAPATH* datapath
+    _In_ CXPLAT_DATAPATH* datapath
     );
 
-#define QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
-#define QUIC_DATAPATH_FEATURE_RECV_COALESCING       0x0002
-#define QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION     0x0004
+#define CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
+#define CXPLAT_DATAPATH_FEATURE_RECV_COALESCING       0x0002
+#define CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION     0x0004
 
 //
 // Queries the currently supported features of the datapath.
@@ -337,7 +337,7 @@ CxPlatDataPathUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 CxPlatDataPathGetSupportedFeatures(
-    _In_ QUIC_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH* Datapath
     );
 
 //
@@ -346,7 +346,7 @@ CxPlatDataPathGetSupportedFeatures(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatDataPathIsPaddingPreferred(
-    _In_ QUIC_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH* Datapath
     );
 
 //
@@ -355,7 +355,7 @@ CxPlatDataPathIsPaddingPreferred(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathResolveAddress(
-    _In_ QUIC_DATAPATH* Datapath,
+    _In_ CXPLAT_DATAPATH* Datapath,
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR* Address
     );
@@ -372,11 +372,11 @@ CxPlatDataPathResolveAddress(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateUdp(
-    _In_ QUIC_DATAPATH* Datapath,
+    _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* CallbackContext,
-    _Out_ QUIC_SOCKET** Socket
+    _Out_ CXPLAT_SOCKET** Socket
     );
 
 //
@@ -387,11 +387,11 @@ CxPlatSocketCreateUdp(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateTcp(
-    _In_ QUIC_DATAPATH* Datapath,
+    _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* CallbackContext,
-    _Out_ QUIC_SOCKET** Socket
+    _Out_ CXPLAT_SOCKET** Socket
     );
 
 //
@@ -401,10 +401,10 @@ CxPlatSocketCreateTcp(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateTcpListener(
-    _In_ QUIC_DATAPATH* Datapath,
+    _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ void* CallbackContext,
-    _Out_ QUIC_SOCKET** Socket
+    _Out_ CXPLAT_SOCKET** Socket
     );
 
 //
@@ -415,7 +415,7 @@ CxPlatSocketCreateTcpListener(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatSocketDelete(
-    _In_ QUIC_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket
     );
 
 //
@@ -424,7 +424,7 @@ CxPlatSocketDelete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 CxPlatSocketGetLocalMtu(
-    _In_ QUIC_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket
     );
 
 //
@@ -433,7 +433,7 @@ CxPlatSocketGetLocalMtu(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSocketGetLocalAddress(
-    _In_ QUIC_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     );
 
@@ -444,7 +444,7 @@ CxPlatSocketGetLocalAddress(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSocketGetRemoteAddress(
-    _In_ QUIC_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     );
 
@@ -455,7 +455,7 @@ CxPlatSocketGetRemoteAddress(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatRecvDataReturn(
-    _In_opt_ QUIC_RECV_DATA* RecvDataChain
+    _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     );
 
 //
@@ -464,10 +464,10 @@ CxPlatRecvDataReturn(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
-QUIC_SEND_DATA*
+CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
-    _In_ QUIC_SOCKET* Socket,
-    _In_ QUIC_ECN_TYPE ECN,
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     );
 
@@ -477,7 +477,7 @@ CxPlatSendDataAlloc(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFree(
-    _In_ QUIC_SEND_DATA* SendData
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 //
@@ -487,7 +487,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
 CxPlatSendDataAllocBuffer(
-    _In_ QUIC_SEND_DATA* SendData,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     );
 
@@ -497,7 +497,7 @@ CxPlatSendDataAllocBuffer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFreeBuffer(
-    _In_ QUIC_SEND_DATA* SendData,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ QUIC_BUFFER* Buffer
     );
 
@@ -507,7 +507,7 @@ CxPlatSendDataFreeBuffer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatSendDataIsFull(
-    _In_ QUIC_SEND_DATA* SendData
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 //
@@ -516,10 +516,10 @@ CxPlatSendDataIsFull(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
-    _In_ QUIC_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_SEND_DATA* SendData
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 //
@@ -528,7 +528,7 @@ CxPlatSocketSend(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketSetParam(
-    _In_ QUIC_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength) const uint8_t* Buffer
@@ -540,7 +540,7 @@ CxPlatSocketSetParam(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketGetParam(
-    _In_ QUIC_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer

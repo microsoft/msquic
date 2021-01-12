@@ -68,10 +68,10 @@ typedef struct QUIC_PACKET_SPACE {
     QUIC_CONNECTION* Connection;
 
     //
-    // List of received QUIC_RECV_DATAGRAMs that we don't have the key
+    // List of received CXPLAT_RECV_DATAGRAMs that we don't have the key
     // for yet.
     //
-    QUIC_RECV_DATA* DeferredDatagrams;
+    CXPLAT_RECV_DATA* DeferredDatagrams;
 
     //
     // Information related to packets that have been received and need to be

@@ -33,7 +33,7 @@ typedef struct QUIC_TLS_SECRETS QUIC_TLS_SECRETS;
 //
 // The size of the header required by the TLS layer.
 //
-extern uint16_t QuicTlsTPHeaderSize;
+extern uint16_t CxPlatTlsTPHeaderSize;
 
 //
 // Callback for indicating process can be completed.

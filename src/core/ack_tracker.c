@@ -102,7 +102,7 @@ QuicAckTrackerAckPacket(
     _Inout_ QUIC_ACK_TRACKER* Tracker,
     _In_ uint64_t PacketNumber,
     _In_ uint64_t RecvTimeUs,
-    _In_ QUIC_ECN_TYPE ECN,
+    _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN AckElicitingPayload
     )
 {
@@ -148,15 +148,15 @@ QuicAckTrackerAckPacket(
     }
 
     switch (ECN) {
-        case QUIC_ECN_ECT_1:
+        case CXPLAT_ECN_ECT_1:
             Tracker->NonZeroRecvECN = TRUE;
             Tracker->ReceivedECN.ECT_1_Count++;
             break;
-        case QUIC_ECN_ECT_0:
+        case CXPLAT_ECN_ECT_0:
             Tracker->NonZeroRecvECN = TRUE;
             Tracker->ReceivedECN.ECT_0_Count++;
             break;
-        case QUIC_ECN_CE:
+        case CXPLAT_ECN_CE:
             Tracker->NonZeroRecvECN = TRUE;
             Tracker->ReceivedECN.CE_Count++;
             break;

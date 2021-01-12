@@ -1885,7 +1885,7 @@ QuicCryptoEncodeServerTicket(
     //
     // Adjust TP buffer for TLS header, if present.
     //
-    EncodedTPLength -= QuicTlsTPHeaderSize;
+    EncodedTPLength -= CxPlatTlsTPHeaderSize;
 
     uint32_t TotalTicketLength =
         (uint32_t)(QuicVarIntSize(QUIC_TLS_RESUMPTION_TICKET_VERSION) +
@@ -1929,7 +1929,7 @@ QuicCryptoEncodeServerTicket(
     TicketCursor = QuicVarIntEncode(AppDataLength, TicketCursor);
     CxPlatCopyMemory(TicketCursor, NegotiatedAlpn, AlpnLength);
     TicketCursor += AlpnLength;
-    CxPlatCopyMemory(TicketCursor, EncodedHSTP + QuicTlsTPHeaderSize, EncodedTPLength);
+    CxPlatCopyMemory(TicketCursor, EncodedHSTP + CxPlatTlsTPHeaderSize, EncodedTPLength);
     TicketCursor += EncodedTPLength;
     if (AppDataLength > 0) {
         CxPlatCopyMemory(TicketCursor, AppResumptionData, AppDataLength);
@@ -2120,7 +2120,7 @@ QuicCryptoEncodeClientTicket(
     //
     // Adjust for any TLS header potentially added to the TP buffer
     //
-    EncodedTPLength -= QuicTlsTPHeaderSize;
+    EncodedTPLength -= CxPlatTlsTPHeaderSize;
 
     uint32_t ClientTicketBufferLength =
         (uint32_t)(QuicVarIntSize(QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION) +
@@ -2157,7 +2157,7 @@ QuicCryptoEncodeClientTicket(
     TicketCursor += sizeof(QuicVersion);
     TicketCursor = QuicVarIntEncode(EncodedTPLength, TicketCursor);
     TicketCursor = QuicVarIntEncode(TicketLength, TicketCursor);
-    CxPlatCopyMemory(TicketCursor, EncodedServerTP + QuicTlsTPHeaderSize, EncodedTPLength);
+    CxPlatCopyMemory(TicketCursor, EncodedServerTP + CxPlatTlsTPHeaderSize, EncodedTPLength);
     TicketCursor += EncodedTPLength;
     if (TicketLength > 0) {
         CxPlatCopyMemory(TicketCursor, Ticket, TicketLength);

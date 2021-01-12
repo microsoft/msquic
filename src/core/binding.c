@@ -567,7 +567,7 @@ QUIC_STATELESS_CONTEXT*
 QuicBindingCreateStatelessOperation(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_WORKER* Worker,
-    _In_ QUIC_RECV_DATA* Datagram
+    _In_ CXPLAT_RECV_DATA* Datagram
     )
 {
     uint32_t TimeMs = CxPlatTimeMs32();
@@ -687,7 +687,7 @@ BOOLEAN
 QuicBindingQueueStatelessOperation(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_OPERATION_TYPE OperType,
-    _In_ QUIC_RECV_DATA* Datagram
+    _In_ CXPLAT_RECV_DATA* Datagram
     )
 {
     if (MsQuicLib.StatelessRegistration == NULL) {
@@ -738,8 +738,8 @@ QuicBindingProcessStatelessOperation(
     )
 {
     QUIC_BINDING* Binding = StatelessCtx->Binding;
-    QUIC_RECV_DATA* RecvDatagram = StatelessCtx->Datagram;
-    QUIC_RECV_PACKET* RecvPacket =
+    CXPLAT_RECV_DATA* RecvDatagram = StatelessCtx->Datagram;
+    CXPLAT_RECV_PACKET* RecvPacket =
         CxPlatDataPathRecvDataToRecvPacket(RecvDatagram);
     QUIC_BUFFER* SendDatagram = NULL;
 
@@ -751,10 +751,10 @@ QuicBindingProcessStatelessOperation(
         Binding,
         OperationType);
 
-    QUIC_SEND_DATA* SendContext =
+    CXPLAT_SEND_DATA* SendContext =
         CxPlatSendDataAlloc(
             Binding->Socket,
-            QUIC_ECN_NON_ECT,
+            CXPLAT_ECN_NON_ECT,
             0);
     if (SendContext == NULL) {
         QuicTraceEvent(
@@ -1029,7 +1029,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingQueueStatelessReset(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_RECV_DATA* Datagram
+    _In_ CXPLAT_RECV_DATA* Datagram
     )
 {
     CXPLAT_DBG_ASSERT(!Binding->Exclusive);
@@ -1061,12 +1061,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingPreprocessDatagram(
     _In_ QUIC_BINDING* Binding,
-    _Inout_ QUIC_RECV_DATA* Datagram,
+    _Inout_ CXPLAT_RECV_DATA* Datagram,
     _Out_ BOOLEAN* ReleaseDatagram
     )
 {
-    QUIC_RECV_PACKET* Packet = CxPlatDataPathRecvDataToRecvPacket(Datagram);
-    CxPlatZeroMemory(Packet, sizeof(QUIC_RECV_PACKET));
+    CXPLAT_RECV_PACKET* Packet = CxPlatDataPathRecvDataToRecvPacket(Datagram);
+    CxPlatZeroMemory(Packet, sizeof(CXPLAT_RECV_PACKET));
     Packet->Buffer = Datagram->Buffer;
     Packet->BufferLength = Datagram->BufferLength;
 
@@ -1136,7 +1136,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingValidateRetryToken(
     _In_ const QUIC_BINDING* const Binding,
-    _In_ const QUIC_RECV_PACKET* const Packet,
+    _In_ const CXPLAT_RECV_PACKET* const Packet,
     _In_ uint16_t TokenLength,
     _In_reads_(TokenLength)
         const uint8_t* TokenBuffer
@@ -1158,7 +1158,7 @@ QuicBindingValidateRetryToken(
         return FALSE;
     }
 
-    const QUIC_RECV_DATA* Datagram =
+    const CXPLAT_RECV_DATA* Datagram =
         CxPlatDataPathRecvPacketToRecvData(Packet);
     if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Tuple->RemoteAddress)) {
         QuicPacketLogDrop(Binding, Packet, "Retry Token Addr Mismatch");
@@ -1176,7 +1176,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingShouldRetryConnection(
     _In_ const QUIC_BINDING* const Binding,
-    _In_ QUIC_RECV_PACKET* Packet,
+    _In_ CXPLAT_RECV_PACKET* Packet,
     _In_ uint16_t TokenLength,
     _In_reads_(TokenLength)
         const uint8_t* Token,
@@ -1213,7 +1213,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_CONNECTION*
 QuicBindingCreateConnection(
     _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_RECV_DATA* const Datagram
+    _In_ const CXPLAT_RECV_DATA* const Datagram
     )
 {
     //
@@ -1222,7 +1222,7 @@ QuicBindingCreateConnection(
     // QuicLookupAddRemoteHash.
     //
 
-    QUIC_RECV_PACKET* Packet = CxPlatDataPathRecvDataToRecvPacket(Datagram);
+    CXPLAT_RECV_PACKET* Packet = CxPlatDataPathRecvDataToRecvPacket(Datagram);
 
     //
     // Pick a stateless worker to process the client hello and if successful,
@@ -1333,15 +1333,15 @@ Exit:
 // dropped.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 BOOLEAN
 QuicBindingDeliverDatagrams(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_RECV_DATA* DatagramChain,
+    _In_ CXPLAT_RECV_DATA* DatagramChain,
     _In_ uint32_t DatagramChainLength
     )
 {
-    QUIC_RECV_PACKET* Packet =
+    CXPLAT_RECV_PACKET* Packet =
             CxPlatDataPathRecvDataToRecvPacket(DatagramChain);
     CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
 
@@ -1486,12 +1486,12 @@ QuicBindingDeliverDatagrams(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 void
 QuicBindingReceive(
-    _In_ QUIC_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ void* RecvCallbackContext,
-    _In_ QUIC_RECV_DATA* DatagramChain
+    _In_ CXPLAT_RECV_DATA* DatagramChain
     )
 {
     UNREFERENCED_PARAMETER(Socket);
@@ -1499,11 +1499,11 @@ QuicBindingReceive(
     CXPLAT_DBG_ASSERT(DatagramChain != NULL);
 
     QUIC_BINDING* Binding = (QUIC_BINDING*)RecvCallbackContext;
-    QUIC_RECV_DATA* ReleaseChain = NULL;
-    QUIC_RECV_DATA** ReleaseChainTail = &ReleaseChain;
-    QUIC_RECV_DATA* SubChain = NULL;
-    QUIC_RECV_DATA** SubChainTail = &SubChain;
-    QUIC_RECV_DATA** SubChainDataTail = &SubChain;
+    CXPLAT_RECV_DATA* ReleaseChain = NULL;
+    CXPLAT_RECV_DATA** ReleaseChainTail = &ReleaseChain;
+    CXPLAT_RECV_DATA* SubChain = NULL;
+    CXPLAT_RECV_DATA** SubChainTail = &SubChain;
+    CXPLAT_RECV_DATA** SubChainDataTail = &SubChain;
     uint32_t SubChainLength = 0;
     uint32_t TotalChainLength = 0;
     uint32_t TotalDatagramBytes = 0;
@@ -1518,7 +1518,7 @@ QuicBindingReceive(
     // connection it was delivered to.
     //
 
-    QUIC_RECV_DATA* Datagram;
+    CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
         TotalChainLength++;
         TotalDatagramBytes += Datagram->BufferLength;
@@ -1529,9 +1529,9 @@ QuicBindingReceive(
         DatagramChain = Datagram->Next;
         Datagram->Next = NULL;
 
-        QUIC_RECV_PACKET* Packet =
+        CXPLAT_RECV_PACKET* Packet =
             CxPlatDataPathRecvDataToRecvPacket(Datagram);
-        CxPlatZeroMemory(Packet, sizeof(QUIC_RECV_PACKET));
+        CxPlatZeroMemory(Packet, sizeof(CXPLAT_RECV_PACKET));
         Packet->Buffer = Datagram->Buffer;
         Packet->BufferLength = Datagram->BufferLength;
 
@@ -1574,7 +1574,7 @@ QuicBindingReceive(
         // (If the binding is exclusively owned, all datagrams are delivered to
         // the same connection and this chain-splitting step is skipped.)
         //
-        QUIC_RECV_PACKET* SubChainPacket =
+        CXPLAT_RECV_PACKET* SubChainPacket =
             SubChain == NULL ?
                 NULL : CxPlatDataPathRecvDataToRecvPacket(SubChain);
         if (!Binding->Exclusive && SubChain != NULL &&
@@ -1635,10 +1635,10 @@ QuicBindingReceive(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)
 void
 QuicBindingUnreachable(
-    _In_ QUIC_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ void* Context,
     _In_ const QUIC_ADDR* RemoteAddress
     )
@@ -1666,7 +1666,7 @@ QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend
     )

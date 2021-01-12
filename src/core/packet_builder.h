@@ -28,7 +28,7 @@ typedef struct QUIC_PACKET_BUILDER {
     //
     // Represents a set of UDP datagrams.
     //
-    QUIC_SEND_DATA* SendContext;
+    CXPLAT_SEND_DATA* SendContext;
 
     //
     // Represents a single UDP payload. Can contain multiple coalesced QUIC

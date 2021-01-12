@@ -2403,7 +2403,7 @@ CxPlatEncrypt(
     CXPLAT_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
 
-    uint8_t Temp[QUIC_MAX_MTU];
+    uint8_t Temp[CXPLAT_MAX_MTU];
     CXPLAT_FRE_ASSERT(BufferLength <= sizeof(Temp));
 
     if (Key->Aead == QUIC_AEAD_AES_128_GCM) {
@@ -2440,7 +2440,7 @@ CxPlatDecrypt(
     CXPLAT_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
 
-    uint8_t Temp[QUIC_MAX_MTU];
+    uint8_t Temp[CXPLAT_MAX_MTU];
     CXPLAT_FRE_ASSERT(BufferLength <= sizeof(Temp));
 
     int r = 0;

@@ -27,10 +27,10 @@ PerfBase* TestToRun;
 
 #include "quic_datapath.h"
 
-QUIC_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
-QUIC_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
-QUIC_DATAPATH* Datapath;
-QUIC_SOCKET* Binding;
+CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
+CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
+CXPLAT_DATAPATH* Datapath;
+CXPLAT_SOCKET* Binding;
 bool ServerMode = false;
 
 static
@@ -81,7 +81,7 @@ QuicMainStart(
     if (ServerMode) {
         Datapath = nullptr;
         Binding = nullptr;
-        const QUIC_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
             DatapathReceive,
             DatapathUnreachable
         };
@@ -214,9 +214,9 @@ QuicMainGetExtraData(
 
 void
 DatapathReceive(
-    _In_ QUIC_SOCKET*,
+    _In_ CXPLAT_SOCKET*,
     _In_ void* Context,
-    _In_ QUIC_RECV_DATA*
+    _In_ CXPLAT_RECV_DATA*
     )
 {
     CXPLAT_EVENT* Event = static_cast<CXPLAT_EVENT*>(Context);
@@ -225,7 +225,7 @@ DatapathReceive(
 
 void
 DatapathUnreachable(
-    _In_ QUIC_SOCKET*,
+    _In_ CXPLAT_SOCKET*,
     _In_ void*,
     _In_ const QUIC_ADDR*
     )

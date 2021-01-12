@@ -73,7 +73,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateInvariant(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ QUIC_RECV_PACKET* Packet,
+    _Inout_ CXPLAT_RECV_PACKET* Packet,
     _In_ BOOLEAN IsBindingShared
     )
 {
@@ -177,7 +177,7 @@ BOOLEAN
 QuicPacketValidateLongHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _In_ BOOLEAN IsServer,
-    _Inout_ QUIC_RECV_PACKET* Packet,
+    _Inout_ CXPLAT_RECV_PACKET* Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
     _Out_ uint16_t* TokenLength
@@ -445,7 +445,7 @@ QuicPacketEncodeRetryV1(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketDecodeRetryTokenV1(
-    _In_ const QUIC_RECV_PACKET* const Packet,
+    _In_ const CXPLAT_RECV_PACKET* const Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
     _Out_ uint16_t* TokenLength
@@ -478,7 +478,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ QUIC_RECV_PACKET* Packet
+    _Inout_ CXPLAT_RECV_PACKET* Packet
     )
 {
     //
@@ -698,11 +698,11 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketLogDrop(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _In_ const QUIC_RECV_PACKET* Packet,
+    _In_ const CXPLAT_RECV_PACKET* Packet,
     _In_z_ const char* Reason
     )
 {
-    const QUIC_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
+    const CXPLAT_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
         CxPlatDataPathRecvPacketToRecvData(Packet);
 
     if (Packet->AssignedToConnection) {
@@ -731,12 +731,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketLogDropWithValue(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _In_ const QUIC_RECV_PACKET* Packet,
+    _In_ const CXPLAT_RECV_PACKET* Packet,
     _In_z_ const char* Reason,
     _In_ uint64_t Value
     )
 {
-    const QUIC_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
+    const CXPLAT_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
         CxPlatDataPathRecvPacketToRecvData(Packet);
 
     if (Packet->AssignedToConnection) {

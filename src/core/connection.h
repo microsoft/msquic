@@ -423,8 +423,8 @@ typedef struct QUIC_CONNECTION {
     // Receive packet queue.
     //
     uint32_t ReceiveQueueCount;
-    QUIC_RECV_DATA* ReceiveQueue;
-    QUIC_RECV_DATA** ReceiveQueueTail;
+    CXPLAT_RECV_DATA* ReceiveQueue;
+    CXPLAT_RECV_DATA** ReceiveQueueTail;
     CXPLAT_DISPATCH_LOCK ReceiveQueueLock;
 
     //
@@ -824,7 +824,7 @@ _Success_(return != NULL)
 QUIC_CONNECTION*
 QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
-    _In_opt_ const QUIC_RECV_DATA* const Datagram
+    _In_opt_ const CXPLAT_RECV_DATA* const Datagram
     );
 
 //
@@ -1323,7 +1323,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueRecvDatagrams(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_RECV_DATA* DatagramChain,
+    _In_ CXPLAT_RECV_DATA* DatagramChain,
     _In_ uint32_t DatagramChainLength
     );
 

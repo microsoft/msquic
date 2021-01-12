@@ -271,7 +271,7 @@ QuicWorkerQueueOperation(
 
     if (Operation != NULL) {
         const QUIC_BINDING* Binding = Operation->STATELESS.Context->Binding;
-        const QUIC_RECV_PACKET* Packet =
+        const CXPLAT_RECV_PACKET* Packet =
             CxPlatDataPathRecvDataToRecvPacket(
                 Operation->STATELESS.Context->Datagram);
         QuicPacketLogDrop(Binding, Packet, "Worker operation limit reached");

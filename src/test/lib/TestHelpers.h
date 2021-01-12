@@ -127,7 +127,7 @@ struct DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATA* /* Datagram */
+        _Inout_ struct CXPLAT_RECV_DATA* /* Datagram */
         ) {
         return FALSE; // Don't drop by default
     }
@@ -138,7 +138,7 @@ struct DatapathHook
     Send(
         _Inout_ QUIC_ADDR* /* RemoteAddress */,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct QUIC_SEND_DATA* /* SendContext */
+        _Inout_ struct CXPLAT_SEND_DATA* /* SendContext */
         ) {
         return FALSE; // Don't drop by default
     }
@@ -156,7 +156,7 @@ class DatapathHooks
     BOOLEAN
     QUIC_API
     ReceiveCallback(
-        _Inout_ struct QUIC_RECV_DATA* Datagram
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
         ) {
         return Instance->Receive(Datagram);
     }
@@ -168,7 +168,7 @@ class DatapathHooks
     SendCallback(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* LocalAddress,
-        _Inout_ struct QUIC_SEND_DATA* SendContext
+        _Inout_ struct CXPLAT_SEND_DATA* SendContext
         ) {
         return Instance->Send(RemoteAddress, LocalAddress, SendContext);
     }
@@ -219,7 +219,7 @@ class DatapathHooks
 
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATA* Datagram
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
         ) {
         BOOLEAN Result = FALSE;
         CxPlatDispatchLockAcquire(&Lock);
@@ -239,7 +239,7 @@ class DatapathHooks
     Send(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* LocalAddress,
-        _Inout_ struct QUIC_SEND_DATA* SendContext
+        _Inout_ struct CXPLAT_SEND_DATA* SendContext
         ) {
         BOOLEAN Result = FALSE;
         CxPlatDispatchLockAcquire(&Lock);
@@ -312,7 +312,7 @@ struct RandomLossHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATA* /* Datagram */
+        _Inout_ struct CXPLAT_RECV_DATA* /* Datagram */
         ) {
         uint8_t RandomValue;
         CxPlatRandom(sizeof(RandomValue), &RandomValue);
@@ -339,7 +339,7 @@ struct SelectiveLossHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATA* /* Datagram */
+        _Inout_ struct CXPLAT_RECV_DATA* /* Datagram */
         ) {
         if (DropPacketCount == 0) {
             return FALSE;
@@ -366,7 +366,7 @@ struct ReplaceAddressHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATA* Datagram
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
         ) {
         if (QuicAddrCompare(
                 &Datagram->Tuple->RemoteAddress,
@@ -385,7 +385,7 @@ struct ReplaceAddressHelper : public DatapathHook
     Send(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct QUIC_SEND_DATA* /* SendContext */
+        _Inout_ struct CXPLAT_SEND_DATA* /* SendContext */
         ) {
         if (QuicAddrCompare(RemoteAddress, &New)) {
             *RemoteAddress = Original;
@@ -419,7 +419,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATA* Datagram
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
         ) {
         if (QuicAddrCompare(
                 &Datagram->Tuple->RemoteAddress,
@@ -445,7 +445,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
     Send(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct QUIC_SEND_DATA* /* SendContext */
+        _Inout_ struct CXPLAT_SEND_DATA* /* SendContext */
         ) {
         if (QuicAddrCompare(RemoteAddress, &New)) {
             if (AllowPacketCount == 0) {

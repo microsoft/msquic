@@ -179,7 +179,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Datapath instance for the library.
     //
-    QUIC_DATAPATH* Datapath;
+    CXPLAT_DATAPATH* Datapath;
 
     //
     // List of all registrations in the current process (or kernel).
@@ -476,7 +476,7 @@ QuicLibraryOnListenerRegistered(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
 QuicLibraryGetWorker(
-    _In_ const _In_ QUIC_RECV_DATA* Datagram
+    _In_ const _In_ CXPLAT_RECV_DATA* Datagram
     );
 
 //

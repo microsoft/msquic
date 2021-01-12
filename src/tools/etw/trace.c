@@ -130,13 +130,13 @@ QuicTraceGlobalEvent(
         if (EvData->LibraryInitialized.DatapathFeatures == 0) {
             printf("NONE ]\n");
         } else {
-            if (EvData->LibraryInitialized.DatapathFeatures & QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING) {
+            if (EvData->LibraryInitialized.DatapathFeatures & CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING) {
                 printf("RSS ");
             }
-            if (EvData->LibraryInitialized.DatapathFeatures & QUIC_DATAPATH_FEATURE_RECV_COALESCING) {
+            if (EvData->LibraryInitialized.DatapathFeatures & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
                 printf("URO ");
             }
-            if (EvData->LibraryInitialized.DatapathFeatures & QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION) {
+            if (EvData->LibraryInitialized.DatapathFeatures & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
                 printf("USO ");
             }
             printf("]\n");
@@ -168,13 +168,13 @@ QuicTraceGlobalEvent(
         if (EvData->LibraryInitialized.DatapathFeatures == 0) {
             printf("NONE ]\n");
         } else {
-            if (EvData->LibraryInitialized.DatapathFeatures & QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING) {
+            if (EvData->LibraryInitialized.DatapathFeatures & CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING) {
                 printf("RSS ");
             }
-            if (EvData->LibraryInitialized.DatapathFeatures & QUIC_DATAPATH_FEATURE_RECV_COALESCING) {
+            if (EvData->LibraryInitialized.DatapathFeatures & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
                 printf("URO ");
             }
-            if (EvData->LibraryInitialized.DatapathFeatures & QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION) {
+            if (EvData->LibraryInitialized.DatapathFeatures & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
                 printf("USO ");
             }
             printf("]\n");
