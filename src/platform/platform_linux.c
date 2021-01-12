@@ -87,7 +87,7 @@ CxPlatSystemLoad(
     // Get the path to the currently executing shared object (libmsquic.so).
     //
     Dl_info Info;
-    int Succeeded = dladdr((void *)QuicPlatformSystemLoad, &Info);
+    int Succeeded = dladdr((void *)CxPlatSystemLoad, &Info);
     if (!Succeeded) {
         return;
     }
