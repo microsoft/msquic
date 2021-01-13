@@ -121,16 +121,18 @@ function Get-RawTestDataJs {
     )
 
     $DataVal = ""
+    $Index = $TestList.Count - 1;
     foreach ($Test in $TestList) {
         $TimeUnix = $Test.Date;
         foreach ($Result in $Test.Results) {
-            $Data = "{t: new Date($TimeUnix), rawTime: $TimeUnix, y: $Result}"
+            $Data = "{x: $Index, t: new Date($TimeUnix), rawTime: $TimeUnix, y: $Result}"
             if ($DataVal -eq "") {
                 $DataVal = $Data
             } else {
                 $DataVal = "$DataVal, $Data"
             }
         }
+        $Index--;
     }
     return "[$DataVal]"
 }
@@ -142,15 +144,17 @@ function Get-AverageDataJs {
     )
 
     $DataVal = ""
+    $Index = $TestList.Count - 1;
     foreach ($Test in $TestList) {
         $TimeUnix = $Test.Date;
         $Average = ($Test.Results  | Measure-Object -Average).Average
-        $Data = "{t: new Date($TimeUnix), rawTime: $TimeUnix, y: $Average}"
+        $Data = "{x: $Index, t: new Date($TimeUnix), rawTime: $TimeUnix, y: $Average}"
         if ($DataVal -eq "") {
             $DataVal = $Data
         } else {
             $DataVal = "$DataVal, $Data"
         }
+        $Index--;
     }
     return "[$DataVal]"
 }

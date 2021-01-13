@@ -24,6 +24,13 @@ function tooltipSort(a, b, data) {
     return data.datasets[a.datasetIndex].sortOrder - data.datasets[b.datasetIndex].sortOrder;
 }
 
+function titlePlacement(tooltipItem, data) {
+    var dataset = data.datasets[tooltipItem[0].datasetIndex]
+    var datapoint = dataset.data[tooltipItem[0].index]
+    // TODO Fix this, this is very hacky
+    return Chart._adapters._date.prototype.format(datapoint.t, Chart._adapters._date.prototype.formats().datetime)
+}
+
 function beforeBodyPlacement(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem[0].datasetIndex]
     var datapoint = dataset.data[tooltipItem[0].index]
@@ -47,12 +54,9 @@ function chartOnCick(a, activeElements) {
     window.open("https://github.com/microsoft/msquic/commit/" + commitHash)
 }
 
-function filterDataset(dataset, afterDate) {
-    return dataset.filter(p => p.t > afterDate);
-}
-
 var tooltipsObject = {
     callbacks : {
+        title: titlePlacement,
         beforeBody: beforeBodyPlacement,
         label: labelChange
     },
@@ -62,6 +66,7 @@ var tooltipsObject = {
 
 var tooltipsSummaryObject = {
     callbacks : {
+        title: titlePlacement,
         beforeBody: beforeBodyPlacement
     },
     mode: "nearest",
@@ -69,28 +74,17 @@ var tooltipsSummaryObject = {
 }
 
 var timeAxis = {
-    type: 'time',
+    type: 'linear',
     offset: true,
-    time: { unit: 'day' },
-    scaleLabel: createScaleLabel('Commit Date')
-};
-
-var pluginObject = {
-    zoom: {
-        pan: {
-            enabled: true,
-            mode: 'x',
-            rangeMin: { x: oldestDate },
-            rangeMax: { x: newestDate }
-        },
-        zoom: {
-            enabled: true,
-            mode: 'x',
-            rangeMin: { x: oldestDate },
-            rangeMax: { x: newestDate }
+    ticks: {
+        maxTicksLimit: 5,
+        stepSize: 1,
+        callback: function(value) {
+            return 4 - value;
         }
-    }
-}
+    },
+    scaleLabel: createScaleLabel('Commits Back From Current')
+};
 
 function createScaleLabel(name) {
     return {
@@ -166,8 +160,7 @@ function createChartOptions(name) {
             yAxes: [{
                 scaleLabel: createScaleLabel(name)
             }]
-        },
-        plugins: pluginObject
+        }
     };
 }
 
@@ -219,7 +212,7 @@ function createAverageSummaryDataset(platform, color, dataset) {
         borderWidth: dataLineWidth,
         pointRadius: 0,
         tension: 0,
-        data: filterDataset(dataset, new Date(Date.now() - 12096e5)), // Last 2 weeks
+        data: dataset,
         fill: false,
         sortOrder: 1,
         hidden: false,
