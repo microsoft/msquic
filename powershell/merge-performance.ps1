@@ -27,6 +27,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 $PotentialPR = $Env:SYSTEM_PULLREQUEST_TARGETBRANCH
 if (![string]::IsNullOrWhiteSpace($PotentialPR)) {
+    Write-Output $PotentialPR
     $BranchName = $PotentialPR.Substring(11);
 } elseif ($Branch.StartsWith("refs/heads/")) {
     # Remove the 'refs/heads/' prefix.
