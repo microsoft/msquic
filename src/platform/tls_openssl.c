@@ -495,27 +495,27 @@ SSL_QUIC_METHOD OpenSslQuicCallbacks = {
     CxPlatTlsSendAlertCallback
 };
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_FILE, PrivateKeyFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, PrivateKeyFile),
     "Mismatch (private key) in certificate file structs");
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_FILE, CertificateFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, CertificateFile),
     "Mismatch (certificate file) in certificate file structs");
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_HASH, ShaHash) == FIELD_OFFSET(QUIC_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY, ShaHash),
     "Mismatch (sha hash) in certificate hash structs");
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE, Flags) == FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY, Flags),
     "Mismatch (flags) in certificate hash store structs");
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE, ShaHash) == FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY, ShaHash),
     "Mismatch (sha hash) in certificate hash store structs");
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE, StoreName) == FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY, StoreName),
     "Mismatch (store name) in certificate hash store structs");
 
