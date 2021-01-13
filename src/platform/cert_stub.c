@@ -15,7 +15,7 @@ Abstract:
 #endif
 
 QUIC_STATUS
-QuicCertCreate(
+CxPlatCertCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _Out_ QUIC_CERTIFICATE** NewCertificate
     )
@@ -44,7 +44,7 @@ QuicCertCreate(
 }
 
 void
-QuicCertFree(
+CxPlatCertFree(
     _In_ QUIC_CERTIFICATE* Certificate
     )
 {
@@ -53,7 +53,7 @@ QuicCertFree(
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertSelect(
+CxPlatCertSelect(
     _In_opt_ QUIC_CERTIFICATE* Certificate,
     _In_reads_(SignatureAlgorithmsLength)
         const uint16_t *SignatureAlgorithms,
@@ -69,7 +69,7 @@ QuicCertSelect(
 
 _Success_(return != NULL)
 QUIC_CERTIFICATE*
-QuicCertParseChain(
+CxPlatCertParseChain(
     _In_ size_t ChainBufferLength,
     _In_reads_(ChainBufferLength)
         const uint8_t *ChainBuffer
@@ -90,7 +90,7 @@ QuicCertParseChain(
 
 _Success_(return != 0)
 size_t
-QuicCertFormat(
+CxPlatCertFormat(
     _In_opt_ QUIC_CERTIFICATE* Certificate,
     _In_ size_t BufferLength,
     _Out_writes_to_(BufferLength, return)
@@ -102,13 +102,13 @@ QuicCertFormat(
     if (BufferLength < SIZEOF_CERT_CHAIN_LIST_LENGTH) {
         return 0;
     }
-    QuicZeroMemory(Buffer, SIZEOF_CERT_CHAIN_LIST_LENGTH); // Encode 0 length cert chain.
+    CxPlatZeroMemory(Buffer, SIZEOF_CERT_CHAIN_LIST_LENGTH); // Encode 0 length cert chain.
     return SIZEOF_CERT_CHAIN_LIST_LENGTH;
 }
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertValidateChain(
+CxPlatCertValidateChain(
     _In_ QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ const char* Host,
     _In_ uint32_t IgnoreFlags
@@ -122,7 +122,7 @@ QuicCertValidateChain(
 
 _Success_(return != NULL)
 void*
-QuicCertGetPrivateKey(
+CxPlatCertGetPrivateKey(
     _In_ QUIC_CERTIFICATE* Certificate
     )
 {
@@ -131,7 +131,7 @@ QuicCertGetPrivateKey(
 }
 
 void
-QuicCertDeletePrivateKey(
+CxPlatCertDeletePrivateKey(
     _In_ void* PrivateKey
     )
 {
@@ -140,7 +140,7 @@ QuicCertDeletePrivateKey(
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertSign(
+CxPlatCertSign(
     _In_ void* PrivateKey,
     _In_ const uint16_t SignatureAlgorithm,
     _In_reads_(CertListToBeSignedLength)
@@ -166,7 +166,7 @@ QuicCertSign(
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertVerify(
+CxPlatCertVerify(
     _In_ QUIC_CERTIFICATE* Certificate,
     _In_ const uint16_t SignatureAlgorithm,
     _In_reads_(CertListToBeSignedLength)

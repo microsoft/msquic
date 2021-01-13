@@ -65,7 +65,7 @@ ListenerEventCallback(
 {
     LISTENER* Listener = GetListenerFromEvent(ev);
     *ObjectId = Listener->Id;
-    
+
     UNREFERENCED_PARAMETER(TraceEvent);
     UNREFERENCED_PARAMETER(InitialTimestamp);
 }

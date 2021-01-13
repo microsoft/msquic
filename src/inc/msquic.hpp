@@ -22,8 +22,8 @@ Supported Platforms:
 
 #include <msquic.h>
 
-#ifndef QUIC_DBG_ASSERT
-#define QUIC_DBG_ASSERT(X) // no-op if not already defined
+#ifndef CXPLAT_DBG_ASSERT
+#define CXPLAT_DBG_ASSERT(X) // no-op if not already defined
 #endif
 
 struct QuicAddr {
@@ -50,7 +50,7 @@ struct QuicAddr {
         QuicAddrSetPort(&SockAddr, Port);
     }
     void IncrementPort() {
-        QUIC_DBG_ASSERT(QuicAddrGetPort(&SockAddr) != 0xFFFF);
+        CXPLAT_DBG_ASSERT(QuicAddrGetPort(&SockAddr) != 0xFFFF);
         QuicAddrSetPort(&SockAddr, (uint16_t)1 + QuicAddrGetPort(&SockAddr));
     }
     void IncrementAddr() {
@@ -488,19 +488,19 @@ struct QuicBufferScope {
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
 };
 
-#ifdef QUIC_PLATFORM_TYPE
+#ifdef CX_PLATFORM_TYPE
 
 //
 // Abstractions for platform specific types/interfaces
 //
 
 struct EventScope {
-    QUIC_EVENT Handle;
-    EventScope() noexcept { QuicEventInitialize(&Handle, FALSE, FALSE); }
-    EventScope(bool ManualReset) noexcept { QuicEventInitialize(&Handle, ManualReset, FALSE); }
-    EventScope(QUIC_EVENT event) noexcept : Handle(event) { }
-    ~EventScope() noexcept { QuicEventUninitialize(Handle); }
-    operator QUIC_EVENT() const noexcept { return Handle; }
+    CXPLAT_EVENT Handle;
+    EventScope() noexcept { CxPlatEventInitialize(&Handle, FALSE, FALSE); }
+    EventScope(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
+    EventScope(CXPLAT_EVENT event) noexcept : Handle(event) { }
+    ~EventScope() noexcept { CxPlatEventUninitialize(Handle); }
+    operator CXPLAT_EVENT() const noexcept { return Handle; }
 };
 
 #endif

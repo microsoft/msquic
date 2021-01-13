@@ -28,7 +28,7 @@ typedef struct QUIC_PACKET_BUILDER {
     //
     // Represents a set of UDP datagrams.
     //
-    QUIC_DATAPATH_SEND_CONTEXT* SendContext;
+    CXPLAT_SEND_DATA* SendContext;
 
     //
     // Represents a single UDP payload. Can contain multiple coalesced QUIC
@@ -44,12 +44,12 @@ typedef struct QUIC_PACKET_BUILDER {
     //
     // Cipher text across multiple packets to batch header protection.
     //
-    uint8_t CipherBatch[QUIC_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
+    uint8_t CipherBatch[CXPLAT_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
 
     //
     // Output header protection mask.
     //
-    uint8_t HpMask[QUIC_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
+    uint8_t HpMask[CXPLAT_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
 
 
     //
@@ -144,7 +144,7 @@ typedef struct QUIC_PACKET_BUILDER {
 
 } QUIC_PACKET_BUILDER;
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_PACKET_BUILDER) < 1024,
     L"Packet builder should be small enough to fit on the stack.");
 
@@ -239,7 +239,7 @@ QuicPacketBuilderAddFrame(
     _In_ BOOLEAN IsAckEliciting
     )
 {
-    QUIC_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
+    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
     Builder->Metadata->Frames[Builder->Metadata->FrameCount].Type = FrameType;
     Builder->Metadata->Flags.IsAckEliciting |= IsAckEliciting;
     return ++Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET;

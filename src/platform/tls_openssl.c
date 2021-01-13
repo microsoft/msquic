@@ -23,33 +23,37 @@ Abstract:
 #include "tls_openssl.c.clog.h"
 #endif
 
-uint16_t QuicTlsTPHeaderSize = 0;
+uint16_t CxPlatTlsTPHeaderSize = 0;
 
 //
 // The QUIC sec config object. Created once per listener on server side and
 // once per connection on client side.
 //
 
-typedef struct QUIC_SEC_CONFIG {
+typedef struct CXPLAT_SEC_CONFIG {
 
     //
     // The SSL context associated with the sec config.
     //
-
     SSL_CTX *SSLCtx;
 
-} QUIC_SEC_CONFIG;
+    //
+    // Callbacks for TLS.
+    //
+    CXPLAT_TLS_CALLBACKS Callbacks;
+
+} CXPLAT_SEC_CONFIG;
 
 //
 // A TLS context associated per connection.
 //
 
-typedef struct QUIC_TLS {
+typedef struct CXPLAT_TLS {
 
     //
     // The TLS configuration information and credentials.
     //
-    QUIC_SEC_CONFIG* SecConfig;
+    CXPLAT_SEC_CONFIG* SecConfig;
 
     //
     // Indicates if this context belongs to server side or client side
@@ -83,44 +87,43 @@ typedef struct QUIC_TLS {
     // ResultFlags - Stores the result of the TLS data processing operation.
     //
 
-    QUIC_TLS_PROCESS_STATE* State;
-    QUIC_TLS_RESULT_FLAGS ResultFlags;
+    CXPLAT_TLS_PROCESS_STATE* State;
+    CXPLAT_TLS_RESULT_FLAGS ResultFlags;
 
     //
     // Callback context and handler for QUIC TP.
     //
     QUIC_CONNECTION* Connection;
-    QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     //
     // Optional struct to log TLS traffic secrets.
     // Only non-null when the connection is configured to log these.
     //
-    QUIC_TLS_SECRETS* TlsSecrets;
+    CXPLAT_TLS_SECRETS* TlsSecrets;
 #endif
 
-} QUIC_TLS;
+} CXPLAT_TLS;
 
-typedef struct QUIC_HP_KEY {
+typedef struct CXPLAT_HP_KEY {
     EVP_CIPHER_CTX* CipherCtx;
-    QUIC_AEAD_TYPE Aead;
-} QUIC_HP_KEY;
+    CXPLAT_AEAD_TYPE Aead;
+} CXPLAT_HP_KEY;
 
 //
 // Default list of Cipher used.
 //
-#define QUIC_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
+#define CXPLAT_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
 
 //
 // Default list of curves for ECDHE ciphers.
 //
-#define QUIC_TLS_DEFAULT_SSL_CURVES     "P-256:X25519:P-384:P-521"
+#define CXPLAT_TLS_DEFAULT_SSL_CURVES     "P-256:X25519:P-384:P-521"
 
 //
 // Default cert verify depth.
 //
-#define QUIC_TLS_DEFAULT_VERIFY_DEPTH  10
+#define CXPLAT_TLS_DEFAULT_VERIFY_DEPTH  10
 
 //
 // Hack to set trusted cert file on client side.
@@ -128,7 +131,7 @@ typedef struct QUIC_HP_KEY {
 char *QuicOpenSslClientTrustedCert = NULL;
 
 QUIC_STATUS
-QuicTlsLibraryInitialize(
+CxPlatTlsLibraryInitialize(
     void
     )
 {
@@ -155,7 +158,7 @@ QuicTlsLibraryInitialize(
 }
 
 void
-QuicTlsLibraryUninitialize(
+CxPlatTlsLibraryUninitialize(
     void
     )
 {
@@ -163,7 +166,7 @@ QuicTlsLibraryUninitialize(
 
 static
 int
-QuicTlsAlpnSelectCallback(
+CxPlatTlsAlpnSelectCallback(
     _In_ SSL *Ssl,
     _Out_writes_bytes_(Outlen) const unsigned char **Out,
     _Out_ unsigned char *OutLen,
@@ -176,52 +179,52 @@ QuicTlsAlpnSelectCallback(
     UNREFERENCED_PARAMETER(InLen);
     UNREFERENCED_PARAMETER(Arg);
 
-    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
 
     //
     // QUIC already parsed and picked the ALPN to use and set it in the
     // NegotiatedAlpn variable.
     //
 
-    QUIC_DBG_ASSERT(TlsContext->State->NegotiatedAlpn != NULL);
+    CXPLAT_DBG_ASSERT(TlsContext->State->NegotiatedAlpn != NULL);
     *OutLen = TlsContext->State->NegotiatedAlpn[0];
     *Out = TlsContext->State->NegotiatedAlpn + 1;
 
     return SSL_TLSEXT_ERR_OK;
 }
 
-QUIC_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
-QUIC_STATIC_ASSERT((int)ssl_encryption_early_data == (int)QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
-QUIC_STATIC_ASSERT((int)ssl_encryption_handshake == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
-QUIC_STATIC_ASSERT((int)ssl_encryption_application == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)ssl_encryption_early_data == (int)QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)ssl_encryption_handshake == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)ssl_encryption_application == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
 
 void
-QuicTlsNegotiatedCiphers(
-    _In_ QUIC_TLS* TlsContext,
-    _Out_ QUIC_AEAD_TYPE *AeadType,
-    _Out_ QUIC_HASH_TYPE *HashType
+CxPlatTlsNegotiatedCiphers(
+    _In_ CXPLAT_TLS* TlsContext,
+    _Out_ CXPLAT_AEAD_TYPE *AeadType,
+    _Out_ CXPLAT_HASH_TYPE *HashType
     )
 {
     switch (SSL_CIPHER_get_id(SSL_get_current_cipher(TlsContext->Ssl))) {
     case 0x03001301U: // TLS_AES_128_GCM_SHA256
-        *AeadType = QUIC_AEAD_AES_128_GCM;
-        *HashType = QUIC_HASH_SHA256;
+        *AeadType = CXPLAT_AEAD_AES_128_GCM;
+        *HashType = CXPLAT_HASH_SHA256;
         break;
     case 0x03001302U: // TLS_AES_256_GCM_SHA384
-        *AeadType = QUIC_AEAD_AES_256_GCM;
-        *HashType = QUIC_HASH_SHA384;
+        *AeadType = CXPLAT_AEAD_AES_256_GCM;
+        *HashType = CXPLAT_HASH_SHA384;
         break;
     case 0x03001303U: // TLS_CHACHA20_POLY1305_SHA256
-        *AeadType = QUIC_AEAD_CHACHA20_POLY1305;
-        *HashType = QUIC_HASH_SHA256;
+        *AeadType = CXPLAT_AEAD_CHACHA20_POLY1305;
+        *HashType = CXPLAT_HASH_SHA256;
         break;
     default:
-        QUIC_FRE_ASSERT(FALSE);
+        CXPLAT_FRE_ASSERT(FALSE);
     }
 }
 
 int
-QuicTlsSetEncryptionSecretsCallback(
+CxPlatTlsSetEncryptionSecretsCallback(
     _In_ SSL *Ssl,
     _In_ OSSL_ENCRYPTION_LEVEL Level,
     _In_reads_(SecretLen) const uint8_t* ReadSecret,
@@ -229,8 +232,8 @@ QuicTlsSetEncryptionSecretsCallback(
     _In_ size_t SecretLen
     )
 {
-    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
-    QUIC_TLS_PROCESS_STATE* TlsState = TlsContext->State;
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+    CXPLAT_TLS_PROCESS_STATE* TlsState = TlsContext->State;
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
     QUIC_STATUS Status;
 
@@ -240,11 +243,11 @@ QuicTlsSetEncryptionSecretsCallback(
         "New encryption secrets (Level = %u)",
         Level);
 
-    QUIC_SECRET Secret;
-    QuicTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
-    QuicCopyMemory(Secret.Secret, WriteSecret, SecretLen);
+    CXPLAT_SECRET Secret;
+    CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
+    CxPlatCopyMemory(Secret.Secret, WriteSecret, SecretLen);
 
-    QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
+    CXPLAT_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
     Status =
         QuicPacketKeyDerive(
             KeyType,
@@ -253,15 +256,15 @@ QuicTlsSetEncryptionSecretsCallback(
             TRUE,
             &TlsState->WriteKeys[KeyType]);
     if (QUIC_FAILED(Status)) {
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
         return -1;
     }
 
     TlsState->WriteKey = KeyType;
-    TlsContext->ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
-    QuicCopyMemory(Secret.Secret, ReadSecret, SecretLen);
+    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
+    CxPlatCopyMemory(Secret.Secret, ReadSecret, SecretLen);
 
-    QUIC_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
+    CXPLAT_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
     Status =
         QuicPacketKeyDerive(
             KeyType,
@@ -270,7 +273,7 @@ QuicTlsSetEncryptionSecretsCallback(
             TRUE,
             &TlsState->ReadKeys[KeyType]);
     if (QUIC_FAILED(Status)) {
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
         return -1;
     }
 
@@ -281,9 +284,9 @@ QuicTlsSetEncryptionSecretsCallback(
         //
     } else {
         TlsState->ReadKey = KeyType;
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
     }
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     if (TlsContext->TlsSecrets != NULL) {
         TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         switch (KeyType) {
@@ -329,18 +332,18 @@ QuicTlsSetEncryptionSecretsCallback(
 }
 
 int
-QuicTlsAddHandshakeDataCallback(
+CxPlatTlsAddHandshakeDataCallback(
     _In_ SSL *Ssl,
     _In_ OSSL_ENCRYPTION_LEVEL Level,
     _In_reads_(Length) const uint8_t *Data,
     _In_ size_t Length
     )
 {
-    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
-    QUIC_TLS_PROCESS_STATE* TlsState = TlsContext->State;
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+    CXPLAT_TLS_PROCESS_STATE* TlsState = TlsContext->State;
 
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
-    QUIC_DBG_ASSERT(KeyType == 0 || TlsState->WriteKeys[KeyType] != NULL);
+    CXPLAT_DBG_ASSERT(KeyType == 0 || TlsState->WriteKeys[KeyType] != NULL);
 
     QuicTraceLogConnVerbose(
         OpenSslAddHandshakeData,
@@ -355,7 +358,7 @@ QuicTlsAddHandshakeDataCallback(
             "[ tls][%p] ERROR, %s.",
             TlsContext->Connection,
             "Too much handshake data");
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
         return -1;
     }
 
@@ -369,22 +372,22 @@ QuicTlsAddHandshakeDataCallback(
             NewBufferAllocLength <<= 1;
         }
 
-        uint8_t* NewBuffer = QUIC_ALLOC_NONPAGED(NewBufferAllocLength, QUIC_POOL_TLS_BUFFER);
+        uint8_t* NewBuffer = CXPLAT_ALLOC_NONPAGED(NewBufferAllocLength, QUIC_POOL_TLS_BUFFER);
         if (NewBuffer == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "New crypto buffer",
                 NewBufferAllocLength);
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             return -1;
         }
 
-        QuicCopyMemory(
+        CxPlatCopyMemory(
             NewBuffer,
             TlsState->Buffer,
             TlsState->BufferLength);
-        QUIC_FREE(TlsState->Buffer, QUIC_POOL_TLS_BUFFER);
+        CXPLAT_FREE(TlsState->Buffer, QUIC_POOL_TLS_BUFFER);
         TlsState->Buffer = NewBuffer;
         TlsState->BufferAllocLength = NewBufferAllocLength;
     }
@@ -414,20 +417,20 @@ QuicTlsAddHandshakeDataCallback(
         break;
     }
 
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         TlsState->Buffer + TlsState->BufferLength,
         Data,
         Length);
     TlsState->BufferLength += (uint16_t)Length;
     TlsState->BufferTotalLength += (uint16_t)Length;
 
-    TlsContext->ResultFlags |= QUIC_TLS_RESULT_DATA;
+    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_DATA;
 
     return 1;
 }
 
 int
-QuicTlsFlushFlightCallback(
+CxPlatTlsFlushFlightCallback(
     _In_ SSL *Ssl
     )
 {
@@ -436,7 +439,7 @@ QuicTlsFlushFlightCallback(
 }
 
 int
-QuicTlsSendAlertCallback(
+CxPlatTlsSendAlertCallback(
     _In_ SSL *Ssl,
     _In_ enum ssl_encryption_level_t Level,
     _In_ uint8_t Alert
@@ -444,7 +447,7 @@ QuicTlsSendAlertCallback(
 {
     UNREFERENCED_PARAMETER(Level);
 
-    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
 
     QuicTraceLogConnError(
         OpenSslAlert,
@@ -454,20 +457,20 @@ QuicTlsSendAlertCallback(
         Level);
 
     TlsContext->State->AlertCode = Alert;
-    TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
 
     return 1;
 }
 
 int
-QuicTlsClientHelloCallback(
+CxPlatTlsClientHelloCallback(
     _In_ SSL *Ssl,
     _Out_opt_ int *Alert,
     _In_ void *arg
     )
 {
     UNREFERENCED_PARAMETER(arg);
-    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
 
     const uint8_t* TransportParams;
     size_t TransportParamLen;
@@ -477,7 +480,7 @@ QuicTlsClientHelloCallback(
             TlsContext->QuicTpExtType,
             &TransportParams,
             &TransportParamLen)) {
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
         *Alert = SSL_AD_INTERNAL_ERROR;
         return SSL_CLIENT_HELLO_ERROR;
     }
@@ -486,10 +489,10 @@ QuicTlsClientHelloCallback(
 }
 
 SSL_QUIC_METHOD OpenSslQuicCallbacks = {
-    QuicTlsSetEncryptionSecretsCallback,
-    QuicTlsAddHandshakeDataCallback,
-    QuicTlsFlushFlightCallback,
-    QuicTlsSendAlertCallback
+    CxPlatTlsSetEncryptionSecretsCallback,
+    CxPlatTlsAddHandshakeDataCallback,
+    CxPlatTlsFlushFlightCallback,
+    CxPlatTlsSendAlertCallback
 };
 
 QUIC_STATIC_ASSERT(
@@ -517,16 +520,17 @@ QUIC_STATIC_ASSERT(
     "Mismatch (store name) in certificate hash store structs");
 
 QUIC_STATUS
-QuicTlsExtractPrivateKey(
+CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _Out_ RSA** EvpPrivateKey,
     _Out_ X509** X509Cert);
 
 QUIC_STATUS
-QuicTlsSecConfigCreate(
+CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
-    _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
+    _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS &&
@@ -580,7 +584,7 @@ QuicTlsSecConfigCreate(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
-    QUIC_SEC_CONFIG* SecurityConfig = NULL;
+    CXPLAT_SEC_CONFIG* SecurityConfig = NULL;
     RSA* RsaKey = NULL;
     X509* X509Cert = NULL;
 
@@ -588,16 +592,18 @@ QuicTlsSecConfigCreate(
     // Create a security config.
     //
 
-    SecurityConfig = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
+    SecurityConfig = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
     if (SecurityConfig == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_SEC_CONFIG",
-            sizeof(QUIC_SEC_CONFIG));
+            "CXPLAT_SEC_CONFIG",
+            sizeof(CXPLAT_SEC_CONFIG));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
+
+    SecurityConfig->Callbacks = *TlsCallbacks;
 
     //
     // Create the a SSL context for the security config.
@@ -643,7 +649,7 @@ QuicTlsSecConfigCreate(
     Ret =
         SSL_CTX_set_ciphersuites(
             SecurityConfig->SSLCtx,
-            QUIC_TLS_DEFAULT_SSL_CIPHERS);
+            CXPLAT_TLS_DEFAULT_SSL_CIPHERS);
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -668,7 +674,7 @@ QuicTlsSecConfigCreate(
     Ret =
         SSL_CTX_set1_groups_list(
             SecurityConfig->SSLCtx,
-            QUIC_TLS_DEFAULT_SSL_CURVES);
+            CXPLAT_TLS_DEFAULT_SSL_CURVES);
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -695,7 +701,7 @@ QuicTlsSecConfigCreate(
         if (!VerifyServerCertificate) { // cppcheck-suppress knownConditionTrueFalse
             SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
         } else {
-            SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_VERIFY_DEPTH);
+            SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
 
             if (QuicOpenSslClientTrustedCert != NULL) {
                 //
@@ -730,7 +736,7 @@ QuicTlsSecConfigCreate(
         SSL_CTX_clear_options(SecurityConfig->SSLCtx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
         SSL_CTX_set_mode(SecurityConfig->SSLCtx, SSL_MODE_RELEASE_BUFFERS);
 
-        SSL_CTX_set_alpn_select_cb(SecurityConfig->SSLCtx, QuicTlsAlpnSelectCallback, NULL);
+        SSL_CTX_set_alpn_select_cb(SecurityConfig->SSLCtx, CxPlatTlsAlpnSelectCallback, NULL);
 
         //
         // Set the server certs.
@@ -773,7 +779,7 @@ QuicTlsSecConfigCreate(
             }
         } else {
             Status =
-                QuicTlsExtractPrivateKey(
+                CxPlatTlsExtractPrivateKey(
                     CredConfig,
                     &RsaKey,
                     &X509Cert);
@@ -822,7 +828,7 @@ QuicTlsSecConfigCreate(
         }
 
         SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, UINT32_MAX);
-        SSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx, QuicTlsClientHelloCallback, NULL);
+        SSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx, CxPlatTlsClientHelloCallback, NULL);
     }
 
     //
@@ -841,7 +847,7 @@ QuicTlsSecConfigCreate(
 Exit:
 
     if (SecurityConfig != NULL) {
-        QuicTlsSecConfigDelete(SecurityConfig);
+        CxPlatTlsSecConfigDelete(SecurityConfig);
     }
 
     if (X509Cert != NULL) {
@@ -856,8 +862,8 @@ Exit:
 }
 
 void
-QuicTlsSecConfigDelete(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
+CxPlatTlsSecConfigDelete(
+    _In_ CXPLAT_SEC_CONFIG* SecurityConfig
     )
 {
     if (SecurityConfig->SSLCtx != NULL) {
@@ -865,32 +871,32 @@ QuicTlsSecConfigDelete(
         SecurityConfig->SSLCtx = NULL;
     }
 
-    QUIC_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
+    CXPLAT_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
 }
 
 QUIC_STATUS
-QuicTlsInitialize(
-    _In_ const QUIC_TLS_CONFIG* Config,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State,
-    _Out_ QUIC_TLS** NewTlsContext
+CxPlatTlsInitialize(
+    _In_ const CXPLAT_TLS_CONFIG* Config,
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State,
+    _Out_ CXPLAT_TLS** NewTlsContext
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_TLS* TlsContext = NULL;
+    CXPLAT_TLS* TlsContext = NULL;
     uint16_t ServerNameLength = 0;
 
-    TlsContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS), QUIC_POOL_TLS_CTX);
+    TlsContext = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_TLS), QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_TLS",
-            sizeof(QUIC_TLS));
+            "CXPLAT_TLS",
+            sizeof(CXPLAT_TLS));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    QuicZeroMemory(TlsContext, sizeof(QUIC_TLS));
+    CxPlatZeroMemory(TlsContext, sizeof(CXPLAT_TLS));
 
     TlsContext->Connection = Config->Connection;
     TlsContext->IsServer = Config->IsServer;
@@ -898,8 +904,7 @@ QuicTlsInitialize(
     TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
-    TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
-#ifdef QUIC_TLS_SECRETS_SUPPORT
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     TlsContext->TlsSecrets = Config->TlsSecrets;
 #endif
 
@@ -923,7 +928,7 @@ QuicTlsInitialize(
                 goto Exit;
             }
 
-            TlsContext->SNI = QUIC_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
+            TlsContext->SNI = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
             if (TlsContext->SNI == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -980,9 +985,9 @@ QuicTlsInitialize(
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
-    QUIC_FREE(Config->LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
+    CXPLAT_FREE(Config->LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
 
-    State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
+    State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
 
     *NewTlsContext = TlsContext;
     TlsContext = NULL;
@@ -990,7 +995,7 @@ QuicTlsInitialize(
 Exit:
 
     if (TlsContext != NULL) {
-        QuicTlsUninitialize(TlsContext);
+        CxPlatTlsUninitialize(TlsContext);
         TlsContext = NULL;
     }
 
@@ -998,8 +1003,8 @@ Exit:
 }
 
 void
-QuicTlsUninitialize(
-    _In_opt_ QUIC_TLS* TlsContext
+CxPlatTlsUninitialize(
+    _In_opt_ CXPLAT_TLS* TlsContext
     )
 {
     if (TlsContext != NULL) {
@@ -1009,7 +1014,7 @@ QuicTlsUninitialize(
             "Cleaning up");
 
         if (TlsContext->SNI != NULL) {
-            QUIC_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
+            CXPLAT_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
             TlsContext->SNI = NULL;
         }
 
@@ -1018,26 +1023,26 @@ QuicTlsUninitialize(
             TlsContext->Ssl = NULL;
         }
 
-        QUIC_FREE(TlsContext, QUIC_POOL_TLS_CTX);
+        CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
 }
 
-QUIC_TLS_RESULT_FLAGS
-QuicTlsProcessData(
-    _In_ QUIC_TLS* TlsContext,
-    _In_ QUIC_TLS_DATA_TYPE DataType,
+CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsProcessData(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ CXPLAT_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength) const uint8_t* Buffer,
     _Inout_ uint32_t* BufferLength,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State
+    _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     )
 {
     int Ret = 0;
     int Err = 0;
 
-    QUIC_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
+    CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
-    if (DataType == QUIC_TLS_TICKET_DATA) {
-        TlsContext->ResultFlags = QUIC_TLS_RESULT_ERROR;
+    if (DataType == CXPLAT_TLS_TICKET_DATA) {
+        TlsContext->ResultFlags = CXPLAT_TLS_RESULT_ERROR;
 
         QuicTraceLogConnVerbose(
             OpenSsslIgnoringTicket,
@@ -1063,7 +1068,7 @@ QuicTlsProcessData(
             (OSSL_ENCRYPTION_LEVEL)TlsContext->State->ReadKey,
             Buffer,
             *BufferLength) != 1) {
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
         goto Exit;
     }
 
@@ -1082,7 +1087,7 @@ QuicTlsProcessData(
                     TlsContext->Connection,
                     "TLS handshake error: %s",
                     ERR_error_string(ERR_get_error(), NULL));
-                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
 
             default:
@@ -1091,7 +1096,7 @@ QuicTlsProcessData(
                     TlsContext->Connection,
                     "TLS handshake error: %d",
                     Err);
-                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
         }
@@ -1105,7 +1110,7 @@ QuicTlsProcessData(
                     OpenSslAlpnNegotiationFailure,
                     TlsContext->Connection,
                     "Failed to negotiate ALPN");
-                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
             if (NegotiatedAlpnLength > UINT8_MAX) {
@@ -1113,11 +1118,11 @@ QuicTlsProcessData(
                     OpenSslInvalidAlpnLength,
                     TlsContext->Connection,
                     "Invalid negotiated ALPN length");
-                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
             TlsContext->State->NegotiatedAlpn =
-                QuicTlsAlpnFindInList(
+                CxPlatTlsAlpnFindInList(
                     TlsContext->AlpnBufferLength,
                     TlsContext->AlpnBuffer,
                     (uint8_t)NegotiatedAlpnLength,
@@ -1127,7 +1132,7 @@ QuicTlsProcessData(
                     OpenSslNoMatchingAlpn,
                     TlsContext->Connection,
                     "Failed to find a matching ALPN");
-                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
         }
@@ -1137,11 +1142,11 @@ QuicTlsProcessData(
             TlsContext->Connection,
             "Handshake complete");
         State->HandshakeComplete = TRUE;
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_COMPLETE;
 
         if (TlsContext->IsServer) {
             TlsContext->State->ReadKey = QUIC_PACKET_KEY_1_RTT;
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
         } else {
             const uint8_t* TransportParams;
             size_t TransportParamLen;
@@ -1152,14 +1157,14 @@ QuicTlsProcessData(
                     OpenSslMissingTransportParameters,
                     TlsContext->Connection,
                     "No transport parameters received");
-                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
-            if (!TlsContext->ReceiveTPCallback(
+            if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
                     TlsContext->Connection,
                     (uint16_t)TransportParamLen,
                     TransportParams)) {
-                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
         }
@@ -1179,7 +1184,7 @@ QuicTlsProcessData(
                 TlsContext->Connection,
                 "TLS handshake error: %s",
                 ERR_error_string(ERR_get_error(), NULL));
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
 
         default:
@@ -1188,14 +1193,14 @@ QuicTlsProcessData(
                 TlsContext->Connection,
                 "TLS handshake error: %d",
                 Err);
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
         }
     }
 
 Exit:
 
-    if (!(TlsContext->ResultFlags & QUIC_TLS_RESULT_ERROR)) {
+    if (!(TlsContext->ResultFlags & CXPLAT_TLS_RESULT_ERROR)) {
         if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != NULL &&
             State->BufferOffsetHandshake == 0) {
             State->BufferOffsetHandshake = State->BufferTotalLength;
@@ -1219,20 +1224,20 @@ Exit:
     return TlsContext->ResultFlags;
 }
 
-QUIC_TLS_RESULT_FLAGS
-QuicTlsProcessDataComplete(
-    _In_ QUIC_TLS* TlsContext,
+CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsProcessDataComplete(
+    _In_ CXPLAT_TLS* TlsContext,
     _Out_ uint32_t * ConsumedBuffer
     )
 {
     UNREFERENCED_PARAMETER(TlsContext);
     UNREFERENCED_PARAMETER(ConsumedBuffer);
-    return QUIC_TLS_RESULT_ERROR;
+    return CXPLAT_TLS_RESULT_ERROR;
 }
 
 QUIC_STATUS
-QuicTlsParamSet(
-    _In_ QUIC_TLS* TlsContext,
+CxPlatTlsParamSet(
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -1247,8 +1252,8 @@ QuicTlsParamSet(
 }
 
 QUIC_STATUS
-QuicTlsParamGet(
-    _In_ QUIC_TLS* TlsContext,
+CxPlatTlsParamGet(
+    _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
@@ -1268,7 +1273,7 @@ QuicTlsParamGet(
 
 #ifdef DEBUG
 void
-QuicTlsLogSecret(
+CxPlatTlsLogSecret(
     _In_z_ const char* const Prefix,
     _In_reads_(Length)
         const uint8_t* const Secret,
@@ -1277,7 +1282,7 @@ QuicTlsLogSecret(
 {
     #define HEX_TO_CHAR(x) ((x) > 9 ? ('a' + ((x) - 10)) : '0' + (x))
     char SecretStr[256 + 1] = {0};
-    QUIC_DBG_ASSERT(Length * 2 < sizeof(SecretStr));
+    CXPLAT_DBG_ASSERT(Length * 2 < sizeof(SecretStr));
     for (uint32_t i = 0; i < Length; i++) {
         SecretStr[i*2]     = HEX_TO_CHAR(Secret[i] >> 4);
         SecretStr[i*2 + 1] = HEX_TO_CHAR(Secret[i] & 0xf);
@@ -1290,29 +1295,29 @@ QuicTlsLogSecret(
         SecretStr);
 }
 #else
-#define QuicTlsLogSecret(Prefix, Secret, Length) UNREFERENCED_PARAMETER(Prefix);
+#define CxPlatTlsLogSecret(Prefix, Secret, Length) UNREFERENCED_PARAMETER(Prefix);
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicHkdfFormatLabel(
+CxPlatHkdfFormatLabel(
     _In_z_ const char* const Label,
     _In_ uint16_t HashLength,
-    _Out_writes_all_(5 + QUIC_HKDF_PREFIX_LEN + strlen(Label))
+    _Out_writes_all_(5 + CXPLAT_HKDF_PREFIX_LEN + strlen(Label))
         uint8_t* const Data,
     _Inout_ uint32_t* const DataLength
     )
 {
-    QUIC_DBG_ASSERT(strlen(Label) <= UINT8_MAX - QUIC_HKDF_PREFIX_LEN);
+    CXPLAT_DBG_ASSERT(strlen(Label) <= UINT8_MAX - CXPLAT_HKDF_PREFIX_LEN);
     uint8_t LabelLength = (uint8_t)strlen(Label);
 
     Data[0] = HashLength >> 8;
     Data[1] = HashLength & 0xff;
-    Data[2] = QUIC_HKDF_PREFIX_LEN + LabelLength;
-    memcpy(Data + 3, QUIC_HKDF_PREFIX, QUIC_HKDF_PREFIX_LEN);
-    memcpy(Data + 3 + QUIC_HKDF_PREFIX_LEN, Label, LabelLength);
-    Data[3 + QUIC_HKDF_PREFIX_LEN + LabelLength] = 0;
-    *DataLength = 3 + QUIC_HKDF_PREFIX_LEN + LabelLength + 1;
+    Data[2] = CXPLAT_HKDF_PREFIX_LEN + LabelLength;
+    memcpy(Data + 3, CXPLAT_HKDF_PREFIX, CXPLAT_HKDF_PREFIX_LEN);
+    memcpy(Data + 3 + CXPLAT_HKDF_PREFIX_LEN, Label, LabelLength);
+    Data[3 + CXPLAT_HKDF_PREFIX_LEN + LabelLength] = 0;
+    *DataLength = 3 + CXPLAT_HKDF_PREFIX_LEN + LabelLength + 1;
 
     Data[*DataLength] = 0x1;
     *DataLength += 1;
@@ -1320,11 +1325,11 @@ QuicHkdfFormatLabel(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicHkdfExpandLabel(
-    _In_ QUIC_HASH* Hash,
+CxPlatHkdfExpandLabel(
+    _In_ CXPLAT_HASH* Hash,
     _In_z_ const char* const Label,
     _In_ uint16_t KeyLength,
-    _In_ uint32_t OutputLength, // Writes QuicHashLength(HashType) bytes.
+    _In_ uint32_t OutputLength, // Writes CxPlatHashLength(HashType) bytes.
     _Out_writes_all_(OutputLength)
         uint8_t* const Output
     )
@@ -1333,10 +1338,10 @@ QuicHkdfExpandLabel(
     uint32_t LabelLength = sizeof(LabelBuffer);
 
     _Analysis_assume_(strlen(Label) <= 23);
-    QuicHkdfFormatLabel(Label, KeyLength, LabelBuffer, &LabelLength);
+    CxPlatHkdfFormatLabel(Label, KeyLength, LabelBuffer, &LabelLength);
 
     return
-        QuicHashCompute(
+        CxPlatHashCompute(
             Hash,
             LabelBuffer,
             LabelLength,
@@ -1346,28 +1351,28 @@ QuicHkdfExpandLabel(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicTlsDeriveInitialSecrets(
-    _In_reads_(QUIC_VERSION_SALT_LENGTH)
+CxPlatTlsDeriveInitialSecrets(
+    _In_reads_(CXPLAT_VERSION_SALT_LENGTH)
         const uint8_t* const Salt,
     _In_reads_(CIDLength)
         const uint8_t* const CID,
     _In_ uint8_t CIDLength,
-    _Out_ QUIC_SECRET *ClientInitial,
-    _Out_ QUIC_SECRET *ServerInitial
+    _Out_ CXPLAT_SECRET *ClientInitial,
+    _Out_ CXPLAT_SECRET *ServerInitial
     )
 {
     QUIC_STATUS Status;
-    QUIC_HASH* InitialHash = NULL;
-    QUIC_HASH* DerivedHash = NULL;
-    uint8_t InitialSecret[QUIC_HASH_SHA256_SIZE];
+    CXPLAT_HASH* InitialHash = NULL;
+    CXPLAT_HASH* DerivedHash = NULL;
+    uint8_t InitialSecret[CXPLAT_HASH_SHA256_SIZE];
 
-    QuicTlsLogSecret("init cid", CID, CIDLength);
+    CxPlatTlsLogSecret("init cid", CID, CIDLength);
 
     Status =
-        QuicHashCreate(
-            QUIC_HASH_SHA256,
+        CxPlatHashCreate(
+            CXPLAT_HASH_SHA256,
             Salt,
-            QUIC_VERSION_SALT_LENGTH,
+            CXPLAT_VERSION_SALT_LENGTH,
             &InitialHash);
     if (QUIC_FAILED(Status)) {
         goto Error;
@@ -1377,7 +1382,7 @@ QuicTlsDeriveInitialSecrets(
     // Extract secret for client and server secret expansion.
     //
     Status =
-        QuicHashCompute(
+        CxPlatHashCompute(
             InitialHash,
             CID,
             CIDLength,
@@ -1387,14 +1392,14 @@ QuicTlsDeriveInitialSecrets(
         goto Error;
     }
 
-    QuicTlsLogSecret("init secret", InitialSecret, sizeof(InitialSecret));
+    CxPlatTlsLogSecret("init secret", InitialSecret, sizeof(InitialSecret));
 
     //
     // Create hash for client and server secret expansion.
     //
     Status =
-        QuicHashCreate(
-            QUIC_HASH_SHA256,
+        CxPlatHashCreate(
+            CXPLAT_HASH_SHA256,
             InitialSecret,
             sizeof(InitialSecret),
             &DerivedHash);
@@ -1405,14 +1410,14 @@ QuicTlsDeriveInitialSecrets(
     //
     // Expand client secret.
     //
-    ClientInitial->Hash = QUIC_HASH_SHA256;
-    ClientInitial->Aead = QUIC_AEAD_AES_128_GCM;
+    ClientInitial->Hash = CXPLAT_HASH_SHA256;
+    ClientInitial->Aead = CXPLAT_AEAD_AES_128_GCM;
     Status =
-        QuicHkdfExpandLabel(
+        CxPlatHkdfExpandLabel(
             DerivedHash,
             "client in",
             sizeof(InitialSecret),
-            QUIC_HASH_SHA256_SIZE,
+            CXPLAT_HASH_SHA256_SIZE,
             ClientInitial->Secret);
     if (QUIC_FAILED(Status)) {
         goto Error;
@@ -1421,14 +1426,14 @@ QuicTlsDeriveInitialSecrets(
     //
     // Expand server secret.
     //
-    ServerInitial->Hash = QUIC_HASH_SHA256;
-    ServerInitial->Aead = QUIC_AEAD_AES_128_GCM;
+    ServerInitial->Hash = CXPLAT_HASH_SHA256;
+    ServerInitial->Aead = CXPLAT_AEAD_AES_128_GCM;
     Status =
-        QuicHkdfExpandLabel(
+        CxPlatHkdfExpandLabel(
             DerivedHash,
             "server in",
             sizeof(InitialSecret),
-            QUIC_HASH_SHA256_SIZE,
+            CXPLAT_HASH_SHA256_SIZE,
             ServerInitial->Secret);
     if (QUIC_FAILED(Status)) {
         goto Error;
@@ -1436,10 +1441,10 @@ QuicTlsDeriveInitialSecrets(
 
 Error:
 
-    QuicHashFree(InitialHash);
-    QuicHashFree(DerivedHash);
+    CxPlatHashFree(InitialHash);
+    CxPlatHashFree(DerivedHash);
 
-    QuicSecureZeroMemory(InitialSecret, sizeof(InitialSecret));
+    CxPlatSecureZeroMemory(InitialSecret, sizeof(InitialSecret));
 
     return Status;
 }
@@ -1448,25 +1453,25 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicPacketKeyDerive(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
-    _In_ const QUIC_SECRET* const Secret,
+    _In_ const CXPLAT_SECRET* const Secret,
     _In_z_ const char* const SecretName,
     _In_ BOOLEAN CreateHpKey,
     _Out_ QUIC_PACKET_KEY **NewKey
     )
 {
-    const uint16_t SecretLength = QuicHashLength(Secret->Hash);
-    const uint16_t KeyLength = QuicKeyLength(Secret->Aead);
+    const uint16_t SecretLength = CxPlatHashLength(Secret->Hash);
+    const uint16_t KeyLength = CxPlatKeyLength(Secret->Aead);
 
-    QUIC_DBG_ASSERT(SecretLength >= KeyLength);
-    QUIC_DBG_ASSERT(SecretLength >= QUIC_IV_LENGTH);
-    QUIC_DBG_ASSERT(SecretLength <= QUIC_HASH_MAX_SIZE);
+    CXPLAT_DBG_ASSERT(SecretLength >= KeyLength);
+    CXPLAT_DBG_ASSERT(SecretLength >= CXPLAT_IV_LENGTH);
+    CXPLAT_DBG_ASSERT(SecretLength <= CXPLAT_HASH_MAX_SIZE);
 
-    QuicTlsLogSecret(SecretName, Secret->Secret, SecretLength);
+    CxPlatTlsLogSecret(SecretName, Secret->Secret, SecretLength);
 
     const uint16_t PacketKeyLength =
         sizeof(QUIC_PACKET_KEY) +
-        (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
-    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength, QUIC_POOL_TLS_PACKETKEY);
+        (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(CXPLAT_SECRET) : 0);
+    QUIC_PACKET_KEY *Key = CXPLAT_ALLOC_NONPAGED(PacketKeyLength, QUIC_POOL_TLS_PACKETKEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1475,14 +1480,14 @@ QuicPacketKeyDerive(
             PacketKeyLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    QuicZeroMemory(Key, sizeof(QUIC_PACKET_KEY));
+    CxPlatZeroMemory(Key, sizeof(QUIC_PACKET_KEY));
     Key->Type = KeyType;
 
-    QUIC_HASH* Hash = NULL;
-    uint8_t Temp[QUIC_HASH_MAX_SIZE];
+    CXPLAT_HASH* Hash = NULL;
+    uint8_t Temp[CXPLAT_HASH_MAX_SIZE];
 
     QUIC_STATUS Status =
-        QuicHashCreate(
+        CxPlatHashCreate(
             Secret->Hash,
             Secret->Secret,
             SecretLength,
@@ -1492,21 +1497,21 @@ QuicPacketKeyDerive(
     }
 
     Status =
-        QuicHkdfExpandLabel(
+        CxPlatHkdfExpandLabel(
             Hash,
             "quic iv",
-            QUIC_IV_LENGTH,
+            CXPLAT_IV_LENGTH,
             SecretLength,
             Temp);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
-    memcpy(Key->Iv, Temp, QUIC_IV_LENGTH);
-    QuicTlsLogSecret("static iv", Key->Iv, QUIC_IV_LENGTH);
+    memcpy(Key->Iv, Temp, CXPLAT_IV_LENGTH);
+    CxPlatTlsLogSecret("static iv", Key->Iv, CXPLAT_IV_LENGTH);
 
     Status =
-        QuicHkdfExpandLabel(
+        CxPlatHkdfExpandLabel(
             Hash,
             "quic key",
             KeyLength,
@@ -1516,10 +1521,10 @@ QuicPacketKeyDerive(
         goto Error;
     }
 
-    QuicTlsLogSecret("key", Temp, KeyLength);
+    CxPlatTlsLogSecret("key", Temp, KeyLength);
 
     Status =
-        QuicKeyCreate(
+        CxPlatKeyCreate(
             Secret->Aead,
             Temp,
             &Key->PacketKey);
@@ -1529,7 +1534,7 @@ QuicPacketKeyDerive(
 
     if (CreateHpKey) {
         Status =
-            QuicHkdfExpandLabel(
+            CxPlatHkdfExpandLabel(
                 Hash,
                 "quic hp",
                 KeyLength,
@@ -1539,10 +1544,10 @@ QuicPacketKeyDerive(
             goto Error;
         }
 
-        QuicTlsLogSecret("hp", Temp, KeyLength);
+        CxPlatTlsLogSecret("hp", Temp, KeyLength);
 
         Status =
-            QuicHpKeyCreate(
+            CxPlatHpKeyCreate(
                 Secret->Aead,
                 Temp,
                 &Key->HeaderKey);
@@ -1552,7 +1557,7 @@ QuicPacketKeyDerive(
     }
 
     if (KeyType == QUIC_PACKET_KEY_1_RTT) {
-        QuicCopyMemory(Key->TrafficSecret, Secret, sizeof(QUIC_SECRET));
+        CxPlatCopyMemory(Key->TrafficSecret, Secret, sizeof(CXPLAT_SECRET));
     }
 
     *NewKey = Key;
@@ -1561,9 +1566,9 @@ QuicPacketKeyDerive(
 Error:
 
     QuicPacketKeyFree(Key);
-    QuicHashFree(Hash);
+    CxPlatHashFree(Hash);
 
-    QuicSecureZeroMemory(Temp, sizeof(Temp));
+    CxPlatSecureZeroMemory(Temp, sizeof(Temp));
 
     return Status;
 }
@@ -1574,7 +1579,7 @@ _When_(NewWriteKey != NULL, _At_(*NewWriteKey, __drv_allocatesMem(Mem)))
 QUIC_STATUS
 QuicPacketKeyCreateInitial(
     _In_ BOOLEAN IsServer,
-    _In_reads_(QUIC_VERSION_SALT_LENGTH)
+    _In_reads_(CXPLAT_VERSION_SALT_LENGTH)
         const uint8_t* const Salt,  // Version Specific
     _In_ uint8_t CIDLength,
     _In_reads_(CIDLength)
@@ -1584,11 +1589,11 @@ QuicPacketKeyCreateInitial(
     )
 {
     QUIC_STATUS Status;
-    QUIC_SECRET ClientInitial, ServerInitial;
+    CXPLAT_SECRET ClientInitial, ServerInitial;
     QUIC_PACKET_KEY* ReadKey = NULL, *WriteKey = NULL;
 
     Status =
-        QuicTlsDeriveInitialSecrets(
+        CxPlatTlsDeriveInitialSecrets(
             Salt,
             CID,
             CIDLength,
@@ -1639,8 +1644,8 @@ Error:
     QuicPacketKeyFree(ReadKey);
     QuicPacketKeyFree(WriteKey);
 
-    QuicSecureZeroMemory(ClientInitial.Secret, sizeof(ClientInitial.Secret));
-    QuicSecureZeroMemory(ServerInitial.Secret, sizeof(ServerInitial.Secret));
+    CxPlatSecureZeroMemory(ClientInitial.Secret, sizeof(ClientInitial.Secret));
+    CxPlatSecureZeroMemory(ServerInitial.Secret, sizeof(ServerInitial.Secret));
 
     return Status;
 }
@@ -1651,12 +1656,12 @@ QuicPacketKeyFree(
     )
 {
     if (Key != NULL) {
-        QuicKeyFree(Key->PacketKey);
-        QuicHpKeyFree(Key->HeaderKey);
+        CxPlatKeyFree(Key->PacketKey);
+        CxPlatHpKeyFree(Key->HeaderKey);
         if (Key->Type >= QUIC_PACKET_KEY_1_RTT) {
-            QuicSecureZeroMemory(Key->TrafficSecret, sizeof(QUIC_SECRET));
+            CxPlatSecureZeroMemory(Key->TrafficSecret, sizeof(CXPLAT_SECRET));
         }
-        QUIC_FREE(Key, QUIC_POOL_TLS_PACKETKEY);
+        CXPLAT_FREE(Key, QUIC_POOL_TLS_PACKETKEY);
     }
 }
 
@@ -1670,12 +1675,12 @@ QuicPacketKeyUpdate(
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    QUIC_HASH* Hash = NULL;
-    QUIC_SECRET NewTrafficSecret;
-    const uint16_t SecretLength = QuicHashLength(OldKey->TrafficSecret->Hash);
+    CXPLAT_HASH* Hash = NULL;
+    CXPLAT_SECRET NewTrafficSecret;
+    const uint16_t SecretLength = CxPlatHashLength(OldKey->TrafficSecret->Hash);
 
     QUIC_STATUS Status =
-        QuicHashCreate(
+        CxPlatHashCreate(
             OldKey->TrafficSecret->Hash,
             OldKey->TrafficSecret->Secret,
             SecretLength,
@@ -1685,7 +1690,7 @@ QuicPacketKeyUpdate(
     }
 
     Status =
-        QuicHkdfExpandLabel(
+        CxPlatHkdfExpandLabel(
             Hash,
             "quic ku",
             SecretLength,
@@ -1706,24 +1711,24 @@ QuicPacketKeyUpdate(
             FALSE,
             NewKey);
 
-    QuicSecureZeroMemory(&NewTrafficSecret, sizeof(QUIC_SECRET));
-    QuicSecureZeroMemory(OldKey->TrafficSecret, sizeof(QUIC_SECRET));
+    CxPlatSecureZeroMemory(&NewTrafficSecret, sizeof(CXPLAT_SECRET));
+    CxPlatSecureZeroMemory(OldKey->TrafficSecret, sizeof(CXPLAT_SECRET));
 
 Error:
 
-    QuicHashFree(Hash);
+    CxPlatHashFree(Hash);
 
     return Status;
 }
 
 QUIC_STATUS
-QuicKeyCreate(
-    _In_ QUIC_AEAD_TYPE AeadType,
-    _When_(AeadType == QUIC_AEAD_AES_128_GCM, _In_reads_(16))
-    _When_(AeadType == QUIC_AEAD_AES_256_GCM, _In_reads_(32))
-    _When_(AeadType == QUIC_AEAD_CHACHA20_POLY1305, _In_reads_(32))
+CxPlatKeyCreate(
+    _In_ CXPLAT_AEAD_TYPE AeadType,
+    _When_(AeadType == CXPLAT_AEAD_AES_128_GCM, _In_reads_(16))
+    _When_(AeadType == CXPLAT_AEAD_AES_256_GCM, _In_reads_(32))
+    _When_(AeadType == CXPLAT_AEAD_CHACHA20_POLY1305, _In_reads_(32))
         const uint8_t* const RawKey,
-    _Out_ QUIC_KEY** NewKey
+    _Out_ CXPLAT_KEY** NewKey
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -1740,13 +1745,13 @@ QuicKeyCreate(
     }
 
     switch (AeadType) {
-    case QUIC_AEAD_AES_128_GCM:
+    case CXPLAT_AEAD_AES_128_GCM:
         Aead = EVP_aes_128_gcm();
         break;
-    case QUIC_AEAD_AES_256_GCM:
+    case CXPLAT_AEAD_AES_256_GCM:
         Aead = EVP_aes_256_gcm();
         break;
-    case QUIC_AEAD_CHACHA20_POLY1305:
+    case CXPLAT_AEAD_CHACHA20_POLY1305:
         Aead = EVP_chacha20_poly1305();
         break;
     default:
@@ -1763,7 +1768,7 @@ QuicKeyCreate(
         goto Exit;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, QUIC_IV_LENGTH, NULL) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, CXPLAT_IV_LENGTH, NULL) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1773,39 +1778,39 @@ QuicKeyCreate(
         goto Exit;
     }
 
-    *NewKey = (QUIC_KEY*)CipherCtx;
+    *NewKey = (CXPLAT_KEY*)CipherCtx;
     CipherCtx = NULL;
 
 Exit:
 
-    QuicKeyFree((QUIC_KEY*)CipherCtx);
+    CxPlatKeyFree((CXPLAT_KEY*)CipherCtx);
 
     return Status;
 }
 
 void
-QuicKeyFree(
-    _In_opt_ QUIC_KEY* Key
+CxPlatKeyFree(
+    _In_opt_ CXPLAT_KEY* Key
     )
 {
     EVP_CIPHER_CTX_free((EVP_CIPHER_CTX*)Key);
 }
 
 QUIC_STATUS
-QuicEncrypt(
-    _In_ QUIC_KEY* Key,
-    _In_reads_bytes_(QUIC_IV_LENGTH) const uint8_t* const Iv,
+CxPlatEncrypt(
+    _In_ CXPLAT_KEY* Key,
+    _In_reads_bytes_(CXPLAT_IV_LENGTH) const uint8_t* const Iv,
     _In_ uint16_t AuthDataLength,
     _In_reads_bytes_opt_(AuthDataLength) const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
-    _When_(BufferLength > QUIC_ENCRYPTION_OVERHEAD, _Inout_updates_bytes_(BufferLength))
-    _When_(BufferLength <= QUIC_ENCRYPTION_OVERHEAD, _Out_writes_bytes_(BufferLength))
+    _When_(BufferLength > CXPLAT_ENCRYPTION_OVERHEAD, _Inout_updates_bytes_(BufferLength))
+    _When_(BufferLength <= CXPLAT_ENCRYPTION_OVERHEAD, _Out_writes_bytes_(BufferLength))
         uint8_t* Buffer
     )
 {
-    QUIC_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
+    CXPLAT_DBG_ASSERT(CXPLAT_ENCRYPTION_OVERHEAD <= BufferLength);
 
-    const uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
+    const uint16_t PlainTextLength = BufferLength - CXPLAT_ENCRYPTION_OVERHEAD;
     uint8_t *Tag = Buffer + PlainTextLength;
     int OutLen;
 
@@ -1844,7 +1849,7 @@ QuicEncrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_GET_TAG, QUIC_ENCRYPTION_OVERHEAD, Tag) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_GET_TAG, CXPLAT_ENCRYPTION_OVERHEAD, Tag) != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -1856,18 +1861,18 @@ QuicEncrypt(
 }
 
 QUIC_STATUS
-QuicDecrypt(
-    _In_ QUIC_KEY* Key,
-    _In_reads_bytes_(QUIC_IV_LENGTH) const uint8_t* const Iv,
+CxPlatDecrypt(
+    _In_ CXPLAT_KEY* Key,
+    _In_reads_bytes_(CXPLAT_IV_LENGTH) const uint8_t* const Iv,
     _In_ uint16_t AuthDataLength,
     _In_reads_bytes_opt_(AuthDataLength) const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
     _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
     )
 {
-    QUIC_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
+    CXPLAT_DBG_ASSERT(CXPLAT_ENCRYPTION_OVERHEAD <= BufferLength);
 
-    const uint16_t CipherTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
+    const uint16_t CipherTextLength = BufferLength - CXPLAT_ENCRYPTION_OVERHEAD;
     uint8_t *Tag = Buffer + CipherTextLength;
     int OutLen;
 
@@ -1901,7 +1906,7 @@ QuicDecrypt(
         return QUIC_STATUS_TLS_ERROR;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_TAG, QUIC_ENCRYPTION_OVERHEAD, Tag) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_TAG, CXPLAT_ENCRYPTION_OVERHEAD, Tag) != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1923,24 +1928,24 @@ QuicDecrypt(
 }
 
 QUIC_STATUS
-QuicHpKeyCreate(
-    _In_ QUIC_AEAD_TYPE AeadType,
-    _When_(AeadType == QUIC_AEAD_AES_128_GCM, _In_reads_(16))
-    _When_(AeadType == QUIC_AEAD_AES_256_GCM, _In_reads_(32))
-    _When_(AeadType == QUIC_AEAD_CHACHA20_POLY1305, _In_reads_(32))
+CxPlatHpKeyCreate(
+    _In_ CXPLAT_AEAD_TYPE AeadType,
+    _When_(AeadType == CXPLAT_AEAD_AES_128_GCM, _In_reads_(16))
+    _When_(AeadType == CXPLAT_AEAD_AES_256_GCM, _In_reads_(32))
+    _When_(AeadType == CXPLAT_AEAD_CHACHA20_POLY1305, _In_reads_(32))
         const uint8_t* const RawKey,
-    _Out_ QUIC_HP_KEY** NewKey
+    _Out_ CXPLAT_HP_KEY** NewKey
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const EVP_CIPHER *Aead;
-    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HP_KEY), QUIC_POOL_TLS_HP_KEY);
+    CXPLAT_HP_KEY* Key = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_HP_KEY), QUIC_POOL_TLS_HP_KEY);
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_HP_KEY",
-            sizeof(QUIC_HP_KEY));
+            "CXPLAT_HP_KEY",
+            sizeof(CXPLAT_HP_KEY));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -1957,13 +1962,13 @@ QuicHpKeyCreate(
     }
 
     switch (AeadType) {
-    case QUIC_AEAD_AES_128_GCM:
+    case CXPLAT_AEAD_AES_128_GCM:
         Aead = EVP_aes_128_ecb();
         break;
-    case QUIC_AEAD_AES_256_GCM:
+    case CXPLAT_AEAD_AES_256_GCM:
         Aead = EVP_aes_256_ecb();
         break;
-    case QUIC_AEAD_CHACHA20_POLY1305:
+    case CXPLAT_AEAD_CHACHA20_POLY1305:
         Aead = EVP_chacha20();
         break;
     default:
@@ -1985,34 +1990,34 @@ QuicHpKeyCreate(
 
 Exit:
 
-    QuicHpKeyFree(Key);
+    CxPlatHpKeyFree(Key);
 
     return Status;
 }
 
 void
-QuicHpKeyFree(
-    _In_opt_ QUIC_HP_KEY* Key
+CxPlatHpKeyFree(
+    _In_opt_ CXPLAT_HP_KEY* Key
     )
 {
     if (Key != NULL) {
         EVP_CIPHER_CTX_free(Key->CipherCtx);
-        QUIC_FREE(Key, QUIC_POOL_TLS_HP_KEY);
+        CXPLAT_FREE(Key, QUIC_POOL_TLS_HP_KEY);
     }
 }
 
 QUIC_STATUS
-QuicHpComputeMask(
-    _In_ QUIC_HP_KEY* Key,
+CxPlatHpComputeMask(
+    _In_ CXPLAT_HP_KEY* Key,
     _In_ uint8_t BatchSize,
-    _In_reads_bytes_(QUIC_HP_SAMPLE_LENGTH * BatchSize) const uint8_t* const Cipher,
-    _Out_writes_bytes_(QUIC_HP_SAMPLE_LENGTH * BatchSize) uint8_t* Mask
+    _In_reads_bytes_(CXPLAT_HP_SAMPLE_LENGTH * BatchSize) const uint8_t* const Cipher,
+    _Out_writes_bytes_(CXPLAT_HP_SAMPLE_LENGTH * BatchSize) uint8_t* Mask
     )
 {
     int OutLen = 0;
-    if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
+    if (Key->Aead == CXPLAT_AEAD_CHACHA20_POLY1305) {
         static const uint8_t Zero[] = { 0, 0, 0, 0, 0 };
-        for (uint32_t i = 0, Offset = 0; i < BatchSize; ++i, Offset += QUIC_HP_SAMPLE_LENGTH) {
+        for (uint32_t i = 0, Offset = 0; i < BatchSize; ++i, Offset += CXPLAT_HP_SAMPLE_LENGTH) {
             if (EVP_EncryptInit_ex(Key->CipherCtx, NULL, NULL, NULL, Cipher + Offset) != 1) {
                 QuicTraceEvent(
                     LibraryError,
@@ -2029,7 +2034,7 @@ QuicHpComputeMask(
             }
         }
     } else {
-        if (EVP_EncryptUpdate(Key->CipherCtx, Mask, &OutLen, Cipher, QUIC_HP_SAMPLE_LENGTH * BatchSize) != 1) {
+        if (EVP_EncryptUpdate(Key->CipherCtx, Mask, &OutLen, Cipher, CXPLAT_HP_SAMPLE_LENGTH * BatchSize) != 1) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
@@ -2044,7 +2049,7 @@ QuicHpComputeMask(
 // Hash abstraction
 //
 
-typedef struct QUIC_HASH {
+typedef struct CXPLAT_HASH {
     //
     // The message digest.
     //
@@ -2055,14 +2060,14 @@ typedef struct QUIC_HASH {
     //
     HMAC_CTX* HashContext;
 
-} QUIC_HASH;
+} CXPLAT_HASH;
 
 QUIC_STATUS
-QuicHashCreate(
-    _In_ QUIC_HASH_TYPE HashType,
+CxPlatHashCreate(
+    _In_ CXPLAT_HASH_TYPE HashType,
     _In_reads_(SaltLength) const uint8_t* const Salt,
     _In_ uint32_t SaltLength,
-    _Out_ QUIC_HASH** NewHash
+    _Out_ CXPLAT_HASH** NewHash
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -2079,13 +2084,13 @@ QuicHashCreate(
     }
 
     switch (HashType) {
-    case QUIC_HASH_SHA256:
+    case CXPLAT_HASH_SHA256:
         Md = EVP_sha256();
         break;
-    case QUIC_HASH_SHA384:
+    case CXPLAT_HASH_SHA384:
         Md = EVP_sha384();
         break;
-    case QUIC_HASH_SHA512:
+    case CXPLAT_HASH_SHA512:
         Md = EVP_sha512();
         break;
     default:
@@ -2102,27 +2107,27 @@ QuicHashCreate(
         goto Exit;
     }
 
-    *NewHash = (QUIC_HASH*)HashContext;
+    *NewHash = (CXPLAT_HASH*)HashContext;
     HashContext = NULL;
 
 Exit:
 
-    QuicHashFree((QUIC_HASH*)HashContext);
+    CxPlatHashFree((CXPLAT_HASH*)HashContext);
 
     return Status;
 }
 
 void
-QuicHashFree(
-    _In_opt_ QUIC_HASH* Hash
+CxPlatHashFree(
+    _In_opt_ CXPLAT_HASH* Hash
     )
 {
     HMAC_CTX_free((HMAC_CTX*)Hash);
 }
 
 QUIC_STATUS
-QuicHashCompute(
-    _In_ QUIC_HASH* Hash,
+CxPlatHashCompute(
+    _In_ CXPLAT_HASH* Hash,
     _In_reads_(InputLength) const uint8_t* const Input,
     _In_ uint32_t InputLength,
     _In_ uint32_t OutputLength,
@@ -2156,6 +2161,6 @@ QuicHashCompute(
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
-    QUIC_FRE_ASSERT(ActualOutputSize == OutputLength);
+    CXPLAT_FRE_ASSERT(ActualOutputSize == OutputLength);
     return QUIC_STATUS_SUCCESS;
 }

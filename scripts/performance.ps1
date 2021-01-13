@@ -56,6 +56,8 @@ This script runs performance tests locally for a period of time.
 
 #>
 
+Using module .\performance-helper.psm1
+
 param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
@@ -125,6 +127,7 @@ param (
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
 # Validate the the kernel switch.
 if ($Kernel -and !$IsWindows) {
@@ -175,9 +178,13 @@ if (!$IsWindows) {
 
 if ($TestsFile -eq "") {
     $TestsFile = Join-Path $PSScriptRoot "RemoteTests.json"
+} elseif (-not (Test-Path $TestsFile)) {
+    $TestsFile = Join-Path $PSScriptRoot $TestsFile
 }
 
-Import-Module (Join-Path $PSScriptRoot 'performance-helper.psm1') -Force
+if (-not (Test-Path $TestsFile)) {
+    Write-Error "Test file to run not found"
+}
 
 if ($Local) {
     $RemoteAddress = "localhost"
@@ -232,15 +239,24 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
-# Join path in script to ensure right platform separator
-$RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
-    Join-Path (Get-Location) "Tests"
-}
-
 $LocalDirectory = Join-Path $RootDir "artifacts/bin"
+$RemoteDirectorySMB = $null
 
 if ($Local) {
     $RemoteDirectory = $LocalDirectory
+} else {
+    # See if remote SMB path exists
+    if (Test-Path "\\$ComputerName\Tests") {
+        $RemoteDirectorySMB = "\\$ComputerName\Tests"
+        $RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
+            (Get-SmbShare -Name Tests).Path
+        }
+    } else {
+        # Join path in script to ensure right platform separator
+        $RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
+            Join-Path (Get-Location) "Tests"
+        }
+    }
 }
 
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
@@ -316,11 +332,11 @@ $LastCommitHash = Get-LatestCommitHash -Branch $BranchName
 $PreviousResults = Get-LatestCpuTestResult -Branch $BranchName -CommitHash $LastCommitHash
 
 function Invoke-Test {
-    param ($Test)
+    param ([TestRunDefinition]$Test, [RemoteConfig]$RemoteConfig)
 
     Write-Output "Running Test $Test"
 
-    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $Test.Remote
+    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $RemoteConfig
     $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
 
     # Check both Exes
@@ -344,11 +360,7 @@ function Invoke-Test {
     $LocalArguments = $Test.Local.Arguments.Replace('$RemoteAddress', $RemoteAddress)
     $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
 
-    $CertThumbprint = Invoke-TestCommand -Session $Session -ScriptBlock {
-        return $env:QUICCERT
-    }
-
-    $RemoteArguments = $Test.Remote.Arguments.Replace('$Thumbprint', $CertThumbprint)
+    $RemoteArguments = $RemoteConfig.Arguments
 
     Write-Debug "Running Remote: $RemoteExe Args: $RemoteArguments"
 
@@ -440,7 +452,7 @@ if ($Record -and $IsWindows) {
 }
 
 try {
-    $Tests = Get-Tests -Path $TestsFile -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
+    [TestRunConfig]$Tests = Get-Tests -Path $TestsFile -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
 
     if ($null -eq $Tests) {
         Write-Error "Tests are not valid"
@@ -448,28 +460,25 @@ try {
 
     # Find All Remote processes, and kill them
     if (!$Local) {
-        foreach ($Test in $Tests) {
-            $ExeName = $Test.Remote.Exe
-            Invoke-TestCommand -Session $Session -ScriptBlock {
-                param ($ExeName)
-                try {
-                    Stop-Process -Name $ExeName -Force
-                } catch {
-                }
-            } -ArgumentList $ExeName
-        }
-
+        $ExeName = $Tests.Remote.Exe
+        Invoke-TestCommand -Session $Session -ScriptBlock {
+            param ($ExeName)
+            try {
+                Stop-Process -Name $ExeName -Force
+            } catch {
+            }
+        } -ArgumentList $ExeName
     }
 
     if (!$SkipDeploy -and !$Local) {
-        Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory
+        Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbDir $RemoteDirectorySMB
     }
 
-    foreach ($Test in $Tests) {
+    foreach ($Test in $Tests.Tests) {
         if ($TestToRun -ne "" -and $Test.TestName -ne $TestToRun) {
             continue
         }
-        Invoke-Test -Test $Test
+        Invoke-Test -Test $Test -RemoteConfig $Tests.Remote
     }
 
     if ($PGO) {

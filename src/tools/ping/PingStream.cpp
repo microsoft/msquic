@@ -36,7 +36,7 @@ PingStream::PingStream(
     Connection(connection), QuicStream(stream),
     Mode(mode), Aborted(false),
     BytesSent(0), BytesCompleted(0), BytesReceived(0) {
-    StartTime = QuicTimeUs64();
+    StartTime = CxPlatTimeUs64();
     MsQuic->SetCallbackHandler(QuicStream, (void*)QuicCallbackHandler, this);
 
     printf("[%p][%llu] Opened.\n", Connection->QuicConnection, (unsigned long long)GetStreamID(MsQuic, QuicStream));
@@ -51,7 +51,7 @@ PingStream::~PingStream() {
 bool
 PingStream::Start(
     ) {
-    StartTime = QuicTimeUs64();
+    StartTime = CxPlatTimeUs64();
     QUIC_STREAM_OPEN_FLAGS OpenFlags = QUIC_STREAM_OPEN_FLAG_NONE;
     if (Mode == UniSendMode) {
         OpenFlags = QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL;
@@ -174,7 +174,7 @@ PingStream::ProcessEvent(
         break;
 
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
-        CompleteTime = QuicTimeUs64();
+        CompleteTime = CxPlatTimeUs64();
 
         bool Completed = false;
         switch (Mode) {

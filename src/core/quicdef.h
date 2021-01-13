@@ -225,16 +225,16 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_MAX_RANGE_ACK_PACKETS              0x800       // 2048
 #define QUIC_MAX_RANGE_DECODE_ACKS              0x1000      // 4096
 
-QUIC_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ALLOC_SIZE), L"Must be power of two");
-QUIC_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DUPLICATE_PACKETS), L"Must be power of two");
-QUIC_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ACK_PACKETS), L"Must be power of two");
-QUIC_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ALLOC_SIZE), L"Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DUPLICATE_PACKETS), L"Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ACK_PACKETS), L"Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be power of two");
 
 //
 // Path MTU discovery will always start with/initialize with the smallest
 // allowable MTU for QUIC (1280 bytes).
 //
-#define QUIC_DEFAULT_PATH_MTU                   QUIC_MIN_MTU
+#define QUIC_DEFAULT_PATH_MTU                   1280    // TODO - Use 1200 instead
 
 //
 // The maximum time an app callback can take before we log a warning.
@@ -259,7 +259,7 @@ QUIC_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be power 
 //
 #define QUIC_MAX_DISCONNECT_TIMEOUT             600000  // 10 minutes, in ms
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     QUIC_DEFAULT_DISCONNECT_TIMEOUT <= QUIC_MAX_DISCONNECT_TIMEOUT,
     L"Default disconnect timeout should always be less than max");
 
@@ -327,11 +327,11 @@ QUIC_STATIC_ASSERT(
 //
 #define QUIC_ACTIVE_CONNECTION_ID_LIMIT         4
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     2 <= QUIC_ACTIVE_CONNECTION_ID_LIMIT,
     "Should always be more than the spec minimum");
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     QUIC_MAX_PATH_COUNT <= QUIC_ACTIVE_CONNECTION_ID_LIMIT,
     "Should always have enough CIDs for all paths");
 
@@ -404,20 +404,20 @@ QUIC_STATIC_ASSERT(
 // Version of the wire-format for resumption tickets.
 // This needs to be incremented for each change in order or count of fields.
 //
-#define QUIC_TLS_RESUMPTION_TICKET_VERSION      1
+#define CXPLAT_TLS_RESUMPTION_TICKET_VERSION      1
 
 //
 // Version of the blob for client resumption tickets.
 // This needs to be incremented for each change in order or count of fields.
 //
-#define QUIC_TLS_RESUMPTION_CLIENT_TICKET_VERSION      1
+#define CXPLAT_TLS_RESUMPTION_CLIENT_TICKET_VERSION      1
 
 //
 // The AEAD Integrity limit for maximum failed decryption packets over the
 // lifetime of a connection. Set to the lowest limit, which is for
 // AEAD_AES_128_CCM at 2^23.5 (rounded down)
 //
-#define QUIC_AEAD_INTEGRITY_LIMIT               11863283
+#define CXPLAT_AEAD_INTEGRITY_LIMIT               11863283
 
 /*************************************************************
                   PERSISTENT SETTINGS

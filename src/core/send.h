@@ -222,7 +222,7 @@ typedef struct QUIC_SEND {
     //
     // List of streams with data or control frames to send.
     //
-    QUIC_LIST_ENTRY SendStreams;
+    CXPLAT_LIST_ENTRY SendStreams;
 
     //
     // The current token to send with an Initial packet.
