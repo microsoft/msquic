@@ -17,7 +17,7 @@ Abstract:
 QUIC_FUZZ_CONTEXT MsQuicFuzzerContext = {0};
 
 extern void
-QuicFuzzerReceiveInject(
+CxPlatFuzzerReceiveInject(
     _In_ const QUIC_ADDR *SourceAddress,
     _In_ uint8_t *PacketData,
     _In_ uint16_t PacketLength
@@ -74,7 +74,7 @@ MsQuicFuzzSimulateReceive(
     _In_ uint16_t PacketLength
     )
 {
-    QuicFuzzerReceiveInject(SourceAddress, PacketData, PacketLength);
+    CxPlatFuzzerReceiveInject(SourceAddress, PacketData, PacketLength);
 }
 
 void
@@ -105,13 +105,13 @@ DllMain(
 #else
         UNREFERENCED_PARAMETER(Instance);
 #endif
-        QuicPlatformSystemLoad();
+        CxPlatSystemLoad();
         MsQuicLibraryLoad();
         break;
 
     case DLL_PROCESS_DETACH:
         MsQuicLibraryUnload();
-        QuicPlatformSystemUnload();
+        CxPlatSystemUnload();
         break;
     }
 

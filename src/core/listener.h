@@ -20,7 +20,7 @@ typedef struct QUIC_LISTENER {
     //
     // The link in the binding's list of listeners.
     //
-    QUIC_LIST_ENTRY Link;
+    CXPLAT_LIST_ENTRY Link;
 
     //
     // The top level registration.
@@ -37,7 +37,7 @@ typedef struct QUIC_LISTENER {
     //
     // Rundown for unregistering from a binding.
     //
-    QUIC_RUNDOWN_REF Rundown;
+    CXPLAT_RUNDOWN_REF Rundown;
 
     //
     // The address that the listener is listening on.

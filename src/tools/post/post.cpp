@@ -29,11 +29,8 @@ extern "C" void QuicTraceRundown(void) { }
 
 #define ALPN_BUFFER(str) { sizeof(str) - 1, (uint8_t*)str }
 const QUIC_BUFFER ALPNs[] = {
-    ALPN_BUFFER("hq-31"),
-    ALPN_BUFFER("hq-30"),
-    ALPN_BUFFER("hq-29"),
-    ALPN_BUFFER("hq-28"),
-    ALPN_BUFFER("hq-27")
+    ALPN_BUFFER("hq-interop"),
+    ALPN_BUFFER("hq-29")
 };
 
 const QUIC_API_TABLE* MsQuic;
@@ -41,7 +38,7 @@ uint16_t Port = 4433;
 const char* ServerName = "localhost";
 const char* FilePath = nullptr;
 FILE* File = nullptr;
-QUIC_EVENT SendReady;
+CXPLAT_EVENT SendReady;
 bool TransferCanceled = false;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -90,7 +87,7 @@ StreamHandler(
             TransferCanceled = true;
             printf("Send canceled!\n");
         }
-        QuicEventSet(SendReady);
+        CxPlatEventSet(SendReady);
         break;
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
         printf("Peer stream recv abort (0x%llx)\n", (unsigned long long)Event->PEER_RECEIVE_ABORTED.ErrorCode);
@@ -120,8 +117,8 @@ main(
     TryGetValue(argc, argv, "server", &ServerName);
     TryGetValue(argc, argv, "port", &Port);
 
-    QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
+    CxPlatSystemLoad();
+    CxPlatInitialize();
 
     File = fopen(FilePath, "rb");
     if (File == nullptr) {
@@ -139,7 +136,7 @@ main(
         FileName += 1;
     }
 
-    QuicEventInitialize(&SendReady, FALSE, FALSE);
+    CxPlatEventInitialize(&SendReady, FALSE, FALSE);
 
     HQUIC Registration = nullptr;
     HQUIC Configuration = nullptr;
@@ -147,7 +144,7 @@ main(
     HQUIC Stream = nullptr;
 
     QUIC_CREDENTIAL_CONFIG CredConfig;
-    QuicZeroMemory(&CredConfig, sizeof(CredConfig));
+    CxPlatZeroMemory(&CredConfig, sizeof(CredConfig));
     CredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
     CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_CLIENT;
 
@@ -164,7 +161,7 @@ main(
     printf("POST '%s' to %s:%hu\n", FileName, ServerName, Port);
 
     uint64_t TotalBytesSent = 0;
-    uint64_t TimeStart = QuicTimeUs64();
+    uint64_t TimeStart = CxPlatTimeUs64();
 
     uint8_t Buffer[IO_SIZE];
     QUIC_BUFFER SendBuffer = { 0, Buffer };
@@ -180,7 +177,7 @@ main(
                 File);
         EndOfFile = SendBuffer.Length != sizeof(Buffer);
         EXIT_ON_FAILURE(MsQuic->StreamSend(Stream, &SendBuffer, 1, EndOfFile ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE, nullptr));
-        QuicEventWaitForever(SendReady);
+        CxPlatEventWaitForever(SendReady);
         TotalBytesSent += SendBuffer.Length;
         SendBuffer.Length = 0;
     } while (!TransferCanceled && !EndOfFile);
@@ -189,8 +186,8 @@ main(
     MsQuic->RegistrationClose(Registration);
     MsQuicClose(MsQuic);
 
-    uint64_t TimeEnd = QuicTimeUs64();
-    uint64_t ElapsedUs = QuicTimeDiff64(TimeStart, TimeEnd);
+    uint64_t TimeEnd = CxPlatTimeUs64();
+    uint64_t ElapsedUs = CxPlatTimeDiff64(TimeStart, TimeEnd);
     uint64_t SendRateKbps = (TotalBytesSent * 1000 * 8) / ElapsedUs;
 
     printf("%llu bytes sent in %llu.%03llu ms ", (unsigned long long)TotalBytesSent, (unsigned long long)ElapsedUs / 1000, (unsigned long long)ElapsedUs % 1000);
@@ -200,11 +197,11 @@ main(
         printf("(%llu kbps)\n", (unsigned long long)SendRateKbps);
     }
 
-    QuicEventUninitialize(SendReady);
+    CxPlatEventUninitialize(SendReady);
     fclose(File);
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return 0;
 }

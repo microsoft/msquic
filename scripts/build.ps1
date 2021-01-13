@@ -69,6 +69,12 @@ This script provides helpers for building msquic.
 .PARAMETER CI
     Build is occuring from CI
 
+.PARAMETER RandomAllocFail
+    Enables random allocation failures.
+
+.PARAMETER TlsSecretsSupport
+    Enables export of traffic secrets.
+
 .EXAMPLE
     build.ps1
 
@@ -143,7 +149,13 @@ param (
     [switch]$ConfigureOnly = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CI = $false
+    [switch]$CI = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$RandomAllocFail = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$TlsSecretsSupport = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -288,8 +300,15 @@ function CMake-Generate {
     }
     if ($CI) {
         $Arguments += " -DQUIC_CI=ON"
+        $Arguments += " -DQUIC_CI_CONFIG=$Config"
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
+    }
+    if ($RandomAllocFail) {
+        $Arguments += " -DQUIC_RANDOM_ALLOC_FAIL=on"
+    }
+    if ($TlsSecretsSupport) {
+        $Arguments += " -DQUIC_TLS_SECRETS_SUPPORT=on"
     }
     $Arguments += " ../../.."
 
@@ -322,9 +341,6 @@ function CMake-Build {
 
     if ($IsWindows) {
         Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
-        if (!$DisableTools) {
-            Copy-Item (Join-Path $BuildDir "obj" $Config "msquicetw.lib") $ArtifactsDir
-        }
         if ($PGO -and $Config -eq "Release") {
             Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
             $VSInstallationPath = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath

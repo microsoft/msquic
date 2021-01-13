@@ -235,6 +235,11 @@ QuicTestReceiveResumeNoData(
     _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
     );
 
+void
+QuicTestAckSendDelay(
+    _In_ int Family
+    );
+
 //
 // QuicDrill tests
 //
@@ -581,4 +586,8 @@ typedef struct {
 #define IOCTL_QUIC_RUN_VALIDATE_GET_PERF_COUNTERS \
     QUIC_CTL_CODE(45, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 45
+#define IOCTL_QUIC_RUN_ACK_SEND_DELAY \
+    QUIC_CTL_CODE(46, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 46

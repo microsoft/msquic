@@ -47,12 +47,12 @@ Notes:
 #include "hashtable.c.clog.h"
 #endif
 
-#define QUIC_HASH_RESERVED_SIGNATURE 0
+#define CXPLAT_HASH_RESERVED_SIGNATURE 0
 
 //
-// Inserts with hash = QUIC_HASH_RESERVED_SIGNATURE aren't allowed.
+// Inserts with hash = CXPLAT_HASH_RESERVED_SIGNATURE aren't allowed.
 //
-#define QUIC_HASH_ALT_SIGNATURE (QUIC_HASH_RESERVED_SIGNATURE + 1)
+#define CXPLAT_HASH_ALT_SIGNATURE (CXPLAT_HASH_RESERVED_SIGNATURE + 1)
 
 //
 // Define table sizes.
@@ -77,14 +77,14 @@ Notes:
 
 #define BASE_HASH_TABLE_SIZE HT_SECOND_LEVEL_DIR_MIN_SIZE
 
-QUIC_STATIC_ASSERT(
-    QUIC_HASH_MIN_SIZE == BASE_HASH_TABLE_SIZE,
+CXPLAT_STATIC_ASSERT(
+    CXPLAT_HASH_MIN_SIZE == BASE_HASH_TABLE_SIZE,
     "Hash table sizes should match!");
 
 #ifndef BitScanReverse
 static
 uint8_t
-QuicBitScanReverse(
+CxPlatBitScanReverse(
     _Out_ uint32_t *Index,
     _In_ uint32_t Mask
     )
@@ -107,14 +107,13 @@ Return Value:
 --*/
 {
     int ii = 0;
-    uint32_t TempMask = 0;
 
     if (Mask == 0 || Index == 0) {
         return 0;
     }
 
     for (ii = (sizeof(uint32_t) * 8); ii >= 0; --ii) {
-        TempMask = 1 << ii;
+        uint32_t TempMask = 1UL << ii;
 
         if ((Mask & TempMask) != 0) {
             *Index = ii;
@@ -125,12 +124,12 @@ Return Value:
     return (ii >= 0 ? (uint8_t)1 : (uint8_t)0);
 }
 #else
-#define QuicBitScanReverse(A, B) BitScanReverse((ULONG*)A, (ULONG)B)
+#define CxPlatBitScanReverse(A, B) BitScanReverse((ULONG*)A, (ULONG)B)
 #endif // BitScanReverse
 
 static
 void
-QuicComputeDirIndices(
+CxPlatComputeDirIndices(
     _In_range_(<, MAX_HASH_TABLE_SIZE)
     uint32_t BucketIndex,
     _Out_range_(<, HT_FIRST_LEVEL_DIR_SIZE)
@@ -158,7 +157,7 @@ Arguments:
 
 --*/
 {
-    QUIC_DBG_ASSERT(BucketIndex < MAX_HASH_TABLE_SIZE);
+    CXPLAT_DBG_ASSERT(BucketIndex < MAX_HASH_TABLE_SIZE);
 
     uint32_t AbsoluteIndex = BucketIndex + HT_SECOND_LEVEL_DIR_MIN_SIZE;
 
@@ -167,7 +166,7 @@ Arguments:
     // we don't need to check the return value.
     //
 
-    QuicBitScanReverse(FirstLevelIndex, AbsoluteIndex);
+    CxPlatBitScanReverse(FirstLevelIndex, AbsoluteIndex);
 
     //
     // The second level index is the absolute index with the most significant
@@ -183,13 +182,13 @@ Arguments:
 
     *FirstLevelIndex -= HT_SECOND_LEVEL_DIR_SHIFT;
 
-    QUIC_DBG_ASSERT(*FirstLevelIndex < HT_FIRST_LEVEL_DIR_SIZE);
+    CXPLAT_DBG_ASSERT(*FirstLevelIndex < HT_FIRST_LEVEL_DIR_SIZE);
 }
 
-_Ret_range_(>=, QUIC_HASH_MIN_SIZE)
+_Ret_range_(>=, CXPLAT_HASH_MIN_SIZE)
 static
 uint32_t
-QuicComputeSecondLevelDirSize(
+CxPlatComputeSecondLevelDirSize(
     _In_range_(<, HT_FIRST_LEVEL_DIR_SIZE) uint32_t FirstLevelIndex
     )
 /*++
@@ -214,8 +213,8 @@ Return Value:
 
 static
 void
-QuicInitializeSecondLevelDir(
-    _Out_writes_all_(NumberOfBucketsToInitialize) QUIC_LIST_ENTRY* SecondLevelDir,
+CxPlatInitializeSecondLevelDir(
+    _Out_writes_all_(NumberOfBucketsToInitialize) CXPLAT_LIST_ENTRY* SecondLevelDir,
     _In_ uint32_t NumberOfBucketsToInitialize
     )
 /*++
@@ -233,20 +232,20 @@ Arguments:
 --*/
 {
     for (uint32_t i = 0; i < NumberOfBucketsToInitialize; i += 1) {
-        QuicListInitializeHead(&SecondLevelDir[i]);
+        CxPlatListInitializeHead(&SecondLevelDir[i]);
     }
 }
 
 static
-QUIC_HASHTABLE_ENTRY*
-QuicFlinkToHashEntry(
-    _In_ QUIC_LIST_ENTRY* *FlinkPtr
+CXPLAT_HASHTABLE_ENTRY*
+CxPlatFlinkToHashEntry(
+    _In_ CXPLAT_LIST_ENTRY* *FlinkPtr
     )
 /*++
 
 Routine Description:
 
-    Converts the pointer to the Flink in LIST_ENTRY into a QUIC_HASHTABLE_ENTRY
+    Converts the pointer to the Flink in LIST_ENTRY into a CXPLAT_HASHTABLE_ENTRY
     structure.
 
 Arguments:
@@ -255,18 +254,18 @@ Arguments:
 
 Return Value:
 
-    Returns the QUIC_HASHTABLE_ENTRY that contains the LIST_ENTRY which contains
+    Returns the CXPLAT_HASHTABLE_ENTRY that contains the LIST_ENTRY which contains
     the Flink whose pointer was passed above.
 
 --*/
 {
-    return QUIC_CONTAINING_RECORD(FlinkPtr, QUIC_HASHTABLE_ENTRY, Linkage);
+    return CXPLAT_CONTAINING_RECORD(FlinkPtr, CXPLAT_HASHTABLE_ENTRY, Linkage);
 }
 
 static
-QUIC_LIST_ENTRY*
-QuicGetChainHead(
-    _In_ const QUIC_HASHTABLE* HashTable,
+CXPLAT_LIST_ENTRY*
+CxPlatGetChainHead(
+    _In_ const CXPLAT_HASHTABLE* HashTable,
     _In_range_(<, HashTable->TableSize) uint32_t BucketIndex
     )
 /*++
@@ -298,9 +297,9 @@ Return Value:
 --*/
 {
     uint32_t SecondLevelIndex;
-    QUIC_LIST_ENTRY* SecondLevelDir;
+    CXPLAT_LIST_ENTRY* SecondLevelDir;
 
-    QUIC_DBG_ASSERT(BucketIndex < HashTable->TableSize);
+    CXPLAT_DBG_ASSERT(BucketIndex < HashTable->TableSize);
 
     //
     // 'Directory' field of the hash table points either
@@ -314,19 +313,19 @@ Return Value:
 
     } else {
         uint32_t FirstLevelIndex = 0;
-        QuicComputeDirIndices(BucketIndex, &FirstLevelIndex, &SecondLevelIndex);
+        CxPlatComputeDirIndices(BucketIndex, &FirstLevelIndex, &SecondLevelIndex);
         SecondLevelDir = *(HashTable->FirstLevelDir + FirstLevelIndex);
     }
 
-    QUIC_DBG_ASSERT(SecondLevelDir != NULL);
+    CXPLAT_DBG_ASSERT(SecondLevelDir != NULL);
 
     return SecondLevelDir + SecondLevelIndex;
 }
 
 static
 uint32_t
-QuicGetBucketIndex(
-    _In_ const QUIC_HASHTABLE* HashTable,
+CxPlatGetBucketIndex(
+    _In_ const CXPLAT_HASHTABLE* HashTable,
     _In_ uint64_t Signature
     )
 /*++
@@ -351,7 +350,7 @@ Return Value:
 --*/
 
 {
-#ifdef QUIC_HASHTABLE_RESIZE_SUPPORT
+#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
     uint32_t BucketIndex = ((uint32_t)Signature) & HashTable->DivisorMask;
     if (BucketIndex < HashTable->Pivot) {
         BucketIndex = ((uint32_t)Signature) & ((HashTable->DivisorMask << 1) | 1);
@@ -365,9 +364,9 @@ Return Value:
 
 static
 void
-QuicPopulateContext(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _Out_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context,
+CxPlatPopulateContext(
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _Out_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context,
     _In_ uint64_t Signature
     )
 /*++
@@ -400,18 +399,18 @@ Return Value:
     //
     // Compute the hash.
     //
-    uint32_t BucketIndex = QuicGetBucketIndex(HashTable, Signature);
+    uint32_t BucketIndex = CxPlatGetBucketIndex(HashTable, Signature);
 
-    QUIC_LIST_ENTRY* BucketPtr = QuicGetChainHead(HashTable, BucketIndex);
-    QUIC_DBG_ASSERT(NULL != BucketPtr);
+    CXPLAT_LIST_ENTRY* BucketPtr = CxPlatGetChainHead(HashTable, BucketIndex);
+    CXPLAT_DBG_ASSERT(NULL != BucketPtr);
 
-    QUIC_LIST_ENTRY* CurEntry = BucketPtr;
+    CXPLAT_LIST_ENTRY* CurEntry = BucketPtr;
     while (CurEntry->Flink != BucketPtr) {
 
-        QUIC_LIST_ENTRY* NextEntry = CurEntry->Flink;
-        QUIC_HASHTABLE_ENTRY* NextHashEntry = QuicFlinkToHashEntry(&NextEntry->Flink);
+        CXPLAT_LIST_ENTRY* NextEntry = CurEntry->Flink;
+        CXPLAT_HASHTABLE_ENTRY* NextHashEntry = CxPlatFlinkToHashEntry(&NextEntry->Flink);
 
-        if ((QUIC_HASH_RESERVED_SIGNATURE == NextHashEntry->Signature) ||
+        if ((CXPLAT_HASH_RESERVED_SIGNATURE == NextHashEntry->Signature) ||
             (NextHashEntry->Signature < Signature)) {
 
             CurEntry = NextEntry;
@@ -433,17 +432,17 @@ Return Value:
 _Must_inspect_result_
 _Success_(return != FALSE)
 BOOLEAN
-QuicHashtableInitialize(
+CxPlatHashtableInitialize(
     _Inout_ _When_(NULL == *HashTable, _At_(*HashTable, __drv_allocatesMem(Mem) _Post_notnull_))
-        QUIC_HASHTABLE* *HashTable,
+        CXPLAT_HASHTABLE* *HashTable,
     _In_ uint32_t InitialSize
     )
 /*++
 
 Routine Description:
 
-    Creates a hash table. Takes a pointer to a pointer to QUIC_HASHTABLE, just
-    so that the caller can pass a pre-allocated QUIC_HASHTABLE structure to be
+    Creates a hash table. Takes a pointer to a pointer to CXPLAT_HASHTABLE, just
+    so that the caller can pass a pre-allocated CXPLAT_HASHTABLE structure to be
     initialized, which the partitioned hash table does.
 
 Synchronization:
@@ -454,8 +453,8 @@ Arguments:
 
     HashTable - Pointer to a pointer to a hash Table to be initialized. This
         argument must be non-null, but it can contain either a NULL value (in
-        which case a QUIC_HASHTABLE will be allocated, or can contain a
-        pre-allocated QUIC_HASHTABLE.
+        which case a CXPLAT_HASHTABLE will be allocated, or can contain a
+        pre-allocated CXPLAT_HASHTABLE.
 
     InitialSize - The initial size of the hash table in number of buckets.
 
@@ -478,28 +477,28 @@ Return Value:
     // First allocate the hash Table header.
     //
     uint32_t LocalFlags = 0;
-    QUIC_HASHTABLE* Table;
+    CXPLAT_HASHTABLE* Table;
     if (*HashTable == NULL) {
-        Table = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASHTABLE));
+        Table = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_HASHTABLE), QUIC_POOL_HASHTABLE);
         if (Table == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
-                "QUIC_HASHTABLE",
-                sizeof(QUIC_HASHTABLE));
+                "CXPLAT_HASHTABLE",
+                sizeof(CXPLAT_HASHTABLE));
             return FALSE;
         }
 
-        LocalFlags = QUIC_HASH_ALLOCATED_HEADER;
+        LocalFlags = CXPLAT_HASH_ALLOCATED_HEADER;
 
     } else {
         Table = *HashTable;
     }
 
-    QuicZeroMemory(Table, sizeof(QUIC_HASHTABLE));
+    CxPlatZeroMemory(Table, sizeof(CXPLAT_HASHTABLE));
     Table->Flags = LocalFlags;
     Table->TableSize = InitialSize;
-#ifdef QUIC_HASHTABLE_RESIZE_SUPPORT
+#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
     Table->DivisorMask = Table->TableSize - 1;
     Table->Pivot = 0;
 #endif
@@ -516,19 +515,20 @@ Return Value:
         //
 
         Table->SecondLevelDir =
-            QUIC_ALLOC_NONPAGED(
-                QuicComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
+            CXPLAT_ALLOC_NONPAGED(
+                CxPlatComputeSecondLevelDirSize(0) * sizeof(CXPLAT_LIST_ENTRY),
+                QUIC_POOL_HASHTABLE_MEMBER);
         if (Table->SecondLevelDir == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "second level dir (0)",
-                QuicComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
-            QuicHashtableUninitialize(Table);
+                CxPlatComputeSecondLevelDirSize(0) * sizeof(CXPLAT_LIST_ENTRY));
+            CxPlatHashtableUninitialize(Table);
             return FALSE;
         }
 
-        QuicInitializeSecondLevelDir(Table->SecondLevelDir, Table->TableSize);
+        CxPlatInitializeSecondLevelDir(Table->SecondLevelDir, Table->TableSize);
 
     } else {
 
@@ -537,38 +537,41 @@ Return Value:
         // fit upper bound.
         //
         uint32_t FirstLevelIndex = 0, SecondLevelIndex = 0;
-        QuicComputeDirIndices(
+        CxPlatComputeDirIndices(
             (Table->TableSize - 1), &FirstLevelIndex, &SecondLevelIndex);
 
         Table->FirstLevelDir =
-            QUIC_ALLOC_NONPAGED(sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
+            CXPLAT_ALLOC_NONPAGED(
+                sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE,
+                QUIC_POOL_HASHTABLE_MEMBER);
         if (Table->FirstLevelDir == NULL) {
-            QuicHashtableUninitialize(Table);
+            CxPlatHashtableUninitialize(Table);
             return FALSE;
         }
 
-        QuicZeroMemory(Table->FirstLevelDir,
-            sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
+        CxPlatZeroMemory(Table->FirstLevelDir,
+            sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
 
         for (uint32_t i = 0; i <= FirstLevelIndex; i++) {
 
             Table->FirstLevelDir[i] =
-                QUIC_ALLOC_NONPAGED(
-                    QuicComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
+                CXPLAT_ALLOC_NONPAGED(
+                    CxPlatComputeSecondLevelDirSize(i) * sizeof(CXPLAT_LIST_ENTRY),
+                    QUIC_POOL_HASHTABLE_MEMBER);
             if (Table->FirstLevelDir[i] == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "second level dir (i)",
-                    QuicComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
-                QuicHashtableUninitialize(Table);
+                    CxPlatComputeSecondLevelDirSize(i) * sizeof(CXPLAT_LIST_ENTRY));
+                CxPlatHashtableUninitialize(Table);
                 return FALSE;
             }
 
-            QuicInitializeSecondLevelDir(
+            CxPlatInitializeSecondLevelDir(
                 Table->FirstLevelDir[i],
                 (i < FirstLevelIndex)
-                    ? QuicComputeSecondLevelDirSize(i)
+                    ? CxPlatComputeSecondLevelDirSize(i)
                     : (SecondLevelIndex + 1));
         }
     }
@@ -579,21 +582,21 @@ Return Value:
 }
 
 void
-QuicHashtableUninitialize(
+CxPlatHashtableUninitialize(
     _In_
-    _When_((HashTable->Flags & QUIC_HASH_ALLOCATED_HEADER), __drv_freesMem(Mem) _Post_invalid_)
+    _When_((HashTable->Flags & CXPLAT_HASH_ALLOCATED_HEADER), __drv_freesMem(Mem) _Post_invalid_)
     _At_(HashTable->Directory, __drv_freesMem(Mem) _Post_invalid_)
-        QUIC_HASHTABLE* HashTable
+        CXPLAT_HASHTABLE* HashTable
     )
 /*++
 
 Routine Description:
 
-    Called to remove all resources allocated either in QuicHashtableInitialize,
+    Called to remove all resources allocated either in CxPlatHashtableInitialize,
     or later while expanding the table. This function just walks the entire
     table checking that all hash buckets are null, and then removing all the
     memory allocated for the directories behind it. This function is also called
-    from QuicHashtableInitialize to cleanup the allocations just in case, an
+    from CxPlatHashtableInitialize to cleanup the allocations just in case, an
     error occurs (like failed memory allocation).
 
 Synchronization:
@@ -606,13 +609,13 @@ Arguments:
 
 --*/
 {
-    QUIC_DBG_ASSERT(HashTable->NumEnumerators == 0);
-    QUIC_DBG_ASSERT(HashTable->NumEntries == 0);
+    CXPLAT_DBG_ASSERT(HashTable->NumEnumerators == 0);
+    CXPLAT_DBG_ASSERT(HashTable->NumEntries == 0);
 
     if (HashTable->TableSize <= HT_SECOND_LEVEL_DIR_MIN_SIZE) {
 
         if (HashTable->SecondLevelDir != NULL) {
-            QUIC_FREE(HashTable->SecondLevelDir);
+            CXPLAT_FREE(HashTable->SecondLevelDir, QUIC_POOL_HASHTABLE_MEMBER);
         }
 
     } else {
@@ -621,7 +624,7 @@ Arguments:
 
 #if DEBUG
             uint32_t largestFirstLevelIndex = 0, largestSecondLevelIndex = 0;
-            QuicComputeDirIndices(
+            CxPlatComputeDirIndices(
                 (HashTable->TableSize - 1), &largestFirstLevelIndex, &largestSecondLevelIndex);
 #endif
 
@@ -630,7 +633,7 @@ Arguments:
                  FirstLevelIndex < HT_FIRST_LEVEL_DIR_SIZE;
                  FirstLevelIndex++) {
 
-                QUIC_LIST_ENTRY* SecondLevelDir =
+                CXPLAT_LIST_ENTRY* SecondLevelDir =
                     HashTable->FirstLevelDir[FirstLevelIndex];
                 if (NULL == SecondLevelDir) {
                     break;
@@ -639,47 +642,47 @@ Arguments:
 #if DEBUG
                 uint32_t initializedBucketCountInSecondLevelDir =
                     (FirstLevelIndex < largestFirstLevelIndex)
-                        ? QuicComputeSecondLevelDirSize(FirstLevelIndex)
+                        ? CxPlatComputeSecondLevelDirSize(FirstLevelIndex)
                         : largestSecondLevelIndex+1;
 
                 for (uint32_t SecondLevelIndex = 0;
                      SecondLevelIndex < initializedBucketCountInSecondLevelDir;
                      SecondLevelIndex++) {
-                    QUIC_DBG_ASSERT(QuicListIsEmpty(&SecondLevelDir[SecondLevelIndex]));
+                    CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&SecondLevelDir[SecondLevelIndex]));
                 }
 #endif
 
-                QUIC_FREE(SecondLevelDir);
+                CXPLAT_FREE(SecondLevelDir, QUIC_POOL_HASHTABLE_MEMBER);
             }
 
 #if DEBUG
             for (; FirstLevelIndex < HT_FIRST_LEVEL_DIR_SIZE; FirstLevelIndex++) {
-                QUIC_DBG_ASSERT(NULL == HashTable->FirstLevelDir[FirstLevelIndex]);
+                CXPLAT_DBG_ASSERT(NULL == HashTable->FirstLevelDir[FirstLevelIndex]);
             }
 #endif
 
-            QUIC_FREE(HashTable->FirstLevelDir);
+            CXPLAT_FREE(HashTable->FirstLevelDir, QUIC_POOL_HASHTABLE_MEMBER);
         }
     }
 
-    if (HashTable->Flags & QUIC_HASH_ALLOCATED_HEADER) {
-        QUIC_FREE(HashTable);
+    if (HashTable->Flags & CXPLAT_HASH_ALLOCATED_HEADER) {
+        CXPLAT_FREE(HashTable, QUIC_POOL_HASHTABLE);
     }
 }
 
 void
-QuicHashtableInsert(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _In_ __drv_aliasesMem QUIC_HASHTABLE_ENTRY* Entry,
+CxPlatHashtableInsert(
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _In_ __drv_aliasesMem CXPLAT_HASHTABLE_ENTRY* Entry,
     _In_ uint64_t Signature,
-    _Inout_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
+    _Inout_opt_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context
     )
 /*++
 
 Routine Description:
 
     Inserts an entry into a hash table, given the pointer to a
-    QUIC_HASHTABLE_ENTRY and a signature. An optional context can be passed in
+    CXPLAT_HASHTABLE_ENTRY and a signature. An optional context can be passed in
     which, if possible, will be used to quickly get to the relevant bucket chain.
     This routine will not take the contents of the Context structure passed in
     on blind faith -- it will check if the signature in the Context structure
@@ -702,11 +705,11 @@ Arguments:
 
 --*/
 {
-    QUIC_HASHTABLE_LOOKUP_CONTEXT LocalContext = {0};
-    QUIC_HASHTABLE_LOOKUP_CONTEXT* ContextPtr = NULL;
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT LocalContext = {0};
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT* ContextPtr = NULL;
 
-    if (Signature == QUIC_HASH_RESERVED_SIGNATURE) {
-        Signature = QUIC_HASH_ALT_SIGNATURE;
+    if (Signature == CXPLAT_HASH_RESERVED_SIGNATURE) {
+        Signature = CXPLAT_HASH_ALT_SIGNATURE;
     }
 
     Entry->Signature = Signature;
@@ -715,33 +718,33 @@ Arguments:
 
     if (Context == NULL) {
 
-        QuicPopulateContext(HashTable, &LocalContext, Signature);
+        CxPlatPopulateContext(HashTable, &LocalContext, Signature);
         ContextPtr = &LocalContext;
 
     } else {
 
         if (Context->ChainHead == NULL) {
-            QuicPopulateContext(HashTable, Context, Signature);
+            CxPlatPopulateContext(HashTable, Context, Signature);
         }
 
-        QUIC_DBG_ASSERT(Signature == Context->Signature);
+        CXPLAT_DBG_ASSERT(Signature == Context->Signature);
         ContextPtr = Context;
     }
 
-    QUIC_DBG_ASSERT(ContextPtr->ChainHead != NULL);
+    CXPLAT_DBG_ASSERT(ContextPtr->ChainHead != NULL);
 
-    if (QuicListIsEmpty(ContextPtr->ChainHead)) {
+    if (CxPlatListIsEmpty(ContextPtr->ChainHead)) {
         HashTable->NonEmptyBuckets++;
     }
 
-    QuicListInsertHead(ContextPtr->PrevLinkage, &Entry->Linkage);
+    CxPlatListInsertHead(ContextPtr->PrevLinkage, &Entry->Linkage);
 }
 
 void
-QuicHashtableRemove(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _In_ QUIC_HASHTABLE_ENTRY* Entry,
-    _Inout_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
+CxPlatHashtableRemove(
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _In_ CXPLAT_HASHTABLE_ENTRY* Entry,
+    _Inout_opt_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context
     )
 /*++
 
@@ -774,34 +777,34 @@ Arguments:
 {
     uint64_t Signature = Entry->Signature;
 
-    QUIC_DBG_ASSERT(HashTable->NumEntries > 0);
+    CXPLAT_DBG_ASSERT(HashTable->NumEntries > 0);
     HashTable->NumEntries--;
 
     if (Entry->Linkage.Flink == Entry->Linkage.Blink) {
         //
         // This is the last element in this chain.
         //
-        QUIC_DBG_ASSERT (HashTable->NonEmptyBuckets > 0);
+        CXPLAT_DBG_ASSERT (HashTable->NonEmptyBuckets > 0);
         HashTable->NonEmptyBuckets--;
     }
 
-    QuicListEntryRemove(&Entry->Linkage);
+    CxPlatListEntryRemove(&Entry->Linkage);
 
     if (Context != NULL) {
         if (Context->ChainHead == NULL) {
-            QuicPopulateContext(HashTable, Context, Signature);
+            CxPlatPopulateContext(HashTable, Context, Signature);
         } else {
-            QUIC_DBG_ASSERT(Signature == Context->Signature);
+            CXPLAT_DBG_ASSERT(Signature == Context->Signature);
         }
     }
 }
 
 _Must_inspect_result_
-QUIC_HASHTABLE_ENTRY*
-QuicHashtableLookup(
-    _In_ QUIC_HASHTABLE* HashTable,
+CXPLAT_HASHTABLE_ENTRY*
+CxPlatHashtableLookup(
+    _In_ CXPLAT_HASHTABLE* HashTable,
     _In_ uint64_t Signature,
-    _Out_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
+    _Out_opt_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context
     )
 /*++
 
@@ -812,7 +815,7 @@ Routine Description:
     for the requested signature. This is achieved by storing all entries with
     the same signature in a contiguous subsequence, and returning the
     subsequence. The caller can walk this subsequence by calling
-    QuicHashtableLookupNext. If specified, the context is always initialized in
+    CxPlatHashtableLookupNext. If specified, the context is always initialized in
     this operation.
 
 Arguments:
@@ -832,28 +835,28 @@ Return Value:
 
 --*/
 {
-    if (Signature == QUIC_HASH_RESERVED_SIGNATURE) {
-        Signature = QUIC_HASH_ALT_SIGNATURE;
+    if (Signature == CXPLAT_HASH_RESERVED_SIGNATURE) {
+        Signature = CXPLAT_HASH_ALT_SIGNATURE;
     }
 
-    QUIC_HASHTABLE_LOOKUP_CONTEXT LocalContext;
-    QUIC_HASHTABLE_LOOKUP_CONTEXT* ContextPtr =
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT LocalContext;
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT* ContextPtr =
         (Context != NULL) ? Context : &LocalContext;
 
-    QuicPopulateContext(HashTable, ContextPtr, Signature);
+    CxPlatPopulateContext(HashTable, ContextPtr, Signature);
 
-    QUIC_LIST_ENTRY* CurEntry = ContextPtr->PrevLinkage->Flink;
+    CXPLAT_LIST_ENTRY* CurEntry = ContextPtr->PrevLinkage->Flink;
     if (ContextPtr->ChainHead == CurEntry) {
         return NULL;
     }
 
-    QUIC_HASHTABLE_ENTRY* CurHashEntry = QuicFlinkToHashEntry(&CurEntry->Flink);
+    CXPLAT_HASHTABLE_ENTRY* CurHashEntry = CxPlatFlinkToHashEntry(&CurEntry->Flink);
 
     //
-    // QuicPopulateContext will never return a PrevLinkage whose next points to
+    // CxPlatPopulateContext will never return a PrevLinkage whose next points to
     // an enumerator.
     //
-    QUIC_DBG_ASSERT(QUIC_HASH_RESERVED_SIGNATURE != CurHashEntry->Signature);
+    CXPLAT_DBG_ASSERT(CXPLAT_HASH_RESERVED_SIGNATURE != CurHashEntry->Signature);
 
     if (CurHashEntry->Signature == Signature) {
         return CurHashEntry;
@@ -863,10 +866,10 @@ Return Value:
 }
 
 _Must_inspect_result_
-QUIC_HASHTABLE_ENTRY*
-QuicHashtableLookupNext(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _Inout_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
+CXPLAT_HASHTABLE_ENTRY*
+CxPlatHashtableLookupNext(
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _Inout_ CXPLAT_HASHTABLE_LOOKUP_CONTEXT* Context
     )
 /*++
 
@@ -895,17 +898,17 @@ Return Value:
 
 --*/
 {
-    QUIC_DBG_ASSERT(NULL != Context);
-    QUIC_DBG_ASSERT(NULL != Context->ChainHead);
-    QUIC_DBG_ASSERT(Context->PrevLinkage->Flink != Context->ChainHead);
+    CXPLAT_DBG_ASSERT(NULL != Context);
+    CXPLAT_DBG_ASSERT(NULL != Context->ChainHead);
+    CXPLAT_DBG_ASSERT(Context->PrevLinkage->Flink != Context->ChainHead);
 
     //
     // We know that the next entry is a valid, kosher entry,
     //
-    QUIC_LIST_ENTRY* CurEntry = Context->PrevLinkage->Flink;
-    QUIC_DBG_ASSERT(CurEntry != Context->ChainHead);
-    QUIC_DBG_ASSERT(QUIC_HASH_RESERVED_SIGNATURE !=
-           (QuicFlinkToHashEntry(&CurEntry->Flink)->Signature));
+    CXPLAT_LIST_ENTRY* CurEntry = Context->PrevLinkage->Flink;
+    CXPLAT_DBG_ASSERT(CurEntry != Context->ChainHead);
+    CXPLAT_DBG_ASSERT(CXPLAT_HASH_RESERVED_SIGNATURE !=
+           (CxPlatFlinkToHashEntry(&CurEntry->Flink)->Signature));
 
     //
     // Is this the end of the chain?
@@ -914,19 +917,19 @@ Return Value:
         return NULL;
     }
 
-    QUIC_LIST_ENTRY* NextEntry;
-    QUIC_HASHTABLE_ENTRY* NextHashEntry;
+    CXPLAT_LIST_ENTRY* NextEntry;
+    CXPLAT_HASHTABLE_ENTRY* NextHashEntry;
     if (HashTable->NumEnumerators == 0) {
         NextEntry = CurEntry->Flink;
-        NextHashEntry = QuicFlinkToHashEntry(&NextEntry->Flink);
+        NextHashEntry = CxPlatFlinkToHashEntry(&NextEntry->Flink);
     } else {
-        QUIC_DBG_ASSERT(CurEntry->Flink != Context->ChainHead);
+        CXPLAT_DBG_ASSERT(CurEntry->Flink != Context->ChainHead);
         NextHashEntry = NULL;
         while (CurEntry->Flink != Context->ChainHead) {
             NextEntry = CurEntry->Flink;
-            NextHashEntry = QuicFlinkToHashEntry(&NextEntry->Flink);
+            NextHashEntry = CxPlatFlinkToHashEntry(&NextEntry->Flink);
 
-            if (QUIC_HASH_RESERVED_SIGNATURE != NextHashEntry->Signature) {
+            if (CXPLAT_HASH_RESERVED_SIGNATURE != NextHashEntry->Signature) {
                 break;
             }
 
@@ -934,7 +937,7 @@ Return Value:
         }
     }
 
-    QUIC_DBG_ASSERT(NextHashEntry != NULL);
+    CXPLAT_DBG_ASSERT(NextHashEntry != NULL);
     if (NextHashEntry->Signature == Context->Signature) {
         Context->PrevLinkage = CurEntry;
         return NextHashEntry;
@@ -949,9 +952,9 @@ Return Value:
 }
 
 void
-QuicHashtableEnumerateBegin(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _Out_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
+CxPlatHashtableEnumerateBegin(
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _Out_ CXPLAT_HASHTABLE_ENUMERATOR* Enumerator
     )
 /*++
 
@@ -977,32 +980,32 @@ Arguments:
 
     HashTable - Pointer to hash Table on which the enumeration will take place.
 
-    Enumerator - Pointer to QUIC_HASHTABLE_ENUMERATOR structure that stores
+    Enumerator - Pointer to CXPLAT_HASHTABLE_ENUMERATOR structure that stores
         enumeration state.
 
 --*/
 {
-    QUIC_DBG_ASSERT(Enumerator != NULL);
+    CXPLAT_DBG_ASSERT(Enumerator != NULL);
 
-    QUIC_HASHTABLE_LOOKUP_CONTEXT LocalContext;
-    QuicPopulateContext(HashTable, &LocalContext, 0);
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT LocalContext;
+    CxPlatPopulateContext(HashTable, &LocalContext, 0);
     HashTable->NumEnumerators++;
 
-    if (QuicListIsEmpty(LocalContext.ChainHead)) {
+    if (CxPlatListIsEmpty(LocalContext.ChainHead)) {
         HashTable->NonEmptyBuckets++;
     }
 
-    QuicListInsertHead(LocalContext.ChainHead, &(Enumerator->HashEntry.Linkage));
+    CxPlatListInsertHead(LocalContext.ChainHead, &(Enumerator->HashEntry.Linkage));
     Enumerator->BucketIndex = 0;
     Enumerator->ChainHead = LocalContext.ChainHead;
-    Enumerator->HashEntry.Signature = QUIC_HASH_RESERVED_SIGNATURE;
+    Enumerator->HashEntry.Signature = CXPLAT_HASH_RESERVED_SIGNATURE;
 }
 
 _Must_inspect_result_
-QUIC_HASHTABLE_ENTRY*
-QuicHashtableEnumerateNext(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _Inout_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
+CXPLAT_HASHTABLE_ENTRY*
+CxPlatHashtableEnumerateNext(
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _Inout_ CXPLAT_HASHTABLE_ENUMERATOR* Enumerator
     )
 /*++
 
@@ -1013,7 +1016,7 @@ Routine Description
     is returned. If the hash chain has ended, this function searches for the
     next non-empty hash chain and returns the first element in that chain. If no
     more non-empty hash chains exists, the function returns NULL. The caller
-    must call QuicHashtableEnumerateEnd() to explicitly end the enumeration and
+    must call CxPlatHashtableEnumerateEnd() to explicitly end the enumeration and
     cleanup state.
 
     This call is robust in the sense, that if this function returns NULL,
@@ -1027,19 +1030,19 @@ Arguments:
 
     Hash Table - Pointer to the hash table to be enumerated.
 
-    Enumerator - Pointer to QUIC_HASHTABLE_ENUMERATOR structure that stores
+    Enumerator - Pointer to CXPLAT_HASHTABLE_ENUMERATOR structure that stores
         enumeration state.
 
 Return Value:
 
-    Pointer to QUIC_HASHTABLE_ENTRY if one can be enumerated, and NULL other
+    Pointer to CXPLAT_HASHTABLE_ENTRY if one can be enumerated, and NULL other
     wise.
 
 --*/
 {
-    QUIC_DBG_ASSERT(Enumerator != NULL);
-    QUIC_DBG_ASSERT(Enumerator->ChainHead != NULL);
-    QUIC_DBG_ASSERT(QUIC_HASH_RESERVED_SIGNATURE == Enumerator->HashEntry.Signature);
+    CXPLAT_DBG_ASSERT(Enumerator != NULL);
+    CXPLAT_DBG_ASSERT(Enumerator->ChainHead != NULL);
+    CXPLAT_DBG_ASSERT(CXPLAT_HASH_RESERVED_SIGNATURE == Enumerator->HashEntry.Signature);
 
     //
     // We are trying to find the next valid entry. We need
@@ -1047,7 +1050,7 @@ Return Value:
     //
     for (uint32_t i = Enumerator->BucketIndex; i < HashTable->TableSize; i++) {
 
-        QUIC_LIST_ENTRY* CurEntry, *ChainHead;
+        CXPLAT_LIST_ENTRY* CurEntry, *ChainHead;
         if (i == Enumerator->BucketIndex) {
             //
             // If this is the first bucket, start searching from enumerator.
@@ -1058,25 +1061,25 @@ Return Value:
             //
             // Otherwise start searching from the head of the chain.
             //
-            ChainHead = QuicGetChainHead(HashTable, i);
+            ChainHead = CxPlatGetChainHead(HashTable, i);
             CurEntry = ChainHead;
         }
 
         while (CurEntry->Flink != ChainHead) {
 
-            QUIC_LIST_ENTRY* NextEntry = CurEntry->Flink;
-            QUIC_HASHTABLE_ENTRY* NextHashEntry = QuicFlinkToHashEntry(&NextEntry->Flink);
-            if (QUIC_HASH_RESERVED_SIGNATURE != NextHashEntry->Signature) {
-                QuicListEntryRemove(&(Enumerator->HashEntry.Linkage));
+            CXPLAT_LIST_ENTRY* NextEntry = CurEntry->Flink;
+            CXPLAT_HASHTABLE_ENTRY* NextHashEntry = CxPlatFlinkToHashEntry(&NextEntry->Flink);
+            if (CXPLAT_HASH_RESERVED_SIGNATURE != NextHashEntry->Signature) {
+                CxPlatListEntryRemove(&(Enumerator->HashEntry.Linkage));
 
-                QUIC_DBG_ASSERT(Enumerator->ChainHead != NULL);
+                CXPLAT_DBG_ASSERT(Enumerator->ChainHead != NULL);
 
                 if (Enumerator->ChainHead != ChainHead) {
-                    if (QuicListIsEmpty(Enumerator->ChainHead)) {
+                    if (CxPlatListIsEmpty(Enumerator->ChainHead)) {
                         HashTable->NonEmptyBuckets--;
                     }
 
-                    if (QuicListIsEmpty(ChainHead)) {
+                    if (CxPlatListIsEmpty(ChainHead)) {
                         HashTable->NonEmptyBuckets++;
                     }
                 }
@@ -1084,7 +1087,7 @@ Return Value:
                 Enumerator->BucketIndex = i;
                 Enumerator->ChainHead = ChainHead;
 
-                QuicListInsertHead(NextEntry, &(Enumerator->HashEntry.Linkage));
+                CxPlatListInsertHead(NextEntry, &(Enumerator->HashEntry.Linkage));
                 return NextHashEntry;
             }
 
@@ -1096,9 +1099,9 @@ Return Value:
 }
 
 void
-QuicHashtableEnumerateEnd(
-    _In_ QUIC_HASHTABLE* HashTable,
-    _Inout_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
+CxPlatHashtableEnumerateEnd(
+    _In_ CXPLAT_HASHTABLE* HashTable,
+    _Inout_ CXPLAT_HASHTABLE_ENUMERATOR* Enumerator
     )
 /*++
 
@@ -1120,17 +1123,17 @@ Arguments:
 
 --*/
 {
-    QUIC_DBG_ASSERT(Enumerator != NULL);
-    QUIC_DBG_ASSERT(HashTable->NumEnumerators > 0);
+    CXPLAT_DBG_ASSERT(Enumerator != NULL);
+    CXPLAT_DBG_ASSERT(HashTable->NumEnumerators > 0);
     HashTable->NumEnumerators--;
 
-    if (!QuicListIsEmpty(&(Enumerator->HashEntry.Linkage))) {
-        QUIC_DBG_ASSERT(Enumerator->ChainHead != NULL);
+    if (!CxPlatListIsEmpty(&(Enumerator->HashEntry.Linkage))) {
+        CXPLAT_DBG_ASSERT(Enumerator->ChainHead != NULL);
 
-        QuicListEntryRemove(&(Enumerator->HashEntry.Linkage));
+        CxPlatListEntryRemove(&(Enumerator->HashEntry.Linkage));
 
-        if (QuicListIsEmpty(Enumerator->ChainHead)) {
-            QUIC_DBG_ASSERT(HashTable->NonEmptyBuckets > 0);
+        if (CxPlatListIsEmpty(Enumerator->ChainHead)) {
+            CXPLAT_DBG_ASSERT(HashTable->NonEmptyBuckets > 0);
             HashTable->NonEmptyBuckets--;
         }
     }
@@ -1138,11 +1141,11 @@ Arguments:
     Enumerator->ChainHead = FALSE;
 }
 
-#ifdef QUIC_HASHTABLE_RESIZE_SUPPORT
+#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
 
 BOOLEAN
-QuicHashTableExpand(
-    _Inout_ QUIC_HASHTABLE* HashTable
+CxPlatHashTableExpand(
+    _Inout_ CXPLAT_HASHTABLE* HashTable
     )
 {
     //
@@ -1156,7 +1159,7 @@ QuicHashTableExpand(
         return FALSE;
     }
 
-    QUIC_DBG_ASSERT(HashTable->TableSize < MAX_HASH_TABLE_SIZE);
+    CXPLAT_DBG_ASSERT(HashTable->TableSize < MAX_HASH_TABLE_SIZE);
 
     //
     // First see if increasing the table size will mean new allocations. After
@@ -1164,7 +1167,7 @@ QuicHashTableExpand(
     // current table size, which is what we use in the calculations below
     //
     uint32_t FirstLevelIndex, SecondLevelIndex;
-    QuicComputeDirIndices(
+    CxPlatComputeDirIndices(
         HashTable->TableSize, &FirstLevelIndex, &SecondLevelIndex);
 
     //
@@ -1172,26 +1175,26 @@ QuicHashTableExpand(
     // is about to be expanded.
     //
 
-    QUIC_LIST_ENTRY* SecondLevelDir;
-    QUIC_LIST_ENTRY** FirstLevelDir;
+    CXPLAT_LIST_ENTRY* SecondLevelDir;
+    CXPLAT_LIST_ENTRY** FirstLevelDir;
     if (HT_SECOND_LEVEL_DIR_MIN_SIZE == HashTable->TableSize) {
 
-        SecondLevelDir = (QUIC_LIST_ENTRY*)HashTable->SecondLevelDir;
-        FirstLevelDir = QUIC_ALLOC_NONPAGED(sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
+        SecondLevelDir = (CXPLAT_LIST_ENTRY*)HashTable->SecondLevelDir;
+        FirstLevelDir = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
 
         if (FirstLevelDir == NULL) {
             return FALSE;
         }
 
-        QuicZeroMemory(FirstLevelDir,
-                      sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
+        CxPlatZeroMemory(FirstLevelDir,
+                      sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
 
         FirstLevelDir[0] = SecondLevelDir;
 
         HashTable->FirstLevelDir = FirstLevelDir;
     }
 
-    QUIC_DBG_ASSERT(HashTable->FirstLevelDir != NULL);
+    CXPLAT_DBG_ASSERT(HashTable->FirstLevelDir != NULL);
     FirstLevelDir = HashTable->FirstLevelDir;
     SecondLevelDir = FirstLevelDir[FirstLevelIndex];
 
@@ -1201,8 +1204,8 @@ QuicHashTableExpand(
         // Allocate second level directory.
         //
         SecondLevelDir =
-            QUIC_ALLOC_NONPAGED(
-                QuicComputeSecondLevelDirSize(FirstLevelIndex) * sizeof(QUIC_LIST_ENTRY));
+            CXPLAT_ALLOC_NONPAGED(
+                CxPlatComputeSecondLevelDirSize(FirstLevelIndex) * sizeof(CXPLAT_LIST_ENTRY));
         if (NULL == SecondLevelDir) {
 
             //
@@ -1212,10 +1215,10 @@ QuicHashTableExpand(
 
             if (HT_SECOND_LEVEL_DIR_MIN_SIZE == HashTable->TableSize) {
 
-                QUIC_DBG_ASSERT(FirstLevelIndex == 1);
+                CXPLAT_DBG_ASSERT(FirstLevelIndex == 1);
 
                 HashTable->SecondLevelDir = FirstLevelDir[0];
-                QUIC_FREE(FirstLevelDir);
+                CXPLAT_FREE(FirstLevelDir);
             }
 
             return FALSE;
@@ -1230,32 +1233,32 @@ QuicHashTableExpand(
     // The allocations are out of the way. Now actually increase
     // the Table size and split the pivot bucket.
     //
-    QUIC_LIST_ENTRY* ChainToBeSplit =
-        QuicGetChainHead(HashTable, HashTable->Pivot);
+    CXPLAT_LIST_ENTRY* ChainToBeSplit =
+        CxPlatGetChainHead(HashTable, HashTable->Pivot);
     HashTable->Pivot++;
 
-    QUIC_LIST_ENTRY* NewChain = &(SecondLevelDir[SecondLevelIndex]);
-    QuicListInitializeHead(NewChain);
+    CXPLAT_LIST_ENTRY* NewChain = &(SecondLevelDir[SecondLevelIndex]);
+    CxPlatListInitializeHead(NewChain);
 
-    if (!QuicListIsEmpty(ChainToBeSplit)) {
+    if (!CxPlatListIsEmpty(ChainToBeSplit)) {
 
-        QUIC_LIST_ENTRY* CurEntry = ChainToBeSplit;
+        CXPLAT_LIST_ENTRY* CurEntry = ChainToBeSplit;
         while (CurEntry->Flink != ChainToBeSplit) {
 
-            QUIC_LIST_ENTRY* NextEntry = CurEntry->Flink;
-            QUIC_HASHTABLE_ENTRY* NextHashEntry =
-                QuicFlinkToHashEntry(&NextEntry->Flink);
+            CXPLAT_LIST_ENTRY* NextEntry = CurEntry->Flink;
+            CXPLAT_HASHTABLE_ENTRY* NextHashEntry =
+                CxPlatFlinkToHashEntry(&NextEntry->Flink);
 
             uint32_t BucketIndex =
                 ((uint32_t)NextHashEntry->Signature) &
                 ((HashTable->DivisorMask << 1) | 1);
 
-            QUIC_DBG_ASSERT((BucketIndex == (HashTable->Pivot - 1)) ||
+            CXPLAT_DBG_ASSERT((BucketIndex == (HashTable->Pivot - 1)) ||
                    (BucketIndex == (HashTable->TableSize - 1)));
 
             if (BucketIndex == (HashTable->TableSize - 1)) {
-                QuicListEntryRemove(NextEntry);
-                QuicListInsertTail(NewChain, NextEntry);
+                CxPlatListEntryRemove(NextEntry);
+                CxPlatListInsertTail(NewChain, NextEntry);
                 continue;
             }
 
@@ -1265,12 +1268,12 @@ QuicHashTableExpand(
             CurEntry = NextEntry;
         }
 
-        if (!QuicListIsEmpty(NewChain)) {
+        if (!CxPlatListIsEmpty(NewChain)) {
             HashTable->NonEmptyBuckets++;
         }
 
-        if (QuicListIsEmpty(ChainToBeSplit)) {
-            QUIC_DBG_ASSERT(HashTable->NonEmptyBuckets > 0);
+        if (CxPlatListIsEmpty(ChainToBeSplit)) {
+            CXPLAT_DBG_ASSERT(HashTable->NonEmptyBuckets > 0);
             HashTable->NonEmptyBuckets--;
         }
     }
@@ -1282,21 +1285,21 @@ QuicHashTableExpand(
         //
         // Assert that at this point, TableSize is a power of 2.
         //
-        QUIC_DBG_ASSERT(0 == (HashTable->TableSize & (HashTable->TableSize - 1)));
+        CXPLAT_DBG_ASSERT(0 == (HashTable->TableSize & (HashTable->TableSize - 1)));
     }
 
     return TRUE;
 }
 
 BOOLEAN
-QuicHashTableContract(
-    _Inout_ QUIC_HASHTABLE* HashTable
+CxPlatHashTableContract(
+    _Inout_ CXPLAT_HASHTABLE* HashTable
     )
 {
     //
     // Can't take table size lower than BASE_DYNAMIC_HASH_TABLE_SIZE.
     //
-    QUIC_DBG_ASSERT(HashTable->TableSize >= BASE_HASH_TABLE_SIZE);
+    CXPLAT_DBG_ASSERT(HashTable->TableSize >= BASE_HASH_TABLE_SIZE);
 
     if (HashTable->TableSize == BASE_HASH_TABLE_SIZE) {
         return FALSE;
@@ -1322,35 +1325,35 @@ QuicHashTableContract(
     // the bucket that was the last bucket before table size was lowered, the
     // index of the last bucket is exactly equal to the current table size.
     //
-    QUIC_LIST_ENTRY* ChainToBeMoved = QuicGetChainHead(HashTable, HashTable->TableSize - 1);
-    QUIC_LIST_ENTRY* CombinedChain = QuicGetChainHead(HashTable, HashTable->Pivot);
+    CXPLAT_LIST_ENTRY* ChainToBeMoved = CxPlatGetChainHead(HashTable, HashTable->TableSize - 1);
+    CXPLAT_LIST_ENTRY* CombinedChain = CxPlatGetChainHead(HashTable, HashTable->Pivot);
 
     HashTable->TableSize--;
 
-    QUIC_DBG_ASSERT(ChainToBeMoved != NULL);
-    QUIC_DBG_ASSERT(CombinedChain != NULL);
+    CXPLAT_DBG_ASSERT(ChainToBeMoved != NULL);
+    CXPLAT_DBG_ASSERT(CombinedChain != NULL);
 
-    if (!QuicListIsEmpty(ChainToBeMoved) && !QuicListIsEmpty(CombinedChain)) {
+    if (!CxPlatListIsEmpty(ChainToBeMoved) && !CxPlatListIsEmpty(CombinedChain)) {
         //
         // Both lists are non-empty.
         //
 
-        QUIC_DBG_ASSERT(HashTable->NonEmptyBuckets > 0);
+        CXPLAT_DBG_ASSERT(HashTable->NonEmptyBuckets > 0);
         HashTable->NonEmptyBuckets--;
     }
 
-    QUIC_LIST_ENTRY* CurEntry = CombinedChain;
-    while (!QuicListIsEmpty(ChainToBeMoved)) {
+    CXPLAT_LIST_ENTRY* CurEntry = CombinedChain;
+    while (!CxPlatListIsEmpty(ChainToBeMoved)) {
 
-        QUIC_LIST_ENTRY* EntryToBeMoved = QuicListRemoveHead(ChainToBeMoved);
-        QUIC_HASHTABLE_ENTRY* HashEntryToBeMoved =
-            QuicFlinkToHashEntry(&EntryToBeMoved->Flink);
+        CXPLAT_LIST_ENTRY* EntryToBeMoved = CxPlatListRemoveHead(ChainToBeMoved);
+        CXPLAT_HASHTABLE_ENTRY* HashEntryToBeMoved =
+            CxPlatFlinkToHashEntry(&EntryToBeMoved->Flink);
 
         while (CurEntry->Flink != CombinedChain) {
 
-            QUIC_LIST_ENTRY* NextEntry = CurEntry->Flink;
-            QUIC_HASHTABLE_ENTRY* NextHashEntry =
-                QuicFlinkToHashEntry(&NextEntry->Flink);
+            CXPLAT_LIST_ENTRY* NextEntry = CurEntry->Flink;
+            CXPLAT_HASHTABLE_ENTRY* NextHashEntry =
+                CxPlatFlinkToHashEntry(&NextEntry->Flink);
 
             if (NextHashEntry->Signature >= HashEntryToBeMoved->Signature) {
                 break;
@@ -1359,7 +1362,7 @@ QuicHashTableContract(
             CurEntry = NextEntry;
         }
 
-        QuicListInsertHead(CurEntry, &(HashEntryToBeMoved->Linkage));
+        CxPlatListInsertHead(CurEntry, &(HashEntryToBeMoved->Linkage));
     }
 
     //
@@ -1367,15 +1370,15 @@ QuicHashTableContract(
     //
 
     uint32_t FirstLevelIndex, SecondLevelIndex;
-    QuicComputeDirIndices(
+    CxPlatComputeDirIndices(
         HashTable->TableSize, &FirstLevelIndex, &SecondLevelIndex);
 
     if (SecondLevelIndex == 0) {
 
-        QUIC_LIST_ENTRY** FirstLevelDir = HashTable->FirstLevelDir;
-        QUIC_LIST_ENTRY* SecondLevelDir = FirstLevelDir[FirstLevelIndex];
+        CXPLAT_LIST_ENTRY** FirstLevelDir = HashTable->FirstLevelDir;
+        CXPLAT_LIST_ENTRY* SecondLevelDir = FirstLevelDir[FirstLevelIndex];
 
-        QUIC_FREE(SecondLevelDir);
+        CXPLAT_FREE(SecondLevelDir);
         FirstLevelDir[FirstLevelIndex] = NULL;
 
         //
@@ -1384,11 +1387,11 @@ QuicHashTableContract(
 
         if (HT_SECOND_LEVEL_DIR_MIN_SIZE == HashTable->TableSize) {
             HashTable->SecondLevelDir = FirstLevelDir[0];
-            QUIC_FREE(FirstLevelDir);
+            CXPLAT_FREE(FirstLevelDir);
         }
     }
 
     return TRUE;
 }
 
-#endif // QUIC_HASHTABLE_RESIZE_SUPPORT
+#endif // CXPLAT_HASHTABLE_RESIZE_SUPPORT

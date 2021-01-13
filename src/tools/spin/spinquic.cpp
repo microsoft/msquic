@@ -20,9 +20,9 @@
 #define ASSERT_ON_FAILURE(x) \
     do { \
         QUIC_STATUS _STATUS; \
-        QUIC_FRE_ASSERT(QUIC_SUCCEEDED((_STATUS = x))); \
+        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED((_STATUS = x))); \
     } while (0)
-#define ASSERT_ON_NOT(x) QUIC_FRE_ASSERT(x)
+#define ASSERT_ON_NOT(x) CXPLAT_FRE_ASSERT(x)
 
 template<typename T>
 T GetRandom(T UpperBound) {
@@ -58,32 +58,32 @@ public:
 #define WATCHDOG_WIGGLE_ROOM 15000
 
 class SpinQuicWatchdog {
-    QUIC_THREAD WatchdogThread;
-    QUIC_EVENT ShutdownEvent;
+    CXPLAT_THREAD WatchdogThread;
+    CXPLAT_EVENT ShutdownEvent;
     uint32_t TimeoutMs;
     static
-    QUIC_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
+    CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
         auto This = (SpinQuicWatchdog*)Context;
-        if (!QuicEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
+        if (!CxPlatEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
             printf("Watchdog timeout fired!\n");
-            QUIC_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
+            CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
         }
-        QUIC_THREAD_RETURN(0);
+        CXPLAT_THREAD_RETURN(0);
     }
 public:
     SpinQuicWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
-        QuicEventInitialize(&ShutdownEvent, TRUE, FALSE);
-        QUIC_THREAD_CONFIG Config = { 0 };
+        CxPlatEventInitialize(&ShutdownEvent, TRUE, FALSE);
+        CXPLAT_THREAD_CONFIG Config = { 0 };
         Config.Name = "spin_watchdog";
         Config.Callback = WatchdogThreadCallback;
         Config.Context = this;
-        ASSERT_ON_FAILURE(QuicThreadCreate(&Config, &WatchdogThread));
+        ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &WatchdogThread));
     }
     ~SpinQuicWatchdog() {
-        QuicEventSet(ShutdownEvent);
-        QuicThreadWait(&WatchdogThread);
-        QuicThreadDelete(&WatchdogThread);
-        QuicEventUninitialize(ShutdownEvent);
+        CxPlatEventSet(ShutdownEvent);
+        CxPlatThreadWait(&WatchdogThread);
+        CxPlatThreadDelete(&WatchdogThread);
+        CxPlatEventUninitialize(ShutdownEvent);
     }
 };
 
@@ -374,7 +374,7 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
     case QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION:                   // uint8_t (BOOLEAN)
         Helper.SetUint8(QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, (uint8_t)GetRandom(2));
         break;
-    case QUIC_PARAM_CONN_RESUMPTION_STATE:                          // uint8_t[]
+    case QUIC_PARAM_CONN_RESUMPTION_TICKET:                         // uint8_t[]
         // TODO
         break;
     default:
@@ -420,7 +420,7 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
 
     uint64_t OpCount = 0;
     while (++OpCount != Settings.MaxOperationCount &&
-        QuicTimeDiff64(StartTimeMs, QuicTimeMs64()) < Settings.RunTimeMs) {
+        CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < Settings.RunTimeMs) {
 
         if (Listeners) {
             auto Value = GetRandom(100);
@@ -445,7 +445,7 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
     #define BAIL_ON_NULL_CONNECTION(Connection) \
         if (Connection == nullptr) { \
             if (IsServer) { \
-                QuicSleep(100); \
+                CxPlatSleep(100); \
             } \
             continue; \
         }
@@ -591,7 +591,7 @@ void Spin(LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Listeners = nu
     }
 }
 
-QUIC_THREAD_CALLBACK(ServerSpin, Context)
+CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
 {
     UNREFERENCED_PARAMETER(Context);
     LockableVector<HQUIC> Connections;
@@ -619,7 +619,7 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
 
     ASSERT_ON_NOT(ServerConfiguration);
 
-    auto CredConfig = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+    auto CredConfig = CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER);
     ASSERT_ON_NOT(CredConfig);
 
     ASSERT_ON_FAILURE(
@@ -669,12 +669,12 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
     }
 
     MsQuic->ConfigurationClose(ServerConfiguration);
-    QuicPlatFreeSelfSignedCert(CredConfig);
+    CxPlatPlatFreeSelfSignedCert(CredConfig);
 
-    QUIC_THREAD_RETURN(0);
+    CXPLAT_THREAD_RETURN(0);
 }
 
-QUIC_THREAD_CALLBACK(ClientSpin, Context)
+CXPLAT_THREAD_CALLBACK(ClientSpin, Context)
 {
     UNREFERENCED_PARAMETER(Context);
     LockableVector<HQUIC> Connections;
@@ -699,17 +699,17 @@ QUIC_THREAD_CALLBACK(ClientSpin, Context)
         delete SpinQuicConnection::Get(Connection);
     }
 
-    QUIC_THREAD_RETURN(0);
+    CXPLAT_THREAD_RETURN(0);
 }
 
-BOOLEAN QUIC_API DatapathHookReceiveCallback(struct QUIC_RECV_DATAGRAM* /* Datagram */)
+BOOLEAN QUIC_API DatapathHookReceiveCallback(struct CXPLAT_RECV_DATA* /* Datagram */)
 {
     uint8_t RandomValue;
-    QuicRandom(sizeof(RandomValue), &RandomValue);
+    CxPlatRandom(sizeof(RandomValue), &RandomValue);
     return (RandomValue % 100) < Settings.LossPercent;
 }
 
-BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_ADDR* /* LocalAddress */, struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */)
+BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_ADDR* /* LocalAddress */, struct CXPLAT_SEND_DATA* /* SendContext */)
 {
     return FALSE; // Don't drop
 }
@@ -758,8 +758,8 @@ main(int argc, char **argv)
         PrintHelpText();
     }
 
-    QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
+    CxPlatSystemLoad();
+    CxPlatInitialize();
 
     uint32_t SessionCount = 4;
     uint32_t RepeatCount = 1;
@@ -865,7 +865,7 @@ main(int argc, char **argv)
         // TODO - Randomize more of the settings.
 
         QUIC_CREDENTIAL_CONFIG CredConfig;
-        QuicZeroMemory(&CredConfig, sizeof(CredConfig));
+        CxPlatZeroMemory(&CredConfig, sizeof(CredConfig));
         CredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
         CredConfig.Flags =
             QUIC_CREDENTIAL_FLAG_CLIENT |
@@ -878,10 +878,10 @@ main(int argc, char **argv)
             ClientConfigurations.push_back(Configuration);
         }
 
-        QUIC_THREAD Threads[2];
-        QUIC_THREAD_CONFIG Config = { 0 };
+        CXPLAT_THREAD Threads[2];
+        CXPLAT_THREAD_CONFIG Config = { 0 };
 
-        StartTimeMs = QuicTimeMs64();
+        StartTimeMs = CxPlatTimeMs64();
 
         //
         // Start worker threads
@@ -890,13 +890,13 @@ main(int argc, char **argv)
         if (RunServer) {
             Config.Name = "spin_server";
             Config.Callback = ServerSpin;
-            ASSERT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[0]));
+            ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[0]));
         }
 
         if (RunClient) {
             Config.Name = "spin_client";
             Config.Callback = ClientSpin;
-            ASSERT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[1]));
+            ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[1]));
         }
 
         //
@@ -904,13 +904,13 @@ main(int argc, char **argv)
         //
 
         if (RunClient) {
-            QuicThreadWait(&Threads[1]);
-            QuicThreadDelete(&Threads[1]);
+            CxPlatThreadWait(&Threads[1]);
+            CxPlatThreadDelete(&Threads[1]);
         }
 
         if (RunServer) {
-            QuicThreadWait(&Threads[0]);
-            QuicThreadDelete(&Threads[0]);
+            CxPlatThreadWait(&Threads[0]);
+            CxPlatThreadDelete(&Threads[0]);
         }
 
         //

@@ -17,10 +17,8 @@ const char* RootFolderPath;
 const char* UploadFolderPath;
 
 const QUIC_BUFFER SupportedALPNs[] = {
-    { sizeof("hq-30") - 1, (uint8_t*)"hq-30" },
+    { sizeof("hq-interop") - 1, (uint8_t*)"hq-interop" },
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
-    { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
-    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
     { sizeof("siduck") - 1, (uint8_t*)"siduck" },
     { sizeof("siduck-00") - 1, (uint8_t*)"siduck-00" }
 };
@@ -67,6 +65,7 @@ main(
     //
     uint16_t LocalPort = DEFAULT_QUIC_HTTP_SERVER_PORT;
     BOOLEAN Retry = DEFAULT_QUIC_HTTP_SERVER_RETRY;
+    const char* SslKeyLogFileParam = nullptr;
     TryGetValue(argc, argv, "port", &LocalPort);
     TryGetValue(argc, argv, "retry", &Retry);
     if (Retry) {
@@ -74,6 +73,7 @@ main(
         printf("Enabling forced RETRY on server.\n");
     }
     TryGetValue(argc, argv, "upload", &UploadFolderPath);
+    TryGetValue(argc, argv, "sslkeylogfile", &SslKeyLogFileParam);
 
     //
     // Required parameters.
@@ -105,9 +105,16 @@ main(
     }
 
     {
-        HttpServer Server(Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &ListenAddr);
-        printf("Press Enter to exit.\n\n");
-        getchar();
+        HttpServer Server(Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &ListenAddr, SslKeyLogFileParam);
+        if (!GetValue(argc, argv, "noexit")) {
+            printf("Press Enter to exit.\n\n");
+            getchar();
+        } else {
+            CXPLAT_EVENT Event;
+            CxPlatEventInitialize(&Event, TRUE, FALSE);
+            printf("Waiting forever.\n\n");
+            CxPlatEventWaitForever(Event);
+        }
     }
 
     FreeServerConfiguration(MsQuic, Configuration);

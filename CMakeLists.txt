@@ -1,8 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+cmake_minimum_required(VERSION 3.16)
+
 # Disable in-source builds to prevent source tree corruption.
-if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
   message(FATAL_ERROR "
 FATAL: In-source builds are not allowed.
        You should create a separate directory for build files.
@@ -10,8 +12,6 @@ FATAL: In-source builds are not allowed.
 endif()
 
 message(STATUS "CMAKE Version: ${CMAKE_VERSION}")
-
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -33,6 +33,10 @@ else()
     endif()
 endif()
 
+if (POLICY CMP0111)
+    cmake_policy(SET CMP0111 NEW)
+endif()
+
 project(msquic)
 
 # Set a default build type if none was specified
@@ -51,13 +55,13 @@ message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 if (WIN32)
-    set(QUIC_PLATFORM "windows")
+    set(CX_PLATFORM "windows")
 elseif (APPLE)
-    set(QUIC_PLATFORM "darwin")
+    set(CX_PLATFORM "darwin")
 elseif (UNIX)
-    set(QUIC_PLATFORM "linux")
+    set(CX_PLATFORM "linux")
 endif()
-message(STATUS "QUIC Platform: ${QUIC_PLATFORM}")
+message(STATUS "QUIC Platform: ${CX_PLATFORM}")
 
 if(WIN32)
     # On Windows, we just need to set the destination variables
@@ -123,6 +127,8 @@ option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
 option(QUIC_CODE_CHECK "Run static code checkers" OFF)
 option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
 option(QUIC_CI "CI Specific build optimizations" OFF)
+option(QUIC_RANDOM_ALLOC_FAIL "Randomly fails allocation calls" OFF)
+option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -172,28 +178,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${QUIC_OUTPUT_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
-if (QUIC_ENABLE_LOGGING)
-    message(STATUS "Configuring Clog")
-    execute_process(COMMAND clog --installDirectory ${QUIC_BUILD_DIR}/clog)
-
-    set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
-    set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
-    set(CLOG_INCLUDE_DIRECTORY ${QUIC_BUILD_DIR}/clog)
-    set(CMAKE_CLOG_GENERATE_FILE ${QUIC_BUILD_DIR}/clog/CLog.cmake)
-    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
-    include(${CMAKE_CLOG_GENERATE_FILE})
-
-    function(add_clog_library)
-        CLOG_GENERATE_TARGET(${ARGV})
-        target_link_libraries(${ARGV0} PRIVATE inc)
-        set_property(TARGET ${ARGV0} PROPERTY FOLDER "clog")
-    endfunction()
-else()
-    function(add_clog_library)
-        add_library(${ARGV0} INTERFACE)
-    endfunction()
-endif()
-
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
@@ -206,17 +190,27 @@ if (WIN32)
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
     set(QUIC_COMMON_FLAGS "")
-    set(QUIC_COMMON_DEFINES "")
-    set(QUIC_WARNING_FLAGS -Wformat=2 -Wno-type-limits
+    set(QUIC_COMMON_DEFINES _GNU_SOURCE)
+    set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
         CACHE INTERNAL "")
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)
+        list(APPEND QUIC_WARNING_FLAGS -Wno-strict-aliasing)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND QUIC_WARNING_FLAGS -Wno-missing-braces -Wno-microsoft-anon-tag)
     endif()
 endif()
 
 list(APPEND QUIC_COMMON_DEFINES VER_BUILD_ID=${QUIC_VER_BUILD_ID})
 list(APPEND QUIC_COMMON_DEFINES VER_SUFFIX=${QUIC_VER_SUFFIX})
+
+if(QUIC_RANDOM_ALLOC_FAIL)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_RANDOM_ALLOC_FAIL=1 QUIC_DISABLE_MEM_POOL=1)
+endif()
+
+if(QUIC_TLS_SECRETS_SUPPORT)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_SECRETS_SUPPORT=1)
+endif()
 
 if(WIN32)
     # Generate the MsQuicEtw header file.
@@ -270,7 +264,7 @@ if(WIN32)
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
-    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} /EHsc)
+    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} /EHsc /permissive-)
 
     # These cannot be updated until CMake 3.13
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /GL /Zi")
@@ -320,11 +314,11 @@ else()
     set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 
     list(APPEND QUIC_COMMON_FLAGS -fms-extensions -fPIC)
-    if (QUIC_PLATFORM STREQUAL "darwin")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_DARWIN)
+    if (CX_PLATFORM STREQUAL "darwin")
+        list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_DARWIN)
         list(APPEND QUIC_COMMON_FLAGS -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers)
     else()
-        list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_LINUX)
+        list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_LINUX)
     endif()
 
     if (QUIC_ENABLE_SANITIZERS)
@@ -348,7 +342,6 @@ else()
         message(STATUS "Disabling tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE stubs)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
-        list(APPEND QUIC_WARNING_FLAGS -Wno-unused-parameter -Wno-unused-variable)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl")
@@ -378,83 +371,111 @@ endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     if (WIN32)
+        if (QUIC_UWP_BUILD)
+            message(FATAL_ERROR "UWP is not supported with OpenSSL")
+        endif()
+
+        if (${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm64")
+            set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64-ARM")
+        elseif (${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm")
+            set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32-ARM")
+        elseif (${CMAKE_GENERATOR_PLATFORM} STREQUAL "Win32")
+            set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32")
+        elseif (${CMAKE_GENERATOR_PLATFORM} STREQUAL "x64")
+            set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64A")
+        else()
+            message(FATAL_ERROR "Unknown Generator Platform ${CMAKE_GENERATOR_PLATFORM}")
+        endif()
+
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
 
         add_library(OpenSSL_Crypto STATIC IMPORTED)
-        set_property(TARGET OpenSSL_Crypto PROPERTY IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
-        set_property(TARGET OpenSSL_Crypto PROPERTY IMPORTED_LOCATION_DEBUG   ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
-
+        set_target_properties(OpenSSL_Crypto PROPERTIES
+            IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+            MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
+            MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
 
         add_library(OpenSSL STATIC IMPORTED)
-        set_property(TARGET OpenSSL PROPERTY IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-        set_property(TARGET OpenSSL PROPERTY IMPORTED_LOCATION_DEBUG   ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+        set_target_properties(OpenSSL PROPERTIES
+            IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+            MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
+            MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
 
         target_include_directories(OpenSSL INTERFACE
-                $<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
-                $<$<CONFIG:Release>:${OPENSSL_DIR}/release/include>)
+            $<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
+            $<$<CONFIG:Release>:${OPENSSL_DIR}/release/include>)
         target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
 
-        if (QUIC_CI AND EXISTS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
-            message(STATUS "Found existing OpenSSL cache, skipping openssl build")
+        if (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Release" AND EXISTS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+            message(STATUS "Found existing OpenSSL Release cache, skipping openssl build")
+        elseif (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Debug" AND EXISTS ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+            message(STATUS "Found existing OpenSSL Debug cache, skipping openssl build")
         else()
             file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
             file(MAKE_DIRECTORY ${OPENSSL_DIR}/release/include)
 
             set(OPENSSL_CONFIG_FLAGS
                 enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
-                no-weak-ssl-ciphers no-shared no-tests VC-WIN64A)
+                no-autoerrinit no-filenames no-ui-console no-err
+                no-zlib no-egd no-uplink no-idea no-rc5 no-rc4 no-afalgeng no-acvp_tests
+                no-comp no-cmp no-cms no-ct no-srp no-srtp no-ts no-fips no-gost no-padlockeng no-dso no-ec2m
+                no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
+                no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
+                no-siv no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-des no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
+                no-weak-ssl-ciphers no-shared no-tests ${QUIC_OPENSSL_WIN_ARCH})
 
             add_custom_target(mkdir_openssl_build_debug
                 COMMAND if not exist \"${QUIC_BUILD_DIR}/submodules/openssl/debug\" mkdir \"${QUIC_BUILD_DIR}/submodules/openssl/debug\" 2> NUL)
             add_custom_target(mkdir_openssl_build_release
                 COMMAND if not exist \"${QUIC_BUILD_DIR}/submodules/openssl/release\" mkdir \"${QUIC_BUILD_DIR}/submodules/openssl/release\" 2> NUL)
+
             add_custom_command(
                 DEPENDS mkdir_openssl_build_debug
                 WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
-                OUTPUT ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-                OUTPUT ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-                COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug
-                COMMAND nmake
-                COMMAND nmake install_dev)
+                OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile
+                COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug)
 
             add_custom_command(
                 DEPENDS mkdir_openssl_build_release
                 WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
-                OUTPUT ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-                OUTPUT ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-                COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release
-                COMMAND nmake
+                OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/release/makefile
+                COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release)
+
+            add_custom_target(OpenSSL_Build
+                DEPENDS $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
+                WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug,${QUIC_BUILD_DIR}/submodules/openssl/release>
                 COMMAND nmake install_dev)
 
-            add_custom_target(OpenSSL_Build_Debug
-                DEPENDS ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-                DEPENDS ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+            add_library(OpenSSL_Build_Tgt INTERFACE)
+            add_dependencies(OpenSSL_Build_Tgt OpenSSL_Build)
 
-            add_custom_target(OpenSSL_Build_Release
-                DEPENDS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-                DEPENDS ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-
-            add_dependencies(OpenSSL_Crypto OpenSSL_Build_Release OpenSSL_Build_Debug)
-            add_dependencies(OpenSSL OpenSSL_Build_Release OpenSSL_Build_Debug)
+            target_link_libraries(OpenSSL INTERFACE OpenSSL_Build_Tgt)
         endif()
     else()
         # Configure and build OpenSSL.
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
         set(OPENSSL_CONFIG_FLAGS
-            enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
-            no-weak-ssl-ciphers no-tests --prefix=${OPENSSL_DIR})
+            enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp no-autoerrinit no-filenames no-ui-console no-err
+            no-zlib no-egd no-uplink no-idea no-rc5 no-rc4 no-afalgeng no-acvp_tests
+            no-comp no-cmp no-cms no-ct no-srp no-srtp no-ts no-fips no-gost no-padlockeng no-dso no-ec2m
+            no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
+            no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
+            no-siv no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-des no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
+            no-weak-ssl-ciphers no-shared no-tests --prefix=${OPENSSL_DIR})
         if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
-            list(PREPEND OPENSSL_CONFIG_FLAGS no-shared)
-            set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure
+            set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure
                 linux-armv4 -DL_ENDIAN
                 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
-        elseif(QUIC_PLATFORM STREQUAL "darwin")
+        elseif(CX_PLATFORM STREQUAL "darwin")
             # need to build with Apple's compiler
             # also, "no-shared" breaks the build for master-alpha4-quic-support
             set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
         else()
-            list(PREPEND OPENSSL_CONFIG_FLAGS no-shared)
-            set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config
+            set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
                 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
         endif()
         add_custom_target(mkdir_openssl_build
@@ -473,17 +494,44 @@ if(QUIC_TLS STREQUAL "openssl")
             DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
         add_library(OpenSSL_Crypto STATIC IMPORTED)
-        set_property(TARGET OpenSSL_Crypto PROPERTY IMPORTED_LOCATION   ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+        set_target_properties(OpenSSL_Crypto PROPERTIES
+            IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LINK_INTERFACE_LANGUAGES "C")
+
         add_dependencies(OpenSSL_Crypto OpenSSL_Build)
 
         file(MAKE_DIRECTORY ${OPENSSL_DIR}/include)
 
         add_library(OpenSSL STATIC IMPORTED)
-        set_property(TARGET OpenSSL PROPERTY IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+        set_target_properties(OpenSSL PROPERTIES
+            IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LINK_INTERFACE_LANGUAGES "C")
+
         target_include_directories(OpenSSL INTERFACE ${OPENSSL_DIR}/include)
         target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
         add_dependencies(OpenSSL OpenSSL_Build)
     endif()
+endif()
+
+if (QUIC_ENABLE_LOGGING)
+    execute_process(COMMAND clog --installDirectory ${QUIC_BUILD_DIR}/clog)
+
+    set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
+    set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
+    set(CLOG_INCLUDE_DIRECTORY ${QUIC_BUILD_DIR}/clog)
+    set(CMAKE_CLOG_GENERATE_FILE ${QUIC_BUILD_DIR}/clog/CLog.cmake)
+    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
+    include(${CMAKE_CLOG_GENERATE_FILE})
+
+    function(add_clog_library)
+        CLOG_GENERATE_TARGET(${ARGV})
+        target_link_libraries(${ARGV0} PRIVATE inc)
+        set_property(TARGET ${ARGV0} PROPERTY FOLDER "clog")
+    endfunction()
+else()
+    function(add_clog_library)
+        add_library(${ARGV0} INTERFACE)
+    endfunction()
 endif()
 
 if(QUIC_TLS STREQUAL "mitls")
@@ -499,15 +547,28 @@ if(QUIC_CODE_CHECK)
     if(CLANGTIDY)
         message(STATUS "Found clang-tidy: ${CLANGTIDY}")
         set(CLANG_TIDY_CHECKS *
-            # add checks to ignore here, e.g.,
-            # -hicpp-no-assembler
-            # -hicpp-signed-bitwise
-            # ...
+            # add checks to ignore here:
+            -android-cloexec-fopen
+            -bugprone-macro-parentheses
+            -bugprone-sizeof-expression
+            -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+            -clang-diagnostic-microsoft-anon-tag
+            -cppcoreguidelines-avoid-magic-numbers
+            -cppcoreguidelines-avoid-non-const-global-variables
+            -cppcoreguidelines-init-variables
+            -google-readability-todo
+            -hicpp-no-assembler
+            -hicpp-signed-bitwise
+            -llvmlibc-restrict-system-libc-headers
+            -misc-no-recursion # do you really need recursion?
+            -readability-avoid-const-params-in-decls
+            -readability-isolate-declaration
+            -readability-magic-numbers
+            -readability-non-const-parameter
         )
         string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
-        set(CMAKE_C_CLANG_TIDY ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
-            -system-headers)
-        set(CMAKE_CXX_CLANG_TIDY ${CMAKE_C_CLANG_TIDY})
+        set(CMAKE_C_CLANG_TIDY_AVAILABLE ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
+            -system-headers --warnings-as-errors=*)
     else()
         message(STATUS "clang-tidy not found")
     endif()
@@ -515,9 +576,12 @@ if(QUIC_CODE_CHECK)
     find_program(CPPCHECK NAMES cppcheck)
     if(CPPCHECK)
         message(STATUS "Found cppcheck: ${CPPCHECK}")
-        set(CMAKE_C_CPPCHECK ${CPPCHECK} -q --inline-suppr
+        set(CMAKE_C_CPPCHECK_AVAILABLE ${CPPCHECK} -q --inline-suppr
+            --suppress=duplicateValueTernary --suppress=objectIndex
+            --suppress=varFuncNullUB
+            # these are finding potential logic issues, may want to suppress when focusing on nits:
+            --suppress=nullPointer --suppress=nullPointerRedundantCheck
             --enable=warning,style,performance,portability -D__linux__)
-        set(CMAKE_CXX_CPPCHECK ${CMAKE_C_CPPCHECK})
     else()
         message(STATUS "cppcheck not found")
     endif()

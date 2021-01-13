@@ -22,7 +22,7 @@ Environment:
 
 void
 NTAPI
-QuicStorageRegKeyChangeCallback(
+CxPlatStorageRegKeyChangeCallback(
     _Inout_     PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID                 Context,
     _Inout_     PTP_WAIT              Wait,
@@ -32,50 +32,50 @@ QuicStorageRegKeyChangeCallback(
 //
 // The storage context returned that abstracts a registry key handle.
 //
-typedef struct QUIC_STORAGE {
+typedef struct CXPLAT_STORAGE {
 
     HKEY RegKey;
     HANDLE NotifyEvent;
     PTP_WAIT ThreadPoolWait;
-    QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback;
+    CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback;
     void* CallbackContext;
 
-} QUIC_STORAGE;
+} CXPLAT_STORAGE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicStorageOpen(
+CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
-    _Out_ QUIC_STORAGE** NewStorage
+    _Out_ CXPLAT_STORAGE** NewStorage
     )
 {
     QUIC_STATUS Status;
-    QUIC_STORAGE* Storage = NULL;
+    CXPLAT_STORAGE* Storage = NULL;
 
-    char FullKeyName[256] = QUIC_BASE_REG_PATH;
+    char FullKeyName[256] = CXPLAT_BASE_REG_PATH;
 
     if (Path != NULL) {
         size_t PathLength = strlen(Path);
-        if (PathLength + sizeof(QUIC_BASE_REG_PATH) > sizeof(FullKeyName)) {
+        if (PathLength + sizeof(CXPLAT_BASE_REG_PATH) > sizeof(FullKeyName)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Exit;
         }
 
         memcpy(
-            FullKeyName + sizeof(QUIC_BASE_REG_PATH) - 1,
+            FullKeyName + sizeof(CXPLAT_BASE_REG_PATH) - 1,
             Path,
             PathLength + 1);
     }
 
-    Storage = QUIC_ALLOC_PAGED(sizeof(QUIC_STORAGE));
+    Storage = CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_STORAGE), QUIC_POOL_STORAGE);
     if (Storage == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    QuicZeroMemory(Storage, sizeof(QUIC_STORAGE));
+    CxPlatZeroMemory(Storage, sizeof(CXPLAT_STORAGE));
     Storage->Callback = Callback;
     Storage->CallbackContext = CallbackContext;
 
@@ -87,7 +87,7 @@ QuicStorageOpen(
 
     Storage->ThreadPoolWait =
         CreateThreadpoolWait(
-            QuicStorageRegKeyChangeCallback,
+            CxPlatStorageRegKeyChangeCallback,
             Storage,
             NULL);
     if (Storage->ThreadPoolWait == NULL) {
@@ -141,7 +141,7 @@ Exit:
         if (Storage->NotifyEvent != NULL) {
             CloseHandle(Storage->NotifyEvent);
         }
-        QUIC_FREE(Storage);
+        CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
 
     return Status;
@@ -149,8 +149,8 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicStorageClose(
-    _In_opt_ QUIC_STORAGE* Storage
+CxPlatStorageClose(
+    _In_opt_ CXPLAT_STORAGE* Storage
     )
 {
     if (Storage != NULL) {
@@ -158,13 +158,13 @@ QuicStorageClose(
         RegCloseKey(Storage->RegKey);
         CloseThreadpoolWait(Storage->ThreadPoolWait);
         CloseHandle(Storage->NotifyEvent);
-        QUIC_FREE(Storage);
+        CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
 }
 
 void
 NTAPI
-QuicStorageRegKeyChangeCallback(
+CxPlatStorageRegKeyChangeCallback(
     _Inout_     PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID                 Context,
     _Inout_     PTP_WAIT              Wait,
@@ -174,9 +174,9 @@ QuicStorageRegKeyChangeCallback(
     UNREFERENCED_PARAMETER(Instance);
     UNREFERENCED_PARAMETER(Wait);
     UNREFERENCED_PARAMETER(WaitResult);
-    QUIC_DBG_ASSERT(Context);
+    CXPLAT_DBG_ASSERT(Context);
 
-    QUIC_STORAGE* Storage = (QUIC_STORAGE*)Context;
+    CXPLAT_STORAGE* Storage = (CXPLAT_STORAGE*)Context;
     Storage->Callback(Storage->CallbackContext);
 
     if (NO_ERROR ==
@@ -192,8 +192,8 @@ QuicStorageRegKeyChangeCallback(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicStorageReadValue(
-    _In_ QUIC_STORAGE* Storage,
+CxPlatStorageReadValue(
+    _In_ CXPLAT_STORAGE* Storage,
     _In_opt_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
         UINT8 * Buffer,

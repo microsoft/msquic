@@ -6,7 +6,7 @@ At this time there is no plan to open source the rest of Windows.
 
 > When is this shipping with Windows?
 
-The kernel mode version, msquic.sys, will ship in future Windows releases. For more details see our [support and release documentation](Support.md).
+The kernel mode version, msquic.sys, will ship in future Windows releases. For more details see our [support and release documentation](Release.md).
 
 > Why isn’t there an HTTP/3 implementation along with MsQuic?
 
@@ -14,11 +14,7 @@ MsQuic is designed as a generic QUIC transport for any application protocol. Sev
 
 > Do you plan to support other platforms?
 
-MsQuic currently supports Windows and Linux (in preview). In the future support for other platforms may be added.
-
-> Why aren't you allowing community contributions?
-
-We are currently stabilizing our build and integration processes. External contributions will be allowed at a later time.
+MsQuic currently supports Windows and Linux. In the future support for other platforms may be added.
 
 > Isn’t QUIC a Google product?
 
@@ -30,7 +26,7 @@ The final date depends on the IETF process but the Internet-Drafts have already 
 
 > Do you have any performance data?
 
-We don't have any performance numbers to share at this time.
+You can find more data on MsQuic performance [here](https://github.com/microsoft/msquic/wiki/Performance).
 
 > Does this mean Microsoft will stop investing in TCP?
 

@@ -20,8 +20,8 @@ Abstract:
 extern "C" {
 #endif
 
-typedef struct QUIC_RECV_DATAGRAM QUIC_RECV_DATAGRAM;
-typedef struct QUIC_DATAPATH_SEND_CONTEXT QUIC_DATAPATH_SEND_CONTEXT;
+typedef struct CXPLAT_RECV_DATA CXPLAT_RECV_DATA;
+typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
 
 //
 // Returns TRUE to drop the packet.
@@ -30,7 +30,7 @@ typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 (QUIC_API * QUIC_TEST_DATAPATH_RECEIVE_HOOK)(
-    _Inout_ QUIC_RECV_DATAGRAM* Datagram
+    _Inout_ CXPLAT_RECV_DATA* Datagram
     );
 
 //
@@ -42,7 +42,7 @@ BOOLEAN
 (QUIC_API * QUIC_TEST_DATAPATH_SEND_HOOK)(
     _Inout_ QUIC_ADDR* RemoteAddress,
     _Inout_opt_ QUIC_ADDR* LocalAddress,
-    _Inout_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _Inout_ CXPLAT_SEND_DATA* SendContext
     );
 
 typedef struct QUIC_TEST_DATAPATH_HOOKS {
@@ -66,6 +66,30 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 } QUIC_PRIVATE_TRANSPORT_PARAMETER;
 
 //
+// This struct enables QUIC applications to support SSLKEYLOGFILE
+// for debugging packet captures with e.g. Wireshark.
+//
+
+#define CXPLAT_TLS_SECRETS_MAX_SECRET_LEN 64
+typedef struct CXPLAT_TLS_SECRETS {
+    uint8_t SecretLength;
+    struct {
+        uint8_t ClientRandom : 1;
+        uint8_t ClientEarlyTrafficSecret : 1;
+        uint8_t ClientHandshakeTrafficSecret : 1;
+        uint8_t ServerHandshakeTrafficSecret : 1;
+        uint8_t ClientTrafficSecret0 : 1;
+        uint8_t ServerTrafficSecret0 : 1;
+    } IsSet;
+    uint8_t ClientRandom[32];
+    uint8_t ClientEarlyTrafficSecret[CXPLAT_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ClientHandshakeTrafficSecret[CXPLAT_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ServerHandshakeTrafficSecret[CXPLAT_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ClientTrafficSecret0[CXPLAT_TLS_SECRETS_MAX_SECRET_LEN];
+    uint8_t ServerTrafficSecret0[CXPLAT_TLS_SECRETS_MAX_SECRET_LEN];
+} CXPLAT_TLS_SECRETS;
+
+//
 // The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
 //
 
@@ -78,6 +102,7 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_CONN_FORCE_KEY_UPDATE                0x80000001  // No payload
 #define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x80000002  // No payload
 #define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x80000003  // QUIC_PRIVATE_TRANSPORT_PARAMETER
+#define QUIC_PARAM_CONN_TLS_SECRETS                     0x80000004  // CXPLAT_TLS_SECRETS (SSLKEYLOGFILE compatible)
 
 #if defined(__cplusplus)
 }

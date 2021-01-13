@@ -126,7 +126,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalOptions>%(AdditionalOptions) /FORCE:PGOREPRO /USEPROFILE:PGD=$(SolutionDir)src\bin\winkernel\pgo_x64\msquic.pgd</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /FORCE:PGOREPRO /USEPROFILE:PGD=$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\msquic.pgd</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -158,5 +158,9 @@
     <Error Condition="!Exists('..\..\..\packages\Microsoft.SourceLink.GitHub.1.0.0\build\Microsoft.SourceLink.GitHub.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\packages\Microsoft.SourceLink.GitHub.1.0.0\build\Microsoft.SourceLink.GitHub.targets'))" />
     <Error Condition="!Exists('..\..\..\packages\Microsoft.SourceLink.AzureRepos.Git.1.0.0\build\Microsoft.SourceLink.AzureRepos.Git.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\packages\Microsoft.SourceLink.AzureRepos.Git.1.0.0\build\Microsoft.SourceLink.AzureRepos.Git.props'))" />
     <Error Condition="!Exists('..\..\..\packages\Microsoft.SourceLink.AzureRepos.Git.1.0.0\build\Microsoft.SourceLink.AzureRepos.Git.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\packages\Microsoft.SourceLink.AzureRepos.Git.1.0.0\build\Microsoft.SourceLink.AzureRepos.Git.targets'))" />
+  </Target>
+  <Target Name="CopyPgd" BeforeTargets="PrepareForBuild">
+    <Copy DestinationFolder="$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel"
+      SourceFiles="$(SolutionDir)src\bin\winkernel\pgo_x64\msquic.pgd" />
   </Target>
 </Project>

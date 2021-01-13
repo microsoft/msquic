@@ -3,10 +3,16 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - release/*
+      - feature/*
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [main]
+    branches:
+      - main
+      - release/*
+      - feature/*
   schedule:
     - cron: '0 17 * * 1'
 
@@ -21,11 +27,6 @@ jobs:
         with:
           fetch-depth: 2
           submodules: 'recursive'
-
-      # If this run was triggered by a pull request event, then checkout
-      # the head of the pull request instead of the merge commit.
-      - run: git checkout HEAD^2
-        if: ${{ github.event_name == 'pull_request' }}
 
       # Install dependencies and build submodules before starting analysis.
       - run: |

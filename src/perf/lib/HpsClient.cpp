@@ -27,6 +27,7 @@ PrintHelp(
         "  -runtime:<####>             The total runtime (in ms). (def:%u)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -parallel:<####>            The number of parallel connections per core. (def:%u)\n"
+        "  -threads:<####>             The number of threads to use. Defaults and capped to number of cores/threads\n"
         "\n",
         HPS_DEFAULT_RUN_TIME,
         PERF_DEFAULT_PORT,
@@ -48,15 +49,25 @@ HpsClient::Init(
         return Configuration.GetInitStatus();
     }
 
-    ActiveProcCount = QuicProcActiveCount();
+    ActiveProcCount = CxPlatProcActiveCount();
     if (ActiveProcCount >= 60) {
         //
         // If we have enough cores, leave 2 cores for OS overhead
         //
         ActiveProcCount -= 2;
     }
-    if (ActiveProcCount > HPS_MAX_WORKER_COUNT) {
-        ActiveProcCount = HPS_MAX_WORKER_COUNT;
+
+    uint32_t TmpProcCount = ActiveProcCount;
+    if (TryGetValue(argc, argv, "threads", &TmpProcCount) && TmpProcCount < ActiveProcCount) {
+        if (TmpProcCount == 0) {
+            PrintHelp();
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        ActiveProcCount = TmpProcCount;
+    }
+
+    if (ActiveProcCount > PERF_MAX_THREAD_COUNT) {
+        ActiveProcCount = PERF_MAX_THREAD_COUNT;
     }
 
     const char* target;
@@ -71,7 +82,7 @@ HpsClient::Init(
     if (!Target.get()) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    QuicCopyMemory(Target.get(), target, Len);
+    CxPlatCopyMemory(Target.get(), target, Len);
     Target[Len] = '\0';
 
     TryGetValue(argc, argv, "runtime", &RunTime);
@@ -81,25 +92,25 @@ HpsClient::Init(
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_THREAD_CALLBACK(HpsWorkerThread, _Context)
+CXPLAT_THREAD_CALLBACK(HpsWorkerThread, _Context)
 {
     auto Context = (HpsWorkerContext*)_Context;
 
     while (!Context->pThis->Shutdown) {
         if ((uint32_t)Context->OutstandingConnections == Context->pThis->Parallel) {
-            QuicEventWaitForever(Context->WakeEvent);
+            CxPlatEventWaitForever(Context->WakeEvent);
         } else {
             InterlockedIncrement(&Context->OutstandingConnections);
             Context->pThis->StartConnection(Context);
         }
     }
 
-    QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
+    CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
 
 QUIC_STATUS
 HpsClient::Start(
-    _In_ QUIC_EVENT* StopEvent
+    _In_ CXPLAT_EVENT* StopEvent
     ) {
     CompletionEvent = StopEvent;
 
@@ -108,29 +119,26 @@ HpsClient::Start(
         Contexts[Proc].pThis = this;
         Contexts[Proc].Processor = (uint16_t)Proc;
 
-        QUIC_THREAD_CONFIG ThreadConfig = {
-            QUIC_THREAD_FLAG_SET_AFFINITIZE,
+        CXPLAT_THREAD_CONFIG ThreadConfig = {
+            CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
             (uint16_t)Proc,
             "HPS Worker",
             HpsWorkerThread,
             &Contexts[Proc]
         };
 
-        Status = QuicThreadCreate(&ThreadConfig, &Contexts[Proc].Thread);
+        Status = CxPlatThreadCreate(&ThreadConfig, &Contexts[Proc].Thread);
         if (QUIC_FAILED(Status)) {
             break;
         }
         Contexts[Proc].ThreadStarted = true;
     }
 
-    uint32_t ThreadToSetAffinityTo = QuicProcActiveCount();
+    uint32_t ThreadToSetAffinityTo = CxPlatProcActiveCount();
     if (ThreadToSetAffinityTo > 2) {
         ThreadToSetAffinityTo -= 2;
-        //
-        // TODO: Fix QuicSetCurrentThreadProcessorAffinity to take 16 bits
-        //
         Status =
-            QuicSetCurrentThreadProcessorAffinity((uint8_t)ThreadToSetAffinityTo);
+            CxPlatSetCurrentThreadProcessorAffinity((uint16_t)ThreadToSetAffinityTo);
     }
 
     return Status;
@@ -145,11 +153,11 @@ HpsClient::Wait(
     }
 
     WriteOutput("Waiting %d ms!\n", Timeout);
-    QuicEventWaitWithTimeout(*CompletionEvent, Timeout);
+    CxPlatEventWaitWithTimeout(*CompletionEvent, Timeout);
 
     Shutdown = true;
     for (uint32_t i = 0; i < ActiveProcCount; ++i) {
-        QuicEventSet(Contexts[i].WakeEvent);
+        CxPlatEventSet(Contexts[i].WakeEvent);
     }
 
     for (uint32_t i  = 0; i < ActiveProcCount; i++) {
@@ -157,11 +165,34 @@ HpsClient::Wait(
     }
 
     uint32_t HPS = (uint32_t)((CompletedConnections * 1000ull) / (uint64_t)RunTime);
-    WriteOutput("Result: %u HPS\n", HPS);
+    if (HPS == 0) {
+        WriteOutput("Error: No handshakes were completed\n");
+    } else {
+        WriteOutput("Result: %u HPS\n", HPS);
+    }
     //WriteOutput("Result: %u HPS (%ull create, %ull start, %ull complete)\n",
     //    HPS, CreatedConnections, StartedConnections, CompletedConnections);
     Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
 
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+HpsClient::GetExtraDataMetadata(
+    _Out_ PerfExtraDataMetadata* Result
+    )
+{
+    Result->TestType = PerfTestType::HpsClient;
+    Result->ExtraDataLength = 0;
+}
+
+QUIC_STATUS
+HpsClient::GetExtraData(
+    _Out_writes_bytes_(*Length) uint8_t*,
+    _Inout_ uint32_t* Length
+    )
+{
+    *Length = 0;
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -177,13 +208,13 @@ HpsClient::ConnectionCallback(
         MsQuic->ConnectionShutdown(ConnectionHandle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         InterlockedDecrement(&Context->OutstandingConnections);
         if (!Shutdown) {
-            QuicEventSet(Context->WakeEvent);
+            CxPlatEventSet(Context->WakeEvent);
         }
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         if (!Shutdown && !Event->SHUTDOWN_COMPLETE.HandshakeCompleted) {
             InterlockedDecrement(&Context->OutstandingConnections);
-            QuicEventSet(Context->WakeEvent);
+            CxPlatEventSet(Context->WakeEvent);
         }
         if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
             MsQuic->ConnectionClose(ConnectionHandle);

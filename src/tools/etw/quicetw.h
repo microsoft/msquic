@@ -86,13 +86,14 @@ typedef enum QUIC_EVENT_ID_GLOBAL {
     EventId_QuicApiExitStatus,
     EventId_QuicApiWaitOperation,
     EventId_QuicPerfCountersRundown,
+    EventId_QuicLibrarySendRetryStateUpdated,
 
     EventId_QuicLibraryCount
 } QUIC_EVENT_ID_GLOBAL;
 
-#define QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
-#define QUIC_DATAPATH_FEATURE_RECV_COALESCING       0x0002
-#define QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION     0x0004
+#define CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
+#define CXPLAT_DATAPATH_FEATURE_RECV_COALESCING       0x0002
+#define CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION     0x0004
 
 #pragma pack(push)
 #pragma pack(1)
@@ -129,6 +130,9 @@ typedef struct QUIC_EVENT_DATA_GLOBAL {
             uint16_t CounterLen;
             int64_t Counters[QUIC_PERF_COUNTER_MAX];
         } PerfCounters;
+        struct {
+            UINT8 Value;
+        } LibrarySendRetryStateUpdated;
     };
 } QUIC_EVENT_DATA_GLOBAL;
 #pragma pack(pop)
@@ -616,8 +620,8 @@ typedef struct QUIC_EVENT_DATA_TLS {
 #pragma pack(pop)
 
 typedef enum QUIC_EVENT_ID_DATAPATH {
-    EventId_QuicDatapathSendTo,
-    EventId_QuicDatapathSendFromTo,
+    EventId_QuicDatapathDEPRECATED,
+    EventId_QuicDatapathSend,
     EventId_QuicDatapathRecv,
     EventId_QuicDatapathError,
     EventId_QuicDatapathErrorStatus,
@@ -634,15 +638,8 @@ typedef struct QUIC_EVENT_DATA_DATAPATH {
             UINT32 TotalSize;
             UINT8 BufferCount;
             UINT16 SegmentSize;
-            UINT8 RemoteAddrLength;
-            SOCKADDR_INET RemoteAddr;
-        } SendTo;
-        struct {
-            UINT32 TotalSize;
-            UINT8 BufferCount;
-            UINT16 SegmentSize;
             UINT8 Addrs[1]; // RemoteAddr, LocalAddr
-        } SendFromTo;
+        } Send;
         struct {
             UINT32 TotalSize;
             UINT16 SegmentSize;

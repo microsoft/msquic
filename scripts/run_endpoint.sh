@@ -20,6 +20,7 @@ fi
 # - CLIENT_PARAMS contains user-supplied command line parameters
 
 # Start LTTng live streaming.
+echo "Starting LTTng logging..."
 lttng -q create msquiclive --live 1000
 lttng enable-event --userspace CLOG_*
 lttng add-context --userspace --type=vpid --type=vtid
@@ -32,6 +33,8 @@ if [ "$ROLE" == "client" ]; then
     # Wait for the simulator to start up.
     /wait-for-it.sh sim:57832 -s -t 30
     cd /downloads || exit
+
+    CLIENT_PARAMS="-sslkeylogfile:$SSLKEYLOGFILE $CLIENT_PARAMS"
 
     case "$TESTCASE" in
     "resumption")
@@ -55,22 +58,35 @@ if [ "$ROLE" == "client" ]; then
     "keyupdate")
         CLIENT_PARAMS="-test:U $CLIENT_PARAMS"
         ;;
+    "chacha20")
+        CLIENT_PARAMS="-test:H $CLIENT_PARAMS"
+        ;;
     *)
         CLIENT_PARAMS="-test:D $CLIENT_PARAMS"
         ;;
     esac
 
+    # Figure out the server name from the first request. This assumes all URLS
+    # point to the same server.
+    REQS=($REQUESTS)
+    REQ=${REQS[0]}
+    SERVER=$(echo $REQ | cut -d'/' -f3 | cut -d':' -f1)
+    echo "Connecting to $SERVER"
+    echo "Client params (before files):$CLIENT_PARAMS"
+
     if [ "$TESTCASE" == "multiconnect" ]; then
         for REQ in $REQUESTS; do
-            quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:"$REQ" -version:-16777187
+            quicinterop ${CLIENT_PARAMS} -custom:$SERVER -port:443 -urls:"$REQ" -version:-16777187
         done
     else
         # FIXME: there doesn't seem to be a way to specify to use /certs/ca.pem
         # for certificate verification
-        quicinterop ${CLIENT_PARAMS} -custom:server -port:443 -urls:${REQUESTS[@]} -version:-16777187
+        quicinterop ${CLIENT_PARAMS} -custom:$SERVER -port:443 -urls:${REQUESTS[@]} -version:-16777187
     fi
     # Wait for the logs to flush to disk.
     sleep 5
+
+    echo "Client complete."
 
 elif [ "$ROLE" == "server" ]; then
     case "$TESTCASE" in
@@ -82,5 +98,10 @@ elif [ "$ROLE" == "server" ]; then
     esac
 
     quicinteropserver ${SERVER_PARAMS} -root:/www -listen:* -port:443 \
-        -file:/certs/cert.pem -key:/certs/priv.key 2>&1
+        -file:/certs/cert.pem -key:/certs/priv.key -noexit &
+    wait
+
+    echo "Server complete."
 fi
+
+echo "Script complete."

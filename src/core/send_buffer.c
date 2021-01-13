@@ -15,7 +15,7 @@ Abstract:
     bytes it should keep posted.
 
     We copy requests into fixed-sized blocks when possible, and fall back on
-    QUIC_ALLOC for large send requests.
+    CXPLAT_ALLOC for large send requests.
 
     We buffer send requests until we've buffered AT LEAST the desired number
     of bytes, rather than using the ideal buffer size as a hard limit. This
@@ -85,7 +85,7 @@ QuicSendBufferAlloc(
     _In_ uint32_t Size
     )
 {
-    uint8_t* Buf = (uint8_t*)QUIC_ALLOC_NONPAGED(Size);
+    uint8_t* Buf = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Size, QUIC_POOL_SENDBUF);
 
     if (Buf != NULL) {
         SendBuffer->BufferedBytes += Size;
@@ -108,7 +108,7 @@ QuicSendBufferFree(
     _In_ uint32_t Size
     )
 {
-    QUIC_FREE(Buf);
+    CXPLAT_FREE(Buf, QUIC_POOL_SENDBUF);
     SendBuffer->BufferedBytes -= Size;
 }
 
@@ -144,14 +144,14 @@ QuicSendBufferFill(
     //
 
     QUIC_SEND_REQUEST* Req;
-    QUIC_LIST_ENTRY* Entry;
+    CXPLAT_LIST_ENTRY* Entry;
 
-    QUIC_DBG_ASSERT(Connection->Settings.SendBufferingEnabled);
+    CXPLAT_DBG_ASSERT(Connection->Settings.SendBufferingEnabled);
 
     Entry = Connection->Send.SendStreams.Flink;
     while (QuicSendBufferHasSpace(&Connection->SendBuffer) && Entry != &(Connection->Send.SendStreams)) {
 
-        QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
+        QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
         Entry = Entry->Flink;
 
 #if DEBUG
@@ -165,9 +165,9 @@ QuicSendBufferFill(
         while (Req != NULL && !!(Req->Flags & QUIC_SEND_FLAG_BUFFERED)) {
             Req = Req->Next;
         }
-        QUIC_DBG_ASSERT(Req == Stream->SendBufferBookmark);
+        CXPLAT_DBG_ASSERT(Req == Stream->SendBufferBookmark);
         while (Req != NULL) {
-            QUIC_DBG_ASSERT(!(Req->Flags & QUIC_SEND_FLAG_BUFFERED));
+            CXPLAT_DBG_ASSERT(!(Req->Flags & QUIC_SEND_FLAG_BUFFERED));
             Req = Req->Next;
         }
 #endif
@@ -187,34 +187,63 @@ QuicSendBufferFill(
     }
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+QuicGetNextIdealBytes(
+    _In_ uint32_t BaseValue
+    )
+{
+    uint32_t Threshold = QUIC_DEFAULT_IDEAL_SEND_BUFFER_SIZE;
+
+    //
+    // We calculate the threshold as an exponential growth from the default
+    // value up to the max, rounding up to the next threshold when equal.
+    //
+    while (Threshold <= BaseValue) {
+        uint32_t NextThreshold = Threshold + (Threshold / 2); // 1.5x growth
+        if (NextThreshold > QUIC_MAX_IDEAL_SEND_BUFFER_SIZE) {
+            Threshold = QUIC_MAX_IDEAL_SEND_BUFFER_SIZE;
+            break;
+        }
+        Threshold = NextThreshold;
+    }
+
+    return Threshold;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendBufferStreamAdjust(
     _In_ QUIC_STREAM* Stream
     )
 {
-    uint64_t ByteCount =
-        min((uint32_t)Stream->Connection->SendBuffer.IdealBytes, Stream->SendWindow);
-
     //
-    // Only indicate events for significant changes in ISB.
+    // Calculate the value to actually indicate to the app for this stream as
+    // a minimum of the connection-wide IdealBytes and the value based on the
+    // stream's estimated SendWindow.
     //
-    if (ByteCount > Stream->LastIdealSendBuffer / 2 &&
-        ByteCount < Stream->LastIdealSendBuffer * 2) {
-        return;
+    uint64_t ByteCount = Stream->Connection->SendBuffer.IdealBytes;
+    if ((uint64_t)Stream->SendWindow < ByteCount) {
+        const uint64_t SendWindowIdealBytes =
+            QuicGetNextIdealBytes(Stream->SendWindow);
+        if (SendWindowIdealBytes < ByteCount) {
+            ByteCount = SendWindowIdealBytes;
+        }
     }
 
-    Stream->LastIdealSendBuffer = ByteCount;
+    if (Stream->LastIdealSendBuffer != ByteCount) {
+        Stream->LastIdealSendBuffer = ByteCount;
 
-    QUIC_STREAM_EVENT Event;
-    Event.Type = QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE;
-    Event.IDEAL_SEND_BUFFER_SIZE.ByteCount = ByteCount;
-    QuicTraceLogStreamVerbose(
-        IndicateIdealSendBuffer,
-        Stream,
-        "Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
-        Event.IDEAL_SEND_BUFFER_SIZE.ByteCount);
-    (void)QuicStreamIndicateEvent(Stream, &Event);
+        QUIC_STREAM_EVENT Event;
+        Event.Type = QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE;
+        Event.IDEAL_SEND_BUFFER_SIZE.ByteCount = ByteCount;
+        QuicTraceLogStreamVerbose(
+            IndicateIdealSendBuffer,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
+            Event.IDEAL_SEND_BUFFER_SIZE.ByteCount);
+        (void)QuicStreamIndicateEvent(Stream, &Event);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -228,28 +257,26 @@ QuicSendBufferConnectionAdjust(
         return; // Nothing to do.
     }
 
-    //
-    // If the current IdealBytes is close to limiting throughput, double it.
-    // Since we grow exponentially, this will not happen frequently.
+    const uint64_t NewIdealBytes =
+        QuicGetNextIdealBytes(Connection->CongestionControl.BytesInFlightMax);
+
     //
     // TODO: Currently, IdealBytes only grows and never shrinks. Add appropriate
     // shrinking logic.
     //
-    if (Connection->CongestionControl.BytesInFlightMax >
-        QUIC_IDEAL_SEND_BUFFER_THRESHOLD(Connection->SendBuffer.IdealBytes)) {
-        Connection->SendBuffer.IdealBytes =
-            min(2 * Connection->CongestionControl.BytesInFlightMax, QUIC_MAX_IDEAL_SEND_BUFFER_SIZE);
+    if (NewIdealBytes > Connection->SendBuffer.IdealBytes) {
+        Connection->SendBuffer.IdealBytes = NewIdealBytes;
 
-        QUIC_HASHTABLE_ENUMERATOR Enumerator;
-        QUIC_HASHTABLE_ENTRY* Entry;
-        QuicHashtableEnumerateBegin(Connection->Streams.StreamTable, &Enumerator);
-        while ((Entry = QuicHashtableEnumerateNext(Connection->Streams.StreamTable, &Enumerator)) != NULL) {
-            QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+        CXPLAT_HASHTABLE_ENTRY* Entry;
+        CxPlatHashtableEnumerateBegin(Connection->Streams.StreamTable, &Enumerator);
+        while ((Entry = CxPlatHashtableEnumerateNext(Connection->Streams.StreamTable, &Enumerator)) != NULL) {
+            QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
             if (Stream->Flags.SendEnabled) {
                 QuicSendBufferStreamAdjust(Stream);
             }
         }
-        QuicHashtableEnumerateEnd(Connection->Streams.StreamTable, &Enumerator);
+        CxPlatHashtableEnumerateEnd(Connection->Streams.StreamTable, &Enumerator);
 
         if (Connection->Settings.SendBufferingEnabled) {
             QuicSendBufferFill(Connection);

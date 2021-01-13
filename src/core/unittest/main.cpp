@@ -13,12 +13,12 @@
 class QuicCoreTestEnvironment : public ::testing::Environment {
 public:
     void SetUp() override {
-        QuicPlatformSystemLoad();
-        TEST_QUIC_SUCCEEDED(QuicPlatformInitialize());
+        CxPlatSystemLoad();
+        TEST_QUIC_SUCCEEDED(CxPlatInitialize());
     }
     void TearDown() override {
-        QuicPlatformUninitialize();
-        QuicPlatformSystemUnload();
+        CxPlatUninitialize();
+        CxPlatSystemUnload();
     }
 };
 

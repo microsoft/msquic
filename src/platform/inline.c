@@ -32,53 +32,53 @@ MaxUdpPayloadSizeForFamily(
     );
 
 void
-QuicListInitializeHead(
-    _Out_ QUIC_LIST_ENTRY* ListHead
+CxPlatListInitializeHead(
+    _Out_ CXPLAT_LIST_ENTRY* ListHead
     );
 
 _Must_inspect_result_
 BOOLEAN
-QuicListIsEmpty(
-    _In_ const QUIC_LIST_ENTRY* ListHead
+CxPlatListIsEmpty(
+    _In_ const CXPLAT_LIST_ENTRY* ListHead
     );
 
 void
-QuicListInsertHead(
-    _Inout_ QUIC_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
+CxPlatListInsertHead(
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* Entry
     );
 
 void
-QuicListInsertTail(
-    _Inout_ QUIC_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
+CxPlatListInsertTail(
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* Entry
     );
 
-QUIC_LIST_ENTRY*
-QuicListRemoveHead(
-    _Inout_ QUIC_LIST_ENTRY* ListHead
+CXPLAT_LIST_ENTRY*
+CxPlatListRemoveHead(
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead
     );
 
 BOOLEAN
-QuicListEntryRemove(
-    _In_ QUIC_LIST_ENTRY* Entry
+CxPlatListEntryRemove(
+    _In_ CXPLAT_LIST_ENTRY* Entry
     );
 
 void
-QuicListMoveItems(
-    _In_ QUIC_LIST_ENTRY* Source,
-    _Out_ QUIC_LIST_ENTRY* Destination
+CxPlatListMoveItems(
+    _In_ CXPLAT_LIST_ENTRY* Source,
+    _Out_ CXPLAT_LIST_ENTRY* Destination
     );
 
 void
-QuicListPushEntry(
-    _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem QUIC_SINGLE_LIST_ENTRY* Entry
+CxPlatListPushEntry(
+    _Inout_ CXPLAT_SLIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_SLIST_ENTRY* Entry
     );
 
-QUIC_SINGLE_LIST_ENTRY*
-QuicListPopEntry(
-    _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead
+CXPLAT_SLIST_ENTRY*
+CxPlatListPopEntry(
+    _Inout_ CXPLAT_SLIST_ENTRY* ListHead
     );
 
 long
@@ -122,47 +122,47 @@ InterlockedIncrement64(
 _Must_inspect_result_
 _Success_(return != 0)
 BOOLEAN
-QuicHashtableInitializeEx(
-    _Inout_ QUIC_HASHTABLE* HashTable,
+CxPlatHashtableInitializeEx(
+    _Inout_ CXPLAT_HASHTABLE* HashTable,
     _In_ uint32_t InitialSize
     );
 
 uint32_t
-QuicHashSimple(
+CxPlatHashSimple(
     _In_ uint16_t Length,
     _In_reads_(Length) const uint8_t* Buffer
     );
 
 uint16_t
-QuicHashLength(
-    QUIC_HASH_TYPE Type
+CxPlatHashLength(
+    CXPLAT_HASH_TYPE Type
     );
 
 uint16_t
-QuicKeyLength(
-    QUIC_AEAD_TYPE Type
+CxPlatKeyLength(
+    CXPLAT_AEAD_TYPE Type
     );
 
 uint64_t
-QuicTimeDiff64(
+CxPlatTimeDiff64(
     _In_ uint64_t T1,
     _In_ uint64_t T2
     );
 
 uint32_t
-QuicTimeDiff32(
+CxPlatTimeDiff32(
     _In_ uint32_t T1,
     _In_ uint32_t T2
     );
 
 BOOLEAN
-QuicTimeAtOrBefore64(
+CxPlatTimeAtOrBefore64(
     _In_ uint64_t T1,
     _In_ uint64_t T2
     );
 
 BOOLEAN
-QuicTimeAtOrBefore32(
+CxPlatTimeAtOrBefore32(
     _In_ uint32_t T1,
     _In_ uint32_t T2
     );
@@ -174,7 +174,7 @@ QuicTraceStubVarArgs(
     );
 
 const uint8_t*
-QuicTlsAlpnFindInList(
+CxPlatTlsAlpnFindInList(
     _In_ uint16_t AlpnListLength,
     _In_reads_(AlpnListLength)
         const uint8_t* AlpnList,
@@ -227,14 +227,9 @@ QuicAddrSetPort(
     _In_ uint16_t Port
     );
 
-BOOLEAN
-QuicAddrIsBoundExplicitly(
-    _In_ const QUIC_ADDR* const Addr
-    );
-
 void
 QuicAddrIncrement(
-    _Inout_ QUIC_ADDR * Addr
+    _Inout_ QUIC_ADDR* Addr
     );
 
 void

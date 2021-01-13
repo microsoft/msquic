@@ -15,7 +15,7 @@ class DrillBuffer : public Rtl::KArray<uint8_t>
         _In_ uint8_t value
         )
     {
-        QUIC_FRE_ASSERT(append(value));
+        CXPLAT_FRE_ASSERT(append(value));
     }
 
     const uint8_t* data() const { return &(*this)[0]; }
@@ -29,7 +29,7 @@ class DrillBuffer : public Rtl::KArray<uint8_t>
         _In_ const const_iterator &end
         )
     {
-        QUIC_FRE_ASSERT(insertAt(dest, start, end));
+        CXPLAT_FRE_ASSERT(insertAt(dest, start, end));
     }
 };
 #else

@@ -97,17 +97,6 @@ typedef enum QUIC_TRACE_API_TYPE {
     QUIC_TRACE_API_COUNT // Must be last
 } QUIC_TRACE_API_TYPE;
 
-typedef enum QUIC_TRACE_LEVEL {
-    QUIC_TRACE_LEVEL_DEV,
-    QUIC_TRACE_LEVEL_VERBOSE,
-    QUIC_TRACE_LEVEL_INFO,
-    QUIC_TRACE_LEVEL_WARNING,
-    QUIC_TRACE_LEVEL_ERROR,
-    QUIC_TRACE_LEVEL_PACKET_VERBOSE,
-    QUIC_TRACE_LEVEL_PACKET_INFO,
-    QUIC_TRACE_LEVEL_PACKET_WARNING
-} QUIC_TRACE_LEVEL;
-
 //
 // Called from the platform code to trigger a tracing rundown for all objects
 // in the current process (or kernel mode).
@@ -135,9 +124,20 @@ QuicTraceRundown(
 #ifdef QUIC_EVENTS_STUB
 
 #define QuicTraceEventEnabled(Name) FALSE
-#define QuicTraceEvent(Name, Fmt, ...)
 
-#define CLOG_BYTEARRAY(Len, Data)
+inline
+void
+QuicTraceEventStubVarArgs(
+    _In_ const void* Fmt,
+    ...
+    )
+{
+    UNREFERENCED_PARAMETER(Fmt);
+}
+
+#define QuicTraceEvent(Name, ...) QuicTraceEventStubVarArgs("", __VA_ARGS__)
+
+#define CLOG_BYTEARRAY(Len, Data) (Len)
 
 #endif // QUIC_EVENTS_STUB
 
@@ -175,8 +175,12 @@ QuicEtwCallback(
 #pragma warning(pop)
 
 #define QuicTraceEventEnabled(Name) EventEnabledQuic##Name()
+#if defined(_MSVC_TRADITIONAL) && _MSVC_TRADITIONAL
 #define _QuicTraceEvent(Name, Args) EventWriteQuic##Name##Args
 #define QuicTraceEvent(Name, Fmt, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
+#else
+#define QuicTraceEvent(Name, Fmt, ...) EventWriteQuic##Name (__VA_ARGS__)
+#endif
 
 #define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
 

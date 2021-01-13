@@ -21,6 +21,9 @@ This script runs quicinterop locally.
 .PARAMETER Debugger
     Attaches the debugger to the process.
 
+.PARAMETER InitialBreak
+    Debugger starts broken into the process to allow setting breakpoints, etc.
+
 .PARAMETER LogProfile
     The name of the profile to use for log collection.
 
@@ -68,6 +71,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$Debugger = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InitialBreak = $false,
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
@@ -140,6 +146,9 @@ if ($GenerateXmlResults) {
 }
 if ($Debugger) {
     $Arguments += " -Debugger"
+}
+if ($InitialBreak) {
+    $Arguments += " -InitialBreak"
 }
 if ("None" -ne $LogProfile) {
     $Arguments += " -LogProfile $($LogProfile)"

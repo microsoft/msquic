@@ -13,6 +13,7 @@ set(SOURCES
 add_clog_library(msquicplatformtest.clog STATIC ${SOURCES})
 
 add_executable(msquicplatformtest ${SOURCES})
+target_compile_options(msquicplatformtest PRIVATE ${QUIC_WARNING_FLAGS})
 
 target_include_directories(msquicplatformtest PRIVATE ${PROJECT_SOURCE_DIR}/src/core)
 

@@ -34,8 +34,8 @@ QuicOperationQueueInitialize(
     )
 {
     OperQ->ActivelyProcessing = FALSE;
-    QuicDispatchLockInitialize(&OperQ->Lock);
-    QuicListInitializeHead(&OperQ->List);
+    CxPlatDispatchLockInitialize(&OperQ->Lock);
+    CxPlatListInitializeHead(&OperQ->List);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -45,8 +45,8 @@ QuicOperationQueueUninitialize(
     )
 {
     UNREFERENCED_PARAMETER(OperQ);
-    QUIC_DBG_ASSERT(QuicListIsEmpty(&OperQ->List));
-    QuicDispatchLockUninitialize(&OperQ->Lock);
+    CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&OperQ->List));
+    CxPlatDispatchLockUninitialize(&OperQ->Lock);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -56,7 +56,7 @@ QuicOperationAlloc(
     _In_ QUIC_OPERATION_TYPE Type
     )
 {
-    QUIC_OPERATION* Oper = (QUIC_OPERATION*)QuicPoolAlloc(&Worker->OperPool);
+    QUIC_OPERATION* Oper = (QUIC_OPERATION*)CxPlatPoolAlloc(&Worker->OperPool);
     if (Oper != NULL) {
 #if DEBUG
         Oper->Link.Flink = NULL;
@@ -66,9 +66,9 @@ QuicOperationAlloc(
 
         if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
             Oper->API_CALL.Context =
-                (QUIC_API_CONTEXT*)QuicPoolAlloc(&Worker->ApiContextPool);
+                (QUIC_API_CONTEXT*)CxPlatPoolAlloc(&Worker->ApiContextPool);
             if (Oper->API_CALL.Context == NULL) {
-                QuicPoolFree(&Worker->OperPool, Oper);
+                CxPlatPoolFree(&Worker->OperPool, Oper);
                 Oper = NULL;
             } else {
                 Oper->API_CALL.Context->Status = NULL;
@@ -87,25 +87,25 @@ QuicOperationFree(
     )
 {
 #if DEBUG
-    QUIC_DBG_ASSERT(Oper->Link.Flink == NULL);
+    CXPLAT_DBG_ASSERT(Oper->Link.Flink == NULL);
 #endif
-    QUIC_DBG_ASSERT(Oper->FreeAfterProcess);
+    CXPLAT_DBG_ASSERT(Oper->FreeAfterProcess);
     if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
         QUIC_API_CONTEXT* ApiCtx = Oper->API_CALL.Context;
         if (ApiCtx->Type == QUIC_API_TYPE_CONN_START) {
             QuicConfigurationRelease(ApiCtx->CONN_START.Configuration);
             if (ApiCtx->CONN_START.ServerName != NULL) {
-                QUIC_FREE(ApiCtx->CONN_START.ServerName);
+                CXPLAT_FREE(ApiCtx->CONN_START.ServerName, QUIC_POOL_SERVERNAME);
             }
         } else if (ApiCtx->Type == QUIC_API_TYPE_CONN_SET_CONFIGURATION) {
             QuicConfigurationRelease(ApiCtx->CONN_SET_CONFIGURATION.Configuration);
         } else if (ApiCtx->Type == QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET) {
             if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData != NULL) {
-                QUIC_DBG_ASSERT(ApiCtx->CONN_SEND_RESUMPTION_TICKET.AppDataLength != 0);
-                QUIC_FREE(ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData);
+                CXPLAT_DBG_ASSERT(ApiCtx->CONN_SEND_RESUMPTION_TICKET.AppDataLength != 0);
+                CXPLAT_FREE(ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData, QUIC_POOL_APP_RESUMPTION_DATA);
             }
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_START) {
-            QUIC_DBG_ASSERT(ApiCtx->Completed == NULL);
+            CXPLAT_DBG_ASSERT(ApiCtx->Completed == NULL);
             QuicStreamRelease(ApiCtx->STRM_START.Stream, QUIC_STREAM_REF_OPERATION);
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_SHUTDOWN) {
             QuicStreamRelease(ApiCtx->STRM_SHUTDOWN.Stream, QUIC_STREAM_REF_OPERATION);
@@ -116,7 +116,7 @@ QuicOperationFree(
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_RECV_SET_ENABLED) {
             QuicStreamRelease(ApiCtx->STRM_RECV_SET_ENABLED.Stream, QUIC_STREAM_REF_OPERATION);
         }
-        QuicPoolFree(&Worker->ApiContextPool, ApiCtx);
+        CxPlatPoolFree(&Worker->ApiContextPool, ApiCtx);
     } else if (Oper->Type == QUIC_OPER_TYPE_FLUSH_STREAM_RECV) {
         QuicStreamRelease(Oper->FLUSH_STREAM_RECEIVE.Stream, QUIC_STREAM_REF_OPERATION);
     } else if (Oper->Type >= QUIC_OPER_TYPE_VERSION_NEGOTIATION) {
@@ -124,7 +124,7 @@ QuicOperationFree(
             QuicBindingReleaseStatelessOperation(Oper->STATELESS.Context, TRUE);
         }
     }
-    QuicPoolFree(&Worker->OperPool, Oper);
+    CxPlatPoolFree(&Worker->OperPool, Oper);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -135,13 +135,13 @@ QuicOperationEnqueue(
     )
 {
     BOOLEAN StartProcessing;
-    QuicDispatchLockAcquire(&OperQ->Lock);
+    CxPlatDispatchLockAcquire(&OperQ->Lock);
 #if DEBUG
-    QUIC_DBG_ASSERT(Oper->Link.Flink == NULL);
+    CXPLAT_DBG_ASSERT(Oper->Link.Flink == NULL);
 #endif
-    StartProcessing = QuicListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
-    QuicListInsertTail(&OperQ->List, &Oper->Link);
-    QuicDispatchLockRelease(&OperQ->Lock);
+    StartProcessing = CxPlatListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
+    CxPlatListInsertTail(&OperQ->List, &Oper->Link);
+    CxPlatDispatchLockRelease(&OperQ->Lock);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
     return StartProcessing;
@@ -155,13 +155,13 @@ QuicOperationEnqueueFront(
     )
 {
     BOOLEAN StartProcessing;
-    QuicDispatchLockAcquire(&OperQ->Lock);
+    CxPlatDispatchLockAcquire(&OperQ->Lock);
 #if DEBUG
-    QUIC_DBG_ASSERT(Oper->Link.Flink == NULL);
+    CXPLAT_DBG_ASSERT(Oper->Link.Flink == NULL);
 #endif
-    StartProcessing = QuicListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
-    QuicListInsertHead(&OperQ->List, &Oper->Link);
-    QuicDispatchLockRelease(&OperQ->Lock);
+    StartProcessing = CxPlatListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
+    CxPlatListInsertHead(&OperQ->List, &Oper->Link);
+    CxPlatDispatchLockRelease(&OperQ->Lock);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
     return StartProcessing;
@@ -174,20 +174,20 @@ QuicOperationDequeue(
     )
 {
     QUIC_OPERATION* Oper;
-    QuicDispatchLockAcquire(&OperQ->Lock);
-    if (QuicListIsEmpty(&OperQ->List)) {
+    CxPlatDispatchLockAcquire(&OperQ->Lock);
+    if (CxPlatListIsEmpty(&OperQ->List)) {
         OperQ->ActivelyProcessing = FALSE;
         Oper = NULL;
     } else {
         OperQ->ActivelyProcessing = TRUE;
         Oper =
-            QUIC_CONTAINING_RECORD(
-                QuicListRemoveHead(&OperQ->List), QUIC_OPERATION, Link);
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&OperQ->List), QUIC_OPERATION, Link);
 #if DEBUG
         Oper->Link.Flink = NULL;
 #endif
     }
-    QuicDispatchLockRelease(&OperQ->Lock);
+    CxPlatDispatchLockRelease(&OperQ->Lock);
 
     if (Oper != NULL) {
         QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
@@ -202,19 +202,19 @@ QuicOperationQueueClear(
     _In_ QUIC_OPERATION_QUEUE* OperQ
     )
 {
-    QUIC_LIST_ENTRY OldList;
-    QuicListInitializeHead(&OldList);
+    CXPLAT_LIST_ENTRY OldList;
+    CxPlatListInitializeHead(&OldList);
 
-    QuicDispatchLockAcquire(&OperQ->Lock);
+    CxPlatDispatchLockAcquire(&OperQ->Lock);
     OperQ->ActivelyProcessing = FALSE;
-    QuicListMoveItems(&OperQ->List, &OldList);
-    QuicDispatchLockRelease(&OperQ->Lock);
+    CxPlatListMoveItems(&OperQ->List, &OldList);
+    CxPlatDispatchLockRelease(&OperQ->Lock);
 
     int64_t OperationsDequeued = 0;
 
-    while (!QuicListIsEmpty(&OldList)) {
+    while (!CxPlatListIsEmpty(&OldList)) {
         QUIC_OPERATION* Oper =
-            QUIC_CONTAINING_RECORD(QuicListRemoveHead(&OldList), QUIC_OPERATION, Link);
+            CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&OldList), QUIC_OPERATION, Link);
         --OperationsDequeued;
 #if DEBUG
         Oper->Link.Flink = NULL;
@@ -223,19 +223,19 @@ QuicOperationQueueClear(
             if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
                 QUIC_API_CONTEXT* ApiCtx = Oper->API_CALL.Context;
                 if (ApiCtx->Type == QUIC_API_TYPE_STRM_START) {
-                    QUIC_DBG_ASSERT(ApiCtx->Completed == NULL);
+                    CXPLAT_DBG_ASSERT(ApiCtx->Completed == NULL);
                     QuicStreamIndicateStartComplete(
                         ApiCtx->STRM_START.Stream, QUIC_STATUS_ABORTED);
                 }
             }
             QuicOperationFree(Worker, Oper);
         } else {
-            QUIC_DBG_ASSERT(Oper->Type == QUIC_OPER_TYPE_API_CALL);
+            CXPLAT_DBG_ASSERT(Oper->Type == QUIC_OPER_TYPE_API_CALL);
             if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
                 QUIC_API_CONTEXT* ApiCtx = Oper->API_CALL.Context;
                 if (ApiCtx->Status != NULL) {
                     *ApiCtx->Status = QUIC_STATUS_INVALID_STATE;
-                    QuicEventSet(*ApiCtx->Completed);
+                    CxPlatEventSet(*ApiCtx->Completed);
                 }
             }
         }

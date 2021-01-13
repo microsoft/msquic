@@ -51,7 +51,12 @@ This script runs performance tests locally for a period of time.
 .PARAMETER TestToRun
     Run a specific test name
 
+.PARAMETER FailOnRegression
+    Fail tests on perf regression (Currently only throughput up)
+
 #>
+
+Using module .\performance-helper.psm1
 
 param (
     [Parameter(Mandatory = $false)]
@@ -111,11 +116,18 @@ param (
     [switch]$RecordQUIC = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$TestToRun = ""
+    [string]$TestToRun = "",
+
+    [Parameter(Mandatory = $false)]
+    [boolean]$FailOnRegression = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ForceBranchName = $null
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
 # Validate the the kernel switch.
 if ($Kernel -and !$IsWindows) {
@@ -166,9 +178,13 @@ if (!$IsWindows) {
 
 if ($TestsFile -eq "") {
     $TestsFile = Join-Path $PSScriptRoot "RemoteTests.json"
+} elseif (-not (Test-Path $TestsFile)) {
+    $TestsFile = Join-Path $PSScriptRoot $TestsFile
 }
 
-Import-Module (Join-Path $PSScriptRoot 'performance-helper.psm1') -Force
+if (-not (Test-Path $TestsFile)) {
+    Write-Error "Test file to run not found"
+}
 
 if ($Local) {
     $RemoteAddress = "localhost"
@@ -209,7 +225,8 @@ Set-ScriptVariables -Local $Local `
                     -RecordQUIC $RecordQUIC `
                     -RemoteAddress $RemoteAddress `
                     -Session $Session `
-                    -Kernel $Kernel
+                    -Kernel $Kernel `
+                    -FailOnRegression $FailOnRegression
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {
@@ -222,18 +239,28 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
-# Join path in script to ensure right platform separator
-$RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
-    Join-Path (Get-Location) "Tests"
-}
-
 $LocalDirectory = Join-Path $RootDir "artifacts/bin"
+$RemoteDirectorySMB = $null
 
 if ($Local) {
     $RemoteDirectory = $LocalDirectory
+} else {
+    # See if remote SMB path exists
+    if (Test-Path "\\$ComputerName\Tests") {
+        $RemoteDirectorySMB = "\\$ComputerName\Tests"
+        $RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
+            (Get-SmbShare -Name Tests).Path
+        }
+    } else {
+        # Join path in script to ensure right platform separator
+        $RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
+            Join-Path (Get-Location) "Tests"
+        }
+    }
 }
 
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
+$CurrentCommitDate = Get-CommitDate -RepoDir $RootDir
 
 if ($PGO -and $Local) {
     # PGO needs the server and client executing out of separate directories.
@@ -280,12 +307,36 @@ function LocalTeardown {
 $RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true
 $LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false
 
+# See if we are an AZP PR
+$PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
+if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
+    # Mainline build, just get branch name
+    $AzpBranchName = $env:BUILD_SOURCEBRANCH
+    if ([string]::IsNullOrWhiteSpace($AzpBranchName)) {
+        # Non azure build
+        $BranchName = Get-CurrentBranch -RepoDir $RootDir
+    } else {
+        # Azure Build
+        $BranchName = $AzpBranchName.Substring(11);
+    }
+} else {
+    # PR Build
+    $BranchName = $PrBranchName
+}
+
+if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
+    $BranchName = $ForceBranchName
+}
+
+$LastCommitHash = Get-LatestCommitHash -Branch $BranchName
+$PreviousResults = Get-LatestCpuTestResult -Branch $BranchName -CommitHash $LastCommitHash
+
 function Invoke-Test {
-    param ($Test)
+    param ([TestRunDefinition]$Test, [RemoteConfig]$RemoteConfig)
 
     Write-Output "Running Test $Test"
 
-    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $Test.Remote
+    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $RemoteConfig
     $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
 
     # Check both Exes
@@ -309,11 +360,7 @@ function Invoke-Test {
     $LocalArguments = $Test.Local.Arguments.Replace('$RemoteAddress', $RemoteAddress)
     $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
 
-    $CertThumbprint = Invoke-TestCommand -Session $Session -ScriptBlock {
-        return $env:QUICCERT
-    }
-
-    $RemoteArguments = $Test.Remote.Arguments.Replace('$Thumbprint', $CertThumbprint)
+    $RemoteArguments = $RemoteConfig.Arguments
 
     Write-Debug "Running Remote: $RemoteExe Args: $RemoteArguments"
 
@@ -335,30 +382,41 @@ function Invoke-Test {
     try {
         1..$Test.Iterations | ForEach-Object {
             Write-Debug "Running Local: $LocalExe Args: $LocalArguments"
-            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout
-            $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
-            $AllRunsResults += $LocalParsedResults
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
+            $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
+            $AllRunsResults += $AllLocalParsedResults
             if ($PGO) {
                 # Merge client PGO Counts
                 Merge-PGOCounts -Path $LocalExePath
             }
 
-            Write-Output "Run $($_): $LocalParsedResults $($Test.Units)"
+            $FormattedStrings = @()
+
+            for ($i = 1; $i -lt $AllLocalParsedResults.Count; $i++) {
+                $Formatted = [string]::Format($Test.Formats[$i - 1], $AllLocalParsedResults[$i])
+                $FormattedStrings += $Formatted
+            }
+
+            $Joined = [string]::Join(", ", $FormattedStrings)
+
+            $OutputString = "Run $($_): $Joined"
+
+            Write-Output $OutputString
             $LocalResults | Write-Debug
         }
     } finally {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
         Write-Debug $RemoteResults.ToString()
-    }
 
-    Stop-Tracing -Exe $LocalExe
+        Stop-Tracing -Exe $LocalExe
 
-    if ($Record) {
-        if ($Local) {
-            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
-        } else {
-            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
-            Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
+        if ($Record) {
+            if ($Local) {
+                Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
+            } else {
+                Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
+                Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
+            }
         }
     }
 
@@ -372,7 +430,10 @@ function Invoke-Test {
     Publish-TestResults -Test $Test `
                         -AllRunsResults $AllRunsResults `
                         -CurrentCommitHash $CurrentCommitHash `
-                        -OutputDir $OutputDir
+                        -CurrentCommitDate $CurrentCommitDate `
+                        -PreviousResults $PreviousResults `
+                        -OutputDir $OutputDir `
+                        -ExePath $LocalExe
 }
 
 $LocalDataCache = LocalSetup
@@ -391,7 +452,7 @@ if ($Record -and $IsWindows) {
 }
 
 try {
-    $Tests = Get-Tests -Path $TestsFile -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
+    [TestRunConfig]$Tests = Get-Tests -Path $TestsFile -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
 
     if ($null -eq $Tests) {
         Write-Error "Tests are not valid"
@@ -399,34 +460,33 @@ try {
 
     # Find All Remote processes, and kill them
     if (!$Local) {
-        foreach ($Test in $Tests) {
-            $ExeName = $Test.Remote.Exe
-            Invoke-TestCommand -Session $Session -ScriptBlock {
-                param ($ExeName)
-                try {
-                    Stop-Process -Name $ExeName -Force
-                } catch {
-                }
-            } -ArgumentList $ExeName
-        }
-
+        $ExeName = $Tests.Remote.Exe
+        Invoke-TestCommand -Session $Session -ScriptBlock {
+            param ($ExeName)
+            try {
+                Stop-Process -Name $ExeName -Force
+            } catch {
+            }
+        } -ArgumentList $ExeName
     }
 
     if (!$SkipDeploy -and !$Local) {
-        Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory
+        Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbDir $RemoteDirectorySMB
     }
 
-    foreach ($Test in $Tests) {
+    foreach ($Test in $Tests.Tests) {
         if ($TestToRun -ne "" -and $Test.TestName -ne $TestToRun) {
             continue
         }
-        Invoke-Test -Test $Test
+        Invoke-Test -Test $Test -RemoteConfig $Tests.Remote
     }
 
     if ($PGO) {
         Write-Host "Saving msquic.pgd out for publishing."
         Copy-Item "$LocalExePath\msquic.pgd" $OutputDir
     }
+
+    Write-Failures
 
 } finally {
     if ($null -ne $Session) {

@@ -128,10 +128,13 @@ private:
 
 struct HttpConnection {
     HttpConnection(HQUIC connection) :
-        QuicConnection(connection), RefCount(1) {
+        QuicConnection(connection), SslKeyLogFile(nullptr), TlsSecrets({}), RefCount(1)  {
         MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicCallbackHandler, this);
     }
     ~HttpConnection() {
+        if (SslKeyLogFile != nullptr) {
+            WriteSslKeyLogFile(SslKeyLogFile, TlsSecrets);
+        }
         MsQuic->ConnectionClose(QuicConnection);
     }
     void AddRef() {
@@ -142,8 +145,22 @@ struct HttpConnection {
             delete this;
         }
     }
+    QUIC_STATUS SetSslKeyLogFile(const char* InSslKeyLogFile) {
+        QUIC_STATUS Status =
+            MsQuic->SetParam(
+                QuicConnection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_TLS_SECRETS,
+                sizeof(TlsSecrets), &TlsSecrets);
+        if (QUIC_SUCCEEDED(Status)) {
+            SslKeyLogFile = InSslKeyLogFile;
+        }
+        return Status;
+    }
 private:
     HQUIC QuicConnection;
+    const char* SslKeyLogFile;
+    CXPLAT_TLS_SECRETS TlsSecrets;
     long RefCount;
 private:
     static
@@ -230,7 +247,9 @@ struct HttpServer {
         _In_reads_(AlpnBufferCount) _Pre_defensive_
             const QUIC_BUFFER* const AlpnBuffers,
         _In_range_(>, 0) uint32_t AlpnBufferCount,
-        const QUIC_ADDR* LocalAddress) {
+        const QUIC_ADDR* LocalAddress,
+        const char* SslKeyLogFile) :
+        SslKeyLogFile(SslKeyLogFile) {
 
         EXIT_ON_FAILURE(
             MsQuic->ListenerOpen(
@@ -250,21 +269,32 @@ struct HttpServer {
     }
 private:
     HQUIC QuicListener;
+    const char* SslKeyLogFile;
 private:
     static
     QUIC_STATUS
     QUIC_API
     QuicCallbackHandler(
         _In_ HQUIC,
-        _In_opt_ void*,
+        _In_opt_ void* Context,
         _Inout_ QUIC_LISTENER_EVENT* Event
         ) {
+        HttpServer* This = (HttpServer*)Context;
         if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
             if (Event->NEW_CONNECTION.Info->NegotiatedAlpnLength >= 6 &&
                 !memcmp(Event->NEW_CONNECTION.Info->NegotiatedAlpn, "siduck", 6)) {
                 new DatagramConnection(Event->NEW_CONNECTION.Connection);
             } else {
-                new HttpConnection(Event->NEW_CONNECTION.Connection);
+                HttpConnection* HttpConn = new HttpConnection(Event->NEW_CONNECTION.Connection);
+                if (This->SslKeyLogFile != nullptr) {
+                    if (QUIC_FAILED(HttpConn->SetSslKeyLogFile(This->SslKeyLogFile))) {
+                        printf("%s:%d %s\n", __FILE__, __LINE__, "Setting SslKeyLogFile on Connection Failed! Did you build with -SslKeyLogFileSupport?");
+                        //
+                        // Disable this instead of printing on every connection.
+                        //
+                        This->SslKeyLogFile = nullptr;
+                    }
+                }
             }
             return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, Configuration);
         }

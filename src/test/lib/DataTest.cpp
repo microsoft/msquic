@@ -15,14 +15,14 @@ Abstract:
 #endif
 
 struct ServerAcceptContext {
-    QUIC_EVENT NewConnectionReady;
+    CXPLAT_EVENT NewConnectionReady;
     TestConnection** NewConnection;
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {
-        QuicEventInitialize(&NewConnectionReady, TRUE, FALSE);
+        CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);
     }
     ~ServerAcceptContext() {
-        QuicEventUninitialize(NewConnectionReady);
+        CxPlatEventUninitialize(NewConnectionReady);
     }
 };
 
@@ -62,7 +62,7 @@ struct PingStats
 
     volatile long ConnectionsComplete;
 
-    QUIC_EVENT CompletionEvent;
+    CXPLAT_EVENT CompletionEvent;
 
     QUIC_BUFFER* ResumptionTicket {nullptr};
 
@@ -90,14 +90,14 @@ struct PingStats
         ExpectedCloseStatus(_ExpectedCloseStatus),
         ConnectionsComplete(0)
     {
-        QuicEventInitialize(&CompletionEvent, FALSE, FALSE);
+        CxPlatEventInitialize(&CompletionEvent, FALSE, FALSE);
     }
 
     ~PingStats() {
-        QuicEventUninitialize(CompletionEvent);
-        QuicZeroMemory(&CompletionEvent, sizeof(CompletionEvent));
+        CxPlatEventUninitialize(CompletionEvent);
+        CxPlatZeroMemory(&CompletionEvent, sizeof(CompletionEvent));
         if (ResumptionTicket) {
-            QUIC_FREE(ResumptionTicket);
+            CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
         }
     }
 };
@@ -122,7 +122,7 @@ struct PingConnState
     void OnStreamComplete() {
         if ((uint32_t)InterlockedIncrement(&StreamsComplete) == Stats->StreamCount) {
             if ((uint32_t)InterlockedIncrement(&Stats->ConnectionsComplete) == Stats->ConnectionCount) {
-                QuicEventSet(Stats->CompletionEvent);
+                CxPlatEventSet(Stats->CompletionEvent);
             }
         }
     }
@@ -449,7 +449,7 @@ QuicTestConnectAndPing(
         QuicAddr LocalAddr;
         for (uint32_t j = 0; j < StreamBurstCount; ++j) {
             if (j != 0) {
-                QuicSleep(StreamBurstDelayMs);
+                CxPlatSleep(StreamBurstDelayMs);
             }
 
             for (uint32_t i = 0; i < ClientStats.ConnectionCount; ++i) {
@@ -481,12 +481,12 @@ QuicTestConnectAndPing(
             }
         }
 
-        if (!QuicEventWaitWithTimeout(ClientStats.CompletionEvent, TimeoutMs)) {
+        if (!CxPlatEventWaitWithTimeout(ClientStats.CompletionEvent, TimeoutMs)) {
             TEST_FAILURE("Wait for clients to complete timed out after %u ms.", TimeoutMs);
             return;
         }
 
-        if (!QuicEventWaitWithTimeout(ServerStats.CompletionEvent, TimeoutMs)) {
+        if (!CxPlatEventWaitWithTimeout(ServerStats.CompletionEvent, TimeoutMs)) {
             TEST_FAILURE("Wait for server to complete timed out after %u ms.", TimeoutMs);
             return;
         }
@@ -544,7 +544,7 @@ QuicTestServerDisconnect(
                         QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                     ServerLocalAddr.GetPort()));
 
-            QuicSleep(500); // Sleep for a little bit.
+            CxPlatSleep(500); // Sleep for a little bit.
 
             Client->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
         }
@@ -596,7 +596,7 @@ ListenerAcceptConnectionAndStreams(
         *AcceptContext->NewConnection = nullptr;
         return false;
     }
-    QuicEventSet(AcceptContext->NewConnectionReady);
+    CxPlatEventSet(AcceptContext->NewConnectionReady);
     return true;
 }
 
@@ -614,6 +614,8 @@ QuicTestClientDisconnect(
 
     PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE,
         StopListenerFirst ? QUIC_STATUS_CONNECTION_TIMEOUT : QUIC_STATUS_ABORTED);
+
+    EventScope EventClientDeleted(true);
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -639,13 +641,12 @@ QuicTestClientDisconnect(
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-        TestConnection* Client;
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             Listener.Context = &ServerAcceptCtx;
 
-            Client =
+            TestConnection* Client =
                 NewPingConnection(
                     Registration,
                     &ClientStats,
@@ -653,6 +654,8 @@ QuicTestClientDisconnect(
             if (Client == nullptr) {
                 return;
             }
+
+            Client->SetDeletedEvent(&EventClientDeleted.Handle);
 
             Client->SetExpectedTransportCloseStatus(ClientStats.ExpectedCloseStatus);
             TEST_QUIC_SUCCEEDED(Client->SetDisconnectTimeout(1000)); // ms
@@ -686,12 +689,14 @@ QuicTestClientDisconnect(
                 Listener.Stop();
             }
 
-            QuicSleep(15); // Sleep for just a bit.
+            CxPlatSleep(15); // Sleep for just a bit.
 
             Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
         }
 
-        (void)Client->WaitForShutdownComplete();
+        if (!CxPlatEventWaitWithTimeout(EventClientDeleted.Handle, TestWaitTimeout)) {
+            TEST_FAILURE("Wait for EventClientDeleted timed out after %u ms.", TestWaitTimeout);
+        }
     }
 }
 
@@ -754,7 +759,7 @@ QuicAbortiveStreamHandler(
                     TestContext->Passed = false;
                     TestContext->TestResult = Status;
                 }
-                QuicEventSet(TestContext->TestEvent.Handle);
+                CxPlatEventSet(TestContext->TestEvent.Handle);
             }
             break;
         case QUIC_STREAM_EVENT_SEND_COMPLETE:
@@ -763,29 +768,29 @@ QuicAbortiveStreamHandler(
             if (TestContext->Server && Flags->ShutdownDirection == ShutdownSend) {
                 TestContext->Passed = (TestContext->ExpectedError == Event->PEER_SEND_ABORTED.ErrorCode);
                 TestContext->TestResult = (uint32_t) Event->PEER_RECEIVE_ABORTED.ErrorCode;
-                QuicEventSet(TestContext->TestEvent.Handle);
+                CxPlatEventSet(TestContext->TestEvent.Handle);
             } else if (!TestContext->Server && !Flags->ClientShutdown &&
                 (Flags->ShutdownDirection == ShutdownBoth || Flags->ShutdownDirection == ShutdownSend)) {
                 TestContext->Passed = (TestContext->ExpectedError == Event->PEER_SEND_ABORTED.ErrorCode);
                 TestContext->TestResult = (uint32_t) Event->PEER_RECEIVE_ABORTED.ErrorCode;
-                QuicEventSet(TestContext->TestEvent.Handle);
+                CxPlatEventSet(TestContext->TestEvent.Handle);
                 }
             break;
         case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
             TestContext->Passed = (TestContext->ExpectedError == Event->PEER_SEND_ABORTED.ErrorCode);
             TestContext->TestResult = (uint32_t) Event->PEER_SEND_ABORTED.ErrorCode;
-            QuicEventSet(TestContext->TestEvent.Handle);
+            CxPlatEventSet(TestContext->TestEvent.Handle);
             break;
         case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
             if (TestContext->Server && Flags->ShutdownDirection == ShutdownReceive) {
                 TestContext->Passed = (TestContext->ExpectedError == Event->PEER_RECEIVE_ABORTED.ErrorCode);
                 TestContext->TestResult = (uint32_t) Event->PEER_RECEIVE_ABORTED.ErrorCode;
-                QuicEventSet(TestContext->TestEvent.Handle);
+                CxPlatEventSet(TestContext->TestEvent.Handle);
             } else if (!TestContext->Server && !Flags->ClientShutdown &&
                 (TestContext->Flags.ShutdownDirection == ShutdownBoth || TestContext->Flags.ShutdownDirection == ShutdownReceive)) {
                 TestContext->Passed = (TestContext->ExpectedError == Event->PEER_RECEIVE_ABORTED.ErrorCode);
                 TestContext->TestResult = (uint32_t) Event->PEER_RECEIVE_ABORTED.ErrorCode;
-                QuicEventSet(TestContext->TestEvent.Handle);
+                CxPlatEventSet(TestContext->TestEvent.Handle);
             }
             break;
         case QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE:
@@ -839,12 +844,12 @@ QuicAbortiveConnectionHandler(
                     TestContext->Passed = false;
                     TestContext->TestResult = Status;
                 }
-                QuicEventSet(TestContext->TestEvent.Handle);
+                CxPlatEventSet(TestContext->TestEvent.Handle);
             }
-            QuicEventSet(TestContext->StreamEvent.Handle);
+            CxPlatEventSet(TestContext->StreamEvent.Handle);
             return QUIC_STATUS_SUCCESS;
         case QUIC_CONNECTION_EVENT_CONNECTED:
-            QuicEventSet(TestContext->ConnectedEvent.Handle);
+            CxPlatEventSet(TestContext->ConnectedEvent.Handle);
             __fallthrough;
         case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
             __fallthrough;
@@ -1016,11 +1021,11 @@ QuicAbortiveTransfers(
         }
 
         if (WaitForConnected) {
-            if (!QuicEventWaitWithTimeout(ClientContext.ConnectedEvent.Handle, TimeoutMs)) {
+            if (!CxPlatEventWaitWithTimeout(ClientContext.ConnectedEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Client failed to get connected before timeout!");
                 return;
             }
-            if (!QuicEventWaitWithTimeout(ServerContext.ConnectedEvent.Handle, TimeoutMs)) {
+            if (!CxPlatEventWaitWithTimeout(ServerContext.ConnectedEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Server failed to get connected before timeout!");
                 return;
             }
@@ -1075,7 +1080,7 @@ QuicAbortiveTransfers(
         }
 
         if (Flags.WaitForStream && !Flags.DelayStreamCreation) {
-            if (!QuicEventWaitWithTimeout(ServerContext.StreamEvent.Handle, TimeoutMs)) {
+            if (!CxPlatEventWaitWithTimeout(ServerContext.StreamEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Server failed to get stream before timeout!");
                 return;
             }
@@ -1105,7 +1110,7 @@ QuicAbortiveTransfers(
                 TEST_FAILURE("MsQuic->StreamShutdown failed, 0x%x.", Status);
                 return;
             }
-            QuicEventSet(ClientContext.TestEvent.Handle);
+            CxPlatEventSet(ClientContext.TestEvent.Handle);
         }
 
         if (Flags.DelayStreamCreation) {
@@ -1140,7 +1145,7 @@ QuicAbortiveTransfers(
                 TEST_FAILURE("MsQuic->StreamShutdown failed, 0x%x.", Status);
                 return;
             }
-            QuicEventSet(ClientContext.TestEvent.Handle);
+            CxPlatEventSet(ClientContext.TestEvent.Handle);
         }
 
         //
@@ -1149,19 +1154,19 @@ QuicAbortiveTransfers(
         if (Flags.ClientShutdown && Flags.UnidirectionalStream && Flags.ShutdownDirection == ShutdownReceive) {
             ServerContext.TestResult = ExpectedError;
             ServerContext.Passed = true;
-            QuicEventSet(ServerContext.TestEvent.Handle);
+            CxPlatEventSet(ServerContext.TestEvent.Handle);
         } else if (!Flags.ClientShutdown && Flags.UnidirectionalStream && Flags.ShutdownDirection == ShutdownSend) {
             ClientContext.TestResult = ExpectedError;
             ClientContext.Passed = true;
-            QuicEventSet(ClientContext.TestEvent.Handle);
+            CxPlatEventSet(ClientContext.TestEvent.Handle);
         }
 
         if (!Flags.ClientShutdown) {
-            if (!QuicEventWaitWithTimeout(ClientContext.TestEvent.Handle, TimeoutMs)) {
+            if (!CxPlatEventWaitWithTimeout(ClientContext.TestEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Client failed to shutdown before timeout!");
                 return;
             }
-            if (!QuicEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
+            if (!CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Server failed to shutdown before timeout!");
                 return;
             }
@@ -1171,11 +1176,11 @@ QuicAbortiveTransfers(
             TEST_EQUAL(ExpectedError, ClientContext.TestResult);
             TEST_TRUE(ClientContext.Passed);
         } else {
-            if (!QuicEventWaitWithTimeout(ServerContext.TestEvent.Handle,TimeoutMs )) {
+            if (!CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle,TimeoutMs )) {
                 TEST_FAILURE("Server failed to shutdown before timeout!");
                 return;
             }
-            if (!QuicEventWaitWithTimeout(ClientContext.TestEvent.Handle, TimeoutMs)) {
+            if (!CxPlatEventWaitWithTimeout(ClientContext.TestEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Client failed to shutdown before timeout!");
                 return;
             }
@@ -1282,7 +1287,7 @@ QuicRecvResumeStreamHandler(
                     TestContext->TestResult = (uint32_t) QUIC_STATUS_INVALID_STATE;
                 }
                 if (TestContext->PauseType != ReturnStatusContinue || TestContext->ReceiveCallbackCount > 1) {
-                    QuicEventSet(TestContext->TestEvent.Handle);
+                    CxPlatEventSet(TestContext->TestEvent.Handle);
                 }
             }
             break;
@@ -1291,7 +1296,7 @@ QuicRecvResumeStreamHandler(
         case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
             if (TestContext->ShutdownType == GracefulShutdown) {
                 if (TestContext->ShutdownOnly) {
-                    QuicEventSet(TestContext->TestEvent.Handle);
+                    CxPlatEventSet(TestContext->TestEvent.Handle);
                 }
             } else {
                 TestContext->Passed = false;
@@ -1304,7 +1309,7 @@ QuicRecvResumeStreamHandler(
                 //
                 // Don't hang waiting for a receive indication.
                 //
-                QuicEventSet(TestContext->TestEvent.Handle);
+                CxPlatEventSet(TestContext->TestEvent.Handle);
             } else {
                 TestContext->Passed = false;
                 TestContext->TestResult = (uint32_t) QUIC_STATUS_INVALID_STATE;
@@ -1349,10 +1354,10 @@ QuicRecvResumeConnectionHandler(
                 (void*)QuicRecvResumeStreamHandler,
                 Context);
             TestContext->Stream.Handle = Event->PEER_STREAM_STARTED.Stream;
-            QuicEventSet(TestContext->StreamEvent.Handle);
+            CxPlatEventSet(TestContext->StreamEvent.Handle);
             return QUIC_STATUS_SUCCESS;
         case QUIC_CONNECTION_EVENT_CONNECTED:
-            QuicEventSet(TestContext->ConnectedEvent.Handle);
+            CxPlatEventSet(TestContext->ConnectedEvent.Handle);
             __fallthrough;
         case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
             __fallthrough;
@@ -1502,11 +1507,11 @@ QuicTestReceiveResume(
             return;
         }
 
-        if (!QuicEventWaitWithTimeout(ClientContext.ConnectedEvent.Handle, TimeoutMs)) {
+        if (!CxPlatEventWaitWithTimeout(ClientContext.ConnectedEvent.Handle, TimeoutMs)) {
             TEST_FAILURE("Client failed to get connected before timeout!");
             return;
         }
-        if (!QuicEventWaitWithTimeout(ServerContext.ConnectedEvent.Handle, TimeoutMs)) {
+        if (!CxPlatEventWaitWithTimeout(ServerContext.ConnectedEvent.Handle, TimeoutMs)) {
             TEST_FAILURE("Server failed to get connected before timeout!");
             return;
         }
@@ -1547,7 +1552,7 @@ QuicTestReceiveResume(
             return;
         }
 
-        if (!QuicEventWaitWithTimeout(ServerContext.StreamEvent.Handle, TimeoutMs)) {
+        if (!CxPlatEventWaitWithTimeout(ServerContext.StreamEvent.Handle, TimeoutMs)) {
             TEST_FAILURE("Server failed to get stream before timeout!");
             return;
         }
@@ -1589,7 +1594,7 @@ QuicTestReceiveResume(
         //
         // Wait for send to be received/paused.
         //
-        if (!QuicEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
+        if (!CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
             TEST_FAILURE("Server failed to get stream data/pause before timeout!");
             return;
         }
@@ -1620,11 +1625,11 @@ QuicTestReceiveResume(
                 //
                 // Wait for the shutdown to be received to test if the buffer has been freed.
                 //
-                if (!QuicEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
+                if (!CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
                     TEST_FAILURE("Server failed to get shutdown before timeout!");
                     return;
                 }
-                QuicSecureZeroMemory(ServerContext.PendingBuffer, SendSize);
+                CxPlatSecureZeroMemory(ServerContext.PendingBuffer, SendSize);
             }
             //
             // Indicate the buffer has been consumed.
@@ -1654,7 +1659,7 @@ QuicTestReceiveResume(
                 return;
             }
 
-            if (!QuicEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
+            if (!CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Server failed to resume receive before timeout!");
                 return;
             }
@@ -1763,11 +1768,11 @@ QuicTestReceiveResumeNoData(
             return;
         }
 
-        if (!QuicEventWaitWithTimeout(ClientContext.ConnectedEvent.Handle, TimeoutMs)) {
+        if (!CxPlatEventWaitWithTimeout(ClientContext.ConnectedEvent.Handle, TimeoutMs)) {
             TEST_FAILURE("Client failed to get connected before timeout!");
             return;
         }
-        if (!QuicEventWaitWithTimeout(ServerContext.ConnectedEvent.Handle, TimeoutMs)) {
+        if (!CxPlatEventWaitWithTimeout(ServerContext.ConnectedEvent.Handle, TimeoutMs)) {
             TEST_FAILURE("Server failed to get connected before timeout!");
             return;
         }
@@ -1808,7 +1813,7 @@ QuicTestReceiveResumeNoData(
             return;
         }
 
-        if (!QuicEventWaitWithTimeout(ServerContext.StreamEvent.Handle, TimeoutMs)) {
+        if (!CxPlatEventWaitWithTimeout(ServerContext.StreamEvent.Handle, TimeoutMs)) {
             TEST_FAILURE("Server failed to get stream before timeout!");
             return;
         }
@@ -1834,7 +1839,7 @@ QuicTestReceiveResumeNoData(
         }
 
         if (ShutdownType == GracefulShutdown) {
-            if (QuicEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
+            if (CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
                 TEST_FAILURE("Server got shutdown event when it shouldn't have!");
                 return;
             }
@@ -1851,9 +1856,320 @@ QuicTestReceiveResumeNoData(
         //
         // Validate the test was shutdown as expected.
         //
-        if (!QuicEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
+        if (!CxPlatEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
             TEST_FAILURE("Server failed to get shutdown before timeout!");
             return;
         }
+    }
+}
+
+struct AckSendDelayTestContext {
+    AckSendDelayTestContext() :
+        SendBuffer(1, 200)
+    {};
+    HQUIC ServerConfiguration;
+    QuicSendBuffer SendBuffer;
+    EventScope ServerStreamStartedEvent;
+    EventScope ClientReceiveDataEvent;
+    EventScope ServerConnectedEvent;
+    ConnectionScope ServerConnection;
+    ConnectionScope ClientConnection;
+    StreamScope ServerStream;
+    StreamScope ClientStream;
+    uint64_t AckCountStart;
+    uint64_t AckCountStop;
+};
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_STREAM_CALLBACK)
+static
+QUIC_STATUS
+QUIC_API
+QuicAckDelayStreamHandler(
+    _In_ HQUIC QuicStream,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_STREAM_EVENT* Event
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    AckSendDelayTestContext* TestContext = (AckSendDelayTestContext*)Context;
+    if (TestContext->ServerStream.Handle == QuicStream) {
+        //
+        // Server side
+        //
+        switch (Event->Type) {
+        case QUIC_STREAM_EVENT_RECEIVE:
+            Event->RECEIVE.TotalBufferLength = 0;
+            Status = MsQuic->StreamSend(
+                QuicStream,
+                TestContext->SendBuffer.Buffers,
+                TestContext->SendBuffer.BufferCount,
+                QUIC_SEND_FLAG_FIN,
+                nullptr);
+            if (QUIC_FAILED(Status)) {
+                TEST_FAILURE("Server failed to send to send data back 0x%x", Status);
+                return Status;
+            }
+            break;
+        default:
+            break;
+        }
+    } else {
+        if (TestContext->ClientStream.Handle != QuicStream) {
+            TEST_FAILURE("Client stream is wrong?! %p vs %p",
+                TestContext->ClientStream.Handle,
+                QuicStream);
+            return QUIC_STATUS_INVALID_STATE;
+        }
+        //
+        // Client side
+        //
+        switch (Event->Type) {
+        case QUIC_STREAM_EVENT_RECEIVE: {
+            QUIC_STATISTICS Stats{};
+            uint32_t StatsSize = sizeof(Stats);
+            Status = MsQuic->GetParam(
+                TestContext->ClientConnection.Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_STATISTICS,
+                &StatsSize,
+                &Stats);
+            if (QUIC_FAILED(Status)) {
+                TEST_FAILURE("Client failed to query statistics on receive 0x%x", Status);
+                return Status;
+            }
+            TestContext->AckCountStop = Stats.Recv.ValidAckFrames;
+            Event->RECEIVE.TotalBufferLength = 0;
+            CxPlatEventSet(TestContext->ClientReceiveDataEvent.Handle);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_CONNECTION_CALLBACK)
+static
+QUIC_STATUS
+QUIC_API
+QuicAckDelayConnectionHandler(
+    _In_ HQUIC QuicConnection,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    )
+{
+    AckSendDelayTestContext* TestContext = (AckSendDelayTestContext*)Context;
+    if (TestContext->ServerConnection == QuicConnection) {
+        //
+        // Server side
+        //
+        switch (Event->Type) {
+        case QUIC_CONNECTION_EVENT_CONNECTED:
+            CxPlatEventSet(TestContext->ServerConnectedEvent.Handle);
+            break;
+        case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
+            MsQuic->SetCallbackHandler(
+                Event->PEER_STREAM_STARTED.Stream,
+                (void*)QuicAckDelayStreamHandler,
+                Context);
+            TestContext->ServerStream.Handle = Event->PEER_STREAM_STARTED.Stream;
+            CxPlatEventSet(TestContext->ServerStreamStartedEvent.Handle);
+            break;
+        default:
+            break;
+        }
+    } else {
+        if(TestContext->ClientConnection.Handle != QuicConnection) {
+            TEST_FAILURE("Client connection is wrong?! %p vs %p",
+                TestContext->ClientConnection.Handle,
+                QuicConnection);
+            return QUIC_STATUS_INVALID_STATE;
+        }
+        //
+        // Client side
+        //
+        switch(Event->Type) {
+        case QUIC_CONNECTION_EVENT_CONNECTED:
+            // CxPlatEventSet(TestContext->ServerConnectedEvent.Handle);
+            break;
+        default:
+            break;
+        }
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_LISTENER_CALLBACK)
+static
+QUIC_STATUS
+QUIC_API
+QuicAckDelayListenerHandler(
+    _In_ HQUIC /* QuicListener */,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+    )
+{
+    AckSendDelayTestContext* TestContext = (AckSendDelayTestContext*)Context;
+    switch (Event->Type) {
+        case QUIC_LISTENER_EVENT_NEW_CONNECTION:
+            TestContext->ServerConnection.Handle = Event->NEW_CONNECTION.Connection;
+            MsQuic->SetCallbackHandler(TestContext->ServerConnection.Handle, (void*) QuicAckDelayConnectionHandler, Context);
+            return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, TestContext->ServerConfiguration);
+        default:
+            TEST_FAILURE(
+                "Invalid listener event! Context: 0x%p, Event: %d",
+                Context,
+                Event->Type);
+            return QUIC_STATUS_INVALID_STATE;
+    }
+}
+
+void
+QuicTestAckSendDelay(
+    _In_ int Family
+    )
+{
+    const uint32_t TimeoutMs = 3000;
+    const uint32_t AckDelayMs = 1000;
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings{};
+    Settings.SetIdleTimeoutMs(TimeoutMs);
+    Settings.SetMaxAckDelayMs(AckDelayMs);
+    Settings.SetPeerBidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr;
+
+    {
+        AckSendDelayTestContext TestContext {};
+
+        TestContext.ServerConfiguration = ServerConfiguration;
+        //
+        // Start the server.
+        //
+        ListenerScope Listener;
+        QUIC_STATUS Status =
+            MsQuic->ListenerOpen(
+                Registration,
+                QuicAckDelayListenerHandler,
+                &TestContext,
+                &Listener.Handle);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->ListenerOpen failed, 0x%x.", Status);
+            return;
+        }
+
+        Status = MsQuic->ListenerStart(Listener.Handle, Alpn, Alpn.Length(), nullptr);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->ListenerStart failed, 0x%x.", Status);
+            return;
+        }
+
+        uint32_t Size = sizeof(ServerLocalAddr.SockAddr);
+        Status =
+            MsQuic->GetParam(
+                Listener.Handle,
+                QUIC_PARAM_LEVEL_LISTENER,
+                QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
+                &Size,
+                &ServerLocalAddr.SockAddr);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->GetParam failed, 0x%x.", Status);
+            return;
+        }
+
+        //
+        // Start the client.
+        //
+        Status =
+            MsQuic->ConnectionOpen(
+                Registration,
+                QuicAckDelayConnectionHandler,
+                &TestContext,
+                &TestContext.ClientConnection.Handle);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
+            return;
+        }
+
+        Status =
+            MsQuic->ConnectionStart(
+                TestContext.ClientConnection.Handle,
+                ClientConfiguration,
+                QuicAddrFamily,
+                QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                ServerLocalAddr.GetPort());
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->ConnectionStart failed, 0x%x.", Status);
+            return;
+        }
+
+        if (!CxPlatEventWaitWithTimeout(TestContext.ServerConnectedEvent.Handle, TimeoutMs)) {
+            TEST_FAILURE("Server failed to get connected before timeout!");
+            return;
+        }
+
+        //
+        // Wait for connection to go silent before continuing
+        //
+        CxPlatSleep(100);
+
+        QUIC_STATISTICS Stats{};
+        uint32_t StatsSize = sizeof(Stats);
+        Status =
+            MsQuic->GetParam(
+                TestContext.ClientConnection.Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_STATISTICS,
+                &StatsSize,
+                &Stats);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("Client failed to query statistics at start 0x%x", Status);
+            return;
+        }
+        TestContext.AckCountStart = Stats.Recv.ValidAckFrames;
+        Status =
+            MsQuic->StreamOpen(
+                TestContext.ClientConnection.Handle,
+                QUIC_STREAM_OPEN_FLAG_NONE,
+                QuicAckDelayStreamHandler,
+                &TestContext,
+                &TestContext.ClientStream.Handle);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("Client failed to open stream 0x%x", Status);
+            return;
+        }
+        Status =
+            MsQuic->StreamSend(
+                TestContext.ClientStream.Handle,
+                TestContext.SendBuffer.Buffers,
+                TestContext.SendBuffer.BufferCount,
+                QUIC_SEND_FLAG_START,
+                nullptr);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("Client failed to send data 0x%x", Status);
+        }
+
+        if (!CxPlatEventWaitWithTimeout(TestContext.ClientReceiveDataEvent.Handle, TimeoutMs)) {
+            TEST_FAILURE("Client failed to receive data before timeout!");
+            return;
+        }
+
+        TEST_EQUAL(TestContext.AckCountStop - TestContext.AckCountStart, 1);
     }
 }

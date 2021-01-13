@@ -29,7 +29,7 @@ QUIC_STATUS
 QUIC_API
 MsQuicRegistrationOpen(
     _In_opt_ const QUIC_REGISTRATION_CONFIG* Config,
-    _Outptr_ _At_(*Registration, __drv_allocatesMem(Mem)) _Pre_defensive_
+    _Outptr_ _At_(*NewRegistration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* NewRegistration
     )
 {
@@ -51,7 +51,10 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
-    Registration = QUIC_ALLOC_NONPAGED(sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
+    Registration =
+        CXPLAT_ALLOC_NONPAGED(
+            sizeof(QUIC_REGISTRATION) + AppNameLength + 1,
+            QUIC_POOL_REGISTRATION);
     if (Registration == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -69,14 +72,14 @@ MsQuicRegistrationOpen(
     Registration->ExecProfile = Config == NULL ? QUIC_EXECUTION_PROFILE_LOW_LATENCY : Config->ExecutionProfile;
     Registration->CidPrefixLength = 0;
     Registration->CidPrefix = NULL;
-    QuicLockInitialize(&Registration->ConfigLock);
-    QuicListInitializeHead(&Registration->Configurations);
-    QuicDispatchLockInitialize(&Registration->ConnectionLock);
-    QuicListInitializeHead(&Registration->Connections);
-    QuicRundownInitialize(&Registration->Rundown);
+    CxPlatLockInitialize(&Registration->ConfigLock);
+    CxPlatListInitializeHead(&Registration->Configurations);
+    CxPlatDispatchLockInitialize(&Registration->ConnectionLock);
+    CxPlatListInitializeHead(&Registration->Connections);
+    CxPlatRundownInitialize(&Registration->Rundown);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
-        QuicCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
+        CxPlatCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
     } else {
         Registration->AppName[0] = '\0';
     }
@@ -85,11 +88,11 @@ MsQuicRegistrationOpen(
     switch (Registration->ExecProfile) {
     default:
     case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
-        WorkerThreadFlags = QUIC_THREAD_FLAG_NONE;
+        WorkerThreadFlags = CXPLAT_THREAD_FLAG_NONE;
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT:
         WorkerThreadFlags =
-            QUIC_THREAD_FLAG_SET_AFFINITIZE;
+            CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
         Registration->SplitPartitioning = TRUE;
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER:
@@ -98,7 +101,7 @@ MsQuicRegistrationOpen(
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME:
         WorkerThreadFlags =
-            QUIC_THREAD_FLAG_SET_AFFINITIZE;
+            CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
         break;
     }
 
@@ -145,9 +148,9 @@ MsQuicRegistrationOpen(
 #endif
 
     if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
-        QuicLockAcquire(&MsQuicLib.Lock);
-        QuicListInsertTail(&MsQuicLib.Registrations, &Registration->Link);
-        QuicLockRelease(&MsQuicLib.Lock);
+        CxPlatLockAcquire(&MsQuicLib.Lock);
+        CxPlatListInsertTail(&MsQuicLib.Registrations, &Registration->Link);
+        CxPlatLockRelease(&MsQuicLib.Lock);
     }
 
     *NewRegistration = (HQUIC)Registration;
@@ -156,10 +159,10 @@ MsQuicRegistrationOpen(
 Error:
 
     if (Registration != NULL) {
-        QuicRundownUninitialize(&Registration->Rundown);
-        QuicDispatchLockUninitialize(&Registration->ConnectionLock);
-        QuicLockUninitialize(&Registration->ConfigLock);
-        QUIC_FREE(Registration);
+        CxPlatRundownUninitialize(&Registration->Rundown);
+        CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
+        CxPlatLockUninitialize(&Registration->ConfigLock);
+        CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
     }
 
     QuicTraceEvent(
@@ -194,23 +197,23 @@ MsQuicRegistrationClose(
             Registration);
 
         if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
-            QuicLockAcquire(&MsQuicLib.Lock);
-            QuicListEntryRemove(&Registration->Link);
-            QuicLockRelease(&MsQuicLib.Lock);
+            CxPlatLockAcquire(&MsQuicLib.Lock);
+            CxPlatListEntryRemove(&Registration->Link);
+            CxPlatLockRelease(&MsQuicLib.Lock);
         }
 
-        QuicRundownReleaseAndWait(&Registration->Rundown);
+        CxPlatRundownReleaseAndWait(&Registration->Rundown);
 
         QuicWorkerPoolUninitialize(Registration->WorkerPool);
-        QuicRundownUninitialize(&Registration->Rundown);
-        QuicDispatchLockUninitialize(&Registration->ConnectionLock);
-        QuicLockUninitialize(&Registration->ConfigLock);
+        CxPlatRundownUninitialize(&Registration->Rundown);
+        CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
+        CxPlatLockUninitialize(&Registration->ConfigLock);
 
         if (Registration->CidPrefix != NULL) {
-            QUIC_FREE(Registration->CidPrefix);
+            CXPLAT_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
         }
 
-        QUIC_FREE(Registration);
+        CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
 
         QuicTraceEvent(
             ApiExit,
@@ -227,8 +230,8 @@ MsQuicRegistrationShutdown(
     _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode
     )
 {
-    QUIC_DBG_ASSERT(Handle != NULL);
-    QUIC_DBG_ASSERT(Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION);
+    CXPLAT_DBG_ASSERT(Handle != NULL);
+    CXPLAT_DBG_ASSERT(Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION);
 
     if (ErrorCode > QUIC_UINT62_MAX) {
         return;
@@ -244,13 +247,13 @@ MsQuicRegistrationShutdown(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-        QuicDispatchLockAcquire(&Registration->ConnectionLock);
+        CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
 
-        QUIC_LIST_ENTRY* Entry = Registration->Connections.Flink;
+        CXPLAT_LIST_ENTRY* Entry = Registration->Connections.Flink;
         while (Entry != &Registration->Connections) {
 
             QUIC_CONNECTION* Connection =
-                QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, RegistrationLink);
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, RegistrationLink);
 
             if (InterlockedCompareExchange16(
                     (short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
@@ -268,7 +271,7 @@ MsQuicRegistrationShutdown(
             Entry = Entry->Flink;
         }
 
-        QuicDispatchLockRelease(&Registration->ConnectionLock);
+        CxPlatDispatchLockRelease(&Registration->ConnectionLock);
     }
 
     QuicTraceEvent(
@@ -288,27 +291,27 @@ QuicRegistrationTraceRundown(
         Registration,
         Registration->AppName);
 
-    QuicLockAcquire(&Registration->ConfigLock);
+    CxPlatLockAcquire(&Registration->ConfigLock);
 
-    for (QUIC_LIST_ENTRY* Link = Registration->Configurations.Flink;
+    for (CXPLAT_LIST_ENTRY* Link = Registration->Configurations.Flink;
         Link != &Registration->Configurations;
         Link = Link->Flink) {
         QuicConfigurationTraceRundown(
-            QUIC_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
     }
 
-    QuicLockRelease(&Registration->ConfigLock);
+    CxPlatLockRelease(&Registration->ConfigLock);
 
-    QuicDispatchLockAcquire(&Registration->ConnectionLock);
+    CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
 
-    for (QUIC_LIST_ENTRY* Link = Registration->Connections.Flink;
+    for (CXPLAT_LIST_ENTRY* Link = Registration->Connections.Flink;
         Link != &Registration->Connections;
         Link = Link->Flink) {
         QuicConnQueueTraceRundown(
-            QUIC_CONTAINING_RECORD(Link, QUIC_CONNECTION, RegistrationLink));
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_CONNECTION, RegistrationLink));
     }
 
-    QuicDispatchLockRelease(&Registration->ConnectionLock);
+    CxPlatDispatchLockRelease(&Registration->ConnectionLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -317,16 +320,16 @@ QuicRegistrationSettingsChanged(
     _Inout_ QUIC_REGISTRATION* Registration
     )
 {
-    QuicLockAcquire(&Registration->ConfigLock);
+    CxPlatLockAcquire(&Registration->ConfigLock);
 
-    for (QUIC_LIST_ENTRY* Link = Registration->Configurations.Flink;
+    for (CXPLAT_LIST_ENTRY* Link = Registration->Configurations.Flink;
         Link != &Registration->Configurations;
         Link = Link->Flink) {
         QuicConfigurationSettingsChanged(
-            QUIC_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
     }
 
-    QuicLockRelease(&Registration->ConfigLock);
+    CxPlatLockRelease(&Registration->ConfigLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -382,49 +385,37 @@ QuicRegistrationParamSet(
         const void* Buffer
     )
 {
-    QUIC_STATUS Status;
-
-    switch (Param) {
-    case QUIC_PARAM_REGISTRATION_CID_PREFIX:
-
+    if (Param == QUIC_PARAM_REGISTRATION_CID_PREFIX) {
         if (BufferLength == 0) {
             if (Registration->CidPrefix != NULL) {
-                QUIC_FREE(Registration->CidPrefix);
+                CXPLAT_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
                 Registration->CidPrefix = NULL;
             }
             Registration->CidPrefixLength = 0;
-            Status = QUIC_STATUS_SUCCESS;
-            break;
+            return QUIC_STATUS_SUCCESS;
         }
 
         if (BufferLength > MSQUIC_CID_MAX_APP_PREFIX) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
 
         if (BufferLength > Registration->CidPrefixLength) {
-            uint8_t* NewCidPrefix = QUIC_ALLOC_NONPAGED(BufferLength);
+            uint8_t* NewCidPrefix = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_CIDPREFIX);
             if (NewCidPrefix == NULL) {
-                Status = QUIC_STATUS_OUT_OF_MEMORY;
-                break;
+                return QUIC_STATUS_OUT_OF_MEMORY;
             }
-            QUIC_DBG_ASSERT(Registration->CidPrefix != NULL);
-            QUIC_FREE(Registration->CidPrefix);
+            CXPLAT_DBG_ASSERT(Registration->CidPrefix != NULL);
+            CXPLAT_FREE(Registration->CidPrefix, QUIC_POOL_CIDPREFIX);
             Registration->CidPrefix = NewCidPrefix;
         }
 
         Registration->CidPrefixLength = (uint8_t)BufferLength;
         memcpy(Registration->CidPrefix, Buffer, BufferLength);
 
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    default:
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        break;
+        return QUIC_STATUS_SUCCESS;
     }
 
-    return Status;
+    return QUIC_STATUS_INVALID_PARAMETER;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -437,21 +428,16 @@ QuicRegistrationParamGet(
         void* Buffer
     )
 {
-    QUIC_STATUS Status;
-
-    switch (Param) {
-    case QUIC_PARAM_REGISTRATION_CID_PREFIX:
+    if (Param == QUIC_PARAM_REGISTRATION_CID_PREFIX) {
 
         if (*BufferLength < Registration->CidPrefixLength) {
             *BufferLength = Registration->CidPrefixLength;
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
         }
 
         if (Registration->CidPrefixLength > 0) {
             if (Buffer == NULL) {
-                Status = QUIC_STATUS_INVALID_PARAMETER;
-                break;
+                return QUIC_STATUS_INVALID_PARAMETER;
             }
 
             *BufferLength = Registration->CidPrefixLength;
@@ -461,13 +447,8 @@ QuicRegistrationParamGet(
             *BufferLength = 0;
         }
 
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    default:
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        break;
+        return QUIC_STATUS_SUCCESS;
     }
 
-    return Status;
+    return QUIC_STATUS_INVALID_PARAMETER;
 }

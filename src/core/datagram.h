@@ -20,7 +20,7 @@ typedef struct QUIC_DATAGRAM {
     // send queue.
     //
     QUIC_SEND_REQUEST* ApiQueue;
-    QUIC_DISPATCH_LOCK ApiQueueLock;
+    CXPLAT_DISPATCH_LOCK ApiQueueLock;
 
     //
     // The maximum datagram frame we allow the peer to send.
@@ -31,12 +31,6 @@ typedef struct QUIC_DATAGRAM {
     // The maximum length of data that we can fit in an outgoing datagram frame.
     //
     uint16_t MaxSendLength;
-
-    //
-    // Indicates that datagrams are enabled locally, which means we are willing
-    // to receive them.
-    //
-    BOOLEAN ReceiveEnabled : 1;
 
     //
     // Indicates that datagrams are allowed by the peer and can be queued up to
@@ -56,13 +50,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicDatagramUninitialize(
     _In_ QUIC_DATAGRAM* Datagram
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicDatagramSetReceiveEnabledState(
-    _In_ QUIC_DATAGRAM* Datagram,
-    _In_ BOOLEAN Enabled
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -109,7 +96,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicDatagramProcessFrame(
     _In_ QUIC_DATAGRAM* Datagram,
-    _In_ const QUIC_RECV_PACKET* const Packet,
+    _In_ const CXPLAT_RECV_PACKET* const Packet,
     _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)

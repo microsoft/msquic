@@ -5,7 +5,7 @@
 
 --*/
 
-#define QUIC_VERSION_SALT_LENGTH 20
+#define CXPLAT_VERSION_SALT_LENGTH 20
 #define QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH 32
 
 typedef struct QUIC_VERSION_INFO {
@@ -18,7 +18,7 @@ typedef struct QUIC_VERSION_INFO {
     //
     // Version specific salt.
     //
-    uint8_t Salt[QUIC_VERSION_SALT_LENGTH];
+    uint8_t Salt[CXPLAT_VERSION_SALT_LENGTH];
 
     //
     // Version specific Retry integrity secret.
@@ -30,7 +30,7 @@ typedef struct QUIC_VERSION_INFO {
 //
 // The list of supported QUIC versions.
 //
-extern const QUIC_VERSION_INFO QuicSupportedVersionList[6];
+extern const QUIC_VERSION_INFO QuicSupportedVersionList[3];
 
 //
 // Prefixes used in packet logging.
@@ -92,7 +92,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateInvariant(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ QUIC_RECV_PACKET* Packet,
+    _Inout_ CXPLAT_RECV_PACKET* Packet,
     _In_ BOOLEAN IsBindingShared
     );
 
@@ -199,7 +199,7 @@ typedef struct QUIC_RETRY_V1 {
     sizeof(uint8_t) \
 )
 
-#define QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1 QUIC_ENCRYPTION_OVERHEAD
+#define QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1 CXPLAT_ENCRYPTION_OVERHEAD
 
 //
 // Represents the short header format. All values in Network Byte order.
@@ -249,11 +249,8 @@ QuicPacketIsHandshake(
     }
 
     switch (Packet->LONG_HDR.Version) {
-        case QUIC_VERSION_DRAFT_27:
-        case QUIC_VERSION_DRAFT_28:
+        case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
-        case QUIC_VERSION_DRAFT_30:
-        case QUIC_VERSION_DRAFT_31:
         case QUIC_VERSION_MS_1:
             return ((QUIC_LONG_HEADER_V1*)Packet)->Type != QUIC_0_RTT_PROTECTED;
         default:
@@ -267,7 +264,7 @@ BOOLEAN
 QuicPacketValidateLongHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _In_ BOOLEAN IsServer,
-    _Inout_ QUIC_RECV_PACKET* Packet,
+    _Inout_ CXPLAT_RECV_PACKET* Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
     _Out_ uint16_t* TokenLength
@@ -280,7 +277,7 @@ QuicPacketValidateLongHeaderV1(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketDecodeRetryTokenV1(
-    _In_ const QUIC_RECV_PACKET* const Packet,
+    _In_ const CXPLAT_RECV_PACKET* const Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
     _Out_ uint16_t* TokenLength
@@ -291,7 +288,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ QUIC_RECV_PACKET* Packet
+    _Inout_ CXPLAT_RECV_PACKET* Packet
     );
 
 inline
@@ -342,7 +339,7 @@ QuicPktNumDecompress(
     _In_ uint8_t CompressedPacketNumberBytes
     )
 {
-    QUIC_DBG_ASSERT(CompressedPacketNumberBytes < 8);
+    CXPLAT_DBG_ASSERT(CompressedPacketNumberBytes < 8);
     const uint64_t Mask = 0xFFFFFFFFFFFFFFFF << (8 * CompressedPacketNumberBytes);
     const uint64_t PacketNumberInc = (~Mask) + 1;
     uint64_t PacketNumber = (Mask & ExpectedPacketNumber) | CompressedPacketNumber;
@@ -447,7 +444,7 @@ QuicPacketEncodeLongHeaderV1(
     }
     *PayloadLengthOffset = (uint16_t)(HeaderBuffer - Buffer);
     HeaderBuffer += sizeof(uint16_t); // Skip PayloadLength.
-    PacketNumber = QuicByteSwapUint32(PacketNumber);
+    PacketNumber = CxPlatByteSwapUint32(PacketNumber);
     memcpy(HeaderBuffer, &PacketNumber, sizeof(PacketNumber));
     *PacketNumberLength = sizeof(PacketNumber);
 
@@ -513,7 +510,7 @@ QuicPacketEncodeShortHeaderV1(
         uint8_t* Buffer
     )
 {
-    QUIC_DBG_ASSERT(PacketNumberLength != 0 && PacketNumberLength <= 4);
+    CXPLAT_DBG_ASSERT(PacketNumberLength != 0 && PacketNumberLength <= 4);
 
     uint16_t RequiredBufferLength =
         sizeof(QUIC_SHORT_HEADER_V1) +
@@ -556,24 +553,24 @@ QuicPacketHash(
 
     if (QuicAddrGetFamily(RemoteAddress) == QUIC_ADDRESS_FAMILY_INET) {
         Key =
-            QuicToeplitzHashCompute(
+            CxPlatToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,
                 ((uint8_t*)RemoteAddress) + QUIC_ADDR_V4_PORT_OFFSET,
                 2, 0);
         Key ^=
-            QuicToeplitzHashCompute(
+            CxPlatToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,
                 ((uint8_t*)RemoteAddress) + QUIC_ADDR_V4_IP_OFFSET,
                 4, 2);
         Offset = 2 + 4;
     } else {
         Key =
-            QuicToeplitzHashCompute(
+            CxPlatToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,
                 ((uint8_t*)RemoteAddress) + QUIC_ADDR_V6_PORT_OFFSET,
                 2, 0);
         Key ^=
-            QuicToeplitzHashCompute(
+            CxPlatToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,
                 ((uint8_t*)RemoteAddress) + QUIC_ADDR_V6_IP_OFFSET,
                 16, 2);
@@ -582,7 +579,7 @@ QuicPacketHash(
 
     if (RemoteCidLength != 0) {
         Key ^=
-            QuicToeplitzHashCompute(
+            CxPlatToeplitzHashCompute(
                 &MsQuicLib.ToeplitzHash,
                 RemoteCid,
                 min(RemoteCidLength, QUIC_MAX_CONNECTION_ID_LENGTH_V1),
@@ -612,7 +609,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketLogDrop(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _In_ const QUIC_RECV_PACKET* Packet,
+    _In_ const CXPLAT_RECV_PACKET* Packet,
     _In_z_ const char* Reason
     );
 
@@ -620,7 +617,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketLogDropWithValue(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _In_ const QUIC_RECV_PACKET* Packet,
+    _In_ const CXPLAT_RECV_PACKET* Packet,
     _In_z_ const char* Reason,
     _In_ uint64_t Value
     );

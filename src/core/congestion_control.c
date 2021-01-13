@@ -160,59 +160,39 @@ QuicCongestionControlGetSendAllowance(
         //
         SendAllowance = 0;
 
-    } else if (!Connection->Settings.PacingEnabled || !Connection->Paths[0].GotFirstRttSample) {
+    } else if (
+        !TimeSinceLastSendValid ||
+        !Connection->Settings.PacingEnabled ||
+        !Connection->Paths[0].GotFirstRttSample ||
+        Connection->Paths[0].SmoothedRtt < MS_TO_US(QUIC_SEND_PACING_INTERVAL)) {
         //
-        // Pacing is disabled or we don't have an RTT sample yet, so just send
-        // everything we can.
+        // We're not in the necessary state to pace.
         //
         SendAllowance = Cc->CongestionWindow - Cc->BytesInFlight;
 
     } else {
+
         //
-        // Try to pace: if the window and RTT are large enough, the window can
-        // be split into chunks which are spread out over the RTT.
-        // SendAllowance will be set to the size of the next chunk.
+        // We are pacing, so split the congestion window into chunks which are
+        // spread out over the RTT. Calculate the current send allowance (chunk
+        // size) as the time since the last send times the pacing rate (CWND / RTT).
         //
-        uint32_t MinChunkSize = QUIC_SEND_PACING_MIN_CHUNK * Connection->Paths[0].Mtu;
-        if (Connection->Paths[0].SmoothedRtt < MS_TO_US(QUIC_SEND_PACING_INTERVAL) ||
-            Cc->CongestionWindow < MinChunkSize ||
-            !TimeSinceLastSendValid) {
-            //
-            // Either the RTT is too small (i.e. it cannot be split into
-            // multiple intervals based on the timer granularity) or the window
-            // is too small (i.e. it cannot be split into chunks larger than
-            // MinChunkSize) for us to use pacing, or this is the first send,
-            // in which case the pacing formula (which uses the time since the
-            // last send) is invalid.
-            //
+
+        //
+        // Since the window grows via ACK feedback and since we defer packets
+        // when pacing, using the current window to calculate the pacing
+        // interval is not quite as aggressive as we'd like. Instead, use the
+        // predicted window of the next round trip.
+        //
+        uint64_t EstimatedWnd = QuicCongestionControlPredictNextWindow(Cc);
+
+        SendAllowance =
+            (uint32_t)((EstimatedWnd * TimeSinceLastSend) / Connection->Paths[0].SmoothedRtt);
+        if (SendAllowance > (Cc->CongestionWindow - Cc->BytesInFlight)) {
             SendAllowance = Cc->CongestionWindow - Cc->BytesInFlight;
-
-        } else {
-
-            //
-            // We are pacing, so calculate the current chunk size based on how
-            // long it's been since we sent the previous chunk.
-            //
-
-            //
-            // Since the window grows via ACK feedback and since we defer
-            // packets when pacing, using the current window to calculate the
-            // pacing interval is not quite as aggressive as we'd like. Instead,
-            // use the predicted window of the next RTT.
-            //
-            uint64_t EstimatedWnd = QuicCongestionControlPredictNextWindow(Cc);
-
-            SendAllowance =
-                (uint32_t)((EstimatedWnd * TimeSinceLastSend) / Connection->Paths[0].SmoothedRtt);
-            if (SendAllowance < MinChunkSize) {
-                SendAllowance = MinChunkSize;
-            }
-            if (SendAllowance > (Cc->CongestionWindow - Cc->BytesInFlight)) {
-                SendAllowance = Cc->CongestionWindow - Cc->BytesInFlight;
-            }
-            if (SendAllowance > (Cc->CongestionWindow >> 1)) {
-                SendAllowance = Cc->CongestionWindow >> 1; // Don't send more than half the current window.
-            }
+        }
+        if (SendAllowance > (Cc->CongestionWindow >> 1)) {
+            SendAllowance = Cc->CongestionWindow >> 1; // Don't send more than half the current window.
         }
     }
     return SendAllowance;
@@ -237,6 +217,7 @@ QuicCongestionControlUpdateBlockedState(
         } else {
             QuicConnRemoveOutFlowBlockedReason(
                 Connection, QUIC_FLOW_BLOCKED_CONGESTION_CONTROL);
+            Connection->Send.LastFlushTime = CxPlatTimeUs64(); // Reset last flush time
             return TRUE;
         }
     }
@@ -288,7 +269,7 @@ QuicCongestionControlOnCongestionEvent(
     Cc->SlowStartThreshold =
     Cc->CongestionWindow =
         max(
-            (uint32_t)Connection->Paths[0].Mtu * Cc->InitialWindowPackets,
+            (uint32_t)Connection->Paths[0].Mtu * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS,
             Cc->CongestionWindow * TEN_TIMES_BETA_CUBIC / 10);
 }
 
@@ -346,7 +327,7 @@ QuicCongestionControlOnDataInvalidated(
 {
     BOOLEAN PreviousCanSendState = QuicCongestionControlCanSend(Cc);
 
-    QUIC_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
+    CXPLAT_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
     Cc->BytesInFlight -= NumRetransmittableBytes;
 
     return QuicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
@@ -365,7 +346,7 @@ QuicCongestionControlOnDataAcknowledged(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     BOOLEAN PreviousCanSendState = QuicCongestionControlCanSend(Cc);
 
-    QUIC_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
+    CXPLAT_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
     Cc->BytesInFlight -= NumRetransmittableBytes;
 
     if (Cc->IsInRecovery) {
@@ -381,7 +362,7 @@ QuicCongestionControlOnDataAcknowledged(
                 Connection);
             Cc->IsInRecovery = FALSE;
             Cc->IsInPersistentCongestion = FALSE;
-            Cc->TimeOfCongAvoidStart = QuicTimeMs64();
+            Cc->TimeOfCongAvoidStart = CxPlatTimeMs64();
         }
         goto Exit;
     } else if (NumRetransmittableBytes == 0) {
@@ -396,7 +377,7 @@ QuicCongestionControlOnDataAcknowledged(
 
         Cc->CongestionWindow += NumRetransmittableBytes;
         if (Cc->CongestionWindow >= Cc->SlowStartThreshold) {
-            Cc->TimeOfCongAvoidStart = QuicTimeMs64();
+            Cc->TimeOfCongAvoidStart = CxPlatTimeMs64();
         }
 
     } else {
@@ -412,18 +393,18 @@ QuicCongestionControlOnDataAcknowledged(
         // growth during the gap.
         //
         if (Cc->TimeOfLastAckValid) {
-            uint64_t TimeSinceLastAck = QuicTimeDiff64(Cc->TimeOfLastAck, TimeNow);
+            uint64_t TimeSinceLastAck = CxPlatTimeDiff64(Cc->TimeOfLastAck, TimeNow);
             if (TimeSinceLastAck > Cc->SendIdleTimeoutMs &&
                 TimeSinceLastAck > US_TO_MS(Connection->Paths[0].SmoothedRtt + 4 * Connection->Paths[0].RttVariance)) {
                 Cc->TimeOfCongAvoidStart += TimeSinceLastAck;
-                if (QuicTimeAtOrBefore64(TimeNow, Cc->TimeOfCongAvoidStart)) {
+                if (CxPlatTimeAtOrBefore64(TimeNow, Cc->TimeOfCongAvoidStart)) {
                     Cc->TimeOfCongAvoidStart = TimeNow;
                 }
             }
         }
 
         uint64_t TimeInCongAvoid =
-            QuicTimeDiff64(Cc->TimeOfCongAvoidStart, QuicTimeMs64());
+            CxPlatTimeDiff64(Cc->TimeOfCongAvoidStart, CxPlatTimeMs64());
         if (TimeInCongAvoid > UINT32_MAX) {
             TimeInCongAvoid = UINT32_MAX;
         }
@@ -477,7 +458,7 @@ QuicCongestionControlOnDataAcknowledged(
         // Using max(RTT, 1) prevents division by zero.
         //
 
-        QUIC_STATIC_ASSERT(TEN_TIMES_BETA_CUBIC == 7, "TEN_TIMES_BETA_CUBIC must be 7 for simplified calculation.");
+        CXPLAT_STATIC_ASSERT(TEN_TIMES_BETA_CUBIC == 7, "TEN_TIMES_BETA_CUBIC must be 7 for simplified calculation.");
 
         int64_t AimdWindow =
             Cc->WindowMax * TEN_TIMES_BETA_CUBIC / 10 +
@@ -551,7 +532,7 @@ QuicCongestionControlOnDataLost(
         }
     }
 
-    QUIC_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
+    CXPLAT_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
     Cc->BytesInFlight -= NumRetransmittableBytes;
 
     QuicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);

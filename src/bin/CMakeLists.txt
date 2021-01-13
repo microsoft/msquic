@@ -19,10 +19,10 @@ if(WIN32)
     endif()
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_SOURCE_DIR}/winuser/msquic.def\"")
-elseif (QUIC_PLATFORM STREQUAL "linux")
+elseif (CX_PLATFORM STREQUAL "linux")
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
-elseif (QUIC_PLATFORM STREQUAL "darwin")
+elseif (CX_PLATFORM STREQUAL "darwin")
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "-exported_symbols_list \"${CMAKE_CURRENT_SOURCE_DIR}/darwin/exports.txt\"")
 endif()

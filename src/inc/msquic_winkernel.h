@@ -128,7 +128,7 @@ typedef SOCKADDR_INET QUIC_ADDR;
 inline
 BOOLEAN
 QuicAddrIsValid(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     )
 {
     return
@@ -140,8 +140,8 @@ QuicAddrIsValid(
 inline
 BOOLEAN
 QuicAddrCompareIp(
-    _In_ const QUIC_ADDR * const Addr1,
-    _In_ const QUIC_ADDR * const Addr2
+    _In_ const QUIC_ADDR* const Addr1,
+    _In_ const QUIC_ADDR* const Addr2
     )
 {
     if (Addr1->si_family == QUIC_ADDRESS_FAMILY_INET) {
@@ -154,8 +154,8 @@ QuicAddrCompareIp(
 inline
 BOOLEAN
 QuicAddrCompare(
-    _In_ const QUIC_ADDR * const Addr1,
-    _In_ const QUIC_ADDR * const Addr2
+    _In_ const QUIC_ADDR* const Addr1,
+    _In_ const QUIC_ADDR* const Addr2
     )
 {
     if (Addr1->si_family != Addr2->si_family ||
@@ -168,7 +168,7 @@ QuicAddrCompare(
 inline
 BOOLEAN
 QuicAddrIsWildCard(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     )
 {
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
@@ -185,7 +185,7 @@ QuicAddrIsWildCard(
 inline
 QUIC_ADDRESS_FAMILY
 QuicAddrGetFamily(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     )
 {
     return (QUIC_ADDRESS_FAMILY)Addr->si_family;
@@ -194,7 +194,7 @@ QuicAddrGetFamily(
 inline
 void
 QuicAddrSetFamily(
-    _Out_ QUIC_ADDR * Addr,
+    _Out_ QUIC_ADDR* Addr,
     _In_ QUIC_ADDRESS_FAMILY Family
     )
 {
@@ -204,7 +204,7 @@ QuicAddrSetFamily(
 inline
 uint16_t // Returns in host byte order.
 QuicAddrGetPort(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     )
 {
     return QuicNetByteSwapShort(Addr->Ipv4.sin_port);
@@ -213,7 +213,7 @@ QuicAddrGetPort(
 inline
 void
 QuicAddrSetPort(
-    _Inout_ QUIC_ADDR * Addr,
+    _Inout_ QUIC_ADDR* Addr,
     _In_ uint16_t Port // Host byte order
     )
 {
@@ -221,21 +221,9 @@ QuicAddrSetPort(
 }
 
 inline
-BOOLEAN
-QuicAddrIsBoundExplicitly(
-    _In_ const QUIC_ADDR * const Addr
-    )
-{
-    //
-    // Scope ID of zero indicates we are sending from a connected binding.
-    //
-    return Addr->Ipv6.sin6_scope_id == 0;
-}
-
-inline
 void
 QuicAddrSetToLoopback(
-    _Inout_ QUIC_ADDR * Addr
+    _Inout_ QUIC_ADDR* Addr
     )
 {
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
@@ -252,7 +240,7 @@ QuicAddrSetToLoopback(
 inline
 void
 QuicAddrIncrement(
-    _Inout_ QUIC_ADDR * Addr
+    _Inout_ QUIC_ADDR* Addr
     )
 {
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
@@ -265,7 +253,7 @@ QuicAddrIncrement(
 inline
 uint32_t
 QuicAddrHash(
-    _In_ const QUIC_ADDR * Addr
+    _In_ const QUIC_ADDR* Addr
     )
 {
     uint32_t Hash = 5387; // A random prime number.

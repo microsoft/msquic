@@ -94,7 +94,7 @@ const char* ApiTypeStr[] = {
     "DATAGRAM_SEND"
 };
 
-QUIC_STATIC_ASSERT(ARRAYSIZE(ApiTypeStr) == QUIC_API_COUNT, "Keep the count in sync with array");
+CXPLAT_STATIC_ASSERT(ARRAYSIZE(ApiTypeStr) == QUIC_API_COUNT, "Keep the count in sync with array");
 
 const char* SendFlushReasonStr[] = {
     "Flags",
@@ -130,13 +130,13 @@ QuicTraceGlobalEvent(
         if (EvData->LibraryInitialized.DatapathFeatures == 0) {
             printf("NONE ]\n");
         } else {
-            if (EvData->LibraryInitialized.DatapathFeatures & QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING) {
+            if (EvData->LibraryInitialized.DatapathFeatures & CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING) {
                 printf("RSS ");
             }
-            if (EvData->LibraryInitialized.DatapathFeatures & QUIC_DATAPATH_FEATURE_RECV_COALESCING) {
+            if (EvData->LibraryInitialized.DatapathFeatures & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
                 printf("URO ");
             }
-            if (EvData->LibraryInitialized.DatapathFeatures & QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION) {
+            if (EvData->LibraryInitialized.DatapathFeatures & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
                 printf("USO ");
             }
             printf("]\n");
@@ -168,13 +168,13 @@ QuicTraceGlobalEvent(
         if (EvData->LibraryInitialized.DatapathFeatures == 0) {
             printf("NONE ]\n");
         } else {
-            if (EvData->LibraryInitialized.DatapathFeatures & QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING) {
+            if (EvData->LibraryInitialized.DatapathFeatures & CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING) {
                 printf("RSS ");
             }
-            if (EvData->LibraryInitialized.DatapathFeatures & QUIC_DATAPATH_FEATURE_RECV_COALESCING) {
+            if (EvData->LibraryInitialized.DatapathFeatures & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
                 printf("URO ");
             }
-            if (EvData->LibraryInitialized.DatapathFeatures & QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION) {
+            if (EvData->LibraryInitialized.DatapathFeatures & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
                 printf("USO ");
             }
             printf("]\n");
@@ -1076,44 +1076,26 @@ QuicTraceDatapathEvent(
     QUIC_EVENT_DATA_DATAPATH* EvData = (QUIC_EVENT_DATA_DATAPATH*)ev->UserData;
 
     switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
-    case EventId_QuicDatapathSendTo: {
-        char RemoteAddrStr[INET6_ADDRSTRLEN];
-        AddrToString(&EvData->SendTo.RemoteAddr, RemoteAddrStr);
-        if (EvData->SendTo.BufferCount == 1) {
-            if (EvData->SendTo.SegmentSize == 0 ||
-                EvData->SendTo.SegmentSize >= EvData->SendTo.TotalSize) {
-                printf("Send %u bytes Dst=%s\n", EvData->SendTo.TotalSize, RemoteAddrStr);
-            } else {
-                printf("Send %u bytes (segment=%hu) Dst=%s\n",
-                    EvData->SendTo.TotalSize, EvData->SendTo.SegmentSize, RemoteAddrStr);
-            }
-        } else {
-            printf("Send %u bytes in %hu buffers (segment=%hu) Dst=%s\n",
-                EvData->SendTo.TotalSize, (UINT16)EvData->SendTo.BufferCount,
-                EvData->SendTo.SegmentSize, RemoteAddrStr);
-        }
-        break;
-    }
-    case EventId_QuicDatapathSendFromTo: {
+    case EventId_QuicDatapathSend: {
         char RemoteAddrStr[INET6_ADDRSTRLEN];
         char LocalAddrStr[INET6_ADDRSTRLEN];
-        const uint8_t* Addrs = EvData->SendFromTo.Addrs;
+        const uint8_t* Addrs = EvData->Send.Addrs;
         Addrs = DecodeAddr(Addrs, RemoteAddrStr);
         Addrs = DecodeAddr(Addrs, LocalAddrStr);
-        if (EvData->SendFromTo.BufferCount == 1) {
-            if (EvData->SendFromTo.SegmentSize == 0 ||
-                EvData->SendFromTo.SegmentSize >= EvData->SendFromTo.TotalSize) {
+        if (EvData->Send.BufferCount == 1) {
+            if (EvData->Send.SegmentSize == 0 ||
+                EvData->Send.SegmentSize >= EvData->Send.TotalSize) {
                 printf("Send %u bytes Src=%s Dst=%s\n",
-                    EvData->SendFromTo.TotalSize, LocalAddrStr, RemoteAddrStr);
+                    EvData->Send.TotalSize, LocalAddrStr, RemoteAddrStr);
             } else {
                 printf("Send %u bytes (segment=%hu) Src=%s Dst=%s\n",
-                    EvData->SendFromTo.TotalSize, EvData->SendFromTo.SegmentSize,
+                    EvData->Send.TotalSize, EvData->Send.SegmentSize,
                     LocalAddrStr, RemoteAddrStr);
             }
         } else {
             printf("Send %u bytes in %hu buffers (segment=%hu) Src=%s Dst=%s\n",
-                EvData->SendFromTo.TotalSize, (UINT16)EvData->SendFromTo.BufferCount,
-                EvData->SendFromTo.SegmentSize, LocalAddrStr, RemoteAddrStr);
+                EvData->Send.TotalSize, (UINT16)EvData->Send.BufferCount,
+                EvData->Send.SegmentSize, LocalAddrStr, RemoteAddrStr);
         }
         break;
     }
@@ -1181,7 +1163,7 @@ const char* TracePrefix[EventType_Count] = {
     "[strm][%.5u] ",
     "[bind][%.5u] ",
     "[ tls][%.5u] ",
-    "[ udp][%.5u] ",
+    "[data][%.5u] ",
     NULL
 };
 

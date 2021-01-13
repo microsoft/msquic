@@ -298,7 +298,7 @@ public:
             return false;
         }
         QuicTraceLogVerbose(
-            TestSendIoctl,
+            TestReadIoctl,
             "[test] Sending Read IOCTL %u.",
             IoGetFunctionCodeFromCtlCode(IoControlCode));
         if (!DeviceIoControl(

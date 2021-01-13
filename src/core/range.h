@@ -17,7 +17,7 @@ typedef struct QUIC_SUBRANGE {
 
 } QUIC_SUBRANGE;
 
-QUIC_STATIC_ASSERT(IS_POWER_OF_TWO(sizeof(QUIC_SUBRANGE)), L"Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(sizeof(QUIC_SUBRANGE)), L"Must be power of two");
 
 typedef struct QUIC_RANGE_SEARCH_KEY {
 
@@ -161,17 +161,17 @@ QuicRangeSearch(
     uint32_t Lo = 0;
     uint32_t Hi = Range->UsedLength - 1;
     uint32_t Mid = 0;
-    uint32_t Half;
     int Result = 0;
 
     while (Lo <= Hi) {
+        uint32_t Half;
         if ((Half = Num / 2) != 0) {
-            Mid = Lo + (Num & 1 ? Half : (Half - 1));
+            Mid = Lo + ((Num & 1) ? Half : (Half - 1));
             if ((Result = QuicRangeCompare(Key, QuicRangeGet(Range, Mid))) == 0) {
                 return (int)Mid;
             } else if (Result < 0) {
                 Hi = Mid - 1;
-                Num = Num & 1 ? Half : Half-1;
+                Num = (Num & 1) ? Half : Half-1;
             } else {
                 Lo = Mid + 1;
                 Num = Half;
@@ -326,7 +326,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRangeSetMin(
     _Inout_ QUIC_RANGE* Range,
-    _In_ uint64_t Value
+    _In_ uint64_t Low
     );
 
 //

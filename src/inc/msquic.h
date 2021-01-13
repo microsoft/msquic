@@ -47,7 +47,7 @@ typedef struct QUIC_HANDLE *HQUIC;
 //
 // The maximum value that can be encoded in a 62-bit integer.
 //
-#define QUIC_UINT62_MAX ((1ULL << 62) - 1)
+#define QUIC_UINT62_MAX ((1ULL << 62U) - 1)
 
 //
 // Represents a 62-bit integer.
@@ -193,7 +193,7 @@ typedef enum QUIC_DATAGRAM_SEND_STATE {
 // by MsQuic.
 //
 #define QUIC_DATAGRAM_SEND_STATE_IS_FINAL(State) \
-    (State >= QUIC_DATAGRAM_SEND_LOST_DISCARDED)
+    ((State) >= QUIC_DATAGRAM_SEND_LOST_DISCARDED)
 
 
 typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.
@@ -224,8 +224,8 @@ typedef struct QUIC_CERTIFICATE_HASH_STORE {
 } QUIC_CERTIFICATE_HASH_STORE;
 
 typedef struct QUIC_CERTIFICATE_FILE {
-    char *PrivateKeyFile;
-    char *CertificateFile;
+    const char *PrivateKeyFile;
+    const char *CertificateFile;
 } QUIC_CERTIFICATE_FILE;
 
 typedef void QUIC_CERTIFICATE; // Platform specific certificate context object
@@ -309,12 +309,13 @@ typedef struct QUIC_STATISTICS {
     } Send;
     struct {
         uint64_t TotalPackets;          // QUIC packets; could be coalesced into fewer UDP datagrams.
-        uint64_t ReorderedPackets;      // Means not the expected next packet. Could indicate loss gap too.
+        uint64_t ReorderedPackets;      // Packets where packet number is less than highest seen.
         uint64_t DroppedPackets;        // Includes DuplicatePackets.
         uint64_t DuplicatePackets;
         uint64_t TotalBytes;            // Sum of UDP payloads
         uint64_t TotalStreamBytes;      // Sum of stream payloads
         uint64_t DecryptionFailures;    // Count of packet decryption failures.
+        uint64_t ValidAckFrames;        // Count of receive ACK frames.
     } Recv;
     struct {
         uint32_t KeyUpdateCount;
@@ -521,7 +522,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #ifdef QUIC_API_ENABLE_INSECURE_FEATURES
 #define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         15  // uint8_t (BOOLEAN)
 #endif
-#define QUIC_PARAM_CONN_RESUMPTION_STATE                16  // uint8_t[]
+#define QUIC_PARAM_CONN_RESUMPTION_TICKET               16  // uint8_t[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_TLS.

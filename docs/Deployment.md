@@ -2,6 +2,28 @@
 
 MsQuic is used as the basis for several different protocols (HTTP, SMB, etc.), but they all have several things in common when it comes time to deploy them. This document outlines the various things that must be taken into account whenever deploying an MsQuic based solution.
 
+## Deploying QUIC
+
+Generally, for any existing TCP based deployments that are adding QUIC support, there are a number of things to be considered. Many things are different between a TCP based solution and a QUIC based one, including breaking some pretty "core" assumptions made for TCP:
+
+- QUIC uses UDP instead of TCP.
+  - Any firewalls or other network devices must take this into account, and make sure this traffic is allowed.
+- QUIC traffic is designed to be generally indistinguishable from other UDP traffic.
+  - Network devices must not assume UDP traffic on any port is QUIC unless explicitly configured.
+- Current QUIC based protocols primarily use port 443 on the server, but not necessarily exclusively.
+  - HTTP and SMB use this port, but other protocols (e.g. DNS over QUIC) likely will not.
+- QUIC is versioned and extensible, and thus is expected to be very dynamic on the network.
+  - Network devices must not assume anything about the structure of a QUIC packet beyond what is stated in the [Invariants draft](https://tools.ietf.org/html/draft-ietf-quic-invariants).
+- QUIC is completely encrypted end to end.
+  - Most information that might have been viewable on a TCP connection is now only visiable to the endpoints.
+- A single UDP flow or tuple (address + port) does not necessarily map to a single connection.
+  - A single QUIC connection may span multiple flows.
+  - Multiple QUIC connections may share a single flow.
+- NAT bindings for UDP flows on the internet generally timeout much quicker than TCP; resulting in flow changes much more often.
+  - QUIC, as a protocol, is able to survive these changes, unlike TCP.
+
+For more details, please see the [Manageability draft](https://tools.ietf.org/html/draft-ietf-quic-manageability).
+
 # Configuration
 
 MsQuic supports a number of configuration knobs (or settings). These settings can either be set dynamically (via the `QUIC_SETTINGS` structure) or via persistent storage (e.g. registry on Windows).
@@ -38,7 +60,7 @@ MsQuic supports a number of configuration knobs (or settings). These settings ca
 | Datagram Receive Support           | uint8_t  | DatagramReceiveEnabled  |                                                                                                    |
 | Server Resumption Level            | uint8_t  | ServerResumptionLevel   |                                                                                                    |
 
-**TODO** - Finish table above
+> **TODO** - Finish table above
 
 ## Windows
 
@@ -83,7 +105,7 @@ Note the use of the `-LocalOnlyMapping $true` argument. This is a performance op
 
 # Load Balancing
 
-MsQuic currently supports a load balancing mode where the server encodes the local IPv4 address or IPv6 suffix into bytes 1 through 4 of the connection IDs it creates. You can read more details about the general encoding in [draft-ietf-quic-load-balancers](https://github.com/quicwg/load-balancers/blob/master/draft-ietf-quic-load-balancers.md#plaintext-cid-algorithm-plaintext-cid-algorithm).
+MsQuic currently supports a load balancing mode where the server encodes the local IPv4 address or IPv6 suffix into bytes 1 through 4 of the connection IDs it creates. You can read more details about the general encoding in [Load Balancers draft](https://tools.ietf.org/html/draft-ietf-quic-load-balancers-04#section-4.1).
 
 ```
 0                   1                   2                   3

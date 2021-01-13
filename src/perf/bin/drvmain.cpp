@@ -17,8 +17,13 @@ Abstract:
 #include "drivermain.cpp.clog.h"
 #endif
 
-DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperf");
-DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperf");
+#ifdef PRIVATE_LIBRARY
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperfdrv");
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperfdrvpriv");
+#else
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperfdrv");
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperfdrvpriv");
+#endif
 
 typedef struct QUIC_DEVICE_EXTENSION {
     EX_PUSH_LOCK Lock;
@@ -36,10 +41,12 @@ typedef struct QUIC_DRIVER_CLIENT {
     QUIC_CREDENTIAL_CONFIG SelfSignedCredConfig;
     QUIC_CERTIFICATE_HASH SelfSignedCertHash;
     bool SelfSignedValid;
-    QUIC_EVENT StopEvent;
+    CXPLAT_EVENT StopEvent;
     WDFREQUEST Request;
-    QUIC_THREAD Thread;
+    CXPLAT_THREAD Thread;
     bool Canceled;
+    bool CleanupHandleCancellation;
+    CXPLAT_LOCK CleanupLock;
 } QUIC_DRIVER_CLIENT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DRIVER_CLIENT, QuicPerfCtlGetFileContext);
@@ -107,6 +114,12 @@ void __cdecl operator delete[] (_In_opt_ void* Mem) {
     }
 }
 
+void __cdecl operator delete[] (_In_opt_ void* Mem, _In_opt_ size_t) {
+    if (Mem != nullptr) {
+        ExFreePoolWithTag(Mem, QUIC_POOL_PERF);
+    }
+}
+
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
 extern "C"
@@ -125,15 +138,15 @@ DriverEntry(
     WDFDRIVER Driver;
     BOOLEAN PlatformInitialized = FALSE;
 
-    QuicPlatformSystemLoad(DriverObject, RegistryPath);
+    CxPlatSystemLoad(DriverObject, RegistryPath);
 
-    Status = QuicPlatformInitialize();
+    Status = CxPlatInitialize();
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "QuicPlatformInitialize failed");
+            "CxPlatInitialize failed");
         goto Error;
     }
     PlatformInitialized = TRUE;
@@ -178,9 +191,9 @@ Error:
 
     if (!NT_SUCCESS(Status)) {
         if (PlatformInitialized) {
-            QuicPlatformUninitialize();
+            CxPlatUninitialize();
         }
-        QuicPlatformSystemUnload();
+        CxPlatSystemUnload();
     }
 
     return Status;
@@ -202,8 +215,8 @@ QuicPerfDriverUnload(
         PerfDriverStopped,
         "[perf] Stopped");
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 }
 
 _No_competing_thread_
@@ -395,6 +408,7 @@ QuicPerfCtlEvtFileCreate(
         }
 
         RtlZeroMemory(Client, sizeof(QUIC_DRIVER_CLIENT));
+        CxPlatLockInitialize(&Client->CleanupLock);
 
         //
         // Insert into the client list
@@ -412,7 +426,7 @@ QuicPerfCtlEvtFileCreate(
         //
         QuicPerfClient = Client;
         InterlockedExchange((volatile LONG*)&BufferCurrent, 0);
-        QuicEventInitialize(&Client->StopEvent, true, false);
+        CxPlatEventInitialize(&Client->StopEvent, true, false);
     } while (false);
 
     ExfReleasePushLockExclusive(&QuicPerfCtlExtension->Lock);
@@ -461,13 +475,16 @@ QuicPerfCtlEvtFileCleanup(
             Client);
 
         Client->Canceled = true;
-        QuicEventSet(Client->StopEvent);
+        CxPlatEventSet(Client->StopEvent);
 
         if (Client->Thread != nullptr) {
-            QuicThreadWait(&Client->Thread);
-            QuicThreadDelete(&Client->Thread);
+            CxPlatThreadWait(&Client->Thread);
+            CxPlatThreadDelete(&Client->Thread);
+            Client->Thread = nullptr;
         }
-        QuicEventUninitialize(Client->StopEvent);
+        CxPlatEventUninitialize(Client->StopEvent);
+
+        QuicMainFree();
 
         //
         // Clean up globals.
@@ -494,6 +511,7 @@ QuicPerfCtlEvtIoCanceled(
 {
     NTSTATUS Status;
 
+
     WDFFILEOBJECT FileObject = WdfRequestGetFileObject(Request);
     if (FileObject == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
@@ -507,7 +525,7 @@ QuicPerfCtlEvtIoCanceled(
     }
 
     Client->Canceled = true;
-    QuicEventSet(Client->StopEvent);
+    CxPlatEventSet(Client->StopEvent);
 
     QuicTraceLogWarning(
         PerfControlClientCanceledRequest,
@@ -515,6 +533,12 @@ QuicPerfCtlEvtIoCanceled(
         Client,
         Request);
 
+    CxPlatLockAcquire(&Client->CleanupLock);
+    if (Client->CleanupHandleCancellation) {
+        WdfRequestComplete(Request, STATUS_CANCELLED);
+    }
+    Client->CleanupHandleCancellation = true;
+    CxPlatLockRelease(&Client->CleanupLock);
     return;
 Error:
     WdfRequestComplete(Request, Status);
@@ -539,6 +563,9 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_CERTIFICATE_HASH),
     SIZE_MAX,
+    0,
+    0,
+    0,
     0
 };
 
@@ -559,14 +586,24 @@ static_assert(
 // otherwise we can't cancel. Instead, move the wait into a separate thread
 // so the Ioctl returns into user mode.
 //
-QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
+CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
 {
     QUIC_DRIVER_CLIENT* Client = (QUIC_DRIVER_CLIENT*)Context;
     WDFREQUEST Request = Client->Request;
 
+    WdfRequestMarkCancelable(Request, QuicPerfCtlEvtIoCanceled);
+    if (Client->Canceled) {
+        QuicTraceLogInfo(
+            PerformanceStopCancelled,
+            "[perf] Performance Stop Cancelled");
+        WdfRequestComplete(Request, STATUS_CANCELLED);
+        return;
+    }
+
     char* LocalBuffer = nullptr;
     DWORD ReturnedLength = 0;
     QUIC_STATUS StopStatus;
+    NTSTATUS Status;
 
     StopStatus =
         QuicMainStop(0);
@@ -579,9 +616,16 @@ QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
         return;
     }
 
-    WdfRequestUnmarkCancelable(Request);
+    CxPlatLockAcquire(&Client->CleanupLock);
+    Status = WdfRequestUnmarkCancelable(Request);
+    bool ExistingCancellation = Client->CleanupHandleCancellation;
+    Client->CleanupHandleCancellation = TRUE;
+    CxPlatLockRelease(&Client->CleanupLock);
+    if (Status == STATUS_CANCELLED && !ExistingCancellation) {
+        return;
+    }
 
-    NTSTATUS Status =
+    Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
             (size_t)BufferCurrent + 1,
@@ -592,7 +636,7 @@ QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
         goto Exit;
     }
 
-    QuicCopyMemory(LocalBuffer, Buffer, BufferCurrent);
+    CxPlatCopyMemory(LocalBuffer, Buffer, BufferCurrent);
     LocalBuffer[BufferCurrent] = '\0';
 
     QuicTraceLogInfo(
@@ -617,26 +661,24 @@ QuicPerfCtlReadPrints(
     )
 {
     QUIC_STATUS Status;
-    QUIC_THREAD_CONFIG ThreadConfig;
-    QuicZeroMemory(&ThreadConfig, sizeof(ThreadConfig));
+    CXPLAT_THREAD_CONFIG ThreadConfig;
+    CxPlatZeroMemory(&ThreadConfig, sizeof(ThreadConfig));
     ThreadConfig.Name = "PerfWait";
     ThreadConfig.Callback = PerformanceWaitForStopThreadCb;
     ThreadConfig.Context = Client;
     Client->Request = Request;
-    if (QUIC_FAILED(Status = QuicThreadCreate(&ThreadConfig, &Client->Thread))) {
+    if (QUIC_FAILED(Status = CxPlatThreadCreate(&ThreadConfig, &Client->Thread))) {
         if (Client->Thread) {
             Client->Canceled = true;
-            QuicEventSet(Client->StopEvent);
-            QuicThreadWait(&Client->Thread);
-            QuicThreadDelete(&Client->Thread);
+            CxPlatEventSet(Client->StopEvent);
+            CxPlatThreadWait(&Client->Thread);
+            CxPlatThreadDelete(&Client->Thread);
             Client->Thread = nullptr;
         }
         WdfRequestCompleteWithInformation(
             Request,
             Status,
             0);
-    } else {
-        WdfRequestMarkCancelable(Request, QuicPerfCtlEvtIoCanceled);
     }
 }
 
@@ -645,7 +687,8 @@ QuicPerfCtlStart(
     _In_ QUIC_DRIVER_CLIENT* Client,
     _In_ char* Arguments,
     _In_ int Length
-    ) {
+    )
+{
     char** Argv = new(std::nothrow) char* [Length];
     if (!Argv) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -667,6 +710,72 @@ QuicPerfCtlStart(
     delete[] Argv;
 
     return Status;
+}
+
+void
+QuicPerfCtlGetMetadata(
+    _In_ WDFREQUEST Request
+    )
+{
+    QUIC_STATUS QuicStatus;
+    PerfExtraDataMetadata Metadata;
+
+    QuicStatus = QuicMainGetExtraDataMetadata(&Metadata);
+    if (QUIC_FAILED(QuicStatus)) {
+        WdfRequestComplete(Request, QuicStatus);
+        return;
+    }
+
+    void* LocalBuffer = nullptr;
+
+    NTSTATUS Status =
+        WdfRequestRetrieveOutputBuffer(
+            Request,
+            sizeof(Metadata),
+            &LocalBuffer,
+            nullptr);
+    if (!NT_SUCCESS(Status)) {
+        WdfRequestComplete(Request, Status);
+        return;
+    }
+
+    CxPlatCopyMemory(LocalBuffer, &Metadata, sizeof(Metadata));
+    WdfRequestCompleteWithInformation(
+        Request,
+        Status,
+        sizeof(Metadata));
+}
+
+void
+QuicPerfCtlGetExtraData(
+    _In_ WDFREQUEST Request,
+    _In_ size_t OutputBufferLength
+    )
+{
+    CXPLAT_FRE_ASSERT(OutputBufferLength < UINT32_MAX);
+    uint8_t* LocalBuffer = nullptr;
+    uint32_t BufferLength = (uint32_t)OutputBufferLength;
+
+    NTSTATUS Status =
+        WdfRequestRetrieveOutputBuffer(
+            Request,
+            BufferLength,
+            (void**)&LocalBuffer,
+            nullptr);
+    if (!NT_SUCCESS(Status)) {
+        WdfRequestComplete(Request, Status);
+        return;
+    }
+
+    QUIC_STATUS QuicStatus =
+        QuicMainGetExtraData(
+            LocalBuffer,
+            &BufferLength);
+
+    WdfRequestCompleteWithInformation(
+        Request,
+        QuicStatus,
+        BufferLength);
 }
 
 VOID
@@ -722,6 +831,12 @@ QuicPerfCtlEvtIoDeviceControl(
             Request,
             Client);
         return;
+    } else if (IoControlCode == IOCTL_QUIC_GET_METADATA) {
+        QuicPerfCtlGetMetadata(Request);
+        return;
+    } else if (IoControlCode == IOCTL_QUIC_GET_EXTRA_DATA) {
+        QuicPerfCtlGetExtraData(Request, OutputBufferLength);
+        return;
     }
 
     FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
@@ -774,7 +889,7 @@ QuicPerfCtlEvtIoDeviceControl(
 
     switch (IoControlCode) {
     case IOCTL_QUIC_SET_CERT_HASH:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         Status =
             QuicPerfCtlSetSecurityConfig(
                 Client,
@@ -786,6 +901,10 @@ QuicPerfCtlEvtIoDeviceControl(
                 Client,
                 &Params->Data,
                 Params->Length);
+        break;
+    case IOCTL_CXPLAT_FREE_PERF:
+        QuicMainFree();
+        Status = QUIC_STATUS_SUCCESS;
         break;
     default:
         Status = STATUS_NOT_IMPLEMENTED;
@@ -801,6 +920,5 @@ Error:
 
     WdfRequestComplete(Request, Status);
     UNREFERENCED_PARAMETER(InputBufferLength);
-    UNREFERENCED_PARAMETER(OutputBufferLength);
     UNREFERENCED_PARAMETER(Queue);
 }

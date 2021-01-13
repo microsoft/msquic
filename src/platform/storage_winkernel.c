@@ -54,17 +54,6 @@ ZwQueryValueKey(
     );
 
 //
-// Copied from wdm.h
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-NTSYSAPI
-NTSTATUS
-NTAPI
-ZwClose(
-    _In_ HANDLE Handle
-    );
-
-//
 // Copied from zwapi_x.h
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -87,31 +76,31 @@ ZwNotifyChangeKey(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 __drv_functionClass(WORKER_THREAD_ROUTINE)
 void
-QuicStorageRegKeyChangeCallback(
+CxPlatStorageRegKeyChangeCallback(
     _In_ void* Context
     );
 
 //
 // The storage context returned that abstracts a registry key handle.
 //
-typedef struct QUIC_STORAGE {
+typedef struct CXPLAT_STORAGE {
 
     HKEY RegKey;
-    QUIC_LOCK Lock;
-    QUIC_EVENT* CleanupEvent;
+    CXPLAT_LOCK Lock;
+    CXPLAT_EVENT* CleanupEvent;
     WORK_QUEUE_ITEM WorkItem;
     IO_STATUS_BLOCK IoStatusBlock;
-    QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback;
+    CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback;
     void* CallbackContext;
 
-} QUIC_STORAGE;
+} CXPLAT_STORAGE;
 
 //
 // Converts a UTF-8 string to a UNICODE_STRING object. The variable must be
-// freed with QUIC_FREE when done with it.
+// freed with CXPLAT_FREE when done with it.
 //
 QUIC_STATUS
-QuicConvertUtf8ToUnicode(
+CxPlatConvertUtf8ToUnicode(
     _In_z_ const char * Utf8String,
     _Out_ PUNICODE_STRING * NewUnicodeString
     )
@@ -140,7 +129,7 @@ QuicConvertUtf8ToUnicode(
     }
 
     PUNICODE_STRING UnicodeString =
-        QUIC_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength);
+        CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
     if (UnicodeString == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -159,7 +148,7 @@ QuicConvertUtf8ToUnicode(
             (ULONG)Utf8Length);
 
     if (QUIC_FAILED(Status)) {
-        QUIC_FREE(UnicodeString);
+        CXPLAT_FREE(UnicodeString, QUIC_POOL_PLATFORM_TMP_ALLOC);
         return Status;
     }
 
@@ -168,24 +157,24 @@ QuicConvertUtf8ToUnicode(
     return Status;
 }
 
-DECLARE_CONST_UNICODE_STRING(BaseKeyPath, QUIC_BASE_REG_PATH);
+DECLARE_CONST_UNICODE_STRING(BaseKeyPath, CXPLAT_BASE_REG_PATH);
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicStorageOpen(
+CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
-    _Out_ QUIC_STORAGE** NewStorage
+    _Out_ CXPLAT_STORAGE** NewStorage
     )
 {
     QUIC_STATUS Status;
     OBJECT_ATTRIBUTES Attributes;
     PUNICODE_STRING PathUnicode = NULL;
-    QUIC_STORAGE* Storage = NULL;
+    CXPLAT_STORAGE* Storage = NULL;
 
     if (Path != NULL) {
-        Status = QuicConvertUtf8ToUnicode(Path, &PathUnicode);
+        Status = CxPlatConvertUtf8ToUnicode(Path, &PathUnicode);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
@@ -209,14 +198,14 @@ QuicStorageOpen(
             NULL);
     }
 
-    Storage = QUIC_ALLOC_NONPAGED(sizeof(QUIC_STORAGE));
+    Storage = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_STORAGE), QUIC_POOL_STORAGE);
     if (Storage == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    QuicZeroMemory(Storage, sizeof(QUIC_STORAGE));
-    QuicLockInitialize(&Storage->Lock);
+    CxPlatZeroMemory(Storage, sizeof(CXPLAT_STORAGE));
+    CxPlatLockInitialize(&Storage->Lock);
     Storage->Callback = Callback;
     Storage->CallbackContext = CallbackContext;
 
@@ -224,7 +213,7 @@ QuicStorageOpen(
 #pragma warning(disable: 4996)
     ExInitializeWorkItem(
         &Storage->WorkItem,
-        QuicStorageRegKeyChangeCallback,
+        CxPlatStorageRegKeyChangeCallback,
         Storage);
 #pragma warning(pop)
 
@@ -236,7 +225,7 @@ QuicStorageOpen(
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
-    
+
     Status =
         ZwNotifyChangeKey(
             Storage->RegKey,
@@ -259,14 +248,14 @@ QuicStorageOpen(
 Exit:
 
     if (PathUnicode != NULL) {
-        QUIC_FREE(PathUnicode);
+        CXPLAT_FREE(PathUnicode, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
     if (Storage != NULL) {
         if (Storage->RegKey != NULL) {
             ZwClose(Storage->RegKey);
         }
-        QuicLockUninitialize(&Storage->Lock);
-        QUIC_FREE(Storage);
+        CxPlatLockUninitialize(&Storage->Lock);
+        CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
 
     return Status;
@@ -274,40 +263,40 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicStorageClose(
-    _In_opt_ QUIC_STORAGE* Storage
+CxPlatStorageClose(
+    _In_opt_ CXPLAT_STORAGE* Storage
     )
 {
     if (Storage != NULL) {
-        QUIC_EVENT CleanupEvent;
-        QuicEventInitialize(&CleanupEvent, TRUE, FALSE);
+        CXPLAT_EVENT CleanupEvent;
+        CxPlatEventInitialize(&CleanupEvent, TRUE, FALSE);
 
-        QuicLockAcquire(&Storage->Lock);
+        CxPlatLockAcquire(&Storage->Lock);
         ZwClose(Storage->RegKey); // Triggers one final notif change callback.
         Storage->RegKey = NULL;
         Storage->CleanupEvent = &CleanupEvent;
-        QuicLockRelease(&Storage->Lock);
+        CxPlatLockRelease(&Storage->Lock);
 
-        QuicEventWaitForever(CleanupEvent);
-        QuicEventUninitialize(CleanupEvent);
-        QuicLockUninitialize(&Storage->Lock);
-        QUIC_FREE(Storage);
+        CxPlatEventWaitForever(CleanupEvent);
+        CxPlatEventUninitialize(CleanupEvent);
+        CxPlatLockUninitialize(&Storage->Lock);
+        CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 __drv_functionClass(WORKER_THREAD_ROUTINE)
 void
-QuicStorageRegKeyChangeCallback(
+CxPlatStorageRegKeyChangeCallback(
     _In_ void* Context
     )
 {
-    QUIC_STORAGE* Storage = (QUIC_STORAGE*)Context;
-    QUIC_EVENT* CleanupEvent = NULL;
+    CXPLAT_STORAGE* Storage = (CXPLAT_STORAGE*)Context;
+    CXPLAT_EVENT* CleanupEvent = NULL;
 
-    QuicLockAcquire(&Storage->Lock);
+    CxPlatLockAcquire(&Storage->Lock);
     if (Storage->CleanupEvent == NULL) {
-        QUIC_DBG_ASSERT(Storage->RegKey != NULL);
+        CXPLAT_DBG_ASSERT(Storage->RegKey != NULL);
         Storage->Callback(Storage->CallbackContext);
         ZwNotifyChangeKey(
             Storage->RegKey,
@@ -323,10 +312,10 @@ QuicStorageRegKeyChangeCallback(
     } else {
         CleanupEvent = Storage->CleanupEvent;
     }
-    QuicLockRelease(&Storage->Lock);
+    CxPlatLockRelease(&Storage->Lock);
 
     if (CleanupEvent != NULL) {
-        QuicEventSet(*CleanupEvent);
+        CxPlatEventSet(*CleanupEvent);
     }
 }
 
@@ -334,8 +323,8 @@ QuicStorageRegKeyChangeCallback(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicStorageReadValue(
-    _In_ QUIC_STORAGE* Storage,
+CxPlatStorageReadValue(
+    _In_ CXPLAT_STORAGE* Storage,
     _In_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
         UINT8 * Buffer,
@@ -346,7 +335,7 @@ QuicStorageReadValue(
     PUNICODE_STRING NameUnicode;
 
     if (Name != NULL) {
-        Status = QuicConvertUtf8ToUnicode(Name, &NameUnicode);
+        Status = CxPlatConvertUtf8ToUnicode(Name, &NameUnicode);
         if (QUIC_FAILED(Status)) {
             return Status;
         }
@@ -378,7 +367,7 @@ QuicStorageReadValue(
     } else {
 
         ULONG InfoLength = BASE_KEY_INFO_LENGTH + *BufferLength;
-        PKEY_VALUE_PARTIAL_INFORMATION Info = QUIC_ALLOC_PAGED(InfoLength);
+        PKEY_VALUE_PARTIAL_INFORMATION Info = CXPLAT_ALLOC_PAGED(InfoLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
         if (Info == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
@@ -393,17 +382,17 @@ QuicStorageReadValue(
                 InfoLength,
                 &InfoLength);
         if (QUIC_SUCCEEDED(Status)) {
-            QUIC_DBG_ASSERT(*BufferLength == Info->DataLength);
+            CXPLAT_DBG_ASSERT(*BufferLength == Info->DataLength);
             memcpy(Buffer, Info->Data, Info->DataLength);
         }
 
-        QUIC_FREE(Info);
+        CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
 Exit:
 
     if (NameUnicode != NULL) {
-        QUIC_FREE(NameUnicode);
+        CXPLAT_FREE(NameUnicode, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Status;

@@ -25,6 +25,7 @@ Abstract:
 #include <quic_trace.h>
 #include <msquic.hpp>
 #include <msquichelper.h>
+#include "PerfBase.h"
 
 #ifndef _KERNEL_MODE
 #include <stdlib.h>
@@ -41,7 +42,7 @@ QUIC_STATUS
 QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ QUIC_EVENT* StopEvent,
+    _In_ CXPLAT_EVENT* StopEvent,
     _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     );
 
@@ -49,6 +50,24 @@ extern
 QUIC_STATUS
 QuicMainStop(
     _In_ int Timeout
+    );
+
+extern
+void
+QuicMainFree(
+    );
+
+extern
+QUIC_STATUS
+QuicMainGetExtraDataMetadata(
+    _Out_ PerfExtraDataMetadata* Metadata
+    );
+
+extern
+QUIC_STATUS
+QuicMainGetExtraData(
+    _Out_writes_bytes_(*Length) uint8_t* Data,
+    _Inout_ uint32_t* Length
     );
 
 extern volatile int BufferCurrent;
@@ -93,7 +112,7 @@ WriteOutput(
         return 0;
     }
     int Start = End - Length;
-    QuicCopyMemory(Buffer + Start, Buf, Length);
+    CxPlatCopyMemory(Buffer + Start, Buf, Length);
 
 
     return Length;
@@ -110,7 +129,7 @@ WriteOutput(
                 Helper.Create(
                     MsQuic,
                     Registration,
-                    QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
+                    CXPLAT_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
                     &Config->SelfSignedSecurityHash,
                     nullptr);
 #else
@@ -162,20 +181,20 @@ WriteOutput(
         }
     }
 
-    operator QUIC_SEC_CONFIG*() const { return SecurityConfig; }
+    operator CXPLAT_SEC_CONFIG*() const { return SecurityConfig; }
 
-    QUIC_SEC_CONFIG* SecurityConfig {nullptr};
+    CXPLAT_SEC_CONFIG* SecurityConfig {nullptr};
 };*/
 
 struct CountHelper {
     long RefCount;
 
-    QUIC_EVENT* Done;
+    CXPLAT_EVENT* Done;
 
     CountHelper() :
         RefCount{1}, Done{} {}
 
-    CountHelper(QUIC_EVENT* Done) :
+    CountHelper(CXPLAT_EVENT* Done) :
         RefCount{1}, Done{Done} { }
 
     bool
@@ -185,7 +204,7 @@ struct CountHelper {
         if (InterlockedDecrement(&RefCount) == 0) {
             return true;
         } else {
-            return !QuicEventWaitWithTimeout(*Done, Milliseconds);
+            return !CxPlatEventWaitWithTimeout(*Done, Milliseconds);
         }
     }
 
@@ -195,7 +214,7 @@ struct CountHelper {
         if (InterlockedDecrement(&RefCount) == 0) {
             return;
         } else {
-            QuicEventWaitForever(*Done);
+            CxPlatEventWaitForever(*Done);
         }
     }
 
@@ -209,7 +228,7 @@ struct CountHelper {
     CompleteItem(
         ) {
         if (InterlockedDecrement(&RefCount) == 0) {
-            QuicEventSet(*Done);
+            CxPlatEventSet(*Done);
         }
     }
 };
@@ -235,53 +254,53 @@ constexpr _Ty&& QuicForward(
 }
 
 class QuicPoolBufferAllocator {
-    QUIC_POOL Pool;
+    CXPLAT_POOL Pool;
     bool Initialized {false};
 public:
     QuicPoolBufferAllocator() {
-        QuicZeroMemory(&Pool, sizeof(Pool));
+        CxPlatZeroMemory(&Pool, sizeof(Pool));
     }
 
     ~QuicPoolBufferAllocator() {
         if (Initialized) {
-            QuicPoolUninitialize(&Pool);
+            CxPlatPoolUninitialize(&Pool);
             Initialized = false;
         }
     }
 
     void Initialize(uint32_t Size, bool Paged = false) {
-        QUIC_DBG_ASSERT(Initialized == false);
-        QuicPoolInitialize(Paged, Size, QUIC_POOL_PERF, &Pool);
+        CXPLAT_DBG_ASSERT(Initialized == false);
+        CxPlatPoolInitialize(Paged, Size, QUIC_POOL_PERF, &Pool);
         Initialized = true;
     }
 
     uint8_t* Alloc() {
-        return static_cast<uint8_t*>(QuicPoolAlloc(&Pool));
+        return static_cast<uint8_t*>(CxPlatPoolAlloc(&Pool));
     }
 
     void Free(uint8_t* Buf) {
         if (Buf == nullptr) {
             return;
         }
-        QuicPoolFree(&Pool, Buf);
+        CxPlatPoolFree(&Pool, Buf);
     }
 };
 
 template<typename T, bool Paged = false>
 class QuicPoolAllocator {
-    QUIC_POOL Pool;
+    CXPLAT_POOL Pool;
 public:
     QuicPoolAllocator() noexcept {
-        QuicPoolInitialize(Paged, sizeof(T), QUIC_POOL_PERF, &Pool);
+        CxPlatPoolInitialize(Paged, sizeof(T), QUIC_POOL_PERF, &Pool);
     }
 
     ~QuicPoolAllocator() noexcept {
-        QuicPoolUninitialize(&Pool);
+        CxPlatPoolUninitialize(&Pool);
     }
 
     template <class... Args>
     T* Alloc(Args&&... args) noexcept {
-        void* Raw = QuicPoolAlloc(&Pool);
+        void* Raw = CxPlatPoolAlloc(&Pool);
         if (Raw == nullptr) {
             return nullptr;
         }
@@ -293,6 +312,6 @@ public:
             return;
         }
         Obj->~T();
-        QuicPoolFree(&Pool, Obj);
+        CxPlatPoolFree(&Pool, Obj);
     }
 };

@@ -23,13 +23,13 @@ class QuicTestEnvironment : public ::testing::Environment {
     const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
 public:
     void SetUp() override {
-        QuicPlatformSystemLoad();
-        ASSERT_TRUE(QUIC_SUCCEEDED(QuicPlatformInitialize()));
+        CxPlatSystemLoad();
+        ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
         ASSERT_TRUE((SelfSignedCertParams =
-            QuicPlatGetSelfSignedCert(
+            CxPlatPlatGetSelfSignedCert(
                 TestingKernelMode ?
-                    QUIC_SELF_SIGN_CERT_MACHINE :
-                    QUIC_SELF_SIGN_CERT_USER
+                    CXPLAT_SELF_SIGN_CERT_MACHINE :
+                    CXPLAT_SELF_SIGN_CERT_USER
                 )) != nullptr);
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
@@ -61,9 +61,9 @@ public:
             QuicTestUninitialize();
             delete MsQuic;
         }
-        QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
-        QuicPlatformUninitialize();
-        QuicPlatformSystemUnload();
+        CxPlatPlatFreeSelfSignedCert(SelfSignedCertParams);
+        CxPlatUninitialize();
+        CxPlatSystemUnload();
     }
 };
 
@@ -812,6 +812,15 @@ TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
     }
 }
 
+TEST_P(WithFamilyArgs, AckSendDelay) {
+    TestLogger Logger("QuicTestAckSendDelay");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ACK_SEND_DELAY, GetParam().Family));
+    } else {
+        QuicTestAckSendDelay(GetParam().Family);
+    }
+}
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {
@@ -974,11 +983,11 @@ INSTANTIATE_TEST_SUITE_P(
 
 int main(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
-        if (strcmp("--kernel", argv[i]) == 0) {
+        if (strcmp("--kernel", argv[i]) == 0 || strcmp("--kernelPriv", argv[i]) == 0) {
             TestingKernelMode = true;
-        }
-        if (strcmp("--privateLibrary", argv[i]) == 0) {
-            PrivateTestLibrary = true;
+            if (strcmp("--kernelPriv", argv[i]) == 0) {
+                PrivateTestLibrary = true;
+            }
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);

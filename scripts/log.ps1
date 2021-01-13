@@ -43,7 +43,7 @@ param (
     [switch]$Stream = $false,
 
     [Parameter(Mandatory = $false, ParameterSetName='Start')]
-    [ValidateSet("Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
+    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
     [string]$Profile = "Full.Light",
 
     [Parameter(Mandatory = $false, ParameterSetName='Cancel')]
@@ -53,7 +53,7 @@ param (
     [switch]$Stop = $false,
 
     [Parameter(Mandatory = $true, ParameterSetName='Stop')]
-    [string]$OutputDirectory = "",
+    [string]$OutputPath = "",
 
     [Parameter(Mandatory = $false, ParameterSetName='Stop')]
     [switch]$RawLogOnly = $false,
@@ -151,10 +151,10 @@ function Log-Cancel {
 # Stops log collection, keeping the logs.
 function Log-Stop {
     if ($IsWindows) {
-        $EtlPath = Join-Path $OutputDirectory "quic.etl"
+        $EtlPath = $OutputPath + ".etl"
         wpr.exe -stop $EtlPath -instancename $InstanceName 2>&1
         if (!$RawLogOnly) {
-            $LogPath = Join-Path $OutputDirectory "quic.log"
+            $LogPath = $OutputPath + ".log"
             $Command = "netsh trace convert $($EtlPath) output=$($LogPath) overwrite=yes report=no"
             if ($TmfPath -ne "" -and (Test-Path $TmfPath)) {
                 $Command += " tmfpath=$TmfPath"
@@ -163,10 +163,10 @@ function Log-Stop {
         }
     } elseif ($IsMacOS) {
     } else {
-        $ClogOutputDecodeFile = Join-Path $OutputDirectory "quic.log"
+        $ClogOutputDecodeFile = $OutputPath + ".log"
 
-        if (!(Test-Path $OutputDirectory)) {
-            New-Item -Path $OutputDirectory -ItemType Directory -Force | Out-Null
+        if (!(Test-Path $OutputPath)) {
+            New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
         }
 
         if (!(Test-Path $TempDir)) {
@@ -175,8 +175,8 @@ function Log-Stop {
 
         Invoke-Expression "lttng stop $InstanceName" | Write-Debug
 
-        $LTTNGTarFile = Join-Path $OutputDirectory "lttng_trace.tgz"
-        $BableTraceFile = Join-Path $OutputDirectory "babeltrace.txt"
+        $LTTNGTarFile = $OutputPath + ".tgz"
+        $BableTraceFile = $OutputPath + ".babel.txt"
 
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile $TempDir | Write-Debug

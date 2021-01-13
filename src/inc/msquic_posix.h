@@ -317,28 +317,13 @@ QuicAddrSetPort(
     }
 }
 
-inline
-BOOLEAN
-QuicAddrIsBoundExplicitly(
-    _In_ const QUIC_ADDR* const Addr
-    )
-{
-    // LINUX_TODO: How to handle IPv4? Windows just does the below.
-
-    //
-    // Scope ID of zero indicates we are sending from a connected binding.
-    //
-
-    return Addr->Ipv6.sin6_scope_id == 0;
-}
-
 //
 // Test only API to increment the IP address value.
 //
 inline
 void
 QuicAddrIncrement(
-    _Inout_ QUIC_ADDR * Addr
+    _Inout_ QUIC_ADDR* Addr
     )
 {
     if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
@@ -512,7 +497,7 @@ QuicAddrToString(
             Addr->Ip.sa_family,
             &Addr->Ipv4.sin_addr,
             Address,
-            sizeof(QUIC_ADDR_STR)) != 0) {
+            sizeof(QUIC_ADDR_STR)) == NULL) {
         return FALSE;
     }
     if (Addr->Ipv4.sin_port != 0) {

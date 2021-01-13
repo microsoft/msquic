@@ -37,9 +37,9 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
 
     struct QuicKey
     {
-        QUIC_KEY* Ptr;
-        QuicKey(QUIC_AEAD_TYPE AeadType, const uint8_t* const RawKey) : Ptr(NULL) {
-            QUIC_STATUS Status = QuicKeyCreate(AeadType, RawKey, &Ptr);
+        CXPLAT_KEY* Ptr;
+        QuicKey(CXPLAT_AEAD_TYPE AeadType, const uint8_t* const RawKey) : Ptr(NULL) {
+            QUIC_STATUS Status = CxPlatKeyCreate(AeadType, RawKey, &Ptr);
             if (Status == QUIC_STATUS_NOT_SUPPORTED) {
                 GTEST_SKIP_NO_RETURN_(": AEAD Type unsupported");
                 return;
@@ -49,12 +49,12 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
         }
 
         ~QuicKey() {
-            QuicKeyFree(Ptr);
+            CxPlatKeyFree(Ptr);
         }
 
         bool
         Encrypt(
-            _In_reads_bytes_(QUIC_IV_LENGTH)
+            _In_reads_bytes_(CXPLAT_IV_LENGTH)
                 const uint8_t* const Iv,
             _In_ uint16_t AuthDataLength,
             _In_reads_bytes_opt_(AuthDataLength)
@@ -66,7 +66,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
         {
             return
                 QUIC_STATUS_SUCCESS ==
-                QuicEncrypt(
+                CxPlatEncrypt(
                     Ptr,
                     Iv,
                     AuthDataLength,
@@ -77,7 +77,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
 
         bool
         Decrypt(
-            _In_reads_bytes_(QUIC_IV_LENGTH)
+            _In_reads_bytes_(CXPLAT_IV_LENGTH)
                 const uint8_t* const Iv,
             _In_ uint16_t AuthDataLength,
             _In_reads_bytes_opt_(AuthDataLength)
@@ -89,7 +89,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
         {
             return
                 QUIC_STATUS_SUCCESS ==
-                QuicDecrypt(
+                CxPlatDecrypt(
                     Ptr,
                     Iv,
                     AuthDataLength,
@@ -101,14 +101,14 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
 
     struct QuicHash
     {
-        QUIC_HASH* Ptr;
+        CXPLAT_HASH* Ptr;
         QuicHash(
-            _In_ QUIC_HASH_TYPE HashType,
+            _In_ CXPLAT_HASH_TYPE HashType,
             _In_reads_(SaltLength)
                 const uint8_t* const Salt,
             _In_ uint32_t SaltLength
             ) : Ptr(NULL) {
-            QUIC_STATUS Status = QuicHashCreate(HashType, Salt, SaltLength, &Ptr);
+            QUIC_STATUS Status = CxPlatHashCreate(HashType, Salt, SaltLength, &Ptr);
             if (Status == QUIC_STATUS_NOT_SUPPORTED) {
                 GTEST_SKIP_NO_RETURN_(": HASH Type unsupported");
                 return;
@@ -118,7 +118,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
         }
 
         ~QuicHash() {
-            QuicHashFree(Ptr);
+            CxPlatHashFree(Ptr);
         }
 
         bool
@@ -133,7 +133,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
         {
             return
                 QUIC_STATUS_SUCCESS ==
-                QuicHashCompute(
+                CxPlatHashCompute(
                     Ptr,
                     Input,
                     InputLength,
@@ -168,18 +168,18 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
 
 TEST_F(CryptTest, WellKnownClientInitial)
 {
-    const QuicBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
+    const QuicBuffer InitialSalt("38762cf7f55934b34d179ae6a4c80cadccbb7f0a");
     const QuicBuffer ConnectionID("8394c8f03e515708");
 
-    const QuicBuffer InitialPacketHeader("c3ff00001d088394c8f03e5157080000449e00000002");
-    const QuicBuffer InitialPacketPayload("060040c4010000c003036660261ff947cea49cce6cfad687f457cf1b14531ba14131a0e8f309a1d0b9c4000006130113031302010000910000000b0009000006736572766572ff01000100000a00140012001d0017001800190100010101020103010400230000003300260024001d00204cfdfcd178b784bf328cae793b136f2aedce005ff183d7bb1495207236647037002b0003020304000d0020001e040305030603020308040805080604010501060102010402050206020202002d00020101001c00024001");
+    const QuicBuffer InitialPacketHeader("c300000001088394c8f03e5157080000449e00000002");
+    const QuicBuffer InitialPacketPayload("060040f1010000ed0303ebf8fa56f12939b9584a3896472ec40bb863cfd3e86804fe3a47f06a2b69484c00000413011302010000c000000010000e00000b6578616d706c652e636f6dff01000100000a00080006001d0017001800100007000504616c706e000500050100000000003300260024001d00209370b2c9caa47fbabaf4559fedba753de171fa71f50f1ce15d43e994ec74d748002b0003020304000d0010000e0403050306030203080408050806002d00020101001c00024001003900320408ffffffffffffffff05048000ffff07048000ffff0801100104800075300901100f088394c8f03e51570806048000ffff");
     const uint64_t InitialPacketNumber = 2;
 
     uint8_t PacketBuffer[1200] = {0};
     memcpy(PacketBuffer, InitialPacketHeader.Data, InitialPacketHeader.Length);
     memcpy(PacketBuffer + InitialPacketHeader.Length, InitialPacketPayload.Data, InitialPacketPayload.Length);
 
-    QUIC_TLS_PROCESS_STATE State = {0};
+    CXPLAT_TLS_PROCESS_STATE State = {0};
     VERIFY_QUIC_SUCCESS(
         QuicPacketKeyCreateInitial(
             FALSE,
@@ -189,11 +189,11 @@ TEST_F(CryptTest, WellKnownClientInitial)
             &State.ReadKeys[QUIC_PACKET_KEY_INITIAL],
             &State.WriteKeys[QUIC_PACKET_KEY_INITIAL]));
 
-    uint8_t Iv[QUIC_IV_LENGTH];
+    uint8_t Iv[CXPLAT_IV_LENGTH];
     QuicCryptoCombineIvAndPacketNumber(State.WriteKeys[0]->Iv, (uint8_t*) &InitialPacketNumber, Iv);
 
     VERIFY_QUIC_SUCCESS(
-        QuicEncrypt(
+        CxPlatEncrypt(
             State.WriteKeys[0]->PacketKey,
             Iv,
             InitialPacketHeader.Length,
@@ -201,20 +201,20 @@ TEST_F(CryptTest, WellKnownClientInitial)
             sizeof(PacketBuffer) - InitialPacketHeader.Length,
             PacketBuffer + InitialPacketHeader.Length));
 
-    const QuicBuffer ExpectedSample("fb66bc5f93032b7ddd89fe0ff15d9c4f");
+    const QuicBuffer ExpectedSample("d1b1c98dd7689fb8ec11d242b123dc9b");
     //LogTestBuffer("ExpectedSample", ExpectedSample.Data, ExpectedSample.Length);
     //LogTestBuffer("  ActualSample", PacketBuffer + InitialPacketHeader.Length, ExpectedSample.Length);
     ASSERT_EQ(0, memcmp(ExpectedSample.Data, PacketBuffer + InitialPacketHeader.Length, ExpectedSample.Length));
 
     uint8_t HpMask[16];
     VERIFY_QUIC_SUCCESS(
-        QuicHpComputeMask(
+        CxPlatHpComputeMask(
             State.WriteKeys[0]->HeaderKey,
             1,
             PacketBuffer + InitialPacketHeader.Length,
             HpMask));
 
-    const QuicBuffer ExpectedHpMask("d64a952459");
+    const QuicBuffer ExpectedHpMask("437b9aec36");
     //LogTestBuffer("ExpectedHpMask", ExpectedHpMask.Data, ExpectedHpMask.Length);
     //LogTestBuffer("  ActualHpMask", HpMask, ExpectedHpMask.Length);
     ASSERT_EQ(0, memcmp(ExpectedHpMask.Data, HpMask, ExpectedHpMask.Length));
@@ -224,12 +224,12 @@ TEST_F(CryptTest, WellKnownClientInitial)
         PacketBuffer[17 + i] ^= HpMask[i];
     }
 
-    const QuicBuffer ExpectedHeader("c5ff00001d088394c8f03e5157080000449e4a95245b");
+    const QuicBuffer ExpectedHeader("c000000001088394c8f03e5157080000449e7b9aec34");
     //LogTestBuffer("ExpectedHeader", ExpectedHeader.Data, ExpectedHeader.Length);
     //LogTestBuffer("  ActualHeader", PacketBuffer, ExpectedHeader.Length);
     ASSERT_EQ(0, memcmp(ExpectedHeader.Data, PacketBuffer, ExpectedHeader.Length));
 
-    const QuicBuffer EncryptedPacket("c5ff00001d088394c8f03e5157080000449e4a95245bfb66bc5f93032b7ddd89fe0ff15d9c4f7050fccdb71c1cd80512d4431643a53aafa1b0b518b44968b18b8d3e7a4d04c30b3ed9410325b2abb2dafb1c12f8b70479eb8df98abcaf95dd8f3d1c78660fbc719f88b23c8aef6771f3d50e10fdfb4c9d92386d44481b6c52d59e5538d3d3942de9f13a7f8b702dc31724180da9df22714d01003fc5e3d165c950e630b8540fbd81c9df0ee63f94997026c4f2e1887a2def79050ac2d86ba318e0b3adc4c5aa18bcf63c7cf8e85f569249813a2236a7e72269447cd1c755e451f5e77470eb3de64c8849d292820698029cfa18e5d66176fe6e5ba4ed18026f90900a5b4980e2f58e39151d5cd685b10929636d4f02e7fad2a5a458249f5c0298a6d53acbe41a7fc83fa7cc01973f7a74d1237a51974e097636b6203997f921d07bc1940a6f2d0de9f5a11432946159ed6cc21df65c4ddd1115f86427259a196c7148b25b6478b0dc7766e1c4d1b1f5159f90eabc61636226244642ee148b464c9e619ee50a5e3ddc836227cad938987c4ea3c1fa7c75bbf88d89e9ada642b2b88fe8107b7ea375b1b64889a4e9e5c38a1c896ce275a5658d250e2d76e1ed3a34ce7e3a3f383d0c996d0bed106c2899ca6fc263ef0455e74bb6ac1640ea7bfedc59f03fee0e1725ea150ff4d69a7660c5542119c71de270ae7c3ecfd1af2c4ce551986949cc34a66b3e216bfe18b347e6c05fd050f85912db303a8f054ec23e38f44d1c725ab641ae929fecc8e3cefa5619df4231f5b4c009fa0c0bbc60bc75f76d06ef154fc8577077d9d6a1d2bd9bf081dc783ece60111bea7da9e5a9748069d078b2bef48de04cabe3755b197d52b32046949ecaa310274b4aac0d008b1948c1082cdfe2083e386d4fd84c0ed0666d3ee26c4515c4fee73433ac703b690a9f7bf278a77486ace44c489a0c7ac8dfe4d1a58fb3a730b993ff0f0d61b4d89557831eb4c752ffd39c10f6b9f46d8db278da624fd800e4af85548a294c1518893a8778c4f6d6d73c93df200960104e062b388ea97dcf4016bced7f62b4f062cb6c04c20693d9a0e3b74ba8fe74cc01237884f40d765ae56a51688d985cf0ceaef43045ed8c3f0c33bced08537f6882613acd3b08d665fce9dd8aa73171e2d3771a61dba2790e491d413d93d987e2745af29418e428be34941485c93447520ffe231da2304d6a0fd5d07d0837220236966159bef3cf904d722324dd852513df39ae030d8173908da6364786d3c1bfcb19ea77a63b25f1e7fc661def480c5d00d44456269ebd84efd8e3a8b2c257eec76060682848cbf5194bc99e49ee75e4d0d254bad4bfd74970c30e44b65511d4ad0e6ec7398e08e01307eeeea14e46ccd87cf36b285221254d8fc6a6765c524ded0085dca5bd688ddf722e2c0faf9d0fb2ce7a0c3f2cee19ca0ffba461ca8dc5d2c8178b0762cf67135558494d2a96f1a139f0edb42d2af89a9c9122b07acbc29e5e722df8615c343702491098478a389c9872a10b0c9875125e257c7bfdf27eef4060bd3d00f4c14fd3e3496c38d3c5d1a5668c39350effbc2d16ca17be4ce29f02ed969504dda2a8c6b9ff919e693ee79e09089316e7d1d89ec099db3b2b268725d888536a4b8bf9aee8fb43e82a4d919d4843b1ca70a2d8d3f725ead1391377dcc0");
+    const QuicBuffer EncryptedPacket("c000000001088394c8f03e5157080000449e7b9aec34d1b1c98dd7689fb8ec11d242b123dc9bd8bab936b47d92ec356c0bab7df5976d27cd449f63300099f3991c260ec4c60d17b31f8429157bb35a1282a643a8d2262cad67500cadb8e7378c8eb7539ec4d4905fed1bee1fc8aafba17c750e2c7ace01e6005f80fcb7df621230c83711b39343fa028cea7f7fb5ff89eac2308249a02252155e2347b63d58c5457afd84d05dfffdb20392844ae812154682e9cf012f9021a6f0be17ddd0c2084dce25ff9b06cde535d0f920a2db1bf362c23e596d11a4f5a6cf3948838a3aec4e15daf8500a6ef69ec4e3feb6b1d98e610ac8b7ec3faf6ad760b7bad1db4ba3485e8a94dc250ae3fdb41ed15fb6a8e5eba0fc3dd60bc8e30c5c4287e53805db059ae0648db2f64264ed5e39be2e20d82df566da8dd5998ccabdae053060ae6c7b4378e846d29f37ed7b4ea9ec5d82e7961b7f25a9323851f681d582363aa5f89937f5a67258bf63ad6f1a0b1d96dbd4faddfcefc5266ba6611722395c906556be52afe3f565636ad1b17d508b73d8743eeb524be22b3dcbc2c7468d54119c7468449a13d8e3b95811a198f3491de3e7fe942b330407abf82a4ed7c1b311663ac69890f4157015853d91e923037c227a33cdd5ec281ca3f79c44546b9d90ca00f064c99e3dd97911d39fe9c5d0b23a229a234cb36186c4819e8b9c5927726632291d6a418211cc2962e20fe47feb3edf330f2c603a9d48c0fcb5699dbfe5896425c5bac4aee82e57a85aaf4e2513e4f05796b07ba2ee47d80506f8d2c25e50fd14de71e6c418559302f939b0e1abd576f279c4b2e0feb85c1f28ff18f58891ffef132eef2fa09346aee33c28eb130ff28f5b766953334113211996d20011a198e3fc433f9f2541010ae17c1bf202580f6047472fb36857fe843b19f5984009ddc324044e847a4f4a0ab34f719595de37252d6235365e9b84392b061085349d73203a4a13e96f5432ec0fd4a1ee65accdd5e3904df54c1da510b0ff20dcc0c77fcb2c0e0eb605cb0504db87632cf3d8b4dae6e705769d1de354270123cb11450efc60ac47683d7b8d0f811365565fd98c4c8eb936bcab8d069fc33bd801b03adea2e1fbc5aa463d08ca19896d2bf59a071b851e6c239052172f296bfb5e72404790a2181014f3b94a4e97d117b438130368cc39dbb2d198065ae3986547926cd2162f40a29f0c3c8745c0f50fba3852e566d44575c29d39a03f0cda721984b6f440591f355e12d439ff150aab7613499dbd49adabc8676eef023b15b65bfc5ca06948109f23f350db82123535eb8a7433bdabcb909271a6ecbcb58b936a88cd4e8f2e6ff5800175f113253d8fa9ca8885c2f552e657dc603f252e1a8e308f76f0be79e2fb8f5d5fbbe2e30ecadd220723c8c0aea8078cdfcb3868263ff8f0940054da48781893a7e49ad5aff4af300cd804a6b6279ab3ff3afb64491c85194aab760d58a606654f9f4400e8b38591356fbf6425aca26dc85244259ff2b19c41b9f96f3ca9ec1dde434da7d2d392b905ddf3d1f9af93d1af5950bd493f5aa731b4056df31bd267b6b90a079831aaf579be0a39013137aac6d404f518cfd46840647e78bfe706ca4cf5e9c5453e9f7cfd2b8b4c8d169a44e55c88d4a9a7f9474241e221af44860018ab0856972e194cd934");
     //LogTestBuffer("ExpectedPacket", EncryptedPacket.Data, EncryptedPacket.Length);
     //LogTestBuffer("  ActualPacket", PacketBuffer, sizeof(PacketBuffer));
     ASSERT_EQ(EncryptedPacket.Length, (uint16_t)sizeof(PacketBuffer));
@@ -238,7 +238,7 @@ TEST_F(CryptTest, WellKnownClientInitial)
     //
     // Little hack to convert the initial key to a 1-RTT key for a key update test.
     //
-    uint8_t PacketKeyBuffer[sizeof(QUIC_SECRET) + sizeof(QUIC_PACKET_KEY)] = {0};
+    uint8_t PacketKeyBuffer[sizeof(CXPLAT_SECRET) + sizeof(QUIC_PACKET_KEY)] = {0};
     QUIC_PACKET_KEY* PacketKey = (QUIC_PACKET_KEY*)PacketKeyBuffer;
     memcpy(PacketKey, State.ReadKeys[0], sizeof(QUIC_PACKET_KEY));
     PacketKey->Type = QUIC_PACKET_KEY_1_RTT;
@@ -256,17 +256,157 @@ TEST_F(CryptTest, WellKnownClientInitial)
     QuicPacketKeyFree(NewPacketKey);
 }
 
+TEST_F(CryptTest, WellKnownChaChaPoly)
+{
+    const QuicBuffer SecretBuffer("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b");
+    const QuicBuffer ExpectedIv("e0459b3474bdd0e44a41c144");
+    const QuicBuffer ExpectedNonce("e0459b3474bdd0e46d417eb0");
+    const QuicBuffer ExpectedHeader("4200bff4");
+    const QuicBuffer ExpectedHpMask("aefefe7d03");
+
+    const QuicBuffer EncryptedPacket("4cfe4189655e5cd55c41f69080575d7999c25a5bfb");
+    const QuicBuffer Sample("5e5cd55c41f69080575d7999c25a5bfb");
+    const QuicBuffer EncryptedHeader("4cfe4189");
+    uint8_t PacketBuffer[21];
+    CXPLAT_SECRET Secret{};
+    QUIC_PACKET_KEY* PacketKey;
+    const uint64_t PacketNumber = 654360564ull;
+
+    Secret.Hash = CXPLAT_HASH_SHA256;
+    Secret.Aead = CXPLAT_AEAD_CHACHA20_POLY1305;
+    memcpy(Secret.Secret, SecretBuffer.Data, SecretBuffer.Length);
+
+    ASSERT_EQ(sizeof(PacketBuffer), EncryptedPacket.Length);
+    memcpy(PacketBuffer, EncryptedPacket.Data, sizeof(PacketBuffer));
+
+    VERIFY_QUIC_SUCCESS(QuicPacketKeyDerive(QUIC_PACKET_KEY_1_RTT, &Secret, "WellKnownChaChaPoly", TRUE, &PacketKey));
+
+    ASSERT_EQ(0, memcmp(ExpectedIv.Data, PacketKey->Iv, sizeof(PacketKey->Iv)));
+
+    uint8_t Iv[CXPLAT_IV_LENGTH];
+    QuicCryptoCombineIvAndPacketNumber(PacketKey->Iv, (uint8_t*) &PacketNumber, Iv);
+
+    ASSERT_EQ(0, memcmp(Iv, ExpectedNonce.Data, sizeof(Iv)));
+
+    ASSERT_EQ((size_t)ExpectedHeader.Length + 1, sizeof(PacketBuffer) - Sample.Length);
+    ASSERT_EQ(0, memcmp(Sample.Data, PacketBuffer + ExpectedHeader.Length + 1, Sample.Length));
+
+    uint8_t HpMask[16];
+    VERIFY_QUIC_SUCCESS(
+        CxPlatHpComputeMask(
+            PacketKey->HeaderKey,
+            1,
+            PacketBuffer + ExpectedHeader.Length + 1,
+            HpMask));
+
+    ASSERT_EQ(0, memcmp(HpMask, ExpectedHpMask.Data, ExpectedHpMask.Length));
+
+    PacketBuffer[0] ^= HpMask[0] & 0x1F;
+    for (uint8_t i = 1; i < ExpectedHeader.Length; ++i) {
+        PacketBuffer[i] ^= HpMask[i];
+    }
+    ASSERT_EQ(0, memcmp(PacketBuffer, ExpectedHeader.Data, ExpectedHeader.Length));
+
+    VERIFY_QUIC_SUCCESS(
+        CxPlatDecrypt(
+            PacketKey->PacketKey,
+            Iv,
+            ExpectedHeader.Length,
+            PacketBuffer,
+            sizeof(PacketBuffer) - ExpectedHeader.Length,
+            PacketBuffer + ExpectedHeader.Length));
+
+    if (PacketBuffer[ExpectedHeader.Length] != 0x01) {// A single ping frame.
+        LogTestBuffer("Packet Buffer After decryption", PacketBuffer, sizeof(PacketBuffer));
+        GTEST_MESSAGE_AT_(__FILE__, __LINE__, "Decrypted payload is incorrect", ::testing::TestPartResult::kFatalFailure);
+    }
+
+    QuicPacketKeyFree(PacketKey);
+}
+
+TEST_F(CryptTest, HpMaskChaCha20)
+{
+    const uint8_t RawKey[] =
+        {0, 1, 2, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15,
+        16, 17, 18, 19, 20, 21, 22, 23,
+        24, 25, 26, 27, 28, 29, 30, 31};
+    const uint8_t Sample[] =
+        {0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0};
+    uint8_t Mask[16] = {0};
+    CXPLAT_HP_KEY* HpKey = nullptr;
+    VERIFY_QUIC_SUCCESS(CxPlatHpKeyCreate(CXPLAT_AEAD_CHACHA20_POLY1305, RawKey, &HpKey));
+    VERIFY_QUIC_SUCCESS(CxPlatHpComputeMask(HpKey, 1, Sample, Mask));
+
+    const uint8_t ExpectedMask[] = {0x39, 0xfd, 0x2b, 0x7d, 0xd9};
+
+    if (memcmp(ExpectedMask, Mask, sizeof(ExpectedMask)) != 0) {
+        LogTestBuffer("Expected Mask:     ", ExpectedMask, sizeof(ExpectedMask));
+        LogTestBuffer("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
+        FAIL();
+    }
+}
+
+TEST_F(CryptTest, HpMaskAes256)
+{
+    const uint8_t RawKey[] =
+        {0, 1, 2, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15,
+        16, 17, 18, 19, 20, 21, 22, 23,
+        24, 25, 26, 27, 28, 29, 30, 31};
+    const uint8_t Sample[] =
+        {0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0};
+    uint8_t Mask[16] = {0};
+    CXPLAT_HP_KEY* HpKey = nullptr;
+    VERIFY_QUIC_SUCCESS(CxPlatHpKeyCreate(CXPLAT_AEAD_AES_256_GCM, RawKey, &HpKey));
+    VERIFY_QUIC_SUCCESS(CxPlatHpComputeMask(HpKey, 1, Sample, Mask));
+
+    const uint8_t ExpectedMask[] = {0xf2, 0x90, 0x00, 0xb6, 0x2a};
+
+    if (memcmp(ExpectedMask, Mask, sizeof(ExpectedMask)) != 0) {
+        LogTestBuffer("Expected Mask:     ", ExpectedMask, sizeof(ExpectedMask));
+        LogTestBuffer("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
+        FAIL();
+    }
+}
+
+TEST_F(CryptTest, HpMaskAes128)
+{
+    const uint8_t RawKey[] =
+        {0, 1, 2, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15,
+        16, 17, 18, 19, 20, 21, 22, 23,
+        24, 25, 26, 27, 28, 29, 30, 31};
+    const uint8_t Sample[] =
+        {0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0};
+    uint8_t Mask[16] = {0};
+    CXPLAT_HP_KEY* HpKey = nullptr;
+    VERIFY_QUIC_SUCCESS(CxPlatHpKeyCreate(CXPLAT_AEAD_AES_128_GCM, RawKey, &HpKey));
+    VERIFY_QUIC_SUCCESS(CxPlatHpComputeMask(HpKey, 1, Sample, Mask));
+
+    const uint8_t ExpectedMask[] = {0xc6, 0xa1, 0x3b, 0x37, 0x87};
+
+    if (memcmp(ExpectedMask, Mask, sizeof(ExpectedMask)) != 0) {
+        LogTestBuffer("Expected Mask:     ", ExpectedMask, sizeof(ExpectedMask));
+        LogTestBuffer("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
+        FAIL();
+    }
+}
+
 TEST_P(CryptTest, Encryption)
 {
 
     int AEAD = GetParam();
 
     uint8_t RawKey[32];
-    uint8_t Iv[QUIC_IV_LENGTH];
+    uint8_t Iv[CXPLAT_IV_LENGTH];
     uint8_t AuthData[12];
     uint8_t Buffer[128];
 
-    QuicKey Key((QUIC_AEAD_TYPE)AEAD, RawKey);
+    QuicKey Key((CXPLAT_AEAD_TYPE)AEAD, RawKey);
     if (Key.Ptr == NULL) return;
 
     //
@@ -321,17 +461,17 @@ TEST_P(CryptTest, HashWellKnown)
     };
 
     uint8_t Salt[20];
-    QuicZeroMemory(Salt, sizeof(Salt));
+    CxPlatZeroMemory(Salt, sizeof(Salt));
     Salt[0] = 0xff;
     uint8_t Input[256];
-    QuicZeroMemory(Input, sizeof(Input));
+    CxPlatZeroMemory(Input, sizeof(Input));
     Input[0] = 0xaa;
 
-    uint8_t Output[QUIC_HASH_MAX_SIZE];
-    QuicZeroMemory(Output, sizeof(Output));
-    const uint16_t OutputLength = QuicHashLength((QUIC_HASH_TYPE)HASH);
+    uint8_t Output[CXPLAT_HASH_MAX_SIZE];
+    CxPlatZeroMemory(Output, sizeof(Output));
+    const uint16_t OutputLength = CxPlatHashLength((CXPLAT_HASH_TYPE)HASH);
 
-    QuicHash Hash((QUIC_HASH_TYPE)HASH, Salt, sizeof(Salt));
+    QuicHash Hash((CXPLAT_HASH_TYPE)HASH, Salt, sizeof(Salt));
     if (Hash.Ptr == NULL) return;
 
     ASSERT_TRUE(
@@ -350,14 +490,14 @@ TEST_P(CryptTest, HashRandom)
 
     uint8_t Salt[20];
     uint8_t Input[256];
-    uint8_t Output[QUIC_HASH_MAX_SIZE];
-    uint8_t Output2[QUIC_HASH_MAX_SIZE];
-    const uint16_t OutputLength = QuicHashLength((QUIC_HASH_TYPE)HASH);
+    uint8_t Output[CXPLAT_HASH_MAX_SIZE];
+    uint8_t Output2[CXPLAT_HASH_MAX_SIZE];
+    const uint16_t OutputLength = CxPlatHashLength((CXPLAT_HASH_TYPE)HASH);
 
-    QuicRandom(sizeof(Salt), Salt);
-    QuicRandom(sizeof(Input), Input);
+    CxPlatRandom(sizeof(Salt), Salt);
+    CxPlatRandom(sizeof(Input), Input);
 
-    QuicHash Hash((QUIC_HASH_TYPE)HASH, Salt, sizeof(Salt));
+    QuicHash Hash((CXPLAT_HASH_TYPE)HASH, Salt, sizeof(Salt));
     if (Hash.Ptr == NULL) return;
 
     ASSERT_TRUE(
@@ -377,4 +517,4 @@ TEST_P(CryptTest, HashRandom)
 
 INSTANTIATE_TEST_SUITE_P(CryptTest, CryptTest, ::testing::Values(0, 1, 2));
 
-#endif // QUIC_TLS_STUB
+#endif // CXPLAT_TLS_STUB

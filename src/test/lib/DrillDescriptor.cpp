@@ -20,20 +20,20 @@ QuicDrillEncodeQuicVarInt(
     uint8_t* inputPointer = ((uint8_t*)&input);
 
     if (size == OneByte) {
-        QUIC_FRE_ASSERT(input < 0x40);
+        CXPLAT_FRE_ASSERT(input < 0x40);
         result.push_back((uint8_t) input);
     } else if (size == TwoBytes) {
-        QUIC_FRE_ASSERT(input < 0x4000);
+        CXPLAT_FRE_ASSERT(input < 0x4000);
         result.push_back(0x40 | inputPointer[1]);
         result.push_back(inputPointer[0]);
     } else if (size == FourBytes) {
-        QUIC_FRE_ASSERT(input < 0x40000000);
+        CXPLAT_FRE_ASSERT(input < 0x40000000);
         result.push_back(0x80 | inputPointer[3]);
         result.push_back(inputPointer[2]);
         result.push_back(inputPointer[1]);
         result.push_back(inputPointer[0]);
     } else if (size == EightBytes) {
-        QUIC_FRE_ASSERT(input < 0x4000000000000000ull);
+        CXPLAT_FRE_ASSERT(input < 0x4000000000000000ull);
         result.push_back(0xc0 | inputPointer[7]);
         result.push_back(inputPointer[6]);
         result.push_back(inputPointer[5]);
@@ -43,7 +43,7 @@ QuicDrillEncodeQuicVarInt(
         result.push_back(inputPointer[1]);
         result.push_back(inputPointer[0]);
     } else {
-        QUIC_FRE_ASSERTMSG(
+        CXPLAT_FRE_ASSERTMSG(
             size == EightBytes,
             "Supplied size is not a valid  QUIC_VAR_INT size");
     }
@@ -64,7 +64,7 @@ QuicDrillEncodeQuicVarInt (
     } else if (input < 0x4000000000000000ull) {
         return QuicDrillEncodeQuicVarInt(input, EightBytes);
     } else {
-        QUIC_FRE_ASSERTMSG(
+        CXPLAT_FRE_ASSERTMSG(
             input < 0x4000000000000000ull,
             "Supplied value is larger than QUIC_VAR_INT allowed (2^62)");
         return DrillBuffer();
@@ -87,7 +87,7 @@ DrillPacketDescriptor::write(
     RequiredSize += 1; // For the size of SourceCid.
     RequiredSize += SourceCid.size();
 
-    QUIC_FRE_ASSERTMSG(
+    CXPLAT_FRE_ASSERTMSG(
         RequiredSize <= UINT16_MAX,
         "Descriptor is larger than allowed packet size");
 
@@ -99,7 +99,7 @@ DrillPacketDescriptor::write(
     //
     // Build Flags
     //
-    QUIC_STATIC_ASSERT(sizeof(Header) == 1, "Header must be 1 byte");
+    CXPLAT_STATIC_ASSERT(sizeof(Header) == 1, "Header must be 1 byte");
 
     PacketBuffer.push_back(Header.HeaderByte);
 

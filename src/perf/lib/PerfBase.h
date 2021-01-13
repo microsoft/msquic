@@ -15,6 +15,18 @@ Abstract:
 #include "msquic.h"
 #include "quic_platform.h"
 
+enum class PerfTestType {
+    Server,
+    ThroughputClient,
+    RpsClient,
+    HpsClient
+};
+
+struct PerfExtraDataMetadata {
+    PerfTestType TestType;
+    uint32_t ExtraDataLength;
+};
+
 struct PerfBase {
     //
     // Virtual destructor so we can destruct the base class
@@ -40,7 +52,7 @@ struct PerfBase {
     virtual
     QUIC_STATUS
     Start(
-        _In_ QUIC_EVENT* StopEvent
+        _In_ CXPLAT_EVENT* StopEvent
         ) = 0;
 
     //
@@ -51,5 +63,24 @@ struct PerfBase {
     QUIC_STATUS
     Wait(
         int Timeout
+        ) = 0;
+
+    //
+    // Get the metadata of any extra data that needs to be passed to the caller.
+    //
+    virtual
+    void
+    GetExtraDataMetadata(
+        _Out_ PerfExtraDataMetadata* Result
+        ) = 0;
+
+    //
+    //
+    //
+    virtual
+    QUIC_STATUS
+    GetExtraData(
+        _Out_writes_(Length) uint8_t* Data,
+        _Inout_ uint32_t* Length
         ) = 0;
 };

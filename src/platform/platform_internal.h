@@ -21,7 +21,7 @@
 #include <msquic.h>
 #include <msquicp.h>
 
-#define QUIC_CREDENTIAL_TYPE_NULL ((QUIC_CREDENTIAL_TYPE)0xF0000000)    // Stub-only special case type
+#define CXPLAT_CREDENTIAL_TYPE_NULL ((QUIC_CREDENTIAL_TYPE)0xF0000000)    // Stub-only special case type
 
 #ifdef QUIC_FUZZER
 #include "msquic_fuzz.h"
@@ -38,9 +38,9 @@
 
 #ifdef _KERNEL_MODE
 
-#define QUIC_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
+#define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
-typedef struct QUIC_PLATFORM {
+typedef struct CX_PLATFORM {
 
     PDRIVER_OBJECT DriverObject;
 
@@ -49,7 +49,7 @@ typedef struct QUIC_PLATFORM {
     //
     BCRYPT_ALG_HANDLE RngAlgorithm;
 
-} QUIC_PLATFORM;
+} CX_PLATFORM;
 
 #elif _WIN32
 
@@ -60,24 +60,24 @@ typedef struct QUIC_PLATFORM {
 #include <crtdbg.h>
 #endif
 
-#define QUIC_BASE_REG_PATH "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
+#define CXPLAT_BASE_REG_PATH "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
-typedef struct QUIC_PLATFORM {
+typedef struct CX_PLATFORM {
 
     //
     // Heap used for all allocations.
     //
     HANDLE Heap;
 
-} QUIC_PLATFORM;
+} CX_PLATFORM;
 
-#elif defined(QUIC_PLATFORM_LINUX) || defined(QUIC_PLATFORM_DARWIN)
+#elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
 
-typedef struct QUIC_PLATFORM {
+typedef struct CX_PLATFORM {
 
     void* Reserved; // Nothing right now.
 
-} QUIC_PLATFORM;
+} CX_PLATFORM;
 
 #else
 
@@ -91,7 +91,7 @@ typedef struct QUIC_PLATFORM {
 //
 // Global Platform variables/state.
 //
-extern QUIC_PLATFORM QuicPlatform;
+extern CX_PLATFORM CxPlatform;
 
 #if _WIN32 // Some Windows Helpers
 
@@ -100,7 +100,7 @@ extern QUIC_PLATFORM QuicPlatform;
 //
 inline
 void
-QuicConvertToMappedV6(
+CxPlatConvertToMappedV6(
     _In_ const QUIC_ADDR* InAddr,
     _Out_ QUIC_ADDR* OutAddr
     )
@@ -125,12 +125,12 @@ QuicConvertToMappedV6(
 #pragma warning(disable: 6101) // Intentially don't overwrite output if unable to convert
 inline
 void
-QuicConvertFromMappedV6(
+CxPlatConvertFromMappedV6(
     _In_ const QUIC_ADDR* InAddr,
     _Out_ QUIC_ADDR* OutAddr
     )
 {
-    QUIC_DBG_ASSERT(InAddr->si_family == QUIC_ADDRESS_FAMILY_INET6);
+    CXPLAT_DBG_ASSERT(InAddr->si_family == QUIC_ADDRESS_FAMILY_INET6);
     if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
         OutAddr->si_family = QUIC_ADDRESS_FAMILY_INET;
         OutAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
@@ -150,11 +150,11 @@ QuicConvertFromMappedV6(
 //
 
 QUIC_STATUS
-QuicTlsLibraryInitialize(
+CxPlatTlsLibraryInitialize(
     void
     );
 
 void
-QuicTlsLibraryUninitialize(
+CxPlatTlsLibraryUninitialize(
     void
     );

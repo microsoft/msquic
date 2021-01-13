@@ -10,16 +10,16 @@ Abstract:
 --*/
 
 #define QUIC_TEST_APIS 1
-#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS // NOLINT bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp
 
-#include "platform_internal.h"
-#include "openssl/ssl.h"
+#include "openssl/ec.h"
 #include "openssl/err.h"
 #include "openssl/kdf.h"
-#include "openssl/ec.h"
-#include "openssl/rsa.h"
-#include "openssl/x509.h"
 #include "openssl/pem.h"
+#include "openssl/rsa.h"
+#include "openssl/ssl.h"
+#include "openssl/x509.h"
+#include "platform_internal.h"
 #ifdef QUIC_CLOG
 #include "selfsign_openssl.c.clog.h"
 #endif
@@ -28,7 +28,7 @@ Abstract:
 // Generates a self signed cert using low level OpenSSL APIs.
 //
 QUIC_STATUS
-QuicTlsGenerateSelfSignedCert(
+CxPlatTlsGenerateSelfSignedCert(
     _In_z_ char *CertFileName,
     _In_z_ char *PrivateKeyFileName,
     _In_z_ char *SNI
@@ -273,7 +273,7 @@ static char* QuicTestPrivateKeyFilename = (char*)"localhost_key.pem";
 #define MAX_PATH 50
 #endif
 
-typedef struct QUIC_CREDENTIAL_CONFIG_INTERNAL {
+typedef struct CXPLAT_CREDENTIAL_CONFIG_INTERNAL {
     QUIC_CREDENTIAL_CONFIG;
     QUIC_CERTIFICATE_FILE CertFile;
 #ifdef _WIN32
@@ -284,25 +284,25 @@ typedef struct QUIC_CREDENTIAL_CONFIG_INTERNAL {
     char CertFilepath[MAX_PATH];
     char PrivateKeyFilepath[MAX_PATH];
 
-} QUIC_CREDENTIAL_CONFIG_INTERNAL;
+} CXPLAT_CREDENTIAL_CONFIG_INTERNAL;
 
 #define TEMP_DIR_TEMPLATE "/tmp/quictest.XXXXXX"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
-QuicPlatGetSelfSignedCert(
-    _In_ QUIC_SELF_SIGN_CERT_TYPE Type
+CxPlatPlatGetSelfSignedCert(
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type
     )
 {
     UNREFERENCED_PARAMETER(Type);
 
-    QUIC_CREDENTIAL_CONFIG_INTERNAL* Params =
-        malloc(sizeof(QUIC_CREDENTIAL_CONFIG_INTERNAL) + sizeof(TEMP_DIR_TEMPLATE));
+    CXPLAT_CREDENTIAL_CONFIG_INTERNAL* Params =
+        malloc(sizeof(CXPLAT_CREDENTIAL_CONFIG_INTERNAL) + sizeof(TEMP_DIR_TEMPLATE));
     if (Params == NULL) {
         return NULL;
     }
 
-    QuicZeroMemory(Params, sizeof(*Params));
+    CxPlatZeroMemory(Params, sizeof(*Params));
     Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
     Params->CertificateFile = &Params->CertFile;
     Params->CertFile.CertificateFile = Params->CertFilepath;
@@ -360,34 +360,34 @@ QuicPlatGetSelfSignedCert(
         goto Error;
     }
 
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Params->CertFilepath,
         Params->TempDir,
         strlen(Params->TempDir));
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Params->CertFilepath + strlen(Params->TempDir),
         "/",
         1);
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Params->CertFilepath + strlen(Params->TempDir) + 1,
         QuicTestCertFilename,
         strlen(QuicTestCertFilename));
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Params->PrivateKeyFilepath,
         Params->TempDir,
         strlen(Params->TempDir));
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Params->PrivateKeyFilepath + strlen(Params->TempDir),
         "/",
         1);
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Params->PrivateKeyFilepath + strlen(Params->TempDir) + 1,
         QuicTestPrivateKeyFilename,
         strlen(QuicTestPrivateKeyFilename));
 #endif
 
     if (QUIC_FAILED(
-        QuicTlsGenerateSelfSignedCert(
+        CxPlatTlsGenerateSelfSignedCert(
             Params->CertFilepath,
             Params->PrivateKeyFilepath,
             (char *)"localhost"))) {
@@ -409,12 +409,12 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatFreeSelfSignedCert(
-    _In_ const QUIC_CREDENTIAL_CONFIG* _Params
+CxPlatPlatFreeSelfSignedCert(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     )
 {
-    QUIC_CREDENTIAL_CONFIG_INTERNAL* Params =
-        (QUIC_CREDENTIAL_CONFIG_INTERNAL*)_Params;
+    CXPLAT_CREDENTIAL_CONFIG_INTERNAL* Params =
+        (CXPLAT_CREDENTIAL_CONFIG_INTERNAL*)CredConfig;
 
 #ifdef _WIN32
     DeleteFileA(Params->CertFilepath);
@@ -422,8 +422,8 @@ QuicPlatFreeSelfSignedCert(
 #else
     char RmCmd[32] = {0};
     strncpy(RmCmd, "rm -rf ", 7 + 1);
-    strcat(RmCmd, Params->TempDir);
-    if (system(RmCmd) == -1) {
+    strncat(RmCmd, Params->TempDir, sizeof(RmCmd) - strlen(RmCmd) - 1);
+    if (system(RmCmd) == -1) { // NOLINT cert-env33-c
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",

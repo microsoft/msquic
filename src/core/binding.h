@@ -20,13 +20,13 @@ typedef struct QUIC_RETRY_TOKEN_CONTENTS {
         uint8_t OrigConnId[QUIC_MAX_CONNECTION_ID_LENGTH_V1];
         uint8_t OrigConnIdLength;
     } Encrypted;
-    uint8_t EncryptionTag[QUIC_ENCRYPTION_OVERHEAD];
+    uint8_t EncryptionTag[CXPLAT_ENCRYPTION_OVERHEAD];
 } QUIC_RETRY_TOKEN_CONTENTS;
 
 //
 // The per recv buffer context type.
 //
-typedef struct QUIC_RECV_PACKET {
+typedef struct CXPLAT_RECV_PACKET {
 
     //
     // The bytes that represent the fully decoded packet number.
@@ -144,7 +144,7 @@ typedef struct QUIC_RECV_PACKET {
     //
     BOOLEAN HasNonProbingFrame : 1;
 
-} QUIC_RECV_PACKET;
+} CXPLAT_RECV_PACKET;
 
 typedef enum QUIC_BINDING_LOOKUP_TYPE {
 
@@ -163,7 +163,7 @@ typedef struct QUIC_BINDING {
     //
     // The link in the library's global list of bindings.
     //
-    QUIC_LIST_ENTRY Link;
+    CXPLAT_LIST_ENTRY Link;
 
     //
     // Indicates whether the binding is exclusively owned already. Defaults
@@ -205,17 +205,17 @@ typedef struct QUIC_BINDING {
     //
     // The datapath binding.
     //
-    QUIC_DATAPATH_BINDING* DatapathBinding;
+    CXPLAT_SOCKET* Socket;
 
     //
     // Lock for accessing the listeners.
     //
-    QUIC_DISPATCH_RW_LOCK RwLock;
+    CXPLAT_DISPATCH_RW_LOCK RwLock;
 
     //
     // The listeners registered on this binding.
     //
-    QUIC_LIST_ENTRY Listeners;
+    CXPLAT_LIST_ENTRY Listeners;
 
     //
     // Lookup tables for connection IDs.
@@ -225,16 +225,16 @@ typedef struct QUIC_BINDING {
     //
     // Used for generating stateless reset hashes.
     //
-    QUIC_HASH* ResetTokenHash;
-    QUIC_DISPATCH_LOCK ResetTokenLock;
+    CXPLAT_HASH* ResetTokenHash;
+    CXPLAT_DISPATCH_LOCK ResetTokenLock;
 
     //
     // Stateless operation tracking structures.
     //
-    QUIC_DISPATCH_LOCK StatelessOperLock;
-    QUIC_HASHTABLE StatelessOperTable;
-    QUIC_LIST_ENTRY StatelessOperList;
-    QUIC_POOL StatelessOperCtxPool;
+    CXPLAT_DISPATCH_LOCK StatelessOperLock;
+    CXPLAT_HASHTABLE StatelessOperTable;
+    CXPLAT_LIST_ENTRY StatelessOperList;
+    CXPLAT_POOL StatelessOperCtxPool;
     uint32_t StatelessOperCount;
 
     struct {
@@ -250,8 +250,8 @@ typedef struct QUIC_BINDING {
 //
 // Global callbacks for all QUIC UDP bindings.
 //
-QUIC_DATAPATH_RECEIVE_CALLBACK QuicBindingReceive;
-QUIC_DATAPATH_UNREACHABLE_CALLBACK QuicBindingUnreachable;
+CXPLAT_DATAPATH_RECEIVE_CALLBACK QuicBindingReceive;
+CXPLAT_DATAPATH_UNREACHABLE_CALLBACK QuicBindingUnreachable;
 
 //
 // Initializes a new binding.
@@ -264,8 +264,8 @@ QuicBindingInitialize(
 #endif
     _In_ BOOLEAN ShareBinding,
     _In_ BOOLEAN ServerOwned,
-    _In_opt_ const QUIC_ADDR * LocalAddress,
-    _In_opt_ const QUIC_ADDR * RemoteAddress,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
     );
 
@@ -350,7 +350,7 @@ void
 QuicBindingRemoveSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_CID_HASH_ENTRY* SourceCid,
-    _In_ QUIC_SINGLE_LIST_ENTRY** Entry
+    _In_ CXPLAT_SLIST_ENTRY** Entry
     );
 
 //
@@ -412,25 +412,11 @@ QuicBindingReleaseStatelessOperation(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicBindingSendTo(
+QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
-    _In_ uint32_t BytesToSend,
-    _In_ uint32_t DatagramsToSend
-    );
-
-//
-// Sends data to a remote host. Note, the buffer must remain valid for
-// the duration of the send operation.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicBindingSendFromTo(
-    _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_ADDR * LocalAddress,
-    _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend
     );
@@ -455,7 +441,7 @@ inline
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRetryTokenDecrypt(
-    _In_ const QUIC_RECV_PACKET* const Packet,
+    _In_ const CXPLAT_RECV_PACKET* const Packet,
     _In_reads_(sizeof(QUIC_RETRY_TOKEN_CONTENTS))
         const uint8_t* TokenBuffer,
     _Out_ QUIC_RETRY_TOKEN_CONTENTS* Token
@@ -464,31 +450,31 @@ QuicRetryTokenDecrypt(
     //
     // Copy the token locally so as to not effect the original packet buffer,
     //
-    QuicCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
+    CxPlatCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
-    uint8_t Iv[QUIC_IV_LENGTH];
-    if (MsQuicLib.CidTotalLength >= sizeof(Iv)) {
-        QuicCopyMemory(Iv, Packet->DestCid, sizeof(Iv));
-        for (uint8_t i = sizeof(Iv); i < MsQuicLib.CidTotalLength; ++i) {
-            Iv[i % sizeof(Iv)] ^= Packet->DestCid[i];
+    uint8_t Iv[CXPLAT_MAX_IV_LENGTH];
+    if (MsQuicLib.CidTotalLength >= CXPLAT_IV_LENGTH) {
+        CxPlatCopyMemory(Iv, Packet->DestCid, CXPLAT_IV_LENGTH);
+        for (uint8_t i = CXPLAT_IV_LENGTH; i < MsQuicLib.CidTotalLength; ++i) {
+            Iv[i % CXPLAT_IV_LENGTH] ^= Packet->DestCid[i];
         }
     } else {
-        QuicZeroMemory(Iv, sizeof(Iv));
-        QuicCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
+        CxPlatZeroMemory(Iv, CXPLAT_IV_LENGTH);
+        CxPlatCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
     }
 
-    QuicDispatchLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+    CxPlatDispatchLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 
-    QUIC_KEY* StatelessRetryKey =
+    CXPLAT_KEY* StatelessRetryKey =
         QuicLibraryGetStatelessRetryKeyForTimestamp(
             Token->Authenticated.Timestamp);
     if (StatelessRetryKey == NULL) {
-        QuicDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+        CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
         return FALSE;
     }
 
     QUIC_STATUS Status =
-        QuicDecrypt(
+        CxPlatDecrypt(
             StatelessRetryKey,
             Iv,
             sizeof(Token->Authenticated),
@@ -496,6 +482,6 @@ QuicRetryTokenDecrypt(
             sizeof(Token->Encrypted) + sizeof(Token->EncryptionTag),
             (uint8_t*)&Token->Encrypted);
 
-    QuicDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+    CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
     return QUIC_SUCCEEDED(Status);
 }

@@ -7,6 +7,18 @@ on the provided configuration.
 .PARAMETER Configuration
     The type of configuration to install dependencies for.
 
+.PARAMETER InitSubmodules
+    Dynamically initializes submodules based Tls and Extra configuration knobs.
+
+.PARAMETER Tls
+    The TLS library in use.
+
+.PARAMETER Extra
+    Any extra build flags being used.
+
+.PARAMETER Kernel
+    Indicates build is for kernel mode.
+
 .EXAMPLE
     prepare-machine.ps1 -Configuration Build
 
@@ -18,7 +30,22 @@ on the provided configuration.
 param (
     [Parameter(Mandatory = $true)]
     [ValidateSet("Build", "Test", "Dev")]
-    [string]$Configuration
+    [string]$Configuration,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InitSubmodules,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Tls = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$Extra = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Kernel,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$FailOnError
 )
 
 #Requires -RunAsAdministrator
@@ -32,9 +59,44 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $NuGetPath = Join-Path $RootDir "nuget"
 
 # Well-known location for clog packages.
-$ClogVersion = "0.1.8"
+$ClogVersion = "0.2.0"
 $ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v$ClogVersion"
 
+$MessagesAtEnd = New-Object Collections.Generic.List[string]
+
+if ($InitSubmodules) {
+
+    # Default TLS based on current platform.
+    if ("" -eq $Tls) {
+        if ($IsWindows) {
+            $Tls = "schannel"
+        } else {
+            $Tls = "openssl"
+        }
+    }
+
+    if ($Tls -eq "openssl") {
+        Write-Host "Initializing openssl submodule"
+        git submodule init submodules/openssl
+        git submodule update
+    } elseif ($Tls -eq "mitls") {
+        Write-Host "Initializing everest submodule"
+        git submodule init submodules/everest
+        git submodule update
+    }
+
+    if (!$Extra.Contains("-DisableTest")) {
+        Write-Host "Initializing googletest submodule"
+        git submodule init submodules/googletest
+        git submodule update
+
+        if ($Kernel) {
+            Write-Host "Initializing wil submodule"
+            git submodule init submodules/wil
+            git submodule update
+        }
+    }
+}
 
 function Install-ClogTool {
     param($ToolName)
@@ -49,8 +111,12 @@ function Install-ClogTool {
         Write-Host "Installing: $NuGetName"
         dotnet tool update --global --add-source $NuGetPath $ToolName
     } catch {
-        Write-Warning "Clog could not be installed. Building with logs will not work"
-        Write-Warning $_
+        if ($FailOnError) {
+            Write-Error $_
+        }
+        $err = $_
+        $MessagesAtEnd.Add("$ToolName could not be installed. Building with logs will not work")
+        $MessagesAtEnd.Add($err.ToString())
     }
 }
 
@@ -72,10 +138,15 @@ if ($IsWindows) {
         $NasmExe = Join-Path $NasmPath "nasm.exe"
         if (!(Test-Path $NasmExe)) {
             New-Item -Path .\build -ItemType Directory -Force
-            if ([System.Environment]::Is64BitOperatingSystem) {
-                Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-win64.zip" -OutFile "build\nasm.zip"
-            } else {
-                Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win32/nasm-$NasmVersion-win32.zip" -OutFile "build\nasm.zip"
+            $NasmArch = "win64"
+            if (![System.Environment]::Is64BitOperatingSystem) {
+                $NasmArch = "win32"
+            }
+            try {
+                Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-$NasmArch.zip" -OutFile "build\nasm.zip"
+            } catch {
+                # Mirror fallback
+                Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "build\nasm.zip"
             }
             Expand-Archive -Path "build\nasm.zip" -DestinationPath $env:Programfiles -Force
             $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
@@ -151,4 +222,8 @@ if ($IsWindows) {
             Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
         }
     }
+}
+
+foreach ($errMsg in $MessagesAtEnd) {
+   Write-Warning $errMsg
 }

@@ -90,6 +90,20 @@
 #define QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL   QUIC_ERROR_CRYPTO_ERROR(120) // TLS error code for 'no_application_protocol'
 
 //
+// Used for determining which errors to count for performance counters.
+//
+inline
+BOOLEAN
+QuicErrorIsProtocolError(
+    _In_ QUIC_VAR_INT ErrorCode
+    )
+{
+    return
+        ErrorCode >= QUIC_ERROR_FLOW_CONTROL_ERROR &&
+        ErrorCode <= QUIC_ERROR_AEAD_LIMIT_REACHED;
+}
+
+//
 // Different types of QUIC frames
 //
 typedef enum QUIC_FRAME_TYPE {
@@ -183,7 +197,7 @@ QuicAckFrameDecode(
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
     _Out_ BOOLEAN* InvalidFrame,
-    _Inout_ QUIC_RANGE* AckBlocks, // Pre-Initialized by caller
+    _Inout_ QUIC_RANGE* AckRanges, // Pre-Initialized by caller
     _When_(FrameType == QUIC_FRAME_ACK_1, _Out_)
         QUIC_ACK_ECN_EX* Ecn,
     _Out_ uint64_t* AckDelay

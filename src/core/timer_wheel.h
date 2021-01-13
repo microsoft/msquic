@@ -32,7 +32,7 @@ typedef struct QUIC_TIMER_WHEEL {
     //
     // An array of slots in the timer wheel.
     //
-    QUIC_LIST_ENTRY* Slots;
+    CXPLAT_LIST_ENTRY* Slots;
 
 } QUIC_TIMER_WHEEL;
 
@@ -92,5 +92,5 @@ void
 QuicTimerWheelGetExpired(
     _Inout_ QUIC_TIMER_WHEEL* TimerWheel,
     _In_ uint64_t TimeNow,
-    _Inout_ QUIC_LIST_ENTRY* ListHead
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead
     );

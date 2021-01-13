@@ -43,6 +43,11 @@ typedef struct QUIC_PATH {
     BOOLEAN IsPeerValidated : 1;
 
     //
+    // Indicates the minimum MTU has been validated.
+    //
+    BOOLEAN IsMinMtuValidated : 1;
+
+    //
     // Current value to encode in the short header spin bit field.
     //
     BOOLEAN SpinBit : 1;
@@ -85,7 +90,7 @@ typedef struct QUIC_PATH {
     //
     // The destination CID used for sending on this path.
     //
-    QUIC_CID_QUIC_LIST_ENTRY* DestCid;
+    QUIC_CID_CXPLAT_LIST_ENTRY* DestCid;
 
     //
     // Used on the server side until the client's IP address has been validated
@@ -121,7 +126,7 @@ typedef struct QUIC_PATH {
 
 } QUIC_PATH;
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_PATH) < 256,
     "Ensure path struct stays small since we prealloc them");
 
@@ -197,10 +202,12 @@ QuicPathSetActive(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
+_Success_(return != NULL)
 QUIC_PATH*
 QuicConnGetPathByID(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t ID
+    _In_ uint8_t ID,
+    _Out_ uint8_t* Index
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -208,5 +215,5 @@ _Ret_maybenull_
 QUIC_PATH*
 QuicConnGetPathForDatagram(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_RECV_DATAGRAM* Datagram
+    _In_ const CXPLAT_RECV_DATA* Datagram
     );

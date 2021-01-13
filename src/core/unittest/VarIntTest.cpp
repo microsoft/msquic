@@ -24,7 +24,7 @@ uint64_t Encode(uint64_t Value)
 uint64_t Decode(uint64_t Encoded)
 {
     uint64_t Decoded;
-    QuicRandom(sizeof(Decoded), &Decoded);
+    CxPlatRandom(sizeof(Decoded), &Decoded);
     uint16_t Offset = 0;
     EXPECT_NE(QuicVarIntDecode(sizeof(Encoded), (uint8_t*)&Encoded, &Offset, &Decoded), (BOOLEAN)0);
     return Decoded;
@@ -62,7 +62,7 @@ TEST(VarIntTest, RandomEncodeDecode)
         // Generate a random value and make sure the top 2 bits aren't set.
         //
         uint64_t Value = 0;
-        TEST_QUIC_SUCCEEDED(QuicRandom(sizeof(Value), &Value));
+        TEST_QUIC_SUCCEEDED(CxPlatRandom(sizeof(Value), &Value));
         Value &= ~(3ULL << 62);
 
         //

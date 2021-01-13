@@ -25,7 +25,7 @@ QuicPathInitialize(
     _In_ QUIC_PATH* Path
     )
 {
-    QuicZeroMemory(Path, sizeof(QUIC_PATH));
+    CxPlatZeroMemory(Path, sizeof(QUIC_PATH));
     Path->ID = Connection->NextPathId++; // TODO - Check for duplicates after wrap around?
     Path->MinRtt = UINT32_MAX;
     Path->Mtu = QUIC_DEFAULT_PATH_MTU;
@@ -46,7 +46,7 @@ QuicPathRemove(
     _In_ uint8_t Index
     )
 {
-    QUIC_DBG_ASSERT(Index < Connection->PathsCount);
+    CXPLAT_DBG_ASSERT(Index < Connection->PathsCount);
     const QUIC_PATH* Path = &Connection->Paths[Index];
     QuicTraceLogConnInfo(
         PathRemoved,
@@ -55,7 +55,7 @@ QuicPathRemove(
         Path->ID);
 
     if (Index + 1 < Connection->PathsCount) {
-        QuicMoveMemory(
+        CxPlatMoveMemory(
             Connection->Paths + Index,
             Connection->Paths + Index + 1,
             (Connection->PathsCount - Index - 1) * sizeof(QUIC_PATH));
@@ -134,20 +134,26 @@ QuicPathSetValid(
         // If the active path was just validated, then let's queue up a PMTUD
         // packet.
         //
+        // TODO - If minimum MTU was not validated, we might want to validate
+        // that first instead.
+        //
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PMTUD);
     }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
+_Success_(return != NULL)
 QUIC_PATH*
 QuicConnGetPathByID(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t ID
+    _In_ uint8_t ID,
+    _Out_ uint8_t* Index
     )
 {
     for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
         if (Connection->Paths[i].ID == ID) {
+            *Index = i;
             return &Connection->Paths[i];
         }
     }
@@ -159,7 +165,7 @@ _Ret_maybenull_
 QUIC_PATH*
 QuicConnGetPathForDatagram(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_RECV_DATAGRAM* Datagram
+    _In_ const CXPLAT_RECV_DATA* Datagram
     )
 {
     for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
@@ -191,7 +197,7 @@ QuicConnGetPathForDatagram(
         //
         // Make room for the new path (at index 1).
         //
-        QuicMoveMemory(
+        CxPlatMoveMemory(
             &Connection->Paths[2],
             &Connection->Paths[1],
             (Connection->PathsCount - 1) * sizeof(QUIC_PATH));
@@ -218,7 +224,7 @@ QuicPathSetActive(
 {
     BOOLEAN UdpPortChangeOnly = FALSE;
     if (Path == &Connection->Paths[0]) {
-        QUIC_DBG_ASSERT(!Path->IsActive);
+        CXPLAT_DBG_ASSERT(!Path->IsActive);
         Path->IsActive = TRUE;
     } else {
         UdpPortChangeOnly =
@@ -229,6 +235,12 @@ QuicPathSetActive(
 
         PrevActivePath.IsActive = FALSE;
         Path->IsActive = TRUE;
+        if (UdpPortChangeOnly) {
+            //
+            // We assume port only changes don't change the PMTU.
+            //
+            Path->IsMinMtuValidated = PrevActivePath.IsMinMtuValidated;
+        }
 
         Connection->Paths[0] = *Path;
         *Path = PrevActivePath;

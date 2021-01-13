@@ -33,8 +33,8 @@ QuicSettingApply(
     _Inout_ QUIC_SETTINGS* Destination,
     _In_ BOOLEAN OverWrite,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
-        uint32_t SourceSize,
-    _In_reads_bytes_(SourceSize)
+        uint32_t NewSettingsSize,
+    _In_reads_bytes_(NewSettingsSize)
         const QUIC_SETTINGS* Source
     );
 
@@ -45,7 +45,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsLoad(
     _Inout_ QUIC_SETTINGS* Settings,
-    _In_ QUIC_STORAGE* Storage
+    _In_ CXPLAT_STORAGE* Storage
     );
 
 //

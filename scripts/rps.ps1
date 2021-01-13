@@ -17,20 +17,24 @@ param (
     [string]$Target = "quic-server",
 
     [Parameter(Mandatory = $false)]
-    [Int32]$Iterations = 5
+    [Int32]$Iterations = 3
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Run through all the different connection counts from 100 to 3000.
-for ($Count=100; $Count -le 3000; $Count+=100) {
-    Write-Host "==$($Count)c=="
-    for ($i=0; $i -lt $Iterations; $i++) {
-        (.\quicperf.exe `
-            -TestName:RPS `
-            -Target:$Target `
-            -conns:$Count) | Select-Object -Last 1
-        Start-Sleep -Milliseconds 2000
+# Run through all the different connection and request counts.
+for ($Conns=100; $Conns -le 1000; $Conns+=100) {
+    for ($RequestsPerConn=1; $RequestsPerConn -le 8; $RequestsPerConn+=1) {
+        $Requests = $Conns * $RequestsPerConn
+        Write-Host "==$($Conns)c$($Requests)r=="
+        for ($i=0; $i -lt $Iterations; $i++) {
+            (.\quicperf.exe `
+                -Test:RPS `
+                -Target:$Target `
+                -conns:$Conns `
+                -requests:$Requests) | Select-Object -Last 2
+            Start-Sleep -Milliseconds 2000
+        }
     }
 }

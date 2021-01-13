@@ -20,12 +20,12 @@ Abstract:
 class ThroughputClient : public PerfBase {
 public:
     ThroughputClient() {
-        QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
+        CxPlatZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
     }
 
     ~ThroughputClient() override {
         if (DataBuffer) {
-            QUIC_FREE(DataBuffer);
+            CXPLAT_FREE(DataBuffer, QUIC_POOL_PERF);
         }
     }
 
@@ -37,12 +37,23 @@ public:
 
     QUIC_STATUS
     Start(
-        _In_ QUIC_EVENT* StopEvent
+        _In_ CXPLAT_EVENT* StopEvent
         ) override;
 
     QUIC_STATUS
     Wait(
         _In_ int Timeout
+        ) override;
+
+    void
+    GetExtraDataMetadata(
+        _Out_ PerfExtraDataMetadata* Result
+        ) override;
+
+    QUIC_STATUS
+    GetExtraData(
+        _Out_writes_bytes_(*Length) uint8_t* Data,
+        _Inout_ uint32_t* Length
         ) override;
 
 private:
@@ -51,7 +62,9 @@ private:
         ConnectionData(_In_ ThroughputClient* Client) : Client{Client} { }
         ThroughputClient* Client;
         ConnectionScope Connection;
+#if DEBUG
         uint8_t Padding[16]; // Padding for Pools
+#endif
     };
 
     struct StreamContext {
@@ -69,6 +82,7 @@ private:
         uint64_t StartTime{0};
         uint64_t EndTime{0};
         QUIC_BUFFER LastBuffer;
+        bool Complete{0};
     };
 
     QUIC_STATUS
@@ -102,13 +116,16 @@ private:
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
     QuicPoolAllocator<ConnectionData> ConnectionDataAllocator;
     UniquePtr<char[]> TargetData;
-    QUIC_EVENT* StopEvent {nullptr};
+    CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
     uint8_t UseSendBuffer {TRUE};
+    uint8_t UsePacing {TRUE};
     uint8_t UseEncryption {TRUE};
+    uint8_t TimedTransfer {FALSE};
     QUIC_ADDR LocalIpAddr;
     uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
-    uint64_t Length {0};
+    uint64_t UploadLength {0};
+    uint64_t DownloadLength {0};
     uint32_t IoSize {0};
 };

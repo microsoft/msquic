@@ -57,17 +57,17 @@ void EncodeDecodeAndCompare(
             &JunkConnection, IsServer, Original, NULL, &BufferLength);
     ASSERT_NE(nullptr, Buffer);
 
-    ASSERT_TRUE(UINT16_MAX >= (BufferLength - QuicTlsTPHeaderSize));
+    ASSERT_TRUE(UINT16_MAX >= (BufferLength - CxPlatTlsTPHeaderSize));
 
-    auto TPBuffer = Buffer + QuicTlsTPHeaderSize;
-    uint16_t TPBufferLength = (uint16_t)(BufferLength - QuicTlsTPHeaderSize);
+    auto TPBuffer = Buffer + CxPlatTlsTPHeaderSize;
+    uint16_t TPBufferLength = (uint16_t)(BufferLength - CxPlatTlsTPHeaderSize);
 
     QUIC_TRANSPORT_PARAMETERS Decoded;
     BOOLEAN DecodedSuccessfully =
         QuicCryptoTlsDecodeTransportParameters(
             &JunkConnection, IsServer, TPBuffer, TPBufferLength, &Decoded);
 
-    QUIC_FREE(Buffer);
+    CXPLAT_FREE(Buffer, QUIC_POOL_TLS_TRANSPARAMS);
 
     ASSERT_TRUE(DecodedSuccessfully);
 
@@ -77,21 +77,21 @@ void EncodeDecodeAndCompare(
 TEST(TransportParamTest, EmptyClient)
 {
     QUIC_TRANSPORT_PARAMETERS Original;
-    QuicZeroMemory(&Original, sizeof(Original));
+    CxPlatZeroMemory(&Original, sizeof(Original));
     EncodeDecodeAndCompare(&Original);
 }
 
 TEST(TransportParamTest, EmptyServer)
 {
     QUIC_TRANSPORT_PARAMETERS Original;
-    QuicZeroMemory(&Original, sizeof(Original));
+    CxPlatZeroMemory(&Original, sizeof(Original));
     EncodeDecodeAndCompare(&Original, true);
 }
 
 TEST(TransportParamTest, Preset1)
 {
     QUIC_TRANSPORT_PARAMETERS Original;
-    QuicZeroMemory(&Original, sizeof(Original));
+    CxPlatZeroMemory(&Original, sizeof(Original));
     Original.Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
     Original.IdleTimeout = 100000;
     EncodeDecodeAndCompare(&Original);
@@ -100,7 +100,7 @@ TEST(TransportParamTest, Preset1)
 TEST(TransportParamTest, ZeroTP)
 {
     QUIC_TRANSPORT_PARAMETERS OriginalTP;
-    QuicZeroMemory(&OriginalTP, sizeof(OriginalTP));
+    CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
     OriginalTP.Flags =
         QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
         QUIC_TP_FLAG_INITIAL_MAX_DATA |

@@ -23,15 +23,15 @@ TestConnection::TestConnection(
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false),
     ExpectedResumed(false), ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
-    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
+    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR), EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
 {
-    QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
-    QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
-    QuicEventInitialize(&EventShutdownComplete, TRUE, FALSE);
-    QuicEventInitialize(&EventResumptionTicketReceived, TRUE, FALSE);
+    CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
+    CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
+    CxPlatEventInitialize(&EventShutdownComplete, TRUE, FALSE);
+    CxPlatEventInitialize(&EventResumptionTicketReceived, TRUE, FALSE);
 
     if (QuicConnection == nullptr) {
         TEST_FAILURE("Invalid handle passed into TestConnection.");
@@ -49,15 +49,15 @@ TestConnection::TestConnection(
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false),
     ExpectedResumed(false), ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
-    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
+    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR), EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
 {
-    QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
-    QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
-    QuicEventInitialize(&EventShutdownComplete, TRUE, FALSE);
-    QuicEventInitialize(&EventResumptionTicketReceived, TRUE, FALSE);
+    CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
+    CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
+    CxPlatEventInitialize(&EventShutdownComplete, TRUE, FALSE);
+    CxPlatEventInitialize(&EventResumptionTicketReceived, TRUE, FALSE);
 
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
@@ -74,12 +74,15 @@ TestConnection::TestConnection(
 TestConnection::~TestConnection()
 {
     MsQuic->ConnectionClose(QuicConnection);
-    QuicEventUninitialize(EventResumptionTicketReceived);
-    QuicEventUninitialize(EventShutdownComplete);
-    QuicEventUninitialize(EventPeerClosed);
-    QuicEventUninitialize(EventConnectionComplete);
+    CxPlatEventUninitialize(EventResumptionTicketReceived);
+    CxPlatEventUninitialize(EventShutdownComplete);
+    CxPlatEventUninitialize(EventPeerClosed);
+    CxPlatEventUninitialize(EventConnectionComplete);
     if (ResumptionTicket) {
-        QUIC_FREE(ResumptionTicket);
+        CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
+    }
+    if (EventDeleted) {
+        CxPlatEventSet(*EventDeleted);
     }
 }
 
@@ -126,6 +129,11 @@ TestConnection::NewStream(
 {
     auto Stream = TestStream::FromConnectionHandle(QuicConnection, StreamShutdownHandler, Flags);
 
+    if (Stream == nullptr) {
+        // Failure reason has already been logged by FromConnectionHandle
+        return nullptr;
+    }
+
     if (StartType != NEW_STREAM_START_NONE) {
         QUIC_STATUS Status =
             Stream->Start(
@@ -145,7 +153,7 @@ TestConnection::NewStream(
 bool
 TestConnection::WaitForConnectionComplete()
 {
-    if (!QuicEventWaitWithTimeout(EventConnectionComplete, GetWaitTimeout())) {
+    if (!CxPlatEventWaitWithTimeout(EventConnectionComplete, GetWaitTimeout())) {
         TEST_FAILURE("WaitForConnectionComplete timed out after %u ms.", GetWaitTimeout());
         return false;
     }
@@ -155,7 +163,7 @@ TestConnection::WaitForConnectionComplete()
 QUIC_BUFFER*
 TestConnection::WaitForResumptionTicket()
 {
-    if (!QuicEventWaitWithTimeout(EventResumptionTicketReceived, GetWaitTimeout())) {
+    if (!CxPlatEventWaitWithTimeout(EventResumptionTicketReceived, GetWaitTimeout())) {
         TEST_FAILURE("WaitForResumptionTicket timed out after %u ms.", GetWaitTimeout());
         return nullptr;
     }
@@ -168,7 +176,7 @@ bool
 TestConnection::WaitForShutdownComplete()
 {
     if (IsStarted) {
-        if (!QuicEventWaitWithTimeout(EventShutdownComplete, GetWaitTimeout())) {
+        if (!CxPlatEventWaitWithTimeout(EventShutdownComplete, GetWaitTimeout())) {
             TEST_FAILURE("WaitForShutdownComplete timed out after %u ms.", GetWaitTimeout());
             return false;
         }
@@ -179,7 +187,7 @@ TestConnection::WaitForShutdownComplete()
 bool
 TestConnection::WaitForPeerClose()
 {
-    if (!QuicEventWaitWithTimeout(EventPeerClosed, GetWaitTimeout())) {
+    if (!CxPlatEventWaitWithTimeout(EventPeerClosed, GetWaitTimeout())) {
         TEST_FAILURE("WaitForPeerClose timed out after %u ms.", GetWaitTimeout());
         return false;
     }
@@ -204,7 +212,7 @@ TestConnection::ForceKeyUpdate()
         // we allow for a couple retries (with some sleeps).
         //
         if (Try != 0) {
-            QuicSleep(100);
+            CxPlatSleep(100);
         }
         Status =
             MsQuic->SetParam(
@@ -233,7 +241,7 @@ TestConnection::ForceCidUpdate()
         // we allow for a couple retries (with some sleeps).
         //
         if (Try != 0) {
-            QuicSleep(100);
+            CxPlatSleep(100);
         }
         Status =
             MsQuic->SetParam(
@@ -328,7 +336,7 @@ TestConnection::SetLocalAddr(
         // allow for a couple retries (with some sleeps).
         //
         if (Try != 0) {
-            QuicSleep(100);
+            CxPlatSleep(100);
         }
         Status =
             MsQuic->SetParam(
@@ -702,7 +710,7 @@ TestConnection::SetResumptionTicket(
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_RESUMPTION_STATE,
+            QUIC_PARAM_CONN_RESUMPTION_TICKET,
             NewResumptionTicket->Length,
             NewResumptionTicket->Buffer);
 }
@@ -723,7 +731,7 @@ TestConnection::HandleConnectionEvent(
         if (IsServer) {
             MsQuic->ConnectionSendResumptionTicket(QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
         }
-        QuicEventSet(EventConnectionComplete);
+        CxPlatEventSet(EventConnectionComplete);
         break;
 
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
@@ -744,7 +752,7 @@ TestConnection::HandleConnectionEvent(
                 TEST_FAILURE("Unexpected transport Close Error, %u", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
             }
         }
-        QuicEventSet(EventConnectionComplete);
+        CxPlatEventSet(EventConnectionComplete);
         break;
 
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
@@ -753,14 +761,14 @@ TestConnection::HandleConnectionEvent(
         if (Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode != ExpectedPeerCloseErrorCode) {
             TEST_FAILURE("App Close Error, %llu", Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
         }
-        QuicEventSet(EventConnectionComplete);
-        QuicEventSet(EventPeerClosed);
+        CxPlatEventSet(EventConnectionComplete);
+        CxPlatEventSet(EventPeerClosed);
         break;
 
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         IsShutdown = TRUE;
         ShutdownTimedOut = Event->SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown == FALSE;
-        QuicEventSet(EventShutdownComplete);
+        CxPlatEventSet(EventShutdownComplete);
         if (ShutdownCompleteCallback) {
             ShutdownCompleteCallback(this);
         }
@@ -815,17 +823,18 @@ TestConnection::HandleConnectionEvent(
     case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
         ResumptionTicket =
             (QUIC_BUFFER*)
-            QUIC_ALLOC_NONPAGED(
+            CXPLAT_ALLOC_NONPAGED(
                 sizeof(QUIC_BUFFER) +
-                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
+                Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength,
+                QUIC_POOL_TEST);
         if (ResumptionTicket) {
             ResumptionTicket->Buffer = (uint8_t*)(ResumptionTicket + 1);
             ResumptionTicket->Length = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
-            QuicCopyMemory(
+            CxPlatCopyMemory(
                 ResumptionTicket->Buffer,
                 Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket,
                 Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
-            QuicEventSet(EventResumptionTicketReceived);
+            CxPlatEventSet(EventResumptionTicketReceived);
         }
 
     default:

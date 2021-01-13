@@ -3,14 +3,14 @@
   <Profiles>
    <SystemCollector Id="SC_HighVolume" Realtime="false">
       <BufferSize Value="1024"/>
-      <Buffers Value="20"/>
+      <Buffers Value="60"/>
     </SystemCollector>
     <EventCollector Id="EC_LowVolume" Name="LowVolume">
-      <BufferSize Value="16"/>
+      <BufferSize Value="128"/>
       <Buffers Value="32"/>
     </EventCollector>
     <EventCollector Id="EC_HighVolume" Name="High Volume">
-      <BufferSize Value="128"/>
+      <BufferSize Value="1024"/>
       <Buffers Value="64"/>
     </EventCollector>
 
@@ -19,8 +19,11 @@
         <Keyword Value="CpuConfig"/>
         <Keyword Value="Loader"/>
         <Keyword Value="ProcessThread"/>
-        <Keyword Value="CSwitch"/>
+        <Keyword Value="SampledProfile"/>
       </Keywords>
+      <Stacks>
+        <Stack Value="SampledProfile"/>
+      </Stacks>
     </SystemProvider>
 
     <EventProvider Id="EP_MsQuicEtw" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" />
@@ -44,6 +47,11 @@
         <Keyword Value="0x80000800"/>
       </Keywords>
     </EventProvider>
+    <EventProvider Id="EP_MsQuicEtw_NoLogs" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true">
+      <Keywords>
+        <Keyword Value="0xE0000800"/>
+      </Keywords>
+    </EventProvider>
 
     <EventProvider Id="EP_TcpIpEtw" Name="Microsoft-Windows-TCPIP" NonPagedMemory="true" />
     <EventProvider Id="EP_WinSockEtw" Name="Microsoft-Windows-Winsock-AFD" NonPagedMemory="true" />
@@ -57,17 +65,31 @@
         <Keyword Value="0x7FFFFF"/>
       </Keywords>
     </EventProvider>
+    <EventProvider Id="EP_BCryptWpp" Name="A74EFE00-14BE-4ef9-9DA9-1484D5473302" Level="5">
+      <Keywords>
+        <Keyword Value="0xFFFFFFFF"/>
+      </Keywords>
+    </EventProvider>
     <EventProvider Id="EP_TaefEtw" Name="40c4df8b-00a9-5159-62bc-9bbc5ee78a29" Level="4">
       <Keywords>
         <Keyword Value="0xFFFF"/>
       </Keywords>
     </EventProvider>
 
+    <Profile Id="Stacks.Light.File" Name="Stacks" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
+      <Collectors>
+        <SystemCollectorId Value="SC_HighVolume">
+          <SystemProviderId Value="SP_SystemThreadExecution" />
+        </SystemCollectorId>
+      </Collectors>
+    </Profile>
+    <Profile Id="Stacks.Light.Memory" Base="Stacks.Light.File" Name="Stacks" Description="CPU Stacks" LoggingMode="Memory" DetailLevel="Light"/>
+
     <Profile Id="Performance.Light.File" Name="Performance" Description="Perf related MsQuic ETW Events" LoggingMode="File" DetailLevel="Light">
       <Collectors>
         <EventCollectorId Value="EC_HighVolume">
           <EventProviders>
-            <EventProviderId Value="EP_MsQuicEtw" />
+            <EventProviderId Value="EP_MsQuicEtw_NoLogs" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
@@ -81,7 +103,7 @@
         </SystemCollectorId>
         <EventCollectorId Value="EC_HighVolume">
           <EventProviders>
-            <EventProviderId Value="EP_MsQuicEtw" />
+            <EventProviderId Value="EP_MsQuicEtw_NoLogs" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
@@ -121,8 +143,22 @@
     </Profile>
     <Profile Id="Scheduling.Verbose.Memory" Base="Scheduling.Verbose.File" Name="Scheduling" Description="Used for debugging scheduling" LoggingMode="Memory" DetailLevel="Verbose"/>
 
+    <Profile Id="Datapath.Light.File" Name="Datapath" Description="Used for debugging datapath" LoggingMode="File" DetailLevel="Light">
+      <Collectors>
+        <EventCollectorId Value="EC_HighVolume">
+          <EventProviders>
+            <EventProviderId Value="EP_MsQuicEtw_LowVolume_DataPath" />
+          </EventProviders>
+        </EventCollectorId>
+      </Collectors>
+    </Profile>
+    <Profile Id="Datapath.Light.Memory" Base="Datapath.Light.File" Name="Datapath" Description="Used for debugging datapath" LoggingMode="Memory" DetailLevel="Light"/>
+
     <Profile Id="Datapath.Verbose.File" Name="Datapath" Description="Used for debugging datapath" LoggingMode="File" DetailLevel="Verbose">
       <Collectors>
+        <SystemCollectorId Value="SC_HighVolume">
+          <SystemProviderId Value="SP_SystemThreadExecution" />
+        </SystemCollectorId>
         <EventCollectorId Value="EC_HighVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw_LowVolume_DataPath" />
