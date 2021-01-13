@@ -25,7 +25,10 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-if ($Branch.StartsWith("refs/heads/")) {
+$PotentialPR = $Env:SYSTEM_PULLREQUEST_TARGETBRANCH
+if (![string]::IsNullOrWhiteSpace($PotentialPR)) {
+    $BranchName = $PotentialPR.Substring(11);
+} elseif ($Branch.StartsWith("refs/heads/")) {
     # Remove the 'refs/heads/' prefix.
     $BranchName = $Branch.Substring(11);
 } else {
