@@ -27,16 +27,16 @@ QuicStreamSetValidate(
         return; // No streams have been created.
     }
     QUIC_CONNECTION* Connection = QuicStreamSetGetConnection(StreamSet);
-    QUIC_HASHTABLE_ENUMERATOR Enumerator;
-    QUIC_HASHTABLE_ENTRY* Entry;
-    QuicHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
-    while ((Entry = QuicHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
-        const QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
-        QUIC_DBG_ASSERT(Stream->Type == QUIC_HANDLE_TYPE_STREAM);
-        QUIC_DBG_ASSERT(Stream->Connection == Connection);
+    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
+    CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
+    while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
+        const QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+        CXPLAT_DBG_ASSERT(Stream->Type == QUIC_HANDLE_TYPE_STREAM);
+        CXPLAT_DBG_ASSERT(Stream->Connection == Connection);
         UNREFERENCED_PARAMETER(Stream);
     }
-    QuicHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
+    CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
 }
 #else
 #define QuicStreamSetValidate(StreamSet)
@@ -48,10 +48,10 @@ QuicStreamSetInitialize(
     _Inout_ QUIC_STREAM_SET* StreamSet
     )
 {
-    QuicListInitializeHead(&StreamSet->ClosedStreams);
+    CxPlatListInitializeHead(&StreamSet->ClosedStreams);
 #if DEBUG
-    QuicListInitializeHead(&StreamSet->AllStreams);
-    QuicDispatchLockInitialize(&StreamSet->AllStreamsLock);
+    CxPlatListInitializeHead(&StreamSet->AllStreams);
+    CxPlatDispatchLockInitialize(&StreamSet->AllStreamsLock);
 #endif
 }
 
@@ -62,10 +62,10 @@ QuicStreamSetUninitialize(
     )
 {
     if (StreamSet->StreamTable != NULL) {
-        QuicHashtableUninitialize(StreamSet->StreamTable);
+        CxPlatHashtableUninitialize(StreamSet->StreamTable);
     }
 #if DEBUG
-    QuicDispatchLockUninitialize(&StreamSet->AllStreamsLock);
+    CxPlatDispatchLockUninitialize(&StreamSet->AllStreamsLock);
 #endif
 }
 
@@ -79,14 +79,14 @@ QuicStreamSetTraceRundown(
         return; // No streams have been created yet.
     }
 
-    QUIC_HASHTABLE_ENUMERATOR Enumerator;
-    QUIC_HASHTABLE_ENTRY* Entry;
-    QuicHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
-    while ((Entry = QuicHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
+    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
+    CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
+    while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
         QuicStreamTraceRundown(
-            QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry));
+            CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry));
     }
-    QuicHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
+    CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -101,7 +101,7 @@ QuicStreamSetInsertStream(
         //
         // Lazily initialize the hash table.
         //
-        if (!QuicHashtableInitialize(&StreamSet->StreamTable, QUIC_HASH_MIN_SIZE)) {
+        if (!CxPlatHashtableInitialize(&StreamSet->StreamTable, CXPLAT_HASH_MIN_SIZE)) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
@@ -110,7 +110,7 @@ QuicStreamSetInsertStream(
             return FALSE;
         }
     }
-    QuicHashtableInsert(
+    CxPlatHashtableInsert(
         StreamSet->StreamTable,
         &Stream->TableEntry,
         (uint32_t)Stream->ID,
@@ -130,16 +130,16 @@ QuicStreamSetLookupStream(
         return NULL; // No streams have been created yet.
     }
 
-    QUIC_HASHTABLE_LOOKUP_CONTEXT Context;
-    QUIC_HASHTABLE_ENTRY* Entry =
-        QuicHashtableLookup(StreamSet->StreamTable, (uint32_t)ID, &Context);
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+    CXPLAT_HASHTABLE_ENTRY* Entry =
+        CxPlatHashtableLookup(StreamSet->StreamTable, (uint32_t)ID, &Context);
     while (Entry != NULL) {
         QUIC_STREAM* Stream =
-            QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+            CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
         if (Stream->ID == ID) {
             return Stream;
         }
-        Entry = QuicHashtableLookupNext(StreamSet->StreamTable, &Context);
+        Entry = CxPlatHashtableLookupNext(StreamSet->StreamTable, &Context);
     }
     return NULL;
 }
@@ -154,11 +154,11 @@ QuicStreamSetShutdown(
         return; // No streams have been created.
     }
 
-    QUIC_HASHTABLE_ENUMERATOR Enumerator;
-    QUIC_HASHTABLE_ENTRY* Entry;
-    QuicHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
-    while ((Entry = QuicHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
-        QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
+    CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
+    while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
+        QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
 
         QuicStreamShutdown(
             Stream,
@@ -167,7 +167,7 @@ QuicStreamSetShutdown(
             QUIC_STREAM_SHUTDOWN_SILENT,
             0);
     }
-    QuicHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
+    CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -180,13 +180,13 @@ QuicStreamSetReleaseStream(
     //
     // Remove the stream from the list of open streams.
     //
-    QuicHashtableRemove(StreamSet->StreamTable, &Stream->TableEntry, NULL);
-    QuicListInsertTail(&StreamSet->ClosedStreams, &Stream->ClosedLink);
+    CxPlatHashtableRemove(StreamSet->StreamTable, &Stream->TableEntry, NULL);
+    CxPlatListInsertTail(&StreamSet->ClosedStreams, &Stream->ClosedLink);
 
     uint8_t Flags = (uint8_t)(Stream->ID & STREAM_ID_MASK);
     QUIC_STREAM_TYPE_INFO* Info = &StreamSet->Types[Flags];
 
-    QUIC_DBG_ASSERT(Info->CurrentStreamCount != 0);
+    CXPLAT_DBG_ASSERT(Info->CurrentStreamCount != 0);
     Info->CurrentStreamCount--;
 
     if ((Flags & STREAM_ID_FLAG_IS_SERVER) == QuicConnIsServer(Stream->Connection)) {
@@ -216,10 +216,10 @@ QuicStreamSetDrainClosedStreams(
     _Inout_ QUIC_STREAM_SET* StreamSet
     )
 {
-    while (!QuicListIsEmpty(&StreamSet->ClosedStreams)) {
+    while (!CxPlatListIsEmpty(&StreamSet->ClosedStreams)) {
         QUIC_STREAM* Stream =
-            QUIC_CONTAINING_RECORD(
-                    QuicListRemoveHead(&StreamSet->ClosedStreams),
+            CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&StreamSet->ClosedStreams),
                     QUIC_STREAM,
                     ClosedLink);
         Stream->ClosedLink.Flink = NULL;
@@ -282,11 +282,11 @@ QuicStreamSetInitializeTransportParameters(
     }
 
     if (StreamSet->StreamTable != NULL) {
-        QUIC_HASHTABLE_ENUMERATOR Enumerator;
-        QUIC_HASHTABLE_ENTRY* Entry;
-        QuicHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
-        while ((Entry = QuicHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
-            QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+        CXPLAT_HASHTABLE_ENTRY* Entry;
+        CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
+        while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
+            QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
 
             uint8_t FlowBlockedFlagsToRemove = 0;
 
@@ -317,7 +317,7 @@ QuicStreamSetInitializeTransportParameters(
                 MightBeUnblocked = TRUE;
             }
         }
-        QuicHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
+        CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
     }
 
     if (UpdateAvailableStreams) {
@@ -374,11 +374,11 @@ QuicStreamSetUpdateMaxStreams(
         BOOLEAN FlushSend = FALSE;
         if (StreamSet->StreamTable != NULL) {
 
-            QUIC_HASHTABLE_ENUMERATOR Enumerator;
-            QUIC_HASHTABLE_ENTRY* Entry;
-            QuicHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
-            while ((Entry = QuicHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
-                QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+            CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+            CXPLAT_HASHTABLE_ENTRY* Entry;
+            CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
+            while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
+                QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
 
                 uint64_t Count = (Stream->ID >> 2) + 1;
 
@@ -390,7 +390,7 @@ QuicStreamSetUpdateMaxStreams(
                         Stream, QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
                 }
             }
-            QuicHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
+            CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
         }
 
         Info->MaxTotalStreamCount = MaxStreams;
@@ -468,11 +468,11 @@ QuicStreamSetGetFlowControlSummary(
     *SendWindow = 0;
 
     if (StreamSet->StreamTable != NULL) {
-        QUIC_HASHTABLE_ENUMERATOR Enumerator;
-        QUIC_HASHTABLE_ENTRY* Entry;
-        QuicHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
-        while ((Entry = QuicHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
-            QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+        CXPLAT_HASHTABLE_ENTRY* Entry;
+        CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
+        while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
+            QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
 
             if ((UINT64_MAX - *FcAvailable) >= (Stream->MaxAllowedSendOffset - Stream->NextSendOffset)) {
                 *FcAvailable += Stream->MaxAllowedSendOffset - Stream->NextSendOffset;
@@ -486,7 +486,7 @@ QuicStreamSetGetFlowControlSummary(
                 *SendWindow = UINT64_MAX;
             }
         }
-        QuicHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
+        CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
     }
 }
 
@@ -668,7 +668,7 @@ QuicStreamSetGetStreamForPeer(
             } else if (Stream->Flags.HandleClosed) {
                 Stream = NULL; // App accepted but immediately closed the stream.
             } else {
-                QUIC_FRE_ASSERTMSG(
+                CXPLAT_FRE_ASSERTMSG(
                     Stream->ClientCallbackHandler != NULL,
                     "App MUST set callback handler!");
             }

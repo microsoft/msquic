@@ -45,14 +45,14 @@ struct QuicAddr
     }
 
     QuicAddr() {
-        QuicZeroMemory(this, sizeof(*this));
+        CxPlatZeroMemory(this, sizeof(*this));
     }
 
     void Resolve(QUIC_ADDRESS_FAMILY af, const char* hostname) {
         UNREFERENCED_PARAMETER(af);
-        QUIC_DATAPATH* Datapath = nullptr;
+        CXPLAT_DATAPATH* Datapath = nullptr;
         if (QUIC_FAILED(
-            QuicDataPathInitialize(
+            CxPlatDataPathInitialize(
                 0,
                 NULL,
                 NULL,
@@ -60,50 +60,50 @@ struct QuicAddr
             GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
         }
         if (QUIC_FAILED(
-            QuicDataPathResolveAddress(
+            CxPlatDataPathResolveAddress(
                 Datapath,
                 hostname,
                 &SockAddr))) {
             GTEST_FATAL_FAILURE_("Failed to resolve IP address.");
         }
-        QuicDataPathUninitialize(Datapath);
+        CxPlatDataPathUninitialize(Datapath);
     }
 };
 
 struct UdpRecvContext {
     QUIC_ADDR ServerAddress;
-    QUIC_EVENT ClientCompletion;
+    CXPLAT_EVENT ClientCompletion;
 };
 
 struct TcpClientContext {
     bool Connected : 1;
     bool Disconnected : 1;
     bool Received : 1;
-    QUIC_EVENT ConnectEvent;
-    QUIC_EVENT DisconnectEvent;
-    QUIC_EVENT ReceiveEvent;
+    CXPLAT_EVENT ConnectEvent;
+    CXPLAT_EVENT DisconnectEvent;
+    CXPLAT_EVENT ReceiveEvent;
     TcpClientContext() : Connected(false), Disconnected(false), Received(false) {
-        QuicEventInitialize(&ConnectEvent, FALSE, FALSE);
-        QuicEventInitialize(&DisconnectEvent, FALSE, FALSE);
-        QuicEventInitialize(&ReceiveEvent, FALSE, FALSE);
+        CxPlatEventInitialize(&ConnectEvent, FALSE, FALSE);
+        CxPlatEventInitialize(&DisconnectEvent, FALSE, FALSE);
+        CxPlatEventInitialize(&ReceiveEvent, FALSE, FALSE);
     }
     ~TcpClientContext() {
-        QuicEventUninitialize(ConnectEvent);
-        QuicEventUninitialize(DisconnectEvent);
-        QuicEventUninitialize(ReceiveEvent);
+        CxPlatEventUninitialize(ConnectEvent);
+        CxPlatEventUninitialize(DisconnectEvent);
+        CxPlatEventUninitialize(ReceiveEvent);
     }
 };
 
 struct TcpListenerContext {
-    QUIC_SOCKET* Server;
+    CXPLAT_SOCKET* Server;
     TcpClientContext ServerContext;
     bool Accepted : 1;
-    QUIC_EVENT AcceptEvent;
+    CXPLAT_EVENT AcceptEvent;
     TcpListenerContext() : Server(nullptr), Accepted(false) {
-        QuicEventInitialize(&AcceptEvent, FALSE, FALSE);
+        CxPlatEventInitialize(&AcceptEvent, FALSE, FALSE);
     }
     ~TcpListenerContext() {
-        QuicEventUninitialize(AcceptEvent);
+        CxPlatEventUninitialize(AcceptEvent);
     }
 };
 
@@ -170,32 +170,32 @@ protected:
         //
         // Initialize a semi-random base port number.
         //
-        NextPort = 50000 + (QuicCurThreadID() % 10000) + (rand() % 5000);
+        NextPort = 50000 + (CxPlatCurThreadID() % 10000) + (rand() % 5000);
 
         LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "localhost");
         LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "localhost");
 
-        ExpectedData = (char*)QUIC_ALLOC_NONPAGED(ExpectedDataSize, QUIC_POOL_TEST);
+        ExpectedData = (char*)CXPLAT_ALLOC_NONPAGED(ExpectedDataSize, QUIC_POOL_TEST);
         ASSERT_NE(ExpectedData, nullptr);
     }
 
     static void TearDownTestSuite()
     {
-        QUIC_FREE(ExpectedData, QUIC_POOL_TEST);
+        CXPLAT_FREE(ExpectedData, QUIC_POOL_TEST);
     }
 
     static void
     EmptyReceiveCallback(
-        _In_ QUIC_SOCKET* /* Socket */,
+        _In_ CXPLAT_SOCKET* /* Socket */,
         _In_ void* /* RecvContext */,
-        _In_ QUIC_RECV_DATA* /* RecvDataChain */
+        _In_ CXPLAT_RECV_DATA* /* RecvDataChain */
         )
     {
     }
 
     static void
     EmptyUnreachableCallback(
-        _In_ QUIC_SOCKET* /* Socket */,
+        _In_ CXPLAT_SOCKET* /* Socket */,
         _In_ void* /* Context */,
         _In_ const QUIC_ADDR* /* RemoteAddress */
         )
@@ -204,15 +204,15 @@ protected:
 
     static void
     UdpDataRecvCallback(
-        _In_ QUIC_SOCKET* Socket,
+        _In_ CXPLAT_SOCKET* Socket,
         _In_ void* Context,
-        _In_ QUIC_RECV_DATA* RecvDataChain
+        _In_ CXPLAT_RECV_DATA* RecvDataChain
         )
     {
         UdpRecvContext* RecvContext = (UdpRecvContext*)Context;
         ASSERT_NE(nullptr, RecvContext);
 
-        QUIC_RECV_DATA* RecvData = RecvDataChain;
+        CXPLAT_RECV_DATA* RecvData = RecvDataChain;
 
         while (RecvData != NULL) {
             ASSERT_EQ(RecvData->BufferLength, ExpectedDataSize);
@@ -221,17 +221,17 @@ protected:
             if (RecvData->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->ServerAddress.Ipv4.sin_port) {
 
                 auto ServerSendContext =
-                    QuicSendDataAlloc(Socket, QUIC_ECN_NON_ECT, 0);
+                    CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, 0);
                 ASSERT_NE(nullptr, ServerSendContext);
 
                 auto ServerDatagram =
-                    QuicSendDataAllocBuffer(ServerSendContext, ExpectedDataSize);
+                    CxPlatSendDataAllocBuffer(ServerSendContext, ExpectedDataSize);
                 ASSERT_NE(nullptr, ServerDatagram);
 
                 memcpy(ServerDatagram->Buffer, RecvData->Buffer, RecvData->BufferLength);
 
                 VERIFY_QUIC_SUCCESS(
-                    QuicSocketSend(
+                    CxPlatSocketSend(
                         Socket,
                         &RecvData->Tuple->LocalAddress,
                         &RecvData->Tuple->RemoteAddress,
@@ -239,26 +239,26 @@ protected:
                     ));
 
             } else {
-                QuicEventSet(RecvContext->ClientCompletion);
+                CxPlatEventSet(RecvContext->ClientCompletion);
             }
 
             RecvData = RecvData->Next;
         }
 
-        QuicRecvDataReturn(RecvDataChain);
+        CxPlatRecvDataReturn(RecvDataChain);
     }
 
     static void
     UdpDataRecvCallbackECT0(
-        _In_ QUIC_SOCKET* Socket,
+        _In_ CXPLAT_SOCKET* Socket,
         _In_ void* Context,
-        _In_ QUIC_RECV_DATA* RecvDataChain
+        _In_ CXPLAT_RECV_DATA* RecvDataChain
         )
     {
         UdpRecvContext* RecvContext = (UdpRecvContext*)Context;
         ASSERT_NE(nullptr, RecvContext);
 
-        QUIC_RECV_DATA* RecvData = RecvDataChain;
+        CXPLAT_RECV_DATA* RecvData = RecvDataChain;
 
         while (RecvData != NULL) {
             ASSERT_EQ(RecvData->BufferLength, ExpectedDataSize);
@@ -266,21 +266,21 @@ protected:
 
             if (RecvData->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->ServerAddress.Ipv4.sin_port) {
 
-                QUIC_ECN_TYPE ecn = (QUIC_ECN_TYPE)RecvData->TypeOfService;
+                CXPLAT_ECN_TYPE ecn = (CXPLAT_ECN_TYPE)RecvData->TypeOfService;
 
                 auto ServerSendContext =
-                    QuicSendDataAlloc(Socket, QUIC_ECN_ECT_0, 0);
+                    CxPlatSendDataAlloc(Socket, CXPLAT_ECN_ECT_0, 0);
                 ASSERT_NE(nullptr, ServerSendContext);
 
                 auto ServerDatagram =
-                    QuicSendDataAllocBuffer(ServerSendContext, ExpectedDataSize);
+                    CxPlatSendDataAllocBuffer(ServerSendContext, ExpectedDataSize);
                 ASSERT_NE(nullptr, ServerDatagram);
-                ASSERT_EQ(ecn, QUIC_ECN_ECT_0);
+                ASSERT_EQ(ecn, CXPLAT_ECN_ECT_0);
 
                 memcpy(ServerDatagram->Buffer, RecvData->Buffer, RecvData->BufferLength);
 
                 VERIFY_QUIC_SUCCESS(
-                    QuicSocketSend(
+                    CxPlatSocketSend(
                         Socket,
                         &RecvData->Tuple->LocalAddress,
                         &RecvData->Tuple->RemoteAddress,
@@ -288,20 +288,20 @@ protected:
                     ));
 
             } else {
-                QuicEventSet(RecvContext->ClientCompletion);
+                CxPlatEventSet(RecvContext->ClientCompletion);
             }
 
             RecvData = RecvData->Next;
         }
 
-        QuicRecvDataReturn(RecvDataChain);
+        CxPlatRecvDataReturn(RecvDataChain);
     }
 
     static void
     EmptyAcceptCallback(
-        _In_ QUIC_SOCKET* /* ListenerSocket */,
+        _In_ CXPLAT_SOCKET* /* ListenerSocket */,
         _In_ void* /* ListenerContext */,
-        _In_ QUIC_SOCKET* /* ClientSocket */,
+        _In_ CXPLAT_SOCKET* /* ClientSocket */,
         _Out_ void** /* ClientContext */
         )
     {
@@ -309,7 +309,7 @@ protected:
 
     static void
     EmptyConnectCallback(
-        _In_ QUIC_SOCKET* /* Socket */,
+        _In_ CXPLAT_SOCKET* /* Socket */,
         _In_ void* /* Context */,
         _In_ BOOLEAN /* Connected */
         )
@@ -318,9 +318,9 @@ protected:
 
     static void
     TcpAcceptCallback(
-        _In_ QUIC_SOCKET* /* ListenerSocket */,
+        _In_ CXPLAT_SOCKET* /* ListenerSocket */,
         _In_ void* Context,
-        _In_ QUIC_SOCKET* ClientSocket,
+        _In_ CXPLAT_SOCKET* ClientSocket,
         _Out_ void** ClientContext
         )
     {
@@ -328,12 +328,12 @@ protected:
         ListenerContext->Server = ClientSocket;
         *ClientContext = &ListenerContext->ServerContext;
         ListenerContext->Accepted = true;
-        QuicEventSet(ListenerContext->AcceptEvent);
+        CxPlatEventSet(ListenerContext->AcceptEvent);
     }
 
     static void
     TcpConnectCallback(
-        _In_ QUIC_SOCKET* /* Socket */,
+        _In_ CXPLAT_SOCKET* /* Socket */,
         _In_ void* Context,
         _In_ BOOLEAN Connected
         )
@@ -341,50 +341,50 @@ protected:
         TcpClientContext* ClientContext = (TcpClientContext*)Context;
         if (Connected) {
             ClientContext->Connected = true;
-            QuicEventSet(ClientContext->ConnectEvent);
+            CxPlatEventSet(ClientContext->ConnectEvent);
         } else {
             ClientContext->Disconnected = true;
-            QuicEventSet(ClientContext->DisconnectEvent);
+            CxPlatEventSet(ClientContext->DisconnectEvent);
         }
     }
 
     static void
     TcpDataRecvCallback(
-        _In_ QUIC_SOCKET* /* Socket */,
+        _In_ CXPLAT_SOCKET* /* Socket */,
         _In_ void* Context,
-        _In_ QUIC_RECV_DATA* RecvDataChain
+        _In_ CXPLAT_RECV_DATA* RecvDataChain
         )
     {
         if (Context) {
             TcpClientContext* ClientContext = (TcpClientContext*)Context;
             ClientContext->Received = true;
-            QuicEventSet(ClientContext->ReceiveEvent);
+            CxPlatEventSet(ClientContext->ReceiveEvent);
         }
-        QuicRecvDataReturn(RecvDataChain);
+        CxPlatRecvDataReturn(RecvDataChain);
     }
 
-    const QUIC_UDP_DATAPATH_CALLBACKS EmptyUdpCallbacks = {
+    const CXPLAT_UDP_DATAPATH_CALLBACKS EmptyUdpCallbacks = {
         EmptyReceiveCallback,
         EmptyUnreachableCallback,
     };
 
-    const QUIC_UDP_DATAPATH_CALLBACKS UdpRecvCallbacks = {
+    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpRecvCallbacks = {
         UdpDataRecvCallback,
         EmptyUnreachableCallback,
     };
 
-    const QUIC_UDP_DATAPATH_CALLBACKS UdpRecvECT0Callbacks = {
+    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpRecvECT0Callbacks = {
         UdpDataRecvCallbackECT0,
         EmptyUnreachableCallback,
     };
 
-    const QUIC_TCP_DATAPATH_CALLBACKS EmptyTcpCallbacks = {
+    const CXPLAT_TCP_DATAPATH_CALLBACKS EmptyTcpCallbacks = {
         EmptyAcceptCallback,
         EmptyConnectCallback,
         EmptyReceiveCallback,
     };
 
-    const QUIC_TCP_DATAPATH_CALLBACKS TcpRecvCallbacks = {
+    const CXPLAT_TCP_DATAPATH_CALLBACKS TcpRecvCallbacks = {
         TcpAcceptCallback,
         TcpConnectCallback,
         TcpDataRecvCallback,
@@ -397,69 +397,69 @@ QuicAddr DataPathTest::LocalIPv6;
 
 TEST_F(DataPathTest, Initialize)
 {
-    QUIC_DATAPATH* Datapath = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             nullptr,
             nullptr,
             &Datapath));
     ASSERT_NE(Datapath, nullptr);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             &EmptyUdpCallbacks,
             nullptr,
             &Datapath));
     ASSERT_NE(Datapath, nullptr);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             nullptr,
             &EmptyTcpCallbacks,
             &Datapath));
     ASSERT_NE(Datapath, nullptr);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 }
 
 TEST_F(DataPathTest, InitializeInvalid)
 {
-    const QUIC_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks1 = {
+    const CXPLAT_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks1 = {
         nullptr,
         EmptyUnreachableCallback,
     };
-    const QUIC_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks2 = {
+    const CXPLAT_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks2 = {
         EmptyReceiveCallback,
         nullptr,
     };
 
     ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             nullptr,
             nullptr,
             nullptr));
 
-    QUIC_DATAPATH* Datapath = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
     ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             &InvalidUdpCallbacks1,
             nullptr,
             &Datapath));
     ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER,
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             &InvalidUdpCallbacks2,
             nullptr,
@@ -468,11 +468,11 @@ TEST_F(DataPathTest, InitializeInvalid)
 
 TEST_F(DataPathTest, UdpBind)
 {
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_SOCKET* Socket = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    CXPLAT_SOCKET* Socket = nullptr;
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             &EmptyUdpCallbacks,
             nullptr,
@@ -480,7 +480,7 @@ TEST_F(DataPathTest, UdpBind)
     ASSERT_NE(Datapath, nullptr);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreateUdp(
+        CxPlatSocketCreateUdp(
             Datapath,
             nullptr,
             nullptr,
@@ -489,23 +489,23 @@ TEST_F(DataPathTest, UdpBind)
     ASSERT_NE(nullptr, Socket);
 
     QUIC_ADDR Address;
-    QuicSocketGetLocalAddress(Socket, &Address);
+    CxPlatSocketGetLocalAddress(Socket, &Address);
     ASSERT_NE(Address.Ipv4.sin_port, (uint16_t)0);
 
-    QuicSocketDelete(Socket);
+    CxPlatSocketDelete(Socket);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 }
 
 TEST_F(DataPathTest, UdpRebind)
 {
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_SOCKET* binding1 = nullptr;
-    QUIC_SOCKET* binding2 = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    CXPLAT_SOCKET* binding1 = nullptr;
+    CXPLAT_SOCKET* binding2 = nullptr;
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             &EmptyUdpCallbacks,
             nullptr,
@@ -513,7 +513,7 @@ TEST_F(DataPathTest, UdpRebind)
     ASSERT_NE(nullptr, Datapath);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreateUdp(
+        CxPlatSocketCreateUdp(
             Datapath,
             nullptr,
             nullptr,
@@ -522,11 +522,11 @@ TEST_F(DataPathTest, UdpRebind)
     ASSERT_NE(nullptr, binding1);
 
     QUIC_ADDR Address1;
-    QuicSocketGetLocalAddress(binding1, &Address1);
+    CxPlatSocketGetLocalAddress(binding1, &Address1);
     ASSERT_NE(Address1.Ipv4.sin_port, (uint16_t)0);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreateUdp(
+        CxPlatSocketCreateUdp(
             Datapath,
             nullptr,
             nullptr,
@@ -535,29 +535,29 @@ TEST_F(DataPathTest, UdpRebind)
     ASSERT_NE(nullptr, binding2);
 
     QUIC_ADDR Address2;
-    QuicSocketGetLocalAddress(binding2, &Address2);
+    CxPlatSocketGetLocalAddress(binding2, &Address2);
     ASSERT_NE(Address2.Ipv4.sin_port, (uint16_t)0);
 
-    QuicSocketDelete(binding1);
-    QuicSocketDelete(binding2);
+    CxPlatSocketDelete(binding1);
+    CxPlatSocketDelete(binding2);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 }
 
 TEST_P(DataPathTest, UdpData)
 {
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_SOCKET* server = nullptr;
-    QUIC_SOCKET* client = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    CXPLAT_SOCKET* server = nullptr;
+    CXPLAT_SOCKET* client = nullptr;
     auto serverAddress = GetNewLocalAddr();
 
     UdpRecvContext RecvContext = {};
 
-    QuicEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
+    CxPlatEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             &UdpRecvCallbacks,
             nullptr,
@@ -568,7 +568,7 @@ TEST_P(DataPathTest, UdpData)
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
-            QuicSocketCreateUdp(
+            CxPlatSocketCreateUdp(
                 Datapath,
                 &serverAddress.SockAddr,
                 nullptr,
@@ -584,12 +584,12 @@ TEST_P(DataPathTest, UdpData)
     }
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, server);
-    QuicSocketGetLocalAddress(server, &RecvContext.ServerAddress);
+    CxPlatSocketGetLocalAddress(server, &RecvContext.ServerAddress);
     ASSERT_NE(RecvContext.ServerAddress.Ipv4.sin_port, (uint16_t)0);
     serverAddress.SetPort(RecvContext.ServerAddress.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreateUdp(
+        CxPlatSocketCreateUdp(
             Datapath,
             nullptr,
             &serverAddress.SockAddr,
@@ -598,49 +598,49 @@ TEST_P(DataPathTest, UdpData)
     ASSERT_NE(nullptr, client);
 
     auto ClientSendContext =
-        QuicSendDataAlloc(client, QUIC_ECN_NON_ECT, 0);
+        CxPlatSendDataAlloc(client, CXPLAT_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     auto ClientDatagram =
-        QuicSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
+        CxPlatSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientDatagram);
 
     memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
 
     QUIC_ADDR ClientAddress;
-    QuicSocketGetLocalAddress(client, &ClientAddress);
+    CxPlatSocketGetLocalAddress(client, &ClientAddress);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketSend(
+        CxPlatSocketSend(
             client,
             &ClientAddress,
             &serverAddress.SockAddr,
             ClientSendContext));
 
-    ASSERT_TRUE(QuicEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 
-    QuicSocketDelete(client);
-    QuicSocketDelete(server);
+    CxPlatSocketDelete(client);
+    CxPlatSocketDelete(server);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 
-    QuicEventUninitialize(RecvContext.ClientCompletion);
+    CxPlatEventUninitialize(RecvContext.ClientCompletion);
 }
 
 TEST_P(DataPathTest, UdpDataRebind)
 {
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_SOCKET* server = nullptr;
-    QUIC_SOCKET* client = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    CXPLAT_SOCKET* server = nullptr;
+    CXPLAT_SOCKET* client = nullptr;
     auto serverAddress = GetNewLocalAddr();
 
     UdpRecvContext RecvContext = {};
 
-    QuicEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
+    CxPlatEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             &UdpRecvCallbacks,
             nullptr,
@@ -651,7 +651,7 @@ TEST_P(DataPathTest, UdpDataRebind)
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
-            QuicSocketCreateUdp(
+            CxPlatSocketCreateUdp(
                 Datapath,
                 &serverAddress.SockAddr,
                 nullptr,
@@ -667,12 +667,12 @@ TEST_P(DataPathTest, UdpDataRebind)
     }
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, server);
-    QuicSocketGetLocalAddress(server, &RecvContext.ServerAddress);
+    CxPlatSocketGetLocalAddress(server, &RecvContext.ServerAddress);
     ASSERT_NE(RecvContext.ServerAddress.Ipv4.sin_port, (uint16_t)0);
     serverAddress.SetPort(RecvContext.ServerAddress.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreateUdp(
+        CxPlatSocketCreateUdp(
             Datapath,
             nullptr,
             &serverAddress.SockAddr,
@@ -681,33 +681,33 @@ TEST_P(DataPathTest, UdpDataRebind)
     ASSERT_NE(nullptr, client);
 
     auto ClientSendContext =
-        QuicSendDataAlloc(client, QUIC_ECN_NON_ECT, 0);
+        CxPlatSendDataAlloc(client, CXPLAT_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     auto ClientDatagram =
-        QuicSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
+        CxPlatSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientDatagram);
 
     memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
 
     QUIC_ADDR ClientAddress;
-    QuicSocketGetLocalAddress(client, &ClientAddress);
+    CxPlatSocketGetLocalAddress(client, &ClientAddress);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketSend(
+        CxPlatSocketSend(
             client,
             &ClientAddress,
             &serverAddress.SockAddr,
             ClientSendContext));
 
-    ASSERT_TRUE(QuicEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 
-    QuicSocketDelete(client);
+    CxPlatSocketDelete(client);
     client = nullptr;
-    QuicEventReset(RecvContext.ClientCompletion);
+    CxPlatEventReset(RecvContext.ClientCompletion);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreateUdp(
+        CxPlatSocketCreateUdp(
             Datapath,
             nullptr,
             &serverAddress.SockAddr,
@@ -716,48 +716,48 @@ TEST_P(DataPathTest, UdpDataRebind)
     ASSERT_NE(nullptr, client);
 
     ClientSendContext =
-        QuicSendDataAlloc(client, QUIC_ECN_NON_ECT, 0);
+        CxPlatSendDataAlloc(client, CXPLAT_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     ClientDatagram =
-        QuicSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
+        CxPlatSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientDatagram);
 
     memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
 
-    QuicSocketGetLocalAddress(client, &ClientAddress);
+    CxPlatSocketGetLocalAddress(client, &ClientAddress);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketSend(
+        CxPlatSocketSend(
             client,
             &ClientAddress,
             &serverAddress.SockAddr,
             ClientSendContext));
 
-    ASSERT_TRUE(QuicEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 
-    QuicSocketDelete(client);
-    QuicSocketDelete(server);
+    CxPlatSocketDelete(client);
+    CxPlatSocketDelete(server);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 
-    QuicEventUninitialize(RecvContext.ClientCompletion);
+    CxPlatEventUninitialize(RecvContext.ClientCompletion);
 }
 
 TEST_P(DataPathTest, UdpDataECT0)
 {
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_SOCKET* server = nullptr;
-    QUIC_SOCKET* client = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    CXPLAT_SOCKET* server = nullptr;
+    CXPLAT_SOCKET* client = nullptr;
     auto serverAddress = GetNewLocalAddr();
 
     UdpRecvContext RecvContext = {};
 
-    QuicEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
+    CxPlatEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             &UdpRecvECT0Callbacks,
             nullptr,
@@ -768,7 +768,7 @@ TEST_P(DataPathTest, UdpDataECT0)
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
-            QuicSocketCreateUdp(
+            CxPlatSocketCreateUdp(
                 Datapath,
                 &serverAddress.SockAddr,
                 nullptr,
@@ -784,12 +784,12 @@ TEST_P(DataPathTest, UdpDataECT0)
     }
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, server);
-    QuicSocketGetLocalAddress(server, &RecvContext.ServerAddress);
+    CxPlatSocketGetLocalAddress(server, &RecvContext.ServerAddress);
     ASSERT_NE(RecvContext.ServerAddress.Ipv4.sin_port, (uint16_t)0);
     serverAddress.SetPort(RecvContext.ServerAddress.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreateUdp(
+        CxPlatSocketCreateUdp(
             Datapath,
             nullptr,
             &serverAddress.SockAddr,
@@ -798,45 +798,45 @@ TEST_P(DataPathTest, UdpDataECT0)
     ASSERT_NE(nullptr, client);
 
     auto ClientSendContext =
-        QuicSendDataAlloc(client, QUIC_ECN_ECT_0, 0);
+        CxPlatSendDataAlloc(client, CXPLAT_ECN_ECT_0, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     auto ClientDatagram =
-        QuicSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
+        CxPlatSendDataAllocBuffer(ClientSendContext, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientDatagram);
 
     memcpy(ClientDatagram->Buffer, ExpectedData, ExpectedDataSize);
 
     QUIC_ADDR ClientAddress;
-    QuicSocketGetLocalAddress(client, &ClientAddress);
+    CxPlatSocketGetLocalAddress(client, &ClientAddress);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketSend(
+        CxPlatSocketSend(
             client,
             &ClientAddress,
             &serverAddress.SockAddr,
             ClientSendContext));
 
-    ASSERT_TRUE(QuicEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 
-    QuicSocketDelete(client);
-    QuicSocketDelete(server);
+    CxPlatSocketDelete(client);
+    CxPlatSocketDelete(server);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 
-    QuicEventUninitialize(RecvContext.ClientCompletion);
+    CxPlatEventUninitialize(RecvContext.ClientCompletion);
 }
 
 TEST_F(DataPathTest, TcpListener)
 {
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_SOCKET* Socket = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    CXPLAT_SOCKET* Socket = nullptr;
 
     TcpListenerContext ListenerContext;
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             nullptr,
             &EmptyTcpCallbacks,
@@ -844,7 +844,7 @@ TEST_F(DataPathTest, TcpListener)
     ASSERT_NE(Datapath, nullptr);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreateTcpListener(
+        CxPlatSocketCreateTcpListener(
             Datapath,
             nullptr,
             &ListenerContext,
@@ -852,27 +852,27 @@ TEST_F(DataPathTest, TcpListener)
     ASSERT_NE(nullptr, Socket);
 
     QUIC_ADDR Address;
-    QuicSocketGetLocalAddress(Socket, &Address);
+    CxPlatSocketGetLocalAddress(Socket, &Address);
     ASSERT_NE(Address.Ipv4.sin_port, (uint16_t)0);
 
-    QuicSocketDelete(Socket);
+    CxPlatSocketDelete(Socket);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 }
 
 TEST_P(DataPathTest, TcpConnect)
 {
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_SOCKET* Listener = nullptr;
-    QUIC_SOCKET* Client = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    CXPLAT_SOCKET* Listener = nullptr;
+    CXPLAT_SOCKET* Client = nullptr;
     auto serverAddress = GetNewLocalAddr();
 
     TcpListenerContext ListenerContext;
     TcpClientContext ClientContext;
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             nullptr,
             &TcpRecvCallbacks,
@@ -883,7 +883,7 @@ TEST_P(DataPathTest, TcpConnect)
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
-            QuicSocketCreateTcpListener(
+            CxPlatSocketCreateTcpListener(
                 Datapath,
                 &serverAddress.SockAddr,
                 &ListenerContext,
@@ -900,12 +900,12 @@ TEST_P(DataPathTest, TcpConnect)
     ASSERT_NE(nullptr, Listener);
 
     QUIC_ADDR Address;
-    QuicSocketGetLocalAddress(Listener, &Address);
+    CxPlatSocketGetLocalAddress(Listener, &Address);
     ASSERT_NE(Address.Ipv4.sin_port, (uint16_t)0);
     serverAddress.SetPort(Address.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreateTcp(
+        CxPlatSocketCreateTcp(
             Datapath,
             nullptr,
             &serverAddress.SockAddr,
@@ -913,34 +913,34 @@ TEST_P(DataPathTest, TcpConnect)
             &Client));
     ASSERT_NE(nullptr, Client);
 
-    ASSERT_TRUE(QuicEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
-    ASSERT_TRUE(QuicEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
     ASSERT_NE(nullptr, ListenerContext.Server);
 
-    QuicSocketDelete(ListenerContext.Server);
+    CxPlatSocketDelete(ListenerContext.Server);
     ListenerContext.Server = nullptr;
 
-    ASSERT_TRUE(QuicEventWaitWithTimeout(ClientContext.DisconnectEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.DisconnectEvent, 100));
 
-    QuicSocketDelete(Client);
-    QuicSocketDelete(Listener);
+    CxPlatSocketDelete(Client);
+    CxPlatSocketDelete(Listener);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 }
 
 TEST_P(DataPathTest, TcpDisconnect)
 {
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_SOCKET* Listener = nullptr;
-    QUIC_SOCKET* Client = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    CXPLAT_SOCKET* Listener = nullptr;
+    CXPLAT_SOCKET* Client = nullptr;
     auto serverAddress = GetNewLocalAddr();
 
     TcpListenerContext ListenerContext;
     TcpClientContext ClientContext;
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             nullptr,
             &TcpRecvCallbacks,
@@ -951,7 +951,7 @@ TEST_P(DataPathTest, TcpDisconnect)
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
-            QuicSocketCreateTcpListener(
+            CxPlatSocketCreateTcpListener(
                 Datapath,
                 &serverAddress.SockAddr,
                 &ListenerContext,
@@ -968,12 +968,12 @@ TEST_P(DataPathTest, TcpDisconnect)
     ASSERT_NE(nullptr, Listener);
 
     QUIC_ADDR Address;
-    QuicSocketGetLocalAddress(Listener, &Address);
+    CxPlatSocketGetLocalAddress(Listener, &Address);
     ASSERT_NE(Address.Ipv4.sin_port, (uint16_t)0);
     serverAddress.SetPort(Address.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreateTcp(
+        CxPlatSocketCreateTcp(
             Datapath,
             nullptr,
             &serverAddress.SockAddr,
@@ -981,33 +981,33 @@ TEST_P(DataPathTest, TcpDisconnect)
             &Client));
     ASSERT_NE(nullptr, Client);
 
-    ASSERT_TRUE(QuicEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
-    ASSERT_TRUE(QuicEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
     ASSERT_NE(nullptr, ListenerContext.Server);
 
-    QuicSocketDelete(Client);
+    CxPlatSocketDelete(Client);
 
-    ASSERT_TRUE(QuicEventWaitWithTimeout(ListenerContext.ServerContext.DisconnectEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.ServerContext.DisconnectEvent, 100));
 
-    QuicSocketDelete(ListenerContext.Server);
-    QuicSocketDelete(Listener);
+    CxPlatSocketDelete(ListenerContext.Server);
+    CxPlatSocketDelete(Listener);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 }
 
 TEST_P(DataPathTest, TcpDataClient)
 {
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_SOCKET* Listener = nullptr;
-    QUIC_SOCKET* Client = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    CXPLAT_SOCKET* Listener = nullptr;
+    CXPLAT_SOCKET* Client = nullptr;
     auto serverAddress = GetNewLocalAddr();
 
     TcpListenerContext ListenerContext;
     TcpClientContext ClientContext;
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             nullptr,
             &TcpRecvCallbacks,
@@ -1018,7 +1018,7 @@ TEST_P(DataPathTest, TcpDataClient)
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
-            QuicSocketCreateTcpListener(
+            CxPlatSocketCreateTcpListener(
                 Datapath,
                 &serverAddress.SockAddr,
                 &ListenerContext,
@@ -1035,12 +1035,12 @@ TEST_P(DataPathTest, TcpDataClient)
     ASSERT_NE(nullptr, Listener);
 
     QUIC_ADDR ServerAddress;
-    QuicSocketGetLocalAddress(Listener, &ServerAddress);
+    CxPlatSocketGetLocalAddress(Listener, &ServerAddress);
     ASSERT_NE(ServerAddress.Ipv4.sin_port, (uint16_t)0);
     serverAddress.SetPort(ServerAddress.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreateTcp(
+        CxPlatSocketCreateTcp(
             Datapath,
             nullptr,
             &serverAddress.SockAddr,
@@ -1049,51 +1049,51 @@ TEST_P(DataPathTest, TcpDataClient)
     ASSERT_NE(nullptr, Client);
 
     QUIC_ADDR ClientAddress;
-    QuicSocketGetLocalAddress(Client, &ClientAddress);
+    CxPlatSocketGetLocalAddress(Client, &ClientAddress);
 
-    ASSERT_TRUE(QuicEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
-    ASSERT_TRUE(QuicEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
     ASSERT_NE(nullptr, ListenerContext.Server);
 
     auto SendContext =
-        QuicSendDataAlloc(Client, QUIC_ECN_NON_ECT, 0);
+        CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, SendContext);
 
     auto SendBuffer =
-        QuicSendDataAllocBuffer(SendContext, ExpectedDataSize);
+        CxPlatSendDataAllocBuffer(SendContext, ExpectedDataSize);
     ASSERT_NE(nullptr, SendBuffer);
 
     memcpy(SendBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketSend(
+        CxPlatSocketSend(
             Client,
             &ServerAddress,
             &ClientAddress,
             SendContext));
 
-    ASSERT_TRUE(QuicEventWaitWithTimeout(ListenerContext.ServerContext.ReceiveEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.ServerContext.ReceiveEvent, 100));
 
-    QuicSocketDelete(Client);
-    QuicSocketDelete(ListenerContext.Server);
-    QuicSocketDelete(Listener);
+    CxPlatSocketDelete(Client);
+    CxPlatSocketDelete(ListenerContext.Server);
+    CxPlatSocketDelete(Listener);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 }
 
 TEST_P(DataPathTest, TcpDataServer)
 {
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_SOCKET* Listener = nullptr;
-    QUIC_SOCKET* Client = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    CXPLAT_SOCKET* Listener = nullptr;
+    CXPLAT_SOCKET* Client = nullptr;
     auto serverAddress = GetNewLocalAddr();
 
     TcpListenerContext ListenerContext;
     TcpClientContext ClientContext;
 
     VERIFY_QUIC_SUCCESS(
-        QuicDataPathInitialize(
+        CxPlatDataPathInitialize(
             0,
             nullptr,
             &TcpRecvCallbacks,
@@ -1104,7 +1104,7 @@ TEST_P(DataPathTest, TcpDataServer)
     while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
         Status =
-            QuicSocketCreateTcpListener(
+            CxPlatSocketCreateTcpListener(
                 Datapath,
                 &serverAddress.SockAddr,
                 &ListenerContext,
@@ -1121,12 +1121,12 @@ TEST_P(DataPathTest, TcpDataServer)
     ASSERT_NE(nullptr, Listener);
 
     QUIC_ADDR ServerAddress;
-    QuicSocketGetLocalAddress(Listener, &ServerAddress);
+    CxPlatSocketGetLocalAddress(Listener, &ServerAddress);
     ASSERT_NE(ServerAddress.Ipv4.sin_port, (uint16_t)0);
     serverAddress.SetPort(ServerAddress.Ipv4.sin_port);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketCreateTcp(
+        CxPlatSocketCreateTcp(
             Datapath,
             nullptr,
             &serverAddress.SockAddr,
@@ -1135,36 +1135,36 @@ TEST_P(DataPathTest, TcpDataServer)
     ASSERT_NE(nullptr, Client);
 
     QUIC_ADDR ClientAddress;
-    QuicSocketGetLocalAddress(Client, &ClientAddress);
+    CxPlatSocketGetLocalAddress(Client, &ClientAddress);
 
-    ASSERT_TRUE(QuicEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
-    ASSERT_TRUE(QuicEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
     ASSERT_NE(nullptr, ListenerContext.Server);
 
     auto SendContext =
-        QuicSendDataAlloc(ListenerContext.Server, QUIC_ECN_NON_ECT, 0);
+        CxPlatSendDataAlloc(ListenerContext.Server, CXPLAT_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, SendContext);
 
     auto SendBuffer =
-        QuicSendDataAllocBuffer(SendContext, ExpectedDataSize);
+        CxPlatSendDataAllocBuffer(SendContext, ExpectedDataSize);
     ASSERT_NE(nullptr, SendBuffer);
 
     memcpy(SendBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
     VERIFY_QUIC_SUCCESS(
-        QuicSocketSend(
+        CxPlatSocketSend(
             ListenerContext.Server,
             &ServerAddress,
             &ClientAddress,
             SendContext));
 
-    ASSERT_TRUE(QuicEventWaitWithTimeout(ClientContext.ReceiveEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 100));
 
-    QuicSocketDelete(Client);
-    QuicSocketDelete(ListenerContext.Server);
-    QuicSocketDelete(Listener);
+    CxPlatSocketDelete(Client);
+    CxPlatSocketDelete(ListenerContext.Server);
+    CxPlatSocketDelete(Listener);
 
-    QuicDataPathUninitialize(
+    CxPlatDataPathUninitialize(
         Datapath);
 }
 

@@ -30,7 +30,7 @@ QuicFuzzInjectHook(
    // to signal that the target is in a state where pre-encryption
    // payload data can be read from the virtual machine.
    //
-   QUIC_CPUID(0x7b3c3639, 0, 0, 0, 0);
+   CXPLAT_CPUID(0x7b3c3639, 0, 0, 0, 0);
 
 #pragma warning(push) // Don't care about OACR warnings for test-only injection code.
 #pragma warning(disable:26007)

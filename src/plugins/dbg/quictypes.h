@@ -223,7 +223,7 @@ LinkEntryToType(
 
 struct SingleListEntry : Struct {
 
-    SingleListEntry(ULONG64 addr) : Struct("msquic!QUIC_SINGLE_LIST_ENTRY", addr) {
+    SingleListEntry(ULONG64 addr) : Struct("msquic!CXPLAT_SLIST_ENTRY", addr) {
     }
 
     ULONG64 Next() {
@@ -233,7 +233,7 @@ struct SingleListEntry : Struct {
 
 struct ListEntry : Struct {
 
-    ListEntry(ULONG64 addr) : Struct("msquic!QUIC_LIST_ENTRY", addr) {
+    ListEntry(ULONG64 addr) : Struct("msquic!CXPLAT_LIST_ENTRY", addr) {
     }
 
     ULONG64 Flink() {
@@ -307,10 +307,10 @@ struct HashTable : Struct {
     ULONG64 BucketHead;
     ULONG64 Entry;
 
-    HashTable(ULONG64 addr) : Struct("msquic!QUIC_HASHTABLE", addr) {
+    HashTable(ULONG64 addr) : Struct("msquic!CXPLAT_HASHTABLE", addr) {
         TableSize = ReadType<ULONG>("TableSize");
         Directory = ReadPointer("Directory");
-        GetFieldOffset("msquic!QUIC_HASHTABLE_ENTRY", "Linkage", &EntryLinksOffset);
+        GetFieldOffset("msquic!CXPLAT_HASHTABLE_ENTRY", "Linkage", &EntryLinksOffset);
         Indirection = (TableSize <= KDEXT_RTL_HT_SECOND_LEVEL_DIR_SIZE) ? 1 : 2;
 
         ReadBucketHead = true;
@@ -350,7 +350,7 @@ struct HashTable : Struct {
 
             if (!ReadPointerFromStructAddr(
                     Entry,
-                    "msquic!QUIC_LIST_ENTRY",
+                    "msquic!CXPLAT_LIST_ENTRY",
                     "Flink",
                     &Entry)) {
                 dprintf("Failed to walk bucket %08lx at %p\n", Bucket, BucketHead);
@@ -1397,7 +1397,7 @@ struct Lookup : Struct {
 
 struct Socket : Struct {
 
-    Socket(ULONG64 Addr) : Struct("msquic!QUIC_SOCKET", Addr) { }
+    Socket(ULONG64 Addr) : Struct("msquic!CXPLAT_SOCKET", Addr) { }
 
     IpAddress GetLocalAddress() {
         return IpAddress(AddrOf("LocalAddress"));
@@ -1458,9 +1458,9 @@ struct QuicLibrary : Struct {
     }
 
     UINT64 TotalMemory() {
-        UINT64 QuicTotalMemory;
-        ReadTypeAtAddr<UINT64>(GetExpression("msquic!QuicTotalMemory"), &QuicTotalMemory);
-        return QuicTotalMemory;
+        UINT64 CxPlatTotalMemory;
+        ReadTypeAtAddr<UINT64>(GetExpression("msquic!CxPlatTotalMemory"), &CxPlatTotalMemory);
+        return CxPlatTotalMemory;
     }
 
     UINT64 RetryHandshakeMemoryLimit() {

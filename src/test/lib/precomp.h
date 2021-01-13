@@ -30,7 +30,7 @@
 #undef INITCODE
 #endif
 #ifndef WIN_ASSERT
-#define WIN_ASSERT QUIC_FRE_ASSERT
+#define WIN_ASSERT CXPLAT_FRE_ASSERT
 #endif
 #include "karray.h"
 #endif

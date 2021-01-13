@@ -127,7 +127,7 @@ struct DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATA* /* Datagram */
+        _Inout_ struct CXPLAT_RECV_DATA* /* Datagram */
         ) {
         return FALSE; // Don't drop by default
     }
@@ -138,7 +138,7 @@ struct DatapathHook
     Send(
         _Inout_ QUIC_ADDR* /* RemoteAddress */,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct QUIC_SEND_DATA* /* SendContext */
+        _Inout_ struct CXPLAT_SEND_DATA* /* SendContext */
         ) {
         return FALSE; // Don't drop by default
     }
@@ -149,14 +149,14 @@ class DatapathHooks
     static QUIC_TEST_DATAPATH_HOOKS FuncTable;
 
     DatapathHook* Hooks;
-    QUIC_DISPATCH_LOCK Lock;
+    CXPLAT_DISPATCH_LOCK Lock;
 
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     QUIC_API
     ReceiveCallback(
-        _Inout_ struct QUIC_RECV_DATA* Datagram
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
         ) {
         return Instance->Receive(Datagram);
     }
@@ -168,7 +168,7 @@ class DatapathHooks
     SendCallback(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* LocalAddress,
-        _Inout_ struct QUIC_SEND_DATA* SendContext
+        _Inout_ struct CXPLAT_SEND_DATA* SendContext
         ) {
         return Instance->Send(RemoteAddress, LocalAddress, SendContext);
     }
@@ -206,7 +206,7 @@ class DatapathHooks
                     &Value))) {
                 break;
             }
-            QuicSleep(100); // Let the current datapath queue drain.
+            CxPlatSleep(100); // Let the current datapath queue drain.
         }
         if (TryCount == 20) {
             TEST_FAILURE("Failed to disable test datapath hook");
@@ -219,10 +219,10 @@ class DatapathHooks
 
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATA* Datagram
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
         ) {
         BOOLEAN Result = FALSE;
-        QuicDispatchLockAcquire(&Lock);
+        CxPlatDispatchLockAcquire(&Lock);
         DatapathHook* Iter = Hooks;
         while (Iter) {
             if (Iter->Receive(Datagram)) {
@@ -231,7 +231,7 @@ class DatapathHooks
             }
             Iter = Iter->Next;
         }
-        QuicDispatchLockRelease(&Lock);
+        CxPlatDispatchLockRelease(&Lock);
         return Result;
     }
 
@@ -239,10 +239,10 @@ class DatapathHooks
     Send(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* LocalAddress,
-        _Inout_ struct QUIC_SEND_DATA* SendContext
+        _Inout_ struct CXPLAT_SEND_DATA* SendContext
         ) {
         BOOLEAN Result = FALSE;
-        QuicDispatchLockAcquire(&Lock);
+        CxPlatDispatchLockAcquire(&Lock);
         DatapathHook* Iter = Hooks;
         while (Iter) {
             if (Iter->Send(RemoteAddress, LocalAddress, SendContext)) {
@@ -251,7 +251,7 @@ class DatapathHooks
             }
             Iter = Iter->Next;
         }
-        QuicDispatchLockRelease(&Lock);
+        CxPlatDispatchLockRelease(&Lock);
         return Result;
     }
 
@@ -260,36 +260,36 @@ public:
     static DatapathHooks* Instance;
 
     DatapathHooks() : Hooks(nullptr) {
-        QuicDispatchLockInitialize(&Lock);
+        CxPlatDispatchLockInitialize(&Lock);
     }
 
     ~DatapathHooks() {
-        QuicDispatchLockUninitialize(&Lock);
+        CxPlatDispatchLockUninitialize(&Lock);
     }
 
     void AddHook(DatapathHook* Hook) {
-        QuicDispatchLockAcquire(&Lock);
+        CxPlatDispatchLockAcquire(&Lock);
         DatapathHook** Iter = &Hooks;
         while (*Iter != nullptr) {
             Iter = &((*Iter)->Next);
         }
         *Iter = Hook;
         bool DoRegister = Hooks == Hook;
-        QuicDispatchLockRelease(&Lock);
+        CxPlatDispatchLockRelease(&Lock);
         if (DoRegister) {
             Register();
         }
     }
 
     void RemoveHook(DatapathHook* Hook) {
-        QuicDispatchLockAcquire(&Lock);
+        CxPlatDispatchLockAcquire(&Lock);
         DatapathHook** Iter = &Hooks;
         while (*Iter != Hook) {
             Iter = &((*Iter)->Next);
         }
         *Iter = Hook->Next;
         bool DoUnregister = Hooks == nullptr;
-        QuicDispatchLockRelease(&Lock);
+        CxPlatDispatchLockRelease(&Lock);
         if (DoUnregister) {
             Unregister();
         }
@@ -312,10 +312,10 @@ struct RandomLossHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATA* /* Datagram */
+        _Inout_ struct CXPLAT_RECV_DATA* /* Datagram */
         ) {
         uint8_t RandomValue;
-        QuicRandom(sizeof(RandomValue), &RandomValue);
+        CxPlatRandom(sizeof(RandomValue), &RandomValue);
         auto Result = (RandomValue % 100) < LossPercentage;
         if (Result) {
             QuicTraceLogVerbose(
@@ -339,7 +339,7 @@ struct SelectiveLossHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATA* /* Datagram */
+        _Inout_ struct CXPLAT_RECV_DATA* /* Datagram */
         ) {
         if (DropPacketCount == 0) {
             return FALSE;
@@ -366,7 +366,7 @@ struct ReplaceAddressHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATA* Datagram
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
         ) {
         if (QuicAddrCompare(
                 &Datagram->Tuple->RemoteAddress,
@@ -385,7 +385,7 @@ struct ReplaceAddressHelper : public DatapathHook
     Send(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct QUIC_SEND_DATA* /* SendContext */
+        _Inout_ struct CXPLAT_SEND_DATA* /* SendContext */
         ) {
         if (QuicAddrCompare(RemoteAddress, &New)) {
             *RemoteAddress = Original;
@@ -419,7 +419,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct QUIC_RECV_DATA* Datagram
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
         ) {
         if (QuicAddrCompare(
                 &Datagram->Tuple->RemoteAddress,
@@ -445,7 +445,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
     Send(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct QUIC_SEND_DATA* /* SendContext */
+        _Inout_ struct CXPLAT_SEND_DATA* /* SendContext */
         ) {
         if (QuicAddrCompare(RemoteAddress, &New)) {
             if (AllowPacketCount == 0) {

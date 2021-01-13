@@ -160,7 +160,7 @@ struct HttpConnection {
 private:
     HQUIC QuicConnection;
     const char* SslKeyLogFile;
-    QUIC_TLS_SECRETS TlsSecrets;
+    CXPLAT_TLS_SECRETS TlsSecrets;
     long RefCount;
 private:
     static

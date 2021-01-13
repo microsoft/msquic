@@ -72,7 +72,7 @@ EXT_COMMAND(
     } else {
         for (UCHAR i = 0; i < PartitionCount; i++) {
             HashTable Hash(Lookup.GetLookupTable(i).GetTablePtr());
-            Dml("\t<link cmd=\"dt msquic!QUIC_HASHTABLE 0x%I64X\">Hash Table %d</link> (%u entries)\n",
+            Dml("\t<link cmd=\"dt msquic!CXPLAT_HASHTABLE 0x%I64X\">Hash Table %d</link> (%u entries)\n",
                 Hash.Addr,
                 i,
                 Hash.NumEntries());

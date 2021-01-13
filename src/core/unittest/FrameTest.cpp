@@ -36,7 +36,7 @@ TEST_P(AckFrameTest, AckFrameEncodeDecode)
     BOOLEAN IsLastRange = FALSE;
     BOOLEAN Unused;
 
-    QuicZeroMemory(Buffer, sizeof(Buffer));
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
 
     QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckRange);
     QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &DecodedAckRange);
@@ -214,7 +214,7 @@ TEST(FrameTest, ResetStreamFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t) sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(Buffer, sizeof(Buffer));
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
     ASSERT_TRUE(QuicResetStreamFrameEncode(&Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_TRUE(QuicResetStreamFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -283,7 +283,7 @@ TEST(FrameTest, StopSendingFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(Buffer, sizeof(Buffer));
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
     ASSERT_TRUE(QuicStopSendingFrameEncode(&Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_TRUE(QuicStopSendingFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -348,7 +348,7 @@ TEST(FrameTest, CryptoFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
+    CxPlatZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
     ASSERT_TRUE(QuicCryptoFrameEncode(Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_TRUE(QuicCryptoFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -413,8 +413,8 @@ TEST(FrameTest, NewTokenFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
-    QuicZeroMemory(Buffer, sizeof(Buffer));
+    CxPlatZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
     ASSERT_TRUE(QuicNewTokenFrameEncode(Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_TRUE(QuicNewTokenFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -482,8 +482,8 @@ TEST_P(StreamFrameTest, StreamFrameEncodeDecode)
     Frame.StreamID = 63;
     Frame.Data = &Buffer[QuicStreamFrameHeaderSize(&Frame)];
 
-    QuicZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
-    QuicZeroMemory(Buffer, sizeof(Buffer));
+    CxPlatZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
     ASSERT_TRUE(QuicStreamFrameEncode(&Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_EQ(GetParam(), Buffer[0]);
@@ -519,7 +519,7 @@ TEST_P(StreamFrameTest, DecodeStreamFrameFail) {
     switch(GetParam()) {
         case QUIC_FRAME_STREAM:
         case QUIC_FRAME_STREAM_1:
-            QUIC_FRE_ASSERT(!Type.LEN && !Type.OFF);
+            CXPLAT_FRE_ASSERT(!Type.LEN && !Type.OFF);
             for(uint8_t i = 0; i < 2; ++i) {
                 Offset = 1;
                 //
@@ -541,7 +541,7 @@ TEST_P(StreamFrameTest, DecodeStreamFrameFail) {
         case QUIC_FRAME_STREAM_3: // LEN + FIN
         case QUIC_FRAME_STREAM_4: // OFF
         case QUIC_FRAME_STREAM_5: // OFF + FIN
-            QUIC_FRE_ASSERT(Type.LEN || Type.OFF);
+            CXPLAT_FRE_ASSERT(Type.LEN || Type.OFF);
             for (uint8_t i = 1; i < 4; ++i) {
                 Offset = 1;
                 //
@@ -569,7 +569,7 @@ TEST_P(StreamFrameTest, DecodeStreamFrameFail) {
 
         case QUIC_FRAME_STREAM_6: // OFF + LEN
         case QUIC_FRAME_STREAM_7: // OFF + LEN + FIN
-            QUIC_FRE_ASSERT(Type.LEN && Type.OFF);
+            CXPLAT_FRE_ASSERT(Type.LEN && Type.OFF);
             for (uint8_t i = 1; i < 8; ++i) {
                 Offset = 1;
                 //
@@ -623,7 +623,7 @@ TEST(FrameTest, MaxDataFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(Buffer, sizeof(Buffer));
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
     ASSERT_TRUE(QuicMaxDataFrameEncode(&Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_TRUE(QuicMaxDataFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -665,7 +665,7 @@ TEST(FrameTest, MaxStreamDataFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(Buffer, sizeof(Buffer));
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
     ASSERT_TRUE(QuicMaxStreamDataFrameEncode(&Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_TRUE(QuicMaxStreamDataFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -725,7 +725,7 @@ TEST_P(MaxStreamsFrameTest, MaxStreamsFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(Buffer, sizeof(Buffer));
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
     ASSERT_TRUE(QuicMaxStreamsFrameEncode(&Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_TRUE(QuicMaxStreamsFrameDecode((QUIC_FRAME_TYPE)Buffer[0], BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -767,7 +767,7 @@ TEST(FrameTest, DataBlockedFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(Buffer, sizeof(Buffer));
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
     ASSERT_TRUE(QuicDataBlockedFrameEncode(&Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_TRUE(QuicDataBlockedFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -809,7 +809,7 @@ TEST(FrameTest, StreamDataBlockedFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(Buffer, sizeof(Buffer));
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
     ASSERT_TRUE(QuicStreamDataBlockedFrameEncode(&Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_TRUE(QuicStreamDataBlockedFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -869,7 +869,7 @@ TEST_P(StreamsBlockedFrameTest, StreamsBlockedFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(Buffer, sizeof(Buffer));
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
     ASSERT_TRUE(QuicStreamsBlockedFrameEncode(&Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_TRUE(QuicStreamsBlockedFrameDecode((QUIC_FRAME_TYPE)Buffer[0], BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -913,8 +913,8 @@ TEST(FrameTest, NewConnectionIdFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(Buffer, BufferLength);
-    QuicZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
+    CxPlatZeroMemory(Buffer, BufferLength);
+    CxPlatZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
 
     ASSERT_TRUE(QuicNewConnectionIDFrameEncode(&Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
@@ -1110,8 +1110,8 @@ TEST_P(PathChallengeResponseFrameTest, PathChallengeResponseFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(Buffer, BufferLength);
-    QuicZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
+    CxPlatZeroMemory(Buffer, BufferLength);
+    CxPlatZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
 
     ASSERT_TRUE(QuicPathChallengeFrameEncode(GetParam(), &Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
@@ -1149,7 +1149,7 @@ TEST_P(ConnectionCloseFrameTest, ConnectionCloseFrameEncodeDecode)
     uint16_t BufferLength = (uint16_t)sizeof(Buffer);
     uint16_t Offset = 0;
 
-    QuicZeroMemory(Buffer, BufferLength);
+    CxPlatZeroMemory(Buffer, BufferLength);
 
     ASSERT_TRUE(QuicConnCloseFrameEncode(&Frame, &Offset, BufferLength, Buffer));
     Offset = 1;

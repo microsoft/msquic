@@ -27,8 +27,8 @@ TestStream::TestStream(
     IsShutdown(false), BytesToSend(0), OutstandingSendRequestCount(0), BytesReceived(0),
     StreamShutdownCallback(StreamShutdownHandler), Context(nullptr)
 {
-    QuicEventInitialize(&EventSendShutdownComplete, TRUE, (IsUnidirectional && !IsPingSource) ? TRUE : FALSE);
-    QuicEventInitialize(&EventRecvShutdownComplete, TRUE, (IsUnidirectional && IsPingSource) ? TRUE : FALSE);
+    CxPlatEventInitialize(&EventSendShutdownComplete, TRUE, (IsUnidirectional && !IsPingSource) ? TRUE : FALSE);
+    CxPlatEventInitialize(&EventRecvShutdownComplete, TRUE, (IsUnidirectional && IsPingSource) ? TRUE : FALSE);
     if (QuicStream == nullptr) {
         TEST_FAILURE("Invalid handle passed into TestStream.");
     }
@@ -88,8 +88,8 @@ TestStream::FromConnectionHandle(
 TestStream::~TestStream()
 {
     MsQuic->StreamClose(QuicStream);
-    QuicEventUninitialize(EventRecvShutdownComplete);
-    QuicEventUninitialize(EventSendShutdownComplete);
+    CxPlatEventUninitialize(EventRecvShutdownComplete);
+    CxPlatEventUninitialize(EventSendShutdownComplete);
 }
 
 QUIC_STATUS
@@ -170,7 +170,7 @@ TestStream::StartPing(
 bool
 TestStream::WaitForSendShutdownComplete()
 {
-    if (!QuicEventWaitWithTimeout(EventSendShutdownComplete, TestWaitTimeout)) {
+    if (!CxPlatEventWaitWithTimeout(EventSendShutdownComplete, TestWaitTimeout)) {
         TEST_FAILURE("WaitForSendShutdownComplete timed out after %u ms.", TestWaitTimeout);
         return false;
     }
@@ -180,7 +180,7 @@ TestStream::WaitForSendShutdownComplete()
 bool
 TestStream::WaitForRecvShutdownComplete()
 {
-    if (!QuicEventWaitWithTimeout(EventRecvShutdownComplete, TestWaitTimeout)) {
+    if (!CxPlatEventWaitWithTimeout(EventRecvShutdownComplete, TestWaitTimeout)) {
         TEST_FAILURE("WaitForRecvShutdownComplete timed out after %u ms.", TestWaitTimeout);
         return false;
     }
@@ -329,7 +329,7 @@ TestStream::HandleStreamEvent(
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         AllDataReceived = true;
         RecvShutdown = true;
-        QuicEventSet(EventRecvShutdownComplete);
+        CxPlatEventSet(EventRecvShutdownComplete);
         if (!IsPingSource) {
             Shutdown(QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, QUIC_TEST_NO_ERROR);
         }
@@ -338,7 +338,7 @@ TestStream::HandleStreamEvent(
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
         AllDataReceived = false;
         RecvShutdown = true;
-        QuicEventSet(EventRecvShutdownComplete);
+        CxPlatEventSet(EventRecvShutdownComplete);
         break;
 
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
@@ -349,7 +349,7 @@ TestStream::HandleStreamEvent(
             AllDataSent = true;
         }
         SendShutdown = true;
-        QuicEventSet(EventSendShutdownComplete);
+        CxPlatEventSet(EventSendShutdownComplete);
         break;
 
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:

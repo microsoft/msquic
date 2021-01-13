@@ -33,7 +33,7 @@ Environment:
 #include <msquic.h>
 
 QUIC_STATUS
-QuicTlsExtractPrivateKey(
+CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _Out_ RSA** RsaKey,
     _Out_ X509** X509Cert
@@ -54,12 +54,12 @@ QuicTlsExtractPrivateKey(
 
     if (QUIC_FAILED(
         Status =
-            QuicCertCreate(CredConfig, &Cert))) {
+            CxPlatCertCreate(CredConfig, &Cert))) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "QuicCertCreate");
+            "CxPlatCertCreate");
         goto Exit;
     }
 
@@ -82,7 +82,7 @@ QuicTlsExtractPrivateKey(
         goto Exit;
     }
 
-    KeyHandle = (NCRYPT_KEY_HANDLE)QuicCertGetPrivateKey(Cert);
+    KeyHandle = (NCRYPT_KEY_HANDLE)CxPlatCertGetPrivateKey(Cert);
     if (KeyHandle == 0) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Exit;
@@ -134,7 +134,7 @@ QuicTlsExtractPrivateKey(
         goto Exit;
     }
 
-    KeyData = QUIC_ALLOC_NONPAGED(KeyLength, QUIC_POOL_TLS_RSA);
+    KeyData = CXPLAT_ALLOC_NONPAGED(KeyLength, QUIC_POOL_TLS_RSA);
     if (KeyData == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -257,22 +257,22 @@ Exit:
     }
 
     if (KeyData != NULL) {
-        QUIC_FREE(KeyData, QUIC_POOL_TLS_RSA);
+        CXPLAT_FREE(KeyData, QUIC_POOL_TLS_RSA);
     }
 
     if (KeyHandle != 0) {
-        QuicCertDeletePrivateKey((void*)KeyHandle);
+        CxPlatCertDeletePrivateKey((void*)KeyHandle);
     }
 
     if (Cert != NULL && CredConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
-        QuicCertFree(Cert);
+        CxPlatCertFree(Cert);
     }
 
     return Status;
 }
 #else
 QUIC_STATUS
-QuicTlsExtractPrivateKey(
+CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _Out_ EVP_PKEY** EvpPrivateKey,
     _Out_ X509** X509Cert

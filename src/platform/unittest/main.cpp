@@ -15,12 +15,12 @@ extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 class QuicCoreTestEnvironment : public ::testing::Environment {
 public:
     void SetUp() override {
-        QuicPlatformSystemLoad();
-        ASSERT_TRUE(QUIC_SUCCEEDED(QuicPlatformInitialize()));
+        CxPlatSystemLoad();
+        ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
     }
     void TearDown() override {
-        QuicPlatformUninitialize();
-        QuicPlatformSystemUnload();
+        CxPlatUninitialize();
+        CxPlatSystemUnload();
     }
 };
 

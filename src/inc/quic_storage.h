@@ -19,20 +19,20 @@ Abstract:
 extern "C" {
 #endif
 
-typedef struct QUIC_STORAGE QUIC_STORAGE;
+typedef struct CXPLAT_STORAGE CXPLAT_STORAGE;
 
 //
 // Function pointer type for storage change callbacks.
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_STORAGE_CHANGE_CALLBACK)
+_Function_class_(CXPLAT_STORAGE_CHANGE_CALLBACK)
 void
-(QUIC_STORAGE_CHANGE_CALLBACK)(
+(CXPLAT_STORAGE_CHANGE_CALLBACK)(
     _In_ void* Context
     );
 
-typedef QUIC_STORAGE_CHANGE_CALLBACK *QUIC_STORAGE_CHANGE_CALLBACK_HANDLER;
+typedef CXPLAT_STORAGE_CHANGE_CALLBACK *CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER;
 
 //
 // Opens a storage context, registers for change callbacks and returns a
@@ -40,11 +40,11 @@ typedef QUIC_STORAGE_CHANGE_CALLBACK *QUIC_STORAGE_CHANGE_CALLBACK_HANDLER;
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicStorageOpen(
+CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
-    _Out_ QUIC_STORAGE** NewStorage
+    _Out_ CXPLAT_STORAGE** NewStorage
     );
 
 //
@@ -52,8 +52,8 @@ QuicStorageOpen(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicStorageClose(
-    _In_opt_ QUIC_STORAGE* Storage
+CxPlatStorageClose(
+    _In_opt_ CXPLAT_STORAGE* Storage
     );
 
 //
@@ -61,8 +61,8 @@ QuicStorageClose(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicStorageReadValue(
-    _In_ QUIC_STORAGE* Storage,
+CxPlatStorageReadValue(
+    _In_ CXPLAT_STORAGE* Storage,
     _In_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
         uint8_t * Buffer,

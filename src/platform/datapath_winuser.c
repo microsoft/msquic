@@ -17,7 +17,7 @@ Abstract:
 #ifdef QUIC_FUZZER
 
 int
-QuicFuzzerSendMsg(
+CxPlatFuzzerSendMsg(
     _In_ SOCKET s,
     _In_ LPWSAMSG lpMsg,
     _In_ DWORD dwFlags,
@@ -27,7 +27,7 @@ QuicFuzzerSendMsg(
     );
 
 int
-QuicFuzzerRecvMsg(
+CxPlatFuzzerRecvMsg(
     _In_ SOCKET s,
     _Inout_ LPWSAMSG lpMsg,
     _Out_ LPDWORD lpdwNumberOfBytesRecvd,
@@ -59,17 +59,17 @@ QuicFuzzerRecvMsg(
 //
 // The maximum number of UDP datagrams that can be sent with one call.
 //
-#define QUIC_MAX_BATCH_SEND                 7
+#define CXPLAT_MAX_BATCH_SEND                 7
 
 //
 // The maximum UDP receive coalescing payload.
 //
-#define MAX_URO_PAYLOAD_LENGTH              (UINT16_MAX - QUIC_UDP_HEADER_SIZE)
+#define MAX_URO_PAYLOAD_LENGTH              (UINT16_MAX - CXPLAT_UDP_HEADER_SIZE)
 
 //
 // The maximum single buffer size for sending coalesced payloads.
 //
-#define QUIC_LARGE_SEND_BUFFER_SIZE         0xFFFF
+#define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
 
 //
 // The maximum number of UDP datagrams to preallocate for URO.
@@ -94,25 +94,25 @@ static_assert(
     ErrorCode == ERROR_PORT_UNREACHABLE \
 )
 
-typedef struct QUIC_DATAPATH_PROC QUIC_DATAPATH_PROC;   // Per-processor datapath state.
-typedef struct QUIC_SOCKET_PROC QUIC_SOCKET_PROC;       // Per-processor socket state.
+typedef struct CXPLAT_DATAPATH_PROC CXPLAT_DATAPATH_PROC;   // Per-processor datapath state.
+typedef struct CXPLAT_SOCKET_PROC CXPLAT_SOCKET_PROC;       // Per-processor socket state.
 
-typedef enum QUIC_SOCKET_TYPE {
-    QUIC_SOCKET_UDP             = 0,
-    QUIC_SOCKET_TCP_LISTENER    = 1,
-    QUIC_SOCKET_TCP             = 2,
-    QUIC_SOCKET_TCP_SERVER      = 3
-} QUIC_SOCKET_TYPE;
+typedef enum CXPLAT_SOCKET_TYPE {
+    CXPLAT_SOCKET_UDP             = 0,
+    CXPLAT_SOCKET_TCP_LISTENER    = 1,
+    CXPLAT_SOCKET_TCP             = 2,
+    CXPLAT_SOCKET_TCP_SERVER      = 3
+} CXPLAT_SOCKET_TYPE;
 
 //
 // Internal receive context.
 //
-typedef struct QUIC_DATAPATH_INTERNAL_RECV_CONTEXT {
+typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT {
 
     //
     // The owning datagram pool.
     //
-    QUIC_POOL* OwningPool;
+    CXPLAT_POOL* OwningPool;
 
     //
     // The reference count of the receive buffer.
@@ -122,26 +122,26 @@ typedef struct QUIC_DATAPATH_INTERNAL_RECV_CONTEXT {
     //
     // Contains the 4 tuple.
     //
-    QUIC_TUPLE Tuple;
+    CXPLAT_TUPLE Tuple;
 
-} QUIC_DATAPATH_INTERNAL_RECV_CONTEXT;
+} CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT;
 
 //
 // Internal receive context.
 //
-typedef struct QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT {
+typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT {
 
     //
     // The owning allocation.
     //
-    QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext;
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext;
 
-} QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT;
+} CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT;
 
 //
 // Send context.
 //
-typedef struct QUIC_SEND_DATA {
+typedef struct CXPLAT_SEND_DATA {
 
     //
     // The Overlapped structure for I/O completion.
@@ -151,7 +151,7 @@ typedef struct QUIC_SEND_DATA {
     //
     // The owning processor context.
     //
-    QUIC_DATAPATH_PROC* Owner;
+    CXPLAT_DATAPATH_PROC* Owner;
 
     //
     // The total buffer size for WsaBuffers.
@@ -166,7 +166,7 @@ typedef struct QUIC_SEND_DATA {
     //
     // The type of ECN markings needed for send.
     //
-    QUIC_ECN_TYPE ECN;
+    CXPLAT_ECN_TYPE ECN;
 
     //
     // The current number of WsaBuffers used.
@@ -176,24 +176,24 @@ typedef struct QUIC_SEND_DATA {
     //
     // Contains all the datagram buffers to pass to the socket.
     //
-    WSABUF WsaBuffers[QUIC_MAX_BATCH_SEND];
+    WSABUF WsaBuffers[CXPLAT_MAX_BATCH_SEND];
 
     //
     // The WSABUF returned to the client for segmented sends.
     //
     WSABUF ClientBuffer;
 
-} QUIC_SEND_DATA;
+} CXPLAT_SEND_DATA;
 
 //
 // Per-processor socket state.
 //
-typedef struct QUIC_SOCKET_PROC {
+typedef struct CXPLAT_SOCKET_PROC {
 
     //
-    // Parent QUIC_SOCKET.
+    // Parent CXPLAT_SOCKET.
     //
-    QUIC_SOCKET* Parent;
+    CXPLAT_SOCKET* Parent;
 
     //
     // Socket handle to the networking stack.
@@ -203,7 +203,7 @@ typedef struct QUIC_SOCKET_PROC {
     //
     // Rundown for synchronizing clean up with upcalls.
     //
-    QUIC_RUNDOWN_REF UpcallRundown;
+    CXPLAT_RUNDOWN_REF UpcallRundown;
 
     //
     // The set of parameters/state passed to WsaRecvMsg for the IP stack to
@@ -222,13 +222,13 @@ typedef struct QUIC_SOCKET_PROC {
         WSA_CMSG_SPACE(sizeof(INT))             // IP_ECN
         ];
     WSAMSG RecvWsaMsgHdr;
-    QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* CurrentRecvContext;
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* CurrentRecvContext;
     };
     //
     // TCP Listener socket data
     //
     struct {
-    QUIC_SOCKET* AcceptSocket;
+    CXPLAT_SOCKET* AcceptSocket;
     char AcceptAddrSpace[
         sizeof(SOCKADDR_INET) + 16 +
         sizeof(SOCKADDR_INET) + 16
@@ -237,17 +237,17 @@ typedef struct QUIC_SOCKET_PROC {
     };
     OVERLAPPED Overlapped;
 
-} QUIC_SOCKET_PROC;
+} CXPLAT_SOCKET_PROC;
 
 //
 // Per-port state. Multiple sockets are created on each port.
 //
-typedef struct QUIC_SOCKET {
+typedef struct CXPLAT_SOCKET {
 
     //
     // Socket type.
     //
-    uint8_t Type : 2; // QUIC_SOCKET_TYPE
+    uint8_t Type : 2; // CXPLAT_SOCKET_TYPE
 
     //
     // Flag indicates the socket has a default remote destination.
@@ -277,7 +277,7 @@ typedef struct QUIC_SOCKET {
     //
     // Parent datapath.
     //
-    QUIC_DATAPATH* Datapath;
+    CXPLAT_DATAPATH* Datapath;
 
     //
     // The local address and port.
@@ -307,20 +307,20 @@ typedef struct QUIC_SOCKET {
     //
     // Per-processor socket contexts.
     //
-    QUIC_SOCKET_PROC Processors[0];
+    CXPLAT_SOCKET_PROC Processors[0];
 
-} QUIC_SOCKET;
+} CXPLAT_SOCKET;
 
 //
 // Represents a single IO completion port and thread for processing work that
 // is completed on a single processor.
 //
-typedef struct QUIC_DATAPATH_PROC {
+typedef struct CXPLAT_DATAPATH_PROC {
 
     //
     // Parent datapath.
     //
-    QUIC_DATAPATH* Datapath;
+    CXPLAT_DATAPATH* Datapath;
 
     //
     // IO Completion Socket used for the processing completions on the socket.
@@ -345,31 +345,31 @@ typedef struct QUIC_DATAPATH_PROC {
     //
     // Pool of send contexts to be shared by all sockets on this core.
     //
-    QUIC_POOL SendContextPool;
+    CXPLAT_POOL SendContextPool;
 
     //
     // Pool of send buffers to be shared by all sockets on this core.
     //
-    QUIC_POOL SendBufferPool;
+    CXPLAT_POOL SendBufferPool;
 
     //
     // Pool of large segmented send buffers to be shared by all sockets on this
     // core.
     //
-    QUIC_POOL LargeSendBufferPool;
+    CXPLAT_POOL LargeSendBufferPool;
 
     //
     // Pool of receive datagram contexts and buffers to be shared by all sockets
     // on this core.
     //
-    QUIC_POOL RecvDatagramPool;
+    CXPLAT_POOL RecvDatagramPool;
 
-} QUIC_DATAPATH_PROC;
+} CXPLAT_DATAPATH_PROC;
 
 //
 // Main structure for tracking all UDP abstractions.
 //
-typedef struct QUIC_DATAPATH {
+typedef struct CXPLAT_DATAPATH {
 
     //
     // Set of supported features.
@@ -409,20 +409,20 @@ typedef struct QUIC_DATAPATH {
     //
     // Rundown for waiting on binding cleanup.
     //
-    QUIC_RUNDOWN_REF SocketsRundown;
+    CXPLAT_RUNDOWN_REF SocketsRundown;
 
     //
     // The UDP callback function pointers.
     //
-    QUIC_UDP_DATAPATH_CALLBACKS UdpHandlers;
+    CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
 
     //
     // The TCP callback function pointers.
     //
-    QUIC_TCP_DATAPATH_CALLBACKS TcpHandlers;
+    CXPLAT_TCP_DATAPATH_CALLBACKS TcpHandlers;
 
     //
-    // Size of the client's QUIC_RECV_PACKET.
+    // Size of the client's CXPLAT_RECV_PACKET.
     //
     uint32_t ClientRecvContextLength;
 
@@ -446,51 +446,51 @@ typedef struct QUIC_DATAPATH {
     //
     // Per-processor completion contexts.
     //
-    QUIC_DATAPATH_PROC Processors[0];
+    CXPLAT_DATAPATH_PROC Processors[0];
 
-} QUIC_DATAPATH;
+} CXPLAT_DATAPATH;
 
-QUIC_RECV_DATA*
-QuicDataPathRecvPacketToRecvData(
-    _In_ const QUIC_RECV_PACKET* const Context
+CXPLAT_RECV_DATA*
+CxPlatDataPathRecvPacketToRecvData(
+    _In_ const CXPLAT_RECV_PACKET* const Context
     )
 {
-    return (QUIC_RECV_DATA*)
+    return (CXPLAT_RECV_DATA*)
         (((PUCHAR)Context) -
-            sizeof(QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT) -
-            sizeof(QUIC_RECV_DATA));
+            sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT) -
+            sizeof(CXPLAT_RECV_DATA));
 }
 
-QUIC_RECV_PACKET*
-QuicDataPathRecvDataToRecvPacket(
-    _In_ const QUIC_RECV_DATA* const Datagram
+CXPLAT_RECV_PACKET*
+CxPlatDataPathRecvDataToRecvPacket(
+    _In_ const CXPLAT_RECV_DATA* const Datagram
     )
 {
-    return (QUIC_RECV_PACKET*)
+    return (CXPLAT_RECV_PACKET*)
         (((PUCHAR)Datagram) +
-            sizeof(QUIC_RECV_DATA) +
-            sizeof(QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT));
+            sizeof(CXPLAT_RECV_DATA) +
+            sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT));
 }
 
-QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*
-QuicDataPathDatagramToInternalDatagramContext(
-    _In_ QUIC_RECV_DATA* Datagram
+CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*
+CxPlatDataPathDatagramToInternalDatagramContext(
+    _In_ CXPLAT_RECV_DATA* Datagram
     )
 {
-    return (QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*)
-        (((PUCHAR)Datagram) + sizeof(QUIC_RECV_DATA));
+    return (CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*)
+        (((PUCHAR)Datagram) + sizeof(CXPLAT_RECV_DATA));
 }
 
 QUIC_STATUS
-QuicSocketStartReceive(
-    _In_ QUIC_SOCKET_PROC* SocketProc,
-    _In_ QUIC_DATAPATH_PROC* DatapathProc
+CxPlatSocketStartReceive(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _In_ CXPLAT_DATAPATH_PROC* DatapathProc
     );
 
 QUIC_STATUS
-QuicSocketStartAccept(
-    _In_ QUIC_SOCKET_PROC* SocketProc,
-    _In_ QUIC_DATAPATH_PROC* DatapathProc
+CxPlatSocketStartAccept(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _In_ CXPLAT_DATAPATH_PROC* DatapathProc
     );
 
 //
@@ -498,13 +498,13 @@ QuicSocketStartAccept(
 //
 DWORD
 WINAPI
-QuicDataPathWorkerThread(
+CxPlatDataPathWorkerThread(
     _In_ void* Context
     );
 
 void
-QuicDataPathQueryRssScalabilityInfo(
-    _Inout_ QUIC_DATAPATH* Datapath
+CxPlatDataPathQueryRssScalabilityInfo(
+    _Inout_ CXPLAT_DATAPATH* Datapath
     )
 {
     int Result;
@@ -542,7 +542,7 @@ QuicDataPathQueryRssScalabilityInfo(
     }
 
     if (RssInfo.RssEnabled) {
-        Datapath->Features |= QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING;
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING;
     }
 
 Error:
@@ -553,8 +553,8 @@ Error:
 }
 
 QUIC_STATUS
-QuicDataPathQuerySockoptSupport(
-    _Inout_ QUIC_DATAPATH* Datapath
+CxPlatDataPathQuerySockoptSupport(
+    _Inout_ CXPLAT_DATAPATH* Datapath
     )
 {
     int Result;
@@ -689,7 +689,7 @@ QuicDataPathQuerySockoptSupport(
             "[data] Query for UDP_SEND_MSG_SIZE failed, 0x%x",
             WsaError);
     } else {
-        Datapath->Features |= QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION;
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
     }
 }
 #endif
@@ -712,7 +712,7 @@ QuicDataPathQuerySockoptSupport(
             "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
             WsaError);
     } else {
-        Datapath->Features |= QUIC_DATAPATH_FEATURE_RECV_COALESCING;
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
     }
 }
 #endif
@@ -728,21 +728,21 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathInitialize(
+CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ const QUIC_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
-    _In_opt_ const QUIC_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _Out_ QUIC_DATAPATH** NewDataPath
+    _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
+    _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
     int WsaError;
     QUIC_STATUS Status;
     WSADATA WsaData;
-    QUIC_DATAPATH* Datapath;
+    CXPLAT_DATAPATH* Datapath;
     uint32_t DatapathLength;
 
-    uint32_t MaxProcCount = QuicProcActiveCount();
-    QUIC_DBG_ASSERT(MaxProcCount <= UINT16_MAX - 1);
+    uint32_t MaxProcCount = CxPlatProcActiveCount();
+    CXPLAT_DBG_ASSERT(MaxProcCount <= UINT16_MAX - 1);
     if (MaxProcCount >= UINT16_MAX) {
         MaxProcCount = UINT16_MAX - 1;
     }
@@ -781,15 +781,15 @@ QuicDataPathInitialize(
     }
 
     DatapathLength =
-        sizeof(QUIC_DATAPATH) +
-        MaxProcCount * sizeof(QUIC_DATAPATH_PROC);
+        sizeof(CXPLAT_DATAPATH) +
+        MaxProcCount * sizeof(CXPLAT_DATAPATH_PROC);
 
-    Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
+    Datapath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_DATAPATH",
+            "CXPLAT_DATAPATH",
             DatapathLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -804,15 +804,15 @@ QuicDataPathInitialize(
     }
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = (uint16_t)MaxProcCount;
-    QuicRundownInitialize(&Datapath->SocketsRundown);
+    CxPlatRundownInitialize(&Datapath->SocketsRundown);
 
-    QuicDataPathQueryRssScalabilityInfo(Datapath);
-    Status = QuicDataPathQuerySockoptSupport(Datapath);
+    CxPlatDataPathQueryRssScalabilityInfo(Datapath);
+    Status = CxPlatDataPathQuerySockoptSupport(Datapath);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
-    if (Datapath->Features & QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION) {
+    if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
         //
         // UDP send batching is actually supported on even earlier Windows
         // versions than USO, but we have no good way to dynamically query
@@ -820,23 +820,23 @@ QuicDataPathInitialize(
         // together, since send batching is guaranteed to be supported if USO
         // is.
         //
-        Datapath->MaxSendBatchSize = QUIC_MAX_BATCH_SEND;
+        Datapath->MaxSendBatchSize = CXPLAT_MAX_BATCH_SEND;
     } else {
         Datapath->MaxSendBatchSize = 1;
     }
 
     uint32_t MessageCount =
-        (Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING)
+        (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING)
             ? URO_MAX_DATAGRAMS_PER_INDICATION : 1;
 
     Datapath->DatagramStride =
         ALIGN_UP(
-            sizeof(QUIC_RECV_DATA) +
-            sizeof(QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT) +
+            sizeof(CXPLAT_RECV_DATA) +
+            sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT) +
             ClientRecvContextLength,
             PVOID);
     Datapath->RecvPayloadOffset =
-        sizeof(QUIC_DATAPATH_INTERNAL_RECV_CONTEXT) +
+        sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT) +
         MessageCount * Datapath->DatagramStride;
 
     uint32_t RecvDatagramLength =
@@ -853,25 +853,25 @@ QuicDataPathInitialize(
         Datapath->Processors[i].Datapath = Datapath;
         Datapath->Processors[i].Index = i;
 
-        QuicPoolInitialize(
+        CxPlatPoolInitialize(
             FALSE,
-            sizeof(QUIC_SEND_DATA),
+            sizeof(CXPLAT_SEND_DATA),
             QUIC_POOL_PLATFORM_SENDCTX,
             &Datapath->Processors[i].SendContextPool);
 
-        QuicPoolInitialize(
+        CxPlatPoolInitialize(
             FALSE,
             MAX_UDP_PAYLOAD_LENGTH,
             QUIC_POOL_DATA,
             &Datapath->Processors[i].SendBufferPool);
 
-        QuicPoolInitialize(
+        CxPlatPoolInitialize(
             FALSE,
-            QUIC_LARGE_SEND_BUFFER_SIZE,
+            CXPLAT_LARGE_SEND_BUFFER_SIZE,
             QUIC_POOL_DATA,
             &Datapath->Processors[i].LargeSendBufferPool);
 
-        QuicPoolInitialize(
+        CxPlatPoolInitialize(
             FALSE,
             RecvDatagramLength,
             QUIC_POOL_DATA,
@@ -898,7 +898,7 @@ QuicDataPathInitialize(
             CreateThread(
                 NULL,
                 0,
-                QuicDataPathWorkerThread,
+                CxPlatDataPathWorkerThread,
                 &Datapath->Processors[i],
                 0,
                 NULL);
@@ -913,7 +913,7 @@ QuicDataPathInitialize(
             goto Error;
         }
 
-        const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[i];
+        const CXPLAT_PROCESSOR_INFO* ProcInfo = &CxPlatProcessorInfo[i];
         GROUP_AFFINITY Group = {0};
         Group.Mask = (KAFFINITY)(1llu << ProcInfo->Index);
         Group.Group = ProcInfo->Group;
@@ -932,10 +932,10 @@ QuicDataPathInitialize(
         }
 
 #ifdef QUIC_UWP_BUILD
-        SetThreadDescription(Datapath->Processors[i].CompletionThread, L"quic_datapath");
+        SetThreadDescription(Datapath->Processors[i].CompletionThread, L"CXPLAT_DATAPATH");
 #else
         THREAD_NAME_INFORMATION ThreadNameInfo;
-        RtlInitUnicodeString(&ThreadNameInfo.ThreadName, L"quic_datapath");
+        RtlInitUnicodeString(&ThreadNameInfo.ThreadName, L"CXPLAT_DATAPATH");
         NTSTATUS NtStatus =
             NtSetInformationThread(
                 Datapath->Processors[i].CompletionThread,
@@ -966,13 +966,13 @@ Error:
                 if (Datapath->Processors[i].CompletionThread) {
                     CloseHandle(Datapath->Processors[i].CompletionThread);
                 }
-                QuicPoolUninitialize(&Datapath->Processors[i].SendContextPool);
-                QuicPoolUninitialize(&Datapath->Processors[i].SendBufferPool);
-                QuicPoolUninitialize(&Datapath->Processors[i].LargeSendBufferPool);
-                QuicPoolUninitialize(&Datapath->Processors[i].RecvDatagramPool);
+                CxPlatPoolUninitialize(&Datapath->Processors[i].SendContextPool);
+                CxPlatPoolUninitialize(&Datapath->Processors[i].SendBufferPool);
+                CxPlatPoolUninitialize(&Datapath->Processors[i].LargeSendBufferPool);
+                CxPlatPoolUninitialize(&Datapath->Processors[i].RecvDatagramPool);
             }
-            QuicRundownUninitialize(&Datapath->SocketsRundown);
-            QUIC_FREE(Datapath, QUIC_POOL_DATAPATH);
+            CxPlatRundownUninitialize(&Datapath->SocketsRundown);
+            CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         }
         (void)WSACleanup();
     }
@@ -984,8 +984,8 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathUninitialize(
-    _In_ QUIC_DATAPATH* Datapath
+CxPlatDataPathUninitialize(
+    _In_ CXPLAT_DATAPATH* Datapath
     )
 {
     if (Datapath == NULL) {
@@ -995,7 +995,7 @@ QuicDataPathUninitialize(
     //
     // Wait for all outstanding binding to clean up.
     //
-    QuicRundownReleaseAndWait(&Datapath->SocketsRundown);
+    CxPlatRundownReleaseAndWait(&Datapath->SocketsRundown);
 
     //
     // Disable processing on the completion threads and kick the IOCPs to make
@@ -1017,22 +1017,22 @@ QuicDataPathUninitialize(
 
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
         CloseHandle(Datapath->Processors[i].IOCP);
-        QuicPoolUninitialize(&Datapath->Processors[i].SendContextPool);
-        QuicPoolUninitialize(&Datapath->Processors[i].SendBufferPool);
-        QuicPoolUninitialize(&Datapath->Processors[i].LargeSendBufferPool);
-        QuicPoolUninitialize(&Datapath->Processors[i].RecvDatagramPool);
+        CxPlatPoolUninitialize(&Datapath->Processors[i].SendContextPool);
+        CxPlatPoolUninitialize(&Datapath->Processors[i].SendBufferPool);
+        CxPlatPoolUninitialize(&Datapath->Processors[i].LargeSendBufferPool);
+        CxPlatPoolUninitialize(&Datapath->Processors[i].RecvDatagramPool);
     }
 
-    QuicRundownUninitialize(&Datapath->SocketsRundown);
-    QUIC_FREE(Datapath, QUIC_POOL_DATAPATH);
+    CxPlatRundownUninitialize(&Datapath->SocketsRundown);
+    CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 
     WSACleanup();
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
-QuicDataPathGetSupportedFeatures(
-    _In_ QUIC_DATAPATH* Datapath
+CxPlatDataPathGetSupportedFeatures(
+    _In_ CXPLAT_DATAPATH* Datapath
     )
 {
     return Datapath->Features;
@@ -1040,15 +1040,15 @@ QuicDataPathGetSupportedFeatures(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicDataPathIsPaddingPreferred(
-    _In_ QUIC_DATAPATH* Datapath
+CxPlatDataPathIsPaddingPreferred(
+    _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    return !!(Datapath->Features & QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION);
+    return !!(Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
 }
 
 void
-QuicDataPathPopulateTargetAddress(
+CxPlatDataPathPopulateTargetAddress(
     _In_ ADDRESS_FAMILY Family,
     _In_ ADDRINFOW *Ai,
     _Out_ SOCKADDR_INET* Address
@@ -1080,8 +1080,8 @@ QuicDataPathPopulateTargetAddress(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicDataPathResolveAddress(
-    _In_ QUIC_DATAPATH* Datapath,
+CxPlatDataPathResolveAddress(
+    _In_ CXPLAT_DATAPATH* Datapath,
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR* Address
     )
@@ -1110,7 +1110,7 @@ QuicDataPathResolveAddress(
         goto Exit;
     }
 
-    HostNameW = QUIC_ALLOC_PAGED(sizeof(WCHAR) * Result, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    HostNameW = CXPLAT_ALLOC_PAGED(sizeof(WCHAR) * Result, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (HostNameW == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1150,7 +1150,7 @@ QuicDataPathResolveAddress(
     //
     Hints.ai_flags = AI_NUMERICHOST;
     if (GetAddrInfoW(HostNameW, NULL, &Hints, &Ai) == 0) {
-        QuicDataPathPopulateTargetAddress((ADDRESS_FAMILY)Hints.ai_family, Ai, Address);
+        CxPlatDataPathPopulateTargetAddress((ADDRESS_FAMILY)Hints.ai_family, Ai, Address);
         FreeAddrInfoW(Ai);
         Status = QUIC_STATUS_SUCCESS;
         goto Exit;
@@ -1161,7 +1161,7 @@ QuicDataPathResolveAddress(
     //
     Hints.ai_flags = AI_CANONNAME;
     if (GetAddrInfoW(HostNameW, NULL, &Hints, &Ai) == 0) {
-        QuicDataPathPopulateTargetAddress((ADDRESS_FAMILY)Hints.ai_family, Ai, Address);
+        CxPlatDataPathPopulateTargetAddress((ADDRESS_FAMILY)Hints.ai_family, Ai, Address);
         FreeAddrInfoW(Ai);
         Status = QUIC_STATUS_SUCCESS;
         goto Exit;
@@ -1181,7 +1181,7 @@ QuicDataPathResolveAddress(
 Exit:
 
     if (HostNameW != NULL) {
-        QUIC_FREE(HostNameW, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(HostNameW, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Status;
@@ -1189,12 +1189,12 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketCreateUdp(
-    _In_ QUIC_DATAPATH* Datapath,
+CxPlatSocketCreateUdp(
+    _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
-    _Out_ QUIC_SOCKET** NewSocket
+    _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
     QUIC_STATUS Status;
@@ -1203,16 +1203,16 @@ QuicSocketCreateUdp(
     BOOLEAN IsServerSocket = RemoteAddress == NULL;
     uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
 
-    QUIC_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
+    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
 
     uint32_t SocketLength =
-        sizeof(QUIC_SOCKET) + SocketCount * sizeof(QUIC_SOCKET_PROC);
-    QUIC_SOCKET* Socket = QUIC_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
+        sizeof(CXPLAT_SOCKET) + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
+    CXPLAT_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
     if (Socket == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_SOCKET",
+            "CXPLAT_SOCKET",
             SocketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -1230,28 +1230,28 @@ QuicSocketCreateUdp(
     Socket->ClientContext = RecvCallbackContext;
     Socket->HasFixedRemoteAddress = (RemoteAddress != NULL);
     Socket->Internal = FALSE;
-    Socket->Type = QUIC_SOCKET_UDP;
+    Socket->Type = CXPLAT_SOCKET_UDP;
     if (LocalAddress) {
-        QuicConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
+        CxPlatConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
     } else {
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
-    Socket->Mtu = QUIC_MAX_MTU;
-    QuicRundownAcquire(&Datapath->SocketsRundown);
+    Socket->Mtu = CXPLAT_MAX_MTU;
+    CxPlatRundownAcquire(&Datapath->SocketsRundown);
 
     for (uint16_t i = 0; i < SocketCount; i++) {
         Socket->Processors[i].Parent = Socket;
         Socket->Processors[i].Socket = INVALID_SOCKET;
         Socket->Processors[i].RecvWsaBuf.len =
-            (Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING) ?
+            (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
                 MAX_URO_PAYLOAD_LENGTH :
-                Socket->Mtu - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE;
-        QuicRundownInitialize(&Socket->Processors[i].UpcallRundown);
+                Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
+        CxPlatRundownInitialize(&Socket->Processors[i].UpcallRundown);
     }
 
     for (uint16_t i = 0; i < SocketCount; i++) {
 
-        QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[i];
+        CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
         uint16_t AffinitizedProcessor = (uint16_t)i;
         DWORD BytesReturned;
 
@@ -1470,7 +1470,7 @@ QuicSocketCreateUdp(
         }
 
 #ifdef UDP_RECV_MAX_COALESCED_SIZE
-        if (Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING) {
+        if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
             Option = MAX_URO_PAYLOAD_LENGTH;
             Result =
                 setsockopt(
@@ -1514,7 +1514,7 @@ QuicSocketCreateUdp(
 
         if (RemoteAddress != NULL) {
             AffinitizedProcessor =
-                ((uint16_t)QuicProcCurrentNumber()) % Datapath->ProcCount;
+                ((uint16_t)CxPlatProcCurrentNumber()) % Datapath->ProcCount;
             Socket->ProcessorAffinity = AffinitizedProcessor;
         }
 
@@ -1556,7 +1556,7 @@ QUIC_DISABLED_BY_FUZZER_START;
 
         if (RemoteAddress != NULL) {
             SOCKADDR_INET MappedRemoteAddress = { 0 };
-            QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+            CxPlatConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
             Result =
                 connect(
@@ -1603,14 +1603,14 @@ QUIC_DISABLED_BY_FUZZER_START;
             }
 
             if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-                QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
+                CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
             }
         }
 
 QUIC_DISABLED_BY_FUZZER_END;
     }
 
-    QuicConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
+    CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
     if (RemoteAddress != NULL) {
         Socket->RemoteAddress = *RemoteAddress;
@@ -1632,7 +1632,7 @@ QUIC_DISABLED_BY_FUZZER_END;
             Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : i;
 
         Status =
-            QuicSocketStartReceive(
+            CxPlatSocketStartReceive(
                 &Socket->Processors[i],
                 &Datapath->Processors[Processor]);
         if (QUIC_FAILED(Status)) {
@@ -1652,7 +1652,7 @@ Error:
                 Socket);
             if (Socket->ProcsOutstanding != 0) {
                 for (uint16_t i = 0; i < SocketCount; i++) {
-                    QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[i];
+                    CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
                     uint16_t Processor =
                          Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : i;
 
@@ -1674,7 +1674,7 @@ QUIC_DISABLED_BY_FUZZER_END;
                 }
             } else {
                 for (uint16_t i = 0; i < SocketCount; i++) {
-                    QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[i];
+                    CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
 
 QUIC_DISABLED_BY_FUZZER_START;
 
@@ -1684,10 +1684,10 @@ QUIC_DISABLED_BY_FUZZER_START;
 
 QUIC_DISABLED_BY_FUZZER_END;
 
-                    QuicRundownUninitialize(&SocketProc->UpcallRundown);
+                    CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
                 }
-                QuicRundownRelease(&Datapath->SocketsRundown);
-                QUIC_FREE(Socket, QUIC_POOL_SOCKET);
+                CxPlatRundownRelease(&Datapath->SocketsRundown);
+                CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
             }
         }
     }
@@ -1697,13 +1697,13 @@ QUIC_DISABLED_BY_FUZZER_END;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketCreateTcpInternal(
-    _In_ QUIC_DATAPATH* Datapath,
-    _In_ QUIC_SOCKET_TYPE Type,
+CxPlatSocketCreateTcpInternal(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SOCKET_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
-    _Out_ QUIC_SOCKET** NewSocket
+    _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
     QUIC_STATUS Status;
@@ -1711,16 +1711,16 @@ QuicSocketCreateTcpInternal(
     int Option;
     DWORD BytesReturned;
 
-    QUIC_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
+    CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
-    QUIC_SOCKET_PROC* SocketProc = NULL;
-    uint32_t SocketLength = sizeof(QUIC_SOCKET) + sizeof(QUIC_SOCKET_PROC);
-    QUIC_SOCKET* Socket = QUIC_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
+    CXPLAT_SOCKET_PROC* SocketProc = NULL;
+    uint32_t SocketLength = sizeof(CXPLAT_SOCKET) + sizeof(CXPLAT_SOCKET_PROC);
+    CXPLAT_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
     if (Socket == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_SOCKET",
+            "CXPLAT_SOCKET",
             SocketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -1737,25 +1737,25 @@ QuicSocketCreateTcpInternal(
     Socket->Datapath = Datapath;
     Socket->ClientContext = RecvCallbackContext;
     Socket->HasFixedRemoteAddress = TRUE;
-    Socket->Internal = (Type == QUIC_SOCKET_TCP_SERVER);
+    Socket->Internal = (Type == CXPLAT_SOCKET_TCP_SERVER);
     Socket->Type = Type;
     if (LocalAddress) {
-        QuicConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
+        CxPlatConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
     } else {
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
     if (RemoteAddress) {
         Socket->ProcessorAffinity =
-            ((uint16_t)QuicProcCurrentNumber()) % Datapath->ProcCount;
+            ((uint16_t)CxPlatProcCurrentNumber()) % Datapath->ProcCount;
     }
-    Socket->Mtu = QUIC_MAX_MTU;
-    QuicRundownAcquire(&Datapath->SocketsRundown);
+    Socket->Mtu = CXPLAT_MAX_MTU;
+    CxPlatRundownAcquire(&Datapath->SocketsRundown);
 
     SocketProc = &Socket->Processors[0];
     SocketProc->Parent = Socket;
     SocketProc->Socket = INVALID_SOCKET;
     SocketProc->RecvWsaBuf.len = MAX_URO_PAYLOAD_LENGTH;
-    QuicRundownInitialize(&SocketProc->UpcallRundown);
+    CxPlatRundownInitialize(&SocketProc->UpcallRundown);
 
     SocketProc->Socket =
         WSASocketW(
@@ -1816,7 +1816,7 @@ QuicSocketCreateTcpInternal(
         goto Error;
     }
 
-    if (Type != QUIC_SOCKET_TCP_SERVER) {
+    if (Type != CXPLAT_SOCKET_TCP_SERVER) {
 
         if (Datapath->Processors[Socket->ProcessorAffinity].IOCP !=
             CreateIoCompletionPort(
@@ -1854,7 +1854,7 @@ QuicSocketCreateTcpInternal(
 
         if (RemoteAddress != NULL) {
             SOCKADDR_INET MappedRemoteAddress = { 0 };
-            QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+            CxPlatConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
             Result =
                 Datapath->ConnectEx(
@@ -1924,11 +1924,11 @@ QuicSocketCreateTcpInternal(
         }
 
         if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-            QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
+            CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
         }
     }
 
-    QuicConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
+    CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
     if (RemoteAddress != NULL) {
         Socket->RemoteAddress = *RemoteAddress;
@@ -1968,10 +1968,10 @@ Error:
                 if (SocketProc->Socket != INVALID_SOCKET) {
                     closesocket(SocketProc->Socket);
                 }
-                QuicRundownUninitialize(&SocketProc->UpcallRundown);
+                CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
 
-                QuicRundownRelease(&Datapath->SocketsRundown);
-                QUIC_FREE(Socket, QUIC_POOL_SOCKET);
+                CxPlatRundownRelease(&Datapath->SocketsRundown);
+                CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
             }
         }
     }
@@ -1981,18 +1981,18 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketCreateTcp(
-    _In_ QUIC_DATAPATH* Datapath,
+CxPlatSocketCreateTcp(
+    _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* CallbackContext,
-    _Out_ QUIC_SOCKET** Socket
+    _Out_ CXPLAT_SOCKET** Socket
     )
 {
     return
-        QuicSocketCreateTcpInternal(
+        CxPlatSocketCreateTcpInternal(
             Datapath,
-            QUIC_SOCKET_TCP,
+            CXPLAT_SOCKET_TCP,
             LocalAddress,
             RemoteAddress,
             CallbackContext,
@@ -2001,27 +2001,27 @@ QuicSocketCreateTcp(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketCreateTcpListener(
-    _In_ QUIC_DATAPATH* Datapath,
+CxPlatSocketCreateTcpListener(
+    _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ void* RecvCallbackContext,
-    _Out_ QUIC_SOCKET** NewSocket
+    _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
     QUIC_STATUS Status;
     int Result;
     int Option;
 
-    QUIC_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
+    CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
-    QUIC_SOCKET_PROC* SocketProc = NULL;
-    uint32_t SocketLength = sizeof(QUIC_SOCKET) + sizeof(QUIC_SOCKET_PROC);
-    QUIC_SOCKET* Socket = QUIC_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
+    CXPLAT_SOCKET_PROC* SocketProc = NULL;
+    uint32_t SocketLength = sizeof(CXPLAT_SOCKET) + sizeof(CXPLAT_SOCKET_PROC);
+    CXPLAT_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
     if (Socket == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_SOCKET",
+            "CXPLAT_SOCKET",
             SocketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -2039,19 +2039,19 @@ QuicSocketCreateTcpListener(
     Socket->ClientContext = RecvCallbackContext;
     Socket->HasFixedRemoteAddress = FALSE;
     Socket->Internal = FALSE;
-    Socket->Type = QUIC_SOCKET_TCP_LISTENER;
+    Socket->Type = CXPLAT_SOCKET_TCP_LISTENER;
     if (LocalAddress) {
-        QuicConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
+        CxPlatConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
     } else {
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
-    Socket->Mtu = QUIC_MAX_MTU;
-    QuicRundownAcquire(&Datapath->SocketsRundown);
+    Socket->Mtu = CXPLAT_MAX_MTU;
+    CxPlatRundownAcquire(&Datapath->SocketsRundown);
 
     SocketProc = &Socket->Processors[0];
     SocketProc->Parent = Socket;
     SocketProc->Socket = INVALID_SOCKET;
-    QuicRundownInitialize(&SocketProc->UpcallRundown);
+    CxPlatRundownInitialize(&SocketProc->UpcallRundown);
 
     SocketProc->Socket =
         WSASocketW(
@@ -2171,10 +2171,10 @@ QuicSocketCreateTcpListener(
     }
 
     if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-        QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
+        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
     }
 
-    QuicConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
+    CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
     Result =
         listen(
@@ -2195,7 +2195,7 @@ QuicSocketCreateTcpListener(
     Socket->ProcsOutstanding = 1;
 
     Status =
-        QuicSocketStartAccept(
+        CxPlatSocketStartAccept(
             SocketProc,
             &Datapath->Processors[Socket->ProcessorAffinity]);
     if (QUIC_FAILED(Status)) {
@@ -2230,10 +2230,10 @@ Error:
                 if (SocketProc->Socket != INVALID_SOCKET) {
                     closesocket(SocketProc->Socket);
                 }
-                QuicRundownUninitialize(&SocketProc->UpcallRundown);
+                CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
 
-                QuicRundownRelease(&Datapath->SocketsRundown);
-                QUIC_FREE(Socket, QUIC_POOL_SOCKET);
+                CxPlatRundownRelease(&Datapath->SocketsRundown);
+                CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
             }
         }
     }
@@ -2243,17 +2243,17 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathSocketContextShutdown(
-    _In_ QUIC_SOCKET_PROC* SocketProc
+CxPlatDataPathSocketContextShutdown(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicSocketDelete(
-    _In_ QUIC_SOCKET* Socket
+CxPlatSocketDelete(
+    _In_ CXPLAT_SOCKET* Socket
     )
 {
-    QUIC_DBG_ASSERT(Socket != NULL);
+    CXPLAT_DBG_ASSERT(Socket != NULL);
     QuicTraceEvent(
         DatapathDestroyed,
         "[data][%p] Destroyed",
@@ -2266,10 +2266,10 @@ QuicSocketDelete(
     // upcalls on different threads will be completed.
     //
 
-    QUIC_DATAPATH* Datapath = Socket->Datapath;
+    CXPLAT_DATAPATH* Datapath = Socket->Datapath;
 
     if (Socket->Internal) {
-        QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[0];
+        CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[0];
         if (closesocket(SocketProc->Socket) == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
             QuicTraceEvent(
@@ -2279,15 +2279,15 @@ QuicSocketDelete(
                 WsaError,
                 "closesocket");
         }
-        QuicDataPathSocketContextShutdown(&Socket->Processors[0]);
+        CxPlatDataPathSocketContextShutdown(&Socket->Processors[0]);
 
-    } else if (Socket->HasFixedRemoteAddress || Socket->Type != QUIC_SOCKET_UDP) {
-        QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[0];
+    } else if (Socket->HasFixedRemoteAddress || Socket->Type != CXPLAT_SOCKET_UDP) {
+        CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[0];
         uint32_t Processor = Socket->ProcessorAffinity;
-        QUIC_DBG_ASSERT(
+        CXPLAT_DBG_ASSERT(
             Datapath->Processors[Processor].ThreadId != GetCurrentThreadId());
-        if (Socket->Type == QUIC_SOCKET_TCP ||
-            Socket->Type == QUIC_SOCKET_TCP_SERVER) {
+        if (Socket->Type == CXPLAT_SOCKET_TCP ||
+            Socket->Type == CXPLAT_SOCKET_TCP_SERVER) {
             SocketProc->Parent->DisconnectIndicated = TRUE;
             if (shutdown(SocketProc->Socket, SD_BOTH) == SOCKET_ERROR) {
                 int WsaError = WSAGetLastError();
@@ -2301,7 +2301,7 @@ QuicSocketDelete(
                 }
             }
         }
-        QuicRundownReleaseAndWait(&SocketProc->UpcallRundown);
+        CxPlatRundownReleaseAndWait(&SocketProc->UpcallRundown);
 
 QUIC_DISABLED_BY_FUZZER_START;
 
@@ -2326,13 +2326,13 @@ QUIC_DISABLED_BY_FUZZER_END;
 
     } else {
         for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
-            QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[i];
-            QUIC_DBG_ASSERT(
+            CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
+            CXPLAT_DBG_ASSERT(
                 Datapath->Processors[i].ThreadId != GetCurrentThreadId());
-            QuicRundownReleaseAndWait(&SocketProc->UpcallRundown);
+            CxPlatRundownReleaseAndWait(&SocketProc->UpcallRundown);
         }
         for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
-            QUIC_SOCKET_PROC* SocketProc = &Socket->Processors[i];
+            CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
             uint32_t Processor = i;
 
 QUIC_DISABLED_BY_FUZZER_START;
@@ -2358,79 +2358,79 @@ QUIC_DISABLED_BY_FUZZER_END;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathSocketContextShutdown(
-    _In_ QUIC_SOCKET_PROC* SocketProc
+CxPlatDataPathSocketContextShutdown(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
     )
 {
-    if (SocketProc->Parent->Type == QUIC_SOCKET_TCP_LISTENER) {
+    if (SocketProc->Parent->Type == CXPLAT_SOCKET_TCP_LISTENER) {
         if (SocketProc->AcceptSocket != NULL) {
-            QuicSocketDelete(SocketProc->AcceptSocket);
+            CxPlatSocketDelete(SocketProc->AcceptSocket);
             SocketProc->AcceptSocket = NULL;
         }
 
     } else if (SocketProc->CurrentRecvContext != NULL) {
-        QuicPoolFree(
+        CxPlatPoolFree(
             SocketProc->CurrentRecvContext->OwningPool,
             SocketProc->CurrentRecvContext);
         SocketProc->CurrentRecvContext = NULL;
     }
 
-    QuicRundownUninitialize(&SocketProc->UpcallRundown);
+    CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
 
     if (InterlockedDecrement16(
             &SocketProc->Parent->ProcsOutstanding) == 0) {
         //
         // Last socket context cleaned up, so now the binding can be freed.
         //
-        QuicRundownRelease(&SocketProc->Parent->Datapath->SocketsRundown);
+        CxPlatRundownRelease(&SocketProc->Parent->Datapath->SocketsRundown);
         QuicTraceLogVerbose(
             DatapathShutDownComplete,
             "[data][%p] Shut down (complete)",
             SocketProc->Parent);
-        QUIC_FREE(SocketProc->Parent, QUIC_POOL_SOCKET);
+        CXPLAT_FREE(SocketProc->Parent, QUIC_POOL_SOCKET);
     }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 UINT16
-QuicSocketGetLocalMtu(
-    _In_ QUIC_SOCKET* Socket
+CxPlatSocketGetLocalMtu(
+    _In_ CXPLAT_SOCKET* Socket
     )
 {
-    QUIC_DBG_ASSERT(Socket != NULL);
+    CXPLAT_DBG_ASSERT(Socket != NULL);
     return Socket->Mtu;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicSocketGetLocalAddress(
-    _In_ QUIC_SOCKET* Socket,
+CxPlatSocketGetLocalAddress(
+    _In_ CXPLAT_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     )
 {
-    QUIC_DBG_ASSERT(Socket != NULL);
+    CXPLAT_DBG_ASSERT(Socket != NULL);
     *Address = Socket->LocalAddress;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicSocketGetRemoteAddress(
-    _In_ QUIC_SOCKET* Socket,
+CxPlatSocketGetRemoteAddress(
+    _In_ CXPLAT_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     )
 {
-    QUIC_DBG_ASSERT(Socket != NULL);
+    CXPLAT_DBG_ASSERT(Socket != NULL);
     *Address = Socket->RemoteAddress;
 }
 
-QUIC_DATAPATH_INTERNAL_RECV_CONTEXT*
-QuicSocketAllocRecvContext(
-    _In_ QUIC_DATAPATH* Datapath,
+CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT*
+CxPlatSocketAllocRecvContext(
+    _In_ CXPLAT_DATAPATH* Datapath,
     _In_ UINT16 ProcIndex
     )
 {
-    QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
-        QuicPoolAlloc(&Datapath->Processors[ProcIndex].RecvDatagramPool);
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
+        CxPlatPoolAlloc(&Datapath->Processors[ProcIndex].RecvDatagramPool);
 
     if (RecvContext != NULL) {
         RecvContext->OwningPool =
@@ -2442,13 +2442,13 @@ QuicSocketAllocRecvContext(
 }
 
 QUIC_STATUS
-QuicSocketStartAccept(
-    _In_ QUIC_SOCKET_PROC* ListenerSocketProc,
-    _In_ QUIC_DATAPATH_PROC* DatapathProc
+CxPlatSocketStartAccept(
+    _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc,
+    _In_ CXPLAT_DATAPATH_PROC* DatapathProc
     )
 {
     QUIC_STATUS Status;
-    QUIC_DATAPATH* Datapath = ListenerSocketProc->Parent->Datapath;
+    CXPLAT_DATAPATH* Datapath = ListenerSocketProc->Parent->Datapath;
     DWORD BytesRecv = 0;
     int Result;
 
@@ -2457,9 +2457,9 @@ QuicSocketStartAccept(
     //
     if (ListenerSocketProc->AcceptSocket == NULL) {
         Status =
-            QuicSocketCreateTcpInternal(
+            CxPlatSocketCreateTcpInternal(
                 Datapath,
-                QUIC_SOCKET_TCP_SERVER,
+                CXPLAT_SOCKET_TCP_SERVER,
                 NULL,
                 NULL,
                 NULL,
@@ -2524,9 +2524,9 @@ Error:
 }
 
 void
-QuicDataPathAcceptComplete(
-    _In_ QUIC_DATAPATH_PROC* DatapathProc,
-    _In_ QUIC_SOCKET_PROC* ListenerSocketProc,
+CxPlatDataPathAcceptComplete(
+    _In_ CXPLAT_DATAPATH_PROC* DatapathProc,
+    _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc,
     _In_ ULONG IoResult
     )
 {
@@ -2539,9 +2539,9 @@ QuicDataPathAcceptComplete(
     }
 
     if (IoResult == QUIC_STATUS_SUCCESS) {
-        QUIC_DBG_ASSERT(ListenerSocketProc->AcceptSocket != NULL);
-        QUIC_SOCKET_PROC* AcceptSocketProc = &ListenerSocketProc->AcceptSocket->Processors[0];
-        QUIC_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
+        CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket != NULL);
+        CXPLAT_SOCKET_PROC* AcceptSocketProc = &ListenerSocketProc->AcceptSocket->Processors[0];
+        CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
 
         AcceptSocketProc->Parent->ConnectComplete = TRUE;
         AcceptSocketProc->Parent->ProcessorAffinity = 0;
@@ -2589,7 +2589,7 @@ QuicDataPathAcceptComplete(
         }
 
         if (QUIC_FAILED(
-            QuicSocketStartReceive(
+            CxPlatSocketStartReceive(
                 AcceptSocketProc,
                 DatapathProc))) {
             goto Error;
@@ -2615,20 +2615,20 @@ QuicDataPathAcceptComplete(
 Error:
 
     if (ListenerSocketProc->AcceptSocket != NULL) {
-        QuicSocketDelete(ListenerSocketProc->AcceptSocket);
+        CxPlatSocketDelete(ListenerSocketProc->AcceptSocket);
         ListenerSocketProc->AcceptSocket = NULL;
     }
 
     //
     // Try to start a new accept.
     //
-    (void)QuicSocketStartAccept(ListenerSocketProc, DatapathProc);
+    (void)CxPlatSocketStartAccept(ListenerSocketProc, DatapathProc);
 }
 
 void
-QuicDataPathConnectComplete(
-    _In_ QUIC_DATAPATH_PROC* DatapathProc,
-    _In_ QUIC_SOCKET_PROC* SocketProc,
+CxPlatDataPathConnectComplete(
+    _In_ CXPLAT_DATAPATH_PROC* DatapathProc,
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ ULONG IoResult
     )
 {
@@ -2660,7 +2660,7 @@ QuicDataPathConnectComplete(
         //
         // Try to start a new receive.
         //
-        (void)QuicSocketStartReceive(SocketProc, DatapathProc);
+        (void)CxPlatSocketStartReceive(SocketProc, DatapathProc);
 
     } else {
         QuicTraceEvent(
@@ -2678,8 +2678,8 @@ QuicDataPathConnectComplete(
 }
 
 void
-QuicSocketHandleUnreachableError(
-    _In_ QUIC_SOCKET_PROC* SocketProc,
+CxPlatSocketHandleUnreachableError(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ ULONG ErrorCode
     )
 {
@@ -2687,7 +2687,7 @@ QuicSocketHandleUnreachableError(
         &SocketProc->CurrentRecvContext->Tuple.RemoteAddress;
     UNREFERENCED_PARAMETER(ErrorCode);
 
-    QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
+    CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
 #if QUIC_CLOG
     QuicTraceLogVerbose(
@@ -2705,24 +2705,24 @@ QuicSocketHandleUnreachableError(
 }
 
 QUIC_STATUS
-QuicSocketStartReceive(
-    _In_ QUIC_SOCKET_PROC* SocketProc,
-    _In_ QUIC_DATAPATH_PROC* DatapathProc
+CxPlatSocketStartReceive(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _In_ CXPLAT_DATAPATH_PROC* DatapathProc
     )
 {
     QUIC_STATUS Status;
-    QUIC_DATAPATH* Datapath = SocketProc->Parent->Datapath;
+    CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
     int Result;
     DWORD BytesRecv = 0;
 
-    QUIC_DBG_ASSERT(SocketProc->Parent->Type != QUIC_SOCKET_TCP_LISTENER);
+    CXPLAT_DBG_ASSERT(SocketProc->Parent->Type != CXPLAT_SOCKET_TCP_LISTENER);
 
     //
     // Get a receive buffer we can pass to WinSock.
     //
     if (SocketProc->CurrentRecvContext == NULL) {
         SocketProc->CurrentRecvContext =
-            QuicSocketAllocRecvContext(
+            CxPlatSocketAllocRecvContext(
                 Datapath,
                 DatapathProc->Index);
         if (SocketProc->CurrentRecvContext == NULL) {
@@ -2755,7 +2755,7 @@ QuicSocketStartReceive(
 
 Retry_recv:
 
-    if (SocketProc->Parent->Type == QUIC_SOCKET_UDP) {
+    if (SocketProc->Parent->Type == CXPLAT_SOCKET_UDP) {
         Result =
             SocketProc->Parent->Datapath->WSARecvMsg(
                 SocketProc->Socket,
@@ -2778,9 +2778,9 @@ Retry_recv:
     if (Result == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
-            if (SocketProc->Parent->Type == QUIC_SOCKET_UDP &&
+            if (SocketProc->Parent->Type == CXPLAT_SOCKET_UDP &&
                 WsaError == WSAECONNRESET) {
-                QuicSocketHandleUnreachableError(SocketProc, (ULONG)WsaError);
+                CxPlatSocketHandleUnreachableError(SocketProc, (ULONG)WsaError);
                 goto Retry_recv;
             } else {
                 QuicTraceEvent(
@@ -2822,9 +2822,9 @@ Error:
 }
 
 void
-QuicDataPathUdpRecvComplete(
-    _In_ QUIC_DATAPATH_PROC* DatapathProc,
-    _In_ QUIC_SOCKET_PROC* SocketProc,
+CxPlatDataPathUdpRecvComplete(
+    _In_ CXPLAT_DATAPATH_PROC* DatapathProc,
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ ULONG IoResult,
     _In_ UINT16 NumberOfBytesTransferred
     )
@@ -2835,8 +2835,8 @@ QuicDataPathUdpRecvComplete(
     // inline. Otherwise, we remove it as the current because we are giving
     // it to the client.
     //
-    QUIC_DBG_ASSERT(SocketProc->CurrentRecvContext != NULL);
-    QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = SocketProc->CurrentRecvContext;
+    CXPLAT_DBG_ASSERT(SocketProc->CurrentRecvContext != NULL);
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = SocketProc->CurrentRecvContext;
     if (IoResult == NO_ERROR) {
         SocketProc->CurrentRecvContext = NULL;
     }
@@ -2853,12 +2853,12 @@ QuicDataPathUdpRecvComplete(
 
     } else if (IsUnreachableErrorCode(IoResult)) {
 
-        QuicSocketHandleUnreachableError(SocketProc, IoResult);
+        CxPlatSocketHandleUnreachableError(SocketProc, IoResult);
 
     } else if (IoResult == ERROR_MORE_DATA ||
         (IoResult == NO_ERROR && SocketProc->RecvWsaBuf.len < NumberOfBytesTransferred)) {
 
-        QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
+        CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
 #if QUIC_CLOG
         QuicTraceLogVerbose(
@@ -2874,11 +2874,11 @@ QuicDataPathUdpRecvComplete(
 
     } else if (IoResult == QUIC_STATUS_SUCCESS) {
 
-        QUIC_RECV_DATA* RecvDataChain = NULL;
-        QUIC_RECV_DATA** DatagramChainTail = &RecvDataChain;
+        CXPLAT_RECV_DATA* RecvDataChain = NULL;
+        CXPLAT_RECV_DATA** DatagramChainTail = &RecvDataChain;
 
-        QUIC_DATAPATH* Datapath = SocketProc->Parent->Datapath;
-        QUIC_RECV_DATA* Datagram;
+        CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
+        CXPLAT_RECV_DATA* Datagram;
         PUCHAR RecvPayload = ((PUCHAR)RecvContext) + Datapath->RecvPayloadOffset;
 
         BOOLEAN FoundLocalAddr = FALSE;
@@ -2897,12 +2897,12 @@ QuicDataPathUdpRecvComplete(
                     LocalAddr->si_family = QUIC_ADDRESS_FAMILY_INET6;
                     LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
                     LocalAddr->Ipv6.sin6_port = SocketProc->Parent->LocalAddress.Ipv6.sin6_port;
-                    QuicConvertFromMappedV6(LocalAddr, LocalAddr);
+                    CxPlatConvertFromMappedV6(LocalAddr, LocalAddr);
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
                     FoundLocalAddr = TRUE;
                 } else if (CMsg->cmsg_type == IPV6_ECN) {
                     ECN = *(PINT)WSA_CMSG_DATA(CMsg);
-                    QUIC_DBG_ASSERT(ECN < UINT8_MAX);
+                    CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_IP) {
                 if (CMsg->cmsg_type == IP_PKTINFO) {
@@ -2914,12 +2914,12 @@ QuicDataPathUdpRecvComplete(
                     FoundLocalAddr = TRUE;
                 } else if (CMsg->cmsg_type == IP_ECN) {
                     ECN = *(PINT)WSA_CMSG_DATA(CMsg);
-                    QUIC_DBG_ASSERT(ECN < UINT8_MAX);
+                    CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
                 }
 #ifdef UDP_RECV_MAX_COALESCED_SIZE
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
                 if (CMsg->cmsg_type == UDP_COALESCED_INFO) {
-                    QUIC_DBG_ASSERT(*(PDWORD)WSA_CMSG_DATA(CMsg) <= MAX_URO_PAYLOAD_LENGTH);
+                    CXPLAT_DBG_ASSERT(*(PDWORD)WSA_CMSG_DATA(CMsg) <= MAX_URO_PAYLOAD_LENGTH);
                     MessageLength = (UINT16)*(PDWORD)WSA_CMSG_DATA(CMsg);
                     IsCoalesced = TRUE;
                 }
@@ -2947,7 +2947,7 @@ QuicDataPathUdpRecvComplete(
             goto Drop;
         }
 
-        QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
+        CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
         QuicTraceEvent(
             DatapathRecv,
@@ -2958,16 +2958,16 @@ QuicDataPathUdpRecvComplete(
             CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
             CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
-        QUIC_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
+        CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
 
-        Datagram = (QUIC_RECV_DATA*)(RecvContext + 1);
+        Datagram = (CXPLAT_RECV_DATA*)(RecvContext + 1);
 
         for ( ;
             NumberOfBytesTransferred != 0;
             NumberOfBytesTransferred -= MessageLength) {
 
-            QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext =
-                QuicDataPathDatagramToInternalDatagramContext(Datagram);
+            CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext =
+                CxPlatDataPathDatagramToInternalDatagramContext(Datagram);
             InternalDatagramContext->RecvContext = RecvContext;
 
             if (MessageLength > NumberOfBytesTransferred) {
@@ -2995,7 +2995,7 @@ QuicDataPathUdpRecvComplete(
             DatagramChainTail = &Datagram->Next;
             RecvContext->ReferenceCount++;
 
-            Datagram = (QUIC_RECV_DATA*)
+            Datagram = (CXPLAT_RECV_DATA*)
                 (((PUCHAR)Datagram) +
                     SocketProc->Parent->Datapath->DatagramStride);
 
@@ -3008,11 +3008,11 @@ QuicDataPathUdpRecvComplete(
             }
         }
 
-        QUIC_DBG_ASSERT(RecvDataChain);
+        CXPLAT_DBG_ASSERT(RecvDataChain);
 
 #ifdef QUIC_FUZZER
         if (MsQuicFuzzerContext.RecvCallback) {
-            QUIC_RECV_DATA *_DatagramIter = RecvDataChain;
+            CXPLAT_RECV_DATA *_DatagramIter = RecvDataChain;
 
             while (_DatagramIter) {
                 MsQuicFuzzerContext.RecvCallback(
@@ -3042,13 +3042,13 @@ Drop:
     //
     // Try to start a new receive.
     //
-    (void)QuicSocketStartReceive(SocketProc, DatapathProc);
+    (void)CxPlatSocketStartReceive(SocketProc, DatapathProc);
 }
 
 void
-QuicDataPathTcpRecvComplete(
-    _In_ QUIC_DATAPATH_PROC* DatapathProc,
-    _In_ QUIC_SOCKET_PROC* SocketProc,
+CxPlatDataPathTcpRecvComplete(
+    _In_ CXPLAT_DATAPATH_PROC* DatapathProc,
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ ULONG IoResult,
     _In_ UINT16 NumberOfBytesTransferred
     )
@@ -3059,8 +3059,8 @@ QuicDataPathTcpRecvComplete(
     // inline. Otherwise, we remove it as the current because we are giving
     // it to the client.
     //
-    QUIC_DBG_ASSERT(SocketProc->CurrentRecvContext != NULL);
-    QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = SocketProc->CurrentRecvContext;
+    CXPLAT_DBG_ASSERT(SocketProc->CurrentRecvContext != NULL);
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = SocketProc->CurrentRecvContext;
     if (IoResult == NO_ERROR) {
         SocketProc->CurrentRecvContext = NULL;
     }
@@ -3106,13 +3106,13 @@ QuicDataPathTcpRecvComplete(
             CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
             CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
-        QUIC_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
+        CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
 
-        QUIC_DATAPATH* Datapath = SocketProc->Parent->Datapath;
-        QUIC_RECV_DATA* Data = (QUIC_RECV_DATA*)(RecvContext + 1);
+        CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
+        CXPLAT_RECV_DATA* Data = (CXPLAT_RECV_DATA*)(RecvContext + 1);
 
-        QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext =
-            QuicDataPathDatagramToInternalDatagramContext(Data);
+        CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext =
+            CxPlatDataPathDatagramToInternalDatagramContext(Data);
         InternalDatagramContext->RecvContext = RecvContext;
 
         Data->Next = NULL;
@@ -3143,26 +3143,26 @@ Drop:
     //
     // Try to start a new receive.
     //
-    (void)QuicSocketStartReceive(SocketProc, DatapathProc);
+    (void)CxPlatSocketStartReceive(SocketProc, DatapathProc);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicRecvDataReturn(
-    _In_opt_ QUIC_RECV_DATA* RecvDataChain
+CxPlatRecvDataReturn(
+    _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
-    QUIC_RECV_DATA* Datagram;
+    CXPLAT_RECV_DATA* Datagram;
 
     LONG BatchedBufferCount = 0;
-    QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* BatchedInternalContext = NULL;
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* BatchedInternalContext = NULL;
 
     while ((Datagram = RecvDataChain) != NULL) {
         RecvDataChain = RecvDataChain->Next;
 
-        QUIC_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalBufferContext =
-            QuicDataPathDatagramToInternalDatagramContext(Datagram);
-        QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* InternalContext =
+        CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalBufferContext =
+            CxPlatDataPathDatagramToInternalDatagramContext(Datagram);
+        CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* InternalContext =
             InternalBufferContext->RecvContext;
 
         if (BatchedInternalContext == InternalContext) {
@@ -3175,7 +3175,7 @@ QuicRecvDataReturn(
                 //
                 // Clean up the data indication.
                 //
-                QuicPoolFree(
+                CxPlatPoolFree(
                     BatchedInternalContext->OwningPool,
                     BatchedInternalContext);
             }
@@ -3192,7 +3192,7 @@ QuicRecvDataReturn(
         //
         // Clean up the data indication.
         //
-        QuicPoolFree(
+        CxPlatPoolFree(
             BatchedInternalContext->OwningPool,
             BatchedInternalContext);
     }
@@ -3200,26 +3200,26 @@ QuicRecvDataReturn(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
-QUIC_SEND_DATA*
-QuicSendDataAlloc(
-    _In_ QUIC_SOCKET* Socket,
-    _In_ QUIC_ECN_TYPE ECN,
+CXPLAT_SEND_DATA*
+CxPlatSendDataAlloc(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     )
 {
-    QUIC_DBG_ASSERT(Socket != NULL);
+    CXPLAT_DBG_ASSERT(Socket != NULL);
 
-    QUIC_DATAPATH_PROC* DatapathProc =
+    CXPLAT_DATAPATH_PROC* DatapathProc =
         &Socket->Datapath->Processors[GetCurrentProcessorNumber()];
 
-    QUIC_SEND_DATA* SendContext =
-        QuicPoolAlloc(&DatapathProc->SendContextPool);
+    CXPLAT_SEND_DATA* SendContext =
+        CxPlatPoolAlloc(&DatapathProc->SendContextPool);
 
     if (SendContext != NULL) {
         SendContext->Owner = DatapathProc;
         SendContext->ECN = ECN;
         SendContext->SegmentSize =
-            (Socket->Datapath->Features & QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION)
+            (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
                 ? MaxPacketSize : 0;
         SendContext->TotalSize = 0;
         SendContext->WsaBufferCount = 0;
@@ -3232,35 +3232,35 @@ QuicSendDataAlloc(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicSendDataFree(
-    _In_ QUIC_SEND_DATA* SendContext
+CxPlatSendDataFree(
+    _In_ CXPLAT_SEND_DATA* SendContext
     )
 {
-    QUIC_DATAPATH_PROC* DatapathProc = SendContext->Owner;
-    QUIC_POOL* BufferPool =
+    CXPLAT_DATAPATH_PROC* DatapathProc = SendContext->Owner;
+    CXPLAT_POOL* BufferPool =
         SendContext->SegmentSize > 0 ?
             &DatapathProc->LargeSendBufferPool : &DatapathProc->SendBufferPool;
 
     for (UINT8 i = 0; i < SendContext->WsaBufferCount; ++i) {
-        QuicPoolFree(BufferPool, SendContext->WsaBuffers[i].buf);
+        CxPlatPoolFree(BufferPool, SendContext->WsaBuffers[i].buf);
     }
 
-    QuicPoolFree(&DatapathProc->SendContextPool, SendContext);
+    CxPlatPoolFree(&DatapathProc->SendContextPool, SendContext);
 }
 
 static
 BOOLEAN
-QuicSendContextCanAllocSendSegment(
-    _In_ QUIC_SEND_DATA* SendContext,
+CxPlatSendContextCanAllocSendSegment(
+    _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ UINT16 MaxBufferLength
     )
 {
-    QUIC_DBG_ASSERT(SendContext->SegmentSize > 0);
-    QUIC_DBG_ASSERT(SendContext->WsaBufferCount > 0);
-    QUIC_DBG_ASSERT(SendContext->WsaBufferCount <= SendContext->Owner->Datapath->MaxSendBatchSize);
+    CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0);
+    CXPLAT_DBG_ASSERT(SendContext->WsaBufferCount > 0);
+    CXPLAT_DBG_ASSERT(SendContext->WsaBufferCount <= SendContext->Owner->Datapath->MaxSendBatchSize);
 
     ULONG BytesAvailable =
-        QUIC_LARGE_SEND_BUFFER_SIZE -
+        CXPLAT_LARGE_SEND_BUFFER_SIZE -
             SendContext->WsaBuffers[SendContext->WsaBufferCount - 1].len -
             SendContext->ClientBuffer.len;
 
@@ -3269,21 +3269,21 @@ QuicSendContextCanAllocSendSegment(
 
 static
 BOOLEAN
-QuicSendContextCanAllocSend(
-    _In_ QUIC_SEND_DATA* SendContext,
+CxPlatSendContextCanAllocSend(
+    _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ UINT16 MaxBufferLength
     )
 {
     return
         (SendContext->WsaBufferCount < SendContext->Owner->Datapath->MaxSendBatchSize) ||
         ((SendContext->SegmentSize > 0) &&
-            QuicSendContextCanAllocSendSegment(SendContext, MaxBufferLength));
+            CxPlatSendContextCanAllocSendSegment(SendContext, MaxBufferLength));
 }
 
 static
 void
-QuicSendContextFinalizeSendBuffer(
-    _In_ QUIC_SEND_DATA* SendContext,
+CxPlatSendContextFinalizeSendBuffer(
+    _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ BOOLEAN IsSendingImmediately
     )
 {
@@ -3292,16 +3292,16 @@ QuicSendContextFinalizeSendBuffer(
         // There is no buffer segment outstanding at the client.
         //
         if (SendContext->WsaBufferCount > 0) {
-            QUIC_DBG_ASSERT(SendContext->WsaBuffers[SendContext->WsaBufferCount - 1].len < UINT16_MAX);
+            CXPLAT_DBG_ASSERT(SendContext->WsaBuffers[SendContext->WsaBufferCount - 1].len < UINT16_MAX);
             SendContext->TotalSize +=
                 SendContext->WsaBuffers[SendContext->WsaBufferCount - 1].len;
         }
         return;
     }
 
-    QUIC_DBG_ASSERT(SendContext->SegmentSize > 0 && SendContext->WsaBufferCount > 0);
-    QUIC_DBG_ASSERT(SendContext->ClientBuffer.len > 0 && SendContext->ClientBuffer.len <= SendContext->SegmentSize);
-    QUIC_DBG_ASSERT(QuicSendContextCanAllocSendSegment(SendContext, 0));
+    CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0 && SendContext->WsaBufferCount > 0);
+    CXPLAT_DBG_ASSERT(SendContext->ClientBuffer.len > 0 && SendContext->ClientBuffer.len <= SendContext->SegmentSize);
+    CXPLAT_DBG_ASSERT(CxPlatSendContextCanAllocSendSegment(SendContext, 0));
 
     //
     // Append the client's buffer segment to our internal send buffer.
@@ -3317,7 +3317,7 @@ QuicSendContextFinalizeSendBuffer(
         //
         // The next segment allocation must create a new backing buffer.
         //
-        QUIC_DBG_ASSERT(IsSendingImmediately); // Future: Refactor so it's impossible to hit this.
+        CXPLAT_DBG_ASSERT(IsSendingImmediately); // Future: Refactor so it's impossible to hit this.
         UNREFERENCED_PARAMETER(IsSendingImmediately);
         SendContext->ClientBuffer.buf = NULL;
         SendContext->ClientBuffer.len = 0;
@@ -3327,15 +3327,15 @@ QuicSendContextFinalizeSendBuffer(
 _Success_(return != NULL)
 static
 WSABUF*
-QuicSendContextAllocBuffer(
-    _In_ QUIC_SEND_DATA* SendContext,
-    _In_ QUIC_POOL* BufferPool
+CxPlatSendContextAllocBuffer(
+    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_POOL* BufferPool
     )
 {
-    QUIC_DBG_ASSERT(SendContext->WsaBufferCount < SendContext->Owner->Datapath->MaxSendBatchSize);
+    CXPLAT_DBG_ASSERT(SendContext->WsaBufferCount < SendContext->Owner->Datapath->MaxSendBatchSize);
 
     WSABUF* WsaBuffer = &SendContext->WsaBuffers[SendContext->WsaBufferCount];
-    WsaBuffer->buf = QuicPoolAlloc(BufferPool);
+    WsaBuffer->buf = CxPlatPoolAlloc(BufferPool);
     if (WsaBuffer->buf == NULL) {
         return NULL;
     }
@@ -3347,13 +3347,13 @@ QuicSendContextAllocBuffer(
 _Success_(return != NULL)
 static
 QUIC_BUFFER*
-QuicSendContextAllocPacketBuffer(
-    _In_ QUIC_SEND_DATA* SendContext,
+CxPlatSendContextAllocPacketBuffer(
+    _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ UINT16 MaxBufferLength
     )
 {
     WSABUF* WsaBuffer =
-        QuicSendContextAllocBuffer(SendContext, &SendContext->Owner->SendBufferPool);
+        CxPlatSendContextAllocBuffer(SendContext, &SendContext->Owner->SendBufferPool);
     if (WsaBuffer != NULL) {
         WsaBuffer->len = MaxBufferLength;
     }
@@ -3363,19 +3363,19 @@ QuicSendContextAllocPacketBuffer(
 _Success_(return != NULL)
 static
 QUIC_BUFFER*
-QuicSendContextAllocSegmentBuffer(
-    _In_ QUIC_SEND_DATA* SendContext,
+CxPlatSendContextAllocSegmentBuffer(
+    _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ UINT16 MaxBufferLength
     )
 {
-    QUIC_DBG_ASSERT(SendContext->SegmentSize > 0);
-    QUIC_DBG_ASSERT(MaxBufferLength <= SendContext->SegmentSize);
+    CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0);
+    CXPLAT_DBG_ASSERT(MaxBufferLength <= SendContext->SegmentSize);
 
-    QUIC_DATAPATH_PROC* DatapathProc = SendContext->Owner;
+    CXPLAT_DATAPATH_PROC* DatapathProc = SendContext->Owner;
     WSABUF* WsaBuffer;
 
     if (SendContext->ClientBuffer.buf != NULL &&
-        QuicSendContextCanAllocSendSegment(SendContext, MaxBufferLength)) {
+        CxPlatSendContextCanAllocSendSegment(SendContext, MaxBufferLength)) {
 
         //
         // All clear to return the next segment of our contiguous buffer.
@@ -3384,7 +3384,7 @@ QuicSendContextAllocSegmentBuffer(
         return (QUIC_BUFFER*)&SendContext->ClientBuffer;
     }
 
-    WsaBuffer = QuicSendContextAllocBuffer(SendContext, &DatapathProc->LargeSendBufferPool);
+    WsaBuffer = CxPlatSendContextAllocBuffer(SendContext, &DatapathProc->LargeSendBufferPool);
     if (WsaBuffer == NULL) {
         return NULL;
     }
@@ -3403,52 +3403,52 @@ QuicSendContextAllocSegmentBuffer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
-QuicSendDataAllocBuffer(
-    _In_ QUIC_SEND_DATA* SendContext,
+CxPlatSendDataAllocBuffer(
+    _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ UINT16 MaxBufferLength
     )
 {
-    QUIC_DBG_ASSERT(SendContext != NULL);
-    QUIC_DBG_ASSERT(MaxBufferLength > 0);
-    QUIC_DBG_ASSERT(MaxBufferLength <= QUIC_MAX_MTU - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE);
+    CXPLAT_DBG_ASSERT(SendContext != NULL);
+    CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
+    CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
 
-    QuicSendContextFinalizeSendBuffer(SendContext, FALSE);
+    CxPlatSendContextFinalizeSendBuffer(SendContext, FALSE);
 
-    if (!QuicSendContextCanAllocSend(SendContext, MaxBufferLength)) {
+    if (!CxPlatSendContextCanAllocSend(SendContext, MaxBufferLength)) {
         return NULL;
     }
 
     if (SendContext->SegmentSize == 0) {
-        return QuicSendContextAllocPacketBuffer(SendContext, MaxBufferLength);
+        return CxPlatSendContextAllocPacketBuffer(SendContext, MaxBufferLength);
     } else {
-        return QuicSendContextAllocSegmentBuffer(SendContext, MaxBufferLength);
+        return CxPlatSendContextAllocSegmentBuffer(SendContext, MaxBufferLength);
     }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicSendDataFreeBuffer(
-    _In_ QUIC_SEND_DATA* SendContext,
+CxPlatSendDataFreeBuffer(
+    _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ QUIC_BUFFER* Datagram
     )
 {
     //
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
-    QUIC_DATAPATH_PROC* DatapathProc = SendContext->Owner;
+    CXPLAT_DATAPATH_PROC* DatapathProc = SendContext->Owner;
     PCHAR TailBuffer = SendContext->WsaBuffers[SendContext->WsaBufferCount - 1].buf;
 
     if (SendContext->SegmentSize == 0) {
-        QUIC_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
+        CXPLAT_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
 
-        QuicPoolFree(&DatapathProc->SendBufferPool, Datagram->Buffer);
+        CxPlatPoolFree(&DatapathProc->SendBufferPool, Datagram->Buffer);
         --SendContext->WsaBufferCount;
     } else {
         TailBuffer += SendContext->WsaBuffers[SendContext->WsaBufferCount - 1].len;
-        QUIC_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
+        CXPLAT_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
 
         if (SendContext->WsaBuffers[SendContext->WsaBufferCount - 1].len == 0) {
-            QuicPoolFree(&DatapathProc->LargeSendBufferPool, Datagram->Buffer);
+            CxPlatPoolFree(&DatapathProc->LargeSendBufferPool, Datagram->Buffer);
             --SendContext->WsaBufferCount;
         }
 
@@ -3459,17 +3459,17 @@ QuicSendDataFreeBuffer(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicSendDataIsFull(
-    _In_ QUIC_SEND_DATA* SendContext
+CxPlatSendDataIsFull(
+    _In_ CXPLAT_SEND_DATA* SendContext
     )
 {
-    return !QuicSendContextCanAllocSend(SendContext, SendContext->SegmentSize);
+    return !CxPlatSendContextCanAllocSend(SendContext, SendContext->SegmentSize);
 }
 
 void
-QuicSendContextComplete(
-    _In_ QUIC_SOCKET_PROC* SocketProc,
-    _In_ QUIC_SEND_DATA* SendContext,
+CxPlatSendContextComplete(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ ULONG IoResult
     )
 {
@@ -3483,25 +3483,25 @@ QuicSendContextComplete(
             "WSASendMsg completion");
     }
 
-    QuicSendDataFree(SendContext);
+    CxPlatSendDataFree(SendContext);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicSocketSend(
-    _In_ QUIC_SOCKET* Socket,
+CxPlatSocketSend(
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_SEND_DATA* SendContext
+    _In_ CXPLAT_SEND_DATA* SendContext
     )
 {
     QUIC_STATUS Status;
-    QUIC_DATAPATH* Datapath;
-    QUIC_SOCKET_PROC* SocketProc;
+    CXPLAT_DATAPATH* Datapath;
+    CXPLAT_SOCKET_PROC* SocketProc;
     int Result;
     DWORD BytesSent;
 
-    QUIC_DBG_ASSERT(
+    CXPLAT_DBG_ASSERT(
         Socket != NULL && LocalAddress != NULL &&
         RemoteAddress != NULL && SendContext != NULL);
 
@@ -3510,7 +3510,7 @@ QuicSocketSend(
         goto Exit;
     }
 
-    QuicSendContextFinalizeSendBuffer(SendContext, TRUE);
+    CxPlatSendContextFinalizeSendBuffer(SendContext, TRUE);
 
     Datapath = Socket->Datapath;
     SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : GetCurrentProcessorNumber()];
@@ -3529,7 +3529,7 @@ QuicSocketSend(
     // Map V4 address to dual-stack socket format.
     //
     SOCKADDR_INET MappedRemoteAddress = { 0 };
-    QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+    CxPlatConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
     BYTE CtrlBuf[
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
@@ -3569,7 +3569,7 @@ QuicSocketSend(
 
         WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
         CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-        QUIC_DBG_ASSERT(CMsg != NULL);
+        CXPLAT_DBG_ASSERT(CMsg != NULL);
         CMsg->cmsg_level = IPPROTO_IP;
         CMsg->cmsg_type = IP_ECN;
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
@@ -3590,7 +3590,7 @@ QuicSocketSend(
 
         WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
         CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-        QUIC_DBG_ASSERT(CMsg != NULL);
+        CXPLAT_DBG_ASSERT(CMsg != NULL);
         CMsg->cmsg_level = IPPROTO_IPV6;
         CMsg->cmsg_type = IPV6_ECN;
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
@@ -3601,7 +3601,7 @@ QuicSocketSend(
     if (SendContext->SegmentSize > 0) {
         WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(DWORD));
         CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-        QUIC_DBG_ASSERT(CMsg != NULL);
+        CXPLAT_DBG_ASSERT(CMsg != NULL);
         CMsg->cmsg_level = IPPROTO_UDP;
         CMsg->cmsg_type = UDP_SEND_MSG_SIZE;
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(DWORD));
@@ -3613,7 +3613,7 @@ QuicSocketSend(
     // Start the async send.
     //
     RtlZeroMemory(&SendContext->Overlapped, sizeof(OVERLAPPED));
-    if (Socket->Type == QUIC_SOCKET_UDP) {
+    if (Socket->Type == CXPLAT_SOCKET_UDP) {
         Result =
             Datapath->WSASendMsg(
                 SocketProc->Socket,
@@ -3650,7 +3650,7 @@ QuicSocketSend(
         //
         // Completed synchronously.
         //
-        QuicSendContextComplete(
+        CxPlatSendContextComplete(
             SocketProc,
             SendContext,
             QUIC_STATUS_SUCCESS);
@@ -3661,7 +3661,7 @@ QuicSocketSend(
 Exit:
 
     if (QUIC_FAILED(Status)) {
-        QuicSendDataFree(SendContext);
+        CxPlatSendDataFree(SendContext);
     }
 
     return Status;
@@ -3669,21 +3669,21 @@ Exit:
 
 DWORD
 WINAPI
-QuicDataPathWorkerThread(
+CxPlatDataPathWorkerThread(
     _In_ void* CompletionContext
     )
 {
-    QUIC_DATAPATH_PROC* DatapathProc = (QUIC_DATAPATH_PROC*)CompletionContext;
+    CXPLAT_DATAPATH_PROC* DatapathProc = (CXPLAT_DATAPATH_PROC*)CompletionContext;
 
     QuicTraceLogInfo(
         DatapathWorkerThreadStart,
         "[data][%p] Worker start",
         DatapathProc);
 
-    QUIC_DBG_ASSERT(DatapathProc != NULL);
-    QUIC_DBG_ASSERT(DatapathProc->Datapath != NULL);
+    CXPLAT_DBG_ASSERT(DatapathProc != NULL);
+    CXPLAT_DBG_ASSERT(DatapathProc->Datapath != NULL);
 
-    QUIC_SOCKET_PROC* SocketProc;
+    CXPLAT_SOCKET_PROC* SocketProc;
     LPOVERLAPPED Overlapped;
     DWORD NumberOfBytesTransferred;
     ULONG IoResult;
@@ -3704,8 +3704,8 @@ QuicDataPathWorkerThread(
             break;
         }
 
-        QUIC_DBG_ASSERT(Overlapped != NULL);
-        QUIC_DBG_ASSERT(SocketProc != NULL);
+        CXPLAT_DBG_ASSERT(Overlapped != NULL);
+        CXPLAT_DBG_ASSERT(SocketProc != NULL);
 
         IoResult = Result ? NO_ERROR : GetLastError();
 
@@ -3726,16 +3726,16 @@ QuicDataPathWorkerThread(
                 //
                 // The socket context is being shutdown. Run the clean up logic.
                 //
-                QuicDataPathSocketContextShutdown(SocketProc);
+                CxPlatDataPathSocketContextShutdown(SocketProc);
 
-            } else if (QuicRundownAcquire(&SocketProc->UpcallRundown)) {
+            } else if (CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
 
-                if (SocketProc->Parent->Type == QUIC_SOCKET_UDP) {
+                if (SocketProc->Parent->Type == CXPLAT_SOCKET_UDP) {
                     //
                     // We only allow for receiving UINT16 worth of bytes at a time,
                     // which should be plenty for an IPv4 or IPv6 UDP datagram.
                     //
-                    QUIC_DBG_ASSERT(NumberOfBytesTransferred <= 0xFFFF); // TODO - Not true for TCP
+                    CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= 0xFFFF); // TODO - Not true for TCP
                     if (NumberOfBytesTransferred > 0xFFFF &&
                         IoResult == NO_ERROR) {
                         IoResult = ERROR_INVALID_PARAMETER;
@@ -3744,17 +3744,17 @@ QuicDataPathWorkerThread(
                     //
                     // Handle the receive indication and queue a new receive.
                     //
-                    QuicDataPathUdpRecvComplete(
+                    CxPlatDataPathUdpRecvComplete(
                         DatapathProc,
                         SocketProc,
                         IoResult,
                         (UINT16)NumberOfBytesTransferred);
 
-                } else if (SocketProc->Parent->Type == QUIC_SOCKET_TCP_LISTENER) {
+                } else if (SocketProc->Parent->Type == CXPLAT_SOCKET_TCP_LISTENER) {
                     //
                     // Handle the accept indication and queue a new accept.
                     //
-                    QuicDataPathAcceptComplete(
+                    CxPlatDataPathAcceptComplete(
                         DatapathProc,
                         SocketProc,
                         IoResult);
@@ -3764,7 +3764,7 @@ QuicDataPathWorkerThread(
                     //
                     // Handle the accept indication and queue a new accept.
                     //
-                    QuicDataPathConnectComplete(
+                    CxPlatDataPathConnectComplete(
                         DatapathProc,
                         SocketProc,
                         IoResult);
@@ -3773,14 +3773,14 @@ QuicDataPathWorkerThread(
                     //
                     // Handle the receive indication and queue a new receive.
                     //
-                    QuicDataPathTcpRecvComplete(
+                    CxPlatDataPathTcpRecvComplete(
                         DatapathProc,
                         SocketProc,
                         IoResult,
                         (UINT16)NumberOfBytesTransferred);
                 }
 
-                QuicRundownRelease(&SocketProc->UpcallRundown);
+                CxPlatRundownRelease(&SocketProc->UpcallRundown);
             }
 
         } else {
@@ -3792,13 +3792,13 @@ QuicDataPathWorkerThread(
                 IoResult,
                 "Overlapped Complete (send)");*/
 
-            QUIC_SEND_DATA* SendContext =
+            CXPLAT_SEND_DATA* SendContext =
                 CONTAINING_RECORD(
                     Overlapped,
-                    QUIC_SEND_DATA,
+                    CXPLAT_SEND_DATA,
                     Overlapped);
 
-            QuicSendContextComplete(
+            CxPlatSendContextComplete(
                 SocketProc,
                 SendContext,
                 IoResult);
@@ -3815,8 +3815,8 @@ QuicDataPathWorkerThread(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketSetParam(
-    _In_ QUIC_SOCKET* Socket,
+CxPlatSocketSetParam(
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength) const UINT8 * Buffer
@@ -3831,8 +3831,8 @@ QuicSocketSetParam(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicSocketGetParam(
-    _In_ QUIC_SOCKET* Socket,
+CxPlatSocketGetParam(
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ uint32_t Param,
     _Inout_ PUINT32 BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) UINT8 * Buffer
@@ -3849,7 +3849,7 @@ QuicSocketGetParam(
 
 __declspec(noinline)
 void
-QuicFuzzerReceiveInject(
+CxPlatFuzzerReceiveInject(
     _In_ const QUIC_ADDR *SourceAddress,
     _In_reads_(PacketLength) uint8_t *PacketData,
     _In_ uint16_t PacketLength
@@ -3859,14 +3859,14 @@ QuicFuzzerReceiveInject(
         return;
     }
 
-    QUIC_SOCKET_PROC* Socket = (QUIC_SOCKET_PROC*)MsQuicFuzzerContext.Socket;
+    CXPLAT_SOCKET_PROC* Socket = (CXPLAT_SOCKET_PROC*)MsQuicFuzzerContext.Socket;
 
     if (!Socket) {
         return;
     }
 
-    QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
-        QuicSocketAllocRecvContext(
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
+        CxPlatSocketAllocRecvContext(
             Socket->Socket->Datapath,
             (UINT16)GetCurrentProcessorNumber());
 
@@ -3876,7 +3876,7 @@ QuicFuzzerReceiveInject(
 
     RecvContext->Tuple.RemoteAddress = *SourceAddress;
 
-    QUIC_RECV_DATA* Datagram = (QUIC_RECV_DATA*)(RecvContext + 1);
+    CXPLAT_RECV_DATA* Datagram = (CXPLAT_RECV_DATA*)(RecvContext + 1);
 
     Datagram->Next = NULL;
     Datagram->BufferLength = PacketLength;
@@ -3901,7 +3901,7 @@ QuicFuzzerReceiveInject(
 }
 
 int
-QuicFuzzerRecvMsg(
+CxPlatFuzzerRecvMsg(
     _In_ SOCKET s,
     _Inout_ LPWSAMSG lpMsg,
     _Out_ LPDWORD lpdwNumberOfBytesRecvd,
@@ -3910,7 +3910,7 @@ QuicFuzzerRecvMsg(
     )
 {
     if (!MsQuicFuzzerContext.RedirectDataPath) {
-        QUIC_DBG_ASSERT(MsQuicFuzzerContext.RealRecvMsg);
+        CXPLAT_DBG_ASSERT(MsQuicFuzzerContext.RealRecvMsg);
 
         return ((LPFN_WSARECVMSG)MsQuicFuzzerContext.RealRecvMsg)(
             s,
@@ -3928,7 +3928,7 @@ QuicFuzzerRecvMsg(
 }
 
 int
-QuicFuzzerSendMsg(
+CxPlatFuzzerSendMsg(
     _In_ SOCKET s,
     _In_ LPWSAMSG lpMsg,
     _In_ DWORD dwFlags,
@@ -3947,7 +3947,7 @@ QuicFuzzerSendMsg(
     }
 
     if (!MsQuicFuzzerContext.RedirectDataPath) {
-        QUIC_DBG_ASSERT(MsQuicFuzzerContext.RealSendMsg);
+        CXPLAT_DBG_ASSERT(MsQuicFuzzerContext.RealSendMsg);
 
         return ((LPFN_WSASENDMSG)MsQuicFuzzerContext.RealSendMsg)(
             s,

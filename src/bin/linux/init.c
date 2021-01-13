@@ -39,7 +39,7 @@ Entry(
     void
     )
 {
-    QuicPlatformSystemLoad();
+    CxPlatSystemLoad();
     MsQuicLibraryLoad();
 }
 
@@ -50,5 +50,5 @@ Exit(
     )
 {
     MsQuicLibraryUnload();
-    QuicPlatformSystemUnload();
+    CxPlatSystemUnload();
 }

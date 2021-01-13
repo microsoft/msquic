@@ -400,7 +400,7 @@ AutoShutdownConnectionCallback(
 {
     if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
         if (Context != nullptr) {
-            if (!QuicEventWaitWithTimeout(*(QUIC_EVENT*)Context, 1000)) {
+            if (!CxPlatEventWaitWithTimeout(*(CXPLAT_EVENT*)Context, 1000)) {
                 TEST_FAILURE("Peer never signaled connected event");
             }
         }
@@ -435,7 +435,7 @@ ResumptionFailConnectionCallback(
                 QUIC_STATUS_INVALID_STATE,
                 Status);
         }
-        QuicEventSet(*(QUIC_EVENT*)Context);
+        CxPlatEventSet(*(CXPLAT_EVENT*)Context);
         return QUIC_STATUS_SUCCESS;
     } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
         MsQuic->ConnectionClose(Connection);
@@ -469,7 +469,7 @@ ListenerFailSendResumeCallback(
         return false;
     }
     MsQuic->SetCallbackHandler(ConnectionHandle, (void*)ResumptionFailConnectionCallback, Listener->Context);
-    QuicEventSet(*(QUIC_EVENT*)Listener->Context);
+    CxPlatEventSet(*(CXPLAT_EVENT*)Listener->Context);
     return true;
 }
 #endif
@@ -635,7 +635,7 @@ void QuicTestValidateConnection()
         // waits a bit to allow for the previous command to be processed so
         // that the second call will fail inline.
         //
-        QuicSleep(500);
+        CxPlatSleep(500);
 
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_STATE,
@@ -861,8 +861,8 @@ void QuicTestValidateConnection()
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
 
-        QUIC_EVENT Event;
-        QuicEventInitialize(&Event, FALSE, FALSE);
+        CXPLAT_EVENT Event;
+        CxPlatEventInitialize(&Event, FALSE, FALSE);
         MyListener.Context = &Event;
 
         {
@@ -886,7 +886,7 @@ void QuicTestValidateConnection()
                         QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                     ServerLocalAddr.GetPort()));
 
-            TEST_TRUE(QuicEventWaitWithTimeout(Event, 1000));
+            TEST_TRUE(CxPlatEventWaitWithTimeout(Event, 1000));
 
             MsQuic->ConnectionClose(Connection.Handle);
 
@@ -910,7 +910,7 @@ void QuicTestValidateConnection()
                         QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                     ServerLocalAddr.GetPort()));
 
-            TEST_TRUE(QuicEventWaitWithTimeout(Event, 1000));
+            TEST_TRUE(CxPlatEventWaitWithTimeout(Event, 1000));
 
             MsQuic->ConnectionClose(Connection.Handle);
 
@@ -935,7 +935,7 @@ void QuicTestValidateConnection()
                         QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                     ServerLocalAddr.GetPort()));
 
-            TEST_TRUE(QuicEventWaitWithTimeout(Event, 1000));
+            TEST_TRUE(CxPlatEventWaitWithTimeout(Event, 1000));
 
             //
             // TODO: add test case to validate ConnectionSendResumptionTicket:
@@ -943,7 +943,7 @@ void QuicTestValidateConnection()
             //
         }
 
-        QuicEventUninitialize(Event);
+        CxPlatEventUninitialize(Event);
     }
 #endif
 }
@@ -1352,17 +1352,17 @@ void QuicTestValidateStream(bool Connect)
 
 class SecConfigTestContext {
 public:
-    QUIC_EVENT Event;
+    CXPLAT_EVENT Event;
     QUIC_STATUS Expected;
     bool Failed;
 
     SecConfigTestContext() : Expected(0), Failed(false)
     {
-        QuicEventInitialize(&Event, FALSE, FALSE);
+        CxPlatEventInitialize(&Event, FALSE, FALSE);
     }
     ~SecConfigTestContext()
     {
-        QuicEventUninitialize(Event);
+        CxPlatEventUninitialize(Event);
     }
 };
 

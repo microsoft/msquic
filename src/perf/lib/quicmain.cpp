@@ -27,10 +27,10 @@ PerfBase* TestToRun;
 
 #include "quic_datapath.h"
 
-QUIC_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
-QUIC_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
-QUIC_DATAPATH* Datapath;
-QUIC_SOCKET* Binding;
+CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
+CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
+CXPLAT_DATAPATH* Datapath;
+CXPLAT_SOCKET* Binding;
 bool ServerMode = false;
 
 static
@@ -59,7 +59,7 @@ QUIC_STATUS
 QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ QUIC_EVENT* StopEvent,
+    _In_ CXPLAT_EVENT* StopEvent,
     _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     ) {
     argc--; argv++; // Skip app name
@@ -81,20 +81,20 @@ QuicMainStart(
     if (ServerMode) {
         Datapath = nullptr;
         Binding = nullptr;
-        const QUIC_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
             DatapathReceive,
             DatapathUnreachable
         };
-        Status = QuicDataPathInitialize(0, &DatapathCallbacks, NULL, &Datapath);
+        Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, NULL, &Datapath);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
             return Status;
         }
 
         QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
-        Status = QuicSocketCreateUdp(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
+        Status = CxPlatSocketCreateUdp(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
         if (QUIC_FAILED(Status)) {
-            QuicDataPathUninitialize(Datapath);
+            CxPlatDataPathUninitialize(Datapath);
             Datapath = nullptr;
             WriteOutput("Datapath Binding for shutdown failed to initialize: %d\n", Status);
             return Status;
@@ -176,11 +176,11 @@ QuicMainFree(
     MsQuic = nullptr;
 
     if (Binding) {
-        QuicSocketDelete(Binding);
+        CxPlatSocketDelete(Binding);
         Binding = nullptr;
     }
     if (Datapath) {
-        QuicDataPathUninitialize(Datapath);
+        CxPlatDataPathUninitialize(Datapath);
         Datapath = nullptr;
     }
 }
@@ -214,18 +214,18 @@ QuicMainGetExtraData(
 
 void
 DatapathReceive(
-    _In_ QUIC_SOCKET*,
+    _In_ CXPLAT_SOCKET*,
     _In_ void* Context,
-    _In_ QUIC_RECV_DATA*
+    _In_ CXPLAT_RECV_DATA*
     )
 {
-    QUIC_EVENT* Event = static_cast<QUIC_EVENT*>(Context);
-    QuicEventSet(*Event);
+    CXPLAT_EVENT* Event = static_cast<CXPLAT_EVENT*>(Context);
+    CxPlatEventSet(*Event);
 }
 
 void
 DatapathUnreachable(
-    _In_ QUIC_SOCKET*,
+    _In_ CXPLAT_SOCKET*,
     _In_ void*,
     _In_ const QUIC_ADDR*
     )
