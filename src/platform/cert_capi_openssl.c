@@ -115,7 +115,7 @@ CxPlatTlsExtractPrivateKey(
             goto Exit;
         }
     } else {
-        KeyHandle = (NCRYPT_KEY_HANDLE)QuicCertGetPrivateKey(Cert);
+        KeyHandle = (NCRYPT_KEY_HANDLE)CxPlatCertGetPrivateKey(Cert);
         if (KeyHandle == 0) {
             Status = QUIC_STATUS_INTERNAL_ERROR;
             goto Exit;
