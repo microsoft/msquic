@@ -42,7 +42,7 @@ class TcpEngine {
     bool Shutdown;
 public:
     const uint16_t ProcCount;
-    QUIC_DATAPATH* Datapath;
+    CXPLAT_DATAPATH* Datapath;
     const TcpAcceptCallback* AcceptHandler;
     const TcpConnectCallback* ConnectHandler;
     TcpEngine(TcpAcceptCallback* AcceptHandler, TcpConnectCallback* ConnectHandler);
@@ -54,15 +54,15 @@ class TcpWorker {
     friend class TcpEngine;
     friend class TcpConnection;
     TcpEngine* Engine;
-    QUIC_THREAD Thread;
-    QUIC_EVENT WakeEvent;
-    QUIC_DISPATCH_LOCK Lock;
-    QUIC_LIST_ENTRY Connections;
+    CXPLAT_THREAD Thread;
+    CXPLAT_EVENT WakeEvent;
+    CXPLAT_DISPATCH_LOCK Lock;
+    CXPLAT_LIST_ENTRY Connections;
     TcpWorker();
     ~TcpWorker();
     QUIC_STATUS Init(TcpEngine* _Engine);
     void Shutdown();
-    static QUIC_THREAD_CALLBACK(WorkerThread, Context);
+    static CXPLAT_THREAD_CALLBACK(WorkerThread, Context);
     void QueueConnection(TcpConnection* Connection);
 };
 
@@ -70,15 +70,15 @@ class TcpServer {
     friend class TcpEngine;
     QUIC_STATUS InitStatus;
     TcpEngine* Engine;
-    QUIC_SOCKET* Listener;
+    CXPLAT_SOCKET* Listener;
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
-    _Function_class_(QUIC_DATAPATH_ACCEPT_CALLBACK)
+    _Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
     void
     AcceptCallback(
-        _In_ QUIC_SOCKET* ListenerSocket,
+        _In_ CXPLAT_SOCKET* ListenerSocket,
         _In_ void* ListenerContext,
-        _In_ QUIC_SOCKET* AcceptSocket,
+        _In_ CXPLAT_SOCKET* AcceptSocket,
         _Out_ void** AcceptClientContext
         );
 public:
@@ -96,15 +96,15 @@ struct TcpSendData {
 class TcpConnection {
     friend class TcpEngine;
     friend class TcpWorker;
-    QUIC_LIST_ENTRY Entry;
+    CXPLAT_LIST_ENTRY Entry;
     QUIC_STATUS InitStatus;
     TcpEngine* Engine;
     TcpWorker* Worker;
-    QUIC_REF_COUNT Ref;
-    QUIC_DISPATCH_LOCK Lock;
-    QUIC_SOCKET* Socket;
-    QUIC_TLS* Tls;
-    QUIC_RECV_DATA* ReceiveData;
+    CXPLAT_REF_COUNT Ref;
+    CXPLAT_DISPATCH_LOCK Lock;
+    CXPLAT_SOCKET* Socket;
+    CXPLAT_TLS* Tls;
+    CXPLAT_RECV_DATA* ReceiveData;
     TcpSendData* SendData;
     bool IndicateAccept;
     bool IndicateConnect;
@@ -112,21 +112,21 @@ class TcpConnection {
     bool StartConnection;
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
-    _Function_class_(QUIC_DATAPATH_CONNECT_CALLBACK)
+    _Function_class_(CXPLAT_DATAPATH_CONNECT_CALLBACK)
     void
     ConnectCallback(
-        _In_ QUIC_SOCKET* Socket,
+        _In_ CXPLAT_SOCKET* Socket,
         _In_ void* Context,
         _In_ BOOLEAN Connected
         );
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
-    _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
+    _Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
     void
     ReceiveCallback(
-        _In_ QUIC_SOCKET* Socket,
+        _In_ CXPLAT_SOCKET* Socket,
         _In_ void* Context,
-        _In_ QUIC_RECV_DATA* RecvDataChain
+        _In_ CXPLAT_RECV_DATA* RecvDataChain
         );
     ~TcpConnection();
     void Queue() { Worker->QueueConnection(this); }
@@ -135,7 +135,7 @@ class TcpConnection {
     void ProcessSend();
 public:
     TcpConnection(TcpEngine* Engine, const QUIC_ADDR* RemoteAddress, const QUIC_ADDR* LocalAddress = nullptr);
-    TcpConnection(TcpEngine* Engine, QUIC_SOCKET* Socket);
-    void AddRef() { QuicRefIncrement(&Ref); }
-    void Release() { if (QuicRefDecrement(&Ref)) delete this; }
+    TcpConnection(TcpEngine* Engine, CXPLAT_SOCKET* Socket);
+    void AddRef() { CxPlatRefIncrement(&Ref); }
+    void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
 };

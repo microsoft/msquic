@@ -16,17 +16,17 @@ Abstract:
 #endif
 
 TcpEngine::TcpEngine(TcpAcceptCallback* AcceptHandler, TcpConnectCallback* ConnectHandler) :
-    Shutdown(false), ProcCount((uint16_t)QuicProcActiveCount()),
+    Shutdown(false), ProcCount((uint16_t)CxPlatProcActiveCount()),
     Workers(new TcpWorker[ProcCount]), AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler)
 {
-    const QUIC_TCP_DATAPATH_CALLBACKS TcpCallbacks = {
+    const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {
         TcpServer::AcceptCallback,
         TcpConnection::ConnectCallback,
         TcpConnection::ReceiveCallback
     };
     if (QUIC_FAILED(
         InitStatus =
-            QuicDataPathInitialize(
+            CxPlatDataPathInitialize(
                 0, // TODO
                 nullptr,
                 &TcpCallbacks,
@@ -47,33 +47,33 @@ TcpEngine::~TcpEngine()
         Workers[i].Shutdown();
     }
     if (Datapath) {
-        QuicDataPathUninitialize(Datapath);
+        CxPlatDataPathUninitialize(Datapath);
     }
     delete [] Workers;
 }
 
 void TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex)
 {
-    QUIC_DBG_ASSERT(PartitionIndex < ProcCount);
-    QUIC_DBG_ASSERT(!Connection->Worker);
+    CXPLAT_DBG_ASSERT(PartitionIndex < ProcCount);
+    CXPLAT_DBG_ASSERT(!Connection->Worker);
     Connection->Worker = &Workers[PartitionIndex];
 }
 
 TcpWorker::TcpWorker() : Engine(nullptr), Thread(nullptr)
 {
-    QuicEventInitialize(&WakeEvent, FALSE, FALSE);
-    QuicDispatchLockInitialize(&Lock);
-    QuicListInitializeHead(&Connections);
+    CxPlatEventInitialize(&WakeEvent, FALSE, FALSE);
+    CxPlatDispatchLockInitialize(&Lock);
+    CxPlatListInitializeHead(&Connections);
 }
 
 TcpWorker::~TcpWorker()
 {
     if (Engine) {
-        QuicThreadDelete(&Thread);
-        while (!QuicListIsEmpty(&Connections)) {
+        CxPlatThreadDelete(&Thread);
+        while (!CxPlatListIsEmpty(&Connections)) {
             auto Connection =
-                QUIC_CONTAINING_RECORD(
-                    QuicListRemoveHead(&Connections),
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&Connections),
                     TcpConnection,
                     Entry);
             Connection->Entry.Flink = nullptr;
@@ -81,16 +81,16 @@ TcpWorker::~TcpWorker()
             Connection->Release();
         }
     }
-    QuicDispatchLockUninitialize(&Lock);
-    QuicEventUninitialize(WakeEvent);
+    CxPlatDispatchLockUninitialize(&Lock);
+    CxPlatEventUninitialize(WakeEvent);
 }
 
 QUIC_STATUS TcpWorker::Init(TcpEngine* _Engine)
 {
     Engine = _Engine;
-    QUIC_THREAD_CONFIG Config = { 0, 0, "TcpPerfWorker", WorkerThread, this };
+    CXPLAT_THREAD_CONFIG Config = { 0, 0, "TcpPerfWorker", WorkerThread, this };
     QUIC_STATUS Status =
-        QuicThreadCreate(
+        CxPlatThreadCreate(
             &Config,
             &Thread);
     if (QUIC_FAILED(Status)) {
@@ -103,55 +103,55 @@ QUIC_STATUS TcpWorker::Init(TcpEngine* _Engine)
 void TcpWorker::Shutdown()
 {
     if (Engine) {
-        QuicEventSet(WakeEvent);
-        QuicThreadWait(&Thread);
+        CxPlatEventSet(WakeEvent);
+        CxPlatThreadWait(&Thread);
     }
 }
 
-QUIC_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
+CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
 {
     TcpWorker* This = (TcpWorker*)Context;
 
     while (!This->Engine->Shutdown) {
         TcpConnection* Connection;
-        QuicDispatchLockAcquire(&This->Lock);
-        if (QuicListIsEmpty(&This->Connections)) {
+        CxPlatDispatchLockAcquire(&This->Lock);
+        if (CxPlatListIsEmpty(&This->Connections)) {
             Connection = nullptr;
         } else {
             Connection =
-                QUIC_CONTAINING_RECORD(
-                    QuicListRemoveHead(&This->Connections),
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&This->Connections),
                     TcpConnection,
                     Entry);
             Connection->Entry.Flink = nullptr;
         }
-        QuicDispatchLockRelease(&This->Lock);
+        CxPlatDispatchLockRelease(&This->Lock);
         if (Connection) {
             Connection->Process();
             Connection->Release();
         } else {
-            QuicEventWaitForever(This->WakeEvent);
+            CxPlatEventWaitForever(This->WakeEvent);
         }
     }
 
-    QUIC_THREAD_RETURN(0);
+    CXPLAT_THREAD_RETURN(0);
 }
 
 void TcpWorker::QueueConnection(TcpConnection* Connection)
 {
-    QuicDispatchLockAcquire(&Lock);
+    CxPlatDispatchLockAcquire(&Lock);
     if (!Connection->Entry.Flink) {
         Connection->AddRef();
-        QuicListInsertTail(&Connections, &Connection->Entry);
-        QuicEventSet(WakeEvent);
+        CxPlatListInsertTail(&Connections, &Connection->Entry);
+        CxPlatEventSet(WakeEvent);
     }
-    QuicDispatchLockRelease(&Lock);
+    CxPlatDispatchLockRelease(&Lock);
 }
 
 TcpServer::TcpServer(TcpEngine* Engine) : Engine(Engine), Listener(nullptr)
 {
     InitStatus =
-        QuicSocketCreateTcpListener(
+        CxPlatSocketCreateTcpListener(
             Engine->Datapath,
             nullptr,
             this,
@@ -161,17 +161,17 @@ TcpServer::TcpServer(TcpEngine* Engine) : Engine(Engine), Listener(nullptr)
 TcpServer::~TcpServer()
 {
     if (Listener) {
-        QuicSocketDelete(Listener);
+        CxPlatSocketDelete(Listener);
     }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_ACCEPT_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
 void
 TcpServer::AcceptCallback(
-    _In_ QUIC_SOCKET* /* ListenerSocket */,
+    _In_ CXPLAT_SOCKET* /* ListenerSocket */,
     _In_ void* ListenerContext,
-    _In_ QUIC_SOCKET* AcceptSocket,
+    _In_ CXPLAT_SOCKET* AcceptSocket,
     _Out_ void** AcceptClientContext
     )
 {
@@ -185,10 +185,10 @@ TcpConnection::TcpConnection(TcpEngine* Engine, const QUIC_ADDR* RemoteAddress, 
     IndicateDisconnect(false), StartConnection(true)
 {
     Entry.Flink = NULL;
-    QuicRefInitialize(&Ref);
-    QuicDispatchLockInitialize(&Lock);
+    CxPlatRefInitialize(&Ref);
+    CxPlatDispatchLockInitialize(&Lock);
     InitStatus =
-        QuicSocketCreateTcp(
+        CxPlatSocketCreateTcp(
             Engine->Datapath,
             LocalAddress,
             RemoteAddress,
@@ -201,14 +201,14 @@ TcpConnection::TcpConnection(TcpEngine* Engine, const QUIC_ADDR* RemoteAddress, 
     Queue();
 }
 
-TcpConnection::TcpConnection(TcpEngine* Engine, QUIC_SOCKET* Socket) :
+TcpConnection::TcpConnection(TcpEngine* Engine, CXPLAT_SOCKET* Socket) :
     InitStatus(QUIC_STATUS_SUCCESS), Engine(Engine), Worker(nullptr), Socket(Socket),
     Tls(nullptr), ReceiveData(nullptr), SendData(nullptr), IndicateAccept(true),
     IndicateConnect(false), IndicateDisconnect(false), StartConnection(false)
 {
     Entry.Flink = NULL;
-    QuicRefInitialize(&Ref);
-    QuicDispatchLockInitialize(&Lock);
+    CxPlatRefInitialize(&Ref);
+    CxPlatDispatchLockInitialize(&Lock);
     Engine->AddConnection(this, 0); // TODO - Correct index
     Queue();
 }
@@ -216,17 +216,17 @@ TcpConnection::TcpConnection(TcpEngine* Engine, QUIC_SOCKET* Socket) :
 TcpConnection::~TcpConnection()
 {
     if (Socket) {
-        QuicSocketDelete(Socket);
+        CxPlatSocketDelete(Socket);
     }
-    QUIC_DBG_ASSERT(Entry.Flink == NULL);
-    QuicDispatchLockUninitialize(&Lock);
+    CXPLAT_DBG_ASSERT(Entry.Flink == NULL);
+    CxPlatDispatchLockUninitialize(&Lock);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_CONNECT_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_CONNECT_CALLBACK)
 void
 TcpConnection::ConnectCallback(
-    _In_ QUIC_SOCKET* /* Socket */,
+    _In_ CXPLAT_SOCKET* /* Socket */,
     _In_ void* Context,
     _In_ BOOLEAN Connected
     )
@@ -241,22 +241,22 @@ TcpConnection::ConnectCallback(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 void
 TcpConnection::ReceiveCallback(
-    _In_ QUIC_SOCKET* /* Socket */,
+    _In_ CXPLAT_SOCKET* /* Socket */,
     _In_ void* Context,
-    _In_ QUIC_RECV_DATA* RecvDataChain
+    _In_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
     TcpConnection* This = (TcpConnection*)Context;
-    QuicDispatchLockAcquire(&This->Lock);
-    QUIC_RECV_DATA** Tail = &This->ReceiveData;
+    CxPlatDispatchLockAcquire(&This->Lock);
+    CXPLAT_RECV_DATA** Tail = &This->ReceiveData;
     while (*Tail) {
         Tail = &(*Tail)->Next;
     }
     *Tail = RecvDataChain;
-    QuicDispatchLockRelease(&This->Lock);
+    CxPlatDispatchLockRelease(&This->Lock);
     This->Queue();
 }
 
@@ -287,22 +287,22 @@ void TcpConnection::Process()
 
 void TcpConnection::ProcessReceive()
 {
-    QuicDispatchLockAcquire(&Lock);
-    QUIC_RECV_DATA* RecvDataChain = ReceiveData;
+    CxPlatDispatchLockAcquire(&Lock);
+    CXPLAT_RECV_DATA* RecvDataChain = ReceiveData;
     ReceiveData = nullptr;
-    QuicDispatchLockRelease(&Lock);
+    CxPlatDispatchLockRelease(&Lock);
 
     // TODO ..
 
-    QuicRecvDataReturn(RecvDataChain);
+    CxPlatRecvDataReturn(RecvDataChain);
 }
 
 void TcpConnection::ProcessSend()
 {
-    QuicDispatchLockAcquire(&Lock);
+    CxPlatDispatchLockAcquire(&Lock);
     TcpSendData* SendDataChain = SendData;
     SendData = nullptr;
-    QuicDispatchLockRelease(&Lock);
+    CxPlatDispatchLockRelease(&Lock);
 
     // TODO ..
 
