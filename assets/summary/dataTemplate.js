@@ -84,7 +84,11 @@ var timeAxis = {
         maxTicksLimit: maxIndex + 10,
         stepSize: 1,
         callback: function(value) {
-            return Math.floor(maxIndex - 1 - value);
+            if (value % 1 !== 0) {
+                return "";
+            } else {
+                return maxIndex - 1 - value;
+            }
         }
     },
     scaleLabel: createScaleLabel('Commits Back From Current')
