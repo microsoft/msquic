@@ -624,7 +624,7 @@ $DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_OPENSSL", $Wi
 $DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_SCHANNEL", $WinSchannelData)
 $DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINKERNEL", $WinKernelData)
 
-$OutputFolder = Join-Path $BranchFolder $CurrentCommitHash "CommitSummary"
+$OutputFolder = Join-Path $RootDir 'percommit' $BranchName $CurrentCommitHash
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
 $DataFileOut = Join-Path $OutputFolder "data.js"
 $DataFileContents | Set-Content $DataFileOut
