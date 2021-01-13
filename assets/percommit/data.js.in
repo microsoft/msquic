@@ -1,0 +1,49 @@
+/*!
+ * Automatically generated data
+ */
+var dataRawWinKernelx64SchannelThroughput = RAW_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_UP
+var dataAverageWinKernelx64SchannelThroughput = AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_UP
+
+var dataRawWindowsx64SchannelThroughput = RAW_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_UP
+var dataAverageWindowsx64SchannelThroughput = AVERAGE_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_UP
+
+var dataRawWindowsx64OpensslThroughput = RAW_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_UP
+var dataAverageWindowsx64OpensslThroughput = AVERAGE_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_UP
+
+var dataRawWinKernelx64SchannelThroughputDown = RAW_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_DOWN
+var dataAverageWinKernelx64SchannelThroughputDown = AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_DOWN
+
+var dataRawWindowsx64SchannelThroughputDown = RAW_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_DOWN
+var dataAverageWindowsx64SchannelThroughputDown = AVERAGE_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_DOWN
+
+var dataRawWindowsx64OpensslThroughputDown = RAW_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_DOWN
+var dataAverageWindowsx64OpensslThroughputDown = AVERAGE_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_DOWN
+
+var dataRawWinKernelx64SchannelRps = RAW_DATA_WINKERNEL_X64_SCHANNEL_RPS
+var dataAverageWinKernelx64SchannelRps = AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_RPS
+
+var dataRawWindowsx64SchannelRps = RAW_DATA_WINDOWS_X64_SCHANNEL_RPS
+var dataAverageWindowsx64SchannelRps = AVERAGE_DATA_WINDOWS_X64_SCHANNEL_RPS
+
+var dataRawWindowsx64OpensslRps = RAW_DATA_WINDOWS_X64_OPENSSL_RPS
+var dataAverageWindowsx64OpensslRps = AVERAGE_DATA_WINDOWS_X64_OPENSSL_RPS
+
+var dataRawWinKernelx64SchannelHps = RAW_DATA_WINKERNEL_X64_SCHANNEL_HPS
+var dataAverageWinKernelx64SchannelHps = AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_HPS
+
+var dataRawWindowsx64SchannelHps = RAW_DATA_WINDOWS_X64_SCHANNEL_HPS
+var dataAverageWindowsx64SchannelHps = AVERAGE_DATA_WINDOWS_X64_SCHANNEL_HPS
+
+var dataRawWindowsx64OpensslHps = RAW_DATA_WINDOWS_X64_OPENSSL_HPS
+var dataAverageWindowsx64OpensslHps = AVERAGE_DATA_WINDOWS_X64_OPENSSL_HPS
+
+var dataRpsLatencyWindowsOpenSsl = RPS_LATENCY_WINDOWS_OPENSSL
+var dataRpsLatencyWindowsSchannel = RPS_LATENCY_WINDOWS_SCHANNEL
+var dataRpsLatencyWinKernel = RPS_LATENCY_WINKERNEL
+
+var commitDatePairs = COMMIT_DATE_PAIR
+
+var newestDate = NEWEST_DATE
+var oldestDate = OLDEST_DATE
+
+var pageCommitHash = PAGE_COMMIT_HASH

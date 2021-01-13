@@ -26,7 +26,13 @@ function Get-CommitHistory {
         [int]$DaysToReceive,
 
         [Parameter(Mandatory = $true)]
-        [string]$BranchFolder
+        [string]$BranchFolder,
+
+        [Parameter(Mandatory = $true)]
+        [int]$MinimumCommits,
+
+        [Parameter(Mandatory = $true)]
+        [int]$MaximumCommits
     )
 
     $CurrentDate = Get-Date
@@ -34,7 +40,24 @@ function Get-CommitHistory {
     $PastDateUnix = ([DateTimeOffset]$PastDate).ToUnixTimeMilliseconds()
 
     $CommitsFile = Join-Path $BranchFolder "commits.json"
-    $CommitsContents = Get-Content $CommitsFile | ConvertFrom-Json | Where-Object -Property Date -GE $PastDateUnix
+    $CommitJson = Get-Content $CommitsFile | ConvertFrom-Json
+
+    if ($MaximumCommits -ne 0) {
+        # We're explicitly looking for a maximum
+        if ($CommitJson.Count -lt $MaximumCommits) {
+            $MaximumCommits = $CommitJson.Count
+        }
+        return $CommitJson | Select-Object -First $MaximumCommits
+    }
+
+    $CommitsContents = $CommitJson | Where-Object -Property Date -GE $PastDateUnix
+
+    if ($CommitsContents.Count -lt $MinimumCommits) {
+        if ($CommitJson.Count -lt $MinimumCommits) {
+            $MinimumCommits = $CommitJson.Count
+        }
+        $CommitsContents = $CommitJson | Select-Object -First $MinimumCommits
+    }
 
     return $CommitsContents
 }
@@ -512,7 +535,7 @@ function Get-LatencyDataJs {
 $RootDir = Split-Path $PSScriptRoot -Parent
 $BranchFolder = Join-Path $RootDir 'data' $BranchName
 
-$CommitHistory = Get-CommitHistory -DaysToReceive $DaysToReceive -BranchFolder $BranchFolder
+$CommitHistory = Get-CommitHistory -DaysToReceive $DaysToReceive -MinimumCommits 5 -MaximumCommits 0 -BranchFolder $BranchFolder
 $CpuCommitData = Get-CpuCommitData -CommitHistory $CommitHistory -BranchFolder $BranchFolder
 
 $DataFileIn = Join-Path $RootDir "assets" "summary" "data.js.in"
@@ -557,3 +580,54 @@ $DataFileOut = Join-Path $OutputFolder "data.js"
 $DataFileContents | Set-Content $DataFileOut
 
 
+# Grab per commit pages
+
+$CommitHistory = Get-CommitHistory -DaysToReceive $DaysToReceive -MinimumCommits 5 -MaximumCommits 5 -BranchFolder $BranchFolder
+$CpuCommitData = Get-CpuCommitData -CommitHistory $CommitHistory -BranchFolder $BranchFolder
+$CurrentCommitHash = $CommitHistory[0].CommitHash
+
+$TemplateFolder = $DataFileIn = Join-Path $RootDir "assets" "percommit"
+$DataFileIn = Join-Path $TemplateFolder "data.js.in"
+$DataFileContents = Get-Content $DataFileIn
+
+$FirstAndLast = $CommitHistory | Sort-Object -Property Date | Select-Object -Index 0, ($CommitHistory.Count - 1)
+
+$OldestDateString = $FirstAndLast[0].Date;
+if ($FirstAndLast.Count -eq 1) {
+    $NewestDateString = $FirstAndLast[0].Date;
+} else {
+    $NewestDateString = $FirstAndLast[1].Date;
+}
+
+$DataFileContents = $DataFileContents.Replace("NEWEST_DATE", "new Date($NewestDateString)")
+$DataFileContents = $DataFileContents.Replace("OLDEST_DATE", "new Date($OldestDateString)")
+$DataFileContents = $DataFileContents.Replace("PAGE_COMMIT_HASH", "`"$CurrentCommitHash`"")
+
+$DataFileContents = $DataFileContents.Replace("COMMIT_DATE_PAIR", (Get-CommitTimePairJs -CommitModel $CommitHistory))
+
+$DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
+$DataFileContents = Get-RpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
+$DataFileContents = Get-HpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData
+
+# Grab Latency Data
+$LatestCommit = Get-LatestCommit -BranchFolder $BranchFolder
+$LatencyFolder = Join-Path $BranchFolder $LatestCommit.CommitHash "RpsLatency"
+$WinOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_openssl_Default.txt"
+$WinSchannelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_schannel_Default.txt"
+$WinKernelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Winkernel_x64_schannel_Default.txt"
+
+$WinOpenSslData = Get-LatencyDataJs -File $WinOpenSslLatencyFile
+$WinSchannelData = Get-LatencyDataJs -File $WinSchannelLatencyFile
+$WinKernelData = Get-LatencyDataJs -File $WinKernelLatencyFile
+
+$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_OPENSSL", $WinOpenSslData)
+$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_SCHANNEL", $WinSchannelData)
+$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINKERNEL", $WinKernelData)
+
+$OutputFolder = Join-Path $BranchFolder $CurrentCommitHash "CommitSummary"
+New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
+$DataFileOut = Join-Path $OutputFolder "data.js"
+$DataFileContents | Set-Content $DataFileOut
+
+# Take template folder, and copy to commit
+Copy-Item -Path $TemplateFolder/* -Destination $OutputFolder -Exclude "data.js.in" -Force
