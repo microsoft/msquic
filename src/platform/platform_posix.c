@@ -643,7 +643,7 @@ CxPlatProcCurrentNumber(
             "=c" (cpuinfo[2]),
             "=d" (cpuinfo[3])
             : "a"(1));
-    QUIC_FRE_ASSERT((cpuinfo[3] & (1 << 9)) != 0);
+    CXPLAT_FRE_ASSERT((cpuinfo[3] & (1 << 9)) != 0);
     return (uint32_t)cpuinfo[1] >> 24;
 #endif // CX_PLATFORM_DARWIN
 }
@@ -818,9 +818,9 @@ CxPlatThreadCreate(
 #elif defined(CX_PLATFORM_DARWIN)
 
 QUIC_STATUS
-QuicThreadCreate(
-    _In_ QUIC_THREAD_CONFIG* Config,
-    _Out_ QUIC_THREAD* Thread
+CxPlatThreadCreate(
+    _In_ CXPLAT_THREAD_CONFIG* Config,
+    _Out_ CXPLAT_THREAD* Thread
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -836,7 +836,7 @@ QuicThreadCreate(
 
     // XXX: Set processor affinity
 
-    if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
+    if (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY) {
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
         if (!pthread_attr_setschedparam(&Attr, &Params)) {

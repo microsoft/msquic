@@ -35,17 +35,17 @@ Abstract:
 //
 // The maximum number of UDP datagrams that can be sent with one call.
 //
-#define QUIC_MAX_BATCH_SEND                 7
+#define CXPLAT_MAX_BATCH_SEND                   7
 
 //
 // The maximum UDP receive coalescing payload.
 //
-#define MAX_URO_PAYLOAD_LENGTH              (UINT16_MAX - QUIC_UDP_HEADER_SIZE)
+#define MAX_URO_PAYLOAD_LENGTH                  (UINT16_MAX - CXPLAT_UDP_HEADER_SIZE)
 
 //
 // The maximum single buffer size for sending coalesced payloads.
 //
-#define QUIC_LARGE_SEND_BUFFER_SIZE         0xFFFF
+#define CXPLAT_LARGE_SEND_BUFFER_SIZE           0xFFFF
 
 //
 // The maximum number of UDP datagrams to preallocate for URO.
@@ -60,13 +60,13 @@ Abstract:
     ErrorCode == EHOSTDOWN \
 )
 
-typedef struct QUIC_UDP_SOCKET_CONTEXT QUIC_UDP_SOCKET_CONTEXT;
-typedef struct QUIC_DATAPATH_PROC_CONTEXT QUIC_DATAPATH_PROC_CONTEXT;
+typedef struct CXPLAT_UDP_SOCKET_CONTEXT CXPLAT_UDP_SOCKET_CONTEXT;
+typedef struct CXPLAT_DATAPATH_PROC_CONTEXT CXPLAT_DATAPATH_PROC_CONTEXT;
 
 //
 // Internal receive context.
 //
-typedef struct QUIC_DATAPATH_INTERNAL_RECV_CONTEXT {
+typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT {
 
     //
     // The owning datagram pool.
@@ -167,7 +167,7 @@ typedef struct QUIC_UDP_SOCKET_CONTEXT {
 
     char RecvMsgControlBuf[
             CMSG_SPACE(sizeof(struct in6_pktinfo)) +
-            CMSG_SPACE(sizeof(struct in_pktinfo))  + 
+            CMSG_SPACE(sizeof(struct in_pktinfo))  +
             CMSG_SPACE(sizeof(int))
         ];
 
@@ -698,7 +698,7 @@ QuicDataPathBindingCreate(
         Binding->SocketContexts[i].RecvIov.iov_len = Binding->Mtu - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE;
         QuicRundownInitialize(&Binding->SocketContexts[i].UpcallRundown);
     }
-    
+
     sa_family_t AfFamily = Binding->LocalAddress.Ip.sa_family;
     socklen_t AddrSize = AfFamily == AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
 
@@ -1118,7 +1118,7 @@ QuicDataPathRecvComplete(
                     LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
                     FoundLocalAddr = TRUE;
-                } 
+                }
                 //else if (CMsg->cmsg_type == IP_ECN) {
                 //    ECN = *(int *)CMSG_DATA(CMsg);
                 //    QUIC_DBG_ASSERT(ECN < UINT8_MAX);
@@ -1478,7 +1478,7 @@ void QuicSendContextComplete(_In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext, _In_ Q
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS QuicDataPathBindingSendTo(_In_ QUIC_DATAPATH_BINDING* Binding, _In_ const QUIC_ADDR *RemoteAddress, _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext) 
+QUIC_STATUS QuicDataPathBindingSendTo(_In_ QUIC_DATAPATH_BINDING* Binding, _In_ const QUIC_ADDR *RemoteAddress, _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext)
 {
     QUIC_STATUS Status;
     QUIC_DATAPATH* Datapath;
@@ -1738,7 +1738,7 @@ void *QuicDataPathWorkerThread(_In_ void* CompletionContext) {
             }
             else if (Event->filter == EVFILT_READ) {
                 NumberOfBytesTransferred = recvmsg(SocketContext->Socket, &SocketContext->RecvMsgHdr, 0);
-                if (NumberOfBytesTransferred == (size_t)-1) IoResult = errno; 
+                if (NumberOfBytesTransferred == (size_t)-1) IoResult = errno;
 
                 // XXX: Do we need the SocketContext->UpcallRundown if we only have one worker?
                 // Handle the receive indication and queue a new receive.
@@ -1775,4 +1775,3 @@ QUIC_STATUS QuicDataPathBindingGetParam(_In_ QUIC_DATAPATH_BINDING* Binding, _In
     UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
-
