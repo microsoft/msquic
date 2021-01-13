@@ -515,7 +515,7 @@ $BranchFolder = Join-Path $RootDir 'data' $BranchName
 $CommitHistory = Get-CommitHistory -DaysToReceive $DaysToReceive -BranchFolder $BranchFolder
 $CpuCommitData = Get-CpuCommitData -CommitHistory $CommitHistory -BranchFolder $BranchFolder
 
-$DataFileIn = Join-Path $RootDir "assets" "data.js.in"
+$DataFileIn = Join-Path $RootDir "assets" "summary" "data.js.in"
 $DataFileContents = Get-Content $DataFileIn
 
 $FirstAndLast = $CommitHistory | Sort-Object -Property Date | Select-Object -Index 0, ($CommitHistory.Count - 1)
@@ -551,7 +551,7 @@ $DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_OPENSSL", $Wi
 $DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_SCHANNEL", $WinSchannelData)
 $DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINKERNEL", $WinKernelData)
 
-$OutputFolder = Join-Path $RootDir "assets" $BranchName
+$OutputFolder = Join-Path $RootDir "assets" "summary" $BranchName
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
 $DataFileOut = Join-Path $OutputFolder "data.js"
 $DataFileContents | Set-Content $DataFileOut
