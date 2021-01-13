@@ -21,10 +21,10 @@
 
 struct TlsContext
 {
-    QUIC_TLS* Ptr;
-    QUIC_SEC_CONFIG* SecConfig;
-    QUIC_TLS_PROCESS_STATE State;
-    QUIC_EVENT ProcessCompleteEvent;
+    CXPLAT_TLS* Ptr;
+    CXPLAT_SEC_CONFIG* SecConfig;
+    CXPLAT_TLS_PROCESS_STATE State;
+    CXPLAT_EVENT ProcessCompleteEvent;
     uint8_t AlpnListBuffer[256];
 
     TlsContext(_In_z_ const char* Alpn, _In_z_ const char* Sni) :
@@ -32,10 +32,10 @@ struct TlsContext
 
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
         memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
-        QuicEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
+        CxPlatEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
 
-        QuicZeroMemory(&State, sizeof(State));
-        State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000, QUIC_POOL_TOOL);
+        CxPlatZeroMemory(&State, sizeof(State));
+        State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, QUIC_POOL_TOOL);
         State.BufferAllocLength = 8000;
 
         QUIC_CREDENTIAL_CONFIG CredConfig = {
@@ -43,13 +43,13 @@ struct TlsContext
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
             NULL, NULL, NULL, NULL
         };
-        QUIC_TLS_CALLBACKS TlsCallbacks = {
+        CXPLAT_TLS_CALLBACKS TlsCallbacks = {
             OnProcessComplete,
             OnRecvQuicTP,
             NULL
         };
         VERIFY_QUIC_SUCCESS(
-            QuicTlsSecConfigCreate(
+            CxPlatTlsSecConfigCreate(
                 &CredConfig, &TlsCallbacks, &SecConfig, OnSecConfigCreateComplete));
 
         QUIC_CONNECTION Connection = {0};
@@ -69,7 +69,7 @@ struct TlsContext
         TP.InitialSourceConnectionIDLength = sizeof(uint64_t);
         *(uint64_t*)&TP.InitialSourceConnectionID[0] = MagicCid;
 
-        QUIC_TLS_CONFIG Config = {0};
+        CXPLAT_TLS_CONFIG Config = {0};
         Config.IsServer = FALSE;
         Config.SecConfig = SecConfig;
         Config.AlpnBuffer = AlpnListBuffer;
@@ -83,19 +83,19 @@ struct TlsContext
         Config.ServerName = Sni;
 
         VERIFY_QUIC_SUCCESS(
-            QuicTlsInitialize(
+            CxPlatTlsInitialize(
                 &Config,
                 &State,
                 &Ptr));
     }
 
     ~TlsContext() {
-        QuicTlsUninitialize(Ptr);
+        CxPlatTlsUninitialize(Ptr);
         if (SecConfig) {
-            QuicTlsSecConfigDelete(SecConfig);
+            CxPlatTlsSecConfigDelete(SecConfig);
         }
-        QuicEventUninitialize(ProcessCompleteEvent);
-        QUIC_FREE(State.Buffer, QUIC_POOL_TOOL);
+        CxPlatEventUninitialize(ProcessCompleteEvent);
+        CXPLAT_FREE(State.Buffer, QUIC_POOL_TOOL);
         for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
             QuicPacketKeyFree(State.ReadKeys[i]);
             QuicPacketKeyFree(State.WriteKeys[i]);
@@ -104,41 +104,41 @@ struct TlsContext
 
 private:
 
-    _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
+    _Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
     static void
     QUIC_API
     OnSecConfigCreateComplete(
         _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
         _In_opt_ void* Context,
         _In_ QUIC_STATUS /* Status */,
-        _In_opt_ QUIC_SEC_CONFIG* SecConfig
+        _In_opt_ CXPLAT_SEC_CONFIG* SecConfig
         )
     {
-        *(QUIC_SEC_CONFIG**)Context = SecConfig;
+        *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
     }
 
-    QUIC_TLS_RESULT_FLAGS
+    CXPLAT_TLS_RESULT_FLAGS
     ProcessData(
         _In_reads_bytes_(*BufferLength)
             const uint8_t * Buffer,
         _In_ uint32_t * BufferLength
         )
     {
-        QuicEventReset(ProcessCompleteEvent);
+        CxPlatEventReset(ProcessCompleteEvent);
 
         auto Result =
-            QuicTlsProcessData(
+            CxPlatTlsProcessData(
                 Ptr,
-                QUIC_TLS_CRYPTO_DATA,
+                CXPLAT_TLS_CRYPTO_DATA,
                 Buffer,
                 BufferLength,
                 &State);
-        if (Result & QUIC_TLS_RESULT_PENDING) {
-            QuicEventWaitForever(ProcessCompleteEvent);
-            Result = QuicTlsProcessDataComplete(Ptr, BufferLength);
+        if (Result & CXPLAT_TLS_RESULT_PENDING) {
+            CxPlatEventWaitForever(ProcessCompleteEvent);
+            Result = CxPlatTlsProcessDataComplete(Ptr, BufferLength);
         }
 
-        if (Result & QUIC_TLS_RESULT_ERROR) {
+        if (Result & CXPLAT_TLS_RESULT_ERROR) {
             printf("Failed to process data!\n");
             exit(0);
         }
@@ -148,9 +148,9 @@ private:
 
 public:
 
-    QUIC_TLS_RESULT_FLAGS
+    CXPLAT_TLS_RESULT_FLAGS
     ProcessData(
-        _Inout_ QUIC_TLS_PROCESS_STATE* PeerState = nullptr
+        _Inout_ CXPLAT_TLS_PROCESS_STATE* PeerState = nullptr
         )
     {
         if (PeerState == nullptr) {
@@ -190,13 +190,13 @@ public:
                     &BufferLength);
 
             PeerState->BufferLength -= (uint16_t)BufferLength;
-            QuicMoveMemory(
+            CxPlatMoveMemory(
                 PeerState->Buffer,
                 PeerState->Buffer + BufferLength,
                 PeerState->BufferLength);
         }
 
-        return (QUIC_TLS_RESULT_FLAGS)Result;
+        return (CXPLAT_TLS_RESULT_FLAGS)Result;
     }
 
 private:
@@ -206,7 +206,7 @@ private:
         _In_ QUIC_CONNECTION* Connection
         )
     {
-        QuicEventSet(((TlsContext*)Connection)->ProcessCompleteEvent);
+        CxPlatEventSet(((TlsContext*)Connection)->ProcessCompleteEvent);
     }
 
     static BOOLEAN
@@ -300,11 +300,11 @@ PacketWriter::WriteClientInitialPacket(
     }
 
     QuicVarIntEncode2Bytes(
-        PacketNumberLength + CryptoBufferLength + QUIC_ENCRYPTION_OVERHEAD,
+        PacketNumberLength + CryptoBufferLength + CXPLAT_ENCRYPTION_OVERHEAD,
         Buffer + PayloadLengthOffset);
     *HeaderLength = *PacketLength;
 
-    QuicCopyMemory(Buffer + *PacketLength, CryptoBuffer, CryptoBufferLength);
+    CxPlatCopyMemory(Buffer + *PacketLength, CryptoBuffer, CryptoBufferLength);
     *PacketLength += CryptoBufferLength;
-    *PacketLength += QUIC_ENCRYPTION_OVERHEAD;
+    *PacketLength += CXPLAT_ENCRYPTION_OVERHEAD;
 }

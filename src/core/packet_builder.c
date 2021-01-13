@@ -42,13 +42,13 @@ QuicPacketBuilderInitialize(
     _In_ QUIC_PATH* Path
     )
 {
-    QUIC_DBG_ASSERT(Path->DestCid != NULL);
+    CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
     Builder->Connection = Connection;
     Builder->Path = Path;
     Builder->PacketBatchSent = FALSE;
     Builder->PacketBatchRetransmittable = FALSE;
     Builder->Metadata = &Builder->MetadataStorage.Metadata;
-    Builder->EncryptionOverhead = QUIC_ENCRYPTION_OVERHEAD;
+    Builder->EncryptionOverhead = CXPLAT_ENCRYPTION_OVERHEAD;
     Builder->TotalDatagramsLength = 0;
 
     if (Connection->SourceCids.Next == NULL) {
@@ -60,16 +60,16 @@ QuicPacketBuilderInitialize(
     }
 
     Builder->SourceCid =
-        QUIC_CONTAINING_RECORD(
+        CXPLAT_CONTAINING_RECORD(
             Connection->SourceCids.Next,
             QUIC_CID_HASH_ENTRY,
             Link);
 
-    uint64_t TimeNow = QuicTimeUs64();
+    uint64_t TimeNow = CxPlatTimeUs64();
     uint64_t TimeSinceLastSend;
     if (Connection->Send.LastFlushTimeValid) {
         TimeSinceLastSend =
-            QuicTimeDiff64(Connection->Send.LastFlushTime, TimeNow);
+            CxPlatTimeDiff64(Connection->Send.LastFlushTime, TimeNow);
     } else {
         TimeSinceLastSend = 0;
     }
@@ -93,7 +93,7 @@ QuicPacketBuilderCleanup(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    QUIC_DBG_ASSERT(Builder->SendContext == NULL);
+    CXPLAT_DBG_ASSERT(Builder->SendContext == NULL);
 
     if (Builder->PacketBatchSent && Builder->PacketBatchRetransmittable) {
         QuicLossDetectionUpdateTimer(&Builder->Connection->LossDetection);
@@ -101,7 +101,7 @@ QuicPacketBuilderCleanup(
 
     QuicSentPacketMetadataReleaseFrames(Builder->Metadata);
 
-    QuicSecureZeroMemory(Builder->HpMask, sizeof(Builder->HpMask));
+    CxPlatSecureZeroMemory(Builder->HpMask, sizeof(Builder->HpMask));
 }
 
 //
@@ -142,10 +142,10 @@ QuicPacketBuilderPrepare(
     uint8_t NewPacketType = QuicKeyTypeToPacketType(NewPacketKeyType);
     uint16_t DatagramSize = Builder->Path->Mtu;
     if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
-        QUIC_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
+        CXPLAT_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
         DatagramSize = (uint16_t)Builder->Path->Allowance;
     }
-    QUIC_DBG_ASSERT(!IsPathMtuDiscovery || !IsTailLossProbe); // Never both.
+    CXPLAT_DBG_ASSERT(!IsPathMtuDiscovery || !IsTailLossProbe); // Never both.
 
 
     //
@@ -172,7 +172,7 @@ QuicPacketBuilderPrepare(
         NewQuicPacket = TRUE;
 
     } else {
-        QUIC_DBG_ASSERT(Builder->Datagram->Length - Builder->DatagramLength >= QUIC_MIN_PACKET_SPARE_SPACE);
+        CXPLAT_DBG_ASSERT(Builder->Datagram->Length - Builder->DatagramLength >= QUIC_MIN_PACKET_SPARE_SPACE);
     }
 
     if (Builder->Datagram == NULL) {
@@ -183,9 +183,9 @@ QuicPacketBuilderPrepare(
 
         if (Builder->SendContext == NULL) {
             Builder->SendContext =
-                QuicSendDataAlloc(
+                CxPlatSendDataAlloc(
                     Builder->Path->Binding->Socket,
-                    QUIC_ECN_NON_ECT,
+                    CXPLAT_ECN_NON_ECT,
                     IsPathMtuDiscovery ?
                         0 :
                         MaxUdpPayloadSizeForFamily(
@@ -204,14 +204,14 @@ QuicPacketBuilderPrepare(
         uint16_t NewDatagramLength =
             MaxUdpPayloadSizeForFamily(
                 QuicAddrGetFamily(&Builder->Path->RemoteAddress),
-                IsPathMtuDiscovery ? QUIC_MAX_MTU : DatagramSize);
+                IsPathMtuDiscovery ? CXPLAT_MAX_MTU : DatagramSize);
         if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) &&
             NewDatagramLength > Connection->PeerTransportParams.MaxUdpPayloadSize) {
             NewDatagramLength = (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize;
         }
 
         Builder->Datagram =
-            QuicSendDataAllocBuffer(
+            CxPlatSendDataAllocBuffer(
                 Builder->SendContext,
                 NewDatagramLength);
         if (Builder->Datagram == NULL) {
@@ -275,9 +275,9 @@ QuicPacketBuilderPrepare(
         Builder->PacketType = NewPacketType;
         Builder->EncryptLevel = QuicPacketTypeToEncryptLevel(NewPacketType);
         Builder->Key = Connection->Crypto.TlsState.WriteKeys[NewPacketKeyType];
-        QUIC_DBG_ASSERT(Builder->Key != NULL);
-        QUIC_DBG_ASSERT(Builder->Key->PacketKey != NULL);
-        QUIC_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
+        CXPLAT_DBG_ASSERT(Builder->Key != NULL);
+        CXPLAT_DBG_ASSERT(Builder->Key->PacketKey != NULL);
+        CXPLAT_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
         if (NewPacketKeyType == QUIC_PACKET_KEY_1_RTT &&
             Connection->State.Disable1RttEncrytion) {
             Builder->EncryptionOverhead = 0;
@@ -322,7 +322,7 @@ QuicPacketBuilderPrepare(
                 Builder->Metadata->Flags.KeyPhase = PacketSpace->CurrentKeyPhase;
                 break;
             default:
-                QUIC_FRE_ASSERT(FALSE);
+                CXPLAT_FRE_ASSERT(FALSE);
                 Builder->HeaderLength = 0; // For build warning.
                 break;
             }
@@ -354,8 +354,8 @@ QuicPacketBuilderPrepare(
         Builder->DatagramLength += Builder->HeaderLength;
     }
 
-    QUIC_DBG_ASSERT(Builder->PacketType == NewPacketType);
-    QUIC_DBG_ASSERT(Builder->Key == Connection->Crypto.TlsState.WriteKeys[NewPacketKeyType]);
+    CXPLAT_DBG_ASSERT(Builder->PacketType == NewPacketType);
+    CXPLAT_DBG_ASSERT(Builder->Key == Connection->Crypto.TlsState.WriteKeys[NewPacketKeyType]);
 
     Result = TRUE;
 
@@ -375,7 +375,7 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
 {
     QUIC_CONNECTION* Connection = Builder->Connection;
 
-    QUIC_DBG_ASSERT(SendFlags != 0);
+    CXPLAT_DBG_ASSERT(SendFlags != 0);
     QuicSendValidate(&Builder->Connection->Send);
 
     for (QUIC_PACKET_KEY_TYPE KeyType = 0;
@@ -402,7 +402,7 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         }
 
         QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
-        QUIC_DBG_ASSERT(Packets != NULL);
+        CXPLAT_DBG_ASSERT(Packets != NULL);
 
         if (SendFlags & QUIC_CONN_SEND_FLAG_ACK &&
             Packets->AckTracker.AckElicitingPacketsToAcknowledge) {
@@ -452,7 +452,7 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         Builder->Connection,
         "Failed to get packet type for control frames, 0x%x",
         SendFlags);
-    QUIC_DBG_ASSERT(FALSE); // This shouldn't have been called then!
+    CXPLAT_DBG_ASSERT(FALSE); // This shouldn't have been called then!
 
     return FALSE;
 }
@@ -466,7 +466,7 @@ QuicPacketBuilderPrepareForControlFrames(
     _In_ uint32_t SendFlags
     )
 {
-    QUIC_DBG_ASSERT(!(SendFlags & QUIC_CONN_SEND_FLAG_PMTUD));
+    CXPLAT_DBG_ASSERT(!(SendFlags & QUIC_CONN_SEND_FLAG_PMTUD));
     QUIC_PACKET_KEY_TYPE PacketKeyType;
     return
         QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
@@ -515,7 +515,7 @@ QuicPacketBuilderPrepareForStreamFrames(
         PacketKeyType = QUIC_PACKET_KEY_0_RTT;
 
     } else {
-        QUIC_DBG_ASSERT(Builder->Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+        CXPLAT_DBG_ASSERT(Builder->Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
         PacketKeyType = QUIC_PACKET_KEY_1_RTT;
     }
 
@@ -528,23 +528,23 @@ QuicPacketBuilderFinalizeHeaderProtection(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    QUIC_DBG_ASSERT(Builder->Key != NULL);
+    CXPLAT_DBG_ASSERT(Builder->Key != NULL);
 
     QUIC_STATUS Status;
     if (QUIC_FAILED(
         Status =
-        QuicHpComputeMask(
+        CxPlatHpComputeMask(
             Builder->Key->HeaderKey,
             Builder->BatchCount,
             Builder->CipherBatch,
             Builder->HpMask))) {
-        QUIC_TEL_ASSERT(FALSE);
+        CXPLAT_TEL_ASSERT(FALSE);
         QuicConnFatalError(Builder->Connection, Status, "HP failure");
         return;
     }
 
     for (uint8_t i = 0; i < Builder->BatchCount; ++i) {
-        uint16_t Offset = i * QUIC_HP_SAMPLE_LENGTH;
+        uint16_t Offset = i * CXPLAT_HP_SAMPLE_LENGTH;
         uint8_t* Header = Builder->HeaderBatch[i];
         Header[0] ^= (Builder->HpMask[Offset] & 0x1f); // Bottom 5 bits for SH
         Header += 1 + Builder->Path->DestCid->CID.Length;
@@ -585,7 +585,7 @@ QuicPacketBuilderFinalize(
             Builder->DatagramLength -= Builder->HeaderLength;
 
             if (Builder->DatagramLength == 0) {
-                QuicSendDataFreeBuffer(Builder->SendContext, Builder->Datagram);
+                CxPlatSendDataFreeBuffer(Builder->SendContext, Builder->Datagram);
                 Builder->Datagram = NULL;
             }
         }
@@ -603,12 +603,12 @@ QuicPacketBuilderFinalize(
     _Analysis_assume_(Builder->DatagramLength >= Builder->PacketStart + Builder->HeaderLength);
     _Analysis_assume_(Builder->DatagramLength >= Builder->PacketStart + Builder->PayloadLengthOffset);
 
-    QUIC_DBG_ASSERT(Builder->Datagram->Length >= Builder->MinimumDatagramLength);
-    QUIC_DBG_ASSERT(Builder->Datagram->Length >= (uint32_t)(Builder->DatagramLength + Builder->EncryptionOverhead));
-    QUIC_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
-    QUIC_DBG_ASSERT(Builder->Key != NULL);
-    QUIC_DBG_ASSERT(Builder->Key->PacketKey != NULL);
-    QUIC_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
+    CXPLAT_DBG_ASSERT(Builder->Datagram->Length >= Builder->MinimumDatagramLength);
+    CXPLAT_DBG_ASSERT(Builder->Datagram->Length >= (uint32_t)(Builder->DatagramLength + Builder->EncryptionOverhead));
+    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
+    CXPLAT_DBG_ASSERT(Builder->Key != NULL);
+    CXPLAT_DBG_ASSERT(Builder->Key->PacketKey != NULL);
+    CXPLAT_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
 
     uint8_t* Header =
         Builder->Datagram->Buffer + Builder->PacketStart;
@@ -623,7 +623,7 @@ QuicPacketBuilderFinalize(
 
         FinalQuicPacket = TRUE;
 
-        if (!FlushBatchedDatagrams && QuicDataPathIsPaddingPreferred(MsQuicLib.Datapath)) {
+        if (!FlushBatchedDatagrams && CxPlatDataPathIsPaddingPreferred(MsQuicLib.Datapath)) {
             //
             // When buffering multiple datagrams in a single contiguous buffer
             // (at the datapath layer), all but the last datagram needs to be
@@ -647,7 +647,7 @@ QuicPacketBuilderFinalize(
     }
 
     if (PaddingLength != 0) {
-        QuicZeroMemory(
+        CxPlatZeroMemory(
             Builder->Datagram->Buffer + Builder->DatagramLength,
             PaddingLength);
         PayloadLength += PaddingLength;
@@ -702,13 +702,13 @@ QuicPacketBuilderFinalize(
 
         uint8_t* Payload = Header + Builder->HeaderLength;
 
-        uint8_t Iv[QUIC_MAX_IV_LENGTH];
+        uint8_t Iv[CXPLAT_MAX_IV_LENGTH];
         QuicCryptoCombineIvAndPacketNumber(Builder->Key->Iv, (uint8_t*) &Builder->Metadata->PacketNumber, Iv);
 
         QUIC_STATUS Status;
         if (QUIC_FAILED(
             Status =
-            QuicEncrypt(
+            CxPlatEncrypt(
                 Builder->Key->PacketKey,
                 Iv,
                 Builder->HeaderLength,
@@ -724,16 +724,16 @@ QuicPacketBuilderFinalize(
             uint8_t* PnStart = Payload - Builder->PacketNumberLength;
 
             if (Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE) {
-                QUIC_DBG_ASSERT(Builder->BatchCount < QUIC_MAX_CRYPTO_BATCH_COUNT);
+                CXPLAT_DBG_ASSERT(Builder->BatchCount < QUIC_MAX_CRYPTO_BATCH_COUNT);
 
                 //
                 // Batch the header protection for short header packets.
                 //
 
-                QuicCopyMemory(
-                    Builder->CipherBatch + Builder->BatchCount * QUIC_HP_SAMPLE_LENGTH,
+                CxPlatCopyMemory(
+                    Builder->CipherBatch + Builder->BatchCount * CXPLAT_HP_SAMPLE_LENGTH,
                     PnStart + 4,
-                    QUIC_HP_SAMPLE_LENGTH);
+                    CXPLAT_HP_SAMPLE_LENGTH);
                 Builder->HeaderBatch[Builder->BatchCount] = Header;
 
                 if (++Builder->BatchCount == QUIC_MAX_CRYPTO_BATCH_COUNT) {
@@ -741,7 +741,7 @@ QuicPacketBuilderFinalize(
                 }
 
             } else {
-                QUIC_DBG_ASSERT(Builder->BatchCount == 0);
+                CXPLAT_DBG_ASSERT(Builder->BatchCount == 0);
 
                 //
                 // Individually do header protection for long header packets as
@@ -750,12 +750,12 @@ QuicPacketBuilderFinalize(
 
                 if (QUIC_FAILED(
                     Status =
-                    QuicHpComputeMask(
+                    CxPlatHpComputeMask(
                         Builder->Key->HeaderKey,
                         1,
                         PnStart + 4,
                         Builder->HpMask))) {
-                    QUIC_TEL_ASSERT(FALSE);
+                    CXPLAT_TEL_ASSERT(FALSE);
                     QuicConnFatalError(Connection, Status, "HP failure");
                     goto Exit;
                 }
@@ -778,7 +778,7 @@ QuicPacketBuilderFinalize(
         // key phase, and update the keys. Only for 1-RTT keys.
         //
         if (Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE &&
-            PacketSpace->CurrentKeyPhaseBytesSent + QUIC_MAX_MTU >=
+            PacketSpace->CurrentKeyPhaseBytesSent + CXPLAT_MAX_MTU >=
                 Connection->Settings.MaxBytesPerKey &&
             !PacketSpace->AwaitingKeyPhaseConfirmation &&
             Connection->State.HandshakeConfirmed) {
@@ -801,9 +801,9 @@ QuicPacketBuilderFinalize(
             // Update the packet key in use by the send builder.
             //
             Builder->Key = Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT];
-            QUIC_DBG_ASSERT(Builder->Key != NULL);
-            QUIC_DBG_ASSERT(Builder->Key->PacketKey != NULL);
-            QUIC_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
+            CXPLAT_DBG_ASSERT(Builder->Key != NULL);
+            CXPLAT_DBG_ASSERT(Builder->Key->PacketKey != NULL);
+            CXPLAT_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
         }
     }
 
@@ -811,7 +811,7 @@ QuicPacketBuilderFinalize(
     // Track the sent packet.
     //
 
-    Builder->Metadata->SentTime = QuicTimeUs32();
+    Builder->Metadata->SentTime = CxPlatTimeUs32();
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
 
@@ -859,7 +859,7 @@ Exit:
             Builder->TotalDatagramsLength += Builder->DatagramLength;
         }
 
-        if (FlushBatchedDatagrams || QuicSendDataIsFull(Builder->SendContext)) {
+        if (FlushBatchedDatagrams || CxPlatSendDataIsFull(Builder->SendContext)) {
             if (Builder->BatchCount != 0) {
                 QuicPacketBuilderFinalizeHeaderProtection(Builder);
             }
@@ -867,7 +867,7 @@ Exit:
         }
 
         if (Builder->PacketType == QUIC_RETRY) {
-            QUIC_DBG_ASSERT(Builder->Metadata->PacketNumber == 0);
+            CXPLAT_DBG_ASSERT(Builder->Metadata->PacketNumber == 0);
             QuicConnCloseLocally(
                 Connection,
                 QUIC_CLOSE_SILENT,

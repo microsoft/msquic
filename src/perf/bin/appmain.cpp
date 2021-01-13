@@ -41,9 +41,9 @@ QuicHandleRpsClient(
     }
     uint32_t RunTime;
     uint32_t CachedCompletedRequests;
-    QuicCopyMemory(&RunTime, ExtraData, sizeof(RunTime));
+    CxPlatCopyMemory(&RunTime, ExtraData, sizeof(RunTime));
     ExtraData += sizeof(RunTime);
-    QuicCopyMemory(&CachedCompletedRequests, ExtraData, sizeof(CachedCompletedRequests));
+    CxPlatCopyMemory(&CachedCompletedRequests, ExtraData, sizeof(CachedCompletedRequests));
     ExtraData += sizeof(CachedCompletedRequests);
     uint32_t RestOfBufferLength = Length - sizeof(RunTime) - sizeof(CachedCompletedRequests);
     RestOfBufferLength &= 0xFFFFFFFC; // Round down to nearest multiple of 4
@@ -126,7 +126,7 @@ QuicUserMain(
     if (KeyboardWait) {
         printf("Press enter to exit\n");
         getchar();
-        QuicEventSet(StopEvent);
+        CxPlatEventSet(StopEvent);
     }
 
     Status = QuicMainStop(0);
@@ -190,7 +190,7 @@ QuicKernelMain(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    char* Data = static_cast<char*>(QUIC_ALLOC_NONPAGED(TotalLength, QUIC_POOL_PERF));
+    char* Data = static_cast<char*>(CXPLAT_ALLOC_NONPAGED(TotalLength, QUIC_POOL_PERF));
     if (!Data) {
         printf("Failed to allocate arguments to pass\n");
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -198,24 +198,24 @@ QuicKernelMain(
 
     char* DataCurrent = Data;
 
-    QuicCopyMemory(DataCurrent, &argc, sizeof(argc));
+    CxPlatCopyMemory(DataCurrent, &argc, sizeof(argc));
 
     DataCurrent += sizeof(argc);
 
     for (int i = 0; i < argc; ++i) {
         size_t ArgLen = strlen(argv[i]);
-        QuicCopyMemory(DataCurrent, argv[i], ArgLen);
+        CxPlatCopyMemory(DataCurrent, argv[i], ArgLen);
         DataCurrent += ArgLen;
         DataCurrent[0] = '\0';
         ++DataCurrent;
     }
-    QUIC_DBG_ASSERT(DataCurrent == (Data + TotalLength));
+    CXPLAT_DBG_ASSERT(DataCurrent == (Data + TotalLength));
 
     constexpr uint32_t OutBufferSize = 1024 * 1000;
-    char* OutBuffer = (char*)QUIC_ALLOC_NONPAGED(OutBufferSize, QUIC_POOL_PERF); // 1 MB
+    char* OutBuffer = (char*)CXPLAT_ALLOC_NONPAGED(OutBufferSize, QUIC_POOL_PERF); // 1 MB
     if (!OutBuffer) {
         printf("Failed to allocate space for output buffer\n");
-        QUIC_FREE(Data, QUIC_POOL_PERF);
+        CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -234,20 +234,20 @@ QuicKernelMain(
 
     if (!DriverService.Initialize(DriverName, DependentDriverNames)) {
         printf("Failed to initialize driver service\n");
-        QUIC_FREE(Data, QUIC_POOL_PERF);
+        CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
     if (!DriverService.Start()) {
         printf("Starting Driver Service Failed\n");
         DriverService.Uninitialize();
-        QUIC_FREE(Data, QUIC_POOL_PERF);
+        CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
 
     if (!DriverClient.Initialize((QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1), DriverName)) {
         printf("Intializing Driver Client Failed.\n");
         DriverService.Uninitialize();
-        QUIC_FREE(Data, QUIC_POOL_PERF);
+        CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -255,7 +255,7 @@ QuicKernelMain(
     bool RunSuccess = false;
     if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength, 30000)) {
         printf("Failed To Run\n");
-        QUIC_FREE(Data, QUIC_POOL_PERF);
+        CXPLAT_FREE(Data, QUIC_POOL_PERF);
 
         RunSuccess =
             DriverClient.Read(
@@ -270,8 +270,8 @@ QuicKernelMain(
         } else {
             printf("Failed to exit\n");
         }
-        QUIC_FREE(OutBuffer, QUIC_POOL_PERF);
-        DriverClient.Run(IOCTL_QUIC_FREE_PERF);
+        CXPLAT_FREE(OutBuffer, QUIC_POOL_PERF);
+        DriverClient.Run(IOCTL_CXPLAT_FREE_PERF);
         DriverClient.Uninitialize();
         DriverService.Uninitialize();
         return QUIC_STATUS_INVALID_STATE;
@@ -329,9 +329,9 @@ QuicKernelMain(
         printf("Run end failed\n");
     }
 
-    QUIC_FREE(Data, QUIC_POOL_PERF);
-    QUIC_FREE(OutBuffer, QUIC_POOL_PERF);
-    DriverClient.Run(IOCTL_QUIC_FREE_PERF);
+    CXPLAT_FREE(Data, QUIC_POOL_PERF);
+    CXPLAT_FREE(OutBuffer, QUIC_POOL_PERF);
+    DriverClient.Run(IOCTL_CXPLAT_FREE_PERF);
 
     DriverClient.Uninitialize();
     DriverService.Uninitialize();
@@ -361,8 +361,8 @@ main(
     }
     int ArgCount = 0;
 
-    QuicPlatformSystemLoad();
-    if (QUIC_FAILED(QuicPlatformInitialize())) {
+    CxPlatSystemLoad();
+    if (QUIC_FAILED(CxPlatInitialize())) {
         printf("Platform failed to initialize\n");
         goto Exit;
     }
@@ -390,10 +390,10 @@ main(
     }
 
     SelfSignedCredConfig =
-        QuicPlatGetSelfSignedCert(
+        CxPlatPlatGetSelfSignedCert(
             TestingKernelMode ?
-                QUIC_SELF_SIGN_CERT_MACHINE :
-                QUIC_SELF_SIGN_CERT_USER);
+                CXPLAT_SELF_SIGN_CERT_MACHINE :
+                CXPLAT_SELF_SIGN_CERT_USER);
     if (!SelfSignedCredConfig) {
         printf("Creating self signed certificate failed\n");
         RetVal = QUIC_STATUS_INTERNAL_ERROR;
@@ -406,7 +406,7 @@ main(
         RetVal = QuicKernelMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, PrivateTestLibrary, FileName);
 #else
         UNREFERENCED_PARAMETER(PrivateTestLibrary);
-        QUIC_FRE_ASSERT(FALSE);
+        CXPLAT_FRE_ASSERT(FALSE);
 #endif
     } else {
         RetVal = QuicUserMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, FileName);
@@ -414,11 +414,11 @@ main(
 
 Exit:
     if (SelfSignedCredConfig) {
-        QuicPlatFreeSelfSignedCert(SelfSignedCredConfig);
+        CxPlatPlatFreeSelfSignedCert(SelfSignedCredConfig);
     }
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return RetVal;
 }

@@ -45,7 +45,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsLoad(
     _Inout_ QUIC_SETTINGS* Settings,
-    _In_ QUIC_STORAGE* Storage
+    _In_ CXPLAT_STORAGE* Storage
     );
 
 //

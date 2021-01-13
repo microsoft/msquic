@@ -27,7 +27,7 @@ public:
 
     ~PerfServer() override {
         if (DataBuffer) {
-            QUIC_FREE(DataBuffer, QUIC_POOL_PERF);
+            CXPLAT_FREE(DataBuffer, QUIC_POOL_PERF);
         }
     }
 
@@ -39,7 +39,7 @@ public:
 
     QUIC_STATUS
     Start(
-        _In_ QUIC_EVENT* StopEvent
+        _In_ CXPLAT_EVENT* StopEvent
         ) override;
 
     QUIC_STATUS
@@ -118,7 +118,7 @@ private:
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)};
     MsQuicListener Listener {Registration};
     uint16_t Port {PERF_DEFAULT_PORT};
-    QUIC_EVENT* StopEvent {nullptr};
+    CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
 };

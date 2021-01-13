@@ -20,12 +20,12 @@ Abstract:
 class ThroughputClient : public PerfBase {
 public:
     ThroughputClient() {
-        QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
+        CxPlatZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
     }
 
     ~ThroughputClient() override {
         if (DataBuffer) {
-            QUIC_FREE(DataBuffer, QUIC_POOL_PERF);
+            CXPLAT_FREE(DataBuffer, QUIC_POOL_PERF);
         }
     }
 
@@ -37,7 +37,7 @@ public:
 
     QUIC_STATUS
     Start(
-        _In_ QUIC_EVENT* StopEvent
+        _In_ CXPLAT_EVENT* StopEvent
         ) override;
 
     QUIC_STATUS
@@ -116,7 +116,7 @@ private:
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
     QuicPoolAllocator<ConnectionData> ConnectionDataAllocator;
     UniquePtr<char[]> TargetData;
-    QUIC_EVENT* StopEvent {nullptr};
+    CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
     uint8_t UseSendBuffer {TRUE};
     uint8_t UsePacing {TRUE};

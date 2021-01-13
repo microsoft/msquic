@@ -85,27 +85,27 @@ QuicDrillConnectionCallbackHandler(
 }
 
 struct DrillSender {
-    QUIC_DATAPATH* Datapath;
-    QUIC_SOCKET* Binding;
+    CXPLAT_DATAPATH* Datapath;
+    CXPLAT_SOCKET* Binding;
     QUIC_ADDR ServerAddress;
 
     _IRQL_requires_max_(DISPATCH_LEVEL)
-    _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
+    _Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
     static void
     DrillUdpRecvCallback(
-        _In_ QUIC_SOCKET* /* Binding */,
+        _In_ CXPLAT_SOCKET* /* Binding */,
         _In_ void* /* Context */,
-        _In_ QUIC_RECV_DATA* RecvBufferChain
+        _In_ CXPLAT_RECV_DATA* RecvBufferChain
         )
     {
-        QuicRecvDataReturn(RecvBufferChain);
+        CxPlatRecvDataReturn(RecvBufferChain);
     }
 
     _IRQL_requires_max_(DISPATCH_LEVEL)
-    _Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
+    _Function_class_(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)
     static void
     DrillUdpUnreachCallback(
-        _In_ QUIC_SOCKET* /* Binding */,
+        _In_ CXPLAT_SOCKET* /* Binding */,
         _In_ void* /* Context */,
         _In_ const QUIC_ADDR* /* RemoteAddress */
         )
@@ -116,11 +116,11 @@ struct DrillSender {
 
     ~DrillSender() {
         if (Binding != nullptr) {
-            QuicSocketDelete(Binding);
+            CxPlatSocketDelete(Binding);
         }
 
         if (Datapath != nullptr) {
-            QuicDataPathUninitialize(Datapath);
+            CxPlatDataPathUninitialize(Datapath);
         }
     }
 
@@ -131,12 +131,12 @@ struct DrillSender {
         _In_ uint16_t NetworkPort
         )
     {
-        const QUIC_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
             DrillUdpRecvCallback,
             DrillUdpUnreachCallback,
         };
         QUIC_STATUS Status =
-            QuicDataPathInitialize(
+            CxPlatDataPathInitialize(
                 0,
                 &DatapathCallbacks,
                 NULL,
@@ -149,7 +149,7 @@ struct DrillSender {
         QuicAddrSetFamily(&ServerAddress, Family);
 
         Status =
-            QuicDataPathResolveAddress(
+            CxPlatDataPathResolveAddress(
                 Datapath,
                 HostName,
                 &ServerAddress);
@@ -165,7 +165,7 @@ struct DrillSender {
         }
 
         Status =
-            QuicSocketCreateUdp(
+            CxPlatSocketCreateUdp(
                 Datapath,
                 nullptr,
                 &ServerAddress,
@@ -183,18 +183,18 @@ struct DrillSender {
         )
     {
         QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-        QUIC_FRE_ASSERT(PacketBuffer->size() <= UINT16_MAX);
+        CXPLAT_FRE_ASSERT(PacketBuffer->size() <= UINT16_MAX);
         const uint16_t DatagramLength = (uint16_t) PacketBuffer->size();
 
         QUIC_ADDR LocalAddress;
-        QuicSocketGetLocalAddress(Binding, &LocalAddress);
+        CxPlatSocketGetLocalAddress(Binding, &LocalAddress);
 
-        QUIC_SEND_DATA* SendContext =
-            QuicSendDataAlloc(
-                Binding, QUIC_ECN_NON_ECT, DatagramLength);
+        CXPLAT_SEND_DATA* SendContext =
+            CxPlatSendDataAlloc(
+                Binding, CXPLAT_ECN_NON_ECT, DatagramLength);
 
         QUIC_BUFFER* SendBuffer =
-            QuicSendDataAllocBuffer(SendContext, DatagramLength);
+            CxPlatSendDataAllocBuffer(SendContext, DatagramLength);
 
         if (SendBuffer == nullptr) {
             TEST_FAILURE("Buffer null");
@@ -208,7 +208,7 @@ struct DrillSender {
         memcpy(SendBuffer->Buffer, PacketBuffer->data(), DatagramLength);
 
         Status =
-            QuicSocketSend(
+            CxPlatSocketSend(
                 Binding,
                 &LocalAddress,
                 &ServerAddress,
@@ -305,7 +305,7 @@ QuicDrillInitialPacketFailureTest(
         //
         // Generously wait for server to process packet.
         //
-        QuicSleep(100);
+        CxPlatSleep(100);
 
         Status = Listener.GetStatistics(Stats);
         if (QUIC_FAILED(Status)) {

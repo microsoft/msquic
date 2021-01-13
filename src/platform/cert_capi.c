@@ -22,10 +22,10 @@ Environment:
 #include <wincrypt.h>
 #include <msquic.h>
 
-typedef union QUIC_SIGN_PADDING {
+typedef union CXPLAT_SIGN_PADDING {
     BCRYPT_PKCS1_PADDING_INFO Pkcs1;
     BCRYPT_PSS_PADDING_INFO Pss;
-} QUIC_SIGN_PADDING;
+} CXPLAT_SIGN_PADDING;
 
 //
 // Map the TLS signature to the OID value expected in a certificate.
@@ -179,7 +179,7 @@ HashHandleFromTLS(
     }
 }
 
-#define QUIC_CERTIFICATE_MAX_HASH_SIZE 64
+#define CXPLAT_CERTIFICATE_MAX_HASH_SIZE 64
 
 static
 _Success_(return != 0)
@@ -256,7 +256,7 @@ PaddingTypeFromTLS(
 static
 void
 PopulatePaddingParams(
-    _Inout_ QUIC_SIGN_PADDING* Padding,
+    _Inout_ CXPLAT_SIGN_PADDING* Padding,
     _In_ DWORD PaddingType,
     _In_z_ PCWSTR HashAlg,
     _In_ DWORD SaltSize
@@ -268,12 +268,12 @@ PopulatePaddingParams(
         Padding->Pss.pszAlgId = HashAlg;
         Padding->Pss.cbSalt = SaltSize;
     } else {
-        QUIC_DBG_ASSERT(FALSE);
+        CXPLAT_DBG_ASSERT(FALSE);
     }
 }
 
 BOOLEAN
-QuicCertMatchHash(
+CxPlatCertMatchHash(
     _In_ PCCERT_CONTEXT CertContext,
     _In_reads_(20) const UINT8 InputCertHash[20]
     )
@@ -304,7 +304,7 @@ QuicCertMatchHash(
 }
 
 BOOLEAN
-QuicCertMatchPrincipal(
+CxPlatCertMatchPrincipal(
     _In_ PCCERT_CONTEXT CertContext,
     _In_z_ const char* Principal
     )
@@ -325,7 +325,7 @@ QuicCertMatchPrincipal(
         goto Exit;
     }
 
-    CertificateNames = QUIC_ALLOC_PAGED(Length, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    CertificateNames = CXPLAT_ALLOC_PAGED(Length, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (CertificateNames == NULL) {
         goto Exit;
     }
@@ -354,14 +354,14 @@ QuicCertMatchPrincipal(
 Exit:
 
     if (CertificateNames != NULL) {
-        QUIC_FREE(CertificateNames, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(CertificateNames, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return MatchFound;
 }
 
 PCCERT_CONTEXT
-QuicCertStoreFind(
+CxPlatCertStoreFind(
     _In_ HCERTSTORE CertStore,
     _In_reads_opt_(20) const UINT8 CertHash[20],
     _In_opt_z_ const char* Principal
@@ -384,11 +384,11 @@ QuicCertStoreFind(
                 PrevCertCtx)) != NULL;
         PrevCertCtx = CertCtx) {
 
-        if (CertHash != NULL && !QuicCertMatchHash(CertCtx, CertHash)) {
+        if (CertHash != NULL && !CxPlatCertMatchHash(CertCtx, CertHash)) {
             continue;
         }
 
-        if (Principal != NULL && !QuicCertMatchPrincipal(CertCtx, Principal)) {
+        if (Principal != NULL && !CxPlatCertMatchPrincipal(CertCtx, Principal)) {
             continue;
         }
 
@@ -399,7 +399,7 @@ QuicCertStoreFind(
 }
 
 QUIC_STATUS
-QuicCertLookupHash(
+CxPlatCertLookupHash(
     _In_opt_ const QUIC_CERTIFICATE_HASH* CertHash,
     _In_opt_z_ const char* Principal,
     _Out_ QUIC_CERTIFICATE** NewCertificate
@@ -408,7 +408,7 @@ QuicCertLookupHash(
     QUIC_STATUS Status;
     HCERTSTORE CertStore;
 
-    QUIC_DBG_ASSERT(CertHash != NULL || Principal != NULL);
+    CXPLAT_DBG_ASSERT(CertHash != NULL || Principal != NULL);
 
     CertStore =
         CertOpenStore(
@@ -423,7 +423,7 @@ QuicCertLookupHash(
     }
 
     PCCERT_CONTEXT CertCtx =
-        QuicCertStoreFind(
+        CxPlatCertStoreFind(
             CertStore,
             CertHash == NULL ? NULL : CertHash->ShaHash,
             Principal);
@@ -445,7 +445,7 @@ Exit:
 }
 
 QUIC_STATUS
-QuicCertLookupHashStore(
+CxPlatCertLookupHashStore(
     _In_ const QUIC_CERTIFICATE_HASH_STORE* CertHashStore,
     _In_opt_z_ const char* Principal,
     _Out_ QUIC_CERTIFICATE** NewCertificate
@@ -478,7 +478,7 @@ QuicCertLookupHashStore(
     }
 
     PCCERT_CONTEXT CertCtx =
-        QuicCertStoreFind(
+        CxPlatCertStoreFind(
             CertStore,
             CertHashStore->ShaHash,
             Principal);
@@ -500,7 +500,7 @@ Exit:
 }
 
 QUIC_STATUS
-QuicCertCreate(
+CxPlatCertCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _Out_ QUIC_CERTIFICATE** NewCertificate
     )
@@ -512,7 +512,7 @@ QuicCertCreate(
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
             Status =
-                QuicCertLookupHash(
+                CxPlatCertLookupHash(
                     CredConfig->CertificateHash,
                     CredConfig->Principal,
                     NewCertificate);
@@ -523,7 +523,7 @@ QuicCertCreate(
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
             Status =
-                QuicCertLookupHashStore(
+                CxPlatCertLookupHashStore(
                     CredConfig->CertificateHashStore,
                     CredConfig->Principal,
                     NewCertificate);
@@ -545,7 +545,7 @@ QuicCertCreate(
 }
 
 void
-QuicCertFree(
+CxPlatCertFree(
     _In_ QUIC_CERTIFICATE* Certificate
     )
 {
@@ -554,7 +554,7 @@ QuicCertFree(
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertSelect(
+CxPlatCertSelect(
     _In_opt_ PCCERT_CONTEXT CertCtx,
     _In_reads_(SignatureAlgorithmsLength)
         const UINT16 *SignatureAlgorithms,
@@ -590,7 +590,7 @@ QuicCertSelect(
 
 _Success_(return != NULL)
 QUIC_CERTIFICATE*
-QuicCertParseChain(
+CxPlatCertParseChain(
     _In_ size_t ChainBufferLength,
     _In_reads_(ChainBufferLength) const BYTE *ChainBuffer
     )
@@ -682,7 +682,7 @@ Exit:
 
 _Success_(return != 0)
 size_t
-QuicCertFormat(
+CxPlatCertFormat(
     _In_opt_ QUIC_CERTIFICATE* Certificate,
     _In_ size_t BufferLength,
     _Out_writes_to_(BufferLength, return)
@@ -709,7 +709,7 @@ QuicCertFormat(
         //
         // Just encode list of zero cert chains.
         //
-        QuicZeroMemory(Offset, SIZEOF_CERT_CHAIN_LIST_LENGTH);
+        CxPlatZeroMemory(Offset, SIZEOF_CERT_CHAIN_LIST_LENGTH);
         Offset += SIZEOF_CERT_CHAIN_LIST_LENGTH;
         goto Exit;
     }
@@ -776,7 +776,7 @@ Exit:
 
 _Success_(return == NO_ERROR)
 DWORD
-QuicCertVerifyCertChainPolicy(
+CxPlatCertVerifyCertChainPolicy(
     _In_ PCCERT_CHAIN_CONTEXT ChainContext,
     _In_opt_ PWSTR ServerName,
     _In_ ULONG IgnoreFlags
@@ -839,7 +839,7 @@ Exit:
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertValidateChain(
+CxPlatCertValidateChain(
     _In_ QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ PCSTR Host,
     _In_ uint32_t IgnoreFlags
@@ -893,7 +893,7 @@ QuicCertValidateChain(
             goto Exit;
         }
 
-        ServerName = (LPWSTR)QUIC_ALLOC_PAGED(ServerNameLength * sizeof(WCHAR), QUIC_POOL_PLATFORM_TMP_ALLOC);
+        ServerName = (LPWSTR)CXPLAT_ALLOC_PAGED(ServerNameLength * sizeof(WCHAR), QUIC_POOL_PLATFORM_TMP_ALLOC);
         if (ServerName == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -916,7 +916,7 @@ QuicCertValidateChain(
 
     Result =
         NO_ERROR ==
-        QuicCertVerifyCertChainPolicy(
+        CxPlatCertVerifyCertChainPolicy(
             ChainContext,
             ServerName,
             IgnoreFlags);
@@ -927,7 +927,7 @@ Exit:
         CertFreeCertificateChain(ChainContext);
     }
     if (ServerName != NULL) {
-        QUIC_FREE(ServerName, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_FREE(ServerName, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Result;
@@ -935,7 +935,7 @@ Exit:
 
 _Success_(return != NULL)
 void*
-QuicCertGetPrivateKey(
+CxPlatCertGetPrivateKey(
     _In_ QUIC_CERTIFICATE* Certificate
     )
 {
@@ -959,7 +959,7 @@ QuicCertGetPrivateKey(
         goto Exit;
     }
 
-    QUIC_DBG_ASSERT(FreeKey);
+    CXPLAT_DBG_ASSERT(FreeKey);
 
     if (KeySpec != CERT_NCRYPT_KEY_SPEC) {
         QuicTraceEvent(
@@ -978,7 +978,7 @@ Exit:
 }
 
 void
-QuicCertDeletePrivateKey(
+CxPlatCertDeletePrivateKey(
     _In_ void* PrivateKey
     )
 {
@@ -988,7 +988,7 @@ QuicCertDeletePrivateKey(
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertSign(
+CxPlatCertSign(
     _In_ void* PrivateKey,
     _In_ const UINT16 SignatureAlgorithm,
     _In_reads_(CertListToSignLength)
@@ -1027,7 +1027,7 @@ QuicCertSign(
     }
 
     DWORD HashSize = HashSizeFromTLS(SignatureAlgorithm);
-    if (HashSize == 0 || HashSize > QUIC_CERTIFICATE_MAX_HASH_SIZE) {
+    if (HashSize == 0 || HashSize > CXPLAT_CERTIFICATE_MAX_HASH_SIZE) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1047,8 +1047,8 @@ QuicCertSign(
     }
 
     BOOLEAN Result = FALSE;
-    BYTE HashBuf[QUIC_CERTIFICATE_MAX_HASH_SIZE] = { 0 };
-    QUIC_SIGN_PADDING Padding = { 0 };
+    BYTE HashBuf[CXPLAT_CERTIFICATE_MAX_HASH_SIZE] = { 0 };
+    CXPLAT_SIGN_PADDING Padding = { 0 };
 
     NTSTATUS Status =
         BCryptHash(
@@ -1113,7 +1113,7 @@ Exit:
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertVerify(
+CxPlatCertVerify(
     _In_ QUIC_CERTIFICATE* Certificate,
     _In_ const UINT16 SignatureAlgorithm,
     _In_reads_(CertListToVerifyLength)
@@ -1170,7 +1170,7 @@ QuicCertVerify(
     }
 
     DWORD HashSize = HashSizeFromTLS(SignatureAlgorithm);
-    if (HashSize == 0 || HashSize > QUIC_CERTIFICATE_MAX_HASH_SIZE) {
+    if (HashSize == 0 || HashSize > CXPLAT_CERTIFICATE_MAX_HASH_SIZE) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1180,9 +1180,9 @@ QuicCertVerify(
     }
 
     BOOLEAN Result = FALSE;
-    BYTE HashBuf[QUIC_CERTIFICATE_MAX_HASH_SIZE] = { 0 };
+    BYTE HashBuf[CXPLAT_CERTIFICATE_MAX_HASH_SIZE] = { 0 };
     BCRYPT_KEY_HANDLE PublicKey = (ULONG_PTR)NULL;
-    QUIC_SIGN_PADDING Padding = { 0 };
+    CXPLAT_SIGN_PADDING Padding = { 0 };
 
     NTSTATUS Status =
         BCryptHash(

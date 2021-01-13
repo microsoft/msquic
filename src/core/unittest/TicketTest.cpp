@@ -48,8 +48,8 @@ TEST(ResumptionTicketTest, ClientEncDec)
     uint32_t DecodedServerTicketLength = 0;
     uint32_t DecodedQuicVersion = 0;
 
-    QuicZeroMemory(&DecodedTP, sizeof(DecodedTP));
-    QuicZeroMemory(&ClientTP, sizeof(ClientTP));
+    CxPlatZeroMemory(&DecodedTP, sizeof(DecodedTP));
+    CxPlatZeroMemory(&ClientTP, sizeof(ClientTP));
     ClientTP.Flags =
         QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -89,8 +89,8 @@ TEST(ResumptionTicketTest, ClientEncDec)
     ASSERT_TRUE(memcmp(DecodedServerTicket, ServerTicket, sizeof(ServerTicket)) == 0);
     CompareTransportParameters(&ClientTP, &DecodedTP);
 
-    QUIC_FREE(EncodedClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
-    QUIC_FREE(DecodedServerTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+    CXPLAT_FREE(EncodedClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
+    CXPLAT_FREE(DecodedServerTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
 }
 
 TEST(ResumptionTicketTest, ServerEncDec)
@@ -106,8 +106,8 @@ TEST(ResumptionTicketTest, ServerEncDec)
     const uint8_t* DecodedAppData = nullptr;
     uint32_t DecodedAppDataLength = 0;
 
-    QuicZeroMemory(&ServerTP, sizeof(ServerTP));
-    QuicZeroMemory(&DecodedTP, sizeof(DecodedTP));
+    CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
+    CxPlatZeroMemory(&DecodedTP, sizeof(DecodedTP));
     ServerTP.Flags =
         QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -149,7 +149,7 @@ TEST(ResumptionTicketTest, ServerEncDec)
     ASSERT_TRUE(memcmp(AppData, DecodedAppData, sizeof(AppData)) == 0);
     CompareTransportParameters(&ServerTP, &DecodedTP);
 
-    QUIC_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
+    CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
 
 TEST(ResumptionTicketTest, ServerEncDecNoAppData)
@@ -163,8 +163,8 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
     const uint8_t* DecodedAppData = nullptr;
     uint32_t DecodedAppDataLength = 0;
 
-    QuicZeroMemory(&ServerTP, sizeof(ServerTP));
-    QuicZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
+    CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
+    CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
     ServerTP.Flags =
         QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -205,7 +205,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
     ASSERT_EQ(DecodedAppData, nullptr);
     CompareTransportParameters(&ServerTP, &DecodedServerTP);
 
-    QUIC_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
+    CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
 
 TEST(ResumptionTicketTest, ClientServerEndToEnd)
@@ -217,8 +217,8 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
     uint32_t EncodedServerTicketLength = 0, EncodedClientTicketLength = 0, DecodedServerTicketLength = 0, DecodedAppDataLength = 0, DecodedQuicVersion = 0;
     const uint8_t* EncodedClientTicket = nullptr, *DecodedAppData = nullptr;
 
-    QuicZeroMemory(&ServerTP, sizeof(ServerTP));
-    QuicZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
+    CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
+    CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
     ServerTP.Flags =
         QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -229,8 +229,8 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
         QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
     ServerTP.ActiveConnectionIdLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN;
 
-    QuicZeroMemory(&DecodedClientTP, sizeof(DecodedClientTP));
-    QuicZeroMemory(&ClientTP, sizeof(ClientTP));
+    CxPlatZeroMemory(&DecodedClientTP, sizeof(DecodedClientTP));
+    CxPlatZeroMemory(&ClientTP, sizeof(ClientTP));
     ClientTP.Flags =
         QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -301,7 +301,7 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
     ASSERT_TRUE(memcmp(AppData, DecodedAppData, sizeof(AppData)) == 0);
     CompareTransportParameters(&ServerTP, &DecodedServerTP);
 
-    QUIC_FREE(EncodedClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
-    QUIC_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
-    QUIC_FREE(DecodedServerTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+    CXPLAT_FREE(EncodedClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
+    CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
+    CXPLAT_FREE(DecodedServerTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
 }
