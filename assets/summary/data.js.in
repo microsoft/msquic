@@ -45,3 +45,5 @@ var commitDatePairs = COMMIT_DATE_PAIR
 
 var newestDate = NEWEST_DATE
 var oldestDate = OLDEST_DATE
+
+var maxIndex = MAX_INDEX

@@ -24,6 +24,13 @@ function tooltipSort(a, b, data) {
     return data.datasets[a.datasetIndex].sortOrder - data.datasets[b.datasetIndex].sortOrder;
 }
 
+function titlePlacement(tooltipItem, data) {
+    var dataset = data.datasets[tooltipItem[0].datasetIndex]
+    var datapoint = dataset.data[tooltipItem[0].index]
+    // TODO Fix this, this is very hacky
+    return Chart._adapters._date.prototype.format(datapoint.t, Chart._adapters._date.prototype.formats().datetime)
+}
+
 function beforeBodyPlacement(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem[0].datasetIndex]
     var datapoint = dataset.data[tooltipItem[0].index]
@@ -53,6 +60,7 @@ function filterDataset(dataset, afterDate) {
 
 var tooltipsObject = {
     callbacks : {
+        title: titlePlacement,
         beforeBody: beforeBodyPlacement,
         label: labelChange
     },
@@ -62,6 +70,7 @@ var tooltipsObject = {
 
 var tooltipsSummaryObject = {
     callbacks : {
+        title: titlePlacement,
         beforeBody: beforeBodyPlacement
     },
     mode: "nearest",
@@ -69,10 +78,16 @@ var tooltipsSummaryObject = {
 }
 
 var timeAxis = {
-    type: 'time',
+    type: 'linear',
     offset: true,
-    time: { unit: 'day' },
-    scaleLabel: createScaleLabel('Commit Date')
+    ticks: {
+        maxTicksLimit: maxIndex + 10,
+        stepSize: 1,
+        callback: function(value) {
+            return Math.floor(maxIndex - 1 - value);
+        }
+    },
+    scaleLabel: createScaleLabel('Commits Back From Current')
 };
 
 var pluginObject = {
@@ -80,14 +95,14 @@ var pluginObject = {
         pan: {
             enabled: true,
             mode: 'x',
-            rangeMin: { x: oldestDate },
-            rangeMax: { x: newestDate }
+            rangeMin: { x: 0 },
+            rangeMax: { x: maxIndex - 1 }
         },
         zoom: {
             enabled: true,
             mode: 'x',
-            rangeMin: { x: oldestDate },
-            rangeMax: { x: newestDate }
+            rangeMin: { x: 0 },
+            rangeMax: { x: maxIndex - 1 }
         }
     }
 }

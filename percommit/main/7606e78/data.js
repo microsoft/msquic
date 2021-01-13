@@ -46,4 +46,6 @@ var commitDatePairs = {'1610476410000': '7606e78', '1610409075000': '6bb31b6', '
 var newestDate = new Date(1610476410000)
 var oldestDate = new Date(1610389581000)
 
+var maxIndex = 5
+
 var pageCommitHash = "7606e78"

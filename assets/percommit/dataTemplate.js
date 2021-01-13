@@ -54,6 +54,10 @@ function chartOnCick(a, activeElements) {
     window.open("https://github.com/microsoft/msquic/commit/" + commitHash)
 }
 
+function filterDataset(dataset, afterDate) {
+    return dataset.filter(p => p.t > afterDate);
+}
+
 var tooltipsObject = {
     callbacks : {
         title: titlePlacement,
@@ -77,14 +81,31 @@ var timeAxis = {
     type: 'linear',
     offset: true,
     ticks: {
-        maxTicksLimit: 5,
+        maxTicksLimit: maxIndex + 10,
         stepSize: 1,
         callback: function(value) {
-            return 4 - value;
+            return Math.floor(maxIndex - 1 - value);
         }
     },
     scaleLabel: createScaleLabel('Commits Back From Current')
 };
+
+var pluginObject = {
+    zoom: {
+        pan: {
+            enabled: true,
+            mode: 'x',
+            rangeMin: { x: 0 },
+            rangeMax: { x: maxIndex - 1 }
+        },
+        zoom: {
+            enabled: true,
+            mode: 'x',
+            rangeMin: { x: 0 },
+            rangeMax: { x: maxIndex - 1 }
+        }
+    }
+}
 
 function createScaleLabel(name) {
     return {
@@ -160,7 +181,8 @@ function createChartOptions(name) {
             yAxes: [{
                 scaleLabel: createScaleLabel(name)
             }]
-        }
+        },
+        plugins: pluginObject
     };
 }
 
@@ -212,7 +234,7 @@ function createAverageSummaryDataset(platform, color, dataset) {
         borderWidth: dataLineWidth,
         pointRadius: 0,
         tension: 0,
-        data: dataset,
+        data: filterDataset(dataset, new Date(Date.now() - 12096e5)), // Last 2 weeks
         fill: false,
         sortOrder: 1,
         hidden: false,

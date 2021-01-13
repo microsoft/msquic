@@ -556,6 +556,7 @@ if ($FirstAndLast.Count -eq 1) {
 
 $DataFileContents = $DataFileContents.Replace("NEWEST_DATE", "new Date($NewestDateString)")
 $DataFileContents = $DataFileContents.Replace("OLDEST_DATE", "new Date($OldestDateString)")
+$DataFileContents = $DataFileContents.Replace("MAX_INDEX", $CommitHistory.Count)
 
 $DataFileContents = $DataFileContents.Replace("COMMIT_DATE_PAIR", (Get-CommitTimePairJs -CommitModel $CommitHistory))
 
@@ -605,6 +606,7 @@ if ($FirstAndLast.Count -eq 1) {
 
 $DataFileContents = $DataFileContents.Replace("NEWEST_DATE", "new Date($NewestDateString)")
 $DataFileContents = $DataFileContents.Replace("OLDEST_DATE", "new Date($OldestDateString)")
+$DataFileContents = $DataFileContents.Replace("MAX_INDEX", $CommitHistory.Count)
 $DataFileContents = $DataFileContents.Replace("PAGE_COMMIT_HASH", "`"$CurrentCommitHash`"")
 
 $DataFileContents = $DataFileContents.Replace("COMMIT_DATE_PAIR", (Get-CommitTimePairJs -CommitModel $CommitHistory))
