@@ -15,29 +15,79 @@ Abstract:
 #include "Tcp.cpp.clog.h"
 #endif
 
+// ############################# HELPERS #############################
+
+struct LoadSecConfigHelper {
+    LoadSecConfigHelper() : SecConfig(nullptr) { CxPlatEventInitialize(&CallbackEvent, TRUE, FALSE); }
+    ~LoadSecConfigHelper() { CxPlatEventUninitialize(&CallbackEvent, TRUE, FALSE); }
+    CXPLAT_SEC_CONFIG* Load(const QUIC_CREDENTIAL_CONFIG* CredConfig) {
+        if (QUIC_FAILED(
+            CxPlatTlsSecConfigCreate(
+                CredConfig,
+                &TcpEngine::TlsCallbacks,
+                this,
+                SecConfigCallback))) {
+            return;
+        }
+        CxPlatEventWaitForever(CallbackEvent);
+        return SecConfig;
+    }
+private:
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
+    void
+    QUIC_API
+    SecConfigCallback(
+        _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
+        _In_opt_ void* Context,
+        _In_ QUIC_STATUS Status,
+        _In_opt_ CXPLAT_SEC_CONFIG* SecurityConfig
+        )
+    {
+        LoadSecConfigHelper* This = (LoadSecConfigHelper*)Context;
+        if (QUIC_SUCCEEDED(Status)) {
+            This->SecConfig = SecurityConfig;
+        }
+        CxPlatEventSet(This->CallbackEvent);
+    }
+    CXPLAT_EVENT CallbackEvent;
+    CXPLAT_SEC_CONFIG* SecConfig;
+};
+
+// ############################# ENGINE #############################
+
+const CXPLAT_TCP_DATAPATH_CALLBACKS TcpEngine::TcpCallbacks = {
+    TcpServer::AcceptCallback,
+    TcpConnection::ConnectCallback,
+    TcpConnection::ReceiveCallback
+};
+
+const CXPLAT_TLS_CALLBACKS TcpEngine::TlsCallbacks = {
+    TcpConnection::TlsProcessCompleteCallback,
+    TcpConnection::TlsReceiveTpCallback,
+    TcpConnection::TlsReceiveTicketCallback
+};
+
 TcpEngine::TcpEngine(TcpAcceptCallback* AcceptHandler, TcpConnectCallback* ConnectHandler) :
-    Shutdown(false), ProcCount((uint16_t)CxPlatProcActiveCount()),
-    Workers(new TcpWorker[ProcCount]), AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler)
+    Initialized(false), Shutdown(false), ProcCount((uint16_t)CxPlatProcActiveCount()),
+    Workers(new TcpWorker[ProcCount]), Datapath(nullptr),
+    AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler)
 {
-    const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {
-        TcpServer::AcceptCallback,
-        TcpConnection::ConnectCallback,
-        TcpConnection::ReceiveCallback
-    };
     if (QUIC_FAILED(
-        InitStatus =
-            CxPlatDataPathInitialize(
-                0, // TODO
-                nullptr,
-                &TcpCallbacks,
-                &Datapath))) {
+        CxPlatDataPathInitialize(
+            0, // TODO
+            nullptr,
+            &TcpCallbacks,
+            &Datapath))) {
         return;
     }
     for (uint16_t i = 0; i < ProcCount; ++i) {
-        if (FAILED(InitStatus = Workers[i].Init(this))) {
+        if (!Workers[i].Initialize(this)) {
             return;
         }
     }
+    Initialized = true;
 }
 
 TcpEngine::~TcpEngine()
@@ -59,7 +109,9 @@ void TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex
     Connection->Worker = &Workers[PartitionIndex];
 }
 
-TcpWorker::TcpWorker() : Engine(nullptr), Thread(nullptr)
+// ############################# WORKER #############################
+
+TcpWorker::TcpWorker() : Initialized(false), Engine(nullptr), Thread(nullptr)
 {
     CxPlatEventInitialize(&WakeEvent, FALSE, FALSE);
     CxPlatDispatchLockInitialize(&Lock);
@@ -68,7 +120,7 @@ TcpWorker::TcpWorker() : Engine(nullptr), Thread(nullptr)
 
 TcpWorker::~TcpWorker()
 {
-    if (Engine) {
+    if (Initialized) {
         CxPlatThreadDelete(&Thread);
         while (!CxPlatListIsEmpty(&Connections)) {
             auto Connection =
@@ -85,24 +137,23 @@ TcpWorker::~TcpWorker()
     CxPlatEventUninitialize(WakeEvent);
 }
 
-QUIC_STATUS TcpWorker::Init(TcpEngine* _Engine)
+bool TcpWorker::Initialize(TcpEngine* _Engine)
 {
     Engine = _Engine;
     CXPLAT_THREAD_CONFIG Config = { 0, 0, "TcpPerfWorker", WorkerThread, this };
-    QUIC_STATUS Status =
+    if (QUIC_FAILED(
         CxPlatThreadCreate(
             &Config,
-            &Thread);
-    if (QUIC_FAILED(Status)) {
-        Engine = nullptr;
-        return Status;
+            &Thread))) {
+        return false;
     }
-    return Status;
+    Initialized = true;
+    return true;
 }
 
 void TcpWorker::Shutdown()
 {
-    if (Engine) {
+    if (Initialized) {
         CxPlatEventSet(WakeEvent);
         CxPlatThreadWait(&Thread);
     }
@@ -148,20 +199,33 @@ void TcpWorker::QueueConnection(TcpConnection* Connection)
     CxPlatDispatchLockRelease(&Lock);
 }
 
-TcpServer::TcpServer(TcpEngine* Engine) : Engine(Engine), Listener(nullptr)
+// ############################# SERVER #############################
+
+TcpServer::TcpServer(TcpEngine* Engine, const QUIC_CREDENTIAL_CONFIG* CredConfig) :
+    Initialized(false), Engine(Engine), SecConfig(nullptr), Listener(nullptr)
 {
-    InitStatus =
+    LoadSecConfigHelper Helper;
+    if (!(SecConfig = Helper.Load(CredConfig))) {
+        return;
+    }
+    if (QUIC_FAILED(
         CxPlatSocketCreateTcpListener(
             Engine->Datapath,
             nullptr,
             this,
-            &Listener);
+            &Listener))) {
+        return;
+    }
+    Initialized = true;
 }
 
 TcpServer::~TcpServer()
 {
     if (Listener) {
         CxPlatSocketDelete(Listener);
+    }
+    if (SecConfig) {
+        CxPlatTlsSecConfigDelete(SecConfig); // TODO - Ref counted instead?
     }
 }
 
@@ -176,39 +240,57 @@ TcpServer::AcceptCallback(
     )
 {
     TcpServer* This = (TcpServer*)ListenerContext;
-    *AcceptClientContext = new TcpConnection(This->Engine, AcceptSocket);
+    *AcceptClientContext = new TcpConnection(This->Engine, This->SecConfig, AcceptSocket);
 }
 
-TcpConnection::TcpConnection(TcpEngine* Engine, const QUIC_ADDR* RemoteAddress, const QUIC_ADDR* LocalAddress) :
-    Engine(Engine), Worker(nullptr), Socket(nullptr), Tls(nullptr),
-    ReceiveData(nullptr), SendData(nullptr), IndicateAccept(false), IndicateConnect(false),
-    IndicateDisconnect(false), StartConnection(true)
+// ############################ CONNECTION ############################
+
+TcpConnection::TcpConnection(
+    TcpEngine* Engine,
+    const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    const QUIC_ADDR* RemoteAddress,
+    const QUIC_ADDR* LocalAddress) :
+    Server(false), Initialized(false), IndicateAccept(false), IndicateConnect(false),
+    IndicateDisconnect(false), StartConnection(false),
+    Engine(Engine), Worker(nullptr), Socket(nullptr), SecConfig(nullptr), Tls(nullptr),
+    ReceiveData(nullptr), SendData(nullptr)
 {
     Entry.Flink = NULL;
     CxPlatRefInitialize(&Ref);
     CxPlatDispatchLockInitialize(&Lock);
-    InitStatus =
+    LoadSecConfigHelper Helper;
+    if (!(SecConfig = Helper.Load(CredConfig))) {
+        return;
+    }
+    if (QUIC_FAILED(
         CxPlatSocketCreateTcp(
             Engine->Datapath,
             LocalAddress,
             RemoteAddress,
             this,
-            &Socket);
-    if (QUIC_FAILED(InitStatus)) {
+            &Socket))) {
         return;
     }
+    Initialized = true;
+    StartConnection = true;
     Engine->AddConnection(this, 0); // TODO - Correct index
     Queue();
 }
 
-TcpConnection::TcpConnection(TcpEngine* Engine, CXPLAT_SOCKET* Socket) :
-    InitStatus(QUIC_STATUS_SUCCESS), Engine(Engine), Worker(nullptr), Socket(Socket),
-    Tls(nullptr), ReceiveData(nullptr), SendData(nullptr), IndicateAccept(true),
-    IndicateConnect(false), IndicateDisconnect(false), StartConnection(false)
+TcpConnection::TcpConnection(
+    TcpEngine* Engine,
+    CXPLAT_SEC_CONFIG* SecConfig,
+    CXPLAT_SOCKET* Socket) :
+    Server(true), Initialized(false), IndicateAccept(false), IndicateConnect(false),
+    IndicateDisconnect(false), StartConnection(false),
+    Engine(Engine), Worker(nullptr), Socket(Socket), SecConfig(SecConfig), Tls(nullptr),
+    ReceiveData(nullptr), SendData(nullptr)
 {
     Entry.Flink = NULL;
     CxPlatRefInitialize(&Ref);
     CxPlatDispatchLockInitialize(&Lock);
+    Initialized = true;
+    IndicateAccept = true;
     Engine->AddConnection(this, 0); // TODO - Correct index
     Queue();
 }
@@ -217,6 +299,9 @@ TcpConnection::~TcpConnection()
 {
     if (Socket) {
         CxPlatSocketDelete(Socket);
+    }
+    if (Server && SecConfig) {
+        CxPlatTlsSecConfigDelete(SecConfig);
     }
     CXPLAT_DBG_ASSERT(Entry.Flink == NULL);
     CxPlatDispatchLockUninitialize(&Lock);
@@ -258,6 +343,42 @@ TcpConnection::ReceiveCallback(
     *Tail = RecvDataChain;
     CxPlatDispatchLockRelease(&This->Lock);
     This->Queue();
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+TcpConnection::TlsProcessCompleteCallback(
+    _In_ QUIC_CONNECTION* Context
+    )
+{
+    TcpConnection* This = (TcpConnection*)(void*)Context;
+    // TODO
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+TcpConnection::TlsReceiveTpCallback(
+    _In_ QUIC_CONNECTION* Context,
+    _In_ uint16_t TPLength,
+    _In_reads_(TPLength) const uint8_t* TPBuffer
+    )
+{
+    TcpConnection* This = (TcpConnection*)(void*)Context;
+    // TODO
+    return TRUE;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+TcpConnection::TlsReceiveTicketCallback(
+    _In_ QUIC_CONNECTION* Context,
+    _In_ uint32_t TicketLength,
+    _In_reads_(TicketLength) const uint8_t* Ticket
+    )
+{
+    TcpConnection* This = (TcpConnection*)(void*)Context;
+    // TODO
+    return TRUE;
 }
 
 void TcpConnection::Process()
