@@ -166,7 +166,13 @@ $GraphScript = Join-Path $PSScriptRoot generate-graphs.ps1
 # Copy entire commit folder to outputs
 $OutputFolder = Join-Path $RootDir "artifacts" "mergedPerfResults"
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
-Copy-Item -Recurse -Path "$CommitFolder\*" $OutputFolder
+Copy-Item -Recurse -Path "$CommitFolder\*" $OutputFolder -Force
+
+# Copy per commit webpage as well
+$OutputFolder = Join-Path $OutputFolder "percommitpage"
+New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
+$CommitFolder = Join-Path $RootDir "percommit" $BranchName $CommitModel.CommitHash
+Copy-Item -Recurse -Path "$CommitFolder\*" $OutputFolder -Force
 
 $env:GIT_REDIRECT_STDERR = '2>&1'
 Set-Location $RootDir
