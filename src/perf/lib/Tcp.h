@@ -15,8 +15,18 @@ Abstract:
 #include <quic_datapath.h>
 #include <quic_tls.h>
 
+#define TLS_BLOCK_SIZE 0x4000
+
 class TcpConnection;
 class TcpWorker;
+struct TcpFrame;
+
+struct TcpSendData {
+    TcpSendData* Next;
+    uint32_t StreamId;
+    uint32_t Length;
+    uint8_t* Buffer;
+};
 
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -25,15 +35,39 @@ void
 (TcpAcceptCallback)(
     _In_ TcpConnection* Connection
     );
+typedef TcpAcceptCallback* TcpAcceptHandler;
 
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(TcpAcceptCallback)
+_Function_class_(TcpConnectCallback)
 void
 (TcpConnectCallback)(
     _In_ TcpConnection* Connection,
     bool IsConnected
     );
+typedef TcpConnectCallback* TcpConnectHandler;
+
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(TcpReceiveCallback)
+void
+(TcpReceiveCallback)(
+    _In_ TcpConnection* Connection,
+    uint32_t StreamID,
+    uint32_t Length,
+    uint8_t* Buffer
+    );
+typedef TcpReceiveCallback* TcpReceiveHandler;
+
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(TcpSendCompleteCallback)
+void
+(TcpSendCompleteCallback)(
+    _In_ TcpConnection* Connection,
+    TcpSendData* SendDataChain
+    );
+typedef TcpSendCompleteCallback* TcpSendCompleteHandler;
 
 class TcpEngine {
     friend class TcpWorker;
@@ -45,10 +79,16 @@ public:
     static const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks;
     static const CXPLAT_TLS_CALLBACKS TlsCallbacks;
     CXPLAT_DATAPATH* Datapath;
-    const TcpAcceptCallback* AcceptHandler;
-    const TcpConnectCallback* ConnectHandler;
+    const TcpAcceptHandler AcceptHandler;
+    const TcpConnectHandler ConnectHandler;
+    const TcpReceiveHandler ReceiveHandler;
+    const TcpSendCompleteHandler SendCompleteHandler;
 public:
-    TcpEngine(TcpAcceptCallback* AcceptHandler, TcpConnectCallback* ConnectHandler);
+    TcpEngine(
+        TcpAcceptHandler AcceptHandler,
+        TcpConnectHandler ConnectHandler,
+        TcpReceiveHandler ReceiveHandler,
+        TcpSendCompleteHandler SendCompleteHandler);
     ~TcpEngine();
     bool IsInitialized() const { return Initialized; }
     void AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
@@ -104,32 +144,32 @@ public:
     bool IsInitialized() const { return Initialized; }
 };
 
-struct TcpSendData {
-    TcpSendData* Next;
-    uint32_t Length;
-    uint8_t* Buffer;
-};
-
 class TcpConnection {
     friend class TcpEngine;
     friend class TcpWorker;
     friend class TcpServer;
     bool Server;
     bool Initialized;
+    bool StartTls;
     bool IndicateAccept;
     bool IndicateConnect;
     bool IndicateDisconnect;
-    bool StartConnection;
     CXPLAT_LIST_ENTRY Entry;
     TcpEngine* Engine;
     TcpWorker* Worker;
     CXPLAT_REF_COUNT Ref;
     CXPLAT_DISPATCH_LOCK Lock;
+    QUIC_ADDR LocalAddress;
+    QUIC_ADDR RemoteAddress;
     CXPLAT_SOCKET* Socket;
     CXPLAT_SEC_CONFIG* SecConfig;
     CXPLAT_TLS* Tls;
+    CXPLAT_TLS_PROCESS_STATE TlsState;
     CXPLAT_RECV_DATA* ReceiveData;
     TcpSendData* SendData;
+    CXPLAT_SEND_DATA* BatchedSendData;
+    uint8_t BufferedData[TLS_BLOCK_SIZE];
+    uint32_t BufferedDataLength;
     TcpConnection(TcpEngine* Engine, CXPLAT_SEC_CONFIG* SecConfig, CXPLAT_SOCKET* Socket);
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -174,15 +214,26 @@ class TcpConnection {
     ~TcpConnection();
     void Queue() { Worker->QueueConnection(this); }
     void Process();
+    bool InitializeTls();
+    bool ProcessTls(const uint8_t* Buffer, uint32_t BufferLength);
     void ProcessReceive();
+    bool ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLength);
+    bool ProcessReceiveFrame(TcpFrame* Frame);
     void ProcessSend();
+    bool EncryptFrame(TcpFrame* Frame);
+    QUIC_BUFFER* NewSendBuffer();
+    void FreeSendBuffer(QUIC_BUFFER* SendBuffer);
+    void FinalzieSendBuffer(QUIC_BUFFER* SendBuffer);
 public:
+    void* Context; // App context
     TcpConnection(
         TcpEngine* Engine,
         const QUIC_CREDENTIAL_CONFIG* CredConfig,
         const QUIC_ADDR* RemoteAddress,
-        const QUIC_ADDR* LocalAddress = nullptr);
+        const QUIC_ADDR* LocalAddress = nullptr,
+        void* Context = nullptr);
     bool IsInitialized() const { return Initialized; }
     void AddRef() { CxPlatRefIncrement(&Ref); }
     void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
+    void Send(TcpSendData* Data);
 };
