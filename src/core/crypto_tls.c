@@ -62,6 +62,7 @@ typedef enum eSniNameType {
 //
 #define QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE                  32  // varint
 #define QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION                  0xBAAD  // N/A
+#define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0x73DB  // Blob
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -810,6 +811,12 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION,
                 0);
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_VERSION_NEGOTIATION_EXT,
+                TransportParams->VersionNegotiationInfoLength);
+    }
     if (TestParam != NULL) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -1073,6 +1080,15 @@ QuicCryptoTlsEncodeTransportParameters(
             Connection,
             "TP: Disable 1-RTT Encryption");
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
+        TPBuf =
+            TlsWriteTransportParam(
+                QUIC_TP_ID_VERSION_NEGOTIATION_EXT,
+                TransportParams->VersionNegotiationInfoLength,
+                TransportParams->VersionNegotiationInfo,
+                TPBuf);
+        // TODO: Log
+    }
     if (TestParam != NULL) {
         TPBuf =
             TlsWriteTransportParam(
@@ -1182,7 +1198,7 @@ QuicCryptoTlsDecodeTransportParameters(
             goto Exit;
         }
 
-        uint16_t Length = (uint16_t)ParamLength;;
+        uint16_t Length = (uint16_t)ParamLength;
 
         uint16_t VarIntLength = 0;
     #define TRY_READ_VAR_INT(Param) \
@@ -1640,6 +1656,17 @@ QuicCryptoTlsDecodeTransportParameters(
                 "TP: Disable 1-RTT Encryption");
             break;
 
+        case QUIC_TP_ID_VERSION_NEGOTIATION_EXT:
+            if (Length == 0) { // TODO: find minimum size for VNI blob
+                // TODO Log
+                goto Exit;
+            }
+            TransportParams->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;
+            TransportParams->VersionNegotiationInfo = TPBuf + Offset; // TODO: Allocate and copy?
+            TransportParams->VersionNegotiationInfoLength = Length;
+            // TODO Log
+            break;
+
         default:
             if (QuicTpIdIsReserved(Id)) {
                 QuicTraceLogConnWarning(
@@ -1667,4 +1694,60 @@ QuicCryptoTlsDecodeTransportParameters(
 Exit:
 
     return Result;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
+const uint8_t*
+QuicCryptoTlsEncodeVersionNegotiationInfo(
+    _In_ QUIC_CONNECTION* Connection
+)
+{
+    uint32_t VNILen = 0;
+    uint8_t* VNIBuf = NULL;
+    uint8_t VersionNegotiationInfo = NULL;
+    if (QuicConnIsServer(Connection)) {
+        //
+        // Generate Server VNI.
+        //
+        VNILen += 4 + QuicVarIntSize(Connection->Settings.SupportedVersionsListLength) + (Connection->Settings.SupportedVersionsListLength * sizeof(uint32_t));
+
+        VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(VNILen, QUIC_POOL_TP); // TODO new pool tag
+        if (VersionNegotiationInfo == NULL) {
+            // TODO log
+            return NULL;
+        }
+        VNIBuf = VersionNegotiationInfo;
+
+        memcpy(VNIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
+        VNIBuf = QuicVarIntEncode(Connection->Settings.SupportedVersionsListLength, VNIBuf);
+        memcpy(VNIBuf, Connection->Settings.SupportedVersionsList, Connection->Settings.SupportedVersionsListLength * sizeof(uint32_t));
+    } else {
+        //
+        // Generate Client VNI
+        //
+        VNILen = 4 + 4 +
+            QuicVarIntSize(Connection->ReceivedNegotiationVersionsLength) + (Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t)) +
+            QuicVarIntSize(Connection->Settings.CompatibleVersionsListLength) + (Connection->Settings.CompatibleVersionsListLength * sizeof(uint32_t));
+
+        VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(VNILen, QUIC_POOL_TP); // TODO new pool tag
+        if (VersionNegotiationInfo == NULL) {
+            // TODO log
+            return NULL;
+        }
+        VNIBuf = VersionNegotiationInfo;
+
+        memcpy(VNIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
+        VNIBuf += 4;
+        memcpy(VNIBuf, &Connection->PreviousQuicVersion, sizeof(Connection->PreviousQuicVersion));
+        VNIBuf += 4;
+        VNIBuf = QuicVarIntEncode(Connection->ReceivedNegotiationVersionsLength, VNIBuf);
+        if (Connection->ReceivedNegotiationVersionsLength > 0) {
+            memcpy(VNIBuf, Connection->ReceivedNegotiationVersions, Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t));
+            VNIBuf += Connection->ReceivedNegotiationVersionsLength;
+        }
+        VNIBuf = QuicVarIntEncode(Connection->Settings.CompatibleVersionsListLength, VNIBuf);
+        memcpy(VNIBuf, Connection->Settings.CompatibleVersionsList, Connection->Settings.CompatibleVersionsListLength * sizeof(uint32_t));
+    }
+    return VersionNegotiationInfo;
 }

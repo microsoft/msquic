@@ -242,6 +242,8 @@ QuicConfigurationUninitialize(
     QuicSiloRelease(Configuration->Silo);
 #endif
 
+    QuicSettingsCleanup(&Configuration->Settings);
+
     CxPlatRundownRelease(&Configuration->Registration->Rundown);
 
     QuicTraceEvent(

@@ -539,6 +539,17 @@ typedef struct QUIC_CONNECTION {
     CXPLAT_TLS_SECRETS* TlsSecrets;
 #endif
 
+    //
+    // Received version negotiation list from a previous connection attempt.
+    //
+    uint32_t* ReceivedNegotiationVersions;
+    uint32_t ReceivedNegotiationVersionsLength;
+
+    //
+    // Previously-attempted QUIC version.
+    //
+    uint32_t PreviousQuicVersion;
+
 } QUIC_CONNECTION;
 
 typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {

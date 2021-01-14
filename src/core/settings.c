@@ -185,6 +185,7 @@ QuicSettingsCopy(
     if (!Destination->IsSet.ServerResumptionLevel) {
         Destination->ServerResumptionLevel = Source->ServerResumptionLevel;
     }
+    // TODO: Is this supposed to be a deep copy or a shallow copy?
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -329,8 +330,59 @@ QuicSettingApply(
         Destination->ServerResumptionLevel = Source->ServerResumptionLevel;
         Destination->IsSet.ServerResumptionLevel = TRUE;
     }
+    if (Source->IsSet.CompatibleVersionsList) {
+        if (Destination->IsSet.CompatibleVersionsList && OverWrite) {
+            CXPLAT_FREE(Destination->CompatibleVersionsList, QUIC_POOL_TP); // TODO: new pool tag
+            Destination->IsSet.CompatibleVersionsList = FALSE;
+        }
+        if (!Destination->IsSet.CompatibleVersionsList) {
+            Destination->CompatibleVersionsList =
+                CXPLAT_ALLOC_NONPAGED(Source->CompatibleVersionsListLength * sizeof(uint32_t), QUIC_POOL_TP); // TODO: new pool tag
+            if (Destination->CompatibleVersionsList == NULL) {
+                return FALSE;
+            }
+            memcpy(Destination->CompatibleVersionsList, Source->CompatibleVersionsList, Source->CompatibleVersionsListLength * sizeof(uint32_t));
+            Destination->CompatibleVersionsListLength = Source->CompatibleVersionsListLength;
+            Destination->IsSet.CompatibleVersionsList = TRUE;
+        }
+    }
+    if (Source->IsSet.SupportedVersionsList) {
+        if (Destination->IsSet.SupportedVersionsList && OverWrite) {
+            CXPLAT_FREE(Destination->SupportedVersionsList, QUIC_POOL_TP); // TODO: new pool tag
+            Destination->IsSet.SupportedVersionsList = FALSE;
+        }
+        if (!Destination->IsSet.SupportedVersionsList) {
+            Destination->SupportedVersionsList =
+                CXPLAT_ALLOC_NONPAGED(Source->SupportedVersionsListLength * sizeof(uint32_t), QUIC_POOL_TP); // TODO: new pool tag
+            if (Destination->SupportedVersionsList == NULL) {
+                return FALSE;
+            }
+            memcpy(Destination->SupportedVersionsList, Source->SupportedVersionsList, Source->SupportedVersionsListLength * sizeof(uint32_t));
+            Destination->SupportedVersionsListLength = Source->SupportedVersionsListLength;
+            Destination->IsSet.SupportedVersionsList = TRUE;
+        }
+    }
     return TRUE;
 }
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicSettingsCleanup(
+    _In_ QUIC_SETTINGS* Settings
+    )
+{
+    if (Settings->IsSet.CompatibleVersionsList) {
+        CXPLAT_FREE(Settings->CompatibleVersionsList, QUIC_POOL_TP); // TODO: new pool tag
+        Settings->CompatibleVersionsList = NULL;
+        Settings->IsSet.CompatibleVersionsList = FALSE;
+    }
+    if (Settings->IsSet.SupportedVersionsList) {
+        CXPLAT_FREE(Settings->SupportedVersionsList, QUIC_POOL_TP); // TODO new pool tag
+        Settings->SupportedVersionsList = NULL;
+        Settings->IsSet.SupportedVersionsList = FALSE;
+    }
+}
+
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

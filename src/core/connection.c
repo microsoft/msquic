@@ -374,6 +374,11 @@ QuicConnFree(
             Connection->HandshakeTP);
         Connection->HandshakeTP = NULL;
     }
+    if (Connection->ReceivedNegotiationVersions != NULL) {
+        CXPLAT_FREE(Connection->ReceivedNegotiationVersions, QUIC_POOL_TP); // TODO new pool tag
+        Connection->ReceivedNegotiationVersionsLength = 0;
+    }
+    QuicSettingsCleanup(&Connection->Settings);
     if (Connection->State.Started && !Connection->State.Connected) {
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL);
     }

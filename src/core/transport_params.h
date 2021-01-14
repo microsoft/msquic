@@ -28,6 +28,7 @@ Abstract:
 #define QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID           0x00010000
 #define QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID             0x00020000
 #define QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION                0x00040000
+#define QUIC_TP_FLAG_VERSION_NEGOTIATION                    0x00080000
 
 #define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
 #define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
@@ -165,6 +166,12 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     _Field_range_(0, QUIC_MAX_CONNECTION_ID_LENGTH_V1)
     uint8_t RetrySourceConnectionIDLength;
 
+    //
+    // Pointer to the Version Negotiation transport parameter opaque blob.
+    //
+    uint8_t* VersionNegotiationInfo;
+    QUIC_VAR_INT VersionNegotiationInfoLength;
+
 } QUIC_TRANSPORT_PARAMETERS;
 
 //
@@ -195,3 +202,27 @@ QuicCryptoTlsDecodeTransportParameters(
     _In_ uint16_t TPLen,
     _Out_ QUIC_TRANSPORT_PARAMETERS* TransportParams
     );
+
+
+//
+// Encodes Version Negotiation Information into the opaque blob used by the
+// extension.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
+const uint8_t*
+QuicCryptoTlsEncodeVersionNegotiationInfo(
+    _In_ QUIC_CONNECTION* Connection
+);
+
+//
+// Decodes QUIC Version Negotiation Info TP buffer.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != FALSE)
+BOOLEAN
+QuicCryptoTlsDecodeVersionNegotiationInfo(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const uint8_t* VersionNegotiationInfo,
+    _In_ uint32_t VersionNegotiationInfoLength
+);

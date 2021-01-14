@@ -427,6 +427,8 @@ MsQuicLibraryUninitialize(
     }
     CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
 
+    QuicSettingsCleanup(&MsQuicLib.Settings);
+
     QuicTraceEvent(
         LibraryUninitialized,
         "[ lib] Uninitialized");

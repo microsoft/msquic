@@ -39,6 +39,15 @@ QuicSettingApply(
     );
 
 //
+// Cleans up any memory allocated on the Settings.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicSettingsCleanup(
+    _In_ QUIC_SETTINGS* Settings
+    );
+
+//
 // Loads the settings from storage, if not already set by the app.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
