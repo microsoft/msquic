@@ -1,0 +1,7 @@
+/*!
+ * Automatically generated data
+ */
+var periodicRpsGraphs = PERIODIC_RPS_GRAPHS
+
+var pageCommitHash = COMMIT_HASH
+var runDate = RUN_DATE
