@@ -51,7 +51,7 @@ function chartOnCick(a, activeElements) {
     var dataset = this.config.data.datasets[activeElements[0]._datasetIndex]
     var rawTime = dataset.data[activeElements[0]._index].rawTime
     var commitHash = commitDatePairs[rawTime]
-    window.open("https://github.com/microsoft/msquic/commit/" + commitHash)
+    window.open("./percommit/main/" + commitHash + "/index.html", "_self")
 }
 
 function filterDataset(dataset, afterDate) {

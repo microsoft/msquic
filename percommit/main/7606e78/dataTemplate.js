@@ -55,7 +55,7 @@ function chartOnCick(a, activeElements) {
 }
 
 function filterDataset(dataset, afterDate) {
-    return dataset.filter(p => p.t > afterDate);
+    return dataset;//.filter(p => p.t > afterDate);
 }
 
 var tooltipsObject = {
