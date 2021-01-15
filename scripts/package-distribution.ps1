@@ -122,6 +122,12 @@ foreach ($Build in $AllBuilds) {
         Copy-Item -LiteralPath $Library -Destination $CopyToFolder -Force
     }
 
+    # Copy License
+    Copy-Item -Path (Join-Path $RootDir "LICENSE.md") -Destination $TempDir
+    if (!$BuildBaseName.Contains("Schannel", [StringComparison]::InvariantCultureIgnoreCase)) {
+        # Only need license, no 3rd party code
+        Copy-Item -Path (Join-Path $RootDir "THIRD-PARTY-NOTICES.md") -Destination $TempDir
+    }
     # Package zip archive
     Compress-Archive -Path "$TempDir/*" -DestinationPath (Join-Path $DistDir "msquic_$($Platform)_$BuildBaseName.zip") -Force
 }
