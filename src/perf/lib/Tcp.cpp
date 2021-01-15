@@ -242,14 +242,6 @@ TcpServer::TcpServer(TcpEngine* Engine, const QUIC_CREDENTIAL_CONFIG* CredConfig
     if ((SecConfig = Helper.Load(CredConfig)) == nullptr) {
         return;
     }
-    if (QUIC_FAILED(
-        CxPlatSocketCreateTcpListener(
-            Engine->Datapath,
-            nullptr,
-            this,
-            &Listener))) {
-        return;
-    }
     Initialized = true;
 }
 
@@ -261,6 +253,20 @@ TcpServer::~TcpServer()
     if (SecConfig) {
         CxPlatTlsSecConfigDelete(SecConfig); // TODO - Ref counted instead?
     }
+}
+
+bool TcpServer::Start(const QUIC_ADDR* LocalAddress)
+{
+    if (!Initialized ||
+        QUIC_FAILED(
+        CxPlatSocketCreateTcpListener(
+            Engine->Datapath,
+            LocalAddress,
+            this,
+            &Listener))) {
+        return false;
+    }
+    return true;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

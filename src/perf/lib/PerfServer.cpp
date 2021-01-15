@@ -70,6 +70,8 @@ PerfServer::Start(
     QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
     QuicAddrSetPort(&Address, Port);
 
+    (void)Server.Start(&Address); // TCP
+
     StopEvent = _StopEvent;
 
     return

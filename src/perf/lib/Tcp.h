@@ -149,6 +149,7 @@ public:
     TcpServer(TcpEngine* Engine, const QUIC_CREDENTIAL_CONFIG* CredConfig, void* Context = nullptr);
     ~TcpServer();
     bool IsInitialized() const { return Initialized; }
+    bool Start(const QUIC_ADDR* LocalAddress);
 };
 
 class TcpConnection {
