@@ -82,10 +82,7 @@ private:
         uint64_t BytesSent{0};
         uint64_t OutstandingBytes{0};
         uint32_t IoSize{PERF_DEFAULT_IO_SIZE};
-        union {
         QUIC_BUFFER LastBuffer;
-        TcpSendData SendData;
-        };
     };
 
     QUIC_STATUS

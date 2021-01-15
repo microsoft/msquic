@@ -320,7 +320,7 @@ TcpConnection::TcpConnection(
     TcpEngine* Engine,
     CXPLAT_SEC_CONFIG* SecConfig,
     CXPLAT_SOCKET* Socket) :
-    IsServer(true), Engine(Engine), SecConfig(SecConfig)
+    IsServer(true), Engine(Engine), Socket(Socket), SecConfig(SecConfig)
 {
     CxPlatRefInitialize(&Ref);
     CxPlatDispatchLockInitialize(&Lock);
