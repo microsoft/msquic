@@ -274,3 +274,124 @@ PerfServer::SendResponse(
         MsQuic->StreamSend(StreamHandle, Buffer, 1, Flags, Buffer);
     }
 }
+
+void
+PerfServer::SendTcpResponse(
+    _In_ PerfServer::StreamContext* Context,
+    _In_ TcpConnection* Connection
+    )
+{
+    while (Context->BytesSent < Context->ResponseSize &&
+           Context->OutstandingBytes < Context->IdealSendBuffer) {
+
+        uint64_t BytesLeftToSend = Context->ResponseSize - Context->BytesSent;
+
+        auto SendData = (TcpSendData*)CXPLAT_ALLOC_NONPAGED(sizeof(TcpSendData), QUIC_POOL_GENERIC);
+        SendData->StreamId = (uint32_t)Context->Entry.Signature;
+        SendData->Open = Context->BytesSent == 0 ? 1 : 0;
+        SendData->Buffer = DataBuffer->Buffer;
+        if ((uint64_t)Context->IoSize >= BytesLeftToSend) {
+            SendData->Length = (uint32_t)BytesLeftToSend;
+            SendData->Fin = true;
+        } else {
+            SendData->Length = Context->IoSize;
+            SendData->Fin = false;
+        }
+
+        Context->BytesSent += SendData->Length;
+        Context->OutstandingBytes += SendData->Length;
+
+        Connection->Send(SendData);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(TcpAcceptCallback)
+void
+PerfServer::TcpAcceptCallback(
+    _In_ TcpServer* Server,
+    _In_ TcpConnection* Connection
+    )
+{
+    auto This = (PerfServer*)Server->Context;
+    Connection->Context = This;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(TcpConnectCallback)
+void
+PerfServer::TcpConnectCallback(
+    _In_ TcpConnection* Connection,
+    bool IsConnected
+    )
+{
+    if (!IsConnected) {
+        Connection->Release();
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(TcpReceiveCallback)
+void
+PerfServer::TcpReceiveCallback(
+    _In_ TcpConnection* Connection,
+    uint32_t StreamID,
+    bool Open,
+    bool Fin,
+    uint32_t Length,
+    uint8_t* Buffer
+    )
+{
+    auto This = (PerfServer*)Connection->Context;
+    StreamContext* Stream;
+    if (Open) {
+        if ((Stream = This->StreamContextAllocator.Alloc(This, false, false)) != nullptr) {
+            Stream->Entry.Signature = StreamID;
+            This->StreamTable.Insert(&Stream->Entry);
+        }
+    } else {
+        auto Entry = This->StreamTable.Lookup(StreamID);
+        Stream = CXPLAT_CONTAINING_RECORD(Entry, StreamContext, Entry);
+    }
+    if (!Stream) return;
+    if (!Stream->ResponseSizeSet && Length != 0) {
+        CXPLAT_DBG_ASSERT(Length >= sizeof(uint64_t));
+        CxPlatCopyMemory(&Stream->ResponseSize, Buffer, sizeof(uint64_t));
+        Stream->ResponseSize = CxPlatByteSwapUint64(Stream->ResponseSize);
+        Stream->ResponseSizeSet = true;
+    }
+    if (Fin) {
+        if (!Stream->ResponseSizeSet) {
+            This->StreamTable.Remove(&Stream->Entry);
+            This->StreamContextAllocator.Free(Stream);
+        } else {
+            This->SendTcpResponse(Stream, Connection);
+        }
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(TcpSendCompleteCallback)
+void
+PerfServer::TcpSendCompleteCallback(
+    _In_ TcpConnection* Connection,
+    TcpSendData* SendDataChain
+    )
+{
+    auto This = (PerfServer*)Connection->Context;
+    while (SendDataChain) {
+        auto Data = SendDataChain;
+        auto Entry = This->StreamTable.Lookup(Data->StreamId);
+        if (Entry) {
+            auto Stream = CXPLAT_CONTAINING_RECORD(Entry, StreamContext, Entry);
+            Stream->OutstandingBytes -= Data->Length;
+            This->SendTcpResponse(Stream, Connection);
+            if (Data->Fin) {
+                This->StreamTable.Remove(&Stream->Entry);
+                This->StreamContextAllocator.Free(Stream);
+            }
+        }
+        SendDataChain = SendDataChain->Next;
+        CXPLAT_FREE(Data, QUIC_POOL_GENERIC);
+    }
+}

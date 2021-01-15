@@ -17,13 +17,16 @@ Abstract:
 
 #define TLS_BLOCK_SIZE 0x4000
 
-class TcpConnection;
 class TcpWorker;
+class TcpServer;
+class TcpConnection;
 struct TcpFrame;
 
 struct TcpSendData {
     TcpSendData* Next;
-    uint32_t StreamId;
+    uint32_t StreamId : 30;
+    uint32_t Open : 1;
+    uint32_t Fin : 1;
     uint32_t Length;
     uint8_t* Buffer;
 };
@@ -33,6 +36,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(TcpAcceptCallback)
 void
 (TcpAcceptCallback)(
+    _In_ TcpServer* Server,
     _In_ TcpConnection* Connection
     );
 typedef TcpAcceptCallback* TcpAcceptHandler;
@@ -54,6 +58,8 @@ void
 (TcpReceiveCallback)(
     _In_ TcpConnection* Connection,
     uint32_t StreamID,
+    bool Open,
+    bool Fin,
     uint32_t Length,
     uint8_t* Buffer
     );
@@ -139,7 +145,8 @@ class TcpServer {
         _Out_ void** AcceptClientContext
         );
 public:
-    TcpServer(TcpEngine* Engine, const QUIC_CREDENTIAL_CONFIG* CredConfig);
+    void* Context; // App context
+    TcpServer(TcpEngine* Engine, const QUIC_CREDENTIAL_CONFIG* CredConfig, void* Context = nullptr);
     ~TcpServer();
     bool IsInitialized() const { return Initialized; }
 };
@@ -148,7 +155,7 @@ class TcpConnection {
     friend class TcpEngine;
     friend class TcpWorker;
     friend class TcpServer;
-    bool Server;
+    bool IsServer;
     bool Initialized;
     bool StartTls;
     bool IndicateAccept;
@@ -223,7 +230,7 @@ class TcpConnection {
     bool EncryptFrame(TcpFrame* Frame);
     QUIC_BUFFER* NewSendBuffer();
     void FreeSendBuffer(QUIC_BUFFER* SendBuffer);
-    void FinalzieSendBuffer(QUIC_BUFFER* SendBuffer);
+    void FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
 public:
     void* Context; // App context
     TcpConnection(

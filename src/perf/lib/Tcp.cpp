@@ -30,7 +30,9 @@ struct TcpFrame {
     // uint8_t Tag[CXPLAT_ENCRYPTION_OVERHEAD];
 };
 struct TcpStreamFrame {
-    uint32_t Id;
+    uint32_t Id : 30;
+    uint32_t Open : 1;
+    uint32_t Fin : 1;
     uint8_t Data[0];
 };
 #pragma pack(pop)
@@ -140,7 +142,7 @@ void TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex
 
 // ############################# WORKER #############################
 
-TcpWorker::TcpWorker() : Initialized(false), Engine(nullptr), Thread(nullptr)
+TcpWorker::TcpWorker() : Initialized(false), Engine(nullptr)
 {
     CxPlatEventInitialize(&WakeEvent, FALSE, FALSE);
     CxPlatDispatchLockInitialize(&Lock);
@@ -230,9 +232,12 @@ void TcpWorker::QueueConnection(TcpConnection* Connection)
 
 // ############################# SERVER #############################
 
-TcpServer::TcpServer(TcpEngine* Engine, const QUIC_CREDENTIAL_CONFIG* CredConfig) :
-    Initialized(false), Engine(Engine), SecConfig(nullptr), Listener(nullptr)
+TcpServer::TcpServer(TcpEngine* Engine, const QUIC_CREDENTIAL_CONFIG* CredConfig, void* Context) :
+    Initialized(false), Engine(Engine), SecConfig(nullptr), Listener(nullptr), Context(Context)
 {
+    if (!Engine->IsInitialized()) {
+        return;
+    }
     LoadSecConfigHelper Helper;
     if ((SecConfig = Helper.Load(CredConfig)) == nullptr) {
         return;
@@ -268,8 +273,10 @@ TcpServer::AcceptCallback(
     _Out_ void** AcceptClientContext
     )
 {
-    TcpServer* This = (TcpServer*)ListenerContext;
-    *AcceptClientContext = new TcpConnection(This->Engine, This->SecConfig, AcceptSocket);
+    auto This = (TcpServer*)ListenerContext;
+    auto Connection = new TcpConnection(This->Engine, This->SecConfig, AcceptSocket);
+    Connection->Context = This;
+    *AcceptClientContext = Connection;
 }
 
 // ############################ CONNECTION ############################
@@ -280,8 +287,8 @@ TcpConnection::TcpConnection(
     const QUIC_ADDR* RemoteAddress,
     const QUIC_ADDR* LocalAddress,
     void* Context) :
-    Server(false), Initialized(false), IndicateAccept(false), IndicateConnect(false),
-    IndicateDisconnect(false), StartTls(false),
+    IsServer(false), Initialized(false), StartTls(false), IndicateAccept(false),
+    IndicateConnect(false), IndicateDisconnect(false),
     Engine(Engine), Worker(nullptr), Socket(nullptr), SecConfig(nullptr), Tls(nullptr),
     ReceiveData(nullptr), SendData(nullptr), BatchedSendData(nullptr),
     BufferedDataLength(0), Context(Context)
@@ -290,6 +297,9 @@ TcpConnection::TcpConnection(
     CxPlatRefInitialize(&Ref);
     CxPlatDispatchLockInitialize(&Lock);
     CxPlatZeroMemory(&TlsState, sizeof(TlsState));
+    if (!Engine->IsInitialized()) {
+        return;
+    }
     LoadSecConfigHelper Helper;
     if ((SecConfig = Helper.Load(CredConfig)) == nullptr) {
         return;
@@ -313,8 +323,8 @@ TcpConnection::TcpConnection(
     TcpEngine* Engine,
     CXPLAT_SEC_CONFIG* SecConfig,
     CXPLAT_SOCKET* Socket) :
-    Server(true), Initialized(false), IndicateAccept(false), IndicateConnect(false),
-    IndicateDisconnect(false), StartTls(false),
+    IsServer(true), Initialized(false), StartTls(false), IndicateAccept(false),
+    IndicateConnect(false), IndicateDisconnect(false),
     Engine(Engine), Worker(nullptr), Socket(Socket), SecConfig(SecConfig), Tls(nullptr),
     ReceiveData(nullptr), SendData(nullptr), BatchedSendData(nullptr),
     BufferedDataLength(0), Context(nullptr)
@@ -335,7 +345,7 @@ TcpConnection::~TcpConnection()
     if (Socket) {
         CxPlatSocketDelete(Socket);
     }
-    if (Server && SecConfig) {
+    if (IsServer && SecConfig) {
         CxPlatTlsSecConfigDelete(SecConfig);
     }
     CXPLAT_DBG_ASSERT(Entry.Flink == NULL);
@@ -417,7 +427,9 @@ void TcpConnection::Process()
 {
     if (IndicateAccept) {
         IndicateAccept = false;
-        Engine->AcceptHandler(this);
+        TcpServer* Server = (TcpServer*)Context;
+        Context = nullptr;
+        Engine->AcceptHandler(Server, this);
     }
     if (IndicateConnect) {
         IndicateConnect = false;
@@ -451,7 +463,7 @@ bool TcpConnection::InitializeTls()
 
     CXPLAT_TLS_CONFIG Config;
     CxPlatZeroMemory(&Config, sizeof(Config));
-    Config.IsServer = Server ? TRUE : FALSE;
+    Config.IsServer = IsServer ? TRUE : FALSE;
     Config.Connection = (QUIC_CONNECTION*)(void*)this;
     Config.SecConfig = SecConfig;
     Config.AlpnBuffer = FixedAlpnBuffer;
@@ -466,7 +478,7 @@ bool TcpConnection::InitializeTls()
         return false;
     }
 
-    return Server || ProcessTls(NULL, 0);
+    return IsServer || ProcessTls(NULL, 0);
 }
 
 bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
@@ -507,7 +519,7 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
     }
 
     SendBuffer->Length = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
-    FinalzieSendBuffer(SendBuffer);
+    FinalizeSendBuffer(SendBuffer);
 
     return true;
 }
@@ -610,6 +622,8 @@ bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
         Engine->ReceiveHandler(
             this,
             StreamFrame->Id,
+            StreamFrame->Open,
+            StreamFrame->Fin,
             Frame->Length - sizeof(TcpStreamFrame),
             StreamFrame->Data);
         break;
@@ -648,6 +662,8 @@ void TcpConnection::ProcessSend()
 
             auto StreamFrame = (TcpStreamFrame*)Frame->Data;
             StreamFrame->Id = NextSendData->StreamId;
+            StreamFrame->Open = NextSendData->Open;
+            StreamFrame->Fin = NextSendData->Fin;
             CxPlatCopyMemory(StreamFrame->Data, NextSendData->Buffer + Offset, StreamLength);
             Offset += StreamLength;
 
@@ -657,7 +673,7 @@ void TcpConnection::ProcessSend()
             }
 
             SendBuffer->Length = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
-            FinalzieSendBuffer(SendBuffer);
+            FinalizeSendBuffer(SendBuffer);
         }
 
         NextSendData = NextSendData->Next;
@@ -697,7 +713,7 @@ void TcpConnection::FreeSendBuffer(QUIC_BUFFER* SendBuffer)
     CxPlatSendDataFreeBuffer(BatchedSendData, SendBuffer);
 }
 
-void TcpConnection::FinalzieSendBuffer(QUIC_BUFFER* SendBuffer)
+void TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
 {
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
