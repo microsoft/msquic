@@ -77,14 +77,14 @@ typedef TcpSendCompleteCallback* TcpSendCompleteHandler;
 
 class TcpEngine {
     friend class TcpWorker;
-    bool Initialized;
-    bool Shutdown;
+    bool Initialized{false};
+    bool Shutdown{false};
     const uint16_t ProcCount;
     TcpWorker* Workers;
 public:
     static const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks;
     static const CXPLAT_TLS_CALLBACKS TlsCallbacks;
-    CXPLAT_DATAPATH* Datapath;
+    CXPLAT_DATAPATH* Datapath{nullptr};
     const TcpAcceptHandler AcceptHandler;
     const TcpConnectHandler ConnectHandler;
     const TcpReceiveHandler ReceiveHandler;
@@ -103,12 +103,13 @@ public:
 class TcpWorker {
     friend class TcpEngine;
     friend class TcpConnection;
-    bool Initialized;
-    TcpEngine* Engine;
+    bool Initialized{false};
+    TcpEngine* Engine{nullptr};
     CXPLAT_THREAD Thread;
     CXPLAT_EVENT WakeEvent;
     CXPLAT_DISPATCH_LOCK Lock;
-    CXPLAT_LIST_ENTRY Connections;
+    TcpConnection* Connections{nullptr};
+    TcpConnection** ConnectionsTail{&Connections};
     TcpWorker();
     ~TcpWorker();
     bool Initialize(TcpEngine* _Engine);
@@ -157,27 +158,28 @@ class TcpConnection {
     friend class TcpWorker;
     friend class TcpServer;
     bool IsServer;
-    bool Initialized;
-    bool StartTls;
-    bool IndicateAccept;
-    bool IndicateConnect;
-    bool IndicateDisconnect;
-    CXPLAT_LIST_ENTRY Entry;
+    bool Initialized{false};
+    bool QueuedOnWorker{false};
+    bool StartTls{true};
+    bool IndicateAccept{false};
+    bool IndicateConnect{false};
+    bool IndicateDisconnect{false};
+    TcpConnection* Next{nullptr};
     TcpEngine* Engine;
-    TcpWorker* Worker;
+    TcpWorker* Worker{nullptr};
     CXPLAT_REF_COUNT Ref;
     CXPLAT_DISPATCH_LOCK Lock;
     QUIC_ADDR LocalAddress;
     QUIC_ADDR RemoteAddress;
-    CXPLAT_SOCKET* Socket;
-    CXPLAT_SEC_CONFIG* SecConfig;
-    CXPLAT_TLS* Tls;
+    CXPLAT_SOCKET* Socket{nullptr};
+    CXPLAT_SEC_CONFIG* SecConfig{nullptr};
+    CXPLAT_TLS* Tls{nullptr};
     CXPLAT_TLS_PROCESS_STATE TlsState;
-    CXPLAT_RECV_DATA* ReceiveData;
-    TcpSendData* SendData;
-    CXPLAT_SEND_DATA* BatchedSendData;
+    CXPLAT_RECV_DATA* ReceiveData{nullptr};
+    TcpSendData* SendData{nullptr};
+    CXPLAT_SEND_DATA* BatchedSendData{nullptr};
     uint8_t BufferedData[TLS_BLOCK_SIZE];
-    uint32_t BufferedDataLength;
+    uint32_t BufferedDataLength{0};
     TcpConnection(TcpEngine* Engine, CXPLAT_SEC_CONFIG* SecConfig, CXPLAT_SOCKET* Socket);
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -233,7 +235,7 @@ class TcpConnection {
     void FreeSendBuffer(QUIC_BUFFER* SendBuffer);
     void FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
 public:
-    void* Context; // App context
+    void* Context{nullptr}; // App context
     TcpConnection(
         TcpEngine* Engine,
         const QUIC_CREDENTIAL_CONFIG* CredConfig,

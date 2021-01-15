@@ -100,8 +100,7 @@ TcpEngine::TcpEngine(
     TcpConnectHandler ConnectHandler,
     TcpReceiveHandler ReceiveHandler,
     TcpSendCompleteHandler SendCompleteHandler) :
-    Initialized(false), Shutdown(false), ProcCount((uint16_t)CxPlatProcActiveCount()),
-    Workers(new TcpWorker[ProcCount]), Datapath(nullptr),
+    ProcCount((uint16_t)CxPlatProcActiveCount()), Workers(new TcpWorker[ProcCount]),
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {
@@ -142,24 +141,20 @@ void TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex
 
 // ############################# WORKER #############################
 
-TcpWorker::TcpWorker() : Initialized(false), Engine(nullptr)
+TcpWorker::TcpWorker()
 {
     CxPlatEventInitialize(&WakeEvent, FALSE, FALSE);
     CxPlatDispatchLockInitialize(&Lock);
-    CxPlatListInitializeHead(&Connections);
 }
 
 TcpWorker::~TcpWorker()
 {
     if (Initialized) {
         CxPlatThreadDelete(&Thread);
-        while (!CxPlatListIsEmpty(&Connections)) {
-            auto Connection =
-                CXPLAT_CONTAINING_RECORD(
-                    CxPlatListRemoveHead(&Connections),
-                    TcpConnection,
-                    Entry);
-            Connection->Entry.Flink = nullptr;
+        while (Connections) {
+            auto Connection = Connections;
+            Connections = Connections->Next;
+            Connection->QueuedOnWorker = false;
             // TODO - What?!
             Connection->Release();
         }
@@ -197,15 +192,15 @@ CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
     while (!This->Engine->Shutdown) {
         TcpConnection* Connection;
         CxPlatDispatchLockAcquire(&This->Lock);
-        if (CxPlatListIsEmpty(&This->Connections)) {
+        if (!This->Connections) {
             Connection = nullptr;
         } else {
-            Connection =
-                CXPLAT_CONTAINING_RECORD(
-                    CxPlatListRemoveHead(&This->Connections),
-                    TcpConnection,
-                    Entry);
-            Connection->Entry.Flink = nullptr;
+            Connection = This->Connections;
+            This->Connections = Connection->Next;
+            if (This->ConnectionsTail == &Connection->Next) {
+                This->ConnectionsTail = &Connection;
+            }
+            Connection->QueuedOnWorker = false;
         }
         CxPlatDispatchLockRelease(&This->Lock);
         if (Connection) {
@@ -222,9 +217,11 @@ CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
 void TcpWorker::QueueConnection(TcpConnection* Connection)
 {
     CxPlatDispatchLockAcquire(&Lock);
-    if (!Connection->Entry.Flink) {
+    if (!Connection->QueuedOnWorker) {
+        Connection->QueuedOnWorker = true;
         Connection->AddRef();
-        CxPlatListInsertTail(&Connections, &Connection->Entry);
+        *ConnectionsTail = Connection;
+        ConnectionsTail = &Connection->Next;
         CxPlatEventSet(WakeEvent);
     }
     CxPlatDispatchLockRelease(&Lock);
@@ -293,13 +290,8 @@ TcpConnection::TcpConnection(
     const QUIC_ADDR* RemoteAddress,
     const QUIC_ADDR* LocalAddress,
     void* Context) :
-    IsServer(false), Initialized(false), StartTls(false), IndicateAccept(false),
-    IndicateConnect(false), IndicateDisconnect(false),
-    Engine(Engine), Worker(nullptr), Socket(nullptr), SecConfig(nullptr), Tls(nullptr),
-    ReceiveData(nullptr), SendData(nullptr), BatchedSendData(nullptr),
-    BufferedDataLength(0), Context(Context)
+    IsServer(false), Engine(Engine), Context(Context)
 {
-    Entry.Flink = NULL;
     CxPlatRefInitialize(&Ref);
     CxPlatDispatchLockInitialize(&Lock);
     CxPlatZeroMemory(&TlsState, sizeof(TlsState));
@@ -320,7 +312,6 @@ TcpConnection::TcpConnection(
         return;
     }
     Initialized = true;
-    StartTls = true;
     Engine->AddConnection(this, 0); // TODO - Correct index
     Queue();
 }
@@ -329,18 +320,12 @@ TcpConnection::TcpConnection(
     TcpEngine* Engine,
     CXPLAT_SEC_CONFIG* SecConfig,
     CXPLAT_SOCKET* Socket) :
-    IsServer(true), Initialized(false), StartTls(false), IndicateAccept(false),
-    IndicateConnect(false), IndicateDisconnect(false),
-    Engine(Engine), Worker(nullptr), Socket(Socket), SecConfig(SecConfig), Tls(nullptr),
-    ReceiveData(nullptr), SendData(nullptr), BatchedSendData(nullptr),
-    BufferedDataLength(0), Context(nullptr)
+    IsServer(true), Engine(Engine), SecConfig(SecConfig)
 {
-    Entry.Flink = NULL;
     CxPlatRefInitialize(&Ref);
     CxPlatDispatchLockInitialize(&Lock);
     CxPlatZeroMemory(&TlsState, sizeof(TlsState));
     Initialized = true;
-    StartTls = true;
     IndicateAccept = true;
     Engine->AddConnection(this, 0); // TODO - Correct index
     Queue();
@@ -354,7 +339,7 @@ TcpConnection::~TcpConnection()
     if (IsServer && SecConfig) {
         CxPlatTlsSecConfigDelete(SecConfig);
     }
-    CXPLAT_DBG_ASSERT(Entry.Flink == NULL);
+    CXPLAT_DBG_ASSERT(!QueuedOnWorker);
     CxPlatDispatchLockUninitialize(&Lock);
 }
 
