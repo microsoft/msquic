@@ -336,7 +336,7 @@ CxPlatPcpProcessDatagram(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 void
 CxPlatPcpRecvCallback(
     _In_ CXPLAT_SOCKET* Socket,

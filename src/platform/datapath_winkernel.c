@@ -1364,7 +1364,7 @@ CxPlatSocketCreateUdp(
     for (uint32_t i = 0; i < CxPlatProcMaxCount(); ++i) {
         CxPlatRundownInitialize(&Binding->Rundown[i]);
     }
-    if (InternalFlags & QUIC_DATAPATH_BINDING_FLAG_PCP) {
+    if (InternalFlags & CXPLAT_SOCKET_FLAG_PCP) {
         Binding->PcpBinding = TRUE;
     }
 
@@ -2101,7 +2101,7 @@ CxPlatDataPathSocketReceive(
 #endif
 
             if (!Binding->PcpBinding) {
-                QUIC_DBG_ASSERT(Binding->Datapath->UdpHandlers.Unreachable);
+                CXPLAT_DBG_ASSERT(Binding->Datapath->UdpHandlers.Unreachable);
                 Binding->Datapath->UdpHandlers.Unreachable(
                     Binding,
                     Binding->ClientContext,
@@ -2304,12 +2304,12 @@ CxPlatDataPathSocketReceive(
             Binding->Datapath->UdpHandlers.Receive(
                 Binding,
                 Binding->ClientContext,
-                DatagramChain);
+                RecvDataChain);
         } else {
             CxPlatPcpRecvCallback(
                 Binding,
                 Binding->ClientContext,
-                DatagramChain);
+                RecvDataChain);
         }
     }
 
