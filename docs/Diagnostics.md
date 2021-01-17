@@ -4,7 +4,7 @@ This document describes various ways to debug and diagnose issues when using MsQ
 
 # Trace Collection
 
-For functional problems, generally logging is the best way to diagnose problems. MsQuic has extensive logs in the code to facilitate debugging.
+For debugging issues, generally logging is the best way to diagnose problems. MsQuic has extensive logs in the code to facilitate debugging.
 
 ## Windows
 
@@ -117,8 +117,12 @@ QUIC_PERF_COUNTER_WORK_OPER_COMPLETED | Total worker operations processed ever
 
 ## Windows Performance Monitor
 
-On the latest version of Windows, these counters are also exposed via PerfMon.exe under the `QUIC Performance Counters` category. The values exposed via PerfMon **only represent kernel mode usages** of MsQuic, and do not include user mode counters. Counters are also captured at the beginning of MsQuic ETW traces, and unlike PerfMon, include all MsQuic instances running on the system, both user and kernel mode.
+On the latest version of Windows, these counters are also exposed via PerfMon.exe under the `QUIC Performance Diagnostics` category. The values exposed via PerfMon **only represent kernel mode usages** of MsQuic, and do not include user mode counters.
 
 ![](images/perfmon.png)
+
+## ETW
+
+Counters are also captured at the beginning of MsQuic ETW traces, and unlike PerfMon, includes all MsQuic instances running on the system, both user and kernel mode.
 
 # FAQ
