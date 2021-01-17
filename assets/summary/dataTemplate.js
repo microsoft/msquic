@@ -16,6 +16,7 @@ Chart.defaults.scale.display = true
 
 // Chart variables used in onClick handler
 var tputChart = null;
+var tputDownChart = null;
 var rpsChart = null;
 var hpsChart = null;
 var rpsLatencyChart = null;
@@ -169,7 +170,7 @@ function createLatencyChartOptions(name) {
             }],
             yAxes: [{
                 display: true,
-                
+
                 scaleLabel: createScaleLabel(name),
             }]
         }
@@ -341,6 +342,7 @@ function updateChartPlatforms(chart, platform, checked) {
 function onRadioChange(event) {
     var value = event.srcElement.value;
     updateChartDisplayPoints(tputChart, value)
+    updateChartDisplayPoints(tputDownChart, value)
     updateChartDisplayPoints(rpsChart, value)
     updateChartDisplayPoints(hpsChart, value)
     updateChartDisplayPoints(rpsLatencyChart, value)
@@ -350,6 +352,7 @@ function onPlatformChange(event) {
     var platform = event.srcElement.id
     var checked = event.srcElement.checked
     updateChartPlatforms(tputChart, platform, checked)
+    updateChartPlatforms(tputDownChart, platform, checked)
     updateChartPlatforms(rpsChart, platform, checked)
     updateChartPlatforms(hpsChart, platform, checked)
     updateChartPlatforms(rpsLatencyChart, platform, checked)
@@ -373,6 +376,10 @@ window.onload = function() {
     // Detailed charts
     tputChart = new Chart(document.getElementById('canvasThroughput').getContext('2d'), {
         data: createDatasets(dataRawWinKernelx64SchannelThroughput, dataAverageWinKernelx64SchannelThroughput, dataRawWindowsx64SchannelThroughput, dataAverageWindowsx64SchannelThroughput, dataRawWindowsx64OpensslThroughput, dataAverageWindowsx64OpensslThroughput),
+        options: createChartOptions('Throughput (kbps)')
+    });
+    tputDownChart = new Chart(document.getElementById('canvasThroughputDown').getContext('2d'), {
+        data: createDatasets(dataRawWinKernelx64SchannelThroughputDown, dataAverageWinKernelx64SchannelThroughputDown, dataRawWindowsx64SchannelThroughputDown, dataAverageWindowsx64SchannelThroughputDown, dataRawWindowsx64OpensslThroughputDown, dataAverageWindowsx64OpensslThroughputDown),
         options: createChartOptions('Throughput (kbps)')
     });
     rpsChart = new Chart(document.getElementById('canvasRPS').getContext('2d'), {

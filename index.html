@@ -100,8 +100,13 @@
             (<a href="https://en.wikipedia.org/wiki/Goodput">goodput</a>) over
             the lifetime of the connection.
         </p>
+        <h4>Client Upload</h4>
         <div class="graph">
             <canvas id="canvasThroughput" class="chartjs-render-monitor"></canvas>
+        </div>
+        <h4>Client Download</h4>
+        <div class="graph">
+            <canvas id="canvasThroughputDown" class="chartjs-render-monitor"></canvas>
         </div>
         <h3>Requests per Second</h3>
         <p>
@@ -114,7 +119,7 @@
         </div>
         <h3>Requests Per Second Latency</h3>
         <p>
-            This displays latency results in microseconds in a histogram of 
+            This displays latency results in microseconds in a histogram of
             percentiles from the last RPS run. This is computed by using the
             latency time of every request during the RPS run that computed the
             above graph.
