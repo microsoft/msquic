@@ -32,12 +32,12 @@ QuicStreamInitialize(
     uint32_t InitialRecvBufferLength;
     QUIC_WORKER* Worker = Connection->Worker;
 
-    Stream = QuicPoolAlloc(&Worker->StreamPool);
+    Stream = CxPlatPoolAlloc(&Worker->StreamPool);
     if (Stream == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
-    QuicZeroMemory(Stream, sizeof(QUIC_STREAM));
+    CxPlatZeroMemory(Stream, sizeof(QUIC_STREAM));
 
     Stream->Type = QUIC_HANDLE_TYPE_STREAM;
     Stream->Connection = Connection;
@@ -50,8 +50,8 @@ QuicStreamInitialize(
     Stream->RecvMaxLength = UINT64_MAX;
     Stream->RefCount = 1;
     Stream->SendRequestsTail = &Stream->SendRequests;
-    QuicDispatchLockInitialize(&Stream->ApiSendRequestLock);
-    QuicRefInitialize(&Stream->RefCount);
+    CxPlatDispatchLockInitialize(&Stream->ApiSendRequestLock);
+    CxPlatRefInitialize(&Stream->RefCount);
     QuicRangeInitialize(
         QUIC_MAX_RANGE_ALLOC_SIZE,
         &Stream->SparseAckRanges);
@@ -86,8 +86,8 @@ QuicStreamInitialize(
     }
 
 #if 1 // Special case code to force bugcheck or failure. Will be removed when no longer needed.
-    QUIC_FRE_ASSERT(Connection->Settings.StreamRecvBufferDefault != 0x80000000u);
-    if (Connection->Settings.StreamRecvBufferDefault == 0x40000000u) {
+    CXPLAT_FRE_ASSERT(Connection->Settings.StreamRecvBufferDefault != 0x80000000U);
+    if (Connection->Settings.StreamRecvBufferDefault == 0x40000000U) {
         QuicTraceEvent(
             StreamError,
             "[strm][%p] ERROR, %s.",
@@ -100,7 +100,7 @@ QuicStreamInitialize(
 
     InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
-        PreallocatedRecvBuffer = QuicPoolAlloc(&Worker->DefaultReceiveBufferPool);
+        PreallocatedRecvBuffer = CxPlatPoolAlloc(&Worker->DefaultReceiveBufferPool);
         if (PreallocatedRecvBuffer == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
@@ -119,12 +119,12 @@ QuicStreamInitialize(
     }
 
     Stream->MaxAllowedRecvOffset = Stream->RecvBuffer.VirtualBufferLength;
-    Stream->RecvWindowLastUpdate = QuicTimeUs32();
+    Stream->RecvWindowLastUpdate = CxPlatTimeUs32();
 
 #if DEBUG
-    QuicDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
-    QuicListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
-    QuicDispatchLockRelease(&Connection->Streams.AllStreamsLock);
+    CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
+    CxPlatListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
+    CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
 
     Stream->Flags.Initialized = TRUE;
@@ -136,12 +136,12 @@ QuicStreamInitialize(
 Exit:
 
     if (Stream) {
-        QuicDispatchLockUninitialize(&Stream->ApiSendRequestLock);
+        CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
         Stream->Flags.Freed = TRUE;
-        QuicPoolFree(&Worker->StreamPool, Stream);
+        CxPlatPoolFree(&Worker->StreamPool, Stream);
     }
     if (PreallocatedRecvBuffer) {
-        QuicPoolFree(&Worker->DefaultReceiveBufferPool, PreallocatedRecvBuffer);
+        CxPlatPoolFree(&Worker->DefaultReceiveBufferPool, PreallocatedRecvBuffer);
     }
 
     return Status;
@@ -157,36 +157,36 @@ QuicStreamFree(
     QUIC_CONNECTION* Connection = Stream->Connection;
     QUIC_WORKER* Worker = Connection->Worker;
 
-    QUIC_TEL_ASSERT(Stream->RefCount == 0);
-    QUIC_TEL_ASSERT(Stream->Flags.ShutdownComplete);
-    QUIC_TEL_ASSERT(Stream->Flags.HandleClosed);
-    QUIC_TEL_ASSERT(Stream->ClosedLink.Flink == NULL);
-    QUIC_TEL_ASSERT(Stream->SendLink.Flink == NULL);
+    CXPLAT_TEL_ASSERT(Stream->RefCount == 0);
+    CXPLAT_TEL_ASSERT(Stream->Flags.ShutdownComplete);
+    CXPLAT_TEL_ASSERT(Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(Stream->ClosedLink.Flink == NULL);
+    CXPLAT_TEL_ASSERT(Stream->SendLink.Flink == NULL);
 
     Stream->Flags.Uninitialized = TRUE;
 
-    QUIC_TEL_ASSERT(Stream->ApiSendRequests == NULL);
-    QUIC_TEL_ASSERT(Stream->SendRequests == NULL);
+    CXPLAT_TEL_ASSERT(Stream->ApiSendRequests == NULL);
+    CXPLAT_TEL_ASSERT(Stream->SendRequests == NULL);
 
 #if DEBUG
-    QuicDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
-    QuicListEntryRemove(&Stream->AllStreamsLink);
-    QuicDispatchLockRelease(&Connection->Streams.AllStreamsLock);
+    CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
+    CxPlatListEntryRemove(&Stream->AllStreamsLink);
+    CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
 
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     QuicRangeUninitialize(&Stream->SparseAckRanges);
-    QuicDispatchLockUninitialize(&Stream->ApiSendRequestLock);
-    QuicRefUninitialize(&Stream->RefCount);
+    CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
+    CxPlatRefUninitialize(&Stream->RefCount);
 
     if (Stream->RecvBuffer.PreallocatedBuffer) {
-        QuicPoolFree(
+        CxPlatPoolFree(
             &Worker->DefaultReceiveBufferPool,
             Stream->RecvBuffer.PreallocatedBuffer);
     }
 
     Stream->Flags.Freed = TRUE;
-    QuicPoolFree(&Worker->StreamPool, Stream);
+    CxPlatPoolFree(&Worker->StreamPool, Stream);
 
     QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 
@@ -367,7 +367,7 @@ QuicStreamTraceRundown(
         Stream,
         Stream->Connection,
         Stream->ID,
-        (!QuicConnIsServer(Stream->Connection) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
+        ((!QuicConnIsServer(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
     QuicTraceEvent(
         StreamOutFlowBlocked,
         "[strm][%p] Send Blocked Flags: %hhu",
@@ -448,11 +448,11 @@ QuicStreamShutdown(
     _In_ QUIC_VAR_INT ErrorCode
     )
 {
-    QUIC_DBG_ASSERT(Flags != 0 && Flags != QUIC_STREAM_SHUTDOWN_SILENT);
-    QUIC_DBG_ASSERT(
+    CXPLAT_DBG_ASSERT(Flags != 0 && Flags != QUIC_STREAM_SHUTDOWN_SILENT);
+    CXPLAT_DBG_ASSERT(
         Flags == QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL ||
         !(Flags & QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL));
-    QUIC_DBG_ASSERT(
+    CXPLAT_DBG_ASSERT(
         !(Flags & QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE) ||
         Flags == (QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE |
                   QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE |
@@ -586,6 +586,7 @@ QuicStreamParamGet(
         if (!Stream->Flags.Started ||
             !Stream->Flags.LocalCloseAcked) {
             Status = QUIC_STATUS_INVALID_STATE;
+            break;
         }
 
         *BufferLength = sizeof(uint64_t);

@@ -14,7 +14,7 @@ Abstract:
 #include "pcp.c.clog.h"
 #endif
 
-const uint16_t QUIC_PCP_PORT = 5351;
+const uint16_t CXPLAT_PCP_PORT = 5351;
 
 const uint16_t PCP_MAX_UDP_PAYLOAD = 1100;
 
@@ -124,34 +124,34 @@ const uint16_t PCP_PEER_RESPONSE_SIZE = SIZEOF_THROUGH_FIELD(PCP_RESPONSE, PEER.
 //
 // Main structure for PCP
 //
-typedef struct QUIC_PCP {
+typedef struct CXPLAT_PCP {
 
     void* ClientContext;
-    QUIC_PCP_CALLBACK_HANDLER ClientCallback;
+    CXPLAT_PCP_CALLBACK_HANDLER ClientCallback;
 
     uint32_t GatewayCount;
 
     _Field_size_(GatewayCount)
-    QUIC_DATAPATH_BINDING* GatewayBindings[0];
+    CXPLAT_SOCKET* GatewaySockets[0];
 
-} QUIC_PCP;
+} CXPLAT_PCP;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicPcpInitialize(
-    _In_ QUIC_DATAPATH* Datapath,
+CxPlatPcpInitialize(
+    _In_ CXPLAT_DATAPATH* Datapath,
     _In_ void* Context,
-    _In_ QUIC_PCP_CALLBACK_HANDLER Handler,
-    _Out_ QUIC_PCP** NewPcpContext
+    _In_ CXPLAT_PCP_CALLBACK_HANDLER Handler,
+    _Out_ CXPLAT_PCP** NewPcpContext
     )
 {
-    QUIC_PCP* PcpContext = NULL;
+    CXPLAT_PCP* PcpContext = NULL;
     uint32_t PcpContextSize;
     QUIC_ADDR* GatewayAddresses = NULL;
     uint32_t GatewayAddressesCount;
 
     QUIC_STATUS Status =
-        QuicDataPathGetGatewayAddresses(
+        CxPlatDataPathGetGatewayAddresses(
             Datapath,
             &GatewayAddresses,
             &GatewayAddressesCount);
@@ -161,13 +161,13 @@ QuicPcpInitialize(
     QUIC_DBG_ASSERT(GatewayAddresses != NULL);
     QUIC_DBG_ASSERT(GatewayAddressesCount != 0);
 
-    PcpContextSize = sizeof(QUIC_PCP) + (GatewayAddressesCount * sizeof(QUIC_DATAPATH_BINDING*));
-    PcpContext = (QUIC_PCP*)QUIC_ALLOC_PAGED(PcpContextSize, QUIC_POOL_PCP);
+    PcpContextSize = sizeof(CXPLAT_PCP) + (GatewayAddressesCount * sizeof(CXPLAT_SOCKET*));
+    PcpContext = (CXPLAT_PCP*)QUIC_ALLOC_PAGED(PcpContextSize, QUIC_POOL_PCP);
     if (PcpContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_PCP",
+            "CXPLAT_PCP",
             PcpContextSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -179,15 +179,15 @@ QuicPcpInitialize(
     PcpContext->GatewayCount = GatewayAddressesCount;
 
     for (uint32_t i = 0; i < GatewayAddressesCount; ++i) {
-        QuicAddrSetPort(&GatewayAddresses[i], QUIC_PCP_PORT);
+        QuicAddrSetPort(&GatewayAddresses[i], CXPLAT_PCP_PORT);
         Status =
-            QuicDataPathBindingCreate(
+            CxPlatSocketCreateUdp(
                 Datapath,
                 NULL,
                 &GatewayAddresses[i],
                 PcpContext,
-                QUIC_DATAPATH_BINDING_FLAG_PCP,
-                &PcpContext->GatewayBindings[i]);
+                CXPLAT_SOCKET_FLAG_PCP,
+                &PcpContext->GatewaySockets[i]);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
@@ -200,7 +200,7 @@ Exit:
 
     if (QUIC_FAILED(Status)) {
         if (PcpContext != NULL) {
-            QuicPcpUninitialize(PcpContext);
+            CxPlatPcpUninitialize(PcpContext);
         }
     }
 
@@ -213,15 +213,15 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPcpUninitialize(
-    _In_ QUIC_PCP* PcpContext
+CxPlatPcpUninitialize(
+    _In_ CXPLAT_PCP* PcpContext
     )
 {
     QUIC_DBG_ASSERT(PcpContext != NULL);
 
     for (uint32_t i = 0; i < PcpContext->GatewayCount; ++i) {
-        if (PcpContext->GatewayBindings[i] != NULL) {
-            QuicDataPathBindingDelete(PcpContext->GatewayBindings[i]);
+        if (PcpContext->GatewaySockets[i] != NULL) {
+            CxPlatSocketDelete(PcpContext->GatewaySockets[i]);
         }
     }
 
@@ -230,9 +230,9 @@ QuicPcpUninitialize(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicPcpProcessDatagram(
-    _In_ QUIC_PCP* PcpContext,
-    _In_ QUIC_RECV_DATAGRAM* Datagram
+CxPlatPcpProcessDatagram(
+    _In_ CXPLAT_PCP* PcpContext,
+    _In_ CXPLAT_RECV_DATA* Datagram
     )
 {
     PCP_RESPONSE* Response = (PCP_RESPONSE*)Datagram->Buffer;
@@ -261,8 +261,8 @@ QuicPcpProcessDatagram(
         return;
     }
 
-    QUIC_PCP_EVENT Event;
-    QuicCopyMemory(Event.FAILURE.Nonce, Response->MAP.MappingNonce, QUIC_PCP_NONCE_LENGTH);
+    CXPLAT_PCP_EVENT Event;
+    QuicCopyMemory(Event.FAILURE.Nonce, Response->MAP.MappingNonce, CXPLAT_PCP_NONCE_LENGTH);
     QUIC_ADDR InternalAddress;
     QuicCopyMemory(&InternalAddress, &Datagram->Tuple->LocalAddress, sizeof(QUIC_ADDR));
     InternalAddress.Ipv6.sin6_port = Response->MAP.InternalPort;
@@ -270,7 +270,7 @@ QuicPcpProcessDatagram(
     QUIC_ADDR RemotePeerAddress = {0};
 
     if (Response->ResultCode != PCP_RESULT_SUCCESS) {
-        Event.Type = QUIC_PCP_EVENT_FAILURE;
+        Event.Type = CXPLAT_PCP_EVENT_FAILURE;
         Event.FAILURE.ErrorCode = Response->ResultCode;
 
     } else if (Response->Opcode == PCP_OPCODE_MAP) {
@@ -283,7 +283,7 @@ QuicPcpProcessDatagram(
         ExternalAddress.Ipv6.sin6_port = Response->MAP.AssignedExternalPort;
         QuicConvertFromMappedV6(&ExternalAddress, &ExternalAddress);
 
-        Event.Type = QUIC_PCP_EVENT_MAP;
+        Event.Type = CXPLAT_PCP_EVENT_MAP;
         Event.MAP.LifetimeSeconds = QuicByteSwapUint32(Response->Lifetime);
         Event.MAP.InternalAddress = &InternalAddress;
         Event.MAP.ExternalAddress = &ExternalAddress;
@@ -314,7 +314,7 @@ QuicPcpProcessDatagram(
         RemotePeerAddress.Ipv6.sin6_port = Response->PEER.RemotePeerPort;
         QuicConvertFromMappedV6(&RemotePeerAddress, &RemotePeerAddress);
 
-        Event.Type = QUIC_PCP_EVENT_PEER;
+        Event.Type = CXPLAT_PCP_EVENT_PEER;
         Event.PEER.LifetimeSeconds = QuicByteSwapUint32(Response->Lifetime);
         Event.PEER.InternalAddress = &InternalAddress;
         Event.PEER.ExternalAddress = &ExternalAddress;
@@ -338,66 +338,65 @@ QuicPcpProcessDatagram(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 void
-QuicPcpRecvCallback(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+CxPlatPcpRecvCallback(
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ void* Context,
-    _In_ QUIC_RECV_DATAGRAM* RecvBufferChain
+    _In_ CXPLAT_RECV_DATA* RecvBufferChain
     )
 {
-    UNREFERENCED_PARAMETER(Binding);
+    UNREFERENCED_PARAMETER(Socket);
     QUIC_DBG_ASSERT(Context);
-    QUIC_PCP* PcpContext = Context;
+    CXPLAT_PCP* PcpContext = Context;
 
-    for (QUIC_RECV_DATAGRAM* Datagram = RecvBufferChain;
+    for (CXPLAT_RECV_DATA* Datagram = RecvBufferChain;
          Datagram != NULL;
          Datagram = Datagram->Next) {
-        QuicPcpProcessDatagram(PcpContext, RecvBufferChain);
+        CxPlatPcpProcessDatagram(PcpContext, RecvBufferChain);
     }
 
-    QuicDataPathBindingReturnRecvDatagrams(RecvBufferChain);
+    CxPlatSocketReturnRecvDatagrams(RecvBufferChain);
 }
 
 BOOLEAN
-QuicDatapathBindingMatchesLocalAddr(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+CxPlatSocketMatchesLocalAddr(
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddr
     )
 {
-    QUIC_ADDR BindingLocalAddress;
-    QuicDataPathBindingGetLocalAddress(Binding, &BindingLocalAddress);
+    QUIC_ADDR SocketLocalAddress;
+    CxPlatSocketGetLocalAddress(Socket, &SocketLocalAddress);
     return
-        QuicAddrGetFamily(LocalAddr) == QuicAddrGetFamily(&BindingLocalAddress) &&
-        QuicAddrCompareIp(LocalAddr, &BindingLocalAddress);
+        QuicAddrGetFamily(LocalAddr) == QuicAddrGetFamily(&SocketLocalAddress) &&
+        QuicAddrCompareIp(LocalAddr, &SocketLocalAddress);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicPcpSendMapRequestInternal(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_reads_(QUIC_PCP_NONCE_LENGTH)
+CxPlatPcpSendMapRequestInternal(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_reads_(CXPLAT_PCP_NONCE_LENGTH)
         const uint8_t* Nonce,
     _In_ uint16_t InternalPort,     // Host byte order
     _In_ uint32_t Lifetime          // Zero indicates delete Nonce must match.
     )
 {
     QUIC_ADDR LocalAddress, RemoteAddress;
-    QuicDataPathBindingGetLocalAddress(Binding, &LocalAddress);
-    QuicDataPathBindingGetRemoteAddress(Binding, &RemoteAddress);
+    CxPlatSocketGetLocalAddress(Socket, &LocalAddress);
+    CxPlatSocketGetRemoteAddress(Socket, &RemoteAddress);
 
     QUIC_ADDR LocalMappedAddress;
     QuicConvertToMappedV6(&LocalAddress, &LocalMappedAddress);
 
-    QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-        QuicDataPathBindingAllocSendContext(
-            Binding, QUIC_ECN_NON_ECT, PCP_MAP_REQUEST_SIZE);
+    CXPLAT_SEND_DATA* SendContext =
+        CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, PCP_MAP_REQUEST_SIZE);
     if (SendContext == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     QUIC_BUFFER* SendBuffer =
-        QuicDataPathBindingAllocSendDatagram(SendContext, PCP_MAP_REQUEST_SIZE);
+        CxPlatSendDataAllocBuffer(SendContext, PCP_MAP_REQUEST_SIZE);
     if (SendBuffer == NULL) {
-        QuicDataPathBindingFreeSendContext(SendContext);
+        CxPlatSocketFreeSendContext(SendContext);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -412,7 +411,7 @@ QuicPcpSendMapRequestInternal(
         Request->ClientIpAddress,
         &LocalMappedAddress.Ipv6.sin6_addr,
         sizeof(Request->ClientIpAddress));
-    QuicCopyMemory(Request->MAP.MappingNonce, Nonce, QUIC_PCP_NONCE_LENGTH);
+    QuicCopyMemory(Request->MAP.MappingNonce, Nonce, CXPLAT_PCP_NONCE_LENGTH);
     Request->MAP.Protocol = 17; // UDP
     QuicZeroMemory(Request->MAP.Reserved, sizeof(Request->MAP.Reserved));
     Request->MAP.InternalPort = QuicByteSwapUint16(InternalPort);
@@ -422,8 +421,8 @@ QuicPcpSendMapRequestInternal(
         sizeof(Request->MAP.SuggestedExternalIpAddress));
 
     QUIC_STATUS Status =
-        QuicDataPathBindingSend(
-            Binding,
+        CxPlatSocketSend(
+            Socket,
             &LocalAddress,
             &RemoteAddress,
             SendContext);
@@ -436,9 +435,9 @@ QuicPcpSendMapRequestInternal(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicPcpSendMapRequest(
-    _In_ QUIC_PCP* PcpContext,
-    _In_reads_(QUIC_PCP_NONCE_LENGTH)
+CxPlatPcpSendMapRequest(
+    _In_ CXPLAT_PCP* PcpContext,
+    _In_reads_(CXPLAT_PCP_NONCE_LENGTH)
         const uint8_t* Nonce,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_ uint16_t InternalPort,     // Host byte order
@@ -450,11 +449,11 @@ QuicPcpSendMapRequest(
     QUIC_STATUS Status;
     for (uint32_t i = 0; i < PcpContext->GatewayCount; ++i) {
         if (LocalAddress == NULL ||
-            QuicDatapathBindingMatchesLocalAddr(
-                PcpContext->GatewayBindings[i], LocalAddress)) {
+            CxPlatSocketMatchesLocalAddr(
+                PcpContext->GatewaySockets[i], LocalAddress)) {
             Status =
-                QuicPcpSendMapRequestInternal(
-                    PcpContext->GatewayBindings[i],
+                CxPlatPcpSendMapRequestInternal(
+                    PcpContext->GatewaySockets[i],
                     Nonce,
                     InternalPort,
                     Lifetime);
@@ -469,9 +468,9 @@ QuicPcpSendMapRequest(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicPcpSendPeerRequestInternal(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_reads_(QUIC_PCP_NONCE_LENGTH)
+CxPlatPcpSendPeerRequestInternal(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_reads_(CXPLAT_PCP_NONCE_LENGTH)
         const uint8_t* Nonce,
     _In_ const QUIC_ADDR* RemotePeerAddress,
     _In_ uint16_t InternalPort,     // Host byte order
@@ -479,8 +478,8 @@ QuicPcpSendPeerRequestInternal(
     )
 {
     QUIC_ADDR LocalAddress, RemoteAddress;
-    QuicDataPathBindingGetLocalAddress(Binding, &LocalAddress);
-    QuicDataPathBindingGetRemoteAddress(Binding, &RemoteAddress);
+    CxPlatSocketGetLocalAddress(Socket, &LocalAddress);
+    CxPlatSocketGetRemoteAddress(Socket, &RemoteAddress);
 
     QUIC_ADDR LocalMappedAddress;
     QuicConvertToMappedV6(&LocalAddress, &LocalMappedAddress);
@@ -488,17 +487,16 @@ QuicPcpSendPeerRequestInternal(
     QUIC_ADDR RemotePeerMappedAddress;
     QuicConvertToMappedV6(RemotePeerAddress, &RemotePeerMappedAddress);
 
-    QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-        QuicDataPathBindingAllocSendContext(
-            Binding, QUIC_ECN_NON_ECT, PCP_PEER_REQUEST_SIZE);
+    CXPLAT_SEND_DATA* SendContext =
+        CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, PCP_PEER_REQUEST_SIZE);
     if (SendContext == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     QUIC_BUFFER* SendBuffer =
-        QuicDataPathBindingAllocSendDatagram(SendContext, PCP_PEER_REQUEST_SIZE);
+        CxPlatSendDataAllocBuffer(SendContext, PCP_PEER_REQUEST_SIZE);
     if (SendBuffer == NULL) {
-        QuicDataPathBindingFreeSendContext(SendContext);
+        CxPlatSocketFreeSendContext(SendContext);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -513,7 +511,7 @@ QuicPcpSendPeerRequestInternal(
         Request->ClientIpAddress,
         &LocalMappedAddress.Ipv6.sin6_addr,
         sizeof(Request->ClientIpAddress));
-    QuicCopyMemory(Request->MAP.MappingNonce, Nonce, QUIC_PCP_NONCE_LENGTH);
+    QuicCopyMemory(Request->MAP.MappingNonce, Nonce, CXPLAT_PCP_NONCE_LENGTH);
     Request->PEER.Protocol = 17; // UDP
     QuicZeroMemory(Request->PEER.Reserved, sizeof(Request->PEER.Reserved));
     Request->PEER.InternalPort = QuicByteSwapUint16(InternalPort);
@@ -528,8 +526,8 @@ QuicPcpSendPeerRequestInternal(
     Request->PEER.RemotePeerPort = RemotePeerMappedAddress.Ipv6.sin6_port;
 
     QUIC_STATUS Status =
-        QuicDataPathBindingSend(
-            Binding,
+        CxPlatSocketSend(
+            Socket,
             &LocalAddress,
             &RemoteAddress,
             SendContext);
@@ -542,9 +540,9 @@ QuicPcpSendPeerRequestInternal(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicPcpSendPeerRequest(
-    _In_ QUIC_PCP* PcpContext,
-    _In_reads_(QUIC_PCP_NONCE_LENGTH)
+CxPlatPcpSendPeerRequest(
+    _In_ CXPLAT_PCP* PcpContext,
+    _In_reads_(CXPLAT_PCP_NONCE_LENGTH)
         const uint8_t* Nonce,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemotePeerAddress,
@@ -557,11 +555,11 @@ QuicPcpSendPeerRequest(
     QUIC_STATUS Status;
     for (uint32_t i = 0; i < PcpContext->GatewayCount; ++i) {
         if (LocalAddress == NULL ||
-            QuicDatapathBindingMatchesLocalAddr(
-                PcpContext->GatewayBindings[i], LocalAddress)) {
+            CxPlatSocketMatchesLocalAddr(
+                PcpContext->GatewaySockets[i], LocalAddress)) {
             Status =
-                QuicPcpSendPeerRequestInternal(
-                    PcpContext->GatewayBindings[i],
+                CxPlatPcpSendPeerRequestInternal(
+                    PcpContext->GatewaySockets[i],
                     Nonce,
                     RemotePeerAddress,
                     InternalPort,

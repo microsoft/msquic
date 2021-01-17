@@ -49,7 +49,7 @@ PerfServer::Init(
 
     TryGetValue(argc, argv, "port", &Port);
 
-    DataBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE, QUIC_POOL_PERF);
+    DataBuffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE, QUIC_POOL_PERF);
     if (!DataBuffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -64,7 +64,7 @@ PerfServer::Init(
 
 QUIC_STATUS
 PerfServer::Start(
-    _In_ QUIC_EVENT* _StopEvent
+    _In_ CXPLAT_EVENT* _StopEvent
     ) {
     QUIC_ADDR Address;
     QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
@@ -87,9 +87,9 @@ PerfServer::Wait(
     _In_ int Timeout
     ) {
     if (Timeout > 0) {
-        QuicEventWaitWithTimeout(*StopEvent, Timeout);
+        CxPlatEventWaitWithTimeout(*StopEvent, Timeout);
     } else {
-        QuicEventWaitForever(*StopEvent);
+        CxPlatEventWaitForever(*StopEvent);
     }
     Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
     return QUIC_STATUS_SUCCESS;
@@ -199,7 +199,7 @@ PerfServer::StreamCallback(
                 Offset += Length;
             }
             if (Offset == sizeof(uint64_t)) {
-                Context->ResponseSize = QuicByteSwapUint64(Context->ResponseSize);
+                Context->ResponseSize = CxPlatByteSwapUint64(Context->ResponseSize);
                 Context->ResponseSizeSet = true;
             }
         }

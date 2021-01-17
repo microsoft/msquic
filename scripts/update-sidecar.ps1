@@ -16,10 +16,18 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+class SimpleStringComparer:Collections.Generic.IComparer[string] {
+    [Globalization.CompareInfo]$CompareInfo = [Globalization.CompareInfo]::GetCompareInfo([CultureInfo]::InvariantCulture.Name)
+    [int]Compare([string]$x, [string]$y) {
+        return $this.CompareInfo.Compare($x, $y, [Globalization.CompareOptions]::OrdinalIgnoreCase)
+    }
+}
+
 $RootDir = Split-Path $PSScriptRoot -Parent
 $SrcDir = Join-Path $RootDir "src"
 
-$Files = Get-ChildItem -Path "$SrcDir\*" -Recurse -Include *.c,*.h,*.cpp,*.hpp -File
+$Files = [System.Collections.Generic.List[string]](Get-ChildItem -Path "$SrcDir\*" -Recurse -Include *.c,*.h,*.cpp,*.hpp -File)
+$Files.Sort([SimpleStringComparer]::new())
 
 $Sidecar = Join-Path $SrcDir "manifest" "clog.sidecar"
 $ConfigFile = Join-Path $SrcDir "manifest" "msquic.clog_config"
@@ -28,7 +36,7 @@ $OutputDir = Join-Path $RootDir "build" "tmp"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 if ($Clean) {
-    Remove-Item $Sidecar -Force | Out-Null
+    Remove-Item $Sidecar -Force -ErrorAction Ignore | Out-Null
 }
 
 foreach ($File in $Files) {

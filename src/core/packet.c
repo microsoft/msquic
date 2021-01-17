@@ -19,36 +19,16 @@ Abstract:
 // The list is in priority order (highest to lowest).
 //
 const QUIC_VERSION_INFO QuicSupportedVersionList[] = {
-    { QUIC_VERSION_DRAFT_32,
-      { 0xaf, 0xbf, 0xec, 0x28, 0x99, 0x93, 0xd2, 0x4c, 0x9e, 0x97,
-        0x86, 0xf1, 0x9c, 0x61, 0x11, 0xe0, 0x43, 0x90, 0xa8, 0x99 },
-      { 0x8b, 0x0d, 0x37, 0xeb, 0x85, 0x35, 0x02, 0x2e, 0xbc, 0x8d, 0x76, 0xa2, 0x07, 0xd8, 0x0d, 0xf2,
-        0x26, 0x46, 0xec, 0x06, 0xdc, 0x80, 0x96, 0x42, 0xc3, 0x0a, 0x8b, 0xaa, 0x2b, 0xaa, 0xff, 0x4c } },
-    { QUIC_VERSION_DRAFT_31,
-      { 0xaf, 0xbf, 0xec, 0x28, 0x99, 0x93, 0xd2, 0x4c, 0x9e, 0x97,
-        0x86, 0xf1, 0x9c, 0x61, 0x11, 0xe0, 0x43, 0x90, 0xa8, 0x99 },
-      { 0x8b, 0x0d, 0x37, 0xeb, 0x85, 0x35, 0x02, 0x2e, 0xbc, 0x8d, 0x76, 0xa2, 0x07, 0xd8, 0x0d, 0xf2,
-        0x26, 0x46, 0xec, 0x06, 0xdc, 0x80, 0x96, 0x42, 0xc3, 0x0a, 0x8b, 0xaa, 0x2b, 0xaa, 0xff, 0x4c } },
-    { QUIC_VERSION_DRAFT_30,
-      { 0xaf, 0xbf, 0xec, 0x28, 0x99, 0x93, 0xd2, 0x4c, 0x9e, 0x97,
-        0x86, 0xf1, 0x9c, 0x61, 0x11, 0xe0, 0x43, 0x90, 0xa8, 0x99 },
-      { 0x8b, 0x0d, 0x37, 0xeb, 0x85, 0x35, 0x02, 0x2e, 0xbc, 0x8d, 0x76, 0xa2, 0x07, 0xd8, 0x0d, 0xf2,
-        0x26, 0x46, 0xec, 0x06, 0xdc, 0x80, 0x96, 0x42, 0xc3, 0x0a, 0x8b, 0xaa, 0x2b, 0xaa, 0xff, 0x4c } },
+    { QUIC_VERSION_1,
+      { 0x38, 0x76, 0x2c, 0xf7, 0xf5, 0x59, 0x34, 0xb3, 0x4d, 0x17,
+        0x9a, 0xe6, 0xa4, 0xc8, 0x0c, 0xad, 0xcc, 0xbb, 0x7f, 0x0a },
+      { 0xd9, 0xc9, 0x94, 0x3e, 0x61, 0x01, 0xfd, 0x20, 0x00, 0x21, 0x50, 0x6b, 0xcc, 0x02, 0x81, 0x4c,
+        0x73, 0x03, 0x0f, 0x25, 0xc7, 0x9d, 0x71, 0xce, 0x87, 0x6e, 0xca, 0x87, 0x6e, 0x6f, 0xca, 0x8e } },
     { QUIC_VERSION_DRAFT_29,
       { 0xaf, 0xbf, 0xec, 0x28, 0x99, 0x93, 0xd2, 0x4c, 0x9e, 0x97,
         0x86, 0xf1, 0x9c, 0x61, 0x11, 0xe0, 0x43, 0x90, 0xa8, 0x99 },
       { 0x8b, 0x0d, 0x37, 0xeb, 0x85, 0x35, 0x02, 0x2e, 0xbc, 0x8d, 0x76, 0xa2, 0x07, 0xd8, 0x0d, 0xf2,
         0x26, 0x46, 0xec, 0x06, 0xdc, 0x80, 0x96, 0x42, 0xc3, 0x0a, 0x8b, 0xaa, 0x2b, 0xaa, 0xff, 0x4c } },
-    { QUIC_VERSION_DRAFT_28,
-      { 0xc3, 0xee, 0xf7, 0x12, 0xc7, 0x2e, 0xbb, 0x5a, 0x11, 0xa7,
-        0xd2, 0x43, 0x2b, 0xb4, 0x63, 0x65, 0xbe, 0xf9, 0xf5, 0x02 },
-      { 0x65, 0x6e, 0x61, 0xe3, 0x36, 0xae, 0x94, 0x17, 0xf7, 0xf0, 0xed, 0xd8, 0xd7, 0x8d, 0x46, 0x1e,
-        0x2a, 0xa7, 0x08, 0x4a, 0xba, 0x7a, 0x14, 0xc1, 0xe9, 0xf7, 0x26, 0xd5, 0x57, 0x09, 0x16, 0x9a } },
-    { QUIC_VERSION_DRAFT_27,
-      { 0xc3, 0xee, 0xf7, 0x12, 0xc7, 0x2e, 0xbb, 0x5a, 0x11, 0xa7,
-        0xd2, 0x43, 0x2b, 0xb4, 0x63, 0x65, 0xbe, 0xf9, 0xf5, 0x02 },
-      { 0x65, 0x6e, 0x61, 0xe3, 0x36, 0xae, 0x94, 0x17, 0xf7, 0xf0, 0xed, 0xd8, 0xd7, 0x8d, 0x46, 0x1e,
-        0x2a, 0xa7, 0x08, 0x4a, 0xba, 0x7a, 0x14, 0xc1, 0xe9, 0xf7, 0x26, 0xd5, 0x57, 0x09, 0x16, 0x9a } },
     { QUIC_VERSION_MS_1,
       { 0xaf, 0xbf, 0xec, 0x28, 0x99, 0x93, 0xd2, 0x4c, 0x9e, 0x97,
         0x86, 0xf1, 0x9c, 0x61, 0x11, 0xe0, 0x43, 0x90, 0xa8, 0x99 },
@@ -93,7 +73,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateInvariant(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ QUIC_RECV_PACKET* Packet,
+    _Inout_ CXPLAT_RECV_PACKET* Packet,
     _In_ BOOLEAN IsBindingShared
     )
 {
@@ -164,7 +144,7 @@ QuicPacketValidateInvariant(
 
         if (!Packet->IsShortHeader) {
 
-            QUIC_DBG_ASSERT(Packet->SourceCid != NULL);
+            CXPLAT_DBG_ASSERT(Packet->SourceCid != NULL);
 
             if (Packet->SourceCidLen != SourceCidLen ||
                 memcmp(Packet->SourceCid, SourceCid, SourceCidLen) != 0) {
@@ -197,7 +177,7 @@ BOOLEAN
 QuicPacketValidateLongHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _In_ BOOLEAN IsServer,
-    _Inout_ QUIC_RECV_PACKET* Packet,
+    _Inout_ CXPLAT_RECV_PACKET* Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
     _Out_ uint16_t* TokenLength
@@ -207,9 +187,9 @@ QuicPacketValidateLongHeaderV1(
     // The Packet->Invariant part of the header has already been validated. No need
     // to check that portion of the header again.
     //
-    QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
-    QUIC_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
-    QUIC_DBG_ASSERT(Packet->LH->Type != QUIC_RETRY); // Retry uses a different code path.
+    CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
+    CXPLAT_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
+    CXPLAT_DBG_ASSERT(Packet->LH->Type != QUIC_RETRY); // Retry uses a different code path.
 
     if (Packet->DestCidLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1 ||
         Packet->SourceCidLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1) {
@@ -220,7 +200,7 @@ QuicPacketValidateLongHeaderV1(
     //
     // Validate acceptable types.
     //
-    QUIC_DBG_ASSERT(IsServer == 0 || IsServer == 1);
+    CXPLAT_DBG_ASSERT(IsServer == 0 || IsServer == 1);
     if (QUIC_HEADER_TYPE_ALLOWED[IsServer][Packet->LH->Type] == FALSE) {
         QuicPacketLogDropWithValue(Owner, Packet, "Invalid client/server packet type", Packet->LH->Type);
         return FALSE;
@@ -325,10 +305,10 @@ QuicPacketGenerateRetryIntegrity(
         uint8_t* IntegrityField
     )
 {
-    QUIC_SECRET Secret;
-    Secret.Hash = QUIC_HASH_SHA256;
-    Secret.Aead = QUIC_AEAD_AES_128_GCM;
-    QuicCopyMemory(
+    CXPLAT_SECRET Secret;
+    Secret.Hash = CXPLAT_HASH_SHA256;
+    Secret.Aead = CXPLAT_AEAD_AES_128_GCM;
+    CxPlatCopyMemory(
         Secret.Secret,
         IntegritySecret,
         QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH);
@@ -347,7 +327,7 @@ QuicPacketGenerateRetryIntegrity(
     }
 
     uint16_t RetryPseudoPacketLength = sizeof(uint8_t) + OrigDestCidLength + BufferLength;
-    RetryPseudoPacket = (uint8_t*)QUIC_ALLOC_PAGED(RetryPseudoPacketLength, QUIC_POOL_TMP_ALLOC);
+    RetryPseudoPacket = (uint8_t*)CXPLAT_ALLOC_PAGED(RetryPseudoPacketLength, QUIC_POOL_TMP_ALLOC);
     if (RetryPseudoPacket == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -361,13 +341,12 @@ QuicPacketGenerateRetryIntegrity(
 
     *RetryPseudoPacketCursor = OrigDestCidLength;
     RetryPseudoPacketCursor++;
-    QuicCopyMemory(RetryPseudoPacketCursor, OrigDestCid, OrigDestCidLength);
+    CxPlatCopyMemory(RetryPseudoPacketCursor, OrigDestCid, OrigDestCidLength);
     RetryPseudoPacketCursor += OrigDestCidLength;
-    QuicCopyMemory(RetryPseudoPacketCursor, Buffer, BufferLength);
-    RetryPseudoPacketCursor += BufferLength;
+    CxPlatCopyMemory(RetryPseudoPacketCursor, Buffer, BufferLength);
 
     Status =
-        QuicEncrypt(
+        CxPlatEncrypt(
             RetryIntegrityKey->PacketKey,
             RetryIntegrityKey->Iv,
             RetryPseudoPacketLength,
@@ -377,7 +356,7 @@ QuicPacketGenerateRetryIntegrity(
 
 Exit:
     if (RetryPseudoPacket != NULL) {
-        QUIC_FREE(RetryPseudoPacket, QUIC_POOL_TMP_ALLOC);
+        CXPLAT_FREE(RetryPseudoPacket, QUIC_POOL_TMP_ALLOC);
     }
     QuicPacketKeyFree(RetryIntegrityKey);
     return Status;
@@ -415,7 +394,7 @@ QuicPacketEncodeRetryV1(
     QUIC_RETRY_V1* Header = (QUIC_RETRY_V1*)Buffer;
 
     uint8_t RandomBits;
-    QuicRandom(sizeof(RandomBits), &RandomBits);
+    CxPlatRandom(sizeof(RandomBits), &RandomBits);
 
     Header->IsLongHeader    = TRUE;
     Header->FixedBit        = 1;
@@ -447,7 +426,7 @@ QuicPacketEncodeRetryV1(
             break;
         }
     }
-    QUIC_FRE_ASSERT(VersionInfo != NULL);
+    CXPLAT_FRE_ASSERT(VersionInfo != NULL);
 
     if (QUIC_FAILED(
         QuicPacketGenerateRetryIntegrity(
@@ -460,24 +439,22 @@ QuicPacketEncodeRetryV1(
         return 0;
     }
 
-    HeaderBuffer += QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1;
-
     return RequiredBufferLength;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketDecodeRetryTokenV1(
-    _In_ const QUIC_RECV_PACKET* const Packet,
+    _In_ const CXPLAT_RECV_PACKET* const Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
     _Out_ uint16_t* TokenLength
     )
 {
-    QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
-    QUIC_DBG_ASSERT(Packet->ValidatedHeaderVer);
-    QUIC_DBG_ASSERT(Packet->Invariant->IsLongHeader);
-    QUIC_DBG_ASSERT(Packet->LH->Type == QUIC_INITIAL);
+    CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
+    CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderVer);
+    CXPLAT_DBG_ASSERT(Packet->Invariant->IsLongHeader);
+    CXPLAT_DBG_ASSERT(Packet->LH->Type == QUIC_INITIAL);
 
     uint16_t Offset =
         sizeof(QUIC_LONG_HEADER_V1) +
@@ -488,10 +465,10 @@ QuicPacketDecodeRetryTokenV1(
     QUIC_VAR_INT TokenLengthVarInt = 0;
     BOOLEAN Success = QuicVarIntDecode(
         Packet->BufferLength, Packet->Buffer, &Offset, &TokenLengthVarInt);
-    QUIC_DBG_ASSERT(Success); // Was previously validated.
+    CXPLAT_DBG_ASSERT(Success); // Was previously validated.
     UNREFERENCED_PARAMETER(Success);
 
-    QUIC_DBG_ASSERT(Offset + TokenLengthVarInt <= Packet->BufferLength); // Was previously validated.
+    CXPLAT_DBG_ASSERT(Offset + TokenLengthVarInt <= Packet->BufferLength); // Was previously validated.
     *Token = Packet->Buffer + Offset;
     *TokenLength = (uint16_t)TokenLengthVarInt;
 }
@@ -501,7 +478,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ QUIC_RECV_PACKET* Packet
+    _Inout_ CXPLAT_RECV_PACKET* Packet
     )
 {
     //
@@ -509,8 +486,8 @@ QuicPacketValidateShortHeaderV1(
     // to check any additional lengths as the cleartext part of the version
     // specific header isn't any larger than the Packet->Invariant.
     //
-    QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
-    QUIC_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
+    CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
+    CXPLAT_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
 
     //
     // Check the Fixed bit to ensure it is set to 1.
@@ -546,8 +523,8 @@ QuicLongHeaderTypeToString(uint8_t Type)
     case QUIC_0_RTT_PROTECTED:      return "0P";
     case QUIC_HANDSHAKE:            return "HS";
     case QUIC_RETRY:                return "R";
+    default:                        return "INVALID";
     }
-    return "INVALID";
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -598,12 +575,8 @@ QuicPacketLogHeader(
             break;
         }
 
-        case QUIC_VERSION_DRAFT_27:
-        case QUIC_VERSION_DRAFT_28:
+        case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
-        case QUIC_VERSION_DRAFT_30:
-        case QUIC_VERSION_DRAFT_31:
-        case QUIC_VERSION_DRAFT_32:
         case QUIC_VERSION_MS_1: {
             const QUIC_LONG_HEADER_V1 * const LongHdr =
                 (const QUIC_LONG_HEADER_V1 * const)Packet;
@@ -693,12 +666,8 @@ QuicPacketLogHeader(
         const uint8_t* DestCid = Invariant->SHORT_HDR.DestCid;
 
         switch (Version) {
-        case QUIC_VERSION_DRAFT_27:
-        case QUIC_VERSION_DRAFT_28:
+        case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
-        case QUIC_VERSION_DRAFT_30:
-        case QUIC_VERSION_DRAFT_31:
-        case QUIC_VERSION_DRAFT_32:
         case QUIC_VERSION_MS_1: {
             const QUIC_SHORT_HEADER_V1 * const Header =
                 (const QUIC_SHORT_HEADER_V1 * const)Packet;
@@ -719,7 +688,7 @@ QuicPacketLogHeader(
         }
 
         default:
-            QUIC_FRE_ASSERT(FALSE);
+            CXPLAT_FRE_ASSERT(FALSE);
             break;
         }
     }
@@ -729,12 +698,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketLogDrop(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _In_ const QUIC_RECV_PACKET* Packet,
+    _In_ const CXPLAT_RECV_PACKET* Packet,
     _In_z_ const char* Reason
     )
 {
-    const QUIC_RECV_DATAGRAM* Datagram =
-        QuicDataPathRecvPacketToRecvDatagram(Packet);
+    const CXPLAT_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
+        CxPlatDataPathRecvPacketToRecvData(Packet);
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
@@ -762,13 +731,13 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketLogDropWithValue(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _In_ const QUIC_RECV_PACKET* Packet,
+    _In_ const CXPLAT_RECV_PACKET* Packet,
     _In_z_ const char* Reason,
     _In_ uint64_t Value
     )
 {
-    const QUIC_RECV_DATAGRAM* Datagram =
-        QuicDataPathRecvPacketToRecvDatagram(Packet);
+    const CXPLAT_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
+        CxPlatDataPathRecvPacketToRecvData(Packet);
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);

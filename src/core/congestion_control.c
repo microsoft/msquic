@@ -217,7 +217,7 @@ QuicCongestionControlUpdateBlockedState(
         } else {
             QuicConnRemoveOutFlowBlockedReason(
                 Connection, QUIC_FLOW_BLOCKED_CONGESTION_CONTROL);
-            Connection->Send.LastFlushTime = QuicTimeUs64(); // Reset last flush time
+            Connection->Send.LastFlushTime = CxPlatTimeUs64(); // Reset last flush time
             return TRUE;
         }
     }
@@ -327,7 +327,7 @@ QuicCongestionControlOnDataInvalidated(
 {
     BOOLEAN PreviousCanSendState = QuicCongestionControlCanSend(Cc);
 
-    QUIC_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
+    CXPLAT_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
     Cc->BytesInFlight -= NumRetransmittableBytes;
 
     return QuicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
@@ -346,7 +346,7 @@ QuicCongestionControlOnDataAcknowledged(
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     BOOLEAN PreviousCanSendState = QuicCongestionControlCanSend(Cc);
 
-    QUIC_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
+    CXPLAT_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
     Cc->BytesInFlight -= NumRetransmittableBytes;
 
     if (Cc->IsInRecovery) {
@@ -362,7 +362,7 @@ QuicCongestionControlOnDataAcknowledged(
                 Connection);
             Cc->IsInRecovery = FALSE;
             Cc->IsInPersistentCongestion = FALSE;
-            Cc->TimeOfCongAvoidStart = QuicTimeMs64();
+            Cc->TimeOfCongAvoidStart = CxPlatTimeMs64();
         }
         goto Exit;
     } else if (NumRetransmittableBytes == 0) {
@@ -377,7 +377,7 @@ QuicCongestionControlOnDataAcknowledged(
 
         Cc->CongestionWindow += NumRetransmittableBytes;
         if (Cc->CongestionWindow >= Cc->SlowStartThreshold) {
-            Cc->TimeOfCongAvoidStart = QuicTimeMs64();
+            Cc->TimeOfCongAvoidStart = CxPlatTimeMs64();
         }
 
     } else {
@@ -393,18 +393,18 @@ QuicCongestionControlOnDataAcknowledged(
         // growth during the gap.
         //
         if (Cc->TimeOfLastAckValid) {
-            uint64_t TimeSinceLastAck = QuicTimeDiff64(Cc->TimeOfLastAck, TimeNow);
+            uint64_t TimeSinceLastAck = CxPlatTimeDiff64(Cc->TimeOfLastAck, TimeNow);
             if (TimeSinceLastAck > Cc->SendIdleTimeoutMs &&
                 TimeSinceLastAck > US_TO_MS(Connection->Paths[0].SmoothedRtt + 4 * Connection->Paths[0].RttVariance)) {
                 Cc->TimeOfCongAvoidStart += TimeSinceLastAck;
-                if (QuicTimeAtOrBefore64(TimeNow, Cc->TimeOfCongAvoidStart)) {
+                if (CxPlatTimeAtOrBefore64(TimeNow, Cc->TimeOfCongAvoidStart)) {
                     Cc->TimeOfCongAvoidStart = TimeNow;
                 }
             }
         }
 
         uint64_t TimeInCongAvoid =
-            QuicTimeDiff64(Cc->TimeOfCongAvoidStart, QuicTimeMs64());
+            CxPlatTimeDiff64(Cc->TimeOfCongAvoidStart, CxPlatTimeMs64());
         if (TimeInCongAvoid > UINT32_MAX) {
             TimeInCongAvoid = UINT32_MAX;
         }
@@ -458,7 +458,7 @@ QuicCongestionControlOnDataAcknowledged(
         // Using max(RTT, 1) prevents division by zero.
         //
 
-        QUIC_STATIC_ASSERT(TEN_TIMES_BETA_CUBIC == 7, "TEN_TIMES_BETA_CUBIC must be 7 for simplified calculation.");
+        CXPLAT_STATIC_ASSERT(TEN_TIMES_BETA_CUBIC == 7, "TEN_TIMES_BETA_CUBIC must be 7 for simplified calculation.");
 
         int64_t AimdWindow =
             Cc->WindowMax * TEN_TIMES_BETA_CUBIC / 10 +
@@ -532,7 +532,7 @@ QuicCongestionControlOnDataLost(
         }
     }
 
-    QUIC_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
+    CXPLAT_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
     Cc->BytesInFlight -= NumRetransmittableBytes;
 
     QuicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);

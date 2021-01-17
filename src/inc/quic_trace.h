@@ -124,9 +124,20 @@ QuicTraceRundown(
 #ifdef QUIC_EVENTS_STUB
 
 #define QuicTraceEventEnabled(Name) FALSE
-#define QuicTraceEvent(Name, Fmt, ...)
 
-#define CLOG_BYTEARRAY(Len, Data)
+inline
+void
+QuicTraceEventStubVarArgs(
+    _In_ const void* Fmt,
+    ...
+    )
+{
+    UNREFERENCED_PARAMETER(Fmt);
+}
+
+#define QuicTraceEvent(Name, ...) QuicTraceEventStubVarArgs("", __VA_ARGS__)
+
+#define CLOG_BYTEARRAY(Len, Data) (Len)
 
 #endif // QUIC_EVENTS_STUB
 

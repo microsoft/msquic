@@ -42,7 +42,10 @@ param (
     [string]$Extra = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Kernel
+    [switch]$Kernel,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$FailOnError
 )
 
 #Requires -RunAsAdministrator
@@ -56,7 +59,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $NuGetPath = Join-Path $RootDir "nuget"
 
 # Well-known location for clog packages.
-$ClogVersion = "0.1.9"
+$ClogVersion = "0.2.0"
 $ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v$ClogVersion"
 
 $MessagesAtEnd = New-Object Collections.Generic.List[string]
@@ -108,6 +111,9 @@ function Install-ClogTool {
         Write-Host "Installing: $NuGetName"
         dotnet tool update --global --add-source $NuGetPath $ToolName
     } catch {
+        if ($FailOnError) {
+            Write-Error $_
+        }
         $err = $_
         $MessagesAtEnd.Add("$ToolName could not be installed. Building with logs will not work")
         $MessagesAtEnd.Add($err.ToString())
@@ -132,10 +138,15 @@ if ($IsWindows) {
         $NasmExe = Join-Path $NasmPath "nasm.exe"
         if (!(Test-Path $NasmExe)) {
             New-Item -Path .\build -ItemType Directory -Force
-            if ([System.Environment]::Is64BitOperatingSystem) {
-                Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-win64.zip" -OutFile "build\nasm.zip"
-            } else {
-                Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win32/nasm-$NasmVersion-win32.zip" -OutFile "build\nasm.zip"
+            $NasmArch = "win64"
+            if (![System.Environment]::Is64BitOperatingSystem) {
+                $NasmArch = "win32"
+            }
+            try {
+                Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-$NasmArch.zip" -OutFile "build\nasm.zip"
+            } catch {
+                # Mirror fallback
+                Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "build\nasm.zip"
             }
             Expand-Archive -Path "build\nasm.zip" -DestinationPath $env:Programfiles -Force
             $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)

@@ -62,12 +62,12 @@ QuicSentPacketPoolInitialize(
     _Inout_ QUIC_SENT_PACKET_POOL* Pool
     )
 {
-    for (uint8_t i = 0; i < ARRAYSIZE(Pool->Pools); i++) {
-        uint16_t PacketMetadataSize =
+    for (uint32_t i = 0; i < ARRAYSIZE(Pool->Pools); i++) {
+        uint32_t PacketMetadataSize =
             (i + 1) * sizeof(QUIC_SENT_FRAME_METADATA) +
             sizeof(QUIC_SENT_PACKET_METADATA);
 
-        QuicPoolInitialize(
+        CxPlatPoolInitialize(
             FALSE,  // IsPaged
             PacketMetadataSize,
             QUIC_POOL_META,
@@ -81,8 +81,8 @@ QuicSentPacketPoolUninitialize(
     _In_ QUIC_SENT_PACKET_POOL* Pool
     )
 {
-    for (uint8_t i = 0; i < ARRAYSIZE(Pool->Pools); i++) {
-        QuicPoolUninitialize(Pool->Pools + i);
+    for (size_t i = 0; i < ARRAYSIZE(Pool->Pools); i++) {
+        CxPlatPoolUninitialize(Pool->Pools + i);
     }
 }
 
@@ -94,7 +94,7 @@ QuicSentPacketPoolGetPacketMetadata(
     )
 {
     QUIC_SENT_PACKET_METADATA* Metadata =
-        QuicPoolAlloc(Pool->Pools + FrameCount - 1);
+        CxPlatPoolAlloc(Pool->Pools + FrameCount - 1);
 #if DEBUG
     if (Metadata != NULL) {
         Metadata->Flags.Freed = FALSE;
@@ -119,5 +119,5 @@ QuicSentPacketPoolReturnPacketMetadata(
 #endif
 
     QuicSentPacketMetadataReleaseFrames(Metadata);
-    QuicPoolFree(Pool->Pools + Metadata->FrameCount - 1, Metadata);
+    CxPlatPoolFree(Pool->Pools + Metadata->FrameCount - 1, Metadata);
 }

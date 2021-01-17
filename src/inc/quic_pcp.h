@@ -18,71 +18,71 @@ Abstract:
 extern "C" {
 #endif
 
-typedef struct QUIC_PCP QUIC_PCP;
+typedef struct CXPLAT_PCP CXPLAT_PCP;
 
-#define QUIC_PCP_NONCE_LENGTH 12
+#define CXPLAT_PCP_NONCE_LENGTH 12
 
 //
 // PCP event / callback interface
 //
 
-typedef enum QUIC_PCP_EVENT_TYPE {
-    QUIC_PCP_EVENT_FAILURE = 0,
-    QUIC_PCP_EVENT_MAP     = 1,
-    QUIC_PCP_EVENT_PEER    = 2
-} QUIC_PCP_EVENT_TYPE;
+typedef enum CXPLAT_PCP_EVENT_TYPE {
+    CXPLAT_PCP_EVENT_FAILURE = 0,
+    CXPLAT_PCP_EVENT_MAP     = 1,
+    CXPLAT_PCP_EVENT_PEER    = 2
+} CXPLAT_PCP_EVENT_TYPE;
 
-typedef struct QUIC_PCP_EVENT {
-    QUIC_PCP_EVENT_TYPE Type;
+typedef struct CXPLAT_PCP_EVENT {
+    CXPLAT_PCP_EVENT_TYPE Type;
     union {
         struct {
-            uint8_t Nonce[QUIC_PCP_NONCE_LENGTH];
+            uint8_t Nonce[CXPLAT_PCP_NONCE_LENGTH];
             const QUIC_ADDR* InternalAddress;
             uint8_t ErrorCode;
         } FAILURE;
 
         struct {
-            uint8_t Nonce[QUIC_PCP_NONCE_LENGTH];
+            uint8_t Nonce[CXPLAT_PCP_NONCE_LENGTH];
             uint32_t LifetimeSeconds;
             const QUIC_ADDR* InternalAddress;
             const QUIC_ADDR* ExternalAddress;
         } MAP;
 
         struct {
-            uint8_t Nonce[QUIC_PCP_NONCE_LENGTH];
+            uint8_t Nonce[CXPLAT_PCP_NONCE_LENGTH];
             uint32_t LifetimeSeconds;
             const QUIC_ADDR* InternalAddress;
             const QUIC_ADDR* ExternalAddress;
             const QUIC_ADDR* RemotePeerAddress;
         } PEER;
     };
-} QUIC_PCP_EVENT;
+} CXPLAT_PCP_EVENT;
 
 //
 // Function pointer type for PCP callbacks.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_PCP_CALLBACK)
+_Function_class_(CXPLAT_PCP_CALLBACK)
 void
-(QUIC_PCP_CALLBACK)(
-    _In_ QUIC_PCP* PcpContext,
+(CXPLAT_PCP_CALLBACK)(
+    _In_ CXPLAT_PCP* PcpContext,
     _In_ void* Context,
-    _In_ const QUIC_PCP_EVENT* Event
+    _In_ const CXPLAT_PCP_EVENT* Event
     );
 
-typedef QUIC_PCP_CALLBACK *QUIC_PCP_CALLBACK_HANDLER;
+typedef CXPLAT_PCP_CALLBACK *CXPLAT_PCP_CALLBACK_HANDLER;
 
 //
 // Initializes the port control protocol interface on the data path.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicPcpInitialize(
-    _In_ QUIC_DATAPATH* Datapath,
+CxPlatPcpInitialize(
+    _In_ CXPLAT_DATAPATH* Datapath,
     _In_ void* Context,
-    _In_ QUIC_PCP_CALLBACK_HANDLER Handler,
-    _Out_ QUIC_PCP** PcpContext
+    _In_ CXPLAT_PCP_CALLBACK_HANDLER Handler,
+    _Out_ CXPLAT_PCP** PcpContext
     );
 
 //
@@ -90,8 +90,8 @@ QuicPcpInitialize(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPcpUninitialize(
-    _In_ QUIC_PCP* PcpContext
+CxPlatPcpUninitialize(
+    _In_ CXPLAT_PCP* PcpContext
     );
 
 //
@@ -99,9 +99,9 @@ QuicPcpUninitialize(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicPcpSendMapRequest(
-    _In_ QUIC_PCP* PcpContext,
-    _In_reads_(QUIC_PCP_NONCE_LENGTH)
+CxPlatPcpSendMapRequest(
+    _In_ CXPLAT_PCP* PcpContext,
+    _In_reads_(CXPLAT_PCP_NONCE_LENGTH)
         const uint8_t* Nonce,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_ uint16_t InternalPort,     // Host byte order
@@ -113,9 +113,9 @@ QuicPcpSendMapRequest(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicPcpSendPeerRequest(
-    _In_ QUIC_PCP* PcpContext,
-    _In_reads_(QUIC_PCP_NONCE_LENGTH)
+CxPlatPcpSendPeerRequest(
+    _In_ CXPLAT_PCP* PcpContext,
+    _In_reads_(CXPLAT_PCP_NONCE_LENGTH)
         const uint8_t* Nonce,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemotePeerAddress,

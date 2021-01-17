@@ -4,7 +4,7 @@ MsQuic
 MsQuic is a Microsoft implementation of the [IETF QUIC](https://datatracker.ietf.org/wg/quic/about/)
 protocol. It is cross platform, written in C and designed to be a general purpose QUIC library.
 
-> **Important** The QUIC protocol is currently in IETF last call (not RFC quite yet). MsQuic implements the latest published drafts.
+> **Important** The QUIC protocol is currently submitted to IESG for publication, and not RFC quite yet. MsQuic implements the latest published drafts (-29 & -33).
 
 IETF Drafts: [Transport](https://tools.ietf.org/html/draft-ietf-quic-transport), [TLS](https://tools.ietf.org/html/draft-ietf-quic-tls), [Recovery](https://tools.ietf.org/html/draft-ietf-quic-recovery), [Datagram](https://tools.ietf.org/html/draft-ietf-quic-datagram), [Load Balancing](https://tools.ietf.org/html/draft-ietf-quic-load-balancers)
 
@@ -46,5 +46,3 @@ MsQuic has several features that differentiates it from other QUIC implementatio
 # Contributing
 
 For information on contributing, please see our [contribution guidlines](./.github/CONTRIBUTING.md).
-
-> **Important** - We are still bringing up important regression tests for the core code. Until they are onboarded, any external contributions to the [core](./src/core) or kernel mode files in the [platform](./src/platform) will not be accepted. This is only a **temporary restriction** and we are working to complete it by the end of 2020.

@@ -1,7 +1,15 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-if("${QUIC_PLATFORM}" STREQUAL "windows")
+if (QUIC_CODE_CHECK)
+    # enable static analyzers for this directory
+    set(CMAKE_C_CLANG_TIDY ${CMAKE_C_CLANG_TIDY_AVAILABLE})
+    set(CMAKE_CXX_CLANG_TIDY ${CMAKE_C_CLANG_TIDY_AVAILABLE})
+    set(CMAKE_C_CPPCHECK ${CMAKE_C_CPPCHECK_AVAILABLE})
+    set(CMAKE_CXX_CPPCHECK ${CMAKE_C_CPPCHECK_AVAILABLE})
+endif()
+
+if("${CX_PLATFORM}" STREQUAL "windows")
     set(SOURCES
         datapath_winuser.c
         hashtable.c
@@ -11,7 +19,7 @@ if("${QUIC_PLATFORM}" STREQUAL "windows")
         toeplitz.c
     )
 else()
-    if(QUIC_PLATFORM STREQUAL "linux")
+    if(CX_PLATFORM STREQUAL "linux")
         set(SOURCES
             datapath_linux.c
             hashtable.c
@@ -39,7 +47,12 @@ if (QUIC_TLS STREQUAL "schannel")
     set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c tls_schannel.c)
 elseif(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Configuring for OpenSSL")
-    set(SOURCES ${SOURCES} selfsign_openssl.c tls_openssl.c)
+    set(SOURCES ${SOURCES} tls_openssl.c cert_capi_openssl.c)
+    if ("${CX_PLATFORM}" STREQUAL "windows")
+        set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c)
+    else()
+        set(SOURCES ${SOURCES} selfsign_openssl.c)
+    endif()
 elseif(QUIC_TLS STREQUAL "mitls")
     message(STATUS "Configuring for miTLS")
     set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c tls_mitls.c)

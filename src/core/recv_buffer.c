@@ -59,16 +59,16 @@ QuicRecvBufferInitialize(
 {
     QUIC_STATUS Status;
 
-    QUIC_DBG_ASSERT(AllocBufferLength != 0 && (AllocBufferLength & (AllocBufferLength - 1)) == 0);       // Power of 2
-    QUIC_DBG_ASSERT(VirtualBufferLength != 0 && (VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
-    QUIC_DBG_ASSERT(AllocBufferLength <= VirtualBufferLength);
+    CXPLAT_DBG_ASSERT(AllocBufferLength != 0 && (AllocBufferLength & (AllocBufferLength - 1)) == 0);       // Power of 2
+    CXPLAT_DBG_ASSERT(VirtualBufferLength != 0 && (VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
+    CXPLAT_DBG_ASSERT(AllocBufferLength <= VirtualBufferLength);
 
     if (PreallocatedBuffer != NULL) {
         RecvBuffer->PreallocatedBuffer = PreallocatedBuffer;
         RecvBuffer->Buffer = PreallocatedBuffer;
     } else {
         RecvBuffer->PreallocatedBuffer = NULL;
-        RecvBuffer->Buffer = QUIC_ALLOC_NONPAGED(AllocBufferLength, QUIC_POOL_RECVBUF);
+        RecvBuffer->Buffer = CXPLAT_ALLOC_NONPAGED(AllocBufferLength, QUIC_POOL_RECVBUF);
         if (RecvBuffer->Buffer == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -104,12 +104,12 @@ QuicRecvBufferUninitialize(
 {
     QuicRangeUninitialize(&RecvBuffer->WrittenRanges);
     if (RecvBuffer->Buffer != RecvBuffer->PreallocatedBuffer) {
-        QUIC_FREE(RecvBuffer->Buffer, QUIC_POOL_RECVBUF);
+        CXPLAT_FREE(RecvBuffer->Buffer, QUIC_POOL_RECVBUF);
     }
     RecvBuffer->Buffer = NULL;
     if (RecvBuffer->OldBuffer != NULL &&
         RecvBuffer->OldBuffer != RecvBuffer->PreallocatedBuffer) {
-        QUIC_FREE(RecvBuffer->OldBuffer, QUIC_POOL_RECVBUF);
+        CXPLAT_FREE(RecvBuffer->OldBuffer, QUIC_POOL_RECVBUF);
     }
     RecvBuffer->OldBuffer = NULL;
 }
@@ -124,7 +124,7 @@ QuicRecvBufferGetTotalLength(
     if (QuicRangeGetMaxSafe(&RecvBuffer->WrittenRanges, &TotalLength)) {
         TotalLength++; // Make this the byte AFTER the end.
     }
-    QUIC_DBG_ASSERT(TotalLength >= RecvBuffer->BaseOffset);
+    CXPLAT_DBG_ASSERT(TotalLength >= RecvBuffer->BaseOffset);
     return TotalLength;
 }
 
@@ -165,7 +165,7 @@ QuicRecvBufferResize(
 
         uint32_t Span = QuicRecvBufferGetSpan(RecvBuffer);
 
-        uint8_t* NewBuffer = QUIC_ALLOC_NONPAGED(TargetBufferLength, QUIC_POOL_RECVBUF);
+        uint8_t* NewBuffer = CXPLAT_ALLOC_NONPAGED(TargetBufferLength, QUIC_POOL_RECVBUF);
         if (NewBuffer == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
@@ -174,16 +174,16 @@ QuicRecvBufferResize(
         uint32_t LengthTillWrap = RecvBuffer->AllocBufferLength - RecvBuffer->BufferStart;
 
         if (Span <= LengthTillWrap) {
-            QuicCopyMemory(
+            CxPlatCopyMemory(
                 NewBuffer,
                 RecvBuffer->Buffer + RecvBuffer->BufferStart,
                 Span);
         } else {
-            QuicCopyMemory(
+            CxPlatCopyMemory(
                 NewBuffer,
                 RecvBuffer->Buffer + RecvBuffer->BufferStart,
                 LengthTillWrap);
-            QuicCopyMemory(
+            CxPlatCopyMemory(
                 NewBuffer + LengthTillWrap,
                 RecvBuffer->Buffer,
                 Span - LengthTillWrap);
@@ -192,7 +192,7 @@ QuicRecvBufferResize(
         if (RecvBuffer->ExternalBufferReference && RecvBuffer->OldBuffer == NULL) {
             RecvBuffer->OldBuffer = RecvBuffer->Buffer;
         } else if (RecvBuffer->Buffer != RecvBuffer->PreallocatedBuffer) {
-            QUIC_FREE(RecvBuffer->Buffer, QUIC_POOL_RECVBUF);
+            CXPLAT_FREE(RecvBuffer->Buffer, QUIC_POOL_RECVBUF);
         }
 
         RecvBuffer->Buffer = NewBuffer;
@@ -212,7 +212,7 @@ QuicRecvBufferSetVirtualBufferLength(
     _In_ uint32_t NewLength
     )
 {
-    QUIC_FRE_ASSERT(NewLength >= RecvBuffer->VirtualBufferLength); // Don't support decrease yet.
+    CXPLAT_FRE_ASSERT(NewLength >= RecvBuffer->VirtualBufferLength); // Don't support decrease yet.
     RecvBuffer->VirtualBufferLength = NewLength;
 }
 
@@ -240,7 +240,7 @@ QuicRecvBufferWrite(
     BOOLEAN WrittenRangesUpdated;
     QUIC_SUBRANGE* UpdatedRange = NULL;
 
-    QUIC_DBG_ASSERT(BufferLength != 0);
+    CXPLAT_DBG_ASSERT(BufferLength != 0);
 
     //
     // Default the ready to read to false, as most exit cases need this.
@@ -365,7 +365,7 @@ QuicRecvBufferWrite(
         //
         // Copy the first part, which is at the end of the circular buffer.
         //
-        QuicCopyMemory(
+        CxPlatCopyMemory(
             RecvBuffer->Buffer + WriteBufferStart,
             Buffer,
             Part1Len);
@@ -373,7 +373,7 @@ QuicRecvBufferWrite(
         //
         // Copy the second part, which is at the beginning of the circular buffer.
         //
-        QuicCopyMemory(
+        CxPlatCopyMemory(
             RecvBuffer->Buffer,
             Buffer + Part1Len,
             Part2Len);
@@ -383,7 +383,7 @@ QuicRecvBufferWrite(
         //
         // Single copy case, because it doesn't overlap the end.
         //
-        QuicCopyMemory(
+        CxPlatCopyMemory(
             RecvBuffer->Buffer + WriteBufferStart,
             Buffer,
             BufferLength);
@@ -416,7 +416,7 @@ QuicRecvBufferRead(
     BOOLEAN LastWrittenRange;
     uint64_t WrittenRangeLength;
 
-    QUIC_DBG_ASSERT(!RecvBuffer->ExternalBufferReference);
+    CXPLAT_DBG_ASSERT(!RecvBuffer->ExternalBufferReference);
 
     //
     // Query if the front of the buffer has been written.
@@ -442,7 +442,7 @@ QuicRecvBufferRead(
         //
         // Circular buffer wrap around case.
         //
-        QUIC_DBG_ASSERT(*BufferCount >= 2);
+        CXPLAT_DBG_ASSERT(*BufferCount >= 2);
         *BufferCount = 2;
         Buffers[0].Length = (uint32_t)(RecvBuffer->AllocBufferLength - RecvBuffer->BufferStart);
         Buffers[0].Buffer = RecvBuffer->Buffer + RecvBuffer->BufferStart;
@@ -450,7 +450,7 @@ QuicRecvBufferRead(
         Buffers[1].Buffer = RecvBuffer->Buffer;
 
     } else {
-        QUIC_DBG_ASSERT(*BufferCount >= 1);
+        CXPLAT_DBG_ASSERT(*BufferCount >= 1);
         *BufferCount = 1;
         Buffers[0].Length = (uint32_t)WrittenRangeLength;
         Buffers[0].Buffer = RecvBuffer->Buffer + RecvBuffer->BufferStart;
@@ -466,12 +466,12 @@ QuicRecvBufferDrain(
     _In_ uint64_t BufferLength
     )
 {
-    QUIC_DBG_ASSERT(RecvBuffer->ExternalBufferReference);
+    CXPLAT_DBG_ASSERT(RecvBuffer->ExternalBufferReference);
     RecvBuffer->ExternalBufferReference = FALSE;
 
     if (RecvBuffer->OldBuffer != NULL) {
         if (RecvBuffer->OldBuffer != RecvBuffer->PreallocatedBuffer) {
-            QUIC_FREE(RecvBuffer->OldBuffer, QUIC_POOL_RECVBUF);
+            CXPLAT_FREE(RecvBuffer->OldBuffer, QUIC_POOL_RECVBUF);
         }
         RecvBuffer->OldBuffer = NULL;
     }
@@ -492,11 +492,11 @@ QuicRecvBufferDrain(
     }
 
     if (RecvBuffer->CopyOnDrain) {
-        QUIC_DBG_ASSERT(RecvBuffer->BufferStart == 0);
+        CXPLAT_DBG_ASSERT(RecvBuffer->BufferStart == 0);
         //
         // Copy remaining bytes in the buffer to the beginning.
         //
-        QuicMoveMemory(
+        CxPlatMoveMemory(
             RecvBuffer->Buffer,
             RecvBuffer->Buffer + BufferLength,
             (size_t)(TotalWrittenLength - RecvBuffer->BaseOffset));

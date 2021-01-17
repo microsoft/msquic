@@ -333,8 +333,8 @@ main(
     uint16_t execProfile = DEFAULT_EXECUTION_PROFILE;
     QUIC_REGISTRATION_CONFIG RegConfig = { "quicping", DEFAULT_EXECUTION_PROFILE };
 
-    QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
+    CxPlatSystemLoad();
+    CxPlatInitialize();
 
     if (argc < 2) {
         PrintUsage();
@@ -374,8 +374,8 @@ main(
 
 Error:
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return ErrorCode;
 }

@@ -197,7 +197,7 @@ QuicAckFrameDecode(
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
     _Out_ BOOLEAN* InvalidFrame,
-    _Inout_ QUIC_RANGE* AckBlocks, // Pre-Initialized by caller
+    _Inout_ QUIC_RANGE* AckRanges, // Pre-Initialized by caller
     _When_(FrameType == QUIC_FRAME_ACK_1, _Out_)
         QUIC_ACK_ECN_EX* Ecn,
     _Out_ uint64_t* AckDelay

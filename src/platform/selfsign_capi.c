@@ -19,11 +19,11 @@ Abstract:
 #include <wincrypt.h>
 #include <msquic.h>
 
-#define QUIC_CERT_CREATION_EVENT_NAME       L"MsQuicCertEvent"
-#define QUIC_CERT_CREATION_EVENT_WAIT       10000
-#define QUIC_CERTIFICATE_TEST_FRIENDLY_NAME L"MsQuicTestCert"
-#define QUIC_KEY_CONTAINER_NAME             L"MsQuicSelfSignKey"
-#define QUIC_KEY_SIZE                       2048
+#define CXPLAT_CERT_CREATION_EVENT_NAME       L"MsQuicCertEvent"
+#define CXPLAT_CERT_CREATION_EVENT_WAIT       10000
+#define CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME L"MsQuicTestCert2"
+#define CXPLAT_KEY_CONTAINER_NAME             L"MsQuicSelfSignKey2"
+#define CXPLAT_KEY_SIZE                       2048
 
 void
 CleanTestCertificatesFromStore(BOOLEAN UserStore)
@@ -58,11 +58,11 @@ CleanTestCertificatesFromStore(BOOLEAN UserStore)
             &FriendlyNamePropId,
             Cert))) {
 
-        BYTE FriendlyName[sizeof(QUIC_CERTIFICATE_TEST_FRIENDLY_NAME)+sizeof(WCHAR)];
+        BYTE FriendlyName[sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME)+sizeof(WCHAR)];
         DWORD NameSize = sizeof(FriendlyName);
 
         if (!CertGetCertificateContextProperty(Cert, CERT_FRIENDLY_NAME_PROP_ID, FriendlyName, &NameSize) ||
-            wcscmp((wchar_t*)FriendlyName, QUIC_CERTIFICATE_TEST_FRIENDLY_NAME) != 0) {
+            wcscmp((wchar_t*)FriendlyName, CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME) != 0) {
             ++Found;
             continue;
         }
@@ -449,8 +449,9 @@ GetPrivateRsaKey(
 
     PCERT_PUBLIC_KEY_INFO CertPubKeyInfo = NULL;
     DWORD KeyUsageProperty = NCRYPT_ALLOW_SIGNING_FLAG;
+    DWORD ExportPolicyProperty = NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG;
     NCRYPT_PROV_HANDLE Provider = (NCRYPT_PROV_HANDLE)NULL;
-    DWORD KeySize = QUIC_KEY_SIZE;
+    DWORD KeySize = CXPLAT_KEY_SIZE;
 
     *Key = (NCRYPT_KEY_HANDLE)NULL;
 
@@ -475,7 +476,7 @@ ReadKey:
         NCryptOpenKey(
             Provider,
             Key,
-            QUIC_KEY_CONTAINER_NAME,
+            CXPLAT_KEY_CONTAINER_NAME,
             0,
             NCRYPT_SILENT_FLAG);
     if (hr == ERROR_SUCCESS) {
@@ -500,7 +501,7 @@ ReadKey:
             Provider,
             Key,
             NCRYPT_RSA_ALGORITHM,
-            QUIC_KEY_CONTAINER_NAME,
+            CXPLAT_KEY_CONTAINER_NAME,
             0,
             0);
     if (hr == NTE_EXISTS) {
@@ -539,6 +540,20 @@ ReadKey:
             "[ lib] ERROR, %u, %s.",
             hr,
             "NCryptSetProperty NCRYPT_KEY_USAGE_PROPERTY failed");
+        goto Cleanup;
+    }
+
+    if (FAILED(hr = NCryptSetProperty(
+            *Key,
+            NCRYPT_EXPORT_POLICY_PROPERTY,
+            (PBYTE)&ExportPolicyProperty,
+            sizeof(ExportPolicyProperty),
+            0))) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "NCryptSetProperty NCRYPT_EXPORT_POLICY_PROPERTY failed");
         goto Cleanup;
     }
 
@@ -670,7 +685,7 @@ CreateSelfSignedCertificate(
     //
     // Create the certificate
     //
-    KeyProvInfo.pwszContainerName   = QUIC_KEY_CONTAINER_NAME;
+    KeyProvInfo.pwszContainerName   = CXPLAT_KEY_CONTAINER_NAME;
     KeyProvInfo.pwszProvName        = MS_KEY_STORAGE_PROVIDER;
     KeyProvInfo.dwProvType          = 0;
     KeyProvInfo.dwFlags             = NCRYPT_SILENT_FLAG;
@@ -699,8 +714,8 @@ CreateSelfSignedCertificate(
     }
 
     CRYPT_DATA_BLOB FriendlyNameBlob;
-    FriendlyNameBlob.cbData = sizeof(QUIC_CERTIFICATE_TEST_FRIENDLY_NAME);
-    FriendlyNameBlob.pbData = (BYTE*) QUIC_CERTIFICATE_TEST_FRIENDLY_NAME;
+    FriendlyNameBlob.cbData = sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME);
+    FriendlyNameBlob.pbData = (BYTE*) CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME;
 
     if (!CertSetCertificateContextProperty(
             CertContext,
@@ -797,7 +812,7 @@ FindOrCreateCertificate(
     DWORD FriendlyNamePropId = CERT_FRIENDLY_NAME_PROP_ID;
 
     BOOLEAN First = FALSE;
-    HANDLE Event = CreateEventW(NULL, TRUE, FALSE, QUIC_CERT_CREATION_EVENT_NAME);
+    HANDLE Event = CreateEventW(NULL, TRUE, FALSE, CXPLAT_CERT_CREATION_EVENT_NAME);
     if (Event == NULL) {
         QuicTraceEvent(
             LibraryError,
@@ -820,7 +835,7 @@ FindOrCreateCertificate(
         QuicTraceLogInfo(
             CertCreationEventAlreadyCreated,
             "[test] CreateEvent opened existing event");
-        DWORD WaitResult = WaitForSingleObject(Event, QUIC_CERT_CREATION_EVENT_WAIT);
+        DWORD WaitResult = WaitForSingleObject(Event, CXPLAT_CERT_CREATION_EVENT_WAIT);
         if (WaitResult != WAIT_OBJECT_0) {
             QuicTraceLogWarning(
                 CertWaitForCreationEvent,
@@ -857,11 +872,11 @@ FindOrCreateCertificate(
             &FriendlyNamePropId,
             Cert))) {
 
-        BYTE FriendlyName[sizeof(QUIC_CERTIFICATE_TEST_FRIENDLY_NAME)+sizeof(WCHAR)];
+        BYTE FriendlyName[sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME)+sizeof(WCHAR)];
         DWORD NameSize = sizeof(FriendlyName);
 
         if (!CertGetCertificateContextProperty(Cert, CERT_FRIENDLY_NAME_PROP_ID, FriendlyName, &NameSize) ||
-            wcscmp((wchar_t*)FriendlyName, QUIC_CERTIFICATE_TEST_FRIENDLY_NAME) != 0) {
+            wcscmp((wchar_t*)FriendlyName, CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME) != 0) {
             continue;
         }
 
@@ -925,8 +940,8 @@ Done:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
-QuicPlatGetSelfSignedCert(
-    _In_ QUIC_SELF_SIGN_CERT_TYPE Type
+CxPlatPlatGetSelfSignedCert(
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type
     )
 {
     QUIC_CREDENTIAL_CONFIG* Params =
@@ -939,7 +954,7 @@ QuicPlatGetSelfSignedCert(
     Params->Flags = QUIC_CREDENTIAL_FLAG_NONE;
     Params->CertificateContext =
         FindOrCreateCertificate(
-            Type == QUIC_SELF_SIGN_CERT_USER,
+            Type == CXPLAT_SELF_SIGN_CERT_USER,
             (uint8_t*)(Params + 1));
     if (Params->CertificateContext == NULL) {
         HeapFree(GetProcessHeap(), 0, Params);
@@ -951,7 +966,7 @@ QuicPlatGetSelfSignedCert(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatFreeSelfSignedCert(
+CxPlatPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* Params
     )
 {

@@ -9,22 +9,22 @@
 #include <quic_pcp.h>
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 void
 UdpRecvCallback(
-    _In_ QUIC_DATAPATH_BINDING* /* Binding */,
+    _In_ CXPLAT_SOCKET* /* Socket */,
     _In_ void* /* Context */,
-    _In_ QUIC_RECV_DATAGRAM* RecvBufferChain
+    _In_ CXPLAT_RECV_DATA* RecvBufferChain
     )
 {
-    QuicDataPathBindingReturnRecvDatagrams(RecvBufferChain);
+    CxPlatRecvDataReturn(RecvBufferChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)
 void
 UdpUnreachCallback(
-    _In_ QUIC_DATAPATH_BINDING* /* Binding */,
+    _In_ CXPLAT_SOCKET* /* Socket */,
     _In_ void* /* Context */,
     _In_ const QUIC_ADDR* /* RemoteAddress */
     )
@@ -32,19 +32,19 @@ UdpUnreachCallback(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(QUIC_PCP_CALLBACK)
+_Function_class_(CXPLAT_PCP_CALLBACK)
 void
 PcpCallback(
-    _In_ QUIC_PCP* /* PcpContext */,
+    _In_ CXPLAT_PCP* /* PcpContext */,
     _In_ void* /* Context */,
-    _In_ const QUIC_PCP_EVENT* Event
+    _In_ const CXPLAT_PCP_EVENT* Event
     )
 {
     switch (Event->Type) {
-    case QUIC_PCP_EVENT_FAILURE:
+    case CXPLAT_PCP_EVENT_FAILURE:
         printf("Received failure result, %hhu\n", Event->FAILURE.ErrorCode);
         break;
-    case QUIC_PCP_EVENT_MAP: {
+    case CXPLAT_PCP_EVENT_MAP: {
         QUIC_ADDR_STR ExternalAddr;
         QuicAddrToString(Event->MAP.ExternalAddress, &ExternalAddr);
         printf("Response: %s maps to :%hu for %u seconds\n",
@@ -53,7 +53,7 @@ PcpCallback(
             Event->MAP.LifetimeSeconds);
         break;
     }
-    case QUIC_PCP_EVENT_PEER: {
+    case CXPLAT_PCP_EVENT_PEER: {
         QUIC_ADDR_STR ExternalAddrStr, RemotePeerAddrStr;
         QuicAddrToString(Event->PEER.ExternalAddress, &ExternalAddrStr);
         QuicAddrToString(Event->PEER.RemotePeerAddress, &RemotePeerAddrStr);
@@ -75,57 +75,62 @@ main(
     )
 {
     uint8_t PcpNonce[12];
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_PCP* PcpContext = nullptr;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    CXPLAT_PCP* PcpContext = nullptr;
     int ErrorCode = -1;
 
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
-    QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
-    QuicRandom(sizeof(PcpNonce), PcpNonce);
-    QuicDataPathInitialize(
-        0,
+    CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
         UdpRecvCallback,
-        UdpUnreachCallback,
+        UdpUnreachCallback
+    };
+
+    CxPlatSystemLoad();
+    CxPlatInitialize();
+    CxPlatRandom(sizeof(PcpNonce), PcpNonce);
+    CxPlatDataPathInitialize(
+        0,
+        &UdpCallbacks,
+        nullptr,
         &Datapath);
 
     QUIC_STATUS Status =
-        QuicPcpInitialize(
+        CxPlatPcpInitialize(
             Datapath,
             PcpNonce,
             PcpCallback,
             &PcpContext);
     if (QUIC_FAILED(Status)) {
-        printf("QuicPcpInitialize failed, 0x%x\n", Status);
+        printf("CxPlatPcpInitialize failed, 0x%x\n", Status);
         goto Error;
     }
 
     printf("Sending MAP request...\n");
-    Status = QuicPcpSendMapRequest(PcpContext, PcpNonce, nullptr, 1234, 360000);
+    Status = CxPlatPcpSendMapRequest(PcpContext, PcpNonce, nullptr, 1234, 360000);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
-    QuicSleep(1000);
+    CxPlatSleep(1000);
 
     printf("Sending (delete) MAP request...\n");
-    Status = QuicPcpSendMapRequest(PcpContext, PcpNonce, nullptr, 1234, 0);
+    Status = CxPlatPcpSendMapRequest(PcpContext, PcpNonce, nullptr, 1234, 0);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
-    QuicSleep(1000);
+    CxPlatSleep(1000);
 
     ErrorCode = 1;
 
 Error:
 
     if (PcpContext) {
-        QuicPcpUninitialize(PcpContext);
+        CxPlatPcpUninitialize(PcpContext);
     }
-    QuicDataPathUninitialize(Datapath);
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatDataPathUninitialize(Datapath);
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return ErrorCode;
 }

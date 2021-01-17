@@ -113,14 +113,14 @@ ThroughputClient::Init(
 
     QUIC_STATUS Status;
 
-    if (QUIC_FAILED(Status = QuicSetCurrentThreadGroupAffinity(0))) {
+    if (QUIC_FAILED(Status = CxPlatSetCurrentThreadGroupAffinity(0))) {
         WriteOutput("Failed to set thread group affinity\n");
         return Status;
     }
 
     uint16_t CpuCore;
     if (TryGetValue(argc, argv, "core", &CpuCore)) {
-        if (QUIC_FAILED(Status = QuicSetCurrentThreadProcessorAffinity(CpuCore))) {
+        if (QUIC_FAILED(Status = CxPlatSetCurrentThreadProcessorAffinity(CpuCore))) {
             WriteOutput("Failed to set core\n");
             return Status;
         }
@@ -139,10 +139,10 @@ ThroughputClient::Init(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     TargetData.reset(LocalTarget);
-    QuicCopyMemory(TargetData.get(), Target, Len);
+    CxPlatCopyMemory(TargetData.get(), Target, Len);
     TargetData[Len] = '\0';
 
-    DataBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + IoSize, QUIC_POOL_PERF);
+    DataBuffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + IoSize, QUIC_POOL_PERF);
     if (!DataBuffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -151,10 +151,10 @@ ThroughputClient::Init(
     if (DownloadLength) {
         DataBuffer->Length = sizeof(uint64_t);
         *(uint64_t*)(DataBuffer->Buffer) =
-            TimedTransfer ? UINT64_MAX : QuicByteSwapUint64(DownloadLength);
+            TimedTransfer ? UINT64_MAX : CxPlatByteSwapUint64(DownloadLength);
     } else {
         DataBuffer->Length = IoSize;
-        *(uint64_t*)(DataBuffer->Buffer) = QuicByteSwapUint64(0); // Zero-length request
+        *(uint64_t*)(DataBuffer->Buffer) = CxPlatByteSwapUint64(0); // Zero-length request
         for (uint32_t i = 0; i < IoSize - sizeof(uint64_t); ++i) {
             DataBuffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
         }
@@ -174,7 +174,7 @@ struct ShutdownWrapper {
 
 QUIC_STATUS
 ThroughputClient::Start(
-    _In_ QUIC_EVENT* StopEvnt
+    _In_ CXPLAT_EVENT* StopEvnt
     ) {
     ShutdownWrapper Shutdown;
     this->StopEvent = StopEvnt;
@@ -287,7 +287,7 @@ ThroughputClient::Start(
         return Status;
     }
 
-    StrmContext->StartTime = QuicTimeUs64();
+    StrmContext->StartTime = CxPlatTimeUs64();
 
     if (DownloadLength) {
         MsQuic->StreamSend(
@@ -334,9 +334,9 @@ ThroughputClient::Wait(
     _In_ int Timeout
     ) {
     if (Timeout > 0) {
-        QuicEventWaitWithTimeout(*StopEvent, Timeout);
+        CxPlatEventWaitWithTimeout(*StopEvent, Timeout);
     } else {
-        QuicEventWaitForever(*StopEvent);
+        CxPlatEventWaitForever(*StopEvent);
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -370,7 +370,7 @@ ThroughputClient::ConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         ConnectionDataAllocator.Free(ConnData);
-        QuicEventSet(*StopEvent);
+        CxPlatEventSet(*StopEvent);
         break;
     default:
         break;
@@ -388,7 +388,7 @@ ThroughputClient::StreamCallback(
     case QUIC_STREAM_EVENT_RECEIVE:
         StrmContext->BytesCompleted += Event->RECEIVE.TotalBufferLength;
         if (StrmContext->Client->TimedTransfer) {
-            if (QuicTimeDiff64(StrmContext->StartTime, QuicTimeUs64()) >= MS_TO_US(DownloadLength)) {
+            if (CxPlatTimeDiff64(StrmContext->StartTime, CxPlatTimeUs64()) >= MS_TO_US(DownloadLength)) {
                 MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE, 0);
                 StrmContext->Complete = true;
             }
@@ -413,7 +413,7 @@ ThroughputClient::StreamCallback(
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
-        StrmContext->EndTime = QuicTimeUs64();
+        StrmContext->EndTime = CxPlatTimeUs64();
         uint64_t ElapsedMicroseconds = StrmContext->EndTime - StrmContext->StartTime;
         uint32_t SendRate = (uint32_t)((StrmContext->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
@@ -471,7 +471,7 @@ ThroughputClient::SendData(
             Context->Complete = TRUE;
 
         } else if (TimedTransfer &&
-                   QuicTimeDiff64(Context->StartTime, QuicTimeUs64()) >= MS_TO_US(UploadLength)) {
+                   CxPlatTimeDiff64(Context->StartTime, CxPlatTimeUs64()) >= MS_TO_US(UploadLength)) {
             Flags = QUIC_SEND_FLAG_FIN;
             Context->Complete = TRUE;
         }

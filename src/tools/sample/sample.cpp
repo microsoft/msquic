@@ -15,6 +15,25 @@ Abstract:
     direction. The connection only shuts down when the 1 second idle timeout
     triggers.
 
+    A certificate needs to be available for the server to function.
+
+    On Windows, the following PowerShell command can be used to generate a self
+    signed certificate with the correct settings. This works for both Schannel
+    and OpenSSL TLS providers, assuming the KeyExportPolicy parameter is set to
+    Exportable. The Thumbprint received from the command is then passed to this
+    sample with -cert_hash:PASTE_THE_THUMBPRINT_HERE
+
+    New-SelfSignedCertificate -DnsName $env:computername,localhost -FriendlyName MsQuic-Test -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable
+
+    On Linux, the following command can be used to generate a self signed
+    certificate that works with the OpenSSL TLS Provider. This can also be used
+    for Windows OpenSSL, however we recommend the certificate store method above
+    for ease of use. Currently key files with password protections are not
+    supported. With these files, they can be passed to the sample with
+    -cert_file:path/to/server.cert -key_file path/to/server.key
+
+    openssl req  -nodes -new -x509  -keyout server.key -out server.cert
+
 --*/
 
 #include <msquic.h>
@@ -723,6 +742,7 @@ RunClient(
     QUIC_STATUS Status;
     const char* ResumptionTicketString = nullptr;
     HQUIC Connection = nullptr;
+    const uint32_t Version = 0xff00001dU; // IETF draft 29
 
     //
     // Allocate a new connection object.
@@ -746,11 +766,21 @@ RunClient(
     }
 
     //
+    // Default to using the draft-29 version for now, since it's more
+    // universally supported by the TLS abstractions currently.
+    //
+    if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_QUIC_VERSION, sizeof(Version), &Version))) {
+        printf("SetParam(QUIC_PARAM_CONN_QUIC_VERSION) failed, 0x%x!\n", Status);
+        goto Error;
+    }
+
+    //
     // Get the target / server name or IP from the command line.
     //
     const char* Target;
     if ((Target = GetValue(argc, argv, "target")) == nullptr) {
         printf("Must specify '-target' argument!\n");
+        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 

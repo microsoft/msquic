@@ -13,33 +13,32 @@ Environment:
 
 --*/
 
-#define _GNU_SOURCE
 #include "platform_internal.h"
 #include "quic_platform.h"
+#include "quic_platform_dispatch.h"
+#include "quic_trace.h"
+#include <dlfcn.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <sched.h>
-#include <fcntl.h>
 #include <syslog.h>
-#include <dlfcn.h>
-#include "quic_trace.h"
-#include "quic_platform_dispatch.h"
 #ifdef QUIC_CLOG
 #include "platform_linux.c.clog.h"
 #endif
 
-#define QUIC_MAX_LOG_MSG_LEN        1024 // Bytes
+#define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
 
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-QUIC_PLATFORM_DISPATCH* PlatDispatch = NULL;
+#ifdef CX_PLATFORM_DISPATCH_TABLE
+CX_PLATFORM_DISPATCH* PlatDispatch = NULL;
 #else
 int RandomFd; // Used for reading random numbers.
 #endif
 
 static const char TpLibName[] = "libmsquic.lttng.so";
 
-uint64_t QuicTotalMemory;
+uint64_t CxPlatTotalMemory;
 
-__attribute__((noinline))
+__attribute__((noinline, noreturn))
 void
 quic_bugcheck(
     void
@@ -61,7 +60,7 @@ quic_bugcheck(
 }
 
 void
-QuicPlatformSystemLoad(
+CxPlatSystemLoad(
     void
     )
 {
@@ -70,7 +69,7 @@ QuicPlatformSystemLoad(
     // https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/pal/src/misc/tracepointprovider.cpp#L106
     //
 
-    int ShouldLoad = 1;
+    long ShouldLoad = 1;
 
     //
     // Check if loading the LTTng providers should be disabled.
@@ -88,12 +87,12 @@ QuicPlatformSystemLoad(
     // Get the path to the currently executing shared object (libmsquic.so).
     //
     Dl_info Info;
-    int Succeeded = dladdr((void *)QuicPlatformSystemLoad, &Info);
+    int Succeeded = dladdr((void *)CxPlatSystemLoad, &Info);
     if (!Succeeded) {
         return;
     }
 
-    int PathLen = strlen(Info.dli_fname);
+    size_t PathLen = strlen(Info.dli_fname);
 
     //
     // Find the length of the full path without the shared object name, including the trailing slash.
@@ -113,13 +112,13 @@ QuicPlatformSystemLoad(
     size_t TpLibNameLen = strlen(TpLibName);
     size_t ProviderFullPathLength = TpLibNameLen + LastTrailingSlashLen + 1;
 
-    char* ProviderFullPath = QUIC_ALLOC_PAGED(ProviderFullPathLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    char* ProviderFullPath = CXPLAT_ALLOC_PAGED(ProviderFullPathLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (ProviderFullPath == NULL) {
         return;
     }
 
-    QuicCopyMemory(ProviderFullPath, Info.dli_fname, LastTrailingSlashLen);
-    QuicCopyMemory(ProviderFullPath + LastTrailingSlashLen, TpLibName, TpLibNameLen);
+    CxPlatCopyMemory(ProviderFullPath, Info.dli_fname, LastTrailingSlashLen);
+    CxPlatCopyMemory(ProviderFullPath + LastTrailingSlashLen, TpLibName, TpLibNameLen);
     ProviderFullPath[LastTrailingSlashLen + TpLibNameLen] = '\0';
 
     //
@@ -128,72 +127,72 @@ QuicPlatformSystemLoad(
     //
     dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
 
-    QUIC_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
 }
 
 void
-QuicPlatformSystemUnload(
+CxPlatSystemUnload(
     void
     )
 {
 }
 
 QUIC_STATUS
-QuicPlatformInitialize(
+CxPlatInitialize(
     void
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    QUIC_FRE_ASSERT(PlatDispatch != NULL);
+#ifdef CX_PLATFORM_DISPATCH_TABLE
+    CXPLAT_FRE_ASSERT(PlatDispatch != NULL);
 #else
-    RandomFd = open("/dev/urandom", O_RDONLY);
+    RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
         return (QUIC_STATUS)errno;
     }
 #endif
 
-    QuicTotalMemory = 0x40000000; // TODO - Hard coded at 1 GB. Query real value.
+    CxPlatTotalMemory = 0x40000000; // TODO - Hard coded at 1 GB. Query real value.
 
     return QUIC_STATUS_SUCCESS;
 }
 
 void
-QuicPlatformUninitialize(
+CxPlatUninitialize(
     void
     )
 {
-#ifndef QUIC_PLATFORM_DISPATCH_TABLE
+#ifndef CX_PLATFORM_DISPATCH_TABLE
     close(RandomFd);
 #endif
 }
 
 void*
-QuicAlloc(
+CxPlatAlloc(
     _In_ size_t ByteCount,
     _In_ uint32_t Tag
     )
 {
     UNREFERENCED_PARAMETER(Tag);
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->Alloc(ByteCount);
 #else
 #ifdef QUIC_RANDOM_ALLOC_FAIL
-    uint8_t Rand; QuicRandom(sizeof(Rand), &Rand);
+    uint8_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
     return ((Rand % 100) == 1) ? NULL : malloc(ByteCount);
 #else
     return malloc(ByteCount);
 #endif // QUIC_RANDOM_ALLOC_FAIL
-#endif // QUIC_PLATFORM_DISPATCH_TABLE
+#endif // CX_PLATFORM_DISPATCH_TABLE
 }
 
 void
-QuicFree(
+CxPlatFree(
     __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem,
     _In_ uint32_t Tag
     )
 {
     UNREFERENCED_PARAMETER(Tag);
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->Free(Mem);
 #else
     free(Mem);
@@ -201,14 +200,14 @@ QuicFree(
 }
 
 void
-QuicPoolInitialize(
+CxPlatPoolInitialize(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
-    _Inout_ QUIC_POOL* Pool
+    _Inout_ CXPLAT_POOL* Pool
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->PoolInitialize(IsPaged, Size, Pool);
 #else
     UNREFERENCED_PARAMETER(IsPaged);
@@ -218,11 +217,11 @@ QuicPoolInitialize(
 }
 
 void
-QuicPoolUninitialize(
-    _Inout_ QUIC_POOL* Pool
+CxPlatPoolUninitialize(
+    _Inout_ CXPLAT_POOL* Pool
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->PoolUninitialize(Pool);
 #else
     UNREFERENCED_PARAMETER(Pool);
@@ -230,17 +229,17 @@ QuicPoolUninitialize(
 }
 
 void*
-QuicPoolAlloc(
-    _Inout_ QUIC_POOL* Pool
+CxPlatPoolAlloc(
+    _Inout_ CXPLAT_POOL* Pool
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->PoolAlloc(Pool);
 #else
-    void*Entry = QuicAlloc(Pool->Size, Pool->MemTag);
+    void*Entry = CxPlatAlloc(Pool->Size, Pool->MemTag);
 
     if (Entry != NULL) {
-        QuicZeroMemory(Entry, Pool->Size);
+        CxPlatZeroMemory(Entry, Pool->Size);
     }
 
     return Entry;
@@ -248,227 +247,231 @@ QuicPoolAlloc(
 }
 
 void
-QuicPoolFree(
-    _Inout_ QUIC_POOL* Pool,
+CxPlatPoolFree(
+    _Inout_ CXPLAT_POOL* Pool,
     _In_ void* Entry
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     PlatDispatch->PoolFree(Pool, Entry);
 #else
     UNREFERENCED_PARAMETER(Pool);
-    QuicFree(Entry, Pool->MemTag);
+    CxPlatFree(Entry, Pool->MemTag);
 #endif
 }
 
 void
-QuicRefInitialize(
-    _Inout_ QUIC_REF_COUNT* RefCount
+CxPlatRefInitialize(
+    _Inout_ CXPLAT_REF_COUNT* RefCount
     )
 {
     *RefCount = 1;
 }
 
 void
-QuicRefIncrement(
-    _Inout_ QUIC_REF_COUNT* RefCount
+CxPlatRefIncrement(
+    _Inout_ CXPLAT_REF_COUNT* RefCount
     )
 {
     if (__atomic_add_fetch(RefCount, 1, __ATOMIC_SEQ_CST)) {
         return;
     }
 
-    QUIC_FRE_ASSERT(FALSE);
+    CXPLAT_FRE_ASSERT(FALSE);
 }
 
 BOOLEAN
-QuicRefIncrementNonZero(
-    _Inout_ volatile QUIC_REF_COUNT* RefCount
+CxPlatRefIncrementNonZero(
+    _Inout_ volatile CXPLAT_REF_COUNT* RefCount
     )
 {
-    QUIC_REF_COUNT NewValue = 0;
-    QUIC_REF_COUNT OldValue = *RefCount;
+    CXPLAT_REF_COUNT OldValue = *RefCount;
 
     for (;;) {
-        NewValue = OldValue + 1;
+        CXPLAT_REF_COUNT NewValue = OldValue + 1;
 
-        if ((QUIC_REF_COUNT)NewValue > 1) {
+        if (NewValue > 1) {
             if(__atomic_compare_exchange_n(RefCount, &OldValue, NewValue, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
                 return TRUE;
             }
-        } else if ((QUIC_REF_COUNT)NewValue == 1) {
-            return FALSE;
-        } else {
-            QUIC_FRE_ASSERT(false);
+            continue;
+        }
+
+        if (NewValue == 1) {
             return FALSE;
         }
+
+        CXPLAT_FRE_ASSERT(false);
+        return FALSE;
     }
 }
 
 BOOLEAN
-QuicRefDecrement(
-    _In_ QUIC_REF_COUNT* RefCount
+CxPlatRefDecrement(
+    _In_ CXPLAT_REF_COUNT* RefCount
     )
 {
-    QUIC_REF_COUNT NewValue = __atomic_sub_fetch(RefCount, 1, __ATOMIC_SEQ_CST);
+    CXPLAT_REF_COUNT NewValue = __atomic_sub_fetch(RefCount, 1, __ATOMIC_SEQ_CST);
 
     if (NewValue > 0) {
         return FALSE;
-    } else if (NewValue == 0) {
+    }
+
+    if (NewValue == 0) {
         return TRUE;
     }
 
-    QUIC_FRE_ASSERT(FALSE);
+    CXPLAT_FRE_ASSERT(FALSE);
 
     return FALSE;
 }
 
 void
-QuicRundownInitialize(
-    _Inout_ QUIC_RUNDOWN_REF* Rundown
+CxPlatRundownInitialize(
+    _Inout_ CXPLAT_RUNDOWN_REF* Rundown
     )
 {
-    QuicRefInitialize(&((Rundown)->RefCount));
-    QuicEventInitialize(&((Rundown)->RundownComplete), false, false);
+    CxPlatRefInitialize(&((Rundown)->RefCount));
+    CxPlatEventInitialize(&((Rundown)->RundownComplete), false, false);
 }
 
 void
-QuicRundownInitializeDisabled(
-    _Inout_ QUIC_RUNDOWN_REF* Rundown
+CxPlatRundownInitializeDisabled(
+    _Inout_ CXPLAT_RUNDOWN_REF* Rundown
     )
 {
     (Rundown)->RefCount = 0;
-    QuicEventInitialize(&((Rundown)->RundownComplete), false, false);
+    CxPlatEventInitialize(&((Rundown)->RundownComplete), false, false);
 }
 
 void
-QuicRundownReInitialize(
-    _Inout_ QUIC_RUNDOWN_REF* Rundown
+CxPlatRundownReInitialize(
+    _Inout_ CXPLAT_RUNDOWN_REF* Rundown
     )
 {
     (Rundown)->RefCount = 1;
 }
 
 void
-QuicRundownUninitialize(
-    _Inout_ QUIC_RUNDOWN_REF* Rundown
+CxPlatRundownUninitialize(
+    _Inout_ CXPLAT_RUNDOWN_REF* Rundown
     )
 {
-    QuicEventUninitialize((Rundown)->RundownComplete);
+    CxPlatEventUninitialize((Rundown)->RundownComplete);
 }
 
 BOOLEAN
-QuicRundownAcquire(
-    _Inout_ QUIC_RUNDOWN_REF* Rundown
+CxPlatRundownAcquire(
+    _Inout_ CXPLAT_RUNDOWN_REF* Rundown
     )
 {
-    return QuicRefIncrementNonZero(&(Rundown)->RefCount);
+    return CxPlatRefIncrementNonZero(&(Rundown)->RefCount);
 }
 
 void
-QuicRundownRelease(
-    _Inout_ QUIC_RUNDOWN_REF* Rundown
+CxPlatRundownRelease(
+    _Inout_ CXPLAT_RUNDOWN_REF* Rundown
     )
 {
-    if (QuicRefDecrement(&(Rundown)->RefCount)) {
-        QuicEventSet((Rundown)->RundownComplete);
+    if (CxPlatRefDecrement(&(Rundown)->RefCount)) {
+        CxPlatEventSet((Rundown)->RundownComplete);
     }
 }
 
 void
-QuicRundownReleaseAndWait(
-    _Inout_ QUIC_RUNDOWN_REF* Rundown
+CxPlatRundownReleaseAndWait(
+    _Inout_ CXPLAT_RUNDOWN_REF* Rundown
     )
 {
-    if (!QuicRefDecrement(&(Rundown)->RefCount)) {
-        QuicEventWaitForever((Rundown)->RundownComplete);
+    if (!CxPlatRefDecrement(&(Rundown)->RefCount)) {
+        CxPlatEventWaitForever((Rundown)->RundownComplete);
     }
 }
 
 void
-QuicEventInitialize(
-    _Out_ QUIC_EVENT* Event,
+CxPlatEventInitialize(
+    _Out_ CXPLAT_EVENT* Event,
     _In_ BOOLEAN ManualReset,
     _In_ BOOLEAN InitialState
     )
 {
-    QUIC_EVENT_OBJECT* EventObj = NULL;
+    CXPLAT_EVENT_OBJECT* EventObj = NULL;
     pthread_condattr_t Attr = {0};
 
-    EventObj = QUIC_ALLOC_NONPAGED(sizeof(QUIC_EVENT_OBJECT), QUIC_POOL_EVENT);
+    EventObj = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_EVENT_OBJECT), QUIC_POOL_EVENT);
 
     //
     // MsQuic expects this call to be non failable.
     //
 
-    QUIC_DBG_ASSERT(EventObj != NULL);
+    CXPLAT_DBG_ASSERT(EventObj != NULL);
 
     EventObj->AutoReset = !ManualReset;
     EventObj->Signaled = InitialState;
 
-    QUIC_FRE_ASSERT(pthread_mutex_init(&EventObj->Mutex, NULL) == 0);
-    QUIC_FRE_ASSERT(pthread_condattr_init(&Attr) == 0);
-    QUIC_FRE_ASSERT(pthread_condattr_setclock(&Attr, CLOCK_MONOTONIC) == 0);
-    QUIC_FRE_ASSERT(pthread_cond_init(&EventObj->Cond, &Attr) == 0);
-    QUIC_FRE_ASSERT(pthread_condattr_destroy(&Attr) == 0);
+    CXPLAT_FRE_ASSERT(pthread_mutex_init(&EventObj->Mutex, NULL) == 0);
+    CXPLAT_FRE_ASSERT(pthread_condattr_init(&Attr) == 0);
+    CXPLAT_FRE_ASSERT(pthread_condattr_setclock(&Attr, CLOCK_MONOTONIC) == 0);
+    CXPLAT_FRE_ASSERT(pthread_cond_init(&EventObj->Cond, &Attr) == 0);
+    CXPLAT_FRE_ASSERT(pthread_condattr_destroy(&Attr) == 0);
 
     (*Event) = EventObj;
 }
 
 void
-QuicEventUninitialize(
-    _Inout_ QUIC_EVENT Event
+CxPlatEventUninitialize(
+    _Inout_ CXPLAT_EVENT Event
     )
 {
-    QUIC_EVENT_OBJECT* EventObj = Event;
+    CXPLAT_EVENT_OBJECT* EventObj = Event;
 
-    QUIC_FRE_ASSERT(pthread_cond_destroy(&EventObj->Cond) == 0);
-    QUIC_FRE_ASSERT(pthread_mutex_destroy(&EventObj->Mutex) == 0);
+    CXPLAT_FRE_ASSERT(pthread_cond_destroy(&EventObj->Cond) == 0);
+    CXPLAT_FRE_ASSERT(pthread_mutex_destroy(&EventObj->Mutex) == 0);
 
-    QUIC_FREE(EventObj, QUIC_POOL_EVENT);
+    CXPLAT_FREE(EventObj, QUIC_POOL_EVENT);
     EventObj = NULL;
 }
 
 void
-QuicEventSet(
-    _Inout_ QUIC_EVENT Event
+CxPlatEventSet(
+    _Inout_ CXPLAT_EVENT Event
     )
 {
-    QUIC_EVENT_OBJECT* EventObj = Event;
+    CXPLAT_EVENT_OBJECT* EventObj = Event;
 
-    QUIC_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
+    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
 
     EventObj->Signaled = true;
 
-    QUIC_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
+    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
 
     //
     // Signal the condition.
     //
 
-    QUIC_FRE_ASSERT(pthread_cond_broadcast(&EventObj->Cond) == 0);
+    CXPLAT_FRE_ASSERT(pthread_cond_broadcast(&EventObj->Cond) == 0);
 }
 
 void
-QuicEventReset(
-    _Inout_ QUIC_EVENT Event
+CxPlatEventReset(
+    _Inout_ CXPLAT_EVENT Event
     )
 {
-    QUIC_EVENT_OBJECT* EventObj = Event;
+    CXPLAT_EVENT_OBJECT* EventObj = Event;
 
-    QUIC_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
+    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
     EventObj->Signaled = false;
-    QUIC_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
+    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
 }
 
 void
-QuicEventWaitForever(
-    _Inout_ QUIC_EVENT Event
+CxPlatEventWaitForever(
+    _Inout_ CXPLAT_EVENT Event
     )
 {
-    QUIC_EVENT_OBJECT* EventObj = Event;
+    CXPLAT_EVENT_OBJECT* EventObj = Event;
 
-    QUIC_FRE_ASSERT(pthread_mutex_lock(&Event->Mutex) == 0);
+    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&Event->Mutex) == 0);
 
     //
     // Spurious wake ups from pthread_cond_wait can occur. So the function needs
@@ -476,45 +479,44 @@ QuicEventWaitForever(
     //
 
     while (!EventObj->Signaled) {
-        QUIC_FRE_ASSERT(pthread_cond_wait(&EventObj->Cond, &EventObj->Mutex) == 0);
+        CXPLAT_FRE_ASSERT(pthread_cond_wait(&EventObj->Cond, &EventObj->Mutex) == 0);
     }
 
     if(EventObj->AutoReset) {
         EventObj->Signaled = false;
     }
 
-    QUIC_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
+    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
 }
 
 BOOLEAN
-QuicEventWaitWithTimeout(
-    _Inout_ QUIC_EVENT Event,
+CxPlatEventWaitWithTimeout(
+    _Inout_ CXPLAT_EVENT Event,
     _In_ uint32_t TimeoutMs
     )
 {
-    QUIC_EVENT_OBJECT* EventObj = Event;
+    CXPLAT_EVENT_OBJECT* EventObj = Event;
     BOOLEAN WaitSatisfied = FALSE;
     struct timespec Ts = {0};
-    int Result = 0;
 
     //
     // Get absolute time.
     //
 
-    QuicGetAbsoluteTime(TimeoutMs, &Ts);
+    CxPlatGetAbsoluteTime(TimeoutMs, &Ts);
 
-    QUIC_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
+    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
 
     while (!EventObj->Signaled) {
 
-        Result = pthread_cond_timedwait(&EventObj->Cond, &EventObj->Mutex, &Ts);
+        int Result = pthread_cond_timedwait(&EventObj->Cond, &EventObj->Mutex, &Ts);
 
         if (Result == ETIMEDOUT) {
             WaitSatisfied = FALSE;
             goto Exit;
         }
 
-        QUIC_DBG_ASSERT(Result == 0);
+        CXPLAT_DBG_ASSERT(Result == 0);
         UNREFERENCED_PARAMETER(Result);
     }
 
@@ -526,86 +528,86 @@ QuicEventWaitWithTimeout(
 
 Exit:
 
-    QUIC_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
+    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
 
     return WaitSatisfied;
 }
 
 uint64_t
-QuicTimespecToUs(
+CxPlatTimespecToUs(
     _In_ const struct timespec *Time
     )
 {
-    return (Time->tv_sec * QUIC_MICROSEC_PER_SEC) + (Time->tv_nsec / QUIC_NANOSEC_PER_MICROSEC);
+    return (Time->tv_sec * CXPLAT_MICROSEC_PER_SEC) + (Time->tv_nsec / CXPLAT_NANOSEC_PER_MICROSEC);
 }
 
 uint64_t
-QuicGetTimerResolution(
+CxPlatGetTimerResolution(
     void
     )
 {
     struct timespec Res = {0};
     int ErrorCode = clock_getres(CLOCK_MONOTONIC, &Res);
-    QUIC_DBG_ASSERT(ErrorCode == 0);
+    CXPLAT_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
-    return QuicTimespecToUs(&Res);
+    return CxPlatTimespecToUs(&Res);
 }
 
 uint64_t
-QuicTimeUs64(
+CxPlatTimeUs64(
     void
     )
 {
     struct timespec CurrTime = {0};
     int ErrorCode = clock_gettime(CLOCK_MONOTONIC, &CurrTime);
-    QUIC_DBG_ASSERT(ErrorCode == 0);
+    CXPLAT_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
-    return QuicTimespecToUs(&CurrTime);
+    return CxPlatTimespecToUs(&CurrTime);
 }
 
 void
-QuicGetAbsoluteTime(
+CxPlatGetAbsoluteTime(
     _In_ unsigned long DeltaMs,
     _Out_ struct timespec *Time
     )
 {
     int ErrorCode = 0;
 
-    QuicZeroMemory(Time, sizeof(struct timespec));
+    CxPlatZeroMemory(Time, sizeof(struct timespec));
 
     ErrorCode = clock_gettime(CLOCK_MONOTONIC, Time);
 
-    QUIC_DBG_ASSERT(ErrorCode == 0);
+    CXPLAT_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
 
-    Time->tv_sec += (DeltaMs / QUIC_MS_PER_SECOND);
-    Time->tv_nsec += ((DeltaMs % QUIC_MS_PER_SECOND) * QUIC_NANOSEC_PER_MS);
+    Time->tv_sec += (DeltaMs / CXPLAT_MS_PER_SECOND);
+    Time->tv_nsec += ((DeltaMs % CXPLAT_MS_PER_SECOND) * CXPLAT_NANOSEC_PER_MS);
 
-    if (Time->tv_nsec > QUIC_NANOSEC_PER_SEC)
+    if (Time->tv_nsec > CXPLAT_NANOSEC_PER_SEC)
     {
         Time->tv_sec += 1;
-        Time->tv_nsec -= QUIC_NANOSEC_PER_SEC;
+        Time->tv_nsec -= CXPLAT_NANOSEC_PER_SEC;
     }
 }
 
 void
-QuicSleep(
+CxPlatSleep(
     _In_ uint32_t DurationMs
     )
 {
     int ErrorCode = 0;
     struct timespec TS = {
-        .tv_sec = (DurationMs / QUIC_MS_PER_SECOND),
-        .tv_nsec = (QUIC_NANOSEC_PER_MS * (DurationMs % QUIC_MS_PER_SECOND))
+        .tv_sec = (DurationMs / CXPLAT_MS_PER_SECOND),
+        .tv_nsec = (CXPLAT_NANOSEC_PER_MS * (DurationMs % CXPLAT_MS_PER_SECOND))
     };
 
     ErrorCode = nanosleep(&TS, &TS);
-    QUIC_DBG_ASSERT(ErrorCode == 0);
+    CXPLAT_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
 }
 
 uint32_t
-QuicProcMaxCount(
+CxPlatProcMaxCount(
     void
     )
 {
@@ -613,7 +615,7 @@ QuicProcMaxCount(
 }
 
 uint32_t
-QuicProcActiveCount(
+CxPlatProcActiveCount(
     void
     )
 {
@@ -621,7 +623,7 @@ QuicProcActiveCount(
 }
 
 uint32_t
-QuicProcCurrentNumber(
+CxPlatProcCurrentNumber(
     void
     )
 {
@@ -629,12 +631,12 @@ QuicProcCurrentNumber(
 }
 
 QUIC_STATUS
-QuicRandom(
+CxPlatRandom(
     _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) void* Buffer
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->Random(BufferLen, Buffer);
 #else
     if (read(RandomFd, Buffer, BufferLen) == -1) {
@@ -645,14 +647,14 @@ QuicRandom(
 }
 
 void
-QuicConvertToMappedV6(
+CxPlatConvertToMappedV6(
     _In_ const QUIC_ADDR* InAddr,
     _Out_ QUIC_ADDR* OutAddr
     )
 {
-    QUIC_DBG_ASSERT(!(InAddr == OutAddr));
+    CXPLAT_DBG_ASSERT(!(InAddr == OutAddr));
 
-    QuicZeroMemory(OutAddr, sizeof(QUIC_ADDR));
+    CxPlatZeroMemory(OutAddr, sizeof(QUIC_ADDR));
 
     if (InAddr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
         OutAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
@@ -665,12 +667,12 @@ QuicConvertToMappedV6(
 }
 
 void
-QuicConvertFromMappedV6(
+CxPlatConvertFromMappedV6(
     _In_ const QUIC_ADDR* InAddr,
     _Out_ QUIC_ADDR* OutAddr
     )
 {
-    QUIC_DBG_ASSERT(InAddr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6);
+    CXPLAT_DBG_ASSERT(InAddr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6);
 
     if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
         QUIC_ADDR TmpAddrS = {0};
@@ -686,9 +688,9 @@ QuicConvertFromMappedV6(
 }
 
 QUIC_STATUS
-QuicThreadCreate(
-    _In_ QUIC_THREAD_CONFIG* Config,
-    _Out_ QUIC_THREAD* Thread
+CxPlatThreadCreate(
+    _In_ CXPLAT_THREAD_CONFIG* Config,
+    _Out_ CXPLAT_THREAD* Thread
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -704,7 +706,7 @@ QuicThreadCreate(
     }
 
 #ifdef __GLIBC__
-    if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
+    if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
         cpu_set_t CpuSet;
         CPU_ZERO(&CpuSet);
         CPU_SET(Config->IdealProcessor, &CpuSet);
@@ -720,7 +722,7 @@ QuicThreadCreate(
     // There is no way to set an ideal processor in Linux.
 #endif
 
-    if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
+    if (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY) {
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
         if (!pthread_attr_setschedparam(&Attr, &Params)) {
@@ -732,6 +734,33 @@ QuicThreadCreate(
         }
     }
 
+#ifdef CXPLAT_USE_CUSTOM_THREAD_CONTEXT
+
+    CXPLAT_THREAD_CUSTOM_CONTEXT* CustomContext =
+        CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT), QUIC_POOL_CUSTOM_THREAD);
+    if (CustomContext == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Custom thread context",
+            sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT));
+    }
+    CustomContext->Callback = Config->Callback;
+    CustomContext->Context = Config->Context;
+
+    if (pthread_create(Thread, &Attr, CxPlatThreadCustomStart, CustomContext)) {
+        Status = errno;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "pthread_create failed");
+        CXPLAT_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD);
+    }
+
+#else // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
+
     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
         Status = errno;
         QuicTraceEvent(
@@ -741,9 +770,11 @@ QuicThreadCreate(
             "pthread_create failed");
     }
 
+#endif // !CXPLAT_USE_CUSTOM_THREAD_CONTEXT
+
 #ifndef __GLIBC__
     if (Status == QUIC_STATUS_SUCCESS) {
-        if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
+        if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
             cpu_set_t CpuSet;
             CPU_ZERO(&CpuSet);
             CPU_SET(Config->IdealProcessor, &CpuSet);
@@ -765,33 +796,33 @@ QuicThreadCreate(
 }
 
 void
-QuicThreadDelete(
-    _Inout_ QUIC_THREAD* Thread
+CxPlatThreadDelete(
+    _Inout_ CXPLAT_THREAD* Thread
     )
 {
     UNREFERENCED_PARAMETER(Thread);
 }
 
 void
-QuicThreadWait(
-    _Inout_ QUIC_THREAD* Thread
+CxPlatThreadWait(
+    _Inout_ CXPLAT_THREAD* Thread
     )
 {
-    QUIC_DBG_ASSERT(pthread_equal(*Thread, pthread_self()) == 0);
-    QUIC_FRE_ASSERT(pthread_join(*Thread, NULL) == 0);
+    CXPLAT_DBG_ASSERT(pthread_equal(*Thread, pthread_self()) == 0);
+    CXPLAT_FRE_ASSERT(pthread_join(*Thread, NULL) == 0);
 }
 
 uint32_t
-QuicCurThreadID(
+CxPlatCurThreadID(
     void
     )
 {
-    QUIC_STATIC_ASSERT(sizeof(pid_t) <= sizeof(uint32_t), "PID size exceeds the expected size");
+    CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(uint32_t), "PID size exceeds the expected size");
     return syscall(__NR_gettid);
 }
 
 void
-QuicPlatformLogAssert(
+CxPlatLogAssert(
     _In_z_ const char* File,
     _In_ int Line,
     _In_z_ const char* Expr

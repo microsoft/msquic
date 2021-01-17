@@ -19,14 +19,14 @@ void
 QUIC_API
 MsQuicRegistrationClose(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
-        HQUIC Registration
+        HQUIC Handle
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QUIC_API
 MsQuicRegistrationShutdown(
-    _In_ _Pre_defensive_ HQUIC Registration,
+    _In_ _Pre_defensive_ HQUIC Handle,
     _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
     _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode
     );
@@ -52,7 +52,7 @@ void
 QUIC_API
 MsQuicConfigurationClose(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
-        HQUIC Configuration
+        HQUIC Handle
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
