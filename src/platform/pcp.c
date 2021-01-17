@@ -158,11 +158,11 @@ CxPlatPcpInitialize(
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
-    QUIC_DBG_ASSERT(GatewayAddresses != NULL);
-    QUIC_DBG_ASSERT(GatewayAddressesCount != 0);
+    CXPLAT_DBG_ASSERT(GatewayAddresses != NULL);
+    CXPLAT_DBG_ASSERT(GatewayAddressesCount != 0);
 
     PcpContextSize = sizeof(CXPLAT_PCP) + (GatewayAddressesCount * sizeof(CXPLAT_SOCKET*));
-    PcpContext = (CXPLAT_PCP*)QUIC_ALLOC_PAGED(PcpContextSize, QUIC_POOL_PCP);
+    PcpContext = (CXPLAT_PCP*)CXPLAT_ALLOC_PAGED(PcpContextSize, QUIC_POOL_PCP);
     if (PcpContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -173,7 +173,7 @@ CxPlatPcpInitialize(
         goto Exit;
     }
 
-    QuicZeroMemory(PcpContext, PcpContextSize);
+    CxPlatZeroMemory(PcpContext, PcpContextSize);
     PcpContext->ClientContext = Context;
     PcpContext->ClientCallback = Handler;
     PcpContext->GatewayCount = GatewayAddressesCount;
@@ -205,7 +205,7 @@ Exit:
     }
 
     if (GatewayAddresses != NULL) {
-        QUIC_FREE(GatewayAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
+        CXPLAT_FREE(GatewayAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
     }
 
     return Status;
@@ -217,7 +217,7 @@ CxPlatPcpUninitialize(
     _In_ CXPLAT_PCP* PcpContext
     )
 {
-    QUIC_DBG_ASSERT(PcpContext != NULL);
+    CXPLAT_DBG_ASSERT(PcpContext != NULL);
 
     for (uint32_t i = 0; i < PcpContext->GatewayCount; ++i) {
         if (PcpContext->GatewaySockets[i] != NULL) {
@@ -225,7 +225,7 @@ CxPlatPcpUninitialize(
         }
     }
 
-    QUIC_FREE(PcpContext, QUIC_POOL_PCP);
+    CXPLAT_FREE(PcpContext, QUIC_POOL_PCP);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -262,9 +262,9 @@ CxPlatPcpProcessDatagram(
     }
 
     CXPLAT_PCP_EVENT Event;
-    QuicCopyMemory(Event.FAILURE.Nonce, Response->MAP.MappingNonce, CXPLAT_PCP_NONCE_LENGTH);
+    CxPlatCopyMemory(Event.FAILURE.Nonce, Response->MAP.MappingNonce, CXPLAT_PCP_NONCE_LENGTH);
     QUIC_ADDR InternalAddress;
-    QuicCopyMemory(&InternalAddress, &Datagram->Tuple->LocalAddress, sizeof(QUIC_ADDR));
+    CxPlatCopyMemory(&InternalAddress, &Datagram->Tuple->LocalAddress, sizeof(QUIC_ADDR));
     InternalAddress.Ipv6.sin6_port = Response->MAP.InternalPort;
     QUIC_ADDR ExternalAddress = {0};
     QUIC_ADDR RemotePeerAddress = {0};
@@ -276,15 +276,15 @@ CxPlatPcpProcessDatagram(
     } else if (Response->Opcode == PCP_OPCODE_MAP) {
 
         QuicAddrSetFamily(&ExternalAddress, QUIC_ADDRESS_FAMILY_INET6);
-        QuicCopyMemory(
+        CxPlatCopyMemory(
             &ExternalAddress.Ipv6.sin6_addr,
             Response->MAP.AssignedExternalIpAddress,
             sizeof(Response->MAP.AssignedExternalIpAddress));
         ExternalAddress.Ipv6.sin6_port = Response->MAP.AssignedExternalPort;
-        QuicConvertFromMappedV6(&ExternalAddress, &ExternalAddress);
+        CxPlatConvertFromMappedV6(&ExternalAddress, &ExternalAddress);
 
         Event.Type = CXPLAT_PCP_EVENT_MAP;
-        Event.MAP.LifetimeSeconds = QuicByteSwapUint32(Response->Lifetime);
+        Event.MAP.LifetimeSeconds = CxPlatByteSwapUint32(Response->Lifetime);
         Event.MAP.InternalAddress = &InternalAddress;
         Event.MAP.ExternalAddress = &ExternalAddress;
 
@@ -299,23 +299,23 @@ CxPlatPcpProcessDatagram(
         }
 
         QuicAddrSetFamily(&ExternalAddress, QUIC_ADDRESS_FAMILY_INET6);
-        QuicCopyMemory(
+        CxPlatCopyMemory(
             &ExternalAddress.Ipv6.sin6_addr,
             Response->PEER.AssignedExternalIpAddress,
             sizeof(Response->PEER.AssignedExternalIpAddress));
         ExternalAddress.Ipv6.sin6_port = Response->MAP.AssignedExternalPort;
-        QuicConvertFromMappedV6(&ExternalAddress, &ExternalAddress);
+        CxPlatConvertFromMappedV6(&ExternalAddress, &ExternalAddress);
 
         QuicAddrSetFamily(&RemotePeerAddress, QUIC_ADDRESS_FAMILY_INET6);
-        QuicCopyMemory(
+        CxPlatCopyMemory(
             &RemotePeerAddress.Ipv6.sin6_addr,
             Response->PEER.RemotePeerIpAddress,
             sizeof(Response->PEER.RemotePeerIpAddress));
         RemotePeerAddress.Ipv6.sin6_port = Response->PEER.RemotePeerPort;
-        QuicConvertFromMappedV6(&RemotePeerAddress, &RemotePeerAddress);
+        CxPlatConvertFromMappedV6(&RemotePeerAddress, &RemotePeerAddress);
 
         Event.Type = CXPLAT_PCP_EVENT_PEER;
-        Event.PEER.LifetimeSeconds = QuicByteSwapUint32(Response->Lifetime);
+        Event.PEER.LifetimeSeconds = CxPlatByteSwapUint32(Response->Lifetime);
         Event.PEER.InternalAddress = &InternalAddress;
         Event.PEER.ExternalAddress = &ExternalAddress;
         Event.PEER.RemotePeerAddress = &RemotePeerAddress;
@@ -345,7 +345,7 @@ CxPlatPcpRecvCallback(
     )
 {
     UNREFERENCED_PARAMETER(Socket);
-    QUIC_DBG_ASSERT(Context);
+    CXPLAT_DBG_ASSERT(Context);
     CXPLAT_PCP* PcpContext = Context;
 
     for (CXPLAT_RECV_DATA* Datagram = RecvBufferChain;
@@ -354,7 +354,7 @@ CxPlatPcpRecvCallback(
         CxPlatPcpProcessDatagram(PcpContext, RecvBufferChain);
     }
 
-    CxPlatSocketReturnRecvDatagrams(RecvBufferChain);
+    CxPlatRecvDataReturn(RecvBufferChain);
 }
 
 BOOLEAN
@@ -385,7 +385,7 @@ CxPlatPcpSendMapRequestInternal(
     CxPlatSocketGetRemoteAddress(Socket, &RemoteAddress);
 
     QUIC_ADDR LocalMappedAddress;
-    QuicConvertToMappedV6(&LocalAddress, &LocalMappedAddress);
+    CxPlatConvertToMappedV6(&LocalAddress, &LocalMappedAddress);
 
     CXPLAT_SEND_DATA* SendContext =
         CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, PCP_MAP_REQUEST_SIZE);
@@ -396,7 +396,7 @@ CxPlatPcpSendMapRequestInternal(
     QUIC_BUFFER* SendBuffer =
         CxPlatSendDataAllocBuffer(SendContext, PCP_MAP_REQUEST_SIZE);
     if (SendBuffer == NULL) {
-        CxPlatSocketFreeSendContext(SendContext);
+        CxPlatSendDataFree(SendContext);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -406,17 +406,17 @@ CxPlatPcpSendMapRequestInternal(
     Request->Request = 0;
     Request->Opcode = PCP_OPCODE_MAP;
     Request->Reserved = 0;
-    Request->RequestLifetime = QuicByteSwapUint32(Lifetime);
-    QuicCopyMemory(
+    Request->RequestLifetime = CxPlatByteSwapUint32(Lifetime);
+    CxPlatCopyMemory(
         Request->ClientIpAddress,
         &LocalMappedAddress.Ipv6.sin6_addr,
         sizeof(Request->ClientIpAddress));
-    QuicCopyMemory(Request->MAP.MappingNonce, Nonce, CXPLAT_PCP_NONCE_LENGTH);
+    CxPlatCopyMemory(Request->MAP.MappingNonce, Nonce, CXPLAT_PCP_NONCE_LENGTH);
     Request->MAP.Protocol = 17; // UDP
-    QuicZeroMemory(Request->MAP.Reserved, sizeof(Request->MAP.Reserved));
-    Request->MAP.InternalPort = QuicByteSwapUint16(InternalPort);
+    CxPlatZeroMemory(Request->MAP.Reserved, sizeof(Request->MAP.Reserved));
+    Request->MAP.InternalPort = CxPlatByteSwapUint16(InternalPort);
     Request->MAP.SuggestedExternalPort = 0;
-    QuicZeroMemory(
+    CxPlatZeroMemory(
         Request->MAP.SuggestedExternalIpAddress,
         sizeof(Request->MAP.SuggestedExternalIpAddress));
 
@@ -444,7 +444,7 @@ CxPlatPcpSendMapRequest(
     _In_ uint32_t Lifetime          // Zero indicates delete Nonce must match.
     )
 {
-    QUIC_DBG_ASSERT(PcpContext != NULL);
+    CXPLAT_DBG_ASSERT(PcpContext != NULL);
 
     QUIC_STATUS Status;
     for (uint32_t i = 0; i < PcpContext->GatewayCount; ++i) {
@@ -482,10 +482,10 @@ CxPlatPcpSendPeerRequestInternal(
     CxPlatSocketGetRemoteAddress(Socket, &RemoteAddress);
 
     QUIC_ADDR LocalMappedAddress;
-    QuicConvertToMappedV6(&LocalAddress, &LocalMappedAddress);
+    CxPlatConvertToMappedV6(&LocalAddress, &LocalMappedAddress);
 
     QUIC_ADDR RemotePeerMappedAddress;
-    QuicConvertToMappedV6(RemotePeerAddress, &RemotePeerMappedAddress);
+    CxPlatConvertToMappedV6(RemotePeerAddress, &RemotePeerMappedAddress);
 
     CXPLAT_SEND_DATA* SendContext =
         CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, PCP_PEER_REQUEST_SIZE);
@@ -496,7 +496,7 @@ CxPlatPcpSendPeerRequestInternal(
     QUIC_BUFFER* SendBuffer =
         CxPlatSendDataAllocBuffer(SendContext, PCP_PEER_REQUEST_SIZE);
     if (SendBuffer == NULL) {
-        CxPlatSocketFreeSendContext(SendContext);
+        CxPlatSendDataFree(SendContext);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -506,20 +506,20 @@ CxPlatPcpSendPeerRequestInternal(
     Request->Request = 0;
     Request->Opcode = PCP_OPCODE_PEER;
     Request->Reserved = 0;
-    Request->RequestLifetime = QuicByteSwapUint32(Lifetime);
-    QuicCopyMemory(
+    Request->RequestLifetime = CxPlatByteSwapUint32(Lifetime);
+    CxPlatCopyMemory(
         Request->ClientIpAddress,
         &LocalMappedAddress.Ipv6.sin6_addr,
         sizeof(Request->ClientIpAddress));
-    QuicCopyMemory(Request->MAP.MappingNonce, Nonce, CXPLAT_PCP_NONCE_LENGTH);
+    CxPlatCopyMemory(Request->MAP.MappingNonce, Nonce, CXPLAT_PCP_NONCE_LENGTH);
     Request->PEER.Protocol = 17; // UDP
-    QuicZeroMemory(Request->PEER.Reserved, sizeof(Request->PEER.Reserved));
-    Request->PEER.InternalPort = QuicByteSwapUint16(InternalPort);
+    CxPlatZeroMemory(Request->PEER.Reserved, sizeof(Request->PEER.Reserved));
+    Request->PEER.InternalPort = CxPlatByteSwapUint16(InternalPort);
     Request->PEER.SuggestedExternalPort = 0;
-    QuicZeroMemory(
+    CxPlatZeroMemory(
         Request->PEER.SuggestedExternalIpAddress,
         sizeof(Request->PEER.SuggestedExternalIpAddress));
-    QuicCopyMemory(
+    CxPlatCopyMemory(
         Request->PEER.RemotePeerIpAddress,
         &RemotePeerMappedAddress.Ipv6.sin6_addr,
         sizeof(Request->PEER.RemotePeerIpAddress));
@@ -550,7 +550,7 @@ CxPlatPcpSendPeerRequest(
     _In_ uint32_t Lifetime          // Zero indicates delete. Nonce must match.
     )
 {
-    QUIC_DBG_ASSERT(PcpContext != NULL);
+    CXPLAT_DBG_ASSERT(PcpContext != NULL);
 
     QUIC_STATUS Status;
     for (uint32_t i = 0; i < PcpContext->GatewayCount; ++i) {

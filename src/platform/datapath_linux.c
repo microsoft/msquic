@@ -1604,7 +1604,7 @@ CxPlatSocketCreateUdp(
 #else
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
+    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || InternalFlags & CXPLAT_SOCKET_FLAG_PCP);
 
     uint32_t SocketCount = Datapath->ProcCount; // TODO - Only use 1 for client (RemoteAddress != NULL) bindings?
     size_t BindingLength =

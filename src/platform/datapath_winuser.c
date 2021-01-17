@@ -1085,7 +1085,7 @@ CxPlatDataPathGetGatewayAddresses(
                 &AdapterAddressesSize);
         if (Error == ERROR_BUFFER_OVERFLOW) {
             free(AdapterAddresses);
-            AdapterAddresses = QUIC_ALLOC_NONPAGED(AdapterAddressesSize, QUIC_POOL_DATAPATH_ADDRESSES);
+            AdapterAddresses = CXPLAT_ALLOC_NONPAGED(AdapterAddressesSize, QUIC_POOL_DATAPATH_ADDRESSES);
             if (!AdapterAddresses) {
                 Error = ERROR_NOT_ENOUGH_MEMORY;
                 QuicTraceEvent(
@@ -1122,7 +1122,7 @@ CxPlatDataPathGetGatewayAddresses(
         goto Exit;
     }
 
-    *GatewayAddresses = QUIC_ALLOC_NONPAGED(Index * sizeof(QUIC_ADDR), QUIC_POOL_DATAPATH_ADDRESSES);
+    *GatewayAddresses = CXPLAT_ALLOC_NONPAGED(Index * sizeof(QUIC_ADDR), QUIC_POOL_DATAPATH_ADDRESSES);
     if (*GatewayAddresses == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1133,7 +1133,7 @@ CxPlatDataPathGetGatewayAddresses(
         goto Exit;
     }
 
-    QuicZeroMemory(*GatewayAddresses, Index * sizeof(QUIC_ADDR));
+    CxPlatZeroMemory(*GatewayAddresses, Index * sizeof(QUIC_ADDR));
     *GatewayAddressesCount = Index;
     Index = 0;
 
@@ -1146,7 +1146,7 @@ CxPlatDataPathGetGatewayAddresses(
 
 Exit:
 
-    QUIC_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
+    CXPLAT_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
 
     return Status;
 }
@@ -1308,7 +1308,7 @@ CxPlatSocketCreateUdp(
     BOOLEAN IsServerSocket = RemoteAddress == NULL;
     uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
 
-    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
+    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || InternalFlags & CXPLAT_SOCKET_FLAG_PCP);
 
     uint32_t SocketLength =
         sizeof(CXPLAT_SOCKET) + SocketCount * sizeof(CXPLAT_SOCKET_PROC);

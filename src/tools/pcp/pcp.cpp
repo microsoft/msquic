@@ -9,29 +9,6 @@
 #include <quic_pcp.h>
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
-void
-UdpRecvCallback(
-    _In_ CXPLAT_SOCKET* /* Socket */,
-    _In_ void* /* Context */,
-    _In_ CXPLAT_RECV_DATA* RecvBufferChain
-    )
-{
-    CxPlatRecvDataReturn(RecvBufferChain);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)
-void
-UdpUnreachCallback(
-    _In_ CXPLAT_SOCKET* /* Socket */,
-    _In_ void* /* Context */,
-    _In_ const QUIC_ADDR* /* RemoteAddress */
-    )
-{
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_PCP_CALLBACK)
 void
 PcpCallback(
@@ -82,19 +59,10 @@ main(
     UNREFERENCED_PARAMETER(argc);
     UNREFERENCED_PARAMETER(argv);
 
-    CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        UdpRecvCallback,
-        UdpUnreachCallback
-    };
-
     CxPlatSystemLoad();
     CxPlatInitialize();
     CxPlatRandom(sizeof(PcpNonce), PcpNonce);
-    CxPlatDataPathInitialize(
-        0,
-        &UdpCallbacks,
-        nullptr,
-        &Datapath);
+    CxPlatDataPathInitialize(0, nullptr, nullptr, &Datapath);
 
     QUIC_STATUS Status =
         CxPlatPcpInitialize(
