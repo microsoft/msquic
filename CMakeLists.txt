@@ -148,7 +148,8 @@ if (QUIC_SOURCE_LINK AND MSVC)
     if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER_EQUAL "19.20")
         include(${PROJECT_SOURCE_DIR}/cmake/SourceLink.cmake)
         file(TO_NATIVE_PATH "${PROJECT_BINARY_DIR}/source_link.json" SOURCE_LINK_JSON)
-        source_link(${PROJECT_SOURCE_DIR} ${SOURCE_LINK_JSON})
+        file(TO_NATIVE_PATH "${PROJECT_SOURCE_DIR}/cmake/source_link.json.in" SOURCE_LINK_JSON_INPUT)
+        source_link(${PROJECT_SOURCE_DIR} ${SOURCE_LINK_JSON} ${SOURCE_LINK_JSON_INPUT})
         set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO")
         set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO")
         set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO")
@@ -179,7 +180,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
-set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
 if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
@@ -215,19 +215,20 @@ endif()
 if(WIN32)
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
-    file(WRITE ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
-    include_directories(${QUIC_BUILD_DIR}/inc)
 
     add_custom_command(
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/MsQuicEtw.man
         COMMAND mc.exe -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/MsQuicEtw.man)
-    add_custom_target(MsQuicEtw
-        DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
-        DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
+    add_custom_target(MsQuicEtw_HeaderBuild
+            DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
-    set_property(TARGET MsQuicEtw PROPERTY FOLDER "libraries")
+    add_library(MsQuicEtw_Header INTERFACE)
+    target_include_directories(MsQuicEtw_Header INTERFACE ${QUIC_BUILD_DIR}/inc)
+    add_dependencies(MsQuicEtw_Header MsQuicEtw_HeaderBuild)
+
+    add_library(MsQuicEtw_Resource OBJECT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
 
     if (QUIC_UWP_BUILD)
         list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP QUIC_UWP_BUILD)
