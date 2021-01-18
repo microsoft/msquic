@@ -25,4 +25,18 @@ The following are currently only possible on Windows. Other platforms may be sup
 
 # Usage Instructions
 
+WPA is extremely powerful. It can operate very quickly on multi-gigabyte trace files and let you slice & dice the data many different ways to really drill down into what's going on.
+
+## Stacks CPU Usage
+
+![](images/flame.png)
+
+One of the built-in capabilities of WPA is the ability to analyze CPU trace information to see the CPU usage of the various call stacks in the code. For instance, in the above Flame Graph you can easily see that the most expensive function (58% of total CPU usage!) is `CxPlatEncrypt`.
+
+**TODO** - Add more details/instructions.
+
+## QUIC Charts and Tables
+
+![](images/quic_network.png)
+
 **TODO**
