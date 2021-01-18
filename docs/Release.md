@@ -34,7 +34,7 @@ This table describes the version, release date and end of support for official (
 
 | Release | Branch | Fork Date | Release Date | Support Type | End of Support |
 | -- | -- | -- | -- | -- | -- |
-| [1.0](https://github.com/microsoft/msquic/releases/tag/v1.0.0-129524) | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Nov 13 2020 | Jan 5 2020 | LTSC | Jan 4 2025 (2030) |
+| [1.0](https://github.com/microsoft/msquic/releases/tag/v1.0.0-129524) | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Nov 13 2020 | Jan 5 2021 | LTSC | Jan 4 2026 (2031) |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates in parentheses are for [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc).
