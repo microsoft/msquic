@@ -4,7 +4,7 @@
 [submodule "submodules/openssl"]
 	path = submodules/openssl
 	url = https://github.com/akamai/openssl.git
-	branch = master-alpha9-quic-support
+	branch = master-alpha10-quic-support
 [submodule "submodules/everest"]
 	path = submodules/everest
 	url = https://github.com/nibanks/everest-dist.git
