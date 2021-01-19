@@ -177,7 +177,7 @@ MsQuicLibraryReadSettings(
         LibrarySettingsUpdated,
         "[ lib] Settings %p Updated",
         &MsQuicLib.Settings);
-    QuicSettingsDump(&MsQuicLib.Settings);
+    QuicSettingsDump((QUIC_SETTINGS*)&MsQuicLib.Settings);
 
     MsQuicLibraryOnSettingsChanged(Context != NULL);
 }
@@ -675,13 +675,14 @@ QuicLibrarySetGlobalParam(
         if (!QuicSettingApply(
                 &MsQuicLib.Settings,
                 TRUE,
+                FALSE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS*)Buffer);
+        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS_INTERNAL*)Buffer); // Review
         MsQuicLibraryOnSettingsChanged(TRUE);
 
         Status = QUIC_STATUS_SUCCESS;
@@ -826,7 +827,7 @@ QuicLibraryGetGlobalParam(
         }
 
         *BufferLength = sizeof(QUIC_SETTINGS);
-        CxPlatCopyMemory(Buffer, &MsQuicLib.Settings, sizeof(QUIC_SETTINGS));
+        CxPlatCopyMemory(Buffer, &MsQuicLib.Settings, sizeof(QUIC_SETTINGS)); // TODO: How to copy DesiredVersionsList
 
         Status = QUIC_STATUS_SUCCESS;
         break;

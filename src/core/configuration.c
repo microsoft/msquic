@@ -172,6 +172,7 @@ MsQuicConfigurationOpen(
         if (!QuicSettingApply(
                 &Configuration->Settings,
                 TRUE,
+                FALSE,
                 SettingsSize,
                 Settings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -398,7 +399,7 @@ QuicConfigurationSettingsChanged(
         "[cnfg][%p] Settings %p Updated",
         Configuration,
         &Configuration->Settings);
-    QuicSettingsDump(&Configuration->Settings);
+    QuicSettingsDump((QUIC_SETTINGS*)&Configuration->Settings);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -423,7 +424,7 @@ QuicConfigurationParamGet(
         }
 
         *BufferLength = sizeof(QUIC_SETTINGS);
-        CxPlatCopyMemory(Buffer, &Configuration->Settings, sizeof(QUIC_SETTINGS));
+        CxPlatCopyMemory(Buffer, &Configuration->Settings, sizeof(QUIC_SETTINGS)); // TODO: how to copy back out DesiredVersionsList
 
         return QUIC_STATUS_SUCCESS;
     }
@@ -455,12 +456,13 @@ QuicConfigurationParamSet(
         if (!QuicSettingApply(
                 &Configuration->Settings,
                 TRUE,
+                FALSE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS*)Buffer);
+        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS_INTERNAL*)Buffer); // Review
 
         return QUIC_STATUS_SUCCESS;
     }

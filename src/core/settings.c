@@ -17,7 +17,7 @@ Abstract:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsSetDefault(
-    _Inout_ QUIC_SETTINGS* Settings
+    _Inout_ QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     if (!Settings->IsSet.SendBufferingEnabled) {
@@ -103,8 +103,8 @@ QuicSettingsSetDefault(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsCopy(
-    _Inout_ QUIC_SETTINGS* Destination,
-    _In_ const QUIC_SETTINGS* Source
+    _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
+    _In_ const QUIC_SETTINGS_INTERNAL* Source
     )
 {
     if (!Destination->IsSet.SendBufferingEnabled) {
@@ -191,8 +191,9 @@ QuicSettingsCopy(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSettingApply(
-    _Inout_ QUIC_SETTINGS* Destination,
+    _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
     _In_ BOOLEAN OverWrite,
+    _In_ BOOLEAN CopyInternalFields,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
@@ -330,36 +331,54 @@ QuicSettingApply(
         Destination->ServerResumptionLevel = Source->ServerResumptionLevel;
         Destination->IsSet.ServerResumptionLevel = TRUE;
     }
-    if (Source->IsSet.CompatibleVersionsList) {
-        if (Destination->IsSet.CompatibleVersionsList && OverWrite) {
-            CXPLAT_FREE(Destination->CompatibleVersionsList, QUIC_POOL_TP); // TODO: new pool tag
-            Destination->IsSet.CompatibleVersionsList = FALSE;
+    if (CopyInternalFields &&
+        NewSettingsSize == sizeof(QUIC_SETTINGS_INTERNAL) &&
+        ((QUIC_SETTINGS_INTERNAL*)Source)->IsSet.GeneratedCompatibleVersions) {
+        if (Destination->IsSet.GeneratedCompatibleVersions && OverWrite) {
+            CXPLAT_FREE(Destination->GeneratedCompatibleVersionsList, QUIC_POOL_VER_COMPAT_LIST);
+            Destination->IsSet.GeneratedCompatibleVersions = FALSE;
         }
-        if (!Destination->IsSet.CompatibleVersionsList) {
-            Destination->CompatibleVersionsList =
-                CXPLAT_ALLOC_NONPAGED(Source->CompatibleVersionsListLength * sizeof(uint32_t), QUIC_POOL_TP); // TODO: new pool tag
-            if (Destination->CompatibleVersionsList == NULL) {
+        if (!Destination->IsSet.GeneratedCompatibleVersions) {
+            Destination->GeneratedCompatibleVersionsList =
+                CXPLAT_ALLOC_NONPAGED(
+                    ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength * sizeof(uint32_t), QUIC_POOL_VER_COMPAT_LIST);
+            if (Destination->GeneratedCompatibleVersionsList == NULL) {
+                // TODO Log
                 return FALSE;
             }
-            memcpy(Destination->CompatibleVersionsList, Source->CompatibleVersionsList, Source->CompatibleVersionsListLength * sizeof(uint32_t));
-            Destination->CompatibleVersionsListLength = Source->CompatibleVersionsListLength;
-            Destination->IsSet.CompatibleVersionsList = TRUE;
+            memcpy(
+                Destination->GeneratedCompatibleVersionsList,
+                ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsList,
+                ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength * sizeof(uint32_t));
+            Destination->GeneratedCompatibleVersionsListLength = ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength;
+            Destination->IsSet.GeneratedCompatibleVersions = TRUE;
         }
     }
-    if (Source->IsSet.SupportedVersionsList) {
-        if (Destination->IsSet.SupportedVersionsList && OverWrite) {
-            CXPLAT_FREE(Destination->SupportedVersionsList, QUIC_POOL_TP); // TODO: new pool tag
-            Destination->IsSet.SupportedVersionsList = FALSE;
+    if (Source->IsSet.DesiredVersionsList) {
+        if (Destination->IsSet.DesiredVersionsList && OverWrite) {
+            CXPLAT_FREE(Destination->DesiredVersionsList, QUIC_POOL_VER_COMPAT_LIST);
+            Destination->IsSet.DesiredVersionsList = FALSE;
         }
-        if (!Destination->IsSet.SupportedVersionsList) {
-            Destination->SupportedVersionsList =
-                CXPLAT_ALLOC_NONPAGED(Source->SupportedVersionsListLength * sizeof(uint32_t), QUIC_POOL_TP); // TODO: new pool tag
-            if (Destination->SupportedVersionsList == NULL) {
+        if (!Destination->IsSet.DesiredVersionsList) {
+            // Validate the list
+            for (uint32_t i = 0; i < Source->DesiredVersionsListLength; ++i) {
+                if (!QuicIsVersionSupported(Source->DesiredVersionsList[i])) {
+                    // TODO log
+                    return FALSE;
+                }
+            }
+            Destination->DesiredVersionsList =
+                CXPLAT_ALLOC_NONPAGED(Source->DesiredVersionsListLength * sizeof(uint32_t), QUIC_POOL_VER_COMPAT_LIST);
+            if (Destination->DesiredVersionsList == NULL) {
+                // TODO log
                 return FALSE;
             }
-            memcpy(Destination->SupportedVersionsList, Source->SupportedVersionsList, Source->SupportedVersionsListLength * sizeof(uint32_t));
-            Destination->SupportedVersionsListLength = Source->SupportedVersionsListLength;
-            Destination->IsSet.SupportedVersionsList = TRUE;
+            memcpy(
+                Destination->DesiredVersionsList,
+                Source->DesiredVersionsList,
+                Source->DesiredVersionsListLength * sizeof(uint32_t));
+            Destination->DesiredVersionsListLength = Source->DesiredVersionsListLength;
+            Destination->IsSet.DesiredVersionsList = TRUE;
         }
     }
     return TRUE;
@@ -368,18 +387,13 @@ QuicSettingApply(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsCleanup(
-    _In_ QUIC_SETTINGS* Settings
+    _In_ QUIC_SETTINGS_INTERNAL* Settings
     )
 {
-    if (Settings->IsSet.CompatibleVersionsList) {
-        CXPLAT_FREE(Settings->CompatibleVersionsList, QUIC_POOL_TP); // TODO: new pool tag
-        Settings->CompatibleVersionsList = NULL;
-        Settings->IsSet.CompatibleVersionsList = FALSE;
-    }
-    if (Settings->IsSet.SupportedVersionsList) {
-        CXPLAT_FREE(Settings->SupportedVersionsList, QUIC_POOL_TP); // TODO new pool tag
-        Settings->SupportedVersionsList = NULL;
-        Settings->IsSet.SupportedVersionsList = FALSE;
+    if (Settings->IsSet.DesiredVersionsList) {
+        CXPLAT_FREE(Settings->DesiredVersionsList, QUIC_POOL_VER_COMPAT_LIST);
+        Settings->DesiredVersionsList = NULL;
+        Settings->IsSet.DesiredVersionsList = FALSE;
     }
 }
 
@@ -387,7 +401,7 @@ QuicSettingsCleanup(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsLoad(
-    _Inout_ QUIC_SETTINGS* Settings,
+    _Inout_ QUIC_SETTINGS_INTERNAL* Settings,
     _In_ CXPLAT_STORAGE* Storage
     )
 {
@@ -718,7 +732,7 @@ QuicSettingsDumpNew(
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t SettingsSize,
     _In_reads_bytes_(SettingsSize)
-        const QUIC_SETTINGS* Settings
+        const QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     UNREFERENCED_PARAMETER(SettingsSize); // TODO - Use when reading settings

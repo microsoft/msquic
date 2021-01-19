@@ -100,7 +100,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Configurable (app & registry) settings.
     //
-    QUIC_SETTINGS Settings;
+    QUIC_SETTINGS_INTERNAL Settings;
 
     //
     // Controls access to all non-datapath internal state of the library.

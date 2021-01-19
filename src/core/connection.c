@@ -48,6 +48,7 @@ BOOLEAN
 QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
+    _In_ BOOLEAN CopyInternalFields,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
@@ -375,7 +376,7 @@ QuicConnFree(
         Connection->HandshakeTP = NULL;
     }
     if (Connection->ReceivedNegotiationVersions != NULL) {
-        CXPLAT_FREE(Connection->ReceivedNegotiationVersions, QUIC_POOL_TP); // TODO new pool tag
+        CXPLAT_FREE(Connection->ReceivedNegotiationVersions, QUIC_POOL_VER_COMPAT_LIST);
         Connection->ReceivedNegotiationVersionsLength = 0;
     }
     QuicSettingsCleanup(&Connection->Settings);
@@ -2319,8 +2320,9 @@ QuicConnSetConfiguration(
     QuicConnApplyNewSettings(
         Connection,
         FALSE,
+        TRUE,
         sizeof(Configuration->Settings),
-        &Configuration->Settings);
+        (QUIC_SETTINGS*)&Configuration->Settings);
 
     if (!QuicConnIsServer(Connection)) {
 
@@ -5314,6 +5316,7 @@ QuicConnParamSet(
         if (!QuicConnApplyNewSettings(
                 Connection,
                 TRUE,
+                FALSE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -5737,7 +5740,7 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(QUIC_SETTINGS);
-        *(QUIC_SETTINGS*)Buffer = Connection->Settings;
+        memcpy(Buffer, &Connection->Settings, *BufferLength); // TODO: How to copy out DesiredVersionsList?
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -5987,6 +5990,7 @@ BOOLEAN
 QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
+    _In_ BOOLEAN CopyInternalFields,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
@@ -6001,6 +6005,7 @@ QuicConnApplyNewSettings(
     if (!QuicSettingApply(
             &Connection->Settings,
             OverWrite,
+            CopyInternalFields,
             NewSettingsSize,
             NewSettings)) {
         return FALSE;
@@ -6058,9 +6063,9 @@ QuicConnApplyNewSettings(
     }
 
     if (OverWrite) {
-        QuicSettingsDumpNew(NewSettingsSize, NewSettings);
+        QuicSettingsDumpNew(NewSettingsSize, (QUIC_SETTINGS_INTERNAL*)NewSettings); // Review
     } else {
-        QuicSettingsDump(&Connection->Settings); // TODO - Really necessary?
+        QuicSettingsDump((QUIC_SETTINGS*)&Connection->Settings); // TODO - Really necessary?
     }
 
     return TRUE;

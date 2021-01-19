@@ -1084,7 +1084,7 @@ QuicCryptoTlsEncodeTransportParameters(
         TPBuf =
             TlsWriteTransportParam(
                 QUIC_TP_ID_VERSION_NEGOTIATION_EXT,
-                TransportParams->VersionNegotiationInfoLength,
+                (uint16_t)TransportParams->VersionNegotiationInfoLength,
                 TransportParams->VersionNegotiationInfo,
                 TPBuf);
         // TODO: Log
@@ -1662,7 +1662,7 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;
-            TransportParams->VersionNegotiationInfo = TPBuf + Offset; // TODO: Allocate and copy?
+            TransportParams->VersionNegotiationInfo = (uint8_t*)TPBuf + Offset; // TODO: Allocate and copy?
             TransportParams->VersionNegotiationInfoLength = Length;
             // TODO Log
             break;
@@ -1700,19 +1700,30 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 const uint8_t*
 QuicCryptoTlsEncodeVersionNegotiationInfo(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _Out_ uint32_t* VNInfoLength
 )
 {
     uint32_t VNILen = 0;
     uint8_t* VNIBuf = NULL;
-    uint8_t VersionNegotiationInfo = NULL;
+    uint8_t* VersionNegotiationInfo = NULL;
+    *VNInfoLength = 0;
     if (QuicConnIsServer(Connection)) {
         //
         // Generate Server VNI.
         //
-        VNILen += 4 + QuicVarIntSize(Connection->Settings.SupportedVersionsListLength) + (Connection->Settings.SupportedVersionsListLength * sizeof(uint32_t));
+        VNILen = 4;
+        if (Connection->Settings.IsSet.DesiredVersionsList) {
+            VNILen +=
+                QuicVarIntSize(Connection->Settings.DesiredVersionsListLength) +
+                (Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t));
+        } else {
+            VNILen +=
+                QuicVarIntSize(DefaultSupportedVersionsListLength) +
+                (DefaultSupportedVersionsListLength * sizeof(uint32_t));
+        }
 
-        VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(VNILen, QUIC_POOL_TP); // TODO new pool tag
+        VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(VNILen, QUIC_POOL_VER_COMPAT_LIST);
         if (VersionNegotiationInfo == NULL) {
             // TODO log
             return NULL;
@@ -1720,17 +1731,37 @@ QuicCryptoTlsEncodeVersionNegotiationInfo(
         VNIBuf = VersionNegotiationInfo;
 
         memcpy(VNIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
-        VNIBuf = QuicVarIntEncode(Connection->Settings.SupportedVersionsListLength, VNIBuf);
-        memcpy(VNIBuf, Connection->Settings.SupportedVersionsList, Connection->Settings.SupportedVersionsListLength * sizeof(uint32_t));
+        if (Connection->Settings.IsSet.DesiredVersionsList) {
+            VNIBuf = QuicVarIntEncode(Connection->Settings.DesiredVersionsListLength, VNIBuf);
+            memcpy(
+                VNIBuf,
+                Connection->Settings.DesiredVersionsList,
+                Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t));
+        } else {
+            VNIBuf = QuicVarIntEncode(DefaultSupportedVersionsListLength, VNIBuf);
+            memcpy(VNIBuf, DefaultSupportedVersionsList, DefaultSupportedVersionsListLength * sizeof(uint32_t));
+        }
     } else {
         //
         // Generate Client VNI
         //
-        VNILen = 4 + 4 +
-            QuicVarIntSize(Connection->ReceivedNegotiationVersionsLength) + (Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t)) +
-            QuicVarIntSize(Connection->Settings.CompatibleVersionsListLength) + (Connection->Settings.CompatibleVersionsListLength * sizeof(uint32_t));
+        VNILen = 4 + 4;
+        if (Connection->Settings.IsSet.DesiredVersionsList) {
+            // TODO so for each version in the app-set compatible versions list, we need to get the compatible versions and deduplicate into a single list
+            // keeping 
+            VNILen +=
+                QuicVarIntSize(Connection->Settings.DesiredVersionsListLength) +
+                (Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t));
+        } else {
+            VNILen +=
+                QuicVarIntSize(DefaultSupportedVersionsList) +
+                (DefaultSupportedVersionsListLength * sizeof(uint32_t));
+        }
+        VNILen +=
+            QuicVarIntSize(Connection->ReceivedNegotiationVersionsLength) +
+            (Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t));
 
-        VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(VNILen, QUIC_POOL_TP); // TODO new pool tag
+        VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(VNILen, QUIC_POOL_VER_COMPAT_LIST);
         if (VersionNegotiationInfo == NULL) {
             // TODO log
             return NULL;
@@ -1743,11 +1774,23 @@ QuicCryptoTlsEncodeVersionNegotiationInfo(
         VNIBuf += 4;
         VNIBuf = QuicVarIntEncode(Connection->ReceivedNegotiationVersionsLength, VNIBuf);
         if (Connection->ReceivedNegotiationVersionsLength > 0) {
-            memcpy(VNIBuf, Connection->ReceivedNegotiationVersions, Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t));
+            memcpy(
+                VNIBuf,
+                Connection->ReceivedNegotiationVersions,
+                Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t));
             VNIBuf += Connection->ReceivedNegotiationVersionsLength;
         }
-        VNIBuf = QuicVarIntEncode(Connection->Settings.CompatibleVersionsListLength, VNIBuf);
-        memcpy(VNIBuf, Connection->Settings.CompatibleVersionsList, Connection->Settings.CompatibleVersionsListLength * sizeof(uint32_t));
+        if (Connection->Settings.IsSet.DesiredVersionsList) {
+            VNIBuf = QuicVarIntEncode(Connection->Settings.DesiredVersionsListLength, VNIBuf);
+            memcpy(
+                VNIBuf,
+                Connection->Settings.DesiredVersionsList,
+                Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t));
+        } else {
+            VNIBuf = QuicVarIntEncode(DefaultSupportedVersionsListLength, VNIBuf);
+            memcpy(VNIBuf, DefaultSupportedVersionsList, DefaultSupportedVersionsListLength * sizeof(uint32_t));
+        }
     }
+    *VNInfoLength = VNILen;
     return VersionNegotiationInfo;
 }

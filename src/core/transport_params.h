@@ -212,7 +212,8 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 const uint8_t*
 QuicCryptoTlsEncodeVersionNegotiationInfo(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _Out_ uint32_t* VNInfoLength
 );
 
 //

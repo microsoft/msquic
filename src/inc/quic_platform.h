@@ -125,6 +125,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_OPER                      'D3cQ' // Qc3D - QUIC Operation
 #define QUIC_POOL_EVENT                     'E3cQ' // Qc3E - QUIC Event
 #define QUIC_POOL_TLS_RSA                   'F3cQ' // Qc3F - QUIC Platform NCrypt RSA Key
+#define QUIC_POOL_VER_COMPAT_LIST           '0fcQ' // Qc40 - QUIC App-supplied compatible versions list
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
