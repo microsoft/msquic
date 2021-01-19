@@ -40,7 +40,9 @@ function beforeBodyPlacement(tooltipItem, data) {
 function labelChange(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem.datasetIndex]
     if (dataset.label.includes('(average)')) {
-        return "Average: " + tooltipItem.value
+        var datapoint = dataset.data[tooltipItem.index]
+        var shortMachine = datapoint.machine.substring(datapoint.machine.length - 2)
+        return "Average (M" + shortMachine + "):" + tooltipItem.value
     } else {
         return "Raw:       " + tooltipItem.value
     }
