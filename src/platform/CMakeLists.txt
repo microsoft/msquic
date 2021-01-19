@@ -61,6 +61,7 @@ endif()
 
 # Allow CLOG to preprocess all the source files.
 add_clog_library(platform.clog DYNAMIC ${SOURCES})
+set_property(TARGET platform.clog.provider PROPERTY FOLDER "helpers")
 
 add_library(platform STATIC ${SOURCES})
 
