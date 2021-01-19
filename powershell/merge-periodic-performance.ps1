@@ -83,10 +83,6 @@ $PeriodicRpsData = $CommitModel | ConvertTo-Json -Depth 100
 
 $RunDate = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 
-if (Test-Path (Join-Path $RootDir "periodic")) {
-    Remove-Item (Join-Path $RootDir "periodic") -Force -Recurse
-}
-
 $BranchFolder = Join-Path $RootDir 'periodic' $BranchName
 $CommitFolder = Join-Path $BranchFolder $RunDate
 New-Item -Path $CommitFolder -ItemType "directory" -Force | Out-Null
