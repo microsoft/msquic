@@ -472,6 +472,7 @@ if(QUIC_TLS STREQUAL "openssl")
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure
                 linux-armv4 -DL_ENDIAN
                 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
+            list(APPEND OPENSSL_CONFIG_FLAGS -latomic)
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
                 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
