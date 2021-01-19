@@ -128,7 +128,7 @@ function Get-RawTestDataJs {
         $TimeUnix = $Test.Date;
         $Index = $CommitIndexMap[$Test.CommitHash];
         foreach ($Result in $Test.Results) {
-            $Data = "{x: $Index, t: new Date($TimeUnix), rawTime: $TimeUnix, y: $Result}";
+            $Data = "{x: $Index, t: new Date($TimeUnix), rawTime: $TimeUnix, y: $Result, machine: `"$($Test.MachineName)`"}";
             if ($DataVal -eq "") {
                 $DataVal = $Data;
             } else {
@@ -153,7 +153,7 @@ function Get-AverageDataJs {
         $TimeUnix = $Test.Date;
         $Average = ($Test.Results  | Measure-Object -Average).Average;
         $Index = $CommitIndexMap[$Test.CommitHash];
-        $Data = "{x: $Index, t: new Date($TimeUnix), rawTime: $TimeUnix, y: $Average}";
+        $Data = "{x: $Index, t: new Date($TimeUnix), rawTime: $TimeUnix, y: $Average, machine: `"$($Test.MachineName)`"}";
         if ($DataVal -eq "") {
             $DataVal = $Data;
         } else {
@@ -425,12 +425,12 @@ class HpsTest {
 }
 
 function Get-HpsTests {
-    [OutputType([Collections.Generic.Dictionary[HpsConfiguration, Collections.Generic.Dictionary[string, Collections.Generic.List[HpsTest]]   ]])]
+    [OutputType([Collections.Generic.Dictionary[HpsConfiguration, Collections.Generic.Dictionary[string, Collections.Generic.List[HpsTest]]]])]
     param (
         [Parameter(Mandatory = $true)]
         [TestCommitModel[]]$CommitData
     )
-    $Tests = [Collections.Generic.Dictionary[HpsConfiguration, Collections.Generic.Dictionary[string, Collections.Generic.List[HpsTest]]   ]]::new()
+    $Tests = [Collections.Generic.Dictionary[HpsConfiguration, Collections.Generic.Dictionary[string, Collections.Generic.List[HpsTest]]]]::new()
 
     foreach ($CommitModel in $CommitData) {
         foreach ($Test in $CommitModel.Tests) {
