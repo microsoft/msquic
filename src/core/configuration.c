@@ -71,9 +71,9 @@ MsQuicConfigurationOpen(
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
-    QUIC_ANALYSIS_ASSERT(AlpnListLength <= UINT16_MAX);
+    CXPLAT_ANALYSIS_ASSERT(AlpnListLength <= UINT16_MAX);
 
-    Configuration = QUIC_ALLOC_NONPAGED(sizeof(QUIC_CONFIGURATION) + AlpnListLength, QUIC_POOL_CONFIG);
+    Configuration = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CONFIGURATION) + AlpnListLength, QUIC_POOL_CONFIG);
     if (Configuration == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -84,11 +84,11 @@ MsQuicConfigurationOpen(
         goto Error;
     }
 
-    QuicZeroMemory(Configuration, sizeof(QUIC_CONFIGURATION));
+    CxPlatZeroMemory(Configuration, sizeof(QUIC_CONFIGURATION));
     Configuration->Type = QUIC_HANDLE_TYPE_CONFIGURATION;
     Configuration->ClientContext = Context;
     Configuration->Registration = Registration;
-    QuicRefInitialize(&Configuration->RefCount);
+    CxPlatRefInitialize(&Configuration->RefCount);
 
     Configuration->AlpnListLength = (uint16_t)AlpnListLength;
     AlpnList = Configuration->AlpnList;
@@ -97,7 +97,7 @@ MsQuicConfigurationOpen(
         AlpnList[0] = (uint8_t)AlpnBuffers[i].Length;
         AlpnList++;
 
-        QuicCopyMemory(
+        CxPlatCopyMemory(
             AlpnList,
             AlpnBuffers[i].Buffer,
             AlpnBuffers[i].Length);
@@ -129,9 +129,9 @@ MsQuicConfigurationOpen(
         // read in the default silo settings.
         //
         Status =
-            QuicStorageOpen(
+            CxPlatStorageOpen(
                 NULL,
-                (QUIC_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
+                (CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
                 Configuration,
                 &Configuration->Storage);
         if (QUIC_FAILED(Status)) {
@@ -147,14 +147,14 @@ MsQuicConfigurationOpen(
 
     if (Registration->AppNameLength != 0) {
         char SpecificAppKey[UINT8_MAX + sizeof(QUIC_SETTING_APP_KEY)] = QUIC_SETTING_APP_KEY;
-        QuicCopyMemory(
+        CxPlatCopyMemory(
             SpecificAppKey + sizeof(QUIC_SETTING_APP_KEY) - 1,
             Registration->AppName,
             Registration->AppNameLength);
         Status =
-            QuicStorageOpen(
+            CxPlatStorageOpen(
                 SpecificAppKey,
-                (QUIC_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
+                (CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
                 Configuration,
                 &Configuration->AppSpecificStorage);
         if (QUIC_FAILED(Status)) {
@@ -168,7 +168,7 @@ MsQuicConfigurationOpen(
     }
 
     if (Settings != NULL && Settings->IsSetFlags != 0) {
-        QUIC_DBG_ASSERT(SettingsSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey));
+        CXPLAT_DBG_ASSERT(SettingsSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey));
         if (!QuicSettingApply(
                 &Configuration->Settings,
                 TRUE,
@@ -187,24 +187,24 @@ MsQuicConfigurationOpen(
 
     QuicConfigurationSettingsChanged(Configuration);
 
-    BOOLEAN Result = QuicRundownAcquire(&Registration->Rundown);
-    QUIC_FRE_ASSERT(Result);
+    BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
+    CXPLAT_FRE_ASSERT(Result);
 
-    QuicLockAcquire(&Registration->ConfigLock);
-    QuicListInsertTail(&Registration->Configurations, &Configuration->Link);
-    QuicLockRelease(&Registration->ConfigLock);
+    CxPlatLockAcquire(&Registration->ConfigLock);
+    CxPlatListInsertTail(&Registration->Configurations, &Configuration->Link);
+    CxPlatLockRelease(&Registration->ConfigLock);
 
     *NewConfiguration = (HQUIC)Configuration;
 
 Error:
 
     if (QUIC_FAILED(Status) && Configuration != NULL) {
-        QuicStorageClose(Configuration->AppSpecificStorage);
+        CxPlatStorageClose(Configuration->AppSpecificStorage);
 #ifdef QUIC_SILO
-        QuicStorageClose(Configuration->Storage);
+        CxPlatStorageClose(Configuration->Storage);
         QuicSiloRelease(Configuration->Silo);
 #endif
-        QUIC_FREE(Configuration, QUIC_POOL_CONFIG);
+        CXPLAT_FREE(Configuration, QUIC_POOL_CONFIG);
     }
 
     QuicTraceEvent(
@@ -221,34 +221,34 @@ QuicConfigurationUninitialize(
     _In_ __drv_freesMem(Mem) QUIC_CONFIGURATION* Configuration
     )
 {
-    QUIC_DBG_ASSERT(Configuration != NULL);
+    CXPLAT_DBG_ASSERT(Configuration != NULL);
 
     QuicTraceEvent(
         ConfigurationCleanup,
         "[cnfg][%p] Cleaning up",
         Configuration);
 
-    QuicLockAcquire(&Configuration->Registration->ConfigLock);
-    QuicListEntryRemove(&Configuration->Link);
-    QuicLockRelease(&Configuration->Registration->ConfigLock);
+    CxPlatLockAcquire(&Configuration->Registration->ConfigLock);
+    CxPlatListEntryRemove(&Configuration->Link);
+    CxPlatLockRelease(&Configuration->Registration->ConfigLock);
 
     if (Configuration->SecurityConfig != NULL) {
-        QuicTlsSecConfigDelete(Configuration->SecurityConfig);
+        CxPlatTlsSecConfigDelete(Configuration->SecurityConfig);
     }
 
-    QuicStorageClose(Configuration->AppSpecificStorage);
+    CxPlatStorageClose(Configuration->AppSpecificStorage);
 #ifdef QUIC_SILO
-    QuicStorageClose(Configuration->Storage);
+    CxPlatStorageClose(Configuration->Storage);
     QuicSiloRelease(Configuration->Silo);
 #endif
 
-    QuicRundownRelease(&Configuration->Registration->Rundown);
+    CxPlatRundownRelease(&Configuration->Registration->Rundown);
 
     QuicTraceEvent(
         ConfigurationDestroyed,
         "[cnfg][%p] Destroyed",
         Configuration);
-    QUIC_FREE(Configuration, QUIC_POOL_CONFIG);
+    CXPLAT_FREE(Configuration, QUIC_POOL_CONFIG);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -276,30 +276,30 @@ MsQuicConfigurationClose(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
+_Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
 void
 QUIC_API
 MsQuicConfigurationLoadCredentialComplete(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
     _In_ QUIC_STATUS Status,
-    _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
+    _In_opt_ CXPLAT_SEC_CONFIG* SecurityConfig
     )
 {
     QUIC_CONFIGURATION* Configuration = (QUIC_CONFIGURATION*)Context;
 
-    QUIC_DBG_ASSERT(Configuration != NULL);
-    QUIC_DBG_ASSERT(CredConfig != NULL);
+    CXPLAT_DBG_ASSERT(Configuration != NULL);
+    CXPLAT_DBG_ASSERT(CredConfig != NULL);
 
     if (QUIC_SUCCEEDED(Status)) {
-        QUIC_DBG_ASSERT(SecurityConfig);
+        CXPLAT_DBG_ASSERT(SecurityConfig);
         Configuration->SecurityConfig = SecurityConfig;
     } else {
-        QUIC_DBG_ASSERT(SecurityConfig == NULL);
+        CXPLAT_DBG_ASSERT(SecurityConfig == NULL);
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
-        QUIC_DBG_ASSERT(CredConfig->AsyncHandler != NULL);
+        CXPLAT_DBG_ASSERT(CredConfig->AsyncHandler != NULL);
         CredConfig->AsyncHandler(
             (HQUIC)Configuration,
             Configuration->ClientContext,
@@ -334,8 +334,9 @@ MsQuicConfigurationLoadCredential(
         QuicConfigurationAddRef(Configuration);
 
         Status =
-            QuicTlsSecConfigCreate(
+            CxPlatTlsSecConfigCreate(
                 CredConfig,
+                &QuicTlsCallbacks,
                 Configuration,
                 MsQuicConfigurationLoadCredentialComplete);
         if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) ||
@@ -369,7 +370,7 @@ QuicConfigurationTraceRundown(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_STORAGE_CHANGE_CALLBACK)
+_Function_class_(CXPLAT_STORAGE_CHANGE_CALLBACK)
 void
 QuicConfigurationSettingsChanged(
     _Inout_ QUIC_CONFIGURATION* Configuration
@@ -420,7 +421,7 @@ QuicConfigurationParamGet(
         }
 
         *BufferLength = sizeof(QUIC_SETTINGS);
-        QuicCopyMemory(Buffer, &Configuration->Settings, sizeof(QUIC_SETTINGS));
+        CxPlatCopyMemory(Buffer, &Configuration->Settings, sizeof(QUIC_SETTINGS));
 
         return QUIC_STATUS_SUCCESS;
     }

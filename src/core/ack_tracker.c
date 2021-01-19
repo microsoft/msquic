@@ -78,7 +78,7 @@ QuicAckTrackerReset(
     Tracker->LargestPacketNumberRecvTime = 0;
     Tracker->AlreadyWrittenAckFrame = FALSE;
     Tracker->NonZeroRecvECN = FALSE;
-    QuicZeroMemory(&Tracker->ReceivedECN, sizeof(Tracker->ReceivedECN));
+    CxPlatZeroMemory(&Tracker->ReceivedECN, sizeof(Tracker->ReceivedECN));
     QuicRangeReset(&Tracker->PacketNumbersToAck);
     QuicRangeReset(&Tracker->PacketNumbersReceived);
 }
@@ -102,7 +102,7 @@ QuicAckTrackerAckPacket(
     _Inout_ QUIC_ACK_TRACKER* Tracker,
     _In_ uint64_t PacketNumber,
     _In_ uint64_t RecvTimeUs,
-    _In_ QUIC_ECN_TYPE ECN,
+    _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN AckElicitingPayload
     )
 {
@@ -114,7 +114,7 @@ QuicAckTrackerAckPacket(
     // so this is guaranteed to only receive non-duplicated packets.
     //
 
-    QUIC_DBG_ASSERT(PacketNumber <= QUIC_VAR_INT_MAX);
+    CXPLAT_DBG_ASSERT(PacketNumber <= QUIC_VAR_INT_MAX);
 
     uint64_t CurLargestPacketNumber;
     if (QuicRangeGetMaxSafe(&Tracker->PacketNumbersToAck, &CurLargestPacketNumber) &&
@@ -148,15 +148,15 @@ QuicAckTrackerAckPacket(
     }
 
     switch (ECN) {
-        case QUIC_ECN_ECT_1:
+        case CXPLAT_ECN_ECT_1:
             Tracker->NonZeroRecvECN = TRUE;
             Tracker->ReceivedECN.ECT_1_Count++;
             break;
-        case QUIC_ECN_ECT_0:
+        case CXPLAT_ECN_ECT_0:
             Tracker->NonZeroRecvECN = TRUE;
             Tracker->ReceivedECN.ECT_0_Count++;
             break;
-        case QUIC_ECN_CE:
+        case CXPLAT_ECN_CE:
             Tracker->NonZeroRecvECN = TRUE;
             Tracker->ReceivedECN.CE_Count++;
             break;
@@ -223,10 +223,10 @@ QuicAckTrackerAckFrameEncode(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    QUIC_DBG_ASSERT(QuicAckTrackerHasPacketsToAck(Tracker));
+    CXPLAT_DBG_ASSERT(QuicAckTrackerHasPacketsToAck(Tracker));
 
     uint64_t AckDelay =
-        QuicTimeDiff64(Tracker->LargestPacketNumberRecvTime, QuicTimeUs64());
+        CxPlatTimeDiff64(Tracker->LargestPacketNumberRecvTime, CxPlatTimeUs64());
 
     AckDelay >>= Builder->Connection->AckDelayExponent;
 

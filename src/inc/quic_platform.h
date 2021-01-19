@@ -36,17 +36,17 @@ Supported Environments:
 #define MS_TO_S(x)      ((x) / 1000)
 #define S_TO_MS(x)      ((x) * 1000)
 
-#define QUIC_CONTAINING_RECORD(address, type, field) \
+#define CXPLAT_CONTAINING_RECORD(address, type, field) \
     ((type *)((uint8_t*)(address) - offsetof(type, field)))
 
-typedef struct QUIC_LIST_ENTRY {
-    struct QUIC_LIST_ENTRY* Flink;
-    struct QUIC_LIST_ENTRY* Blink;
-} QUIC_LIST_ENTRY;
+typedef struct CXPLAT_LIST_ENTRY {
+    struct CXPLAT_LIST_ENTRY* Flink;
+    struct CXPLAT_LIST_ENTRY* Blink;
+} CXPLAT_LIST_ENTRY;
 
-typedef struct QUIC_SINGLE_LIST_ENTRY {
-    struct QUIC_SINGLE_LIST_ENTRY* Next;
-} QUIC_SINGLE_LIST_ENTRY;
+typedef struct CXPLAT_SLIST_ENTRY {
+    struct CXPLAT_SLIST_ENTRY* Next;
+} CXPLAT_SLIST_ENTRY;
 
 #ifndef FORCEINLINE
 #if (_MSC_VER >= 1200)
@@ -93,7 +93,7 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_TLS_PRINCIPAL             'D1cQ' // Qc1D - QUIC Platform TLS Principal
 #define QUIC_POOL_TLS_CTX                   'E1cQ' // Qc1E - QUIC Platform TLS Context
 #define QUIC_POOL_TLS_TRANSPARAMS           'F1cQ' // Qc1F - QUIC Platform TLS Transport Parameters
-#define QUIC_POOL_TLS_RESUMPTION            '02cQ' // Qc20 - QUIC Platform TLS Resumption Buffer
+#define QUIC_POOL_CUSTOM_THREAD             '02cQ' // Qc20 - QUIC Platform Customm Thread Context
 #define QUIC_POOL_TLS_SECCONF               '12cQ' // Qc21 - QUIC Platform TLS Sec Config
 #define QUIC_POOL_TLS_PACKETKEY             '22cQ' // Qc22 - QUIC Platform TLS Packet Key
 #define QUIC_POOL_TLS_KEY                   '32cQ' // Qc23 - QUIC Platform TLS Key
@@ -105,7 +105,7 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_PLATFORM_PROC             '92cQ' // Qc29 - QUIC Platform Processor info
 #define QUIC_POOL_PLATFORM_GENERIC          'A2cQ' // Qc2A - QUIC Platform generic
 #define QUIC_POOL_DATAPATH                  'B2cQ' // Qc2B - QUIC Platform datapath
-#define QUIC_POOL_DATAPATH_BINDING          'C2cQ' // Qc2C - QUIC Platform datapath binding
+#define QUIC_POOL_SOCKET                    'C2cQ' // Qc2C - QUIC Platform socket
 #define QUIC_POOL_STORAGE                   'D2cQ' // Qc2D - QUIC Platform storage
 #define QUIC_POOL_HASHTABLE                 'E2cQ' // Qc2E - QUIC Platform hashtable
 #define QUIC_POOL_HASHTABLE_MEMBER          'F2cQ' // Qc2F - QUIC Platform hashtable member lists
@@ -126,40 +126,40 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #define QUIC_POOL_EVENT                     'E3cQ' // Qc3E - QUIC Event
 #define QUIC_POOL_TLS_RSA                   'F3cQ' // Qc3F - QUIC Platform NCrypt RSA Key
 
-typedef enum QUIC_THREAD_FLAGS {
-    QUIC_THREAD_FLAG_NONE               = 0x0000,
-    QUIC_THREAD_FLAG_SET_IDEAL_PROC     = 0x0001,
-    QUIC_THREAD_FLAG_SET_AFFINITIZE     = 0x0002,
-    QUIC_THREAD_FLAG_HIGH_PRIORITY      = 0x0004
-} QUIC_THREAD_FLAGS;
+typedef enum CXPLAT_THREAD_FLAGS {
+    CXPLAT_THREAD_FLAG_NONE               = 0x0000,
+    CXPLAT_THREAD_FLAG_SET_IDEAL_PROC     = 0x0001,
+    CXPLAT_THREAD_FLAG_SET_AFFINITIZE     = 0x0002,
+    CXPLAT_THREAD_FLAG_HIGH_PRIORITY      = 0x0004
+} CXPLAT_THREAD_FLAGS;
 
 #ifdef DEFINE_ENUM_FLAG_OPERATORS
-DEFINE_ENUM_FLAG_OPERATORS(QUIC_THREAD_FLAGS);
+DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 #endif
 
 #ifdef _KERNEL_MODE
-#define QUIC_PLATFORM_TYPE 1
+#define CX_PLATFORM_TYPE 1
 #include <quic_platform_winkernel.h>
 #elif _WIN32
-#define QUIC_PLATFORM_TYPE 2
+#define CX_PLATFORM_TYPE 2
 #include <quic_platform_winuser.h>
-#elif QUIC_PLATFORM_LINUX
-#define QUIC_PLATFORM_TYPE 3
+#elif CX_PLATFORM_LINUX
+#define CX_PLATFORM_TYPE 3
 #include <quic_platform_linux.h>
 #else
-#define QUIC_PLATFORM_TYPE 0xFF
+#define CX_PLATFORM_TYPE 0xFF
 #error "Unsupported Platform"
 #endif
 
 #define QuicListEntryValidate(Entry) \
-    QUIC_DBG_ASSERT( \
+    CXPLAT_DBG_ASSERT( \
         (((Entry->Flink)->Blink) == Entry) && \
         (((Entry->Blink)->Flink) == Entry))
 
 FORCEINLINE
 void
-QuicListInitializeHead(
-    _Out_ QUIC_LIST_ENTRY* ListHead
+CxPlatListInitializeHead(
+    _Out_ CXPLAT_LIST_ENTRY* ListHead
     )
 {
     ListHead->Flink = ListHead->Blink = ListHead;
@@ -168,8 +168,8 @@ QuicListInitializeHead(
 _Must_inspect_result_
 FORCEINLINE
 BOOLEAN
-QuicListIsEmpty(
-    _In_ const QUIC_LIST_ENTRY* ListHead
+CxPlatListIsEmpty(
+    _In_ const CXPLAT_LIST_ENTRY* ListHead
     )
 {
     return (BOOLEAN)(ListHead->Flink == ListHead);
@@ -177,13 +177,13 @@ QuicListIsEmpty(
 
 FORCEINLINE
 void
-QuicListInsertHead(
-    _Inout_ QUIC_LIST_ENTRY* ListHead,
-    _Out_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
+CxPlatListInsertHead(
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead,
+    _Out_ __drv_aliasesMem CXPLAT_LIST_ENTRY* Entry
     )
 {
     QuicListEntryValidate(ListHead);
-    QUIC_LIST_ENTRY* Flink = ListHead->Flink;
+    CXPLAT_LIST_ENTRY* Flink = ListHead->Flink;
     Entry->Flink = Flink;
     Entry->Blink = ListHead;
     Flink->Blink = Entry;
@@ -192,13 +192,13 @@ QuicListInsertHead(
 
 FORCEINLINE
 void
-QuicListInsertTail(
-    _Inout_ QUIC_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
+CxPlatListInsertTail(
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* Entry
     )
 {
     QuicListEntryValidate(ListHead);
-    QUIC_LIST_ENTRY* Blink = ListHead->Blink;
+    CXPLAT_LIST_ENTRY* Blink = ListHead->Blink;
     Entry->Flink = ListHead;
     Entry->Blink = Blink;
     Blink->Flink = Entry;
@@ -206,14 +206,14 @@ QuicListInsertTail(
 }
 
 FORCEINLINE
-QUIC_LIST_ENTRY*
-QuicListRemoveHead(
-    _Inout_ QUIC_LIST_ENTRY* ListHead
+CXPLAT_LIST_ENTRY*
+CxPlatListRemoveHead(
+    _Inout_ CXPLAT_LIST_ENTRY* ListHead
     )
 {
     QuicListEntryValidate(ListHead);
-    QUIC_LIST_ENTRY* Entry = ListHead->Flink; // cppcheck-suppress shadowFunction
-    QUIC_LIST_ENTRY* Flink = Entry->Flink;
+    CXPLAT_LIST_ENTRY* Entry = ListHead->Flink; // cppcheck-suppress shadowFunction
+    CXPLAT_LIST_ENTRY* Flink = Entry->Flink;
     ListHead->Flink = Flink;
     Flink->Blink = ListHead;
     return Entry;
@@ -221,13 +221,13 @@ QuicListRemoveHead(
 
 FORCEINLINE
 BOOLEAN
-QuicListEntryRemove(
-    _In_ QUIC_LIST_ENTRY* Entry
+CxPlatListEntryRemove(
+    _In_ CXPLAT_LIST_ENTRY* Entry
     )
 {
     QuicListEntryValidate(Entry);
-    QUIC_LIST_ENTRY* Flink = Entry->Flink;
-    QUIC_LIST_ENTRY* Blink = Entry->Blink;
+    CXPLAT_LIST_ENTRY* Flink = Entry->Flink;
+    CXPLAT_LIST_ENTRY* Blink = Entry->Blink;
     Blink->Flink = Flink;
     Flink->Blink = Blink;
     return (BOOLEAN)(Flink == Blink);
@@ -235,17 +235,17 @@ QuicListEntryRemove(
 
 inline
 void
-QuicListMoveItems(
-    _Inout_ QUIC_LIST_ENTRY* Source,
-    _Inout_ QUIC_LIST_ENTRY* Destination
+CxPlatListMoveItems(
+    _Inout_ CXPLAT_LIST_ENTRY* Source,
+    _Inout_ CXPLAT_LIST_ENTRY* Destination
     )
 {
     //
     // If there are items, copy them.
     //
-    if (!QuicListIsEmpty(Source)) {
+    if (!CxPlatListIsEmpty(Source)) {
 
-        if (QuicListIsEmpty(Destination)) {
+        if (CxPlatListIsEmpty(Destination)) {
 
             //
             // Copy the links of the Source.
@@ -278,15 +278,15 @@ QuicListMoveItems(
         //
         // Reset the Source to empty list.
         //
-        QuicListInitializeHead(Source);
+        CxPlatListInitializeHead(Source);
     }
 }
 
 FORCEINLINE
 void
-QuicListPushEntry(
-    _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem QUIC_SINGLE_LIST_ENTRY* Entry
+CxPlatListPushEntry(
+    _Inout_ CXPLAT_SLIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_SLIST_ENTRY* Entry
     )
 {
     Entry->Next = ListHead->Next;
@@ -294,12 +294,12 @@ QuicListPushEntry(
 }
 
 FORCEINLINE
-QUIC_SINGLE_LIST_ENTRY*
-QuicListPopEntry(
-    _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead
+CXPLAT_SLIST_ENTRY*
+CxPlatListPopEntry(
+    _Inout_ CXPLAT_SLIST_ENTRY* ListHead
     )
 {
-    QUIC_SINGLE_LIST_ENTRY* FirstEntry = ListHead->Next;
+    CXPLAT_SLIST_ENTRY* FirstEntry = ListHead->Next;
     if (FirstEntry != NULL) {
         ListHead->Next = FirstEntry->Next;
     }
@@ -321,20 +321,20 @@ extern "C" {
 
 typedef struct QUIC_CREDENTIAL_CONFIG QUIC_CREDENTIAL_CONFIG;
 
-typedef enum QUIC_SELF_SIGN_CERT_TYPE {
-    QUIC_SELF_SIGN_CERT_USER,
-    QUIC_SELF_SIGN_CERT_MACHINE
-} QUIC_SELF_SIGN_CERT_TYPE;
+typedef enum CXPLAT_SELF_SIGN_CERT_TYPE {
+    CXPLAT_SELF_SIGN_CERT_USER,
+    CXPLAT_SELF_SIGN_CERT_MACHINE
+} CXPLAT_SELF_SIGN_CERT_TYPE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
-QuicPlatGetSelfSignedCert(
-    _In_ QUIC_SELF_SIGN_CERT_TYPE Type
+CxPlatPlatGetSelfSignedCert(
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatFreeSelfSignedCert(
+CxPlatPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     );
 

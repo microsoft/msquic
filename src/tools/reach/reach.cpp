@@ -20,10 +20,7 @@ uint16_t Port = 443;
 const char* ServerName = "localhost";
 const char* ServerIp = nullptr;
 QUIC_ADDR ServerAddress = {0};
-std::vector<const char*> ALPNs(
-    { "h3-27", "h3-28", "h3-29", "h3-30", "h3-31", "h3-32",
-      "hq-27", "hq-28", "hq-29", "hq-30", "hq-31", "hq-32",
-      "smb" });
+std::vector<const char*> ALPNs({ "h3", "h3-29", "hq-interop", "hq-29", "smb" });
 const char* InputAlpn = nullptr;
 
 const QUIC_API_TABLE* MsQuic;
@@ -33,7 +30,7 @@ extern "C" void QuicTraceRundown(void) { }
 
 struct ConnectionContext {
     bool GotConnected;
-    QUIC_EVENT Complete;
+    CXPLAT_EVENT Complete;
 };
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -54,7 +51,7 @@ ConnectionHandler(
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->ConnectionClose(Connection);
-        QuicEventSet(Context->Complete);
+        CxPlatEventSet(Context->Complete);
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         return QUIC_STATUS_NOT_SUPPORTED;
@@ -64,7 +61,7 @@ ConnectionHandler(
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
+CXPLAT_THREAD_CALLBACK(TestReachability, _Alpn)
 {
     QUIC_BUFFER Alpn;
     Alpn.Buffer = (uint8_t*)_Alpn;
@@ -83,7 +80,7 @@ QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
     }
 
     QUIC_CREDENTIAL_CONFIG CredConfig;
-    QuicZeroMemory(&CredConfig, sizeof(CredConfig));
+    CxPlatZeroMemory(&CredConfig, sizeof(CredConfig));
     CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT; // TODO - Disable certificate validation?
 
     if (QUIC_FAILED(MsQuic->ConfigurationLoadCredential(Configuration, &CredConfig))) {
@@ -92,7 +89,7 @@ QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
     }
 
     ConnectionContext Context = { false };
-    QuicEventInitialize(&Context.Complete, TRUE, FALSE);
+    CxPlatEventInitialize(&Context.Complete, TRUE, FALSE);
 
     HQUIC Connection = nullptr;
     if (QUIC_FAILED(MsQuic->ConnectionOpen(Registration, ConnectionHandler, &Context, &Connection))) {
@@ -111,8 +108,8 @@ QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
     }
 
     MsQuic->ConfigurationClose(Configuration);
-    QuicEventWaitForever(Context.Complete);
-    QuicEventUninitialize(Context.Complete);
+    CxPlatEventWaitForever(Context.Complete);
+    CxPlatEventUninitialize(Context.Complete);
 
     if (Context.GotConnected) {
         printf("  %6s    reachable\n", (char*)_Alpn);
@@ -120,7 +117,7 @@ QUIC_THREAD_CALLBACK(TestReachability, _Alpn)
         printf("  %6s  unreachable\n", (char*)_Alpn);
     }
 
-    QUIC_THREAD_RETURN(0);
+    CXPLAT_THREAD_RETURN(0);
 }
 
 int
@@ -144,29 +141,29 @@ main(int argc, char **argv)
     TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "alpn", &InputAlpn);
 
-    QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
+    CxPlatSystemLoad();
+    CxPlatInitialize();
 
     if (ServerIp == nullptr) {
-        QUIC_DATAPATH* Datapath = nullptr;
+        CXPLAT_DATAPATH* Datapath = nullptr;
         if (QUIC_FAILED(
-            QuicDataPathInitialize(
+            CxPlatDataPathInitialize(
                 0,
-                (QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER)(1),
-                (QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER)(1),
+                NULL,
+                NULL,
                 &Datapath))) {
-            printf("QuicDataPathInitialize failed.\n");
+            printf("CxPlatDataPathInitialize failed.\n");
             exit(1);
         }
         if (QUIC_FAILED(
-            QuicDataPathResolveAddress(
+            CxPlatDataPathResolveAddress(
                 Datapath,
                 ServerName,
                 &ServerAddress))) {
             printf("Failed to resolve IP address of '%s'.\n", ServerName);
             exit(1);
         }
-        QuicDataPathUninitialize(Datapath);
+        CxPlatDataPathUninitialize(Datapath);
     } else {
         if (!QuicAddrFromString(ServerIp, Port, &ServerAddress)) {
             printf("QuicAddrFromString failed.\n");
@@ -187,23 +184,23 @@ main(int argc, char **argv)
 
     printf("\n%s:%hu:\n\n", ServerName, Port);
 
-    std::vector<QUIC_THREAD> Threads;
-    QUIC_THREAD_CONFIG Config = { 0, 0, "reach_worker", TestReachability, nullptr };
+    std::vector<CXPLAT_THREAD> Threads;
+    CXPLAT_THREAD_CONFIG Config = { 0, 0, "reach_worker", TestReachability, nullptr };
 
     if (InputAlpn != nullptr) {
         Config.Context = (void*)InputAlpn;
-        QUIC_THREAD Thread;
-        if (QUIC_FAILED(QuicThreadCreate(&Config, &Thread))) {
-            printf("QuicThreadCreate failed.\n");
+        CXPLAT_THREAD Thread;
+        if (QUIC_FAILED(CxPlatThreadCreate(&Config, &Thread))) {
+            printf("CxPlatThreadCreate failed.\n");
             exit(1);
         }
         Threads.push_back(Thread);
     } else {
         for (auto ALPN : ALPNs) {
             Config.Context = (void*)ALPN;
-            QUIC_THREAD Thread;
-            if (QUIC_FAILED(QuicThreadCreate(&Config, &Thread))) {
-                printf("QuicThreadCreate failed.\n");
+            CXPLAT_THREAD Thread;
+            if (QUIC_FAILED(CxPlatThreadCreate(&Config, &Thread))) {
+                printf("CxPlatThreadCreate failed.\n");
                 exit(1);
             }
             Threads.push_back(Thread);
@@ -211,16 +208,16 @@ main(int argc, char **argv)
     }
 
     for (auto Thread : Threads) {
-        QuicThreadWait(&Thread);
-        QuicThreadDelete(&Thread);
+        CxPlatThreadWait(&Thread);
+        CxPlatThreadDelete(&Thread);
     }
 
     MsQuic->RegistrationClose(Registration);
 
     MsQuicClose(MsQuic);
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return 0;
 }

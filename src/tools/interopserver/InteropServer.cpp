@@ -17,12 +17,8 @@ const char* RootFolderPath;
 const char* UploadFolderPath;
 
 const QUIC_BUFFER SupportedALPNs[] = {
-    { sizeof("hq-32") - 1, (uint8_t*)"hq-32" },
-    { sizeof("hq-31") - 1, (uint8_t*)"hq-31" },
-    { sizeof("hq-30") - 1, (uint8_t*)"hq-30" },
+    { sizeof("hq-interop") - 1, (uint8_t*)"hq-interop" },
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
-    { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
-    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
     { sizeof("siduck") - 1, (uint8_t*)"siduck" },
     { sizeof("siduck-00") - 1, (uint8_t*)"siduck-00" }
 };
@@ -114,10 +110,10 @@ main(
             printf("Press Enter to exit.\n\n");
             getchar();
         } else {
-            QUIC_EVENT Event;
-            QuicEventInitialize(&Event, TRUE, FALSE);
+            CXPLAT_EVENT Event;
+            CxPlatEventInitialize(&Event, TRUE, FALSE);
             printf("Waiting forever.\n\n");
-            QuicEventWaitForever(Event);
+            CxPlatEventWaitForever(Event);
         }
     }
 

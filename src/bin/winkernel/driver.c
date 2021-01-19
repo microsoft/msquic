@@ -83,7 +83,7 @@ Return Value:
     WDF_DRIVER_CONFIG Config;
     WDFDRIVER Driver;
 
-    QuicPlatformSystemLoad(DriverObject, RegistryPath);
+    CxPlatSystemLoad(DriverObject, RegistryPath);
 
     MsQuicLibraryLoad();
 
@@ -120,7 +120,7 @@ Error:
 
     if (!NT_SUCCESS(Status)) {
         MsQuicLibraryUnload();
-        QuicPlatformSystemUnload();
+        CxPlatSystemUnload();
     }
 
     return Status;
@@ -152,5 +152,5 @@ Arguments:
     PAGED_CODE();
     MsQuicPcwCleanup();
     MsQuicLibraryUnload();
-    QuicPlatformSystemUnload();
+    CxPlatSystemUnload();
 }

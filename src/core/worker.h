@@ -28,7 +28,7 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     //
     // The identifier of the platform thread.
     //
-    QUIC_THREAD_ID ThreadID;
+    CXPLAT_THREAD_ID ThreadID;
 
     //
     // The average queue delay connections experience, in microseconds.
@@ -43,37 +43,37 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     //
     // An event to kick the thread.
     //
-    QUIC_EVENT Ready;
+    CXPLAT_EVENT Ready;
 
     //
     // A thread for draining operations from queued connections.
     //
-    QUIC_THREAD Thread;
+    CXPLAT_THREAD Thread;
 
     //
     // Serializes access to the connection and operation lists.
     //
-    QUIC_DISPATCH_LOCK Lock;
+    CXPLAT_DISPATCH_LOCK Lock;
 
     //
     // Queue of connections with operations to be processed.
     //
-    QUIC_LIST_ENTRY Connections;
+    CXPLAT_LIST_ENTRY Connections;
 
     //
     // Queue of stateless operations to be processed.
     //
-    QUIC_LIST_ENTRY Operations;
+    CXPLAT_LIST_ENTRY Operations;
     uint32_t OperationCount;
     uint64_t DroppedOperationCount;
 
-    QUIC_POOL StreamPool; // QUIC_STREAM
-    QUIC_POOL DefaultReceiveBufferPool; // QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE
-    QUIC_POOL SendRequestPool; // QUIC_SEND_REQUEST
+    CXPLAT_POOL StreamPool; // QUIC_STREAM
+    CXPLAT_POOL DefaultReceiveBufferPool; // QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE
+    CXPLAT_POOL SendRequestPool; // QUIC_SEND_REQUEST
     QUIC_SENT_PACKET_POOL SentPacketPool; // QUIC_SENT_PACKET_METADATA
-    QUIC_POOL ApiContextPool; // QUIC_API_CONTEXT
-    QUIC_POOL StatelessContextPool; // QUIC_STATELESS_CONTEXT
-    QUIC_POOL OperPool; // QUIC_OPERATION
+    CXPLAT_POOL ApiContextPool; // QUIC_API_CONTEXT
+    CXPLAT_POOL StatelessContextPool; // QUIC_STATELESS_CONTEXT
+    CXPLAT_POOL OperPool; // QUIC_OPERATION
 
 } QUIC_WORKER;
 

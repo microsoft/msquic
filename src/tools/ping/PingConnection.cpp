@@ -41,7 +41,7 @@ PingConnection::PingConnection(
     DatagramsLost(0), DatagramsCancelled(0), DatagramsReceived(0),
     DatagramsJitterTotal(0), DatagramLastTime(0) {
 
-    StartTime = QuicTimeUs64();
+    StartTime = CxPlatTimeUs64();
     MsQuic->SetCallbackHandler(Connection, (void*)QuicCallbackHandler, this);
 }
 
@@ -161,7 +161,7 @@ PingConnection::Connect(_In_ HQUIC ClientConfiguration) {
     }
 
     Tracker->AddItem();
-    StartTime = QuicTimeUs64();
+    StartTime = CxPlatTimeUs64();
     if (QUIC_FAILED(
         MsQuic->ConnectionStart(
             QuicConnection,
@@ -192,7 +192,7 @@ PingConnection::ProcessEvent(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED: {
         ConnectedSuccessfully = true;
-        ConnectTime = QuicTimeUs64();
+        ConnectTime = CxPlatTimeUs64();
 
         uint64_t ElapsedMicroseconds = ConnectTime - StartTime;
 
@@ -212,7 +212,7 @@ PingConnection::ProcessEvent(
 
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT: {
         if (!ConnectedSuccessfully) {
-            ConnectTime = QuicTimeUs64();
+            ConnectTime = CxPlatTimeUs64();
 
             uint64_t ElapsedMicroseconds = ConnectTime - StartTime;
 
@@ -238,7 +238,7 @@ PingConnection::ProcessEvent(
 
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER: {
         if (!ConnectedSuccessfully) {
-            ConnectTime = QuicTimeUs64();
+            ConnectTime = CxPlatTimeUs64();
 
             uint64_t ElapsedMicroseconds = ConnectTime - StartTime;
 
@@ -256,7 +256,7 @@ PingConnection::ProcessEvent(
     }
 
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE: {
-        CompleteTime = QuicTimeUs64();
+        CompleteTime = CxPlatTimeUs64();
 
         if (ConnectedSuccessfully && !Event->SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown) {
             printf("[%p] Shutdown timed out.\n", QuicConnection);
@@ -371,7 +371,7 @@ PingConnection::ProcessEvent(
     case QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED: {
         BytesReceived += Event->DATAGRAM_RECEIVED.Buffer->Length;
         DatagramsReceived++;
-        uint64_t RecvTime = QuicTimeUs64();
+        uint64_t RecvTime = CxPlatTimeUs64();
         if (DatagramLastTime != 0) {
             DatagramsJitterTotal += RecvTime - DatagramLastTime;
         }

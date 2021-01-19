@@ -2,6 +2,7 @@
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
 #region Stack Walk Profiles
 
@@ -194,19 +195,33 @@ function Wait-ForRemote {
 
 function Copy-Artifacts {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
-    param ([string]$From, [string]$To)
+    param ([string]$From, [string]$To, [string]$SmbDir)
     Remove-PerfServices
-    Invoke-TestCommand $Session -ScriptBlock {
-        param ($To)
+    if ($null -ne $SmbDir) {
         try {
-            Remove-Item -Path "$To/*" -Recurse -Force
+            Remove-Item -Path "$SmbDir/*" -Recurse -Force
         } catch [System.Management.Automation.ItemNotFoundException] {
             # Ignore Not Found for when the directory does not exist
             # This will still throw if a file cannot successfuly be deleted
         }
-
-    } -ArgumentList $To
-    Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse -Force
+        robocopy $From $SmbDir /e /IS /IT /IM | Out-Null
+        if ($LASTEXITCODE -ne 1) {
+            Write-Error "Robocopy failed: $LASTEXITCODE"
+        } else {
+            $global:LASTEXITCODE = 0
+        }
+    } else {
+        Invoke-TestCommand $Session -ScriptBlock {
+            param ($To)
+            try {
+                Remove-Item -Path "$To/*" -Recurse -Force
+            } catch [System.Management.Automation.ItemNotFoundException] {
+                # Ignore Not Found for when the directory does not exist
+                # This will still throw if a file cannot successfuly be deleted
+            }
+        } -ArgumentList $To
+        Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse -Force
+    }
 }
 
 function Get-GitHash {
@@ -224,19 +239,35 @@ function Get-GitHash {
     return $CurrentCommitHash
 }
 
+function Get-CommitDate {
+    param($RepoDir)
+    $CurrentLoc = Get-Location
+    Set-Location -Path $RepoDir | Out-Null
+    $env:GIT_REDIRECT_STDERR = '2>&1'
+    $CurrentCommitDate = $null
+    try {
+        $CurrentCommitDate = git show -s --format=%ct
+        $CurrentCommitDate = [DateTimeOffset]::FromUnixTimeSeconds($CurrentCommitDate).ToUnixTimeMilliseconds()
+    } catch {
+        Write-Debug "Failed to get commit date from git"
+    }
+    Set-Location -Path $CurrentLoc | Out-Null
+    return $CurrentCommitDate
+}
+
 function Get-CurrentBranch {
     param($RepoDir)
     $CurrentLoc = Get-Location
     Set-Location -Path $RepoDir | Out-Null
     $env:GIT_REDIRECT_STDERR = '2>&1'
-    $CurrentBranchName = $null
+    $CurrentBranch = $null
     try {
-        $CurrentBranchName = git rev-parse --abbrev-ref HEAD
+        $CurrentBranch = git branch --show-current
     } catch {
-        Write-Debug "Failed to get branch name from git"
+        Write-Debug "Failed to get commit date from git"
     }
     Set-Location -Path $CurrentLoc | Out-Null
-    return $CurrentBranchName
+    return $CurrentBranch
 }
 
 function Get-ExePath {
@@ -275,12 +306,12 @@ function Get-ExeName {
 function Remove-PerfServices {
     if ($IsWindows) {
         Invoke-TestCommand -Session $Session -ScriptBlock {
-            if ($null -ne (Get-Service -Name "quicperf" -ErrorAction Ignore)) {
+            if ($null -ne (Get-Service -Name "quicperfdrvpriv" -ErrorAction Ignore)) {
                 try {
-                    net.exe stop quicperf /y | Out-Null
+                    net.exe stop quicperfdrvpriv /y | Out-Null
                 }
                 catch {}
-                sc.exe delete quicperf /y | Out-Null
+                sc.exe delete quicperfdrvpriv /y | Out-Null
             }
             if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
                 try {
@@ -307,7 +338,7 @@ function Invoke-RemoteExe {
     } -ArgumentList $Exe
 
     if ($Kernel) {
-        $RunArgs = "--kernel $RunArgs"
+        $RunArgs = "--kernelPriv $RunArgs"
     }
 
     Write-Debug "Running Remote: $Exe $RunArgs"
@@ -335,7 +366,7 @@ function Invoke-RemoteExe {
         $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
 
         if ($Kernel) {
-            Copy-Item (Join-Path $KernelDir "quicperf.sys") (Split-Path $Exe -Parent)
+            Copy-Item (Join-Path $KernelDir "quicperfdrvpriv.sys") (Split-Path $Exe -Parent)
             Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $Exe -Parent)
             sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Exe -Parent) "msquicpriv.sys") start= demand | Out-Null
             net.exe start msquicpriv
@@ -346,7 +377,7 @@ function Invoke-RemoteExe {
         # Uninstall the kernel mode test driver and revert the msquic driver.
         if ($Kernel) {
             net.exe stop msquicpriv /y | Out-Null
-            sc.exe delete quicperf | Out-Null
+            sc.exe delete quicperfdrvpriv | Out-Null
             sc.exe delete msquicpriv | Out-Null
         }
 
@@ -410,7 +441,7 @@ function Merge-PGOCounts {
 function PrintDumpCallStack($DumpFile, $ExePath) {
     $env:_NT_SYMBOL_PATH = Split-Path $ExePath
     try {
-        if ($env:BUILD_BUILDNUMBER -ne $null) {
+        if ($null -ne $env:BUILD_BUILDNUMBER) {
             $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
         }
         $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
@@ -513,7 +544,68 @@ function Get-TestResult($Results, $Matcher) {
     }
 }
 
+function Get-LatestCommitHash([string]$Branch) {
+    $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/commits.json"
+    Write-Debug "Requesting: $Uri"
+    try {
+        $AllCommits = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
+        Write-Debug "Result: $AllCommits"
+        $LatestResult = ($AllCommits | Sort-Object -Property Date -Descending)[0]
+        Write-Debug "Latest Commit: $LatestResult"
+    return $LatestResult.CommitHash
+    } catch {
+        return ""
+    }
+}
+
+function Get-LatestCpuTestResult([string]$Branch, [string]$CommitHash) {
+    $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/cpu_data.json"
+    Write-Debug "Requesting: $Uri"
+    try {
+        $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
+        Write-Debug "Result: $LatestResult"
+    return $LatestResult
+    } catch {
+        return ""
+    }
+}
+
+$Failures = New-Object Collections.Generic.List[string]
+function Write-Failures() {
+    $DidFail = $false
+    foreach ($Failure in $Failures) {
+        $DidFail = $true
+        Write-Output $Failure
+    }
+    if ($DidFail) {
+        Write-Error "Performance test failures occurred"
+    }
+}
+
+# Fail loopback tests if < 80%
+$LocalRegressionThreshold = -80.0
+
 #region Throughput Publish
+
+class ThroughputConfiguration {
+    [boolean]$Loopback;
+    [boolean]$Encryption;
+    [boolean]$SendBuffering;
+    [int]$NumberOfStreams;
+    [boolean]$ServerToClient;
+
+    [int] GetHashCode() {
+        return [HashCode]::Combine($this.Loopback, $this.Encryption, $this.SendBuffering, $this.NumberOfStreams, $this.ServerToClient)
+    }
+
+    [boolean] Equals([Object]$other) {
+        return $this.Encryption -eq $other.Encryption -and
+        $this.Loopback -eq $other.Loopback -and
+        $this.NumberOfStreams -eq $other.NumberOfStreams -and
+        $this.SendBuffering -eq $other.SendBuffering -and
+        $this.ServerToClient -eq $other.ServerToClient
+    }
+}
 
 class ThroughputRequest {
     [string]$PlatformName;
@@ -534,29 +626,33 @@ class ThroughputRequest {
         $this.NumberOfStreams = 1;
         $this.ServerToClient = $ServerToClient;
     }
-}
 
-$Failures = New-Object Collections.Generic.List[string]
-function Write-Failures() {
-    $DidFail = $false
-    foreach ($Failure in $Failures) {
-        $DidFail = $true
-        Write-Output $Failure
-    }
-    if ($DidFail) {
-        Write-Error "Performance test failures occurred"
+    [ThroughputConfiguration] GetConfiguration() {
+        $TputConfig = [ThroughputConfiguration]::new();
+        $TputConfig.Encryption = $this.Encryption;
+        $TputConfig.Loopback = $this.Loopback;
+        $TputConfig.NumberOfStreams = $this.NumberOfStreams;
+        $TputConfig.SendBuffering = $this.SendBuffering;
+        $TputConfig.ServerToClient = $this.ServerToClient;
+        return $TputConfig;
     }
 }
 
-# Fail loopback tests if < 80%
-$LocalRegressionThreshold = -80.0
-function Get-LatestThroughputRemoteTestResults([ThroughputRequest]$Request) {
-    $Uri = "https://msquicperformanceresults.azurewebsites.net/throughput/get"
-    $RequestJson = ConvertTo-Json -InputObject $Request
-    Write-Debug "Requesting: $Uri with $RequestJson"
-    $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
-    Write-Debug "Result: $LatestResult"
-    return $LatestResult
+function Get-LatestThroughputRemoteTestResults($CpuData, [ThroughputRequest]$Request) {
+    try {
+        $TestConfig = $Request.GetConfiguration()
+        foreach ($Test in $CpuData.Tests) {
+            if ($null -eq $Test.TputConfig) {
+                continue;
+            }
+
+            if ($TestConfig -eq $Test.TputConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                return $Test
+            }
+        }
+    } catch {
+    }
+    return $null
 }
 
 class ThroughputTestPublishResult {
@@ -593,17 +689,17 @@ class ThroughputTestPublishResult {
 }
 
 function Publish-ThroughputTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentBranch, $OutputDir, $ServerToClient, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ServerToClient, $ExePath)
 
     $Request = [ThroughputRequest]::new($Test, $ServerToClient)
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
-    $FullLastResult = Get-LatestThroughputRemoteTestResults -Request $Request
+    $FullLastResult = Get-LatestThroughputRemoteTestResults -CpuData $PreviousResults -Request $Request
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
-    if ($FullLastResult -ne "") {
-        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
+    if ($null -ne $FullLastResult) {
+        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.Results
         if ($MedianLastResult -eq 0) {
             Write-Error "Cannot have a last result median of 0"
         }
@@ -634,7 +730,7 @@ function Publish-ThroughputTestResults {
             $MachineName = $env:AGENT_MACHINENAME
         }
         $Results = [ThroughputTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
-        $Results.AuthKey = $CurrentBranch;
+        $Results.AuthKey = $CurrentCommitDate;
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
@@ -646,6 +742,24 @@ function Publish-ThroughputTestResults {
 #endregion
 
 #region RPS Publish
+
+class RpsConfiguration {
+    [int]$ConnectionCount;
+    [int]$RequestSize;
+    [int]$ResponseSize;
+    [int]$ParallelRequests;
+
+    [int] GetHashCode() {
+        return [HashCode]::Combine($this.ConnectionCount, $this.RequestSize, $this.ResponseSize, $this.ParallelRequests)
+    }
+
+    [boolean] Equals([Object]$other) {
+        return $this.ConnectionCount -eq $other.ConnectionCount -and
+        $this.RequestSize -eq $other.RequestSize -and
+        $this.ResponseSize -eq $other.ResponseSize -and
+        $this.ParallelRequests -eq $other.ParallelRequests
+    }
+}
 
 class RPSRequest {
     [string]$PlatformName;
@@ -663,15 +777,32 @@ class RPSRequest {
         $this.ResponseSize = $Test.VariableValues["ResponseSize"];
         $this.ParallelRequests = 30;
     }
+
+    [RpsConfiguration] GetConfiguration() {
+        $RpsConfig = [RpsConfiguration]::new();
+        $RpsConfig.ConnectionCount = $this.ConnectionCount;
+        $RpsConfig.RequestSize = $this.RequestSize;
+        $RpsConfig.ResponseSize = $this.ResponseSize;
+        $RpsConfig.ParallelRequests = $this.ParallelRequests;
+        return $RpsConfig;
+    }
 }
 
-function Get-LatestRPSRemoteTestResults([RPSRequest]$Request) {
-    $Uri = "https://msquicperformanceresults.azurewebsites.net/RPS/get"
-    $RequestJson = ConvertTo-Json -InputObject $Request
-    Write-Debug "Requesting: $Uri with $RequestJson"
-    $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
-    Write-Debug "Result: $LatestResult"
-    return $LatestResult
+function Get-LatestRPSRemoteTestResults($CpuData, [RpsRequest]$Request) {
+    try {
+        $TestConfig = $Request.GetConfiguration()
+        foreach ($Test in $CpuData.Tests) {
+            if ($null -eq $Test.RpsConfig) {
+                continue;
+            }
+
+            if ($TestConfig -eq $Test.RpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                return $Test
+            }
+        }
+    } catch {
+    }
+    return $null
 }
 
 class RPSTestPublishResult {
@@ -706,7 +837,7 @@ class RPSTestPublishResult {
 }
 
 function Publish-RPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentBranch, $OutputDir, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ExePath)
 
     $Request = [RPSRequest]::new($Test)
 
@@ -721,11 +852,11 @@ function Publish-RPSTestResults {
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
-    $FullLastResult = Get-LatestRPSRemoteTestResults -Request $Request
+    $FullLastResult = Get-LatestRPSRemoteTestResults -CpuData $PreviousResults -Request $Request
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
-    if ($FullLastResult -ne "") {
-        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
+    if ($null -ne $FullLastResult) {
+        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.Results
         if ($MedianLastResult -eq 0) {
             Write-Error "Cannot have a last result median of 0"
         }
@@ -753,7 +884,7 @@ function Publish-RPSTestResults {
             $MachineName = $env:AGENT_MACHINENAME
         }
         $Results = [RPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
-        $Results.AuthKey = $CurrentBranch;
+        $Results.AuthKey = $CurrentCommitDate;
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
@@ -766,6 +897,16 @@ function Publish-RPSTestResults {
 
 #region HPS Publish
 
+class HpsConfiguration {
+    [int] GetHashCode() {
+        return 7;
+    }
+
+    [boolean] Equals([Object]$other) {
+        return $true
+    }
+}
+
 class HPSRequest {
     [string]$PlatformName;
 
@@ -774,15 +915,28 @@ class HPSRequest {
     ) {
         $this.PlatformName = $Test.ToTestPlatformString();
     }
+
+    [HpsConfiguration] GetConfiguration() {
+        $Config = [HpsConfiguration]::new();
+        return $Config;
+    }
 }
 
-function Get-LatestHPSRemoteTestResults([HPSRequest]$Request) {
-    $Uri = "https://msquicperformanceresults.azurewebsites.net/HPS/get"
-    $RequestJson = ConvertTo-Json -InputObject $Request
-    Write-Debug "Requesting: $Uri with $RequestJson"
-    $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
-    Write-Debug "Result: $LatestResult"
-    return $LatestResult
+function Get-LatestHPSRemoteTestResults($CpuData, [HpsRequest]$Request) {
+    try {
+        $TestConfig = $Request.GetConfiguration()
+        foreach ($Test in $CpuData.Tests) {
+            if ($null -eq $Test.HpsConfig) {
+                continue;
+            }
+
+            if ($TestConfig -eq $Test.HpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                return $Test
+            }
+        }
+    } catch {
+    }
+    return $null
 }
 
 class HPSTestPublishResult {
@@ -809,17 +963,17 @@ class HPSTestPublishResult {
 }
 
 function Publish-HPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentBranch, $OutputDir, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ExePath)
 
     $Request = [HPSRequest]::new($Test)
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
-    $FullLastResult = Get-LatestHPSRemoteTestResults -Request $Request
+    $FullLastResult = Get-LatestHPSRemoteTestResults -CpuData $PreviousResults -Request $Request
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
-    if ($FullLastResult -ne "") {
-        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
+    if ($null -ne $FullLastResult) {
+        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.Results
         if ($MedianLastResult -eq 0) {
             Write-Error "Cannot have a last result median of 0"
         }
@@ -847,7 +1001,7 @@ function Publish-HPSTestResults {
             $MachineName = $env:AGENT_MACHINENAME
         }
         $Results = [HPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
-        $Results.AuthKey = $CurrentBranch;
+        $Results.AuthKey = $CurrentCommitDate;
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
@@ -859,16 +1013,16 @@ function Publish-HPSTestResults {
 #endregion
 
 function Publish-TestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $CurrentBranch, $OutputDir, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ExePath)
 
     if ($Test.TestName -eq "ThroughputUp") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentBranch $CurrentBranch -OutputDir $OutputDir -ServerToClient $false -ExePath $ExePath
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ServerToClient $false -ExePath $ExePath
     } elseif ($Test.TestName -eq "ThroughputDown") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentBranch $CurrentBranch -OutputDir $OutputDir -ServerToClient $true -ExePath $ExePath
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ServerToClient $true -ExePath $ExePath
     } elseif ($Test.TestName -eq "RPS") {
-        Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentBranch $CurrentBranch -OutputDir $OutputDir -ExePath $ExePath
+        Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ExePath $ExePath
     } elseif ($Test.TestName -eq "HPS") {
-        Publish-HPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentBranch $CurrentBranch -OutputDir $OutputDir -ExePath $ExePath
+        Publish-HPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ExePath $ExePath
     } else {
         Write-Host "Unknown Test Type"
     }
@@ -899,7 +1053,6 @@ class TestRunDefinition {
     [string]$TestName;
     [string]$VariableName;
     [string]$VariableValue;
-    [ExecutableRunSpec]$Remote;
     [ExecutableRunSpec]$Local;
     [int]$Iterations;
     [string]$RemoteReadyMatcher;
@@ -915,14 +1068,12 @@ class TestRunDefinition {
         [string]$variableName,
         [string]$variableValue,
         [string]$localArgs,
-        [string]$remoteArgs,
         [hashtable]$variableValues
     ) {
         $this.TestName = $existingDef.TestName
         $this.VariableName = $variableName
         $this.VariableValue = $variableValue
         $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $localArgs)
-        $this.Remote = [ExecutableRunSpec]::new($existingDef.Remote, $remoteArgs)
         $this.Iterations = $existingDef.Iterations
         $this.RemoteReadyMatcher = $existingDef.RemoteReadyMatcher
         $this.ResultsMatcher = $existingDef.ResultsMatcher
@@ -935,15 +1086,38 @@ class TestRunDefinition {
 
     TestRunDefinition (
         [TestDefinition]$existingDef,
+        [Collections.Generic.List[FullVariableSpec]]$variables
+    ) {
+        $this.TestName = $existingDef.TestName
+        $this.Iterations = $existingDef.Iterations
+        $this.RemoteReadyMatcher = $existingDef.RemoteReadyMatcher
+        $this.ResultsMatcher = $existingDef.ResultsMatcher
+        $this.Loopback = $script:Local
+        $this.AllowLoopback = $existingDef.AllowLoopback
+        $this.Formats = $existingDef.Formats
+        $this.RegressionThreshold = $existingDef.RegressionThreshold
+        $this.VariableValue = ""
+        $this.VariableName = ""
+
+        $this.VariableValues = @{}
+        $BaseArgs = $existingDef.Local.Arguments
+        foreach ($Var in $variables) {
+            $this.VariableValues.Add($Var.Name, $Var.Value)
+            $BaseArgs += (" " + $Var.Argument)
+            $this.VariableName += ("_" + $Var.Name + "_" + $Var.Value)
+        }
+        $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $BaseArgs)
+    }
+
+    TestRunDefinition (
+        [TestDefinition]$existingDef,
         [string]$localArgs,
-        [string]$remoteArgs,
         [hashtable]$variableValues
     ) {
         $this.TestName = $existingDef.TestName
         $this.VariableName = "Default"
         $this.VariableValue = ""
         $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $localArgs)
-        $this.Remote = [ExecutableRunSpec]::new($existingDef.Remote, $remoteArgs)
         $this.Iterations = $existingDef.Iterations
         $this.RemoteReadyMatcher = $existingDef.RemoteReadyMatcher
         $this.ResultsMatcher = $existingDef.ResultsMatcher
@@ -959,8 +1133,8 @@ class TestRunDefinition {
         if ($this.VariableName -eq "Default") {
             $VarVal = ""
         }
-        $Platform = $this.Remote.Platform
-        if ($script:Kernel -and $this.Remote.Platform -eq "Windows") {
+        $Platform = $this.Local.Platform
+        if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
             $Platform = 'Winkernel'
         }
         $RetString = "$($this.TestName)_$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)_$($this.VariableName)$VarVal"
@@ -971,8 +1145,8 @@ class TestRunDefinition {
     }
 
     [string]ToTestPlatformString() {
-        $Platform = $this.Remote.Platform
-        if ($script:Kernel -and $this.Remote.Platform -eq "Windows") {
+        $Platform = $this.Local.Platform
+        if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
             $Platform = 'Winkernel'
         }
         $RetString = "$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
@@ -980,28 +1154,115 @@ class TestRunDefinition {
     }
 }
 
+class TestRunConfig {
+    [RemoteConfig]$Remote;
+    [TestRunDefinition[]]$Tests;
+}
+
 class Defaults {
     [string]$LocalValue;
-    [string]$RemoteValue;
     [string]$DefaultKey;
 
     Defaults (
         [string]$local,
-        [string]$remote,
         [string]$defaultKey
     ) {
         $this.LocalValue = $local
-        $this.RemoteValue = $remote
         $this.DefaultKey = $defaultKey
     }
 }
 
-function Get-TestMatrix {
-    param ([TestDefinition[]]$Tests, $RemotePlatform, $LocalPlatform)
+class FullVariableSpec {
+    [string]$Name;
+    [string]$Value;
+    [string]$Argument;
+
+    FullVariableSpec($Name, $Value, $Argument) {
+        $this.Name = $Name
+        $this.Value = $Value
+        $this.Argument = $Argument
+    }
+}
+
+function Get-FullTestMatrix {
+    param ([TestConfig]$Tests, $RemotePlatform, $LocalPlatform)
 
     [TestRunDefinition[]]$ToRunTests = @()
 
-    foreach ($Test in $Tests) {
+    foreach ($Test in $Tests.Tests) {
+
+        if (!(Test-CanRunTest -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform)) {
+            Write-Host "Skipping $($Test.ToString())"
+            continue
+        }
+
+        [Hashtable]$Variables = @{}
+
+        # Loop throught each variable
+        foreach ($Var in $Test.Variables) {
+            # Loop through each inner variable
+            foreach ($InnerVar in $Var.Local.Keys) {
+                if ($Variables.ContainsKey($Var.Name)) {
+                    $Variables[$Var.Name] += [FullVariableSpec]::new($Var.Name, $InnerVar, $Var.Local[$InnerVar]);
+                } else {
+                    $NewVar = @()
+                    $NewVar += [FullVariableSpec]::new($Var.Name, $InnerVar, $Var.Local[$InnerVar]);
+                    $Variables[$Var.Name] = $NewVar
+                }
+            }
+        }
+
+        if ($Variables.Count -eq 0) {
+            Write-Error "Full Matrix with an empty variable set not supported"
+        }
+
+        $First = $true
+        $Finished = [Collections.Generic.List[Collections.Generic.List[FullVariableSpec]]]::new()
+
+        foreach ($Variable in $Variables.Keys) {
+            if ($First) {
+                $First = $false
+                foreach ($InnerVar in $Variables[$Variable]) {
+                    $TmpList = [Collections.Generic.List[FullVariableSpec]]::new()
+                    $TmpList.Add($InnerVar)
+                    $Finished.Add($TmpList)
+                }
+            } else {
+                $NewList = [Collections.Generic.List[Collections.Generic.List[FullVariableSpec]]]::new()
+                foreach($ExistingList in $Finished) {
+                    foreach($InnerVar in $Variables[$Variable]) {
+                        $TmpList = [Collections.Generic.List[FullVariableSpec]]::new()
+                        $TmpList.AddRange($ExistingList)
+                        $TmpList.Add($InnerVar)
+                        $NewList.Add($TmpList)
+                    }
+                }
+                $Finished = $NewList
+            }
+        }
+
+        foreach ($TestToRun in $Finished) {
+            $ToRunTests += [TestRunDefinition]::new($Test, $TestToRun)
+        }
+    }
+
+    $RunConfig = [TestRunConfig]::new()
+    $RunConfig.Remote = $Tests.Remote;
+    $RunConfig.Tests = $ToRunTests;
+
+    return $RunConfig
+}
+
+function Get-TestMatrix {
+    param ([TestConfig]$Tests, $RemotePlatform, $LocalPlatform)
+
+    if ($Tests.FullMatrix) {
+        return Get-FullTestMatrix -Tests $Tests -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
+    }
+
+    [TestRunDefinition[]]$ToRunTests = @()
+
+    foreach ($Test in $Tests.Tests) {
 
         if (!(Test-CanRunTest -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform)) {
             Write-Host "Skipping $($Test.ToString())"
@@ -1011,46 +1272,30 @@ function Get-TestMatrix {
         [hashtable]$DefaultVals = @{}
         # Get all default variables
         foreach ($Var in $Test.Variables) {
-            if ($Var.Local.Keys.Count -ne $Var.Remote.Keys.Count) {
-                Write-Error "Remote and local key lengths must be the same"
-            }
-            $DefaultVals.Add($Var.Name, [Defaults]::new($Var.Local[$Var.Default], $Var.Remote[$Var.Default], $Var.Default))
+            $DefaultVals.Add($Var.Name, [Defaults]::new($Var.Local[$Var.Default], $Var.Default))
         }
 
-        $LocalArgs = $Test.Local.Arguments.All
-        $RemoteArgs = $Test.Remote.Arguments.All
-
-        if ($Local) {
-            $LocalArgs += " " + $Test.Local.Arguments.Loopback
-            $RemoteArgs += " " + $Test.Remote.Arguments.Loopback
-        } else {
-            $LocalArgs += " " + $Test.Local.Arguments.Remote
-            $RemoteArgs += " " + $Test.Remote.Arguments.Remote
-        }
+        $LocalArgs = $Test.Local.Arguments
 
         $DefaultLocalArgs = $LocalArgs
-        $DefaultRemoteArgs = $RemoteArgs
 
         $VariableValues = @{}
         foreach ($VarKey in $DefaultVals.Keys) {
             $VariableValues.Add($VarKey, $DefaultVals[$VarKey].DefaultKey)
             $DefaultLocalArgs += (" " + $DefaultVals[$VarKey].LocalValue)
-            $DefaultRemoteArgs += (" " + $DefaultVals[$VarKey].RemoteValue)
         }
 
         # Create the default test
-        $TestRunDef = [TestRunDefinition]::new($Test, $DefaultLocalArgs, $DefaultRemoteArgs, $VariableValues)
+        $TestRunDef = [TestRunDefinition]::new($Test, $DefaultLocalArgs, $VariableValues)
         $ToRunTests += $TestRunDef
 
         foreach ($Var in $Test.Variables) {
             $LocalVarArgs = @{}
-            $RemoteVarArgs = @{}
 
             $StateKeyList = @()
 
             foreach ($Key in $Var.Local.Keys) {
                 $LocalVarArgs.Add($Key, $LocalArgs + " " + $Var.Local[$Key])
-                $RemoteVarArgs.Add($Key, $RemoteArgs + " " + $Var.Remote[$Key])
                 $StateKeyList += $Key
             }
 
@@ -1060,7 +1305,6 @@ function Get-TestMatrix {
                     foreach ($TestKey in $StateKeyList) {
                         $KeyVal =$DefaultVals[$Key]
                         $LocalVarArgs[$TestKey] += " $($KeyVal.LocalValue)"
-                        $RemoteVarArgs[$TestKey] += " $($KeyVal.RemoteValue)"
                     }
                 }
             }
@@ -1074,25 +1318,22 @@ function Get-TestMatrix {
                     continue
                 }
                 $VariableValues[$Var.Name] = $Key
-                $TestRunDef = [TestRunDefinition]::new($Test, $Var.Name, $Key, $LocalVarArgs[$Key], $RemoteVarArgs[$Key], $VariableValues)
+                $TestRunDef = [TestRunDefinition]::new($Test, $Var.Name, $Key, $LocalVarArgs[$Key], $VariableValues)
                 $ToRunTests += $TestRunDef
             }
         }
     }
 
-    return $ToRunTests
-}
+    $RunConfig = [TestRunConfig]::new()
+    $RunConfig.Remote = $Tests.Remote;
+    $RunConfig.Tests = $ToRunTests;
 
-class ArgumentsSpec {
-    [string]$All;
-    [string]$Loopback;
-    [string]$Remote;
+    return $RunConfig
 }
 
 class VariableSpec {
     [string]$Name;
     [Hashtable]$Local;
-    [Hashtable]$Remote;
     [string]$Default;
 }
 
@@ -1101,12 +1342,11 @@ class ExecutableSpec {
     [string[]]$Tls;
     [string[]]$Arch;
     [string]$Exe;
-    [ArgumentsSpec]$Arguments;
+    [string]$Arguments;
 }
 
 class TestDefinition {
     [string]$TestName;
-    [ExecutableSpec]$Remote;
     [ExecutableSpec]$Local;
     [VariableSpec[]]$Variables;
     [int]$Iterations;
@@ -1117,18 +1357,29 @@ class TestDefinition {
     [double]$RegressionThreshold;
 
     [string]ToString() {
-        $Platform = $this.Remote.Platform
-        if ($script:Kernel -and $this.Remote.Platform -eq "Windows") {
+        $Platform = $this.Local.Platform
+        if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
             $Platform = 'Winkernel'
         }
-        $RetString = "$($this.TestName)_$($Platform) [$($this.Remote.Arch)] [$($this.Remote.Tls)]"
+        $RetString = "$($this.TestName)_$($Platform) [$($this.Local.Arch)] [$($this.Local.Tls)]"
         return $RetString
     }
 }
 
+class RemoteConfig {
+    [string]$Exe;
+    [string]$Arguments;
+}
+
+class TestConfig {
+    [RemoteConfig]$Remote;
+    [TestDefinition[]]$Tests;
+    [boolean]$FullMatrix;
+}
+
 function Get-Tests {
     param ($Path, $RemotePlatform, $LocalPlatform)
-    $Tests = [TestDefinition[]](Get-Content -Path $Path | ConvertFrom-Json -AsHashtable)
+    $Tests = [TestConfig](Get-Content -Path $Path | ConvertFrom-Json -AsHashtable)
     $MatrixTests = Get-TestMatrix -Tests $Tests -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
     if (Test-AllTestsValid -Tests $MatrixTests) {
         return $MatrixTests
@@ -1139,10 +1390,9 @@ function Get-Tests {
 }
 
 function Test-AllTestsValid {
-    param ([TestRunDefinition[]]$Tests)
-
+    param ([TestRunConfig]$Tests)
     $TestSet = New-Object System.Collections.Generic.HashSet[string]
-    foreach ($T in $Tests) {
+    foreach ($T in $Tests.Tests) {
         if (!$TestSet.Add($T)) {
             return $false
         }
@@ -1153,14 +1403,11 @@ function Test-AllTestsValid {
 
 function Test-CanRunTest {
     param ([TestDefinition]$Test, $RemotePlatform, $LocalPlatform)
-    $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
+    $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform)
     if (!$PlatformCorrect) {
         return $false
     }
     if (!$Test.Local.Tls.Contains($LocalTls)) {
-        return $false
-    }
-    if (!$Test.Remote.Tls.Contains($RemoteTls)) {
         return $false
     }
     if ($Local -and !$Test.AllowLoopback) {

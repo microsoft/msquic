@@ -140,7 +140,7 @@ typedef union QUIC_MAX_SENT_PACKET_METADATA
 
 } QUIC_MAX_SENT_PACKET_METADATA;
 
-QUIC_STATIC_ASSERT(
+CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_MAX_SENT_PACKET_METADATA) < 512,
     "Max Send Packet Metadata should be small enough to be allocated on the stack");
 
@@ -150,7 +150,7 @@ QUIC_STATIC_ASSERT(
 //
 typedef struct QUIC_SENT_PACKET_POOL {
 
-    QUIC_POOL Pools[QUIC_MAX_FRAMES_PER_PACKET];
+    CXPLAT_POOL Pools[QUIC_MAX_FRAMES_PER_PACKET];
 
 } QUIC_SENT_PACKET_POOL;
 

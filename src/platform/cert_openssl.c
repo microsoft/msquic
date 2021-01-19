@@ -31,7 +31,7 @@ typedef void (MITLS_CALLCONV *Fn_mipki_free_chain)(mipki_state *st, mipki_chain 
 
 #define DECLARE_FUNC(Func) Fn_ ## Func Func
 
-typedef struct QUIC_MIPKI_LIBRARY {
+typedef struct CXPLAT_MIPKI_LIBRARY {
 
     HMODULE Libmipki;
 
@@ -45,12 +45,12 @@ typedef struct QUIC_MIPKI_LIBRARY {
     DECLARE_FUNC(mipki_validate_chain);
     DECLARE_FUNC(mipki_free_chain);
 
-    QUIC_LOCK Lock;
+    CXPLAT_LOCK Lock;
     mipki_state *State;
 
-} QUIC_MIPKI_LIBRARY;
+} CXPLAT_MIPKI_LIBRARY;
 
-QUIC_MIPKI_LIBRARY miPKI = { 0 };
+CXPLAT_MIPKI_LIBRARY miPKI = { 0 };
 
 static
 inline
@@ -68,7 +68,7 @@ LogGetProcAddressFailure(
 }
 
 QUIC_STATUS
-QuicCertLibraryInitialize(
+CxPlatCertLibraryInitialize(
     void
     )
 {
@@ -142,7 +142,7 @@ QuicCertLibraryInitialize(
         goto Error;
     }
 
-    QuicLockInitialize(&miPKI.Lock);
+    CxPlatLockInitialize(&miPKI.Lock);
 
     Status = QUIC_STATUS_SUCCESS;
 
@@ -163,12 +163,12 @@ Error:
 }
 
 void
-QuicCertLibraryUninitialize(
+CxPlatCertLibraryUninitialize(
     void
     )
 {
     if (miPKI.Libmipki != NULL) {
-        QuicLockUninitialize(&miPKI.Lock);
+        CxPlatLockUninitialize(&miPKI.Lock);
         miPKI.mipki_free(miPKI.State);
         FreeLibrary(miPKI.Libmipki);
         miPKI.Libmipki = NULL;
@@ -177,7 +177,7 @@ QuicCertLibraryUninitialize(
 
 _Success_(return != NULL)
 QUIC_CERTIFICATE*
-QuicCertSelect(
+CxPlatCertSelect(
     _In_reads_opt_(ServerNameIndiciationLength)
         const char* ServerNameIndiciation,
     size_t ServerNameIndiciationLength,
@@ -187,7 +187,7 @@ QuicCertSelect(
     _Out_ UINT16 *SelectedSignature
     )
 {
-    QuicLockAcquire(&miPKI.Lock);
+    CxPlatLockAcquire(&miPKI.Lock);
 
     mipki_chain Certificate =
         miPKI.mipki_select_certificate(
@@ -198,19 +198,19 @@ QuicCertSelect(
             SignatureAlgorithmsLength,
             SelectedSignature);
 
-    QuicLockRelease(&miPKI.Lock);
+    CxPlatLockRelease(&miPKI.Lock);
 
     return (QUIC_CERTIFICATE*)Certificate;
 }
 
 _Success_(return != NULL)
 QUIC_CERTIFICATE*
-QuicCertParseChain(
+CxPlatCertParseChain(
     _In_ size_t ChainBufferLength,
     _In_reads_(ChainBufferLength) const BYTE *ChainBuffer
     )
 {
-    QuicLockAcquire(&miPKI.Lock);
+    CxPlatLockAcquire(&miPKI.Lock);
 
     mipki_chain Certificate =
         miPKI.mipki_parse_chain(
@@ -218,21 +218,21 @@ QuicCertParseChain(
             (const char*)ChainBuffer,
             ChainBufferLength);
 
-    QuicLockRelease(&miPKI.Lock);
+    CxPlatLockRelease(&miPKI.Lock);
 
     return (QUIC_CERTIFICATE*)Certificate;
 }
 
 _Success_(return != 0)
 size_t
-QuicCertFormat(
+CxPlatCertFormat(
     _In_ QUIC_CERTIFICATE* Certificate,
     _In_ size_t BufferLength,
     _Out_writes_to_(BufferLength, return)
         BYTE* Buffer
     )
 {
-    QuicLockAcquire(&miPKI.Lock);
+    CxPlatLockAcquire(&miPKI.Lock);
 
     size_t Result =
         miPKI.mipki_format_chain(
@@ -241,14 +241,14 @@ QuicCertFormat(
             (char*)Buffer,
             BufferLength);
 
-    QuicLockRelease(&miPKI.Lock);
+    CxPlatLockRelease(&miPKI.Lock);
 
     return Result;
 }
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertValidateChain(
+CxPlatCertValidateChain(
     _In_ QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ const char* Host,
     _In_ uint32_t IgnoreFlags
@@ -256,7 +256,7 @@ QuicCertValidateChain(
 {
     UNREFERENCED_PARAMETER(IgnoreFlags);
 
-    QuicLockAcquire(&miPKI.Lock);
+    CxPlatLockAcquire(&miPKI.Lock);
 
     int Result =
         miPKI.mipki_validate_chain(
@@ -264,14 +264,14 @@ QuicCertValidateChain(
             (mipki_chain)Certificate,
             Host);
 
-    QuicLockRelease(&miPKI.Lock);
+    CxPlatLockRelease(&miPKI.Lock);
 
     return Result == 0 ? FALSE : TRUE;
 }
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertSign(
+CxPlatCertSign(
     _In_ QUIC_CERTIFICATE* Certificate,
     _In_ const UINT16 SignatureAlgorithm,
     _In_reads_(CertListToBeSignedLength)
@@ -282,7 +282,7 @@ QuicCertSign(
     _Inout_ size_t *SignatureLength
     )
 {
-    QuicLockAcquire(&miPKI.Lock);
+    CxPlatLockAcquire(&miPKI.Lock);
 
     int Result =
         miPKI.mipki_sign_verify(
@@ -295,14 +295,14 @@ QuicCertSign(
             SignatureLength,
             MIPKI_SIGN);
 
-    QuicLockRelease(&miPKI.Lock);
+    CxPlatLockRelease(&miPKI.Lock);
 
     return Result == 0 ? FALSE : TRUE;
 }
 
 _Success_(return != FALSE)
 BOOLEAN
-QuicCertVerify(
+CxPlatCertVerify(
     _In_ QUIC_CERTIFICATE* Certificate,
     _In_ const UINT16 SignatureAlgorithm,
     _In_reads_(CertListToBeSignedLength)
@@ -313,7 +313,7 @@ QuicCertVerify(
     _In_ size_t SignatureLength
     )
 {
-    QuicLockAcquire(&miPKI.Lock);
+    CxPlatLockAcquire(&miPKI.Lock);
 
     int Result =
         miPKI.mipki_sign_verify(
@@ -328,7 +328,7 @@ QuicCertVerify(
 
     miPKI.mipki_free_chain(miPKI.State, Certificate);
 
-    QuicLockRelease(&miPKI.Lock);
+    CxPlatLockRelease(&miPKI.Lock);
 
     return Result == 0 ? FALSE : TRUE;
 }
