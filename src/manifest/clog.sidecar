@@ -8465,9 +8465,25 @@
       ],
       "macroName": "QuicTraceLogConnError"
     },
+    "OpenSslQuicDataErrorStr": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] SSL_provide_quic_data failed: %s",
+      "UniqueId": "OpenSslQuicDataErrorStr",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
     "OpenSslHandshakeErrorStr": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] TLS handshake error: %s",
+      "TraceString": "[conn][%p] TLS handshake error: %s, file:%s:%d",
       "UniqueId": "OpenSslHandshakeErrorStr",
       "splitArgs": [
         {
@@ -8477,6 +8493,14 @@
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceLogConnError"
@@ -12000,7 +12024,11 @@
         "TraceID": "OpenSslAlert"
       },
       {
-        "UniquenessHash": "04956959-ecb5-9bea-dd79-ca22765f2c95",
+        "UniquenessHash": "33c7b405-30d7-b1d6-1c60-91d15920e2dc",
+        "TraceID": "OpenSslQuicDataErrorStr"
+      },
+      {
+        "UniquenessHash": "ea63635a-adff-b833-abb2-009297ee0ca0",
         "TraceID": "OpenSslHandshakeErrorStr"
       },
       {
