@@ -63,7 +63,11 @@ $WpaQUICLogProfileXml = `
         <Stack Value="SampledProfile"/>
       </Stacks>
     </SystemProvider>
-    <EventProvider Id="MsQuicEtwPerf" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" Level="5"/>
+    <EventProvider Id="MsQuicEtwPerf" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" Level="5">
+      <Keywords>
+        <Keyword Value="0xE0000000"/>
+      </Keywords>
+    </EventProvider>
     <Profile Id="CPU.Light.File" Name="CPU" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
       <Collectors>
         <SystemCollectorId Value="SC_HighVolume">
