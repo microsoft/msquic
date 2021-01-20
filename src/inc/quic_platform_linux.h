@@ -367,7 +367,7 @@ typedef struct CXPLAT_POOL {
     // LINUX_TODO: Check how to make this lock free?
     //
 
-    pthread_mutex_t Lock;
+    CXPLAT_LOCK Lock;
 
     //
     // Size of entries.
