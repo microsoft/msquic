@@ -251,8 +251,101 @@ CxPlatFree(
 #define CXPLAT_ALLOC_NONPAGED(Size, Tag) CxPlatAlloc(Size, Tag)
 #define CXPLAT_FREE(Mem, Tag) CxPlatFree((void*)Mem, Tag)
 
+#define CxPlatZeroMemory(Destination, Length) memset((Destination), 0, (Length))
+#define CxPlatCopyMemory(Destination, Source, Length) memcpy((Destination), (Source), (Length))
+#define CxPlatMoveMemory(Destination, Source, Length) memmove((Destination), (Source), (Length))
+#define CxPlatSecureZeroMemory CxPlatZeroMemory // TODO - Something better?
+
+#define CxPlatByteSwapUint16(value) __builtin_bswap16((unsigned short)(value))
+#define CxPlatByteSwapUint32(value) __builtin_bswap32((value))
+#define CxPlatByteSwapUint64(value) __builtin_bswap64((value))
+
+//
+// Lock interfaces.
+//
+
+//
+// Represents a QUIC lock.
+//
+
+typedef struct CXPLAT_LOCK {
+
+    pthread_mutex_t Mutex;
+
+} CXPLAT_LOCK;
+
+#define CxPlatLockInitialize(Lock) { \
+    pthread_mutexattr_t Attr; \
+    CXPLAT_FRE_ASSERT(pthread_mutexattr_init(&Attr) == 0); \
+    CXPLAT_FRE_ASSERT(pthread_mutexattr_settype(&Attr, PTHREAD_MUTEX_RECURSIVE) == 0); \
+    CXPLAT_FRE_ASSERT(pthread_mutex_init(&(Lock)->Mutex, &Attr) == 0); \
+    CXPLAT_FRE_ASSERT(pthread_mutexattr_destroy(&Attr) == 0); \
+}
+
+#define CxPlatLockUninitialize(Lock) \
+        CXPLAT_FRE_ASSERT(pthread_mutex_destroy(&(Lock)->Mutex) == 0);
+
+#define CxPlatLockAcquire(Lock) \
+    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&(Lock)->Mutex) == 0);
+
+#define CxPlatLockRelease(Lock) \
+    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&(Lock)->Mutex) == 0);
+
+typedef CXPLAT_LOCK CXPLAT_DISPATCH_LOCK;
+
+#define CxPlatDispatchLockInitialize CxPlatLockInitialize
+
+#define CxPlatDispatchLockUninitialize CxPlatLockUninitialize
+
+#define CxPlatDispatchLockAcquire CxPlatLockAcquire
+
+#define CxPlatDispatchLockRelease CxPlatLockRelease
+
+//
+// Represents a QUIC RW lock.
+//
+
+typedef struct CXPLAT_RW_LOCK {
+
+    pthread_rwlock_t RwLock;
+
+} CXPLAT_RW_LOCK;
+
+#define CxPlatRwLockInitialize(Lock) \
+    CXPLAT_FRE_ASSERT(pthread_rwlock_init(&(Lock)->RwLock, NULL) == 0);
+
+#define CxPlatRwLockUninitialize(Lock) \
+    CXPLAT_FRE_ASSERT(pthread_rwlock_destroy(&(Lock)->RwLock) == 0);
+
+#define CxPlatRwLockAcquireShared(Lock) \
+    CXPLAT_FRE_ASSERT(pthread_rwlock_rdlock(&(Lock)->RwLock) == 0);
+
+#define CxPlatRwLockAcquireExclusive(Lock) \
+    CXPLAT_FRE_ASSERT(pthread_rwlock_wrlock(&(Lock)->RwLock) == 0);
+
+#define CxPlatRwLockReleaseShared(Lock) \
+    CXPLAT_FRE_ASSERT(pthread_rwlock_unlock(&(Lock)->RwLock) == 0);
+
+#define CxPlatRwLockReleaseExclusive(Lock) \
+    CXPLAT_FRE_ASSERT(pthread_rwlock_unlock(&(Lock)->RwLock) == 0);
+
+typedef CXPLAT_RW_LOCK CXPLAT_DISPATCH_RW_LOCK;
+
+#define CxPlatDispatchRwLockInitialize CxPlatRwLockInitialize
+
+#define CxPlatDispatchRwLockUninitialize CxPlatRwLockUninitialize
+
+#define CxPlatDispatchRwLockAcquireShared CxPlatRwLockAcquireShared
+
+#define CxPlatDispatchRwLockAcquireExclusive CxPlatRwLockAcquireExclusive
+
+#define CxPlatDispatchRwLockReleaseShared CxPlatRwLockReleaseShared
+
+#define CxPlatDispatchRwLockReleaseExclusive CxPlatRwLockReleaseExclusive
+
 //
 // Represents a QUIC memory pool used for fixed sized allocations.
+// This must be below the lock definitions.
 //
 
 typedef struct CXPLAT_POOL {
@@ -389,98 +482,6 @@ CxPlatPoolFree(
     }
 #endif
 }
-
-#define CxPlatZeroMemory(Destination, Length) memset((Destination), 0, (Length))
-#define CxPlatCopyMemory(Destination, Source, Length) memcpy((Destination), (Source), (Length))
-#define CxPlatMoveMemory(Destination, Source, Length) memmove((Destination), (Source), (Length))
-#define CxPlatSecureZeroMemory CxPlatZeroMemory // TODO - Something better?
-
-#define CxPlatByteSwapUint16(value) __builtin_bswap16((unsigned short)(value))
-#define CxPlatByteSwapUint32(value) __builtin_bswap32((value))
-#define CxPlatByteSwapUint64(value) __builtin_bswap64((value))
-
-//
-// Lock interfaces.
-//
-
-//
-// Represents a QUIC lock.
-//
-
-typedef struct CXPLAT_LOCK {
-
-    pthread_mutex_t Mutex;
-
-} CXPLAT_LOCK;
-
-#define CxPlatLockInitialize(Lock) { \
-    pthread_mutexattr_t Attr; \
-    CXPLAT_FRE_ASSERT(pthread_mutexattr_init(&Attr) == 0); \
-    CXPLAT_FRE_ASSERT(pthread_mutexattr_settype(&Attr, PTHREAD_MUTEX_RECURSIVE) == 0); \
-    CXPLAT_FRE_ASSERT(pthread_mutex_init(&(Lock)->Mutex, &Attr) == 0); \
-    CXPLAT_FRE_ASSERT(pthread_mutexattr_destroy(&Attr) == 0); \
-}
-
-#define CxPlatLockUninitialize(Lock) \
-        CXPLAT_FRE_ASSERT(pthread_mutex_destroy(&(Lock)->Mutex) == 0);
-
-#define CxPlatLockAcquire(Lock) \
-    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&(Lock)->Mutex) == 0);
-
-#define CxPlatLockRelease(Lock) \
-    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&(Lock)->Mutex) == 0);
-
-typedef CXPLAT_LOCK CXPLAT_DISPATCH_LOCK;
-
-#define CxPlatDispatchLockInitialize CxPlatLockInitialize
-
-#define CxPlatDispatchLockUninitialize CxPlatLockUninitialize
-
-#define CxPlatDispatchLockAcquire CxPlatLockAcquire
-
-#define CxPlatDispatchLockRelease CxPlatLockRelease
-
-//
-// Represents a QUIC RW lock.
-//
-
-typedef struct CXPLAT_RW_LOCK {
-
-    pthread_rwlock_t RwLock;
-
-} CXPLAT_RW_LOCK;
-
-#define CxPlatRwLockInitialize(Lock) \
-    CXPLAT_FRE_ASSERT(pthread_rwlock_init(&(Lock)->RwLock, NULL) == 0);
-
-#define CxPlatRwLockUninitialize(Lock) \
-    CXPLAT_FRE_ASSERT(pthread_rwlock_destroy(&(Lock)->RwLock) == 0);
-
-#define CxPlatRwLockAcquireShared(Lock) \
-    CXPLAT_FRE_ASSERT(pthread_rwlock_rdlock(&(Lock)->RwLock) == 0);
-
-#define CxPlatRwLockAcquireExclusive(Lock) \
-    CXPLAT_FRE_ASSERT(pthread_rwlock_wrlock(&(Lock)->RwLock) == 0);
-
-#define CxPlatRwLockReleaseShared(Lock) \
-    CXPLAT_FRE_ASSERT(pthread_rwlock_unlock(&(Lock)->RwLock) == 0);
-
-#define CxPlatRwLockReleaseExclusive(Lock) \
-    CXPLAT_FRE_ASSERT(pthread_rwlock_unlock(&(Lock)->RwLock) == 0);
-
-typedef CXPLAT_RW_LOCK CXPLAT_DISPATCH_RW_LOCK;
-
-#define CxPlatDispatchRwLockInitialize CxPlatRwLockInitialize
-
-#define CxPlatDispatchRwLockUninitialize CxPlatRwLockUninitialize
-
-#define CxPlatDispatchRwLockAcquireShared CxPlatRwLockAcquireShared
-
-#define CxPlatDispatchRwLockAcquireExclusive CxPlatRwLockAcquireExclusive
-
-#define CxPlatDispatchRwLockReleaseShared CxPlatRwLockReleaseShared
-
-#define CxPlatDispatchRwLockReleaseExclusive CxPlatRwLockReleaseExclusive
 
 //
 // Reference Count Interface
