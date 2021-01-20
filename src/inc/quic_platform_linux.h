@@ -348,6 +348,19 @@ typedef CXPLAT_RW_LOCK CXPLAT_DISPATCH_RW_LOCK;
 // This must be below the lock definitions.
 //
 
+FORCEINLINE
+void
+CxPlatListPushEntry(
+    _Inout_ CXPLAT_SLIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_SLIST_ENTRY* Entry
+    );
+
+FORCEINLINE
+CXPLAT_SLIST_ENTRY*
+CxPlatListPopEntry(
+    _Inout_ CXPLAT_SLIST_ENTRY* ListHead
+    );
+
 typedef struct CXPLAT_POOL {
 
     //

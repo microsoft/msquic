@@ -137,30 +137,6 @@ typedef enum CXPLAT_THREAD_FLAGS {
 DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 #endif
 
-FORCEINLINE
-void
-CxPlatListPushEntry(
-    _Inout_ CXPLAT_SLIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem CXPLAT_SLIST_ENTRY* Entry
-    )
-{
-    Entry->Next = ListHead->Next;
-    ListHead->Next = Entry;
-}
-
-FORCEINLINE
-CXPLAT_SLIST_ENTRY*
-CxPlatListPopEntry(
-    _Inout_ CXPLAT_SLIST_ENTRY* ListHead
-    )
-{
-    CXPLAT_SLIST_ENTRY* FirstEntry = ListHead->Next;
-    if (FirstEntry != NULL) {
-        ListHead->Next = FirstEntry->Next;
-    }
-    return FirstEntry;
-}
-
 #ifdef _KERNEL_MODE
 #define CX_PLATFORM_TYPE 1
 #include <quic_platform_winkernel.h>
@@ -304,6 +280,30 @@ CxPlatListMoveItems(
         //
         CxPlatListInitializeHead(Source);
     }
+}
+
+FORCEINLINE
+void
+CxPlatListPushEntry(
+    _Inout_ CXPLAT_SLIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_SLIST_ENTRY* Entry
+    )
+{
+    Entry->Next = ListHead->Next;
+    ListHead->Next = Entry;
+}
+
+FORCEINLINE
+CXPLAT_SLIST_ENTRY*
+CxPlatListPopEntry(
+    _Inout_ CXPLAT_SLIST_ENTRY* ListHead
+    )
+{
+    CXPLAT_SLIST_ENTRY* FirstEntry = ListHead->Next;
+    if (FirstEntry != NULL) {
+        ListHead->Next = FirstEntry->Next;
+    }
+    return FirstEntry;
 }
 
 #include "quic_hashtable.h"
