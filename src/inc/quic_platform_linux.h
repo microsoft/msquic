@@ -454,7 +454,7 @@ CxPlatPoolAlloc(
     CxPlatLockAcquire(&Pool->Lock);
     void* Entry = CxPlatListPopEntry(&Pool->ListHead);
     if (Entry != NULL) {
-        QUIC_FRE_ASSERT(Pool->ListDepth > 0);
+        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
         Pool->ListDepth--;
     }
     CxPlatLockRelease(&Pool->Lock);
