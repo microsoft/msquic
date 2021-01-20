@@ -39,33 +39,6 @@ void
 
 typedef
 void
-(*CXPLAT_POOL_INITIALIZE)(
-    _In_ BOOLEAN IsPaged,
-    _In_ uint32_t Size,
-    _Inout_ CXPLAT_POOL* Pool
-    );
-
-typedef
-void
-(*CXPLAT_POOL_UNINITIALIZE)(
-    _Inout_ CXPLAT_POOL* Pool
-    );
-
-typedef
-void*
-(*CXPLAT_POOL_ALLOC)(
-    _Inout_ CXPLAT_POOL* Pool
-    );
-
-typedef
-void
-(*CXPLAT_POOL_FREE)(
-    _Inout_ CXPLAT_POOL* Pool,
-    _In_ void* Entry
-    );
-
-typedef
-void
 (*CXPLAT_LOG)(
     _In_ const char* Fmt,
     _In_ va_list args
@@ -225,10 +198,6 @@ QUIC_STATUS
 typedef struct CX_PLATFORM_DISPATCH {
     CXPLAT_ALLOC Alloc;
     CXPLAT_FREE Free;
-    CXPLAT_POOL_INITIALIZE PoolInitialize;
-    CXPLAT_POOL_UNINITIALIZE PoolUninitialize;
-    CXPLAT_POOL_ALLOC PoolAlloc;
-    CXPLAT_POOL_FREE PoolFree;
 
     CXPLAT_LOG Log;
 
