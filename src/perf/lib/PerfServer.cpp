@@ -15,34 +15,11 @@ Abstract:
 #include "PerfServer.cpp.clog.h"
 #endif
 
-static
-void
-PrintHelp(
-    ) {
-    WriteOutput(
-        "\n"
-        "Perf Server options:\n"
-        "\n"
-        "  -port:<####>                The UDP port of the server. (def:%u)\n"
-        "  -selfsign:<0/1>             Uses a self-signed server certificate.\n"
-        "  -thumbprint:<cert_hash>     The hash or thumbprint of the certificate to use.\n"
-        "  -cert_store:<store name>    The certificate store to search for the thumbprint in.\n"
-        "  -machine_cert:<0/1>         Use the machine, or current user's, certificate store. (def:0)\n"
-        "\n",
-        PERF_DEFAULT_PORT
-        );
-}
-
 QUIC_STATUS
 PerfServer::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
-    if (argc > 0 && (IsArg(argv[0], "?") || IsArg(argv[0], "help"))) {
-        PrintHelp();
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
     if (QUIC_FAILED(InitStatus)) {
         return InitStatus;
     }

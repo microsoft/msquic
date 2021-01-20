@@ -145,7 +145,6 @@ if ($UseTcp.Contains(0)) {
     }
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     $pinfo.FileName = $QuicPerf
-    $pinfo.Arguments = "-selfsign:1"
     $pinfo.UseShellExecute = $false
     $pinfo.RedirectStandardOutput = $true
     $pinfo.RedirectStandardError = $true

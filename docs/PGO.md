@@ -160,7 +160,7 @@ Now that the perf machines are configured for kernel mode PGO, it's time to run 
 
 On the machine that will act as server, run the following command to start the server:
 ```
-quicperf.exe -selfsign:1 --kernel
+quicperf.exe -kernel
 ```
 
 Once running, clear the PGO counts on both the client and server machines to get a clean slate:
