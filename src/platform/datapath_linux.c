@@ -665,6 +665,7 @@ CxPlatDataPathPopulateTargetAddress(
             return;
         }
         Address->Ipv6 = *SockAddrIn6;
+        Address->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
         return;
     }
 
@@ -672,6 +673,7 @@ CxPlatDataPathPopulateTargetAddress(
         CXPLAT_DBG_ASSERT(sizeof(struct sockaddr_in) == AddrInfo->ai_addrlen);
         SockAddrIn = (struct sockaddr_in*)AddrInfo->ai_addr;
         Address->Ipv4 = *SockAddrIn;
+        Address->Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
         return;
     }
 
