@@ -433,7 +433,7 @@ CxPlatPoolUninitialize(
     void* Entry;
     CxPlatLockAcquire(&Pool->Lock);
     while ((Entry = CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
-        QUIC_FRE_ASSERT(Pool->ListDepth > 0);
+        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
         Pool->ListDepth--;
         CxPlatLockRelease(&Pool->Lock);
         CxPlatFree(Entry, Pool->Tag);
