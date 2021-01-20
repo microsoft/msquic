@@ -408,7 +408,7 @@ CxPlatPoolInitialize(
     Pool->Tag = Tag;
     CxPlatLockInitialize(&Pool->Lock);
     Pool->ListDepth = 0;
-    CxPlatZeroMemory(&Pool->ListHead);
+    CxPlatZeroMemory(&Pool->ListHead, sizeof(Pool->ListHead));
     UNREFERENCED_PARAMETER(IsPaged);
 }
 
