@@ -762,7 +762,8 @@ CxPlatDataPathInitialize(
     if (TcpCallbacks != NULL) {
         if (TcpCallbacks->Accept == NULL ||
             TcpCallbacks->Connect == NULL ||
-            TcpCallbacks->Receive == NULL) {
+            TcpCallbacks->Receive == NULL ||
+            TcpCallbacks->SendComplete == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             Datapath = NULL;
             goto Exit;
@@ -3473,7 +3474,6 @@ CxPlatSendContextComplete(
     _In_ ULONG IoResult
     )
 {
-    UNREFERENCED_PARAMETER(SocketProc);
     if (IoResult != QUIC_STATUS_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -3481,6 +3481,14 @@ CxPlatSendContextComplete(
             SocketProc->Parent,
             IoResult,
             "WSASendMsg completion");
+    }
+
+    if (SocketProc->Parent->Type != CXPLAT_SOCKET_UDP) {
+        SocketProc->Parent->Datapath->TcpHandlers.SendComplete(
+            SocketProc->Parent,
+            SocketProc->Parent->ClientContext,
+            IoResult,
+            SendContext->TotalSize);
     }
 
     CxPlatSendDataFree(SendContext);

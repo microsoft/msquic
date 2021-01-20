@@ -29,6 +29,7 @@ struct TcpSendData {
     uint32_t Fin : 1;
     uint32_t Length;
     uint8_t* Buffer;
+    uint64_t Offset; // Used internally only
 };
 
 typedef
@@ -164,6 +165,7 @@ class TcpConnection {
     bool IndicateAccept{false};
     bool IndicateConnect{false};
     bool IndicateDisconnect{false};
+    bool IndicateSendComplete{false};
     TcpConnection* Next{nullptr};
     TcpEngine* Engine;
     TcpWorker* Worker{nullptr};
@@ -177,6 +179,9 @@ class TcpConnection {
     CXPLAT_TLS_PROCESS_STATE TlsState;
     CXPLAT_RECV_DATA* ReceiveData{nullptr};
     TcpSendData* SendData{nullptr};
+    TcpSendData* SentData{nullptr};
+    uint64_t TotalSendOffset{0};
+    uint64_t TotalSendCompleteOffset{0};
     CXPLAT_SEND_DATA* BatchedSendData{nullptr};
     uint8_t BufferedData[TLS_BLOCK_SIZE];
     uint32_t BufferedDataLength{0};
@@ -198,6 +203,16 @@ class TcpConnection {
         _In_ CXPLAT_SOCKET* Socket,
         _In_ void* Context,
         _In_ CXPLAT_RECV_DATA* RecvDataChain
+        );
+    static
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    _Function_class_(CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK)
+    void
+    SendCompleteCallback(
+        _In_ CXPLAT_SOCKET* Socket,
+        _In_ void* Context,
+        _In_ QUIC_STATUS Status,
+        _In_ uint32_t ByteCount
         );
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -223,6 +238,7 @@ class TcpConnection {
         );
     ~TcpConnection();
     void Queue() { Worker->QueueConnection(this); }
+    void Fatal();
     void Process();
     bool InitializeTls();
     bool ProcessTls(const uint8_t* Buffer, uint32_t BufferLength);
@@ -230,6 +246,7 @@ class TcpConnection {
     bool ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLength);
     bool ProcessReceiveFrame(TcpFrame* Frame);
     void ProcessSend();
+    void ProcessSendComplete();
     bool EncryptFrame(TcpFrame* Frame);
     QUIC_BUFFER* NewSendBuffer();
     void FreeSendBuffer(QUIC_BUFFER* SendBuffer);

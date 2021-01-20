@@ -86,7 +86,8 @@ private:
 const CXPLAT_TCP_DATAPATH_CALLBACKS TcpEngine::TcpCallbacks = {
     TcpServer::AcceptCallback,
     TcpConnection::ConnectCallback,
-    TcpConnection::ReceiveCallback
+    TcpConnection::ReceiveCallback,
+    TcpConnection::SendCompleteCallback
 };
 
 const CXPLAT_TLS_CALLBACKS TcpEngine::TlsCallbacks = {
@@ -382,6 +383,23 @@ TcpConnection::ReceiveCallback(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+    _Function_class_(CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK)
+void
+TcpConnection::SendCompleteCallback(
+    _In_ CXPLAT_SOCKET* /* Socket */,
+    _In_ void* Context,
+    _In_ QUIC_STATUS /* Status */,
+    _In_ uint32_t ByteCount
+    )
+{
+    TcpConnection* This = (TcpConnection*)Context;
+    CxPlatDispatchLockAcquire(&This->Lock);
+    This->TotalSendCompleteOffset += ByteCount;
+    CxPlatDispatchLockRelease(&This->Lock);
+    This->Queue();
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 TcpConnection::TlsProcessCompleteCallback(
     _In_ QUIC_CONNECTION* /* Context */
@@ -414,6 +432,11 @@ TcpConnection::TlsReceiveTicketCallback(
     return TRUE;
 }
 
+void TcpConnection::Fatal()
+{
+    // TODO - Disconnect
+}
+
 void TcpConnection::Process()
 {
     if (IndicateAccept) {
@@ -426,13 +449,11 @@ void TcpConnection::Process()
         IndicateConnect = false;
         Engine->ConnectHandler(this, true);
     }
-    if (IndicateDisconnect) {
-        IndicateDisconnect = false;
-        Engine->ConnectHandler(this, false);
-    }
     if (StartTls) {
         StartTls = false;
-        InitializeTls();
+        if (!InitializeTls()) {
+            Fatal();
+        }
     }
     if (ReceiveData) {
         ProcessReceive();
@@ -443,6 +464,14 @@ void TcpConnection::Process()
     if (BatchedSendData) {
         CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData);
         BatchedSendData = nullptr;
+    }
+    if (IndicateSendComplete) {
+        IndicateSendComplete = false;
+        ProcessSendComplete();
+    }
+    if (IndicateDisconnect) {
+        IndicateDisconnect = false;
+        Engine->ConnectHandler(this, false);
     }
 }
 
@@ -633,13 +662,19 @@ void TcpConnection::ProcessSend()
     SendData = nullptr;
     CxPlatDispatchLockRelease(&Lock);
 
+    TcpSendData** SentDataTail = &SentData;
+    while (*SentDataTail != NULL) {
+        SentDataTail = &((*SentDataTail)->Next);
+    }
+    *SentDataTail = SendDataChain;
+
     auto NextSendData = SendDataChain;
     while (NextSendData) {
         uint32_t Offset = 0;
         while (NextSendData->Length > Offset) {
             auto SendBuffer = NewSendBuffer();
             if (!SendData) {
-                goto Exit;
+                return;
             }
 
             uint32_t StreamLength = TLS_BLOCK_SIZE - sizeof(TcpFrame) - sizeof(TcpStreamFrame) - CXPLAT_ENCRYPTION_OVERHEAD;
@@ -660,19 +695,27 @@ void TcpConnection::ProcessSend()
 
             if (!EncryptFrame(Frame)) {
                 FreeSendBuffer(SendBuffer);
-                goto Exit;
+                return;
             }
 
             SendBuffer->Length = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
             FinalizeSendBuffer(SendBuffer);
         }
 
+        NextSendData->Offset = TotalSendOffset;
         NextSendData = NextSendData->Next;
     }
+}
 
-Exit:
-
-    Engine->SendCompleteHandler(this, SendDataChain);
+void TcpConnection::ProcessSendComplete()
+{
+    uint64_t Offset = TotalSendCompleteOffset;
+    while (SentData && SentData->Offset <= Offset) {
+        TcpSendData* Data = SentData;
+        SendData = Data->Next;
+        Data->Next = NULL;
+        Engine->SendCompleteHandler(this, SendData);
+    }
 }
 
 bool TcpConnection::EncryptFrame(TcpFrame* Frame)
@@ -706,6 +749,7 @@ void TcpConnection::FreeSendBuffer(QUIC_BUFFER* SendBuffer)
 
 void TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
 {
+    TotalSendOffset += SendBuffer->Length;
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
         if (QUIC_FAILED(
