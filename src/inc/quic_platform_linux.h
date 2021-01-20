@@ -286,11 +286,19 @@ typedef struct CXPLAT_POOL {
     // The memory tag to use for any allocation from this pool.
     //
 
-    uint32_t MemTag;
+    uint32_t Tag;
 
 } CXPLAT_POOL;
 
-#define QUIC_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+#define CXPLAT_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+
+#if DEBUG
+typedef struct CXPLAT_POOL_ENTRY {
+    CXPLAT_SLIST_ENTRY ListHead;
+    uint32_t SpecialFlag;
+} CXPLAT_POOL_ENTRY;
+#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAA
+#endif
 
 void
 CxPlatPoolInitialize(
@@ -298,23 +306,89 @@ CxPlatPoolInitialize(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
-    );
+    )
+{
+#if DEBUG
+    CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
+#endif
+    Pool->Size = Size;
+    Pool->Tag = Tag;
+    CxPlatLockInitialize(&Pool->Lock);
+    Pool->ListDepth = 0;
+    CxPlatZeroMemory(&Pool->ListHead);
+    UNREFERENCED_PARAMETER(IsPaged);
+}
 
 void
 CxPlatPoolUninitialize(
     _Inout_ CXPLAT_POOL* Pool
-    );
+    )
+{
+    void* Entry;
+    CxPlatLockAcquire(&Pool->Lock);
+    while ((Entry = CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
+        QUIC_FRE_ASSERT(Pool->ListDepth > 0);
+        Pool->ListDepth--;
+        CxPlatLockRelease(&Pool->Lock);
+        CxPlatFree(Entry, Pool->Tag);
+        CxPlatLockAcquire(&Pool->Lock);
+    }
+    CxPlatLockRelease(&Pool->Lock);
+    CxPlatLockUninitialize(&Pool->Lock);
+}
 
 void*
 CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
-    );
+    )
+{
+#if QUIC_DISABLE_MEM_POOL
+    return CxPlatAlloc(Pool->Size);
+#else
+    CxPlatLockAcquire(&Pool->Lock);
+    void* Entry = CxPlatListPopEntry(&Pool->ListHead);
+    if (Entry != NULL) {
+        QUIC_FRE_ASSERT(Pool->ListDepth > 0);
+        Pool->ListDepth--;
+    }
+    CxPlatLockRelease(&Pool->Lock);
+    if (Entry == NULL) {
+        Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
+    }
+#if DEBUG
+    if (Entry != NULL) {
+        ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = 0;
+    }
+#endif
+    return Entry;
+#endif
+}
 
 void
 CxPlatPoolFree(
     _Inout_ CXPLAT_POOL* Pool,
     _In_ void* Entry
-    );
+    )
+{
+#if QUIC_DISABLE_MEM_POOL
+    UNREFERENCED_PARAMETER(Pool);
+    CxPlatFree(Entry);
+    return;
+#else
+#if DEBUG
+    CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
+    ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
+#endif
+    if (Pool->ListDepth >= CXPLAT_POOL_MAXIMUM_DEPTH) {
+        CxPlatFree(Entry, Pool->Tag);
+    } else {
+        CxPlatLockAcquire(&Pool->Lock);
+        CxPlatListPushEntry(&Pool->ListHead, (CXPLAT_SLIST_ENTRY*)Entry);
+        Pool->ListDepth++;
+        CxPlatLockRelease(&Pool->Lock);
+    }
+#endif
+}
 
 #define CxPlatZeroMemory(Destination, Length) memset((Destination), 0, (Length))
 #define CxPlatCopyMemory(Destination, Source, Length) memcpy((Destination), (Source), (Length))
