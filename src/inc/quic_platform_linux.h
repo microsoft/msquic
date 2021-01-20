@@ -406,6 +406,7 @@ typedef struct CXPLAT_POOL_ENTRY {
 #define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAA
 #endif
 
+inline
 void
 CxPlatPoolInitialize(
     _In_ BOOLEAN IsPaged,
@@ -425,6 +426,7 @@ CxPlatPoolInitialize(
     UNREFERENCED_PARAMETER(IsPaged);
 }
 
+inline
 void
 CxPlatPoolUninitialize(
     _Inout_ CXPLAT_POOL* Pool
@@ -443,6 +445,7 @@ CxPlatPoolUninitialize(
     CxPlatLockUninitialize(&Pool->Lock);
 }
 
+inline
 void*
 CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
@@ -470,6 +473,7 @@ CxPlatPoolAlloc(
 #endif
 }
 
+inline
 void
 CxPlatPoolFree(
     _Inout_ CXPLAT_POOL* Pool,
