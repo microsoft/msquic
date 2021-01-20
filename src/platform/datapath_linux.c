@@ -700,6 +700,9 @@ CxPlatDataPathResolveAddress(
     // Prepopulate hint with input family. It might be unspecified.
     //
     Hints.ai_family = Address->Ip.sa_family;
+    if (Hints.ai_family == QUIC_ADDRESS_FAMILY_INET6) {
+        Hints.ai_family = AF_INET6;
+    }
 
     //
     // Try numeric name first.
