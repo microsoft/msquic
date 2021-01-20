@@ -32,6 +32,30 @@ MaxUdpPayloadSizeForFamily(
     );
 
 void
+CxPlatPoolInitialize(
+    _In_ BOOLEAN IsPaged,
+    _In_ uint32_t Size,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_POOL* Pool
+    );
+
+void
+CxPlatPoolUninitialize(
+    _Inout_ CXPLAT_POOL* Pool
+    );
+
+void*
+CxPlatPoolAlloc(
+    _Inout_ CXPLAT_POOL* Pool
+    );
+
+void
+CxPlatPoolFree(
+    _Inout_ CXPLAT_POOL* Pool,
+    _In_ void* Entry
+    );
+
+void
 CxPlatListInitializeHead(
     _Out_ CXPLAT_LIST_ENTRY* ListHead
     );
