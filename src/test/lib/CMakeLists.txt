@@ -28,7 +28,3 @@ target_link_libraries(testlib PUBLIC testlib.clog)
 target_link_libraries(testlib PRIVATE inc warnings)
 
 set_property(TARGET testlib PROPERTY FOLDER "tests")
-
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    add_dependencies(platform MsQuicEtw)
-endif()
