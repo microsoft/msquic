@@ -173,7 +173,7 @@ Sleep -Seconds 1
 $OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 $UniqueId = New-Guid
-$OutputFile = Join-Path $OutputDir $UniqueId.ToString("N") "WANPerf_.json"
+$OutputFile = Join-Path $OutputDir "WANPerf_$($UniqueId.ToString("N")).json"
 
 class TestResult {
     [int]$RttMs;
