@@ -88,10 +88,6 @@ param (
     [Parameter(Mandatory = $false)]
     [Int32[]]$UseTcp = 0,
 
-    # The following is used to name the output file to be able to combine runs
-    [Parameter(Mandatory = $false)]
-    [string]$UniqueId = "1",
-
     [Parameter(Mandatory = $false)]
     [ValidateSet("None", "Datapath.Light", "Datapath.Verbose", "Performance.Light", "Performance.Verbose")]
     [string]$LogProfile = "None"
@@ -174,9 +170,10 @@ if ($UseTcp.Contains(1)) {
 # Wait for the server(s) to come up.
 Sleep -Seconds 1
 
-$OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" "$RemotePlatform" "$($RemoteArch)_$($Config)_$($RemoteTls)" "WAN"
+$OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
-$OutputFile = Join-Path $OutputDir "WANPerf_$UniqueId.json"
+$UniqueId = New-Guid
+$OutputFile = Join-Path $OutputDir $UniqueId.ToString("N") "WANPerf_.json"
 
 class TestResult {
     [int]$RttMs;
