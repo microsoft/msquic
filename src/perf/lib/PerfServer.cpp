@@ -44,10 +44,13 @@ PerfServer::Start(
     _In_ CXPLAT_EVENT* _StopEvent
     ) {
     QUIC_ADDR Address;
+    CxPlatZeroMemory(&Address, sizeof(Address));
     QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
     QuicAddrSetPort(&Address, Port);
 
-    (void)Server.Start(&Address); // TCP
+    if (!Server.Start(&Address)) { // TCP
+        //printf("TCP Server failed to start!\n");
+    }
 
     StopEvent = _StopEvent;
 
@@ -265,7 +268,7 @@ PerfServer::SendTcpResponse(
 
         uint64_t BytesLeftToSend = Context->ResponseSize - Context->BytesSent;
 
-        auto SendData = (TcpSendData*)CXPLAT_ALLOC_NONPAGED(sizeof(TcpSendData), QUIC_POOL_GENERIC);
+        auto SendData = new TcpSendData();
         SendData->StreamId = (uint32_t)Context->Entry.Signature;
         SendData->Open = Context->BytesSent == 0 ? 1 : 0;
         SendData->Buffer = DataBuffer->Buffer;
@@ -326,7 +329,7 @@ PerfServer::TcpReceiveCallback(
     if (Open) {
         if ((Stream = This->StreamContextAllocator.Alloc(This, false, false)) != nullptr) {
             Stream->Entry.Signature = StreamID;
-            Stream->IdealSendBuffer = PERF_DEFAULT_SEND_BUFFER_SIZE * 100; // TODO?
+            //Stream->IdealSendBuffer = PERF_DEFAULT_SEND_BUFFER_SIZE * 100; // TODO?
             This->StreamTable.Insert(&Stream->Entry);
         }
     } else {
@@ -341,11 +344,13 @@ PerfServer::TcpReceiveCallback(
         Stream->ResponseSizeSet = true;
     }
     if (Fin) {
-        if (!Stream->ResponseSizeSet) {
+        if (Stream->ResponseSizeSet) {
+            This->SendTcpResponse(Stream, Connection);
+        }
+        Stream->RecvShutdown = true;
+        if (Stream->SendShutdown) {
             This->StreamTable.Remove(&Stream->Entry);
             This->StreamContextAllocator.Free(Stream);
-        } else {
-            This->SendTcpResponse(Stream, Connection);
         }
     }
 }
@@ -367,11 +372,14 @@ PerfServer::TcpSendCompleteCallback(
             Stream->OutstandingBytes -= Data->Length;
             This->SendTcpResponse(Stream, Connection);
             if (Data->Fin) {
-                This->StreamTable.Remove(&Stream->Entry);
-                This->StreamContextAllocator.Free(Stream);
+                Stream->SendShutdown = true;
+                if (Stream->RecvShutdown) {
+                    This->StreamTable.Remove(&Stream->Entry);
+                    This->StreamContextAllocator.Free(Stream);
+                }
             }
         }
         SendDataChain = SendDataChain->Next;
-        CXPLAT_FREE(Data, QUIC_POOL_GENERIC);
+        delete Data;
     }
 }

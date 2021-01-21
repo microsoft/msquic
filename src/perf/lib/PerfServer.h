@@ -15,8 +15,6 @@ Abstract:
 #include "PerfHelpers.h"
 #include "PerfBase.h"
 #include "PerfCommon.h"
-#include "Tcp.h"
-#include <quic_hashtable.h>
 
 class PerfServer : public PerfBase {
 public:
@@ -74,9 +72,11 @@ private:
         }
         CXPLAT_HASHTABLE_ENTRY Entry; // To TCP StreamTable
         PerfServer* Server;
-        bool Unidirectional;
-        bool BufferedIo;
+        const bool Unidirectional;
+        const bool BufferedIo;
         bool ResponseSizeSet{false};
+        bool SendShutdown{false};
+        bool RecvShutdown{false};
         uint64_t IdealSendBuffer{PERF_DEFAULT_SEND_BUFFER_SIZE};
         uint64_t ResponseSize{0};
         uint64_t BytesSent{0};

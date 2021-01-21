@@ -34,10 +34,11 @@ PrintHelp(
         "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
         "  -sendbuf:<0/1>              Whether to use send buffering. (def:1)\n"
         "  -pacing:<0/1>               Whether to use pacing. (def:1)\n"
-        "  -timed:<0/1>                The indicates the upload/download arg time (ms). (def:0)\n"
+        "  -timed:<0/1>                Indicates the upload/download arg time (ms). (def:0)\n"
         "  -upload:<####>              The length of data (or time with -timed:1 arg) to send. (def:0)\n"
         "  -download:<####>            The length of data (or time with -timed:1 arg) to request/receive. (def:0)\n"
         "  -iosize:<####>              The size of each send request queued. (def:%u)\n"
+        "  -tcp:<0/1>                  Indicates TCP/TLS should be used instead of QUIC. (def:0)\n"
         "\n",
         PERF_DEFAULT_PORT,
         PERF_DEFAULT_IO_SIZE
@@ -65,6 +66,7 @@ ThroughputClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    TryGetValue(argc, argv, "tcp", &UseTcp);
     TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "encrypt", &UseEncryption);
     TryGetValue(argc, argv, "upload", &UploadLength);
@@ -163,46 +165,39 @@ ThroughputClient::Init(
     return QUIC_STATUS_SUCCESS;
 }
 
-struct ShutdownWrapper {
-    HQUIC ConnHandle {nullptr};
-    ~ShutdownWrapper() {
-        if (ConnHandle) {
-            MsQuic->ConnectionShutdown(ConnHandle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-        }
-    }
-};
-
 QUIC_STATUS
 ThroughputClient::Start(
     _In_ CXPLAT_EVENT* StopEvnt
     ) {
-    ShutdownWrapper Shutdown;
     this->StopEvent = StopEvnt;
+    return UseTcp ? StartTcp() : StartQuic();
+}
 
-    ConnectionData* ConnData = ConnectionDataAllocator.Alloc(this);
-    if (!ConnData) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
+QUIC_STATUS
+ThroughputClient::StartQuic()
+{
+    struct QuicShutdownWrapper {
+        HQUIC ConnHandle {nullptr};
+        ~QuicShutdownWrapper() {
+            if (ConnHandle) {
+                MsQuic->ConnectionShutdown(ConnHandle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+            }
+        }
+    } Shutdown;
+
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
             Registration,
             [](HQUIC Handle, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
-                ConnectionData* ConnData = (ConnectionData*)Context;
-                return ConnData->Client->
-                    ConnectionCallback(
-                        Handle,
-                        Event,
-                        ConnData);
+                ThroughputClient* This = (ThroughputClient*)Context;
+                return This->ConnectionCallback(Handle, Event);
             },
-            ConnData,
-            &ConnData->Connection.Handle);
+            this,
+            &Shutdown.ConnHandle);
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed ConnectionOpen 0x%x\n", Status);
-        ConnectionDataAllocator.Free(ConnData);
         return Status;
     }
-
-    Shutdown.ConnHandle = ConnData->Connection.Handle;
 
     if (!UseSendBuffer || !UsePacing) {
         QUIC_SETTINGS Settings{0};
@@ -216,7 +211,7 @@ ThroughputClient::Start(
         }
         Status =
             MsQuic->SetParam(
-                ConnData->Connection,
+                Shutdown.ConnHandle,
                 QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(Settings),
@@ -231,7 +226,7 @@ ThroughputClient::Start(
         BOOLEAN value = TRUE;
         Status =
             MsQuic->SetParam(
-                ConnData->Connection,
+                Shutdown.ConnHandle,
                 QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
                 sizeof(value),
@@ -244,21 +239,21 @@ ThroughputClient::Start(
 
     if (QuicAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
         MsQuic->SetParam(
-            ConnData->Connection,
+            Shutdown.ConnHandle,
             QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_LOCAL_ADDRESS,
             sizeof(LocalIpAddr),
             &LocalIpAddr);
     }
 
-    StreamContext* StrmContext = StreamContextAllocator.Alloc(this, ConnData->Connection);
+    StreamContext* StrmContext = StreamContextAllocator.Alloc(this);
     if (UseSendBuffer) {
         StrmContext->IdealSendBuffer = 1; // Hack to use only 1 send buffer
     }
 
     Status =
         MsQuic->StreamOpen(
-            ConnData->Connection,
+            Shutdown.ConnHandle,
             DownloadLength != 0 ?
                 QUIC_STREAM_OPEN_FLAG_NONE :
                 QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
@@ -296,26 +291,14 @@ ThroughputClient::Start(
             1,
             QUIC_SEND_FLAG_FIN,
             DataBuffer);
-
-    } else if (UploadLength == 0) {
-        Status =
-            MsQuic->StreamShutdown(
-                StrmContext->Stream.Handle,
-                QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
-                0);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("Failed StreamShutdown 0x%x\n", Status);
-            StreamContextAllocator.Free(StrmContext);
-            return Status;
-        }
-
     } else {
-        SendData(StrmContext);
+        CXPLAT_DBG_ASSERT(UploadLength != 0);
+        SendQuicData(StrmContext);
     }
 
     Status =
         MsQuic->ConnectionStart(
-            ConnData->Connection,
+            Shutdown.ConnHandle,
             Configuration,
             RemoteFamily,
             TargetData.get(),
@@ -327,6 +310,116 @@ ThroughputClient::Start(
 
     Shutdown.ConnHandle = nullptr;
     return Status;
+}
+
+void
+ThroughputClient::SendQuicData(
+    _In_ StreamContext* Context
+    )
+{
+    while (!Context->Complete && Context->OutstandingBytes < Context->IdealSendBuffer) {
+
+        uint64_t BytesLeftToSend =
+            TimedTransfer ? UINT64_MAX : (UploadLength - Context->BytesSent);
+        uint32_t DataLength = IoSize;
+        QUIC_BUFFER* Buffer = DataBuffer;
+        QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
+
+        if ((uint64_t)DataLength >= BytesLeftToSend) {
+            DataLength = (uint32_t)BytesLeftToSend;
+            Context->LastBuffer.Buffer = Buffer->Buffer;
+            Context->LastBuffer.Length = DataLength;
+            Buffer = &Context->LastBuffer;
+            Flags = QUIC_SEND_FLAG_FIN;
+            Context->Complete = TRUE;
+
+        } else if (TimedTransfer &&
+                   CxPlatTimeDiff64(Context->StartTime, CxPlatTimeUs64()) >= MS_TO_US(UploadLength)) {
+            Flags = QUIC_SEND_FLAG_FIN;
+            Context->Complete = TRUE;
+        }
+
+        Context->BytesSent += DataLength;
+        Context->OutstandingBytes += DataLength;
+
+        MsQuic->StreamSend(Context->Stream.Handle, Buffer, 1, Flags, Buffer);
+    }
+}
+
+QUIC_STATUS
+ThroughputClient::StartTcp()
+{
+    MsQuicCredentialConfig CredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
+    auto Connection =
+        new TcpConnection(
+            &Engine,
+            &CredConfig,
+            RemoteFamily,
+            TargetData.get(),
+            Port,
+            (QuicAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) ? &LocalIpAddr : nullptr,
+            this);
+    if (!Connection || !Connection->IsInitialized()) {
+        if (Connection) {
+            Connection->Release();
+        }
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    TcpStrmContext = StreamContextAllocator.Alloc(this);
+    TcpStrmContext->StartTime = CxPlatTimeUs64();
+
+    if (DownloadLength) {
+        auto SendData = new TcpSendData();
+        SendData->StreamId = 0;
+        SendData->Open = TRUE;
+        SendData->Fin = TRUE;
+        SendData->Buffer = DataBuffer->Buffer;
+        SendData->Length = DataBuffer->Length;
+        Connection->Send(SendData);
+    } else {
+        CXPLAT_DBG_ASSERT(UploadLength != 0);
+        SendTcpData(Connection, TcpStrmContext);
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+ThroughputClient::SendTcpData(
+    _In_ TcpConnection* Connection,
+    _In_ StreamContext* Context
+    )
+{
+    while (!Context->Complete && Context->OutstandingBytes < Context->IdealSendBuffer) {
+
+        uint64_t BytesLeftToSend =
+            TimedTransfer ? UINT64_MAX : (UploadLength - Context->BytesSent);
+
+        auto SendData = new TcpSendData();
+        SendData->StreamId = 0;
+        SendData->Open = Context->BytesSent == 0 ? TRUE : FALSE;
+        SendData->Buffer = DataBuffer->Buffer;
+        SendData->Length = IoSize;
+        if ((uint64_t)IoSize >= BytesLeftToSend) {
+            SendData->Length = (uint32_t)BytesLeftToSend;
+            SendData->Fin = TRUE;
+            Context->Complete = TRUE;
+
+        } else if (TimedTransfer &&
+                   CxPlatTimeDiff64(Context->StartTime, CxPlatTimeUs64()) >= MS_TO_US(UploadLength)) {
+            SendData->Fin = TRUE;
+            Context->Complete = TRUE;
+
+        } else {
+            SendData->Fin = FALSE;
+        }
+
+        Context->BytesSent += SendData->Length;
+        Context->OutstandingBytes += SendData->Length;
+
+        Connection->Send(SendData);
+    }
 }
 
 QUIC_STATUS
@@ -350,7 +443,6 @@ ThroughputClient::GetExtraDataMetadata(
     Result->ExtraDataLength = 0;
 }
 
-
 QUIC_STATUS
 ThroughputClient::GetExtraData(
     _Out_writes_bytes_(*Length) uint8_t*,
@@ -363,13 +455,12 @@ ThroughputClient::GetExtraData(
 
 QUIC_STATUS
 ThroughputClient::ConnectionCallback(
-    _In_ HQUIC /*ConnectionHandle*/,
-    _Inout_ QUIC_CONNECTION_EVENT* Event,
-    _Inout_ ConnectionData* ConnData
+    _In_ HQUIC ConnectionHandle,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        ConnectionDataAllocator.Free(ConnData);
+        MsQuic->ConnectionClose(ConnectionHandle);
         CxPlatEventSet(*StopEvent);
         break;
     default:
@@ -401,7 +492,7 @@ ThroughputClient::StreamCallback(
             StrmContext->OutstandingBytes -= ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length;
             if (!Event->SEND_COMPLETE.Canceled) {
                 StrmContext->BytesCompleted += ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length;
-                SendData(StrmContext);
+                SendQuicData(StrmContext);
             }
         }
         break;
@@ -440,7 +531,7 @@ ThroughputClient::StreamCallback(
             !UseSendBuffer &&
             StrmContext->IdealSendBuffer < Event->IDEAL_SEND_BUFFER_SIZE.ByteCount) {
             StrmContext->IdealSendBuffer = Event->IDEAL_SEND_BUFFER_SIZE.ByteCount;
-            SendData(StrmContext);
+            SendQuicData(StrmContext);
         }
         break;
     default:
@@ -449,36 +540,85 @@ ThroughputClient::StreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(TcpConnectCallback)
 void
-ThroughputClient::SendData(
-    _In_ StreamContext* Context
+ThroughputClient::TcpConnectCallback(
+    _In_ TcpConnection* Connection,
+    bool IsConnected
     )
 {
-    while (!Context->Complete && Context->OutstandingBytes < Context->IdealSendBuffer) {
+    //auto This = (ThroughputClient*)Connection->Context;
+    if (!IsConnected) {
+        Connection->Release();
+    }
+}
 
-        uint64_t BytesLeftToSend =
-            TimedTransfer ? UINT64_MAX : (UploadLength - Context->BytesSent);
-        uint32_t DataLength = IoSize;
-        QUIC_BUFFER* Buffer = DataBuffer;
-        QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(TcpReceiveCallback)
+void
+ThroughputClient::TcpReceiveCallback(
+    _In_ TcpConnection* Connection,
+    uint32_t /* StreamID */,
+    bool /* Open */,
+    bool Fin,
+    uint32_t Length,
+    uint8_t* /* Buffer */
+    )
+{
+    auto This = (ThroughputClient*)Connection->Context;
+    auto StrmContext = This->TcpStrmContext;
+    StrmContext->BytesCompleted += Length;
+    if (This->TimedTransfer) {
+        if (CxPlatTimeDiff64(StrmContext->StartTime, CxPlatTimeUs64()) >= MS_TO_US(This->DownloadLength)) {
+            //MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE, 0);
+            StrmContext->Complete = true;
+        }
+    } else if (StrmContext->BytesCompleted == This->DownloadLength) {
+        StrmContext->Complete = true;
+    }
+    if (Fin) {
+        StrmContext->EndTime = CxPlatTimeUs64();
+        uint64_t ElapsedMicroseconds = StrmContext->EndTime - StrmContext->StartTime;
+        uint32_t SendRate = (uint32_t)((StrmContext->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
-        if ((uint64_t)DataLength >= BytesLeftToSend) {
-            DataLength = (uint32_t)BytesLeftToSend;
-            Context->LastBuffer.Buffer = Buffer->Buffer;
-            Context->LastBuffer.Length = DataLength;
-            Buffer = &Context->LastBuffer;
-            Flags = QUIC_SEND_FLAG_FIN;
-            Context->Complete = TRUE;
-
-        } else if (TimedTransfer &&
-                   CxPlatTimeDiff64(Context->StartTime, CxPlatTimeUs64()) >= MS_TO_US(UploadLength)) {
-            Flags = QUIC_SEND_FLAG_FIN;
-            Context->Complete = TRUE;
+        if (StrmContext->Complete) {
+            WriteOutput(
+                "Result: %llu bytes @ %u kbps (%u.%03u ms).\n",
+                (unsigned long long)StrmContext->BytesCompleted,
+                SendRate,
+                (uint32_t)(ElapsedMicroseconds / 1000),
+                (uint32_t)(ElapsedMicroseconds % 1000));
+        } else {
+            WriteOutput(
+                "Error: Did not complete all bytes. Completed %llu bytes in (%u.%03u ms). Failed to connect?\n",
+                (unsigned long long)StrmContext->BytesCompleted,
+                (uint32_t)(ElapsedMicroseconds / 1000),
+                (uint32_t)(ElapsedMicroseconds % 1000));
         }
 
-        Context->BytesSent += DataLength;
-        Context->OutstandingBytes += DataLength;
+        This->StreamContextAllocator.Free(StrmContext);
+    }
+}
 
-        MsQuic->StreamSend(Context->Stream.Handle, Buffer, 1, Flags, Buffer);
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(TcpSendCompleteCallback)
+void
+ThroughputClient::TcpSendCompleteCallback(
+    _In_ TcpConnection* Connection,
+    TcpSendData* SendDataChain
+    )
+{
+    auto This = (ThroughputClient*)Connection->Context;
+    auto StrmContext = This->TcpStrmContext;
+    while (SendDataChain) {
+        auto Data = SendDataChain;
+        SendDataChain = Data->Next;
+        if (This->UploadLength) {
+            StrmContext->OutstandingBytes -= Data->Length;
+            StrmContext->BytesCompleted += Data->Length;
+            This->SendTcpData(Connection, StrmContext);
+        }
+        delete Data;
     }
 }

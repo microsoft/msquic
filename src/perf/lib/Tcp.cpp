@@ -199,9 +199,10 @@ CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
             Connection = This->Connections;
             This->Connections = Connection->Next;
             if (This->ConnectionsTail == &Connection->Next) {
-                This->ConnectionsTail = &Connection;
+                This->ConnectionsTail = &This->Connections;
             }
             Connection->QueuedOnWorker = false;
+            Connection->Next = NULL;
         }
         CxPlatDispatchLockRelease(&This->Lock);
         if (Connection) {
@@ -288,7 +289,10 @@ TcpServer::AcceptCallback(
 TcpConnection::TcpConnection(
     TcpEngine* Engine,
     const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    const QUIC_ADDR* RemoteAddress,
+    _In_ QUIC_ADDRESS_FAMILY Family,
+    _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
+        const char* ServerName,
+    _In_ uint16_t ServerPort,
     const QUIC_ADDR* LocalAddress,
     void* Context) :
     IsServer(false), Engine(Engine), Context(Context)
@@ -303,17 +307,27 @@ TcpConnection::TcpConnection(
     if ((SecConfig = Helper.Load(CredConfig)) == nullptr) {
         return;
     }
+    QuicAddrSetFamily(&RemoteAddress, Family);
+    if (QUIC_FAILED(
+        CxPlatDataPathResolveAddress(
+            Engine->Datapath,
+            ServerName,
+            &RemoteAddress))) {
+        return;
+    }
+    QuicAddrSetPort(&RemoteAddress, ServerPort);
+    Engine->AddConnection(this, 0); // TODO - Correct index
+    Initialized = true;
     if (QUIC_FAILED(
         CxPlatSocketCreateTcp(
             Engine->Datapath,
             LocalAddress,
-            RemoteAddress,
+            &RemoteAddress,
             this,
             &Socket))) {
+        Initialized = false;
         return;
     }
-    Initialized = true;
-    Engine->AddConnection(this, 0); // TODO - Correct index
     Queue();
 }
 
@@ -434,6 +448,7 @@ TcpConnection::TlsReceiveTicketCallback(
 
 void TcpConnection::Fatal()
 {
+    printf("Fatal\n");
     // TODO - Disconnect
 }
 
@@ -443,10 +458,12 @@ void TcpConnection::Process()
         IndicateAccept = false;
         TcpServer* Server = (TcpServer*)Context;
         Context = nullptr;
+        printf("[CONN] Accept\n");
         Engine->AcceptHandler(Server, this);
     }
     if (IndicateConnect) {
         IndicateConnect = false;
+        printf("[CONN] Connect\n");
         Engine->ConnectHandler(this, true);
     }
     if (StartTls) {
@@ -471,6 +488,7 @@ void TcpConnection::Process()
     }
     if (IndicateDisconnect) {
         IndicateDisconnect = false;
+        printf("[CONN] Disconnect\n");
         Engine->ConnectHandler(this, false);
     }
 }
@@ -478,7 +496,7 @@ void TcpConnection::Process()
 bool TcpConnection::InitializeTls()
 {
     const uint32_t LocalTPLength = 2;
-    uint8_t* LocalTP = (uint8_t*)CXPLAT_ALLOC_NONPAGED(LocalTPLength, QUIC_POOL_GENERIC);
+    uint8_t* LocalTP = (uint8_t*)CXPLAT_ALLOC_NONPAGED(CxPlatTlsTPHeaderSize + LocalTPLength, QUIC_POOL_TLS_TRANSPARAMS);
     CxPlatZeroMemory(LocalTP, LocalTPLength);
 
     CXPLAT_TLS_CONFIG Config;
@@ -491,10 +509,12 @@ bool TcpConnection::InitializeTls()
     Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
     Config.ServerName = "localhost";
     Config.LocalTPBuffer = LocalTP;
-    Config.LocalTPLength = LocalTPLength;
+    Config.LocalTPLength = CxPlatTlsTPHeaderSize + LocalTPLength;
 
     if (QUIC_FAILED(
         CxPlatTlsInitialize(&Config, &TlsState, &Tls))) {
+        CXPLAT_FREE(LocalTP, QUIC_POOL_TLS_TRANSPARAMS);
+        printf("CxPlatTlsInitialize FAILED\n");
         return false;
     }
 
@@ -503,12 +523,9 @@ bool TcpConnection::InitializeTls()
 
 bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
 {
-    auto SendBuffer = NewSendBuffer();
-    if (!SendData) {
-        return false;
-    }
-
-    TlsState.Buffer = SendBuffer->Buffer + sizeof(TcpFrame) - CXPLAT_ENCRYPTION_OVERHEAD;
+    //printf("ProcessTls %u bytes\n", BufferLength);
+    auto BaseOffset = TlsState.BufferTotalLength;
+    TlsState.Buffer = TlsOutput;
     TlsState.BufferAllocLength = TLS_BLOCK_SIZE - sizeof(TcpFrame) - CXPLAT_ENCRYPTION_OVERHEAD;
     TlsState.BufferLength = 0;
 
@@ -521,17 +538,62 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
             &TlsState);
     if (Results & CXPLAT_TLS_RESULT_PENDING) {
         // TODO - Not supported yet
-        FreeSendBuffer(SendBuffer);
         return false;
     }
     if (Results & CXPLAT_TLS_RESULT_ERROR) {
-        FreeSendBuffer(SendBuffer);
+        printf("CxPlatTlsProcessData FAILED\n");
+        return false;
+    }
+
+    //printf("CxPlatTlsProcessData produced %hu bytes (%u, %u)\n", TlsState.BufferLength, TlsState.BufferOffsetHandshake, TlsState.BufferOffset1Rtt);
+
+    CXPLAT_DBG_ASSERT(BaseOffset + TlsState.BufferLength == TlsState.BufferTotalLength);
+
+    while (BaseOffset < TlsState.BufferTotalLength) {
+        if (TlsState.BufferOffsetHandshake) {
+            if (BaseOffset < TlsState.BufferOffsetHandshake) {
+                uint16_t Length = (uint16_t)(TlsState.BufferOffsetHandshake - BaseOffset);
+                if (!SendTlsData(TlsState.Buffer, Length, QUIC_PACKET_KEY_INITIAL)) {
+                    return false;
+                }
+                BaseOffset += Length;
+                TlsState.Buffer += Length;
+                TlsState.BufferLength -= Length;
+            } else if (TlsState.BufferOffset1Rtt) {
+                if (BaseOffset < TlsState.BufferOffset1Rtt) {
+                    uint16_t Length = (uint16_t)(TlsState.BufferOffset1Rtt - BaseOffset);
+                    if (!SendTlsData(TlsState.Buffer, Length, QUIC_PACKET_KEY_HANDSHAKE)) {
+                        return false;
+                    }
+                    BaseOffset += Length;
+                    TlsState.Buffer += Length;
+                    TlsState.BufferLength -= Length;
+                } else {
+                    return SendTlsData(TlsState.Buffer, TlsState.BufferLength, QUIC_PACKET_KEY_1_RTT);
+                }
+            } else {
+                return SendTlsData(TlsState.Buffer, TlsState.BufferLength, QUIC_PACKET_KEY_HANDSHAKE);
+            }
+        } else {
+            return SendTlsData(TlsState.Buffer, TlsState.BufferLength, QUIC_PACKET_KEY_INITIAL);
+        }
+    }
+
+    return true;
+}
+
+bool TcpConnection::SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, uint8_t KeyType)
+{
+    auto SendBuffer = NewSendBuffer();
+    if (!SendBuffer) {
         return false;
     }
 
     auto Frame = (TcpFrame*)SendBuffer->Buffer;
     Frame->FrameType = FRAME_TYPE_CRYTPO;
-    Frame->Length = TlsState.BufferLength;
+    Frame->Length = BufferLength;
+    Frame->KeyType = KeyType;
+    CxPlatCopyMemory(Frame->Data, Buffer, BufferLength);
 
     if (!EncryptFrame(Frame)) {
         FreeSendBuffer(SendBuffer);
@@ -586,8 +648,11 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
             BufferedData+BufferedDataLength,
             Buffer,
             Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD);
+        Buffer += Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
+        BufferLength -= Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
 
         ProcessReceiveFrame(Frame);
+        BufferedDataLength = 0;
     }
 
     while (BufferLength) {
@@ -615,10 +680,14 @@ BufferData:
 
 bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
 {
+    printf("[RECV] Frame %hu bytes (key=%hhu) (type=%hhu)\n", Frame->Length, Frame->KeyType, Frame->FrameType);
+
     if (Frame->KeyType != QUIC_PACKET_KEY_INITIAL) {
         if (Frame->KeyType > TlsState.ReadKey) {
+            printf("Invalid Key Type\n");
             return false; // Shouldn't be possible
         }
+        CXPLAT_DBG_ASSERT(TlsState.ReadKeys[Frame->KeyType]->PacketKey);
         if (QUIC_FAILED(
             CxPlatDecrypt(
                 TlsState.ReadKeys[Frame->KeyType]->PacketKey,
@@ -627,6 +696,7 @@ bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
                 (uint8_t*)Frame,
                 Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD,
                 Frame->Data))) {
+            printf("Decrypt failed\n");
             return false;
         }
     }
@@ -673,7 +743,7 @@ void TcpConnection::ProcessSend()
         uint32_t Offset = 0;
         while (NextSendData->Length > Offset) {
             auto SendBuffer = NewSendBuffer();
-            if (!SendData) {
+            if (!SendBuffer) {
                 return;
             }
 
@@ -685,6 +755,7 @@ void TcpConnection::ProcessSend()
             auto Frame = (TcpFrame*)SendBuffer->Buffer;
             Frame->FrameType = FRAME_TYPE_STREAM;
             Frame->Length = (uint16_t)(sizeof(TcpStreamFrame) + StreamLength);
+            Frame->KeyType = QUIC_PACKET_KEY_1_RTT;
 
             auto StreamFrame = (TcpStreamFrame*)Frame->Data;
             StreamFrame->Id = NextSendData->StreamId;
@@ -709,23 +780,24 @@ void TcpConnection::ProcessSend()
 
 void TcpConnection::ProcessSendComplete()
 {
+    printf("[SEND] Complete\n");
     uint64_t Offset = TotalSendCompleteOffset;
     while (SentData && SentData->Offset <= Offset) {
         TcpSendData* Data = SentData;
-        SendData = Data->Next;
+        SentData = Data->Next;
         Data->Next = NULL;
-        Engine->SendCompleteHandler(this, SendData);
+        printf("[SEND] Complete App\n");
+        Engine->SendCompleteHandler(this, Data);
     }
 }
 
 bool TcpConnection::EncryptFrame(TcpFrame* Frame)
 {
-    Frame->KeyType = (uint8_t)TlsState.WriteKey;
     return
-        TlsState.WriteKey == QUIC_PACKET_KEY_INITIAL ||
+        Frame->KeyType == QUIC_PACKET_KEY_INITIAL ||
         QUIC_SUCCEEDED(
         CxPlatEncrypt(
-            TlsState.WriteKeys[TlsState.WriteKey]->PacketKey,
+            TlsState.WriteKeys[Frame->KeyType]->PacketKey,
             FixedIv,
             sizeof(TcpFrame),
             (uint8_t*)Frame,
@@ -749,12 +821,16 @@ void TcpConnection::FreeSendBuffer(QUIC_BUFFER* SendBuffer)
 
 void TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
 {
+    auto Frame = (TcpFrame*)SendBuffer->Buffer;
+    printf("[SEND] Frame %hu bytes (key=%hhu) (type=%hhu)\n", Frame->Length, Frame->KeyType, Frame->FrameType);
+
     TotalSendOffset += SendBuffer->Length;
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
         if (QUIC_FAILED(
             CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData))) {
             // FATAL
+            printf("CxPlatSocketSend FAILED\n");
         }
         BatchedSendData = nullptr;
     }
@@ -762,10 +838,11 @@ void TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
 
 void TcpConnection::Send(TcpSendData* Data)
 {
+    printf("[SEND] App %u bytes\n", Data->Length);
     CxPlatDispatchLockAcquire(&Lock);
     TcpSendData** Tail = &SendData;
     while (*Tail) {
-        Tail = &(*Tail)->Next;
+        Tail = &((*Tail)->Next);
     }
     *Tail = Data;
     CxPlatDispatchLockRelease(&Lock);

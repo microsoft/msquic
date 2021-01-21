@@ -30,6 +30,7 @@ struct TcpSendData {
     uint32_t Length;
     uint8_t* Buffer;
     uint64_t Offset; // Used internally only
+    TcpSendData() { CxPlatZeroMemory(this, sizeof(TcpSendData)); }
 };
 
 typedef
@@ -183,6 +184,7 @@ class TcpConnection {
     uint64_t TotalSendOffset{0};
     uint64_t TotalSendCompleteOffset{0};
     CXPLAT_SEND_DATA* BatchedSendData{nullptr};
+    uint8_t TlsOutput[TLS_BLOCK_SIZE];
     uint8_t BufferedData[TLS_BLOCK_SIZE];
     uint32_t BufferedDataLength{0};
     TcpConnection(TcpEngine* Engine, CXPLAT_SEC_CONFIG* SecConfig, CXPLAT_SOCKET* Socket);
@@ -242,6 +244,7 @@ class TcpConnection {
     void Process();
     bool InitializeTls();
     bool ProcessTls(const uint8_t* Buffer, uint32_t BufferLength);
+    bool SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, uint8_t KeyType);
     void ProcessReceive();
     bool ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLength);
     bool ProcessReceiveFrame(TcpFrame* Frame);
@@ -254,11 +257,14 @@ class TcpConnection {
 public:
     void* Context{nullptr}; // App context
     TcpConnection(
-        TcpEngine* Engine,
-        const QUIC_CREDENTIAL_CONFIG* CredConfig,
-        const QUIC_ADDR* RemoteAddress,
-        const QUIC_ADDR* LocalAddress = nullptr,
-        void* Context = nullptr);
+        _In_ TcpEngine* Engine,
+        _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+        _In_ QUIC_ADDRESS_FAMILY Family,
+        _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
+            const char* ServerName,
+        _In_ uint16_t ServerPort,
+        _In_ const QUIC_ADDR* LocalAddress = nullptr,
+        _In_ void* Context = nullptr);
     bool IsInitialized() const { return Initialized; }
     void AddRef() { CxPlatRefIncrement(&Ref); }
     void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
