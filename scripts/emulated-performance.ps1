@@ -175,6 +175,7 @@ if ($UseTcp.Contains(1)) {
 Sleep -Seconds 1
 
 $OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" "$RemotePlatform" "$($RemoteArch)_$($Config)_$($RemoteTls)" "WAN"
+New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 $OutputFile = Join-Path $OutputDir "WANPerf_$UniqueId.json"
 
 class TestResult {
