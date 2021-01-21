@@ -88,6 +88,10 @@ param (
     [Parameter(Mandatory = $false)]
     [Int32[]]$UseTcp = 0,
 
+    # The following is used to name the output file to be able to combine runs
+    [Parameter(Mandatory = $false)]
+    [string]$UniqueId = "1",
+
     [Parameter(Mandatory = $false)]
     [ValidateSet("None", "Datapath.Light", "Datapath.Verbose", "Performance.Light", "Performance.Verbose")]
     [string]$LogProfile = "None"
@@ -123,13 +127,10 @@ if ($LogProfile -ne "None") {
     dir $LogScript | Write-Debug
 }
 
+$Platform = $IsWindows ? "windows" : "linux"
+$ExeName = $IsWindows ? "quicperf.exe" : "quicperf"
 # Path to the quicperf exectuable.
-$QuicPerf = $null
-if ($IsWindows) {
-    $QuicPerf = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\quicperf.exe"
-} else {
-    $QuicPerf = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/quicperf"
-}
+$QuicPerf = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)" $ExeName
 
 # Path to the netput exectuable.
 $NetPut = "C:\Windows\System32\netput.exe"
@@ -172,6 +173,62 @@ if ($UseTcp.Contains(1)) {
 
 # Wait for the server(s) to come up.
 Sleep -Seconds 1
+
+$OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" "$RemotePlatform" "$($RemoteArch)_$($Config)_$($RemoteTls)" "WAN"
+$OutputFile = Join-Path $OutputDir "WANPerf_$UniqueId.json"
+
+class TestResult {
+    [int]$RttMs;
+    [int]$BottleneckMbps;
+    [int]$BottleneckBufferPackets;
+    [int]$RandomLossDenominator;
+    [int]$RandomReorderDenominator;
+    [int]$ReorderDelayDeltaMs;
+    [bool]$Tcp;
+    [int]$DurationMs;
+    [bool]$Pacing;
+    [int]$RateKbps;
+    [System.Collections.Generic.List[int]]$RawRateKbps;
+
+    TestResult (
+        [int]$RttMs,
+        [int]$BottleneckMbps,
+        [int]$BottleneckBufferPackets,
+        [int]$RandomLossDenominator,
+        [int]$RandomReorderDenominator,
+        [int]$ReorderDelayDeltaMs,
+        [bool]$Tcp,
+        [int]$DurationMs,
+        [bool]$Pacing,
+        [int]$RateKbps,
+        [System.Collections.Generic.List[int]]$RawRateKbps
+    ) {
+        $this.RttMs = $RttMs;
+        $this.BottleneckMbps = $BottleneckMbps;
+        $this.BottleneckBufferPackets = $BottleneckBufferPackets;
+        $this.RandomLossDenominator = $RandomLossDenominator;
+        $this.RandomReorderDenominator = $RandomReorderDenominator;
+        $this.ReorderDelayDeltaMs = $ReorderDelayDeltaMs;
+        $this.Tcp = $Tcp;
+        $this.DurationMs = $DurationMs;
+        $this.Pacing = $Pacing;
+        $this.RateKbps = $RateKbps;
+        $this.RawRateKbps = $RawRateKbps;
+    }
+}
+
+class Results {
+    [System.Collections.Generic.List[TestResult]]$Runs;
+    [string]$PlatformName
+
+    Results($PlatformName) {
+        $this.Runs = [System.Collections.Generic.List[TestResult]]::new()
+        $this.PlatformName = $PlatformName
+    }
+}
+
+$PlatformName = (($IsWindows ? "Windows" : "Linux") + "_$($Arch)_$($Tls)")
+$RunResults = [Results]::new($PlatformName)
 
 # CSV header
 $Header = "RttMs, BottleneckMbps, BottleneckBufferPackets, RandomLossDenominator, RandomReorderDenominator, ReorderDelayDeltaMs, Tcp, DurationMs, Pacing, RateKbps"
@@ -220,7 +277,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
     foreach ($ThisPacing in $Pacing) {
 
         # Run through all the iterations and keep track of the results.
-        $Results = [System.Collections.ArrayList]@()
+        $Results = [System.Collections.Generic.List[int]]::new()
         Write-Debug "Run upload test: Duration=$ThisDurationMs ms, Pacing=$ThisPacing"
         for ($i = 0; $i -lt $NumIterations; $i++) {
 
@@ -291,7 +348,11 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         for ($i = 0; $i -lt $NumIterations; $i++) {
             $Row += ", $($Results[$i])"
         }
+        $RunResult = [TestResult]::new($ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $ThisUseTcp, $ThisDurationMs, $ThisPacing, $RateKbps, $Results);
+        $RunResults.Runs.Add($RunResult)
         Write-Host $Row
     }}}
 
 }}}}}}
+
+$RunResults | ConvertTo-Json -Depth 100 | Out-File $OutputFile
