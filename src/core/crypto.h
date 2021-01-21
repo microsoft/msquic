@@ -227,7 +227,7 @@ QuicCryptoProcessFrame(
 // Passes any data queued up to TLS for processing.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+QUIC_STATUS
 QuicCryptoProcessData(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN IsClientInitial

@@ -1208,7 +1208,7 @@ QuicConnRestart(
 // accordingly.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+QUIC_STATUS
 QuicConnProcessPeerTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN FromResumptionTicket

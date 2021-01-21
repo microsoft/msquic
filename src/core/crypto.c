@@ -341,7 +341,7 @@ QuicCryptoInitializeTls(
 
     Crypto->ResumptionTicket = NULL; // Owned by TLS now.
     Crypto->ResumptionTicketLength = 0;
-    QuicCryptoProcessData(Crypto, !IsServer);
+    (void)QuicCryptoProcessData(Crypto, !IsServer);
 
 Error:
 
@@ -1141,7 +1141,10 @@ QuicCryptoProcessFrame(
 
     if (QUIC_SUCCEEDED(Status) && DataReady) {
         if (!Crypto->TlsCallPending) {
-            QuicCryptoProcessData(Crypto, FALSE);
+            Status = QuicCryptoProcessData(Crypto, FALSE);
+            if (QUIC_FAILED(Status)) {
+                goto Error;
+            }
 
             QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
             if (Connection->State.ClosedLocally) {
@@ -1161,6 +1164,7 @@ QuicCryptoProcessFrame(
         }
     }
 
+Error:
     return Status;
 }
 
@@ -1183,7 +1187,7 @@ QuicConnReceiveTP(
         return FALSE;
     }
 
-    QuicConnProcessPeerTransportParameters(Connection, FALSE);
+    (void)QuicConnProcessPeerTransportParameters(Connection, FALSE);
 
     return TRUE;
 }
@@ -1498,7 +1502,7 @@ QuicCryptoProcessDataComplete(
     QuicCryptoProcessTlsCompletion(Crypto, ResultFlags);
 
     if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
-        QuicCryptoProcessData(Crypto, FALSE);
+        (void)QuicCryptoProcessData(Crypto, FALSE);
     }
 }
 
@@ -1533,12 +1537,13 @@ QuicCryptoProcessCompleteOperation(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+QUIC_STATUS
 QuicCryptoProcessData(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN IsClientInitial
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t BufferCount = 1;
     QUIC_BUFFER Buffer;
 
@@ -1581,7 +1586,7 @@ QuicCryptoProcessData(
             //
             CXPLAT_DBG_ASSERT(BufferOffset == 0);
             QUIC_NEW_CONNECTION_INFO Info = {0};
-            QUIC_STATUS Status =
+            Status =
                 QuicCryptoTlsReadInitial(
                     Connection,
                     Buffer.Buffer,
@@ -1608,7 +1613,11 @@ QuicCryptoProcessData(
                 goto Error;
             }
 
-            QuicConnProcessPeerTransportParameters(Connection, FALSE);
+            Status =
+                QuicConnProcessPeerTransportParameters(Connection, FALSE);
+            if (Status == QUIC_STATUS_VER_NEG_ERROR) {
+                goto Error;
+            }
 
             QuicRecvBufferDrain(&Crypto->RecvBuffer, 0);
             QuicCryptoValidate(Crypto);
@@ -1623,7 +1632,7 @@ QuicCryptoProcessData(
                 Connection->Paths[0].Binding,
                 Connection,
                 &Info);
-            return;
+            return Status;
         }
     }
 
@@ -1655,12 +1664,14 @@ QuicCryptoProcessData(
         QuicCryptoProcessDataComplete(Crypto, ResultFlags, Buffer.Length);
     }
 
-    return;
+    return Status;
 
 Error:
 
     QuicRecvBufferDrain(&Crypto->RecvBuffer, 0);
     QuicCryptoValidate(Crypto);
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

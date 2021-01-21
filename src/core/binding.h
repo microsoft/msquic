@@ -387,6 +387,17 @@ QuicBindingOnConnectionHandshakeConfirmed(
     );
 
 //
+// Queues a stateless operation on the binding.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicBindingQueueStatelessOperation(
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_OPERATION_TYPE OperType,
+    _In_ CXPLAT_RECV_DATA* Datagram
+    );
+
+//
 // Processes a stateless operation that was queued.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

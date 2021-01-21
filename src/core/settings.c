@@ -335,18 +335,18 @@ QuicSettingApply(
         NewSettingsSize == sizeof(QUIC_SETTINGS_INTERNAL) &&
         ((QUIC_SETTINGS_INTERNAL*)Source)->IsSet.GeneratedCompatibleVersions) {
         if (Destination->IsSet.GeneratedCompatibleVersions && OverWrite) {
-            CXPLAT_FREE(Destination->GeneratedCompatibleVersionsList, QUIC_POOL_VER_COMPAT_LIST);
+            CXPLAT_FREE(Destination->GeneratedCompatibleVersionsList, QUIC_POOL_COMPAT_VER_LIST);
             Destination->IsSet.GeneratedCompatibleVersions = FALSE;
         }
         if (!Destination->IsSet.GeneratedCompatibleVersions) {
             Destination->GeneratedCompatibleVersionsList =
                 CXPLAT_ALLOC_NONPAGED(
-                    ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength * sizeof(uint32_t), QUIC_POOL_VER_COMPAT_LIST);
+                    ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength * sizeof(uint32_t), QUIC_POOL_COMPAT_VER_LIST);
             if (Destination->GeneratedCompatibleVersionsList == NULL) {
                 // TODO Log
                 return FALSE;
             }
-            memcpy(
+            CxPlatCopyMemory(
                 Destination->GeneratedCompatibleVersionsList,
                 ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsList,
                 ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength * sizeof(uint32_t));
@@ -356,24 +356,27 @@ QuicSettingApply(
     }
     if (Source->IsSet.DesiredVersionsList) {
         if (Destination->IsSet.DesiredVersionsList && OverWrite) {
-            CXPLAT_FREE(Destination->DesiredVersionsList, QUIC_POOL_VER_COMPAT_LIST);
+            CXPLAT_FREE(Destination->DesiredVersionsList, QUIC_POOL_DESIRED_VER_LIST);
             Destination->IsSet.DesiredVersionsList = FALSE;
         }
         if (!Destination->IsSet.DesiredVersionsList) {
-            // Validate the list
+            //
+            // Validate the list only contains versions which MsQuic supports.
+            //
             for (uint32_t i = 0; i < Source->DesiredVersionsListLength; ++i) {
-                if (!QuicIsVersionSupported(Source->DesiredVersionsList[i])) {
+                if (!QuicIsVersionSupported(Source->DesiredVersionsList[i]) &&
+                    !QuicIsVersionReserved(Source->DesiredVersionsList[i])) {
                     // TODO log
                     return FALSE;
                 }
             }
             Destination->DesiredVersionsList =
-                CXPLAT_ALLOC_NONPAGED(Source->DesiredVersionsListLength * sizeof(uint32_t), QUIC_POOL_VER_COMPAT_LIST);
+                CXPLAT_ALLOC_NONPAGED(Source->DesiredVersionsListLength * sizeof(uint32_t), QUIC_POOL_DESIRED_VER_LIST);
             if (Destination->DesiredVersionsList == NULL) {
                 // TODO log
                 return FALSE;
             }
-            memcpy(
+            CxPlatCopyMemory(
                 Destination->DesiredVersionsList,
                 Source->DesiredVersionsList,
                 Source->DesiredVersionsListLength * sizeof(uint32_t));
@@ -391,9 +394,14 @@ QuicSettingsCleanup(
     )
 {
     if (Settings->IsSet.DesiredVersionsList) {
-        CXPLAT_FREE(Settings->DesiredVersionsList, QUIC_POOL_VER_COMPAT_LIST);
+        CXPLAT_FREE(Settings->DesiredVersionsList, QUIC_POOL_DESIRED_VER_LIST);
         Settings->DesiredVersionsList = NULL;
         Settings->IsSet.DesiredVersionsList = FALSE;
+    }
+    if (Settings->IsSet.GeneratedCompatibleVersions) {
+        CXPLAT_FREE(Settings->GeneratedCompatibleVersionsList, QUIC_POOL_COMPAT_VER_LIST);
+        Settings->GeneratedCompatibleVersionsList = NULL;
+        Settings->IsSet.GeneratedCompatibleVersions = FALSE;
     }
 }
 
