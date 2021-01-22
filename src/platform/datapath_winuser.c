@@ -2527,8 +2527,6 @@ Error:
     return Status;
 }
 
-extern uint32_t* CxPlatProcessorGroupOffsets;
-
 void
 CxPlatDataPathAcceptComplete(
     _In_ CXPLAT_DATAPATH_PROC* ListenerDatapathProc,
