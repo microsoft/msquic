@@ -933,10 +933,10 @@ CxPlatDataPathInitialize(
         }
 
 #ifdef QUIC_UWP_BUILD
-        SetThreadDescription(Datapath->Processors[i].CompletionThread, L"CXPLAT_DATAPATH");
+        SetThreadDescription(Datapath->Processors[i].CompletionThread, L"cxplat_datapath");
 #else
         THREAD_NAME_INFORMATION ThreadNameInfo;
-        RtlInitUnicodeString(&ThreadNameInfo.ThreadName, L"CXPLAT_DATAPATH");
+        RtlInitUnicodeString(&ThreadNameInfo.ThreadName, L"cxplat_datapath");
         NTSTATUS NtStatus =
             NtSetInformationThread(
                 Datapath->Processors[i].CompletionThread,
