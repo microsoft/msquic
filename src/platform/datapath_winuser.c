@@ -2527,9 +2527,11 @@ Error:
     return Status;
 }
 
+extern uint32_t* CxPlatProcessorGroupOffsets;
+
 void
 CxPlatDataPathAcceptComplete(
-    _In_ CXPLAT_DATAPATH_PROC* DatapathProc,
+    _In_ CXPLAT_DATAPATH_PROC* ListenerDatapathProc,
     _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc,
     _In_ ULONG IoResult
     )
@@ -2546,10 +2548,12 @@ CxPlatDataPathAcceptComplete(
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket != NULL);
         CXPLAT_SOCKET_PROC* AcceptSocketProc = &ListenerSocketProc->AcceptSocket->Processors[0];
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
+        DWORD BytesReturned;
+        SOCKET_PROCESSOR_AFFINITY RssAffinity = { 0 };
+        CXPLAT_DATAPATH_PROC* DatapathProc;
 
         AcceptSocketProc->Parent->ConnectComplete = TRUE;
         AcceptSocketProc->Parent->ProcessorAffinity = 0;
-        // TODO - Query for RSS info
 
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -2575,6 +2579,27 @@ CxPlatDataPathAcceptComplete(
                 "Set UPDATE_ACCEPT_CONTEXT");
             goto Error;
         }
+
+        Result =
+            WSAIoctl(
+                AcceptSocketProc->Socket,
+                SIO_QUERY_RSS_PROCESSOR_INFO,
+                NULL,
+                0,
+                &RssAffinity,
+                sizeof(RssAffinity),
+                &BytesReturned,
+                NULL,
+                NULL);
+        if (Result == NO_ERROR) {
+            AcceptSocketProc->Parent->ProcessorAffinity =
+                (uint16_t)CxPlatProcessorGroupOffsets[RssAffinity.Processor.Group] +
+                (uint16_t)RssAffinity.Processor.Number;
+        }
+
+        DatapathProc =
+            &ListenerSocketProc->Parent->Datapath->Processors[
+                AcceptSocketProc->Parent->ProcessorAffinity];
 
         if (DatapathProc->IOCP !=
             CreateIoCompletionPort(
@@ -2626,7 +2651,7 @@ Error:
     //
     // Try to start a new accept.
     //
-    (void)CxPlatSocketStartAccept(ListenerSocketProc, DatapathProc);
+    (void)CxPlatSocketStartAccept(ListenerSocketProc, ListenerDatapathProc);
 }
 
 void
