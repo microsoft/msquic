@@ -106,6 +106,13 @@ static_assert(
 
 typedef struct CXPLAT_DATAPATH_PROC_CONTEXT CXPLAT_DATAPATH_PROC_CONTEXT;
 
+typedef enum CXPLAT_SOCKET_TYPE {
+    CXPLAT_SOCKET_UDP = 0,
+    CXPLAT_SOCKET_TCP_LISTENER = 1,
+    CXPLAT_SOCKET_TCP = 2,
+    CXPLAT_SOCKET_TCP_SERVER = 3
+} CXPLAT_SOCKET_TYPE;
+
 //
 // Internal receive allocation context.
 //
@@ -273,6 +280,62 @@ CxPlatDataPathSocketReceive(
     _In_opt_ PWSK_DATAGRAM_INDICATION DataIndication
     );
 
+//
+// Callback for WSK to indicate a new tcp listener connection.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+QUIC_STATUS
+NTAPI
+CxPlatDataPathTcpAccept(
+    _In_opt_ void* Socket,
+    _In_ ULONG Flags,
+    _In_ PSOCKADDR LocalAddress,
+    _In_ PSOCKADDR RemoteAddress,
+    _In_opt_ PWSK_SOCKET AcceptSocket,
+    _Outptr_result_maybenull_ PVOID* AcceptSocketContext,
+    _Outptr_result_maybenull_ CONST WSK_CLIENT_CONNECTION_DISPATCH** AcceptSocketDispatch
+);
+
+//
+// Callback for WSK to indicate a new tcp listener connection.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+QUIC_STATUS
+NTAPI
+CxPlatDataPathTcpReceive(
+    _In_opt_ void*  Socket,
+    _In_ ULONG Flags,
+    _In_opt_ PWSK_DATA_INDICATION DataIndication,
+    _In_ SIZE_T BytesIndicated,
+    _Inout_ SIZE_T* BytesAccepted
+);
+
+//
+// Callback for WSK to indicate a new tcp listener connection.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+QUIC_STATUS
+NTAPI
+CxPlatDataPathTcpDisconnect(
+    _In_opt_ void* Socket,
+    _In_ ULONG     Flags
+);
+
+//
+// Callback for WSK to indicate a new tcp listener connection.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+QUIC_STATUS
+NTAPI
+CxPlatDataPathTcpSendBacklog(
+    _In_opt_ void* SocketContext,
+    _In_ SIZE_T    IdealBacklogSize
+);
+
 typedef struct _WSK_DATAGRAM_SOCKET {
     const WSK_PROVIDER_DATAGRAM_DISPATCH* Dispatch;
 } WSK_DATAGRAM_SOCKET, * PWSK_DATAGRAM_SOCKET;
@@ -281,6 +344,11 @@ typedef struct _WSK_DATAGRAM_SOCKET {
 // Per-port state.
 //
 typedef struct CXPLAT_SOCKET {
+
+    //
+    // Socket type.
+    //
+    uint8_t Type : 2; // CXPLAT_SOCKET_TYPE
 
     //
     // Flag indicates the binding has a default remote destination.
@@ -396,11 +464,18 @@ typedef struct CXPLAT_DATAPATH {
     WSK_REGISTRATION WskRegistration;
     WSK_PROVIDER_NPI WskProviderNpi;
     WSK_CLIENT_DATAGRAM_DISPATCH WskDispatch;
+    WSK_CLIENT_LISTEN_DISPATCH WskClientListenerDispatch;
+    WSK_CLIENT_CONNECTION_DISPATCH WskClientConnectionDispatch;
 
     //
     // The UDP callback function pointers.
     //
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
+
+    //
+    // The TCP callback function pointers.
+    //
+    CXPLAT_TCP_DATAPATH_CALLBACKS TcpHandlers;
 
     //
     // The size of the buffer to allocate for client's receive context structure.
@@ -838,7 +913,6 @@ CxPlatDataPathInitialize(
         WSK_EVENT_RECEIVE_FROM
     };
 
-    UNREFERENCED_PARAMETER(TcpCallbacks);
     if (NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         Datapath = NULL;
@@ -846,6 +920,16 @@ CxPlatDataPathInitialize(
     }
     if (UdpCallbacks != NULL) {
         if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            Datapath = NULL;
+            goto Exit;
+        }
+    }
+    if (TcpCallbacks != NULL) {
+        if (TcpCallbacks->Accept == NULL ||
+            TcpCallbacks->Connect == NULL ||
+            TcpCallbacks->Receive == NULL ||
+            TcpCallbacks->SendComplete == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             Datapath = NULL;
             goto Exit;
@@ -871,9 +955,16 @@ CxPlatDataPathInitialize(
     if (UdpCallbacks) {
         Datapath->UdpHandlers = *UdpCallbacks;
     }
+    if (TcpCallbacks) {
+        Datapath->TcpHandlers = *TcpCallbacks;
+    }
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = (uint32_t)CxPlatProcMaxCount();
     Datapath->WskDispatch.WskReceiveFromEvent = CxPlatDataPathSocketReceive;
+    Datapath->WskClientListenerDispatch.WskAcceptEvent = CxPlatDataPathTcpAccept;
+    Datapath->WskClientConnectionDispatch.WskReceiveEvent = CxPlatDataPathTcpReceive;
+    Datapath->WskClientConnectionDispatch.WskDisconnectEvent = CxPlatDataPathTcpDisconnect;
+    Datapath->WskClientConnectionDispatch.WskSendBacklogEvent = CxPlatDataPathTcpSendBacklog;
     Datapath->DatagramStride =
         ALIGN_UP(
             sizeof(CXPLAT_RECV_DATA) +
@@ -1570,8 +1661,7 @@ CxPlatSocketCreateUdp(
             Binding->Socket,
             (PSOCKADDR)&Binding->LocalAddress,
             0, // No flags
-            &Binding->Irp
-            );
+            &Binding->Irp);
     if (Status == STATUS_PENDING) {
         CxPlatEventWaitForever(Binding->WskCompletionEvent);
     } else if (QUIC_FAILED(Status)) {
@@ -1690,6 +1780,26 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
+CxPlatSocketCreateTcpInternal(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SOCKET_TYPE Type,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* RecvCallbackContext,
+    _Out_ CXPLAT_SOCKET** NewSocket
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    UNREFERENCED_PARAMETER(Type);
+    UNREFERENCED_PARAMETER(LocalAddress);
+    UNREFERENCED_PARAMETER(RemoteAddress);
+    UNREFERENCED_PARAMETER(RecvCallbackContext);
+    UNREFERENCED_PARAMETER(NewSocket);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
 CxPlatSocketCreateTcp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
@@ -1698,12 +1808,14 @@ CxPlatSocketCreateTcp(
     _Out_ CXPLAT_SOCKET** Socket
     )
 {
-    UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(LocalAddress);
-    UNREFERENCED_PARAMETER(RemoteAddress);
-    UNREFERENCED_PARAMETER(CallbackContext);
-    UNREFERENCED_PARAMETER(Socket);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    return
+        CxPlatSocketCreateTcpInternal(
+            Datapath,
+            CXPLAT_SOCKET_TCP,
+            LocalAddress,
+            RemoteAddress,
+            CallbackContext,
+            Socket);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1711,15 +1823,185 @@ QUIC_STATUS
 CxPlatSocketCreateTcpListener(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_opt_ void* CallbackContext,
-    _Out_ CXPLAT_SOCKET** Socket
+    _In_opt_ void* RecvCallbackContext,
+    _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
-    UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(LocalAddress);
-    UNREFERENCED_PARAMETER(CallbackContext);
-    UNREFERENCED_PARAMETER(Socket);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_STATUS Status;
+    int Option;
+
+    CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
+
+    uint32_t SocketLength =
+        sizeof(CXPLAT_SOCKET) +
+        CxPlatProcMaxCount() * sizeof(CXPLAT_RUNDOWN_REF);
+
+    CXPLAT_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
+    if (Socket == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_SOCKET",
+            SocketLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    //
+    // Must set output pointer first thing, as the receive path will try to
+    // use the output.
+    //
+    *NewSocket = Socket;
+
+    QuicTraceEvent(
+        DatapathCreated,
+        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        Socket,
+        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CLOG_BYTEARRAY(0, NULL));
+
+    CxPlatZeroMemory(Socket, SocketLength);
+    Socket->Datapath = Datapath;
+    Socket->ClientContext = RecvCallbackContext;
+    Socket->Type = CXPLAT_SOCKET_TCP_LISTENER;
+    if (LocalAddress) {
+        CxPlatConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
+        if (Socket->LocalAddress.si_family == AF_UNSPEC) {
+            Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
+        }
+    }
+    else {
+        Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
+    }
+    Socket->Mtu = CXPLAT_MAX_MTU;
+    for (uint32_t i = 0; i < CxPlatProcMaxCount(); ++i) {
+        CxPlatRundownInitialize(&Socket->Rundown[i]);
+    }
+
+    CxPlatEventInitialize(&Socket->WskCompletionEvent, FALSE, FALSE);
+    IoInitializeIrp(
+        &Socket->Irp,
+        sizeof(Socket->IrpBuffer),
+        1);
+    IoSetCompletionRoutine(
+        &Socket->Irp,
+        CxPlatDataPathIoCompletion,
+        &Socket->WskCompletionEvent,
+        TRUE,
+        TRUE,
+        TRUE);
+
+    Status =
+        Datapath->WskProviderNpi.Dispatch->
+        WskSocket(
+            Datapath->WskProviderNpi.Client,
+            AF_INET6,
+            SOCK_STREAM,
+            IPPROTO_TCP,
+            WSK_FLAG_LISTEN_SOCKET,
+            Socket,
+            &Datapath->WskClientListenerDispatch,
+            NULL,
+            NULL,
+            NULL,
+            &Socket->Irp);
+    if (Status == STATUS_PENDING) {
+        CxPlatEventWaitForever(Socket->WskCompletionEvent);
+    }
+    else if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "WskSocket");
+        goto Error;
+    }
+
+    Status = Socket->Irp.IoStatus.Status;
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "WskSocket completion");
+        goto Error;
+    }
+    Socket->Socket = (PWSK_SOCKET)(Socket->Irp.IoStatus.Information);
+
+    //
+    // Enable Dual-Stack mode.
+    //
+    Option = FALSE;
+    Status =
+        CxPlatDataPathSetControlSocket(
+            Socket,
+            WskSetOption,
+            IPV6_V6ONLY,
+            IPPROTO_IPV6,
+            sizeof(Option),
+            &Option);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "Set IPV6_V6ONLY");
+        goto Error;
+    }
+
+    IoReuseIrp(&Socket->Irp, STATUS_SUCCESS);
+    IoSetCompletionRoutine(
+        &Socket->Irp,
+        CxPlatDataPathIoCompletion,
+        &Socket->WskCompletionEvent,
+        TRUE,
+        TRUE,
+        TRUE);
+    CxPlatEventReset(Socket->WskCompletionEvent);
+
+    Status =
+        Socket->DgrmSocket->Dispatch->
+        WskBind(
+            Socket->Socket,
+            (PSOCKADDR)&Socket->LocalAddress,
+            0, // No flags
+            &Socket->Irp);
+
+    if (Status == STATUS_PENDING) {
+        CxPlatEventWaitForever(Socket->WskCompletionEvent);
+    }
+    else if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "WskBind");
+        goto Error;
+    }
+
+    Status = Socket->Irp.IoStatus.Status;
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "WskBind completion");
+        goto Error;
+    }
+
+Error:
+    if (QUIC_FAILED(Status)) {
+        if (Socket != NULL) {
+            CxPlatSocketDelete(Socket);
+        }
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
