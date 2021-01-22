@@ -243,20 +243,19 @@ class TcpConnection {
         );
     ~TcpConnection();
     void Queue() { Worker->QueueConnection(this); }
-    void Fatal();
     void Process();
     bool InitializeTls();
     bool ProcessTls(const uint8_t* Buffer, uint32_t BufferLength);
     bool SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, uint8_t KeyType);
-    void ProcessReceive();
+    bool ProcessReceive();
     bool ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLength);
     bool ProcessReceiveFrame(TcpFrame* Frame);
-    void ProcessSend();
+    bool ProcessSend();
     void ProcessSendComplete();
     bool EncryptFrame(TcpFrame* Frame);
     QUIC_BUFFER* NewSendBuffer();
     void FreeSendBuffer(QUIC_BUFFER* SendBuffer);
-    void FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
+    bool FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
     void AddRef() { CxPlatRefIncrement(&Ref); }
     void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
 public:
