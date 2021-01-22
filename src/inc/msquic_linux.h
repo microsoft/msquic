@@ -153,9 +153,9 @@ typedef sa_family_t QUIC_ADDRESS_FAMILY;
 //
 // Defines match windows values.
 //
-#define QUIC_ADDRESS_FAMILY_UNSPEC AF_UNSPEC
-#define QUIC_ADDRESS_FAMILY_INET AF_INET
-#define QUIC_ADDRESS_FAMILY_INET6 AF_INET6
+#define QUIC_ADDRESS_FAMILY_UNSPEC 0
+#define QUIC_ADDRESS_FAMILY_INET 2
+#define QUIC_ADDRESS_FAMILY_INET6 23
 
 typedef union QUIC_ADDR {
     struct sockaddr Ip;
