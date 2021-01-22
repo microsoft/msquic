@@ -308,7 +308,7 @@ PerfServer::TcpConnectCallback(
     )
 {
     if (!IsConnected) {
-        Connection->Release();
+        Connection->Close();
     }
 }
 
@@ -344,8 +344,16 @@ PerfServer::TcpReceiveCallback(
         Stream->ResponseSizeSet = true;
     }
     if (Fin) {
-        if (Stream->ResponseSizeSet) {
+        if (Stream->ResponseSizeSet && Stream->ResponseSize != 0) {
             This->SendTcpResponse(Stream, Connection);
+        } else {
+            auto SendData = new TcpSendData();
+            SendData->StreamId = StreamID;
+            SendData->Open = TRUE;
+            SendData->Fin = TRUE;
+            SendData->Buffer = This->DataBuffer->Buffer;
+            SendData->Length = 0;
+            Connection->Send(SendData);
         }
         Stream->RecvShutdown = true;
         if (Stream->SendShutdown) {

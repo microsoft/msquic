@@ -128,6 +128,7 @@ param (
     [string]$ForceBranchName = $null,
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("QUIC", "TCP/TLS")]
     [string]$Protocol = "QUIC"
 )
 

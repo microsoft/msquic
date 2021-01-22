@@ -282,8 +282,6 @@ ThroughputClient::StartQuic()
         return Status;
     }
 
-    StrmContext->StartTime = CxPlatTimeUs64();
-
     if (DownloadLength) {
         MsQuic->StreamSend(
             StrmContext->Stream.Handle,
@@ -361,13 +359,12 @@ ThroughputClient::StartTcp()
             this);
     if (!Connection || !Connection->IsInitialized()) {
         if (Connection) {
-            Connection->Release();
+            Connection->Close();
         }
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     TcpStrmContext = StreamContextAllocator.Alloc(this);
-    TcpStrmContext->StartTime = CxPlatTimeUs64();
 
     if (DownloadLength) {
         auto SendData = new TcpSendData();
@@ -420,6 +417,33 @@ ThroughputClient::SendTcpData(
 
         Connection->Send(SendData);
     }
+}
+
+void
+ThroughputClient::OnStreamShutdownComplete(
+    _In_ StreamContext* StrmContext
+    )
+{
+    StrmContext->EndTime = CxPlatTimeUs64();
+    uint64_t ElapsedMicroseconds = StrmContext->EndTime - StrmContext->StartTime;
+    uint32_t SendRate = (uint32_t)((StrmContext->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
+
+    if (StrmContext->Complete) {
+        WriteOutput(
+            "Result: %llu bytes @ %u kbps (%u.%03u ms).\n",
+            (unsigned long long)StrmContext->BytesCompleted,
+            SendRate,
+            (uint32_t)(ElapsedMicroseconds / 1000),
+            (uint32_t)(ElapsedMicroseconds % 1000));
+    } else {
+        WriteOutput(
+            "Error: Did not complete all bytes. Completed %llu bytes in (%u.%03u ms). Failed to connect?\n",
+            (unsigned long long)StrmContext->BytesCompleted,
+            (uint32_t)(ElapsedMicroseconds / 1000),
+            (uint32_t)(ElapsedMicroseconds % 1000));
+    }
+
+    StreamContextAllocator.Free(StrmContext);
 }
 
 QUIC_STATUS
@@ -503,29 +527,9 @@ ThroughputClient::StreamCallback(
         }
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
-    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
-        StrmContext->EndTime = CxPlatTimeUs64();
-        uint64_t ElapsedMicroseconds = StrmContext->EndTime - StrmContext->StartTime;
-        uint32_t SendRate = (uint32_t)((StrmContext->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
-
-        if (StrmContext->Complete) {
-            WriteOutput(
-                "Result: %llu bytes @ %u kbps (%u.%03u ms).\n",
-                (unsigned long long)StrmContext->BytesCompleted,
-                SendRate,
-                (uint32_t)(ElapsedMicroseconds / 1000),
-                (uint32_t)(ElapsedMicroseconds % 1000));
-        } else {
-            WriteOutput(
-                "Error: Did not complete all bytes. Completed %llu bytes in (%u.%03u ms). Failed to connect?\n",
-                (unsigned long long)StrmContext->BytesCompleted,
-                (uint32_t)(ElapsedMicroseconds / 1000),
-                (uint32_t)(ElapsedMicroseconds % 1000));
-        }
-
-        StreamContextAllocator.Free(StrmContext);
+    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+        OnStreamShutdownComplete(StrmContext);
         break;
-    }
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
         if (UploadLength &&
             !UseSendBuffer &&
@@ -548,9 +552,10 @@ ThroughputClient::TcpConnectCallback(
     bool IsConnected
     )
 {
-    //auto This = (ThroughputClient*)Connection->Context;
+    auto This = (ThroughputClient*)Connection->Context;
     if (!IsConnected) {
-        Connection->Release();
+        Connection->Close();
+        CxPlatEventSet(*This->StopEvent);
     }
 }
 
@@ -578,26 +583,12 @@ ThroughputClient::TcpReceiveCallback(
         StrmContext->Complete = true;
     }
     if (Fin) {
-        StrmContext->EndTime = CxPlatTimeUs64();
-        uint64_t ElapsedMicroseconds = StrmContext->EndTime - StrmContext->StartTime;
-        uint32_t SendRate = (uint32_t)((StrmContext->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
-
-        if (StrmContext->Complete) {
-            WriteOutput(
-                "Result: %llu bytes @ %u kbps (%u.%03u ms).\n",
-                (unsigned long long)StrmContext->BytesCompleted,
-                SendRate,
-                (uint32_t)(ElapsedMicroseconds / 1000),
-                (uint32_t)(ElapsedMicroseconds % 1000));
-        } else {
-            WriteOutput(
-                "Error: Did not complete all bytes. Completed %llu bytes in (%u.%03u ms). Failed to connect?\n",
-                (unsigned long long)StrmContext->BytesCompleted,
-                (uint32_t)(ElapsedMicroseconds / 1000),
-                (uint32_t)(ElapsedMicroseconds % 1000));
+        StrmContext->RecvShutdown = true;
+        if (StrmContext->SendShutdown) {
+            This->OnStreamShutdownComplete(StrmContext);
+            Connection->Close();
+            CxPlatEventSet(*This->StopEvent);
         }
-
-        This->StreamContextAllocator.Free(StrmContext);
     }
 }
 
@@ -618,6 +609,14 @@ ThroughputClient::TcpSendCompleteCallback(
             StrmContext->OutstandingBytes -= Data->Length;
             StrmContext->BytesCompleted += Data->Length;
             This->SendTcpData(Connection, StrmContext);
+        }
+        if (Data->Fin) {
+            StrmContext->SendShutdown = true;
+            if (StrmContext->RecvShutdown) {
+                This->OnStreamShutdownComplete(StrmContext);
+                Connection->Close();
+                CxPlatEventSet(*This->StopEvent);
+            }
         }
         delete Data;
     }
