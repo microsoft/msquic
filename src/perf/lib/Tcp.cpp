@@ -30,9 +30,10 @@ struct TcpFrame {
     // uint8_t Tag[CXPLAT_ENCRYPTION_OVERHEAD];
 };
 struct TcpStreamFrame {
-    uint32_t Id : 30;
+    uint32_t Id : 29;
     uint32_t Open : 1;
     uint32_t Fin : 1;
+    uint32_t Abort : 1;
     uint8_t Data[0];
 };
 #pragma pack(pop)
@@ -724,6 +725,7 @@ bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
             StreamFrame->Id,
             StreamFrame->Open,
             StreamFrame->Fin,
+            StreamFrame->Abort,
             Frame->Length - sizeof(TcpStreamFrame),
             StreamFrame->Data);
         break;
@@ -771,6 +773,7 @@ void TcpConnection::ProcessSend()
             StreamFrame->Id = NextSendData->StreamId;
             StreamFrame->Open = Offset == 0 ? NextSendData->Open : FALSE;
             StreamFrame->Fin = Offset + StreamLength == NextSendData->Length ? NextSendData->Fin : FALSE;
+            StreamFrame->Abort = Offset + StreamLength == NextSendData->Length ? NextSendData->Abort : FALSE;
             CxPlatCopyMemory(StreamFrame->Data, NextSendData->Buffer + Offset, StreamLength);
             Offset += StreamLength;
 

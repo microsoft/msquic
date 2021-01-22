@@ -320,6 +320,7 @@ PerfServer::TcpReceiveCallback(
     uint32_t StreamID,
     bool Open,
     bool Fin,
+    bool Abort,
     uint32_t Length,
     uint8_t* Buffer
     )
@@ -343,7 +344,17 @@ PerfServer::TcpReceiveCallback(
         Stream->ResponseSize = CxPlatByteSwapUint64(Stream->ResponseSize);
         Stream->ResponseSizeSet = true;
     }
-    if (Fin) {
+    if (Abort) {
+        Stream->ResponseSize = 0; // Reset to make sure we stop sending more
+        auto SendData = new TcpSendData();
+        SendData->StreamId = StreamID;
+        SendData->Open = Open ? TRUE : FALSE;
+        SendData->Abort = TRUE;
+        SendData->Buffer = This->DataBuffer->Buffer;
+        SendData->Length = 0;
+        Connection->Send(SendData);
+
+    } else if (Fin) {
         if (Stream->ResponseSizeSet && Stream->ResponseSize != 0) {
             This->SendTcpResponse(Stream, Connection);
         } else {

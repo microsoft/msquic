@@ -24,9 +24,10 @@ struct TcpFrame;
 
 struct TcpSendData {
     TcpSendData* Next;
-    uint32_t StreamId : 30;
+    uint32_t StreamId : 29;
     uint32_t Open : 1;
     uint32_t Fin : 1;
+    uint32_t Abort : 1;
     uint32_t Length;
     uint8_t* Buffer;
     uint64_t Offset; // Used internally only
@@ -62,6 +63,7 @@ void
     uint32_t StreamID,
     bool Open,
     bool Fin,
+    bool Abort,
     uint32_t Length,
     uint8_t* Buffer
     );

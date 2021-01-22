@@ -567,6 +567,7 @@ ThroughputClient::TcpReceiveCallback(
     uint32_t /* StreamID */,
     bool /* Open */,
     bool Fin,
+    bool Abort,
     uint32_t Length,
     uint8_t* /* Buffer */
     )
@@ -576,16 +577,22 @@ ThroughputClient::TcpReceiveCallback(
     StrmContext->BytesCompleted += Length;
     if (This->TimedTransfer) {
         if (CxPlatTimeDiff64(StrmContext->StartTime, CxPlatTimeUs64()) >= MS_TO_US(This->DownloadLength)) {
-            //MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE, 0);
+            auto SendData = new TcpSendData();
+            SendData->StreamId = 0;
+            SendData->Abort = TRUE;
+            SendData->Buffer = This->DataBuffer->Buffer;
+            SendData->Length = 0;
+            Connection->Send(SendData);
             StrmContext->Complete = true;
         }
     } else if (StrmContext->BytesCompleted == This->DownloadLength) {
         StrmContext->Complete = true;
     }
-    if (Fin) {
+    if ((Fin || Abort) && !StrmContext->RecvShutdown) {
         StrmContext->RecvShutdown = true;
         if (StrmContext->SendShutdown) {
             This->OnStreamShutdownComplete(StrmContext);
+            This->TcpStrmContext = nullptr;
             Connection->Close();
             CxPlatEventSet(*This->StopEvent);
         }
@@ -614,6 +621,8 @@ ThroughputClient::TcpSendCompleteCallback(
             StrmContext->SendShutdown = true;
             if (StrmContext->RecvShutdown) {
                 This->OnStreamShutdownComplete(StrmContext);
+                This->TcpStrmContext = nullptr;
+                StrmContext = nullptr;
                 Connection->Close();
                 CxPlatEventSet(*This->StopEvent);
             }
