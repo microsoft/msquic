@@ -165,7 +165,7 @@ class TcpConnection {
     bool Initialized{false};
     bool ClosedByApp{false};
     bool QueuedOnWorker{false};
-    bool StartTls{true};
+    bool StartTls{false};
     bool IndicateAccept{false};
     bool IndicateConnect{false};
     bool IndicateDisconnect{false};

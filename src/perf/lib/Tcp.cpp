@@ -471,10 +471,12 @@ void TcpConnection::Process()
         TcpServer* Server = (TcpServer*)Context;
         Context = nullptr;
         Engine->AcceptHandler(Server, this);
+        StartTls = true;
     }
     if (IndicateConnect) {
         IndicateConnect = false;
         Engine->ConnectHandler(this, true);
+        StartTls = true;
     }
     if (StartTls) {
         StartTls = false;
