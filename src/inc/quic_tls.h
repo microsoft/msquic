@@ -411,8 +411,8 @@ CxPlatTlsAlpnFindInList(
             memcmp(AlpnList+1, FindAlpn, FindAlpnLength) == 0) {
             return AlpnList;
         }
-        AlpnListLength -= (uint16_t)AlpnList[0] + (uint16_t)1;
-        AlpnList += (uint16_t)AlpnList[0] + (uint16_t)1;
+        AlpnListLength -= AlpnList[0] + 1;
+        AlpnList += (size_t)AlpnList[0] + (size_t)1;
     }
     return NULL;
 }
