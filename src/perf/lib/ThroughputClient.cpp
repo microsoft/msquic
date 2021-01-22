@@ -608,23 +608,23 @@ ThroughputClient::TcpSendCompleteCallback(
     )
 {
     auto This = (ThroughputClient*)Connection->Context;
-    auto StrmContext = This->TcpStrmContext;
     while (SendDataChain) {
         auto Data = SendDataChain;
         SendDataChain = Data->Next;
-        if (This->UploadLength) {
-            StrmContext->OutstandingBytes -= Data->Length;
-            StrmContext->BytesCompleted += Data->Length;
-            This->SendTcpData(Connection, StrmContext);
-        }
-        if (Data->Fin) {
-            StrmContext->SendShutdown = true;
-            if (StrmContext->RecvShutdown) {
-                This->OnStreamShutdownComplete(StrmContext);
-                This->TcpStrmContext = nullptr;
-                StrmContext = nullptr;
-                Connection->Close();
-                CxPlatEventSet(*This->StopEvent);
+        if (This->TcpStrmContext) {
+            if (This->UploadLength) {
+                This->TcpStrmContext->OutstandingBytes -= Data->Length;
+                This->TcpStrmContext->BytesCompleted += Data->Length;
+                This->SendTcpData(Connection, This->TcpStrmContext);
+            }
+            if ((Data->Fin || Data->Abort) && !This->TcpStrmContext->SendShutdown) {
+                This->TcpStrmContext->SendShutdown = true;
+                if (This->TcpStrmContext->RecvShutdown) {
+                    This->OnStreamShutdownComplete(This->TcpStrmContext);
+                    This->TcpStrmContext = nullptr;
+                    Connection->Close();
+                    CxPlatEventSet(*This->StopEvent);
+                }
             }
         }
         delete Data;

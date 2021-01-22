@@ -390,7 +390,7 @@ PerfServer::TcpSendCompleteCallback(
             auto Stream = CXPLAT_CONTAINING_RECORD(Entry, StreamContext, Entry);
             Stream->OutstandingBytes -= Data->Length;
             This->SendTcpResponse(Stream, Connection);
-            if (Data->Fin) {
+            if ((Data->Fin || Data->Abort) && !Stream->SendShutdown) {
                 Stream->SendShutdown = true;
                 if (Stream->RecvShutdown) {
                     This->StreamTable.Remove(&Stream->Entry);
