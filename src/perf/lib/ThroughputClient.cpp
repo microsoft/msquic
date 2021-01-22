@@ -554,6 +554,10 @@ ThroughputClient::TcpConnectCallback(
 {
     auto This = (ThroughputClient*)Connection->Context;
     if (!IsConnected) {
+        if (This->TcpStrmContext) {
+            This->OnStreamShutdownComplete(This->TcpStrmContext);
+            This->TcpStrmContext = nullptr;
+        }
         Connection->Close();
         CxPlatEventSet(*This->StopEvent);
     }
