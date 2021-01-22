@@ -641,15 +641,17 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
         }
 
         auto Frame = (TcpFrame*)BufferedData;
-        if ((uint32_t)Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD > BufferLength) {
+        // Need this many bytes to complete the buffer
+        uint32_t NeededBytes = ((uint32_t)sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD) - BufferedDataLength;
+        if (BufferLength < NeededBytes) {
             goto BufferData;
         }
         CxPlatCopyMemory(
             BufferedData+BufferedDataLength,
             Buffer,
-            Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD);
-        Buffer += Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
-        BufferLength -= Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
+            NeededBytes);
+        Buffer += NeededBytes;
+        BufferLength -= NeededBytes;
 
         ProcessReceiveFrame(Frame);
         BufferedDataLength = 0;
