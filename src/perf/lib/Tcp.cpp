@@ -308,6 +308,9 @@ TcpConnection::TcpConnection(
     if ((SecConfig = Helper.Load(CredConfig)) == nullptr) {
         return;
     }
+    if (LocalAddress) {
+        Family = QuicAddrGetFamily(LocalAddress);
+    }
     QuicAddrSetFamily(&RemoteAddress, Family);
     if (QUIC_FAILED(
         CxPlatDataPathResolveAddress(
