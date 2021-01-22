@@ -19,7 +19,7 @@ Abstract:
 
 class ThroughputClient : public PerfBase {
 public:
-    ThroughputClient() {
+    ThroughputClient() : Engine(nullptr, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback) {
         CxPlatZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
     }
 
@@ -58,38 +58,26 @@ public:
 
 private:
 
-    struct ConnectionData {
-        ConnectionData(_In_ ThroughputClient* Client) : Client{Client} { }
-        ThroughputClient* Client;
-        ConnectionScope Connection;
-#if DEBUG
-        uint8_t Padding[16]; // Padding for Pools
-#endif
-    };
-
     struct StreamContext {
-        StreamContext(
-            _In_ ThroughputClient* Client,
-            _In_ HQUIC Connection)
-            : Client{Client}, Connection{Connection} { }
+        StreamContext(_In_ ThroughputClient* Client) : Client{Client} { }
         ThroughputClient* Client;
-        HQUIC Connection;
         StreamScope Stream;
         uint64_t IdealSendBuffer{PERF_DEFAULT_SEND_BUFFER_SIZE};
         uint64_t OutstandingBytes{0};
         uint64_t BytesSent{0};
         uint64_t BytesCompleted{0};
-        uint64_t StartTime{0};
+        uint64_t StartTime{CxPlatTimeUs64()};
         uint64_t EndTime{0};
         QUIC_BUFFER LastBuffer;
-        bool Complete{0};
+        bool Complete{false};
+        bool SendShutdown{false};
+        bool RecvShutdown{false};
     };
 
     QUIC_STATUS
     ConnectionCallback(
         _In_ HQUIC ConnectionHandle,
-        _Inout_ QUIC_CONNECTION_EVENT* Event,
-        _Inout_ ConnectionData* ConnectionData
+        _Inout_ QUIC_CONNECTION_EVENT* Event
         );
 
     QUIC_STATUS
@@ -99,10 +87,22 @@ private:
         _Inout_ StreamContext* StrmData
         );
 
+    QUIC_STATUS StartQuic();
+
     void
-    SendData(
+    SendQuicData(
         _In_ StreamContext* Context
         );
+
+    QUIC_STATUS StartTcp();
+
+    void
+    SendTcpData(
+        _In_ TcpConnection* Connection,
+        _In_ StreamContext* Context
+        );
+
+    void OnStreamShutdownComplete(_In_ StreamContext* Context);
 
     MsQuicRegistration Registration {true};
     MsQuicConfiguration Configuration {
@@ -114,10 +114,10 @@ private:
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
-    QuicPoolAllocator<ConnectionData> ConnectionDataAllocator;
     UniquePtr<char[]> TargetData;
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
+    uint8_t UseTcp {FALSE};
     uint8_t UseSendBuffer {TRUE};
     uint8_t UsePacing {TRUE};
     uint8_t UseEncryption {TRUE};
@@ -128,4 +128,38 @@ private:
     uint64_t UploadLength {0};
     uint64_t DownloadLength {0};
     uint32_t IoSize {0};
+
+    TcpEngine Engine;
+    StreamContext* TcpStrmContext{nullptr};
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    _Function_class_(TcpConnectCallback)
+    static
+    void
+    TcpConnectCallback(
+        _In_ TcpConnection* Connection,
+        bool IsConnected
+        );
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    _Function_class_(TcpReceiveCallback)
+    static
+    void
+    TcpReceiveCallback(
+        _In_ TcpConnection* Connection,
+        uint32_t StreamID,
+        bool Open,
+        bool Fin,
+        uint32_t Length,
+        uint8_t* Buffer
+        );
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    _Function_class_(TcpSendCompleteCallback)
+    static
+    void
+    TcpSendCompleteCallback(
+        _In_ TcpConnection* Connection,
+        TcpSendData* SendDataChain
+        );
 };

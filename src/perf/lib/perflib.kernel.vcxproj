@@ -39,6 +39,7 @@
     <ClCompile Include="PerfServer.cpp" />
     <ClCompile Include="quicmain.cpp" />
     <ClCompile Include="RpsClient.cpp" />
+    <ClCompile Include="Tcp.cpp" />
     <ClCompile Include="ThroughputClient.cpp" />
   </ItemGroup>
   <ItemGroup>

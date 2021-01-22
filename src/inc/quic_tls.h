@@ -412,7 +412,7 @@ CxPlatTlsAlpnFindInList(
             return AlpnList;
         }
         AlpnListLength -= AlpnList[0] + 1;
-        AlpnList += AlpnList[0] + 1;
+        AlpnList += (size_t)AlpnList[0] + (size_t)1;
     }
     return NULL;
 }

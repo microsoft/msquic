@@ -503,4 +503,30 @@ struct EventScope {
     operator CXPLAT_EVENT() const noexcept { return Handle; }
 };
 
-#endif
+#ifdef CXPLAT_HASH_MIN_SIZE
+
+struct HashTable {
+    bool Initialized;
+    CXPLAT_HASHTABLE Table;
+    HashTable() noexcept { Initialized = CxPlatHashtableInitializeEx(&Table, CXPLAT_HASH_MIN_SIZE); }
+    ~HashTable() noexcept { if (Initialized) { CxPlatHashtableUninitialize(&Table); } }
+    void Insert(CXPLAT_HASHTABLE_ENTRY* Entry) { CxPlatHashtableInsert(&Table, Entry, Entry->Signature, nullptr); }
+    void Remove(CXPLAT_HASHTABLE_ENTRY* Entry) { CxPlatHashtableRemove(&Table, Entry, nullptr); }
+    CXPLAT_HASHTABLE_ENTRY* Lookup(uint64_t Signature) {
+        CXPLAT_HASHTABLE_LOOKUP_CONTEXT LookupContext;
+        return CxPlatHashtableLookup(&Table, Signature, &LookupContext);
+    }
+    CXPLAT_HASHTABLE_ENTRY* LookupEx(uint64_t Signature, bool (*Equals)(CXPLAT_HASHTABLE_ENTRY* Entry, void* Context), void* Context) {
+        CXPLAT_HASHTABLE_LOOKUP_CONTEXT LookupContext;
+        CXPLAT_HASHTABLE_ENTRY* Entry = CxPlatHashtableLookup(&Table, Signature, &LookupContext);
+        while (Entry != NULL) {
+            if (Equals(Entry, Context)) return Entry;
+            Entry = CxPlatHashtableLookupNext(&Table, &LookupContext);
+        }
+        return NULL;
+    }
+};
+
+#endif // CXPLAT_HASH_MIN_SIZE
+
+#endif // CX_PLATFORM_TYPE

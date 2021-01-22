@@ -59,6 +59,9 @@ param (
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
+    [string[]]$Protocol = "QUIC",
+
+    [Parameter(Mandatory = $false)]
     [Int32[]]$RttMs = 60,
 
     [Parameter(Mandatory = $false)]
@@ -84,9 +87,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [Int32]$NumIterations = 1,
-
-    [Parameter(Mandatory = $false)]
-    [Int32[]]$UseTcp = 0,
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("None", "Datapath.Light", "Datapath.Verbose", "Performance.Light", "Performance.Verbose")]
@@ -134,38 +134,19 @@ $NetPut = "C:\Windows\System32\netput.exe"
 Get-NetAdapter | Write-Debug
 ipconfig -all | Write-Debug
 
-# Start the perf server(s) listening.
-if ($UseTcp.Contains(0)) {
-    Write-Debug "Starting QUIC server..."
-    if (!(Test-Path -Path $QuicPerf)) {
-        Write-Error "Missing file: $QuicPerf"
-    }
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = $QuicPerf
-    $pinfo.Arguments = "-selfsign:1"
-    $pinfo.UseShellExecute = $false
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.RedirectStandardError = $true
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null
+# Start the perf server listening.
+Write-Debug "Starting server..."
+if (!(Test-Path -Path $QuicPerf)) {
+    Write-Error "Missing file: $QuicPerf"
 }
-
-if ($UseTcp.Contains(1)) {
-    Write-Debug "Starting TCP server..."
-    if (!(Test-Path -Path $NetPut)) {
-        Write-Error "Missing file: $NetPut"
-    }
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = $NetPut
-    $pinfo.Arguments = "-s"
-    $pinfo.UseShellExecute = $false
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.RedirectStandardError = $true
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null
-}
+$pinfo = New-Object System.Diagnostics.ProcessStartInfo
+$pinfo.FileName = $QuicPerf
+$pinfo.UseShellExecute = $false
+$pinfo.RedirectStandardOutput = $true
+$pinfo.RedirectStandardError = $true
+$p = New-Object System.Diagnostics.Process
+$p.StartInfo = $pinfo
+$p.Start() | Out-Null
 
 # Wait for the server(s) to come up.
 Sleep -Seconds 1
@@ -270,9 +251,14 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
     Start-Sleep 5 # (wait for duonic to restart)
 
     # Loop over all the test configurations.
-    foreach ($ThisUseTcp in $UseTcp) {
+    foreach ($ThisProtocol in $Protocol) {
     foreach ($ThisDurationMs in $DurationMs) {
     foreach ($ThisPacing in $Pacing) {
+
+        $UseTcp = 0
+        if ($ThisProtocol -eq "TCPTLS") {
+            $UseTcp = 1
+        }
 
         # Run through all the iterations and keep track of the results.
         $Results = [System.Collections.Generic.List[int]]::new()
@@ -291,47 +277,26 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             Write-Debug "Run upload test: Iteration=$($i + 1)"
 
             $Rate = 0
-            if ($ThisUseTcp -eq 0) {
-                $Command = "$QuicPerf -test:tput -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
-                Write-Debug $Command
-                $Output = [string](iex $Command)
-                Write-Debug $Output
-                if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:")) {
-                    if ($LogProfile -ne "None") {
-                        & $LogScript -Cancel | Out-Null
-                    }
-                    Write-Error $Output
+            $Command = "$QuicPerf -test:tput -tcp:$UseTcp -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
+            Write-Debug $Command
+            $Output = [string](iex $Command)
+            Write-Debug $Output
+            if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:")) {
+                if ($LogProfile -ne "None") {
+                    & $LogScript -Cancel | Out-Null
                 }
-
-                # Grab the rate from the output text. Example:
-                #   Started!  Result: 23068672 bytes @ 18066 kbps (10215.203 ms). App Main returning status 0
-                $Rate = [int]$Output.Split(" ")[6]
-
-            } else {
-                $EstimatedLength = ($ThisBottleneckMbps * $ThisDurationMs * 1000) / 8;
-                $IoSize = 50000 # netput default
-                $IoCount = 1 + ($EstimatedLength / $IoSize)
-                $Command = "$NetPut -c 192.168.1.11 -b 192.168.1.12 -tx -ss $IoSize -n $IoCount"
-                Write-Debug $Command
-                $Output = [string](iex $Command)
-                Write-Debug $Output
-                if ($Output.Contains("connect failed")) {
-                    if ($LogProfile -ne "None") {
-                        & $LogScript -Cancel | Out-Null
-                    }
-                    Write-Error $Output
-                }
-
-                # Grab the rate from the output text. Example:
-                #   Connection established TCP TX 25050000 bytes, 501 calls, 10.813 sec, 2.32 MBps, 18.53 Mbps
-                $Rate = [int](([double]$Output.Split(" ")[-2]) * 1000.0)
+                Write-Error $Output
             }
+
+            # Grab the rate from the output text. Example:
+            #   Started!  Result: 23068672 bytes @ 18066 kbps (10215.203 ms). App Main returning status 0
+            $Rate = [int]$Output.Split(" ")[6]
 
             Write-Debug "$Rate Kbps"
             $Results.Add($Rate) | Out-Null
 
             if ($LogProfile -ne "None") {
-                $TestLogPath = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$ThisUseTcp.$ThisDurationMs.$ThisPacing.$i.$Rate"
+                $TestLogPath = Join-Path $LogDir "$ThisRttMs.$ThisBottleneckMbps.$ThisBottleneckBufferPackets.$ThisRandomLossDenominator.$ThisRandomReorderDenominator.$ThisReorderDelayDeltaMs.$UseTcp.$ThisDurationMs.$ThisPacing.$i.$Rate"
                 try {
                     & $LogScript -Stop -OutputPath $TestLogPath -RawLogOnly | Out-Null
                 } catch {
@@ -342,11 +307,11 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
         # Grab the average result and write the CSV output.
         $RateKbps = [int]($Results | Measure-Object -Average).Average
-        $Row = "$ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $ThisUseTcp, $ThisDurationMs, $ThisPacing, $RateKbps"
+        $Row = "$ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisDurationMs, $ThisPacing, $RateKbps"
         for ($i = 0; $i -lt $NumIterations; $i++) {
             $Row += ", $($Results[$i])"
         }
-        $RunResult = [TestResult]::new($ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $ThisUseTcp, $ThisDurationMs, $ThisPacing, $RateKbps, $Results);
+        $RunResult = [TestResult]::new($ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisDurationMs, $ThisPacing, $RateKbps, $Results);
         $RunResults.Runs.Add($RunResult)
         Write-Host $Row
     }}}

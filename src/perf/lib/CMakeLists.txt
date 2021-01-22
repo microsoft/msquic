@@ -6,6 +6,7 @@ set(SOURCES
     PerfServer.cpp
     quicmain.cpp
     RpsClient.cpp
+    Tcp.cpp
     ThroughputClient.cpp
 )
 

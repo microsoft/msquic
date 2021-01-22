@@ -762,7 +762,8 @@ CxPlatDataPathInitialize(
     if (TcpCallbacks != NULL) {
         if (TcpCallbacks->Accept == NULL ||
             TcpCallbacks->Connect == NULL ||
-            TcpCallbacks->Receive == NULL) {
+            TcpCallbacks->Receive == NULL ||
+            TcpCallbacks->SendComplete == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             Datapath = NULL;
             goto Exit;
@@ -2042,6 +2043,9 @@ CxPlatSocketCreateTcpListener(
     Socket->Type = CXPLAT_SOCKET_TCP_LISTENER;
     if (LocalAddress) {
         CxPlatConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
+        if (Socket->LocalAddress.si_family == AF_UNSPEC) {
+            Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
+        }
     } else {
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
@@ -2525,7 +2529,7 @@ Error:
 
 void
 CxPlatDataPathAcceptComplete(
-    _In_ CXPLAT_DATAPATH_PROC* DatapathProc,
+    _In_ CXPLAT_DATAPATH_PROC* ListenerDatapathProc,
     _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc,
     _In_ ULONG IoResult
     )
@@ -2542,10 +2546,12 @@ CxPlatDataPathAcceptComplete(
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket != NULL);
         CXPLAT_SOCKET_PROC* AcceptSocketProc = &ListenerSocketProc->AcceptSocket->Processors[0];
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
+        DWORD BytesReturned;
+        SOCKET_PROCESSOR_AFFINITY RssAffinity = { 0 };
+        CXPLAT_DATAPATH_PROC* DatapathProc;
 
         AcceptSocketProc->Parent->ConnectComplete = TRUE;
         AcceptSocketProc->Parent->ProcessorAffinity = 0;
-        // TODO - Query for RSS info
 
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -2571,6 +2577,27 @@ CxPlatDataPathAcceptComplete(
                 "Set UPDATE_ACCEPT_CONTEXT");
             goto Error;
         }
+
+        Result =
+            WSAIoctl(
+                AcceptSocketProc->Socket,
+                SIO_QUERY_RSS_PROCESSOR_INFO,
+                NULL,
+                0,
+                &RssAffinity,
+                sizeof(RssAffinity),
+                &BytesReturned,
+                NULL,
+                NULL);
+        if (Result == NO_ERROR) {
+            AcceptSocketProc->Parent->ProcessorAffinity =
+                (uint16_t)CxPlatProcessorGroupOffsets[RssAffinity.Processor.Group] +
+                (uint16_t)RssAffinity.Processor.Number;
+        }
+
+        DatapathProc =
+            &ListenerSocketProc->Parent->Datapath->Processors[
+                AcceptSocketProc->Parent->ProcessorAffinity];
 
         if (DatapathProc->IOCP !=
             CreateIoCompletionPort(
@@ -2622,7 +2649,7 @@ Error:
     //
     // Try to start a new accept.
     //
-    (void)CxPlatSocketStartAccept(ListenerSocketProc, DatapathProc);
+    (void)CxPlatSocketStartAccept(ListenerSocketProc, ListenerDatapathProc);
 }
 
 void
@@ -3219,7 +3246,8 @@ CxPlatSendDataAlloc(
         SendContext->Owner = DatapathProc;
         SendContext->ECN = ECN;
         SendContext->SegmentSize =
-            (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
+            (Socket->Type != CXPLAT_SOCKET_UDP ||
+             Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
                 ? MaxPacketSize : 0;
         SendContext->TotalSize = 0;
         SendContext->WsaBufferCount = 0;
@@ -3257,7 +3285,7 @@ CxPlatSendContextCanAllocSendSegment(
 {
     CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0);
     CXPLAT_DBG_ASSERT(SendContext->WsaBufferCount > 0);
-    CXPLAT_DBG_ASSERT(SendContext->WsaBufferCount <= SendContext->Owner->Datapath->MaxSendBatchSize);
+    //CXPLAT_DBG_ASSERT(SendContext->WsaBufferCount <= SendContext->Owner->Datapath->MaxSendBatchSize);
 
     ULONG BytesAvailable =
         CXPLAT_LARGE_SEND_BUFFER_SIZE -
@@ -3410,7 +3438,7 @@ CxPlatSendDataAllocBuffer(
 {
     CXPLAT_DBG_ASSERT(SendContext != NULL);
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
-    CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
+    //CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
 
     CxPlatSendContextFinalizeSendBuffer(SendContext, FALSE);
 
@@ -3473,7 +3501,6 @@ CxPlatSendContextComplete(
     _In_ ULONG IoResult
     )
 {
-    UNREFERENCED_PARAMETER(SocketProc);
     if (IoResult != QUIC_STATUS_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -3481,6 +3508,14 @@ CxPlatSendContextComplete(
             SocketProc->Parent,
             IoResult,
             "WSASendMsg completion");
+    }
+
+    if (SocketProc->Parent->Type != CXPLAT_SOCKET_UDP) {
+        SocketProc->Parent->Datapath->TcpHandlers.SendComplete(
+            SocketProc->Parent,
+            SocketProc->Parent->ClientContext,
+            IoResult,
+            SendContext->TotalSize);
     }
 
     CxPlatSendDataFree(SendContext);
