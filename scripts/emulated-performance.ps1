@@ -319,3 +319,6 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 }}}}}}
 
 $RunResults | ConvertTo-Json -Depth 100 | Out-File $OutputFile
+
+# Kill any leftovers.
+try { Stop-Process -Name quicperf } catch { }
