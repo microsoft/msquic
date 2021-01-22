@@ -66,10 +66,12 @@ private:
         uint64_t OutstandingBytes{0};
         uint64_t BytesSent{0};
         uint64_t BytesCompleted{0};
-        uint64_t StartTime{0};
+        uint64_t StartTime{CxPlatTimeUs64()};
         uint64_t EndTime{0};
         QUIC_BUFFER LastBuffer;
-        bool Complete{0};
+        bool Complete{false};
+        bool SendShutdown{false};
+        bool RecvShutdown{false};
     };
 
     QUIC_STATUS
@@ -99,6 +101,8 @@ private:
         _In_ TcpConnection* Connection,
         _In_ StreamContext* Context
         );
+
+    void OnStreamShutdownComplete(_In_ StreamContext* Context);
 
     MsQuicRegistration Registration {true};
     MsQuicConfiguration Configuration {

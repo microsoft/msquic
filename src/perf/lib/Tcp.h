@@ -161,6 +161,7 @@ class TcpConnection {
     friend class TcpServer;
     bool IsServer;
     bool Initialized{false};
+    bool ClosedByApp{false};
     bool QueuedOnWorker{false};
     bool StartTls{true};
     bool IndicateAccept{false};
@@ -254,6 +255,8 @@ class TcpConnection {
     QUIC_BUFFER* NewSendBuffer();
     void FreeSendBuffer(QUIC_BUFFER* SendBuffer);
     void FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
+    void AddRef() { CxPlatRefIncrement(&Ref); }
+    void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
 public:
     void* Context{nullptr}; // App context
     TcpConnection(
@@ -266,7 +269,6 @@ public:
         _In_ const QUIC_ADDR* LocalAddress = nullptr,
         _In_ void* Context = nullptr);
     bool IsInitialized() const { return Initialized; }
-    void AddRef() { CxPlatRefIncrement(&Ref); }
-    void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
+    void Close() { ClosedByApp = true; Release(); }
     void Send(TcpSendData* Data);
 };
