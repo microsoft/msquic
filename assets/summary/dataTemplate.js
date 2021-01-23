@@ -241,7 +241,7 @@ function createAverageSummaryDataset(platform, color, dataset) {
         borderWidth: dataLineWidth,
         pointRadius: 0,
         tension: 0,
-        data: filterDataset(dataset, new Date(Date.now() - 12096e5)), // Last 2 weeks
+        data: dataset.slice(0, 11),
         fill: false,
         sortOrder: 1,
         hidden: false,
@@ -364,7 +364,11 @@ window.onload = function() {
     // Summary charts
     new Chart(document.getElementById('canvasThroughputSummary').getContext('2d'), {
         data: createSummaryDatasets(dataAverageWinKernelx64SchannelThroughput, dataAverageWindowsx64SchannelThroughput, dataAverageWindowsx64OpensslThroughput),
-        options: createSummaryChartOptions('Single Connection Throughput', 'Throughput (kbps)')
+        options: createSummaryChartOptions('Single Connection Upload', 'Throughput (kbps)')
+    });
+    new Chart(document.getElementById('canvasThroughputDownSummary').getContext('2d'), {
+        data: createSummaryDatasets(dataAverageWinKernelx64SchannelThroughputDown, dataAverageWindowsx64SchannelThroughputDown, dataAverageWindowsx64OpensslThroughputDown),
+        options: createSummaryChartOptions('Single Connection Download', 'Throughput (kbps)')
     });
     new Chart(document.getElementById('canvasRPSSummary').getContext('2d'), {
         data: createSummaryDatasets(dataAverageWinKernelx64SchannelRps, dataAverageWindowsx64SchannelRps, dataAverageWindowsx64OpensslRps),
