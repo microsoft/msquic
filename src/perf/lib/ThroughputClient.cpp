@@ -578,19 +578,22 @@ ThroughputClient::TcpReceiveCallback(
 {
     auto This = (ThroughputClient*)Connection->Context;
     auto StrmContext = This->TcpStrmContext;
-    StrmContext->BytesCompleted += Length;
-    if (This->TimedTransfer) {
-        if (CxPlatTimeDiff64(StrmContext->StartTime, CxPlatTimeUs64()) >= MS_TO_US(This->DownloadLength)) {
-            auto SendData = new TcpSendData();
-            SendData->StreamId = 0;
-            SendData->Abort = TRUE;
-            SendData->Buffer = This->DataBuffer->Buffer;
-            SendData->Length = 0;
-            Connection->Send(SendData);
+    if (!StrmContext) return;
+    if (Length) {
+        StrmContext->BytesCompleted += Length;
+        if (This->TimedTransfer) {
+            if (CxPlatTimeDiff64(StrmContext->StartTime, CxPlatTimeUs64()) >= MS_TO_US(This->DownloadLength)) {
+                auto SendData = new TcpSendData();
+                SendData->StreamId = 0;
+                SendData->Abort = TRUE;
+                SendData->Buffer = This->DataBuffer->Buffer;
+                SendData->Length = 0;
+                Connection->Send(SendData);
+                StrmContext->Complete = true;
+            }
+        } else if (StrmContext->BytesCompleted == This->DownloadLength) {
             StrmContext->Complete = true;
         }
-    } else if (StrmContext->BytesCompleted == This->DownloadLength) {
-        StrmContext->Complete = true;
     }
     if ((Fin || Abort) && !StrmContext->RecvShutdown) {
         StrmContext->RecvShutdown = true;
