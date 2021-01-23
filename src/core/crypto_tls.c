@@ -812,7 +812,7 @@ QuicCryptoTlsEncodeTransportParameters(
                 0);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
-        RequiredTPLen +=
+        RequiredTPLen += (size_t)
             TlsTransportParamLength(
                 QUIC_TP_ID_VERSION_NEGOTIATION_EXT,
                 TransportParams->VersionNegotiationInfoLength);

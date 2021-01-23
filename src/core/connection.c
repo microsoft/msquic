@@ -2972,6 +2972,7 @@ QuicConnRecvVerNeg(
             QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
             (uint64_t)QUIC_STATUS_VER_NEG_ERROR,
             NULL);
+        return;
     }
     CxPlatCopyMemory(
         ReceivedNegotiationVersions,
