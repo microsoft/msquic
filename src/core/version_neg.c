@@ -167,7 +167,7 @@ QuicVersionNegotiationExtParseClientVerNegInfo(
     CxPlatCopyMemory(&ClientVNI->CurrentVersion, Buffer, sizeof(ClientVNI->CurrentVersion));
     Offset += sizeof(uint32_t);
 
-    if (BufferLength - Offset < sizeof(uint32_t)) {
+    if ((unsigned)(BufferLength - Offset) < sizeof(uint32_t)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
