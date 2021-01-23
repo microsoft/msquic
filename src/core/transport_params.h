@@ -169,7 +169,7 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     //
     // Pointer to the Version Negotiation transport parameter opaque blob.
     //
-    uint8_t* VersionNegotiationInfo;
+    const uint8_t* VersionNegotiationInfo;
     QUIC_VAR_INT VersionNegotiationInfoLength;
 
 } QUIC_TRANSPORT_PARAMETERS;
@@ -203,18 +203,6 @@ QuicCryptoTlsDecodeTransportParameters(
     _Out_ QUIC_TRANSPORT_PARAMETERS* TransportParams
     );
 
-
-//
-// Encodes Version Negotiation Information into the opaque blob used by the
-// extension.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != NULL)
-const uint8_t*
-QuicCryptoTlsEncodeVersionNegotiationInfo(
-    _In_ QUIC_CONNECTION* Connection,
-    _Out_ uint32_t* VNInfoLength
-);
 
 //
 // Decodes QUIC Version Negotiation Info TP buffer.

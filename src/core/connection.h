@@ -542,7 +542,7 @@ typedef struct QUIC_CONNECTION {
     //
     // Received version negotiation list from a previous connection attempt.
     //
-    uint32_t* ReceivedNegotiationVersions;
+    const uint32_t* ReceivedNegotiationVersions;
     uint32_t ReceivedNegotiationVersionsLength;
 
     //

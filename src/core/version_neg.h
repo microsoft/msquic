@@ -14,14 +14,14 @@ Abstract:
 //
 // This list is the versions that the server advertises support for.
 //
-extern uint32_t DefaultSupportedVersionsList[];
-extern uint32_t DefaultSupportedVersionsListLength;
+extern const uint32_t DefaultSupportedVersionsList[];
+extern const uint32_t DefaultSupportedVersionsListLength;
 
 //
 // This list of compatible versions is for the default client version, QUIC_VERSION_1
 //
-extern uint32_t DefaultCompatibleVersionsList[];
-extern uint32_t DefaultCompatibleVersionsListLength;
+extern const uint32_t DefaultCompatibleVersionsList[];
+extern const uint32_t DefaultCompatibleVersionsListLength;
 
 typedef struct QUIC_CLIENT_VER_NEG_INFO {
     uint32_t CurrentVersion;
@@ -37,6 +37,23 @@ typedef struct QUIC_SERVER_VER_NEG_INFO {
     QUIC_VAR_INT SupportedVersionCount;
     const uint32_t* SupportedVersions;
 } QUIC_SERVER_VER_NEG_INFO;
+
+BOOLEAN
+QuicVersionNegotiationExtIsVersionServerSupported(
+    _In_ uint32_t Version
+    );
+
+BOOLEAN
+QuicVersionNegotiationExtAreVersionsCompatible(
+    _In_ uint32_t OriginalVersion,
+    _In_ uint32_t UpgradedVersion
+    );
+
+BOOLEAN
+QuicVersionNegotiationExtIsVersionCompatible(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint32_t NegotiatedVersion
+    );
 
 QUIC_STATUS
 QuicVersionNegotiationExtGenerateCompatibleVersionsList(
@@ -54,4 +71,24 @@ QuicVersionNegotiationExtParseClientVerNegInfo(
         const uint8_t* const Buffer,
     _In_ uint16_t BufferLength,
     _Out_ QUIC_CLIENT_VER_NEG_INFO* ClientVNI
+    );
+
+QUIC_STATUS
+QuicVersionNegotiationExtParseServerVerNegInfo(
+    _In_reads_bytes_(BufferLength)
+        const uint8_t* const Buffer,
+    _In_ uint16_t BufferLength,
+    _Out_ QUIC_SERVER_VER_NEG_INFO* ServerVNI
+    );
+
+//
+// Encodes Version Negotiation Information into the opaque blob used by the
+// extension.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
+const uint8_t*
+QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
+    _In_ QUIC_CONNECTION* Connection,
+    _Out_ uint32_t* VNInfoLength
     );
