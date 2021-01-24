@@ -14,6 +14,16 @@ Chart.defaults.global.tooltips.itemSort = tooltipSort
 Chart.defaults.global.legend.display = false
 Chart.defaults.scale.display = true
 
+// Default number of commits to slice for each chart type.
+var summaryChartCommits = 11
+if (maxIndex < summaryChartCommits) {
+    summaryChartCommits = maxIndex
+}
+var detailChartCommits = 31
+if (maxIndex < detailChartCommits) {
+    detailChartCommits = maxIndex
+}
+
 // Chart variables used in onClick handler
 var tputChart = null;
 var tputDownChart = null;
@@ -57,8 +67,8 @@ function chartOnCick(a, activeElements) {
     window.open("./percommit/main/" + commitHash + "/index.html", "_self")
 }
 
-function filterDataset(dataset, afterDate) {
-    return dataset.filter(p => p.t > afterDate);
+function filterDataset(dataset, commitCount) {
+    return dataset.filter(p => (maxIndex - 1 - p.x) < commitCount);
 }
 
 var tooltipsObject = {
@@ -84,7 +94,7 @@ var timeAxis = {
     type: 'linear',
     offset: true,
     ticks: {
-        maxTicksLimit: maxIndex + 10,
+        maxTicksLimit: detailChartCommits + 10,
         stepSize: 1,
         callback: function(value) {
             if (value % 1 !== 0) {
@@ -94,7 +104,24 @@ var timeAxis = {
             }
         }
     },
-    scaleLabel: createScaleLabel('Commits Back From Current')
+    scaleLabel: createScaleLabel('Latest Commits')
+};
+
+var summaryTimeAxis = {
+    type: 'linear',
+    offset: true,
+    ticks: {
+        maxTicksLimit: summaryChartCommits + 10,
+        stepSize: 1,
+        callback: function(value) {
+            if (value % 1 !== 0) {
+                return "";
+            } else {
+                return maxIndex - 1 - value;
+            }
+        }
+    },
+    scaleLabel: createScaleLabel('Latest Commits')
 };
 
 var pluginObject = {
@@ -103,13 +130,13 @@ var pluginObject = {
             enabled: true,
             mode: 'x',
             rangeMin: { x: 0 },
-            rangeMax: { x: maxIndex - 1 }
+            rangeMax: { x: detailChartCommits }
         },
         zoom: {
             enabled: true,
             mode: 'x',
             rangeMin: { x: 0 },
-            rangeMax: { x: maxIndex - 1 }
+            rangeMax: { x: detailChartCommits }
         }
     }
 }
@@ -132,7 +159,7 @@ function createSummaryChartOptions(title, yName) {
         },
         tooltips: tooltipsSummaryObject,
         scales: {
-            xAxes: [timeAxis],
+            xAxes: [summaryTimeAxis],
             yAxes: [{
                 scaleLabel: createScaleLabel(yName),
                 ticks: { min: 0 }
@@ -202,7 +229,7 @@ function createRawDataset(platform, color, dataset) {
         pointStyle: "crossRot",
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
-        data: dataset,
+        data: filterDataset(dataset, detailChartCommits),
         sortOrder: 2,
         hidden: true,
         hiddenType: true,
@@ -221,7 +248,7 @@ function createAverageDataset(platform, color, dataset) {
         borderWidth: dataLineWidth,
         pointRadius: dataRawPointRadius,
         tension: 0,
-        data: dataset,
+        data: filterDataset(dataset, detailChartCommits),
         fill: false,
         sortOrder: 1,
         hidden: false,
@@ -241,7 +268,7 @@ function createAverageSummaryDataset(platform, color, dataset) {
         borderWidth: dataLineWidth,
         pointRadius: 0,
         tension: 0,
-        data: dataset.slice(0, 11),
+        data: filterDataset(dataset, summaryChartCommits),
         fill: false,
         sortOrder: 1,
         hidden: false,
@@ -347,7 +374,6 @@ function onRadioChange(event) {
     updateChartDisplayPoints(tputDownChart, value)
     updateChartDisplayPoints(rpsChart, value)
     updateChartDisplayPoints(hpsChart, value)
-    updateChartDisplayPoints(rpsLatencyChart, value)
 }
 
 function onPlatformChange(event) {
@@ -392,14 +418,13 @@ window.onload = function() {
         data: createDatasets(dataRawWinKernelx64SchannelRps, dataAverageWinKernelx64SchannelRps, dataRawWindowsx64SchannelRps, dataAverageWindowsx64SchannelRps, dataRawWindowsx64OpensslRps, dataAverageWindowsx64OpensslRps),
         options: createChartOptions('RPS')
     });
-    hpsChart = new Chart(document.getElementById('canvasHPS').getContext('2d'), {
-        data: createDatasets(dataRawWinKernelx64SchannelHps, dataAverageWinKernelx64SchannelHps, dataRawWindowsx64SchannelHps, dataAverageWindowsx64SchannelHps, dataRawWindowsx64OpensslHps, dataAverageWindowsx64OpensslHps),
-        options: createChartOptions('HPS')
-    });
-
     rpsLatencyChart = new Chart(document.getElementById('canvasRPSLatency').getContext('2d'), {
         data: createLatencyDatasets(dataRpsLatencyWindowsOpenSsl, dataRpsLatencyWindowsSchannel, dataRpsLatencyWinKernel),
         options: createLatencyChartOptions('RPS Latency (μs)')
+    });
+    hpsChart = new Chart(document.getElementById('canvasHPS').getContext('2d'), {
+        data: createDatasets(dataRawWinKernelx64SchannelHps, dataAverageWinKernelx64SchannelHps, dataRawWindowsx64SchannelHps, dataAverageWindowsx64SchannelHps, dataRawWindowsx64OpensslHps, dataAverageWindowsx64OpensslHps),
+        options: createChartOptions('HPS')
     });
 
     document.getElementById('rawpdt').onclick = onRadioChange
