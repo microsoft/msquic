@@ -107,23 +107,6 @@ var timeAxis = {
     scaleLabel: createScaleLabel('Latest Commits')
 };
 
-var summaryTimeAxis = {
-    type: 'linear',
-    offset: true,
-    ticks: {
-        maxTicksLimit: summaryChartCommits + 10,
-        stepSize: 1,
-        callback: function(value) {
-            if (value % 1 !== 0) {
-                return "";
-            } else {
-                return maxIndex - 1 - value;
-            }
-        }
-    },
-    scaleLabel: createScaleLabel('Latest Commits')
-};
-
 var pluginObject = {
     zoom: {
         pan: {
@@ -159,7 +142,7 @@ function createSummaryChartOptions(title, yName) {
         },
         tooltips: tooltipsSummaryObject,
         scales: {
-            xAxes: [summaryTimeAxis],
+            xAxes: [timeAxis],
             yAxes: [{
                 scaleLabel: createScaleLabel(yName),
                 ticks: { min: 0 }
