@@ -31,7 +31,7 @@ The API supports both server and client applications. All functionality is expos
 
 [**Registration**](#registration) – Manages the execution context for all child objects. An app may open multiple registrations but ideally should only open one.
 
-[**Configuration**](#configuration) – Abstracts the configuration for a connection. TODO
+[**Configuration**](#configuration) – Abstracts the configuration for a connection. This generally consists both of security related and common QUIC settings.
 
 [**Listener**](#listener) – Server side only, this object provides the interface for an app to accept incoming connections from clients. Once the connection has been accepted, it is independent of the listener. The app may create as many of these as necessary.
 
