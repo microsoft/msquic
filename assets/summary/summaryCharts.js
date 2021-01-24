@@ -4,8 +4,8 @@ var dataColorWindowsx64Schannel = "#0062ff"
 var dataColorWindowsx64Openssl = "#ff3c00"
 
 // Useful configuration values
-var dataLineWidth = 3
-var dataRawPointRadius = 4
+var dataLineWidth = 2
+var dataRawPointRadius = 3
 
 // Default number of commits to slice for each chart type.
 var summaryChartCommits = 11
@@ -30,13 +30,12 @@ function filterDataset(dataset, commitCount) {
     return dataset.filter(p => (maxIndex - 1 - p.x) < commitCount);
 }
 
-function createScaleLabel(name) {
-    return {
-        display: true,
-        labelString: name,
-        fontSize: 14,
-        fontStyle: 'bold'
-    };
+function chartOnCick(a, activeElements) {
+    if (activeElements.length === 0) return
+    var dataset = this.config.data.datasets[activeElements[0]._datasetIndex]
+    var rawTime = dataset.data[activeElements[0]._index].rawTime
+    var commitHash = commitDatePairs[rawTime]
+    window.open("./percommit/main/" + commitHash + "/index.html", "_blank")
 }
 
 function createAverageSummaryDataset(platform, color, dataset) {
@@ -69,38 +68,28 @@ function createSummaryDatasets(avgKernel, avgUserSchannel, avgUserOpenssl) {
     };
 }
 
-var timeAxis = {
-    type: 'linear',
-    offset: true,
-    gridLines: {
-      display: false,
-      drawBorder: false
-    },
-    ticks: {
-        maxTicksLimit: summaryChartCommits + 10,
-        stepSize: 1,
-        callback: function(value) {
-            if (value % 1 !== 0) {
-                return "";
-            } else {
-                return maxIndex - 1 - value;
-            }
-        }
-    }
-};
-
 var summaryChartOptions = {
     maintainAspectRatio: false,
-    layout: {
-        padding: {
-        left: 5,
-        right: 10,
-        top: 10,
-        bottom: 0
-        }
-    },
     scales: {
-        xAxes: [timeAxis],
+        xAxes: [{
+            type: 'linear',
+            offset: true,
+            gridLines: {
+              display: false,
+              drawBorder: false
+            },
+            ticks: {
+                maxTicksLimit: summaryChartCommits + 10,
+                stepSize: 1,
+                callback: function(value) {
+                    if (value % 1 !== 0) {
+                        return "";
+                    } else {
+                        return maxIndex - 1 - value;
+                    }
+                }
+            }
+        }],
         yAxes: [{
             ticks: {
                 min: 0,
@@ -118,6 +107,7 @@ var summaryChartOptions = {
     legend: {
       display: false
     },
+    onClick: chartOnCick,
     tooltips: {
         backgroundColor: "rgb(255,255,255)",
         bodyFontColor: "#858796",
@@ -139,10 +129,18 @@ var summaryChartOptions = {
 
 window.onload = function() {
     // Latest values
-    document.getElementById("uploadLatest").textContent = "5,911 Mbps"
-    document.getElementById("downloadLatest").textContent = "5,711 Mbps"
-    document.getElementById("rpsLatest").textContent = "913 KHz"
-    document.getElementById("hpsLatest").textContent = "2326 Hz"
+    document.getElementById("winKernelSchannelUp").textContent = "5,911 Mbps"
+    document.getElementById("winKernelSchannelDown").textContent = "5,711 Mbps"
+    document.getElementById("winKernelSchannelRps").textContent = "257 KHz"
+    document.getElementById("winKernelSchannelHps").textContent = "1,924 Hz"
+    document.getElementById("winUserSchannelUp").textContent = "5,779 Mbps"
+    document.getElementById("winUserSchannelDown").textContent = "2,121 Mbps"
+    document.getElementById("winUserSchannelRps").textContent = "869 KHz"
+    document.getElementById("winUserSchannelHps").textContent = "1,832 Hz"
+    document.getElementById("winUserOpenSslUp").textContent = "5,672 Mbps"
+    document.getElementById("winUserOpenSslDown").textContent = "3,631 Mbps"
+    document.getElementById("winUserOpenSslRps").textContent = "919 KHz"
+    document.getElementById("winUserOpenSslHps").textContent = "2,326 Hz"
 
     // Summary charts
     new Chart(document.getElementById('canvasThroughputSummary').getContext('2d'), {

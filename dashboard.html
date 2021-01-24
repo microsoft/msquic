@@ -116,82 +116,144 @@
 
                     <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800">Performance Dashboard</h1>
+                        <h1 class="h3 mb-0 font-weight-bold text-gray-800">Performance Dashboard</h1>
                     </div>
 
                     <!-- Content Row -->
                     <div class="row">
 
-                        <!-- Upload Throughput Card -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-primary shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                                Upload Throughput</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="uploadLatest">?</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-upload fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Download Throughput Card -->
+                        <!-- Windows Kernel Schannel Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-success shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
                                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                                Download Throughput</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="downloadLatest">?</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-download fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Requests per Second Card -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-info shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                                Requests per Second</div>
+                                                Windows Kernel Schannel</div>
                                             <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">Upload</div>
+                                                </div>
                                                 <div class="col-auto">
-                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="rpsLatest">?</div>
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="winKernelSchannelUp">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">Download</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="winKernelSchannelDown">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">RPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="winKernelSchannelRps">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">HPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="winKernelSchannelHps">?</div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-server fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Windows User Schannel Card -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                Windows User Schannel</div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">Upload</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="winUserSchannelUp">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">Download</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="winUserSchannelDown">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">RPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="winUserSchannelRps">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">HPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="winUserSchannelHps">?</div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Handshakes per Second Card -->
+                        <!-- Windows User OpenSSL Card -->
                         <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-warning shadow h-100 py-2">
+                            <div class="card border-left-danger shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                                Handshakes per Second</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="hpsLatest">?</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-stream fa-2x text-gray-300"></i>
+                                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                                Windows User OpenSSL</div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">Upload</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="winUserOpenSslUp">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">Download</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="winUserOpenSslDown">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">RPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="winUserOpenSslRps">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">HPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="winUserOpenSslHps">?</div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
