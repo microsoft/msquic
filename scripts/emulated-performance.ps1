@@ -282,17 +282,19 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             $Output = [string](iex $Command)
             Write-Debug $Output
             if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:")) {
-                if ($LogProfile -ne "None") {
-                    & $LogScript -Cancel | Out-Null
-                }
-                Write-Error $Output
+                # Don't treat one failure as fatal for the whole run. Just print
+                # it out, use 0 as the rate, and continue on.
+                Write-Host $Command
+                Write-Host $Output
+                $Rate = 0
+
+            } else {
+                # Grab the rate from the output text. Example:
+                #   Started!  Result: 23068672 bytes @ 18066 kbps (10215.203 ms). App Main returning status 0
+                $Rate = [int]$Output.Split(" ")[6]
+                Write-Debug "$Rate Kbps"
             }
 
-            # Grab the rate from the output text. Example:
-            #   Started!  Result: 23068672 bytes @ 18066 kbps (10215.203 ms). App Main returning status 0
-            $Rate = [int]$Output.Split(" ")[6]
-
-            Write-Debug "$Rate Kbps"
             $Results.Add($Rate) | Out-Null
 
             if ($LogProfile -ne "None") {
@@ -306,7 +308,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         }
 
         # Grab the average result and write the CSV output.
-        $RateKbps = [int]($Results | Measure-Object -Average).Average
+        $RateKbps = [int]($Results | where {$_ -ne 0} | Measure-Object -Average).Average
         $Row = "$ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisDurationMs, $ThisPacing, $RateKbps"
         for ($i = 0; $i -lt $NumIterations; $i++) {
             $Row += ", $($Results[$i])"
