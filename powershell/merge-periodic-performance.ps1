@@ -118,6 +118,13 @@ $GraphScript = Join-Path $PSScriptRoot generate-periodic-graphs.ps1
 
 & $GraphScript -BranchName $BranchName
 
+# Copy data.js to latest assets
+$DataJs = Join-Path $CommitFolder "data.js"
+$OutputFolder = Join-Path $RootDir "assets" "summary" $BranchName
+New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
+Copy-Item -Path $DataJs -Destination "$OutputFolder\data.rps.js"
+
+
 # Copy entire commit folder to outputs
 $OutputFolder = Join-Path $RootDir "artifacts" "mergedPerfResults"
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
