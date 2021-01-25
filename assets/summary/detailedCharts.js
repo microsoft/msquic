@@ -108,7 +108,7 @@ function createLatencyDataset(platform, color, dataset) {
         backgroundColor: color,
         borderColor: color,
         borderWidth: dataLineWidth,
-        pointRadius: 0,
+        pointRadius: 1,
         tension: 0,
         fill: false,
         data: dataset,
