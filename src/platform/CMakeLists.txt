@@ -9,7 +9,7 @@ if (QUIC_CODE_CHECK)
     set(CMAKE_CXX_CPPCHECK ${CMAKE_C_CPPCHECK_AVAILABLE})
 endif()
 
-if("${QUIC_PLATFORM}" STREQUAL "windows")
+if("${CX_PLATFORM}" STREQUAL "windows")
     set(SOURCES
         datapath_winuser.c
         hashtable.c
@@ -18,7 +18,7 @@ if("${QUIC_PLATFORM}" STREQUAL "windows")
         toeplitz.c
     )
 else()
-    if(QUIC_PLATFORM STREQUAL "linux")
+    if(CX_PLATFORM STREQUAL "linux")
         set(SOURCES
             datapath_linux.c
             hashtable.c
@@ -45,7 +45,7 @@ if (QUIC_TLS STREQUAL "schannel")
 elseif(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Configuring for OpenSSL")
     set(SOURCES ${SOURCES} tls_openssl.c cert_capi_openssl.c)
-    if ("${QUIC_PLATFORM}" STREQUAL "windows")
+    if ("${CX_PLATFORM}" STREQUAL "windows")
         set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c)
     else()
         set(SOURCES ${SOURCES} selfsign_openssl.c)
@@ -61,6 +61,9 @@ endif()
 
 # Allow CLOG to preprocess all the source files.
 add_clog_library(platform.clog DYNAMIC ${SOURCES})
+if(QUIC_ENABLE_LOGGING)
+    set_property(TARGET platform.clog.provider PROPERTY FOLDER "helpers")
+endif()
 
 add_library(platform STATIC ${SOURCES})
 

@@ -24,24 +24,24 @@ struct HpsWorkerContext {
     uint16_t Processor {0};
     long OutstandingConnections {0};
     uint32_t NextLocalAddr {0};
-    QUIC_EVENT WakeEvent;
-    QUIC_THREAD Thread;
+    CXPLAT_EVENT WakeEvent;
+    CXPLAT_THREAD Thread;
     bool RemoteAddrSet {false};
     bool ThreadStarted {false};
     HpsWorkerContext() {
-        QuicZeroMemory(&RemoteAddr, sizeof(RemoteAddr));
-        QuicZeroMemory(&LocalAddrs, sizeof(LocalAddrs));
-        QuicEventInitialize(&WakeEvent, FALSE, TRUE);
+        CxPlatZeroMemory(&RemoteAddr, sizeof(RemoteAddr));
+        CxPlatZeroMemory(&LocalAddrs, sizeof(LocalAddrs));
+        CxPlatEventInitialize(&WakeEvent, FALSE, TRUE);
     }
     ~HpsWorkerContext() {
         WaitForWorker();
-        QuicEventUninitialize(WakeEvent);
+        CxPlatEventUninitialize(WakeEvent);
     }
     void WaitForWorker() {
         if (ThreadStarted) {
-            QuicEventSet(WakeEvent);
-            QuicThreadWait(&Thread);
-            QuicThreadDelete(&Thread);
+            CxPlatEventSet(WakeEvent);
+            CxPlatThreadWait(&Thread);
+            CxPlatThreadDelete(&Thread);
             ThreadStarted = false;
         }
     }
@@ -63,7 +63,7 @@ public:
 
     QUIC_STATUS
     Start(
-        _In_ QUIC_EVENT* StopEvent
+        _In_ CXPLAT_EVENT* StopEvent
         ) override;
 
     QUIC_STATUS
@@ -107,7 +107,7 @@ public:
     UniquePtr<char[]> Target;
     uint32_t RunTime {HPS_DEFAULT_RUN_TIME};
     uint32_t Parallel {HPS_DEFAULT_PARALLEL_COUNT};
-    QUIC_EVENT* CompletionEvent {nullptr};
+    CXPLAT_EVENT* CompletionEvent {nullptr};
     uint64_t CreatedConnections {0};
     uint64_t StartedConnections {0};
     uint64_t CompletedConnections {0};

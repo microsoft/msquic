@@ -2,6 +2,7 @@
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
 #region Stack Walk Profiles
 
@@ -198,19 +199,33 @@ function Wait-ForRemote {
 
 function Copy-Artifacts {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
-    param ([string]$From, [string]$To)
+    param ([string]$From, [string]$To, [string]$SmbDir)
     Remove-PerfServices
-    Invoke-TestCommand $Session -ScriptBlock {
-        param ($To)
+    if ($null -ne $SmbDir) {
         try {
-            Remove-Item -Path "$To/*" -Recurse -Force
+            Remove-Item -Path "$SmbDir/*" -Recurse -Force
         } catch [System.Management.Automation.ItemNotFoundException] {
             # Ignore Not Found for when the directory does not exist
             # This will still throw if a file cannot successfuly be deleted
         }
-
-    } -ArgumentList $To
-    Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse -Force
+        robocopy $From $SmbDir /e /IS /IT /IM | Out-Null
+        if ($LASTEXITCODE -ne 1) {
+            Write-Error "Robocopy failed: $LASTEXITCODE"
+        } else {
+            $global:LASTEXITCODE = 0
+        }
+    } else {
+        Invoke-TestCommand $Session -ScriptBlock {
+            param ($To)
+            try {
+                Remove-Item -Path "$To/*" -Recurse -Force
+            } catch [System.Management.Automation.ItemNotFoundException] {
+                # Ignore Not Found for when the directory does not exist
+                # This will still throw if a file cannot successfuly be deleted
+            }
+        } -ArgumentList $To
+        Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse -Force
+    }
 }
 
 function Get-GitHash {
@@ -295,12 +310,12 @@ function Get-ExeName {
 function Remove-PerfServices {
     if ($IsWindows) {
         Invoke-TestCommand -Session $Session -ScriptBlock {
-            if ($null -ne (Get-Service -Name "quicperf" -ErrorAction Ignore)) {
+            if ($null -ne (Get-Service -Name "quicperfdrvpriv" -ErrorAction Ignore)) {
                 try {
-                    net.exe stop quicperf /y | Out-Null
+                    net.exe stop quicperfdrvpriv /y | Out-Null
                 }
                 catch {}
-                sc.exe delete quicperf /y | Out-Null
+                sc.exe delete quicperfdrvpriv /y | Out-Null
             }
             if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
                 try {
@@ -327,7 +342,7 @@ function Invoke-RemoteExe {
     } -ArgumentList $Exe
 
     if ($Kernel) {
-        $RunArgs = "--kernel $RunArgs"
+        $RunArgs = "--kernelPriv $RunArgs"
     }
 
     Write-Debug "Running Remote: $Exe $RunArgs"
@@ -355,7 +370,7 @@ function Invoke-RemoteExe {
         $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
 
         if ($Kernel) {
-            Copy-Item (Join-Path $KernelDir "quicperf.sys") (Split-Path $Exe -Parent)
+            Copy-Item (Join-Path $KernelDir "quicperfdrvpriv.sys") (Split-Path $Exe -Parent)
             Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $Exe -Parent)
             sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Exe -Parent) "msquicpriv.sys") start= demand | Out-Null
             net.exe start msquicpriv
@@ -366,7 +381,7 @@ function Invoke-RemoteExe {
         # Uninstall the kernel mode test driver and revert the msquic driver.
         if ($Kernel) {
             net.exe stop msquicpriv /y | Out-Null
-            sc.exe delete quicperf | Out-Null
+            sc.exe delete quicperfdrvpriv | Out-Null
             sc.exe delete msquicpriv | Out-Null
         }
 
@@ -628,15 +643,18 @@ class ThroughputRequest {
 }
 
 function Get-LatestThroughputRemoteTestResults($CpuData, [ThroughputRequest]$Request) {
-    $TestConfig = $Request.GetConfiguration()
-    foreach ($Test in $CpuData.Tests) {
-        if ($null -eq $Test.TputConfig) {
-            continue;
+    try {
+        $TestConfig = $Request.GetConfiguration()
+        foreach ($Test in $CpuData.Tests) {
+            if ($null -eq $Test.TputConfig) {
+                continue;
+            }
+
+            if ($TestConfig -eq $Test.TputConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                return $Test
+            }
         }
-        
-        if ($TestConfig -eq $Test.TputConfig -and $Request.PlatformName -eq $Test.PlatformName) {
-            return $Test
-        }
+    } catch {
     }
     return $null
 }
@@ -775,15 +793,18 @@ class RPSRequest {
 }
 
 function Get-LatestRPSRemoteTestResults($CpuData, [RpsRequest]$Request) {
-    $TestConfig = $Request.GetConfiguration()
-    foreach ($Test in $CpuData.Tests) {
-        if ($null -eq $Test.RpsConfig) {
-            continue;
+    try {
+        $TestConfig = $Request.GetConfiguration()
+        foreach ($Test in $CpuData.Tests) {
+            if ($null -eq $Test.RpsConfig) {
+                continue;
+            }
+
+            if ($TestConfig -eq $Test.RpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                return $Test
+            }
         }
-        
-        if ($TestConfig -eq $Test.RpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
-            return $Test
-        }
+    } catch {
     }
     return $null
 }
@@ -906,15 +927,18 @@ class HPSRequest {
 }
 
 function Get-LatestHPSRemoteTestResults($CpuData, [HpsRequest]$Request) {
-    $TestConfig = $Request.GetConfiguration()
-    foreach ($Test in $CpuData.Tests) {
-        if ($null -eq $Test.HpsConfig) {
-            continue;
+    try {
+        $TestConfig = $Request.GetConfiguration()
+        foreach ($Test in $CpuData.Tests) {
+            if ($null -eq $Test.HpsConfig) {
+                continue;
+            }
+
+            if ($TestConfig -eq $Test.HpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                return $Test
+            }
         }
-        
-        if ($TestConfig -eq $Test.HpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
-            return $Test
-        }
+    } catch {
     }
     return $null
 }
@@ -1033,7 +1057,6 @@ class TestRunDefinition {
     [string]$TestName;
     [string]$VariableName;
     [string]$VariableValue;
-    [ExecutableRunSpec]$Remote;
     [ExecutableRunSpec]$Local;
     [int]$Iterations;
     [string]$RemoteReadyMatcher;
@@ -1049,14 +1072,12 @@ class TestRunDefinition {
         [string]$variableName,
         [string]$variableValue,
         [string]$localArgs,
-        [string]$remoteArgs,
         [hashtable]$variableValues
     ) {
         $this.TestName = $existingDef.TestName
         $this.VariableName = $variableName
         $this.VariableValue = $variableValue
         $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $localArgs)
-        $this.Remote = [ExecutableRunSpec]::new($existingDef.Remote, $remoteArgs)
         $this.Iterations = $existingDef.Iterations
         $this.RemoteReadyMatcher = $existingDef.RemoteReadyMatcher
         $this.ResultsMatcher = $existingDef.ResultsMatcher
@@ -1069,15 +1090,38 @@ class TestRunDefinition {
 
     TestRunDefinition (
         [TestDefinition]$existingDef,
+        [Collections.Generic.List[FullVariableSpec]]$variables
+    ) {
+        $this.TestName = $existingDef.TestName
+        $this.Iterations = $existingDef.Iterations
+        $this.RemoteReadyMatcher = $existingDef.RemoteReadyMatcher
+        $this.ResultsMatcher = $existingDef.ResultsMatcher
+        $this.Loopback = $script:Local
+        $this.AllowLoopback = $existingDef.AllowLoopback
+        $this.Formats = $existingDef.Formats
+        $this.RegressionThreshold = $existingDef.RegressionThreshold
+        $this.VariableValue = ""
+        $this.VariableName = ""
+
+        $this.VariableValues = @{}
+        $BaseArgs = $existingDef.Local.Arguments
+        foreach ($Var in $variables) {
+            $this.VariableValues.Add($Var.Name, $Var.Value)
+            $BaseArgs += (" " + $Var.Argument)
+            $this.VariableName += ("_" + $Var.Name + "_" + $Var.Value)
+        }
+        $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $BaseArgs)
+    }
+
+    TestRunDefinition (
+        [TestDefinition]$existingDef,
         [string]$localArgs,
-        [string]$remoteArgs,
         [hashtable]$variableValues
     ) {
         $this.TestName = $existingDef.TestName
         $this.VariableName = "Default"
         $this.VariableValue = ""
         $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $localArgs)
-        $this.Remote = [ExecutableRunSpec]::new($existingDef.Remote, $remoteArgs)
         $this.Iterations = $existingDef.Iterations
         $this.RemoteReadyMatcher = $existingDef.RemoteReadyMatcher
         $this.ResultsMatcher = $existingDef.ResultsMatcher
@@ -1093,8 +1137,8 @@ class TestRunDefinition {
         if ($this.VariableName -eq "Default") {
             $VarVal = ""
         }
-        $Platform = $this.Remote.Platform
-        if ($script:Kernel -and $this.Remote.Platform -eq "Windows") {
+        $Platform = $this.Local.Platform
+        if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
             $Platform = 'Winkernel'
         }
         $RetString = "$($this.TestName)_$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)_$($this.VariableName)$VarVal"
@@ -1105,8 +1149,8 @@ class TestRunDefinition {
     }
 
     [string]ToTestPlatformString() {
-        $Platform = $this.Remote.Platform
-        if ($script:Kernel -and $this.Remote.Platform -eq "Windows") {
+        $Platform = $this.Local.Platform
+        if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
             $Platform = 'Winkernel'
         }
         $RetString = "$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
@@ -1114,28 +1158,115 @@ class TestRunDefinition {
     }
 }
 
+class TestRunConfig {
+    [RemoteConfig]$Remote;
+    [TestRunDefinition[]]$Tests;
+}
+
 class Defaults {
     [string]$LocalValue;
-    [string]$RemoteValue;
     [string]$DefaultKey;
 
     Defaults (
         [string]$local,
-        [string]$remote,
         [string]$defaultKey
     ) {
         $this.LocalValue = $local
-        $this.RemoteValue = $remote
         $this.DefaultKey = $defaultKey
     }
 }
 
-function Get-TestMatrix {
-    param ([TestDefinition[]]$Tests, $RemotePlatform, $LocalPlatform)
+class FullVariableSpec {
+    [string]$Name;
+    [string]$Value;
+    [string]$Argument;
+
+    FullVariableSpec($Name, $Value, $Argument) {
+        $this.Name = $Name
+        $this.Value = $Value
+        $this.Argument = $Argument
+    }
+}
+
+function Get-FullTestMatrix {
+    param ([TestConfig]$Tests, $RemotePlatform, $LocalPlatform)
 
     [TestRunDefinition[]]$ToRunTests = @()
 
-    foreach ($Test in $Tests) {
+    foreach ($Test in $Tests.Tests) {
+
+        if (!(Test-CanRunTest -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform)) {
+            Write-Host "Skipping $($Test.ToString())"
+            continue
+        }
+
+        [Hashtable]$Variables = @{}
+
+        # Loop throught each variable
+        foreach ($Var in $Test.Variables) {
+            # Loop through each inner variable
+            foreach ($InnerVar in $Var.Local.Keys) {
+                if ($Variables.ContainsKey($Var.Name)) {
+                    $Variables[$Var.Name] += [FullVariableSpec]::new($Var.Name, $InnerVar, $Var.Local[$InnerVar]);
+                } else {
+                    $NewVar = @()
+                    $NewVar += [FullVariableSpec]::new($Var.Name, $InnerVar, $Var.Local[$InnerVar]);
+                    $Variables[$Var.Name] = $NewVar
+                }
+            }
+        }
+
+        if ($Variables.Count -eq 0) {
+            Write-Error "Full Matrix with an empty variable set not supported"
+        }
+
+        $First = $true
+        $Finished = [Collections.Generic.List[Collections.Generic.List[FullVariableSpec]]]::new()
+
+        foreach ($Variable in $Variables.Keys) {
+            if ($First) {
+                $First = $false
+                foreach ($InnerVar in $Variables[$Variable]) {
+                    $TmpList = [Collections.Generic.List[FullVariableSpec]]::new()
+                    $TmpList.Add($InnerVar)
+                    $Finished.Add($TmpList)
+                }
+            } else {
+                $NewList = [Collections.Generic.List[Collections.Generic.List[FullVariableSpec]]]::new()
+                foreach($ExistingList in $Finished) {
+                    foreach($InnerVar in $Variables[$Variable]) {
+                        $TmpList = [Collections.Generic.List[FullVariableSpec]]::new()
+                        $TmpList.AddRange($ExistingList)
+                        $TmpList.Add($InnerVar)
+                        $NewList.Add($TmpList)
+                    }
+                }
+                $Finished = $NewList
+            }
+        }
+
+        foreach ($TestToRun in $Finished) {
+            $ToRunTests += [TestRunDefinition]::new($Test, $TestToRun)
+        }
+    }
+
+    $RunConfig = [TestRunConfig]::new()
+    $RunConfig.Remote = $Tests.Remote;
+    $RunConfig.Tests = $ToRunTests;
+
+    return $RunConfig
+}
+
+function Get-TestMatrix {
+    param ([TestConfig]$Tests, $RemotePlatform, $LocalPlatform)
+
+    if ($Tests.FullMatrix) {
+        return Get-FullTestMatrix -Tests $Tests -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
+    }
+
+    [TestRunDefinition[]]$ToRunTests = @()
+
+    foreach ($Test in $Tests.Tests) {
 
         if (!(Test-CanRunTest -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform)) {
             Write-Host "Skipping $($Test.ToString())"
@@ -1145,46 +1276,30 @@ function Get-TestMatrix {
         [hashtable]$DefaultVals = @{}
         # Get all default variables
         foreach ($Var in $Test.Variables) {
-            if ($Var.Local.Keys.Count -ne $Var.Remote.Keys.Count) {
-                Write-Error "Remote and local key lengths must be the same"
-            }
-            $DefaultVals.Add($Var.Name, [Defaults]::new($Var.Local[$Var.Default], $Var.Remote[$Var.Default], $Var.Default))
+            $DefaultVals.Add($Var.Name, [Defaults]::new($Var.Local[$Var.Default], $Var.Default))
         }
 
-        $LocalArgs = $Test.Local.Arguments.All
-        $RemoteArgs = $Test.Remote.Arguments.All
-
-        if ($Local) {
-            $LocalArgs += " " + $Test.Local.Arguments.Loopback
-            $RemoteArgs += " " + $Test.Remote.Arguments.Loopback
-        } else {
-            $LocalArgs += " " + $Test.Local.Arguments.Remote
-            $RemoteArgs += " " + $Test.Remote.Arguments.Remote
-        }
+        $LocalArgs = $Test.Local.Arguments
 
         $DefaultLocalArgs = $LocalArgs
-        $DefaultRemoteArgs = $RemoteArgs
 
         $VariableValues = @{}
         foreach ($VarKey in $DefaultVals.Keys) {
             $VariableValues.Add($VarKey, $DefaultVals[$VarKey].DefaultKey)
             $DefaultLocalArgs += (" " + $DefaultVals[$VarKey].LocalValue)
-            $DefaultRemoteArgs += (" " + $DefaultVals[$VarKey].RemoteValue)
         }
 
         # Create the default test
-        $TestRunDef = [TestRunDefinition]::new($Test, $DefaultLocalArgs, $DefaultRemoteArgs, $VariableValues)
+        $TestRunDef = [TestRunDefinition]::new($Test, $DefaultLocalArgs, $VariableValues)
         $ToRunTests += $TestRunDef
 
         foreach ($Var in $Test.Variables) {
             $LocalVarArgs = @{}
-            $RemoteVarArgs = @{}
 
             $StateKeyList = @()
 
             foreach ($Key in $Var.Local.Keys) {
                 $LocalVarArgs.Add($Key, $LocalArgs + " " + $Var.Local[$Key])
-                $RemoteVarArgs.Add($Key, $RemoteArgs + " " + $Var.Remote[$Key])
                 $StateKeyList += $Key
             }
 
@@ -1194,7 +1309,6 @@ function Get-TestMatrix {
                     foreach ($TestKey in $StateKeyList) {
                         $KeyVal =$DefaultVals[$Key]
                         $LocalVarArgs[$TestKey] += " $($KeyVal.LocalValue)"
-                        $RemoteVarArgs[$TestKey] += " $($KeyVal.RemoteValue)"
                     }
                 }
             }
@@ -1208,25 +1322,22 @@ function Get-TestMatrix {
                     continue
                 }
                 $VariableValues[$Var.Name] = $Key
-                $TestRunDef = [TestRunDefinition]::new($Test, $Var.Name, $Key, $LocalVarArgs[$Key], $RemoteVarArgs[$Key], $VariableValues)
+                $TestRunDef = [TestRunDefinition]::new($Test, $Var.Name, $Key, $LocalVarArgs[$Key], $VariableValues)
                 $ToRunTests += $TestRunDef
             }
         }
     }
 
-    return $ToRunTests
-}
+    $RunConfig = [TestRunConfig]::new()
+    $RunConfig.Remote = $Tests.Remote;
+    $RunConfig.Tests = $ToRunTests;
 
-class ArgumentsSpec {
-    [string]$All;
-    [string]$Loopback;
-    [string]$Remote;
+    return $RunConfig
 }
 
 class VariableSpec {
     [string]$Name;
     [Hashtable]$Local;
-    [Hashtable]$Remote;
     [string]$Default;
 }
 
@@ -1235,12 +1346,11 @@ class ExecutableSpec {
     [string[]]$Tls;
     [string[]]$Arch;
     [string]$Exe;
-    [ArgumentsSpec]$Arguments;
+    [string]$Arguments;
 }
 
 class TestDefinition {
     [string]$TestName;
-    [ExecutableSpec]$Remote;
     [ExecutableSpec]$Local;
     [VariableSpec[]]$Variables;
     [int]$Iterations;
@@ -1251,18 +1361,29 @@ class TestDefinition {
     [double]$RegressionThreshold;
 
     [string]ToString() {
-        $Platform = $this.Remote.Platform
-        if ($script:Kernel -and $this.Remote.Platform -eq "Windows") {
+        $Platform = $this.Local.Platform
+        if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
             $Platform = 'Winkernel'
         }
-        $RetString = "$($this.TestName)_$($Platform) [$($this.Remote.Arch)] [$($this.Remote.Tls)]"
+        $RetString = "$($this.TestName)_$($Platform) [$($this.Local.Arch)] [$($this.Local.Tls)]"
         return $RetString
     }
 }
 
+class RemoteConfig {
+    [string]$Exe;
+    [string]$Arguments;
+}
+
+class TestConfig {
+    [RemoteConfig]$Remote;
+    [TestDefinition[]]$Tests;
+    [boolean]$FullMatrix;
+}
+
 function Get-Tests {
     param ($Path, $RemotePlatform, $LocalPlatform)
-    $Tests = [TestDefinition[]](Get-Content -Path $Path | ConvertFrom-Json -AsHashtable)
+    $Tests = [TestConfig](Get-Content -Path $Path | ConvertFrom-Json -AsHashtable)
     $MatrixTests = Get-TestMatrix -Tests $Tests -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
     if (Test-AllTestsValid -Tests $MatrixTests) {
         return $MatrixTests
@@ -1273,10 +1394,9 @@ function Get-Tests {
 }
 
 function Test-AllTestsValid {
-    param ([TestRunDefinition[]]$Tests)
-
+    param ([TestRunConfig]$Tests)
     $TestSet = New-Object System.Collections.Generic.HashSet[string]
-    foreach ($T in $Tests) {
+    foreach ($T in $Tests.Tests) {
         if (!$TestSet.Add($T)) {
             return $false
         }
@@ -1287,14 +1407,11 @@ function Test-AllTestsValid {
 
 function Test-CanRunTest {
     param ([TestDefinition]$Test, $RemotePlatform, $LocalPlatform)
-    $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
+    $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform)
     if (!$PlatformCorrect) {
         return $false
     }
     if (!$Test.Local.Tls.Contains($LocalTls)) {
-        return $false
-    }
-    if (!$Test.Remote.Tls.Contains($RemoteTls)) {
         return $false
     }
     if ($Local -and !$Test.AllowLoopback) {

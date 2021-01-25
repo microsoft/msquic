@@ -69,11 +69,11 @@ class TestConnection
     QUIC_STATUS TransportCloseStatus;
     QUIC_UINT62 PeerCloseErrorCode;
 
-    QUIC_EVENT EventConnectionComplete;
-    QUIC_EVENT EventPeerClosed;
-    QUIC_EVENT EventShutdownComplete;
-    QUIC_EVENT EventResumptionTicketReceived;
-    QUIC_EVENT* EventDeleted;
+    CXPLAT_EVENT EventConnectionComplete;
+    CXPLAT_EVENT EventPeerClosed;
+    CXPLAT_EVENT EventShutdownComplete;
+    CXPLAT_EVENT EventResumptionTicketReceived;
+    CXPLAT_EVENT* EventDeleted;
 
     NEW_STREAM_CALLBACK_HANDLER NewStreamCallback;
     CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER ShutdownCompleteCallback;
@@ -124,7 +124,7 @@ public:
 
     void SetAutoDelete() { AutoDelete = true; }
 
-    void SetDeletedEvent(QUIC_EVENT* Event) { EventDeleted = Event; }
+    void SetDeletedEvent(CXPLAT_EVENT* Event) { EventDeleted = Event; }
 
     QUIC_STATUS
     Start(

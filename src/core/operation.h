@@ -83,7 +83,7 @@ typedef struct QUIC_API_CONTEXT {
     //
     // Used for synchronous operations (see above).
     //
-    QUIC_EVENT* Completed;
+    CXPLAT_EVENT* Completed;
 
     union {
         struct {
@@ -177,9 +177,9 @@ typedef struct QUIC_STATELESS_CONTEXT {
     QUIC_BINDING* Binding;
     QUIC_WORKER* Worker;
     QUIC_ADDR RemoteAddress;
-    QUIC_LIST_ENTRY ListEntry;
-    QUIC_HASHTABLE_ENTRY TableEntry;
-    QUIC_RECV_DATAGRAM* Datagram;
+    CXPLAT_LIST_ENTRY ListEntry;
+    CXPLAT_HASHTABLE_ENTRY TableEntry;
+    CXPLAT_RECV_DATA* Datagram;
     uint32_t CreationTimeMs;
     uint8_t HasBindingRef : 1;
     uint8_t IsProcessed : 1;
@@ -191,7 +191,7 @@ typedef struct QUIC_STATELESS_CONTEXT {
 //
 typedef struct QUIC_OPERATION {
 
-    QUIC_LIST_ENTRY Link;
+    CXPLAT_LIST_ENTRY Link;
     QUIC_OPERATION_TYPE Type;
 
     //
@@ -278,8 +278,8 @@ typedef struct QUIC_OPERATION_QUEUE {
     //
     // Queue of pending operations.
     //
-    QUIC_DISPATCH_LOCK Lock;
-    QUIC_LIST_ENTRY List;
+    CXPLAT_DISPATCH_LOCK Lock;
+    CXPLAT_LIST_ENTRY List;
 
 } QUIC_OPERATION_QUEUE;
 

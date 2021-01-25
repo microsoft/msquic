@@ -20,17 +20,17 @@ typedef struct QUIC_CONFIGURATION {
     //
     // Link in the parent registration's Configurations list.
     //
-    QUIC_LIST_ENTRY Link;
+    CXPLAT_LIST_ENTRY Link;
 
     //
     // Reference count for tracking lifetime.
     //
-    QUIC_REF_COUNT RefCount;
+    CXPLAT_REF_COUNT RefCount;
 
     //
     // The TLS security configurations.
     //
-    QUIC_SEC_CONFIG* SecurityConfig;
+    CXPLAT_SEC_CONFIG* SecurityConfig;
 
 #ifdef QUIC_COMPARTMENT_ID
     //
@@ -48,9 +48,9 @@ typedef struct QUIC_CONFIGURATION {
     //
     // Handle to persistent storage (registry).
     //
-    QUIC_STORAGE* Storage; // Only necessary if it could be in a different silo.
+    CXPLAT_STORAGE* Storage; // Only necessary if it could be in a different silo.
 #endif
-    QUIC_STORAGE* AppSpecificStorage;
+    CXPLAT_STORAGE* AppSpecificStorage;
 
     //
     // Configurable (app & registry) settings.
@@ -98,7 +98,7 @@ QuicConfigurationAddRef(
     _In_ QUIC_CONFIGURATION* Configuration
     )
 {
-    QuicRefIncrement(&Configuration->RefCount);
+    CxPlatRefIncrement(&Configuration->RefCount);
 }
 
 //
@@ -110,7 +110,7 @@ QuicConfigurationRelease(
     _In_ QUIC_CONFIGURATION* Configuration
     )
 {
-    if (QuicRefDecrement(&Configuration->RefCount)) {
+    if (CxPlatRefDecrement(&Configuration->RefCount)) {
         QuicConfigurationUninitialize(Configuration);
     }
 }
@@ -128,7 +128,7 @@ QuicConfigurationTraceRundown(
 // Global or local settings were changed.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_STORAGE_CHANGE_CALLBACK)
+_Function_class_(CXPLAT_STORAGE_CHANGE_CALLBACK)
 void
 QuicConfigurationSettingsChanged(
     _Inout_ QUIC_CONFIGURATION* Configuration

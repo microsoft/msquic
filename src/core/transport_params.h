@@ -168,7 +168,7 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
 } QUIC_TRANSPORT_PARAMETERS;
 
 //
-// Allocates and encodes the QUIC TP buffer. Free with QUIC_FREE.
+// Allocates and encodes the QUIC TP buffer. Free with CXPLAT_FREE.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)

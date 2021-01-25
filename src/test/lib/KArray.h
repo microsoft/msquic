@@ -577,7 +577,7 @@ private:
         }
         else if (from < to)
         {
-            QUIC_FRE_ASSERT(m_numElements == from + number);
+            CXPLAT_FRE_ASSERT(m_numElements == from + number);
 
             uint32_t delta = to - from;
             uint32_t i;
@@ -600,7 +600,7 @@ private:
         }
         else
         {
-            QUIC_FRE_ASSERT(m_numElements == from + number);
+            CXPLAT_FRE_ASSERT(m_numElements == from + number);
 
             uint32_t delta = from - to;
             uint32_t i;

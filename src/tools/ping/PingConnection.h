@@ -20,20 +20,20 @@ struct PingTracker {
     uint64_t StartTime;
     uint64_t CompleteTime;
 
-    QUIC_EVENT Done;
+    CXPLAT_EVENT Done;
 
     PingTracker() :
         RefCount(1), BytesSent(0), BytesReceived(0), StartTime(0), CompleteTime(0) {
-        QuicEventInitialize(&Done, FALSE, FALSE);
+        CxPlatEventInitialize(&Done, FALSE, FALSE);
     }
 
     ~PingTracker() {
-        QuicEventUninitialize(Done);
+        CxPlatEventUninitialize(Done);
     }
 
     void
     Start() {
-        StartTime = QuicTimeUs64();
+        StartTime = CxPlatTimeUs64();
     }
 
     bool
@@ -41,10 +41,10 @@ struct PingTracker {
         uint32_t Milliseconds
         ) {
         if (InterlockedDecrement(&RefCount) == 0) {
-            CompleteTime = QuicTimeUs64();
+            CompleteTime = CxPlatTimeUs64();
             return true;
         } else {
-            return !QuicEventWaitWithTimeout(Done, Milliseconds);
+            return !CxPlatEventWaitWithTimeout(Done, Milliseconds);
         }
     }
 
@@ -52,10 +52,10 @@ struct PingTracker {
     WaitForever(
         ) {
         if (InterlockedDecrement(&RefCount) == 0) {
-            CompleteTime = QuicTimeUs64();
+            CompleteTime = CxPlatTimeUs64();
             return;
         } else {
-            QuicEventWaitForever(Done);
+            CxPlatEventWaitForever(Done);
         }
     }
 
@@ -72,8 +72,8 @@ struct PingTracker {
         InterlockedExchangeAdd64((int64_t*)&BytesSent, (int64_t)Sent);
         InterlockedExchangeAdd64((int64_t*)&BytesReceived, (int64_t)Received);
         if (InterlockedDecrement(&RefCount) == 0) {
-            CompleteTime = QuicTimeUs64();
-            QuicEventSet(Done);
+            CompleteTime = CxPlatTimeUs64();
+            CxPlatEventSet(Done);
         }
     }
 };
