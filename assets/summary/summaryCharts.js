@@ -55,6 +55,8 @@ function createChart(test) {
     var datasets = []
     platformTypes.forEach(x => datasets.push(createDataset(test, x)))
 
+    var div = dataView.find(x => x.name === platformTypes[0].name + test).div
+
     new Chart(document.getElementById("canvas" + test).getContext('2d'), {
         data: { datasets: datasets},
         options: {
@@ -82,7 +84,10 @@ function createChart(test) {
                 yAxes: [{
                     ticks: {
                         min: 0,
-                        padding: 10
+                        padding: 10,
+                        callback: function(value) {
+                            return (value/div).toFixed(2)
+                        }
                     },
                     gridLines: {
                         color: "rgb(234, 236, 244)",
