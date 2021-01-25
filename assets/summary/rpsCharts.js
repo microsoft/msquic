@@ -67,9 +67,6 @@ function createRpsDatasets(chartData) {
 }
 
 window.onload = function() {
-    // Latest values
-    setLatestData();
-
     var templateDiv = document.getElementById("Template");
 
     var chartsDiv = document.getElementById("ChartsDiv");
@@ -104,5 +101,5 @@ window.onload = function() {
             data: createRpsDatasets(chartData[1].Data),
             options: createRpsOptions(chartData[1])
         });
-    }    
+    }
 }
