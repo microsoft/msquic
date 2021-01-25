@@ -137,6 +137,27 @@ New-Item -Path $CommitFolder -ItemType "directory" -Force | Out-Null
 $DataFileName = Join-Path $CommitFolder "cpu_data.json"
 Out-File -FilePath $DataFileName -InputObject $CpuLimitedData -Force
 
+# Handle WAN Perf
+$WANResultsPath = Join-Path $RootDir "artifacts/wanperformance/*.json"
+$WANFiles = Get-ChildItem -Path $WANResultsPath -Recurse -File;
+
+$WANPerfData = [System.Collections.Generic.Dictionary[string, System.Collections.Generic.List[object]]]::new()
+
+foreach ($File in $WANFiles) {
+    $Data = Get-Content $File | ConvertFrom-Json;
+    $RunList = $null;
+    if ($WANPerfData.TryGetValue($Data.PlatformName, [ref]$RunList)) {
+        $RunList.AddRange($Data.Runs);
+    } else {
+        $RunList = [System.Collections.Generic.List[object]]::new($Data.Runs)
+        $WANPerfData.Add($Data.PlatformName, $RunList);
+    }
+}
+
+$WANPerfDataString = $WANPerfData | ConvertTo-Json -Depth 100
+$WANDataFileName = Join-Path $CommitFolder "wan_data.json"
+Out-File -FilePath $WANDataFileName -InputObject $WANPerfDataString -Force
+
 $CommitsFile = Join-Path $BranchFolder "commits.json"
 $NewCommit = [CommitsFileModel]::new();
 $NewCommit.CommitHash = $CommitModel.CommitHash;
