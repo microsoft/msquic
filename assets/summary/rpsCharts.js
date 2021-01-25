@@ -75,6 +75,8 @@ window.onload = function() {
     var chartsDiv = document.getElementById("ChartsDiv");
     chartsDiv.innerHTML = ""
 
+    var chartList = [];
+
     var index = 0;
     for (var chartToMake of periodicRpsGraphs) {
         var newNode = templateDiv.cloneNode(true);
@@ -90,14 +92,17 @@ window.onload = function() {
         summaryTextNode.innerText = "This test measures average requests completed per second while simulating HTTP-style traffic between the client and server."
         summaryTextNode.id = summaryTextNode.id + index;
 
-        new Chart(canvasNode.getContext('2d'), {
-            data: createRpsDatasets(chartToMake.Data),
-            options: createRpsOptions(chartToMake)
-        });
+        var createData = [canvasNode, chartToMake];
+        chartList.push(createData);
 
         chartsDiv.appendChild(newNode);
         index++;
     }
 
-    
+    for (var chartData of chartList) {
+        new Chart(chartData[0].getContext('2d'), {
+            data: createRpsDatasets(chartData[1].Data),
+            options: createRpsOptions(chartData[1])
+        });
+    }    
 }
