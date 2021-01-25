@@ -96,66 +96,6 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) {
-        $Tls = "schannel"
-    } else {
-        $Tls = "openssl"
-    }
-}
-
-# Root directory of the project.
-$RootDir = Split-Path $PSScriptRoot -Parent
-
-# Script for controlling loggings.
-$LogScript = Join-Path $RootDir "scripts" "log.ps1"
-
-# Folder for log files.
-$LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf" (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
-if ($LogProfile -ne "None") {
-    try {
-        Write-Debug "Canceling any already running logs"
-        & $LogScript -Cancel
-    } catch {
-    }
-    New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
-    dir $LogScript | Write-Debug
-}
-
-$Platform = $IsWindows ? "windows" : "linux"
-$ExeName = $IsWindows ? "quicperf.exe" : "quicperf"
-# Path to the quicperf exectuable.
-$QuicPerf = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)" $ExeName
-
-# Path to the netput exectuable.
-$NetPut = "C:\Windows\System32\netput.exe"
-
-Get-NetAdapter | Write-Debug
-ipconfig -all | Write-Debug
-
-# Start the perf server listening.
-Write-Debug "Starting server..."
-if (!(Test-Path -Path $QuicPerf)) {
-    Write-Error "Missing file: $QuicPerf"
-}
-$pinfo = New-Object System.Diagnostics.ProcessStartInfo
-$pinfo.FileName = $QuicPerf
-$pinfo.UseShellExecute = $false
-$pinfo.RedirectStandardOutput = $true
-$pinfo.RedirectStandardError = $true
-$p = New-Object System.Diagnostics.Process
-$p.StartInfo = $pinfo
-$p.Start() | Out-Null
-
-# Wait for the server(s) to come up.
-Sleep -Seconds 1
-
-$OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
-New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
-$UniqueId = New-Guid
-$OutputFile = Join-Path $OutputDir "WANPerf_$($UniqueId.ToString("N")).json"
-
 class TestResult {
     [int]$RttMs;
     [int]$BottleneckMbps;
@@ -206,9 +146,67 @@ class Results {
     }
 }
 
-$PlatformName = (($IsWindows ? "Windows" : "Linux") + "_$($Arch)_$($Tls)")
-$RunResults = [Results]::new($PlatformName)
+# Default TLS based on current platform.
+if ("" -eq $Tls) {
+    if ($IsWindows) {
+        $Tls = "schannel"
+    } else {
+        $Tls = "openssl"
+    }
+}
 
+# Root directory of the project.
+$RootDir = Split-Path $PSScriptRoot -Parent
+
+# Script for controlling loggings.
+$LogScript = Join-Path $RootDir "scripts" "log.ps1"
+
+# Folder for log files.
+$LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf" (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+if ($LogProfile -ne "None") {
+    try {
+        Write-Debug "Canceling any already running logs"
+        & $LogScript -Cancel
+    } catch {
+    }
+    New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
+    dir $LogScript | Write-Debug
+}
+
+$Platform = $IsWindows ? "windows" : "linux"
+$PlatformName = (($IsWindows ? "Windows" : "Linux") + "_$($Arch)_$($Tls)")
+
+# Path to the quicperf exectuable.
+$ExeName = $IsWindows ? "quicperf.exe" : "quicperf"
+$QuicPerf = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)" $ExeName
+
+Get-NetAdapter | Write-Debug
+ipconfig -all | Write-Debug
+
+# Make sure to kill any old processes
+try { Stop-Process -Name quicperf } catch { }
+
+# Start the perf server listening.
+Write-Debug "Starting server..."
+if (!(Test-Path -Path $QuicPerf)) {
+    Write-Error "Missing file: $QuicPerf"
+}
+$pinfo = New-Object System.Diagnostics.ProcessStartInfo
+$pinfo.FileName = $QuicPerf
+$pinfo.UseShellExecute = $false
+$pinfo.RedirectStandardOutput = $true
+$pinfo.RedirectStandardError = $true
+$p = New-Object System.Diagnostics.Process
+$p.StartInfo = $pinfo
+$p.Start() | Out-Null
+
+# Wait for the server(s) to come up.
+Sleep -Seconds 1
+
+$OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
+New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
+$UniqueId = New-Guid
+$OutputFile = Join-Path $OutputDir "WANPerf_$($UniqueId.ToString("N")).json"
 # CSV header
 $Header = "RttMs, BottleneckMbps, BottleneckBufferPackets, RandomLossDenominator, RandomReorderDenominator, ReorderDelayDeltaMs, Tcp, DurationMs, Pacing, RateKbps"
 for ($i = 0; $i -lt $NumIterations; $i++) {
@@ -224,6 +222,8 @@ Set-NetAdapterAdvancedProperty duo? -DisplayName RdqEnabled -RegistryValue 1 -No
 # network (such a middlebox would only see packets after LSO sends are split
 # into MTU-sized packets).
 Set-NetAdapterLso duo? -IPv4Enabled $false -IPv6Enabled $false -NoRestart
+
+$RunResults = [Results]::new($PlatformName)
 
 # Loop over all the network emulation configurations.
 foreach ($ThisRttMs in $RttMs) {
@@ -319,3 +319,6 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 }}}}}}
 
 $RunResults | ConvertTo-Json -Depth 100 | Out-File $OutputFile
+
+# Kill any leftovers.
+try { Stop-Process -Name quicperf } catch { }

@@ -164,6 +164,7 @@ private:
         uint32_t StreamID,
         bool Open,
         bool Fin,
+        bool Abort,
         uint32_t Length,
         uint8_t* Buffer
         );

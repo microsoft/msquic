@@ -30,9 +30,10 @@ struct TcpFrame {
     // uint8_t Tag[CXPLAT_ENCRYPTION_OVERHEAD];
 };
 struct TcpStreamFrame {
-    uint32_t Id : 30;
+    uint32_t Id : 29;
     uint32_t Open : 1;
     uint32_t Fin : 1;
+    uint32_t Abort : 1;
     uint8_t Data[0];
 };
 #pragma pack(pop)
@@ -307,6 +308,9 @@ TcpConnection::TcpConnection(
     if ((SecConfig = Helper.Load(CredConfig)) == nullptr) {
         return;
     }
+    if (LocalAddress) {
+        Family = QuicAddrGetFamily(LocalAddress);
+    }
     QuicAddrSetFamily(&RemoteAddress, Family);
     if (QUIC_FAILED(
         CxPlatDataPathResolveAddress(
@@ -454,12 +458,6 @@ TcpConnection::TlsReceiveTicketCallback(
     return TRUE;
 }
 
-void TcpConnection::Fatal()
-{
-    WriteOutput("Fatal\n");
-    // TODO - Disconnect
-}
-
 void TcpConnection::Process()
 {
     if (IndicateAccept) {
@@ -467,25 +465,34 @@ void TcpConnection::Process()
         TcpServer* Server = (TcpServer*)Context;
         Context = nullptr;
         Engine->AcceptHandler(Server, this);
+        StartTls = true;
     }
     if (IndicateConnect) {
         IndicateConnect = false;
         Engine->ConnectHandler(this, true);
+        StartTls = true;
     }
     if (StartTls) {
         StartTls = false;
         if (!InitializeTls()) {
-            Fatal();
+            IndicateDisconnect = true;
         }
     }
     if (ReceiveData) {
-        ProcessReceive();
+        if (!ProcessReceive()) {
+            IndicateDisconnect = true;
+        }
     }
     if (TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT && SendData) {
-        ProcessSend();
+        if (!ProcessSend()) {
+            IndicateDisconnect = true;
+        }
     }
     if (BatchedSendData) {
-        CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData);
+        if (QUIC_FAILED(
+            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData))) {
+            IndicateDisconnect = true;
+        }
         BatchedSendData = nullptr;
     }
     if (IndicateSendComplete) {
@@ -543,6 +550,7 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
             &TlsState);
     if (Results & CXPLAT_TLS_RESULT_PENDING) {
         // TODO - Not supported yet
+        WriteOutput("CxPlatTlsProcessData PENDING (not supported)\n");
         return false;
     }
     if (Results & CXPLAT_TLS_RESULT_ERROR) {
@@ -591,6 +599,7 @@ bool TcpConnection::SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, ui
 {
     auto SendBuffer = NewSendBuffer();
     if (!SendBuffer) {
+        WriteOutput("NewSendBuffer FAILED\n");
         return false;
     }
 
@@ -601,26 +610,27 @@ bool TcpConnection::SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, ui
     CxPlatCopyMemory(Frame->Data, Buffer, BufferLength);
 
     if (!EncryptFrame(Frame)) {
+        WriteOutput("EncryptFrame FAILED\n");
         FreeSendBuffer(SendBuffer);
         return false;
     }
 
     SendBuffer->Length = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
-    FinalizeSendBuffer(SendBuffer);
-
-    return true;
+    return FinalizeSendBuffer(SendBuffer);
 }
 
-void TcpConnection::ProcessReceive()
+bool TcpConnection::ProcessReceive()
 {
     CxPlatDispatchLockAcquire(&Lock);
     CXPLAT_RECV_DATA* RecvDataChain = ReceiveData;
     ReceiveData = nullptr;
     CxPlatDispatchLockRelease(&Lock);
 
+    bool Result = true;
     auto NextRecvData = RecvDataChain;
     while (NextRecvData) {
         if (!ProcessReceiveData(NextRecvData->Buffer, NextRecvData->BufferLength)) {
+            Result = false;
             goto Exit;
         }
         NextRecvData = NextRecvData->Next;
@@ -629,6 +639,8 @@ void TcpConnection::ProcessReceive()
 Exit:
 
     CxPlatRecvDataReturn(RecvDataChain);
+
+    return Result;
 }
 
 bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLength)
@@ -703,7 +715,7 @@ bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
                 (uint8_t*)Frame,
                 Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD,
                 Frame->Data))) {
-            WriteOutput("Decrypt failed\n");
+            WriteOutput("CxPlatDecrypt FAILED\n");
             return false;
         }
     }
@@ -724,6 +736,7 @@ bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
             StreamFrame->Id,
             StreamFrame->Open,
             StreamFrame->Fin,
+            StreamFrame->Abort,
             Frame->Length - sizeof(TcpStreamFrame),
             StreamFrame->Data);
         break;
@@ -735,7 +748,7 @@ bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
     return true;
 }
 
-void TcpConnection::ProcessSend()
+bool TcpConnection::ProcessSend()
 {
     CxPlatDispatchLockAcquire(&Lock);
     TcpSendData* SendDataChain = SendData;
@@ -754,7 +767,8 @@ void TcpConnection::ProcessSend()
         do {
             auto SendBuffer = NewSendBuffer();
             if (!SendBuffer) {
-                return;
+                WriteOutput("NewSendBuffer FAILED\n");
+                return false;
             }
 
             uint32_t StreamLength = TLS_BLOCK_SIZE - sizeof(TcpFrame) - sizeof(TcpStreamFrame) - CXPLAT_ENCRYPTION_OVERHEAD;
@@ -771,22 +785,28 @@ void TcpConnection::ProcessSend()
             StreamFrame->Id = NextSendData->StreamId;
             StreamFrame->Open = Offset == 0 ? NextSendData->Open : FALSE;
             StreamFrame->Fin = Offset + StreamLength == NextSendData->Length ? NextSendData->Fin : FALSE;
+            StreamFrame->Abort = Offset + StreamLength == NextSendData->Length ? NextSendData->Abort : FALSE;
             CxPlatCopyMemory(StreamFrame->Data, NextSendData->Buffer + Offset, StreamLength);
             Offset += StreamLength;
 
             if (!EncryptFrame(Frame)) {
+                WriteOutput("EncryptFrame FAILED\n");
                 FreeSendBuffer(SendBuffer);
-                return;
+                return false;
             }
 
             SendBuffer->Length = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
-            FinalizeSendBuffer(SendBuffer);
+            if (!FinalizeSendBuffer(SendBuffer)) {
+                return false;
+            }
 
         } while (NextSendData->Length > Offset);
 
         NextSendData->Offset = TotalSendOffset;
         NextSendData = NextSendData->Next;
     }
+
+    return true;
 }
 
 void TcpConnection::ProcessSendComplete()
@@ -830,25 +850,23 @@ void TcpConnection::FreeSendBuffer(QUIC_BUFFER* SendBuffer)
     CxPlatSendDataFreeBuffer(BatchedSendData, SendBuffer);
 }
 
-void TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
+bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
 {
-    //auto Frame = (TcpFrame*)SendBuffer->Buffer;
-    //printf("[SEND] Frame %hu bytes (key=%hhu) (type=%hhu)\n", Frame->Length, Frame->KeyType, Frame->FrameType);
-
     TotalSendOffset += SendBuffer->Length;
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
         if (QUIC_FAILED(
             CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData))) {
-            // FATAL
+            WriteOutput("CxPlatSocketSend FAILED\n");
+            return false;
         }
         BatchedSendData = nullptr;
     }
+    return true;
 }
 
 void TcpConnection::Send(TcpSendData* Data)
 {
-    //printf("[SEND] App %u bytes, Id=%u, Open=%hhu, Fin=%hhu\n", Data->Length, Data->StreamId, Data->Open, Data->Fin);
     CxPlatDispatchLockAcquire(&Lock);
     TcpSendData** Tail = &SendData;
     while (*Tail) {

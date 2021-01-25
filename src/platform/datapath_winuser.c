@@ -3097,7 +3097,8 @@ CxPlatDataPathTcpRecvComplete(
 
     if (IoResult == WSAENOTSOCK ||
         IoResult == WSA_OPERATION_ABORTED ||
-        IoResult == ERROR_NETNAME_DELETED) {
+        IoResult == ERROR_NETNAME_DELETED ||
+        IoResult == WSAECONNRESET) {
         //
         // Error from shutdown, silently ignore. Return immediately so the
         // receive doesn't get reposted.
