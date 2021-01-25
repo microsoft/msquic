@@ -49,7 +49,7 @@ function labelChange(tooltipItem, data) {
     }
 }
 
-function chartOnCick(a, activeElements) {
+function chartOnClick(a, activeElements) {
     if (activeElements.length === 0) return
     var dataset = this.config.data.datasets[activeElements[0]._datasetIndex]
     var rawTime = dataset.data[activeElements[0]._index].rawTime
@@ -182,7 +182,7 @@ function createLatencyChartOptions(name) {
 function createChartOptions(name) {
     return {
         tooltips: tooltipsObject,
-        onClick: chartOnCick,
+        onClick: chartOnClick,
         scales: {
             xAxes: [timeAxis],
             yAxes: [{

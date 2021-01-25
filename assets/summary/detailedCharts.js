@@ -41,7 +41,7 @@ function labelChange(tooltipItem, data) {
     }
 }
 
-function chartOnCick(a, activeElements) {
+function chartOnClick(a, activeElements) {
     if (activeElements.length === 0) return
     var dataset = this.config.data.datasets[activeElements[0]._datasetIndex]
     var rawTime = dataset.data[activeElements[0]._index].rawTime
@@ -88,7 +88,7 @@ function createAverageDataset(platform, color, dataset) {
     };
 }
 
-function createDatasets(rawKernel, avgKernel, rawUserSchannel, avgUserSchannel, rawUserOpenssl, avgUserOpenssl) {
+function createCommitDatasets(rawKernel, avgKernel, rawUserSchannel, avgUserSchannel, rawUserOpenssl, avgUserOpenssl) {
     return {
         datasets: [
             createRawDataset("Windows Kernel", dataColorWinKernelx64Schannel, rawKernel),
@@ -101,7 +101,37 @@ function createDatasets(rawKernel, avgKernel, rawUserSchannel, avgUserSchannel, 
     };
 }
 
-var summaryChartOptions = {
+function createLatencyDataset(platform, color, dataset) {
+    return {
+        type: "line",
+        label: platform,
+        backgroundColor: color,
+        borderColor: color,
+        borderWidth: dataLineWidth,
+        pointRadius: 0,
+        tension: 0,
+        fill: false,
+        data: dataset,
+        sortOrder: 1,
+        hidden: false,
+        hiddenType: false,
+        hiddenPlatform: false,
+        isRaw: false,
+        platform: platform
+    }
+}
+
+function createLatencyDatasets(winOpenssl, winSchannel, winKernel) {
+    return {
+        datasets: [
+            createLatencyDataset("Windows Kernel", dataColorWinKernelx64Schannel, winKernel),
+            createLatencyDataset("Windows User Schannel", dataColorWindowsx64Schannel, winSchannel),
+            createLatencyDataset("Windows User OpenSSL", dataColorWindowsx64Openssl, winOpenssl)
+        ]
+    }
+}
+
+var commitChartOptions = {
     maintainAspectRatio: false,
     scales: {
         xAxes: [{
@@ -139,7 +169,7 @@ var summaryChartOptions = {
     legend: {
       display: false
     },
-    onClick: chartOnCick,
+    onClick: chartOnClick,
     tooltips: {
         backgroundColor: "rgb(255,255,255)",
         bodyFontColor: "#858796",
@@ -160,36 +190,91 @@ var summaryChartOptions = {
     }
 }
 
+var scaleDict = {
+    1: '0%',
+    10: '90%',
+    100: '99%',
+    1000: '99.9%',
+    10000: '99.99%',
+    100000: '99.999%',
+    1000000: '99.9999%',
+    10000000: '99.99999%',
+    100000000: '99.999999%'
+}
+
+var percentileChartOptions = {
+    maintainAspectRatio: false,
+    scales: {
+        xAxes: [{
+            type: 'logarithmic',
+            afterBuildTicks: function(scale) {
+                scale.ticks = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000]
+            },
+            gridLines: {
+              display: false,
+              drawBorder: false
+            },
+            ticks: {
+                callback: function(value) {
+                    return scaleDict[value]
+                }
+            }
+        }],
+        yAxes: [{
+            display: true,
+            ticks: {
+                padding: 10
+            },
+            gridLines: {
+                color: "rgb(234, 236, 244)",
+                zeroLineColor: "rgb(234, 236, 244)",
+                drawBorder: false,
+                borderDash: [2],
+                zeroLineBorderDash: [2]
+            }
+        }]
+    },
+    legend: {
+      display: false
+    },
+    tooltips: {
+        backgroundColor: "rgb(255,255,255)",
+        bodyFontColor: "#858796",
+        titleMarginBottom: 10,
+        titleFontColor: '#6e707e',
+        titleFontSize: 14,
+        borderColor: '#dddfeb',
+        borderWidth: 1,
+        xPadding: 15,
+        yPadding: 15,
+        mode: "nearest",
+        intersect: false
+    }
+}
+
 window.onload = function() {
     // Latest values
-    document.getElementById("winKernelSchannelUp").textContent = "5,911 Mbps"
-    document.getElementById("winKernelSchannelDown").textContent = "5,711 Mbps"
-    document.getElementById("winKernelSchannelRps").textContent = "257 KHz"
-    document.getElementById("winKernelSchannelHps").textContent = "1,924 Hz"
-    document.getElementById("winUserSchannelUp").textContent = "5,779 Mbps"
-    document.getElementById("winUserSchannelDown").textContent = "2,121 Mbps"
-    document.getElementById("winUserSchannelRps").textContent = "869 KHz"
-    document.getElementById("winUserSchannelHps").textContent = "1,832 Hz"
-    document.getElementById("winUserOpenSslUp").textContent = "5,672 Mbps"
-    document.getElementById("winUserOpenSslDown").textContent = "3,631 Mbps"
-    document.getElementById("winUserOpenSslRps").textContent = "919 KHz"
-    document.getElementById("winUserOpenSslHps").textContent = "2,326 Hz"
+    setLatestData()
 
     // Summary charts
     new Chart(document.getElementById('canvasUp').getContext('2d'), {
-        data: createDatasets(dataRawWinKernelx64SchannelThroughput, dataAverageWinKernelx64SchannelThroughput, dataRawWindowsx64SchannelThroughput, dataAverageWindowsx64SchannelThroughput, dataRawWindowsx64OpensslThroughput, dataAverageWindowsx64OpensslThroughput),
-        options: summaryChartOptions
+        data: createCommitDatasets(dataRawWinKernelx64SchannelThroughput, dataAverageWinKernelx64SchannelThroughput, dataRawWindowsx64SchannelThroughput, dataAverageWindowsx64SchannelThroughput, dataRawWindowsx64OpensslThroughput, dataAverageWindowsx64OpensslThroughput),
+        options: commitChartOptions
     });
     new Chart(document.getElementById('canvasDown').getContext('2d'), {
-        data: createDatasets(dataRawWinKernelx64SchannelThroughputDown, dataAverageWinKernelx64SchannelThroughputDown, dataRawWindowsx64SchannelThroughputDown, dataAverageWindowsx64SchannelThroughputDown, dataRawWindowsx64OpensslThroughputDown, dataAverageWindowsx64OpensslThroughputDown),
-        options: summaryChartOptions
+        data: createCommitDatasets(dataRawWinKernelx64SchannelThroughputDown, dataAverageWinKernelx64SchannelThroughputDown, dataRawWindowsx64SchannelThroughputDown, dataAverageWindowsx64SchannelThroughputDown, dataRawWindowsx64OpensslThroughputDown, dataAverageWindowsx64OpensslThroughputDown),
+        options: commitChartOptions
     });
     new Chart(document.getElementById('canvasRps').getContext('2d'), {
-        data: createDatasets(dataRawWinKernelx64SchannelRps, dataAverageWinKernelx64SchannelRps, dataRawWindowsx64SchannelRps, dataAverageWindowsx64SchannelRps, dataRawWindowsx64OpensslRps, dataAverageWindowsx64OpensslRps),
-        options: summaryChartOptions
+        data: createCommitDatasets(dataRawWinKernelx64SchannelRps, dataAverageWinKernelx64SchannelRps, dataRawWindowsx64SchannelRps, dataAverageWindowsx64SchannelRps, dataRawWindowsx64OpensslRps, dataAverageWindowsx64OpensslRps),
+        options: commitChartOptions
+    });
+    rpsLatencyChart = new Chart(document.getElementById('canvasRpsLatency').getContext('2d'), {
+        data: createLatencyDatasets(dataRpsLatencyWindowsOpenSsl, dataRpsLatencyWindowsSchannel, dataRpsLatencyWinKernel),
+        options: percentileChartOptions
     });
     new Chart(document.getElementById('canvasHps').getContext('2d'), {
-        data: createDatasets(dataRawWinKernelx64SchannelHps, dataAverageWinKernelx64SchannelHps, dataRawWindowsx64SchannelHps, dataAverageWindowsx64SchannelHps, dataRawWindowsx64OpensslHps, dataAverageWindowsx64OpensslHps),
-        options: summaryChartOptions
+        data: createCommitDatasets(dataRawWinKernelx64SchannelHps, dataAverageWinKernelx64SchannelHps, dataRawWindowsx64SchannelHps, dataAverageWindowsx64SchannelHps, dataRawWindowsx64OpensslHps, dataAverageWindowsx64OpensslHps),
+        options: commitChartOptions
     });
 };

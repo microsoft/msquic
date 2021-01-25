@@ -30,7 +30,7 @@ function filterDataset(dataset, commitCount) {
     return dataset.filter(p => (maxIndex - 1 - p.x) < commitCount);
 }
 
-function chartOnCick(a, activeElements) {
+function chartOnClick(a, activeElements) {
     if (activeElements.length === 0) return
     var dataset = this.config.data.datasets[activeElements[0]._datasetIndex]
     var rawTime = dataset.data[activeElements[0]._index].rawTime
@@ -58,7 +58,7 @@ function createAverageSummaryDataset(platform, color, dataset) {
     };
 }
 
-function createSummaryDatasets(avgKernel, avgUserSchannel, avgUserOpenssl) {
+function createCommitDatasets(avgKernel, avgUserSchannel, avgUserOpenssl) {
     return {
         datasets: [
             createAverageSummaryDataset("Windows Kernel", dataColorWinKernelx64Schannel, avgKernel),
@@ -68,7 +68,7 @@ function createSummaryDatasets(avgKernel, avgUserSchannel, avgUserOpenssl) {
     };
 }
 
-var summaryChartOptions = {
+var commitChartOptions = {
     maintainAspectRatio: false,
     scales: {
         xAxes: [{
@@ -107,7 +107,7 @@ var summaryChartOptions = {
     legend: {
       display: false
     },
-    onClick: chartOnCick,
+    onClick: chartOnClick,
     tooltips: {
         backgroundColor: "rgb(255,255,255)",
         bodyFontColor: "#858796",
@@ -129,34 +129,23 @@ var summaryChartOptions = {
 
 window.onload = function() {
     // Latest values
-    document.getElementById("winKernelSchannelUp").textContent = "5,911 Mbps"
-    document.getElementById("winKernelSchannelDown").textContent = "5,711 Mbps"
-    document.getElementById("winKernelSchannelRps").textContent = "257 KHz"
-    document.getElementById("winKernelSchannelHps").textContent = "1,924 Hz"
-    document.getElementById("winUserSchannelUp").textContent = "5,779 Mbps"
-    document.getElementById("winUserSchannelDown").textContent = "2,121 Mbps"
-    document.getElementById("winUserSchannelRps").textContent = "869 KHz"
-    document.getElementById("winUserSchannelHps").textContent = "1,832 Hz"
-    document.getElementById("winUserOpenSslUp").textContent = "5,672 Mbps"
-    document.getElementById("winUserOpenSslDown").textContent = "3,631 Mbps"
-    document.getElementById("winUserOpenSslRps").textContent = "919 KHz"
-    document.getElementById("winUserOpenSslHps").textContent = "2,326 Hz"
+    setLatestData()
 
     // Summary charts
     new Chart(document.getElementById('canvasUp').getContext('2d'), {
-        data: createSummaryDatasets(dataAverageWinKernelx64SchannelThroughput, dataAverageWindowsx64SchannelThroughput, dataAverageWindowsx64OpensslThroughput),
-        options: summaryChartOptions
+        data: createCommitDatasets(dataAverageWinKernelx64SchannelThroughput, dataAverageWindowsx64SchannelThroughput, dataAverageWindowsx64OpensslThroughput),
+        options: commitChartOptions
     });
     new Chart(document.getElementById('canvasDown').getContext('2d'), {
-        data: createSummaryDatasets(dataAverageWinKernelx64SchannelThroughputDown, dataAverageWindowsx64SchannelThroughputDown, dataAverageWindowsx64OpensslThroughputDown),
-        options: summaryChartOptions
+        data: createCommitDatasets(dataAverageWinKernelx64SchannelThroughputDown, dataAverageWindowsx64SchannelThroughputDown, dataAverageWindowsx64OpensslThroughputDown),
+        options: commitChartOptions
     });
     new Chart(document.getElementById('canvasRps').getContext('2d'), {
-        data: createSummaryDatasets(dataAverageWinKernelx64SchannelRps, dataAverageWindowsx64SchannelRps, dataAverageWindowsx64OpensslRps),
-        options: summaryChartOptions
+        data: createCommitDatasets(dataAverageWinKernelx64SchannelRps, dataAverageWindowsx64SchannelRps, dataAverageWindowsx64OpensslRps),
+        options: commitChartOptions
     });
     new Chart(document.getElementById('canvasHps').getContext('2d'), {
-        data: createSummaryDatasets(dataAverageWinKernelx64SchannelHps, dataAverageWindowsx64SchannelHps, dataAverageWindowsx64OpensslHps),
-        options: summaryChartOptions
+        data: createCommitDatasets(dataAverageWinKernelx64SchannelHps, dataAverageWindowsx64SchannelHps, dataAverageWindowsx64OpensslHps),
+        options: commitChartOptions
     });
 };
