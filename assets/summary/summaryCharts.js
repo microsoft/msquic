@@ -143,19 +143,19 @@ window.onload = function() {
     document.getElementById("winUserOpenSslHps").textContent = "2,326 Hz"
 
     // Summary charts
-    new Chart(document.getElementById('canvasThroughputSummary').getContext('2d'), {
+    new Chart(document.getElementById('canvasUp').getContext('2d'), {
         data: createSummaryDatasets(dataAverageWinKernelx64SchannelThroughput, dataAverageWindowsx64SchannelThroughput, dataAverageWindowsx64OpensslThroughput),
         options: summaryChartOptions
     });
-    new Chart(document.getElementById('canvasThroughputDownSummary').getContext('2d'), {
+    new Chart(document.getElementById('canvasDown').getContext('2d'), {
         data: createSummaryDatasets(dataAverageWinKernelx64SchannelThroughputDown, dataAverageWindowsx64SchannelThroughputDown, dataAverageWindowsx64OpensslThroughputDown),
         options: summaryChartOptions
     });
-    new Chart(document.getElementById('canvasRPSSummary').getContext('2d'), {
+    new Chart(document.getElementById('canvasRps').getContext('2d'), {
         data: createSummaryDatasets(dataAverageWinKernelx64SchannelRps, dataAverageWindowsx64SchannelRps, dataAverageWindowsx64OpensslRps),
         options: summaryChartOptions
     });
-    new Chart(document.getElementById('canvasHPSSummary').getContext('2d'), {
+    new Chart(document.getElementById('canvasHps').getContext('2d'), {
         data: createSummaryDatasets(dataAverageWinKernelx64SchannelHps, dataAverageWindowsx64SchannelHps, dataAverageWindowsx64OpensslHps),
         options: summaryChartOptions
     });
