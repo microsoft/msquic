@@ -1377,28 +1377,28 @@ CxPlatSocketContextSendComplete(
     CXPLAT_SEND_DATA* SendContext = NULL;
 
     struct epoll_event SockFdEpEvt = {
-            .events = EPOLLIN | EPOLLET,
-            .data = {
-                .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
-            }
-        };
-
-        int Ret =
-            epoll_ctl(
-                ProcContext->EpollFd,
-                EPOLL_CTL_MOD,
-                SocketContext->SocketFd,
-                &SockFdEpEvt);
-        if (Ret != 0) {
-            Status = Ret;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                Status,
-                "epoll_ctl failed");
-            goto Exit;
+        .events = EPOLLIN | EPOLLET,
+        .data = {
+            .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
         }
+    };
+
+    int Ret =
+        epoll_ctl(
+            ProcContext->EpollFd,
+            EPOLL_CTL_MOD,
+            SocketContext->SocketFd,
+            &SockFdEpEvt);
+    if (Ret != 0) {
+        Status = Ret;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "epoll_ctl failed");
+        goto Exit;
+    }
 
     CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead));
@@ -2010,7 +2010,6 @@ CxPlatSocketSendInternal(
     struct in_pktinfo *PktInfo = NULL;
     struct in6_pktinfo *PktInfo6 = NULL;
     BOOLEAN SendPending = FALSE;
-    BOOLEAN IsPendListEmpty = FALSE;
 
     static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
     char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
@@ -2109,43 +2108,37 @@ CxPlatSocketSendInternal(
 
     if (SentByteCount < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            struct epoll_event SockFdEpEvt = {
+                .events = EPOLLIN | EPOLLOUT | EPOLLET,
+                .data = {
+                    .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
+                }
+            };
+
+            int Ret =
+                epoll_ctl(
+                    ProcContext->EpollFd,
+                    EPOLL_CTL_MOD,
+                    SocketContext->SocketFd,
+                    &SockFdEpEvt);
+            if (Ret != 0) {
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    SocketContext->Binding,
+                    errno,
+                    "epoll_ctl failed");
+                Status = errno;
+                goto Exit;
+            }
             if (!IsPendedSend) {
                 CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
-                IsPendListEmpty = CxPlatListIsEmpty(&SocketContext->PendingSendContextHead);
                 CxPlatSocketContextPendSend(
                     SocketContext,
                     SendData,
                     LocalAddress,
                     RemoteAddress);
                 CxPlatLockRelease(&SocketContext->PendingSendContextLock);
-            }
-            if (IsPendListEmpty || IsPendedSend) {
-                //
-                // If the list is empty, or we are a pended sent, restart the epoll
-                //
-                struct epoll_event SockFdEpEvt = {
-                    .events = EPOLLIN | EPOLLOUT | EPOLLET,
-                    .data = {
-                        .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
-                    }
-                };
-
-                int Ret =
-                    epoll_ctl(
-                        ProcContext->EpollFd,
-                        EPOLL_CTL_MOD,
-                        SocketContext->SocketFd,
-                        &SockFdEpEvt);
-                if (Ret != 0) {
-                    QuicTraceEvent(
-                        DatapathErrorStatus,
-                        "[data][%p] ERROR, %u, %s.",
-                        SocketContext->Binding,
-                        errno,
-                        "epoll_ctl failed");
-                    Status = errno;
-                    goto Exit;
-                }
             }
             SendPending = TRUE;
             Status = QUIC_STATUS_PENDING;
