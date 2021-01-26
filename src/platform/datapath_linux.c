@@ -1401,7 +1401,7 @@ CxPlatSocketContextSendComplete(
         }
 
     CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
-    CXPLAT_DBG_ASSERT(!CxPlatIsListEmpty(&SocketContext->PendingSendContextHead));
+    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead));
     SendContext =
         CXPLAT_CONTAINING_RECORD(
             &SocketContext->PendingSendContextHead,
