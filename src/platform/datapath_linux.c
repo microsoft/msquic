@@ -338,6 +338,15 @@ CxPlatDataPathWorkerThread(
     );
 
 QUIC_STATUS
+CxPlatSocketSendInternal(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ BOOLEAN* IsPendedSend
+    );
+
+QUIC_STATUS
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t Index,
@@ -1335,6 +1344,9 @@ CxPlatSocketContextRecvComplete(
     CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(Status));
 }
 
+//
+// N.B. Caller must be holding SocketContext->PendingSendContextLock Lock.
+//
 QUIC_STATUS
 CxPlatSocketContextPendSend(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
@@ -1369,46 +1381,45 @@ CxPlatSocketContextPendSend(
             return errno;
         }
 
-        if (LocalAddress != NULL) {
-            CxPlatCopyMemory(
-                &SendContext->LocalAddress,
-                LocalAddress,
-                sizeof(*LocalAddress));
-            SendContext->Bind = TRUE;
-        }
-
-        CxPlatCopyMemory(
-            &SendContext->RemoteAddress,
-            RemoteAddress,
-            sizeof(*RemoteAddress));
-
         SocketContext->SendWaiting = TRUE;
     }
 
-    CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
     if (SendContext->Pending) {
         //
-        // This was a send that was already pending, so we need to add it back
-        // to the head of the queue.
+        // A pending send is not removed from the list before attempting to send it.
         //
-        CxPlatListInsertHead(
-            &SocketContext->PendingSendContextHead,
-            &SendContext->PendingSendLinkage);
-    } else {
-        //
-        // This is a new send that wasn't previously pended. Add it to the end
-        // of the queue.
-        //
-        CxPlatListInsertTail(
-            &SocketContext->PendingSendContextHead,
-            &SendContext->PendingSendLinkage);
-        SendContext->Pending = TRUE;
+        goto Exit;
     }
-    CxPlatLockRelease(&SocketContext->PendingSendContextLock);
 
+    if (LocalAddress != NULL) {
+        CxPlatCopyMemory(
+            &SendContext->LocalAddress,
+            LocalAddress,
+            sizeof(*LocalAddress));
+        SendContext->Bind = TRUE;
+    }
+
+    CxPlatCopyMemory(
+        &SendContext->RemoteAddress,
+        RemoteAddress,
+        sizeof(*RemoteAddress));
+
+    //
+    // This is a new send that wasn't previously pended. Add it to the end
+    // of the queue.
+    //
+    CxPlatListInsertTail(
+        &SocketContext->PendingSendContextHead,
+        &SendContext->PendingSendLinkage);
+    SendContext->Pending = TRUE;
+
+Exit:
     return QUIC_STATUS_SUCCESS;
 }
 
+//
+// N.B. Caller must be holding SocketContext->PendingSendContextLock Lock.
+//
 QUIC_STATUS
 CxPlatSocketContextSendComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
@@ -1416,6 +1427,7 @@ CxPlatSocketContextSendComplete(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    BOOLEAN IsPendedSend = TRUE;
 
     if (SocketContext->SendWaiting) {
 
@@ -1446,30 +1458,34 @@ CxPlatSocketContextSendComplete(
         SocketContext->SendWaiting = FALSE;
     }
 
-    CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
     while (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
         CXPLAT_SEND_DATA* SendContext =
             CXPLAT_CONTAINING_RECORD(
-                CxPlatListRemoveHead(&SocketContext->PendingSendContextHead),
+                &SocketContext->PendingSendContextHead,
                 CXPLAT_SEND_DATA,
                 PendingSendLinkage);
+        IsPendedSend = TRUE;
         CxPlatLockRelease(&SocketContext->PendingSendContextLock);
         Status =
-            CxPlatSocketSend(
+            CxPlatSocketSendInternal(
                 SocketContext->Binding,
                 SendContext->Bind ? &SendContext->LocalAddress : NULL,
                 &SendContext->RemoteAddress,
-                SendContext);
+                SendContext,
+                &IsPendedSend);
+        CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
+        if (!IsPendedSend) {
+            CxPlatListRemoveHead(&SocketContext->PendingSendContextHead);
+            CxPlatSendDataFree(SendData);
+        }
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
-        CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
-
         if (SocketContext->SendWaiting) {
             break;
         }
     }
-    CxPlatLockRelease(&SocketContext->PendingSendContextLock);
+
 
 Exit:
 
@@ -1562,7 +1578,9 @@ CxPlatSocketContextProcessEvents(
     }
 
     if (EPOLLOUT & Events) {
+        CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
         CxPlatSocketContextSendComplete(SocketContext, ProcContext);
+        CxPlatLockRelease(&SocketContext->PendingSendContextLock);
     }
 }
 
@@ -2033,21 +2051,14 @@ CxPlatSendDataFreeBuffer(
 }
 
 QUIC_STATUS
-CxPlatSocketSend(
+CxPLatSocketSendInternal(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendData
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _Inout_ BOOLEAN* IsPendedSend
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->SocketSend(
-            Socket,
-            LocalAddress,
-            RemoteAddress,
-            SendData);
-#else
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_SOCKET_CONTEXT* SocketContext = NULL;
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
@@ -2131,10 +2142,12 @@ CxPlatSocketSend(
         }
     }
 
-    SentByteCount = sendmsg(SocketContext->SocketFd, &Mhdr, 0);
-
-    if (SentByteCount < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+    //
+    // Check to see if we need to pend.
+    //
+    if (!*IsPendedSend) {
+        CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
+        if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
             Status =
                 CxPlatSocketContextPendSend(
                     SocketContext,
@@ -2142,6 +2155,30 @@ CxPlatSocketSend(
                     ProcContext,
                     LocalAddress,
                     RemoteAddress);
+            SendPending = TRUE;
+        }
+        CxPlatLockRelease(&SocketContext->PendingSendContextLock);
+        if (QUIC_FAILED(Status)) {
+            SendPending = FALSE;
+            goto Exit;
+        } else if (SendPending) {
+            goto Exit;
+        }
+    }
+
+    SentByteCount = sendmsg(SocketContext->SocketFd, &Mhdr, 0);
+
+    if (SentByteCount < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
+            Status =
+                CxPlatSocketContextPendSend(
+                    SocketContext,
+                    SendData,
+                    ProcContext,
+                    LocalAddress,
+                    RemoteAddress);
+            CxPlatLockRelease(&SocketContext->PendingSendContextLock);
             if (QUIC_FAILED(Status)) {
                 goto Exit;
             }
@@ -2164,11 +2201,38 @@ CxPlatSocketSend(
 
 Exit:
 
-    if (!SendPending) {
+    if (!SendPending && !*IsPendedSend) {
         CxPlatSendDataFree(SendData);
     }
+    *IsPendedSend = SendPending;
 
     return Status;
+}
+
+QUIC_STATUS
+CxPlatSocketSend(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+#ifdef CX_PLATFORM_DISPATCH_TABLE
+    return
+        PlatDispatch->SocketSend(
+            Socket,
+            LocalAddress,
+            RemoteAddress,
+            SendData);
+#else
+    BOOLEAN IsPendedSend = FALSE;
+    return
+        CxPLatSocketSendInternal(
+            Socket,
+            LocalAddress,
+            RemoteAddress,
+            SendData,
+            &IsPendedSend);
 #endif // CX_PLATFORM_DISPATCH_TABLE
 }
 
