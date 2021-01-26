@@ -205,7 +205,7 @@ CxPlatDataPathRecvPacketToRecvData(
 //
 CXPLAT_RECV_PACKET*
 CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const Datagram
+    _In_ const CXPLAT_RECV_DATA* const RecvData
     );
 
 //
@@ -432,7 +432,7 @@ CxPlatSocketCreateTcpListener(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatSocketDelete(
-    _In_ CXPLAT_SOCKET* Binding
+    _In_ CXPLAT_SOCKET* Socket
     );
 
 //
@@ -441,7 +441,7 @@ CxPlatSocketDelete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Binding
+    _In_ CXPLAT_SOCKET* Socket
     );
 
 //
@@ -450,7 +450,7 @@ CxPlatSocketGetLocalMtu(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSocketGetLocalAddress(
-    _In_ CXPLAT_SOCKET* Binding,
+    _In_ CXPLAT_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     );
 
@@ -461,7 +461,7 @@ CxPlatSocketGetLocalAddress(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSocketGetRemoteAddress(
-    _In_ CXPLAT_SOCKET* Binding,
+    _In_ CXPLAT_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     );
 
@@ -483,7 +483,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
-    _In_ CXPLAT_SOCKET* Binding,
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     );
@@ -494,7 +494,7 @@ CxPlatSendDataAlloc(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFree(
-    _In_ CXPLAT_SEND_DATA* SendContext
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 //
@@ -504,7 +504,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
 CxPlatSendDataAllocBuffer(
-    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     );
 
@@ -514,7 +514,7 @@ CxPlatSendDataAllocBuffer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFreeBuffer(
-    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ QUIC_BUFFER* Buffer
     );
 
@@ -524,7 +524,7 @@ CxPlatSendDataFreeBuffer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatSendDataIsFull(
-    _In_ CXPLAT_SEND_DATA* SendContext
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 //
