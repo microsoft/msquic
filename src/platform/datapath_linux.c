@@ -2108,6 +2108,15 @@ CxPlatSocketSendInternal(
 
     if (SentByteCount < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            if (!IsPendedSend) {
+                CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
+                CxPlatSocketContextPendSend(
+                    SocketContext,
+                    SendData,
+                    LocalAddress,
+                    RemoteAddress);
+                CxPlatLockRelease(&SocketContext->PendingSendContextLock);
+            }
             struct epoll_event SockFdEpEvt = {
                 .events = EPOLLIN | EPOLLOUT | EPOLLET,
                 .data = {
@@ -2130,15 +2139,6 @@ CxPlatSocketSendInternal(
                     "epoll_ctl failed");
                 Status = errno;
                 goto Exit;
-            }
-            if (!IsPendedSend) {
-                CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
-                CxPlatSocketContextPendSend(
-                    SocketContext,
-                    SendData,
-                    LocalAddress,
-                    RemoteAddress);
-                CxPlatLockRelease(&SocketContext->PendingSendContextLock);
             }
             SendPending = TRUE;
             Status = QUIC_STATUS_PENDING;
