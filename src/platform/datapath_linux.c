@@ -2226,7 +2226,7 @@ CxPlatSocketSend(
 #else
     BOOLEAN IsPendedSend = FALSE;
     return
-        CxPLatSocketSendInternal(
+        CxPlatSocketSendInternal(
             Socket,
             LocalAddress,
             RemoteAddress,
