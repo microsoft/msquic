@@ -1428,14 +1428,9 @@ CxPlatSocketContextSendComplete(
                     &SocketContext->PendingSendContextHead,
                     CXPLAT_SEND_DATA,
                     PendingSendLinkage);
-        } else {
-            SendContext == NULL;
         }
         CxPlatLockRelease(&SocketContext->PendingSendContextLock);
-        if (QUIC_FAILED(Status) || Status == QUIC_STATUS_PENDING) {
-            break;
-        }
-    } while (SendContext != NULL);
+    } while (Status == QUIC_STATUS_SUCCESS);
 
 Exit:
     return Status;
