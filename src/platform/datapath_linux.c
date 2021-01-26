@@ -1342,7 +1342,7 @@ CxPlatSocketContextPendSend(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ CXPLAT_SEND_DATA* SendContext,
     _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const QUIC_ADDR* RemoteAddress
     )
 {
     if (LocalAddress != NULL) {
