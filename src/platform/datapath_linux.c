@@ -1486,7 +1486,6 @@ CxPlatSocketContextSendComplete(
         }
     }
 
-
 Exit:
 
     return Status;
