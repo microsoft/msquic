@@ -182,6 +182,11 @@ typedef struct CXPLAT_SOCKET_CONTEXT {
     //
     CXPLAT_LIST_ENTRY PendingSendContextHead;
 
+    //
+    // Lock around the PendingSendContext list.
+    //
+    CXPLAT_LOCK PendingSendContextLock;
+
 } CXPLAT_SOCKET_CONTEXT;
 
 //
@@ -1380,6 +1385,7 @@ CxPlatSocketContextPendSend(
         SocketContext->SendWaiting = TRUE;
     }
 
+    CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
     if (SendContext->Pending) {
         //
         // This was a send that was already pending, so we need to add it back
@@ -1398,6 +1404,7 @@ CxPlatSocketContextPendSend(
             &SendContext->PendingSendLinkage);
         SendContext->Pending = TRUE;
     }
+    CxPlatLockRelease(&SocketContext->PendingSendContextLock);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -1439,13 +1446,14 @@ CxPlatSocketContextSendComplete(
         SocketContext->SendWaiting = FALSE;
     }
 
+    CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
     while (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
         CXPLAT_SEND_DATA* SendContext =
             CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&SocketContext->PendingSendContextHead),
                 CXPLAT_SEND_DATA,
                 PendingSendLinkage);
-
+        CxPlatLockRelease(&SocketContext->PendingSendContextLock);
         Status =
             CxPlatSocketSend(
                 SocketContext->Binding,
@@ -1455,11 +1463,13 @@ CxPlatSocketContextSendComplete(
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
+        CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
 
         if (SocketContext->SendWaiting) {
             break;
         }
     }
+    CxPlatLockRelease(&SocketContext->PendingSendContextLock);
 
 Exit:
 
@@ -1623,6 +1633,7 @@ CxPlatSocketCreateUdp(
         Binding->SocketContexts[i].RecvIov.iov_len =
             Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendContextHead);
+        CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendContextLock);
         CxPlatRundownAcquire(&Binding->Rundown);
     }
 
@@ -1678,6 +1689,9 @@ Exit:
             // TODO - Clean up socket contexts
             CxPlatRundownRelease(&Datapath->BindingsRundown);
             CxPlatRundownUninitialize(&Binding->Rundown);
+            for (uint32_t i = 0; i < SocketCount; i++) {
+                CxPlatLockUninitialize(&Binding->SocketContexts[i].PendingSendContextLock);
+            }
             CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
             Binding = NULL;
         }
@@ -1751,8 +1765,10 @@ CxPlatSocketDelete(
 
     CxPlatRundownReleaseAndWait(&Binding->Rundown);
     CxPlatRundownRelease(&Binding->Datapath->BindingsRundown);
-
     CxPlatRundownUninitialize(&Binding->Rundown);
+    for (uint32_t i = 0; i < Binding->Datapath->ProcCount; i++) {
+        CxPlatLockUninitialize(&Binding->SocketContexts[i].PendingSendContextLock);
+    }
     CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
 #endif
 }
