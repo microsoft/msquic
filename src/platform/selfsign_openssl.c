@@ -20,9 +20,7 @@ Abstract:
 #include "openssl/err.h"
 #include "openssl/kdf.h"
 #include "openssl/pem.h"
-#include "openssl/pem.h"
 #include "openssl/rsa.h"
-#include "openssl/ssl.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
 #ifdef _WIN32
