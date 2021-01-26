@@ -90,11 +90,6 @@ typedef struct CXPLAT_SEND_DATA {
     CXPLAT_LIST_ENTRY PendingSendLinkage;
 
     //
-    // Indicates if the send is pending.
-    //
-    BOOLEAN Pending;
-
-    //
     // The type of ECN markings needed for send.
     //
     CXPLAT_ECN_TYPE ECN;
@@ -149,11 +144,6 @@ typedef struct CXPLAT_SOCKET_CONTEXT {
 #define QUIC_SOCK_EVENT_CLEANUP 0
 #define QUIC_SOCK_EVENT_SOCKET  1
     uint8_t EventContexts[2];
-
-    //
-    // Indicates if sends are waiting for the socket to be write ready.
-    //
-    BOOLEAN SendWaiting;
 
     //
     // The I/O vector for receive datagrams.
@@ -343,7 +333,7 @@ CxPlatSocketSendInternal(
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData,
-    _Inout_ BOOLEAN* IsPendedSend
+    _In_ BOOLEAN IsPendedSend
     );
 
 QUIC_STATUS
@@ -1345,51 +1335,87 @@ CxPlatSocketContextRecvComplete(
 }
 
 //
-// N.B. Caller must be holding SocketContext->PendingSendContextLock Lock.
+// N.B Requires SocketContext->PendingSendContextLock to be locked.
 //
-QUIC_STATUS
+void
 CxPlatSocketContextPendSend(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ CXPLAT_SEND_DATA* SendContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext,
     _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress
+    _In_ const QUIC_ADDR* RemoteAddress,
     )
 {
-    if (!SocketContext->SendWaiting) {
+    // QUIC_STATUS Status = QUIC_STATUS_PENDING;
+    // BOOLEAN IsListEmpty = FALSE;
 
-        struct epoll_event SockFdEpEvt = {
-            .events = EPOLLIN | EPOLLOUT | EPOLLET,
-            .data = {
-                .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
-            }
-        };
+    // CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
+    // IsListEmpty = CxPlatListIsEmpty(&SocketContext->PendingSendContextHead);
 
-        int Ret =
-            epoll_ctl(
-                ProcContext->EpollFd,
-                EPOLL_CTL_MOD,
-                SocketContext->SocketFd,
-                &SockFdEpEvt);
-        if (Ret != 0) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                errno,
-                "epoll_ctl failed");
-            return errno;
-        }
+    // //
+    // // N.B. If IsBeforeSendAttempt is FALSE, QUIC_STATUS_SUCCESS can never be returned.
+    // //
+    // if (IsListEmpty && IsBeforeSendAttempt) {
+    //     Status = QUIC_STATUS_SUCCESS;
+    //     goto Exit;
+    // }
 
-        SocketContext->SendWaiting = TRUE;
-    }
+    // if (!SocketContext->SendWaiting) {
 
-    if (SendContext->Pending) {
-        //
-        // A pending send is not removed from the list before attempting to send it.
-        //
-        goto Exit;
-    }
+    //     struct epoll_event SockFdEpEvt = {
+    //         .events = EPOLLIN | EPOLLOUT | EPOLLET,
+    //         .data = {
+    //             .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
+    //         }
+    //     };
+
+    //     int Ret =
+    //         epoll_ctl(
+    //             ProcContext->EpollFd,
+    //             EPOLL_CTL_MOD,
+    //             SocketContext->SocketFd,
+    //             &SockFdEpEvt);
+    //     if (Ret != 0) {
+    //         QuicTraceEvent(
+    //             DatapathErrorStatus,
+    //             "[data][%p] ERROR, %u, %s.",
+    //             SocketContext->Binding,
+    //             errno,
+    //             "epoll_ctl failed");
+    //         Status = errno;
+    //         goto Exit;
+    //     }
+
+    //     SocketContext->SendWaiting = TRUE;
+    // }
+
+    // if (SendContext->    //     struct epoll_event SockFdEpEvt = {
+    //         .events = EPOLLIN | EPOLLOUT | EPOLLET,
+    //         .data = {
+    //             .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
+    //         }
+    //     };
+
+    //     int Ret =
+    //         epoll_ctl(
+    //             ProcContext->EpollFd,
+    //             EPOLL_CTL_MOD,
+    //             SocketContext->SocketFd,
+    //             &SockFdEpEvt);
+    //     if (Ret != 0) {
+    //         QuicTraceEvent(
+    //             DatapathErrorStatus,
+    //             "[data][%p] ERROR, %u, %s.",
+    //             SocketContext->Binding,
+    //             errno,
+    //             "epoll_ctl failed");
+    //         Status = errno;
+    //         goto Exit;
+    //     }) {
+    //     //
+    //     // A pending send is not removed from the list before attempting to send it.
+    //     //
+    //     goto Exit;
+    // }
 
     if (LocalAddress != NULL) {
         CxPlatCopyMemory(
@@ -1411,15 +1437,8 @@ CxPlatSocketContextPendSend(
     CxPlatListInsertTail(
         &SocketContext->PendingSendContextHead,
         &SendContext->PendingSendLinkage);
-    SendContext->Pending = TRUE;
-
-Exit:
-    return QUIC_STATUS_SUCCESS;
 }
 
-//
-// N.B. Caller must be holding SocketContext->PendingSendContextLock Lock.
-//
 QUIC_STATUS
 CxPlatSocketContextSendComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
@@ -1427,11 +1446,9 @@ CxPlatSocketContextSendComplete(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    BOOLEAN IsPendedSend = TRUE;
+    CXPLAT_SEND_DATA* SendContext = NULL;
 
-    if (SocketContext->SendWaiting) {
-
-        struct epoll_event SockFdEpEvt = {
+    struct epoll_event SockFdEpEvt = {
             .events = EPOLLIN | EPOLLET,
             .data = {
                 .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
@@ -1455,39 +1472,44 @@ CxPlatSocketContextSendComplete(
             goto Exit;
         }
 
-        SocketContext->SendWaiting = FALSE;
-    }
+    CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
+    CXPLAT_DBG_ASSERT(!CxPlatIsListEmpty(&SocketContext->PendingSendContextHead));
+    SendContext =
+        CXPLAT_CONTAINING_RECORD(
+            &SocketContext->PendingSendContextHead,
+            CXPLAT_SEND_DATA,
+            PendingSendLinkage);
+    CxPlatLockRelease(&SocketContext->PendingSendContextLock);
 
-    while (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
-        CXPLAT_SEND_DATA* SendContext =
-            CXPLAT_CONTAINING_RECORD(
-                &SocketContext->PendingSendContextHead,
-                CXPLAT_SEND_DATA,
-                PendingSendLinkage);
-        IsPendedSend = TRUE;
-        CxPlatLockRelease(&SocketContext->PendingSendContextLock);
+    do {
         Status =
             CxPlatSocketSendInternal(
                 SocketContext->Binding,
                 SendContext->Bind ? &SendContext->LocalAddress : NULL,
                 &SendContext->RemoteAddress,
                 SendContext,
-                &IsPendedSend);
+                TRUE);
         CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
-        if (!IsPendedSend) {
+        if (Status != QUIC_STATUS_PENDING) {
             CxPlatListRemoveHead(&SocketContext->PendingSendContextHead);
             CxPlatSendDataFree(SendContext);
         }
-        if (QUIC_FAILED(Status)) {
-            goto Exit;
+        if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
+            SendContext =
+                CXPLAT_CONTAINING_RECORD(
+                    &SocketContext->PendingSendContextHead,
+                    CXPLAT_SEND_DATA,
+                    PendingSendLinkage);
+        } else {
+            SendContext == NULL;
         }
-        if (SocketContext->SendWaiting) {
+        CxPlatLockRelease(&SocketContext->PendingSendContextLock);
+        if (QUIC_FAILED(Status) || Status == QUIC_STATUS_PENDING) {
             break;
         }
-    }
+    } while (SendContext != NULL);
 
 Exit:
-
     return Status;
 }
 
@@ -1577,9 +1599,7 @@ CxPlatSocketContextProcessEvents(
     }
 
     if (EPOLLOUT & Events) {
-        CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
         CxPlatSocketContextSendComplete(SocketContext, ProcContext);
-        CxPlatLockRelease(&SocketContext->PendingSendContextLock);
     }
 }
 
@@ -2055,7 +2075,7 @@ CxPlatSocketSendInternal(
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData,
-    _Inout_ BOOLEAN* IsPendedSend
+    _In_ BOOLEAN IsPendedSend
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -2067,6 +2087,7 @@ CxPlatSocketSendInternal(
     struct in_pktinfo *PktInfo = NULL;
     struct in6_pktinfo *PktInfo6 = NULL;
     BOOLEAN SendPending = FALSE;
+    BOOLEAN IsPendListEmpty = FALSE;
 
     static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
     char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
@@ -2144,23 +2165,19 @@ CxPlatSocketSendInternal(
     //
     // Check to see if we need to pend.
     //
-    if (!*IsPendedSend) {
+    if (!IsPendedSend) {
         CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
         if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
-            Status =
-                CxPlatSocketContextPendSend(
-                    SocketContext,
-                    SendData,
-                    ProcContext,
-                    LocalAddress,
-                    RemoteAddress);
+            CxPlatSocketContextPendSend(
+                SocketContext,
+                SendData,
+                LocalAddress,
+                RemoteAddress);
             SendPending = TRUE;
         }
         CxPlatLockRelease(&SocketContext->PendingSendContextLock);
-        if (QUIC_FAILED(Status)) {
-            SendPending = FALSE;
-            goto Exit;
-        } else if (SendPending) {
+        if (SendPending) {
+            Status = QUIC_STATUS_PENDING;
             goto Exit;
         }
     }
@@ -2169,20 +2186,46 @@ CxPlatSocketSendInternal(
 
     if (SentByteCount < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
-            Status =
+            if (!IsPendedSend) {
+                CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
+                IsPendListEmpty = CxPlatListIsEmpty(&SocketContext->PendingSendContextHead);
                 CxPlatSocketContextPendSend(
                     SocketContext,
                     SendData,
-                    ProcContext,
                     LocalAddress,
                     RemoteAddress);
-            CxPlatLockRelease(&SocketContext->PendingSendContextLock);
-            if (QUIC_FAILED(Status)) {
-                goto Exit;
+                CxPlatLockRelease(&SocketContext->PendingSendContextLock);
             }
+            if (IsPendListEmpty || IsPendedSend) {
+                //
+                // If the list is empty, or we are a pended sent, restart the epoll
+                //
+                struct epoll_event SockFdEpEvt = {
+                    .events = EPOLLIN | EPOLLOUT | EPOLLET,
+                    .data = {
+                        .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
+                    }
+                };
 
+                int Ret =
+                    epoll_ctl(
+                        ProcContext->EpollFd,
+                        EPOLL_CTL_MOD,
+                        SocketContext->SocketFd,
+                        &SockFdEpEvt);
+                if (Ret != 0) {
+                    QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[data][%p] ERROR, %u, %s.",
+                        SocketContext->Binding,
+                        errno,
+                        "epoll_ctl failed");
+                    Status = errno;
+                    goto Exit;
+                }
+            }
             SendPending = TRUE;
+            Status = QUIC_STATUS_PENDING;
             goto Exit;
         } else {
             Status = errno;
@@ -2200,10 +2243,9 @@ CxPlatSocketSendInternal(
 
 Exit:
 
-    if (!SendPending && !*IsPendedSend) {
+    if (!SendPending && !IsPendedSend) {
         CxPlatSendDataFree(SendData);
     }
-    *IsPendedSend = SendPending;
 
     return Status;
 }
@@ -2224,14 +2266,16 @@ CxPlatSocketSend(
             RemoteAddress,
             SendData);
 #else
-    BOOLEAN IsPendedSend = FALSE;
-    return
+    QUIC_STATUS Status =
         CxPlatSocketSendInternal(
             Socket,
             LocalAddress,
             RemoteAddress,
             SendData,
-            &IsPendedSend);
+            FALSE);
+    if (Status == QUIC_STATUS_PENDING) {
+        Status = QUIC_STATUS_SUCCESS;
+    }
 #endif // CX_PLATFORM_DISPATCH_TABLE
 }
 
