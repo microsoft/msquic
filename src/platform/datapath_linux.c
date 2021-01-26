@@ -2199,6 +2199,7 @@ CxPlatSocketSend(
     if (Status == QUIC_STATUS_PENDING) {
         Status = QUIC_STATUS_SUCCESS;
     }
+    return Status;
 #endif // CX_PLATFORM_DISPATCH_TABLE
 }
 
