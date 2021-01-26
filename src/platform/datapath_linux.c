@@ -1476,7 +1476,7 @@ CxPlatSocketContextSendComplete(
         CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
         if (!IsPendedSend) {
             CxPlatListRemoveHead(&SocketContext->PendingSendContextHead);
-            CxPlatSendDataFree(SendData);
+            CxPlatSendDataFree(SendContext);
         }
         if (QUIC_FAILED(Status)) {
             goto Exit;
