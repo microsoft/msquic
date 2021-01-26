@@ -1669,7 +1669,11 @@ QuicCryptoTlsDecodeTransportParameters(
             TransportParams->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;
             TransportParams->VersionNegotiationInfo = (uint8_t*)TPBuf + Offset; // Review: Allocate and copy?
             TransportParams->VersionNegotiationInfoLength = Length;
-            // TODO Log
+            QuicTraceLogConnVerbose(
+                DecodeTPVersionNegotiationInfo,
+                Connection,
+                "TP: Version Negotiation Info (%llu bytes)",
+                TransportParams->VersionNegotiationInfoLength);
             break;
 
         default:

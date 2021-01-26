@@ -392,6 +392,15 @@ TEST_P(WithFamilyArgs, VersionNegotiation) {
     }
 }
 
+TEST_P(WithFamilyArgs, CompatibleVersionNegotiation) {
+    TestLoggerT<ParamType> Logger("QuicTestVersionNegotiation", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VERSION_NEGOTIATION, GetParam().Family));
+    } else {
+        QuicTestCompatibleVersionNegotiation(GetParam().Family);
+    }
+}
+
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithHandshakeArgs4, RandomLoss) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLoss", GetParam());

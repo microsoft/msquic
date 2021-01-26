@@ -2551,6 +2551,11 @@ QuicConnProcessPeerTransportParameters(
                         (uint16_t)Connection->PeerTransportParams.VersionNegotiationInfoLength,
                         &ClientVNI);
                 if (QUIC_FAILED(Status)) {
+                    QuicTraceLogConnError(
+                        ClientVersionNegotiationInfoDecodeFailed,
+                        Connection,
+                        "Client version negotiation info failed to parse 0x%x",
+                        Status);
                     QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
                     return QUIC_STATUS_PROTOCOL_ERROR;
                 }
@@ -2560,6 +2565,12 @@ QuicConnProcessPeerTransportParameters(
                 // and verify it matches the VNE TP.
                 //
                 if (Connection->Stats.QuicVersion != ClientVNI.CurrentVersion) {
+                    QuicTraceLogConnError(
+                        ClientVersionNegotiationInfoVersionMismatch,
+                        Connection,
+                        "Client Current Version doesn't match long header. 0x%x != 0x%x",
+                        ClientVNI.CurrentVersion,
+                        Connection->Stats.QuicVersion);
                     QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                     return QUIC_STATUS_PROTOCOL_ERROR;
                 }
@@ -2573,8 +2584,11 @@ QuicConnProcessPeerTransportParameters(
                         //
                         // The list of versions the client provided as proof of VN is wrong,
                         // Kill the connection.
-                        // TODO log
                         //
+                        QuicTraceLogConnError(
+                            ClientVersionNegotiationRecvdVersionsMismatch,
+                            Connection,
+                            "Client Received Versions list doesn't match server");
                         QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                         return QUIC_STATUS_PROTOCOL_ERROR;
                     }
@@ -2585,6 +2599,11 @@ QuicConnProcessPeerTransportParameters(
                             // If the previous version is supported, we wouldn't have done IVN.
                             // Kill the connection.
                             //
+                            QuicTraceLogConnError(
+                                ClientVersionNegotiationPrevVersionIncorrect,
+                                Connection,
+                                "Client Previous Version is supported: 0x%x",
+                                ClientVNI.PreviousVersion);
                             QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                             return QUIC_STATUS_PROTOCOL_ERROR;
                         }
@@ -6193,7 +6212,7 @@ QuicConnApplyNewSettings(
         QuicSendApplyNewSettings(&Connection->Send, &Connection->Settings);
         QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
 
-        if (NewSettings->IsSet.DesiredVersionsList) {
+        if (!QuicConnIsServer(Connection) && NewSettings->IsSet.DesiredVersionsList) {
             Connection->Stats.QuicVersion = NewSettings->DesiredVersionsList[0];
             QuicConnOnQuicVersionSet(Connection);
         }

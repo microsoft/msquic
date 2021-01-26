@@ -77,6 +77,16 @@ QuicTestVersionNegotiation(
     _In_ int Family
     );
 
+void
+QuicTestCompatibleVersionNegotiationDefaultServer(
+    _In_ int Family
+    );
+
+void
+QuicTestCompatibleVersionNegotiation(
+    _In_ int Family
+    );
+
 //
 // Negative Handshake Tests
 //
@@ -590,4 +600,12 @@ typedef struct {
     QUIC_CTL_CODE(46, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 46
+#define IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION \
+    QUIC_CTL_CODE(47, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER \
+    QUIC_CTL_CODE(48, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 48

@@ -260,7 +260,11 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
 
         VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(VNILen, QUIC_POOL_VER_NEG_INFO);
         if (VersionNegotiationInfo == NULL) {
-            // TODO log
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Server Version Negotiation Info",
+                VNILen);
             return NULL;
         }
         VNIBuf = VersionNegotiationInfo;
@@ -300,7 +304,11 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
 
         VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(VNILen, QUIC_POOL_VER_NEG_INFO);
         if (VersionNegotiationInfo == NULL) {
-            // TODO log
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Client Version Negotiation Info",
+                VNILen);
             return NULL;
         }
         VNIBuf = VersionNegotiationInfo;

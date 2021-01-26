@@ -343,7 +343,11 @@ QuicSettingApply(
                 CXPLAT_ALLOC_NONPAGED(
                     ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength * sizeof(uint32_t), QUIC_POOL_COMPAT_VER_LIST);
             if (Destination->GeneratedCompatibleVersionsList == NULL) {
-                // TODO Log
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Generated Compatible Versions list",
+                    ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength * sizeof(uint32_t));
                 return FALSE;
             }
             CxPlatCopyMemory(
@@ -366,14 +370,22 @@ QuicSettingApply(
             for (uint32_t i = 0; i < Source->DesiredVersionsListLength; ++i) {
                 if (!QuicIsVersionSupported(Source->DesiredVersionsList[i]) &&
                     !QuicIsVersionReserved(Source->DesiredVersionsList[i])) {
-                    // TODO log
+                    QuicTraceLogError(
+                        SettingsInvalidVersion,
+                        "Invalid version supplied to settings! 0x%x at position %d",
+                        Source->DesiredVersionsList[i],
+                        i);
                     return FALSE;
                 }
             }
             Destination->DesiredVersionsList =
                 CXPLAT_ALLOC_NONPAGED(Source->DesiredVersionsListLength * sizeof(uint32_t), QUIC_POOL_DESIRED_VER_LIST);
             if (Destination->DesiredVersionsList == NULL) {
-                // TODO log
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Desired Versions list",
+                    Source->DesiredVersionsListLength * sizeof(uint32_t));
                 return FALSE;
             }
             CxPlatCopyMemory(
