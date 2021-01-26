@@ -343,7 +343,7 @@ CxPlatSocketSendInternal(
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ BOOLEAN* IsPendedSend
+    _Inout_ BOOLEAN* IsPendedSend
     );
 
 QUIC_STATUS
