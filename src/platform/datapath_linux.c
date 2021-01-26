@@ -2050,7 +2050,7 @@ CxPlatSendDataFreeBuffer(
 }
 
 QUIC_STATUS
-CxPLatSocketSendInternal(
+CxPlatSocketSendInternal(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
