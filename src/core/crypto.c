@@ -1933,7 +1933,6 @@ QuicCryptoEncodeServerTicket(
     TicketCursor += EncodedTPLength;
     if (AppDataLength > 0) {
         CxPlatCopyMemory(TicketCursor, AppResumptionData, AppDataLength);
-        TicketCursor += AppDataLength;
     }
     CXPLAT_DBG_ASSERT(TicketCursor == TicketBuffer + TotalTicketLength);
 
@@ -2161,7 +2160,6 @@ QuicCryptoEncodeClientTicket(
     TicketCursor += EncodedTPLength;
     if (TicketLength > 0) {
         CxPlatCopyMemory(TicketCursor, Ticket, TicketLength);
-        TicketCursor += TicketLength;
     }
     CXPLAT_DBG_ASSERT(TicketCursor == ClientTicketBuffer + ClientTicketBufferLength);
 

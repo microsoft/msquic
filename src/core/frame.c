@@ -564,7 +564,7 @@ QuicStreamFrameEncode(
         Buffer = QuicVarIntEncode(Frame->Offset, Buffer);
     }
     if (Type.LEN) {
-        Buffer = QuicVarIntEncode2Bytes(Frame->Length, Buffer); // We always use two bytes for the explicit length.
+        QuicVarIntEncode2Bytes(Frame->Length, Buffer); // We always use two bytes for the explicit length.
     }
     CXPLAT_DBG_ASSERT(Frame->Length == 0 || Buffer == Frame->Data); // Caller already set the data.
     *Offset += RequiredLength;
