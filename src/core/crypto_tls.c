@@ -1087,7 +1087,11 @@ QuicCryptoTlsEncodeTransportParameters(
                 (uint16_t)TransportParams->VersionNegotiationInfoLength,
                 TransportParams->VersionNegotiationInfo,
                 TPBuf);
-        // TODO: Log
+        QuicTraceLogConnVerbose(
+            EncodeTPVersionNegotiationExt,
+            Connection,
+            "TP: Version Negotiation Extension (%llu bytes)",
+            TransportParams->VersionNegotiationInfoLength);
     }
     if (TestParam != NULL) {
         TPBuf =

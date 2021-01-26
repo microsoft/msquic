@@ -821,6 +821,26 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestAckSendDelay(Params->Family));
         break;
 
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestCompatibleVersionNegotiation(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestCompatibleVersionNegotiationDefaultServer(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_INCOMPATIBLE_VERSION_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestIncompatibleVersionNegotiation(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_FAILED_VERSION_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestFailedVersionNegotiation(Params->Family));
+        break;
+
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;

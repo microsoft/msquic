@@ -44,6 +44,12 @@ QuicVersionNegotiationExtIsVersionServerSupported(
     );
 
 BOOLEAN
+QuicVersionNegotiationExtIsVersionClientSupported(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint32_t Version
+    );
+
+BOOLEAN
 QuicVersionNegotiationExtAreVersionsCompatible(
     _In_ uint32_t OriginalVersion,
     _In_ uint32_t UpgradedVersion

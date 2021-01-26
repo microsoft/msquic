@@ -2643,10 +2643,21 @@ QuicConnProcessPeerTransportParameters(
                         (uint16_t)Connection->PeerTransportParams.VersionNegotiationInfoLength,
                         &ServerVNI);
                 if (QUIC_FAILED(Status)) {
+                    QuicTraceLogConnError(
+                        ServerVersionNegotiationInfoDecodeFailed,
+                        Connection,
+                        "Server version negotiation info failed to parse 0x%x",
+                        Status);
                     QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
                     return QUIC_STATUS_PROTOCOL_ERROR;
                 }
                 if (Connection->Stats.QuicVersion != ServerVNI.NegotiatedVersion) {
+                    QuicTraceLogConnError(
+                        ServerVersionNegotiationInfoVersionMismatch,
+                        Connection,
+                        "Server Negotiated Version doesn't match long header. 0x%x != 0x%x",
+                        ServerVNI.NegotiatedVersion,
+                        Connection->Stats.QuicVersion);
                     QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                     return QUIC_STATUS_PROTOCOL_ERROR;
                 }
@@ -2658,6 +2669,11 @@ QuicConnProcessPeerTransportParameters(
                     }
                 }
                 if (!NegotiatedVersionFound) {
+                    QuicTraceLogConnError(
+                        ServerVersionNegotiationNegotiatedVersionNotInSupportedList,
+                        Connection,
+                        "Server Negotiated Version is not in Server Supported Versions: 0x%x",
+                        ServerVNI.NegotiatedVersion);
                     QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                     return QUIC_STATUS_PROTOCOL_ERROR;
                 }
@@ -2961,7 +2977,9 @@ QuicConnRecvVerNeg(
         // Check to see if this is supported, if we haven't already found a
         // supported version.
         //
-        if (SupportedVersion == 0 && QuicIsVersionSupported(ServerVersion)) {
+        if (SupportedVersion == 0 &&
+            ((!QuicConnIsServer(Connection) && QuicVersionNegotiationExtIsVersionClientSupported(Connection, ServerVersion)) ||
+            (QuicConnIsServer(Connection) && QuicVersionNegotiationExtIsVersionServerSupported(ServerVersion)))) {
             SupportedVersion = ServerVersion;
         }
     }

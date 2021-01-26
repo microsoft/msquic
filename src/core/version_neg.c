@@ -61,6 +61,24 @@ QuicVersionNegotiationExtIsVersionServerSupported(
 }
 
 BOOLEAN
+QuicVersionNegotiationExtIsVersionClientSupported(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint32_t Version
+    )
+{
+    if (Connection->Settings.IsSet.DesiredVersionsList) {
+        for (uint32_t i = 0; i < Connection->Settings.DesiredVersionsListLength; ++i) {
+            if (Connection->Settings.DesiredVersionsList[i] == Version) {
+                return TRUE;
+            }
+        }
+        return FALSE;
+    } else {
+        return QuicIsVersionSupported(Version);
+    }
+}
+
+BOOLEAN
 QuicVersionNegotiationExtAreVersionsCompatible(
     _In_ uint32_t OriginalVersion,
     _In_ uint32_t UpgradedVersion

@@ -202,16 +202,3 @@ QuicCryptoTlsDecodeTransportParameters(
     _In_ uint16_t TPLen,
     _Out_ QUIC_TRANSPORT_PARAMETERS* TransportParams
     );
-
-
-//
-// Decodes QUIC Version Negotiation Info TP buffer.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != FALSE)
-BOOLEAN
-QuicCryptoTlsDecodeVersionNegotiationInfo(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ const uint8_t* VersionNegotiationInfo,
-    _In_ uint32_t VersionNegotiationInfoLength
-);
