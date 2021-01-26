@@ -1942,7 +1942,7 @@ CxPlatTlsWriteDataToSchannel(
 
                 if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) {
                     // TODO - Upcall validation
-                    Result |= QUIC_TLS_RESULT_ERROR;
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
                     break;
                 }
             }
