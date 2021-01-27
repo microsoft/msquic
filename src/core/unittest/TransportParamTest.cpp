@@ -37,7 +37,7 @@ void CompareTransportParams(
     if (A->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
         ASSERT_EQ(A->VersionNegotiationInfoLength, B->VersionNegotiationInfoLength);
         ASSERT_EQ(
-            memcmp(A->VersionNegotiationInfo, B->VersionNegotiationInfo, A->VersionNegotiationInfoLength),
+            memcmp(A->VersionNegotiationInfo, B->VersionNegotiationInfo, (size_t)A->VersionNegotiationInfoLength),
             0);
     } 
     //COMPARE_TP_FIELD(InitialSourceConnectionID);
