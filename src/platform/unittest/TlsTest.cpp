@@ -872,8 +872,12 @@ TEST_F(TlsTest, DeferredCertificateValidationAllow)
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfig);
     ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
+#ifdef _WIN32
     ClientContext.ExpectedErrorFlags = CERT_TRUST_IS_UNTRUSTED_ROOT;
     ClientContext.ExpectedValidationStatus = CERT_E_UNTRUSTEDROOT;
+#else
+    // TODO - Add platform specific values if support is added.
+#endif
     {
         auto Result = ClientContext.ProcessData(nullptr);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
