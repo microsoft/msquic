@@ -27,6 +27,13 @@ window.onload = function() {
         commitHashElement.innerText = commit.commitHash
         tableElement.appendChild(commitHashElement);
 
+        var commitPerfLinkElement = document.createElement('td');
+        var commitRef = document.createElement('a');
+        commitRef.href = "percommit/main/" + commit.commitHash + "/index.html"
+        commitRef.innerText = "Performance: " + commit.commitHash
+        commitPerfLinkElement.appendChild(commitRef);
+        tableElement.appendChild(commitPerfLinkElement);
+
         var commitSourceLinkElement = document.createElement('td');
         var commitRef = document.createElement('a');
         commitRef.href = "https://github.com/microsoft/msquic/commit/" + commit.commitHash
