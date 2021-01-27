@@ -8,10 +8,14 @@
 #include "main.h"
 #include "msquic.h"
 #include "quic_tls.h"
+#ifdef _WIN32
+#include <wincrypt.h>
+#endif
 #ifdef QUIC_CLOG
 #include "TlsTest.cpp.clog.h"
 #endif
 
+const uint16_t BadCertError = 42;
 const uint16_t UnknownCaError = 48;
 
 const uint32_t DefaultFragmentSize = 1200;
@@ -24,6 +28,7 @@ struct TlsTest : public ::testing::TestWithParam<bool>
 protected:
     CXPLAT_SEC_CONFIG* ServerSecConfig {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfig {nullptr};
+    CXPLAT_SEC_CONFIG* ClientSecConfigDeferredCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
     static const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
 
@@ -38,6 +43,10 @@ protected:
         if (ClientSecConfig) {
             CxPlatTlsSecConfigDelete(ClientSecConfig);
             ClientSecConfig = nullptr;
+        }
+        if (ClientSecConfigDeferredCertValidation) {
+            CxPlatTlsSecConfigDelete(ClientSecConfigDeferredCertValidation);
+            ClientSecConfigDeferredCertValidation = nullptr;
         }
         if (ServerSecConfig) {
             CxPlatTlsSecConfigDelete(ServerSecConfig);
@@ -96,7 +105,18 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfig);
 
-        ClientCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+        ClientCredConfig.Flags =
+            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION;
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                &ClientCredConfig,
+                &TlsContext::TlsClientCallbacks,
+                &ClientSecConfigDeferredCertValidation,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ClientSecConfigDeferredCertValidation);
+
+        ClientCredConfig.Flags =
+            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 &ClientCredConfig,
@@ -338,6 +358,9 @@ protected:
 
         QUIC_BUFFER ResumptionTicket {0, nullptr};
 
+        uint32_t ExpectedErrorFlags {0};
+        QUIC_STATUS ExpectedValidationStatus {QUIC_STATUS_SUCCESS};
+
         CXPLAT_TLS_RESULT_FLAGS
         ProcessData(
             _Inout_ CXPLAT_TLS_PROCESS_STATE* PeerState,
@@ -453,6 +476,25 @@ protected:
                     Context->ResumptionTicket.Buffer,
                     Ticket,
                     TicketLength);
+            }
+            return TRUE;
+        }
+
+        static BOOLEAN
+        OnDeferredCertValidation(
+            _In_ QUIC_CONNECTION* Connection,
+            _In_ uint32_t ErrorFlags,
+            _In_ QUIC_STATUS Status
+            )
+        {
+            auto Context = (TlsContext*)Connection;
+            if (Context->ExpectedErrorFlags != ErrorFlags) {
+                std::cout << "Incorrect ErrorFlags: " << ErrorFlags << "\n";
+                return FALSE;
+            }
+            if (Context->ExpectedValidationStatus != Status) {
+                std::cout << "Incorrect validation Status: " << Status << "\n";
+                return FALSE;
             }
             return TRUE;
         }
@@ -648,13 +690,15 @@ protected:
 const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsServerCallbacks = {
     TlsTest::TlsContext::OnProcessComplete,
     TlsTest::TlsContext::OnRecvQuicTP,
-    TlsTest::TlsContext::OnRecvTicketServer
+    TlsTest::TlsContext::OnRecvTicketServer,
+    TlsTest::TlsContext::OnDeferredCertValidation
 };
 
 const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
     TlsTest::TlsContext::OnProcessComplete,
     TlsTest::TlsContext::OnRecvQuicTP,
-    TlsTest::TlsContext::OnRecvTicketClient
+    TlsTest::TlsContext::OnRecvTicketClient,
+    TlsTest::TlsContext::OnDeferredCertValidation
 };
 
 const QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
@@ -819,6 +863,47 @@ TEST_F(TlsTest, CertificateError)
         ASSERT_EQ(ClientContext.State.AlertCode, UnknownCaError);
     }
 }
+
+#ifdef _WIN32
+TEST_F(TlsTest, DeferredCertificateValidationAllow)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
+    ClientContext.ExpectedErrorFlags = CERT_TRUST_IS_UNTRUSTED_ROOT;
+    ClientContext.ExpectedValidationStatus = CERT_E_UNTRUSTEDROOT;
+    {
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+
+        Result = ServerContext.ProcessData(&ClientContext.State);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
+    }
+}
+
+TEST_F(TlsTest, DeferredCertificateValidationReject)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
+    {
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+
+        Result = ServerContext.ProcessData(&ClientContext.State);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+        ASSERT_EQ(ClientContext.State.AlertCode, BadCertError);
+    }
+}
+#endif
 
 TEST_P(TlsTest, One1RttKey)
 {

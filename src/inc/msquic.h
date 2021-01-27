@@ -91,11 +91,12 @@ typedef enum QUIC_CREDENTIAL_TYPE {
 } QUIC_CREDENTIAL_TYPE;
 
 typedef enum QUIC_CREDENTIAL_FLAGS {
-    QUIC_CREDENTIAL_FLAG_NONE                       = 0x00000000,
-    QUIC_CREDENTIAL_FLAG_CLIENT                     = 0x00000001, // Lack of client flag indicates server.
-    QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS          = 0x00000002,
-    QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION  = 0x00000004,
-    QUIC_CREDENTIAL_FLAG_ENABLE_OCSP                = 0x00000008
+    QUIC_CREDENTIAL_FLAG_NONE                           = 0x00000000,
+    QUIC_CREDENTIAL_FLAG_CLIENT                         = 0x00000001, // Lack of client flag indicates server.
+    QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS              = 0x00000002,
+    QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION      = 0x00000004,
+    QUIC_CREDENTIAL_FLAG_ENABLE_OCSP                    = 0x00000008, // Schannel only currently
+    QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION   = 0x00000010, // Schannel only currently
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS);
@@ -757,7 +758,8 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED                 = 11,
     QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED       = 12,
     QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
-    QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14    // Client-only; provides ticket to persist, if any.
+    QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
+    QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_VALIDATION       = 15,   // Only with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION set
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -817,6 +819,10 @@ typedef struct QUIC_CONNECTION_EVENT {
             uint32_t ResumptionTicketLength;
             const uint8_t* ResumptionTicket;
         } RESUMPTION_TICKET_RECEIVED;
+        struct {
+            uint32_t ErrorFlags;                // Bit flag of errors
+            QUIC_STATUS Status;                 // Most severe error status
+        } PEER_CERTIFICATE_VALIDATION;
     };
 } QUIC_CONNECTION_EVENT;
 

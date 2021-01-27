@@ -2553,6 +2553,27 @@ Error:
     QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnDeferredCertValidation(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint32_t ErrorFlags,
+    _In_ QUIC_STATUS Status
+    )
+{
+    QUIC_CONNECTION_EVENT Event;
+    Event.Type = QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_VALIDATION;
+    Event.PEER_CERTIFICATE_VALIDATION.ErrorFlags = ErrorFlags;
+    Event.PEER_CERTIFICATE_VALIDATION.Status = Status;
+    QuicTraceLogConnVerbose(
+        IndicatePeerCertificateValidation,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_VALIDATION (0x%x, 0x%x)",
+        ErrorFlags,
+        Status);
+    return QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueRecvDatagrams(
