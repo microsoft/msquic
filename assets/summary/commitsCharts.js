@@ -23,10 +23,6 @@ window.onload = function() {
         commitDateElement.innerText = commit.commitDate
         tableElement.appendChild(commitDateElement)
 
-        var commitHashElement = document.createElement('td')
-        commitHashElement.innerText = commit.commitHash
-        tableElement.appendChild(commitHashElement);
-
         var commitPerfLinkElement = document.createElement('td');
         var commitRef = document.createElement('a');
         commitRef.href = "percommit/main/" + commit.commitHash + "/index.html"
