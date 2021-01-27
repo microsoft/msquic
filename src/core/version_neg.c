@@ -144,6 +144,15 @@ QuicVersionNegotiationExtGenerateCompatibleVersionsList(
             }
         }
     }
+    if (NeededBufferLength == 0) {
+        //
+        // No compatible versions found for this OriginalVersion.
+        // This could happen because the OriginalVersion is reserved.
+        // The Compatibility list must include the Original Version, so include it
+        // specifically in this case.
+        //
+        NeededBufferLength = sizeof(uint32_t);
+    }
     if (*BufferLength < NeededBufferLength) {
         *BufferLength = NeededBufferLength;
         return QUIC_STATUS_BUFFER_TOO_SMALL;
@@ -151,22 +160,26 @@ QuicVersionNegotiationExtGenerateCompatibleVersionsList(
     if (Buffer == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-    uint32_t BufferIndex = 0;
+    uint32_t Offset = 0;
     for (uint32_t i = 0; i < ARRAYSIZE(CompatibleVersionsMap); ++i) {
         if (CompatibleVersionsMap[i].OriginalVersion == OriginalVersion) { // review: Does this need to be bidirectional?
             for (uint32_t j = 0; j < DesiredVersionsLength; ++j) { // TODO: this doesn't preserve the order of the app-supplied list, reorder loops
                 if (CompatibleVersionsMap[i].CompatibleVersion == DesiredVersions[j]) {
                     CxPlatCopyMemory(
-                        Buffer + BufferIndex,
+                        Buffer + Offset,
                         &CompatibleVersionsMap[i].CompatibleVersion,
                         sizeof(CompatibleVersionsMap[i].CompatibleVersion));
-                    BufferIndex += sizeof(CompatibleVersionsMap[i].CompatibleVersion);
+                    Offset += sizeof(CompatibleVersionsMap[i].CompatibleVersion);
                     break;
                 }
             }
         }
     }
-    CXPLAT_DBG_ASSERT(BufferIndex <= *BufferLength);
+    if (Offset == 0) {
+        CxPlatCopyMemory(Buffer, &OriginalVersion, sizeof(uint32_t));
+        Offset += sizeof(uint32_t);
+    }
+    CXPLAT_DBG_ASSERT(Offset <= *BufferLength);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -197,22 +210,22 @@ QuicVersionNegotiationExtParseClientVerNegInfo(
     }
 
     if (ClientVNI->RecvNegotiationVerCount > 0) {
-        ClientVNI->RecvNegotiationVersions = (uint32_t*)Buffer + Offset;
+        ClientVNI->RecvNegotiationVersions = (uint32_t*)(Buffer + Offset);
+    Offset += (uint16_t)(ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t));
     } else {
         ClientVNI->RecvNegotiationVersions = NULL;
     }
-    Offset += (uint16_t)(ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t));
 
     if (!QuicVarIntDecode(BufferLength, Buffer, &Offset, &ClientVNI->CompatibleVersionCount)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     if (ClientVNI->CompatibleVersionCount > 0) {
-        ClientVNI->CompatibleVersions = (uint32_t*)Buffer + Offset;
+        ClientVNI->CompatibleVersions = (uint32_t*)(Buffer + Offset);
+    Offset += (uint16_t)(ClientVNI->CompatibleVersionCount * sizeof(uint32_t));
     } else {
         ClientVNI->CompatibleVersions = NULL;
     }
-    Offset += (uint16_t)(ClientVNI->CompatibleVersionCount * sizeof(uint32_t));
     CXPLAT_DBG_ASSERT(Offset == BufferLength);
 
     return QUIC_STATUS_SUCCESS;
@@ -238,11 +251,11 @@ QuicVersionNegotiationExtParseServerVerNegInfo(
     }
 
     if (ServerVNI->SupportedVersionCount > 0) {
-        ServerVNI->SupportedVersions = (uint32_t*)Buffer + Offset;
+        ServerVNI->SupportedVersions = (uint32_t*)(Buffer + Offset);
+        Offset += (uint16_t)(ServerVNI->SupportedVersionCount * sizeof(uint32_t));
     } else {
         ServerVNI->SupportedVersions = NULL;
     }
-    Offset += (uint16_t)(ServerVNI->SupportedVersionCount * sizeof(uint32_t));
     CXPLAT_DBG_ASSERT(Offset == BufferLength);
 
     return QUIC_STATUS_SUCCESS;
@@ -310,10 +323,10 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
                 Connection->Settings.DesiredVersionsList,
                 Connection->Settings.DesiredVersionsListLength,
                 NULL, &CompatibilityListLength);
-            VNILen += QuicVarIntSize(CompatibilityListLength) + CompatibilityListLength;
+            VNILen += QuicVarIntSize(CompatibilityListLength / sizeof(uint32_t)) + CompatibilityListLength;
         } else {
             VNILen +=
-                QuicVarIntSize(DefaultSupportedVersionsList) +
+                QuicVarIntSize(DefaultSupportedVersionsListLength) +
                 (DefaultSupportedVersionsListLength * sizeof(uint32_t));
         }
         VNILen +=
@@ -341,7 +354,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
                 VNIBuf,
                 Connection->ReceivedNegotiationVersions,
                 Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t));
-            VNIBuf += Connection->ReceivedNegotiationVersionsLength;
+            VNIBuf += (Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t));
         }
         if (Connection ->Settings.IsSet.GeneratedCompatibleVersions) {
             VNIBuf = QuicVarIntEncode(Connection->Settings.GeneratedCompatibleVersionsListLength, VNIBuf);
@@ -350,7 +363,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
                 Connection->Settings.GeneratedCompatibleVersionsList,
                 Connection->Settings.GeneratedCompatibleVersionsListLength * sizeof(uint32_t));
         } else if (Connection->Settings.IsSet.DesiredVersionsList) {
-            VNIBuf = QuicVarIntEncode(CompatibilityListLength, VNIBuf);
+            VNIBuf = QuicVarIntEncode(CompatibilityListLength / sizeof(uint32_t), VNIBuf);
             uint32_t RemainingBuffer = VNILen - (uint32_t)(VNIBuf - VersionNegotiationInfo);
             CXPLAT_DBG_ASSERT(RemainingBuffer == CompatibilityListLength);
             QuicVersionNegotiationExtGenerateCompatibleVersionsList(
@@ -359,6 +372,8 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
                 Connection->Settings.DesiredVersionsListLength,
                 VNIBuf,
                 &RemainingBuffer);
+            VNIBuf += RemainingBuffer;
+            CXPLAT_DBG_ASSERT(VNILen == (uint32_t)(VNIBuf - VersionNegotiationInfo));
         } else {
             VNIBuf = QuicVarIntEncode(DefaultSupportedVersionsListLength, VNIBuf);
             memcpy(VNIBuf, DefaultSupportedVersionsList, DefaultSupportedVersionsListLength * sizeof(uint32_t));

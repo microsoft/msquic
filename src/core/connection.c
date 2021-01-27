@@ -2673,7 +2673,7 @@ QuicConnProcessPeerTransportParameters(
                         ServerVersionNegotiationNegotiatedVersionNotInSupportedList,
                         Connection,
                         "Server Negotiated Version is not in Server Supported Versions: 0x%x",
-                        ServerVNI.NegotiatedVersion);
+                        CxPlatByteSwapUint32(ServerVNI.NegotiatedVersion));
                     QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                     return QUIC_STATUS_PROTOCOL_ERROR;
                 }
@@ -6230,8 +6230,8 @@ QuicConnApplyNewSettings(
         QuicSendApplyNewSettings(&Connection->Send, &Connection->Settings);
         QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
 
-        if (!QuicConnIsServer(Connection) && NewSettings->IsSet.DesiredVersionsList) {
-            Connection->Stats.QuicVersion = NewSettings->DesiredVersionsList[0];
+        if (!QuicConnIsServer(Connection) && Connection->Settings.IsSet.DesiredVersionsList) {
+            Connection->Stats.QuicVersion = Connection->Settings.DesiredVersionsList[0];
             QuicConnOnQuicVersionSet(Connection);
         }
     }

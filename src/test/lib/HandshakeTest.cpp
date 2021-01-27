@@ -782,6 +782,8 @@ QuicTestVersionNegotiation(
     _In_ int Family
     )
 {
+    uint32_t ClientVersions[] = { 168430090ul, QUIC_VERSION_1 }; // Random reserved version to force VN.
+    const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -790,11 +792,15 @@ QuicTestVersionNegotiation(
     MsQuicSettings Settings;
     Settings.SetIdleTimeoutMs(3000);
 
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetIdleTimeoutMs(3000);
+    ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
+
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
     {
@@ -814,9 +820,6 @@ QuicTestVersionNegotiation(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
-
-                TEST_QUIC_SUCCEEDED(
-                    Client.SetQuicVersion(168430090ul)); // Random reserved version to force VN.
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
