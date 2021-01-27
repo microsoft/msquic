@@ -1426,11 +1426,11 @@ CxPlatSocketContextSendComplete(
             CxPlatListRemoveHead(&SocketContext->PendingSendContextHead);
             CxPlatSendDataFree(SendContext);
             if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
-            SendContext =
-                CXPLAT_CONTAINING_RECORD(
-                    SocketContext->PendingSendContextHead.Flink,
-                    CXPLAT_SEND_DATA,
-                    PendingSendLinkage);
+                SendContext =
+                    CXPLAT_CONTAINING_RECORD(
+                        SocketContext->PendingSendContextHead.Flink,
+                        CXPLAT_SEND_DATA,
+                        PendingSendLinkage);
             } else {
                 SendContext = NULL;
             }
