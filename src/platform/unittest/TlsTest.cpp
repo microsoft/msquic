@@ -15,9 +15,7 @@
 #include "TlsTest.cpp.clog.h"
 #endif
 
-#ifdef _WIN32
 const uint16_t BadCertError = 42;
-#endif
 const uint16_t UnknownCaError = 48;
 
 const uint32_t DefaultFragmentSize = 1200;
@@ -109,13 +107,11 @@ protected:
 
         ClientCredConfig.Flags =
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION;
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                &ClientCredConfig,
-                &TlsContext::TlsClientCallbacks,
-                &ClientSecConfigDeferredCertValidation,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ClientSecConfigDeferredCertValidation);
+        CxPlatTlsSecConfigCreate( // Don't assert as this is expected to fail on some platforms
+            &ClientCredConfig,
+            &TlsContext::TlsClientCallbacks,
+            &ClientSecConfigDeferredCertValidation,
+            OnSecConfigCreateComplete);
 
         ClientCredConfig.Flags =
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
@@ -866,9 +862,13 @@ TEST_F(TlsTest, CertificateError)
     }
 }
 
-#ifdef _WIN32
 TEST_F(TlsTest, DeferredCertificateValidationAllow)
 {
+    if (!ClientSecConfigDeferredCertValidation) {
+        std::cout << "WARNING: Test unsupported\n";
+        return; // Unsupported by platform
+    }
+
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfig);
     ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
@@ -889,6 +889,11 @@ TEST_F(TlsTest, DeferredCertificateValidationAllow)
 
 TEST_F(TlsTest, DeferredCertificateValidationReject)
 {
+    if (!ClientSecConfigDeferredCertValidation) {
+        std::cout << "WARNING: Test unsupported\n";
+        return; // Unsupported by platform
+    }
+
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfig);
     ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
@@ -905,7 +910,6 @@ TEST_F(TlsTest, DeferredCertificateValidationReject)
         ASSERT_EQ(ClientContext.State.AlertCode, BadCertError);
     }
 }
-#endif
 
 TEST_P(TlsTest, One1RttKey)
 {
