@@ -64,7 +64,7 @@
             </li>
 
             <!-- Nav Item - RPS -->
-            <li class="nav-item active">
+            <li class="nav-item">
                 <a class="nav-link" href="rps.html">
                     <i class="fas fa-fw fa-chart-area"></i>
                     <span>RPS</span></a>
@@ -86,7 +86,7 @@
             </div>
 
             <!-- Nav Item - WAN Perf Tables -->
-            <li class="nav-item">
+            <li class="nav-item active">
                 <a class="nav-link" href="wanperf.html">
                     <i class="fas fa-fw fa-chart-area"></i>
                     <span>Tables</span></a>
@@ -116,31 +116,7 @@
 
                     <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 font-weight-bold text-gray-800">Periodic Performance View</h1>
-                    </div>
-
-                    <!-- Content Row -->
-                    <div id="ChartsDiv" class="row">
-
-                        <!-- Single Connection Upload Chart -->
-                        <div id="Template" class="col-xl-12 col-lg-7">
-                            <div class="card shadow mb-4">
-                                <!-- Card Header -->
-                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                    <h6 id="HeaderName" class="m-0 font-weight-bold text-dark">Single Connection Upload (Kbps)</h6>
-                                    <div id="SummaryText" class="m-0">
-                                        This test measures <a href="https://en.wikipedia.org/wiki/Goodput">goodput</a>
-                                        while uploading data to the server over a single QUIC connection and stream.
-                                    </div>
-                                </div>
-                                <!-- Card Body -->
-                                <div class="card-body">
-                                    <div class="chart-area-lg">
-                                        <canvas id="canvas"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <h1 class="h3 mb-0 font-weight-bold text-gray-800">WAN Performance Dashboard</h1>
                     </div>
 
                 </div>
@@ -178,8 +154,10 @@
     <script src="vendor/chart.js//chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Internal custom scripts -->
-    <script src="assets/summary/main/data.rps.js"></script>
-    <script src="assets/summary/rpsCharts.js"></script>
+    <script src="assets/summary/main/data.js"></script>
+    <script src="assets/summary/dataView.js"></script>
+    <script src="assets/summary/latestData.js"></script>
+    <script src="assets/summary/summaryCharts.js"></script>
 
 </body>
 
