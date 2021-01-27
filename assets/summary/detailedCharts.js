@@ -225,7 +225,7 @@ function createLatencyChart(test) {
     var datasets = []
     platformTypes.forEach(x => datasets.push(createLatencyDataset(test, x)))
 
-    new Chart(document.getElementById("canvas" + test).getContext('2d'), {
+    chart = new Chart(document.getElementById("canvas" + test).getContext('2d'), {
         data: { datasets: datasets},
         options: {
             maintainAspectRatio: false,
@@ -277,6 +277,8 @@ function createLatencyChart(test) {
             }
         }
     })
+
+    platformTypes.forEach(x => addPlatformToggle(test, x, chart))
 }
 
 window.onload = function() {
