@@ -15,7 +15,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "PacketRxMarkedForAck": {
       "ModuleProperites": {},
@@ -35,7 +35,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "ApiEnter": {
       "ModuleProperites": {},
@@ -51,7 +51,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ApiExitStatus": {
       "ModuleProperites": {},
@@ -63,21 +63,21 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ApiWaitOperation": {
       "ModuleProperites": {},
       "TraceString": "[ api] Waiting on operation",
       "UniqueId": "ApiWaitOperation",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ApiExit": {
       "ModuleProperites": {},
       "TraceString": "[ api] Exit",
       "UniqueId": "ApiExit",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "AllocFailure": {
       "ModuleProperites": {},
@@ -93,7 +93,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "StreamError": {
       "ModuleProperites": {},
@@ -109,7 +109,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnError": {
       "ModuleProperites": {},
@@ -125,7 +125,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "BindingListenerAlreadyRegistered": {
       "ModuleProperites": {},
@@ -141,7 +141,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "BindingSendFailed": {
       "ModuleProperites": {},
@@ -157,14 +157,14 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "PacketTxVersionNegotiation": {
       "ModuleProperites": {},
       "TraceString": "[S][TX][-] VN",
       "UniqueId": "PacketTxVersionNegotiation",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketTxStatelessReset": {
       "ModuleProperites": {},
@@ -176,7 +176,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketTxRetry": {
       "ModuleProperites": {},
@@ -204,7 +204,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "BindingSendTestDrop": {
       "ModuleProperites": {},
@@ -216,7 +216,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "BindingErrorStatus": {
       "ModuleProperites": {},
@@ -236,7 +236,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "BindingCreated": {
       "ModuleProperites": {},
@@ -260,7 +260,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "BindingCleanup": {
       "ModuleProperites": {},
@@ -272,7 +272,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "BindingDestroyed": {
       "ModuleProperites": {},
@@ -284,7 +284,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "BindingRundown": {
       "ModuleProperites": {},
@@ -308,7 +308,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "BindingExecOper": {
       "ModuleProperites": {},
@@ -324,7 +324,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConfigurationOpenStorageFailed": {
       "ModuleProperites": {},
@@ -340,7 +340,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "ConfigurationOpenAppStorageFailed": {
       "ModuleProperites": {},
@@ -356,7 +356,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "ConfigurationSettingsUpdated": {
       "ModuleProperites": {},
@@ -372,7 +372,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "ConfigurationSetSettings": {
       "ModuleProperites": {},
@@ -384,7 +384,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "ConfigurationCreated": {
       "ModuleProperites": {},
@@ -400,7 +400,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConfigurationCleanup": {
       "ModuleProperites": {},
@@ -412,7 +412,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConfigurationDestroyed": {
       "ModuleProperites": {},
@@ -424,7 +424,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConfigurationRundown": {
       "ModuleProperites": {},
@@ -440,7 +440,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnCubic": {
       "ModuleProperites": {},
@@ -468,7 +468,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnCongestion": {
       "ModuleProperites": {},
@@ -480,7 +480,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnPersistentCongestion": {
       "ModuleProperites": {},
@@ -492,7 +492,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnRecoveryExit": {
       "ModuleProperites": {},
@@ -504,7 +504,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "PacketRxStatelessReset": {
       "ModuleProperites": {},
@@ -516,7 +516,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketRxNotAcked": {
       "ModuleProperites": {},
@@ -532,7 +532,123 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "ClientVersionNegotiationInfoDecodeFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client version negotiation info failed to parse 0x%x",
+      "UniqueId": "ClientVersionNegotiationInfoDecodeFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ClientVersionNegotiationInfoVersionMismatch": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client Current Version doesn't match long header. 0x%x != 0x%x",
+      "UniqueId": "ClientVersionNegotiationInfoVersionMismatch",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ClientVersionNegotiationRecvdVersionsMismatch": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client Received Versions list doesn't match server",
+      "UniqueId": "ClientVersionNegotiationRecvdVersionsMismatch",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ClientVersionNegotiationPrevVersionIncorrect": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client Previous Version is supported: 0x%x",
+      "UniqueId": "ClientVersionNegotiationPrevVersionIncorrect",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ServerVersionNegotiationInfoDecodeFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server version negotiation info failed to parse 0x%x",
+      "UniqueId": "ServerVersionNegotiationInfoDecodeFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ServerVersionNegotiationInfoVersionMismatch": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server Negotiated Version doesn't match long header. 0x%x != 0x%x",
+      "UniqueId": "ServerVersionNegotiationInfoVersionMismatch",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ServerVersionNegotiationNegotiatedVersionNotInSupportedList": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server Negotiated Version is not in Server Supported Versions: 0x%x",
+      "UniqueId": "ServerVersionNegotiationNegotiatedVersionNotInSupportedList",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
     },
     "RecvVerNegNoMatch": {
       "ModuleProperites": {},
@@ -544,7 +660,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnError"
     },
     "ApiEventNoHandler": {
       "ModuleProperites": {},
@@ -556,7 +672,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "ApiEventAlreadyClosed": {
       "ModuleProperites": {},
@@ -568,7 +684,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "NoReplacementCidForRetire": {
       "ModuleProperites": {},
@@ -580,7 +696,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "NonActivePathCidRetired": {
       "ModuleProperites": {},
@@ -592,7 +708,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "IgnoreUnreachable": {
       "ModuleProperites": {},
@@ -604,7 +720,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "IgnoreFrameAfterClose": {
       "ModuleProperites": {},
@@ -624,7 +740,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "InvalidInitialPackets": {
       "ModuleProperites": {},
@@ -636,7 +752,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "UnreachableIgnore": {
       "ModuleProperites": {},
@@ -648,7 +764,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "UnreachableInvalid": {
       "ModuleProperites": {},
@@ -660,7 +776,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "CloseUserCanceled": {
       "ModuleProperites": {},
@@ -672,7 +788,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "CloseComplete": {
       "ModuleProperites": {},
@@ -684,7 +800,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "Restart": {
       "ModuleProperites": {},
@@ -700,7 +816,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "CryptoStateDiscard": {
       "ModuleProperites": {},
@@ -712,7 +828,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "SetConfiguration": {
       "ModuleProperites": {},
@@ -728,7 +844,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "PeerTPSet": {
       "ModuleProperites": {},
@@ -740,7 +856,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "PeerPreferredAddress": {
       "ModuleProperites": {},
@@ -756,7 +872,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "NegotiatedDisable1RttEncryption": {
       "ModuleProperites": {},
@@ -768,7 +884,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "RecvStatelessReset": {
       "ModuleProperites": {},
@@ -780,7 +896,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "HandshakeConfirmedFrame": {
       "ModuleProperites": {},
@@ -792,7 +908,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "FirstCidUsage": {
       "ModuleProperites": {},
@@ -808,7 +924,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "PathDiscarded": {
       "ModuleProperites": {},
@@ -824,7 +940,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "Unreachable": {
       "ModuleProperites": {},
@@ -836,7 +952,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "UpdateShareBinding": {
       "ModuleProperites": {},
@@ -852,7 +968,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "UpdateStreamSchedulingScheme": {
       "ModuleProperites": {},
@@ -868,7 +984,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "ApplySettings": {
       "ModuleProperites": {},
@@ -880,7 +996,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "RttUpdated": {
       "ModuleProperites": {},
@@ -908,7 +1024,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "NewSrcCidNameCollision": {
       "ModuleProperites": {},
@@ -920,7 +1036,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "ZeroLengthCidRetire": {
       "ModuleProperites": {},
@@ -932,7 +1048,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "TimerExpired": {
       "ModuleProperites": {},
@@ -948,7 +1064,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "IndicateShutdownByPeer": {
       "ModuleProperites": {},
@@ -964,7 +1080,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "IndicateShutdownByTransport": {
       "ModuleProperites": {},
@@ -980,7 +1096,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "IndicateConnectionShutdownComplete": {
       "ModuleProperites": {},
@@ -992,7 +1108,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "IndicateResumptionTicketReceived": {
       "ModuleProperites": {},
@@ -1004,7 +1120,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "QueueDatagrams": {
       "ModuleProperites": {},
@@ -1020,7 +1136,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "RecvVerNeg": {
       "ModuleProperites": {},
@@ -1032,7 +1148,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "VerNegItem": {
       "ModuleProperites": {},
@@ -1052,7 +1168,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DeferDatagram": {
       "ModuleProperites": {},
@@ -1068,7 +1184,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecryptOldKey": {
       "ModuleProperites": {},
@@ -1080,7 +1196,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "PossiblePeerKeyUpdate": {
       "ModuleProperites": {},
@@ -1096,7 +1212,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "UpdateReadKeyPhase": {
       "ModuleProperites": {},
@@ -1112,7 +1228,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "PeerConnFCBlocked": {
       "ModuleProperites": {},
@@ -1128,7 +1244,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "PeerStreamFCBlocked": {
       "ModuleProperites": {},
@@ -1148,7 +1264,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "IndicatePeerNeedStreams": {
       "ModuleProperites": {},
@@ -1160,7 +1276,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "IndicatePeerAddrChanged": {
       "ModuleProperites": {},
@@ -1172,7 +1288,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "UdpRecvBatch": {
       "ModuleProperites": {},
@@ -1188,7 +1304,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "UdpRecvDeferred": {
       "ModuleProperites": {},
@@ -1204,7 +1320,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "UdpRecv": {
       "ModuleProperites": {},
@@ -1220,7 +1336,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DatagramReceiveEnableUpdated": {
       "ModuleProperites": {},
@@ -1236,7 +1352,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "Disable1RttEncrytionUpdated": {
       "ModuleProperites": {},
@@ -1252,7 +1368,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "ForceKeyUpdate": {
       "ModuleProperites": {},
@@ -1264,7 +1380,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "ForceCidUpdate": {
       "ModuleProperites": {},
@@ -1276,7 +1392,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "TestTPSet": {
       "ModuleProperites": {},
@@ -1296,7 +1412,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "AbandonInternallyClosed": {
       "ModuleProperites": {},
@@ -1308,7 +1424,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "ConnCreated": {
       "ModuleProperites": {},
@@ -1328,7 +1444,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnLocalAddrAdded": {
       "ModuleProperites": {},
@@ -1344,7 +1460,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnRemoteAddrAdded": {
       "ModuleProperites": {},
@@ -1360,7 +1476,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnDestCidAdded": {
       "ModuleProperites": {},
@@ -1380,7 +1496,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnSourceCidAdded": {
       "ModuleProperites": {},
@@ -1400,7 +1516,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnInitializeComplete": {
       "ModuleProperites": {},
@@ -1412,7 +1528,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnUnregistered": {
       "ModuleProperites": {},
@@ -1428,7 +1544,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnDestroyed": {
       "ModuleProperites": {},
@@ -1440,7 +1556,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnHandleClosed": {
       "ModuleProperites": {},
@@ -1452,7 +1568,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnRegistered": {
       "ModuleProperites": {},
@@ -1468,7 +1584,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnRundown": {
       "ModuleProperites": {},
@@ -1488,7 +1604,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnAssignWorker": {
       "ModuleProperites": {},
@@ -1504,7 +1620,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnVersionSet": {
       "ModuleProperites": {},
@@ -1520,7 +1636,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnHandshakeComplete": {
       "ModuleProperites": {},
@@ -1532,7 +1648,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnDestCidRemoved": {
       "ModuleProperites": {},
@@ -1552,7 +1668,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnExecTimerOper": {
       "ModuleProperites": {},
@@ -1568,7 +1684,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnShutdownComplete": {
       "ModuleProperites": {},
@@ -1584,7 +1700,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnAppShutdown": {
       "ModuleProperites": {},
@@ -1604,7 +1720,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnTransportShutdown": {
       "ModuleProperites": {},
@@ -1628,7 +1744,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnErrorStatus": {
       "ModuleProperites": {},
@@ -1648,7 +1764,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnServerResumeTicket": {
       "ModuleProperites": {},
@@ -1660,7 +1776,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnHandshakeStart": {
       "ModuleProperites": {},
@@ -1672,7 +1788,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnPacketRecv": {
       "ModuleProperites": {},
@@ -1696,7 +1812,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnSourceCidRemoved": {
       "ModuleProperites": {},
@@ -1716,7 +1832,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnLocalAddrRemoved": {
       "ModuleProperites": {},
@@ -1732,7 +1848,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnOutFlowStats": {
       "ModuleProperites": {},
@@ -1780,7 +1896,7 @@
           "MacroVariableName": "arg11"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnOutFlowStreamStats": {
       "ModuleProperites": {},
@@ -1800,7 +1916,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnInFlowStats": {
       "ModuleProperites": {},
@@ -1816,7 +1932,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnStats": {
       "ModuleProperites": {},
@@ -1848,7 +1964,7 @@
           "MacroVariableName": "arg7"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnPacketStats": {
       "ModuleProperites": {},
@@ -1892,7 +2008,7 @@
           "MacroVariableName": "arg10"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnOutFlowBlocked": {
       "ModuleProperites": {},
@@ -1908,7 +2024,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "IgnoreCryptoFrame": {
       "ModuleProperites": {},
@@ -1920,7 +2036,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "DiscardKeyType": {
       "ModuleProperites": {},
@@ -1936,7 +2052,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "ZeroRttAccepted": {
       "ModuleProperites": {},
@@ -1948,7 +2064,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "ZeroRttRejected": {
       "ModuleProperites": {},
@@ -1960,7 +2076,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "HandshakeConfirmedServer": {
       "ModuleProperites": {},
@@ -1972,7 +2088,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "CryptoDump": {
       "ModuleProperites": {},
@@ -2008,7 +2124,7 @@
           "MacroVariableName": "arg8"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "CryptoDumpUnacked": {
       "ModuleProperites": {},
@@ -2028,7 +2144,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "CryptoDumpUnacked2": {
       "ModuleProperites": {},
@@ -2048,7 +2164,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "NoMoreRoomForCrypto": {
       "ModuleProperites": {},
@@ -2060,7 +2176,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "AddCryptoFrame": {
       "ModuleProperites": {},
@@ -2080,7 +2196,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "RecoverCrypto": {
       "ModuleProperites": {},
@@ -2100,7 +2216,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "AckCrypto": {
       "ModuleProperites": {},
@@ -2120,7 +2236,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "RecvCrypto": {
       "ModuleProperites": {},
@@ -2144,7 +2260,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "IndicateConnected": {
       "ModuleProperites": {},
@@ -2160,7 +2276,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DrainCrypto": {
       "ModuleProperites": {},
@@ -2176,7 +2292,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "CryptoNotReady": {
       "ModuleProperites": {},
@@ -2188,7 +2304,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "ConnWriteKeyUpdated": {
       "ModuleProperites": {},
@@ -2204,7 +2320,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnReadKeyUpdated": {
       "ModuleProperites": {},
@@ -2220,7 +2336,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnNewPacketKeys": {
       "ModuleProperites": {},
@@ -2232,7 +2348,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnKeyPhaseChange": {
       "ModuleProperites": {},
@@ -2248,7 +2364,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "NoSniPresent": {
       "ModuleProperites": {},
@@ -2260,7 +2376,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "DecodeTPReserved": {
       "ModuleProperites": {},
@@ -2280,7 +2396,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "DecodeTPUnknown": {
       "ModuleProperites": {},
@@ -2300,7 +2416,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "EncodeTPStart": {
       "ModuleProperites": {},
@@ -2316,7 +2432,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPOriginalDestinationCID": {
       "ModuleProperites": {},
@@ -2332,7 +2448,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPIdleTimeout": {
       "ModuleProperites": {},
@@ -2348,7 +2464,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPStatelessResetToken": {
       "ModuleProperites": {},
@@ -2364,7 +2480,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPMaxUdpPayloadSize": {
       "ModuleProperites": {},
@@ -2380,7 +2496,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPInitMaxData": {
       "ModuleProperites": {},
@@ -2396,7 +2512,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPInitMaxStreamDataBidiLocal": {
       "ModuleProperites": {},
@@ -2412,7 +2528,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPInitMaxStreamDataBidiRemote": {
       "ModuleProperites": {},
@@ -2428,7 +2544,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPInitMaxStreamUni": {
       "ModuleProperites": {},
@@ -2444,7 +2560,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPMaxBidiStreams": {
       "ModuleProperites": {},
@@ -2460,7 +2576,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPMaxUniStreams": {
       "ModuleProperites": {},
@@ -2476,7 +2592,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPAckDelayExponent": {
       "ModuleProperites": {},
@@ -2492,7 +2608,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPMaxAckDelay": {
       "ModuleProperites": {},
@@ -2508,7 +2624,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPDisableMigration": {
       "ModuleProperites": {},
@@ -2520,7 +2636,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPPreferredAddress": {
       "ModuleProperites": {},
@@ -2532,7 +2648,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPCIDLimit": {
       "ModuleProperites": {},
@@ -2548,7 +2664,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPOriginalCID": {
       "ModuleProperites": {},
@@ -2564,7 +2680,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPRetrySourceCID": {
       "ModuleProperites": {},
@@ -2580,7 +2696,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeMaxDatagramFrameSize": {
       "ModuleProperites": {},
@@ -2596,7 +2712,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPDisable1RttEncryption": {
       "ModuleProperites": {},
@@ -2608,7 +2724,23 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPVersionNegotiationExt": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Version Negotiation Extension (%llu bytes)",
+      "UniqueId": "EncodeTPVersionNegotiationExt",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPTest": {
       "ModuleProperites": {},
@@ -2628,7 +2760,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeTPEnd": {
       "ModuleProperites": {},
@@ -2644,7 +2776,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPStart": {
       "ModuleProperites": {},
@@ -2664,7 +2796,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPOriginalDestinationCID": {
       "ModuleProperites": {},
@@ -2680,7 +2812,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPIdleTimeout": {
       "ModuleProperites": {},
@@ -2696,7 +2828,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPStatelessResetToken": {
       "ModuleProperites": {},
@@ -2712,7 +2844,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPMaxUdpPayloadSize": {
       "ModuleProperites": {},
@@ -2728,7 +2860,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPInitMaxData": {
       "ModuleProperites": {},
@@ -2744,7 +2876,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPInitMaxStreamDataBidiLocal": {
       "ModuleProperites": {},
@@ -2760,7 +2892,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPInitMaxStreamDataBidiRemote": {
       "ModuleProperites": {},
@@ -2776,7 +2908,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPInitMaxStreamDataBidiUni": {
       "ModuleProperites": {},
@@ -2792,7 +2924,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPMaxBidiStreams": {
       "ModuleProperites": {},
@@ -2808,7 +2940,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPMaxUniStreams": {
       "ModuleProperites": {},
@@ -2824,7 +2956,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPAckDelayExponent": {
       "ModuleProperites": {},
@@ -2840,7 +2972,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPMaxAckDelay": {
       "ModuleProperites": {},
@@ -2856,7 +2988,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPDisableActiveMigration": {
       "ModuleProperites": {},
@@ -2868,7 +3000,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPPreferredAddress": {
       "ModuleProperites": {},
@@ -2880,7 +3012,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPCIDLimit": {
       "ModuleProperites": {},
@@ -2896,7 +3028,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPInitialSourceCID": {
       "ModuleProperites": {},
@@ -2912,7 +3044,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPRetrySourceCID": {
       "ModuleProperites": {},
@@ -2928,7 +3060,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPMaxDatagramFrameSize": {
       "ModuleProperites": {},
@@ -2944,7 +3076,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPDisable1RttEncryption": {
       "ModuleProperites": {},
@@ -2956,7 +3088,23 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "DecodeTPVersionNegotiationInfo": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Version Negotiation Info (%llu bytes)",
+      "UniqueId": "DecodeTPVersionNegotiationInfo",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DatagramSendStateChanged": {
       "ModuleProperites": {},
@@ -2972,7 +3120,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DatagramSendShutdown": {
       "ModuleProperites": {},
@@ -2984,7 +3132,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "IndicateDatagramStateChanged": {
       "ModuleProperites": {},
@@ -3004,7 +3152,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DatagramSendQueued": {
       "ModuleProperites": {},
@@ -3028,7 +3176,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "IndicateDatagramReceived": {
       "ModuleProperites": {},
@@ -3044,7 +3192,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "FrameLogUnknownType": {
       "ModuleProperites": {},
@@ -3068,7 +3216,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogPadding": {
       "ModuleProperites": {},
@@ -3092,7 +3240,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogPing": {
       "ModuleProperites": {},
@@ -3112,7 +3260,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogAckInvalid": {
       "ModuleProperites": {},
@@ -3132,7 +3280,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogAck": {
       "ModuleProperites": {},
@@ -3160,7 +3308,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogAckSingleBlock": {
       "ModuleProperites": {},
@@ -3184,7 +3332,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogAckMultiBlock": {
       "ModuleProperites": {},
@@ -3212,7 +3360,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogAckInvalidBlock": {
       "ModuleProperites": {},
@@ -3232,7 +3380,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogAckEcnInvalid": {
       "ModuleProperites": {},
@@ -3252,7 +3400,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogAckEcn": {
       "ModuleProperites": {},
@@ -3284,7 +3432,7 @@
           "MacroVariableName": "arg7"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogResetStreamInvalid": {
       "ModuleProperites": {},
@@ -3304,7 +3452,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogResetStream": {
       "ModuleProperites": {},
@@ -3336,7 +3484,7 @@
           "MacroVariableName": "arg7"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogStopSendingInvalid": {
       "ModuleProperites": {},
@@ -3356,7 +3504,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogStopSending": {
       "ModuleProperites": {},
@@ -3384,7 +3532,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogCryptoInvalid": {
       "ModuleProperites": {},
@@ -3404,7 +3552,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogCrypto": {
       "ModuleProperites": {},
@@ -3432,7 +3580,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogNewTokenInvalid": {
       "ModuleProperites": {},
@@ -3452,7 +3600,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogNewToken": {
       "ModuleProperites": {},
@@ -3476,7 +3624,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogStreamInvalid": {
       "ModuleProperites": {},
@@ -3496,7 +3644,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogStreamFin": {
       "ModuleProperites": {},
@@ -3528,7 +3676,7 @@
           "MacroVariableName": "arg7"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogStream": {
       "ModuleProperites": {},
@@ -3560,7 +3708,7 @@
           "MacroVariableName": "arg7"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogMaxDataInvalid": {
       "ModuleProperites": {},
@@ -3580,7 +3728,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogMaxData": {
       "ModuleProperites": {},
@@ -3604,7 +3752,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogMaxStreamDataInvalid": {
       "ModuleProperites": {},
@@ -3624,7 +3772,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogMaxStreamData": {
       "ModuleProperites": {},
@@ -3652,7 +3800,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogMaxStreamsInvalid": {
       "ModuleProperites": {},
@@ -3672,7 +3820,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogMaxStreams": {
       "ModuleProperites": {},
@@ -3700,7 +3848,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogDataBlockedInvalid": {
       "ModuleProperites": {},
@@ -3720,7 +3868,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogDataBlocked": {
       "ModuleProperites": {},
@@ -3744,7 +3892,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogStreamDataBlockedInvalid": {
       "ModuleProperites": {},
@@ -3764,7 +3912,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogStreamDataBlocked": {
       "ModuleProperites": {},
@@ -3792,7 +3940,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogStreamsBlockedInvalid": {
       "ModuleProperites": {},
@@ -3812,7 +3960,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogStreamsBlocked": {
       "ModuleProperites": {},
@@ -3840,7 +3988,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogNewConnectionIDInvalid": {
       "ModuleProperites": {},
@@ -3860,7 +4008,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogNewConnectionID": {
       "ModuleProperites": {},
@@ -3896,7 +4044,7 @@
           "MacroVariableName": "arg8"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogRetireConnectionIDInvalid": {
       "ModuleProperites": {},
@@ -3916,7 +4064,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogRetireConnectionID": {
       "ModuleProperites": {},
@@ -3940,7 +4088,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogPathChallengeInvalid": {
       "ModuleProperites": {},
@@ -3960,7 +4108,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogPathChallenge": {
       "ModuleProperites": {},
@@ -3984,7 +4132,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogPathResponseInvalid": {
       "ModuleProperites": {},
@@ -4004,7 +4152,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogPathResponse": {
       "ModuleProperites": {},
@@ -4028,7 +4176,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogConnectionCloseInvalid": {
       "ModuleProperites": {},
@@ -4048,7 +4196,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogConnectionCloseApp": {
       "ModuleProperites": {},
@@ -4072,7 +4220,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogConnectionClose": {
       "ModuleProperites": {},
@@ -4100,7 +4248,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogHandshakeDone": {
       "ModuleProperites": {},
@@ -4120,7 +4268,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogDatagramInvalid": {
       "ModuleProperites": {},
@@ -4140,7 +4288,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "FrameLogDatagram": {
       "ModuleProperites": {},
@@ -4164,7 +4312,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LibraryStorageOpenFailed": {
       "ModuleProperites": {},
@@ -4176,14 +4324,14 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "LibraryTestDatapathHooksSet": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Updated test datapath hooks",
       "UniqueId": "LibraryTestDatapathHooksSet",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "LibrarySettingsUpdated": {
       "ModuleProperites": {},
@@ -4195,21 +4343,21 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "LibraryVerifierEnabledPerRegistration": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Verifing enabled, per-registration!",
       "UniqueId": "LibraryVerifierEnabledPerRegistration",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "LibraryVerifierEnabled": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Verifing enabled for all!",
       "UniqueId": "LibraryVerifierEnabled",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "LibraryCidLengthSet": {
       "ModuleProperites": {},
@@ -4221,7 +4369,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "LibraryRetryMemoryLimitSet": {
       "ModuleProperites": {},
@@ -4233,7 +4381,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "LibraryLoadBalancingModeSet": {
       "ModuleProperites": {},
@@ -4245,42 +4393,42 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "LibrarySetSettings": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Setting new settings",
       "UniqueId": "LibrarySetSettings",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "LibraryInUse": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Now in use.",
       "UniqueId": "LibraryInUse",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "LibraryNotInUse": {
       "ModuleProperites": {},
       "TraceString": "[ lib] No longer in use.",
       "UniqueId": "LibraryNotInUse",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "LibraryMsQuicOpenNull": {
       "ModuleProperites": {},
       "TraceString": "[ api] MsQuicOpen, NULL",
       "UniqueId": "LibraryMsQuicOpenNull",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LibraryMsQuicOpenEntry": {
       "ModuleProperites": {},
       "TraceString": "[ api] MsQuicOpen",
       "UniqueId": "LibraryMsQuicOpenEntry",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LibraryMsQuicOpenExit": {
       "ModuleProperites": {},
@@ -4292,21 +4440,21 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LibraryMsQuicClose": {
       "ModuleProperites": {},
       "TraceString": "[ api] MsQuicClose",
       "UniqueId": "LibraryMsQuicClose",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LibraryLoadBalancingModeSetAfterInUse": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Tried to change load balancing mode after library in use!",
       "UniqueId": "LibraryLoadBalancingModeSetAfterInUse",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogError"
     },
     "LibraryInitialized": {
       "ModuleProperites": {},
@@ -4322,35 +4470,35 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "LibraryUninitialized": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Uninitialized",
       "UniqueId": "LibraryUninitialized",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "LibraryAddRef": {
       "ModuleProperites": {},
       "TraceString": "[ lib] AddRef",
       "UniqueId": "LibraryAddRef",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "LibraryRelease": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Release",
       "UniqueId": "LibraryRelease",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "LibraryServerInit": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Shared server state initializing",
       "UniqueId": "LibraryServerInit",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "LibraryRundown": {
       "ModuleProperites": {},
@@ -4366,7 +4514,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "LibrarySendRetryStateUpdated": {
       "ModuleProperites": {},
@@ -4378,7 +4526,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "PerfCountersRundown": {
       "ModuleProperites": {},
@@ -4390,7 +4538,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ListenerIndicateNewConnection": {
       "ModuleProperites": {},
@@ -4406,7 +4554,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "ListenerCreated": {
       "ModuleProperites": {},
@@ -4422,7 +4570,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ListenerDestroyed": {
       "ModuleProperites": {},
@@ -4434,7 +4582,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ListenerErrorStatus": {
       "ModuleProperites": {},
@@ -4454,7 +4602,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ListenerError": {
       "ModuleProperites": {},
@@ -4470,7 +4618,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ListenerStarted": {
       "ModuleProperites": {},
@@ -4490,7 +4638,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ListenerStopped": {
       "ModuleProperites": {},
@@ -4502,7 +4650,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ListenerRundown": {
       "ModuleProperites": {},
@@ -4518,7 +4666,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "LookupCidFound": {
       "ModuleProperites": {},
@@ -4538,7 +4686,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LookupCidNotFound": {
       "ModuleProperites": {},
@@ -4554,7 +4702,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LookupRemoteHashFound": {
       "ModuleProperites": {},
@@ -4574,7 +4722,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LookupRemoteHashNotFound": {
       "ModuleProperites": {},
@@ -4590,7 +4738,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LookupCidInsert": {
       "ModuleProperites": {},
@@ -4610,7 +4758,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LookupRemoteHashInsert": {
       "ModuleProperites": {},
@@ -4630,7 +4778,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LookupCidRemoved": {
       "ModuleProperites": {},
@@ -4646,7 +4794,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketTxDiscarded": {
       "ModuleProperites": {},
@@ -4662,7 +4810,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketTxLostDiscarded": {
       "ModuleProperites": {},
@@ -4678,7 +4826,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketTxForget": {
       "ModuleProperites": {},
@@ -4694,7 +4842,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketTxLostFack": {
       "ModuleProperites": {},
@@ -4714,7 +4862,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketTxLostRack": {
       "ModuleProperites": {},
@@ -4734,7 +4882,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketTxAckedImplicit": {
       "ModuleProperites": {},
@@ -4750,7 +4898,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketTx0RttRejected": {
       "ModuleProperites": {},
@@ -4766,7 +4914,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketTxSpuriousLoss": {
       "ModuleProperites": {},
@@ -4782,7 +4930,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketTxAcked": {
       "ModuleProperites": {},
@@ -4806,7 +4954,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "PacketTxProbeRetransmit": {
       "ModuleProperites": {},
@@ -4822,7 +4970,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "HandshakeConfirmedAck": {
       "ModuleProperites": {},
@@ -4834,7 +4982,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "PathMinMtuValidated": {
       "ModuleProperites": {},
@@ -4850,7 +4998,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "PathMtuUpdated": {
       "ModuleProperites": {},
@@ -4870,7 +5018,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "PathValidationTimeout": {
       "ModuleProperites": {},
@@ -4886,7 +5034,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "ScheduleProbe": {
       "ModuleProperites": {},
@@ -4902,7 +5050,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "KeyChangeConfirmed": {
       "ModuleProperites": {},
@@ -4914,7 +5062,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "ConnLossDetectionTimerCancel": {
       "ModuleProperites": {},
@@ -4926,7 +5074,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnLossDetectionTimerSet": {
       "ModuleProperites": {},
@@ -4950,7 +5098,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnPacketLost": {
       "ModuleProperites": {},
@@ -4974,7 +5122,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnPacketACKed": {
       "ModuleProperites": {},
@@ -4994,7 +5142,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnExecApiOper": {
       "ModuleProperites": {},
@@ -5010,7 +5158,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnExecOper": {
       "ModuleProperites": {},
@@ -5026,7 +5174,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "LogPacketVersionNegotiation": {
       "ModuleProperites": {},
@@ -5054,7 +5202,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LogPacketVersionNegotiationVersion": {
       "ModuleProperites": {},
@@ -5074,7 +5222,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LogPacketRetry": {
       "ModuleProperites": {},
@@ -5106,7 +5254,7 @@
           "MacroVariableName": "arg7"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LogPacketLongHeaderInitial": {
       "ModuleProperites": {},
@@ -5146,7 +5294,7 @@
           "MacroVariableName": "arg9"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LogPacketLongHeader": {
       "ModuleProperites": {},
@@ -5186,7 +5334,7 @@
           "MacroVariableName": "arg9"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LogPacketLongHeaderUnsupported": {
       "ModuleProperites": {},
@@ -5218,7 +5366,7 @@
           "MacroVariableName": "arg7"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LogPacketShortHeader": {
       "ModuleProperites": {},
@@ -5254,7 +5402,7 @@
           "MacroVariableName": "arg8"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "ConnDropPacket": {
       "ModuleProperites": {},
@@ -5278,7 +5426,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "BindingDropPacket": {
       "ModuleProperites": {},
@@ -5302,7 +5450,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnDropPacketEx": {
       "ModuleProperites": {},
@@ -5330,7 +5478,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "BindingDropPacketEx": {
       "ModuleProperites": {},
@@ -5358,7 +5506,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "NoSrcCidAvailable": {
       "ModuleProperites": {},
@@ -5370,7 +5518,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "GetPacketTypeFailure": {
       "ModuleProperites": {},
@@ -5386,7 +5534,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "PacketBuilderSendBatch": {
       "ModuleProperites": {},
@@ -5402,7 +5550,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "ConnPacketSent": {
       "ModuleProperites": {},
@@ -5426,7 +5574,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "PathInitialized": {
       "ModuleProperites": {},
@@ -5442,7 +5590,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "PathRemoved": {
       "ModuleProperites": {},
@@ -5458,7 +5606,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "PathValidated": {
       "ModuleProperites": {},
@@ -5478,7 +5626,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "PathActive": {
       "ModuleProperites": {},
@@ -5498,7 +5646,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "RegistrationVerifierEnabled": {
       "ModuleProperites": {},
@@ -5510,7 +5658,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "RegistrationCreated": {
       "ModuleProperites": {},
@@ -5526,7 +5674,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "RegistrationCleanup": {
       "ModuleProperites": {},
@@ -5538,7 +5686,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "RegistrationRundown": {
       "ModuleProperites": {},
@@ -5554,7 +5702,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "SetSendFlag": {
       "ModuleProperites": {},
@@ -5574,7 +5722,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "ClearSendFlags": {
       "ModuleProperites": {},
@@ -5590,7 +5738,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "CancelAckDelayTimer": {
       "ModuleProperites": {},
@@ -5602,7 +5750,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "ScheduleSendFlags": {
       "ModuleProperites": {},
@@ -5622,7 +5770,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "RemoveSendFlags": {
       "ModuleProperites": {},
@@ -5638,7 +5786,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "FlushSend": {
       "ModuleProperites": {},
@@ -5654,7 +5802,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "AmplificationProtectionBlocked": {
       "ModuleProperites": {},
@@ -5666,7 +5814,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "SetPacingTimer": {
       "ModuleProperites": {},
@@ -5682,7 +5830,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "SendFlushComplete": {
       "ModuleProperites": {},
@@ -5698,7 +5846,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "StartAckDelayTimer": {
       "ModuleProperites": {},
@@ -5714,7 +5862,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "ConnQueueSendFlush": {
       "ModuleProperites": {},
@@ -5730,7 +5878,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "IndicateIdealSendBuffer": {
       "ModuleProperites": {},
@@ -5746,7 +5894,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "SettingDumpSendBufferingEnabled": {
       "ModuleProperites": {},
@@ -5758,7 +5906,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpPacingEnabled": {
       "ModuleProperites": {},
@@ -5770,7 +5918,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpMigrationEnabled": {
       "ModuleProperites": {},
@@ -5782,7 +5930,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpDatagramReceiveEnabled": {
       "ModuleProperites": {},
@@ -5794,7 +5942,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpMaxOperationsPerDrain": {
       "ModuleProperites": {},
@@ -5806,7 +5954,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpRetryMemoryLimit": {
       "ModuleProperites": {},
@@ -5818,7 +5966,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpLoadBalancingMode": {
       "ModuleProperites": {},
@@ -5830,7 +5978,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpMaxStatelessOperations": {
       "ModuleProperites": {},
@@ -5842,7 +5990,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpMaxWorkerQueueDelayUs": {
       "ModuleProperites": {},
@@ -5854,7 +6002,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpInitialWindowPackets": {
       "ModuleProperites": {},
@@ -5866,7 +6014,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpSendIdleTimeoutMs": {
       "ModuleProperites": {},
@@ -5878,7 +6026,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpInitialRttMs": {
       "ModuleProperites": {},
@@ -5890,7 +6038,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpMaxAckDelayMs": {
       "ModuleProperites": {},
@@ -5902,7 +6050,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpDisconnectTimeoutMs": {
       "ModuleProperites": {},
@@ -5914,7 +6062,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpKeepAliveIntervalMs": {
       "ModuleProperites": {},
@@ -5926,7 +6074,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpIdleTimeoutMs": {
       "ModuleProperites": {},
@@ -5938,7 +6086,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpHandshakeIdleTimeoutMs": {
       "ModuleProperites": {},
@@ -5950,7 +6098,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpBidiStreamCount": {
       "ModuleProperites": {},
@@ -5962,7 +6110,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpUnidiStreamCount": {
       "ModuleProperites": {},
@@ -5974,7 +6122,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpTlsClientMaxSendBuffer": {
       "ModuleProperites": {},
@@ -5986,7 +6134,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpTlsServerMaxSendBuffer": {
       "ModuleProperites": {},
@@ -5998,7 +6146,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpStreamRecvWindowDefault": {
       "ModuleProperites": {},
@@ -6010,7 +6158,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpStreamRecvBufferDefault": {
       "ModuleProperites": {},
@@ -6022,7 +6170,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpConnFlowControlWindow": {
       "ModuleProperites": {},
@@ -6034,7 +6182,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpMaxBytesPerKey": {
       "ModuleProperites": {},
@@ -6046,7 +6194,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SettingDumpServerResumptionLevel": {
       "ModuleProperites": {},
@@ -6058,7 +6206,23 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingsInvalidVersion": {
+      "ModuleProperites": {},
+      "TraceString": "Invalid version supplied to settings! 0x%x at position %d",
+      "UniqueId": "SettingsInvalidVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
     },
     "CloseWithoutShutdown": {
       "ModuleProperites": {},
@@ -6070,7 +6234,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamWarning"
     },
     "EventSilentDiscard": {
       "ModuleProperites": {},
@@ -6082,7 +6246,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamWarning"
     },
     "IndicateStartComplete": {
       "ModuleProperites": {},
@@ -6098,7 +6262,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "IndicateStreamShutdownComplete": {
       "ModuleProperites": {},
@@ -6110,7 +6274,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "StreamDestroyed": {
       "ModuleProperites": {},
@@ -6122,7 +6286,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "StreamCreated": {
       "ModuleProperites": {},
@@ -6146,7 +6310,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "StreamSendState": {
       "ModuleProperites": {},
@@ -6162,7 +6326,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "StreamRecvState": {
       "ModuleProperites": {},
@@ -6178,7 +6342,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "StreamOutFlowBlocked": {
       "ModuleProperites": {},
@@ -6194,7 +6358,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "StreamRundown": {
       "ModuleProperites": {},
@@ -6218,7 +6382,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ResetEarly": {
       "ModuleProperites": {},
@@ -6230,7 +6394,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamWarning"
     },
     "ResetTooBig": {
       "ModuleProperites": {},
@@ -6242,7 +6406,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamWarning"
     },
     "ReceiveTooBig": {
       "ModuleProperites": {},
@@ -6254,7 +6418,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamWarning"
     },
     "ReceiveBeyondFlowControl": {
       "ModuleProperites": {},
@@ -6266,7 +6430,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamWarning"
     },
     "RemoteCloseReset": {
       "ModuleProperites": {},
@@ -6278,7 +6442,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamInfo"
     },
     "LocalCloseStopSending": {
       "ModuleProperites": {},
@@ -6290,7 +6454,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamInfo"
     },
     "QueueRecvFlush": {
       "ModuleProperites": {},
@@ -6302,7 +6466,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "IndicatePeerSendAbort": {
       "ModuleProperites": {},
@@ -6318,7 +6482,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "IndicatePeerReceiveAborted": {
       "ModuleProperites": {},
@@ -6334,7 +6498,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "FlowControlExhausted": {
       "ModuleProperites": {},
@@ -6346,7 +6510,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "Receive": {
       "ModuleProperites": {},
@@ -6370,7 +6534,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "RemoteBlocked": {
       "ModuleProperites": {},
@@ -6386,7 +6550,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "IncreaseRxBuffer": {
       "ModuleProperites": {},
@@ -6414,7 +6578,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "UpdateFlowControl": {
       "ModuleProperites": {},
@@ -6426,7 +6590,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "IgnoreRecvFlush": {
       "ModuleProperites": {},
@@ -6438,7 +6602,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "IndicateReceive": {
       "ModuleProperites": {},
@@ -6462,7 +6626,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "ReceiveComplete": {
       "ModuleProperites": {},
@@ -6478,7 +6642,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "IndicatePeerSendShutdown": {
       "ModuleProperites": {},
@@ -6490,7 +6654,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "IndicateSendShutdownComplete": {
       "ModuleProperites": {},
@@ -6502,7 +6666,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "IndicateSendCanceled": {
       "ModuleProperites": {},
@@ -6518,7 +6682,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "IndicateSendComplete": {
       "ModuleProperites": {},
@@ -6534,7 +6698,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "SendQueued": {
       "ModuleProperites": {},
@@ -6562,7 +6726,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "NoMoreRoom": {
       "ModuleProperites": {},
@@ -6574,7 +6738,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "NoMoreFrames": {
       "ModuleProperites": {},
@@ -6586,7 +6750,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "AddFrame": {
       "ModuleProperites": {},
@@ -6610,7 +6774,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "RecoverOpen": {
       "ModuleProperites": {},
@@ -6622,7 +6786,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "RecoverFin": {
       "ModuleProperites": {},
@@ -6634,7 +6798,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "RecoverRange": {
       "ModuleProperites": {},
@@ -6654,7 +6818,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "AckRange": {
       "ModuleProperites": {},
@@ -6678,7 +6842,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "Send0RttUpdated": {
       "ModuleProperites": {},
@@ -6694,7 +6858,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "SendQueueDrained": {
       "ModuleProperites": {},
@@ -6706,7 +6870,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "SendDump": {
       "ModuleProperites": {},
@@ -6750,7 +6914,7 @@
           "MacroVariableName": "arg10"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "SendDumpAck": {
       "ModuleProperites": {},
@@ -6770,7 +6934,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "NotAccepted": {
       "ModuleProperites": {},
@@ -6786,7 +6950,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogStreamWarning"
     },
     "MaxStreamCountUpdated": {
       "ModuleProperites": {},
@@ -6806,7 +6970,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "IndicateStreamsAvailable": {
       "ModuleProperites": {},
@@ -6826,7 +6990,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "PeerStreamCountsUpdated": {
       "ModuleProperites": {},
@@ -6846,7 +7010,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "IndicatePeerStreamStarted": {
       "ModuleProperites": {},
@@ -6866,7 +7030,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "TimerWheelResize": {
       "ModuleProperites": {},
@@ -6882,7 +7046,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TimerWheelNextExpirationNull": {
       "ModuleProperites": {},
@@ -6894,7 +7058,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TimerWheelNextExpiration": {
       "ModuleProperites": {},
@@ -6914,7 +7078,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TimerWheelRemoveConnection": {
       "ModuleProperites": {},
@@ -6930,7 +7094,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TimerWheelUpdateConnection": {
       "ModuleProperites": {},
@@ -6946,7 +7110,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "StillInTimerWheel": {
       "ModuleProperites": {},
@@ -6958,7 +7122,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "IndicateIdealProcChanged": {
       "ModuleProperites": {},
@@ -6970,7 +7134,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "AbandonOnLibShutdown": {
       "ModuleProperites": {},
@@ -6982,7 +7146,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "WorkerCreated": {
       "ModuleProperites": {},
@@ -7002,7 +7166,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "WorkerErrorStatus": {
       "ModuleProperites": {},
@@ -7022,7 +7186,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "WorkerCleanup": {
       "ModuleProperites": {},
@@ -7034,7 +7198,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "WorkerDestroyed": {
       "ModuleProperites": {},
@@ -7046,7 +7210,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "ConnScheduleState": {
       "ModuleProperites": {},
@@ -7062,7 +7226,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "WorkerActivityStateUpdated": {
       "ModuleProperites": {},
@@ -7082,7 +7246,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "WorkerQueueDelayUpdated": {
       "ModuleProperites": {},
@@ -7098,7 +7262,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "WorkerStart": {
       "ModuleProperites": {},
@@ -7110,7 +7274,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "WorkerStop": {
       "ModuleProperites": {},
@@ -7122,7 +7286,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "CertCapiVerifiedChain": {
       "ModuleProperites": {},
@@ -7142,7 +7306,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "CertCapiParsedChain": {
       "ModuleProperites": {},
@@ -7154,7 +7318,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "CertCapiFormattedChain": {
       "ModuleProperites": {},
@@ -7166,7 +7330,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "CertCapiSign": {
       "ModuleProperites": {},
@@ -7178,7 +7342,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "CertCapiVerify": {
       "ModuleProperites": {},
@@ -7190,7 +7354,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LibraryError": {
       "ModuleProperites": {},
@@ -7202,7 +7366,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "CertOpenSslGetProcessAddressFailure": {
       "ModuleProperites": {},
@@ -7218,7 +7382,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "DatapathWorkerThreadStart": {
       "ModuleProperites": {},
@@ -7230,7 +7394,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "DatapathWorkerThreadStop": {
       "ModuleProperites": {},
@@ -7242,7 +7406,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "DatapathResolveHostNameFailed": {
       "ModuleProperites": {},
@@ -7258,7 +7422,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogError"
     },
     "DatapathErrorStatus": {
       "ModuleProperites": {},
@@ -7278,7 +7442,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "DatapathRecv": {
       "ModuleProperites": {},
@@ -7306,7 +7470,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "DatapathCreated": {
       "ModuleProperites": {},
@@ -7326,7 +7490,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "DatapathDestroyed": {
       "ModuleProperites": {},
@@ -7338,7 +7502,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "DatapathSend": {
       "ModuleProperites": {},
@@ -7370,7 +7534,7 @@
           "MacroVariableName": "arg7"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "DatapathOpenTcpSocketFailed": {
       "ModuleProperites": {},
@@ -7382,7 +7546,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathOpenTcpSocketFailedAsync": {
       "ModuleProperites": {},
@@ -7394,7 +7558,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathQueryRssScalabilityInfoFailed": {
       "ModuleProperites": {},
@@ -7406,7 +7570,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathQueryRssScalabilityInfoFailedAsync": {
       "ModuleProperites": {},
@@ -7418,7 +7582,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathOpenUdpSocketFailed": {
       "ModuleProperites": {},
@@ -7430,7 +7594,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathOpenUdpSocketFailedAsync": {
       "ModuleProperites": {},
@@ -7442,7 +7606,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathQueryUdpSendMsgFailed": {
       "ModuleProperites": {},
@@ -7454,7 +7618,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathQueryUdpSendMsgFailedAsync": {
       "ModuleProperites": {},
@@ -7466,7 +7630,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathQueryRecvMaxCoalescedSizeFailed": {
       "ModuleProperites": {},
@@ -7478,7 +7642,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathQueryRecvMaxCoalescedSizeFailedAsync": {
       "ModuleProperites": {},
@@ -7490,7 +7654,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathDropEmptyMdl": {
       "ModuleProperites": {},
@@ -7502,7 +7666,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathDropMissingInfo": {
       "ModuleProperites": {},
@@ -7514,7 +7678,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathDropTooBig": {
       "ModuleProperites": {},
@@ -7530,7 +7694,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathDropMdlMapFailure": {
       "ModuleProperites": {},
@@ -7542,7 +7706,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathFragmented": {
       "ModuleProperites": {},
@@ -7554,7 +7718,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathDropAllocRecvContextFailure": {
       "ModuleProperites": {},
@@ -7566,7 +7730,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathDropAllocRecvBufferFailure": {
       "ModuleProperites": {},
@@ -7578,7 +7742,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathUroExceeded": {
       "ModuleProperites": {},
@@ -7590,7 +7754,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathUnreachable": {
       "ModuleProperites": {},
@@ -7606,7 +7770,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "DatapathQueryRssProcessorInfoFailed": {
       "ModuleProperites": {},
@@ -7618,7 +7782,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathMissingInfo": {
       "ModuleProperites": {},
@@ -7630,7 +7794,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathRecvEmpty": {
       "ModuleProperites": {},
@@ -7642,7 +7806,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathUroPreallocExceeded": {
       "ModuleProperites": {},
@@ -7654,7 +7818,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathShutDownReturn": {
       "ModuleProperites": {},
@@ -7666,7 +7830,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "DatapathShutDownComplete": {
       "ModuleProperites": {},
@@ -7678,7 +7842,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "DatapathUnreachableWithError": {
       "ModuleProperites": {},
@@ -7698,7 +7862,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "DatapathTooLarge": {
       "ModuleProperites": {},
@@ -7714,7 +7878,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "LibraryAssert": {
       "ModuleProperites": {},
@@ -7734,21 +7898,21 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "WindowsKernelLoaded": {
       "ModuleProperites": {},
       "TraceString": "[ sys] Loaded",
       "UniqueId": "WindowsKernelLoaded",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "WindowsKernelUnloaded": {
       "ModuleProperites": {},
       "TraceString": "[ sys] Unloaded",
       "UniqueId": "WindowsKernelUnloaded",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "WindowsKernelInitialized": {
       "ModuleProperites": {},
@@ -7764,28 +7928,28 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "WindowsKernelUninitialized": {
       "ModuleProperites": {},
       "TraceString": "[ sys] Uninitialized",
       "UniqueId": "WindowsKernelUninitialized",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "WindowsUserLoaded": {
       "ModuleProperites": {},
       "TraceString": "[ dll] Loaded",
       "UniqueId": "WindowsUserLoaded",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "WindowsUserUnloaded": {
       "ModuleProperites": {},
       "TraceString": "[ dll] Unloaded",
       "UniqueId": "WindowsUserUnloaded",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "WindowsUserProcessorState": {
       "ModuleProperites": {},
@@ -7805,7 +7969,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "ProcessorInfo": {
       "ModuleProperites": {},
@@ -7829,7 +7993,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "WindowsUserInitialized": {
       "ModuleProperites": {},
@@ -7841,14 +8005,14 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "WindowsUserUninitialized": {
       "ModuleProperites": {},
       "TraceString": "[ dll] Uninitialized",
       "UniqueId": "WindowsUserUninitialized",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "CertWaitForCreationEvent": {
       "ModuleProperites": {},
@@ -7864,7 +8028,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "CertCleanTestCerts": {
       "ModuleProperites": {},
@@ -7880,28 +8044,28 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "CertOpenRsaKeySuccess": {
       "ModuleProperites": {},
       "TraceString": "[cert] Successfully opened RSA key",
       "UniqueId": "CertOpenRsaKeySuccess",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "CertCreateRsaKeySuccess": {
       "ModuleProperites": {},
       "TraceString": "[cert] Successfully created key",
       "UniqueId": "CertCreateRsaKeySuccess",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "CertCreationEventAlreadyCreated": {
       "ModuleProperites": {},
       "TraceString": "[test] CreateEvent opened existing event",
       "UniqueId": "CertCreationEventAlreadyCreated",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "StorageOpenKey": {
       "ModuleProperites": {},
@@ -7913,21 +8077,21 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "miTlsInitialize": {
       "ModuleProperites": {},
       "TraceString": "[ tls] Initializing miTLS library",
       "UniqueId": "miTlsInitialize",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "miTlsUninitialize": {
       "ModuleProperites": {},
       "TraceString": "[ tls] Cleaning up miTLS library",
       "UniqueId": "miTlsUninitialize",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "miTlsLogSecret": {
       "ModuleProperites": {},
@@ -7947,7 +8111,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "miTlsFfiProcessFailed": {
       "ModuleProperites": {},
@@ -7967,7 +8131,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnError"
     },
     "miTlsFfiGetHelloSummaryFailed": {
       "ModuleProperites": {},
@@ -7987,7 +8151,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnError"
     },
     "miTlsCertValidationDisabled": {
       "ModuleProperites": {},
@@ -7999,7 +8163,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "miTlsCertSelected": {
       "ModuleProperites": {},
@@ -8019,7 +8183,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "miTlsUsing0Rtt": {
       "ModuleProperites": {},
@@ -8031,7 +8195,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsProcess": {
       "ModuleProperites": {},
@@ -8047,7 +8211,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsSend0RttTicket": {
       "ModuleProperites": {},
@@ -8059,7 +8223,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsFfiProces": {
       "ModuleProperites": {},
@@ -8075,7 +8239,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsFfiProcessResult": {
       "ModuleProperites": {},
@@ -8095,7 +8259,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsHandshakeComplete": {
       "ModuleProperites": {},
@@ -8107,7 +8271,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsEarlyDataRejected": {
       "ModuleProperites": {},
@@ -8119,7 +8283,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsEarlyDataAccepted": {
       "ModuleProperites": {},
@@ -8131,7 +8295,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsEarlyDataNotAttempted": {
       "ModuleProperites": {},
@@ -8143,7 +8307,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsEarlyDataAttempted": {
       "ModuleProperites": {},
@@ -8155,7 +8319,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsKeySchedule": {
       "ModuleProperites": {},
@@ -8171,7 +8335,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTls0RttReadKeyExported": {
       "ModuleProperites": {},
@@ -8183,7 +8347,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsHandshakeReadKeyExported": {
       "ModuleProperites": {},
@@ -8195,7 +8359,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTls1RttReadKeyExported": {
       "ModuleProperites": {},
@@ -8207,7 +8371,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTls0RttWriteKeyExported": {
       "ModuleProperites": {},
@@ -8219,7 +8383,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsHandshakeWriteKeyExported": {
       "ModuleProperites": {},
@@ -8231,7 +8395,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTls1RttWriteKeyExported": {
       "ModuleProperites": {},
@@ -8243,7 +8407,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsHandshakeWriteOffsetSet": {
       "ModuleProperites": {},
@@ -8259,7 +8423,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTls1RttWriteOffsetSet": {
       "ModuleProperites": {},
@@ -8275,7 +8439,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsFfiProcesComplete": {
       "ModuleProperites": {},
@@ -8291,7 +8455,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsOnCertSelect": {
       "ModuleProperites": {},
@@ -8303,7 +8467,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsOnNegotiate": {
       "ModuleProperites": {},
@@ -8315,7 +8479,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsProcessServerAlpn": {
       "ModuleProperites": {},
@@ -8331,7 +8495,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsOnCertFormat": {
       "ModuleProperites": {},
@@ -8343,7 +8507,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsOnCertSign": {
       "ModuleProperites": {},
@@ -8355,7 +8519,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsOnCertVerify": {
       "ModuleProperites": {},
@@ -8367,7 +8531,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "miTlsRecvNewSessionTicket": {
       "ModuleProperites": {},
@@ -8391,7 +8555,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "TlsMessage": {
       "ModuleProperites": {},
@@ -8407,7 +8571,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "TlsError": {
       "ModuleProperites": {},
@@ -8423,7 +8587,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "OpenSslLogSecret": {
       "ModuleProperites": {},
@@ -8443,7 +8607,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "OpenSslAlert": {
       "ModuleProperites": {},
@@ -8463,7 +8627,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnError"
     },
     "OpenSslQuicDataErrorStr": {
       "ModuleProperites": {},
@@ -8503,7 +8667,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnError"
     },
     "OpenSslHandshakeError": {
       "ModuleProperites": {},
@@ -8519,7 +8683,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnError"
     },
     "OpenSslAlpnNegotiationFailure": {
       "ModuleProperites": {},
@@ -8531,7 +8695,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnError"
     },
     "OpenSslInvalidAlpnLength": {
       "ModuleProperites": {},
@@ -8543,7 +8707,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnError"
     },
     "OpenSslNoMatchingAlpn": {
       "ModuleProperites": {},
@@ -8555,7 +8719,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnError"
     },
     "OpenSslMissingTransportParameters": {
       "ModuleProperites": {},
@@ -8567,7 +8731,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnError"
     },
     "OpenSslHandshakeDataStart": {
       "ModuleProperites": {},
@@ -8583,7 +8747,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "OpenSsl1RttDataStart": {
       "ModuleProperites": {},
@@ -8599,7 +8763,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "OpenSslHandshakeComplete": {
       "ModuleProperites": {},
@@ -8611,7 +8775,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "OpenSslNewEncryptionSecrets": {
       "ModuleProperites": {},
@@ -8627,7 +8791,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "OpenSslAddHandshakeData": {
       "ModuleProperites": {},
@@ -8647,7 +8811,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "OpenSslContextCreated": {
       "ModuleProperites": {},
@@ -8659,7 +8823,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "OpenSslContextCleaningUp": {
       "ModuleProperites": {},
@@ -8671,7 +8835,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "OpenSsslIgnoringTicket": {
       "ModuleProperites": {},
@@ -8687,7 +8851,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "OpenSslProcessData": {
       "ModuleProperites": {},
@@ -8703,42 +8867,42 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "SchannelInitialized": {
       "ModuleProperites": {},
       "TraceString": "[ tls] Library initialized",
       "UniqueId": "SchannelInitialized",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SchannelUninitialized": {
       "ModuleProperites": {},
       "TraceString": "[ tls] Library uninitialized",
       "UniqueId": "SchannelUninitialized",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SchannelAchAsync": {
       "ModuleProperites": {},
       "TraceString": "[ tls] Calling SspiAcquireCredentialsHandleAsyncW",
       "UniqueId": "SchannelAchAsync",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SchannelAchWorkerStart": {
       "ModuleProperites": {},
       "TraceString": "[ tls] Starting ACH worker",
       "UniqueId": "SchannelAchWorkerStart",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SchannelAch": {
       "ModuleProperites": {},
       "TraceString": "[ tls] Calling AcquireCredentialsHandleW",
       "UniqueId": "SchannelAch",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SchannelAchCompleteInline": {
       "ModuleProperites": {},
@@ -8750,7 +8914,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SchannelLogSecret": {
       "ModuleProperites": {},
@@ -8770,7 +8934,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "SchannelHandshakeComplete": {
       "ModuleProperites": {},
@@ -8786,7 +8950,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "SchannelConsumedBytes": {
       "ModuleProperites": {},
@@ -8802,7 +8966,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "SchannelReadHandshakeStart": {
       "ModuleProperites": {},
@@ -8814,7 +8978,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "SchannelRead1RttStart": {
       "ModuleProperites": {},
@@ -8826,7 +8990,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "SchannelWriteHandshakeStart": {
       "ModuleProperites": {},
@@ -8842,7 +9006,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "SchannelWrite1RttStart": {
       "ModuleProperites": {},
@@ -8858,7 +9022,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "SchannelProducedData": {
       "ModuleProperites": {},
@@ -8874,7 +9038,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "SchannelMissingData": {
       "ModuleProperites": {},
@@ -8890,7 +9054,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "SchannelContextCreated": {
       "ModuleProperites": {},
@@ -8902,7 +9066,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "SchannelContextCleaningUp": {
       "ModuleProperites": {},
@@ -8914,7 +9078,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "SchannelKeyReady": {
       "ModuleProperites": {},
@@ -8938,7 +9102,7 @@
           "MacroVariableName": "arg5"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "SchannelIgnoringTicket": {
       "ModuleProperites": {},
@@ -8954,7 +9118,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "SchannelProcessingData": {
       "ModuleProperites": {},
@@ -8970,7 +9134,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "TlsErrorStatus": {
       "ModuleProperites": {},
@@ -8990,7 +9154,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceEvent"
     },
     "StubTlsCertValidationDisabled": {
       "ModuleProperites": {},
@@ -9002,7 +9166,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnWarning"
     },
     "StubTlsHandshakeComplete": {
       "ModuleProperites": {},
@@ -9014,7 +9178,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "StubTlsProducedData": {
       "ModuleProperites": {},
@@ -9030,7 +9194,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "StubTlsConsumedData": {
       "ModuleProperites": {},
@@ -9046,7 +9210,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnInfo"
     },
     "StubTlsContextCreated": {
       "ModuleProperites": {},
@@ -9058,7 +9222,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "StubTlsUsing0Rtt": {
       "ModuleProperites": {},
@@ -9070,7 +9234,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "StubTlsContextCleaningUp": {
       "ModuleProperites": {},
@@ -9082,7 +9246,7 @@
           "MacroVariableName": "arg1"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "StubTlsRecvNewSessionTicket": {
       "ModuleProperites": {},
@@ -9102,7 +9266,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "StubTlsProcessData": {
       "ModuleProperites": {},
@@ -9118,7 +9282,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "TestCaseStart": {
       "ModuleProperites": {},
@@ -9130,7 +9294,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestCaseEnd": {
       "ModuleProperites": {},
@@ -9142,7 +9306,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestCaseTStart": {
       "ModuleProperites": {},
@@ -9158,7 +9322,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestCaseTEnd": {
       "ModuleProperites": {},
@@ -9170,7 +9334,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestLogFailure": {
       "ModuleProperites": {},
@@ -9190,7 +9354,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogError"
     },
     "TestControlClientCanceledRequest": {
       "ModuleProperites": {},
@@ -9206,7 +9370,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogWarning"
     },
     "TestControlClientCreated": {
       "ModuleProperites": {},
@@ -9218,7 +9382,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestControlClientCleaningUp": {
       "ModuleProperites": {},
@@ -9230,7 +9394,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestControlClientIoctl": {
       "ModuleProperites": {},
@@ -9246,7 +9410,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestControlClientIoctlComplete": {
       "ModuleProperites": {},
@@ -9262,28 +9426,28 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestControlInitialized": {
       "ModuleProperites": {},
       "TraceString": "[test] Control interface initialized",
       "UniqueId": "TestControlInitialized",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TestControlUninitializing": {
       "ModuleProperites": {},
       "TraceString": "[test] Control interface uninitializing",
       "UniqueId": "TestControlUninitializing",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TestControlUninitialized": {
       "ModuleProperites": {},
       "TraceString": "[test] Control interface uninitialized",
       "UniqueId": "TestControlUninitialized",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TestDriverFailureLocation": {
       "ModuleProperites": {},
@@ -9303,7 +9467,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogError"
     },
     "TestDriverFailure": {
       "ModuleProperites": {},
@@ -9315,28 +9479,28 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogError"
     },
     "TestDriverStarted": {
       "ModuleProperites": {},
       "TraceString": "[test] Started",
       "UniqueId": "TestDriverStarted",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestDriverStopped": {
       "ModuleProperites": {},
       "TraceString": "[test] Stopped",
       "UniqueId": "TestDriverStopped",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestIgnoreConnectionTimeout": {
       "ModuleProperites": {},
       "TraceString": "[test] Ignoring timeout unexpected status because of random loss",
       "UniqueId": "TestIgnoreConnectionTimeout",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestScopeEntry": {
       "ModuleProperites": {},
@@ -9348,7 +9512,7 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestScopeExit": {
       "ModuleProperites": {},
@@ -9360,42 +9524,42 @@
           "MacroVariableName": "arg2"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestHookRegister": {
       "ModuleProperites": {},
       "TraceString": "[test][hook] Registering",
       "UniqueId": "TestHookRegister",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestHookUnregistering": {
       "ModuleProperites": {},
       "TraceString": "[test][hook] Unregistering",
       "UniqueId": "TestHookUnregistering",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestHookUnregistered": {
       "ModuleProperites": {},
       "TraceString": "[test][hook] Unregistered",
       "UniqueId": "TestHookUnregistered",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "TestHookDropPacketRandom": {
       "ModuleProperites": {},
       "TraceString": "[test][hook] Random packet drop",
       "UniqueId": "TestHookDropPacketRandom",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TestHookDropPacketSelective": {
       "ModuleProperites": {},
       "TraceString": "[test][hook] Selective packet drop",
       "UniqueId": "TestHookDropPacketSelective",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TestHookReplaceAddrRecv": {
       "ModuleProperites": {},
@@ -9411,7 +9575,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TestHookReplaceAddrSend": {
       "ModuleProperites": {},
@@ -9427,28 +9591,28 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TestHookDropOldAddrSend": {
       "ModuleProperites": {},
       "TraceString": "[test][hook] Dropping send to old addr",
       "UniqueId": "TestHookDropOldAddrSend",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TestHookDropLimitAddrRecv": {
       "ModuleProperites": {},
       "TraceString": "[test][hook] Dropping recv over limit to new addr",
       "UniqueId": "TestHookDropLimitAddrRecv",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "TestHookDropLimitAddrSend": {
       "ModuleProperites": {},
       "TraceString": "[test][hook] Dropping send over limit to new addr",
       "UniqueId": "TestHookDropLimitAddrSend",
       "splitArgs": [],
-      "macroName": null
+      "macroName": "QuicTraceLogVerbose"
     },
     "InteropTestStart": {
       "ModuleProperites": {},
@@ -9468,7 +9632,7 @@
           "MacroVariableName": "arg4"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     },
     "InteropTestStop": {
       "ModuleProperites": {},
@@ -9496,7 +9660,7 @@
           "MacroVariableName": "arg6"
         }
       ],
-      "macroName": null
+      "macroName": "QuicTraceLogInfo"
     }
   },
   "Version": 1,
@@ -10080,6 +10244,34 @@
         "TraceID": "PacketRxNotAcked"
       },
       {
+        "UniquenessHash": "b8c2e39f-0d5e-7583-3164-305a511accd6",
+        "TraceID": "ClientVersionNegotiationInfoDecodeFailed"
+      },
+      {
+        "UniquenessHash": "cb459e9c-77eb-b681-c19f-6a4dbda910a5",
+        "TraceID": "ClientVersionNegotiationInfoVersionMismatch"
+      },
+      {
+        "UniquenessHash": "7d71899f-a8a2-0b35-7b47-a55d537f570d",
+        "TraceID": "ClientVersionNegotiationRecvdVersionsMismatch"
+      },
+      {
+        "UniquenessHash": "baaa2078-131f-60bb-f7c4-6aa6c861bff4",
+        "TraceID": "ClientVersionNegotiationPrevVersionIncorrect"
+      },
+      {
+        "UniquenessHash": "9a9440e8-9b6e-2295-2273-d7702af00799",
+        "TraceID": "ServerVersionNegotiationInfoDecodeFailed"
+      },
+      {
+        "UniquenessHash": "c7552070-fd4b-9b08-8e5b-462f2aaf743d",
+        "TraceID": "ServerVersionNegotiationInfoVersionMismatch"
+      },
+      {
+        "UniquenessHash": "696d9b6f-b45a-a1cf-414e-58fab29238b2",
+        "TraceID": "ServerVersionNegotiationNegotiatedVersionNotInSupportedList"
+      },
+      {
         "UniquenessHash": "c9015186-9937-78ff-24f3-2f08dc9d3c95",
         "TraceID": "RecvVerNegNoMatch"
       },
@@ -10592,6 +10784,10 @@
         "TraceID": "EncodeTPDisable1RttEncryption"
       },
       {
+        "UniquenessHash": "15129032-c44e-6ae1-1d5b-be620a2b9bdd",
+        "TraceID": "EncodeTPVersionNegotiationExt"
+      },
+      {
         "UniquenessHash": "4650353e-149e-c99a-1ab8-9b7e6a1e698e",
         "TraceID": "EncodeTPTest"
       },
@@ -10678,6 +10874,10 @@
       {
         "UniquenessHash": "bf16a511-be08-e9ca-915f-5e5c834d5ca6",
         "TraceID": "DecodeTPDisable1RttEncryption"
+      },
+      {
+        "UniquenessHash": "c24b1c5e-cd4d-ca15-be0b-1c600831d5b0",
+        "TraceID": "DecodeTPVersionNegotiationInfo"
       },
       {
         "UniquenessHash": "152723b4-2b46-a936-ffaf-9cc429e8e66f",
@@ -11374,6 +11574,10 @@
       {
         "UniquenessHash": "1695fe94-7146-5c58-1fa8-9364a932a773",
         "TraceID": "SettingDumpServerResumptionLevel"
+      },
+      {
+        "UniquenessHash": "a3237095-0958-5564-417c-5a60b9db4ec1",
+        "TraceID": "SettingsInvalidVersion"
       },
       {
         "UniquenessHash": "f96b231c-aa1b-08a4-7036-a60927e3eadd",
@@ -12334,46 +12538,6 @@
       {
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop"
-      },
-      {
-        "UniquenessHash": "c24b1c5e-cd4d-ca15-be0b-1c600831d5b0",
-        "TraceID": "DecodeTPVersionNegotiationInfo"
-      },
-      {
-        "UniquenessHash": "b8c2e39f-0d5e-7583-3164-305a511accd6",
-        "TraceID": "ClientVersionNegotiationInfoDecodeFailed"
-      },
-      {
-        "UniquenessHash": "cb459e9c-77eb-b681-c19f-6a4dbda910a5",
-        "TraceID": "ClientVersionNegotiationInfoVersionMismatch"
-      },
-      {
-        "UniquenessHash": "7d71899f-a8a2-0b35-7b47-a55d537f570d",
-        "TraceID": "ClientVersionNegotiationRecvdVersionsMismatch"
-      },
-      {
-        "UniquenessHash": "baaa2078-131f-60bb-f7c4-6aa6c861bff4",
-        "TraceID": "ClientVersionNegotiationPrevVersionIncorrect"
-      },
-      {
-        "UniquenessHash": "a3237095-0958-5564-417c-5a60b9db4ec1",
-        "TraceID": "SettingsInvalidVersion"
-      },
-      {
-        "UniquenessHash": "9a9440e8-9b6e-2295-2273-d7702af00799",
-        "TraceID": "ServerVersionNegotiationInfoDecodeFailed"
-      },
-      {
-        "UniquenessHash": "c7552070-fd4b-9b08-8e5b-462f2aaf743d",
-        "TraceID": "ServerVersionNegotiationInfoVersionMismatch"
-      },
-      {
-        "UniquenessHash": "696d9b6f-b45a-a1cf-414e-58fab29238b2",
-        "TraceID": "ServerVersionNegotiationNegotiatedVersionNotInSupportedList"
-      },
-      {
-        "UniquenessHash": "15129032-c44e-6ae1-1d5b-be620a2b9bdd",
-        "TraceID": "EncodeTPVersionNegotiationExt"
       }
     ]
   }
