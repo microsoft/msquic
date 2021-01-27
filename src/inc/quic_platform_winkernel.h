@@ -264,8 +264,8 @@ CxPlatLogAssert(
 
 extern uint64_t CxPlatTotalMemory;
 
-#define CXPLAT_ALLOC_PAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
-#define CXPLAT_ALLOC_NONPAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
+#define CXPLAT_ALLOC_PAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_PAGED, Size, Tag)
+#define CXPLAT_ALLOC_NONPAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, Tag)
 #define CXPLAT_FREE(Mem, Tag) ExFreePoolWithTag((void*)Mem, Tag)
 
 typedef LOOKASIDE_LIST_EX CXPLAT_POOL;

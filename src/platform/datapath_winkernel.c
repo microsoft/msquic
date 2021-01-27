@@ -2532,7 +2532,7 @@ CxPlatSendBufferPoolAlloc(
     //
     // ExAllocatePool2 requires a different set of flags, so the assert above must keep the pool sane.
     //
-    SendBuffer = ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, NumberOfBytes, Tag);
+    SendBuffer = ExAllocatePool2(POOL_FLAG_NON_PAGED, NumberOfBytes, Tag);
     if (SendBuffer == NULL) {
         return NULL;
     }
