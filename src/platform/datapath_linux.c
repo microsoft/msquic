@@ -1397,20 +1397,20 @@ CxPlatSocketContextSendComplete(
             SocketContext->Binding,
             Status,
             "epoll_ctl failed");
-        goto Exit;
+        return Status;
     }
 
     CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
     if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
         SendContext =
-        CXPLAT_CONTAINING_RECORD(
-            SocketContext->PendingSendContextHead.Flink,
-            CXPLAT_SEND_DATA,
-            PendingSendLinkage);
+            CXPLAT_CONTAINING_RECORD(
+                SocketContext->PendingSendContextHead.Flink,
+                CXPLAT_SEND_DATA,
+                PendingSendLinkage);
     }
     CxPlatLockRelease(&SocketContext->PendingSendContextLock);
     if (SendContext == NULL) {
-        goto Exit;
+        return Status;
     }
 
     do {
@@ -1425,20 +1425,19 @@ CxPlatSocketContextSendComplete(
         if (Status != QUIC_STATUS_PENDING) {
             CxPlatListRemoveHead(&SocketContext->PendingSendContextHead);
             CxPlatSendDataFree(SendContext);
-        }
-        if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
+            if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
             SendContext =
                 CXPLAT_CONTAINING_RECORD(
                     SocketContext->PendingSendContextHead.Flink,
                     CXPLAT_SEND_DATA,
                     PendingSendLinkage);
-        } else {
-            SendContext = NULL;
+            } else {
+                SendContext = NULL;
+            }
         }
         CxPlatLockRelease(&SocketContext->PendingSendContextLock);
     } while (Status == QUIC_STATUS_SUCCESS && SendContext != NULL);
 
-Exit:
     return Status;
 }
 
