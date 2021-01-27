@@ -103,7 +103,7 @@
     <ClInclude Include="stream_set.h" />
     <ClInclude Include="timer_wheel.h" />
     <ClInclude Include="transport_params.h" />
-    <ClCompile Include="version_neg.h" />
+    <ClInclude Include="version_neg.h" />
     <ClInclude Include="worker.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
