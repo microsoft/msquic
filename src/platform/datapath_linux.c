@@ -2123,6 +2123,7 @@ CxPlatSocketSendInternal(
                     RemoteAddress);
                 CxPlatLockRelease(&SocketContext->PendingSendContextLock);
             }
+            SendPending = TRUE;
             struct epoll_event SockFdEpEvt = {
                 .events = EPOLLIN | EPOLLOUT | EPOLLET,
                 .data = {
@@ -2146,7 +2147,6 @@ CxPlatSocketSendInternal(
                 Status = errno;
                 goto Exit;
             }
-            SendPending = TRUE;
             Status = QUIC_STATUS_PENDING;
             goto Exit;
         } else {
