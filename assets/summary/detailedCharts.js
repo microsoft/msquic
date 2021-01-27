@@ -61,8 +61,7 @@ function createAvgDataset(test, platform) {
         hidden: false,
         hiddenType: false,
         hiddenPlatform: false,
-        isRaw: false,
-        platform: platform.friendly
+        platform: platform.name
     };
 }
 
@@ -81,8 +80,7 @@ function createRawDataset(test, platform) {
         hidden: true,
         hiddenType: true,
         hiddenPlatform: false,
-        isRaw: true,
-        platform: platform.friendly
+        platform: platform.name
     };
 }
 
@@ -102,8 +100,47 @@ function createLatencyDataset(test, platform) {
         hidden: false,
         hiddenType: false,
         hiddenPlatform: false,
-        isRaw: false,
-        platform: platform.friendly
+        platform: platform.name
+    }
+}
+
+function onPlatformToggled(event) {
+    var chart = event.srcElement.chart
+    for (const val of chart.data.datasets) {
+        if (val.platform === event.srcElement.platform) {
+            val.hiddenPlatform = !val.hiddenPlatform
+            val.hidden = val.hiddenPlatform | val.hiddenType
+        }
+    }
+    chart.update()
+}
+
+function onTypeToggled(event) {
+    var chart = event.srcElement.chart
+    for (const val of chart.data.datasets) {
+        if (val.type === event.srcElement.type) {
+            val.hiddenType = !val.hiddenType
+            val.hidden = val.hiddenPlatform | val.hiddenType
+        }
+    }
+    chart.update()
+}
+
+function addPlatformToggle(test, platform, chart) {
+    var elem = document.getElementById(platform.name + test + "Toggle")
+    if (elem) {
+        elem.onclick = onPlatformToggled
+        elem.chart = chart
+        elem.platform = platform.name
+    }
+}
+
+function addTypeToggle(test, type, chart) {
+    var elem = document.getElementById(type + test + "Toggle")
+    if (elem) {
+        elem.onclick = onTypeToggled
+        elem.chart = chart
+        elem.type = type
     }
 }
 
@@ -114,7 +151,7 @@ function createChart(test) {
 
     var div = dataView.find(x => x.name === platformTypes[0].name + test).div
 
-    new Chart(document.getElementById("canvas" + test).getContext('2d'), {
+    chart = new Chart(document.getElementById("canvas" + test).getContext('2d'), {
         data: { datasets: datasets},
         options: {
             maintainAspectRatio: false,
@@ -178,6 +215,10 @@ function createChart(test) {
             }
         }
     })
+
+    platformTypes.forEach(x => addPlatformToggle(test, x, chart))
+    addTypeToggle(test, "scatter", chart)
+    addTypeToggle(test, "line", chart)
 }
 
 function createLatencyChart(test) {
