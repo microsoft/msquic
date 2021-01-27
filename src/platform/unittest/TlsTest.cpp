@@ -15,7 +15,9 @@
 #include "TlsTest.cpp.clog.h"
 #endif
 
+#ifdef _WIN32
 const uint16_t BadCertError = 42;
+#endif
 const uint16_t UnknownCaError = 48;
 
 const uint32_t DefaultFragmentSize = 1200;

@@ -74,12 +74,12 @@ typedef enum QUIC_EXECUTION_PROFILE {
     QUIC_EXECUTION_PROFILE_LOW_LATENCY,         // Default
     QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT,
     QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER,
-    QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME
+    QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME,
 } QUIC_EXECUTION_PROFILE;
 
 typedef enum QUIC_LOAD_BALANCING_MODE {
     QUIC_LOAD_BALANCING_DISABLED,               // Default
-    QUIC_LOAD_BALANCING_SERVER_ID_IP            // Encodes IP address in Server ID
+    QUIC_LOAD_BALANCING_SERVER_ID_IP,           // Encodes IP address in Server ID
 } QUIC_LOAD_BALANCING_MODE;
 
 typedef enum QUIC_CREDENTIAL_TYPE {
@@ -87,7 +87,7 @@ typedef enum QUIC_CREDENTIAL_TYPE {
     QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
     QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
     QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
-    QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE,
 } QUIC_CREDENTIAL_TYPE;
 
 typedef enum QUIC_CREDENTIAL_FLAGS {
@@ -103,14 +103,14 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS);
 
 typedef enum QUIC_CERTIFICATE_HASH_STORE_FLAGS {
     QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE           = 0x0000,
-    QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE  = 0x0001
+    QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE  = 0x0001,
 } QUIC_CERTIFICATE_HASH_STORE_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CERTIFICATE_HASH_STORE_FLAGS);
 
 typedef enum QUIC_CONNECTION_SHUTDOWN_FLAGS {
     QUIC_CONNECTION_SHUTDOWN_FLAG_NONE      = 0x0000,
-    QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT    = 0x0001    // Don't send the close frame over the network.
+    QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT    = 0x0001,   // Don't send the close frame over the network.
 } QUIC_CONNECTION_SHUTDOWN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CONNECTION_SHUTDOWN_FLAGS);
@@ -118,12 +118,12 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_CONNECTION_SHUTDOWN_FLAGS);
 typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
     QUIC_SERVER_NO_RESUME,
     QUIC_SERVER_RESUME_ONLY,
-    QUIC_SERVER_RESUME_AND_ZERORTT
+    QUIC_SERVER_RESUME_AND_ZERORTT,
 } QUIC_SERVER_RESUMPTION_LEVEL;
 
 typedef enum QUIC_SEND_RESUMPTION_FLAGS {
     QUIC_SEND_RESUMPTION_FLAG_NONE          = 0x0000,
-    QUIC_SEND_RESUMPTION_FLAG_FINAL         = 0x0001    // Free TLS state after sending this ticket.
+    QUIC_SEND_RESUMPTION_FLAG_FINAL         = 0x0001,   // Free TLS state after sending this ticket.
 } QUIC_SEND_RESUMPTION_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_RESUMPTION_FLAGS);
@@ -131,13 +131,13 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_RESUMPTION_FLAGS);
 typedef enum QUIC_STREAM_SCHEDULING_SCHEME {
     QUIC_STREAM_SCHEDULING_SCHEME_FIFO          = 0x0000,   // Sends stream data first come, first served. (Default)
     QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN   = 0x0001,   // Sends stream data evenly multiplexed.
-    QUIC_STREAM_SCHEDULING_SCHEME_COUNT                     // The number of stream scheduling schemes.
+    QUIC_STREAM_SCHEDULING_SCHEME_COUNT,                    // The number of stream scheduling schemes.
 } QUIC_STREAM_SCHEDULING_SCHEME;
 
 typedef enum QUIC_STREAM_OPEN_FLAGS {
     QUIC_STREAM_OPEN_FLAG_NONE              = 0x0000,
     QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL    = 0x0001,   // Indicates the stream is unidirectional.
-    QUIC_STREAM_OPEN_FLAG_0_RTT             = 0x0002    // The stream was opened via a 0-RTT packet.
+    QUIC_STREAM_OPEN_FLAG_0_RTT             = 0x0002,   // The stream was opened via a 0-RTT packet.
 } QUIC_STREAM_OPEN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS);
@@ -146,7 +146,7 @@ typedef enum QUIC_STREAM_START_FLAGS {
     QUIC_STREAM_START_FLAG_NONE             = 0x0000,
     QUIC_STREAM_START_FLAG_FAIL_BLOCKED     = 0x0001,   // Only opens the stream if flow control allows.
     QUIC_STREAM_START_FLAG_IMMEDIATE        = 0x0002,   // Immediately informs peer that stream is open.
-    QUIC_STREAM_START_FLAG_ASYNC            = 0x0004    // Don't block the API call to wait for completion.
+    QUIC_STREAM_START_FLAG_ASYNC            = 0x0004,   // Don't block the API call to wait for completion.
 } QUIC_STREAM_START_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_START_FLAGS);
@@ -157,7 +157,7 @@ typedef enum QUIC_STREAM_SHUTDOWN_FLAGS {
     QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND    = 0x0002,   // Abruptly closes the send path.
     QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE = 0x0004,   // Abruptly closes the receive path.
     QUIC_STREAM_SHUTDOWN_FLAG_ABORT         = 0x0006,   // Abruptly closes both send and receive paths.
-    QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE     = 0x0008    // Immediately sends completion events to app.
+    QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE     = 0x0008,   // Immediately sends completion events to app.
 } QUIC_STREAM_SHUTDOWN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_SHUTDOWN_FLAGS);
@@ -165,7 +165,7 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_SHUTDOWN_FLAGS);
 typedef enum QUIC_RECEIVE_FLAGS {
     QUIC_RECEIVE_FLAG_NONE                  = 0x0000,
     QUIC_RECEIVE_FLAG_0_RTT                 = 0x0001,   // Data was encrypted with 0-RTT key.
-    QUIC_RECEIVE_FLAG_FIN                   = 0x0002    // FIN was included with this data.
+    QUIC_RECEIVE_FLAG_FIN                   = 0x0002,   // FIN was included with this data.
 } QUIC_RECEIVE_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_RECEIVE_FLAGS);
@@ -175,7 +175,7 @@ typedef enum QUIC_SEND_FLAGS {
     QUIC_SEND_FLAG_ALLOW_0_RTT              = 0x0001,   // Allows the use of encrypting with 0-RTT key.
     QUIC_SEND_FLAG_START                    = 0x0002,   // Asynchronously starts the stream with the sent data.
     QUIC_SEND_FLAG_FIN                      = 0x0004,   // Indicates the request is the one last sent on the stream.
-    QUIC_SEND_FLAG_DGRAM_PRIORITY           = 0x0008    // Indicates the datagram is higher priority than others.
+    QUIC_SEND_FLAG_DGRAM_PRIORITY           = 0x0008,   // Indicates the datagram is higher priority than others.
 } QUIC_SEND_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS);
@@ -186,7 +186,7 @@ typedef enum QUIC_DATAGRAM_SEND_STATE {
     QUIC_DATAGRAM_SEND_LOST_DISCARDED,                  // Lost and not longer being tracked
     QUIC_DATAGRAM_SEND_ACKNOWLEDGED,                    // Acknowledged
     QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS,           // Acknowledged after being suspected lost
-    QUIC_DATAGRAM_SEND_CANCELED                         // Canceled before send
+    QUIC_DATAGRAM_SEND_CANCELED,                        // Canceled before send
 } QUIC_DATAGRAM_SEND_STATE;
 
 //
@@ -363,7 +363,7 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH,// Current worker operations queued.
     QUIC_PERF_COUNTER_WORK_OPER_QUEUED,     // Total worker operations queued ever.
     QUIC_PERF_COUNTER_WORK_OPER_COMPLETED,  // Total worker operations processed ever.
-    QUIC_PERF_COUNTER_MAX
+    QUIC_PERF_COUNTER_MAX,
 } QUIC_PERFORMANCE_COUNTERS;
 
 typedef struct QUIC_SETTINGS {
@@ -474,7 +474,7 @@ typedef enum QUIC_PARAM_LEVEL {
     QUIC_PARAM_LEVEL_LISTENER,
     QUIC_PARAM_LEVEL_CONNECTION,
     QUIC_PARAM_LEVEL_TLS,
-    QUIC_PARAM_LEVEL_STREAM
+    QUIC_PARAM_LEVEL_STREAM,
 } QUIC_PARAM_LEVEL;
 
 //
@@ -664,7 +664,7 @@ QUIC_STATUS
 //
 
 typedef enum QUIC_LISTENER_EVENT_TYPE {
-    QUIC_LISTENER_EVENT_NEW_CONNECTION      = 0
+    QUIC_LISTENER_EVENT_NEW_CONNECTION      = 0,
 } QUIC_LISTENER_EVENT_TYPE;
 
 typedef struct QUIC_LISTENER_EVENT {
@@ -934,7 +934,7 @@ typedef enum QUIC_STREAM_EVENT_TYPE {
     QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED      = 5,
     QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE    = 6,
     QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE         = 7,
-    QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE    = 8
+    QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE    = 8,
 } QUIC_STREAM_EVENT_TYPE;
 
 typedef struct QUIC_STREAM_EVENT {
