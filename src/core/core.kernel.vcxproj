@@ -69,7 +69,7 @@
     <ClCompile Include="timer_wheel.c" />
     <ClCompile Include="version_neg.c" />
     <ClCompile Include="worker.c" />
-  <ItemGroup>
+  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ack_tracker.h" />
     <ClInclude Include="api.h" />

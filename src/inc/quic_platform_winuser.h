@@ -269,14 +269,14 @@ typedef struct CXPLAT_POOL {
     uint32_t Tag;
 } CXPLAT_POOL;
 
-#define QUIC_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+#define CXPLAT_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 
 #if DEBUG
-typedef struct QUIC_POOL_ENTRY {
+typedef struct CXPLAT_POOL_ENTRY {
     SLIST_ENTRY ListHead;
     uint32_t SpecialFlag;
-} QUIC_POOL_ENTRY;
-#define QUIC_POOL_SPECIAL_FLAG    0xAAAAAAAA
+} CXPLAT_POOL_ENTRY;
+#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAA
 #endif
 
 inline
@@ -289,7 +289,7 @@ CxPlatPoolInitialize(
     )
 {
 #if DEBUG
-    CXPLAT_DBG_ASSERT(Size >= sizeof(QUIC_POOL_ENTRY));
+    CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
 #endif
     Pool->Size = Size;
     Pool->Tag = Tag;
@@ -324,7 +324,7 @@ CxPlatPoolAlloc(
     }
 #if DEBUG
     if (Entry != NULL) {
-        ((QUIC_POOL_ENTRY*)Entry)->SpecialFlag = 0;
+        ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = 0;
     }
 #endif
     return Entry;
@@ -344,10 +344,10 @@ CxPlatPoolFree(
     return;
 #else
 #if DEBUG
-    CXPLAT_DBG_ASSERT(((QUIC_POOL_ENTRY*)Entry)->SpecialFlag != QUIC_POOL_SPECIAL_FLAG);
-    ((QUIC_POOL_ENTRY*)Entry)->SpecialFlag = QUIC_POOL_SPECIAL_FLAG;
+    CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
+    ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
 #endif
-    if (QueryDepthSList(&Pool->ListHead) >= QUIC_POOL_MAXIMUM_DEPTH) {
+    if (QueryDepthSList(&Pool->ListHead) >= CXPLAT_POOL_MAXIMUM_DEPTH) {
         CxPlatFree(Entry, Pool->Tag);
     } else {
         InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Entry);

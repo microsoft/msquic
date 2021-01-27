@@ -148,7 +148,8 @@ if (QUIC_SOURCE_LINK AND MSVC)
     if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER_EQUAL "19.20")
         include(${PROJECT_SOURCE_DIR}/cmake/SourceLink.cmake)
         file(TO_NATIVE_PATH "${PROJECT_BINARY_DIR}/source_link.json" SOURCE_LINK_JSON)
-        source_link(${PROJECT_SOURCE_DIR} ${SOURCE_LINK_JSON})
+        file(TO_NATIVE_PATH "${PROJECT_SOURCE_DIR}/cmake/source_link.json.in" SOURCE_LINK_JSON_INPUT)
+        source_link(${PROJECT_SOURCE_DIR} ${SOURCE_LINK_JSON} ${SOURCE_LINK_JSON_INPUT})
         set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO")
         set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO")
         set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO")
@@ -179,7 +180,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
-set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
 if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
@@ -215,19 +215,23 @@ endif()
 if(WIN32)
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
-    file(WRITE ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
-    include_directories(${QUIC_BUILD_DIR}/inc)
 
     add_custom_command(
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/MsQuicEtw.man
         COMMAND mc.exe -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/MsQuicEtw.man)
-    add_custom_target(MsQuicEtw
-        DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
-        DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
+    add_custom_target(MsQuicEtw_HeaderBuild
+        DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
-    set_property(TARGET MsQuicEtw PROPERTY FOLDER "libraries")
+    set_property(TARGET MsQuicEtw_HeaderBuild PROPERTY FOLDER "helpers")
+
+    add_library(MsQuicEtw_Header INTERFACE)
+    target_include_directories(MsQuicEtw_Header INTERFACE ${QUIC_BUILD_DIR}/inc)
+    add_dependencies(MsQuicEtw_Header MsQuicEtw_HeaderBuild)
+
+    add_library(MsQuicEtw_Resource OBJECT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
+    set_property(TARGET MsQuicEtw_Resource PROPERTY FOLDER "helpers")
 
     if (QUIC_UWP_BUILD)
         list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP QUIC_UWP_BUILD)
@@ -383,6 +387,7 @@ if(QUIC_TLS STREQUAL "openssl")
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
 
         add_library(OpenSSL_Crypto STATIC IMPORTED)
+        set_property(TARGET OpenSSL_Crypto PROPERTY FOLDER "libraries")
         set_target_properties(OpenSSL_Crypto PROPERTIES
             IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
@@ -391,6 +396,7 @@ if(QUIC_TLS STREQUAL "openssl")
             MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
 
         add_library(OpenSSL STATIC IMPORTED)
+        set_property(TARGET OpenSSL PROPERTY FOLDER "libraries")
         set_target_properties(OpenSSL PROPERTIES
             IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
             IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
@@ -413,7 +419,6 @@ if(QUIC_TLS STREQUAL "openssl")
 
             set(OPENSSL_CONFIG_FLAGS
                 enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
-                no-autoerrinit no-filenames no-ui-console no-err
                 no-zlib no-egd no-uplink no-idea no-rc5 no-rc4 no-afalgeng no-acvp_tests
                 no-comp no-cmp no-cms no-ct no-srp no-srtp no-ts no-fips no-gost no-padlockeng no-dso no-ec2m
                 no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
@@ -423,8 +428,10 @@ if(QUIC_TLS STREQUAL "openssl")
 
             add_custom_target(mkdir_openssl_build_debug
                 COMMAND if not exist \"${QUIC_BUILD_DIR}/submodules/openssl/debug\" mkdir \"${QUIC_BUILD_DIR}/submodules/openssl/debug\" 2> NUL)
+            set_property(TARGET mkdir_openssl_build_debug PROPERTY FOLDER "helpers")
             add_custom_target(mkdir_openssl_build_release
                 COMMAND if not exist \"${QUIC_BUILD_DIR}/submodules/openssl/release\" mkdir \"${QUIC_BUILD_DIR}/submodules/openssl/release\" 2> NUL)
+            set_property(TARGET mkdir_openssl_build_release PROPERTY FOLDER "helpers")
 
             add_custom_command(
                 DEPENDS mkdir_openssl_build_debug
@@ -442,9 +449,11 @@ if(QUIC_TLS STREQUAL "openssl")
                 DEPENDS $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
                 WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug,${QUIC_BUILD_DIR}/submodules/openssl/release>
                 COMMAND nmake install_dev)
+            set_property(TARGET OpenSSL_Build PROPERTY FOLDER "helpers")
 
             add_library(OpenSSL_Build_Tgt INTERFACE)
             add_dependencies(OpenSSL_Build_Tgt OpenSSL_Build)
+            set_property(TARGET OpenSSL_Build_Tgt PROPERTY FOLDER "helpers")
 
             target_link_libraries(OpenSSL INTERFACE OpenSSL_Build_Tgt)
         endif()
@@ -463,6 +472,7 @@ if(QUIC_TLS STREQUAL "openssl")
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure
                 linux-armv4 -DL_ENDIAN
                 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
+            list(APPEND OPENSSL_CONFIG_FLAGS -latomic)
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
                 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
@@ -515,7 +525,7 @@ if (QUIC_ENABLE_LOGGING)
     function(add_clog_library)
         CLOG_GENERATE_TARGET(${ARGV})
         target_link_libraries(${ARGV0} PRIVATE inc)
-        set_property(TARGET ${ARGV0} PROPERTY FOLDER "clog")
+        set_property(TARGET ${ARGV0} PROPERTY FOLDER "helpers")
     endfunction()
 else()
     function(add_clog_library)
@@ -529,6 +539,10 @@ if(QUIC_TLS STREQUAL "mitls")
     add_subdirectory(submodules/everest/msquic/msvc/evercrypt)
     add_subdirectory(submodules/everest/msquic/msvc/mitls)
     add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
+    set_property(TARGET kremlib PROPERTY FOLDER "libraries")
+    set_property(TARGET evercrypt PROPERTY FOLDER "libraries")
+    set_property(TARGET mitls PROPERTY FOLDER "libraries")
+    set_property(TARGET quiccrypto PROPERTY FOLDER "libraries")
 endif()
 
 if(QUIC_CODE_CHECK)

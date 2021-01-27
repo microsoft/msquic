@@ -18,7 +18,9 @@ Abstract:
 
 class PerfServer : public PerfBase {
 public:
-    PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig) {
+    PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig) :
+        Engine(TcpAcceptCallback, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback),
+        Server(&Engine, CredConfig, this) {
         InitStatus =
             Configuration.IsValid() ?
                 Configuration.LoadCredential(CredConfig) :
@@ -68,10 +70,13 @@ private:
                 IdealSendBuffer = 1; // Hack to get just do 1 send at a time.
             }
         }
+        CXPLAT_HASHTABLE_ENTRY Entry; // To TCP StreamTable
         PerfServer* Server;
-        bool Unidirectional;
-        bool BufferedIo;
+        const bool Unidirectional;
+        const bool BufferedIo;
         bool ResponseSizeSet{false};
+        bool SendShutdown{false};
+        bool RecvShutdown{false};
         uint64_t IdealSendBuffer{PERF_DEFAULT_SEND_BUFFER_SIZE};
         uint64_t ResponseSize{0};
         uint64_t BytesSent{0};
@@ -121,4 +126,55 @@ private:
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
+
+    TcpEngine Engine;
+    TcpServer Server;
+    HashTable StreamTable;
+
+    void
+    SendTcpResponse(
+        _In_ StreamContext* Context,
+        _In_ TcpConnection* Connection
+        );
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    _Function_class_(TcpAcceptCallback)
+    static
+    void
+    TcpAcceptCallback(
+        _In_ TcpServer* Server,
+        _In_ TcpConnection* Connection
+        );
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    _Function_class_(TcpConnectCallback)
+    static
+    void
+    TcpConnectCallback(
+        _In_ TcpConnection* Connection,
+        bool IsConnected
+        );
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    _Function_class_(TcpReceiveCallback)
+    static
+    void
+    TcpReceiveCallback(
+        _In_ TcpConnection* Connection,
+        uint32_t StreamID,
+        bool Open,
+        bool Fin,
+        bool Abort,
+        uint32_t Length,
+        uint8_t* Buffer
+        );
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    _Function_class_(TcpSendCompleteCallback)
+    static
+    void
+    TcpSendCompleteCallback(
+        _In_ TcpConnection* Connection,
+        TcpSendData* SendDataChain
+        );
 };

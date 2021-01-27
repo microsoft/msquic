@@ -78,6 +78,10 @@ Usage examples:
 
 #pragma once
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 
 #define CXPLAT_HASH_ALLOCATED_HEADER 0x00000001
@@ -257,3 +261,7 @@ CxPlatHashSimple(
     }
     return Hash;
 }
+
+#if defined(__cplusplus)
+}
+#endif
