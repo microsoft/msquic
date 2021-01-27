@@ -558,6 +558,30 @@ function Get-LatencyDataJs {
 }
 #endregion
 
+#region Commits
+
+function Get-CommitTableDataJs {
+    param (
+        [TestCommitModel[]]$CpuCommitData
+    )
+
+    $DataVal = "";
+
+    foreach ($Commit in $CpuCommitData) {
+        $TimeUnix = $Commit.Date
+        $Data = "{commitHash: `"$($Commit.CommitHash)`", commitDate: $TimeUnix}";
+        if ($DataVal -eq "") {
+            $DataVal = $Data;
+        } else {
+            $DataVal = "$DataVal, $Data";
+        }
+    }
+
+    return "[$DataVal]";
+}
+
+#endregion
+
 $RootDir = Split-Path $PSScriptRoot -Parent
 $BranchFolder = Join-Path $RootDir 'data' $BranchName
 
@@ -613,6 +637,11 @@ New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
 $DataFileOut = Join-Path $OutputFolder "data.js"
 $DataFileContents | Set-Content $DataFileOut
 
+$CommitsTableTemplate = Get-Content (Join-Path $RootDir "assets" "summary" "data.commits.js.in")
+$CommitTableJs = Get-CommitTableDataJs -CpuCommitData $CpuCommitData
+$CommitsTableTemplate = $CommitsTableTemplate.Replace("COMMIT_DATA", $CommitTableJs);
+$DataFileOut = Join-Path $OutputFolder "data.commits.js"
+$CommitsTableTemplate | Set-Content $DataFileOut
 
 # Grab per commit pages
 
