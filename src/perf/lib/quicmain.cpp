@@ -32,6 +32,7 @@ CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 CXPLAT_DATAPATH* Datapath;
 CXPLAT_SOCKET* Binding;
 bool ServerMode = false;
+uint32_t MaxRuntime = 0;
 
 static
 void
@@ -71,6 +72,7 @@ QuicMainStart(
     }
 
     ServerMode = TestName == nullptr;
+    TryGetValue(argc, argv, "maxruntime", &MaxRuntime);
 
     QUIC_STATUS Status;
 
@@ -152,14 +154,8 @@ QuicMainStart(
 
 QUIC_STATUS
 QuicMainStop(
-    _In_ int Timeout
     ) {
-    if (TestToRun == nullptr) {
-        return QUIC_STATUS_SUCCESS;
-    }
-
-    QUIC_STATUS Status = TestToRun->Wait(Timeout);
-    return Status;
+    return TestToRun ? TestToRun->Wait((int)MaxRuntime) : QUIC_STATUS_SUCCESS;
 }
 
 void
