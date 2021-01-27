@@ -130,7 +130,14 @@ private:
     uint32_t IoSize {0};
 
     TcpEngine Engine;
+    TcpConnection* TcpConn{nullptr};
     StreamContext* TcpStrmContext{nullptr};
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    void
+    OnTcpConnectionComplete(
+        _In_ TcpConnection* Connection
+        );
 
     _IRQL_requires_max_(DISPATCH_LEVEL)
     _Function_class_(TcpConnectCallback)

@@ -17,14 +17,12 @@ Abstract:
 #pragma warning(push)
 #pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
 #endif
-#include "openssl/ssl.h"
 #include "openssl/err.h"
 #include "openssl/kdf.h"
 #include "openssl/pem.h"
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
-#include "openssl/pem.h"
 #ifdef _WIN32
 #pragma warning(pop)
 #endif

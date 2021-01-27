@@ -190,6 +190,8 @@ if ($IsWindows) {
             sudo apt-add-repository ppa:lttng/stable-2.11
             sudo apt-get update
             sudo apt-get install -y liblttng-ust-dev
+            # only used for the codecheck CI run:
+            sudo apt-get install -y cppcheck clang-tidy
         }
         "Test" {
             sudo apt-add-repository ppa:lttng/stable-2.11

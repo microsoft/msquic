@@ -260,6 +260,8 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             $UseTcp = 1
         }
 
+        $MaxRuntimeMs = $ThisDurationMs + 5000
+
         # Run through all the iterations and keep track of the results.
         $Results = [System.Collections.Generic.List[int]]::new()
         Write-Debug "Run upload test: Duration=$ThisDurationMs ms, Pacing=$ThisPacing"
@@ -277,7 +279,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             Write-Debug "Run upload test: Iteration=$($i + 1)"
 
             $Rate = 0
-            $Command = "$QuicPerf -test:tput -tcp:$UseTcp -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
+            $Command = "$QuicPerf -test:tput -tcp:$UseTcp -maxruntime:$MaxRuntimeMs -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
             Write-Debug $Command
             $Output = [string](iex $Command)
             Write-Debug $Output
