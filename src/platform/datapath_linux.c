@@ -1401,13 +1401,17 @@ CxPlatSocketContextSendComplete(
     }
 
     CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
-    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead));
-    SendContext =
+    if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
+        SendContext =
         CXPLAT_CONTAINING_RECORD(
             SocketContext->PendingSendContextHead.Flink,
             CXPLAT_SEND_DATA,
             PendingSendLinkage);
+    }
     CxPlatLockRelease(&SocketContext->PendingSendContextLock);
+    if (SendContext == NULL) {
+        goto Exit;
+    }
 
     do {
         Status =
