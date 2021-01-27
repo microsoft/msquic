@@ -6,6 +6,7 @@ set(SOURCES
     PerfServer.cpp
     quicmain.cpp
     RpsClient.cpp
+    Tcp.cpp
     ThroughputClient.cpp
 )
 
@@ -26,8 +27,4 @@ if(MSVC)
     target_compile_options(perflib PUBLIC /wd4459)
 elseif(NOT APPLE)
     target_compile_options(perflib PUBLIC -Wno-switch)
-endif()
-
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    add_dependencies(perflib MsQuicEtw)
 endif()

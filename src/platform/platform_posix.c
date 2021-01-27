@@ -200,67 +200,6 @@ CxPlatFree(
 }
 
 void
-CxPlatPoolInitialize(
-    _In_ BOOLEAN IsPaged,
-    _In_ uint32_t Size,
-    _In_ uint32_t Tag,
-    _Inout_ CXPLAT_POOL* Pool
-    )
-{
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->PoolInitialize(IsPaged, Size, Pool);
-#else
-    UNREFERENCED_PARAMETER(IsPaged);
-    Pool->Size = Size;
-    Pool->MemTag = Tag;
-#endif
-}
-
-void
-CxPlatPoolUninitialize(
-    _Inout_ CXPLAT_POOL* Pool
-    )
-{
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->PoolUninitialize(Pool);
-#else
-    UNREFERENCED_PARAMETER(Pool);
-#endif
-}
-
-void*
-CxPlatPoolAlloc(
-    _Inout_ CXPLAT_POOL* Pool
-    )
-{
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->PoolAlloc(Pool);
-#else
-    void*Entry = CxPlatAlloc(Pool->Size, Pool->MemTag);
-
-    if (Entry != NULL) {
-        CxPlatZeroMemory(Entry, Pool->Size);
-    }
-
-    return Entry;
-#endif
-}
-
-void
-CxPlatPoolFree(
-    _Inout_ CXPLAT_POOL* Pool,
-    _In_ void* Entry
-    )
-{
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->PoolFree(Pool, Entry);
-#else
-    UNREFERENCED_PARAMETER(Pool);
-    CxPlatFree(Entry, Pool->MemTag);
-#endif
-}
-
-void
 CxPlatRefInitialize(
     _Inout_ CXPLAT_REF_COUNT* RefCount
     )

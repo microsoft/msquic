@@ -257,71 +257,6 @@ CxPlatFree(
 #define CXPLAT_ALLOC_NONPAGED(Size, Tag) CxPlatAlloc(Size, Tag)
 #define CXPLAT_FREE(Mem, Tag) CxPlatFree((void*)Mem, Tag)
 
-//
-// Represents a QUIC memory pool used for fixed sized allocations.
-//
-
-typedef struct CXPLAT_POOL {
-
-    //
-    // List of free entries.
-    //
-
-    CXPLAT_SLIST_ENTRY ListHead;
-
-    //
-    // Number of free entries in the list.
-    //
-
-    uint16_t ListDepth;
-
-    //
-    // Lock to synchronize access to the List.
-    // LINUX_TODO: Check how to make this lock free?
-    //
-
-    pthread_mutex_t Lock;
-
-    //
-    // Size of entries.
-    //
-
-    uint32_t Size;
-
-    //
-    // The memory tag to use for any allocation from this pool.
-    //
-
-    uint32_t MemTag;
-
-} CXPLAT_POOL;
-
-#define QUIC_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
-
-void
-CxPlatPoolInitialize(
-    _In_ BOOLEAN IsPaged,
-    _In_ uint32_t Size,
-    _In_ uint32_t Tag,
-    _Inout_ CXPLAT_POOL* Pool
-    );
-
-void
-CxPlatPoolUninitialize(
-    _Inout_ CXPLAT_POOL* Pool
-    );
-
-void*
-CxPlatPoolAlloc(
-    _Inout_ CXPLAT_POOL* Pool
-    );
-
-void
-CxPlatPoolFree(
-    _Inout_ CXPLAT_POOL* Pool,
-    _In_ void* Entry
-    );
-
 #define CxPlatZeroMemory(Destination, Length) memset((Destination), 0, (Length))
 #define CxPlatCopyMemory(Destination, Source, Length) memcpy((Destination), (Source), (Length))
 #define CxPlatMoveMemory(Destination, Source, Length) memmove((Destination), (Source), (Length))
@@ -413,6 +348,163 @@ typedef CXPLAT_RW_LOCK CXPLAT_DISPATCH_RW_LOCK;
 #define CxPlatDispatchRwLockReleaseShared CxPlatRwLockReleaseShared
 
 #define CxPlatDispatchRwLockReleaseExclusive CxPlatRwLockReleaseExclusive
+
+//
+// Represents a QUIC memory pool used for fixed sized allocations.
+// This must be below the lock definitions.
+//
+
+FORCEINLINE
+void
+CxPlatListPushEntry(
+    _Inout_ CXPLAT_SLIST_ENTRY* ListHead,
+    _Inout_ __drv_aliasesMem CXPLAT_SLIST_ENTRY* Entry
+    );
+
+FORCEINLINE
+CXPLAT_SLIST_ENTRY*
+CxPlatListPopEntry(
+    _Inout_ CXPLAT_SLIST_ENTRY* ListHead
+    );
+
+typedef struct CXPLAT_POOL {
+
+    //
+    // List of free entries.
+    //
+
+    CXPLAT_SLIST_ENTRY ListHead;
+
+    //
+    // Number of free entries in the list.
+    //
+
+    uint16_t ListDepth;
+
+    //
+    // Lock to synchronize access to the List.
+    // LINUX_TODO: Check how to make this lock free?
+    //
+
+    CXPLAT_LOCK Lock;
+
+    //
+    // Size of entries.
+    //
+
+    uint32_t Size;
+
+    //
+    // The memory tag to use for any allocation from this pool.
+    //
+
+    uint32_t Tag;
+
+} CXPLAT_POOL;
+
+#define CXPLAT_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+
+#if DEBUG
+typedef struct CXPLAT_POOL_ENTRY {
+    CXPLAT_SLIST_ENTRY ListHead;
+    uint32_t SpecialFlag;
+} CXPLAT_POOL_ENTRY;
+#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAA
+#endif
+
+inline
+void
+CxPlatPoolInitialize(
+    _In_ BOOLEAN IsPaged,
+    _In_ uint32_t Size,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+#if DEBUG
+    CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
+#endif
+    Pool->Size = Size;
+    Pool->Tag = Tag;
+    CxPlatLockInitialize(&Pool->Lock);
+    Pool->ListDepth = 0;
+    CxPlatZeroMemory(&Pool->ListHead, sizeof(Pool->ListHead));
+    UNREFERENCED_PARAMETER(IsPaged);
+}
+
+inline
+void
+CxPlatPoolUninitialize(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    void* Entry;
+    CxPlatLockAcquire(&Pool->Lock);
+    while ((Entry = CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
+        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
+        Pool->ListDepth--;
+        CxPlatLockRelease(&Pool->Lock);
+        CxPlatFree(Entry, Pool->Tag);
+        CxPlatLockAcquire(&Pool->Lock);
+    }
+    CxPlatLockRelease(&Pool->Lock);
+    CxPlatLockUninitialize(&Pool->Lock);
+}
+
+inline
+void*
+CxPlatPoolAlloc(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+#if QUIC_DISABLE_MEM_POOL
+    return CxPlatAlloc(Pool->Size);
+#else
+    CxPlatLockAcquire(&Pool->Lock);
+    void* Entry = CxPlatListPopEntry(&Pool->ListHead);
+    if (Entry != NULL) {
+        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
+        Pool->ListDepth--;
+    }
+    CxPlatLockRelease(&Pool->Lock);
+    if (Entry == NULL) {
+        Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
+    }
+#if DEBUG
+    if (Entry != NULL) {
+        ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = 0;
+    }
+#endif
+    return Entry;
+#endif
+}
+
+inline
+void
+CxPlatPoolFree(
+    _Inout_ CXPLAT_POOL* Pool,
+    _In_ void* Entry
+    )
+{
+#if QUIC_DISABLE_MEM_POOL
+    UNREFERENCED_PARAMETER(Pool);
+    CxPlatFree(Entry);
+    return;
+#else
+#if DEBUG
+    CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
+    ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
+#endif
+    if (Pool->ListDepth >= CXPLAT_POOL_MAXIMUM_DEPTH) {
+        CxPlatFree(Entry, Pool->Tag);
+    } else {
+        CxPlatLockAcquire(&Pool->Lock);
+        CxPlatListPushEntry(&Pool->ListHead, (CXPLAT_SLIST_ENTRY*)Entry);
+        Pool->ListDepth++;
+        CxPlatLockRelease(&Pool->Lock);
+    }
+#endif
+}
 
 //
 // Reference Count Interface

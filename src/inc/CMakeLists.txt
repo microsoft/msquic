@@ -20,7 +20,7 @@ endif()
 
 if(QUIC_ENABLE_LOGGING)
     if(WIN32)
-        add_dependencies(inc INTERFACE MsQuicEtw)
+        target_link_libraries(inc INTERFACE MsQuicEtw_Header)
     else()
         target_link_libraries(inc INTERFACE ${LTTNGUST_LIBRARIES})
     endif()

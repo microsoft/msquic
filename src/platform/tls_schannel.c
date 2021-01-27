@@ -40,6 +40,12 @@ typedef struct _SecPkgContext_ApplicationProtocol
     unsigned char ProtocolId[MAX_PROTOCOL_ID_SIZE];              // Byte string representing the negotiated application protocol ID
 } SecPkgContext_ApplicationProtocol, *PSecPkgContext_ApplicationProtocol;
 
+typedef struct _SecPkgContext_CertificateValidationResult
+{
+    DWORD dwChainErrorStatus;    // Contains chain build error flags set by CertGetCertificateChain.
+    HRESULT hrVerifyChainStatus; // Certificate validation policy error returned by CertVerifyCertificateChainPolicy.
+} SecPkgContext_CertificateValidationResult, *PSecPkgContext_CertificateValidationResult;
+
 typedef struct _SEND_GENERIC_TLS_EXTENSION
 {
     WORD  ExtensionType;            // Code point of extension.
@@ -84,6 +90,7 @@ typedef struct _SEND_GENERIC_TLS_EXTENSION
 #define SCH_USE_PRESHAREDKEY_ONLY                    0x00800000
 #define SCH_USE_DTLS_ONLY                            0x01000000
 #define SCH_ALLOW_NULL_ENCRYPTION                    0x02000000
+#define SCH_CRED_DEFERRED_CRED_VALIDATION            0x04000000
 
 // Values for SCHANNEL_CRED dwCredFormat field.
 #define SCH_CRED_FORMAT_CERT_CONTEXT    0x00000000
@@ -206,12 +213,21 @@ typedef struct _SecPkgContext_SessionInfo
 } SecPkgContext_SessionInfo, * PSecPkgContext_SessionInfo;
 
 #define SECPKG_ATTR_SESSION_INFO         0x5d   // returns SecPkgContext_SessionInfo
+#define SECPKG_ATTR_CERT_CHECK_RESULT_INPROC 0x72 // returns SecPkgContext_CertificateValidationResult, use only after SSPI handshake loop
 
 #else
 
 #define SCHANNEL_USE_BLACKLISTS
 #include <schannel.h>
-
+#ifndef SCH_CRED_DEFERRED_CRED_VALIDATION
+#define SCH_CRED_DEFERRED_CRED_VALIDATION            0x04000000
+typedef struct _SecPkgContext_CertificateValidationResult
+{
+    DWORD dwChainErrorStatus;    // Contains chain build error flags set by CertGetCertificateChain.
+    HRESULT hrVerifyChainStatus; // Certificate validation policy error returned by CertVerifyCertificateChainPolicy.
+} SecPkgContext_CertificateValidationResult, *PSecPkgContext_CertificateValidationResult;
+#define SECPKG_ATTR_CERT_CHECK_RESULT_INPROC 0x72 // returns SecPkgContext_CertificateValidationResult, use only after SSPI handshake loop
+#endif
 #endif
 
 //
@@ -1118,6 +1134,9 @@ CxPlatTlsSecConfigCreate(
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
         Credentials->dwFlags |= SCH_CRED_SNI_ENABLE_OCSP;
     }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
+        Credentials->dwFlags |= SCH_CRED_DEFERRED_CRED_VALIDATION;
+    }
     if (IsClient) {
         Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_CLIENT;
@@ -1959,6 +1978,38 @@ CxPlatTlsWriteDataToSchannel(
             }
             if (SessionInfo.dwFlags & SSL_SESSION_RECONNECT) {
                 State->SessionResumed = TRUE;
+            }
+
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
+                SecPkgContext_CertificateValidationResult CertValidationResult;
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
+                        &CertValidationResult);
+                if (SecStatus != SEC_E_OK) {
+                    QuicTraceEvent(
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        SecStatus,
+                        "query cert validation result");
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
+                    break;
+                }
+                if (!TlsContext->SecConfig->Callbacks.DeferredCertValidation(
+                        TlsContext->Connection,
+                        CertValidationResult.dwChainErrorStatus,
+                        (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
+                    QuicTraceEvent(
+                        TlsError,
+                        "[ tls][%p] ERROR, %s.",
+                        TlsContext->Connection,
+                        "Rejected deferred cert validation");
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
+                    State->AlertCode = 42; // bad_certificate
+                    break;
+                }
             }
 
             QuicTraceLogConnInfo(

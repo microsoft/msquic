@@ -77,6 +77,19 @@ BOOLEAN
 
 typedef CXPLAT_TLS_RECEIVE_TICKET_CALLBACK *CXPLAT_TLS_RECEIVE_TICKET_CALLBACK_HANDLER;
 
+//
+// Callback for indicating the result of deferred certificate validation.
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+(CXPLAT_TLS_DEFERRED_CERTIFICATE_VALIDATION_CALLBACK)(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint32_t ErrorFlags,
+    _In_ QUIC_STATUS Status
+    );
+
+typedef CXPLAT_TLS_DEFERRED_CERTIFICATE_VALIDATION_CALLBACK *CXPLAT_TLS_DEFERRED_CERTIFICATE_VALIDATION_CALLBACK_HANDLER;
+
 typedef struct CXPLAT_TLS_CALLBACKS {
 
     //
@@ -93,6 +106,12 @@ typedef struct CXPLAT_TLS_CALLBACKS {
     // Invoked when a resumption ticket is received.
     //
     CXPLAT_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicket;
+
+    //
+    // Invoked only in the deferred certificate validation scenario, with the
+    // results.
+    //
+    CXPLAT_TLS_DEFERRED_CERTIFICATE_VALIDATION_CALLBACK_HANDLER DeferredCertValidation;
 
 } CXPLAT_TLS_CALLBACKS;
 
@@ -412,7 +431,7 @@ CxPlatTlsAlpnFindInList(
             return AlpnList;
         }
         AlpnListLength -= AlpnList[0] + 1;
-        AlpnList += AlpnList[0] + 1;
+        AlpnList += (size_t)AlpnList[0] + (size_t)1;
     }
     return NULL;
 }

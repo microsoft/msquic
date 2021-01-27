@@ -54,6 +54,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER FailOnRegression
     Fail tests on perf regression (Currently only throughput up)
 
+.PARAMETER Protocol
+    Which Protocol to use (QUIC or TCP)
+
 #>
 
 Using module .\performance-helper.psm1
@@ -122,7 +125,11 @@ param (
     [boolean]$FailOnRegression = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ForceBranchName = $null
+    [string]$ForceBranchName = $null,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("QUIC", "TCPTLS")]
+    [string]$Protocol = "QUIC"
 )
 
 Set-StrictMode -Version 'Latest'
@@ -175,9 +182,10 @@ if (!$IsWindows) {
     }
 }
 
+$TestFileName = ($Protocol -eq "QUIC") ? "RemoteTests.json" : "TcpTests.json"
 
 if ($TestsFile -eq "") {
-    $TestsFile = Join-Path $PSScriptRoot "RemoteTests.json"
+    $TestsFile = Join-Path $PSScriptRoot $TestFileName
 } elseif (-not (Test-Path $TestsFile)) {
     $TestsFile = Join-Path $PSScriptRoot $TestsFile
 }
