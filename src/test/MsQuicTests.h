@@ -78,12 +78,17 @@ QuicTestVersionNegotiation(
     );
 
 void
-QuicTestCompatibleVersionNegotiationDefaultServer(
+QuicTestCompatibleVersionNegotiation(
     _In_ int Family
     );
 
 void
-QuicTestCompatibleVersionNegotiation(
+QuicTestCompatibleVersionNegotiationDefaultClient(
+    _In_ int Family
+    );
+
+void
+QuicTestCompatibleVersionNegotiationDefaultServer(
     _In_ int Family
     );
 
@@ -626,4 +631,8 @@ typedef struct {
     QUIC_CTL_CODE(50, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 50
+#define IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT \
+    QUIC_CTL_CODE(51, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 51

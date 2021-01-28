@@ -48,7 +48,7 @@ BOOLEAN
 QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN CopyInternalFields,
+    _In_ BOOLEAN CopyExternalToInternal,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
@@ -2334,7 +2334,7 @@ QuicConnSetConfiguration(
     QuicConnApplyNewSettings(
         Connection,
         FALSE,
-        TRUE,
+        FALSE,
         sizeof(Configuration->Settings),
         (QUIC_SETTINGS*)&Configuration->Settings);
 
@@ -3056,6 +3056,7 @@ QuicConnRecvRetry(
         return;
     }
 
+    // Should this use the app-set list of versions?
     const QUIC_VERSION_INFO* VersionInfo = NULL;
     for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
         if (QuicSupportedVersionList[i].Number == Packet->LH->Version) {
@@ -5510,7 +5511,7 @@ QuicConnParamSet(
         if (!QuicConnApplyNewSettings(
                 Connection,
                 TRUE,
-                FALSE,
+                TRUE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -6184,7 +6185,7 @@ BOOLEAN
 QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN CopyInternalFields,
+    _In_ BOOLEAN CopyExternalToInternal,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
@@ -6199,7 +6200,7 @@ QuicConnApplyNewSettings(
     if (!QuicSettingApply(
             &Connection->Settings,
             OverWrite,
-            CopyInternalFields,
+            CopyExternalToInternal,
             NewSettingsSize,
             NewSettings)) {
         return FALSE;
@@ -6233,6 +6234,14 @@ QuicConnApplyNewSettings(
         if (!QuicConnIsServer(Connection) && Connection->Settings.IsSet.DesiredVersionsList) {
             Connection->Stats.QuicVersion = Connection->Settings.DesiredVersionsList[0];
             QuicConnOnQuicVersionSet(Connection);
+            //
+            // The version has changed AFTER the crypto layer has been initialized,
+            // so reinitialize the crypto layer here so it uses the right keys.
+            // If the reinitialization fails, fail the connection.
+            //
+            if (QUIC_FAILED(QuicCryptoOnVersionChange(&Connection->Crypto))) {
+                return FALSE;
+            }
         }
     }
 

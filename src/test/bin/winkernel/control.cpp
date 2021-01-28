@@ -841,6 +841,11 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestFailedVersionNegotiation(Params->Family));
         break;
 
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestCompatibleVersionNegotiationDefaultClient(Params->Family));
+        break;
+
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;

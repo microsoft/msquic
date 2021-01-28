@@ -373,6 +373,90 @@ QuicCryptoReset(
     QuicCryptoValidate(Crypto);
 }
 
+QUIC_STATUS
+QuicCryptoOnVersionChange(
+    _In_ QUIC_CRYPTO* Crypto
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+    const uint8_t* HandshakeCid;
+    uint8_t HandshakeCidLength;
+
+    const uint8_t* Salt = QuicSupportedVersionList[0].Salt; // Default to latest
+    for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
+        if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
+            Salt = QuicSupportedVersionList[i].Salt;
+            break;
+        }
+    }
+
+    if (QuicConnIsServer(Connection)) {
+        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
+        QUIC_CID_HASH_ENTRY* SourceCid =
+            CXPLAT_CONTAINING_RECORD(
+                Connection->SourceCids.Next,
+                QUIC_CID_HASH_ENTRY,
+                Link);
+
+        HandshakeCid = SourceCid->CID.Data;
+        HandshakeCidLength = SourceCid->CID.Length;
+
+    } else {
+        CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
+        QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
+            CXPLAT_CONTAINING_RECORD(
+                Connection->DestCids.Flink,
+                QUIC_CID_CXPLAT_LIST_ENTRY,
+                Link);
+
+        HandshakeCid = DestCid->CID.Data;
+        HandshakeCidLength = DestCid->CID.Length;
+    }
+
+    if (Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] != NULL) {
+        CXPLAT_FRE_ASSERT(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
+        QuicPacketKeyFree(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL]);
+        QuicPacketKeyFree(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
+        Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] = NULL;
+        Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] = NULL;
+    }
+
+    Status =
+        QuicPacketKeyCreateInitial(
+            QuicConnIsServer(Connection),
+            Salt,
+            HandshakeCidLength,
+            HandshakeCid,
+            &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
+            &Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            ConnErrorStatus,
+            "[conn][%p] ERROR, %u, %s.",
+            Connection,
+            Status,
+            "Creating initial keys");
+        goto Exit;
+    }
+    CXPLAT_DBG_ASSERT(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
+    CXPLAT_DBG_ASSERT(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
+
+    QuicCryptoValidate(Crypto);
+
+Exit:
+
+    if (QUIC_FAILED(Status)) {
+        for (size_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
+            QuicPacketKeyFree(Crypto->TlsState.ReadKeys[i]);
+            Crypto->TlsState.ReadKeys[i] = NULL;
+            QuicPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
+            Crypto->TlsState.WriteKeys[i] = NULL;
+        }
+    }
+    return Status;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoHandshakeConfirmed(

@@ -102,7 +102,7 @@ BOOLEAN
 QuicSettingApply(
     _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
     _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN CopyInternalFIelds,
+    _In_ BOOLEAN CopyExternalToInternal,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)

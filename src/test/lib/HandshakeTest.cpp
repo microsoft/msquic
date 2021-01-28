@@ -782,7 +782,7 @@ QuicTestVersionNegotiation(
     _In_ int Family
     )
 {
-    uint32_t ClientVersions[] = { 168430090ul, QUIC_VERSION_1 }; // Random reserved version to force VN.
+    uint32_t ClientVersions[] = { 168430090ul, QUIC_VERSION_1_H }; // Random reserved version to force VN.
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -844,11 +844,11 @@ QuicTestCompatibleVersionNegotiation(
     _In_ int Family
     )
 {
-    uint32_t ClientVersions[] = { QUIC_VERSION_MS_1, QUIC_VERSION_1 };
-    uint32_t ServerVersions[] = { QUIC_VERSION_1, QUIC_VERSION_MS_1 };
+    uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
+    uint32_t ServerVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-    const uint32_t ExpectedResultVersion = QUIC_VERSION_1;
+    const uint32_t ExpectedResultVersion = QUIC_VERSION_1_H;
 
     MsQuicSettings ClientSettings;
     ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
@@ -918,9 +918,9 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
     _In_ int Family
     )
 {
-    uint32_t ClientVersions[] = { QUIC_VERSION_MS_1, QUIC_VERSION_1 };
+    uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
-    const uint32_t ExpectedResultVersion = QUIC_VERSION_1;
+    const uint32_t ExpectedResultVersion = QUIC_VERSION_1_H;
 
     MsQuicSettings ClientSettings;
     ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
@@ -984,15 +984,85 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
 }
 
 void
+QuicTestCompatibleVersionNegotiationDefaultClient(
+    _In_ int Family
+    )
+{
+    uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H };
+    const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
+    const uint32_t ExpectedResultVersion = QUIC_VERSION_1_MS_H;
+
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicSettings ServerSettings;
+    ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
+    ServerSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSettings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientSettings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                TEST_EQUAL(Client.GetQuicVersion(), ExpectedResultVersion);
+                TEST_EQUAL(Server->GetQuicVersion(), ExpectedResultVersion);
+            }
+        }
+    }
+}
+
+void
 QuicTestIncompatibleVersionNegotiation(
     _In_ int Family
     )
 {
-    uint32_t ClientVersions[] = { QUIC_VERSION_DRAFT_29, QUIC_VERSION_MS_1 };
-    uint32_t ServerVersions[] = { QUIC_VERSION_MS_1 };
+    uint32_t ClientVersions[] = { QUIC_VERSION_DRAFT_29_H, QUIC_VERSION_1_MS_H };
+    uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-    const uint32_t ExpectedResultVersion = QUIC_VERSION_MS_1;
+    const uint32_t ExpectedResultVersion = QUIC_VERSION_1_MS_H;
 
     MsQuicSettings ClientSettings;
     ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
@@ -1062,8 +1132,8 @@ QuicTestFailedVersionNegotiation(
     _In_ int Family
     )
 {
-    uint32_t ClientVersions[] = { QUIC_VERSION_DRAFT_29 };
-    uint32_t ServerVersions[] = { QUIC_VERSION_MS_1 };
+    uint32_t ClientVersions[] = { QUIC_VERSION_DRAFT_29_H };
+    uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
     QUIC_STATUS ExpectedConnectionError = QUIC_STATUS_VER_NEG_ERROR;

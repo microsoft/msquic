@@ -675,7 +675,7 @@ QuicLibrarySetGlobalParam(
         if (!QuicSettingApply(
                 &MsQuicLib.Settings,
                 TRUE,
-                FALSE,
+                TRUE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;

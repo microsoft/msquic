@@ -193,7 +193,7 @@ BOOLEAN
 QuicSettingApply(
     _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
     _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN CopyInternalFields,
+    _In_ BOOLEAN CopyExternalToInternal,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
@@ -331,7 +331,7 @@ QuicSettingApply(
         Destination->ServerResumptionLevel = Source->ServerResumptionLevel;
         Destination->IsSet.ServerResumptionLevel = TRUE;
     }
-    if (CopyInternalFields &&
+    if (!CopyExternalToInternal &&
         NewSettingsSize == sizeof(QUIC_SETTINGS_INTERNAL) &&
         ((QUIC_SETTINGS_INTERNAL*)Source)->IsSet.GeneratedCompatibleVersions) {
         if (Destination->IsSet.GeneratedCompatibleVersions && OverWrite) {
@@ -367,15 +367,17 @@ QuicSettingApply(
             //
             // Validate the list only contains versions which MsQuic supports.
             //
-            for (uint32_t i = 0; i < Source->DesiredVersionsListLength; ++i) {
-                if (!QuicIsVersionSupported(Source->DesiredVersionsList[i]) &&
-                    !QuicIsVersionReserved(Source->DesiredVersionsList[i])) {
-                    QuicTraceLogError(
-                        SettingsInvalidVersion,
-                        "Invalid version supplied to settings! 0x%x at position %d",
-                        Source->DesiredVersionsList[i],
-                        i);
-                    return FALSE;
+            if (CopyExternalToInternal) {
+                for (uint32_t i = 0; i < Source->DesiredVersionsListLength; ++i) {
+                    if (!QuicIsVersionSupported(CxPlatByteSwapUint32(Source->DesiredVersionsList[i])) &&
+                        !QuicIsVersionReserved(CxPlatByteSwapUint32(Source->DesiredVersionsList[i]))) {
+                        QuicTraceLogError(
+                            SettingsInvalidVersion,
+                            "Invalid version supplied to settings! 0x%x at position %d",
+                            Source->DesiredVersionsList[i],
+                            i);
+                        return FALSE;
+                    }
                 }
             }
             Destination->DesiredVersionsList =
@@ -394,6 +396,14 @@ QuicSettingApply(
                 Source->DesiredVersionsListLength * sizeof(uint32_t));
             Destination->DesiredVersionsListLength = Source->DesiredVersionsListLength;
             Destination->IsSet.DesiredVersionsList = TRUE;
+            if (CopyExternalToInternal) {
+                for (uint32_t i = 0; i < Destination->DesiredVersionsListLength; ++i) {
+                    //
+                    // This assumes the external is always in little-endian format
+                    //
+                    Destination->DesiredVersionsList[i] = CxPlatByteSwapUint32(Destination->DesiredVersionsList[i]);
+                }
+            }
         }
     }
     return TRUE;

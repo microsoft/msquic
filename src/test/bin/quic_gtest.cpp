@@ -410,6 +410,15 @@ TEST_P(WithFamilyArgs, DefaultCompatibleVersionNegotiation) {
     }
 }
 
+TEST_P(WithFamilyArgs, DefaultClientCompatibleVersionNegotiation) {
+    TestLoggerT<ParamType> Logger("DefaultClientCompatibleVersionNegotiation", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT, GetParam().Family));
+    } else {
+        QuicTestCompatibleVersionNegotiationDefaultClient(GetParam().Family);
+    }
+}
+
 TEST_P(WithFamilyArgs, IncompatibleVersionNegotiation) {
     TestLoggerT<ParamType> Logger("IncompatibleVersionNegotiation", GetParam());
     if (TestingKernelMode) {
