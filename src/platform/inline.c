@@ -192,7 +192,7 @@ CxPlatTimeAtOrBefore32(
     );
 
 void
-QuicTraceStubVarArgs(
+QuicTraceEventStubVarArgs(
     _In_ const void* Fmt,
     ...
     );
