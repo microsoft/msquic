@@ -127,7 +127,7 @@ QuicTraceRundown(
 
 inline
 void
-QuicTraceStubVarArgs(
+QuicTraceEventStubVarArgs(
     _In_ const void* Fmt,
     ...
     )
@@ -135,7 +135,7 @@ QuicTraceStubVarArgs(
     UNREFERENCED_PARAMETER(Fmt);
 }
 
-#define QuicTraceEvent(Name, ...) QuicTraceStubVarArgs("", __VA_ARGS__)
+#define QuicTraceEvent(Name, ...) QuicTraceEventStubVarArgs("", __VA_ARGS__)
 
 #define CLOG_BYTEARRAY(Len, Data) (Len)
 
