@@ -388,8 +388,20 @@ QuicCryptoTlsReadExtensions(
 
         } else if (
             Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_29 &&
-            (ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS ||
-             ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT)) {
+            ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS) {
+            if (!QuicCryptoTlsDecodeTransportParameters(
+                    Connection,
+                    FALSE,
+                    Buffer,
+                    ExtLen,
+                    &Connection->PeerTransportParams)) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+            FoundTransportParameters = TRUE;
+
+        } else if (
+            Connection->Stats.QuicVersion == QUIC_VERSION_DRAFT_29 &&
+            ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT) {
             if (!QuicCryptoTlsDecodeTransportParameters(
                     Connection,
                     FALSE,
