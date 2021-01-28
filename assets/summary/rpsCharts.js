@@ -1,13 +1,8 @@
 var colors = ["#3498db", "#2ecc71", "#f1c40f", "#8e44ad", "#e74c3c", "#34495e", "#e67e22", "#7f8c8d"];
 
-// Useful configuration values
+// Fixed charting values
 var dataLineWidth = 2
-var dataRawPointRadius = 4
-
-// Global option configuration
-Chart.defaults.global.responsive = true
-Chart.defaults.global.tooltips.position = 'nearest'
-Chart.defaults.global.tooltips.mode = 'x'
+var dataRawPointRadius = 3
 
 function createScaleLabel(name) {
     return {
@@ -16,24 +11,6 @@ function createScaleLabel(name) {
         fontSize: 14,
         fontStyle: 'bold'
     };
-}
-
-function createRpsOptions(chartToMake) {
-    return {
-        maintainAspectRatio: false,
-        scales: {
-            xAxes: [{
-                type: 'linear',
-                position: 'bottom',
-                scaleLabel: createScaleLabel(chartToMake.XName),
-            }],
-            yAxes: [{
-                display: true,
-                scaleLabel: createScaleLabel("Requests Per Second"),
-                ticks: { min: 0 }
-            }]
-        }
-    }
 }
 
 function createRpsDataset(dataset, color) {
@@ -51,24 +28,64 @@ function createRpsDataset(dataset, color) {
     }
 }
 
-function createRpsDatasets(chartData) {
-    var arr = []
+function createChart(chartData) {
+    var datasets = []
     var index = 0
-    for (var dataset of chartData) {
-        arr.push(createRpsDataset(dataset, colors[index]))
-        index++;
+    for (var data of chartData[1].Data) {
+        datasets.push(createRpsDataset(data, colors[index++]))
         if (index >= colors.length) {
             index = 0;
         }
     }
-    return {
-        datasets: arr
-    };
+
+    new Chart(chartData[0].getContext('2d'), {
+        data: { datasets: datasets },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                xAxes: [{
+                    type: 'linear',
+                    position: 'bottom',
+                    offset: true,
+                    gridLines: {
+                      display: false,
+                      drawBorder: false
+                    },
+                    scaleLabel: createScaleLabel(chartData[1].XName),
+                }],
+                yAxes: [{
+                    ticks: {
+                        padding: 10,
+                        min: 0
+                    },
+                    gridLines: {
+                        color: "rgb(234, 236, 244)",
+                        zeroLineColor: "rgb(234, 236, 244)",
+                        drawBorder: false,
+                        borderDash: [2],
+                        zeroLineBorderDash: [2]
+                    }
+                }]
+            },
+            tooltips: {
+                backgroundColor: "rgb(255,255,255)",
+                bodyFontColor: "#858796",
+                titleMarginBottom: 10,
+                titleFontColor: '#6e707e',
+                titleFontSize: 14,
+                borderColor: '#dddfeb',
+                borderWidth: 1,
+                xPadding: 15,
+                yPadding: 15,
+                mode: "x",
+                intersect: false
+            }
+        }
+    })
 }
 
 window.onload = function() {
     var templateDiv = document.getElementById("Template");
-
     var chartsDiv = document.getElementById("ChartsDiv");
     chartsDiv.innerHTML = ""
 
@@ -97,9 +114,6 @@ window.onload = function() {
     }
 
     for (var chartData of chartList) {
-        new Chart(chartData[0].getContext('2d'), {
-            data: createRpsDatasets(chartData[1].Data),
-            options: createRpsOptions(chartData[1])
-        });
+        createChart(chartData)
     }
 }
