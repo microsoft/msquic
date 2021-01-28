@@ -605,8 +605,7 @@ CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
     QUIC_STATUS StopStatus;
     NTSTATUS Status;
 
-    StopStatus =
-        QuicMainStop(0);
+    StopStatus = QuicMainStop();
 
     if (Client->Canceled) {
         QuicTraceLogInfo(

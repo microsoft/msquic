@@ -12,6 +12,10 @@ Abstract:
 #include "platform_internal.h"
 
 #define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
+#endif
 #include "openssl/err.h"
 #include "openssl/hmac.h"
 #include "openssl/kdf.h"
@@ -19,6 +23,9 @@ Abstract:
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 #ifdef QUIC_CLOG
 #include "tls_openssl.c.clog.h"
 #endif
@@ -514,7 +521,8 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
@@ -539,7 +547,7 @@ CxPlatTlsSecConfigCreate(
             }
         } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
             CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE ||
-            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) { // NOLINT bugprone-branch-clone
 #ifndef _WIN32
             return QUIC_STATUS_NOT_SUPPORTED; // Only supported on windows.
 #endif
@@ -1013,24 +1021,30 @@ CxPlatTlsProcessData(
         goto Exit;
     }
 
+    TlsContext->State = State;
+    TlsContext->ResultFlags = 0;
+
     if (*BufferLength != 0) {
         QuicTraceLogConnVerbose(
             OpenSslProcessData,
             TlsContext->Connection,
             "Processing %u received bytes",
             *BufferLength);
-    }
 
-    TlsContext->State = State;
-    TlsContext->ResultFlags = 0;
-
-    if (SSL_provide_quic_data(
-            TlsContext->Ssl,
-            (OSSL_ENCRYPTION_LEVEL)TlsContext->State->ReadKey,
-            Buffer,
-            *BufferLength) != 1) {
-        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-        goto Exit;
+        if (SSL_provide_quic_data(
+                TlsContext->Ssl,
+                (OSSL_ENCRYPTION_LEVEL)TlsContext->State->ReadKey,
+                Buffer,
+                *BufferLength) != 1) {
+            char buf[256];
+            QuicTraceLogConnError(
+                OpenSslQuicDataErrorStr,
+                TlsContext->Connection,
+                "SSL_provide_quic_data failed: %s",
+                ERR_error_string(ERR_get_error(), buf));
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
     }
 
     if (!State->HandshakeComplete) {
@@ -1042,14 +1056,21 @@ CxPlatTlsProcessData(
             case SSL_ERROR_WANT_WRITE:
                 goto Exit;
 
-            case SSL_ERROR_SSL:
+            case SSL_ERROR_SSL: {
+                char buf[256];
+                const char* file;
+                int line;
+                ERR_error_string_n(ERR_get_error_line(&file, &line), buf, sizeof(buf));
                 QuicTraceLogConnError(
                     OpenSslHandshakeErrorStr,
                     TlsContext->Connection,
-                    "TLS handshake error: %s",
-                    ERR_error_string(ERR_get_error(), NULL));
+                    "TLS handshake error: %s, file:%s:%d",
+                    "",
+                    file,
+                    line);
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
+            }
 
             default:
                 QuicTraceLogConnError(
@@ -1139,14 +1160,21 @@ CxPlatTlsProcessData(
         case SSL_ERROR_WANT_WRITE:
             goto Exit;
 
-        case SSL_ERROR_SSL:
+        case SSL_ERROR_SSL: {
+            char buf[256];
+            const char* file;
+            int line;
+            ERR_error_string_n(ERR_get_error_line(&file, &line), buf, sizeof(buf));
             QuicTraceLogConnError(
                 OpenSslHandshakeErrorStr,
                 TlsContext->Connection,
-                "TLS handshake error: %s",
-                ERR_error_string(ERR_get_error(), NULL));
+                "TLS handshake error: %s, file:%s:%d",
+                "",
+                file,
+                line);
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
+        }
 
         default:
             QuicTraceLogConnError(

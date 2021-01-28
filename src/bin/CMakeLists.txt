@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 if(WIN32)
-    set(SOURCES winuser/dllmain.c winuser/msquic.rc ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
+    set(SOURCES winuser/dllmain.c winuser/msquic.rc $<TARGET_OBJECTS:MsQuicEtw_Resource>)
 else()
     set(SOURCES linux/init.c)
 endif()

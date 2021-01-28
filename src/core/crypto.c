@@ -26,11 +26,13 @@ Abstract:
 CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 CXPLAT_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
 CXPLAT_TLS_RECEIVE_TICKET_CALLBACK QuicConnRecvResumptionTicket;
+CXPLAT_TLS_DEFERRED_CERTIFICATE_VALIDATION_CALLBACK QuicConnDeferredCertValidation;
 
 CXPLAT_TLS_CALLBACKS QuicTlsCallbacks = {
     QuicTlsProcessDataCompleteCallback,
     QuicConnReceiveTP,
-    QuicConnRecvResumptionTicket
+    QuicConnRecvResumptionTicket,
+    QuicConnDeferredCertValidation
 };
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
