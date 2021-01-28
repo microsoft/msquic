@@ -229,7 +229,7 @@ QuicAddrCompare(
     _In_ const QUIC_ADDR* const Addr2
     );
 
-uint16_t
+QUIC_ADDRESS_FAMILY
 QuicAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
     );
@@ -237,7 +237,7 @@ QuicAddrGetFamily(
 void
 QuicAddrSetFamily(
     _In_ QUIC_ADDR* Addr,
-    _In_ uint16_t Family
+    _In_ QUIC_ADDRESS_FAMILY Family
     );
 
 uint16_t
