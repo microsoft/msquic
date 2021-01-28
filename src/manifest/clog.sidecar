@@ -7392,7 +7392,7 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "DatapathMissingInfo": {
+    "DatapathOpenTcpSocketFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] RSS helper socket failed to open, 0x%x",
       "UniqueId": "DatapathOpenTcpSocketFailed",
@@ -7404,7 +7404,7 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathRecvEmpty": {
+    "DatapathOpenTcpSocketFailedAsync": {
       "ModuleProperites": {},
       "TraceString": "[data] RSS helper socket failed to open (async), 0x%x",
       "UniqueId": "DatapathOpenTcpSocketFailedAsync",
@@ -7416,7 +7416,7 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathUroPreallocExceeded": {
+    "DatapathQueryRssScalabilityInfoFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
       "UniqueId": "DatapathQueryRssScalabilityInfoFailed",
@@ -7428,7 +7428,7 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathShutDownReturn": {
+    "DatapathQueryRssScalabilityInfoFailedAsync": {
       "ModuleProperites": {},
       "TraceString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed (async), 0x%x",
       "UniqueId": "DatapathQueryRssScalabilityInfoFailedAsync",
@@ -7440,7 +7440,7 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathShutDownComplete": {
+    "DatapathOpenUdpSocketFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] UDP send segmentation helper socket failed to open, 0x%x",
       "UniqueId": "DatapathOpenUdpSocketFailed",
@@ -7452,7 +7452,7 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathUnreachableWithError": {
+    "DatapathOpenUdpSocketFailedAsync": {
       "ModuleProperites": {},
       "TraceString": "[data] UDP send segmentation helper socket failed to open (async), 0x%x",
       "UniqueId": "DatapathOpenUdpSocketFailedAsync",
@@ -7460,27 +7460,11 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg2"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "ErrorCode",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr)",
-            "SuggestedTelemetryName": "arg4"
-          },
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathOpenTcpSocketFailed": {
+    "DatapathQueryUdpSendMsgFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] Query for UDP_SEND_MSG_SIZE failed, 0x%x",
       "UniqueId": "DatapathQueryUdpSendMsgFailed",
@@ -7492,7 +7476,7 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathOpenTcpSocketFailedAsync": {
+    "DatapathQueryUdpSendMsgFailedAsync": {
       "ModuleProperites": {},
       "TraceString": "[data] Query for UDP_SEND_MSG_SIZE failed (async), 0x%x",
       "UniqueId": "DatapathQueryUdpSendMsgFailedAsync",
@@ -7504,7 +7488,7 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathQueryRssScalabilityInfoFailed": {
+    "DatapathQueryRecvMaxCoalescedSizeFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
       "UniqueId": "DatapathQueryRecvMaxCoalescedSizeFailed",
@@ -7516,89 +7500,13 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathQueryRssScalabilityInfoFailedAsync": {
+    "DatapathQueryRecvMaxCoalescedSizeFailedAsync": {
       "ModuleProperites": {},
       "TraceString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x",
       "UniqueId": "DatapathQueryRecvMaxCoalescedSizeFailedAsync",
       "splitArgs": [
         {
           "DefinationEncoding": "x",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogWarning"
-    },
-    "DatapathOpenUdpSocketFailed": {
-      "ModuleProperites": {},
-      "TraceString": "[ udp] UDP send segmentation helper socket failed to open, 0x%x",
-      "UniqueId": "DatapathOpenUdpSocketFailed",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogWarning"
-    },
-    "DatapathOpenUdpSocketFailedAsync": {
-      "ModuleProperites": {},
-      "TraceString": "[ udp] UDP send segmentation helper socket failed to open (async), 0x%x",
-      "UniqueId": "DatapathOpenUdpSocketFailedAsync",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogWarning"
-    },
-    "DatapathQueryUdpSendMsgFailed": {
-      "ModuleProperites": {},
-      "TraceString": "[ udp] Query for UDP_SEND_MSG_SIZE failed, 0x%x",
-      "UniqueId": "DatapathQueryUdpSendMsgFailed",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogWarning"
-    },
-    "DatapathQueryUdpSendMsgFailedAsync": {
-      "ModuleProperites": {},
-      "TraceString": "[ udp] Query for UDP_SEND_MSG_SIZE failed (async), 0x%x",
-      "UniqueId": "DatapathQueryUdpSendMsgFailedAsync",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogWarning"
-    },
-    "DatapathQueryRecvMaxCoalescedSizeFailed": {
-      "ModuleProperites": {},
-      "TraceString": "[ udp] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
-      "UniqueId": "DatapathQueryRecvMaxCoalescedSizeFailed",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogWarning"
-    },
-    "DatapathQueryRecvMaxCoalescedSizeFailedAsync": {
-      "ModuleProperites": {},
-      "TraceString": "[ udp] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x",
-      "UniqueId": "DatapathQueryRecvMaxCoalescedSizeFailedAsync",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
         }
       ],
@@ -7638,13 +7546,89 @@
           "MacroVariableName": "arg2"
         },
         {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathDropMdlMapFailure": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Failed to map MDL chain",
+      "UniqueId": "DatapathDropMdlMapFailure",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathFragmented": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Dropping datagram with fragmented MDL.",
+      "UniqueId": "DatapathFragmented",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathDropAllocRecvContextFailure": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Couldn't allocate receive context.",
+      "UniqueId": "DatapathDropAllocRecvContextFailure",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathDropAllocRecvBufferFailure": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Couldn't allocate receive buffers.",
+      "UniqueId": "DatapathDropAllocRecvBufferFailure",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathUroExceeded": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Exceeded URO preallocation capacity.",
+      "UniqueId": "DatapathUroExceeded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathUnreachable": {
+      "ModuleProperites": {},
+      "TraceString": "[sock][%p] Unreachable error from %!ADDR!",
+      "UniqueId": "DatapathUnreachable",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
           "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "DatapathDropMdlMapFailure": {
+    "DatapathQueryRssProcessorInfoFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
       "UniqueId": "DatapathQueryRssProcessorInfoFailed",
@@ -7656,7 +7640,7 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathDropAllocRecvContextFailure": {
+    "DatapathMissingInfo": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] WSARecvMsg completion is missing IP_PKTINFO",
       "UniqueId": "DatapathMissingInfo",
@@ -7668,7 +7652,7 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathDropAllocRecvBufferFailure": {
+    "DatapathRecvEmpty": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Dropping datagram with empty payload.",
       "UniqueId": "DatapathRecvEmpty",
@@ -7680,7 +7664,7 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathUroExceeded": {
+    "DatapathUroPreallocExceeded": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Exceeded URO preallocation capacity.",
       "UniqueId": "DatapathUroPreallocExceeded",
@@ -7692,7 +7676,7 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathUnreachable": {
+    "DatapathShutDownReturn": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Shut down (return)",
       "UniqueId": "DatapathShutDownReturn",
@@ -7700,19 +7684,11 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
-        },
-        {
-          "VariableInfo": {
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr)",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "DatapathQueryRssProcessorInfoFailed": {
+    "DatapathShutDownComplete": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Shut down (complete)",
       "UniqueId": "DatapathShutDownComplete",
@@ -7724,7 +7700,7 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "DatapathQueryProcessorAffinityFailed": {
+    "DatapathUnreachableWithError": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
       "UniqueId": "DatapathUnreachableWithError",
