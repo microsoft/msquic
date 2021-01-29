@@ -86,8 +86,8 @@ if ($InitSubmodules) {
     }
 
     if ($Kernel) {
-        git submodule init submodules/openssl
-        git submodule init submodules/everest
+        git init submodules/openssl
+        git init submodules/everest
     }
 
     if (!$Extra.Contains("-DisableTest")) {
