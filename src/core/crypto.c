@@ -1721,6 +1721,7 @@ QuicCryptoProcessAppData(
         goto Error;
     }
 
+    Crypto->TlsCallPending = TRUE;
     Crypto->ResultFlags =
         CxPlatTlsProcessData(
             Crypto->TLS,
