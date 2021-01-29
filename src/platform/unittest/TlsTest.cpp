@@ -879,7 +879,9 @@ TEST_F(TlsTest, CertificateError)
 
         Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
-        ASSERT_EQ((0xFF & ClientContext.State.AlertCode), UnknownCaError);
+        ASSERT_TRUE(
+            (0xFF & ClientContext.State.AlertCode) == BadCertError ||
+            (0xFF & ClientContext.State.AlertCode) == UnknownCaError);
     }
 }
 
