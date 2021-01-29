@@ -1075,7 +1075,7 @@ CxPlatTlsProcessData(
                     TlsContext->Connection,
                     "TLS handshake error: %s, file:%s:%d",
                     buf,
-                    file + OpenSslFilePrefixLength,
+                    (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
                     line);
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
@@ -1179,7 +1179,7 @@ CxPlatTlsProcessData(
                 TlsContext->Connection,
                 "TLS handshake error: %s, file:%s:%d",
                 buf,
-                file + OpenSslFilePrefixLength,
+                (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
                 line);
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;

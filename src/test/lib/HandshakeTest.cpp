@@ -773,7 +773,7 @@ QuicTestCustomCertificateValidation(
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             if (!AcceptCert) {
-                ServerAcceptCtx.ExpectedTransportCloseStatus = ERROR_QUIC_INTERNAL_ERROR;
+                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_INTERNAL_ERROR;
             }
             Listener.Context = &ServerAcceptCtx;
 
@@ -784,7 +784,7 @@ QuicTestCustomCertificateValidation(
                 Client.SetExpectedCustomValidationResult(AcceptCert);
                 Client.SetAsyncCustomValidationResult(AsyncValidation);
                 if (!AcceptCert) {
-                    Client.SetExpectedTransportCloseStatus(ERROR_QUIC_INTERNAL_ERROR); // Better error?
+                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR); // Better error?
                 }
 
                 TEST_QUIC_SUCCEEDED(
