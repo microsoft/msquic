@@ -32,6 +32,8 @@ Abstract:
 
 uint16_t CxPlatTlsTPHeaderSize = 0;
 
+const size_t OpenSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodules");
+
 //
 // The QUIC sec config object. Created once per listener on server side and
 // once per connection on client side.
@@ -132,11 +134,6 @@ typedef struct CXPLAT_HP_KEY {
 //
 #define CXPLAT_TLS_DEFAULT_VERIFY_DEPTH  10
 
-//
-// Hack to set trusted cert file on client side.
-//
-char *QuicOpenSslClientTrustedCert = NULL;
-
 QUIC_STATUS
 CxPlatTlsLibraryInitialize(
     void
@@ -218,10 +215,11 @@ CxPlatTlsCertificateVerifyCallback(
             "[ tls][%p] ERROR, %s.",
             TlsContext->Connection,
             "Custom certificate validation failed");
-        return -1;
+        X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
+        return FALSE;
     }
 
-    return SSL_TLSEXT_ERR_OK;
+    return TRUE;
 }
 
 CXPLAT_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
@@ -700,33 +698,17 @@ CxPlatTlsSecConfigCreate(
             SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_NONE, NULL);
 
         } else if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) {
+            SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
             SSL_CTX_set_cert_verify_callback(SecurityConfig->SSLCtx, CxPlatTlsCertificateVerifyCallback, NULL);
 
         } else {
+            SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
             SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
 
-            if (QuicOpenSslClientTrustedCert != NULL) {
-                //
-                // LINUX_TODO: This is a hack to set a client side trusted cert in order
-                //   to verify server cert. Fix this once MsQuic formally supports
-                //   passing TLS related config from APP layer to TAL.
-                //
-
-                /*Ret =
-                    SSL_CTX_load_verify_locations(
-                        SecurityConfig->SSLCtx,
-                        QuicOpenSslClientTrustedCert,
-                        NULL);
-                if (Ret != 1) {
-                    QuicTraceEvent(
-                        LibraryErrorStatus,
-                        "[ lib] ERROR, %u, %s.",
-                        ERR_get_error(),
-                        "SSL_CTX_load_verify_locations failed");
-                    Status = QUIC_STATUS_TLS_ERROR;
-                    goto Exit;
-                }*/
-            }
+            //
+            // TODO - Support additional certificate validation parameters, such as
+            // the location of the trusted root CAs (SSL_CTX_load_verify_locations)?
+            //
         }
     } else {
         SSL_CTX_set_options(
@@ -1092,8 +1074,8 @@ CxPlatTlsProcessData(
                     OpenSslHandshakeErrorStr,
                     TlsContext->Connection,
                     "TLS handshake error: %s, file:%s:%d",
-                    "",
-                    file,
+                    buf,
+                    file + OpenSslFilePrefixLength,
                     line);
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
@@ -1196,8 +1178,8 @@ CxPlatTlsProcessData(
                 OpenSslHandshakeErrorStr,
                 TlsContext->Connection,
                 "TLS handshake error: %s, file:%s:%d",
-                "",
-                file,
+                buf,
+                file + OpenSslFilePrefixLength,
                 line);
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
