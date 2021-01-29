@@ -2574,6 +2574,25 @@ QuicConnDeferredCertValidation(
     return QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnPeerCertReceived(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    QUIC_CONNECTION_EVENT Event;
+    Event.Type = QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED;
+    QuicTraceLogConnVerbose(
+        IndicatePeerCertificateReceived,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED");
+    QUIC_STATUS Status = QuicConnIndicateEvent(Connection, &Event);
+    if (Status == QUIC_STATUS_PENDING) {
+        CXPLAT_FRE_ASSERT(FALSE); // TODO - Pause the handshake
+    }
+    return QUIC_SUCCEEDED(Status); // Treat pending as success to the TLS layer.
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueRecvDatagrams(

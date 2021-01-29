@@ -827,7 +827,7 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_STATUS Status;                 // Most severe error status
         } PEER_CERTIFICATE_VALIDATION;
         struct {
-            void* PeerCertificate;              // TODO - Type
+            void* Reserved;                     // TODO - Expose certificate
         } PEER_CERTIFICATE_RECEIVED;
     };
 } QUIC_CONNECTION_EVENT;

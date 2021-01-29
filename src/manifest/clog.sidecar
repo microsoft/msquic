@@ -1026,6 +1026,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "IndicatePeerCertificateReceived": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED",
+      "UniqueId": "IndicatePeerCertificateReceived",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "QueueDatagrams": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Queuing %u UDP datagrams",
@@ -10238,6 +10250,10 @@
       {
         "UniquenessHash": "8105e9a0-04b4-e941-7052-170d8a7ec108",
         "TraceID": "IndicatePeerCertificateValidation"
+      },
+      {
+        "UniquenessHash": "cb2eb64a-f957-6a29-5b6e-35ec67c01884",
+        "TraceID": "IndicatePeerCertificateReceived"
       },
       {
         "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",

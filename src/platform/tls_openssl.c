@@ -211,9 +211,17 @@ CxPlatTlsCertificateVerifyCallback(
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
     UNREFERENCED_PARAMETER(app_ctx);
 
-    // TODO - Upcall
+    if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
+            TlsContext->Connection)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Custom certificate validation failed");
+        return -1;
+    }
 
-    return -1;
+    return SSL_TLSEXT_ERR_OK;
 }
 
 CXPLAT_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
