@@ -770,6 +770,18 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "CustomCertValidationPending": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Custom cert validation is pending",
+      "UniqueId": "CustomCertValidationPending",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "RecvStatelessReset": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Received stateless reset",
@@ -1998,6 +2010,18 @@
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake confirmed (server)",
       "UniqueId": "HandshakeConfirmedServer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "CustomCertValidationSuccess": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Custom cert validation succeeded",
+      "UniqueId": "CustomCertValidationSuccess",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -10184,6 +10208,10 @@
         "TraceID": "NegotiatedDisable1RttEncryption"
       },
       {
+        "UniquenessHash": "cfc6e146-0966-e783-5344-2ea4afd4d692",
+        "TraceID": "CustomCertValidationPending"
+      },
+      {
         "UniquenessHash": "1a6051bf-393a-b704-7237-8d9d0881efb3",
         "TraceID": "RecvStatelessReset"
       },
@@ -10478,6 +10506,10 @@
       {
         "UniquenessHash": "fba5c72f-0c3d-f668-a88b-39e5e3e62cbd",
         "TraceID": "HandshakeConfirmedServer"
+      },
+      {
+        "UniquenessHash": "3aed23c0-7540-7e83-e8ba-2530dd6837f8",
+        "TraceID": "CustomCertValidationSuccess"
       },
       {
         "UniquenessHash": "4e785757-b1de-e65c-a7b1-7ac868748434",

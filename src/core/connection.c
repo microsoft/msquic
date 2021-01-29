@@ -2587,10 +2587,22 @@ QuicConnPeerCertReceived(
         Connection,
         "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED");
     QUIC_STATUS Status = QuicConnIndicateEvent(Connection, &Event);
-    if (Status == QUIC_STATUS_PENDING) {
-        CXPLAT_FRE_ASSERT(FALSE); // TODO - Pause the handshake
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Custom cert validation failed.");
+        return FALSE;
     }
-    return QUIC_SUCCEEDED(Status); // Treat pending as success to the TLS layer.
+    if (Status == QUIC_STATUS_PENDING) {
+        QuicTraceLogConnInfo(
+            CustomCertValidationPending,
+            Connection,
+            "Custom cert validation is pending");
+        Connection->Crypto.CertValidationPending = TRUE;
+    }
+    return TRUE; // Treat pending as success to the TLS layer.
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -5538,6 +5550,16 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
+
+    case QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID:
+        if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QuicCryptoCustomCertValidationComplete(&Connection->Crypto, *(BOOLEAN*)Buffer);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
 
     //
     // Private

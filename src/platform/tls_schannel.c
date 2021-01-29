@@ -2007,7 +2007,7 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         "Rejected deferred cert validation");
                     Result |= CXPLAT_TLS_RESULT_ERROR;
-                    State->AlertCode = 42; // bad_certificate
+                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
                     break;
                 }
             }
@@ -2021,7 +2021,7 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         "Custom certificate validation failed");
                     Result |= CXPLAT_TLS_RESULT_ERROR;
-                    State->AlertCode = 42; // bad_certificate
+                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
                     break;
                 }
             }

@@ -15,9 +15,6 @@
 #include "TlsTest.cpp.clog.h"
 #endif
 
-const uint16_t BadCertError = 42;
-const uint16_t UnknownCaError = 48;
-
 const uint32_t DefaultFragmentSize = 1200;
 
 const uint8_t Alpn[] = { 1, 'A' };
@@ -880,8 +877,8 @@ TEST_F(TlsTest, CertificateError)
         Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
         ASSERT_TRUE(
-            (0xFF & ClientContext.State.AlertCode) == BadCertError ||
-            (0xFF & ClientContext.State.AlertCode) == UnknownCaError);
+            (0xFF & ClientContext.State.AlertCode) == CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE ||
+            (0xFF & ClientContext.State.AlertCode) == CXPLAT_TLS_ALERT_CODE_UNKNOWN_CA);
     }
 }
 
@@ -936,7 +933,7 @@ TEST_F(TlsTest, DeferredCertificateValidationReject)
         Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
         ASSERT_TRUE(ClientContext.OnDeferredCertValidationCalled);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
-        ASSERT_EQ((0xFF & ClientContext.State.AlertCode), BadCertError);
+        ASSERT_EQ((0xFF & ClientContext.State.AlertCode), CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE);
     }
 }
 
@@ -977,7 +974,7 @@ TEST_F(TlsTest, CustomCertificateValidationReject)
         Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
         ASSERT_TRUE(ClientContext.OnPeerCertReceivedCalled);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
-        ASSERT_EQ((0xFF & ClientContext.State.AlertCode), BadCertError);
+        ASSERT_EQ((0xFF & ClientContext.State.AlertCode), CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE);
     }
 }
 
