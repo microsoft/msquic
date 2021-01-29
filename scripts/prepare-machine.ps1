@@ -86,8 +86,9 @@ if ($InitSubmodules) {
     }
 
     if ($Kernel) {
-        git init submodules/openssl
-        git init submodules/everest
+        # Remove OpenSSL and Everest
+        git rm submodules/everest
+        git rm submodules/openssl
     }
 
     if (!$Extra.Contains("-DisableTest")) {
