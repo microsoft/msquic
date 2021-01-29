@@ -106,5 +106,22 @@ New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
 $DataFileOut = Join-Path $OutputFolder "data.js"
 $DataFileContents | Set-Content $DataFileOut
 
+$WanPerfData = Get-Content (Join-Path $RunFolder "wan_data.json");
+$DataFileIn = Join-Path $TemplateFolder "data.wan.js.in"
+$DataFileContents = Get-Content $DataFileIn
+
+$Keys = ($WanPerfData | ConvertFrom-Json -Depth 100 -AsHashtable).Keys
+$KeysList = $Keys | ConvertTo-Json -AsArray -Compress
+
+$DataFileContents = $DataFileContents.Replace("WAN_PERF_DATA", $WanPerfData);
+$DataFileContents = $DataFileContents.Replace("PLATFORM_LIST", $KeysList);
+$DataFileContents = $DataFileContents.Replace("COMMIT_HASH", "`"$($LatestCommit.CommitHash)`";");
+$DataFileContents = $DataFileContents.Replace("RUN_DATE", "new Date($($LatestCommit.Date));");
+
+$OutputFolder = $RunFolder
+New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
+$DataFileOut = Join-Path $OutputFolder "data.wan.js"
+$DataFileContents | Set-Content $DataFileOut
+
 # Take template folder, and copy to commit
-Copy-Item -Path $TemplateFolder/* -Destination $OutputFolder -Exclude "data.js.in" -Force
+Copy-Item -Path $TemplateFolder/* -Destination $OutputFolder -Exclude "data.js.in", "data.wan.js.in" -Force

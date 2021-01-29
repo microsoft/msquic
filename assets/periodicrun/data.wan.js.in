@@ -1,0 +1,6 @@
+var wanPerfData = WAN_PERF_DATA
+
+var platformList = PLATFORM_LIST
+
+var pageCommitHash = COMMIT_HASH
+var runDate = RUN_DATE

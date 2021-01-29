@@ -20,6 +20,8 @@
     <!-- Custom styles for this template-->
     <link href="vendor/sb-admin/sb-admin-2.min.css" rel="stylesheet">
 
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.23/css/jquery.dataTables.css">
+
 </head>
 
 <body id="page-top">
@@ -119,6 +121,9 @@
                         <h1 class="h3 mb-0 font-weight-bold text-gray-800">WAN Performance Dashboard</h1>
                     </div>
 
+                    <table id="WanTable" class="display" width="100%">
+                    </table>
+
                 </div>
                 <!-- /.container-fluid -->
 
@@ -152,12 +157,11 @@
     <script src="vendor/sb-admin/sb-admin-2.min.js"></script>
     <script src="vendor/chart.js/Chart.min.js"></script>
     <script src="vendor/chart.js//chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.23/js/jquery.dataTables.js"></script>
 
     <!-- Internal custom scripts -->
-    <script src="assets/summary/main/data.js"></script>
-    <script src="assets/summary/dataView.js"></script>
-    <script src="assets/summary/latestData.js"></script>
-    <script src="assets/summary/summaryCharts.js"></script>
+    <script src="assets/summary/main/data.periodicwan.js"></script>
+    <script src="assets/summary/periodicWanCharts.js"></script>
 
 </body>
 

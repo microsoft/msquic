@@ -108,6 +108,27 @@ if (Test-Path -Path $CommitsFile -PathType Leaf) {
 }
 Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
 
+# Handle WAN Perf
+$WANResultsPath = Join-Path $RootDir "artifacts/wanperformance/*.json"
+$WANFiles = Get-ChildItem -Path $WANResultsPath -Recurse -File;
+
+$WANPerfData = [System.Collections.Generic.Dictionary[string, System.Collections.Generic.List[object]]]::new()
+
+foreach ($File in $WANFiles) {
+    $Data = Get-Content $File | ConvertFrom-Json;
+    $RunList = $null;
+    if ($WANPerfData.TryGetValue($Data.PlatformName, [ref]$RunList)) {
+        $RunList.AddRange($Data.Runs);
+    } else {
+        $RunList = [System.Collections.Generic.List[object]]::new($Data.Runs)
+        $WANPerfData.Add($Data.PlatformName, $RunList);
+    }
+}
+
+$WANPerfDataString = $WANPerfData | ConvertTo-Json -Depth 100
+$WANDataFileName = Join-Path $CommitFolder "wan_data.json"
+Out-File -FilePath $WANDataFileName -InputObject $WANPerfDataString -Force
+
 $HistogramFilesPaths = Join-Path $RootDir "artifacts/PerfDataResults/histogram*.txt"
 $HistogramFiles = Get-ChildItem -Path $HistogramFilesPaths -Recurse -File;
 $HistogramDir = Join-Path $CommitFolder "RpsLatency"
@@ -120,9 +141,11 @@ $GraphScript = Join-Path $PSScriptRoot generate-periodic-graphs.ps1
 
 # Copy data.js to latest assets
 $DataJs = Join-Path $CommitFolder "data.js"
+$DataWanJs = Join-Path $CommitFolder "data.wan.js"
 $OutputFolder = Join-Path $RootDir "assets" "summary" $BranchName
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
-Copy-Item -Path $DataJs -Destination "$OutputFolder\data.rps.js"
+Copy-Item -Path $DataJs -Destination "$OutputFolder\data.periodicrps.js"
+Copy-Item -Path $DataWanJs -Destination "$OutputFolder\data.periodicwan.js"
 
 
 # Copy entire commit folder to outputs
