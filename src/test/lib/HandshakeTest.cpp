@@ -87,6 +87,7 @@ QuicTestPrimeResumption(
 struct ServerAcceptContext {
     CXPLAT_EVENT NewConnectionReady;
     TestConnection** NewConnection;
+    QUIC_STATUS ExpectedTransportCloseStatus{QUIC_STATUS_SUCCESS};
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {
         CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);
@@ -113,6 +114,10 @@ ListenerAcceptConnection(
         return false;
     }
     (*AcceptContext->NewConnection)->SetHasRandomLoss(Listener->GetHasRandomLoss());
+    if (AcceptContext->ExpectedTransportCloseStatus != QUIC_STATUS_SUCCESS) {
+        (*AcceptContext->NewConnection)->SetExpectedTransportCloseStatus(
+            AcceptContext->ExpectedTransportCloseStatus);
+    }
     CxPlatEventSet(AcceptContext->NewConnectionReady);
     return true;
 }
@@ -729,6 +734,83 @@ QuicTestConnectAndIdle(
                     TEST_TRUE(Server->GetIsShutdown());
                     TEST_TRUE(Client.GetTransportClosed());
                     TEST_TRUE(Server->GetTransportClosed());
+                }
+            }
+        }
+    }
+}
+
+void
+QuicTestCustomCertificateValidation(
+    _In_ bool AcceptCert,
+    _In_ bool AsyncValidation
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            if (!AcceptCert) {
+                ServerAcceptCtx.ExpectedTransportCloseStatus = ERROR_QUIC_INTERNAL_ERROR;
+            }
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                Client.SetExpectedCustomValidationResult(AcceptCert);
+                Client.SetAsyncCustomValidationResult(AsyncValidation);
+                if (!AcceptCert) {
+                    Client.SetExpectedTransportCloseStatus(ERROR_QUIC_INTERNAL_ERROR); // Better error?
+                }
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QUIC_ADDRESS_FAMILY_UNSPEC,
+                        QUIC_LOCALHOST_FOR_AF(
+                            QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                        ServerLocalAddr.GetPort()));
+
+                if (AsyncValidation) {
+                    CxPlatSleep(1000);
+                    TEST_QUIC_SUCCEEDED(Client.SetCustomValidationResult(AcceptCert));
+                }
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_EQUAL(AcceptCert, Client.GetIsConnected());
+
+                if (AcceptCert) { // Server will be deleted on reject case, so can't validate.
+                    TEST_NOT_EQUAL(nullptr, Server);
+                    if (!Server->WaitForConnectionComplete()) {
+                        return;
+                    }
+                    TEST_TRUE(Server->GetIsConnected());
                 }
             }
         }
