@@ -85,6 +85,11 @@ if ($InitSubmodules) {
         git submodule update
     }
 
+    if ($Kernel) {
+        git submodule init submodules/openssl
+        git submodule init submodules/everest
+    }
+
     if (!$Extra.Contains("-DisableTest")) {
         Write-Host "Initializing googletest submodule"
         git submodule init submodules/googletest
