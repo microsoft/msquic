@@ -770,6 +770,18 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "CustomCertValidationPending": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Custom cert validation is pending",
+      "UniqueId": "CustomCertValidationPending",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "RecvStatelessReset": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Received stateless reset",
@@ -1022,6 +1034,18 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "IndicatePeerCertificateReceived": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED",
+      "UniqueId": "IndicatePeerCertificateReceived",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -1986,6 +2010,18 @@
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake confirmed (server)",
       "UniqueId": "HandshakeConfirmedServer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "CustomCertValidationSuccess": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Custom cert validation succeeded",
+      "UniqueId": "CustomCertValidationSuccess",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -10204,6 +10240,10 @@
         "TraceID": "NegotiatedDisable1RttEncryption"
       },
       {
+        "UniquenessHash": "cfc6e146-0966-e783-5344-2ea4afd4d692",
+        "TraceID": "CustomCertValidationPending"
+      },
+      {
         "UniquenessHash": "1a6051bf-393a-b704-7237-8d9d0881efb3",
         "TraceID": "RecvStatelessReset"
       },
@@ -10270,6 +10310,10 @@
       {
         "UniquenessHash": "8105e9a0-04b4-e941-7052-170d8a7ec108",
         "TraceID": "IndicatePeerCertificateValidation"
+      },
+      {
+        "UniquenessHash": "cb2eb64a-f957-6a29-5b6e-35ec67c01884",
+        "TraceID": "IndicatePeerCertificateReceived"
       },
       {
         "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",
@@ -10494,6 +10538,10 @@
       {
         "UniquenessHash": "fba5c72f-0c3d-f668-a88b-39e5e3e62cbd",
         "TraceID": "HandshakeConfirmedServer"
+      },
+      {
+        "UniquenessHash": "3aed23c0-7540-7e83-e8ba-2530dd6837f8",
+        "TraceID": "CustomCertValidationSuccess"
       },
       {
         "UniquenessHash": "4e785757-b1de-e65c-a7b1-7ac868748434",

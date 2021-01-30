@@ -2575,6 +2575,37 @@ QuicConnDeferredCertValidation(
     return QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnPeerCertReceived(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    QUIC_CONNECTION_EVENT Event;
+    Event.Type = QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED;
+    QuicTraceLogConnVerbose(
+        IndicatePeerCertificateReceived,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED");
+    QUIC_STATUS Status = QuicConnIndicateEvent(Connection, &Event);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Custom cert validation failed.");
+        return FALSE;
+    }
+    if (Status == QUIC_STATUS_PENDING) {
+        QuicTraceLogConnInfo(
+            CustomCertValidationPending,
+            Connection,
+            "Custom cert validation is pending");
+        Connection->Crypto.CertValidationPending = TRUE;
+    }
+    return TRUE; // Treat pending as success to the TLS layer.
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueRecvDatagrams(
@@ -5520,6 +5551,16 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
+
+    case QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID:
+        if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QuicCryptoCustomCertValidationComplete(&Connection->Crypto, *(BOOLEAN*)Buffer);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
 
     //
     // Private

@@ -412,7 +412,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     sizeof(INT32),
     0,
-    sizeof(INT32)
+    sizeof(INT32),
+    sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION)
 };
 
 static_assert(
@@ -434,6 +435,7 @@ typedef union {
     UINT8 StopListenerFirst;
     QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams;
     QUIC_RUN_DATAGRAM_NEGOTIATION DatagramNegotiationParams;
+    QUIC_RUN_CUSTOM_CERT_VALIDATION CustomCertValidationParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -819,6 +821,14 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestAckSendDelay(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestCustomCertificateValidation(
+                Params->CustomCertValidationParams.AcceptCert,
+                Params->CustomCertValidationParams.AsyncValidation));
         break;
 
     default:
