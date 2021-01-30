@@ -19,7 +19,7 @@ Abstract:
 #include <sys/event.h>
 #include <sys/time.h>
 
-#ifdef QUIC_CLOG
+#ifdef CXPLAT_CLOG
 #include "datapath_kqueue.c.clog.h"
 #endif
 
@@ -544,7 +544,12 @@ void CxPlatDataPathUninitialize(_In_ CXPLAT_DATAPATH* Datapath) {
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
 
-void CxPlatDataPathWakeWorkerThread(_In_ CXPLAT_DATAPATH_PROC_CONTEXT *ProcContext, _In_ CXPLAT_UDP_SOCKET_CONTEXT *SocketContext) {
+void
+CxPlatDataPathWakeWorkerThread(
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT *ProcContext,
+    _In_ CXPLAT_UDP_SOCKET_CONTEXT *SocketContext
+    )
+{
     struct kevent Event = { };
     EV_SET(&Event, 42, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, (void *)SocketContext);
     kevent(ProcContext->Kqueue, &Event, 1, NULL, 0, NULL);
@@ -622,7 +627,13 @@ void CxPlatDataPathPopulateTargetAddress(_In_ QUIC_ADDRESS_FAMILY Family, _In_ A
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS CxPlatDataPathResolveAddress(_In_ CXPLAT_DATAPATH* Datapath, _In_z_ const char* HostName, _Inout_ QUIC_ADDR * Address) {
+QUIC_STATUS
+CxPlatDataPathResolveAddress(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_z_ const char* HostName,
+    _Inout_ QUIC_ADDR * Address
+    )
+{
     QUIC_STATUS Status;
     ADDRINFO Hints = { 0 };
     ADDRINFO *Ai;
@@ -670,7 +681,11 @@ Exit:
     return Status;
 }
 
-QUIC_STATUS CxPlatDataPathBindingStartReceive(_In_ CXPLAT_UDP_SOCKET_CONTEXT* SocketContext, _In_ int KqueueFd);
+QUIC_STATUS
+CxPlatDataPathBindingStartReceive(
+    _In_ CXPLAT_UDP_SOCKET_CONTEXT* SocketContext,
+    _In_ int KqueueFd
+    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -1046,19 +1061,19 @@ void CxPlatDataPathSocketContextShutdown(_In_ CXPLAT_UDP_SOCKET_CONTEXT* SocketC
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint16_t CxPlatDataPathBindingGetLocalMtu(_In_ CXPLAT_SOCKET* Binding) {
+uint16_t CxPlatSocketGetLocalMtu(_In_ CXPLAT_SOCKET* Binding) {
     CXPLAT_DBG_ASSERT(Binding != NULL);
     return Binding->Mtu;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void CxPlatDataPathBindingGetLocalAddress(_In_ CXPLAT_SOCKET* Binding, _Out_ QUIC_ADDR * Address) {
+void CxPlatSocketGetLocalAddress(_In_ CXPLAT_SOCKET* Binding, _Out_ QUIC_ADDR * Address) {
     CXPLAT_DBG_ASSERT(Binding != NULL);
     *Address = Binding->LocalAddress;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void CxPlatDataPathBindingGetRemoteAddress(_In_ CXPLAT_SOCKET* Binding, _Out_ QUIC_ADDR * Address) {
+void CxPlatSocketGetRemoteAddress(_In_ CXPLAT_SOCKET* Binding, _Out_ QUIC_ADDR * Address) {
     CXPLAT_DBG_ASSERT(Binding != NULL);
     *Address = Binding->RemoteAddress;
 }
@@ -1408,7 +1423,7 @@ CXPLAT_SEND_DATA* CxPlatSendDataAlloc(_In_ CXPLAT_SOCKET* Binding, _In_ CXPLAT_E
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void CxPlatDataPathBindingFreeSendContext(_In_ CXPLAT_SEND_DATA* SendContext) {
+void CxPlatSendDataFree(_In_ CXPLAT_SEND_DATA* SendContext) {
     size_t i = 0;
     for (i = 0; i < SendContext->BufferCount; ++i) {
         CxPlatPoolFree(
@@ -1537,7 +1552,7 @@ void CxPlatSendContextFinalizeSendBuffer(_In_ CXPLAT_SEND_DATA* SendContext, _In
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
-QUIC_BUFFER* CxPlatDataPathBindingAllocSendDatagram(_In_ CXPLAT_SEND_DATA* SendContext, _In_ uint16_t MaxBufferLength) {
+QUIC_BUFFER* CxPlatSendDataAllocBuffer(_In_ CXPLAT_SEND_DATA* SendContext, _In_ uint16_t MaxBufferLength) {
     CXPLAT_DBG_ASSERT(SendContext != NULL);
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
     CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
@@ -1595,7 +1610,7 @@ Exit:
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDataPathBindingFreeSendDatagram(
+CxPlatSendDataFreeBuffer(
     _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ QUIC_BUFFER* Datagram
     )
@@ -1610,7 +1625,7 @@ CxPlatDataPathBindingFreeSendDatagram(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-CxPlatDataPathBindingIsSendContextFull(
+CxPlatSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendContext
     )
 {
@@ -1618,7 +1633,7 @@ CxPlatDataPathBindingIsSendContextFull(
 }
 
 void
-CxPlatSendContextComplete(
+CxPlatSocketSendComplete(
     _In_ CXPLAT_UDP_SOCKET_CONTEXT* SocketContext,
     _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ unsigned long IoResult
@@ -1635,13 +1650,13 @@ CxPlatSendContextComplete(
             "sendmsg completion");
     }
 
-    // CxPlatDataPathBindingFreeSendContext(SendContext);
+    // CxPlatSendDataFree(SendContext);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
-    _In_ CXPLAT_SOCKET* Binding,
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData
@@ -1682,7 +1697,7 @@ CxPlatSocketSend(
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-        Binding,
+        Socket,
         TotalSize,
         SendData->BufferCount,
         SendData->Buffers[0].Length,
@@ -1750,7 +1765,7 @@ CxPlatSocketSend(
         // TODO: Always call send complete, probably. the status code here may
         // be useful if the send didnt succeed but we dont want to queue it up
         // at this layer
-        CxPlatSendContextComplete(SocketContext, SendData, QUIC_STATUS_SUCCESS);
+        CxPlatSocketSendComplete(SocketContext, SendData, QUIC_STATUS_SUCCESS);
     }
 
     Status = QUIC_STATUS_SUCCESS;
@@ -1758,7 +1773,7 @@ CxPlatSocketSend(
 Exit:
 
     if (QUIC_FAILED(Status)) {
-        CxPlatDataPathBindingFreeSendContext(SendData);
+        CxPlatSendDataFree(SendData);
     }
 
     return Status;
