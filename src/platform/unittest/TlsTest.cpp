@@ -978,59 +978,6 @@ TEST_F(TlsTest, CustomCertificateValidationReject)
     }
 }
 
-TEST_F(TlsTest, DeferredCertificateValidationAllow)
-{
-    if (!ClientSecConfigDeferredCertValidation) {
-        std::cout << "WARNING: Test unsupported\n";
-        return; // Unsupported by platform
-    }
-
-    TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
-#ifdef _WIN32
-    ClientContext.ExpectedErrorFlags = CERT_TRUST_IS_UNTRUSTED_ROOT;
-    ClientContext.ExpectedValidationStatus = CERT_E_UNTRUSTEDROOT;
-#else
-    // TODO - Add platform specific values if support is added.
-#endif
-    {
-        auto Result = ClientContext.ProcessData(nullptr);
-        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
-
-        Result = ServerContext.ProcessData(&ClientContext.State);
-        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
-        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
-
-        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
-        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
-    }
-}
-
-TEST_F(TlsTest, DeferredCertificateValidationReject)
-{
-    if (!ClientSecConfigDeferredCertValidation) {
-        std::cout << "WARNING: Test unsupported\n";
-        return; // Unsupported by platform
-    }
-
-    TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
-    {
-        auto Result = ClientContext.ProcessData(nullptr);
-        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
-
-        Result = ServerContext.ProcessData(&ClientContext.State);
-        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
-        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
-
-        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
-        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
-        ASSERT_EQ(ClientContext.State.AlertCode, BadCertError);
-    }
-}
-
 TEST_P(TlsTest, One1RttKey)
 {
     bool PNE = GetParam();
