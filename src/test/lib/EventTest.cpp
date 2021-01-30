@@ -14,8 +14,8 @@ Abstract:
 #include "EventTest.cpp.clog.h"
 #endif
 
-#define CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION   1
-#define CXPLAT_EVENT_ACTION_SHUTDOWN_STREAM       2
+#define QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION   1
+#define QUIC_EVENT_ACTION_SHUTDOWN_STREAM       2
 
 const uint8_t StreamPayload[64] = {0x1};
 const QUIC_BUFFER StreamBuffer = { sizeof(StreamPayload), (uint8_t*)StreamPayload };
@@ -35,10 +35,10 @@ struct StreamEventValidator {
             return;
         }
         Success = true;
-        if (Actions & CXPLAT_EVENT_ACTION_SHUTDOWN_STREAM) {
+        if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_STREAM) {
             MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, 0);
         }
-        if (Actions & CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION) {
+        if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION) {
             MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         }
     }
@@ -112,7 +112,7 @@ struct ConnEventValidator {
             }
         }
         Success = true;
-        if (Actions & CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION) {
+        if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION) {
             MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         }
     }
@@ -317,7 +317,7 @@ QuicTestValidateConnectionEvents1(
     ConnValidator Client(
         new(std::nothrow) ConnEventValidator* [4] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
@@ -382,7 +382,7 @@ QuicTestValidateConnectionEvents2(
     );
     ConnValidator Server(
         new(std::nothrow) ConnEventValidator* [4] {
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         },
@@ -441,7 +441,7 @@ QuicTestValidateConnectionEvents3(
     ConnValidator Client(
         new(std::nothrow) ConnEventValidator* [4] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION, false, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION, false, true),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
@@ -562,13 +562,13 @@ QuicTestValidateStreamEvents1(
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
-            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE, CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             nullptr
         });
     StreamValidator ServerStream(
         new(std::nothrow) StreamEventValidator* [5] {
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
-            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN, CXPLAT_EVENT_ACTION_SHUTDOWN_STREAM),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN, QUIC_EVENT_ACTION_SHUTDOWN_STREAM),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE),
             nullptr
@@ -672,7 +672,7 @@ QuicTestValidateStreamEvents2(
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, CXPLAT_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED, 0, true), // TODO - Schannel does resumption regardless
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
@@ -808,14 +808,14 @@ QuicTestValidateStreamEvents3(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
-    QuicSleep(100);
+    CxPlatSleep(100);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamSend(
             ClientStream.Handle,
             &StreamBuffer,
             1,
             QUIC_SEND_FLAG_NONE, NULL));
-    QuicSleep(20);
+    CxPlatSleep(20);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamSend(
             ClientStream.Handle,
@@ -823,15 +823,15 @@ QuicTestValidateStreamEvents3(
             1,
             QUIC_SEND_FLAG_NONE, NULL));
 
-    QuicSleep(100);
+    CxPlatSleep(100);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamShutdown(
             ClientStream.Handle,
             QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
             0));
 
-    TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
-    TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Client.Complete, 2000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Server.Complete, 1000));
 
     } // Stream scope
     } // Connections scope
@@ -929,14 +929,14 @@ QuicTestValidateStreamEvents4(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
-    QuicSleep(100);
+    CxPlatSleep(100);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamSend(
             ClientStream.Handle,
             &StreamBuffer,
             1,
             QUIC_SEND_FLAG_DELAY_SEND, NULL));
-    QuicSleep(20);
+    CxPlatSleep(20);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamSend(
             ClientStream.Handle,
@@ -944,15 +944,15 @@ QuicTestValidateStreamEvents4(
             1,
             QUIC_SEND_FLAG_NONE, NULL));
 
-    QuicSleep(100);
+    CxPlatSleep(100);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamShutdown(
             ClientStream.Handle,
             QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
             0));
 
-    TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
-    TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Client.Complete, 2000));
+    TEST_TRUE(CxPlatEventWaitWithTimeout(Server.Complete, 1000));
 
     } // Stream scope
     } // Connections scope
