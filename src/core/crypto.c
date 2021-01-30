@@ -27,12 +27,14 @@ CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 CXPLAT_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
 CXPLAT_TLS_RECEIVE_TICKET_CALLBACK QuicConnRecvResumptionTicket;
 CXPLAT_TLS_DEFERRED_CERTIFICATE_VALIDATION_CALLBACK QuicConnDeferredCertValidation;
+CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK QuicConnPeerCertReceived;
 
 CXPLAT_TLS_CALLBACKS QuicTlsCallbacks = {
     QuicTlsProcessDataCompleteCallback,
     QuicConnReceiveTP,
     QuicConnRecvResumptionTicket,
-    QuicConnDeferredCertValidation
+    QuicConnDeferredCertValidation,
+    QuicConnPeerCertReceived
 };
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1193,13 +1195,15 @@ QuicConnReceiveTP(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoProcessTlsCompletion(
-    _In_ QUIC_CRYPTO* Crypto,
-    _In_ CXPLAT_TLS_RESULT_FLAGS ResultFlags
+    _In_ QUIC_CRYPTO* Crypto
     )
 {
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
+    CXPLAT_DBG_ASSERT(Crypto->TlsCallPending);
+    Crypto->TlsCallPending = FALSE;
+
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
         QuicTraceEvent(
             ConnErrorStatus,
             "[conn][%p] ERROR, %u, %s.",
@@ -1214,7 +1218,7 @@ QuicCryptoProcessTlsCompletion(
 
     QuicCryptoValidate(Crypto);
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT) {
         QuicTraceLogConnInfo(
             ZeroRttAccepted,
             Connection,
@@ -1222,7 +1226,7 @@ QuicCryptoProcessTlsCompletion(
         CXPLAT_TEL_ASSERT(Crypto->TlsState.EarlyDataState == CXPLAT_TLS_EARLY_DATA_ACCEPTED);
     }
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_EARLY_DATA_REJECT) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_EARLY_DATA_REJECT) {
         QuicTraceLogConnInfo(
             ZeroRttRejected,
             Connection,
@@ -1236,7 +1240,7 @@ QuicCryptoProcessTlsCompletion(
         }
     }
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED) {
         QuicTraceEvent(
             ConnWriteKeyUpdated,
             "[conn][%p] Write Key Updated, %hhu.",
@@ -1292,7 +1296,7 @@ QuicCryptoProcessTlsCompletion(
         }
     }
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_READ_KEY_UPDATED) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_READ_KEY_UPDATED) {
         //
         // Make sure there isn't any data received past the current Recv offset
         // at the previous encryption level.
@@ -1362,7 +1366,7 @@ QuicCryptoProcessTlsCompletion(
         }
     }
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_DATA) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_DATA) {
 #ifdef CXPLAT_TLS_SECRETS_SUPPORT
         //
         // Parse the client initial to populate the TlsSecrets with the
@@ -1392,8 +1396,8 @@ QuicCryptoProcessTlsCompletion(
         QuicCryptoValidate(Crypto);
     }
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_COMPLETE) {
-        CXPLAT_DBG_ASSERT(!(ResultFlags & CXPLAT_TLS_RESULT_ERROR));
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_COMPLETE) {
+        CXPLAT_DBG_ASSERT(!(Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR));
         CXPLAT_TEL_ASSERT(!Connection->State.Connected);
 
         QuicTraceEvent(
@@ -1472,7 +1476,7 @@ QuicCryptoProcessTlsCompletion(
 
     QuicCryptoValidate(Crypto);
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_READ_KEY_UPDATED) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_READ_KEY_UPDATED) {
         QuicConnFlushDeferred(Connection);
     }
 }
@@ -1481,11 +1485,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoProcessDataComplete(
     _In_ QUIC_CRYPTO* Crypto,
-    _In_ CXPLAT_TLS_RESULT_FLAGS ResultFlags,
     _In_ uint32_t RecvBufferConsumed
     )
 {
-    Crypto->TlsCallPending = FALSE;
     if (RecvBufferConsumed != 0) {
         Crypto->RecvTotalConsumed += RecvBufferConsumed;
         QuicTraceLogConnVerbose(
@@ -1497,10 +1499,12 @@ QuicCryptoProcessDataComplete(
     }
 
     QuicCryptoValidate(Crypto);
-    QuicCryptoProcessTlsCompletion(Crypto, ResultFlags);
 
-    if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
-        QuicCryptoProcessData(Crypto, FALSE);
+    if (!Crypto->CertValidationPending) {
+        QuicCryptoProcessTlsCompletion(Crypto);
+        if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
+            QuicCryptoProcessData(Crypto, FALSE);
+        }
     }
 }
 
@@ -1529,9 +1533,44 @@ QuicCryptoProcessCompleteOperation(
     )
 {
     uint32_t BufferConsumed = 0;
-    CXPLAT_TLS_RESULT_FLAGS ResultFlags =
+    Crypto->ResultFlags =
         CxPlatTlsProcessDataComplete(Crypto->TLS, &BufferConsumed);
-    QuicCryptoProcessDataComplete(Crypto, ResultFlags, BufferConsumed);
+    QuicCryptoProcessDataComplete(Crypto, BufferConsumed);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCryptoCustomCertValidationComplete(
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ BOOLEAN Result
+    )
+{
+    CXPLAT_DBG_ASSERT(Crypto->CertValidationPending);
+    if (!Crypto->CertValidationPending) {
+        return;
+    }
+
+    Crypto->CertValidationPending = FALSE;
+    if (Result) {
+        QuicTraceLogConnInfo(
+            CustomCertValidationSuccess,
+            QuicCryptoGetConnection(Crypto),
+            "Custom cert validation succeeded");
+        QuicCryptoProcessTlsCompletion(Crypto);
+        if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
+            QuicCryptoProcessData(Crypto, FALSE);
+        }
+
+    } else {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            QuicCryptoGetConnection(Crypto),
+            "Custom cert validation failed.");
+        QuicConnTransportError(
+            QuicCryptoGetConnection(Crypto),
+            QUIC_ERROR_CRYPTO_ERROR(0xFF & CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE));
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1643,7 +1682,7 @@ QuicCryptoProcessData(
 
     QuicCryptoValidate(Crypto);
 
-    CXPLAT_TLS_RESULT_FLAGS ResultFlags =
+    Crypto->ResultFlags =
         CxPlatTlsProcessData(
             Crypto->TLS,
             CXPLAT_TLS_CRYPTO_DATA,
@@ -1651,10 +1690,12 @@ QuicCryptoProcessData(
             &Buffer.Length,
             &Crypto->TlsState);
 
-    CXPLAT_TEL_ASSERT(!IsClientInitial || ResultFlags != CXPLAT_TLS_RESULT_PENDING); // TODO - Support async for client Initial?
+    CXPLAT_TEL_ASSERT(
+        !IsClientInitial ||
+        Crypto->ResultFlags != CXPLAT_TLS_RESULT_PENDING); // TODO - Support async for client Initial?
 
-    if (ResultFlags != CXPLAT_TLS_RESULT_PENDING) {
-        QuicCryptoProcessDataComplete(Crypto, ResultFlags, Buffer.Length);
+    if (Crypto->ResultFlags != CXPLAT_TLS_RESULT_PENDING) {
+        QuicCryptoProcessDataComplete(Crypto, Buffer.Length);
     }
 
     return;
@@ -1680,15 +1721,21 @@ QuicCryptoProcessAppData(
         goto Error;
     }
 
-    CXPLAT_TLS_RESULT_FLAGS ResultFlags =
-        CxPlatTlsProcessData(Crypto->TLS, CXPLAT_TLS_TICKET_DATA, AppData, &DataLength, &Crypto->TlsState);
-    if (ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
+    Crypto->TlsCallPending = TRUE;
+    Crypto->ResultFlags =
+        CxPlatTlsProcessData(
+            Crypto->TLS,
+            CXPLAT_TLS_TICKET_DATA,
+            AppData,
+            &DataLength,
+            &Crypto->TlsState);
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
     }
 
-    if (!(ResultFlags & CXPLAT_TLS_RESULT_PENDING)) {
-        QuicCryptoProcessDataComplete(Crypto, ResultFlags, 0);
+    if (!(Crypto->ResultFlags & CXPLAT_TLS_RESULT_PENDING)) {
+        QuicCryptoProcessDataComplete(Crypto, 0);
     }
 
     Status = QUIC_STATUS_SUCCESS;

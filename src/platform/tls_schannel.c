@@ -1128,7 +1128,7 @@ CxPlatTlsSecConfigCreate(
 
     Credentials->dwVersion = SCH_CREDENTIALS_VERSION;
     Credentials->dwFlags |= SCH_USE_STRONG_CRYPTO;
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) {
+    if (CredConfig->Flags & (QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION)) {
         Credentials->dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
     }
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
@@ -2007,7 +2007,21 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         "Rejected deferred cert validation");
                     Result |= CXPLAT_TLS_RESULT_ERROR;
-                    State->AlertCode = 42; // bad_certificate
+                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
+                    break;
+                }
+            }
+
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) { // TODO - On server, only when client cert present?
+                if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
+                        TlsContext->Connection)) {
+                    QuicTraceEvent(
+                        TlsError,
+                        "[ tls][%p] ERROR, %s.",
+                        TlsContext->Connection,
+                        "Custom certificate validation failed");
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
+                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
                     break;
                 }
             }

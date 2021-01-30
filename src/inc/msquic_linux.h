@@ -208,12 +208,6 @@ extern "C" {
 #define _vsnprintf_s(dst, dst_len, flag, format, ...) vsnprintf(dst, dst_len, format, __VA_ARGS__)
 
 //
-// Hack to pass in a client trusted cert from APP layer to the TAL layer.
-//
-
-extern char *QuicOpenSslClientTrustedCert;
-
-//
 // IP Address Abstraction Helpers
 //
 

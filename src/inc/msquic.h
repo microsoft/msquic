@@ -97,6 +97,7 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION      = 0x00000004,
     QUIC_CREDENTIAL_FLAG_ENABLE_OCSP                    = 0x00000008, // Schannel only currently
     QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION   = 0x00000010, // Schannel only currently
+    QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION  = 0x00000020,
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS);
@@ -524,6 +525,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         15  // uint8_t (BOOLEAN)
 #endif
 #define QUIC_PARAM_CONN_RESUMPTION_TICKET               16  // uint8_t[]
+#define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID          17  // uint8_t (BOOLEAN)
 
 //
 // Parameters for QUIC_PARAM_LEVEL_TLS.
@@ -760,6 +762,7 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
     QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
     QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_VALIDATION       = 15,   // Only with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION set
+    QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 16,   // Only with QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION set
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -823,6 +826,9 @@ typedef struct QUIC_CONNECTION_EVENT {
             uint32_t ErrorFlags;                // Bit flag of errors
             QUIC_STATUS Status;                 // Most severe error status
         } PEER_CERTIFICATE_VALIDATION;
+        struct {
+            void* Reserved;                     // TODO - Expose certificate
+        } PEER_CERTIFICATE_RECEIVED;
     };
 } QUIC_CONNECTION_EVENT;
 

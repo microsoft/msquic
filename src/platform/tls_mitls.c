@@ -1548,6 +1548,20 @@ CxPlatTlsOnCertVerify(
         goto Error;
     }
 
+    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) {
+        if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
+                TlsContext->Connection)) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Custom certificate validation failed");
+        } else {
+            Result = TRUE;
+        }
+        goto Error;
+    }
+
     if (!CxPlatCertValidateChain(
             Certificate,
             TlsContext->SNI,
