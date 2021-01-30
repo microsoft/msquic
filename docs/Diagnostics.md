@@ -129,7 +129,7 @@ Counters are also captured at the beginning of MsQuic ETW traces, and unlike Per
 
 ## Why do I get errors on Linux when I try to open a large number of connections?
 
-In many setup the default Linux per-process file handle limit is relatively small (~1024). In scenarios where lots of (usually client) connection are opened, a large number of sockets (a type of file handle) are created. Eventually the handle limit is reached and connections start failing. To fix this, you will need to increase the limit.
+In many Linux setups, the default per-process file handle limit is relatively small (~1024). In scenarios where lots of (usually client) connection are opened, a large number of sockets (a type of file handle) are created. Eventually the handle limit is reached and connections start failing because new sockets cannot be created. To fix this, you will need to increase the handle limit.
 
 To query the maximum limit you may set:
 ```
