@@ -19,7 +19,7 @@ Abstract:
 #include <sys/event.h>
 #include <sys/time.h>
 
-#ifdef CXPLAT_CLOG
+#ifdef QUIC_CLOG
 #include "datapath_kqueue.c.clog.h"
 #endif
 
@@ -1656,7 +1656,7 @@ CxPlatSocketSendComplete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData
@@ -1697,7 +1697,7 @@ CxPlatSocketSend(
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-        Socket,
+        Binding,
         TotalSize,
         SendData->BufferCount,
         SendData->Buffers[0].Length,
