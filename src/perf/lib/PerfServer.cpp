@@ -330,7 +330,7 @@ PerfServer::TcpReceiveCallback(
     if (Open) {
         if ((Stream = This->StreamContextAllocator.Alloc(This, false, false)) != nullptr) {
             Stream->Entry.Signature = StreamID;
-            //Stream->IdealSendBuffer = PERF_DEFAULT_SEND_BUFFER_SIZE * 100; // TODO?
+            Stream->IdealSendBuffer = 1; // TCP uses send buffering, so just set to 1.
             This->StreamTable.Insert(&Stream->Entry);
         }
     } else {

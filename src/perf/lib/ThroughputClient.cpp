@@ -401,6 +401,7 @@ ThroughputClient::StartTcp()
     }
 
     TcpStrmContext = StreamContextAllocator.Alloc(this);
+    TcpStrmContext->IdealSendBuffer = 1; // TCP uses send buffering, so just set to 1.
 
     if (DownloadLength) {
         auto SendData = new TcpSendData();
