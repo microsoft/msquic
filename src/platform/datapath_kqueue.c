@@ -19,7 +19,7 @@ Abstract:
 #include <sys/event.h>
 #include <sys/time.h>
 
-#ifdef CXPLAT_CLOG
+#ifdef QUIC_CLOG
 #include "datapath_kqueue.c.clog.h"
 #endif
 
