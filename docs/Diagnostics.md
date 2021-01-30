@@ -126,3 +126,17 @@ On the latest version of Windows, these counters are also exposed via PerfMon.ex
 Counters are also captured at the beginning of MsQuic ETW traces, and unlike PerfMon, includes all MsQuic instances running on the system, both user and kernel mode.
 
 # FAQ
+
+## Why do I get errors on Linux when I try to open a large number of connections?
+
+In many setup the default Linux per-process file handle limit is relatively small (~1024). In scenarios where lots of (usually client) connection are opened, a large number of sockets (a type of file handle) are created. Eventually the handle limit is reached and connections start failing. To fix this, you will need to increase the limit.
+
+To query the maximum limit you may set:
+```
+ulimit -Hn
+```
+
+To set a new limit (up to the max):
+```
+ulimit -n newValue
+```
