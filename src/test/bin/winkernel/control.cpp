@@ -412,7 +412,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     sizeof(INT32),
     0,
-    sizeof(INT32)
+    sizeof(INT32),
+    sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION)
 };
 
 static_assert(
@@ -434,6 +435,7 @@ typedef union {
     UINT8 StopListenerFirst;
     QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams;
     QUIC_RUN_DATAGRAM_NEGOTIATION DatagramNegotiationParams;
+    QUIC_RUN_CUSTOM_CERT_VALIDATION CustomCertValidationParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -549,7 +551,7 @@ QuicTestCtlEvtIoDeviceControl(
     switch (IoControlCode) {
 
     case IOCTL_QUIC_SET_CERT_HASH:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
         SelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
         SelfSignedCredConfig.CertificateHash = &SelfSignedCertHash;
@@ -570,7 +572,7 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestValidateConnection());
         break;
     case IOCTL_QUIC_RUN_VALIDATE_STREAM:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestValidateStream(Params->Connect != 0));
         break;
 
@@ -581,7 +583,7 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestStartListener());
         break;
     case IOCTL_QUIC_RUN_START_LISTENER_IMPLICIT:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestStartListenerImplicit(Params->Family));
         break;
     case IOCTL_QUIC_RUN_START_TWO_LISTENERS:
@@ -591,23 +593,23 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestStartTwoListenersSameALPN());
         break;
     case IOCTL_QUIC_RUN_START_LISTENER_EXPLICIT:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestStartListenerExplicit(Params->Family));
         break;
     case IOCTL_QUIC_RUN_CREATE_CONNECTION:
         QuicTestCtlRun(QuicTestCreateConnection());
         break;
     case IOCTL_QUIC_RUN_BIND_CONNECTION_IMPLICIT:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestBindConnectionImplicit(Params->Family));
         break;
     case IOCTL_QUIC_RUN_BIND_CONNECTION_EXPLICIT:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestBindConnectionExplicit(Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_CONNECT:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestConnect(
                 Params->Params1.Family,
@@ -622,7 +624,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_CONNECT_AND_PING:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestConnectAndPing(
                 Params->Params2.Family,
@@ -643,22 +645,22 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_CONNECT_AND_IDLE:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestConnectAndIdle(Params->EnableKeepAlive != 0));
         break;
 
     case IOCTL_QUIC_RUN_CONNECT_UNREACHABLE:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestConnectUnreachable(Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_CONNECT_BAD_ALPN:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestConnectBadAlpn(Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_CONNECT_BAD_SNI:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestConnectBadSni(Params->Family));
         break;
 
@@ -667,7 +669,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_CLIENT_DISCONNECT:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestClientDisconnect(Params->StopListenerFirst));
         break;
 
@@ -680,12 +682,12 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_VERSION_NEGOTIATION:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestVersionNegotiation(Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_KEY_UPDATE:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestKeyUpdate(
                 Params->Params3.Family,
@@ -701,12 +703,12 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_CONNECT_SERVER_REJECTED:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestConnectServerRejected(Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_ABORTIVE_SHUTDOWN:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicAbortiveTransfers(
                 Params->Params4.Family,
@@ -714,7 +716,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_CID_UPDATE:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestCidUpdate(
                 Params->Params5.Family,
@@ -722,7 +724,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_RECEIVE_RESUME:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestReceiveResume(
                 Params->Params6.Family,
@@ -734,7 +736,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_RECEIVE_RESUME_NO_DATA:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestReceiveResumeNoData(
                 Params->Params6.Family,
@@ -747,7 +749,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_CID:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicDrillTestInitialCid(
                 Params->DrillParams.Family,
@@ -758,7 +760,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_TOKEN:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicDrillTestInitialToken(
                 Params->Family));
@@ -769,7 +771,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestDatagramNegotiation(
                 Params->DatagramNegotiationParams.Family,
@@ -777,35 +779,35 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_DATAGRAM_SEND:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestDatagramSend(
                 Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_NAT_PORT_REBIND:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestNatPortRebind(
                 Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_NAT_ADDR_REBIND:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestNatAddrRebind(
                 Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestChangeMaxStreamID(
                 Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_PATH_VALIDATION_TIMEOUT:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestPathValidationTimeout(
                 Params->Family));
@@ -816,9 +818,17 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_ACK_SEND_DELAY:
-        QUIC_FRE_ASSERT(Params != nullptr);
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestAckSendDelay(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestCustomCertificateValidation(
+                Params->CustomCertValidationParams.AcceptCert,
+                Params->CustomCertValidationParams.AsyncValidation));
         break;
 
     default:

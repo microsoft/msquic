@@ -42,7 +42,10 @@ param (
     [string]$Extra = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Kernel
+    [switch]$Kernel,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$FailOnError
 )
 
 #Requires -RunAsAdministrator
@@ -82,6 +85,12 @@ if ($InitSubmodules) {
         git submodule update
     }
 
+    if ($Kernel) {
+        # Remove OpenSSL and Everest
+        git rm submodules/everest
+        git rm submodules/openssl
+    }
+
     if (!$Extra.Contains("-DisableTest")) {
         Write-Host "Initializing googletest submodule"
         git submodule init submodules/googletest
@@ -108,6 +117,9 @@ function Install-ClogTool {
         Write-Host "Installing: $NuGetName"
         dotnet tool update --global --add-source $NuGetPath $ToolName
     } catch {
+        if ($FailOnError) {
+            Write-Error $_
+        }
         $err = $_
         $MessagesAtEnd.Add("$ToolName could not be installed. Building with logs will not work")
         $MessagesAtEnd.Add($err.ToString())
@@ -132,10 +144,15 @@ if ($IsWindows) {
         $NasmExe = Join-Path $NasmPath "nasm.exe"
         if (!(Test-Path $NasmExe)) {
             New-Item -Path .\build -ItemType Directory -Force
-            if ([System.Environment]::Is64BitOperatingSystem) {
-                Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-win64.zip" -OutFile "build\nasm.zip"
-            } else {
-                Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win32/nasm-$NasmVersion-win32.zip" -OutFile "build\nasm.zip"
+            $NasmArch = "win64"
+            if (![System.Environment]::Is64BitOperatingSystem) {
+                $NasmArch = "win32"
+            }
+            try {
+                Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-$NasmArch.zip" -OutFile "build\nasm.zip"
+            } catch {
+                # Mirror fallback
+                Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "build\nasm.zip"
             }
             Expand-Archive -Path "build\nasm.zip" -DestinationPath $env:Programfiles -Force
             $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
@@ -179,6 +196,8 @@ if ($IsWindows) {
             sudo apt-add-repository ppa:lttng/stable-2.11
             sudo apt-get update
             sudo apt-get install -y liblttng-ust-dev
+            # only used for the codecheck CI run:
+            sudo apt-get install -y cppcheck clang-tidy
         }
         "Test" {
             sudo apt-add-repository ppa:lttng/stable-2.11

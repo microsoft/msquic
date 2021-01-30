@@ -200,15 +200,15 @@ QuicAckFrameEncode(
     //
     while (i != 0) {
 
-        QUIC_DBG_ASSERT(Largest >= Count);
+        CXPLAT_DBG_ASSERT(Largest >= Count);
         Largest -= Count;
 
         QUIC_SUBRANGE* Next = QuicRangeGet(AckBlocks, i - 1);
         uint64_t NextLargest = QuicRangeGetHigh(Next);
         Count = Next->Count;
 
-        QUIC_DBG_ASSERT(Largest > NextLargest);
-        QUIC_DBG_ASSERT(Count > 0);
+        CXPLAT_DBG_ASSERT(Largest > NextLargest);
+        CXPLAT_DBG_ASSERT(Count > 0);
 
         QUIC_ACK_BLOCK_EX Block = {
             (Largest - NextLargest) - 1,    // Gap
@@ -216,7 +216,7 @@ QuicAckFrameEncode(
         };
 
         if (!QuicAckBlockEncode(&Block, Offset, BufferLength, Buffer)) {
-            QUIC_TEL_ASSERT(FALSE); // TODO - Support partial ACK array encoding by updating the 'AdditionalAckBlockCount' field.
+            CXPLAT_TEL_ASSERT(FALSE); // TODO - Support partial ACK array encoding by updating the 'AdditionalAckBlockCount' field.
             return FALSE;
         }
 
@@ -259,7 +259,7 @@ QuicAckFrameDecode(
     )
 {
     *InvalidFrame = FALSE;
-    QUIC_DBG_ASSERT(AckRanges->SubRanges); // Should be pre-initialized.
+    CXPLAT_DBG_ASSERT(AckRanges->SubRanges); // Should be pre-initialized.
 
     //
     // Decode the ACK frame header.
@@ -440,7 +440,7 @@ QuicCryptoFrameEncode(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    QUIC_DBG_ASSERT(Frame->Length < UINT16_MAX);
+    CXPLAT_DBG_ASSERT(Frame->Length < UINT16_MAX);
 
     uint16_t RequiredLength =
         sizeof(uint8_t) +     // Type
@@ -456,7 +456,7 @@ QuicCryptoFrameEncode(
     Buffer = QuicUint8Encode(QUIC_FRAME_CRYPTO, Buffer);
     Buffer = QuicVarIntEncode(Frame->Offset, Buffer);
     Buffer = QuicVarIntEncode(Frame->Length, Buffer);
-    QuicCopyMemory(Buffer, Frame->Data, (uint16_t)Frame->Length);
+    CxPlatCopyMemory(Buffer, Frame->Data, (uint16_t)Frame->Length);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -503,7 +503,7 @@ QuicNewTokenFrameEncode(
     Buffer = Buffer + *Offset;
     Buffer = QuicUint8Encode(QUIC_FRAME_NEW_TOKEN, Buffer);
     Buffer = QuicVarIntEncode(Frame->TokenLength, Buffer);
-    QuicCopyMemory(Buffer, Frame->Token, (uint16_t)Frame->TokenLength);
+    CxPlatCopyMemory(Buffer, Frame->Token, (uint16_t)Frame->TokenLength);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -540,7 +540,7 @@ QuicStreamFrameEncode(
     )
 {
     __analysis_assume(Frame->Length < 0x10000);
-    QUIC_DBG_ASSERT(Frame->Length < 0x10000);
+    CXPLAT_DBG_ASSERT(Frame->Length < 0x10000);
 
     uint16_t RequiredLength =
         QuicStreamFrameHeaderSize(Frame) +
@@ -566,7 +566,7 @@ QuicStreamFrameEncode(
     if (Type.LEN) {
         Buffer = QuicVarIntEncode2Bytes(Frame->Length, Buffer); // We always use two bytes for the explicit length.
     }
-    QUIC_DBG_ASSERT(Frame->Length == 0 || Buffer == Frame->Data); // Caller already set the data.
+    CXPLAT_DBG_ASSERT(Frame->Length == 0 || Buffer == Frame->Data); // Caller already set the data.
     *Offset += RequiredLength;
 
     return TRUE;
@@ -604,7 +604,7 @@ QuicStreamFrameDecode(
         }
         Frame->ExplicitLength = TRUE;
     } else {
-        QUIC_ANALYSIS_ASSERT(BufferLength >= *Offset);
+        CXPLAT_ANALYSIS_ASSERT(BufferLength >= *Offset);
         Frame->Length = BufferLength - *Offset;
     }
     Frame->Fin = Type.FIN;
@@ -905,7 +905,7 @@ QuicNewConnectionIDFrameEncode(
     Buffer = QuicVarIntEncode(Frame->Sequence, Buffer);
     Buffer = QuicVarIntEncode(Frame->RetirePriorTo, Buffer);
     Buffer = QuicUint8Encode(Frame->Length, Buffer);
-    QuicCopyMemory(Buffer, Frame->Buffer, Frame->Length + QUIC_STATELESS_RESET_TOKEN_LENGTH);
+    CxPlatCopyMemory(Buffer, Frame->Buffer, Frame->Length + QUIC_STATELESS_RESET_TOKEN_LENGTH);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -935,7 +935,7 @@ QuicNewConnectionIDFrameDecode(
         return FALSE;
     }
 
-    QuicCopyMemory(Frame->Buffer, Buffer + *Offset, Frame->Length + QUIC_STATELESS_RESET_TOKEN_LENGTH);
+    CxPlatCopyMemory(Frame->Buffer, Buffer + *Offset, Frame->Length + QUIC_STATELESS_RESET_TOKEN_LENGTH);
     *Offset += Frame->Length + QUIC_STATELESS_RESET_TOKEN_LENGTH;
 
     return TRUE;
@@ -1003,7 +1003,7 @@ QuicPathChallengeFrameEncode(
 
     Buffer = Buffer + *Offset;
     Buffer = QuicUint8Encode(FrameType, Buffer);
-    QuicCopyMemory(Buffer, Frame->Data, sizeof(Frame->Data));
+    CxPlatCopyMemory(Buffer, Frame->Data, sizeof(Frame->Data));
     *Offset += RequiredLength;
 
     return TRUE;
@@ -1022,7 +1022,7 @@ QuicPathChallengeFrameDecode(
     if (BufferLength < *Offset + sizeof(Frame->Data)) {
         return FALSE;
     }
-    QuicCopyMemory(Frame->Data, Buffer + *Offset, sizeof(Frame->Data));
+    CxPlatCopyMemory(Frame->Data, Buffer + *Offset, sizeof(Frame->Data));
     *Offset += sizeof(Frame->Data);
     return TRUE;
 }
@@ -1060,7 +1060,7 @@ QuicConnCloseFrameEncode(
     }
     Buffer = QuicVarIntEncode(Frame->ReasonPhraseLength, Buffer);
     if (Frame->ReasonPhraseLength != 0) {
-        QuicCopyMemory(Buffer, Frame->ReasonPhrase, (size_t)Frame->ReasonPhraseLength);
+        CxPlatCopyMemory(Buffer, Frame->ReasonPhrase, (size_t)Frame->ReasonPhraseLength);
     }
     *Offset += RequiredLength;
 
@@ -1126,7 +1126,7 @@ QuicDatagramFrameEncodeEx(
     }
     for (uint32_t i = 0; i < BufferCount; ++i) {
         if (Buffers[i].Length != 0) {
-            QuicCopyMemory(Buffer, Buffers[i].Buffer, Buffers[i].Length);
+            CxPlatCopyMemory(Buffer, Buffers[i].Buffer, Buffers[i].Length);
             Buffer += Buffers[i].Length;
         }
     }
@@ -1155,7 +1155,7 @@ QuicDatagramFrameDecode(
             return FALSE;
         }
     } else {
-        QUIC_ANALYSIS_ASSERT(BufferLength >= *Offset);
+        CXPLAT_ANALYSIS_ASSERT(BufferLength >= *Offset);
         Frame->Length = BufferLength - *Offset;
     }
     Frame->Data = Buffer + *Offset;
@@ -1663,7 +1663,7 @@ QuicFrameLog(
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
-            QuicByteSwapUint64(*(uint64_t*)Frame.Data));
+            CxPlatByteSwapUint64(*(uint64_t*)Frame.Data));
         break;
     }
 
@@ -1685,7 +1685,7 @@ QuicFrameLog(
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
-            QuicByteSwapUint64(*(uint64_t*)Frame.Data));
+            CxPlatByteSwapUint64(*(uint64_t*)Frame.Data));
         break;
     }
 
@@ -1756,7 +1756,7 @@ QuicFrameLog(
     }
 
     default:
-        QUIC_FRE_ASSERT(FALSE);
+        CXPLAT_FRE_ASSERT(FALSE);
         break;
     }
 

@@ -56,14 +56,14 @@ typedef struct _SYSTEM_BASIC_INFORMATION {
 } SYSTEM_BASIC_INFORMATION, *PSYSTEM_BASIC_INFORMATION;
 
 
-uint64_t QuicPlatformPerfFreq;
-uint64_t QuicTotalMemory;
-QUIC_PLATFORM QuicPlatform = { NULL, NULL };
+uint64_t CxPlatPerfFreq;
+uint64_t CxPlatTotalMemory;
+CX_PLATFORM CxPlatform = { NULL, NULL };
 
 INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatformSystemLoad(
+CxPlatSystemLoad(
     _In_ PDRIVER_OBJECT DriverObject,
     _In_ PUNICODE_STRING RegistryPath
     )
@@ -78,9 +78,9 @@ QuicPlatformSystemLoad(
     InitializeTelemetryAssertsKM(RegistryPath);
 #endif
 
-    QuicPlatform.DriverObject = DriverObject;
-    (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&QuicPlatformPerfFreq);
-    QuicPlatform.RngAlgorithm = NULL;
+    CxPlatform.DriverObject = DriverObject;
+    (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&CxPlatPerfFreq);
+    CxPlatform.RngAlgorithm = NULL;
 
     QuicTraceLogInfo(
         WindowsKernelLoaded,
@@ -90,7 +90,7 @@ QuicPlatformSystemLoad(
 PAGEDX
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatformSystemUnload(
+CxPlatSystemUnload(
     void
     )
 {
@@ -112,7 +112,7 @@ QuicPlatformSystemUnload(
 PAGEDX
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicPlatformInitialize(
+CxPlatInitialize(
     void
     )
 {
@@ -122,7 +122,7 @@ QuicPlatformInitialize(
 
     QUIC_STATUS Status =
         BCryptOpenAlgorithmProvider(
-            &QuicPlatform.RngAlgorithm,
+            &CxPlatform.RngAlgorithm,
             BCRYPT_RNG_ALGORITHM,
             NULL,
             BCRYPT_PROV_DISPATCH);
@@ -134,7 +134,7 @@ QuicPlatformInitialize(
             "BCryptOpenAlgorithmProvider (RNG)");
         goto Error;
     }
-    QUIC_DBG_ASSERT(QuicPlatform.RngAlgorithm != NULL);
+    CXPLAT_DBG_ASSERT(CxPlatform.RngAlgorithm != NULL);
 
     Status =
         ZwQuerySystemInformation(
@@ -148,13 +148,13 @@ QuicPlatformInitialize(
         goto Error;
     }
 
-    Status = QuicTlsLibraryInitialize();
+    Status = CxPlatTlsLibraryInitialize();
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "QuicTlsLibraryInitialize");
+            "CxPlatTlsLibraryInitialize");
         goto Error;
     }
 
@@ -162,20 +162,20 @@ QuicPlatformInitialize(
     // TODO - Apparently this can be increased via hot memory add. Figure out
     // how to know when to update this value.
     //
-    QuicTotalMemory = (uint64_t)Sbi.NumberOfPhysicalPages * (uint64_t)Sbi.PageSize;
+    CxPlatTotalMemory = (uint64_t)Sbi.NumberOfPhysicalPages * (uint64_t)Sbi.PageSize;
 
     QuicTraceLogInfo(
         WindowsKernelInitialized,
         "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
         Sbi.PageSize,
-        QuicTotalMemory);
+        CxPlatTotalMemory);
 
 Error:
 
     if (QUIC_FAILED(Status)) {
-        if (QuicPlatform.RngAlgorithm != NULL) {
-            BCryptCloseAlgorithmProvider(QuicPlatform.RngAlgorithm, 0);
-            QuicPlatform.RngAlgorithm = NULL;
+        if (CxPlatform.RngAlgorithm != NULL) {
+            BCryptCloseAlgorithmProvider(CxPlatform.RngAlgorithm, 0);
+            CxPlatform.RngAlgorithm = NULL;
         }
     }
 
@@ -185,14 +185,14 @@ Error:
 PAGEDX
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPlatformUninitialize(
+CxPlatUninitialize(
     void
     )
 {
     PAGED_CODE();
-    QuicTlsLibraryUninitialize();
-    BCryptCloseAlgorithmProvider(QuicPlatform.RngAlgorithm, 0);
-    QuicPlatform.RngAlgorithm = NULL;
+    CxPlatTlsLibraryUninitialize();
+    BCryptCloseAlgorithmProvider(CxPlatform.RngAlgorithm, 0);
+    CxPlatform.RngAlgorithm = NULL;
     QuicTraceLogInfo(
         WindowsKernelUninitialized,
         "[ sys] Uninitialized");
@@ -200,7 +200,7 @@ QuicPlatformUninitialize(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicPlatformLogAssert(
+CxPlatLogAssert(
     _In_z_ const char* File,
     _In_ int Line,
     _In_z_ const char* Expr
@@ -219,7 +219,7 @@ QuicPlatformLogAssert(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicRandom(
+CxPlatRandom(
     _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) void* Buffer
     )
@@ -227,10 +227,10 @@ QuicRandom(
     //
     // Use the algorithm we initialized for DISPATCH_LEVEL usage.
     //
-    QUIC_DBG_ASSERT(QuicPlatform.RngAlgorithm != NULL);
+    CXPLAT_DBG_ASSERT(CxPlatform.RngAlgorithm != NULL);
     return (QUIC_STATUS)
         BCryptGenRandom(
-            QuicPlatform.RngAlgorithm,
+            CxPlatform.RngAlgorithm,
             (uint8_t*)Buffer,
             BufferLen,
             0);

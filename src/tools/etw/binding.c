@@ -65,7 +65,7 @@ BindingEventCallback(
 {
     BINDING* Binding = GetBindingFromEvent(ev);
     *ObjectId = Binding->Id;
-    
+
     UNREFERENCED_PARAMETER(TraceEvent);
     UNREFERENCED_PARAMETER(InitialTimestamp);
 }

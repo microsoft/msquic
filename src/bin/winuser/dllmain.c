@@ -42,13 +42,13 @@ DllMain(
 #else
         UNREFERENCED_PARAMETER(Instance);
 #endif
-        QuicPlatformSystemLoad();
+        CxPlatSystemLoad();
         MsQuicLibraryLoad();
         break;
 
     case DLL_PROCESS_DETACH:
         MsQuicLibraryUnload();
-        QuicPlatformSystemUnload();
+        CxPlatSystemUnload();
         break;
     }
 

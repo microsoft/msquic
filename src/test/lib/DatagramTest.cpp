@@ -14,18 +14,6 @@ Abstract:
 #include "DatagramTest.cpp.clog.h"
 #endif
 
-struct ServerAcceptContext {
-    QUIC_EVENT NewConnectionReady;
-    TestConnection** NewConnection;
-    ServerAcceptContext(TestConnection** _NewConnection) :
-        NewConnection(_NewConnection) {
-        QuicEventInitialize(&NewConnectionReady, TRUE, FALSE);
-    }
-    ~ServerAcceptContext() {
-        QuicEventUninitialize(NewConnectionReady);
-    }
-};
-
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
@@ -43,7 +31,7 @@ ListenerAcceptConnection(
         return false;
     }
     (*AcceptContext->NewConnection)->SetHasRandomLoss(Listener->GetHasRandomLoss());
-    QuicEventSet(AcceptContext->NewConnectionReady);
+    CxPlatEventSet(AcceptContext->NewConnectionReady);
     return true;
 }
 
@@ -122,7 +110,7 @@ QuicTestDatagramNegotiation(
 
                 TEST_TRUE(Server->GetDatagramSendEnabled()); // Client always enabled
 
-                QuicSleep(100); // Necessary?
+                CxPlatSleep(100); // Necessary?
 
                 if (DatagramReceiveEnabled) {
                     TEST_EQUAL(1, Client.GetDatagramsSent());
@@ -214,7 +202,7 @@ QuicTestDatagramSend(
 
                 TEST_TRUE(Server->GetDatagramSendEnabled());
 
-                QuicSleep(100);
+                CxPlatSleep(100);
 
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->DatagramSend(
@@ -224,11 +212,11 @@ QuicTestDatagramSend(
                         QUIC_SEND_FLAG_NONE,
                         nullptr));
 
-                QuicSleep(100);
+                CxPlatSleep(100);
 
                 TEST_EQUAL(1, Client.GetDatagramsSent());
 
-                QuicSleep(100);
+                CxPlatSleep(100);
 
                 TEST_EQUAL(1, Client.GetDatagramsAcknowledged());
 
@@ -243,11 +231,11 @@ QuicTestDatagramSend(
                         QUIC_SEND_FLAG_NONE,
                         nullptr));
 
-                QuicSleep(100);
+                CxPlatSleep(100);
 
                 TEST_EQUAL(2, Client.GetDatagramsSent());
 
-                QuicSleep(500);
+                CxPlatSleep(500);
 
                 TEST_EQUAL(1, Client.GetDatagramsSuspectLost());
 #endif

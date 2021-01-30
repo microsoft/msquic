@@ -23,13 +23,13 @@ class QuicTestEnvironment : public ::testing::Environment {
     const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
 public:
     void SetUp() override {
-        QuicPlatformSystemLoad();
-        ASSERT_TRUE(QUIC_SUCCEEDED(QuicPlatformInitialize()));
+        CxPlatSystemLoad();
+        ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
         ASSERT_TRUE((SelfSignedCertParams =
-            QuicPlatGetSelfSignedCert(
+            CxPlatPlatGetSelfSignedCert(
                 TestingKernelMode ?
-                    QUIC_SELF_SIGN_CERT_MACHINE :
-                    QUIC_SELF_SIGN_CERT_USER
+                    CXPLAT_SELF_SIGN_CERT_MACHINE :
+                    CXPLAT_SELF_SIGN_CERT_USER
                 )) != nullptr);
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
@@ -61,9 +61,9 @@ public:
             QuicTestUninitialize();
             delete MsQuic;
         }
-        QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
-        QuicPlatformUninitialize();
-        QuicPlatformSystemUnload();
+        CxPlatPlatFreeSelfSignedCert(SelfSignedCertParams);
+        CxPlatUninitialize();
+        CxPlatSystemUnload();
     }
 };
 
@@ -389,6 +389,19 @@ TEST_P(WithFamilyArgs, VersionNegotiation) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VERSION_NEGOTIATION, GetParam().Family));
     } else {
         QuicTestVersionNegotiation(GetParam().Family);
+    }
+}
+
+TEST_P(WithHandshakeArgs5, CustomCertificateValidation) {
+    TestLoggerT<ParamType> Logger("QuicTestCustomCertificateValidation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_PARAMS Params = {
+            GetParam().AcceptCert,
+            GetParam().AsyncValidation
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION, &Params));
+    } else {
+        QuicTestCustomCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
     }
 }
 
@@ -913,6 +926,11 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(HandshakeArgs4::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs5,
+    testing::ValuesIn(HandshakeArgs5::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
     AppData,
     WithSendArgs1,
     testing::ValuesIn(SendArgs1::Generate()));
@@ -983,11 +1001,11 @@ INSTANTIATE_TEST_SUITE_P(
 
 int main(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
-        if (strcmp("--kernel", argv[i]) == 0) {
+        if (strcmp("--kernel", argv[i]) == 0 || strcmp("--kernelPriv", argv[i]) == 0) {
             TestingKernelMode = true;
-        }
-        if (strcmp("--privateLibrary", argv[i]) == 0) {
-            PrivateTestLibrary = true;
+            if (strcmp("--kernelPriv", argv[i]) == 0) {
+                PrivateTestLibrary = true;
+            }
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);

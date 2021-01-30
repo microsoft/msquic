@@ -365,8 +365,8 @@ QuicStreamProcessStreamFrame(
         // Keep track of the total ordered bytes received.
         //
         Stream->Connection->Send.OrderedStreamBytesReceived += WriteLength;
-        QUIC_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived < Stream->Connection->Send.MaxData);
-        QUIC_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived >= WriteLength);
+        CXPLAT_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived < Stream->Connection->Send.MaxData);
+        CXPLAT_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived >= WriteLength);
 
         if (QuicRecvBufferGetTotalLength(&Stream->RecvBuffer) == Stream->MaxAllowedRecvOffset) {
             QuicTraceLogStreamVerbose(
@@ -582,7 +582,7 @@ QuicStreamOnBytesDelivered(
 
     if (Stream->RecvWindowBytesDelivered >= RecvBufferDrainThreshold) {
 
-        uint32_t TimeNow = QuicTimeUs32();
+        uint32_t TimeNow = CxPlatTimeUs32();
 
         //
         // Limit stream FC window growth by the connection FC window size.
@@ -592,7 +592,7 @@ QuicStreamOnBytesDelivered(
 
             uint32_t TimeThreshold = (uint32_t)
                 ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
-            if (QuicTimeDiff32(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
+            if (CxPlatTimeDiff32(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
 
                 //
                 // Buffer tuning:
@@ -649,7 +649,7 @@ QuicStreamOnBytesDelivered(
         Stream,
         "Updating flow control window");
 
-    QUIC_DBG_ASSERT(
+    CXPLAT_DBG_ASSERT(
         Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength >
         Stream->MaxAllowedRecvOffset);
 
@@ -681,8 +681,8 @@ QuicStreamRecvFlush(
         return;
     }
 
-    QUIC_TEL_ASSERT(Stream->Flags.ReceiveDataPending);
-    QUIC_TEL_ASSERT(!Stream->Flags.ReceiveCallPending);
+    CXPLAT_TEL_ASSERT(Stream->Flags.ReceiveDataPending);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.ReceiveCallPending);
 
     BOOLEAN FlushRecv = TRUE;
     while (FlushRecv) {
@@ -707,7 +707,7 @@ QuicStreamRecvFlush(
             for (uint32_t i = 0; i < Event.RECEIVE.BufferCount; ++i) {
                 Event.RECEIVE.TotalBufferLength += RecvBuffers[i].Length;
             }
-            QUIC_DBG_ASSERT(Event.RECEIVE.TotalBufferLength != 0);
+            CXPLAT_DBG_ASSERT(Event.RECEIVE.TotalBufferLength != 0);
 
             if (Event.RECEIVE.AbsoluteOffset < Stream->RecvMax0RttLength) {
                 //
@@ -755,7 +755,7 @@ QuicStreamRecvFlush(
                 // If the pending call wasn't completed inline, then receive
                 // callbacks MUST be disabled still.
                 //
-                QUIC_TEL_ASSERTMSG_ARGS(
+                CXPLAT_TEL_ASSERTMSG_ARGS(
                     !Stream->Flags.ReceiveEnabled,
                     "App pended recv AND enabled additional recv callbacks",
                     Stream->Connection->Registration->AppName,
@@ -777,14 +777,14 @@ QuicStreamRecvFlush(
             // All other failure status returns are ignored and shouldn't be
             // used by the app.
             //
-            QUIC_TEL_ASSERTMSG_ARGS(
+            CXPLAT_TEL_ASSERTMSG_ARGS(
                 QUIC_SUCCEEDED(Status),
                 "App failed recv callback",
                 Stream->Connection->Registration->AppName,
                 Status, 0);
         }
 
-        QUIC_TEL_ASSERTMSG_ARGS(
+        CXPLAT_TEL_ASSERTMSG_ARGS(
             Stream->Flags.ReceiveCallPending,
             "App completed async recv without pending it",
             Stream->Connection->Registration->AppName,
@@ -819,7 +819,7 @@ QuicStreamReceiveComplete(
 
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, BufferLength);
 
-    QUIC_FRE_ASSERTMSG(
+    CXPLAT_FRE_ASSERTMSG(
         BufferLength <= Stream->RecvPendingLength,
         "App overflowed read buffer!");
 
@@ -875,7 +875,7 @@ QuicStreamReceiveComplete(
     }
 
     if (Stream->RecvBuffer.BaseOffset == Stream->RecvMaxLength) {
-        QUIC_DBG_ASSERT(!Stream->Flags.ReceiveDataPending);
+        CXPLAT_DBG_ASSERT(!Stream->Flags.ReceiveDataPending);
         //
         // We have delivered all the payload that needs to be delivered. Deliver
         // the graceful close event now.

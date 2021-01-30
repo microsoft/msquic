@@ -142,7 +142,7 @@ MsQuicGetPublicIPEx(
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
 
     QUIC_CREDENTIAL_CONFIG CredConfig;
-    QuicZeroMemory(&CredConfig, sizeof(CredConfig));
+    CxPlatZeroMemory(&CredConfig, sizeof(CredConfig));
     CredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
     CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT;
     if (Unsecure) {

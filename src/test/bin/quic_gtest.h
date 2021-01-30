@@ -158,6 +158,28 @@ class WithHandshakeArgs4 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs4> {
 };
 
+struct HandshakeArgs5 {
+    bool AcceptCert;
+    bool AsyncValidation;
+    static ::std::vector<HandshakeArgs5> Generate() {
+        ::std::vector<HandshakeArgs5> list;
+        for (bool AcceptCert : { false, true })
+        for (bool AsyncValidation : { false, true })
+            list.push_back({ AcceptCert, AsyncValidation });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs5& args) {
+    return o <<
+        (args.AcceptCert ? "Accept" : "Reject") << "/" <<
+        (args.AsyncValidation ? "Async" : "Sync");
+}
+
+class WithHandshakeArgs5 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs5> {
+};
+
 struct SendArgs1 {
     int Family;
     uint64_t Length;

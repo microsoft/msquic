@@ -77,6 +77,12 @@ QuicTestVersionNegotiation(
     _In_ int Family
     );
 
+void
+QuicTestCustomCertificateValidation(
+    _In_ bool AcceptCert,
+    _In_ bool AsyncValidation
+    );
+
 //
 // Negative Handshake Tests
 //
@@ -590,4 +596,13 @@ typedef struct {
     QUIC_CTL_CODE(46, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 46
+typedef struct {
+    BOOLEAN AcceptCert;
+    BOOLEAN AsyncValidation;
+} QUIC_RUN_CUSTOM_CERT_VALIDATION;
+
+#define IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION \
+    QUIC_CTL_CODE(47, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_CUSTOM_CERT_VALIDATION
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 47

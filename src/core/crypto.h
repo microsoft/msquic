@@ -11,6 +11,11 @@ Abstract:
 --*/
 
 //
+// Set of callbacks for TLS.
+//
+extern CXPLAT_TLS_CALLBACKS QuicTlsCallbacks;
+
+//
 // Stream of TLS data.
 //
 typedef struct QUIC_CRYPTO {
@@ -36,15 +41,25 @@ typedef struct QUIC_CRYPTO {
     BOOLEAN TlsCallPending : 1;
 
     //
+    // Indicates custom cert validation (by the app) is outstanding.
+    //
+    BOOLEAN CertValidationPending : 1;
+
+    //
     // The TLS context for processing handshake messages.
     //
-    QUIC_TLS* TLS;
+    CXPLAT_TLS* TLS;
 
     //
     // Send State
     //
 
-    QUIC_TLS_PROCESS_STATE TlsState;
+    CXPLAT_TLS_PROCESS_STATE TlsState;
+
+    //
+    // Result flags from the last Tls process call.
+    //
+    CXPLAT_TLS_RESULT_FLAGS ResultFlags;
 
     //
     // The length of bytes that have been sent at least once.
@@ -131,7 +146,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoInitializeTls(
     _Inout_ QUIC_CRYPTO* Crypto,
-    _In_ QUIC_SEC_CONFIG* SecConfig,
+    _In_ CXPLAT_SEC_CONFIG* SecConfig,
     _In_ const QUIC_TRANSPORT_PARAMETERS* Params
     );
 
@@ -142,8 +157,7 @@ QuicCryptoInitializeTls(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoReset(
-    _In_ QUIC_CRYPTO* Crypto,
-    _In_ BOOLEAN ResetTls
+    _In_ QUIC_CRYPTO* Crypto
     );
 
 //
@@ -251,6 +265,16 @@ QuicCryptoProcessAppData(
     );
 
 //
+// Invoked when the app has completed its custom certificate validation.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCryptoCustomCertValidationComplete(
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ BOOLEAN Result
+    );
+
+//
 // Helper function to determine how much complete TLS data is contained in the
 // buffer, and should be passed to TLS.
 //
@@ -275,8 +299,8 @@ QuicCryptoTlsReadInitial(
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
-#ifdef QUIC_TLS_SECRETS_SUPPORT
-    , _Inout_opt_ QUIC_TLS_SECRETS* TlsSecrets
+#ifdef CXPLAT_TLS_SECRETS_SUPPORT
+    , _Inout_opt_ CXPLAT_TLS_SECRETS* TlsSecrets
 #endif
     );
 
@@ -306,7 +330,7 @@ QuicCryptoUpdateKeyPhase (
 //
 // Encode all state the server needs to resume the connection into a ticket
 // ready to be passed to TLS.
-// The buffer returned in Ticket needs to be freed with QUIC_FREE().
+// The buffer returned in Ticket needs to be freed with CXPLAT_FREE().
 // Note: Connection is only used for logging and may be NULL for testing.
 //
 QUIC_STATUS
@@ -349,7 +373,7 @@ QuicCryptoDecodeServerTicket(
 
 //
 // Encodes necessary data into the client ticket to enable connection resumption.
-// The pointer held by ClientTicket needs to be freed by QUIC_FREE().
+// The pointer held by ClientTicket needs to be freed by CXPLAT_FREE().
 // Note: Connection is only used for logging and may be NULL for testing.
 //
 QUIC_STATUS
@@ -367,7 +391,7 @@ QuicCryptoEncodeClientTicket(
 
 //
 // Decodes and returns data necessary to resume a connection from a client ticket.
-// The buffer held in ServerTicket must be freed with QUIC_FREE().
+// The buffer held in ServerTicket must be freed with CXPLAT_FREE().
 // Note: Connection is only used for logging and my be NULL for testing.
 //
 QUIC_STATUS
@@ -382,5 +406,3 @@ QuicCryptoDecodeClientTicket(
     _Out_ uint32_t* ServerTicketLength,
     _Out_ uint32_t* QuicVersion
     );
-
-

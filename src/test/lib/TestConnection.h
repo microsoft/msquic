@@ -61,18 +61,21 @@ class TestConnection
     bool ShutdownTimedOut   : 1;
     bool AutoDelete         : 1;
     bool HasRandomLoss      : 1;
+    bool AsyncCustomValidation : 1;
 
     bool ExpectedResumed    : 1;
     QUIC_STATUS ExpectedTransportCloseStatus;
     QUIC_UINT62 ExpectedPeerCloseErrorCode;
+    bool ExpectedCustomValidationResult;
 
     QUIC_STATUS TransportCloseStatus;
     QUIC_UINT62 PeerCloseErrorCode;
 
-    QUIC_EVENT EventConnectionComplete;
-    QUIC_EVENT EventPeerClosed;
-    QUIC_EVENT EventShutdownComplete;
-    QUIC_EVENT EventResumptionTicketReceived;
+    CXPLAT_EVENT EventConnectionComplete;
+    CXPLAT_EVENT EventPeerClosed;
+    CXPLAT_EVENT EventShutdownComplete;
+    CXPLAT_EVENT EventResumptionTicketReceived;
+    CXPLAT_EVENT* EventDeleted;
 
     NEW_STREAM_CALLBACK_HANDLER NewStreamCallback;
     CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER ShutdownCompleteCallback;
@@ -122,6 +125,8 @@ public:
     bool IsValid() const { return QuicConnection != nullptr; }
 
     void SetAutoDelete() { AutoDelete = true; }
+
+    void SetDeletedEvent(CXPLAT_EVENT* Event) { EventDeleted = Event; }
 
     QUIC_STATUS
     Start(
@@ -196,6 +201,10 @@ public:
     QUIC_UINT62 GetExpectedPeerCloseErrorCode() const { return ExpectedPeerCloseErrorCode; };
     void SetExpectedPeerCloseErrorCode(QUIC_UINT62 ErrorCode) { ExpectedPeerCloseErrorCode = ErrorCode; }
 
+    QUIC_UINT62 GetExpectedCustomValidationResult() const { return ExpectedCustomValidationResult; };
+    void SetExpectedCustomValidationResult(bool AcceptCert) { ExpectedCustomValidationResult = AcceptCert; }
+    void SetAsyncCustomValidationResult(bool Async) { AsyncCustomValidation = Async; }
+
     uint32_t GetDatagramsSent() const { return DatagramsSent; }
     uint32_t GetDatagramsCanceled() const { return DatagramsCanceled; }
     uint32_t GetDatagramsSuspectLost() const { return DatagramsSuspectLost; }
@@ -262,4 +271,6 @@ public:
     QUIC_STATUS SetConfiguration(HQUIC value);
 
     QUIC_STATUS SetResumptionTicket(const QUIC_BUFFER* ResumptionTicket) const;
+
+    QUIC_STATUS SetCustomValidationResult(bool AcceptCert);
 };

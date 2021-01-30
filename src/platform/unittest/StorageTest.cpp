@@ -55,41 +55,41 @@ struct StorageTest : public WEX::TestClass<StorageTest>
 
     TEST_METHOD(FailOpenNonExisting)
     {
-        QUIC_STORAGE* Storage;
+        CXPLAT_STORAGE* Storage;
         VERIFY_ARE_NOT_EQUAL(
             QUIC_STATUS_SUCCESS,
-            QuicStorageOpen(
+            CxPlatStorageOpen(
                 "TEST",
-                QUIC_STORAGE_OPEN_FLAG_OPEN_EXISTING,
+                CXPLAT_STORAGE_OPEN_FLAG_OPEN_EXISTING,
                 &Storage));
     }
 
     TEST_METHOD(PersistKey)
     {
-        QUIC_STORAGE* Storage;
+        CXPLAT_STORAGE* Storage;
         VERIFY_QUIC_SUCCESS(
-            QuicStorageOpen(
+            CxPlatStorageOpen(
                 "TEST",
-                QUIC_STORAGE_OPEN_FLAG_CREATE,
+                CXPLAT_STORAGE_OPEN_FLAG_CREATE,
                 &Storage));
-        QuicStorageClose(Storage);
+        CxPlatStorageClose(Storage);
         Storage = nullptr;
 
         VERIFY_QUIC_SUCCESS(
-            QuicStorageOpen(
+            CxPlatStorageOpen(
                 "TEST",
-                QUIC_STORAGE_OPEN_FLAG_OPEN_EXISTING,
+                CXPLAT_STORAGE_OPEN_FLAG_OPEN_EXISTING,
                 &Storage));
-        QuicStorageClose(Storage);
+        CxPlatStorageClose(Storage);
     }
 
     TEST_METHOD(PersistValue)
     {
-        QUIC_STORAGE* Storage;
+        CXPLAT_STORAGE* Storage;
         VERIFY_QUIC_SUCCESS(
-            QuicStorageOpen(
+            CxPlatStorageOpen(
                 "TEST",
-                QUIC_STORAGE_OPEN_FLAG_CREATE,
+                CXPLAT_STORAGE_OPEN_FLAG_CREATE,
                 &Storage));
         UINT8 Value[256];
         VERIFY_QUIC_SUCCESS(
@@ -98,18 +98,18 @@ struct StorageTest : public WEX::TestClass<StorageTest>
                 "NAME",
                 Value,
                 sizeof(Value)));
-        QuicStorageClose(Storage);
+        CxPlatStorageClose(Storage);
         Storage = nullptr;
 
         VERIFY_QUIC_SUCCESS(
-            QuicStorageOpen(
+            CxPlatStorageOpen(
                 "TEST",
-                QUIC_STORAGE_OPEN_FLAG_OPEN_EXISTING,
+                CXPLAT_STORAGE_OPEN_FLAG_OPEN_EXISTING,
                 &Storage));
         UINT8* PersistedValue;
         uint32_t PersistedValueLength = 0;
         VERIFY_QUIC_SUCCESS(
-            QuicStorageReadValue(
+            CxPlatStorageReadValue(
                 Storage,
                 "NAME",
                 nullptr,
@@ -118,11 +118,11 @@ struct StorageTest : public WEX::TestClass<StorageTest>
         PersistedValue = new UINT8[PersistedValueLength];
         VERIFY_IS_NOT_NULL(PersistedValue);
         VERIFY_QUIC_SUCCESS(
-            QuicStorageReadValue(
+            CxPlatStorageReadValue(
                 Storage,
                 "NAME",
                 PersistedValue,
                 &PersistedValueLength));
-        QuicStorageClose(Storage);
+        CxPlatStorageClose(Storage);
     }
 };

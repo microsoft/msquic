@@ -32,7 +32,7 @@ QuicSendInitialize(
     _In_ const QUIC_SETTINGS* Settings
     )
 {
-    QuicListInitializeHead(&Send->SendStreams);
+    CxPlatListInitializeHead(&Send->SendStreams);
     Send->MaxData = Settings->ConnFlowControlWindow;
 }
 
@@ -45,19 +45,19 @@ QuicSendUninitialize(
     Send->DelayedAckTimerActive = FALSE;
 
     if (Send->InitialToken != NULL) {
-        QUIC_FREE(Send->InitialToken, QUIC_POOL_INITIAL_TOKEN);
+        CXPLAT_FREE(Send->InitialToken, QUIC_POOL_INITIAL_TOKEN);
         Send->InitialToken = NULL;
     }
 
     //
     // Release all the stream refs.
     //
-    QUIC_LIST_ENTRY* Entry = Send->SendStreams.Flink;
+    CXPLAT_LIST_ENTRY* Entry = Send->SendStreams.Flink;
     while (Entry != &Send->SendStreams) {
 
         QUIC_STREAM* Stream =
-            QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
-        QUIC_DBG_ASSERT(Stream->SendFlags != 0);
+            CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
+        CXPLAT_DBG_ASSERT(Stream->SendFlags != 0);
 
         Entry = Entry->Flink;
         Stream->SendFlags = 0;
@@ -149,8 +149,8 @@ QuicSendQueueFlushForStream(
         //
         // Not previously queued, so add the stream to the end of the queue.
         //
-        QUIC_DBG_ASSERT(Stream->SendLink.Flink == NULL);
-        QuicListInsertTail(&Send->SendStreams, &Stream->SendLink);
+        CXPLAT_DBG_ASSERT(Stream->SendLink.Flink == NULL);
+        CxPlatListInsertTail(&Send->SendStreams, &Stream->SendLink);
         QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND);
     }
 
@@ -192,12 +192,12 @@ QuicSendValidate(
     }
 
     if (Send->SendFlags & QUIC_CONN_SEND_FLAG_ACK) {
-        QUIC_DBG_ASSERT(!Send->DelayedAckTimerActive);
-        QUIC_DBG_ASSERT(HasAckElicitingPacketsToAcknowledge);
+        CXPLAT_DBG_ASSERT(!Send->DelayedAckTimerActive);
+        CXPLAT_DBG_ASSERT(HasAckElicitingPacketsToAcknowledge);
     } else if (Send->DelayedAckTimerActive) {
-        QUIC_DBG_ASSERT(HasAckElicitingPacketsToAcknowledge);
+        CXPLAT_DBG_ASSERT(HasAckElicitingPacketsToAcknowledge);
     } else if (!Connection->State.ClosedLocally && !Connection->State.ClosedRemotely) {
-        QUIC_DBG_ASSERT(!HasAckElicitingPacketsToAcknowledge);
+        CXPLAT_DBG_ASSERT(!HasAckElicitingPacketsToAcknowledge);
     }
 }
 #else
@@ -250,13 +250,13 @@ QuicSendSetSendFlag(
         //
         // Remove any queued up streams.
         //
-        while (!QuicListIsEmpty(&Send->SendStreams)) {
+        while (!CxPlatListIsEmpty(&Send->SendStreams)) {
 
             QUIC_STREAM* Stream =
-                QUIC_CONTAINING_RECORD(
-                    QuicListRemoveHead(&Send->SendStreams), QUIC_STREAM, SendLink);
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&Send->SendStreams), QUIC_STREAM, SendLink);
 
-            QUIC_DBG_ASSERT(Stream->SendFlags != 0);
+            CXPLAT_DBG_ASSERT(Stream->SendFlags != 0);
             Stream->SendFlags = 0;
             Stream->SendLink.Flink = NULL;
 
@@ -307,7 +307,7 @@ QuicSendUpdateAckState(
 
     if (!HasAckElicitingPacketsToAcknowledge) {
         if (Send->SendFlags & QUIC_CONN_SEND_FLAG_ACK) {
-            QUIC_DBG_ASSERT(!Send->DelayedAckTimerActive);
+            CXPLAT_DBG_ASSERT(!Send->DelayedAckTimerActive);
             Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_ACK;
         } else if (Send->DelayedAckTimerActive) {
             QuicTraceLogConnVerbose(
@@ -416,8 +416,8 @@ QuicSendClearStreamSendFlag(
             //
             // Since there are no flags left, remove the stream from the queue.
             //
-            QUIC_DBG_ASSERT(Stream->SendLink.Flink != NULL);
-            QuicListEntryRemove(&Stream->SendLink);
+            CXPLAT_DBG_ASSERT(Stream->SendLink.Flink != NULL);
+            CxPlatListEntryRemove(&Stream->SendLink);
             Stream->SendLink.Flink = NULL;
             QuicStreamRelease(Stream, QUIC_STREAM_REF_SEND);
         }
@@ -431,7 +431,7 @@ QuicSendWriteFrames(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    QUIC_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
+    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
 
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
     uint16_t AvailableBufferLength =
@@ -440,7 +440,7 @@ QuicSendWriteFrames(
     BOOLEAN RanOutOfRoom = FALSE;
 
     QUIC_PACKET_SPACE* Packets = Connection->Packets[Builder->EncryptLevel];
-    QUIC_DBG_ASSERT(Packets != NULL);
+    CXPLAT_DBG_ASSERT(Packets != NULL);
 
     BOOLEAN IsCongestionControlBlocked = !QuicPacketBuilderHasAllowance(Builder);
 
@@ -529,7 +529,7 @@ QuicSendWriteFrames(
             }
 
             QUIC_PATH_RESPONSE_EX Frame = { 0 };
-            QuicCopyMemory(Frame.Data, TempPath->Response, sizeof(Frame.Data));
+            CxPlatCopyMemory(Frame.Data, TempPath->Response, sizeof(Frame.Data));
 
             if (QuicPathChallengeFrameEncode(
                     QUIC_FRAME_PATH_RESPONSE,
@@ -539,7 +539,7 @@ QuicSendWriteFrames(
                     Builder->Datagram->Buffer)) {
 
                 TempPath->SendResponse = FALSE;
-                QuicCopyMemory(
+                CxPlatCopyMemory(
                     Builder->Metadata->Frames[Builder->Metadata->FrameCount].PATH_RESPONSE.Data,
                     Frame.Data,
                     sizeof(Frame.Data));
@@ -665,11 +665,11 @@ QuicSendWriteFrames(
 
             BOOLEAN HasMoreCidsToSend = FALSE;
             BOOLEAN MaxFrameLimitHit = FALSE;
-            for (QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
+            for (CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
                     Entry != NULL;
                     Entry = Entry->Next) {
                 QUIC_CID_HASH_ENTRY* SourceCid =
-                    QUIC_CONTAINING_RECORD(
+                    CXPLAT_CONTAINING_RECORD(
                         Entry,
                         QUIC_CID_HASH_ENTRY,
                         Link);
@@ -686,15 +686,15 @@ QuicSendWriteFrames(
                     SourceCid->CID.SequenceNumber,
                     0,
                     { 0 } };
-                QUIC_DBG_ASSERT(Connection->SourceCidLimit >= QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
+                CXPLAT_DBG_ASSERT(Connection->SourceCidLimit >= QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
                 if (Frame.Sequence >= Connection->SourceCidLimit) {
                     Frame.RetirePriorTo = Frame.Sequence + 1 - Connection->SourceCidLimit;
                 }
-                QuicCopyMemory(
+                CxPlatCopyMemory(
                     Frame.Buffer,
                     SourceCid->CID.Data,
                     SourceCid->CID.Length);
-                QUIC_DBG_ASSERT(SourceCid->CID.Length == MsQuicLib.CidTotalLength);
+                CXPLAT_DBG_ASSERT(SourceCid->CID.Length == MsQuicLib.CidTotalLength);
                 QuicBindingGenerateStatelessResetToken(
                     Builder->Path->Binding,
                     SourceCid->CID.Data,
@@ -731,18 +731,18 @@ QuicSendWriteFrames(
 
             BOOLEAN HasMoreCidsToSend = FALSE;
             BOOLEAN MaxFrameLimitHit = FALSE;
-            for (QUIC_LIST_ENTRY* Entry = Connection->DestCids.Flink;
+            for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
                     Entry != &Connection->DestCids;
                     Entry = Entry->Flink) {
-                QUIC_CID_QUIC_LIST_ENTRY* DestCid =
-                    QUIC_CONTAINING_RECORD(
+                QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
+                    CXPLAT_CONTAINING_RECORD(
                         Entry,
-                        QUIC_CID_QUIC_LIST_ENTRY,
+                        QUIC_CID_CXPLAT_LIST_ENTRY,
                         Link);
                 if (!DestCid->CID.NeedsToSend) {
                     continue;
                 }
-                QUIC_DBG_ASSERT(DestCid->CID.Retired);
+                CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
                 if (MaxFrameLimitHit) {
                     HasMoreCidsToSend = TRUE;
                     break;
@@ -806,7 +806,7 @@ Exit:
     // The only valid reason to not have framed anything is that there was too
     // little room left in the packet to fit anything more.
     //
-    QUIC_DBG_ASSERT(Builder->Metadata->FrameCount > PrevFrameCount || RanOutOfRoom);
+    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount > PrevFrameCount || RanOutOfRoom);
     UNREFERENCED_PARAMETER(RanOutOfRoom);
 
     return Builder->Metadata->FrameCount > PrevFrameCount;
@@ -817,7 +817,7 @@ QuicSendCanSendStreamNow(
     _In_ QUIC_STREAM* Stream
     )
 {
-    QUIC_DBG_ASSERT(Stream->SendFlags != 0);
+    CXPLAT_DBG_ASSERT(Stream->SendFlags != 0);
 
     QUIC_CONNECTION* Connection = Stream->Connection;
 
@@ -840,9 +840,9 @@ QuicSendGetNextStream(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
-    QUIC_DBG_ASSERT(!QuicConnIsClosed(Connection) || QuicListIsEmpty(&Send->SendStreams));
+    CXPLAT_DBG_ASSERT(!QuicConnIsClosed(Connection) || CxPlatListIsEmpty(&Send->SendStreams));
 
-    QUIC_LIST_ENTRY* Entry = Send->SendStreams.Flink;
+    CXPLAT_LIST_ENTRY* Entry = Send->SendStreams.Flink;
     while (Entry != &Send->SendStreams) {
 
         //
@@ -850,7 +850,7 @@ QuicSendGetNextStream(
         // streams repeatedly as we loop.
         //
 
-        QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
+        QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
 
         //
         // Make sure, given the current state of the connection and the stream,
@@ -862,8 +862,8 @@ QuicSendGetNextStream(
                 //
                 // Move the stream to the end of the queue.
                 //
-                QuicListEntryRemove(&Stream->SendLink);
-                QuicListInsertTail(&Send->SendStreams, &Stream->SendLink);
+                CxPlatListEntryRemove(&Stream->SendLink);
+                CxPlatListInsertTail(&Send->SendStreams, &Stream->SendLink);
 
                 *PacketCount = QUIC_STREAM_SEND_BATCH_COUNT;
 
@@ -892,7 +892,7 @@ QuicSendPathChallenges(
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
-    QUIC_DBG_ASSERT(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
+    CXPLAT_DBG_ASSERT(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
 
     for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
 
@@ -936,7 +936,7 @@ QuicSendPathChallenges(
             (uint16_t)Builder.Datagram->Length - Builder.EncryptionOverhead;
 
         QUIC_PATH_CHALLENGE_EX Frame;
-        QuicCopyMemory(Frame.Data, Path->Challenge, sizeof(Frame.Data));
+        CxPlatCopyMemory(Frame.Data, Path->Challenge, sizeof(Frame.Data));
 
         BOOLEAN Result =
             QuicPathChallengeFrameEncode(
@@ -946,15 +946,15 @@ QuicSendPathChallenges(
                 AvailableBufferLength,
                 Builder.Datagram->Buffer);
 
-        QUIC_DBG_ASSERT(Result);
+        CXPLAT_DBG_ASSERT(Result);
         if (Result) {
-            QuicCopyMemory(
+            CxPlatCopyMemory(
                 Builder.Metadata->Frames[0].PATH_CHALLENGE.Data,
                 Frame.Data,
                 sizeof(Frame.Data));
 
             Result = QuicPacketBuilderAddFrame(&Builder, QUIC_FRAME_PATH_CHALLENGE, TRUE);
-            QUIC_DBG_ASSERT(!Result);
+            CXPLAT_DBG_ASSERT(!Result);
             UNREFERENCED_PARAMETER(Result);
 
             Path->SendChallenge = FALSE;
@@ -981,13 +981,13 @@ QuicSendFlush(
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
-    QUIC_DBG_ASSERT(!Connection->State.HandleClosed);
+    CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
 
     QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
     QuicConnRemoveOutFlowBlockedReason(
         Connection, QUIC_FLOW_BLOCKED_SCHEDULING | QUIC_FLOW_BLOCKED_PACING);
 
-    if (Send->SendFlags == 0 && QuicListIsEmpty(&Send->SendStreams)) {
+    if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
         return TRUE;
     }
 
@@ -996,7 +996,7 @@ QuicSendFlush(
         return TRUE;
     }
 
-    QUIC_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
+    CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
     QUIC_STREAM* Stream = NULL;
@@ -1092,7 +1092,7 @@ QuicSendFlush(
         BOOLEAN WrotePacketFrames;
         BOOLEAN FlushBatchedDatagrams = FALSE;
         if ((SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD) != 0) {
-            QUIC_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
+            CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
             if (!QuicPacketBuilderPrepareForControlFrames(
                     &Builder,
                     Send->TailLossProbeNeeded,
@@ -1128,7 +1128,7 @@ QuicSendFlush(
                 // If the stream no longer has anything to send, remove it from the
                 // list and release Send's reference on it.
                 //
-                QuicListEntryRemove(&Stream->SendLink);
+                CxPlatListEntryRemove(&Stream->SendLink);
                 Stream->SendLink.Flink = NULL;
                 QuicStreamRelease(Stream, QUIC_STREAM_REF_SEND);
                 Stream = NULL;
@@ -1175,7 +1175,7 @@ QuicSendFlush(
         // framing logic and nothing was written to the packet. This is bad!
         // It likely indicates an infinite loop will follow.
         //
-        QUIC_DBG_ASSERT(Builder.Metadata->FrameCount != 0 || Builder.PacketStart != 0);
+        CXPLAT_DBG_ASSERT(Builder.Metadata->FrameCount != 0 || Builder.PacketStart != 0);
 
         if (!WrotePacketFrames ||
             Builder.Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET ||
@@ -1254,8 +1254,8 @@ QuicSendProcessDelayedAckTimer(
     _In_ QUIC_SEND* Send
     )
 {
-    QUIC_DBG_ASSERT(Send->DelayedAckTimerActive);
-    QUIC_DBG_ASSERT(!(Send->SendFlags & QUIC_CONN_SEND_FLAG_ACK));
+    CXPLAT_DBG_ASSERT(Send->DelayedAckTimerActive);
+    CXPLAT_DBG_ASSERT(!(Send->SendFlags & QUIC_CONN_SEND_FLAG_ACK));
     Send->DelayedAckTimerActive = FALSE;
 
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
@@ -1269,7 +1269,7 @@ QuicSendProcessDelayedAckTimer(
         }
     }
 
-    QUIC_DBG_ASSERT(AckElicitingPacketsToAcknowledge);
+    CXPLAT_DBG_ASSERT(AckElicitingPacketsToAcknowledge);
     if (AckElicitingPacketsToAcknowledge) {
         Send->SendFlags |= QUIC_CONN_SEND_FLAG_ACK;
     }

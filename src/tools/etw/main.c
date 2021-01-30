@@ -202,7 +202,7 @@ BOOLEAN CollectTrace(void)
     Properties->LogFileMode = EVENT_TRACE_FILE_MODE_SEQUENTIAL;
     Properties->MaximumFileSize = 10;  // 10 MB
     Properties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
-    Properties->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(QuicEtwSessionName); 
+    Properties->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(QuicEtwSessionName);
     memcpy(PropertiesBuffer + Properties->LogFileNameOffset, QuicEtwFileName, sizeof(QuicEtwFileName));
 
     ULONG Err = StartTrace(&Trace.Handle, QuicEtwSessionName, Properties);
@@ -608,8 +608,8 @@ main(
     BOOLEAN LoadManifest = FALSE;
     wchar_t ManifestFilePath[256] = {0};
 
-    QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
+    CxPlatSystemLoad();
+    CxPlatInitialize();
 
     if (argc < 2) {
         InvalidUsage();
@@ -734,8 +734,8 @@ Done:
         TdhUnloadManifest(ManifestFilePath);
     }
 
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return Err;
 }

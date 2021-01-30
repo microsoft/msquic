@@ -77,17 +77,17 @@ QuicTimerWheelInitialize(
     TimerWheel->NextConnection = NULL;
     TimerWheel->SlotCount = QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT;
     TimerWheel->Slots =
-        QUIC_ALLOC_NONPAGED(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY), QUIC_POOL_TIMERWHEEL);
+        CXPLAT_ALLOC_NONPAGED(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY), QUIC_POOL_TIMERWHEEL);
     if (TimerWheel->Slots == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "timerwheel slots",
-            QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY));
+            QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
-        QuicListInitializeHead(&TimerWheel->Slots[i]);
+        CxPlatListInitializeHead(&TimerWheel->Slots[i]);
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -101,24 +101,24 @@ QuicTimerWheelUninitialize(
 {
     if (TimerWheel->Slots != NULL) {
         for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
-            QUIC_LIST_ENTRY* ListHead = &TimerWheel->Slots[i];
-            QUIC_LIST_ENTRY* Entry = ListHead->Flink;
+            CXPLAT_LIST_ENTRY* ListHead = &TimerWheel->Slots[i];
+            CXPLAT_LIST_ENTRY* Entry = ListHead->Flink;
             while (Entry != ListHead) {
                 QUIC_CONNECTION* Connection =
-                    QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
+                    CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
                 QuicTraceLogConnWarning(
                     StillInTimerWheel,
                     Connection,
                     "Still in timer wheel! Connection was likely leaked!");
                 Entry = Entry->Flink;
             }
-            QUIC_TEL_ASSERT(QuicListIsEmpty(&TimerWheel->Slots[i]));
+            CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&TimerWheel->Slots[i]));
         }
-        QUIC_TEL_ASSERT(TimerWheel->ConnectionCount == 0);
-        QUIC_TEL_ASSERT(TimerWheel->NextConnection == NULL);
-        QUIC_TEL_ASSERT(TimerWheel->NextExpirationTime == UINT64_MAX);
+        CXPLAT_TEL_ASSERT(TimerWheel->ConnectionCount == 0);
+        CXPLAT_TEL_ASSERT(TimerWheel->NextConnection == NULL);
+        CXPLAT_TEL_ASSERT(TimerWheel->NextExpirationTime == UINT64_MAX);
 
-        QUIC_FREE(TimerWheel->Slots, QUIC_POOL_TIMERWHEEL);
+        CXPLAT_FREE(TimerWheel->Slots, QUIC_POOL_TIMERWHEEL);
     }
 }
 
@@ -136,13 +136,13 @@ QuicTimerWheelResize(
         return;
     }
 
-    QUIC_LIST_ENTRY* NewSlots =
-        QUIC_ALLOC_NONPAGED(NewSlotCount * sizeof(QUIC_LIST_ENTRY), QUIC_POOL_TIMERWHEEL);
+    CXPLAT_LIST_ENTRY* NewSlots =
+        CXPLAT_ALLOC_NONPAGED(NewSlotCount * sizeof(CXPLAT_LIST_ENTRY), QUIC_POOL_TIMERWHEEL);
     if (NewSlots == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "timerwheel slots (realloc)",
-            NewSlotCount * sizeof(QUIC_LIST_ENTRY));
+            NewSlotCount * sizeof(CXPLAT_LIST_ENTRY));
         return;
     }
 
@@ -153,11 +153,11 @@ QuicTimerWheelResize(
         NewSlotCount);
 
     for (uint32_t i = 0; i < NewSlotCount; ++i) {
-        QuicListInitializeHead(&NewSlots[i]);
+        CxPlatListInitializeHead(&NewSlots[i]);
     }
 
     uint32_t OldSlotCount = TimerWheel->SlotCount;
-    QUIC_LIST_ENTRY* OldSlots = TimerWheel->Slots;
+    CXPLAT_LIST_ENTRY* OldSlots = TimerWheel->Slots;
 
     TimerWheel->SlotCount = NewSlotCount;
     TimerWheel->Slots = NewSlots;
@@ -167,14 +167,14 @@ QuicTimerWheelResize(
         // Iterate through each old slot, remove all connections and add them
         // to the new slots.
         //
-        while (!QuicListIsEmpty(&OldSlots[i])) {
+        while (!CxPlatListIsEmpty(&OldSlots[i])) {
             QUIC_CONNECTION* Connection =
-                QUIC_CONTAINING_RECORD(
-                    QuicListRemoveHead(&OldSlots[i]),
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&OldSlots[i]),
                     QUIC_CONNECTION,
                     TimerLink);
             uint64_t ExpirationTime = QuicConnGetNextExpirationTime(Connection);
-            QUIC_DBG_ASSERT(TimerWheel->SlotCount != 0);
+            CXPLAT_DBG_ASSERT(TimerWheel->SlotCount != 0);
             uint32_t SlotIndex = TIME_TO_SLOT_INDEX(TimerWheel, ExpirationTime);
 
             //
@@ -182,12 +182,12 @@ QuicTimerWheelResize(
             // the slot's list in reverse order, with the assumption that most new
             // timers will on average be later than existing ones.
             //
-            QUIC_LIST_ENTRY* ListHead = &TimerWheel->Slots[SlotIndex];
-            QUIC_LIST_ENTRY* Entry = ListHead->Blink;
+            CXPLAT_LIST_ENTRY* ListHead = &TimerWheel->Slots[SlotIndex];
+            CXPLAT_LIST_ENTRY* Entry = ListHead->Blink;
 
             while (Entry != ListHead) {
                 QUIC_CONNECTION* ConnectionEntry =
-                    QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
+                    CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
                 uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
 
                 if (ExpirationTime > EntryExpirationTime) {
@@ -200,10 +200,10 @@ QuicTimerWheelResize(
             //
             // Insert after the current entry.
             //
-            QuicListInsertHead(Entry, &Connection->TimerLink);
+            CxPlatListInsertHead(Entry, &Connection->TimerLink);
         }
     }
-    QUIC_FREE(OldSlots, QUIC_POOL_TIMERWHEEL);
+    CXPLAT_FREE(OldSlots, QUIC_POOL_TIMERWHEEL);
 }
 
 //
@@ -224,9 +224,9 @@ QuicTimerWheelUpdate(
     // expiration time.
     //
     for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
-        if (!QuicListIsEmpty(&TimerWheel->Slots[i])) {
+        if (!CxPlatListIsEmpty(&TimerWheel->Slots[i])) {
             QUIC_CONNECTION* ConnectionEntry =
-                QUIC_CONTAINING_RECORD(
+                CXPLAT_CONTAINING_RECORD(
                     TimerWheel->Slots[i].Flink,
                     QUIC_CONNECTION,
                     TimerLink);
@@ -270,7 +270,7 @@ QuicTimerWheelRemoveConnection(
             "[time][%p] Removing Connection %p.",
             TimerWheel,
             Connection);
-        QuicListEntryRemove(&Connection->TimerLink);
+        CxPlatListEntryRemove(&Connection->TimerLink);
         Connection->TimerLink.Flink = NULL;
         TimerWheel->ConnectionCount--;
 
@@ -293,7 +293,7 @@ QuicTimerWheelUpdateConnection(
         //
         // Connection is already in the timer wheel, so remove it first.
         //
-        QuicListEntryRemove(&Connection->TimerLink);
+        CxPlatListEntryRemove(&Connection->TimerLink);
 
         if (ExpirationTime == UINT64_MAX) {
             TimerWheel->ConnectionCount--;
@@ -327,7 +327,7 @@ QuicTimerWheelUpdateConnection(
 
     } else {
 
-        QUIC_DBG_ASSERT(TimerWheel->SlotCount != 0);
+        CXPLAT_DBG_ASSERT(TimerWheel->SlotCount != 0);
         uint32_t SlotIndex = TIME_TO_SLOT_INDEX(TimerWheel, ExpirationTime);
 
         //
@@ -335,12 +335,12 @@ QuicTimerWheelUpdateConnection(
         // the slot's list in reverse order, with the assumption that most new
         // timers will on average be later than existing ones.
         //
-        QUIC_LIST_ENTRY* ListHead = &TimerWheel->Slots[SlotIndex];
-        QUIC_LIST_ENTRY* Entry = ListHead->Blink;
+        CXPLAT_LIST_ENTRY* ListHead = &TimerWheel->Slots[SlotIndex];
+        CXPLAT_LIST_ENTRY* Entry = ListHead->Blink;
 
         while (Entry != ListHead) {
             QUIC_CONNECTION* ConnectionEntry =
-                QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
             uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
 
             if (ExpirationTime > EntryExpirationTime) {
@@ -353,7 +353,7 @@ QuicTimerWheelUpdateConnection(
         //
         // Insert after the current entry.
         //
-        QuicListInsertHead(Entry, &Connection->TimerLink);
+        CxPlatListInsertHead(Entry, &Connection->TimerLink);
 
         QuicTraceLogVerbose(
             TimerWheelUpdateConnection,
@@ -396,7 +396,7 @@ QuicTimerWheelGetWaitTime(
 {
     uint64_t Delay;
     if (TimerWheel->NextExpirationTime != UINT64_MAX) {
-        uint64_t TimeNow = QuicTimeUs64();
+        uint64_t TimeNow = CxPlatTimeUs64();
         if (TimerWheel->NextExpirationTime <= TimeNow) {
             //
             // The next timer is already in the past. It needs to be processed
@@ -425,7 +425,7 @@ void
 QuicTimerWheelGetExpired(
     _Inout_ QUIC_TIMER_WHEEL* TimerWheel,
     _In_ uint64_t TimeNow,
-    _Inout_ QUIC_LIST_ENTRY* OutputListHead
+    _Inout_ CXPLAT_LIST_ENTRY* OutputListHead
     )
 {
     //
@@ -433,18 +433,18 @@ QuicTimerWheelGetExpired(
     // expired timers.
     //
     for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
-        QUIC_LIST_ENTRY* ListHead = &TimerWheel->Slots[i];
-        QUIC_LIST_ENTRY* Entry = ListHead->Flink;
+        CXPLAT_LIST_ENTRY* ListHead = &TimerWheel->Slots[i];
+        CXPLAT_LIST_ENTRY* Entry = ListHead->Flink;
         while (Entry != ListHead) {
             QUIC_CONNECTION* ConnectionEntry =
-                QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
             uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
             if (EntryExpirationTime > TimeNow) {
                 break;
             }
             Entry = Entry->Flink;
-            QuicListEntryRemove(&ConnectionEntry->TimerLink);
-            QuicListInsertTail(OutputListHead, &ConnectionEntry->TimerLink);
+            CxPlatListEntryRemove(&ConnectionEntry->TimerLink);
+            CxPlatListInsertTail(OutputListHead, &ConnectionEntry->TimerLink);
             TimerWheel->ConnectionCount--;
         }
     }

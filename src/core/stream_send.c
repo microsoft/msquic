@@ -63,7 +63,7 @@ QuicStreamValidateRecoveryState(
             //
             // The recovery window should never start inside a SACK block.
             //
-            QUIC_DBG_ASSERT(Sack->Low + Sack->Count <= Stream->RecoveryNextOffset);
+            CXPLAT_DBG_ASSERT(Sack->Low + Sack->Count <= Stream->RecoveryNextOffset);
         }
     }
 }
@@ -81,9 +81,9 @@ QuicStreamIndicateSendShutdownComplete(
     _In_ BOOLEAN GracefulShutdown
     )
 {
-    QUIC_DBG_ASSERT(!Stream->Flags.SendEnabled);
-    QUIC_DBG_ASSERT(Stream->ApiSendRequests == NULL);
-    QUIC_DBG_ASSERT(Stream->SendRequests == NULL);
+    CXPLAT_DBG_ASSERT(!Stream->Flags.SendEnabled);
+    CXPLAT_DBG_ASSERT(Stream->ApiSendRequests == NULL);
+    CXPLAT_DBG_ASSERT(Stream->SendRequests == NULL);
 
     if (!Stream->Flags.HandleSendShutdown) {
         Stream->Flags.HandleSendShutdown = TRUE;
@@ -117,14 +117,14 @@ QuicStreamSendShutdown(
         goto Exit;
     }
 
-    QuicDispatchLockAcquire(&Stream->ApiSendRequestLock);
+    CxPlatDispatchLockAcquire(&Stream->ApiSendRequestLock);
     Stream->Flags.SendEnabled = FALSE;
     QUIC_SEND_REQUEST* ApiSendRequests = Stream->ApiSendRequests;
     Stream->ApiSendRequests = NULL;
-    QuicDispatchLockRelease(&Stream->ApiSendRequestLock);
+    CxPlatDispatchLockRelease(&Stream->ApiSendRequestLock);
 
     if (Graceful) {
-        QUIC_DBG_ASSERT(!Silent);
+        CXPLAT_DBG_ASSERT(!Silent);
         if (Stream->Flags.LocalCloseFin || Stream->Flags.LocalCloseReset) {
             //
             // We have already closed the stream (graceful or abortive) so we
@@ -292,8 +292,8 @@ QuicStreamSendCanWriteDataFrames(
     _In_ const QUIC_STREAM* Stream
     )
 {
-    QUIC_DBG_ASSERT(QuicStreamAllowedByPeer(Stream));
-    QUIC_DBG_ASSERT(HasStreamDataFrames(Stream->SendFlags));
+    CXPLAT_DBG_ASSERT(QuicStreamAllowedByPeer(Stream));
+    CXPLAT_DBG_ASSERT(HasStreamDataFrames(Stream->SendFlags));
 
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_OPEN) {
         //
@@ -332,7 +332,7 @@ QuicStreamCanSendNow(
     _In_ BOOLEAN ZeroRtt
     )
 {
-    QUIC_DBG_ASSERT(Stream->SendFlags != 0);
+    CXPLAT_DBG_ASSERT(Stream->SendFlags != 0);
 
     if (!QuicStreamAllowedByPeer(Stream)) {
         //
@@ -373,7 +373,7 @@ QuicStreamCompleteSendRequest(
     }
     if (Stream->SendBufferBookmark == SendRequest) {
         Stream->SendBufferBookmark = SendRequest->Next;
-        QUIC_DBG_ASSERT(
+        CXPLAT_DBG_ASSERT(
             Stream->SendBufferBookmark == NULL ||
             !(Stream->SendBufferBookmark->Flags & QUIC_SEND_FLAG_BUFFERED));
     }
@@ -407,7 +407,7 @@ QuicStreamCompleteSendRequest(
     }
 
     if (PreviouslyPosted) {
-        QUIC_DBG_ASSERT(Connection->SendBuffer.PostedBytes >= SendRequest->TotalLength);
+        CXPLAT_DBG_ASSERT(Connection->SendBuffer.PostedBytes >= SendRequest->TotalLength);
         Connection->SendBuffer.PostedBytes -= SendRequest->TotalLength;
 
         if (Connection->Settings.SendBufferingEnabled) {
@@ -415,7 +415,7 @@ QuicStreamCompleteSendRequest(
         }
     }
 
-    QuicPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+    CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -427,7 +427,7 @@ QuicStreamSendBufferRequest(
 {
     QUIC_CONNECTION* Connection = Stream->Connection;
 
-    QUIC_DBG_ASSERT(Req->TotalLength <= UINT32_MAX);
+    CXPLAT_DBG_ASSERT(Req->TotalLength <= UINT32_MAX);
 
     if (Req->TotalLength != 0) {
         //
@@ -442,7 +442,7 @@ QuicStreamSendBufferRequest(
         }
         uint8_t* CurBuf = Buf;
         for (uint32_t i = 0; i < Req->BufferCount; i++) {
-            QuicCopyMemory(
+            CxPlatCopyMemory(
                 CurBuf, Req->Buffers[i].Buffer, Req->Buffers[i].Length);
             CurBuf += Req->Buffers[i].Length;
         }
@@ -456,7 +456,7 @@ QuicStreamSendBufferRequest(
 
     Req->Flags |= QUIC_SEND_FLAG_BUFFERED;
     Stream->SendBufferBookmark = Req->Next;
-    QUIC_DBG_ASSERT(
+    CXPLAT_DBG_ASSERT(
         Stream->SendBufferBookmark == NULL ||
         !(Stream->SendBufferBookmark->Flags & QUIC_SEND_FLAG_BUFFERED));
 
@@ -485,10 +485,10 @@ QuicStreamSendFlush(
     _In_ QUIC_STREAM* Stream
     )
 {
-    QuicDispatchLockAcquire(&Stream->ApiSendRequestLock);
+    CxPlatDispatchLockAcquire(&Stream->ApiSendRequestLock);
     QUIC_SEND_REQUEST* ApiSendRequests = Stream->ApiSendRequests;
     Stream->ApiSendRequests = NULL;
-    QuicDispatchLockRelease(&Stream->ApiSendRequestLock);
+    CxPlatDispatchLockRelease(&Stream->ApiSendRequestLock);
     int64_t TotalBytesSent = 0;
 
     BOOLEAN Start = FALSE;
@@ -500,8 +500,8 @@ QuicStreamSendFlush(
         SendRequest->Next = NULL;
         TotalBytesSent += (int64_t) SendRequest->TotalLength;
 
-        QUIC_DBG_ASSERT(SendRequest->TotalLength != 0 || SendRequest->Flags & QUIC_SEND_FLAG_FIN);
-        QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
+        CXPLAT_DBG_ASSERT(SendRequest->TotalLength != 0 || SendRequest->Flags & QUIC_SEND_FLAG_FIN);
+        CXPLAT_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
 
         if (!Stream->Flags.SendEnabled) {
             //
@@ -544,7 +544,7 @@ QuicStreamSendFlush(
             // If we have no SendBufferBookmark, that must mean we have no
             // unbuffered send requests queued currently.
             //
-            QUIC_DBG_ASSERT(
+            CXPLAT_DBG_ASSERT(
                 Stream->SendRequests == NULL ||
                 !!(Stream->SendRequests->Flags & QUIC_SEND_FLAG_BUFFERED));
             Stream->SendBufferBookmark = SendRequest;
@@ -591,7 +591,7 @@ QuicStreamSendFlush(
             QuicSendBufferFill(Stream->Connection);
         }
 
-        QUIC_DBG_ASSERT(Stream->SendRequests != NULL);
+        CXPLAT_DBG_ASSERT(Stream->SendRequests != NULL);
 
         QuicStreamSendDumpState(Stream);
     }
@@ -625,17 +625,17 @@ QuicStreamCopyFromSendRequests(
     QUIC_SEND_REQUEST* Req;
     uint16_t Copied = 0;
 
-    QUIC_DBG_ASSERT(Len > 0);
-    QUIC_DBG_ASSERT(Offset < Stream->QueuedSendOffset);
-    QUIC_DBG_ASSERT(Stream->SendRequests != NULL);
-    QUIC_DBG_ASSERT(Offset >= Stream->SendRequests->StreamOffset);
+    CXPLAT_DBG_ASSERT(Len > 0);
+    CXPLAT_DBG_ASSERT(Offset < Stream->QueuedSendOffset);
+    CXPLAT_DBG_ASSERT(Stream->SendRequests != NULL);
+    CXPLAT_DBG_ASSERT(Offset >= Stream->SendRequests->StreamOffset);
 
     if (Len > Stream->QueuedSendOffset - Offset) {
         //
         // Since Len (a 16-bit number) is greater, this won't overflow.
         //
         Len = (uint16_t)(Stream->QueuedSendOffset - Offset);
-        QUIC_DBG_ASSERT(Len > 0);
+        CXPLAT_DBG_ASSERT(Len > 0);
     }
 
     //
@@ -653,7 +653,7 @@ QuicStreamCopyFromSendRequests(
         Req = Req->Next;
     }
 
-    QUIC_DBG_ASSERT(Req);
+    CXPLAT_DBG_ASSERT(Req);
 
     //
     // Loop over request buffers until we've copied enough bytes.
@@ -670,15 +670,15 @@ QuicStreamCopyFromSendRequests(
     }
 
     for (;;) {
-        QUIC_DBG_ASSERT(Req != NULL);
-        QUIC_DBG_ASSERT(CurIndex < Req->BufferCount);
-        QUIC_DBG_ASSERT(CurOffset <= (uint64_t)Req->Buffers[CurIndex].Length);
+        CXPLAT_DBG_ASSERT(Req != NULL);
+        CXPLAT_DBG_ASSERT(CurIndex < Req->BufferCount);
+        CXPLAT_DBG_ASSERT(CurOffset <= (uint64_t)Req->Buffers[CurIndex].Length);
 
         //
         // Copy the data from the request buffer to the frame buffer.
         //
         uint16_t SubLen = (uint16_t)min(Len, Req->Buffers[CurIndex].Length - (uint32_t)CurOffset);
-        QuicCopyMemory(Buf, Req->Buffers[CurIndex].Buffer + CurOffset, SubLen);
+        CxPlatCopyMemory(Buf, Req->Buffers[CurIndex].Buffer + CurOffset, SubLen);
         Len -= SubLen;
         Buf += SubLen;
         Copied += SubLen;
@@ -696,7 +696,7 @@ QuicStreamCopyFromSendRequests(
         //
         CurOffset = 0;
         if (++CurIndex == Req->BufferCount) {
-            QUIC_DBG_ASSERT(Req->Next != NULL);
+            CXPLAT_DBG_ASSERT(Req->Next != NULL);
             Req = Req->Next;
             CurIndex = 0;
         }
@@ -795,7 +795,7 @@ QuicStreamWriteOneFrame(
     // so do the real call to QuicFrameEncodeStreamHeader to write the header.
     //
     if (!QuicStreamFrameEncode(&Frame, FrameBytes, BufferLength, Buffer)) {
-        QUIC_FRE_ASSERT(FALSE);
+        CXPLAT_FRE_ASSERT(FALSE);
     }
 
     PacketMetadata->Flags.IsAckEliciting = TRUE;
@@ -884,7 +884,7 @@ QuicStreamWriteStreamFrames(
             uint32_t i = 0;
             while ((Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i++)) != NULL &&
                 Sack->Low < Left) {
-                QUIC_DBG_ASSERT(Sack->Low + Sack->Count <= Left);
+                CXPLAT_DBG_ASSERT(Sack->Low + Sack->Count <= Left);
             }
         }
 
@@ -918,7 +918,7 @@ QuicStreamWriteStreamFrames(
         // It's OK for Right and Left to be equal because there are cases where
         // stream frames will be written with no payload (initial or FIN).
         //
-        QUIC_DBG_ASSERT(Right >= Left);
+        CXPLAT_DBG_ASSERT(Right >= Left);
 
         uint16_t FrameBytes = *BufferLength - BytesWritten;
         uint16_t FramePayloadBytes = (uint16_t)(Right - Left);
@@ -949,13 +949,13 @@ QuicStreamWriteStreamFrames(
         //
         Right = Left + FramePayloadBytes;
 
-        QUIC_DBG_ASSERT(Right <= Stream->QueuedSendOffset);
+        CXPLAT_DBG_ASSERT(Right <= Stream->QueuedSendOffset);
         if (Right == Stream->QueuedSendOffset) {
             QuicStreamAddOutFlowBlockedReason(Stream, QUIC_FLOW_BLOCKED_APP);
             ExitLoop = TRUE;
         }
 
-        QUIC_DBG_ASSERT(Right <= Stream->MaxAllowedSendOffset);
+        CXPLAT_DBG_ASSERT(Right <= Stream->MaxAllowedSendOffset);
         if (Right == Stream->MaxAllowedSendOffset) {
             if (QuicStreamAddOutFlowBlockedReason(
                     Stream, QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL)) {
@@ -966,7 +966,7 @@ QuicStreamWriteStreamFrames(
             ExitLoop = TRUE;
         }
 
-        QUIC_DBG_ASSERT(Right <= MaxConnFlowControlOffset);
+        CXPLAT_DBG_ASSERT(Right <= MaxConnFlowControlOffset);
         if (Right == MaxConnFlowControlOffset) {
             if (QuicConnAddOutFlowBlockedReason(
                     Stream->Connection, QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL)) {
@@ -985,7 +985,7 @@ QuicStreamWriteStreamFrames(
         //
 
         if (Recovery) {
-            QUIC_DBG_ASSERT(Stream->RecoveryNextOffset <= Right);
+            CXPLAT_DBG_ASSERT(Stream->RecoveryNextOffset <= Right);
             Stream->RecoveryNextOffset = Right;
             if (Sack && Stream->RecoveryNextOffset == Sack->Low) {
                 Stream->RecoveryNextOffset += Sack->Count;
@@ -1001,7 +1001,7 @@ QuicStreamWriteStreamFrames(
 
         if (Stream->MaxSentLength < Right) {
             Send->OrderedStreamBytesSent += Right - Stream->MaxSentLength;
-            QUIC_DBG_ASSERT(Send->OrderedStreamBytesSent <= Send->PeerMaxData);
+            CXPLAT_DBG_ASSERT(Send->OrderedStreamBytesSent <= Send->PeerMaxData);
             Stream->MaxSentLength = Right;
         }
 
@@ -1024,18 +1024,18 @@ QuicStreamSendWrite(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    QUIC_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
+    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
     uint8_t PrevFrameCount = Builder->Metadata->FrameCount;
     BOOLEAN RanOutOfRoom = FALSE;
 
     uint16_t AvailableBufferLength =
         (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead;
 
-    QUIC_DBG_ASSERT(Stream->SendFlags != 0);
-    QUIC_DBG_ASSERT(
+    CXPLAT_DBG_ASSERT(Stream->SendFlags != 0);
+    CXPLAT_DBG_ASSERT(
         Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_1_RTT ||
         Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT);
-    QUIC_DBG_ASSERT(QuicStreamAllowedByPeer(Stream));
+    CXPLAT_DBG_ASSERT(QuicStreamAllowedByPeer(Stream));
 
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_MAX_DATA) {
 
@@ -1106,7 +1106,7 @@ QuicStreamSendWrite(
             Builder->Datagram->Buffer + Builder->DatagramLength);
 
         if (StreamFrameLength > 0) {
-            QUIC_DBG_ASSERT(StreamFrameLength <= AvailableBufferLength - Builder->DatagramLength);
+            CXPLAT_DBG_ASSERT(StreamFrameLength <= AvailableBufferLength - Builder->DatagramLength);
             Builder->DatagramLength += StreamFrameLength;
 
             if (!QuicStreamHasPendingStreamData(Stream)) {
@@ -1144,7 +1144,7 @@ QuicStreamSendWrite(
     // The only valid reason to not have framed anything is that there was too
     // little room left in the packet to fit anything more.
     //
-    QUIC_DBG_ASSERT(Builder->Metadata->FrameCount > PrevFrameCount || RanOutOfRoom);
+    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount > PrevFrameCount || RanOutOfRoom);
     UNREFERENCED_PARAMETER(RanOutOfRoom);
 
     return Builder->Metadata->FrameCount > PrevFrameCount;
@@ -1314,7 +1314,7 @@ QuicStreamOnAck(
 
     uint32_t RemoveSendFlags = 0;
 
-    QUIC_DBG_ASSERT(FollowingOffset <= Stream->QueuedSendOffset);
+    CXPLAT_DBG_ASSERT(FollowingOffset <= Stream->QueuedSendOffset);
 
     QuicTraceLogStreamVerbose(
         AckRange,
@@ -1405,7 +1405,7 @@ QuicStreamOnAck(
         }
 
         if (Stream->UnAckedOffset == Stream->QueuedSendOffset && Stream->Flags.FinAcked) {
-            QUIC_DBG_ASSERT(Stream->SendRequests == NULL);
+            CXPLAT_DBG_ASSERT(Stream->SendRequests == NULL);
 
             QuicTraceLogStreamVerbose(
                 SendQueueDrained,
@@ -1543,10 +1543,10 @@ QuicStreamSendDumpState(
                 Stream->MaxSentLength);
         }
 
-        QUIC_DBG_ASSERT(Stream->NextSendOffset <= Stream->MaxAllowedSendOffset);
-        QUIC_DBG_ASSERT(Stream->UnAckedOffset <= Stream->NextSendOffset);
+        CXPLAT_DBG_ASSERT(Stream->NextSendOffset <= Stream->MaxAllowedSendOffset);
+        CXPLAT_DBG_ASSERT(Stream->UnAckedOffset <= Stream->NextSendOffset);
         if (Stream->Flags.InRecovery) {
-            QUIC_DBG_ASSERT(Stream->UnAckedOffset <= Stream->RecoveryNextOffset);
+            CXPLAT_DBG_ASSERT(Stream->UnAckedOffset <= Stream->RecoveryNextOffset);
         }
     }
 }

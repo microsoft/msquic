@@ -24,6 +24,9 @@ This script provides helpers for building msquic.
 .PARAMETER SanitizeAddress
     Enables address sanitizer.
 
+.PARAMETER CodeCheck
+    Enables static code checkers.
+
 .PARAMETER DisableTools
     Don't build the tools directory.
 
@@ -108,6 +111,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$SanitizeAddress = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CodeCheck = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableTools = $false,
@@ -264,6 +270,9 @@ function CMake-Generate {
     if ($SanitizeAddress) {
         $Arguments += " -DQUIC_ENABLE_SANITIZERS=on"
     }
+    if ($CodeCheck) {
+        $Arguments += " -DQUIC_CODE_CHECK=on"
+    }
     if ($DisableTools) {
         $Arguments += " -DQUIC_BUILD_TOOLS=off"
     }
@@ -296,6 +305,7 @@ function CMake-Generate {
     }
     if ($CI) {
         $Arguments += " -DQUIC_CI=ON"
+        $Arguments += " -DQUIC_CI_CONFIG=$Config"
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
     }

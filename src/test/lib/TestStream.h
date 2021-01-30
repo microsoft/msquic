@@ -56,7 +56,7 @@ struct QuicSendBuffer
         for (uint32_t i = 0; i < BufferCount; ++i) {
             this->Buffers[i].Buffer = bufferSize == 0 ? nullptr : new(std::nothrow) uint8_t[bufferSize];
             this->Buffers[i].Length = bufferSize;
-            QuicZeroMemory(this->Buffers[i].Buffer, this->Buffers[i].Length);
+            CxPlatZeroMemory(this->Buffers[i].Buffer, this->Buffers[i].Length);
         }
     }
 
@@ -104,8 +104,8 @@ class TestStream
     volatile long OutstandingSendRequestCount;
     uint64_t BytesReceived;
 
-    QUIC_EVENT EventSendShutdownComplete;
-    QUIC_EVENT EventRecvShutdownComplete;
+    CXPLAT_EVENT EventSendShutdownComplete;
+    CXPLAT_EVENT EventRecvShutdownComplete;
 
     STREAM_SHUTDOWN_CALLBACK_HANDLER StreamShutdownCallback;
 
