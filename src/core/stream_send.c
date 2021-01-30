@@ -500,7 +500,6 @@ QuicStreamSendFlush(
         SendRequest->Next = NULL;
         TotalBytesSent += (int64_t) SendRequest->TotalLength;
 
-        CXPLAT_DBG_ASSERT(SendRequest->TotalLength != 0 || SendRequest->Flags & QUIC_SEND_FLAG_FIN);
         CXPLAT_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
 
         if (!Stream->Flags.SendEnabled) {
