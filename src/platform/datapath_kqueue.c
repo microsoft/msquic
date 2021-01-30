@@ -1682,7 +1682,7 @@ CxPlatSocketSend(
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-        Socket,
+        Binding,
         TotalSize,
         SendData->BufferCount,
         SendData->Buffers[0].Length,
