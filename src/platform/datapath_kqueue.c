@@ -1435,6 +1435,7 @@ void CxPlatSendDataFree(_In_ CXPLAT_SEND_DATA* SendContext) {
     CxPlatPoolFree(&SendContext->Owner->SendContextPool, SendContext);
 }
 
+#if DEBUG
 static
 BOOLEAN CxPlatSendContextCanAllocSendSegment(_In_ CXPLAT_SEND_DATA* SendContext, _In_ uint16_t MaxBufferLength) {
     CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0);
@@ -1445,6 +1446,7 @@ BOOLEAN CxPlatSendContextCanAllocSendSegment(_In_ CXPLAT_SEND_DATA* SendContext,
 
     return MaxBufferLength <= BytesAvailable;
 }
+#endif
 
 //static
 //BOOLEAN CxPlatSendContextCanAllocSend(_In_ CXPLAT_SEND_DATA* SendContext, _In_ UINT16 MaxBufferLength) {
