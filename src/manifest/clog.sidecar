@@ -7484,66 +7484,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "DatapathSendTo": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
-      "UniqueId": "DatapathSendTo",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg6"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "DatapathSendFromTo": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-      "UniqueId": "DatapathSendFromTo",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg6"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg7"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "DatapathOpenTcpSocketFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] RSS helper socket failed to open, 0x%x",
@@ -11838,14 +11778,6 @@
       {
         "UniquenessHash": "381ba642-ea84-5bf3-aeea-543fe5c5e9b5",
         "TraceID": "DatapathUnreachableWithError"
-      },
-      {
-        "UniquenessHash": "b13354d8-a6ed-55c2-119e-a9d7594f1c39",
-        "TraceID": "DatapathSendTo"
-      },
-      {
-        "UniquenessHash": "6b1aca9e-8e7b-77f1-8c96-4686c65ba5e2",
-        "TraceID": "DatapathSendFromTo"
       },
       {
         "UniquenessHash": "6eeae539-95db-bea9-7e36-8635006dae40",

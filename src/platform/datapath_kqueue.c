@@ -674,7 +674,7 @@ QUIC_STATUS CxPlatDataPathBindingStartReceive(_In_ CXPLAT_UDP_SOCKET_CONTEXT* So
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDataPathBindingCreate(
+CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR *LocalAddress,
     _In_opt_ const QUIC_ADDR *RemoteAddress,
@@ -942,6 +942,40 @@ Error:
     }
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSocketCreateTcp(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* CallbackContext,
+    _Out_ CXPLAT_SOCKET** Socket
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    UNREFERENCED_PARAMETER(LocalAddress);
+    UNREFERENCED_PARAMETER(RemoteAddress);
+    UNREFERENCED_PARAMETER(CallbackContext);
+    UNREFERENCED_PARAMETER(Socket);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSocketCreateTcpListener(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ void* CallbackContext,
+    _Out_ CXPLAT_SOCKET** Socket
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    UNREFERENCED_PARAMETER(LocalAddress);
+    UNREFERENCED_PARAMETER(CallbackContext);
+    UNREFERENCED_PARAMETER(Socket);
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1560,7 +1594,12 @@ Exit:
 }
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void CxPlatDataPathBindingFreeSendDatagram(_In_ CXPLAT_SEND_DATA* SendContext, _In_ QUIC_BUFFER* Datagram) {
+void
+CxPlatDataPathBindingFreeSendDatagram(
+    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ QUIC_BUFFER* Datagram
+    )
+{
     CxPlatPoolFree(&SendContext->Owner->SendBufferPool, Datagram->Buffer);
     Datagram->Buffer = NULL;
 
@@ -1570,11 +1609,20 @@ void CxPlatDataPathBindingFreeSendDatagram(_In_ CXPLAT_SEND_DATA* SendContext, _
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN CxPlatDataPathBindingIsSendContextFull(_In_ CXPLAT_SEND_DATA* SendContext) {
+BOOLEAN
+CxPlatDataPathBindingIsSendContextFull(
+    _In_ CXPLAT_SEND_DATA* SendContext
+    )
+{
     return SendContext->BufferCount == SendContext->Owner->Datapath->MaxSendBatchSize;
 }
 
-void CxPlatSendContextComplete(_In_ CXPLAT_UDP_SOCKET_CONTEXT* SocketContext, _In_ CXPLAT_SEND_DATA* SendContext, _In_ unsigned long IoResult)
+void
+CxPlatSendContextComplete(
+    _In_ CXPLAT_UDP_SOCKET_CONTEXT* SocketContext,
+    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ unsigned long IoResult
+    )
 {
     UNREFERENCED_PARAMETER(SendContext);
     UNREFERENCED_PARAMETER(SocketContext);
@@ -1591,44 +1639,63 @@ void CxPlatSendContextComplete(_In_ CXPLAT_UDP_SOCKET_CONTEXT* SocketContext, _I
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS CxPlatDataPathBindingSendTo(_In_ CXPLAT_SOCKET* Binding, _In_ const QUIC_ADDR *RemoteAddress, _In_ CXPLAT_SEND_DATA* SendContext)
+QUIC_STATUS
+CxPlatSocketSend(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
 {
     QUIC_STATUS Status;
     CXPLAT_DATAPATH* Datapath;
     CXPLAT_UDP_SOCKET_CONTEXT* SocketContext;
+    QUIC_ADDR MappedRemoteAddress = {0};
     int Socket;
     int Result;
 
-    CXPLAT_DBG_ASSERT(Binding != NULL && RemoteAddress != NULL && SendContext != NULL);
+    CXPLAT_DBG_ASSERT(Binding != NULL && RemoteAddress != NULL && SendData != NULL);
 
-    if (SendContext->BufferCount == 0) {
+    if (SendData->BufferCount == 0) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
-    CxPlatSendContextFinalizeSendBuffer(SendContext, TRUE);
+    CxPlatSendContextFinalizeSendBuffer(SendData, TRUE);
 
     Datapath = Binding->Datapath;
     SocketContext = &Binding->SocketContexts[0];
     Socket = SocketContext->Socket;
-
-    QuicTraceEvent(
-        DatapathSendTo,
-        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
-        Binding,
-        SendContext->TotalSize,
-        SendContext->BufferCount,
-        SendContext->SegmentSize,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
 
     //struct cmsghdr CMsg;
     //uint8_t CtrlBuf[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(struct in_pktinfo)) + CMSG_SPACE(sizeof(int))];
 
     struct iovec Iovs[CXPLAT_MAX_BATCH_SEND];
 
-    for (int i = 0; i < SendContext->BufferCount; i++) {
-        Iovs[i].iov_base = SendContext->Buffers[i].Buffer;
-        Iovs[i].iov_len = SendContext->Buffers[i].Length;
+    uint32_t TotalSize = 0;
+    for (int i = 0; i < SendData->BufferCount; i++) {
+        Iovs[i].iov_base = SendData->Buffers[i].Buffer;
+        Iovs[i].iov_len = SendData->Buffers[i].Length;
+        TotalSize += SendData->Buffers[i].Length;
+    }
+
+    QuicTraceEvent(
+        DatapathSend,
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        Socket,
+        TotalSize,
+        SendData->BufferCount,
+        SendData->Buffers[0].Length,
+        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+
+    //
+    // Map V4 address to dual-stack socket format.
+    //
+    CxPlatConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+
+    if (MappedRemoteAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+        MappedRemoteAddress.Ipv6.sin6_family = AF_INET6;
     }
 
     struct msghdr WSAMhdr;
@@ -1636,7 +1703,7 @@ QUIC_STATUS CxPlatDataPathBindingSendTo(_In_ CXPLAT_SOCKET* Binding, _In_ const 
     WSAMhdr.msg_name = NULL;
     WSAMhdr.msg_namelen = 0;
     WSAMhdr.msg_iov = (struct iovec *)Iovs;
-    WSAMhdr.msg_iovlen = SendContext->BufferCount;
+    WSAMhdr.msg_iovlen = SendData->BufferCount;
     WSAMhdr.msg_control = NULL;
     WSAMhdr.msg_controllen = 0;
 
@@ -1648,7 +1715,7 @@ QUIC_STATUS CxPlatDataPathBindingSendTo(_In_ CXPLAT_SOCKET* Binding, _In_ const 
     //    CMsg->cmsg_level = IPPROTO_IP;
     //    CMsg->cmsg_type = IP_ECN;
     //    CMsg->cmsg_len = CMSG_LEN(sizeof(INT));
-    //    *(int *)CMSG_DATA(CMsg) = SendContext->ECN;
+    //    *(int *)CMSG_DATA(CMsg) = SendData->ECN;
 
     //} else {
     //    WSAMhdr.Control.len += CMSG_SPACE(sizeof(INT));
@@ -1656,7 +1723,7 @@ QUIC_STATUS CxPlatDataPathBindingSendTo(_In_ CXPLAT_SOCKET* Binding, _In_ const 
     //    CMsg->cmsg_level = IPPROTO_IPV6;
     //    CMsg->cmsg_type = IPV6_ECN;
     //    CMsg->cmsg_len = CMSG_LEN(sizeof(INT));
-    //    *(int *)CMSG_DATA(CMsg) = SendContext->ECN;
+    //    *(int *)CMSG_DATA(CMsg) = SendData->ECN;
     //}
     CXPLAT_DBG_ASSERT(Binding->RemoteAddress.Ipv4.sin_port != 0);
 
@@ -1675,6 +1742,7 @@ QUIC_STATUS CxPlatDataPathBindingSendTo(_In_ CXPLAT_SOCKET* Binding, _In_ const 
             Status,
             "sendmsg");
         goto Exit;
+
     } else {
         //
         // Completed synchronously.
@@ -1682,7 +1750,7 @@ QUIC_STATUS CxPlatDataPathBindingSendTo(_In_ CXPLAT_SOCKET* Binding, _In_ const 
         // TODO: Always call send complete, probably. the status code here may
         // be useful if the send didnt succeed but we dont want to queue it up
         // at this layer
-        CxPlatSendContextComplete(SocketContext, SendContext, QUIC_STATUS_SUCCESS);
+        CxPlatSendContextComplete(SocketContext, SendData, QUIC_STATUS_SUCCESS);
     }
 
     Status = QUIC_STATUS_SUCCESS;
@@ -1690,154 +1758,17 @@ QUIC_STATUS CxPlatDataPathBindingSendTo(_In_ CXPLAT_SOCKET* Binding, _In_ const 
 Exit:
 
     if (QUIC_FAILED(Status)) {
-        CxPlatDataPathBindingFreeSendContext(SendContext);
+        CxPlatDataPathBindingFreeSendContext(SendData);
     }
 
     return Status;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-CxPlatDataPathBindingSendFromTo(
-    _In_ CXPLAT_SOCKET* Binding,
-    _In_ const QUIC_ADDR *LocalAddress,
-    _In_ const QUIC_ADDR *RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendContext
+void*
+CxPlatDataPathWorkerThread(
+    _In_ void* CompletionContext
     )
 {
-    UNREFERENCED_PARAMETER(Binding);
-    UNREFERENCED_PARAMETER(LocalAddress);
-    UNREFERENCED_PARAMETER(RemoteAddress);
-    UNREFERENCED_PARAMETER(SendContext);
-    return QUIC_STATUS_SUCCESS;
-//    QUIC_STATUS Status;
-//    CXPLAT_DATAPATH* Datapath;
-//    CXPLAT_UDP_SOCKET_CONTEXT* SocketContext;
-//    SOCKET Socket;
-//    int Result;
-//    DWORD BytesSent;
-//
-//    CXPLAT_DBG_ASSERT(Binding != NULL && LocalAddress != NULL && RemoteAddress != NULL && SendContext != NULL);
-//
-//    if (SendContext->BufferCount == 0) {
-//        Status = QUIC_STATUS_INVALID_PARAMETER;
-//        goto Exit;
-//    }
-//
-//    CxPlatSendContextFinalizeSendBuffer(SendContext, TRUE);
-//
-//    Datapath = Binding->Datapath;
-//    SocketContext = &Binding->SocketContexts[Binding->Connected ? 0 : GetCurrentProcessorNumber()];
-//    Socket = SocketContext->Socket;
-//
-//    QuicTraceEvent(DatapathSendFromTo, "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!", Binding, SendContext->TotalSize, SendContext->BufferCount, SendContext->SegmentSize, CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress), CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-//
-//    //
-//    // Map V4 address to dual-stack socket format.
-//    //
-//    SOCKADDR_INET MappedRemoteAddress = { 0 };
-//    CxPlatConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
-//
-//    PWSACMSGHDR CMsg;
-//    BYTE CtrlBuf[
-//        WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
-//        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
-//#ifdef UDP_SEND_MSG_SIZE
-//        WSA_CMSG_SPACE(sizeof(DWORD))    // UDP_SEND_MSG_SIZE
-//#endif
-//        ];
-//
-//    WSAMSG WSAMhdr;
-//    WSAMhdr.dwFlags = 0;
-//    WSAMhdr.name = (LPSOCKADDR)&MappedRemoteAddress;
-//    WSAMhdr.namelen = sizeof(MappedRemoteAddress);
-//    WSAMhdr.lpBuffers = SendContext->Buffers;
-//    WSAMhdr.dwBufferCount = SendContext->BufferCount;
-//    WSAMhdr.Control.buf = (PCHAR)CtrlBuf;
-//    WSAMhdr.Control.len = 0;
-//
-//    if (LocalAddress->si_family == AF_INET) {
-//        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(IN_PKTINFO));
-//        CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
-//        CMsg->cmsg_level = IPPROTO_IP;
-//        CMsg->cmsg_type = IP_PKTINFO;
-//        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN_PKTINFO));
-//        PIN_PKTINFO PktInfo = (PIN_PKTINFO)WSA_CMSG_DATA(CMsg);
-//        PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
-//        PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
-//
-//        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-//        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-//        CXPLAT_DBG_ASSERT(CMsg != NULL);
-//        CMsg->cmsg_level = IPPROTO_IP;
-//        CMsg->cmsg_type = IP_ECN;
-//        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-//        *(PINT)WSA_CMSG_DATA(CMsg) = SendContext->ECN;
-//
-//    } else {
-//        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(IN6_PKTINFO));
-//        CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
-//        CMsg->cmsg_level = IPPROTO_IPV6;
-//        CMsg->cmsg_type = IPV6_PKTINFO;
-//        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN6_PKTINFO));
-//        PIN6_PKTINFO PktInfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(CMsg);
-//        PktInfo6->ipi6_ifindex = LocalAddress->Ipv6.sin6_scope_id;
-//        PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
-//
-//        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-//        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-//        CXPLAT_DBG_ASSERT(CMsg != NULL);
-//        CMsg->cmsg_level = IPPROTO_IPV6;
-//        CMsg->cmsg_type = IPV6_ECN;
-//        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-//        *(PINT)WSA_CMSG_DATA(CMsg) = SendContext->ECN;
-//    }
-//
-//#ifdef UDP_SEND_MSG_SIZE
-//    if (SendContext->SegmentSize > 0) {
-//        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(DWORD));
-//        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-//        CXPLAT_DBG_ASSERT(CMsg != NULL);
-//        CMsg->cmsg_level = IPPROTO_UDP;
-//        CMsg->cmsg_type = UDP_SEND_MSG_SIZE;
-//        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(DWORD));
-//        *(PDWORD)WSA_CMSG_DATA(CMsg) = SendContext->SegmentSize;
-//    }
-//#endif
-//
-//    //
-//    // Start the async send.
-//    //
-//    RtlZeroMemory(&SendContext->Overlapped, sizeof(OVERLAPPED));
-//    Result = sendmsg(Socket, &WSAMhdr, 0);
-//
-//    if (Result == SOCKET_ERROR) {
-//        // TODO: Update this result check to be more posix-y
-//        int WsaError = WSAGetLastError();
-//        if (WsaError != WSA_IO_PENDING) {
-//            QuicTraceEvent(DatapathErrorStatus, "[data][%p] ERROR, %u, %s.", SocketContext->Binding, WsaError, "sendmsg");
-//            Status = HRESULT_FROM_WIN32(WsaError);
-//            goto Exit;
-//        }
-//    } else {
-//        //
-//        // Completed synchronously.
-//        //
-//        CxPlatSendContextComplete(SocketContext, SendContext, QUIC_STATUS_SUCCESS);
-//    }
-//
-//    Status = QUIC_STATUS_SUCCESS;
-//
-//Exit:
-//
-//    if (QUIC_FAILED(Status)) {
-//        CxPlatDataPathBindingFreeSendContext(SendContext);
-//    }
-//
-//    return Status;
-}
-
-void *CxPlatDataPathWorkerThread(_In_ void* CompletionContext) {
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT*)CompletionContext;
 
     QuicTraceLogInfo(
@@ -1890,11 +1821,20 @@ void *CxPlatDataPathWorkerThread(_In_ void* CompletionContext) {
         DatapathWorkerThreadStop,
         "[data][%p] Worker stop",
         ProcContext);
+
     return NO_ERROR;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS CxPlatDataPathBindingSetParam(_In_ CXPLAT_SOCKET* Binding, _In_ uint32_t Param, _In_ uint32_t BufferLength, _In_reads_bytes_(BufferLength) const uint8_t * Buffer) {
+QUIC_STATUS
+CxPlatDataPathBindingSetParam(
+    _In_ CXPLAT_SOCKET* Binding,
+    _In_ uint32_t Param,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t* Buffer
+    )
+{
     UNREFERENCED_PARAMETER(Binding);
     UNREFERENCED_PARAMETER(Param);
     UNREFERENCED_PARAMETER(BufferLength);
@@ -1903,7 +1843,15 @@ QUIC_STATUS CxPlatDataPathBindingSetParam(_In_ CXPLAT_SOCKET* Binding, _In_ uint
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS CxPlatDataPathBindingGetParam(_In_ CXPLAT_SOCKET* Binding, _In_ uint32_t Param, _Inout_ uint32_t * BufferLength, _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer) {
+QUIC_STATUS
+CxPlatDataPathBindingGetParam(
+    _In_ CXPLAT_SOCKET* Binding,
+    _In_ uint32_t Param,
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        uint8_t* Buffer
+    )
+{
     UNREFERENCED_PARAMETER(Binding);
     UNREFERENCED_PARAMETER(Param);
     UNREFERENCED_PARAMETER(BufferLength);
