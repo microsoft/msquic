@@ -785,6 +785,7 @@ QuicBindingProcessStatelessOperation(
             RecvPacket->SourceCidLen +
             sizeof(uint8_t) +
             RecvPacket->DestCidLen +
+            sizeof(uint32_t) +                                      // One random version
             (uint16_t)(SupportedVersionsLength * sizeof(uint32_t));
 
         SendDatagram =
@@ -807,7 +808,7 @@ QuicBindingProcessStatelessOperation(
 
         uint8_t* Buffer = VerNeg->DestCid;
         VerNeg->DestCidLength = RecvPacket->SourceCidLen;
-        memcpy(
+        CxPlatCopyMemory(
             Buffer,
             RecvPacket->SourceCid,
             RecvPacket->SourceCidLen);
@@ -815,7 +816,7 @@ QuicBindingProcessStatelessOperation(
 
         *Buffer = RecvPacket->DestCidLen;
         Buffer++;
-        memcpy(
+        CxPlatCopyMemory(
             Buffer,
             RecvPacket->DestCid,
             RecvPacket->DestCidLen);
@@ -825,7 +826,10 @@ QuicBindingProcessStatelessOperation(
         CxPlatRandom(sizeof(uint8_t), &RandomValue);
         VerNeg->Unused = 0x7F & RandomValue;
 
-        memcpy(
+        CxPlatCopyMemory(Buffer, &Binding->RandomReservedVersion, sizeof(uint32_t));
+        Buffer += sizeof(uint32_t);
+
+        CxPlatCopyMemory(
             Buffer,
             SupportedVersions,
             SupportedVersionsLength * sizeof(uint32_t));

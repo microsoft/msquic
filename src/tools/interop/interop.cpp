@@ -376,21 +376,29 @@ public:
                 this,
                 &Connection));
         if (VerNeg) {
+            QUIC_SETTINGS Settings = { 0 };
+            Settings.DesiredVersionsList = &RandomReservedVersion;
+            Settings.DesiredVersionsListLength = sizeof(RandomReservedVersion);
+            Settings.IsSet.DesiredVersionsList = TRUE;
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_QUIC_VERSION,
-                    sizeof(RandomReservedVersion),
-                    &RandomReservedVersion));
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
         } else if (InitialVersion != 0) {
+            QUIC_SETTINGS Settings = { 0 };
+            Settings.DesiredVersionsList = &InitialVersion;
+            Settings.DesiredVersionsListLength = sizeof(InitialVersion);
+            Settings.IsSet.DesiredVersionsList = TRUE;
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_QUIC_VERSION,
-                    sizeof(InitialVersion),
-                    &InitialVersion));
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
         }
         if (LargeTP) {
             VERIFY_QUIC_SUCCESS(

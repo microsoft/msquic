@@ -49,6 +49,9 @@ QuicVersionNegotiationExtIsVersionServerSupported(
     )
 {
     if (MsQuicLib.Settings.IsSet.DesiredVersionsList) {
+        if (QuicIsVersionReserved(Version)) {
+            return FALSE;
+        }
         for (uint32_t i = 0; i < MsQuicLib.Settings.DesiredVersionsListLength; ++i) {
             if (MsQuicLib.Settings.DesiredVersionsList[i] == Version) {
                 return TRUE;
@@ -67,6 +70,9 @@ QuicVersionNegotiationExtIsVersionClientSupported(
     )
 {
     if (Connection->Settings.IsSet.DesiredVersionsList) {
+        if (QuicIsVersionReserved(Version)) {
+            return FALSE;
+        }
         for (uint32_t i = 0; i < Connection->Settings.DesiredVersionsListLength; ++i) {
             if (Connection->Settings.DesiredVersionsList[i] == Version) {
                 return TRUE;
@@ -286,7 +292,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
         //
         // Generate Server VNI.
         //
-        VNILen = 4 + QuicVarIntSize(DesiredVersionsListLength) +
+        VNILen = sizeof(uint32_t) + QuicVarIntSize(DesiredVersionsListLength) +
             (DesiredVersionsListLength * sizeof(uint32_t));
 
         VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(VNILen, QUIC_POOL_VER_NEG_INFO);
@@ -301,7 +307,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
         VNIBuf = VersionNegotiationInfo;
 
         CxPlatCopyMemory(VNIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion)); // TODO: test that this is getting set
-        VNIBuf += 4;
+        VNIBuf += sizeof(Connection->Stats.QuicVersion);
         VNIBuf = QuicVarIntEncode(DesiredVersionsListLength, VNIBuf);
         CxPlatCopyMemory(
             VNIBuf,
@@ -311,8 +317,8 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
         //
         // Generate Client VNI
         //
-        uint32_t CompatibilityListLength = 0;
-        VNILen = 4 + 4;
+        uint32_t CompatibilityListByteLength = 0;
+        VNILen = sizeof(uint32_t) + sizeof(uint32_t);
         if (Connection->Settings.IsSet.GeneratedCompatibleVersions) {
             VNILen +=
                 QuicVarIntSize(Connection->Settings.GeneratedCompatibleVersionsListLength) +
@@ -322,8 +328,8 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
                 Connection->Stats.QuicVersion,
                 Connection->Settings.DesiredVersionsList,
                 Connection->Settings.DesiredVersionsListLength,
-                NULL, &CompatibilityListLength);
-            VNILen += QuicVarIntSize(CompatibilityListLength / sizeof(uint32_t)) + CompatibilityListLength;
+                NULL, &CompatibilityListByteLength);
+            VNILen += QuicVarIntSize(CompatibilityListByteLength / sizeof(uint32_t)) + CompatibilityListByteLength;
         } else {
             VNILen +=
                 QuicVarIntSize(DefaultSupportedVersionsListLength) +
@@ -345,9 +351,9 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
         VNIBuf = VersionNegotiationInfo;
 
         CxPlatCopyMemory(VNIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
-        VNIBuf += 4;
+        VNIBuf += sizeof(Connection->Stats.QuicVersion);
         CxPlatCopyMemory(VNIBuf, &Connection->PreviousQuicVersion, sizeof(Connection->PreviousQuicVersion));
-        VNIBuf += 4;
+        VNIBuf += sizeof(Connection->PreviousQuicVersion);
         VNIBuf = QuicVarIntEncode(Connection->ReceivedNegotiationVersionsLength, VNIBuf);
         if (Connection->ReceivedNegotiationVersionsLength > 0) {
             CxPlatCopyMemory(
@@ -363,9 +369,9 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
                 Connection->Settings.GeneratedCompatibleVersionsList,
                 Connection->Settings.GeneratedCompatibleVersionsListLength * sizeof(uint32_t));
         } else if (Connection->Settings.IsSet.DesiredVersionsList) {
-            VNIBuf = QuicVarIntEncode(CompatibilityListLength / sizeof(uint32_t), VNIBuf);
+            VNIBuf = QuicVarIntEncode(CompatibilityListByteLength / sizeof(uint32_t), VNIBuf);
             uint32_t RemainingBuffer = VNILen - (uint32_t)(VNIBuf - VersionNegotiationInfo);
-            CXPLAT_DBG_ASSERT(RemainingBuffer == CompatibilityListLength);
+            CXPLAT_DBG_ASSERT(RemainingBuffer == CompatibilityListByteLength);
             QuicVersionNegotiationExtGenerateCompatibleVersionsList(
                 Connection->Stats.QuicVersion,
                 Connection->Settings.DesiredVersionsList,

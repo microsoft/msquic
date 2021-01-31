@@ -2576,9 +2576,10 @@ QuicConnProcessPeerTransportParameters(
                 }
 
                 if (ClientVNI.RecvNegotiationVerCount > 0) {
-                    if (ClientVNI.RecvNegotiationVerCount != SupportedVersionsLength ||
+                    if (ClientVNI.RecvNegotiationVerCount != (SupportedVersionsLength + 1) ||
+                        ClientVNI.RecvNegotiationVersions[0] != Connection->Paths[0].Binding->RandomReservedVersion ||
                         memcmp(
-                            ClientVNI.RecvNegotiationVersions,
+                            ClientVNI.RecvNegotiationVersions + 1,
                             SupportedVersions,
                             SupportedVersionsLength * sizeof(uint32_t)) != 0) {
                         //
@@ -3004,6 +3005,11 @@ QuicConnRecvVerNeg(
     uint32_t* ReceivedNegotiationVersions =
         (uint32_t*)CXPLAT_ALLOC_NONPAGED(ServerVersionListLength * sizeof(uint32_t), QUIC_POOL_RECVD_VER_LIST);
     if (ReceivedNegotiationVersions == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Received version list",
+            ServerVersionListLength * sizeof(uint32_t));
         QuicConnCloseLocally(
             Connection,
             QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
@@ -5935,7 +5941,7 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(QUIC_SETTINGS);
-        memcpy(Buffer, &Connection->Settings, *BufferLength); // TODO: How to copy out DesiredVersionsList?
+        CxPlatCopyMemory(Buffer, &Connection->Settings, *BufferLength); // TODO: How to copy out DesiredVersionsList?
 
         Status = QUIC_STATUS_SUCCESS;
         break;

@@ -396,7 +396,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t MigrationEnabled           : 1;
             uint64_t DatagramReceiveEnabled     : 1;
             uint64_t ServerResumptionLevel      : 1;
-            uint64_t DesiredVersionsList     : 1;
+            uint64_t DesiredVersionsList        : 1;
             uint64_t RESERVED                   : 37;
         } IsSet;
     };
@@ -404,8 +404,6 @@ typedef struct QUIC_SETTINGS {
     uint64_t MaxBytesPerKey;
     uint64_t HandshakeIdleTimeoutMs;
     uint64_t IdleTimeoutMs;
-    uint32_t* DesiredVersionsList;
-    uint32_t DesiredVersionsListLength;
     uint32_t TlsClientMaxSendBuffer;
     uint32_t TlsServerMaxSendBuffer;
     uint32_t StreamRecvWindowDefault;
@@ -430,6 +428,8 @@ typedef struct QUIC_SETTINGS {
     uint8_t DatagramReceiveEnabled  : 1;
     uint8_t ServerResumptionLevel   : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t RESERVED                : 2;
+    const uint32_t* DesiredVersionsList;
+    uint32_t DesiredVersionsListLength;
 
 } QUIC_SETTINGS;
 
