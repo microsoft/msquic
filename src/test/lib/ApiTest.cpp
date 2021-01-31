@@ -948,6 +948,32 @@ void QuicTestValidateConnection()
 #endif
 }
 
+_Function_class_(STREAM_SHUTDOWN_CALLBACK)
+static
+void
+ServerApiTestStreamShutdown(
+    _In_ TestStream* Stream
+    )
+{
+    delete Stream;
+}
+
+_Function_class_(NEW_STREAM_CALLBACK)
+static
+void
+ServerApiTestNewStream(
+    _In_ TestConnection* /* Connection */,
+    _In_ HQUIC StreamHandle,
+    _In_ QUIC_STREAM_OPEN_FLAGS Flags
+    )
+{
+    auto Stream = TestStream::FromStreamHandle(StreamHandle, ServerApiTestStreamShutdown, Flags);
+    if (Stream == nullptr || !Stream->IsValid()) {
+        delete Stream;
+        TEST_FAILURE("Failed to accept new TestStream.");
+    }
+}
+
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
@@ -957,7 +983,7 @@ ListenerAcceptCallback(
     )
 {
     TestConnection** NewConnection = (TestConnection**)Listener->Context;
-    *NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
+    *NewConnection = new(std::nothrow) TestConnection(ConnectionHandle, ServerApiTestNewStream);
     if (*NewConnection == nullptr || !(*NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *NewConnection;
@@ -1076,6 +1102,7 @@ void QuicTestValidateStream(bool Connect)
             // Null connection.
             //
             {
+                TestScopeLogger logScope("Null connection");
                 StreamScope Stream;
                 TEST_QUIC_STATUS(
                     QUIC_STATUS_INVALID_PARAMETER,
@@ -1091,6 +1118,7 @@ void QuicTestValidateStream(bool Connect)
             // Null handler.
             //
             {
+                TestScopeLogger logScope("Null handler");
                 StreamScope Stream;
                 TEST_QUIC_STATUS(
                     QUIC_STATUS_INVALID_PARAMETER,
@@ -1118,6 +1146,7 @@ void QuicTestValidateStream(bool Connect)
             // Fail on blocked.
             //
             {
+                TestScopeLogger logScope("Fail on blocked");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
@@ -1156,6 +1185,7 @@ void QuicTestValidateStream(bool Connect)
             // Never started (close).
             //
             {
+                TestScopeLogger logScope("Never started (close)");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
@@ -1170,6 +1200,7 @@ void QuicTestValidateStream(bool Connect)
             // Never started (shutdown graceful).
             //
             {
+                TestScopeLogger logScope("Never started (shutdown graceful)");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
@@ -1190,6 +1221,7 @@ void QuicTestValidateStream(bool Connect)
             // Never started (shutdown abortive).
             //
             {
+                TestScopeLogger logScope("Never started (shutdown abortive)");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
@@ -1210,6 +1242,7 @@ void QuicTestValidateStream(bool Connect)
             // Null buffer.
             //
             {
+                TestScopeLogger logScope("Null buffer");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
@@ -1238,11 +1271,12 @@ void QuicTestValidateStream(bool Connect)
             // Zero buffers.
             //
             {
+                TestScopeLogger logScope("Zero buffers");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
                         Client.GetConnection(),
-                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        QUIC_STREAM_OPEN_FLAG_NONE | QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
                         AllowSendCompleteStreamCallback,
                         nullptr,
                         &Stream.Handle));
@@ -1265,11 +1299,12 @@ void QuicTestValidateStream(bool Connect)
             // Zero-length buffers.
             //
             {
+                TestScopeLogger logScope("Zero-length buffers");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
                         Client.GetConnection(),
-                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        QUIC_STREAM_OPEN_FLAG_NONE | QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
                         AllowSendCompleteStreamCallback,
                         nullptr,
                         &Stream.Handle));
@@ -1292,11 +1327,12 @@ void QuicTestValidateStream(bool Connect)
             // Send on shutdown stream.
             //
             {
+                TestScopeLogger logScope("Send on shutdown stream");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
                         Client.GetConnection(),
-                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        QUIC_STREAM_OPEN_FLAG_NONE | QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
                         DummyStreamCallback,
                         nullptr,
                         &Stream.Handle));
@@ -1329,6 +1365,7 @@ void QuicTestValidateStream(bool Connect)
             // Double-shutdown stream.
             //
             {
+                TestScopeLogger logScope("Double-shutdown stream");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
@@ -1370,6 +1407,7 @@ void QuicTestValidateStream(bool Connect)
             // Shutdown no flags.
             //
             {
+                TestScopeLogger logScope("Shutdown no flags");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
