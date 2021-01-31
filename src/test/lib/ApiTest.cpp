@@ -992,6 +992,28 @@ DummyStreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
+_Function_class_(QUIC_STREAM_CALLBACK)
+static
+QUIC_STATUS
+QUIC_API
+AllowSendCompleteStreamCallback(
+    _In_ HQUIC /*Stream*/,
+    _In_opt_ void* /*Context*/,
+    _Inout_ QUIC_STREAM_EVENT* Event
+    )
+{
+    switch (Event->Type) {
+
+    case QUIC_STREAM_EVENT_RECEIVE:
+        TEST_FAILURE("QUIC_STREAM_EVENT_RECEIVE should never be called!");
+        break;
+
+    default:
+        break;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
 void QuicTestValidateStream(bool Connect)
 {
     MsQuicRegistration Registration;
@@ -1221,7 +1243,7 @@ void QuicTestValidateStream(bool Connect)
                     MsQuic->StreamOpen(
                         Client.GetConnection(),
                         QUIC_STREAM_OPEN_FLAG_NONE,
-                        DummyStreamCallback,
+                        AllowSendCompleteStreamCallback,
                         nullptr,
                         &Stream.Handle));
 
@@ -1230,12 +1252,38 @@ void QuicTestValidateStream(bool Connect)
                         Stream.Handle,
                         QUIC_STREAM_START_FLAG_NONE));
 
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_PARAMETER,
+                TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamSend(
                         Stream.Handle,
                         Buffers,
                         0,
+                        QUIC_SEND_FLAG_NONE,
+                        nullptr));
+            }
+
+            //
+            // Zero-length buffers.
+            //
+            {
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        AllowSendCompleteStreamCallback,
+                        nullptr,
+                        &Stream.Handle));
+
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamStart(
+                        Stream.Handle,
+                        QUIC_STREAM_START_FLAG_NONE));
+
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamSend(
+                        Stream.Handle,
+                        Buffers,
+                        ARRAYSIZE(Buffers),
                         QUIC_SEND_FLAG_NONE,
                         nullptr));
             }
@@ -1265,8 +1313,10 @@ void QuicTestValidateStream(bool Connect)
                         QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
                         QUIC_TEST_NO_ERROR));
 
+                CxPlatSleep(100); // TODO - Ideally wait for shutdown event instead
+
                 TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_PARAMETER,
+                    QUIC_STATUS_INVALID_STATE,
                     MsQuic->StreamSend(
                         Stream.Handle,
                         Buffers,
