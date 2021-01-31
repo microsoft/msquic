@@ -370,11 +370,13 @@ QuicConnFree(
         CXPLAT_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
     }
     if (Connection->HandshakeTP != NULL) {
+        QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
         CxPlatPoolFree(
             &MsQuicLib.PerProc[CxPlatProcCurrentNumber()].TransportParamPool,
             Connection->HandshakeTP);
         Connection->HandshakeTP = NULL;
     }
+    QuicCryptoTlsCleanupTransportParameters(&Connection->PeerTransportParams);
     if (Connection->ReceivedNegotiationVersions != NULL) {
         CXPLAT_FREE(Connection->ReceivedNegotiationVersions, QUIC_POOL_RECVD_VER_LIST);
         Connection->ReceivedNegotiationVersionsLength = 0;
@@ -1949,9 +1951,7 @@ QuicConnRestart(
             QuicConnFatalError(Connection, Status, NULL);
         }
 
-        if (LocalTP.Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
-            CXPLAT_FREE(LocalTP.VersionNegotiationInfo, QUIC_POOL_VER_NEG_INFO);
-        }
+        QuicCryptoTlsCleanupTransportParameters(&LocalTP);
 
     } else {
         QuicCryptoReset(&Connection->Crypto);
@@ -2016,7 +2016,7 @@ QuicConnRecvResumptionTicket(
     )
 {
     BOOLEAN ResumptionAccepted = FALSE;
-    QUIC_TRANSPORT_PARAMETERS ResumedTP;
+    QUIC_TRANSPORT_PARAMETERS ResumedTP = { 0 };
     if (QuicConnIsServer(Connection)) {
         const uint8_t* AppData = NULL;
         uint32_t AppDataLength = 0;
@@ -2115,6 +2115,7 @@ QuicConnRecvResumptionTicket(
 
 Error:
 
+    QuicCryptoTlsCleanupTransportParameters(&ResumedTP);
     return ResumptionAccepted;
 }
 
@@ -2127,6 +2128,7 @@ QuicConnCleanupServerResumptionState(
     CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
     if (!Connection->State.ResumptionEnabled) {
         if (Connection->HandshakeTP != NULL) {
+            QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
             CxPlatPoolFree(
                 &MsQuicLib.PerProc[CxPlatProcCurrentNumber()].TransportParamPool,
                 Connection->HandshakeTP);
@@ -2391,8 +2393,7 @@ QuicConnSetConfiguration(
     //
     if (QuicConnIsServer(Connection) && Connection->HandshakeTP != NULL) {
         CXPLAT_DBG_ASSERT(Connection->State.ResumptionEnabled);
-        *Connection->HandshakeTP = LocalTP;
-        Connection->HandshakeTP->Flags &= ~QUIC_TP_FLAG_VERSION_NEGOTIATION;
+        QuicCryptoTlsCopyTransportParameters(&LocalTP, Connection->HandshakeTP);
     }
 
     Connection->State.Started = TRUE;
@@ -2410,9 +2411,7 @@ QuicConnSetConfiguration(
 
 Error:
 
-    if (LocalTP.Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
-        CXPLAT_FREE(LocalTP.VersionNegotiationInfo, QUIC_POOL_VER_NEG_INFO);
-    }
+    QuicCryptoTlsCleanupTransportParameters(&LocalTP);
 
     return Status;
 }

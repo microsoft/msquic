@@ -202,3 +202,22 @@ QuicCryptoTlsDecodeTransportParameters(
     _In_ uint16_t TPLen,
     _Out_ QUIC_TRANSPORT_PARAMETERS* TransportParams
     );
+
+//
+// Deep copies allocated transport parameters.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicCryptoTlsCopyTransportParameters(
+    _In_ const QUIC_TRANSPORT_PARAMETERS* Source,
+    _In_ QUIC_TRANSPORT_PARAMETERS* Destination
+    );
+
+//
+// Frees allocation transport parameters.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCryptoTlsCleanupTransportParameters(
+    _In_ QUIC_TRANSPORT_PARAMETERS* TransportParams
+    );

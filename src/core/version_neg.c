@@ -306,7 +306,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
         }
         VNIBuf = VersionNegotiationInfo;
 
-        CxPlatCopyMemory(VNIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion)); // TODO: test that this is getting set
+        CxPlatCopyMemory(VNIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
         VNIBuf += sizeof(Connection->Stats.QuicVersion);
         VNIBuf = QuicVarIntEncode(DesiredVersionsListLength, VNIBuf);
         CxPlatCopyMemory(
@@ -382,7 +382,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
             CXPLAT_DBG_ASSERT(VNILen == (uint32_t)(VNIBuf - VersionNegotiationInfo));
         } else {
             VNIBuf = QuicVarIntEncode(DefaultSupportedVersionsListLength, VNIBuf);
-            memcpy(VNIBuf, DefaultSupportedVersionsList, DefaultSupportedVersionsListLength * sizeof(uint32_t));
+            CxPlatCopyMemory(VNIBuf, DefaultSupportedVersionsList, DefaultSupportedVersionsListLength * sizeof(uint32_t));
         }
     }
     *VNInfoLength = VNILen;

@@ -3092,7 +3092,7 @@
     },
     "DecodeTPVersionNegotiationInfo": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] TP: Version Negotiation Info (%llu bytes)",
+      "TraceString": "[conn][%p] TP: Version Negotiation Info (%hu bytes)",
       "UniqueId": "DecodeTPVersionNegotiationInfo",
       "splitArgs": [
         {
@@ -3100,7 +3100,7 @@
           "MacroVariableName": "arg1"
         },
         {
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "hu",
           "MacroVariableName": "arg3"
         }
       ],
@@ -10876,10 +10876,6 @@
         "TraceID": "DecodeTPDisable1RttEncryption"
       },
       {
-        "UniquenessHash": "c24b1c5e-cd4d-ca15-be0b-1c600831d5b0",
-        "TraceID": "DecodeTPVersionNegotiationInfo"
-      },
-      {
         "UniquenessHash": "152723b4-2b46-a936-ffaf-9cc429e8e66f",
         "TraceID": "DatagramSendStateChanged"
       },
@@ -12538,6 +12534,10 @@
       {
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop"
+      },
+      {
+        "UniquenessHash": "0cffe1cb-49d2-ac2b-79ff-a691bdd7d53b",
+        "TraceID": "DecodeTPVersionNegotiationInfo"
       }
     ]
   }

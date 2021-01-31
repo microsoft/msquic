@@ -1955,6 +1955,10 @@ QuicCryptoEncodeServerTicket(
     *Ticket = NULL;
     *TicketLength = 0;
 
+    //
+    // Don't use a deep copy here because only a subset of
+    // transport parameters are copied.
+    //
     QUIC_TRANSPORT_PARAMETERS HSTPCopy = *HandshakeTP;
     HSTPCopy.Flags &= (
         QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
