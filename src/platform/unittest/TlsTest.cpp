@@ -96,6 +96,7 @@ protected:
             QUIC_CREDENTIAL_FLAG_CLIENT,
             NULL,
             NULL,
+            NULL,
             NULL
         };
         VERIFY_QUIC_SUCCESS(
