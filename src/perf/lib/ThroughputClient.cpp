@@ -193,9 +193,7 @@ ThroughputClient::Wait(
         PerfRpsComplete,
         "[perf] RPS Client complete");
     Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 1);
-    if (TcpConn) {
-        OnTcpConnectionComplete(TcpConn);
-    }
+    OnTcpConnectionComplete();
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -566,15 +564,21 @@ ThroughputClient::StreamCallback(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 ThroughputClient::OnTcpConnectionComplete(
-    _In_ TcpConnection* Connection
     )
 {
-    if (TcpStrmContext) {
-        OnStreamShutdownComplete(TcpStrmContext);
-        TcpStrmContext = nullptr;
-    }
-    Connection->Close();
+    CxPlatLockAcquire(&TcpLock);
+    auto Connection = TcpConn;
     TcpConn = nullptr;
+    auto Stream = TcpStrmContext;
+    TcpStrmContext = nullptr;
+    CxPlatLockRelease(&TcpLock);
+
+    if (Stream) {
+        OnStreamShutdownComplete(Stream);
+    }
+    if (Connection) {
+        Connection->Close();
+    }
     CxPlatEventSet(*StopEvent);
 }
 
@@ -588,7 +592,7 @@ ThroughputClient::TcpConnectCallback(
 {
     auto This = (ThroughputClient*)Connection->Context;
     if (!IsConnected) {
-        This->OnTcpConnectionComplete(Connection);
+        This->OnTcpConnectionComplete();
     }
 }
 
@@ -627,10 +631,7 @@ ThroughputClient::TcpReceiveCallback(
     if ((Fin || Abort) && !StrmContext->RecvShutdown) {
         StrmContext->RecvShutdown = true;
         if (StrmContext->SendShutdown) {
-            This->OnStreamShutdownComplete(StrmContext);
-            This->TcpStrmContext = nullptr;
-            Connection->Close();
-            CxPlatEventSet(*This->StopEvent);
+            This->OnTcpConnectionComplete();
         }
     }
 }
@@ -656,10 +657,7 @@ ThroughputClient::TcpSendCompleteCallback(
             if ((Data->Fin || Data->Abort) && !This->TcpStrmContext->SendShutdown) {
                 This->TcpStrmContext->SendShutdown = true;
                 if (This->TcpStrmContext->RecvShutdown) {
-                    This->OnStreamShutdownComplete(This->TcpStrmContext);
-                    This->TcpStrmContext = nullptr;
-                    Connection->Close();
-                    CxPlatEventSet(*This->StopEvent);
+                    This->OnTcpConnectionComplete();
                 }
             }
         }
