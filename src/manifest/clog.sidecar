@@ -81,7 +81,7 @@
     },
     "AllocFailure": {
       "ModuleProperites": {},
-      "TraceString": "Allocation of '%s' failed. (%u bytes)",
+      "TraceString": "Allocation of '%s' failed. (%llu bytes)",
       "UniqueId": "AllocFailure",
       "splitArgs": [
         {
@@ -89,7 +89,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         }
       ],
@@ -12608,7 +12608,7 @@
         "TraceID": "DecodeTPVersionNegotiationInfo"
       },
       {
-        "UniquenessHash": "ec638dac-9b17-4307-bcfc-b9f286d35f85",
+        "UniquenessHash": "335643ef-1fdb-099b-6672-4452222524ff",
         "TraceID": "AllocFailure"
       }
     ]

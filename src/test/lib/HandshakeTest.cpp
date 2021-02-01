@@ -927,6 +927,17 @@ QuicTestCompatibleVersionNegotiation(
     ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
     ServerSettings.SetIdleTimeoutMs(3000);
 
+    MsQuicSettings ClearVNSettings;
+    ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_SETTINGS,
+            sizeof(ServerSettings),
+            &ServerSettings));
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -980,6 +991,13 @@ QuicTestCompatibleVersionNegotiation(
             }
         }
     }
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_SETTINGS,
+            sizeof(ClearVNSettings),
+            &ClearVNSettings));
 }
 
 void
@@ -1068,6 +1086,17 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
     ServerSettings.SetIdleTimeoutMs(3000);
 
+    MsQuicSettings ClearVNSettings;
+    ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_SETTINGS,
+            sizeof(ServerSettings),
+            &ServerSettings));
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -1120,6 +1149,13 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
             }
         }
     }
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_SETTINGS,
+            sizeof(ClearVNSettings),
+            &ClearVNSettings));
 }
 
 void
@@ -1141,6 +1177,17 @@ QuicTestIncompatibleVersionNegotiation(
     ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
     ServerSettings.SetIdleTimeoutMs(3000);
 
+    MsQuicSettings ClearVNSettings;
+    ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_SETTINGS,
+            sizeof(ServerSettings),
+            &ServerSettings));
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -1190,10 +1237,17 @@ QuicTestIncompatibleVersionNegotiation(
 
                 TEST_EQUAL(Client.GetQuicVersion(), ExpectedResultVersion);
                 TEST_EQUAL(Server->GetQuicVersion(), ExpectedResultVersion);
-                TEST_FALSE(Client.GetStatistics().VersionNegotiation);
+                TEST_TRUE(Client.GetStatistics().VersionNegotiation);
             }
         }
     }
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_SETTINGS,
+            sizeof(ClearVNSettings),
+            &ClearVNSettings));
 }
 
 void
@@ -1214,6 +1268,17 @@ QuicTestFailedVersionNegotiation(
     MsQuicSettings ServerSettings;
     ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
     ServerSettings.SetIdleTimeoutMs(3000);
+
+    MsQuicSettings ClearVNSettings;
+    ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_SETTINGS,
+            sizeof(ServerSettings),
+            &ServerSettings));
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1257,19 +1322,21 @@ QuicTestFailedVersionNegotiation(
                 }
                 TEST_FALSE(Client.GetIsConnected());
 
-                TEST_NOT_EQUAL(nullptr, Server);
-                if (!Server->WaitForShutdownComplete()) {
-                    return;
-                }
-                TEST_FALSE(Server->GetIsConnected());
+                TEST_EQUAL(nullptr, Server);
 
                 TEST_EQUAL(Client.GetQuicVersion(), ClientVersions[0]);
-                TEST_EQUAL(Server->GetQuicVersion(), ServerVersions[0]);
                 TEST_TRUE(Client.GetStatistics().VersionNegotiation);
                 TEST_EQUAL(Client.GetTransportCloseStatus(), ExpectedConnectionError);
             }
         }
     }
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_SETTINGS,
+            sizeof(ClearVNSettings),
+            &ClearVNSettings));
 }
 
 void

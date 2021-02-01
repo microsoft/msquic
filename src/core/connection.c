@@ -4091,7 +4091,7 @@ QuicConnRecvFrames(
                         Connection->Paths[0].Binding,
                         QUIC_OPER_TYPE_VERSION_NEGOTIATION,
                         CxPlatDataPathRecvPacketToRecvData(Packet));
-                    QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR); // Review: is this error appropriate?
+                    // QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR); // Review: is this error appropriate?
                 } else if (Status != QUIC_STATUS_INVALID_STATE) {
                     QuicTraceEvent(
                         ConnError,

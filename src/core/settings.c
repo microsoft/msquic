@@ -363,11 +363,20 @@ QuicSettingApply(
         }
     }
     if (Source->IsSet.DesiredVersionsList) {
-        if (Destination->IsSet.DesiredVersionsList && OverWrite) {
+        if (Destination->IsSet.DesiredVersionsList &&
+            (OverWrite || Source->DesiredVersionsListLength == 0)) {
             CXPLAT_FREE(Destination->DesiredVersionsList, QUIC_POOL_DESIRED_VER_LIST);
+            Destination->DesiredVersionsList = NULL;
+            Destination->DesiredVersionsListLength = 0;
             Destination->IsSet.DesiredVersionsList = FALSE;
         }
-        if (!Destination->IsSet.DesiredVersionsList) {
+        if (Destination->IsSet.GeneratedCompatibleVersions && Source->DesiredVersionsListLength == 0) {
+            CXPLAT_FREE(Destination->GeneratedCompatibleVersionsList, QUIC_POOL_COMPAT_VER_LIST);
+            Destination->GeneratedCompatibleVersionsList = NULL;
+            Destination->GeneratedCompatibleVersionsListLength = 0;
+            Destination->IsSet.GeneratedCompatibleVersions = FALSE;
+        }
+        if (!Destination->IsSet.DesiredVersionsList && Source->DesiredVersionsListLength > 0) {
             //
             // Validate the list only contains versions which MsQuic supports.
             //
