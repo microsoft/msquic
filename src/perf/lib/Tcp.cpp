@@ -832,16 +832,10 @@ bool TcpConnection::ProcessSend()
             auto StreamFrame = (TcpStreamFrame*)Frame->Data;
             StreamFrame->Id = NextSendData->StreamId;
             StreamFrame->Open = Offset == 0 ? NextSendData->Open : FALSE;
-            StreamFrame->Fin = Offset + StreamLength == NextSendData->Length ? NextSendData->Fin : FALSE;
-            StreamFrame->Abort = Offset + StreamLength == NextSendData->Length ? NextSendData->Abort : FALSE;
+            StreamFrame->Fin = (Offset + StreamLength == NextSendData->Length) ? NextSendData->Fin : FALSE;
+            StreamFrame->Abort = (Offset + StreamLength == NextSendData->Length) ? NextSendData->Abort : FALSE;
             CxPlatCopyMemory(StreamFrame->Data, NextSendData->Buffer + Offset, StreamLength);
             Offset += StreamLength;
-
-            if (!EncryptFrame(Frame)) {
-                WriteOutput("EncryptFrame FAILED\n");
-                FreeSendBuffer(SendBuffer);
-                return false;
-            }
 
             QuicTraceLogVerbose(
                 PerfTcpSendFrame,
@@ -851,6 +845,12 @@ bool TcpConnection::ProcessSend()
                 (uint8_t)StreamFrame->Open,
                 (uint8_t)StreamFrame->Fin,
                 (uint8_t)StreamFrame->Abort);
+
+            if (!EncryptFrame(Frame)) {
+                WriteOutput("EncryptFrame FAILED\n");
+                FreeSendBuffer(SendBuffer);
+                return false;
+            }
 
             SendBuffer->Length = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
             if (!FinalizeSendBuffer(SendBuffer)) {
@@ -929,9 +929,12 @@ void TcpConnection::Send(TcpSendData* Data)
 {
     QuicTraceLogVerbose(
         PerfTcpAppSend,
-        "[perf][tcp][%p] App Send %u bytes",
+        "[perf][tcp][%p] App Send %u bytes, Open=%hhu Fin=%hhu Abort=%hhu",
         this,
-        Data->Length);
+        Data->Length,
+        (uint8_t)Data->Open,
+        (uint8_t)Data->Fin,
+        (uint8_t)Data->Abort);
 
     CxPlatDispatchLockAcquire(&Lock);
     TcpSendData** Tail = &SendData;

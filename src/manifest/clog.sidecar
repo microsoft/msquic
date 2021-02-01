@@ -7378,7 +7378,7 @@
     },
     "PerfTcpAppSend": {
       "ModuleProperites": {},
-      "TraceString": "[perf][tcp][%p] App Send %u bytes",
+      "TraceString": "[perf][tcp][%p] App Send %u bytes, Open=%hhu Fin=%hhu Abort=%hhu",
       "UniqueId": "PerfTcpAppSend",
       "splitArgs": [
         {
@@ -7388,6 +7388,18 @@
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg6"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -12005,7 +12017,7 @@
         "TraceID": "PerfTcpAppSendComplete"
       },
       {
-        "UniquenessHash": "7159b8c0-369d-c8fb-8380-a433b5412567",
+        "UniquenessHash": "559bc6c8-b410-9047-639b-a99f8d43acbf",
         "TraceID": "PerfTcpAppSend"
       },
       {
