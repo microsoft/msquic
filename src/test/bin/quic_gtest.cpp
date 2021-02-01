@@ -437,6 +437,19 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
     }
 }
 
+TEST_P(WithHandshakeArgs5, CustomCertificateValidation) {
+    TestLoggerT<ParamType> Logger("QuicTestCustomCertificateValidation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_PARAMS Params = {
+            GetParam().AcceptCert,
+            GetParam().AsyncValidation
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION, &Params));
+    } else {
+        QuicTestCustomCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
+    }
+}
+
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithHandshakeArgs4, RandomLoss) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLoss", GetParam());
@@ -956,6 +969,11 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs4,
     testing::ValuesIn(HandshakeArgs4::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs5,
+    testing::ValuesIn(HandshakeArgs5::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,

@@ -387,19 +387,31 @@ QuicCryptoTlsReadExtensions(
                 return Status;
             }
 
-        } else if (
-            Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_29 &&
-            (ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS ||
-             ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT)) {
-            if (!QuicCryptoTlsDecodeTransportParameters(
-                    Connection,
-                    FALSE,
-                    Buffer,
-                    ExtLen,
-                    &Connection->PeerTransportParams)) {
-                return QUIC_STATUS_INVALID_PARAMETER;
+        } else if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_29) {
+            if (ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS) {
+                if (!QuicCryptoTlsDecodeTransportParameters(
+                        Connection,
+                        FALSE,
+                        Buffer,
+                        ExtLen,
+                        &Connection->PeerTransportParams)) {
+                    return QUIC_STATUS_INVALID_PARAMETER;
+                }
+                FoundTransportParameters = TRUE;
             }
-            FoundTransportParameters = TRUE;
+
+        } else {
+            if (ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT) {
+                if (!QuicCryptoTlsDecodeTransportParameters(
+                        Connection,
+                        FALSE,
+                        Buffer,
+                        ExtLen,
+                        &Connection->PeerTransportParams)) {
+                    return QUIC_STATUS_INVALID_PARAMETER;
+                }
+                FoundTransportParameters = TRUE;
+            }
         }
 
         BufferLength -= ExtLen;

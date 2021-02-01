@@ -400,7 +400,8 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
@@ -1544,6 +1545,20 @@ CxPlatTlsOnCertVerify(
             "[ tls][%p] ERROR, %s.",
             TlsContext->Connection,
             "CxPlatCertParseChain failed");
+        goto Error;
+    }
+
+    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) {
+        if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
+                TlsContext->Connection)) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Custom certificate validation failed");
+        } else {
+            Result = TRUE;
+        }
         goto Error;
     }
 

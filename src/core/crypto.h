@@ -41,6 +41,11 @@ typedef struct QUIC_CRYPTO {
     BOOLEAN TlsCallPending : 1;
 
     //
+    // Indicates custom cert validation (by the app) is outstanding.
+    //
+    BOOLEAN CertValidationPending : 1;
+
+    //
     // The TLS context for processing handshake messages.
     //
     CXPLAT_TLS* TLS;
@@ -50,6 +55,11 @@ typedef struct QUIC_CRYPTO {
     //
 
     CXPLAT_TLS_PROCESS_STATE TlsState;
+
+    //
+    // Result flags from the last Tls process call.
+    //
+    CXPLAT_TLS_RESULT_FLAGS ResultFlags;
 
     //
     // The length of bytes that have been sent at least once.
@@ -260,6 +270,16 @@ QuicCryptoProcessAppData(
     _In_ uint32_t DataLength,
     _In_reads_bytes_(DataLength)
         const uint8_t* AppData
+    );
+
+//
+// Invoked when the app has completed its custom certificate validation.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCryptoCustomCertValidationComplete(
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ BOOLEAN Result
     );
 
 //

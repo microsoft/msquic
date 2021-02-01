@@ -174,6 +174,41 @@ ThroughputClient::Start(
 }
 
 QUIC_STATUS
+ThroughputClient::Wait(
+    _In_ int Timeout
+    ) {
+    if (Timeout > 0) {
+        CxPlatEventWaitWithTimeout(*StopEvent, Timeout);
+    } else {
+        CxPlatEventWaitForever(*StopEvent);
+    }
+    Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 1);
+    if (TcpConn) {
+        OnTcpConnectionComplete(TcpConn);
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+ThroughputClient::GetExtraDataMetadata(
+    _Out_ PerfExtraDataMetadata* Result
+    )
+{
+    Result->TestType = PerfTestType::ThroughputClient;
+    Result->ExtraDataLength = 0;
+}
+
+QUIC_STATUS
+ThroughputClient::GetExtraData(
+    _Out_writes_bytes_(*Length) uint8_t*,
+    _Inout_ uint32_t* Length
+    )
+{
+    *Length = 0;
+    return QUIC_STATUS_SUCCESS;
+}
+
+QUIC_STATUS
 ThroughputClient::StartQuic()
 {
     struct QuicShutdownWrapper {
@@ -348,7 +383,7 @@ QUIC_STATUS
 ThroughputClient::StartTcp()
 {
     MsQuicCredentialConfig CredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
-    auto Connection =
+    TcpConn =
         new TcpConnection(
             &Engine,
             &CredConfig,
@@ -357,9 +392,10 @@ ThroughputClient::StartTcp()
             Port,
             (QuicAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) ? &LocalIpAddr : nullptr,
             this);
-    if (!Connection || !Connection->IsInitialized()) {
-        if (Connection) {
-            Connection->Close();
+    if (!TcpConn || !TcpConn->IsInitialized()) {
+        if (TcpConn) {
+            TcpConn->Close();
+            TcpConn = nullptr;
         }
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -373,10 +409,10 @@ ThroughputClient::StartTcp()
         SendData->Fin = TRUE;
         SendData->Buffer = DataBuffer->Buffer;
         SendData->Length = DataBuffer->Length;
-        Connection->Send(SendData);
+        TcpConn->Send(SendData);
     } else {
         CXPLAT_DBG_ASSERT(UploadLength != 0);
-        SendTcpData(Connection, TcpStrmContext);
+        SendTcpData(TcpConn, TcpStrmContext);
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -435,46 +471,18 @@ ThroughputClient::OnStreamShutdownComplete(
             SendRate,
             (uint32_t)(ElapsedMicroseconds / 1000),
             (uint32_t)(ElapsedMicroseconds % 1000));
-    } else {
+    } else if (StrmContext->BytesCompleted) {
         WriteOutput(
-            "Error: Did not complete all bytes. Completed %llu bytes in (%u.%03u ms). Failed to connect?\n",
+            "Error: Did not complete all bytes! %llu bytes @ %u kbps (%u.%03u ms).\n",
             (unsigned long long)StrmContext->BytesCompleted,
+            SendRate,
             (uint32_t)(ElapsedMicroseconds / 1000),
             (uint32_t)(ElapsedMicroseconds % 1000));
+    } else {
+        WriteOutput("Error: Did not complete any bytes! Failed to connect?\n");
     }
 
     StreamContextAllocator.Free(StrmContext);
-}
-
-QUIC_STATUS
-ThroughputClient::Wait(
-    _In_ int Timeout
-    ) {
-    if (Timeout > 0) {
-        CxPlatEventWaitWithTimeout(*StopEvent, Timeout);
-    } else {
-        CxPlatEventWaitForever(*StopEvent);
-    }
-    return QUIC_STATUS_SUCCESS;
-}
-
-void
-ThroughputClient::GetExtraDataMetadata(
-    _Out_ PerfExtraDataMetadata* Result
-    )
-{
-    Result->TestType = PerfTestType::ThroughputClient;
-    Result->ExtraDataLength = 0;
-}
-
-QUIC_STATUS
-ThroughputClient::GetExtraData(
-    _Out_writes_bytes_(*Length) uint8_t*,
-    _Inout_ uint32_t* Length
-    )
-{
-    *Length = 0;
-    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
@@ -545,6 +553,21 @@ ThroughputClient::StreamCallback(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+void
+ThroughputClient::OnTcpConnectionComplete(
+    _In_ TcpConnection* Connection
+    )
+{
+    if (TcpStrmContext) {
+        OnStreamShutdownComplete(TcpStrmContext);
+        TcpStrmContext = nullptr;
+    }
+    Connection->Close();
+    TcpConn = nullptr;
+    CxPlatEventSet(*StopEvent);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(TcpConnectCallback)
 void
 ThroughputClient::TcpConnectCallback(
@@ -554,12 +577,7 @@ ThroughputClient::TcpConnectCallback(
 {
     auto This = (ThroughputClient*)Connection->Context;
     if (!IsConnected) {
-        if (This->TcpStrmContext) {
-            This->OnStreamShutdownComplete(This->TcpStrmContext);
-            This->TcpStrmContext = nullptr;
-        }
-        Connection->Close();
-        CxPlatEventSet(*This->StopEvent);
+        This->OnTcpConnectionComplete(Connection);
     }
 }
 

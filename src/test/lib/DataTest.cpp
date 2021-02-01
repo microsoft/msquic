@@ -14,18 +14,6 @@ Abstract:
 #include "DataTest.cpp.clog.h"
 #endif
 
-struct ServerAcceptContext {
-    CXPLAT_EVENT NewConnectionReady;
-    TestConnection** NewConnection;
-    ServerAcceptContext(TestConnection** _NewConnection) :
-        NewConnection(_NewConnection) {
-        CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);
-    }
-    ~ServerAcceptContext() {
-        CxPlatEventUninitialize(NewConnectionReady);
-    }
-};
-
 /*
     Helper function to estimate a maximum timeout for a test with a
     particular payload length.
