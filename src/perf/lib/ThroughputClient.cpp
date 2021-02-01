@@ -170,6 +170,9 @@ ThroughputClient::Start(
     _In_ CXPLAT_EVENT* StopEvnt
     ) {
     this->StopEvent = StopEvnt;
+    QuicTraceLogVerbose(
+        PerfRpsStart,
+        "[perf] RPS Client start");
     return UseTcp ? StartTcp() : StartQuic();
 }
 
@@ -178,10 +181,17 @@ ThroughputClient::Wait(
     _In_ int Timeout
     ) {
     if (Timeout > 0) {
-        CxPlatEventWaitWithTimeout(*StopEvent, Timeout);
+        if (!CxPlatEventWaitWithTimeout(*StopEvent, Timeout)) {
+            QuicTraceLogVerbose(
+                PerfRpsTimeout,
+                "[perf] RPS Client timeout");
+        }
     } else {
         CxPlatEventWaitForever(*StopEvent);
     }
+    QuicTraceLogVerbose(
+        PerfRpsComplete,
+        "[perf] RPS Client complete");
     Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 1);
     if (TcpConn) {
         OnTcpConnectionComplete(TcpConn);

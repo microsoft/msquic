@@ -270,6 +270,6 @@ public:
         _In_ const QUIC_ADDR* LocalAddress = nullptr,
         _In_ void* Context = nullptr);
     bool IsInitialized() const { return Initialized; }
-    void Close() { ClosedByApp = true; Release(); }
+    void Close();
     void Send(TcpSendData* Data);
 };

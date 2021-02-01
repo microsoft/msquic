@@ -112,6 +112,7 @@ TcpEngine::TcpEngine(
             nullptr,
             &TcpCallbacks,
             &Datapath))) {
+        WriteOutput("CxPlatDataPathInitialize FAILED\n");
         return;
     }
     for (uint16_t i = 0; i < ProcCount; ++i) {
@@ -173,6 +174,7 @@ bool TcpWorker::Initialize(TcpEngine* _Engine)
         CxPlatThreadCreate(
             &Config,
             &Thread))) {
+        WriteOutput("CxPlatThreadCreate FAILED\n");
         return false;
     }
     Initialized = true;
@@ -301,11 +303,16 @@ TcpConnection::TcpConnection(
     CxPlatRefInitialize(&Ref);
     CxPlatDispatchLockInitialize(&Lock);
     CxPlatZeroMemory(&TlsState, sizeof(TlsState));
+    QuicTraceLogVerbose(
+        PerfTcpCreateClient,
+        "[perf][tcp][%p] Client created",
+        this);
     if (!Engine->IsInitialized()) {
         return;
     }
     LoadSecConfigHelper Helper;
     if ((SecConfig = Helper.Load(CredConfig)) == nullptr) {
+        WriteOutput("SecConfig load FAILED\n");
         return;
     }
     if (LocalAddress) {
@@ -317,6 +324,7 @@ TcpConnection::TcpConnection(
             Engine->Datapath,
             ServerName,
             &RemoteAddress))) {
+        WriteOutput("CxPlatDataPathResolveAddress FAILED\n");
         return;
     }
     QuicAddrSetPort(&RemoteAddress, ServerPort);
@@ -341,16 +349,13 @@ TcpConnection::TcpConnection(
     CXPLAT_SOCKET* Socket) :
     IsServer(true), Engine(Engine), Socket(Socket), SecConfig(SecConfig)
 {
-    for (uint32_t i = 0; i < ARRAYSIZE(TlsState.ReadKeys); ++i) {
-        QuicPacketKeyFree(TlsState.ReadKeys[i]);
-        QuicPacketKeyFree(TlsState.WriteKeys[i]);
-    }
-    if (Tls) {
-        CxPlatTlsUninitialize(Tls);
-    }
     CxPlatRefInitialize(&Ref);
     CxPlatDispatchLockInitialize(&Lock);
     CxPlatZeroMemory(&TlsState, sizeof(TlsState));
+    QuicTraceLogVerbose(
+        PerfTcpCreateServer,
+        "[perf][tcp][%p] Server created",
+        this);
     Initialized = true;
     IndicateAccept = true;
     Engine->AddConnection(this, 0); // TODO - Correct index
@@ -359,6 +364,17 @@ TcpConnection::TcpConnection(
 
 TcpConnection::~TcpConnection()
 {
+    QuicTraceLogVerbose(
+        PerfTcpDestroyed,
+        "[perf][tcp][%p] Destroyed",
+        this);
+    for (uint32_t i = 0; i < ARRAYSIZE(TlsState.ReadKeys); ++i) {
+        QuicPacketKeyFree(TlsState.ReadKeys[i]);
+        QuicPacketKeyFree(TlsState.WriteKeys[i]);
+    }
+    if (Tls) {
+        CxPlatTlsUninitialize(Tls);
+    }
     if (Socket) {
         CxPlatSocketDelete(Socket);
     }
@@ -379,6 +395,11 @@ TcpConnection::ConnectCallback(
     )
 {
     TcpConnection* This = (TcpConnection*)Context;
+    QuicTraceLogVerbose(
+        PerfTcpConnectCallback,
+        "[perf][tcp][%p] Connect callback %hhu",
+        This,
+        Connected);
     if (Connected) {
         This->IndicateConnect = true;
     } else {
@@ -397,6 +418,10 @@ TcpConnection::ReceiveCallback(
     )
 {
     TcpConnection* This = (TcpConnection*)Context;
+    QuicTraceLogVerbose(
+        PerfTcpReceiveCallback,
+        "[perf][tcp][%p] Receive callback",
+        This);
     CxPlatDispatchLockAcquire(&This->Lock);
     CXPLAT_RECV_DATA** Tail = &This->ReceiveData;
     while (*Tail) {
@@ -418,6 +443,10 @@ TcpConnection::SendCompleteCallback(
     )
 {
     TcpConnection* This = (TcpConnection*)Context;
+    QuicTraceLogVerbose(
+        PerfTcpSendCompleteCallback,
+        "[perf][tcp][%p] SendComplete callback",
+        This);
     CxPlatDispatchLockAcquire(&This->Lock);
     This->TotalSendCompleteOffset += ByteCount;
     This->IndicateSendComplete = true;
@@ -464,16 +493,28 @@ void TcpConnection::Process()
         IndicateAccept = false;
         TcpServer* Server = (TcpServer*)Context;
         Context = nullptr;
+        QuicTraceLogVerbose(
+            PerfTcpAppAccept,
+            "[perf][tcp][%p] App Accept",
+            this);
         Engine->AcceptHandler(Server, this);
         StartTls = true;
     }
     if (IndicateConnect) {
         IndicateConnect = false;
+        QuicTraceLogVerbose(
+            PerfTcpAppConnect,
+            "[perf][tcp][%p] App Connect",
+            this);
         Engine->ConnectHandler(this, true);
         StartTls = true;
     }
     if (StartTls) {
         StartTls = false;
+        QuicTraceLogVerbose(
+            PerfTcpStartTls,
+            "[perf][tcp][%p] Start TLS",
+            this);
         if (!InitializeTls()) {
             IndicateDisconnect = true;
         }
@@ -500,6 +541,10 @@ void TcpConnection::Process()
         ProcessSendComplete();
     }
     if (IndicateDisconnect && !ClosedByApp) {
+        QuicTraceLogVerbose(
+            PerfTcpAppDisconnect,
+            "[perf][tcp][%p] App Disconnect",
+            this);
         IndicateDisconnect = false;
         Engine->ConnectHandler(this, false);
     }
@@ -699,8 +744,6 @@ BufferData:
 
 bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
 {
-    //printf("[RECV] Frame %hu bytes (key=%hhu) (type=%hhu)\n", Frame->Length, Frame->KeyType, Frame->FrameType);
-
     if (Frame->KeyType != QUIC_PACKET_KEY_INITIAL) {
         if (Frame->KeyType > TlsState.ReadKey) {
             WriteOutput("Invalid Key Type\n");
@@ -728,9 +771,14 @@ bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
         break;
     case FRAME_TYPE_STREAM: {
         auto StreamFrame = (TcpStreamFrame*)Frame->Data;
-        //printf("[RECV] App %u bytes, Id=%u, Open=%hhu, Fin=%hhu\n",
-        //    (uint32_t)(Frame->Length - sizeof(TcpStreamFrame)),
-        //    StreamFrame->Id, StreamFrame->Open, StreamFrame->Fin);
+        QuicTraceLogVerbose(
+            PerfTcpAppReceive,
+            "[perf][tcp][%p] App Receive %hu bytes, Open=%hhu Fin=%hhu Abort=%hhu",
+            this,
+            (uint16_t)(Frame->Length - sizeof(TcpStreamFrame)),
+            (uint8_t)StreamFrame->Open,
+            (uint8_t)StreamFrame->Fin,
+            (uint8_t)StreamFrame->Abort);
         Engine->ReceiveHandler(
             this,
             StreamFrame->Id,
@@ -795,6 +843,15 @@ bool TcpConnection::ProcessSend()
                 return false;
             }
 
+            QuicTraceLogVerbose(
+                PerfTcpSendFrame,
+                "[perf][tcp][%p] Send frame %hu bytes, Open=%hhu Fin=%hhu Abort=%hhu",
+                this,
+                (uint16_t)StreamLength,
+                (uint8_t)StreamFrame->Open,
+                (uint8_t)StreamFrame->Fin,
+                (uint8_t)StreamFrame->Abort);
+
             SendBuffer->Length = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
             if (!FinalizeSendBuffer(SendBuffer)) {
                 return false;
@@ -811,13 +868,16 @@ bool TcpConnection::ProcessSend()
 
 void TcpConnection::ProcessSendComplete()
 {
-    //printf("[SEND] Complete\n");
     uint64_t Offset = TotalSendCompleteOffset;
     while (SentData && SentData->Offset <= Offset) {
         TcpSendData* Data = SentData;
         SentData = Data->Next;
         Data->Next = NULL;
-        //printf("[SEND] Complete App\n");
+        QuicTraceLogVerbose(
+            PerfTcpAppSendComplete,
+            "[perf][tcp][%p] App Send complete %u bytes",
+            this,
+            Data->Length);
         Engine->SendCompleteHandler(this, Data);
     }
 }
@@ -867,6 +927,12 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
 
 void TcpConnection::Send(TcpSendData* Data)
 {
+    QuicTraceLogVerbose(
+        PerfTcpAppSend,
+        "[perf][tcp][%p] App Send %u bytes",
+        this,
+        Data->Length);
+
     CxPlatDispatchLockAcquire(&Lock);
     TcpSendData** Tail = &SendData;
     while (*Tail) {
@@ -877,4 +943,14 @@ void TcpConnection::Send(TcpSendData* Data)
     if (TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT) {
         Queue();
     }
+}
+
+void TcpConnection::Close()
+{
+    QuicTraceLogVerbose(
+        PerfTcpAppClose,
+        "[perf][tcp][%p] App Close",
+        this);
+    ClosedByApp = true;
+    Release();
 }
