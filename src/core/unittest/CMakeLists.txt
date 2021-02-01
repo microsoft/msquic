@@ -17,13 +17,12 @@ set(SOURCES
 add_clog_library(msquiccoretest.clog STATIC ${SOURCES})
 
 add_executable(msquiccoretest ${SOURCES})
-target_compile_options(msquiccoretest PRIVATE ${QUIC_WARNING_FLAGS})
 
 target_include_directories(msquiccoretest PRIVATE ${PROJECT_SOURCE_DIR}/src/core)
 
 set_property(TARGET msquiccoretest PROPERTY FOLDER "tests")
 
-target_link_libraries(msquiccoretest msquic core platform inc gtest msquiccoretest.clog)
+target_link_libraries(msquiccoretest msquic core platform inc gtest msquiccoretest.clog warnings)
 
 add_test(NAME msquiccoretest
          COMMAND msquiccoretest
