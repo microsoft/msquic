@@ -12610,6 +12610,10 @@
       {
         "UniquenessHash": "335643ef-1fdb-099b-6672-4452222524ff",
         "TraceID": "AllocFailure"
+      },
+      {
+        "UniquenessHash": "1e4f68c2-b9d0-a7d8-1bc4-1f76affbf04d",
+        "TraceID": "ClientVersionNegotiationCompatibleVersionUpgrade"
       }
     ]
   }

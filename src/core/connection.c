@@ -2623,6 +2623,12 @@ QuicConnProcessPeerTransportParameters(
                             QuicVersionNegotiationExtAreVersionsCompatible(
                                 ClientVNI.CurrentVersion,
                                 ClientVNI.CompatibleVersions[ClientVersionIdx])) {
+                            QuicTraceLogConnVerbose(
+                                ClientVersionNegotiationCompatibleVersionUpgrade,
+                                Connection,
+                                "Compatible version upgrade! Old: 0x%x, New: 0x%x",
+                                Connection->Stats.QuicVersion,
+                                SupportedVersions[ServerVersionIdx]);
                             Connection->Stats.QuicVersion = SupportedVersions[ServerVersionIdx];
                             QuicConnOnQuicVersionSet(Connection);
                         }

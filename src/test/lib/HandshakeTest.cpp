@@ -1075,7 +1075,7 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     _In_ int Family
     )
 {
-    uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H };
+    uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
     const uint32_t ExpectedResultVersion = QUIC_VERSION_1_MS_H;
 
