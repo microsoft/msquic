@@ -14,14 +14,7 @@ Abstract:
 //
 // This list is the versions that the server advertises support for.
 //
-extern const uint32_t DefaultSupportedVersionsList[];
-extern const uint32_t DefaultSupportedVersionsListLength;
-
-//
-// This list of compatible versions is for the default client version, QUIC_VERSION_1
-//
-extern const uint32_t DefaultCompatibleVersionsList[];
-extern const uint32_t DefaultCompatibleVersionsListLength;
+extern const uint32_t DefaultSupportedVersionsList[3];
 
 typedef struct QUIC_CLIENT_VER_NEG_INFO {
     uint32_t CurrentVersion;

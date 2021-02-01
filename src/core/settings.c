@@ -14,6 +14,10 @@ Abstract:
 #include "settings.c.clog.h"
 #endif
 
+CXPLAT_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, GeneratedCompatibleVersionsList) == sizeof(QUIC_SETTINGS),
+    "Update QUIC_SETTINGS_INTERNAL with fields added to QUIC_SETTINGS.");
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsSetDefault(
@@ -351,7 +355,7 @@ QuicSettingApply(
                 return FALSE;
             }
             CxPlatCopyMemory(
-                Destination->GeneratedCompatibleVersionsList,
+                (uint32_t*)Destination->GeneratedCompatibleVersionsList,
                 ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsList,
                 ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength * sizeof(uint32_t));
             Destination->GeneratedCompatibleVersionsListLength = ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength;
@@ -391,7 +395,7 @@ QuicSettingApply(
                 return FALSE;
             }
             CxPlatCopyMemory(
-                Destination->DesiredVersionsList,
+                (uint32_t*)Destination->DesiredVersionsList,
                 Source->DesiredVersionsList,
                 Source->DesiredVersionsListLength * sizeof(uint32_t));
             Destination->DesiredVersionsListLength = Source->DesiredVersionsListLength;
@@ -401,7 +405,40 @@ QuicSettingApply(
                     //
                     // This assumes the external is always in little-endian format
                     //
-                    Destination->DesiredVersionsList[i] = CxPlatByteSwapUint32(Destination->DesiredVersionsList[i]);
+                    ((uint32_t*)Destination->DesiredVersionsList)[i] = CxPlatByteSwapUint32(Destination->DesiredVersionsList[i]);
+                }
+                if (!Destination->IsSet.GeneratedCompatibleVersions || OverWrite) {
+                    if (Destination->IsSet.GeneratedCompatibleVersions) {
+                        CXPLAT_FREE(Destination->GeneratedCompatibleVersionsList, QUIC_POOL_COMPAT_VER_LIST);
+                    }
+                    uint32_t CompatibilityListByteLength = 0;
+                    QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                        Destination->DesiredVersionsList[0],
+                        Destination->DesiredVersionsList,
+                        Destination->DesiredVersionsListLength,
+                        NULL,
+                        &CompatibilityListByteLength);
+                    Destination->GeneratedCompatibleVersionsList =
+                        CXPLAT_ALLOC_NONPAGED(CompatibilityListByteLength, QUIC_POOL_COMPAT_VER_LIST);
+                    if (Destination->GeneratedCompatibleVersionsList == NULL) {
+                        QuicTraceEvent(
+                            AllocFailure,
+                            "Allocation of '%s' failed. (%u bytes)",
+                            "Generated Compatible Versions list",
+                            CompatibilityListByteLength);
+                        return FALSE;
+                    }
+                    Destination->IsSet.GeneratedCompatibleVersions = TRUE;
+                    if (QUIC_FAILED(
+                        QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                            Destination->DesiredVersionsList[0],
+                            Destination->DesiredVersionsList,
+                            Destination->DesiredVersionsListLength,
+                            (uint8_t*)Destination->GeneratedCompatibleVersionsList,
+                            &CompatibilityListByteLength))) {
+                        return FALSE;
+                    }
+                    Destination->GeneratedCompatibleVersionsListLength = CompatibilityListByteLength / sizeof(uint32_t);
                 }
             }
         }

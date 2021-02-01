@@ -68,10 +68,10 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint8_t DatagramReceiveEnabled  : 1;
     uint8_t ServerResumptionLevel   : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t RESERVED                : 2;
-    uint32_t* DesiredVersionsList;
+    const uint32_t* DesiredVersionsList;
     uint32_t DesiredVersionsListLength;
+    const uint32_t* GeneratedCompatibleVersionsList;
     uint32_t GeneratedCompatibleVersionsListLength;
-    uint32_t* GeneratedCompatibleVersionsList;
 
 } QUIC_SETTINGS_INTERNAL;
 

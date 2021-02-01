@@ -777,7 +777,7 @@ QuicBindingProcessStatelessOperation(
             SupportedVersionsLength = MsQuicLib.Settings.DesiredVersionsListLength;
         } else {
             SupportedVersions = DefaultSupportedVersionsList;
-            SupportedVersionsLength = DefaultSupportedVersionsListLength;
+            SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
         }
 
         const uint16_t PacketLength =

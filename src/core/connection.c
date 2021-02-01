@@ -2525,7 +2525,7 @@ QuicConnProcessPeerTransportParameters(
                     SupportedVersionsLength = MsQuicLib.Settings.DesiredVersionsListLength;
                     SupportedVersions = MsQuicLib.Settings.DesiredVersionsList;
                 } else {
-                    SupportedVersionsLength = DefaultSupportedVersionsListLength;
+                    SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
                     SupportedVersions = DefaultSupportedVersionsList;
                 }
 

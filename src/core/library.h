@@ -229,6 +229,13 @@ typedef struct QUIC_LIBRARY {
     QUIC_TEST_DATAPATH_HOOKS* TestDatapathHooks;
 #endif
 
+    //
+    // Default client compatibility list. Use for connections that don't
+    // specify a custom list. Generated for QUIC_VERSION_LATEST
+    //
+    const uint32_t* DefaultCompatibilityList;
+    uint32_t DefaultCompatibilityListLength;
+
 } QUIC_LIBRARY;
 
 extern QUIC_LIBRARY MsQuicLib;

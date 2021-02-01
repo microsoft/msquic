@@ -81,7 +81,7 @@
     },
     "AllocFailure": {
       "ModuleProperites": {},
-      "TraceString": "Allocation of '%s' failed. (%llu bytes)",
+      "TraceString": "Allocation of '%s' failed. (%u bytes)",
       "UniqueId": "AllocFailure",
       "splitArgs": [
         {
@@ -89,7 +89,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         }
       ],
@@ -10128,10 +10128,6 @@
         "TraceID": "ApiExit"
       },
       {
-        "UniquenessHash": "335643ef-1fdb-099b-6672-4452222524ff",
-        "TraceID": "AllocFailure"
-      },
-      {
         "UniquenessHash": "c3b546cc-e127-435d-8bf4-cf20ca3d2d5e",
         "TraceID": "StreamError"
       },
@@ -12538,6 +12534,10 @@
       {
         "UniquenessHash": "0cffe1cb-49d2-ac2b-79ff-a691bdd7d53b",
         "TraceID": "DecodeTPVersionNegotiationInfo"
+      },
+      {
+        "UniquenessHash": "ec638dac-9b17-4307-bcfc-b9f286d35f85",
+        "TraceID": "AllocFailure"
       }
     ]
   }
