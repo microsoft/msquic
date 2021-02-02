@@ -1531,8 +1531,7 @@ CxPlatTlsOnCertVerify(
             miTlsCertValidationDisabled,
             TlsContext->Connection,
             "Certificate validation disabled!");
-        Result = 1;
-        goto Error;
+        goto Indicate; // Skip internal validation
     }
 
     Certificate =
@@ -1548,41 +1547,50 @@ CxPlatTlsOnCertVerify(
         goto Error;
     }
 
-    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) {
-        if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
-                TlsContext->Connection)) {
-            QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "Custom certificate validation failed");
-        } else {
-            Result = TRUE;
-        }
-        goto Error;
-    }
-
     if (!CxPlatCertValidateChain(
             Certificate,
             TlsContext->SNI,
-            TlsContext->SecConfig->Flags)) {
+            0)) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
             TlsContext->Connection,
             "Cert chain validation failed");
-        Result = 0;
         goto Error;
     }
 
-    Result =
-        CxPlatCertVerify(
+    if (!CxPlatCertVerify(
             Certificate,
             SignatureAlgorithm,
             CertListToBeSigned,
             CertListToBeSignedLength,
             Signature,
-            SignatureLength);
+            SignatureLength)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "CxPlatCertVerify failed");
+        goto Error;
+    }
+
+Indicate:
+
+    if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+        !TlsContext->SecConfig->Callbacks.CertificateReceived(
+            TlsContext->Connection,
+            NULL,
+            0,
+            0)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Indicate certificate received failed");
+        goto Error;
+    }
+
+    Result = 1;
 
 Error:
 
