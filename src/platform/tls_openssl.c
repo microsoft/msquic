@@ -225,7 +225,7 @@ CxPlatTlsCertificateVerifyCallback(
     if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
         !TlsContext->SecConfig->Callbacks.CertificateReceived(
             TlsContext->Connection,
-            NULL,
+            x509_ctx,
             0,
             0)) {
         QuicTraceEvent(

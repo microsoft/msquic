@@ -940,21 +940,20 @@ CxPlatTlsClientProcess(
                 }
             }
 
-            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
-                if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
-                        TlsContext->Connection,
-                        NULL,
-                        0,
-                        0)) {
-                    QuicTraceEvent(
-                        TlsError,
-                        "[ tls][%p] ERROR, %s.",
-                        TlsContext->Connection,
-                        "Indicate certificate received failed");
-                    *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
-                    break;
-                }
+            if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+                !TlsContext->SecConfig->Callbacks.CertificateReceived(
+                    TlsContext->Connection,
+                    NULL,
+                    0,
+                    0)) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Indicate certificate received failed");
+                *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
+                break;
             }
 
             State->HandshakeComplete = TRUE;
