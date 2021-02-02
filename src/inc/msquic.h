@@ -96,8 +96,8 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS              = 0x00000002,
     QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION      = 0x00000004,
     QUIC_CREDENTIAL_FLAG_ENABLE_OCSP                    = 0x00000008, // Schannel only currently
-    QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION   = 0x00000010, // Schannel only currently
-    QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION  = 0x00000020,
+    QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED  = 0x00000010,
+    QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION   = 0x00000020, // Schannel only currently
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS);
@@ -761,8 +761,7 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED       = 12,
     QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
     QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
-    QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_VALIDATION       = 15,   // Only with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION set
-    QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 16,   // Only with QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION set
+    QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15,   // Only with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION|QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION set
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -823,11 +822,9 @@ typedef struct QUIC_CONNECTION_EVENT {
             const uint8_t* ResumptionTicket;
         } RESUMPTION_TICKET_RECEIVED;
         struct {
-            uint32_t ErrorFlags;                // Bit flag of errors
-            QUIC_STATUS Status;                 // Most severe error status
-        } PEER_CERTIFICATE_VALIDATION;
-        struct {
-            void* Reserved;                     // TODO - Expose certificate
+            void* Certificate;                  // Peer certificate (only valid with QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION)
+            uint32_t DeferredErrorFlags;        // Bit flag of errors (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)
+            QUIC_STATUS DeferredStatus;         // Most severe error status (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)
         } PEER_CERTIFICATE_RECEIVED;
     };
 } QUIC_CONNECTION_EVENT;

@@ -926,33 +926,34 @@ CxPlatTlsClientProcess(
                     break;
                 }
 
-                if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) {
-                    if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
-                            TlsContext->Connection)) {
-                        QuicTraceEvent(
-                            TlsError,
-                            "[ tls][%p] ERROR, %s.",
-                            TlsContext->Connection,
-                            "Custom certificate validation failed");
-                        *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-                        State->AlertCode = 42; // bad_certificate
-                        break;
-                    }
+                if (!CxPlatCertValidateChain(
+                        ServerCert,
+                        TlsContext->SNI,
+                        0)) {
+                    QuicTraceEvent(
+                        TlsError,
+                        "[ tls][%p] ERROR, %s.",
+                        TlsContext->Connection,
+                        "CxPlatCertValidateChain Mismatch");
+                    *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                    break;
+                }
+            }
 
-                } else {
-
-                    if (!CxPlatCertValidateChain(
-                            ServerCert,
-                            TlsContext->SNI,
-                            TlsContext->SecConfig->Flags)) {
-                        QuicTraceEvent(
-                            TlsError,
-                            "[ tls][%p] ERROR, %s.",
-                            TlsContext->Connection,
-                            "CxPlatCertValidateChain Mismatch");
-                        *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-                        break;
-                    }
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
+                if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
+                        TlsContext->Connection,
+                        NULL,
+                        0,
+                        0)) {
+                    QuicTraceEvent(
+                        TlsError,
+                        "[ tls][%p] ERROR, %s.",
+                        TlsContext->Connection,
+                        "Indicate certificate received failed");
+                    *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
+                    break;
                 }
             }
 
