@@ -3283,7 +3283,7 @@ QuicConnGetKeyOrDeferDatagram(
                     Packet->KeyType);
 
                 Packets->DeferredDatagramsCount++;
-                Packet->DecryptionDeferred = TRUE;
+                Packet->ReleaseDeferred = TRUE;
 
                 //
                 // Add it to the list of pending packets that are waiting on a
@@ -4092,12 +4092,18 @@ QuicConnRecvFrames(
                 return FALSE;
             } else {
                 if (Status == QUIC_STATUS_VER_NEG_ERROR) {
-                    // TODO: how to keep the datagram around long enough for the queued operation?
-                    (void)!QuicBindingQueueStatelessOperation(
-                        Connection->Paths[0].Binding,
-                        QUIC_OPER_TYPE_VERSION_NEGOTIATION,
-                        CxPlatDataPathRecvPacketToRecvData(Packet));
-                    // QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR); // Review: is this error appropriate?
+                    if (QuicBindingQueueStatelessOperation(
+                            Connection->Paths[0].Binding,
+                            QUIC_OPER_TYPE_VERSION_NEGOTIATION,
+                            CxPlatDataPathRecvPacketToRecvData(Packet))) {
+                        //
+                        // Packets that elicit a VN response don't get counted as received
+                        // if they're deferred. Update that count here to ensure it gets counted.
+                        //
+                        Connection->Stats.Recv.TotalPackets += 2;
+                        Packet->ReleaseDeferred = TRUE;
+                    }
+                    QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                 } else if (Status != QUIC_STATUS_INVALID_STATE) {
                     QuicTraceEvent(
                         ConnError,
@@ -5000,8 +5006,8 @@ QuicConnRecvDatagrams(
             CxPlatDataPathRecvDataToRecvPacket(Datagram);
         CXPLAT_DBG_ASSERT(Packet != NULL);
 
-        CXPLAT_DBG_ASSERT(Packet->DecryptionDeferred == IsDeferred);
-        Packet->DecryptionDeferred = FALSE;
+        CXPLAT_DBG_ASSERT(Packet->ReleaseDeferred == IsDeferred);
+        Packet->ReleaseDeferred = FALSE;
 
         QUIC_PATH* DatagramPath = QuicConnGetPathForDatagram(Connection, Datagram);
         if (DatagramPath == NULL) {
@@ -5059,7 +5065,7 @@ QuicConnRecvDatagrams(
                     Connection,
                     Packet,
                     Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH)) {
-                if (Packet->DecryptionDeferred) {
+                if (Packet->ReleaseDeferred) {
                     Connection->Stats.Recv.TotalPackets--; // Don't count the packet right now.
                 } else {
                     Connection->Stats.Recv.DroppedPackets++;
@@ -5122,7 +5128,7 @@ QuicConnRecvDatagrams(
             Packet->ValidToken = FALSE;
             Packet->PacketNumberSet = FALSE;
             Packet->EncryptedWith0Rtt = FALSE;
-            Packet->DecryptionDeferred = FALSE;
+            Packet->ReleaseDeferred = FALSE;
             Packet->CompletelyValid = FALSE;
             Packet->NewLargestPacketNumber = FALSE;
             Packet->HasNonProbingFrame = FALSE;
@@ -5131,7 +5137,7 @@ QuicConnRecvDatagrams(
 
     Drop:
 
-        if (!Packet->DecryptionDeferred) {
+        if (!Packet->ReleaseDeferred) {
             *ReleaseChainTail = Datagram;
             ReleaseChainTail = &Datagram->Next;
             Datagram->QueuedOnConnection = FALSE;
