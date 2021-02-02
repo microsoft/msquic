@@ -89,7 +89,7 @@ param (
     [Int32]$NumIterations = 1,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("None", "Datapath.Light", "Datapath.Verbose", "Performance.Light", "Performance.Verbose")]
+    [ValidateSet("None", "Datapath.Light", "Datapath.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose")]
     [string]$LogProfile = "None"
 )
 
