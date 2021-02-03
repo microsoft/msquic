@@ -620,9 +620,9 @@ $DataFileContents = Get-HpsTestsJs -DataFile $DataFileContents -CpuCommitData $C
 # Grab Latency Data
 $LatestCommit = Get-LatestCommit -BranchFolder $BranchFolder
 $LatencyFolder = Join-Path $BranchFolder $LatestCommit.CommitHash "RpsLatency"
-$WinOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_openssl_Default.txt"
-$WinSchannelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_schannel_Default.txt"
-$WinKernelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Winkernel_x64_schannel_Default.txt"
+$WinOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_openssl_ConnectionCount_40.txt"
+$WinSchannelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_schannel_ConnectionCount_40.txt"
+$WinKernelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Winkernel_x64_schannel_ConnectionCount_40.txt"
 
 $WinOpenSslData = Get-LatencyDataJs -File $WinOpenSslLatencyFile
 $WinSchannelData = Get-LatencyDataJs -File $WinSchannelLatencyFile
