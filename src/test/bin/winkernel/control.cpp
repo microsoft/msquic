@@ -413,7 +413,12 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     0,
     sizeof(INT32),
-    sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION)
+    sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
+    sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
+    sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
+    sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
+    sizeof(INT32),
+    sizeof(INT32)
 };
 
 static_assert(
@@ -436,6 +441,7 @@ typedef union {
     QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams;
     QUIC_RUN_DATAGRAM_NEGOTIATION DatagramNegotiationParams;
     QUIC_RUN_CUSTOM_CERT_VALIDATION CustomCertValidationParams;
+    QUIC_RUN_VERSION_NEGOTIATION_EXT VersionNegotiationExtParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -833,12 +839,29 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestCompatibleVersionNegotiation(Params->Family));
+        QuicTestCtlRun(
+            QuicTestCompatibleVersionNegotiation(
+                Params->VersionNegotiationExtParams.Family,
+                Params->VersionNegotiationExtParams.DisableVNEClient,
+                Params->VersionNegotiationExtParams.DisableVNEServer));
         break;
 
     case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestCompatibleVersionNegotiationDefaultServer(Params->Family));
+        QuicTestCtlRun(
+            QuicTestCompatibleVersionNegotiationDefaultServer(
+                Params->VersionNegotiationExtParams.Family,
+                Params->VersionNegotiationExtParams.DisableVNEClient,
+                Params->VersionNegotiationExtParams.DisableVNEServer));
+        break;
+
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestCompatibleVersionNegotiationDefaultClient(
+                Params->VersionNegotiationExtParams.Family,
+                Params->VersionNegotiationExtParams.DisableVNEClient,
+                Params->VersionNegotiationExtParams.DisableVNEServer));
         break;
 
     case IOCTL_QUIC_RUN_INCOMPATIBLE_VERSION_NEGOTIATION:
@@ -849,11 +872,6 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_FAILED_VERSION_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestFailedVersionNegotiation(Params->Family));
-        break;
-
-    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestCompatibleVersionNegotiationDefaultClient(Params->Family));
         break;
 
     default:

@@ -189,7 +189,9 @@ QuicSettingsCopy(
     if (!Destination->IsSet.ServerResumptionLevel) {
         Destination->ServerResumptionLevel = Source->ServerResumptionLevel;
     }
-    // TODO: Is this supposed to be a deep copy or a shallow copy?
+    if (!Destination->IsSet.VersionNegotiationExtEnabled) {
+        Destination->VersionNegotiationExtEnabled = Source->VersionNegotiationExtEnabled;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -334,6 +336,10 @@ QuicSettingApply(
         }
         Destination->ServerResumptionLevel = Source->ServerResumptionLevel;
         Destination->IsSet.ServerResumptionLevel = TRUE;
+    }
+    if (Source->IsSet.VersionNegotiationExtEnabled && (!Destination->IsSet.VersionNegotiationExtEnabled || OverWrite)) {
+        Destination->VersionNegotiationExtEnabled = Source->VersionNegotiationExtEnabled;
+        Destination->IsSet.VersionNegotiationExtEnabled = TRUE;
     }
     if (!CopyExternalToInternal &&
         NewSettingsSize == sizeof(QUIC_SETTINGS_INTERNAL) &&

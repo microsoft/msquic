@@ -908,27 +908,46 @@ QuicTestVersionNegotiation(
     }
 }
 
+struct ClearVersionListScope {
+    ~ClearVersionListScope() {
+        MsQuicSettings ClearVNSettings;
+        ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                sizeof(ClearVNSettings),
+                &ClearVNSettings));
+    }
+};
+
 void
 QuicTestCompatibleVersionNegotiation(
-    _In_ int Family
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
     )
 {
     uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
     uint32_t ServerVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-    const uint32_t ExpectedResultVersion = QUIC_VERSION_1_H;
+    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
+    const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_MS_H;
+
+    ClearVersionListScope ClearVersionsScope;
 
     MsQuicSettings ClientSettings;
     ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
+    ClientSettings.SetVersionNegotiationExtEnabled(!DisableVNEClient);
     ClientSettings.SetIdleTimeoutMs(3000);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
+    ServerSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
     ServerSettings.SetIdleTimeoutMs(3000);
-
-    MsQuicSettings ClearVNSettings;
-    ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -985,35 +1004,40 @@ QuicTestCompatibleVersionNegotiation(
                 }
                 TEST_TRUE(Server->GetIsConnected());
 
-                TEST_EQUAL(Client.GetQuicVersion(), ExpectedResultVersion);
-                TEST_EQUAL(Server->GetQuicVersion(), ExpectedResultVersion);
+                if (DisableVNEClient || DisableVNEServer) {
+                    TEST_EQUAL(Client.GetQuicVersion(), ExpectedFailureVersion);
+                    TEST_EQUAL(Server->GetQuicVersion(), ExpectedFailureVersion);
+                } else {
+                    TEST_EQUAL(Client.GetQuicVersion(), ExpectedSuccessVersion);
+                    TEST_EQUAL(Server->GetQuicVersion(), ExpectedSuccessVersion);
+                }
                 TEST_FALSE(Client.GetStatistics().VersionNegotiation);
             }
         }
     }
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
-            QUIC_PARAM_GLOBAL_SETTINGS,
-            sizeof(ClearVNSettings),
-            &ClearVNSettings));
 }
 
 void
 QuicTestCompatibleVersionNegotiationDefaultServer(
-    _In_ int Family
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
     )
 {
     uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
-    const uint32_t ExpectedResultVersion = QUIC_VERSION_1_H;
+    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
+    const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_MS_H;
+    // DisableVNEClient = false;
+    // DisableVNEServer = false;
 
     MsQuicSettings ClientSettings;
     ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
+    ClientSettings.SetVersionNegotiationExtEnabled(!DisableVNEClient);
     ClientSettings.SetIdleTimeoutMs(3000);
 
     MsQuicSettings ServerSettings;
+    ServerSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
     ServerSettings.SetIdleTimeoutMs(3000);
 
     MsQuicRegistration Registration;
@@ -1063,8 +1087,14 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
                 }
                 TEST_TRUE(Server->GetIsConnected());
 
-                TEST_EQUAL(Client.GetQuicVersion(), ExpectedResultVersion);
-                TEST_EQUAL(Server->GetQuicVersion(), ExpectedResultVersion);
+                if (DisableVNEClient || DisableVNEServer) {
+                    TEST_EQUAL(Client.GetQuicVersion(), ExpectedFailureVersion);
+                    TEST_EQUAL(Server->GetQuicVersion(), ExpectedFailureVersion);
+                } else {
+                    TEST_EQUAL(Client.GetQuicVersion(), ExpectedSuccessVersion);
+                    TEST_EQUAL(Server->GetQuicVersion(), ExpectedSuccessVersion);
+                }
+                TEST_FALSE(Client.GetStatistics().VersionNegotiation);
             }
         }
     }
@@ -1072,22 +1102,26 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
 
 void
 QuicTestCompatibleVersionNegotiationDefaultClient(
-    _In_ int Family
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
     )
 {
     uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-    const uint32_t ExpectedResultVersion = QUIC_VERSION_1_MS_H;
+    const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_MS_H;
+    const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_H;
+
+    ClearVersionListScope ClearVersionsScope;
 
     MsQuicSettings ClientSettings;
+    ClientSettings.SetVersionNegotiationExtEnabled(!DisableVNEClient);
     ClientSettings.SetIdleTimeoutMs(3000);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
+    ServerSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
     ServerSettings.SetIdleTimeoutMs(3000);
-
-    MsQuicSettings ClearVNSettings;
-    ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1144,18 +1178,17 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
                 }
                 TEST_TRUE(Server->GetIsConnected());
 
-                TEST_EQUAL(Client.GetQuicVersion(), ExpectedResultVersion);
-                TEST_EQUAL(Server->GetQuicVersion(), ExpectedResultVersion);
+                if (DisableVNEClient || DisableVNEServer) {
+                    TEST_EQUAL(Client.GetQuicVersion(), ExpectedFailureVersion);
+                    TEST_EQUAL(Server->GetQuicVersion(), ExpectedFailureVersion);
+                } else {
+                    TEST_EQUAL(Client.GetQuicVersion(), ExpectedSuccessVersion);
+                    TEST_EQUAL(Server->GetQuicVersion(), ExpectedSuccessVersion);
+                }
+                TEST_FALSE(Client.GetStatistics().VersionNegotiation);
             }
         }
     }
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
-            QUIC_PARAM_GLOBAL_SETTINGS,
-            sizeof(ClearVNSettings),
-            &ClearVNSettings));
 }
 
 void
@@ -1169,6 +1202,8 @@ QuicTestIncompatibleVersionNegotiation(
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
     const uint32_t ExpectedResultVersion = QUIC_VERSION_1_MS_H;
 
+    ClearVersionListScope ClearVersionsScope;
+
     MsQuicSettings ClientSettings;
     ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
     ClientSettings.SetIdleTimeoutMs(3000);
@@ -1176,9 +1211,6 @@ QuicTestIncompatibleVersionNegotiation(
     MsQuicSettings ServerSettings;
     ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
     ServerSettings.SetIdleTimeoutMs(3000);
-
-    MsQuicSettings ClearVNSettings;
-    ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1241,13 +1273,6 @@ QuicTestIncompatibleVersionNegotiation(
             }
         }
     }
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
-            QUIC_PARAM_GLOBAL_SETTINGS,
-            sizeof(ClearVNSettings),
-            &ClearVNSettings));
 }
 
 void
@@ -1261,6 +1286,8 @@ QuicTestFailedVersionNegotiation(
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
     QUIC_STATUS ExpectedConnectionError = QUIC_STATUS_VER_NEG_ERROR;
 
+    ClearVersionListScope ClearVersionsScope;
+
     MsQuicSettings ClientSettings;
     ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
     ClientSettings.SetIdleTimeoutMs(3000);
@@ -1268,9 +1295,6 @@ QuicTestFailedVersionNegotiation(
     MsQuicSettings ServerSettings;
     ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
     ServerSettings.SetIdleTimeoutMs(3000);
-
-    MsQuicSettings ClearVNSettings;
-    ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1330,13 +1354,6 @@ QuicTestFailedVersionNegotiation(
             }
         }
     }
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            NULL,
-            QUIC_PARAM_LEVEL_GLOBAL,
-            QUIC_PARAM_GLOBAL_SETTINGS,
-            sizeof(ClearVNSettings),
-            &ClearVNSettings));
 }
 
 void

@@ -289,6 +289,7 @@ public:
     MsQuicSettings& SetMaxAckDelayMs(uint32_t Value) { MaxAckDelayMs = Value; IsSet.MaxAckDelayMs = TRUE; return *this; }
     MsQuicSettings& SetDesiredVersionsList(uint32_t* DesiredVersions, uint32_t Length) {
         DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
+    MsQuicSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
 };
 
 #ifndef QUIC_DEFAULT_CLIENT_CRED_FLAGS
