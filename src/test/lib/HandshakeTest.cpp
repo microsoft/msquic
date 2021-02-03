@@ -1028,8 +1028,6 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
     const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_MS_H;
-    // DisableVNEClient = false;
-    // DisableVNEServer = false;
 
     MsQuicSettings ClientSettings;
     ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
@@ -1039,6 +1037,17 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
     MsQuicSettings ServerSettings;
     ServerSettings.SetVersionNegotiationExtEnabled(!DisableVNEServer);
     ServerSettings.SetIdleTimeoutMs(3000);
+
+    //
+    // Enable the VNE for server at the global level.
+    //
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_SETTINGS,
+            sizeof(ServerSettings),
+            &ServerSettings));
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());

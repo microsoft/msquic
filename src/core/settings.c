@@ -438,7 +438,7 @@ QuicSettingApply(
                     if (Destination->GeneratedCompatibleVersionsList == NULL) {
                         QuicTraceEvent(
                             AllocFailure,
-                            "Allocation of '%s' failed. (%u bytes)",
+                            "Allocation of '%s' failed. (%llu bytes)",
                             "Generated Compatible Versions list",
                             CompatibilityListByteLength);
                         return FALSE;

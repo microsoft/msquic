@@ -85,7 +85,7 @@ QuicVersionNegotiationExtAreVersionsCompatible(
     }
     for (unsigned i = 0; i < ARRAYSIZE(CompatibleVersionsMap); ++i) {
         if (CompatibleVersionsMap[i].OriginalVersion == OriginalVersion) {
-            while (CompatibleVersionsMap[i].OriginalVersion == OriginalVersion) {
+            while (CompatibleVersionsMap[i].OriginalVersion == OriginalVersion && i < ARRAYSIZE(CompatibleVersionsMap)) {
                 if (CompatibleVersionsMap[i].CompatibleVersion == UpgradedVersion) {
                     return TRUE;
                 }
@@ -299,7 +299,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
         // Generate Client VNI
         //
         uint32_t CompatibilityListByteLength = 0;
-        VNILen = sizeof(uint32_t) + sizeof(uint32_t);
+        VNILen = sizeof(Connection->Stats.QuicVersion) + sizeof(Connection->PreviousQuicVersion);
         if (Connection->Settings.IsSet.GeneratedCompatibleVersions) {
             VNILen +=
                 QuicVarIntSize(Connection->Settings.GeneratedCompatibleVersionsListLength) +

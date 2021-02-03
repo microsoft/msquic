@@ -1932,6 +1932,7 @@ QuicConnRestart(
     QuicCongestionControlReset(&Connection->CongestionControl);
     QuicSendReset(&Connection->Send);
     QuicLossDetectionReset(&Connection->LossDetection);
+    QuicCryptoTlsCleanupTransportParameters(&Connection->PeerTransportParams);
 
     if (CompleteReset) {
         CXPLAT_DBG_ASSERT(Connection->Configuration != NULL);

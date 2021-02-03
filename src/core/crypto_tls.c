@@ -1147,7 +1147,6 @@ QuicCryptoTlsDecodeTransportParameters(
 
     UNREFERENCED_PARAMETER(Connection);
 
-    QuicCryptoTlsCleanupTransportParameters(TransportParams);
     CxPlatZeroMemory(TransportParams, sizeof(QUIC_TRANSPORT_PARAMETERS));
     TransportParams->MaxUdpPayloadSize = QUIC_TP_MAX_PACKET_SIZE_DEFAULT;
     TransportParams->AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
@@ -1732,7 +1731,7 @@ QuicCryptoTlsCopyTransportParameters(
     *Destination = *Source;
     if (Source->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
         Destination->VersionNegotiationInfo =
-            CXPLAT_ALLOC_NONPAGED(Source->VersionNegotiationInfoLength, QUIC_POOL_VER_NEG_INFO);
+            CXPLAT_ALLOC_NONPAGED((size_t)Source->VersionNegotiationInfoLength, QUIC_POOL_VER_NEG_INFO);
         if (Destination->VersionNegotiationInfo == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1745,7 +1744,7 @@ QuicCryptoTlsCopyTransportParameters(
             CxPlatCopyMemory(
                 (uint8_t*)Destination->VersionNegotiationInfo,
                 Source->VersionNegotiationInfo,
-                Source->VersionNegotiationInfoLength);
+                (size_t)Source->VersionNegotiationInfoLength);
             Destination->VersionNegotiationInfoLength = Source->VersionNegotiationInfoLength;
         }
     }
