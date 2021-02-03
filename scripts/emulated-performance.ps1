@@ -233,6 +233,10 @@ foreach ($ThisRandomLossDenominator in $RandomLossDenominator) {
 foreach ($ThisRandomReorderDenominator in $RandomReorderDenominator) {
 foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 
+    if (($ThisRandomReorderDenominator -ne 0) -ne ($ThisReorderDelayDeltaMs -ne 0)) {
+        continue; # Ignore cases where one is zero, but the other isn't.
+    }
+
     # Calculate BDP in 'packets'
     $BDP = [double]($ThisRttMs * $ThisBottleneckMbps) / (1.5 * 8.0)
     $ThisBottleneckBufferPackets = [int]($BDP * $ThisBottleneckQueueRatio * 1.1)
@@ -244,8 +248,8 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
     Set-NetAdapterAdvancedProperty duo? -DisplayName RateLimitMbps -RegistryValue $ThisBottleneckMbps -NoRestart
     Set-NetAdapterAdvancedProperty duo? -DisplayName QueueLimitPackets -RegistryValue $ThisBottleneckBufferPackets -NoRestart
     Set-NetAdapterAdvancedProperty duo? -DisplayName RandomLossDenominator -RegistryValue $ThisRandomLossDenominator -NoRestart
-    Set-NetAdapterAdvancedProperty duo? -DisplayName ReorderDelayDeltaMs -RegistryValue $ThisRandomReorderDenominator -NoRestart
-    Set-NetAdapterAdvancedProperty duo? -DisplayName RandomReorderDenominator -RegistryValue $ThisReorderDelayDeltaMs -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName RandomReorderDenominator -RegistryValue $ThisRandomReorderDenominator -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName ReorderDelayDeltaMs -RegistryValue $ThisReorderDelayDeltaMs -NoRestart
     Write-Debug "Restarting NIC"
     Restart-NetAdapter duo?
     Start-Sleep 5 # (wait for duonic to restart)
