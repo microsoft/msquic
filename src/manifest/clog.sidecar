@@ -1134,6 +1134,26 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "ClientVersionNegotiationCompatibleVersionUpgrade": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Compatible version upgrade! Old: 0x%x, New: 0x%x",
+      "UniqueId": "ClientVersionNegotiationCompatibleVersionUpgrade",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "IndicatePeerCertificateValidation": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_VALIDATION (0x%x, 0x%x)",
@@ -10184,6 +10204,10 @@
         "TraceID": "ApiExit"
       },
       {
+        "UniquenessHash": "335643ef-1fdb-099b-6672-4452222524ff",
+        "TraceID": "AllocFailure"
+      },
+      {
         "UniquenessHash": "c3b546cc-e127-435d-8bf4-cf20ca3d2d5e",
         "TraceID": "StreamError"
       },
@@ -10462,6 +10486,10 @@
       {
         "UniquenessHash": "920800a1-3a54-af40-19d9-fdfaf274a6d4",
         "TraceID": "IndicateResumptionTicketReceived"
+      },
+      {
+        "UniquenessHash": "1e4f68c2-b9d0-a7d8-1bc4-1f76affbf04d",
+        "TraceID": "ClientVersionNegotiationCompatibleVersionUpgrade"
       },
       {
         "UniquenessHash": "8105e9a0-04b4-e941-7052-170d8a7ec108",
@@ -10942,6 +10970,10 @@
       {
         "UniquenessHash": "bf16a511-be08-e9ca-915f-5e5c834d5ca6",
         "TraceID": "DecodeTPDisable1RttEncryption"
+      },
+      {
+        "UniquenessHash": "0cffe1cb-49d2-ac2b-79ff-a691bdd7d53b",
+        "TraceID": "DecodeTPVersionNegotiationInfo"
       },
       {
         "UniquenessHash": "152723b4-2b46-a936-ffaf-9cc429e8e66f",
@@ -12602,18 +12634,6 @@
       {
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop"
-      },
-      {
-        "UniquenessHash": "0cffe1cb-49d2-ac2b-79ff-a691bdd7d53b",
-        "TraceID": "DecodeTPVersionNegotiationInfo"
-      },
-      {
-        "UniquenessHash": "1e4f68c2-b9d0-a7d8-1bc4-1f76affbf04d",
-        "TraceID": "ClientVersionNegotiationCompatibleVersionUpgrade"
-      },
-      {
-        "UniquenessHash": "335643ef-1fdb-099b-6672-4452222524ff",
-        "TraceID": "AllocFailure"
       }
     ]
   }
