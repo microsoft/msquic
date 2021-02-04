@@ -85,7 +85,7 @@ QuicVersionNegotiationExtAreVersionsCompatible(
     }
     for (unsigned i = 0; i < ARRAYSIZE(CompatibleVersionsMap); ++i) {
         if (CompatibleVersionsMap[i].OriginalVersion == OriginalVersion) {
-            while (CompatibleVersionsMap[i].OriginalVersion == OriginalVersion && i < ARRAYSIZE(CompatibleVersionsMap)) {
+            while (i < ARRAYSIZE(CompatibleVersionsMap) && CompatibleVersionsMap[i].OriginalVersion == OriginalVersion) {
                 if (CompatibleVersionsMap[i].CompatibleVersion == UpgradedVersion) {
                     return TRUE;
                 }
@@ -331,6 +331,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
         }
         VNIBuf = VersionNegotiationInfo;
 
+        _Analysis_assume_(VNILen >= sizeof(uint32_t) + sizeof(uint32_t));
         CxPlatCopyMemory(VNIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
         VNIBuf += sizeof(Connection->Stats.QuicVersion);
         CxPlatCopyMemory(VNIBuf, &Connection->PreviousQuicVersion, sizeof(Connection->PreviousQuicVersion));
