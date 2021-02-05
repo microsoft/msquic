@@ -103,6 +103,16 @@ main(
     if (EnableVNE) {
         Settings.VersionNegotiationExtEnabled = TRUE;
         Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+        if (FAILED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                sizeof(Settings),
+                &Settings))) {
+            printf("Failed to enable Version Negotiation Extension!\n");
+            return -1;
+        }
     }
 
     Configuration = GetServerConfigurationFromArgs(argc, argv, MsQuic, Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &Settings, sizeof(Settings));
