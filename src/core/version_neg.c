@@ -47,10 +47,10 @@ QuicVersionNegotiationExtIsVersionServerSupported(
                 return TRUE;
             }
         }
-        return FALSE;
     } else {
         return QuicIsVersionSupported(Version);
     }
+    return FALSE;
 }
 
 BOOLEAN
@@ -68,10 +68,10 @@ QuicVersionNegotiationExtIsVersionClientSupported(
                 return TRUE;
             }
         }
-        return FALSE;
     } else {
         return QuicIsVersionSupported(Version);
     }
+    return FALSE;
 }
 
 BOOLEAN
