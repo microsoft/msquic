@@ -89,6 +89,18 @@ void QuicTestValidateConfiguration()
     //
     // Null settings.
     //
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Empty settings.
