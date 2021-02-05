@@ -103,7 +103,7 @@ main(
     if (EnableVNE) {
         Settings.VersionNegotiationExtEnabled = TRUE;
         Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
-        if (FAILED(
+        if (QUIC_FAILED(
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_LEVEL_GLOBAL,
