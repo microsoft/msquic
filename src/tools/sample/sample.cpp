@@ -751,7 +751,6 @@ RunClient(
     QUIC_STATUS Status;
     const char* ResumptionTicketString = nullptr;
     HQUIC Connection = nullptr;
-    const uint32_t Version = 0xff00001dU; // IETF draft 29
 
     //
     // Allocate a new connection object.

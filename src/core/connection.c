@@ -3344,17 +3344,7 @@ QuicConnRecvHeader(
 
     if (!Packet->IsShortHeader) {
         if (Packet->Invariant->LONG_HDR.Version != Connection->Stats.QuicVersion) {
-            if (Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG &&
-                !Connection->Stats.VersionNegotiation) {
-                //
-                // Version negotiation packet received.
-                //
-                Connection->Stats.VersionNegotiation = TRUE;
-                QuicConnRecvVerNeg(Connection, Packet);
-
-                return FALSE;
-
-            } else if (!QuicConnIsServer(Connection) &&
+            if (!QuicConnIsServer(Connection) &&
                 QuicVersionNegotiationExtIsVersionCompatible(Connection, Packet->Invariant->LONG_HDR.Version)) {
                 //
                 // Server did compatible version negotiation, update local version.
@@ -3364,6 +3354,15 @@ QuicConnRecvHeader(
                 //
                 // Do not return FALSE here, continue with the connection.
                 //
+            } else if (Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG &&
+                !Connection->Stats.VersionNegotiation) {
+                //
+                // Version negotiation packet received.
+                //
+                Connection->Stats.VersionNegotiation = TRUE;
+                QuicConnRecvVerNeg(Connection, Packet);
+
+                return FALSE;
             } else {
                 QuicPacketLogDropWithValue(Connection, Packet, "Invalid version", CxPlatByteSwapUint32(Packet->Invariant->LONG_HDR.Version));
                 return FALSE;
