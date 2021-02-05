@@ -690,6 +690,15 @@ ClientLoadConfiguration(
     Settings.IsSet.IdleTimeoutMs = TRUE;
 
     //
+    // Default to using the draft-29 version for now, since it's more
+    // universally supported by the TLS abstractions currently.
+    //
+    const uint32_t Version = 0xff00001dU; // IETF draft 29
+    Settings.DesiredVersionsList = &Version;
+    Settings.DesiredVersionsListLength = 1;
+    Settings.IsSet.DesiredVersionsList = TRUE;
+
+    //
     // Configures a default client configuration, optionally disabling
     // server certificate validation.
     //
@@ -763,15 +772,6 @@ RunClient(
             printf("SetParam(QUIC_PARAM_CONN_RESUMPTION_TICKET) failed, 0x%x!\n", Status);
             goto Error;
         }
-    }
-
-    //
-    // Default to using the draft-29 version for now, since it's more
-    // universally supported by the TLS abstractions currently.
-    //
-    if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_QUIC_VERSION, sizeof(Version), &Version))) {
-        printf("SetParam(QUIC_PARAM_CONN_QUIC_VERSION) failed, 0x%x!\n", Status);
-        goto Error;
     }
 
     //

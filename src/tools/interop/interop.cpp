@@ -378,7 +378,7 @@ public:
         if (VerNeg) {
             QUIC_SETTINGS Settings = { 0 };
             Settings.DesiredVersionsList = &RandomReservedVersion;
-            Settings.DesiredVersionsListLength = sizeof(RandomReservedVersion);
+            Settings.DesiredVersionsListLength = 1;
             Settings.IsSet.DesiredVersionsList = TRUE;
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
@@ -390,7 +390,7 @@ public:
         } else if (InitialVersion != 0) {
             QUIC_SETTINGS Settings = { 0 };
             Settings.DesiredVersionsList = &InitialVersion;
-            Settings.DesiredVersionsListLength = sizeof(InitialVersion);
+            Settings.DesiredVersionsListLength = 1;
             Settings.IsSet.DesiredVersionsList = TRUE;
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
