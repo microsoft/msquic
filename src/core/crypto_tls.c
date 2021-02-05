@@ -1739,14 +1739,13 @@ QuicCryptoTlsCopyTransportParameters(
                 "Version Negotiation Info",
                 Source->VersionNegotiationInfoLength);
             return QUIC_STATUS_OUT_OF_MEMORY;
-        } else {
-            Destination->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;
-            CxPlatCopyMemory(
-                (uint8_t*)Destination->VersionNegotiationInfo,
-                Source->VersionNegotiationInfo,
-                (size_t)Source->VersionNegotiationInfoLength);
-            Destination->VersionNegotiationInfoLength = Source->VersionNegotiationInfoLength;
         }
+        Destination->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;
+        CxPlatCopyMemory(
+            (uint8_t*)Destination->VersionNegotiationInfo,
+            Source->VersionNegotiationInfo,
+            (size_t)Source->VersionNegotiationInfoLength);
+        Destination->VersionNegotiationInfoLength = Source->VersionNegotiationInfoLength;
     }
     return QUIC_STATUS_SUCCESS;
 }
