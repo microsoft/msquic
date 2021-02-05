@@ -409,8 +409,7 @@ QuicConfigurationParamGet(
         void* Buffer
     )
 {
-    switch (Param) {
-    case QUIC_PARAM_CONFIGURATION_SETTINGS:
+    if (Param == QUIC_PARAM_CONFIGURATION_SETTINGS) {
 
         if (*BufferLength < sizeof(QUIC_SETTINGS)) {
             *BufferLength = sizeof(QUIC_SETTINGS);
@@ -425,9 +424,6 @@ QuicConfigurationParamGet(
         CxPlatCopyMemory(Buffer, &Configuration->Settings, sizeof(QUIC_SETTINGS));
 
         return QUIC_STATUS_SUCCESS;
-
-    default:
-        break;
     }
 
     return QUIC_STATUS_INVALID_PARAMETER;
