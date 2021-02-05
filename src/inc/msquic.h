@@ -242,9 +242,18 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
         QUIC_CERTIFICATE_FILE* CertificateFile;
     };
     const char* Principal;
-    void* TicketKey; // Optional, 44 byte array
+    void* Reserved; // Currently unused
     QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
 } QUIC_CREDENTIAL_CONFIG;
+
+//
+// TLS New Session Ticket encryption key configuration.
+//
+typedef struct QUIC_TICKET_KEY_CONFIG {
+    uint8_t Id[16];
+    uint8_t Material[64];
+    uint8_t MaterialLength;
+} QUIC_TICKET_KEY_CONFIG;
 
 //
 // A single contiguous buffer.
@@ -496,6 +505,7 @@ typedef enum QUIC_PARAM_LEVEL {
 // Parameters for QUIC_PARAM_LEVEL_CONFIGURATION.
 //
 #define QUIC_PARAM_CONFIGURATION_SETTINGS               0   // QUIC_SETTINGS
+#define QUIC_PARAM_CONFIGURATION_TICKET_KEYS            1   // QUIC_TICKET_KEY_CONFIG[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.

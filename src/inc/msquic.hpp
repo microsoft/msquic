@@ -395,6 +395,28 @@ public:
     LoadCredential(_In_ const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept {
         return MsQuic->ConfigurationLoadCredential(Handle, CredConfig);
     }
+    QUIC_STATUS
+    SetTicketKey(_In_ const QUIC_TICKET_KEY_CONFIG* KeyConfig) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                sizeof(QUIC_TICKET_KEY_CONFIG),
+                KeyConfig);
+    }
+    QUIC_STATUS
+    SetTicketKeys(
+        _In_reads_(KeyCount) const QUIC_TICKET_KEY_CONFIG* KeyConfig,
+        uint8_t KeyCount) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                KeyCount * sizeof(QUIC_TICKET_KEY_CONFIG),
+                KeyConfig);
+    }
 };
 
 struct MsQuicListener {
@@ -451,6 +473,14 @@ struct MsQuicListener {
     MsQuicListener(MsQuicListener& other) = delete;
     MsQuicListener operator=(MsQuicListener& Other) = delete;
     operator HQUIC () const noexcept { return Handle; }
+};
+
+struct ConfigurationScope {
+    HQUIC Handle;
+    ConfigurationScope() noexcept : Handle(nullptr) { }
+    ConfigurationScope(HQUIC handle) noexcept : Handle(handle) { }
+    ~ConfigurationScope() noexcept { if (Handle) { MsQuic->ConfigurationClose(Handle); } }
+    operator HQUIC() const noexcept { return Handle; }
 };
 
 struct ListenerScope {
