@@ -135,20 +135,8 @@ void QuicTestValidateConfiguration()
     }
 
     //
-    // Invalid settings
+    // Invalid settings - TODO
     //
-    {
-        ConfigurationScope LocalConfiguration;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->ConfigurationOpen(
-                Registration,
-                &GoodAlpn,
-                1,
-                nullptr,
-                0,
-                nullptr,
-                &LocalConfiguration.Handle));
-    }
 
     //
     // Null ALPN.
