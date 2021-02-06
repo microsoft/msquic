@@ -4,7 +4,7 @@ The QUIC protocol features a Version field to enable the protocol to evolve and 
 MsQuic is no exception and currently supports Draft-29 and Version 1 of the QUIC protocol.
 By default, MsQuic clients start all connections with Version 1.  MsQuic servers support Version 1 and Draft-29.
 
-The [Version Negotiation Extension](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation-03) is supported in MsQuic and is keeping pace with changes in the standard.  It is disabled by default on both MsQuic client and server.
+The [Version Negotiation Extension](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation) is supported in MsQuic and is keeping pace with changes in the standard.  It is disabled by default on both MsQuic client and server.
 
 ## Configuring QUIC Versions on MsQuic Clients
 
@@ -12,9 +12,9 @@ An application may decide that it needs a specific feature only availble in one 
 
 The first version in the list of `DesiredVersions` will always be the initial version MsQuic starts the connection with.
 
-**NOTE: A client may only set a version that is either a reserved version, or one that MsQuic supports. Any other value will cause `SetParam` to fail.**
+**NOTE: A client may only set a version that MsQuic supports. Any other value will cause [`SetParam`](api/SetParam.md) to fail.**
 
-Use the following code snippet to change the default initial version, and only support a single QUIC version. It must be used before `ConnectionStart` is called:
+Use the following code snippet to change the default initial version, and only support a single QUIC version. It must be used before [`ConnectionStart`](api/ConnectionStart.md) is called:
 ```c
 QUIC_SETTINGS Settings = { 0 };
 const uint32_t DesiredVersion = 0xff00001dU; // This is the Draft-29 version in HOST byte order. If the server does not support this, the connection will fail.
@@ -42,7 +42,7 @@ Settings.DesiredVersionsListLength = 2;
 Settings.IsSet.DesiredVersionsList = TRUE;
 ```
 
-The `QUIC_SETTINGS` which sets the desired QUIC version can be used in the `ConfigurationOpen` call and doesn't need to used exclusively with `SetParam`.
+The `QUIC_SETTINGS` which sets the desired QUIC version can be used in the [`ConfigurationOpen`](api/ConfigurationOpen.md) call and doesn't need to used exclusively with [`SetParam`](api/SetParam.md).
 
 ## Configuring QUIC Versions on MsQuic Servers
 
@@ -68,15 +68,14 @@ MsQuic->SetParam(
     &Settings);
 ```
 
-
 # QUIC Version Negotiation Extension
 
 The Version Negotiation Extension is off by default. Since the standard is not yet complete, incompatible changes may be made preventing different drafts from working with each other. An application using MsQuic should be cautious about enabling the Version Negotiation Extension in production scenarios until the standard is complete.
 
 ## Enabling Version Negotiation Extension on MsQuic Client
 
-The Version Negotiation Extension is enabled on client the same as the QUIC version. It can also be set via `ConfigurationOpen`, as well as via `SetParam`.
-This setting **MUST** be set before `ConnectionStart` to take effect.
+The Version Negotiation Extension is enabled on client the same as the QUIC version. It can also be set via [`ConfigurationOpen`](api/ConfigurationOpen.md), as well as via [`SetParam`](api/SetParam.md).
+This setting **MUST** be set before [`ConnectionStart`](api/ConnectionStart.md) to take effect.
 
 ```c
 QUIC_SETTINGS Settings = { 0 };
@@ -93,7 +92,7 @@ MsQuic->SetParam(
 
 ## Enabling Version Negotiation Extension on MsQuic Server
 
-Enabling the Version Negotiation Extension on server follows the same restrictions as setting the QUIC version on server, i.e. it **MUST** be set globally, using `SetParam` before the `QUIC_CONFIGURATION` is opened for the server.
+Enabling the Version Negotiation Extension on server follows the same restrictions as setting the QUIC version on server, i.e. it **MUST** be set globally, using [`SetParam`](api/SetParam.md) before the `QUIC_CONFIGURATION` is opened for the server.
 
 ```c
 QUIC_SETTINGS Settings = { 0 };

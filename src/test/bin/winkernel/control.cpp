@@ -414,6 +414,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(INT32),
     sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
+    sizeof(INT32),
+    sizeof(INT32),
     sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
     sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
     sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
@@ -835,6 +837,16 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestCustomCertificateValidation(
                 Params->CustomCertValidationParams.AcceptCert,
                 Params->CustomCertValidationParams.AsyncValidation));
+        break;
+
+    case IOCTL_QUIC_RUN_VERSION_NEGOTIATION_RETRY:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestVersionNegotiationRetry(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_RETRY:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestCompatibleVersionNegotiationRetry(Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION:

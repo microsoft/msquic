@@ -835,9 +835,7 @@ QuicBindingProcessStatelessOperation(
             SupportedVersionsLength * sizeof(uint32_t));
 
         CXPLAT_RECV_PACKET* Packet = CxPlatDataPathRecvDataToRecvPacket(RecvDatagram);
-        if (Packet->ReleaseDeferred) {
-            Packet->ReleaseDeferred = FALSE;
-        }
+        Packet->ReleaseDeferred = FALSE;
 
         QuicTraceLogVerbose(
             PacketTxVersionNegotiation,

@@ -392,6 +392,24 @@ TEST_P(WithFamilyArgs, VersionNegotiation) {
     }
 }
 
+TEST_P(WithFamilyArgs, VersionNegotiationRetry) {
+    TestLoggerT<ParamType> Logger("QuicTestVersionNegotiationRetry", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VERSION_NEGOTIATION_RETRY, GetParam().Family));
+    } else {
+        QuicTestVersionNegotiationRetry(GetParam().Family);
+    }
+}
+
+TEST_P(WithFamilyArgs, CompatibleVersionNegotiationRetry) {
+    TestLoggerT<ParamType> Logger("CompatibleVersionNegotiationRetry", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_RETRY, GetParam().Family));
+    } else {
+        QuicTestCompatibleVersionNegotiationRetry(GetParam().Family);
+    }
+}
+
 TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiation) {
     TestLoggerT<ParamType> Logger("CompatibleVersionNegotiation", GetParam());
     if (TestingKernelMode) {

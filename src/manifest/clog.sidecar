@@ -9982,6 +9982,54 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "SettingDumpDesiredVersionsListLength": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Desired Version length = %u",
+      "UniqueId": "SettingDumpDesiredVersionsListLength",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpDesiredVersionsList": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Desired Version[0]     = 0x%x",
+      "UniqueId": "SettingDumpDesiredVersionsList",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpVersionNegoExtEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Version Negotiation Ext Enabled = %hhu",
+      "UniqueId": "SettingDumpVersionNegoExtEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpGeneratedCompatVerListLen": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] Generated version compat list length = %u",
+      "UniqueId": "SettingDumpGeneratedCompatVerListLen",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     }
   },
   "Version": 1,
@@ -12947,6 +12995,22 @@
       {
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop"
+      },
+      {
+        "UniquenessHash": "0080f5a7-d4e1-7c9d-e023-eb4dd540fffe",
+        "TraceID": "SettingDumpDesiredVersionsListLength"
+      },
+      {
+        "UniquenessHash": "d4981da2-783e-a3bb-0f42-7264db208f13",
+        "TraceID": "SettingDumpDesiredVersionsList"
+      },
+      {
+        "UniquenessHash": "5611e76a-6d7c-35b7-9562-f67e5c2e3aa1",
+        "TraceID": "SettingDumpVersionNegoExtEnabled"
+      },
+      {
+        "UniquenessHash": "1f5a8b70-151c-b9a8-e853-0d0afe2bcbe4",
+        "TraceID": "SettingDumpGeneratedCompatVerListLen"
       }
     ]
   }

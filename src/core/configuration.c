@@ -424,7 +424,7 @@ QuicConfigurationParamGet(
         }
 
         *BufferLength = sizeof(QUIC_SETTINGS);
-        CxPlatCopyMemory(Buffer, &Configuration->Settings, sizeof(QUIC_SETTINGS)); // TODO: how to copy back out DesiredVersionsList
+        CxPlatCopyMemory(Buffer, &Configuration->Settings, sizeof(QUIC_SETTINGS));
 
         return QUIC_STATUS_SUCCESS;
     }
@@ -462,7 +462,7 @@ QuicConfigurationParamSet(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS_INTERNAL*)Buffer); // Review
+        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS_INTERNAL*)Buffer);
 
         return QUIC_STATUS_SUCCESS;
     }
