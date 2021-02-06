@@ -34,7 +34,7 @@ PrintUsage()
            " [-file:<cert_filepath> AND -key:<cert_key_filepath>]"
            " [-port:<####> (def:%u)]  [-retry:<0/1> (def:%u)]"
            " [-upload:<path>]"
-           " [-enableVNE:0/1]\n\n",
+           " [-enableVNE:<0/1>]\n\n",
            DEFAULT_QUIC_HTTP_SERVER_PORT, DEFAULT_QUIC_HTTP_SERVER_RETRY);
 
     printf("Examples:\n");
