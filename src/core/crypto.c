@@ -26,14 +26,12 @@ Abstract:
 CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 CXPLAT_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
 CXPLAT_TLS_RECEIVE_TICKET_CALLBACK QuicConnRecvResumptionTicket;
-CXPLAT_TLS_DEFERRED_CERTIFICATE_VALIDATION_CALLBACK QuicConnDeferredCertValidation;
 CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK QuicConnPeerCertReceived;
 
 CXPLAT_TLS_CALLBACKS QuicTlsCallbacks = {
     QuicTlsProcessDataCompleteCallback,
     QuicConnReceiveTP,
     QuicConnRecvResumptionTicket,
-    QuicConnDeferredCertValidation,
     QuicConnPeerCertReceived
 };
 

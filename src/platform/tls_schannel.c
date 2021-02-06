@@ -1069,6 +1069,11 @@ CxPlatTlsSecConfigCreate(
     }
 #endif
 
+    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) &&
+        !(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED)) {
+        return QUIC_STATUS_INVALID_PARAMETER; // Defer validation without indication doesn't make sense.
+    }
+
     if (IsClient) {
 
         if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
@@ -1128,7 +1133,7 @@ CxPlatTlsSecConfigCreate(
 
     Credentials->dwVersion = SCH_CREDENTIALS_VERSION;
     Credentials->dwFlags |= SCH_USE_STRONG_CRYPTO;
-    if (CredConfig->Flags & (QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION)) {
+    if (CredConfig->Flags & (QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
         Credentials->dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
     }
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
@@ -1980,46 +1985,41 @@ CxPlatTlsWriteDataToSchannel(
                 State->SessionResumed = TRUE;
             }
 
-            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
-                SecPkgContext_CertificateValidationResult CertValidationResult;
-                SecStatus =
-                    QueryContextAttributesW(
-                        &TlsContext->SchannelContext,
-                        SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
-                        &CertValidationResult);
-                if (SecStatus != SEC_E_OK) {
-                    QuicTraceEvent(
-                        TlsErrorStatus,
-                        "[ tls][%p] ERROR, %u, %s.",
-                        TlsContext->Connection,
-                        SecStatus,
-                        "query cert validation result");
-                    Result |= CXPLAT_TLS_RESULT_ERROR;
-                    break;
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
+
+                //
+                // TODO - Check for certificate availability on server side.
+                //
+
+                SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
+                if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
+                    SecStatus =
+                        QueryContextAttributesW(
+                            &TlsContext->SchannelContext,
+                            SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
+                            &CertValidationResult);
+                    if (SecStatus != SEC_E_OK) {
+                        QuicTraceEvent(
+                            TlsErrorStatus,
+                            "[ tls][%p] ERROR, %u, %s.",
+                            TlsContext->Connection,
+                            SecStatus,
+                            "query cert validation result");
+                        Result |= CXPLAT_TLS_RESULT_ERROR;
+                        break;
+                    }
                 }
-                if (!TlsContext->SecConfig->Callbacks.DeferredCertValidation(
+
+                if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
                         TlsContext->Connection,
+                        NULL,
                         CertValidationResult.dwChainErrorStatus,
                         (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
                     QuicTraceEvent(
                         TlsError,
                         "[ tls][%p] ERROR, %s.",
                         TlsContext->Connection,
-                        "Rejected deferred cert validation");
-                    Result |= CXPLAT_TLS_RESULT_ERROR;
-                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
-                    break;
-                }
-            }
-
-            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) { // TODO - On server, only when client cert present?
-                if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
-                        TlsContext->Connection)) {
-                    QuicTraceEvent(
-                        TlsError,
-                        "[ tls][%p] ERROR, %s.",
-                        TlsContext->Connection,
-                        "Custom certificate validation failed");
+                        "Indicate certificate received failed");
                     Result |= CXPLAT_TLS_RESULT_ERROR;
                     State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
                     break;

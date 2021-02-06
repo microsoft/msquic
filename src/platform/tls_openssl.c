@@ -51,6 +51,11 @@ typedef struct CXPLAT_SEC_CONFIG {
     //
     CXPLAT_TLS_CALLBACKS Callbacks;
 
+    //
+    // The application supplied credential flags.
+    //
+    QUIC_CREDENTIAL_FLAGS Flags;
+
 } CXPLAT_SEC_CONFIG;
 
 //
@@ -200,21 +205,34 @@ CxPlatTlsAlpnSelectCallback(
 static
 int
 CxPlatTlsCertificateVerifyCallback(
-    X509_STORE_CTX* x509_ctx,
-    void* app_ctx
+    int preverify_ok,
+    X509_STORE_CTX *x509_ctx
     )
 {
     SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
-    UNREFERENCED_PARAMETER(app_ctx);
 
-    if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
-            TlsContext->Connection)) {
+    if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+        !preverify_ok) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
             TlsContext->Connection,
-            "Custom certificate validation failed");
+            "Internal certificate validation failed");
+        return FALSE;
+    }
+
+    if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+        !TlsContext->SecConfig->Callbacks.CertificateReceived(
+            TlsContext->Connection,
+            x509_ctx,
+            0,
+            0)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Indicate certificate received failed");
         X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
         return FALSE;
     }
@@ -601,6 +619,7 @@ CxPlatTlsSecConfigCreate(
     }
 
     SecurityConfig->Callbacks = *TlsCallbacks;
+    SecurityConfig->Flags = CredConfig->Flags;
 
     //
     // Create the a SSL context for the security config.
@@ -694,22 +713,14 @@ CxPlatTlsSecConfigCreate(
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-        if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) {
-            SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_NONE, NULL);
+        SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, CxPlatTlsCertificateVerifyCallback);
+        SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
 
-        } else if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CUSTOM_CERTIFICATE_VALIDATION) {
-            SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
-            SSL_CTX_set_cert_verify_callback(SecurityConfig->SSLCtx, CxPlatTlsCertificateVerifyCallback, NULL);
+        //
+        // TODO - Support additional certificate validation parameters, such as
+        // the location of the trusted root CAs (SSL_CTX_load_verify_locations)?
+        //
 
-        } else {
-            SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
-            SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
-
-            //
-            // TODO - Support additional certificate validation parameters, such as
-            // the location of the trusted root CAs (SSL_CTX_load_verify_locations)?
-            //
-        }
     } else {
         SSL_CTX_set_options(
             SecurityConfig->SSLCtx,

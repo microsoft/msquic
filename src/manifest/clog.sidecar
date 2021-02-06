@@ -1154,10 +1154,10 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
-    "IndicatePeerCertificateValidation": {
+    "IndicatePeerCertificateReceived": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_VALIDATION (0x%x, 0x%x)",
-      "UniqueId": "IndicatePeerCertificateValidation",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED (0x%x, 0x%x)",
+      "UniqueId": "IndicatePeerCertificateReceived",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -1170,18 +1170,6 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "IndicatePeerCertificateReceived": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED",
-      "UniqueId": "IndicatePeerCertificateReceived",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -7364,6 +7352,263 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "PerfTcpCreateClient": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] Client created",
+      "UniqueId": "PerfTcpCreateClient",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpCreateServer": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] Server created",
+      "UniqueId": "PerfTcpCreateServer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpDestroyed": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] Destroyed",
+      "UniqueId": "PerfTcpDestroyed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpConnectCallback": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] Connect callback %hhu",
+      "UniqueId": "PerfTcpConnectCallback",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpReceiveCallback": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] Receive callback",
+      "UniqueId": "PerfTcpReceiveCallback",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpSendCompleteCallback": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] SendComplete callback",
+      "UniqueId": "PerfTcpSendCompleteCallback",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpAppAccept": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] App Accept",
+      "UniqueId": "PerfTcpAppAccept",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpAppConnect": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] App Connect",
+      "UniqueId": "PerfTcpAppConnect",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpStartTls": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] Start TLS",
+      "UniqueId": "PerfTcpStartTls",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpAppDisconnect": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] App Disconnect",
+      "UniqueId": "PerfTcpAppDisconnect",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpAppReceive": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] App Receive %hu bytes, Open=%hhu Fin=%hhu Abort=%hhu",
+      "UniqueId": "PerfTcpAppReceive",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpSendFrame": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] Send frame %hu bytes, Open=%hhu Fin=%hhu Abort=%hhu",
+      "UniqueId": "PerfTcpSendFrame",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpAppSendComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] App Send complete %u bytes",
+      "UniqueId": "PerfTcpAppSendComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpAppSend": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] App Send %u bytes, Open=%hhu Fin=%hhu Abort=%hhu",
+      "UniqueId": "PerfTcpAppSend",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfTcpAppClose": {
+      "ModuleProperites": {},
+      "TraceString": "[perf][tcp][%p] App Close",
+      "UniqueId": "PerfTcpAppClose",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfRpsStart": {
+      "ModuleProperites": {},
+      "TraceString": "[perf] RPS Client start",
+      "UniqueId": "PerfRpsStart",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfRpsTimeout": {
+      "ModuleProperites": {},
+      "TraceString": "[perf] RPS Client timeout",
+      "UniqueId": "PerfRpsTimeout",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfRpsComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[perf] RPS Client complete",
+      "UniqueId": "PerfRpsComplete",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "CertCapiVerifiedChain": {
       "ModuleProperites": {},
       "TraceString": "CertVerifyChain: %S 0x%x, result=0x%x",
@@ -10492,11 +10737,7 @@
         "TraceID": "ClientVersionNegotiationCompatibleVersionUpgrade"
       },
       {
-        "UniquenessHash": "8105e9a0-04b4-e941-7052-170d8a7ec108",
-        "TraceID": "IndicatePeerCertificateValidation"
-      },
-      {
-        "UniquenessHash": "cb2eb64a-f957-6a29-5b6e-35ec67c01884",
+        "UniquenessHash": "506a0bfb-88c2-6ef1-149b-8c6e2d9dd836",
         "TraceID": "IndicatePeerCertificateReceived"
       },
       {
@@ -11934,6 +12175,78 @@
       {
         "UniquenessHash": "2a4c81a8-bf45-5d2a-fa79-dc075733386b",
         "TraceID": "WorkerStop"
+      },
+      {
+        "UniquenessHash": "c025bce3-e69b-4fe3-572e-750b3b130b70",
+        "TraceID": "PerfTcpCreateClient"
+      },
+      {
+        "UniquenessHash": "7213ed35-b768-db24-e10b-c437f8708546",
+        "TraceID": "PerfTcpCreateServer"
+      },
+      {
+        "UniquenessHash": "efc600b9-fa06-a765-2aca-db7171a29ae5",
+        "TraceID": "PerfTcpDestroyed"
+      },
+      {
+        "UniquenessHash": "79fa6537-aa2a-a13d-5c83-69c1e33ba1b7",
+        "TraceID": "PerfTcpConnectCallback"
+      },
+      {
+        "UniquenessHash": "066de3e2-3de2-99d4-d800-8468fb5794e5",
+        "TraceID": "PerfTcpReceiveCallback"
+      },
+      {
+        "UniquenessHash": "c0732f05-6611-2c1d-ad74-42718c7269cc",
+        "TraceID": "PerfTcpSendCompleteCallback"
+      },
+      {
+        "UniquenessHash": "8260f5a0-7930-0280-7f31-39c627e51e33",
+        "TraceID": "PerfTcpAppAccept"
+      },
+      {
+        "UniquenessHash": "03b3d713-afa5-9b75-6ced-4a4026219557",
+        "TraceID": "PerfTcpAppConnect"
+      },
+      {
+        "UniquenessHash": "68f39cf7-bcf8-8314-a151-2316d10bead4",
+        "TraceID": "PerfTcpStartTls"
+      },
+      {
+        "UniquenessHash": "48f4b913-352b-3aca-318c-5616b6421733",
+        "TraceID": "PerfTcpAppDisconnect"
+      },
+      {
+        "UniquenessHash": "7ec7a7ee-0ccd-a1a8-0c0b-84eec62f7c03",
+        "TraceID": "PerfTcpAppReceive"
+      },
+      {
+        "UniquenessHash": "87a3325f-51ea-bece-2c7f-5a1e55cf6415",
+        "TraceID": "PerfTcpSendFrame"
+      },
+      {
+        "UniquenessHash": "b9d6812c-f686-651d-a4dc-85dc652f0d99",
+        "TraceID": "PerfTcpAppSendComplete"
+      },
+      {
+        "UniquenessHash": "559bc6c8-b410-9047-639b-a99f8d43acbf",
+        "TraceID": "PerfTcpAppSend"
+      },
+      {
+        "UniquenessHash": "77f041f5-1399-b3d5-1ce1-fc4be089d4a5",
+        "TraceID": "PerfTcpAppClose"
+      },
+      {
+        "UniquenessHash": "d09461bb-6b09-2766-23bd-bc4734886134",
+        "TraceID": "PerfRpsStart"
+      },
+      {
+        "UniquenessHash": "93872e3e-e3be-2983-e205-d6e666f739f6",
+        "TraceID": "PerfRpsTimeout"
+      },
+      {
+        "UniquenessHash": "221a79fd-6347-1c39-b203-268190b2e183",
+        "TraceID": "PerfRpsComplete"
       },
       {
         "UniquenessHash": "6fb480dc-d71f-74f2-dc75-559a5591fe3d",

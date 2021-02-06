@@ -2759,37 +2759,24 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
-QuicConnDeferredCertValidation(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ uint32_t ErrorFlags,
-    _In_ QUIC_STATUS Status
-    )
-{
-    QUIC_CONNECTION_EVENT Event;
-    Event.Type = QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_VALIDATION;
-    Event.PEER_CERTIFICATE_VALIDATION.ErrorFlags = ErrorFlags;
-    Event.PEER_CERTIFICATE_VALIDATION.Status = Status;
-    QuicTraceLogConnVerbose(
-        IndicatePeerCertificateValidation,
-        Connection,
-        "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_VALIDATION (0x%x, 0x%x)",
-        ErrorFlags,
-        Status);
-    return QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
 QuicConnPeerCertReceived(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ void* Certificate,
+    _In_ uint32_t DeferredErrorFlags,
+    _In_ QUIC_STATUS DeferredStatus
     )
 {
     QUIC_CONNECTION_EVENT Event;
     Event.Type = QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED;
+    Event.PEER_CERTIFICATE_RECEIVED.Certificate = Certificate;
+    Event.PEER_CERTIFICATE_RECEIVED.DeferredErrorFlags = DeferredErrorFlags;
+    Event.PEER_CERTIFICATE_RECEIVED.DeferredStatus = DeferredStatus;
     QuicTraceLogConnVerbose(
         IndicatePeerCertificateReceived,
         Connection,
-        "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED");
+        "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED (0x%x, 0x%x)",
+        DeferredErrorFlags,
+        DeferredStatus);
     QUIC_STATUS Status = QuicConnIndicateEvent(Connection, &Event);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
