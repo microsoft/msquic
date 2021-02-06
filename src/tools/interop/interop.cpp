@@ -376,9 +376,10 @@ public:
                 this,
                 &Connection));
         if (VerNeg) {
+            uint32_t DesiredVersions[] = { RandomReservedVersion, 0x00000001U, 0xff00001dU };
             QUIC_SETTINGS Settings = { 0 };
-            Settings.DesiredVersionsList = &RandomReservedVersion;
-            Settings.DesiredVersionsListLength = 1;
+            Settings.DesiredVersionsList = DesiredVersions;
+            Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
             Settings.IsSet.DesiredVersionsList = TRUE;
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
@@ -388,9 +389,10 @@ public:
                     sizeof(Settings),
                     &Settings));
         } else if (InitialVersion != 0) {
+            uint32_t DesiredVersions[] = { InitialVersion, 0x00000001U, 0xff00001dU };
             QUIC_SETTINGS Settings = { 0 };
-            Settings.DesiredVersionsList = &InitialVersion;
-            Settings.DesiredVersionsListLength = 1;
+            Settings.DesiredVersionsList = DesiredVersions;
+            Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
             Settings.IsSet.DesiredVersionsList = TRUE;
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
