@@ -10030,6 +10030,222 @@
         }
       ],
       "macroName": "QuicTraceLogVerbose"
+    },
+    "ClientVersionNegotiationInfoDecodeFailed1": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client version negotiation info too short to contain Current Version (%hu bytes)",
+      "UniqueId": "ClientVersionNegotiationInfoDecodeFailed1",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ClientVersionNegotiationInfoDecodeFailed2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client version negotiation info too short to contain Previous Version (%hu bytes)",
+      "UniqueId": "ClientVersionNegotiationInfoDecodeFailed2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ClientVersionNegotiationInfoDecodeFailed3": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client version negotiation info too short to contain Recv Negotiation Version count (%hu bytes)",
+      "UniqueId": "ClientVersionNegotiationInfoDecodeFailed3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ClientVersionNegotiationInfoDecodeFailed4": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client version negotiation info too short to contain Compatible Version count (%hu bytes)",
+      "UniqueId": "ClientVersionNegotiationInfoDecodeFailed4",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ClientVersionNegotiationInfoDecodeFailed5": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client version negotiation info has empty Compatible Version list",
+      "UniqueId": "ClientVersionNegotiationInfoDecodeFailed5",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ServerVersionNegotiationInfoDecodeFailed1": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server version negotiation info too short to contain Negotiated Version (%hu bytes)",
+      "UniqueId": "ServerVersionNegotiationInfoDecodeFailed1",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ServerVersionNegotiationInfoDecodeFailed2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server version negotiation info too short to contain Supported Version count (%hu bytes)",
+      "UniqueId": "ServerVersionNegotiationInfoDecodeFailed2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ServerVersionNegotiationInfoDecodeFailed3": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server version negotiation info has empty Supported Versions list",
+      "UniqueId": "ServerVersionNegotiationInfoDecodeFailed3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ClientVersionNegotiationInfoDecoded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client VNI Decoded: Current Ver:%x Prev Ver:%x Recv Ver Count:%llu Compat Ver Count:%llu",
+      "UniqueId": "ClientVersionNegotiationInfoDecoded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "ServerVersionNegotiationInfoDecoded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server VNI Decoded: Negotiated Ver:%x Supported Ver Count:%llu",
+      "UniqueId": "ServerVersionNegotiationInfoDecoded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "ConnClientCompatibleVersionList": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client VNI Compatible Version List: %!VNL!",
+      "UniqueId": "ConnClientCompatibleVersionList",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!VNL!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnClientReceivedVersionList": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client VNI Received Version List: %!VNL!",
+      "UniqueId": "ConnClientReceivedVersionList",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!VNL!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnServerSupportedVersionList": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server VNI Supported Version List: %!VNL!",
+      "UniqueId": "ConnServerSupportedVersionList",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!VNL!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     }
   },
   "Version": 1,
@@ -10079,7 +10295,7 @@
     },
     "Version": 1,
     "CustomTypeClogCSharpFile": "msquic.clog.cs",
-    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            if (value.Length == 0)\n            {\n                return \"None\";\n            }\n\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            byte[] sa2;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    sa2 = new byte[4];\n                    Array.Copy(value, 4, sa2, 0, 4);\n                    msg += $\"{new IPAddress(sa2).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    sa2 = new byte[16];\n                    Array.Copy(value, 8, sa2, 0, 16);\n                    msg += $\"[{new IPAddress(sa2).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n\n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n    }\n}\n",
+    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            if (value.Length == 0)\n            {\n                return \"None\";\n            }\n\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            byte[] sa2;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    sa2 = new byte[4];\n                    Array.Copy(value, 4, sa2, 0, 4);\n                    msg += $\"{new IPAddress(sa2).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    sa2 = new byte[16];\n                    Array.Copy(value, 8, sa2, 0, 16);\n                    msg += $\"[{new IPAddress(sa2).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n\n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n\n        public static string VNL(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            if (value.Length < 4)\n            {\n                return \"Invalid\";\n            }\n            StringBuilder hex = new StringBuilder(\n                (value.Length * 2) +                    // Hex length for all characters\n                ((value.Length / sizeof(int)) - 1));    // Space for commas, if list is long enough.\n\n            for (int i = 0; value.Length - i >= sizeof(int); i += sizeof(int))\n            {\n                int Version = (int)(value[i] << 24) | (int)(value[i + 1] << 16) | (int)(value[i + 2] << 8) | (int)(value[i + 3]);\n                hex.Append(Version.ToString(\"X8\"));\n                if (value.Length - (i + sizeof(int)) >= sizeof(int)) {\n                    hex.Append(\",\");\n                }\n            }\n            return hex.ToString();\n        }\n    }\n}\n",
     "TypeEncoders": {
       "Version": 0,
       "TypeEncoder": [
@@ -10094,6 +10310,12 @@
           "CType": "CLOG_PTR",
           "DefinationEncoding": "!CID!",
           "CustomDecoder": "msquic.clog_config.Types.CID"
+        },
+        {
+          "EncodingType": "ByteArray",
+          "CType": "CLOG_PTR",
+          "DefinationEncoding": "!VNL!",
+          "CustomDecoder": "msquic.clog_config.Types.VNL"
         },
         {
           "EncodingType": "UInt32",
@@ -13001,16 +13223,68 @@
         "TraceID": "SettingDumpDesiredVersionsListLength"
       },
       {
-        "UniquenessHash": "d4981da2-783e-a3bb-0f42-7264db208f13",
-        "TraceID": "SettingDumpDesiredVersionsList"
-      },
-      {
         "UniquenessHash": "5611e76a-6d7c-35b7-9562-f67e5c2e3aa1",
         "TraceID": "SettingDumpVersionNegoExtEnabled"
       },
       {
         "UniquenessHash": "1f5a8b70-151c-b9a8-e853-0d0afe2bcbe4",
         "TraceID": "SettingDumpGeneratedCompatVerListLen"
+      },
+      {
+        "UniquenessHash": "4dcd57d1-2fc6-a95d-73fd-b4f658f3a886",
+        "TraceID": "ClientVersionNegotiationInfoDecodeFailed1"
+      },
+      {
+        "UniquenessHash": "ed1a37f1-cda2-27a3-4756-74b78128a4fa",
+        "TraceID": "ClientVersionNegotiationInfoDecodeFailed2"
+      },
+      {
+        "UniquenessHash": "9a3fab56-0350-d60c-bed2-ceeb15149ff0",
+        "TraceID": "ClientVersionNegotiationInfoDecodeFailed3"
+      },
+      {
+        "UniquenessHash": "6ae20bf4-0c66-dbdc-106a-e7d69dfae2d0",
+        "TraceID": "ClientVersionNegotiationInfoDecodeFailed4"
+      },
+      {
+        "UniquenessHash": "cca1aab1-7c9f-b5d4-1e46-58a8dbf496bb",
+        "TraceID": "ClientVersionNegotiationInfoDecodeFailed5"
+      },
+      {
+        "UniquenessHash": "111df903-664f-353e-7c3c-635cbb16be72",
+        "TraceID": "ServerVersionNegotiationInfoDecodeFailed1"
+      },
+      {
+        "UniquenessHash": "aa690805-dd62-c61b-741c-3b085f14487f",
+        "TraceID": "ServerVersionNegotiationInfoDecodeFailed2"
+      },
+      {
+        "UniquenessHash": "7cc635f7-3cd0-c6af-a940-6afb99bc699a",
+        "TraceID": "ServerVersionNegotiationInfoDecodeFailed3"
+      },
+      {
+        "UniquenessHash": "91a1c9f9-47a9-bdb5-ec43-3485beafa2c4",
+        "TraceID": "ConnClientCompatibleVersionList"
+      },
+      {
+        "UniquenessHash": "1a03e5c0-56e9-a22c-847f-6fa5f28ff3b2",
+        "TraceID": "ConnClientReceivedVersionList"
+      },
+      {
+        "UniquenessHash": "344789d5-5067-7810-ec3e-06f7107af1a5",
+        "TraceID": "ConnServerSupportedVersionList"
+      },
+      {
+        "UniquenessHash": "d4981da2-783e-a3bb-0f42-7264db208f13",
+        "TraceID": "SettingDumpDesiredVersionsList"
+      },
+      {
+        "UniquenessHash": "789f1477-fad9-525e-f31b-6ab737f864dd",
+        "TraceID": "ClientVersionNegotiationInfoDecoded"
+      },
+      {
+        "UniquenessHash": "33619289-89cb-1e09-2aed-8586ccc3b46b",
+        "TraceID": "ServerVersionNegotiationInfoDecoded"
       }
     ]
   }

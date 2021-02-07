@@ -2520,26 +2520,16 @@ QuicConnProcessPeerVersionNegotiationTP(
                 break;
             }
         }
-        if (CurrentVersionIndex == SupportedVersionsLength) {
-            //
-            // Current version not supported, start incompatible version negotiation.
-            //
-            CXPLAT_DBG_ASSERTMSG(FALSE, "Should be caught in binding layer");
-            return QUIC_STATUS_VER_NEG_ERROR;
-        }
+        CXPLAT_FRE_ASSERTMSG(CurrentVersionIndex != SupportedVersionsLength, "Incompatible Version Negotation should happen in binding layer");
 
         QUIC_CLIENT_VER_NEG_INFO ClientVNI;
         Status =
             QuicVersionNegotiationExtParseClientVerNegInfo(
+                Connection,
                 Connection->PeerTransportParams.VersionNegotiationInfo,
                 (uint16_t)Connection->PeerTransportParams.VersionNegotiationInfoLength,
                 &ClientVNI);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogConnError(
-                ClientVersionNegotiationInfoDecodeFailed,
-                Connection,
-                "Client version negotiation info failed to parse 0x%x",
-                Status);
             QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
@@ -2630,15 +2620,11 @@ QuicConnProcessPeerVersionNegotiationTP(
         QUIC_SERVER_VER_NEG_INFO ServerVNI = {0};
         Status =
             QuicVersionNegotiationExtParseServerVerNegInfo(
+                Connection,
                 Connection->PeerTransportParams.VersionNegotiationInfo,
                 (uint16_t)Connection->PeerTransportParams.VersionNegotiationInfoLength,
                 &ServerVNI);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogConnError(
-                ServerVersionNegotiationInfoDecodeFailed,
-                Connection,
-                "Server version negotiation info failed to parse 0x%x",
-                Status);
             QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
