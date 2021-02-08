@@ -712,7 +712,7 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS_INTERNAL*)Buffer);
+        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS*)Buffer);
         MsQuicLibraryOnSettingsChanged(TRUE);
 
         Status = QUIC_STATUS_SUCCESS;

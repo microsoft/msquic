@@ -55,7 +55,7 @@ typedef struct QUIC_CONFIGURATION {
     //
     // Configurable (app & registry) settings.
     //
-    QUIC_SETTINGS_INTERNAL Settings;
+    QUIC_SETTINGS Settings;
 
     uint16_t AlpnListLength;
     uint8_t AlpnList[0];

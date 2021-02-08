@@ -14,14 +14,10 @@ Abstract:
 #include "settings.c.clog.h"
 #endif
 
-CXPLAT_STATIC_ASSERT(
-    FIELD_OFFSET(QUIC_SETTINGS_INTERNAL, GeneratedCompatibleVersionsList) == sizeof(QUIC_SETTINGS),
-    "Update QUIC_SETTINGS_INTERNAL with fields added to QUIC_SETTINGS.");
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsSetDefault(
-    _Inout_ QUIC_SETTINGS_INTERNAL* Settings
+    _Inout_ QUIC_SETTINGS* Settings
     )
 {
     if (!Settings->IsSet.SendBufferingEnabled) {
@@ -102,13 +98,16 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.ServerResumptionLevel) {
         Settings->ServerResumptionLevel = QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL;
     }
+    if (!Settings->IsSet.VersionNegotiationExtEnabled) {
+        Settings->VersionNegotiationExtEnabled = QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsCopy(
-    _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
-    _In_ const QUIC_SETTINGS_INTERNAL* Source
+    _Inout_ QUIC_SETTINGS* Destination,
+    _In_ const QUIC_SETTINGS* Source
     )
 {
     if (!Destination->IsSet.SendBufferingEnabled) {
@@ -197,7 +196,7 @@ QuicSettingsCopy(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSettingApply(
-    _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
+    _Inout_ QUIC_SETTINGS* Destination,
     _In_ BOOLEAN OverWrite,
     _In_ BOOLEAN CopyExternalToInternal,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
@@ -341,33 +340,6 @@ QuicSettingApply(
         Destination->VersionNegotiationExtEnabled = Source->VersionNegotiationExtEnabled;
         Destination->IsSet.VersionNegotiationExtEnabled = TRUE;
     }
-    if (!CopyExternalToInternal &&
-        NewSettingsSize == sizeof(QUIC_SETTINGS_INTERNAL) &&
-        ((QUIC_SETTINGS_INTERNAL*)Source)->IsSet.GeneratedCompatibleVersions) {
-        if (Destination->IsSet.GeneratedCompatibleVersions && OverWrite) {
-            CXPLAT_FREE(Destination->GeneratedCompatibleVersionsList, QUIC_POOL_COMPAT_VER_LIST);
-            Destination->IsSet.GeneratedCompatibleVersions = FALSE;
-        }
-        if (!Destination->IsSet.GeneratedCompatibleVersions) {
-            Destination->GeneratedCompatibleVersionsList =
-                CXPLAT_ALLOC_NONPAGED(
-                    ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength * sizeof(uint32_t), QUIC_POOL_COMPAT_VER_LIST);
-            if (Destination->GeneratedCompatibleVersionsList == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "Generated Compatible Versions list",
-                    ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength * sizeof(uint32_t));
-                return FALSE;
-            }
-            CxPlatCopyMemory(
-                (uint32_t*)Destination->GeneratedCompatibleVersionsList,
-                ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsList,
-                ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength * sizeof(uint32_t));
-            Destination->GeneratedCompatibleVersionsListLength = ((QUIC_SETTINGS_INTERNAL*)Source)->GeneratedCompatibleVersionsListLength;
-            Destination->IsSet.GeneratedCompatibleVersions = TRUE;
-        }
-    }
     if (Source->IsSet.DesiredVersionsList) {
         if (Destination->IsSet.DesiredVersionsList &&
             (OverWrite || Source->DesiredVersionsListLength == 0)) {
@@ -375,12 +347,6 @@ QuicSettingApply(
             Destination->DesiredVersionsList = NULL;
             Destination->DesiredVersionsListLength = 0;
             Destination->IsSet.DesiredVersionsList = FALSE;
-        }
-        if (Destination->IsSet.GeneratedCompatibleVersions && Source->DesiredVersionsListLength == 0) {
-            CXPLAT_FREE(Destination->GeneratedCompatibleVersionsList, QUIC_POOL_COMPAT_VER_LIST);
-            Destination->GeneratedCompatibleVersionsList = NULL;
-            Destination->GeneratedCompatibleVersionsListLength = 0;
-            Destination->IsSet.GeneratedCompatibleVersions = FALSE;
         }
         if (!Destination->IsSet.DesiredVersionsList && Source->DesiredVersionsListLength > 0) {
             //
@@ -422,39 +388,6 @@ QuicSettingApply(
                     //
                     ((uint32_t*)Destination->DesiredVersionsList)[i] = CxPlatByteSwapUint32(Destination->DesiredVersionsList[i]);
                 }
-                if (!Destination->IsSet.GeneratedCompatibleVersions || OverWrite) {
-                    if (Destination->IsSet.GeneratedCompatibleVersions) {
-                        CXPLAT_FREE(Destination->GeneratedCompatibleVersionsList, QUIC_POOL_COMPAT_VER_LIST);
-                    }
-                    uint32_t CompatibilityListByteLength = 0;
-                    QuicVersionNegotiationExtGenerateCompatibleVersionsList(
-                        Destination->DesiredVersionsList[0],
-                        Destination->DesiredVersionsList,
-                        Destination->DesiredVersionsListLength,
-                        NULL,
-                        &CompatibilityListByteLength);
-                    Destination->GeneratedCompatibleVersionsList =
-                        CXPLAT_ALLOC_NONPAGED(CompatibilityListByteLength, QUIC_POOL_COMPAT_VER_LIST);
-                    if (Destination->GeneratedCompatibleVersionsList == NULL) {
-                        QuicTraceEvent(
-                            AllocFailure,
-                            "Allocation of '%s' failed. (%llu bytes)",
-                            "Generated Compatible Versions list",
-                            CompatibilityListByteLength);
-                        return FALSE;
-                    }
-                    Destination->IsSet.GeneratedCompatibleVersions = TRUE;
-                    if (QUIC_FAILED(
-                        QuicVersionNegotiationExtGenerateCompatibleVersionsList(
-                            Destination->DesiredVersionsList[0],
-                            Destination->DesiredVersionsList,
-                            Destination->DesiredVersionsListLength,
-                            (uint8_t*)Destination->GeneratedCompatibleVersionsList,
-                            &CompatibilityListByteLength))) {
-                        return FALSE;
-                    }
-                    Destination->GeneratedCompatibleVersionsListLength = CompatibilityListByteLength / sizeof(uint32_t);
-                }
             }
         }
     }
@@ -464,7 +397,7 @@ QuicSettingApply(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsCleanup(
-    _In_ QUIC_SETTINGS_INTERNAL* Settings
+    _In_ QUIC_SETTINGS* Settings
     )
 {
     if (Settings->IsSet.DesiredVersionsList) {
@@ -472,18 +405,13 @@ QuicSettingsCleanup(
         Settings->DesiredVersionsList = NULL;
         Settings->IsSet.DesiredVersionsList = FALSE;
     }
-    if (Settings->IsSet.GeneratedCompatibleVersions) {
-        CXPLAT_FREE(Settings->GeneratedCompatibleVersionsList, QUIC_POOL_COMPAT_VER_LIST);
-        Settings->GeneratedCompatibleVersionsList = NULL;
-        Settings->IsSet.GeneratedCompatibleVersions = FALSE;
-    }
 }
 
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsLoad(
-    _Inout_ QUIC_SETTINGS_INTERNAL* Settings,
+    _Inout_ QUIC_SETTINGS* Settings,
     _In_ CXPLAT_STORAGE* Storage
     )
 {
@@ -772,6 +700,17 @@ QuicSettingsLoad(
         }
         Settings->ServerResumptionLevel = (uint8_t)Value;
     }
+
+    if (!Settings->IsSet.VersionNegotiationExtEnabled) {
+        Value = QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_VERSION_NEGOTIATION_EXT_ENABLE,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->VersionNegotiationExtEnabled = !!Value;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -814,7 +753,7 @@ QuicSettingsDumpNew(
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t SettingsSize,
     _In_reads_bytes_(SettingsSize)
-        const QUIC_SETTINGS_INTERNAL* Settings
+        const QUIC_SETTINGS* Settings
     )
 {
     UNREFERENCED_PARAMETER(SettingsSize); // TODO - Use when reading settings
@@ -905,10 +844,5 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.VersionNegotiationExtEnabled) {
         QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,       "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
-    }
-    if (SettingsSize == sizeof(QUIC_SETTINGS_INTERNAL)) {
-        if (Settings->IsSet.GeneratedCompatibleVersions) {
-            QuicTraceLogVerbose(SettingDumpGeneratedCompatVerListLen,   "[sett] Generated version compat list length = %u", Settings->GeneratedCompatibleVersionsListLength);
-        }
     }
 }

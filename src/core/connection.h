@@ -307,7 +307,7 @@ typedef struct QUIC_CONNECTION {
     // The settings for this connection. Some values may be inherited from the
     // global settings, the configuration setting or explicitly set by the app.
     //
-    QUIC_SETTINGS_INTERNAL Settings;
+    QUIC_SETTINGS Settings;
 
     //
     // Number of references to the handle.

@@ -462,7 +462,7 @@ QuicConfigurationParamSet(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS_INTERNAL*)Buffer);
+        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS*)Buffer);
 
         return QUIC_STATUS_SUCCESS;
     }

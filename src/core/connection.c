@@ -6353,7 +6353,7 @@ QuicConnApplyNewSettings(
     }
 
     if (OverWrite) {
-        QuicSettingsDumpNew(NewSettingsSize, (QUIC_SETTINGS_INTERNAL*)NewSettings);
+        QuicSettingsDumpNew(NewSettingsSize, (QUIC_SETTINGS*)NewSettings);
     } else {
         QuicSettingsDump((QUIC_SETTINGS*)&Connection->Settings); // TODO - Really necessary?
     }
