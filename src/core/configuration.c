@@ -442,7 +442,7 @@ QuicConfigurationParamSet(
         const void* Buffer
     )
 {
-    if (Param == QUIC_PARAM_GLOBAL_SETTINGS) {
+    if (Param == QUIC_PARAM_CONFIGURATION_SETTINGS) {
 
         if (BufferLength != sizeof(QUIC_SETTINGS)) {
             return QUIC_STATUS_INVALID_PARAMETER; // TODO - Support partial

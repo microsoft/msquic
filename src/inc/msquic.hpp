@@ -480,6 +480,14 @@ struct StreamScope {
     operator HQUIC() const noexcept { return Handle; }
 };
 
+struct ConfigurationScope {
+    HQUIC Handle;
+    ConfigurationScope() noexcept : Handle(nullptr) { }
+    ConfigurationScope(HQUIC handle) noexcept : Handle(handle) { }
+    ~ConfigurationScope() noexcept { if (Handle) { MsQuic->ConfigurationClose(Handle); } }
+    operator HQUIC() const noexcept { return Handle; }
+};
+
 struct QuicBufferScope {
     QUIC_BUFFER* Buffer;
     QuicBufferScope() noexcept : Buffer(nullptr) { }

@@ -212,6 +212,15 @@ TEST(ParameterValidation, ValidateStreamEvents) {
     }
 }
 
+TEST(ParameterValidation, ValidateDesiredVersionSettings) {
+    TestLogger Logger("QuicTestDesiredVersionSettings");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_DESIRED_VERSIONS_SETTINGS));
+    } else {
+        QuicTestDesiredVersionSettings();
+    }
+}
+
 TEST(Basic, CreateListener) {
     TestLogger Logger("QuicTestCreateListener");
     if (TestingKernelMode) {

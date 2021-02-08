@@ -420,7 +420,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
     sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
     sizeof(INT32),
-    sizeof(INT32)
+    sizeof(INT32),
+    0
 };
 
 static_assert(
@@ -884,6 +885,10 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_FAILED_VERSION_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestFailedVersionNegotiation(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_DESIRED_VERSIONS_SETTINGS:
+        QuicTestCtlRun(QuicTestDesiredVersionSettings());
         break;
 
     default:

@@ -2342,7 +2342,7 @@ QuicConnSetConfiguration(
         FALSE,
         FALSE,
         sizeof(Configuration->Settings),
-        (QUIC_SETTINGS*)&Configuration->Settings);
+        &Configuration->Settings);
 
     if (!QuicConnIsServer(Connection)) {
 
@@ -6018,6 +6018,7 @@ QuicConnParamGet(
         *BufferLength = sizeof(QUIC_SETTINGS);
         CxPlatCopyMemory(Buffer, &Connection->Settings, *BufferLength);
         if (Connection->Settings.IsSet.DesiredVersionsList) {
+            *BufferLength += (uint32_t)(Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t));
             CxPlatCopyMemory(
                 ((QUIC_SETTINGS*)Buffer) + 1,
                 Connection->Settings.DesiredVersionsList,
