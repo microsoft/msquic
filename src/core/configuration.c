@@ -399,7 +399,7 @@ QuicConfigurationSettingsChanged(
         "[cnfg][%p] Settings %p Updated",
         Configuration,
         &Configuration->Settings);
-    QuicSettingsDump((QUIC_SETTINGS*)&Configuration->Settings);
+    QuicSettingsDump(&Configuration->Settings);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

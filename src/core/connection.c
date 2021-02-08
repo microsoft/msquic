@@ -6359,9 +6359,9 @@ QuicConnApplyNewSettings(
     }
 
     if (OverWrite) {
-        QuicSettingsDumpNew(NewSettingsSize, (QUIC_SETTINGS*)NewSettings);
+        QuicSettingsDumpNew(NewSettingsSize, NewSettings);
     } else {
-        QuicSettingsDump((QUIC_SETTINGS*)&Connection->Settings); // TODO - Really necessary?
+        QuicSettingsDump(&Connection->Settings); // TODO - Really necessary?
     }
 
     return TRUE;

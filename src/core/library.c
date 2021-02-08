@@ -177,7 +177,7 @@ MsQuicLibraryReadSettings(
         LibrarySettingsUpdated,
         "[ lib] Settings %p Updated",
         &MsQuicLib.Settings);
-    QuicSettingsDump((QUIC_SETTINGS*)&MsQuicLib.Settings);
+    QuicSettingsDump(&MsQuicLib.Settings);
 
     MsQuicLibraryOnSettingsChanged(Context != NULL);
 }
