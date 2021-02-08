@@ -132,6 +132,7 @@ QuicTestConnect(
     if (RandomLossPercentage != 0) {
         Settings.SetIdleTimeoutMs(30000);
         Settings.SetDisconnectTimeoutMs(30000);
+        Settings.SetInitialRttMs(50);
     } else {
         Settings.SetIdleTimeoutMs(10000);
     }

@@ -567,6 +567,9 @@ bool TcpConnection::InitializeTls()
     Config.ServerName = "localhost";
     Config.LocalTPBuffer = LocalTP;
     Config.LocalTPLength = CxPlatTlsTPHeaderSize + LocalTPLength;
+    if (IsServer) {
+        TlsState.NegotiatedAlpn = FixedAlpnBuffer;
+    }
 
     if (QUIC_FAILED(
         CxPlatTlsInitialize(&Config, &TlsState, &Tls))) {
