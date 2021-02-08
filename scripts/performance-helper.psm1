@@ -159,7 +159,6 @@ function Get-Ipv4Addresses {
 function Get-LocalAddress {
     param ($RemoteAddress)
     $PossibleRemoteIPs = [System.Net.Dns]::GetHostAddresses($RemoteAddress) | Select-Object -Property IPAddressToString
-    $PossibleRemoteIPs
     $PossibleLocalIPs = Get-Ipv4Addresses
     $MatchedIPs = @()
     $PossibleLocalIPs | ForEach-Object {
