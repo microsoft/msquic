@@ -2520,7 +2520,13 @@ QuicConnProcessPeerVersionNegotiationTP(
                 break;
             }
         }
-        CXPLAT_FRE_ASSERTMSG(CurrentVersionIndex != SupportedVersionsLength, "Incompatible Version Negotation should happen in binding layer");
+        if (CurrentVersionIndex == SupportedVersionsLength) {
+            //
+            // Current version not supported, start incompatible version negotiation.
+            //
+            CXPLAT_DBG_ASSERTMSG(FALSE,"Incompatible Version Negotation should happen in binding layer");
+            return QUIC_STATUS_VER_NEG_ERROR;
+        }
 
         QUIC_CLIENT_VER_NEG_INFO ClientVNI;
         Status =

@@ -786,7 +786,7 @@ QuicBindingProcessStatelessOperation(
             sizeof(uint8_t) +
             RecvPacket->DestCidLen +
             sizeof(uint32_t) +                                      // One random version
-            (uint16_t)(SupportedVersionsLength * sizeof(uint32_t));
+            (uint16_t)(SupportedVersionsLength * sizeof(uint32_t)); // Our actual supported versions
 
         SendDatagram =
             CxPlatSendDataAllocBuffer(SendContext, PacketLength);

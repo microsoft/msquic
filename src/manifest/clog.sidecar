@@ -10246,6 +10246,54 @@
         }
       ],
       "macroName": "QuicTraceEvent"
+    },
+    "ServerVersionNegotiationInfoEncoded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server VNI Encoded: Negotiated Ver:%x Supported Ver Count:%u",
+      "UniqueId": "ServerVersionNegotiationInfoEncoded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "ClientVersionNegotiationInfoEncoded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client VNI Encoded: Current Ver:%x Prev Ver:%x Recv Ver Count:%u Compat Ver Count:%u",
+      "UniqueId": "ClientVersionNegotiationInfoEncoded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
     }
   },
   "Version": 1,
@@ -13285,6 +13333,14 @@
       {
         "UniquenessHash": "33619289-89cb-1e09-2aed-8586ccc3b46b",
         "TraceID": "ServerVersionNegotiationInfoDecoded"
+      },
+      {
+        "UniquenessHash": "5072570b-8e83-90f2-03ba-a94f1f31a6ef",
+        "TraceID": "ServerVersionNegotiationInfoEncoded"
+      },
+      {
+        "UniquenessHash": "60fdd608-9cdd-99aa-464d-8589a3b832ac",
+        "TraceID": "ClientVersionNegotiationInfoEncoded"
       }
     ]
   }

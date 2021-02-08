@@ -370,6 +370,19 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
             VNIBuf,
             DesiredVersionsList,
             DesiredVersionsListLength * sizeof(uint32_t));
+
+        QuicTraceLogConnInfo(
+            ServerVersionNegotiationInfoEncoded,
+            Connection,
+            "Server VNI Encoded: Negotiated Ver:%x Supported Ver Count:%u",
+            Connection->Stats.QuicVersion,
+            DesiredVersionsListLength);
+
+        QuicTraceEvent(
+            ConnServerSupportedVersionList,
+            "[conn][%p] Server VNI Supported Version List: %!VNL!",
+            Connection,
+            CLOG_BYTEARRAY(DesiredVersionsListLength * sizeof(uint32_t), VNIBuf));
     } else {
         //
         // Generate Client VNI
@@ -426,8 +439,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
                 Connection->Settings.DesiredVersionsListLength,
                 VNIBuf,
                 &RemainingBuffer);
-            VNIBuf += RemainingBuffer;
-            CXPLAT_DBG_ASSERT(VNILen == (uint32_t)(VNIBuf - VersionNegotiationInfo));
+            CXPLAT_DBG_ASSERT(VNILen == (uint32_t)(VNIBuf - VersionNegotiationInfo) + RemainingBuffer);
         } else {
             VNIBuf = QuicVarIntEncode(MsQuicLib.DefaultCompatibilityListLength, VNIBuf);
             CxPlatCopyMemory(
@@ -435,7 +447,35 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
                 MsQuicLib.DefaultCompatibilityList,
                 MsQuicLib.DefaultCompatibilityListLength * sizeof(uint32_t));
         }
-    }
+        QuicTraceLogConnInfo(
+            ClientVersionNegotiationInfoEncoded,
+            Connection,
+            "Client VNI Encoded: Current Ver:%x Prev Ver:%x Recv Ver Count:%u Compat Ver Count:%u",
+            Connection->Stats.QuicVersion,
+            Connection->PreviousQuicVersion,
+            Connection->ReceivedNegotiationVersionsLength,
+            CompatibilityListByteLength == 0 ?
+                MsQuicLib.DefaultCompatibilityListLength :
+                (uint32_t)(CompatibilityListByteLength / sizeof(uint32_t)));
+
+        QuicTraceEvent(
+            ConnClientCompatibleVersionList,
+            "[conn][%p] Client VNI Compatible Version List: %!VNL!",
+            Connection,
+            CLOG_BYTEARRAY(
+                CompatibilityListByteLength == 0 ?
+                    MsQuicLib.DefaultCompatibilityListLength * sizeof(uint32_t):
+                    CompatibilityListByteLength,
+                VNIBuf));
+
+        QuicTraceEvent(
+            ConnClientReceivedVersionList,
+            "[conn][%p] Client VNI Received Version List: %!VNL!",
+            Connection,
+            CLOG_BYTEARRAY(
+                Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t),
+                Connection->ReceivedNegotiationVersions));
+        }
     *VNInfoLength = VNILen;
     return VersionNegotiationInfo;
 }
