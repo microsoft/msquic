@@ -1421,7 +1421,6 @@ function Get-Tests {
     $Tests = [TestConfig](Get-Content -Path $Path | ConvertFrom-Json -AsHashtable)
     $MatrixTests = Get-TestMatrix -Tests $Tests -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
     if (Test-AllTestsValid -Tests $MatrixTests) {
-        Write-Host $MatrixTests
         return $MatrixTests
     } else {
         Write-Host "Error"
