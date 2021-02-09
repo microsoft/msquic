@@ -998,21 +998,6 @@ QuicTestVersionNegotiationRetry(
     }
 }
 
-struct ClearVersionListScope {
-    ~ClearVersionListScope() {
-        MsQuicSettings ClearVNSettings;
-        ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
-
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                NULL,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_SETTINGS,
-                sizeof(ClearVNSettings),
-                &ClearVNSettings));
-    }
-};
-
 void
 QuicTestCompatibleVersionNegotiation(
     _In_ int Family,
@@ -1027,7 +1012,7 @@ QuicTestCompatibleVersionNegotiation(
     const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
     const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_MS_H;
 
-    ClearVersionListScope ClearVersionsScope;
+    ClearGlobalVersionListScope ClearVersionsScope;
 
     MsQuicSettings ClientSettings;
     ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
@@ -1145,7 +1130,7 @@ QuicTestCompatibleVersionNegotiationRetry(
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
-    ClearVersionListScope ClearVersionsScope;
+    ClearGlobalVersionListScope ClearVersionsScope;
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1324,7 +1309,7 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
-    ClearVersionListScope ClearVersionsScope;
+    ClearGlobalVersionListScope ClearVersionsScope;
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1412,7 +1397,7 @@ QuicTestIncompatibleVersionNegotiation(
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
-    ClearVersionListScope ClearVersionsScope;
+    ClearGlobalVersionListScope ClearVersionsScope;
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1495,7 +1480,7 @@ QuicTestFailedVersionNegotiation(
             QUIC_PARAM_GLOBAL_SETTINGS,
             sizeof(ServerSettings),
             &ServerSettings));
-    ClearVersionListScope ClearVersionsScope;
+    ClearGlobalVersionListScope ClearVersionsScope;
 
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
