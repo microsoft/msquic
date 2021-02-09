@@ -18,6 +18,7 @@ Environment:
 #include <arpa/inet.h>
 #include <inttypes.h>
 #include <linux/in6.h>
+#include <linux/filter.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #ifdef QUIC_CLOG
@@ -749,6 +750,46 @@ Exit:
 #endif
 }
 
+QUIC_STATUS
+CxPlatSocketConfigureRss(
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ uint32_t SocketCount
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    int Result = 0;
+
+    struct sock_filter BpfCode[] = {
+        {BPF_LD | BPF_W | BPF_ABS, 0, 0, SKF_AD_OFF | SKF_AD_CPU},
+        {BPF_ALU | BPF_MOD, 0, 0, SocketCount},
+        {BPF_RET | BPF_A, 0, 0, 0}
+    };
+
+    struct sock_fprog BpfConfig = {
+        .len = ARRAYSIZE(BpfCode),
+        .filter = BpfCode
+    };
+
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            SOL_SOCKET,
+            SO_ATTACH_REUSEPORT_CBPF,
+            (const void*)&BpfConfig,
+            sizeof(BpfConfig));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "setsockopt(SO_ATTACH_REUSEPORT_CBPF) failed");
+    }
+
+    return Status;
+}
+
 //
 // Socket context interface. It abstracts a (generally per-processor) UDP socket
 // and the corresponding logic/functionality like send and receive processing.
@@ -1018,7 +1059,7 @@ CxPlatSocketContextInitialize(
         setsockopt(
             SocketContext->SocketFd,
             SOL_SOCKET,
-            SO_REUSEADDR,
+            SO_REUSEPORT,
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
@@ -1028,7 +1069,7 @@ CxPlatSocketContextInitialize(
             "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
-            "setsockopt(SO_REUSEADDR) failed");
+            "setsockopt(SO_REUSEPORT) failed");
         goto Exit;
     }
 
@@ -1559,6 +1600,7 @@ CxPlatSocketCreateUdp(
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
 
     uint32_t SocketCount = Datapath->ProcCount; // TODO - Only use 1 for client (RemoteAddress != NULL) bindings?
+    CXPLAT_FRE_ASSERT(SocketCount > 0);
     size_t BindingLength =
         sizeof(CXPLAT_SOCKET) +
         SocketCount * sizeof(CXPLAT_SOCKET_CONTEXT);
@@ -1614,6 +1656,11 @@ CxPlatSocketCreateUdp(
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
+    }
+
+    Status = CxPlatSocketConfigureRss(&Binding->SocketContexts[0], SocketCount);
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
     }
 
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
