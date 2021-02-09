@@ -212,6 +212,16 @@ QuicVersionNegotiationExtParseClientVerNegInfo(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    if (ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t) >= BufferLength - Offset) {
+        QuicTraceLogConnError(
+            ClientVersionNegotiationInfoDecodeFailed4,
+            Connection,
+            "Client version negotiation info too short to contain Recv Negotiation Version list (%hu bytes vs. %llu bytes)",
+            BufferLength,
+            ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t));
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     if (ClientVNI->RecvNegotiationVerCount > 0) {
         ClientVNI->RecvNegotiationVersions = (uint32_t*)(Buffer + Offset);
         Offset += (uint16_t)(ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t));
@@ -221,10 +231,20 @@ QuicVersionNegotiationExtParseClientVerNegInfo(
 
     if (!QuicVarIntDecode(BufferLength, Buffer, &Offset, &ClientVNI->CompatibleVersionCount)) {
         QuicTraceLogConnError(
-            ClientVersionNegotiationInfoDecodeFailed4,
+            ClientVersionNegotiationInfoDecodeFailed5,
             Connection,
             "Client version negotiation info too short to contain Compatible Version count (%hu bytes)",
             BufferLength);
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (ClientVNI->CompatibleVersionCount * sizeof(uint32_t) > BufferLength - Offset) {
+        QuicTraceLogConnError(
+            ClientVersionNegotiationInfoDecodeFailed6,
+            Connection,
+            "Client version negotiation info too short to contain Compatible Version list (%hu bytes vs. %llu bytes)",
+            BufferLength,
+            ClientVNI->CompatibleVersionCount * sizeof(uint32_t));
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -234,7 +254,7 @@ QuicVersionNegotiationExtParseClientVerNegInfo(
     } else {
         ClientVNI->CompatibleVersions = NULL;
         QuicTraceLogConnError(
-            ClientVersionNegotiationInfoDecodeFailed5,
+            ClientVersionNegotiationInfoDecodeFailed7,
             Connection,
             "Client version negotiation info has empty Compatible Version list");
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -295,13 +315,23 @@ QuicVersionNegotiationExtParseServerVerNegInfo(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    if (ServerVNI->SupportedVersionCount * sizeof(uint32_t) > BufferLength - Offset) {
+        QuicTraceLogConnError(
+            ServerVersionNegotiationInfoDecodeFailed3,
+            Connection,
+            "Server version negotiation info too short to contain Supported Versions list (%hu bytes vs. %llu bytes)",
+            BufferLength,
+            ServerVNI->SupportedVersionCount * sizeof(uint32_t));
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     if (ServerVNI->SupportedVersionCount > 0) {
         ServerVNI->SupportedVersions = (uint32_t*)(Buffer + Offset);
         Offset += (uint16_t)(ServerVNI->SupportedVersionCount * sizeof(uint32_t));
     } else {
         ServerVNI->SupportedVersions = NULL;
         QuicTraceLogConnError(
-            ServerVersionNegotiationInfoDecodeFailed3,
+            ServerVersionNegotiationInfoDecodeFailed4,
             Connection,
             "Server version negotiation info has empty Supported Versions list");
         return QUIC_STATUS_INVALID_PARAMETER;

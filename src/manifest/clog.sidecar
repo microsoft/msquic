@@ -10079,10 +10079,10 @@
       ],
       "macroName": "QuicTraceLogConnError"
     },
-    "ClientVersionNegotiationInfoDecodeFailed4": {
+    "ServerVersionNegotiationInfoDecodeFailed3": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Client version negotiation info too short to contain Compatible Version count (%hu bytes)",
-      "UniqueId": "ClientVersionNegotiationInfoDecodeFailed4",
+      "TraceString": "[conn][%p] Server version negotiation info too short to contain Supported Versions list (%hu bytes vs. %llu bytes)",
+      "UniqueId": "ServerVersionNegotiationInfoDecodeFailed3",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -10091,18 +10091,26 @@
         {
           "DefinationEncoding": "hu",
           "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogConnError"
     },
     "ClientVersionNegotiationInfoDecodeFailed5": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Client version negotiation info has empty Compatible Version list",
+      "TraceString": "[conn][%p] Client version negotiation info too short to contain Compatible Version count (%hu bytes)",
       "UniqueId": "ClientVersionNegotiationInfoDecodeFailed5",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnError"
@@ -10139,14 +10147,22 @@
       ],
       "macroName": "QuicTraceLogConnError"
     },
-    "ServerVersionNegotiationInfoDecodeFailed3": {
+    "ClientVersionNegotiationInfoDecodeFailed4": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Server version negotiation info has empty Supported Versions list",
-      "UniqueId": "ServerVersionNegotiationInfoDecodeFailed3",
+      "TraceString": "[conn][%p] Client version negotiation info too short to contain Recv Negotiation Version list (%hu bytes vs. %llu bytes)",
+      "UniqueId": "ClientVersionNegotiationInfoDecodeFailed4",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogConnError"
@@ -10294,6 +10310,50 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
+    },
+    "ClientVersionNegotiationInfoDecodeFailed6": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client version negotiation info too short to contain Compatible Version list (%hu bytes vs. %llu bytes)",
+      "UniqueId": "ClientVersionNegotiationInfoDecodeFailed6",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ClientVersionNegotiationInfoDecodeFailed7": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client version negotiation info has empty Compatible Version list",
+      "UniqueId": "ClientVersionNegotiationInfoDecodeFailed7",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ServerVersionNegotiationInfoDecodeFailed4": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server version negotiation info has empty Supported Versions list",
+      "UniqueId": "ServerVersionNegotiationInfoDecodeFailed4",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
     }
   },
   "Version": 1,
@@ -13291,24 +13351,12 @@
         "TraceID": "ClientVersionNegotiationInfoDecodeFailed3"
       },
       {
-        "UniquenessHash": "6ae20bf4-0c66-dbdc-106a-e7d69dfae2d0",
-        "TraceID": "ClientVersionNegotiationInfoDecodeFailed4"
-      },
-      {
-        "UniquenessHash": "cca1aab1-7c9f-b5d4-1e46-58a8dbf496bb",
-        "TraceID": "ClientVersionNegotiationInfoDecodeFailed5"
-      },
-      {
         "UniquenessHash": "111df903-664f-353e-7c3c-635cbb16be72",
         "TraceID": "ServerVersionNegotiationInfoDecodeFailed1"
       },
       {
         "UniquenessHash": "aa690805-dd62-c61b-741c-3b085f14487f",
         "TraceID": "ServerVersionNegotiationInfoDecodeFailed2"
-      },
-      {
-        "UniquenessHash": "7cc635f7-3cd0-c6af-a940-6afb99bc699a",
-        "TraceID": "ServerVersionNegotiationInfoDecodeFailed3"
       },
       {
         "UniquenessHash": "91a1c9f9-47a9-bdb5-ec43-3485beafa2c4",
@@ -13341,6 +13389,30 @@
       {
         "UniquenessHash": "60fdd608-9cdd-99aa-464d-8589a3b832ac",
         "TraceID": "ClientVersionNegotiationInfoEncoded"
+      },
+      {
+        "UniquenessHash": "2afbbe8c-c0d2-afd6-18a7-7f3be7494d4b",
+        "TraceID": "ClientVersionNegotiationInfoDecodeFailed4"
+      },
+      {
+        "UniquenessHash": "6396f097-1d87-76f0-b132-15f561d4bc49",
+        "TraceID": "ClientVersionNegotiationInfoDecodeFailed5"
+      },
+      {
+        "UniquenessHash": "e6186ee9-3cbc-1c7c-ad82-452b13d707f1",
+        "TraceID": "ClientVersionNegotiationInfoDecodeFailed6"
+      },
+      {
+        "UniquenessHash": "10152eb9-5baf-4e24-5222-90f2a8582925",
+        "TraceID": "ClientVersionNegotiationInfoDecodeFailed7"
+      },
+      {
+        "UniquenessHash": "39d56aab-faa8-351a-21ae-ab8f97a59969",
+        "TraceID": "ServerVersionNegotiationInfoDecodeFailed3"
+      },
+      {
+        "UniquenessHash": "5d111c04-0688-d62d-3bc7-c76a8db3c94e",
+        "TraceID": "ServerVersionNegotiationInfoDecodeFailed4"
       }
     ]
   }
