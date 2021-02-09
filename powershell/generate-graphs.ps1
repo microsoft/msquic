@@ -280,10 +280,12 @@ function Get-ThroughputTestsJs {
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Windows_x64_schannel"] -RawReplaceName "RAW_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_UP" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_UP" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Winkernel_x64_schannel"] -RawReplaceName "RAW_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_UP" -AvgReplaceName "AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_UP" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Windows_x64_openssl"] -RawReplaceName "RAW_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_UP" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_UP" -CommitIndexMap $CommitIndexMap
+    $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["linux_x64_openssl"] -RawReplaceName "RAW_DATA_LINUX_X64_OPENSSL_THROUGHPUT_UP" -AvgReplaceName "AVERAGE_DATA_LINUX_X64_OPENSSL_THROUGHPUT_UP" -CommitIndexMap $CommitIndexMap
 
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Windows_x64_schannel"] -RawReplaceName "RAW_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_DOWN" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_SCHANNEL_THROUGHPUT_DOWN" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Winkernel_x64_schannel"] -RawReplaceName "RAW_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_DOWN" -AvgReplaceName "AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_THROUGHPUT_DOWN" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Windows_x64_openssl"] -RawReplaceName "RAW_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_DOWN" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_OPENSSL_THROUGHPUT_DOWN" -CommitIndexMap $CommitIndexMap
+    $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["linux_x64_openssl"] -RawReplaceName "RAW_DATA_LINUX_X64_OPENSSL_THROUGHPUT_DOWN" -AvgReplaceName "AVERAGE_DATA_LINUX_X64_OPENSSL_THROUGHPUT_DOWN" -CommitIndexMap $CommitIndexMap
 
     return $DataFile
 }
@@ -401,6 +403,7 @@ function Get-RpsTestsJs {
     $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["Windows_x64_schannel"] -RawReplaceName "RAW_DATA_WINDOWS_X64_SCHANNEL_RPS" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_SCHANNEL_RPS" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["Winkernel_x64_schannel"] -RawReplaceName "RAW_DATA_WINKERNEL_X64_SCHANNEL_RPS" -AvgReplaceName "AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_RPS" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["Windows_x64_openssl"] -RawReplaceName "RAW_DATA_WINDOWS_X64_OPENSSL_RPS" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_OPENSSL_RPS" -CommitIndexMap $CommitIndexMap
+    $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["linux_x64_openssl"] -RawReplaceName "RAW_DATA_LINUX_X64_OPENSSL_RPS" -AvgReplaceName "AVERAGE_DATA_LINUX_X64_OPENSSL_RPS" -CommitIndexMap $CommitIndexMap
 
     return $DataFile
 }
@@ -514,6 +517,7 @@ function Get-HpsTestsJs {
     $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["Windows_x64_schannel"] -RawReplaceName "RAW_DATA_WINDOWS_X64_SCHANNEL_HPS" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_SCHANNEL_HPS" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["Winkernel_x64_schannel"] -RawReplaceName "RAW_DATA_WINKERNEL_X64_SCHANNEL_HPS" -AvgReplaceName "AVERAGE_DATA_WINKERNEL_X64_SCHANNEL_HPS" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["Windows_x64_openssl"] -RawReplaceName "RAW_DATA_WINDOWS_X64_OPENSSL_HPS" -AvgReplaceName "AVERAGE_DATA_WINDOWS_X64_OPENSSL_HPS" -CommitIndexMap $CommitIndexMap
+    $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["linux_x64_openssl"] -RawReplaceName "RAW_DATA_LINUX_X64_OPENSSL_HPS" -AvgReplaceName "AVERAGE_DATA_LINUX_X64_OPENSSL_HPS" -CommitIndexMap $CommitIndexMap
 
     return $DataFile
 }
@@ -620,14 +624,17 @@ $DataFileContents = Get-HpsTestsJs -DataFile $DataFileContents -CpuCommitData $C
 # Grab Latency Data
 $LatestCommit = Get-LatestCommit -BranchFolder $BranchFolder
 $LatencyFolder = Join-Path $BranchFolder $LatestCommit.CommitHash "RpsLatency"
+$LinuxOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_linux_x64_openssl_ConnectionCount_40.txt"
 $WinOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_openssl_ConnectionCount_40.txt"
 $WinSchannelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_schannel_ConnectionCount_40.txt"
 $WinKernelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Winkernel_x64_schannel_ConnectionCount_40.txt"
 
+$LinuxOpenSslData = Get-LatencyDataJs -File $LinuxOpenSslLatencyFile
 $WinOpenSslData = Get-LatencyDataJs -File $WinOpenSslLatencyFile
 $WinSchannelData = Get-LatencyDataJs -File $WinSchannelLatencyFile
 $WinKernelData = Get-LatencyDataJs -File $WinKernelLatencyFile
 
+$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_LINUX_OPENSSL", $LinuxOpenSslData)
 $DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_OPENSSL", $WinOpenSslData)
 $DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_SCHANNEL", $WinSchannelData)
 $DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINKERNEL", $WinKernelData)

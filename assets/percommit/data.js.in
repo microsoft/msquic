@@ -37,6 +37,7 @@ var dataAverageWindowsx64SchannelHps = AVERAGE_DATA_WINDOWS_X64_SCHANNEL_HPS
 var dataRawWindowsx64OpensslHps = RAW_DATA_WINDOWS_X64_OPENSSL_HPS
 var dataAverageWindowsx64OpensslHps = AVERAGE_DATA_WINDOWS_X64_OPENSSL_HPS
 
+var dataRpsLatencyLinuxOpenSsl = RPS_LATENCY_LINUX_OPENSSL
 var dataRpsLatencyWindowsOpenSsl = RPS_LATENCY_WINDOWS_OPENSSL
 var dataRpsLatencyWindowsSchannel = RPS_LATENCY_WINDOWS_SCHANNEL
 var dataRpsLatencyWinKernel = RPS_LATENCY_WINKERNEL

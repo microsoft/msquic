@@ -11,7 +11,8 @@ var testTypes = [
 var platformTypes = [
     { name:"winKernelSchannel", friendly:"Windows Kernel", color:"#11a718" },
     { name:"winUserSchannel", friendly:"Windows User Schannel", color:"#0062ff" },
-    { name:"winUserOpenSsl", friendly:"Windows User OpenSSL", color:"#ff3c00" }
+    { name:"winUserOpenSsl", friendly:"Windows User OpenSSL", color:"#ff3c00" },
+    { name:"linuxOpenSsl", friendly:"Linux OpenSSL", color:"#17a2b8" }
 ]
 
 // The set of data and available properties
@@ -31,6 +32,11 @@ var dataView = [
     { name:"winUserOpenSslRps", unit:"KHz", div:1000, raw:dataRawWindowsx64OpensslRps, avg:dataAverageWindowsx64OpensslRps},
     { name:"winUserOpenSslRpsLatency", unit:"μs", div:1, raw:dataRpsLatencyWindowsOpenSsl, avg:null},
     { name:"winUserOpenSslHps", unit:"KHz", div:1000, raw:dataRawWindowsx64OpensslHps, avg:dataAverageWindowsx64OpensslHps},
+    { name:"linuxOpenSslUp", unit:"Gbps", div:1000000, raw:dataRawLinuxx64OpensslThroughput, avg:dataAverageLinuxx64OpensslThroughput},
+    { name:"linuxOpenSslDown", unit:"Gbps", div:1000000, raw:dataRawLinuxx64OpensslThroughputDown, avg:dataAverageLinuxx64OpensslThroughputDown},
+    { name:"linuxOpenSslRps", unit:"KHz", div:1000, raw:dataRawLinuxx64OpensslRps, avg:dataAverageLinuxx64OpensslRps},
+    { name:"linuxOpenSslRpsLatency", unit:"μs", div:1, raw:dataRpsLatencyLinuxOpenSsl, avg:null},
+    { name:"linuxOpenSslHps", unit:"KHz", div:1000, raw:dataRawLinuxx64OpensslHps, avg:dataAverageLinuxx64OpensslHps},
 ]
 
 // Fixed charting values

@@ -123,7 +123,7 @@
                     <div class="row">
 
                         <!-- Windows Kernel Schannel Card -->
-                        <div class="col-xl-4 col-md-6 mb-4">
+                        <div class="col-xl-3 col-md-6 mb-3">
                             <div class="card border-left-success shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
@@ -169,7 +169,7 @@
                         </div>
 
                         <!-- Windows User Schannel Card -->
-                        <div class="col-xl-4 col-md-6 mb-4">
+                        <div class="col-xl-3 col-md-6 mb-3">
                             <div class="card border-left-primary shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
@@ -215,7 +215,7 @@
                         </div>
 
                         <!-- Windows User OpenSSL Card -->
-                        <div class="col-xl-4 col-md-6 mb-4">
+                        <div class="col-xl-3 col-md-6 mb-3">
                             <div class="card border-left-danger shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
@@ -259,13 +259,59 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Linux OpenSSL Card -->
+                        <div class="col-xl-3 col-md-6 mb-3">
+                            <div class="card border-left-info shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                Linux OpenSSL</div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Upload</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslUp">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">Download</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslDown">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">RPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslRps">?</div>
+                                                </div>
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-1">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800">HPS</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="h6 mb-0 mr-0 font-weight-bold text-gray-800" id="linuxOpenSslHps">?</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Content Row -->
                     <div class="row">
 
                         <!-- Single Connection Upload Chart -->
-                        <div class="col-xl-12 col-lg-7" id="upload">
+                        <div class="col-12" id="upload">
                             <div class="card shadow mb-4">
                                 <!-- Card Header -->
                                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
@@ -284,6 +330,7 @@
                                             <label class="dropdown-item text-success" id="winKernelSchannelUpToggle">Windows Kernel Schannel</label>
                                             <label class="dropdown-item text-primary" id="winUserSchannelUpToggle">Windows User Schannel</label>
                                             <label class="dropdown-item text-danger" id="winUserOpenSslUpToggle">Windows User OpenSSL</label>
+                                            <label class="dropdown-item text-info" id="linuxOpenSslUpToggle">Linux OpenSSL</label>
                                             <div class="dropdown-divider"></div>
                                             <label class="dropdown-item" id="scatterUpToggle">Raw Points</label>
                                             <label class="dropdown-item" id="lineUpToggle">Average Line</label>
@@ -300,7 +347,7 @@
                         </div>
 
                         <!-- Single Connection Download Chart -->
-                        <div class="col-xl-12 col-lg-7" id="download">
+                        <div class="col-12" id="download">
                             <div class="card shadow mb-4">
                                 <!-- Card Header -->
                                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
@@ -319,6 +366,7 @@
                                             <label class="dropdown-item text-success" id="winKernelSchannelDownToggle">Windows Kernel Schannel</label>
                                             <label class="dropdown-item text-primary" id="winUserSchannelDownToggle">Windows User Schannel</label>
                                             <label class="dropdown-item text-danger" id="winUserOpenSslDownToggle">Windows User OpenSSL</label>
+                                            <label class="dropdown-item text-info" id="linuxOpenSslDownToggle">Linux OpenSSL</label>
                                             <div class="dropdown-divider"></div>
                                             <label class="dropdown-item" id="scatterDownToggle">Raw Points</label>
                                             <label class="dropdown-item" id="lineDownToggle">Average Line</label>
@@ -335,7 +383,7 @@
                         </div>
 
                         <!-- Requests per Second Chart -->
-                        <div class="col-xl-12 col-lg-7" id="rps">
+                        <div class="col-12" id="rps">
                             <div class="card shadow mb-4">
                                 <!-- Card Header -->
                                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
@@ -354,6 +402,7 @@
                                             <label class="dropdown-item text-success" id="winKernelSchannelRpsToggle">Windows Kernel Schannel</label>
                                             <label class="dropdown-item text-primary" id="winUserSchannelRpsToggle">Windows User Schannel</label>
                                             <label class="dropdown-item text-danger" id="winUserOpenSslRpsToggle">Windows User OpenSSL</label>
+                                            <label class="dropdown-item text-info" id="linuxOpenSslRpsToggle">Linux OpenSSL</label>
                                             <div class="dropdown-divider"></div>
                                             <label class="dropdown-item" id="scatterRpsToggle">Raw Points</label>
                                             <label class="dropdown-item" id="lineRpsToggle">Average Line</label>
@@ -389,6 +438,7 @@
                                             <label class="dropdown-item text-success" id="winKernelSchannelRpsLatencyToggle">Windows Kernel Schannel</label>
                                             <label class="dropdown-item text-primary" id="winUserSchannelRpsLatencyToggle">Windows User Schannel</label>
                                             <label class="dropdown-item text-danger" id="winUserOpenSslRpsLatencyToggle">Windows User OpenSSL</label>
+                                            <label class="dropdown-item text-info" id="linuxOpenSslRpsLatencyToggle">Linux OpenSSL</label>
                                         </div>
                                     </div>
                                 </div>
@@ -421,6 +471,7 @@
                                             <label class="dropdown-item text-success" id="winKernelSchannelHpsToggle">Windows Kernel Schannel</label>
                                             <label class="dropdown-item text-primary" id="winUserSchannelHpsToggle">Windows User Schannel</label>
                                             <label class="dropdown-item text-danger" id="winUserOpenSslHpsToggle">Windows User OpenSSL</label>
+                                            <label class="dropdown-item text-info" id="linuxOpenSslHpsToggle">Linux OpenSSL</label>
                                             <div class="dropdown-divider"></div>
                                             <label class="dropdown-item" id="scatterHpsToggle">Raw Points</label>
                                             <label class="dropdown-item" id="lineHpsToggle">Average Line</label>
