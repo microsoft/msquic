@@ -2615,7 +2615,7 @@
               value="5175"
               />
           <event
-              keywords="ut:Connection"
+              keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.ConnClientCompatibleVersionList)"
               opcode="Connection"
@@ -2624,7 +2624,7 @@
               value="5176"
               />
           <event
-              keywords="ut:Connection"
+              keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.ConnClientReceivedVersionList)"
               opcode="Connection"
@@ -2633,7 +2633,7 @@
               value="5177"
               />
           <event
-              keywords="ut:Connection"
+              keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.ConnServerSupportedVersionList)"
               opcode="Connection"

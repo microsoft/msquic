@@ -852,7 +852,7 @@ QuicTestVersionNegotiation(
     _In_ int Family
     )
 {
-    uint32_t ClientVersions[] = { 168430090ul, QUIC_VERSION_1_H }; // Random reserved version to force VN.
+    const uint32_t ClientVersions[] = { 168430090ul, QUIC_VERSION_1_H }; // Random reserved version to force VN.
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -928,7 +928,7 @@ QuicTestVersionNegotiationRetry(
     _In_ int Family
     )
 {
-    uint32_t ClientVersions[] = { 168430090ul, QUIC_VERSION_1_H }; // Random reserved version to force VN.
+    const uint32_t ClientVersions[] = { 168430090ul, QUIC_VERSION_1_H }; // Random reserved version to force VN.
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint16_t RetryMemoryLimit = 0;
 
@@ -1005,8 +1005,8 @@ QuicTestCompatibleVersionNegotiation(
     _In_ bool DisableVNEServer
     )
 {
-    uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
-    uint32_t ServerVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H };
+    const uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
+    const uint32_t ServerVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
     const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
@@ -1097,8 +1097,8 @@ QuicTestCompatibleVersionNegotiationRetry(
     _In_ int Family
     )
 {
-    uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
-    uint32_t ServerVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H };
+    const uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
+    const uint32_t ServerVersions[] = { QUIC_VERSION_1_H, QUIC_VERSION_1_MS_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
     const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
@@ -1196,7 +1196,7 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
     _In_ bool DisableVNEServer
     )
 {
-    uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
+    const uint32_t ClientVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_H;
     const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_MS_H;
@@ -1288,7 +1288,7 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
     _In_ bool DisableVNEServer
     )
 {
-    uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
+    const uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H, QUIC_VERSION_1_H };
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
     const uint32_t ExpectedSuccessVersion = QUIC_VERSION_1_MS_H;
     const uint32_t ExpectedFailureVersion = QUIC_VERSION_1_H;
@@ -1376,8 +1376,8 @@ QuicTestIncompatibleVersionNegotiation(
     _In_ int Family
     )
 {
-    uint32_t ClientVersions[] = { QUIC_VERSION_DRAFT_29_H, QUIC_VERSION_1_MS_H };
-    uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H };
+    const uint32_t ClientVersions[] = { QUIC_VERSION_DRAFT_29_H, QUIC_VERSION_1_MS_H };
+    const uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H };
     const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
     const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
     const uint32_t ExpectedResultVersion = QUIC_VERSION_1_MS_H;
@@ -1455,23 +1455,26 @@ QuicTestIncompatibleVersionNegotiation(
 }
 
 void
-QuicTestFailedVersionNegotiation(
+RunFailedVersionNegotiation(
+    _In_reads_bytes_(ClientVersionsLength * sizeof(uint32_t))
+        const uint32_t* ClientVersions,
+    _In_reads_bytes_(ServerVersionsLength * sizeof(uint32_t))
+         const uint32_t* ServerVersions,
+    _In_ const uint32_t ClientVersionsLength,
+    _In_ const uint32_t ServerVersionsLength,
+    _In_ QUIC_STATUS ExpectedConnectionError,
     _In_ int Family
     )
 {
-    uint32_t ClientVersions[] = { QUIC_VERSION_DRAFT_29_H };
-    uint32_t ServerVersions[] = { QUIC_VERSION_1_MS_H };
-    const uint32_t ClientVersionsLength = ARRAYSIZE(ClientVersions);
-    const uint32_t ServerVersionsLength = ARRAYSIZE(ServerVersions);
-    QUIC_STATUS ExpectedConnectionError = QUIC_STATUS_VER_NEG_ERROR;
-
     MsQuicSettings ClientSettings;
     ClientSettings.SetDesiredVersionsList(ClientVersions, ClientVersionsLength);
-    ClientSettings.SetIdleTimeoutMs(3000);
+    ClientSettings.SetIdleTimeoutMs(2000);
+    ClientSettings.SetDisconnectTimeoutMs(1000);
 
     MsQuicSettings ServerSettings;
     ServerSettings.SetDesiredVersionsList(ServerVersions, ServerVersionsLength);
-    ServerSettings.SetIdleTimeoutMs(3000);
+    ServerSettings.SetIdleTimeoutMs(2000);
+    ServerSettings.SetDisconnectTimeoutMs(1000);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -1510,7 +1513,7 @@ QuicTestFailedVersionNegotiation(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
-                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_VER_NEG_ERROR);
+                Client.SetExpectedTransportCloseStatus(ExpectedConnectionError);
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -1532,6 +1535,34 @@ QuicTestFailedVersionNegotiation(
             }
         }
     }
+}
+
+void
+QuicTestFailedVersionNegotiation(
+    _In_ int Family
+    )
+{
+    const uint32_t NoCommonClientVersions[] = { QUIC_VERSION_DRAFT_29_H };
+    const uint32_t NoCommonServerVersions[] = { QUIC_VERSION_1_MS_H };
+
+    RunFailedVersionNegotiation(
+        NoCommonClientVersions,
+        NoCommonServerVersions,
+        ARRAYSIZE(NoCommonClientVersions),
+        ARRAYSIZE(NoCommonServerVersions),
+        QUIC_STATUS_VER_NEG_ERROR,
+        Family);
+
+    const uint32_t OriginalInVNClientVersions[] = { 0x0a0a0a0a, QUIC_VERSION_1_H }; // Random reserved version to force VN.
+    const uint32_t OriginalInVNServerVersions[] = { 0x00000001, 0xabcd0000, 0xff00001d, 0x0a0a0a0a };
+
+    RunFailedVersionNegotiation(
+        OriginalInVNClientVersions,
+        OriginalInVNServerVersions,
+        ARRAYSIZE(OriginalInVNClientVersions),
+        ARRAYSIZE(OriginalInVNServerVersions),
+        QUIC_STATUS_CONNECTION_TIMEOUT,
+        Family);
 }
 
 void

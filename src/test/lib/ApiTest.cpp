@@ -1414,8 +1414,8 @@ QuicTestGetPerfCounters()
 void
 QuicTestDesiredVersionSettings()
 {
-    uint32_t DesiredVersions[] = {0x00000001, 0xabcd0000, 0xff00001d, 0x0a0a0a0a};
-    uint32_t InvalidDesiredVersions[] = {0x00000001, 0x00000002};
+    const uint32_t DesiredVersions[] = {0x00000001, 0xabcd0000, 0xff00001d, 0x0a0a0a0a};
+    const uint32_t InvalidDesiredVersions[] = {0x00000001, 0x00000002};
     uint8_t Buffer[sizeof(QUIC_SETTINGS) + sizeof(DesiredVersions)];
     uint32_t BufferLength = sizeof(QUIC_SETTINGS);
 
@@ -1498,8 +1498,7 @@ QuicTestDesiredVersionSettings()
     // Test setting/getting desired versions on configuration
     //
     {
-        const char RawGoodAlpn[]    = "Alpn";
-        const QUIC_BUFFER GoodAlpn = { sizeof(RawGoodAlpn) - 1, (uint8_t*)RawGoodAlpn };
+        MsQuicAlpn Alpn("MsQuicTest");
         ConfigurationScope Configuration;
 
         //
@@ -1512,8 +1511,8 @@ QuicTestDesiredVersionSettings()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConfigurationOpen(
                 Registration,
-                &GoodAlpn,
-                1,
+                Alpn,
+                Alpn.Length(),
                 &InputSettings,
                 sizeof(InputSettings),
                 nullptr,
@@ -1527,8 +1526,8 @@ QuicTestDesiredVersionSettings()
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConfigurationOpen(
                 Registration,
-                &GoodAlpn,
-                1,
+                Alpn,
+                Alpn.Length(),
                 &InputSettings,
                 sizeof(InputSettings),
                 nullptr,
