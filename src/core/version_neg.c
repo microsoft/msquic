@@ -212,7 +212,7 @@ QuicVersionNegotiationExtParseClientVerNegInfo(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t) >= BufferLength - Offset) {
+    if (ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t) >= (uint64_t)BufferLength - Offset) {
         QuicTraceLogConnError(
             ClientVersionNegotiationInfoDecodeFailed4,
             Connection,
@@ -238,7 +238,7 @@ QuicVersionNegotiationExtParseClientVerNegInfo(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (ClientVNI->CompatibleVersionCount * sizeof(uint32_t) > BufferLength - Offset) {
+    if (ClientVNI->CompatibleVersionCount * sizeof(uint32_t) > (uint64_t)BufferLength - Offset) {
         QuicTraceLogConnError(
             ClientVersionNegotiationInfoDecodeFailed6,
             Connection,
@@ -315,7 +315,7 @@ QuicVersionNegotiationExtParseServerVerNegInfo(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (ServerVNI->SupportedVersionCount * sizeof(uint32_t) > BufferLength - Offset) {
+    if (ServerVNI->SupportedVersionCount * sizeof(uint32_t) > (uint64_t)BufferLength - Offset) {
         QuicTraceLogConnError(
             ServerVersionNegotiationInfoDecodeFailed3,
             Connection,
