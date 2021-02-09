@@ -17,8 +17,8 @@ Environment:
 #include "quic_platform_dispatch.h"
 #include <arpa/inet.h>
 #include <inttypes.h>
-#include <linux/in6.h>
 #include <linux/filter.h>
+#include <linux/in6.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #ifdef QUIC_CLOG
@@ -426,8 +426,8 @@ CxPlatProcessorContextInitialize(
     //
 
     CXPLAT_THREAD_CONFIG ThreadConfig = {
-        0,
-        0,
+        CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
+        (uint16_t)Index,
         NULL,
         CxPlatDataPathWorkerThread,
         ProcContext
