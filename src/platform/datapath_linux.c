@@ -2079,8 +2079,8 @@ CxPlatSocketSendInternal(
 
     CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
 
-    ProcNumber = Socket->HasFixedRemoteAddress ? 0 : CxPlatProcCurrentNumber();
-    SocketContext = &Socket->SocketContexts[ProcNumber];
+    ProcNumber = CxPlatProcCurrentNumber();
+    SocketContext = &Socket->SocketContexts[Socket->HasFixedRemoteAddress ? 0 : ProcNumber];
     ProcContext = &Socket->Datapath->ProcContexts[ProcNumber];
 
     uint32_t TotalSize = 0;
