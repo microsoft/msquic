@@ -224,8 +224,15 @@ function Wait-ForRemote {
     param ($Job)
     # Ping sidechannel socket on 9999 to tell the app to die
     $Socket = New-Object System.Net.Sockets.UDPClient
-    $Socket.Send(@(1), 1, $RemoteAddress, 9999) | Out-Null
-    Wait-Job -Job $Job -Timeout 120 | Out-Null
+    for ($i = 0; $i -lt 120; $i++) {
+        $Socket.Send(@(1), 1, $RemoteAddress, 9999) | Out-Null
+        $Socket.Send(@(1), 1, $RemoteAddress, 9999) | Out-Null
+        $Completed = Wait-Job -Job $Job -Timeout 1
+        if ($null -ne $Completed) {
+            break;
+        }
+    }
+
     Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
     return $RetVal -join "`n"
