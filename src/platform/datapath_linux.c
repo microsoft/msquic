@@ -1601,10 +1601,11 @@ CxPlatSocketCreateUdp(
             NewBinding);
 #else
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    BOOLEAN IsServerSocket = RemoteAddress == NULL;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
 
-    uint32_t SocketCount = Datapath->ProcCount;
+    uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1
     CXPLAT_FRE_ASSERT(SocketCount > 0);
     size_t BindingLength =
         sizeof(CXPLAT_SOCKET) +
