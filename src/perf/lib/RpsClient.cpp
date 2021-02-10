@@ -276,6 +276,8 @@ RpsClient::Start(
     WriteOutput("All Connected! Waiting for idle.\n");
     CxPlatSleep(RPS_IDLE_WAIT);
 
+    StartTime = CxPlatTimeMs32();
+
     WriteOutput("Start sending request...\n");
     for (uint32_t i = 0; i < RequestCount; ++i) {
         Connections[i % ConnectionCount].Worker->QueueSendRequest();
@@ -397,7 +399,8 @@ RpsConnectionContext::StreamCallback(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         Worker->Client->StreamContextAllocator.Free(StrmContext);
         MsQuic->StreamClose(StreamHandle);
-        if (CxPlatTimeMs32() < (Worker->Client->RunTime + 3000)) {
+        if ((CxPlatTimeMs32() - Worker->Client->StartTime) 
+            < (Worker->Client->RunTime + 3000)) {
             Worker->QueueSendRequest();
         }
         break;
