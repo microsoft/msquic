@@ -221,6 +221,11 @@ typedef struct CXPLAT_SOCKET {
     BOOLEAN Shutdown : 1;
 
     //
+    // Flag indicates the socket has a default remote destination.
+    //
+    BOOLEAN HasFixedRemoteAddress : 1;
+
+    //
     // The MTU for this binding.
     //
     uint16_t Mtu;
@@ -1596,11 +1601,10 @@ CxPlatSocketCreateUdp(
             NewBinding);
 #else
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    BOOLEAN IsServerSocket = RemoteAddress == NULL;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
 
-    uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
+    uint32_t SocketCount = Datapath->ProcCount;
     CXPLAT_FRE_ASSERT(SocketCount > 0);
     size_t BindingLength =
         sizeof(CXPLAT_SOCKET) +
@@ -1628,6 +1632,7 @@ CxPlatSocketCreateUdp(
     CxPlatZeroMemory(Binding, BindingLength);
     Binding->Datapath = Datapath;
     Binding->ClientContext = RecvCallbackContext;
+    Binding->HasFixedRemoteAddress = (RemoteAddress != NULL);
     Binding->Mtu = CXPLAT_MAX_MTU;
     CxPlatRundownInitialize(&Binding->Rundown);
     if (LocalAddress) {
@@ -2072,7 +2077,7 @@ CxPlatSocketSendInternal(
 
     CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
 
-    ProcNumber = CxPlatProcCurrentNumber();
+    ProcNumber = Socket->HasFixedRemoteAddress ? 0 : CxPlatProcCurrentNumber();
     SocketContext = &Socket->SocketContexts[ProcNumber];
     ProcContext = &Socket->Datapath->ProcContexts[ProcNumber];
 
