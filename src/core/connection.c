@@ -597,7 +597,7 @@ QuicConnTraceRundownOper(
     if (Connection->Stats.QuicVersion != 0) {
         QuicTraceEvent(
             ConnVersionSet,
-            "[conn][%p] Version = %u",
+            "[conn][%p] QUIC Version: %u",
             Connection,
             Connection->Stats.QuicVersion);
     }
@@ -1697,7 +1697,7 @@ QuicConnOnQuicVersionSet(
 {
     QuicTraceEvent(
         ConnVersionSet,
-        "[conn][%p] Version = %u",
+        "[conn][%p] QUIC Version: %u",
         Connection,
         Connection->Stats.QuicVersion);
 

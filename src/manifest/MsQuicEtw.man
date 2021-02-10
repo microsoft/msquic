@@ -2210,7 +2210,7 @@
               value="5130"
               />
           <event
-              keywords="ut:Connection ut:LowVolume ut:Scheduling"
+              keywords="ut:Connection ut:Scheduling"
               level="win:Informational"
               message="$(string.Etw.ConnAssignWorker)"
               opcode="Connection"
@@ -2238,7 +2238,7 @@
               />
           <event
               keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
+              level="win:Verbose"
               message="$(string.Etw.ConnUnregistered)"
               opcode="Connection"
               symbol="QuicConnUnregistered"
@@ -2265,7 +2265,7 @@
               />
           <event
               keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
+              level="win:Verbose"
               message="$(string.Etw.ConnInitializeComplete)"
               opcode="Connection"
               symbol="QuicConnInitializeComplete"
@@ -2274,7 +2274,7 @@
               />
           <event
               keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
+              level="win:Verbose    "
               message="$(string.Etw.ConnHandleClosed)"
               opcode="Connection"
               symbol="QuicConnHandleClosed"
@@ -2364,7 +2364,7 @@
               />
           <event
               keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
+              level="win:Verbose"
               message="$(string.Etw.ConnSourceCidAdd)"
               opcode="Connection"
               symbol="QuicConnSourceCidAdded"
@@ -2373,7 +2373,7 @@
               />
           <event
               keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
+              level="win:Verbose"
               message="$(string.Etw.ConnDestCidAdd)"
               opcode="Connection"
               symbol="QuicConnDestCidAdded"
@@ -2382,7 +2382,7 @@
               />
           <event
               keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
+              level="win:Verbose"
               message="$(string.Etw.ConnSourceCidRemove)"
               opcode="Connection"
               symbol="QuicConnSourceCidRemoved"
@@ -2391,7 +2391,7 @@
               />
           <event
               keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
+              level="win:Verbose"
               message="$(string.Etw.ConnDestCidRemove)"
               opcode="Connection"
               symbol="QuicConnDestCidRemoved"
@@ -2480,7 +2480,7 @@
               value="5160"
               />
           <event
-              keywords="ut:Connection ut:LowVolume"
+              keywords="ut:Connection"
               level="win:Informational"
               message="$(string.Etw.ConnShutdownComplete)"
               opcode="Connection"
@@ -2780,7 +2780,7 @@
               />
           <event
               keywords="ut:Binding ut:LowVolume"
-              level="win:Informational"
+              level="win:Verbose"
               message="$(string.Etw.BindingCleanup)"
               opcode="Binding"
               symbol="QuicBindingCleanup"
@@ -3058,7 +3058,7 @@
             />
         <string
             id="Etw.ConnVersionSet"
-            value="[conn][%1] Version = %2"
+            value="[conn][%1] QUIC Version: %2"
             />
         <string
             id="Etw.ConnOutFlowStats"
