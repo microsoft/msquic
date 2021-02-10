@@ -464,7 +464,7 @@ if ($Record -and $IsWindows) {
 }
 
 if (!$IsWindows) {
-    bash -c "ulimit -n"
+    bash -c "ulimit -a"
 }
 
 try {
