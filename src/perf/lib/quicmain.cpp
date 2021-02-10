@@ -119,7 +119,9 @@ QuicMainStart(
     uint32_t WatchdogTimeout = 0;
     TryGetValue(argc, argv, "watchdog", &WatchdogTimeout);
 
-    Watchdog = new(std::nothrow) QuicPerfWatchdog{WatchdogTimeout};
+    if (WatchdogTimeout != 0) {
+        Watchdog = new(std::nothrow) QuicPerfWatchdog{WatchdogTimeout};
+    }
 
 #ifdef __linux__
     struct rlimit rlim;
