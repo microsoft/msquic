@@ -209,9 +209,9 @@ QuicMainStart(
     TestToRun = nullptr;
     delete MsQuic;
     MsQuic = nullptr;
-    return Status;
     delete Watchdog;
     Watchdog = nullptr;
+    return Status;
 }
 
 QUIC_STATUS
