@@ -1605,7 +1605,7 @@ CxPlatSocketCreateUdp(
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
 
-    uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1
+    uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
     CXPLAT_FRE_ASSERT(SocketCount > 0);
     size_t BindingLength =
         sizeof(CXPLAT_SOCKET) +
