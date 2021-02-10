@@ -15,6 +15,10 @@ Abstract:
 #include "RpsClient.h"
 #include "HpsClient.h"
 
+#ifdef __linux__
+#include <sys/resource.h>
+#endif
+
 #ifdef QUIC_CLOG
 #include "quicmain.cpp.clog.h"
 #endif
@@ -33,6 +37,44 @@ CXPLAT_DATAPATH* Datapath;
 CXPLAT_SOCKET* Binding;
 bool ServerMode = false;
 uint32_t MaxRuntime = 0;
+
+#define ASSERT_ON_FAILURE(x) \
+    do { \
+        QUIC_STATUS _STATUS; \
+        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED((_STATUS = x))); \
+    } while (0)
+
+class QuicPerfWatchdog {
+    CXPLAT_THREAD WatchdogThread;
+    CXPLAT_EVENT ShutdownEvent;
+    uint32_t TimeoutMs;
+    static
+    CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
+        auto This = (QuicPerfWatchdog*)Context;
+        if (!CxPlatEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
+            WriteOutput("Watchdog timeout fired!\n");
+            CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
+        }
+        CXPLAT_THREAD_RETURN(0);
+    }
+public:
+    QuicPerfWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
+        CxPlatEventInitialize(&ShutdownEvent, TRUE, FALSE);
+        CXPLAT_THREAD_CONFIG Config = { 0 };
+        Config.Name = "perf_watchdog";
+        Config.Callback = WatchdogThreadCallback;
+        Config.Context = this;
+        ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &WatchdogThread));
+    }
+    ~QuicPerfWatchdog() {
+        CxPlatEventSet(ShutdownEvent);
+        CxPlatThreadWait(&WatchdogThread);
+        CxPlatThreadDelete(&WatchdogThread);
+        CxPlatEventUninitialize(ShutdownEvent);
+    }
+};
+
+QuicPerfWatchdog* Watchdog;
 
 static
 void
@@ -77,6 +119,17 @@ QuicMainStart(
     uint32_t WatchdogTimeout = 0;
     TryGetValue(argc, argv, "watchdog", &WatchdogTimeout);
 
+    Watchdog = new(std::nothrow) QuicPerfWatchdog{WatchdogTimeout};
+
+#ifdef __linux__
+    struct rlimit rlim;
+    memset(&rlim, 0, sizeof(rlim));
+    if (getrlimit(RLIMIT_NOFILE, &rlim) == 0) {
+        rlim.rlim_cur = rlim.rlim_max;
+        setrlimit(RLIMIT_NOFILE, &rlim);
+    }
+#endif
+
     QUIC_STATUS Status;
 
     if (ServerMode) {
@@ -110,6 +163,8 @@ QuicMainStart(
     if (QUIC_FAILED(Status = MsQuic->GetInitStatus())) {
         delete MsQuic;
         MsQuic = nullptr;
+        delete Watchdog;
+        Watchdog = nullptr;
         WriteOutput("MsQuic Failed To Initialize: %d\n", Status);
         return Status;
     }
@@ -127,6 +182,8 @@ QuicMainStart(
             PrintHelp();
             delete MsQuic;
             MsQuic = nullptr;
+            delete Watchdog;
+            Watchdog = nullptr;
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
@@ -153,6 +210,8 @@ QuicMainStart(
     delete MsQuic;
     MsQuic = nullptr;
     return Status;
+    delete Watchdog;
+    Watchdog = nullptr;
 }
 
 QUIC_STATUS
@@ -178,6 +237,9 @@ QuicMainFree(
         CxPlatDataPathUninitialize(Datapath);
         Datapath = nullptr;
     }
+
+    delete Watchdog;
+    Watchdog = nullptr;
 }
 
 QUIC_STATUS
