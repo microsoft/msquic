@@ -112,7 +112,7 @@ public:
         }
     }
 
-    ~RpsClient() {
+    ~RpsClient() override {
         Running = false;
     }
 
