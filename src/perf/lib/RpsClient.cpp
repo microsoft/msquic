@@ -397,7 +397,9 @@ RpsConnectionContext::StreamCallback(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         Worker->Client->StreamContextAllocator.Free(StrmContext);
         MsQuic->StreamClose(StreamHandle);
-        Worker->QueueSendRequest();
+        if (CxPlatTimeMs32() < (Worker->Client->RunTime + 3000)) {
+            Worker->QueueSendRequest();
+        }
         break;
     default:
         break;
