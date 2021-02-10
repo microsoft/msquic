@@ -48,7 +48,7 @@ class QuicPerfWatchdog {
     CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
         auto This = (QuicPerfWatchdog*)Context;
         if (!CxPlatEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
-            printf("Watchdog timeout fired!\n");
+            WriteOutput("Watchdog timeout fired!\n");
             CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
         }
         CXPLAT_THREAD_RETURN(0);

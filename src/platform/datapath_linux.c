@@ -2062,14 +2062,16 @@ CxPlatSocketSendInternal(
     struct in_pktinfo *PktInfo = NULL;
     struct in6_pktinfo *PktInfo6 = NULL;
     BOOLEAN SendPending = FALSE;
+    uint32_t ProcNumber;
 
     static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
     char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
 
     CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
 
-    SocketContext = &Socket->SocketContexts[CxPlatProcCurrentNumber()];
-    ProcContext = &Socket->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
+    ProcNumber = CxPlatProcCurrentNumber();
+    SocketContext = &Socket->SocketContexts[ProcNumber];
+    ProcContext = &Socket->Datapath->ProcContexts[ProcNumber];
 
     uint32_t TotalSize = 0;
     for (size_t i = 0; i < SendData->BufferCount; ++i) {
