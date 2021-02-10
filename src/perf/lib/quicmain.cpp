@@ -34,44 +34,6 @@ CXPLAT_SOCKET* Binding;
 bool ServerMode = false;
 uint32_t MaxRuntime = 0;
 
-#define ASSERT_ON_FAILURE(x) \
-    do { \
-        QUIC_STATUS _STATUS; \
-        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED((_STATUS = x))); \
-    } while (0)
-
-class QuicPerfWatchdog {
-    CXPLAT_THREAD WatchdogThread;
-    CXPLAT_EVENT ShutdownEvent;
-    uint32_t TimeoutMs;
-    static
-    CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
-        auto This = (QuicPerfWatchdog*)Context;
-        if (!CxPlatEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
-            WriteOutput("Watchdog timeout fired!\n");
-            CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
-        }
-        CXPLAT_THREAD_RETURN(0);
-    }
-public:
-    QuicPerfWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
-        CxPlatEventInitialize(&ShutdownEvent, TRUE, FALSE);
-        CXPLAT_THREAD_CONFIG Config = { 0 };
-        Config.Name = "perf_watchdog";
-        Config.Callback = WatchdogThreadCallback;
-        Config.Context = this;
-        ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &WatchdogThread));
-    }
-    ~QuicPerfWatchdog() {
-        CxPlatEventSet(ShutdownEvent);
-        CxPlatThreadWait(&WatchdogThread);
-        CxPlatThreadDelete(&WatchdogThread);
-        CxPlatEventUninitialize(ShutdownEvent);
-    }
-};
-
-QuicPerfWatchdog* Watchdog;
-
 static
 void
 PrintHelp(
@@ -174,7 +136,6 @@ QuicMainStart(
         if (QUIC_SUCCEEDED(Status)) {
             Status = TestToRun->Start(StopEvent);
             if (QUIC_SUCCEEDED(Status)) {
-                Watchdog = new(std::nothrow) QuicPerfWatchdog{WatchdogTimeout};
                 return QUIC_STATUS_SUCCESS;
             } else {
                 WriteOutput("Test Failed To Start: %d\n", Status);
@@ -217,9 +178,6 @@ QuicMainFree(
         CxPlatDataPathUninitialize(Datapath);
         Datapath = nullptr;
     }
-
-    delete Watchdog;
-    Watchdog = nullptr;
 }
 
 QUIC_STATUS

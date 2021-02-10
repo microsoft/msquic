@@ -112,6 +112,10 @@ public:
         }
     }
 
+    ~RpsClient() {
+        Running = false;
+    }
+
     QUIC_STATUS
     Init(
         _In_ int argc,
