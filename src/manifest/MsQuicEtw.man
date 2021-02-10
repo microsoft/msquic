@@ -2274,7 +2274,7 @@
               />
           <event
               keywords="ut:Connection ut:LowVolume"
-              level="win:Verbose    "
+              level="win:Verbose"
               message="$(string.Etw.ConnHandleClosed)"
               opcode="Connection"
               symbol="QuicConnHandleClosed"
