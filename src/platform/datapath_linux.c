@@ -1596,10 +1596,11 @@ CxPlatSocketCreateUdp(
             NewBinding);
 #else
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    BOOLEAN IsServerSocket = RemoteAddress == NULL;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
 
-    uint32_t SocketCount = Datapath->ProcCount; // TODO - Only use 1 for client (RemoteAddress != NULL) bindings?
+    uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
     CXPLAT_FRE_ASSERT(SocketCount > 0);
     size_t BindingLength =
         sizeof(CXPLAT_SOCKET) +
@@ -1658,10 +1659,12 @@ CxPlatSocketCreateUdp(
         }
     }
 
-    // Status = CxPlatSocketConfigureRss(&Binding->SocketContexts[0], SocketCount);
-    // if (QUIC_FAILED(Status)) {
-    //     goto Exit;
-    // }
+    if (IsServerSocket) {
+        Status = CxPlatSocketConfigureRss(&Binding->SocketContexts[0], SocketCount);
+        if (QUIC_FAILED(Status)) {
+            goto Exit;
+        }
+    }
 
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
     Binding->LocalAddress.Ipv6.sin6_scope_id = 0;
@@ -1678,7 +1681,7 @@ CxPlatSocketCreateUdp(
     //
     *NewBinding = Binding;
 
-    for (uint32_t i = 0; i < Binding->Datapath->ProcCount; i++) {
+    for (uint32_t i = 0; i < SocketCount; i++) {
         Status =
             CxPlatSocketContextStartReceive(
                 &Binding->SocketContexts[i],
