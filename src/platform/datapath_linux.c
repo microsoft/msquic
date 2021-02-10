@@ -1658,10 +1658,10 @@ CxPlatSocketCreateUdp(
         }
     }
 
-    Status = CxPlatSocketConfigureRss(&Binding->SocketContexts[0], SocketCount);
-    if (QUIC_FAILED(Status)) {
-        goto Exit;
-    }
+    // Status = CxPlatSocketConfigureRss(&Binding->SocketContexts[0], SocketCount);
+    // if (QUIC_FAILED(Status)) {
+    //     goto Exit;
+    // }
 
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
     Binding->LocalAddress.Ipv6.sin6_scope_id = 0;

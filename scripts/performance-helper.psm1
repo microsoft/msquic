@@ -535,14 +535,6 @@ function Invoke-LocalExe {
         New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force | Out-Null
     }
 
-    if (!$IsWindows) {
-        mkdir logs
-        lttng create msquic -o=./logs
-        lttng enable-event --userspace CLOG_*
-        lttng add-context --userspace --type=vpid --type=vtid
-        lttng start
-    }
-
     $Stopwatch =  [system.diagnostics.stopwatch]::StartNew()
 
     $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
@@ -550,11 +542,6 @@ function Invoke-LocalExe {
     # Wait for the job to finish
     Wait-Job -Job $LocalJob -Timeout $Timeout | Out-Null
     Stop-Job -Job $LocalJob | Out-Null
-
-    if (!$IsWindows) {
-        lttng stop msquic
-        babeltrace --names all ./logs/* > quic.babel.txt
-    }
 
     $RetVal = Receive-Job -Job $LocalJob
 
