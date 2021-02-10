@@ -15,10 +15,6 @@ Abstract:
 #include "RpsClient.h"
 #include "HpsClient.h"
 
-#ifdef __linux__
-#include <sys/resource.h>
-#endif
-
 #ifdef QUIC_CLOG
 #include "quicmain.cpp.clog.h"
 #endif
@@ -122,15 +118,6 @@ QuicMainStart(
     if (WatchdogTimeout != 0) {
         Watchdog = new(std::nothrow) QuicPerfWatchdog{WatchdogTimeout};
     }
-
-#ifdef __linux__
-    struct rlimit rlim;
-    memset(&rlim, 0, sizeof(rlim));
-    if (getrlimit(RLIMIT_NOFILE, &rlim) == 0) {
-        rlim.rlim_cur = rlim.rlim_max;
-        setrlimit(RLIMIT_NOFILE, &rlim);
-    }
-#endif
 
     QUIC_STATUS Status;
 

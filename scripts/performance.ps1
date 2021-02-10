@@ -463,10 +463,6 @@ if ($Record -and $IsWindows) {
     }
 }
 
-if (!$IsWindows) {
-    bash -c "ulimit -a"
-}
-
 try {
     [TestRunConfig]$Tests = Get-Tests -Path $TestsFile -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform
 

@@ -431,7 +431,7 @@ CxPlatProcessorContextInitialize(
     //
 
     CXPLAT_THREAD_CONFIG ThreadConfig = {
-        0,
+        CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
         (uint16_t)Index,
         NULL,
         CxPlatDataPathWorkerThread,

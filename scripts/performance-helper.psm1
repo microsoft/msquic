@@ -226,7 +226,6 @@ function Wait-ForRemote {
     $Socket = New-Object System.Net.Sockets.UDPClient
     for ($i = 0; $i -lt 120; $i++) {
         $Socket.Send(@(1), 1, $RemoteAddress, 9999) | Out-Null
-        $Socket.Send(@(1), 1, $RemoteAddress, 9999) | Out-Null
         $Completed = Wait-Job -Job $Job -Timeout 1
         if ($null -ne $Completed) {
             break;
