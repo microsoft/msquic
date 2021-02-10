@@ -1778,7 +1778,8 @@ CxPlatSocketDelete(
     //
 
     Socket->Shutdown = TRUE;
-    for (uint32_t i = 0; i < Socket->Datapath->ProcCount; ++i) {
+    uint32_t SocketCount = Socket->HasFixedRemoteAddress ? 1 : Socket->Datapath->ProcCount;
+    for (uint32_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(
             &Socket->SocketContexts[i],
             &Socket->Datapath->ProcContexts[i]);
@@ -1788,7 +1789,7 @@ CxPlatSocketDelete(
     CxPlatRundownRelease(&Socket->Datapath->BindingsRundown);
 
     CxPlatRundownUninitialize(&Socket->Rundown);
-    for (uint32_t i = 0; i < Socket->Datapath->ProcCount; i++) {
+    for (uint32_t i = 0; i < SocketCount; i++) {
         CxPlatLockUninitialize(&Socket->SocketContexts[i].PendingSendContextLock);
     }
     CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
