@@ -513,6 +513,8 @@ function Invoke-LocalExe {
     }
     $LocalExtraFile = Join-Path $BasePath "ExtraRunFile.txt"
     $RunArgs = """--extraOutputFile:$LocalExtraFile"" $RunArgs"
+    $TimeoutMs = ($Timeout - 5) * 1000;
+    $RunArgs = "--watchdog:$TimeoutMs $RunArgs"
 
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
