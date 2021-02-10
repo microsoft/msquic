@@ -2521,10 +2521,12 @@ QuicConnProcessPeerVersionNegotiationTP(
             }
         }
         if (CurrentVersionIndex == SupportedVersionsLength) {
+            CXPLAT_DBG_ASSERTMSG(FALSE,"Incompatible Version Negotation should happen in binding layer");
             //
             // Current version not supported, start incompatible version negotiation.
+            // This path should only hit when the DesiredVersions are changed globally
+            // between when the first flight was received, and this point.
             //
-            CXPLAT_DBG_ASSERTMSG(FALSE,"Incompatible Version Negotation should happen in binding layer");
             return QUIC_STATUS_VER_NEG_ERROR;
         }
 
@@ -2671,6 +2673,7 @@ QuicConnProcessPeerTransportParameters(
     _In_ BOOLEAN FromResumptionTicket
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QuicTraceLogConnInfo(
         PeerTPSet,
         Connection,
@@ -2689,9 +2692,13 @@ QuicConnProcessPeerTransportParameters(
     if (!FromResumptionTicket) {
         if (Connection->Settings.VersionNegotiationExtEnabled &&
             Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
-            QUIC_STATUS Status = QuicConnProcessPeerVersionNegotiationTP(Connection);
+            Status = QuicConnProcessPeerVersionNegotiationTP(Connection);
             if (QUIC_FAILED(Status)) {
-                return Status;
+                //
+                // If the Version Negotiation Info failed to parse, indicate the failure up the stack
+                // to perform Incompatible Version Negotiation or so the connection can be closed.
+                //
+                goto Error;
             }
         }
 
@@ -2756,9 +2763,15 @@ QuicConnProcessPeerTransportParameters(
     return QUIC_STATUS_SUCCESS;
 
 Error:
-
-    QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
-    return QUIC_STATUS_PROTOCOL_ERROR;
+    //
+    // Errors from Version Negotiation Extension parsing are treated differently
+    // so Incompatible Version Negotiation can be done.
+    //
+    if (Status == QUIC_STATUS_SUCCESS) {
+        QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
+        Status = QUIC_STATUS_PROTOCOL_ERROR;
+    }
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -5762,9 +5775,9 @@ QuicConnParamSet(
         }
 
         QuicConnOnQuicVersionSet(Connection);
-        (void)QuicConnProcessPeerTransportParameters(Connection, TRUE);
+        Status = QuicConnProcessPeerTransportParameters(Connection, TRUE);
+        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
 
-        Status = QUIC_STATUS_SUCCESS;
         break;
     }
 

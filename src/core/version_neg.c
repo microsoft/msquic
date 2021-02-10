@@ -259,7 +259,16 @@ QuicVersionNegotiationExtParseClientVerNegInfo(
             "Client version negotiation info has empty Compatible Version list");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-    CXPLAT_DBG_ASSERT(Offset == BufferLength);
+
+    if (Offset != BufferLength) {
+        QuicTraceLogConnError(
+            ClientVersionNegotiationInfoDecodeFailed8,
+            Connection,
+            "Client version negotiation info parsed less than full buffer (%hu bytes vs. %hu bytes",
+            Offset,
+            BufferLength);
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
 
     QuicTraceLogConnInfo(
         ClientVersionNegotiationInfoDecoded,
@@ -336,7 +345,15 @@ QuicVersionNegotiationExtParseServerVerNegInfo(
             "Server version negotiation info has empty Supported Versions list");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-    CXPLAT_DBG_ASSERT(Offset == BufferLength);
+    if (Offset != BufferLength) {
+        QuicTraceLogConnError(
+            ServerVersionNegotiationInfoDecodeFailed5,
+            Connection,
+            "Server version negotiation info parsed less than full buffer (%hu bytes vs. %hu bytes",
+            Offset,
+            BufferLength);
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
 
     QuicTraceLogConnInfo(
         ServerVersionNegotiationInfoDecoded,

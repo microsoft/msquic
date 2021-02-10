@@ -10354,6 +10354,46 @@
         }
       ],
       "macroName": "QuicTraceLogConnError"
+    },
+    "ClientVersionNegotiationInfoDecodeFailed8": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Client version negotiation info parsed less than full buffer (%hu bytes vs. %hu bytes",
+      "UniqueId": "ClientVersionNegotiationInfoDecodeFailed8",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "ServerVersionNegotiationInfoDecodeFailed5": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Server version negotiation info parsed less than full buffer (%hu bytes vs. %hu bytes",
+      "UniqueId": "ServerVersionNegotiationInfoDecodeFailed5",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
     }
   },
   "Version": 1,
@@ -13413,6 +13453,14 @@
       {
         "UniquenessHash": "5d111c04-0688-d62d-3bc7-c76a8db3c94e",
         "TraceID": "ServerVersionNegotiationInfoDecodeFailed4"
+      },
+      {
+        "UniquenessHash": "28f8d2db-10b7-bff1-f3dd-80805409016c",
+        "TraceID": "ClientVersionNegotiationInfoDecodeFailed8"
+      },
+      {
+        "UniquenessHash": "21dad843-54bf-4828-b254-ac85e4437c0d",
+        "TraceID": "ServerVersionNegotiationInfoDecodeFailed5"
       }
     ]
   }

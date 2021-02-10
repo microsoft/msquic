@@ -5,7 +5,6 @@
 
 --*/
 
-
 //
 // Initializes all settings to default values, if not already set by the app.
 //

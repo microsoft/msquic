@@ -343,7 +343,7 @@ QuicCryptoInitializeTls(
 
     Crypto->ResumptionTicket = NULL; // Owned by TLS now.
     Crypto->ResumptionTicketLength = 0;
-    (void)QuicCryptoProcessData(Crypto, !IsServer);
+    Status = QuicCryptoProcessData(Crypto, !IsServer);
 
 Error:
 
@@ -1739,6 +1739,10 @@ QuicCryptoProcessData(
             Status =
                 QuicConnProcessPeerTransportParameters(Connection, FALSE);
             if (Status == QUIC_STATUS_VER_NEG_ERROR) {
+                //
+                // Communicate error up the stack to perform Incompatible
+                // Version Negotiation.
+                //
                 goto Error;
             }
 
