@@ -33,6 +33,7 @@ void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
 void QuicTestGetPerfCounters();
+void QuicTestDesiredVersionSettings();
 
 //
 // Event Validation Tests
@@ -74,6 +75,47 @@ QuicTestConnect(
 
 void
 QuicTestVersionNegotiation(
+    _In_ int Family
+    );
+
+void
+QuicTestVersionNegotiationRetry(
+    _In_ int Family
+    );
+
+void
+QuicTestCompatibleVersionNegotiationRetry(
+    _In_ int Family
+    );
+
+void
+QuicTestCompatibleVersionNegotiation(
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
+    );
+
+void
+QuicTestCompatibleVersionNegotiationDefaultClient(
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
+    );
+
+void
+QuicTestCompatibleVersionNegotiationDefaultServer(
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
+    );
+
+void
+QuicTestIncompatibleVersionNegotiation(
+    _In_ int Family
+    );
+
+void
+QuicTestFailedVersionNegotiation(
     _In_ int Family
     );
 
@@ -605,4 +647,41 @@ typedef struct {
     QUIC_CTL_CODE(47, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_CUSTOM_CERT_VALIDATION
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 47
+#define IOCTL_QUIC_RUN_VERSION_NEGOTIATION_RETRY \
+    QUIC_CTL_CODE(48, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_RETRY \
+    QUIC_CTL_CODE(49, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+typedef struct {
+    int Family;
+    BOOLEAN DisableVNEClient;
+    BOOLEAN DisableVNEServer;
+} QUIC_RUN_VERSION_NEGOTIATION_EXT;
+
+#define IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION \
+    QUIC_CTL_CODE(50, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_VERSION_NEGOTIATION_EXT
+
+#define IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER \
+    QUIC_CTL_CODE(51, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_VERSION_NEGOTIATION_EXT
+
+#define IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT \
+    QUIC_CTL_CODE(52, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_VERSION_NEGOTIATION_EXT
+
+#define IOCTL_QUIC_RUN_INCOMPATIBLE_VERSION_NEGOTIATION \
+    QUIC_CTL_CODE(53, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_FAILED_VERSION_NEGOTIATION \
+    QUIC_CTL_CODE(54, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_VALIDATE_DESIRED_VERSIONS_SETTINGS \
+    QUIC_CTL_CODE(55, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 55

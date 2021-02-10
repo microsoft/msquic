@@ -125,9 +125,10 @@ typedef struct CXPLAT_RECV_PACKET {
 
     //
     // Flag indicating the packet couldn't be decrypted yet, because the key
-    // isn't available yet; so the packet was deferred for later.
+    // isn't available yet, or a stateless operation has been queued; so it is
+    // still in use and release the packet later.
     //
-    BOOLEAN DecryptionDeferred : 1;
+    BOOLEAN ReleaseDeferred : 1;
 
     //
     // Flag indicating the packet was completely parsed successfully.
@@ -384,6 +385,17 @@ void
 QuicBindingOnConnectionHandshakeConfirmed(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_CONNECTION* Connection
+    );
+
+//
+// Queues a stateless operation on the binding.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicBindingQueueStatelessOperation(
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_OPERATION_TYPE OperType,
+    _In_ CXPLAT_RECV_DATA* Datagram
     );
 
 //

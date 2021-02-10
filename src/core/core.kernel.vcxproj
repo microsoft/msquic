@@ -67,6 +67,7 @@
     <ClCompile Include="stream_send.c" />
     <ClCompile Include="stream_set.c" />
     <ClCompile Include="timer_wheel.c" />
+    <ClCompile Include="version_neg.c" />
     <ClCompile Include="worker.c" />
   </ItemGroup>
   <ItemGroup>
@@ -102,6 +103,7 @@
     <ClInclude Include="stream_set.h" />
     <ClInclude Include="timer_wheel.h" />
     <ClInclude Include="transport_params.h" />
+    <ClInclude Include="version_neg.h" />
     <ClInclude Include="worker.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

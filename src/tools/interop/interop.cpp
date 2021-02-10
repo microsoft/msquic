@@ -376,21 +376,31 @@ public:
                 this,
                 &Connection));
         if (VerNeg) {
+            uint32_t DesiredVersions[] = { RandomReservedVersion, 0x00000001U, 0xff00001dU };
+            QUIC_SETTINGS Settings = { 0 };
+            Settings.DesiredVersionsList = DesiredVersions;
+            Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
+            Settings.IsSet.DesiredVersionsList = TRUE;
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_QUIC_VERSION,
-                    sizeof(RandomReservedVersion),
-                    &RandomReservedVersion));
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
         } else if (InitialVersion != 0) {
+            uint32_t DesiredVersions[] = { InitialVersion, 0x00000001U, 0xff00001dU };
+            QUIC_SETTINGS Settings = { 0 };
+            Settings.DesiredVersionsList = DesiredVersions;
+            Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
+            Settings.IsSet.DesiredVersionsList = TRUE;
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_QUIC_VERSION,
-                    sizeof(InitialVersion),
-                    &InitialVersion));
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
         }
         if (LargeTP) {
             VERIFY_QUIC_SUCCESS(

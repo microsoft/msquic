@@ -1256,6 +1256,21 @@
                 name="Stream"
                 />
           </template>
+          <template tid="tid_CONN_VNL">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt8"
+                name="VnlLength"
+                />
+            <data
+                inType="win:Binary"
+                length="VnlLength"
+                name="Vnl"
+                />
+          </template>
           <template tid="tid_STREAM_BEGIN">
             <data
                 inType="win:Pointer"
@@ -2599,6 +2614,33 @@
               template="tid_CONN_SERVER_RESUME_TICKET"
               value="5175"
               />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnClientCompatibleVersionList)"
+              opcode="Connection"
+              symbol="QuicConnClientCompatibleVersionList"
+              template="tid_CONN_VNL"
+              value="5176"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnClientReceivedVersionList)"
+              opcode="Connection"
+              symbol="QuicConnClientReceivedVersionList"
+              template="tid_CONN_VNL"
+              value="5177"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnServerSupportedVersionList)"
+              opcode="Connection"
+              symbol="QuicConnServerSupportedVersionList"
+              template="tid_CONN_VNL"
+              value="5178"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume"
@@ -3125,6 +3167,18 @@
         <string
             id="Etw.ConnQueueSendFlush"
             value="[conn][%1] Queueing send flush, reason=%2"
+            />
+        <string
+            id="Etw.ConnClientCompatibleVersionList"
+            value="[conn][%1] Client VNI Compatible Version List: %3"
+            />
+        <string
+            id="Etw.ConnClientReceivedVersionList"
+            value="[conn][%1] Client VNI Received Version List: %3"
+            />
+        <string
+            id="Etw.ConnServerSupportedVersionList"
+            value="[conn][%1] Server VNI Supported Version List: %3"
             />
         <string
             id="Etw.StreamCreated"

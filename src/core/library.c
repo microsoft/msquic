@@ -229,6 +229,34 @@ MsQuicLibraryInitialize(
     CxPlatZeroMemory(&MsQuicLib.StatelessRetryKeys, sizeof(MsQuicLib.StatelessRetryKeys));
     CxPlatZeroMemory(&MsQuicLib.StatelessRetryKeysExpiration, sizeof(MsQuicLib.StatelessRetryKeysExpiration));
 
+    uint32_t CompatibilityListByteLength = 0;
+    QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+        QUIC_VERSION_LATEST,
+        DefaultSupportedVersionsList,
+        ARRAYSIZE(DefaultSupportedVersionsList),
+        NULL,
+        &CompatibilityListByteLength);
+    MsQuicLib.DefaultCompatibilityList =
+        CXPLAT_ALLOC_NONPAGED(CompatibilityListByteLength, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
+    if (MsQuicLib.DefaultCompatibilityList == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)", "default compatibility list",
+            CompatibilityListByteLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+    MsQuicLib.DefaultCompatibilityListLength = CompatibilityListByteLength / sizeof(uint32_t);
+    if (QUIC_FAILED(
+        QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+            QUIC_VERSION_LATEST,
+            DefaultSupportedVersionsList,
+            ARRAYSIZE(DefaultSupportedVersionsList),
+            (uint8_t*)MsQuicLib.DefaultCompatibilityList,
+            &CompatibilityListByteLength))) {
+         goto Error;
+    }
+
     //
     // TODO: Add support for CPU hot swap/add.
     //
@@ -426,6 +454,10 @@ MsQuicLibraryUninitialize(
         MsQuicLib.StatelessRetryKeys[i] = NULL;
     }
     CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
+
+    QuicSettingsCleanup(&MsQuicLib.Settings);
+
+    CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
 
     QuicTraceEvent(
         LibraryUninitialized,
@@ -672,6 +704,7 @@ QuicLibrarySetGlobalParam(
 
         if (!QuicSettingApply(
                 &MsQuicLib.Settings,
+                TRUE,
                 TRUE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {

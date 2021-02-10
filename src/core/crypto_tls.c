@@ -62,6 +62,7 @@ typedef enum eSniNameType {
 //
 #define QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE                  32  // varint
 #define QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION                  0xBAAD  // N/A
+#define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0x73DB  // Blob
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -811,6 +812,12 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION,
                 0);
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
+        RequiredTPLen += (size_t)
+            TlsTransportParamLength(
+                QUIC_TP_ID_VERSION_NEGOTIATION_EXT,
+                TransportParams->VersionNegotiationInfoLength);
+    }
     if (TestParam != NULL) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -1074,6 +1081,19 @@ QuicCryptoTlsEncodeTransportParameters(
             Connection,
             "TP: Disable 1-RTT Encryption");
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
+        TPBuf =
+            TlsWriteTransportParam(
+                QUIC_TP_ID_VERSION_NEGOTIATION_EXT,
+                (uint16_t)TransportParams->VersionNegotiationInfoLength,
+                TransportParams->VersionNegotiationInfo,
+                TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPVersionNegotiationExt,
+            Connection,
+            "TP: Version Negotiation Extension (%llu bytes)",
+            TransportParams->VersionNegotiationInfoLength);
+    }
     if (TestParam != NULL) {
         TPBuf =
             TlsWriteTransportParam(
@@ -1183,7 +1203,7 @@ QuicCryptoTlsDecodeTransportParameters(
             goto Exit;
         }
 
-        uint16_t Length = (uint16_t)ParamLength;;
+        uint16_t Length = (uint16_t)ParamLength;
 
         uint16_t VarIntLength = 0;
     #define TRY_READ_VAR_INT(Param) \
@@ -1641,6 +1661,37 @@ QuicCryptoTlsDecodeTransportParameters(
                 "TP: Disable 1-RTT Encryption");
             break;
 
+        case QUIC_TP_ID_VERSION_NEGOTIATION_EXT:
+            if (Length < 5) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Length,
+                    "Invalid length of QUIC_TP_ID_VERSION_NEGOTIATION_EXT");
+                goto Exit;
+            }
+            TransportParams->VersionNegotiationInfo = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_VER_NEG_INFO);
+            if (TransportParams->VersionNegotiationInfo == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    IsServerTP ?
+                        "Received Client Version Negotiation Info" :
+                        "Received Server Version Negotiation Info",
+                    Length);
+            } else {
+                TransportParams->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;
+                CxPlatCopyMemory((uint8_t*)TransportParams->VersionNegotiationInfo, TPBuf + Offset, Length);
+                TransportParams->VersionNegotiationInfoLength = Length;
+                QuicTraceLogConnVerbose(
+                    DecodeTPVersionNegotiationInfo,
+                    Connection,
+                    "TP: Version Negotiation Info (%hu bytes)",
+                    Length);
+            }
+            break;
+
         default:
             if (QuicTpIdIsReserved(Id)) {
                 QuicTraceLogConnWarning(
@@ -1668,4 +1719,47 @@ QuicCryptoTlsDecodeTransportParameters(
 Exit:
 
     return Result;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicCryptoTlsCopyTransportParameters(
+    _In_ const QUIC_TRANSPORT_PARAMETERS* Source,
+    _In_ QUIC_TRANSPORT_PARAMETERS* Destination
+    )
+{
+    *Destination = *Source;
+    if (Source->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
+        Destination->VersionNegotiationInfo =
+            CXPLAT_ALLOC_NONPAGED((size_t)Source->VersionNegotiationInfoLength, QUIC_POOL_VER_NEG_INFO);
+        if (Destination->VersionNegotiationInfo == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Version Negotiation Info",
+                Source->VersionNegotiationInfoLength);
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+        Destination->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;
+        CxPlatCopyMemory(
+            (uint8_t*)Destination->VersionNegotiationInfo,
+            Source->VersionNegotiationInfo,
+            (size_t)Source->VersionNegotiationInfoLength);
+        Destination->VersionNegotiationInfoLength = Source->VersionNegotiationInfoLength;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCryptoTlsCleanupTransportParameters(
+    _In_ QUIC_TRANSPORT_PARAMETERS* TransportParams
+    )
+{
+    if (TransportParams->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
+        CXPLAT_FREE(TransportParams->VersionNegotiationInfo, QUIC_POOL_VER_NEG_INFO);
+        TransportParams->VersionNegotiationInfo = NULL;
+        TransportParams->VersionNegotiationInfoLength = 0;
+        TransportParams->Flags &= ~QUIC_TP_FLAG_VERSION_NEGOTIATION;
+    }
 }

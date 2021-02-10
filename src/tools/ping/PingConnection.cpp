@@ -67,15 +67,19 @@ PingConnection::Initialize(
             printf("Failed to set the resumption token!\n");
             return false;
         }*/
+        QUIC_SETTINGS Settings = { 0 };
+        Settings.IsSet.DesiredVersionsList = TRUE;
+        Settings.DesiredVersionsList = &PingConfig.Client.Version;
+        Settings.DesiredVersionsListLength = 1;
 
         if (PingConfig.Client.Version &&
             QUIC_FAILED(
             MsQuic->SetParam(
                 QuicConnection,
                 QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_QUIC_VERSION,
-                sizeof(uint32_t),
-                &PingConfig.Client.Version))) {
+                QUIC_PARAM_CONN_SETTINGS,
+                sizeof(Settings),
+                &Settings))) {
             printf("Failed to set the version!\n");
             return false;
         }
