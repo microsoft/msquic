@@ -869,7 +869,11 @@ CxPlatConvertFromMappedV6(
     _Out_ QUIC_ADDR* OutAddr
     );
 
-#define CxPlatSetCurrentThreadProcessorAffinity(ProcessorIndex) QUIC_STATUS_SUCCESS
+QUIC_STATUS
+CxPlatSetCurrentThreadProcessorAffinity(
+    _In_ uint16_t ProcessorIndex
+    );
+
 #define CxPlatSetCurrentThreadGroupAffinity(ProcessorGroup) QUIC_STATUS_SUCCESS
 
 #define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, dx)
