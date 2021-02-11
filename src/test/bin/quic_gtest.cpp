@@ -491,7 +491,7 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
 TEST_P(WithHandshakeArgs5, CustomCertificateValidation) {
     TestLoggerT<ParamType> Logger("QuicTestCustomCertificateValidation", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_PARAMS Params = {
+        QUIC_RUN_CUSTOM_CERT_VALIDATION Params = {
             GetParam().AcceptCert,
             GetParam().AsyncValidation
         };

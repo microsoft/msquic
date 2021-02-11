@@ -74,10 +74,6 @@ CxPlatSystemLoad(
     EventRegisterMicrosoft_Quic();
 #endif
 
-#ifdef QUIC_TELEMETRY_ASSERTS
-    InitializeTelemetryAssertsKM(RegistryPath);
-#endif
-
     CxPlatform.DriverObject = DriverObject;
     (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&CxPlatPerfFreq);
     CxPlatform.RngAlgorithm = NULL;
@@ -99,10 +95,6 @@ CxPlatSystemUnload(
     QuicTraceLogInfo(
         WindowsKernelUnloaded,
         "[ sys] Unloaded");
-
-#ifdef QUIC_TELEMETRY_ASSERTS
-    UninitializeTelemetryAssertsKM();
-#endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();

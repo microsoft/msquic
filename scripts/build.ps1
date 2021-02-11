@@ -78,6 +78,9 @@ This script provides helpers for building msquic.
 .PARAMETER TlsSecretsSupport
     Enables export of traffic secrets.
 
+.PARAMETER EnableTelemetryAsserts
+    Enables telemetry asserts in release builds.
+
 .EXAMPLE
     build.ps1
 
@@ -161,7 +164,10 @@ param (
     [switch]$RandomAllocFail = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$TlsSecretsSupport = $false
+    [switch]$TlsSecretsSupport = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$EnableTelemetryAsserts = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -314,6 +320,9 @@ function CMake-Generate {
     }
     if ($TlsSecretsSupport) {
         $Arguments += " -DQUIC_TLS_SECRETS_SUPPORT=on"
+    }
+    if ($EnableTelemetryAsserts) {
+        $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"
     }
     $Arguments += " ../../.."
 
