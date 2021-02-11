@@ -11,6 +11,7 @@ set(SOURCES
     TicketTest.cpp
     TransportParamTest.cpp
     VarIntTest.cpp
+    VersionNegExtTest.cpp
 )
 
 # Allow CLOG to preprocess all the source files.

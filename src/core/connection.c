@@ -48,6 +48,7 @@ BOOLEAN
 QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
+    _In_ BOOLEAN CopyExternalToInternal,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
@@ -369,11 +370,18 @@ QuicConnFree(
         CXPLAT_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
     }
     if (Connection->HandshakeTP != NULL) {
+        QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
         CxPlatPoolFree(
             &MsQuicLib.PerProc[CxPlatProcCurrentNumber()].TransportParamPool,
             Connection->HandshakeTP);
         Connection->HandshakeTP = NULL;
     }
+    QuicCryptoTlsCleanupTransportParameters(&Connection->PeerTransportParams);
+    if (Connection->ReceivedNegotiationVersions != NULL) {
+        CXPLAT_FREE(Connection->ReceivedNegotiationVersions, QUIC_POOL_RECVD_VER_LIST);
+        Connection->ReceivedNegotiationVersionsLength = 0;
+    }
+    QuicSettingsCleanup(&Connection->Settings);
     if (Connection->State.Started && !Connection->State.Connected) {
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL);
     }
@@ -589,7 +597,7 @@ QuicConnTraceRundownOper(
     if (Connection->Stats.QuicVersion != 0) {
         QuicTraceEvent(
             ConnVersionSet,
-            "[conn][%p] Version = %u",
+            "[conn][%p] QUIC Version: %u",
             Connection,
             Connection->Stats.QuicVersion);
     }
@@ -1690,7 +1698,7 @@ QuicConnOnQuicVersionSet(
 {
     QuicTraceEvent(
         ConnVersionSet,
-        "[conn][%p] Version = %u",
+        "[conn][%p] QUIC Version: %u",
         Connection,
         Connection->Stats.QuicVersion);
 
@@ -1925,6 +1933,7 @@ QuicConnRestart(
     QuicCongestionControlReset(&Connection->CongestionControl);
     QuicSendReset(&Connection->Send);
     QuicLossDetectionReset(&Connection->LossDetection);
+    QuicCryptoTlsCleanupTransportParameters(&Connection->PeerTransportParams);
 
     if (CompleteReset) {
         CXPLAT_DBG_ASSERT(Connection->Configuration != NULL);
@@ -1943,6 +1952,8 @@ QuicConnRestart(
         if (QUIC_FAILED(Status)) {
             QuicConnFatalError(Connection, Status, NULL);
         }
+
+        QuicCryptoTlsCleanupTransportParameters(&LocalTP);
 
     } else {
         QuicCryptoReset(&Connection->Crypto);
@@ -2008,6 +2019,7 @@ QuicConnRecvResumptionTicket(
 {
     BOOLEAN ResumptionAccepted = FALSE;
     QUIC_TRANSPORT_PARAMETERS ResumedTP;
+    CxPlatZeroMemory(&ResumedTP, sizeof(ResumedTP));
     if (QuicConnIsServer(Connection)) {
         const uint8_t* AppData = NULL;
         uint32_t AppDataLength = 0;
@@ -2106,6 +2118,7 @@ QuicConnRecvResumptionTicket(
 
 Error:
 
+    QuicCryptoTlsCleanupTransportParameters(&ResumedTP);
     return ResumptionAccepted;
 }
 
@@ -2118,6 +2131,7 @@ QuicConnCleanupServerResumptionState(
     CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
     if (!Connection->State.ResumptionEnabled) {
         if (Connection->HandshakeTP != NULL) {
+            QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
             CxPlatPoolFree(
                 &MsQuicLib.PerProc[CxPlatProcCurrentNumber()].TransportParamPool,
                 Connection->HandshakeTP);
@@ -2204,6 +2218,18 @@ QuicConnGenerateLocalTransportParameters(
 
     if (Connection->State.Disable1RttEncrytion) {
         LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION;
+    }
+
+    if (Connection->Settings.VersionNegotiationExtEnabled) {
+        uint32_t VersionNegotiationInfoLength = 0;
+        LocalTP->VersionNegotiationInfo =
+            QuicVersionNegotiationExtEncodeVersionNegotiationInfo(Connection, &VersionNegotiationInfoLength);
+        if (LocalTP->VersionNegotiationInfo != NULL) {
+            LocalTP->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;
+            LocalTP->VersionNegotiationInfoLength = VersionNegotiationInfoLength;
+        } else {
+            LocalTP->VersionNegotiationInfoLength = 0;
+        }
     }
 
     if (QuicConnIsServer(Connection)) {
@@ -2315,6 +2341,7 @@ QuicConnSetConfiguration(
     QuicConnApplyNewSettings(
         Connection,
         FALSE,
+        FALSE,
         sizeof(Configuration->Settings),
         &Configuration->Settings);
 
@@ -2371,7 +2398,7 @@ QuicConnSetConfiguration(
     //
     if (QuicConnIsServer(Connection) && Connection->HandshakeTP != NULL) {
         CXPLAT_DBG_ASSERT(Connection->State.ResumptionEnabled);
-        *Connection->HandshakeTP = LocalTP;
+        QuicCryptoTlsCopyTransportParameters(&LocalTP, Connection->HandshakeTP);
     }
 
     Connection->State.Started = TRUE;
@@ -2388,6 +2415,8 @@ QuicConnSetConfiguration(
             &LocalTP);
 
 Error:
+
+    QuicCryptoTlsCleanupTransportParameters(&LocalTP);
 
     return Status;
 }
@@ -2466,13 +2495,186 @@ QuicConnValidateTransportParameterCIDs(
     return TRUE;
 }
 
+QUIC_STATUS
+QuicConnProcessPeerVersionNegotiationTP(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    QUIC_STATUS Status;
+    if (QuicConnIsServer(Connection)) {
+        //
+        // Check whether version is in (App-specified) list of supported versions
+        //
+        uint32_t SupportedVersionsLength = 0;
+        const uint32_t* SupportedVersions = NULL;
+        if (MsQuicLib.Settings.IsSet.DesiredVersionsList) {
+            SupportedVersionsLength = MsQuicLib.Settings.DesiredVersionsListLength;
+            SupportedVersions = MsQuicLib.Settings.DesiredVersionsList;
+        } else {
+            SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
+            SupportedVersions = DefaultSupportedVersionsList;
+        }
+
+        uint32_t CurrentVersionIndex = 0;
+        for (; CurrentVersionIndex < SupportedVersionsLength; ++CurrentVersionIndex) {
+            if (Connection->Stats.QuicVersion == SupportedVersions[CurrentVersionIndex]) {
+                break;
+            }
+        }
+        if (CurrentVersionIndex == SupportedVersionsLength) {
+            CXPLAT_DBG_ASSERTMSG(FALSE,"Incompatible Version Negotation should happen in binding layer");
+            //
+            // Current version not supported, start incompatible version negotiation.
+            // This path should only hit when the DesiredVersions are changed globally
+            // between when the first flight was received, and this point.
+            //
+            return QUIC_STATUS_VER_NEG_ERROR;
+        }
+
+        QUIC_CLIENT_VER_NEG_INFO ClientVNI;
+        Status =
+            QuicVersionNegotiationExtParseClientVerNegInfo(
+                Connection,
+                Connection->PeerTransportParams.VersionNegotiationInfo,
+                (uint16_t)Connection->PeerTransportParams.VersionNegotiationInfoLength,
+                &ClientVNI);
+        if (QUIC_FAILED(Status)) {
+            QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
+            return QUIC_STATUS_PROTOCOL_ERROR;
+        }
+
+        //
+        // Assume QuicVersion on the Connection is the long header value
+        // and verify it matches the VNE TP.
+        //
+        if (Connection->Stats.QuicVersion != ClientVNI.CurrentVersion) {
+            QuicTraceLogConnError(
+                ClientVersionNegotiationInfoVersionMismatch,
+                Connection,
+                "Client Current Version doesn't match long header. 0x%x != 0x%x",
+                ClientVNI.CurrentVersion,
+                Connection->Stats.QuicVersion);
+            QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+            return QUIC_STATUS_PROTOCOL_ERROR;
+        }
+
+        if (ClientVNI.RecvNegotiationVerCount > 0) {
+            if (ClientVNI.RecvNegotiationVerCount != (SupportedVersionsLength + 1) ||
+                ClientVNI.RecvNegotiationVersions[0] != Connection->Paths[0].Binding->RandomReservedVersion ||
+                memcmp(
+                    ClientVNI.RecvNegotiationVersions + 1,
+                    SupportedVersions,
+                    SupportedVersionsLength * sizeof(uint32_t)) != 0) {
+                //
+                // The list of versions the client provided as proof of VN is wrong,
+                // Kill the connection.
+                //
+                QuicTraceLogConnError(
+                    ClientVersionNegotiationRecvdVersionsMismatch,
+                    Connection,
+                    "Client Received Versions list doesn't match server");
+                QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+                return QUIC_STATUS_PROTOCOL_ERROR;
+            }
+
+            for (uint32_t i = 0; i < SupportedVersionsLength; ++i) {
+                if (SupportedVersions[i] == ClientVNI.PreviousVersion) {
+                    //
+                    // If the previous version is supported, we wouldn't have done IVN.
+                    // Kill the connection.
+                    //
+                    QuicTraceLogConnError(
+                        ClientVersionNegotiationPrevVersionIncorrect,
+                        Connection,
+                        "Client Previous Version is supported: 0x%x",
+                        ClientVNI.PreviousVersion);
+                    QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+                    return QUIC_STATUS_PROTOCOL_ERROR;
+                }
+            }
+        }
+
+        //
+        // Attempt to upgrade the connection to a compatible version the server prefers.
+        //
+        for (uint32_t ServerVersionIdx = 0; ServerVersionIdx < CurrentVersionIndex; ++ServerVersionIdx) {
+            if (QuicIsVersionReserved(SupportedVersions[ServerVersionIdx])) {
+                continue;
+            }
+            for (uint32_t ClientVersionIdx = 0; ClientVersionIdx < ClientVNI.CompatibleVersionCount; ++ClientVersionIdx) {
+                if (!QuicIsVersionReserved(ClientVNI.CompatibleVersions[ClientVersionIdx]) &&
+                    ClientVNI.CompatibleVersions[ClientVersionIdx] == SupportedVersions[ServerVersionIdx] &&
+                    QuicVersionNegotiationExtAreVersionsCompatible(
+                        ClientVNI.CurrentVersion,
+                        ClientVNI.CompatibleVersions[ClientVersionIdx])) {
+                    QuicTraceLogConnVerbose(
+                        ClientVersionNegotiationCompatibleVersionUpgrade,
+                        Connection,
+                        "Compatible version upgrade! Old: 0x%x, New: 0x%x",
+                        Connection->Stats.QuicVersion,
+                        SupportedVersions[ServerVersionIdx]);
+                    Connection->Stats.QuicVersion = SupportedVersions[ServerVersionIdx];
+                    QuicConnOnQuicVersionSet(Connection);
+                }
+            }
+        }
+        //
+        // If the version negotiation upgrade failed, just continue
+        // with the current version.
+        //
+    } else {
+        //
+        // Client must perform downgrade prevention
+        //
+        QUIC_SERVER_VER_NEG_INFO ServerVNI = {0};
+        Status =
+            QuicVersionNegotiationExtParseServerVerNegInfo(
+                Connection,
+                Connection->PeerTransportParams.VersionNegotiationInfo,
+                (uint16_t)Connection->PeerTransportParams.VersionNegotiationInfoLength,
+                &ServerVNI);
+        if (QUIC_FAILED(Status)) {
+            QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
+            return QUIC_STATUS_PROTOCOL_ERROR;
+        }
+        if (Connection->Stats.QuicVersion != ServerVNI.NegotiatedVersion) {
+            QuicTraceLogConnError(
+                ServerVersionNegotiationInfoVersionMismatch,
+                Connection,
+                "Server Negotiated Version doesn't match long header. 0x%x != 0x%x",
+                ServerVNI.NegotiatedVersion,
+                Connection->Stats.QuicVersion);
+            QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+            return QUIC_STATUS_PROTOCOL_ERROR;
+        }
+        BOOLEAN NegotiatedVersionFound = FALSE;
+        for (uint32_t i = 0; i < ServerVNI.SupportedVersionCount; ++i) {
+            if (ServerVNI.SupportedVersions[i] == ServerVNI.NegotiatedVersion) {
+                NegotiatedVersionFound = TRUE;
+                break;
+            }
+        }
+        if (!NegotiatedVersionFound) {
+            QuicTraceLogConnError(
+                ServerVersionNegotiationNegotiatedVersionNotInSupportedList,
+                Connection,
+                "Server Negotiated Version is not in Server Supported Versions: 0x%x",
+                CxPlatByteSwapUint32(ServerVNI.NegotiatedVersion));
+            QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+            return QUIC_STATUS_PROTOCOL_ERROR;
+        }
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+QUIC_STATUS
 QuicConnProcessPeerTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN FromResumptionTicket
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QuicTraceLogConnInfo(
         PeerTPSet,
         Connection,
@@ -2489,6 +2691,18 @@ QuicConnProcessPeerTransportParameters(
     }
 
     if (!FromResumptionTicket) {
+        if (Connection->Settings.VersionNegotiationExtEnabled &&
+            Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
+            Status = QuicConnProcessPeerVersionNegotiationTP(Connection);
+            if (QUIC_FAILED(Status)) {
+                //
+                // If the Version Negotiation Info failed to parse, indicate the failure up the stack
+                // to perform Incompatible Version Negotiation or so the connection can be closed.
+                //
+                goto Error;
+            }
+        }
+
         if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_STATELESS_RESET_TOKEN) {
             CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
             CXPLAT_DBG_ASSERT(!QuicConnIsServer(Connection));
@@ -2547,46 +2761,40 @@ QuicConnProcessPeerTransportParameters(
         }
     }
 
-    return;
+    return QUIC_STATUS_SUCCESS;
 
 Error:
-
-    QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-QuicConnDeferredCertValidation(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ uint32_t ErrorFlags,
-    _In_ QUIC_STATUS Status
-    )
-{
-    QUIC_CONNECTION_EVENT Event;
-    Event.Type = QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_VALIDATION;
-    Event.PEER_CERTIFICATE_VALIDATION.ErrorFlags = ErrorFlags;
-    Event.PEER_CERTIFICATE_VALIDATION.Status = Status;
-    QuicTraceLogConnVerbose(
-        IndicatePeerCertificateValidation,
-        Connection,
-        "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_VALIDATION (0x%x, 0x%x)",
-        ErrorFlags,
-        Status);
-    return QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
+    //
+    // Errors from Version Negotiation Extension parsing are treated differently
+    // so Incompatible Version Negotiation can be done.
+    //
+    if (Status == QUIC_STATUS_SUCCESS) {
+        QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
+        Status = QUIC_STATUS_PROTOCOL_ERROR;
+    }
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnPeerCertReceived(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ void* Certificate,
+    _In_ uint32_t DeferredErrorFlags,
+    _In_ QUIC_STATUS DeferredStatus
     )
 {
     QUIC_CONNECTION_EVENT Event;
     Event.Type = QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED;
+    Event.PEER_CERTIFICATE_RECEIVED.Certificate = Certificate;
+    Event.PEER_CERTIFICATE_RECEIVED.DeferredErrorFlags = DeferredErrorFlags;
+    Event.PEER_CERTIFICATE_RECEIVED.DeferredStatus = DeferredStatus;
     QuicTraceLogConnVerbose(
         IndicatePeerCertificateReceived,
         Connection,
-        "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED");
+        "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED (0x%x, 0x%x)",
+        DeferredErrorFlags,
+        DeferredStatus);
     QUIC_STATUS Status = QuicConnIndicateEvent(Connection, &Event);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -2837,7 +3045,9 @@ QuicConnRecvVerNeg(
         // Check to see if this is supported, if we haven't already found a
         // supported version.
         //
-        if (SupportedVersion == 0 && QuicIsVersionSupported(ServerVersion)) {
+        if (SupportedVersion == 0 &&
+            ((!QuicConnIsServer(Connection) && QuicVersionNegotiationExtIsVersionClientSupported(Connection, ServerVersion)) ||
+            (QuicConnIsServer(Connection) && QuicVersionNegotiationExtIsVersionServerSupported(ServerVersion)))) {
             SupportedVersion = ServerVersion;
         }
     }
@@ -2857,6 +3067,29 @@ QuicConnRecvVerNeg(
             NULL);
         return;
     }
+
+    Connection->PreviousQuicVersion = Connection->Stats.QuicVersion;
+    uint32_t* ReceivedNegotiationVersions =
+        (uint32_t*)CXPLAT_ALLOC_NONPAGED(ServerVersionListLength * sizeof(uint32_t), QUIC_POOL_RECVD_VER_LIST);
+    if (ReceivedNegotiationVersions == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Received version list",
+            ServerVersionListLength * sizeof(uint32_t));
+        QuicConnCloseLocally(
+            Connection,
+            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+            (uint64_t)QUIC_STATUS_VER_NEG_ERROR,
+            NULL);
+        return;
+    }
+    CxPlatCopyMemory(
+        ReceivedNegotiationVersions,
+        ServerVersionList,
+        ServerVersionListLength * sizeof(uint32_t));
+    Connection->ReceivedNegotiationVersions = ReceivedNegotiationVersions;
+    Connection->ReceivedNegotiationVersionsLength = ServerVersionListLength;
 
     Connection->Stats.QuicVersion = SupportedVersion;
     QuicConnOnQuicVersionSet(Connection);
@@ -2894,6 +3127,10 @@ QuicConnRecvRetry(
     if (Packet->BufferLength - Packet->HeaderLength <= QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1) {
         QuicPacketLogDrop(Connection, Packet, "No room for Retry Token");
         return;
+    }
+
+    if (!QuicVersionNegotiationExtIsVersionClientSupported(Connection, Packet->LH->Version)) {
+        QuicPacketLogDrop(Connection, Packet, "Retry Version not supported by client");
     }
 
     const QUIC_VERSION_INFO* VersionInfo = NULL;
@@ -3059,7 +3296,7 @@ QuicConnGetKeyOrDeferDatagram(
                     Packet->KeyType);
 
                 Packets->DeferredDatagramsCount++;
-                Packet->DecryptionDeferred = TRUE;
+                Packet->ReleaseDeferred = TRUE;
 
                 //
                 // Add it to the list of pending packets that are waiting on a
@@ -3115,17 +3352,29 @@ QuicConnRecvHeader(
 
     if (!Packet->IsShortHeader) {
         if (Packet->Invariant->LONG_HDR.Version != Connection->Stats.QuicVersion) {
-            if (Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG) {
+            if (!QuicConnIsServer(Connection) &&
+                QuicVersionNegotiationExtIsVersionCompatible(Connection, Packet->Invariant->LONG_HDR.Version)) {
+                //
+                // Server did compatible version negotiation, update local version.
+                //
+                Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
+                QuicConnOnQuicVersionSet(Connection);
+                //
+                // Do not return FALSE here, continue with the connection.
+                //
+            } else if (Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG &&
+                !Connection->Stats.VersionNegotiation) {
                 //
                 // Version negotiation packet received.
                 //
                 Connection->Stats.VersionNegotiation = TRUE;
                 QuicConnRecvVerNeg(Connection, Packet);
 
+                return FALSE;
             } else {
                 QuicPacketLogDropWithValue(Connection, Packet, "Invalid version", CxPlatByteSwapUint32(Packet->Invariant->LONG_HDR.Version));
+                return FALSE;
             }
-            return FALSE;
         }
     } else {
         if (!QuicIsVersionSupported(Connection->Stats.QuicVersion)) {
@@ -3854,7 +4103,19 @@ QuicConnRecvFrames(
             } else if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
                 return FALSE;
             } else {
-                if (Status != QUIC_STATUS_INVALID_STATE) {
+                if (Status == QUIC_STATUS_VER_NEG_ERROR) {
+                    if (QuicBindingQueueStatelessOperation(
+                            Connection->Paths[0].Binding,
+                            QUIC_OPER_TYPE_VERSION_NEGOTIATION,
+                            CxPlatDataPathRecvPacketToRecvData(Packet))) {
+                        Packet->ReleaseDeferred = TRUE;
+                    }
+                    QuicConnCloseLocally(
+                        Connection,
+                        QUIC_CLOSE_INTERNAL_SILENT,
+                        QUIC_ERROR_VERSION_NEGOTIATION_ERROR,
+                        NULL);
+                } else if (Status != QUIC_STATUS_INVALID_STATE) {
                     QuicTraceEvent(
                         ConnError,
                         "[conn][%p] ERROR, %s.",
@@ -4756,8 +5017,8 @@ QuicConnRecvDatagrams(
             CxPlatDataPathRecvDataToRecvPacket(Datagram);
         CXPLAT_DBG_ASSERT(Packet != NULL);
 
-        CXPLAT_DBG_ASSERT(Packet->DecryptionDeferred == IsDeferred);
-        Packet->DecryptionDeferred = FALSE;
+        CXPLAT_DBG_ASSERT(Packet->ReleaseDeferred == IsDeferred);
+        Packet->ReleaseDeferred = FALSE;
 
         QUIC_PATH* DatagramPath = QuicConnGetPathForDatagram(Connection, Datagram);
         if (DatagramPath == NULL) {
@@ -4815,7 +5076,7 @@ QuicConnRecvDatagrams(
                     Connection,
                     Packet,
                     Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH)) {
-                if (Packet->DecryptionDeferred) {
+                if (Packet->ReleaseDeferred) {
                     Connection->Stats.Recv.TotalPackets--; // Don't count the packet right now.
                 } else {
                     Connection->Stats.Recv.DroppedPackets++;
@@ -4878,7 +5139,7 @@ QuicConnRecvDatagrams(
             Packet->ValidToken = FALSE;
             Packet->PacketNumberSet = FALSE;
             Packet->EncryptedWith0Rtt = FALSE;
-            Packet->DecryptionDeferred = FALSE;
+            Packet->ReleaseDeferred = FALSE;
             Packet->CompletelyValid = FALSE;
             Packet->NewLargestPacketNumber = FALSE;
             Packet->HasNonProbingFrame = FALSE;
@@ -4887,7 +5148,7 @@ QuicConnRecvDatagrams(
 
     Drop:
 
-        if (!Packet->DecryptionDeferred) {
+        if (!Packet->ReleaseDeferred) {
             *ReleaseChainTail = Datagram;
             ReleaseChainTail = &Datagram->Next;
             Datagram->QueuedOnConnection = FALSE;
@@ -5206,38 +5467,6 @@ QuicConnParamSet(
 
     switch (Param) {
 
-    case QUIC_PARAM_CONN_QUIC_VERSION:
-
-        if (BufferLength != sizeof(uint32_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        //
-        // Validate new version. We allow the application to set a reserved
-        // version number to force version negotiation.
-        //
-        uint32_t NewVersion = CxPlatByteSwapUint32(*(uint32_t*)Buffer);
-        if (!QuicIsVersionSupported(NewVersion) &&
-            !QuicIsVersionReserved(NewVersion)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        //
-        // Only allowed before connection attempt.
-        //
-        if (Connection->State.Started) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        Connection->Stats.QuicVersion = NewVersion;
-        QuicConnOnQuicVersionSet(Connection);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_CONN_LOCAL_ADDRESS: {
 
         if (BufferLength != sizeof(QUIC_ADDR)) {
@@ -5361,6 +5590,7 @@ QuicConnParamSet(
 
         if (!QuicConnApplyNewSettings(
                 Connection,
+                TRUE,
                 TRUE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {
@@ -5546,9 +5776,9 @@ QuicConnParamSet(
         }
 
         QuicConnOnQuicVersionSet(Connection);
-        QuicConnProcessPeerTransportParameters(Connection, TRUE);
+        Status = QuicConnProcessPeerTransportParameters(Connection, TRUE);
+        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
 
-        Status = QUIC_STATUS_SUCCESS;
         break;
     }
 
@@ -5787,6 +6017,11 @@ QuicConnParamGet(
             *BufferLength = sizeof(QUIC_SETTINGS);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
+        } else if (Connection->Settings.IsSet.DesiredVersionsList &&
+            *BufferLength < sizeof(QUIC_SETTINGS) + (Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t))) {
+            *BufferLength = sizeof(QUIC_SETTINGS) + (Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t));
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
         }
 
         if (Buffer == NULL) {
@@ -5795,7 +6030,15 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(QUIC_SETTINGS);
-        *(QUIC_SETTINGS*)Buffer = Connection->Settings;
+        CxPlatCopyMemory(Buffer, &Connection->Settings, *BufferLength);
+        if (Connection->Settings.IsSet.DesiredVersionsList) {
+            *BufferLength += (uint32_t)(Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t));
+            CxPlatCopyMemory(
+                ((QUIC_SETTINGS*)Buffer) + 1,
+                Connection->Settings.DesiredVersionsList,
+                Connection->Settings.DesiredVersionsListLength * sizeof(uint32_t));
+            ((QUIC_SETTINGS*)Buffer)->DesiredVersionsList = (uint32_t*)(((QUIC_SETTINGS*)Buffer) + 1);
+        }
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -6045,6 +6288,7 @@ BOOLEAN
 QuicConnApplyNewSettings(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OverWrite,
+    _In_ BOOLEAN CopyExternalToInternal,
     _In_range_(FIELD_OFFSET(QUIC_SETTINGS, MaxBytesPerKey), UINT32_MAX)
         uint32_t NewSettingsSize,
     _In_reads_bytes_(NewSettingsSize)
@@ -6059,6 +6303,7 @@ QuicConnApplyNewSettings(
     if (!QuicSettingApply(
             &Connection->Settings,
             OverWrite,
+            CopyExternalToInternal,
             NewSettingsSize,
             NewSettings)) {
         return FALSE;
@@ -6088,6 +6333,19 @@ QuicConnApplyNewSettings(
 
         QuicSendApplyNewSettings(&Connection->Send, &Connection->Settings);
         QuicCongestionControlInitialize(&Connection->CongestionControl, &Connection->Settings);
+
+        if (!QuicConnIsServer(Connection) && Connection->Settings.IsSet.DesiredVersionsList) {
+            Connection->Stats.QuicVersion = Connection->Settings.DesiredVersionsList[0];
+            QuicConnOnQuicVersionSet(Connection);
+            //
+            // The version has changed AFTER the crypto layer has been initialized,
+            // so reinitialize the crypto layer here so it uses the right keys.
+            // If the reinitialization fails, fail the connection.
+            //
+            if (QUIC_FAILED(QuicCryptoOnVersionChange(&Connection->Crypto))) {
+                return FALSE;
+            }
+        }
     }
 
     uint8_t PeerStreamType =

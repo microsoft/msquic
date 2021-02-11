@@ -172,6 +172,7 @@ MsQuicConfigurationOpen(
         if (!QuicSettingApply(
                 &Configuration->Settings,
                 TRUE,
+                TRUE,
                 SettingsSize,
                 Settings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -241,6 +242,8 @@ QuicConfigurationUninitialize(
     CxPlatStorageClose(Configuration->Storage);
     QuicSiloRelease(Configuration->Silo);
 #endif
+
+    QuicSettingsCleanup(&Configuration->Settings);
 
     CxPlatRundownRelease(&Configuration->Registration->Rundown);
 
@@ -439,7 +442,7 @@ QuicConfigurationParamSet(
         const void* Buffer
     )
 {
-    if (Param == QUIC_PARAM_GLOBAL_SETTINGS) {
+    if (Param == QUIC_PARAM_CONFIGURATION_SETTINGS) {
 
         if (BufferLength != sizeof(QUIC_SETTINGS)) {
             return QUIC_STATUS_INVALID_PARAMETER; // TODO - Support partial
@@ -452,6 +455,7 @@ QuicConfigurationParamSet(
 
         if (!QuicSettingApply(
                 &Configuration->Settings,
+                TRUE,
                 TRUE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {

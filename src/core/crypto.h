@@ -151,6 +151,14 @@ QuicCryptoInitializeTls(
     );
 
 //
+// Update the initial keys when the QUIC version changes.
+//
+QUIC_STATUS
+QuicCryptoOnVersionChange(
+    _In_ QUIC_CRYPTO* Crypto
+    );
+
+//
 // Indicate the connection is starting over and the initial data needs to be
 // resent.
 //
@@ -237,7 +245,7 @@ QuicCryptoProcessFrame(
 // Passes any data queued up to TLS for processing.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+QUIC_STATUS
 QuicCryptoProcessData(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN IsClientInitial

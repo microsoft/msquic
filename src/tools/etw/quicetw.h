@@ -336,6 +336,10 @@ typedef enum QUIC_EVENT_ID_CONNECTION {
     EventId_QuicConnQueueSendFlush,
     EventId_QuicConnOutFlowStreamStats,
     EventId_QuicConnPacketStats,
+    EventId_QuicConnServerResumeTicket,
+    EventId_QuicConnClientCompatibleVersionList,
+    EventId_QuicConnClientReceivedVersionList,
+    EventId_QuicConnServerSupportedVersionList,
 
     EventId_QuicConnCount
 } QUIC_EVENT_ID_CONNECTION;

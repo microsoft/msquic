@@ -122,10 +122,44 @@ function Convert-HostToNetworkOrder {
     return [System.BitConverter]::ToUInt32($Bytes, 0)
 }
 
+class IpData {
+    [Int64]$PrefixLength;
+    [System.Net.IPAddress]$IPv4Address;
+
+    IpData([Int64]$PrefixLength, [System.Net.IPAddress]$Address) {
+        $this.PrefixLength = $PrefixLength;
+        $this.IPv4Address = $Address;
+    }
+}
+
+function Get-Ipv4Addresses {
+    $LocalIps = [System.Collections.Generic.List[IpData]]::new();
+    $Nics = [System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces();
+    foreach ($Nic in $Nics) {
+        if ($Nic.OperationalStatus -ne [System.Net.NetworkInformation.OperationalStatus]::Up) {
+            continue;
+        }
+
+        $UniAddresses = $Nic.GetIPProperties().UnicastAddresses;
+        if ($null -eq $UniAddresses) {
+            continue;
+        }
+
+        foreach ($UniAddress in $UniAddresses) {
+            $Addr = $UniAddress.Address;
+            if ($Addr.AddressFamily -ne [System.Net.Sockets.AddressFamily]::InterNetwork) {
+                continue;
+            }
+            $LocalIps.Add([IpData]::new($UniAddress.PrefixLength, $Addr))
+        }
+    }
+    return $LocalIps;
+}
+
 function Get-LocalAddress {
     param ($RemoteAddress)
     $PossibleRemoteIPs = [System.Net.Dns]::GetHostAddresses($RemoteAddress) | Select-Object -Property IPAddressToString
-    $PossibleLocalIPs = Get-NetIPAddress -AddressFamily IPv4 | Select-Object -Property IPv4Address, PrefixLength
+    $PossibleLocalIPs = Get-Ipv4Addresses
     $MatchedIPs = @()
     $PossibleLocalIPs | ForEach-Object {
 
@@ -190,8 +224,14 @@ function Wait-ForRemote {
     param ($Job)
     # Ping sidechannel socket on 9999 to tell the app to die
     $Socket = New-Object System.Net.Sockets.UDPClient
-    $Socket.Send(@(1), 1, $RemoteAddress, 9999) | Out-Null
-    Wait-Job -Job $Job -Timeout 120 | Out-Null
+    for ($i = 0; $i -lt 120; $i++) {
+        $Socket.Send(@(1), 1, $RemoteAddress, 9999) | Out-Null
+        $Completed = Wait-Job -Job $Job -Timeout 1
+        if ($null -ne $Completed) {
+            break;
+        }
+    }
+
     Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
     return $RetVal -join "`n"
@@ -201,7 +241,7 @@ function Copy-Artifacts {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
     param ([string]$From, [string]$To, [string]$SmbDir)
     Remove-PerfServices
-    if ($null -ne $SmbDir) {
+    if (![string]::IsNullOrWhiteSpace($SmbDir)) {
         try {
             Remove-Item -Path "$SmbDir/*" -Recurse -Force
         } catch [System.Management.Automation.ItemNotFoundException] {
@@ -472,6 +512,8 @@ function Invoke-LocalExe {
     }
     $LocalExtraFile = Join-Path $BasePath "ExtraRunFile.txt"
     $RunArgs = """--extraOutputFile:$LocalExtraFile"" $RunArgs"
+    $TimeoutMs = ($Timeout - 5) * 1000;
+    $RunArgs = "-watchdog:$TimeoutMs $RunArgs"
 
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"

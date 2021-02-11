@@ -55,6 +55,21 @@ struct ServerAcceptContext {
     }
 };
 
+struct ClearGlobalVersionListScope {
+    ~ClearGlobalVersionListScope() {
+        MsQuicSettings ClearVNSettings;
+        ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                sizeof(ClearVNSettings),
+                &ClearVNSettings));
+    }
+};
+
 //
 // No 64-bit version for this existed globally. This defines an interlocked
 // helper for subtracting 64-bit numbers.

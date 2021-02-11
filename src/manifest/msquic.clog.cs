@@ -60,5 +60,29 @@ namespace msquic.clog_config
             }
             return hex.ToString();
         }
+
+        public static string VNL(byte [] value)
+        {
+            if (value.Length == 0) {
+                return "Empty";
+            }
+            if (value.Length < 4)
+            {
+                return "Invalid";
+            }
+            StringBuilder hex = new StringBuilder(
+                (value.Length * 2) +                    // Hex length for all characters
+                ((value.Length / sizeof(int)) - 1));    // Space for commas, if list is long enough.
+
+            for (int i = 0; value.Length - i >= sizeof(int); i += sizeof(int))
+            {
+                int Version = (int)(value[i] << 24) | (int)(value[i + 1] << 16) | (int)(value[i + 2] << 8) | (int)(value[i + 3]);
+                hex.Append(Version.ToString("X8"));
+                if (value.Length - (i + sizeof(int)) >= sizeof(int)) {
+                    hex.Append(",");
+                }
+            }
+            return hex.ToString();
+        }
     }
 }
