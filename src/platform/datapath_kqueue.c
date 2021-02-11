@@ -1843,8 +1843,8 @@ CxPlatSocketSendInternal(
     BOOLEAN SendPending = FALSE;
     uint32_t ProcNumber;
 
-    //static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
-    //char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
+    static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
+    char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
 
     CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
 
@@ -1879,8 +1879,8 @@ CxPlatSocketSendInternal(
     }
 
     struct msghdr Mhdr = {
-        .msg_name = &MappedRemoteAddress,
-        .msg_namelen = sizeof(MappedRemoteAddress),
+        .msg_name = NULL,
+        .msg_namelen = 0,
         .msg_iov = SendData->Iovs,
         .msg_iovlen = SendData->BufferCount,
         .msg_control = NULL,
@@ -1888,13 +1888,15 @@ CxPlatSocketSendInternal(
         .msg_flags = 0
     };
 
-    // CMsg = CMSG_FIRSTHDR(&Mhdr);
-    // CMsg->cmsg_level = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IPPROTO_IP : IPPROTO_IPV6;
-    // CMsg->cmsg_type = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IP_TOS : IPV6_TCLASS;
-    // CMsg->cmsg_len = CMSG_LEN(sizeof(int));
-    // *(int *)CMSG_DATA(CMsg) = SendData->ECN;
+    CMsg = CMSG_FIRSTHDR(&Mhdr);
+    CMsg->cmsg_level = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IPPROTO_IP : IPPROTO_IPV6;
+    CMsg->cmsg_type = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IP_TOS : IPV6_TCLASS;
+    CMsg->cmsg_len = CMSG_LEN(sizeof(int));
+    *(int *)CMSG_DATA(CMsg) = SendData->ECN;
 
     if (!Socket->Connected) {
+        Mhdr.msg_name = &MappedRemoteAddress;
+        Mhdr.msg_namelen = sizeof(MappedRemoteAddress);
         Mhdr.msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
         CMsg = CMSG_NXTHDR(&Mhdr, CMsg);
         CXPLAT_DBG_ASSERT(LocalAddress != NULL);
