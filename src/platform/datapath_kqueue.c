@@ -739,7 +739,7 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
 
-    Flags &= ~O_NONBLOCK;
+    Flags |= O_NONBLOCK;
     Result =
         fcntl(
             SocketContext->SocketFd,
