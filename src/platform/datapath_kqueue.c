@@ -1005,6 +1005,7 @@ CxPlatSocketContextInitialize(
                 "connect failed");
             goto Exit;
         }
+        SocketContext->Binding->Connected = TRUE;
     }
 
 
@@ -1894,28 +1895,28 @@ CxPlatSocketSendInternal(
     // CMsg->cmsg_len = CMSG_LEN(sizeof(int));
     // *(int *)CMSG_DATA(CMsg) = SendData->ECN;
 
-    // if (!Socket->Connected) {
-    //     Mhdr.msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
-    //     CMsg = CMSG_NXTHDR(&Mhdr, CMsg);
-    //     CXPLAT_DBG_ASSERT(LocalAddress != NULL);
-    //     CXPLAT_DBG_ASSERT(CMsg != NULL);
-    //     if (RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
-    //         CMsg->cmsg_level = IPPROTO_IP;
-    //         CMsg->cmsg_type = IP_PKTINFO;
-    //         CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
-    //         PktInfo = (struct in_pktinfo*) CMSG_DATA(CMsg);
-    //         // TODO: Use Ipv4 instead of Ipv6.
-    //         PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
-    //         PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
-    //     } else {
-    //         CMsg->cmsg_level = IPPROTO_IPV6;
-    //         CMsg->cmsg_type = IPV6_PKTINFO;
-    //         CMsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
-    //         PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
-    //         PktInfo6->ipi6_ifindex = LocalAddress->Ipv6.sin6_scope_id;
-    //         PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
-    //     }
-    // }
+    if (!Socket->Connected) {
+        Mhdr.msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
+        CMsg = CMSG_NXTHDR(&Mhdr, CMsg);
+        CXPLAT_DBG_ASSERT(LocalAddress != NULL);
+        CXPLAT_DBG_ASSERT(CMsg != NULL);
+        if (RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
+            CMsg->cmsg_level = IPPROTO_IP;
+            CMsg->cmsg_type = IP_PKTINFO;
+            CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
+            PktInfo = (struct in_pktinfo*) CMSG_DATA(CMsg);
+            // TODO: Use Ipv4 instead of Ipv6.
+            PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
+            PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
+        } else {
+            CMsg->cmsg_level = IPPROTO_IPV6;
+            CMsg->cmsg_type = IPV6_PKTINFO;
+            CMsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
+            PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
+            PktInfo6->ipi6_ifindex = LocalAddress->Ipv6.sin6_scope_id;
+            PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
+        }
+    }
 
     //
     // Check to see if we need to pend.

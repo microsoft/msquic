@@ -1123,6 +1123,7 @@ CxPlatSocketContextInitialize(
                 "connect failed");
             goto Exit;
         }
+        SocketContext->Binding->Connected = TRUE;
     }
 
 
