@@ -361,7 +361,7 @@ QuicPerfCounterTrySnapShot(
         return; // Not time to resample yet.
     }
 
-    if (TimeLast !=
+    if ((int64_t)TimeLast !=
         InterlockedCompareExchange64(
             (int64_t*)&MsQuicLib.PerfCounterSamplesTime,
             (int64_t)TimeNow,
