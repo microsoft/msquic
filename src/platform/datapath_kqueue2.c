@@ -745,12 +745,12 @@ CxPlatSocketContextInitialize(
     // Set DON'T FRAG socket option.
     //
 
-    //
+    
     // Windows: setsockopt IPPROTO_IP IP_DONTFRAGMENT TRUE.
     // Linux: IP_DONTFRAGMENT option is not available. IPV6_MTU_DISCOVER is the
     // apparent alternative.
     // TODO: Verify this.
-    //
+    
     // Option = IP_PMTUDISC_DO;
     // Result =
     //     setsockopt(
@@ -770,53 +770,52 @@ CxPlatSocketContextInitialize(
     //     goto Exit;
     // }
 
-    // Option = TRUE;
-    // Result =
-    //     setsockopt(
-    //         SocketContext->SocketFd,
-    //         IPPROTO_IPV6,
-    //         IPV6_DONTFRAG,
-    //         (const void*)&Option,
-    //         sizeof(Option));
-    // if (Result == SOCKET_ERROR) {
-    //     Status = errno;
-    //     QuicTraceEvent(
-    //         DatapathErrorStatus,
-    //         "[data][%p] ERROR, %u, %s.",
-    //         Binding,
-    //         Status,
-    //         "setsockopt(IPV6_DONTFRAG) failed");
-    //     goto Exit;
-    // }
+    Option = TRUE;
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            IPPROTO_IPV6,
+            IPV6_DONTFRAG,
+            (const void*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "setsockopt(IPV6_DONTFRAG) failed");
+        goto Exit;
+    }
 
     //
     // Set socket option to receive ancillary data about the incoming packets.
     //
 
-    //
     // Windows: setsockopt IPPROTO_IPV6 IPV6_PKTINFO TRUE.
     // Android: Returns EINVAL. IPV6_PKTINFO option is not present in documentation.
     // IPV6_RECVPKTINFO seems like is the alternative.
     // TODO: Check if this works as expected?
-    //
-    // Option = TRUE;
-    // Result =
-    //     setsockopt(
-    //         SocketContext->SocketFd,
-    //         IPPROTO_IPV6,
-    //         IPV6_RECVPKTINFO,
-    //         (const void*)&Option,
-    //         sizeof(Option));
-    // if (Result == SOCKET_ERROR) {
-    //     Status = errno;
-    //     QuicTraceEvent(
-    //         DatapathErrorStatus,
-    //         "[data][%p] ERROR, %u, %s.",
-    //         Binding,
-    //         Status,
-    //         "setsockopt(IPV6_RECVPKTINFO) failed");
-    //     goto Exit;
-    // }
+    
+    Option = TRUE;
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            IPPROTO_IPV6,
+            IPV6_RECVPKTINFO,
+            (const void*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "setsockopt(IPV6_RECVPKTINFO) failed");
+        goto Exit;
+    }
 
     Option = TRUE;
     Result =
