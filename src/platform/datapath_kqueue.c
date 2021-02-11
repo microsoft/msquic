@@ -23,7 +23,7 @@ Environment:
 #include <sys/time.h>
 #include <fcntl.h>
 #ifdef QUIC_CLOG
-#include "datapath_kqueue2.c.clog.h"
+#include "datapath_kqueue.c.clog.h"
 #endif
 
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
