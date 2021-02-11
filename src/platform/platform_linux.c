@@ -739,10 +739,8 @@ CxPlatSetCurrentThreadProcessorAffinity(
     _In_ uint16_t ProcessorIndex
     )
 {
-    pthread_t Thread;
     cpu_set_t CpuSet;
-
-    Thread = pthread_self();
+    pthread_t Thread = pthread_self();
     CPU_ZERO(&CpuSet);
     CPU_SET(ProcessorIndex, &CpuSet);
 
@@ -752,8 +750,9 @@ CxPlatSetCurrentThreadProcessorAffinity(
             "[ lib] ERROR, %s.",
             "pthread_setaffinity_np failed");
     }
+
     return QUIC_STATUS_SUCCESS;
-} 
+}
 
 void
 CxPlatThreadDelete(

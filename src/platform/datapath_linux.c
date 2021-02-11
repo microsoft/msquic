@@ -1666,10 +1666,13 @@ CxPlatSocketCreateUdp(
     }
 
     if (IsServerSocket) {
-        Status = CxPlatSocketConfigureRss(&Binding->SocketContexts[0], SocketCount);
-        if (QUIC_FAILED(Status)) {
-            goto Exit;
-        }
+        //
+        // The return value is being ignored here, as if a system does not support
+        // bpf we still want the server to work. If this happens, the sockets will
+        // round robin, but each flow will be sent to the same socket, just not
+        // based on RSS.
+        //
+        (void)CxPlatSocketConfigureRss(&Binding->SocketContexts[0], SocketCount);
     }
 
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
