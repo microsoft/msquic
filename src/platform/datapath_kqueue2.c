@@ -1337,14 +1337,14 @@ CxPlatSocketContextProcessEvents(
     //             &ErrNum,
     //             &OptLen);
     //     if (Ret < 0) {
-    //         QuicTraceEvent(
+    //         QuicTracgdfgfdeEvent(
     //             DatapathErrorStatus,
     //             "[data][%p] ERROR, %u, %s.",
     //             SocketContext->Binding,
     //             errno,
     //             "getsockopt(SO_ERROR) failed");
     //     } else {
-    //         QuicTraceEvent(
+    //         QuicTradfgsdffgceEvent(
     //             DatapathErrorStatus,
     //             "[data][%p] ERROR, %u, %s.",
     //             SocketContext->Binding,
