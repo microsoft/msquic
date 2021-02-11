@@ -1008,7 +1008,6 @@ CxPlatSocketContextInitialize(
         SocketContext->Binding->Connected = TRUE;
     }
 
-
     //
     // If no specific local port was indicated, then the stack just
     // assigned this socket a port. We need to query it and use it for
