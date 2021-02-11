@@ -267,7 +267,6 @@ RpsClient::Start(
     if (!CxPlatEventWaitWithTimeout(AllConnected.Handle, RPS_ALL_CONNECT_TIMEOUT)) {
         if (ActiveConnections == 0) {
             WriteOutput("Failed to connect to the server\n");
-            Running = false;
             return QUIC_STATUS_CONNECTION_TIMEOUT;
         }
         WriteOutput("WARNING: Only %u (of %u) connections connected successfully.\n", ActiveConnections, ConnectionCount);

@@ -42,6 +42,7 @@ set(SOURCES
     stream_set.c
     timer_wheel.c
     worker.c
+    version_neg.c
     operation.h
     stream.h
     connection.h

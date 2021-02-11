@@ -89,28 +89,16 @@ BOOLEAN
 typedef CXPLAT_TLS_RECEIVE_TICKET_CALLBACK *CXPLAT_TLS_RECEIVE_TICKET_CALLBACK_HANDLER;
 
 //
-// Callback for indicating the result of deferred certificate validation.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-(CXPLAT_TLS_DEFERRED_CERTIFICATE_VALIDATION_CALLBACK)(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ uint32_t ErrorFlags,
-    _In_ QUIC_STATUS Status
-    );
-
-typedef CXPLAT_TLS_DEFERRED_CERTIFICATE_VALIDATION_CALLBACK *CXPLAT_TLS_DEFERRED_CERTIFICATE_VALIDATION_CALLBACK_HANDLER;
-
-//
 // Callback for indicating the peer certificate is ready for custom validation.
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 (CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK)(
-    _In_ QUIC_CONNECTION* Connection
-    // TODO - Expose certificate details as well
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ void* Certificate,
+    _In_ uint32_t DeferredErrorFlags,
+    _In_ QUIC_STATUS DeferredStatus
     );
 
 typedef CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK *CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK_HANDLER;
@@ -131,12 +119,6 @@ typedef struct CXPLAT_TLS_CALLBACKS {
     // Invoked when a resumption ticket is received.
     //
     CXPLAT_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicket;
-
-    //
-    // Invoked only in the deferred certificate validation scenario, with the
-    // results.
-    //
-    CXPLAT_TLS_DEFERRED_CERTIFICATE_VALIDATION_CALLBACK_HANDLER DeferredCertValidation;
 
     //
     // Invokved only in the custom certificate validation scenario, when the

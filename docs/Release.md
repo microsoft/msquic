@@ -35,6 +35,7 @@ This table describes the version, release date and end of support for official (
 | Release | Branch | Fork Date | Release Date | Support Type | End of Support |
 | -- | -- | -- | -- | -- | -- |
 | [1.0](https://github.com/microsoft/msquic/releases/tag/v1.0.0-129524) | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Nov 13 2020 | Jan 5 2021 | LTSC | Jan 4 2026 (2031) |
+| [1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.0-138070) | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | Feb 10 2020 | TBD | TBD | TBD |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates in parentheses are for [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc).
@@ -51,3 +52,18 @@ The QUIC specifications are currently "Submitted to IESG for Publication", so bo
 >  * Client-side Migration
 >  * Server Preferred Address
 >  * Path MTU Discovery
+
+## MsQuic v1.1
+
+[MsQuic v1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.0-138070) has various small improvements from v1.0. These changes include:
+
+ - Preview support for [Version Negotiation](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation-03) extension.
+ - Public API header build fixes.
+ - Improved certificate validation APIs.
+ - OpenSSL certificate validation fixes.
+ - Added (off by default) SSLKEYLOGFILE support.
+ - Linux datapath bug fixes and improvements.
+ - Various CI improvements around performance testing; including TCP comparison support.
+ - Diagnostics documentation improvements.
+
+The QUIC specifications have been approved by the IESG and are in RFC editor queue. Both the v1 and draft-29 versions are supported by this release.
