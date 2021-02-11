@@ -236,6 +236,12 @@ typedef struct QUIC_LIBRARY {
     const uint32_t* DefaultCompatibilityList;
     uint32_t DefaultCompatibilityListLength;
 
+    //
+    // Last sample of the performance counters
+    //
+    uint64_t PerfCounterSamplesTime;
+    int64_t PerfCounterSamples[QUIC_PERF_COUNTER_MAX];
+
 } QUIC_LIBRARY;
 
 extern QUIC_LIBRARY MsQuicLib;
@@ -333,6 +339,38 @@ QuicPerfCounterAdd(
 
 #define QuicPerfCounterIncrement(Type) QuicPerfCounterAdd(Type, 1)
 #define QuicPerfCounterDecrement(Type) QuicPerfCounterAdd(Type, -1)
+
+#define QUIC_PERF_SAMPLE_INTERVAL_S    30 // 30 seconds
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicPerfCounterSnapShot(
+    void
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+void
+QuicPerfCounterTrySnapShot(
+    void
+    )
+{
+    uint64_t TimeNow = CxPlatTimeUs64();
+    uint64_t TimeLast = MsQuicLib.PerfCounterSamplesTime;
+    if (CxPlatTimeDiff64(TimeLast, TimeNow) < S_TO_US(QUIC_PERF_SAMPLE_INTERVAL_S)) {
+        return; // Not time to resample yet.
+    }
+
+    if (TimeLast !=
+        InterlockedCompareExchange64(
+            (int64_t*)&MsQuicLib.PerfCounterSamplesTime,
+            (int64_t)TimeNow,
+            (int64_t)TimeLast)) {
+        return; // Someone else already is updating.
+    }
+
+    QuicPerfCounterSnapShot();
+}
 
 //
 // Creates a random, new source connection ID, that will be used on the receive

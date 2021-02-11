@@ -175,6 +175,12 @@ QuicPerfCounterAdd(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
+QuicPerfCounterTrySnapShot(
+    void
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 QuicStreamAddRef(
     _In_ QUIC_STREAM* Stream,
     _In_ QUIC_STREAM_REF Ref

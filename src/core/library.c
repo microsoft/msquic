@@ -128,6 +128,32 @@ QuicLibrarySumPerfCountersExternal(
     CxPlatLockRelease(&MsQuicLib.Lock);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicPerfCounterSnapShot(
+    void
+    )
+{
+    int64_t PerfCounterSamples[QUIC_PERF_COUNTER_MAX];
+    QuicLibrarySumPerfCounters(
+        (uint8_t*)PerfCounterSamples,
+        sizeof(PerfCounterSamples));
+
+#define QUIC_LIMIT_COUNTER(TYPE, LIMIT_PER_SECOND) \
+    CXPLAT_TEL_ASSERT( \
+        ((PerfCounterSamples[TYPE] - MsQuicLib.PerfCounterSamples[TYPE]) / QUIC_PERF_SAMPLE_INTERVAL_S) < LIMIT_PER_SECOND)
+
+    //
+    // Some heuristics that bad things aren't happening.
+    //
+    QUIC_LIMIT_COUNTER(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL, 1000000); // Don't have 1 million failed handshakes per second
+
+    CxPlatCopyMemory(
+        MsQuicLib.PerfCounterSamples,
+        PerfCounterSamples,
+        sizeof(PerfCounterSamples));
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 MsQuicLibraryOnSettingsChanged(

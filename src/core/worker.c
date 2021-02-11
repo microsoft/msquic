@@ -585,6 +585,14 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
             QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
         }
 
+        if (Worker->IdealProcessor == 0) {
+            //
+            // Core zero will opportunistically try to snap-shot performance
+            // counters and do some validation.
+            //
+            QuicPerfCounterTrySnapShot();
+        }
+
         //
         // Get the delay until the next timer expires. Check to see if any
         // timers have expired; if so, process them. If not, only wait for the

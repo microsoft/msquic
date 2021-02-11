@@ -150,6 +150,17 @@ InterlockedCompareExchange16(
 
 inline
 short
+InterlockedCompareExchange64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Destination,
+    _In_ int64_t ExChange,
+    _In_ int64_t Comperand
+    )
+{
+    return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
+}
+
+inline
+short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend
     )
