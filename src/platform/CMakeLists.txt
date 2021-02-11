@@ -29,7 +29,7 @@ else()
         )
     else()
         set(SOURCES
-            datapath_kqueue2.c
+            datapath_kqueue.c
             hashtable.c
             inline.c
             platform_posix.c
