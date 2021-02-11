@@ -196,24 +196,25 @@ CxPlatLogAssert(
 #define CXPLAT_ANALYSIS_ASSERT(X)
 #define CXPLAT_ANALYSIS_ASSUME(X)
 #define CXPLAT_FRE_ASSERT(exp) ((exp) ? (void)0 : (CxPlatLogAssert(__FILE__, __LINE__, #exp), quic_bugcheck()));
+#define CXPLAT_FRE_ASSERTMSG(exp, Y) CXPLAT_FRE_ASSERT(exp)
 
 #ifdef DEBUG
 #define CXPLAT_DBG_ASSERT(exp) CXPLAT_FRE_ASSERT(exp)
 #define CXPLAT_DBG_ASSERTMSG(exp, msg) CXPLAT_FRE_ASSERT(exp)
-#define CXPLAT_TEL_ASSERT(exp) CXPLAT_FRE_ASSERT(exp)
-#define CXPLAT_TEL_ASSERTMSG(exp, Y) CXPLAT_FRE_ASSERT(exp)
-#define CXPLAT_TEL_ASSERTMSG_ARGS(exp, _msg, _origin, _bucketArg1, _bucketArg2) CXPLAT_FRE_ASSERT(exp)
-#define CXPLAT_FRE_ASSERTMSG(exp, Y) CXPLAT_FRE_ASSERT(exp)
 #else
 #define CXPLAT_DBG_ASSERT(exp)
 #define CXPLAT_DBG_ASSERTMSG(exp, msg)
+#endif
+
+#if DEBUG || QUIC_TELEMETRY_ASSERTS
+#define CXPLAT_TEL_ASSERT(exp) CXPLAT_FRE_ASSERT(exp)
+#define CXPLAT_TEL_ASSERTMSG(exp, Y) CXPLAT_FRE_ASSERT(exp)
+#define CXPLAT_TEL_ASSERTMSG_ARGS(exp, _msg, _origin, _bucketArg1, _bucketArg2) CXPLAT_FRE_ASSERT(exp)
+#else
 #define CXPLAT_TEL_ASSERT(exp)
 #define CXPLAT_TEL_ASSERTMSG(exp, Y)
 #define CXPLAT_TEL_ASSERTMSG_ARGS(exp, _msg, _origin, _bucketArg1, _bucketArg2)
-#define CXPLAT_FRE_ASSERTMSG(exp, Y)
 #endif
-
-#define __assume(X) (void)0
 
 //
 // Debugger check.
