@@ -745,12 +745,12 @@ CxPlatSocketContextInitialize(
     // Set DON'T FRAG socket option.
     //
 
-    
+
     // Windows: setsockopt IPPROTO_IP IP_DONTFRAGMENT TRUE.
     // Linux: IP_DONTFRAGMENT option is not available. IPV6_MTU_DISCOVER is the
     // apparent alternative.
     // TODO: Verify this.
-    
+
     // Option = IP_PMTUDISC_DO;
     // Result =
     //     setsockopt(
@@ -761,7 +761,7 @@ CxPlatSocketContextInitialize(
     //         sizeof(Option));
     // if (Result == SOCKET_ERROR) {
     //     Status = errno;
-    //     QuicTraceEvent(
+    //     QuicTracgdfgfdeEvent(
     //         DatapathErrorStatus,
     //         "[data][%p] ERROR, %u, %s.",
     //         Binding,
@@ -797,7 +797,7 @@ CxPlatSocketContextInitialize(
     // Android: Returns EINVAL. IPV6_PKTINFO option is not present in documentation.
     // IPV6_RECVPKTINFO seems like is the alternative.
     // TODO: Check if this works as expected?
-    
+
     Option = TRUE;
     Result =
         setsockopt(
@@ -1343,7 +1343,7 @@ CxPlatSocketContextProcessEvents(
     //             errno,
     //             "getsockopt(SO_ERROR) failed");
     //     } else {
-    //         QuicTradfgsdffgceEvent(
+    //         QuicTracgdfgfdeEvent(
     //             DatapathErrorStatus,
     //             "[data][%p] ERROR, %u, %s.",
     //             SocketContext->Binding,
