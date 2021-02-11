@@ -707,7 +707,7 @@ CxPlatSocketContextInitialize(
     SocketContext->SocketFd =
         socket(
             AF_INET6,
-            SOCK_DGRAM | O_NONBLOCK, // TODO check if SOCK_CLOEXEC is required?
+            SOCK_DGRAM,
             IPPROTO_UDP);
     if (SocketContext->SocketFd == INVALID_SOCKET) {
         Status = errno;
