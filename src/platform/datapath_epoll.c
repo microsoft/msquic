@@ -1213,7 +1213,7 @@ CxPlatSocketContextPrepareReceive(
         SocketContext->CurrentRecvBlock =
             CxPlatDataPathAllocRecvBlock(
                 SocketContext->Binding->Datapath,
-                CxPlatProcCurrentNumber() % Socket->Binding->Datapath->ProcCount);
+                CxPlatProcCurrentNumber() % SocketContext->Binding->Datapath->ProcCount);
         if (SocketContext->CurrentRecvBlock == NULL) {
             QuicTraceEvent(
                 AllocFailure,
