@@ -1055,7 +1055,7 @@ CxPlatSocketContextUninitialize(
     )
 {
     struct kevent Event = {0};
-    EV_SET(&Event, SocketContext->SocketFd, EVFILT_USER, EV_DELETE, NOTE_TRIGGER, 0, (void*)SocketContext);
+    EV_SET(&Event, SocketContext->SocketFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, (void*)SocketContext);
     kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
 }
 
