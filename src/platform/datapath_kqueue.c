@@ -1883,8 +1883,8 @@ CxPlatSocketSendInternal(
         .msg_namelen = 0,
         .msg_iov = SendData->Iovs,
         .msg_iovlen = SendData->BufferCount,
-        .msg_control = NULL,
-        .msg_controllen = 0,
+        .msg_control = ControlBuffer,
+        .msg_controllen = CMSG_SPACE(sizeof(int)),
         .msg_flags = 0
     };
 
