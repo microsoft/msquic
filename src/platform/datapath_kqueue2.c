@@ -13,12 +13,15 @@ Environment:
 
 --*/
 
+#define __APPLE_USE_RFC_3542 1
+// See netinet6/in6.h:46 for an explanation
 #include "platform_internal.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/event.h>
 #include <sys/time.h>
+#include <fcntl.h>
 #ifdef QUIC_CLOG
 #include "datapath_kqueue2.c.clog.h"
 #endif
@@ -332,9 +335,7 @@ CxPlatProcessorContextInitialize(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int KqueueFd = INVALID_SOCKET;
-    int Ret = 0;
     uint32_t RecvPacketLength = 0;
-    BOOLEAN EventFdAdded = FALSE;
 
     CXPLAT_DBG_ASSERT(Datapath != NULL);
 
@@ -416,8 +417,8 @@ CxPlatProcessorContextUninitialize(
     )
 {
     struct kevent Event = {0};
-    EV_SET(&Event, ProcContext->Kqueue, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, NULL);
-    kevent(ProcContext->Kqueue, &Event, 1, NULL, 0, NULL);
+    EV_SET(&Event, ProcContext->KqueueFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, NULL);
+    kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
     CxPlatThreadWait(&ProcContext->KqueueWaitThread);
     CxPlatThreadDelete(&ProcContext->KqueueWaitThread);
 
@@ -695,6 +696,8 @@ CxPlatSocketContextInitialize(
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
 
+    UNREFERENCED_PARAMETER(ProcContext);
+
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
     //
@@ -703,7 +706,7 @@ CxPlatSocketContextInitialize(
     SocketContext->SocketFd =
         socket(
             AF_INET6,
-            SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, // TODO check if SOCK_CLOEXEC is required?
+            SOCK_DGRAM | O_NONBLOCK, // TODO check if SOCK_CLOEXEC is required?
             IPPROTO_UDP);
     if (SocketContext->SocketFd == INVALID_SOCKET) {
         Status = errno;
@@ -748,43 +751,43 @@ CxPlatSocketContextInitialize(
     // apparent alternative.
     // TODO: Verify this.
     //
-    Option = IP_PMTUDISC_DO;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            IPPROTO_IP,
-            IP_MTU_DISCOVER,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IP_MTU_DISCOVER) failed");
-        goto Exit;
-    }
+    // Option = IP_PMTUDISC_DO;
+    // Result =
+    //     setsockopt(
+    //         SocketContext->SocketFd,
+    //         IPPROTO_IP,
+    //         IP_MTU_DISCOVER,
+    //         (const void*)&Option,
+    //         sizeof(Option));
+    // if (Result == SOCKET_ERROR) {
+    //     Status = errno;
+    //     QuicTraceEvent(
+    //         DatapathErrorStatus,
+    //         "[data][%p] ERROR, %u, %s.",
+    //         Binding,
+    //         Status,
+    //         "setsockopt(IP_MTU_DISCOVER) failed");
+    //     goto Exit;
+    // }
 
-    Option = TRUE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            IPPROTO_IPV6,
-            IPV6_DONTFRAG,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IPV6_DONTFRAG) failed");
-        goto Exit;
-    }
+    // Option = TRUE;
+    // Result =
+    //     setsockopt(
+    //         SocketContext->SocketFd,
+    //         IPPROTO_IPV6,
+    //         IPV6_DONTFRAG,
+    //         (const void*)&Option,
+    //         sizeof(Option));
+    // if (Result == SOCKET_ERROR) {
+    //     Status = errno;
+    //     QuicTraceEvent(
+    //         DatapathErrorStatus,
+    //         "[data][%p] ERROR, %u, %s.",
+    //         Binding,
+    //         Status,
+    //         "setsockopt(IPV6_DONTFRAG) failed");
+    //     goto Exit;
+    // }
 
     //
     // Set socket option to receive ancillary data about the incoming packets.
@@ -796,24 +799,24 @@ CxPlatSocketContextInitialize(
     // IPV6_RECVPKTINFO seems like is the alternative.
     // TODO: Check if this works as expected?
     //
-    Option = TRUE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            IPPROTO_IPV6,
-            IPV6_RECVPKTINFO,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IPV6_RECVPKTINFO) failed");
-        goto Exit;
-    }
+    // Option = TRUE;
+    // Result =
+    //     setsockopt(
+    //         SocketContext->SocketFd,
+    //         IPPROTO_IPV6,
+    //         IPV6_RECVPKTINFO,
+    //         (const void*)&Option,
+    //         sizeof(Option));
+    // if (Result == SOCKET_ERROR) {
+    //     Status = errno;
+    //     QuicTraceEvent(
+    //         DatapathErrorStatus,
+    //         "[data][%p] ERROR, %u, %s.",
+    //         Binding,
+    //         Status,
+    //         "setsockopt(IPV6_RECVPKTINFO) failed");
+    //     goto Exit;
+    // }
 
     Option = TRUE;
     Result =
@@ -1017,7 +1020,7 @@ CxPlatSocketContextUninitialize(
 {
     struct kevent Event = {0};
     EV_SET(&Event, SocketContext->SocketFd, EVFILT_USER, EV_DELETE, NOTE_TRIGGER, 0, (void*)SocketContext);
-    kevent(ProcContext->KQueueFd, &Event, 1, NULL, 0, NULL);
+    kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
 }
 
 void
@@ -1026,6 +1029,7 @@ CxPlatSocketContextUninitializeComplete(
     _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
+    UNREFERENCED_PARAMETER(ProcContext);
     if (SocketContext->CurrentRecvBlock != NULL) {
         CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlock->RecvPacket);
     }
@@ -1262,6 +1266,7 @@ CxPlatSocketContextSendComplete(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_SEND_DATA* SendContext = NULL;
+    UNREFERENCED_PARAMETER(ProcContext);
 
     // Disable kqueue already disables events
 

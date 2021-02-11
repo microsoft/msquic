@@ -754,6 +754,26 @@ CxPlatThreadCreate(
     return Status;
 }
 
+QUIC_STATUS
+CxPlatSetCurrentThreadProcessorAffinity(
+    _In_ uint16_t ProcessorIndex
+    )
+{
+    cpu_set_t CpuSet;
+    pthread_t Thread = pthread_self();
+    CPU_ZERO(&CpuSet);
+    CPU_SET(ProcessorIndex, &CpuSet);
+
+    if (!pthread_setaffinity_np(Thread, sizeof(CpuSet), &CpuSet)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "pthread_setaffinity_np failed");
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
 #elif defined(CX_PLATFORM_DARWIN)
 
 QUIC_STATUS
@@ -801,27 +821,16 @@ CxPlatThreadCreate(
     return Status;
 }
 
-#endif // CX_PLATFORM
-
 QUIC_STATUS
 CxPlatSetCurrentThreadProcessorAffinity(
     _In_ uint16_t ProcessorIndex
     )
 {
-    cpu_set_t CpuSet;
-    pthread_t Thread = pthread_self();
-    CPU_ZERO(&CpuSet);
-    CPU_SET(ProcessorIndex, &CpuSet);
-
-    if (!pthread_setaffinity_np(Thread, sizeof(CpuSet), &CpuSet)) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "pthread_setaffinity_np failed");
-    }
-
+    UNREFERENCED_PARAMETER(ProcessorIndex);
     return QUIC_STATUS_SUCCESS;
 }
+
+#endif // CX_PLATFORM
 
 void
 CxPlatThreadDelete(
