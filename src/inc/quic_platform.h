@@ -150,7 +150,7 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 #elif CX_PLATFORM_LINUX
 #define CX_PLATFORM_TYPE 3
 #include <quic_platform_posix.h>
-elif CX_PLATFORM_DARWIN
+#elif CX_PLATFORM_DARWIN
 #define CX_PLATFORM_TYPE 4
 #include <quic_platform_posix.h>
 #else
