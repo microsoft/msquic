@@ -17,6 +17,11 @@ Environment:
 #include "quic_platform.h"
 #include "quic_platform_dispatch.h"
 #include "quic_trace.h"
+#ifdef CX_PLATFORM_LINUX
+#include <unistd.h>
+#include <sys/types.h>
+#else
+#endif
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -519,11 +524,14 @@ CxPlatGetAbsoluteTime(
 #if defined(CX_PLATFORM_LINUX)
     ErrorCode = clock_gettime(CLOCK_MONOTONIC, Time);
 #elif defined(CX_PLATFORM_DARWIN)
-    timespec_get(Time, TIME_UTC);
+    //
+    // timespec_get is used on darwin, as CLOCK_MONOTONIC isn't actually
+    // monotonic according to our tests.
+    //
+    ErrorCode = timespec_get(Time, TIME_UTC);
 #endif // CX_PLATFORM_DARWIN
 
-    CXPLAT_DBG_ASSERT(ErrorCode == 0);
-    UNREFERENCED_PARAMETER(ErrorCode);
+    CXPLAT_DBG_ASSERT(ErrorCode != 0);
 
     Time->tv_sec += (DeltaMs / CXPLAT_MS_PER_SECOND);
     Time->tv_nsec += ((DeltaMs % CXPLAT_MS_PER_SECOND) * CXPLAT_NANOSEC_PER_MS);
@@ -849,7 +857,7 @@ CxPlatThreadWait(
     CXPLAT_FRE_ASSERT(pthread_join(*Thread, NULL) == 0);
 }
 
-uint32_t
+CXPLAT_THREAD_ID
 CxPlatCurThreadID(
     void
     )
@@ -857,15 +865,16 @@ CxPlatCurThreadID(
 
 #if defined(CX_PLATFORM_LINUX)
 
-    CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(uint32_t), "PID size exceeds the expected size");
-    return syscall(__NR_gettid);
+    CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(CXPLAT_THREAD_ID), "PID size exceeds the expected size");
+    return gettid();
 
 #elif defined(CX_PLATFORM_DARWIN)
 
-    uint64_t tid;
-    pthread_threadid_np(NULL, &tid);
-    // XXX: check for failure
-    return (uint32_t)tid;
+    uint64_t Tid;
+    int Res = pthread_threadid_np(NULL, &Tid);
+    CXPLAT_DBG_ASSERT(Res == 0);
+    CXPLAT_DBG_ASSERT(Tid <= UINT32_MAX);
+    return (uint32_t)Tid;
 
 #endif // CX_PLATFORM_DARWIN
 }

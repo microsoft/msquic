@@ -770,7 +770,7 @@ CxPlatThreadWait(
 
 typedef uint32_t CXPLAT_THREAD_ID;
 
-uint32_t
+CXPLAT_THREAD_ID
 CxPlatCurThreadID(
     void
     );
