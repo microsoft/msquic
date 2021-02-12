@@ -79,12 +79,15 @@ foreach ($Build in $AllBuilds) {
     if ($Platform -eq "windows" -or $Platform -eq "uwp") {
         $Binaries += Join-Path $ArtifactsDir "msquic.dll"
         $Binaries += Join-Path $ArtifactsDir "msquic.pdb"
-    } else {
+    } elseif ($Platform -eq "linux") {
         $Binaries += Join-Path $ArtifactsDir "libmsquic.so"
         $LttngBin = Join-Path $ArtifactsDir "libmsquic.lttng.so"
         if (Test-Path $LttngBin) {
             $Binaries += $LttngBin
         }
+    } else {
+        # macos
+        $Binaries += Join-Path $ArtifactsDir "libmsquic.dylib"
     }
 
     $Libraries = @()
