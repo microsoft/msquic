@@ -431,7 +431,7 @@ QuicLookupFindConnectionByRemoteHashInternal(
                 "[look][%p] Lookup RemoteHash=%u found %p",
                 Lookup,
                 Hash,
-                Connection);
+                Entry->Connection);
 #endif
             return Entry->Connection;
         }
