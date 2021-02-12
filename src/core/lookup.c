@@ -14,6 +14,8 @@ Abstract:
 #include "lookup.c.clog.h"
 #endif
 
+#define QUIC_DEBUG_HASHTABLE_LOOKUP
+
 typedef struct QUIC_CACHEALIGN QUIC_PARTITIONED_HASHTABLE {
 
     CXPLAT_DISPATCH_RW_LOCK RwLock;
