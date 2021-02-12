@@ -507,7 +507,7 @@ QuicLookupInsertLocalCid(
         LookupCidInsert,
         "[look][%p] Insert Conn=%p Hash=%u",
         Lookup,
-        Connection,
+        SourceCid->Connection,
         Hash);
 #endif
 
