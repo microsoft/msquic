@@ -338,24 +338,24 @@ QuicTestConnectAndPing(
     _In_ bool FifoScheduling
     )
 {
-    QuicTraceEvent(
-        QuicTestConnectPingArgs,
-        "[test] QuicTestConnectAndPing: Family %d, Length %llu, ConnectionCount %d, StreamCount %d, StreamBurstCount %d, StreamBurstDelayMs %d, ServerStatelessRetry %d, ClientRebind %d, ClientZeroRtt %d, ServerRejectZeroRtt %d, UseSendBuffer %d, UnidirectionalStreams %d, ServerInitiatedStreams %d, FifoScheduling %d",
-        Family,
-        Length,
-        ConnectionCount,
-        StreamCount,
-        StreamBurstCount,
-        StreamBurstDelayMs,
-        ServerStatelessRetry,
-        ClientRebind,
-        ClientZeroRtt,
-        ServerRejectZeroRtt,
-        UseSendBuffer,
-        UnidirectionalStreams,
-        ServerInitiatedStreams,
-        FifoScheduling
-    );
+    // QuicTracsdafsdfdeEvent(
+    //     QuicTestConnectPingArgs,
+    //     "[test] QuicTestConnectAndPing: Family %d, Length %llu, ConnectionCount %d, StreamCount %d, StreamBurstCount %d, StreamBurstDelayMs %d, ServerStatelessRetry %d, ClientRebind %d, ClientZeroRtt %d, ServerRejectZeroRtt %d, UseSendBuffer %d, UnidirectionalStreams %d, ServerInitiatedStreams %d, FifoScheduling %d",
+    //     Family,
+    //     Length,
+    //     ConnectionCount,
+    //     StreamCount,
+    //     StreamBurstCount,
+    //     StreamBurstDelayMs,
+    //     ServerStatelessRetry,
+    //     ClientRebind,
+    //     ClientZeroRtt,
+    //     ServerRejectZeroRtt,
+    //     UseSendBuffer,
+    //     UnidirectionalStreams,
+    //     ServerInitiatedStreams,
+    //     FifoScheduling
+    // );
 
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
     const uint16_t TotalStreamCount = (uint16_t)(StreamCount * StreamBurstCount);
