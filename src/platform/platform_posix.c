@@ -871,6 +871,7 @@ CxPlatCurThreadID(
     CXPLAT_STATIC_ASSERT(sizeof(uint32_t) == sizeof(CXPLAT_THREAD_ID), "The cast depends on thread id being 32 bits");
     uint64_t Tid;
     int Res = pthread_threadid_np(NULL, &Tid);
+    UNREFERENCED_PARAMETER(Res);
     CXPLAT_DBG_ASSERT(Res == 0);
     CXPLAT_DBG_ASSERT(Tid <= UINT32_MAX);
     return (CXPLAT_THREAD_ID)Tid;
