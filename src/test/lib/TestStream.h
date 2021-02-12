@@ -56,7 +56,9 @@ struct QuicSendBuffer
         for (uint32_t i = 0; i < BufferCount; ++i) {
             this->Buffers[i].Buffer = bufferSize == 0 ? nullptr : new(std::nothrow) uint8_t[bufferSize];
             this->Buffers[i].Length = bufferSize;
-            CxPlatZeroMemory(this->Buffers[i].Buffer, this->Buffers[i].Length);
+            if (this->Buffers[i].Length != 0) {
+                CxPlatZeroMemory(this->Buffers[i].Buffer, this->Buffers[i].Length);
+            }
         }
     }
 
@@ -68,7 +70,9 @@ struct QuicSendBuffer
         Buffers(new(std::nothrow) QUIC_BUFFER[1])
     {
         this->Buffers[0].Buffer = bufferSize == 0 ? nullptr : new(std::nothrow) uint8_t[bufferSize];
-        memcpy((uint8_t*)this->Buffers[0].Buffer, buffer, bufferSize);
+        if (bufferSize != 0) {
+            memcpy((uint8_t*)this->Buffers[0].Buffer, buffer, bufferSize);
+        }
         this->Buffers[0].Length = bufferSize;
     }
 
