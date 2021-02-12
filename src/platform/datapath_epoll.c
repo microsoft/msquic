@@ -1678,7 +1678,7 @@ CxPlatSocketCreateUdp(
         // round robin, but each flow will be sent to the same socket, just not
         // based on RSS.
         //
-        (void)CxPlatSocketConfigureRss(&Binding->SocketContexts[0], SocketCount);
+        //(void)CxPlatSocketConfigureRss(&Binding->SocketContexts[0], SocketCount);
     }
 
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
