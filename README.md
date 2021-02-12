@@ -6,7 +6,7 @@ protocol. It is cross platform, written in C and designed to be a general purpos
 
 > **Important** The QUIC protocol is not an official RFC yet. It has been approved by the IESG and now is in the RFC editor queue (final step).
 
-IETF Drafts: [Transport](https://tools.ietf.org/html/draft-ietf-quic-transport), [TLS](https://tools.ietf.org/html/draft-ietf-quic-tls), [Recovery](https://tools.ietf.org/html/draft-ietf-quic-recovery), [Datagram](https://tools.ietf.org/html/draft-ietf-quic-datagram), [Load Balancing](https://tools.ietf.org/html/draft-ietf-quic-load-balancers)
+IETF Drafts: [Transport](https://tools.ietf.org/html/draft-ietf-quic-transport), [TLS](https://tools.ietf.org/html/draft-ietf-quic-tls), [Recovery](https://tools.ietf.org/html/draft-ietf-quic-recovery), [Datagram](https://tools.ietf.org/html/draft-ietf-quic-datagram), [Load Balancing](https://tools.ietf.org/html/draft-ietf-quic-load-balancers), [Version Negotiation](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation)
 
 [![Build Status](https://dev.azure.com/ms/msquic/_apis/build/status/CI?branchName=main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) [![Test Status](https://img.shields.io/azure-devops/tests/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) [![Code Coverage](https://img.shields.io/azure-devops/coverage/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) ![CodeQL](https://github.com/microsoft/msquic/workflows/CodeQL/badge.svg?branch=main) [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/microsoft/msquic.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/microsoft/msquic/context:cpp)
 

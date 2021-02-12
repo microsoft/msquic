@@ -32,8 +32,8 @@ Supported Platforms:
 #include "msquic_winkernel.h"
 #elif _WIN32
 #include "msquic_winuser.h"
-#elif __linux__
-#include "msquic_linux.h"
+#elif __linux__ || __APPLE__
+#include "msquic_posix.h"
 #else
 #error "Unsupported Platform"
 #endif

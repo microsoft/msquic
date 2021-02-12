@@ -41,9 +41,6 @@ Environment:
 #include <wsk.h>
 #include <bcrypt.h>
 #include <intrin.h>
-#ifdef QUIC_TELEMETRY_ASSERTS
-#include <telemetry\MicrosoftTelemetryAssertKM.h>
-#endif
 #include <msquic_winkernel.h>
 #pragma warning(pop)
 
@@ -217,23 +214,16 @@ CxPlatLogAssert(
 #define CXPLAT_DBG_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
 #endif
 
-#if DEBUG
+#if DEBUG || QUIC_TELEMETRY_ASSERTS
 #define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
 #define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
 #define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
      (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
 #else
-#ifdef MICROSOFT_TELEMETRY_ASSERT
-#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_KM(_exp))
-#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG_KM(_exp, _msg))
-#define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-    (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG_WITH_ARGS_KM(_exp, _msg, _origin, _bucketArg1, _bucketArg2))
-#else
 #define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
 #define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
 #define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
     (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#endif
 #endif
 
 #define CXPLAT_FRE_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
