@@ -1460,6 +1460,12 @@ CxPlatSocketContextSendComplete(
     }
 
     do {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            42,
+            "Sending pended packet");
         Status =
             CxPlatSocketSendInternal(
                 SocketContext->Binding,
@@ -2163,6 +2169,12 @@ CxPlatSocketSendInternal(
                 LocalAddress,
                 RemoteAddress);
             SendPending = TRUE;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                SocketContext->Binding,
+                42,
+                "Pended packet appended to list");
         }
         CxPlatLockRelease(&SocketContext->PendingSendContextLock);
         if (SendPending) {
