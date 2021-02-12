@@ -329,7 +329,7 @@ QuicTestConnectAndPing(
     _In_ uint32_t StreamBurstCount,
     _In_ uint32_t StreamBurstDelayMs,
     _In_ bool ServerStatelessRetry,
-    _In_ bool /* ClientRebind */, // TODO - Use this
+    _In_ bool ClientRebind, // TODO - Use this
     _In_ bool ClientZeroRtt,
     _In_ bool ServerRejectZeroRtt,
     _In_ bool UseSendBuffer,
@@ -338,6 +338,25 @@ QuicTestConnectAndPing(
     _In_ bool FifoScheduling
     )
 {
+    QuicTraceEvent(
+        QuicTestConnectPingArgs,
+        "[test] QuicTestConnectAndPing: Family %d, Length %llu, ConnectionCount %d, StreamCount %d, StreamBurstCount %d, StreamBurstDelayMs %d, ServerStatelessRetry %d, ClientRebind %d, ClientZeroRtt %d, ServerRejectZeroRtt %d, UseSendBuffer %d, UnidirectionalStreams %d, ServerInitiatedStreams %d, FifoScheduling %d",
+        Family,
+        Length,
+        ConnectionCount,
+        StreamCount,
+        StreamBurstCount,
+        StreamBurstDelayMs,
+        ServerStatelessRetry,
+        ClientRebind,
+        ClientZeroRtt,
+        ServerRejectZeroRtt,
+        UseSendBuffer,
+        UnidirectionalStreams,
+        ServerInitiatedStreams,
+        FifoScheduling
+    );
+
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
     const uint16_t TotalStreamCount = (uint16_t)(StreamCount * StreamBurstCount);
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;

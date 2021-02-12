@@ -10184,6 +10184,70 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
     },
+    "QuicTestConnectPingArgs": {
+      "ModuleProperites": {},
+      "TraceString": "[test] QuicTestConnectAndPing: Family %d, Length %llu, ConnectionCount %d, StreamCount %d, StreamBurstCount %d, StreamBurstDelayMs %d, ServerStatelessRetry %d, ClientRebind %d, ClientZeroRtt %d, ServerRejectZeroRtt %d, UseSendBuffer %d, UnidirectionalStreams %d, ServerInitiatedStreams %d, FifoScheduling %d",
+      "UniqueId": "QuicTestConnectPingArgs",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg10"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg11"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg12"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg13"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg14"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg15"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "TestIgnoreConnectionTimeout": {
       "ModuleProperites": {},
       "TraceString": "[test] Ignoring timeout unexpected status because of random loss",
@@ -13365,6 +13429,10 @@
       {
         "UniquenessHash": "4f17ceb1-4af8-424e-18d8-17117328147a",
         "TraceID": "TestDriverStopped"
+      },
+      {
+        "UniquenessHash": "723c126b-f4bb-c225-c796-6710c8f2bbea",
+        "TraceID": "QuicTestConnectPingArgs"
       },
       {
         "UniquenessHash": "f4248703-23be-e418-2b90-c9670966f154",

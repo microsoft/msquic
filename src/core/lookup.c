@@ -14,7 +14,7 @@ Abstract:
 #include "lookup.c.clog.h"
 #endif
 
-#define QUIC_DEBUG_HASHTABLE_LOOKUP
+#define QUIC_DEBUG_HASHTABLE_LOOKUP 1
 
 typedef struct QUIC_CACHEALIGN QUIC_PARTITIONED_HASHTABLE {
 
