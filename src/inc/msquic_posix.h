@@ -16,8 +16,8 @@ Environment:
 
 #pragma once
 
-#ifndef _MSQUIC_LINUX_
-#define _MSQUIC_LINUX_
+#ifndef _MSQUIC_POSIX_
+#define _MSQUIC_POSIX_
 
 #include <stdlib.h>
 #include <stdio.h>
