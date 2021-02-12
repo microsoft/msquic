@@ -15,7 +15,7 @@ target_compile_features(inc INTERFACE cxx_std_17)
 target_compile_features(inc INTERFACE c_std_11)
 
 if (NOT MSVC AND QUIC_ENABLE_SANITIZERS)
-    target_link_libraries(inc INTERFACE -fsanitize=address,undefined)
+    target_link_libraries(inc INTERFACE -fsanitize=address,leak,undefined)
 endif()
 
 if(QUIC_ENABLE_LOGGING)
@@ -43,4 +43,3 @@ endif()
 
 add_library(warnings INTERFACE)
 target_compile_options(warnings INTERFACE ${QUIC_WARNING_FLAGS})
-#target_compile_options(warnings INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_WARNING_FLAGS}>)

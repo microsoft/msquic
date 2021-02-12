@@ -1263,7 +1263,6 @@ QuicConnTimerExpired(
             "SHUTDOWN",
             "INVALID"
         };
-        UNREFERENCED_PARAMETER(TimerNames);
         QuicTraceLogConnVerbose(
             TimerExpired,
             Connection,
