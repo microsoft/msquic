@@ -18,8 +18,7 @@ Environment:
 #include "quic_platform_dispatch.h"
 #include "quic_trace.h"
 #ifdef CX_PLATFORM_LINUX
-#include <unistd.h>
-#include <sys/types.h>
+#include <sys/syscall.h>
 #endif
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -866,7 +865,7 @@ CxPlatCurThreadID(
 #if defined(CX_PLATFORM_LINUX)
 
     CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(CXPLAT_THREAD_ID), "PID size exceeds the expected size");
-    return gettid();
+    return syscall(SYS_gettid);
 
 #elif defined(CX_PLATFORM_DARWIN)
     CXPLAT_STATIC_ASSERT(sizeof(uint32_t) == sizeof(CXPLAT_THREAD_ID), "The cast depends on thread id being 32 bits");
