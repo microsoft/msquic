@@ -364,7 +364,7 @@ else()
 
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,undefined -fsanitize-address-use-after-scope -O0 -ggdb3 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-address-use-after-scope -O0 -ggdb3 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
         if (CMAKE_C_COMPILER_ID MATCHES "Clang")
             list(APPEND QUIC_COMMON_FLAGS -fsanitize=unsigned-integer-overflow -fsanitize=local-bounds -fsanitize=integer -fsanitize=nullability)
         endif()
