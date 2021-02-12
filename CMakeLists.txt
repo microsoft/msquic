@@ -129,6 +129,7 @@ option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
 option(QUIC_CI "CI Specific build optimizations" OFF)
 option(QUIC_RANDOM_ALLOC_FAIL "Randomly fails allocation calls" OFF)
 option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
+option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -210,6 +211,10 @@ endif()
 
 if(QUIC_TLS_SECRETS_SUPPORT)
     list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_SECRETS_SUPPORT=1)
+endif()
+
+if(QUIC_TELEMETRY_ASSERTS)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_TELEMETRY_ASSERTS=1)
 endif()
 
 if(WIN32)
