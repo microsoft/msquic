@@ -329,7 +329,7 @@ QuicTestConnectAndPing(
     _In_ uint32_t StreamBurstCount,
     _In_ uint32_t StreamBurstDelayMs,
     _In_ bool ServerStatelessRetry,
-    _In_ bool ClientRebind, // TODO - Use this
+    _In_ bool /* ClientRebind */, // TODO - Use this
     _In_ bool ClientZeroRtt,
     _In_ bool ServerRejectZeroRtt,
     _In_ bool UseSendBuffer,
