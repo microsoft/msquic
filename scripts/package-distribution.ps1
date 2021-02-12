@@ -68,7 +68,7 @@ foreach ($Build in $AllBuilds) {
     if ($Platform -eq "windows" -or $Platform -eq "uwp") {
         $Headers += Join-Path $HeaderDir  "msquic_winuser.h"
     } else {
-        $Headers += Join-Path $HeaderDir  "msquic_linux.h"
+        $Headers += Join-Path $HeaderDir  "msquic_posix.h"
         $Headers += Join-Path $HeaderDir  "quic_sal_stub.h"
     }
 
