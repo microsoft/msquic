@@ -528,10 +528,11 @@ CxPlatGetAbsoluteTime(
     // timespec_get is used on darwin, as CLOCK_MONOTONIC isn't actually
     // monotonic according to our tests.
     //
-    ErrorCode = timespec_get(Time, TIME_UTC);
+    timespec_get(Time, TIME_UTC);
 #endif // CX_PLATFORM_DARWIN
 
-    CXPLAT_DBG_ASSERT(ErrorCode != 0);
+    CXPLAT_DBG_ASSERT(ErrorCode == 0);
+    UNREFERENCED_PARAMETER(ErrorCode);
 
     Time->tv_sec += (DeltaMs / CXPLAT_MS_PER_SECOND);
     Time->tv_nsec += ((DeltaMs % CXPLAT_MS_PER_SECOND) * CXPLAT_NANOSEC_PER_MS);
