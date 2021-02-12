@@ -338,8 +338,9 @@ else()
     if(QUIC_ENABLE_LOGGING)
         if (APPLE)
             message(STATUS "Configuring for macos tracing")
-            set(CMAKE_CLOG_CONFIG_PROFILE macos)
-            #set(CMAKE_CLOG_CONFIG_PROFILE stubs)
+            # macos will print all logs to stdout. If that is wanted, uncomment, and comment the line below.
+            #set(CMAKE_CLOG_CONFIG_PROFILE macos)
+            set(CMAKE_CLOG_CONFIG_PROFILE stubs)
             list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
         else()
             message(STATUS "Configuring for LTTng tracing")
@@ -364,7 +365,7 @@ else()
 
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-address-use-after-scope -O0 -ggdb3 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-address-use-after-scope -Og -ggdb3 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
         if (CMAKE_C_COMPILER_ID MATCHES "Clang")
             list(APPEND QUIC_COMMON_FLAGS -fsanitize=unsigned-integer-overflow -fsanitize=local-bounds -fsanitize=integer -fsanitize=nullability)
         endif()
@@ -487,7 +488,6 @@ if(QUIC_TLS STREQUAL "openssl")
             list(APPEND OPENSSL_CONFIG_FLAGS -latomic)
         elseif(CX_PLATFORM STREQUAL "darwin")
             # need to build with Apple's compiler
-            # also, "no-shared" breaks the build for master-alpha4-quic-support
             set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config

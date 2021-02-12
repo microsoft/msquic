@@ -20,7 +20,6 @@ Environment:
 #ifdef CX_PLATFORM_LINUX
 #include <unistd.h>
 #include <sys/types.h>
-#else
 #endif
 #include <dlfcn.h>
 #include <fcntl.h>
