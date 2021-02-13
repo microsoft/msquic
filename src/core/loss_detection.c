@@ -1239,7 +1239,7 @@ QuicLossDetectionProcessAckBlocks(
                 QuicLossValidate(LossDetection);
             }
 
-            if (*LostPacketsStart == NULL) {
+            if (LossDetection->LostPackets == NULL) {
                 //
                 // All previously considered lost packets are been found to be
                 // spuriously lost. Inform congestion control so that it might
