@@ -16,7 +16,8 @@ function generateWanPerfData() {
             "DurationMs": tcpData.DurationMs,
             "TcpRateKbps": tcpData.RateKbps,
             "QuicRateKbps": quicData.RateKbps,
-            "DiffPercent": (quicData.RateKbps - tcpData.RateKbps) / (tcpData.BottleneckMbps * 10)
+            "TcpDiffPercent": (quicData.RateKbps - tcpData.RateKbps) / (tcpData.BottleneckMbps * 10),
+            "MaxDiffPercent": quicData.RateKbps / (tcpData.BottleneckMbps * 10)
         })
     }
 }
@@ -37,7 +38,8 @@ function generateWanTable() {
         //"Duration (ms)",
         "STCP Goodput (Kbps)",
         "QUIC Goodput (Kbps)",
-        "Diff (%)"
+        "Diff from TCP (%)",
+        "Diff from Max (%)"
     ].forEach (
         name => {
             var element = document.createElement("th");
@@ -57,7 +59,8 @@ function generateWanTable() {
             //{ data: "DurationMs" },
             { data: "TcpRateKbps" },
             { data: "QuicRateKbps" },
-            { data: "DiffPercent" }
+            { data: "TcpDiffPercent" },
+            { data: "MaxDiffPercent" }
         ]
     })
 }
