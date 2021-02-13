@@ -41,7 +41,9 @@ typedef struct QUIC_CONGESTION_CONTROL {
     uint32_t SendIdleTimeoutMs;
 
     uint32_t CongestionWindow; // bytes
+    uint32_t PrevCongestionWindow; // bytes
     uint32_t SlowStartThreshold; // bytes
+    uint32_t PrevSlowStartThreshold; // bytes
 
     //
     // The number of bytes considered to be still in the network.
@@ -65,8 +67,11 @@ typedef struct QUIC_CONGESTION_CONTROL {
     uint64_t TimeOfLastAck; // millisec
     uint64_t TimeOfCongAvoidStart; // millisec
     uint32_t KCubic; // millisec
+    uint32_t PrevKCubic; // millisec
     uint32_t WindowMax; // bytes
+    uint32_t PrevWindowMax; // bytes
     uint32_t WindowLastMax; // bytes
+    uint32_t PrevWindowLastMax; // bytes
 
     //
     // This variable tracks the largest packet that was outstanding at the time
@@ -170,4 +175,14 @@ QuicCongestionControlOnDataLost(
     _In_ uint64_t LargestPacketNumberSent,
     _In_ uint32_t NumRetransmittableBytes,
     _In_ BOOLEAN PersistentCongestion
+    );
+
+//
+// Called when all recently considered lost data was found to be actually
+// acknowledged.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCongestionControlOnSpuriousCongestionEvent(
+    _In_ QUIC_CONGESTION_CONTROL* Cc
     );

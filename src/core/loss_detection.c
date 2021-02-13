@@ -1238,6 +1238,16 @@ QuicLossDetectionProcessAckBlocks(
 
                 QuicLossValidate(LossDetection);
             }
+
+            if (*LostPacketsStart == NULL) {
+                //
+                // All previously considered lost packets are been found to be
+                // spuriously lost. Inform congestion control so that it might
+                // rollback the previous congestion event effects. 
+                //
+                QuicCongestionControlOnSpuriousCongestionEvent(
+                    &Connection->CongestionControl);
+            }
         }
 
         //
