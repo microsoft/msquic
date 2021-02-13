@@ -29,6 +29,7 @@ protected:
     CXPLAT_SEC_CONFIG* ClientSecConfigCustomCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigExtraCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
+    CXPLAT_SEC_CONFIG* ClientSecConfigClientCert {nullptr};
     static const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
 
     TlsTest() { }
@@ -83,6 +84,15 @@ protected:
             NULL,
             NULL
         };
+        QUIC_CERTIFICATE_HASH ClientCertHash = {{0xE1, 0x79, 0xFC, 0xB1, 0xD7, 0x90, 0x97, 0x7D, 0x75, 0x1F, 0x34, 0xCE, 0xDE, 0x13, 0x75, 0x50, 0xB0, 0xF3, 0xE8, 0x31}};
+        QUIC_CREDENTIAL_CONFIG ClientCertCredConfig = {
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
+            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
+            &ClientCertHash,
+            NULL,
+            NULL,
+            NULL
+        };
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 &ClientCredConfig,
@@ -128,6 +138,14 @@ protected:
                 &ClientSecConfigNoCertValidation,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfigNoCertValidation);
+
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                &ClientCertCredConfig,
+                &TlsContext::TlsClientCallbacks,
+                &ClientSecConfigClientCert,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ClientSecConfigClientCert);
     }
 
     void TearDown() override
@@ -147,6 +165,10 @@ protected:
         if (ClientSecConfigDeferredCertValidation) {
             CxPlatTlsSecConfigDelete(ClientSecConfigDeferredCertValidation);
             ClientSecConfigDeferredCertValidation = nullptr;
+        }
+        if (ClientSecConfigClientCert) {
+            CxPlatTlsSecConfigDelete(ClientSecConfigClientCert);
+            ClientSecConfigClientCert = nullptr;
         }
         if (ClientSecConfig) {
             CxPlatTlsSecConfigDelete(ClientSecConfig);
@@ -501,7 +523,7 @@ protected:
         static BOOLEAN
         OnPeerCertReceived(
             _In_ QUIC_CONNECTION* Connection,
-            _In_ void* /* Certificate */,
+            _In_ void* Certificate,
             _In_ uint32_t DeferredErrorFlags,
             _In_ QUIC_STATUS DeferredStatus
             )
@@ -1278,6 +1300,16 @@ TEST_F(TlsTest, LockPerfTest)
     SetThreadPriority(CurrentThread, THREAD_PRIORITY_NORMAL);
     SetThreadAffinityMask(CurrentThread, OldAffinityMask);
 #endif
+}
+
+
+TEST_F(TlsTest, ClientCertificate)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigClientCert);
+
+    DoHandshake(ServerContext, ClientContext);
 }
 
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());

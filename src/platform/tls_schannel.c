@@ -1074,33 +1074,27 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER; // Defer validation without indication doesn't make sense.
     }
 
-    if (IsClient) {
-
-        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
-            return QUIC_STATUS_NOT_SUPPORTED; // Client certificates not supported yet.
-        }
-
-    } else {
-
-        switch (CredConfig->Type) {
-        case QUIC_CREDENTIAL_TYPE_NONE:
+    switch (CredConfig->Type) {
+    case QUIC_CREDENTIAL_TYPE_NONE:
+        if (!IsClient) {
             return QUIC_STATUS_INVALID_PARAMETER; // Server requires a certificate.
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
-#ifndef _KERNEL_MODE
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
-#endif
-            if (CredConfig->CertificateContext == NULL && CredConfig->Principal == NULL) {
-                return QUIC_STATUS_INVALID_PARAMETER;
-            }
-            break;
-#ifdef _KERNEL_MODE
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
-#endif
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE:
-        default:
-            return QUIC_STATUS_NOT_SUPPORTED;
         }
+        break;
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+#ifndef _KERNEL_MODE
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
+#endif
+        if (CredConfig->CertificateContext == NULL && CredConfig->Principal == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        break;
+#ifdef _KERNEL_MODE
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
+#endif
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE:
+    default:
+        return QUIC_STATUS_NOT_SUPPORTED;
     }
 
     QUIC_ACH_CONTEXT* AchContext =
@@ -1177,12 +1171,10 @@ CxPlatTlsSecConfigCreate(
 
 
 #ifdef _KERNEL_MODE
-    if (IsClient) {
-        //
-        // Nothing supported for client right now.
-        //
-
-    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
+    //
+    // Assumption: client works the same as server here
+    //
+    if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
         CXPLAT_DBG_ASSERT(CredConfig->CertificateHash != NULL);
 
         QUIC_CERTIFICATE_HASH* CertHash = CredConfig->CertificateHash;
@@ -1793,6 +1785,9 @@ CxPlatTlsWriteDataToSchannel(
         ISC_REQ_CONFIDENTIALITY |
         ISC_RET_EXTENDED_ERROR |
         ISC_REQ_STREAM;
+    if (TlsContext->IsServer) {
+        ContextReq |= ASC_REQ_MUTUAL_AUTH;
+    }
     ULONG ContextAttr;
     SECURITY_STATUS SecStatus;
 
@@ -1990,6 +1985,18 @@ CxPlatTlsWriteDataToSchannel(
                 //
                 // TODO - Check for certificate availability on server side.
                 //
+#ifdef _KERNEL_MODE
+                QueryContextAttributesW(
+                    &TlsContext->SchannelContext,
+                    SECPKG_ATTR_REMOTE_CERTIFICATES,
+                    (PSecPkgContext_Certificates)&CertChain
+                )
+#else
+                // QueryContextAttributesW(
+                //     &TlsContext->SchannelContext,
+                //     SECPKG_ATTR_REMOTE_CERT_CONTEXT,
+                //     (PVOID)&pClientCertContext);
+#endif
 
                 SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
                 if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
@@ -2024,6 +2031,10 @@ CxPlatTlsWriteDataToSchannel(
                     State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
                     break;
                 }
+
+#ifdef _KERNEL_MODE
+                FreeContextBuffer(CertChain);
+#endif
             }
 
             QuicTraceLogConnInfo(
