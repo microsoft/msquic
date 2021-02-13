@@ -1468,8 +1468,7 @@ CxPlatHashCompute(
     )
 {
     UNREFERENCED_PARAMETER(Hash);
-    UNREFERENCED_PARAMETER(Input);
-    UNREFERENCED_PARAMETER(InputLength);
     CxPlatZeroMemory(Output, OutputLength);
+    CxPlatCopyMemory(Output, Input, min(OutputLength, InputLength));
     return QUIC_STATUS_SUCCESS;
 }
