@@ -304,7 +304,6 @@ typedef struct QUIC_NEW_CONNECTION_INFO {
 #endif
 
 #define QUIC_TLS_UNKNOWN        0
-#endif
 #ifdef SP_PROT_TLS1_3
 #define QUIC_TLS1_3             SP_PROT_TLS1_3
 #else
