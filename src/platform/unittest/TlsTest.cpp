@@ -764,6 +764,8 @@ TEST_F(TlsTest, HandshakeInfoAES256GCM)
     EXPECT_EQ(QUIC_ALG_SHA_384, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
 
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    HandshakeInfoLen = sizeof(HandshakeInfo);
     Status =
         CxPlatTlsParamGet(
             ServerContext.Ptr,
@@ -808,6 +810,8 @@ TEST_F(TlsTest, HandshakeInfoAES256GCM)
 //     EXPECT_EQ(QUIC_ALG_SHA_256, HandshakeInfo.Hash);
 //     EXPECT_EQ(0, HandshakeInfo.HashStrength);
 
+//     CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+//     HandshakeInfoLen = sizeof(HandshakeInfo);
 //     Status =
 //         CxPlatTlsParamGet(
 //             ServerContext.Ptr,
@@ -824,6 +828,39 @@ TEST_F(TlsTest, HandshakeInfoAES256GCM)
 //     EXPECT_EQ(QUIC_ALG_SHA_256, HandshakeInfo.Hash);
 //     EXPECT_EQ(0, HandshakeInfo.HashStrength);
 // }
+
+TEST_F(TlsTest, HandshakeNegotiatedAlpn)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    DoHandshake(ServerContext, ClientContext);
+
+    char NegotiatedAlpn[255];
+    CxPlatZeroMemory(&NegotiatedAlpn, sizeof(NegotiatedAlpn));
+    uint32_t AlpnLen = sizeof(NegotiatedAlpn);
+    QUIC_STATUS Status =
+        CxPlatTlsParamGet(
+            ClientContext.Ptr,
+            QUIC_PARAM_TLS_NEGOTIATED_ALPN,
+            &AlpnLen,
+            NegotiatedAlpn);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    ASSERT_EQ(Alpn[0], AlpnLen);
+    ASSERT_EQ(Alpn[1], NegotiatedAlpn[0]);
+
+    CxPlatZeroMemory(&NegotiatedAlpn, sizeof(NegotiatedAlpn));
+    AlpnLen = sizeof(NegotiatedAlpn);
+    Status =
+        CxPlatTlsParamGet(
+            ServerContext.Ptr,
+            QUIC_PARAM_TLS_NEGOTIATED_ALPN,
+            &AlpnLen,
+            NegotiatedAlpn);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    ASSERT_EQ(Alpn[0], AlpnLen);
+    ASSERT_EQ(Alpn[1], NegotiatedAlpn[0]);
+}
 
 TEST_F(TlsTest, HandshakeParallel)
 {

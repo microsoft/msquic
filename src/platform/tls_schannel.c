@@ -2531,7 +2531,7 @@ CxPlatTlsParamGet(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
+    _Inout_updates_bytes_opt_(*BufferLength)
         void* Buffer
     )
 {
@@ -2585,6 +2585,12 @@ CxPlatTlsParamGet(
                         SECPKG_ATTR_CONNECTION_INFO,
                         &ConnInfo));
             if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    Status,
+                    "Query Connection Info");
                 break;
             }
 
@@ -2598,6 +2604,12 @@ CxPlatTlsParamGet(
                         SECPKG_ATTR_CIPHER_INFO,
                         &CipherInfo));
             if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    Status,
+                    "Query Cipher Info");
                 break;
             }
 
@@ -2622,6 +2634,50 @@ CxPlatTlsParamGet(
         default:
             Status = QUIC_STATUS_NOT_SUPPORTED;
             break;
+
+        case QUIC_PARAM_TLS_NEGOTIATED_ALPN: {
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            SecPkgContext_ApplicationProtocol NegotiatedAlpn;
+            CxPlatZeroMemory(&NegotiatedAlpn, sizeof(NegotiatedAlpn));
+
+            Status =
+                SecStatusToQuicStatus(
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_APPLICATION_PROTOCOL,
+                        &NegotiatedAlpn));
+            if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    Status,
+                    "Query Application Protocol");
+                break;
+            }
+            if (NegotiatedAlpn.ProtoNegoStatus != SecApplicationProtocolNegotiationStatus_Success) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    NegotiatedAlpn.ProtoNegoStatus,
+                    "ALPN negotiation status");
+                Status = QUIC_STATUS_TLS_ERROR;
+                break;
+            }
+            if (*BufferLength < NegotiatedAlpn.ProtocolIdSize) {
+                *BufferLength = NegotiatedAlpn.ProtocolIdSize;
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+            *BufferLength = NegotiatedAlpn.ProtocolIdSize;
+            CxPlatCopyMemory(Buffer, NegotiatedAlpn.ProtocolId, NegotiatedAlpn.ProtocolIdSize);
+
+        }
     }
 
     return Status;
