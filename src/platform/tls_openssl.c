@@ -1282,7 +1282,6 @@ CxPlatMapCipherSuite(
             HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_128;
             HandshakeInfo->CipherStrength = 128;
             HandshakeInfo->Hash = QUIC_ALG_SHA_256;
-
             break;
         case QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384:
             HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_256;
@@ -1320,30 +1319,9 @@ CxPlatMapVersion(
     //     unknown
     // Regardless, it's null terminated.
     //
-    // Taken from https://github.com/dotnet/runtime/blob/69425a7e6198ff78131ad64f1aa3fc28202bfde8/src/libraries/System.Net.Security/src/System/Net/Security/SslConnectionInfo.Linux.cs
-    // We only support TLS 1.3
-    //
-    if (Version[0] == 'T')
-    {
-        if (Version[1] == 'L' &&
-            Version[2] == 'S' &&
-            Version[3] == 'v' &&
-            Version[4] == '1')
-        {
-            if (Version[5] == '\0')
-            {
-                return 0;
-            }
-            if (Version[5] == '.' && Version[6] != '\0' && Version[7] == '\0')
-            {
-                switch (Version[6])
-                {
-                    case '3': return IsServer ? QUIC_TLS1_3_SERVER : QUIC_TLS1_3_CLIENT;
-                }
-            }
-        }
+    if (strcmp(Version, "TLSv1.3") == 0) {
+        return IsServer ? QUIC_TLS1_3_SERVER : QUIC_TLS1_3_CLIENT;
     }
-
     return 0;
 }
 
