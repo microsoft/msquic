@@ -1260,45 +1260,39 @@ CxPlatTlsParamSet(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
-//
-// Mappings taken from the following .NET definitions.
-// https://github.com/dotnet/runtime/blob/69425a7e6198ff78131ad64f1aa3fc28202bfde8/src/libraries/System.Net.Security/src/System/Net/Security/SslConnectionInfo.Linux.cs
-// https://github.com/dotnet/runtime/blob/69425a7e6198ff78131ad64f1aa3fc28202bfde8/src/libraries/Native/Unix/System.Security.Cryptography.Native/pal_ssl.c
-// https://github.com/dotnet/runtime/blob/1d9e50cb4735df46d3de0cee5791e97295eaf588/src/libraries/System.Net.Security/src/System/Net/Security/TlsCipherSuiteData.Lookup.cs
-//
-
-#define TLS_AES_128_GCM_SHA256          0x1301
-#define TLS_AES_256_GCM_SHA384          0x1302
-#define TLS_CHACHA20_POLY1305_SHA256    0x1303
-
 static
 QUIC_STATUS
 CxPlatMapCipherSuite(
     _Inout_ QUIC_HANDSHAKE_INFO* HandshakeInfo
     )
 {
+    //
+    // Mappings taken from the following .NET definitions.
+    // https://github.com/dotnet/runtime/blob/69425a7e6198ff78131ad64f1aa3fc28202bfde8/src/libraries/Native/Unix/System.Security.Cryptography.Native/pal_ssl.c
+    // https://github.com/dotnet/runtime/blob/1d9e50cb4735df46d3de0cee5791e97295eaf588/src/libraries/System.Net.Security/src/System/Net/Security/TlsCipherSuiteData.Lookup.cs
+    //
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     HandshakeInfo->KeyExchangeAlgorithm = 0;
     HandshakeInfo->KeyExchangeStrength = 0;
 
     switch (HandshakeInfo->CipherSuite) {
-        case TLS_AES_128_GCM_SHA256:
-            HandshakeInfo->CipherAlgorithm = 0x660E;
+        case QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256:
+            HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_128;
             HandshakeInfo->CipherStrength = 128;
-            HandshakeInfo->Hash = 0x800c;
+            HandshakeInfo->Hash = QUIC_ALG_SHA_256;
             HandshakeInfo->HashStrength = 0;
             break;
-        case TLS_AES_256_GCM_SHA384:
-            HandshakeInfo->CipherAlgorithm = 0x6610;
+        case QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384:
+            HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_256;
             HandshakeInfo->CipherStrength = 256;
-            HandshakeInfo->Hash = 0x800d;
+            HandshakeInfo->Hash = QUIC_ALG_SHA_384;
             HandshakeInfo->HashStrength = 0;
             break;
-        case TLS_CHACHA20_POLY1305_SHA256:
-            HandshakeInfo->CipherAlgorithm = 0;
-            HandshakeInfo->CipherStrength = 256;
-            HandshakeInfo->Hash = 0x800c;
+        case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
+            HandshakeInfo->CipherAlgorithm = QUIC_ALG_CHACHA20;
+            HandshakeInfo->CipherStrength = 0;
+            HandshakeInfo->Hash = QUIC_ALG_SHA_256;
             HandshakeInfo->HashStrength = 0;
             break;
         default:
@@ -1312,7 +1306,7 @@ CxPlatMapCipherSuite(
 static
 uint32_t
 CxPlatMapVersion(
-    _In_ const char* Version,
+    _In_z_ const char* Version,
     _In_ BOOLEAN IsServer
     )
 {
@@ -1327,7 +1321,8 @@ CxPlatMapVersion(
     //     unknown
     // Regardless, it's null terminated.
     //
-    // Taken from
+    // Taken from https://github.com/dotnet/runtime/blob/69425a7e6198ff78131ad64f1aa3fc28202bfde8/src/libraries/System.Net.Security/src/System/Net/Security/SslConnectionInfo.Linux.cs
+    // We only support TLS 1.3
     //
     if (Version[0] == 'T')
     {
@@ -1338,32 +1333,14 @@ CxPlatMapVersion(
         {
             if (Version[5] == '\0')
             {
-                return IsServer ? 0x40 : 0x80;
+                return 0;
             }
-            else if (Version[5] == '.' && Version[6] != '\0' && Version[7] == '\0')
+            if (Version[5] == '.' && Version[6] != '\0' && Version[7] == '\0')
             {
                 switch (Version[6])
                 {
-                    case '1': return IsServer ? 0x100 : 0x200;
-                    case '2': return IsServer ? 0x400 : 0x800;
-                    case '3': return IsServer ? 0x1000 : 0x2000;
+                    case '3': return IsServer ? QUIC_TLS1_3_SERVER : QUIC_TLS1_3_CLIENT;
                 }
-            }
-        }
-    }
-    else if (Version[0] == 'S')
-    {
-        if (Version[1] == 'S' &&
-            Version[2] == 'L' &&
-            Version[3] == 'v')
-        {
-            if (Version[4] == '2' && Version[5] == '\0')
-            {
-                return IsServer ? 0x4 : 0x8;
-            }
-            else if (Version[4] == '3' && Version[5] == '\0')
-            {
-                return IsServer ? 0x10 : 0x20;
             }
         }
     }
@@ -1398,8 +1375,10 @@ CxPlatTlsParamGet(
             }
 
             QUIC_HANDSHAKE_INFO* HandshakeInfo = (QUIC_HANDSHAKE_INFO*)Buffer;
-            // TODO figure out how to map server vs client
-            HandshakeInfo->TlsProtocolVersion = CxPlatMapVersion(SSL_get_version(TlsContext->Ssl), TlsContext->IsServer);
+            HandshakeInfo->TlsProtocolVersion =
+                CxPlatMapVersion(
+                    SSL_get_version(TlsContext->Ssl),
+                    TlsContext->IsServer);
 
             const SSL_CIPHER* Cipher = SSL_get_current_cipher(TlsContext->Ssl);
             if (Cipher == NULL) {
@@ -1409,7 +1388,6 @@ CxPlatTlsParamGet(
             HandshakeInfo->CipherSuite = SSL_CIPHER_get_protocol_id(Cipher);
             Status = CxPlatMapCipherSuite(HandshakeInfo);
 
-            Status = QUIC_STATUS_SUCCESS;
             break;
 
         default:

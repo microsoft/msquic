@@ -738,7 +738,7 @@ TEST_F(TlsTest, Handshake)
     DoHandshake(ServerContext, ClientContext);
 }
 
-TEST_F(TlsTest, HandshakeInfoClient)
+TEST_F(TlsTest, HandshakeInfoAES256GCM)
 {
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfig);
@@ -755,26 +755,75 @@ TEST_F(TlsTest, HandshakeInfoClient)
             &HandshakeInfoLen,
             &HandshakeInfo);
     ASSERT_TRUE(QUIC_SUCCEEDED(Status));
-}
+    EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384, HandshakeInfo.CipherSuite);
+    EXPECT_EQ(QUIC_TLS1_3_CLIENT, HandshakeInfo.TlsProtocolVersion);
+    EXPECT_EQ(QUIC_ALG_AES_256, HandshakeInfo.CipherAlgorithm);
+    EXPECT_EQ(256, HandshakeInfo.CipherStrength);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    EXPECT_EQ(QUIC_ALG_SHA_384, HandshakeInfo.Hash);
+    EXPECT_EQ(0, HandshakeInfo.HashStrength);
 
-TEST_F(TlsTest, HandshakeInfoServer)
-{
-    TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
-    DoHandshake(ServerContext, ClientContext);
-
-    QUIC_HANDSHAKE_INFO HandshakeInfo;
-    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
-    uint32_t HandshakeInfoLen = sizeof(HandshakeInfo);
-    QUIC_STATUS Status =
+    Status =
         CxPlatTlsParamGet(
             ServerContext.Ptr,
             QUIC_PARAM_TLS_HANDSHAKE_INFO,
             &HandshakeInfoLen,
             &HandshakeInfo);
     ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384, HandshakeInfo.CipherSuite);
+    EXPECT_EQ(QUIC_TLS1_3_SERVER, HandshakeInfo.TlsProtocolVersion);
+    EXPECT_EQ(QUIC_ALG_AES_256, HandshakeInfo.CipherAlgorithm);
+    EXPECT_EQ(256, HandshakeInfo.CipherStrength);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    EXPECT_EQ(QUIC_ALG_SHA_384, HandshakeInfo.Hash);
+    EXPECT_EQ(0, HandshakeInfo.HashStrength);
 }
+
+// Disabled until we have a way to switch ciphers
+// TEST_F(TlsTest, HandshakeInfoAES128GCM)
+// {
+//     TlsContext ServerContext, ClientContext;
+//     ServerContext.InitializeServer(ServerSecConfig);
+//     ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+//     DoHandshake(ServerContext, ClientContext);
+
+//     QUIC_HANDSHAKE_INFO HandshakeInfo;
+//     CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+//     uint32_t HandshakeInfoLen = sizeof(HandshakeInfo);
+//     QUIC_STATUS Status =
+//         CxPlatTlsParamGet(
+//             ClientContext.Ptr,
+//             QUIC_PARAM_TLS_HANDSHAKE_INFO,
+//             &HandshakeInfoLen,
+//             &HandshakeInfo);
+//     ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+//     EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256, HandshakeInfo.CipherSuite);
+//     EXPECT_EQ(QUIC_TLS1_3_CLIENT, HandshakeInfo.TlsProtocolVersion);
+//     EXPECT_EQ(QUIC_ALG_AES_128, HandshakeInfo.CipherAlgorithm);
+//     EXPECT_EQ(128, HandshakeInfo.CipherStrength);
+//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+//     EXPECT_EQ(QUIC_ALG_SHA_256, HandshakeInfo.Hash);
+//     EXPECT_EQ(0, HandshakeInfo.HashStrength);
+
+//     Status =
+//         CxPlatTlsParamGet(
+//             ServerContext.Ptr,
+//             QUIC_PARAM_TLS_HANDSHAKE_INFO,
+//             &HandshakeInfoLen,
+//             &HandshakeInfo);
+//     ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+//     EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256, HandshakeInfo.CipherSuite);
+//     EXPECT_EQ(QUIC_TLS1_3_SERVER, HandshakeInfo.TlsProtocolVersion);
+//     EXPECT_EQ(QUIC_ALG_AES_128, HandshakeInfo.CipherAlgorithm);
+//     EXPECT_EQ(128, HandshakeInfo.CipherStrength);
+//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+//     EXPECT_EQ(QUIC_ALG_SHA_256, HandshakeInfo.Hash);
+//     EXPECT_EQ(0, HandshakeInfo.HashStrength);
+// }
 
 TEST_F(TlsTest, HandshakeParallel)
 {

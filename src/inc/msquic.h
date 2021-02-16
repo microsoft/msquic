@@ -276,18 +276,57 @@ typedef struct QUIC_NEW_CONNECTION_INFO {
     const char* ServerName;
 } QUIC_NEW_CONNECTION_INFO;
 
+#define QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256          0x1301
+#define QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384          0x1302
+#define QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256    0x1303
+
+#ifdef CALG_AES_128
+#define QUIC_ALG_AES_128       CALG_AES_128
+#else
+#define QUIC_ALG_AES_128       0x660E
+#endif
+#ifdef CALG_AES_256
+#define QUIC_ALG_AES_256       CALG_AES_256
+#else
+#define QUIC_ALG_AES_256       0x6610
+#endif
+#define QUIC_ALG_CHACHA20      0
+
+#ifdef CALG_SHA_256
+#define QUIC_ALG_SHA_256       CALG_SHA_256
+#else
+#define QUIC_ALG_SHA_256       0x800C
+#endif
+#ifdef CALG_SHA_384
+#define QUIC_ALG_SHA_384       CALG_SHA_384
+#else
+#define QUIC_ALG_SHA_384       0x800D
+#endif
+
+#ifdef SP_PROT_TLS1_3_SERVER
+#define QUIC_TLS1_3_SERVER      SP_PROT_TLS1_3_SERVER
+#else
+#define QUIC_TLS1_3_SERVER      0x00001000
+#endif
+#ifdef SP_PROT_TLS1_3_CLIENT
+#define QUIC_TLS1_3_CLIENT      SP_PROT_TLS1_3_CLIENT
+#else
+#define QUIC_TLS1_3_CLIENT      0x00002000
+#endif
+#define QUIC_TLS1_3             (QUIC_TLS1_3_SERVER | QUIC_TLS1_3_CLIENT)
+
 //
 // All the available information describing a handshake.
 //
 typedef struct QUIC_HANDSHAKE_INFO {
-    uint32_t TlsProtocolVersion;
-    uint32_t CipherAlgorithm;
-    uint32_t CipherStrength;
-    uint32_t Hash;
-    uint32_t HashStrength;
-    uint32_t KeyExchangeAlgorithm;
-    uint32_t KeyExchangeStrength;
-    uint32_t CipherSuite;
+    int32_t TlsProtocolVersion;
+    int32_t CipherAlgorithm;
+    int32_t CipherStrength;
+    int32_t Hash;
+    int32_t HashStrength;
+    int32_t KeyExchangeAlgorithm;
+    int32_t KeyExchangeStrength;
+    int32_t CipherSuite;
 } QUIC_HANDSHAKE_INFO;
 
 //
