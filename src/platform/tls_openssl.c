@@ -1304,8 +1304,7 @@ CxPlatMapCipherSuite(
 static
 uint32_t
 CxPlatMapVersion(
-    _In_z_ const char* Version,
-    _In_ BOOLEAN IsServer
+    _In_z_ const char* Version
     )
 {
     //
@@ -1320,9 +1319,9 @@ CxPlatMapVersion(
     // Regardless, it's null terminated.
     //
     if (strcmp(Version, "TLSv1.3") == 0) {
-        return IsServer ? QUIC_TLS1_3_SERVER : QUIC_TLS1_3_CLIENT;
+        return QUIC_TLS1_3;
     }
-    return 0;
+    return QUIC_TLS_UNKNOWN;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1356,8 +1355,7 @@ CxPlatTlsParamGet(
     QUIC_HANDSHAKE_INFO* HandshakeInfo = (QUIC_HANDSHAKE_INFO*)Buffer;
     HandshakeInfo->TlsProtocolVersion =
         CxPlatMapVersion(
-            SSL_get_version(TlsContext->Ssl),
-            TlsContext->IsServer);
+            SSL_get_version(TlsContext->Ssl));
 
     const SSL_CIPHER* Cipher = SSL_get_current_cipher(TlsContext->Ssl);
     if (Cipher == NULL) {

@@ -303,17 +303,13 @@ typedef struct QUIC_NEW_CONNECTION_INFO {
 #define QUIC_ALG_SHA_384       0x800D
 #endif
 
-#ifdef SP_PROT_TLS1_3_SERVER
-#define QUIC_TLS1_3_SERVER      SP_PROT_TLS1_3_SERVER
-#else
-#define QUIC_TLS1_3_SERVER      0x00001000
+#define QUIC_TLS_UNKNOWN        0
 #endif
-#ifdef SP_PROT_TLS1_3_CLIENT
-#define QUIC_TLS1_3_CLIENT      SP_PROT_TLS1_3_CLIENT
+#ifdef SP_PROT_TLS1_3
+#define QUIC_TLS1_3             SP_PROT_TLS1_3
 #else
-#define QUIC_TLS1_3_CLIENT      0x00002000
+#define QUIC_TLS1_3             0x3000
 #endif
-#define QUIC_TLS1_3             (QUIC_TLS1_3_SERVER | QUIC_TLS1_3_CLIENT)
 
 //
 // All the available information describing a handshake.
