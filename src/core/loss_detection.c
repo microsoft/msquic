@@ -1241,7 +1241,7 @@ QuicLossDetectionProcessAckBlocks(
 
             if (LossDetection->LostPackets == NULL) {
                 //
-                // All previously considered lost packets are were to be
+                // All previously considered lost packets were found to be
                 // spuriously lost. Inform congestion control.
                 //
                 QuicCongestionControlOnSpuriousCongestionEvent(
