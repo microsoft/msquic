@@ -129,7 +129,7 @@ QuicUserMain(
         CxPlatEventSet(StopEvent);
     }
 
-    Status = QuicMainStop(0);
+    Status = QuicMainStop();
     if (QUIC_FAILED(Status)) {
         printf("Stop failed with status %d\n", Status);
         QuicMainFree();

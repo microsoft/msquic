@@ -1,7 +1,7 @@
 {
     "Remote": {
         "Exe": "quicperf",
-        "Arguments": "-selfsign:1"
+        "Arguments": ""
     },
     "FullMatrix": true,
     "Tests": [

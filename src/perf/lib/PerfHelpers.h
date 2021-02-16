@@ -25,7 +25,9 @@ Abstract:
 #include <quic_trace.h>
 #include <msquic.hpp>
 #include <msquichelper.h>
+#include <quic_hashtable.h>
 #include "PerfBase.h"
+#include "Tcp.h"
 
 #ifndef _KERNEL_MODE
 #include <stdlib.h>
@@ -49,7 +51,6 @@ QuicMainStart(
 extern
 QUIC_STATUS
 QuicMainStop(
-    _In_ int Timeout
     );
 
 extern

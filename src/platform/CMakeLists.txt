@@ -20,20 +20,20 @@ if("${CX_PLATFORM}" STREQUAL "windows")
 else()
     if(CX_PLATFORM STREQUAL "linux")
         set(SOURCES
-            datapath_linux.c
+            datapath_epoll.c
             hashtable.c
             inline.c
-            platform_linux.c
-            storage_linux.c
+            platform_posix.c
+            storage_posix.c
             toeplitz.c
         )
     else()
         set(SOURCES
-            datapath_darwin.c
+            datapath_kqueue.c
             hashtable.c
             inline.c
-            platform_darwin.c
-            storage_darwin.c
+            platform_posix.c
+            storage_posix.c
             toeplitz.c
         )
     endif()
@@ -61,6 +61,9 @@ endif()
 
 # Allow CLOG to preprocess all the source files.
 add_clog_library(platform.clog DYNAMIC ${SOURCES})
+if(QUIC_ENABLE_LOGGING)
+    set_property(TARGET platform.clog.provider PROPERTY FOLDER "helpers")
+endif()
 
 add_library(platform STATIC ${SOURCES})
 

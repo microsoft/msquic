@@ -32,6 +32,45 @@ CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 CXPLAT_DATAPATH* Datapath;
 CXPLAT_SOCKET* Binding;
 bool ServerMode = false;
+uint32_t MaxRuntime = 0;
+
+#define ASSERT_ON_FAILURE(x) \
+    do { \
+        QUIC_STATUS _STATUS; \
+        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED((_STATUS = x))); \
+    } while (0)
+
+class QuicPerfWatchdog {
+    CXPLAT_THREAD WatchdogThread;
+    CXPLAT_EVENT ShutdownEvent;
+    uint32_t TimeoutMs;
+    static
+    CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
+        auto This = (QuicPerfWatchdog*)Context;
+        if (!CxPlatEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
+            WriteOutput("Watchdog timeout fired!\n");
+            CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
+        }
+        CXPLAT_THREAD_RETURN(0);
+    }
+public:
+    QuicPerfWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
+        CxPlatEventInitialize(&ShutdownEvent, TRUE, FALSE);
+        CXPLAT_THREAD_CONFIG Config = { 0 };
+        Config.Name = "perf_watchdog";
+        Config.Callback = WatchdogThreadCallback;
+        Config.Context = this;
+        ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &WatchdogThread));
+    }
+    ~QuicPerfWatchdog() {
+        CxPlatEventSet(ShutdownEvent);
+        CxPlatThreadWait(&WatchdogThread);
+        CxPlatThreadDelete(&WatchdogThread);
+        CxPlatEventUninitialize(ShutdownEvent);
+    }
+};
+
+QuicPerfWatchdog* Watchdog;
 
 static
 void
@@ -44,10 +83,6 @@ PrintHelp(
         "Server: quicperf [options]\n"
         "\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
-        "  -selfsign:<0/1>             Uses a self-signed server certificate.\n"
-        "  -thumbprint:<cert_hash>     The hash or thumbprint of the certificate to use.\n"
-        "  -cert_store:<store name>    The certificate store to search for the thumbprint in.\n"
-        "  -machine_cert:<0/1>         Use the machine, or current user's, certificate store. (def:0)\n"
         "\n"
         "Client: quicperf -TestName:<Throughput|RPS|HPS> [options]\n"
         "\n",
@@ -64,7 +99,7 @@ QuicMainStart(
     ) {
     argc--; argv++; // Skip app name
 
-    if (argc == 0 || IsArg(argv[0], "?") || IsArg(argv[0], "help")) {
+    if (argc != 0 && (IsArg(argv[0], "?") || IsArg(argv[0], "help"))) {
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -75,6 +110,14 @@ QuicMainStart(
     }
 
     ServerMode = TestName == nullptr;
+    TryGetValue(argc, argv, "maxruntime", &MaxRuntime);
+
+    uint32_t WatchdogTimeout = 0;
+    TryGetValue(argc, argv, "watchdog", &WatchdogTimeout);
+
+    if (WatchdogTimeout != 0) {
+        Watchdog = new(std::nothrow) QuicPerfWatchdog{WatchdogTimeout};
+    }
 
     QUIC_STATUS Status;
 
@@ -109,6 +152,8 @@ QuicMainStart(
     if (QUIC_FAILED(Status = MsQuic->GetInitStatus())) {
         delete MsQuic;
         MsQuic = nullptr;
+        delete Watchdog;
+        Watchdog = nullptr;
         WriteOutput("MsQuic Failed To Initialize: %d\n", Status);
         return Status;
     }
@@ -126,6 +171,8 @@ QuicMainStart(
             PrintHelp();
             delete MsQuic;
             MsQuic = nullptr;
+            delete Watchdog;
+            Watchdog = nullptr;
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
@@ -151,19 +198,15 @@ QuicMainStart(
     TestToRun = nullptr;
     delete MsQuic;
     MsQuic = nullptr;
+    delete Watchdog;
+    Watchdog = nullptr;
     return Status;
 }
 
 QUIC_STATUS
 QuicMainStop(
-    _In_ int Timeout
     ) {
-    if (TestToRun == nullptr) {
-        return QUIC_STATUS_SUCCESS;
-    }
-
-    QUIC_STATUS Status = TestToRun->Wait(Timeout);
-    return Status;
+    return TestToRun ? TestToRun->Wait((int)MaxRuntime) : QUIC_STATUS_SUCCESS;
 }
 
 void
@@ -183,6 +226,9 @@ QuicMainFree(
         CxPlatDataPathUninitialize(Datapath);
         Datapath = nullptr;
     }
+
+    delete Watchdog;
+    Watchdog = nullptr;
 }
 
 QUIC_STATUS

@@ -12,14 +12,20 @@ Abstract:
 #define QUIC_TEST_APIS 1
 #define _CRT_SECURE_NO_WARNINGS // NOLINT bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp
 
-#include "openssl/ec.h"
+#include "platform_internal.h"
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
+#endif
 #include "openssl/err.h"
 #include "openssl/kdf.h"
 #include "openssl/pem.h"
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
-#include "platform_internal.h"
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 #ifdef QUIC_CLOG
 #include "selfsign_openssl.c.clog.h"
 #endif

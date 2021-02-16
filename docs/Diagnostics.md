@@ -2,9 +2,9 @@
 
 This document describes various ways to debug and diagnose issues when using MsQuic.
 
-# Logging
+# Trace Collection
 
-For functional problems, generally logging is the best way to diagnose problems. MsQuic has extensive logs in the code to facilitate debugging.
+For debugging issues, generally logging is the best way to diagnose problems. MsQuic has extensive logs in the code to facilitate debugging.
 
 ## Windows
 
@@ -15,6 +15,8 @@ To start collecting a trace, you can use the following command:
 ```
 netsh.exe trace start overwrite=yes report=dis correlation=dis traceFile=quic.etl provider={ff15e657-4f26-570e-88ab-0796b258d11c} level=0x5 keywords=0xffffffff
 ```
+
+> **Note** - The command above collects **all** keywords (`0xffffffff`) which may be too verbose for some scenarios, such as high throughput testing or large number of parallel connections. For a detailed list of the available keywords, see [MsQuicEtw.man](..\src\manifest\MsQuicEtw.man) and see `<keywords>`.
 
 And to stop log the trace session, you can use the following command:
 
@@ -29,6 +31,8 @@ netsh.exe trace convert quic.etl
 ```
 
 > **Important** - If you're using a version of MsQuic that uses an ETW manifest version more recent than the one built into the Windows image, decoding may not provide correct output. **TODO** - Provide instructions to get around this problem.
+
+You may also open the trace in Windows Performance Analyzer. See the [WPA instructions](../src/plugins/wpa/README.md) for more details.
 
 ## Linux
 
@@ -59,18 +63,13 @@ clog2text_lttng -i quic.babel.txt -s clog.sidecar -o quic.log --showTimestamp --
 
 > **Note** - The `clog.sidecar` file that was used to build MsQuic must be used. It can be found in the `./src/manifest` directory of the repository.
 
-# Performance
+> **Note** - WPA support for LTTng based logs is not yet available but will be supported in the future.
 
-When dealing with performance issues or you're just trying to profile the performance of the system logging isn't usually the best way forward. The following sections describe a few ways to anaylze difference performance characteristics of MsQuic.
+# Trace Analysis
 
-## Traces
+MsQuic supports a custom plugin for Windows Performance Analyzer (WPA) to detailed analysis of ETW traces. See the [WPA instructions](../src/plugins/wpa/README.md) for more details.
 
-
-## Windows
-
-First off, you're going to need xperf and wpa. Installing the [Windows ADK](https://docs.microsoft.com/en-us/windows-hardware/get-started/adk-install) is one of the easiest ways to get them.
-
-## Counters
+# Performance Counters
 
 To assist investigations into running systems, MsQuic has a number of performance counters that are updated during runtime. These counters are exposed as an array of unsigned 64-bit integers, via a global `GetParam` parameter.
 Sample code demonstrating how to query the performance counters:
@@ -116,6 +115,28 @@ QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH | Current worker operations queued
 QUIC_PERF_COUNTER_WORK_OPER_QUEUED | Total worker operations queued ever
 QUIC_PERF_COUNTER_WORK_OPER_COMPLETED | Total worker operations processed ever
 
-On the latest version of Windows, these counters are also exposed via PerfMon.exe under the `QUIC Performance Counters` category. The values exposed via PerfMon only represent kernel mode usages of MsQuic, and do not include user mode counters. Counters are also captured at the beginning of MsQuic ETW traces, and unlike PerfMon, include all MsQuic instances running on the system, both user and kernel mode.
+## Windows Performance Monitor
+
+On the latest version of Windows, these counters are also exposed via PerfMon.exe under the `QUIC Performance Diagnostics` category. The values exposed via PerfMon **only represent kernel mode usages** of MsQuic, and do not include user mode counters.
+
+![](images/perfmon.png)
+
+## ETW
+
+Counters are also captured at the beginning of MsQuic ETW traces, and unlike PerfMon, includes all MsQuic instances running on the system, both user and kernel mode.
 
 # FAQ
+
+## Why do I get errors on Linux when I try to open a large number of connections?
+
+In many Linux setups, the default per-process file handle limit is relatively small (~1024). In scenarios where lots of (usually client) connection are opened, a large number of sockets (a type of file handle) are created. Eventually the handle limit is reached and connections start failing because new sockets cannot be created. To fix this, you will need to increase the handle limit.
+
+To query the maximum limit you may set:
+```
+ulimit -Hn
+```
+
+To set a new limit (up to the max):
+```
+ulimit -n newValue
+```

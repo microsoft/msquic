@@ -158,6 +158,53 @@ class WithHandshakeArgs4 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs4> {
 };
 
+struct HandshakeArgs5 {
+    bool AcceptCert;
+    bool AsyncValidation;
+    static ::std::vector<HandshakeArgs5> Generate() {
+        ::std::vector<HandshakeArgs5> list;
+        for (bool AcceptCert : { false, true })
+        for (bool AsyncValidation : { false, true })
+            list.push_back({ AcceptCert, AsyncValidation });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs5& args) {
+    return o <<
+        (args.AcceptCert ? "Accept" : "Reject") << "/" <<
+        (args.AsyncValidation ? "Async" : "Sync");
+}
+
+class WithHandshakeArgs5 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs5> {
+};
+
+struct VersionNegotiationExtArgs {
+    int Family;
+    bool DisableVNEClient;
+    bool DisableVNEServer;
+    static ::std::vector<VersionNegotiationExtArgs> Generate() {
+        ::std::vector<VersionNegotiationExtArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool DisableVNEClient : { false, true })
+        for (bool DisableVNEServer : { false, true })
+            list.push_back({ Family, DisableVNEClient, DisableVNEServer });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const VersionNegotiationExtArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.DisableVNEClient ? "DisableClient" : "EnableClient") << "/" <<
+        (args.DisableVNEServer ? "DisableServer" : "EnableServer");
+}
+
+class WithVersionNegotiationExtArgs : public testing::Test,
+    public testing::WithParamInterface<VersionNegotiationExtArgs> {
+};
+
 struct SendArgs1 {
     int Family;
     uint64_t Length;

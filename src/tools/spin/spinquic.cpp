@@ -334,9 +334,9 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 {
     SetParamHelper Helper(QUIC_PARAM_LEVEL_CONNECTION);
 
-    switch (GetRandom(23)) {
+    switch (GetRandom(22) + 1) {
     case QUIC_PARAM_CONN_QUIC_VERSION:                              // uint32_t
-        Helper.SetUint32(QUIC_PARAM_CONN_QUIC_VERSION, GetRandom(UINT32_MAX));
+        // QUIC_VERSION is get-only
         break;
     case QUIC_PARAM_CONN_LOCAL_ADDRESS:                             // QUIC_ADDR
         break; // TODO - Add support here

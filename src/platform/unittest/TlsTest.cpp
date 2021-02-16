@@ -8,11 +8,12 @@
 #include "main.h"
 #include "msquic.h"
 #include "quic_tls.h"
+#ifdef _WIN32
+#include <wincrypt.h>
+#endif
 #ifdef QUIC_CLOG
 #include "TlsTest.cpp.clog.h"
 #endif
-
-const uint16_t UnknownCaError = 48;
 
 const uint32_t DefaultFragmentSize = 1200;
 
@@ -24,6 +25,9 @@ struct TlsTest : public ::testing::TestWithParam<bool>
 protected:
     CXPLAT_SEC_CONFIG* ServerSecConfig {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfig {nullptr};
+    CXPLAT_SEC_CONFIG* ClientSecConfigDeferredCertValidation {nullptr};
+    CXPLAT_SEC_CONFIG* ClientSecConfigCustomCertValidation {nullptr};
+    CXPLAT_SEC_CONFIG* ClientSecConfigExtraCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
     static const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
 
@@ -31,18 +35,7 @@ protected:
 
     ~TlsTest()
     {
-        if (ClientSecConfigNoCertValidation) {
-            CxPlatTlsSecConfigDelete(ClientSecConfigNoCertValidation);
-            ClientSecConfigNoCertValidation = nullptr;
-        }
-        if (ClientSecConfig) {
-            CxPlatTlsSecConfigDelete(ClientSecConfig);
-            ClientSecConfig = nullptr;
-        }
-        if (ServerSecConfig) {
-            CxPlatTlsSecConfigDelete(ServerSecConfig);
-            ServerSecConfig = nullptr;
-        }
+        TearDown();
     }
 
     _Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
@@ -86,6 +79,8 @@ protected:
             QUIC_CREDENTIAL_TYPE_NONE,
             QUIC_CREDENTIAL_FLAG_CLIENT,
             NULL,
+            NULL,
+            NULL,
             NULL
         };
         VERIFY_QUIC_SUCCESS(
@@ -96,7 +91,36 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfig);
 
-        ClientCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+        ClientCredConfig.Flags =
+            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED | QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION;
+        CxPlatTlsSecConfigCreate( // Don't assert as this is expected to fail on some platforms
+            &ClientCredConfig,
+            &TlsContext::TlsClientCallbacks,
+            &ClientSecConfigDeferredCertValidation,
+            OnSecConfigCreateComplete);
+
+        ClientCredConfig.Flags =
+            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                &ClientCredConfig,
+                &TlsContext::TlsClientCallbacks,
+                &ClientSecConfigCustomCertValidation,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ClientSecConfigCustomCertValidation);
+
+        ClientCredConfig.Flags =
+            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                &ClientCredConfig,
+                &TlsContext::TlsClientCallbacks,
+                &ClientSecConfigExtraCertValidation,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ClientSecConfigExtraCertValidation);
+
+        ClientCredConfig.Flags =
+            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 &ClientCredConfig,
@@ -111,6 +135,18 @@ protected:
         if (ClientSecConfigNoCertValidation) {
             CxPlatTlsSecConfigDelete(ClientSecConfigNoCertValidation);
             ClientSecConfigNoCertValidation = nullptr;
+        }
+        if (ClientSecConfigExtraCertValidation) {
+            CxPlatTlsSecConfigDelete(ClientSecConfigExtraCertValidation);
+            ClientSecConfigExtraCertValidation = nullptr;
+        }
+        if (ClientSecConfigCustomCertValidation) {
+            CxPlatTlsSecConfigDelete(ClientSecConfigCustomCertValidation);
+            ClientSecConfigCustomCertValidation = nullptr;
+        }
+        if (ClientSecConfigDeferredCertValidation) {
+            CxPlatTlsSecConfigDelete(ClientSecConfigDeferredCertValidation);
+            ClientSecConfigDeferredCertValidation = nullptr;
         }
         if (ClientSecConfig) {
             CxPlatTlsSecConfigDelete(ClientSecConfig);
@@ -338,6 +374,11 @@ protected:
 
         QUIC_BUFFER ResumptionTicket {0, nullptr};
 
+        bool OnPeerCertReceivedCalled{false};
+        uint32_t ExpectedErrorFlags {0};
+        QUIC_STATUS ExpectedValidationStatus {QUIC_STATUS_SUCCESS};
+        BOOLEAN OnPeerCertReceivedResult{TRUE};
+
         CXPLAT_TLS_RESULT_FLAGS
         ProcessData(
             _Inout_ CXPLAT_TLS_PROCESS_STATE* PeerState,
@@ -455,6 +496,27 @@ protected:
                     TicketLength);
             }
             return TRUE;
+        }
+
+        static BOOLEAN
+        OnPeerCertReceived(
+            _In_ QUIC_CONNECTION* Connection,
+            _In_ void* /* Certificate */,
+            _In_ uint32_t DeferredErrorFlags,
+            _In_ QUIC_STATUS DeferredStatus
+            )
+        {
+            auto Context = (TlsContext*)Connection;
+            Context->OnPeerCertReceivedCalled = true;
+            if (Context->ExpectedErrorFlags != DeferredErrorFlags) {
+                std::cout << "Incorrect ErrorFlags: " << DeferredErrorFlags << "\n";
+                return FALSE;
+            }
+            if (Context->ExpectedValidationStatus != DeferredStatus) {
+                std::cout << "Incorrect validation Status: " << DeferredStatus << "\n";
+                return FALSE;
+            }
+            return Context->OnPeerCertReceivedResult;
         }
     };
 
@@ -648,13 +710,15 @@ protected:
 const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsServerCallbacks = {
     TlsTest::TlsContext::OnProcessComplete,
     TlsTest::TlsContext::OnRecvQuicTP,
-    TlsTest::TlsContext::OnRecvTicketServer
+    TlsTest::TlsContext::OnRecvTicketServer,
+    TlsTest::TlsContext::OnPeerCertReceived
 };
 
 const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
     TlsTest::TlsContext::OnProcessComplete,
     TlsTest::TlsContext::OnRecvQuicTP,
-    TlsTest::TlsContext::OnRecvTicketClient
+    TlsTest::TlsContext::OnRecvTicketClient,
+    TlsTest::TlsContext::OnPeerCertReceived
 };
 
 const QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
@@ -816,7 +880,126 @@ TEST_F(TlsTest, CertificateError)
 
         Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
-        ASSERT_EQ(ClientContext.State.AlertCode, UnknownCaError);
+        ASSERT_TRUE(
+            (0xFF & ClientContext.State.AlertCode) == CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE ||
+            (0xFF & ClientContext.State.AlertCode) == CXPLAT_TLS_ALERT_CODE_UNKNOWN_CA);
+    }
+}
+
+TEST_F(TlsTest, DeferredCertificateValidationAllow)
+{
+    if (!ClientSecConfigDeferredCertValidation) {
+        std::cout << "WARNING: Test unsupported\n";
+        return; // Unsupported by platform
+    }
+
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
+#ifdef _WIN32
+    ClientContext.ExpectedErrorFlags = CERT_TRUST_IS_UNTRUSTED_ROOT;
+    ClientContext.ExpectedValidationStatus = CERT_E_UNTRUSTEDROOT;
+#else
+    // TODO - Add platform specific values if support is added.
+#endif
+    {
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+
+        Result = ServerContext.ProcessData(&ClientContext.State);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+        ASSERT_TRUE(ClientContext.OnPeerCertReceivedCalled);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
+    }
+}
+
+TEST_F(TlsTest, DeferredCertificateValidationReject)
+{
+    if (!ClientSecConfigDeferredCertValidation) {
+        std::cout << "WARNING: Test unsupported\n";
+        return; // Unsupported by platform
+    }
+
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
+    {
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+
+        Result = ServerContext.ProcessData(&ClientContext.State);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+        ASSERT_TRUE(ClientContext.OnPeerCertReceivedCalled);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+        ASSERT_EQ((0xFF & ClientContext.State.AlertCode), CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE);
+    }
+}
+
+TEST_F(TlsTest, CustomCertificateValidationAllow)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigCustomCertValidation);
+    {
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+
+        Result = ServerContext.ProcessData(&ClientContext.State);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+        ASSERT_TRUE(ClientContext.OnPeerCertReceivedCalled);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
+    }
+}
+
+TEST_F(TlsTest, CustomCertificateValidationReject)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigCustomCertValidation);
+    ClientContext.OnPeerCertReceivedResult = FALSE;
+    {
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+
+        Result = ServerContext.ProcessData(&ClientContext.State);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+        ASSERT_TRUE(ClientContext.OnPeerCertReceivedCalled);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+        ASSERT_EQ((0xFF & ClientContext.State.AlertCode), CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE);
+    }
+}
+
+TEST_F(TlsTest, ExtraCertificateValidation)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigExtraCertValidation);
+    {
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+
+        Result = ServerContext.ProcessData(&ClientContext.State);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+        ASSERT_FALSE(ClientContext.OnPeerCertReceivedCalled);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+        ASSERT_TRUE(
+            (0xFF & ClientContext.State.AlertCode) == CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE ||
+            (0xFF & ClientContext.State.AlertCode) == CXPLAT_TLS_ALERT_CODE_UNKNOWN_CA);
     }
 }
 

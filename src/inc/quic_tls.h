@@ -35,6 +35,17 @@ typedef struct CXPLAT_TLS_SECRETS CXPLAT_TLS_SECRETS;
 //
 extern uint16_t CxPlatTlsTPHeaderSize;
 
+typedef enum CXPLAT_TLS_ALERT_CODES {
+
+    CXPLAT_TLS_ALERT_CODE_HANDSHAKE_FAILURE = 40,
+    CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE = 42,
+    CXPLAT_TLS_ALERT_CODE_UNKNOWN_CA = 48,
+    CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR = 80,
+    CXPLAT_TLS_ALERT_CODE_USER_CANCELED = 90,
+    CXPLAT_TLS_ALERT_CODE_NO_APPLICATION_PROTOCOL = 120,
+
+} CXPLAT_TLS_ALERT_CODES;
+
 //
 // Callback for indicating process can be completed.
 //
@@ -77,6 +88,21 @@ BOOLEAN
 
 typedef CXPLAT_TLS_RECEIVE_TICKET_CALLBACK *CXPLAT_TLS_RECEIVE_TICKET_CALLBACK_HANDLER;
 
+//
+// Callback for indicating the peer certificate is ready for custom validation.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+(CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK)(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ void* Certificate,
+    _In_ uint32_t DeferredErrorFlags,
+    _In_ QUIC_STATUS DeferredStatus
+    );
+
+typedef CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK *CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK_HANDLER;
+
 typedef struct CXPLAT_TLS_CALLBACKS {
 
     //
@@ -93,6 +119,12 @@ typedef struct CXPLAT_TLS_CALLBACKS {
     // Invoked when a resumption ticket is received.
     //
     CXPLAT_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicket;
+
+    //
+    // Invokved only in the custom certificate validation scenario, when the
+    // peer's certificate has been received and is ready for validation.
+    //
+    CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK_HANDLER CertificateReceived;
 
 } CXPLAT_TLS_CALLBACKS;
 
@@ -412,7 +444,7 @@ CxPlatTlsAlpnFindInList(
             return AlpnList;
         }
         AlpnListLength -= AlpnList[0] + 1;
-        AlpnList += AlpnList[0] + 1;
+        AlpnList += (size_t)AlpnList[0] + (size_t)1;
     }
     return NULL;
 }

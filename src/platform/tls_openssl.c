@@ -12,6 +12,10 @@ Abstract:
 #include "platform_internal.h"
 
 #define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
+#endif
 #include "openssl/err.h"
 #include "openssl/hmac.h"
 #include "openssl/kdf.h"
@@ -19,11 +23,16 @@ Abstract:
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 #ifdef QUIC_CLOG
 #include "tls_openssl.c.clog.h"
 #endif
 
 uint16_t CxPlatTlsTPHeaderSize = 0;
+
+const size_t OpenSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodules");
 
 //
 // The QUIC sec config object. Created once per listener on server side and
@@ -41,6 +50,11 @@ typedef struct CXPLAT_SEC_CONFIG {
     // Callbacks for TLS.
     //
     CXPLAT_TLS_CALLBACKS Callbacks;
+
+    //
+    // The application supplied credential flags.
+    //
+    QUIC_CREDENTIAL_FLAGS Flags;
 
 } CXPLAT_SEC_CONFIG;
 
@@ -125,11 +139,6 @@ typedef struct CXPLAT_HP_KEY {
 //
 #define CXPLAT_TLS_DEFAULT_VERIFY_DEPTH  10
 
-//
-// Hack to set trusted cert file on client side.
-//
-char *QuicOpenSslClientTrustedCert = NULL;
-
 QUIC_STATUS
 CxPlatTlsLibraryInitialize(
     void
@@ -191,6 +200,44 @@ CxPlatTlsAlpnSelectCallback(
     *Out = TlsContext->State->NegotiatedAlpn + 1;
 
     return SSL_TLSEXT_ERR_OK;
+}
+
+static
+int
+CxPlatTlsCertificateVerifyCallback(
+    int preverify_ok,
+    X509_STORE_CTX *x509_ctx
+    )
+{
+    SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+
+    if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+        !preverify_ok) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Internal certificate validation failed");
+        return FALSE;
+    }
+
+    if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+        !TlsContext->SecConfig->Callbacks.CertificateReceived(
+            TlsContext->Connection,
+            x509_ctx,
+            0,
+            0)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Indicate certificate received failed");
+        X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 CXPLAT_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
@@ -538,7 +585,8 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
@@ -570,9 +618,13 @@ CxPlatTlsSecConfigCreate(
             }
         } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
             CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE ||
+<<<<<<< HEAD
             CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT ||
             CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY ||
             CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY) {
+=======
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) { // NOLINT bugprone-branch-clone
+>>>>>>> main
 #ifndef _WIN32
             return QUIC_STATUS_NOT_SUPPORTED; // Only supported on windows.
 #endif
@@ -604,6 +656,7 @@ CxPlatTlsSecConfigCreate(
     }
 
     SecurityConfig->Callbacks = *TlsCallbacks;
+    SecurityConfig->Flags = CredConfig->Flags;
 
     //
     // Create the a SSL context for the security config.
@@ -697,35 +750,14 @@ CxPlatTlsSecConfigCreate(
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-        BOOLEAN VerifyServerCertificate = TRUE; // !(Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION);
-        if (!VerifyServerCertificate) { // cppcheck-suppress knownConditionTrueFalse
-            SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
-        } else {
-            SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
+        SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, CxPlatTlsCertificateVerifyCallback);
+        SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
 
-            if (QuicOpenSslClientTrustedCert != NULL) {
-                //
-                // LINUX_TODO: This is a hack to set a client side trusted cert in order
-                //   to verify server cert. Fix this once MsQuic formally supports
-                //   passing TLS related config from APP layer to TAL.
-                //
+        //
+        // TODO - Support additional certificate validation parameters, such as
+        // the location of the trusted root CAs (SSL_CTX_load_verify_locations)?
+        //
 
-                /*Ret =
-                    SSL_CTX_load_verify_locations(
-                        SecurityConfig->SSLCtx,
-                        QuicOpenSslClientTrustedCert,
-                        NULL);
-                if (Ret != 1) {
-                    QuicTraceEvent(
-                        LibraryErrorStatus,
-                        "[ lib] ERROR, %u, %s.",
-                        ERR_get_error(),
-                        "SSL_CTX_load_verify_locations failed");
-                    Status = QUIC_STATUS_TLS_ERROR;
-                    goto Exit;
-                }*/
-            }
-        }
     } else {
         SSL_CTX_set_options(
             SecurityConfig->SSLCtx,
@@ -1052,24 +1084,30 @@ CxPlatTlsProcessData(
         goto Exit;
     }
 
+    TlsContext->State = State;
+    TlsContext->ResultFlags = 0;
+
     if (*BufferLength != 0) {
         QuicTraceLogConnVerbose(
             OpenSslProcessData,
             TlsContext->Connection,
             "Processing %u received bytes",
             *BufferLength);
-    }
 
-    TlsContext->State = State;
-    TlsContext->ResultFlags = 0;
-
-    if (SSL_provide_quic_data(
-            TlsContext->Ssl,
-            (OSSL_ENCRYPTION_LEVEL)TlsContext->State->ReadKey,
-            Buffer,
-            *BufferLength) != 1) {
-        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-        goto Exit;
+        if (SSL_provide_quic_data(
+                TlsContext->Ssl,
+                (OSSL_ENCRYPTION_LEVEL)TlsContext->State->ReadKey,
+                Buffer,
+                *BufferLength) != 1) {
+            char buf[256];
+            QuicTraceLogConnError(
+                OpenSslQuicDataErrorStr,
+                TlsContext->Connection,
+                "SSL_provide_quic_data failed: %s",
+                ERR_error_string(ERR_get_error(), buf));
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
     }
 
     if (!State->HandshakeComplete) {
@@ -1081,14 +1119,21 @@ CxPlatTlsProcessData(
             case SSL_ERROR_WANT_WRITE:
                 goto Exit;
 
-            case SSL_ERROR_SSL:
+            case SSL_ERROR_SSL: {
+                char buf[256];
+                const char* file;
+                int line;
+                ERR_error_string_n(ERR_get_error_line(&file, &line), buf, sizeof(buf));
                 QuicTraceLogConnError(
                     OpenSslHandshakeErrorStr,
                     TlsContext->Connection,
-                    "TLS handshake error: %s",
-                    ERR_error_string(ERR_get_error(), NULL));
+                    "TLS handshake error: %s, file:%s:%d",
+                    buf,
+                    (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
+                    line);
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
+            }
 
             default:
                 QuicTraceLogConnError(
@@ -1178,14 +1223,21 @@ CxPlatTlsProcessData(
         case SSL_ERROR_WANT_WRITE:
             goto Exit;
 
-        case SSL_ERROR_SSL:
+        case SSL_ERROR_SSL: {
+            char buf[256];
+            const char* file;
+            int line;
+            ERR_error_string_n(ERR_get_error_line(&file, &line), buf, sizeof(buf));
             QuicTraceLogConnError(
                 OpenSslHandshakeErrorStr,
                 TlsContext->Connection,
-                "TLS handshake error: %s",
-                ERR_error_string(ERR_get_error(), NULL));
+                "TLS handshake error: %s, file:%s:%d",
+                buf,
+                (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
+                line);
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
+        }
 
         default:
             QuicTraceLogConnError(
