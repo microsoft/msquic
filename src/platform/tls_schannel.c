@@ -2676,7 +2676,7 @@ CxPlatTlsParamGet(
             }
             *BufferLength = NegotiatedAlpn.ProtocolIdSize;
             CxPlatCopyMemory(Buffer, NegotiatedAlpn.ProtocolId, NegotiatedAlpn.ProtocolIdSize);
-
+            break;
         }
     }
 

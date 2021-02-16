@@ -1336,36 +1336,65 @@ CxPlatTlsParamGet(
 {
     QUIC_STATUS Status;
 
-    if (Param != QUIC_PARAM_TLS_HANDSHAKE_INFO) {
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        goto Exit;
+    switch (Param) {
+
+        case QUIC_PARAM_TLS_HANDSHAKE_INFO: {
+            if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
+                *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            QUIC_HANDSHAKE_INFO* HandshakeInfo = (QUIC_HANDSHAKE_INFO*)Buffer;
+            HandshakeInfo->TlsProtocolVersion =
+                CxPlatMapVersion(
+                    SSL_get_version(TlsContext->Ssl));
+
+            const SSL_CIPHER* Cipher = SSL_get_current_cipher(TlsContext->Ssl);
+            if (Cipher == NULL) {
+                Status = QUIC_STATUS_NOT_SUPPORTED;
+                break;
+            }
+            HandshakeInfo->CipherSuite = SSL_CIPHER_get_protocol_id(Cipher);
+            Status = CxPlatMapCipherSuite(HandshakeInfo);
+            break;
+        }
+
+        case QUIC_PARAM_TLS_NEGOTIATED_ALPN: {
+
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            uint8_t* NegotiatedAlpn;
+            unsigned int NegotiatedAlpnLen = 0;
+            SSL_get0_alpn_selected(TlsContext->Ssl, &NegotiatedAlpn, &NegotiatedAlpnLen);
+            if (NegotiatedAlpnLen <= 0) {
+                Status = QUIC_STATUS_NOT_SUPPORTED;
+                break;
+            }
+            if (*BufferLength < NegotiatedAlpnLen) {
+                *BufferLength = NegotiatedAlpnLen;
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+            *BufferLength = NegotiatedAlpnLen;
+            CxPlatCopyMemory(Buffer, NegotiatedAlpn, NegotiatedAlpnLen);
+            Status = QUIC_STATUS_SUCCESS;
+            break;
+        }
+
+        default:
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            break;
     }
 
-    if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
-        *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
-        Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-        goto Exit;
-    }
-
-    if (Buffer == NULL) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    QUIC_HANDSHAKE_INFO* HandshakeInfo = (QUIC_HANDSHAKE_INFO*)Buffer;
-    HandshakeInfo->TlsProtocolVersion =
-        CxPlatMapVersion(
-            SSL_get_version(TlsContext->Ssl));
-
-    const SSL_CIPHER* Cipher = SSL_get_current_cipher(TlsContext->Ssl);
-    if (Cipher == NULL) {
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        goto Exit;
-    }
-    HandshakeInfo->CipherSuite = SSL_CIPHER_get_protocol_id(Cipher);
-    Status = CxPlatMapCipherSuite(HandshakeInfo);
-
-Exit:
     return Status;
 }
 
