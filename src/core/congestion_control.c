@@ -558,6 +558,7 @@ QuicCongestionControlOnSpuriousCongestionEvent(
         return;
     }
 
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     BOOLEAN PreviousCanSendState = QuicCongestionControlCanSend(Cc);
 
     QuicTraceEvent(
@@ -578,5 +579,5 @@ QuicCongestionControlOnSpuriousCongestionEvent(
     Cc->HasHadCongestionEvent = FALSE;
 
     QuicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
-    QuicConnLogCubic(QuicCongestionControlGetConnection(Cc));
+    QuicConnLogCubic(Connection);
 }
