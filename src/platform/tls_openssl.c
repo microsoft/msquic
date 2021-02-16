@@ -1275,29 +1275,22 @@ CxPlatMapCipherSuite(
 
     HandshakeInfo->KeyExchangeAlgorithm = 0;
     HandshakeInfo->KeyExchangeStrength = 0;
+    HandshakeInfo->HashStrength = 0;
 
-    switch (HandshakeInfo->CipherSuite) {
-        case QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256:
-            HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_128;
-            HandshakeInfo->CipherStrength = 128;
-            HandshakeInfo->Hash = QUIC_ALG_SHA_256;
-            HandshakeInfo->HashStrength = 0;
-            break;
-        case QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384:
-            HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_256;
-            HandshakeInfo->CipherStrength = 256;
-            HandshakeInfo->Hash = QUIC_ALG_SHA_384;
-            HandshakeInfo->HashStrength = 0;
-            break;
-        case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
-            HandshakeInfo->CipherAlgorithm = QUIC_ALG_CHACHA20;
-            HandshakeInfo->CipherStrength = 0;
-            HandshakeInfo->Hash = QUIC_ALG_SHA_256;
-            HandshakeInfo->HashStrength = 0;
-            break;
-        default:
-            Status = QUIC_STATUS_NOT_SUPPORTED;
-            break;
+    if (HandshakeInfo->CipherSuite == QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256) {
+        HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_128;
+        HandshakeInfo->CipherStrength = 128;
+        HandshakeInfo->Hash = QUIC_ALG_SHA_256;
+    } else if (HandshakeInfo->CipherSuite == QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384) {
+        HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_256;
+        HandshakeInfo->CipherStrength = 256;
+        HandshakeInfo->Hash = QUIC_ALG_SHA_384;
+    } else if (HandshakeInfo->CipherSuite == QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256) {
+        HandshakeInfo->CipherAlgorithm = QUIC_ALG_CHACHA20;
+        HandshakeInfo->CipherStrength = 0;
+        HandshakeInfo->Hash = QUIC_ALG_SHA_256;
+    } else {
+        Status = QUIC_STATUS_NOT_SUPPORTED;
     }
 
     return Status;
