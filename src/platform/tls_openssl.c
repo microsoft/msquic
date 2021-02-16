@@ -550,22 +550,6 @@ CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_FILE, CertificateFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, CertificateFile),
     "Mismatch (certificate file) in certificate file structs");
 
-CXPLAT_STATIC_ASSERT(
-    FIELD_OFFSET(QUIC_CERTIFICATE_HASH, ShaHash) == FIELD_OFFSET(QUIC_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY, ShaHash),
-    "Mismatch (sha hash) in certificate hash structs");
-
-CXPLAT_STATIC_ASSERT(
-    FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE, Flags) == FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY, Flags),
-    "Mismatch (flags) in certificate hash store structs");
-
-CXPLAT_STATIC_ASSERT(
-    FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE, ShaHash) == FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY, ShaHash),
-    "Mismatch (sha hash) in certificate hash store structs");
-
-CXPLAT_STATIC_ASSERT(
-    FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE, StoreName) == FIELD_OFFSET(QUIC_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY, StoreName),
-    "Mismatch (store name) in certificate hash store structs");
-
 QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
@@ -618,13 +602,7 @@ CxPlatTlsSecConfigCreate(
             }
         } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
             CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE ||
-<<<<<<< HEAD
-            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT ||
-            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_EXPLICIT_PRIVATE_KEY ||
-            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE_EXPLICIT_PRIVATE_KEY) {
-=======
-            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) { // NOLINT bugprone-branch-clone
->>>>>>> main
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
 #ifndef _WIN32
             return QUIC_STATUS_NOT_SUPPORTED; // Only supported on windows.
 #endif
