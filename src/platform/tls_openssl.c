@@ -1260,20 +1260,164 @@ CxPlatTlsParamSet(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
+//
+// Mappings taken from the following .NET definitions.
+// https://github.com/dotnet/runtime/blob/69425a7e6198ff78131ad64f1aa3fc28202bfde8/src/libraries/System.Net.Security/src/System/Net/Security/SslConnectionInfo.Linux.cs
+// https://github.com/dotnet/runtime/blob/69425a7e6198ff78131ad64f1aa3fc28202bfde8/src/libraries/Native/Unix/System.Security.Cryptography.Native/pal_ssl.c
+// https://github.com/dotnet/runtime/blob/1d9e50cb4735df46d3de0cee5791e97295eaf588/src/libraries/System.Net.Security/src/System/Net/Security/TlsCipherSuiteData.Lookup.cs
+//
+
+#define TLS_AES_128_GCM_SHA256          0x1301
+#define TLS_AES_256_GCM_SHA384          0x1302
+#define TLS_CHACHA20_POLY1305_SHA256    0x1303
+
+static
+QUIC_STATUS
+CxPlatMapCipherSuite(
+    _Inout_ QUIC_HANDSHAKE_INFO* HandshakeInfo
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    HandshakeInfo->KeyExchangeAlgorithm = 0;
+    HandshakeInfo->KeyExchangeStrength = 0;
+
+    switch (HandshakeInfo->CipherSuite) {
+        case TLS_AES_128_GCM_SHA256:
+            HandshakeInfo->CipherAlgorithm = 0x660E;
+            HandshakeInfo->CipherStrength = 128;
+            HandshakeInfo->Hash = 0x800c;
+            HandshakeInfo->HashStrength = 0;
+            break;
+        case TLS_AES_256_GCM_SHA384:
+            HandshakeInfo->CipherAlgorithm = 0x6610;
+            HandshakeInfo->CipherStrength = 256;
+            HandshakeInfo->Hash = 0x800d;
+            HandshakeInfo->HashStrength = 0;
+            break;
+        case TLS_CHACHA20_POLY1305_SHA256:
+            HandshakeInfo->CipherAlgorithm = 0;
+            HandshakeInfo->CipherStrength = 256;
+            HandshakeInfo->Hash = 0x800c;
+            HandshakeInfo->HashStrength = 0;
+            break;
+        default:
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            break;
+    }
+
+    return Status;
+}
+
+static
+uint32_t
+CxPlatMapVersion(
+    _In_ const char* Version,
+    _In_ BOOL IsServer
+    )
+{
+    //
+    // protocolVersion points to a static ASCII string that's one of:
+    //     TLSv1
+    //     TLSv1.1
+    //     TLSv1.2
+    //     TLSv1.3
+    //     SSLv2
+    //     SSLv3
+    //     unknown
+    // Regardless, it's null terminated.
+    //
+    // Taken from
+    //
+    if (Version[0] == 'T')
+    {
+        if (Version[1] == 'L' &&
+            Version[2] == 'S' &&
+            Version[3] == 'v' &&
+            Version[4] == '1')
+        {
+            if (Version[5] == '\0')
+            {
+                return IsServer ? 0x40 : 0x80;
+            }
+            else if (Version[5] == '.' && Version[6] != '\0' && Version[7] == '\0')
+            {
+                switch (Version[6])
+                {
+                    case '1': return IsServer ? 0x100 : 0x200;
+                    case '2': return IsServer ? 0x400 : 0x800;
+                    case '3': return IsServer ? 0x1000 : 0x2000;
+                }
+            }
+        }
+    }
+    else if (Version[0] == 'S')
+    {
+        if (Version[1] == 'S' &&
+            Version[2] == 'L' &&
+            Version[3] == 'v')
+        {
+            if (Version[4] == '2' && Version[5] == '\0')
+            {
+                return IsServer ? 0x4 : 0x8;
+            }
+            else if (Version[4] == '3' && Version[5] == '\0')
+            {
+                return IsServer ? 0x10 : 0x20;
+            }
+        }
+    }
+
+    return 0;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamGet(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
+    _Inout_updates_bytes_opt_(*BufferLength)
         void* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(Param);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_STATUS Status;
+
+    switch (Param) {
+
+        case QUIC_PARAM_TLS_HANDSHAKE_INFO:
+            if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
+                *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            QUIC_HANDSHAKE_INFO* HandshakeInfo = (QUIC_HANDSHAKE_INFO*)Buffer;
+            // TODO figure out how to map server vs client
+            HandshakeInfo->TlsProtocolVersion = CxPlatMapVersion(SSL_get_version(TlsContext->Ssl), TlsContext->IsServer);
+
+            const SSL_CIPHER* Cipher = SSL_get_current_cipher(TlsContext->Ssl);
+            if (Cipher == NULL) {
+                Status = QUIC_STATUS_NOT_SUPPORTED;
+                break;
+            }
+            HandshakeInfo->CipherSuite = SSL_CIPHER_get_protocol_id(Cipher);
+            Status = CxPlatMapCipherSuite(HandshakeInfo);
+
+            Status = QUIC_STATUS_SUCCESS;
+            break;
+
+        default:
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            break;
+    }
+
+    return Status;
 }
 
 //

@@ -277,6 +277,20 @@ typedef struct QUIC_NEW_CONNECTION_INFO {
 } QUIC_NEW_CONNECTION_INFO;
 
 //
+// All the available information describing a handshake.
+//
+typedef struct QUIC_HANDSHAKE_INFO {
+    uint32_t TlsProtocolVersion;
+    uint32_t CipherAlgorithm;
+    uint32_t CipherStrength;
+    uint32_t Hash;
+    uint32_t HashStrength;
+    uint32_t KeyExchangeAlgorithm;
+    uint32_t KeyExchangeStrength;
+    uint32_t CipherSuite;
+} QUIC_HANDSHAKE_INFO;
+
+//
 // All statistics available to query about a connection.
 //
 typedef struct QUIC_STATISTICS {
@@ -542,6 +556,7 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W {
 } QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W;
 #define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W     0x1000000   // QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
 #endif
+#define QUIC_PARAM_TLS_HANDSHAKE_INFO                   0  // QUIC_HANDSHAKE_INFO
 
 //
 // Parameters for QUIC_PARAM_LEVEL_STREAM.

@@ -738,6 +738,44 @@ TEST_F(TlsTest, Handshake)
     DoHandshake(ServerContext, ClientContext);
 }
 
+TEST_F(TlsTest, HandshakeInfoClient)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    DoHandshake(ServerContext, ClientContext);
+
+    QUIC_HANDSHAKE_INFO HandshakeInfo;
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    uint32_t HandshakeInfoLen = sizeof(HandshakeInfo);
+    QUIC_STATUS Status =
+        CxPlatTlsParamGet(
+            ClientContext.Ptr,
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &HandshakeInfoLen,
+            &HandshakeInfo);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+}
+
+TEST_F(TlsTest, HandshakeInfoServer)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    DoHandshake(ServerContext, ClientContext);
+
+    QUIC_HANDSHAKE_INFO HandshakeInfo;
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    uint32_t HandshakeInfoLen = sizeof(HandshakeInfo);
+    QUIC_STATUS Status =
+        CxPlatTlsParamGet(
+            ServerContext.Ptr,
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &HandshakeInfoLen,
+            &HandshakeInfo);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+}
+
 TEST_F(TlsTest, HandshakeParallel)
 {
     CXPLAT_THREAD_CONFIG Config = {

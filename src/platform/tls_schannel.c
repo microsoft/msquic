@@ -2527,6 +2527,57 @@ CxPlatTlsParamGet(
             break;
         }
 
+        case QUIC_PARAM_TLS_HANDSHAKE_INFO: {
+            if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
+                *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            SecPkgContext_ConnectionInfo ConnInfo;
+            CxPlatZeroMemory(&ConnInfo, sizeof(ConnInfo));
+
+            Status =
+                SecStatusToQuicStatus(
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_CONNECTION_INFO,
+                        &ConnInfo));
+            if (QUIC_FAILED(Status)) {
+                break;
+            }
+
+            SecPkgContext_CipherInfo CipherInfo;
+            CxPlatZeroMemory(&CipherInfo, sizeof(CipherInfo));
+
+            Status =
+                SecStatusToQuicStatus(
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_CIPHER_INFO,
+                        &CipherInfo));
+            if (QUIC_FAILED(Status)) {
+                break;
+            }
+
+            QUIC_HANDSHAKE_INFO* HandshakeInfo = (QUIC_HANDSHAKE_INFO*)Buffer;
+            HandshakeInfo->TlsProtocolVersion = ConnInfo.dwProtocol;
+            HandshakeInfo->CipherAlgorithm = ConnInfo.aiCipher;
+            HandshakeInfo->CipherStrength = ConnInfo.dwCipherStrength;
+            HandshakeInfo->Hash = ConnInfo.aiHash;
+            HandshakeInfo->HashStrength = ConnInfo.dwHashStrength;
+            HandshakeInfo->KeyExchangeAlgorithm = ConnInfo.aiExch;
+            HandshakeInfo->KeyExchangeStrength = ConnInfo.dwExchStrength;
+            HandshakeInfo->CipherSuite = CipherInfo.dwCipherSuite;
+
+            break;
+        }
+
         default:
             Status = QUIC_STATUS_NOT_SUPPORTED;
             break;
