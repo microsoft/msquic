@@ -1313,7 +1313,7 @@ static
 uint32_t
 CxPlatMapVersion(
     _In_ const char* Version,
-    _In_ BOOL IsServer
+    _In_ BOOLEAN IsServer
     )
 {
     //
