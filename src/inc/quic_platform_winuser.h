@@ -161,12 +161,7 @@ CxPlatLogAssert(
 #define CXPLAT_WIDE_STRING(_str) L##_str
 
 #define CXPLAT_ASSERT_NOOP(_exp, _msg) \
-    (CXPLAT_ANALYSIS_ASSUME(_exp), \
-    ((!(_exp)) ? \
-        (CxPlatLogAssert(__FILE__, __LINE__, #_exp), \
-         __annotation(L"Debug", L"AssertFail", _msg), \
-         DbgRaiseAssertionFailure(), FALSE) : \
-        TRUE))
+    (CXPLAT_ANALYSIS_ASSUME(_exp), ((!(_exp)) ? FALSE : TRUE))
 
 #define CXPLAT_ASSERT_LOG(_exp, _msg) \
     (CXPLAT_ANALYSIS_ASSUME(_exp), \
