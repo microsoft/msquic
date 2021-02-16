@@ -215,6 +215,42 @@ typedef struct _SecPkgContext_SessionInfo
 #define SECPKG_ATTR_SESSION_INFO         0x5d   // returns SecPkgContext_SessionInfo
 #define SECPKG_ATTR_CERT_CHECK_RESULT_INPROC 0x72 // returns SecPkgContext_CertificateValidationResult, use only after SSPI handshake loop
 
+typedef unsigned int ALG_ID;
+
+typedef struct _SecPkgContext_CipherInfo
+{
+
+    DWORD dwVersion;
+    DWORD dwProtocol;
+    DWORD dwCipherSuite;
+    DWORD dwBaseCipherSuite;
+    WCHAR szCipherSuite[SZ_ALG_MAX_SIZE];
+    WCHAR szCipher[SZ_ALG_MAX_SIZE];
+    DWORD dwCipherLen;
+    DWORD dwCipherBlockLen;    // in bytes
+    WCHAR szHash[SZ_ALG_MAX_SIZE];
+    DWORD dwHashLen;
+    WCHAR szExchange[SZ_ALG_MAX_SIZE];
+    DWORD dwMinExchangeLen;
+    DWORD dwMaxExchangeLen;
+    WCHAR szCertificate[SZ_ALG_MAX_SIZE];
+    DWORD dwKeyType;
+} SecPkgContext_CipherInfo, * PSecPkgContext_CipherInfo;
+
+typedef struct _SecPkgContext_ConnectionInfo
+{
+    DWORD   dwProtocol;
+    ALG_ID  aiCipher;
+    DWORD   dwCipherStrength;
+    ALG_ID  aiHash;
+    DWORD   dwHashStrength;
+    ALG_ID  aiExch;
+    DWORD   dwExchStrength;
+} SecPkgContext_ConnectionInfo, * PSecPkgContext_ConnectionInfo;
+
+#define SECPKG_ATTR_CIPHER_INFO          0x64   // returns new CNG SecPkgContext_CipherInfo
+#define SECPKG_ATTR_CONNECTION_INFO      0x5a   // returns SecPkgContext_ConnectionInfo
+
 #else
 
 #define SCHANNEL_USE_BLACKLISTS
