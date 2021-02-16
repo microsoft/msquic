@@ -602,7 +602,7 @@ CxPlatTlsSecConfigCreate(
             }
         } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
             CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE ||
-            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) { // NOLINT bugprone-branch-clone
 #ifndef _WIN32
             return QUIC_STATUS_NOT_SUPPORTED; // Only supported on windows.
 #endif
