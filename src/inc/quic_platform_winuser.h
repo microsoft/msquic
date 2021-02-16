@@ -161,7 +161,7 @@ CxPlatLogAssert(
 #define CXPLAT_WIDE_STRING(_str) L##_str
 
 #define CXPLAT_ASSERT_NOOP(_exp, _msg) \
-    (CXPLAT_ANALYSIS_ASSUME(_exp), ((!(_exp)) ? FALSE : TRUE))
+    (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
 
 #define CXPLAT_ASSERT_LOG(_exp, _msg) \
     (CXPLAT_ANALYSIS_ASSUME(_exp), \
