@@ -2495,7 +2495,7 @@ CxPlatTlsParamGet(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Inout_updates_bytes_opt_(*BufferLength)
+    _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
     )
 {
