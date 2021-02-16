@@ -1277,20 +1277,26 @@ CxPlatMapCipherSuite(
     HandshakeInfo->KeyExchangeStrength = 0;
     HandshakeInfo->HashStrength = 0;
 
-    if (HandshakeInfo->CipherSuite == QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256) {
-        HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_128;
-        HandshakeInfo->CipherStrength = 128;
-        HandshakeInfo->Hash = QUIC_ALG_SHA_256;
-    } else if (HandshakeInfo->CipherSuite == QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384) {
-        HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_256;
-        HandshakeInfo->CipherStrength = 256;
-        HandshakeInfo->Hash = QUIC_ALG_SHA_384;
-    } else if (HandshakeInfo->CipherSuite == QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256) {
-        HandshakeInfo->CipherAlgorithm = QUIC_ALG_CHACHA20;
-        HandshakeInfo->CipherStrength = 0;
-        HandshakeInfo->Hash = QUIC_ALG_SHA_256;
-    } else {
-        Status = QUIC_STATUS_NOT_SUPPORTED;
+    switch (HandshakeInfo->CipherSuite) {
+        case QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256:
+            HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_128;
+            HandshakeInfo->CipherStrength = 128;
+            HandshakeInfo->Hash = QUIC_ALG_SHA_256;
+
+            break;
+        case QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384:
+            HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_256;
+            HandshakeInfo->CipherStrength = 256;
+            HandshakeInfo->Hash = QUIC_ALG_SHA_384;
+            break;
+        case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
+            HandshakeInfo->CipherAlgorithm = QUIC_ALG_CHACHA20;
+            HandshakeInfo->CipherStrength = 0;
+            HandshakeInfo->Hash = QUIC_ALG_SHA_256;
+            break;
+        default:
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            break;
     }
 
     return Status;
@@ -1353,41 +1359,37 @@ CxPlatTlsParamGet(
 {
     QUIC_STATUS Status;
 
-    switch (Param) {
-
-        case QUIC_PARAM_TLS_HANDSHAKE_INFO:
-            if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
-                *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
-                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-                break;
-            }
-
-            if (Buffer == NULL) {
-                Status = QUIC_STATUS_INVALID_PARAMETER;
-                break;
-            }
-
-            QUIC_HANDSHAKE_INFO* HandshakeInfo = (QUIC_HANDSHAKE_INFO*)Buffer;
-            HandshakeInfo->TlsProtocolVersion =
-                CxPlatMapVersion(
-                    SSL_get_version(TlsContext->Ssl),
-                    TlsContext->IsServer);
-
-            const SSL_CIPHER* Cipher = SSL_get_current_cipher(TlsContext->Ssl);
-            if (Cipher == NULL) {
-                Status = QUIC_STATUS_NOT_SUPPORTED;
-                break;
-            }
-            HandshakeInfo->CipherSuite = SSL_CIPHER_get_protocol_id(Cipher);
-            Status = CxPlatMapCipherSuite(HandshakeInfo);
-
-            break;
-
-        default:
-            Status = QUIC_STATUS_NOT_SUPPORTED;
-            break;
+    if (Param != QUIC_PARAM_TLS_HANDSHAKE_INFO) {
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        goto Exit;
     }
 
+    if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
+        *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
+        Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+        goto Exit;
+    }
+
+    if (Buffer == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    QUIC_HANDSHAKE_INFO* HandshakeInfo = (QUIC_HANDSHAKE_INFO*)Buffer;
+    HandshakeInfo->TlsProtocolVersion =
+        CxPlatMapVersion(
+            SSL_get_version(TlsContext->Ssl),
+            TlsContext->IsServer);
+
+    const SSL_CIPHER* Cipher = SSL_get_current_cipher(TlsContext->Ssl);
+    if (Cipher == NULL) {
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        goto Exit;
+    }
+    HandshakeInfo->CipherSuite = SSL_CIPHER_get_protocol_id(Cipher);
+    Status = CxPlatMapCipherSuite(HandshakeInfo);
+
+Exit:
     return Status;
 }
 
