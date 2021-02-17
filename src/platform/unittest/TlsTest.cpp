@@ -24,13 +24,14 @@ struct TlsTest : public ::testing::TestWithParam<bool>
 {
 protected:
     CXPLAT_SEC_CONFIG* ServerSecConfig {nullptr};
+    CXPLAT_SEC_CONFIG* ServerSecConfigClientAuth {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfig {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigDeferredCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigCustomCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigExtraCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
-    CXPLAT_SEC_CONFIG* ClientSecConfigClientCert {nullptr};
-    static const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
+    CXPLAT_SEC_CONFIG* ClientSecConfigClientCertNoCertValidation  {nullptr};
+    static QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
     static QUIC_CREDENTIAL_CONFIG* ClientCertParams;
 
     TlsTest() { }
@@ -57,19 +58,23 @@ protected:
 
     static void SetUpTestSuite()
     {
-        SelfSignedCertParams = CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
+        SelfSignedCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
         ASSERT_NE(nullptr, SelfSignedCertParams);
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         ClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, TRUE);
         ASSERT_NE(nullptr, ClientCertParams);
         ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+#endif
     }
 
     static void TearDownTestSuite()
     {
         CxPlatPlatFreeSelfSignedCert(SelfSignedCertParams);
         SelfSignedCertParams = nullptr;
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         CxPlatPlatFreeSelfSignedCert(ClientCertParams);
         ClientCertParams = nullptr;
+#endif
     }
 
     void SetUp() override
@@ -81,6 +86,15 @@ protected:
                 &ServerSecConfig,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfig);
+
+    SelfSignedCertParams->Flags |= QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                SelfSignedCertParams,
+                &TlsContext::TlsServerCallbacks,
+                &ServerSecConfigClientAuth,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ServerSecConfigClientAuth);
 
         QUIC_CREDENTIAL_CONFIG ClientCredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
@@ -136,13 +150,15 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfigNoCertValidation);
 
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 ClientCertParams,
                 &TlsContext::TlsClientCallbacks,
-                &ClientSecConfigClientCert,
+                &ClientSecConfigClientCertNoCertValidation ,
                 OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ClientSecConfigClientCert);
+        ASSERT_NE(nullptr, ClientSecConfigClientCertNoCertValidation );
+#endif
     }
 
     void TearDown() override
@@ -163,13 +179,17 @@ protected:
             CxPlatTlsSecConfigDelete(ClientSecConfigDeferredCertValidation);
             ClientSecConfigDeferredCertValidation = nullptr;
         }
-        if (ClientSecConfigClientCert) {
-            CxPlatTlsSecConfigDelete(ClientSecConfigClientCert);
-            ClientSecConfigClientCert = nullptr;
+        if (ClientSecConfigClientCertNoCertValidation ) {
+            CxPlatTlsSecConfigDelete(ClientSecConfigClientCertNoCertValidation );
+            ClientSecConfigClientCertNoCertValidation  = nullptr;
         }
         if (ClientSecConfig) {
             CxPlatTlsSecConfigDelete(ClientSecConfig);
             ClientSecConfig = nullptr;
+        }
+        if (ServerSecConfigClientAuth) {
+            CxPlatTlsSecConfigDelete(ServerSecConfigClientAuth);
+            ServerSecConfigClientAuth = nullptr;
         }
         if (ServerSecConfig) {
             CxPlatTlsSecConfigDelete(ServerSecConfig);
@@ -740,7 +760,7 @@ const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
     TlsTest::TlsContext::OnPeerCertReceived
 };
 
-const QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
+QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
 
 QUIC_CREDENTIAL_CONFIG* TlsTest::ClientCertParams = nullptr;
 
@@ -1301,14 +1321,15 @@ TEST_F(TlsTest, LockPerfTest)
 #endif
 }
 
-
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
 TEST_F(TlsTest, ClientCertificate)
 {
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigClientCert);
+    ServerContext.InitializeServer(ServerSecConfigClientAuth);
+    ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation );
 
     DoHandshake(ServerContext, ClientContext);
 }
+#endif
 
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());

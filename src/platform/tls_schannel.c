@@ -55,6 +55,26 @@ typedef struct _SEND_GENERIC_TLS_EXTENSION
     UCHAR Buffer[ANYSIZE_ARRAY];    // Extension data.
 } SEND_GENERIC_TLS_EXTENSION, * PSEND_GENERIC_TLS_EXTENSION;
 
+//
+// This property returns the raw binary certificates that were received
+// from the remote party. The format of the buffer that's returned is as
+// follows.
+//
+//     <4 bytes> length of certificate #1
+//     <n bytes> certificate #1
+//     <4 bytes> length of certificate #2
+//     <n bytes> certificate #2
+//     ...
+//
+typedef struct _SecPkgContext_Certificates
+{
+    DWORD   cCertificates;
+    DWORD   cbCertificateChain;
+    PBYTE   pbCertificateChain;
+} SecPkgContext_Certificates, *PSecPkgContext_Certificates;
+
+#define SECPKG_ATTR_REMOTE_CERTIFICATES  0x5F   // returns SecPkgContext_Certificates
+
 #define SP_PROT_TLS1_3_SERVER           0x00001000
 #define SP_PROT_TLS1_3_CLIENT           0x00002000
 #define SP_PROT_TLS1_3                  (SP_PROT_TLS1_3_SERVER | \
@@ -1074,6 +1094,10 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER; // Defer validation without indication doesn't make sense.
     }
 
+    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) && IsClient) {
+        return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
+    }
+
     switch (CredConfig->Type) {
     case QUIC_CREDENTIAL_TYPE_NONE:
         if (!IsClient) {
@@ -1172,7 +1196,7 @@ CxPlatTlsSecConfigCreate(
 
 #ifdef _KERNEL_MODE
     //
-    // Assumption: client works the same as server here
+    // TODO: test kernel client works the same as server here
     //
     if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
         CXPLAT_DBG_ASSERT(CredConfig->CertificateHash != NULL);
@@ -1785,7 +1809,8 @@ CxPlatTlsWriteDataToSchannel(
         ISC_REQ_CONFIDENTIALITY |
         ISC_RET_EXTENDED_ERROR |
         ISC_REQ_STREAM;
-    if (TlsContext->IsServer) {
+    if (TlsContext->IsServer &&
+        TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
         ContextReq |= ASC_REQ_MUTUAL_AUTH;
     }
     ULONG ContextAttr;
@@ -1983,12 +2008,13 @@ CxPlatTlsWriteDataToSchannel(
             if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
 
 #ifdef _KERNEL_MODE
-                PSecPkgContext_Certificates PeerCert = NULL;
+                SecPkgContext_Certificates PeerCert;
+                CxPlatZeroMemory(&PeerCert, sizeof(PeerCert));
                 SecStatus =
                     QueryContextAttributesW(
                         &TlsContext->SchannelContext,
                         SECPKG_ATTR_REMOTE_CERTIFICATES,
-                        (PSecPkgContext_Certificates)&PeerCert);
+                        (PVOID)&PeerCert);
 #else
                 PCCERT_CONTEXT PeerCert = NULL;
                 SecStatus =
@@ -2003,7 +2029,7 @@ CxPlatTlsWriteDataToSchannel(
                         "[ tls][%p] ERROR, %u, %s.",
                         TlsContext->Connection,
                         SecStatus,
-                        "query peer cert");
+                        "Query peer cert");
                 }
 
                 SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
@@ -2040,13 +2066,15 @@ CxPlatTlsWriteDataToSchannel(
                     break;
                 }
 
-                if (PeerCert != NULL) {
 #ifdef _KERNEL_MODE
-                    FreeContextBuffer(PeerCert);
-#else
-                    CertFreeCertificateContext(PeerCert);
-#endif
+                if (PeerCert.pbCertificateChain != NULL) {
+                    FreeContextBuffer(PeerCert.pbCertificateChain);
                 }
+#else
+                if (PeerCert != NULL) {
+                    CertFreeCertificateContext(PeerCert);
+                }
+#endif
             }
 
             QuicTraceLogConnInfo(

@@ -304,6 +304,17 @@ CxPlatPlatGetSelfSignedCert(
     UNREFERENCED_PARAMETER(Type);
     UNREFERENCED_PARAMETER(ClientCertificate);
 
+    if (ClientCertificate) {
+        //
+        // Client certificate is not supported on OpenSSL (yet)
+        //
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Client Certificate is not supported in OpenSSL");
+        return NULL;
+    }
+
     CXPLAT_CREDENTIAL_CONFIG_INTERNAL* Params =
         malloc(sizeof(CXPLAT_CREDENTIAL_CONFIG_INTERNAL) + sizeof(TEMP_DIR_TEMPLATE));
     if (Params == NULL) {

@@ -264,6 +264,12 @@ if(WIN32)
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
     endif()
 
+    if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
+        # OpenSSL and mitls don't support client certificates yet.
+        message(STATUS "Disabling Client Certificate tests")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
+    endif()
+
     if(QUIC_TLS STREQUAL "stub")
         list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
     endif()
@@ -365,6 +371,12 @@ else()
         # OpenSSL doesn't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
+    endif()
+
+    if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
+        # OpenSSL and mitls don't support client certificates yet.
+        message(STATUS "Disabling Client Certificate tests")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
     endif()
 
     if(QUIC_ENABLE_SANITIZERS)
