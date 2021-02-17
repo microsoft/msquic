@@ -87,7 +87,7 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfig);
 
-    SelfSignedCertParams->Flags |= QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+        SelfSignedCertParams->Flags |= QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,
@@ -155,7 +155,7 @@ protected:
             CxPlatTlsSecConfigCreate(
                 ClientCertParams,
                 &TlsContext::TlsClientCallbacks,
-                &ClientSecConfigClientCertNoCertValidation ,
+                &ClientSecConfigClientCertNoCertValidation,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfigClientCertNoCertValidation );
 #endif
@@ -761,7 +761,6 @@ const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
 };
 
 QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
-
 QUIC_CREDENTIAL_CONFIG* TlsTest::ClientCertParams = nullptr;
 
 TEST_F(TlsTest, Initialize)

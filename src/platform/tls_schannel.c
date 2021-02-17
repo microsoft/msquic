@@ -1195,10 +1195,12 @@ CxPlatTlsSecConfigCreate(
 
 
 #ifdef _KERNEL_MODE
-    //
-    // TODO: test kernel client works the same as server here
-    //
-    if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
+    if (IsClient && CredConfig->Type == QUIC_CREDENTIAL_TYPE_NONE) {
+        //
+        // Plain client with no certificate.
+        //
+
+    } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
         CXPLAT_DBG_ASSERT(CredConfig->CertificateHash != NULL);
 
         QUIC_CERTIFICATE_HASH* CertHash = CredConfig->CertificateHash;
