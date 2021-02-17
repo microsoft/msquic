@@ -674,7 +674,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnIndicateEvent(
     _In_ QUIC_CONNECTION* Connection,
-    _Inout_ QUIC_CONNECTION_EVENT* Event
+    _Inout_ QUIC_CONNECTION_EVENT* Event,
+    _In_ BOOLEAN IsLastEvent
     )
 {
     QUIC_STATUS Status;
@@ -687,8 +688,13 @@ QuicConnIndicateEvent(
                 Connection,
                 "Event silently discarded (no handler).");
         } else {
+            QUIC_CONNECTION_CALLBACK_HANDLER ClientCallbackHandler =
+                Connection->ClientCallbackHandler;
+            if (IsLastEvent) {
+                Connection->ClientCallbackHandler = NULL;
+            }
             Status =
-                Connection->ClientCallbackHandler(
+                ClientCallbackHandler(
                     (HQUIC)Connection,
                     Connection->ClientContext,
                     Event);
@@ -1337,7 +1343,7 @@ QuicConnIndicateShutdownBegin(
             "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT [0x%x]",
             Event.SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
     }
-    (void)QuicConnIndicateEvent(Connection, &Event);
+    (void)QuicConnIndicateEvent(Connection, &Event, FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1384,7 +1390,7 @@ QuicConnOnShutdownComplete(
             IndicateConnectionShutdownComplete,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
-        (void)QuicConnIndicateEvent(Connection, &Event);
+        (void)QuicConnIndicateEvent(Connection, &Event, TRUE);
 
         Connection->ClientCallbackHandler = NULL;
     }
@@ -2068,7 +2074,7 @@ QuicConnRecvResumptionTicket(
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
         ResumptionAccepted =
-            QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
+            QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event, FALSE));
 
         if (ResumptionAccepted) {
             QuicTraceEvent(
@@ -2108,7 +2114,7 @@ QuicConnRecvResumptionTicket(
                 IndicateResumptionTicketReceived,
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
-            (void)QuicConnIndicateEvent(Connection, &Event);
+            (void)QuicConnIndicateEvent(Connection, &Event, FALSE);
 
             CXPLAT_FREE(ClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
             ResumptionAccepted = TRUE;
@@ -2794,7 +2800,7 @@ QuicConnPeerCertReceived(
         "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED (0x%x, 0x%x)",
         DeferredErrorFlags,
         DeferredStatus);
-    QUIC_STATUS Status = QuicConnIndicateEvent(Connection, &Event);
+    QUIC_STATUS Status = QuicConnIndicateEvent(Connection, &Event, FALSE);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ConnError,
@@ -4416,7 +4422,7 @@ QuicConnRecvFrames(
                 IndicatePeerNeedStreams,
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS");
-            (void)QuicConnIndicateEvent(Connection, &Event);
+            (void)QuicConnIndicateEvent(Connection, &Event, FALSE);
 
             Packet->HasNonProbingFrame = TRUE;
             break;
@@ -4874,7 +4880,7 @@ QuicConnRecvPostProcessing(
             IndicatePeerAddrChanged,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED");
-        (void)QuicConnIndicateEvent(Connection, &Event);
+        (void)QuicConnIndicateEvent(Connection, &Event, FALSE);
     }
 }
 

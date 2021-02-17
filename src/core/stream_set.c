@@ -251,7 +251,7 @@ QuicStreamSetIndicateStreamsAvailable(
         "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%hu] [%hu]",
         Event.STREAMS_AVAILABLE.BidirectionalCount,
         Event.STREAMS_AVAILABLE.UnidirectionalCount);
-    (void)QuicConnIndicateEvent(Connection, &Event);
+    (void)QuicConnIndicateEvent(Connection, &Event, FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -655,7 +655,7 @@ QuicStreamSetGetStreamForPeer(
                 "Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]",
                 Event.PEER_STREAM_STARTED.Stream,
                 Event.PEER_STREAM_STARTED.Flags);
-            Status = QuicConnIndicateEvent(Connection, &Event);
+            Status = QuicConnIndicateEvent(Connection, &Event, FALSE);
 
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogStreamWarning(

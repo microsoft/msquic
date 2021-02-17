@@ -1545,7 +1545,7 @@ QuicCryptoProcessTlsCompletion(
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)",
             Event.CONNECTED.SessionResumed);
-        (void)QuicConnIndicateEvent(Connection, &Event);
+        (void)QuicConnIndicateEvent(Connection, &Event, FALSE);
         if (Crypto->TlsState.SessionResumed) {
             QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_RESUMED);
         }

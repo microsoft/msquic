@@ -103,7 +103,7 @@ QuicDatagramIndicateSendStateChange(
         Connection,
         "Indicating DATAGRAM_SEND_STATE_CHANGED to %u",
         State);
-    (void)QuicConnIndicateEvent(Connection, &Event);
+    (void)QuicConnIndicateEvent(Connection, &Event, FALSE);
 
     *ClientContext = Event.DATAGRAM_SEND_STATE_CHANGED.ClientContext;
 }
@@ -304,7 +304,7 @@ QuicDatagramOnSendStateChanged(
             "Indicating QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED [SendEnabled=%hhu] [MaxSendLength=%hu]",
             Event.DATAGRAM_STATE_CHANGED.SendEnabled,
             Event.DATAGRAM_STATE_CHANGED.MaxSendLength);
-        (void)QuicConnIndicateEvent(Connection, &Event);
+        (void)QuicConnIndicateEvent(Connection, &Event, FALSE);
     }
 
     if (!SendEnabled) {
@@ -572,7 +572,7 @@ QuicDatagramProcessFrame(
         Connection,
         "Indicating DATAGRAM_RECEIVED [len=%hu]",
         (uint16_t)Frame.Length);
-    (void)QuicConnIndicateEvent(Connection, &Event);
+    (void)QuicConnIndicateEvent(Connection, &Event, FALSE);
 
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, QuicBuffer.Length);
 

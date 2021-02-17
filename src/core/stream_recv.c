@@ -206,7 +206,7 @@ QuicStreamProcessResetFrame(
                 Stream,
                 "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
                 ErrorCode);
-            (void)QuicStreamIndicateEvent(Stream, &Event);
+            (void)QuicStreamIndicateEvent(Stream, &Event, FALSE);
         }
 
         //
@@ -250,7 +250,7 @@ QuicStreamProcessStopSendingFrame(
             Stream,
             "Indicating QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED (0x%llX)",
             ErrorCode);
-        (void)QuicStreamIndicateEvent(Stream, &Event);
+        (void)QuicStreamIndicateEvent(Stream, &Event, FALSE);
 
         //
         // The peer has requested that we stop sending. Close abortively.
@@ -745,7 +745,7 @@ QuicStreamRecvFlush(
             Event.RECEIVE.BufferCount,
             Event.RECEIVE.Flags);
 
-        QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
+        QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event, FALSE);
         if (Status == QUIC_STATUS_PENDING) {
             if (Stream->Flags.ReceiveCallPending) {
                 //
@@ -892,7 +892,7 @@ QuicStreamReceiveComplete(
             IndicatePeerSendShutdown,
             Stream,
             "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
-        (void)QuicStreamIndicateEvent(Stream, &Event);
+        (void)QuicStreamIndicateEvent(Stream, &Event, FALSE);
 
         //
         // Now that the close event has been delivered to the app, we can shut

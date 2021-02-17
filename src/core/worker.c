@@ -478,7 +478,7 @@ QuicWorkerProcessConnection(
             IndicateIdealProcChanged,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED");
-        (void)QuicConnIndicateEvent(Connection, &Event);
+        (void)QuicConnIndicateEvent(Connection, &Event, FALSE);
     }
 
     //

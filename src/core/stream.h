@@ -520,7 +520,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamIndicateEvent(
     _In_ QUIC_STREAM* Stream,
-    _Inout_ QUIC_STREAM_EVENT* Event
+    _Inout_ QUIC_STREAM_EVENT* Event,
+    _In_ BOOLEAN IsLastEvent
     );
 
 //

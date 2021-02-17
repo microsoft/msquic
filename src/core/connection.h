@@ -970,7 +970,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnIndicateEvent(
     _In_ QUIC_CONNECTION* Connection,
-    _Inout_ QUIC_CONNECTION_EVENT* Event
+    _Inout_ QUIC_CONNECTION_EVENT* Event,
+    _In_ BOOLEAN IsLastEvent
     );
 
 //

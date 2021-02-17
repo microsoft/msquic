@@ -95,7 +95,7 @@ QuicStreamIndicateSendShutdownComplete(
             IndicateSendShutdownComplete,
             Stream,
             "Indicating QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE");
-        (void)QuicStreamIndicateEvent(Stream, &Event);
+        (void)QuicStreamIndicateEvent(Stream, &Event, FALSE);
     }
 }
 
@@ -395,7 +395,7 @@ QuicStreamCompleteSendRequest(
                 SendRequest);
         }
 
-        (void)QuicStreamIndicateEvent(Stream, &Event);
+        (void)QuicStreamIndicateEvent(Stream, &Event, FALSE);
     } else if (SendRequest->InternalBuffer.Length != 0) {
         QuicSendBufferFree(
             &Connection->SendBuffer,
@@ -469,7 +469,7 @@ QuicStreamSendBufferRequest(
         Stream,
         "Indicating QUIC_STREAM_EVENT_SEND_COMPLETE [%p]",
         Req);
-    (void)QuicStreamIndicateEvent(Stream, &Event);
+    (void)QuicStreamIndicateEvent(Stream, &Event, FALSE);
 
     Req->ClientContext = NULL;
 

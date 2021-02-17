@@ -380,13 +380,18 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamIndicateEvent(
     _In_ QUIC_STREAM* Stream,
-    _Inout_ QUIC_STREAM_EVENT* Event
+    _Inout_ QUIC_STREAM_EVENT* Event,
+    _In_ BOOLEAN IsLastEvent
     )
 {
     QUIC_STATUS Status;
     if (Stream->ClientCallbackHandler != NULL) {
+        QUIC_STREAM_CALLBACK_HANDLER ClientCallbackHandler = Stream->ClientCallbackHandler;
+        if (IsLastEvent) {
+            Stream->ClientCallbackHandler = NULL;
+        }
         Status =
-            Stream->ClientCallbackHandler(
+            ClientCallbackHandler(
                 (HQUIC)Stream,
                 Stream->ClientContext,
                 Event);
@@ -416,7 +421,7 @@ QuicStreamIndicateStartComplete(
         Stream,
         "Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
         Status);
-    (void)QuicStreamIndicateEvent(Stream, &Event);
+    (void)QuicStreamIndicateEvent(Stream, &Event, FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -434,9 +439,7 @@ QuicStreamIndicateShutdownComplete(
             IndicateStreamShutdownComplete,
             Stream,
             "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE");
-        (void)QuicStreamIndicateEvent(Stream, &Event);
-
-        Stream->ClientCallbackHandler = NULL;
+        (void)QuicStreamIndicateEvent(Stream, &Event, TRUE);
     }
 }
 

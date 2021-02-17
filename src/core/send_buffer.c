@@ -242,7 +242,7 @@ QuicSendBufferStreamAdjust(
             Stream,
             "Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
             Event.IDEAL_SEND_BUFFER_SIZE.ByteCount);
-        (void)QuicStreamIndicateEvent(Stream, &Event);
+        (void)QuicStreamIndicateEvent(Stream, &Event, FALSE);
     }
 }
 
