@@ -2615,9 +2615,9 @@ CxPlatTlsParamGet(
 
             QUIC_HANDSHAKE_INFO* HandshakeInfo = (QUIC_HANDSHAKE_INFO*)Buffer;
             if ((ConnInfo.dwProtocol & SP_PROT_TLS1_3) != 0) {
-                HandshakeInfo->TlsProtocolVersion = QUIC_TLS1_3;
+                HandshakeInfo->TlsProtocolVersion = QUIC_TLS_PROTOCOL_1_3;
             } else {
-                HandshakeInfo->TlsProtocolVersion = QUIC_TLS_UNKNOWN;
+                HandshakeInfo->TlsProtocolVersion = QUIC_TLS_PROTOCOL_UNKNOWN;
             }
 
             HandshakeInfo->CipherAlgorithm = ConnInfo.aiCipher;

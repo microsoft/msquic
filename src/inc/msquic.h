@@ -276,50 +276,42 @@ typedef struct QUIC_NEW_CONNECTION_INFO {
     const char* ServerName;
 } QUIC_NEW_CONNECTION_INFO;
 
-#define QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256          0x1301
-#define QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384          0x1302
+typedef enum QUIC_TLS_PROTOCOL_VERSION {
+    QUIC_TLS_PROTOCOL_UNKNOWN   = 0,
+    QUIC_TLS_PROTOCOL_1_3       = 0x3000,
+} QUIC_TLS_PROTOCOL_VERSION;
 
-#ifdef CALG_AES_128
-#define QUIC_ALG_AES_128       CALG_AES_128
-#else
-#define QUIC_ALG_AES_128       0x660E
-#endif
-#ifdef CALG_AES_256
-#define QUIC_ALG_AES_256       CALG_AES_256
-#else
-#define QUIC_ALG_AES_256       0x6610
-#endif
+typedef enum QUIC_CIPHER_ALGORITHM {
+    QUIC_CIPHER_ALGORITHM_AES_128     = 0x660E,
+    QUIC_CIPHER_ALGORITHM_AES_256     = 0x6610,
+} QUIC_CIPHER_ALGORITHM;
 
-#ifdef CALG_SHA_256
-#define QUIC_ALG_SHA_256       CALG_SHA_256
-#else
-#define QUIC_ALG_SHA_256       0x800C
-#endif
-#ifdef CALG_SHA_384
-#define QUIC_ALG_SHA_384       CALG_SHA_384
-#else
-#define QUIC_ALG_SHA_384       0x800D
-#endif
+typedef enum QUIC_HASH_ALGORITHM {
+    QUIC_HASH_ALGORITHM_SHA_256     = 0x800C,
+    QUIC_HASH_ALGORITHM_SHA_384     = 0x800D,
+} QUIC_HASH_ALGORITHM;
 
-#define QUIC_TLS_UNKNOWN        0
-#ifdef SP_PROT_TLS1_3
-#define QUIC_TLS1_3             SP_PROT_TLS1_3
-#else
-#define QUIC_TLS1_3             0x3000
-#endif
+typedef enum QUIC_KEY_EXCHANGE_ALGORITHM {
+    QUIC_KEY_EXCHANGE_ALGORITHM_NONE  = 0,
+} QUIC_KEY_EXCHANGE_ALGORITHM;
+
+typedef enum QUIC_CIPHER_SUITE {
+    QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256 = 0x1301,
+    QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384 = 0x1302,
+} QUIC_CIPHER_SUITE;
 
 //
 // All the available information describing a handshake.
 //
 typedef struct QUIC_HANDSHAKE_INFO {
-    int32_t TlsProtocolVersion;
-    int32_t CipherAlgorithm;
+    QUIC_TLS_PROTOCOL_VERSION TlsProtocolVersion;
+    QUIC_CIPHER_ALGORITHM CipherAlgorithm;
     int32_t CipherStrength;
-    int32_t Hash;
+    QUIC_HASH_ALGORITHM Hash;
     int32_t HashStrength;
-    int32_t KeyExchangeAlgorithm;
+    QUIC_KEY_EXCHANGE_ALGORITHM KeyExchangeAlgorithm;
     int32_t KeyExchangeStrength;
-    int32_t CipherSuite;
+    QUIC_CIPHER_SUITE CipherSuite;
 } QUIC_HANDSHAKE_INFO;
 
 //

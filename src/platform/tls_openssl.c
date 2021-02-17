@@ -1273,20 +1273,20 @@ CxPlatMapCipherSuite(
     //
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    HandshakeInfo->KeyExchangeAlgorithm = 0;
+    HandshakeInfo->KeyExchangeAlgorithm = QUIC_KEY_EXCHANGE_ALGORITHM_NONE;
     HandshakeInfo->KeyExchangeStrength = 0;
     HandshakeInfo->HashStrength = 0;
 
     switch (HandshakeInfo->CipherSuite) {
         case QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256:
-            HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_128;
+            HandshakeInfo->CipherAlgorithm = QUIC_CIPHER_ALGORITHM_AES_128;
             HandshakeInfo->CipherStrength = 128;
-            HandshakeInfo->Hash = QUIC_ALG_SHA_256;
+            HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_SHA_256;
             break;
         case QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384:
-            HandshakeInfo->CipherAlgorithm = QUIC_ALG_AES_256;
+            HandshakeInfo->CipherAlgorithm = QUIC_CIPHER_ALGORITHM_AES_256;
             HandshakeInfo->CipherStrength = 256;
-            HandshakeInfo->Hash = QUIC_ALG_SHA_384;
+            HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_SHA_384;
             break;
         //
         // Not supporting ChaChaPoly for querying currently.
@@ -1310,21 +1310,10 @@ CxPlatMapVersion(
     _In_z_ const char* Version
     )
 {
-    //
-    // protocolVersion points to a static ASCII string that's one of:
-    //     TLSv1
-    //     TLSv1.1
-    //     TLSv1.2
-    //     TLSv1.3
-    //     SSLv2
-    //     SSLv3
-    //     unknown
-    // Regardless, it's null terminated.
-    //
     if (strcmp(Version, "TLSv1.3") == 0) {
-        return QUIC_TLS1_3;
+        return QUIC_TLS_PROTOCOL_1_3;
     }
-    return QUIC_TLS_UNKNOWN;
+    return QUIC_TLS_PROTOCOL_UNKNOWN;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
