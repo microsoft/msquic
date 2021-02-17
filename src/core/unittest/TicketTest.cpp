@@ -107,7 +107,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
 
     uint8_t InputTicketBuffer[7 + TransportParametersLength + sizeof(ServerTicket)] = {
         CXPLAT_TLS_RESUMPTION_CLIENT_TICKET_VERSION,
-        0,0,0,1,                    // QUIC version,
+        0,0,0,1,                    // QUIC version
         (uint8_t)(TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize),
         5,                          // Server Ticket Length
     };
@@ -311,17 +311,25 @@ TEST(ResumptionTicketTest, ClientDecFail)
     InputTicketBuffer[4] = 1;
 
     // Client TP length shorter than actual
-     InputTicketBuffer[5] = (uint8_t)(TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize) - 1;
-    ASSERT_EQ(
-        QUIC_STATUS_INVALID_PARAMETER,
-        QuicCryptoDecodeClientTicket(
-            nullptr,
-            7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
-            InputTicketBuffer,
-            &DecodedTP,
-            &DecodedServerTicket,
-            &DecodedServerTicketLength,
-            &DecodedQuicVersion));
+    for (uint8_t s = 0; s < (uint8_t)TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize; ++s) {
+        QuicTraceLogInfo(
+            ClientResumptionTicketDecodeFailTpLengthShort,
+            "[test] Attempting to decode Server TP with length %u (Actual: %u)",
+            s,
+            EncodedTPLength - CxPlatTlsTPHeaderSize);
+
+        InputTicketBuffer[5] = s;
+        ASSERT_EQ(
+            QUIC_STATUS_INVALID_PARAMETER,
+            QuicCryptoDecodeClientTicket(
+                nullptr,
+                7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
+                InputTicketBuffer,
+                &DecodedTP,
+                &DecodedServerTicket,
+                &DecodedServerTicketLength,
+                &DecodedQuicVersion));
+    }
 
     // Client TP length longer than actual
      InputTicketBuffer[5] = (uint8_t)(TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize) + 1;
@@ -337,44 +345,48 @@ TEST(ResumptionTicketTest, ClientDecFail)
             &DecodedQuicVersion));
 
     // Client TP length improperly encoded QUIC_VAR_INT
-    InputTicketBuffer[5] = 0xC0 | (uint8_t)(TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize);
-    ASSERT_EQ(
-        QUIC_STATUS_INVALID_PARAMETER,
-        QuicCryptoDecodeClientTicket(
-            nullptr,
-            7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
-            InputTicketBuffer,
-            &DecodedTP,
-            &DecodedServerTicket,
-            &DecodedServerTicketLength,
-            &DecodedQuicVersion));
+    for (uint8_t i = 1; i < 4; ++i) {
+        InputTicketBuffer[5] = (uint8_t)(i << 6);
 
-    // Client TP length zero
-     InputTicketBuffer[5] = 0;
-    ASSERT_EQ(
-        QUIC_STATUS_INVALID_PARAMETER,
-        QuicCryptoDecodeClientTicket(
-            nullptr,
-            7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
-            InputTicketBuffer,
-            &DecodedTP,
-            &DecodedServerTicket,
-            &DecodedServerTicketLength,
-            &DecodedQuicVersion));
+        QuicTraceLogInfo(
+            ClientResumptionTicketDecodeFailTpLengthEncodedWrong,
+            "[test] Attempting to decode Server TP length (improperly encoded) %x (Actual: %u)",
+            InputTicketBuffer[5],
+            EncodedTPLength - CxPlatTlsTPHeaderSize);
+
+        ASSERT_EQ(
+            QUIC_STATUS_INVALID_PARAMETER,
+            QuicCryptoDecodeClientTicket(
+                nullptr,
+                7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
+                InputTicketBuffer,
+                &DecodedTP,
+                &DecodedServerTicket,
+                &DecodedServerTicketLength,
+                &DecodedQuicVersion));
+    }
     InputTicketBuffer[5] = (uint8_t)(TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize);
 
     // Server Ticket length shorter than actual
-    InputTicketBuffer[6] = (uint8_t)sizeof(ServerTicket) - 1;
-    ASSERT_EQ(
-        QUIC_STATUS_INVALID_PARAMETER,
-        QuicCryptoDecodeClientTicket(
-            nullptr,
-            7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
-            InputTicketBuffer,
-            &DecodedTP,
-            &DecodedServerTicket,
-            &DecodedServerTicketLength,
-            &DecodedQuicVersion));
+    for (uint8_t s = 0; s < (uint8_t)sizeof(ServerTicket); ++s) {
+        QuicTraceLogInfo(
+            ClientResumptionTicketDecodeFailTicketLengthShort,
+            "[test] Attempting to decode Server Ticket with length %u (Actual: %u)",
+            s,
+            (uint8_t)sizeof(ServerTicket));
+
+        InputTicketBuffer[6] = s;
+        ASSERT_EQ(
+            QUIC_STATUS_INVALID_PARAMETER,
+            QuicCryptoDecodeClientTicket(
+                nullptr,
+                7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
+                InputTicketBuffer,
+                &DecodedTP,
+                &DecodedServerTicket,
+                &DecodedServerTicketLength,
+                &DecodedQuicVersion));
+    }
 
     // Server Ticket length longer than actual
     InputTicketBuffer[6] = (uint8_t)sizeof(ServerTicket) + 1;
@@ -390,30 +402,25 @@ TEST(ResumptionTicketTest, ClientDecFail)
             &DecodedQuicVersion));
 
     // Server Ticket length improperly encoded QUIC VAR INT
-    InputTicketBuffer[6] = 0x80 | (uint8_t)sizeof(ServerTicket);
-    ASSERT_EQ(
-        QUIC_STATUS_INVALID_PARAMETER,
-        QuicCryptoDecodeClientTicket(
-            nullptr,
-            7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
-            InputTicketBuffer,
-            &DecodedTP,
-            &DecodedServerTicket,
-            &DecodedServerTicketLength,
-            &DecodedQuicVersion));
+    for (uint8_t i = 1; i < 4; ++i) {
+        InputTicketBuffer[6] = (uint8_t)(i << 6);
+        QuicTraceLogInfo(
+            ClientResumptionTicketDecodeFailTicketLengthEncodedWrong,
+            "[test] Attempting to decode Server Ticket length (improperly encoded) %x (Actual: %u)",
+            InputTicketBuffer[6],
+            (uint8_t)sizeof(ServerTicket));
 
-    // Server Ticket length zero
-    InputTicketBuffer[6] = 0;
-    ASSERT_EQ(
-        QUIC_STATUS_INVALID_PARAMETER,
-        QuicCryptoDecodeClientTicket(
-            nullptr,
-            7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
-            InputTicketBuffer,
-            &DecodedTP,
-            &DecodedServerTicket,
-            &DecodedServerTicketLength,
-            &DecodedQuicVersion));
+        ASSERT_EQ(
+            QUIC_STATUS_INVALID_PARAMETER,
+            QuicCryptoDecodeClientTicket(
+                nullptr,
+                7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
+                InputTicketBuffer,
+                &DecodedTP,
+                &DecodedServerTicket,
+                &DecodedServerTicketLength,
+                &DecodedQuicVersion));
+    }
 }
 
 TEST(ResumptionTicketTest, ServerEncDec)
@@ -529,6 +536,456 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
     CompareTransportParameters(&ServerTP, &DecodedServerTP);
 
     CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
+}
+
+TEST(ResumptionTicketTest, ServerDecFail)
+{
+    const uint8_t TransportParametersLength = 31;
+    const uint8_t AppData[] = {1,2,3,4,5};
+    const uint8_t Alpn[] = {'t', 'e', 's', 't'};
+    const uint8_t AlpnList[] = {4, 't', 'e', 's', 't'};
+    QUIC_TRANSPORT_PARAMETERS HandshakeTP;
+    QUIC_TRANSPORT_PARAMETERS DecodedTP;
+    const uint8_t* EncodedHandshakeTP = nullptr;
+    uint32_t EncodedTPLength = 0;
+    const uint8_t* DecodedAppData = nullptr;
+    uint32_t DecodedAppDataLength = 0;
+
+    uint8_t InputTicketBuffer[8 + TransportParametersLength + sizeof(Alpn) + sizeof(AppData)] = {
+        CXPLAT_TLS_RESUMPTION_TICKET_VERSION,
+        0,0,0,1,                    // QUIC version
+        4,                          // ALPN length
+        (uint8_t)(TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize),
+        (uint8_t)sizeof(AppData),   // App Data Length
+    };
+
+    CxPlatZeroMemory(&DecodedTP, sizeof(DecodedTP));
+    CxPlatZeroMemory(&HandshakeTP, sizeof(HandshakeTP));
+    HandshakeTP.Flags =
+        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
+        QUIC_TP_FLAG_INITIAL_MAX_DATA |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
+    HandshakeTP.ActiveConnectionIdLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN;
+
+    EncodedHandshakeTP =
+        QuicCryptoTlsEncodeTransportParameters(
+            nullptr,
+            TRUE,
+            &HandshakeTP,
+            nullptr,
+            &EncodedTPLength);
+    ASSERT_NE(EncodedHandshakeTP, nullptr);
+    ASSERT_EQ(EncodedTPLength, TransportParametersLength); // Update if TP size changes
+    ASSERT_GT(sizeof(InputTicketBuffer), EncodedTPLength);
+
+    CxPlatCopyMemory(
+        &InputTicketBuffer[8],
+        Alpn,
+        sizeof(Alpn));
+
+    CxPlatCopyMemory(
+        &InputTicketBuffer[8 + sizeof(Alpn)],
+        EncodedHandshakeTP + CxPlatTlsTPHeaderSize,
+        EncodedTPLength - CxPlatTlsTPHeaderSize);
+
+    ASSERT_GT(sizeof(InputTicketBuffer), EncodedTPLength + sizeof(AppData));
+    CxPlatCopyMemory(
+        &InputTicketBuffer[8 + sizeof(Alpn) + (TransportParametersLength - CxPlatTlsTPHeaderSize)],
+        AppData,
+        sizeof(AppData));
+
+    //
+    // Validate that the hand-crafted ticket is correct
+    //
+    TEST_QUIC_SUCCEEDED(
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(AppData),
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    ASSERT_EQ(DecodedAppDataLength, sizeof(AppData));
+    CompareTransportParameters(&HandshakeTP, &DecodedTP);
+
+    //
+    // Test decoding of a valid ticket fails when the length is wrong
+    //
+
+    // Not enough space to decode ticket version
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            0,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    // Not enough room for QUIC version
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            4,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    // Not enough room for negotiated ALPN length
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            5,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    // Not enough room for TP length
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            6,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    // Not enough room for App Data length
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            7,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    // Not enough room for negotiated ALPN length
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            8,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            8 + (uint16_t)(sizeof(Alpn) / 2),
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    // Not enough room for handshake TP
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            8 + (uint16_t)sizeof(Alpn),
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            8 + (uint16_t)sizeof(Alpn) + (uint16_t)((EncodedTPLength - CxPlatTlsTPHeaderSize) / 2),
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) - 1,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    // Not enough room for App Data
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize),
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)(sizeof(AppData) - 1),
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    //
+    // Invalidate some of the fields of the ticket to ensure
+    // decoding fails
+    //
+
+    const uint16_t ActualEncodedTicketLength =
+        8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(AppData);
+
+    // Incorrect ticket version
+    InputTicketBuffer[0] = CXPLAT_TLS_RESUMPTION_TICKET_VERSION + 1;
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            ActualEncodedTicketLength,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    InputTicketBuffer[0] = CXPLAT_TLS_RESUMPTION_CLIENT_TICKET_VERSION;
+
+    // Unsupported QUIC version
+    InputTicketBuffer[1] = 1;
+    InputTicketBuffer[2] = 1;
+    InputTicketBuffer[3] = 1;
+    InputTicketBuffer[4] = 1;
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            ActualEncodedTicketLength,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    InputTicketBuffer[1] = 0;
+    InputTicketBuffer[2] = 0;
+    InputTicketBuffer[3] = 0;
+    InputTicketBuffer[4] = 1;
+
+    // Negotiated ALPN length shorter than actual
+    for (uint8_t s = 0; s < (uint8_t)sizeof(Alpn); ++s) {
+        QuicTraceLogInfo(
+            ServerResumptionTicketDecodeFailAlpnLengthShort,
+            "[test] Attempting to decode Negotiated ALPN with length %u (Actual: %u)",
+            s,
+            (uint8_t)sizeof(Alpn));
+
+        InputTicketBuffer[5] = s;
+        ASSERT_EQ(
+            QUIC_STATUS_INVALID_PARAMETER,
+            QuicCryptoDecodeServerTicket(
+                nullptr,
+                ActualEncodedTicketLength,
+                InputTicketBuffer,
+                AlpnList,
+                sizeof(AlpnList),
+                &DecodedTP,
+                &DecodedAppData,
+                &DecodedAppDataLength));
+    }
+
+    // Negotiated ALPN length longer than actual
+    InputTicketBuffer[5] = (uint8_t)sizeof(Alpn) + 1;
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            ActualEncodedTicketLength,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    // Negotiated ALPN length improperly encoded QUIC_VAR_INT
+    for (uint8_t i = 1; i < 4; ++i) {
+        InputTicketBuffer[5] = (uint8_t)(i << 6);
+
+        QuicTraceLogInfo(
+            ServerResumptionTicketDecodeFailAlpnLengthEncodedWrong,
+            "[test] Attempting to decode Negotiated ALPN length (improperly encoded) %x (Actual: %u)",
+            InputTicketBuffer[5],
+            (uint8_t)sizeof(Alpn));
+
+        ASSERT_EQ(
+            QUIC_STATUS_INVALID_PARAMETER,
+            QuicCryptoDecodeServerTicket(
+                nullptr,
+                ActualEncodedTicketLength,
+                InputTicketBuffer,
+                AlpnList,
+                sizeof(AlpnList),
+                &DecodedTP,
+                &DecodedAppData,
+                &DecodedAppDataLength));
+    }
+    InputTicketBuffer[5] = (uint8_t)sizeof(Alpn);
+
+    // Handshake TP length shorter than actual
+    for (uint8_t s = 0; s < EncodedTPLength - CxPlatTlsTPHeaderSize; ++s) {
+        QuicTraceLogInfo(
+            ServerResumptionTicketDecodeFailTpLengthShort,
+            "[test] Attempting to decode Handshake TP with length %u (Actual: %u)",
+            s,
+            EncodedTPLength - CxPlatTlsTPHeaderSize);
+
+        InputTicketBuffer[6] = s;
+        ASSERT_EQ(
+            QUIC_STATUS_INVALID_PARAMETER,
+            QuicCryptoDecodeServerTicket(
+                nullptr,
+                ActualEncodedTicketLength,
+                InputTicketBuffer,
+                AlpnList,
+                sizeof(AlpnList),
+                &DecodedTP,
+                &DecodedAppData,
+                &DecodedAppDataLength));
+    }
+
+    // Handshake TP length longer than actual
+    InputTicketBuffer[6] = (uint8_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + 1;
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            nullptr,
+            ActualEncodedTicketLength,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    // Handshake TP length improperly encoded QUIC_VAR_INT
+    for (uint8_t i = 1; i < 4; ++i) {
+        InputTicketBuffer[6] = (uint8_t)(i << 6);
+        QuicTraceLogInfo(
+            ServerResumptionTicketDecodeFailTpLengthEncodedWrong,
+            "[test] Attempting to decode Handshake TP length (improperly encoded) %x (Actual: %u)",
+            InputTicketBuffer[6],
+            EncodedTPLength - CxPlatTlsTPHeaderSize);
+
+        ASSERT_EQ(
+            QUIC_STATUS_INVALID_PARAMETER,
+            QuicCryptoDecodeServerTicket(
+                nullptr,
+                ActualEncodedTicketLength,
+                InputTicketBuffer,
+                AlpnList,
+                sizeof(AlpnList),
+                &DecodedTP,
+                &DecodedAppData,
+                &DecodedAppDataLength));
+    }
+    InputTicketBuffer[6] = (uint8_t)(EncodedTPLength - CxPlatTlsTPHeaderSize);
+
+    // App Data length shorter than actual
+    for (uint8_t s = 0; s < (uint8_t)sizeof(AppData); ++s) {
+        QuicTraceLogInfo(
+            ServerResumptionTicketDecodeFailAppDataLengthShort,
+            "[test] Attempting to decode App Data with length %u (Actual: %u)",
+            s,
+            (uint8_t)sizeof(AppData));
+
+        InputTicketBuffer[7] = s;
+        ASSERT_EQ(
+            QUIC_STATUS_INVALID_PARAMETER,
+            QuicCryptoDecodeServerTicket(
+                nullptr,
+                ActualEncodedTicketLength,
+                InputTicketBuffer,
+                AlpnList,
+                sizeof(AlpnList),
+                &DecodedTP,
+                &DecodedAppData,
+                &DecodedAppDataLength));
+    }
+
+    // App Data length longer than actual
+    InputTicketBuffer[7] = (uint8_t)sizeof(AppData) + 1;
+        ASSERT_EQ(
+            QUIC_STATUS_INVALID_PARAMETER,
+            QuicCryptoDecodeServerTicket(
+                nullptr,
+                ActualEncodedTicketLength,
+                InputTicketBuffer,
+                AlpnList,
+                sizeof(AlpnList),
+                &DecodedTP,
+                &DecodedAppData,
+                &DecodedAppDataLength));
+
+    // App Data length improperly encoded QUIC_VAR_INT
+    for (uint8_t i = 1; i < 4; ++i) {
+        InputTicketBuffer[7] = (uint8_t)(i << 6);
+        QuicTraceLogInfo(
+            ServerResumptionTicketDecodeFailAppDataLengthEncodedWrong,
+            "[test] Attempting to decode App Data length (improperly encoded) %x (Actual: %u)",
+            InputTicketBuffer[7],
+            (uint8_t)sizeof(AppData));
+
+        ASSERT_EQ(
+            QUIC_STATUS_INVALID_PARAMETER,
+            QuicCryptoDecodeServerTicket(
+                nullptr,
+                ActualEncodedTicketLength,
+                InputTicketBuffer,
+                AlpnList,
+                sizeof(AlpnList),
+                &DecodedTP,
+                &DecodedAppData,
+                &DecodedAppDataLength));
+    }
 }
 
 TEST(ResumptionTicketTest, ClientServerEndToEnd)

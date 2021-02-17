@@ -2139,7 +2139,7 @@ QuicCryptoDecodeServerTicket(
         goto Error;
     }
 
-    if (TicketLength - Offset < sizeof(uint32_t)) {
+    if (TicketLength < Offset + sizeof(uint32_t)) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
@@ -2187,7 +2187,7 @@ QuicCryptoDecodeServerTicket(
         goto Error;
     }
 
-    if (TicketLength - Offset < AlpnLength) {
+    if (TicketLength < Offset + AlpnLength) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
@@ -2206,7 +2206,7 @@ QuicCryptoDecodeServerTicket(
     }
     Offset += (uint16_t)AlpnLength;
 
-    if (TicketLength - Offset < TPLength) {
+    if (TicketLength < Offset + TPLength) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
