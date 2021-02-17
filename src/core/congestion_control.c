@@ -554,7 +554,17 @@ QuicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
+    if (!Cc->IsInRecovery) {
+        return;
+    }
+
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     BOOLEAN PreviousCanSendState = QuicCongestionControlCanSend(Cc);
+
+    QuicTraceEvent(
+        ConnSpuriousCongestion,
+        "[conn][%p] Spurious congestion event",
+        Connection);
 
     //
     // Revert to previous state.
@@ -569,5 +579,5 @@ QuicCongestionControlOnSpuriousCongestionEvent(
     Cc->HasHadCongestionEvent = FALSE;
 
     QuicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
-    QuicConnLogCubic(QuicCongestionControlGetConnection(Cc));
+    QuicConnLogCubic(Connection);
 }

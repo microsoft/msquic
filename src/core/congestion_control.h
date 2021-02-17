@@ -178,8 +178,7 @@ QuicCongestionControlOnDataLost(
     );
 
 //
-// Called when all recently considered lost data was found to be actually
-// acknowledged.
+// Called when all recently considered lost data was actually acknowledged.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
