@@ -1349,7 +1349,12 @@ CxPlatTlsParamGet(
 
             const SSL_CIPHER* Cipher = SSL_get_current_cipher(TlsContext->Ssl);
             if (Cipher == NULL) {
-                Status = QUIC_STATUS_NOT_SUPPORTED;
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Unable to get cipher suite");
+                Status = QUIC_STATUS_INVALID_STATE;
                 break;
             }
             HandshakeInfo->CipherSuite = SSL_CIPHER_get_protocol_id(Cipher);
@@ -1368,7 +1373,12 @@ CxPlatTlsParamGet(
             unsigned int NegotiatedAlpnLen = 0;
             SSL_get0_alpn_selected(TlsContext->Ssl, &NegotiatedAlpn, &NegotiatedAlpnLen);
             if (NegotiatedAlpnLen <= 0) {
-                Status = QUIC_STATUS_NOT_SUPPORTED;
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Unable to get negotiated alpn");
+                Status = QUIC_STATUS_INVALID_STATE;
                 break;
             }
             if (*BufferLength < NegotiatedAlpnLen) {

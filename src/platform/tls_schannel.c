@@ -219,7 +219,6 @@ typedef unsigned int ALG_ID;
 
 typedef struct _SecPkgContext_CipherInfo
 {
-
     DWORD dwVersion;
     DWORD dwProtocol;
     DWORD dwCipherSuite;
@@ -2627,7 +2626,6 @@ CxPlatTlsParamGet(
             HandshakeInfo->KeyExchangeAlgorithm = ConnInfo.aiExch;
             HandshakeInfo->KeyExchangeStrength = ConnInfo.dwExchStrength;
             HandshakeInfo->CipherSuite = CipherInfo.dwCipherSuite;
-
             break;
         }
 
@@ -2666,7 +2664,7 @@ CxPlatTlsParamGet(
                     TlsContext->Connection,
                     NegotiatedAlpn.ProtoNegoStatus,
                     "ALPN negotiation status");
-                Status = QUIC_STATUS_NOT_SUPPORTED;
+                Status = QUIC_STATUS_INVALID_STATE;
                 break;
             }
             if (*BufferLength < NegotiatedAlpn.ProtocolIdSize) {
