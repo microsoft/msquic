@@ -687,17 +687,7 @@ $DataFileContents = Get-HpsTestsJs -DataFile $DataFileContents -CpuCommitData $C
 
 $DataFileContents = $DataFileContents.Replace("COMMIT_DATE_PAIR", (Get-CommitTimePairJs -CommitModel $CommitHistory))
 
-# Grab Latency Data
-$LatestCommit = Get-LatestCommit -BranchFolder $BranchFolder
-$LatencyFolder = Join-Path $BranchFolder $LatestCommit.CommitHash "RpsLatency"
-$WinOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_openssl_Default.txt"
-$WinSchannelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_schannel_Default.txt"
-$WinKernelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Winkernel_x64_schannel_Default.txt"
-
-$WinOpenSslData = Get-LatencyDataJs -File $WinOpenSslLatencyFile
-$WinSchannelData = Get-LatencyDataJs -File $WinSchannelLatencyFile
-$WinKernelData = Get-LatencyDataJs -File $WinKernelLatencyFile
-
+$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_LINUX_OPENSSL", $LinuxOpenSslData)
 $DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_OPENSSL", $WinOpenSslData)
 $DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_SCHANNEL", $WinSchannelData)
 $DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINKERNEL", $WinKernelData)
