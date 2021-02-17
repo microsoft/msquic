@@ -61,7 +61,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 // The max expected reordering in terms of time (for RACK loss detection).
 //
-#define QUIC_TIME_REORDER_THRESHOLD(rtt)        ((rtt) + ((rtt) / 4))
+#define QUIC_TIME_REORDER_THRESHOLD(rtt)        ((rtt) + ((rtt) / 8))
 
 //
 // Number of consecutive PTOs after which the network is considered to be
