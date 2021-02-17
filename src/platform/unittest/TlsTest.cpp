@@ -738,7 +738,7 @@ TEST_F(TlsTest, Handshake)
     DoHandshake(ServerContext, ClientContext);
 }
 
-TEST_F(TlsTest, HandshakeInfoAES256GCM)
+TEST_F(TlsTest, HandshakeParamInfoAES256GCM)
 {
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfig);
@@ -784,7 +784,7 @@ TEST_F(TlsTest, HandshakeInfoAES256GCM)
 }
 
 // Disabled until we have a way to switch ciphers
-// TEST_F(TlsTest, HandshakeInfoAES128GCM)
+// TEST_F(TlsTest, HandshakeParamInfoAES128GCM)
 // {
 //     TlsContext ServerContext, ClientContext;
 //     ServerContext.InitializeServer(ServerSecConfig);
@@ -829,7 +829,7 @@ TEST_F(TlsTest, HandshakeInfoAES256GCM)
 //     EXPECT_EQ(0, HandshakeInfo.HashStrength);
 // }
 
-TEST_F(TlsTest, HandshakeNegotiatedAlpn)
+TEST_F(TlsTest, HandshakeParamNegotiatedAlpn)
 {
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfig);

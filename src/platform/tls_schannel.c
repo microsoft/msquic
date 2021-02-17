@@ -2666,7 +2666,7 @@ CxPlatTlsParamGet(
                     TlsContext->Connection,
                     NegotiatedAlpn.ProtoNegoStatus,
                     "ALPN negotiation status");
-                Status = QUIC_STATUS_TLS_ERROR;
+                Status = QUIC_STATUS_NOT_SUPPORTED;
                 break;
             }
             if (*BufferLength < NegotiatedAlpn.ProtocolIdSize) {
