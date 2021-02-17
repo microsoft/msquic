@@ -506,6 +506,18 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnSpuriousCongestion": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Spurious congestion event",
+      "UniqueId": "ConnSpuriousCongestion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "PacketRxStatelessReset": {
       "ModuleProperites": {},
       "TraceString": "[S][RX][-] SR %s",
@@ -10530,6 +10542,14 @@
       "stubs": {
         "Modules": []
       },
+      "STDOUT": {
+        "Modules": [
+          {
+            "ExportModule": "STDOUT",
+            "CustomSettings": {}
+          }
+        ]
+      },
       "etw_only": {
         "Modules": [
           {
@@ -10596,6 +10616,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -10608,6 +10629,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -10620,6 +10642,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -10632,6 +10655,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -10644,6 +10668,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -10656,6 +10681,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -10668,6 +10694,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -10680,6 +10707,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -10692,6 +10720,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -10704,6 +10733,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -10716,6 +10746,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -10728,6 +10759,7 @@
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
+          "macos": "STDOUT",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -11089,6 +11121,10 @@
       {
         "UniquenessHash": "5eef16d4-a574-2e5c-62c1-d561f0040322",
         "TraceID": "ConnRecoveryExit"
+      },
+      {
+        "UniquenessHash": "262484c2-7385-f5dd-c3de-0bb48fe2ffea",
+        "TraceID": "ConnSpuriousCongestion"
       },
       {
         "UniquenessHash": "74a3473b-5ac0-6376-652d-882aac50b01a",

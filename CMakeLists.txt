@@ -264,6 +264,12 @@ if(WIN32)
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
     endif()
 
+    if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
+        # OpenSSL and mitls don't support client certificates yet.
+        message(STATUS "Disabling Client Certificate tests")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
+    endif()
+
     if(QUIC_TLS STREQUAL "stub")
         list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
     endif()
@@ -336,10 +342,22 @@ else()
     endif()
 
     if(QUIC_ENABLE_LOGGING)
-        message(STATUS "Configuring for LTTng tracing")
-        set(CMAKE_CLOG_CONFIG_PROFILE linux)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
-        include(FindLTTngUST)
+        if (APPLE)
+            message(STATUS "Configuring for macos tracing")
+            # macos will print all logs to stdout. If that is wanted, uncomment, and comment the line below.
+            # set(CMAKE_CLOG_CONFIG_PROFILE macos)
+            # set(CMAKE_CLOG_CONFIG_PROFILE stubs)
+            # for now, stubs clog is broken, so disable logging completely on macos
+            set (QUIC_ENABLE_LOGGING OFF)
+            message(STATUS "Disablign all tracing on macos")
+            set(CMAKE_CLOG_CONFIG_PROFILE stubs)
+            list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
+        else()
+            message(STATUS "Configuring for LTTng tracing")
+            set(CMAKE_CLOG_CONFIG_PROFILE linux)
+            list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
+            include(FindLTTngUST)
+        endif()
     else()
         message(STATUS "Disabling tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE stubs)
@@ -353,6 +371,12 @@ else()
         # OpenSSL doesn't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
+    endif()
+
+    if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
+        # OpenSSL and mitls don't support client certificates yet.
+        message(STATUS "Disabling Client Certificate tests")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
     endif()
 
     if(QUIC_ENABLE_SANITIZERS)
@@ -478,6 +502,9 @@ if(QUIC_TLS STREQUAL "openssl")
                 linux-armv4 -DL_ENDIAN
                 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
             list(APPEND OPENSSL_CONFIG_FLAGS -latomic)
+        elseif(CX_PLATFORM STREQUAL "darwin")
+            # need to build with Apple's compiler
+            set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
                 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
@@ -624,6 +651,9 @@ if(QUIC_BUILD_TEST)
 
     enable_testing()
     add_subdirectory(submodules/googletest)
+
+    set_property(TARGET gtest PROPERTY CXX_STANDARD 17)
+    set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
 
     set_property(TARGET gtest PROPERTY FOLDER "tests")
     set_property(TARGET gtest_main PROPERTY FOLDER "tests")

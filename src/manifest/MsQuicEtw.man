@@ -2641,6 +2641,15 @@
               template="tid_CONN_VNL"
               value="5178"
               />
+          <event
+              keywords="ut:Connection ut:DataFlow"
+              level="win:Verbose"
+              message="$(string.Etw.SpuriousCongestionEvent)"
+              opcode="Connection"
+              symbol="QuicConnSpuriousCongestion"
+              template="tid_CONN"
+              value="5179"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume"
@@ -3087,6 +3096,10 @@
         <string
             id="Etw.PersistentCongestionEvent"
             value="[conn][%1] Persistent congestion event"
+            />
+        <string
+            id="Etw.SpuriousCongestionEvent"
+            value="[conn][%1] Spurious congestion event"
             />
         <string
             id="Etw.RecoveryExit"

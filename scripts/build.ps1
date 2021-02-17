@@ -99,7 +99,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("uwp", "windows", "linux")] # For future expansion
+    [ValidateSet("uwp", "windows", "linux", "macos")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
@@ -195,8 +195,12 @@ if ("" -eq $Tls) {
 if ("" -eq $Platform) {
     if ($IsWindows) {
         $Platform = "windows"
-    } else {
+    } elseif ($IsLinux) {
         $Platform = "linux"
+    } elseif ($IsMacOS) {
+        $Platform = "macos"
+    } else {
+        Write-Error "Unsupported platform type!"
     }
 }
 
@@ -288,7 +292,7 @@ function CMake-Generate {
     if ($DisablePerf) {
         $Arguments += " -DQUIC_BUILD_PERF=off"
     }
-    if ($IsLinux) {
+    if (!$IsWindows) {
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
     }
     if ($DynamicCRT) {

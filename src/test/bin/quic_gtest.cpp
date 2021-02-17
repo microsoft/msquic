@@ -29,7 +29,8 @@ public:
             CxPlatPlatGetSelfSignedCert(
                 TestingKernelMode ?
                     CXPLAT_SELF_SIGN_CERT_MACHINE :
-                    CXPLAT_SELF_SIGN_CERT_USER
+                    CXPLAT_SELF_SIGN_CERT_USER,
+                FALSE
                 )) != nullptr);
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");

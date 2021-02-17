@@ -32,8 +32,8 @@ Supported Platforms:
 #include "msquic_winkernel.h"
 #elif _WIN32
 #include "msquic_winuser.h"
-#elif __linux__
-#include "msquic_linux.h"
+#elif __linux__ || __APPLE__
+#include "msquic_posix.h"
 #else
 #error "Unsupported Platform"
 #endif
@@ -98,6 +98,7 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_ENABLE_OCSP                    = 0x00000008, // Schannel only currently
     QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED  = 0x00000010,
     QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION   = 0x00000020, // Schannel only currently
+    QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION  = 0x00000040, // Schannel only currently
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS)
