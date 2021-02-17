@@ -2053,7 +2053,11 @@ CxPlatTlsWriteDataToSchannel(
 
                 if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
                         TlsContext->Connection,
+#ifdef _KERNEL_MODE
+                        (void*)&PeerCert,
+#else
                         (void*)PeerCert,
+#endif
                         CertValidationResult.dwChainErrorStatus,
                         (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
                     QuicTraceEvent(
