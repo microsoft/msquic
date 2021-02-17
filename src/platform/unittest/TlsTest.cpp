@@ -31,6 +31,7 @@ protected:
     CXPLAT_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigClientCert {nullptr};
     static const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
+    static QUIC_CREDENTIAL_CONFIG* ClientCertParams;
 
     TlsTest() { }
 
@@ -56,14 +57,19 @@ protected:
 
     static void SetUpTestSuite()
     {
-        SelfSignedCertParams = CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER);
+        SelfSignedCertParams = CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
         ASSERT_NE(nullptr, SelfSignedCertParams);
+        ClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, TRUE);
+        ASSERT_NE(nullptr, ClientCertParams);
+        ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
     }
 
     static void TearDownTestSuite()
     {
         CxPlatPlatFreeSelfSignedCert(SelfSignedCertParams);
         SelfSignedCertParams = nullptr;
+        CxPlatPlatFreeSelfSignedCert(ClientCertParams);
+        ClientCertParams = nullptr;
     }
 
     void SetUp() override
@@ -80,15 +86,6 @@ protected:
             QUIC_CREDENTIAL_TYPE_NONE,
             QUIC_CREDENTIAL_FLAG_CLIENT,
             NULL,
-            NULL,
-            NULL,
-            NULL
-        };
-        QUIC_CERTIFICATE_HASH ClientCertHash = {{0xE1, 0x79, 0xFC, 0xB1, 0xD7, 0x90, 0x97, 0x7D, 0x75, 0x1F, 0x34, 0xCE, 0xDE, 0x13, 0x75, 0x50, 0xB0, 0xF3, 0xE8, 0x31}};
-        QUIC_CREDENTIAL_CONFIG ClientCertCredConfig = {
-            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
-            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
-            &ClientCertHash,
             NULL,
             NULL,
             NULL
@@ -141,7 +138,7 @@ protected:
 
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
-                &ClientCertCredConfig,
+                ClientCertParams,
                 &TlsContext::TlsClientCallbacks,
                 &ClientSecConfigClientCert,
                 OnSecConfigCreateComplete));
@@ -523,7 +520,7 @@ protected:
         static BOOLEAN
         OnPeerCertReceived(
             _In_ QUIC_CONNECTION* Connection,
-            _In_ void* Certificate,
+            _In_ void* /* Certificate */,
             _In_ uint32_t DeferredErrorFlags,
             _In_ QUIC_STATUS DeferredStatus
             )
@@ -744,6 +741,8 @@ const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
 };
 
 const QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
+
+QUIC_CREDENTIAL_CONFIG* TlsTest::ClientCertParams = nullptr;
 
 TEST_F(TlsTest, Initialize)
 {

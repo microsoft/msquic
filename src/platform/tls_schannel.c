@@ -1982,21 +1982,29 @@ CxPlatTlsWriteDataToSchannel(
 
             if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
 
-                //
-                // TODO - Check for certificate availability on server side.
-                //
 #ifdef _KERNEL_MODE
-                QueryContextAttributesW(
-                    &TlsContext->SchannelContext,
-                    SECPKG_ATTR_REMOTE_CERTIFICATES,
-                    (PSecPkgContext_Certificates)&CertChain
-                )
+                PSecPkgContext_Certificates PeerCert = NULL;
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_REMOTE_CERTIFICATES,
+                        (PSecPkgContext_Certificates)&PeerCert);
 #else
-                // QueryContextAttributesW(
-                //     &TlsContext->SchannelContext,
-                //     SECPKG_ATTR_REMOTE_CERT_CONTEXT,
-                //     (PVOID)&pClientCertContext);
+                PCCERT_CONTEXT PeerCert = NULL;
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_REMOTE_CERT_CONTEXT,
+                        (PVOID)&PeerCert);
 #endif
+                if (SecStatus != SEC_E_OK) {
+                    QuicTraceEvent(
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        SecStatus,
+                        "query peer cert");
+                }
 
                 SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
                 if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
@@ -2019,7 +2027,7 @@ CxPlatTlsWriteDataToSchannel(
 
                 if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
                         TlsContext->Connection,
-                        NULL,
+                        (void*)PeerCert,
                         CertValidationResult.dwChainErrorStatus,
                         (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
                     QuicTraceEvent(
@@ -2032,9 +2040,13 @@ CxPlatTlsWriteDataToSchannel(
                     break;
                 }
 
+                if (PeerCert != NULL) {
 #ifdef _KERNEL_MODE
-                FreeContextBuffer(CertChain);
+                    FreeContextBuffer(PeerCert);
+#else
+                    CertFreeCertificateContext(PeerCert);
 #endif
+                }
             }
 
             QuicTraceLogConnInfo(
