@@ -153,7 +153,7 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN AppCloseInProgress: 1;
 
-#ifdef QuicVerifierEnabledByAddr
+#ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
         //
@@ -573,10 +573,10 @@ typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
     1024 /* Extra QUIC stuff */ \
 )
 
-#ifdef QuicVerifierEnabledByAddr
+#ifdef CxPlatVerifierEnabledByAddr
 #define QUIC_CONN_VERIFY(Connection, Expr) \
     if (Connection->State.IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
-#elif defined(QuicVerifierEnabled)
+#elif defined(CxPlatVerifierEnabled)
 #define QUIC_CONN_VERIFY(Connection, Expr) \
     if (MsQuicLib.IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
 #else

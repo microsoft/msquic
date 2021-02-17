@@ -73,7 +73,7 @@ typedef struct QUIC_LIBRARY {
     //
     BOOLEAN Loaded : 1;
 
-#ifdef QuicVerifierEnabled
+#ifdef CxPlatVerifierEnabled
     //
     // The app or driver verifier is globally enabled.
     //
@@ -240,7 +240,7 @@ typedef struct QUIC_LIBRARY {
 
 extern QUIC_LIBRARY MsQuicLib;
 
-#ifdef QuicVerifierEnabled
+#ifdef CxPlatVerifierEnabled
 #define QUIC_LIB_VERIFY(Expr) \
     if (MsQuicLib.IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
 #else
