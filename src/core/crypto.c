@@ -2393,7 +2393,7 @@ QuicCryptoDecodeClientTicket(
             "Client Ticket version unsupported");
         goto Error;
     }
-    if (ClientTicketLength - Offset < sizeof(uint32_t)) {
+    if (ClientTicketLength < Offset + sizeof(uint32_t)) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
@@ -2427,7 +2427,7 @@ QuicCryptoDecodeClientTicket(
             "Resumption Ticket data length failed to decode");
         goto Error;
     }
-    if (ClientTicketLength - Offset < TPLength) {
+    if (ClientTicketLength < Offset + TPLength) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
