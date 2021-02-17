@@ -55,6 +55,26 @@ typedef struct _SEND_GENERIC_TLS_EXTENSION
     UCHAR Buffer[ANYSIZE_ARRAY];    // Extension data.
 } SEND_GENERIC_TLS_EXTENSION, * PSEND_GENERIC_TLS_EXTENSION;
 
+//
+// This property returns the raw binary certificates that were received
+// from the remote party. The format of the buffer that's returned is as
+// follows.
+//
+//     <4 bytes> length of certificate #1
+//     <n bytes> certificate #1
+//     <4 bytes> length of certificate #2
+//     <n bytes> certificate #2
+//     ...
+//
+typedef struct _SecPkgContext_Certificates
+{
+    DWORD   cCertificates;
+    DWORD   cbCertificateChain;
+    PBYTE   pbCertificateChain;
+} SecPkgContext_Certificates, *PSecPkgContext_Certificates;
+
+#define SECPKG_ATTR_REMOTE_CERTIFICATES  0x5F   // returns SecPkgContext_Certificates
+
 #define SP_PROT_TLS1_3_SERVER           0x00001000
 #define SP_PROT_TLS1_3_CLIENT           0x00002000
 #define SP_PROT_TLS1_3                  (SP_PROT_TLS1_3_SERVER | \
@@ -1074,33 +1094,31 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER; // Defer validation without indication doesn't make sense.
     }
 
-    if (IsClient) {
+    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) && IsClient) {
+        return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
+    }
 
-        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
-            return QUIC_STATUS_NOT_SUPPORTED; // Client certificates not supported yet.
-        }
-
-    } else {
-
-        switch (CredConfig->Type) {
-        case QUIC_CREDENTIAL_TYPE_NONE:
+    switch (CredConfig->Type) {
+    case QUIC_CREDENTIAL_TYPE_NONE:
+        if (!IsClient) {
             return QUIC_STATUS_INVALID_PARAMETER; // Server requires a certificate.
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
-#ifndef _KERNEL_MODE
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
-#endif
-            if (CredConfig->CertificateContext == NULL && CredConfig->Principal == NULL) {
-                return QUIC_STATUS_INVALID_PARAMETER;
-            }
-            break;
-#ifdef _KERNEL_MODE
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
-#endif
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE:
-        default:
-            return QUIC_STATUS_NOT_SUPPORTED;
         }
+        break;
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+#ifndef _KERNEL_MODE
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
+#endif
+        if (CredConfig->CertificateContext == NULL && CredConfig->Principal == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        break;
+#ifdef _KERNEL_MODE
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
+#endif
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE:
+    default:
+        return QUIC_STATUS_NOT_SUPPORTED;
     }
 
     QUIC_ACH_CONTEXT* AchContext =
@@ -1177,9 +1195,9 @@ CxPlatTlsSecConfigCreate(
 
 
 #ifdef _KERNEL_MODE
-    if (IsClient) {
+    if (IsClient && CredConfig->Type == QUIC_CREDENTIAL_TYPE_NONE) {
         //
-        // Nothing supported for client right now.
+        // Plain client with no certificate.
         //
 
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
@@ -1793,6 +1811,10 @@ CxPlatTlsWriteDataToSchannel(
         ISC_REQ_CONFIDENTIALITY |
         ISC_RET_EXTENDED_ERROR |
         ISC_REQ_STREAM;
+    if (TlsContext->IsServer &&
+        TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+        ContextReq |= ASC_REQ_MUTUAL_AUTH;
+    }
     ULONG ContextAttr;
     SECURITY_STATUS SecStatus;
 
@@ -1987,9 +2009,30 @@ CxPlatTlsWriteDataToSchannel(
 
             if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
 
-                //
-                // TODO - Check for certificate availability on server side.
-                //
+#ifdef _KERNEL_MODE
+                SecPkgContext_Certificates PeerCert;
+                CxPlatZeroMemory(&PeerCert, sizeof(PeerCert));
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_REMOTE_CERTIFICATES,
+                        (PVOID)&PeerCert);
+#else
+                PCCERT_CONTEXT PeerCert = NULL;
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_REMOTE_CERT_CONTEXT,
+                        (PVOID)&PeerCert);
+#endif
+                if (SecStatus != SEC_E_OK) {
+                    QuicTraceEvent(
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        SecStatus,
+                        "Query peer cert");
+                }
 
                 SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
                 if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
@@ -2012,7 +2055,11 @@ CxPlatTlsWriteDataToSchannel(
 
                 if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
                         TlsContext->Connection,
-                        NULL,
+#ifdef _KERNEL_MODE
+                        (void*)&PeerCert,
+#else
+                        (void*)PeerCert,
+#endif
                         CertValidationResult.dwChainErrorStatus,
                         (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
                     QuicTraceEvent(
@@ -2024,6 +2071,16 @@ CxPlatTlsWriteDataToSchannel(
                     State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
                     break;
                 }
+
+#ifdef _KERNEL_MODE
+                if (PeerCert.pbCertificateChain != NULL) {
+                    FreeContextBuffer(PeerCert.pbCertificateChain);
+                }
+#else
+                if (PeerCert != NULL) {
+                    CertFreeCertificateContext(PeerCert);
+                }
+#endif
             }
 
             QuicTraceLogConnInfo(
