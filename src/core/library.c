@@ -333,11 +333,11 @@ MsQuicLibraryInitialize(
         MsQuicLib.PartitionCount,
         CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
-#ifdef QuicVerifierEnabled
+#ifdef CxPlatVerifierEnabled
     uint32_t Flags;
-    MsQuicLib.IsVerifying = QuicVerifierEnabled(Flags);
+    MsQuicLib.IsVerifying = CxPlatVerifierEnabled(Flags);
     if (MsQuicLib.IsVerifying) {
-#ifdef QuicVerifierEnabledByAddr
+#ifdef CxPlatVerifierEnabledByAddr
         QuicTraceLogInfo(
             LibraryVerifierEnabledPerRegistration,
             "[ lib] Verifing enabled, per-registration!");
