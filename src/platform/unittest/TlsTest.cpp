@@ -30,7 +30,7 @@ protected:
     CXPLAT_SEC_CONFIG* ClientSecConfigCustomCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigExtraCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
-    CXPLAT_SEC_CONFIG* ClientSecConfigClientCertNoCertValidation  {nullptr};
+    CXPLAT_SEC_CONFIG* ClientSecConfigClientCertNoCertValidation {nullptr};
     static QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
     static QUIC_CREDENTIAL_CONFIG* ClientCertParams;
 
