@@ -53,16 +53,15 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_AMPLIFICATION_RATIO                3
 
 //
-// The max expected reordering in terms of number of packets
-// (for FACK loss detection).
+// The max expected reordering in terms of number of packets (for FACK loss
+// detection). Comment out to disable FACK based loss detection.
 //
-#define QUIC_PACKET_REORDER_THRESHOLD           3
+//#define QUIC_PACKET_REORDER_THRESHOLD           3
 
 //
-// The max expected reordering in terms of time
-// (for RACK loss detection).
+// The max expected reordering in terms of time (for RACK loss detection).
 //
-#define QUIC_TIME_REORDER_THRESHOLD(rtt)        ((rtt) + ((rtt) / 8))
+#define QUIC_TIME_REORDER_THRESHOLD(rtt)        ((rtt) + ((rtt) / 4))
 
 //
 // Number of consecutive PTOs after which the network is considered to be

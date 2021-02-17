@@ -892,6 +892,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 continue;
             }
 
+#ifdef QUIC_PACKET_REORDER_THRESHOLD
             if (Packet->PacketNumber + QUIC_PACKET_REORDER_THRESHOLD < LossDetection->LargestAck) {
                 if (!NonretransmittableHandshakePacket) {
                     QuicTraceLogVerbose(
@@ -908,7 +909,11 @@ QuicLossDetectionDetectAndHandleLostPackets(
                         QuicPacketTraceType(Packet),
                         QUIC_TRACE_PACKET_LOSS_FACK);
                 }
-            } else if (Packet->PacketNumber < LossDetection->LargestAck &&
+            } else if (
+#else
+            if (
+#endif
+                Packet->PacketNumber < LossDetection->LargestAck &&
                         CxPlatTimeAtOrBefore32(Packet->SentTime + TimeReorderThreshold, TimeNow)) {
                 if (!NonretransmittableHandshakePacket) {
                     QuicTraceLogVerbose(
