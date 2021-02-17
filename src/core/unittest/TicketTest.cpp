@@ -332,7 +332,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
     }
 
     // Client TP length longer than actual
-     InputTicketBuffer[5] = (uint8_t)(TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize) + 1;
+    InputTicketBuffer[5] = (uint8_t)(TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize) + 1;
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeClientTicket(
