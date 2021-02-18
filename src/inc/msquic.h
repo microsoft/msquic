@@ -148,6 +148,7 @@ typedef enum QUIC_STREAM_START_FLAGS {
     QUIC_STREAM_START_FLAG_FAIL_BLOCKED     = 0x0001,   // Only opens the stream if flow control allows.
     QUIC_STREAM_START_FLAG_IMMEDIATE        = 0x0002,   // Immediately informs peer that stream is open.
     QUIC_STREAM_START_FLAG_ASYNC            = 0x0004,   // Don't block the API call to wait for completion.
+    QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL = 0x0008,   // Shutdown the stream immediately after start failure.
 } QUIC_STREAM_START_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_START_FLAGS)
