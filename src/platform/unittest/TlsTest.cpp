@@ -778,6 +778,130 @@ TEST_F(TlsTest, Handshake)
     DoHandshake(ServerContext, ClientContext);
 }
 
+TEST_F(TlsTest, HandshakeParamInfoAES256GCM)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    DoHandshake(ServerContext, ClientContext);
+
+    QUIC_HANDSHAKE_INFO HandshakeInfo;
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    uint32_t HandshakeInfoLen = sizeof(HandshakeInfo);
+    QUIC_STATUS Status =
+        CxPlatTlsParamGet(
+            ClientContext.Ptr,
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &HandshakeInfoLen,
+            &HandshakeInfo);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384, HandshakeInfo.CipherSuite);
+    EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
+    EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
+    EXPECT_EQ(256, HandshakeInfo.CipherStrength);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
+    EXPECT_EQ(0, HandshakeInfo.HashStrength);
+
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    HandshakeInfoLen = sizeof(HandshakeInfo);
+    Status =
+        CxPlatTlsParamGet(
+            ServerContext.Ptr,
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &HandshakeInfoLen,
+            &HandshakeInfo);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384, HandshakeInfo.CipherSuite);
+    EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
+    EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
+    EXPECT_EQ(256, HandshakeInfo.CipherStrength);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
+    EXPECT_EQ(0, HandshakeInfo.HashStrength);
+}
+
+// Disabled until we have a way to switch ciphers
+// TEST_F(TlsTest, HandshakeParamInfoAES128GCM)
+// {
+//     TlsContext ServerContext, ClientContext;
+//     ServerContext.InitializeServer(ServerSecConfig);
+//     ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+//     DoHandshake(ServerContext, ClientContext);
+
+//     QUIC_HANDSHAKE_INFO HandshakeInfo;
+//     CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+//     uint32_t HandshakeInfoLen = sizeof(HandshakeInfo);
+//     QUIC_STATUS Status =
+//         CxPlatTlsParamGet(
+//             ClientContext.Ptr,
+//             QUIC_PARAM_TLS_HANDSHAKE_INFO,
+//             &HandshakeInfoLen,
+//             &HandshakeInfo);
+//     ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+//     EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256, HandshakeInfo.CipherSuite);
+//     EXPECT_EQ(QUIC_TLS1_3_CLIENT, HandshakeInfo.TlsProtocolVersion);
+//     EXPECT_EQ(QUIC_ALG_AES_128, HandshakeInfo.CipherAlgorithm);
+//     EXPECT_EQ(128, HandshakeInfo.CipherStrength);
+//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+//     EXPECT_EQ(QUIC_ALG_SHA_256, HandshakeInfo.Hash);
+//     EXPECT_EQ(0, HandshakeInfo.HashStrength);
+
+//     CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+//     HandshakeInfoLen = sizeof(HandshakeInfo);
+//     Status =
+//         CxPlatTlsParamGet(
+//             ServerContext.Ptr,
+//             QUIC_PARAM_TLS_HANDSHAKE_INFO,
+//             &HandshakeInfoLen,
+//             &HandshakeInfo);
+//     ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+//     EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256, HandshakeInfo.CipherSuite);
+//     EXPECT_EQ(QUIC_TLS1_3_SERVER, HandshakeInfo.TlsProtocolVersion);
+//     EXPECT_EQ(QUIC_ALG_AES_128, HandshakeInfo.CipherAlgorithm);
+//     EXPECT_EQ(128, HandshakeInfo.CipherStrength);
+//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+//     EXPECT_EQ(QUIC_ALG_SHA_256, HandshakeInfo.Hash);
+//     EXPECT_EQ(0, HandshakeInfo.HashStrength);
+// }
+
+TEST_F(TlsTest, HandshakeParamNegotiatedAlpn)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    DoHandshake(ServerContext, ClientContext);
+
+    char NegotiatedAlpn[255];
+    CxPlatZeroMemory(&NegotiatedAlpn, sizeof(NegotiatedAlpn));
+    uint32_t AlpnLen = sizeof(NegotiatedAlpn);
+    QUIC_STATUS Status =
+        CxPlatTlsParamGet(
+            ClientContext.Ptr,
+            QUIC_PARAM_TLS_NEGOTIATED_ALPN,
+            &AlpnLen,
+            NegotiatedAlpn);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    ASSERT_EQ(Alpn[0], AlpnLen);
+    ASSERT_EQ(Alpn[1], NegotiatedAlpn[0]);
+
+    CxPlatZeroMemory(&NegotiatedAlpn, sizeof(NegotiatedAlpn));
+    AlpnLen = sizeof(NegotiatedAlpn);
+    Status =
+        CxPlatTlsParamGet(
+            ServerContext.Ptr,
+            QUIC_PARAM_TLS_NEGOTIATED_ALPN,
+            &AlpnLen,
+            NegotiatedAlpn);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    ASSERT_EQ(Alpn[0], AlpnLen);
+    ASSERT_EQ(Alpn[1], NegotiatedAlpn[0]);
+}
+
 TEST_F(TlsTest, HandshakeParallel)
 {
     CXPLAT_THREAD_CONFIG Config = {
