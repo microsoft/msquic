@@ -992,6 +992,37 @@ DummyStreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
+_Function_class_(QUIC_STREAM_CALLBACK)
+static
+QUIC_STATUS
+QUIC_API
+ShutdownStreamCallback(
+    _In_ HQUIC /*Stream*/,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_STREAM_EVENT* Event
+    )
+{
+    bool* ShutdownComplete = (bool*)Context;
+    switch (Event->Type) {
+
+    case QUIC_STREAM_EVENT_RECEIVE:
+        TEST_FAILURE("QUIC_STREAM_EVENT_RECEIVE should never be called!");
+        break;
+
+    case QUIC_STREAM_EVENT_SEND_COMPLETE:
+        TEST_FAILURE("QUIC_STREAM_EVENT_SEND_COMPLETE should never be called!");
+        break;
+
+    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+        *ShutdownComplete = true;
+        break;
+
+    default:
+        break;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
 void QuicTestValidateStream(bool Connect)
 {
     MsQuicRegistration Registration;
@@ -1096,13 +1127,14 @@ void QuicTestValidateStream(bool Connect)
             // Fail on blocked.
             //
             {
+                bool ShutdownComplete = false;
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
                         Client.GetConnection(),
                         QUIC_STREAM_OPEN_FLAG_NONE,
-                        DummyStreamCallback,
-                        nullptr,
+                        ShutdownStreamCallback,
+                        &ShutdownComplete,
                         &Stream.Handle));
                 if (Connect) {
                     TEST_QUIC_SUCCEEDED(
@@ -1116,6 +1148,28 @@ void QuicTestValidateStream(bool Connect)
                             Stream.Handle,
                             QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
                 }
+                TEST_FALSE(ShutdownComplete);
+            }
+
+            //
+            // Shutdown on fail.
+            //
+            if (!Connect) {
+                bool ShutdownComplete = false;
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        ShutdownStreamCallback,
+                        &ShutdownComplete,
+                        &Stream.Handle));
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_BUFFER_TOO_SMALL,
+                    MsQuic->StreamStart(
+                        Stream.Handle,
+                        QUIC_STREAM_START_FLAG_FAIL_BLOCKED | QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL));
+                TEST_TRUE(ShutdownComplete);
             }
 
             //
