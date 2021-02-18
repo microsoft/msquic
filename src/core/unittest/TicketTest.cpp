@@ -95,7 +95,7 @@ TEST(ResumptionTicketTest, ClientEncDec)
 
 TEST(ResumptionTicketTest, ClientDecFail)
 {
-    const uint8_t TransportParametersLength = 31;
+    const uint8_t TransportParametersLength = 21; // Update if TP size changes
     const uint8_t ServerTicket[] = {1,2,3,4,5};
     QUIC_TRANSPORT_PARAMETERS ServerTP;
     QUIC_TRANSPORT_PARAMETERS DecodedTP;
@@ -108,7 +108,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
     uint8_t InputTicketBuffer[7 + TransportParametersLength + sizeof(ServerTicket)] = {
         CXPLAT_TLS_RESUMPTION_CLIENT_TICKET_VERSION,
         0,0,0,1,                    // QUIC version
-        (uint8_t)(TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize),
+        0,                          // TP length, update after encoding
         5,                          // Server Ticket Length
     };
 
@@ -132,17 +132,19 @@ TEST(ResumptionTicketTest, ClientDecFail)
             nullptr,
             &EncodedTPLength);
     ASSERT_NE(EncodedServerTP, nullptr);
-    ASSERT_EQ(EncodedTPLength, TransportParametersLength); // Update if TP size changes
+    ASSERT_LE(EncodedTPLength - CxPlatTlsTPHeaderSize, TransportParametersLength);
     ASSERT_GT(sizeof(InputTicketBuffer), EncodedTPLength);
 
     CxPlatCopyMemory(
         &InputTicketBuffer[7],
         EncodedServerTP + CxPlatTlsTPHeaderSize,
         EncodedTPLength - CxPlatTlsTPHeaderSize);
+    // Update with Encoded TP length
+    InputTicketBuffer[5] = (uint8_t)(EncodedTPLength - CxPlatTlsTPHeaderSize);
 
-    ASSERT_GT(sizeof(InputTicketBuffer), EncodedTPLength + sizeof(ServerTicket));
+    ASSERT_GE(sizeof(InputTicketBuffer), (EncodedTPLength - CxPlatTlsTPHeaderSize) + sizeof(ServerTicket));
     CxPlatCopyMemory(
-        &InputTicketBuffer[7 + TransportParametersLength - CxPlatTlsTPHeaderSize],
+        &InputTicketBuffer[7 + EncodedTPLength - CxPlatTlsTPHeaderSize],
         ServerTicket,
         sizeof(ServerTicket));
 
@@ -311,7 +313,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
     InputTicketBuffer[4] = 1;
 
     // Client TP length shorter than actual
-    for (uint8_t s = 0; s < (uint8_t)TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize; ++s) {
+    for (uint8_t s = 0; s < (uint8_t)EncodedTPLength - (uint8_t)CxPlatTlsTPHeaderSize; ++s) {
         QuicTraceLogInfo(
             ClientResumptionTicketDecodeFailTpLengthShort,
             "[test] Attempting to decode Server TP with length %u (Actual: %u)",
@@ -332,7 +334,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
     }
 
     // Client TP length longer than actual
-    InputTicketBuffer[5] = (uint8_t)(TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize) + 1;
+    InputTicketBuffer[5] = (uint8_t)(EncodedTPLength - (uint8_t)CxPlatTlsTPHeaderSize) + 1;
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeClientTicket(
@@ -365,7 +367,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
                 &DecodedServerTicketLength,
                 &DecodedQuicVersion));
     }
-    InputTicketBuffer[5] = (uint8_t)(TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize);
+    InputTicketBuffer[5] = (uint8_t)(EncodedTPLength - (uint8_t)CxPlatTlsTPHeaderSize);
 
     // Server Ticket length shorter than actual
     for (uint8_t s = 0; s < (uint8_t)sizeof(ServerTicket); ++s) {
@@ -540,7 +542,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
 
 TEST(ResumptionTicketTest, ServerDecFail)
 {
-    const uint8_t TransportParametersLength = 31;
+    const uint8_t TransportParametersLength = 21; // Update if TP size changes
     const uint8_t AppData[] = {1,2,3,4,5};
     const uint8_t Alpn[] = {'t', 'e', 's', 't'};
     const uint8_t AlpnList[] = {4, 't', 'e', 's', 't'};
@@ -555,7 +557,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
         CXPLAT_TLS_RESUMPTION_TICKET_VERSION,
         0,0,0,1,                    // QUIC version
         4,                          // ALPN length
-        (uint8_t)(TransportParametersLength - (uint8_t)CxPlatTlsTPHeaderSize),
+        0,                          // TP length, update after encoding
         (uint8_t)sizeof(AppData),   // App Data Length
     };
 
@@ -579,7 +581,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
             nullptr,
             &EncodedTPLength);
     ASSERT_NE(EncodedHandshakeTP, nullptr);
-    ASSERT_EQ(EncodedTPLength, TransportParametersLength); // Update if TP size changes
+    ASSERT_LE(EncodedTPLength - CxPlatTlsTPHeaderSize, TransportParametersLength);
     ASSERT_GT(sizeof(InputTicketBuffer), EncodedTPLength);
 
     CxPlatCopyMemory(
@@ -591,10 +593,11 @@ TEST(ResumptionTicketTest, ServerDecFail)
         &InputTicketBuffer[8 + sizeof(Alpn)],
         EncodedHandshakeTP + CxPlatTlsTPHeaderSize,
         EncodedTPLength - CxPlatTlsTPHeaderSize);
+    InputTicketBuffer[6] = (uint8_t)(EncodedTPLength - CxPlatTlsTPHeaderSize);
 
     ASSERT_GT(sizeof(InputTicketBuffer), EncodedTPLength + sizeof(AppData));
     CxPlatCopyMemory(
-        &InputTicketBuffer[8 + sizeof(Alpn) + (TransportParametersLength - CxPlatTlsTPHeaderSize)],
+        &InputTicketBuffer[8 + sizeof(Alpn) + (EncodedTPLength - CxPlatTlsTPHeaderSize)],
         AppData,
         sizeof(AppData));
 
