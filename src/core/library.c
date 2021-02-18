@@ -239,6 +239,7 @@ MsQuicLibraryInitialize(
 
     CXPLAT_DBG_ASSERT(US_TO_MS(CxPlatGetTimerResolution()) + 1 <= UINT8_MAX);
     MsQuicLib.TimerResolutionMs = (uint8_t)US_TO_MS(CxPlatGetTimerResolution()) + 1;
+    MsQuicLib.PerfCounterSamplesTime = CxPlatTimeUs64();
 
     CxPlatRandom(sizeof(MsQuicLib.ToeplitzHash.HashKey), MsQuicLib.ToeplitzHash.HashKey);
     CxPlatToeplitzHashInitialize(&MsQuicLib.ToeplitzHash);
