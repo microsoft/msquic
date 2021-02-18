@@ -6580,6 +6580,18 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "IgnoreRecvAfterClose": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Ignoring recv after close",
+      "UniqueId": "IgnoreRecvAfterClose",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "FlowControlExhausted": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Flow control window exhausted!",
@@ -12405,6 +12417,10 @@
       {
         "UniquenessHash": "87c746b1-6bb4-6173-0f4e-f918641d4b80",
         "TraceID": "IndicatePeerReceiveAborted"
+      },
+      {
+        "UniquenessHash": "59f615c0-9861-8dc7-db5a-224ebc6336a5",
+        "TraceID": "IgnoreRecvAfterClose"
       },
       {
         "UniquenessHash": "337f803e-406e-0817-5804-7273bf3a07ec",
