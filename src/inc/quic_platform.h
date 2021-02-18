@@ -149,7 +149,10 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 #include <quic_platform_winuser.h>
 #elif CX_PLATFORM_LINUX
 #define CX_PLATFORM_TYPE 3
-#include <quic_platform_linux.h>
+#include <quic_platform_posix.h>
+#elif CX_PLATFORM_DARWIN
+#define CX_PLATFORM_TYPE 4
+#include <quic_platform_posix.h>
 #else
 #define CX_PLATFORM_TYPE 0xFF
 #error "Unsupported Platform"
@@ -333,7 +336,8 @@ typedef enum CXPLAT_SELF_SIGN_CERT_TYPE {
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
 CxPlatPlatGetSelfSignedCert(
-    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
+    _In_ BOOLEAN ClientCertificate
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

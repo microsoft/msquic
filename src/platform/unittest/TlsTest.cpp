@@ -24,12 +24,15 @@ struct TlsTest : public ::testing::TestWithParam<bool>
 {
 protected:
     CXPLAT_SEC_CONFIG* ServerSecConfig {nullptr};
+    CXPLAT_SEC_CONFIG* ServerSecConfigClientAuth {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfig {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigDeferredCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigCustomCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigExtraCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
-    static const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
+    CXPLAT_SEC_CONFIG* ClientSecConfigClientCertNoCertValidation {nullptr};
+    static QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
+    static QUIC_CREDENTIAL_CONFIG* ClientCertParams;
 
     TlsTest() { }
 
@@ -55,14 +58,23 @@ protected:
 
     static void SetUpTestSuite()
     {
-        SelfSignedCertParams = CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER);
+        SelfSignedCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
         ASSERT_NE(nullptr, SelfSignedCertParams);
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
+        ClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, TRUE);
+        ASSERT_NE(nullptr, ClientCertParams);
+        ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+#endif
     }
 
     static void TearDownTestSuite()
     {
         CxPlatPlatFreeSelfSignedCert(SelfSignedCertParams);
         SelfSignedCertParams = nullptr;
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
+        CxPlatPlatFreeSelfSignedCert(ClientCertParams);
+        ClientCertParams = nullptr;
+#endif
     }
 
     void SetUp() override
@@ -74,6 +86,15 @@ protected:
                 &ServerSecConfig,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfig);
+
+        SelfSignedCertParams->Flags |= QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                SelfSignedCertParams,
+                &TlsContext::TlsServerCallbacks,
+                &ServerSecConfigClientAuth,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ServerSecConfigClientAuth);
 
         QUIC_CREDENTIAL_CONFIG ClientCredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
@@ -128,6 +149,16 @@ protected:
                 &ClientSecConfigNoCertValidation,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfigNoCertValidation);
+
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                ClientCertParams,
+                &TlsContext::TlsClientCallbacks,
+                &ClientSecConfigClientCertNoCertValidation,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ClientSecConfigClientCertNoCertValidation );
+#endif
     }
 
     void TearDown() override
@@ -148,9 +179,17 @@ protected:
             CxPlatTlsSecConfigDelete(ClientSecConfigDeferredCertValidation);
             ClientSecConfigDeferredCertValidation = nullptr;
         }
+        if (ClientSecConfigClientCertNoCertValidation ) {
+            CxPlatTlsSecConfigDelete(ClientSecConfigClientCertNoCertValidation );
+            ClientSecConfigClientCertNoCertValidation  = nullptr;
+        }
         if (ClientSecConfig) {
             CxPlatTlsSecConfigDelete(ClientSecConfig);
             ClientSecConfig = nullptr;
+        }
+        if (ServerSecConfigClientAuth) {
+            CxPlatTlsSecConfigDelete(ServerSecConfigClientAuth);
+            ServerSecConfigClientAuth = nullptr;
         }
         if (ServerSecConfig) {
             CxPlatTlsSecConfigDelete(ServerSecConfig);
@@ -721,7 +760,8 @@ const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
     TlsTest::TlsContext::OnPeerCertReceived
 };
 
-const QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
+QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
+QUIC_CREDENTIAL_CONFIG* TlsTest::ClientCertParams = nullptr;
 
 TEST_F(TlsTest, Initialize)
 {
@@ -736,6 +776,130 @@ TEST_F(TlsTest, Handshake)
     ServerContext.InitializeServer(ServerSecConfig);
     ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
     DoHandshake(ServerContext, ClientContext);
+}
+
+TEST_F(TlsTest, HandshakeParamInfoAES256GCM)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    DoHandshake(ServerContext, ClientContext);
+
+    QUIC_HANDSHAKE_INFO HandshakeInfo;
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    uint32_t HandshakeInfoLen = sizeof(HandshakeInfo);
+    QUIC_STATUS Status =
+        CxPlatTlsParamGet(
+            ClientContext.Ptr,
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &HandshakeInfoLen,
+            &HandshakeInfo);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384, HandshakeInfo.CipherSuite);
+    EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
+    EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
+    EXPECT_EQ(256, HandshakeInfo.CipherStrength);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
+    EXPECT_EQ(0, HandshakeInfo.HashStrength);
+
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    HandshakeInfoLen = sizeof(HandshakeInfo);
+    Status =
+        CxPlatTlsParamGet(
+            ServerContext.Ptr,
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &HandshakeInfoLen,
+            &HandshakeInfo);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384, HandshakeInfo.CipherSuite);
+    EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
+    EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
+    EXPECT_EQ(256, HandshakeInfo.CipherStrength);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
+    EXPECT_EQ(0, HandshakeInfo.HashStrength);
+}
+
+// Disabled until we have a way to switch ciphers
+// TEST_F(TlsTest, HandshakeParamInfoAES128GCM)
+// {
+//     TlsContext ServerContext, ClientContext;
+//     ServerContext.InitializeServer(ServerSecConfig);
+//     ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+//     DoHandshake(ServerContext, ClientContext);
+
+//     QUIC_HANDSHAKE_INFO HandshakeInfo;
+//     CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+//     uint32_t HandshakeInfoLen = sizeof(HandshakeInfo);
+//     QUIC_STATUS Status =
+//         CxPlatTlsParamGet(
+//             ClientContext.Ptr,
+//             QUIC_PARAM_TLS_HANDSHAKE_INFO,
+//             &HandshakeInfoLen,
+//             &HandshakeInfo);
+//     ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+//     EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256, HandshakeInfo.CipherSuite);
+//     EXPECT_EQ(QUIC_TLS1_3_CLIENT, HandshakeInfo.TlsProtocolVersion);
+//     EXPECT_EQ(QUIC_ALG_AES_128, HandshakeInfo.CipherAlgorithm);
+//     EXPECT_EQ(128, HandshakeInfo.CipherStrength);
+//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+//     EXPECT_EQ(QUIC_ALG_SHA_256, HandshakeInfo.Hash);
+//     EXPECT_EQ(0, HandshakeInfo.HashStrength);
+
+//     CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+//     HandshakeInfoLen = sizeof(HandshakeInfo);
+//     Status =
+//         CxPlatTlsParamGet(
+//             ServerContext.Ptr,
+//             QUIC_PARAM_TLS_HANDSHAKE_INFO,
+//             &HandshakeInfoLen,
+//             &HandshakeInfo);
+//     ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+//     EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256, HandshakeInfo.CipherSuite);
+//     EXPECT_EQ(QUIC_TLS1_3_SERVER, HandshakeInfo.TlsProtocolVersion);
+//     EXPECT_EQ(QUIC_ALG_AES_128, HandshakeInfo.CipherAlgorithm);
+//     EXPECT_EQ(128, HandshakeInfo.CipherStrength);
+//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+//     EXPECT_EQ(QUIC_ALG_SHA_256, HandshakeInfo.Hash);
+//     EXPECT_EQ(0, HandshakeInfo.HashStrength);
+// }
+
+TEST_F(TlsTest, HandshakeParamNegotiatedAlpn)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    DoHandshake(ServerContext, ClientContext);
+
+    char NegotiatedAlpn[255];
+    CxPlatZeroMemory(&NegotiatedAlpn, sizeof(NegotiatedAlpn));
+    uint32_t AlpnLen = sizeof(NegotiatedAlpn);
+    QUIC_STATUS Status =
+        CxPlatTlsParamGet(
+            ClientContext.Ptr,
+            QUIC_PARAM_TLS_NEGOTIATED_ALPN,
+            &AlpnLen,
+            NegotiatedAlpn);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    ASSERT_EQ(Alpn[0], AlpnLen);
+    ASSERT_EQ(Alpn[1], NegotiatedAlpn[0]);
+
+    CxPlatZeroMemory(&NegotiatedAlpn, sizeof(NegotiatedAlpn));
+    AlpnLen = sizeof(NegotiatedAlpn);
+    Status =
+        CxPlatTlsParamGet(
+            ServerContext.Ptr,
+            QUIC_PARAM_TLS_NEGOTIATED_ALPN,
+            &AlpnLen,
+            NegotiatedAlpn);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    ASSERT_EQ(Alpn[0], AlpnLen);
+    ASSERT_EQ(Alpn[1], NegotiatedAlpn[0]);
 }
 
 TEST_F(TlsTest, HandshakeParallel)
@@ -1279,5 +1443,16 @@ TEST_F(TlsTest, LockPerfTest)
     SetThreadAffinityMask(CurrentThread, OldAffinityMask);
 #endif
 }
+
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
+TEST_F(TlsTest, ClientCertificate)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfigClientAuth);
+    ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation );
+
+    DoHandshake(ServerContext, ClientContext);
+}
+#endif
 
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());

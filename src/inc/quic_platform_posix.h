@@ -19,8 +19,8 @@ Environment:
 #error "Must be included from quic_platform.h"
 #endif
 
-#ifndef CX_PLATFORM_LINUX
-#error "Incorrectly including Linux Platform Header from non-Linux platfrom"
+#if !defined(CX_PLATFORM_LINUX) && !defined(CX_PLATFORM_DARWIN)
+#error "Incorrectly including Posix Platform Header from unsupported platfrom"
 #endif
 
 #include <stdlib.h>
@@ -37,7 +37,7 @@ Environment:
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <msquic_linux.h>
+#include <msquic_posix.h>
 #include <stdbool.h>
 #include <pthread.h>
 #include <errno.h>
@@ -52,6 +52,12 @@ extern "C" {
 #ifndef NDEBUG
 #define DEBUG 1
 #endif
+
+#define ALIGN_DOWN(length, type) \
+    ((unsigned long)(length) & ~(sizeof(type) - 1))
+
+#define ALIGN_UP(length, type) \
+    (ALIGN_DOWN(((unsigned long)(length) + sizeof(type) - 1), type))
 
 //
 // Library Initialization routines.
@@ -81,7 +87,7 @@ CxPlatUninitialize(
 // Generic stuff.
 //
 
-#define INVALID_SOCKET_FD ((int)(-1))
+#define INVALID_SOCKET ((int)(-1))
 
 #define SOCKET_ERROR (-1)
 
@@ -775,7 +781,7 @@ CxPlatThreadWait(
 
 typedef uint32_t CXPLAT_THREAD_ID;
 
-uint32_t
+CXPLAT_THREAD_ID
 CxPlatCurThreadID(
     void
     );

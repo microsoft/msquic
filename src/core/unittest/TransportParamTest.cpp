@@ -52,6 +52,17 @@ void CompareTransportParams(
     }
 }
 
+struct TransportParametersScope
+{
+    QUIC_TRANSPORT_PARAMETERS* const TP;
+    TransportParametersScope(QUIC_TRANSPORT_PARAMETERS* const value) : TP(value) {}
+    ~TransportParametersScope() {
+        if (TP != nullptr) {
+            QuicCryptoTlsCleanupTransportParameters(TP);
+        }
+    }
+};
+
 void EncodeDecodeAndCompare(
     _In_ const QUIC_TRANSPORT_PARAMETERS* Original,
     _In_ bool IsServer = false
@@ -74,6 +85,7 @@ void EncodeDecodeAndCompare(
             &JunkConnection, IsServer, TPBuffer, TPBufferLength, &Decoded);
 
     CXPLAT_FREE(Buffer, QUIC_POOL_TLS_TRANSPARAMS);
+    TransportParametersScope TPScope(&Decoded);
 
     ASSERT_TRUE(DecodedSuccessfully);
 

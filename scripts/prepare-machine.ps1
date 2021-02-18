@@ -190,7 +190,7 @@ if ($IsWindows) {
         }
     }
 
-} else {
+} elseif ($IsLinux) {
     switch ($Configuration) {
         "Build" {
             sudo apt-add-repository ppa:lttng/stable-2.11
