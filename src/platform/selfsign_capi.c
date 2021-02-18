@@ -19,11 +19,13 @@ Abstract:
 #include <wincrypt.h>
 #include <msquic.h>
 
-#define CXPLAT_CERT_CREATION_EVENT_NAME       L"MsQuicCertEvent"
-#define CXPLAT_CERT_CREATION_EVENT_WAIT       10000
-#define CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME L"MsQuicTestCert2"
-#define CXPLAT_KEY_CONTAINER_NAME             L"MsQuicSelfSignKey2"
-#define CXPLAT_KEY_SIZE                       2048
+#define CXPLAT_CERT_CREATION_EVENT_NAME                 L"MsQuicCertEvent"
+#define CXPLAT_CERT_CREATION_EVENT_WAIT                 10000
+#define CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME           L"MsQuicTestCert2"
+#define CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME    L"MsQuicTestClientCert"
+#define CXPLAT_KEY_CONTAINER_NAME                       L"MsQuicSelfSignKey2"
+#define CXPLAT_CLIENT_KEY_CONTAINER_NAME                L"MsQuicClientSelfSignKey"
+#define CXPLAT_KEY_SIZE                                 2048
 
 void
 CleanTestCertificatesFromStore(BOOLEAN UserStore)
@@ -169,13 +171,15 @@ Cleanup:
 
 HRESULT
 CreateEnhancedKeyUsageCertExtension(
+    _In_ BOOLEAN IsClient,
     _Out_ PCERT_EXTENSION CertExtension
     )
 {
-    LPSTR EnhKeyUsageIds[1] = { szOID_PKIX_KP_SERVER_AUTH };
+    LPSTR ServerEnhKeyUsageIds[1] = { szOID_PKIX_KP_SERVER_AUTH };
+    LPSTR ClientEnhKeyUsageIds[1] = { szOID_PKIX_KP_CLIENT_AUTH };
     CERT_ENHKEY_USAGE CertEnhKeyUsage;
     CertEnhKeyUsage.cUsageIdentifier = 1;
-    CertEnhKeyUsage.rgpszUsageIdentifier = EnhKeyUsageIds;
+    CertEnhKeyUsage.rgpszUsageIdentifier = IsClient ? ClientEnhKeyUsageIds : ServerEnhKeyUsageIds;
 
     ZeroMemory(CertExtension, sizeof(*CertExtension));
     CertExtension->fCritical = FALSE;
@@ -362,13 +366,14 @@ ClearCertificateExtensions(
 
 HRESULT
 CreateCertificateExtensions(
+    _In_ BOOLEAN IsClient,
     _Out_ CERT_EXTENSIONS* CertExtensions
     )
 {
     HRESULT hr = S_OK;
 
     PCERT_EXTENSION TmpCertExtensions = NULL;
-    const DWORD cTmpCertExtension = 3;
+    const DWORD cTmpCertExtension = IsClient ? 2 : 3;
 
     CertExtensions->cExtension = 0;
     CertExtensions->rgExtension = NULL;
@@ -395,7 +400,7 @@ CreateCertificateExtensions(
     // Set up the enhanced key usage extension that will specify the key is
     // intended for server authentication.
     //
-    hr = CreateEnhancedKeyUsageCertExtension(&TmpCertExtensions[0]);
+    hr = CreateEnhancedKeyUsageCertExtension(IsClient, &TmpCertExtensions[0]);
     if (FAILED(hr)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -422,14 +427,16 @@ CreateCertificateExtensions(
     //
     // Set up the Subject Alt Name extension.
     //
-    hr = CreateSubjAltNameExtension(&TmpCertExtensions[2]);
-    if (FAILED(hr)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            hr,
-            "CreateSubjAltNameExtension failed");
-        goto Cleanup;
+    if (!IsClient) {
+        hr = CreateSubjAltNameExtension(&TmpCertExtensions[2]);
+        if (FAILED(hr)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                hr,
+                "CreateSubjAltNameExtension failed");
+            goto Cleanup;
+        }
     }
 
 Cleanup:
@@ -442,6 +449,7 @@ Cleanup:
 
 HRESULT
 GetPrivateRsaKey(
+    _In_ BOOLEAN IsClient,
     _Out_ NCRYPT_KEY_HANDLE* Key
     )
 {
@@ -476,7 +484,7 @@ ReadKey:
         NCryptOpenKey(
             Provider,
             Key,
-            CXPLAT_KEY_CONTAINER_NAME,
+            IsClient ? CXPLAT_CLIENT_KEY_CONTAINER_NAME : CXPLAT_KEY_CONTAINER_NAME,
             0,
             NCRYPT_SILENT_FLAG);
     if (hr == ERROR_SUCCESS) {
@@ -501,7 +509,7 @@ ReadKey:
             Provider,
             Key,
             NCRYPT_RSA_ALGORITHM,
-            CXPLAT_KEY_CONTAINER_NAME,
+            IsClient ? CXPLAT_CLIENT_KEY_CONTAINER_NAME : CXPLAT_KEY_CONTAINER_NAME,
             0,
             0);
     if (hr == NTE_EXISTS) {
@@ -592,6 +600,7 @@ Cleanup:
 HRESULT
 CreateSelfSignedCertificate(
     _In_ LPCWSTR SubjectName,
+    _In_ BOOLEAN IsClient,
     _Out_ PCCERT_CONTEXT* NewCertContext
     )
 {
@@ -622,7 +631,7 @@ CreateSelfSignedCertificate(
     // Now we get the private key.
     // This generates the key if not already present.
     //
-    hr = GetPrivateRsaKey(&Key);
+    hr = GetPrivateRsaKey(IsClient, &Key);
     if (FAILED(hr)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -637,7 +646,7 @@ CreateSelfSignedCertificate(
     //
     CERT_EXTENSIONS extensions;
     ZeroMemory(&extensions, sizeof(CERT_EXTENSIONS));
-    hr = CreateCertificateExtensions(&extensions);
+    hr = CreateCertificateExtensions(IsClient, &extensions);
     if (FAILED(hr)) {
         hr = HRESULT_FROM_WIN32(GetLastError());
         QuicTraceEvent(
@@ -714,8 +723,13 @@ CreateSelfSignedCertificate(
     }
 
     CRYPT_DATA_BLOB FriendlyNameBlob;
-    FriendlyNameBlob.cbData = sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME);
-    FriendlyNameBlob.pbData = (BYTE*) CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME;
+    if (IsClient) {
+        FriendlyNameBlob.cbData = sizeof(CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME);
+        FriendlyNameBlob.pbData = (BYTE*) CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME;
+    } else {
+        FriendlyNameBlob.cbData = sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME);
+        FriendlyNameBlob.pbData = (BYTE*) CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME;
+    }
 
     if (!CertSetCertificateContextProperty(
             CertContext,
@@ -752,11 +766,23 @@ Cleanup:
 }
 
 void*
+CreateClientCertificate(
+    )
+{
+    PCCERT_CONTEXT CertContext;
+    if (FAILED(CreateSelfSignedCertificate(L"CN=MsQuicClient", TRUE, &CertContext))) {
+        return NULL;
+    }
+
+    return (void*)CertContext;
+}
+
+void*
 CreateServerCertificate(
     )
 {
     PCCERT_CONTEXT CertContext;
-    if (FAILED(CreateSelfSignedCertificate(L"CN=localhost", &CertContext))) {
+    if (FAILED(CreateSelfSignedCertificate(L"CN=localhost", FALSE, &CertContext))) {
         return NULL;
     }
 
@@ -805,6 +831,7 @@ _Success_(return != NULL)
 void*
 FindOrCreateCertificate(
     _In_ BOOLEAN UserStore,
+    _In_ BOOLEAN IsClient,
     _Out_writes_all_(20) uint8_t* CertHash
     )
 {
@@ -872,11 +899,17 @@ FindOrCreateCertificate(
             &FriendlyNamePropId,
             Cert))) {
 
-        BYTE FriendlyName[sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME)+sizeof(WCHAR)];
+        BYTE FriendlyName[
+            max(sizeof(CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME),
+            sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME))+sizeof(WCHAR)];
         DWORD NameSize = sizeof(FriendlyName);
 
         if (!CertGetCertificateContextProperty(Cert, CERT_FRIENDLY_NAME_PROP_ID, FriendlyName, &NameSize) ||
-            wcscmp((wchar_t*)FriendlyName, CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME) != 0) {
+            wcscmp(
+                (wchar_t*)FriendlyName,
+                IsClient ?
+                    CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME :
+                    CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME) != 0) {
             continue;
         }
 
@@ -941,7 +974,8 @@ Done:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
 CxPlatPlatGetSelfSignedCert(
-    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
+    _In_ BOOLEAN IsClient
     )
 {
     QUIC_CREDENTIAL_CONFIG* Params =
@@ -951,10 +985,11 @@ CxPlatPlatGetSelfSignedCert(
     }
 
     Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT;
-    Params->Flags = QUIC_CREDENTIAL_FLAG_NONE;
+    Params->Flags = IsClient ? QUIC_CREDENTIAL_FLAG_CLIENT : QUIC_CREDENTIAL_FLAG_NONE;
     Params->CertificateContext =
         FindOrCreateCertificate(
             Type == CXPLAT_SELF_SIGN_CERT_USER,
+            IsClient,
             (uint8_t*)(Params + 1));
     if (Params->CertificateContext == NULL) {
         HeapFree(GetProcessHeap(), 0, Params);

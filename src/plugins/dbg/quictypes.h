@@ -197,7 +197,7 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN AppCloseInProgress: 1;
 
-#ifdef QuicVerifierEnabledByAddr
+#ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
         //

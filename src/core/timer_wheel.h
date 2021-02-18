@@ -81,7 +81,8 @@ QuicTimerWheelUpdateConnection(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 uint64_t
 QuicTimerWheelGetWaitTime(
-    _In_ QUIC_TIMER_WHEEL* TimerWheel
+    _In_ QUIC_TIMER_WHEEL* TimerWheel,
+    _In_ uint64_t TimeNow
     );
 
 //

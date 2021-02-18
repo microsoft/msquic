@@ -2139,6 +2139,15 @@ QuicCryptoDecodeServerTicket(
         goto Error;
     }
 
+    if (TicketLength < Offset + sizeof(uint32_t)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Resumption Ticket too short to hold QUIC version");
+        goto Error;
+    }
+
     uint32_t QuicVersion;
     memcpy(&QuicVersion, Ticket + Offset, sizeof(QuicVersion));
     if (!QuicIsVersionSupported(QuicVersion)) {
@@ -2178,6 +2187,15 @@ QuicCryptoDecodeServerTicket(
         goto Error;
     }
 
+    if (TicketLength < Offset + AlpnLength) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Resumption Ticket too small for ALPN");
+        goto Error;
+    }
+
     if (CxPlatTlsAlpnFindInList(AlpnListLength, AlpnList, (uint8_t)AlpnLength, Ticket + Offset) == NULL) {
         QuicTraceEvent(
             ConnError,
@@ -2187,6 +2205,15 @@ QuicCryptoDecodeServerTicket(
         goto Error;
     }
     Offset += (uint16_t)AlpnLength;
+
+    if (TicketLength < Offset + TPLength) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Resumption Ticket too small for Transport Parameters");
+        goto Error;
+    }
 
     if (!QuicCryptoTlsDecodeTransportParameters(
             Connection,
@@ -2342,7 +2369,7 @@ QuicCryptoDecodeClientTicket(
     _Out_ uint32_t* QuicVersion
     )
 {
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
     uint16_t Offset = 0;
     QUIC_VAR_INT TicketVersion = 0, TPLength = 0, TicketLength = 0;
 
@@ -2356,7 +2383,6 @@ QuicCryptoDecodeClientTicket(
             "[conn][%p] ERROR, %s.",
             Connection,
             "Client Ticket version failed to decode");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
     if (TicketVersion != CXPLAT_TLS_RESUMPTION_CLIENT_TICKET_VERSION) {
@@ -2365,10 +2391,25 @@ QuicCryptoDecodeClientTicket(
             "[conn][%p] ERROR, %s.",
             Connection,
             "Client Ticket version unsupported");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+    if (ClientTicketLength < Offset + sizeof(uint32_t)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Client Ticket not long enough for QUIC version");
         goto Error;
     }
     CxPlatCopyMemory(QuicVersion, ClientTicket + Offset, sizeof(*QuicVersion));
+    if (!QuicIsVersionSupported(*QuicVersion)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Resumption Ticket for unsupported QUIC version");
+        goto Error;
+    }
     Offset += sizeof(*QuicVersion);
     if (!QuicVarIntDecode(ClientTicketLength, ClientTicket, &Offset, &TPLength)) {
         QuicTraceEvent(
@@ -2376,7 +2417,6 @@ QuicCryptoDecodeClientTicket(
             "[conn][%p] ERROR, %s.",
             Connection,
             "Client Ticket TP length failed to decode");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
     if (!QuicVarIntDecode(ClientTicketLength, ClientTicket, &Offset, &TicketLength)) {
@@ -2385,7 +2425,14 @@ QuicCryptoDecodeClientTicket(
             "[conn][%p] ERROR, %s.",
             Connection,
             "Resumption Ticket data length failed to decode");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+    if (ClientTicketLength < Offset + TPLength) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Client Ticket not long enough for Client Transport Parameters");
         goto Error;
     }
     if (!QuicCryptoTlsDecodeTransportParameters(
@@ -2399,12 +2446,10 @@ QuicCryptoDecodeClientTicket(
             "[conn][%p] ERROR, %s.",
             Connection,
             "Resumption Ticket TParams failed to decode");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
     Offset += (uint16_t)TPLength;
     if (Offset + TicketLength != ClientTicketLength) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",

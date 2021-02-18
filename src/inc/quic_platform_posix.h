@@ -19,8 +19,8 @@ Environment:
 #error "Must be included from quic_platform.h"
 #endif
 
-#ifndef CX_PLATFORM_LINUX
-#error "Incorrectly including Linux Platform Header from non-Linux platfrom"
+#if !defined(CX_PLATFORM_LINUX) && !defined(CX_PLATFORM_DARWIN)
+#error "Incorrectly including Posix Platform Header from unsupported platfrom"
 #endif
 
 #include <stdlib.h>
@@ -37,7 +37,7 @@ Environment:
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <msquic_linux.h>
+#include <msquic_posix.h>
 #include <stdbool.h>
 #include <pthread.h>
 #include <errno.h>
@@ -52,6 +52,12 @@ extern "C" {
 #ifndef NDEBUG
 #define DEBUG 1
 #endif
+
+#define ALIGN_DOWN(length, type) \
+    ((unsigned long)(length) & ~(sizeof(type) - 1))
+
+#define ALIGN_UP(length, type) \
+    (ALIGN_DOWN(((unsigned long)(length) + sizeof(type) - 1), type))
 
 //
 // Library Initialization routines.
@@ -81,7 +87,7 @@ CxPlatUninitialize(
 // Generic stuff.
 //
 
-#define INVALID_SOCKET_FD ((int)(-1))
+#define INVALID_SOCKET ((int)(-1))
 
 #define SOCKET_ERROR (-1)
 
@@ -150,6 +156,17 @@ InterlockedCompareExchange16(
 
 inline
 short
+InterlockedCompareExchange64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Destination,
+    _In_ int64_t ExChange,
+    _In_ int64_t Comperand
+    )
+{
+    return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
+}
+
+inline
+short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend
     )
@@ -196,24 +213,25 @@ CxPlatLogAssert(
 #define CXPLAT_ANALYSIS_ASSERT(X)
 #define CXPLAT_ANALYSIS_ASSUME(X)
 #define CXPLAT_FRE_ASSERT(exp) ((exp) ? (void)0 : (CxPlatLogAssert(__FILE__, __LINE__, #exp), quic_bugcheck()));
+#define CXPLAT_FRE_ASSERTMSG(exp, Y) CXPLAT_FRE_ASSERT(exp)
 
 #ifdef DEBUG
 #define CXPLAT_DBG_ASSERT(exp) CXPLAT_FRE_ASSERT(exp)
 #define CXPLAT_DBG_ASSERTMSG(exp, msg) CXPLAT_FRE_ASSERT(exp)
-#define CXPLAT_TEL_ASSERT(exp) CXPLAT_FRE_ASSERT(exp)
-#define CXPLAT_TEL_ASSERTMSG(exp, Y) CXPLAT_FRE_ASSERT(exp)
-#define CXPLAT_TEL_ASSERTMSG_ARGS(exp, _msg, _origin, _bucketArg1, _bucketArg2) CXPLAT_FRE_ASSERT(exp)
-#define CXPLAT_FRE_ASSERTMSG(exp, Y) CXPLAT_FRE_ASSERT(exp)
 #else
 #define CXPLAT_DBG_ASSERT(exp)
 #define CXPLAT_DBG_ASSERTMSG(exp, msg)
+#endif
+
+#if DEBUG || QUIC_TELEMETRY_ASSERTS
+#define CXPLAT_TEL_ASSERT(exp) CXPLAT_FRE_ASSERT(exp)
+#define CXPLAT_TEL_ASSERTMSG(exp, Y) CXPLAT_FRE_ASSERT(exp)
+#define CXPLAT_TEL_ASSERTMSG_ARGS(exp, _msg, _origin, _bucketArg1, _bucketArg2) CXPLAT_FRE_ASSERT(exp)
+#else
 #define CXPLAT_TEL_ASSERT(exp)
 #define CXPLAT_TEL_ASSERTMSG(exp, Y)
 #define CXPLAT_TEL_ASSERTMSG_ARGS(exp, _msg, _origin, _bucketArg1, _bucketArg2)
-#define CXPLAT_FRE_ASSERTMSG(exp, Y)
 #endif
-
-#define __assume(X) (void)0
 
 //
 // Debugger check.
@@ -763,7 +781,7 @@ CxPlatThreadWait(
 
 typedef uint32_t CXPLAT_THREAD_ID;
 
-uint32_t
+CXPLAT_THREAD_ID
 CxPlatCurThreadID(
     void
     );
