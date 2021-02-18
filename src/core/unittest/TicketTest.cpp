@@ -93,6 +93,16 @@ TEST(ResumptionTicketTest, ClientEncDec)
     CXPLAT_FREE(DecodedServerTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
 }
 
+struct TransportParamsScope {
+    const uint8_t* const TP;
+    TransportParamsScope(const uint8_t* newTP) : TP(newTP) {}
+    ~TransportParamsScope() {
+        if (TP != nullptr) {
+            CXPLAT_FREE(TP, QUIC_POOL_TLS_TRANSPARAMS);
+        }
+    }
+};
+
 TEST(ResumptionTicketTest, ClientDecFail)
 {
     const uint8_t TransportParametersLength = 21; // Update if TP size changes
@@ -131,6 +141,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             &ServerTP,
             nullptr,
             &EncodedTPLength);
+    TransportParamsScope TPScope(EncodedServerTP);
     ASSERT_NE(EncodedServerTP, nullptr);
     ASSERT_LE(EncodedTPLength - CxPlatTlsTPHeaderSize, TransportParametersLength);
     ASSERT_GT(sizeof(InputTicketBuffer), EncodedTPLength);
@@ -580,6 +591,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
             &HandshakeTP,
             nullptr,
             &EncodedTPLength);
+    TransportParamsScope TPScope(EncodedHandshakeTP);
     ASSERT_NE(EncodedHandshakeTP, nullptr);
     ASSERT_LE(EncodedTPLength - CxPlatTlsTPHeaderSize, TransportParametersLength);
     ASSERT_GT(sizeof(InputTicketBuffer), EncodedTPLength);
