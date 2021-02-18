@@ -313,7 +313,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
     InputTicketBuffer[4] = 1;
 
     // Client TP length shorter than actual
-    for (uint8_t s = 0; s < (uint8_t)EncodedTPLength - (uint8_t)CxPlatTlsTPHeaderSize; ++s) {
+    for (uint8_t s = 0; s < (uint8_t)(EncodedTPLength - CxPlatTlsTPHeaderSize); ++s) {
         QuicTraceLogInfo(
             ClientResumptionTicketDecodeFailTpLengthShort,
             "[test] Attempting to decode Server TP with length %u (Actual: %u)",
@@ -874,7 +874,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     InputTicketBuffer[5] = (uint8_t)sizeof(Alpn);
 
     // Handshake TP length shorter than actual
-    for (uint8_t s = 0; s < EncodedTPLength - CxPlatTlsTPHeaderSize; ++s) {
+    for (uint8_t s = 0; s < (uint8_t)(EncodedTPLength - CxPlatTlsTPHeaderSize); ++s) {
         QuicTraceLogInfo(
             ServerResumptionTicketDecodeFailTpLengthShort,
             "[test] Attempting to decode Handshake TP with length %u (Actual: %u)",
