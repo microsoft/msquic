@@ -96,7 +96,7 @@ void PrintUsage()
         "Usage:\n"
         "\n"
         "  quicinterop.exe -client -target:<...> [-unsecure]\n"
-        "  quicinterop.exe -server -cert_hash:<...> or (-cert_file:<...> and -key_file:<...>)\n"
+        "  quicinterop.exe -server -cert_hash:<...> or (-cert_file:<...> and -key_file:<...> (and optionally -password:<...>))\n"
         );
 }
 
@@ -347,6 +347,7 @@ typedef struct QUIC_CREDENTIAL_CONFIG_HELPER {
         QUIC_CERTIFICATE_HASH CertHash;
         QUIC_CERTIFICATE_HASH_STORE CertHashStore;
         QUIC_CERTIFICATE_FILE CertFile;
+        QUIC_CERTIFICATE_FILE_PROTECTED CertFileProtected;
     };
 } QUIC_CREDENTIAL_CONFIG_HELPER;
 
@@ -407,13 +408,22 @@ ServerLoadConfiguration(
         //
         // Loads the server's certificate from the file.
         //
-        Config.CertFile.CertificateFile = (char*)Cert;
-        Config.CertFile.PrivateKeyFile = (char*)KeyFile;
-        Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
-        Config.CredConfig.CertificateFile = &Config.CertFile;
+        const char* Password = GetValue(argc, argv, "password");
+        if (Password != nullptr) {
+            Config.CertFileProtected.CertificateFile = (char*)Cert;
+            Config.CertFileProtected.PrivateKeyFile = (char*)KeyFile;
+            Config.CertFileProtected.PrivateKeyPassword = (char*)Password;
+            Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED;
+            Config.CredConfig.CertificateFileProtected = &Config.CertFileProtected;
+        } else {
+            Config.CertFile.CertificateFile = (char*)Cert;
+            Config.CertFile.PrivateKeyFile = (char*)KeyFile;
+            Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
+            Config.CredConfig.CertificateFile = &Config.CertFile;
+        }
 
     } else {
-        printf("Must specify '-cert_hash' or 'cert_file' and 'key_file'!\n");
+        printf("Must specify ['-cert_hash'] or ['cert_file' and 'key_file' (and optionally 'password')]!\n");
         return false;
     }
 

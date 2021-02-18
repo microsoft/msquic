@@ -542,6 +542,14 @@ SSL_QUIC_METHOD OpenSslQuicCallbacks = {
     CxPlatTlsSendAlertCallback
 };
 
+CXPLAT_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_CERTIFICATE_FILE, PrivateKeyFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, PrivateKeyFile),
+    "Mismatch (private key) in certificate file structs");
+
+CXPLAT_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_CERTIFICATE_FILE, CertificateFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, CertificateFile),
+    "Mismatch (certificate file) in certificate file structs");
+
 QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
@@ -583,6 +591,13 @@ CxPlatTlsSecConfigCreate(
             if (CredConfig->CertificateFile == NULL ||
                 CredConfig->CertificateFile->CertificateFile == NULL ||
                 CredConfig->CertificateFile->PrivateKeyFile == NULL) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+        } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+            if (CredConfig->CertificateFileProtected == NULL ||
+                CredConfig->CertificateFileProtected->CertificateFile == NULL ||
+                CredConfig->CertificateFileProtected->PrivateKeyFile == NULL ||
+                CredConfig->CertificateFileProtected->PrivateKeyPassword == NULL) {
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
         } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
@@ -737,7 +752,13 @@ CxPlatTlsSecConfigCreate(
         // Set the server certs.
         //
 
-        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+            SSL_CTX_set_default_passwd_cb_userdata(
+                SecurityConfig->SSLCtx, (void*)CredConfig->CertificateFileProtected->PrivateKeyPassword);
+        }
+
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ||
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
             Ret =
                 SSL_CTX_use_PrivateKey_file(
                     SecurityConfig->SSLCtx,
