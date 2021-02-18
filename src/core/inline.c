@@ -176,7 +176,7 @@ QuicPerfCounterAdd(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPerfCounterTrySnapShot(
-    void
+    _In_ uint64_t TimeNow
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
