@@ -840,7 +840,7 @@ Exit:
 _Success_(return != FALSE)
 BOOLEAN
 CxPlatCertValidateChain(
-    _In_ QUIC_CERTIFICATE* Certificate,
+    _In_ const QUIC_CERTIFICATE* Certificate,
     _In_opt_z_ PCSTR Host,
     _In_ uint32_t IgnoreFlags
     )
@@ -883,33 +883,17 @@ CxPlatCertValidateChain(
     }
 
     if (Host != NULL) {
-        int ServerNameLength = MultiByteToWideChar(CP_UTF8, 0, Host, -1, NULL, 0);
-        if (ServerNameLength == 0) {
+        QUIC_STATUS Status =
+            CxPlatUtf8ToWideChar(
+                Host,
+                QUIC_POOL_PLATFORM_TMP_ALLOC,
+                &ServerName);
+        if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                GetLastError(),
-                "MultiByteToWideChar(1) failed");
-            goto Exit;
-        }
-
-        ServerName = (LPWSTR)CXPLAT_ALLOC_PAGED(ServerNameLength * sizeof(WCHAR), QUIC_POOL_PLATFORM_TMP_ALLOC);
-        if (ServerName == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "ServerName",
-                ServerNameLength * sizeof(WCHAR));
-            goto Exit;
-        }
-
-        ServerNameLength = MultiByteToWideChar(CP_UTF8, 0, Host, -1, ServerName, ServerNameLength);
-        if (ServerNameLength == 0) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                GetLastError(),
-                "MultiByteToWideChar(2) failed");
+                Status,
+                "Convert Host to unicode");
             goto Exit;
         }
     }

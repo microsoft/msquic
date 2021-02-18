@@ -202,6 +202,12 @@ CxPlatTlsAlpnSelectCallback(
     return SSL_TLSEXT_ERR_OK;
 }
 
+BOOLEAN
+CxPlatTlsVerifyCertificate(
+    _In_ X509* X509Cert,
+    _In_ const char* SNI
+    );
+
 static
 int
 CxPlatTlsCertificateVerifyCallback(
@@ -209,8 +215,15 @@ CxPlatTlsCertificateVerifyCallback(
     X509_STORE_CTX *x509_ctx
     )
 {
+    X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
     SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+
+    if (!preverify_ok) {
+        if (CxPlatTlsVerifyCertificate(Cert, TlsContext->SNI)) {
+            preverify_ok = 1;
+        }
+    }
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
         !preverify_ok) {

@@ -469,6 +469,78 @@ CxPlatFree(
 #endif
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatUtf8ToWideChar(
+    _In_z_ const char* const Input,
+    _In_ uint32_t Tag,
+    _Outptr_result_z_ PWSTR* Output
+    )
+{
+    CXPLAT_DBG_ASSERT(Input != NULL);
+    CXPLAT_DBG_ASSERT(Output != NULL);
+
+    DWORD Error = NO_ERROR;
+    PWSTR Buffer = NULL;
+    int Size =
+        MultiByteToWideChar(
+            CP_UTF8,
+            MB_ERR_INVALID_CHARS,
+            Input,
+            -1,
+            NULL,
+            0);
+    if (Size == 0) {
+        Error = GetLastError();
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Error,
+            "Get wchar string size");
+        goto Error;
+    }
+
+    Buffer = CXPLAT_ALLOC_NONPAGED(sizeof(WCHAR) * Size, Tag);
+    if (Buffer == NULL) {
+        Error = ERROR_NOT_ENOUGH_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "wchar string",
+            sizeof(WCHAR) * Size);
+        goto Error;
+    }
+
+    Size =
+        MultiByteToWideChar(
+            CP_UTF8,
+            MB_ERR_INVALID_CHARS,
+            Input,
+            -1,
+            Buffer,
+            Size);
+    if (Size == 0) {
+        Error = GetLastError();
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Error,
+            "Convert string to wchar");
+        goto Error;
+    }
+
+    *Output = Buffer;
+    Buffer = NULL;
+
+Error:
+
+    if (Buffer != NULL) {
+        CXPLAT_FREE(Buffer, Tag);
+    }
+
+    return HRESULT_FROM_WIN32(Error);
+}
+
 __declspec(noreturn)
 void
 KrmlExit(

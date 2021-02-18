@@ -39,6 +39,93 @@ Environment:
 #include <wincrypt.h>
 #include <msquic.h>
 
+void
+DisplayWinVerifyTrustError(DWORD Status)
+{
+    LPSTR pszName = NULL;
+
+    switch (Status)
+    {
+    case CERT_E_EXPIRED:                pszName = "CERT_E_EXPIRED";                 break;
+    case CERT_E_VALIDITYPERIODNESTING:  pszName = "CERT_E_VALIDITYPERIODNESTING";   break;
+    case CERT_E_ROLE:                   pszName = "CERT_E_ROLE";                    break;
+    case CERT_E_PATHLENCONST:           pszName = "CERT_E_PATHLENCONST";            break;
+    case CERT_E_CRITICAL:               pszName = "CERT_E_CRITICAL";                break;
+    case CERT_E_PURPOSE:                pszName = "CERT_E_PURPOSE";                 break;
+    case CERT_E_ISSUERCHAINING:         pszName = "CERT_E_ISSUERCHAINING";          break;
+    case CERT_E_MALFORMED:              pszName = "CERT_E_MALFORMED";               break;
+    case CERT_E_UNTRUSTEDROOT:          pszName = "CERT_E_UNTRUSTEDROOT";           break;
+    case CERT_E_CHAINING:               pszName = "CERT_E_CHAINING";                break;
+    case TRUST_E_FAIL:                  pszName = "TRUST_E_FAIL";                   break;
+    case CERT_E_REVOKED:                pszName = "CERT_E_REVOKED";                 break;
+    case CERT_E_UNTRUSTEDTESTROOT:      pszName = "CERT_E_UNTRUSTEDTESTROOT";       break;
+    case CERT_E_REVOCATION_FAILURE:     pszName = "CERT_E_REVOCATION_FAILURE";      break;
+    case CERT_E_CN_NO_MATCH:            pszName = "CERT_E_CN_NO_MATCH";             break;
+    case CERT_E_WRONG_USAGE:            pszName = "CERT_E_WRONG_USAGE";             break;
+    default:                            pszName = "(unknown)";                      break;
+    }
+
+    printf("Error 0x%x (%s) returned by CertVerifyCertificateChainPolicy!\n",
+        Status, pszName);
+}
+
+BOOLEAN
+CxPlatTlsVerifyCertificate(
+    _In_ X509* X509Cert,
+    _In_ const char* SNI
+    )
+{
+    // Convert SNI to wide
+    BOOLEAN Result = FALSE;
+    PCCERT_CONTEXT CertContext = NULL;
+    unsigned char* OpenSSLCertBuffer = NULL;
+    int OpenSSLCertLength = 0;
+
+    OpenSSLCertLength = i2d_X509(X509Cert, &OpenSSLCertBuffer);
+    if (OpenSSLCertLength <= 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "i2d_X509 failed");
+        goto Exit;
+    }
+
+    CertContext =
+        (PCCERT_CONTEXT)CertCreateContext(
+            CERT_STORE_CERTIFICATE_CONTEXT,
+            X509_ASN_ENCODING,
+            OpenSSLCertBuffer,
+            OpenSSLCertLength,
+            CERT_CREATE_CONTEXT_NOCOPY_FLAG,
+            NULL);
+    if (CertContext == NULL) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertGetCertificateChain failed");
+        goto Exit;
+    }
+
+    Result =
+        CxPlatCertValidateChain(
+            CertContext,
+            SNI,
+            0);
+
+Exit:
+
+    if (CertContext != NULL) {
+        CertFreeCertificateContext(CertContext);
+    }
+
+    if (OpenSSLCertBuffer != NULL) {
+        OPENSSL_free(OpenSSLCertBuffer);
+    }
+
+    return Result;
+}
+
 QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
@@ -289,5 +376,15 @@ CxPlatTlsExtractPrivateKey(
     UNREFERENCED_PARAMETER(EvpPrivateKey);
     UNREFERENCED_PARAMETER(X509Cert);
     return QUIC_STATUS_NOT_SUPPORTED;
+}
+BOOLEAN
+CxPlatTlsVerifyCertificate(
+    _In_ X509* X509Cert,
+    _In_ const char* SNI
+    )
+{
+    UNREFERENCED_PARAMETER(X509Cert);
+    UNREFERENCED_PARAMETER(SNI);
+    return 0;
 }
 #endif
