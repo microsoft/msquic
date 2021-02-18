@@ -585,13 +585,13 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
             QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
         }
 
-        if (Worker->IdealProcessor == 0) {
-            //
-            // Core zero will opportunistically try to snap-shot performance
-            // counters and do some validation.
-            //
-            QuicPerfCounterTrySnapShot();
-        }
+        uint64_t TimeNow = CxPlatTimeUs64();
+
+        //
+        // Opportunistically try to snap-shot performance counters and do
+        // some validation.
+        //
+        QuicPerfCounterTrySnapShot(TimeNow);
 
         //
         // Get the delay until the next timer expires. Check to see if any
@@ -599,7 +599,7 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
         // next timer if we have run out of connections and stateless operations
         // to process.
         //
-        uint64_t Delay = QuicTimerWheelGetWaitTime(&Worker->TimerWheel);
+        uint64_t Delay = QuicTimerWheelGetWaitTime(&Worker->TimerWheel, TimeNow);
 
         if (Delay == 0) {
             //

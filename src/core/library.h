@@ -345,19 +345,19 @@ QuicPerfCounterAdd(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPerfCounterSnapShot(
-    void
+    _In_ uint64_t TimeDiffUs
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 void
 QuicPerfCounterTrySnapShot(
-    void
+    _In_ uint64_t TimeNow
     )
 {
-    uint64_t TimeNow = CxPlatTimeUs64();
     uint64_t TimeLast = MsQuicLib.PerfCounterSamplesTime;
-    if (CxPlatTimeDiff64(TimeLast, TimeNow) < S_TO_US(QUIC_PERF_SAMPLE_INTERVAL_S)) {
+    uint64_t TimeDiff = CxPlatTimeDiff64(TimeLast, TimeNow);
+    if (TimeDiff < S_TO_US(QUIC_PERF_SAMPLE_INTERVAL_S)) {
         return; // Not time to resample yet.
     }
 
@@ -369,7 +369,7 @@ QuicPerfCounterTrySnapShot(
         return; // Someone else already is updating.
     }
 
-    QuicPerfCounterSnapShot();
+    QuicPerfCounterSnapShot(TimeDiff);
 }
 
 //

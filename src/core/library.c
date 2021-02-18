@@ -131,7 +131,7 @@ QuicLibrarySumPerfCountersExternal(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPerfCounterSnapShot(
-    void
+    _In_ uint64_t TimeDiffUs
     )
 {
     int64_t PerfCounterSamples[QUIC_PERF_COUNTER_MAX];
@@ -142,7 +142,7 @@ QuicPerfCounterSnapShot(
 // Ensure a perf counter stays below a given max Hz/frequency.
 #define QUIC_COUNTER_LIMIT_HZ(TYPE, LIMIT_PER_SECOND) \
     CXPLAT_TEL_ASSERT( \
-        ((PerfCounterSamples[TYPE] - MsQuicLib.PerfCounterSamples[TYPE]) / QUIC_PERF_SAMPLE_INTERVAL_S) < LIMIT_PER_SECOND)
+        ((1000 * 1000 * (PerfCounterSamples[TYPE] - MsQuicLib.PerfCounterSamples[TYPE])) / TimeDiffUs) < LIMIT_PER_SECOND)
 
 // Ensures a perf counter doesn't consistently (both samples) go above a give max value.
 #define QUIC_COUNTER_CAP(TYPE, MAX_LIMIT) \
