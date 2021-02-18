@@ -134,6 +134,8 @@ QuicPerfCounterSnapShot(
     _In_ uint64_t TimeDiffUs
     )
 {
+    UNREFERENCED_PARAMETER(TimeDiffUs); // Only used in asserts below.
+
     int64_t PerfCounterSamples[QUIC_PERF_COUNTER_MAX];
     QuicLibrarySumPerfCounters(
         (uint8_t*)PerfCounterSamples,
