@@ -155,7 +155,7 @@ QuicPerfCounterSnapShot(
     // values should be configurable dynamically, somehow.
     //
     QUIC_COUNTER_LIMIT_HZ(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL, 1000000); // Don't have 1 million failed handshakes per second
-    QUIC_COUNTER_CAP(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, 1000); // Don't maintain huge queue depths
+    QUIC_COUNTER_CAP(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, 100000); // Don't maintain huge queue depths
 
     CxPlatCopyMemory(
         MsQuicLib.PerfCounterSamples,
