@@ -1393,7 +1393,7 @@ CxPlatSocketContextProcessEvents(
                             SocketContext->Binding,
                             SocketContext->Binding->ClientContext,
                             &SocketContext->Binding->RemoteAddress);
-            }
+                    }
                 }
                 break;
             }
@@ -1971,6 +1971,7 @@ CxPlatSocketSendInternal(
                     SocketContext->Binding,
                     SocketContext->Binding->ClientContext,
                     &SocketContext->Binding->RemoteAddress);
+            }
             goto Exit;
         }
     }
