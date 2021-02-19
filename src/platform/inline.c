@@ -129,6 +129,13 @@ InterlockedCompareExchange16(
     );
 
 short
+InterlockedCompareExchange64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Destination,
+    _In_ int64_t ExChange,
+    _In_ int64_t Comperand
+    );
+
+short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend
     );
