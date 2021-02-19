@@ -73,6 +73,15 @@ sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.18_amd64.deb
 
 Then you will need to manually run "pwsh" to continue.
 
+## Install on macOS
+```
+brew install powershell
+```
+
+
+Then you will need to manually run "pwsh" to continue.
+
+
 # Building with PowerShell
 
 ## Install Dependencies
@@ -147,6 +156,18 @@ sudo apt-get install build-essential
 sudo apt-get install liblttng-ust-dev
 sudo apt-get install lttng-tools
 ```
+
+### macOS
+The build needs CMake and compiler.
+
+```
+brew install cmake
+```
+Minimally, build needs Xcode 'Command Line Tools`. That can be done via XCode in App Store or from command line  
+```
+xcode-select --install
+```
+
 
 ## Generating Build Files
 
