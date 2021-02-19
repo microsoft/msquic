@@ -926,7 +926,7 @@ FindOrCreateCertificate(
     //
     // Getting this far means that no certificates were found. Create one!
     //
-    Cert = (PCCERT_CONTEXT) CreateServerCertificate();
+    Cert = (PCCERT_CONTEXT) (IsClient ? CreateClientCertificate() : CreateServerCertificate());
     if (Cert == NULL) {
         goto Done;
     }
