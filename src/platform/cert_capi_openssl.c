@@ -61,13 +61,14 @@ CxPlatTlsVerifyCertificate(
     }
 
     CertContext =
-        (PCCERT_CONTEXT)CertCreateContext(
-            CERT_STORE_CERTIFICATE_CONTEXT,
-            X509_ASN_ENCODING,
-            OpenSSLCertBuffer,
-            OpenSSLCertLength,
-            CERT_CREATE_CONTEXT_NOCOPY_FLAG,
-            NULL);
+        (PCCERT_CONTEXT)
+            CertCreateContext(
+                CERT_STORE_CERTIFICATE_CONTEXT,
+                X509_ASN_ENCODING,
+                OpenSSLCertBuffer,
+                OpenSSLCertLength,
+                CERT_CREATE_CONTEXT_NOCOPY_FLAG,
+                NULL);
     if (CertContext == NULL) {
         QuicTraceEvent(
             LibraryErrorStatus,
