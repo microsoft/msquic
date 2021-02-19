@@ -2218,6 +2218,19 @@ CxPlatSocketSendInternal(
                 SocketContext->Binding,
                 Status,
                 "sendmsg failed");
+
+            //
+            // Unreachable events can sometimes come synchronously.
+            // Send unreachable notification to MsQuic if any related
+            // errors were received.
+            //
+            if (Status == ECONNREFUSED ||
+                Status == EHOSTUNREACH ||
+                Status == ENETUNREACH) {
+                SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                    SocketContext->Binding,
+                    SocketContext->Binding->ClientContext,
+                    &SocketContext->Binding->RemoteAddress);
             goto Exit;
         }
     }

@@ -1361,47 +1361,6 @@ CxPlatSocketContextProcessEvents(
         return;
     }
 
-    // TODO figure out what these mean
-    // if (EPOLLERR & Events) {
-    //     int ErrNum = 0;
-    //     socklen_t OptLen = sizeof(ErrNum);
-    //     ssize_t Ret =
-    //         getsockopt(
-    //             SocketContext->SocketFd,
-    //             SOL_SOCKET,
-    //             SO_ERROR,
-    //             &ErrNum,
-    //             &OptLen);
-    //     if (Ret < 0) {
-    //         QuicTracgdfgfdeEvent(
-    //             DatapathErrorStatus,
-    //             "[data][%p] ERROR, %u, %s.",
-    //             SocketContext->Binding,
-    //             errno,
-    //             "getsockopt(SO_ERROR) failed");
-    //     } else {
-    //         QuicTracgdfgfdeEvent(
-    //             DatapathErrorStatus,
-    //             "[data][%p] ERROR, %u, %s.",
-    //             SocketContext->Binding,
-    //             ErrNum,
-    //             "Socket error event");
-
-    //         //
-    //         // Send unreachable notification to MsQuic if any related
-    //         // errors were received.
-    //         //
-    //         if (ErrNum == ECONNREFUSED ||
-    //             ErrNum == EHOSTUNREACH ||
-    //             ErrNum == ENETUNREACH) {
-    //             SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
-    //                 SocketContext->Binding,
-    //                 SocketContext->Binding->ClientContext,
-    //                 &SocketContext->Binding->RemoteAddress);
-    //         }
-    //     }
-    // }
-
     if (Event->filter == EVFILT_READ) {
         while (TRUE) {
             CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlock != NULL);
@@ -1412,13 +1371,29 @@ CxPlatSocketContextProcessEvents(
                     &SocketContext->RecvMsgHdr,
                     0);
             if (Ret < 0) {
-                if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                int ErrNum = errno;
+                if (ErrNum != EAGAIN && ErrNum != EWOULDBLOCK) {
                     QuicTraceEvent(
                         DatapathErrorStatus,
                         "[data][%p] ERROR, %u, %s.",
                         SocketContext->Binding,
                         errno,
                         "recvmsg failed");
+
+                    //
+                    // The read can also return unreachable events. There is no
+                    // flag to detect this state other then to call recvmsg.
+                    // Send unreachable notification to MsQuic if any related
+                    // errors were received.
+                    //
+                    if (ErrNum == ECONNREFUSED ||
+                        ErrNum == EHOSTUNREACH ||
+                        ErrNum == ENETUNREACH) {
+                        SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                            SocketContext->Binding,
+                            SocketContext->Binding->ClientContext,
+                            &SocketContext->Binding->RemoteAddress);
+            }
                 }
                 break;
             }
@@ -1983,6 +1958,19 @@ CxPlatSocketSendInternal(
                 SocketContext->Binding,
                 Status,
                 "sendmsg failed");
+
+            //
+            // Unreachable events can sometimes come synchronously.
+            // Send unreachable notification to MsQuic if any related
+            // errors were received.
+            //
+            if (Status == ECONNREFUSED ||
+                Status == EHOSTUNREACH ||
+                Status == ENETUNREACH) {
+                SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                    SocketContext->Binding,
+                    SocketContext->Binding->ClientContext,
+                    &SocketContext->Binding->RemoteAddress);
             goto Exit;
         }
     }
