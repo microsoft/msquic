@@ -39,36 +39,6 @@ Environment:
 #include <wincrypt.h>
 #include <msquic.h>
 
-void
-DisplayWinVerifyTrustError(DWORD Status)
-{
-    LPSTR pszName = NULL;
-
-    switch (Status)
-    {
-    case CERT_E_EXPIRED:                pszName = "CERT_E_EXPIRED";                 break;
-    case CERT_E_VALIDITYPERIODNESTING:  pszName = "CERT_E_VALIDITYPERIODNESTING";   break;
-    case CERT_E_ROLE:                   pszName = "CERT_E_ROLE";                    break;
-    case CERT_E_PATHLENCONST:           pszName = "CERT_E_PATHLENCONST";            break;
-    case CERT_E_CRITICAL:               pszName = "CERT_E_CRITICAL";                break;
-    case CERT_E_PURPOSE:                pszName = "CERT_E_PURPOSE";                 break;
-    case CERT_E_ISSUERCHAINING:         pszName = "CERT_E_ISSUERCHAINING";          break;
-    case CERT_E_MALFORMED:              pszName = "CERT_E_MALFORMED";               break;
-    case CERT_E_UNTRUSTEDROOT:          pszName = "CERT_E_UNTRUSTEDROOT";           break;
-    case CERT_E_CHAINING:               pszName = "CERT_E_CHAINING";                break;
-    case TRUST_E_FAIL:                  pszName = "TRUST_E_FAIL";                   break;
-    case CERT_E_REVOKED:                pszName = "CERT_E_REVOKED";                 break;
-    case CERT_E_UNTRUSTEDTESTROOT:      pszName = "CERT_E_UNTRUSTEDTESTROOT";       break;
-    case CERT_E_REVOCATION_FAILURE:     pszName = "CERT_E_REVOCATION_FAILURE";      break;
-    case CERT_E_CN_NO_MATCH:            pszName = "CERT_E_CN_NO_MATCH";             break;
-    case CERT_E_WRONG_USAGE:            pszName = "CERT_E_WRONG_USAGE";             break;
-    default:                            pszName = "(unknown)";                      break;
-    }
-
-    printf("Error 0x%x (%s) returned by CertVerifyCertificateChainPolicy!\n",
-        Status, pszName);
-}
-
 BOOLEAN
 CxPlatTlsVerifyCertificate(
     _In_ X509* X509Cert,
