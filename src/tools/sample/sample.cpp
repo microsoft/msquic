@@ -715,7 +715,9 @@ ClientLoadConfiguration(
     QUIC_CREDENTIAL_CONFIG CredConfig;
     memset(&CredConfig, 0, sizeof(CredConfig));
     CredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
-    CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT;
+    CredConfig.Flags =
+        QUIC_CREDENTIAL_FLAG_CLIENT |
+        QUIC_CREDENTIAL_FLAG_USE_OS_CERTIFICATE_VALIDATION;
     if (Unsecure) {
         CredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
     }
