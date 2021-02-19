@@ -22,7 +22,84 @@ function generateWanPerfData() {
     }
 }
 
+var filterable = [
+    "BottleneckMbps",
+    "RttMs",
+    "BottleneckBufferPackets",
+    "RandomLossDenominator",
+    "RandomReorderDenominator",
+    "ReorderDelayDeltaMs"
+];
+
+function filterTable(settings, data, dataIndex) {
+    var idx = 0;
+    for (var flt of filterable) {
+        var name = "Filter" + flt;
+        var value = document.getElementById(name).value;
+        if (value === 'all') {
+            idx++;
+            continue;
+        }
+        if (value === data[idx]) {
+            idx++;
+            continue;
+        }
+        return false;
+    }
+
+    return true;
+}
+
+function compareNumbers(a, b) {
+    return a - b;
+}
+
+var dataTableStore;
+
+function selectorChanged() {
+    dataTableStore.draw();
+}
+
 function generateWanTable() {
+    var filterdiv = document.getElementById('filterdiv');
+
+    for (const filtername of filterable) {
+        var label = document.createElement('label');
+        label.innerText = "Filter " + filtername;
+        label.for = "Filter" + filtername;
+
+        filterdiv.appendChild(label);
+
+        var select = document.createElement('select');
+        select.name = filtername;
+        select.id = "Filter" + filtername;
+
+        var elements = new Set();
+        for (var element of filteredWanPerfData) {
+            elements.add(parseInt(element[filtername], 10));
+        }
+
+        var allOption = document.createElement('option');
+        allOption.value = 'all';
+        allOption.innerText = "All";
+        select.appendChild(allOption);
+
+        var sortedSet = Array.from(elements).sort(compareNumbers);
+
+        for (var element of sortedSet) {
+            var option = document.createElement('option');
+            option.value = element;
+            option.innerText = element;
+            select.appendChild(option);
+            select.appendChild(document.createElement('p'));
+        }
+
+        filterdiv.appendChild(select);
+        filterdiv.appendChild(document.createElement('p'));
+
+        select.onchange = selectorChanged;
+    }
+
     var table = document.getElementById("WanTable");
     var thead = document.createElement('thead');
     var tr = document.createElement('tr');
@@ -47,7 +124,10 @@ function generateWanTable() {
             tr.appendChild(element);
         }
     )
-    $('#WanTable').DataTable({
+
+    $.fn.dataTable.ext.search.push(filterTable);
+
+    dataTableStore = $('#WanTable').DataTable({
         data: filteredWanPerfData,
         columns: [
             { data: "BottleneckMbps" },
