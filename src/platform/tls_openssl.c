@@ -219,7 +219,7 @@ CxPlatTlsCertificateVerifyCallback(
     SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
 
-    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_OS_CERTIFICATE_VALIDATION) {
+    if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
         preverify_ok = CxPlatTlsVerifyCertificate(Cert, TlsContext->SNI);
     }
 
