@@ -694,6 +694,7 @@ CxPlatSocketContextInitialize(
     int Result = 0;
     int Option = 0;
     int Flags = 0;
+    int ForceIpv4 = RemoteAddress && RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET;
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
 
@@ -702,11 +703,13 @@ CxPlatSocketContextInitialize(
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
     //
-    // Create datagram socket.
+    // Create datagram socket. We will use dual-mode sockets everywhere when we can.
+    // There is problem with receiving PKTINFO on dual-mode when binded and connect to IP4 endpoints.
+    // For that case we use AF_INET.
     //
     SocketContext->SocketFd =
         socket(
-            AF_INET6,
+            ForceIpv4 ? AF_INET : AF_INET6,
             SOCK_DGRAM,
             IPPROTO_UDP);
     if (SocketContext->SocketFd == INVALID_SOCKET) {
@@ -719,6 +722,159 @@ CxPlatSocketContextInitialize(
             "socket() failed");
         goto Exit;
     }
+
+    //
+    // Set dual (IPv4 & IPv6) socket mode unless we operate in pure IPv4 mode
+    //
+    if (!ForceIpv4) {
+        Option = FALSE;
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                IPPROTO_IPV6,
+                IPV6_V6ONLY,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(IPV6_V6ONLY) failed");
+            goto Exit;
+        }
+    }
+
+    //
+    // The port may be shared across processors.
+    // Even if not, this is probably cheap.
+    //
+    Option = TRUE;
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            SOL_SOCKET,
+            SO_REUSEADDR,
+            (const void*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "setsockopt(SO_REUSEADDR) failed");
+        goto Exit;
+    }
+
+
+    //
+    // bind() to local port if we need to. This is not necessary if we call connect afterward and there is no ask for particular
+    // source address or port. connect() will resolve that together in single system call.
+    if (!RemoteAddress || Binding->LocalAddress.Ipv6.sin6_port || !QuicAddrIsWildCard(&Binding->LocalAddress)) {
+        CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
+        if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+            MappedAddress.Ipv6.sin6_family = AF_INET6;
+        }
+
+        if (ForceIpv4) { // remote exists
+            MappedAddress.Ipv4.sin_family = AF_INET;
+        // TBD assume wildcard for now!
+            MappedAddress.Ipv4.sin_port = Binding->LocalAddress.Ipv4.sin_port;
+        }
+
+        Result =
+            bind(
+                SocketContext->SocketFd,
+                &MappedAddress.Ip,
+                ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
+
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "bind failed");
+            goto Exit;
+        }
+    }
+
+    //
+    // connect to RemoteAddress if provided.
+    //
+    if (RemoteAddress != NULL) {
+        CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
+        CxPlatConvertToMappedV6(RemoteAddress, &MappedAddress);
+
+        if (ForceIpv4)
+        {
+            CxPlatConvertFromMappedV6(&MappedAddress, &MappedAddress);
+        } else if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+            MappedAddress.Ipv6.sin6_family = AF_INET6;
+        }
+
+        Result =
+            connect(
+                SocketContext->SocketFd,
+                &MappedAddress.Ip,
+                ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
+
+        if (Result == SOCKET_ERROR) {
+//printf("%s:%d: connect failed with %s %s : %d\n" , __func__, __LINE__,  strerror(errno), inet_ntop(MappedAddress.Ip.sa_family, &MappedAddress.Ipv4.sin_addr, (char*)(&bu2), sizeof(bu2)), ntohs(MappedAddress.Ipv4.sin_port));
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "connect failed");
+            goto Exit;
+        }
+
+        Binding->Connected = TRUE;
+    }
+
+    //
+    // If no specific local port was indicated, then the stack just
+    // assigned this socket a port. We need to query it and use it for
+    // all the other sockets we are going to create.
+    //
+    AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
+    Result =
+        getsockname(
+            SocketContext->SocketFd,
+            (struct sockaddr *)&Binding->LocalAddress,
+            &AssignedLocalAddressLength);
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "getsockname failed");
+        goto Exit;
+    }
+// TBD flip this with the call above!!!!!
+    CxPlatConvertToMappedV6(&Binding->LocalAddress, &MappedAddress);
+    Binding->LocalAddress = MappedAddress;
+
+    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
+        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    }
+
+    if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
+        Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+    }
+
+    //
+    // We have socket with endpoints set. Let's set options we need.
+    //
 
     //
     // Set non blocking mode
@@ -757,90 +913,21 @@ CxPlatSocketContextInitialize(
     }
 
     //
-    // Set dual (IPv4 & IPv6) socket mode.
-    //
-    Option = FALSE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            IPPROTO_IPV6,
-            IPV6_V6ONLY,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IPV6_V6ONLY) failed");
-        goto Exit;
-    }
-
-    //
     // Set DON'T FRAG socket option.
     //
-
-
-    // Windows: setsockopt IPPROTO_IP IP_DONTFRAGMENT TRUE.
-    // Linux: IP_DONTFRAGMENT option is not available. IPV6_MTU_DISCOVER is the
-    // apparent alternative.
-    // TODO: Verify this.
-
-    // Option = IP_PMTUDISC_DO;
-    // Result =
-    //     setsockopt(
-    //         SocketContext->SocketFd,
-    //         IPPROTO_IP,
-    //         IP_MTU_DISCOVER,
-    //         (const void*)&Option,
-    //         sizeof(Option));
-    // if (Result == SOCKET_ERROR) {
-    //     Status = errno;
-    //     QuicTracgdfgfdeEvent(
-    //         DatapathErrorStatus,
-    //         "[data][%p] ERROR, %u, %s.",
-    //         Binding,
-    //         Status,
-    //         "setsockopt(IP_MTU_DISCOVER) failed");
-    //     goto Exit;
-    // }
-
-    Option = TRUE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            IPPROTO_IPV6,
-            IPV6_DONTFRAG,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IPV6_DONTFRAG) failed");
-        goto Exit;
-    }
+    // IP_DONTFRAG is not supported on macOS.
+    // This may be re-visited on other kqueue systems like FreeBSD.
+    // IPv6 does not support fragmentation so no work there.
 
     //
     // Set socket option to receive ancillary data about the incoming packets.
     //
-
-    // Windows: setsockopt IPPROTO_IPV6 IPV6_PKTINFO TRUE.
-    // Android: Returns EINVAL. IPV6_PKTINFO option is not present in documentation.
-    // IPV6_RECVPKTINFO seems like is the alternative.
-    // TODO: Check if this works as expected?
-
     Option = TRUE;
     Result =
         setsockopt(
             SocketContext->SocketFd,
-            IPPROTO_IPV6,
-            IPV6_RECVPKTINFO,
+            ForceIpv4 ? IPPROTO_IP : IPPROTO_IPV6,
+            ForceIpv4 ? IP_RECVPKTINFO : IPV6_RECVPKTINFO,
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
@@ -854,25 +941,6 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
 
-    // Option = TRUE;
-    // Result =
-    //     setsockopt(
-    //         SocketContext->SocketFd,
-    //         IPPROTO_IP,
-    //         IP_PKTINFO,
-    //         (const void*)&Option,
-    //         sizeof(Option));
-    // if (Result == SOCKET_ERROR) {
-    //     Status = errno;
-    //     QuicTracgdfgfdeEvent(
-    //         DatapathErrorStatus,
-    //         "[data][%p] ERROR, %u, %s.",
-    //         Binding,
-    //         Status,
-    //         "setsockopt(IP_PKTINFO) failed");
-    //     goto Exit;
-    // }
-
     //
     // Set socket option to receive TOS (= DSCP + ECN) information from the
     // incoming packet.
@@ -881,8 +949,8 @@ CxPlatSocketContextInitialize(
     Result =
         setsockopt(
             SocketContext->SocketFd,
-            IPPROTO_IPV6,
-            IPV6_RECVTCLASS,
+            ForceIpv4 ? IPPROTO_IP : IPPROTO_IPV6,
+            ForceIpv4 ? IP_RECVTOS :IPV6_RECVTCLASS,
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
@@ -895,25 +963,6 @@ CxPlatSocketContextInitialize(
             "setsockopt(IPV6_RECVTCLASS) failed");
         goto Exit;
     }
-
-    // Option = TRUE;
-    // Result =
-    //     setsockopt(
-    //         SocketContext->SocketFd,
-    //         IPPROTO_IP,
-    //         IP_RECVTOS,
-    //         (const void*)&Option,
-    //         sizeof(Option));
-    // if (Result == SOCKET_ERROR) {
-    //     Status = errno;
-    //     QuicTracgdfgfdeEvent(
-    //         DatapathErrorStatus,
-    //         "[data][%p] ERROR, %u, %s.",
-    //         Binding,
-    //         Status,
-    //         "setsockopt(IP_RECVTOS) failed");
-    //     goto Exit;
-    // }
 
     //
     // The socket is shared by multiple QUIC endpoints, so increase the receive
@@ -937,106 +986,6 @@ CxPlatSocketContextInitialize(
     //         "setsockopt(SO_RCVBUF) failed");
     //     goto Exit;
     // }
-
-    //
-    // The port is shared across processors.
-    //
-    Option = TRUE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            SOL_SOCKET,
-            SO_REUSEADDR,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(SO_REUSEADDR) failed");
-        goto Exit;
-    }
-
-    CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
-    if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-        MappedAddress.Ipv6.sin6_family = AF_INET6;
-    }
-
-    Result =
-        bind(
-            SocketContext->SocketFd,
-            &MappedAddress.Ip,
-            sizeof(MappedAddress));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "bind failed");
-        goto Exit;
-    }
-
-    if (RemoteAddress != NULL) {
-        CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
-        CxPlatConvertToMappedV6(RemoteAddress, &MappedAddress);
-
-        if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-            MappedAddress.Ipv6.sin6_family = AF_INET6;
-        }
-
-        Result =
-            connect(
-                SocketContext->SocketFd,
-                &MappedAddress.Ip,
-                sizeof(MappedAddress));
-
-        if (Result == SOCKET_ERROR) {
-            Status = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "connect failed");
-            goto Exit;
-        }
-        Binding->Connected = TRUE;
-    }
-
-    //
-    // If no specific local port was indicated, then the stack just
-    // assigned this socket a port. We need to query it and use it for
-    // all the other sockets we are going to create.
-    //
-    AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
-    Result =
-        getsockname(
-            SocketContext->SocketFd,
-            (struct sockaddr *)&Binding->LocalAddress,
-            &AssignedLocalAddressLength);
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "getsockname failed");
-        goto Exit;
-    }
-
-    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
-    }
-
-    if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
-        Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
-    }
 
 Exit:
 
@@ -1222,11 +1171,12 @@ CxPlatSocketContextRecvComplete(
                 LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                 LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
                 FoundLocalAddr = TRUE;
-            } else if (CMsg->cmsg_type == IP_TOS) {
+            } else if (CMsg->cmsg_type == IP_TOS || CMsg->cmsg_type == IP_RECVTOS) {
                 RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
                 FoundTOS = TRUE;
             }
         }
+
     }
 
     CXPLAT_FRE_ASSERT(FoundLocalAddr);
