@@ -18,8 +18,11 @@ Abstract:
 #endif
 
 const MsQuicApi* MsQuic;
-QUIC_CREDENTIAL_CONFIG SelfSignedCredConfig;
+QUIC_CREDENTIAL_CONFIG ServerCredConfig;
+QUIC_CREDENTIAL_CONFIG ServerCredConfigClientAuth;
+QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QUIC_CERTIFICATE_HASH SelfSignedCertHash;
+QUIC_CERTIFICATE_HASH ClientCertHash;
 
 #ifdef PRIVATE_LIBRARY
 DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\" QUIC_DRIVER_NAME_PRIVATE);
@@ -324,7 +327,7 @@ QuicTestCtlEvtFileCleanup(
             "[test] Client %p cleaning up",
             Client);
 
-        SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
+        ServerCredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
         QuicTestClient = nullptr;
     }
 
@@ -367,7 +370,7 @@ error:
 size_t QUIC_IOCTL_BUFFER_SIZES[] =
 {
     0,
-    sizeof(QUIC_CERTIFICATE_HASH),
+    sizeof(QUIC_RUN_CERTIFICATE_PARAMS),
     0,
     0,
     0,
@@ -421,7 +424,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
     sizeof(INT32),
     sizeof(INT32),
-    0
+    0,
+    sizeof(QUIC_RUN_CONNECT_CLIENT_CERT),
 };
 
 static_assert(
@@ -429,7 +433,7 @@ static_assert(
     "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOTCLs");
 
 typedef union {
-    QUIC_CERTIFICATE_HASH CertHash;
+    QUIC_RUN_CERTIFICATE_PARAMS CertParams;
     QUIC_CERTIFICATE_HASH_STORE CertHashStore;
     UINT8 Connect;
     INT32 Family;
@@ -547,8 +551,8 @@ QuicTestCtlEvtIoDeviceControl(
         Client,
         FunctionCode);
 
-    if (IoControlCode != IOCTL_QUIC_SET_CERT_HASH &&
-        SelfSignedCredConfig.Type == QUIC_CREDENTIAL_TYPE_NONE) {
+    if (IoControlCode != IOCTL_QUIC_SET_CERT_PARAMS &&
+        ServerCredConfig.Type == QUIC_CREDENTIAL_TYPE_NONE) {
         Status = STATUS_INVALID_DEVICE_STATE;
         QuicTraceEvent(
             LibraryError,
@@ -559,12 +563,19 @@ QuicTestCtlEvtIoDeviceControl(
 
     switch (IoControlCode) {
 
-    case IOCTL_QUIC_SET_CERT_HASH:
+    case IOCTL_QUIC_SET_CERT_PARAMS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
-        SelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
-        SelfSignedCredConfig.CertificateHash = &SelfSignedCertHash;
-        RtlCopyMemory(&SelfSignedCertHash.ShaHash, &Params->CertHash, sizeof(QUIC_CERTIFICATE_HASH));
+        ServerCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ServerCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
+        ServerCredConfig.CertificateHash = &SelfSignedCertHash;
+        ServerCredConfigClientAuth.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ServerCredConfigClientAuth.Flags = QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+        ServerCredConfigClientAuth.CertificateHash = &SelfSignedCertHash;
+        RtlCopyMemory(&SelfSignedCertHash.ShaHash, &Params->CertParams.ServerCertHash, sizeof(QUIC_CERTIFICATE_HASH));
+        ClientCertCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ClientCertCredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+        ClientCertCredConfig.CertificateHash = &ClientCertHash;
+        RtlCopyMemory(&ClientCertHash.ShaHash, &Params->CertParams.ClientCertHash, sizeof(QUIC_CERTIFICATE_HASH));
         Status = QUIC_STATUS_SUCCESS;
         break;
 

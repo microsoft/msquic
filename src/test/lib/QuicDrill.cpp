@@ -240,7 +240,7 @@ QuicDrillInitialPacketFailureTest(
 
     MsQuicAlpn Alpn("MsQuicTest");
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerCredConfig);
     if (!ServerConfiguration.IsValid()) {
         TEST_FAILURE("ServerConfiguration not valid!");
         return false;

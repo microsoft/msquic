@@ -985,7 +985,9 @@ CxPlatPlatGetSelfSignedCert(
     }
 
     Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT;
-    Params->Flags = IsClient ? QUIC_CREDENTIAL_FLAG_CLIENT : QUIC_CREDENTIAL_FLAG_NONE;
+    Params->Flags = IsClient ?
+        (QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) :
+        QUIC_CREDENTIAL_FLAG_NONE;
     Params->CertificateContext =
         FindOrCreateCertificate(
             Type == CXPLAT_SELF_SIGN_CERT_USER,

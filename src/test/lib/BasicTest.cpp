@@ -36,7 +36,7 @@ void QuicTestCreateListener()
         TEST_TRUE(Listener.IsValid());
     }
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     {
@@ -50,7 +50,7 @@ void QuicTestStartListener()
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
     MsQuicAlpn Alpn("MsQuicTest");
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     {
@@ -72,7 +72,7 @@ void QuicTestStartListenerMultiAlpns()
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
     MsQuicAlpn Alpn("MsQuicTest1", "MsQuicTest2");
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     {
@@ -94,7 +94,7 @@ void QuicTestStartListenerImplicit(_In_ int Family)
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
     MsQuicAlpn Alpn("MsQuicTest");
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     {
@@ -111,10 +111,10 @@ void QuicTestStartTwoListeners()
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
     MsQuicAlpn Alpn1("MsQuicTest");
-    MsQuicConfiguration ServerConfiguration1(Registration, Alpn1, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration1(Registration, Alpn1, ServerCredConfig);
     TEST_TRUE(ServerConfiguration1.IsValid());
     MsQuicAlpn Alpn2("MsQuicTest2");
-    MsQuicConfiguration ServerConfiguration2(Registration, Alpn2, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration2(Registration, Alpn2, ServerCredConfig);
     TEST_TRUE(ServerConfiguration2.IsValid());
 
     {
@@ -136,10 +136,10 @@ void QuicTestStartTwoListenersSameALPN()
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
     MsQuicAlpn Alpn1("MsQuicTest");
-    MsQuicConfiguration ServerConfiguration1(Registration, Alpn1, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration1(Registration, Alpn1, ServerCredConfig);
     TEST_TRUE(ServerConfiguration1.IsValid());
     MsQuicAlpn Alpn2("MsQuicTest", "MsQuicTest2");
-    MsQuicConfiguration ServerConfiguration2(Registration, Alpn2, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration2(Registration, Alpn2, ServerCredConfig);
     TEST_TRUE(ServerConfiguration2.IsValid());
 
     {
@@ -202,7 +202,7 @@ void QuicTestStartListenerExplicit(_In_ int Family)
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
     MsQuicAlpn Alpn("MsQuicTest");
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     {

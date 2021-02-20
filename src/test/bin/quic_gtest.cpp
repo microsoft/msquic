@@ -13,7 +13,9 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 const MsQuicApi* MsQuic;
-QUIC_CREDENTIAL_CONFIG SelfSignedCredConfig;
+QUIC_CREDENTIAL_CONFIG ServerCredConfig;
+QUIC_CREDENTIAL_CONFIG ServerCredConfigClientAuth;
+QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QuicDriverClient DriverClient;
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
@@ -21,6 +23,7 @@ extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 class QuicTestEnvironment : public ::testing::Environment {
     QuicDriverService DriverService;
     const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
+    const QUIC_CREDENTIAL_CONFIG* ClientCertParams;
 public:
     void SetUp() override {
         CxPlatSystemLoad();
@@ -32,10 +35,27 @@ public:
                     CXPLAT_SELF_SIGN_CERT_USER,
                 FALSE
                 )) != nullptr);
+
+        ASSERT_TRUE((ClientCertParams =
+            CxPlatPlatGetSelfSignedCert(
+                TestingKernelMode ?
+                    CXPLAT_SELF_SIGN_CERT_MACHINE :
+                    CXPLAT_SELF_SIGN_CERT_USER,
+                TRUE
+                )) != nullptr);
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
             const char* DriverName;
             const char* DependentDriverNames;
+            QUIC_RUN_CERTIFICATE_PARAMS CertParams = { 0 };
+            CxPlatCopyMemory(
+                &CertParams.ServerCertHash.ShaHash,
+                (QUIC_CERTIFICATE_HASH*)(SelfSignedCertParams + 1),
+                sizeof(QUIC_CERTIFICATE_HASH));
+            CxPlatCopyMemory(
+                &CertParams.ClientCertHash.ShaHash,
+                (QUIC_CERTIFICATE_HASH*)(ClientCertParams + 1),
+                sizeof(QUIC_CERTIFICATE_HASH));
             if (PrivateTestLibrary) {
                 DriverName = QUIC_DRIVER_NAME_PRIVATE;
                 DependentDriverNames = "msquicpriv\0";
@@ -45,12 +65,16 @@ public:
             }
             ASSERT_TRUE(DriverService.Initialize(DriverName, DependentDriverNames));
             ASSERT_TRUE(DriverService.Start());
-            ASSERT_TRUE(DriverClient.Initialize((QUIC_CERTIFICATE_HASH*)(SelfSignedCertParams + 1), DriverName));
+            ASSERT_TRUE(DriverClient.Initialize(&CertParams, DriverName));
         } else {
             printf("Initializing for User Mode tests\n");
             MsQuic = new MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
-            memcpy(&SelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
+            memcpy(&ServerCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
+            memcpy(&ServerCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
+            ServerCredConfigClientAuth.Flags |= QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+            memcpy(&ClientCertCredConfig, ClientCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
+            ClientCertCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
             QuicTestInitialize();
         }
     }
@@ -63,6 +87,7 @@ public:
             delete MsQuic;
         }
         CxPlatPlatFreeSelfSignedCert(SelfSignedCertParams);
+        CxPlatPlatFreeSelfSignedCert(ClientCertParams);
         CxPlatUninitialize();
         CxPlatSystemUnload();
     }
@@ -499,6 +524,19 @@ TEST_P(WithHandshakeArgs5, CustomCertificateValidation) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION, &Params));
     } else {
         QuicTestCustomCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
+    }
+}
+
+TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectClientCertificate", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_CLIENT_CERT Params = {
+            GetParam().Family,
+            GetParam().UseClientCertificate
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT, &Params));
+    } else {
+        QuicTestConnectClientCertificate(GetParam().Family, GetParam().UseClientCertificate);
     }
 }
 
@@ -1031,6 +1069,11 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs5,
     testing::ValuesIn(HandshakeArgs5::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs6,
+    testing::ValuesIn(HandshakeArgs6::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
