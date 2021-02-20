@@ -13,7 +13,7 @@ Abstract:
 
 #include "msquic.h"
 #ifdef QUIC_CLOG
-#include "Platform.cpp.clog.h"
+#include "PlatformTest.cpp.clog.h"
 #endif
 
 struct PlatformTest : public ::testing::TestWithParam<int32_t>
