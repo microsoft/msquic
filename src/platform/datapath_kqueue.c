@@ -780,10 +780,11 @@ CxPlatSocketContextInitialize(
             MappedAddress.Ipv6.sin6_family = AF_INET6;
         }
 
-        if (ForceIpv4) { // remote exists
+        if (ForceIpv4) {
             MappedAddress.Ipv4.sin_family = AF_INET;
-        // TBD assume wildcard for now!
             MappedAddress.Ipv4.sin_port = Binding->LocalAddress.Ipv4.sin_port;
+            // assume wildcard address for now!
+            CXPLAT_DBG_ASSERT(QuicAddrIsWildCard(&Binding->LocalAddress));
         }
 
         Result =
@@ -825,7 +826,6 @@ CxPlatSocketContextInitialize(
                 ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
 
         if (Result == SOCKET_ERROR) {
-//printf("%s:%d: connect failed with %s %s : %d\n" , __func__, __LINE__,  strerror(errno), inet_ntop(MappedAddress.Ip.sa_family, &MappedAddress.Ipv4.sin_addr, (char*)(&bu2), sizeof(bu2)), ntohs(MappedAddress.Ipv4.sin_port));
             Status = errno;
             QuicTraceEvent(
                 DatapathErrorStatus,
@@ -848,7 +848,7 @@ CxPlatSocketContextInitialize(
     Result =
         getsockname(
             SocketContext->SocketFd,
-            (struct sockaddr *)&Binding->LocalAddress,
+            (struct sockaddr *)&MappedAddress,
             &AssignedLocalAddressLength);
     if (Result == SOCKET_ERROR) {
         Status = errno;
@@ -860,9 +860,7 @@ CxPlatSocketContextInitialize(
             "getsockname failed");
         goto Exit;
     }
-// TBD flip this with the call above!!!!!
-    CxPlatConvertToMappedV6(&Binding->LocalAddress, &MappedAddress);
-    Binding->LocalAddress = MappedAddress;
+    CxPlatConvertToMappedV6(&MappedAddress, &Binding->LocalAddress);
 
     if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
         CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
