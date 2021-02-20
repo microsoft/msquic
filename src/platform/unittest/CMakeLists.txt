@@ -5,6 +5,7 @@ set(SOURCES
     main.cpp
     CryptTest.cpp
     DataPathTest.cpp
+    Platform.cpp
     # StorageTest.cpp
     TlsTest.cpp
 )
