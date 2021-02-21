@@ -36,6 +36,7 @@ public:
                 FALSE
                 )) != nullptr);
 
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         ASSERT_TRUE((ClientCertParams =
             CxPlatPlatGetSelfSignedCert(
                 TestingKernelMode ?
@@ -43,6 +44,7 @@ public:
                     CXPLAT_SELF_SIGN_CERT_USER,
                 TRUE
                 )) != nullptr);
+#endif
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
             const char* DriverName;
@@ -87,7 +89,9 @@ public:
             delete MsQuic;
         }
         CxPlatPlatFreeSelfSignedCert(SelfSignedCertParams);
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         CxPlatPlatFreeSelfSignedCert(ClientCertParams);
+#endif
         CxPlatUninitialize();
         CxPlatSystemUnload();
     }
@@ -527,6 +531,7 @@ TEST_P(WithHandshakeArgs5, CustomCertificateValidation) {
     }
 }
 
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
 TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
     TestLoggerT<ParamType> Logger("QuicTestConnectClientCertificate", GetParam());
     if (TestingKernelMode) {
@@ -539,6 +544,7 @@ TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
         QuicTestConnectClientCertificate(GetParam().Family, GetParam().UseClientCertificate);
     }
 }
+#endif
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithHandshakeArgs4, RandomLoss) {
