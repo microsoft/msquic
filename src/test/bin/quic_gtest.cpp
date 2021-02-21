@@ -75,8 +75,10 @@ public:
             memcpy(&ServerCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ServerCredConfigClientAuth.Flags |= QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
             memcpy(&ClientCertCredConfig, ClientCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ClientCertCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+#endif
             QuicTestInitialize();
         }
     }

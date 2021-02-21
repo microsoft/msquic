@@ -449,6 +449,7 @@ typedef union {
     QUIC_RUN_DATAGRAM_NEGOTIATION DatagramNegotiationParams;
     QUIC_RUN_CUSTOM_CERT_VALIDATION CustomCertValidationParams;
     QUIC_RUN_VERSION_NEGOTIATION_EXT VersionNegotiationExtParams;
+    QUIC_RUN_CONNECT_CLIENT_CERT ConnectClientCertParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -901,6 +902,13 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_VALIDATE_DESIRED_VERSIONS_SETTINGS:
         QuicTestCtlRun(QuicTestDesiredVersionSettings());
         break;
+
+    case IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestConnectClientCertificate(
+                Params->ConnectClientCertParams.Family,
+                Params->ConnectClientCertParams.UseClientCert));
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;
