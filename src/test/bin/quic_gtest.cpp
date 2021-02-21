@@ -539,7 +539,7 @@ TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_CLIENT_CERT Params = {
             GetParam().Family,
-            GetParam().UseClientCertificate
+            (uint8_t)GetParam().UseClientCertificate
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT, Params));
     } else {

@@ -909,6 +909,7 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestConnectClientCertificate(
                 Params->ConnectClientCertParams.Family,
                 Params->ConnectClientCertParams.UseClientCert));
+        break;
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;
