@@ -103,6 +103,26 @@ struct TransportParamsScope {
     }
 };
 
+struct TicketScope {
+    uint8_t* p = nullptr;
+
+    ~TicketScope() {
+        reset();
+    }
+
+    uint8_t** operator&() {
+        reset();
+        return &p;
+    }
+
+    void reset() {
+        if (p != nullptr) {
+            CXPLAT_FREE(p, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+            p = nullptr;
+        }
+    }
+};
+
 TEST(ResumptionTicketTest, ClientDecFail)
 {
     const uint8_t TransportParametersLength = 21; // Update if TP size changes
@@ -111,7 +131,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
     QUIC_TRANSPORT_PARAMETERS DecodedTP;
     const uint8_t* EncodedServerTP = nullptr;
     uint32_t EncodedTPLength = 0;
-    uint8_t* DecodedServerTicket = nullptr;
+    TicketScope DecodedServerTicket;
     uint32_t DecodedServerTicketLength = 0;
     uint32_t DecodedQuicVersion = 0;
 
