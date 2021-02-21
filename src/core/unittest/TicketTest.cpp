@@ -110,8 +110,6 @@ struct TicketScope {
         reset();
     }
 
-    uint8_t** operator&() = delete;
-
     void reset() {
         if (p != nullptr) {
             CXPLAT_FREE(p, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
