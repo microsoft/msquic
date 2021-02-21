@@ -110,16 +110,18 @@ struct TicketScope {
         reset();
     }
 
-    uint8_t** operator&() {
-        reset();
-        return &p;
-    }
+    uint8_t** operator&() = delete;
 
     void reset() {
         if (p != nullptr) {
             CXPLAT_FREE(p, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
             p = nullptr;
         }
+    }
+
+    uint8_t** reset_and_addressof() noexcept {
+        reset();
+        return &p;
     }
 };
 
@@ -188,7 +190,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
     ASSERT_EQ(DecodedQuicVersion, QUIC_VERSION_1);
@@ -207,7 +209,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             0,
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
 
@@ -219,7 +221,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             4,
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
 
@@ -231,7 +233,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             5,
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
 
@@ -243,7 +245,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             6,
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
 
@@ -255,7 +257,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             7,
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
 
@@ -266,7 +268,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             7 + ((uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) / 2),
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
 
@@ -277,7 +279,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             7 + ((uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) - 1),
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
 
@@ -289,7 +291,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize),
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
 
@@ -300,7 +302,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + ((uint16_t)sizeof(ServerTicket) - 1),
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
 
@@ -318,7 +320,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
     InputTicketBuffer[0] = CXPLAT_TLS_RESUMPTION_CLIENT_TICKET_VERSION;
@@ -335,7 +337,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
     InputTicketBuffer[1] = 0;
@@ -359,7 +361,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
                 7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
                 InputTicketBuffer,
                 &DecodedTP,
-                &DecodedServerTicket,
+                DecodedServerTicket.reset_and_addressof(),
                 &DecodedServerTicketLength,
                 &DecodedQuicVersion));
     }
@@ -373,7 +375,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
 
@@ -394,7 +396,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
                 7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
                 InputTicketBuffer,
                 &DecodedTP,
-                &DecodedServerTicket,
+                DecodedServerTicket.reset_and_addressof(),
                 &DecodedServerTicketLength,
                 &DecodedQuicVersion));
     }
@@ -416,7 +418,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
                 7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
                 InputTicketBuffer,
                 &DecodedTP,
-                &DecodedServerTicket,
+                DecodedServerTicket.reset_and_addressof(),
                 &DecodedServerTicketLength,
                 &DecodedQuicVersion));
     }
@@ -430,7 +432,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
             7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
             InputTicketBuffer,
             &DecodedTP,
-            &DecodedServerTicket,
+            DecodedServerTicket.reset_and_addressof(),
             &DecodedServerTicketLength,
             &DecodedQuicVersion));
 
@@ -450,7 +452,7 @@ TEST(ResumptionTicketTest, ClientDecFail)
                 7 + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(ServerTicket),
                 InputTicketBuffer,
                 &DecodedTP,
-                &DecodedServerTicket,
+                DecodedServerTicket.reset_and_addressof(),
                 &DecodedServerTicketLength,
                 &DecodedQuicVersion));
     }
