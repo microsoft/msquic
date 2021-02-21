@@ -2002,7 +2002,7 @@ QuicTestConnectClientCertificate(
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerCredConfigClientAuth);
     TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicCredentialConfig ClientNoCertCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
+    MsQuicCredentialConfig ClientNoCertCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, UseClientCertificate ? ClientCertCredConfig : ClientNoCertCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 

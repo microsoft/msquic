@@ -459,7 +459,7 @@ TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiation) {
             GetParam().DisableVNEClient,
             GetParam().DisableVNEServer
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION, &Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION, Params));
     } else {
         QuicTestCompatibleVersionNegotiation(
             GetParam().Family,
@@ -476,7 +476,7 @@ TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultServer)
             GetParam().DisableVNEClient,
             GetParam().DisableVNEServer
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER, &Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER, Params));
     } else {
         QuicTestCompatibleVersionNegotiationDefaultServer(
             GetParam().Family,
@@ -493,7 +493,7 @@ TEST_P(WithVersionNegotiationExtArgs, CompatibleVersionNegotiationDefaultClient)
             GetParam().DisableVNEClient,
             GetParam().DisableVNEServer
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT, &Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT, Params));
     } else {
         QuicTestCompatibleVersionNegotiationDefaultClient(
             GetParam().Family,
@@ -527,7 +527,7 @@ TEST_P(WithHandshakeArgs5, CustomCertificateValidation) {
             GetParam().AcceptCert,
             GetParam().AsyncValidation
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION, &Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION, Params));
     } else {
         QuicTestCustomCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
     }
@@ -541,7 +541,7 @@ TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
             GetParam().Family,
             GetParam().UseClientCertificate
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT, &Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT, Params));
     } else {
         QuicTestConnectClientCertificate(GetParam().Family, GetParam().UseClientCertificate);
     }
@@ -1078,10 +1078,14 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs5,
     testing::ValuesIn(HandshakeArgs5::Generate()));
 
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
+
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs6,
     testing::ValuesIn(HandshakeArgs6::Generate()));
+
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
