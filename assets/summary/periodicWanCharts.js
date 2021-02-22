@@ -29,8 +29,34 @@ var dataTableStore;
 function generateWanPerfData() {
     var baseData = wanPerfData[platformList[0]]
     for (let i = 0; i < baseData.length; i +=2) {
-        var tcpData = wanPerfData[platformList[0]][i]
-        var quicData = wanPerfData[platformList[0]][i+1]
+        var data1 = wanPerfData[platformList[0]][i]
+        var data2 = wanPerfData[platformList[0]][i+1]
+        var quicData = data1.Tcp ? data2 : data1;
+        var tcpData = data1.Tcp ? data1 : data2;
+
+        // Assert invariants
+        if (quicData.RttMs !== tcpData.RttMs ||
+            quicData.BottleneckMbps !== tcpData.BottleneckMbps ||
+            quicData.BottleneckBufferPackets !== tcpData.BottleneckBufferPackets ||
+            quicData.RandomLossDenominator !== tcpData.RandomLossDenominator ||
+            quicData.ReorderDelayDeltaMs !== tcpData.ReorderDelayDeltaMs ||
+            quicData.DurationMs !== tcpData.DurationMs) {
+            console.log("bad data");
+            console.log(quicData);
+            console.log(tcpData);
+            break;
+        }
+
+        if (quicData.Tcp) {
+            console.log("Incorrect value loaded for quic");
+            continue;
+        }
+        
+        if (!tcpData.Tcp) {
+            console.log("Incorrect value loaded for tcp");
+            continue;
+        }
+
         filteredWanPerfData.push({
             "BottleneckMbps": tcpData.BottleneckMbps,
             "RttMs": tcpData.RttMs,
