@@ -24,7 +24,6 @@ Abstract:
 #define CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME           L"MsQuicTestCert2"
 #define CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME    L"MsQuicTestClientCert"
 #define CXPLAT_KEY_CONTAINER_NAME                       L"MsQuicSelfSignKey2"
-#define CXPLAT_CLIENT_KEY_CONTAINER_NAME                L"MsQuicClientSelfSignKey"
 #define CXPLAT_KEY_SIZE                                 2048
 
 void
@@ -449,7 +448,6 @@ Cleanup:
 
 HRESULT
 GetPrivateRsaKey(
-    _In_ BOOLEAN IsClient,
     _Out_ NCRYPT_KEY_HANDLE* Key
     )
 {
@@ -484,7 +482,7 @@ ReadKey:
         NCryptOpenKey(
             Provider,
             Key,
-            IsClient ? CXPLAT_CLIENT_KEY_CONTAINER_NAME : CXPLAT_KEY_CONTAINER_NAME,
+            CXPLAT_KEY_CONTAINER_NAME,
             0,
             NCRYPT_SILENT_FLAG);
     if (hr == ERROR_SUCCESS) {
@@ -509,7 +507,7 @@ ReadKey:
             Provider,
             Key,
             NCRYPT_RSA_ALGORITHM,
-            IsClient ? CXPLAT_CLIENT_KEY_CONTAINER_NAME : CXPLAT_KEY_CONTAINER_NAME,
+            CXPLAT_KEY_CONTAINER_NAME,
             0,
             0);
     if (hr == NTE_EXISTS) {
@@ -631,7 +629,7 @@ CreateSelfSignedCertificate(
     // Now we get the private key.
     // This generates the key if not already present.
     //
-    hr = GetPrivateRsaKey(IsClient, &Key);
+    hr = GetPrivateRsaKey(&Key);
     if (FAILED(hr)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -900,8 +898,10 @@ FindOrCreateCertificate(
             Cert))) {
 
         BYTE FriendlyName[
-            max(sizeof(CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME),
-            sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME))+sizeof(WCHAR)];
+            max(
+                sizeof(CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME),
+                sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME))+
+            sizeof(WCHAR)];
         DWORD NameSize = sizeof(FriendlyName);
 
         if (!CertGetCertificateContextProperty(Cert, CERT_FRIENDLY_NAME_PROP_ID, FriendlyName, &NameSize) ||
@@ -926,7 +926,7 @@ FindOrCreateCertificate(
     //
     // Getting this far means that no certificates were found. Create one!
     //
-    Cert = (PCCERT_CONTEXT) CreateServerCertificate();
+    Cert = (PCCERT_CONTEXT) (IsClient ? CreateClientCertificate() : CreateServerCertificate());
     if (Cert == NULL) {
         goto Done;
     }
