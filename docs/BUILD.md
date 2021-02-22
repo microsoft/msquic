@@ -94,6 +94,7 @@ Note at minimum CMake 3.16 is required. Instructions for installing a the newest
 ### Additional Requirements on Windows
 
   * [CMake](https://cmake.org/)
+  * [Perl](https://www.perl.org/get.html) optional (required for OpenSSL build)
   * [Visual Studio 2019](https://www.visualstudio.com/vs/) or higher
   * Latest [Windows Insider](https://insider.windows.com/en-us/) builds
 

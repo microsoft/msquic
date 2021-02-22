@@ -339,6 +339,7 @@ CxPlatEventInitialize(
 {
     CXPLAT_EVENT_OBJECT* EventObj = NULL;
     pthread_condattr_t Attr = {0};
+    int Result;
 
     EventObj = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_EVENT_OBJECT), QUIC_POOL_EVENT);
 
@@ -351,13 +352,18 @@ CxPlatEventInitialize(
     EventObj->AutoReset = !ManualReset;
     EventObj->Signaled = InitialState;
 
-    CXPLAT_FRE_ASSERT(pthread_mutex_init(&EventObj->Mutex, NULL) == 0);
-    CXPLAT_FRE_ASSERT(pthread_condattr_init(&Attr) == 0);
+    Result = pthread_mutex_init(&EventObj->Mutex, NULL);
+    CXPLAT_FRE_ASSERT(Result == 0);
+    Result = pthread_condattr_init(&Attr);
+    CXPLAT_FRE_ASSERT(Result == 0);
 #if defined(CX_PLATFORM_LINUX)
-    CXPLAT_FRE_ASSERT(pthread_condattr_setclock(&Attr, CLOCK_MONOTONIC) == 0);
+    Result = pthread_condattr_setclock(&Attr, CLOCK_MONOTONIC);
+    CXPLAT_FRE_ASSERT(Result == 0);
 #endif // CX_PLATFORM_LINUX
-    CXPLAT_FRE_ASSERT(pthread_cond_init(&EventObj->Cond, &Attr) == 0);
-    CXPLAT_FRE_ASSERT(pthread_condattr_destroy(&Attr) == 0);
+    Result = pthread_cond_init(&EventObj->Cond, &Attr);
+    CXPLAT_FRE_ASSERT(Result == 0);
+    Result = pthread_condattr_destroy(&Attr);
+    CXPLAT_FRE_ASSERT(Result == 0);
 
     (*Event) = EventObj;
 }
@@ -368,9 +374,12 @@ CxPlatEventUninitialize(
     )
 {
     CXPLAT_EVENT_OBJECT* EventObj = Event;
+    int Result;
 
-    CXPLAT_FRE_ASSERT(pthread_cond_destroy(&EventObj->Cond) == 0);
-    CXPLAT_FRE_ASSERT(pthread_mutex_destroy(&EventObj->Mutex) == 0);
+    Result = pthread_cond_destroy(&EventObj->Cond);
+    CXPLAT_FRE_ASSERT(Result == 0);
+    Result = pthread_mutex_destroy(&EventObj->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
 
     CXPLAT_FREE(EventObj, QUIC_POOL_EVENT);
     EventObj = NULL;
@@ -382,18 +391,22 @@ CxPlatEventSet(
     )
 {
     CXPLAT_EVENT_OBJECT* EventObj = Event;
+    int Result;
 
-    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
+    Result = pthread_mutex_lock(&EventObj->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
 
     EventObj->Signaled = true;
 
-    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
+    Result = pthread_mutex_unlock(&EventObj->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
 
     //
     // Signal the condition.
     //
 
-    CXPLAT_FRE_ASSERT(pthread_cond_broadcast(&EventObj->Cond) == 0);
+    Result = pthread_cond_broadcast(&EventObj->Cond);
+    CXPLAT_FRE_ASSERT(Result == 0);
 }
 
 void
@@ -402,10 +415,13 @@ CxPlatEventReset(
     )
 {
     CXPLAT_EVENT_OBJECT* EventObj = Event;
+    int Result;
 
-    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
+    Result = pthread_mutex_lock(&EventObj->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
     EventObj->Signaled = false;
-    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
+    Result = pthread_mutex_unlock(&EventObj->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
 }
 
 void
@@ -414,8 +430,10 @@ CxPlatEventWaitForever(
     )
 {
     CXPLAT_EVENT_OBJECT* EventObj = Event;
+    int Result;
 
-    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&Event->Mutex) == 0);
+    Result = pthread_mutex_lock(&Event->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
 
     //
     // Spurious wake ups from pthread_cond_wait can occur. So the function needs
@@ -423,14 +441,16 @@ CxPlatEventWaitForever(
     //
 
     while (!EventObj->Signaled) {
-        CXPLAT_FRE_ASSERT(pthread_cond_wait(&EventObj->Cond, &EventObj->Mutex) == 0);
+        Result = pthread_cond_wait(&EventObj->Cond, &EventObj->Mutex);
+        CXPLAT_FRE_ASSERT(Result == 0);
     }
 
     if(EventObj->AutoReset) {
         EventObj->Signaled = false;
     }
 
-    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
+    Result = pthread_mutex_unlock(&EventObj->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
 }
 
 BOOLEAN
@@ -442,6 +462,7 @@ CxPlatEventWaitWithTimeout(
     CXPLAT_EVENT_OBJECT* EventObj = Event;
     BOOLEAN WaitSatisfied = FALSE;
     struct timespec Ts = {0};
+    int Result;
 
     //
     // Get absolute time.
@@ -449,11 +470,12 @@ CxPlatEventWaitWithTimeout(
 
     CxPlatGetAbsoluteTime(TimeoutMs, &Ts);
 
-    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
+    Result = pthread_mutex_lock(&EventObj->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
 
     while (!EventObj->Signaled) {
 
-        int Result = pthread_cond_timedwait(&EventObj->Cond, &EventObj->Mutex, &Ts);
+        Result = pthread_cond_timedwait(&EventObj->Cond, &EventObj->Mutex, &Ts);
 
         if (Result == ETIMEDOUT) {
             WaitSatisfied = FALSE;
@@ -472,7 +494,8 @@ CxPlatEventWaitWithTimeout(
 
 Exit:
 
-    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
+    Result = pthread_mutex_unlock(&EventObj->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
 
     return WaitSatisfied;
 }
