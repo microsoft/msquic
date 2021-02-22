@@ -25,7 +25,7 @@ TEST(PlatformTest, QuicAddrParsing)
     struct TestEntry {
         const char* Input;
         int Family;
-        int Port;
+        unsigned short Port;
     };
 
     TestEntry TestData[] = {
@@ -37,20 +37,20 @@ TEST(PlatformTest, QuicAddrParsing)
     };
 
     QUIC_ADDR Addr;
-    QUIC_ADDR_STR AddrStr;
+    QUIC_ADDR_STR AddrStr = { 0 };
 
     for (int i = 0; i < (int)(sizeof(TestData) / sizeof(struct TestEntry)); i++) {
         CxPlatZeroMemory(&Addr, sizeof(QUIC_ADDR));
         TestEntry* entry = &TestData[i];
 
-        if (entry->Family == QUIC_ADDRESS_FAMILY_INET)
-        {
-            ASSERT_TRUE(QuicAddr4FromString(entry->Input, &Addr));
+        ASSERT_TRUE(QuicAddrFromString(entry->Input, entry->Port, &Addr));
+        if (entry->Family == QUIC_ADDRESS_FAMILY_INET) {
+            ASSERT_EQ(entry->Family, Addr.Ipv4.sin_family);
+            ASSERT_EQ(entry->Port, ntohs(Addr.Ipv4.sin_port));
         } else {
-            ASSERT_TRUE(QuicAddr6FromString(entry->Input, &Addr));
+            ASSERT_EQ(entry->Family, Addr.Ipv6.sin6_family);
+            ASSERT_EQ(entry->Port, ntohs(Addr.Ipv6.sin6_port));
         }
-        ASSERT_EQ(entry->Family, Addr.Ip.sa_family);
-        ASSERT_EQ(entry->Port, ntohs(Addr.Ipv4.sin_port));
         ASSERT_TRUE(QuicAddrToString(&Addr, &AddrStr));
         ASSERT_EQ(0, strcmp(entry->Input, AddrStr.Address));
     }
