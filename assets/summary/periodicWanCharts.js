@@ -1,5 +1,30 @@
 
+var columnNames = [
+    "Network (Mbps)",
+    "RTT (ms)",
+    "Queue (pkts)",
+    "Loss (1/N)",
+    "Reorder (1/N)",
+    "Reorder Delay (ms)",
+    //"Duration (ms)",
+    "STCP Goodput (Kbps)",
+    "QUIC Goodput (Kbps)",
+    "Diff from TCP (%)",
+    "Percent of Max"
+]
+
+var filterable = [
+    "BottleneckMbps",
+    "RttMs",
+    "BottleneckBufferPackets",
+    "RandomLossDenominator",
+    "RandomReorderDenominator",
+    "ReorderDelayDeltaMs"
+];
+
 var filteredWanPerfData = []
+
+var dataTableStore;
 
 function generateWanPerfData() {
     var baseData = wanPerfData[platformList[0]]
@@ -21,15 +46,6 @@ function generateWanPerfData() {
         })
     }
 }
-
-var filterable = [
-    "BottleneckMbps",
-    "RttMs",
-    "BottleneckBufferPackets",
-    "RandomLossDenominator",
-    "RandomReorderDenominator",
-    "ReorderDelayDeltaMs"
-];
 
 function filterTable(settings, data, dataIndex) {
     var idx = 0;
@@ -54,8 +70,6 @@ function compareNumbers(a, b) {
     return a - b;
 }
 
-var dataTableStore;
-
 function selectorChanged() {
     dataTableStore.draw();
 }
@@ -63,12 +77,25 @@ function selectorChanged() {
 function generateWanTable() {
     var filterdiv = document.getElementById('filterdiv');
 
-    for (const filtername of filterable) {
-        var label = document.createElement('label');
-        label.innerText = "Filter " + filtername;
-        label.for = "Filter" + filtername;
+    var filterInnerDiv = document.createElement('div');
+    filterInnerDiv.style = "float:left";
+    filterdiv.appendChild(filterInnerDiv);
 
-        filterdiv.appendChild(label);
+    var filterLabel = document.createElement('label');
+    filterLabel.innerText = "Filter: ";
+    filterLabel.style = "font-weight: bold";
+    filterInnerDiv.appendChild(filterLabel);
+
+    for (const filtername of filterable) {
+
+        var innerDiv = document.createElement('div');
+        innerDiv.style = "float:left";
+        filterdiv.appendChild(innerDiv);
+
+        var label = document.createElement('label');
+        label.innerText = "\xa0" + filtername + "\xa0";
+        label.for = filtername;
+        innerDiv.appendChild(label);
 
         var select = document.createElement('select');
         select.name = filtername;
@@ -94,8 +121,8 @@ function generateWanTable() {
             select.appendChild(document.createElement('p'));
         }
 
-        filterdiv.appendChild(select);
-        filterdiv.appendChild(document.createElement('p'));
+        innerDiv.appendChild(select);
+        innerDiv.appendChild(document.createElement('p'));
 
         select.onchange = selectorChanged;
     }
@@ -105,19 +132,7 @@ function generateWanTable() {
     var tr = document.createElement('tr');
     thead.appendChild(tr);
     table.appendChild(thead)
-    var columnNames = [
-        "Network (Mbps)",
-        "RTT (ms)",
-        "Queue (pkts)",
-        "Loss (1/N)",
-        "Reorder (1/N)",
-        "Reorder Delay (ms)",
-        //"Duration (ms)",
-        "STCP Goodput (Kbps)",
-        "QUIC Goodput (Kbps)",
-        "Diff from TCP (%)",
-        "Percent of Max"
-    ].forEach (
+    columnNames.forEach(
         name => {
             var element = document.createElement("th");
             element.innerText = name;
