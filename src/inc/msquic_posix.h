@@ -434,11 +434,11 @@ QuicAddr6FromString(
         }
 
         char TmpAddrStr[64];
-        size_t AddrLength = BracketEnd - AddrStr;
+        size_t AddrLength = BracketEnd - AddrStr - 1;
         if (AddrLength >= sizeof(TmpAddrStr)) {
             return FALSE;
         }
-        memcpy(TmpAddrStr, AddrStr, AddrLength);
+        memcpy(TmpAddrStr, AddrStr + 1, AddrLength);
         TmpAddrStr[AddrLength] = '\0';
 
         if (inet_pton(AF_INET6, TmpAddrStr, &Addr->Ipv6.sin6_addr) != 1) {
@@ -488,8 +488,8 @@ QuicAddrToString(
         Address++;
     }
     if (inet_ntop(
-            Addr->Ip.sa_family,
-            &Addr->Ipv4.sin_addr,
+            Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? AF_INET : AF_INET6,
+            Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? (void*)&Addr->Ipv4.sin_addr : (void*)&Addr->Ipv6.sin6_addr,
             Address,
             sizeof(QUIC_ADDR_STR)) == NULL) {
         return FALSE;
