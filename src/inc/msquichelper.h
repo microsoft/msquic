@@ -42,6 +42,7 @@ QuicStatusToString(
 {
     switch (Status) {
     case QUIC_STATUS_SUCCESS:                   return "SUCCESS";
+    case QUIC_STATUS_PENDING:                   return "PENDING";
     case QUIC_STATUS_OUT_OF_MEMORY:             return "OUT_OF_MEMORY";
     case QUIC_STATUS_INVALID_PARAMETER:         return "INVALID_PARAMETER";
     case QUIC_STATUS_INVALID_STATE:             return "INVALID_STATE";
@@ -58,7 +59,10 @@ QuicStatusToString(
     case QUIC_STATUS_CONNECTION_REFUSED:        return "CONNECTION_REFUSED";
     case QUIC_STATUS_PROTOCOL_ERROR:            return "PROTOCOL_ERROR";
     case QUIC_STATUS_VER_NEG_ERROR:             return "VER_NEG_ERROR";
-    case QUIC_STATUS_PENDING:                   return "PENDING";
+    case QUIC_STATUS_TLS_ERROR:                 return "TLS_ERROR";
+    case QUIC_STATUS_USER_CANCELED:             return "USER_CANCELED";
+    case QUIC_STATUS_ALPN_NEG_FAILURE:          return "ALPN_NEG_FAILURE";
+    case QUIC_STATUS_STREAM_LIMIT_REACHED:      return "STREAM_LIMIT_REACHED";
     }
 
     return "UNKNOWN";
