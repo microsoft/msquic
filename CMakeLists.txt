@@ -504,7 +504,11 @@ if(QUIC_TLS STREQUAL "openssl")
             list(APPEND OPENSSL_CONFIG_FLAGS -latomic)
         elseif(CX_PLATFORM STREQUAL "darwin")
             # need to build with Apple's compiler
-            set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
+            if (CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
+                set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-arm64)
+            else()
+                set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-x86_64)
+            endif()
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
                 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
