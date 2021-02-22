@@ -68,7 +68,6 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 
     Write-Error ("`nPowerShell v7.x is needed for this script to work. " +
                  "Please visit https://github.com/microsoft/msquic/blob/main/docs/BUILD.md#powershell-usage")
-    exit
 }
 
 if ($InitSubmodules) {
