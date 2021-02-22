@@ -50,7 +50,6 @@ Value | Meaning
 **QUIC_STATUS_CONNECTION_REFUSED** | The server refused the connection.
 **QUIC_STATUS_PROTOCOL_ERROR** | A protocol error was encountered.
 **QUIC_STATUS_VER_NEG_ERROR** | A version negotiation error was encountered.
-**QUIC_STATUS_TLS_ERROR** | A TLS layer error was encountered.
 **QUIC_STATUS_USER_CANCELED** | The peer app/user canceled the connection during the handshake.
 **QUIC_STATUS_ALPN_NEG_FAILURE** | The connection handshake failed to negotiate a common ALPN.
 **QUIC_STATUS_STREAM_LIMIT_REACHED** | A stream failed to start because the peer doesn't allow any more to be open at this time.
