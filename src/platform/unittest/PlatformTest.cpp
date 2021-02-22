@@ -44,13 +44,8 @@ TEST(PlatformTest, QuicAddrParsing)
         TestEntry* entry = &TestData[i];
 
         ASSERT_TRUE(QuicAddrFromString(entry->Input, entry->Port, &Addr));
-        if (entry->Family == QUIC_ADDRESS_FAMILY_INET) {
-            ASSERT_EQ(entry->Family, Addr.Ipv4.sin_family);
-            ASSERT_EQ(entry->Port, ntohs(Addr.Ipv4.sin_port));
-        } else {
-            ASSERT_EQ(entry->Family, Addr.Ipv6.sin6_family);
-            ASSERT_EQ(entry->Port, ntohs(Addr.Ipv6.sin6_port));
-        }
+        ASSERT_EQ(entry->Port, QuicAddrGetPort(&Addr));
+        ASSERT_EQ(entry->Family, QuicAddrGetFamily(&Addr));
         ASSERT_TRUE(QuicAddrToString(&Addr, &AddrStr));
         ASSERT_EQ(0, strcmp(entry->Input, AddrStr.Address));
     }
