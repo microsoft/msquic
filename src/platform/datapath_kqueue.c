@@ -772,8 +772,9 @@ CxPlatSocketContextInitialize(
 
 
     //
-    // bind() to local port if we need to. This is not necessary if we call connect afterward and there is no ask for particular
-    // source address or port. connect() will resolve that together in single system call.
+    // bind() to local port if we need to. This is not necessary if we call connect
+    // afterward and there is no ask for particular source address or port.
+    // connect() will resolve that together in single system call.
     //
     if (!RemoteAddress || Binding->LocalAddress.Ipv6.sin6_port || !QuicAddrIsWildCard(&Binding->LocalAddress)) {
         CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
@@ -793,7 +794,6 @@ CxPlatSocketContextInitialize(
                 SocketContext->SocketFd,
                 &MappedAddress.Ip,
                 ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
-
         if (Result == SOCKET_ERROR) {
             Status = errno;
             QuicTraceEvent(
@@ -824,7 +824,6 @@ CxPlatSocketContextInitialize(
                 SocketContext->SocketFd,
                 &MappedAddress.Ip,
                 ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
-
         if (Result == SOCKET_ERROR) {
             Status = errno;
             QuicTraceEvent(
@@ -1083,7 +1082,7 @@ CxPlatSocketContextStartReceive(
     struct kevent Event = {0};
     EV_SET(
         &Event, SocketContext->SocketFd,
-        EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR,
+        EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR | EV_ERROR,
         0,
         0,
         (void*)SocketContext);
@@ -1175,7 +1174,6 @@ CxPlatSocketContextRecvComplete(
                 FoundTOS = TRUE;
             }
         }
-
     }
 
     CXPLAT_FRE_ASSERT(FoundLocalAddr);
@@ -1311,7 +1309,9 @@ CxPlatSocketContextProcessEvents(
     }
 
     // TODO figure out what these mean
-    // if (EPOLLERR & Events) {
+    //if (Event->filter
+    //    printf("%s:%d: WTF error!!!!!\n", __func__, __LINE__);
+    //}
     //     int ErrNum = 0;
     //     socklen_t OptLen = sizeof(ErrNum);
     //     ssize_t Ret =
@@ -1893,6 +1893,7 @@ CxPlatSocketSendInternal(
 
     if (SentByteCount < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        printf("%s:%d: blocking ???? \n", __func__, __LINE__);
             if (!IsPendedSend) {
                 CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
                 CxPlatSocketContextPendSend(
@@ -1904,7 +1905,7 @@ CxPlatSocketSendInternal(
             }
             SendPending = TRUE;
             struct kevent Event = {0};
-            EV_SET(&Event, SocketContext->SocketFd, EVFILT_WRITE, EV_ADD | EV_ONESHOT | EV_CLEAR, 0, 0, (void *)SocketContext);
+            EV_SET(&Event, SocketContext->SocketFd, EVFILT_WRITE, EV_ADD | EV_ONESHOT | EV_CLEAR | EV_ERROR, 0, 0, (void *)SocketContext);
             int Ret =
                 kevent(
                     ProcContext->KqueueFd,
@@ -1914,6 +1915,7 @@ CxPlatSocketSendInternal(
                     0,
                     NULL);
             if (Ret < 1) {
+             printf("%s:%d: kevent WTF!!!!!\n", __func__, __LINE__);
                 Status = errno;
                 QuicTraceEvent(
                     DatapathErrorStatus,
