@@ -774,6 +774,7 @@ CxPlatSocketContextInitialize(
     //
     // bind() to local port if we need to. This is not necessary if we call connect afterward and there is no ask for particular
     // source address or port. connect() will resolve that together in single system call.
+    //
     if (!RemoteAddress || Binding->LocalAddress.Ipv6.sin6_port || !QuicAddrIsWildCard(&Binding->LocalAddress)) {
         CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
         if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
@@ -812,8 +813,7 @@ CxPlatSocketContextInitialize(
         CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
         CxPlatConvertToMappedV6(RemoteAddress, &MappedAddress);
 
-        if (ForceIpv4)
-        {
+        if (ForceIpv4) {
             CxPlatConvertFromMappedV6(&MappedAddress, &MappedAddress);
         } else if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
             MappedAddress.Ipv6.sin6_family = AF_INET6;
@@ -916,6 +916,7 @@ CxPlatSocketContextInitialize(
     // IP_DONTFRAG is not supported on macOS.
     // This may be re-visited on other kqueue systems like FreeBSD.
     // IPv6 does not support fragmentation so no work there.
+    //
 
     //
     // Set socket option to receive ancillary data about the incoming packets.
