@@ -398,14 +398,16 @@ CxPlatEventSet(
 
     EventObj->Signaled = true;
 
-    Result = pthread_mutex_unlock(&EventObj->Mutex);
-    CXPLAT_FRE_ASSERT(Result == 0);
-
     //
-    // Signal the condition.
+    // Signal the condition while holding the lock for predictable scheduling,
+    // better performance and removing possibility of use after free for the
+    // condition.
     //
 
     Result = pthread_cond_broadcast(&EventObj->Cond);
+    CXPLAT_FRE_ASSERT(Result == 0);
+
+    Result = pthread_mutex_unlock(&EventObj->Mutex);
     CXPLAT_FRE_ASSERT(Result == 0);
 }
 
