@@ -748,30 +748,6 @@ CxPlatSocketContextInitialize(
     }
 
     //
-    // The port may be shared across processors.
-    // Even if not, this is probably cheap.
-    //
-    Option = TRUE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            SOL_SOCKET,
-            SO_REUSEADDR,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(SO_REUSEADDR) failed");
-        goto Exit;
-    }
-
-
-    //
     // bind() to local port if we need to. This is not necessary if we call connect
     // afterward and there is no ask for particular source address or port.
     // connect() will resolve that together in single system call.
@@ -785,8 +761,14 @@ CxPlatSocketContextInitialize(
         if (ForceIpv4) {
             MappedAddress.Ipv4.sin_family = AF_INET;
             MappedAddress.Ipv4.sin_port = Binding->LocalAddress.Ipv4.sin_port;
-            // assume wildcard address for now!
-            CXPLAT_DBG_ASSERT(QuicAddrIsWildCard(&Binding->LocalAddress));
+            // For Wildcard address we only need to copy port.
+            // If address is (unlikely) specified it needs to be IPv4 or mappedV4 since destination is IPv4.
+            if (!QuicAddrIsWildCard(&Binding->LocalAddress)) {
+                if (Binding->LocalAddress.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6) {
+                    CXPLAT_DBG_ASSERT(IN6_IS_ADDR_V4MAPPED(&Binding->LocalAddress.Ipv6.sin6_addr));
+                    CxPlatConvertFromMappedV6( &Binding->LocalAddress, &MappedAddress);
+                }
+            }
         }
 
         Result =
