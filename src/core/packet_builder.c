@@ -96,7 +96,7 @@ QuicPacketBuilderCleanup(
     CXPLAT_DBG_ASSERT(Builder->SendContext == NULL);
 
     if (Builder->PacketBatchSent && Builder->PacketBatchRetransmittable) {
-        QuicLossDetectionUpdateTimer(&Builder->Connection->LossDetection);
+        QuicLossDetectionUpdateTimer(&Builder->Connection->LossDetection, FALSE);
     }
 
     QuicSentPacketMetadataReleaseFrames(Builder->Metadata);

@@ -80,6 +80,7 @@ QuicPathSetAllowance(
         if (WasBlocked) {
             QuicConnRemoveOutFlowBlockedReason(
                 Connection, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT);
+
             if (Connection->Send.SendFlags != 0) {
                 //
                 // We were blocked by amplification protection (no allowance
@@ -87,13 +88,15 @@ QuicPathSetAllowance(
                 //
                 QuicSendQueueFlush(&Connection->Send, REASON_AMP_PROTECTION);
             }
+
             //
             // Now that we are no longer blocked by amplification protection
             // we need to re-enable the loss detection timers. This call may
-            // even cause the loss timer to fire (be queued) immediately
-            // because packets were already lost, but we didn't know it.
+            // even cause the loss timer to fire immediately because packets
+            // were already lost, but we didn't know it.
             //
-            QuicLossDetectionUpdateTimer(&Connection->LossDetection);
+            QuicLossDetectionUpdateTimer(&Connection->LossDetection, TRUE);
+
         } else {
             QuicConnAddOutFlowBlockedReason(
                 Connection, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT);
