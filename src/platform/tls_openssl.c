@@ -702,6 +702,10 @@ CxPlatTlsSecConfigCreate(
         goto Exit;
     }
 
+#ifdef CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE
+    SecurityConfig->Flags |= QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION;
+#endif
+
     if (SecurityConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) {
         Ret = SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
         if (Ret != 1) {
