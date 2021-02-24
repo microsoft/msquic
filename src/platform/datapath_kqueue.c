@@ -1234,9 +1234,10 @@ CxPlatSocketContextRecvComplete(
 
     QuicTraceEvent(
         DatapathRecv,
-        "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+        "[data][%p] Recv %u bytes in %hhu buffers (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
+        1,
         (uint32_t)BytesTransferred,
         CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
         CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
