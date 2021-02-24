@@ -1143,7 +1143,7 @@ void QuicTestValidateStream(bool Connect)
                             QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
                 } else {
                     TEST_QUIC_STATUS(
-                        QUIC_STATUS_BUFFER_TOO_SMALL,
+                        QUIC_STATUS_STREAM_LIMIT_REACHED,
                         MsQuic->StreamStart(
                             Stream.Handle,
                             QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
@@ -1165,7 +1165,7 @@ void QuicTestValidateStream(bool Connect)
                         &ShutdownComplete,
                         &Stream.Handle));
                 TEST_QUIC_STATUS(
-                    QUIC_STATUS_BUFFER_TOO_SMALL,
+                    QUIC_STATUS_STREAM_LIMIT_REACHED,
                     MsQuic->StreamStart(
                         Stream.Handle,
                         QUIC_STREAM_START_FLAG_FAIL_BLOCKED | QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL));
