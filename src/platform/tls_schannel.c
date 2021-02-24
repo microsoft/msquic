@@ -1841,7 +1841,7 @@ CxPlatTlsWriteDataToSchannel(
         // Another (output) secbuffer for the result of the subscription.
         //
         OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_SUBSCRIBE_GENERIC_TLS_EXTENSION;
-        if (TlsContext->PeerTransportParamsLength > 0) {
+        if (TlsContext->PeerTransportParams != NULL) {
             OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = TlsContext->PeerTransportParamsLength;
             OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)TlsContext->PeerTransportParams;
         } else {
@@ -2467,6 +2467,22 @@ CxPlatTlsWriteDataToSchannel(
 
             for (uint32_t i = 0; i < OutSecBufferDesc.cBuffers; ++i) {
                 if (OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_SUBSCRIBE_GENERIC_TLS_EXTENSION) {
+
+                    CXPLAT_DBG_ASSERT(OutSecBufferDesc.pBuffers[i].cbBuffer > *InBufferLength);
+
+                    QuicTraceLogConnInfo(
+                        SchannelTransParamsBufferTooSmall,
+                        TlsContext->Connection,
+                        "Peer TP too large for available buffer (%u vs. %u)",
+                        OutSecBufferDesc.pBuffers[i].cbBuffer,
+                        (TlsContext->PeerTransportParams != NULL) ?
+                            TlsContext->PeerTransportParamsLength :
+                            *InBufferLength);
+
+                    if (TlsContext->PeerTransportParams != NULL) {
+                        CXPLAT_FREE(TlsContext->PeerTransportParams, QUIC_POOL_TLS_TMP_TP);
+                    }
+
                     TlsContext->PeerTransportParams =
                         CXPLAT_ALLOC_NONPAGED(
                             OutSecBufferDesc.pBuffers[i].cbBuffer,
@@ -2475,7 +2491,7 @@ CxPlatTlsWriteDataToSchannel(
                         QuicTraceEvent(
                             AllocFailure,
                             "Allocation of '%s' failed. (%llu bytes)",
-                            "Temporary TP storage",
+                            "Temporary Peer Transport Params",
                             OutSecBufferDesc.pBuffers[i].cbBuffer);
                         Result |= CXPLAT_TLS_RESULT_ERROR;
                         break;
