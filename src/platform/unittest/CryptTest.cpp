@@ -179,7 +179,8 @@ TEST_F(CryptTest, WellKnownClientInitial)
     memcpy(PacketBuffer, InitialPacketHeader.Data, InitialPacketHeader.Length);
     memcpy(PacketBuffer + InitialPacketHeader.Length, InitialPacketPayload.Data, InitialPacketPayload.Length);
 
-    CXPLAT_TLS_PROCESS_STATE State = {0};
+    CXPLAT_TLS_PROCESS_STATE State;
+    CxPlatZeroMemory(&State, sizeof(State));
     VERIFY_QUIC_SUCCESS(
         QuicPacketKeyCreateInitial(
             FALSE,

@@ -288,6 +288,9 @@ public:
     MsQuicSettings& SetPeerUnidiStreamCount(uint16_t Value) { PeerUnidiStreamCount = Value; IsSet.PeerUnidiStreamCount = TRUE; return *this; }
     MsQuicSettings& SetMaxBytesPerKey(uint64_t Value) { MaxBytesPerKey = Value; IsSet.MaxBytesPerKey = TRUE; return *this; }
     MsQuicSettings& SetMaxAckDelayMs(uint32_t Value) { MaxAckDelayMs = Value; IsSet.MaxAckDelayMs = TRUE; return *this; }
+    MsQuicSettings& SetDesiredVersionsList(const uint32_t* DesiredVersions, uint32_t Length) {
+        DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
+    MsQuicSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
 };
 
 #ifndef QUIC_DEFAULT_CLIENT_CRED_FLAGS
@@ -504,6 +507,14 @@ struct StreamScope {
     StreamScope() noexcept : Handle(nullptr) { }
     StreamScope(HQUIC handle) noexcept : Handle(handle) { }
     ~StreamScope() noexcept { if (Handle) { MsQuic->StreamClose(Handle); } }
+    operator HQUIC() const noexcept { return Handle; }
+};
+
+struct ConfigurationScope {
+    HQUIC Handle;
+    ConfigurationScope() noexcept : Handle(nullptr) { }
+    ConfigurationScope(HQUIC handle) noexcept : Handle(handle) { }
+    ~ConfigurationScope() noexcept { if (Handle) { MsQuic->ConfigurationClose(Handle); } }
     operator HQUIC() const noexcept { return Handle; }
 };
 

@@ -172,6 +172,7 @@ MsQuicConfigurationOpen(
         if (!QuicSettingApply(
                 &Configuration->Settings,
                 TRUE,
+                TRUE,
                 SettingsSize,
                 Settings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -241,6 +242,8 @@ QuicConfigurationUninitialize(
     CxPlatStorageClose(Configuration->Storage);
     QuicSiloRelease(Configuration->Silo);
 #endif
+
+    QuicSettingsCleanup(&Configuration->Settings);
 
     CxPlatRundownRelease(&Configuration->Registration->Rundown);
 
@@ -454,6 +457,7 @@ QuicConfigurationParamSet(
 
         if (!QuicSettingApply(
                 &Configuration->Settings,
+                TRUE,
                 TRUE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {

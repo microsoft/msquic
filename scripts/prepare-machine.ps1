@@ -64,6 +64,12 @@ $ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v$ClogVe
 
 $MessagesAtEnd = New-Object Collections.Generic.List[string]
 
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+
+    Write-Error ("`nPowerShell v7.x is needed for this script to work. " +
+                 "Please visit https://github.com/microsoft/msquic/blob/main/docs/BUILD.md#powershell-usage")
+}
+
 if ($InitSubmodules) {
 
     # Default TLS based on current platform.
@@ -190,7 +196,7 @@ if ($IsWindows) {
         }
     }
 
-} else {
+} elseif ($IsLinux) {
     switch ($Configuration) {
         "Build" {
             sudo apt-add-repository ppa:lttng/stable-2.11

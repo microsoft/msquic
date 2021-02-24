@@ -391,12 +391,12 @@ QuicTimerWheelUpdateConnection(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 uint64_t
 QuicTimerWheelGetWaitTime(
-    _In_ QUIC_TIMER_WHEEL* TimerWheel
+    _In_ QUIC_TIMER_WHEEL* TimerWheel,
+    _In_ uint64_t TimeNow
     )
 {
     uint64_t Delay;
     if (TimerWheel->NextExpirationTime != UINT64_MAX) {
-        uint64_t TimeNow = CxPlatTimeUs64();
         if (TimerWheel->NextExpirationTime <= TimeNow) {
             //
             // The next timer is already in the past. It needs to be processed

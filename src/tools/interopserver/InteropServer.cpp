@@ -33,7 +33,8 @@ PrintUsage()
            " [-thumbprint:<cert_thumbprint>]"
            " [-file:<cert_filepath> AND -key:<cert_key_filepath>]"
            " [-port:<####> (def:%u)]  [-retry:<0/1> (def:%u)]"
-           " [-upload:<path>]\n\n",
+           " [-upload:<path>]"
+           " [-enableVNE:<0/1>]\n\n",
            DEFAULT_QUIC_HTTP_SERVER_PORT, DEFAULT_QUIC_HTTP_SERVER_RETRY);
 
     printf("Examples:\n");
@@ -65,6 +66,7 @@ main(
     //
     uint16_t LocalPort = DEFAULT_QUIC_HTTP_SERVER_PORT;
     BOOLEAN Retry = DEFAULT_QUIC_HTTP_SERVER_RETRY;
+    BOOLEAN EnableVNE = FALSE;
     const char* SslKeyLogFileParam = nullptr;
     TryGetValue(argc, argv, "port", &LocalPort);
     TryGetValue(argc, argv, "retry", &Retry);
@@ -74,6 +76,7 @@ main(
     }
     TryGetValue(argc, argv, "upload", &UploadFolderPath);
     TryGetValue(argc, argv, "sslkeylogfile", &SslKeyLogFileParam);
+    TryGetValue(argc, argv, "enablevne", &EnableVNE);
 
     //
     // Required parameters.
@@ -97,6 +100,20 @@ main(
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
     Settings.IsSet.InitialRttMs = TRUE;
+    if (EnableVNE) {
+        Settings.VersionNegotiationExtEnabled = TRUE;
+        Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+        if (QUIC_FAILED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                sizeof(Settings),
+                &Settings))) {
+            printf("Failed to enable Version Negotiation Extension!\n");
+            return -1;
+        }
+    }
 
     Configuration = GetServerConfigurationFromArgs(argc, argv, MsQuic, Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &Settings, sizeof(Settings));
     if (!Configuration) {

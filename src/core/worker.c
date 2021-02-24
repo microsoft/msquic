@@ -585,13 +585,21 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
             QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
         }
 
+        uint64_t TimeNow = CxPlatTimeUs64();
+
+        //
+        // Opportunistically try to snap-shot performance counters and do
+        // some validation.
+        //
+        QuicPerfCounterTrySnapShot(TimeNow);
+
         //
         // Get the delay until the next timer expires. Check to see if any
         // timers have expired; if so, process them. If not, only wait for the
         // next timer if we have run out of connections and stateless operations
         // to process.
         //
-        uint64_t Delay = QuicTimerWheelGetWaitTime(&Worker->TimerWheel);
+        uint64_t Delay = QuicTimerWheelGetWaitTime(&Worker->TimerWheel, TimeNow);
 
         if (Delay == 0) {
             //

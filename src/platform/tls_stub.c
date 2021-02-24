@@ -516,7 +516,6 @@ CxPlatTlsServerProcess(
     uint16_t DrainLength = 0;
 
     CXPLAT_FRE_ASSERT(State->BufferLength < State->BufferAllocLength);
-    __assume(State->BufferLength < State->BufferAllocLength);
 
     const QUIC_FAKE_TLS_MESSAGE* ClientMessage =
         (QUIC_FAKE_TLS_MESSAGE*)Buffer;
@@ -764,7 +763,6 @@ CxPlatTlsClientProcess(
     uint16_t DrainLength = 0;
 
     CXPLAT_FRE_ASSERT(State->BufferLength < State->BufferAllocLength);
-    __assume(State->BufferLength < State->BufferAllocLength);
 
     const QUIC_FAKE_TLS_MESSAGE* ServerMessage =
         (QUIC_FAKE_TLS_MESSAGE*)Buffer;
@@ -1484,8 +1482,7 @@ CxPlatHashCompute(
     )
 {
     UNREFERENCED_PARAMETER(Hash);
-    UNREFERENCED_PARAMETER(Input);
-    UNREFERENCED_PARAMETER(InputLength);
     CxPlatZeroMemory(Output, OutputLength);
+    CxPlatCopyMemory(Output, Input, min(OutputLength, InputLength));
     return QUIC_STATUS_SUCCESS;
 }

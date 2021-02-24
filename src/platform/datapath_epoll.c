@@ -17,11 +17,12 @@ Environment:
 #include "quic_platform_dispatch.h"
 #include <arpa/inet.h>
 #include <inttypes.h>
+#include <linux/filter.h>
 #include <linux/in6.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #ifdef QUIC_CLOG
-#include "datapath_linux.c.clog.h"
+#include "datapath_epoll.c.clog.h"
 #endif
 
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
@@ -220,6 +221,11 @@ typedef struct CXPLAT_SOCKET {
     BOOLEAN Shutdown : 1;
 
     //
+    // Flag indicates the socket has a default remote destination.
+    //
+    BOOLEAN HasFixedRemoteAddress : 1;
+
+    //
     // The MTU for this binding.
     //
     uint16_t Mtu;
@@ -344,8 +350,8 @@ CxPlatProcessorContextInitialize(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    int EpollFd = INVALID_SOCKET_FD;
-    int EventFd = INVALID_SOCKET_FD;
+    int EpollFd = INVALID_SOCKET;
+    int EventFd = INVALID_SOCKET;
     int Ret = 0;
     uint32_t RecvPacketLength = 0;
     BOOLEAN EventFdAdded = FALSE;
@@ -373,7 +379,7 @@ CxPlatProcessorContextInitialize(
         &ProcContext->SendContextPool);
 
     EpollFd = epoll_create1(EPOLL_CLOEXEC);
-    if (EpollFd == INVALID_SOCKET_FD) {
+    if (EpollFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -384,7 +390,7 @@ CxPlatProcessorContextInitialize(
     }
 
     EventFd = eventfd(0, EFD_CLOEXEC);
-    if (EventFd == INVALID_SOCKET_FD) {
+    if (EventFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -425,8 +431,8 @@ CxPlatProcessorContextInitialize(
     //
 
     CXPLAT_THREAD_CONFIG ThreadConfig = {
-        0,
-        0,
+        CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
+        (uint16_t)Index,
         NULL,
         CxPlatDataPathWorkerThread,
         ProcContext
@@ -448,10 +454,10 @@ Exit:
         if (EventFdAdded) {
             epoll_ctl(EpollFd, EPOLL_CTL_DEL, EventFd, NULL);
         }
-        if (EventFd != INVALID_SOCKET_FD) {
+        if (EventFd != INVALID_SOCKET) {
             close(EventFd);
         }
-        if (EpollFd != INVALID_SOCKET_FD) {
+        if (EpollFd != INVALID_SOCKET) {
             close(EpollFd);
         }
         CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
@@ -749,6 +755,46 @@ Exit:
 #endif
 }
 
+QUIC_STATUS
+CxPlatSocketConfigureRss(
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ uint32_t SocketCount
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    int Result = 0;
+
+    struct sock_filter BpfCode[] = {
+        {BPF_LD | BPF_W | BPF_ABS, 0, 0, SKF_AD_OFF | SKF_AD_CPU},
+        {BPF_ALU | BPF_MOD, 0, 0, SocketCount},
+        {BPF_RET | BPF_A, 0, 0, 0}
+    };
+
+    struct sock_fprog BpfConfig = {
+        .len = ARRAYSIZE(BpfCode),
+        .filter = BpfCode
+    };
+
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            SOL_SOCKET,
+            SO_ATTACH_REUSEPORT_CBPF,
+            (const void*)&BpfConfig,
+            sizeof(BpfConfig));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "setsockopt(SO_ATTACH_REUSEPORT_CBPF) failed");
+    }
+
+    return Status;
+}
+
 //
 // Socket context interface. It abstracts a (generally per-processor) UDP socket
 // and the corresponding logic/functionality like send and receive processing.
@@ -775,7 +821,7 @@ CxPlatSocketContextInitialize(
     }
 
     SocketContext->CleanupFd = eventfd(0, EFD_CLOEXEC);
-    if (SocketContext->CleanupFd == INVALID_SOCKET_FD) {
+    if (SocketContext->CleanupFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -816,7 +862,7 @@ CxPlatSocketContextInitialize(
             AF_INET6,
             SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, // TODO check if SOCK_CLOEXEC is required?
             IPPROTO_UDP);
-    if (SocketContext->SocketFd == INVALID_SOCKET_FD) {
+    if (SocketContext->SocketFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -1018,7 +1064,7 @@ CxPlatSocketContextInitialize(
         setsockopt(
             SocketContext->SocketFd,
             SOL_SOCKET,
-            SO_REUSEADDR,
+            SO_REUSEPORT,
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
@@ -1028,7 +1074,7 @@ CxPlatSocketContextInitialize(
             "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
-            "setsockopt(SO_REUSEADDR) failed");
+            "setsockopt(SO_REUSEPORT) failed");
         goto Exit;
     }
 
@@ -1077,8 +1123,8 @@ CxPlatSocketContextInitialize(
                 "connect failed");
             goto Exit;
         }
+        Binding->Connected = TRUE;
     }
-
 
     //
     // If no specific local port was indicated, then the stack just
@@ -1114,7 +1160,7 @@ Exit:
 
     if (QUIC_FAILED(Status)) {
         close(SocketContext->SocketFd);
-        SocketContext->SocketFd = INVALID_SOCKET_FD;
+        SocketContext->SocketFd = INVALID_SOCKET;
     }
 
     return Status;
@@ -1167,7 +1213,7 @@ CxPlatSocketContextPrepareReceive(
         SocketContext->CurrentRecvBlock =
             CxPlatDataPathAllocRecvBlock(
                 SocketContext->Binding->Datapath,
-                CxPlatProcCurrentNumber());
+                CxPlatProcCurrentNumber() % SocketContext->Binding->Datapath->ProcCount);
         if (SocketContext->CurrentRecvBlock == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1235,7 +1281,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         close(SocketContext->SocketFd);
-        SocketContext->SocketFd = INVALID_SOCKET_FD;
+        SocketContext->SocketFd = INVALID_SOCKET;
     }
 
     return Status;
@@ -1555,10 +1601,12 @@ CxPlatSocketCreateUdp(
             NewBinding);
 #else
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    BOOLEAN IsServerSocket = RemoteAddress == NULL;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
 
-    uint32_t SocketCount = Datapath->ProcCount; // TODO - Only use 1 for client (RemoteAddress != NULL) bindings?
+    uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
+    CXPLAT_FRE_ASSERT(SocketCount > 0);
     size_t BindingLength =
         sizeof(CXPLAT_SOCKET) +
         SocketCount * sizeof(CXPLAT_SOCKET_CONTEXT);
@@ -1585,6 +1633,7 @@ CxPlatSocketCreateUdp(
     CxPlatZeroMemory(Binding, BindingLength);
     Binding->Datapath = Datapath;
     Binding->ClientContext = RecvCallbackContext;
+    Binding->HasFixedRemoteAddress = (RemoteAddress != NULL);
     Binding->Mtu = CXPLAT_MAX_MTU;
     CxPlatRundownInitialize(&Binding->Rundown);
     if (LocalAddress) {
@@ -1594,7 +1643,7 @@ CxPlatSocketCreateUdp(
     }
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
-        Binding->SocketContexts[i].SocketFd = INVALID_SOCKET_FD;
+        Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
         Binding->SocketContexts[i].RecvIov.iov_len =
             Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendContextHead);
@@ -1616,6 +1665,16 @@ CxPlatSocketCreateUdp(
         }
     }
 
+    if (IsServerSocket) {
+        //
+        // The return value is being ignored here, as if a system does not support
+        // bpf we still want the server to work. If this happens, the sockets will
+        // round robin, but each flow will be sent to the same socket, just not
+        // based on RSS.
+        //
+        (void)CxPlatSocketConfigureRss(&Binding->SocketContexts[0], SocketCount);
+    }
+
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
     Binding->LocalAddress.Ipv6.sin6_scope_id = 0;
 
@@ -1631,7 +1690,7 @@ CxPlatSocketCreateUdp(
     //
     *NewBinding = Binding;
 
-    for (uint32_t i = 0; i < Binding->Datapath->ProcCount; i++) {
+    for (uint32_t i = 0; i < SocketCount; i++) {
         Status =
             CxPlatSocketContextStartReceive(
                 &Binding->SocketContexts[i],
@@ -1722,7 +1781,8 @@ CxPlatSocketDelete(
     //
 
     Socket->Shutdown = TRUE;
-    for (uint32_t i = 0; i < Socket->Datapath->ProcCount; ++i) {
+    uint32_t SocketCount = Socket->HasFixedRemoteAddress ? 1 : Socket->Datapath->ProcCount;
+    for (uint32_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(
             &Socket->SocketContexts[i],
             &Socket->Datapath->ProcContexts[i]);
@@ -1732,7 +1792,7 @@ CxPlatSocketDelete(
     CxPlatRundownRelease(&Socket->Datapath->BindingsRundown);
 
     CxPlatRundownUninitialize(&Socket->Rundown);
-    for (uint32_t i = 0; i < Socket->Datapath->ProcCount; i++) {
+    for (uint32_t i = 0; i < SocketCount; i++) {
         CxPlatLockUninitialize(&Socket->SocketContexts[i].PendingSendContextLock);
     }
     CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
@@ -1884,7 +1944,7 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
-        &Socket->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
+        &Socket->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount];
     CXPLAT_SEND_DATA* SendContext =
         CxPlatPoolAlloc(&ProcContext->SendContextPool);
     if (SendContext == NULL) {
@@ -2015,14 +2075,16 @@ CxPlatSocketSendInternal(
     struct in_pktinfo *PktInfo = NULL;
     struct in6_pktinfo *PktInfo6 = NULL;
     BOOLEAN SendPending = FALSE;
+    uint32_t ProcNumber;
 
     static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
     char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
 
     CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
 
-    SocketContext = &Socket->SocketContexts[CxPlatProcCurrentNumber()];
-    ProcContext = &Socket->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
+    ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
+    SocketContext = &Socket->SocketContexts[Socket->HasFixedRemoteAddress ? 0 : ProcNumber];
+    ProcContext = &Socket->Datapath->ProcContexts[ProcNumber];
 
     uint32_t TotalSize = 0;
     for (size_t i = 0; i < SendData->BufferCount; ++i) {
@@ -2156,6 +2218,20 @@ CxPlatSocketSendInternal(
                 SocketContext->Binding,
                 Status,
                 "sendmsg failed");
+
+            //
+            // Unreachable events can sometimes come synchronously.
+            // Send unreachable notification to MsQuic if any related
+            // errors were received.
+            //
+            if (Status == ECONNREFUSED ||
+                Status == EHOSTUNREACH ||
+                Status == ENETUNREACH) {
+                SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                    SocketContext->Binding,
+                    SocketContext->Binding->ClientContext,
+                    &SocketContext->Binding->RemoteAddress);
+            }
             goto Exit;
         }
     }

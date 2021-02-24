@@ -429,7 +429,7 @@ QuicLookupFindConnectionByRemoteHashInternal(
                 "[look][%p] Lookup RemoteHash=%u found %p",
                 Lookup,
                 Hash,
-                Connection);
+                Entry->Connection);
 #endif
             return Entry->Connection;
         }
@@ -505,7 +505,7 @@ QuicLookupInsertLocalCid(
         LookupCidInsert,
         "[look][%p] Insert Conn=%p Hash=%u",
         Lookup,
-        Connection,
+        SourceCid->Connection,
         Hash);
 #endif
 

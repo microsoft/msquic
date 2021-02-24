@@ -78,6 +78,9 @@ This script provides helpers for building msquic.
 .PARAMETER TlsSecretsSupport
     Enables export of traffic secrets.
 
+.PARAMETER EnableTelemetryAsserts
+    Enables telemetry asserts in release builds.
+
 .EXAMPLE
     build.ps1
 
@@ -96,7 +99,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("uwp", "windows", "linux")] # For future expansion
+    [ValidateSet("uwp", "windows", "linux", "macos")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
@@ -161,7 +164,10 @@ param (
     [switch]$RandomAllocFail = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$TlsSecretsSupport = $false
+    [switch]$TlsSecretsSupport = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$EnableTelemetryAsserts = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -189,8 +195,12 @@ if ("" -eq $Tls) {
 if ("" -eq $Platform) {
     if ($IsWindows) {
         $Platform = "windows"
-    } else {
+    } elseif ($IsLinux) {
         $Platform = "linux"
+    } elseif ($IsMacOS) {
+        $Platform = "macos"
+    } else {
+        Write-Error "Unsupported platform type!"
     }
 }
 
@@ -282,7 +292,7 @@ function CMake-Generate {
     if ($DisablePerf) {
         $Arguments += " -DQUIC_BUILD_PERF=off"
     }
-    if ($IsLinux) {
+    if (!$IsWindows) {
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
     }
     if ($DynamicCRT) {
@@ -314,6 +324,9 @@ function CMake-Generate {
     }
     if ($TlsSecretsSupport) {
         $Arguments += " -DQUIC_TLS_SECRETS_SUPPORT=on"
+    }
+    if ($EnableTelemetryAsserts) {
+        $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"
     }
     $Arguments += " ../../.."
 

@@ -770,13 +770,23 @@ QuicBindingProcessStatelessOperation(
         CXPLAT_DBG_ASSERT(RecvPacket->DestCid != NULL);
         CXPLAT_DBG_ASSERT(RecvPacket->SourceCid != NULL);
 
+        const uint32_t* SupportedVersions;
+        uint32_t SupportedVersionsLength;
+        if (MsQuicLib.Settings.IsSet.DesiredVersionsList) {
+            SupportedVersions = MsQuicLib.Settings.DesiredVersionsList;
+            SupportedVersionsLength = MsQuicLib.Settings.DesiredVersionsListLength;
+        } else {
+            SupportedVersions = DefaultSupportedVersionsList;
+            SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
+        }
+
         const uint16_t PacketLength =
             sizeof(QUIC_VERSION_NEGOTIATION_PACKET) +               // Header
             RecvPacket->SourceCidLen +
             sizeof(uint8_t) +
             RecvPacket->DestCidLen +
             sizeof(uint32_t) +                                      // One random version
-            ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t); // Our actual supported versions
+            (uint16_t)(SupportedVersionsLength * sizeof(uint32_t)); // Our actual supported versions
 
         SendDatagram =
             CxPlatSendDataAllocBuffer(SendContext, PacketLength);
@@ -798,7 +808,7 @@ QuicBindingProcessStatelessOperation(
 
         uint8_t* Buffer = VerNeg->DestCid;
         VerNeg->DestCidLength = RecvPacket->SourceCidLen;
-        memcpy(
+        CxPlatCopyMemory(
             Buffer,
             RecvPacket->SourceCid,
             RecvPacket->SourceCidLen);
@@ -806,7 +816,7 @@ QuicBindingProcessStatelessOperation(
 
         *Buffer = RecvPacket->DestCidLen;
         Buffer++;
-        memcpy(
+        CxPlatCopyMemory(
             Buffer,
             RecvPacket->DestCid,
             RecvPacket->DestCidLen);
@@ -816,12 +826,16 @@ QuicBindingProcessStatelessOperation(
         CxPlatRandom(sizeof(uint8_t), &RandomValue);
         VerNeg->Unused = 0x7F & RandomValue;
 
-        memcpy(Buffer, &Binding->RandomReservedVersion, sizeof(uint32_t));
+        CxPlatCopyMemory(Buffer, &Binding->RandomReservedVersion, sizeof(uint32_t));
         Buffer += sizeof(uint32_t);
-        for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
-            memcpy(Buffer, &QuicSupportedVersionList[i].Number, sizeof(uint32_t));
-            Buffer += sizeof(uint32_t);
-        }
+
+        CxPlatCopyMemory(
+            Buffer,
+            SupportedVersions,
+            SupportedVersionsLength * sizeof(uint32_t));
+
+        CXPLAT_RECV_PACKET* Packet = CxPlatDataPathRecvDataToRecvPacket(RecvDatagram);
+        Packet->ReleaseDeferred = FALSE;
 
         QuicTraceLogVerbose(
             PacketTxVersionNegotiation,
@@ -1087,7 +1101,7 @@ QuicBindingPreprocessDatagram(
         // Validate we support this long header packet version.
         //
         if (Packet->Invariant->LONG_HDR.Version != QUIC_VERSION_VER_NEG &&
-            !QuicIsVersionSupported(Packet->Invariant->LONG_HDR.Version)) {
+            !QuicVersionNegotiationExtIsVersionServerSupported(Packet->Invariant->LONG_HDR.Version)) {
             //
             // The QUIC packet has an unsupported and non-VN packet number. If
             // we have a listener on this binding and the packet is long enough
