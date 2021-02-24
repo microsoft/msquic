@@ -54,7 +54,7 @@ QuicTestDatagramNegotiation(
     TEST_TRUE(ClientConfiguration.IsValid());
 
     Settings.SetDatagramReceiveEnabled(DatagramReceiveEnabled);
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     uint8_t RawBuffer[] = "datagram";
@@ -152,7 +152,7 @@ QuicTestDatagramSend(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     uint8_t RawBuffer[] = "datagram";

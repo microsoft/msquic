@@ -18,8 +18,8 @@ Abstract:
 #endif
 
 const MsQuicApi* MsQuic;
-QUIC_CREDENTIAL_CONFIG ServerCredConfig;
-QUIC_CREDENTIAL_CONFIG ServerCredConfigClientAuth;
+QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
+QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QUIC_CERTIFICATE_HASH SelfSignedCertHash;
 QUIC_CERTIFICATE_HASH ClientCertHash;
@@ -327,7 +327,7 @@ QuicTestCtlEvtFileCleanup(
             "[test] Client %p cleaning up",
             Client);
 
-        ServerCredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
+        ServerSelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
         QuicTestClient = nullptr;
     }
 
@@ -553,7 +553,7 @@ QuicTestCtlEvtIoDeviceControl(
         FunctionCode);
 
     if (IoControlCode != IOCTL_QUIC_SET_CERT_PARAMS &&
-        ServerCredConfig.Type == QUIC_CREDENTIAL_TYPE_NONE) {
+        ServerSelfSignedCredConfig.Type == QUIC_CREDENTIAL_TYPE_NONE) {
         Status = STATUS_INVALID_DEVICE_STATE;
         QuicTraceEvent(
             LibraryError,
@@ -566,12 +566,12 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_SET_CERT_PARAMS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        ServerCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
-        ServerCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
-        ServerCredConfig.CertificateHash = &SelfSignedCertHash;
-        ServerCredConfigClientAuth.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
-        ServerCredConfigClientAuth.Flags = QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
-        ServerCredConfigClientAuth.CertificateHash = &SelfSignedCertHash;
+        ServerSelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ServerSelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
+        ServerSelfSignedCredConfig.CertificateHash = &SelfSignedCertHash;
+        ServerSelfSignedCredConfigClientAuth.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ServerSelfSignedCredConfigClientAuth.Flags = QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+        ServerSelfSignedCredConfigClientAuth.CertificateHash = &SelfSignedCertHash;
         RtlCopyMemory(&SelfSignedCertHash.ShaHash, &Params->CertParams.ServerCertHash, sizeof(QUIC_CERTIFICATE_HASH));
         ClientCertCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
         ClientCertCredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;

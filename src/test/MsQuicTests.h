@@ -13,8 +13,8 @@ Abstract:
 
 //#define QUIC_COMPARTMENT_TESTS 1
 
-extern QUIC_CREDENTIAL_CONFIG ServerCredConfig;
-extern QUIC_CREDENTIAL_CONFIG ServerCredConfigClientAuth;
+extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
+extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 extern QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 
 #ifdef __cplusplus
