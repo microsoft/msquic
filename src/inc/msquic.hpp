@@ -478,14 +478,6 @@ struct MsQuicListener {
     operator HQUIC () const noexcept { return Handle; }
 };
 
-struct ConfigurationScope {
-    HQUIC Handle;
-    ConfigurationScope() noexcept : Handle(nullptr) { }
-    ConfigurationScope(HQUIC handle) noexcept : Handle(handle) { }
-    ~ConfigurationScope() noexcept { if (Handle) { MsQuic->ConfigurationClose(Handle); } }
-    operator HQUIC() const noexcept { return Handle; }
-};
-
 struct ListenerScope {
     HQUIC Handle;
     ListenerScope() noexcept : Handle(nullptr) { }
