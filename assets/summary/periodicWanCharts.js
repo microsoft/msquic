@@ -14,12 +14,12 @@ var columnNames = [
 ]
 
 var filterable = [
-    "BottleneckMbps",
-    "RttMs",
-    "BottleneckBufferPackets",
-    "RandomLossDenominator",
-    "RandomReorderDenominator",
-    "ReorderDelayDeltaMs"
+    [ "BottleneckMbps", "Network (Mbps)" ],
+    [ "RttMs", "RTT (ms)" ],
+    [ "BottleneckBufferPackets", "Queue (pkts)" ],
+    [ "RandomLossDenominator", "Loss (1/N)" ],
+    [ "RandomReorderDenominator", "Reorder (1/N)" ],
+    [ "ReorderDelayDeltaMs", "Reorder Delay (ms)" ],
 ];
 
 var filteredWanPerfData = []
@@ -50,7 +50,7 @@ function generateWanPerfData() {
 function filterTable(settings, data, dataIndex) {
     var idx = 0;
     for (var flt of filterable) {
-        var name = "Filter" + flt;
+        var name = "Filter" + flt[0];
         var value = document.getElementById(name).value;
         if (value === 'all') {
             idx++;
@@ -74,7 +74,7 @@ function selectorChanged() {
     dataTableStore.draw();
 }
 
-function generateWanTable() {
+function generateWanFilter() {
     var filterdiv = document.getElementById('filterdiv');
 
     var filterInnerDiv = document.createElement('div');
@@ -93,17 +93,17 @@ function generateWanTable() {
         filterdiv.appendChild(innerDiv);
 
         var label = document.createElement('label');
-        label.innerText = "\xa0" + filtername + "\xa0";
-        label.for = filtername;
+        label.innerText = "\xa0\xa0\xa0\xa0\xa0\xa0\xa0" + filtername[1] + "\xa0";
+        label.for = filtername[0];
         innerDiv.appendChild(label);
 
         var select = document.createElement('select');
-        select.name = filtername;
-        select.id = "Filter" + filtername;
+        select.name = filtername[0];
+        select.id = "Filter" + filtername[0];
 
         var elements = new Set();
         for (var element of filteredWanPerfData) {
-            elements.add(parseInt(element[filtername], 10));
+            elements.add(parseInt(element[filtername[0]], 10));
         }
 
         var allOption = document.createElement('option');
@@ -126,7 +126,9 @@ function generateWanTable() {
 
         select.onchange = selectorChanged;
     }
+}
 
+function generateWanTable() {
     var table = document.getElementById("WanTable");
     var thead = document.createElement('thead');
     var tr = document.createElement('tr');
@@ -162,5 +164,6 @@ function generateWanTable() {
 
 window.onload = function() {
     generateWanPerfData()
+    generateWanFilter()
     generateWanTable()
 }
