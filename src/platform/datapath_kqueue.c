@@ -1064,7 +1064,7 @@ CxPlatSocketContextStartReceive(
     struct kevent Event = {0};
     EV_SET(
         &Event, SocketContext->SocketFd,
-        EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR | EV_ERROR,
+        EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR,
         0,
         0,
         (void*)SocketContext);
@@ -1859,7 +1859,7 @@ CxPlatSocketSendInternal(
             }
             SendPending = TRUE;
             struct kevent Event = {0};
-            EV_SET(&Event, SocketContext->SocketFd, EVFILT_WRITE, EV_ADD | EV_ONESHOT | EV_CLEAR | EV_ERROR, 0, 0, (void *)SocketContext);
+            EV_SET(&Event, SocketContext->SocketFd, EVFILT_WRITE, EV_ADD | EV_ONESHOT | EV_CLEAR, 0, 0, (void *)SocketContext);
             int Ret =
                 kevent(
                     ProcContext->KqueueFd,
