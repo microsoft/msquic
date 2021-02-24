@@ -467,6 +467,17 @@ typedef struct CXPLAT_TLS {
     //
     SEC_BUFFER_WORKSPACE Workspace;
 
+    //
+    // Peer Transport parameters length.
+    //
+    uint32_t PeerTransportParamsLength;
+
+    //
+    // Peer transport parameters for when heavy fragmentation doesn't
+    // provide enough storage for the peer transport parameters.
+    //
+    uint8_t* PeerTransportParams;
+
 #ifdef CXPLAT_TLS_SECRETS_SUPPORT
     //
     // Optional struct to log TLS traffic secrets.
@@ -1651,6 +1662,11 @@ CxPlatTlsUninitialize(
         if (TlsContext->TransportParams != NULL) {
             CXPLAT_FREE(TlsContext->TransportParams, QUIC_POOL_TLS_TRANSPARAMS);
         }
+        if (TlsContext->PeerTransportParams) {
+            CXPLAT_FREE(TlsContext->PeerTransportParams, QUIC_POOL_TLS_TMP_TP);
+            TlsContext->PeerTransportParams = NULL;
+            TlsContext->PeerTransportParamsLength = 0;
+        }
         CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
 }
@@ -1825,9 +1841,9 @@ CxPlatTlsWriteDataToSchannel(
         // Another (output) secbuffer for the result of the subscription.
         //
         OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_SUBSCRIBE_GENERIC_TLS_EXTENSION;
-        if (State->TPBufferLength > 0) {
-            OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = State->TPBufferLength;
-            OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)State->TPBuffer;
+        if (TlsContext->PeerTransportParamsLength > 0) {
+            OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = TlsContext->PeerTransportParamsLength;
+            OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)TlsContext->PeerTransportParams;
         } else {
             OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = *InBufferLength;
             OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)InBuffer; // Overwrite the input buffer with the extension.
@@ -2417,10 +2433,10 @@ CxPlatTlsWriteDataToSchannel(
 
         TlsContext->PeerTransportParamsReceived = TRUE;
         Result |= CXPLAT_TLS_RESULT_CONTINUE;
-        if (State->TPBuffer != NULL) {
-            CXPLAT_FREE(State->TPBuffer, QUIC_POOL_TLS_TMP_TP);
-            State->TPBuffer = NULL;
-            State->TPBufferLength = 0;
+        if (TlsContext->PeerTransportParams != NULL) {
+            CXPLAT_FREE(TlsContext->PeerTransportParams, QUIC_POOL_TLS_TMP_TP);
+            TlsContext->PeerTransportParams = NULL;
+            TlsContext->PeerTransportParamsLength = 0;
         }
 
         break;
@@ -2451,11 +2467,11 @@ CxPlatTlsWriteDataToSchannel(
 
             for (uint32_t i = 0; i < OutSecBufferDesc.cBuffers; ++i) {
                 if (OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_SUBSCRIBE_GENERIC_TLS_EXTENSION) {
-                    State->TPBuffer =
+                    TlsContext->PeerTransportParams =
                         CXPLAT_ALLOC_NONPAGED(
                             OutSecBufferDesc.pBuffers[i].cbBuffer,
                             QUIC_POOL_TLS_TMP_TP);
-                    if (State->TPBuffer == NULL) {
+                    if (TlsContext->PeerTransportParams == NULL) {
                         QuicTraceEvent(
                             AllocFailure,
                             "Allocation of '%s' failed. (%llu bytes)",
@@ -2464,11 +2480,10 @@ CxPlatTlsWriteDataToSchannel(
                         Result |= CXPLAT_TLS_RESULT_ERROR;
                         break;
                     }
-                    State->TPBufferLength = OutSecBufferDesc.pBuffers[i].cbBuffer;
+                    TlsContext->PeerTransportParamsLength = OutSecBufferDesc.pBuffers[i].cbBuffer;
                     break;
                 }
             }
-            break;
         }
         //
         // Fall through here in other cases when we don't expect this.
