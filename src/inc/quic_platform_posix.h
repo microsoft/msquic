@@ -559,15 +559,12 @@ typedef struct CXPLAT_EVENT_OBJECT {
     //
     // Mutex and condition.
     //
-    int Sentinel0;
     pthread_mutex_t Mutex;
     pthread_cond_t Cond;
 
     //
     // Denotes if the event object is in signaled state.
     //
-
-    char Sentinel1;
 
     BOOLEAN Signaled;
 
@@ -576,7 +573,6 @@ typedef struct CXPLAT_EVENT_OBJECT {
     //
 
     BOOLEAN AutoReset;
-    char Sentinel2;
 
 } CXPLAT_EVENT_OBJECT;
 

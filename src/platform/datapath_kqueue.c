@@ -1291,9 +1291,7 @@ CxPlatSocketContextProcessEvents(
     }
 
     // TODO figure out what these mean
-    //if (Event->filter
-    //    printf("%s:%d: WTF error!!!!!\n", __func__, __LINE__);
-    //}
+    // if (EPOLLERR & Events) {
     //     int ErrNum = 0;
     //     socklen_t OptLen = sizeof(ErrNum);
     //     ssize_t Ret =
@@ -1875,7 +1873,6 @@ CxPlatSocketSendInternal(
 
     if (SentByteCount < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        printf("%s:%d: blocking ???? \n", __func__, __LINE__);
             if (!IsPendedSend) {
                 CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
                 CxPlatSocketContextPendSend(
@@ -1897,7 +1894,6 @@ CxPlatSocketSendInternal(
                     0,
                     NULL);
             if (Ret < 1) {
-             printf("%s:%d: kevent WTF!!!!!\n", __func__, __LINE__);
                 Status = errno;
                 QuicTraceEvent(
                     DatapathErrorStatus,
