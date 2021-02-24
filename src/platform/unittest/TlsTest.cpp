@@ -974,6 +974,14 @@ TEST_F(TlsTest, HandshakeFragmented)
     DoHandshake(ServerContext, ClientContext, 200);
 }
 
+TEST_F(TlsTest, HandshakeVeryFragmented)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig, false, 256);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    DoHandshake(ServerContext, ClientContext, 1);
+}
+
 TEST_F(TlsTest, HandshakesSerial)
 {
     {

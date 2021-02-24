@@ -286,6 +286,17 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
     uint32_t BufferOffset1Rtt;
 
     //
+    // Temporary TP buffer length.
+    //
+    uint32_t TPBufferLength;
+
+    //
+    // Temporary TP buffer for when heavy fragmentation doesn't
+    // provide enough storage for the decoded peer TP.
+    //
+    uint8_t* TPBuffer;
+
+    //
     // Holds the TLS data to be sent. Use CXPLAT_ALLOC_NONPAGED and CXPLAT_FREE
     // to allocate and free the memory.
     //

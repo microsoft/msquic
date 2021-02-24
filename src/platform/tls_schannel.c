@@ -1825,8 +1825,13 @@ CxPlatTlsWriteDataToSchannel(
         // Another (output) secbuffer for the result of the subscription.
         //
         OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_SUBSCRIBE_GENERIC_TLS_EXTENSION;
-        OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = *InBufferLength;
-        OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)InBuffer; // Overwrite the input buffer with the extension.
+        if (State->TPBufferLength > 0) {
+            OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = State->TPBufferLength;
+            OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)State->TPBuffer;
+        } else {
+            OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = *InBufferLength;
+            OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)InBuffer; // Overwrite the input buffer with the extension.
+        }
         OutSecBufferDesc.cBuffers++;
     }
 
@@ -2412,6 +2417,11 @@ CxPlatTlsWriteDataToSchannel(
 
         TlsContext->PeerTransportParamsReceived = TRUE;
         Result |= CXPLAT_TLS_RESULT_CONTINUE;
+        if (State->TPBuffer != NULL) {
+            CXPLAT_FREE(State->TPBuffer, QUIC_POOL_TLS_TMP_TP);
+            State->TPBuffer = NULL;
+            State->TPBufferLength = 0;
+        }
 
         break;
 
@@ -2433,6 +2443,37 @@ CxPlatTlsWriteDataToSchannel(
         }
 
         break;
+
+    case SEC_E_EXT_BUFFER_TOO_SMALL:
+        if (*InBufferLength != 0 &&
+            !TlsContext->IsServer &&
+            !TlsContext->PeerTransportParamsReceived) {
+
+            for (uint32_t i = 0; i < OutSecBufferDesc.cBuffers; ++i) {
+                if (OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_SUBSCRIBE_GENERIC_TLS_EXTENSION) {
+                    State->TPBuffer =
+                        CXPLAT_ALLOC_NONPAGED(
+                            OutSecBufferDesc.pBuffers[i].cbBuffer,
+                            QUIC_POOL_TLS_TMP_TP);
+                    if (State->TPBuffer == NULL) {
+                        QuicTraceEvent(
+                            AllocFailure,
+                            "Allocation of '%s' failed. (%llu bytes)",
+                            "Temporary TP storage",
+                            OutSecBufferDesc.pBuffers[i].cbBuffer);
+                        Result |= CXPLAT_TLS_RESULT_ERROR;
+                        break;
+                    }
+                    State->TPBufferLength = OutSecBufferDesc.pBuffers[i].cbBuffer;
+                    break;
+                }
+            }
+            break;
+        }
+        //
+        // Fall through here in other cases when we don't expect this.
+        //
+        __fallthrough;
 
     default:
         //
@@ -2534,7 +2575,7 @@ CxPlatTlsProcessData(
         goto Error;
     }
 
-    if (Result & CXPLAT_TLS_RESULT_CONTINUE) {
+    while (Result & CXPLAT_TLS_RESULT_CONTINUE) {
         Result &= ~CXPLAT_TLS_RESULT_CONTINUE;
         Result |=
             CxPlatTlsWriteDataToSchannel(
