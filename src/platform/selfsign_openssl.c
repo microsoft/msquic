@@ -296,11 +296,24 @@ typedef struct CXPLAT_CREDENTIAL_CONFIG_INTERNAL {
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
-CxPlatPlatGetSelfSignedCert(
-    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type
+CxPlatGetSelfSignedCert(
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
+    _In_ BOOLEAN ClientCertificate
     )
 {
     UNREFERENCED_PARAMETER(Type);
+    UNREFERENCED_PARAMETER(ClientCertificate);
+
+    if (ClientCertificate) {
+        //
+        // Client certificate is not supported on OpenSSL (yet)
+        //
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Client Certificate is not supported in OpenSSL");
+        return NULL;
+    }
 
     CXPLAT_CREDENTIAL_CONFIG_INTERNAL* Params =
         malloc(sizeof(CXPLAT_CREDENTIAL_CONFIG_INTERNAL) + sizeof(TEMP_DIR_TEMPLATE));
@@ -415,7 +428,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatPlatFreeSelfSignedCert(
+CxPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     )
 {

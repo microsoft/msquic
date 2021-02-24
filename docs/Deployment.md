@@ -15,7 +15,7 @@ Generally, for any existing TCP based deployments that are adding QUIC support, 
 - QUIC is versioned and extensible, and thus is expected to be very dynamic on the network.
   - Network devices must not assume anything about the structure of a QUIC packet beyond what is stated in the [Invariants draft](https://tools.ietf.org/html/draft-ietf-quic-invariants).
 - QUIC is completely encrypted end to end.
-  - Most information that might have been viewable on a TCP connection is now only visiable to the endpoints.
+  - Most information that might have been viewable on a TCP connection is now only visible to the endpoints.
 - A single UDP flow or tuple (address + port) does not necessarily map to a single connection.
   - A single QUIC connection may span multiple flows.
   - Multiple QUIC connections may share a single flow.

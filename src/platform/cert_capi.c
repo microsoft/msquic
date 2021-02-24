@@ -508,7 +508,7 @@ CxPlatCertCreate(
     QUIC_STATUS Status;
 
     if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
-        if (CredConfig->CertificateContext == NULL && CredConfig->Principal == NULL) {
+        if (CredConfig->CertificateHash == NULL && CredConfig->Principal == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
             Status =

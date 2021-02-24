@@ -6580,6 +6580,18 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "IgnoreRecvAfterClose": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Ignoring recv after close",
+      "UniqueId": "IgnoreRecvAfterClose",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "FlowControlExhausted": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Flow control window exhausted!",
@@ -7203,6 +7215,166 @@
         }
       ],
       "macroName": "QuicTraceLogConnWarning"
+    },
+    "ClientResumptionTicketDecodeFailTpLengthShort": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Attempting to decode Server TP with length %u (Actual: %u)",
+      "UniqueId": "ClientResumptionTicketDecodeFailTpLengthShort",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ClientResumptionTicketDecodeFailTpLengthEncodedWrong": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Attempting to decode Server TP length (improperly encoded) %x (Actual: %u)",
+      "UniqueId": "ClientResumptionTicketDecodeFailTpLengthEncodedWrong",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ClientResumptionTicketDecodeFailTicketLengthShort": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Attempting to decode Server Ticket with length %u (Actual: %u)",
+      "UniqueId": "ClientResumptionTicketDecodeFailTicketLengthShort",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ClientResumptionTicketDecodeFailTicketLengthEncodedWrong": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Attempting to decode Server Ticket length (improperly encoded) %x (Actual: %u)",
+      "UniqueId": "ClientResumptionTicketDecodeFailTicketLengthEncodedWrong",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ServerResumptionTicketDecodeFailAlpnLengthShort": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Attempting to decode Negotiated ALPN with length %u (Actual: %u)",
+      "UniqueId": "ServerResumptionTicketDecodeFailAlpnLengthShort",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ServerResumptionTicketDecodeFailAlpnLengthEncodedWrong": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Attempting to decode Negotiated ALPN length (improperly encoded) %x (Actual: %u)",
+      "UniqueId": "ServerResumptionTicketDecodeFailAlpnLengthEncodedWrong",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ServerResumptionTicketDecodeFailTpLengthShort": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Attempting to decode Handshake TP with length %u (Actual: %u)",
+      "UniqueId": "ServerResumptionTicketDecodeFailTpLengthShort",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ServerResumptionTicketDecodeFailTpLengthEncodedWrong": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Attempting to decode Handshake TP length (improperly encoded) %x (Actual: %u)",
+      "UniqueId": "ServerResumptionTicketDecodeFailTpLengthEncodedWrong",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ServerResumptionTicketDecodeFailAppDataLengthShort": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Attempting to decode App Data with length %u (Actual: %u)",
+      "UniqueId": "ServerResumptionTicketDecodeFailAppDataLengthShort",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ServerResumptionTicketDecodeFailAppDataLengthEncodedWrong": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Attempting to decode App Data length (improperly encoded) %x (Actual: %u)",
+      "UniqueId": "ServerResumptionTicketDecodeFailAppDataLengthEncodedWrong",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
     },
     "ClientVersionNegotiationInfoDecodeFailed1": {
       "ModuleProperites": {},
@@ -12407,6 +12579,10 @@
         "TraceID": "IndicatePeerReceiveAborted"
       },
       {
+        "UniquenessHash": "59f615c0-9861-8dc7-db5a-224ebc6336a5",
+        "TraceID": "IgnoreRecvAfterClose"
+      },
+      {
         "UniquenessHash": "337f803e-406e-0817-5804-7273bf3a07ec",
         "TraceID": "FlowControlExhausted"
       },
@@ -12545,6 +12721,46 @@
       {
         "UniquenessHash": "badaa7e5-aa9e-7979-b334-154a884827b6",
         "TraceID": "StillInTimerWheel"
+      },
+      {
+        "UniquenessHash": "4af1859d-901e-496c-6684-5e90fd1ed197",
+        "TraceID": "ClientResumptionTicketDecodeFailTpLengthShort"
+      },
+      {
+        "UniquenessHash": "05e7754f-0f5d-dbb8-f6f2-9bd78260dd9a",
+        "TraceID": "ClientResumptionTicketDecodeFailTpLengthEncodedWrong"
+      },
+      {
+        "UniquenessHash": "42e92d4d-1384-a1c1-4414-39cb9de5f346",
+        "TraceID": "ClientResumptionTicketDecodeFailTicketLengthShort"
+      },
+      {
+        "UniquenessHash": "e095ab6a-5a7c-2fdc-91e7-70711b273610",
+        "TraceID": "ClientResumptionTicketDecodeFailTicketLengthEncodedWrong"
+      },
+      {
+        "UniquenessHash": "9140659a-eab1-dd55-73fd-e065acfab968",
+        "TraceID": "ServerResumptionTicketDecodeFailAlpnLengthShort"
+      },
+      {
+        "UniquenessHash": "10a2af3e-b6e9-d046-42b5-49a1f96ef4f2",
+        "TraceID": "ServerResumptionTicketDecodeFailAlpnLengthEncodedWrong"
+      },
+      {
+        "UniquenessHash": "2626d036-0f88-3cee-bb11-acbe28b5b31a",
+        "TraceID": "ServerResumptionTicketDecodeFailTpLengthShort"
+      },
+      {
+        "UniquenessHash": "cacc6514-e0b1-37a7-c68f-82e9273ecdea",
+        "TraceID": "ServerResumptionTicketDecodeFailTpLengthEncodedWrong"
+      },
+      {
+        "UniquenessHash": "6761da36-f0a0-a9dc-43ab-76c5dc83e833",
+        "TraceID": "ServerResumptionTicketDecodeFailAppDataLengthShort"
+      },
+      {
+        "UniquenessHash": "ad1f93df-84e1-c836-2743-2d3b5324a0b4",
+        "TraceID": "ServerResumptionTicketDecodeFailAppDataLengthEncodedWrong"
       },
       {
         "UniquenessHash": "4dcd57d1-2fc6-a95d-73fd-b4f658f3a886",
