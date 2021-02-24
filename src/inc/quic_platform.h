@@ -149,9 +149,11 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 #include <quic_platform_winuser.h>
 #elif CX_PLATFORM_LINUX
 #define CX_PLATFORM_TYPE 3
+#define CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE 1
 #include <quic_platform_posix.h>
 #elif CX_PLATFORM_DARWIN
 #define CX_PLATFORM_TYPE 4
+#define CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE 1
 #include <quic_platform_posix.h>
 #else
 #define CX_PLATFORM_TYPE 0xFF
