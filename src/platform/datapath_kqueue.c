@@ -1119,8 +1119,8 @@ CxPlatSocketContextRecvComplete(
     QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
     if (RemoteAddr->Ipv6.sin6_family == AF_INET6) {
         RemoteAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+        CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
     }
-    //CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
     RecvPacket->TypeOfService = 0;
 
