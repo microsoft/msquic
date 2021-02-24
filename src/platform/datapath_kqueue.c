@@ -1135,7 +1135,7 @@ CxPlatSocketContextRecvComplete(
                 LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
                 LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
                 LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-                //CxPlatConvertFromMappedV6(LocalAddr, LocalAddr);
+                CxPlatConvertFromMappedV6(LocalAddr, LocalAddr);
 
                 LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
                 FoundLocalAddr = TRUE;
