@@ -38,7 +38,7 @@ public:
 
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         ASSERT_TRUE((ClientCertParams =
-            CxPlatPlatGetSelfSignedCert(
+            CxPlatGetSelfSignedCert(
                 TestingKernelMode ?
                     CXPLAT_SELF_SIGN_CERT_MACHINE :
                     CXPLAT_SELF_SIGN_CERT_USER,
