@@ -26,7 +26,7 @@ public:
         CxPlatSystemLoad();
         ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
         ASSERT_TRUE((SelfSignedCertParams =
-            CxPlatPlatGetSelfSignedCert(
+            CxPlatGetSelfSignedCert(
                 TestingKernelMode ?
                     CXPLAT_SELF_SIGN_CERT_MACHINE :
                     CXPLAT_SELF_SIGN_CERT_USER,
@@ -62,7 +62,7 @@ public:
             QuicTestUninitialize();
             delete MsQuic;
         }
-        CxPlatPlatFreeSelfSignedCert(SelfSignedCertParams);
+        CxPlatFreeSelfSignedCert(SelfSignedCertParams);
         CxPlatUninitialize();
         CxPlatSystemUnload();
     }

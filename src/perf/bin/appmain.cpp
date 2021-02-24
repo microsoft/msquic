@@ -390,7 +390,7 @@ main(
     }
 
     SelfSignedCredConfig =
-        CxPlatPlatGetSelfSignedCert(
+        CxPlatGetSelfSignedCert(
             TestingKernelMode ?
                 CXPLAT_SELF_SIGN_CERT_MACHINE :
                 CXPLAT_SELF_SIGN_CERT_USER,
@@ -415,7 +415,7 @@ main(
 
 Exit:
     if (SelfSignedCredConfig) {
-        CxPlatPlatFreeSelfSignedCert(SelfSignedCredConfig);
+        CxPlatFreeSelfSignedCert(SelfSignedCredConfig);
     }
 
     CxPlatUninitialize();
