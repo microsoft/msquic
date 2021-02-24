@@ -453,7 +453,7 @@ GetServerConfigurationFromArgs(
 
 #ifdef QUIC_TEST_APIS
     } else if (GetValue(argc, argv, "selfsign")) {
-        Config = CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
+        Config = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
         if (!Config) {
             return nullptr;
         }
@@ -489,7 +489,7 @@ GetServerConfigurationFromArgs(
 
 #ifdef QUIC_TEST_APIS
     if (!Configuration && Config != &Helper.CredConfig) {
-        CxPlatPlatFreeSelfSignedCert(Config);
+        CxPlatFreeSelfSignedCert(Config);
     }
 #endif
 
@@ -506,7 +506,7 @@ FreeServerConfiguration(
 #ifdef QUIC_TEST_APIS
     auto SelfSignedConfig = (const QUIC_CREDENTIAL_CONFIG*)MsQuic->GetContext(Configuration);
     if (SelfSignedConfig) {
-        CxPlatPlatFreeSelfSignedCert(SelfSignedConfig);
+        CxPlatFreeSelfSignedCert(SelfSignedConfig);
     }
 #endif
     MsQuic->ConfigurationClose(Configuration);
