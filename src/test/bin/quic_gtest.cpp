@@ -321,7 +321,7 @@ TEST_P(WithHandshakeArgs1, Connect) {
             (uint8_t)GetParam().MultipleALPNs,
             0,  // AsyncConfiguration
             (uint8_t)GetParam().MultiPacketClientInitial,
-            (uint8_t)GetParam().SessionResumption,
+            GetParam().SessionResumption,
             0   // RandomLossPercentage
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
@@ -333,7 +333,7 @@ TEST_P(WithHandshakeArgs1, Connect) {
             GetParam().MultipleALPNs,
             false,  // AsyncConfiguration
             GetParam().MultiPacketClientInitial,
-            GetParam().SessionResumption,
+            (QUIC_TEST_RESUMPTION_MODE)GetParam().SessionResumption,
             0);     // RandomLossPercentage
     }
 }
@@ -348,7 +348,7 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             0,  // MultipleALPNs
             0,  // AsyncConfiguration
             0,  // MultiPacketClientInitial
-            0,  // SessionResumption
+            QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
             0   // RandomLossPercentage
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
@@ -360,7 +360,7 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             false,  // MultipleALPNs
             false,  // AsyncConfiguration
             false,  // MultiPacketClientInitial
-            false,  // SessionResumption
+            QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
             0);     // RandomLossPercentage
     }
 }
@@ -375,7 +375,7 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
             (uint8_t)GetParam().MultipleALPNs,
             1,  // AsyncConfiguration
             0,  // MultiPacketClientInitial
-            0,  // SessionResumption
+            QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
             0   // RandomLossPercentage
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
@@ -387,7 +387,7 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
             GetParam().MultipleALPNs,
             true,   // AsyncConfiguration
             false,  // MultiPacketClientInitial
-            false,  // SessionResumption
+            QUIC_TEST_RESUMPTION_DISABLED,  // SessionResumption
             0);     // RandomLossPercentage
     }
 }
@@ -512,7 +512,7 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             0,  // MultipleALPNs
             0,  // AsyncConfiguration
             (uint8_t)GetParam().MultiPacketClientInitial,
-            (uint8_t)GetParam().SessionResumption,
+            GetParam().SessionResumption,
             GetParam().RandomLossPercentage
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
@@ -524,7 +524,7 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             false,  // MultipleALPNs,
             false,  // AsyncConfiguration
             GetParam().MultiPacketClientInitial,
-            GetParam().SessionResumption,
+            (QUIC_TEST_RESUMPTION_MODE)GetParam().SessionResumption,
             GetParam().RandomLossPercentage);
     }
 }
