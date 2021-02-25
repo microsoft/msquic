@@ -2084,7 +2084,6 @@ CxPlatSocketSendInternal(
     static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
     char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
 
-
     ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
     SocketContext = &Socket->SocketContexts[Socket->HasFixedRemoteAddress ? 0 : ProcNumber];
 
@@ -2198,7 +2197,7 @@ CxPlatSocketSendInternal(
         if (SuccessfullySentMessages < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 if (!IsPendedSend) {
-                    // TODO long sends as pending so byte counts line up.
+                    // TODO log sends as pending so byte counts line up.
                     CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
                     CxPlatSocketContextPendSend(
                         SocketContext,
