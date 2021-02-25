@@ -28,7 +28,7 @@ typedef struct QUIC_REGISTRATION {
 
     struct QUIC_HANDLE;
 
-#ifdef QuicVerifierEnabledByAddr
+#ifdef CxPlatVerifierEnabledByAddr
     //
     // The calling app is being verified (app or driver verifier).
     //
@@ -101,10 +101,10 @@ typedef struct QUIC_REGISTRATION {
 
 } QUIC_REGISTRATION;
 
-#ifdef QuicVerifierEnabledByAddr
+#ifdef CxPlatVerifierEnabledByAddr
 #define QUIC_REG_VERIFY(Registration, Expr) \
     if (Registration->IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
-#elif defined(QuicVerifierEnabled)
+#elif defined(CxPlatVerifierEnabled)
 #define QUIC_REG_VERIFY(Registration, Expr) \
     if (MsQuicLib.IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
 #else

@@ -47,9 +47,6 @@ Environment:
 #ifdef _M_X64
 #include <intrin.h>
 #endif
-#ifdef QUIC_TELEMETRY_ASSERTS
-#include <telemetry\MicrosoftTelemetryAssert.h>
-#endif
 #include <msquic_winuser.h>
 #pragma warning(pop)
 
@@ -125,39 +122,10 @@ CxPlatUninitialize(
     );
 
 //
-// Assertion Interfaces
+// Static Analysis Interfaces
 //
 
-#define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X,Y)
-
-#define CXPLAT_ANALYSIS_ASSERT(X) __analysis_assert(X)
-
-//
-// Logs the assertion failure to ETW.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CxPlatLogAssert(
-    _In_z_ const char* File,
-    _In_ int Line,
-    _In_z_ const char* Expr
-    );
-
-#define QUIC_WIDE_STRING(_str) L##_str
-
-#define QUIC_ASSERT_ACTION(_exp) \
-    ((!(_exp)) ? \
-        (CxPlatLogAssert(__FILE__, __LINE__, #_exp), \
-         __annotation(L"Debug", L"AssertFail", QUIC_WIDE_STRING(#_exp)), \
-         DbgRaiseAssertionFailure(), FALSE) : \
-        TRUE)
-
-#define QUIC_ASSERTMSG_ACTION(_msg, _exp) \
-    ((!(_exp)) ? \
-        (CxPlatLogAssert(__FILE__, __LINE__, #_exp), \
-         __annotation(L"Debug", L"AssertFail", L##_msg), \
-         DbgRaiseAssertionFailure(), FALSE) : \
-        TRUE)
+#define QUIC_NO_SANITIZE(X)
 
 #if defined(_PREFAST_)
 // _Analysis_assume_ will never result in any code generation for _exp,
@@ -175,52 +143,79 @@ CxPlatLogAssert(
 #endif // DEBUG
 #endif // _PREFAST_
 
-#define QUIC_NO_SANITIZE(X)
+#define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X,Y)
 
+#define CXPLAT_ANALYSIS_ASSERT(X) __analysis_assert(X)
+
+//
+// Assertion Interfaces
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatLogAssert(
+    _In_z_ const char* File,
+    _In_ int Line,
+    _In_z_ const char* Expr
+    );
+
+#define CXPLAT_WIDE_STRING(_str) L##_str
+
+#define CXPLAT_ASSERT_NOOP(_exp, _msg) \
+    (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
+
+#define CXPLAT_ASSERT_LOG(_exp, _msg) \
+    (CXPLAT_ANALYSIS_ASSUME(_exp), \
+    ((!(_exp)) ? (CxPlatLogAssert(__FILE__, __LINE__, #_exp), FALSE) : TRUE))
+
+#define CXPLAT_ASSERT_CRASH(_exp, _msg) \
+    (CXPLAT_ANALYSIS_ASSUME(_exp), \
+    ((!(_exp)) ? \
+        (CxPlatLogAssert(__FILE__, __LINE__, #_exp), \
+         __annotation(L"Debug", L"AssertFail", _msg), \
+         DbgRaiseAssertionFailure(), FALSE) : \
+        TRUE))
 
 //
 // MsQuic uses three types of asserts:
 //
 //  CXPLAT_DBG_ASSERT - Asserts that are too expensive to evaluate all the time.
 //  CXPLAT_TEL_ASSERT - Asserts that are acceptable to always evaluate, but not
-//                    always crash the process.
-//  CXPLAT_FRE_ASSERT - Asserts that must always crash the process.
+//                      always crash the system.
+//  CXPLAT_FRE_ASSERT - Asserts that must always crash the system.
 //
 
 #if DEBUG
-#define CXPLAT_DBG_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
-#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_DBG_ASSERT(_exp)          CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
 #else
-#define CXPLAT_DBG_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
+#define CXPLAT_DBG_ASSERT(_exp)          CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(_msg))
 #endif
 
 #if DEBUG
-#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
-#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_TEL_ASSERT(_exp)          CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
 #define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-     (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+                                         CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
+#elif QUIC_TELEMETRY_ASSERTS
+#define CXPLAT_TEL_ASSERT(_exp)          CXPLAT_ASSERT_LOG(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_LOG(_exp, CXPLAT_WIDE_STRING(_msg))
+#define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
+                                         CXPLAT_ASSERT_LOG(_exp, CXPLAT_WIDE_STRING(_msg))
 #else
-#ifdef MICROSOFT_TELEMETRY_ASSERT
-#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT(_exp))
-#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG(_exp, _msg))
+#define CXPLAT_TEL_ASSERT(_exp)          CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(_msg))
 #define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-    (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG_WITH_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2))
-#else
-#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-    (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#endif
+                                         CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(_msg))
 #endif
 
-#define CXPLAT_FRE_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
-#define CXPLAT_FRE_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_FRE_ASSERT(_exp)          CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_FRE_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
 
 //
 // Verifier is enabled.
 //
-#define QuicVerifierEnabled(Flags) \
+#define CxPlatVerifierEnabled(Flags) \
     (GetModuleHandleW(L"verifier.dll") != NULL && \
      GetModuleHandleW(L"vrfcore.dll") != NULL), \
     Flags = 0
@@ -269,14 +264,14 @@ typedef struct CXPLAT_POOL {
     uint32_t Tag;
 } CXPLAT_POOL;
 
-#define QUIC_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+#define CXPLAT_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 
 #if DEBUG
-typedef struct QUIC_POOL_ENTRY {
+typedef struct CXPLAT_POOL_ENTRY {
     SLIST_ENTRY ListHead;
     uint32_t SpecialFlag;
-} QUIC_POOL_ENTRY;
-#define QUIC_POOL_SPECIAL_FLAG    0xAAAAAAAA
+} CXPLAT_POOL_ENTRY;
+#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAA
 #endif
 
 inline
@@ -289,7 +284,7 @@ CxPlatPoolInitialize(
     )
 {
 #if DEBUG
-    CXPLAT_DBG_ASSERT(Size >= sizeof(QUIC_POOL_ENTRY));
+    CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
 #endif
     Pool->Size = Size;
     Pool->Tag = Tag;
@@ -324,7 +319,7 @@ CxPlatPoolAlloc(
     }
 #if DEBUG
     if (Entry != NULL) {
-        ((QUIC_POOL_ENTRY*)Entry)->SpecialFlag = 0;
+        ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = 0;
     }
 #endif
     return Entry;
@@ -344,10 +339,10 @@ CxPlatPoolFree(
     return;
 #else
 #if DEBUG
-    CXPLAT_DBG_ASSERT(((QUIC_POOL_ENTRY*)Entry)->SpecialFlag != QUIC_POOL_SPECIAL_FLAG);
-    ((QUIC_POOL_ENTRY*)Entry)->SpecialFlag = QUIC_POOL_SPECIAL_FLAG;
+    CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
+    ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
 #endif
-    if (QueryDepthSList(&Pool->ListHead) >= QUIC_POOL_MAXIMUM_DEPTH) {
+    if (QueryDepthSList(&Pool->ListHead) >= CXPLAT_POOL_MAXIMUM_DEPTH) {
         CxPlatFree(Entry, Pool->Tag);
     } else {
         InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Entry);
@@ -936,6 +931,14 @@ QUIC_STATUS
 CxPlatRandom(
     _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) void* Buffer
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatUtf8ToWideChar(
+    _In_z_ const char* const Input,
+    _In_ uint32_t Tag,
+    _Outptr_result_z_ PWSTR* Output
     );
 
 //

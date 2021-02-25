@@ -18,11 +18,13 @@ Abstract:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
-CxPlatPlatGetSelfSignedCert(
-    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type
+CxPlatGetSelfSignedCert(
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
+    _In_ BOOLEAN ClientCertificate
     )
 {
     UNREFERENCED_PARAMETER(Type);
+    UNREFERENCED_PARAMETER(ClientCertificate);
 
     QUIC_CREDENTIAL_CONFIG* Params = malloc(sizeof(QUIC_CREDENTIAL_CONFIG));
     if (Params != NULL) {
@@ -34,7 +36,7 @@ CxPlatPlatGetSelfSignedCert(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatPlatFreeSelfSignedCert(
+CxPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* Params
     )
 {

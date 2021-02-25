@@ -17,6 +17,10 @@ Environment:
 #include "platform_internal.h"
 
 #define OPENSSL_SUPPRESS_DEPRECATED 1 // For hmac.h, which was deprecated in 3.0
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
+#endif
 #include "openssl/err.h"
 #include "openssl/hmac.h"
 #include "openssl/kdf.h"
@@ -24,6 +28,9 @@ Environment:
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 #ifdef QUIC_CLOG
 #include "cert_capi_openssl.c.clog.h"
 #endif
@@ -31,6 +38,64 @@ Environment:
 #ifdef _WIN32
 #include <wincrypt.h>
 #include <msquic.h>
+
+BOOLEAN
+CxPlatTlsVerifyCertificate(
+    _In_ X509* X509Cert,
+    _In_ const char* SNI
+    )
+{
+    // Convert SNI to wide
+    BOOLEAN Result = FALSE;
+    PCCERT_CONTEXT CertContext = NULL;
+    unsigned char* OpenSSLCertBuffer = NULL;
+    int OpenSSLCertLength = 0;
+
+    OpenSSLCertLength = i2d_X509(X509Cert, &OpenSSLCertBuffer);
+    if (OpenSSLCertLength <= 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "i2d_X509 failed");
+        goto Exit;
+    }
+
+    CertContext =
+        (PCCERT_CONTEXT)
+            CertCreateContext(
+                CERT_STORE_CERTIFICATE_CONTEXT,
+                X509_ASN_ENCODING,
+                OpenSSLCertBuffer,
+                OpenSSLCertLength,
+                CERT_CREATE_CONTEXT_NOCOPY_FLAG,
+                NULL);
+    if (CertContext == NULL) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertGetCertificateChain failed");
+        goto Exit;
+    }
+
+    Result =
+        CxPlatCertValidateChain(
+            CertContext,
+            SNI,
+            0);
+
+Exit:
+
+    if (CertContext != NULL) {
+        CertFreeCertificateContext(CertContext);
+    }
+
+    if (OpenSSLCertBuffer != NULL) {
+        OPENSSL_free(OpenSSLCertBuffer);
+    }
+
+    return Result;
+}
 
 QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
@@ -282,5 +347,15 @@ CxPlatTlsExtractPrivateKey(
     UNREFERENCED_PARAMETER(EvpPrivateKey);
     UNREFERENCED_PARAMETER(X509Cert);
     return QUIC_STATUS_NOT_SUPPORTED;
+}
+BOOLEAN
+CxPlatTlsVerifyCertificate(
+    _In_ X509* X509Cert,
+    _In_ const char* SNI
+    )
+{
+    UNREFERENCED_PARAMETER(X509Cert);
+    UNREFERENCED_PARAMETER(SNI);
+    return 0;
 }
 #endif

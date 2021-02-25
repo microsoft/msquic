@@ -240,6 +240,22 @@ void
 typedef CXPLAT_DATAPATH_CONNECT_CALLBACK *CXPLAT_DATAPATH_CONNECT_CALLBACK_HANDLER;
 
 //
+// Function pointer type for datapath TCP send completion callbacks.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK)
+void
+(CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK)(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ void* Context,
+    _In_ QUIC_STATUS Status,
+    _In_ uint32_t ByteCount
+    );
+
+typedef CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK *CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK_HANDLER;
+
+//
 // Function pointer type for datapath receive callbacks.
 //
 typedef
@@ -287,6 +303,7 @@ typedef struct CXPLAT_TCP_DATAPATH_CALLBACKS {
     CXPLAT_DATAPATH_ACCEPT_CALLBACK_HANDLER Accept;
     CXPLAT_DATAPATH_CONNECT_CALLBACK_HANDLER Connect;
     CXPLAT_DATAPATH_RECEIVE_CALLBACK_HANDLER Receive;
+    CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK_HANDLER SendComplete;
 
 } CXPLAT_TCP_DATAPATH_CALLBACKS;
 

@@ -95,6 +95,7 @@ if ($IsLinux) {
 function Log-Start {
     if ($IsWindows) {
         wpr.exe -start "$($WprpFile)!$($Profile)" -filemode -instancename $InstanceName 2>&1
+    } elseif ($IsMacOS) {
     } else {
         if (Test-Path $TempDir) {
             Write-Error "LTTng session ($InstanceName) already running! ($TempDir)"
@@ -135,11 +136,12 @@ function Log-Cancel {
             wpr.exe -cancel -instancename $InstanceName 2>&1
         } catch {
         }
+    } elseif ($IsMacOS) {
     } else {
         if (!(Test-Path $TempDir)) {
             Write-Debug "LTTng session ($InstanceName) not currently running"
         } else {
-            Invoke-Expression "lttng destroy $InstanceName" | Write-Debug
+            Invoke-Expression "lttng destroy -n $InstanceName" | Write-Debug
             Remove-Item -Path $TempDir -Recurse -Force | Out-Null
             Write-Debug "Destroyed LTTng session ($InstanceName) and deleted $TempDir"
         }
@@ -159,6 +161,7 @@ function Log-Stop {
             }
             Invoke-Expression $Command
         }
+    } elseif ($IsMacOS) {
     } else {
         $ClogOutputDecodeFile = $OutputPath + ".log"
 
@@ -203,6 +206,7 @@ function Log-Decode {
 
     if ($IsWindows) {
        Write-Error "Not supported on Windows"
+    } elseif ($IsMacOS) {
     } else {
         Write-Host $LogFile
 

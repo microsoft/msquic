@@ -129,7 +129,7 @@ QuicUserMain(
         CxPlatEventSet(StopEvent);
     }
 
-    Status = QuicMainStop(0);
+    Status = QuicMainStop();
     if (QUIC_FAILED(Status)) {
         printf("Stop failed with status %d\n", Status);
         QuicMainFree();
@@ -390,10 +390,11 @@ main(
     }
 
     SelfSignedCredConfig =
-        CxPlatPlatGetSelfSignedCert(
+        CxPlatGetSelfSignedCert(
             TestingKernelMode ?
                 CXPLAT_SELF_SIGN_CERT_MACHINE :
-                CXPLAT_SELF_SIGN_CERT_USER);
+                CXPLAT_SELF_SIGN_CERT_USER,
+            FALSE);
     if (!SelfSignedCredConfig) {
         printf("Creating self signed certificate failed\n");
         RetVal = QUIC_STATUS_INTERNAL_ERROR;
@@ -414,7 +415,7 @@ main(
 
 Exit:
     if (SelfSignedCredConfig) {
-        CxPlatPlatFreeSelfSignedCert(SelfSignedCredConfig);
+        CxPlatFreeSelfSignedCert(SelfSignedCredConfig);
     }
 
     CxPlatUninitialize();

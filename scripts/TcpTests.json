@@ -1,0 +1,27 @@
+{
+    "Remote": {
+        "Exe": "quicperf",
+        "Arguments": ""
+    },
+    "FullMatrix": false,
+    "Tests": [
+        {
+            "TestName": "TcpThroughputUp",
+            "Local": {
+                "Platform": "Windows",
+                "Tls": ["stub", "schannel", "openssl", "mitls"],
+                "Arch": ["x64", "x86", "arm", "arm64"],
+                "Exe": "quicperf",
+                "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -upload:2000000000 -tcp:1"
+            },
+            "Variables": [
+            ],
+            "AllowLoopback": true,
+            "Iterations": 5,
+            "RemoteReadyMatcher": "Started!",
+            "ResultsMatcher": ".*@ (.*) kbps.*",
+            "Formats": ["{0} kbps"],
+            "RegressionThreshold": "-8.0"
+        }
+    ]
+}

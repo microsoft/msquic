@@ -14,18 +14,6 @@ Abstract:
 #include "DataTest.cpp.clog.h"
 #endif
 
-struct ServerAcceptContext {
-    CXPLAT_EVENT NewConnectionReady;
-    TestConnection** NewConnection;
-    ServerAcceptContext(TestConnection** _NewConnection) :
-        NewConnection(_NewConnection) {
-        CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);
-    }
-    ~ServerAcceptContext() {
-        CxPlatEventUninitialize(NewConnectionReady);
-    }
-};
-
 /*
     Helper function to estimate a maximum timeout for a test with a
     particular payload length.
@@ -210,11 +198,14 @@ PingConnectionShutdown(
     )
 {
     auto ConnState = (PingConnState*)Connection->Context;
-    if (ConnState->GetPingStats()->ExpectedCloseStatus == QUIC_STATUS_SUCCESS) {
+    auto ExpectedSuccess =
+        ConnState->GetPingStats()->ExpectedCloseStatus == QUIC_STATUS_SUCCESS;
+    delete ConnState;
+
+    if (ExpectedSuccess) {
         TEST_FALSE(Connection->GetTransportClosed());
         TEST_FALSE(Connection->GetPeerClosed());
     }
-    delete ConnState;
 }
 
 _Function_class_(NEW_STREAM_CALLBACK)

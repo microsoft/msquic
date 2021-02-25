@@ -14,18 +14,6 @@ Abstract:
 #include "DatagramTest.cpp.clog.h"
 #endif
 
-struct ServerAcceptContext {
-    CXPLAT_EVENT NewConnectionReady;
-    TestConnection** NewConnection;
-    ServerAcceptContext(TestConnection** _NewConnection) :
-        NewConnection(_NewConnection) {
-        CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);
-    }
-    ~ServerAcceptContext() {
-        CxPlatEventUninitialize(NewConnectionReady);
-    }
-};
-
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool

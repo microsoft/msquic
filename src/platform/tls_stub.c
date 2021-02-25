@@ -290,7 +290,8 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
@@ -501,7 +502,6 @@ CxPlatTlsServerProcess(
     uint16_t DrainLength = 0;
 
     CXPLAT_FRE_ASSERT(State->BufferLength < State->BufferAllocLength);
-    __assume(State->BufferLength < State->BufferAllocLength);
 
     const QUIC_FAKE_TLS_MESSAGE* ClientMessage =
         (QUIC_FAKE_TLS_MESSAGE*)Buffer;
@@ -749,7 +749,6 @@ CxPlatTlsClientProcess(
     uint16_t DrainLength = 0;
 
     CXPLAT_FRE_ASSERT(State->BufferLength < State->BufferAllocLength);
-    __assume(State->BufferLength < State->BufferAllocLength);
 
     const QUIC_FAKE_TLS_MESSAGE* ServerMessage =
         (QUIC_FAKE_TLS_MESSAGE*)Buffer;
@@ -928,7 +927,7 @@ CxPlatTlsClientProcess(
                 if (!CxPlatCertValidateChain(
                         ServerCert,
                         TlsContext->SNI,
-                        TlsContext->SecConfig->Flags)) {
+                        0)) {
                     QuicTraceEvent(
                         TlsError,
                         "[ tls][%p] ERROR, %s.",
@@ -937,6 +936,22 @@ CxPlatTlsClientProcess(
                     *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                     break;
                 }
+            }
+
+            if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+                !TlsContext->SecConfig->Callbacks.CertificateReceived(
+                    TlsContext->Connection,
+                    NULL,
+                    0,
+                    0)) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Indicate certificate received failed");
+                *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
+                break;
             }
 
             State->HandshakeComplete = TRUE;
@@ -1453,8 +1468,7 @@ CxPlatHashCompute(
     )
 {
     UNREFERENCED_PARAMETER(Hash);
-    UNREFERENCED_PARAMETER(Input);
-    UNREFERENCED_PARAMETER(InputLength);
     CxPlatZeroMemory(Output, OutputLength);
+    CxPlatCopyMemory(Output, Input, min(OutputLength, InputLength));
     return QUIC_STATUS_SUCCESS;
 }

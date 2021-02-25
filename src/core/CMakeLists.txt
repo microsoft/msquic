@@ -42,6 +42,7 @@ set(SOURCES
     stream_set.c
     timer_wheel.c
     worker.c
+    version_neg.c
     operation.h
     stream.h
     connection.h
@@ -53,6 +54,9 @@ endif()
 
 # Allow CLOG to preprocess all the source files.
 add_clog_library(core.clog DYNAMIC ${SOURCES})
+if(QUIC_ENABLE_LOGGING)
+    set_property(TARGET core.clog.provider PROPERTY FOLDER "helpers")
+endif()
 
 add_library(core STATIC ${SOURCES})
 
@@ -61,7 +65,3 @@ target_link_libraries(core PUBLIC core.clog inc)
 target_link_libraries(core PRIVATE warnings)
 
 set_property(TARGET core PROPERTY FOLDER "libraries")
-
-if(WIN32)
-    add_dependencies(core MsQuicEtw)
-endif()

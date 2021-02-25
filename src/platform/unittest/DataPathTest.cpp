@@ -363,6 +363,16 @@ protected:
         CxPlatRecvDataReturn(RecvDataChain);
     }
 
+    static void
+    TcpEmptySendCompleteCallback(
+        _In_ CXPLAT_SOCKET* /* Socket */,
+        _In_ void* /* Context */,
+        _In_ QUIC_STATUS /* Status */,
+        _In_ uint32_t /* ByteCount */
+        )
+    {
+    }
+
     const CXPLAT_UDP_DATAPATH_CALLBACKS EmptyUdpCallbacks = {
         EmptyReceiveCallback,
         EmptyUnreachableCallback,
@@ -382,12 +392,14 @@ protected:
         EmptyAcceptCallback,
         EmptyConnectCallback,
         EmptyReceiveCallback,
+        TcpEmptySendCompleteCallback
     };
 
     const CXPLAT_TCP_DATAPATH_CALLBACKS TcpRecvCallbacks = {
         TcpAcceptCallback,
         TcpConnectCallback,
         TcpDataRecvCallback,
+        TcpEmptySendCompleteCallback
     };
 };
 

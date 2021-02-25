@@ -33,7 +33,7 @@ endif()
 # REPO_ROOT is the path to the repository where code it stored.
 #
 # SOURCE_LINK_JSON_PATH is the file to output the json
-function(source_link REPO_ROOT SOURCE_LINK_JSON_PATH)
+function(source_link REPO_ROOT SOURCE_LINK_JSON_PATH SOURCE_LINK_JSON_INPUT_PATH)
     if (NOT (IS_DIRECTORY ${REPO_ROOT}))
         message(FATAL_ERROR "\"${REPO_ROOT}\" is not a directory")
     endif()
@@ -74,7 +74,7 @@ function(source_link REPO_ROOT SOURCE_LINK_JSON_PATH)
     string(APPEND OUTPUT "}\n")
     string(APPEND OUTPUT "}\n")
 
-    file(WRITE ${SOURCE_LINK_JSON_PATH} ${OUTPUT})
+    configure_file(${SOURCE_LINK_JSON_INPUT_PATH} ${SOURCE_LINK_JSON_PATH})
 
 endfunction()
 

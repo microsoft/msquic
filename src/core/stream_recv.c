@@ -292,11 +292,10 @@ QuicStreamProcessStreamFrame(
         // Ignore the data if we are already closed remotely. Likely means we received
         // a copy of already processed data that was resent.
         //
-        QuicTraceEvent(
-            StreamError,
-            "[strm][%p] ERROR, %s.",
+        QuicTraceLogStreamVerbose(
+            IgnoreRecvAfterClose,
             Stream,
-            "Receive after close");
+            "Ignoring recv after close");
         Status = QUIC_STATUS_SUCCESS;
         goto Error;
     }

@@ -40,6 +40,12 @@ typedef struct _SecPkgContext_ApplicationProtocol
     unsigned char ProtocolId[MAX_PROTOCOL_ID_SIZE];              // Byte string representing the negotiated application protocol ID
 } SecPkgContext_ApplicationProtocol, *PSecPkgContext_ApplicationProtocol;
 
+typedef struct _SecPkgContext_CertificateValidationResult
+{
+    DWORD dwChainErrorStatus;    // Contains chain build error flags set by CertGetCertificateChain.
+    HRESULT hrVerifyChainStatus; // Certificate validation policy error returned by CertVerifyCertificateChainPolicy.
+} SecPkgContext_CertificateValidationResult, *PSecPkgContext_CertificateValidationResult;
+
 typedef struct _SEND_GENERIC_TLS_EXTENSION
 {
     WORD  ExtensionType;            // Code point of extension.
@@ -48,6 +54,26 @@ typedef struct _SEND_GENERIC_TLS_EXTENSION
     WORD  BufferSize;               // Size in bytes of the extension data.
     UCHAR Buffer[ANYSIZE_ARRAY];    // Extension data.
 } SEND_GENERIC_TLS_EXTENSION, * PSEND_GENERIC_TLS_EXTENSION;
+
+//
+// This property returns the raw binary certificates that were received
+// from the remote party. The format of the buffer that's returned is as
+// follows.
+//
+//     <4 bytes> length of certificate #1
+//     <n bytes> certificate #1
+//     <4 bytes> length of certificate #2
+//     <n bytes> certificate #2
+//     ...
+//
+typedef struct _SecPkgContext_Certificates
+{
+    DWORD   cCertificates;
+    DWORD   cbCertificateChain;
+    PBYTE   pbCertificateChain;
+} SecPkgContext_Certificates, *PSecPkgContext_Certificates;
+
+#define SECPKG_ATTR_REMOTE_CERTIFICATES  0x5F   // returns SecPkgContext_Certificates
 
 #define SP_PROT_TLS1_3_SERVER           0x00001000
 #define SP_PROT_TLS1_3_CLIENT           0x00002000
@@ -84,6 +110,7 @@ typedef struct _SEND_GENERIC_TLS_EXTENSION
 #define SCH_USE_PRESHAREDKEY_ONLY                    0x00800000
 #define SCH_USE_DTLS_ONLY                            0x01000000
 #define SCH_ALLOW_NULL_ENCRYPTION                    0x02000000
+#define SCH_CRED_DEFERRED_CRED_VALIDATION            0x04000000
 
 // Values for SCHANNEL_CRED dwCredFormat field.
 #define SCH_CRED_FORMAT_CERT_CONTEXT    0x00000000
@@ -206,12 +233,56 @@ typedef struct _SecPkgContext_SessionInfo
 } SecPkgContext_SessionInfo, * PSecPkgContext_SessionInfo;
 
 #define SECPKG_ATTR_SESSION_INFO         0x5d   // returns SecPkgContext_SessionInfo
+#define SECPKG_ATTR_CERT_CHECK_RESULT_INPROC 0x72 // returns SecPkgContext_CertificateValidationResult, use only after SSPI handshake loop
+
+typedef unsigned int ALG_ID;
+
+typedef struct _SecPkgContext_CipherInfo
+{
+    DWORD dwVersion;
+    DWORD dwProtocol;
+    DWORD dwCipherSuite;
+    DWORD dwBaseCipherSuite;
+    WCHAR szCipherSuite[SZ_ALG_MAX_SIZE];
+    WCHAR szCipher[SZ_ALG_MAX_SIZE];
+    DWORD dwCipherLen;
+    DWORD dwCipherBlockLen;    // in bytes
+    WCHAR szHash[SZ_ALG_MAX_SIZE];
+    DWORD dwHashLen;
+    WCHAR szExchange[SZ_ALG_MAX_SIZE];
+    DWORD dwMinExchangeLen;
+    DWORD dwMaxExchangeLen;
+    WCHAR szCertificate[SZ_ALG_MAX_SIZE];
+    DWORD dwKeyType;
+} SecPkgContext_CipherInfo, * PSecPkgContext_CipherInfo;
+
+typedef struct _SecPkgContext_ConnectionInfo
+{
+    DWORD   dwProtocol;
+    ALG_ID  aiCipher;
+    DWORD   dwCipherStrength;
+    ALG_ID  aiHash;
+    DWORD   dwHashStrength;
+    ALG_ID  aiExch;
+    DWORD   dwExchStrength;
+} SecPkgContext_ConnectionInfo, * PSecPkgContext_ConnectionInfo;
+
+#define SECPKG_ATTR_CIPHER_INFO          0x64   // returns new CNG SecPkgContext_CipherInfo
+#define SECPKG_ATTR_CONNECTION_INFO      0x5a   // returns SecPkgContext_ConnectionInfo
 
 #else
 
 #define SCHANNEL_USE_BLACKLISTS
 #include <schannel.h>
-
+#ifndef SCH_CRED_DEFERRED_CRED_VALIDATION
+#define SCH_CRED_DEFERRED_CRED_VALIDATION            0x04000000
+typedef struct _SecPkgContext_CertificateValidationResult
+{
+    DWORD dwChainErrorStatus;    // Contains chain build error flags set by CertGetCertificateChain.
+    HRESULT hrVerifyChainStatus; // Certificate validation policy error returned by CertVerifyCertificateChainPolicy.
+} SecPkgContext_CertificateValidationResult, *PSecPkgContext_CertificateValidationResult;
+#define SECPKG_ATTR_CERT_CHECK_RESULT_INPROC 0x72 // returns SecPkgContext_CertificateValidationResult, use only after SSPI handshake loop
+#endif
 #endif
 
 //
@@ -396,6 +467,17 @@ typedef struct CXPLAT_TLS {
     //
     SEC_BUFFER_WORKSPACE Workspace;
 
+    //
+    // Peer Transport parameters length.
+    //
+    uint32_t PeerTransportParamsLength;
+
+    //
+    // Peer transport parameters for when heavy fragmentation doesn't
+    // provide enough storage for the peer transport parameters.
+    //
+    uint8_t* PeerTransportParams;
+
 #ifdef CXPLAT_TLS_SECRETS_SUPPORT
     //
     // Optional struct to log TLS traffic secrets.
@@ -445,79 +527,7 @@ BCRYPT_ALG_HANDLE CXPLAT_AES_GCM_ALG_HANDLE = BCRYPT_AES_GCM_ALG_HANDLE;
 #endif
 BCRYPT_ALG_HANDLE CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
 
-#ifndef _KERNEL_MODE
-
-QUIC_STATUS
-CxPlatTlsUtf8ToWideChar(
-    _In_z_ const char* const Input,
-    _Outptr_result_z_ PWSTR* Output
-    )
-{
-    CXPLAT_DBG_ASSERT(Input != NULL);
-    CXPLAT_DBG_ASSERT(Output != NULL);
-
-    DWORD Error = NO_ERROR;
-    PWSTR Buffer = NULL;
-    int Size =
-        MultiByteToWideChar(
-            CP_UTF8,
-            MB_ERR_INVALID_CHARS,
-            Input,
-            -1,
-            NULL,
-            0);
-    if (Size == 0) {
-        Error = GetLastError();
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Error,
-            "Get wchar string size");
-        goto Error;
-    }
-
-    Buffer = CXPLAT_ALLOC_NONPAGED(sizeof(WCHAR) * Size, QUIC_POOL_TLS_SNI);
-    if (Buffer == NULL) {
-        Error = ERROR_NOT_ENOUGH_MEMORY;
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "wchar string",
-            sizeof(WCHAR) * Size);
-        goto Error;
-    }
-
-    Size =
-        MultiByteToWideChar(
-            CP_UTF8,
-            MB_ERR_INVALID_CHARS,
-            Input,
-            -1,
-            Buffer,
-            Size);
-    if (Size == 0) {
-        Error = GetLastError();
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Error,
-            "Convert string to wchar");
-        goto Error;
-    }
-
-    *Output = Buffer;
-    Buffer = NULL;
-
-Error:
-
-    if (Buffer != NULL) {
-        CXPLAT_FREE(Buffer, QUIC_POOL_TLS_SNI);
-    }
-
-    return HRESULT_FROM_WIN32(Error);
-}
-
-#else
+#ifdef _KERNEL_MODE
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -1053,33 +1063,36 @@ CxPlatTlsSecConfigCreate(
     }
 #endif
 
-    if (IsClient) {
+    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) &&
+        !(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED)) {
+        return QUIC_STATUS_INVALID_PARAMETER; // Defer validation without indication doesn't make sense.
+    }
 
-        if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
-            return QUIC_STATUS_NOT_SUPPORTED; // Client certificates not supported yet.
-        }
+    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) && IsClient) {
+        return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
+    }
 
-    } else {
-
-        switch (CredConfig->Type) {
-        case QUIC_CREDENTIAL_TYPE_NONE:
+    switch (CredConfig->Type) {
+    case QUIC_CREDENTIAL_TYPE_NONE:
+        if (!IsClient) {
             return QUIC_STATUS_INVALID_PARAMETER; // Server requires a certificate.
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
-#ifndef _KERNEL_MODE
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
-#endif
-            if (CredConfig->CertificateContext == NULL && CredConfig->Principal == NULL) {
-                return QUIC_STATUS_INVALID_PARAMETER;
-            }
-            break;
-#ifdef _KERNEL_MODE
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
-#endif
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE:
-        default:
-            return QUIC_STATUS_NOT_SUPPORTED;
         }
+        break;
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+#ifndef _KERNEL_MODE
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
+#endif
+        if (CredConfig->CertificateContext == NULL && CredConfig->Principal == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        break;
+#ifdef _KERNEL_MODE
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
+#endif
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE:
+    default:
+        return QUIC_STATUS_NOT_SUPPORTED;
     }
 
     QUIC_ACH_CONTEXT* AchContext =
@@ -1112,11 +1125,14 @@ CxPlatTlsSecConfigCreate(
 
     Credentials->dwVersion = SCH_CREDENTIALS_VERSION;
     Credentials->dwFlags |= SCH_USE_STRONG_CRYPTO;
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) {
+    if (CredConfig->Flags & (QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
         Credentials->dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
     }
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
         Credentials->dwFlags |= SCH_CRED_SNI_ENABLE_OCSP;
+    }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
+        Credentials->dwFlags |= SCH_CRED_DEFERRED_CRED_VALIDATION;
     }
     if (IsClient) {
         Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
@@ -1153,9 +1169,9 @@ CxPlatTlsSecConfigCreate(
 
 
 #ifdef _KERNEL_MODE
-    if (IsClient) {
+    if (IsClient && CredConfig->Type == QUIC_CREDENTIAL_TYPE_NONE) {
         //
-        // Nothing supported for client right now.
+        // Plain client with no certificate.
         //
 
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
@@ -1574,6 +1590,11 @@ CxPlatTlsUninitialize(
         if (TlsContext->TransportParams != NULL) {
             CXPLAT_FREE(TlsContext->TransportParams, QUIC_POOL_TLS_TRANSPARAMS);
         }
+        if (TlsContext->PeerTransportParams) {
+            CXPLAT_FREE(TlsContext->PeerTransportParams, QUIC_POOL_TLS_TMP_TP);
+            TlsContext->PeerTransportParams = NULL;
+            TlsContext->PeerTransportParamsLength = 0;
+        }
         CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
 }
@@ -1623,7 +1644,7 @@ CxPlatTlsWriteDataToSchannel(
             TargetServerName = &ServerName;
             QUIC_STATUS Status = CxPlatTlsUtf8ToUnicodeString(TlsContext->SNI, TargetServerName, QUIC_POOL_TLS_SNI);
 #else
-            QUIC_STATUS Status = CxPlatTlsUtf8ToWideChar(TlsContext->SNI, &TargetServerName);
+            QUIC_STATUS Status = CxPlatUtf8ToWideChar(TlsContext->SNI, QUIC_POOL_TLS_SNI, &TargetServerName);
 #endif
             if (QUIC_FAILED(Status)) {
                 QuicTraceEvent(
@@ -1748,8 +1769,13 @@ CxPlatTlsWriteDataToSchannel(
         // Another (output) secbuffer for the result of the subscription.
         //
         OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_SUBSCRIBE_GENERIC_TLS_EXTENSION;
-        OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = *InBufferLength;
-        OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)InBuffer; // Overwrite the input buffer with the extension.
+        if (TlsContext->PeerTransportParams != NULL) {
+            OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = TlsContext->PeerTransportParamsLength;
+            OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)TlsContext->PeerTransportParams;
+        } else {
+            OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = *InBufferLength;
+            OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)InBuffer; // Overwrite the input buffer with the extension.
+        }
         OutSecBufferDesc.cBuffers++;
     }
 
@@ -1769,6 +1795,10 @@ CxPlatTlsWriteDataToSchannel(
         ISC_REQ_CONFIDENTIALITY |
         ISC_RET_EXTENDED_ERROR |
         ISC_REQ_STREAM;
+    if (TlsContext->IsServer &&
+        TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+        ContextReq |= ASC_REQ_MUTUAL_AUTH;
+    }
     ULONG ContextAttr;
     SECURITY_STATUS SecStatus;
 
@@ -1959,6 +1989,82 @@ CxPlatTlsWriteDataToSchannel(
             }
             if (SessionInfo.dwFlags & SSL_SESSION_RECONNECT) {
                 State->SessionResumed = TRUE;
+            }
+
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
+
+#ifdef _KERNEL_MODE
+                SecPkgContext_Certificates PeerCert;
+                CxPlatZeroMemory(&PeerCert, sizeof(PeerCert));
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_REMOTE_CERTIFICATES,
+                        (PVOID)&PeerCert);
+#else
+                PCCERT_CONTEXT PeerCert = NULL;
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_REMOTE_CERT_CONTEXT,
+                        (PVOID)&PeerCert);
+#endif
+                if (SecStatus != SEC_E_OK) {
+                    QuicTraceEvent(
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        SecStatus,
+                        "Query peer cert");
+                }
+
+                SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
+                if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
+                    SecStatus =
+                        QueryContextAttributesW(
+                            &TlsContext->SchannelContext,
+                            SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
+                            &CertValidationResult);
+                    if (SecStatus != SEC_E_OK) {
+                        QuicTraceEvent(
+                            TlsErrorStatus,
+                            "[ tls][%p] ERROR, %u, %s.",
+                            TlsContext->Connection,
+                            SecStatus,
+                            "query cert validation result");
+                        Result |= CXPLAT_TLS_RESULT_ERROR;
+                        break;
+                    }
+                }
+
+                if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
+                        TlsContext->Connection,
+#ifdef _KERNEL_MODE
+                        (void*)&PeerCert,
+#else
+                        (void*)PeerCert,
+#endif
+                        CertValidationResult.dwChainErrorStatus,
+                        (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
+                    QuicTraceEvent(
+                        TlsError,
+                        "[ tls][%p] ERROR, %s.",
+                        TlsContext->Connection,
+                        "Indicate certificate received failed");
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
+                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
+                    break;
+                }
+
+#ifdef _KERNEL_MODE
+                if (PeerCert.pbCertificateChain != NULL) {
+                    FreeContextBuffer(PeerCert.pbCertificateChain);
+                }
+#else
+                if (PeerCert != NULL) {
+                    CertFreeCertificateContext(PeerCert);
+                }
+#endif
             }
 
             QuicTraceLogConnInfo(
@@ -2255,6 +2361,11 @@ CxPlatTlsWriteDataToSchannel(
 
         TlsContext->PeerTransportParamsReceived = TRUE;
         Result |= CXPLAT_TLS_RESULT_CONTINUE;
+        if (TlsContext->PeerTransportParams != NULL) {
+            CXPLAT_FREE(TlsContext->PeerTransportParams, QUIC_POOL_TLS_TMP_TP);
+            TlsContext->PeerTransportParams = NULL;
+            TlsContext->PeerTransportParamsLength = 0;
+        }
 
         break;
 
@@ -2276,6 +2387,56 @@ CxPlatTlsWriteDataToSchannel(
         }
 
         break;
+
+    case SEC_E_EXT_BUFFER_TOO_SMALL:
+        if (*InBufferLength != 0 &&
+            !TlsContext->IsServer &&
+            !TlsContext->PeerTransportParamsReceived) {
+
+            for (uint32_t i = 0; i < OutSecBufferDesc.cBuffers; ++i) {
+                if (OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_SUBSCRIBE_GENERIC_TLS_EXTENSION) {
+
+                    CXPLAT_DBG_ASSERT(OutSecBufferDesc.pBuffers[i].cbBuffer > *InBufferLength);
+
+                    QuicTraceLogConnInfo(
+                        SchannelTransParamsBufferTooSmall,
+                        TlsContext->Connection,
+                        "Peer TP too large for available buffer (%u vs. %u)",
+                        OutSecBufferDesc.pBuffers[i].cbBuffer,
+                        (TlsContext->PeerTransportParams != NULL) ?
+                            TlsContext->PeerTransportParamsLength :
+                            *InBufferLength);
+
+                    if (TlsContext->PeerTransportParams != NULL) {
+                        CXPLAT_FREE(TlsContext->PeerTransportParams, QUIC_POOL_TLS_TMP_TP);
+                    }
+
+                    TlsContext->PeerTransportParams =
+                        CXPLAT_ALLOC_NONPAGED(
+                            OutSecBufferDesc.pBuffers[i].cbBuffer,
+                            QUIC_POOL_TLS_TMP_TP);
+                    if (TlsContext->PeerTransportParams == NULL) {
+                        QuicTraceEvent(
+                            AllocFailure,
+                            "Allocation of '%s' failed. (%llu bytes)",
+                            "Temporary Peer Transport Params",
+                            OutSecBufferDesc.pBuffers[i].cbBuffer);
+                        Result |= CXPLAT_TLS_RESULT_ERROR;
+                        break;
+                    }
+                    TlsContext->PeerTransportParamsLength = OutSecBufferDesc.pBuffers[i].cbBuffer;
+                    Result |= CXPLAT_TLS_RESULT_CONTINUE;
+                    break;
+                }
+            }
+            if (TlsContext->PeerTransportParams != NULL) {
+                break;
+            }
+        }
+        //
+        // Fall through here in other cases when we don't expect this.
+        //
+        __fallthrough;
 
     default:
         //
@@ -2377,7 +2538,7 @@ CxPlatTlsProcessData(
         goto Error;
     }
 
-    if (Result & CXPLAT_TLS_RESULT_CONTINUE) {
+    while (Result & CXPLAT_TLS_RESULT_CONTINUE) {
         Result &= ~CXPLAT_TLS_RESULT_CONTINUE;
         Result |=
             CxPlatTlsWriteDataToSchannel(
@@ -2462,9 +2623,120 @@ CxPlatTlsParamGet(
             break;
         }
 
+        case QUIC_PARAM_TLS_HANDSHAKE_INFO: {
+            if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
+                *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            SecPkgContext_ConnectionInfo ConnInfo;
+            CxPlatZeroMemory(&ConnInfo, sizeof(ConnInfo));
+
+            Status =
+                SecStatusToQuicStatus(
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_CONNECTION_INFO,
+                        &ConnInfo));
+            if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    Status,
+                    "Query Connection Info");
+                break;
+            }
+
+            SecPkgContext_CipherInfo CipherInfo;
+            CxPlatZeroMemory(&CipherInfo, sizeof(CipherInfo));
+
+            Status =
+                SecStatusToQuicStatus(
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_CIPHER_INFO,
+                        &CipherInfo));
+            if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    Status,
+                    "Query Cipher Info");
+                break;
+            }
+
+            QUIC_HANDSHAKE_INFO* HandshakeInfo = (QUIC_HANDSHAKE_INFO*)Buffer;
+            if ((ConnInfo.dwProtocol & SP_PROT_TLS1_3) != 0) {
+                HandshakeInfo->TlsProtocolVersion = QUIC_TLS_PROTOCOL_1_3;
+            } else {
+                HandshakeInfo->TlsProtocolVersion = QUIC_TLS_PROTOCOL_UNKNOWN;
+            }
+
+            HandshakeInfo->CipherAlgorithm = ConnInfo.aiCipher;
+            HandshakeInfo->CipherStrength = ConnInfo.dwCipherStrength;
+            HandshakeInfo->Hash = ConnInfo.aiHash;
+            HandshakeInfo->HashStrength = ConnInfo.dwHashStrength;
+            HandshakeInfo->KeyExchangeAlgorithm = ConnInfo.aiExch;
+            HandshakeInfo->KeyExchangeStrength = ConnInfo.dwExchStrength;
+            HandshakeInfo->CipherSuite = CipherInfo.dwCipherSuite;
+            break;
+        }
+
         default:
             Status = QUIC_STATUS_NOT_SUPPORTED;
             break;
+
+        case QUIC_PARAM_TLS_NEGOTIATED_ALPN: {
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            SecPkgContext_ApplicationProtocol NegotiatedAlpn;
+            CxPlatZeroMemory(&NegotiatedAlpn, sizeof(NegotiatedAlpn));
+
+            Status =
+                SecStatusToQuicStatus(
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_APPLICATION_PROTOCOL,
+                        &NegotiatedAlpn));
+            if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    Status,
+                    "Query Application Protocol");
+                break;
+            }
+            if (NegotiatedAlpn.ProtoNegoStatus != SecApplicationProtocolNegotiationStatus_Success) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    NegotiatedAlpn.ProtoNegoStatus,
+                    "ALPN negotiation status");
+                Status = QUIC_STATUS_INVALID_STATE;
+                break;
+            }
+            if (*BufferLength < NegotiatedAlpn.ProtocolIdSize) {
+                *BufferLength = NegotiatedAlpn.ProtocolIdSize;
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+            *BufferLength = NegotiatedAlpn.ProtocolIdSize;
+            CxPlatCopyMemory(Buffer, NegotiatedAlpn.ProtocolId, NegotiatedAlpn.ProtocolIdSize);
+            break;
+        }
     }
 
     return Status;
