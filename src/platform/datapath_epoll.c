@@ -2080,12 +2080,34 @@ CxPlatSocketSendInternal(
     size_t TotalMessagesCount;
 
     CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
+    CXPLAT_DBG_ASSERT(SendData->SentMessagesCount <= CXPLAT_MAX_BATCH_SEND);
 
     static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
     char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
 
     ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
     SocketContext = &Socket->SocketContexts[Socket->HasFixedRemoteAddress ? 0 : ProcNumber];
+
+    ProcContext = &Socket->Datapath->ProcContexts[ProcNumber];
+
+    uint32_t TotalSize = 0;
+    for (size_t i = SendData->SentMessagesCount; i < SendData->BufferCount; ++i) {
+        SendData->Iovs[i].iov_base = SendData->Buffers[i].Buffer;
+        SendData->Iovs[i].iov_len = SendData->Buffers[i].Length;
+        TotalSize += SendData->Buffers[i].Length;
+    }
+
+    if (!IsPendedSend) {
+        QuicTraceEvent(
+            DatapathSend,
+            "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+            Socket,
+            TotalSize,
+            SendData->BufferCount,
+            SendData->Buffers[SendData->SentMessagesCount].Length,
+            CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+            CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+    }
 
     //
     // Check to see if we need to pend.
@@ -2106,26 +2128,6 @@ CxPlatSocketSendInternal(
             goto Exit;
         }
     }
-
-
-    ProcContext = &Socket->Datapath->ProcContexts[ProcNumber];
-
-    uint32_t TotalSize = 0;
-    for (size_t i = SendData->SentMessagesCount; i < SendData->BufferCount; ++i) {
-        SendData->Iovs[i].iov_base = SendData->Buffers[i].Buffer;
-        SendData->Iovs[i].iov_len = SendData->Buffers[i].Length;
-        TotalSize += SendData->Buffers[i].Length;
-    }
-
-    QuicTraceEvent(
-        DatapathSend,
-        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-        Socket,
-        TotalSize,
-        SendData->BufferCount,
-        SendData->Buffers[SendData->SentMessagesCount].Length,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-        CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.
@@ -2197,7 +2199,6 @@ CxPlatSocketSendInternal(
         if (SuccessfullySentMessages < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 if (!IsPendedSend) {
-                    // TODO log sends as pending so byte counts line up.
                     CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
                     CxPlatSocketContextPendSend(
                         SocketContext,
