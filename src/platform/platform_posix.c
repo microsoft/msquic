@@ -560,11 +560,15 @@ CxPlatGetAbsoluteTime(
     Time->tv_sec += (DeltaMs / CXPLAT_MS_PER_SECOND);
     Time->tv_nsec += ((DeltaMs % CXPLAT_MS_PER_SECOND) * CXPLAT_NANOSEC_PER_MS);
 
-    if (Time->tv_nsec > CXPLAT_NANOSEC_PER_SEC)
+    if (Time->tv_nsec >= CXPLAT_NANOSEC_PER_SEC)
     {
         Time->tv_sec += 1;
         Time->tv_nsec -= CXPLAT_NANOSEC_PER_SEC;
     }
+
+    CXPLAT_DBG_ASSERT(Time->tv_sec >= 0);
+    CXPLAT_DBG_ASSERT(Time->tv_nsec >= 0);
+    CXPLAT_DBG_ASSERT(Time->tv_nsec < CXPLAT_NANOSEC_PER_SEC);
 }
 
 void
