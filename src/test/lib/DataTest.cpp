@@ -366,12 +366,12 @@ QuicTestConnectAndPing(
     }
     Settings.SetSendBufferingEnabled(UseSendBuffer);
 
-    MsQuicCredentialConfig GoodServerConfig(SelfSignedCredConfig);
+    MsQuicCredentialConfig GoodServerConfig(ServerSelfSignedCredConfig);
 #ifndef QUIC_DISABLE_0RTT_TESTS
     uint8_t GoodTicketKey[44] = {0};
     GoodServerConfig.TicketKey = GoodTicketKey;
 
-    MsQuicCredentialConfig BadServerConfig(SelfSignedCredConfig);
+    MsQuicCredentialConfig BadServerConfig(ServerSelfSignedCredConfig);
     uint8_t BadTicketKey[44] = {1};
     BadServerConfig.TicketKey = BadTicketKey;
 #endif
@@ -500,7 +500,7 @@ QuicTestServerDisconnect(
     MsQuicSettings Settings;
     Settings.SetIdleTimeoutMs(10000);
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
@@ -617,7 +617,7 @@ QuicTestClientDisconnect(
     Settings.SetIdleTimeoutMs(10000);
     Settings.SetPeerUnidiStreamCount(1);
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
@@ -911,7 +911,7 @@ QuicAbortiveTransfers(
 
     MsQuicAlpn Alpn("MsQuicTest");
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
@@ -1423,7 +1423,7 @@ QuicTestReceiveResume(
 
     MsQuicAlpn Alpn("MsQuicTest");
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
@@ -1686,7 +1686,7 @@ QuicTestReceiveResumeNoData(
 
     MsQuicAlpn Alpn("MsQuicTest");
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
@@ -2036,7 +2036,7 @@ QuicTestAckSendDelay(
     Settings.SetMaxAckDelayMs(AckDelayMs);
     Settings.SetPeerBidiStreamCount(1);
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;

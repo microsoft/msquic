@@ -205,6 +205,28 @@ class WithVersionNegotiationExtArgs : public testing::Test,
     public testing::WithParamInterface<VersionNegotiationExtArgs> {
 };
 
+struct HandshakeArgs6 {
+    int Family;
+    bool UseClientCertificate;
+    static ::std::vector<HandshakeArgs6> Generate() {
+        ::std::vector<HandshakeArgs6> list;
+        for (int Family : { 4, 6 })
+        for (bool UseClientCertificate : { false, true })
+            list.push_back({ Family, UseClientCertificate });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs6& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.UseClientCertificate ? "Cert" : "NoCert");
+}
+
+class WithHandshakeArgs6 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs6> {
+};
+
 struct SendArgs1 {
     int Family;
     uint64_t Length;

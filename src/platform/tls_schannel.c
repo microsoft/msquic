@@ -1324,7 +1324,7 @@ CxPlatTlsSecConfigCreate(
         "[ tls] Starting ACH worker");
 
     TLS_WORKER_CONTEXT ThreadContext = { STATUS_SUCCESS, AchContext };
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+    if (IsClient) {
         //
         // For schannel resumption to work, we have to call the client side
         // of this from a SYSTEM thread.
