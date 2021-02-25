@@ -1570,6 +1570,9 @@ CxPlatTlsSecConfigSetTicketKeys(
 
     SecPkgCred_SessionTicketKey Key[SCHANEL_MAX_TICKET_KEY_COUNT];
     for (uint8_t i = 0; i < KeyCount; ++i) {
+        if (KeyConfig[i].MaterialLength > sizeof(Key[i].KeyingMaterial)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
         Key[i].TicketInfoVersion = SESSION_TICKET_INFO_V0;
         Key[i].KeyingMaterialSize = KeyConfig[i].MaterialLength;
         CxPlatCopyMemory(Key[i].KeyingMaterial, KeyConfig[i].Material, KeyConfig[i].MaterialLength);
