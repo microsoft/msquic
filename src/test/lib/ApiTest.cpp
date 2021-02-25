@@ -243,7 +243,7 @@ void QuicTestValidateConfiguration()
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConfigurationLoadCredential(
                 LocalConfiguration,
-                &SelfSignedCredConfig));
+                &ServerSelfSignedCredConfig));
     }
 
 #ifndef QUIC_DISABLE_RESUMPTION_REJECTION_TESTS
@@ -265,7 +265,7 @@ void QuicTestValidateConfiguration()
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConfigurationLoadCredential(
                 LocalConfiguration,
-                &SelfSignedCredConfig));
+                &ServerSelfSignedCredConfig));
 
         QUIC_TICKET_KEY_CONFIG KeyConfig;
         CxPlatZeroMemory(&KeyConfig, sizeof(KeyConfig));
@@ -297,7 +297,7 @@ void QuicTestValidateConfiguration()
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConfigurationLoadCredential(
                 LocalConfiguration,
-                &SelfSignedCredConfig));
+                &ServerSelfSignedCredConfig));
 
         QUIC_TICKET_KEY_CONFIG KeyConfigs[2];
         CxPlatZeroMemory(KeyConfigs, sizeof(KeyConfigs));
