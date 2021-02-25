@@ -2425,8 +2425,12 @@ CxPlatTlsWriteDataToSchannel(
                         break;
                     }
                     TlsContext->PeerTransportParamsLength = OutSecBufferDesc.pBuffers[i].cbBuffer;
+                    Result |= CXPLAT_TLS_RESULT_CONTINUE;
                     break;
                 }
+            }
+            if (TlsContext->PeerTransportParams != NULL) {
+                break;
             }
         }
         //

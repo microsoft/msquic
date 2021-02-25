@@ -977,8 +977,8 @@ TEST_F(TlsTest, HandshakeFragmented)
 TEST_F(TlsTest, HandshakeVeryFragmented)
 {
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig, false, 256);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ServerContext.InitializeServer(ServerSecConfig, false, 1500);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation, false, 1500);
     DoHandshake(ServerContext, ClientContext, 1);
 }
 
