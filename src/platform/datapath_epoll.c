@@ -2259,7 +2259,7 @@ CxPlatSocketSendInternal(
                 goto Exit;
             }
         } else {
-            SendData->SentMessagesCount = SuccessfullySentMessages;
+            SendData->SentMessagesCount += SuccessfullySentMessages;
         }
     }
 
