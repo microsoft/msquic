@@ -2080,7 +2080,10 @@ CxPlatSocketSendInternal(
     size_t TotalMessagesCount;
 
     CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
-    CXPLAT_DBG_ASSERT(SendData->SentMessagesCount <= CXPLAT_MAX_BATCH_SEND);
+    CXPLAT_DBG_ASSERT(SendData->SentMessagesCount < CXPLAT_MAX_BATCH_SEND);
+    if (!IsPendedSend) {
+        CXPLAT_DBG_ASSERT(SendData->SentMessagesCount == 0);
+    }
 
     static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
     char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
