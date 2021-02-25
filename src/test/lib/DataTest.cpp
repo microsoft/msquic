@@ -366,23 +366,23 @@ QuicTestConnectAndPing(
     }
     Settings.SetSendBufferingEnabled(UseSendBuffer);
 
-    MsQuicCredentialConfig GoodServerConfig(ServerSelfSignedCredConfig);
-#ifndef QUIC_DISABLE_0RTT_TESTS
-    uint8_t GoodTicketKey[44] = {0};
-    GoodServerConfig.TicketKey = GoodTicketKey;
+    MsQuicCredentialConfig ServerConfig(ServerSelfSignedCredConfig);
 
-    MsQuicCredentialConfig BadServerConfig(ServerSelfSignedCredConfig);
-    uint8_t BadTicketKey[44] = {1};
-    BadServerConfig.TicketKey = BadTicketKey;
-#endif
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicConfiguration GoodServerConfiguration(Registration, Alpn, Settings, GoodServerConfig);
-    TEST_TRUE(GoodServerConfiguration.IsValid());
+    QUIC_TICKET_KEY_CONFIG GoodKey;
+    CxPlatZeroMemory(&GoodKey, sizeof(GoodKey));
+    GoodKey.MaterialLength = 64;
 
-#ifndef QUIC_DISABLE_0RTT_TESTS
-    MsQuicConfiguration BadServerConfiguration(Registration, Alpn, Settings, BadServerConfig);
-    TEST_TRUE(BadServerConfiguration.IsValid());
-#endif
+    QUIC_TICKET_KEY_CONFIG BadKey;
+    CxPlatZeroMemory(&BadKey, sizeof(BadKey));
+    BadKey.MaterialLength = 64;
+    BadKey.Material[0] = 0xFF;
+
+    if (ServerRejectZeroRtt) {
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&GoodKey));
+    }
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
@@ -391,7 +391,7 @@ QuicTestConnectAndPing(
     if (ClientZeroRtt) {
         QuicTestPrimeResumption(
             Registration,
-            GoodServerConfiguration,
+            ServerConfiguration,
             ClientConfiguration,
             &ClientStats.ResumptionTicket);
         if (!ClientStats.ResumptionTicket) {
@@ -402,14 +402,13 @@ QuicTestConnectAndPing(
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
 
     {
+        if (ServerRejectZeroRtt) {
+            TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&BadKey));
+        }
         TestListener Listener(
             Registration,
             ListenerAcceptPingConnection,
-#ifndef QUIC_DISABLE_0RTT_TESTS
-            ServerRejectZeroRtt ? BadServerConfiguration : GoodServerConfiguration
-#else
-            GoodServerConfiguration
-#endif
+            ServerConfiguration
             );
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));

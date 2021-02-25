@@ -39,8 +39,6 @@ void QuicTestValidateConfiguration()
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
-    HQUIC LocalConfiguration = nullptr;
-
     QUIC_SETTINGS EmptySettings{0};
 
     QUIC_SETTINGS GoodSettings{0};
@@ -74,67 +72,67 @@ void QuicTestValidateConfiguration()
     //
     // Null registration.
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->ConfigurationOpen(
-            nullptr,
-            &GoodAlpn,
-            1,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConfigurationOpen(
+                nullptr,
+                &GoodAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Null settings.
     //
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->ConfigurationOpen(
-            Registration,
-            &GoodAlpn,
-            1,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
-
-    MsQuic->ConfigurationClose(
-        LocalConfiguration);
-    LocalConfiguration = nullptr;
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Empty settings.
     //
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->ConfigurationOpen(
-            Registration,
-            &GoodAlpn,
-            1,
-            &EmptySettings,
-            sizeof(EmptySettings),
-            nullptr,
-            &LocalConfiguration));
-
-    MsQuic->ConfigurationClose(
-        LocalConfiguration);
-    LocalConfiguration = nullptr;
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                &EmptySettings,
+                sizeof(EmptySettings),
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Good settings.
     //
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->ConfigurationOpen(
-            Registration,
-            &GoodAlpn,
-            1,
-            &GoodSettings,
-            sizeof(GoodSettings),
-            nullptr,
-            &LocalConfiguration));
-
-    MsQuic->ConfigurationClose(
-        LocalConfiguration);
-    LocalConfiguration = nullptr;
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                &GoodSettings,
+                sizeof(GoodSettings),
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Invalid settings - TODO
@@ -143,86 +141,178 @@ void QuicTestValidateConfiguration()
     //
     // Null ALPN.
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->ConfigurationOpen(
-            Registration,
-            nullptr,
-            0,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConfigurationOpen(
+                Registration,
+                nullptr,
+                0,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Empty ALPN.
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->ConfigurationOpen(
-            Registration,
-            &EmptyAlpn,
-            1,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &EmptyAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // 255-byte ALPN.
     //
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->ConfigurationOpen(
-            Registration,
-            &LongAlpn,
-            1,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
-
-    MsQuic->ConfigurationClose(
-        LocalConfiguration);
-    LocalConfiguration = nullptr;
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &LongAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // 256-byte ALPN.
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->ConfigurationOpen(
-            Registration,
-            &TooLongAlpn,
-            1,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &TooLongAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Multiple ALPNs
     //
-    const QUIC_BUFFER TwoAlpns[] = {
-        { sizeof("alpn1") - 1, (uint8_t*)"alpn1" },
-        { sizeof("alpn2") - 1, (uint8_t*)"alpn2" }
-    };
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->ConfigurationOpen(
-            Registration,
-            TwoAlpns,
-            2,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
-
-    MsQuic->ConfigurationClose(
-        LocalConfiguration);
-    LocalConfiguration = nullptr;
+    {
+        ConfigurationScope LocalConfiguration;
+        const QUIC_BUFFER TwoAlpns[] = {
+            { sizeof("alpn1") - 1, (uint8_t*)"alpn1" },
+            { sizeof("alpn2") - 1, (uint8_t*)"alpn2" }
+        };
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                TwoAlpns,
+                2,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
-    // TODO - ConfigurationLoad?
+    // ConfigurationLoad
     //
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationLoadCredential(
+                LocalConfiguration,
+                &ServerSelfSignedCredConfig));
+    }
+
+#ifndef QUIC_DISABLE_RESUMPTION_REJECTION_TESTS
+    //
+    // Set Ticket Key (single)
+    //
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationLoadCredential(
+                LocalConfiguration,
+                &ServerSelfSignedCredConfig));
+
+        QUIC_TICKET_KEY_CONFIG KeyConfig;
+        CxPlatZeroMemory(&KeyConfig, sizeof(KeyConfig));
+        KeyConfig.MaterialLength = 64;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                LocalConfiguration,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                sizeof(KeyConfig),
+                &KeyConfig));
+    }
+
+    //
+    // Set Ticket Key (multiple)
+    //
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationLoadCredential(
+                LocalConfiguration,
+                &ServerSelfSignedCredConfig));
+
+        QUIC_TICKET_KEY_CONFIG KeyConfigs[2];
+        CxPlatZeroMemory(KeyConfigs, sizeof(KeyConfigs));
+        KeyConfigs[0].MaterialLength = 64;
+        KeyConfigs[1].MaterialLength = 64;
+        KeyConfigs[1].Id[0] = 1;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                LocalConfiguration,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                sizeof(KeyConfigs),
+                KeyConfigs));
+    }
+#endif // QUIC_DISABLE_RESUMPTION_REJECTION_TESTS
 }
 
 static

@@ -63,6 +63,12 @@ void QuicTestBindConnectionExplicit(_In_ int Family);
 // Handshake Tests
 //
 
+typedef enum QUIC_TEST_RESUMPTION_MODE {
+    QUIC_TEST_RESUMPTION_DISABLED,
+    QUIC_TEST_RESUMPTION_ENABLED,
+    QUIC_TEST_RESUMPTION_REJECTED,
+} QUIC_TEST_RESUMPTION_MODE;
+
 void
 QuicTestConnect(
     _In_ int Family,
@@ -71,7 +77,7 @@ QuicTestConnect(
     _In_ bool MultipleALPNs,
     _In_ bool AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
-    _In_ bool SessionResumption,
+    _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
     _In_ uint8_t RandomLossPercentage // 0 to 100
     );
 
