@@ -268,6 +268,7 @@ if(WIN32)
         # OpenSSL and SChannel don't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
@@ -378,6 +379,7 @@ else()
         # OpenSSL doesn't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
