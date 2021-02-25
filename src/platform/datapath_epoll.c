@@ -28,11 +28,8 @@ Environment:
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
 
-//
-// TODO: Support batching.
-//
 #define CXPLAT_MAX_BATCH_SEND 7
-#define CXPLAT_MAX_BATCH_RECIEVE 1
+#define CXPLAT_MAX_BATCH_RECEIVE 7
 
 //
 // A receive block to receive a UDP packet over the sockets.
@@ -58,6 +55,11 @@ typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
     // Buffer that actually stores the UDP payload.
     //
     uint8_t Buffer[MAX_UDP_PAYLOAD_LENGTH];
+
+    //
+    // This follows the recv block.
+    //
+    // CXPLAT_RECV_PACKET RecvContext;
 
 } CXPLAT_DATAPATH_RECV_BLOCK;
 
@@ -156,22 +158,22 @@ typedef struct CXPLAT_SOCKET_CONTEXT {
     //
     // The I/O vector for receive datagrams.
     //
-    struct iovec RecvIov[CXPLAT_MAX_BATCH_RECIEVE];
+    struct iovec RecvIov[CXPLAT_MAX_BATCH_RECEIVE];
 
     //
     // The control buffer used in RecvMsgHdr.
     //
-    CXPLAT_RECV_MSG_CONTROL_BUFFER RecvMsgControl[CXPLAT_MAX_BATCH_RECIEVE];
+    CXPLAT_RECV_MSG_CONTROL_BUFFER RecvMsgControl[CXPLAT_MAX_BATCH_RECEIVE];
 
     //
     // The buffer used to receive msg headers on socket.
     //
-    struct mmsghdr RecvMsgHdr[CXPLAT_MAX_BATCH_RECIEVE];
+    struct mmsghdr RecvMsgHdr[CXPLAT_MAX_BATCH_RECEIVE];
 
     //
     // The receive block currently being used for receives on this socket.
     //
-    CXPLAT_DATAPATH_RECV_BLOCK* CurrentRecvBlock;
+    CXPLAT_DATAPATH_RECV_BLOCK* CurrentRecvBlocks[CXPLAT_MAX_BATCH_RECEIVE];
 
     //
     // The head of list containg all pending sends on this socket.
@@ -364,8 +366,7 @@ CxPlatProcessorContextInitialize(
     CXPLAT_DBG_ASSERT(Datapath != NULL);
 
     RecvPacketLength =
-        (sizeof(CXPLAT_DATAPATH_RECV_BLOCK) + Datapath->ClientRecvContextLength)
-        * CXPLAT_MAX_BATCH_RECIEVE;
+        sizeof(CXPLAT_DATAPATH_RECV_BLOCK) + Datapath->ClientRecvContextLength;
 
     ProcContext->Index = Index;
     CxPlatPoolInitialize(
@@ -1190,8 +1191,10 @@ CxPlatSocketContextUninitializeComplete(
     _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
-    if (SocketContext->CurrentRecvBlock != NULL) {
-        CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlock->RecvPacket);
+    for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
+        if (SocketContext->CurrentRecvBlocks[i] != NULL) {
+            CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlocks[i]->RecvPacket);
+        }
     }
 
     while (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
@@ -1215,37 +1218,30 @@ CxPlatSocketContextPrepareReceive(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
-    if (SocketContext->CurrentRecvBlock == NULL) {
-        SocketContext->CurrentRecvBlock =
-            CxPlatDataPathAllocRecvBlock(
-                SocketContext->Binding->Datapath,
-                CxPlatProcCurrentNumber() % SocketContext->Binding->Datapath->ProcCount);
-        if (SocketContext->CurrentRecvBlock == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "CXPLAT_DATAPATH_RECV_BLOCK",
-                0);
-            return QUIC_STATUS_OUT_OF_MEMORY;
-        }
-    }
-
     CxPlatZeroMemory(&SocketContext->RecvMsgHdr, sizeof(SocketContext->RecvMsgHdr));
     CxPlatZeroMemory(&SocketContext->RecvMsgControl, sizeof(SocketContext->RecvMsgControl));
 
-    size_t BlockOffset =
-        sizeof(CXPLAT_DATAPATH_RECV_BLOCK)
-        + SocketContext->Binding->Datapath->ClientRecvContextLength;
-    uint8_t* BaseBlock = (uint8_t*)SocketContext->CurrentRecvBlock;
-
-    for (int i = 0; i < CXPLAT_MAX_BATCH_RECIEVE; i++) {
-        CXPLAT_DATAPATH_RECV_BLOCK* CurrentBlock = (CXPLAT_DATAPATH_RECV_BLOCK*)(BaseBlock + BlockOffset * i);
+    for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
+        if (SocketContext->CurrentRecvBlocks[i] == NULL) {
+            SocketContext->CurrentRecvBlocks[i] =
+                CxPlatDataPathAllocRecvBlock(
+                    SocketContext->Binding->Datapath,
+                    CxPlatProcCurrentNumber() % SocketContext->Binding->Datapath->ProcCount);
+            if (SocketContext->CurrentRecvBlocks[i] == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "CXPLAT_DATAPATH_RECV_BLOCK",
+                    0);
+                return QUIC_STATUS_OUT_OF_MEMORY;
+            }
+        }
+        CXPLAT_DATAPATH_RECV_BLOCK* CurrentBlock = SocketContext->CurrentRecvBlocks[i];
+        struct msghdr* MsgHdr = &SocketContext->RecvMsgHdr[i].msg_hdr;
 
         SocketContext->RecvIov[i].iov_base = CurrentBlock->RecvPacket.Buffer;
         CurrentBlock->RecvPacket.BufferLength = SocketContext->RecvIov[i].iov_len;
         CurrentBlock->RecvPacket.Tuple = &CurrentBlock->Tuple;
-
-        struct msghdr* MsgHdr = &SocketContext->RecvMsgHdr[i].msg_hdr;
 
         MsgHdr->msg_name = &CurrentBlock->RecvPacket.Tuple->RemoteAddress;
         MsgHdr->msg_namelen = sizeof(CurrentBlock->RecvPacket.Tuple->RemoteAddress);
@@ -1314,20 +1310,24 @@ CxPlatSocketContextRecvComplete(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t BytesTransferred = 0;
 
-    CXPLAT_FRE_ASSERT(MessagesReceived <= CXPLAT_MAX_BATCH_RECIEVE);
+    CXPLAT_FRE_ASSERT(MessagesReceived <= CXPLAT_MAX_BATCH_RECEIVE);
 
-    CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlock != NULL);
-    CXPLAT_DATAPATH_RECV_BLOCK* Head = SocketContext->CurrentRecvBlock;
-    SocketContext->CurrentRecvBlock = NULL;
-    CXPLAT_RECV_DATA* RecvPacket = &Head[0].RecvPacket;
+    CXPLAT_RECV_DATA* DatagramHead = NULL;
+    CXPLAT_RECV_DATA* DatagramTail = NULL;
+
     // TODO handle no messages received
 
     for (int CurrentMessage = 0; CurrentMessage < MessagesReceived; CurrentMessage++) {
-        // Configure the next
-        if (CurrentMessage + 1 < MessagesReceived) {
-            RecvPacket->Next = &Head[CurrentMessage + 1].RecvPacket;
+        CXPLAT_DATAPATH_RECV_BLOCK* CurrentBlock = SocketContext->CurrentRecvBlocks[CurrentMessage];
+        SocketContext->CurrentRecvBlocks[CurrentMessage] = NULL;
+        CXPLAT_RECV_DATA* RecvPacket = &CurrentBlock->RecvPacket;
+
+        if (DatagramHead == NULL) {
+            DatagramHead = RecvPacket;
+            DatagramTail = DatagramHead;
         } else {
-            RecvPacket->Next = NULL;
+            DatagramTail->Next = RecvPacket;
+            DatagramTail = DatagramTail->Next;
         }
 
         BOOLEAN FoundLocalAddr = FALSE;
@@ -1386,17 +1386,17 @@ CxPlatSocketContextRecvComplete(
         CXPLAT_FRE_ASSERT(FoundTOS);
 
         RecvPacket->PartitionIndex = ProcContext->Index;
-        RecvPacket = RecvPacket->Next;
     }
 
-    RecvPacket = &Head[0].RecvPacket;
+    // TODO Fix up
+    CXPLAT_FRE_ASSERT(DatagramHead != NULL);
 
     QuicTraceEvent(
         DatapathRecv,
         "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
-        (uint32_t)RecvPacket->BufferLength,
+        (uint32_t)DatagramHead->BufferLength,
         CLOG_BYTEARRAY(0, NULL), // TODO
         CLOG_BYTEARRAY(0, NULL));
 
@@ -1404,7 +1404,7 @@ CxPlatSocketContextRecvComplete(
     SocketContext->Binding->Datapath->UdpHandlers.Receive(
         SocketContext->Binding,
         SocketContext->Binding->ClientContext,
-        RecvPacket);
+        DatagramHead);
 
     Status = CxPlatSocketContextPrepareReceive(SocketContext);
 
@@ -1585,13 +1585,16 @@ CxPlatSocketContextProcessEvents(
 
     if (EPOLLIN & Events) {
         while (TRUE) {
-            CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlock != NULL);
+
+            for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
+                CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlocks[i] != NULL);
+            }
 
             int Ret =
                 recvmmsg(
                     SocketContext->SocketFd,
                     SocketContext->RecvMsgHdr,
-                    CXPLAT_MAX_BATCH_RECIEVE,
+                    CXPLAT_MAX_BATCH_RECEIVE,
                     0,
                     NULL);
             if (Ret < 0) {
@@ -1681,7 +1684,7 @@ CxPlatSocketCreateUdp(
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
-        for (int j = 0; j < CXPLAT_MAX_BATCH_RECIEVE; j++) {
+        for (ssize_t j = 0; j < CXPLAT_MAX_BATCH_RECEIVE; j++) {
             Binding->SocketContexts[i].RecvIov[j].iov_len =
                 Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
         }
