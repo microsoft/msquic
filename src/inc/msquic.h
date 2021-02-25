@@ -257,6 +257,11 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
 } QUIC_CREDENTIAL_CONFIG;
 
 //
+// The maximum number of QUIC_TICKET_KEY_CONFIG that can be used at one time.
+//
+#define QUIC_MAX_TICKET_KEY_COUNT 16
+
+//
 // TLS New Session Ticket encryption key configuration.
 //
 typedef struct QUIC_TICKET_KEY_CONFIG {
