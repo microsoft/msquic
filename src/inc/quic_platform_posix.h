@@ -559,7 +559,6 @@ typedef struct CXPLAT_EVENT_OBJECT {
     //
     // Mutex and condition.
     //
-
     pthread_mutex_t Mutex;
     pthread_cond_t Cond;
 
