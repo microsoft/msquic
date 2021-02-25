@@ -187,7 +187,7 @@ extern "C" {
 #endif
 
 #if defined(CX_PLATFORM_DARWIN)
-#define QUIC_LOCALHOST_FOR_AF(Af) ((Af == QUIC_ADDRESS_FAMILY_INET) ? "localhost" : "::1")
+#define QUIC_LOCALHOST_FOR_AF(Af) ("localhost")
 #else
 #define QUIC_LOCALHOST_FOR_AF(Af) ((Af == QUIC_ADDRESS_FAMILY_INET) ? "localhost" : "ip6-localhost")
 #endif
