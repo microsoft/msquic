@@ -98,6 +98,11 @@ typedef struct CXPLAT_SEND_DATA {
     struct CXPLAT_DATAPATH_PROC_CONTEXT *Owner;
 
     //
+    // The number of messages of this buffer that have been sent.
+    //
+    size_t SentMessagesCount;
+
+    //
     // BufferCount - The buffer count in use.
     //
     // CurrentIndex - The current index of the Buffers to be sent.
@@ -2066,26 +2071,48 @@ CxPlatSocketSendInternal(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_SOCKET_CONTEXT* SocketContext = NULL;
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
-    ssize_t SentByteCount = 0;
     QUIC_ADDR MappedRemoteAddress = {0};
     struct cmsghdr *CMsg = NULL;
     struct in_pktinfo *PktInfo = NULL;
     struct in6_pktinfo *PktInfo6 = NULL;
     BOOLEAN SendPending = FALSE;
     uint32_t ProcNumber;
-    size_t SendCount;
+    size_t TotalMessagesCount;
+
+    CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
 
     static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
     char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
 
-    CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
 
     ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
     SocketContext = &Socket->SocketContexts[Socket->HasFixedRemoteAddress ? 0 : ProcNumber];
+
+    //
+    // Check to see if we need to pend.
+    //
+    if (!IsPendedSend) {
+        CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
+        if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
+            CxPlatSocketContextPendSend(
+                SocketContext,
+                SendData,
+                LocalAddress,
+                RemoteAddress);
+            SendPending = TRUE;
+        }
+        CxPlatLockRelease(&SocketContext->PendingSendContextLock);
+        if (SendPending) {
+            Status = QUIC_STATUS_PENDING;
+            goto Exit;
+        }
+    }
+
+
     ProcContext = &Socket->Datapath->ProcContexts[ProcNumber];
 
     uint32_t TotalSize = 0;
-    for (size_t i = 0; i < SendData->BufferCount; ++i) {
+    for (size_t i = SendData->SentMessagesCount; i < SendData->BufferCount; ++i) {
         SendData->Iovs[i].iov_base = SendData->Buffers[i].Buffer;
         SendData->Iovs[i].iov_len = SendData->Buffers[i].Length;
         TotalSize += SendData->Buffers[i].Length;
@@ -2097,7 +2124,7 @@ CxPlatSocketSendInternal(
         Socket,
         TotalSize,
         SendData->BufferCount,
-        SendData->Buffers[0].Length,
+        SendData->Buffers[SendData->SentMessagesCount].Length,
         CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
         CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
@@ -2111,23 +2138,21 @@ CxPlatSocketSendInternal(
     }
 
     struct mmsghdr Mhdrs[CXPLAT_MAX_BATCH_SEND];
-
-
-    for (SendCount = 0; SendCount < SendData->BufferCount; SendCount++) {
+    for (TotalMessagesCount = SendData->SentMessagesCount; TotalMessagesCount < SendData->BufferCount; TotalMessagesCount++) {
         struct msghdr TempMhdr = {
             .msg_name = &MappedRemoteAddress,
             .msg_namelen = sizeof(MappedRemoteAddress),
-            .msg_iov = SendData->Iovs + SendCount,
+            .msg_iov = SendData->Iovs + TotalMessagesCount,
             .msg_iovlen = 1, // 1 until we support GSO
             .msg_control = ControlBuffer,
             .msg_controllen = CMSG_SPACE(sizeof(int)),
             .msg_flags = 0
         };
 
-        Mhdrs[SendCount].msg_hdr = TempMhdr;
+        Mhdrs[TotalMessagesCount].msg_hdr = TempMhdr;
 
-        struct msghdr* Mhdr = &Mhdrs[SendCount].msg_hdr;
-        Mhdrs[SendCount].msg_len = 0;
+        struct msghdr* Mhdr = &Mhdrs[TotalMessagesCount].msg_hdr;
+        Mhdrs[TotalMessagesCount].msg_len = 0;
 
         CMsg = CMSG_FIRSTHDR(Mhdr);
         CMsg->cmsg_level = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IPPROTO_IP : IPPROTO_IPV6;
@@ -2159,88 +2184,81 @@ CxPlatSocketSendInternal(
         }
     }
 
-    //
-    // Check to see if we need to pend.
-    //
-    if (!IsPendedSend) {
-        CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
-        if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
-            CxPlatSocketContextPendSend(
-                SocketContext,
-                SendData,
-                LocalAddress,
-                RemoteAddress);
-            SendPending = TRUE;
-        }
-        CxPlatLockRelease(&SocketContext->PendingSendContextLock);
-        if (SendPending) {
-            Status = QUIC_STATUS_PENDING;
-            goto Exit;
-        }
-    }
+    while (SendData->SentMessagesCount < TotalMessagesCount) {
 
-    SentByteCount = sendmmsg(SocketContext->SocketFd, Mhdrs, (unsigned int)SendCount, 0);
+        int SuccessfullySentMessages =
+            sendmmsg(
+                SocketContext->SocketFd,
+                Mhdrs + SendData->SentMessagesCount,
+                (unsigned int)(TotalMessagesCount - SendData->SentMessagesCount),
+                0);
 
-    if (SentByteCount < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            if (!IsPendedSend) {
-                CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
-                CxPlatSocketContextPendSend(
-                    SocketContext,
-                    SendData,
-                    LocalAddress,
-                    RemoteAddress);
-                CxPlatLockRelease(&SocketContext->PendingSendContextLock);
-            }
-            SendPending = TRUE;
-            struct epoll_event SockFdEpEvt = {
-                .events = EPOLLIN | EPOLLOUT | EPOLLET,
-                .data = {
-                    .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
+        CXPLAT_FRE_ASSERT(SuccessfullySentMessages != 0);
+
+        if (SuccessfullySentMessages < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                if (!IsPendedSend) {
+                    // TODO long sends as pending so byte counts line up.
+                    CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
+                    CxPlatSocketContextPendSend(
+                        SocketContext,
+                        SendData,
+                        LocalAddress,
+                        RemoteAddress);
+                    CxPlatLockRelease(&SocketContext->PendingSendContextLock);
                 }
-            };
+                SendPending = TRUE;
+                struct epoll_event SockFdEpEvt = {
+                    .events = EPOLLIN | EPOLLOUT | EPOLLET,
+                    .data = {
+                        .ptr = &SocketContext->EventContexts[QUIC_SOCK_EVENT_SOCKET]
+                    }
+                };
 
-            int Ret =
-                epoll_ctl(
-                    ProcContext->EpollFd,
-                    EPOLL_CTL_MOD,
-                    SocketContext->SocketFd,
-                    &SockFdEpEvt);
-            if (Ret != 0) {
+                int Ret =
+                    epoll_ctl(
+                        ProcContext->EpollFd,
+                        EPOLL_CTL_MOD,
+                        SocketContext->SocketFd,
+                        &SockFdEpEvt);
+                if (Ret != 0) {
+                    QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[data][%p] ERROR, %u, %s.",
+                        SocketContext->Binding,
+                        errno,
+                        "epoll_ctl failed");
+                    Status = errno;
+                    goto Exit;
+                }
+                Status = QUIC_STATUS_PENDING;
+                goto Exit;
+            } else {
+                Status = errno;
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[data][%p] ERROR, %u, %s.",
                     SocketContext->Binding,
-                    errno,
-                    "epoll_ctl failed");
-                Status = errno;
+                    Status,
+                    "sendmmsg failed");
+
+                //
+                // Unreachable events can sometimes come synchronously.
+                // Send unreachable notification to MsQuic if any related
+                // errors were received.
+                //
+                if (Status == ECONNREFUSED ||
+                    Status == EHOSTUNREACH ||
+                    Status == ENETUNREACH) {
+                    SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                        SocketContext->Binding,
+                        SocketContext->Binding->ClientContext,
+                        &SocketContext->Binding->RemoteAddress);
+                }
                 goto Exit;
             }
-            Status = QUIC_STATUS_PENDING;
-            goto Exit;
         } else {
-            Status = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                Status,
-                "sendmmsg failed");
-
-            //
-            // Unreachable events can sometimes come synchronously.
-            // Send unreachable notification to MsQuic if any related
-            // errors were received.
-            //
-            if (Status == ECONNREFUSED ||
-                Status == EHOSTUNREACH ||
-                Status == ENETUNREACH) {
-                SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
-                    SocketContext->Binding,
-                    SocketContext->Binding->ClientContext,
-                    &SocketContext->Binding->RemoteAddress);
-            }
-            goto Exit;
+            SendData->SentMessagesCount = SuccessfullySentMessages;
         }
     }
 
