@@ -193,6 +193,7 @@ typedef struct CXPLAT_SEC_CONFIG {
     QUIC_CREDENTIAL_FLAGS Flags;
     CXPLAT_TLS_CALLBACKS Callbacks;
     QUIC_CERTIFICATE* Certificate;
+    QUIC_TICKET_KEY_CONFIG TicketKeyConfig;
     uint16_t FormatLength;
     uint8_t FormatBuffer[SIZEOF_CERT_CHAIN_LIST_LENGTH];
 
@@ -378,10 +379,10 @@ CxPlatTlsSecConfigSetTicketKeys(
     _In_ uint8_t KeyCount
     )
 {
-    UNREFERENCED_PARAMETER(SecurityConfig);
-    UNREFERENCED_PARAMETER(KeyConfig);
+    CXPLAT_DBG_ASSERT(KeyCount > 0);
     UNREFERENCED_PARAMETER(KeyCount);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    SecurityConfig->TicketKeyConfig = *KeyConfig; // Not actually used yet though
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

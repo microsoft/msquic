@@ -69,11 +69,3 @@ const uint32_t TestWaitTimeout = 2000;
         return; \
     } \
 }
-
-#define TEST_QUIC_SUCCEEDED_OR_NOT_SUPPORTED(__condition) { \
-    QUIC_STATUS __status = __condition; \
-    if (QUIC_FAILED(__status) && __status != QUIC_STATUS_NOT_SUPPORTED) { \
-        TEST_FAILURE(#__condition " failed, 0x%x", __status); \
-        return; \
-    } \
-}

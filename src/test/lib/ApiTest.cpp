@@ -246,6 +246,7 @@ void QuicTestValidateConfiguration()
                 &SelfSignedCredConfig));
     }
 
+#ifndef QUIC_DISABLE_RESUMPTION_REJECTION_TESTS
     //
     // Set Ticket Key (single)
     //
@@ -269,7 +270,7 @@ void QuicTestValidateConfiguration()
         QUIC_TICKET_KEY_CONFIG KeyConfig;
         CxPlatZeroMemory(&KeyConfig, sizeof(KeyConfig));
         KeyConfig.MaterialLength = 64;
-        TEST_QUIC_SUCCEEDED_OR_NOT_SUPPORTED(
+        TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 LocalConfiguration,
                 QUIC_PARAM_LEVEL_CONFIGURATION,
@@ -303,7 +304,7 @@ void QuicTestValidateConfiguration()
         KeyConfigs[0].MaterialLength = 64;
         KeyConfigs[1].MaterialLength = 64;
         KeyConfigs[1].Id[0] = 1;
-        TEST_QUIC_SUCCEEDED_OR_NOT_SUPPORTED(
+        TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 LocalConfiguration,
                 QUIC_PARAM_LEVEL_CONFIGURATION,
@@ -311,6 +312,7 @@ void QuicTestValidateConfiguration()
                 sizeof(KeyConfigs),
                 KeyConfigs));
     }
+#endif // QUIC_DISABLE_RESUMPTION_REJECTION_TESTS
 }
 
 static
