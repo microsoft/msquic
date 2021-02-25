@@ -117,7 +117,7 @@ QuicTestConnect(
     _In_ bool MultipleALPNs,
     _In_ bool AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
-    _In_ bool SessionResumption,
+    _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
     _In_ uint8_t RandomLossPercentage
     )
 {
@@ -136,7 +136,7 @@ QuicTestConnect(
     } else {
         Settings.SetIdleTimeoutMs(10000);
     }
-    if (SessionResumption) {
+    if (SessionResumption != QUIC_TEST_RESUMPTION_DISABLED) {
         Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
     }
 
@@ -147,8 +147,21 @@ QuicTestConnect(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn1, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
+    QUIC_TICKET_KEY_CONFIG GoodKey;
+    CxPlatZeroMemory(&GoodKey, sizeof(GoodKey));
+    GoodKey.MaterialLength = 64;
+
+    QUIC_TICKET_KEY_CONFIG BadKey;
+    CxPlatZeroMemory(&BadKey, sizeof(BadKey));
+    BadKey.MaterialLength = 64;
+    BadKey.Material[0] = 0xFF;
+
+    if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED) {
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&GoodKey));
+    }
+
     QUIC_BUFFER* ResumptionTicket = nullptr;
-    if (SessionResumption) {
+    if (SessionResumption != QUIC_TEST_RESUMPTION_DISABLED) {
         QuicTestPrimeResumption(
             Registration,
             ServerConfiguration,
@@ -166,6 +179,9 @@ QuicTestConnect(
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
     {
+        if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED) {
+            TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&BadKey));
+        }
         TestListener Listener(
             Registration,
             ListenerAcceptConnection,
@@ -197,10 +213,12 @@ QuicTestConnect(
                         Client.SetTestTransportParameter(&TpHelper));
                 }
 
-                if (SessionResumption) {
+                if (SessionResumption != QUIC_TEST_RESUMPTION_DISABLED) {
                     Client.SetResumptionTicket(ResumptionTicket);
                     CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
-                    Client.SetExpectedResumed(true);
+                    if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED) {
+                        Client.SetExpectedResumed(true);
+                    }
                 }
 
                 TEST_QUIC_SUCCEEDED(
@@ -242,9 +260,12 @@ QuicTestConnect(
                     TEST_TRUE(Client.GetStatistics().StatelessRetry);
                 }
 
-                if (SessionResumption) {
+                if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED) {
                     TEST_TRUE(Client.GetResumed());
                     TEST_TRUE(Server->GetResumed());
+                } else if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED) {
+                    TEST_FALSE(Client.GetResumed());
+                    TEST_FALSE(Server->GetResumed());
                 }
 
                 TEST_EQUAL(
