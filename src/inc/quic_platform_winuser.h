@@ -933,6 +933,14 @@ CxPlatRandom(
     _Out_writes_bytes_(BufferLen) void* Buffer
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatUtf8ToWideChar(
+    _In_z_ const char* const Input,
+    _In_ uint32_t Tag,
+    _Outptr_result_z_ PWSTR* Output
+    );
+
 //
 // Network Compartment ID interfaces
 //
