@@ -186,7 +186,11 @@ typedef union QUIC_ADDR {
 extern "C" {
 #endif
 
+#if defined(CX_PLATFORM_DARWIN)
+#define QUIC_LOCALHOST_FOR_AF(Af) ("localhost")
+#else
 #define QUIC_LOCALHOST_FOR_AF(Af) ((Af == QUIC_ADDRESS_FAMILY_INET) ? "localhost" : "ip6-localhost")
+#endif
 
 #define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080
 #define QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA                 0x00000100
