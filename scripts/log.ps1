@@ -141,7 +141,7 @@ function Log-Cancel {
         if (!(Test-Path $TempDir)) {
             Write-Debug "LTTng session ($InstanceName) not currently running"
         } else {
-            Invoke-Expression "lttng destroy $InstanceName" | Write-Debug
+            Invoke-Expression "lttng destroy -n $InstanceName" | Write-Debug
             Remove-Item -Path $TempDir -Recurse -Force | Out-Null
             Write-Debug "Destroyed LTTng session ($InstanceName) and deleted $TempDir"
         }

@@ -345,6 +345,17 @@ CxPlatTlsSecConfigDelete(
     );
 
 //
+// Sets a NST ticket key for a security configuration.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsSecConfigSetTicketKeys(
+    _In_ CXPLAT_SEC_CONFIG* SecurityConfig,
+    _In_reads_(KeyCount) QUIC_TICKET_KEY_CONFIG* KeyConfig,
+    _In_ uint8_t KeyCount
+    );
+
+//
 // Initializes a TLS context.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

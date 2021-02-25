@@ -129,6 +129,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_DEFAULT_COMPAT_VER_LIST   '14cQ' // Qc41 - QUIC Default compatible versions list
 #define QUIC_POOL_VER_NEG_INFO              '24cQ' // Qc42 - QUIC Version negotiation info
 #define QUIC_POOL_RECVD_VER_LIST            '34cQ' // Qc43 - QUIC Received version negotiation list
+#define QUIC_POOL_TLS_TMP_TP                '44cQ' // Qc44 - QUIC Platform TLS Temporary TP storage
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
