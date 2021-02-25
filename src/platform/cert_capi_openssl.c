@@ -39,6 +39,64 @@ Environment:
 #include <wincrypt.h>
 #include <msquic.h>
 
+BOOLEAN
+CxPlatTlsVerifyCertificate(
+    _In_ X509* X509Cert,
+    _In_ const char* SNI
+    )
+{
+    // Convert SNI to wide
+    BOOLEAN Result = FALSE;
+    PCCERT_CONTEXT CertContext = NULL;
+    unsigned char* OpenSSLCertBuffer = NULL;
+    int OpenSSLCertLength = 0;
+
+    OpenSSLCertLength = i2d_X509(X509Cert, &OpenSSLCertBuffer);
+    if (OpenSSLCertLength <= 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "i2d_X509 failed");
+        goto Exit;
+    }
+
+    CertContext =
+        (PCCERT_CONTEXT)
+            CertCreateContext(
+                CERT_STORE_CERTIFICATE_CONTEXT,
+                X509_ASN_ENCODING,
+                OpenSSLCertBuffer,
+                OpenSSLCertLength,
+                CERT_CREATE_CONTEXT_NOCOPY_FLAG,
+                NULL);
+    if (CertContext == NULL) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertGetCertificateChain failed");
+        goto Exit;
+    }
+
+    Result =
+        CxPlatCertValidateChain(
+            CertContext,
+            SNI,
+            0);
+
+Exit:
+
+    if (CertContext != NULL) {
+        CertFreeCertificateContext(CertContext);
+    }
+
+    if (OpenSSLCertBuffer != NULL) {
+        OPENSSL_free(OpenSSLCertBuffer);
+    }
+
+    return Result;
+}
+
 QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
@@ -289,5 +347,15 @@ CxPlatTlsExtractPrivateKey(
     UNREFERENCED_PARAMETER(EvpPrivateKey);
     UNREFERENCED_PARAMETER(X509Cert);
     return QUIC_STATUS_NOT_SUPPORTED;
+}
+BOOLEAN
+CxPlatTlsVerifyCertificate(
+    _In_ X509* X509Cert,
+    _In_ const char* SNI
+    )
+{
+    UNREFERENCED_PARAMETER(X509Cert);
+    UNREFERENCED_PARAMETER(SNI);
+    return 0;
 }
 #endif
