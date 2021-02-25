@@ -8319,7 +8319,7 @@
     },
     "DatapathRecv": {
       "ModuleProperites": {},
-      "TraceString": "[data][%p] Recv %u bytes in %hhu buffers (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+      "TraceString": "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
       "UniqueId": "DatapathRecv",
       "splitArgs": [
         {
@@ -8331,20 +8331,16 @@
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "hu",
           "MacroVariableName": "arg4"
         },
         {
-          "DefinationEncoding": "hu",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg5"
         },
         {
           "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg6"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg7"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -8637,6 +8633,114 @@
       "ModuleProperites": {},
       "TraceString": "[sock][%p] Unreachable error from %!ADDR!",
       "UniqueId": "DatapathUnreachable",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathQueryRssProcessorInfoFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
+      "UniqueId": "DatapathQueryRssProcessorInfoFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathMissingInfo": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] WSARecvMsg completion is missing IP_PKTINFO",
+      "UniqueId": "DatapathMissingInfo",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathRecvEmpty": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Dropping datagram with empty payload.",
+      "UniqueId": "DatapathRecvEmpty",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathUroPreallocExceeded": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Exceeded URO preallocation capacity.",
+      "UniqueId": "DatapathUroPreallocExceeded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathShutDownReturn": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Shut down (return)",
+      "UniqueId": "DatapathShutDownReturn",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathShutDownComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Shut down (complete)",
+      "UniqueId": "DatapathShutDownComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathUnreachableWithError": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
+      "UniqueId": "DatapathUnreachableWithError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathTooLarge": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Received larger than expected datagram from %!ADDR!",
+      "UniqueId": "DatapathTooLarge",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -12899,7 +13003,7 @@
         "TraceID": "DatapathErrorStatus"
       },
       {
-        "UniquenessHash": "abf21714-6ac9-1606-a56c-4352692d3d89",
+        "UniquenessHash": "3b8a506d-ede0-3c3b-7c31-83127acebfc6",
         "TraceID": "DatapathRecv"
       },
       {
@@ -12989,6 +13093,38 @@
       {
         "UniquenessHash": "37423b13-b9e3-7961-07d6-137252085127",
         "TraceID": "DatapathUnreachable"
+      },
+      {
+        "UniquenessHash": "86f0cb85-ebae-d293-4103-fb695920b86c",
+        "TraceID": "DatapathQueryRssProcessorInfoFailed"
+      },
+      {
+        "UniquenessHash": "379a72cf-af97-5535-180f-f644b7513c0c",
+        "TraceID": "DatapathMissingInfo"
+      },
+      {
+        "UniquenessHash": "e5973396-4dc6-d94f-5d67-921952ed35a5",
+        "TraceID": "DatapathRecvEmpty"
+      },
+      {
+        "UniquenessHash": "fc873bff-2380-b7f7-a8be-4ff93b6d72d7",
+        "TraceID": "DatapathUroPreallocExceeded"
+      },
+      {
+        "UniquenessHash": "313a165a-4ec1-9450-6b07-56ed0db4c004",
+        "TraceID": "DatapathShutDownReturn"
+      },
+      {
+        "UniquenessHash": "4f1e0892-0852-480e-71db-5b9bb377aabc",
+        "TraceID": "DatapathShutDownComplete"
+      },
+      {
+        "UniquenessHash": "381ba642-ea84-5bf3-aeea-543fe5c5e9b5",
+        "TraceID": "DatapathUnreachableWithError"
+      },
+      {
+        "UniquenessHash": "a07c9538-e6d7-3c41-1367-ce58f2df4d9e",
+        "TraceID": "DatapathTooLarge"
       },
       {
         "UniquenessHash": "681db658-c247-7951-8110-1c361bf69097",

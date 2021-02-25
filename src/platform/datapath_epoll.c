@@ -59,11 +59,6 @@ typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
     //
     uint8_t Buffer[MAX_UDP_PAYLOAD_LENGTH];
 
-    //
-    // This follows the recv block.
-    //
-    // CXPLAT_RECV_PACKET RecvContext;
-
 } CXPLAT_DATAPATH_RECV_BLOCK;
 
 //
@@ -1233,15 +1228,22 @@ CxPlatSocketContextPrepareReceive(
     CxPlatZeroMemory(&SocketContext->RecvMsgHdr, sizeof(SocketContext->RecvMsgHdr));
     CxPlatZeroMemory(&SocketContext->RecvMsgControl, sizeof(SocketContext->RecvMsgControl));
 
+    size_t BlockOffset =
+        sizeof(CXPLAT_DATAPATH_RECV_BLOCK)
+        + SocketContext->Binding->Datapath->ClientRecvContextLength;
+    uint8_t* BaseBlock = (uint8_t*)SocketContext->CurrentRecvBlock;
+
     for (int i = 0; i < CXPLAT_MAX_BATCH_RECIEVE; i++) {
-        SocketContext->RecvIov[i].iov_base = SocketContext->CurrentRecvBlock[i].RecvPacket.Buffer;
-        SocketContext->CurrentRecvBlock[i].RecvPacket.BufferLength = SocketContext->RecvIov[i].iov_len;
-        SocketContext->CurrentRecvBlock[i].RecvPacket.Tuple = &SocketContext->CurrentRecvBlock[i].Tuple;
+        CXPLAT_DATAPATH_RECV_BLOCK* CurrentBlock = (CXPLAT_DATAPATH_RECV_BLOCK*)(BaseBlock + BlockOffset * i);
+
+        SocketContext->RecvIov[i].iov_base = CurrentBlock->RecvPacket.Buffer;
+        CurrentBlock->RecvPacket.BufferLength = SocketContext->RecvIov[i].iov_len;
+        CurrentBlock->RecvPacket.Tuple = &CurrentBlock->Tuple;
 
         struct msghdr* MsgHdr = &SocketContext->RecvMsgHdr[i].msg_hdr;
 
-        MsgHdr->msg_name = &SocketContext->CurrentRecvBlock->RecvPacket.Tuple->RemoteAddress;
-        MsgHdr->msg_namelen = sizeof(SocketContext->CurrentRecvBlock->RecvPacket.Tuple->RemoteAddress);
+        MsgHdr->msg_name = &CurrentBlock->RecvPacket.Tuple->RemoteAddress;
+        MsgHdr->msg_namelen = sizeof(CurrentBlock->RecvPacket.Tuple->RemoteAddress);
         MsgHdr->msg_iov = &SocketContext->RecvIov[i];
         MsgHdr->msg_iovlen = 1;
         MsgHdr->msg_control = &SocketContext->RecvMsgControl[i].Data;
@@ -1386,15 +1388,12 @@ CxPlatSocketContextRecvComplete(
 
     QuicTraceEvent(
         DatapathRecv,
-        "[data][%p] Recv %u bytes in %hhu buffers (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+        "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
-        MessagesReceived,
         (uint32_t)RecvPacket->BufferLength,
         CLOG_BYTEARRAY(0, NULL), // TODO
         CLOG_BYTEARRAY(0, NULL));
-
-   // CXPLAT_FRE_ASSERT(RecvPacket->Next == NULL);
 
     CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
     SocketContext->Binding->Datapath->UdpHandlers.Receive(

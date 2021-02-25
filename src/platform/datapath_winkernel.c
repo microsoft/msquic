@@ -2117,10 +2117,9 @@ CxPlatDataPathSocketReceive(
 
         QuicTraceEvent(
             DatapathRecv,
-            "[data][%p] Recv %u bytes in %hhu buffers (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             Binding,
             (uint32_t)DataLength,
-            1,
             MessageLength,
             CLOG_BYTEARRAY(sizeof(LocalAddr), &LocalAddr),
             CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
