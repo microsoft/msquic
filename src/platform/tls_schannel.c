@@ -1554,8 +1554,6 @@ CxPlatTlsSecConfigDelete(
     CXPLAT_FREE(ServerConfig, QUIC_POOL_TLS_SECCONF);
 }
 
-#define SCHANEL_MAX_TICKET_KEY_COUNT 16
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigSetTicketKeys(
@@ -1564,11 +1562,11 @@ CxPlatTlsSecConfigSetTicketKeys(
     _In_ uint8_t KeyCount
     )
 {
-    if (KeyCount > SCHANEL_MAX_TICKET_KEY_COUNT) {
+    if (KeyCount > QUIC_MAX_TICKET_KEY_COUNT) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    SecPkgCred_SessionTicketKey Key[SCHANEL_MAX_TICKET_KEY_COUNT];
+    SecPkgCred_SessionTicketKey Key[QUIC_MAX_TICKET_KEY_COUNT];
     for (uint8_t i = 0; i < KeyCount; ++i) {
         if (KeyConfig[i].MaterialLength > sizeof(Key[i].KeyingMaterial)) {
             return QUIC_STATUS_INVALID_PARAMETER;
