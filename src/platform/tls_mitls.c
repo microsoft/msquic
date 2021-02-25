@@ -500,9 +500,8 @@ CxPlatTlsSecConfigSetTicketKeys(
     _In_ uint8_t KeyCount
     )
 {
-    if (KeyCount != 1) { // Only supports 1 key
-        return QUIC_STATUS_NOT_SUPPORTED;
-    }
+    CXPLAT_DBG_ASSERT(KeyCount >= 1);
+    UNREFERENCED_PARAMETER(KeyCount);
 
     if (KeyConfig->MaterialLength < miTlsTicketKeyLength) {
         return QUIC_STATUS_INVALID_PARAMETER;
