@@ -2157,7 +2157,6 @@ CxPlatSocketSendInternal(
     struct in_pktinfo *PktInfo = NULL;
     struct in6_pktinfo *PktInfo6 = NULL;
     BOOLEAN SendPending = FALSE;
-    uint32_t ProcNumber;
     size_t TotalMessagesCount;
 
     CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
