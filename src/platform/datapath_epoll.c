@@ -28,8 +28,8 @@ Environment:
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
 
-#define CXPLAT_MAX_BATCH_SEND 7
-#define CXPLAT_MAX_BATCH_RECEIVE 7
+#define CXPLAT_MAX_BATCH_SEND 100
+#define CXPLAT_MAX_BATCH_RECEIVE 100
 
 //
 // A receive block to receive a UDP packet over the sockets.
