@@ -35,14 +35,14 @@ This table describes the version, release date and end of support for official (
 | Release | Branch | Fork Date | Release Date | Support Type | End of Support |
 | -- | -- | -- | -- | -- | -- |
 | [1.0](https://github.com/microsoft/msquic/releases/tag/v1.0.0-129524) | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Nov 13 2020 | Jan 5 2021 | LTSC | Jan 4 2026 (2031) |
-| [1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.0-138070) | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | Feb 10 2020 | TBD | TBD | TBD |
+| [1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.2) | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | Feb 10 2020 | TBD | TBD | TBD |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates in parentheses are for [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc).
 
 ## MsQuic v1.0
 
-[MsQuic v1.0](https://github.com/microsoft/msquic/releases/tag/v1.0.0-129524) is the first officially supported release. The primary shipping vehicle for this release will be the [Windows Server vNext](https://techcommunity.microsoft.com/t5/windows-server-insiders/announcing-windows-server-preview-build-20282/m-p/2061907) release. No official, signed binaries are currently slated to be released. Linux support is considered a preview for this release.
+[MsQuic v1.0](https://github.com/microsoft/msquic/releases/tag/v1.0.0-129524) is the first officially supported release. The primary shipping vehicle for this release will be the Windows Server 2022 release. No official, signed binaries are currently slated to be released. Linux support is considered a preview for this release.
 
 The QUIC specifications are currently "Submitted to IESG for Publication", so both the v1 and draft-29 versions are supported by this release.
 
@@ -55,7 +55,7 @@ The QUIC specifications are currently "Submitted to IESG for Publication", so bo
 
 ## MsQuic v1.1
 
-[MsQuic v1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.0-138070) has various small improvements from v1.0. These changes include:
+[MsQuic v1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.2) has various small improvements from v1.0. The primary shipping vehicle for this release will be the Windows Client (Cobalt) release. These changes include:
 
  - Preview support for [Version Negotiation](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation-03) extension.
  - Public API header build fixes.

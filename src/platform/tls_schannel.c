@@ -46,6 +46,24 @@ typedef struct _SecPkgContext_CertificateValidationResult
     HRESULT hrVerifyChainStatus; // Certificate validation policy error returned by CertVerifyCertificateChainPolicy.
 } SecPkgContext_CertificateValidationResult, *PSecPkgContext_CertificateValidationResult;
 
+// Session ticket protection version definitions.
+#define SESSION_TICKET_INFO_V0 0
+#define SESSION_TICKET_INFO_VERSION SESSION_TICKET_INFO_V0
+
+typedef struct _SecPkgCred_SessionTicketKey
+{
+    DWORD   TicketInfoVersion;      // Set to SESSION_TICKET_INFO_VERSION for the current session ticket protection method.
+    BYTE    KeyId[16];              // Uniquely identifies each session ticket key issued by a TLS server.
+    BYTE    KeyingMaterial[64];     // Must be generated using a cryptographic RNG.
+    BYTE    KeyingMaterialSize;     // Size in bytes of the keying material in the KeyingMaterial array. Must be between 32 and 64.
+} SecPkgCred_SessionTicketKey, *PSecPkgCred_SessionTicketKey;
+
+typedef struct _SecPkgCred_SessionTicketKeys
+{
+    DWORD                           cSessionTicketKeys; // Up to 16 keys.
+    PSecPkgCred_SessionTicketKey    pSessionTicketKeys;
+} SecPkgCred_SessionTicketKeys, *PSecPkgCred_SessionTicketKeys;
+
 typedef struct _SEND_GENERIC_TLS_EXTENSION
 {
     WORD  ExtensionType;            // Code point of extension.
@@ -234,6 +252,7 @@ typedef struct _SecPkgContext_SessionInfo
 
 #define SECPKG_ATTR_SESSION_INFO         0x5d   // returns SecPkgContext_SessionInfo
 #define SECPKG_ATTR_CERT_CHECK_RESULT_INPROC 0x72 // returns SecPkgContext_CertificateValidationResult, use only after SSPI handshake loop
+#define SECPKG_ATTR_SESSION_TICKET_KEYS      0x73 // sets    SecPkgCred_SessionTicketKeys
 
 typedef unsigned int ALG_ID;
 
@@ -274,6 +293,7 @@ typedef struct _SecPkgContext_ConnectionInfo
 
 #define SCHANNEL_USE_BLACKLISTS
 #include <schannel.h>
+
 #ifndef SCH_CRED_DEFERRED_CRED_VALIDATION
 #define SCH_CRED_DEFERRED_CRED_VALIDATION            0x04000000
 typedef struct _SecPkgContext_CertificateValidationResult
@@ -282,7 +302,27 @@ typedef struct _SecPkgContext_CertificateValidationResult
     HRESULT hrVerifyChainStatus; // Certificate validation policy error returned by CertVerifyCertificateChainPolicy.
 } SecPkgContext_CertificateValidationResult, *PSecPkgContext_CertificateValidationResult;
 #define SECPKG_ATTR_CERT_CHECK_RESULT_INPROC 0x72 // returns SecPkgContext_CertificateValidationResult, use only after SSPI handshake loop
-#endif
+#endif // SCH_CRED_DEFERRED_CRED_VALIDATION
+
+#ifndef SECPKG_ATTR_SESSION_TICKET_KEYS
+#define SECPKG_ATTR_SESSION_TICKET_KEYS      0x73 // sets    SecPkgCred_SessionTicketKeys
+// Session ticket protection version definitions.
+#define SESSION_TICKET_INFO_V0 0
+#define SESSION_TICKET_INFO_VERSION SESSION_TICKET_INFO_V0
+typedef struct _SecPkgCred_SessionTicketKey
+{
+    DWORD   TicketInfoVersion;      // Set to SESSION_TICKET_INFO_VERSION for the current session ticket protection method.
+    BYTE    KeyId[16];              // Uniquely identifies each session ticket key issued by a TLS server.
+    BYTE    KeyingMaterial[64];     // Must be generated using a cryptographic RNG.
+    BYTE    KeyingMaterialSize;     // Size in bytes of the keying material in the KeyingMaterial array. Must be between 32 and 64.
+} SecPkgCred_SessionTicketKey, *PSecPkgCred_SessionTicketKey;
+typedef struct _SecPkgCred_SessionTicketKeys
+{
+    DWORD                           cSessionTicketKeys; // Up to 16 keys.
+    PSecPkgCred_SessionTicketKey    pSessionTicketKeys;
+} SecPkgCred_SessionTicketKeys, *PSecPkgCred_SessionTicketKeys;
+#endif // SECPKG_ATTR_SESSION_TICKET_KEYS
+
 #endif
 
 //
@@ -1051,8 +1091,8 @@ CxPlatTlsSecConfigCreate(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN IsClient = !!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT);
 
-    if (CredConfig->TicketKey != NULL) {
-        return QUIC_STATUS_NOT_SUPPORTED; // Not currently supported
+    if (CredConfig->Reserved != NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER; // Not currently used and should be NULL.
     }
 
 #ifndef _KERNEL_MODE
@@ -1324,7 +1364,7 @@ CxPlatTlsSecConfigCreate(
         "[ tls] Starting ACH worker");
 
     TLS_WORKER_CONTEXT ThreadContext = { STATUS_SUCCESS, AchContext };
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+    if (IsClient) {
         //
         // For schannel resumption to work, we have to call the client side
         // of this from a SYSTEM thread.
@@ -1451,6 +1491,50 @@ CxPlatTlsSecConfigDelete(
     }
 
     CXPLAT_FREE(ServerConfig, QUIC_POOL_TLS_SECCONF);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsSecConfigSetTicketKeys(
+    _In_ CXPLAT_SEC_CONFIG* SecurityConfig,
+    _In_reads_(KeyCount) QUIC_TICKET_KEY_CONFIG* KeyConfig,
+    _In_ uint8_t KeyCount
+    )
+{
+    if (KeyCount > QUIC_MAX_TICKET_KEY_COUNT) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    SecPkgCred_SessionTicketKey Key[QUIC_MAX_TICKET_KEY_COUNT];
+    for (uint8_t i = 0; i < KeyCount; ++i) {
+        if (KeyConfig[i].MaterialLength > sizeof(Key[i].KeyingMaterial)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        Key[i].TicketInfoVersion = SESSION_TICKET_INFO_V0;
+        Key[i].KeyingMaterialSize = KeyConfig[i].MaterialLength;
+        CxPlatCopyMemory(Key[i].KeyingMaterial, KeyConfig[i].Material, KeyConfig[i].MaterialLength);
+        CxPlatCopyMemory(Key[i].KeyId, KeyConfig[i].Id, sizeof(KeyConfig[i].Id));
+    }
+
+    SecPkgCred_SessionTicketKeys Keys;
+    Keys.cSessionTicketKeys = KeyCount;
+    Keys.pSessionTicketKeys = Key;
+    SECURITY_STATUS SecStatus =
+        SetCredentialsAttributesW(
+            &SecurityConfig->CredentialHandle,
+            SECPKG_ATTR_SESSION_TICKET_KEYS,
+            &Keys,
+            sizeof(Keys));
+    if (SecStatus != SEC_E_OK) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SecStatus,
+            "SetCredentialsAttributesW(SESSION_TICKET_KEYS)");
+        return SecStatusToQuicStatus(SecStatus);
+    }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
