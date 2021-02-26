@@ -29,6 +29,7 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
 
 #define CXPLAT_MAX_BATCH_SEND 7
+#define CXPLAT_MAX_BATCH_RECEIVE 7
 
 //
 // A receive block to receive a UDP packet over the sockets.
@@ -121,6 +122,12 @@ typedef struct CXPLAT_SEND_DATA {
 
 } CXPLAT_SEND_DATA;
 
+typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
+    char Data[CMSG_SPACE(sizeof(struct in6_pktinfo)) +
+              CMSG_SPACE(sizeof(struct in_pktinfo)) +
+              2 * CMSG_SPACE(sizeof(int))];
+} CXPLAT_RECV_MSG_CONTROL_BUFFER;
+
 //
 // Socket context.
 //
@@ -151,24 +158,22 @@ typedef struct CXPLAT_SOCKET_CONTEXT {
     //
     // The I/O vector for receive datagrams.
     //
-    struct iovec RecvIov;
+    struct iovec RecvIov[CXPLAT_MAX_BATCH_RECEIVE];
 
     //
     // The control buffer used in RecvMsgHdr.
     //
-    char RecvMsgControl[CMSG_SPACE(sizeof(struct in6_pktinfo)) +
-                        CMSG_SPACE(sizeof(struct in_pktinfo)) +
-                        2 * CMSG_SPACE(sizeof(int))];
+    CXPLAT_RECV_MSG_CONTROL_BUFFER RecvMsgControl[CXPLAT_MAX_BATCH_RECEIVE];
 
     //
     // The buffer used to receive msg headers on socket.
     //
-    struct msghdr RecvMsgHdr;
+    struct mmsghdr RecvMsgHdr[CXPLAT_MAX_BATCH_RECEIVE];
 
     //
     // The receive block currently being used for receives on this socket.
     //
-    CXPLAT_DATAPATH_RECV_BLOCK* CurrentRecvBlock;
+    CXPLAT_DATAPATH_RECV_BLOCK* CurrentRecvBlocks[CXPLAT_MAX_BATCH_RECEIVE];
 
     //
     // The head of list containg all pending sends on this socket.
@@ -626,12 +631,11 @@ CxPlatDataPathIsPaddingPreferred(
 
 CXPLAT_DATAPATH_RECV_BLOCK*
 CxPlatDataPathAllocRecvBlock(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t ProcIndex
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
     )
 {
     CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-        CxPlatPoolAlloc(&Datapath->ProcContexts[ProcIndex].RecvBlockPool);
+        CxPlatPoolAlloc(&DatapathProc->RecvBlockPool);
     if (RecvBlock == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -640,7 +644,7 @@ CxPlatDataPathAllocRecvBlock(
             0);
     } else {
         CxPlatZeroMemory(RecvBlock, sizeof(*RecvBlock));
-        RecvBlock->OwningPool = &Datapath->ProcContexts[ProcIndex].RecvBlockPool;
+        RecvBlock->OwningPool = &DatapathProc->RecvBlockPool;
         RecvBlock->RecvPacket.Buffer = RecvBlock->Buffer;
         RecvBlock->RecvPacket.Allocated = TRUE;
     }
@@ -1205,8 +1209,10 @@ CxPlatSocketContextUninitializeComplete(
     _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
-    if (SocketContext->CurrentRecvBlock != NULL) {
-        CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlock->RecvPacket);
+    for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
+        if (SocketContext->CurrentRecvBlocks[i] != NULL) {
+            CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlocks[i]->RecvPacket);
+        }
     }
 
     while (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
@@ -1227,38 +1233,41 @@ CxPlatSocketContextUninitializeComplete(
 
 QUIC_STATUS
 CxPlatSocketContextPrepareReceive(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
     )
 {
-    if (SocketContext->CurrentRecvBlock == NULL) {
-        SocketContext->CurrentRecvBlock =
-            CxPlatDataPathAllocRecvBlock(
-                SocketContext->Binding->Datapath,
-                CxPlatProcCurrentNumber() % SocketContext->Binding->Datapath->ProcCount);
-        if (SocketContext->CurrentRecvBlock == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "CXPLAT_DATAPATH_RECV_BLOCK",
-                0);
-            return QUIC_STATUS_OUT_OF_MEMORY;
-        }
-    }
-
-    SocketContext->RecvIov.iov_base = SocketContext->CurrentRecvBlock->RecvPacket.Buffer;
-    SocketContext->CurrentRecvBlock->RecvPacket.BufferLength = SocketContext->RecvIov.iov_len;
-    SocketContext->CurrentRecvBlock->RecvPacket.Tuple = &SocketContext->CurrentRecvBlock->Tuple;
-
     CxPlatZeroMemory(&SocketContext->RecvMsgHdr, sizeof(SocketContext->RecvMsgHdr));
     CxPlatZeroMemory(&SocketContext->RecvMsgControl, sizeof(SocketContext->RecvMsgControl));
 
-    SocketContext->RecvMsgHdr.msg_name = &SocketContext->CurrentRecvBlock->RecvPacket.Tuple->RemoteAddress;
-    SocketContext->RecvMsgHdr.msg_namelen = sizeof(SocketContext->CurrentRecvBlock->RecvPacket.Tuple->RemoteAddress);
-    SocketContext->RecvMsgHdr.msg_iov = &SocketContext->RecvIov;
-    SocketContext->RecvMsgHdr.msg_iovlen = 1;
-    SocketContext->RecvMsgHdr.msg_control = SocketContext->RecvMsgControl;
-    SocketContext->RecvMsgHdr.msg_controllen = sizeof(SocketContext->RecvMsgControl);
-    SocketContext->RecvMsgHdr.msg_flags = 0;
+    for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
+        if (SocketContext->CurrentRecvBlocks[i] == NULL) {
+            SocketContext->CurrentRecvBlocks[i] =
+                CxPlatDataPathAllocRecvBlock(DatapathProc);
+            if (SocketContext->CurrentRecvBlocks[i] == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "CXPLAT_DATAPATH_RECV_BLOCK",
+                    0);
+                return QUIC_STATUS_OUT_OF_MEMORY;
+            }
+        }
+        CXPLAT_DATAPATH_RECV_BLOCK* CurrentBlock = SocketContext->CurrentRecvBlocks[i];
+        struct msghdr* MsgHdr = &SocketContext->RecvMsgHdr[i].msg_hdr;
+
+        SocketContext->RecvIov[i].iov_base = CurrentBlock->RecvPacket.Buffer;
+        CurrentBlock->RecvPacket.BufferLength = SocketContext->RecvIov[i].iov_len;
+        CurrentBlock->RecvPacket.Tuple = &CurrentBlock->Tuple;
+
+        MsgHdr->msg_name = &CurrentBlock->RecvPacket.Tuple->RemoteAddress;
+        MsgHdr->msg_namelen = sizeof(CurrentBlock->RecvPacket.Tuple->RemoteAddress);
+        MsgHdr->msg_iov = &SocketContext->RecvIov[i];
+        MsgHdr->msg_iovlen = 1;
+        MsgHdr->msg_control = &SocketContext->RecvMsgControl[i].Data;
+        MsgHdr->msg_controllen = sizeof(SocketContext->RecvMsgControl[i].Data);
+        MsgHdr->msg_flags = 0;
+    }
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -1266,10 +1275,10 @@ CxPlatSocketContextPrepareReceive(
 QUIC_STATUS
 CxPlatSocketContextStartReceive(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ int EpollFd
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
     )
 {
-    QUIC_STATUS Status = CxPlatSocketContextPrepareReceive(SocketContext);
+    QUIC_STATUS Status = CxPlatSocketContextPrepareReceive(SocketContext, DatapathProc);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -1283,7 +1292,7 @@ CxPlatSocketContextStartReceive(
 
     int Ret =
         epoll_ctl(
-            EpollFd,
+            DatapathProc->EpollFd,
             EPOLL_CTL_ADD,
             SocketContext->SocketFd,
             &SockFdEpEvt);
@@ -1312,94 +1321,120 @@ void
 CxPlatSocketContextRecvComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext,
-    _In_ ssize_t BytesTransferred
+    _In_ int MessagesReceived
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t BytesTransferred = 0;
 
-    CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlock != NULL);
-    CXPLAT_RECV_DATA* RecvPacket = &SocketContext->CurrentRecvBlock->RecvPacket;
-    SocketContext->CurrentRecvBlock = NULL;
+    CXPLAT_FRE_ASSERT(MessagesReceived <= CXPLAT_MAX_BATCH_RECEIVE);
 
-    BOOLEAN FoundLocalAddr = FALSE;
-    BOOLEAN FoundTOS = FALSE;
-    QUIC_ADDR* LocalAddr = &RecvPacket->Tuple->LocalAddress;
-    if (LocalAddr->Ipv6.sin6_family == AF_INET6) {
-        LocalAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
-    }
-    QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
-    if (RemoteAddr->Ipv6.sin6_family == AF_INET6) {
-        RemoteAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
-    }
-    CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
+    CXPLAT_RECV_DATA* DatagramHead = NULL;
+    CXPLAT_RECV_DATA* DatagramTail = NULL;
 
-    RecvPacket->TypeOfService = 0;
+    for (int CurrentMessage = 0; CurrentMessage < MessagesReceived; CurrentMessage++) {
+        CXPLAT_DATAPATH_RECV_BLOCK* CurrentBlock = SocketContext->CurrentRecvBlocks[CurrentMessage];
+        SocketContext->CurrentRecvBlocks[CurrentMessage] = NULL;
+        CXPLAT_RECV_DATA* RecvPacket = &CurrentBlock->RecvPacket;
 
-    struct cmsghdr *CMsg;
-    for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
-         CMsg != NULL;
-         CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
+        if (DatagramHead == NULL) {
+            DatagramHead = RecvPacket;
+            DatagramTail = DatagramHead;
+        } else {
+            DatagramTail->Next = RecvPacket;
+            DatagramTail = DatagramTail->Next;
+        }
 
-        if (CMsg->cmsg_level == IPPROTO_IPV6) {
-            if (CMsg->cmsg_type == IPV6_PKTINFO) {
-                struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
-                LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
-                LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
-                LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-                CxPlatConvertFromMappedV6(LocalAddr, LocalAddr);
+        BOOLEAN FoundLocalAddr = FALSE;
+        BOOLEAN FoundTOS = FALSE;
+        QUIC_ADDR* LocalAddr = &RecvPacket->Tuple->LocalAddress;
+        if (LocalAddr->Ipv6.sin6_family == AF_INET6) {
+            LocalAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+        }
+        QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
+        if (RemoteAddr->Ipv6.sin6_family == AF_INET6) {
+            RemoteAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+        }
+        CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-                LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
-                FoundLocalAddr = TRUE;
-            } else if (CMsg->cmsg_type == IPV6_TCLASS) {
-                RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
-                FoundTOS = TRUE;
-            }
-        } else if (CMsg->cmsg_level == IPPROTO_IP) {
-            if (CMsg->cmsg_type == IP_PKTINFO) {
-                struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
-                LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET;
-                LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
-                LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-                LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
-                FoundLocalAddr = TRUE;
-            } else if (CMsg->cmsg_type == IP_TOS) {
-                RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
-                FoundTOS = TRUE;
+        RecvPacket->BufferLength = SocketContext->RecvMsgHdr[CurrentMessage].msg_len;
+        BytesTransferred += RecvPacket->BufferLength;
+
+        RecvPacket->TypeOfService = 0;
+
+        struct cmsghdr *CMsg;
+        struct msghdr* Msg = &SocketContext->RecvMsgHdr[CurrentMessage].msg_hdr;
+        for (CMsg = CMSG_FIRSTHDR(Msg);
+            CMsg != NULL;
+            CMsg = CMSG_NXTHDR(Msg, CMsg)) {
+
+            if (CMsg->cmsg_level == IPPROTO_IPV6) {
+                if (CMsg->cmsg_type == IPV6_PKTINFO) {
+                    struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
+                    LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
+                    LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
+                    LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                    CxPlatConvertFromMappedV6(LocalAddr, LocalAddr);
+
+                    LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
+                    FoundLocalAddr = TRUE;
+                } else if (CMsg->cmsg_type == IPV6_TCLASS) {
+                    RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
+                    FoundTOS = TRUE;
+                }
+            } else if (CMsg->cmsg_level == IPPROTO_IP) {
+                if (CMsg->cmsg_type == IP_PKTINFO) {
+                    struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
+                    LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET;
+                    LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
+                    LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                    LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
+                    FoundLocalAddr = TRUE;
+                } else if (CMsg->cmsg_type == IP_TOS) {
+                    RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
+                    FoundTOS = TRUE;
+                }
             }
         }
+
+        CXPLAT_FRE_ASSERT(FoundLocalAddr);
+        CXPLAT_FRE_ASSERT(FoundTOS);
+
+        RecvPacket->PartitionIndex = ProcContext->Index;
+
+        QuicTraceEvent(
+        DatapathRecv,
+            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+            SocketContext->Binding,
+            (uint32_t)RecvPacket->BufferLength,
+            (uint32_t)RecvPacket->BufferLength,
+            CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
     }
 
-    CXPLAT_FRE_ASSERT(FoundLocalAddr);
-    CXPLAT_FRE_ASSERT(FoundTOS);
-
-    QuicTraceEvent(
-        DatapathRecv,
-        "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-        SocketContext->Binding,
-        (uint32_t)BytesTransferred,
-        (uint32_t)BytesTransferred,
-        CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-        CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
-
-    CXPLAT_DBG_ASSERT(BytesTransferred <= RecvPacket->BufferLength);
-    RecvPacket->BufferLength = BytesTransferred;
-
-    RecvPacket->PartitionIndex = ProcContext->Index;
+    if (BytesTransferred == 0 || DatagramHead == NULL) {
+        QuicTraceLogWarning(
+            DatapathRecvEmpty,
+            "[data][%p] Dropping datagram with empty payload.",
+            SocketContext->Binding);
+        goto Drop;
+    }
 
     if (!SocketContext->Binding->PcpBinding) {
         CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
         SocketContext->Binding->Datapath->UdpHandlers.Receive(
             SocketContext->Binding,
             SocketContext->Binding->ClientContext,
-            RecvPacket);
+            DatagramHead);
     } else{
         CxPlatPcpRecvCallback(
             SocketContext->Binding,
             SocketContext->Binding->ClientContext,
-            RecvPacket);
+            DatagramHead);
     }
 
-    Status = CxPlatSocketContextPrepareReceive(SocketContext);
+Drop:
+    Status = CxPlatSocketContextPrepareReceive(SocketContext, ProcContext);
 
     //
     // Prepare can only fail under low memory condition. Treat it as a fatal
@@ -1580,13 +1615,18 @@ CxPlatSocketContextProcessEvents(
 
     if (EPOLLIN & Events) {
         while (TRUE) {
-            CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlock != NULL);
 
-            ssize_t Ret =
-                recvmsg(
+            for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
+                CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlocks[i] != NULL);
+            }
+
+            int Ret =
+                recvmmsg(
                     SocketContext->SocketFd,
-                    &SocketContext->RecvMsgHdr,
-                    0);
+                    SocketContext->RecvMsgHdr,
+                    CXPLAT_MAX_BATCH_RECEIVE,
+                    0,
+                    NULL);
             if (Ret < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
                     QuicTraceEvent(
@@ -1594,7 +1634,7 @@ CxPlatSocketContextProcessEvents(
                         "[data][%p] ERROR, %u, %s.",
                         SocketContext->Binding,
                         errno,
-                        "recvmsg failed");
+                        "recvmmsg failed");
                 }
                 break;
             }
@@ -1637,6 +1677,7 @@ CxPlatSocketCreateUdp(
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || InternalFlags & CXPLAT_SOCKET_FLAG_PCP);
 
     uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
+    uint32_t CurrentProc = CxPlatProcCurrentNumber() % Datapath->ProcCount;
     CXPLAT_FRE_ASSERT(SocketCount > 0);
     size_t BindingLength =
         sizeof(CXPLAT_SOCKET) +
@@ -1675,8 +1716,10 @@ CxPlatSocketCreateUdp(
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
-        Binding->SocketContexts[i].RecvIov.iov_len =
-            Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
+        for (ssize_t j = 0; j < CXPLAT_MAX_BATCH_RECEIVE; j++) {
+            Binding->SocketContexts[i].RecvIov[j].iov_len =
+                Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
+        }
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendContextHead);
         CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendContextLock);
         CxPlatRundownAcquire(&Binding->Rundown);
@@ -1691,7 +1734,7 @@ CxPlatSocketCreateUdp(
         Status =
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
-                &Datapath->ProcContexts[i],
+                &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc],
                 LocalAddress,
                 RemoteAddress);
         if (QUIC_FAILED(Status)) {
@@ -1728,7 +1771,7 @@ CxPlatSocketCreateUdp(
         Status =
             CxPlatSocketContextStartReceive(
                 &Binding->SocketContexts[i],
-                Datapath->ProcContexts[i].EpollFd);
+                &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc]);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
