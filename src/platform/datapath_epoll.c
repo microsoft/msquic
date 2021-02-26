@@ -1313,8 +1313,6 @@ CxPlatSocketContextRecvComplete(
     CXPLAT_RECV_DATA* DatagramHead = NULL;
     CXPLAT_RECV_DATA* DatagramTail = NULL;
 
-    // TODO handle no messages received
-
     for (int CurrentMessage = 0; CurrentMessage < MessagesReceived; CurrentMessage++) {
         CXPLAT_DATAPATH_RECV_BLOCK* CurrentBlock = SocketContext->CurrentRecvBlocks[CurrentMessage];
         SocketContext->CurrentRecvBlocks[CurrentMessage] = NULL;
@@ -1384,19 +1382,24 @@ CxPlatSocketContextRecvComplete(
         CXPLAT_FRE_ASSERT(FoundTOS);
 
         RecvPacket->PartitionIndex = ProcContext->Index;
+
+        QuicTraceEvent(
+        DatapathRecv,
+            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+            SocketContext->Binding,
+            (uint32_t)RecvPacket->BufferLength,
+            (uint32_t)RecvPacket->BufferLength,
+            CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
     }
 
-    // TODO Fix up
-    CXPLAT_FRE_ASSERT(DatagramHead != NULL);
-
-    QuicTraceEvent(
-        DatapathRecv,
-        "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-        SocketContext->Binding,
-        (uint32_t)BytesTransferred,
-        (uint32_t)DatagramHead->BufferLength,
-        CLOG_BYTEARRAY(0, NULL), // TODO
-        CLOG_BYTEARRAY(0, NULL));
+    if (BytesTransferred == 0 || DatagramHead == NULL) {
+        QuicTraceLogWarning(
+            DatapathRecvEmpty,
+            "[data][%p] Dropping datagram with empty payload.",
+            SocketProc->Parent);
+        goto Drop;
+    }
 
     CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
     SocketContext->Binding->Datapath->UdpHandlers.Receive(
@@ -1404,6 +1407,7 @@ CxPlatSocketContextRecvComplete(
         SocketContext->Binding->ClientContext,
         DatagramHead);
 
+Drop:
     Status = CxPlatSocketContextPrepareReceive(SocketContext, ProcContext);
 
     //
