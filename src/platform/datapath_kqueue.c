@@ -1431,7 +1431,7 @@ CxPlatSocketCreateUdp(
         Status =
             CxPlatSocketContextStartReceive(
                 &Binding->SocketContexts[i],
-                Datapath->ProcContexts[IsServerSocket ? i : CurrentProc]);
+                &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc]);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
