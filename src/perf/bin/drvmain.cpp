@@ -558,10 +558,15 @@ QuicPerfCtlSetSecurityConfig(
     return QUIC_STATUS_SUCCESS;
 }
 
+typedef struct {
+    QUIC_CERTIFICATE_HASH ServerCertHash;
+    QUIC_CERTIFICATE_HASH ClientCertHash;
+} QUIC_RUN_CERTIFICATE_PARAMS;
+
 size_t QUIC_IOCTL_BUFFER_SIZES[] =
 {
     0,
-    sizeof(QUIC_CERTIFICATE_HASH),
+    sizeof(QUIC_RUN_CERTIFICATE_PARAMS),
     SIZE_MAX,
     0,
     0,
@@ -574,7 +579,7 @@ typedef union {
         int Length;
         char Data;
     };
-    QUIC_CERTIFICATE_HASH CertHash;
+    QUIC_RUN_CERTIFICATE_PARAMS CertParams;
 } QUIC_IOCTL_PARAMS;
 
 static_assert(
@@ -876,7 +881,7 @@ QuicPerfCtlEvtIoDeviceControl(
         Client,
         FunctionCode);
 
-    if (IoControlCode != IOCTL_QUIC_SET_CERT_HASH &&
+    if (IoControlCode != IOCTL_QUIC_SET_CERT_PARAMS &&
         !Client->SelfSignedValid) {
         Status = STATUS_INVALID_DEVICE_STATE;
         QuicTraceEvent(
@@ -887,12 +892,12 @@ QuicPerfCtlEvtIoDeviceControl(
     }
 
     switch (IoControlCode) {
-    case IOCTL_QUIC_SET_CERT_HASH:
+    case IOCTL_QUIC_SET_CERT_PARAMS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         Status =
             QuicPerfCtlSetSecurityConfig(
                 Client,
-                &Params->CertHash);
+                &Params->CertParams.ServerCertHash);
         break;
     case IOCTL_QUIC_RUN_PERF:
         Status =

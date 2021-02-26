@@ -619,7 +619,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
 
     ASSERT_ON_NOT(ServerConfiguration);
 
-    auto CredConfig = CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
+    auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
     ASSERT_ON_NOT(CredConfig);
 
     ASSERT_ON_FAILURE(
@@ -669,7 +669,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
     }
 
     MsQuic->ConfigurationClose(ServerConfiguration);
-    CxPlatPlatFreeSelfSignedCert(CredConfig);
+    CxPlatFreeSelfSignedCert(CredConfig);
 
     CXPLAT_THREAD_RETURN(0);
 }

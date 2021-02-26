@@ -307,7 +307,7 @@ QuicTestValidateConnectionEvents1(
 {
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
@@ -363,7 +363,7 @@ QuicTestValidateConnectionEvents2(
 {
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
@@ -421,7 +421,7 @@ QuicTestValidateConnectionEvents3(
 
     MsQuicSettings Settings;
     Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
@@ -534,7 +534,7 @@ QuicTestValidateStreamEvents1(
 
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(1);
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
@@ -637,7 +637,7 @@ QuicTestValidateStreamEvents2(
 
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(1);
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);

@@ -505,7 +505,7 @@ QuicStreamSetNewLocalStream(
     BOOLEAN NewStreamBlocked = Info->TotalStreamCount >= Info->MaxTotalStreamCount;
 
     if (FailOnBlocked && NewStreamBlocked) {
-        Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+        Status = QUIC_STATUS_STREAM_LIMIT_REACHED;
         goto Exit;
     }
 

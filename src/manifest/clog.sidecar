@@ -9929,6 +9929,26 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "SchannelTransParamsBufferTooSmall": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Peer TP too large for available buffer (%u vs. %u)",
+      "UniqueId": "SchannelTransParamsBufferTooSmall",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "SchannelContextCreated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TLS context Created",
@@ -13469,6 +13489,10 @@
       {
         "UniquenessHash": "1197fc0e-03e3-58cf-6637-f912c96fa67b",
         "TraceID": "SchannelMissingData"
+      },
+      {
+        "UniquenessHash": "62985565-58a4-f934-c4ce-c12b8c6a19f9",
+        "TraceID": "SchannelTransParamsBufferTooSmall"
       },
       {
         "UniquenessHash": "18fa206f-59b9-158c-7fa9-904ae6cb9663",

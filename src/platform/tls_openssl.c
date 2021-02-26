@@ -202,6 +202,12 @@ CxPlatTlsAlpnSelectCallback(
     return SSL_TLSEXT_ERR_OK;
 }
 
+BOOLEAN
+CxPlatTlsVerifyCertificate(
+    _In_ X509* X509Cert,
+    _In_ const char* SNI
+    );
+
 static
 int
 CxPlatTlsCertificateVerifyCallback(
@@ -209,8 +215,13 @@ CxPlatTlsCertificateVerifyCallback(
     X509_STORE_CTX *x509_ctx
     )
 {
+    X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
     SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+
+    if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
+        preverify_ok = CxPlatTlsVerifyCertificate(Cert, TlsContext->SNI);
+    }
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
         !preverify_ok) {
@@ -574,8 +585,8 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
-    if (CredConfig->TicketKey != NULL) {
-        return QUIC_STATUS_NOT_SUPPORTED; // Not currently supported
+    if (CredConfig->Reserved != NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER; // Not currently used and should be NULL.
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
@@ -691,15 +702,21 @@ CxPlatTlsSecConfigCreate(
         goto Exit;
     }
 
-    Ret = SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "SSL_CTX_set_default_verify_paths failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
+#ifdef CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE
+    SecurityConfig->Flags |= QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION;
+#endif
+
+    if (SecurityConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) {
+        Ret = SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_set_default_verify_paths failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
     }
 
     Ret =
@@ -882,6 +899,20 @@ CxPlatTlsSecConfigDelete(
     }
 
     CXPLAT_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsSecConfigSetTicketKeys(
+    _In_ CXPLAT_SEC_CONFIG* SecurityConfig,
+    _In_reads_(KeyCount) QUIC_TICKET_KEY_CONFIG* KeyConfig,
+    _In_ uint8_t KeyCount
+    )
+{
+    UNREFERENCED_PARAMETER(SecurityConfig);
+    UNREFERENCED_PARAMETER(KeyConfig);
+    UNREFERENCED_PARAMETER(KeyCount);
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 QUIC_STATUS

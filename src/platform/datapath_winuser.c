@@ -1092,52 +1092,17 @@ CxPlatDataPathResolveAddress(
     ADDRINFOW Hints = { 0 };
     ADDRINFOW *Ai;
 
-    int Result =
-        MultiByteToWideChar(
-            CP_UTF8,
-            MB_ERR_INVALID_CHARS,
+    Status =
+        CxPlatUtf8ToWideChar(
             HostName,
-            -1,
-            NULL,
-            0);
-    if (Result == 0) {
-        DWORD LastError = GetLastError();
+            QUIC_POOL_PLATFORM_TMP_ALLOC,
+            &HostNameW);
+    if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            LastError,
-            "Calculate hostname wchar length");
-        Status = HRESULT_FROM_WIN32(LastError);
-        goto Exit;
-    }
-
-    HostNameW = CXPLAT_ALLOC_PAGED(sizeof(WCHAR) * Result, QUIC_POOL_PLATFORM_TMP_ALLOC);
-    if (HostNameW == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Wchar hostname",
-            sizeof(WCHAR) * Result);
-        goto Exit;
-    }
-
-    Result =
-        MultiByteToWideChar(
-            CP_UTF8,
-            MB_ERR_INVALID_CHARS,
-            HostName,
-            -1,
-            HostNameW,
-            Result);
-    if (Result == 0) {
-        DWORD LastError = GetLastError();
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            LastError,
-            "Convert hostname to wchar");
-        Status = HRESULT_FROM_WIN32(LastError);
+            Status,
+            "Convert HostName to unicode");
         goto Exit;
     }
 
