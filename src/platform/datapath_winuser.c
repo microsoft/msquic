@@ -272,7 +272,7 @@ typedef struct CXPLAT_SOCKET {
     //
     // Flag indicates the binding is being used for PCP.
     //
-    BOOLEAN PcpBinding : 1;
+    uint8_t PcpBinding : 1;
 
     //
     // The index of the affinitized receive processor for a connected socket.
@@ -1058,7 +1058,8 @@ _Success_(QUIC_SUCCEEDED(return))
 QUIC_STATUS
 CxPlatDataPathGetGatewayAddresses(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _Out_ QUIC_ADDR** GatewayAddresses,
+    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
+        QUIC_ADDR** GatewayAddresses,
     _Out_ uint32_t* GatewayAddressesCount
     )
 {
@@ -1085,7 +1086,9 @@ CxPlatDataPathGetGatewayAddresses(
                 AdapterAddresses,
                 &AdapterAddressesSize);
         if (Error == ERROR_BUFFER_OVERFLOW) {
-            free(AdapterAddresses);
+            if (AdapterAddresses) {
+                CXPLAT_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
+            }
             AdapterAddresses = CXPLAT_ALLOC_NONPAGED(AdapterAddressesSize, QUIC_POOL_DATAPATH_ADDRESSES);
             if (!AdapterAddresses) {
                 Error = ERROR_NOT_ENOUGH_MEMORY;
@@ -1140,14 +1143,19 @@ CxPlatDataPathGetGatewayAddresses(
 
     for (PIP_ADAPTER_ADDRESSES Iter = AdapterAddresses; Iter != NULL; Iter = Iter->Next) {
         for (PIP_ADAPTER_GATEWAY_ADDRESS_LH Iter2 = Iter->FirstGatewayAddress; Iter2 != NULL; Iter2 = Iter2->Next) {
-            memcpy(&(*GatewayAddresses)[Index], Iter2->Address.lpSockaddr, sizeof(QUIC_ADDR));
+            CxPlatCopyMemory(
+                &(*GatewayAddresses)[Index],
+                Iter2->Address.lpSockaddr,
+                sizeof(QUIC_ADDR));
             Index++;
         }
     }
 
 Exit:
 
-    CXPLAT_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
+    if (AdapterAddresses) {
+        CXPLAT_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
+    }
 
     return Status;
 }
@@ -1180,7 +1188,7 @@ CxPlatDataPathPopulateTargetAddress(
         }
     }
 
-    memcpy(Address, Ai->ai_addr, Ai->ai_addrlen);
+    CxPlatCopyMemory(Address, Ai->ai_addr, Ai->ai_addrlen);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

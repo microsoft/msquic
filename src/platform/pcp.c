@@ -162,7 +162,7 @@ CxPlatPcpInitialize(
     CXPLAT_DBG_ASSERT(GatewayAddressesCount != 0);
 
     PcpContextSize = sizeof(CXPLAT_PCP) + (GatewayAddressesCount * sizeof(CXPLAT_SOCKET*));
-    PcpContext = (CXPLAT_PCP*)CXPLAT_ALLOC_PAGED(PcpContextSize, QUIC_POOL_PCP);
+    PcpContext = (CXPLAT_PCP*)CXPLAT_ALLOC_NONPAGED(PcpContextSize, QUIC_POOL_PCP);
     if (PcpContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -274,7 +274,6 @@ CxPlatPcpProcessDatagram(
         Event.FAILURE.ErrorCode = Response->ResultCode;
 
     } else if (Response->Opcode == PCP_OPCODE_MAP) {
-
         QuicAddrSetFamily(&ExternalAddress, QUIC_ADDRESS_FAMILY_INET6);
         CxPlatCopyMemory(
             &ExternalAddress.Ipv6.sin6_addr,
@@ -289,7 +288,6 @@ CxPlatPcpProcessDatagram(
         Event.MAP.ExternalAddress = &ExternalAddress;
 
     } else if (Response->Opcode == PCP_OPCODE_PEER) {
-
         if (Datagram->BufferLength < PCP_PEER_RESPONSE_SIZE) {
             QuicTraceEvent(
                 LibraryError,

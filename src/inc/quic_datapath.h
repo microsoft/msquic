@@ -367,18 +367,6 @@ CxPlatDataPathIsPaddingPreferred(
     );
 
 //
-// Gets the list of Gateway server addresses.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(QUIC_SUCCEEDED(return))
-QUIC_STATUS
-CxPlatDataPathGetGatewayAddresses(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _Out_ QUIC_ADDR** GatewayAddresses,
-    _Out_ uint32_t* GatewayAddressesCount
-    );
-
-//
 // Resolves a hostname to an IP address.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

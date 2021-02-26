@@ -1063,7 +1063,8 @@ _Success_(QUIC_SUCCEEDED(return))
 QUIC_STATUS
 CxPlatDataPathGetGatewayAddresses(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _Out_ QUIC_ADDR** GatewayAddresses,
+    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
+        QUIC_ADDR** GatewayAddresses,
     _Out_ uint32_t* GatewayAddressesCount
     )
 {
