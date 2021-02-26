@@ -2453,16 +2453,15 @@ CxPlatDataPathWorkerThread(
                 break;
             }
 
+            for (int j = 0; j < i; j++) {
+                CXPLAT_FRE_ASSERT(ShutdownEvents[j] != EpollEvents[i].data.ptr);
+            }
+
             void* Closed =
                 CxPlatSocketContextProcessEvents(
                     EpollEvents[i].data.ptr,
                     ProcContext,
                     EpollEvents[i].events);
-            if (Closed != NULL) {
-                for (int j = 0; j < i; j++) {
-                    CXPLAT_FRE_ASSERT(ShutdownEvents[j] != Closed);
-                }
-            }
             ShutdownEvents[i] = Closed;
         }
     }
