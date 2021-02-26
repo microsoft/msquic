@@ -1555,7 +1555,7 @@ CxPlatSocketContextSendComplete(
     return Status;
 }
 
-void
+void*
 CxPlatSocketContextProcessEvents(
     _In_ void* EventPtr,
     _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext,
@@ -1571,7 +1571,7 @@ CxPlatSocketContextProcessEvents(
     if (EventType == QUIC_SOCK_EVENT_CLEANUP) {
         CXPLAT_DBG_ASSERT(SocketContext->Binding->Shutdown);
         CxPlatSocketContextUninitializeComplete(SocketContext, ProcContext);
-        return;
+        return EventPtr;
     }
 
     CXPLAT_DBG_ASSERT(EventType == QUIC_SOCK_EVENT_SOCKET);
@@ -1650,6 +1650,8 @@ CxPlatSocketContextProcessEvents(
     if (EPOLLOUT & Events) {
         CxPlatSocketContextSendComplete(SocketContext, ProcContext);
     }
+
+    return NULL;
 }
 
 //
@@ -2429,6 +2431,7 @@ CxPlatDataPathWorkerThread(
 
     const size_t EpollEventCtMax = 16; // TODO: Experiment.
     struct epoll_event EpollEvents[EpollEventCtMax];
+    void* ShutdownEvents[EpollEventCtMax];
 
     while (!ProcContext->Datapath->Shutdown) {
         int ReadyEventCount =
@@ -2450,10 +2453,17 @@ CxPlatDataPathWorkerThread(
                 break;
             }
 
-            CxPlatSocketContextProcessEvents(
-                EpollEvents[i].data.ptr,
-                ProcContext,
-                EpollEvents[i].events);
+            void* Closed =
+                CxPlatSocketContextProcessEvents(
+                    EpollEvents[i].data.ptr,
+                    ProcContext,
+                    EpollEvents[i].events);
+            if (Closed != NULL) {
+                for (int j = 0; j < i; j++) {
+                    CXPLAT_FRE_ASSERT(ShutdownEvents[j] != Closed);
+                }
+                ShutdownEvents[i] = Closed;
+            }
         }
     }
 
