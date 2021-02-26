@@ -243,6 +243,11 @@ typedef struct CXPLAT_SOCKET {
     uint16_t Mtu;
 
     //
+    // The processor index for this socket, if has fixed remote address
+    //
+    uint32_t ProcIndex;
+
+    //
     // Set of socket contexts one per proc.
     //
     CXPLAT_SOCKET_CONTEXT SocketContexts[];
@@ -1707,6 +1712,7 @@ CxPlatSocketCreateUdp(
     Binding->ClientContext = RecvCallbackContext;
     Binding->HasFixedRemoteAddress = (RemoteAddress != NULL);
     Binding->Mtu = CXPLAT_MAX_MTU;
+    Binding->ProcIndex = CurrentProc;
     CxPlatRundownInitialize(&Binding->Rundown);
     if (LocalAddress) {
         CxPlatConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
@@ -2164,7 +2170,7 @@ CxPlatSocketSendInternal(
     ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
     SocketContext = &Socket->SocketContexts[Socket->HasFixedRemoteAddress ? 0 : ProcNumber];
 
-    ProcContext = &Socket->Datapath->ProcContexts[ProcNumber];
+    ProcContext = &Socket->Datapath->ProcContexts[Socket->HasFixedRemoteAddress ? Socket->ProcIndex : ProcNumber];
 
     uint32_t TotalSize = 0;
     for (size_t i = SendData->SentMessagesCount; i < SendData->BufferCount; ++i) {
