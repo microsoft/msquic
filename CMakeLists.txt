@@ -492,7 +492,6 @@ if(QUIC_TLS STREQUAL "openssl")
 
             add_library(OpenSSL_Build_Tgt INTERFACE)
             add_dependencies(OpenSSL_Build_Tgt OpenSSL_Build)
-            set_property(TARGET OpenSSL_Build_Tgt PROPERTY FOLDER "helpers")
 
             target_link_libraries(OpenSSL INTERFACE OpenSSL_Build_Tgt)
         endif()
