@@ -12,6 +12,7 @@
 
 #include "quic_platform.h"
 #include "quic_datapath.h"
+#include "quic_pcp.h"
 #include "quic_cert.h"
 #include "quic_storage.h"
 #include "quic_tls.h"
@@ -92,6 +93,29 @@ typedef struct CX_PLATFORM {
 // Global Platform variables/state.
 //
 extern CX_PLATFORM CxPlatform;
+
+//
+// Internal flags used with CxPlatSocketCreateUdp
+//
+#define CXPLAT_SOCKET_FLAG_PCP  0x00000001
+
+//
+// PCP Receive Callback
+//
+CXPLAT_DATAPATH_RECEIVE_CALLBACK CxPlatPcpRecvCallback;
+
+//
+// Gets the list of Gateway server addresses.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(QUIC_SUCCEEDED(return))
+QUIC_STATUS
+CxPlatDataPathGetGatewayAddresses(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
+        QUIC_ADDR** GatewayAddresses,
+    _Out_ uint32_t* GatewayAddressesCount
+    );
 
 #if _WIN32 // Some Windows Helpers
 

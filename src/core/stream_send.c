@@ -105,6 +105,7 @@ QuicStreamSendShutdown(
     _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN Graceful,
     _In_ BOOLEAN Silent,
+    _In_ BOOLEAN DelaySend,
     _In_ QUIC_VAR_INT ErrorCode   // Only for !Graceful
     )
 {
@@ -150,7 +151,8 @@ QuicStreamSendShutdown(
         QuicSendSetStreamSendFlag(
             &Stream->Connection->Send,
             Stream,
-            QUIC_STREAM_SEND_FLAG_FIN);
+            QUIC_STREAM_SEND_FLAG_FIN,
+            DelaySend);
 
     } else {
 
@@ -206,7 +208,8 @@ QuicStreamSendShutdown(
             QuicSendSetStreamSendFlag(
                 &Stream->Connection->Send,
                 Stream,
-                QUIC_STREAM_SEND_FLAG_SEND_ABORT);
+                QUIC_STREAM_SEND_FLAG_SEND_ABORT,
+                FALSE);
 
             //
             // Clear any outstanding send path frames.
@@ -497,7 +500,6 @@ QuicStreamSendFlush(
         SendRequest->Next = NULL;
         TotalBytesSent += (int64_t) SendRequest->TotalLength;
 
-        CXPLAT_DBG_ASSERT(SendRequest->TotalLength != 0 || SendRequest->Flags & QUIC_SEND_FLAG_FIN);
         CXPLAT_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
 
         if (!Stream->Flags.SendEnabled) {
@@ -570,13 +572,19 @@ QuicStreamSendFlush(
             //
             // Gracefully shutdown the send direction if the flag is set.
             //
-            QuicStreamSendShutdown(Stream, TRUE, FALSE, 0);
+            QuicStreamSendShutdown(
+                Stream,
+                TRUE,
+                FALSE,
+                !!(SendRequest->Flags & QUIC_SEND_FLAG_DELAY_SEND),
+                0);
         }
 
         QuicSendSetStreamSendFlag(
             &Stream->Connection->Send,
             Stream,
-            QUIC_STREAM_SEND_FLAG_DATA);
+            QUIC_STREAM_SEND_FLAG_DATA,
+            !!(SendRequest->Flags & QUIC_SEND_FLAG_DELAY_SEND));
 
         if (Stream->Connection->Settings.SendBufferingEnabled) {
             QuicSendBufferFill(Stream->Connection);
@@ -952,7 +960,7 @@ QuicStreamWriteStreamFrames(
                     Stream, QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL)) {
                 QuicSendSetStreamSendFlag(
                     &Stream->Connection->Send,
-                    Stream, QUIC_STREAM_SEND_FLAG_DATA_BLOCKED);
+                    Stream, QUIC_STREAM_SEND_FLAG_DATA_BLOCKED, FALSE);
             }
             ExitLoop = TRUE;
         }
@@ -1275,7 +1283,8 @@ Done:
             QuicSendSetStreamSendFlag(
                 &Stream->Connection->Send,
                 Stream,
-                AddSendFlags);
+                AddSendFlags,
+                FALSE);
 
         QuicStreamSendDumpState(Stream);
         QuicStreamValidateRecoveryState(Stream);

@@ -497,6 +497,7 @@ TEST_F(DataPathTest, UdpBind)
             nullptr,
             nullptr,
             nullptr,
+            0,
             &Socket));
     ASSERT_NE(nullptr, Socket);
 
@@ -530,6 +531,7 @@ TEST_F(DataPathTest, UdpRebind)
             nullptr,
             nullptr,
             nullptr,
+            0,
             &binding1));
     ASSERT_NE(nullptr, binding1);
 
@@ -543,6 +545,7 @@ TEST_F(DataPathTest, UdpRebind)
             nullptr,
             nullptr,
             nullptr,
+            0,
             &binding2));
     ASSERT_NE(nullptr, binding2);
 
@@ -585,6 +588,7 @@ TEST_P(DataPathTest, UdpData)
                 &serverAddress.SockAddr,
                 nullptr,
                 &RecvContext,
+                0,
                 &server);
 #ifdef _WIN32
         if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
@@ -606,6 +610,7 @@ TEST_P(DataPathTest, UdpData)
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
+            0,
             &client));
     ASSERT_NE(nullptr, client);
 
@@ -668,6 +673,7 @@ TEST_P(DataPathTest, UdpDataRebind)
                 &serverAddress.SockAddr,
                 nullptr,
                 &RecvContext,
+                0,
                 &server);
 #ifdef _WIN32
         if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
@@ -689,6 +695,7 @@ TEST_P(DataPathTest, UdpDataRebind)
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
+            0,
             &client));
     ASSERT_NE(nullptr, client);
 
@@ -724,6 +731,7 @@ TEST_P(DataPathTest, UdpDataRebind)
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
+            0,
             &client));
     ASSERT_NE(nullptr, client);
 
@@ -785,6 +793,7 @@ TEST_P(DataPathTest, UdpDataECT0)
                 &serverAddress.SockAddr,
                 nullptr,
                 &RecvContext,
+                0,
                 &server);
 #ifdef _WIN32
         if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
@@ -806,6 +815,7 @@ TEST_P(DataPathTest, UdpDataECT0)
             nullptr,
             &serverAddress.SockAddr,
             &RecvContext,
+            0,
             &client));
     ASSERT_NE(nullptr, client);
 

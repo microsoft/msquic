@@ -65,7 +65,8 @@ QuicStreamRecvShutdown(
     QuicSendSetStreamSendFlag(
         &Stream->Connection->Send,
         Stream,
-        QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+        QUIC_STREAM_SEND_FLAG_RECV_ABORT,
+        FALSE);
 
     //
     // Remove any flags we shouldn't be sending now the receive direction is
@@ -256,7 +257,7 @@ QuicStreamProcessStopSendingFrame(
         // The peer has requested that we stop sending. Close abortively.
         //
         QuicStreamSendShutdown(
-            Stream, FALSE, FALSE, QUIC_ERROR_NO_ERROR);
+            Stream, FALSE, FALSE, FALSE, QUIC_ERROR_NO_ERROR);
     }
 }
 
@@ -532,7 +533,8 @@ QuicStreamRecv(
         QuicSendSetStreamSendFlag(
             &Stream->Connection->Send,
             Stream,
-            QUIC_STREAM_SEND_FLAG_MAX_DATA);
+            QUIC_STREAM_SEND_FLAG_MAX_DATA,
+            FALSE);
 
         break;
     }
@@ -659,7 +661,8 @@ QuicStreamOnBytesDelivered(
     QuicSendSetStreamSendFlag(
         &Stream->Connection->Send,
         Stream,
-        QUIC_STREAM_SEND_FLAG_MAX_DATA);
+        QUIC_STREAM_SEND_FLAG_MAX_DATA,
+        FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

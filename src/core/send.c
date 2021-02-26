@@ -141,7 +141,8 @@ void
 QuicSendQueueFlushForStream(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
-    _In_ BOOLEAN WasPreviouslyQueued
+    _In_ BOOLEAN WasPreviouslyQueued,
+    _In_ BOOLEAN DelaySend
     )
 {
     if (!WasPreviouslyQueued) {
@@ -153,11 +154,20 @@ QuicSendQueueFlushForStream(
         QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND);
     }
 
-    if (Stream->Connection->State.Started) {
+    //
+    // TODO - If send was delayed by the app, under what conditions should we
+    // ignore that signal and queue anyways?
+    //
+
+    if (DelaySend) {
+        Stream->Flags.SendDelayed = TRUE;
+
+    } else if (Stream->Connection->State.Started) {
         //
         // Schedule the flush even if we didn't just queue the stream,
         // because it may have been previously blocked.
         //
+        Stream->Flags.SendDelayed = FALSE;
         QuicSendQueueFlush(Send, REASON_STREAM_FLAGS);
     }
 }
@@ -317,7 +327,8 @@ BOOLEAN
 QuicSendSetStreamSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
-    _In_ uint32_t SendFlags
+    _In_ uint32_t SendFlags,
+    _In_ BOOLEAN DelaySend
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
@@ -351,7 +362,8 @@ QuicSendSetStreamSendFlag(
         SendFlags &= ~QUIC_STREAM_SEND_FLAG_MAX_DATA;
     }
 
-    if ((Stream->SendFlags | SendFlags) != Stream->SendFlags) {
+    if ((Stream->SendFlags | SendFlags) != Stream->SendFlags ||
+        (Stream->Flags.SendDelayed && (SendFlags & QUIC_STREAM_SEND_FLAG_DATA))) {
 
         QuicTraceLogStreamVerbose(
             SetSendFlag,
@@ -360,13 +372,16 @@ QuicSendSetStreamSendFlag(
             (SendFlags & (uint32_t)(~Stream->SendFlags)),
             Stream->SendFlags);
 
-        if (Stream->Flags.Started &&
-            (Stream->SendFlags & SendFlags) != SendFlags) {
+        if (Stream->Flags.Started) {
             //
             // Since this is new data for a started stream, we need to queue
             // up the send to flush the stream data.
             //
-            QuicSendQueueFlushForStream(Send, Stream, Stream->SendFlags != 0);
+            QuicSendQueueFlushForStream(
+                Send,
+                Stream,
+                Stream->SendFlags != 0,
+                DelaySend);
         }
         Stream->SendFlags |= SendFlags;
     }
