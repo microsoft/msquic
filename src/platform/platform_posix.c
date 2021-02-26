@@ -592,7 +592,14 @@ CxPlatProcMaxCount(
     void
     )
 {
+#if defined(CX_PLATFORM_DARWIN) && defined(__arm64__)
+    //
+    // arm64 macOS has no way to get the current proc, so act like a single core.
+    //
+    return 1;
+#else
     return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+#endif
 }
 
 uint32_t
@@ -600,7 +607,14 @@ CxPlatProcActiveCount(
     void
     )
 {
+#if defined(CX_PLATFORM_DARWIN) && defined(__arm64__)
+    //
+    // arm64 macOS has no way to get the current proc, so act like a single core.
+    //
+    return 1;
+#else
     return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+#endif
 }
 
 uint32_t
@@ -610,7 +624,7 @@ CxPlatProcCurrentNumber(
 {
 #if defined(CX_PLATFORM_LINUX)
     return (uint32_t)sched_getcpu();
-#elif defined(CX_PLATFORM_DARWIN)
+#elif defined(CX_PLATFORM_DARWIN) && !defined(__arm64__)
     int cpuinfo[4];
     asm("cpuid"
             : "=a" (cpuinfo[0]),
@@ -620,6 +634,11 @@ CxPlatProcCurrentNumber(
             : "a"(1));
     CXPLAT_FRE_ASSERT((cpuinfo[3] & (1 << 9)) != 0);
     return (uint32_t)cpuinfo[1] >> 24;
+#else
+    //
+    // arm64 macOS has no way to get the current proc, so just hardcode 0.
+    //
+    return 0;
 #endif // CX_PLATFORM_DARWIN
 }
 
