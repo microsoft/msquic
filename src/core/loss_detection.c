@@ -242,7 +242,8 @@ typedef enum QUIC_LOSS_TIMER_TYPE {
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionUpdateTimer(
-    _In_ QUIC_LOSS_DETECTION* LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
+    _In_ BOOLEAN ExecuteImmediatelyIfNecessary
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
@@ -371,15 +372,25 @@ QuicLossDetectionUpdateTimer(
         Delay = US_TO_MS(Delay) + 1;
     }
 
-    QuicTraceEvent(
-        ConnLossDetectionTimerSet,
-        "[conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)",
-        Connection,
-        TimeoutType,
-        Delay,
-        LossDetection->ProbeCount);
-    UNREFERENCED_PARAMETER(TimeoutType);
-    QuicConnTimerSet(Connection, QUIC_CONN_TIMER_LOSS_DETECTION, Delay);
+    if (Delay == 0 && ExecuteImmediatelyIfNecessary) {
+        //
+        // In some cases if the timer already should have elapsed we will
+        // immediately process it inline. Otherwise (the normal case) we will
+        // just queue the timer to be processed after the current work.
+        //
+        QuicLossDetectionProcessTimerOperation(LossDetection);
+
+    } else {
+        QuicTraceEvent(
+            ConnLossDetectionTimerSet,
+            "[conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)",
+            Connection,
+            TimeoutType,
+            Delay,
+            LossDetection->ProbeCount);
+        UNREFERENCED_PARAMETER(TimeoutType);
+        QuicConnTimerSet(Connection, QUIC_CONN_TIMER_LOSS_DETECTION, Delay);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1387,7 +1398,7 @@ QuicLossDetectionProcessAckBlocks(
     // At least one packet was ACKed. If all packets were ACKed then we'll
     // cancel the timer; otherwise we'll reset the timer.
     //
-    QuicLossDetectionUpdateTimer(LossDetection);
+    QuicLossDetectionUpdateTimer(LossDetection, FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1608,6 +1619,6 @@ QuicLossDetectionProcessTimerOperation(
             QuicLossDetectionScheduleProbe(LossDetection);
         }
 
-        QuicLossDetectionUpdateTimer(LossDetection);
+        QuicLossDetectionUpdateTimer(LossDetection, FALSE);
     }
 }

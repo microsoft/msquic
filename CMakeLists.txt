@@ -258,10 +258,17 @@ if(WIN32)
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION)
     endif()
 
+    if(QUIC_TLS STREQUAL "schannel")
+        # User mode schannel doesn't support this yet.
+        message(STATUS "Disabling resumption rejection")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
+    endif()
+
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel")
         # OpenSSL and SChannel don't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
@@ -272,6 +279,7 @@ if(WIN32)
 
     if(QUIC_TLS STREQUAL "stub")
         list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
     endif()
 
     if(QUIC_ENABLE_SANITIZERS)
@@ -371,6 +379,7 @@ else()
         # OpenSSL doesn't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
@@ -389,6 +398,7 @@ else()
 
     if(QUIC_TLS STREQUAL "stub")
         list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})

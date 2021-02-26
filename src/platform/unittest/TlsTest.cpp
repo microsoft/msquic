@@ -58,10 +58,10 @@ protected:
 
     static void SetUpTestSuite()
     {
-        SelfSignedCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
+        SelfSignedCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
         ASSERT_NE(nullptr, SelfSignedCertParams);
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
-        ClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, TRUE);
+        ClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, TRUE);
         ASSERT_NE(nullptr, ClientCertParams);
         ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 #endif
@@ -69,10 +69,10 @@ protected:
 
     static void TearDownTestSuite()
     {
-        CxPlatPlatFreeSelfSignedCert(SelfSignedCertParams);
+        CxPlatFreeSelfSignedCert(SelfSignedCertParams);
         SelfSignedCertParams = nullptr;
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
-        CxPlatPlatFreeSelfSignedCert(ClientCertParams);
+        CxPlatFreeSelfSignedCert(ClientCertParams);
         ClientCertParams = nullptr;
 #endif
     }
@@ -972,6 +972,14 @@ TEST_F(TlsTest, HandshakeFragmented)
     ServerContext.InitializeServer(ServerSecConfig);
     ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
     DoHandshake(ServerContext, ClientContext, 200);
+}
+
+TEST_F(TlsTest, HandshakeVeryFragmented)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfig, false, 1500);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation, false, 1500);
+    DoHandshake(ServerContext, ClientContext, 1);
 }
 
 TEST_F(TlsTest, HandshakesSerial)
