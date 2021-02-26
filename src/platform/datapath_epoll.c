@@ -228,6 +228,11 @@ typedef struct CXPLAT_SOCKET {
     BOOLEAN HasFixedRemoteAddress : 1;
 
     //
+    // Flag indicates the binding is being used for PCP.
+    //
+    BOOLEAN PcpBinding : 1;
+
+    //
     // The MTU for this binding.
     //
     uint16_t Mtu;
@@ -690,6 +695,20 @@ CxPlatDataPathPopulateTargetAddress(
     }
 
     CXPLAT_FRE_ASSERT(FALSE);
+}
+
+QUIC_STATUS
+CxPlatDataPathGetGatewayAddresses(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
+        QUIC_ADDR** GatewayAddresses,
+    _Out_ uint32_t* GatewayAddressesCount
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    *GatewayAddresses = NULL;
+    *GatewayAddressesCount = 0;
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 QUIC_STATUS
@@ -1367,11 +1386,18 @@ CxPlatSocketContextRecvComplete(
 
     RecvPacket->PartitionIndex = ProcContext->Index;
 
-    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
-    SocketContext->Binding->Datapath->UdpHandlers.Receive(
-        SocketContext->Binding,
-        SocketContext->Binding->ClientContext,
-        RecvPacket);
+    if (!SocketContext->Binding->PcpBinding) {
+        CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
+        SocketContext->Binding->Datapath->UdpHandlers.Receive(
+            SocketContext->Binding,
+            SocketContext->Binding->ClientContext,
+            RecvPacket);
+    } else{
+        CxPlatPcpRecvCallback(
+            SocketContext->Binding,
+            SocketContext->Binding->ClientContext,
+            RecvPacket);
+    }
 
     Status = CxPlatSocketContextPrepareReceive(SocketContext);
 
@@ -1542,10 +1568,12 @@ CxPlatSocketContextProcessEvents(
             if (ErrNum == ECONNREFUSED ||
                 ErrNum == EHOSTUNREACH ||
                 ErrNum == ENETUNREACH) {
-                SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
-                    SocketContext->Binding,
-                    SocketContext->Binding->ClientContext,
-                    &SocketContext->Binding->RemoteAddress);
+                if (!SocketContext->Binding->PcpBinding) {
+                    SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                        SocketContext->Binding,
+                        SocketContext->Binding->ClientContext,
+                        &SocketContext->Binding->RemoteAddress);
+                }
             }
         }
     }
@@ -1589,6 +1617,7 @@ CxPlatSocketCreateUdp(
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
+    _In_ uint32_t InternalFlags,
     _Out_ CXPLAT_SOCKET** NewBinding
     )
 {
@@ -1605,7 +1634,7 @@ CxPlatSocketCreateUdp(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN IsServerSocket = RemoteAddress == NULL;
 
-    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
+    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || InternalFlags & CXPLAT_SOCKET_FLAG_PCP);
 
     uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
     CXPLAT_FRE_ASSERT(SocketCount > 0);
@@ -1654,6 +1683,9 @@ CxPlatSocketCreateUdp(
     }
 
     CxPlatRundownAcquire(&Datapath->BindingsRundown);
+    if (InternalFlags & CXPLAT_SOCKET_FLAG_PCP) {
+        Binding->PcpBinding = TRUE;
+    }
 
     for (uint32_t i = 0; i < SocketCount; i++) {
         Status =
@@ -2251,10 +2283,12 @@ CxPlatSocketSendInternal(
                 if (Status == ECONNREFUSED ||
                     Status == EHOSTUNREACH ||
                     Status == ENETUNREACH) {
-                    SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
-                        SocketContext->Binding,
-                        SocketContext->Binding->ClientContext,
-                        &SocketContext->Binding->RemoteAddress);
+                    if (!SocketContext->Binding->PcpBinding) {
+                        SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                            SocketContext->Binding,
+                            SocketContext->Binding->ClientContext,
+                            &SocketContext->Binding->RemoteAddress);
+                    }
                 }
                 goto Exit;
             }

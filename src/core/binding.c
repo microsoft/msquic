@@ -131,6 +131,7 @@ QuicBindingInitialize(
             LocalAddress,
             RemoteAddress,
             Binding,
+            0,
             &Binding->Socket);
 
 #ifdef QUIC_COMPARTMENT_ID

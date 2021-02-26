@@ -170,6 +170,7 @@ struct DrillSender {
                 nullptr,
                 &ServerAddress,
                 this,
+                0,
                 &Binding);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Binding failed: 0x%x", Status);

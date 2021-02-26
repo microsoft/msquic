@@ -13,6 +13,7 @@ if("${CX_PLATFORM}" STREQUAL "windows")
     set(SOURCES
         datapath_winuser.c
         hashtable.c
+        pcp.c
         platform_winuser.c
         storage_winuser.c
         toeplitz.c
@@ -23,6 +24,7 @@ else()
             datapath_epoll.c
             hashtable.c
             inline.c
+            pcp.c
             platform_posix.c
             storage_posix.c
             toeplitz.c
@@ -32,6 +34,7 @@ else()
             datapath_kqueue.c
             hashtable.c
             inline.c
+            pcp.c
             platform_posix.c
             storage_posix.c
             toeplitz.c
