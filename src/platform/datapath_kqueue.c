@@ -215,11 +215,6 @@ typedef struct CXPLAT_SOCKET {
     BOOLEAN HasFixedRemoteAddress : 1;
 
     //
-    // Flag indicates the binding is being used for PCP.
-    //
-    BOOLEAN PcpBinding : 1;
-
-    //
     // The MTU for this binding.
     //
     uint16_t Mtu;
@@ -550,12 +545,11 @@ CxPlatDataPathIsPaddingPreferred(
 
 CXPLAT_DATAPATH_RECV_BLOCK*
 CxPlatDataPathAllocRecvBlock(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t ProcIndex
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
     )
 {
     CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-        CxPlatPoolAlloc(&Datapath->ProcContexts[ProcIndex].RecvBlockPool);
+        CxPlatPoolAlloc(&DatapathProc->RecvBlockPool);
     if (RecvBlock == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -564,7 +558,7 @@ CxPlatDataPathAllocRecvBlock(
             0);
     } else {
         CxPlatZeroMemory(RecvBlock, sizeof(*RecvBlock));
-        RecvBlock->OwningPool = &Datapath->ProcContexts[ProcIndex].RecvBlockPool;
+        RecvBlock->OwningPool = &DatapathProc->RecvBlockPool;
         RecvBlock->RecvPacket.Buffer = RecvBlock->Buffer;
         RecvBlock->RecvPacket.Allocated = TRUE;
     }
@@ -619,20 +613,6 @@ CxPlatDataPathPopulateTargetAddress(
     }
 
     CXPLAT_FRE_ASSERT(FALSE);
-}
-
-QUIC_STATUS
-CxPlatDataPathGetGatewayAddresses(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
-        QUIC_ADDR** GatewayAddresses,
-    _Out_ uint32_t* GatewayAddressesCount
-    )
-{
-    UNREFERENCED_PARAMETER(Datapath);
-    *GatewayAddresses = NULL;
-    *GatewayAddressesCount = 0;
-    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 QUIC_STATUS
@@ -1033,14 +1013,13 @@ CxPlatSocketContextUninitializeComplete(
 
 QUIC_STATUS
 CxPlatSocketContextPrepareReceive(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
     )
 {
     if (SocketContext->CurrentRecvBlock == NULL) {
         SocketContext->CurrentRecvBlock =
-            CxPlatDataPathAllocRecvBlock(
-                SocketContext->Binding->Datapath,
-                CxPlatProcCurrentNumber() % SocketContext->Binding->Datapath->ProcCount);
+            CxPlatDataPathAllocRecvBlock(DatapathProc);
         if (SocketContext->CurrentRecvBlock == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1072,10 +1051,10 @@ CxPlatSocketContextPrepareReceive(
 QUIC_STATUS
 CxPlatSocketContextStartReceive(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ int KqueueFd
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
     )
 {
-    QUIC_STATUS Status = CxPlatSocketContextPrepareReceive(SocketContext);
+    QUIC_STATUS Status = CxPlatSocketContextPrepareReceive(SocketContext, DatapathProc);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -1089,7 +1068,7 @@ CxPlatSocketContextStartReceive(
         (void*)SocketContext);
     int Ret =
         kevent(
-            KqueueFd,
+            DatapathProc->KqueueFd,
             &Event,
             1,
             NULL,
@@ -1194,20 +1173,13 @@ CxPlatSocketContextRecvComplete(
 
     RecvPacket->PartitionIndex = ProcContext->Index;
 
-    if (!SocketContext->Binding->PcpBinding) {
-        CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
-        SocketContext->Binding->Datapath->UdpHandlers.Receive(
-            SocketContext->Binding,
-            SocketContext->Binding->ClientContext,
-            RecvPacket);
-    } else{
-        CxPlatPcpRecvCallback(
-            SocketContext->Binding,
-            SocketContext->Binding->ClientContext,
-            RecvPacket);
-    }
+    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
+    SocketContext->Binding->Datapath->UdpHandlers.Receive(
+        SocketContext->Binding,
+        SocketContext->Binding->ClientContext,
+        RecvPacket);
 
-    Status = CxPlatSocketContextPrepareReceive(SocketContext);
+    Status = CxPlatSocketContextPrepareReceive(SocketContext, ProcContext);
 
     //
     // Prepare can only fail under low memory condition. Treat it as a fatal
@@ -1344,12 +1316,10 @@ CxPlatSocketContextProcessEvents(
                     if (ErrNum == ECONNREFUSED ||
                         ErrNum == EHOSTUNREACH ||
                         ErrNum == ENETUNREACH) {
-                        if (!SocketContext->Binding->PcpBinding) {
-                            SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
-                                SocketContext->Binding,
-                                SocketContext->Binding->ClientContext,
-                                &SocketContext->Binding->RemoteAddress);
-                        }
+                        SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                            SocketContext->Binding,
+                            SocketContext->Binding->ClientContext,
+                            &SocketContext->Binding->RemoteAddress);
                     }
                 }
                 break;
@@ -1373,16 +1343,16 @@ CxPlatSocketCreateUdp(
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
-    _In_ uint32_t InternalFlags,
     _Out_ CXPLAT_SOCKET** NewBinding
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN IsServerSocket = RemoteAddress == NULL;
 
-    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || InternalFlags & CXPLAT_SOCKET_FLAG_PCP);
+    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
 
     uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
+    uint32_t CurrentProc = CxPlatProcCurrentNumber() % Datapath->ProcCount;
     CXPLAT_FRE_ASSERT(SocketCount > 0);
     size_t BindingLength =
         sizeof(CXPLAT_SOCKET) +
@@ -1429,15 +1399,12 @@ CxPlatSocketCreateUdp(
     }
 
     CxPlatRundownAcquire(&Datapath->BindingsRundown);
-    if (InternalFlags & CXPLAT_SOCKET_FLAG_PCP) {
-        Binding->PcpBinding = TRUE;
-    }
 
     for (uint32_t i = 0; i < SocketCount; i++) {
         Status =
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
-                &Datapath->ProcContexts[i],
+                &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc],
                 LocalAddress,
                 RemoteAddress);
         if (QUIC_FAILED(Status)) {
@@ -1464,7 +1431,7 @@ CxPlatSocketCreateUdp(
         Status =
             CxPlatSocketContextStartReceive(
                 &Binding->SocketContexts[i],
-                Datapath->ProcContexts[i].KqueueFd);
+                &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc]);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
@@ -1929,12 +1896,10 @@ CxPlatSocketSendInternal(
             if (Status == ECONNREFUSED ||
                 Status == EHOSTUNREACH ||
                 Status == ENETUNREACH) {
-                if (!SocketContext->Binding->PcpBinding) {
-                    SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
-                        SocketContext->Binding,
-                        SocketContext->Binding->ClientContext,
-                        &SocketContext->Binding->RemoteAddress);
-                }
+                SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                    SocketContext->Binding,
+                    SocketContext->Binding->ClientContext,
+                    &SocketContext->Binding->RemoteAddress);
             }
             goto Exit;
         }
