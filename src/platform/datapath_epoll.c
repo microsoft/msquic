@@ -1202,7 +1202,9 @@ CxPlatSocketContextUninitialize(
     _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
-    epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+    int EpollRes =
+        epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+    CXPLAT_FRE_ASSERT(EpollRes == 0);
 
     const eventfd_t Value = 1;
     eventfd_write(SocketContext->CleanupFd, Value);
@@ -1555,7 +1557,7 @@ CxPlatSocketContextSendComplete(
     return Status;
 }
 
-void*
+void
 CxPlatSocketContextProcessEvents(
     _In_ void* EventPtr,
     _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext,
@@ -1571,7 +1573,7 @@ CxPlatSocketContextProcessEvents(
     if (EventType == QUIC_SOCK_EVENT_CLEANUP) {
         CXPLAT_DBG_ASSERT(SocketContext->Binding->Shutdown);
         CxPlatSocketContextUninitializeComplete(SocketContext, ProcContext);
-        return EventPtr;
+        return;
     }
 
     CXPLAT_DBG_ASSERT(EventType == QUIC_SOCK_EVENT_SOCKET);
@@ -1650,8 +1652,6 @@ CxPlatSocketContextProcessEvents(
     if (EPOLLOUT & Events) {
         CxPlatSocketContextSendComplete(SocketContext, ProcContext);
     }
-
-    return NULL;
 }
 
 //
@@ -1870,7 +1870,7 @@ CxPlatSocketDelete(
     for (uint32_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(
             &Socket->SocketContexts[i],
-            &Socket->Datapath->ProcContexts[i]);
+            &Socket->Datapath->ProcContexts[Socket->HasFixedRemoteAddress ? Socket->ProcIndex : i]);
     }
 
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
@@ -2431,7 +2431,6 @@ CxPlatDataPathWorkerThread(
 
     const size_t EpollEventCtMax = 16; // TODO: Experiment.
     struct epoll_event EpollEvents[EpollEventCtMax];
-    void* ShutdownEvents[EpollEventCtMax];
 
     while (!ProcContext->Datapath->Shutdown) {
         int ReadyEventCount =
@@ -2453,16 +2452,10 @@ CxPlatDataPathWorkerThread(
                 break;
             }
 
-            for (int j = 0; j < i; j++) {
-                CXPLAT_FRE_ASSERT(ShutdownEvents[j] != EpollEvents[i].data.ptr);
-            }
-
-            void* Closed =
-                CxPlatSocketContextProcessEvents(
-                    EpollEvents[i].data.ptr,
-                    ProcContext,
-                    EpollEvents[i].events);
-            ShutdownEvents[i] = Closed;
+            CxPlatSocketContextProcessEvents(
+                EpollEvents[i].data.ptr,
+                ProcContext,
+                EpollEvents[i].events);
         }
     }
 
