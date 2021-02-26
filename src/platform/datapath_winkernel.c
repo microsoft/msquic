@@ -331,11 +331,6 @@ typedef struct CXPLAT_SOCKET {
     void *ClientContext;
 
     //
-    // The number of outstanding sends.
-    //
-    long volatile SendOutstanding;
-
-    //
     // IRP used for socket functions.
     //
     union {
@@ -2799,8 +2794,6 @@ CxPlatDataPathSendComplete(
     IoCleanupIrp(&SendContext->Irp);
     CxPlatSendDataFree(SendContext);
 
-    InterlockedDecrement(&Binding->SendOutstanding);
-
     return STATUS_MORE_PROCESSING_REQUIRED;
 }
 
@@ -2910,8 +2903,6 @@ CxPlatSocketSend(
         SegmentSize = (PDWORD)WSA_CMSG_DATA(CMsg);
         *SegmentSize = SendContext->SegmentSize;
     }
-
-    InterlockedIncrement(&Binding->SendOutstanding);
 
     Status =
         Binding->DgrmSocket->Dispatch->
