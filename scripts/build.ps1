@@ -95,8 +95,8 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("x86", "x64", "arm", "arm64", "current")]
-    [string]$Arch = "current",
+    [ValidateSet("x86", "x64", "arm", "arm64")]
+    [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("uwp", "windows", "linux", "macos")] # For future expansion
@@ -173,7 +173,7 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-if ($Arch -eq "current") {
+if ("" -eq $Arch) {
     # TODO Actually detect current platform
     $Arch = "x64"
 }
