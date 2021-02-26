@@ -155,7 +155,7 @@ InterlockedCompareExchange16(
 }
 
 inline
-short
+int64_t
 InterlockedCompareExchange64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Destination,
     _In_ int64_t ExChange,

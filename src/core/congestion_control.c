@@ -434,11 +434,14 @@ QuicCongestionControlOnDataAcknowledged(
         // DeltaT < ~2.5M (about 30min).
         //
 
-        int64_t DeltaT = TimeInCongAvoid - Cc->KCubic + US_TO_MS(SmoothedRtt);
+        int64_t DeltaT =
+            (int64_t)TimeInCongAvoid -
+            (int64_t)Cc->KCubic +
+            (int64_t)US_TO_MS(SmoothedRtt);
 
         int64_t CubicWindow =
             ((((DeltaT * DeltaT) >> 10) * DeltaT *
-              (int64_t)(Connection->Paths[0].Mtu * TEN_TIMES_C_CUBIC / 10)) >> 20) +
+             (int64_t)(Connection->Paths[0].Mtu * TEN_TIMES_C_CUBIC / 10)) >> 20) +
             (int64_t)Cc->WindowMax;
 
         if (CubicWindow < 0) {
