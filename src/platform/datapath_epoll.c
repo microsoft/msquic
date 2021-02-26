@@ -1416,7 +1416,7 @@ CxPlatSocketContextRecvComplete(
         QuicTraceLogWarning(
             DatapathRecvEmpty,
             "[data][%p] Dropping datagram with empty payload.",
-            SocketProc->Parent);
+            SocketContext->Binding);
         goto Drop;
     }
 
