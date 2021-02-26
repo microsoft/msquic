@@ -1556,7 +1556,7 @@ CxPlatSocketDelete(
     for (uint32_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(
             &Socket->SocketContexts[i],
-            &Socket->Datapath->ProcContexts[i]);
+            &Socket->Datapath->ProcContexts[Socket->HasFixedRemoteAddress ? Socket->ProcIndex : i]);
     }
 
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
