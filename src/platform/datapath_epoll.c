@@ -2462,8 +2462,8 @@ CxPlatDataPathWorkerThread(
                 for (int j = 0; j < i; j++) {
                     CXPLAT_FRE_ASSERT(ShutdownEvents[j] != Closed);
                 }
-                ShutdownEvents[i] = Closed;
             }
+            ShutdownEvents[i] = Closed;
         }
     }
 
