@@ -1782,7 +1782,6 @@ CxPlatSocketSendInternal(
     struct in_pktinfo *PktInfo = NULL;
     struct in6_pktinfo *PktInfo6 = NULL;
     BOOLEAN SendPending = FALSE;
-    uint32_t ProcNumber;
 
     static_assert(sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
 
@@ -1790,9 +1789,14 @@ CxPlatSocketSendInternal(
 
     CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
 
-    ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
-    SocketContext = &Socket->SocketContexts[Socket->HasFixedRemoteAddress ? 0 : ProcNumber];
-    ProcContext = &Socket->Datapath->ProcContexts[Socket->HasFixedRemoteAddress ? Socket->ProcIndex : ProcNumber];
+    if (Socket->HasFixedRemoteAddress) {
+        SocketContext = &Socket->SocketContexts[0];
+        ProcContext = &Socket->Datapath->ProcContexts[Socket->ProcIndex];
+    } else {
+        uint32_t ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
+        SocketContext = &Socket->SocketContexts[ProcNumber];
+        ProcContext = &Socket->Datapath->ProcContexts[ProcNumber];
+    }
 
     uint32_t TotalSize = 0;
     for (size_t i = 0; i < SendData->BufferCount; ++i) {

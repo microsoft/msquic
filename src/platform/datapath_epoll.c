@@ -2167,10 +2167,14 @@ CxPlatSocketSendInternal(
     static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
     char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
 
-    ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
-    SocketContext = &Socket->SocketContexts[Socket->HasFixedRemoteAddress ? 0 : ProcNumber];
-
-    ProcContext = &Socket->Datapath->ProcContexts[Socket->HasFixedRemoteAddress ? Socket->ProcIndex : ProcNumber];
+    if (Socket->HasFixedRemoteAddress) {
+        SocketContext = &Socket->SocketContexts[0];
+        ProcContext = &Socket->Datapath->ProcContexts[Socket->ProcIndex];
+    } else {
+        uint32_t ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
+        SocketContext = &Socket->SocketContexts[ProcNumber];
+        ProcContext = &Socket->Datapath->ProcContexts[ProcNumber];
+    }
 
     uint32_t TotalSize = 0;
     for (size_t i = SendData->SentMessagesCount; i < SendData->BufferCount; ++i) {
