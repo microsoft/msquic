@@ -545,11 +545,12 @@ CxPlatDataPathIsPaddingPreferred(
 
 CXPLAT_DATAPATH_RECV_BLOCK*
 CxPlatDataPathAllocRecvBlock(
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint32_t ProcIndex
     )
 {
     CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-        CxPlatPoolAlloc(&DatapathProc->RecvBlockPool);
+        CxPlatPoolAlloc(&Datapath->ProcContexts[ProcIndex].RecvBlockPool);
     if (RecvBlock == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -558,7 +559,7 @@ CxPlatDataPathAllocRecvBlock(
             0);
     } else {
         CxPlatZeroMemory(RecvBlock, sizeof(*RecvBlock));
-        RecvBlock->OwningPool = &DatapathProc->RecvBlockPool;
+        RecvBlock->OwningPool = &Datapath->ProcContexts[ProcIndex].RecvBlockPool;
         RecvBlock->RecvPacket.Buffer = RecvBlock->Buffer;
         RecvBlock->RecvPacket.Allocated = TRUE;
     }
@@ -1013,13 +1014,14 @@ CxPlatSocketContextUninitializeComplete(
 
 QUIC_STATUS
 CxPlatSocketContextPrepareReceive(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
     if (SocketContext->CurrentRecvBlock == NULL) {
         SocketContext->CurrentRecvBlock =
-            CxPlatDataPathAllocRecvBlock(DatapathProc);
+            CxPlatDataPathAllocRecvBlock(
+                SocketContext->Binding->Datapath,
+                CxPlatProcCurrentNumber() % SocketContext->Binding->Datapath->ProcCount);
         if (SocketContext->CurrentRecvBlock == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1051,10 +1053,10 @@ CxPlatSocketContextPrepareReceive(
 QUIC_STATUS
 CxPlatSocketContextStartReceive(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
+    _In_ int KqueueFd
     )
 {
-    QUIC_STATUS Status = CxPlatSocketContextPrepareReceive(SocketContext, DatapathProc);
+    QUIC_STATUS Status = CxPlatSocketContextPrepareReceive(SocketContext);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -1068,7 +1070,7 @@ CxPlatSocketContextStartReceive(
         (void*)SocketContext);
     int Ret =
         kevent(
-            DatapathProc->KqueueFd,
+            KqueueFd,
             &Event,
             1,
             NULL,
@@ -1179,7 +1181,7 @@ CxPlatSocketContextRecvComplete(
         SocketContext->Binding->ClientContext,
         RecvPacket);
 
-    Status = CxPlatSocketContextPrepareReceive(SocketContext, ProcContext);
+    Status = CxPlatSocketContextPrepareReceive(SocketContext);
 
     //
     // Prepare can only fail under low memory condition. Treat it as a fatal
@@ -1352,7 +1354,6 @@ CxPlatSocketCreateUdp(
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
 
     uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
-    uint32_t CurrentProc = CxPlatProcCurrentNumber();
     CXPLAT_FRE_ASSERT(SocketCount > 0);
     size_t BindingLength =
         sizeof(CXPLAT_SOCKET) +
@@ -1404,7 +1405,7 @@ CxPlatSocketCreateUdp(
         Status =
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
-                &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc],
+                &Datapath->ProcContexts[i],
                 LocalAddress,
                 RemoteAddress);
         if (QUIC_FAILED(Status)) {
@@ -1431,7 +1432,7 @@ CxPlatSocketCreateUdp(
         Status =
             CxPlatSocketContextStartReceive(
                 &Binding->SocketContexts[i],
-                &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc]);
+                Datapath->ProcContexts[i].KqueueFd);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
