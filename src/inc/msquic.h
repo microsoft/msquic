@@ -181,6 +181,7 @@ typedef enum QUIC_SEND_FLAGS {
     QUIC_SEND_FLAG_START                    = 0x0002,   // Asynchronously starts the stream with the sent data.
     QUIC_SEND_FLAG_FIN                      = 0x0004,   // Indicates the request is the one last sent on the stream.
     QUIC_SEND_FLAG_DGRAM_PRIORITY           = 0x0008,   // Indicates the datagram is higher priority than others.
+    QUIC_SEND_FLAG_DELAY_SEND               = 0x0010,   // Indicates the send should be delayed because more will be queued soon.
 } QUIC_SEND_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS)

@@ -544,7 +544,8 @@ QuicLossDetectionOnPacketAcknowledged(
                 QuicSendSetStreamSendFlag(
                     &Connection->Send,
                     Packet->Frames[i].STREAM_DATA_BLOCKED.Stream,
-                    QUIC_STREAM_SEND_FLAG_DATA_BLOCKED);
+                    QUIC_STREAM_SEND_FLAG_DATA_BLOCKED,
+                    FALSE);
             }
             break;
 
@@ -648,7 +649,8 @@ QuicLossDetectionRetransmitFrames(
                 QuicSendSetStreamSendFlag(
                     &Connection->Send,
                     Packet->Frames[i].RESET_STREAM.Stream,
-                    QUIC_STREAM_SEND_FLAG_SEND_ABORT);
+                    QUIC_STREAM_SEND_FLAG_SEND_ABORT,
+                    FALSE);
             break;
 
         case QUIC_FRAME_STOP_SENDING:
@@ -656,7 +658,8 @@ QuicLossDetectionRetransmitFrames(
                 QuicSendSetStreamSendFlag(
                     &Connection->Send,
                     Packet->Frames[i].STOP_SENDING.Stream,
-                    QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+                    QUIC_STREAM_SEND_FLAG_RECV_ABORT,
+                    FALSE);
             break;
 
         case QUIC_FRAME_CRYPTO:
@@ -692,7 +695,8 @@ QuicLossDetectionRetransmitFrames(
                 QuicSendSetStreamSendFlag(
                     &Connection->Send,
                     Packet->Frames[i].MAX_STREAM_DATA.Stream,
-                    QUIC_STREAM_SEND_FLAG_MAX_DATA);
+                    QUIC_STREAM_SEND_FLAG_MAX_DATA,
+                    FALSE);
             break;
 
         case QUIC_FRAME_MAX_STREAMS:
@@ -714,7 +718,8 @@ QuicLossDetectionRetransmitFrames(
                 QuicSendSetStreamSendFlag(
                     &Connection->Send,
                     Packet->Frames[i].STREAM_DATA_BLOCKED.Stream,
-                    QUIC_STREAM_SEND_FLAG_DATA_BLOCKED);
+                    QUIC_STREAM_SEND_FLAG_DATA_BLOCKED,
+                    FALSE);
             break;
 
         case QUIC_FRAME_NEW_CONNECTION_ID: {
