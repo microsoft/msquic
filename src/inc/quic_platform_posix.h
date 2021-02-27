@@ -794,7 +794,7 @@ inline
 BOOLEAN
 CxPlatInternalEventWaitWithTimeout(
     _Inout_ CXPLAT_EVENT* Event,
-    _In_ uint32_t timeoutMs
+    _In_ uint32_t TimeoutMs
     )
 {
     BOOLEAN WaitSatisfied = FALSE;
