@@ -120,6 +120,8 @@ typedef struct CXPLAT_SEND_DATA {
 
 } CXPLAT_SEND_DATA;
 
+typedef struct CXPLAT_DATAPATH_PROC_CONTEXT CXPLAT_DATAPATH_PROC_CONTEXT;
+
 //
 // Socket context.
 //
@@ -129,6 +131,11 @@ typedef struct CXPLAT_SOCKET_CONTEXT {
     // The datapath binding this socket context belongs to.
     //
     CXPLAT_SOCKET* Binding;
+
+    //
+    // The datapath proc context this socket belongs to.
+    //
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext;
 
     //
     // The socket FD used by this socket context.
@@ -703,7 +710,6 @@ Exit:
 QUIC_STATUS
 CxPlatSocketContextInitialize(
     _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress
     )
@@ -715,8 +721,6 @@ CxPlatSocketContextInitialize(
     int ForceIpv4 = RemoteAddress && RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET;
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
-
-    UNREFERENCED_PARAMETER(ProcContext);
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
@@ -997,22 +1001,23 @@ Exit:
 
 void
 CxPlatSocketContextUninitialize(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
+    struct kevent DeleteEvent = {0};
+    EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, (void*)SocketContext);
+    kevent(SocketContext->ProcContext->KqueueFd, &DeleteEvent, 1, NULL, 0, NULL);
+
     struct kevent Event = {0};
     EV_SET(&Event, SocketContext->SocketFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, (void*)SocketContext);
-    kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
+    kevent(SocketContext->ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
 }
 
 void
 CxPlatSocketContextUninitializeComplete(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
-    UNREFERENCED_PARAMETER(ProcContext);
     if (SocketContext->CurrentRecvBlock != NULL) {
         CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlock->RecvPacket);
     }
@@ -1032,13 +1037,12 @@ CxPlatSocketContextUninitializeComplete(
 
 QUIC_STATUS
 CxPlatSocketContextPrepareReceive(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
     if (SocketContext->CurrentRecvBlock == NULL) {
         SocketContext->CurrentRecvBlock =
-            CxPlatDataPathAllocRecvBlock(DatapathProc);
+            CxPlatDataPathAllocRecvBlock(SocketContext->ProcContext);
         if (SocketContext->CurrentRecvBlock == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1069,11 +1073,10 @@ CxPlatSocketContextPrepareReceive(
 
 QUIC_STATUS
 CxPlatSocketContextStartReceive(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
-    QUIC_STATUS Status = CxPlatSocketContextPrepareReceive(SocketContext, DatapathProc);
+    QUIC_STATUS Status = CxPlatSocketContextPrepareReceive(SocketContext);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -1087,7 +1090,7 @@ CxPlatSocketContextStartReceive(
         (void*)SocketContext);
     int Ret =
         kevent(
-            DatapathProc->KqueueFd,
+            SocketContext->ProcContext->KqueueFd,
             &Event,
             1,
             NULL,
@@ -1117,7 +1120,6 @@ Error:
 void
 CxPlatSocketContextRecvComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext,
     _In_ ssize_t BytesTransferred
     )
 {
@@ -1190,7 +1192,7 @@ CxPlatSocketContextRecvComplete(
     CXPLAT_DBG_ASSERT(BytesTransferred <= RecvPacket->BufferLength);
     RecvPacket->BufferLength = BytesTransferred;
 
-    RecvPacket->PartitionIndex = ProcContext->Index;
+    RecvPacket->PartitionIndex = SocketContext->ProcContext->Index;
 
     if (!SocketContext->Binding->PcpBinding) {
         CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
@@ -1205,7 +1207,7 @@ CxPlatSocketContextRecvComplete(
             RecvPacket);
     }
 
-    Status = CxPlatSocketContextPrepareReceive(SocketContext, ProcContext);
+    Status = CxPlatSocketContextPrepareReceive(SocketContext);
 
     //
     // Prepare can only fail under low memory condition. Treat it as a fatal
@@ -1249,13 +1251,11 @@ CxPlatSocketContextPendSend(
 
 QUIC_STATUS
 CxPlatSocketContextSendComplete(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_SEND_DATA* SendContext = NULL;
-    UNREFERENCED_PARAMETER(ProcContext);
 
     // Disable kqueue already disables events
 
@@ -1302,15 +1302,14 @@ CxPlatSocketContextSendComplete(
 
 void
 CxPlatSocketContextProcessEvents(
-    _In_ struct kevent* Event,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    _In_ struct kevent* Event
     )
 {
     CXPLAT_SOCKET_CONTEXT* SocketContext = (CXPLAT_SOCKET_CONTEXT*)Event->udata;
     CXPLAT_DBG_ASSERT(Event->filter & (EVFILT_READ | EVFILT_WRITE | EVFILT_USER));
     if (Event->filter == EVFILT_USER) {
         CXPLAT_DBG_ASSERT(SocketContext->Binding->Shutdown);
-        CxPlatSocketContextUninitializeComplete(SocketContext, ProcContext);
+        CxPlatSocketContextUninitializeComplete(SocketContext);
         return;
     }
 
@@ -1352,12 +1351,12 @@ CxPlatSocketContextProcessEvents(
                 }
                 break;
             }
-            CxPlatSocketContextRecvComplete(SocketContext, ProcContext, Ret);
+            CxPlatSocketContextRecvComplete(SocketContext, Ret);
         }
     }
 
     if (Event->filter == EVFILT_WRITE) {
-        CxPlatSocketContextSendComplete(SocketContext, ProcContext);
+        CxPlatSocketContextSendComplete(SocketContext);
     }
 }
 
@@ -1422,6 +1421,7 @@ CxPlatSocketCreateUdp(
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
         Binding->SocketContexts[i].RecvIov.iov_len =
             Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
+        Binding->SocketContexts[i].ProcContext = &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc];
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendContextHead);
         CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendContextLock);
         CxPlatRundownAcquire(&Binding->Rundown);
@@ -1436,7 +1436,6 @@ CxPlatSocketCreateUdp(
         Status =
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
-                &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc],
                 LocalAddress,
                 RemoteAddress);
         if (QUIC_FAILED(Status)) {
@@ -1462,8 +1461,7 @@ CxPlatSocketCreateUdp(
     for (uint32_t i = 0; i < SocketCount; i++) {
         Status =
             CxPlatSocketContextStartReceive(
-                &Binding->SocketContexts[i],
-                &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc]);
+                &Binding->SocketContexts[i]);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
@@ -1549,8 +1547,7 @@ CxPlatSocketDelete(
     uint32_t SocketCount = Socket->HasFixedRemoteAddress ? 1 : Socket->Datapath->ProcCount;
     for (uint32_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(
-            &Socket->SocketContexts[i],
-            &Socket->Datapath->ProcContexts[i]);
+            &Socket->SocketContexts[i]);
     }
 
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
@@ -1769,14 +1766,12 @@ CxPlatSocketSendInternal(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_SOCKET_CONTEXT* SocketContext = NULL;
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
     ssize_t SentByteCount = 0;
     QUIC_ADDR MappedRemoteAddress = {0};
     struct cmsghdr *CMsg = NULL;
     struct in_pktinfo *PktInfo = NULL;
     struct in6_pktinfo *PktInfo6 = NULL;
     BOOLEAN SendPending = FALSE;
-    uint32_t ProcNumber;
 
     static_assert(sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
 
@@ -1784,9 +1779,12 @@ CxPlatSocketSendInternal(
 
     CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
 
-    ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
-    SocketContext = &Socket->SocketContexts[Socket->HasFixedRemoteAddress ? 0 : ProcNumber];
-    ProcContext = &Socket->Datapath->ProcContexts[ProcNumber];
+    if (Socket->HasFixedRemoteAddress) {
+        SocketContext = &Socket->SocketContexts[0];
+    } else {
+        uint32_t ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
+        SocketContext = &Socket->SocketContexts[ProcNumber];
+    }
 
     uint32_t TotalSize = 0;
     for (size_t i = 0; i < SendData->BufferCount; ++i) {
@@ -1893,7 +1891,7 @@ CxPlatSocketSendInternal(
             EV_SET(&Event, SocketContext->SocketFd, EVFILT_WRITE, EV_ADD | EV_ONESHOT | EV_CLEAR, 0, 0, (void *)SocketContext);
             int Ret =
                 kevent(
-                    ProcContext->KqueueFd,
+                    SocketContext->ProcContext->KqueueFd,
                     &Event,
                     1,
                     NULL,
@@ -2031,8 +2029,7 @@ CxPlatDataPathWorkerThread(
             }
 
             CxPlatSocketContextProcessEvents(
-                &EventList[i],
-                ProcContext);
+                &EventList[i]);
         }
     }
 
