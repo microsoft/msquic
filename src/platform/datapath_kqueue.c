@@ -1004,6 +1004,10 @@ CxPlatSocketContextUninitialize(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
+    struct kevent DeleteEvent = {0};
+    EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, (void*)SocketContext);
+    kevent(SocketContext->ProcContext->KqueueFd, &DeleteEvent, 1, NULL, 0, NULL);
+
     struct kevent Event = {0};
     EV_SET(&Event, SocketContext->SocketFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, (void*)SocketContext);
     kevent(SocketContext->ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
