@@ -355,8 +355,6 @@ CxPlatEventInitialize(
     CXPLAT_FRE_ASSERT(Result == 0);
     Result = pthread_condattr_destroy(&Attr);
     CXPLAT_FRE_ASSERT(Result == 0);
-
-    (*Event) = Event;
 }
 
 void
@@ -370,9 +368,6 @@ CxPlatInternalEventUninitialize(
     CXPLAT_FRE_ASSERT(Result == 0);
     Result = pthread_mutex_destroy(&Event->Mutex);
     CXPLAT_FRE_ASSERT(Result == 0);
-
-    CXPLAT_FREE(Event, QUIC_POOL_EVENT);
-    Event = NULL;
 }
 
 void
