@@ -554,7 +554,7 @@ CxPlatRefDecrement(
 // QUIC event object.
 //
 
-typedef struct CXPLAT_EVENT_OBJECT {
+typedef struct CXPLAT_EVENT {
 
     //
     // Mutex and condition.
@@ -574,9 +574,7 @@ typedef struct CXPLAT_EVENT_OBJECT {
 
     BOOLEAN AutoReset;
 
-} CXPLAT_EVENT_OBJECT;
-
-typedef CXPLAT_EVENT_OBJECT* CXPLAT_EVENT;
+} CXPLAT_EVENT;
 
 void
 CxPlatEventInitialize(
@@ -586,30 +584,36 @@ CxPlatEventInitialize(
     );
 
 void
-CxPlatEventUninitialize(
-    _Inout_ CXPLAT_EVENT Event
+CxPlatInternalEventUninitialize(
+    _Inout_ CXPLAT_EVENT* Event
     );
 
 void
-CxPlatEventSet(
-    _Inout_ CXPLAT_EVENT Event
+CxPlatInternalEventSet(
+    _Inout_ CXPLAT_EVENT* Event
     );
 
 void
-CxPlatEventReset(
-    _Inout_ CXPLAT_EVENT Event
+CxPlatInternalEventReset(
+    _Inout_ CXPLAT_EVENT* Event
     );
 
 void
-CxPlatEventWaitForever(
-    _Inout_ CXPLAT_EVENT Event
+CxPlatInternalEventWaitForever(
+    _Inout_ CXPLAT_EVENT* Event
     );
 
 BOOLEAN
-CxPlatEventWaitWithTimeout(
-    _Inout_ CXPLAT_EVENT Event,
+CxPlatInternalEventWaitWithTimeout(
+    _Inout_ CXPLAT_EVENT* Event,
     _In_ uint32_t timeoutMs
     );
+
+#define CxPlatEventUninitialize(Event) CxPlatInternalEventUninitialize(&Event)
+#define CxPlatEventSet(Event) CxPlatInternalEventSet(&Event)
+#define CxPlatEventReset(Event) CxPlatInternalEventReset(&Event)
+#define CxPlatEventWaitForever(Event) CxPlatInternalEventWaitForever(&Event)
+#define CxPlatEventWaitWithTimeout(Event, TimeoutMs) CxPlatInternalEventWaitWithTimeout(&Event, TimeoutMs)
 
 //
 // Time Measurement Interfaces
