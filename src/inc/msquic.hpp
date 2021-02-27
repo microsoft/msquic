@@ -534,6 +534,7 @@ struct EventScope {
     EventScope(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
     EventScope(CXPLAT_EVENT event) noexcept : Handle(event) { }
     ~EventScope() noexcept { CxPlatEventUninitialize(Handle); }
+    CXPLAT_EVENT* operator &() noexcept { return &Handle; }
     operator CXPLAT_EVENT() const noexcept { return Handle; }
 };
 
