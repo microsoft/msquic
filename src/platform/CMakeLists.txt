@@ -13,6 +13,7 @@ if("${CX_PLATFORM}" STREQUAL "windows")
     set(SOURCES
         datapath_winuser.c
         hashtable.c
+        pcp.c
         platform_winuser.c
         storage_winuser.c
         toeplitz.c
@@ -20,20 +21,22 @@ if("${CX_PLATFORM}" STREQUAL "windows")
 else()
     if(CX_PLATFORM STREQUAL "linux")
         set(SOURCES
-            datapath_linux.c
+            datapath_epoll.c
             hashtable.c
             inline.c
-            platform_linux.c
-            storage_linux.c
+            pcp.c
+            platform_posix.c
+            storage_posix.c
             toeplitz.c
         )
     else()
         set(SOURCES
-            datapath_darwin.c
+            datapath_kqueue.c
             hashtable.c
             inline.c
-            platform_darwin.c
-            storage_darwin.c
+            pcp.c
+            platform_posix.c
+            storage_posix.c
             toeplitz.c
         )
     endif()
@@ -79,4 +82,6 @@ if(QUIC_TLS STREQUAL "openssl")
     target_link_libraries(platform PUBLIC OpenSSL)
 elseif(QUIC_TLS STREQUAL "mitls")
     target_link_libraries(platform PUBLIC kremlib evercrypt mitls quiccrypto)
+elseif(QUIC_TLS STREQUAL "schannel")
+    target_link_libraries(platform PUBLIC secur32)
 endif()

@@ -133,10 +133,10 @@ MsQuicRegistrationOpen(
         Registration,
         Registration->AppName);
 
-#ifdef QuicVerifierEnabledByAddr
+#ifdef CxPlatVerifierEnabledByAddr
 #pragma prefast(suppress:6001, "SAL doesn't understand checking whether memory is tracked by Verifier.")
     if (MsQuicLib.IsVerifying &&
-        QuicVerifierEnabledByAddr(NewRegistration)) {
+        CxPlatVerifierEnabledByAddr(NewRegistration)) {
         Registration->IsVerifying = TRUE;
         QuicTraceLogInfo(
             RegistrationVerifierEnabled,

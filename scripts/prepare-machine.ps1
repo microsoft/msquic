@@ -64,6 +64,12 @@ $ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v$ClogVe
 
 $MessagesAtEnd = New-Object Collections.Generic.List[string]
 
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+
+    Write-Error ("`nPowerShell v7.x is needed for this script to work. " +
+                 "Please visit https://github.com/microsoft/msquic/blob/main/docs/BUILD.md#powershell-usage")
+}
+
 if ($InitSubmodules) {
 
     # Default TLS based on current platform.
@@ -83,6 +89,12 @@ if ($InitSubmodules) {
         Write-Host "Initializing everest submodule"
         git submodule init submodules/everest
         git submodule update
+    }
+
+    if ($Kernel) {
+        # Remove OpenSSL and Everest
+        git rm submodules/everest
+        git rm submodules/openssl
     }
 
     if (!$Extra.Contains("-DisableTest")) {
@@ -184,12 +196,14 @@ if ($IsWindows) {
         }
     }
 
-} else {
+} elseif ($IsLinux) {
     switch ($Configuration) {
         "Build" {
             sudo apt-add-repository ppa:lttng/stable-2.11
             sudo apt-get update
             sudo apt-get install -y liblttng-ust-dev
+            # only used for the codecheck CI run:
+            sudo apt-get install -y cppcheck clang-tidy
         }
         "Test" {
             sudo apt-add-repository ppa:lttng/stable-2.11

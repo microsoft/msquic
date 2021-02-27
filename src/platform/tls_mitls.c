@@ -400,7 +400,8 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
@@ -429,29 +430,7 @@ CxPlatTlsSecConfigCreate(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-
-        if (CredConfig->TicketKey != NULL &&
-            !FFI_mitls_set_sealing_key("AES256-GCM", (uint8_t*)CredConfig->TicketKey, 44)) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "FFI_mitls_set_sealing_key failed");
-            Status = QUIC_STATUS_INVALID_STATE;
-            goto Error;
-        }
-
-    } else {
-
-        if (CredConfig->TicketKey != NULL &&
-            !FFI_mitls_set_ticket_key("AES256-GCM", (uint8_t*)CredConfig->TicketKey, 44)) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "FFI_mitls_set_ticket_key failed");
-            Status = QUIC_STATUS_INVALID_STATE;
-            goto Error;
-        }
+    if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
 
         Status = CxPlatCertCreate(CredConfig, &SecurityConfig->Certificate);
         if (QUIC_FAILED(Status)) {
@@ -509,6 +488,45 @@ CxPlatTlsSecConfigDelete(
         CxPlatCertFree(SecurityConfig->Certificate);
     }
     CXPLAT_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
+}
+
+const uint8_t miTlsTicketKeyLength = 44;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsSecConfigSetTicketKeys(
+    _In_ CXPLAT_SEC_CONFIG* SecurityConfig,
+    _In_reads_(KeyCount) QUIC_TICKET_KEY_CONFIG* KeyConfig,
+    _In_ uint8_t KeyCount
+    )
+{
+    CXPLAT_DBG_ASSERT(KeyCount >= 1);
+    UNREFERENCED_PARAMETER(KeyCount);
+
+    if (KeyConfig->MaterialLength < miTlsTicketKeyLength) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (SecurityConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        if (!FFI_mitls_set_sealing_key("AES256-GCM", KeyConfig->Material, miTlsTicketKeyLength)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "FFI_mitls_set_sealing_key failed");
+            return QUIC_STATUS_INVALID_STATE;
+        }
+
+    } else {
+        if (!FFI_mitls_set_ticket_key("AES256-GCM", KeyConfig->Material, miTlsTicketKeyLength)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "FFI_mitls_set_ticket_key failed");
+            return QUIC_STATUS_INVALID_STATE;
+        }
+    }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1530,8 +1548,7 @@ CxPlatTlsOnCertVerify(
             miTlsCertValidationDisabled,
             TlsContext->Connection,
             "Certificate validation disabled!");
-        Result = 1;
-        goto Error;
+        goto Indicate; // Skip internal validation
     }
 
     Certificate =
@@ -1550,24 +1567,47 @@ CxPlatTlsOnCertVerify(
     if (!CxPlatCertValidateChain(
             Certificate,
             TlsContext->SNI,
-            TlsContext->SecConfig->Flags)) {
+            0)) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
             TlsContext->Connection,
             "Cert chain validation failed");
-        Result = 0;
         goto Error;
     }
 
-    Result =
-        CxPlatCertVerify(
+    if (!CxPlatCertVerify(
             Certificate,
             SignatureAlgorithm,
             CertListToBeSigned,
             CertListToBeSignedLength,
             Signature,
-            SignatureLength);
+            SignatureLength)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "CxPlatCertVerify failed");
+        goto Error;
+    }
+
+Indicate:
+
+    if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+        !TlsContext->SecConfig->Callbacks.CertificateReceived(
+            TlsContext->Connection,
+            NULL,
+            0,
+            0)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Indicate certificate received failed");
+        goto Error;
+    }
+
+    Result = 1;
 
 Error:
 

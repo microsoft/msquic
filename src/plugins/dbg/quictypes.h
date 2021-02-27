@@ -27,7 +27,7 @@ typedef enum QUIC_HANDLE_TYPE {
 } QUIC_HANDLE_TYPE;
 
 typedef union QUIC_STREAM_FLAGS {
-    UINT32 AllFlags;
+    uint32_t AllFlags;
     struct {
         BOOLEAN Allocated               : 1;    // Allocated by Connection. Used for Debugging.
         BOOLEAN Initialized             : 1;    // Initialized successfully. Used for Debugging.
@@ -58,6 +58,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
         BOOLEAN ReceiveCallPending      : 1;    // There is an uncompleted receive to the app.
+        BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
 
         BOOLEAN HandleSendShutdown      : 1;    // Send shutdown complete callback delivered.
         BOOLEAN HandleShutdown          : 1;    // Shutdown callback delivered.
@@ -196,7 +197,7 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN AppCloseInProgress: 1;
 
-#ifdef QuicVerifierEnabledByAddr
+#ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
         //

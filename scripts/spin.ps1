@@ -103,8 +103,12 @@ if ($CodeCoverage) {
 $SpinQuic = $null
 if ($IsWindows) {
     $SpinQuic = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\spinquic.exe"
-} else {
+} elseif ($IsLinux) {
     $SpinQuic = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/spinquic"
+} elseif ($IsMacOS) {
+    $SpinQuic = Join-Path $RootDir "/artifacts/bin/macos/$($Arch)_$($Config)_$($Tls)/spinquic"
+} else {
+    Write-Error "Unsupported platform type!"
 }
 
 # Make sure the build is present.

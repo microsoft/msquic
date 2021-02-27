@@ -21,6 +21,10 @@ Abstract:
 
 #include <winioctl.h>
 #include "PerfIoctls.h"
+typedef struct {
+    QUIC_CERTIFICATE_HASH ServerCertHash;
+    QUIC_CERTIFICATE_HASH ClientCertHash;
+} QUIC_RUN_CERTIFICATE_PARAMS;
 #include "quic_driver_helpers.h"
 
 #define QUIC_DRIVER_NAME            "quicperfdrv"
@@ -129,7 +133,7 @@ QuicUserMain(
         CxPlatEventSet(StopEvent);
     }
 
-    Status = QuicMainStop(0);
+    Status = QuicMainStop();
     if (QUIC_FAILED(Status)) {
         printf("Stop failed with status %d\n", Status);
         QuicMainFree();
@@ -244,7 +248,13 @@ QuicKernelMain(
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    if (!DriverClient.Initialize((QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1), DriverName)) {
+    QUIC_RUN_CERTIFICATE_PARAMS CertParams = { 0 };
+    CxPlatCopyMemory(
+        &CertParams.ServerCertHash.ShaHash,
+        (QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1),
+        sizeof(QUIC_CERTIFICATE_HASH));
+
+    if (!DriverClient.Initialize(&CertParams, DriverName)) {
         printf("Intializing Driver Client Failed.\n");
         DriverService.Uninitialize();
         CXPLAT_FREE(Data, QUIC_POOL_PERF);
@@ -390,10 +400,11 @@ main(
     }
 
     SelfSignedCredConfig =
-        CxPlatPlatGetSelfSignedCert(
+        CxPlatGetSelfSignedCert(
             TestingKernelMode ?
                 CXPLAT_SELF_SIGN_CERT_MACHINE :
-                CXPLAT_SELF_SIGN_CERT_USER);
+                CXPLAT_SELF_SIGN_CERT_USER,
+            FALSE);
     if (!SelfSignedCredConfig) {
         printf("Creating self signed certificate failed\n");
         RetVal = QUIC_STATUS_INTERNAL_ERROR;
@@ -414,7 +425,7 @@ main(
 
 Exit:
     if (SelfSignedCredConfig) {
-        CxPlatPlatFreeSelfSignedCert(SelfSignedCredConfig);
+        CxPlatFreeSelfSignedCert(SelfSignedCredConfig);
     }
 
     CxPlatUninitialize();

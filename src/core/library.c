@@ -128,6 +128,43 @@ QuicLibrarySumPerfCountersExternal(
     CxPlatLockRelease(&MsQuicLib.Lock);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicPerfCounterSnapShot(
+    _In_ uint64_t TimeDiffUs
+    )
+{
+    UNREFERENCED_PARAMETER(TimeDiffUs); // Only used in asserts below.
+
+    int64_t PerfCounterSamples[QUIC_PERF_COUNTER_MAX];
+    QuicLibrarySumPerfCounters(
+        (uint8_t*)PerfCounterSamples,
+        sizeof(PerfCounterSamples));
+
+// Ensure a perf counter stays below a given max Hz/frequency.
+#define QUIC_COUNTER_LIMIT_HZ(TYPE, LIMIT_PER_SECOND) \
+    CXPLAT_TEL_ASSERT( \
+        ((1000 * 1000 * (PerfCounterSamples[TYPE] - MsQuicLib.PerfCounterSamples[TYPE])) / TimeDiffUs) < LIMIT_PER_SECOND)
+
+// Ensures a perf counter doesn't consistently (both samples) go above a give max value.
+#define QUIC_COUNTER_CAP(TYPE, MAX_LIMIT) \
+    CXPLAT_TEL_ASSERT( \
+        PerfCounterSamples[TYPE] < MAX_LIMIT || \
+        MsQuicLib.PerfCounterSamples[TYPE] < MAX_LIMIT)
+
+    //
+    // Some heuristics to ensure that bad things aren't happening. TODO - these
+    // values should be configurable dynamically, somehow.
+    //
+    QUIC_COUNTER_LIMIT_HZ(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL, 1000000); // Don't have 1 million failed handshakes per second
+    QUIC_COUNTER_CAP(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, 100000); // Don't maintain huge queue depths
+
+    CxPlatCopyMemory(
+        MsQuicLib.PerfCounterSamples,
+        PerfCounterSamples,
+        sizeof(PerfCounterSamples));
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 MsQuicLibraryOnSettingsChanged(
@@ -205,6 +242,9 @@ MsQuicLibraryInitialize(
     CXPLAT_DBG_ASSERT(US_TO_MS(CxPlatGetTimerResolution()) + 1 <= UINT8_MAX);
     MsQuicLib.TimerResolutionMs = (uint8_t)US_TO_MS(CxPlatGetTimerResolution()) + 1;
 
+    MsQuicLib.PerfCounterSamplesTime = CxPlatTimeUs64();
+    CxPlatZeroMemory(MsQuicLib.PerfCounterSamples, sizeof(MsQuicLib.PerfCounterSamples));
+
     CxPlatRandom(sizeof(MsQuicLib.ToeplitzHash.HashKey), MsQuicLib.ToeplitzHash.HashKey);
     CxPlatToeplitzHashInitialize(&MsQuicLib.ToeplitzHash);
 
@@ -228,6 +268,34 @@ MsQuicLibraryInitialize(
     CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
     CxPlatZeroMemory(&MsQuicLib.StatelessRetryKeys, sizeof(MsQuicLib.StatelessRetryKeys));
     CxPlatZeroMemory(&MsQuicLib.StatelessRetryKeysExpiration, sizeof(MsQuicLib.StatelessRetryKeysExpiration));
+
+    uint32_t CompatibilityListByteLength = 0;
+    QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+        QUIC_VERSION_LATEST,
+        DefaultSupportedVersionsList,
+        ARRAYSIZE(DefaultSupportedVersionsList),
+        NULL,
+        &CompatibilityListByteLength);
+    MsQuicLib.DefaultCompatibilityList =
+        CXPLAT_ALLOC_NONPAGED(CompatibilityListByteLength, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
+    if (MsQuicLib.DefaultCompatibilityList == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)", "default compatibility list",
+            CompatibilityListByteLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+    MsQuicLib.DefaultCompatibilityListLength = CompatibilityListByteLength / sizeof(uint32_t);
+    if (QUIC_FAILED(
+        QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+            QUIC_VERSION_LATEST,
+            DefaultSupportedVersionsList,
+            ARRAYSIZE(DefaultSupportedVersionsList),
+            (uint8_t*)MsQuicLib.DefaultCompatibilityList,
+            &CompatibilityListByteLength))) {
+         goto Error;
+    }
 
     //
     // TODO: Add support for CPU hot swap/add.
@@ -305,11 +373,11 @@ MsQuicLibraryInitialize(
         MsQuicLib.PartitionCount,
         CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
-#ifdef QuicVerifierEnabled
+#ifdef CxPlatVerifierEnabled
     uint32_t Flags;
-    MsQuicLib.IsVerifying = QuicVerifierEnabled(Flags);
+    MsQuicLib.IsVerifying = CxPlatVerifierEnabled(Flags);
     if (MsQuicLib.IsVerifying) {
-#ifdef QuicVerifierEnabledByAddr
+#ifdef CxPlatVerifierEnabledByAddr
         QuicTraceLogInfo(
             LibraryVerifierEnabledPerRegistration,
             "[ lib] Verifing enabled, per-registration!");
@@ -426,6 +494,10 @@ MsQuicLibraryUninitialize(
         MsQuicLib.StatelessRetryKeys[i] = NULL;
     }
     CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
+
+    QuicSettingsCleanup(&MsQuicLib.Settings);
+
+    CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
 
     QuicTraceEvent(
         LibraryUninitialized,
@@ -672,6 +744,7 @@ QuicLibrarySetGlobalParam(
 
         if (!QuicSettingApply(
                 &MsQuicLib.Settings,
+                TRUE,
                 TRUE,
                 BufferLength,
                 (QUIC_SETTINGS*)Buffer)) {

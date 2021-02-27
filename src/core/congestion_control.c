@@ -240,6 +240,15 @@ QuicCongestionControlOnCongestionEvent(
     Cc->IsInRecovery = TRUE;
     Cc->HasHadCongestionEvent = TRUE;
 
+    //
+    // Save previous state, just in case this ends up being spurious.
+    //
+    Cc->PrevWindowMax = Cc->WindowMax;
+    Cc->PrevWindowLastMax = Cc->WindowLastMax;
+    Cc->PrevKCubic = Cc->KCubic;
+    Cc->PrevSlowStartThreshold = Cc->SlowStartThreshold;
+    Cc->PrevCongestionWindow = Cc->CongestionWindow;
+
     Cc->WindowMax = Cc->CongestionWindow;
     if (Cc->WindowLastMax > Cc->WindowMax) {
         //
@@ -425,11 +434,14 @@ QuicCongestionControlOnDataAcknowledged(
         // DeltaT < ~2.5M (about 30min).
         //
 
-        int64_t DeltaT = TimeInCongAvoid - Cc->KCubic + US_TO_MS(SmoothedRtt);
+        int64_t DeltaT =
+            (int64_t)TimeInCongAvoid -
+            (int64_t)Cc->KCubic +
+            (int64_t)US_TO_MS(SmoothedRtt);
 
         int64_t CubicWindow =
             ((((DeltaT * DeltaT) >> 10) * DeltaT *
-              (int64_t)(Connection->Paths[0].Mtu * TEN_TIMES_C_CUBIC / 10)) >> 20) +
+             (int64_t)(Connection->Paths[0].Mtu * TEN_TIMES_C_CUBIC / 10)) >> 20) +
             (int64_t)Cc->WindowMax;
 
         if (CubicWindow < 0) {
@@ -537,4 +549,38 @@ QuicCongestionControlOnDataLost(
 
     QuicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     QuicConnLogCubic(QuicCongestionControlGetConnection(Cc));
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCongestionControlOnSpuriousCongestionEvent(
+    _In_ QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    if (!Cc->IsInRecovery) {
+        return;
+    }
+
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    BOOLEAN PreviousCanSendState = QuicCongestionControlCanSend(Cc);
+
+    QuicTraceEvent(
+        ConnSpuriousCongestion,
+        "[conn][%p] Spurious congestion event",
+        Connection);
+
+    //
+    // Revert to previous state.
+    //
+    Cc->WindowMax = Cc->PrevWindowMax;
+    Cc->WindowLastMax = Cc->PrevWindowLastMax;
+    Cc->KCubic = Cc->PrevKCubic;
+    Cc->SlowStartThreshold = Cc->PrevSlowStartThreshold;
+    Cc->CongestionWindow = Cc->PrevCongestionWindow;
+
+    Cc->IsInRecovery = FALSE;
+    Cc->HasHadCongestionEvent = FALSE;
+
+    QuicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
+    QuicConnLogCubic(Connection);
 }

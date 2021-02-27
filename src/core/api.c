@@ -995,8 +995,7 @@ MsQuicStreamSend(
         Handle);
 
     if (!IS_STREAM_HANDLE(Handle) ||
-        Buffers == NULL ||
-        BufferCount == 0) {
+        (Buffers == NULL && BufferCount != 0)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -1025,11 +1024,6 @@ MsQuicStreamSend(
             "[strm][%p] ERROR, %s.",
             Stream,
             "Send request total length exceeds max");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    if (TotalLength == 0 && !(Flags & QUIC_SEND_FLAG_FIN)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
