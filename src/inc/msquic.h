@@ -502,7 +502,9 @@ typedef struct QUIC_SETTINGS {
 } QUIC_SETTINGS;
 
 //
-// Functions for associating application contexts with QUIC handles.
+// Functions for associating application contexts with QUIC handles. MsQuic
+// provides no explicit synchronization between parallel calls to these
+// functions.
 //
 
 typedef
@@ -522,7 +524,8 @@ void*
 
 //
 // Sets the event handler for the QUIC handle. The type of the handler must be
-// appropriate for the type of the handle.
+// appropriate for the type of the handle. MsQuic provides no explicit
+// synchronization between parallel calls to this function or the ones above.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
