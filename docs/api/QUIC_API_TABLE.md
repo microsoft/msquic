@@ -33,6 +33,8 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_CLOSE_FN            ConnectionClose;
     QUIC_CONNECTION_SHUTDOWN_FN         ConnectionShutdown;
     QUIC_CONNECTION_START_FN            ConnectionStart;
+    QUIC_CONNECTION_SET_CONFIGURATION_FN
+                                        ConnectionSetConfiguration;
     QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionTicket;
 
     QUIC_STREAM_OPEN_FN                 StreamOpen;
@@ -125,6 +127,14 @@ See [ConnectionShutdown](ConnectionShutdown.md)
 `ConnectionStart`
 
 See [ConnectionStart](ConnectionStart.md)
+
+`ConnectionSetConfiguration`
+
+See [ConnectionSetConfiguration](ConnectionSetConfiguration.md)
+
+`ConnectionSendResumptionTicket`
+
+See [ConnectionSendResumptionTicket](ConnectionSendResumptionTicket.md)
 
 `StreamOpen`
 

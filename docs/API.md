@@ -31,7 +31,7 @@ The API supports both server and client applications. All functionality is expos
 
 [**Registration**](#registration) – Manages the execution context for all child objects. An app may open multiple registrations but ideally should only open one.
 
-[**Configuration**](#configuration) – Abstracts the configuration for a connection. TODO
+[**Configuration**](#configuration) – Abstracts the configuration for a connection. This generally consists both of security related and common QUIC settings.
 
 [**Listener**](#listener) – Server side only, this object provides the interface for an app to accept incoming connections from clients. Once the connection has been accepted, it is independent of the listener. The app may create as many of these as necessary.
 
@@ -92,15 +92,13 @@ A configuration is created by calling [ConfigurationOpen](api/ConfigurationOpen.
 
 ## Listener
 
-To create a QUIC server, a server must create a listener via [ListenerOpen](api/ListenerOpen.md). This will return a new listener handle that is ready to start accepting incoming connections. Then, the server must call [ListenerStart](api/ListenerStart.md) to get callbacks for new incoming connections. [ListenerStart](api/ListenerStart.md) takes the network address the server wants to listener on.
+To create a QUIC server, a server must create a listener via [ListenerOpen](api/ListenerOpen.md). This will return a new listener handle that is ready to start accepting incoming connections. Then, the server must call [ListenerStart](api/ListenerStart.md) to get callbacks for new incoming connections. [ListenerStart](api/ListenerStart.md) takes the network address and ALPNs the server wants to listener on.
 
-When a new connection is started by a client, the server will get a callback allowing it to accept the connection. This happens via the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback event, which contains all the currently known information in the `QUIC_NEW_CONNECTION_INFO` struct. The server is required to do one of three things in response to this event:
+When a new connection is started by a client, the server will get a callback allowing it to accept the connection. This happens via the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback event, which contains all the currently known information in the `QUIC_NEW_CONNECTION_INFO` struct. The server then returns either a success or failure status to indicate if the connection was accepted or not.
 
-1. Return a failure status, indicating it didn’t accept the new connection.
-2. Return `QUIC_STATUS_SUCCESS` and set the SecConfig output parameter in the event.
-3. Return `QUIC_STATUS_PENDING`, which allows the SecConfig to be set later, via a call to SetParam with the `QUIC_PARAM_CONN_SEC_CONFIG` option.
+If the server accepts the connection, it now has ownership of the connection object. It **must** set the callback handler via [SetCallbackHandler](api/SetCallbackHandler.md) before the callback returns. Additionally, when it’s done with the connection, the app must call [ConnectionClose](api/ConnectionClose.md) on the connection to clean it up.
 
-If either 2 or 3 above, the server now has ownership of the connection object. It **must** set the callback handler via [SetCallbackHandler](api/SetCallbackHandler.md) before the callback returns. Additionally, when it’s done with the connection, the app must call [ConnectionClose](api/ConnectionClose.md) on the connection to clean it up. Also, in case 2, if the server does not set the SecConfig, it is treated as case 1.
+For an accepted connection to actually continue with its handshake, the server must call [ConnectionSetConfiguration](api/ConnectionSetConfiguration.md) to configure the necessary security (TLS) parameters. This may be called either on the callback (before it returns) or later on a different thread.
 
 When the server wishes to stop accepting new connections and stop further callbacks to the registered handler, it can call [ListenerStop](api/ListenerStop.md). This call will block while any existing callbacks complete, and when it returns no future callbacks will occur. Therefore, the server **must not** call this on any other library callbacks. The server may call [ListenerStart](api/ListenerStart.md) again on the listener to start listening for incoming connections again.
 
@@ -121,3 +119,9 @@ Streams are the primary means of exchanging app data over a connection. Streams 
 A stream handle represents a single QUIC stream. It can be locally created by a call to [StreamOpen](api/StreamOpen.md) or remotely created and then indicated to the app via the connection's callback handler via a `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` event. Locally created streams must be started (via [StreamStart](api/StreamStart.md)) before they can send or receive data. Remote streams are already started when indicated to the app.
 
 Once the stream handle is available and started, the app can start receiving events on its callback handler (such as `QUIC_STREAM_EVENT_RECV`) and start sending on the stream (via [StreamSend](api/StreamSend.md)). For more details see [Using Streams](Streams.md).
+
+## Datagrams
+
+MsQuic supports the [unreliable datagram extension](https://tools.ietf.org/html/draft-ietf-quic-datagram) which allows for the app to send and receive unreliable (i.e. not retransmitted on packet loss) data securely. To enable support for receiving datagrams, the app must set `DatagramReceiveEnabled` to `TRUE` in its `QUIC_SETTINGS`. During the handshake, support for receiving datagrams is negotiated between endpoints. The app receives the `QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED` event to indicate if the peer supports receiving datagrams (and what the current maximum size is).
+
+If the peer has enabled receiving datagrams, then an app may call [DatagramSend](api/DatagramSend.md). If/when the app receives a datagram from the peer it will receive a `QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED` event.
