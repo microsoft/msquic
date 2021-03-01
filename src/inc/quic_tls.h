@@ -296,6 +296,11 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
     //
     uint8_t* Buffer;
 
+    //
+    // A small buffer to hold the final negotiated ALPN of the connection,
+    // assuming it fits in TLS_SMALL_ALPN_BUFFER_SIZE bytes. NegotiatedAlpn
+    // with either point to this, or point to allocated memory.
+    //
     uint8_t SmallAlpnBuffer[TLS_SMALL_ALPN_BUFFER_SIZE];
 
     //
