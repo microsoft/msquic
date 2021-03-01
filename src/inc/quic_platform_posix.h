@@ -32,6 +32,7 @@ Environment:
 #include <assert.h>
 #include <inttypes.h>
 #include <stddef.h>
+#include <stdalign.h>
 #include <netdb.h>
 #include <netinet/ip.h>
 #include <unistd.h>
@@ -559,7 +560,7 @@ typedef struct CXPLAT_EVENT {
     //
     // Mutex and condition.
     //
-    pthread_mutex_t Mutex;
+    alignas(16) pthread_mutex_t Mutex;
     pthread_cond_t Cond;
 
     //
@@ -815,16 +816,17 @@ CxPlatProcCurrentNumber(
 typedef struct CXPLAT_RUNDOWN_REF {
 
     //
+    // The completion event.
+    //
+
+    CXPLAT_EVENT RundownComplete;
+
+    //
     // The ref counter.
     //
 
     CXPLAT_REF_COUNT RefCount;
 
-    //
-    // The completion event.
-    //
-
-    CXPLAT_EVENT RundownComplete;
 
 } CXPLAT_RUNDOWN_REF;
 
