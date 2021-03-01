@@ -191,8 +191,8 @@ QuicCongestionControlGetSendAllowance(
         if (SendAllowance > (Cc->CongestionWindow - Cc->BytesInFlight)) {
             SendAllowance = Cc->CongestionWindow - Cc->BytesInFlight;
         }
-        if (SendAllowance > (Cc->CongestionWindow >> 1)) {
-            SendAllowance = Cc->CongestionWindow >> 1; // Don't send more than half the current window.
+        if (SendAllowance > (Cc->CongestionWindow >> 2)) {
+            SendAllowance = Cc->CongestionWindow >> 2; // Don't send more than a quarter of the current window.
         }
     }
     return SendAllowance;
