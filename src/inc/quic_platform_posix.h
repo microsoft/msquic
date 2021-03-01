@@ -289,7 +289,7 @@ CxPlatFree(
 
 typedef struct CXPLAT_LOCK {
 
-    pthread_mutex_t Mutex;
+    alignas(16) pthread_mutex_t Mutex;
 
 } CXPLAT_LOCK;
 
