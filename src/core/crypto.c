@@ -249,7 +249,9 @@ QuicCryptoUninitialize(
     }
     if (Crypto->TlsState.NegotiatedAlpn != NULL &&
         QuicConnIsServer(QuicCryptoGetConnection(Crypto))) {
-        CXPLAT_FREE(Crypto->TlsState.NegotiatedAlpn, QUIC_POOL_ALPN);
+        if (Crypto->TlsState.NegotiatedAlpn != Crypto->TlsState.SmallAlpnBuffer) {
+            CXPLAT_FREE(Crypto->TlsState.NegotiatedAlpn, QUIC_POOL_ALPN);
+        }
         Crypto->TlsState.NegotiatedAlpn = NULL;
     }
     if (Crypto->Initialized) {
