@@ -31,7 +31,7 @@ Abstract:
     from the tracker in response to the original ACK_FRAME being
     acknowledged by the peer. Since we constantly send ACK_FRAMEs with the
     current state, most of the time having a lot of duplicate information in
-    them, we assume the data eventually gets there inone form or another. Worst
+    them, we assume the data eventually gets there in one form or another. Worst
     case, the peer has to do an additional retransmission, in an already lossy
     environment.
 
@@ -179,22 +179,24 @@ QuicAckTrackerAckPacket(
     //
     // There are several conditions where we decide to send an ACK immediately:
     //
-    //   1. We have received QUIC_MIN_ACK_SEND_NUMBER ACK eliciting packets.
+    //   1. We have received 'PacketTolerance' ACK eliciting packets.
     //   2. We received an ACK eliciting packet that doesn't directly follow the
     //      previously received packet number. So we assume there might have
-    //      been loss and should indicate this info to the peer.
+    //      been loss and should indicate this info to the peer. This logic is
+    //      disabled if 'IgnoreReordering' is TRUE.
     //   3. The delayed ACK timer fires after the configured time.
     //
     // If we don't queue an immediate ACK and this is the first ACK eliciting
     // packet received, we make sure the ACK delay timer is started.
     //
 
-    if (Tracker->AckElicitingPacketsToAcknowledge >= QUIC_MIN_ACK_SEND_NUMBER ||
-        (NewLargestPacketNumber &&
-         QuicRangeSize(&Tracker->PacketNumbersToAck) > 1 && // There are more than two ranges, i.e. a gap somewhere.
+    if ((Tracker->AckElicitingPacketsToAcknowledge >= (uint16_t)Connection->PacketTolerance) ||
+        (!Connection->State.IgnoreReordering &&
+         (NewLargestPacketNumber &&
+          QuicRangeSize(&Tracker->PacketNumbersToAck) > 1 && // There are more than two ranges, i.e. a gap somewhere.
             QuicRangeGet(
             &Tracker->PacketNumbersToAck,
-         QuicRangeSize(&Tracker->PacketNumbersToAck) - 1)->Count == 1)) { // The gap is right before the last packet number.
+          QuicRangeSize(&Tracker->PacketNumbersToAck) - 1)->Count == 1))) { // The gap is right before the last packet number.
         //
         // Always send an ACK immediately if we have received enough ACK
         // eliciting packets OR the latest one indicate a gap in the packet

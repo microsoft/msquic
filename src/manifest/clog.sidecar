@@ -2786,6 +2786,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "EncodeTPMinAckDelay": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Min ACK Delay (%llu ms)",
+      "UniqueId": "EncodeTPMinAckDelay",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "EncodeTPTest": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: TEST TP (Type %hu, Length %hu)",
@@ -3145,6 +3161,22 @@
         },
         {
           "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "DecodeTPMinAckDelay": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Min ACK Delay (%llu ms)",
+      "UniqueId": "DecodeTPMinAckDelay",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         }
       ],
@@ -8257,6 +8289,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "DatapathRecvEmpty": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Dropping datagram with empty payload.",
+      "UniqueId": "DatapathRecvEmpty",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
     "DatapathWorkerThreadStart": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Worker start",
@@ -8661,18 +8705,6 @@
       "ModuleProperites": {},
       "TraceString": "[data][%p] WSARecvMsg completion is missing IP_PKTINFO",
       "UniqueId": "DatapathMissingInfo",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogWarning"
-    },
-    "DatapathRecvEmpty": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Dropping datagram with empty payload.",
-      "UniqueId": "DatapathRecvEmpty",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -11719,6 +11751,10 @@
         "TraceID": "EncodeTPVersionNegotiationExt"
       },
       {
+        "UniquenessHash": "5c58faeb-81c8-5127-d65d-50d8f92b7f71",
+        "TraceID": "EncodeTPMinAckDelay"
+      },
+      {
         "UniquenessHash": "4650353e-149e-c99a-1ab8-9b7e6a1e698e",
         "TraceID": "EncodeTPTest"
       },
@@ -11809,6 +11845,10 @@
       {
         "UniquenessHash": "0cffe1cb-49d2-ac2b-79ff-a691bdd7d53b",
         "TraceID": "DecodeTPVersionNegotiationInfo"
+      },
+      {
+        "UniquenessHash": "c43a7c7a-b5f7-dcb6-6a35-c1695c5a8999",
+        "TraceID": "DecodeTPMinAckDelay"
       },
       {
         "UniquenessHash": "152723b4-2b46-a936-ffaf-9cc429e8e66f",
@@ -13007,6 +13047,10 @@
         "TraceID": "CertOpenSslGetProcessAddressFailure"
       },
       {
+        "UniquenessHash": "e5973396-4dc6-d94f-5d67-921952ed35a5",
+        "TraceID": "DatapathRecvEmpty"
+      },
+      {
         "UniquenessHash": "f2af462d-2374-ab88-bb90-5b540254387e",
         "TraceID": "DatapathWorkerThreadStart"
       },
@@ -13121,10 +13165,6 @@
       {
         "UniquenessHash": "379a72cf-af97-5535-180f-f644b7513c0c",
         "TraceID": "DatapathMissingInfo"
-      },
-      {
-        "UniquenessHash": "e5973396-4dc6-d94f-5d67-921952ed35a5",
-        "TraceID": "DatapathRecvEmpty"
       },
       {
         "UniquenessHash": "fc873bff-2380-b7f7-a8be-4ff93b6d72d7",

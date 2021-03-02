@@ -62,6 +62,7 @@ typedef enum eSniNameType {
 //
 #define QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE                  32  // varint
 #define QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION                  0xBAAD  // N/A
+#define QUIC_TP_ID_MIN_ACK_DELAY                            0xDE1A  // varint
 #define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0x73DB  // Blob
 
 BOOLEAN
@@ -818,6 +819,17 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_VERSION_NEGOTIATION_EXT,
                 TransportParams->VersionNegotiationInfoLength);
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_MIN_ACK_DELAY) {
+        CXPLAT_DBG_ASSERT(
+            (TransportParams->Flags & QUIC_TP_FLAG_MIN_ACK_DELAY &&
+             TransportParams->MinAckDelay <= TransportParams->MaxAckDelay) ||
+            (!(TransportParams->Flags & QUIC_TP_FLAG_MIN_ACK_DELAY) &&
+             TransportParams->MinAckDelay <= QUIC_TP_MAX_ACK_DELAY_DEFAULT));
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_MIN_ACK_DELAY,
+                QuicVarIntSize(TransportParams->MinAckDelay));
+    }
     if (TestParam != NULL) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -1093,6 +1105,17 @@ QuicCryptoTlsEncodeTransportParameters(
             Connection,
             "TP: Version Negotiation Extension (%llu bytes)",
             TransportParams->VersionNegotiationInfoLength);
+    }
+    if (TransportParams->Flags & QUIC_TP_FLAG_MIN_ACK_DELAY) {
+        TPBuf =
+            TlsWriteTransportParamVarInt(
+                QUIC_TP_ID_MIN_ACK_DELAY,
+                TransportParams->MinAckDelay, TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPMinAckDelay,
+            Connection,
+            "TP: Min ACK Delay (%llu ms)",
+            TransportParams->MinAckDelay);
     }
     if (TestParam != NULL) {
         TPBuf =
@@ -1692,6 +1715,32 @@ QuicCryptoTlsDecodeTransportParameters(
             }
             break;
 
+        case QUIC_TP_ID_MIN_ACK_DELAY:
+            if (!TRY_READ_VAR_INT(TransportParams->MinAckDelay)) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Length,
+                    "Invalid length of QUIC_TP_MIN_ACK_DELAY");
+                goto Exit;
+            }
+            if (TransportParams->MinAckDelay > QUIC_TP_MIN_ACK_DELAY_MAX) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Invalid value of QUIC_TP_MIN_ACK_DELAY");
+                goto Exit;
+            }
+            TransportParams->Flags |= QUIC_TP_FLAG_MIN_ACK_DELAY;
+            QuicTraceLogConnVerbose(
+                DecodeTPMinAckDelay,
+                Connection,
+                "TP: Min ACK Delay (%llu ms)",
+                TransportParams->MinAckDelay);
+            break;
+
         default:
             if (QuicTpIdIsReserved(Id)) {
                 QuicTraceLogConnWarning(
@@ -1712,6 +1761,16 @@ QuicCryptoTlsDecodeTransportParameters(
         }
 
         Offset += Length;
+    }
+
+    if (TransportParams->Flags & QUIC_TP_FLAG_MIN_ACK_DELAY &&
+        TransportParams->MinAckDelay > TransportParams->MaxAckDelay) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "MIN_ACK_DELAY is larger than MAX_ACK_DELAY");
+        goto Exit;
     }
 
     Result = TRUE;
