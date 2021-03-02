@@ -139,6 +139,16 @@ QuicTestConnectClientCertificate(
     _In_ bool UseClientCertificate
     );
 
+void
+QuicTestValidAlpnLengths(
+    void
+    );
+
+void
+QuicTestInvalidAlpnLengths(
+    void
+    );
+
 //
 // Negative Handshake Tests
 //
@@ -712,4 +722,10 @@ typedef struct {
     QUIC_CTL_CODE(56, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_CONNECT_CLIENT_CERT
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 56
+#define IOCTL_QUIC_RUN_VALID_ALPN_LENGTHS \
+    QUIC_CTL_CODE(57, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS \
+    QUIC_CTL_CODE(58, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 59

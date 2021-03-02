@@ -325,6 +325,25 @@ TEST(Basic, CreateConnection) {
     }
 }
 
+TEST(Alpn, ValidAlpnLengths) {
+    TestLogger Logger("QuicTestValidAlpnLengths");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_ALPN_LENGTHS));
+    } else {
+        QuicTestValidAlpnLengths();
+    }
+}
+
+TEST(Alpn, InvalidAlpnLengths) {
+    TestLogger Logger("QuicTestInvalidAlpnLengths");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS));
+    } else {
+        QuicTestInvalidAlpnLengths();
+    }
+}
+
+
 TEST_P(WithFamilyArgs, BindConnectionImplicit) {
     TestLoggerT<ParamType> Logger("QuicTestBindConnectionImplicit", GetParam());
     if (TestingKernelMode) {
