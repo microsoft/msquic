@@ -426,6 +426,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     0,
     sizeof(QUIC_RUN_CONNECT_CLIENT_CERT),
+    0,
+    0
 };
 
 static_assert(

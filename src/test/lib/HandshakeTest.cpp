@@ -2083,7 +2083,7 @@ QuicTestInvalidAlpnLengths(
 {
     int Lengths[] = { 0, QUIC_MAX_ALPN_LENGTH + 1 };
     char AlpnBuffer[QUIC_MAX_ALPN_LENGTH + 3]; // + 3 so it can always be 0 terminated
-    for (int Len = 0; Len < ARRAYSIZE(Lengths); Len++)
+    for (int Len = 0; Len < (int)ARRAYSIZE(Lengths); Len++)
     {
         int AlpnLength = Lengths[Len];
         CxPlatZeroMemory(AlpnBuffer, sizeof(AlpnBuffer));
