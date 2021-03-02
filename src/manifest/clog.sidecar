@@ -4390,6 +4390,62 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogAckFrequencyInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   ACK_FREQUENCY [Invalid]",
+      "UniqueId": "FrameLogAckFrequencyInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogAckFrequency": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu",
+      "UniqueId": "FrameLogAckFrequency",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg8"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "LibraryStorageOpenFailed": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Failed to open global settings, 0x%x",
@@ -12057,6 +12113,14 @@
       {
         "UniquenessHash": "a23b67c8-c2da-dfbe-2c86-728785bcdfb3",
         "TraceID": "FrameLogDatagram"
+      },
+      {
+        "UniquenessHash": "262b3f95-1062-851d-c2d8-c46867da793b",
+        "TraceID": "FrameLogAckFrequencyInvalid"
+      },
+      {
+        "UniquenessHash": "851bd2b1-e157-5cea-5989-07884c45d69e",
+        "TraceID": "FrameLogAckFrequency"
       },
       {
         "UniquenessHash": "5d4bb0a9-d10e-7ac9-a46a-dcfc5f7bf831",

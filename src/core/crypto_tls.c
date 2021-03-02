@@ -62,8 +62,8 @@ typedef enum eSniNameType {
 //
 #define QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE                  32  // varint
 #define QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION                  0xBAAD  // N/A
-#define QUIC_TP_ID_MIN_ACK_DELAY                            0xFF02DE1A  // varint
 #define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0x73DB  // Blob
+#define QUIC_TP_ID_MIN_ACK_DELAY                            0xFF02DE1Aull  // varint
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -113,7 +113,7 @@ TlsReadUint24(
 static
 uint8_t*
 TlsWriteTransportParam(
-    _In_ uint16_t Id,
+    _In_ QUIC_VAR_INT Id,
     _In_ uint16_t Length,
     _In_reads_bytes_opt_(Length) const uint8_t* Param,
     _Out_writes_bytes_(_Inexpressible_("Too Dynamic"))
@@ -133,7 +133,7 @@ TlsWriteTransportParam(
 static
 uint8_t*
 TlsWriteTransportParamVarInt(
-    _In_ uint16_t Id,
+    _In_ QUIC_VAR_INT Id,
     _In_ QUIC_VAR_INT Value,
     _Out_writes_bytes_(_Inexpressible_("Too Dynamic"))
         uint8_t* Buffer

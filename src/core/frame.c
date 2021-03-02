@@ -1829,6 +1829,31 @@ QuicFrameLog(
         break;
     }
 
+    case QUIC_FRAME_ACK_FREQUENCY: {
+        QUIC_ACK_FREQUENCY_EX Frame;
+        if (!QuicAckFrequencyFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogAckFrequencyInvalid,
+                "[%c][%cX][%llu]   ACK_FREQUENCY [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogAckFrequency,
+            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.SequenceNumber,
+            Frame.PacketTolerance,
+            Frame.UpdateMaxAckDelay,
+            Frame.IgnoreOrder);
+        break;
+    }
+
     default:
         CXPLAT_FRE_ASSERT(FALSE);
         break;
