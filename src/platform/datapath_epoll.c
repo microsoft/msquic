@@ -200,6 +200,12 @@ typedef struct CXPLAT_SOCKET_CONTEXT {
 typedef struct CXPLAT_SOCKET {
 
     //
+    // Synchronization mechanism for cleanup.
+    // Make sure events are in front for cache alignment.
+    //
+    CXPLAT_RUNDOWN_REF Rundown;
+
+    //
     // A pointer to datapath object.
     //
     CXPLAT_DATAPATH* Datapath;
@@ -218,11 +224,6 @@ typedef struct CXPLAT_SOCKET {
     //  The remote address for the binding.
     //
     QUIC_ADDR RemoteAddress;
-
-    //
-    // Synchronization mechanism for cleanup.
-    //
-    CXPLAT_RUNDOWN_REF Rundown;
 
     //
     // Indicates the binding connected to a remote IP address.
@@ -309,6 +310,13 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
 //
 
 typedef struct CXPLAT_DATAPATH {
+
+    //
+    // A reference rundown on the datapath binding.
+    // Make sure events are in front for cache alignment.
+    //
+    CXPLAT_RUNDOWN_REF BindingsRundown;
+
     //
     // If datapath is shutting down.
     //
@@ -319,11 +327,6 @@ typedef struct CXPLAT_DATAPATH {
     // TODO: See how send batching can be enabled.
     //
     uint8_t MaxSendBatchSize;
-
-    //
-    // A reference rundown on the datapath binding.
-    //
-    CXPLAT_RUNDOWN_REF BindingsRundown;
 
     //
     // UDP handlers.
