@@ -2083,8 +2083,7 @@ QuicTestInvalidAlpnLengths(
 {
     int Lengths[] = { 0, QUIC_MAX_ALPN_LENGTH + 1 };
     char AlpnBuffer[QUIC_MAX_ALPN_LENGTH + 3]; // + 3 so it can always be 0 terminated
-    for (int Len = 0; Len < (int)ARRAYSIZE(Lengths); Len++)
-    {
+    for (int Len = 0; Len < (int)ARRAYSIZE(Lengths); Len++) {
         int AlpnLength = Lengths[Len];
         CxPlatZeroMemory(AlpnBuffer, sizeof(AlpnBuffer));
         for (int i = 0; i < AlpnLength; i++) {
@@ -2109,8 +2108,7 @@ QuicTestValidAlpnLengths(
     )
 {
     char AlpnBuffer[QUIC_MAX_ALPN_LENGTH + 2]; // + 2 so it can always be 0 terminated
-    for (int AlpnLength = 1; AlpnLength <= QUIC_MAX_ALPN_LENGTH; AlpnLength++)
-    {
+    for (int AlpnLength = 1; AlpnLength <= QUIC_MAX_ALPN_LENGTH; AlpnLength++) {
         CxPlatZeroMemory(AlpnBuffer, sizeof(AlpnBuffer));
         for (int i = 0; i < AlpnLength; i++) {
             AlpnBuffer[i] = 'a';
