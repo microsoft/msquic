@@ -31,6 +31,11 @@ typedef struct CXPLAT_TLS_SECRETS CXPLAT_TLS_SECRETS;
 #define TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS                0x0039  // Host Byte Order
 
 //
+// The small buffer size for an ALPN to avoid allocations in the general case.
+//
+#define TLS_SMALL_ALPN_BUFFER_SIZE  16
+
+//
 // The size of the header required by the TLS layer.
 //
 extern uint16_t CxPlatTlsTPHeaderSize;
@@ -290,6 +295,13 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
     // to allocate and free the memory.
     //
     uint8_t* Buffer;
+
+    //
+    // A small buffer to hold the final negotiated ALPN of the connection,
+    // assuming it fits in TLS_SMALL_ALPN_BUFFER_SIZE bytes. NegotiatedAlpn
+    // with either point to this, or point to allocated memory.
+    //
+    uint8_t SmallAlpnBuffer[TLS_SMALL_ALPN_BUFFER_SIZE];
 
     //
     // The final negotiated ALPN of the connection. The first byte is the length

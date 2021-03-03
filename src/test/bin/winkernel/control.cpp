@@ -426,6 +426,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     0,
     sizeof(QUIC_RUN_CONNECT_CLIENT_CERT),
+    0,
+    0
 };
 
 static_assert(
@@ -909,6 +911,14 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestConnectClientCertificate(
                 Params->ConnectClientCertParams.Family,
                 Params->ConnectClientCertParams.UseClientCert));
+        break;
+
+    case IOCTL_QUIC_RUN_VALID_ALPN_LENGTHS:
+        QuicTestCtlRun(QuicTestValidAlpnLengths());
+        break;
+
+    case IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS:
+        QuicTestCtlRun(QuicTestInvalidAlpnLengths());
         break;
 
     default:
