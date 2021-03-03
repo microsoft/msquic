@@ -13,7 +13,7 @@
 //
 // Necessary when SAL isn't supported to tell compiler it's not necessary.
 //
-#define INIT_NO_SAL(X) = x
+#define INIT_NO_SAL(X) = X
 
 #ifndef _Must_inspect_result_
 #define _Must_inspect_result_
