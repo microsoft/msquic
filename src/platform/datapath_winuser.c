@@ -731,6 +731,16 @@ Error:
     return Status;
 }
 
+//
+// CloseHandle has an incorrect SAL annotation, so call through a wrapper.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+CxPlatCloseHandle(_Pre_notnull_ HANDLE Handle) {
+    CloseHandle(Handle);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathInitialize(
@@ -967,12 +977,10 @@ Error:
         if (Datapath != NULL) {
             for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
                 if (Datapath->Processors[i].IOCP) {
-#pragma prefast(suppress:6001, "SAL can't track processors allocation")
-                    CloseHandle(Datapath->Processors[i].IOCP);
+                    CxPlatCloseHandle(Datapath->Processors[i].IOCP);
                 }
                 if (Datapath->Processors[i].CompletionThread) {
-#pragma prefast(suppress:6001, "SAL can't track processors allocation")
-                    CloseHandle(Datapath->Processors[i].CompletionThread);
+                    CxPlatCloseHandle(Datapath->Processors[i].CompletionThread);
                 }
                 CxPlatPoolUninitialize(&Datapath->Processors[i].SendContextPool);
                 CxPlatPoolUninitialize(&Datapath->Processors[i].SendBufferPool);
@@ -1019,14 +1027,12 @@ CxPlatDataPathUninitialize(
     // Wait for the worker threads to finish up. Then clean it up.
     //
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
-#pragma prefast(suppress:6001, "SAL can't track processors allocation")
         WaitForSingleObject(Datapath->Processors[i].CompletionThread, INFINITE);
-        CloseHandle(Datapath->Processors[i].CompletionThread);
+        CxPlatCloseHandle(Datapath->Processors[i].CompletionThread);
     }
 
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
-#pragma prefast(suppress:6001, "SAL can't track processors allocation")
-        CloseHandle(Datapath->Processors[i].IOCP);
+        CxPlatCloseHandle(Datapath->Processors[i].IOCP);
         CxPlatPoolUninitialize(&Datapath->Processors[i].SendContextPool);
         CxPlatPoolUninitialize(&Datapath->Processors[i].SendBufferPool);
         CxPlatPoolUninitialize(&Datapath->Processors[i].LargeSendBufferPool);
