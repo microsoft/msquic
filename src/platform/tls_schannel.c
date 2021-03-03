@@ -1963,7 +1963,7 @@ CxPlatTlsWriteDataToSchannel(
                 SchannelKeyReady,
                 TlsContext->Connection,
                 "Key Ready Type, %u [%hu to %hu]",
-                TrafficSecret->TrafficSecretType,
+                (unsigned)TrafficSecret->TrafficSecretType,
                 TrafficSecret->MsgSequenceStart,
                 TrafficSecret->MsgSequenceEnd);
             if (TlsContext->IsServer) {

@@ -78,6 +78,10 @@ set_property(TARGET platform PROPERTY FOLDER "libraries")
 
 target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 
+if (MSVC)
+    target_compile_options(platform PRIVATE /analyze)
+endif()
+
 if(QUIC_TLS STREQUAL "openssl")
     target_link_libraries(platform PUBLIC OpenSSL)
 elseif(QUIC_TLS STREQUAL "mitls")

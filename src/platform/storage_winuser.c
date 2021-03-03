@@ -100,6 +100,7 @@ CxPlatStorageOpen(
         "[ reg] Opening %s",
         FullKeyName);
 
+#pragma prefast(suppress:6001, "SAL can't track FullKeyName")
     Status =
         HRESULT_FROM_WIN32(
         RegOpenKeyExA(
@@ -194,7 +195,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageReadValue(
     _In_ CXPLAT_STORAGE* Storage,
-    _In_z_ const char * Name,
+    _In_opt_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
         UINT8 * Buffer,
     _Inout_ uint32_t * BufferLength

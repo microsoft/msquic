@@ -525,7 +525,7 @@ int
 CxPlatTlsClientHelloCallback(
     _In_ SSL *Ssl,
     _When_(return == SSL_CLIENT_HELLO_ERROR, _Out_)
-    int *Alert,
+        int *Alert,
     _In_ void *arg
     )
 {
@@ -1081,7 +1081,7 @@ CxPlatTlsProcessData(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ CXPLAT_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength)
-    const uint8_t* Buffer,
+        const uint8_t* Buffer,
     _Inout_ uint32_t* BufferLength,
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     )
@@ -1927,7 +1927,7 @@ CxPlatKeyCreate(
     _When_(AeadType == CXPLAT_AEAD_AES_128_GCM, _In_reads_(16))
     _When_(AeadType == CXPLAT_AEAD_AES_256_GCM, _In_reads_(32))
     _When_(AeadType == CXPLAT_AEAD_CHACHA20_POLY1305, _In_reads_(32))
-    const uint8_t* const RawKey,
+        const uint8_t* const RawKey,
     _Out_ CXPLAT_KEY** NewKey
     )
 {
@@ -2002,14 +2002,14 @@ QUIC_STATUS
 CxPlatEncrypt(
     _In_ CXPLAT_KEY* Key,
     _In_reads_bytes_(CXPLAT_IV_LENGTH)
-    const uint8_t* const Iv,
+        const uint8_t* const Iv,
     _In_ uint16_t AuthDataLength,
     _In_reads_bytes_opt_(AuthDataLength)
-    const uint8_t* const AuthData,
+        const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
     _When_(BufferLength > CXPLAT_ENCRYPTION_OVERHEAD, _Inout_updates_bytes_(BufferLength))
     _When_(BufferLength <= CXPLAT_ENCRYPTION_OVERHEAD, _Out_writes_bytes_(BufferLength))
-    uint8_t* Buffer
+        uint8_t* Buffer
     )
 {
     CXPLAT_DBG_ASSERT(CXPLAT_ENCRYPTION_OVERHEAD <= BufferLength);
@@ -2069,13 +2069,13 @@ QUIC_STATUS
 CxPlatDecrypt(
     _In_ CXPLAT_KEY* Key,
     _In_reads_bytes_(CXPLAT_IV_LENGTH)
-    const uint8_t* const Iv,
+        const uint8_t* const Iv,
     _In_ uint16_t AuthDataLength,
     _In_reads_bytes_opt_(AuthDataLength)
-    const uint8_t* const AuthData,
+        const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
     _Inout_updates_bytes_(BufferLength)
-    uint8_t* Buffer
+        uint8_t* Buffer
     )
 {
     CXPLAT_DBG_ASSERT(CXPLAT_ENCRYPTION_OVERHEAD <= BufferLength);
@@ -2142,7 +2142,7 @@ CxPlatHpKeyCreate(
     _When_(AeadType == CXPLAT_AEAD_AES_128_GCM, _In_reads_(16))
     _When_(AeadType == CXPLAT_AEAD_AES_256_GCM, _In_reads_(32))
     _When_(AeadType == CXPLAT_AEAD_CHACHA20_POLY1305, _In_reads_(32))
-    const uint8_t* const RawKey,
+        const uint8_t* const RawKey,
     _Out_ CXPLAT_HP_KEY** NewKey
     )
 {
@@ -2222,9 +2222,9 @@ CxPlatHpComputeMask(
     _In_ CXPLAT_HP_KEY* Key,
     _In_ uint8_t BatchSize,
     _In_reads_bytes_(CXPLAT_HP_SAMPLE_LENGTH* BatchSize)
-    const uint8_t* const Cipher,
+        const uint8_t* const Cipher,
     _Out_writes_bytes_(CXPLAT_HP_SAMPLE_LENGTH* BatchSize)
-    uint8_t* Mask
+        uint8_t* Mask
     )
 {
     int OutLen = 0;
@@ -2280,7 +2280,7 @@ QUIC_STATUS
 CxPlatHashCreate(
     _In_ CXPLAT_HASH_TYPE HashType,
     _In_reads_(SaltLength)
-    const uint8_t* const Salt,
+        const uint8_t* const Salt,
     _In_ uint32_t SaltLength,
     _Out_ CXPLAT_HASH** NewHash
     )
@@ -2346,11 +2346,11 @@ QUIC_STATUS
 CxPlatHashCompute(
     _In_ CXPLAT_HASH* Hash,
     _In_reads_(InputLength)
-    const uint8_t* const Input,
+        const uint8_t* const Input,
     _In_ uint32_t InputLength,
     _In_ uint32_t OutputLength, // CxPlatHashLength(HashType)
     _Out_writes_all_(OutputLength)
-    uint8_t* const Output
+        uint8_t* const Output
     )
 {
     HMAC_CTX* HashContext = (HMAC_CTX*)Hash;

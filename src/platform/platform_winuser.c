@@ -443,6 +443,9 @@ CxPlatAlloc(
 #else
 #ifdef DEBUG
     void* Alloc = HeapAlloc(CxPlatform.Heap, 0, ByteCount + AllocOffset);
+    if (Alloc == NULL) {
+        return NULL;
+    }
     *((uint32_t*)Alloc) = Tag;
     return (void*)((uint8_t*)Alloc + AllocOffset);
 #else

@@ -967,9 +967,11 @@ Error:
         if (Datapath != NULL) {
             for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
                 if (Datapath->Processors[i].IOCP) {
+#pragma prefast(suppress:6001, "SAL can't track processors allocation")
                     CloseHandle(Datapath->Processors[i].IOCP);
                 }
                 if (Datapath->Processors[i].CompletionThread) {
+#pragma prefast(suppress:6001, "SAL can't track processors allocation")
                     CloseHandle(Datapath->Processors[i].CompletionThread);
                 }
                 CxPlatPoolUninitialize(&Datapath->Processors[i].SendContextPool);
@@ -977,6 +979,7 @@ Error:
                 CxPlatPoolUninitialize(&Datapath->Processors[i].LargeSendBufferPool);
                 CxPlatPoolUninitialize(&Datapath->Processors[i].RecvDatagramPool);
             }
+#pragma prefast(suppress:6387, "SAL doesn't track Datapath state correctly here")
             CxPlatRundownUninitialize(&Datapath->SocketsRundown);
             CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         }
@@ -1017,11 +1020,13 @@ CxPlatDataPathUninitialize(
     // Wait for the worker threads to finish up. Then clean it up.
     //
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
+#pragma prefast(suppress:6001, "SAL can't track processors allocation")
         WaitForSingleObject(Datapath->Processors[i].CompletionThread, INFINITE);
         CloseHandle(Datapath->Processors[i].CompletionThread);
     }
 
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
+#pragma prefast(suppress:6001, "SAL can't track processors allocation")
         CloseHandle(Datapath->Processors[i].IOCP);
         CxPlatPoolUninitialize(&Datapath->Processors[i].SendContextPool);
         CxPlatPoolUninitialize(&Datapath->Processors[i].SendBufferPool);
@@ -1766,6 +1771,7 @@ QUIC_DISABLED_BY_FUZZER_START;
 
 QUIC_DISABLED_BY_FUZZER_END;
 
+#pragma prefast(suppress:6387, "SAL doesn't track rundown state correctly here")
                     CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
                 }
                 CxPlatRundownRelease(&Datapath->SocketsRundown);
@@ -2050,6 +2056,7 @@ Error:
                 if (SocketProc->Socket != INVALID_SOCKET) {
                     closesocket(SocketProc->Socket);
                 }
+#pragma prefast(suppress:6387, "SAL doesn't track rundown state correctly here")
                 CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
 
                 CxPlatRundownRelease(&Datapath->SocketsRundown);
@@ -2315,6 +2322,7 @@ Error:
                 if (SocketProc->Socket != INVALID_SOCKET) {
                     closesocket(SocketProc->Socket);
                 }
+#pragma prefast(suppress:6387, "SAL doesn't track rundown state correctly here")
                 CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
 
                 CxPlatRundownRelease(&Datapath->SocketsRundown);
