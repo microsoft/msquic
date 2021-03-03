@@ -822,9 +822,9 @@ QuicCryptoTlsEncodeTransportParameters(
     if (TransportParams->Flags & QUIC_TP_FLAG_MIN_ACK_DELAY) {
         CXPLAT_DBG_ASSERT(
             (TransportParams->Flags & QUIC_TP_FLAG_MIN_ACK_DELAY &&
-             TransportParams->MinAckDelay <= TransportParams->MaxAckDelay) ||
+             US_TO_MS(TransportParams->MinAckDelay) <= TransportParams->MaxAckDelay) ||
             (!(TransportParams->Flags & QUIC_TP_FLAG_MIN_ACK_DELAY) &&
-             TransportParams->MinAckDelay <= QUIC_TP_MAX_ACK_DELAY_DEFAULT));
+             US_TO_MS(TransportParams->MinAckDelay) <= QUIC_TP_MAX_ACK_DELAY_DEFAULT));
         RequiredTPLen +=
             TlsTransportParamLength(
                 QUIC_TP_ID_MIN_ACK_DELAY,
@@ -1114,7 +1114,7 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPMinAckDelay,
             Connection,
-            "TP: Min ACK Delay (%llu ms)",
+            "TP: Min ACK Delay (%llu us)",
             TransportParams->MinAckDelay);
     }
     if (TestParam != NULL) {
@@ -1737,7 +1737,7 @@ QuicCryptoTlsDecodeTransportParameters(
             QuicTraceLogConnVerbose(
                 DecodeTPMinAckDelay,
                 Connection,
-                "TP: Min ACK Delay (%llu ms)",
+                "TP: Min ACK Delay (%llu us)",
                 TransportParams->MinAckDelay);
             break;
 
@@ -1764,7 +1764,7 @@ QuicCryptoTlsDecodeTransportParameters(
     }
 
     if (TransportParams->Flags & QUIC_TP_FLAG_MIN_ACK_DELAY &&
-        TransportParams->MinAckDelay > TransportParams->MaxAckDelay) {
+        TransportParams->MinAckDelay > MS_TO_US(TransportParams->MaxAckDelay)) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",

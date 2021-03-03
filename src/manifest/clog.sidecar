@@ -2788,7 +2788,7 @@
     },
     "EncodeTPMinAckDelay": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] TP: Min ACK Delay (%llu ms)",
+      "TraceString": "[conn][%p] TP: Min ACK Delay (%llu us)",
       "UniqueId": "EncodeTPMinAckDelay",
       "splitArgs": [
         {
@@ -3168,7 +3168,7 @@
     },
     "DecodeTPMinAckDelay": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] TP: Min ACK Delay (%llu ms)",
+      "TraceString": "[conn][%p] TP: Min ACK Delay (%llu us)",
       "UniqueId": "DecodeTPMinAckDelay",
       "splitArgs": [
         {
@@ -11807,7 +11807,7 @@
         "TraceID": "EncodeTPVersionNegotiationExt"
       },
       {
-        "UniquenessHash": "5c58faeb-81c8-5127-d65d-50d8f92b7f71",
+        "UniquenessHash": "2bcc548f-81c8-bf14-8378-f2c540783112",
         "TraceID": "EncodeTPMinAckDelay"
       },
       {
@@ -11903,7 +11903,7 @@
         "TraceID": "DecodeTPVersionNegotiationInfo"
       },
       {
-        "UniquenessHash": "c43a7c7a-b5f7-dcb6-6a35-c1695c5a8999",
+        "UniquenessHash": "94dce213-922c-7a7e-d752-7af836a806ab",
         "TraceID": "DecodeTPMinAckDelay"
       },
       {

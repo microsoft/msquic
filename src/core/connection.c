@@ -2184,7 +2184,7 @@ QuicConnGenerateLocalTransportParameters(
                 Connection->Paths[0].Binding->Socket));
     LocalTP->MaxAckDelay =
         Connection->Settings.MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
-    LocalTP->MinAckDelay = MsQuicLib.TimerResolutionMs;
+    LocalTP->MinAckDelay = MS_TO_US(MsQuicLib.TimerResolutionMs);
     LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     LocalTP->Flags =
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -4717,6 +4717,16 @@ QuicConnRecvFrames(
                     Connection,
                     "Decoding ACK_FREQUENCY frame");
                 QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+                return FALSE;
+            }
+
+            if (Frame.UpdateMaxAckDelay < MS_TO_US(MsQuicLib.TimerResolutionMs)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "UpdateMaxAckDelay is less than TimerResolution");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
                 return FALSE;
             }
 
