@@ -1209,7 +1209,7 @@ QuicCryptoTlsDecodeTransportParameters(
             ParamsPresent |= (1ULL << Id);
         }
 
-        QUIC_VAR_INT ParamLength;
+        QUIC_VAR_INT ParamLength INIT_NO_SAL(0);
         if (!QuicVarIntDecode(TPLen, TPBuf, &Offset, &ParamLength)) {
             QuicTraceEvent(
                 ConnError,
