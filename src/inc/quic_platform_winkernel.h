@@ -96,6 +96,8 @@ ZwQueryInformationThread (
 
 #define QUIC_CACHEALIGN DECLSPEC_CACHEALIGN
 
+#define INIT_NO_SAL(X) // No-op since Windows supports SAL
+
 //
 // Library Initialization
 //

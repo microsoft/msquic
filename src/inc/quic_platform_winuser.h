@@ -79,6 +79,8 @@ extern "C" {
 #define ALIGN_UP(length, type) \
     (ALIGN_DOWN(((ULONG)(length) + sizeof(type) - 1), type))
 
+#define INIT_NO_SAL(X) // No-op since Windows supports SAL
+
 //
 // Library Initialization
 //

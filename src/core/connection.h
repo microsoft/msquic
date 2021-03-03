@@ -153,6 +153,12 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN AppCloseInProgress: 1;
 
+        //
+        // When true, this indicates that reordering shouldn't elict an
+        // immediate acknowledgement.
+        //
+        BOOLEAN IgnoreReordering : 1;
+
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
@@ -380,6 +386,17 @@ typedef struct QUIC_CONNECTION {
     // 2 ^ ack_delay_exponent.
     //
     uint8_t AckDelayExponent;
+
+    //
+    // The number of packets that must be received before eliciting an immediate
+    // acknowledgement.
+    //
+    uint8_t PacketTolerance;
+
+    //
+    // The next ACK frequency frame we expect to receive.
+    //
+    uint64_t NextAckFrequencySequenceNumber;
 
     //
     // The sequence number to use for the next source CID.
