@@ -519,8 +519,11 @@ CxPlatRefDecrement(
 
 typedef HANDLE CXPLAT_EVENT;
 
-#define CxPlatEventInitialize(Event, ManualReset, InitialState) \
-    *(Event) = CreateEvent(NULL, ManualReset, InitialState, NULL)
+#define CxPlatEventInitialize(Event, ManualReset, InitialState)         \
+    do {                                                                \
+        *(Event) = CreateEvent(NULL, ManualReset, InitialState, NULL);  \
+        CXPLAT_FRE_ASSERT(*Event != NULL);                              \
+    } while (FALSE)
 #define CxPlatEventUninitialize(Event) CloseHandle(Event)
 #define CxPlatEventSet(Event) SetEvent(Event)
 #define CxPlatEventReset(Event) ResetEvent(Event)
@@ -902,11 +905,17 @@ typedef struct CXPLAT_RUNDOWN_REF {
 } CXPLAT_RUNDOWN_REF;
 
 #define CxPlatRundownInitialize(Rundown) \
-    CxPlatRefInitialize(&(Rundown)->RefCount); \
-    (Rundown)->RundownComplete = CreateEvent(NULL, FALSE, FALSE, NULL)
-#define CxPlatRundownInitializeDisabled(Rundown) \
-    (Rundown)->RefCount = 0; \
-    (Rundown)->RundownComplete = CreateEvent(NULL, FALSE, FALSE, NULL)
+    CxPlatRefInitialize(&(Rundown)->RefCount);                              \
+    do {                                                                    \
+        (Rundown)->RundownComplete = CreateEvent(NULL, FALSE, FALSE, NULL); \
+        CXPLAT_FRE_ASSERT((Rundown)->RundownComplete != NULL);              \
+    } while (FALSE)
+#define CxPlatRundownInitializeDisabled(Rundown)                            \
+    (Rundown)->RefCount = 0;                                                \
+    do {                                                                    \
+        (Rundown)->RundownComplete = CreateEvent(NULL, FALSE, FALSE, NULL); \
+        CXPLAT_FRE_ASSERT((Rundown)->RundownComplete != NULL);              \
+    } while (FALSE)
 #define CxPlatRundownReInitialize(Rundown) (Rundown)->RefCount = 1
 #define CxPlatRundownUninitialize(Rundown) CloseHandle((Rundown)->RundownComplete)
 #define CxPlatRundownAcquire(Rundown) CxPlatRefIncrementNonZero(&(Rundown)->RefCount, 1)

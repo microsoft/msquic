@@ -299,7 +299,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
         OpenSslNewEncryptionSecrets,
         TlsContext->Connection,
         "New encryption secrets (Level = %u)",
-        Level);
+        (uint32_t)Level);
 
     CXPLAT_SECRET Secret;
     CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
@@ -408,7 +408,7 @@ CxPlatTlsAddHandshakeDataCallback(
         TlsContext->Connection,
         "Sending %llu handshake bytes (Level = %u)",
         (uint64_t)Length,
-        Level);
+        (uint32_t)Level);
 
     if (Length + TlsState->BufferLength > 0xF000) {
         QuicTraceEvent(
@@ -512,7 +512,7 @@ CxPlatTlsSendAlertCallback(
         TlsContext->Connection,
         "Send alert = %u (Level = %u)",
         Alert,
-        Level);
+        (uint32_t)Level);
 
     TlsContext->State->AlertCode = Alert;
     TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;

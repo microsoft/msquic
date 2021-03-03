@@ -979,7 +979,6 @@ Error:
                 CxPlatPoolUninitialize(&Datapath->Processors[i].LargeSendBufferPool);
                 CxPlatPoolUninitialize(&Datapath->Processors[i].RecvDatagramPool);
             }
-#pragma prefast(suppress:6387, "SAL doesn't track Datapath state correctly here")
             CxPlatRundownUninitialize(&Datapath->SocketsRundown);
             CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         }
@@ -1771,7 +1770,6 @@ QUIC_DISABLED_BY_FUZZER_START;
 
 QUIC_DISABLED_BY_FUZZER_END;
 
-#pragma prefast(suppress:6387, "SAL doesn't track rundown state correctly here")
                     CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
                 }
                 CxPlatRundownRelease(&Datapath->SocketsRundown);
@@ -2056,7 +2054,6 @@ Error:
                 if (SocketProc->Socket != INVALID_SOCKET) {
                     closesocket(SocketProc->Socket);
                 }
-#pragma prefast(suppress:6387, "SAL doesn't track rundown state correctly here")
                 CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
 
                 CxPlatRundownRelease(&Datapath->SocketsRundown);
@@ -2322,7 +2319,6 @@ Error:
                 if (SocketProc->Socket != INVALID_SOCKET) {
                     closesocket(SocketProc->Socket);
                 }
-#pragma prefast(suppress:6387, "SAL doesn't track rundown state correctly here")
                 CxPlatRundownUninitialize(&SocketProc->UpcallRundown);
 
                 CxPlatRundownRelease(&Datapath->SocketsRundown);
