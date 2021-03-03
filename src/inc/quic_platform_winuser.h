@@ -234,6 +234,20 @@ CxPlatLogAssert(
 #define CXPLAT_PASSIVE_CODE() CXPLAT_DBG_ASSERT(CXPLAT_IRQL() == PASSIVE_LEVEL)
 
 //
+// Wrapper functions
+//
+
+//
+// CloseHandle has an incorrect SAL annotation, so call through a wrapper.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+CxPlatCloseHandle(_Pre_notnull_ HANDLE Handle) {
+    CloseHandle(Handle);
+}
+
+//
 // Allocation/Memory Interfaces
 //
 
@@ -522,7 +536,7 @@ typedef HANDLE CXPLAT_EVENT;
 #define CxPlatEventInitialize(Event, ManualReset, InitialState)     \
     *(Event) = CreateEvent(NULL, ManualReset, InitialState, NULL);  \
     CXPLAT_DBG_ASSERT(*Event != NULL)
-#define CxPlatEventUninitialize(Event) CloseHandle(Event)
+#define CxPlatEventUninitialize(Event) CxPlatCloseHandle(Event)
 #define CxPlatEventSet(Event) SetEvent(Event)
 #define CxPlatEventReset(Event) ResetEvent(Event)
 #define CxPlatEventWaitForever(Event) WaitForSingleObject(Event, INFINITE)
@@ -879,7 +893,7 @@ CxPlatThreadCreate(
     }
     return QUIC_STATUS_SUCCESS;
 }
-#define CxPlatThreadDelete(Thread) CloseHandle(*(Thread))
+#define CxPlatThreadDelete(Thread) CxPlatCloseHandle(*(Thread))
 #define CxPlatThreadWait(Thread) WaitForSingleObject(*(Thread), INFINITE)
 typedef uint32_t CXPLAT_THREAD_ID;
 #define CxPlatCurThreadID() GetCurrentThreadId()
@@ -911,7 +925,7 @@ typedef struct CXPLAT_RUNDOWN_REF {
     (Rundown)->RundownComplete = CreateEvent(NULL, FALSE, FALSE, NULL); \
     CXPLAT_DBG_ASSERT((Rundown)->RundownComplete != NULL)
 #define CxPlatRundownReInitialize(Rundown) (Rundown)->RefCount = 1
-#define CxPlatRundownUninitialize(Rundown) CloseHandle((Rundown)->RundownComplete)
+#define CxPlatRundownUninitialize(Rundown) CxPlatCloseHandle((Rundown)->RundownComplete)
 #define CxPlatRundownAcquire(Rundown) CxPlatRefIncrementNonZero(&(Rundown)->RefCount, 1)
 #define CxPlatRundownRelease(Rundown) \
     if (CxPlatRefDecrement(&(Rundown)->RefCount)) { \

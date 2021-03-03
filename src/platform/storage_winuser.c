@@ -140,7 +140,7 @@ Exit:
             CloseThreadpoolWait(Storage->ThreadPoolWait);
         }
         if (Storage->NotifyEvent != NULL) {
-            CloseHandle(Storage->NotifyEvent);
+            CxPlatCloseHandle(Storage->NotifyEvent);
         }
         CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
@@ -158,7 +158,7 @@ CxPlatStorageClose(
         WaitForThreadpoolWaitCallbacks(Storage->ThreadPoolWait, TRUE);
         RegCloseKey(Storage->RegKey);
         CloseThreadpoolWait(Storage->ThreadPoolWait);
-        CloseHandle(Storage->NotifyEvent);
+        CxPlatCloseHandle(Storage->NotifyEvent);
         CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
 }
