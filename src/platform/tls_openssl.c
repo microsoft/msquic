@@ -177,9 +177,9 @@ static
 int
 CxPlatTlsAlpnSelectCallback(
     _In_ SSL *Ssl,
-    _Out_writes_bytes_(Outlen) const unsigned char **Out,
+    _Out_writes_bytes_(*OutLen) const unsigned char **Out,
     _Out_ unsigned char *OutLen,
-    _In_reads_bytes_(Inlen) const unsigned char *In,
+    _In_reads_bytes_(InLen) const unsigned char *In,
     _In_ unsigned int InLen,
     _In_ void *Arg
     )
@@ -299,7 +299,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
         OpenSslNewEncryptionSecrets,
         TlsContext->Connection,
         "New encryption secrets (Level = %u)",
-        Level);
+        (uint32_t)Level);
 
     CXPLAT_SECRET Secret;
     CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
@@ -408,7 +408,7 @@ CxPlatTlsAddHandshakeDataCallback(
         TlsContext->Connection,
         "Sending %llu handshake bytes (Level = %u)",
         (uint64_t)Length,
-        Level);
+        (uint32_t)Level);
 
     if (Length + TlsState->BufferLength > 0xF000) {
         QuicTraceEvent(
@@ -512,7 +512,7 @@ CxPlatTlsSendAlertCallback(
         TlsContext->Connection,
         "Send alert = %u (Level = %u)",
         Alert,
-        Level);
+        (uint32_t)Level);
 
     TlsContext->State->AlertCode = Alert;
     TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
@@ -520,10 +520,12 @@ CxPlatTlsSendAlertCallback(
     return 1;
 }
 
+_Success_(return == SSL_CLIENT_HELLO_SUCCESS)
 int
 CxPlatTlsClientHelloCallback(
     _In_ SSL *Ssl,
-    _Out_opt_ int *Alert,
+    _When_(return == SSL_CLIENT_HELLO_ERROR, _Out_)
+        int *Alert,
     _In_ void *arg
     )
 {
@@ -567,6 +569,7 @@ CxPlatTlsExtractPrivateKey(
     _Out_ RSA** EvpPrivateKey,
     _Out_ X509** X509Cert);
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
@@ -888,9 +891,11 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsSecConfigDelete(
-    _In_ CXPLAT_SEC_CONFIG* SecurityConfig
+    __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
+        CXPLAT_SEC_CONFIG* SecurityConfig
     )
 {
     if (SecurityConfig->SSLCtx != NULL) {
@@ -915,6 +920,7 @@ CxPlatTlsSecConfigSetTicketKeys(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsInitialize(
     _In_ const CXPLAT_TLS_CONFIG* Config,
@@ -1043,6 +1049,7 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsUninitialize(
     _In_opt_ CXPLAT_TLS* TlsContext
@@ -1068,11 +1075,13 @@ CxPlatTlsUninitialize(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessData(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ CXPLAT_TLS_DATA_TYPE DataType,
-    _In_reads_bytes_(*BufferLength) const uint8_t* Buffer,
+    _In_reads_bytes_(*BufferLength)
+        const uint8_t* Buffer,
     _Inout_ uint32_t* BufferLength,
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     )
@@ -1285,6 +1294,7 @@ Exit:
     return TlsContext->ResultFlags;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessDataComplete(
     _In_ CXPLAT_TLS* TlsContext,
@@ -1292,10 +1302,11 @@ CxPlatTlsProcessDataComplete(
     )
 {
     UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(ConsumedBuffer);
+    *ConsumedBuffer = 0;
     return CXPLAT_TLS_RESULT_ERROR;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamSet(
     _In_ CXPLAT_TLS* TlsContext,
@@ -1374,7 +1385,7 @@ CxPlatTlsParamGet(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
+    _Inout_updates_bytes_opt_(*BufferLength)
         void* Buffer
     )
 {
@@ -1634,7 +1645,7 @@ Error:
     return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketKeyDerive(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
@@ -1835,9 +1846,10 @@ Error:
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketKeyFree(
-    _In_opt_ QUIC_PACKET_KEY* Key
+    _In_opt_ __drv_freesMem(Mem) QUIC_PACKET_KEY* Key
     )
 {
     if (Key != NULL) {
@@ -1850,6 +1862,8 @@ QuicPacketKeyFree(
     }
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_At_(*NewKey, __drv_allocatesMem(Mem))
 QUIC_STATUS
 QuicPacketKeyUpdate(
     _In_ QUIC_PACKET_KEY* OldKey,
@@ -1906,6 +1920,7 @@ Error:
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatKeyCreate(
     _In_ CXPLAT_AEAD_TYPE AeadType,
@@ -1973,6 +1988,7 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatKeyFree(
     _In_opt_ CXPLAT_KEY* Key
@@ -1981,12 +1997,15 @@ CxPlatKeyFree(
     EVP_CIPHER_CTX_free((EVP_CIPHER_CTX*)Key);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatEncrypt(
     _In_ CXPLAT_KEY* Key,
-    _In_reads_bytes_(CXPLAT_IV_LENGTH) const uint8_t* const Iv,
+    _In_reads_bytes_(CXPLAT_IV_LENGTH)
+        const uint8_t* const Iv,
     _In_ uint16_t AuthDataLength,
-    _In_reads_bytes_opt_(AuthDataLength) const uint8_t* const AuthData,
+    _In_reads_bytes_opt_(AuthDataLength)
+        const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
     _When_(BufferLength > CXPLAT_ENCRYPTION_OVERHEAD, _Inout_updates_bytes_(BufferLength))
     _When_(BufferLength <= CXPLAT_ENCRYPTION_OVERHEAD, _Out_writes_bytes_(BufferLength))
@@ -2045,14 +2064,18 @@ CxPlatEncrypt(
     return QUIC_STATUS_SUCCESS;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatDecrypt(
     _In_ CXPLAT_KEY* Key,
-    _In_reads_bytes_(CXPLAT_IV_LENGTH) const uint8_t* const Iv,
+    _In_reads_bytes_(CXPLAT_IV_LENGTH)
+        const uint8_t* const Iv,
     _In_ uint16_t AuthDataLength,
-    _In_reads_bytes_opt_(AuthDataLength) const uint8_t* const AuthData,
+    _In_reads_bytes_opt_(AuthDataLength)
+        const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
-    _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
+    _Inout_updates_bytes_(BufferLength)
+        uint8_t* Buffer
     )
 {
     CXPLAT_DBG_ASSERT(CXPLAT_ENCRYPTION_OVERHEAD <= BufferLength);
@@ -2112,6 +2135,7 @@ CxPlatDecrypt(
     return QUIC_STATUS_SUCCESS;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatHpKeyCreate(
     _In_ CXPLAT_AEAD_TYPE AeadType,
@@ -2180,6 +2204,7 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatHpKeyFree(
     _In_opt_ CXPLAT_HP_KEY* Key
@@ -2191,12 +2216,15 @@ CxPlatHpKeyFree(
     }
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatHpComputeMask(
     _In_ CXPLAT_HP_KEY* Key,
     _In_ uint8_t BatchSize,
-    _In_reads_bytes_(CXPLAT_HP_SAMPLE_LENGTH * BatchSize) const uint8_t* const Cipher,
-    _Out_writes_bytes_(CXPLAT_HP_SAMPLE_LENGTH * BatchSize) uint8_t* Mask
+    _In_reads_bytes_(CXPLAT_HP_SAMPLE_LENGTH* BatchSize)
+        const uint8_t* const Cipher,
+    _Out_writes_bytes_(CXPLAT_HP_SAMPLE_LENGTH* BatchSize)
+        uint8_t* Mask
     )
 {
     int OutLen = 0;
@@ -2247,10 +2275,12 @@ typedef struct CXPLAT_HASH {
 
 } CXPLAT_HASH;
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatHashCreate(
     _In_ CXPLAT_HASH_TYPE HashType,
-    _In_reads_(SaltLength) const uint8_t* const Salt,
+    _In_reads_(SaltLength)
+        const uint8_t* const Salt,
     _In_ uint32_t SaltLength,
     _Out_ CXPLAT_HASH** NewHash
     )
@@ -2302,6 +2332,7 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatHashFree(
     _In_opt_ CXPLAT_HASH* Hash
@@ -2310,13 +2341,16 @@ CxPlatHashFree(
     HMAC_CTX_free((HMAC_CTX*)Hash);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatHashCompute(
     _In_ CXPLAT_HASH* Hash,
-    _In_reads_(InputLength) const uint8_t* const Input,
+    _In_reads_(InputLength)
+        const uint8_t* const Input,
     _In_ uint32_t InputLength,
-    _In_ uint32_t OutputLength,
-    _Out_writes_all_(OutputLength) uint8_t* const Output
+    _In_ uint32_t OutputLength, // CxPlatHashLength(HashType)
+    _Out_writes_all_(OutputLength)
+        uint8_t* const Output
     )
 {
     HMAC_CTX* HashContext = (HMAC_CTX*)Hash;

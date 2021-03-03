@@ -183,7 +183,7 @@ public:
             return false;
         }
         if (!Run(IOCTL_QUIC_SET_CERT_PARAMS, CertParams, sizeof(*CertParams), 30000)) {
-            CloseHandle(DeviceHandle);
+            CxPlatCloseHandle(DeviceHandle);
             DeviceHandle = INVALID_HANDLE_VALUE;
             QuicTraceEvent(
                 LibraryError,
@@ -195,7 +195,7 @@ public:
     }
     void Uninitialize() {
         if (DeviceHandle != INVALID_HANDLE_VALUE) {
-            CloseHandle(DeviceHandle);
+            CxPlatCloseHandle(DeviceHandle);
         }
     }
     bool Run(
@@ -231,7 +231,7 @@ public:
                 &Overlapped)) {
             Error = GetLastError();
             if (Error != ERROR_IO_PENDING) {
-                CloseHandle(Overlapped.hEvent);
+                CxPlatCloseHandle(Overlapped.hEvent);
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
@@ -260,7 +260,7 @@ public:
         } else {
             Error = ERROR_SUCCESS;
         }
-        CloseHandle(Overlapped.hEvent);
+        CxPlatCloseHandle(Overlapped.hEvent);
         return Error == ERROR_SUCCESS;
     }
     bool Run(
@@ -310,7 +310,7 @@ public:
                 &Overlapped)) {
             Error = GetLastError();
             if (Error != ERROR_IO_PENDING) {
-                CloseHandle(Overlapped.hEvent);
+                CxPlatCloseHandle(Overlapped.hEvent);
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
@@ -343,7 +343,7 @@ public:
             Error = ERROR_SUCCESS;
             *OutBufferWritten = dwBytesReturned;
         }
-        CloseHandle(Overlapped.hEvent);
+        CxPlatCloseHandle(Overlapped.hEvent);
         return Error == ERROR_SUCCESS;
     }
 };

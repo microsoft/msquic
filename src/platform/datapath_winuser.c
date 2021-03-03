@@ -967,10 +967,10 @@ Error:
         if (Datapath != NULL) {
             for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
                 if (Datapath->Processors[i].IOCP) {
-                    CloseHandle(Datapath->Processors[i].IOCP);
+                    CxPlatCloseHandle(Datapath->Processors[i].IOCP);
                 }
                 if (Datapath->Processors[i].CompletionThread) {
-                    CloseHandle(Datapath->Processors[i].CompletionThread);
+                    CxPlatCloseHandle(Datapath->Processors[i].CompletionThread);
                 }
                 CxPlatPoolUninitialize(&Datapath->Processors[i].SendContextPool);
                 CxPlatPoolUninitialize(&Datapath->Processors[i].SendBufferPool);
@@ -1018,11 +1018,11 @@ CxPlatDataPathUninitialize(
     //
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
         WaitForSingleObject(Datapath->Processors[i].CompletionThread, INFINITE);
-        CloseHandle(Datapath->Processors[i].CompletionThread);
+        CxPlatCloseHandle(Datapath->Processors[i].CompletionThread);
     }
 
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
-        CloseHandle(Datapath->Processors[i].IOCP);
+        CxPlatCloseHandle(Datapath->Processors[i].IOCP);
         CxPlatPoolUninitialize(&Datapath->Processors[i].SendContextPool);
         CxPlatPoolUninitialize(&Datapath->Processors[i].SendBufferPool);
         CxPlatPoolUninitialize(&Datapath->Processors[i].LargeSendBufferPool);
