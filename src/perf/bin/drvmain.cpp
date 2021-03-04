@@ -582,7 +582,7 @@ typedef union {
     QUIC_RUN_CERTIFICATE_PARAMS CertParams;
 } QUIC_IOCTL_PARAMS;
 
-static_assert(
+CXPLAT_STATIC_ASSERT(
     QUIC_PERF_MAX_IOCTL_FUNC_CODE + 1 == (sizeof(QUIC_IOCTL_BUFFER_SIZES) / sizeof(size_t)),
     "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOTCLs");
 

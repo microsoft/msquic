@@ -541,7 +541,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamShutdown(
     _In_ QUIC_STREAM* Stream,
-    _In_ uint32_t Flags,
+    _In_ QUIC_STREAM_SHUTDOWN_FLAGS Flags,
     _In_ QUIC_VAR_INT ErrorCode
     );
 

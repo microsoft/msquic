@@ -171,10 +171,11 @@ class KRTL_CLASS KArray :
 {
 public:
 
-    static_assert(((PoolType == (POOL_FLAG_NON_PAGED | POOL_FLAG_CACHE_ALIGNED)) &&
-                  (alignof(T) <= SYSTEM_CACHE_ALIGNMENT_SIZE)) ||
-                  (alignof(T) <= MEMORY_ALLOCATION_ALIGNMENT),
-                  "This container allocates items with a fixed alignment");
+    CXPLAT_STATIC_ASSERT(
+        ((PoolType == (POOL_FLAG_NON_PAGED | POOL_FLAG_CACHE_ALIGNED)) &&
+         (alignof(T) <= SYSTEM_CACHE_ALIGNMENT_SIZE)) ||
+        (alignof(T) <= MEMORY_ALLOCATION_ALIGNMENT),
+        "This container allocates items with a fixed alignment");
 
     // This iterator is not a full implementation of a STL-style iterator.
     // Mostly this is only here to get C++'s syntax "for(x : y)" to work.

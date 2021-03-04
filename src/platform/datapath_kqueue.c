@@ -1776,7 +1776,9 @@ CxPlatSocketSendInternal(
     struct in6_pktinfo *PktInfo6 = NULL;
     BOOLEAN SendPending = FALSE;
 
-    static_assert(sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
+    CXPLAT_STATIC_ASSERT(
+        sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo),
+        "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
 
     char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
 

@@ -1779,7 +1779,7 @@ CxPlatTlsWriteDataToSchannel(
     // Another (input) secbuffer to configure Schannel to use disable the TLS
     // record layer.
     //
-    static_assert(
+    CXPLAT_STATIC_ASSERT(
         ISC_REQ_MESSAGES == ASC_REQ_MESSAGES,
         "To simplify the code, we use the same value for both ISC and ASC");
     TlsContext->Workspace.InSecFlags.Flags = ISC_REQ_MESSAGES;
