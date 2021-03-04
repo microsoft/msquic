@@ -38,6 +38,24 @@ QUIC has a custom TLS extension it uses on client and server to exchange QUIC sp
 
 When a TLS session is resumed, QUIC is required to use the same QUIC layer configuration previously exchanged in the Transport Parameters. This allows QUIC to do things like apply the appropriate flow control limits to 0-RTT data. In order for this functionality to be achieved at the QUIC layer, the TLS library must allow for QUIC to embed QUIC information in the session resumption ticket (NST) and recall it on session resumption.
 
+# Implementations
+
+MsQuic has a number of implementations for the TLS abstraction layer to support out various platforms and scenarios.
+
+## Schannel
+
+[Schannel](https://docs.microsoft.com/en-us/windows/win32/com/schannel) is officially supported for Windows user mode and Windows kernel mode. It requires the latest Windows versions (Windows Server 2022 or Insider Preview) to function. Only the newest versions support TLS 1.3 and the necessary APIs for QUIC functionality. Currently, 0-RTT is not supported, and resumption is only partially supported.
+
+## OpenSSL
+
+[OpenSSL](https://www.openssl.org/) is the primary TLS library by MsQuic on Linux. It is also works on Windows, but is not officially supported.
+
+> **Important** - Currently, OpenSSL doesn't officially have QUIC API support (hopefully coming soon), so MsQuic **temporarily** relies on a [fork of OpenSSL](https://github.com/quictls/openssl) that is purely a fork + a set of (unapproved by OMC) changes to expose some QUIC functionality. This fork is only a **stopgap solution** until OpenSSL officially supports QUIC, at which MsQuic will immediately switch to it.
+
+## miTLS
+
+[miTLS](https://mitls.org/) is an experimental TLS implementation from Microsoft Research. It is not officially supported by MsQuic and is generally just used for testing purposes. It is currently only works on Windows.
+
 # Detailed Design
 
 TO-DO

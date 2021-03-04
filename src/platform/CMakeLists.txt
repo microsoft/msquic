@@ -43,7 +43,7 @@ else()
 endif()
 
 if (QUIC_TLS STREQUAL "schannel")
-    message(STATUS "Configuring for SChannel")
+    message(STATUS "Configuring for Schannel")
     set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c tls_schannel.c)
 elseif(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Configuring for OpenSSL")
