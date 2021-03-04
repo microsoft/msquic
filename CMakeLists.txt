@@ -258,10 +258,17 @@ if(WIN32)
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION)
     endif()
 
+    if(QUIC_TLS STREQUAL "schannel")
+        # User mode schannel doesn't support this yet.
+        message(STATUS "Disabling resumption rejection")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
+    endif()
+
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel")
         # OpenSSL and SChannel don't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
@@ -272,6 +279,7 @@ if(WIN32)
 
     if(QUIC_TLS STREQUAL "stub")
         list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
     endif()
 
     if(QUIC_ENABLE_SANITIZERS)
@@ -371,6 +379,7 @@ else()
         # OpenSSL doesn't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
@@ -389,6 +398,7 @@ else()
 
     if(QUIC_TLS STREQUAL "stub")
         list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
@@ -482,7 +492,6 @@ if(QUIC_TLS STREQUAL "openssl")
 
             add_library(OpenSSL_Build_Tgt INTERFACE)
             add_dependencies(OpenSSL_Build_Tgt OpenSSL_Build)
-            set_property(TARGET OpenSSL_Build_Tgt PROPERTY FOLDER "helpers")
 
             target_link_libraries(OpenSSL INTERFACE OpenSSL_Build_Tgt)
         endif()
@@ -504,7 +513,11 @@ if(QUIC_TLS STREQUAL "openssl")
             list(APPEND OPENSSL_CONFIG_FLAGS -latomic)
         elseif(CX_PLATFORM STREQUAL "darwin")
             # need to build with Apple's compiler
-            set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
+            if (CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
+                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-arm64)
+            else()
+                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch x86_64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-x86_64)
+            endif()
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
                 CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})

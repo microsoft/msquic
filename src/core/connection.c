@@ -118,6 +118,7 @@ QuicConnAlloc(
     Connection->Stats.Timing.Start = CxPlatTimeUs64();
     Connection->SourceCidLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
+    Connection->PacketTolerance = QUIC_MIN_ACK_SEND_NUMBER;
     Connection->PeerTransportParams.AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
     Connection->Settings = MsQuicLib.Settings;
@@ -2183,6 +2184,7 @@ QuicConnGenerateLocalTransportParameters(
                 Connection->Paths[0].Binding->Socket));
     LocalTP->MaxAckDelay =
         Connection->Settings.MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
+    LocalTP->MinAckDelay = MS_TO_US(MsQuicLib.TimerResolutionMs);
     LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     LocalTP->Flags =
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -2191,6 +2193,7 @@ QuicConnGenerateLocalTransportParameters(
         QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
         QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE |
         QUIC_TP_FLAG_MAX_ACK_DELAY |
+        QUIC_TP_FLAG_MIN_ACK_DELAY |
         QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
 
     if (Connection->Settings.IdleTimeoutMs != 0) {
@@ -4692,6 +4695,63 @@ QuicConnRecvFrames(
                 return FALSE;
             }
             AckPacketImmediately = TRUE;
+            break;
+        }
+
+        case QUIC_FRAME_ACK_FREQUENCY: {
+            if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MIN_ACK_DELAY)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Received ACK frequency frame when not negotiated");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                return FALSE;
+            }
+
+            QUIC_ACK_FREQUENCY_EX Frame;
+            if (!QuicAckFrequencyFrameDecode(PayloadLength, Payload, &Offset, &Frame)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Decoding ACK_FREQUENCY frame");
+                QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+                return FALSE;
+            }
+
+            if (Frame.UpdateMaxAckDelay < MS_TO_US(MsQuicLib.TimerResolutionMs)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "UpdateMaxAckDelay is less than TimerResolution");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                return FALSE;
+            }
+
+            AckPacketImmediately = TRUE;
+            if (Frame.SequenceNumber < Connection->NextAckFrequencySequenceNumber) {
+                //
+                // This sequence number (or a higher one) has already been
+                // received. Ignore this one.
+                //
+                break;
+            }
+
+            Connection->NextAckFrequencySequenceNumber = Frame.SequenceNumber + 1;
+            Connection->State.IgnoreReordering = Frame.IgnoreOrder;
+            if (Frame.UpdateMaxAckDelay < 1000) {
+                Connection->Settings.MaxAckDelayMs = 1;
+            } else {
+                CXPLAT_DBG_ASSERT(US_TO_MS(Frame.UpdateMaxAckDelay) <= UINT32_MAX);
+                Connection->Settings.MaxAckDelayMs = (uint32_t)US_TO_MS(Frame.UpdateMaxAckDelay);
+            }
+            if (Frame.PacketTolerance < UINT8_MAX) {
+                Connection->PacketTolerance = (uint8_t)Frame.PacketTolerance;
+            } else {
+                Connection->PacketTolerance = UINT8_MAX; // Cap to 0xFF for space savings.
+            }
             break;
         }
 

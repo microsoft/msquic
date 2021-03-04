@@ -131,6 +131,7 @@ QuicBindingInitialize(
             LocalAddress,
             RemoteAddress,
             Binding,
+            0,
             &Binding->Socket);
 
 #ifdef QUIC_COMPARTMENT_ID
@@ -474,17 +475,23 @@ QuicBindingAcceptConnection(
     // used later in building up the TLS response.
     //
     uint16_t NegotiatedAlpnLength = 1 + Info->NegotiatedAlpn[-1];
-    uint8_t* NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength, QUIC_POOL_ALPN);
-    if (NegotiatedAlpn == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "NegotiatedAlpn",
-            NegotiatedAlpnLength);
-        QuicConnTransportError(
-            Connection,
-            QUIC_ERROR_INTERNAL_ERROR);
-        return;
+    uint8_t* NegotiatedAlpn;
+
+    if (NegotiatedAlpnLength <= TLS_SMALL_ALPN_BUFFER_SIZE) {
+        NegotiatedAlpn = Connection->Crypto.TlsState.SmallAlpnBuffer;
+    } else {
+        NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength, QUIC_POOL_ALPN);
+        if (NegotiatedAlpn == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "NegotiatedAlpn",
+                NegotiatedAlpnLength);
+            QuicConnTransportError(
+                Connection,
+                QUIC_ERROR_INTERNAL_ERROR);
+            return;
+        }
     }
     CxPlatCopyMemory(NegotiatedAlpn, Info->NegotiatedAlpn - 1, NegotiatedAlpnLength);
     Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;

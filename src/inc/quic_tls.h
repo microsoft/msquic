@@ -31,6 +31,11 @@ typedef struct CXPLAT_TLS_SECRETS CXPLAT_TLS_SECRETS;
 #define TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS                0x0039  // Host Byte Order
 
 //
+// The small buffer size for an ALPN to avoid allocations in the general case.
+//
+#define TLS_SMALL_ALPN_BUFFER_SIZE  16
+
+//
 // The size of the header required by the TLS layer.
 //
 extern uint16_t CxPlatTlsTPHeaderSize;
@@ -292,6 +297,13 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
     uint8_t* Buffer;
 
     //
+    // A small buffer to hold the final negotiated ALPN of the connection,
+    // assuming it fits in TLS_SMALL_ALPN_BUFFER_SIZE bytes. NegotiatedAlpn
+    // with either point to this, or point to allocated memory.
+    //
+    uint8_t SmallAlpnBuffer[TLS_SMALL_ALPN_BUFFER_SIZE];
+
+    //
     // The final negotiated ALPN of the connection. The first byte is the length
     // followed by that many bytes for actual ALPN.
     //
@@ -342,6 +354,17 @@ void
 CxPlatTlsSecConfigDelete(
     __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
         CXPLAT_SEC_CONFIG* SecurityConfig
+    );
+
+//
+// Sets a NST ticket key for a security configuration.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsSecConfigSetTicketKeys(
+    _In_ CXPLAT_SEC_CONFIG* SecurityConfig,
+    _In_reads_(KeyCount) QUIC_TICKET_KEY_CONFIG* KeyConfig,
+    _In_ uint8_t KeyCount
     );
 
 //

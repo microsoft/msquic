@@ -13,7 +13,9 @@ Abstract:
 
 //#define QUIC_COMPARTMENT_TESTS 1
 
-extern QUIC_CREDENTIAL_CONFIG SelfSignedCredConfig;
+extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
+extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
+extern QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,6 +63,12 @@ void QuicTestBindConnectionExplicit(_In_ int Family);
 // Handshake Tests
 //
 
+typedef enum QUIC_TEST_RESUMPTION_MODE {
+    QUIC_TEST_RESUMPTION_DISABLED,
+    QUIC_TEST_RESUMPTION_ENABLED,
+    QUIC_TEST_RESUMPTION_REJECTED,
+} QUIC_TEST_RESUMPTION_MODE;
+
 void
 QuicTestConnect(
     _In_ int Family,
@@ -69,7 +77,7 @@ QuicTestConnect(
     _In_ bool MultipleALPNs,
     _In_ bool AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
-    _In_ bool SessionResumption,
+    _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
     _In_ uint8_t RandomLossPercentage // 0 to 100
     );
 
@@ -123,6 +131,22 @@ void
 QuicTestCustomCertificateValidation(
     _In_ bool AcceptCert,
     _In_ bool AsyncValidation
+    );
+
+void
+QuicTestConnectClientCertificate(
+    _In_ int Family,
+    _In_ bool UseClientCertificate
+    );
+
+void
+QuicTestValidAlpnLengths(
+    void
+    );
+
+void
+QuicTestInvalidAlpnLengths(
+    void
     );
 
 //
@@ -378,9 +402,14 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 // IOCTL Interface
 //
 
-#define IOCTL_QUIC_SET_CERT_HASH \
+typedef struct {
+    QUIC_CERTIFICATE_HASH ServerCertHash;
+    QUIC_CERTIFICATE_HASH ClientCertHash;
+} QUIC_RUN_CERTIFICATE_PARAMS;
+
+#define IOCTL_QUIC_SET_CERT_PARAMS \
     QUIC_CTL_CODE(1, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // QUIC_CERTIFICATE_HASH
+    // QUIC_RUN_CERTIFICATE_PARAMS
 
 #define IOCTL_QUIC_RUN_VALIDATE_REGISTRATION \
     QUIC_CTL_CODE(2, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -684,4 +713,19 @@ typedef struct {
 #define IOCTL_QUIC_RUN_VALIDATE_DESIRED_VERSIONS_SETTINGS \
     QUIC_CTL_CODE(55, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 55
+typedef struct {
+    int Family;
+    BOOLEAN UseClientCert;
+} QUIC_RUN_CONNECT_CLIENT_CERT;
+
+#define IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT \
+    QUIC_CTL_CODE(56, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_CONNECT_CLIENT_CERT
+
+#define IOCTL_QUIC_RUN_VALID_ALPN_LENGTHS \
+    QUIC_CTL_CODE(57, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS \
+    QUIC_CTL_CODE(58, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 58

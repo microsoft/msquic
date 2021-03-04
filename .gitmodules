@@ -3,8 +3,8 @@
 	url = https://github.com/google/googletest
 [submodule "submodules/openssl"]
 	path = submodules/openssl
-	url = https://github.com/akamai/openssl.git
-	branch = master-alpha10-quic-support
+	url = https://github.com/quictls/openssl.git
+	branch = openssl-3.0.0-alpha12+quic
 [submodule "submodules/everest"]
 	path = submodules/everest
 	url = https://github.com/nibanks/everest-dist.git

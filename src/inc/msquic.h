@@ -92,14 +92,15 @@ typedef enum QUIC_CREDENTIAL_TYPE {
 } QUIC_CREDENTIAL_TYPE;
 
 typedef enum QUIC_CREDENTIAL_FLAGS {
-    QUIC_CREDENTIAL_FLAG_NONE                           = 0x00000000,
-    QUIC_CREDENTIAL_FLAG_CLIENT                         = 0x00000001, // Lack of client flag indicates server.
-    QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS              = 0x00000002,
-    QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION      = 0x00000004,
-    QUIC_CREDENTIAL_FLAG_ENABLE_OCSP                    = 0x00000008, // Schannel only currently
-    QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED  = 0x00000010,
-    QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION   = 0x00000020, // Schannel only currently
-    QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION  = 0x00000040, // Schannel only currently
+    QUIC_CREDENTIAL_FLAG_NONE                                   = 0x00000000,
+    QUIC_CREDENTIAL_FLAG_CLIENT                                 = 0x00000001, // Lack of client flag indicates server.
+    QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS                      = 0x00000002,
+    QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION              = 0x00000004,
+    QUIC_CREDENTIAL_FLAG_ENABLE_OCSP                            = 0x00000008, // Schannel only currently
+    QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED          = 0x00000010,
+    QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION           = 0x00000020, // Schannel only currently
+    QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION          = 0x00000040, // Schannel only currently
+    QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION = 0x00000080,
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS)
@@ -180,6 +181,7 @@ typedef enum QUIC_SEND_FLAGS {
     QUIC_SEND_FLAG_START                    = 0x0002,   // Asynchronously starts the stream with the sent data.
     QUIC_SEND_FLAG_FIN                      = 0x0004,   // Indicates the request is the one last sent on the stream.
     QUIC_SEND_FLAG_DGRAM_PRIORITY           = 0x0008,   // Indicates the datagram is higher priority than others.
+    QUIC_SEND_FLAG_DELAY_SEND               = 0x0010,   // Indicates the send should be delayed because more will be queued soon.
 } QUIC_SEND_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS)
@@ -252,9 +254,23 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
         QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected;
     };
     const char* Principal;
-    void* TicketKey; // Optional, 44 byte array
+    void* Reserved; // Currently unused
     QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
 } QUIC_CREDENTIAL_CONFIG;
+
+//
+// The maximum number of QUIC_TICKET_KEY_CONFIG that can be used at one time.
+//
+#define QUIC_MAX_TICKET_KEY_COUNT 16
+
+//
+// TLS New Session Ticket encryption key configuration.
+//
+typedef struct QUIC_TICKET_KEY_CONFIG {
+    uint8_t Id[16];
+    uint8_t Material[64];
+    uint8_t MaterialLength;
+} QUIC_TICKET_KEY_CONFIG;
 
 //
 // A single contiguous buffer.
@@ -486,7 +502,9 @@ typedef struct QUIC_SETTINGS {
 } QUIC_SETTINGS;
 
 //
-// Functions for associating application contexts with QUIC handles.
+// Functions for associating application contexts with QUIC handles. MsQuic
+// provides no explicit synchronization between parallel calls to these
+// functions.
 //
 
 typedef
@@ -506,7 +524,8 @@ void*
 
 //
 // Sets the event handler for the QUIC handle. The type of the handler must be
-// appropriate for the type of the handle.
+// appropriate for the type of the handle. MsQuic provides no explicit
+// synchronization between parallel calls to this function or the ones above.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -549,6 +568,7 @@ typedef enum QUIC_PARAM_LEVEL {
 // Parameters for QUIC_PARAM_LEVEL_CONFIGURATION.
 //
 #define QUIC_PARAM_CONFIGURATION_SETTINGS               0   // QUIC_SETTINGS
+#define QUIC_PARAM_CONFIGURATION_TICKET_KEYS            1   // QUIC_TICKET_KEY_CONFIG[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.

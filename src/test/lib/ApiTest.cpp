@@ -39,8 +39,6 @@ void QuicTestValidateConfiguration()
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
-    HQUIC LocalConfiguration = nullptr;
-
     QUIC_SETTINGS EmptySettings{0};
 
     QUIC_SETTINGS GoodSettings{0};
@@ -74,67 +72,67 @@ void QuicTestValidateConfiguration()
     //
     // Null registration.
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->ConfigurationOpen(
-            nullptr,
-            &GoodAlpn,
-            1,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConfigurationOpen(
+                nullptr,
+                &GoodAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Null settings.
     //
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->ConfigurationOpen(
-            Registration,
-            &GoodAlpn,
-            1,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
-
-    MsQuic->ConfigurationClose(
-        LocalConfiguration);
-    LocalConfiguration = nullptr;
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Empty settings.
     //
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->ConfigurationOpen(
-            Registration,
-            &GoodAlpn,
-            1,
-            &EmptySettings,
-            sizeof(EmptySettings),
-            nullptr,
-            &LocalConfiguration));
-
-    MsQuic->ConfigurationClose(
-        LocalConfiguration);
-    LocalConfiguration = nullptr;
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                &EmptySettings,
+                sizeof(EmptySettings),
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Good settings.
     //
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->ConfigurationOpen(
-            Registration,
-            &GoodAlpn,
-            1,
-            &GoodSettings,
-            sizeof(GoodSettings),
-            nullptr,
-            &LocalConfiguration));
-
-    MsQuic->ConfigurationClose(
-        LocalConfiguration);
-    LocalConfiguration = nullptr;
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                &GoodSettings,
+                sizeof(GoodSettings),
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Invalid settings - TODO
@@ -143,86 +141,178 @@ void QuicTestValidateConfiguration()
     //
     // Null ALPN.
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->ConfigurationOpen(
-            Registration,
-            nullptr,
-            0,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConfigurationOpen(
+                Registration,
+                nullptr,
+                0,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Empty ALPN.
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->ConfigurationOpen(
-            Registration,
-            &EmptyAlpn,
-            1,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &EmptyAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // 255-byte ALPN.
     //
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->ConfigurationOpen(
-            Registration,
-            &LongAlpn,
-            1,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
-
-    MsQuic->ConfigurationClose(
-        LocalConfiguration);
-    LocalConfiguration = nullptr;
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &LongAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // 256-byte ALPN.
     //
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
-        MsQuic->ConfigurationOpen(
-            Registration,
-            &TooLongAlpn,
-            1,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &TooLongAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
     // Multiple ALPNs
     //
-    const QUIC_BUFFER TwoAlpns[] = {
-        { sizeof("alpn1") - 1, (uint8_t*)"alpn1" },
-        { sizeof("alpn2") - 1, (uint8_t*)"alpn2" }
-    };
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->ConfigurationOpen(
-            Registration,
-            TwoAlpns,
-            2,
-            nullptr,
-            0,
-            nullptr,
-            &LocalConfiguration));
-
-    MsQuic->ConfigurationClose(
-        LocalConfiguration);
-    LocalConfiguration = nullptr;
+    {
+        ConfigurationScope LocalConfiguration;
+        const QUIC_BUFFER TwoAlpns[] = {
+            { sizeof("alpn1") - 1, (uint8_t*)"alpn1" },
+            { sizeof("alpn2") - 1, (uint8_t*)"alpn2" }
+        };
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                TwoAlpns,
+                2,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+    }
 
     //
-    // TODO - ConfigurationLoad?
+    // ConfigurationLoad
     //
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationLoadCredential(
+                LocalConfiguration,
+                &ServerSelfSignedCredConfig));
+    }
+
+#ifndef QUIC_DISABLE_RESUMPTION_REJECTION_TESTS
+    //
+    // Set Ticket Key (single)
+    //
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationLoadCredential(
+                LocalConfiguration,
+                &ServerSelfSignedCredConfig));
+
+        QUIC_TICKET_KEY_CONFIG KeyConfig;
+        CxPlatZeroMemory(&KeyConfig, sizeof(KeyConfig));
+        KeyConfig.MaterialLength = 64;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                LocalConfiguration,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                sizeof(KeyConfig),
+                &KeyConfig));
+    }
+
+    //
+    // Set Ticket Key (multiple)
+    //
+    {
+        ConfigurationScope LocalConfiguration;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationOpen(
+                Registration,
+                &GoodAlpn,
+                1,
+                nullptr,
+                0,
+                nullptr,
+                &LocalConfiguration.Handle));
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConfigurationLoadCredential(
+                LocalConfiguration,
+                &ServerSelfSignedCredConfig));
+
+        QUIC_TICKET_KEY_CONFIG KeyConfigs[2];
+        CxPlatZeroMemory(KeyConfigs, sizeof(KeyConfigs));
+        KeyConfigs[0].MaterialLength = 64;
+        KeyConfigs[1].MaterialLength = 64;
+        KeyConfigs[1].Id[0] = 1;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                LocalConfiguration,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                sizeof(KeyConfigs),
+                KeyConfigs));
+    }
+#endif // QUIC_DISABLE_RESUMPTION_REJECTION_TESTS
 }
 
 static
@@ -483,7 +573,7 @@ void QuicTestValidateConnection()
 
     MsQuicSettings Settings;
     Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     Settings.SetIdleTimeoutMs(1000);
@@ -948,6 +1038,32 @@ void QuicTestValidateConnection()
 #endif
 }
 
+_Function_class_(STREAM_SHUTDOWN_CALLBACK)
+static
+void
+ServerApiTestStreamShutdown(
+    _In_ TestStream* Stream
+    )
+{
+    delete Stream;
+}
+
+_Function_class_(NEW_STREAM_CALLBACK)
+static
+void
+ServerApiTestNewStream(
+    _In_ TestConnection* /* Connection */,
+    _In_ HQUIC StreamHandle,
+    _In_ QUIC_STREAM_OPEN_FLAGS Flags
+    )
+{
+    auto Stream = TestStream::FromStreamHandle(StreamHandle, ServerApiTestStreamShutdown, Flags);
+    if (Stream == nullptr || !Stream->IsValid()) {
+        delete Stream;
+        TEST_FAILURE("Failed to accept new TestStream.");
+    }
+}
+
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
@@ -957,7 +1073,7 @@ ListenerAcceptCallback(
     )
 {
     TestConnection** NewConnection = (TestConnection**)Listener->Context;
-    *NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
+    *NewConnection = new(std::nothrow) TestConnection(ConnectionHandle, ServerApiTestNewStream);
     if (*NewConnection == nullptr || !(*NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *NewConnection;
@@ -1023,6 +1139,28 @@ ShutdownStreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
+_Function_class_(QUIC_STREAM_CALLBACK)
+static
+QUIC_STATUS
+QUIC_API
+AllowSendCompleteStreamCallback(
+    _In_ HQUIC /*Stream*/,
+    _In_opt_ void* /*Context*/,
+    _Inout_ QUIC_STREAM_EVENT* Event
+    )
+{
+    switch (Event->Type) {
+
+    case QUIC_STREAM_EVENT_RECEIVE:
+        TEST_FAILURE("QUIC_STREAM_EVENT_RECEIVE should never be called!");
+        break;
+
+    default:
+        break;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
 void QuicTestValidateStream(bool Connect)
 {
     MsQuicRegistration Registration;
@@ -1032,7 +1170,7 @@ void QuicTestValidateStream(bool Connect)
 
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(32);
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
@@ -1085,6 +1223,7 @@ void QuicTestValidateStream(bool Connect)
             // Null connection.
             //
             {
+                TestScopeLogger logScope("Null connection");
                 StreamScope Stream;
                 TEST_QUIC_STATUS(
                     QUIC_STATUS_INVALID_PARAMETER,
@@ -1100,6 +1239,7 @@ void QuicTestValidateStream(bool Connect)
             // Null handler.
             //
             {
+                TestScopeLogger logScope("Null handler");
                 StreamScope Stream;
                 TEST_QUIC_STATUS(
                     QUIC_STATUS_INVALID_PARAMETER,
@@ -1127,6 +1267,7 @@ void QuicTestValidateStream(bool Connect)
             // Fail on blocked.
             //
             {
+                TestScopeLogger logScope("Fail on blocked");
                 bool ShutdownComplete = false;
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
@@ -1155,6 +1296,7 @@ void QuicTestValidateStream(bool Connect)
             // Shutdown on fail.
             //
             if (!Connect) {
+                TestScopeLogger logScope("Shutdown on fail");
                 bool ShutdownComplete = false;
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
@@ -1188,6 +1330,7 @@ void QuicTestValidateStream(bool Connect)
             // Never started (close).
             //
             {
+                TestScopeLogger logScope("Never started (close)");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
@@ -1202,6 +1345,7 @@ void QuicTestValidateStream(bool Connect)
             // Never started (shutdown graceful).
             //
             {
+                TestScopeLogger logScope("Never started (shutdown graceful)");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
@@ -1222,6 +1366,7 @@ void QuicTestValidateStream(bool Connect)
             // Never started (shutdown abortive).
             //
             {
+                TestScopeLogger logScope("Never started (shutdown abortive)");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
@@ -1242,6 +1387,7 @@ void QuicTestValidateStream(bool Connect)
             // Null buffer.
             //
             {
+                TestScopeLogger logScope("Null buffer");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
@@ -1270,12 +1416,13 @@ void QuicTestValidateStream(bool Connect)
             // Zero buffers.
             //
             {
+                TestScopeLogger logScope("Zero buffers");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
                         Client.GetConnection(),
-                        QUIC_STREAM_OPEN_FLAG_NONE,
-                        DummyStreamCallback,
+                        QUIC_STREAM_OPEN_FLAG_NONE | QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
+                        AllowSendCompleteStreamCallback,
                         nullptr,
                         &Stream.Handle));
 
@@ -1284,8 +1431,7 @@ void QuicTestValidateStream(bool Connect)
                         Stream.Handle,
                         QUIC_STREAM_START_FLAG_NONE));
 
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_PARAMETER,
+                TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamSend(
                         Stream.Handle,
                         Buffers,
@@ -1295,14 +1441,43 @@ void QuicTestValidateStream(bool Connect)
             }
 
             //
-            // Send on shutdown stream.
+            // Zero-length buffers.
             //
             {
+                TestScopeLogger logScope("Zero-length buffers");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
                         Client.GetConnection(),
-                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        QUIC_STREAM_OPEN_FLAG_NONE | QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
+                        AllowSendCompleteStreamCallback,
+                        nullptr,
+                        &Stream.Handle));
+
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamStart(
+                        Stream.Handle,
+                        QUIC_STREAM_START_FLAG_NONE));
+
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamSend(
+                        Stream.Handle,
+                        Buffers,
+                        ARRAYSIZE(Buffers),
+                        QUIC_SEND_FLAG_NONE,
+                        nullptr));
+            }
+
+            //
+            // Send on shutdown stream.
+            //
+            {
+                TestScopeLogger logScope("Send on shutdown stream");
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE | QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
                         DummyStreamCallback,
                         nullptr,
                         &Stream.Handle));
@@ -1319,8 +1494,10 @@ void QuicTestValidateStream(bool Connect)
                         QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
                         QUIC_TEST_NO_ERROR));
 
+                CxPlatSleep(100); // TODO - Ideally wait for shutdown event instead
+
                 TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_PARAMETER,
+                    QUIC_STATUS_INVALID_STATE,
                     MsQuic->StreamSend(
                         Stream.Handle,
                         Buffers,
@@ -1333,6 +1510,7 @@ void QuicTestValidateStream(bool Connect)
             // Double-shutdown stream.
             //
             {
+                TestScopeLogger logScope("Double-shutdown stream");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(
@@ -1374,6 +1552,7 @@ void QuicTestValidateStream(bool Connect)
             // Shutdown no flags.
             //
             {
+                TestScopeLogger logScope("Shutdown no flags");
                 StreamScope Stream;
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamOpen(

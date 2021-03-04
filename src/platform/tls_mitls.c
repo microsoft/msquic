@@ -430,29 +430,7 @@ CxPlatTlsSecConfigCreate(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-
-        if (CredConfig->TicketKey != NULL &&
-            !FFI_mitls_set_sealing_key("AES256-GCM", (uint8_t*)CredConfig->TicketKey, 44)) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "FFI_mitls_set_sealing_key failed");
-            Status = QUIC_STATUS_INVALID_STATE;
-            goto Error;
-        }
-
-    } else {
-
-        if (CredConfig->TicketKey != NULL &&
-            !FFI_mitls_set_ticket_key("AES256-GCM", (uint8_t*)CredConfig->TicketKey, 44)) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "FFI_mitls_set_ticket_key failed");
-            Status = QUIC_STATUS_INVALID_STATE;
-            goto Error;
-        }
+    if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
 
         Status = CxPlatCertCreate(CredConfig, &SecurityConfig->Certificate);
         if (QUIC_FAILED(Status)) {
@@ -510,6 +488,45 @@ CxPlatTlsSecConfigDelete(
         CxPlatCertFree(SecurityConfig->Certificate);
     }
     CXPLAT_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
+}
+
+const uint8_t miTlsTicketKeyLength = 44;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsSecConfigSetTicketKeys(
+    _In_ CXPLAT_SEC_CONFIG* SecurityConfig,
+    _In_reads_(KeyCount) QUIC_TICKET_KEY_CONFIG* KeyConfig,
+    _In_ uint8_t KeyCount
+    )
+{
+    CXPLAT_DBG_ASSERT(KeyCount >= 1);
+    UNREFERENCED_PARAMETER(KeyCount);
+
+    if (KeyConfig->MaterialLength < miTlsTicketKeyLength) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (SecurityConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        if (!FFI_mitls_set_sealing_key("AES256-GCM", KeyConfig->Material, miTlsTicketKeyLength)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "FFI_mitls_set_sealing_key failed");
+            return QUIC_STATUS_INVALID_STATE;
+        }
+
+    } else {
+        if (!FFI_mitls_set_ticket_key("AES256-GCM", KeyConfig->Material, miTlsTicketKeyLength)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "FFI_mitls_set_ticket_key failed");
+            return QUIC_STATUS_INVALID_STATE;
+        }
+    }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1688,7 +1705,7 @@ CxPlatTlsParamGet(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
+    _Inout_updates_bytes_opt_(*BufferLength)
         void* Buffer
     )
 {

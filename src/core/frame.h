@@ -143,12 +143,16 @@ typedef enum QUIC_FRAME_TYPE {
     /* 0x1f to 0x2f are unused currently */
     QUIC_FRAME_DATAGRAM             = 0x30, // to 0x31
     QUIC_FRAME_DATAGRAM_1           = 0x31,
+    /* 0x32 to 0xad are unused currently */
+    QUIC_FRAME_ACK_FREQUENCY        = 0xaf,
 
 } QUIC_FRAME_TYPE;
 
 #define QUIC_FRAME_IS_KNOWN(X) \
     (X <= QUIC_FRAME_HANDSHAKE_DONE || \
-    (X >= QUIC_FRAME_DATAGRAM && X <= QUIC_FRAME_DATAGRAM_1))
+     (X >= QUIC_FRAME_DATAGRAM && X <= QUIC_FRAME_DATAGRAM_1) || \
+     X == QUIC_FRAME_ACK_FREQUENCY \
+    )
 
 //
 // QUIC_FRAME_ACK Encoding/Decoding
@@ -777,6 +781,39 @@ QuicDatagramFrameDecode(
     _Deref_in_range_(0, BufferLength)
     _Inout_ uint16_t* Offset,
     _Out_ QUIC_DATAGRAM_EX* Frame
+    );
+
+//
+// QUIC_ACK_FREQUENCY Encoding/Decoding
+//
+
+typedef struct QUIC_ACK_FREQUENCY_EX {
+
+    QUIC_VAR_INT SequenceNumber;
+    QUIC_VAR_INT PacketTolerance;
+    QUIC_VAR_INT UpdateMaxAckDelay; // In microseconds (us)
+    uint8_t IgnoreOrder;
+
+} QUIC_ACK_FREQUENCY_EX;
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicAckFrequencyFrameEncode(
+    _In_ const QUIC_ACK_FREQUENCY_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    );
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicAckFrequencyFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_ACK_FREQUENCY_EX* Frame
     );
 
 //

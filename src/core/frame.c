@@ -27,6 +27,27 @@ QuicUint8Encode(
 
 _Success_(return != FALSE)
 BOOLEAN
+QuicUint8tDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_
+    _Deref_in_range_(0, BufferLength)
+    _Deref_out_range_(0, BufferLength)
+        uint16_t* Offset,
+    _Out_ uint8_t* Value
+    )
+{
+    if (BufferLength < sizeof(uint8_t) + *Offset) {
+        return FALSE;
+    }
+    *Value = Buffer[*Offset];
+    *Offset += sizeof(uint8_t);
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
 QuicAckHeaderEncode(
     _In_ const QUIC_ACK_EX * const Frame,
     _In_opt_ QUIC_ACK_ECN_EX* Ecn,
@@ -1163,6 +1184,59 @@ QuicDatagramFrameDecode(
     return TRUE;
 }
 
+_Success_(return != FALSE)
+BOOLEAN
+QuicAckFrequencyFrameEncode(
+    _In_ const QUIC_ACK_FREQUENCY_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        sizeof(uint8_t) +   // Type
+        QuicVarIntSize(Frame->SequenceNumber) +
+        QuicVarIntSize(Frame->PacketTolerance) +
+        QuicVarIntSize(Frame->UpdateMaxAckDelay) +
+        sizeof(uint8_t);    // IgnoreOrder
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    CXPLAT_DBG_ASSERT(Frame->IgnoreOrder <= 1); // IgnoreOrder should only be 0 or 1.
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicUint8Encode(QUIC_FRAME_ACK_FREQUENCY, Buffer);
+    Buffer = QuicVarIntEncode(Frame->SequenceNumber, Buffer);
+    Buffer = QuicVarIntEncode(Frame->PacketTolerance, Buffer);
+    Buffer = QuicVarIntEncode(Frame->UpdateMaxAckDelay, Buffer);
+    QuicUint8Encode(Frame->IgnoreOrder, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicAckFrequencyFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_ACK_FREQUENCY_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->SequenceNumber) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PacketTolerance) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->UpdateMaxAckDelay) ||
+        !QuicUint8tDecode(BufferLength, Buffer, Offset, &Frame->IgnoreOrder) ||
+        Frame->IgnoreOrder > 1) { // IgnoreOrder should only be 0 or 1.
+        return FALSE;
+    }
+    return TRUE;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicFrameLog(
@@ -1752,6 +1826,31 @@ QuicFrameLog(
             PktRxPre(Rx),
             PacketNumber,
             (uint16_t)Frame.Length);
+        break;
+    }
+
+    case QUIC_FRAME_ACK_FREQUENCY: {
+        QUIC_ACK_FREQUENCY_EX Frame;
+        if (!QuicAckFrequencyFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogAckFrequencyInvalid,
+                "[%c][%cX][%llu]   ACK_FREQUENCY [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogAckFrequency,
+            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.SequenceNumber,
+            Frame.PacketTolerance,
+            Frame.UpdateMaxAckDelay,
+            Frame.IgnoreOrder);
         break;
     }
 

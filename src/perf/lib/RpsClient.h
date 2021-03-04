@@ -45,7 +45,7 @@ struct RpsConnectionContext {
         _In_ HQUIC StreamHandle,
         _Inout_ QUIC_STREAM_EVENT* Event
         );
-    void SendRequest();
+    void SendRequest(bool DelaySend);
 };
 
 struct RpsWorkerContext {

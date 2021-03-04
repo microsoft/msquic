@@ -32,6 +32,7 @@ Environment:
 #include <assert.h>
 #include <inttypes.h>
 #include <stddef.h>
+#include <stdalign.h>
 #include <netdb.h>
 #include <netinet/ip.h>
 #include <unistd.h>
@@ -155,7 +156,7 @@ InterlockedCompareExchange16(
 }
 
 inline
-short
+int64_t
 InterlockedCompareExchange64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Destination,
     _In_ int64_t ExChange,
@@ -288,7 +289,7 @@ CxPlatFree(
 
 typedef struct CXPLAT_LOCK {
 
-    pthread_mutex_t Mutex;
+    alignas(16) pthread_mutex_t Mutex;
 
 } CXPLAT_LOCK;
 
@@ -547,72 +548,6 @@ CxPlatRefDecrement(
 #define CxPlatRefUninitialize(RefCount)
 
 //
-// Event Interfaces
-//
-
-//
-// QUIC event object.
-//
-
-typedef struct CXPLAT_EVENT_OBJECT {
-
-    //
-    // Mutex and condition.
-    //
-
-    pthread_mutex_t Mutex;
-    pthread_cond_t Cond;
-
-    //
-    // Denotes if the event object is in signaled state.
-    //
-
-    BOOLEAN Signaled;
-
-    //
-    // Denotes if the event object should be auto reset after it's signaled.
-    //
-
-    BOOLEAN AutoReset;
-
-} CXPLAT_EVENT_OBJECT;
-
-typedef CXPLAT_EVENT_OBJECT* CXPLAT_EVENT;
-
-void
-CxPlatEventInitialize(
-    _Out_ CXPLAT_EVENT* Event,
-    _In_ BOOLEAN ManualReset,
-    _In_ BOOLEAN InitialState
-    );
-
-void
-CxPlatEventUninitialize(
-    _Inout_ CXPLAT_EVENT Event
-    );
-
-void
-CxPlatEventSet(
-    _Inout_ CXPLAT_EVENT Event
-    );
-
-void
-CxPlatEventReset(
-    _Inout_ CXPLAT_EVENT Event
-    );
-
-void
-CxPlatEventWaitForever(
-    _Inout_ CXPLAT_EVENT Event
-    );
-
-BOOLEAN
-CxPlatEventWaitWithTimeout(
-    _Inout_ CXPLAT_EVENT Event,
-    _In_ uint32_t timeoutMs
-    );
-
-//
 // Time Measurement Interfaces
 //
 
@@ -714,6 +649,201 @@ CxPlatSleep(
     _In_ uint32_t DurationMs
     );
 
+//
+// Event Interfaces
+//
+
+//
+// QUIC event object.
+//
+
+typedef struct CXPLAT_EVENT {
+
+    //
+    // Mutex and condition. The alignas is important, as the perf tanks
+    // if the event is not aligned.
+    //
+    alignas(16) pthread_mutex_t Mutex;
+    pthread_cond_t Cond;
+
+    //
+    // Denotes if the event object is in signaled state.
+    //
+
+    BOOLEAN Signaled;
+
+    //
+    // Denotes if the event object should be auto reset after it's signaled.
+    //
+
+    BOOLEAN AutoReset;
+
+} CXPLAT_EVENT;
+
+inline
+void
+CxPlatEventInitialize(
+    _Out_ CXPLAT_EVENT* Event,
+    _In_ BOOLEAN ManualReset,
+    _In_ BOOLEAN InitialState
+    )
+{
+    pthread_condattr_t Attr = {0};
+    int Result;
+
+    Event->AutoReset = !ManualReset;
+    Event->Signaled = InitialState;
+
+    Result = pthread_mutex_init(&Event->Mutex, NULL);
+    CXPLAT_FRE_ASSERT(Result == 0);
+    Result = pthread_condattr_init(&Attr);
+    CXPLAT_FRE_ASSERT(Result == 0);
+#if defined(CX_PLATFORM_LINUX)
+    Result = pthread_condattr_setclock(&Attr, CLOCK_MONOTONIC);
+    CXPLAT_FRE_ASSERT(Result == 0);
+#endif // CX_PLATFORM_LINUX
+    Result = pthread_cond_init(&Event->Cond, &Attr);
+    CXPLAT_FRE_ASSERT(Result == 0);
+    Result = pthread_condattr_destroy(&Attr);
+    CXPLAT_FRE_ASSERT(Result == 0);
+}
+
+inline
+void
+CxPlatInternalEventUninitialize(
+    _Inout_ CXPLAT_EVENT* Event
+    )
+{
+    int Result;
+
+    Result = pthread_cond_destroy(&Event->Cond);
+    CXPLAT_FRE_ASSERT(Result == 0);
+    Result = pthread_mutex_destroy(&Event->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
+}
+
+inline
+void
+CxPlatInternalEventSet(
+    _Inout_ CXPLAT_EVENT* Event
+    )
+{
+    int Result;
+
+    Result = pthread_mutex_lock(&Event->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
+
+    Event->Signaled = true;
+
+    //
+    // Signal the condition while holding the lock for predictable scheduling,
+    // better performance and removing possibility of use after free for the
+    // condition.
+    //
+
+    Result = pthread_cond_broadcast(&Event->Cond);
+    CXPLAT_FRE_ASSERT(Result == 0);
+
+    Result = pthread_mutex_unlock(&Event->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
+}
+
+inline
+void
+CxPlatInternalEventReset(
+    _Inout_ CXPLAT_EVENT* Event
+    )
+{
+    int Result;
+
+    Result = pthread_mutex_lock(&Event->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
+    Event->Signaled = false;
+    Result = pthread_mutex_unlock(&Event->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
+}
+
+inline
+void
+CxPlatInternalEventWaitForever(
+    _Inout_ CXPLAT_EVENT* Event
+    )
+{
+    int Result;
+
+    Result = pthread_mutex_lock(&Event->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
+
+    //
+    // Spurious wake ups from pthread_cond_wait can occur. So the function needs
+    // to be called in a loop until the predicate 'Signalled' is satisfied.
+    //
+
+    while (!Event->Signaled) {
+        Result = pthread_cond_wait(&Event->Cond, &Event->Mutex);
+        CXPLAT_FRE_ASSERT(Result == 0);
+    }
+
+    if(Event->AutoReset) {
+        Event->Signaled = false;
+    }
+
+    Result = pthread_mutex_unlock(&Event->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
+}
+
+inline
+BOOLEAN
+CxPlatInternalEventWaitWithTimeout(
+    _Inout_ CXPLAT_EVENT* Event,
+    _In_ uint32_t TimeoutMs
+    )
+{
+    BOOLEAN WaitSatisfied = FALSE;
+    struct timespec Ts = {0};
+    int Result;
+
+    //
+    // Get absolute time.
+    //
+
+    CxPlatGetAbsoluteTime(TimeoutMs, &Ts);
+
+    Result = pthread_mutex_lock(&Event->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
+
+    while (!Event->Signaled) {
+
+        Result = pthread_cond_timedwait(&Event->Cond, &Event->Mutex, &Ts);
+
+        if (Result == ETIMEDOUT) {
+            WaitSatisfied = FALSE;
+            goto Exit;
+        }
+
+        CXPLAT_DBG_ASSERT(Result == 0);
+        UNREFERENCED_PARAMETER(Result);
+    }
+
+    if (Event->AutoReset) {
+        Event->Signaled = FALSE;
+    }
+
+    WaitSatisfied = TRUE;
+
+Exit:
+
+    Result = pthread_mutex_unlock(&Event->Mutex);
+    CXPLAT_FRE_ASSERT(Result == 0);
+
+    return WaitSatisfied;
+}
+
+#define CxPlatEventUninitialize(Event) CxPlatInternalEventUninitialize(&Event)
+#define CxPlatEventSet(Event) CxPlatInternalEventSet(&Event)
+#define CxPlatEventReset(Event) CxPlatInternalEventReset(&Event)
+#define CxPlatEventWaitForever(Event) CxPlatInternalEventWaitForever(&Event)
+#define CxPlatEventWaitWithTimeout(Event, TimeoutMs) CxPlatInternalEventWaitWithTimeout(&Event, TimeoutMs)
 
 //
 // Thread Interfaces.
@@ -812,16 +942,17 @@ CxPlatProcCurrentNumber(
 typedef struct CXPLAT_RUNDOWN_REF {
 
     //
+    // The completion event.
+    //
+
+    CXPLAT_EVENT RundownComplete;
+
+    //
     // The ref counter.
     //
 
     CXPLAT_REF_COUNT RefCount;
 
-    //
-    // The completion event.
-    //
-
-    CXPLAT_EVENT RundownComplete;
 
 } CXPLAT_RUNDOWN_REF;
 

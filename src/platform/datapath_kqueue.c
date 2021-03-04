@@ -120,6 +120,8 @@ typedef struct CXPLAT_SEND_DATA {
 
 } CXPLAT_SEND_DATA;
 
+typedef struct CXPLAT_DATAPATH_PROC_CONTEXT CXPLAT_DATAPATH_PROC_CONTEXT;
+
 //
 // Socket context.
 //
@@ -129,6 +131,11 @@ typedef struct CXPLAT_SOCKET_CONTEXT {
     // The datapath binding this socket context belongs to.
     //
     CXPLAT_SOCKET* Binding;
+
+    //
+    // The datapath proc context this socket belongs to.
+    //
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext;
 
     //
     // The socket FD used by this socket context.
@@ -175,6 +182,12 @@ typedef struct CXPLAT_SOCKET_CONTEXT {
 typedef struct CXPLAT_SOCKET {
 
     //
+    // Synchronization mechanism for cleanup.
+    // Make sure events are in front for cache alignment.
+    //
+    CXPLAT_RUNDOWN_REF Rundown;
+
+    //
     // A pointer to datapath object.
     //
     CXPLAT_DATAPATH* Datapath;
@@ -195,11 +208,6 @@ typedef struct CXPLAT_SOCKET {
     QUIC_ADDR RemoteAddress;
 
     //
-    // Synchronization mechanism for cleanup.
-    //
-    CXPLAT_RUNDOWN_REF Rundown;
-
-    //
     // Indicates the binding connected to a remote IP address.
     //
     BOOLEAN Connected : 1;
@@ -213,6 +221,11 @@ typedef struct CXPLAT_SOCKET {
     // Flag indicates the socket has a default remote destination.
     //
     BOOLEAN HasFixedRemoteAddress : 1;
+
+    //
+    // Flag indicates the binding is being used for PCP.
+    //
+    BOOLEAN PcpBinding : 1;
 
     //
     // The MTU for this binding.
@@ -274,6 +287,13 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
 //
 
 typedef struct CXPLAT_DATAPATH {
+
+    //
+    // A reference rundown on the datapath binding.
+    // Make sure events are in front for cache alignment.
+    //
+    CXPLAT_RUNDOWN_REF BindingsRundown;
+
     //
     // If datapath is shutting down.
     //
@@ -284,11 +304,6 @@ typedef struct CXPLAT_DATAPATH {
     // TODO: See how send batching can be enabled.
     //
     uint8_t MaxSendBatchSize;
-
-    //
-    // A reference rundown on the datapath binding.
-    //
-    CXPLAT_RUNDOWN_REF BindingsRundown;
 
     //
     // UDP handlers.
@@ -380,7 +395,7 @@ CxPlatProcessorContextInitialize(
     //
 
     CXPLAT_THREAD_CONFIG ThreadConfig = {
-        CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
+        0,
         (uint16_t)Index,
         NULL,
         CxPlatDataPathWorkerThread,
@@ -545,12 +560,11 @@ CxPlatDataPathIsPaddingPreferred(
 
 CXPLAT_DATAPATH_RECV_BLOCK*
 CxPlatDataPathAllocRecvBlock(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t ProcIndex
+    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
     )
 {
     CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-        CxPlatPoolAlloc(&Datapath->ProcContexts[ProcIndex].RecvBlockPool);
+        CxPlatPoolAlloc(&DatapathProc->RecvBlockPool);
     if (RecvBlock == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -559,7 +573,7 @@ CxPlatDataPathAllocRecvBlock(
             0);
     } else {
         CxPlatZeroMemory(RecvBlock, sizeof(*RecvBlock));
-        RecvBlock->OwningPool = &Datapath->ProcContexts[ProcIndex].RecvBlockPool;
+        RecvBlock->OwningPool = &DatapathProc->RecvBlockPool;
         RecvBlock->RecvPacket.Buffer = RecvBlock->Buffer;
         RecvBlock->RecvPacket.Allocated = TRUE;
     }
@@ -614,6 +628,20 @@ CxPlatDataPathPopulateTargetAddress(
     }
 
     CXPLAT_FRE_ASSERT(FALSE);
+}
+
+QUIC_STATUS
+CxPlatDataPathGetGatewayAddresses(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
+        QUIC_ADDR** GatewayAddresses,
+    _Out_ uint32_t* GatewayAddressesCount
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    *GatewayAddresses = NULL;
+    *GatewayAddressesCount = 0;
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 QUIC_STATUS
@@ -685,7 +713,6 @@ Exit:
 QUIC_STATUS
 CxPlatSocketContextInitialize(
     _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress
     )
@@ -694,19 +721,20 @@ CxPlatSocketContextInitialize(
     int Result = 0;
     int Option = 0;
     int Flags = 0;
+    int ForceIpv4 = RemoteAddress && RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET;
     QUIC_ADDR MappedAddress = {0};
     socklen_t AssignedLocalAddressLength = 0;
-
-    UNREFERENCED_PARAMETER(ProcContext);
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
     //
-    // Create datagram socket.
+    // Create datagram socket. We will use dual-mode sockets everywhere when we can.
+    // There is problem with receiving PKTINFO on dual-mode when binded and connect to IP4 endpoints.
+    // For that case we use AF_INET.
     //
     SocketContext->SocketFd =
         socket(
-            AF_INET6,
+            ForceIpv4 ? AF_INET : AF_INET6,
             SOCK_DGRAM,
             IPPROTO_UDP);
     if (SocketContext->SocketFd == INVALID_SOCKET) {
@@ -719,6 +747,138 @@ CxPlatSocketContextInitialize(
             "socket() failed");
         goto Exit;
     }
+
+    //
+    // Set dual (IPv4 & IPv6) socket mode unless we operate in pure IPv4 mode
+    //
+    if (!ForceIpv4) {
+        Option = FALSE;
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                IPPROTO_IPV6,
+                IPV6_V6ONLY,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(IPV6_V6ONLY) failed");
+            goto Exit;
+        }
+    }
+
+    //
+    // bind() to local port if we need to. This is not necessary if we call connect
+    // afterward and there is no ask for particular source address or port.
+    // connect() will resolve that together in single system call.
+    //
+    if (!RemoteAddress || Binding->LocalAddress.Ipv6.sin6_port || !QuicAddrIsWildCard(&Binding->LocalAddress)) {
+        CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
+        if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+            MappedAddress.Ipv6.sin6_family = AF_INET6;
+        }
+
+        if (ForceIpv4) {
+            MappedAddress.Ipv4.sin_family = AF_INET;
+            MappedAddress.Ipv4.sin_port = Binding->LocalAddress.Ipv4.sin_port;
+            // For Wildcard address we only need to copy port.
+            // If address is (unlikely) specified it needs to be IPv4 or mappedV4 since destination is IPv4.
+            if (!QuicAddrIsWildCard(&Binding->LocalAddress)) {
+                if (Binding->LocalAddress.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6) {
+                    CXPLAT_DBG_ASSERT(IN6_IS_ADDR_V4MAPPED(&Binding->LocalAddress.Ipv6.sin6_addr));
+                    CxPlatConvertFromMappedV6( &Binding->LocalAddress, &MappedAddress);
+                }
+            }
+        }
+
+        Result =
+            bind(
+                SocketContext->SocketFd,
+                &MappedAddress.Ip,
+                ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "bind failed");
+            goto Exit;
+        }
+    }
+
+    //
+    // connect to RemoteAddress if provided.
+    //
+    if (RemoteAddress != NULL) {
+        CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
+        CxPlatConvertToMappedV6(RemoteAddress, &MappedAddress);
+
+        if (ForceIpv4) {
+            CxPlatConvertFromMappedV6(&MappedAddress, &MappedAddress);
+        } else if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+            MappedAddress.Ipv6.sin6_family = AF_INET6;
+        }
+
+        Result =
+            connect(
+                SocketContext->SocketFd,
+                &MappedAddress.Ip,
+                ForceIpv4 ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "connect failed");
+            goto Exit;
+        }
+
+        Binding->Connected = TRUE;
+    }
+
+    //
+    // If no specific local port was indicated, then the stack just
+    // assigned this socket a port. We need to query it and use it for
+    // all the other sockets we are going to create.
+    //
+    AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
+    Result =
+        getsockname(
+            SocketContext->SocketFd,
+            (struct sockaddr *)&MappedAddress,
+            &AssignedLocalAddressLength);
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "getsockname failed");
+        goto Exit;
+    }
+    CxPlatConvertToMappedV6(&MappedAddress, &Binding->LocalAddress);
+
+    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
+        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    }
+
+    if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
+        Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+    }
+
+    //
+    // We have socket with endpoints set. Let's set options we need.
+    //
 
     //
     // Set non blocking mode
@@ -757,90 +917,22 @@ CxPlatSocketContextInitialize(
     }
 
     //
-    // Set dual (IPv4 & IPv6) socket mode.
-    //
-    Option = FALSE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            IPPROTO_IPV6,
-            IPV6_V6ONLY,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IPV6_V6ONLY) failed");
-        goto Exit;
-    }
-
-    //
     // Set DON'T FRAG socket option.
     //
-
-
-    // Windows: setsockopt IPPROTO_IP IP_DONTFRAGMENT TRUE.
-    // Linux: IP_DONTFRAGMENT option is not available. IPV6_MTU_DISCOVER is the
-    // apparent alternative.
-    // TODO: Verify this.
-
-    // Option = IP_PMTUDISC_DO;
-    // Result =
-    //     setsockopt(
-    //         SocketContext->SocketFd,
-    //         IPPROTO_IP,
-    //         IP_MTU_DISCOVER,
-    //         (const void*)&Option,
-    //         sizeof(Option));
-    // if (Result == SOCKET_ERROR) {
-    //     Status = errno;
-    //     QuicTracgdfgfdeEvent(
-    //         DatapathErrorStatus,
-    //         "[data][%p] ERROR, %u, %s.",
-    //         Binding,
-    //         Status,
-    //         "setsockopt(IP_MTU_DISCOVER) failed");
-    //     goto Exit;
-    // }
-
-    Option = TRUE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            IPPROTO_IPV6,
-            IPV6_DONTFRAG,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IPV6_DONTFRAG) failed");
-        goto Exit;
-    }
+    // IP_DONTFRAG is not supported on macOS.
+    // This may be re-visited on other kqueue systems like FreeBSD.
+    // IPv6 does not support fragmentation so no work there.
+    //
 
     //
     // Set socket option to receive ancillary data about the incoming packets.
     //
-
-    // Windows: setsockopt IPPROTO_IPV6 IPV6_PKTINFO TRUE.
-    // Android: Returns EINVAL. IPV6_PKTINFO option is not present in documentation.
-    // IPV6_RECVPKTINFO seems like is the alternative.
-    // TODO: Check if this works as expected?
-
     Option = TRUE;
     Result =
         setsockopt(
             SocketContext->SocketFd,
-            IPPROTO_IPV6,
-            IPV6_RECVPKTINFO,
+            ForceIpv4 ? IPPROTO_IP : IPPROTO_IPV6,
+            ForceIpv4 ? IP_RECVPKTINFO : IPV6_RECVPKTINFO,
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
@@ -854,25 +946,6 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
 
-    // Option = TRUE;
-    // Result =
-    //     setsockopt(
-    //         SocketContext->SocketFd,
-    //         IPPROTO_IP,
-    //         IP_PKTINFO,
-    //         (const void*)&Option,
-    //         sizeof(Option));
-    // if (Result == SOCKET_ERROR) {
-    //     Status = errno;
-    //     QuicTracgdfgfdeEvent(
-    //         DatapathErrorStatus,
-    //         "[data][%p] ERROR, %u, %s.",
-    //         Binding,
-    //         Status,
-    //         "setsockopt(IP_PKTINFO) failed");
-    //     goto Exit;
-    // }
-
     //
     // Set socket option to receive TOS (= DSCP + ECN) information from the
     // incoming packet.
@@ -881,8 +954,8 @@ CxPlatSocketContextInitialize(
     Result =
         setsockopt(
             SocketContext->SocketFd,
-            IPPROTO_IPV6,
-            IPV6_RECVTCLASS,
+            ForceIpv4 ? IPPROTO_IP : IPPROTO_IPV6,
+            ForceIpv4 ? IP_RECVTOS :IPV6_RECVTCLASS,
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
@@ -895,25 +968,6 @@ CxPlatSocketContextInitialize(
             "setsockopt(IPV6_RECVTCLASS) failed");
         goto Exit;
     }
-
-    // Option = TRUE;
-    // Result =
-    //     setsockopt(
-    //         SocketContext->SocketFd,
-    //         IPPROTO_IP,
-    //         IP_RECVTOS,
-    //         (const void*)&Option,
-    //         sizeof(Option));
-    // if (Result == SOCKET_ERROR) {
-    //     Status = errno;
-    //     QuicTracgdfgfdeEvent(
-    //         DatapathErrorStatus,
-    //         "[data][%p] ERROR, %u, %s.",
-    //         Binding,
-    //         Status,
-    //         "setsockopt(IP_RECVTOS) failed");
-    //     goto Exit;
-    // }
 
     //
     // The socket is shared by multiple QUIC endpoints, so increase the receive
@@ -938,106 +992,6 @@ CxPlatSocketContextInitialize(
     //     goto Exit;
     // }
 
-    //
-    // The port is shared across processors.
-    //
-    Option = TRUE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            SOL_SOCKET,
-            SO_REUSEADDR,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(SO_REUSEADDR) failed");
-        goto Exit;
-    }
-
-    CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
-    if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-        MappedAddress.Ipv6.sin6_family = AF_INET6;
-    }
-
-    Result =
-        bind(
-            SocketContext->SocketFd,
-            &MappedAddress.Ip,
-            sizeof(MappedAddress));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "bind failed");
-        goto Exit;
-    }
-
-    if (RemoteAddress != NULL) {
-        CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
-        CxPlatConvertToMappedV6(RemoteAddress, &MappedAddress);
-
-        if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-            MappedAddress.Ipv6.sin6_family = AF_INET6;
-        }
-
-        Result =
-            connect(
-                SocketContext->SocketFd,
-                &MappedAddress.Ip,
-                sizeof(MappedAddress));
-
-        if (Result == SOCKET_ERROR) {
-            Status = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "connect failed");
-            goto Exit;
-        }
-        Binding->Connected = TRUE;
-    }
-
-    //
-    // If no specific local port was indicated, then the stack just
-    // assigned this socket a port. We need to query it and use it for
-    // all the other sockets we are going to create.
-    //
-    AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
-    Result =
-        getsockname(
-            SocketContext->SocketFd,
-            (struct sockaddr *)&Binding->LocalAddress,
-            &AssignedLocalAddressLength);
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "getsockname failed");
-        goto Exit;
-    }
-
-    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
-    }
-
-    if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
-        Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
-    }
-
 Exit:
 
     if (QUIC_FAILED(Status)) {
@@ -1050,22 +1004,23 @@ Exit:
 
 void
 CxPlatSocketContextUninitialize(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
+    struct kevent DeleteEvent = {0};
+    EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, (void*)SocketContext);
+    kevent(SocketContext->ProcContext->KqueueFd, &DeleteEvent, 1, NULL, 0, NULL);
+
     struct kevent Event = {0};
     EV_SET(&Event, SocketContext->SocketFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, (void*)SocketContext);
-    kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
+    kevent(SocketContext->ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
 }
 
 void
 CxPlatSocketContextUninitializeComplete(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
-    UNREFERENCED_PARAMETER(ProcContext);
     if (SocketContext->CurrentRecvBlock != NULL) {
         CxPlatRecvDataReturn(&SocketContext->CurrentRecvBlock->RecvPacket);
     }
@@ -1090,9 +1045,7 @@ CxPlatSocketContextPrepareReceive(
 {
     if (SocketContext->CurrentRecvBlock == NULL) {
         SocketContext->CurrentRecvBlock =
-            CxPlatDataPathAllocRecvBlock(
-                SocketContext->Binding->Datapath,
-                CxPlatProcCurrentNumber() % SocketContext->Binding->Datapath->ProcCount);
+            CxPlatDataPathAllocRecvBlock(SocketContext->ProcContext);
         if (SocketContext->CurrentRecvBlock == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1123,8 +1076,7 @@ CxPlatSocketContextPrepareReceive(
 
 QUIC_STATUS
 CxPlatSocketContextStartReceive(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ int KqueueFd
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
     QUIC_STATUS Status = CxPlatSocketContextPrepareReceive(SocketContext);
@@ -1141,7 +1093,7 @@ CxPlatSocketContextStartReceive(
         (void*)SocketContext);
     int Ret =
         kevent(
-            KqueueFd,
+            SocketContext->ProcContext->KqueueFd,
             &Event,
             1,
             NULL,
@@ -1171,7 +1123,6 @@ Error:
 void
 CxPlatSocketContextRecvComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext,
     _In_ ssize_t BytesTransferred
     )
 {
@@ -1190,8 +1141,8 @@ CxPlatSocketContextRecvComplete(
     QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
     if (RemoteAddr->Ipv6.sin6_family == AF_INET6) {
         RemoteAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+        CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
     }
-    //CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
     RecvPacket->TypeOfService = 0;
 
@@ -1206,7 +1157,7 @@ CxPlatSocketContextRecvComplete(
                 LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
                 LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
                 LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-                //CxPlatConvertFromMappedV6(LocalAddr, LocalAddr);
+                CxPlatConvertFromMappedV6(LocalAddr, LocalAddr);
 
                 LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
                 FoundLocalAddr = TRUE;
@@ -1222,7 +1173,7 @@ CxPlatSocketContextRecvComplete(
                 LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                 LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
                 FoundLocalAddr = TRUE;
-            } else if (CMsg->cmsg_type == IP_TOS) {
+            } else if (CMsg->cmsg_type == IP_TOS || CMsg->cmsg_type == IP_RECVTOS) {
                 RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
                 FoundTOS = TRUE;
             }
@@ -1244,13 +1195,20 @@ CxPlatSocketContextRecvComplete(
     CXPLAT_DBG_ASSERT(BytesTransferred <= RecvPacket->BufferLength);
     RecvPacket->BufferLength = BytesTransferred;
 
-    RecvPacket->PartitionIndex = ProcContext->Index;
+    RecvPacket->PartitionIndex = SocketContext->ProcContext->Index;
 
-    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
-    SocketContext->Binding->Datapath->UdpHandlers.Receive(
-        SocketContext->Binding,
-        SocketContext->Binding->ClientContext,
-        RecvPacket);
+    if (!SocketContext->Binding->PcpBinding) {
+        CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
+        SocketContext->Binding->Datapath->UdpHandlers.Receive(
+            SocketContext->Binding,
+            SocketContext->Binding->ClientContext,
+            RecvPacket);
+    } else {
+        CxPlatPcpRecvCallback(
+            SocketContext->Binding,
+            SocketContext->Binding->ClientContext,
+            RecvPacket);
+    }
 
     Status = CxPlatSocketContextPrepareReceive(SocketContext);
 
@@ -1296,13 +1254,11 @@ CxPlatSocketContextPendSend(
 
 QUIC_STATUS
 CxPlatSocketContextSendComplete(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_SEND_DATA* SendContext = NULL;
-    UNREFERENCED_PARAMETER(ProcContext);
 
     // Disable kqueue already disables events
 
@@ -1349,15 +1305,14 @@ CxPlatSocketContextSendComplete(
 
 void
 CxPlatSocketContextProcessEvents(
-    _In_ struct kevent* Event,
-    _In_ CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext
+    _In_ struct kevent* Event
     )
 {
     CXPLAT_SOCKET_CONTEXT* SocketContext = (CXPLAT_SOCKET_CONTEXT*)Event->udata;
     CXPLAT_DBG_ASSERT(Event->filter & (EVFILT_READ | EVFILT_WRITE | EVFILT_USER));
     if (Event->filter == EVFILT_USER) {
         CXPLAT_DBG_ASSERT(SocketContext->Binding->Shutdown);
-        CxPlatSocketContextUninitializeComplete(SocketContext, ProcContext);
+        CxPlatSocketContextUninitializeComplete(SocketContext);
         return;
     }
 
@@ -1389,20 +1344,22 @@ CxPlatSocketContextProcessEvents(
                     if (ErrNum == ECONNREFUSED ||
                         ErrNum == EHOSTUNREACH ||
                         ErrNum == ENETUNREACH) {
-                        SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
-                            SocketContext->Binding,
-                            SocketContext->Binding->ClientContext,
-                            &SocketContext->Binding->RemoteAddress);
+                        if (!SocketContext->Binding->PcpBinding) {
+                            SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                                SocketContext->Binding,
+                                SocketContext->Binding->ClientContext,
+                                &SocketContext->Binding->RemoteAddress);
+                        }
                     }
                 }
                 break;
             }
-            CxPlatSocketContextRecvComplete(SocketContext, ProcContext, Ret);
+            CxPlatSocketContextRecvComplete(SocketContext, Ret);
         }
     }
 
     if (Event->filter == EVFILT_WRITE) {
-        CxPlatSocketContextSendComplete(SocketContext, ProcContext);
+        CxPlatSocketContextSendComplete(SocketContext);
     }
 }
 
@@ -1416,15 +1373,17 @@ CxPlatSocketCreateUdp(
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
+    _In_ uint32_t InternalFlags,
     _Out_ CXPLAT_SOCKET** NewBinding
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN IsServerSocket = RemoteAddress == NULL;
 
-    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL);
+    CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || InternalFlags & CXPLAT_SOCKET_FLAG_PCP);
 
     uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
+    uint32_t CurrentProc = CxPlatProcCurrentNumber() % Datapath->ProcCount;
     CXPLAT_FRE_ASSERT(SocketCount > 0);
     size_t BindingLength =
         sizeof(CXPLAT_SOCKET) +
@@ -1465,18 +1424,21 @@ CxPlatSocketCreateUdp(
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
         Binding->SocketContexts[i].RecvIov.iov_len =
             Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
+        Binding->SocketContexts[i].ProcContext = &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc];
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendContextHead);
         CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendContextLock);
         CxPlatRundownAcquire(&Binding->Rundown);
     }
 
     CxPlatRundownAcquire(&Datapath->BindingsRundown);
+    if (InternalFlags & CXPLAT_SOCKET_FLAG_PCP) {
+        Binding->PcpBinding = TRUE;
+    }
 
     for (uint32_t i = 0; i < SocketCount; i++) {
         Status =
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
-                &Datapath->ProcContexts[i],
                 LocalAddress,
                 RemoteAddress);
         if (QUIC_FAILED(Status)) {
@@ -1502,8 +1464,7 @@ CxPlatSocketCreateUdp(
     for (uint32_t i = 0; i < SocketCount; i++) {
         Status =
             CxPlatSocketContextStartReceive(
-                &Binding->SocketContexts[i],
-                Datapath->ProcContexts[i].KqueueFd);
+                &Binding->SocketContexts[i]);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
@@ -1589,8 +1550,7 @@ CxPlatSocketDelete(
     uint32_t SocketCount = Socket->HasFixedRemoteAddress ? 1 : Socket->Datapath->ProcCount;
     for (uint32_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(
-            &Socket->SocketContexts[i],
-            &Socket->Datapath->ProcContexts[i]);
+            &Socket->SocketContexts[i]);
     }
 
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
@@ -1809,14 +1769,12 @@ CxPlatSocketSendInternal(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_SOCKET_CONTEXT* SocketContext = NULL;
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
     ssize_t SentByteCount = 0;
     QUIC_ADDR MappedRemoteAddress = {0};
     struct cmsghdr *CMsg = NULL;
     struct in_pktinfo *PktInfo = NULL;
     struct in6_pktinfo *PktInfo6 = NULL;
     BOOLEAN SendPending = FALSE;
-    uint32_t ProcNumber;
 
     static_assert(sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
 
@@ -1824,9 +1782,12 @@ CxPlatSocketSendInternal(
 
     CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
 
-    ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
-    SocketContext = &Socket->SocketContexts[Socket->HasFixedRemoteAddress ? 0 : ProcNumber];
-    ProcContext = &Socket->Datapath->ProcContexts[ProcNumber];
+    if (Socket->HasFixedRemoteAddress) {
+        SocketContext = &Socket->SocketContexts[0];
+    } else {
+        uint32_t ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
+        SocketContext = &Socket->SocketContexts[ProcNumber];
+    }
 
     uint32_t TotalSize = 0;
     for (size_t i = 0; i < SendData->BufferCount; ++i) {
@@ -1933,7 +1894,7 @@ CxPlatSocketSendInternal(
             EV_SET(&Event, SocketContext->SocketFd, EVFILT_WRITE, EV_ADD | EV_ONESHOT | EV_CLEAR, 0, 0, (void *)SocketContext);
             int Ret =
                 kevent(
-                    ProcContext->KqueueFd,
+                    SocketContext->ProcContext->KqueueFd,
                     &Event,
                     1,
                     NULL,
@@ -1968,10 +1929,12 @@ CxPlatSocketSendInternal(
             if (Status == ECONNREFUSED ||
                 Status == EHOSTUNREACH ||
                 Status == ENETUNREACH) {
-                SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
-                    SocketContext->Binding,
-                    SocketContext->Binding->ClientContext,
-                    &SocketContext->Binding->RemoteAddress);
+                if (!SocketContext->Binding->PcpBinding) {
+                    SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                        SocketContext->Binding,
+                        SocketContext->Binding->ClientContext,
+                        &SocketContext->Binding->RemoteAddress);
+                }
             }
             goto Exit;
         }
@@ -2069,8 +2032,7 @@ CxPlatDataPathWorkerThread(
             }
 
             CxPlatSocketContextProcessEvents(
-                &EventList[i],
-                ProcContext);
+                &EventList[i]);
         }
     }
 

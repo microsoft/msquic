@@ -96,7 +96,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("x86", "x64", "arm", "arm64")]
-    [string]$Arch = "x64",
+    [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("uwp", "windows", "linux", "macos")] # For future expansion
@@ -172,6 +172,11 @@ param (
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+if ("" -eq $Arch) {
+    # TODO Actually detect current platform
+    $Arch = "x64"
+}
 
 if ($Generator -eq "") {
     if ($IsWindows) {
@@ -268,6 +273,12 @@ function CMake-Generate {
             "x64"   { $Arguments += "x64" }
             "arm"   { $Arguments += "arm" }
             "arm64" { $Arguments += "arm64" }
+        }
+    } elseif ($IsMacOS) {
+        $Arguments += " '$Generator'"
+        switch ($Arch) {
+            "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64"}
+            "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64"}
         }
     } else {
         $Arguments += " '$Generator'"

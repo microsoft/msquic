@@ -288,6 +288,11 @@ typedef struct CXPLAT_SOCKET {
     BOOLEAN Connected : 1;
 
     //
+    // Flag indicates the binding is being used for PCP.
+    //
+    BOOLEAN PcpBinding : 1;
+
+    //
     // Parent datapath.
     //
     CXPLAT_DATAPATH* Datapath;
@@ -324,11 +329,6 @@ typedef struct CXPLAT_SOCKET {
     // Client context pointer.
     //
     void *ClientContext;
-
-    //
-    // The number of outstanding sends.
-    //
-    long volatile SendOutstanding;
 
     //
     // IRP used for socket functions.
@@ -1054,6 +1054,22 @@ CxPlatDataPathIsPaddingPreferred(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(QUIC_SUCCEEDED(return))
+QUIC_STATUS
+CxPlatDataPathGetGatewayAddresses(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
+        QUIC_ADDR** GatewayAddresses,
+    _Out_ uint32_t* GatewayAddressesCount
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    *GatewayAddresses = NULL;
+    *GatewayAddressesCount = 0;
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathResolveAddressWithHint(
     _In_ CXPLAT_DATAPATH* Datapath,
@@ -1289,6 +1305,7 @@ CxPlatSocketCreateUdp(
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
+    _In_ uint32_t InternalFlags,
     _Out_ CXPLAT_SOCKET** NewBinding
     )
 {
@@ -1342,6 +1359,9 @@ CxPlatSocketCreateUdp(
     Binding->Mtu = CXPLAT_MAX_MTU;
     for (uint32_t i = 0; i < CxPlatProcMaxCount(); ++i) {
         CxPlatRundownInitialize(&Binding->Rundown[i]);
+    }
+    if (InternalFlags & CXPLAT_SOCKET_FLAG_PCP) {
+        Binding->PcpBinding = TRUE;
     }
 
     CxPlatEventInitialize(&Binding->WskCompletionEvent, FALSE, FALSE);
@@ -2076,11 +2096,13 @@ CxPlatDataPathSocketReceive(
                 CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
 #endif
 
-            CXPLAT_DBG_ASSERT(Binding->Datapath->UdpHandlers.Unreachable);
-            Binding->Datapath->UdpHandlers.Unreachable(
-                Binding,
-                Binding->ClientContext,
-                &RemoteAddr);
+            if (!Binding->PcpBinding) {
+                CXPLAT_DBG_ASSERT(Binding->Datapath->UdpHandlers.Unreachable);
+                Binding->Datapath->UdpHandlers.Unreachable(
+                    Binding,
+                    Binding->ClientContext,
+                    &RemoteAddr);
+            }
 
             goto Drop;
         }
@@ -2274,10 +2296,17 @@ CxPlatDataPathSocketReceive(
         //
         // Indicate all accepted datagrams.
         //
-        Binding->Datapath->UdpHandlers.Receive(
-            Binding,
-            Binding->ClientContext,
-            RecvDataChain);
+        if (!Binding->PcpBinding) {
+            Binding->Datapath->UdpHandlers.Receive(
+                Binding,
+                Binding->ClientContext,
+                RecvDataChain);
+        } else {
+            CxPlatPcpRecvCallback(
+                Binding,
+                Binding->ClientContext,
+                RecvDataChain);
+        }
     }
 
     if (ReleaseChain != NULL) {
@@ -2765,8 +2794,6 @@ CxPlatDataPathSendComplete(
     IoCleanupIrp(&SendContext->Irp);
     CxPlatSendDataFree(SendContext);
 
-    InterlockedDecrement(&Binding->SendOutstanding);
-
     return STATUS_MORE_PROCESSING_REQUIRED;
 }
 
@@ -2876,8 +2903,6 @@ CxPlatSocketSend(
         SegmentSize = (PDWORD)WSA_CMSG_DATA(CMsg);
         *SegmentSize = SendContext->SegmentSize;
     }
-
-    InterlockedIncrement(&Binding->SendOutstanding);
 
     Status =
         Binding->DgrmSocket->Dispatch->

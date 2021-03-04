@@ -170,6 +170,7 @@ struct DrillSender {
                 nullptr,
                 &ServerAddress,
                 this,
+                0,
                 &Binding);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Binding failed: 0x%x", Status);
@@ -240,7 +241,7 @@ QuicDrillInitialPacketFailureTest(
 
     MsQuicAlpn Alpn("MsQuicTest");
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
     if (!ServerConfiguration.IsValid()) {
         TEST_FAILURE("ServerConfiguration not valid!");
         return false;

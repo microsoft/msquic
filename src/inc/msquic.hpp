@@ -398,6 +398,28 @@ public:
     LoadCredential(_In_ const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept {
         return MsQuic->ConfigurationLoadCredential(Handle, CredConfig);
     }
+    QUIC_STATUS
+    SetTicketKey(_In_ const QUIC_TICKET_KEY_CONFIG* KeyConfig) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                sizeof(QUIC_TICKET_KEY_CONFIG),
+                KeyConfig);
+    }
+    QUIC_STATUS
+    SetTicketKeys(
+        _In_reads_(KeyCount) const QUIC_TICKET_KEY_CONFIG* KeyConfig,
+        uint8_t KeyCount) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                KeyCount * sizeof(QUIC_TICKET_KEY_CONFIG),
+                KeyConfig);
+    }
 };
 
 struct MsQuicListener {
@@ -512,6 +534,7 @@ struct EventScope {
     EventScope(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
     EventScope(CXPLAT_EVENT event) noexcept : Handle(event) { }
     ~EventScope() noexcept { CxPlatEventUninitialize(Handle); }
+    CXPLAT_EVENT* operator &() noexcept { return &Handle; }
     operator CXPLAT_EVENT() const noexcept { return Handle; }
 };
 

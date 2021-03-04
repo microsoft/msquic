@@ -62,6 +62,7 @@ CleanTestCertificatesFromStore(BOOLEAN UserStore)
         BYTE FriendlyName[sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME)+sizeof(WCHAR)];
         DWORD NameSize = sizeof(FriendlyName);
 
+#pragma prefast(suppress:6054, "SAL doesn't track null terminator correctly")
         if (!CertGetCertificateContextProperty(Cert, CERT_FRIENDLY_NAME_PROP_ID, FriendlyName, &NameSize) ||
             wcscmp((wchar_t*)FriendlyName, CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME) != 0) {
             ++Found;
@@ -904,6 +905,7 @@ FindOrCreateCertificate(
             sizeof(WCHAR)];
         DWORD NameSize = sizeof(FriendlyName);
 
+#pragma prefast(suppress:6054, "SAL doesn't track null terminator correctly")
         if (!CertGetCertificateContextProperty(Cert, CERT_FRIENDLY_NAME_PROP_ID, FriendlyName, &NameSize) ||
             wcscmp(
                 (wchar_t*)FriendlyName,
@@ -985,7 +987,9 @@ CxPlatGetSelfSignedCert(
     }
 
     Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT;
-    Params->Flags = IsClient ? QUIC_CREDENTIAL_FLAG_CLIENT : QUIC_CREDENTIAL_FLAG_NONE;
+    Params->Flags = IsClient ?
+        (QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) :
+        QUIC_CREDENTIAL_FLAG_NONE;
     Params->CertificateContext =
         FindOrCreateCertificate(
             Type == CXPLAT_SELF_SIGN_CERT_USER,

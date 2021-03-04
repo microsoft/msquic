@@ -32,6 +32,7 @@ union QuicV1Frames {
     QUIC_PATH_CHALLENGE_EX PathChallengeFrame;
     QUIC_CONNECTION_CLOSE_EX ConnectionCloseFrame;
     QUIC_DATAGRAM_EX DatagramFrame;
+    QUIC_ACK_FREQUENCY_EX AckFrequencyFrame;
 };
 
 TEST(SpinFrame, SpinFrame1000000)
@@ -207,6 +208,13 @@ TEST(SpinFrame, SpinFrame1000000)
             case QUIC_FRAME_DATAGRAM:
             case QUIC_FRAME_DATAGRAM_1:
                 if (QuicDatagramFrameDecode((QUIC_FRAME_TYPE) FrameType, BufferLength, Buffer, &Offset, &DecodedFrame.DatagramFrame)) {
+                    SuccessfulDecodes++;
+                } else {
+                    FailedDecodes++;
+                }
+                break;
+            case QUIC_FRAME_ACK_FREQUENCY:
+                if (QuicAckFrequencyFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame.AckFrequencyFrame)) {
                     SuccessfulDecodes++;
                 } else {
                     FailedDecodes++;

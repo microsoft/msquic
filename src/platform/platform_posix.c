@@ -330,178 +330,6 @@ CxPlatRundownReleaseAndWait(
     }
 }
 
-void
-CxPlatEventInitialize(
-    _Out_ CXPLAT_EVENT* Event,
-    _In_ BOOLEAN ManualReset,
-    _In_ BOOLEAN InitialState
-    )
-{
-    CXPLAT_EVENT_OBJECT* EventObj = NULL;
-    pthread_condattr_t Attr = {0};
-    int Result;
-
-    EventObj = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_EVENT_OBJECT), QUIC_POOL_EVENT);
-
-    //
-    // MsQuic expects this call to be non failable.
-    //
-
-    CXPLAT_DBG_ASSERT(EventObj != NULL);
-
-    EventObj->AutoReset = !ManualReset;
-    EventObj->Signaled = InitialState;
-
-    Result = pthread_mutex_init(&EventObj->Mutex, NULL);
-    CXPLAT_FRE_ASSERT(Result == 0);
-    Result = pthread_condattr_init(&Attr);
-    CXPLAT_FRE_ASSERT(Result == 0);
-#if defined(CX_PLATFORM_LINUX)
-    Result = pthread_condattr_setclock(&Attr, CLOCK_MONOTONIC);
-    CXPLAT_FRE_ASSERT(Result == 0);
-#endif // CX_PLATFORM_LINUX
-    Result = pthread_cond_init(&EventObj->Cond, &Attr);
-    CXPLAT_FRE_ASSERT(Result == 0);
-    Result = pthread_condattr_destroy(&Attr);
-    CXPLAT_FRE_ASSERT(Result == 0);
-
-    (*Event) = EventObj;
-}
-
-void
-CxPlatEventUninitialize(
-    _Inout_ CXPLAT_EVENT Event
-    )
-{
-    CXPLAT_EVENT_OBJECT* EventObj = Event;
-    int Result;
-
-    Result = pthread_cond_destroy(&EventObj->Cond);
-    CXPLAT_FRE_ASSERT(Result == 0);
-    Result = pthread_mutex_destroy(&EventObj->Mutex);
-    CXPLAT_FRE_ASSERT(Result == 0);
-
-    CXPLAT_FREE(EventObj, QUIC_POOL_EVENT);
-    EventObj = NULL;
-}
-
-void
-CxPlatEventSet(
-    _Inout_ CXPLAT_EVENT Event
-    )
-{
-    CXPLAT_EVENT_OBJECT* EventObj = Event;
-    int Result;
-
-    Result = pthread_mutex_lock(&EventObj->Mutex);
-    CXPLAT_FRE_ASSERT(Result == 0);
-
-    EventObj->Signaled = true;
-
-    //
-    // Signal the condition while holding the lock for predictable scheduling,
-    // better performance and removing possibility of use after free for the
-    // condition.
-    //
-
-    Result = pthread_cond_broadcast(&EventObj->Cond);
-    CXPLAT_FRE_ASSERT(Result == 0);
-
-    Result = pthread_mutex_unlock(&EventObj->Mutex);
-    CXPLAT_FRE_ASSERT(Result == 0);
-}
-
-void
-CxPlatEventReset(
-    _Inout_ CXPLAT_EVENT Event
-    )
-{
-    CXPLAT_EVENT_OBJECT* EventObj = Event;
-    int Result;
-
-    Result = pthread_mutex_lock(&EventObj->Mutex);
-    CXPLAT_FRE_ASSERT(Result == 0);
-    EventObj->Signaled = false;
-    Result = pthread_mutex_unlock(&EventObj->Mutex);
-    CXPLAT_FRE_ASSERT(Result == 0);
-}
-
-void
-CxPlatEventWaitForever(
-    _Inout_ CXPLAT_EVENT Event
-    )
-{
-    CXPLAT_EVENT_OBJECT* EventObj = Event;
-    int Result;
-
-    Result = pthread_mutex_lock(&Event->Mutex);
-    CXPLAT_FRE_ASSERT(Result == 0);
-
-    //
-    // Spurious wake ups from pthread_cond_wait can occur. So the function needs
-    // to be called in a loop until the predicate 'Signalled' is satisfied.
-    //
-
-    while (!EventObj->Signaled) {
-        Result = pthread_cond_wait(&EventObj->Cond, &EventObj->Mutex);
-        CXPLAT_FRE_ASSERT(Result == 0);
-    }
-
-    if(EventObj->AutoReset) {
-        EventObj->Signaled = false;
-    }
-
-    Result = pthread_mutex_unlock(&EventObj->Mutex);
-    CXPLAT_FRE_ASSERT(Result == 0);
-}
-
-BOOLEAN
-CxPlatEventWaitWithTimeout(
-    _Inout_ CXPLAT_EVENT Event,
-    _In_ uint32_t TimeoutMs
-    )
-{
-    CXPLAT_EVENT_OBJECT* EventObj = Event;
-    BOOLEAN WaitSatisfied = FALSE;
-    struct timespec Ts = {0};
-    int Result;
-
-    //
-    // Get absolute time.
-    //
-
-    CxPlatGetAbsoluteTime(TimeoutMs, &Ts);
-
-    Result = pthread_mutex_lock(&EventObj->Mutex);
-    CXPLAT_FRE_ASSERT(Result == 0);
-
-    while (!EventObj->Signaled) {
-
-        Result = pthread_cond_timedwait(&EventObj->Cond, &EventObj->Mutex, &Ts);
-
-        if (Result == ETIMEDOUT) {
-            WaitSatisfied = FALSE;
-            goto Exit;
-        }
-
-        CXPLAT_DBG_ASSERT(Result == 0);
-        UNREFERENCED_PARAMETER(Result);
-    }
-
-    if (EventObj->AutoReset) {
-        EventObj->Signaled = FALSE;
-    }
-
-    WaitSatisfied = TRUE;
-
-Exit:
-
-    Result = pthread_mutex_unlock(&EventObj->Mutex);
-    CXPLAT_FRE_ASSERT(Result == 0);
-
-    return WaitSatisfied;
-}
-
 uint64_t
 CxPlatTimespecToUs(
     _In_ const struct timespec *Time
@@ -560,11 +388,15 @@ CxPlatGetAbsoluteTime(
     Time->tv_sec += (DeltaMs / CXPLAT_MS_PER_SECOND);
     Time->tv_nsec += ((DeltaMs % CXPLAT_MS_PER_SECOND) * CXPLAT_NANOSEC_PER_MS);
 
-    if (Time->tv_nsec > CXPLAT_NANOSEC_PER_SEC)
+    if (Time->tv_nsec >= CXPLAT_NANOSEC_PER_SEC)
     {
         Time->tv_sec += 1;
         Time->tv_nsec -= CXPLAT_NANOSEC_PER_SEC;
     }
+
+    CXPLAT_DBG_ASSERT(Time->tv_sec >= 0);
+    CXPLAT_DBG_ASSERT(Time->tv_nsec >= 0);
+    CXPLAT_DBG_ASSERT(Time->tv_nsec < CXPLAT_NANOSEC_PER_SEC);
 }
 
 void
@@ -588,7 +420,14 @@ CxPlatProcMaxCount(
     void
     )
 {
+#if defined(CX_PLATFORM_DARWIN) && defined(__arm64__)
+    //
+    // arm64 macOS has no way to get the current proc, so act like a single core.
+    //
+    return 1;
+#else
     return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+#endif
 }
 
 uint32_t
@@ -596,7 +435,14 @@ CxPlatProcActiveCount(
     void
     )
 {
+#if defined(CX_PLATFORM_DARWIN) && defined(__arm64__)
+    //
+    // arm64 macOS has no way to get the current proc, so act like a single core.
+    //
+    return 1;
+#else
     return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+#endif
 }
 
 uint32_t
@@ -606,7 +452,7 @@ CxPlatProcCurrentNumber(
 {
 #if defined(CX_PLATFORM_LINUX)
     return (uint32_t)sched_getcpu();
-#elif defined(CX_PLATFORM_DARWIN)
+#elif defined(CX_PLATFORM_DARWIN) && !defined(__arm64__)
     int cpuinfo[4];
     asm("cpuid"
             : "=a" (cpuinfo[0]),
@@ -616,6 +462,11 @@ CxPlatProcCurrentNumber(
             : "a"(1));
     CXPLAT_FRE_ASSERT((cpuinfo[3] & (1 << 9)) != 0);
     return (uint32_t)cpuinfo[1] >> 24;
+#else
+    //
+    // arm64 macOS has no way to get the current proc, so just hardcode 0.
+    //
+    return 0;
 #endif // CX_PLATFORM_DARWIN
 }
 

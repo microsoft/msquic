@@ -297,9 +297,7 @@ ThroughputClient::StartQuic()
     Status =
         MsQuic->StreamOpen(
             Shutdown.ConnHandle,
-            DownloadLength != 0 ?
-                QUIC_STREAM_OPEN_FLAG_NONE :
-                QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
+            QUIC_STREAM_OPEN_FLAG_NONE,
             [](HQUIC Handle, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
                 return ((StreamContext*)Context)->Client->
                     StreamCallback(

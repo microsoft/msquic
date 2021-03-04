@@ -128,7 +128,7 @@ InterlockedCompareExchange16(
     _In_ short Comperand
     );
 
-short
+int64_t
 InterlockedCompareExchange64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Destination,
     _In_ int64_t ExChange,
@@ -307,4 +307,37 @@ BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,
     _Out_ QUIC_ADDR_STR* AddrStr
+    );
+
+void
+CxPlatEventInitialize(
+    _Out_ CXPLAT_EVENT* Event,
+    _In_ BOOLEAN ManualReset,
+    _In_ BOOLEAN InitialState
+    );
+
+void
+CxPlatInternalEventUninitialize(
+    _Inout_ CXPLAT_EVENT* Event
+    );
+
+void
+CxPlatInternalEventSet(
+    _Inout_ CXPLAT_EVENT* Event
+    );
+
+void
+CxPlatInternalEventReset(
+    _Inout_ CXPLAT_EVENT* Event
+    );
+
+void
+CxPlatInternalEventWaitForever(
+    _Inout_ CXPLAT_EVENT* Event
+    );
+
+BOOLEAN
+CxPlatInternalEventWaitWithTimeout(
+    _Inout_ CXPLAT_EVENT* Event,
+    _In_ uint32_t TimeoutMs
     );

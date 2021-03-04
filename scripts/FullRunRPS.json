@@ -19,8 +19,10 @@
                     "Name": "ConnectionCount",
                     "Local": {
                         "50": "-conns:50 -requests:1500",
+                        "100": "-conns:100 -requests:3000",
                         "250": "-conns:250 -requests:7500",
-                        "500": "-conns:500 -requests:15000"
+                        "500": "-conns:500 -requests:15000",
+                        "1000": "-conns:1000 -requests:30000"
                     },
                     "Default": "250"
                 },
