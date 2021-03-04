@@ -95,8 +95,8 @@ void PrintUsage()
         "\n"
         "Usage:\n"
         "\n"
-        "  quicinterop.exe -client -target:<...> [-unsecure]\n"
-        "  quicinterop.exe -server -cert_hash:<...> or (-cert_file:<...> and -key_file:<...> (and optionally -password:<...>))\n"
+        "  quicsample.exe -client -target:<...> [-unsecure]\n"
+        "  quicsample.exe -server -cert_hash:<...> or (-cert_file:<...> and -key_file:<...> (and optionally -password:<...>))\n"
         );
 }
 

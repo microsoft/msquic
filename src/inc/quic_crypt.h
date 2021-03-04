@@ -225,7 +225,7 @@ CxPlatKeyFree(
     _In_opt_ CXPLAT_KEY* Key
     );
 
-static_assert(
+CXPLAT_STATIC_ASSERT(
     sizeof(uint64_t) < CXPLAT_IV_LENGTH,
     "Packet Number Length is less than IV Length");
 

@@ -76,13 +76,13 @@ CxPlatFuzzerRecvMsg(
 //
 #define URO_MAX_DATAGRAMS_PER_INDICATION    64
 
-static_assert(
+CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_BUFFER) == sizeof(WSABUF),
     "WSABUF is assumed to be interchangeable for QUIC_BUFFER");
-static_assert(
+CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_BUFFER, Length) == FIELD_OFFSET(WSABUF, len),
     "WSABUF is assumed to be interchangeable for QUIC_BUFFER");
-static_assert(
+CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_BUFFER, Buffer) == FIELD_OFFSET(WSABUF, buf),
     "WSABUF is assumed to be interchangeable for QUIC_BUFFER");
 
