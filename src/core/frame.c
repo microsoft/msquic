@@ -1249,7 +1249,7 @@ QuicFrameLog(
     _Inout_ uint16_t* Offset
     )
 {
-    QUIC_VAR_INT FrameType;
+    QUIC_VAR_INT FrameType INIT_NO_SAL(0);
     if (!QuicVarIntDecode(PacketLength, Packet, Offset, &FrameType)) {
         QuicTraceEvent(
             ConnError,
