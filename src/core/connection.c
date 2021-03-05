@@ -3963,7 +3963,17 @@ QuicConnRecvFrames(
         //
         // Read the frame type.
         //
-        QUIC_FRAME_TYPE FrameType = Payload[Offset];
+        QUIC_VAR_INT FrameType;
+        if (!QuicVarIntDecode(PayloadLength, Payload, &Offset, &FrameType)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Frame type decode failure");
+            QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+            return FALSE;
+        }
+
         if (!QUIC_FRAME_IS_KNOWN(FrameType)) {
             QuicTraceEvent(
                 ConnError,
@@ -3996,7 +4006,8 @@ QuicConnRecvFrames(
                 QuicTraceEvent(
                     ConnErrorStatus,
                     "[conn][%p] ERROR, %u, %s.",
-                    Connection, FrameType,
+                    Connection,
+                    (uint32_t)FrameType,
                     "Disallowed frame type");
                 QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
                 return FALSE;
@@ -4014,7 +4025,7 @@ QuicConnRecvFrames(
                     ConnErrorStatus,
                     "[conn][%p] ERROR, %u, %s.",
                     Connection,
-                    FrameType,
+                    (uint32_t)FrameType,
                     "Disallowed frame type");
                 QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
                 return FALSE;
@@ -4025,8 +4036,6 @@ QuicConnRecvFrames(
                 break;
             }
         }
-
-        Offset += sizeof(uint8_t);
 
         //
         // Process the frame based on the frame type.
@@ -4274,7 +4283,8 @@ QuicConnRecvFrames(
                     IgnoreFrameAfterClose,
                     Connection,
                     "Ignoring frame (%hhu) for already closed stream id = %llu",
-                    FrameType, StreamId);
+                    (uint8_t)FrameType, // This cast is safe because of the switch cases above.
+                    StreamId);
                 if (!QuicStreamFrameSkip(
                         FrameType, PayloadLength, Payload, &Offset)) {
                     QuicTraceEvent(
