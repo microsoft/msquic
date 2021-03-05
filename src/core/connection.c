@@ -3963,7 +3963,7 @@ QuicConnRecvFrames(
         //
         // Read the frame type.
         //
-        QUIC_VAR_INT FrameType;
+        QUIC_VAR_INT FrameType INIT_NO_SAL(0);
         if (!QuicVarIntDecode(PayloadLength, Payload, &Offset, &FrameType)) {
             QuicTraceEvent(
                 ConnError,
@@ -4708,17 +4708,7 @@ QuicConnRecvFrames(
             break;
         }
 
-        case QUIC_FRAME_ACK_FREQUENCY: {
-            if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MIN_ACK_DELAY)) {
-                QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Received ACK frequency frame when not negotiated");
-                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
-                return FALSE;
-            }
-
+        case QUIC_FRAME_ACK_FREQUENCY: { // Always accept the frame, because we always enable support.
             QUIC_ACK_FREQUENCY_EX Frame;
             if (!QuicAckFrequencyFrameDecode(PayloadLength, Payload, &Offset, &Frame)) {
                 QuicTraceEvent(
