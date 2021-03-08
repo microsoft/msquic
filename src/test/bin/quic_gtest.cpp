@@ -389,7 +389,7 @@ TEST_P(WithHandshakeArgs1, Connect) {
     }
 }
 
-#ifdef QUIC_DISABLE_RESUMPTION
+#ifndef QUIC_DISABLE_RESUMPTION
 TEST_P(WithHandshakeArgs1, Resume) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-Resume", GetParam());
     if (TestingKernelMode) {
@@ -650,7 +650,7 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             GetParam().RandomLossPercentage);
     }
 }
-#ifdef QUIC_DISABLE_RESUMPTION
+#ifndef QUIC_DISABLE_RESUMPTION
 TEST_P(WithHandshakeArgs4, RandomLossResume) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLossResume", GetParam());
     if (TestingKernelMode) {
