@@ -573,7 +573,7 @@ function Get-TestResultAtIndex($FullResults, $Index) {
 }
 
 function Get-MedianTestResults($FullResults) {
-    $sorted = $FullResults | Sort-Object
+    $sorted = $FullResults | Sort-Object {[int]$_}
     if ($sorted.Length -eq 1) {
         return $sorted[0]
     } else {
