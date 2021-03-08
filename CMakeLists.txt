@@ -458,11 +458,11 @@ if(QUIC_TLS STREQUAL "openssl")
 
             set(OPENSSL_CONFIG_FLAGS
                 enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
-                no-zlib no-egd no-uplink no-idea no-rc5 no-rc4 no-afalgeng no-acvp_tests
-                no-comp no-cmp no-cms no-ct no-srp no-srtp no-ts no-fips no-gost no-padlockeng no-dso no-ec2m
+                no-zlib no-egd no-idea no-rc5 no-rc4 no-afalgeng
+                no-comp no-cms no-ct no-srp no-srtp no-ts no-gost no-dso no-ec2m
                 no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
                 no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
-                no-siv no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
+                no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
                 no-weak-ssl-ciphers no-shared no-tests ${QUIC_OPENSSL_WIN_ARCH})
 
             add_custom_target(mkdir_openssl_build_debug
@@ -500,11 +500,11 @@ if(QUIC_TLS STREQUAL "openssl")
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
         set(OPENSSL_CONFIG_FLAGS
             enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
-            no-zlib no-egd no-uplink no-idea no-rc5 no-rc4 no-afalgeng no-acvp_tests
-            no-comp no-cmp no-cms no-ct no-srp no-srtp no-ts no-fips no-gost no-padlockeng no-dso no-ec2m
+            no-zlib no-egd no-idea no-rc5 no-rc4 no-afalgeng
+            no-comp no-cms no-ct no-srp no-srtp no-ts no-gost no-dso no-ec2m
             no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
             no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
-            no-siv no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
+            no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
             no-weak-ssl-ciphers no-shared no-tests --prefix=${OPENSSL_DIR})
         if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure
