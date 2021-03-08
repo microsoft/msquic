@@ -389,6 +389,7 @@ TEST_P(WithHandshakeArgs1, Connect) {
     }
 }
 
+#ifdef QUIC_DISABLE_RESUMPTION
 TEST_P(WithHandshakeArgs1, Resume) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-Resume", GetParam());
     if (TestingKernelMode) {
@@ -442,6 +443,7 @@ TEST_P(WithHandshakeArgs1, ResumeRejection) {
             0);     // RandomLossPercentage
     }
 }
+#endif // QUIC_DISABLE_RESUMPTION
 
 TEST_P(WithHandshakeArgs2, OldVersion) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-OldVersion", GetParam());
