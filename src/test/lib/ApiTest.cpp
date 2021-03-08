@@ -246,7 +246,7 @@ void QuicTestValidateConfiguration()
                 &ServerSelfSignedCredConfig));
     }
 
-#ifndef QUIC_DISABLE_RESUMPTION_REJECTION_TESTS
+#ifndef QUIC_DISABLE_TICKET_KEY_TESTS
     //
     // Set Ticket Key (single)
     //
@@ -312,7 +312,7 @@ void QuicTestValidateConfiguration()
                 sizeof(KeyConfigs),
                 KeyConfigs));
     }
-#endif // QUIC_DISABLE_RESUMPTION_REJECTION_TESTS
+#endif // QUIC_DISABLE_TICKET_KEY_TESTS
 }
 
 static

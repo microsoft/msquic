@@ -55,7 +55,7 @@ struct HandshakeArgs1 {
         for (bool MultiPacketClientInitial : { false, true })
 #ifdef QUIC_DISABLE_RESUMPTION
         for (uint8_t SessionResumption : { 0 })
-#elif QUIC_DISABLE_RESUMPTION_REJECTION_TESTS
+#elif QUIC_DISABLE_TICKET_KEY_TESTS
         for (uint8_t SessionResumption : { 0, 1 })
 #else
         for (uint8_t SessionResumption : { 0, 1, 2 })
@@ -130,22 +130,14 @@ struct HandshakeArgs4 {
     int Family;
     bool ServerStatelessRetry;
     bool MultiPacketClientInitial;
-    uint8_t SessionResumption;
     uint8_t RandomLossPercentage;
     static ::std::vector<HandshakeArgs4> Generate() {
         ::std::vector<HandshakeArgs4> list;
         for (int Family : { 4, 6})
         for (bool ServerStatelessRetry : { false, true })
         for (bool MultiPacketClientInitial : { false, true })
-#ifdef QUIC_DISABLE_RESUMPTION
-        for (uint8_t SessionResumption : { 0 })
-#elif QUIC_DISABLE_RESUMPTION_REJECTION_TESTS
-        for (uint8_t SessionResumption : { 0, 1 })
-#else
-        for (uint8_t SessionResumption : { 0, 1, 2 })
-#endif
         for (uint8_t RandomLossPercentage : { 1, 5, 10 })
-            list.push_back({ Family, ServerStatelessRetry, MultiPacketClientInitial, SessionResumption, RandomLossPercentage });
+            list.push_back({ Family, ServerStatelessRetry, MultiPacketClientInitial, RandomLossPercentage });
         return list;
     }
 };
@@ -156,7 +148,6 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs4& args) {
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
         (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
-        (ResumptionStr[args.SessionResumption]) << "/" <<
         (uint32_t)args.RandomLossPercentage << "% loss";
 }
 
