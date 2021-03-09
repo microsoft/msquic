@@ -426,6 +426,29 @@ Error:
     return NULL;
 }
 
+QUIC_CREDENTIAL_CONFIG*
+CxPlatGetTestCertificate(
+    _In_ CXPLAT_TEST_CERT_TYPE Type,
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
+    _In_ uint32_t CredType
+    )
+{
+    // Not yet supported
+    UNREFERENCED_PARAMETER(Type);
+    UNREFERENCED_PARAMETER(StoreType);
+    UNREFERENCED_PARAMETER(CredType);
+    return NULL;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeTestCert(
+    _In_ QUIC_CREDENTIAL_CONFIG* Params
+    )
+{
+    UNREFERENCED_PARAMETER(Params);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatFreeSelfSignedCert(

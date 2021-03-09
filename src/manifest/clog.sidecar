@@ -13785,6 +13785,10 @@
       {
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop"
+      },
+      {
+        "UniquenessHash": "5fc489fc-c2f2-0e16-8c99-87acf91e235d",
+        "TraceID": "CertFindCertificateFriendlyName"
       }
     ]
   }

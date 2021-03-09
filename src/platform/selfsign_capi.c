@@ -26,6 +26,13 @@ Abstract:
 #define CXPLAT_KEY_CONTAINER_NAME                       L"MsQuicSelfSignKey2"
 #define CXPLAT_KEY_SIZE                                 2048
 
+#define CXPLAT_TEST_CERT_VALID_SERVER_FRIENDLY_NAME     L"MsQuicTestServer"
+#define CXPLAT_TEST_CERT_VALID_CLIENT_FRIENDLY_NAME     L"MsQuicTestClient"
+#define CXPLAT_TEST_CERT_EXPIRED_SERVER_FRIENDLY_NAME   L"MsQuicTestExpiredServer"
+#define CXPLAT_TEST_CERT_VALID_SERVER_SUBJECT_NAME      "MsQuicTestServer"
+#define CXPLAT_TEST_CERT_VALID_CLIENT_SUBJECT_NAME      "MsQuicTestClient"
+#define CXPLAT_TEST_CERT_EXPIRED_SERVER_SUBJECT_NAME    "MsQuicTestExpiredServer"
+
 void
 CleanTestCertificatesFromStore(BOOLEAN UserStore)
 {
@@ -823,6 +830,70 @@ FreeServerCertificate(
     CertFreeCertificateContext((PCCERT_CONTEXT)CertCtx);
 }
 
+_Success_(return != NULL)
+PCCERT_CONTEXT
+FindCertificate(
+    _In_ HCERTSTORE CertStore,
+    _In_z_ const wchar_t* SearchFriendlyName,
+    _Out_writes_all_(20) uint8_t* CertHash
+    )
+{
+    PCCERT_CONTEXT Cert = NULL;
+    DWORD FriendlyNamePropId = CERT_FRIENDLY_NAME_PROP_ID;
+
+    while (NULL !=
+        (Cert = CertFindCertificateInStore(
+            CertStore,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            0,
+            CERT_FIND_PROPERTY,
+            &FriendlyNamePropId,
+            Cert))) {
+
+        BYTE FriendlyName[200];
+        DWORD NameSize = sizeof(FriendlyName);
+
+#pragma prefast(suppress:6054, "SAL doesn't track null terminator correctly")
+        if (!CertGetCertificateContextProperty(Cert, CERT_FRIENDLY_NAME_PROP_ID, FriendlyName, &NameSize) ||
+            wcscmp(
+                (wchar_t*)FriendlyName,
+                SearchFriendlyName) != 0) {
+            continue;
+        }
+
+        //
+        // Check if the certificate is valid.
+        //
+        FILETIME Now;
+        GetSystemTimeAsFileTime(&Now);
+        if (CertVerifyTimeValidity(&Now, Cert->pCertInfo) == 0) {
+            goto Done;
+        }
+    }
+Done:
+    if (Cert != NULL) {
+        DWORD CertHashLength = 20;
+        if (!CertGetCertificateContextProperty(
+                Cert,
+                CERT_HASH_PROP_ID,
+                CertHash,
+                &CertHashLength)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                GetLastError(),
+                "CertGetCertificateContextProperty failed");
+            CertFreeCertificateContext(Cert);
+            Cert = NULL;
+        }
+    } else {
+        QuicTraceLogWarning(
+            CertFindCertificateFriendlyName,
+            "[test] No certificate found by FriendlyName");
+    }
+    return Cert;
+}
+
 /*
     Find the first MsQuic test certificate that is valid, or create one.
 */
@@ -835,7 +906,6 @@ FindOrCreateCertificate(
     )
 {
     PCCERT_CONTEXT Cert = NULL;
-    DWORD FriendlyNamePropId = CERT_FRIENDLY_NAME_PROP_ID;
 
     BOOLEAN First = FALSE;
     HANDLE Event = CreateEventW(NULL, TRUE, FALSE, CXPLAT_CERT_CREATION_EVENT_NAME);
@@ -889,40 +959,15 @@ FindOrCreateCertificate(
         goto Done;
     }
 
-    while (NULL !=
-        (Cert = CertFindCertificateInStore(
-            CertStore,
-            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-            0,
-            CERT_FIND_PROPERTY,
-            &FriendlyNamePropId,
-            Cert))) {
+    Cert = FindCertificate(
+        CertStore,
+        IsClient ?
+            CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME :
+            CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME,
+        CertHash);
 
-        BYTE FriendlyName[
-            max(
-                sizeof(CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME),
-                sizeof(CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME))+
-            sizeof(WCHAR)];
-        DWORD NameSize = sizeof(FriendlyName);
-
-#pragma prefast(suppress:6054, "SAL doesn't track null terminator correctly")
-        if (!CertGetCertificateContextProperty(Cert, CERT_FRIENDLY_NAME_PROP_ID, FriendlyName, &NameSize) ||
-            wcscmp(
-                (wchar_t*)FriendlyName,
-                IsClient ?
-                    CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME :
-                    CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME) != 0) {
-            continue;
-        }
-
-        //
-        // Check if the certificate is valid.
-        //
-        FILETIME Now;
-        GetSystemTimeAsFileTime(&Now);
-        if (CertVerifyTimeValidity(&Now, Cert->pCertInfo) == 0) {
-            goto Done;
-        }
+    if (Cert != NULL) {
+        goto Done;
     }
 
     //
@@ -946,8 +991,6 @@ FindOrCreateCertificate(
         CertFreeCertificateContext(Cert);
         Cert = NULL;
     }
-
-Done:
     if (Cert != NULL) {
         DWORD CertHashLength = 20;
         if (!CertGetCertificateContextProperty(
@@ -964,6 +1007,8 @@ Done:
             Cert = NULL;
         }
     }
+
+Done:
     if (CertStore != NULL) {
         CertCloseStore(CertStore, 0);
     }
@@ -1003,6 +1048,136 @@ CxPlatGetSelfSignedCert(
     return Params;
 }
 
+QUIC_CREDENTIAL_CONFIG*
+CxPlatGetTestCertificate(
+    _In_ CXPLAT_TEST_CERT_TYPE Type,
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
+    _In_ QUIC_CREDENTIAL_TYPE CredType
+    )
+{
+    PCCERT_CONTEXT Cert = NULL;
+    const wchar_t* FriendlyName = NULL;
+    const char* SubjectName = NULL;
+    uint32_t ExtraAllocLength = 0;
+
+    switch (Type) {
+    case CXPLAT_TEST_CERT_VALID_SERVER:
+        FriendlyName = CXPLAT_TEST_CERT_VALID_SERVER_FRIENDLY_NAME;
+        SubjectName = CXPLAT_TEST_CERT_VALID_SERVER_SUBJECT_NAME;
+        break;
+    case CXPLAT_TEST_CERT_VALID_CLIENT:
+        FriendlyName = CXPLAT_TEST_CERT_VALID_CLIENT_FRIENDLY_NAME;
+        SubjectName = CXPLAT_TEST_CERT_VALID_CLIENT_SUBJECT_NAME;
+        break;
+    case CXPLAT_TEST_CERT_EXPIRED_SERVER:
+        FriendlyName = CXPLAT_TEST_CERT_EXPIRED_SERVER_FRIENDLY_NAME;
+        SubjectName = CXPLAT_TEST_CERT_EXPIRED_SERVER_SUBJECT_NAME;
+        break;
+    default:
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Type,
+            "Unsupported Type passed to CxPlatGetTestCertificate");
+        return NULL;
+    }
+
+    switch (CredType) {
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+        ExtraAllocLength = sizeof(QUIC_CERTIFICATE_HASH);
+        break;
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+        ExtraAllocLength = sizeof(QUIC_CERTIFICATE_HASH_STORE);
+        break;
+    case QUIC_CREDENTIAL_TYPE_NONE:
+        ExtraAllocLength = (uint32_t)strnlen(SubjectName, 100);
+        break;
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
+        break;
+    default:
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            CredType,
+            "Unsupported CredType passed to CxPlatGetTestCertificate");
+        return NULL;
+    }
+
+    QUIC_CREDENTIAL_CONFIG* Params =
+        HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(QUIC_CREDENTIAL_CONFIG) + ExtraAllocLength);
+    if (Params == NULL) {
+        return NULL;
+    }
+    HCERTSTORE CertStore =
+        CertOpenStore(
+            CERT_STORE_PROV_SYSTEM_A,
+            0,
+            0,
+            StoreType == CXPLAT_SELF_SIGN_CERT_USER ?
+                CERT_SYSTEM_STORE_CURRENT_USER :
+                CERT_SYSTEM_STORE_LOCAL_MACHINE,
+            "MY");
+    if (CertStore == NULL) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertOpenStore failed");
+        goto Done;
+    }
+    uint8_t CertHash[20];
+
+    Cert = FindCertificate(
+        CertStore,
+        FriendlyName,
+        CertHash);
+
+    if (Cert == NULL) {
+        CxPlatFreeTestCert(Params);
+        Params = NULL;
+        goto Done;
+    }
+
+    switch (CredType) {
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+        Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        Params->CertificateHash = (QUIC_CERTIFICATE_HASH*)(Params + 1);
+        CxPlatCopyMemory(Params->CertificateHash->ShaHash, CertHash, sizeof(Params->CertificateHash->ShaHash));
+        break;
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+        Params->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE;
+        Params->CertificateHashStore = (QUIC_CERTIFICATE_HASH_STORE*)(Params + 1);
+        CxPlatCopyMemory(Params->CertificateHashStore->ShaHash, CertHash, sizeof(Params->CertificateHashStore->ShaHash));
+        strncpy_s(Params->CertificateHashStore->StoreName, sizeof(Params->CertificateHashStore->StoreName), "MY", sizeof("MY"));
+        Params->CertificateHashStore->Flags =
+            StoreType == CXPLAT_SELF_SIGN_CERT_USER ?
+                QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE :
+                QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE;
+        break;
+    case QUIC_CREDENTIAL_TYPE_NONE:
+        //
+        // Assume Principal in use here
+        //
+        Params->Type = QUIC_CREDENTIAL_TYPE_NONE;
+        Params->Principal = (char*)(Params + 1);
+        strncpy_s((char*)Params->Principal, ExtraAllocLength, SubjectName, 100);
+        break;
+    case QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT:
+        Params->CertificateContext = (QUIC_CERTIFICATE*)Cert;
+        Cert = NULL;
+        break;
+    }
+Done:
+    if (Cert != NULL) {
+        CertFreeCertificateContext(Cert);
+    }
+    if (CertStore != NULL) {
+        CertCloseStore(CertStore, 0);
+    }
+
+    return Params;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatFreeSelfSignedCert(
@@ -1010,5 +1185,17 @@ CxPlatFreeSelfSignedCert(
     )
 {
     FreeServerCertificate(Params->CertificateContext);
+    HeapFree(GetProcessHeap(), 0, (void*)Params);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeTestCert(
+    _In_ QUIC_CREDENTIAL_CONFIG* Params
+    )
+{
+    if (Params->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
+        CertFreeCertificateContext((PCCERT_CONTEXT)Params->CertificateContext);
+    }
     HeapFree(GetProcessHeap(), 0, (void*)Params);
 }

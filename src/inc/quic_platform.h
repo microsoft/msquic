@@ -338,6 +338,12 @@ typedef enum CXPLAT_SELF_SIGN_CERT_TYPE {
     CXPLAT_SELF_SIGN_CERT_MACHINE
 } CXPLAT_SELF_SIGN_CERT_TYPE;
 
+typedef enum CXPLAT_TEST_CERT_TYPE {
+    CXPLAT_TEST_CERT_VALID_SERVER,
+    CXPLAT_TEST_CERT_VALID_CLIENT,
+    CXPLAT_TEST_CERT_EXPIRED_SERVER
+} CXPLAT_TEST_CERT_TYPE;
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
 CxPlatGetSelfSignedCert(
@@ -345,10 +351,23 @@ CxPlatGetSelfSignedCert(
     _In_ BOOLEAN ClientCertificate
     );
 
+QUIC_CREDENTIAL_CONFIG*
+CxPlatGetTestCertificate(
+    _In_ CXPLAT_TEST_CERT_TYPE Type,
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE CertType,
+    _In_ uint32_t QuicCredType
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeTestCert(
+    _In_ QUIC_CREDENTIAL_CONFIG* Cert
     );
 
 #if defined(__cplusplus)
