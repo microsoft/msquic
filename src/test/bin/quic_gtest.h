@@ -46,33 +46,23 @@ struct HandshakeArgs1 {
     bool ServerStatelessRetry;
     bool MultipleALPNs;
     bool MultiPacketClientInitial;
-    uint8_t SessionResumption;
     static ::std::vector<HandshakeArgs1> Generate() {
         ::std::vector<HandshakeArgs1> list;
         for (int Family : { 4, 6})
         for (bool ServerStatelessRetry : { false, true })
         for (bool MultipleALPNs : { false, true })
         for (bool MultiPacketClientInitial : { false, true })
-#ifdef QUIC_DISABLE_RESUMPTION
-        for (uint8_t SessionResumption : { 0 })
-#elif QUIC_DISABLE_TICKET_KEY_TESTS
-        for (uint8_t SessionResumption : { 0, 1 })
-#else
-        for (uint8_t SessionResumption : { 0, 1, 2 })
-#endif
-            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs, MultiPacketClientInitial, SessionResumption });
+            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs, MultiPacketClientInitial });
         return list;
     }
 };
 
 std::ostream& operator << (std::ostream& o, const HandshakeArgs1& args) {
-    const char* ResumptionStr[] = {"NoResume", "Resume", "ResumeRejected"};
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
         (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN") << "/" <<
-        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
-        (ResumptionStr[args.SessionResumption]);
+        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial");
 }
 
 class WithHandshakeArgs1 : public testing::Test,
@@ -143,7 +133,6 @@ struct HandshakeArgs4 {
 };
 
 std::ostream& operator << (std::ostream& o, const HandshakeArgs4& args) {
-    const char* ResumptionStr[] = {"NoResume", "Resume", "ResumeRejected"};
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<

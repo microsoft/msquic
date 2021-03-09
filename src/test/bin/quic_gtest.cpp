@@ -399,8 +399,8 @@ TEST_P(WithHandshakeArgs1, Resume) {
             0,  // ClientUsesOldVersion
             (uint8_t)GetParam().MultipleALPNs,
             0,  // AsyncConfiguration
+            (uint8_t)GetParam().MultiPacketClientInitial,
             QUIC_TEST_RESUMPTION_ENABLED,
-            GetParam().SessionResumption,
             0   // RandomLossPercentage
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
