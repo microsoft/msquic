@@ -59,7 +59,7 @@ QuicFuzzerRecvMsg(
 //
 // The maximum number of UDP datagrams that can be sent with one call.
 //
-#define QUIC_MAX_BATCH_SEND                 7
+#define QUIC_MAX_BATCH_SEND                 1
 
 //
 // The maximum UDP receive coalescing payload.
