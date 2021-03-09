@@ -59,7 +59,7 @@ CxPlatFuzzerRecvMsg(
 //
 // The maximum number of UDP datagrams that can be sent with one call.
 //
-#define CXPLAT_MAX_BATCH_SEND                 7
+#define CXPLAT_MAX_BATCH_SEND                 1
 
 //
 // The maximum UDP receive coalescing payload.
