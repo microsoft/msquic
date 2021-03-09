@@ -540,15 +540,9 @@ if(QUIC_TLS STREQUAL "openssl")
             COMMAND make -j$$(nproc)
             COMMAND make install_dev)
         add_custom_target(OpenSSL_Build
-            DEPENDS ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-        add_library(OpenSSL_Crypto STATIC IMPORTED)
-        set_target_properties(OpenSSL_Crypto PROPERTIES
-            IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-            IMPORTED_LINK_INTERFACE_LANGUAGES "C")
-
-        add_dependencies(OpenSSL_Crypto OpenSSL_Build)
+        include(FindOpenSSL)
 
         file(MAKE_DIRECTORY ${OPENSSL_DIR}/include)
 
@@ -558,7 +552,7 @@ if(QUIC_TLS STREQUAL "openssl")
             IMPORTED_LINK_INTERFACE_LANGUAGES "C")
 
         target_include_directories(OpenSSL INTERFACE ${OPENSSL_DIR}/include)
-        target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
+        target_link_libraries(OpenSSL INTERFACE OpenSSL::Crypto)
         add_dependencies(OpenSSL OpenSSL_Build)
     endif()
 endif()
