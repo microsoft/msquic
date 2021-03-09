@@ -458,6 +458,12 @@ if(QUIC_TLS STREQUAL "openssl")
 
             set(OPENSSL_CONFIG_FLAGS
                 enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
+
+                #
+                # The following line is needed for the 3.0 branch.
+                #
+                # no-uplink no-cmp no-acvp_tests no-fips no-padlockeng no-siv
+
                 no-zlib no-egd no-idea no-rc5 no-rc4 no-afalgeng
                 no-comp no-cms no-ct no-srp no-srtp no-ts no-gost no-dso no-ec2m
                 no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
@@ -500,6 +506,12 @@ if(QUIC_TLS STREQUAL "openssl")
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
         set(OPENSSL_CONFIG_FLAGS
             enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
+
+            #
+            # The following line is needed for the 3.0 branch.
+            #
+            # no-uplink no-cmp no-acvp_tests no-fips no-padlockeng no-siv
+
             no-zlib no-egd no-idea no-rc5 no-rc4 no-afalgeng
             no-comp no-cms no-ct no-srp no-srtp no-ts no-gost no-dso no-ec2m
             no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
