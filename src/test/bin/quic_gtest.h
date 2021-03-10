@@ -19,6 +19,8 @@
 #include "quic_gtest.h.clog.h"
 #endif
 
+extern bool TestingKernelMode;
+
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
 };
@@ -231,6 +233,30 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs6& args) {
 
 class WithHandshakeArgs6 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs6> {
+};
+
+struct HandshakeArgs7 {
+    QUIC_CREDENTIAL_CONFIG* Config = nullptr;
+    static ::std::vector<HandshakeArgs7> Generate() {
+        ::std::vector<HandshakeArgs7> list;
+        list.push_back( {
+            CxPlatGetTestCertificate(
+                CXPLAT_TEST_CERT_EXPIRED_SERVER,
+                TestingKernelMode ?
+                    CXPLAT_SELF_SIGN_CERT_MACHINE :
+                    CXPLAT_SELF_SIGN_CERT_USER,
+                QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs7& args) {
+    return o <<
+        (args.Config == nullptr ? "NULL" : "Expired server");
+}
+
+class WithHandshakeArgs7 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs7> {
 };
 
 struct SendArgs1 {

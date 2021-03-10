@@ -173,6 +173,11 @@ QuicTestConnectServerRejected(
     _In_ int Family
     );
 
+void
+QuicTestConnectExpiredServerCertificate(
+    _In_ QUIC_CREDENTIAL_CONFIG* Config
+    );
+
 //
 // Post Handshake Tests
 //
@@ -728,4 +733,16 @@ typedef struct {
 #define IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS \
     QUIC_CTL_CODE(58, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 58
+typedef struct {
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    union {
+        QUIC_CERTIFICATE_HASH CertHash;
+        QUIC_CERTIFICATE_HASH_STORE CertHashStore;
+        uint8_t PrincipalString[100];
+    };
+} QUIC_RUN_CRED_VALIDATION;
+
+#define IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT \
+    QUIC_CTL_CODE(59, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 59
