@@ -60,7 +60,7 @@ CxPlatGetTestCertificate(
     UNREFERENCED_PARAMETER(CertHash);
     UNREFERENCED_PARAMETER(CertHashStore);
     UNREFERENCED_PARAMETER(Principal);
-    return NULL;
+    return FALSE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
