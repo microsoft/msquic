@@ -431,7 +431,7 @@ BOOLEAN
 CxPlatGetTestCertificate(
     _In_ CXPLAT_TEST_CERT_TYPE Type,
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
-    _In_ QUIC_CREDENTIAL_TYPE CredType,
+    _In_ uint32_t CredType,
     _Out_ QUIC_CREDENTIAL_CONFIG* Params,
     _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Out_)
     _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Reserved_)

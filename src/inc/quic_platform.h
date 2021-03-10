@@ -380,7 +380,7 @@ CxPlatFreeSelfSignedCert(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatFreeTestCert(
-    _In_ QUIC_CREDENTIAL_CONFIG* Cert
+    _In_ QUIC_CREDENTIAL_CONFIG* Params
     );
 
 #if defined(__cplusplus)
