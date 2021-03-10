@@ -567,30 +567,26 @@ TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
 }
 #endif
 
-TEST_P(WithHandshakeArgs7, ConnectExpiredServerCertificate) {
-    TestLoggerT<ParamType> Logger("QuicTestConnectExpiredServerCertificate", GetParam());
+TEST(Handshake, ConnectExpiredServerCertificate) {
+    QUIC_RUN_CRED_VALIDATION Params;
+    ASSERT_TRUE(CxPlatGetTestCertificate(
+            CXPLAT_TEST_CERT_EXPIRED_SERVER,
+            TestingKernelMode ?
+                CXPLAT_SELF_SIGN_CERT_MACHINE :
+                CXPLAT_SELF_SIGN_CERT_USER,
+            TestingKernelMode ?
+                QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH :
+                QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
+            &Params.CredConfig,
+            &Params.CertHash,
+            &Params.CertHashStore,
+            (char*)Params.PrincipalString));
     if (TestingKernelMode) {
-        QUIC_RUN_CRED_VALIDATION Params;
-        CxPlatCopyMemory(&Params.CredConfig, GetParam().Config, sizeof(QUIC_CREDENTIAL_CONFIG));
-        switch (Params.CredConfig.Type) {
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
-            CxPlatCopyMemory(&Params.CertHash, GetParam().Config->CertificateHash, sizeof(QUIC_CERTIFICATE_HASH));
-            Params.CredConfig.CertificateHash = &Params.CertHash;
-            break;
-        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
-            CxPlatCopyMemory(&Params.CertHashStore, GetParam().Config->CertificateHashStore, sizeof(QUIC_CERTIFICATE_HASH_STORE));
-            Params.CredConfig.CertificateHashStore = &Params.CertHashStore;
-            break;
-        case QUIC_CREDENTIAL_TYPE_NONE:
-            strncpy((char*)Params.PrincipalString, GetParam().Config->Principal, 100);
-            Params.CredConfig.Principal = (const char*)Params.PrincipalString;
-            break;
-        }
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT, Params));
     } else {
-        QuicTestConnectExpiredServerCertificate(GetParam().Config);
+        QuicTestConnectExpiredServerCertificate(&Params.CredConfig);
     }
-    CxPlatFreeTestCert(GetParam().Config);
+    CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
 }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED

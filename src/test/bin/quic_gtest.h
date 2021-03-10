@@ -235,30 +235,6 @@ class WithHandshakeArgs6 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs6> {
 };
 
-struct HandshakeArgs7 {
-    QUIC_CREDENTIAL_CONFIG* Config = nullptr;
-    static ::std::vector<HandshakeArgs7> Generate() {
-        ::std::vector<HandshakeArgs7> list;
-        list.push_back( {
-            CxPlatGetTestCertificate(
-                CXPLAT_TEST_CERT_EXPIRED_SERVER,
-                TestingKernelMode ?
-                    CXPLAT_SELF_SIGN_CERT_MACHINE :
-                    CXPLAT_SELF_SIGN_CERT_USER,
-                QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const HandshakeArgs7& args) {
-    return o <<
-        (args.Config == nullptr ? "NULL" : "Expired server");
-}
-
-class WithHandshakeArgs7 : public testing::Test,
-    public testing::WithParamInterface<HandshakeArgs7> {
-};
-
 struct SendArgs1 {
     int Family;
     uint64_t Length;

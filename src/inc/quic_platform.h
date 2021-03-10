@@ -332,6 +332,8 @@ extern "C" {
 #endif
 
 typedef struct QUIC_CREDENTIAL_CONFIG QUIC_CREDENTIAL_CONFIG;
+typedef struct QUIC_CERTIFICATE_HASH QUIC_CERTIFICATE_HASH;
+typedef struct QUIC_CERTIFICATE_HASH_STORE QUIC_CERTIFICATE_HASH_STORE;
 
 typedef enum CXPLAT_SELF_SIGN_CERT_TYPE {
     CXPLAT_SELF_SIGN_CERT_USER,
@@ -351,11 +353,22 @@ CxPlatGetSelfSignedCert(
     _In_ BOOLEAN ClientCertificate
     );
 
-QUIC_CREDENTIAL_CONFIG*
+_Success_(return == TRUE)
+BOOLEAN
 CxPlatGetTestCertificate(
     _In_ CXPLAT_TEST_CERT_TYPE Type,
-    _In_ CXPLAT_SELF_SIGN_CERT_TYPE CertType,
-    _In_ uint32_t QuicCredType
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
+    _In_ uint32_t CredType,
+    _Out_ QUIC_CREDENTIAL_CONFIG* Params,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Reserved_)
+        QUIC_CERTIFICATE_HASH* CertHash,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Reserved_)
+        QUIC_CERTIFICATE_HASH_STORE* CertHashStore,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_NONE, _Out_z_bytecap_(100))
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_NONE, _Reserved_)
+        char Principal[100]
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

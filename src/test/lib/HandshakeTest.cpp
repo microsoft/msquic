@@ -2174,7 +2174,7 @@ QuicTestValidAlpnLengths(
 
 void
 QuicTestConnectExpiredServerCertificate(
-    _In_ QUIC_CREDENTIAL_CONFIG* Config
+    _In_ const QUIC_CREDENTIAL_CONFIG* Config
     )
 {
     MsQuicRegistration Registration;
