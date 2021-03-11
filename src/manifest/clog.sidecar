@@ -3272,7 +3272,7 @@
     },
     "FrameLogUnknownType": {
       "ModuleProperites": {},
-      "TraceString": "[%c][%cX][%llu]   unknown frame (%hu)",
+      "TraceString": "[%c][%cX][%llu]   unknown frame (%llu)",
       "UniqueId": "FrameLogUnknownType",
       "splitArgs": [
         {
@@ -3288,7 +3288,7 @@
           "MacroVariableName": "arg4"
         },
         {
-          "DefinationEncoding": "hu",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg5"
         }
       ],
@@ -11934,7 +11934,7 @@
         "TraceID": "IndicateDatagramReceived"
       },
       {
-        "UniquenessHash": "9d92f733-cdde-7d96-f3b4-e4b129f86559",
+        "UniquenessHash": "0663ac49-e402-40ea-b23a-851ef032e5d5",
         "TraceID": "FrameLogUnknownType"
       },
       {

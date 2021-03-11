@@ -47,7 +47,11 @@ TEST(SpinFrame, SpinFrame1000000)
     BOOLEAN InvalidFrame;
     uint8_t Buffer[255];
     uint8_t BufferLength = 0;
+
     uint8_t FrameType;
+    CXPLAT_STATIC_ASSERT(
+        QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT8_MAX,
+        "Tests below assumes frames fit in 8-bits");
 
     QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckBlocks);
 
