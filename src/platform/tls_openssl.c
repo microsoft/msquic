@@ -573,6 +573,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
@@ -625,6 +626,8 @@ CxPlatTlsSecConfigCreate(
             return QUIC_STATUS_NOT_SUPPORTED;
         }
     }
+
+    UNREFERENCED_PARAMETER(TlsCredFlags); // TODO
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;

@@ -1080,6 +1080,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
@@ -1180,6 +1181,9 @@ CxPlatTlsSecConfigCreate(
     } else {
         Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_SERVER;
+        if (TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION) {
+            Credentials->dwFlags |= SCH_CRED_DISABLE_RECONNECTS;
+        }
     }
     //
     //  Disallow ChaCha20-Poly1305 until full support is possible.

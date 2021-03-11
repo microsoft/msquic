@@ -51,6 +51,13 @@ typedef enum CXPLAT_TLS_ALERT_CODES {
 
 } CXPLAT_TLS_ALERT_CODES;
 
+typedef enum CXPLAT_TLS_CREDENTIAL_FLAGS {
+
+    CXPLAT_TLS_CREDENTIAL_FLAG_NONE                 = 0x0000,
+    CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION   = 0x0001,   // Server only
+
+} CXPLAT_TLS_CREDENTIAL_FLAGS;
+
 //
 // Callback for indicating process can be completed.
 //
@@ -341,6 +348,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
