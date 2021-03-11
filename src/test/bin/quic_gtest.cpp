@@ -625,8 +625,61 @@ TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
 
 TEST(CredValidation, ConnectExpiredServerCertificate) {
     QUIC_RUN_CRED_VALIDATION Params;
-    ASSERT_TRUE(CxPlatGetTestCertificate(
+    for (auto CredType : {QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
+        ASSERT_TRUE(CxPlatGetTestCertificate(
+                CXPLAT_TEST_CERT_EXPIRED_SERVER,
+                TestingKernelMode ?
+                    CXPLAT_SELF_SIGN_CERT_MACHINE :
+                    CXPLAT_SELF_SIGN_CERT_USER,
+                CredType,
+                &Params.CredConfig,
+                &Params.CertHash,
+                &Params.CertHashStore,
+                (char*)Params.PrincipalString));
+        if (TestingKernelMode) {
+            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT, Params));
+        } else {
+            QuicTestConnectExpiredServerCertificate(&Params.CredConfig);
+        }
+        CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
+    }
+
+
+    if (TestingKernelMode) {
+        //
+        // Test Principal in kernel mode only
+        //
+        ASSERT_TRUE(CxPlatGetTestCertificate(
             CXPLAT_TEST_CERT_EXPIRED_SERVER,
+            CXPLAT_SELF_SIGN_CERT_MACHINE,
+            QUIC_CREDENTIAL_TYPE_NONE,
+            &Params.CredConfig,
+            &Params.CertHash,
+            &Params.CertHashStore,
+            (char*)Params.PrincipalString));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT, Params));
+        CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
+    } else {
+        //
+        // Test Cert context in user mode only
+        //
+        ASSERT_TRUE(CxPlatGetTestCertificate(
+            CXPLAT_TEST_CERT_EXPIRED_SERVER,
+            CXPLAT_SELF_SIGN_CERT_USER,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
+            &Params.CredConfig,
+            &Params.CertHash,
+            &Params.CertHashStore,
+            (char*)Params.PrincipalString));
+        QuicTestConnectExpiredServerCertificate(&Params.CredConfig);
+        CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
+    }
+}
+
+TEST(CredValidation, ConnectValidServerCertificate) {
+    QUIC_RUN_CRED_VALIDATION Params;
+    ASSERT_TRUE(CxPlatGetTestCertificate(
+            CXPLAT_TEST_CERT_VALID_SERVER,
             TestingKernelMode ?
                 CXPLAT_SELF_SIGN_CERT_MACHINE :
                 CXPLAT_SELF_SIGN_CERT_USER,
@@ -638,9 +691,9 @@ TEST(CredValidation, ConnectExpiredServerCertificate) {
             &Params.CertHashStore,
             (char*)Params.PrincipalString));
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT, Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_SERVER_CERT, Params));
     } else {
-        QuicTestConnectExpiredServerCertificate(&Params.CredConfig);
+        QuicTestConnectValidServerCertificate(&Params.CredConfig);
     }
     CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
 }

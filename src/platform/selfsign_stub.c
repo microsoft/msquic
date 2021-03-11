@@ -78,5 +78,5 @@ CxPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* Params
     )
 {
-    UNREFERENCED_PARAMETER(Params);
+    free((void*)Params);
 }
