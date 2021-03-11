@@ -1179,7 +1179,6 @@ CxPlatTlsSecConfigCreate(
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_CLIENT;
     } else {
         Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
-        Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_SERVER;
     }
     //
