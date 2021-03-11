@@ -929,7 +929,7 @@ QuicTestCtlEvtIoDeviceControl(
         //
         switch (Params->CredValidationParams.CredConfig.Type) {
         case QUIC_CREDENTIAL_TYPE_NONE:
-            Params->CredValidationParams.CredConfig.Principal = Params->CredValidationParams.Principal;
+            Params->CredValidationParams.CredConfig.Principal = (const char*)Params->CredValidationParams.PrincipalString;
             break;
         case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
             Params->CredValidationParams.CredConfig.CertificateHash = &Params->CredValidationParams.CertHash;
@@ -940,7 +940,7 @@ QuicTestCtlEvtIoDeviceControl(
         }
         QuicTestCtlRun(
             QuicTestConnectExpiredServerCertificate(
-                &Params->CredValidationParams));
+                &Params->CredValidationParams.CredConfig));
         break;
 
     default:

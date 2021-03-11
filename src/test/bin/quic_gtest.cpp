@@ -567,7 +567,7 @@ TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
 }
 #endif
 
-TEST(Handshake, ConnectExpiredServerCertificate) {
+TEST(CredValidation, ConnectExpiredServerCertificate) {
     QUIC_RUN_CRED_VALIDATION Params;
     ASSERT_TRUE(CxPlatGetTestCertificate(
             CXPLAT_TEST_CERT_EXPIRED_SERVER,
