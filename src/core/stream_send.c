@@ -677,7 +677,10 @@ QuicStreamCopyFromSendRequests(
         // Copy the data from the request buffer to the frame buffer.
         //
         uint16_t SubLen = (uint16_t)min(Len, Req->Buffers[CurIndex].Length - (uint32_t)CurOffset);
-        CxPlatCopyMemory(Buf, Req->Buffers[CurIndex].Buffer + CurOffset, SubLen);
+        if (SubLen != 0) {
+            CXPLAT_DBG_ASSERT(Buf != NULL && (Req->Buffers[CurIndex].Buffer + CurOffset) != NULL);
+            CxPlatCopyMemory(Buf, Req->Buffers[CurIndex].Buffer + CurOffset, SubLen);
+        }
         Len -= SubLen;
         Buf += SubLen;
         Copied += SubLen;
