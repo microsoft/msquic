@@ -924,6 +924,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
         //
         // Fix up pointers for kernel mode
         //
