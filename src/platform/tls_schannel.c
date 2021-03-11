@@ -1879,9 +1879,11 @@ CxPlatTlsWriteDataToSchannel(
         ISC_REQ_CONFIDENTIALITY |
         ISC_RET_EXTENDED_ERROR |
         ISC_REQ_STREAM;
-    if (TlsContext->IsServer &&
-        TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
-        ContextReq |= ASC_REQ_MUTUAL_AUTH;
+    if (TlsContext->IsServer) {
+        ContextReq |= ASC_REQ_SESSION_TICKET; // Always use session tickets for resumption
+        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            ContextReq |= ASC_REQ_MUTUAL_AUTH;
+        }
     }
     ULONG ContextAttr;
     SECURITY_STATUS SecStatus;
