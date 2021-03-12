@@ -42,16 +42,3 @@ var dataView = [
 // Fixed charting values
 var dataLineWidth = 2
 var dataRawPointRadius = 3
-
-// Percentile scale dictionary
-var percentileScaleDict = {
-    1: '0%',
-    10: '90%',
-    100: '99%',
-    1000: '99.9%',
-    10000: '99.99%',
-    100000: '99.999%',
-    1000000: '99.9999%',
-    10000000: '99.99999%',
-    100000000: '99.999999%'
-}
