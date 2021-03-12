@@ -743,7 +743,7 @@ typedef struct {
     union {
         QUIC_CERTIFICATE_HASH CertHash;
         QUIC_CERTIFICATE_HASH_STORE CertHashStore;
-        uint8_t PrincipalString[100];
+        char PrincipalString[100];
     };
 } QUIC_RUN_CRED_VALIDATION;
 

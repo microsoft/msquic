@@ -2228,6 +2228,9 @@ QuicTestConnectExpiredServerCertificate(
 
                 TEST_NOT_EQUAL(nullptr, Server);
                 Server->SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
                 TEST_EQUAL(false, Server->GetIsConnected());
             }
         }
@@ -2288,6 +2291,9 @@ QuicTestConnectValidServerCertificate(
                 TEST_EQUAL(true, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
                 TEST_EQUAL(true, Server->GetIsConnected());
             }
         }
