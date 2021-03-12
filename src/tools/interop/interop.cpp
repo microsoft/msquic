@@ -25,7 +25,6 @@ Abstract:
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
-int EndpointIndex = -1;
 uint32_t TestCases = QuicTestFeatureAll;
 uint32_t WaitTimeoutMs = 10000;
 uint32_t InitialVersion = 0;
@@ -971,7 +970,7 @@ CXPLAT_THREAD_CALLBACK(InteropTestCallback, Context)
     QuicTraceLogInfo(
         InteropTestStart,
         "[ntrp] Test Start, Server: %s, Port: %hu, Tests: 0x%x.",
-        PublicEndpoints[EndpointIndex].ServerName,
+        PublicEndpoints[TestContext->EndpointIndex].ServerName,
         TestContext->Port,
         (uint32_t)TestContext->Feature);
 
@@ -1001,7 +1000,7 @@ CXPLAT_THREAD_CALLBACK(InteropTestCallback, Context)
     QuicTraceLogInfo(
         InteropTestStop,
         "[ntrp] Test Stop, Server: %s, Port: %hu, Tests: 0x%x, Negotiated Alpn: %s, Passed: %s.",
-        PublicEndpoints[EndpointIndex].ServerName,
+        PublicEndpoints[TestContext->EndpointIndex].ServerName,
         TestContext->Port,
         (uint32_t)TestContext->Feature,
         Alpn,
@@ -1064,7 +1063,7 @@ PrintTestResults(
 }
 
 void
-RunInteropTests()
+RunInteropTests(int EndpointIndex)
 {
     const uint16_t* Ports = CustomPort == 0 ? PublicPorts : &CustomPort;
     const uint32_t PortsCount = CustomPort == 0 ? PublicPortsCount : 1;
@@ -1227,6 +1226,7 @@ main(
 
     TryGetValue(argc, argv, "sslkeylogfile", &SslKeyLogFileParam);
 
+    int EndpointIndex = -1;
     const char* Target, *Custom;
     if (TryGetValue(argc, argv, "target", &Target)) {
         bool Found = false;
@@ -1247,7 +1247,7 @@ main(
         EndpointIndex = (int)PublicEndpointsCount;
     }
 
-    RunInteropTests();
+    RunInteropTests(EndpointIndex);
 
     if (CustomUrlPath && TestFailed) {
         Status = QUIC_STATUS_ABORTED;
