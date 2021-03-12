@@ -96,7 +96,7 @@ QuicSettingsSetDefault(
         Settings->MaxBytesPerKey = QUIC_DEFAULT_MAX_BYTES_PER_KEY;
     }
     if (!Settings->IsSet.ServerResumptionLevel) {
-        Settings->ServerResumptionLevel = QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL;
+        Settings->ServerResumptionLevel = (uint8_t)QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL;
     }
     if (!Settings->IsSet.VersionNegotiationExtEnabled) {
         Settings->VersionNegotiationExtEnabled = QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED;
@@ -690,15 +690,15 @@ QuicSettingsLoad(
 
     if (!Settings->IsSet.ServerResumptionLevel) {
         ValueLen = sizeof(Value);
-        CxPlatStorageReadValue(
-            Storage,
-            QUIC_SETTING_SERVER_RESUMPTION_LEVEL,
-            (uint8_t*)&Value,
-            &ValueLen);
-        if (Value > QUIC_SERVER_RESUME_AND_ZERORTT) {
-            Value = QUIC_SERVER_RESUME_AND_ZERORTT;
+        if (QUIC_SUCCEEDED(
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_SERVER_RESUMPTION_LEVEL,
+                (uint8_t*)&Value,
+                &ValueLen)) &&
+            Value <= QUIC_SERVER_RESUME_AND_ZERORTT) {
+            Settings->ServerResumptionLevel = (uint8_t)Value;
         }
-        Settings->ServerResumptionLevel = (uint8_t)Value;
     }
 
     if (!Settings->IsSet.VersionNegotiationExtEnabled) {

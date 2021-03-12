@@ -50,7 +50,11 @@ struct TlsContext
         };
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
-                &CredConfig, &TlsCallbacks, &SecConfig, OnSecConfigCreateComplete));
+                &CredConfig,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsCallbacks,
+                &SecConfig,
+                OnSecConfigCreateComplete));
 
         QUIC_CONNECTION Connection = {0};
 

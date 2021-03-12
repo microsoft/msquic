@@ -51,6 +51,7 @@ struct LoadSecConfigHelper {
         if (QUIC_FAILED(
             CxPlatTlsSecConfigCreate(
                 CredConfig,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TcpEngine::TlsCallbacks,
                 this,
                 SecConfigCallback))) {

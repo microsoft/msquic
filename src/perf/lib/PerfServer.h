@@ -121,7 +121,8 @@ private:
             .SetPeerUnidiStreamCount(PERF_DEFAULT_STREAM_COUNT)
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
-            .SetSendBufferingEnabled(false)};
+            .SetSendBufferingEnabled(false)
+            .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT)};
     MsQuicListener Listener {Registration};
     uint16_t Port {PERF_DEFAULT_PORT};
     CXPLAT_EVENT* StopEvent {nullptr};

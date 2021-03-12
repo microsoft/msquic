@@ -169,6 +169,7 @@ typedef struct CXPLAT_SEC_CONFIG {
 
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
+    CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags;
 
     CXPLAT_TLS_CALLBACKS Callbacks;
 
@@ -390,6 +391,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
@@ -423,6 +425,7 @@ CxPlatTlsSecConfigCreate(
 
     SecurityConfig->Type = CredConfig->Type;
     SecurityConfig->Flags = CredConfig->Flags;
+    SecurityConfig->TlsFlags = TlsCredFlags;
     SecurityConfig->Callbacks = *TlsCallbacks;
     SecurityConfig->Certificate = NULL;
     SecurityConfig->PrivateKey = NULL;
@@ -583,7 +586,9 @@ CxPlatTlsInitialize(
     TlsContext->Extensions[1].ext_data_len = Config->LocalTPLength;
     TlsContext->Extensions[1].ext_data = Config->LocalTPBuffer;
 
-    TlsContext->miTlsConfig.enable_0rtt = TRUE;
+    TlsContext->miTlsConfig.enable_0rtt =
+        !Config->IsServer ||
+        !(Config->SecConfig->TlsFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION);
     TlsContext->miTlsConfig.exts = TlsContext->Extensions;
     TlsContext->miTlsConfig.exts_count = ARRAYSIZE(TlsContext->Extensions);
     TlsContext->miTlsConfig.cipher_suites = CXPLAT_SUPPORTED_CIPHER_SUITES;
