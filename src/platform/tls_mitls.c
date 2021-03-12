@@ -587,7 +587,7 @@ CxPlatTlsInitialize(
     TlsContext->Extensions[1].ext_data = Config->LocalTPBuffer;
 
     TlsContext->miTlsConfig.enable_0rtt =
-        !(Config->SecConfig->TlsFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION);
+        (Config->SecConfig->TlsFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION) ? FALSE : TRUE;
     TlsContext->miTlsConfig.exts = TlsContext->Extensions;
     TlsContext->miTlsConfig.exts_count = ARRAYSIZE(TlsContext->Extensions);
     TlsContext->miTlsConfig.cipher_suites = CXPLAT_SUPPORTED_CIPHER_SUITES;
