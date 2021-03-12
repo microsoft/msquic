@@ -130,6 +130,7 @@ option(QUIC_CI "CI Specific build optimizations" OFF)
 option(QUIC_RANDOM_ALLOC_FAIL "Randomly fails allocation calls" OFF)
 option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
+option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -543,8 +544,6 @@ if(QUIC_TLS STREQUAL "openssl")
             DEPENDS ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-        include(FindOpenSSL)
-
         file(MAKE_DIRECTORY ${OPENSSL_DIR}/include)
 
         add_library(OpenSSL STATIC IMPORTED)
@@ -553,7 +552,19 @@ if(QUIC_TLS STREQUAL "openssl")
             IMPORTED_LINK_INTERFACE_LANGUAGES "C")
 
         target_include_directories(OpenSSL INTERFACE ${OPENSSL_DIR}/include)
-        if (NOT OPENSSL_FOUND)
+
+        if (QUIC_USE_SYSTEM_LIBCRYPTO)
+            include(FindOpenSSL)
+            if (OPENSSL_FOUND)
+                if (OPENSSL_VERSION VERSION_EQUAL 1.1.1)
+                    target_link_libraries(OpenSSL INTERFACE OpenSSL::Crypto)
+                else()
+                    message(FATAL_ERROR "OpenSSL 1.1.1 not found, found ${OPENSSL_VERSION}")
+                endif()
+            else()
+                message(FATAL_ERROR "System OpenSSL not found when requested")
+            endif()
+        else()
             add_library(OpenSSL_Crypto STATIC IMPORTED)
             set_target_properties(OpenSSL_Crypto PROPERTIES
                 IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
@@ -561,8 +572,6 @@ if(QUIC_TLS STREQUAL "openssl")
 
             add_dependencies(OpenSSL_Crypto OpenSSL_Build)
             target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
-        else()
-            target_link_libraries(OpenSSL INTERFACE OpenSSL::Crypto)
         endif()
         add_dependencies(OpenSSL OpenSSL_Build)
     endif()
