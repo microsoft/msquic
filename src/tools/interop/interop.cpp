@@ -1153,6 +1153,8 @@ main(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     )
 {
+    int EndpointIndex = -1;
+
     if (GetValue(argc, argv, "help") ||
         GetValue(argc, argv, "?")) {
         PrintUsage();
@@ -1226,7 +1228,6 @@ main(
 
     TryGetValue(argc, argv, "sslkeylogfile", &SslKeyLogFileParam);
 
-    int EndpointIndex = -1;
     const char* Target, *Custom;
     if (TryGetValue(argc, argv, "target", &Target)) {
         bool Found = false;
