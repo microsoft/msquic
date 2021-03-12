@@ -179,16 +179,14 @@ if ("" -eq $Tls) {
     }
 }
 
-if ("" -eq $Platform) {
-    if ($IsWindows) {
-        $Platform = "windows"
-    } elseif ($IsLinux) {
-        $Platform = "linux"
-    } elseif ($IsMacOS) {
-        $Platform = "macos"
-    } else {
-        Write-Error "Unsupported platform type!"
-    }
+if ($IsWindows) {
+    $Platform = "windows"
+} elseif ($IsLinux) {
+    $Platform = "linux"
+} elseif ($IsMacOS) {
+    $Platform = "macos"
+} else {
+    Write-Error "Unsupported platform type!"
 }
 
 # Root directory of the project.
