@@ -12,6 +12,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER Tls
     The TLS library test.
 
+.PARAMETER ExtraArtifactDir
+    Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
+
 .PARAMETER Kernel
     Runs the Windows kernel mode tests.
 
@@ -137,7 +140,10 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CodeCoverage = $false
+    [switch]$CodeCoverage = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ExtraArtifactDir = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -173,6 +179,18 @@ if ("" -eq $Tls) {
     }
 }
 
+if ("" -eq $Platform) {
+    if ($IsWindows) {
+        $Platform = "windows"
+    } elseif ($IsLinux) {
+        $Platform = "linux"
+    } elseif ($IsMacOS) {
+        $Platform = "macos"
+    } else {
+        Write-Error "Unsupported platform type!"
+    }
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -189,24 +207,29 @@ if ($CodeCoverage) {
 # Path to the run-gtest Powershell script.
 $RunTest = Join-Path $RootDir "scripts/run-gtest.ps1"
 
+if ("" -eq $ExtraArtifactDir) {
+    $RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)"
+} else {
+    if ($Kernel) {
+        Write-Error "Kernel not supported with extra artifact dir"
+    }
+    $RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
+}
+
 # Path to the msquictest exectuable.
 $MsQuicTest = $null
 $MsQuicCoreTest = $null
 $MsQuicPlatTest = $null
 $KernelPath = $null;
 if ($IsWindows) {
-    $MsQuicTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquictest.exe"
-    $MsQuicCoreTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquiccoretest.exe"
-    $MsQuicPlatTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquicplatformtest.exe"
+    $MsQuicTest = Join-Path $RootArtifactDir  "msquictest.exe"
+    $MsQuicCoreTest = Join-Path $RootArtifactDir "msquiccoretest.exe"
+    $MsQuicPlatTest = Join-Path $RootArtifactDir "msquicplatformtest.exe"
     $KernelPath = Join-Path $RootDir "\artifacts\bin\winkernel\$($Arch)_$($Config)_$($Tls)"
-}  elseif ($IsLinux) {
-    $MsQuicTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquictest"
-    $MsQuicCoreTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquiccoretest"
-    $MsQuicPlatTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquicplatformtest"
-}  elseif ($IsMacOS) {
-    $MsQuicTest = Join-Path $RootDir "/artifacts/bin/macos/$($Arch)_$($Config)_$($Tls)/msquictest"
-    $MsQuicCoreTest = Join-Path $RootDir "/artifacts/bin/macos/$($Arch)_$($Config)_$($Tls)/msquiccoretest"
-    $MsQuicPlatTest = Join-Path $RootDir "/artifacts/bin/macos/$($Arch)_$($Config)_$($Tls)/msquicplatformtest"
+}  elseif ($IsLinux -or $IsMacOS) {
+    $MsQuicTest = Join-Path $RootArtifactDir "msquictest"
+    $MsQuicCoreTest = Join-Path $RootArtifactDir "msquiccoretest"
+    $MsQuicPlatTest = Join-Path $RootArtifactDir "msquicplatformtest"
 } else {
     Write-Error "Unsupported platform type!"
 }
