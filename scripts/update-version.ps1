@@ -26,6 +26,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $RootDir = Split-Path $PSScriptRoot -Parent
 $MsQuicVerFilePath = Join-Path $RootDir "src" "inc" "msquic.ver"
 $CreatePackageFilePath = Join-Path $RootDir ".azure" "templates" "create-package.yml"
+$QnsFilePath = Join-Path $RootDir ".azure" "azure-pipelines.qns.yml"
 
 # Get the current version number from the msquic.ver file.
 $OriginalVersion = (Select-String -Path $MsQuicVerFilePath "VER_FILEVERSION *(.*),0$" -AllMatches).Matches[0].Groups[1].Value
@@ -51,3 +52,7 @@ Write-Host "    New version: $Version"
     -replace "minorVer: (.*)", "minorVer: $($Version[1])" `
     -replace "patchVer: (.*)", "patchVer: $($Version[2])" |`
     Out-File $CreatePackageFilePath
+(Get-Content $QnsFilePath) `
+    -replace "($OriginalVersion)", "$($Version[0]),$($Version[1]),$($Version[2])" `
+    -replace "($OriginalVersion2)", "$($Version[0]).$($Version[1]).$($Version[2])" |`
+    Out-File $QnsFilePath
