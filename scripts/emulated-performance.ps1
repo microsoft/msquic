@@ -93,7 +93,10 @@ param (
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Periodic = $false
+    [switch]$Periodic = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ForceBranchName = $null,
 )
 
 Set-StrictMode -Version 'Latest'
