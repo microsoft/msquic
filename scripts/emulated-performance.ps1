@@ -416,13 +416,13 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         Write-Host $Row
         $RemoteResult = Find-MatchingTest -TestResult $RunResult -RemoteResults $RemoteResults
         if ($null -ne $RemoteResult) {
-            $MedianLastResult = $RemoteResult.RawKbps
+            $MedianLastResult = $RemoteResult.RateKbps
             $PercentDiff = 100 * (($RateKbps - $MedianLastResult) / $MedianLastResult)
             $PercentDiffStr = $PercentDiff.ToString("#.##")
             if ($PercentDiff -ge 0) {
                 $PercentDiffStr = "+$PercentDiffStr"
             }
-            Write-Output "Median: $RawKbps ($PercentDiffStr%)"
+            Write-Output "Median: $RateKbps ($PercentDiffStr%)"
             Write-Output "Remote: $MedianLastResult"
         }
     }}}
