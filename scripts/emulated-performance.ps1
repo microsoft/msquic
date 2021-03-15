@@ -188,13 +188,20 @@ function Get-CurrentBranch {
 
 function Get-LatestCommitHash([string]$Branch) {
     $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/commits.json"
+    if ($Periodic) {
+        $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/periodic/$Branch/commits.json"
+    }
     Write-Debug "Requesting: $Uri"
     try {
         $AllCommits = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
         Write-Debug "Result: $AllCommits"
         $LatestResult = ($AllCommits | Sort-Object -Property Date -Descending)[0]
         Write-Debug "Latest Commit: $LatestResult"
-    return $LatestResult.CommitHash
+        if ($Periodic) {
+            return $LatestResult.Date
+        } else {
+            return $LatestResult.CommitHash
+        }
     } catch {
         return ""
     }
@@ -202,11 +209,14 @@ function Get-LatestCommitHash([string]$Branch) {
 
 function Get-LatestWanTestResult([string]$Branch, [string]$CommitHash) {
     $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/wan_data.json"
+    if ($Periodic) {
+        $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/periodic/$Branch/$CommitHash/wan_data.json"
+    }
     Write-Debug "Requesting: $Uri"
     try {
         $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
         Write-Debug "Result: $LatestResult"
-    return $LatestResult
+        return $LatestResult
     } catch {
         return ""
     }
@@ -422,8 +432,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             if ($PercentDiff -ge 0) {
                 $PercentDiffStr = "+$PercentDiffStr"
             }
-            Write-Output "Median: $RateKbps ($PercentDiffStr%)"
-            Write-Output "Remote: $MedianLastResult"
+            Write-Output "Median: $RateKbps, Remote: $MedianLastResult, ($PercentDiffStr%)"
         }
     }}}
 
