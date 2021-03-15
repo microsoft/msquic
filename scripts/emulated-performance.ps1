@@ -90,7 +90,10 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("None", "Datapath.Light", "Datapath.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose")]
-    [string]$LogProfile = "None"
+    [string]$LogProfile = "None",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Periodic = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -146,6 +149,90 @@ class Results {
     }
 }
 
+function Find-MatchingTest([TestResult]$TestResult, [Object]$RemoteResults) {
+    foreach ($Remote in $RemoteResults) {
+        if (
+            $TestResult.RttMs -eq $Remote.RttMs -and
+            $TestResult.BottleneckMbps -eq $Remote.BottleneckMbps -and
+            $TestResult.BottleneckBufferPackets -eq $Remote.BottleneckBufferPackets -and
+            $TestResult.RandomLossDenominator -eq $Remote.RandomLossDenominator -and
+            $TestResult.RandomReorderDenominator -eq $Remote.RandomReorderDenominator -and
+            $TestResult.ReorderDelayDeltaMs -eq $Remote.ReorderDelayDeltaMs -and
+            $TestResult.Tcp -eq $Remote.Tcp -and
+            $TestResult.DurationMs -eq $Remote.DurationMs -and
+            $TestResult.Pacing -eq $Remote.Pacing
+        ) {
+            return $Remote
+        }
+    }
+    return $null;
+}
+
+function Get-CurrentBranch {
+    param($RepoDir)
+    $CurrentLoc = Get-Location
+    Set-Location -Path $RepoDir | Out-Null
+    $env:GIT_REDIRECT_STDERR = '2>&1'
+    $CurrentBranch = $null
+    try {
+        $CurrentBranch = git branch --show-current
+    } catch {
+        Write-Debug "Failed to get commit date from git"
+    }
+    Set-Location -Path $CurrentLoc | Out-Null
+    return $CurrentBranch
+}
+
+function Get-LatestCommitHash([string]$Branch) {
+    $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/commits.json"
+    Write-Debug "Requesting: $Uri"
+    try {
+        $AllCommits = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
+        Write-Debug "Result: $AllCommits"
+        $LatestResult = ($AllCommits | Sort-Object -Property Date -Descending)[0]
+        Write-Debug "Latest Commit: $LatestResult"
+    return $LatestResult.CommitHash
+    } catch {
+        return ""
+    }
+}
+
+function Get-LatestWanTestResult([string]$Branch, [string]$CommitHash) {
+    $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/wan_data.json"
+    Write-Debug "Requesting: $Uri"
+    try {
+        $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
+        Write-Debug "Result: $LatestResult"
+    return $LatestResult
+    } catch {
+        return ""
+    }
+}
+
+# See if we are an AZP PR
+$PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
+if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
+    # Mainline build, just get branch name
+    $AzpBranchName = $env:BUILD_SOURCEBRANCH
+    if ([string]::IsNullOrWhiteSpace($AzpBranchName)) {
+        # Non azure build
+        $BranchName = Get-CurrentBranch -RepoDir $RootDir
+    } else {
+        # Azure Build
+        $BranchName = $AzpBranchName.Substring(11);
+    }
+} else {
+    # PR Build
+    $BranchName = $PrBranchName
+}
+
+if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
+    $BranchName = $ForceBranchName
+}
+
+$LastCommitHash = Get-LatestCommitHash -Branch $BranchName
+$PreviousResults = Get-LatestWanTestResult -Branch $BranchName -CommitHash $LastCommitHash
+
 # Default TLS based on current platform.
 if ("" -eq $Tls) {
     if ($IsWindows) {
@@ -170,7 +257,7 @@ if ($LogProfile -ne "None") {
     } catch {
     }
     New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
-    dir $LogScript | Write-Debug
+    Get-ChildItem $LogScript | Write-Debug
 }
 
 $Platform = $IsWindows ? "windows" : "linux"
@@ -201,7 +288,7 @@ $p.StartInfo = $pinfo
 $p.Start() | Out-Null
 
 # Wait for the server(s) to come up.
-Sleep -Seconds 1
+Start-Sleep -Seconds 1
 
 $OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
@@ -224,6 +311,8 @@ Set-NetAdapterAdvancedProperty duo? -DisplayName RdqEnabled -RegistryValue 1 -No
 Set-NetAdapterLso duo? -IPv4Enabled $false -IPv6Enabled $false -NoRestart
 
 $RunResults = [Results]::new($PlatformName)
+
+$RemoteResults = $PreviousResults.$PlatformName
 
 # Loop over all the network emulation configurations.
 foreach ($ThisRttMs in $RttMs) {
@@ -285,7 +374,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             $Rate = 0
             $Command = "$QuicPerf -test:tput -tcp:$UseTcp -maxruntime:$MaxRuntimeMs -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
             Write-Debug $Command
-            $Output = [string](iex $Command)
+            $Output = [string](Invoke-Expression $Command)
             Write-Debug $Output
             if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:")) {
                 # Don't treat one failure as fatal for the whole run. Just print
@@ -314,7 +403,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         }
 
         # Grab the average result and write the CSV output.
-        $RateKbps = [int]($Results | where {$_ -ne 0} | Measure-Object -Average).Average
+        $RateKbps = [int]($Results | Where-Object {$_ -ne 0} | Measure-Object -Average).Average
         $Row = "$ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisDurationMs, $ThisPacing, $RateKbps"
         for ($i = 0; $i -lt $NumIterations; $i++) {
             $Row += ", $($Results[$i])"
@@ -322,6 +411,17 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         $RunResult = [TestResult]::new($ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisDurationMs, $ThisPacing, $RateKbps, $Results);
         $RunResults.Runs.Add($RunResult)
         Write-Host $Row
+        $RemoteResult = Find-MatchingTest -TestResult $RunResult -RemoteResults $RemoteResults
+        if ($null -ne $RemoteResult) {
+            $MedianLastResult = $RemoteResult.RawKbps
+            $PercentDiff = 100 * (($RateKbps - $MedianLastResult) / $MedianLastResult)
+            $PercentDiffStr = $PercentDiff.ToString("#.##")
+            if ($PercentDiff -ge 0) {
+                $PercentDiffStr = "+$PercentDiffStr"
+            }
+            Write-Output "Median: $RawKbps ($PercentDiffStr%)"
+            Write-Output "Remote: $MedianLastResult"
+        }
     }}}
 
 }}}}}}
