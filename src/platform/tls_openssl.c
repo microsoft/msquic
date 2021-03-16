@@ -56,6 +56,11 @@ typedef struct CXPLAT_SEC_CONFIG {
     //
     QUIC_CREDENTIAL_FLAGS Flags;
 
+    //
+    // Internal TLS credential flags.
+    //
+    CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags;
+
 } CXPLAT_SEC_CONFIG;
 
 //
@@ -573,6 +578,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
@@ -649,6 +655,7 @@ CxPlatTlsSecConfigCreate(
 
     SecurityConfig->Callbacks = *TlsCallbacks;
     SecurityConfig->Flags = CredConfig->Flags;
+    SecurityConfig->TlsFlags = TlsCredFlags;
 
     //
     // Create the a SSL context for the security config.
@@ -745,6 +752,33 @@ CxPlatTlsSecConfigCreate(
             "SSL_CTX_set_quic_method failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
+    }
+
+    if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
+        if (!(TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
+            Ret = SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, 0xFFFFFFFF);
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_set_max_early_data failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
+        } else {
+            Ret = SSL_CTX_set_num_tickets(SecurityConfig->SSLCtx, 0);
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_set_num_tickets failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+        }
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
@@ -1009,11 +1043,21 @@ CxPlatTlsInitialize(
 
     if (Config->IsServer) {
         SSL_set_accept_state(TlsContext->Ssl);
-        //SSL_set_quic_early_data_enabled(TlsContext->Ssl, 1);
     } else {
         SSL_set_connect_state(TlsContext->Ssl);
         SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
         SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
+    }
+
+    if (!(Config->SecConfig->TlsFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
+
+        if (Config->ResumptionTicketLength != 0) {
+            CXPLAT_DBG_ASSERT(Config->ResumptionTicketBuffer != NULL); // TODO set
+        }
+
+        if (Config->IsServer || (Config->ResumptionTicketLength != 0)) {
+            SSL_set_quic_early_data_enabled(TlsContext->Ssl, 1);
+        }
     }
 
     SSL_set_quic_use_legacy_codepoint(
@@ -1086,9 +1130,6 @@ CxPlatTlsProcessData(
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     )
 {
-    int Ret = 0;
-    int Err = 0;
-
     CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
     if (DataType == CXPLAT_TLS_TICKET_DATA) {
@@ -1129,9 +1170,9 @@ CxPlatTlsProcessData(
     }
 
     if (!State->HandshakeComplete) {
-        Ret = SSL_do_handshake(TlsContext->Ssl);
+        int Ret = SSL_do_handshake(TlsContext->Ssl);
         if (Ret <= 0) {
-            Err = SSL_get_error(TlsContext->Ssl, Ret);
+            int Err = SSL_get_error(TlsContext->Ssl, Ret);
             switch (Err) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
@@ -1231,40 +1272,32 @@ CxPlatTlsProcessData(
                 goto Exit;
             }
         }
-    }
 
-    Ret = SSL_do_handshake(TlsContext->Ssl);
-    if (Ret != 1) {
-        Err = SSL_get_error(TlsContext->Ssl, Ret);
-        switch (Err) {
-        case SSL_ERROR_WANT_READ:
-        case SSL_ERROR_WANT_WRITE:
-            goto Exit;
-
-        case SSL_ERROR_SSL: {
-            char buf[256];
-            const char* file;
-            int line;
-            ERR_error_string_n(ERR_get_error_line(&file, &line), buf, sizeof(buf));
-            QuicTraceLogConnError(
-                OpenSslHandshakeErrorStr,
-                TlsContext->Connection,
-                "TLS handshake error: %s, file:%s:%d",
-                buf,
-                (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
-                line);
+    } else {
+        if (SSL_process_quic_post_handshake(TlsContext->Ssl) != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_process_quic_post_handshake failed");
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
         }
 
-        default:
-            QuicTraceLogConnError(
-                OpenSslHandshakeError,
-                TlsContext->Connection,
-                "TLS handshake error: %d",
-                Err);
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            goto Exit;
+        if (!TlsContext->IsServer) {
+            SSL_SESSION* Session = SSL_get_session(TlsContext->Ssl);
+            if (Session == NULL) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "SSL_get1_session failed");
+            } else {
+                // TODO - Serialize session bytes
+                TlsContext->SecConfig->Callbacks.ReceiveTicket(
+                    TlsContext->Connection,
+                    0,
+                    NULL);
+            }
         }
     }
 

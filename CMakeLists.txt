@@ -130,6 +130,7 @@ option(QUIC_CI "CI Specific build optimizations" OFF)
 option(QUIC_RANDOM_ALLOC_FAIL "Randomly fails allocation calls" OFF)
 option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
+option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -521,8 +522,10 @@ if(QUIC_TLS STREQUAL "openssl")
             # need to build with Apple's compiler
             if (CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
                 set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-arm64-cc)
-            else()
+            elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
                 set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch x86_64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-x86_64-cc)
+            else()
+                set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
             endif()
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
@@ -543,13 +546,6 @@ if(QUIC_TLS STREQUAL "openssl")
             DEPENDS ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-        add_library(OpenSSL_Crypto STATIC IMPORTED)
-        set_target_properties(OpenSSL_Crypto PROPERTIES
-            IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-            IMPORTED_LINK_INTERFACE_LANGUAGES "C")
-
-        add_dependencies(OpenSSL_Crypto OpenSSL_Build)
-
         file(MAKE_DIRECTORY ${OPENSSL_DIR}/include)
 
         add_library(OpenSSL STATIC IMPORTED)
@@ -558,7 +554,27 @@ if(QUIC_TLS STREQUAL "openssl")
             IMPORTED_LINK_INTERFACE_LANGUAGES "C")
 
         target_include_directories(OpenSSL INTERFACE ${OPENSSL_DIR}/include)
-        target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
+
+        if (QUIC_USE_SYSTEM_LIBCRYPTO)
+            include(FindOpenSSL)
+            if (OPENSSL_FOUND)
+                if (OPENSSL_VERSION VERSION_EQUAL 1.1.1)
+                    target_link_libraries(OpenSSL INTERFACE OpenSSL::Crypto)
+                else()
+                    message(FATAL_ERROR "OpenSSL 1.1.1 not found, found ${OPENSSL_VERSION}")
+                endif()
+            else()
+                message(FATAL_ERROR "System OpenSSL not found when requested")
+            endif()
+        else()
+            add_library(OpenSSL_Crypto STATIC IMPORTED)
+            set_target_properties(OpenSSL_Crypto PROPERTIES
+                IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+                IMPORTED_LINK_INTERFACE_LANGUAGES "C")
+
+            add_dependencies(OpenSSL_Crypto OpenSSL_Build)
+            target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
+        endif()
         add_dependencies(OpenSSL OpenSSL_Build)
     endif()
 endif()

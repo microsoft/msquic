@@ -82,6 +82,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsContext::TlsServerCallbacks,
                 &ServerSecConfig,
                 OnSecConfigCreateComplete));
@@ -91,6 +92,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsContext::TlsServerCallbacks,
                 &ServerSecConfigClientAuth,
                 OnSecConfigCreateComplete));
@@ -107,6 +109,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 &ClientCredConfig,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsContext::TlsClientCallbacks,
                 &ClientSecConfig,
                 OnSecConfigCreateComplete));
@@ -116,6 +119,7 @@ protected:
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED | QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION;
         CxPlatTlsSecConfigCreate( // Don't assert as this is expected to fail on some platforms
             &ClientCredConfig,
+            CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
             &TlsContext::TlsClientCallbacks,
             &ClientSecConfigDeferredCertValidation,
             OnSecConfigCreateComplete);
@@ -125,6 +129,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 &ClientCredConfig,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsContext::TlsClientCallbacks,
                 &ClientSecConfigCustomCertValidation,
                 OnSecConfigCreateComplete));
@@ -135,6 +140,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 &ClientCredConfig,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsContext::TlsClientCallbacks,
                 &ClientSecConfigExtraCertValidation,
                 OnSecConfigCreateComplete));
@@ -145,6 +151,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 &ClientCredConfig,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsContext::TlsClientCallbacks,
                 &ClientSecConfigNoCertValidation,
                 OnSecConfigCreateComplete));
@@ -154,6 +161,7 @@ protected:
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 ClientCertParams,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsContext::TlsClientCallbacks,
                 &ClientSecConfigClientCertNoCertValidation,
                 OnSecConfigCreateComplete));

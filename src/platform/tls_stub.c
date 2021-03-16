@@ -191,6 +191,7 @@ typedef struct CXPLAT_SEC_CONFIG {
 
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
+    CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags;
     CXPLAT_TLS_CALLBACKS Callbacks;
     QUIC_CERTIFICATE* Certificate;
     QUIC_TICKET_KEY_CONFIG TicketKeyConfig;
@@ -281,6 +282,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
@@ -318,6 +320,7 @@ CxPlatTlsSecConfigCreate(
     CxPlatZeroMemory(SecurityConfig, sizeof(CXPLAT_SEC_CONFIG));
     SecurityConfig->Type = CredConfig->Type;
     SecurityConfig->Flags = CredConfig->Flags;
+    SecurityConfig->TlsFlags = TlsCredFlags;
     SecurityConfig->Callbacks = *TlsCallbacks;
 
     if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {

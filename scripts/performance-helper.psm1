@@ -756,7 +756,7 @@ function Publish-ThroughputTestResults {
         }
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
-        Write-Output "Master: $LastFormatted"
+        Write-Output "Remote: $LastFormatted"
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
             #Skip no encrypt
             if ($Test.VariableName -ne "Encryption") {
@@ -913,7 +913,7 @@ function Publish-RPSTestResults {
         }
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
-        Write-Output "Master: $LastFormatted"
+        Write-Output "Remote: $LastFormatted"
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
             $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
         } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
@@ -1030,7 +1030,7 @@ function Publish-HPSTestResults {
         }
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
-        Write-Output "Master: $LastFormatted"
+        Write-Output "Remote: $LastFormatted"
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
             $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
         } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {

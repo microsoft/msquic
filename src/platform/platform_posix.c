@@ -460,8 +460,15 @@ CxPlatProcCurrentNumber(
             "=c" (cpuinfo[2]),
             "=d" (cpuinfo[3])
             : "a"(1));
-    CXPLAT_FRE_ASSERT((cpuinfo[3] & (1 << 9)) != 0);
-    return (uint32_t)cpuinfo[1] >> 24;
+    //
+    // Check flag to see if current core is part of cpuid. If not, assume
+    // core 0. Not all supported platforms (Specifically M1 under Rosetta)
+    // support this flag.
+    //
+    if ((cpuinfo[3] & (1 << 9)) != 0) {
+        return (uint32_t)cpuinfo[1] >> 24;
+    }
+    return 0;
 #else
     //
     // arm64 macOS has no way to get the current proc, so just hardcode 0.
