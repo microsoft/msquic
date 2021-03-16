@@ -461,7 +461,9 @@ CxPlatProcCurrentNumber(
             "=d" (cpuinfo[3])
             : "a"(1));
     //
-    // Cannot be an assert, as M1 running under Rosetta always has this flag 0.
+    // Check flag to see if current core is part of cpuid. If not, assume
+    // core 0. Not all supported platforms (Specifically M1 under Rosetta)
+    // support this flag.
     //
     if ((cpuinfo[3] & (1 << 9)) != 0) {
         return (uint32_t)cpuinfo[1] >> 24;
