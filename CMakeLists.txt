@@ -522,8 +522,10 @@ if(QUIC_TLS STREQUAL "openssl")
             # need to build with Apple's compiler
             if (CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
                 set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-arm64-cc)
-            else()
+            elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
                 set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch x86_64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-x86_64-cc)
+            else()
+                set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
             endif()
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
