@@ -19,6 +19,7 @@ Environment:
 #include <inttypes.h>
 #include <linux/filter.h>
 #include <linux/in6.h>
+#include <linux/udp.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #ifdef QUIC_CLOG
@@ -30,6 +31,11 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 
 #define CXPLAT_MAX_BATCH_SEND 7
 #define CXPLAT_MAX_BATCH_RECEIVE 7
+
+//
+// The maximum single buffer size for sending coalesced payloads.
+//
+#define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
 
 //
 // A receive block to receive a UDP packet over the sockets.
@@ -104,6 +110,16 @@ typedef struct CXPLAT_SEND_DATA {
     size_t SentMessagesCount;
 
     //
+    // The send segmentation size; zero if segmentation is not performed.
+    //
+    uint16_t SegmentSize;
+
+    //
+    // The total buffer size for WsaBuffers.
+    //
+    uint32_t TotalSize;
+
+    //
     // BufferCount - The buffer count in use.
     //
     // CurrentIndex - The current index of the Buffers to be sent.
@@ -119,6 +135,11 @@ typedef struct CXPLAT_SEND_DATA {
     size_t CurrentIndex;
     QUIC_BUFFER Buffers[CXPLAT_MAX_BATCH_SEND];
     struct iovec Iovs[CXPLAT_MAX_BATCH_SEND];
+
+    //
+    // The WSABUF returned to the client for segmented sends.
+    //
+    QUIC_BUFFER ClientBuffer;
 
 } CXPLAT_SEND_DATA;
 
@@ -299,6 +320,12 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
     CXPLAT_POOL SendBufferPool;
 
     //
+    // Pool of large segmented send buffers to be shared by all sockets on this
+    // core.
+    //
+    CXPLAT_POOL LargeSendBufferPool;
+
+    //
     // Pool of send contexts to be shared by all sockets on this core.
     //
     CXPLAT_POOL SendContextPool;
@@ -316,6 +343,8 @@ typedef struct CXPLAT_DATAPATH {
     // Make sure events are in front for cache alignment.
     //
     CXPLAT_RUNDOWN_REF BindingsRundown;
+
+    uint32_t Features;
 
     //
     // If datapath is shutting down.
@@ -365,6 +394,55 @@ CxPlatSocketSendInternal(
     );
 
 QUIC_STATUS
+CxPlatDataPathQuerySockoptSupport(
+    _Inout_ CXPLAT_DATAPATH* Datapath
+    )
+{
+    int Result;
+    socklen_t OptionLength;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    int UdpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (UdpSocket == INVALID_SOCKET) {
+        int SockError = errno;
+        QuicTraceLogWarning(
+            DatapathOpenUdpSocketFailed,
+            "[data] UDP send segmentation helper socket failed to open, 0x%x",
+            SockError);
+        goto Error;
+    }
+
+#ifdef UDP_SEGMENT
+    int SegmentSize;
+    OptionLength = sizeof(SegmentSize);
+    Result =
+        getsockopt(
+            UdpSocket,
+            IPPROTO_UDP,
+            UDP_SEGMENT,
+            &SegmentSize,
+            &OptionLength);
+    if (Result != 0) {
+        int SockError = errno;
+        QuicTraceLogWarning(
+            DatapathOpenUdpSocketFailed,
+            "[data] Query for UDP_SEGMENT failed, 0x%x",
+            SockError);
+    } else {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
+        printf("Enabling Segmentation\n");
+    }
+#endif
+
+Error:
+    if (UdpSocket != INVALID_SOCKET) {
+        close(UdpSocket);
+    }
+
+    return Status;
+}
+
+QUIC_STATUS
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t Index,
@@ -394,6 +472,11 @@ CxPlatProcessorContextInitialize(
         MAX_UDP_PAYLOAD_LENGTH,
         QUIC_POOL_DATA,
         &ProcContext->SendBufferPool);
+    CxPlatPoolInitialize(
+        TRUE,
+        CXPLAT_LARGE_SEND_BUFFER_SIZE,
+        QUIC_POOL_DATA,
+        &ProcContext->LargeSendBufferPool);
     CxPlatPoolInitialize(
         TRUE,
         sizeof(CXPLAT_SEND_DATA),
@@ -483,6 +566,7 @@ Exit:
             close(EpollFd);
         }
         CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
+        CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
         CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
         CxPlatPoolUninitialize(&ProcContext->SendContextPool);
     }
@@ -505,6 +589,7 @@ CxPlatProcessorContextUninitialize(
     close(ProcContext->EpollFd);
 
     CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
+    CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
     CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
     CxPlatPoolUninitialize(&ProcContext->SendContextPool);
 }
@@ -559,6 +644,10 @@ CxPlatDataPathInitialize(
     Datapath->ProcCount = CxPlatProcMaxCount();
     Datapath->MaxSendBatchSize = CXPLAT_MAX_BATCH_SEND;
     CxPlatRundownInitialize(&Datapath->BindingsRundown);
+    Status = CxPlatDataPathQuerySockoptSupport(Datapath);
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
+    }
 
     //
     // Initialize the per processor contexts.
@@ -2006,6 +2095,8 @@ CxPlatRecvDataReturn(
 #endif
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
 CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
@@ -2013,20 +2104,14 @@ CxPlatSendDataAlloc(
     _In_ uint16_t MaxPacketSize
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->SendDataAlloc(
-            Socket,
-            ECN,
-            MaxPacketSize);
-#else
-    UNREFERENCED_PARAMETER(MaxPacketSize);
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
+    CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc =
         &Socket->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount];
+
     CXPLAT_SEND_DATA* SendContext =
-        CxPlatPoolAlloc(&ProcContext->SendContextPool);
+        CxPlatPoolAlloc(&DatapathProc->SendContextPool);
+
     if (SendContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -2037,105 +2122,428 @@ CxPlatSendDataAlloc(
     }
 
     CxPlatZeroMemory(SendContext, sizeof(*SendContext));
-    SendContext->Owner = ProcContext;
+
+    SendContext->Owner = DatapathProc;
     SendContext->ECN = ECN;
+    SendContext->SegmentSize =
+        (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
+            ? MaxPacketSize : 0;
+        // SendContext->TotalSize = 0;
+        // SendContext->WsaBufferCount = 0;
+        // SendContext->ClientBuffer.len = 0;
+        // SendContext->ClientBuffer.buf = NULL;
 
 Exit:
-
     return SendContext;
-#endif
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFree(
-    _In_ CXPLAT_SEND_DATA* SendData
+    _In_ CXPLAT_SEND_DATA* SendContext
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->SendDataFree(SendData);
-#else
-    size_t i = 0;
-    for (i = 0; i < SendData->BufferCount; ++i) {
-        CxPlatPoolFree(
-            &SendData->Owner->SendBufferPool,
-            SendData->Buffers[i].Buffer);
-        SendData->Buffers[i].Buffer = NULL;
+    CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc = SendContext->Owner;
+    CXPLAT_POOL* BufferPool =
+        SendContext->SegmentSize > 0 ?
+            &DatapathProc->LargeSendBufferPool : &DatapathProc->SendBufferPool;
+
+    for (uint8_t i = 0; i < SendContext->BufferCount; ++i) {
+        CxPlatPoolFree(BufferPool, SendContext->Buffers[i].Buffer);
     }
 
-    CxPlatPoolFree(&SendData->Owner->SendContextPool, SendData);
-#endif
+    CxPlatPoolFree(&DatapathProc->SendContextPool, SendContext);
 }
 
-QUIC_BUFFER*
-CxPlatSendDataAllocBuffer(
-    _In_ CXPLAT_SEND_DATA* SendData,
+static
+BOOLEAN
+CxPlatSendContextCanAllocSendSegment(
+    _In_ CXPLAT_SEND_DATA* SendContext,
     _In_ uint16_t MaxBufferLength
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
+    CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0);
+    CXPLAT_DBG_ASSERT(SendContext->BufferCount > 0);
+    //CXPLAT_DBG_ASSERT(SendContext->WsaBufferCount <= SendContext->Owner->Datapath->MaxSendBatchSize);
+
+    uint64_t BytesAvailable =
+        CXPLAT_LARGE_SEND_BUFFER_SIZE -
+            SendContext->Buffers[SendContext->BufferCount - 1].Length -
+            SendContext->ClientBuffer.Length;
+
+    return MaxBufferLength <= BytesAvailable;
+}
+
+static
+BOOLEAN
+CxPlatSendContextCanAllocSend(
+    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ uint16_t MaxBufferLength
+    )
+{
     return
-        PlatDispatch->SendDataAllocBuffer(
-            SendData,
-            MaxBufferLength);
-#else
-    QUIC_BUFFER* Buffer = NULL;
+        (SendContext->BufferCount < SendContext->Owner->Datapath->MaxSendBatchSize) ||
+        ((SendContext->SegmentSize > 0) &&
+            CxPlatSendContextCanAllocSendSegment(SendContext, MaxBufferLength));
+}
 
-    CXPLAT_DBG_ASSERT(SendData != NULL);
-    CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
-
-    if (SendData->BufferCount ==
-            SendData->Owner->Datapath->MaxSendBatchSize) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Max batch size limit hit");
-        goto Exit;
+static
+void
+CxPlatSendContextFinalizeSendBuffer(
+    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ BOOLEAN IsSendingImmediately
+    )
+{
+    if (SendContext->ClientBuffer.Length == 0) {
+        //
+        // There is no buffer segment outstanding at the client.
+        //
+        if (SendContext->BufferCount > 0) {
+            CXPLAT_DBG_ASSERT(SendContext->Buffers[SendContext->BufferCount - 1].Length < UINT16_MAX);
+            SendContext->TotalSize +=
+                SendContext->Buffers[SendContext->BufferCount - 1].Length;
+        }
+        return;
     }
 
-    Buffer = &SendData->Buffers[SendData->BufferCount];
-    CxPlatZeroMemory(Buffer, sizeof(*Buffer));
+    CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0 && SendContext->BufferCount > 0);
+    CXPLAT_DBG_ASSERT(SendContext->ClientBuffer.Length > 0 && SendContext->ClientBuffer.Length <= SendContext->SegmentSize);
+    CXPLAT_DBG_ASSERT(CxPlatSendContextCanAllocSendSegment(SendContext, 0));
 
-    Buffer->Buffer = CxPlatPoolAlloc(&SendData->Owner->SendBufferPool);
-    if (Buffer->Buffer == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Send Buffer",
-            0);
-        Buffer = NULL;
-        goto Exit;
+    //
+    // Append the client's buffer segment to our internal send buffer.
+    //
+    SendContext->Buffers[SendContext->BufferCount - 1].Length +=
+        SendContext->ClientBuffer.Length;
+    SendContext->TotalSize += SendContext->ClientBuffer.Length;
+
+    if (SendContext->ClientBuffer.Length == SendContext->SegmentSize) {
+        SendContext->ClientBuffer.Buffer += SendContext->SegmentSize;
+        SendContext->ClientBuffer.Length = 0;
+    } else {
+        //
+        // The next segment allocation must create a new backing buffer.
+        //
+        CXPLAT_DBG_ASSERT(IsSendingImmediately); // Future: Refactor so it's impossible to hit this.
+        UNREFERENCED_PARAMETER(IsSendingImmediately);
+        SendContext->ClientBuffer.Buffer = NULL;
+        SendContext->ClientBuffer.Length = 0;
+    }
+}
+
+_Success_(return != NULL)
+static
+QUIC_BUFFER*
+CxPlatSendContextAllocBuffer(
+    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_POOL* BufferPool
+    )
+{
+    CXPLAT_DBG_ASSERT(SendContext->BufferCount < SendContext->Owner->Datapath->MaxSendBatchSize);
+
+    QUIC_BUFFER* WsaBuffer = &SendContext->Buffers[SendContext->BufferCount];
+    WsaBuffer->Buffer = CxPlatPoolAlloc(BufferPool);
+    if (WsaBuffer->Buffer == NULL) {
+        return NULL;
+    }
+    ++SendContext->BufferCount;
+
+    return WsaBuffer;
+}
+
+_Success_(return != NULL)
+static
+QUIC_BUFFER*
+CxPlatSendContextAllocPacketBuffer(
+    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ uint16_t MaxBufferLength
+    )
+{
+    QUIC_BUFFER* WsaBuffer =
+        CxPlatSendContextAllocBuffer(SendContext, &SendContext->Owner->SendBufferPool);
+    if (WsaBuffer != NULL) {
+        WsaBuffer->Length = MaxBufferLength;
+    }
+    return WsaBuffer;
+}
+
+_Success_(return != NULL)
+static
+QUIC_BUFFER*
+CxPlatSendContextAllocSegmentBuffer(
+    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ uint16_t MaxBufferLength
+    )
+{
+    CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0);
+    CXPLAT_DBG_ASSERT(MaxBufferLength <= SendContext->SegmentSize);
+
+    CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc = SendContext->Owner;
+    QUIC_BUFFER* WsaBuffer;
+
+    if (SendContext->ClientBuffer.Buffer != NULL &&
+        CxPlatSendContextCanAllocSendSegment(SendContext, MaxBufferLength)) {
+
+        //
+        // All clear to return the next segment of our contiguous buffer.
+        //
+        SendContext->ClientBuffer.Length = MaxBufferLength;
+        return (QUIC_BUFFER*)&SendContext->ClientBuffer;
     }
 
-    Buffer->Length = MaxBufferLength;
+    WsaBuffer = CxPlatSendContextAllocBuffer(SendContext, &DatapathProc->LargeSendBufferPool);
+    if (WsaBuffer == NULL) {
+        return NULL;
+    }
 
-    SendData->Iovs[SendData->BufferCount].iov_base = Buffer->Buffer;
-    SendData->Iovs[SendData->BufferCount].iov_len = Buffer->Length;
+    //
+    // Provide a virtual WSABUF to the client. Once the client has committed
+    // to a final send size, we'll append it to our internal backing buffer.
+    //
+    WsaBuffer->Length = 0;
+    SendContext->ClientBuffer.Buffer = WsaBuffer->Buffer;
+    SendContext->ClientBuffer.Length = MaxBufferLength;
 
-    ++SendData->BufferCount;
+    return (QUIC_BUFFER*)&SendContext->ClientBuffer;
+}
 
-Exit:
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
+QUIC_BUFFER*
+CxPlatSendDataAllocBuffer(
+    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ uint16_t MaxBufferLength
+    )
+{
+    CXPLAT_DBG_ASSERT(SendContext != NULL);
+    CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
+    //CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
 
-    return Buffer;
-#endif
+    CxPlatSendContextFinalizeSendBuffer(SendContext, FALSE);
+
+    if (!CxPlatSendContextCanAllocSend(SendContext, MaxBufferLength)) {
+        return NULL;
+    }
+
+    if (SendContext->SegmentSize == 0) {
+        return CxPlatSendContextAllocPacketBuffer(SendContext, MaxBufferLength);
+    } else {
+        return CxPlatSendContextAllocSegmentBuffer(SendContext, MaxBufferLength);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatSendDataFreeBuffer(
+    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ QUIC_BUFFER* Datagram
+    )
+{
+    //
+    // This must be the final send buffer; intermediate buffers cannot be freed.
+    //
+    CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc = SendContext->Owner;
+    uint8_t* TailBuffer = SendContext->Buffers[SendContext->BufferCount - 1].Buffer;
+
+    if (SendContext->SegmentSize == 0) {
+        CXPLAT_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
+
+        CxPlatPoolFree(&DatapathProc->SendBufferPool, Datagram->Buffer);
+        --SendContext->BufferCount;
+    } else {
+        TailBuffer += SendContext->Buffers[SendContext->BufferCount - 1].Length;
+        CXPLAT_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
+
+        if (SendContext->Buffers[SendContext->BufferCount - 1].Length == 0) {
+            CxPlatPoolFree(&DatapathProc->LargeSendBufferPool, Datagram->Buffer);
+            --SendContext->BufferCount;
+        }
+
+        SendContext->ClientBuffer.Buffer = NULL;
+        SendContext->ClientBuffer.Length = 0;
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatSendDataIsFull(
+    _In_ CXPLAT_SEND_DATA* SendContext
+    )
+{
+    return !CxPlatSendContextCanAllocSend(SendContext, SendContext->SegmentSize);
 }
 
 void
-CxPlatSendDataFreeBuffer(
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ QUIC_BUFFER* Buffer
+CxPlatSendContextComplete(
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketProc,
+    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ uint64_t IoResult
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->SendDataFreeBuffer(SendData, Buffer);
-#else
-    CxPlatPoolFree(&SendData->Owner->SendBufferPool, Buffer->Buffer);
-    Buffer->Buffer = NULL;
+    if (IoResult != QUIC_STATUS_SUCCESS) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Binding,
+            IoResult,
+            "WSASendMsg completion");
+    }
 
-    CXPLAT_DBG_ASSERT(Buffer == &SendData->Buffers[SendData->BufferCount - 1]);
+    // TODO to add TCP
+    // if (SocketProc->Parent->Type != CXPLAT_SOCKET_UDP) {
+    //     SocketProc->Parent->Datapath->TcpHandlers.SendComplete(
+    //         SocketProc->Parent,
+    //         SocketProc->Parent->ClientContext,
+    //         IoResult,
+    //         SendContext->TotalSize);
+    // }
 
-    --SendData->BufferCount;
-#endif
+    CxPlatSendDataFree(SendContext);
 }
+
+
+// CXPLAT_SEND_DATA*
+// CxPlatSendDataAlloc(
+//     _In_ CXPLAT_SOCKET* Socket,
+//     _In_ CXPLAT_ECN_TYPE ECN,
+//     _In_ uint16_t MaxPacketSize
+//     )
+// {
+// #ifdef CX_PLATFORM_DISPATCH_TABLE
+//     return
+//         PlatDispatch->SendDataAlloc(
+//             Socket,
+//             ECN,
+//             MaxPacketSize);
+// #else
+//     UNREFERENCED_PARAMETER(MaxPacketSize);
+//     CXPLAT_DBG_ASSERT(Socket != NULL);
+
+//     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
+//         &Socket->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount];
+//     CXPLAT_SEND_DATA* SendContext =
+//         CxPlatPoolAlloc(&ProcContext->SendContextPool);
+//     if (SendContext == NULL) {
+//         QuicTraceEvent(
+//             AllocFailure,
+//             "Allocation of '%s' failed. (%llu bytes)",
+//             "CXPLAT_SEND_DATA",
+//             0);
+//         goto Exit;
+//     }
+
+//     CxPlatZeroMemory(SendContext, sizeof(*SendContext));
+//     SendContext->Owner = ProcContext;
+//     SendContext->ECN = ECN;
+
+// Exit:
+
+//     return SendContext;
+// #endif
+// }
+
+// void
+// CxPlatSendDataFree(
+//     _In_ CXPLAT_SEND_DATA* SendData
+//     )
+// {
+// #ifdef CX_PLATFORM_DISPATCH_TABLE
+//     PlatDispatch->SendDataFree(SendData);
+// #else
+//     size_t i = 0;
+//     for (i = 0; i < SendData->BufferCount; ++i) {
+//         CxPlatPoolFree(
+//             &SendData->Owner->SendBufferPool,
+//             SendData->Buffers[i].Buffer);
+//         SendData->Buffers[i].Buffer = NULL;
+//     }
+
+//     CxPlatPoolFree(&SendData->Owner->SendContextPool, SendData);
+// #endif
+// }
+
+// QUIC_BUFFER*
+// CxPlatSendDataAllocBuffer(
+//     _In_ CXPLAT_SEND_DATA* SendData,
+//     _In_ uint16_t MaxBufferLength
+//     )
+// {
+// #ifdef CX_PLATFORM_DISPATCH_TABLE
+//     return
+//         PlatDispatch->SendDataAllocBuffer(
+//             SendData,
+//             MaxBufferLength);
+// #else
+//     QUIC_BUFFER* Buffer = NULL;
+
+//     CXPLAT_DBG_ASSERT(SendData != NULL);
+//     CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
+
+//     if (SendData->BufferCount ==
+//             SendData->Owner->Datapath->MaxSendBatchSize) {
+//         QuicTraceEvent(
+//             LibraryError,
+//             "[ lib] ERROR, %s.",
+//             "Max batch size limit hit");
+//         goto Exit;
+//     }
+
+//     Buffer = &SendData->Buffers[SendData->BufferCount];
+//     CxPlatZeroMemory(Buffer, sizeof(*Buffer));
+
+//     Buffer->Buffer = CxPlatPoolAlloc(&SendData->Owner->SendBufferPool);
+//     if (Buffer->Buffer == NULL) {
+//         QuicTraceEvent(
+//             AllocFailure,
+//             "Allocation of '%s' failed. (%llu bytes)",
+//             "Send Buffer",
+//             0);
+//         Buffer = NULL;
+//         goto Exit;
+//     }
+
+//     Buffer->Length = MaxBufferLength;
+
+//     SendData->Iovs[SendData->BufferCount].iov_base = Buffer->Buffer;
+//     SendData->Iovs[SendData->BufferCount].iov_len = Buffer->Length;
+
+//     ++SendData->BufferCount;
+
+// Exit:
+
+//     return Buffer;
+// #endif
+// }
+
+// void
+// CxPlatSendDataFreeBuffer(
+//     _In_ CXPLAT_SEND_DATA* SendData,
+//     _In_ QUIC_BUFFER* Buffer
+//     )
+// {
+// #ifdef CX_PLATFORM_DISPATCH_TABLE
+//     PlatDispatch->SendDataFreeBuffer(SendData, Buffer);
+// #else
+//     CxPlatPoolFree(&SendData->Owner->SendBufferPool, Buffer->Buffer);
+//     Buffer->Buffer = NULL;
+
+//     CXPLAT_DBG_ASSERT(Buffer == &SendData->Buffers[SendData->BufferCount - 1]);
+
+//     --SendData->BufferCount;
+// #endif
+// }
+
+// BOOLEAN
+// CxPlatSendDataIsFull(
+//     _In_ CXPLAT_SEND_DATA* SendData
+//     )
+// {
+// #ifdef CX_PLATFORM_DISPATCH_TABLE
+//     return PlatDispatch->SendDataIsFull(SendData);
+// #else
+//     return SendData->BufferCount == SendData->Owner->Datapath->MaxSendBatchSize;
+// #endif
+// }
 
 QUIC_STATUS
 CxPlatSocketSendInternal(
@@ -2162,13 +2570,23 @@ CxPlatSocketSendInternal(
     CXPLAT_STATIC_ASSERT(
         CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)),
         "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
-    char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
+    char ControlBuffer[
+        CMSG_SPACE(sizeof(struct in6_pktinfo)) +
+        CMSG_SPACE(sizeof(int))
+    #ifdef UDP_SEGMENT
+        + CMSG_SPACE(sizeof(uint16_t))
+    #endif
+        ] = {0};
 
     if (Socket->HasFixedRemoteAddress) {
         SocketContext = &Socket->SocketContexts[0];
     } else {
         uint32_t ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
         SocketContext = &Socket->SocketContexts[ProcNumber];
+    }
+
+    if (!IsPendedSend) {
+        CxPlatSendContextFinalizeSendBuffer(SendData, TRUE);
     }
 
     uint32_t TotalSize = 0;
@@ -2264,6 +2682,18 @@ CxPlatSocketSendInternal(
                 PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
             }
         }
+
+#ifdef UDP_SEGMENT
+        if (SendData->SegmentSize > 0) {
+            Mhdr->msg_controllen += CMSG_SPACE(sizeof(uint16_t));
+            CMsg = CMSG_NXTHDR(Mhdr, CMsg);
+            CXPLAT_DBG_ASSERT(CMsg != NULL);
+            CMsg->cmsg_level = IPPROTO_IPV6;
+            CMsg->cmsg_type = UDP_SEGMENT;
+            CMsg->cmsg_len = CMSG_LEN(sizeof(uint16_t));
+            *((uint16_t*) CMSG_DATA(CMsg)) = SendData->SegmentSize;
+        }
+#endif
     }
 
     while (SendData->SentMessagesCount < TotalMessagesCount) {
@@ -2350,7 +2780,8 @@ CxPlatSocketSendInternal(
 Exit:
 
     if (!SendPending && !IsPendedSend) {
-        CxPlatSendDataFree(SendData);
+        // TODO Add TCP when necessary
+        CxPlatSendContextComplete(SocketContext, SendData, Status);
     }
 
     return Status;
@@ -2458,16 +2889,4 @@ CxPlatDataPathWorkerThread(
         ProcContext);
 
     return NO_ERROR;
-}
-
-BOOLEAN
-CxPlatSendDataIsFull(
-    _In_ CXPLAT_SEND_DATA* SendData
-    )
-{
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->SendDataIsFull(SendData);
-#else
-    return SendData->BufferCount == SendData->Owner->Datapath->MaxSendBatchSize;
-#endif
 }
