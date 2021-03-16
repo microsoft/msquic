@@ -460,8 +460,13 @@ CxPlatProcCurrentNumber(
             "=c" (cpuinfo[2]),
             "=d" (cpuinfo[3])
             : "a"(1));
-    CXPLAT_FRE_ASSERT((cpuinfo[3] & (1 << 9)) != 0);
-    return (uint32_t)cpuinfo[1] >> 24;
+    //
+    // Cannot be an assert, as M1 running under Rosetta always has this flag 0.
+    //
+    if ((cpuinfo[3] & (1 << 9)) != 0) {
+        return (uint32_t)cpuinfo[1] >> 24;
+    }
+    return 0;
 #else
     //
     // arm64 macOS has no way to get the current proc, so just hardcode 0.
