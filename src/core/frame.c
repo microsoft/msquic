@@ -1194,7 +1194,7 @@ QuicAckFrequencyFrameEncode(
     )
 {
     uint16_t RequiredLength =
-        sizeof(uint8_t) +   // Type
+        QuicVarIntSize(QUIC_FRAME_ACK_FREQUENCY) +
         QuicVarIntSize(Frame->SequenceNumber) +
         QuicVarIntSize(Frame->PacketTolerance) +
         QuicVarIntSize(Frame->UpdateMaxAckDelay) +
@@ -1207,7 +1207,7 @@ QuicAckFrequencyFrameEncode(
     CXPLAT_DBG_ASSERT(Frame->IgnoreOrder <= 1); // IgnoreOrder should only be 0 or 1.
 
     Buffer = Buffer + *Offset;
-    Buffer = QuicUint8Encode(QUIC_FRAME_ACK_FREQUENCY, Buffer);
+    Buffer = QuicVarIntEncode(QUIC_FRAME_ACK_FREQUENCY, Buffer);
     Buffer = QuicVarIntEncode(Frame->SequenceNumber, Buffer);
     Buffer = QuicVarIntEncode(Frame->PacketTolerance, Buffer);
     Buffer = QuicVarIntEncode(Frame->UpdateMaxAckDelay, Buffer);
@@ -1249,19 +1249,27 @@ QuicFrameLog(
     _Inout_ uint16_t* Offset
     )
 {
-    QUIC_FRAME_TYPE FrameType = Packet[*Offset];
+    QUIC_VAR_INT FrameType INIT_NO_SAL(0);
+    if (!QuicVarIntDecode(PacketLength, Packet, Offset, &FrameType)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Frame type decode failure");
+        QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+        return FALSE;
+    }
+
     if (!QUIC_FRAME_IS_KNOWN(FrameType)) {
         QuicTraceLogVerbose(
             FrameLogUnknownType,
-            "[%c][%cX][%llu]   unknown frame (%hu)",
+            "[%c][%cX][%llu]   unknown frame (%llu)",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
             FrameType);
         return FALSE;
     }
-
-    *Offset += 1;
 
     switch (FrameType) {
 

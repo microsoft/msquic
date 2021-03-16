@@ -1080,6 +1080,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
@@ -1180,6 +1181,9 @@ CxPlatTlsSecConfigCreate(
     } else {
         Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_SERVER;
+        if (TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION) {
+            Credentials->dwFlags |= SCH_CRED_DISABLE_RECONNECTS;
+        }
     }
     //
     //  Disallow ChaCha20-Poly1305 until full support is possible.
@@ -1779,7 +1783,7 @@ CxPlatTlsWriteDataToSchannel(
     // Another (input) secbuffer to configure Schannel to use disable the TLS
     // record layer.
     //
-    static_assert(
+    CXPLAT_STATIC_ASSERT(
         ISC_REQ_MESSAGES == ASC_REQ_MESSAGES,
         "To simplify the code, we use the same value for both ISC and ASC");
     TlsContext->Workspace.InSecFlags.Flags = ISC_REQ_MESSAGES;
@@ -1879,9 +1883,11 @@ CxPlatTlsWriteDataToSchannel(
         ISC_REQ_CONFIDENTIALITY |
         ISC_RET_EXTENDED_ERROR |
         ISC_REQ_STREAM;
-    if (TlsContext->IsServer &&
-        TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
-        ContextReq |= ASC_REQ_MUTUAL_AUTH;
+    if (TlsContext->IsServer) {
+        ContextReq |= ASC_REQ_SESSION_TICKET; // Always use session tickets for resumption
+        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            ContextReq |= ASC_REQ_MUTUAL_AUTH;
+        }
     }
     ULONG ContextAttr;
     SECURITY_STATUS SecStatus;

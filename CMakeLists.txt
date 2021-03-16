@@ -130,6 +130,7 @@ option(QUIC_CI "CI Specific build optimizations" OFF)
 option(QUIC_RANDOM_ALLOC_FAIL "Randomly fails allocation calls" OFF)
 option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
+option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -258,17 +259,11 @@ if(WIN32)
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION)
     endif()
 
-    if(QUIC_TLS STREQUAL "schannel")
-        # User mode schannel doesn't support this yet.
-        message(STATUS "Disabling resumption rejection")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
-    endif()
-
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel")
-        # OpenSSL and SChannel don't support 0-RTT yet.
+        # OpenSSL and Schannel don't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
@@ -279,7 +274,7 @@ if(WIN32)
 
     if(QUIC_TLS STREQUAL "stub")
         list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
     endif()
 
     if(QUIC_ENABLE_SANITIZERS)
@@ -379,7 +374,7 @@ else()
         # OpenSSL doesn't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
@@ -398,7 +393,7 @@ else()
 
     if(QUIC_TLS STREQUAL "stub")
         list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION_REJECTION_TESTS)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
@@ -458,11 +453,17 @@ if(QUIC_TLS STREQUAL "openssl")
 
             set(OPENSSL_CONFIG_FLAGS
                 enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
-                no-zlib no-egd no-uplink no-idea no-rc5 no-rc4 no-afalgeng no-acvp_tests
-                no-comp no-cmp no-cms no-ct no-srp no-srtp no-ts no-fips no-gost no-padlockeng no-dso no-ec2m
+
+                #
+                # The following line is needed for the 3.0 branch.
+                #
+                # no-uplink no-cmp no-acvp_tests no-fips no-padlockeng no-siv
+
+                no-zlib no-egd no-idea no-rc5 no-rc4 no-afalgeng
+                no-comp no-cms no-ct no-srp no-srtp no-ts no-gost no-dso no-ec2m
                 no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
                 no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
-                no-siv no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
+                no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
                 no-weak-ssl-ciphers no-shared no-tests ${QUIC_OPENSSL_WIN_ARCH})
 
             add_custom_target(mkdir_openssl_build_debug
@@ -500,11 +501,17 @@ if(QUIC_TLS STREQUAL "openssl")
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
         set(OPENSSL_CONFIG_FLAGS
             enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
-            no-zlib no-egd no-uplink no-idea no-rc5 no-rc4 no-afalgeng no-acvp_tests
-            no-comp no-cmp no-cms no-ct no-srp no-srtp no-ts no-fips no-gost no-padlockeng no-dso no-ec2m
+
+            #
+            # The following line is needed for the 3.0 branch.
+            #
+            # no-uplink no-cmp no-acvp_tests no-fips no-padlockeng no-siv
+
+            no-zlib no-egd no-idea no-rc5 no-rc4 no-afalgeng
+            no-comp no-cms no-ct no-srp no-srtp no-ts no-gost no-dso no-ec2m
             no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
             no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
-            no-siv no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
+            no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
             no-weak-ssl-ciphers no-shared no-tests --prefix=${OPENSSL_DIR})
         if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure
@@ -514,9 +521,11 @@ if(QUIC_TLS STREQUAL "openssl")
         elseif(CX_PLATFORM STREQUAL "darwin")
             # need to build with Apple's compiler
             if (CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
-                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-arm64)
+                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-arm64-cc)
+            elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
+                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch x86_64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-x86_64-cc)
             else()
-                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch x86_64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-x86_64)
+                set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
             endif()
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
@@ -537,13 +546,6 @@ if(QUIC_TLS STREQUAL "openssl")
             DEPENDS ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-        add_library(OpenSSL_Crypto STATIC IMPORTED)
-        set_target_properties(OpenSSL_Crypto PROPERTIES
-            IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-            IMPORTED_LINK_INTERFACE_LANGUAGES "C")
-
-        add_dependencies(OpenSSL_Crypto OpenSSL_Build)
-
         file(MAKE_DIRECTORY ${OPENSSL_DIR}/include)
 
         add_library(OpenSSL STATIC IMPORTED)
@@ -552,7 +554,27 @@ if(QUIC_TLS STREQUAL "openssl")
             IMPORTED_LINK_INTERFACE_LANGUAGES "C")
 
         target_include_directories(OpenSSL INTERFACE ${OPENSSL_DIR}/include)
-        target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
+
+        if (QUIC_USE_SYSTEM_LIBCRYPTO)
+            include(FindOpenSSL)
+            if (OPENSSL_FOUND)
+                if (OPENSSL_VERSION VERSION_EQUAL 1.1.1)
+                    target_link_libraries(OpenSSL INTERFACE OpenSSL::Crypto)
+                else()
+                    message(FATAL_ERROR "OpenSSL 1.1.1 not found, found ${OPENSSL_VERSION}")
+                endif()
+            else()
+                message(FATAL_ERROR "System OpenSSL not found when requested")
+            endif()
+        else()
+            add_library(OpenSSL_Crypto STATIC IMPORTED)
+            set_target_properties(OpenSSL_Crypto PROPERTIES
+                IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+                IMPORTED_LINK_INTERFACE_LANGUAGES "C")
+
+            add_dependencies(OpenSSL_Crypto OpenSSL_Build)
+            target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
+        endif()
         add_dependencies(OpenSSL OpenSSL_Build)
     endif()
 endif()

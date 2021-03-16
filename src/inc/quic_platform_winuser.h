@@ -145,7 +145,11 @@ CxPlatUninitialize(
 #endif // DEBUG
 #endif // _PREFAST_
 
+#ifdef __clang__
+#define CXPLAT_STATIC_ASSERT(X,Y) _Static_assert(X,Y)
+#else
 #define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X,Y)
+#endif
 
 #define CXPLAT_ANALYSIS_ASSERT(X) __analysis_assert(X)
 

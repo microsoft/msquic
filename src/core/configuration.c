@@ -333,12 +333,17 @@ MsQuicConfigurationLoadCredential(
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_CONFIGURATION* Configuration = (QUIC_CONFIGURATION*)Handle;
+        CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE;
+        if (Configuration->Settings.ServerResumptionLevel == QUIC_SERVER_NO_RESUME) {
+            TlsCredFlags |= CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION;
+        }
 
         QuicConfigurationAddRef(Configuration);
 
         Status =
             CxPlatTlsSecConfigCreate(
                 CredConfig,
+                TlsCredFlags,
                 &QuicTlsCallbacks,
                 Configuration,
                 MsQuicConfigurationLoadCredentialComplete);

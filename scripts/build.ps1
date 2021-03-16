@@ -81,6 +81,12 @@ This script provides helpers for building msquic.
 .PARAMETER EnableTelemetryAsserts
     Enables telemetry asserts in release builds.
 
+.PARAMETER UseSystemOpenSSLCrypto
+    Use system provided OpenSSL libcrypto rather then statically linked. Only affects OpenSSL Linux builds
+
+.PARAMETER ExtraArtifactDir
+    Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
+
 .EXAMPLE
     build.ps1
 
@@ -167,7 +173,13 @@ param (
     [switch]$TlsSecretsSupport = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableTelemetryAsserts = $false
+    [switch]$EnableTelemetryAsserts = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseSystemOpenSSLCrypto = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ExtraArtifactDir = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -224,7 +236,12 @@ $BaseBuildDir = Join-Path $RootDir "build"
 $ArtifactsDir = Join-Path $BaseArtifactsDir "bin" $Platform
 $BuildDir = Join-Path $BaseBuildDir $Platform
 
-$ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
+if ("" -eq $ExtraArtifactDir) {
+    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
+} else {
+    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
+}
+
 $BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
 
 if ($Clean) {
@@ -338,6 +355,9 @@ function CMake-Generate {
     }
     if ($EnableTelemetryAsserts) {
         $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"
+    }
+    if ($UseSystemOpenSSLCrypto) {
+        $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
     }
     $Arguments += " ../../.."
 
