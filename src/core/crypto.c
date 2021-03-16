@@ -1297,7 +1297,7 @@ QuicCryptoProcessTlsCompletion(
             "[conn][%p] ERROR, %u, %s.",
             Connection,
             Crypto->TlsState.AlertCode,
-            "Received alert from TLS.");
+            "Received alert from TLS");
         QuicConnTransportError(
             Connection,
             QUIC_ERROR_CRYPTO_ERROR(0xFF & Crypto->TlsState.AlertCode));
@@ -1829,7 +1829,11 @@ QuicCryptoProcessAppData(
             &DataLength,
             &Crypto->TlsState);
     if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
-        Status = QUIC_STATUS_INTERNAL_ERROR;
+        if (Crypto->TlsState.AlertCode != 0) {
+            Status = QUIC_STATUS_TLS_ALERT(Crypto->TlsState.AlertCode);
+        } else {
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+        }
         goto Error;
     }
 

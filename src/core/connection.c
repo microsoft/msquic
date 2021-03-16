@@ -1577,6 +1577,9 @@ QuicConnTryClose(
         if (ResultQuicStatus) {
             Connection->CloseStatus = (QUIC_STATUS)ErrorCode;
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
+        } else if (IS_QUIC_CRYPTO_ERROR(ErrorCode)) {
+            Connection->CloseStatus = QUIC_STATUS_TLS_ALERT(ErrorCode);
+            Connection->CloseErrorCode = ErrorCode;
         } else {
             Connection->CloseStatus = QuicErrorCodeToStatus(ErrorCode);
             Connection->CloseErrorCode = ErrorCode;

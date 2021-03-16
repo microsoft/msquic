@@ -2211,7 +2211,7 @@ QuicTestConnectExpiredServerCertificate(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
-                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
+                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_EXPIRED_CERTIFICATE);
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -2227,7 +2227,7 @@ QuicTestConnectExpiredServerCertificate(
                 TEST_EQUAL(false, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
-                Server->SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
+                Server->SetExpectedTransportCloseStatus(QUIC_STATUS_EXPIRED_CERTIFICATE);
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
