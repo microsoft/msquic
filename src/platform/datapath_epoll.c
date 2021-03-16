@@ -19,7 +19,7 @@ Environment:
 #include <inttypes.h>
 #include <linux/filter.h>
 #include <linux/in6.h>
-#include <linux/udp.h>
+#include <netinet/udp.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #ifdef QUIC_CLOG
@@ -430,7 +430,6 @@ CxPlatDataPathQuerySockoptSupport(
             SockError);
     } else {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
-        printf("Enabling Segmentation\n");
     }
 #endif
 
@@ -2459,7 +2458,7 @@ CxPlatSocketSendInternal(
             Socket,
             TotalSize,
             SendData->BufferCount,
-            SendData->Buffers[SendData->SentMessagesCount].Length,
+            SendData->SegmentSize,
             CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
             CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
     }
@@ -2540,11 +2539,11 @@ CxPlatSocketSendInternal(
         }
 
 #ifdef UDP_SEGMENT
-        if (SendData->SegmentSize > 0) {
+        if (SendData->SegmentSize > 0 && (SendData->Iovs + TotalMessagesCount)->iov_len > SendData->SegmentSize) {
             Mhdr->msg_controllen += CMSG_SPACE(sizeof(uint16_t));
             CMsg = CMSG_NXTHDR(Mhdr, CMsg);
             CXPLAT_DBG_ASSERT(CMsg != NULL);
-            CMsg->cmsg_level = IPPROTO_IPV6;
+            CMsg->cmsg_level = SOL_UDP;
             CMsg->cmsg_type = UDP_SEGMENT;
             CMsg->cmsg_len = CMSG_LEN(sizeof(uint16_t));
             *((uint16_t*) CMSG_DATA(CMsg)) = SendData->SegmentSize;
