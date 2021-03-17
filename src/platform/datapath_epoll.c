@@ -431,6 +431,10 @@ CxPlatDataPathQuerySockoptSupport(
     } else {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
     }
+#else
+    UNREFERENCED_PARAMETER(OptionLength);
+    UNREFERENCED_PARAMETER(Result);
+    UNREFERENCED_PARAMETER(Datapath);
 #endif
 
 Error:
