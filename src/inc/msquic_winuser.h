@@ -69,6 +69,10 @@ Environment:
 #define ERROR_QUIC_STREAM_LIMIT_REACHED _HRESULT_TYPEDEF_(0x80410008L)
 #endif
 
+#ifndef QUIC_TLS_ALERT_HRESULT_PREFIX
+#define QUIC_TLS_ALERT_HRESULT_PREFIX   _HRESULT_TYPEDEF_(0x80410100L)
+#endif
+
 #define QUIC_API                            __cdecl
 #define QUIC_MAIN_EXPORT                    __cdecl
 #define QUIC_STATUS                         HRESULT
@@ -98,6 +102,12 @@ Environment:
 #define QUIC_STATUS_USER_CANCELED           ERROR_QUIC_USER_CANCELED
 #define QUIC_STATUS_ALPN_NEG_FAILURE        ERROR_QUIC_ALPN_NEG_FAILURE
 #define QUIC_STATUS_STREAM_LIMIT_REACHED    ERROR_QUIC_STREAM_LIMIT_REACHED
+
+#define QUIC_STATUS_TLS_ALERT(Alert)        (QUIC_TLS_ALERT_HRESULT_PREFIX | (0xff & Alert))
+
+#define QUIC_STATUS_CLOSE_NOTIFY            QUIC_STATUS_TLS_ALERT(0)    // Close notify
+#define QUIC_STATUS_BAD_CERTIFICATE         QUIC_STATUS_TLS_ALERT(42)   // Bad Certificate
+#define QUIC_STATUS_EXPIRED_CERTIFICATE     QUIC_STATUS_TLS_ALERT(45)   // Expired Certificate
 
 //
 // Swaps byte orders between host and network endianness.

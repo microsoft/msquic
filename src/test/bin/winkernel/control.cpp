@@ -427,7 +427,9 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_RUN_CONNECT_CLIENT_CERT),
     0,
-    0
+    0,
+    sizeof(QUIC_RUN_CRED_VALIDATION),
+    sizeof(QUIC_RUN_CRED_VALIDATION)
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -452,6 +454,7 @@ typedef union {
     QUIC_RUN_CUSTOM_CERT_VALIDATION CustomCertValidationParams;
     QUIC_RUN_VERSION_NEGOTIATION_EXT VersionNegotiationExtParams;
     QUIC_RUN_CONNECT_CLIENT_CERT ConnectClientCertParams;
+    QUIC_RUN_CRED_VALIDATION CredValidationParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -919,6 +922,48 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS:
         QuicTestCtlRun(QuicTestInvalidAlpnLengths());
+        break;
+
+    case IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        //
+        // Fix up pointers for kernel mode
+        //
+        switch (Params->CredValidationParams.CredConfig.Type) {
+        case QUIC_CREDENTIAL_TYPE_NONE:
+            Params->CredValidationParams.CredConfig.Principal = (const char*)Params->CredValidationParams.PrincipalString;
+            break;
+        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+            Params->CredValidationParams.CredConfig.CertificateHash = &Params->CredValidationParams.CertHash;
+            break;
+        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+            Params->CredValidationParams.CredConfig.CertificateHashStore = &Params->CredValidationParams.CertHashStore;
+            break;
+        }
+        QuicTestCtlRun(
+            QuicTestConnectExpiredServerCertificate(
+                &Params->CredValidationParams.CredConfig));
+        break;
+
+    case IOCTL_QUIC_RUN_VALID_SERVER_CERT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        //
+        // Fix up pointers for kernel mode
+        //
+        switch (Params->CredValidationParams.CredConfig.Type) {
+        case QUIC_CREDENTIAL_TYPE_NONE:
+            Params->CredValidationParams.CredConfig.Principal = (const char*)Params->CredValidationParams.PrincipalString;
+            break;
+        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+            Params->CredValidationParams.CredConfig.CertificateHash = &Params->CredValidationParams.CertHash;
+            break;
+        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+            Params->CredValidationParams.CredConfig.CertificateHashStore = &Params->CredValidationParams.CertHashStore;
+            break;
+        }
+        QuicTestCtlRun(
+            QuicTestConnectValidServerCertificate(
+                &Params->CredValidationParams.CredConfig));
         break;
 
     default:
