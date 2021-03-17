@@ -1404,8 +1404,10 @@ QuicErrorCodeToStatus(
     case QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE:       return QUIC_STATUS_HANDSHAKE_FAILURE;
     case QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL: return QUIC_STATUS_ALPN_NEG_FAILURE;
     default:
-        if (IS_QUIC_CRYPTO_ERROR(ErrorCode))        return QUIC_STATUS_TLS_ALERT(ErrorCode);
-                                                    return QUIC_STATUS_INTERNAL_ERROR;
+        if (IS_QUIC_CRYPTO_ERROR(ErrorCode)) {
+            return QUIC_STATUS_TLS_ALERT(ErrorCode);
+        }
+        return QUIC_STATUS_INTERNAL_ERROR;
     }
 }
 
