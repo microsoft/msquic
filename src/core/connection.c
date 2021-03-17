@@ -1403,7 +1403,9 @@ QuicErrorCodeToStatus(
     case QUIC_ERROR_CRYPTO_USER_CANCELED:           return QUIC_STATUS_USER_CANCELED;
     case QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE:       return QUIC_STATUS_HANDSHAKE_FAILURE;
     case QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL: return QUIC_STATUS_ALPN_NEG_FAILURE;
-    default:                                        return QUIC_STATUS_INTERNAL_ERROR;
+    default:
+        if (IS_QUIC_CRYPTO_ERROR(ErrorCode))        return QUIC_STATUS_TLS_ALERT(ErrorCode);
+                                                    return QUIC_STATUS_INTERNAL_ERROR;
     }
 }
 
@@ -1577,9 +1579,6 @@ QuicConnTryClose(
         if (ResultQuicStatus) {
             Connection->CloseStatus = (QUIC_STATUS)ErrorCode;
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
-        } else if (IS_QUIC_CRYPTO_ERROR(ErrorCode)) {
-            Connection->CloseStatus = QUIC_STATUS_TLS_ALERT(ErrorCode);
-            Connection->CloseErrorCode = ErrorCode;
         } else {
             Connection->CloseStatus = QuicErrorCodeToStatus(ErrorCode);
             Connection->CloseErrorCode = ErrorCode;
