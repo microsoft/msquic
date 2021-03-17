@@ -688,7 +688,7 @@ CxPlatEventInitialize(
     _In_ BOOLEAN InitialState
     )
 {
-    pthread_condattr_t Attr = {0};
+    pthread_condattr_t Attr = {0, 0};
     int Result;
 
     Event->AutoReset = !ManualReset;
@@ -800,7 +800,7 @@ CxPlatInternalEventWaitWithTimeout(
     )
 {
     BOOLEAN WaitSatisfied = FALSE;
-    struct timespec Ts = {0};
+    struct timespec Ts = {0, 0};
     int Result;
 
     //

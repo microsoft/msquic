@@ -49,7 +49,7 @@ public:
             printf("Initializing for Kernel Mode tests\n");
             const char* DriverName;
             const char* DependentDriverNames;
-            QUIC_RUN_CERTIFICATE_PARAMS CertParams = { 0 };
+            QUIC_RUN_CERTIFICATE_PARAMS CertParams = { { 0 } , { 0 } };
             CxPlatCopyMemory(
                 &CertParams.ServerCertHash.ShaHash,
                 (QUIC_CERTIFICATE_HASH*)(SelfSignedCertParams + 1),
