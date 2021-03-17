@@ -688,7 +688,11 @@ CxPlatEventInitialize(
     _In_ BOOLEAN InitialState
     )
 {
+#if defined(CX_PLATFORM_DARWIN)
     pthread_condattr_t Attr = {0, 0};
+#else
+    pthread_condattr_t Attr = {{0, 0}};
+#endif
     int Result;
 
     Event->AutoReset = !ManualReset;
