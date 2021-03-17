@@ -782,7 +782,7 @@ QuicTestCustomCertificateValidation(
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             if (!AcceptCert) {
-                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_INTERNAL_ERROR;
+                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_BAD_CERTIFICATE;
             }
             Listener.Context = &ServerAcceptCtx;
 
@@ -793,7 +793,7 @@ QuicTestCustomCertificateValidation(
                 Client.SetExpectedCustomValidationResult(AcceptCert);
                 Client.SetAsyncCustomValidationResult(AsyncValidation);
                 if (!AcceptCert) {
-                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR); // Better error?
+                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_BAD_CERTIFICATE);
                 }
 
                 TEST_QUIC_SUCCEEDED(
@@ -2046,7 +2046,7 @@ QuicTestConnectClientCertificate(
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
                 if (!UseClientCertificate) {
-                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
+                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_CLOSE_NOTIFY);
                 }
 
                 TEST_QUIC_SUCCEEDED(
@@ -2068,7 +2068,7 @@ QuicTestConnectClientCertificate(
                         return;
                     }
                 } else {
-                    Server->SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
+                    Server->SetExpectedTransportCloseStatus(QUIC_STATUS_CLOSE_NOTIFY);
                 }
                 TEST_EQUAL(UseClientCertificate, Server->GetIsConnected());
             }

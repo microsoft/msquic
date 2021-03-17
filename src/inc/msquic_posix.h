@@ -150,6 +150,8 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 
 #define QUIC_STATUS_TLS_ALERT(Alert)        ((QUIC_STATUS)(0xff & Alert) + TLS_ERROR_BASE)
 
+#define QUIC_STATUS_CLOSE_NOTIFY            QUIC_STATUS_TLS_ALERT(0)    // Close notify
+#define QUIC_STATUS_BAD_CERTIFICATE         QUIC_STATUS_TLS_ALERT(42)   // Bad Certificate
 #define QUIC_STATUS_EXPIRED_CERTIFICATE     QUIC_STATUS_TLS_ALERT(45)   // Expired Certificate
 
 typedef unsigned char BOOLEAN;

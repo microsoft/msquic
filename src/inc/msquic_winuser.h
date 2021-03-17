@@ -105,6 +105,8 @@ Environment:
 
 #define QUIC_STATUS_TLS_ALERT(Alert)        (QUIC_TLS_ALERT_HRESULT_PREFIX | (0xff & Alert))
 
+#define QUIC_STATUS_CLOSE_NOTIFY            QUIC_STATUS_TLS_ALERT(0)    // Close notify
+#define QUIC_STATUS_BAD_CERTIFICATE         QUIC_STATUS_TLS_ALERT(42)   // Bad Certificate
 #define QUIC_STATUS_EXPIRED_CERTIFICATE     QUIC_STATUS_TLS_ALERT(45)   // Expired Certificate
 
 //
