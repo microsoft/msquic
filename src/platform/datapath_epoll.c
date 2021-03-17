@@ -2211,6 +2211,7 @@ CxPlatSendContextFinalizeSendBuffer(
 
     CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0 && SendContext->BufferCount > 0);
     CXPLAT_DBG_ASSERT(SendContext->ClientBuffer.Length > 0 && SendContext->ClientBuffer.Length <= SendContext->SegmentSize);
+    CXPLAT_DBG_ASSERT(SendContext->ClientBuffer.Length == SendContext->SegmentSize || IsSendingImmediately);
     CXPLAT_DBG_ASSERT(CxPlatSendContextCanAllocSendSegment(SendContext, 0));
 
     //

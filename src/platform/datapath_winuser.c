@@ -3420,6 +3420,7 @@ CxPlatSendContextFinalizeSendBuffer(
 
     CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0 && SendContext->WsaBufferCount > 0);
     CXPLAT_DBG_ASSERT(SendContext->ClientBuffer.len > 0 && SendContext->ClientBuffer.len <= SendContext->SegmentSize);
+    CXPLAT_DBG_ASSERT(SendContext->ClientBuffer.len == SendContext->SegmentSize || IsSendingImmediately);
     CXPLAT_DBG_ASSERT(CxPlatSendContextCanAllocSendSegment(SendContext, 0));
 
     //
@@ -3474,6 +3475,7 @@ CxPlatSendContextAllocPacketBuffer(
     WSABUF* WsaBuffer =
         CxPlatSendContextAllocBuffer(SendContext, &SendContext->Owner->SendBufferPool);
     if (WsaBuffer != NULL) {
+        CXPLAT_DBG_ASSERT(SendContext->SegmentSize == 0 || SendContext->SegmentSize == MaxBufferLength);
         WsaBuffer->len = MaxBufferLength;
     }
     return (QUIC_BUFFER*)WsaBuffer;
