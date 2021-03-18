@@ -2416,41 +2416,41 @@ CxPlatSendDataAlloc(
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
         &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
 
-    CXPLAT_SEND_DATA* SendContext =
+    CXPLAT_SEND_DATA* SendData =
         CxPlatPoolAlloc(&ProcContext->SendContextPool);
 
-    if (SendContext != NULL) {
-        SendContext->Owner = ProcContext;
-        SendContext->ECN = ECN;
-        SendContext->WskBufs = NULL;
-        SendContext->TailBuf = NULL;
-        SendContext->TotalSize = 0;
-        SendContext->WskBufferCount = 0;
-        SendContext->SegmentSize =
+    if (SendData != NULL) {
+        SendData->Owner = ProcContext;
+        SendData->ECN = ECN;
+        SendData->WskBufs = NULL;
+        SendData->TailBuf = NULL;
+        SendData->TotalSize = 0;
+        SendData->WskBufferCount = 0;
+        SendData->SegmentSize =
             (Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
                 ? MaxPacketSize : 0;
-        SendContext->ClientBuffer.Length = 0;
-        SendContext->ClientBuffer.Buffer = NULL;
+        SendData->ClientBuffer.Length = 0;
+        SendData->ClientBuffer.Buffer = NULL;
     }
 
-    return SendContext;
+    return SendData;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFree(
-    _In_ CXPLAT_SEND_DATA* SendContext
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendData->Owner;
 
     CXPLAT_POOL* BufferPool =
-        SendContext->SegmentSize > 0 ?
+        SendData->SegmentSize > 0 ?
             &ProcContext->LargeSendBufferPool : &ProcContext->SendBufferPool;
 
-    while (SendContext->WskBufs != NULL) {
-        PWSK_BUF_LIST WskBufList = SendContext->WskBufs;
-        SendContext->WskBufs = SendContext->WskBufs->Next;
+    while (SendData->WskBufs != NULL) {
+        PWSK_BUF_LIST WskBufList = SendData->WskBufs;
+        SendData->WskBufs = SendData->WskBufs->Next;
         CXPLAT_DBG_ASSERT(WskBufList->Buffer.Mdl->Next == NULL);
 
         CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer =
@@ -2459,24 +2459,24 @@ CxPlatSendDataFree(
         CxPlatPoolFree(BufferPool, SendBuffer);
     }
 
-    CxPlatPoolFree(&ProcContext->SendContextPool, SendContext);
+    CxPlatPoolFree(&ProcContext->SendContextPool, SendData);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 BOOLEAN
 CxPlatSendContextCanAllocSendSegment(
-    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ UINT16 MaxBufferLength
     )
 {
-    CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0);
-    CXPLAT_DBG_ASSERT(SendContext->WskBufferCount > 0);
+    CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
+    CXPLAT_DBG_ASSERT(SendData->WskBufferCount > 0);
 
     ULONG BytesAvailable =
         CXPLAT_LARGE_SEND_BUFFER_SIZE -
-        (ULONG)SendContext->TailBuf->Link.Buffer.Length -
-        SendContext->ClientBuffer.Length;
+        (ULONG)SendData->TailBuf->Link.Buffer.Length -
+        SendData->ClientBuffer.Length;
 
     return MaxBufferLength <= BytesAvailable;
 }
@@ -2485,59 +2485,59 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 BOOLEAN
 CxPlatSendContextCanAllocSend(
-    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ UINT16 MaxBufferLength
     )
 {
     return
-        (SendContext->WskBufferCount < CXPLAT_MAX_BATCH_SEND) ||
-        ((SendContext->SegmentSize > 0) &&
-            CxPlatSendContextCanAllocSendSegment(SendContext, MaxBufferLength));
+        (SendData->WskBufferCount < CXPLAT_MAX_BATCH_SEND) ||
+        ((SendData->SegmentSize > 0) &&
+            CxPlatSendContextCanAllocSendSegment(SendData, MaxBufferLength));
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
 CxPlatSendContextFinalizeSendBuffer(
-    _In_ CXPLAT_SEND_DATA* SendContext
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (SendContext->ClientBuffer.Length == 0) {
+    if (SendData->ClientBuffer.Length == 0) {
         //
         // There is no buffer segment outstanding at the client.
         //
-        if (SendContext->WskBufferCount > 0) {
-            SendContext->TotalSize +=
-                (uint32_t)SendContext->TailBuf->Link.Buffer.Length;
+        if (SendData->WskBufferCount > 0) {
+            SendData->TotalSize +=
+                (uint32_t)SendData->TailBuf->Link.Buffer.Length;
         }
         return;
     }
 
-    if (SendContext->SegmentSize == 0) {
-        SendContext->TailBuf->Link.Buffer.Length = SendContext->ClientBuffer.Length;
-        SendContext->ClientBuffer.Length = 0;
+    if (SendData->SegmentSize == 0) {
+        SendData->TailBuf->Link.Buffer.Length = SendData->ClientBuffer.Length;
+        SendData->ClientBuffer.Length = 0;
         return;
     }
 
-    CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0 && SendContext->WskBufferCount > 0);
-    CXPLAT_DBG_ASSERT(SendContext->ClientBuffer.Length > 0 && SendContext->ClientBuffer.Length <= SendContext->SegmentSize);
-    CXPLAT_DBG_ASSERT(CxPlatSendContextCanAllocSendSegment(SendContext, 0));
+    CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0 && SendData->WskBufferCount > 0);
+    CXPLAT_DBG_ASSERT(SendData->ClientBuffer.Length > 0 && SendData->ClientBuffer.Length <= SendData->SegmentSize);
+    CXPLAT_DBG_ASSERT(CxPlatSendContextCanAllocSendSegment(SendData, 0));
 
     //
     // Append the client's buffer segment to our internal send buffer.
     //
-    SendContext->TailBuf->Link.Buffer.Length += SendContext->ClientBuffer.Length;
-    SendContext->TotalSize += SendContext->ClientBuffer.Length;
+    SendData->TailBuf->Link.Buffer.Length += SendData->ClientBuffer.Length;
+    SendData->TotalSize += SendData->ClientBuffer.Length;
 
-    if (SendContext->ClientBuffer.Length == SendContext->SegmentSize) {
-        SendContext->ClientBuffer.Buffer += SendContext->SegmentSize;
-        SendContext->ClientBuffer.Length = 0;
+    if (SendData->ClientBuffer.Length == SendData->SegmentSize) {
+        SendData->ClientBuffer.Buffer += SendData->SegmentSize;
+        SendData->ClientBuffer.Length = 0;
     } else {
         //
         // The next segment allocation must create a new backing buffer.
         //
-        SendContext->ClientBuffer.Buffer = NULL;
-        SendContext->ClientBuffer.Length = 0;
+        SendData->ClientBuffer.Buffer = NULL;
+        SendData->ClientBuffer.Length = 0;
     }
 }
 
@@ -2585,7 +2585,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 UINT8*
 CxPlatSendContextAllocBuffer(
-    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ CXPLAT_POOL* BufferPool
     )
 {
@@ -2594,15 +2594,15 @@ CxPlatSendContextAllocBuffer(
         return NULL;
     }
 
-    if (SendContext->WskBufs == NULL) {
-        SendContext->WskBufs = &SendBuffer->Link;
+    if (SendData->WskBufs == NULL) {
+        SendData->WskBufs = &SendBuffer->Link;
     } else {
-        SendContext->TailBuf->Link.Next = &SendBuffer->Link;
+        SendData->TailBuf->Link.Next = &SendBuffer->Link;
     }
 
-    SendContext->TailBuf = SendBuffer;
-    SendContext->TailBuf->Link.Next = NULL;
-    ++SendContext->WskBufferCount;
+    SendData->TailBuf = SendBuffer;
+    SendData->TailBuf->Link.Next = NULL;
+    ++SendData->WskBufferCount;
 
     return SendBuffer->RawBuffer;
 }
@@ -2612,22 +2612,22 @@ _Success_(return != NULL)
 static
 QUIC_BUFFER*
 CxPlatSendContextAllocPacketBuffer(
-    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ UINT16 MaxBufferLength
     )
 {
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendData->Owner;
     UINT8* Buffer;
 
-    Buffer = CxPlatSendContextAllocBuffer(SendContext, &ProcContext->SendBufferPool);
+    Buffer = CxPlatSendContextAllocBuffer(SendData, &ProcContext->SendBufferPool);
     if (Buffer == NULL) {
         return NULL;
     }
 
-    SendContext->ClientBuffer.Buffer = Buffer;
-    SendContext->ClientBuffer.Length = MaxBufferLength;
+    SendData->ClientBuffer.Buffer = Buffer;
+    SendData->ClientBuffer.Length = MaxBufferLength;
 
-    return &SendContext->ClientBuffer;
+    return &SendData->ClientBuffer;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2635,27 +2635,27 @@ _Success_(return != NULL)
 static
 QUIC_BUFFER*
 CxPlatSendContextAllocSegmentBuffer(
-    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ UINT16 MaxBufferLength
     )
 {
-    CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0);
-    CXPLAT_DBG_ASSERT(MaxBufferLength <= SendContext->SegmentSize);
+    CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
+    CXPLAT_DBG_ASSERT(MaxBufferLength <= SendData->SegmentSize);
 
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendData->Owner;
     UINT8* Buffer;
 
-    if (SendContext->ClientBuffer.Buffer != NULL &&
-        CxPlatSendContextCanAllocSendSegment(SendContext, MaxBufferLength)) {
+    if (SendData->ClientBuffer.Buffer != NULL &&
+        CxPlatSendContextCanAllocSendSegment(SendData, MaxBufferLength)) {
 
         //
         // All clear to return the next segment of our contiguous buffer.
         //
-        SendContext->ClientBuffer.Length = MaxBufferLength;
-        return (QUIC_BUFFER*)&SendContext->ClientBuffer;
+        SendData->ClientBuffer.Length = MaxBufferLength;
+        return (QUIC_BUFFER*)&SendData->ClientBuffer;
     }
 
-    Buffer = CxPlatSendContextAllocBuffer(SendContext, &ProcContext->LargeSendBufferPool);
+    Buffer = CxPlatSendContextAllocBuffer(SendData, &ProcContext->LargeSendBufferPool);
     if (Buffer == NULL) {
         return NULL;
     }
@@ -2664,35 +2664,35 @@ CxPlatSendContextAllocSegmentBuffer(
     // Provide a virtual QUIC_BUFFER to the client. Once the client has committed
     // to a final send size, we'll append it to our internal backing buffer.
     //
-    SendContext->TailBuf->Link.Buffer.Length = 0;
-    SendContext->ClientBuffer.Buffer = Buffer;
-    SendContext->ClientBuffer.Length = MaxBufferLength;
+    SendData->TailBuf->Link.Buffer.Length = 0;
+    SendData->ClientBuffer.Buffer = Buffer;
+    SendData->ClientBuffer.Length = MaxBufferLength;
 
-    return &SendContext->ClientBuffer;
+    return &SendData->ClientBuffer;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
 CxPlatSendDataAllocBuffer(
-    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ UINT16 MaxBufferLength
     )
 {
-    CXPLAT_DBG_ASSERT(SendContext != NULL);
+    CXPLAT_DBG_ASSERT(SendData != NULL);
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
     CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
 
-    CxPlatSendContextFinalizeSendBuffer(SendContext);
+    CxPlatSendContextFinalizeSendBuffer(SendData);
 
-    if (!CxPlatSendContextCanAllocSend(SendContext, MaxBufferLength)) {
+    if (!CxPlatSendContextCanAllocSend(SendData, MaxBufferLength)) {
         return NULL;
     }
 
-    if (SendContext->SegmentSize == 0) {
-        return CxPlatSendContextAllocPacketBuffer(SendContext, MaxBufferLength);
+    if (SendData->SegmentSize == 0) {
+        return CxPlatSendContextAllocPacketBuffer(SendData, MaxBufferLength);
     } else {
-        return CxPlatSendContextAllocSegmentBuffer(SendContext, MaxBufferLength);
+        return CxPlatSendContextAllocSegmentBuffer(SendData, MaxBufferLength);
     }
 }
 
@@ -2700,7 +2700,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
 CxPlatSendContextFreeSendBuffer(
-    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ CXPLAT_POOL* BufferPool,
     _In_ CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer
     )
@@ -2710,60 +2710,60 @@ CxPlatSendContextFreeSendBuffer(
     //
     // Remove the send buffer entry.
     //
-    if (SendContext->WskBufs == &SendBuffer->Link) {
-        SendContext->WskBufs = NULL;
-        SendContext->TailBuf = NULL;
+    if (SendData->WskBufs == &SendBuffer->Link) {
+        SendData->WskBufs = NULL;
+        SendData->TailBuf = NULL;
     } else {
-        PWSK_BUF_LIST TailBuf = SendContext->WskBufs;
+        PWSK_BUF_LIST TailBuf = SendData->WskBufs;
         while (TailBuf->Next != &SendBuffer->Link) {
             TailBuf = TailBuf->Next;
         }
         TailBuf->Next = NULL;
-        SendContext->TailBuf = CONTAINING_RECORD(TailBuf, CXPLAT_DATAPATH_SEND_BUFFER, Link);
+        SendData->TailBuf = CONTAINING_RECORD(TailBuf, CXPLAT_DATAPATH_SEND_BUFFER, Link);
     }
 
     CxPlatPoolFree(BufferPool, SendBuffer);
-    --SendContext->WskBufferCount;
+    --SendData->WskBufferCount;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFreeBuffer(
-    _In_ CXPLAT_SEND_DATA* SendContext,
-    _In_ QUIC_BUFFER* Datagram
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ QUIC_BUFFER* Buffer
     )
 {
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendContext->Owner;
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendData->Owner;
     CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer =
-        CONTAINING_RECORD(&SendContext->TailBuf->Link, CXPLAT_DATAPATH_SEND_BUFFER, Link);
+        CONTAINING_RECORD(&SendData->TailBuf->Link, CXPLAT_DATAPATH_SEND_BUFFER, Link);
 
-    UNREFERENCED_PARAMETER(Datagram);
+    UNREFERENCED_PARAMETER(Buffer);
 
     //
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
-    CXPLAT_DBG_ASSERT(Datagram->Buffer != NULL);
-    CXPLAT_DBG_ASSERT(Datagram->Buffer == SendContext->ClientBuffer.Buffer);
+    CXPLAT_DBG_ASSERT(Buffer->Buffer != NULL);
+    CXPLAT_DBG_ASSERT(Buffer->Buffer == SendData->ClientBuffer.Buffer);
 
-    if (SendContext->SegmentSize == 0) {
-        CxPlatSendContextFreeSendBuffer(SendContext, &ProcContext->SendBufferPool, SendBuffer);
+    if (SendData->SegmentSize == 0) {
+        CxPlatSendContextFreeSendBuffer(SendData, &ProcContext->SendBufferPool, SendBuffer);
     } else {
-        if (SendContext->TailBuf->Link.Buffer.Length == 0) {
-            CxPlatSendContextFreeSendBuffer(SendContext, &ProcContext->LargeSendBufferPool, SendBuffer);
+        if (SendData->TailBuf->Link.Buffer.Length == 0) {
+            CxPlatSendContextFreeSendBuffer(SendData, &ProcContext->LargeSendBufferPool, SendBuffer);
         }
     }
 
-    SendContext->ClientBuffer.Buffer = NULL;
-    SendContext->ClientBuffer.Length = 0;
+    SendData->ClientBuffer.Buffer = NULL;
+    SendData->ClientBuffer.Length = 0;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatSendDataIsFull(
-    _In_ CXPLAT_SEND_DATA* SendContext
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    return !CxPlatSendContextCanAllocSend(SendContext, SendContext->SegmentSize);
+    return !CxPlatSendContextCanAllocSend(SendData, SendData->SegmentSize);
 }
 
 IO_COMPLETION_ROUTINE CxPlatDataPathSendComplete;
@@ -2778,9 +2778,9 @@ CxPlatDataPathSendComplete(
 {
     UNREFERENCED_PARAMETER(DeviceObject);
 
-    CXPLAT_SEND_DATA* SendContext = Context;
-    CXPLAT_DBG_ASSERT(SendContext != NULL);
-    CXPLAT_SOCKET* Binding = SendContext->Binding;
+    CXPLAT_SEND_DATA* SendData = Context;
+    CXPLAT_DBG_ASSERT(SendData != NULL);
+    CXPLAT_SOCKET* Binding = SendData->Binding;
 
     if (!NT_SUCCESS(Irp->IoStatus.Status)) {
         QuicTraceEvent(
@@ -2791,8 +2791,8 @@ CxPlatDataPathSendComplete(
             "WskSendMessages completion");
     }
 
-    IoCleanupIrp(&SendContext->Irp);
-    CxPlatSendDataFree(SendContext);
+    IoCleanupIrp(&SendData->Irp);
+    CxPlatSendDataFree(SendData);
 
     return STATUS_MORE_PROCESSING_REQUIRED;
 }
@@ -2800,20 +2800,20 @@ CxPlatDataPathSendComplete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSocketPrepareSendContext(
-    _In_ CXPLAT_SEND_DATA* SendContext
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CxPlatSendContextFinalizeSendBuffer(SendContext);
+    CxPlatSendContextFinalizeSendBuffer(SendData);
 
     IoInitializeIrp(
-        &SendContext->Irp,
-        sizeof(SendContext->IrpBuffer),
+        &SendData->Irp,
+        sizeof(SendData->IrpBuffer),
         1);
 
     IoSetCompletionRoutine(
-        &SendContext->Irp,
+        &SendData->Irp,
         CxPlatDataPathSendComplete,
-        SendContext,
+        SendData,
         TRUE,
         TRUE,
         TRUE);
@@ -2825,7 +2825,7 @@ CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendContext
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     QUIC_STATUS Status;
@@ -2833,22 +2833,22 @@ CxPlatSocketSend(
 
     CXPLAT_DBG_ASSERT(
         Binding != NULL && LocalAddress != NULL &&
-        RemoteAddress != NULL && SendContext != NULL);
+        RemoteAddress != NULL && SendData != NULL);
 
     //
     // Initialize IRP and MDLs for sending.
     //
-    CxPlatSocketPrepareSendContext(SendContext);
+    CxPlatSocketPrepareSendContext(SendData);
 
-    SendContext->Binding = Binding;
+    SendData->Binding = Binding;
 
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Binding,
-        SendContext->TotalSize,
-        SendContext->WskBufferCount,
-        SendContext->SegmentSize,
+        SendData->TotalSize,
+        SendData->WskBufferCount,
+        SendData->SegmentSize,
         CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
         CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
@@ -2892,7 +2892,7 @@ CxPlatSocketSend(
         }
     }
 
-    if (SendContext->SegmentSize > 0) {
+    if (SendData->SegmentSize > 0) {
         CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
         CMsgLen += WSA_CMSG_SPACE(sizeof(*SegmentSize));
 
@@ -2901,19 +2901,19 @@ CxPlatSocketSend(
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(*SegmentSize));
 
         SegmentSize = (PDWORD)WSA_CMSG_DATA(CMsg);
-        *SegmentSize = SendContext->SegmentSize;
+        *SegmentSize = SendData->SegmentSize;
     }
 
     Status =
         Binding->DgrmSocket->Dispatch->
         WskSendMessages(
             Binding->Socket,
-            SendContext->WskBufs,
+            SendData->WskBufs,
             0,
             Binding->Connected ? NULL : (PSOCKADDR)&MappedAddress,
             CMsgLen,
             (PWSACMSGHDR)CMsgBuffer,
-            &SendContext->Irp);
+            &SendData->Irp);
 
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
