@@ -35,6 +35,11 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 #define CXPLAT_MAX_BATCH_SEND 1
 
 //
+// The maximum single buffer size for sending coalesced payloads.
+//
+#define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
+
+//
 // A receive block to receive a UDP packet over the sockets.
 //
 typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
