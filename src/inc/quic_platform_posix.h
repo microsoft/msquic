@@ -585,7 +585,8 @@ CxPlatTimeEpochMs64(
     void
     )
 {
-    struct timeval tv = { 0, 0 };
+    struct timeval tv;
+    CxPlatZeroMemory(&tv, sizeof(tv));
     gettimeofday(&tv, NULL);
     return S_TO_MS(tv.tv_sec) + US_TO_MS(tv.tv_usec);
 }
@@ -688,13 +689,10 @@ CxPlatEventInitialize(
     _In_ BOOLEAN InitialState
     )
 {
-#if defined(CX_PLATFORM_DARWIN)
-    pthread_condattr_t Attr = {0, 0};
-#else
-    pthread_condattr_t Attr = {{0, 0}};
-#endif
+    pthread_condattr_t Attr;
     int Result;
 
+    CxPlatZeroMemory(&Attr, sizeof(Attr));
     Event->AutoReset = !ManualReset;
     Event->Signaled = InitialState;
 
