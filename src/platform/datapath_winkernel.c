@@ -2730,20 +2730,20 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFreeBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ QUIC_BUFFER* Datagram
+    _In_ QUIC_BUFFER* Buffer
     )
 {
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendData->Owner;
     CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer =
         CONTAINING_RECORD(&SendData->TailBuf->Link, CXPLAT_DATAPATH_SEND_BUFFER, Link);
 
-    UNREFERENCED_PARAMETER(Datagram);
+    UNREFERENCED_PARAMETER(Buffer);
 
     //
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
-    CXPLAT_DBG_ASSERT(Datagram->Buffer != NULL);
-    CXPLAT_DBG_ASSERT(Datagram->Buffer == SendData->ClientBuffer.Buffer);
+    CXPLAT_DBG_ASSERT(Buffer->Buffer != NULL);
+    CXPLAT_DBG_ASSERT(Buffer->Buffer == SendData->ClientBuffer.Buffer);
 
     if (SendData->SegmentSize == 0) {
         CxPlatSendContextFreeSendBuffer(SendData, &ProcContext->SendBufferPool, SendBuffer);

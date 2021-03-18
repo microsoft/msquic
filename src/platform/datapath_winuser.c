@@ -3548,7 +3548,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFreeBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ QUIC_BUFFER* Datagram
+    _In_ QUIC_BUFFER* Buffer
     )
 {
     //
@@ -3558,16 +3558,16 @@ CxPlatSendDataFreeBuffer(
     PCHAR TailBuffer = SendData->WsaBuffers[SendData->WsaBufferCount - 1].buf;
 
     if (SendData->SegmentSize == 0) {
-        CXPLAT_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
+        CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
 
-        CxPlatPoolFree(&DatapathProc->SendBufferPool, Datagram->Buffer);
+        CxPlatPoolFree(&DatapathProc->SendBufferPool, Buffer->Buffer);
         --SendData->WsaBufferCount;
     } else {
         TailBuffer += SendData->WsaBuffers[SendData->WsaBufferCount - 1].len;
-        CXPLAT_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
+        CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
 
         if (SendData->WsaBuffers[SendData->WsaBufferCount - 1].len == 0) {
-            CxPlatPoolFree(&DatapathProc->LargeSendBufferPool, Datagram->Buffer);
+            CxPlatPoolFree(&DatapathProc->LargeSendBufferPool, Buffer->Buffer);
             --SendData->WsaBufferCount;
         }
 

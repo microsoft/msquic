@@ -1918,7 +1918,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFreeBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ QUIC_BUFFER* Datagram
+    _In_ QUIC_BUFFER* Buffer
     )
 {
     //
@@ -1928,16 +1928,16 @@ CxPlatSendDataFreeBuffer(
     uint8_t* TailBuffer = SendData->Buffers[SendData->BufferCount - 1].Buffer;
 
     if (SendData->SegmentSize == 0) {
-        CXPLAT_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
+        CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
 
-        CxPlatPoolFree(&DatapathProc->SendBufferPool, Datagram->Buffer);
+        CxPlatPoolFree(&DatapathProc->SendBufferPool, Buffer->Buffer);
         --SendData->BufferCount;
     } else {
         TailBuffer += SendData->Buffers[SendData->BufferCount - 1].Length;
-        CXPLAT_DBG_ASSERT(Datagram->Buffer == (uint8_t*)TailBuffer);
+        CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
 
         if (SendData->Buffers[SendData->BufferCount - 1].Length == 0) {
-            CxPlatPoolFree(&DatapathProc->LargeSendBufferPool, Datagram->Buffer);
+            CxPlatPoolFree(&DatapathProc->LargeSendBufferPool, Buffer->Buffer);
             --SendData->BufferCount;
         }
 

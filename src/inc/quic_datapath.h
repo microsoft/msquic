@@ -516,7 +516,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFreeBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ QUIC_BUFFER* Datagram
+    _In_ QUIC_BUFFER* Buffer
     );
 
 //
