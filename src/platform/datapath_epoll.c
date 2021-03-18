@@ -2103,6 +2103,13 @@ CxPlatSendDataAlloc(
     _In_ uint16_t MaxPacketSize
     )
 {
+#ifdef CX_PLATFORM_DISPATCH_TABLE
+    return
+        PlatDispatch->SendDataAlloc(
+            Socket,
+            ECN
+            MaxPacketSize);
+#else
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc =
@@ -2130,6 +2137,7 @@ CxPlatSendDataAlloc(
 
 Exit:
     return SendData;
+#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2138,6 +2146,9 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+#ifdef CX_PLATFORM_DISPATCH_TABLE
+    PlatDispatch->SendDataFree(SendData);
+#else
     CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc = SendData->Owner;
     CXPLAT_POOL* BufferPool =
         SendData->SegmentSize > 0 ?
@@ -2148,6 +2159,7 @@ CxPlatSendDataFree(
     }
 
     CxPlatPoolFree(&DatapathProc->SendContextPool, SendData);
+#endif
 }
 
 static
@@ -2310,6 +2322,12 @@ CxPlatSendDataAllocBuffer(
     _In_ uint16_t MaxBufferLength
     )
 {
+#ifdef CX_PLATFORM_DISPATCH_TABLE
+    return
+        PlatDispatch->SendDataAllocBuffer(
+            SendData,
+            MaxBufferLength);
+#else
     CXPLAT_DBG_ASSERT(SendData != NULL);
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
     //CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
@@ -2324,6 +2342,7 @@ CxPlatSendDataAllocBuffer(
         return CxPlatSendContextAllocPacketBuffer(SendData, MaxBufferLength);
     }
     return CxPlatSendContextAllocSegmentBuffer(SendData, MaxBufferLength);
+#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2333,6 +2352,9 @@ CxPlatSendDataFreeBuffer(
     _In_ QUIC_BUFFER* Datagram
     )
 {
+#ifdef CX_PLATFORM_DISPATCH_TABLE
+    PlatDispatch->SendDataFreeBuffer(SendData, Datagram);
+#else
     //
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
@@ -2356,6 +2378,7 @@ CxPlatSendDataFreeBuffer(
         SendData->ClientBuffer.Buffer = NULL;
         SendData->ClientBuffer.Length = 0;
     }
+#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2364,7 +2387,11 @@ CxPlatSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+#ifdef CX_PLATFORM_DISPATCH_TABLE
+    return PlatDispatch->SendDataIsFull(SendData);
+#else
     return !CxPlatSendContextCanAllocSend(SendData, SendData->SegmentSize);
+#endif
 }
 
 void
