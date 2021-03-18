@@ -29,8 +29,8 @@ Environment:
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
 
-#define CXPLAT_MAX_BATCH_SEND 7
-#define CXPLAT_MAX_BATCH_RECEIVE 7
+#define CXPLAT_MAX_BATCH_SEND 1
+#define CXPLAT_MAX_BATCH_RECEIVE 40
 
 //
 // The maximum single buffer size for sending coalesced payloads.
@@ -393,6 +393,7 @@ CxPlatSocketSendInternal(
     _In_ BOOLEAN IsPendedSend
     );
 
+#ifdef UDP_SEGMENT
 QUIC_STATUS
 CxPlatDataPathQuerySockoptSupport(
     _Inout_ CXPLAT_DATAPATH* Datapath
@@ -412,7 +413,6 @@ CxPlatDataPathQuerySockoptSupport(
         goto Error;
     }
 
-#ifdef UDP_SEGMENT
     int SegmentSize;
     OptionLength = sizeof(SegmentSize);
     Result =
@@ -431,11 +431,6 @@ CxPlatDataPathQuerySockoptSupport(
     } else {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
     }
-#else
-    UNREFERENCED_PARAMETER(OptionLength);
-    UNREFERENCED_PARAMETER(Result);
-    UNREFERENCED_PARAMETER(Datapath);
-#endif
 
 Error:
     if (UdpSocket != INVALID_SOCKET) {
@@ -444,6 +439,7 @@ Error:
 
     return Status;
 }
+#endif
 
 QUIC_STATUS
 CxPlatProcessorContextInitialize(
@@ -647,10 +643,13 @@ CxPlatDataPathInitialize(
     Datapath->ProcCount = CxPlatProcMaxCount();
     Datapath->MaxSendBatchSize = CXPLAT_MAX_BATCH_SEND;
     CxPlatRundownInitialize(&Datapath->BindingsRundown);
+
+#ifdef UDP_SEGMENT
     Status = CxPlatDataPathQuerySockoptSupport(Datapath);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
+#endif
 
     //
     // Initialize the per processor contexts.
