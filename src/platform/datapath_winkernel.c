@@ -2584,7 +2584,7 @@ CxPlatSendBufferPoolAlloc(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 UINT8*
-CxPlatSendDataAllocBuffer(
+CxPlatSendDataAllocDataBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ CXPLAT_POOL* BufferPool
     )
@@ -2619,7 +2619,7 @@ CxPlatSendDataAllocPacketBuffer(
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendData->Owner;
     UINT8* Buffer;
 
-    Buffer = CxPlatSendDataAllocBuffer(SendData, &ProcContext->SendBufferPool);
+    Buffer = CxPlatSendDataAllocDataBuffer(SendData, &ProcContext->SendBufferPool);
     if (Buffer == NULL) {
         return NULL;
     }
@@ -2655,7 +2655,7 @@ CxPlatSendDataAllocSegmentBuffer(
         return (QUIC_BUFFER*)&SendData->ClientBuffer;
     }
 
-    Buffer = CxPlatSendDataAllocBuffer(SendData, &ProcContext->LargeSendBufferPool);
+    Buffer = CxPlatSendDataAllocDataBuffer(SendData, &ProcContext->LargeSendBufferPool);
     if (Buffer == NULL) {
         return NULL;
     }

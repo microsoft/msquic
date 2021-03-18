@@ -3446,7 +3446,7 @@ CxPlatSendDataFinalizeSendBuffer(
 _Success_(return != NULL)
 static
 WSABUF*
-CxPlatSendDataAllocBuffer(
+CxPlatSendDataAllocDataBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ CXPLAT_POOL* BufferPool
     )
@@ -3472,7 +3472,7 @@ CxPlatSendDataAllocPacketBuffer(
     )
 {
     WSABUF* WsaBuffer =
-        CxPlatSendDataAllocBuffer(SendData, &SendData->Owner->SendBufferPool);
+        CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->SendBufferPool);
     if (WsaBuffer != NULL) {
         WsaBuffer->len = MaxBufferLength;
     }
@@ -3503,7 +3503,7 @@ CxPlatSendDataAllocSegmentBuffer(
         return (QUIC_BUFFER*)&SendData->ClientBuffer;
     }
 
-    WsaBuffer = CxPlatSendDataAllocBuffer(SendData, &DatapathProc->LargeSendBufferPool);
+    WsaBuffer = CxPlatSendDataAllocDataBuffer(SendData, &DatapathProc->LargeSendBufferPool);
     if (WsaBuffer == NULL) {
         return NULL;
     }
@@ -3524,7 +3524,7 @@ _Success_(return != NULL)
 QUIC_BUFFER*
 CxPlatSendDataAllocBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ UINT16 MaxBufferLength
+    _In_ uint16_t MaxBufferLength
     )
 {
     CXPLAT_DBG_ASSERT(SendData != NULL);

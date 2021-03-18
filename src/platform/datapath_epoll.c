@@ -2241,7 +2241,7 @@ CxPlatSendDataFinalizeSendBuffer(
 _Success_(return != NULL)
 static
 QUIC_BUFFER*
-CxPlatSendDataAllocBuffer(
+CxPlatSendDataAllocDataBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ CXPLAT_POOL* BufferPool
     )
@@ -2267,7 +2267,7 @@ CxPlatSendDataAllocPacketBuffer(
     )
 {
     QUIC_BUFFER* Buffer =
-        CxPlatSendDataAllocBuffer(SendData, &SendData->Owner->SendBufferPool);
+        CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->SendBufferPool);
     if (Buffer != NULL) {
         Buffer->Length = MaxBufferLength;
     }
@@ -2298,7 +2298,7 @@ CxPlatSendDataAllocSegmentBuffer(
         return &SendData->ClientBuffer;
     }
 
-    Buffer = CxPlatSendDataAllocBuffer(SendData, &DatapathProc->LargeSendBufferPool);
+    Buffer = CxPlatSendDataAllocDataBuffer(SendData, &DatapathProc->LargeSendBufferPool);
     if (Buffer == NULL) {
         return NULL;
     }
