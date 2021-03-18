@@ -37,48 +37,82 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 //
 #define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
 
-//
-// The maximum UDP receive coalescing payload.
-//
-#define MAX_URO_PAYLOAD_LENGTH              (UINT16_MAX - CXPLAT_UDP_HEADER_SIZE)
+// //
+// // The maximum UDP receive coalescing payload.
+// //
+// #define MAX_URO_PAYLOAD_LENGTH              (UINT16_MAX - CXPLAT_UDP_HEADER_SIZE)
+
+// //
+// // The maximum single buffer size for sending coalesced payloads.
+// //
+// #define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
 
 //
-// The maximum single buffer size for sending coalesced payloads.
+// Internal receive context.
 //
-#define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
+typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT {
 
-//
-// A receive block to receive a UDP packet over the sockets.
-//
-typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
     //
-    // The pool owning this recv block.
+    // The owning datagram pool.
     //
     CXPLAT_POOL* OwningPool;
 
     //
-    // The recv buffer used by MsQuic.
+    // The reference count of the receive buffer.
     //
-    CXPLAT_RECV_DATA RecvPacket;
+    uint32_t ReferenceCount;
 
     //
-    // Represents the address (source and destination) information of the
-    // packet.
+    // Contains the 4 tuple.
     //
     CXPLAT_TUPLE Tuple;
 
-    //
-    // Buffer that actually stores the UDP payload.
-    // TODO allocate this dynamically only if GRO is supported
-    //
-    uint8_t Buffer[MAX_URO_PAYLOAD_LENGTH];
+} CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT;
+
+//
+// Internal receive context.
+//
+typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT {
 
     //
-    // This follows the recv block.
+    // The owning allocation.
     //
-    // CXPLAT_RECV_PACKET RecvContext;
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext;
 
-} CXPLAT_DATAPATH_RECV_BLOCK;
+} CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT;
+
+// //
+// // A receive block to receive a UDP packet over the sockets.
+// //
+// typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
+//     //
+//     // The pool owning this recv block.
+//     //
+//     CXPLAT_POOL* OwningPool;
+
+//     //
+//     // The recv buffer used by MsQuic.
+//     //
+//     CXPLAT_RECV_DATA RecvPacket;
+
+//     //
+//     // Represents the address (source and destination) information of the
+//     // packet.
+//     //
+//     CXPLAT_TUPLE Tuple;
+
+//     //
+//     // Buffer that actually stores the UDP payload.
+//     // TODO allocate this dynamically only if GRO is supported
+//     //
+//     uint8_t Buffer[MAX_URO_PAYLOAD_LENGTH];
+
+//     //
+//     // This follows the recv block.
+//     //
+//     // CXPLAT_RECV_PACKET RecvContext;
+
+// } CXPLAT_DATAPATH_RECV_BLOCK;
 
 //
 // Send context.
@@ -383,6 +417,18 @@ typedef struct CXPLAT_DATAPATH {
     size_t ClientRecvContextLength;
 
     //
+    // The size of each receive datagram array element, including client context,
+    // internal context, and padding.
+    //
+    uint32_t DatagramStride;
+
+    //
+    // The offset of the receive payload buffer from the start of the receive
+    // context.
+    //
+    uint32_t RecvPayloadOffset;
+
+    //
     // The proc count to create per proc datapath state.
     //
     uint32_t ProcCount;
@@ -494,7 +540,7 @@ CxPlatProcessorContextInitialize(
     CXPLAT_DBG_ASSERT(Datapath != NULL);
 
     RecvPacketLength =
-        sizeof(CXPLAT_DATAPATH_RECV_BLOCK) + Datapath->ClientRecvContextLength;
+        Datapath->RecvPayloadOffset + (64 * 1500);
 
     ProcContext->Index = Index;
     CxPlatPoolInitialize(
@@ -684,6 +730,16 @@ CxPlatDataPathInitialize(
         goto Exit;
     }
 
+    Datapath->DatagramStride =
+        ALIGN_UP(
+            sizeof(CXPLAT_RECV_DATA) +
+            sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT) +
+            ClientRecvContextLength,
+            PVOID);
+    Datapath->RecvPayloadOffset =
+        sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT) +
+        64 * Datapath->DatagramStride;
+
     //
     // Initialize the per processor contexts.
     //
@@ -757,26 +813,22 @@ CxPlatDataPathIsPaddingPreferred(
 #endif
 }
 
-CXPLAT_DATAPATH_RECV_BLOCK*
-CxPlatDataPathAllocRecvBlock(
+CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT*
+CxPlatSocketAllocRecvContext(
     _In_ CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc
     )
 {
-    CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-        CxPlatPoolAlloc(&DatapathProc->RecvBlockPool);
-    if (RecvBlock == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_DATAPATH_RECV_BLOCK",
-            0);
-    } else {
-        CxPlatZeroMemory(RecvBlock, sizeof(*RecvBlock));
-        RecvBlock->OwningPool = &DatapathProc->RecvBlockPool;
-        RecvBlock->RecvPacket.Buffer = RecvBlock->Buffer;
-        RecvBlock->RecvPacket.Allocated = TRUE;
+{
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
+        CxPlatPoolAlloc(&DatapathProc.RecvDatagramPool);
+
+    if (RecvContext != NULL) {
+        RecvContext->OwningPool =
+            &DatapathProc.RecvDatagramPool;
+        RecvContext->ReferenceCount = 0;
     }
-    return RecvBlock;
+
+    return RecvContext;
 }
 
 void
@@ -1685,6 +1737,20 @@ CxPlatSocketContextSendComplete(
     return Status;
 }
 
+QUIC_STATUS CxPlatSocketRecv(
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
+    )
+{
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SocketContext->ProcContext;
+
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
+        CxPlatSocketAllocRecvContext(
+            ProcContext);
+
+    // Set up buffers
+
+}
+
 void
 CxPlatSocketContextProcessEvents(
     _In_ void* EventPtr,
@@ -2092,11 +2158,10 @@ CxPlatDataPathRecvPacketToRecvData(
 #ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->DatapathRecvContextToRecvPacket(Packet);
 #else
-    CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-        (CXPLAT_DATAPATH_RECV_BLOCK*)
-            ((char *)Packet - sizeof(CXPLAT_DATAPATH_RECV_BLOCK));
-
-    return &RecvBlock->RecvPacket;
+    return (CXPLAT_RECV_DATA*)
+        (((unsigned char*)Packet) -
+            sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT) -
+            sizeof(CXPLAT_RECV_DATA));
 #endif
 }
 
@@ -2108,12 +2173,22 @@ CxPlatDataPathRecvDataToRecvPacket(
 #ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->DatapathRecvPacketToRecvContext(RecvData);
 #else
-    CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-        CXPLAT_CONTAINING_RECORD(RecvData, CXPLAT_DATAPATH_RECV_BLOCK, RecvPacket);
-
-    return (CXPLAT_RECV_PACKET*)(RecvBlock + 1);
+    return (CXPLAT_RECV_PACKET*)
+        (((unsigned char*)RecvData) +
+            sizeof(CXPLAT_RECV_DATA) +
+            sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT));
 #endif
 }
+
+CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*
+CxPlatDataPathDatagramToInternalDatagramContext(
+    _In_ CXPLAT_RECV_DATA* Datagram
+    )
+{
+    return (CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*)
+        (((unsigned char*)Datagram) + sizeof(CXPLAT_RECV_DATA));
+}
+
 
 void
 CxPlatRecvDataReturn(
@@ -2126,11 +2201,48 @@ CxPlatRecvDataReturn(
     }
 #else
     CXPLAT_RECV_DATA* Datagram;
+
+    int32_t BatchedBufferCount = 0;
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* BatchedInternalContext = NULL;
+
     while ((Datagram = RecvDataChain) != NULL) {
         RecvDataChain = RecvDataChain->Next;
-        CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-            CXPLAT_CONTAINING_RECORD(Datagram, CXPLAT_DATAPATH_RECV_BLOCK, RecvPacket);
-        CxPlatPoolFree(RecvBlock->OwningPool, RecvBlock);
+
+        CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalBufferContext =
+            CxPlatDataPathDatagramToInternalDatagramContext(Datagram);
+        CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* InternalContext =
+            InternalBufferContext->RecvContext;
+
+        if (BatchedInternalContext == InternalContext) {
+            BatchedBufferCount++;
+        } else {
+            if (BatchedInternalContext != NULL &&
+                InterlockedAdd(
+                    (PLONG)&BatchedInternalContext->ReferenceCount,
+                    -BatchedBufferCount) == 0) {
+                //
+                // Clean up the data indication.
+                //
+                CxPlatPoolFree(
+                    BatchedInternalContext->OwningPool,
+                    BatchedInternalContext);
+            }
+
+            BatchedInternalContext = InternalContext;
+            BatchedBufferCount = 1;
+        }
+    }
+
+    if (BatchedInternalContext != NULL &&
+        InterlockedAdd(
+            (PLONG)&BatchedInternalContext->ReferenceCount,
+            -BatchedBufferCount) == 0) {
+        //
+        // Clean up the data indication.
+        //
+        CxPlatPoolFree(
+            BatchedInternalContext->OwningPool,
+            BatchedInternalContext);
     }
 #endif
 }
