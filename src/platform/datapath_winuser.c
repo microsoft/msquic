@@ -3490,7 +3490,7 @@ CxPlatSendContextAllocSegmentBuffer(
     )
 {
     CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0);
-    CXPLAT_DBG_ASSERT(MaxBufferLength <= SendContext->SegmentSize);
+    CXPLAT_DBG_ASSERT(MaxBufferLength == SendContext->SegmentSize);
 
     CXPLAT_DATAPATH_PROC* DatapathProc = SendContext->Owner;
     WSABUF* WsaBuffer;
@@ -3539,14 +3539,11 @@ CxPlatSendDataAllocBuffer(
         return NULL;
     }
 
-    QUIC_BUFFER* SendBuffer;
     if (SendContext->SegmentSize == 0) {
-        SendBuffer = CxPlatSendContextAllocPacketBuffer(SendContext, MaxBufferLength);
+        return CxPlatSendContextAllocPacketBuffer(SendContext, MaxBufferLength);
     } else {
-        SendBuffer = CxPlatSendContextAllocSegmentBuffer(SendContext, MaxBufferLength);
+        return CxPlatSendContextAllocSegmentBuffer(SendContext, MaxBufferLength);
     }
-    CXPLAT_DBG_ASSERT(SendContext->SegmentSize == 0 || SendBuffer->Length == SendContext->SegmentSize);
-    return SendBuffer;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
