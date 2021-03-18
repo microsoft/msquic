@@ -30,7 +30,17 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
 
 #define CXPLAT_MAX_BATCH_SEND 1
-#define CXPLAT_MAX_BATCH_RECEIVE 40
+#define CXPLAT_MAX_BATCH_RECEIVE 1
+
+//
+// The maximum single buffer size for sending coalesced payloads.
+//
+#define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
+
+//
+// The maximum UDP receive coalescing payload.
+//
+#define MAX_URO_PAYLOAD_LENGTH              (UINT16_MAX - CXPLAT_UDP_HEADER_SIZE)
 
 //
 // The maximum single buffer size for sending coalesced payloads.
@@ -59,8 +69,9 @@ typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
 
     //
     // Buffer that actually stores the UDP payload.
+    // TODO allocate this dynamically only if GRO is supported
     //
-    uint8_t Buffer[MAX_UDP_PAYLOAD_LENGTH];
+    uint8_t Buffer[MAX_URO_PAYLOAD_LENGTH];
 
     //
     // This follows the recv block.
@@ -146,6 +157,7 @@ typedef struct CXPLAT_SEND_DATA {
 typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
     char Data[CMSG_SPACE(sizeof(struct in6_pktinfo)) +
               CMSG_SPACE(sizeof(struct in_pktinfo)) +
+              CMSG_SPACE(sizeof(uint16_t)) + // GRO
               2 * CMSG_SPACE(sizeof(int))];
 } CXPLAT_RECV_MSG_CONTROL_BUFFER;
 
@@ -396,7 +408,6 @@ CxPlatSocketSendInternal(
     _In_ BOOLEAN IsPendedSend
     );
 
-#ifdef UDP_SEGMENT
 QUIC_STATUS
 CxPlatDataPathQuerySockoptSupport(
     _Inout_ CXPLAT_DATAPATH* Datapath
@@ -416,6 +427,7 @@ CxPlatDataPathQuerySockoptSupport(
         goto Error;
     }
 
+#ifdef UDP_SEGMENT
     int SegmentSize;
     OptionLength = sizeof(SegmentSize);
     Result =
@@ -434,6 +446,27 @@ CxPlatDataPathQuerySockoptSupport(
     } else {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
     }
+#endif
+
+#ifdef UDP_GRO
+    int GroEnable = 1;
+    Result =
+        getsockopt(
+            UdpSocket,
+            IPPROTO_UDP,
+            UDP_GRO,
+            &GroEnable,
+            sizeof(GroEnable));
+    if (Result != 0) {
+        int SockError = errno;
+        QuicTraceLogWarning(
+            DatapathQueryUdpSegmentFailed,
+            "[data] Query for UDP_SEGMENT failed, 0x%x",
+            SockError);
+    } else {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
+    }
+#endif
 
 Error:
     if (UdpSocket != INVALID_SOCKET) {
@@ -442,7 +475,7 @@ Error:
 
     return Status;
 }
-#endif
+
 
 QUIC_STATUS
 CxPlatProcessorContextInitialize(
@@ -646,13 +679,10 @@ CxPlatDataPathInitialize(
     Datapath->ProcCount = CxPlatProcMaxCount();
     Datapath->MaxSendBatchSize = CXPLAT_MAX_BATCH_SEND;
     CxPlatRundownInitialize(&Datapath->BindingsRundown);
-
-#ifdef UDP_SEGMENT
     Status = CxPlatDataPathQuerySockoptSupport(Datapath);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
-#endif
 
     //
     // Initialize the per processor contexts.
@@ -1442,6 +1472,7 @@ CxPlatSocketContextRecvComplete(
 
         BOOLEAN FoundLocalAddr = FALSE;
         BOOLEAN FoundTOS = FALSE;
+        BOOLEAN IsCoalesced = FALSE;
         QUIC_ADDR* LocalAddr = &RecvPacket->Tuple->LocalAddress;
         if (LocalAddr->Ipv6.sin6_family == AF_INET6) {
             LocalAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
@@ -1454,6 +1485,8 @@ CxPlatSocketContextRecvComplete(
 
         RecvPacket->BufferLength = SocketContext->RecvMsgHdr[CurrentMessage].msg_len;
         BytesTransferred += RecvPacket->BufferLength;
+
+        uint16_t MessageLength = RecvPacket->BufferLength;
 
         RecvPacket->TypeOfService = 0;
 
@@ -1489,6 +1522,14 @@ CxPlatSocketContextRecvComplete(
                     RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
                 }
+#ifdef UDP_GRO
+            } else if (CMsg->cmsg_type == SOL_UDP) {
+                if (CMsg->cmsg_type == UDP_GRO) {
+                    CXPLAT_DBG_ASSERT(*(uint16_t*)WSA_CMSG_DATA(CMsg) <= MAX_URO_PAYLOAD_LENGTH);
+                    MessageLength = (uint16_t)*(uint16_t*)WSA_CMSG_DATA(CMsg);
+                    IsCoalesced = TRUE;
+                }
+#endif
             }
         }
 
@@ -1502,7 +1543,7 @@ CxPlatSocketContextRecvComplete(
             "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             SocketContext->Binding,
             (uint32_t)RecvPacket->BufferLength,
-            (uint32_t)RecvPacket->BufferLength,
+            MessageLength,
             CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
             CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
     }
