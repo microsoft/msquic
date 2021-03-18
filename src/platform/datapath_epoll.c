@@ -2437,31 +2437,23 @@ CxPlatSocketSendInternal(
 
     if (!IsPendedSend) {
         CxPlatSendContextFinalizeSendBuffer(SendData, TRUE);
-    }
-
-    uint32_t TotalSize = 0;
-    for (size_t i = SendData->SentMessagesCount; i < SendData->BufferCount; ++i) {
-        SendData->Iovs[i].iov_base = SendData->Buffers[i].Buffer;
-        SendData->Iovs[i].iov_len = SendData->Buffers[i].Length;
-        TotalSize += SendData->Buffers[i].Length;
-    }
-
-    if (!IsPendedSend) {
+        for (size_t i = SendData->SentMessagesCount; i < SendData->BufferCount; ++i) {
+            SendData->Iovs[i].iov_base = SendData->Buffers[i].Buffer;
+            SendData->Iovs[i].iov_len = SendData->Buffers[i].Length;
+        }
         QuicTraceEvent(
             DatapathSend,
             "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
             Socket,
-            TotalSize,
+            SendData->TotalSize,
             SendData->BufferCount,
             SendData->SegmentSize,
             CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
             CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-    }
 
-    //
-    // Check to see if we need to pend.
-    //
-    if (!IsPendedSend) {
+        //
+        // Check to see if we need to pend.
+        //
         CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
         if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
             CxPlatSocketContextPendSend(
