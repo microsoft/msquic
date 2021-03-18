@@ -710,8 +710,7 @@ CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    UNREFERENCED_PARAMETER(Datapath);
-    return 0;
+    return Datapath->Features;
 }
 
 BOOLEAN
@@ -722,12 +721,7 @@ CxPlatDataPathIsPaddingPreferred(
 #ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->DatapathIsPaddingPreferred(Datapath);
 #else
-    UNREFERENCED_PARAMETER(Datapath);
-    //
-    // The windows implementation returns TRUE only if GSO is supported and
-    // this DAL implementation doesn't support GSO currently.
-    //
-    return FALSE;
+    return !!(Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
 #endif
 }
 
