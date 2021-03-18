@@ -2144,7 +2144,7 @@ CxPlatSendDataFree(
         SendContext->SegmentSize > 0 ?
             &DatapathProc->LargeSendBufferPool : &DatapathProc->SendBufferPool;
 
-    for (uint8_t i = 0; i < SendContext->BufferCount; ++i) {
+    for (size_t i = 0; i < SendContext->BufferCount; ++i) {
         CxPlatPoolFree(BufferPool, SendContext->Buffers[i].Buffer);
     }
 
@@ -2284,7 +2284,7 @@ CxPlatSendContextAllocSegmentBuffer(
         // All clear to return the next segment of our contiguous buffer.
         //
         SendContext->ClientBuffer.Length = MaxBufferLength;
-        return (QUIC_BUFFER*)&SendContext->ClientBuffer;
+        return &SendContext->ClientBuffer;
     }
 
     WsaBuffer = CxPlatSendContextAllocBuffer(SendContext, &DatapathProc->LargeSendBufferPool);
@@ -2300,7 +2300,7 @@ CxPlatSendContextAllocSegmentBuffer(
     SendContext->ClientBuffer.Buffer = WsaBuffer->Buffer;
     SendContext->ClientBuffer.Length = MaxBufferLength;
 
-    return (QUIC_BUFFER*)&SendContext->ClientBuffer;
+    return &SendContext->ClientBuffer;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2323,9 +2323,8 @@ CxPlatSendDataAllocBuffer(
 
     if (SendContext->SegmentSize == 0) {
         return CxPlatSendContextAllocPacketBuffer(SendContext, MaxBufferLength);
-    } else {
-        return CxPlatSendContextAllocSegmentBuffer(SendContext, MaxBufferLength);
     }
+    return CxPlatSendContextAllocSegmentBuffer(SendContext, MaxBufferLength);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
