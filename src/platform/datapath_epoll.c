@@ -115,7 +115,7 @@ typedef struct CXPLAT_SEND_DATA {
     uint16_t SegmentSize;
 
     //
-    // The total buffer size for WsaBuffers.
+    // The total buffer size for Buffers.
     //
     uint32_t TotalSize;
 
@@ -137,7 +137,7 @@ typedef struct CXPLAT_SEND_DATA {
     struct iovec Iovs[CXPLAT_MAX_BATCH_SEND];
 
     //
-    // The WSABUF returned to the client for segmented sends.
+    // The QUIC_BUFFER returned to the client for segmented sends.
     //
     QUIC_BUFFER ClientBuffer;
 
@@ -344,6 +344,9 @@ typedef struct CXPLAT_DATAPATH {
     //
     CXPLAT_RUNDOWN_REF BindingsRundown;
 
+    //
+    // Set of supported features.
+    //
     uint32_t Features;
 
     //
@@ -2124,10 +2127,6 @@ CxPlatSendDataAlloc(
     SendContext->SegmentSize =
         (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
             ? MaxPacketSize : 0;
-        // SendContext->TotalSize = 0;
-        // SendContext->WsaBufferCount = 0;
-        // SendContext->ClientBuffer.len = 0;
-        // SendContext->ClientBuffer.buf = NULL;
 
 Exit:
     return SendContext;
@@ -2160,7 +2159,7 @@ CxPlatSendContextCanAllocSendSegment(
 {
     CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0);
     CXPLAT_DBG_ASSERT(SendContext->BufferCount > 0);
-    //CXPLAT_DBG_ASSERT(SendContext->WsaBufferCount <= SendContext->Owner->Datapath->MaxSendBatchSize);
+    //CXPLAT_DBG_ASSERT(SendContext->BufferCount <= SendContext->Owner->Datapath->MaxSendBatchSize);
 
     uint64_t BytesAvailable =
         CXPLAT_LARGE_SEND_BUFFER_SIZE -
@@ -2237,14 +2236,14 @@ CxPlatSendContextAllocBuffer(
 {
     CXPLAT_DBG_ASSERT(SendContext->BufferCount < SendContext->Owner->Datapath->MaxSendBatchSize);
 
-    QUIC_BUFFER* WsaBuffer = &SendContext->Buffers[SendContext->BufferCount];
-    WsaBuffer->Buffer = CxPlatPoolAlloc(BufferPool);
-    if (WsaBuffer->Buffer == NULL) {
+    QUIC_BUFFER* Buffer = &SendContext->Buffers[SendContext->BufferCount];
+    Buffer->Buffer = CxPlatPoolAlloc(BufferPool);
+    if (Buffer->Buffer == NULL) {
         return NULL;
     }
     ++SendContext->BufferCount;
 
-    return WsaBuffer;
+    return Buffer;
 }
 
 _Success_(return != NULL)
@@ -2255,12 +2254,12 @@ CxPlatSendContextAllocPacketBuffer(
     _In_ uint16_t MaxBufferLength
     )
 {
-    QUIC_BUFFER* WsaBuffer =
+    QUIC_BUFFER* Buffer =
         CxPlatSendContextAllocBuffer(SendContext, &SendContext->Owner->SendBufferPool);
-    if (WsaBuffer != NULL) {
-        WsaBuffer->Length = MaxBufferLength;
+    if (Buffer != NULL) {
+        Buffer->Length = MaxBufferLength;
     }
-    return WsaBuffer;
+    return Buffer;
 }
 
 _Success_(return != NULL)
@@ -2275,7 +2274,7 @@ CxPlatSendContextAllocSegmentBuffer(
     CXPLAT_DBG_ASSERT(MaxBufferLength <= SendContext->SegmentSize);
 
     CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc = SendContext->Owner;
-    QUIC_BUFFER* WsaBuffer;
+    QUIC_BUFFER* Buffer;
 
     if (SendContext->ClientBuffer.Buffer != NULL &&
         CxPlatSendContextCanAllocSendSegment(SendContext, MaxBufferLength)) {
@@ -2287,17 +2286,17 @@ CxPlatSendContextAllocSegmentBuffer(
         return &SendContext->ClientBuffer;
     }
 
-    WsaBuffer = CxPlatSendContextAllocBuffer(SendContext, &DatapathProc->LargeSendBufferPool);
-    if (WsaBuffer == NULL) {
+    Buffer = CxPlatSendContextAllocBuffer(SendContext, &DatapathProc->LargeSendBufferPool);
+    if (Buffer == NULL) {
         return NULL;
     }
 
     //
-    // Provide a virtual WSABUF to the client. Once the client has committed
+    // Provide a virtual QUIC_BUFFER to the client. Once the client has committed
     // to a final send size, we'll append it to our internal backing buffer.
     //
-    WsaBuffer->Length = 0;
-    SendContext->ClientBuffer.Buffer = WsaBuffer->Buffer;
+    Buffer->Length = 0;
+    SendContext->ClientBuffer.Buffer = Buffer->Buffer;
     SendContext->ClientBuffer.Length = MaxBufferLength;
 
     return &SendContext->ClientBuffer;
@@ -2381,7 +2380,7 @@ CxPlatSendContextComplete(
             "[data][%p] ERROR, %u, %s.",
             SocketProc->Binding,
             IoResult,
-            "WSASendMsg completion");
+            "sendmmsg completion");
     }
 
     // TODO to add TCP
