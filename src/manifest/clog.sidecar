@@ -8987,6 +8987,13 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
     },
+    "CertFindCertificateFriendlyName": {
+      "ModuleProperites": {},
+      "TraceString": "[test] No certificate found by FriendlyName",
+      "UniqueId": "CertFindCertificateFriendlyName",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogWarning"
+    },
     "CertWaitForCreationEvent": {
       "ModuleProperites": {},
       "TraceString": "[test] WaitForSingleObject returned 0x%x, proceeding without caution... (GLE: 0x%x)",
@@ -13309,6 +13316,10 @@
       {
         "UniquenessHash": "19b21f4a-a6e8-3b9b-c4da-e303c8f108b1",
         "TraceID": "WindowsUserUninitialized"
+      },
+      {
+        "UniquenessHash": "5fc489fc-c2f2-0e16-8c99-87acf91e235d",
+        "TraceID": "CertFindCertificateFriendlyName"
       },
       {
         "UniquenessHash": "b3f755ee-8d5e-ee68-77ce-d28d21c60214",

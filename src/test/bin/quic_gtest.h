@@ -19,6 +19,8 @@
 #include "quic_gtest.h.clog.h"
 #endif
 
+extern bool TestingKernelMode;
+
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
 };
