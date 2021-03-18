@@ -3490,7 +3490,7 @@ CxPlatSendContextAllocSegmentBuffer(
     )
 {
     CXPLAT_DBG_ASSERT(SendContext->SegmentSize > 0);
-    CXPLAT_DBG_ASSERT(MaxBufferLength == SendContext->SegmentSize);
+    CXPLAT_DBG_ASSERT(MaxBufferLength <= SendContext->SegmentSize);
 
     CXPLAT_DATAPATH_PROC* DatapathProc = SendContext->Owner;
     WSABUF* WsaBuffer;
