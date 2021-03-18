@@ -37,6 +37,9 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 //
 #define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
 
+#define MAX_GRO_SEGMENT_SIZE 1452
+#define NUMBER_OF_SEGMENTS_OR_BATCHES 64
+
 // //
 // // The maximum UDP receive coalescing payload.
 // //
@@ -540,7 +543,7 @@ CxPlatProcessorContextInitialize(
     CXPLAT_DBG_ASSERT(Datapath != NULL);
 
     RecvPacketLength =
-        Datapath->RecvPayloadOffset + (64 * 1500);
+        Datapath->RecvPayloadOffset + (NUMBER_OF_SEGMENTS_OR_BATCHES * MAX_GRO_SEGMENT_SIZE);
 
     ProcContext->Index = Index;
     CxPlatPoolInitialize(
