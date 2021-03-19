@@ -137,7 +137,7 @@ InterlockedDecrement(
 inline
 long
 InterlockedAdd(
-    _Inout_ _Interlocked_operand_ long volatile *Addend
+    _Inout_ _Interlocked_operand_ long volatile *Addend,
     _In_ long Value
     )
 {
