@@ -1689,7 +1689,7 @@ CxPlatSocketRecv(
         if (SegmentSize != 0) {
             unsigned int NumberOfSegments = RecvMsgHdr[0].msg_len / SegmentSize;
             unsigned int LengthOfLastSegment = RecvMsgHdr[0].msg_len % SegmentSize;
-            CXPLAT_DBG_ASSERT(NumberOfSegments == Ret || (LengthOfLastSegment != 0 && NumberOfSegments == (Ret - 1)))
+            CXPLAT_DBG_ASSERT(NumberOfSegments == (unsigned int)Ret || (LengthOfLastSegment != 0 && NumberOfSegments == ((unsigned int)Ret - 1)))
             CXPLAT_DBG_ASSERT(NumberOfSegments <= NUMBER_OF_SEGMENTS_OR_BATCHES);
             unsigned int SegmentCount;
             for (SegmentCount = 0; SegmentCount < NumberOfSegments; SegmentCount++) {
