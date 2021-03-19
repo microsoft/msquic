@@ -10,6 +10,8 @@
 #include "quic_tls.h"
 #ifdef _WIN32
 #include <wincrypt.h>
+#else
+#include <fcntl.h>
 #endif
 #ifdef QUIC_CLOG
 #include "TlsTest.cpp.clog.h"
@@ -19,6 +21,8 @@ const uint32_t DefaultFragmentSize = 1200;
 
 const uint8_t Alpn[] = { 1, 'A' };
 const uint8_t MultiAlpn[] = { 1, 'C', 1, 'A', 1, 'B' };
+const char* TestPath = PfxTestPath;
+const char* PfxPass = "PLACEHOLDER";   // approved for cred scan
 
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
@@ -31,8 +35,10 @@ protected:
     CXPLAT_SEC_CONFIG* ClientSecConfigExtraCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigClientCertNoCertValidation {nullptr};
+    CXPLAT_SEC_CONFIG* Pkcs12SecConfig {nullptr};
     static QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
     static QUIC_CREDENTIAL_CONFIG* ClientCertParams;
+    static QUIC_CREDENTIAL_CONFIG* CertParams;
 
     TlsTest() { }
 
@@ -64,6 +70,40 @@ protected:
         ClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, TRUE);
         ASSERT_NE(nullptr, ClientCertParams);
         ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+#endif
+#ifndef _WIN32
+        CertParams = (QUIC_CREDENTIAL_CONFIG*)malloc(sizeof(QUIC_CREDENTIAL_CONFIG));
+        if (CertParams) {
+            CxPlatZeroMemory(CertParams, sizeof(*CertParams));
+            CertParams->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12;
+            CertParams->CertificatePkcs12 = (QUIC_CERTIFICATE_PKCS12*)malloc(sizeof(QUIC_CERTIFICATE_PKCS12));
+            if (CertParams->CertificatePkcs12) {
+                CxPlatZeroMemory(CertParams->CertificatePkcs12, sizeof(QUIC_CERTIFICATE_PKCS12));
+                char buffer[8000];
+
+                int fd = open(TestPath, O_RDONLY);
+                ASSERT_TRUE(fd >= 0);
+
+                int readLength = 0;
+                int totalLength = 0;
+                if (fd >= 0) {
+                    do {
+                        readLength = read(fd, buffer + totalLength, sizeof(buffer) - totalLength);
+                        if (readLength > 0) totalLength += readLength;
+                    } while (readLength > 0 && totalLength < (int)sizeof(buffer));
+                }
+                ASSERT_EQ(0, readLength);
+                ASSERT_NE(0, totalLength);
+
+                CertParams->CertificatePkcs12->Asn1Blob = malloc(totalLength);
+                ASSERT_NE(nullptr, CertParams->CertificatePkcs12->Asn1Blob);
+                if (CertParams->CertificatePkcs12->Asn1Blob) {
+                    memmove(CertParams->CertificatePkcs12->Asn1Blob, buffer, totalLength);
+                    CertParams->CertificatePkcs12->Length = totalLength;
+                    CertParams->CertificatePkcs12->PrivateKeyPassword = PfxPass;
+                }
+            }
+        }
 #endif
     }
 
@@ -165,7 +205,19 @@ protected:
                 &TlsContext::TlsClientCallbacks,
                 &ClientSecConfigClientCertNoCertValidation,
                 OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ClientSecConfigClientCertNoCertValidation );
+        ASSERT_NE(nullptr, ClientSecConfigClientCertNoCertValidation);
+#endif
+
+#ifndef _WIN32
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                CertParams,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsClientCallbacks,
+                &Pkcs12SecConfig,
+                OnSecConfigCreateComplete));
+
+        ASSERT_NE(nullptr, Pkcs12SecConfig);
 #endif
     }
 
@@ -187,8 +239,8 @@ protected:
             CxPlatTlsSecConfigDelete(ClientSecConfigDeferredCertValidation);
             ClientSecConfigDeferredCertValidation = nullptr;
         }
-        if (ClientSecConfigClientCertNoCertValidation ) {
-            CxPlatTlsSecConfigDelete(ClientSecConfigClientCertNoCertValidation );
+        if (ClientSecConfigClientCertNoCertValidation) {
+            CxPlatTlsSecConfigDelete(ClientSecConfigClientCertNoCertValidation);
             ClientSecConfigClientCertNoCertValidation  = nullptr;
         }
         if (ClientSecConfig) {
@@ -202,6 +254,10 @@ protected:
         if (ServerSecConfig) {
             CxPlatTlsSecConfigDelete(ServerSecConfig);
             ServerSecConfig = nullptr;
+        }
+        if (Pkcs12SecConfig) {
+            CxPlatTlsSecConfigDelete(Pkcs12SecConfig);
+            Pkcs12SecConfig = nullptr;
         }
     }
 
@@ -770,6 +826,7 @@ const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
 
 QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
 QUIC_CREDENTIAL_CONFIG* TlsTest::ClientCertParams = nullptr;
+QUIC_CREDENTIAL_CONFIG* TlsTest::CertParams = nullptr;
 
 TEST_F(TlsTest, Initialize)
 {

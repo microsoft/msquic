@@ -17,12 +17,15 @@ Abstract:
 #pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
 #endif
 #include "openssl/err.h"
+#include "openssl/bio.h"
 #include "openssl/hmac.h"
 #include "openssl/kdf.h"
 #include "openssl/pem.h"
+#include "openssl/pkcs12.h"
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
+
 #ifdef _WIN32
 #pragma warning(pop)
 #endif
@@ -620,6 +623,12 @@ CxPlatTlsSecConfigCreate(
                 CredConfig->CertificateFileProtected->PrivateKeyPassword == NULL) {
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
+        } else if(CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
+            if (CredConfig->CertificatePkcs12 == NULL ||
+                CredConfig->CertificatePkcs12->Asn1Blob == NULL ||
+                CredConfig->CertificatePkcs12->Length <= 0) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
         } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
             CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE ||
             CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) { // NOLINT bugprone-branch-clone
@@ -637,6 +646,7 @@ CxPlatTlsSecConfigCreate(
     CXPLAT_SEC_CONFIG* SecurityConfig = NULL;
     RSA* RsaKey = NULL;
     X509* X509Cert = NULL;
+    EVP_PKEY * privateKey = NULL;
 
     //
     // Create a security config.
@@ -806,13 +816,14 @@ CxPlatTlsSecConfigCreate(
         // Set the server certs.
         //
 
-        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
-            SSL_CTX_set_default_passwd_cb_userdata(
-                SecurityConfig->SSLCtx, (void*)CredConfig->CertificateFileProtected->PrivateKeyPassword);
-        }
-
         if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ||
             CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+
+            if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+                SSL_CTX_set_default_passwd_cb_userdata(
+                    SecurityConfig->SSLCtx, (void*)CredConfig->CertificateFileProtected->PrivateKeyPassword);
+            }
+
             Ret =
                 SSL_CTX_use_PrivateKey_file(
                     SecurityConfig->SSLCtx,
@@ -838,6 +849,71 @@ CxPlatTlsSecConfigCreate(
                     "[ lib] ERROR, %u, %s.",
                     ERR_get_error(),
                     "SSL_CTX_use_certificate_chain_file failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+        } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
+            BIO* bio = BIO_new(BIO_s_mem());
+            PKCS12 *p12 = NULL;
+
+            if (bio) {
+                BIO_set_mem_eof_return(bio, 0);
+                BIO_write(bio, CredConfig->CertificatePkcs12->Asn1Blob, CredConfig->CertificatePkcs12->Length);
+                p12 = d2i_PKCS12_bio(bio, NULL);
+                BIO_free(bio);
+            }
+
+            if (!p12) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "d2i_PKCS12_bio failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+
+            }
+
+            STACK_OF(X509) *ca = NULL;
+            Ret =
+                PKCS12_parse(p12, CredConfig->CertificatePkcs12->PrivateKeyPassword, &privateKey, &X509Cert, &ca);
+            if (ca) sk_X509_pop_free(ca, X509_free); // no handling for custom certificate cahins yet.
+            if (p12) PKCS12_free(p12);
+
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "PKCS12_parse failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
+            Ret =
+                SSL_CTX_use_PrivateKey(
+                    SecurityConfig->SSLCtx,
+                    privateKey);
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_use_PrivateKey_file failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
+            Ret =
+                SSL_CTX_use_certificate(
+                    SecurityConfig->SSLCtx,
+                    X509Cert);
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_use_certificate failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -920,6 +996,10 @@ Exit:
 
     if (RsaKey != NULL) {
         RSA_free(RsaKey);
+    }
+
+    if (privateKey != NULL) {
+        EVP_PKEY_free(privateKey);
     }
 
     return Status;
