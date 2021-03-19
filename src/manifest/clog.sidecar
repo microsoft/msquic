@@ -8369,13 +8369,13 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathRecvEmpty": {
+    "DatapathQueryUdpGroFailed": {
       "ModuleProperites": {},
-      "TraceString": "[data][%p] Dropping datagram with empty payload.",
-      "UniqueId": "DatapathRecvEmpty",
+      "TraceString": "[data] Query for UDP_GRO failed, 0x%x",
+      "UniqueId": "DatapathQueryUdpGroFailed",
       "splitArgs": [
         {
-          "DefinationEncoding": "p",
+          "DefinationEncoding": "x",
           "MacroVariableName": "arg2"
         }
       ],
@@ -8441,34 +8441,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "DatapathRecv": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-      "UniqueId": "DatapathRecv",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg6"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "DatapathCreated": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
@@ -8529,6 +8501,34 @@
         {
           "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg7"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "DatapathRecv": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+      "UniqueId": "DatapathRecv",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg6"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -8773,6 +8773,18 @@
       "ModuleProperites": {},
       "TraceString": "[data][%p] WSARecvMsg completion is missing IP_PKTINFO",
       "UniqueId": "DatapathMissingInfo",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathRecvEmpty": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Dropping datagram with empty payload.",
+      "UniqueId": "DatapathRecvEmpty",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -13138,8 +13150,8 @@
         "TraceID": "DatapathQueryUdpSegmentFailed"
       },
       {
-        "UniquenessHash": "e5973396-4dc6-d94f-5d67-921952ed35a5",
-        "TraceID": "DatapathRecvEmpty"
+        "UniquenessHash": "bb9f6b08-1f12-3884-c5e8-58cd06a6cc98",
+        "TraceID": "DatapathQueryUdpGroFailed"
       },
       {
         "UniquenessHash": "f2af462d-2374-ab88-bb90-5b540254387e",
@@ -13158,10 +13170,6 @@
         "TraceID": "DatapathErrorStatus"
       },
       {
-        "UniquenessHash": "3b8a506d-ede0-3c3b-7c31-83127acebfc6",
-        "TraceID": "DatapathRecv"
-      },
-      {
         "UniquenessHash": "1cde4174-4172-15b7-b59b-dcbb6410b43a",
         "TraceID": "DatapathCreated"
       },
@@ -13172,6 +13180,10 @@
       {
         "UniquenessHash": "20cf52f5-ef36-a45b-6a54-29e5eaac7f19",
         "TraceID": "DatapathSend"
+      },
+      {
+        "UniquenessHash": "3b8a506d-ede0-3c3b-7c31-83127acebfc6",
+        "TraceID": "DatapathRecv"
       },
       {
         "UniquenessHash": "6eeae539-95db-bea9-7e36-8635006dae40",
@@ -13252,6 +13264,10 @@
       {
         "UniquenessHash": "379a72cf-af97-5535-180f-f644b7513c0c",
         "TraceID": "DatapathMissingInfo"
+      },
+      {
+        "UniquenessHash": "e5973396-4dc6-d94f-5d67-921952ed35a5",
+        "TraceID": "DatapathRecvEmpty"
       },
       {
         "UniquenessHash": "fc873bff-2380-b7f7-a8be-4ff93b6d72d7",

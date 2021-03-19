@@ -36,7 +36,14 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 //
 #define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
 
-#define MAX_GRO_SEGMENT_SIZE 1472
+//
+// The maximum size of a receve segment or buffer if segmentation is not supported.
+//
+#define MAX_GRO_SEGMENT_SIZE (CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE)
+
+//
+// The number of segments to receive, or number of batches if segmentation is not supported.
+//
 #define NUMBER_OF_SEGMENTS_OR_BATCHES 64
 
 //
@@ -1633,6 +1640,7 @@ CxPlatSocketRecv(
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
+                SocketContext->Binding,
                 Error,
                 "recvmmsg failed");
         } else {
