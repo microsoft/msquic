@@ -30,7 +30,6 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
 
 #define CXPLAT_MAX_BATCH_SEND 1
-#define CXPLAT_MAX_BATCH_RECEIVE 1
 
 //
 // The maximum single buffer size for sending coalesced payloads.
@@ -233,21 +232,6 @@ typedef struct CXPLAT_SOCKET_CONTEXT {
 #define QUIC_SOCK_EVENT_CLEANUP 0
 #define QUIC_SOCK_EVENT_SOCKET  1
     uint8_t EventContexts[2];
-
-    //
-    // The I/O vector for receive datagrams.
-    //
-    struct iovec RecvIov[CXPLAT_MAX_BATCH_RECEIVE];
-
-    //
-    // The control buffer used in RecvMsgHdr.
-    //
-    CXPLAT_RECV_MSG_CONTROL_BUFFER RecvMsgControl[CXPLAT_MAX_BATCH_RECEIVE];
-
-    //
-    // The buffer used to receive msg headers on socket.
-    //
-    struct mmsghdr RecvMsgHdr[CXPLAT_MAX_BATCH_RECEIVE];
 
     //
     // The head of list containg all pending sends on this socket.
@@ -1951,10 +1935,6 @@ CxPlatSocketCreateUdp(
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
-        for (ssize_t j = 0; j < CXPLAT_MAX_BATCH_RECEIVE; j++) {
-            Binding->SocketContexts[i].RecvIov[j].iov_len =
-                Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
-        }
         Binding->SocketContexts[i].ProcContext = &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc];
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendContextHead);
         CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendContextLock);
