@@ -39,16 +39,6 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 #define MAX_GRO_SEGMENT_SIZE 1472
 #define NUMBER_OF_SEGMENTS_OR_BATCHES 64
 
-// //
-// // The maximum UDP receive coalescing payload.
-// //
-// #define MAX_URO_PAYLOAD_LENGTH              (UINT16_MAX - CXPLAT_UDP_HEADER_SIZE)
-
-// //
-// // The maximum single buffer size for sending coalesced payloads.
-// //
-// #define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
-
 //
 // Internal receive context.
 //
@@ -82,39 +72,6 @@ typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT {
     CXPLAT_TUPLE Tuple;
 
 } CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT;
-
-// //
-// // A receive block to receive a UDP packet over the sockets.
-// //
-// typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
-//     //
-//     // The pool owning this recv block.
-//     //
-//     CXPLAT_POOL* OwningPool;
-
-//     //
-//     // The recv buffer used by MsQuic.
-//     //
-//     CXPLAT_RECV_DATA RecvPacket;
-
-//     //
-//     // Represents the address (source and destination) information of the
-//     // packet.
-//     //
-//     CXPLAT_TUPLE Tuple;
-
-//     //
-//     // Buffer that actually stores the UDP payload.
-//     // TODO allocate this dynamically only if GRO is supported
-//     //
-//     uint8_t Buffer[MAX_URO_PAYLOAD_LENGTH];
-
-//     //
-//     // This follows the recv block.
-//     //
-//     // CXPLAT_RECV_PACKET RecvContext;
-
-// } CXPLAT_DATAPATH_RECV_BLOCK;
 
 //
 // Send context.
@@ -1598,10 +1555,17 @@ CxPlatDataPathDatagramToInternalDatagramContext(
     _In_ CXPLAT_RECV_DATA* Datagram
     );
 
+typedef struct CXPLAT_RECV_MMSG_STORE {
+    struct iovec RecvIov[NUMBER_OF_SEGMENTS_OR_BATCHES];
+    CXPLAT_RECV_MSG_CONTROL_BUFFER RecvMsgControl[NUMBER_OF_SEGMENTS_OR_BATCHES];
+    struct mmsghdr RecvMsgHdr[NUMBER_OF_SEGMENTS_OR_BATCHES];
+} CXPLAT_RECV_MMSG_STORE;
+
 static
 QUIC_STATUS
 CxPlatSocketRecv(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ CXPLAT_RECV_MMSG_STORE* RecvMessageStore
     )
 {
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SocketContext->ProcContext;
@@ -1616,9 +1580,9 @@ CxPlatSocketRecv(
 
     BOOLEAN UseURO = !!(SocketContext->Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING);
     int BufferCount = UseURO ? 1 : NUMBER_OF_SEGMENTS_OR_BATCHES;
-    struct iovec RecvIov[NUMBER_OF_SEGMENTS_OR_BATCHES];
-    CXPLAT_RECV_MSG_CONTROL_BUFFER RecvMsgControl[NUMBER_OF_SEGMENTS_OR_BATCHES];
-    struct mmsghdr RecvMsgHdr[NUMBER_OF_SEGMENTS_OR_BATCHES];
+    struct iovec* RecvIov = &RecvMessageStore->RecvIov;
+    CXPLAT_RECV_MSG_CONTROL_BUFFER* RecvMsgControl = &RecvMessageStore->RecvMsgControl;
+    struct mmsghdr* RecvMsgHdr = &RecvMessageStore->RecvMsgHdr;
 
     if (UseURO) {
         //
@@ -1792,7 +1756,8 @@ Exit:
 void
 CxPlatSocketContextProcessEvents(
     _In_ void* EventPtr,
-    _In_ int Events
+    _In_ int Events,
+    _In_ CXPLAT_RECV_MMSG_STORE* RecvMessageStore
     )
 {
     uint8_t EventType = *(uint8_t*)EventPtr;
@@ -1854,7 +1819,7 @@ CxPlatSocketContextProcessEvents(
     if (EPOLLIN & Events) {
         while (TRUE) {
             QUIC_STATUS Status =
-                CxPlatSocketRecv(SocketContext);
+                CxPlatSocketRecv(SocketContext, RecvMessageStore);
             if (Status != QUIC_STATUS_SUCCESS) {
                 break;
             }
@@ -2891,6 +2856,9 @@ CxPlatDataPathWorkerThread(
         "[data][%p] Worker start",
         ProcContext);
 
+    CXPLAT_RECV_MMSG_STORE* RecvMessageStore = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_RECV_MMSG_STORE), QUIC_POOL_RECV_MMSG_STORE);
+    // TODO Fail Allocation Checking
+
     const size_t EpollEventCtMax = 16; // TODO: Experiment.
     struct epoll_event EpollEvents[EpollEventCtMax];
 
@@ -2916,9 +2884,12 @@ CxPlatDataPathWorkerThread(
 
             CxPlatSocketContextProcessEvents(
                 EpollEvents[i].data.ptr,
-                EpollEvents[i].events);
+                EpollEvents[i].events,
+                RecvMessageStore);
         }
     }
+
+    CXPLAT_FREE(RecvMessageStore, QUIC_POOL_RECV_MMSG_STORE);
 
     QuicTraceLogInfo(
         DatapathWorkerThreadStop,
