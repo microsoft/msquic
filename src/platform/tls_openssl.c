@@ -877,7 +877,7 @@ CxPlatTlsSecConfigCreate(
             STACK_OF(X509) *ca = NULL;
             Ret =
                 PKCS12_parse(p12, CredConfig->CertificatePkcs12->PrivateKeyPassword, &privateKey, &X509Cert, &ca);
-            if (ca) sk_X509_pop_free(ca, X509_free); // no handling for custom certificate cahins yet.
+            if (ca) sk_X509_pop_free(ca, X509_free); // no handling for custom certificate chains yet.
             if (p12) PKCS12_free(p12);
 
             if (Ret != 1) {
