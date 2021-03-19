@@ -411,6 +411,10 @@ CxPlatDataPathQuerySockoptSupport(
     socklen_t OptionLength;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
+    UNREFERENCED_PARAMETER(Result);
+    UNREFERENCED_PARAMETER(OptionLength);
+    UNREFERENCED_PARAMETER(Datapath);
+
     int UdpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (UdpSocket == INVALID_SOCKET) {
         int SockError = errno;
@@ -1547,7 +1551,7 @@ CxPlatSocketReadCmsg(
         } else if (CMsg->cmsg_type == IPPROTO_UDP) {
             if (CMsg->cmsg_type == UDP_GRO) {
                 CXPLAT_DBG_ASSERT(*(uint16_t*)CMSG_DATA(CMsg) <= MAX_GRO_SEGMENT_SIZE);
-                *SegmentSize = (uint16_t)*(uint16_t*)CMSG_DATA(CMsg);
+                *SegmentSize = *(uint16_t*)CMSG_DATA(CMsg);
             }
 #endif
         }
@@ -1679,8 +1683,8 @@ CxPlatSocketRecv(
     if (UseURO) {
         CXPLAT_DBG_ASSERT(SegmentSize != 0 || RecvMsgHdr[0].msg_len <= MAX_GRO_SEGMENT_SIZE);
         if (SegmentSize != 0) {
-            int NumberOfSegments = RecvMsgHdr[0].msg_len / SegmentSize;
-            int LengthOfLastSegment = RecvMsgHdr[0].msg_len % SegmentSize;
+            unsigned int NumberOfSegments = RecvMsgHdr[0].msg_len / SegmentSize;
+            unsigned int LengthOfLastSegment = RecvMsgHdr[0].msg_len % SegmentSize;
             CXPLAT_DBG_ASSERT(NumberOfSegments == Ret || (LengthOfLastSegment != 0 && NumberOfSegments == (Ret - 1)))
             CXPLAT_DBG_ASSERT(NumberOfSegments <= NUMBER_OF_SEGMENTS_OR_BATCHES);
             int SegmentCount;
