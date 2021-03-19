@@ -46,6 +46,10 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 //
 #define NUMBER_OF_SEGMENTS_OR_BATCHES 64
 
+#ifdef UDP_GRO
+#undef UDP_GRO
+#endif
+
 //
 // Internal receive context.
 //
