@@ -135,6 +135,17 @@ InterlockedDecrement(
 }
 
 inline
+long
+InterlockedAdd(
+    _Inout_ _Interlocked_operand_ long volatile *Addend
+    _In_ long Value
+    )
+{
+    return __sync_add_and_fetch(Addend, Value);
+}
+
+
+inline
 int64_t
 InterlockedExchangeAdd64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend,

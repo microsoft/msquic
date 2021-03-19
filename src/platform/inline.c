@@ -111,6 +111,12 @@ InterlockedIncrement(
     );
 
 long
+InterlockedAdd(
+    _Inout_ _Interlocked_operand_ long volatile *Addend,
+    _In_ long Value
+    );
+
+long
 InterlockedDecrement(
     _Inout_ _Interlocked_operand_ long volatile *Addend
     );
