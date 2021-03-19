@@ -38,7 +38,7 @@ protected:
     CXPLAT_SEC_CONFIG* Pkcs12SecConfig {nullptr};
     static QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
     static QUIC_CREDENTIAL_CONFIG* ClientCertParams;
-    static QUIC_CREDENTIAL_CONFIG* CertParams;
+    static QUIC_CREDENTIAL_CONFIG* CertParamsFromFile;
 
     TlsTest() { }
 
@@ -62,6 +62,32 @@ protected:
         *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
     }
 
+    static void* ReadFile(const char* name, int* length) {
+        char buffer[8000];
+
+        int fd = open(name, O_RDONLY);
+        if (fd < 0) {
+            return NULL;
+        }
+
+        int readLength = 0;
+        *length = 0;
+        do {
+            readLength = read(fd, buffer + *length, sizeof(buffer) - *length);
+            if (readLength > 0) *length += readLength;
+        } while (readLength > 0 && *length < (int)sizeof(buffer));
+
+        if (readLength != 0 || length == 0) {
+            return NULL;
+        }
+        // Create copy on the heap
+        void * ptr = CXPLAT_ALLOC_NONPAGED(*length, QUIC_POOL_TEST);
+        if (ptr) {
+            memmove(ptr, buffer, *length);
+        }
+        return ptr;
+    }
+
     static void SetUpTestSuite()
     {
         SelfSignedCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
@@ -72,38 +98,17 @@ protected:
         ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 #endif
 #ifndef _WIN32
-        CertParams = (QUIC_CREDENTIAL_CONFIG*)malloc(sizeof(QUIC_CREDENTIAL_CONFIG));
-        if (CertParams) {
-            CxPlatZeroMemory(CertParams, sizeof(*CertParams));
-            CertParams->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12;
-            CertParams->CertificatePkcs12 = (QUIC_CERTIFICATE_PKCS12*)malloc(sizeof(QUIC_CERTIFICATE_PKCS12));
-            if (CertParams->CertificatePkcs12) {
-                CxPlatZeroMemory(CertParams->CertificatePkcs12, sizeof(QUIC_CERTIFICATE_PKCS12));
-                char buffer[8000];
-
-                int fd = open(TestPath, O_RDONLY);
-                ASSERT_TRUE(fd >= 0);
-
-                int readLength = 0;
-                int totalLength = 0;
-                if (fd >= 0) {
-                    do {
-                        readLength = read(fd, buffer + totalLength, sizeof(buffer) - totalLength);
-                        if (readLength > 0) totalLength += readLength;
-                    } while (readLength > 0 && totalLength < (int)sizeof(buffer));
-                }
-                ASSERT_EQ(0, readLength);
-                ASSERT_NE(0, totalLength);
-
-                CertParams->CertificatePkcs12->Asn1Blob = malloc(totalLength);
-                ASSERT_NE(nullptr, CertParams->CertificatePkcs12->Asn1Blob);
-                if (CertParams->CertificatePkcs12->Asn1Blob) {
-                    memmove(CertParams->CertificatePkcs12->Asn1Blob, buffer, totalLength);
-                    CertParams->CertificatePkcs12->Length = totalLength;
-                    CertParams->CertificatePkcs12->PrivateKeyPassword = PfxPass;
-                }
-            }
-        }
+        CertParamsFromFile = (QUIC_CREDENTIAL_CONFIG*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CREDENTIAL_CONFIG), QUIC_POOL_TEST);
+        ASSERT_NE(nullptr, CertParamsFromFile);
+        CxPlatZeroMemory(CertParamsFromFile, sizeof(*CertParamsFromFile));
+        CertParamsFromFile->Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12;
+        CertParamsFromFile->CertificatePkcs12 = (QUIC_CERTIFICATE_PKCS12*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CERTIFICATE_PKCS12), QUIC_POOL_TEST);
+        ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12);
+        CxPlatZeroMemory(CertParamsFromFile->CertificatePkcs12, sizeof(QUIC_CERTIFICATE_PKCS12));
+        CertParamsFromFile->CertificatePkcs12->Asn1Blob = (const uint8_t *) ReadFile(TestPath, &CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
+        CertParamsFromFile->CertificatePkcs12->PrivateKeyPassword = PfxPass;
+        ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12->Asn1Blob);
+        ASSERT_NE(0, CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
 #endif
     }
 
@@ -114,6 +119,12 @@ protected:
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         CxPlatFreeSelfSignedCert(ClientCertParams);
         ClientCertParams = nullptr;
+#endif
+#ifndef _WIN32
+        CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12->Asn1Blob, QUIC_POOL_TEST);
+        CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12, QUIC_POOL_TEST);
+        CXPLAT_FREE(CertParamsFromFile, QUIC_POOL_TEST);
+        CertParamsFromFile = nullptr;
 #endif
     }
 
@@ -211,7 +222,7 @@ protected:
 #ifndef _WIN32
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
-                CertParams,
+                CertParamsFromFile,
                 CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsContext::TlsClientCallbacks,
                 &Pkcs12SecConfig,
@@ -826,7 +837,7 @@ const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
 
 QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
 QUIC_CREDENTIAL_CONFIG* TlsTest::ClientCertParams = nullptr;
-QUIC_CREDENTIAL_CONFIG* TlsTest::CertParams = nullptr;
+QUIC_CREDENTIAL_CONFIG* TlsTest::CertParamsFromFile = nullptr;
 
 TEST_F(TlsTest, Initialize)
 {

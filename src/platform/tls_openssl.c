@@ -25,7 +25,6 @@ Abstract:
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
-
 #ifdef _WIN32
 #pragma warning(pop)
 #endif
@@ -626,7 +625,7 @@ CxPlatTlsSecConfigCreate(
         } else if(CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
             if (CredConfig->CertificatePkcs12 == NULL ||
                 CredConfig->CertificatePkcs12->Asn1Blob == NULL ||
-                CredConfig->CertificatePkcs12->Length <= 0) {
+                CredConfig->CertificatePkcs12->Asn1BlobLength <= 0) {
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
         } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
@@ -856,12 +855,21 @@ CxPlatTlsSecConfigCreate(
             BIO* bio = BIO_new(BIO_s_mem());
             PKCS12 *p12 = NULL;
 
-            if (bio) {
-                BIO_set_mem_eof_return(bio, 0);
-                BIO_write(bio, CredConfig->CertificatePkcs12->Asn1Blob, CredConfig->CertificatePkcs12->Length);
-                p12 = d2i_PKCS12_bio(bio, NULL);
-                BIO_free(bio);
+            if (!bio) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "BIO_new failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
             }
+
+            BIO_set_mem_eof_return(bio, 0);
+            BIO_write(bio, CredConfig->CertificatePkcs12->Asn1Blob, CredConfig->CertificatePkcs12->Asn1BlobLength);
+            p12 = d2i_PKCS12_bio(bio, NULL);
+            BIO_free(bio);
+            bio = NULL;
 
             if (!p12) {
                 QuicTraceEvent(
@@ -877,8 +885,12 @@ CxPlatTlsSecConfigCreate(
             STACK_OF(X509) *ca = NULL;
             Ret =
                 PKCS12_parse(p12, CredConfig->CertificatePkcs12->PrivateKeyPassword, &privateKey, &X509Cert, &ca);
-            if (ca) sk_X509_pop_free(ca, X509_free); // no handling for custom certificate chains yet.
-            if (p12) PKCS12_free(p12);
+            if (ca) {
+                sk_X509_pop_free(ca, X509_free); // no handling for custom certificate chains yet.
+            }
+            if (p12) {
+                PKCS12_free(p12);
+            }
 
             if (Ret != 1) {
                 QuicTraceEvent(

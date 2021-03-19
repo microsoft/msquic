@@ -243,9 +243,9 @@ typedef struct QUIC_CERTIFICATE_FILE_PROTECTED {
 } QUIC_CERTIFICATE_FILE_PROTECTED;
 
 typedef struct QUIC_CERTIFICATE_PKCS12 {
-    void *Asn1Blob;
-    int Length;
-    const char *PrivateKeyPassword;
+    const uint8_t *Asn1Blob;
+    int Asn1BlobLength;
+    const char *PrivateKeyPassword;     // Optional: used if provided. Ignored if NULL
 } QUIC_CERTIFICATE_PKCS12;
 
 typedef void QUIC_CERTIFICATE; // Platform specific certificate context object
