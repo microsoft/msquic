@@ -1691,7 +1691,7 @@ CxPlatSocketRecv(
             unsigned int LengthOfLastSegment = RecvMsgHdr[0].msg_len % SegmentSize;
             CXPLAT_DBG_ASSERT(NumberOfSegments == Ret || (LengthOfLastSegment != 0 && NumberOfSegments == (Ret - 1)))
             CXPLAT_DBG_ASSERT(NumberOfSegments <= NUMBER_OF_SEGMENTS_OR_BATCHES);
-            int SegmentCount;
+            unsigned int SegmentCount;
             for (SegmentCount = 0; SegmentCount < NumberOfSegments; SegmentCount++) {
                 RecvIov[SegmentCount].iov_base = (SegmentCount * SegmentSize) + RecvPayload;
                 RecvMsgHdr[SegmentCount].msg_len = SegmentSize;
