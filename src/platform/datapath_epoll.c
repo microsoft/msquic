@@ -1587,9 +1587,9 @@ CxPlatSocketRecv(
 
     BOOLEAN UseURO = !!(SocketContext->Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING);
     int BufferCount = UseURO ? 1 : NUMBER_OF_SEGMENTS_OR_BATCHES;
-    struct iovec* RecvIov = &RecvMessageStore->RecvIov;
-    CXPLAT_RECV_MSG_CONTROL_BUFFER* RecvMsgControl = &RecvMessageStore->RecvMsgControl;
-    struct mmsghdr* RecvMsgHdr = &RecvMessageStore->RecvMsgHdr;
+    struct iovec* RecvIov = RecvMessageStore->RecvIov;
+    CXPLAT_RECV_MSG_CONTROL_BUFFER* RecvMsgControl = RecvMessageStore->RecvMsgControl;
+    struct mmsghdr* RecvMsgHdr = RecvMessageStore->RecvMsgHdr;
 
     if (UseURO) {
         //
