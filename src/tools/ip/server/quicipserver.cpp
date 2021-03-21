@@ -222,6 +222,12 @@ main(
         goto Error;
     }
 
+        if (argc < 2) {
+        PrintUsage();
+        goto Error;
+    }
+
+
     RunServer(argc, argv);
 
 Error:
