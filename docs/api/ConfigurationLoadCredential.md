@@ -1,7 +1,7 @@
 ConfigurationLoadCredential function
 ======
 
-Deletes an existing configuration.
+Loads the specified credential configuration for the configuration object.
 
 # Syntax
 
@@ -17,11 +17,19 @@ QUIC_STATUS
 
 # Parameters
 
-**TODO**
+`Configuration`
+
+The valid handle to an open configuration object.
+
+`CredConfig`
+
+The [QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md) that describes the security configuration to load for the configuration.
 
 # Remarks
 
-**TODO**
+This function loads the security configuration and credentials for the configuration. Depending on the `Flags` field in the `CredConfig` (and platform support) the load may be synchronous or asynchronous. If asynchronous, completion is indicated via a callback to the `AsyncHandler` set on the `CredConfig`.
+
+Once the configuration has been successfully loaded, it can be used for a connection; [ConnectionStart](ConnectionStart.md) on client; [ConnectionSetConfiguration](ConnectionSetConfiguration.md) on server.
 
 # See Also
 
