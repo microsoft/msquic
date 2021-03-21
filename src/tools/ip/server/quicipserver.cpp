@@ -227,7 +227,6 @@ main(
         goto Error;
     }
 
-
     RunServer(argc, argv);
 
 Error:
