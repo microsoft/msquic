@@ -16,8 +16,8 @@ Abstract:
 #pragma warning(push)
 #pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
 #endif
-#include "openssl/err.h"
 #include "openssl/bio.h"
+#include "openssl/err.h"
 #include "openssl/hmac.h"
 #include "openssl/kdf.h"
 #include "openssl/pem.h"

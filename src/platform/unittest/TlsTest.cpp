@@ -5,14 +5,15 @@
 
 --*/
 
+#define _CRT_SECURE_NO_WARNINGS 1
 #include "main.h"
 #include "msquic.h"
 #include "quic_tls.h"
 #ifdef _WIN32
 #include <wincrypt.h>
-#else
-#include <fcntl.h>
 #endif
+#include <fcntl.h>
+
 #ifdef QUIC_CLOG
 #include "TlsTest.cpp.clog.h"
 #endif
@@ -62,30 +63,46 @@ protected:
         *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
     }
 
-    static void* ReadFile(const char* name, uint32_t* length) {
-        char buffer[8000];
-
-        int fd = open(name, O_RDONLY);
-        if (fd < 0) {
+    static uint8_t* ReadFile(const char* Name, uint32_t* Length) {
+        size_t FileSize = 0;
+        FILE* Handle = fopen(Name, "r");
+        if (Handle == NULL) {
+            return NULL;
+        }
+#ifdef _WIN32
+        struct _stat Stat;
+        if (_fstat(_fileno(Handle), &Stat) == 0) {
+            FileSize = (int)Stat.st_size;
+        }
+#else
+        struct stat Stat;
+        if (fstat(fileno(Handle), &Stat) == 0) {
+            FileSize = (int)Stat.st_size;
+        }
+#endif
+        if (FileSize == 0) {
+            fclose(Handle);
             return NULL;
         }
 
-        uint32_t readLength = 0;
-        *length = 0;
+        uint8_t* Buffer = (uint8_t *)CXPLAT_ALLOC_NONPAGED(FileSize, QUIC_POOL_TEST);
+        if (Buffer == NULL) {
+            fclose(Handle);
+            return NULL;
+        }
+
+        size_t ReadLength = 0;
+        *Length = 0;
         do {
-            readLength = read(fd, buffer + *length, sizeof(buffer) - *length);
-            if (readLength > 0) *length += readLength;
-        } while (readLength > 0 && *length < (int)sizeof(buffer));
-
-        if (readLength != 0 || length == 0) {
+            ReadLength = fread(Buffer + *Length, 1, FileSize - *Length, Handle);
+            *Length += (uint32_t)ReadLength;
+        } while (ReadLength > 0 && *Length < (uint32_t)FileSize);
+        fclose(Handle);
+        if (*Length != FileSize) {
+            CXPLAT_FREE(Buffer, QUIC_POOL_TEST);
             return NULL;
         }
-        // Create copy on the heap
-        void * ptr = CXPLAT_ALLOC_NONPAGED(*length, QUIC_POOL_TEST);
-        if (ptr) {
-            memmove(ptr, buffer, *length);
-        }
-        return ptr;
+        return Buffer;
     }
 
     static void SetUpTestSuite()
