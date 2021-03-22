@@ -259,7 +259,7 @@ if(WIN32)
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION)
     endif()
 
-    if(QUIC_TLS STREQUAL "schannel")
+    if(QUIC_TLS STREQUAL "schannel" OR QUIC_TLS STREQUAL "mitls")
         # Disable until CAPI support is fixed
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
     endif()

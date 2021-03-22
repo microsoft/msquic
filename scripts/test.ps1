@@ -242,7 +242,7 @@ if ($Kernel) {
     }
 }
 
-$PfxFile = Join-Path $RootArtifactDir "test.pfx"
+$PfxFile = Join-Path $RootArtifactDir "selfsignedservercert.pfx"
 if (!(Test-Path $PfxFile)) {
     $MyPath = Split-Path -Path $PSCommandPath -Parent
     $ScriptPath = Join-Path $MyPath install-test-certificates.ps1

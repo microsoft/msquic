@@ -625,7 +625,7 @@ CxPlatTlsSecConfigCreate(
         } else if(CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
             if (CredConfig->CertificatePkcs12 == NULL ||
                 CredConfig->CertificatePkcs12->Asn1Blob == NULL ||
-                CredConfig->CertificatePkcs12->Asn1BlobLength <= 0) {
+                CredConfig->CertificatePkcs12->Asn1BlobLength == 0) {
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
         } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
