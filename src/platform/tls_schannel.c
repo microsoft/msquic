@@ -1175,8 +1175,23 @@ CxPlatTlsSecConfigCreate(
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
         Credentials->dwFlags |= SCH_CRED_DEFERRED_CRED_VALIDATION;
     }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT) {
+        Credentials->dwFlags |= SCH_CRED_REVOCATION_CHECK_END_CERT;
+    }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN) {
+        Credentials->dwFlags |= SCH_CRED_REVOCATION_CHECK_CHAIN;
+    }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT) {
+        Credentials->dwFlags |= SCH_CRED_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT;
+    }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK) {
+        Credentials->dwFlags |= SCH_CRED_IGNORE_NO_REVOCATION_CHECK;
+    }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE) {
+        Credentials->dwFlags |= SCH_CRED_IGNORE_REVOCATION_OFFLINE;
+    }
     if (IsClient) {
-        Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS | SCH_CRED_REVOCATION_CHECK_END_CERT;
+        Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_CLIENT;
     } else {
         Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
