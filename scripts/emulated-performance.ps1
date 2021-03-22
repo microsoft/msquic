@@ -325,7 +325,14 @@ Set-NetAdapterLso duo? -IPv4Enabled $false -IPv6Enabled $false -NoRestart
 
 $RunResults = [Results]::new($PlatformName)
 
-$RemoteResults = $PreviousResults.$PlatformName
+$RemoteResults = ""
+if ($PreviousResults -ne "") {
+    try {
+        $RemoteResults = $PreviousResults.$PlatformName
+    } catch {
+        Write-Debug "Failed to get $PlatformName from previous results"
+    }
+}
 
 # Loop over all the network emulation configurations.
 foreach ($ThisRttMs in $RttMs) {
@@ -424,15 +431,21 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         $RunResult = [TestResult]::new($ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisDurationMs, $ThisPacing, $RateKbps, $Results);
         $RunResults.Runs.Add($RunResult)
         Write-Host $Row
-        $RemoteResult = Find-MatchingTest -TestResult $RunResult -RemoteResults $RemoteResults
-        if ($null -ne $RemoteResult) {
-            $MedianLastResult = $RemoteResult.RateKbps
-            $PercentDiff = 100 * (($RateKbps - $MedianLastResult) / $MedianLastResult)
-            $PercentDiffStr = $PercentDiff.ToString("#.##")
-            if ($PercentDiff -ge 0) {
-                $PercentDiffStr = "+$PercentDiffStr"
+        if ($RemoteResults -ne "") {
+            $RemoteResult = Find-MatchingTest -TestResult $RunResult -RemoteResults $RemoteResults
+            if ($null -ne $RemoteResult) {
+                $MedianLastResult = $RemoteResult.RateKbps
+                $PercentDiff = 100 * (($RateKbps - $MedianLastResult) / $MedianLastResult)
+                $PercentDiffStr = $PercentDiff.ToString("#.##")
+                if ($PercentDiff -ge 0) {
+                    $PercentDiffStr = "+$PercentDiffStr"
+                }
+                Write-Output "Median: $RateKbps, Remote: $MedianLastResult, ($PercentDiffStr%)"
+            } else {
+                Write-Output "Median: $RateKbps"
             }
-            Write-Output "Median: $RateKbps, Remote: $MedianLastResult, ($PercentDiffStr%)"
+        } else {
+            Write-Output "Median: $RateKbps"
         }
     }}}
 
