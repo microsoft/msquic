@@ -63,6 +63,7 @@ protected:
         *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
     }
 
+#ifndef QUIC_DISABLE_PFX_TESTS
     static uint8_t* ReadFile(const char* Name, uint32_t* Length) {
         size_t FileSize = 0;
         FILE* Handle = fopen(Name, "r");
@@ -104,6 +105,7 @@ protected:
         }
         return Buffer;
     }
+#endif
 
     static void SetUpTestSuite()
     {
@@ -114,7 +116,7 @@ protected:
         ASSERT_NE(nullptr, ClientCertParams);
         ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 #endif
-#ifndef _WIN32
+#ifndef QUIC_DISABLE_PFX_TESTS
         CertParamsFromFile = (QUIC_CREDENTIAL_CONFIG*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CREDENTIAL_CONFIG), QUIC_POOL_TEST);
         ASSERT_NE(nullptr, CertParamsFromFile);
         CxPlatZeroMemory(CertParamsFromFile, sizeof(*CertParamsFromFile));
@@ -137,7 +139,7 @@ protected:
         CxPlatFreeSelfSignedCert(ClientCertParams);
         ClientCertParams = nullptr;
 #endif
-#ifndef _WIN32
+#ifndef QUIC_DISABLE_PFX_TESTS
         CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12->Asn1Blob, QUIC_POOL_TEST);
         CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12, QUIC_POOL_TEST);
         CXPLAT_FREE(CertParamsFromFile, QUIC_POOL_TEST);
@@ -236,7 +238,7 @@ protected:
         ASSERT_NE(nullptr, ClientSecConfigClientCertNoCertValidation);
 #endif
 
-#ifndef _WIN32
+#ifndef QUIC_DISABLE_PFX_TESTS
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 CertParamsFromFile,
