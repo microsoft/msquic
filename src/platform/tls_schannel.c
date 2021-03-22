@@ -1176,7 +1176,7 @@ CxPlatTlsSecConfigCreate(
         Credentials->dwFlags |= SCH_CRED_DEFERRED_CRED_VALIDATION;
     }
     if (IsClient) {
-        Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
+        Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS | SCH_CRED_REVOCATION_CHECK_END_CERT;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_CLIENT;
     } else {
         Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
