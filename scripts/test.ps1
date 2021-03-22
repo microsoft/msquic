@@ -242,6 +242,14 @@ if ($Kernel) {
     }
 }
 
+$PfxFile = Join-Path $RootArtifactDir "test.pfx"
+if (!(Test-Path $PfxFile)) {
+    $MyPath = Split-Path -Path $PSCommandPath -Parent
+    $ScriptPath = Join-Path $MyPath install-test-certificates.ps1
+
+    &$ScriptPath -OutputFile $PfxFile
+}
+
 # Build up all the arguments to pass to the Powershell script.
 $TestArguments =  "-ExecutionMode $ExecutionMode -IsolationMode $IsolationMode"
 
