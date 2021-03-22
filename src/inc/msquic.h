@@ -244,7 +244,7 @@ typedef struct QUIC_CERTIFICATE_FILE_PROTECTED {
 
 typedef struct QUIC_CERTIFICATE_PKCS12 {
     const uint8_t *Asn1Blob;
-    int Asn1BlobLength;
+    uint32_t Asn1BlobLength;
     const char *PrivateKeyPassword;     // Optional: used if provided. Ignored if NULL
 } QUIC_CERTIFICATE_PKCS12;
 

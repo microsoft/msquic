@@ -645,7 +645,7 @@ CxPlatTlsSecConfigCreate(
     CXPLAT_SEC_CONFIG* SecurityConfig = NULL;
     RSA* RsaKey = NULL;
     X509* X509Cert = NULL;
-    EVP_PKEY * privateKey = NULL;
+    EVP_PKEY * PrivateKey = NULL;
 
     //
     // Create a security config.
@@ -852,10 +852,10 @@ CxPlatTlsSecConfigCreate(
                 goto Exit;
             }
         } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
-            BIO* bio = BIO_new(BIO_s_mem());
-            PKCS12 *p12 = NULL;
+            BIO* Bio = BIO_new(BIO_s_mem());
+            PKCS12 *Pkcs12 = NULL;
 
-            if (!bio) {
+            if (!Bio) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
@@ -865,13 +865,13 @@ CxPlatTlsSecConfigCreate(
                 goto Exit;
             }
 
-            BIO_set_mem_eof_return(bio, 0);
-            BIO_write(bio, CredConfig->CertificatePkcs12->Asn1Blob, CredConfig->CertificatePkcs12->Asn1BlobLength);
-            p12 = d2i_PKCS12_bio(bio, NULL);
-            BIO_free(bio);
-            bio = NULL;
+            BIO_set_mem_eof_return(Bio, 0);
+            BIO_write(Bio, CredConfig->CertificatePkcs12->Asn1Blob, CredConfig->CertificatePkcs12->Asn1BlobLength);
+            Pkcs12 = d2i_PKCS12_bio(Bio, NULL);
+            BIO_free(Bio);
+            Bio = NULL;
 
-            if (!p12) {
+            if (!Pkcs12) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
@@ -879,17 +879,16 @@ CxPlatTlsSecConfigCreate(
                     "d2i_PKCS12_bio failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
-
             }
 
-            STACK_OF(X509) *ca = NULL;
+            STACK_OF(X509) *Ca = NULL;
             Ret =
-                PKCS12_parse(p12, CredConfig->CertificatePkcs12->PrivateKeyPassword, &privateKey, &X509Cert, &ca);
-            if (ca) {
-                sk_X509_pop_free(ca, X509_free); // no handling for custom certificate chains yet.
+                PKCS12_parse(Pkcs12, CredConfig->CertificatePkcs12->PrivateKeyPassword, &PrivateKey, &X509Cert, &Ca);
+            if (Ca) {
+                sk_X509_pop_free(Ca, X509_free); // no handling for custom certificate chains yet.
             }
-            if (p12) {
-                PKCS12_free(p12);
+            if (Pkcs12) {
+                PKCS12_free(Pkcs12);
             }
 
             if (Ret != 1) {
@@ -905,7 +904,7 @@ CxPlatTlsSecConfigCreate(
             Ret =
                 SSL_CTX_use_PrivateKey(
                     SecurityConfig->SSLCtx,
-                    privateKey);
+                    PrivateKey);
             if (Ret != 1) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
@@ -1010,8 +1009,8 @@ Exit:
         RSA_free(RsaKey);
     }
 
-    if (privateKey != NULL) {
-        EVP_PKEY_free(privateKey);
+    if (PrivateKey != NULL) {
+        EVP_PKEY_free(PrivateKey);
     }
 
     return Status;

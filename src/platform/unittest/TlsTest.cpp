@@ -62,7 +62,7 @@ protected:
         *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
     }
 
-    static void* ReadFile(const char* name, int* length) {
+    static void* ReadFile(const char* name, uint32_t* length) {
         char buffer[8000];
 
         int fd = open(name, O_RDONLY);
@@ -70,7 +70,7 @@ protected:
             return NULL;
         }
 
-        int readLength = 0;
+        uint32_t readLength = 0;
         *length = 0;
         do {
             readLength = read(fd, buffer + *length, sizeof(buffer) - *length);
@@ -227,7 +227,6 @@ protected:
                 &TlsContext::TlsClientCallbacks,
                 &Pkcs12SecConfig,
                 OnSecConfigCreateComplete));
-
         ASSERT_NE(nullptr, Pkcs12SecConfig);
 #endif
     }
