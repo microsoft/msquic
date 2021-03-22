@@ -66,7 +66,7 @@ protected:
 #ifndef QUIC_DISABLE_PFX_TESTS
     static uint8_t* ReadFile(const char* Name, uint32_t* Length) {
         size_t FileSize = 0;
-        FILE* Handle = fopen(Name, "r");
+        FILE* Handle = fopen(Name, "rb");
         if (Handle == NULL) {
             return NULL;
         }
@@ -140,7 +140,9 @@ protected:
         ClientCertParams = nullptr;
 #endif
 #ifndef QUIC_DISABLE_PFX_TESTS
-        CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12->Asn1Blob, QUIC_POOL_TEST);
+        if (CertParamsFromFile->CertificatePkcs12->Asn1Blob) {
+            CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12->Asn1Blob, QUIC_POOL_TEST);
+        }
         CXPLAT_FREE(CertParamsFromFile->CertificatePkcs12, QUIC_POOL_TEST);
         CXPLAT_FREE(CertParamsFromFile, QUIC_POOL_TEST);
         CertParamsFromFile = nullptr;
