@@ -182,7 +182,7 @@ if ($IsWindows) {
     if ($Configuration -eq "Test") {
         if ($TestCertificates) {
             # Install test certificates on windows
-            $PfxPassword = ConvertTo-SecureString -String "TestCert" -Force -AsPlainText
+            $PfxPassword = ConvertTo-SecureString -String "placeholder" -Force -AsPlainText
             $NewRoot = $false
             Write-Host "Searching for MsQuicTestRoot certificate..."
             $RootCert = Get-ChildItem -path Cert:\LocalMachine\Root\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestRoot"}
