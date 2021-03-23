@@ -9,6 +9,9 @@
 #ifdef QUIC_CLOG
 #include "main.cpp.clog.h"
 #endif
+#ifdef _WIN32
+#define strcasecmp _stricmp
+#endif
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
@@ -31,7 +34,7 @@ static void ProcessArguments(int argc, char** argv) {
         if (strcasecmp(argv[i], "-p") == 0 || strcasecmp(argv[i], "-PfxPath") == 0 ||
             strcasecmp(argv[i], "--PfxPath")) {
             if (  + 1 < argc) {
-                PfxPath = argv[i+1];
+                PfxPath = argv[i + 1];
                 i++;
             }
         }
