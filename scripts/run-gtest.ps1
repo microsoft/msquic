@@ -105,7 +105,10 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CodeCoverage = $false
+    [switch]$CodeCoverage = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$AZP = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -113,6 +116,22 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
+}
+
+function LogWrn($msg) {
+    if ($AZP) {
+        Write-Host "##vso[task.LogIssue type=warning;][$(Get-Date)] $msg"
+    } else {
+        Write-Host "[$(Get-Date)] $msg"
+    }
+}
+
+function LogErr($msg) {
+    if ($AZP) {
+        Write-Host "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
+    } else {
+        Write-Host "[$(Get-Date)] $msg"
+    }
 }
 
 # Make sure the test executable is present.
@@ -393,25 +412,25 @@ function Wait-TestCase($TestCase) {
             }
             $AnyTestFailed = $stdout.Contains("[  FAILED  ]")
             if (!(Test-Path $TestCase.ResultsPath) -and !$ProcessCrashed) {
-                Log "No test results generated! Treating as crash!"
+                LogWrn "No test results generated! Treating as crash!"
                 $ProcessCrashed = $true
             }
         }
         $TestCase.Process.WaitForExit()
         if ($TestCase.Process.ExitCode -ne 0) {
-            Log "Process had nonzero exit code: $($TestCase.Process.ExitCode)"
+            LogWrn "Process had nonzero exit code: $($TestCase.Process.ExitCode)"
             $ProcessCrashed = $true
         }
         $DumpFiles = (Get-ChildItem $TestCase.LogDir) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
-            Log "Dump file(s) generated"
+            LogWrn "Dump file(s) generated"
             foreach ($File in $DumpFiles) {
                 PrintDumpCallStack($File)
             }
             $ProcessCrashed = $true
         }
     } catch {
-        Log "Treating exception as crash!"
+        LogWrn "Treating exception as crash!"
         $ProcessCrashed = $true
         throw
     } finally {
@@ -455,7 +474,7 @@ function Wait-TestCase($TestCase) {
             if ($stderr) { Write-Host $stderr }
         } else {
             if ($AnyTestFailed -or $ProcessCrashed) {
-                Log "$($TestCase.Name) failed:"
+                LogErr "$($TestCase.Name) failed:"
                 if ($stdout) { Write-Host $stdout }
                 if ($stderr) { Write-Host $stderr }
             } else {
