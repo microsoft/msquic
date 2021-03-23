@@ -478,8 +478,13 @@ function Wait-TestCase($TestCase) {
         } else {
             if ($AnyTestFailed -or $ProcessCrashed) {
                 LogErr "$($TestCase.Name) failed:"
-                if ($stdout) { Write-Host $stdout }
-                if ($stderr) { Write-Host $stderr }
+                if ($AZP) {
+                    if ($stdout) { Write-Host "##vso[task.LogIssue type=warning;]$stdout" }
+                    if ($stderr) { Write-Host "##vso[task.LogIssue type=warning;]$stderr" }
+                } else {
+                    if ($stdout) { Write-Host $stdout }
+                    if ($stderr) { Write-Host $stderr }
+                }
             } else {
                 Log "$($TestCase.Name) succeeded"
             }
@@ -702,17 +707,6 @@ try {
     $TestCount = $XmlResults.testsuites.tests -as [Int]
     $TestsFailed = $XmlResults.testsuites.failures -as [Int]
 
-    # Print out the results.
-    Log "$($TestCount) test(s) run. $($TestsFailed) test(s) failed."
-    if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
-        Log "Output can be found in $($LogDir)"
-    } else {
-        if (Test-Path $LogDir) {
-            Remove-Item $LogDir -Recurse -Force | Out-Null
-        }
-    }
-    Write-Host ""
-
     # Uninstall the kernel mode test driver and revert the msquic driver.
     if ($Kernel -ne "") {
         net.exe stop msquicpriv /y | Out-Null
@@ -720,5 +714,16 @@ try {
         sc.exe delete msquicpriv | Out-Null
         verifier.exe /volatile /removedriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys
         verifier.exe /volatile /flags 0x0
+    }
+
+    # Print out the results.
+    Log "$($TestCount) test(s) run."
+    if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
+        Log "Output can be found in $($LogDir)"
+        Write-Error "[$(Get-Date)] $($TestsFailed) test(s) failed."
+    } else {
+        if (Test-Path $LogDir) {
+            Remove-Item $LogDir -Recurse -Force | Out-Null
+        }
     }
 }
