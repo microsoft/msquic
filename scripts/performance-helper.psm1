@@ -616,8 +616,17 @@ function Get-LatestCpuTestResult([string]$Branch, [string]$CommitHash) {
     }
 }
 
+$HasRegression = $false
+
 function Log-Regression([string]$Msg) {
-    Write-Host "##vso[task.LogIssue type=warning;]$Msg"
+    Write-Host "##vso[task.LogIssue type=error;]$Msg"
+    $HasRegression = $true
+}
+
+function Check-Regressions() {
+    if ($HasRegression) {
+        Write-Error "Performance test regressions occurred!"
+    }
 }
 
 # Fail loopback tests if < 80%

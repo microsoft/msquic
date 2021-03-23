@@ -498,6 +498,8 @@ try {
         Copy-Item "$LocalExePath\msquic.pgd" $OutputDir
     }
 
+    Check-Regressions
+
 } finally {
     if ($null -ne $Session) {
         Remove-PSSession -Session $Session
