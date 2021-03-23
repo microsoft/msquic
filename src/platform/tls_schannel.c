@@ -350,6 +350,14 @@ typedef struct _SecPkgCred_SessionTicketKeys
 
 #endif
 
+#ifndef SECPKG_ATTR_CLIENT_CERT_POLICY
+#define SECPKG_ATTR_CLIENT_CERT_POLICY   0x60   // sets    SecPkgCred_ClientCertCtlPolicy
+#endif
+
+#ifndef SECPKG_ATTR_CC_POLICY_RESULT
+#define SECPKG_ATTR_CC_POLICY_RESULT     0x61   // returns SecPkgContext_ClientCertPolicyResult
+#endif
+
 //
 // Defines until BCrypt.h updates
 //
@@ -1037,12 +1045,12 @@ CxPlatTlsSspiNotifyCallback(
         CompletionCallback(&CredConfig, CompletionContext, SecStatusToQuicStatus(Status), NULL);
         CxPlatTlsSecConfigDelete(SecConfig); // *MUST* be last call to prevent crash in platform cleanup.
     } else {
-        QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+        Status = (SECURITY_STATUS)QUIC_STATUS_SUCCESS;
         if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION &&
             SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
-            Status = CxPlatTlsSetClientCertPolicy(SecConfig);
+            Status = (SECURITY_STATUS)CxPlatTlsSetClientCertPolicy(SecConfig);
         }
-        CompletionCallback(&CredConfig, CompletionContext, Status, SecConfig);
+        CompletionCallback(&CredConfig, CompletionContext, (QUIC_STATUS)Status, SecConfig);
     }
     if (!IsAsync) {
         KeSetEvent(&AchContext->CompletionEvent, IO_NO_INCREMENT, FALSE);
@@ -1123,7 +1131,7 @@ CxPlatTlsSetClientCertPolicy(
 {
     SECURITY_STATUS SecStatus = SEC_E_OK;
     SecPkgCred_ClientCertPolicy ClientCertPolicy;
-    CXPLAT_FRE_ASSERT(!(SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT));
+    CXPLAT_DBG_ASSERT(!(SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT));
 
     CxPlatZeroMemory(&ClientCertPolicy, sizeof(ClientCertPolicy));
 
@@ -1139,18 +1147,19 @@ CxPlatTlsSetClientCertPolicy(
         ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT;
     }
 
-    SecStatus = SetCredentialsAttributesW(
-        &SecConfig->CredentialHandle,
-        SECPKG_ATTR_CLIENT_CERT_POLICY,
-        &ClientCertPolicy,
-        sizeof(ClientCertPolicy));
+    SecStatus =
+        SetCredentialsAttributesW(
+            &SecConfig->CredentialHandle,
+            SECPKG_ATTR_CLIENT_CERT_POLICY,
+            &ClientCertPolicy,
+            sizeof(ClientCertPolicy));
 
     if (SecStatus != SEC_E_OK) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             SecStatus,
-            "SetCredentialsAttributesW(SECPKG_ATTR_CLIENT_CERT_POLICY)");
+            "SetCredentialsAttributesW(SECPKG_ATTR_CLIENT_CERT_POLICY) failed");
     }
 
     return SecStatusToQuicStatus(SecStatus);
@@ -2214,10 +2223,11 @@ CxPlatTlsWriteDataToSchannel(
                     if (TlsContext->IsServer) {
                         ClientPolicyResult.guidPolicyId = CxPlatTlsClientCertPolicyGuid;
 
-                        SecStatus = QueryContextAttributesW(
-                            &TlsContext->SchannelContext,
-                            SECPKG_ATTR_CC_POLICY_RESULT,
-                            &ClientPolicyResult);
+                        SecStatus =
+                            QueryContextAttributesW(
+                                &TlsContext->SchannelContext,
+                                SECPKG_ATTR_CC_POLICY_RESULT,
+                                &ClientPolicyResult);
                         if (SecStatus != SEC_E_OK) {
                             QuicTraceEvent(
                                 TlsErrorStatus,
