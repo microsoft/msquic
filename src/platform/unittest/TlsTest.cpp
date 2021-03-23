@@ -244,8 +244,8 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfigClientCertNoCertValidation);
 #endif
-
 #ifndef QUIC_DISABLE_PFX_TESTS
+        ASSERT_NE(nullptr, CertParamsFromFile);
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 CertParamsFromFile,

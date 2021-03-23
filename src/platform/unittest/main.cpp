@@ -31,8 +31,9 @@ public:
 
 static void ProcessArguments(int argc, char** argv) {
     for (int i = 0; i < argc; i++) {
+    fprintf(stderr, "ProcessArguments processing %s\n", argv[i]);
         if (strcasecmp(argv[i], "-p") == 0 || strcasecmp(argv[i], "-PfxPath") == 0 ||
-            strcasecmp(argv[i], "--PfxPath")) {
+            strcasecmp(argv[i], "--PfxPath") == 0) {
             if (  + 1 < argc) {
                 PfxPath = argv[i + 1];
                 i++;
