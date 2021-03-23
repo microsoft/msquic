@@ -317,7 +317,7 @@ function Start-TestCase([String]$Name) {
         $Arguments += " --kernelPriv"
     }
     if ($PfxPath -ne "") {
-        $Arguments += "--PfxPath $PfxPath"
+        $Arguments += " --PfxPath $PfxPath"
     }
 
     # Start the test process and return some information about the test case.
@@ -354,7 +354,7 @@ function Start-AllTestCases {
         $Arguments += " --kernelPriv"
     }
     if ($PfxPath -ne "") {
-        $Arguments += "--PfxPath $PfxPath"
+        $Arguments += " --PfxPath $PfxPath"
     }
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
