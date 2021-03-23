@@ -24,6 +24,7 @@ TestConnection::TestConnection(
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
     ExpectedResumed(false), ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
     ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR), ExpectedCustomValidationResult(false),
+    CustomValidationResultSet(false), ExpectedClientCertValidationResult(QUIC_STATUS_SUCCESS),
     EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
@@ -51,6 +52,7 @@ TestConnection::TestConnection(
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
     ExpectedResumed(false), ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
     ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR), ExpectedCustomValidationResult(false),
+    CustomValidationResultSet(false), ExpectedClientCertValidationResult(QUIC_STATUS_SUCCESS),
     EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
@@ -863,8 +865,11 @@ TestConnection::HandleConnectionEvent(
         if (AsyncCustomValidation) {
             return QUIC_STATUS_PENDING;
         }
-        if (!ExpectedCustomValidationResult) {
+        if (CustomValidationResultSet && !ExpectedCustomValidationResult) {
             return QUIC_STATUS_INTERNAL_ERROR;
+        }
+        if (Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus != ExpectedClientCertValidationResult) {
+            TEST_FAILURE("Unexpected Certificate Validation Status, %u", Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
         }
         break;
 

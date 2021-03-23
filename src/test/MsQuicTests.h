@@ -183,6 +183,11 @@ QuicTestConnectValidServerCertificate(
     _In_ const QUIC_CREDENTIAL_CONFIG* Config
     );
 
+void
+QuicTestConnectValidClientCertificate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    );
+
 //
 // Post Handshake Tests
 //
@@ -753,4 +758,10 @@ typedef struct {
 #define IOCTL_QUIC_RUN_VALID_SERVER_CERT \
     QUIC_CTL_CODE(60, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 60
+#define IOCTL_QUIC_RUN_VALID_CLIENT_CERT \
+    QUIC_CTL_CODE(61, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_EXPIRED_CLIENT_CERT \
+    QUIC_CTL_CODE(62, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 62

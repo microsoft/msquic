@@ -237,6 +237,19 @@ if ($IsWindows) {
             }else {
                 Write-Host "Found existing MsQuicTestClient certificate!"
             }
+            Write-Host "Searching for MsQuicTestExpiredClient certificate..."
+            $ExpiredClientCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestExpiredClient"}
+            if (!$ExpiredClientCert) {
+                Write-Host "MsQuicTestExpiredClient not found! Creating new MsQuicTestExpiredClient certificate..."
+                $ExpiredClientCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestExpiredClient" -FriendlyName MsQuicTestExpiredClient -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.2") -Signer $RootCert
+                $TempExpiredClientPath = Join-Path $Env:TEMP "MsQuicTestClientExpiredCert.pfx"
+                Export-PfxCertificate -Cert $ExpiredClientCert -Password $PfxPassword -FilePath $TempExpiredClientPath
+                Import-PfxCertificate -FilePath $TempExpiredClientPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
+                Remove-Item $TempExpiredClientPath
+                Write-Host "New MsQuicTestExpiredClient certificate installed!"
+            }else {
+                Write-Host "Found existing MsQuicTestExpiredClient certificate!"
+            }
             if ($NewRoot) {
                 Write-Host "Deleting MsQuicTestRoot from MY store..."
                 Remove-Item $rootCert.PSPath

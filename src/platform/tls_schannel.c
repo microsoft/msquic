@@ -91,6 +91,31 @@ typedef struct _SecPkgContext_Certificates
     PBYTE   pbCertificateChain;
 } SecPkgContext_Certificates, *PSecPkgContext_Certificates;
 
+typedef struct _SecPkgCred_ClientCertPolicy
+{
+    DWORD   dwFlags;
+    GUID    guidPolicyId;
+    DWORD   dwCertFlags;
+    DWORD   dwUrlRetrievalTimeout;
+    BOOL    fCheckRevocationFreshnessTime;
+    DWORD   dwRevocationFreshnessTime;
+    BOOL    fOmitUsageCheck;
+    LPWSTR  pwszSslCtlStoreName;
+    LPWSTR  pwszSslCtlIdentifier;
+} SecPkgCred_ClientCertPolicy, *PSecPkgCred_ClientCertPolicy;
+
+typedef struct _SecPkgContext_ClientCertPolicyResult
+{
+    HRESULT dwPolicyResult;
+    GUID    guidPolicyId;
+} SecPkgContext_ClientCertPolicyResult, *PSecPkgContext_ClientCertPolicyResult;
+
+// CERT_CHAIN_CACHE_END_CERT can be used here as well
+// Revocation flags are in the high nibble
+#define CERT_CHAIN_REVOCATION_CHECK_END_CERT           0x10000000
+#define CERT_CHAIN_REVOCATION_CHECK_CHAIN              0x20000000
+#define CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT 0x40000000
+
 #define SECPKG_ATTR_REMOTE_CERTIFICATES  0x5F   // returns SecPkgContext_Certificates
 
 #define SP_PROT_TLS1_3_SERVER           0x00001000
@@ -344,6 +369,15 @@ uint16_t CxPlatTlsTPHeaderSize = FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer
 
 const WORD TlsHandshake_ClientHello = 0x01;
 const WORD TlsHandshake_EncryptedExtensions = 0x08;
+
+// {791A59D6-34C8-4ADE-9B53-D13EEA4E9F0B}
+static const GUID CxPlatTlsClientCertPolicyGuid = 
+{
+    0x791a59d6,
+    0x34c8,
+    0x4ade,
+    { 0x9b, 0x53, 0xd1, 0x3e, 0xea, 0x4e, 0x9f, 0xb }
+};
 
 typedef struct CXPLAT_SEC_CONFIG {
 
@@ -1003,7 +1037,12 @@ CxPlatTlsSspiNotifyCallback(
         CompletionCallback(&CredConfig, CompletionContext, SecStatusToQuicStatus(Status), NULL);
         CxPlatTlsSecConfigDelete(SecConfig); // *MUST* be last call to prevent crash in platform cleanup.
     } else {
-        CompletionCallback(&CredConfig, CompletionContext, QUIC_STATUS_SUCCESS, SecConfig);
+        QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+        if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION &&
+            SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+            Status = CxPlatTlsSetClientCertPolicy(SecConfig);
+        }
+        CompletionCallback(&CredConfig, CompletionContext, Status, SecConfig);
     }
     if (!IsAsync) {
         KeSetEvent(&AchContext->CompletionEvent, IO_NO_INCREMENT, FALSE);
@@ -1075,6 +1114,47 @@ CxPlatTlsAchWorker(
 }
 
 #endif
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsSetClientCertPolicy(
+    _In_ CXPLAT_SEC_CONFIG* SecConfig
+    )
+{
+    SECURITY_STATUS SecStatus = SEC_E_OK;
+    SecPkgCred_ClientCertPolicy ClientCertPolicy;
+    CXPLAT_FRE_ASSERT(!(SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT));
+
+    CxPlatZeroMemory(&ClientCertPolicy, sizeof(ClientCertPolicy));
+
+    ClientCertPolicy.guidPolicyId = CxPlatTlsClientCertPolicyGuid;
+
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_END_CERT;
+    }
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN;
+    }
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT;
+    }
+
+    SecStatus = SetCredentialsAttributesW(
+        &SecConfig->CredentialHandle,
+        SECPKG_ATTR_CLIENT_CERT_POLICY,
+        &ClientCertPolicy,
+        sizeof(ClientCertPolicy));
+
+    if (SecStatus != SEC_E_OK) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SecStatus,
+            "SetCredentialsAttributesW(SECPKG_ATTR_CLIENT_CERT_POLICY)");
+    }
+
+    return SecStatusToQuicStatus(SecStatus);
+}
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -1172,7 +1252,7 @@ CxPlatTlsSecConfigCreate(
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
         Credentials->dwFlags |= SCH_CRED_SNI_ENABLE_OCSP;
     }
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION && IsClient) {
         Credentials->dwFlags |= SCH_CRED_DEFERRED_CRED_VALIDATION;
     }
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT) {
@@ -1463,6 +1543,11 @@ CxPlatTlsSecConfigCreate(
             "AcquireCredentialsHandleW");
         Status = SecStatusToQuicStatus(SecStatus);
         goto Error;
+    }
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION &&
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+        Status = CxPlatTlsSetClientCertPolicy(AchContext->SecConfig);
     }
 
     QuicTraceLogVerbose(
@@ -2124,21 +2209,41 @@ CxPlatTlsWriteDataToSchannel(
                 }
 
                 SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
+                SecPkgContext_ClientCertPolicyResult ClientPolicyResult = {0,0};
                 if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
-                    SecStatus =
-                        QueryContextAttributesW(
+                    if (TlsContext->IsServer) {
+                        ClientPolicyResult.guidPolicyId = CxPlatTlsClientCertPolicyGuid;
+
+                        SecStatus = QueryContextAttributesW(
                             &TlsContext->SchannelContext,
-                            SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
-                            &CertValidationResult);
-                    if (SecStatus != SEC_E_OK) {
-                        QuicTraceEvent(
-                            TlsErrorStatus,
-                            "[ tls][%p] ERROR, %u, %s.",
-                            TlsContext->Connection,
-                            SecStatus,
-                            "query cert validation result");
-                        Result |= CXPLAT_TLS_RESULT_ERROR;
-                        break;
+                            SECPKG_ATTR_CC_POLICY_RESULT,
+                            &ClientPolicyResult);
+                        if (SecStatus != SEC_E_OK) {
+                            QuicTraceEvent(
+                                TlsErrorStatus,
+                                "[ tls][%p] ERROR, %u, %s.",
+                                TlsContext->Connection,
+                                SecStatus,
+                                "query client cert validation result");
+                            Result |= CXPLAT_TLS_RESULT_ERROR;
+                            break;
+                        }
+                    } else {
+                        SecStatus =
+                            QueryContextAttributesW(
+                                &TlsContext->SchannelContext,
+                                SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
+                                &CertValidationResult);
+                        if (SecStatus != SEC_E_OK) {
+                            QuicTraceEvent(
+                                TlsErrorStatus,
+                                "[ tls][%p] ERROR, %u, %s.",
+                                TlsContext->Connection,
+                                SecStatus,
+                                "query cert validation result");
+                            Result |= CXPLAT_TLS_RESULT_ERROR;
+                            break;
+                        }
                     }
                 }
 
@@ -2150,7 +2255,9 @@ CxPlatTlsWriteDataToSchannel(
                         (void*)PeerCert,
 #endif
                         CertValidationResult.dwChainErrorStatus,
-                        (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
+                        (QUIC_STATUS)(TlsContext->IsServer ?
+                            ClientPolicyResult.dwPolicyResult :
+                            CertValidationResult.hrVerifyChainStatus))) {
                     QuicTraceEvent(
                         TlsError,
                         "[ tls][%p] ERROR, %s.",
