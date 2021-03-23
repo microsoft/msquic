@@ -68,6 +68,7 @@ protected:
         size_t FileSize = 0;
         FILE* Handle = fopen(Name, "rb");
         if (Handle == NULL) {
+            fprintf(stderr, "ReadFile failed to open file '%s'.\n", Name);
             return NULL;
         }
 #ifdef _WIN32
@@ -81,6 +82,7 @@ protected:
             FileSize = (int)Stat.st_size;
         }
 #endif
+        fprintf(stderr, "ReadFile for '%s' size = %u\n", Name, (unsigned)FileSize);
         if (FileSize == 0) {
             fclose(Handle);
             return NULL;
@@ -97,9 +99,11 @@ protected:
         do {
             ReadLength = fread(Buffer + *Length, 1, FileSize - *Length, Handle);
             *Length += (uint32_t)ReadLength;
+            fprintf(stderr, "ReadFile: fread returned %u bytes %u out of %u\n", (unsigned)ReadLength, (unsigned)*Length, (unsigned)FileSize);
         } while (ReadLength > 0 && *Length < (uint32_t)FileSize);
         fclose(Handle);
         if (*Length != FileSize) {
+            fprintf(stderr, "ReadFile: %u != %u\n", *Length, (unsigned)FileSize);
             CXPLAT_FREE(Buffer, QUIC_POOL_TEST);
             return NULL;
         }
@@ -126,8 +130,8 @@ protected:
         CxPlatZeroMemory(CertParamsFromFile->CertificatePkcs12, sizeof(QUIC_CERTIFICATE_PKCS12));
         CertParamsFromFile->CertificatePkcs12->Asn1Blob = ReadFile(PFX_TEST_PATH, &CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
         CertParamsFromFile->CertificatePkcs12->PrivateKeyPassword = PfxPass;
-        ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12->Asn1Blob);
         ASSERT_NE((uint32_t)0, CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
+        ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12->Asn1Blob);
 #endif
     }
 
