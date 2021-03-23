@@ -498,8 +498,6 @@ try {
         Copy-Item "$LocalExePath\msquic.pgd" $OutputDir
     }
 
-    Write-Failures
-
 } finally {
     if ($null -ne $Session) {
         Remove-PSSession -Session $Session
