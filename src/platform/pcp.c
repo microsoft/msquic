@@ -385,16 +385,16 @@ CxPlatPcpSendMapRequestInternal(
     QUIC_ADDR LocalMappedAddress;
     CxPlatConvertToMappedV6(&LocalAddress, &LocalMappedAddress);
 
-    CXPLAT_SEND_DATA* SendContext =
+    CXPLAT_SEND_DATA* SendData =
         CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, PCP_MAP_REQUEST_SIZE);
-    if (SendContext == NULL) {
+    if (SendData == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     QUIC_BUFFER* SendBuffer =
-        CxPlatSendDataAllocBuffer(SendContext, PCP_MAP_REQUEST_SIZE);
+        CxPlatSendDataAllocBuffer(SendData, PCP_MAP_REQUEST_SIZE);
     if (SendBuffer == NULL) {
-        CxPlatSendDataFree(SendContext);
+        CxPlatSendDataFree(SendData);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -423,7 +423,7 @@ CxPlatPcpSendMapRequestInternal(
             Socket,
             &LocalAddress,
             &RemoteAddress,
-            SendContext);
+            SendData);
     if (QUIC_FAILED(Status)) {
         return Status;
     }
@@ -485,16 +485,16 @@ CxPlatPcpSendPeerRequestInternal(
     QUIC_ADDR RemotePeerMappedAddress;
     CxPlatConvertToMappedV6(RemotePeerAddress, &RemotePeerMappedAddress);
 
-    CXPLAT_SEND_DATA* SendContext =
+    CXPLAT_SEND_DATA* SendData =
         CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, PCP_PEER_REQUEST_SIZE);
-    if (SendContext == NULL) {
+    if (SendData == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     QUIC_BUFFER* SendBuffer =
-        CxPlatSendDataAllocBuffer(SendContext, PCP_PEER_REQUEST_SIZE);
+        CxPlatSendDataAllocBuffer(SendData, PCP_PEER_REQUEST_SIZE);
     if (SendBuffer == NULL) {
-        CxPlatSendDataFree(SendContext);
+        CxPlatSendDataFree(SendData);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -528,7 +528,7 @@ CxPlatPcpSendPeerRequestInternal(
             Socket,
             &LocalAddress,
             &RemoteAddress,
-            SendContext);
+            SendData);
     if (QUIC_FAILED(Status)) {
         return Status;
     }
