@@ -53,6 +53,9 @@ as necessary.
 .Parameter CodeCoverage
     Collects code coverage for this test run. Incompatible with -Debugger.
 
+.Parameter AZP
+    Runs in Azure Pipelines mode.
+
 #>
 
 param (
