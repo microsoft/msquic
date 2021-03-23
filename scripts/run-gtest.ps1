@@ -478,13 +478,8 @@ function Wait-TestCase($TestCase) {
         } else {
             if ($AnyTestFailed -or $ProcessCrashed) {
                 LogErr "$($TestCase.Name) failed:"
-                if ($AZP) {
-                    if ($stdout) { Write-Host "##vso[task.LogIssue type=warning;]$stdout" }
-                    if ($stderr) { Write-Host "##vso[task.LogIssue type=warning;]$stderr" }
-                } else {
-                    if ($stdout) { Write-Host $stdout }
-                    if ($stderr) { Write-Host $stderr }
-                }
+                if ($stdout) { Write-Host $stdout }
+                if ($stderr) { Write-Host $stderr }
             } else {
                 Log "$($TestCase.Name) succeeded"
             }
@@ -720,7 +715,7 @@ try {
     Log "$($TestCount) test(s) run."
     if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
         Log "Output can be found in $($LogDir)"
-        Write-Error "[$(Get-Date)] $($TestsFailed) test(s) failed."
+        Write-Error "$($TestsFailed) test(s) failed."
     } else {
         if (Test-Path $LogDir) {
             Remove-Item $LogDir -Recurse -Force | Out-Null
