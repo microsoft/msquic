@@ -16,7 +16,7 @@ Abstract:
 #include "HpsClient.h"
 
 #ifdef QUIC_CLOG
-#include "quicmain.cpp.clog.h"
+#include "NetSecPerfMain.cpp.clog.h"
 #endif
 
 const MsQuicApi* MsQuic;
