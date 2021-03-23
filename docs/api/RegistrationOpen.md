@@ -20,7 +20,7 @@ QUIC_STATUS
 
 `Config`
 
-An optional configuration for the registration.
+An optional [QUIC_REGISTRATION_CONFIG](QUIC_REGISTRATION_CONFIG.md) to specify how to configure the execution context of the registration.
 
 `Registration`
 
@@ -32,7 +32,9 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 # Remarks
 
-**TODO**
+A registration represents an execution context for the application. This consists of one or more system threads that are used to process the protocol logic for the application's connections. Each execution context is completely independent from another. This allows for different applications in the same process (or kernel space) to execute generally independent.
+
+A caveat to this independence is that until a packet or connection can be determined to belong to a particular registration there is shared processing.
 
 # See Also
 
