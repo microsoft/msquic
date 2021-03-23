@@ -616,15 +616,15 @@ function Get-LatestCpuTestResult([string]$Branch, [string]$CommitHash) {
     }
 }
 
-$HasRegression = $false
+$global:HasRegression = $false
 
 function Log-Regression([string]$Msg) {
     Write-Host "##vso[task.LogIssue type=error;]$Msg"
-    $HasRegression = $true
+    $global:HasRegression = $true
 }
 
 function Check-Regressions() {
-    if ($HasRegression) {
+    if ($global:HasRegression) {
         Write-Error "Performance test regressions occurred!"
     }
 }
