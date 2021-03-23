@@ -29,7 +29,29 @@ QUIC_STATUS
 
 The valid handle to an open registration object.
 
-**TODO**
+`AlpnBuffers`
+
+An array of `QUIC_BUFFER` structs that each contain a pointer and length to a different [Application Layer Protocol Negotiation](https://tools.ietf.org/html/rfc7301) (ALPN) buffer.
+
+`AlpnBufferCount`
+
+The number of `QUIC_BUFFER` structs in the `AlpnBuffers` array.
+
+`Settings`
+
+An optional pointer to a [QUIC_SETTINGS](QUIC_SETTINGS.md) struct that defines the initial parameters for this configuration.
+
+`SettingSize`
+
+The size (in bytes) of the `Settings` parameter. 
+
+`Context`
+
+The application context pointer (possibly null) to be associated with the configuration object.
+
+`Configuration`
+
+On success, returns a handle to the newly opened configuration object.
 
 # Return Value
 
@@ -37,9 +59,15 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 # Remarks
 
-**TODO**
+On success, `ConfigurationOpen` creates a new configuration object. A configuration object abstracts all connection settings and security configuration.
+
+Once the configuration is loaded (via [ConfigurationLoadCredential](ConfigurationLoadCredential.md)) it can be used for a connection; [ConnectionStart](ConnectionStart.md) on client; [ConnectionSetConfiguration](ConnectionSetConfiguration.md) on server.
+
+The configuration must be cleaned up via [ConfigurationClose](ConfigurationClose.md) when the application is done with it.
 
 # See Also
 
 [ConfigurationClose](ConfigurationClose.md)<br>
 [ConfigurationLoadCredential](ConfigurationLoadCredential.md)<br>
+[ConnectionSetConfiguration](ConnectionSetConfiguration.md)<br>
+[ConnectionStart](ConnectionStart.md)<br>
