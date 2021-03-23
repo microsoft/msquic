@@ -29,7 +29,7 @@ for ($Conns=100; $Conns -le 1000; $Conns+=100) {
         $Requests = $Conns * $RequestsPerConn
         Write-Host "==$($Conns)c$($Requests)r=="
         for ($i=0; $i -lt $Iterations; $i++) {
-            (.\quicperf.exe `
+            (.\secnetperf.exe `
                 -Test:RPS `
                 -Target:$Target `
                 -conns:$Conns `

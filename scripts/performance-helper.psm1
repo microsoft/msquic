@@ -350,12 +350,12 @@ function Get-ExeName {
 function Remove-PerfServices {
     if ($IsWindows) {
         Invoke-TestCommand -Session $Session -ScriptBlock {
-            if ($null -ne (Get-Service -Name "quicperfdrvpriv" -ErrorAction Ignore)) {
+            if ($null -ne (Get-Service -Name "secnetperfdrvpriv" -ErrorAction Ignore)) {
                 try {
-                    net.exe stop quicperfdrvpriv /y | Out-Null
+                    net.exe stop secnetperfdrvpriv /y | Out-Null
                 }
                 catch {}
-                sc.exe delete quicperfdrvpriv /y | Out-Null
+                sc.exe delete secnetperfdrvpriv /y | Out-Null
             }
             if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
                 try {
@@ -410,7 +410,7 @@ function Invoke-RemoteExe {
         $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
 
         if ($Kernel) {
-            Copy-Item (Join-Path $KernelDir "quicperfdrvpriv.sys") (Split-Path $Exe -Parent)
+            Copy-Item (Join-Path $KernelDir "secnetperfdrvpriv.sys") (Split-Path $Exe -Parent)
             Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $Exe -Parent)
             sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Exe -Parent) "msquicpriv.sys") start= demand | Out-Null
             net.exe start msquicpriv
@@ -421,7 +421,7 @@ function Invoke-RemoteExe {
         # Uninstall the kernel mode test driver and revert the msquic driver.
         if ($Kernel) {
             net.exe stop msquicpriv /y | Out-Null
-            sc.exe delete quicperfdrvpriv | Out-Null
+            sc.exe delete secnetperfdrvpriv | Out-Null
             sc.exe delete msquicpriv | Out-Null
         }
 

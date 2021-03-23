@@ -27,8 +27,8 @@ typedef struct {
 } QUIC_RUN_CERTIFICATE_PARAMS;
 #include "quic_driver_helpers.h"
 
-#define QUIC_DRIVER_NAME            "quicperfdrv"
-#define QUIC_DRIVER_NAME_PRIVATE    "quicperfdrvpriv"
+#define QUIC_DRIVER_NAME            "secnetperfdrv"
+#define QUIC_DRIVER_NAME_PRIVATE    "secnetperfdrvpriv"
 
 #endif
 

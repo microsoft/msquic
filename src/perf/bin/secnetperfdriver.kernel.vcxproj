@@ -75,7 +75,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <TargetName>quicperfdrv</TargetName>
+    <TargetName>secnetperfdrv</TargetName>
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <EnableInf2cat>false</EnableInf2cat>
     <OutDir>$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\</OutDir>
