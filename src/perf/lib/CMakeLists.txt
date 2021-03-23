@@ -4,7 +4,7 @@
 set(SOURCES
     HpsClient.cpp
     PerfServer.cpp
-    quicmain.cpp
+    NetSecPerfMain.cpp
     RpsClient.cpp
     Tcp.cpp
     ThroughputClient.cpp
