@@ -498,7 +498,7 @@ try {
         Copy-Item "$LocalExePath\msquic.pgd" $OutputDir
     }
 
-    Write-Failures
+    Check-Regressions
 
 } finally {
     if ($null -ne $Session) {

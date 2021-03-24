@@ -53,6 +53,9 @@ as necessary.
 .Parameter CodeCoverage
     Collects code coverage for this test run. Incompatible with -Debugger.
 
+.Parameter AZP
+    Runs in Azure Pipelines mode.
+
 #>
 
 param (
@@ -105,7 +108,10 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CodeCoverage = $false
+    [switch]$CodeCoverage = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$AZP = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -113,6 +119,22 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
+}
+
+function LogWrn($msg) {
+    if ($AZP) {
+        Write-Host "##vso[task.LogIssue type=warning;][$(Get-Date)] $msg"
+    } else {
+        Write-Host "[$(Get-Date)] $msg"
+    }
+}
+
+function LogErr($msg) {
+    if ($AZP) {
+        Write-Host "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
+    } else {
+        Write-Host "[$(Get-Date)] $msg"
+    }
 }
 
 # Make sure the test executable is present.
@@ -393,25 +415,25 @@ function Wait-TestCase($TestCase) {
             }
             $AnyTestFailed = $stdout.Contains("[  FAILED  ]")
             if (!(Test-Path $TestCase.ResultsPath) -and !$ProcessCrashed) {
-                Log "No test results generated! Treating as crash!"
+                LogWrn "No test results generated! Treating as crash!"
                 $ProcessCrashed = $true
             }
         }
         $TestCase.Process.WaitForExit()
         if ($TestCase.Process.ExitCode -ne 0) {
-            Log "Process had nonzero exit code: $($TestCase.Process.ExitCode)"
+            LogWrn "Process had nonzero exit code: $($TestCase.Process.ExitCode)"
             $ProcessCrashed = $true
         }
         $DumpFiles = (Get-ChildItem $TestCase.LogDir) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
-            Log "Dump file(s) generated"
+            LogWrn "Dump file(s) generated"
             foreach ($File in $DumpFiles) {
                 PrintDumpCallStack($File)
             }
             $ProcessCrashed = $true
         }
     } catch {
-        Log "Treating exception as crash!"
+        LogWrn "Treating exception as crash!"
         $ProcessCrashed = $true
         throw
     } finally {
@@ -455,7 +477,7 @@ function Wait-TestCase($TestCase) {
             if ($stderr) { Write-Host $stderr }
         } else {
             if ($AnyTestFailed -or $ProcessCrashed) {
-                Log "$($TestCase.Name) failed:"
+                LogErr "$($TestCase.Name) failed:"
                 if ($stdout) { Write-Host $stdout }
                 if ($stderr) { Write-Host $stderr }
             } else {
@@ -680,17 +702,6 @@ try {
     $TestCount = $XmlResults.testsuites.tests -as [Int]
     $TestsFailed = $XmlResults.testsuites.failures -as [Int]
 
-    # Print out the results.
-    Log "$($TestCount) test(s) run. $($TestsFailed) test(s) failed."
-    if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
-        Log "Output can be found in $($LogDir)"
-    } else {
-        if (Test-Path $LogDir) {
-            Remove-Item $LogDir -Recurse -Force | Out-Null
-        }
-    }
-    Write-Host ""
-
     # Uninstall the kernel mode test driver and revert the msquic driver.
     if ($Kernel -ne "") {
         net.exe stop msquicpriv /y | Out-Null
@@ -698,5 +709,18 @@ try {
         sc.exe delete msquicpriv | Out-Null
         verifier.exe /volatile /removedriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys
         verifier.exe /volatile /flags 0x0
+    }
+
+    # Print out the results.
+    Log "$($TestCount) test(s) run."
+    if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
+        Log "Output can be found in $($LogDir)"
+        Write-Error "$($TestsFailed) test(s) failed."
+    } elseif ($AZP -and $TestCount -eq 0) {
+        Write-Error "Failed to run any tests."
+    } else {
+        if (Test-Path $LogDir) {
+            Remove-Item $LogDir -Recurse -Force | Out-Null
+        }
     }
 }

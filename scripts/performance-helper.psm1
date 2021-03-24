@@ -616,15 +616,16 @@ function Get-LatestCpuTestResult([string]$Branch, [string]$CommitHash) {
     }
 }
 
-$Failures = New-Object Collections.Generic.List[string]
-function Write-Failures() {
-    $DidFail = $false
-    foreach ($Failure in $Failures) {
-        $DidFail = $true
-        Write-Output $Failure
-    }
-    if ($DidFail) {
-        Write-Error "Performance test failures occurred"
+$global:HasRegression = $false
+
+function Log-Regression([string]$Msg) {
+    Write-Host "##vso[task.LogIssue type=error;]$Msg"
+    $global:HasRegression = $true
+}
+
+function Check-Regressions() {
+    if ($global:HasRegression) {
+        Write-Error "Performance test regressions occurred!"
     }
 }
 
@@ -760,10 +761,10 @@ function Publish-ThroughputTestResults {
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
             #Skip no encrypt
             if ($Test.VariableName -ne "Encryption") {
-                $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
+                Log-Regression "Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)"
             }
         } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold"
         }
     } else {
         Write-Output "Median: $CurrentFormatted"
@@ -915,9 +916,9 @@ function Publish-RPSTestResults {
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Remote: $LastFormatted"
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)"
         } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold"
         }
     } else {
         Write-Output "Median: $CurrentFormatted"
@@ -1032,9 +1033,9 @@ function Publish-HPSTestResults {
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Remote: $LastFormatted"
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)"
         } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold"
         }
     } else {
         Write-Output "Median: $CurrentFormatted"

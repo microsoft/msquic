@@ -61,6 +61,9 @@ This script provides helpers for running executing the MsQuic tests.
 .Parameter CodeCoverage
     Collect code coverage for this test run. Incompatible with -Kernel and -Debugger.
 
+.Parameter AZP
+    Runs in Azure Pipelines mode.
+
 .EXAMPLE
     test.ps1
 
@@ -143,7 +146,10 @@ param (
     [switch]$CodeCoverage = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ExtraArtifactDir = ""
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$AZP = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -283,6 +289,9 @@ if ($EnableAppVerifier) {
 }
 if ($CodeCoverage) {
     $TestArguments += " -CodeCoverage"
+}
+if ($AZP) {
+    $TestArguments += " -AZP"
 }
 
 # Run the script.
