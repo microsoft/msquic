@@ -53,3 +53,7 @@ elseif(QUIC_ENABLE_LOGGING)
     target_link_libraries(msquic.lttng inc)
     install(TARGETS msquic.lttng DESTINATION "${main_lib_dest}")
 endif()
+
+if (MSVC)
+    target_compile_options(msquic PRIVATE /analyze)
+endif()

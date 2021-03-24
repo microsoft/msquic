@@ -497,7 +497,7 @@ QuicCryptoDiscardKeys(
         DiscardKeyType,
         Connection,
         "Discarding key type = %hhu",
-        KeyType);
+        (uint8_t)KeyType);
 
     QuicPacketKeyFree(Crypto->TlsState.WriteKeys[KeyType]);
     QuicPacketKeyFree(Crypto->TlsState.ReadKeys[KeyType]);
