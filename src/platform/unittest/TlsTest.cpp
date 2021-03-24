@@ -23,7 +23,7 @@ const uint32_t DefaultFragmentSize = 1200;
 const uint8_t Alpn[] = { 1, 'A' };
 const uint8_t MultiAlpn[] = { 1, 'C', 1, 'A', 1, 'B' };
 const char* PfxPass = "PLACEHOLDER";        // approved for cred scan
-extern char* PfxPath;
+extern const char* PfxPath;
 
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
