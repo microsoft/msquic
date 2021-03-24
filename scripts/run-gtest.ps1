@@ -111,7 +111,7 @@ param (
     [switch]$CodeCoverage = $false,
 
     [Parameter(Mandatory = $false)]
-    [String]$PfxPath = ""
+    [String]$PfxPath = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$AZP = $false
