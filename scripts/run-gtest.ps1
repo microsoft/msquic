@@ -111,6 +111,9 @@ param (
     [switch]$CodeCoverage = $false,
 
     [Parameter(Mandatory = $false)]
+    [String]$PfxPath = "",
+
+    [Parameter(Mandatory = $false)]
     [switch]$AZP = $false
 )
 
@@ -335,6 +338,9 @@ function Start-TestCase([String]$Name) {
     if ($Kernel -ne "") {
         $Arguments += " --kernelPriv"
     }
+    if ($PfxPath -ne "") {
+        $Arguments += " -PfxPath $PfxPath"
+    }
 
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
@@ -369,7 +375,9 @@ function Start-AllTestCases {
     if ($Kernel -ne "") {
         $Arguments += " --kernelPriv"
     }
-
+    if ($PfxPath -ne "") {
+        $Arguments += " -PfxPath $PfxPath"
+    }
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
         Name = $Name

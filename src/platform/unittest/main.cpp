@@ -6,11 +6,14 @@
 --*/
 
 #include "main.h"
+#include "msquichelper.h"
 #ifdef QUIC_CLOG
 #include "main.cpp.clog.h"
 #endif
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
+
+const char* PfxPath = nullptr;
 
 class QuicCoreTestEnvironment : public ::testing::Environment {
 public:
@@ -27,5 +30,6 @@ public:
 int main(int argc, char** argv) {
     ::testing::AddGlobalTestEnvironment(new QuicCoreTestEnvironment);
     ::testing::InitGoogleTest(&argc, argv);
+    PfxPath = GetValue(argc, argv, "PfxPath");
     return RUN_ALL_TESTS();
 }

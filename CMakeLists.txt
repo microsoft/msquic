@@ -259,6 +259,11 @@ if(WIN32)
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION)
     endif()
 
+    if(QUIC_TLS STREQUAL "schannel" OR QUIC_TLS STREQUAL "mitls")
+        # Disable until CAPI support is fixed
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
+    endif()
+
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel")
         # OpenSSL and Schannel don't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
@@ -275,6 +280,7 @@ if(WIN32)
     if(QUIC_TLS STREQUAL "stub")
         list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
     endif()
 
     if(QUIC_ENABLE_SANITIZERS)
@@ -394,6 +400,7 @@ else()
     if(QUIC_TLS STREQUAL "stub")
         list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
