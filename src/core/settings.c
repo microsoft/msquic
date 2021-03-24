@@ -360,7 +360,7 @@ QuicSettingApply(
                             SettingsInvalidVersion,
                             "Invalid version supplied to settings! 0x%x at position %d",
                             Source->DesiredVersionsList[i],
-                            i);
+                            (int32_t)i);
                         return FALSE;
                     }
                 }

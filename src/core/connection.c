@@ -3036,7 +3036,7 @@ QuicConnRecvVerNeg(
             VerNegItem,
             Connection,
             "  Ver[%d]: 0x%x",
-            i,
+            (int32_t)i,
             CxPlatByteSwapUint32(ServerVersion));
 
         //
@@ -3299,7 +3299,7 @@ QuicConnGetKeyOrDeferDatagram(
                     DeferDatagram,
                     Connection,
                     "Deferring datagram (type=%hu)",
-                    Packet->KeyType);
+                    (uint16_t)Packet->KeyType);
 
                 Packets->DeferredDatagramsCount++;
                 Packet->ReleaseDeferred = TRUE;
@@ -5749,7 +5749,7 @@ QuicConnParamSet(
             UpdateStreamSchedulingScheme,
             Connection,
             "Updated Stream Scheduling Scheme = %u",
-            Scheme);
+            (uint32_t)Scheme);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

@@ -65,3 +65,7 @@ target_link_libraries(core PUBLIC core.clog inc)
 target_link_libraries(core PRIVATE warnings)
 
 set_property(TARGET core PROPERTY FOLDER "libraries")
+
+if (MSVC)
+    target_compile_options(core PRIVATE /analyze)
+endif()
