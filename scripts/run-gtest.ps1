@@ -715,7 +715,7 @@ try {
     Log "$($TestCount) test(s) run."
     if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
         Log "Output can be found in $($LogDir)"
-        Write-Error "$($TestsFailed) test(s) failed."
+        Log "$($TestsFailed) test(s) failed."
     } else {
         if (Test-Path $LogDir) {
             Remove-Item $LogDir -Recurse -Force | Out-Null
