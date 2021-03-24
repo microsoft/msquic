@@ -952,6 +952,48 @@ CxPlatTlsLibraryUninitialize(
         "[ tls] Library uninitialized");
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsSetClientCertPolicy(
+    _In_ CXPLAT_SEC_CONFIG* SecConfig
+    )
+{
+    SECURITY_STATUS SecStatus = SEC_E_OK;
+    SecPkgCred_ClientCertPolicy ClientCertPolicy;
+    CXPLAT_DBG_ASSERT(!(SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT));
+
+    CxPlatZeroMemory(&ClientCertPolicy, sizeof(ClientCertPolicy));
+
+    ClientCertPolicy.guidPolicyId = CxPlatTlsClientCertPolicyGuid;
+
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_END_CERT;
+    }
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN;
+    }
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT;
+    }
+
+    SecStatus =
+        SetCredentialsAttributesW(
+            &SecConfig->CredentialHandle,
+            SECPKG_ATTR_CLIENT_CERT_POLICY,
+            &ClientCertPolicy,
+            sizeof(ClientCertPolicy));
+
+    if (SecStatus != SEC_E_OK) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SecStatus,
+            "SetCredentialsAttributesW(SECPKG_ATTR_CLIENT_CERT_POLICY) failed");
+    }
+
+    return SecStatusToQuicStatus(SecStatus);
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 __drv_allocatesMem(Mem)
 _Must_inspect_result_
@@ -1122,48 +1164,6 @@ CxPlatTlsAchWorker(
 }
 
 #endif
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatTlsSetClientCertPolicy(
-    _In_ CXPLAT_SEC_CONFIG* SecConfig
-    )
-{
-    SECURITY_STATUS SecStatus = SEC_E_OK;
-    SecPkgCred_ClientCertPolicy ClientCertPolicy;
-    CXPLAT_DBG_ASSERT(!(SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT));
-
-    CxPlatZeroMemory(&ClientCertPolicy, sizeof(ClientCertPolicy));
-
-    ClientCertPolicy.guidPolicyId = CxPlatTlsClientCertPolicyGuid;
-
-    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT) {
-        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_END_CERT;
-    }
-    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN) {
-        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN;
-    }
-    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT) {
-        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT;
-    }
-
-    SecStatus =
-        SetCredentialsAttributesW(
-            &SecConfig->CredentialHandle,
-            SECPKG_ATTR_CLIENT_CERT_POLICY,
-            &ClientCertPolicy,
-            sizeof(ClientCertPolicy));
-
-    if (SecStatus != SEC_E_OK) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SecStatus,
-            "SetCredentialsAttributesW(SECPKG_ATTR_CLIENT_CERT_POLICY) failed");
-    }
-
-    return SecStatusToQuicStatus(SecStatus);
-}
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -2124,6 +2124,7 @@ CxPlatTlsWriteDataToSchannel(
         }
 
         if (!State->HandshakeComplete) {
+            SecPkgContext_ClientCertPolicyResult ClientPolicyResult = {0,0};
             if (!TlsContext->IsServer) {
                 SecPkgContext_ApplicationProtocol NegotiatedAlpn;
                 SecStatus =
@@ -2165,6 +2166,27 @@ CxPlatTlsWriteDataToSchannel(
                         "[ tls][%p] ERROR, %s.",
                         TlsContext->Connection,
                         "ALPN Mismatch");
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
+                    break;
+                }
+            } else if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
+                //
+                // Collect the client cert validation result
+                //
+                ClientPolicyResult.guidPolicyId = CxPlatTlsClientCertPolicyGuid;
+
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_CC_POLICY_RESULT,
+                        &ClientPolicyResult);
+                if (SecStatus != SEC_E_OK) {
+                    QuicTraceEvent(
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        SecStatus,
+                        "query client cert validation result");
                     Result |= CXPLAT_TLS_RESULT_ERROR;
                     break;
                 }
@@ -2218,27 +2240,8 @@ CxPlatTlsWriteDataToSchannel(
                 }
 
                 SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
-                SecPkgContext_ClientCertPolicyResult ClientPolicyResult = {0,0};
                 if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
-                    if (TlsContext->IsServer) {
-                        ClientPolicyResult.guidPolicyId = CxPlatTlsClientCertPolicyGuid;
-
-                        SecStatus =
-                            QueryContextAttributesW(
-                                &TlsContext->SchannelContext,
-                                SECPKG_ATTR_CC_POLICY_RESULT,
-                                &ClientPolicyResult);
-                        if (SecStatus != SEC_E_OK) {
-                            QuicTraceEvent(
-                                TlsErrorStatus,
-                                "[ tls][%p] ERROR, %u, %s.",
-                                TlsContext->Connection,
-                                SecStatus,
-                                "query client cert validation result");
-                            Result |= CXPLAT_TLS_RESULT_ERROR;
-                            break;
-                        }
-                    } else {
+                    if (!TlsContext->IsServer) {
                         SecStatus =
                             QueryContextAttributesW(
                                 &TlsContext->SchannelContext,
@@ -2255,6 +2258,20 @@ CxPlatTlsWriteDataToSchannel(
                             break;
                         }
                     }
+                } else if (TlsContext->IsServer && ClientPolicyResult.dwPolicyResult != QUIC_STATUS_SUCCESS) {
+                    //
+                    // If the server has configured client authentication but not deferred validation,
+                    // fail the handshake if the client cert doesn't pass validation
+                    //
+
+                    QuicTraceEvent(
+                        TlsError,
+                        "[ tls][%p] ERROR, %s.",
+                        TlsContext->Connection,
+                        "Client certificate validation failed");
+                    Result |= CXPLAT_TLS_RESULT_ERROR;
+                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
+                    break;
                 }
 
                 if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
