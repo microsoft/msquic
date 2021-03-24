@@ -373,19 +373,7 @@ function Invoke-Test {
     $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
 
     $RemoteArguments = $RemoteConfig.Arguments
-
-    Write-Debug "Running Remote: $RemoteExe Args: $RemoteArguments"
-
-    # Starting the server
-    $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
-    $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob -Matcher $Test.RemoteReadyMatcher
-
-    if (!$ReadyToStart) {
-        Stop-Job -Job $RemoteJob
-        $RetVal = Receive-Job -Job $RemoteJob
-        $RetVal = $RetVal -join "`n"
-        Write-Error "Test Remote for $Test failed to start: $RetVal"
-    }
+    $RemoteJob = $null
 
     $AllRunsResults = @()
 
@@ -393,8 +381,26 @@ function Invoke-Test {
 
     try {
         1..$Test.Iterations | ForEach-Object {
+            Write-Debug "Running Remote: $RemoteExe Args: $RemoteArguments"
+
+            # Starting the server
+            $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
+            $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob -Matcher $Test.RemoteReadyMatcher
+
+            if (!$ReadyToStart) {
+                Stop-Job -Job $RemoteJob
+                $RetVal = Receive-Job -Job $RemoteJob
+                $RetVal = $RetVal -join "`n"
+                Write-Error "Test Remote for $Test failed to start: $RetVal"
+            }
+
             Write-Debug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
+
+            $RemoteResults = Wait-ForRemote -Job $RemoteJob
+            Write-Debug $RemoteResults.ToString()
+            $RemoteJob = $null
+
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
             $AllRunsResults += $AllLocalParsedResults
             if ($PGO) {
@@ -417,8 +423,10 @@ function Invoke-Test {
             $LocalResults | Write-Debug
         }
     } finally {
-        $RemoteResults = Wait-ForRemote -Job $RemoteJob
-        Write-Debug $RemoteResults.ToString()
+        if ($null -ne $RemoteJob) {
+            $RemoteResults = Wait-ForRemote -Job $RemoteJob
+            Write-Debug $RemoteResults.ToString()
+        }
 
         Stop-Tracing -Exe $LocalExe
 
