@@ -190,12 +190,12 @@ struct DrillSender {
         QUIC_ADDR LocalAddress;
         CxPlatSocketGetLocalAddress(Binding, &LocalAddress);
 
-        CXPLAT_SEND_DATA* SendContext =
+        CXPLAT_SEND_DATA* SendData =
             CxPlatSendDataAlloc(
                 Binding, CXPLAT_ECN_NON_ECT, DatagramLength);
 
         QUIC_BUFFER* SendBuffer =
-            CxPlatSendDataAllocBuffer(SendContext, DatagramLength);
+            CxPlatSendDataAllocBuffer(SendData, DatagramLength);
 
         if (SendBuffer == nullptr) {
             TEST_FAILURE("Buffer null");
@@ -213,7 +213,7 @@ struct DrillSender {
                 Binding,
                 &LocalAddress,
                 &ServerAddress,
-                SendContext);
+                SendData);
 
         return Status;
     }

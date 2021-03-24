@@ -350,12 +350,12 @@ function Get-ExeName {
 function Remove-PerfServices {
     if ($IsWindows) {
         Invoke-TestCommand -Session $Session -ScriptBlock {
-            if ($null -ne (Get-Service -Name "quicperfdrvpriv" -ErrorAction Ignore)) {
+            if ($null -ne (Get-Service -Name "secnetperfdrvpriv" -ErrorAction Ignore)) {
                 try {
-                    net.exe stop quicperfdrvpriv /y | Out-Null
+                    net.exe stop secnetperfdrvpriv /y | Out-Null
                 }
                 catch {}
-                sc.exe delete quicperfdrvpriv /y | Out-Null
+                sc.exe delete secnetperfdrvpriv /y | Out-Null
             }
             if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
                 try {
@@ -410,7 +410,7 @@ function Invoke-RemoteExe {
         $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
 
         if ($Kernel) {
-            Copy-Item (Join-Path $KernelDir "quicperfdrvpriv.sys") (Split-Path $Exe -Parent)
+            Copy-Item (Join-Path $KernelDir "secnetperfdrvpriv.sys") (Split-Path $Exe -Parent)
             Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $Exe -Parent)
             sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Exe -Parent) "msquicpriv.sys") start= demand | Out-Null
             net.exe start msquicpriv
@@ -421,7 +421,7 @@ function Invoke-RemoteExe {
         # Uninstall the kernel mode test driver and revert the msquic driver.
         if ($Kernel) {
             net.exe stop msquicpriv /y | Out-Null
-            sc.exe delete quicperfdrvpriv | Out-Null
+            sc.exe delete secnetperfdrvpriv | Out-Null
             sc.exe delete msquicpriv | Out-Null
         }
 
@@ -616,15 +616,16 @@ function Get-LatestCpuTestResult([string]$Branch, [string]$CommitHash) {
     }
 }
 
-$Failures = New-Object Collections.Generic.List[string]
-function Write-Failures() {
-    $DidFail = $false
-    foreach ($Failure in $Failures) {
-        $DidFail = $true
-        Write-Output $Failure
-    }
-    if ($DidFail) {
-        Write-Error "Performance test failures occurred"
+$global:HasRegression = $false
+
+function Log-Regression([string]$Msg) {
+    Write-Host "##vso[task.LogIssue type=error;]$Msg"
+    $global:HasRegression = $true
+}
+
+function Check-Regressions() {
+    if ($global:HasRegression) {
+        Write-Error "Performance test regressions occurred!"
     }
 }
 
@@ -760,10 +761,10 @@ function Publish-ThroughputTestResults {
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
             #Skip no encrypt
             if ($Test.VariableName -ne "Encryption") {
-                $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
+                Log-Regression "Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)"
             }
         } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold"
         }
     } else {
         Write-Output "Median: $CurrentFormatted"
@@ -915,9 +916,9 @@ function Publish-RPSTestResults {
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Remote: $LastFormatted"
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)"
         } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold"
         }
     } else {
         Write-Output "Median: $CurrentFormatted"
@@ -1032,9 +1033,9 @@ function Publish-HPSTestResults {
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
         Write-Output "Remote: $LastFormatted"
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)"
         } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold"
         }
     } else {
         Write-Output "Median: $CurrentFormatted"
