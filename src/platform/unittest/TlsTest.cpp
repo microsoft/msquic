@@ -22,8 +22,8 @@ const uint32_t DefaultFragmentSize = 1200;
 
 const uint8_t Alpn[] = { 1, 'A' };
 const uint8_t MultiAlpn[] = { 1, 'C', 1, 'A', 1, 'B' };
-const char* PFX_TEST_PATH = PfxTestPath;    // expanded via cmake define
 const char* PfxPass = "PLACEHOLDER";        // approved for cred scan
+extern char* PfxPath;
 
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
@@ -117,6 +117,7 @@ protected:
         ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 #endif
 #ifndef QUIC_DISABLE_PFX_TESTS
+        ASSERT_NE(nullptr, PfxPath);
         CertParamsFromFile = (QUIC_CREDENTIAL_CONFIG*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CREDENTIAL_CONFIG), QUIC_POOL_TEST);
         ASSERT_NE(nullptr, CertParamsFromFile);
         CxPlatZeroMemory(CertParamsFromFile, sizeof(*CertParamsFromFile));
@@ -124,10 +125,10 @@ protected:
         CertParamsFromFile->CertificatePkcs12 = (QUIC_CERTIFICATE_PKCS12*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CERTIFICATE_PKCS12), QUIC_POOL_TEST);
         ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12);
         CxPlatZeroMemory(CertParamsFromFile->CertificatePkcs12, sizeof(QUIC_CERTIFICATE_PKCS12));
-        CertParamsFromFile->CertificatePkcs12->Asn1Blob = ReadFile(PFX_TEST_PATH, &CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
+        CertParamsFromFile->CertificatePkcs12->Asn1Blob = ReadFile(PfxPath, &CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
         CertParamsFromFile->CertificatePkcs12->PrivateKeyPassword = PfxPass;
-        ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12->Asn1Blob);
         ASSERT_NE((uint32_t)0, CertParamsFromFile->CertificatePkcs12->Asn1BlobLength);
+        ASSERT_NE(nullptr, CertParamsFromFile->CertificatePkcs12->Asn1Blob);
 #endif
     }
 
@@ -239,8 +240,8 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfigClientCertNoCertValidation);
 #endif
-
 #ifndef QUIC_DISABLE_PFX_TESTS
+        ASSERT_NE(nullptr, CertParamsFromFile);
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 CertParamsFromFile,

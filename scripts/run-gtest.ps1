@@ -105,7 +105,10 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CodeCoverage = $false
+    [switch]$CodeCoverage = $false,
+
+    [Parameter(Mandatory = $false)]
+    [String]$PfxPath = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -313,6 +316,9 @@ function Start-TestCase([String]$Name) {
     if ($Kernel -ne "") {
         $Arguments += " --kernelPriv"
     }
+    if ($PfxPath -ne "") {
+        $Arguments += " --PfxPath $PfxPath"
+    }
 
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
@@ -347,7 +353,9 @@ function Start-AllTestCases {
     if ($Kernel -ne "") {
         $Arguments += " --kernelPriv"
     }
-
+    if ($PfxPath -ne "") {
+        $Arguments += " --PfxPath $PfxPath"
+    }
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
         Name = $Name
