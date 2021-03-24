@@ -770,6 +770,7 @@ const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
     TlsTest::TlsContext::OnRecvTicketClient,
     TlsTest::TlsContext::OnPeerCertReceived
 };
+
 QUIC_CREDENTIAL_FLAGS TlsTest::SelfSignedCertParamsFlags = QUIC_CREDENTIAL_FLAG_NONE;
 QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
 QUIC_CREDENTIAL_CONFIG* TlsTest::ClientCertParams = nullptr;
