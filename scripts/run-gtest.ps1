@@ -715,7 +715,9 @@ try {
     Log "$($TestCount) test(s) run."
     if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
         Log "Output can be found in $($LogDir)"
-        Log "$($TestsFailed) test(s) failed."
+        Write-Error "$($TestsFailed) test(s) failed."
+    } elseif ($AZP -and $TestCount -eq 0) {
+        Write-Error "Failed to run any tests."
     } else {
         if (Test-Path $LogDir) {
             Remove-Item $LogDir -Recurse -Force | Out-Null

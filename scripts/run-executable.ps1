@@ -83,6 +83,8 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+$global:ExeFailed = $false
+
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
 }
@@ -308,6 +310,7 @@ function Wait-Executable($Exe) {
         $XmlText = $null
         if ($KeepOutput) {
             $XmlText = $FailXmlText;
+            $global:ExeFailed = $true
         } else {
             $XmlText = $SuccessXmlText;
         }
@@ -380,4 +383,9 @@ Wait-Executable (Start-Executable)
 if ($isWindows) {
     # Cleanup the WER registry.
     Remove-Item -Path $WerDumpRegPath -Force | Out-Null
+}
+
+# Fail execution as necessary.
+if ($global:ExeFailed -and $AZP) {
+    Write-Error "Run executable failed!"
 }
