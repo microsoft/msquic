@@ -21,12 +21,14 @@ class ThroughputClient : public PerfBase {
 public:
     ThroughputClient() : Engine(nullptr, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback) {
         CxPlatZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
+        CxPlatLockInitialize(&TcpLock);
     }
 
     ~ThroughputClient() override {
         if (DataBuffer) {
             CXPLAT_FREE(DataBuffer, QUIC_POOL_PERF);
         }
+        CxPlatLockUninitialize(&TcpLock);
     }
 
     QUIC_STATUS
@@ -130,7 +132,14 @@ private:
     uint32_t IoSize {0};
 
     TcpEngine Engine;
+    CXPLAT_LOCK TcpLock;
+    TcpConnection* TcpConn{nullptr};
     StreamContext* TcpStrmContext{nullptr};
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    void
+    OnTcpConnectionComplete(
+        );
 
     _IRQL_requires_max_(DISPATCH_LEVEL)
     _Function_class_(TcpConnectCallback)
@@ -150,6 +159,7 @@ private:
         uint32_t StreamID,
         bool Open,
         bool Fin,
+        bool Abort,
         uint32_t Length,
         uint8_t* Buffer
         );

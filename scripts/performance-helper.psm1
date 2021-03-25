@@ -122,10 +122,44 @@ function Convert-HostToNetworkOrder {
     return [System.BitConverter]::ToUInt32($Bytes, 0)
 }
 
+class IpData {
+    [Int64]$PrefixLength;
+    [System.Net.IPAddress]$IPv4Address;
+
+    IpData([Int64]$PrefixLength, [System.Net.IPAddress]$Address) {
+        $this.PrefixLength = $PrefixLength;
+        $this.IPv4Address = $Address;
+    }
+}
+
+function Get-Ipv4Addresses {
+    $LocalIps = [System.Collections.Generic.List[IpData]]::new();
+    $Nics = [System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces();
+    foreach ($Nic in $Nics) {
+        if ($Nic.OperationalStatus -ne [System.Net.NetworkInformation.OperationalStatus]::Up) {
+            continue;
+        }
+
+        $UniAddresses = $Nic.GetIPProperties().UnicastAddresses;
+        if ($null -eq $UniAddresses) {
+            continue;
+        }
+
+        foreach ($UniAddress in $UniAddresses) {
+            $Addr = $UniAddress.Address;
+            if ($Addr.AddressFamily -ne [System.Net.Sockets.AddressFamily]::InterNetwork) {
+                continue;
+            }
+            $LocalIps.Add([IpData]::new($UniAddress.PrefixLength, $Addr))
+        }
+    }
+    return $LocalIps;
+}
+
 function Get-LocalAddress {
     param ($RemoteAddress)
     $PossibleRemoteIPs = [System.Net.Dns]::GetHostAddresses($RemoteAddress) | Select-Object -Property IPAddressToString
-    $PossibleLocalIPs = Get-NetIPAddress -AddressFamily IPv4 | Select-Object -Property IPv4Address, PrefixLength
+    $PossibleLocalIPs = Get-Ipv4Addresses
     $MatchedIPs = @()
     $PossibleLocalIPs | ForEach-Object {
 
@@ -190,8 +224,14 @@ function Wait-ForRemote {
     param ($Job)
     # Ping sidechannel socket on 9999 to tell the app to die
     $Socket = New-Object System.Net.Sockets.UDPClient
-    $Socket.Send(@(1), 1, $RemoteAddress, 9999) | Out-Null
-    Wait-Job -Job $Job -Timeout 120 | Out-Null
+    for ($i = 0; $i -lt 120; $i++) {
+        $Socket.Send(@(1), 1, $RemoteAddress, 9999) | Out-Null
+        $Completed = Wait-Job -Job $Job -Timeout 1
+        if ($null -ne $Completed) {
+            break;
+        }
+    }
+
     Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
     return $RetVal -join "`n"
@@ -201,7 +241,7 @@ function Copy-Artifacts {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
     param ([string]$From, [string]$To, [string]$SmbDir)
     Remove-PerfServices
-    if ($null -ne $SmbDir) {
+    if (![string]::IsNullOrWhiteSpace($SmbDir)) {
         try {
             Remove-Item -Path "$SmbDir/*" -Recurse -Force
         } catch [System.Management.Automation.ItemNotFoundException] {
@@ -310,12 +350,12 @@ function Get-ExeName {
 function Remove-PerfServices {
     if ($IsWindows) {
         Invoke-TestCommand -Session $Session -ScriptBlock {
-            if ($null -ne (Get-Service -Name "quicperfdrvpriv" -ErrorAction Ignore)) {
+            if ($null -ne (Get-Service -Name "secnetperfdrvpriv" -ErrorAction Ignore)) {
                 try {
-                    net.exe stop quicperfdrvpriv /y | Out-Null
+                    net.exe stop secnetperfdrvpriv /y | Out-Null
                 }
                 catch {}
-                sc.exe delete quicperfdrvpriv /y | Out-Null
+                sc.exe delete secnetperfdrvpriv /y | Out-Null
             }
             if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
                 try {
@@ -342,7 +382,7 @@ function Invoke-RemoteExe {
     } -ArgumentList $Exe
 
     if ($Kernel) {
-        $RunArgs = "--kernelPriv $RunArgs"
+        $RunArgs = "-driverNamePriv:secnetperfdrvpriv $RunArgs"
     }
 
     Write-Debug "Running Remote: $Exe $RunArgs"
@@ -370,7 +410,7 @@ function Invoke-RemoteExe {
         $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
 
         if ($Kernel) {
-            Copy-Item (Join-Path $KernelDir "quicperfdrvpriv.sys") (Split-Path $Exe -Parent)
+            Copy-Item (Join-Path $KernelDir "secnetperfdrvpriv.sys") (Split-Path $Exe -Parent)
             Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $Exe -Parent)
             sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Exe -Parent) "msquicpriv.sys") start= demand | Out-Null
             net.exe start msquicpriv
@@ -381,7 +421,7 @@ function Invoke-RemoteExe {
         # Uninstall the kernel mode test driver and revert the msquic driver.
         if ($Kernel) {
             net.exe stop msquicpriv /y | Out-Null
-            sc.exe delete quicperfdrvpriv | Out-Null
+            sc.exe delete secnetperfdrvpriv | Out-Null
             sc.exe delete msquicpriv | Out-Null
         }
 
@@ -472,6 +512,8 @@ function Invoke-LocalExe {
     }
     $LocalExtraFile = Join-Path $BasePath "ExtraRunFile.txt"
     $RunArgs = """--extraOutputFile:$LocalExtraFile"" $RunArgs"
+    $TimeoutMs = ($Timeout - 5) * 1000;
+    $RunArgs = "-watchdog:$TimeoutMs $RunArgs"
 
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
@@ -531,7 +573,7 @@ function Get-TestResultAtIndex($FullResults, $Index) {
 }
 
 function Get-MedianTestResults($FullResults) {
-    $sorted = $FullResults | Sort-Object
+    $sorted = $FullResults | Sort-Object {[int]$_}
     if ($sorted.Length -eq 1) {
         return $sorted[0]
     } else {
@@ -574,15 +616,16 @@ function Get-LatestCpuTestResult([string]$Branch, [string]$CommitHash) {
     }
 }
 
-$Failures = New-Object Collections.Generic.List[string]
-function Write-Failures() {
-    $DidFail = $false
-    foreach ($Failure in $Failures) {
-        $DidFail = $true
-        Write-Output $Failure
-    }
-    if ($DidFail) {
-        Write-Error "Performance test failures occurred"
+$global:HasRegression = $false
+
+function Log-Regression([string]$Msg) {
+    Write-Host "##vso[task.LogIssue type=error;]$Msg"
+    $global:HasRegression = $true
+}
+
+function Check-Regressions() {
+    if ($global:HasRegression) {
+        Write-Error "Performance test regressions occurred!"
     }
 }
 
@@ -714,14 +757,14 @@ function Publish-ThroughputTestResults {
         }
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
-        Write-Output "Master: $LastFormatted"
+        Write-Output "Remote: $LastFormatted"
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
             #Skip no encrypt
             if ($Test.VariableName -ne "Encryption") {
-                $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
+                Log-Regression "Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)"
             }
         } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold"
         }
     } else {
         Write-Output "Median: $CurrentFormatted"
@@ -871,11 +914,11 @@ function Publish-RPSTestResults {
         }
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
-        Write-Output "Master: $LastFormatted"
+        Write-Output "Remote: $LastFormatted"
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)"
         } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold"
         }
     } else {
         Write-Output "Median: $CurrentFormatted"
@@ -988,11 +1031,11 @@ function Publish-HPSTestResults {
         }
         $LastFormatted = [string]::Format($Test.Formats[0], $MedianLastResult)
         Write-Output "Median: $CurrentFormatted ($PercentDiffStr%)"
-        Write-Output "Master: $LastFormatted"
+        Write-Output "Remote: $LastFormatted"
         if ($FailOnRegression -and !$Local -and $PercentDiff -lt $Test.RegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $($Test.RegressionThreshold)"
         } elseif ($FailOnRegression -and $PercentDiff -lt $LocalRegressionThreshold) {
-            $Failures.Add("Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold")
+            Log-Regression "Performance regression in $Test. $PercentDiffStr% < $LocalRegressionThreshold"
         }
     } else {
         Write-Output "Median: $CurrentFormatted"

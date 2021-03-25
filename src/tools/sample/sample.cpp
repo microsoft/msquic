@@ -95,8 +95,8 @@ void PrintUsage()
         "\n"
         "Usage:\n"
         "\n"
-        "  quicinterop.exe -client -target:<...> [-unsecure]\n"
-        "  quicinterop.exe -server -cert_hash:<...> or (-cert_file:<...> and -key_file:<...>)\n"
+        "  quicsample.exe -client -target:<...> [-unsecure]\n"
+        "  quicsample.exe -server -cert_hash:<...> or (-cert_file:<...> and -key_file:<...> (and optionally -password:<...>))\n"
         );
 }
 
@@ -347,6 +347,7 @@ typedef struct QUIC_CREDENTIAL_CONFIG_HELPER {
         QUIC_CERTIFICATE_HASH CertHash;
         QUIC_CERTIFICATE_HASH_STORE CertHashStore;
         QUIC_CERTIFICATE_FILE CertFile;
+        QUIC_CERTIFICATE_FILE_PROTECTED CertFileProtected;
     };
 } QUIC_CREDENTIAL_CONFIG_HELPER;
 
@@ -407,13 +408,22 @@ ServerLoadConfiguration(
         //
         // Loads the server's certificate from the file.
         //
-        Config.CertFile.CertificateFile = (char*)Cert;
-        Config.CertFile.PrivateKeyFile = (char*)KeyFile;
-        Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
-        Config.CredConfig.CertificateFile = &Config.CertFile;
+        const char* Password = GetValue(argc, argv, "password");
+        if (Password != nullptr) {
+            Config.CertFileProtected.CertificateFile = (char*)Cert;
+            Config.CertFileProtected.PrivateKeyFile = (char*)KeyFile;
+            Config.CertFileProtected.PrivateKeyPassword = (char*)Password;
+            Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED;
+            Config.CredConfig.CertificateFileProtected = &Config.CertFileProtected;
+        } else {
+            Config.CertFile.CertificateFile = (char*)Cert;
+            Config.CertFile.PrivateKeyFile = (char*)KeyFile;
+            Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
+            Config.CredConfig.CertificateFile = &Config.CertFile;
+        }
 
     } else {
-        printf("Must specify '-cert_hash' or 'cert_file' and 'key_file'!\n");
+        printf("Must specify ['-cert_hash'] or ['cert_file' and 'key_file' (and optionally 'password')]!\n");
         return false;
     }
 
@@ -690,6 +700,15 @@ ClientLoadConfiguration(
     Settings.IsSet.IdleTimeoutMs = TRUE;
 
     //
+    // Default to using the draft-29 version for now, since it's more
+    // universally supported by the TLS abstractions currently.
+    //
+    const uint32_t Version = 0xff00001dU; // IETF draft 29
+    Settings.DesiredVersionsList = &Version;
+    Settings.DesiredVersionsListLength = 1;
+    Settings.IsSet.DesiredVersionsList = TRUE;
+
+    //
     // Configures a default client configuration, optionally disabling
     // server certificate validation.
     //
@@ -742,7 +761,6 @@ RunClient(
     QUIC_STATUS Status;
     const char* ResumptionTicketString = nullptr;
     HQUIC Connection = nullptr;
-    const uint32_t Version = 0xff00001dU; // IETF draft 29
 
     //
     // Allocate a new connection object.
@@ -763,15 +781,6 @@ RunClient(
             printf("SetParam(QUIC_PARAM_CONN_RESUMPTION_TICKET) failed, 0x%x!\n", Status);
             goto Error;
         }
-    }
-
-    //
-    // Default to using the draft-29 version for now, since it's more
-    // universally supported by the TLS abstractions currently.
-    //
-    if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_QUIC_VERSION, sizeof(Version), &Version))) {
-        printf("SetParam(QUIC_PARAM_CONN_QUIC_VERSION) failed, 0x%x!\n", Status);
-        goto Error;
     }
 
     //

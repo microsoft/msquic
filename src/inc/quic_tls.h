@@ -31,9 +31,33 @@ typedef struct CXPLAT_TLS_SECRETS CXPLAT_TLS_SECRETS;
 #define TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS                0x0039  // Host Byte Order
 
 //
+// The small buffer size for an ALPN to avoid allocations in the general case.
+//
+#define TLS_SMALL_ALPN_BUFFER_SIZE  16
+
+//
 // The size of the header required by the TLS layer.
 //
 extern uint16_t CxPlatTlsTPHeaderSize;
+
+typedef enum CXPLAT_TLS_ALERT_CODES {
+
+    CXPLAT_TLS_ALERT_CODE_HANDSHAKE_FAILURE = 40,
+    CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE = 42,
+    CXPLAT_TLS_ALERT_CODE_CERTIFICATE_EXPIRED = 45,
+    CXPLAT_TLS_ALERT_CODE_UNKNOWN_CA = 48,
+    CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR = 80,
+    CXPLAT_TLS_ALERT_CODE_USER_CANCELED = 90,
+    CXPLAT_TLS_ALERT_CODE_NO_APPLICATION_PROTOCOL = 120,
+
+} CXPLAT_TLS_ALERT_CODES;
+
+typedef enum CXPLAT_TLS_CREDENTIAL_FLAGS {
+
+    CXPLAT_TLS_CREDENTIAL_FLAG_NONE                 = 0x0000,
+    CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION   = 0x0001,   // Server only
+
+} CXPLAT_TLS_CREDENTIAL_FLAGS;
 
 //
 // Callback for indicating process can be completed.
@@ -77,6 +101,21 @@ BOOLEAN
 
 typedef CXPLAT_TLS_RECEIVE_TICKET_CALLBACK *CXPLAT_TLS_RECEIVE_TICKET_CALLBACK_HANDLER;
 
+//
+// Callback for indicating the peer certificate is ready for custom validation.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+(CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK)(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ void* Certificate,
+    _In_ uint32_t DeferredErrorFlags,
+    _In_ QUIC_STATUS DeferredStatus
+    );
+
+typedef CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK *CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK_HANDLER;
+
 typedef struct CXPLAT_TLS_CALLBACKS {
 
     //
@@ -93,6 +132,12 @@ typedef struct CXPLAT_TLS_CALLBACKS {
     // Invoked when a resumption ticket is received.
     //
     CXPLAT_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicket;
+
+    //
+    // Invokved only in the custom certificate validation scenario, when the
+    // peer's certificate has been received and is ready for validation.
+    //
+    CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK_HANDLER CertificateReceived;
 
 } CXPLAT_TLS_CALLBACKS;
 
@@ -260,6 +305,13 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
     uint8_t* Buffer;
 
     //
+    // A small buffer to hold the final negotiated ALPN of the connection,
+    // assuming it fits in TLS_SMALL_ALPN_BUFFER_SIZE bytes. NegotiatedAlpn
+    // with either point to this, or point to allocated memory.
+    //
+    uint8_t SmallAlpnBuffer[TLS_SMALL_ALPN_BUFFER_SIZE];
+
+    //
     // The final negotiated ALPN of the connection. The first byte is the length
     // followed by that many bytes for actual ALPN.
     //
@@ -297,6 +349,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
@@ -310,6 +363,17 @@ void
 CxPlatTlsSecConfigDelete(
     __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
         CXPLAT_SEC_CONFIG* SecurityConfig
+    );
+
+//
+// Sets a NST ticket key for a security configuration.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsSecConfigSetTicketKeys(
+    _In_ CXPLAT_SEC_CONFIG* SecurityConfig,
+    _In_reads_(KeyCount) QUIC_TICKET_KEY_CONFIG* KeyConfig,
+    _In_ uint8_t KeyCount
     );
 
 //

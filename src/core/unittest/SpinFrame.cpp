@@ -32,6 +32,7 @@ union QuicV1Frames {
     QUIC_PATH_CHALLENGE_EX PathChallengeFrame;
     QUIC_CONNECTION_CLOSE_EX ConnectionCloseFrame;
     QUIC_DATAGRAM_EX DatagramFrame;
+    QUIC_ACK_FREQUENCY_EX AckFrequencyFrame;
 };
 
 TEST(SpinFrame, SpinFrame1000000)
@@ -46,7 +47,11 @@ TEST(SpinFrame, SpinFrame1000000)
     BOOLEAN InvalidFrame;
     uint8_t Buffer[255];
     uint8_t BufferLength = 0;
+
     uint8_t FrameType;
+    CXPLAT_STATIC_ASSERT(
+        QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT8_MAX,
+        "Tests below assumes frames fit in 8-bits");
 
     QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckBlocks);
 
@@ -207,6 +212,13 @@ TEST(SpinFrame, SpinFrame1000000)
             case QUIC_FRAME_DATAGRAM:
             case QUIC_FRAME_DATAGRAM_1:
                 if (QuicDatagramFrameDecode((QUIC_FRAME_TYPE) FrameType, BufferLength, Buffer, &Offset, &DecodedFrame.DatagramFrame)) {
+                    SuccessfulDecodes++;
+                } else {
+                    FailedDecodes++;
+                }
+                break;
+            case QUIC_FRAME_ACK_FREQUENCY:
+                if (QuicAckFrequencyFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame.AckFrequencyFrame)) {
                     SuccessfulDecodes++;
                 } else {
                     FailedDecodes++;

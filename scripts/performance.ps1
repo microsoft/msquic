@@ -145,6 +145,10 @@ if ($Kernel -and $PGO) {
     Write-Error "PGO is currently not supported in kernel mode"
 }
 
+if (!$IsWindows -and [string]::IsNullOrWhiteSpace($Remote)) {
+    $Remote = "quic-server"
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -494,7 +498,7 @@ try {
         Copy-Item "$LocalExePath\msquic.pgd" $OutputDir
     }
 
-    Write-Failures
+    Check-Regressions
 
 } finally {
     if ($null -ne $Session) {

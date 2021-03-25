@@ -16,10 +16,12 @@ Abstract:
 #pragma warning(push)
 #pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
 #endif
+#include "openssl/bio.h"
 #include "openssl/err.h"
 #include "openssl/hmac.h"
 #include "openssl/kdf.h"
 #include "openssl/pem.h"
+#include "openssl/pkcs12.h"
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
@@ -31,6 +33,8 @@ Abstract:
 #endif
 
 uint16_t CxPlatTlsTPHeaderSize = 0;
+
+const size_t OpenSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodules");
 
 //
 // The QUIC sec config object. Created once per listener on server side and
@@ -48,6 +52,16 @@ typedef struct CXPLAT_SEC_CONFIG {
     // Callbacks for TLS.
     //
     CXPLAT_TLS_CALLBACKS Callbacks;
+
+    //
+    // The application supplied credential flags.
+    //
+    QUIC_CREDENTIAL_FLAGS Flags;
+
+    //
+    // Internal TLS credential flags.
+    //
+    CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags;
 
 } CXPLAT_SEC_CONFIG;
 
@@ -132,11 +146,6 @@ typedef struct CXPLAT_HP_KEY {
 //
 #define CXPLAT_TLS_DEFAULT_VERIFY_DEPTH  10
 
-//
-// Hack to set trusted cert file on client side.
-//
-char *QuicOpenSslClientTrustedCert = NULL;
-
 QUIC_STATUS
 CxPlatTlsLibraryInitialize(
     void
@@ -175,9 +184,9 @@ static
 int
 CxPlatTlsAlpnSelectCallback(
     _In_ SSL *Ssl,
-    _Out_writes_bytes_(Outlen) const unsigned char **Out,
+    _Out_writes_bytes_(*OutLen) const unsigned char **Out,
     _Out_ unsigned char *OutLen,
-    _In_reads_bytes_(Inlen) const unsigned char *In,
+    _In_reads_bytes_(InLen) const unsigned char *In,
     _In_ unsigned int InLen,
     _In_ void *Arg
     )
@@ -198,6 +207,55 @@ CxPlatTlsAlpnSelectCallback(
     *Out = TlsContext->State->NegotiatedAlpn + 1;
 
     return SSL_TLSEXT_ERR_OK;
+}
+
+BOOLEAN
+CxPlatTlsVerifyCertificate(
+    _In_ X509* X509Cert,
+    _In_ const char* SNI
+    );
+
+static
+int
+CxPlatTlsCertificateVerifyCallback(
+    int preverify_ok,
+    X509_STORE_CTX *x509_ctx
+    )
+{
+    X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
+    SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+
+    if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
+        preverify_ok = CxPlatTlsVerifyCertificate(Cert, TlsContext->SNI);
+    }
+
+    if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+        !preverify_ok) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Internal certificate validation failed");
+        return FALSE;
+    }
+
+    if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+        !TlsContext->SecConfig->Callbacks.CertificateReceived(
+            TlsContext->Connection,
+            x509_ctx,
+            0,
+            0)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Indicate certificate received failed");
+        X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 CXPLAT_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
@@ -248,7 +306,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
         OpenSslNewEncryptionSecrets,
         TlsContext->Connection,
         "New encryption secrets (Level = %u)",
-        Level);
+        (uint32_t)Level);
 
     CXPLAT_SECRET Secret;
     CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
@@ -357,7 +415,7 @@ CxPlatTlsAddHandshakeDataCallback(
         TlsContext->Connection,
         "Sending %llu handshake bytes (Level = %u)",
         (uint64_t)Length,
-        Level);
+        (uint32_t)Level);
 
     if (Length + TlsState->BufferLength > 0xF000) {
         QuicTraceEvent(
@@ -461,7 +519,7 @@ CxPlatTlsSendAlertCallback(
         TlsContext->Connection,
         "Send alert = %u (Level = %u)",
         Alert,
-        Level);
+        (uint32_t)Level);
 
     TlsContext->State->AlertCode = Alert;
     TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
@@ -469,10 +527,12 @@ CxPlatTlsSendAlertCallback(
     return 1;
 }
 
+_Success_(return == SSL_CLIENT_HELLO_SUCCESS)
 int
 CxPlatTlsClientHelloCallback(
     _In_ SSL *Ssl,
-    _Out_opt_ int *Alert,
+    _When_(return == SSL_CLIENT_HELLO_ERROR, _Out_)
+        int *Alert,
     _In_ void *arg
     )
 {
@@ -502,15 +562,25 @@ SSL_QUIC_METHOD OpenSslQuicCallbacks = {
     CxPlatTlsSendAlertCallback
 };
 
+CXPLAT_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_CERTIFICATE_FILE, PrivateKeyFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, PrivateKeyFile),
+    "Mismatch (private key) in certificate file structs");
+
+CXPLAT_STATIC_ASSERT(
+    FIELD_OFFSET(QUIC_CERTIFICATE_FILE, CertificateFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, CertificateFile),
+    "Mismatch (certificate file) in certificate file structs");
+
 QUIC_STATUS
 CxPlatTlsExtractPrivateKey(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _Out_ RSA** EvpPrivateKey,
     _Out_ X509** X509Cert);
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
@@ -521,12 +591,13 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
-    if (CredConfig->TicketKey != NULL) {
-        return QUIC_STATUS_NOT_SUPPORTED; // Not currently supported
+    if (CredConfig->Reserved != NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER; // Not currently used and should be NULL.
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
@@ -544,9 +615,22 @@ CxPlatTlsSecConfigCreate(
                 CredConfig->CertificateFile->PrivateKeyFile == NULL) {
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
+        } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+            if (CredConfig->CertificateFileProtected == NULL ||
+                CredConfig->CertificateFileProtected->CertificateFile == NULL ||
+                CredConfig->CertificateFileProtected->PrivateKeyFile == NULL ||
+                CredConfig->CertificateFileProtected->PrivateKeyPassword == NULL) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+        } else if(CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
+            if (CredConfig->CertificatePkcs12 == NULL ||
+                CredConfig->CertificatePkcs12->Asn1Blob == NULL ||
+                CredConfig->CertificatePkcs12->Asn1BlobLength == 0) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
         } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH ||
             CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE ||
-            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) { // NOLINT bugprone-branch-clone
 #ifndef _WIN32
             return QUIC_STATUS_NOT_SUPPORTED; // Only supported on windows.
 #endif
@@ -561,6 +645,7 @@ CxPlatTlsSecConfigCreate(
     CXPLAT_SEC_CONFIG* SecurityConfig = NULL;
     RSA* RsaKey = NULL;
     X509* X509Cert = NULL;
+    EVP_PKEY * PrivateKey = NULL;
 
     //
     // Create a security config.
@@ -578,6 +663,8 @@ CxPlatTlsSecConfigCreate(
     }
 
     SecurityConfig->Callbacks = *TlsCallbacks;
+    SecurityConfig->Flags = CredConfig->Flags;
+    SecurityConfig->TlsFlags = TlsCredFlags;
 
     //
     // Create the a SSL context for the security config.
@@ -634,15 +721,21 @@ CxPlatTlsSecConfigCreate(
         goto Exit;
     }
 
-    Ret = SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
-            "SSL_CTX_set_default_verify_paths failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
+#ifdef CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE
+    SecurityConfig->Flags |= QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION;
+#endif
+
+    if (SecurityConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) {
+        Ret = SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_set_default_verify_paths failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
     }
 
     Ret =
@@ -670,36 +763,42 @@ CxPlatTlsSecConfigCreate(
         goto Exit;
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-        BOOLEAN VerifyServerCertificate = TRUE; // !(Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION);
-        if (!VerifyServerCertificate) { // cppcheck-suppress knownConditionTrueFalse
-            SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
+    if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
+        if (!(TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
+            Ret = SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, 0xFFFFFFFF);
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_set_max_early_data failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
         } else {
-            SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
-
-            if (QuicOpenSslClientTrustedCert != NULL) {
-                //
-                // LINUX_TODO: This is a hack to set a client side trusted cert in order
-                //   to verify server cert. Fix this once MsQuic formally supports
-                //   passing TLS related config from APP layer to TAL.
-                //
-
-                /*Ret =
-                    SSL_CTX_load_verify_locations(
-                        SecurityConfig->SSLCtx,
-                        QuicOpenSslClientTrustedCert,
-                        NULL);
-                if (Ret != 1) {
-                    QuicTraceEvent(
-                        LibraryErrorStatus,
-                        "[ lib] ERROR, %u, %s.",
-                        ERR_get_error(),
-                        "SSL_CTX_load_verify_locations failed");
-                    Status = QUIC_STATUS_TLS_ERROR;
-                    goto Exit;
-                }*/
+            Ret = SSL_CTX_set_num_tickets(SecurityConfig->SSLCtx, 0);
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_set_num_tickets failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
             }
         }
+    }
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, CxPlatTlsCertificateVerifyCallback);
+        SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
+
+        //
+        // TODO - Support additional certificate validation parameters, such as
+        // the location of the trusted root CAs (SSL_CTX_load_verify_locations)?
+        //
+
     } else {
         SSL_CTX_set_options(
             SecurityConfig->SSLCtx,
@@ -716,7 +815,14 @@ CxPlatTlsSecConfigCreate(
         // Set the server certs.
         //
 
-        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+        if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ||
+            CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+
+            if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+                SSL_CTX_set_default_passwd_cb_userdata(
+                    SecurityConfig->SSLCtx, (void*)CredConfig->CertificateFileProtected->PrivateKeyPassword);
+            }
+
             Ret =
                 SSL_CTX_use_PrivateKey_file(
                     SecurityConfig->SSLCtx,
@@ -742,6 +848,83 @@ CxPlatTlsSecConfigCreate(
                     "[ lib] ERROR, %u, %s.",
                     ERR_get_error(),
                     "SSL_CTX_use_certificate_chain_file failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+        } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
+            BIO* Bio = BIO_new(BIO_s_mem());
+            PKCS12 *Pkcs12 = NULL;
+
+            if (!Bio) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "BIO_new failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
+            BIO_set_mem_eof_return(Bio, 0);
+            BIO_write(Bio, CredConfig->CertificatePkcs12->Asn1Blob, CredConfig->CertificatePkcs12->Asn1BlobLength);
+            Pkcs12 = d2i_PKCS12_bio(Bio, NULL);
+            BIO_free(Bio);
+            Bio = NULL;
+
+            if (!Pkcs12) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "d2i_PKCS12_bio failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
+            STACK_OF(X509) *Ca = NULL;
+            Ret =
+                PKCS12_parse(Pkcs12, CredConfig->CertificatePkcs12->PrivateKeyPassword, &PrivateKey, &X509Cert, &Ca);
+            if (Ca) {
+                sk_X509_pop_free(Ca, X509_free); // no handling for custom certificate chains yet.
+            }
+            if (Pkcs12) {
+                PKCS12_free(Pkcs12);
+            }
+
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "PKCS12_parse failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
+            Ret =
+                SSL_CTX_use_PrivateKey(
+                    SecurityConfig->SSLCtx,
+                    PrivateKey);
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_use_PrivateKey_file failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
+            Ret =
+                SSL_CTX_use_certificate(
+                    SecurityConfig->SSLCtx,
+                    X509Cert);
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_use_certificate failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -826,12 +1009,18 @@ Exit:
         RSA_free(RsaKey);
     }
 
+    if (PrivateKey != NULL) {
+        EVP_PKEY_free(PrivateKey);
+    }
+
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsSecConfigDelete(
-    _In_ CXPLAT_SEC_CONFIG* SecurityConfig
+    __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
+        CXPLAT_SEC_CONFIG* SecurityConfig
     )
 {
     if (SecurityConfig->SSLCtx != NULL) {
@@ -842,6 +1031,21 @@ CxPlatTlsSecConfigDelete(
     CXPLAT_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsSecConfigSetTicketKeys(
+    _In_ CXPLAT_SEC_CONFIG* SecurityConfig,
+    _In_reads_(KeyCount) QUIC_TICKET_KEY_CONFIG* KeyConfig,
+    _In_ uint8_t KeyCount
+    )
+{
+    UNREFERENCED_PARAMETER(SecurityConfig);
+    UNREFERENCED_PARAMETER(KeyConfig);
+    UNREFERENCED_PARAMETER(KeyCount);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsInitialize(
     _In_ const CXPLAT_TLS_CONFIG* Config,
@@ -930,11 +1134,21 @@ CxPlatTlsInitialize(
 
     if (Config->IsServer) {
         SSL_set_accept_state(TlsContext->Ssl);
-        //SSL_set_quic_early_data_enabled(TlsContext->Ssl, 1);
     } else {
         SSL_set_connect_state(TlsContext->Ssl);
         SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
         SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
+    }
+
+    if (!(Config->SecConfig->TlsFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
+
+        if (Config->ResumptionTicketLength != 0) {
+            CXPLAT_DBG_ASSERT(Config->ResumptionTicketBuffer != NULL); // TODO set
+        }
+
+        if (Config->IsServer || (Config->ResumptionTicketLength != 0)) {
+            SSL_set_quic_early_data_enabled(TlsContext->Ssl, 1);
+        }
     }
 
     SSL_set_quic_use_legacy_codepoint(
@@ -970,6 +1184,7 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsUninitialize(
     _In_opt_ CXPLAT_TLS* TlsContext
@@ -995,18 +1210,17 @@ CxPlatTlsUninitialize(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessData(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ CXPLAT_TLS_DATA_TYPE DataType,
-    _In_reads_bytes_(*BufferLength) const uint8_t* Buffer,
+    _In_reads_bytes_(*BufferLength)
+        const uint8_t* Buffer,
     _Inout_ uint32_t* BufferLength,
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State
     )
 {
-    int Ret = 0;
-    int Err = 0;
-
     CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
     if (DataType == CXPLAT_TLS_TICKET_DATA) {
@@ -1047,9 +1261,9 @@ CxPlatTlsProcessData(
     }
 
     if (!State->HandshakeComplete) {
-        Ret = SSL_do_handshake(TlsContext->Ssl);
+        int Ret = SSL_do_handshake(TlsContext->Ssl);
         if (Ret <= 0) {
-            Err = SSL_get_error(TlsContext->Ssl, Ret);
+            int Err = SSL_get_error(TlsContext->Ssl, Ret);
             switch (Err) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
@@ -1064,8 +1278,8 @@ CxPlatTlsProcessData(
                     OpenSslHandshakeErrorStr,
                     TlsContext->Connection,
                     "TLS handshake error: %s, file:%s:%d",
-                    "",
-                    file,
+                    buf,
+                    (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file),
                     line);
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
@@ -1149,40 +1363,32 @@ CxPlatTlsProcessData(
                 goto Exit;
             }
         }
-    }
 
-    Ret = SSL_do_handshake(TlsContext->Ssl);
-    if (Ret != 1) {
-        Err = SSL_get_error(TlsContext->Ssl, Ret);
-        switch (Err) {
-        case SSL_ERROR_WANT_READ:
-        case SSL_ERROR_WANT_WRITE:
-            goto Exit;
-
-        case SSL_ERROR_SSL: {
-            char buf[256];
-            const char* file;
-            int line;
-            ERR_error_string_n(ERR_get_error_line(&file, &line), buf, sizeof(buf));
-            QuicTraceLogConnError(
-                OpenSslHandshakeErrorStr,
-                TlsContext->Connection,
-                "TLS handshake error: %s, file:%s:%d",
-                "",
-                file,
-                line);
+    } else {
+        if (SSL_process_quic_post_handshake(TlsContext->Ssl) != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_process_quic_post_handshake failed");
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
         }
 
-        default:
-            QuicTraceLogConnError(
-                OpenSslHandshakeError,
-                TlsContext->Connection,
-                "TLS handshake error: %d",
-                Err);
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            goto Exit;
+        if (!TlsContext->IsServer) {
+            SSL_SESSION* Session = SSL_get_session(TlsContext->Ssl);
+            if (Session == NULL) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "SSL_get1_session failed");
+            } else {
+                // TODO - Serialize session bytes
+                TlsContext->SecConfig->Callbacks.ReceiveTicket(
+                    TlsContext->Connection,
+                    0,
+                    NULL);
+            }
         }
     }
 
@@ -1212,6 +1418,7 @@ Exit:
     return TlsContext->ResultFlags;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessDataComplete(
     _In_ CXPLAT_TLS* TlsContext,
@@ -1219,10 +1426,11 @@ CxPlatTlsProcessDataComplete(
     )
 {
     UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(ConsumedBuffer);
+    *ConsumedBuffer = 0;
     return CXPLAT_TLS_RESULT_ERROR;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamSet(
     _In_ CXPLAT_TLS* TlsContext,
@@ -1239,20 +1447,144 @@ CxPlatTlsParamSet(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
+static
+QUIC_STATUS
+CxPlatMapCipherSuite(
+    _Inout_ QUIC_HANDSHAKE_INFO* HandshakeInfo
+    )
+{
+    //
+    // Mappings taken from the following .NET definitions.
+    // https://github.com/dotnet/runtime/blob/69425a7e6198ff78131ad64f1aa3fc28202bfde8/src/libraries/Native/Unix/System.Security.Cryptography.Native/pal_ssl.c
+    // https://github.com/dotnet/runtime/blob/1d9e50cb4735df46d3de0cee5791e97295eaf588/src/libraries/System.Net.Security/src/System/Net/Security/TlsCipherSuiteData.Lookup.cs
+    //
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    HandshakeInfo->KeyExchangeAlgorithm = QUIC_KEY_EXCHANGE_ALGORITHM_NONE;
+    HandshakeInfo->KeyExchangeStrength = 0;
+    HandshakeInfo->HashStrength = 0;
+
+    switch (HandshakeInfo->CipherSuite) {
+        case QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256:
+            HandshakeInfo->CipherAlgorithm = QUIC_CIPHER_ALGORITHM_AES_128;
+            HandshakeInfo->CipherStrength = 128;
+            HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_SHA_256;
+            break;
+        case QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384:
+            HandshakeInfo->CipherAlgorithm = QUIC_CIPHER_ALGORITHM_AES_256;
+            HandshakeInfo->CipherStrength = 256;
+            HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_SHA_384;
+            break;
+        //
+        // Not supporting ChaChaPoly for querying currently.
+        //
+        // case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
+        //     HandshakeInfo->CipherAlgorithm = QUIC_ALG_CHACHA20;
+        //     HandshakeInfo->CipherStrength = 256;
+        //     HandshakeInfo->Hash = QUIC_ALG_SHA_256;
+        //     break;
+        default:
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            break;
+    }
+
+    return Status;
+}
+
+static
+uint32_t
+CxPlatMapVersion(
+    _In_z_ const char* Version
+    )
+{
+    if (strcmp(Version, "TLSv1.3") == 0) {
+        return QUIC_TLS_PROTOCOL_1_3;
+    }
+    return QUIC_TLS_PROTOCOL_UNKNOWN;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamGet(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
+    _Inout_updates_bytes_opt_(*BufferLength)
         void* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(Param);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_STATUS Status;
+
+    switch (Param) {
+
+        case QUIC_PARAM_TLS_HANDSHAKE_INFO: {
+            if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
+                *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            QUIC_HANDSHAKE_INFO* HandshakeInfo = (QUIC_HANDSHAKE_INFO*)Buffer;
+            HandshakeInfo->TlsProtocolVersion =
+                CxPlatMapVersion(
+                    SSL_get_version(TlsContext->Ssl));
+
+            const SSL_CIPHER* Cipher = SSL_get_current_cipher(TlsContext->Ssl);
+            if (Cipher == NULL) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Unable to get cipher suite");
+                Status = QUIC_STATUS_INVALID_STATE;
+                break;
+            }
+            HandshakeInfo->CipherSuite = SSL_CIPHER_get_protocol_id(Cipher);
+            Status = CxPlatMapCipherSuite(HandshakeInfo);
+            break;
+        }
+
+        case QUIC_PARAM_TLS_NEGOTIATED_ALPN: {
+
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            const uint8_t* NegotiatedAlpn;
+            unsigned int NegotiatedAlpnLen = 0;
+            SSL_get0_alpn_selected(TlsContext->Ssl, &NegotiatedAlpn, &NegotiatedAlpnLen);
+            if (NegotiatedAlpnLen <= 0) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Unable to get negotiated alpn");
+                Status = QUIC_STATUS_INVALID_STATE;
+                break;
+            }
+            if (*BufferLength < NegotiatedAlpnLen) {
+                *BufferLength = NegotiatedAlpnLen;
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+            *BufferLength = NegotiatedAlpnLen;
+            CxPlatCopyMemory(Buffer, NegotiatedAlpn, NegotiatedAlpnLen);
+            Status = QUIC_STATUS_SUCCESS;
+            break;
+        }
+
+        default:
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            break;
+    }
+
+    return Status;
 }
 
 //
@@ -1437,7 +1769,7 @@ Error:
     return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketKeyDerive(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
@@ -1638,9 +1970,10 @@ Error:
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketKeyFree(
-    _In_opt_ QUIC_PACKET_KEY* Key
+    _In_opt_ __drv_freesMem(Mem) QUIC_PACKET_KEY* Key
     )
 {
     if (Key != NULL) {
@@ -1653,6 +1986,8 @@ QuicPacketKeyFree(
     }
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_At_(*NewKey, __drv_allocatesMem(Mem))
 QUIC_STATUS
 QuicPacketKeyUpdate(
     _In_ QUIC_PACKET_KEY* OldKey,
@@ -1709,6 +2044,7 @@ Error:
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatKeyCreate(
     _In_ CXPLAT_AEAD_TYPE AeadType,
@@ -1776,6 +2112,7 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatKeyFree(
     _In_opt_ CXPLAT_KEY* Key
@@ -1784,12 +2121,15 @@ CxPlatKeyFree(
     EVP_CIPHER_CTX_free((EVP_CIPHER_CTX*)Key);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatEncrypt(
     _In_ CXPLAT_KEY* Key,
-    _In_reads_bytes_(CXPLAT_IV_LENGTH) const uint8_t* const Iv,
+    _In_reads_bytes_(CXPLAT_IV_LENGTH)
+        const uint8_t* const Iv,
     _In_ uint16_t AuthDataLength,
-    _In_reads_bytes_opt_(AuthDataLength) const uint8_t* const AuthData,
+    _In_reads_bytes_opt_(AuthDataLength)
+        const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
     _When_(BufferLength > CXPLAT_ENCRYPTION_OVERHEAD, _Inout_updates_bytes_(BufferLength))
     _When_(BufferLength <= CXPLAT_ENCRYPTION_OVERHEAD, _Out_writes_bytes_(BufferLength))
@@ -1848,14 +2188,18 @@ CxPlatEncrypt(
     return QUIC_STATUS_SUCCESS;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatDecrypt(
     _In_ CXPLAT_KEY* Key,
-    _In_reads_bytes_(CXPLAT_IV_LENGTH) const uint8_t* const Iv,
+    _In_reads_bytes_(CXPLAT_IV_LENGTH)
+        const uint8_t* const Iv,
     _In_ uint16_t AuthDataLength,
-    _In_reads_bytes_opt_(AuthDataLength) const uint8_t* const AuthData,
+    _In_reads_bytes_opt_(AuthDataLength)
+        const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
-    _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
+    _Inout_updates_bytes_(BufferLength)
+        uint8_t* Buffer
     )
 {
     CXPLAT_DBG_ASSERT(CXPLAT_ENCRYPTION_OVERHEAD <= BufferLength);
@@ -1915,6 +2259,7 @@ CxPlatDecrypt(
     return QUIC_STATUS_SUCCESS;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatHpKeyCreate(
     _In_ CXPLAT_AEAD_TYPE AeadType,
@@ -1983,6 +2328,7 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatHpKeyFree(
     _In_opt_ CXPLAT_HP_KEY* Key
@@ -1994,12 +2340,15 @@ CxPlatHpKeyFree(
     }
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatHpComputeMask(
     _In_ CXPLAT_HP_KEY* Key,
     _In_ uint8_t BatchSize,
-    _In_reads_bytes_(CXPLAT_HP_SAMPLE_LENGTH * BatchSize) const uint8_t* const Cipher,
-    _Out_writes_bytes_(CXPLAT_HP_SAMPLE_LENGTH * BatchSize) uint8_t* Mask
+    _In_reads_bytes_(CXPLAT_HP_SAMPLE_LENGTH* BatchSize)
+        const uint8_t* const Cipher,
+    _Out_writes_bytes_(CXPLAT_HP_SAMPLE_LENGTH* BatchSize)
+        uint8_t* Mask
     )
 {
     int OutLen = 0;
@@ -2050,10 +2399,12 @@ typedef struct CXPLAT_HASH {
 
 } CXPLAT_HASH;
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatHashCreate(
     _In_ CXPLAT_HASH_TYPE HashType,
-    _In_reads_(SaltLength) const uint8_t* const Salt,
+    _In_reads_(SaltLength)
+        const uint8_t* const Salt,
     _In_ uint32_t SaltLength,
     _Out_ CXPLAT_HASH** NewHash
     )
@@ -2105,6 +2456,7 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatHashFree(
     _In_opt_ CXPLAT_HASH* Hash
@@ -2113,13 +2465,16 @@ CxPlatHashFree(
     HMAC_CTX_free((HMAC_CTX*)Hash);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatHashCompute(
     _In_ CXPLAT_HASH* Hash,
-    _In_reads_(InputLength) const uint8_t* const Input,
+    _In_reads_(InputLength)
+        const uint8_t* const Input,
     _In_ uint32_t InputLength,
-    _In_ uint32_t OutputLength,
-    _Out_writes_all_(OutputLength) uint8_t* const Output
+    _In_ uint32_t OutputLength, // CxPlatHashLength(HashType)
+    _Out_writes_all_(OutputLength)
+        uint8_t* const Output
     )
 {
     HMAC_CTX* HashContext = (HMAC_CTX*)Hash;

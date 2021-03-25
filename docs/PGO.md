@@ -23,7 +23,7 @@ A fundamental part of profile-guided optimizations is training. The code is run 
 1. [Build for training](#build-for-training).
 2. Copy the binaries to the test machine(s).
    1. The PGO msquic library.
-   2. The test tool (e.g. `quicperf`).
+   2. The test tool (e.g. `secnetperf`).
    3. The PGO runtime library from your VS install: (e.g. `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.26.28801\bin\Hostx64\x64\pgort140.dll"`).
 3. Run the test for the production/performance scenario.
 4. Use [pgomgr](https://docs.microsoft.com/en-us/cpp/build/pgomgr) to merge the `.pgc` into the `.pgd`.
@@ -78,7 +78,7 @@ Then build user mode MsQuic using the regular script with the following flags `-
 
 ## Setting up the perf machines
 
-To train kernel mode PGO, we use the `quicperf` utility.  To configure the perf machines, run the following powershell script as Administrator:
+To train kernel mode PGO, we use the `secnetperf` utility.  To configure the perf machines, run the following powershell script as Administrator:
 ```ps1
 param(
     # Build path
@@ -141,12 +141,12 @@ if (!(Test-Path -Path "c:\msquic\$($WinKernelBinPath)")) {
 }
 
 Copy-Item -Path "$($MsQuicPath)\$($WindowsBinPath)\msquic.dll"   -Destination "c:\msquic\$($WinKernelBinPath)"
-Copy-Item -Path "$($MsQuicPath)\$($WindowsBinPath)\quicperf.exe" -Destination "c:\msquic\$($WinKernelBinPath)"
+Copy-Item -Path "$($MsQuicPath)\$($WindowsBinPath)\secnetperf.exe" -Destination "c:\msquic\$($WinKernelBinPath)"
 Copy-Item -Path "$($MsQuicPath)\$($WinKernelBinPath)\*"          -Destination "c:\msquic\$($WinKernelBinPath)"
 
 sc.exe create "msquicpriv" type= kernel binpath= "C:\msquic\$($WinKernelBinPath)\msquicpriv.sys" start= demand
 
-New-NetFirewallRule -DisplayName "Allow QuicPerf" -Enabled True -Profile Any -Direction Inbound -Action Allow -Protocol UDP -LocalPort 4433
+New-NetFirewallRule -DisplayName "Allow SecNetPerf" -Enabled True -Profile Any -Direction Inbound -Action Allow -Protocol UDP -LocalPort 4433
 
 bcdedit /debug on
 
@@ -160,7 +160,7 @@ Now that the perf machines are configured for kernel mode PGO, it's time to run 
 
 On the machine that will act as server, run the following command to start the server:
 ```
-quicperf.exe -kernel
+secnetperf.exe -kernel
 ```
 
 Once running, clear the PGO counts on both the client and server machines to get a clean slate:
@@ -172,10 +172,10 @@ del msquicpriv.pgc
 
 On the machine acting as client, run the following commands to generate traffic:
 ```
-quicperf.exe --kernel -test:tput -target:<server IP> -upload:5000000000
-quicperf.exe --kernel -test:tput -target:<server IP> -download:5000000000
-quicperf.exe --kernel -test:RPS -target:<server IP>
-quicperf.exe --kernel -test:HPS -target:<server IP>
+secnetperf.exe --kernel -test:tput -target:<server IP> -upload:5000000000
+secnetperf.exe --kernel -test:tput -target:<server IP> -download:5000000000
+secnetperf.exe --kernel -test:RPS -target:<server IP>
+secnetperf.exe --kernel -test:HPS -target:<server IP>
 ```
 
 After the client finishes all scenarios, run this again on the client and the server to collect the updated counts:

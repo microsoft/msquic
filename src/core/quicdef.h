@@ -161,7 +161,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 // FLUSH_SEND operation. The actual number will generally exceed this value up
 // to the limit of the current USO buffer being filled.
 //
-#define QUIC_MAX_DATAGRAMS_PER_SEND             245
+#define QUIC_MAX_DATAGRAMS_PER_SEND             40
 
 //
 // The number of packets we write for a single stream before going to the next
@@ -413,6 +413,11 @@ CXPLAT_STATIC_ASSERT(
 #define CXPLAT_TLS_RESUMPTION_CLIENT_TICKET_VERSION      1
 
 //
+// By default the Version Negotiation Extension is disabled.
+//
+#define QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED    FALSE
+
+//
 // The AEAD Integrity limit for maximum failed decryption packets over the
 // lifetime of a connection. Set to the lowest limit, which is for
 // AEAD_AES_128_CCM at 2^23.5 (rounded down)
@@ -423,36 +428,38 @@ CXPLAT_STATIC_ASSERT(
                   PERSISTENT SETTINGS
 *************************************************************/
 
-#define QUIC_SETTING_APP_KEY                    "Apps\\"
+#define QUIC_SETTING_APP_KEY                        "Apps\\"
 
-#define QUIC_SETTING_MAX_PARTITION_COUNT        "MaxPartitionCount"
-#define QUIC_SETTING_RETRY_MEMORY_FRACTION      "RetryMemoryFraction"
-#define QUIC_SETTING_LOAD_BALANCING_MODE        "LoadBalancingMode"
-#define QUIC_SETTING_MAX_WORKER_QUEUE_DELAY     "MaxWorkerQueueDelayMs"
-#define QUIC_SETTING_MAX_STATELESS_OPERATIONS   "MaxStatelessOperations"
-#define QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN   "MaxOperationsPerDrain"
+#define QUIC_SETTING_MAX_PARTITION_COUNT            "MaxPartitionCount"
+#define QUIC_SETTING_RETRY_MEMORY_FRACTION          "RetryMemoryFraction"
+#define QUIC_SETTING_LOAD_BALANCING_MODE            "LoadBalancingMode"
+#define QUIC_SETTING_MAX_WORKER_QUEUE_DELAY         "MaxWorkerQueueDelayMs"
+#define QUIC_SETTING_MAX_STATELESS_OPERATIONS       "MaxStatelessOperations"
+#define QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN       "MaxOperationsPerDrain"
 
-#define QUIC_SETTING_SEND_BUFFERING_DEFAULT     "SendBufferingDefault"
-#define QUIC_SETTING_SEND_PACING_DEFAULT        "SendPacingDefault"
-#define QUIC_SETTING_MIGRATION_ENABLED          "MigrationEnabled"
-#define QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED   "DatagramReceiveEnabled"
+#define QUIC_SETTING_SEND_BUFFERING_DEFAULT         "SendBufferingDefault"
+#define QUIC_SETTING_SEND_PACING_DEFAULT            "SendPacingDefault"
+#define QUIC_SETTING_MIGRATION_ENABLED              "MigrationEnabled"
+#define QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED       "DatagramReceiveEnabled"
 
-#define QUIC_SETTING_INITIAL_WINDOW_PACKETS     "InitialWindowPackets"
-#define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS       "SendIdleTimeoutMs"
+#define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
+#define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"
 
-#define QUIC_SETTING_INITIAL_RTT                "InitialRttMs"
-#define QUIC_SETTING_MAX_ACK_DELAY              "MaxAckDelayMs"
-#define QUIC_SETTING_DISCONNECT_TIMEOUT         "DisconnectTimeoutMs"
-#define QUIC_SETTING_KEEP_ALIVE_INTERVAL        "KeepAliveIntervalMs"
-#define QUIC_SETTING_IDLE_TIMEOUT               "IdleTimeoutMs"
-#define QUIC_SETTING_HANDSHAKE_IDLE_TIMEOUT     "HandshakeIdleTimeoutMs"
+#define QUIC_SETTING_INITIAL_RTT                    "InitialRttMs"
+#define QUIC_SETTING_MAX_ACK_DELAY                  "MaxAckDelayMs"
+#define QUIC_SETTING_DISCONNECT_TIMEOUT             "DisconnectTimeoutMs"
+#define QUIC_SETTING_KEEP_ALIVE_INTERVAL            "KeepAliveIntervalMs"
+#define QUIC_SETTING_IDLE_TIMEOUT                   "IdleTimeoutMs"
+#define QUIC_SETTING_HANDSHAKE_IDLE_TIMEOUT         "HandshakeIdleTimeoutMs"
 
-#define QUIC_SETTING_MAX_TLS_CLIENT_SEND_BUFFER "TlsClientMaxSendBuffer"
-#define QUIC_SETTING_MAX_TLS_SERVER_SEND_BUFFER "TlsServerMaxSendBuffer"
-#define QUIC_SETTING_STREAM_FC_WINDOW_SIZE      "StreamRecvWindowDefault"
-#define QUIC_SETTING_STREAM_RECV_BUFFER_SIZE    "StreamRecvBufferDefault"
-#define QUIC_SETTING_CONN_FLOW_CONTROL_WINDOW   "ConnFlowControlWindow"
+#define QUIC_SETTING_MAX_TLS_CLIENT_SEND_BUFFER     "TlsClientMaxSendBuffer"
+#define QUIC_SETTING_MAX_TLS_SERVER_SEND_BUFFER     "TlsServerMaxSendBuffer"
+#define QUIC_SETTING_STREAM_FC_WINDOW_SIZE          "StreamRecvWindowDefault"
+#define QUIC_SETTING_STREAM_RECV_BUFFER_SIZE        "StreamRecvBufferDefault"
+#define QUIC_SETTING_CONN_FLOW_CONTROL_WINDOW       "ConnFlowControlWindow"
 
-#define QUIC_SETTING_MAX_BYTES_PER_KEY_PHASE    "MaxBytesPerKey"
+#define QUIC_SETTING_MAX_BYTES_PER_KEY_PHASE        "MaxBytesPerKey"
 
-#define QUIC_SETTING_SERVER_RESUMPTION_LEVEL    "ResumptionLevel"
+#define QUIC_SETTING_SERVER_RESUMPTION_LEVEL        "ResumptionLevel"
+
+#define QUIC_SETTING_VERSION_NEGOTIATION_EXT_ENABLE "VersionNegotiationExtEnabled"

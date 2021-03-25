@@ -36,6 +36,9 @@ This script runs an executable and collects and logs or process dumps as necessa
 .Parameter CodeCoverage
     Collect code coverage for the binary being run.
 
+.Parameter AZP
+    Runs in Azure Pipelines mode.
+
 #>
 
 param (
@@ -71,14 +74,35 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CodeCoverage = $false
+    [switch]$CodeCoverage = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$AZP = $false
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+$global:ExeFailed = $false
+
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
+}
+
+function LogWrn($msg) {
+    if ($AZP) {
+        Write-Host "##vso[task.LogIssue type=warning;][$(Get-Date)] $msg"
+    } else {
+        Write-Host "[$(Get-Date)] $msg"
+    }
+}
+
+function LogErr($msg) {
+    if ($AZP) {
+        Write-Host "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
+    } else {
+        Write-Host "[$(Get-Date)] $msg"
+    }
 }
 
 # Make sure the executable is present.
@@ -266,26 +290,27 @@ function Wait-Executable($Exe) {
         }
         $Exe.Process.WaitForExit()
         if ($Exe.Process.ExitCode -ne 0) {
-            Log "Process had nonzero exit code: $($Exe.Process.ExitCode)"
+            LogErr "Process had nonzero exit code: $($Exe.Process.ExitCode)"
             $KeepOutput = $true
         }
         $DumpFiles = (Get-ChildItem $LogDir) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
-            Log "Dump file(s) generated"
+            LogErr "Dump file(s) generated"
             foreach ($File in $DumpFiles) {
                 PrintDumpCallStack($File)
             }
             $KeepOutput = $true
         }
     } catch {
-        Log $_
-        Log "Treating exception as failure!"
+        LogWrn $_
+        LogErr "Treating exception as failure!"
         $KeepOutput = $true
         throw
     } finally {
         $XmlText = $null
         if ($KeepOutput) {
             $XmlText = $FailXmlText;
+            $global:ExeFailed = $true
         } else {
             $XmlText = $SuccessXmlText;
         }
@@ -358,4 +383,9 @@ Wait-Executable (Start-Executable)
 if ($isWindows) {
     # Cleanup the WER registry.
     Remove-Item -Path $WerDumpRegPath -Force | Out-Null
+}
+
+# Fail execution as necessary.
+if ($global:ExeFailed -and $AZP) {
+    Write-Error "Run executable failed!"
 }

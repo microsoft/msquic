@@ -46,6 +46,8 @@ foreach ($Config in $Configs) {
         Force-Copy (Join-Path $InputDir "msquic.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
         Force-Copy (Join-Path $InputDir "msquictest.exe") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
         Force-Copy (Join-Path $InputDir "msquictest.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
+        Force-Copy (Join-Path $InputDir "secnetperf.exe") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
+        Force-Copy (Join-Path $InputDir "secnetperf.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
     }
 }
 
@@ -61,5 +63,7 @@ foreach ($Config in $Configs) {
         Force-Copy (Join-Path $InputDir "msquictest.sys") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/kernel")
         Force-Copy (Join-Path $InputDir "msquic.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/kernel")
         Force-Copy (Join-Path $InputDir "msquictest.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/kernel")
+        Force-Copy (Join-Path $InputDir "secnetperfdrv.sys") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/kernel")
+        Force-Copy (Join-Path $InputDir "secnetperfdrv.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/kernel")
     }
 }

@@ -73,6 +73,15 @@ sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.18_amd64.deb
 
 Then you will need to manually run "pwsh" to continue.
 
+## Install on macOS
+```
+brew install powershell
+```
+
+
+Then you will need to manually run "pwsh" to continue.
+
+
 # Building with PowerShell
 
 ## Install Dependencies
@@ -94,6 +103,7 @@ Note at minimum CMake 3.16 is required. Instructions for installing a the newest
 ### Additional Requirements on Windows
 
   * [CMake](https://cmake.org/)
+  * [Perl](https://www.perl.org/get.html) optional (required for OpenSSL build)
   * [Visual Studio 2019](https://www.visualstudio.com/vs/) or higher
   * Latest [Windows Insider](https://insider.windows.com/en-us/) builds
 
@@ -140,13 +150,25 @@ Note at minimum CMake 3.16 is required. Instructions for installing a the newest
 The following are generally required. Actual installations may vary.
 
 ```
-sudo apt-add-repository ppa:lttng/stable-2.10
+sudo apt-add-repository ppa:lttng/stable-2.12
 sudo apt-get update
 sudo apt-get install cmake
 sudo apt-get install build-essential
 sudo apt-get install liblttng-ust-dev
 sudo apt-get install lttng-tools
 ```
+
+### macOS
+The build needs CMake and compiler.
+
+```
+brew install cmake
+```
+Minimally, build needs Xcode 'Command Line Tools`. That can be done via XCode in App Store or from command line  
+```
+xcode-select --install
+```
+
 
 ## Generating Build Files
 

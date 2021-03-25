@@ -41,9 +41,6 @@ Environment:
 #include <wsk.h>
 #include <bcrypt.h>
 #include <intrin.h>
-#ifdef QUIC_TELEMETRY_ASSERTS
-#include <telemetry\MicrosoftTelemetryAssertKM.h>
-#endif
 #include <msquic_winkernel.h>
 #pragma warning(pop)
 
@@ -99,6 +96,8 @@ ZwQueryInformationThread (
 
 #define QUIC_CACHEALIGN DECLSPEC_CACHEALIGN
 
+#define INIT_NO_SAL(X) // No-op since Windows supports SAL
+
 //
 // Library Initialization
 //
@@ -147,42 +146,10 @@ CxPlatUninitialize(
     );
 
 //
-// Assertion Interfaces
+// Static Analysis Interfaces
 //
-
-#define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X,Y)
-
-#define CXPLAT_ANALYSIS_ASSERT(X) __analysis_assert(X)
-
-//
-// Logs the assertion failure to ETW.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CxPlatLogAssert(
-    _In_z_ const char* File,
-    _In_ int Line,
-    _In_z_ const char* Expr
-    );
-
-#define QUIC_WIDE_STRING(_str) L##_str
-
-#define QUIC_ASSERT_ACTION(_exp) \
-    ((!(_exp)) ? \
-        (CxPlatLogAssert(__FILE__, __LINE__, #_exp), \
-         __annotation(L"Debug", L"AssertFail", QUIC_WIDE_STRING(#_exp)), \
-         DbgRaiseAssertionFailure(), FALSE) : \
-        TRUE)
-
-#define QUIC_ASSERTMSG_ACTION(_msg, _exp) \
-    ((!(_exp)) ? \
-        (CxPlatLogAssert(__FILE__, __LINE__, #_exp), \
-         __annotation(L"Debug", L"AssertFail", L##_msg), \
-         DbgRaiseAssertionFailure(), FALSE) : \
-        TRUE)
 
 #define QUIC_NO_SANITIZE(X)
-
 
 #if defined(_PREFAST_)
 // _Analysis_assume_ will never result in any code generation for _exp,
@@ -200,50 +167,80 @@ CxPlatLogAssert(
 #endif // DEBUG
 #endif // _PREFAST_
 
+#define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X,Y)
+
+#define CXPLAT_ANALYSIS_ASSERT(X) __analysis_assert(X)
+
+//
+// Assertion Interfaces
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatLogAssert(
+    _In_z_ const char* File,
+    _In_ int Line,
+    _In_z_ const char* Expr
+    );
+
+#define CXPLAT_WIDE_STRING(_str) L##_str
+
+#define CXPLAT_ASSERT_NOOP(_exp, _msg) \
+    (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
+
+#define CXPLAT_ASSERT_LOG(_exp, _msg) \
+    (CXPLAT_ANALYSIS_ASSUME(_exp), \
+    ((!(_exp)) ? (CxPlatLogAssert(__FILE__, __LINE__, #_exp), FALSE) : TRUE))
+
+#define CXPLAT_ASSERT_CRASH(_exp, _msg) \
+    (CXPLAT_ANALYSIS_ASSUME(_exp), \
+    ((!(_exp)) ? \
+        (CxPlatLogAssert(__FILE__, __LINE__, #_exp), \
+         __annotation(L"Debug", L"AssertFail", _msg), \
+         DbgRaiseAssertionFailure(), FALSE) : \
+        TRUE))
+
 //
 // MsQuic uses three types of asserts:
 //
 //  CXPLAT_DBG_ASSERT - Asserts that are too expensive to evaluate all the time.
 //  CXPLAT_TEL_ASSERT - Asserts that are acceptable to always evaluate, but not
-//                    always crash the system.
+//                      always crash the system.
 //  CXPLAT_FRE_ASSERT - Asserts that must always crash the system.
 //
 
 #if DEBUG
-#define CXPLAT_DBG_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
-#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_DBG_ASSERT(_exp)          CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
 #else
-#define CXPLAT_DBG_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
+#define CXPLAT_DBG_ASSERT(_exp)          CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(_msg))
 #endif
 
 #if DEBUG
-#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
-#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_TEL_ASSERT(_exp)          CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
 #define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-     (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+                                         CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
+#elif QUIC_TELEMETRY_ASSERTS
+#define CXPLAT_TEL_ASSERT(_exp)          CXPLAT_ASSERT_LOG(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_LOG(_exp, CXPLAT_WIDE_STRING(_msg))
+#define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
+                                         CXPLAT_ASSERT_LOG(_exp, CXPLAT_WIDE_STRING(_msg))
 #else
-#ifdef MICROSOFT_TELEMETRY_ASSERT
-#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_KM(_exp))
-#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG_KM(_exp, _msg))
+#define CXPLAT_TEL_ASSERT(_exp)          CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(_msg))
 #define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-    (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG_WITH_ARGS_KM(_exp, _msg, _origin, _bucketArg1, _bucketArg2))
-#else
-#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-    (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#endif
+                                         CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(_msg))
 #endif
 
-#define CXPLAT_FRE_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
-#define CXPLAT_FRE_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_FRE_ASSERT(_exp)          CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_FRE_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
 
 //
 // Verifier is enabled.
 //
-#define QuicVerifierEnabled(Flags) NT_SUCCESS(MmIsVerifierEnabled((PULONG)&Flags))
-#define QuicVerifierEnabledByAddr(Address) MmIsDriverVerifyingByAddress(Address)
+#define CxPlatVerifierEnabled(Flags) NT_SUCCESS(MmIsVerifierEnabled((PULONG)&Flags))
+#define CxPlatVerifierEnabledByAddr(Address) MmIsDriverVerifyingByAddress(Address)
 
 //
 // Debugger check.

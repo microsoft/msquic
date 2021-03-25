@@ -24,9 +24,10 @@ struct TcpFrame;
 
 struct TcpSendData {
     TcpSendData* Next;
-    uint32_t StreamId : 30;
+    uint32_t StreamId : 29;
     uint32_t Open : 1;
     uint32_t Fin : 1;
+    uint32_t Abort : 1;
     uint32_t Length;
     uint8_t* Buffer;
     uint64_t Offset; // Used internally only
@@ -62,6 +63,7 @@ void
     uint32_t StreamID,
     bool Open,
     bool Fin,
+    bool Abort,
     uint32_t Length,
     uint8_t* Buffer
     );
@@ -163,7 +165,7 @@ class TcpConnection {
     bool Initialized{false};
     bool ClosedByApp{false};
     bool QueuedOnWorker{false};
-    bool StartTls{true};
+    bool StartTls{false};
     bool IndicateAccept{false};
     bool IndicateConnect{false};
     bool IndicateDisconnect{false};
@@ -241,20 +243,19 @@ class TcpConnection {
         );
     ~TcpConnection();
     void Queue() { Worker->QueueConnection(this); }
-    void Fatal();
     void Process();
     bool InitializeTls();
     bool ProcessTls(const uint8_t* Buffer, uint32_t BufferLength);
     bool SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, uint8_t KeyType);
-    void ProcessReceive();
+    bool ProcessReceive();
     bool ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLength);
     bool ProcessReceiveFrame(TcpFrame* Frame);
-    void ProcessSend();
+    bool ProcessSend();
     void ProcessSendComplete();
     bool EncryptFrame(TcpFrame* Frame);
     QUIC_BUFFER* NewSendBuffer();
     void FreeSendBuffer(QUIC_BUFFER* SendBuffer);
-    void FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
+    bool FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
     void AddRef() { CxPlatRefIncrement(&Ref); }
     void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
 public:
@@ -269,6 +270,6 @@ public:
         _In_ const QUIC_ADDR* LocalAddress = nullptr,
         _In_ void* Context = nullptr);
     bool IsInitialized() const { return Initialized; }
-    void Close() { ClosedByApp = true; Release(); }
+    void Close();
     void Send(TcpSendData* Data);
 };

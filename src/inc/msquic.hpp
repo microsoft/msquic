@@ -279,7 +279,8 @@ public:
     MsQuicSettings& SetPacingEnabled(bool Value) { PacingEnabled = Value; IsSet.PacingEnabled = TRUE; return *this; }
     MsQuicSettings& SetMigrationEnabled(bool Value) { MigrationEnabled = Value; IsSet.MigrationEnabled = TRUE; return *this; }
     MsQuicSettings& SetDatagramReceiveEnabled(bool Value) { DatagramReceiveEnabled = Value; IsSet.DatagramReceiveEnabled = TRUE; return *this; }
-    MsQuicSettings& SetServerResumptionLevel(QUIC_SERVER_RESUMPTION_LEVEL Value) { ServerResumptionLevel = Value; IsSet.ServerResumptionLevel = TRUE; return *this; }
+    MsQuicSettings& SetServerResumptionLevel(QUIC_SERVER_RESUMPTION_LEVEL Value) { ServerResumptionLevel = (uint8_t)Value; IsSet.ServerResumptionLevel = TRUE; return *this; }
+    MsQuicSettings& SetInitialRttMs(uint32_t Value) { InitialRttMs = Value; IsSet.InitialRttMs = TRUE; return *this; }
     MsQuicSettings& SetIdleTimeoutMs(uint64_t Value) { IdleTimeoutMs = Value; IsSet.IdleTimeoutMs = TRUE; return *this; }
     MsQuicSettings& SetHandshakeIdleTimeoutMs(uint64_t Value) { HandshakeIdleTimeoutMs = Value; IsSet.HandshakeIdleTimeoutMs = TRUE; return *this; }
     MsQuicSettings& SetDisconnectTimeoutMs(uint32_t Value) { DisconnectTimeoutMs = Value; IsSet.DisconnectTimeoutMs = TRUE; return *this; }
@@ -287,6 +288,9 @@ public:
     MsQuicSettings& SetPeerUnidiStreamCount(uint16_t Value) { PeerUnidiStreamCount = Value; IsSet.PeerUnidiStreamCount = TRUE; return *this; }
     MsQuicSettings& SetMaxBytesPerKey(uint64_t Value) { MaxBytesPerKey = Value; IsSet.MaxBytesPerKey = TRUE; return *this; }
     MsQuicSettings& SetMaxAckDelayMs(uint32_t Value) { MaxAckDelayMs = Value; IsSet.MaxAckDelayMs = TRUE; return *this; }
+    MsQuicSettings& SetDesiredVersionsList(const uint32_t* DesiredVersions, uint32_t Length) {
+        DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
+    MsQuicSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
 };
 
 #ifndef QUIC_DEFAULT_CLIENT_CRED_FLAGS
@@ -394,6 +398,28 @@ public:
     LoadCredential(_In_ const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept {
         return MsQuic->ConfigurationLoadCredential(Handle, CredConfig);
     }
+    QUIC_STATUS
+    SetTicketKey(_In_ const QUIC_TICKET_KEY_CONFIG* KeyConfig) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                sizeof(QUIC_TICKET_KEY_CONFIG),
+                KeyConfig);
+    }
+    QUIC_STATUS
+    SetTicketKeys(
+        _In_reads_(KeyCount) const QUIC_TICKET_KEY_CONFIG* KeyConfig,
+        uint8_t KeyCount) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_CONFIGURATION,
+                QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
+                KeyCount * sizeof(QUIC_TICKET_KEY_CONFIG),
+                KeyConfig);
+    }
 };
 
 struct MsQuicListener {
@@ -476,6 +502,14 @@ struct StreamScope {
     operator HQUIC() const noexcept { return Handle; }
 };
 
+struct ConfigurationScope {
+    HQUIC Handle;
+    ConfigurationScope() noexcept : Handle(nullptr) { }
+    ConfigurationScope(HQUIC handle) noexcept : Handle(handle) { }
+    ~ConfigurationScope() noexcept { if (Handle) { MsQuic->ConfigurationClose(Handle); } }
+    operator HQUIC() const noexcept { return Handle; }
+};
+
 struct QuicBufferScope {
     QUIC_BUFFER* Buffer;
     QuicBufferScope() noexcept : Buffer(nullptr) { }
@@ -500,6 +534,7 @@ struct EventScope {
     EventScope(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
     EventScope(CXPLAT_EVENT event) noexcept : Handle(event) { }
     ~EventScope() noexcept { CxPlatEventUninitialize(Handle); }
+    CXPLAT_EVENT* operator &() noexcept { return &Handle; }
     operator CXPLAT_EVENT() const noexcept { return Handle; }
 };
 

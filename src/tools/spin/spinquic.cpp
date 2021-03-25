@@ -334,9 +334,9 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 {
     SetParamHelper Helper(QUIC_PARAM_LEVEL_CONNECTION);
 
-    switch (GetRandom(23)) {
+    switch (GetRandom(22) + 1) {
     case QUIC_PARAM_CONN_QUIC_VERSION:                              // uint32_t
-        Helper.SetUint32(QUIC_PARAM_CONN_QUIC_VERSION, GetRandom(UINT32_MAX));
+        // QUIC_VERSION is get-only
         break;
     case QUIC_PARAM_CONN_LOCAL_ADDRESS:                             // QUIC_ADDR
         break; // TODO - Add support here
@@ -619,7 +619,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
 
     ASSERT_ON_NOT(ServerConfiguration);
 
-    auto CredConfig = CxPlatPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER);
+    auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
     ASSERT_ON_NOT(CredConfig);
 
     ASSERT_ON_FAILURE(
@@ -669,7 +669,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
     }
 
     MsQuic->ConfigurationClose(ServerConfiguration);
-    CxPlatPlatFreeSelfSignedCert(CredConfig);
+    CxPlatFreeSelfSignedCert(CredConfig);
 
     CXPLAT_THREAD_RETURN(0);
 }
@@ -709,7 +709,7 @@ BOOLEAN QUIC_API DatapathHookReceiveCallback(struct CXPLAT_RECV_DATA* /* Datagra
     return (RandomValue % 100) < Settings.LossPercent;
 }
 
-BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_ADDR* /* LocalAddress */, struct CXPLAT_SEND_DATA* /* SendContext */)
+BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_ADDR* /* LocalAddress */, struct CXPLAT_SEND_DATA* /* SendData */)
 {
     return FALSE; // Don't drop
 }

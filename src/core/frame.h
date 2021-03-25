@@ -84,10 +84,13 @@
 // described in Section 4.8 of [QUIC-TLS].
 //
 #define QUIC_ERROR_CRYPTO_ERROR(TlsAlertCode)   ((QUIC_VAR_INT)(0x100 | (TlsAlertCode)))
+#define IS_QUIC_CRYPTO_ERROR(QuicCryptoError)   ((QuicCryptoError & 0x100) == 0x100)
 
 #define QUIC_ERROR_CRYPTO_USER_CANCELED             QUIC_ERROR_CRYPTO_ERROR(22)  // TLS error code for 'user_canceled'
 #define QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE         QUIC_ERROR_CRYPTO_ERROR(40)  // TLS error code for 'handshake_failure'
 #define QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL   QUIC_ERROR_CRYPTO_ERROR(120) // TLS error code for 'no_application_protocol'
+
+#define QUIC_ERROR_VERSION_NEGOTIATION_ERROR    0x53F8
 
 //
 // Used for determining which errors to count for performance counters.
@@ -107,46 +110,56 @@ QuicErrorIsProtocolError(
 // Different types of QUIC frames
 //
 typedef enum QUIC_FRAME_TYPE {
-    QUIC_FRAME_PADDING              = 0x0,
-    QUIC_FRAME_PING                 = 0x1,
-    QUIC_FRAME_ACK                  = 0x2, // to 0x3
-    QUIC_FRAME_ACK_1                = 0x3,
-    QUIC_FRAME_RESET_STREAM         = 0x4,
-    QUIC_FRAME_STOP_SENDING         = 0x5,
-    QUIC_FRAME_CRYPTO               = 0x6,
-    QUIC_FRAME_NEW_TOKEN            = 0x7,
-    QUIC_FRAME_STREAM               = 0x8, // to 0xf
-    QUIC_FRAME_STREAM_1             = 0x9,
-    QUIC_FRAME_STREAM_2             = 0xa,
-    QUIC_FRAME_STREAM_3             = 0xb,
-    QUIC_FRAME_STREAM_4             = 0xc,
-    QUIC_FRAME_STREAM_5             = 0xd,
-    QUIC_FRAME_STREAM_6             = 0xe,
-    QUIC_FRAME_STREAM_7             = 0xf,
-    QUIC_FRAME_MAX_DATA             = 0x10,
-    QUIC_FRAME_MAX_STREAM_DATA      = 0x11,
-    QUIC_FRAME_MAX_STREAMS          = 0x12, // to 0x13
-    QUIC_FRAME_MAX_STREAMS_1        = 0x13,
-    QUIC_FRAME_DATA_BLOCKED         = 0x14,
-    QUIC_FRAME_STREAM_DATA_BLOCKED  = 0x15,
-    QUIC_FRAME_STREAMS_BLOCKED      = 0x16, // to 0x17
-    QUIC_FRAME_STREAMS_BLOCKED_1    = 0x17,
-    QUIC_FRAME_NEW_CONNECTION_ID    = 0x18,
-    QUIC_FRAME_RETIRE_CONNECTION_ID = 0x19,
-    QUIC_FRAME_PATH_CHALLENGE       = 0x1a,
-    QUIC_FRAME_PATH_RESPONSE        = 0x1b,
-    QUIC_FRAME_CONNECTION_CLOSE     = 0x1c, // to 0x1d
-    QUIC_FRAME_CONNECTION_CLOSE_1   = 0x1d,
-    QUIC_FRAME_HANDSHAKE_DONE       = 0x1e,
+    QUIC_FRAME_PADDING              = 0x0ULL,
+    QUIC_FRAME_PING                 = 0x1ULL,
+    QUIC_FRAME_ACK                  = 0x2ULL, // to 0x3
+    QUIC_FRAME_ACK_1                = 0x3ULL,
+    QUIC_FRAME_RESET_STREAM         = 0x4ULL,
+    QUIC_FRAME_STOP_SENDING         = 0x5ULL,
+    QUIC_FRAME_CRYPTO               = 0x6ULL,
+    QUIC_FRAME_NEW_TOKEN            = 0x7ULL,
+    QUIC_FRAME_STREAM               = 0x8ULL, // to 0xf
+    QUIC_FRAME_STREAM_1             = 0x9ULL,
+    QUIC_FRAME_STREAM_2             = 0xaULL,
+    QUIC_FRAME_STREAM_3             = 0xbULL,
+    QUIC_FRAME_STREAM_4             = 0xcULL,
+    QUIC_FRAME_STREAM_5             = 0xdULL,
+    QUIC_FRAME_STREAM_6             = 0xeULL,
+    QUIC_FRAME_STREAM_7             = 0xfULL,
+    QUIC_FRAME_MAX_DATA             = 0x10ULL,
+    QUIC_FRAME_MAX_STREAM_DATA      = 0x11ULL,
+    QUIC_FRAME_MAX_STREAMS          = 0x12ULL, // to 0x13
+    QUIC_FRAME_MAX_STREAMS_1        = 0x13ULL,
+    QUIC_FRAME_DATA_BLOCKED         = 0x14ULL,
+    QUIC_FRAME_STREAM_DATA_BLOCKED  = 0x15ULL,
+    QUIC_FRAME_STREAMS_BLOCKED      = 0x16ULL, // to 0x17
+    QUIC_FRAME_STREAMS_BLOCKED_1    = 0x17ULL,
+    QUIC_FRAME_NEW_CONNECTION_ID    = 0x18ULL,
+    QUIC_FRAME_RETIRE_CONNECTION_ID = 0x19ULL,
+    QUIC_FRAME_PATH_CHALLENGE       = 0x1aULL,
+    QUIC_FRAME_PATH_RESPONSE        = 0x1bULL,
+    QUIC_FRAME_CONNECTION_CLOSE     = 0x1cULL, // to 0x1d
+    QUIC_FRAME_CONNECTION_CLOSE_1   = 0x1dULL,
+    QUIC_FRAME_HANDSHAKE_DONE       = 0x1eULL,
     /* 0x1f to 0x2f are unused currently */
-    QUIC_FRAME_DATAGRAM             = 0x30, // to 0x31
-    QUIC_FRAME_DATAGRAM_1           = 0x31,
+    QUIC_FRAME_DATAGRAM             = 0x30ULL, // to 0x31
+    QUIC_FRAME_DATAGRAM_1           = 0x31ULL,
+    /* 0x32 to 0xad are unused currently */
+    QUIC_FRAME_ACK_FREQUENCY        = 0xafULL,
+
+    QUIC_FRAME_MAX_SUPPORTED
 
 } QUIC_FRAME_TYPE;
 
+CXPLAT_STATIC_ASSERT(
+    QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT32_MAX,
+    "Logging assumes frames types fit in 32-bits");
+
 #define QUIC_FRAME_IS_KNOWN(X) \
     (X <= QUIC_FRAME_HANDSHAKE_DONE || \
-    (X >= QUIC_FRAME_DATAGRAM && X <= QUIC_FRAME_DATAGRAM_1))
+     (X >= QUIC_FRAME_DATAGRAM && X <= QUIC_FRAME_DATAGRAM_1) || \
+     X == QUIC_FRAME_ACK_FREQUENCY \
+    )
 
 //
 // QUIC_FRAME_ACK Encoding/Decoding
@@ -285,7 +298,7 @@ QuicCryptoFrameEncode(
     _In_ const QUIC_CRYPTO_EX * const Frame,
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
-    _Out_writes_bytes_(BufferLength) uint8_t* Buffer
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     );
 
 _Success_(return != FALSE)
@@ -775,6 +788,39 @@ QuicDatagramFrameDecode(
     _Deref_in_range_(0, BufferLength)
     _Inout_ uint16_t* Offset,
     _Out_ QUIC_DATAGRAM_EX* Frame
+    );
+
+//
+// QUIC_ACK_FREQUENCY Encoding/Decoding
+//
+
+typedef struct QUIC_ACK_FREQUENCY_EX {
+
+    QUIC_VAR_INT SequenceNumber;
+    QUIC_VAR_INT PacketTolerance;
+    QUIC_VAR_INT UpdateMaxAckDelay; // In microseconds (us)
+    uint8_t IgnoreOrder;
+
+} QUIC_ACK_FREQUENCY_EX;
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicAckFrequencyFrameEncode(
+    _In_ const QUIC_ACK_FREQUENCY_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    );
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicAckFrequencyFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_ACK_FREQUENCY_EX* Frame
     );
 
 //

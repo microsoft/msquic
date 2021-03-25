@@ -28,6 +28,8 @@ Abstract:
 #define QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID           0x00010000
 #define QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID             0x00020000
 #define QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION                0x00040000
+#define QUIC_TP_FLAG_VERSION_NEGOTIATION                    0x00080000
+#define QUIC_TP_FLAG_MIN_ACK_DELAY                          0x00100000
 
 #define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
 #define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
@@ -38,6 +40,7 @@ Abstract:
 
 #define QUIC_TP_MAX_ACK_DELAY_DEFAULT                       25 // ms
 #define QUIC_TP_MAX_ACK_DELAY_MAX                           ((1 << 14) - 1)
+#define QUIC_TP_MIN_ACK_DELAY_MAX                           ((1 << 24) - 1)
 
 #define QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT          2
 #define QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN              2
@@ -112,6 +115,17 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     QUIC_VAR_INT MaxAckDelay;
 
     //
+    // A variable-length integer representing the minimum amount of time in
+    // microseconds by which the endpoint can delay an acknowledgement. Values
+    // of 2^24 or greater are invalid.
+    //
+    // The presence of the parameter also advertises support of the ACK
+    // Frequency extension.
+    //
+    _Field_range_(0, QUIC_TP_MIN_ACK_DELAY_MAX)
+    QUIC_VAR_INT MinAckDelay;
+
+    //
     // The maximum number connection IDs from the peer that an endpoint is
     // willing to store. This value includes only connection IDs sent in
     // NEW_CONNECTION_ID frames. If this parameter is absent, a default of 2 is
@@ -165,6 +179,12 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     _Field_range_(0, QUIC_MAX_CONNECTION_ID_LENGTH_V1)
     uint8_t RetrySourceConnectionIDLength;
 
+    //
+    // Pointer to the Version Negotiation transport parameter opaque blob.
+    //
+    const uint8_t* VersionNegotiationInfo;
+    QUIC_VAR_INT VersionNegotiationInfoLength;
+
 } QUIC_TRANSPORT_PARAMETERS;
 
 //
@@ -194,4 +214,23 @@ QuicCryptoTlsDecodeTransportParameters(
         const uint8_t* TPBuf,
     _In_ uint16_t TPLen,
     _Out_ QUIC_TRANSPORT_PARAMETERS* TransportParams
+    );
+
+//
+// Deep copies allocated transport parameters.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicCryptoTlsCopyTransportParameters(
+    _In_ const QUIC_TRANSPORT_PARAMETERS* Source,
+    _In_ QUIC_TRANSPORT_PARAMETERS* Destination
+    );
+
+//
+// Frees allocation transport parameters.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCryptoTlsCleanupTransportParameters(
+    _In_ QUIC_TRANSPORT_PARAMETERS* TransportParams
     );

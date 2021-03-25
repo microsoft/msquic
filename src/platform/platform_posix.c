@@ -9,7 +9,7 @@ Abstract:
 
 Environment:
 
-    Linux
+    Linux and Darwin
 
 --*/
 
@@ -17,13 +17,16 @@ Environment:
 #include "quic_platform.h"
 #include "quic_platform_dispatch.h"
 #include "quic_trace.h"
+#ifdef CX_PLATFORM_LINUX
+#include <sys/syscall.h>
+#endif
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <sched.h>
 #include <syslog.h>
 #ifdef QUIC_CLOG
-#include "platform_linux.c.clog.h"
+#include "platform_posix.c.clog.h"
 #endif
 
 #define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
@@ -327,151 +330,6 @@ CxPlatRundownReleaseAndWait(
     }
 }
 
-void
-CxPlatEventInitialize(
-    _Out_ CXPLAT_EVENT* Event,
-    _In_ BOOLEAN ManualReset,
-    _In_ BOOLEAN InitialState
-    )
-{
-    CXPLAT_EVENT_OBJECT* EventObj = NULL;
-    pthread_condattr_t Attr = {0};
-
-    EventObj = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_EVENT_OBJECT), QUIC_POOL_EVENT);
-
-    //
-    // MsQuic expects this call to be non failable.
-    //
-
-    CXPLAT_DBG_ASSERT(EventObj != NULL);
-
-    EventObj->AutoReset = !ManualReset;
-    EventObj->Signaled = InitialState;
-
-    CXPLAT_FRE_ASSERT(pthread_mutex_init(&EventObj->Mutex, NULL) == 0);
-    CXPLAT_FRE_ASSERT(pthread_condattr_init(&Attr) == 0);
-    CXPLAT_FRE_ASSERT(pthread_condattr_setclock(&Attr, CLOCK_MONOTONIC) == 0);
-    CXPLAT_FRE_ASSERT(pthread_cond_init(&EventObj->Cond, &Attr) == 0);
-    CXPLAT_FRE_ASSERT(pthread_condattr_destroy(&Attr) == 0);
-
-    (*Event) = EventObj;
-}
-
-void
-CxPlatEventUninitialize(
-    _Inout_ CXPLAT_EVENT Event
-    )
-{
-    CXPLAT_EVENT_OBJECT* EventObj = Event;
-
-    CXPLAT_FRE_ASSERT(pthread_cond_destroy(&EventObj->Cond) == 0);
-    CXPLAT_FRE_ASSERT(pthread_mutex_destroy(&EventObj->Mutex) == 0);
-
-    CXPLAT_FREE(EventObj, QUIC_POOL_EVENT);
-    EventObj = NULL;
-}
-
-void
-CxPlatEventSet(
-    _Inout_ CXPLAT_EVENT Event
-    )
-{
-    CXPLAT_EVENT_OBJECT* EventObj = Event;
-
-    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
-
-    EventObj->Signaled = true;
-
-    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
-
-    //
-    // Signal the condition.
-    //
-
-    CXPLAT_FRE_ASSERT(pthread_cond_broadcast(&EventObj->Cond) == 0);
-}
-
-void
-CxPlatEventReset(
-    _Inout_ CXPLAT_EVENT Event
-    )
-{
-    CXPLAT_EVENT_OBJECT* EventObj = Event;
-
-    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
-    EventObj->Signaled = false;
-    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
-}
-
-void
-CxPlatEventWaitForever(
-    _Inout_ CXPLAT_EVENT Event
-    )
-{
-    CXPLAT_EVENT_OBJECT* EventObj = Event;
-
-    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&Event->Mutex) == 0);
-
-    //
-    // Spurious wake ups from pthread_cond_wait can occur. So the function needs
-    // to be called in a loop until the predicate 'Signalled' is satisfied.
-    //
-
-    while (!EventObj->Signaled) {
-        CXPLAT_FRE_ASSERT(pthread_cond_wait(&EventObj->Cond, &EventObj->Mutex) == 0);
-    }
-
-    if(EventObj->AutoReset) {
-        EventObj->Signaled = false;
-    }
-
-    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
-}
-
-BOOLEAN
-CxPlatEventWaitWithTimeout(
-    _Inout_ CXPLAT_EVENT Event,
-    _In_ uint32_t TimeoutMs
-    )
-{
-    CXPLAT_EVENT_OBJECT* EventObj = Event;
-    BOOLEAN WaitSatisfied = FALSE;
-    struct timespec Ts = {0};
-
-    //
-    // Get absolute time.
-    //
-
-    CxPlatGetAbsoluteTime(TimeoutMs, &Ts);
-
-    CXPLAT_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
-
-    while (!EventObj->Signaled) {
-
-        int Result = pthread_cond_timedwait(&EventObj->Cond, &EventObj->Mutex, &Ts);
-
-        if (Result == ETIMEDOUT) {
-            WaitSatisfied = FALSE;
-            goto Exit;
-        }
-
-        CXPLAT_DBG_ASSERT(Result == 0);
-        UNREFERENCED_PARAMETER(Result);
-    }
-
-    if (EventObj->AutoReset) {
-        EventObj->Signaled = FALSE;
-    }
-
-    WaitSatisfied = TRUE;
-
-Exit:
-
-    CXPLAT_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
-
-    return WaitSatisfied;
-}
-
 uint64_t
 CxPlatTimespecToUs(
     _In_ const struct timespec *Time
@@ -514,7 +372,15 @@ CxPlatGetAbsoluteTime(
 
     CxPlatZeroMemory(Time, sizeof(struct timespec));
 
+#if defined(CX_PLATFORM_LINUX)
     ErrorCode = clock_gettime(CLOCK_MONOTONIC, Time);
+#elif defined(CX_PLATFORM_DARWIN)
+    //
+    // timespec_get is used on darwin, as CLOCK_MONOTONIC isn't actually
+    // monotonic according to our tests.
+    //
+    timespec_get(Time, TIME_UTC);
+#endif // CX_PLATFORM_DARWIN
 
     CXPLAT_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
@@ -522,11 +388,15 @@ CxPlatGetAbsoluteTime(
     Time->tv_sec += (DeltaMs / CXPLAT_MS_PER_SECOND);
     Time->tv_nsec += ((DeltaMs % CXPLAT_MS_PER_SECOND) * CXPLAT_NANOSEC_PER_MS);
 
-    if (Time->tv_nsec > CXPLAT_NANOSEC_PER_SEC)
+    if (Time->tv_nsec >= CXPLAT_NANOSEC_PER_SEC)
     {
         Time->tv_sec += 1;
         Time->tv_nsec -= CXPLAT_NANOSEC_PER_SEC;
     }
+
+    CXPLAT_DBG_ASSERT(Time->tv_sec >= 0);
+    CXPLAT_DBG_ASSERT(Time->tv_nsec >= 0);
+    CXPLAT_DBG_ASSERT(Time->tv_nsec < CXPLAT_NANOSEC_PER_SEC);
 }
 
 void
@@ -550,7 +420,14 @@ CxPlatProcMaxCount(
     void
     )
 {
+#if defined(CX_PLATFORM_DARWIN) && defined(__arm64__)
+    //
+    // arm64 macOS has no way to get the current proc, so act like a single core.
+    //
+    return 1;
+#else
     return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+#endif
 }
 
 uint32_t
@@ -558,7 +435,14 @@ CxPlatProcActiveCount(
     void
     )
 {
+#if defined(CX_PLATFORM_DARWIN) && defined(__arm64__)
+    //
+    // arm64 macOS has no way to get the current proc, so act like a single core.
+    //
+    return 1;
+#else
     return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+#endif
 }
 
 uint32_t
@@ -566,7 +450,31 @@ CxPlatProcCurrentNumber(
     void
     )
 {
+#if defined(CX_PLATFORM_LINUX)
     return (uint32_t)sched_getcpu();
+#elif defined(CX_PLATFORM_DARWIN) && !defined(__arm64__)
+    int cpuinfo[4];
+    asm("cpuid"
+            : "=a" (cpuinfo[0]),
+            "=b" (cpuinfo[1]),
+            "=c" (cpuinfo[2]),
+            "=d" (cpuinfo[3])
+            : "a"(1));
+    //
+    // Check flag to see if current core is part of cpuid. If not, assume
+    // core 0. Not all supported platforms (Specifically M1 under Rosetta)
+    // support this flag.
+    //
+    if ((cpuinfo[3] & (1 << 9)) != 0) {
+        return (uint32_t)cpuinfo[1] >> 24;
+    }
+    return 0;
+#else
+    //
+    // arm64 macOS has no way to get the current proc, so just hardcode 0.
+    //
+    return 0;
+#endif // CX_PLATFORM_DARWIN
 }
 
 QUIC_STATUS
@@ -625,6 +533,8 @@ CxPlatConvertFromMappedV6(
         *OutAddr = *InAddr;
     }
 }
+
+#if defined(CX_PLATFORM_LINUX)
 
 QUIC_STATUS
 CxPlatThreadCreate(
@@ -734,6 +644,84 @@ CxPlatThreadCreate(
     return Status;
 }
 
+QUIC_STATUS
+CxPlatSetCurrentThreadProcessorAffinity(
+    _In_ uint16_t ProcessorIndex
+    )
+{
+    cpu_set_t CpuSet;
+    pthread_t Thread = pthread_self();
+    CPU_ZERO(&CpuSet);
+    CPU_SET(ProcessorIndex, &CpuSet);
+
+    if (!pthread_setaffinity_np(Thread, sizeof(CpuSet), &CpuSet)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "pthread_setaffinity_np failed");
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+#elif defined(CX_PLATFORM_DARWIN)
+
+QUIC_STATUS
+CxPlatThreadCreate(
+    _In_ CXPLAT_THREAD_CONFIG* Config,
+    _Out_ CXPLAT_THREAD* Thread
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    pthread_attr_t Attr;
+    if (pthread_attr_init(&Attr)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            errno,
+            "pthread_attr_init failed");
+        return errno;
+    }
+
+    // XXX: Set processor affinity
+
+    if (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY) {
+        struct sched_param Params;
+        Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
+        if (!pthread_attr_setschedparam(&Attr, &Params)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                errno,
+                "pthread_attr_setschedparam failed");
+        }
+    }
+
+    if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
+        Status = errno;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "pthread_create failed");
+    }
+
+    pthread_attr_destroy(&Attr);
+
+    return Status;
+}
+
+QUIC_STATUS
+CxPlatSetCurrentThreadProcessorAffinity(
+    _In_ uint16_t ProcessorIndex
+    )
+{
+    UNREFERENCED_PARAMETER(ProcessorIndex);
+    return QUIC_STATUS_SUCCESS;
+}
+
+#endif // CX_PLATFORM
+
 void
 CxPlatThreadDelete(
     _Inout_ CXPLAT_THREAD* Thread
@@ -751,13 +739,27 @@ CxPlatThreadWait(
     CXPLAT_FRE_ASSERT(pthread_join(*Thread, NULL) == 0);
 }
 
-uint32_t
+CXPLAT_THREAD_ID
 CxPlatCurThreadID(
     void
     )
 {
-    CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(uint32_t), "PID size exceeds the expected size");
-    return syscall(__NR_gettid);
+
+#if defined(CX_PLATFORM_LINUX)
+
+    CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(CXPLAT_THREAD_ID), "PID size exceeds the expected size");
+    return syscall(SYS_gettid);
+
+#elif defined(CX_PLATFORM_DARWIN)
+    CXPLAT_STATIC_ASSERT(sizeof(uint32_t) == sizeof(CXPLAT_THREAD_ID), "The cast depends on thread id being 32 bits");
+    uint64_t Tid;
+    int Res = pthread_threadid_np(NULL, &Tid);
+    UNREFERENCED_PARAMETER(Res);
+    CXPLAT_DBG_ASSERT(Res == 0);
+    CXPLAT_DBG_ASSERT(Tid <= UINT32_MAX);
+    return (CXPLAT_THREAD_ID)Tid;
+
+#endif // CX_PLATFORM_DARWIN
 }
 
 void

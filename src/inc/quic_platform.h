@@ -125,6 +125,13 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_OPER                      'D3cQ' // Qc3D - QUIC Operation
 #define QUIC_POOL_EVENT                     'E3cQ' // Qc3E - QUIC Event
 #define QUIC_POOL_TLS_RSA                   'F3cQ' // Qc3F - QUIC Platform NCrypt RSA Key
+#define QUIC_POOL_DESIRED_VER_LIST          '04cQ' // Qc40 - QUIC App-supplied desired versions list
+#define QUIC_POOL_DEFAULT_COMPAT_VER_LIST   '14cQ' // Qc41 - QUIC Default compatible versions list
+#define QUIC_POOL_VER_NEG_INFO              '24cQ' // Qc42 - QUIC Version negotiation info
+#define QUIC_POOL_RECVD_VER_LIST            '34cQ' // Qc43 - QUIC Received version negotiation list
+#define QUIC_POOL_TLS_TMP_TP                '44cQ' // Qc44 - QUIC Platform TLS Temporary TP storage
+#define QUIC_POOL_PCP                       '54cQ' // Qc45 - QUIC PCP
+#define QUIC_POOL_DATAPATH_ADDRESSES        '64cQ' // Qc46 - QUIC Datapath Addresses
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
@@ -145,7 +152,12 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_THREAD_FLAGS);
 #include <quic_platform_winuser.h>
 #elif CX_PLATFORM_LINUX
 #define CX_PLATFORM_TYPE 3
-#include <quic_platform_linux.h>
+#define CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE 1
+#include <quic_platform_posix.h>
+#elif CX_PLATFORM_DARWIN
+#define CX_PLATFORM_TYPE 4
+#define CX_PLATFORM_USES_TLS_BUILTIN_CERTIFICATE 1
+#include <quic_platform_posix.h>
 #else
 #define CX_PLATFORM_TYPE 0xFF
 #error "Unsupported Platform"
@@ -320,22 +332,55 @@ extern "C" {
 #endif
 
 typedef struct QUIC_CREDENTIAL_CONFIG QUIC_CREDENTIAL_CONFIG;
+typedef struct QUIC_CERTIFICATE_HASH QUIC_CERTIFICATE_HASH;
+typedef struct QUIC_CERTIFICATE_HASH_STORE QUIC_CERTIFICATE_HASH_STORE;
 
 typedef enum CXPLAT_SELF_SIGN_CERT_TYPE {
     CXPLAT_SELF_SIGN_CERT_USER,
     CXPLAT_SELF_SIGN_CERT_MACHINE
 } CXPLAT_SELF_SIGN_CERT_TYPE;
 
+typedef enum CXPLAT_TEST_CERT_TYPE {
+    CXPLAT_TEST_CERT_VALID_SERVER,
+    CXPLAT_TEST_CERT_VALID_CLIENT,
+    CXPLAT_TEST_CERT_EXPIRED_SERVER
+} CXPLAT_TEST_CERT_TYPE;
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
-CxPlatPlatGetSelfSignedCert(
-    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type
+CxPlatGetSelfSignedCert(
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
+    _In_ BOOLEAN ClientCertificate
+    );
+
+_Success_(return == TRUE)
+BOOLEAN
+CxPlatGetTestCertificate(
+    _In_ CXPLAT_TEST_CERT_TYPE Type,
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
+    _In_ uint32_t CredType,
+    _Out_ QUIC_CREDENTIAL_CONFIG* Params,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Reserved_)
+        QUIC_CERTIFICATE_HASH* CertHash,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Reserved_)
+        QUIC_CERTIFICATE_HASH_STORE* CertHashStore,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_NONE, _Out_z_bytecap_(100))
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_NONE, _Reserved_)
+        char Principal[100]
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatPlatFreeSelfSignedCert(
+CxPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeTestCert(
+    _In_ QUIC_CREDENTIAL_CONFIG* Params
     );
 
 #if defined(__cplusplus)

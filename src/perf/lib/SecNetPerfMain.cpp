@@ -16,7 +16,7 @@ Abstract:
 #include "HpsClient.h"
 
 #ifdef QUIC_CLOG
-#include "quicmain.cpp.clog.h"
+#include "SecNetPerfMain.cpp.clog.h"
 #endif
 
 const MsQuicApi* MsQuic;
@@ -32,6 +32,45 @@ CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 CXPLAT_DATAPATH* Datapath;
 CXPLAT_SOCKET* Binding;
 bool ServerMode = false;
+uint32_t MaxRuntime = 0;
+
+#define ASSERT_ON_FAILURE(x) \
+    do { \
+        QUIC_STATUS _STATUS; \
+        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED((_STATUS = x))); \
+    } while (0)
+
+class SecNetPerfWatchdog {
+    CXPLAT_THREAD WatchdogThread;
+    CXPLAT_EVENT ShutdownEvent;
+    uint32_t TimeoutMs;
+    static
+    CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
+        auto This = (SecNetPerfWatchdog*)Context;
+        if (!CxPlatEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
+            WriteOutput("Watchdog timeout fired!\n");
+            CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
+        }
+        CXPLAT_THREAD_RETURN(0);
+    }
+public:
+    SecNetPerfWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
+        CxPlatEventInitialize(&ShutdownEvent, TRUE, FALSE);
+        CXPLAT_THREAD_CONFIG Config = { 0 };
+        Config.Name = "perf_watchdog";
+        Config.Callback = WatchdogThreadCallback;
+        Config.Context = this;
+        ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &WatchdogThread));
+    }
+    ~SecNetPerfWatchdog() {
+        CxPlatEventSet(ShutdownEvent);
+        CxPlatThreadWait(&WatchdogThread);
+        CxPlatThreadDelete(&WatchdogThread);
+        CxPlatEventUninitialize(ShutdownEvent);
+    }
+};
+
+SecNetPerfWatchdog* Watchdog;
 
 static
 void
@@ -39,13 +78,13 @@ PrintHelp(
     ) {
     WriteOutput(
         "\n"
-        "quicperf usage:\n"
+        "secnetperf usage:\n"
         "\n"
-        "Server: quicperf [options]\n"
+        "Server: secnetperf [options]\n"
         "\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "\n"
-        "Client: quicperf -TestName:<Throughput|RPS|HPS> [options]\n"
+        "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
         "\n",
         PERF_DEFAULT_PORT
         );
@@ -71,6 +110,14 @@ QuicMainStart(
     }
 
     ServerMode = TestName == nullptr;
+    TryGetValue(argc, argv, "maxruntime", &MaxRuntime);
+
+    uint32_t WatchdogTimeout = 0;
+    TryGetValue(argc, argv, "watchdog", &WatchdogTimeout);
+
+    if (WatchdogTimeout != 0) {
+        Watchdog = new(std::nothrow) SecNetPerfWatchdog{WatchdogTimeout};
+    }
 
     QUIC_STATUS Status;
 
@@ -88,10 +135,15 @@ QuicMainStart(
         }
 
         QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
-        Status = CxPlatSocketCreateUdp(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
+        Status = CxPlatSocketCreateUdp(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, 0, &Binding);
         if (QUIC_FAILED(Status)) {
             CxPlatDataPathUninitialize(Datapath);
             Datapath = nullptr;
+            //
+            // Must explicitly set binding to null, as CxPlatSocketCreateUdp
+            // can set the Binding variable even in invalid cases.
+            //
+            Binding = nullptr;
             WriteOutput("Datapath Binding for shutdown failed to initialize: %d\n", Status);
             return Status;
         }
@@ -105,6 +157,8 @@ QuicMainStart(
     if (QUIC_FAILED(Status = MsQuic->GetInitStatus())) {
         delete MsQuic;
         MsQuic = nullptr;
+        delete Watchdog;
+        Watchdog = nullptr;
         WriteOutput("MsQuic Failed To Initialize: %d\n", Status);
         return Status;
     }
@@ -122,6 +176,8 @@ QuicMainStart(
             PrintHelp();
             delete MsQuic;
             MsQuic = nullptr;
+            delete Watchdog;
+            Watchdog = nullptr;
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
@@ -147,19 +203,15 @@ QuicMainStart(
     TestToRun = nullptr;
     delete MsQuic;
     MsQuic = nullptr;
+    delete Watchdog;
+    Watchdog = nullptr;
     return Status;
 }
 
 QUIC_STATUS
 QuicMainStop(
-    _In_ int Timeout
     ) {
-    if (TestToRun == nullptr) {
-        return QUIC_STATUS_SUCCESS;
-    }
-
-    QUIC_STATUS Status = TestToRun->Wait(Timeout);
-    return Status;
+    return TestToRun ? TestToRun->Wait((int)MaxRuntime) : QUIC_STATUS_SUCCESS;
 }
 
 void
@@ -179,6 +231,9 @@ QuicMainFree(
         CxPlatDataPathUninitialize(Datapath);
         Datapath = nullptr;
     }
+
+    delete Watchdog;
+    Watchdog = nullptr;
 }
 
 QUIC_STATUS

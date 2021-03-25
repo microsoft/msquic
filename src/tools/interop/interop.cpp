@@ -25,7 +25,6 @@ Abstract:
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
-int EndpointIndex = -1;
 uint32_t TestCases = QuicTestFeatureAll;
 uint32_t WaitTimeoutMs = 10000;
 uint32_t InitialVersion = 0;
@@ -84,7 +83,7 @@ QuicPublicEndpoint PublicEndpoints[] = {
     { "haskell",        "mew.org" },
     { "lsquic",         "http3-test.litespeedtech.com" },
     { "mvfst",          "fb.mvfst.net" },
-    { "msquic",         "quic.westus.cloudapp.azure.com" },
+    { "msquic",         "msquic.net" },
     { "ngtcp2",         "nghttp2.org" },
     { "ngx_quic",       "cloudflare-quic.com" },
     { "Pandora",        "pandora.cm.in.tum.de" },
@@ -376,21 +375,31 @@ public:
                 this,
                 &Connection));
         if (VerNeg) {
+            uint32_t DesiredVersions[] = { RandomReservedVersion, 0x00000001U, 0xff00001dU };
+            QUIC_SETTINGS Settings = { 0 };
+            Settings.DesiredVersionsList = DesiredVersions;
+            Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
+            Settings.IsSet.DesiredVersionsList = TRUE;
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_QUIC_VERSION,
-                    sizeof(RandomReservedVersion),
-                    &RandomReservedVersion));
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
         } else if (InitialVersion != 0) {
+            uint32_t DesiredVersions[] = { InitialVersion, 0x00000001U, 0xff00001dU };
+            QUIC_SETTINGS Settings = { 0 };
+            Settings.DesiredVersionsList = DesiredVersions;
+            Settings.DesiredVersionsListLength = ARRAYSIZE(DesiredVersions);
+            Settings.IsSet.DesiredVersionsList = TRUE;
             VERIFY_QUIC_SUCCESS(
                 MsQuic->SetParam(
                     Connection,
                     QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_QUIC_VERSION,
-                    sizeof(InitialVersion),
-                    &InitialVersion));
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(Settings),
+                    &Settings));
         }
         if (LargeTP) {
             VERIFY_QUIC_SUCCESS(
@@ -961,7 +970,7 @@ CXPLAT_THREAD_CALLBACK(InteropTestCallback, Context)
     QuicTraceLogInfo(
         InteropTestStart,
         "[ntrp] Test Start, Server: %s, Port: %hu, Tests: 0x%x.",
-        PublicEndpoints[EndpointIndex].ServerName,
+        PublicEndpoints[TestContext->EndpointIndex].ServerName,
         TestContext->Port,
         (uint32_t)TestContext->Feature);
 
@@ -991,7 +1000,7 @@ CXPLAT_THREAD_CALLBACK(InteropTestCallback, Context)
     QuicTraceLogInfo(
         InteropTestStop,
         "[ntrp] Test Stop, Server: %s, Port: %hu, Tests: 0x%x, Negotiated Alpn: %s, Passed: %s.",
-        PublicEndpoints[EndpointIndex].ServerName,
+        PublicEndpoints[TestContext->EndpointIndex].ServerName,
         TestContext->Port,
         (uint32_t)TestContext->Feature,
         Alpn,
@@ -1054,7 +1063,7 @@ PrintTestResults(
 }
 
 void
-RunInteropTests()
+RunInteropTests(int EndpointIndex)
 {
     const uint16_t* Ports = CustomPort == 0 ? PublicPorts : &CustomPort;
     const uint32_t PortsCount = CustomPort == 0 ? PublicPortsCount : 1;
@@ -1144,6 +1153,8 @@ main(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     )
 {
+    int EndpointIndex = -1;
+
     if (GetValue(argc, argv, "help") ||
         GetValue(argc, argv, "?")) {
         PrintUsage();
@@ -1237,7 +1248,7 @@ main(
         EndpointIndex = (int)PublicEndpointsCount;
     }
 
-    RunInteropTests();
+    RunInteropTests(EndpointIndex);
 
     if (CustomUrlPath && TestFailed) {
         Status = QUIC_STATUS_ABORTED;

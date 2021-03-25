@@ -47,9 +47,6 @@ Environment:
 #ifdef _M_X64
 #include <intrin.h>
 #endif
-#ifdef QUIC_TELEMETRY_ASSERTS
-#include <telemetry\MicrosoftTelemetryAssert.h>
-#endif
 #include <msquic_winuser.h>
 #pragma warning(pop)
 
@@ -81,6 +78,8 @@ extern "C" {
 
 #define ALIGN_UP(length, type) \
     (ALIGN_DOWN(((ULONG)(length) + sizeof(type) - 1), type))
+
+#define INIT_NO_SAL(X) // No-op since Windows supports SAL
 
 //
 // Library Initialization
@@ -125,39 +124,10 @@ CxPlatUninitialize(
     );
 
 //
-// Assertion Interfaces
+// Static Analysis Interfaces
 //
 
-#define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X,Y)
-
-#define CXPLAT_ANALYSIS_ASSERT(X) __analysis_assert(X)
-
-//
-// Logs the assertion failure to ETW.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CxPlatLogAssert(
-    _In_z_ const char* File,
-    _In_ int Line,
-    _In_z_ const char* Expr
-    );
-
-#define QUIC_WIDE_STRING(_str) L##_str
-
-#define QUIC_ASSERT_ACTION(_exp) \
-    ((!(_exp)) ? \
-        (CxPlatLogAssert(__FILE__, __LINE__, #_exp), \
-         __annotation(L"Debug", L"AssertFail", QUIC_WIDE_STRING(#_exp)), \
-         DbgRaiseAssertionFailure(), FALSE) : \
-        TRUE)
-
-#define QUIC_ASSERTMSG_ACTION(_msg, _exp) \
-    ((!(_exp)) ? \
-        (CxPlatLogAssert(__FILE__, __LINE__, #_exp), \
-         __annotation(L"Debug", L"AssertFail", L##_msg), \
-         DbgRaiseAssertionFailure(), FALSE) : \
-        TRUE)
+#define QUIC_NO_SANITIZE(X)
 
 #if defined(_PREFAST_)
 // _Analysis_assume_ will never result in any code generation for _exp,
@@ -175,52 +145,83 @@ CxPlatLogAssert(
 #endif // DEBUG
 #endif // _PREFAST_
 
-#define QUIC_NO_SANITIZE(X)
+#ifdef __clang__
+#define CXPLAT_STATIC_ASSERT(X,Y) _Static_assert(X,Y)
+#else
+#define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X,Y)
+#endif
 
+#define CXPLAT_ANALYSIS_ASSERT(X) __analysis_assert(X)
+
+//
+// Assertion Interfaces
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatLogAssert(
+    _In_z_ const char* File,
+    _In_ int Line,
+    _In_z_ const char* Expr
+    );
+
+#define CXPLAT_WIDE_STRING(_str) L##_str
+
+#define CXPLAT_ASSERT_NOOP(_exp, _msg) \
+    (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
+
+#define CXPLAT_ASSERT_LOG(_exp, _msg) \
+    (CXPLAT_ANALYSIS_ASSUME(_exp), \
+    ((!(_exp)) ? (CxPlatLogAssert(__FILE__, __LINE__, #_exp), FALSE) : TRUE))
+
+#define CXPLAT_ASSERT_CRASH(_exp, _msg) \
+    (CXPLAT_ANALYSIS_ASSUME(_exp), \
+    ((!(_exp)) ? \
+        (CxPlatLogAssert(__FILE__, __LINE__, #_exp), \
+         __annotation(L"Debug", L"AssertFail", _msg), \
+         DbgRaiseAssertionFailure(), FALSE) : \
+        TRUE))
 
 //
 // MsQuic uses three types of asserts:
 //
 //  CXPLAT_DBG_ASSERT - Asserts that are too expensive to evaluate all the time.
 //  CXPLAT_TEL_ASSERT - Asserts that are acceptable to always evaluate, but not
-//                    always crash the process.
-//  CXPLAT_FRE_ASSERT - Asserts that must always crash the process.
+//                      always crash the system.
+//  CXPLAT_FRE_ASSERT - Asserts that must always crash the system.
 //
 
 #if DEBUG
-#define CXPLAT_DBG_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
-#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_DBG_ASSERT(_exp)          CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
 #else
-#define CXPLAT_DBG_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
+#define CXPLAT_DBG_ASSERT(_exp)          CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_DBG_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(_msg))
 #endif
 
 #if DEBUG
-#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
-#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_TEL_ASSERT(_exp)          CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
 #define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-     (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+                                         CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
+#elif QUIC_TELEMETRY_ASSERTS
+#define CXPLAT_TEL_ASSERT(_exp)          CXPLAT_ASSERT_LOG(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_LOG(_exp, CXPLAT_WIDE_STRING(_msg))
+#define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
+                                         CXPLAT_ASSERT_LOG(_exp, CXPLAT_WIDE_STRING(_msg))
 #else
-#ifdef MICROSOFT_TELEMETRY_ASSERT
-#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT(_exp))
-#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG(_exp, _msg))
+#define CXPLAT_TEL_ASSERT(_exp)          CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(_msg))
 #define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-    (CXPLAT_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG_WITH_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2))
-#else
-#define CXPLAT_TEL_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#define CXPLAT_TEL_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#define CXPLAT_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
-    (CXPLAT_ANALYSIS_ASSUME(_exp), 0)
-#endif
+                                         CXPLAT_ASSERT_NOOP(_exp, CXPLAT_WIDE_STRING(_msg))
 #endif
 
-#define CXPLAT_FRE_ASSERT(_exp)          (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
-#define CXPLAT_FRE_ASSERTMSG(_exp, _msg) (CXPLAT_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
+#define CXPLAT_FRE_ASSERT(_exp)          CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(#_exp))
+#define CXPLAT_FRE_ASSERTMSG(_exp, _msg) CXPLAT_ASSERT_CRASH(_exp, CXPLAT_WIDE_STRING(_msg))
 
 //
 // Verifier is enabled.
 //
-#define QuicVerifierEnabled(Flags) \
+#define CxPlatVerifierEnabled(Flags) \
     (GetModuleHandleW(L"verifier.dll") != NULL && \
      GetModuleHandleW(L"vrfcore.dll") != NULL), \
     Flags = 0
@@ -237,6 +238,20 @@ CxPlatLogAssert(
 #define CXPLAT_IRQL() PASSIVE_LEVEL
 
 #define CXPLAT_PASSIVE_CODE() CXPLAT_DBG_ASSERT(CXPLAT_IRQL() == PASSIVE_LEVEL)
+
+//
+// Wrapper functions
+//
+
+//
+// CloseHandle has an incorrect SAL annotation, so call through a wrapper.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+CxPlatCloseHandle(_Pre_notnull_ HANDLE Handle) {
+    CloseHandle(Handle);
+}
 
 //
 // Allocation/Memory Interfaces
@@ -524,9 +539,10 @@ CxPlatRefDecrement(
 
 typedef HANDLE CXPLAT_EVENT;
 
-#define CxPlatEventInitialize(Event, ManualReset, InitialState) \
-    *(Event) = CreateEvent(NULL, ManualReset, InitialState, NULL)
-#define CxPlatEventUninitialize(Event) CloseHandle(Event)
+#define CxPlatEventInitialize(Event, ManualReset, InitialState)     \
+    *(Event) = CreateEvent(NULL, ManualReset, InitialState, NULL);  \
+    CXPLAT_DBG_ASSERT(*Event != NULL)
+#define CxPlatEventUninitialize(Event) CxPlatCloseHandle(Event)
 #define CxPlatEventSet(Event) SetEvent(Event)
 #define CxPlatEventReset(Event) ResetEvent(Event)
 #define CxPlatEventWaitForever(Event) WaitForSingleObject(Event, INFINITE)
@@ -883,7 +899,7 @@ CxPlatThreadCreate(
     }
     return QUIC_STATUS_SUCCESS;
 }
-#define CxPlatThreadDelete(Thread) CloseHandle(*(Thread))
+#define CxPlatThreadDelete(Thread) CxPlatCloseHandle(*(Thread))
 #define CxPlatThreadWait(Thread) WaitForSingleObject(*(Thread), INFINITE)
 typedef uint32_t CXPLAT_THREAD_ID;
 #define CxPlatCurThreadID() GetCurrentThreadId()
@@ -906,14 +922,16 @@ typedef struct CXPLAT_RUNDOWN_REF {
 
 } CXPLAT_RUNDOWN_REF;
 
-#define CxPlatRundownInitialize(Rundown) \
-    CxPlatRefInitialize(&(Rundown)->RefCount); \
-    (Rundown)->RundownComplete = CreateEvent(NULL, FALSE, FALSE, NULL)
-#define CxPlatRundownInitializeDisabled(Rundown) \
-    (Rundown)->RefCount = 0; \
-    (Rundown)->RundownComplete = CreateEvent(NULL, FALSE, FALSE, NULL)
+#define CxPlatRundownInitialize(Rundown)                                \
+    CxPlatRefInitialize(&(Rundown)->RefCount);                          \
+    (Rundown)->RundownComplete = CreateEvent(NULL, FALSE, FALSE, NULL); \
+    CXPLAT_DBG_ASSERT((Rundown)->RundownComplete != NULL)
+#define CxPlatRundownInitializeDisabled(Rundown)                        \
+    (Rundown)->RefCount = 0;                                            \
+    (Rundown)->RundownComplete = CreateEvent(NULL, FALSE, FALSE, NULL); \
+    CXPLAT_DBG_ASSERT((Rundown)->RundownComplete != NULL)
 #define CxPlatRundownReInitialize(Rundown) (Rundown)->RefCount = 1
-#define CxPlatRundownUninitialize(Rundown) CloseHandle((Rundown)->RundownComplete)
+#define CxPlatRundownUninitialize(Rundown) CxPlatCloseHandle((Rundown)->RundownComplete)
 #define CxPlatRundownAcquire(Rundown) CxPlatRefIncrementNonZero(&(Rundown)->RefCount, 1)
 #define CxPlatRundownRelease(Rundown) \
     if (CxPlatRefDecrement(&(Rundown)->RefCount)) { \
@@ -936,6 +954,14 @@ QUIC_STATUS
 CxPlatRandom(
     _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) void* Buffer
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatUtf8ToWideChar(
+    _In_z_ const char* const Input,
+    _In_ uint32_t Tag,
+    _Outptr_result_z_ PWSTR* Output
     );
 
 //

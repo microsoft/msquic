@@ -18,8 +18,11 @@ Abstract:
 #endif
 
 const MsQuicApi* MsQuic;
-QUIC_CREDENTIAL_CONFIG SelfSignedCredConfig;
+QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
+QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
+QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QUIC_CERTIFICATE_HASH SelfSignedCertHash;
+QUIC_CERTIFICATE_HASH ClientCertHash;
 
 #ifdef PRIVATE_LIBRARY
 DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\" QUIC_DRIVER_NAME_PRIVATE);
@@ -324,7 +327,7 @@ QuicTestCtlEvtFileCleanup(
             "[test] Client %p cleaning up",
             Client);
 
-        SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
+        ServerSelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
         QuicTestClient = nullptr;
     }
 
@@ -367,7 +370,7 @@ error:
 size_t QUIC_IOCTL_BUFFER_SIZES[] =
 {
     0,
-    sizeof(QUIC_CERTIFICATE_HASH),
+    sizeof(QUIC_RUN_CERTIFICATE_PARAMS),
     0,
     0,
     0,
@@ -412,15 +415,29 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     sizeof(INT32),
     0,
-    sizeof(INT32)
+    sizeof(INT32),
+    sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
+    sizeof(INT32),
+    sizeof(INT32),
+    sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
+    sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
+    sizeof(QUIC_RUN_VERSION_NEGOTIATION_EXT),
+    sizeof(INT32),
+    sizeof(INT32),
+    0,
+    sizeof(QUIC_RUN_CONNECT_CLIENT_CERT),
+    0,
+    0,
+    sizeof(QUIC_RUN_CRED_VALIDATION),
+    sizeof(QUIC_RUN_CRED_VALIDATION)
 };
 
-static_assert(
+CXPLAT_STATIC_ASSERT(
     QUIC_MAX_IOCTL_FUNC_CODE + 1 == (sizeof(QUIC_IOCTL_BUFFER_SIZES)/sizeof(size_t)),
     "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOTCLs");
 
 typedef union {
-    QUIC_CERTIFICATE_HASH CertHash;
+    QUIC_RUN_CERTIFICATE_PARAMS CertParams;
     QUIC_CERTIFICATE_HASH_STORE CertHashStore;
     UINT8 Connect;
     INT32 Family;
@@ -434,6 +451,10 @@ typedef union {
     UINT8 StopListenerFirst;
     QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams;
     QUIC_RUN_DATAGRAM_NEGOTIATION DatagramNegotiationParams;
+    QUIC_RUN_CUSTOM_CERT_VALIDATION CustomCertValidationParams;
+    QUIC_RUN_VERSION_NEGOTIATION_EXT VersionNegotiationExtParams;
+    QUIC_RUN_CONNECT_CLIENT_CERT ConnectClientCertParams;
+    QUIC_RUN_CRED_VALIDATION CredValidationParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -536,8 +557,8 @@ QuicTestCtlEvtIoDeviceControl(
         Client,
         FunctionCode);
 
-    if (IoControlCode != IOCTL_QUIC_SET_CERT_HASH &&
-        SelfSignedCredConfig.Type == QUIC_CREDENTIAL_TYPE_NONE) {
+    if (IoControlCode != IOCTL_QUIC_SET_CERT_PARAMS &&
+        ServerSelfSignedCredConfig.Type == QUIC_CREDENTIAL_TYPE_NONE) {
         Status = STATUS_INVALID_DEVICE_STATE;
         QuicTraceEvent(
             LibraryError,
@@ -548,12 +569,19 @@ QuicTestCtlEvtIoDeviceControl(
 
     switch (IoControlCode) {
 
-    case IOCTL_QUIC_SET_CERT_HASH:
+    case IOCTL_QUIC_SET_CERT_PARAMS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
-        SelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
-        SelfSignedCredConfig.CertificateHash = &SelfSignedCertHash;
-        RtlCopyMemory(&SelfSignedCertHash.ShaHash, &Params->CertHash, sizeof(QUIC_CERTIFICATE_HASH));
+        ServerSelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ServerSelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
+        ServerSelfSignedCredConfig.CertificateHash = &SelfSignedCertHash;
+        ServerSelfSignedCredConfigClientAuth.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ServerSelfSignedCredConfigClientAuth.Flags = QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+        ServerSelfSignedCredConfigClientAuth.CertificateHash = &SelfSignedCertHash;
+        RtlCopyMemory(&SelfSignedCertHash.ShaHash, &Params->CertParams.ServerCertHash, sizeof(QUIC_CERTIFICATE_HASH));
+        ClientCertCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        ClientCertCredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+        ClientCertCredConfig.CertificateHash = &ClientCertHash;
+        RtlCopyMemory(&ClientCertHash.ShaHash, &Params->CertParams.ClientCertHash, sizeof(QUIC_CERTIFICATE_HASH));
         Status = QUIC_STATUS_SUCCESS;
         break;
 
@@ -616,7 +644,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params1.MultipleALPNs != 0,
                 Params->Params1.AsyncConfiguration != 0,
                 Params->Params1.MultiPacketClientInitial != 0,
-                Params->Params1.SessionResumption != 0,
+                (QUIC_TEST_RESUMPTION_MODE)Params->Params1.SessionResumption,
                 Params->Params1.RandomLossPercentage
                 ));
         break;
@@ -819,6 +847,123 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestAckSendDelay(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestCustomCertificateValidation(
+                Params->CustomCertValidationParams.AcceptCert,
+                Params->CustomCertValidationParams.AsyncValidation));
+        break;
+
+    case IOCTL_QUIC_RUN_VERSION_NEGOTIATION_RETRY:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestVersionNegotiationRetry(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_RETRY:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestCompatibleVersionNegotiationRetry(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestCompatibleVersionNegotiation(
+                Params->VersionNegotiationExtParams.Family,
+                Params->VersionNegotiationExtParams.DisableVNEClient,
+                Params->VersionNegotiationExtParams.DisableVNEServer));
+        break;
+
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestCompatibleVersionNegotiationDefaultServer(
+                Params->VersionNegotiationExtParams.Family,
+                Params->VersionNegotiationExtParams.DisableVNEClient,
+                Params->VersionNegotiationExtParams.DisableVNEServer));
+        break;
+
+    case IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestCompatibleVersionNegotiationDefaultClient(
+                Params->VersionNegotiationExtParams.Family,
+                Params->VersionNegotiationExtParams.DisableVNEClient,
+                Params->VersionNegotiationExtParams.DisableVNEServer));
+        break;
+
+    case IOCTL_QUIC_RUN_INCOMPATIBLE_VERSION_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestIncompatibleVersionNegotiation(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_FAILED_VERSION_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestFailedVersionNegotiation(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_DESIRED_VERSIONS_SETTINGS:
+        QuicTestCtlRun(QuicTestDesiredVersionSettings());
+        break;
+
+    case IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestConnectClientCertificate(
+                Params->ConnectClientCertParams.Family,
+                Params->ConnectClientCertParams.UseClientCert));
+        break;
+
+    case IOCTL_QUIC_RUN_VALID_ALPN_LENGTHS:
+        QuicTestCtlRun(QuicTestValidAlpnLengths());
+        break;
+
+    case IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS:
+        QuicTestCtlRun(QuicTestInvalidAlpnLengths());
+        break;
+
+    case IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        //
+        // Fix up pointers for kernel mode
+        //
+        switch (Params->CredValidationParams.CredConfig.Type) {
+        case QUIC_CREDENTIAL_TYPE_NONE:
+            Params->CredValidationParams.CredConfig.Principal = (const char*)Params->CredValidationParams.PrincipalString;
+            break;
+        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+            Params->CredValidationParams.CredConfig.CertificateHash = &Params->CredValidationParams.CertHash;
+            break;
+        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+            Params->CredValidationParams.CredConfig.CertificateHashStore = &Params->CredValidationParams.CertHashStore;
+            break;
+        }
+        QuicTestCtlRun(
+            QuicTestConnectExpiredServerCertificate(
+                &Params->CredValidationParams.CredConfig));
+        break;
+
+    case IOCTL_QUIC_RUN_VALID_SERVER_CERT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        //
+        // Fix up pointers for kernel mode
+        //
+        switch (Params->CredValidationParams.CredConfig.Type) {
+        case QUIC_CREDENTIAL_TYPE_NONE:
+            Params->CredValidationParams.CredConfig.Principal = (const char*)Params->CredValidationParams.PrincipalString;
+            break;
+        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+            Params->CredValidationParams.CredConfig.CertificateHash = &Params->CredValidationParams.CertHash;
+            break;
+        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+            Params->CredValidationParams.CredConfig.CertificateHashStore = &Params->CredValidationParams.CertHashStore;
+            break;
+        }
+        QuicTestCtlRun(
+            QuicTestConnectValidServerCertificate(
+                &Params->CredValidationParams.CredConfig));
         break;
 
     default:

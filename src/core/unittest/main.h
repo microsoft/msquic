@@ -79,6 +79,12 @@ std::ostream& operator << (std::ostream& o, const QUIC_FRAME_TYPE& type) {
             return o << "QUIC_FRAME_CONNECTION_CLOSE_1";
         case QUIC_FRAME_HANDSHAKE_DONE:
             return o << "QUIC_FRAME_HANDSHAKE_DONE";
+        case QUIC_FRAME_DATAGRAM:
+            return o << "QUIC_FRAME_DATAGRAM";
+        case QUIC_FRAME_DATAGRAM_1:
+            return o << "QUIC_FRAME_DATAGRAM_1";
+        case QUIC_FRAME_ACK_FREQUENCY:
+            return o << "QUIC_FRAME_ACK_FREQUENCY";
         default:
             return o << "UNRECOGNIZED_FRAME_TYPE(" << (uint32_t) type << ")";
     }

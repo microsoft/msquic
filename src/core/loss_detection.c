@@ -242,7 +242,8 @@ typedef enum QUIC_LOSS_TIMER_TYPE {
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionUpdateTimer(
-    _In_ QUIC_LOSS_DETECTION* LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
+    _In_ BOOLEAN ExecuteImmediatelyIfNecessary
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
@@ -371,15 +372,25 @@ QuicLossDetectionUpdateTimer(
         Delay = US_TO_MS(Delay) + 1;
     }
 
-    QuicTraceEvent(
-        ConnLossDetectionTimerSet,
-        "[conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)",
-        Connection,
-        TimeoutType,
-        Delay,
-        LossDetection->ProbeCount);
-    UNREFERENCED_PARAMETER(TimeoutType);
-    QuicConnTimerSet(Connection, QUIC_CONN_TIMER_LOSS_DETECTION, Delay);
+    if (Delay == 0 && ExecuteImmediatelyIfNecessary) {
+        //
+        // In some cases if the timer already should have elapsed we will
+        // immediately process it inline. Otherwise (the normal case) we will
+        // just queue the timer to be processed after the current work.
+        //
+        QuicLossDetectionProcessTimerOperation(LossDetection);
+
+    } else {
+        QuicTraceEvent(
+            ConnLossDetectionTimerSet,
+            "[conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)",
+            Connection,
+            TimeoutType,
+            Delay,
+            LossDetection->ProbeCount);
+        UNREFERENCED_PARAMETER(TimeoutType);
+        QuicConnTimerSet(Connection, QUIC_CONN_TIMER_LOSS_DETECTION, Delay);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -533,7 +544,8 @@ QuicLossDetectionOnPacketAcknowledged(
                 QuicSendSetStreamSendFlag(
                     &Connection->Send,
                     Packet->Frames[i].STREAM_DATA_BLOCKED.Stream,
-                    QUIC_STREAM_SEND_FLAG_DATA_BLOCKED);
+                    QUIC_STREAM_SEND_FLAG_DATA_BLOCKED,
+                    FALSE);
             }
             break;
 
@@ -637,7 +649,8 @@ QuicLossDetectionRetransmitFrames(
                 QuicSendSetStreamSendFlag(
                     &Connection->Send,
                     Packet->Frames[i].RESET_STREAM.Stream,
-                    QUIC_STREAM_SEND_FLAG_SEND_ABORT);
+                    QUIC_STREAM_SEND_FLAG_SEND_ABORT,
+                    FALSE);
             break;
 
         case QUIC_FRAME_STOP_SENDING:
@@ -645,7 +658,8 @@ QuicLossDetectionRetransmitFrames(
                 QuicSendSetStreamSendFlag(
                     &Connection->Send,
                     Packet->Frames[i].STOP_SENDING.Stream,
-                    QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+                    QUIC_STREAM_SEND_FLAG_RECV_ABORT,
+                    FALSE);
             break;
 
         case QUIC_FRAME_CRYPTO:
@@ -681,7 +695,8 @@ QuicLossDetectionRetransmitFrames(
                 QuicSendSetStreamSendFlag(
                     &Connection->Send,
                     Packet->Frames[i].MAX_STREAM_DATA.Stream,
-                    QUIC_STREAM_SEND_FLAG_MAX_DATA);
+                    QUIC_STREAM_SEND_FLAG_MAX_DATA,
+                    FALSE);
             break;
 
         case QUIC_FRAME_MAX_STREAMS:
@@ -703,7 +718,8 @@ QuicLossDetectionRetransmitFrames(
                 QuicSendSetStreamSendFlag(
                     &Connection->Send,
                     Packet->Frames[i].STREAM_DATA_BLOCKED.Stream,
-                    QUIC_STREAM_SEND_FLAG_DATA_BLOCKED);
+                    QUIC_STREAM_SEND_FLAG_DATA_BLOCKED,
+                    FALSE);
             break;
 
         case QUIC_FRAME_NEW_CONNECTION_ID: {
@@ -1238,6 +1254,15 @@ QuicLossDetectionProcessAckBlocks(
 
                 QuicLossValidate(LossDetection);
             }
+
+            if (LossDetection->LostPackets == NULL) {
+                //
+                // All previously considered lost packets were found to be
+                // spuriously lost. Inform congestion control.
+                //
+                QuicCongestionControlOnSpuriousCongestionEvent(
+                    &Connection->CongestionControl);
+            }
         }
 
         //
@@ -1378,7 +1403,7 @@ QuicLossDetectionProcessAckBlocks(
     // At least one packet was ACKed. If all packets were ACKed then we'll
     // cancel the timer; otherwise we'll reset the timer.
     //
-    QuicLossDetectionUpdateTimer(LossDetection);
+    QuicLossDetectionUpdateTimer(LossDetection, FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1599,6 +1624,6 @@ QuicLossDetectionProcessTimerOperation(
             QuicLossDetectionScheduleProbe(LossDetection);
         }
 
-        QuicLossDetectionUpdateTimer(LossDetection);
+        QuicLossDetectionUpdateTimer(LossDetection, FALSE);
     }
 }

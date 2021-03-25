@@ -19,6 +19,8 @@
 #include "quic_gtest.h.clog.h"
 #endif
 
+extern bool TestingKernelMode;
+
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
 };
@@ -46,19 +48,13 @@ struct HandshakeArgs1 {
     bool ServerStatelessRetry;
     bool MultipleALPNs;
     bool MultiPacketClientInitial;
-    bool SessionResumption;
     static ::std::vector<HandshakeArgs1> Generate() {
         ::std::vector<HandshakeArgs1> list;
         for (int Family : { 4, 6})
         for (bool ServerStatelessRetry : { false, true })
         for (bool MultipleALPNs : { false, true })
         for (bool MultiPacketClientInitial : { false, true })
-#ifdef QUIC_DISABLE_RESUMPTION
-        for (bool SessionResumption : { false })
-#else
-        for (bool SessionResumption : { false, true })
-#endif
-            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs, MultiPacketClientInitial, SessionResumption });
+            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs, MultiPacketClientInitial });
         return list;
     }
 };
@@ -68,8 +64,7 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs1& args) {
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
         (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN") << "/" <<
-        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
-        (args.SessionResumption ? "Resume" : "NoResume");
+        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial");
 }
 
 class WithHandshakeArgs1 : public testing::Test,
@@ -127,20 +122,14 @@ struct HandshakeArgs4 {
     int Family;
     bool ServerStatelessRetry;
     bool MultiPacketClientInitial;
-    bool SessionResumption;
     uint8_t RandomLossPercentage;
     static ::std::vector<HandshakeArgs4> Generate() {
         ::std::vector<HandshakeArgs4> list;
         for (int Family : { 4, 6})
         for (bool ServerStatelessRetry : { false, true })
         for (bool MultiPacketClientInitial : { false, true })
-#ifdef QUIC_DISABLE_RESUMPTION
-        for (bool SessionResumption : { false })
-#else
-        for (bool SessionResumption : { false, true })
-#endif
         for (uint8_t RandomLossPercentage : { 1, 5, 10 })
-            list.push_back({ Family, ServerStatelessRetry, MultiPacketClientInitial, SessionResumption, RandomLossPercentage });
+            list.push_back({ Family, ServerStatelessRetry, MultiPacketClientInitial, RandomLossPercentage });
         return list;
     }
 };
@@ -150,12 +139,80 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs4& args) {
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
         (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
-        (args.SessionResumption ? "Resume" : "NoResume") << "/" <<
         (uint32_t)args.RandomLossPercentage << "% loss";
 }
 
 class WithHandshakeArgs4 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs4> {
+};
+
+struct HandshakeArgs5 {
+    bool AcceptCert;
+    bool AsyncValidation;
+    static ::std::vector<HandshakeArgs5> Generate() {
+        ::std::vector<HandshakeArgs5> list;
+        for (bool AcceptCert : { false, true })
+        for (bool AsyncValidation : { false, true })
+            list.push_back({ AcceptCert, AsyncValidation });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs5& args) {
+    return o <<
+        (args.AcceptCert ? "Accept" : "Reject") << "/" <<
+        (args.AsyncValidation ? "Async" : "Sync");
+}
+
+class WithHandshakeArgs5 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs5> {
+};
+
+struct VersionNegotiationExtArgs {
+    int Family;
+    bool DisableVNEClient;
+    bool DisableVNEServer;
+    static ::std::vector<VersionNegotiationExtArgs> Generate() {
+        ::std::vector<VersionNegotiationExtArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool DisableVNEClient : { false, true })
+        for (bool DisableVNEServer : { false, true })
+            list.push_back({ Family, DisableVNEClient, DisableVNEServer });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const VersionNegotiationExtArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.DisableVNEClient ? "DisableClient" : "EnableClient") << "/" <<
+        (args.DisableVNEServer ? "DisableServer" : "EnableServer");
+}
+
+class WithVersionNegotiationExtArgs : public testing::Test,
+    public testing::WithParamInterface<VersionNegotiationExtArgs> {
+};
+
+struct HandshakeArgs6 {
+    int Family;
+    bool UseClientCertificate;
+    static ::std::vector<HandshakeArgs6> Generate() {
+        ::std::vector<HandshakeArgs6> list;
+        for (int Family : { 4, 6 })
+        for (bool UseClientCertificate : { false, true })
+            list.push_back({ Family, UseClientCertificate });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs6& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.UseClientCertificate ? "Cert" : "NoCert");
+}
+
+class WithHandshakeArgs6 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs6> {
 };
 
 struct SendArgs1 {

@@ -191,8 +191,10 @@ typedef struct CXPLAT_SEC_CONFIG {
 
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
+    CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags;
     CXPLAT_TLS_CALLBACKS Callbacks;
     QUIC_CERTIFICATE* Certificate;
+    QUIC_TICKET_KEY_CONFIG TicketKeyConfig;
     uint16_t FormatLength;
     uint8_t FormatBuffer[SIZEOF_CERT_CHAIN_LIST_LENGTH];
 
@@ -280,6 +282,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
@@ -290,7 +293,8 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
@@ -316,6 +320,7 @@ CxPlatTlsSecConfigCreate(
     CxPlatZeroMemory(SecurityConfig, sizeof(CXPLAT_SEC_CONFIG));
     SecurityConfig->Type = CredConfig->Type;
     SecurityConfig->Flags = CredConfig->Flags;
+    SecurityConfig->TlsFlags = TlsCredFlags;
     SecurityConfig->Callbacks = *TlsCallbacks;
 
     if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
@@ -367,6 +372,20 @@ CxPlatTlsSecConfigDelete(
         CxPlatCertFree(SecurityConfig->Certificate);
     }
     CXPLAT_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsSecConfigSetTicketKeys(
+    _In_ CXPLAT_SEC_CONFIG* SecurityConfig,
+    _In_reads_(KeyCount) QUIC_TICKET_KEY_CONFIG* KeyConfig,
+    _In_ uint8_t KeyCount
+    )
+{
+    CXPLAT_DBG_ASSERT(KeyCount > 0);
+    UNREFERENCED_PARAMETER(KeyCount);
+    SecurityConfig->TicketKeyConfig = *KeyConfig; // Not actually used yet though
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -501,7 +520,6 @@ CxPlatTlsServerProcess(
     uint16_t DrainLength = 0;
 
     CXPLAT_FRE_ASSERT(State->BufferLength < State->BufferAllocLength);
-    __assume(State->BufferLength < State->BufferAllocLength);
 
     const QUIC_FAKE_TLS_MESSAGE* ClientMessage =
         (QUIC_FAKE_TLS_MESSAGE*)Buffer;
@@ -749,7 +767,6 @@ CxPlatTlsClientProcess(
     uint16_t DrainLength = 0;
 
     CXPLAT_FRE_ASSERT(State->BufferLength < State->BufferAllocLength);
-    __assume(State->BufferLength < State->BufferAllocLength);
 
     const QUIC_FAKE_TLS_MESSAGE* ServerMessage =
         (QUIC_FAKE_TLS_MESSAGE*)Buffer;
@@ -928,7 +945,7 @@ CxPlatTlsClientProcess(
                 if (!CxPlatCertValidateChain(
                         ServerCert,
                         TlsContext->SNI,
-                        TlsContext->SecConfig->Flags)) {
+                        0)) {
                     QuicTraceEvent(
                         TlsError,
                         "[ tls][%p] ERROR, %s.",
@@ -937,6 +954,22 @@ CxPlatTlsClientProcess(
                     *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                     break;
                 }
+            }
+
+            if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+                !TlsContext->SecConfig->Callbacks.CertificateReceived(
+                    TlsContext->Connection,
+                    NULL,
+                    0,
+                    0)) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Indicate certificate received failed");
+                *ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
+                break;
             }
 
             State->HandshakeComplete = TRUE;
@@ -1193,7 +1226,7 @@ CxPlatTlsParamGet(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
+    _Inout_updates_bytes_opt_(*BufferLength)
         void* Buffer
     )
 {
@@ -1453,8 +1486,7 @@ CxPlatHashCompute(
     )
 {
     UNREFERENCED_PARAMETER(Hash);
-    UNREFERENCED_PARAMETER(Input);
-    UNREFERENCED_PARAMETER(InputLength);
     CxPlatZeroMemory(Output, OutputLength);
+    CxPlatCopyMemory(Output, Input, min(OutputLength, InputLength));
     return QUIC_STATUS_SUCCESS;
 }

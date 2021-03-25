@@ -24,6 +24,9 @@ This script provides helpers for building msquic.
 .PARAMETER SanitizeAddress
     Enables address sanitizer.
 
+.PARAMETER CodeCheck
+    Enables static code checkers.
+
 .PARAMETER DisableTools
     Don't build the tools directory.
 
@@ -75,6 +78,15 @@ This script provides helpers for building msquic.
 .PARAMETER TlsSecretsSupport
     Enables export of traffic secrets.
 
+.PARAMETER EnableTelemetryAsserts
+    Enables telemetry asserts in release builds.
+
+.PARAMETER UseSystemOpenSSLCrypto
+    Use system provided OpenSSL libcrypto rather then statically linked. Only affects OpenSSL Linux builds
+
+.PARAMETER ExtraArtifactDir
+    Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
+
 .EXAMPLE
     build.ps1
 
@@ -90,10 +102,10 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("x86", "x64", "arm", "arm64")]
-    [string]$Arch = "x64",
+    [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("uwp", "windows", "linux")] # For future expansion
+    [ValidateSet("uwp", "windows", "linux", "macos")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
@@ -108,6 +120,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$SanitizeAddress = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CodeCheck = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableTools = $false,
@@ -155,11 +170,25 @@ param (
     [switch]$RandomAllocFail = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$TlsSecretsSupport = $false
+    [switch]$TlsSecretsSupport = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$EnableTelemetryAsserts = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseSystemOpenSSLCrypto = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ExtraArtifactDir = ""
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+if ("" -eq $Arch) {
+    # TODO Actually detect current platform
+    $Arch = "x64"
+}
 
 if ($Generator -eq "") {
     if ($IsWindows) {
@@ -183,8 +212,12 @@ if ("" -eq $Tls) {
 if ("" -eq $Platform) {
     if ($IsWindows) {
         $Platform = "windows"
-    } else {
+    } elseif ($IsLinux) {
         $Platform = "linux"
+    } elseif ($IsMacOS) {
+        $Platform = "macos"
+    } else {
+        Write-Error "Unsupported platform type!"
     }
 }
 
@@ -203,7 +236,12 @@ $BaseBuildDir = Join-Path $RootDir "build"
 $ArtifactsDir = Join-Path $BaseArtifactsDir "bin" $Platform
 $BuildDir = Join-Path $BaseBuildDir $Platform
 
-$ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
+if ("" -eq $ExtraArtifactDir) {
+    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
+} else {
+    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
+}
+
 $BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
 
 if ($Clean) {
@@ -253,6 +291,12 @@ function CMake-Generate {
             "arm"   { $Arguments += "arm" }
             "arm64" { $Arguments += "arm64" }
         }
+    } elseif ($IsMacOS) {
+        $Arguments += " '$Generator'"
+        switch ($Arch) {
+            "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64"}
+            "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64"}
+        }
     } else {
         $Arguments += " '$Generator'"
     }
@@ -264,6 +308,9 @@ function CMake-Generate {
     if ($SanitizeAddress) {
         $Arguments += " -DQUIC_ENABLE_SANITIZERS=on"
     }
+    if ($CodeCheck) {
+        $Arguments += " -DQUIC_CODE_CHECK=on"
+    }
     if ($DisableTools) {
         $Arguments += " -DQUIC_BUILD_TOOLS=off"
     }
@@ -273,7 +320,7 @@ function CMake-Generate {
     if ($DisablePerf) {
         $Arguments += " -DQUIC_BUILD_PERF=off"
     }
-    if ($IsLinux) {
+    if (!$IsWindows) {
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
     }
     if ($DynamicCRT) {
@@ -305,6 +352,12 @@ function CMake-Generate {
     }
     if ($TlsSecretsSupport) {
         $Arguments += " -DQUIC_TLS_SECRETS_SUPPORT=on"
+    }
+    if ($EnableTelemetryAsserts) {
+        $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"
+    }
+    if ($UseSystemOpenSSLCrypto) {
+        $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
     }
     $Arguments += " ../../.."
 

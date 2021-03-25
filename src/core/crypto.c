@@ -26,11 +26,13 @@ Abstract:
 CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 CXPLAT_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
 CXPLAT_TLS_RECEIVE_TICKET_CALLBACK QuicConnRecvResumptionTicket;
+CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK QuicConnPeerCertReceived;
 
 CXPLAT_TLS_CALLBACKS QuicTlsCallbacks = {
     QuicTlsProcessDataCompleteCallback,
     QuicConnReceiveTP,
-    QuicConnRecvResumptionTicket
+    QuicConnRecvResumptionTicket,
+    QuicConnPeerCertReceived
 };
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -247,7 +249,9 @@ QuicCryptoUninitialize(
     }
     if (Crypto->TlsState.NegotiatedAlpn != NULL &&
         QuicConnIsServer(QuicCryptoGetConnection(Crypto))) {
-        CXPLAT_FREE(Crypto->TlsState.NegotiatedAlpn, QUIC_POOL_ALPN);
+        if (Crypto->TlsState.NegotiatedAlpn != Crypto->TlsState.SmallAlpnBuffer) {
+            CXPLAT_FREE(Crypto->TlsState.NegotiatedAlpn, QUIC_POOL_ALPN);
+        }
         Crypto->TlsState.NegotiatedAlpn = NULL;
     }
     if (Crypto->Initialized) {
@@ -341,7 +345,7 @@ QuicCryptoInitializeTls(
 
     Crypto->ResumptionTicket = NULL; // Owned by TLS now.
     Crypto->ResumptionTicketLength = 0;
-    QuicCryptoProcessData(Crypto, !IsServer);
+    Status = QuicCryptoProcessData(Crypto, !IsServer);
 
 Error:
 
@@ -371,6 +375,90 @@ QuicCryptoReset(
         QUIC_CONN_SEND_FLAG_CRYPTO);
 
     QuicCryptoValidate(Crypto);
+}
+
+QUIC_STATUS
+QuicCryptoOnVersionChange(
+    _In_ QUIC_CRYPTO* Crypto
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+    const uint8_t* HandshakeCid;
+    uint8_t HandshakeCidLength;
+
+    const uint8_t* Salt = QuicSupportedVersionList[0].Salt; // Default to latest
+    for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
+        if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
+            Salt = QuicSupportedVersionList[i].Salt;
+            break;
+        }
+    }
+
+    if (QuicConnIsServer(Connection)) {
+        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
+        QUIC_CID_HASH_ENTRY* SourceCid =
+            CXPLAT_CONTAINING_RECORD(
+                Connection->SourceCids.Next,
+                QUIC_CID_HASH_ENTRY,
+                Link);
+
+        HandshakeCid = SourceCid->CID.Data;
+        HandshakeCidLength = SourceCid->CID.Length;
+
+    } else {
+        CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&Connection->DestCids));
+        QUIC_CID_CXPLAT_LIST_ENTRY* DestCid =
+            CXPLAT_CONTAINING_RECORD(
+                Connection->DestCids.Flink,
+                QUIC_CID_CXPLAT_LIST_ENTRY,
+                Link);
+
+        HandshakeCid = DestCid->CID.Data;
+        HandshakeCidLength = DestCid->CID.Length;
+    }
+
+    if (Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] != NULL) {
+        CXPLAT_FRE_ASSERT(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
+        QuicPacketKeyFree(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL]);
+        QuicPacketKeyFree(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
+        Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] = NULL;
+        Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] = NULL;
+    }
+
+    Status =
+        QuicPacketKeyCreateInitial(
+            QuicConnIsServer(Connection),
+            Salt,
+            HandshakeCidLength,
+            HandshakeCid,
+            &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
+            &Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            ConnErrorStatus,
+            "[conn][%p] ERROR, %u, %s.",
+            Connection,
+            Status,
+            "Creating initial keys");
+        goto Exit;
+    }
+    CXPLAT_DBG_ASSERT(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
+    CXPLAT_DBG_ASSERT(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
+
+    QuicCryptoValidate(Crypto);
+
+Exit:
+
+    if (QUIC_FAILED(Status)) {
+        for (size_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
+            QuicPacketKeyFree(Crypto->TlsState.ReadKeys[i]);
+            Crypto->TlsState.ReadKeys[i] = NULL;
+            QuicPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
+            Crypto->TlsState.WriteKeys[i] = NULL;
+        }
+    }
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -409,7 +497,7 @@ QuicCryptoDiscardKeys(
         DiscardKeyType,
         Connection,
         "Discarding key type = %hhu",
-        KeyType);
+        (uint8_t)KeyType);
 
     QuicPacketKeyFree(Crypto->TlsState.WriteKeys[KeyType]);
     QuicPacketKeyFree(Crypto->TlsState.ReadKeys[KeyType]);
@@ -1141,7 +1229,10 @@ QuicCryptoProcessFrame(
 
     if (QUIC_SUCCEEDED(Status) && DataReady) {
         if (!Crypto->TlsCallPending) {
-            QuicCryptoProcessData(Crypto, FALSE);
+            Status = QuicCryptoProcessData(Crypto, FALSE);
+            if (QUIC_FAILED(Status)) {
+                goto Error;
+            }
 
             QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
             if (Connection->State.ClosedLocally) {
@@ -1161,6 +1252,7 @@ QuicCryptoProcessFrame(
         }
     }
 
+Error:
     return Status;
 }
 
@@ -1183,7 +1275,7 @@ QuicConnReceiveTP(
         return FALSE;
     }
 
-    QuicConnProcessPeerTransportParameters(Connection, FALSE);
+    (void)QuicConnProcessPeerTransportParameters(Connection, FALSE);
 
     return TRUE;
 }
@@ -1191,19 +1283,21 @@ QuicConnReceiveTP(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoProcessTlsCompletion(
-    _In_ QUIC_CRYPTO* Crypto,
-    _In_ CXPLAT_TLS_RESULT_FLAGS ResultFlags
+    _In_ QUIC_CRYPTO* Crypto
     )
 {
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
+    CXPLAT_DBG_ASSERT(Crypto->TlsCallPending);
+    Crypto->TlsCallPending = FALSE;
+
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
         QuicTraceEvent(
             ConnErrorStatus,
             "[conn][%p] ERROR, %u, %s.",
             Connection,
             Crypto->TlsState.AlertCode,
-            "Received alert from TLS.");
+            "Received alert from TLS");
         QuicConnTransportError(
             Connection,
             QUIC_ERROR_CRYPTO_ERROR(0xFF & Crypto->TlsState.AlertCode));
@@ -1212,7 +1306,7 @@ QuicCryptoProcessTlsCompletion(
 
     QuicCryptoValidate(Crypto);
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT) {
         QuicTraceLogConnInfo(
             ZeroRttAccepted,
             Connection,
@@ -1220,7 +1314,7 @@ QuicCryptoProcessTlsCompletion(
         CXPLAT_TEL_ASSERT(Crypto->TlsState.EarlyDataState == CXPLAT_TLS_EARLY_DATA_ACCEPTED);
     }
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_EARLY_DATA_REJECT) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_EARLY_DATA_REJECT) {
         QuicTraceLogConnInfo(
             ZeroRttRejected,
             Connection,
@@ -1234,7 +1328,7 @@ QuicCryptoProcessTlsCompletion(
         }
     }
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED) {
         QuicTraceEvent(
             ConnWriteKeyUpdated,
             "[conn][%p] Write Key Updated, %hhu.",
@@ -1290,7 +1384,7 @@ QuicCryptoProcessTlsCompletion(
         }
     }
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_READ_KEY_UPDATED) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_READ_KEY_UPDATED) {
         //
         // Make sure there isn't any data received past the current Recv offset
         // at the previous encryption level.
@@ -1360,7 +1454,7 @@ QuicCryptoProcessTlsCompletion(
         }
     }
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_DATA) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_DATA) {
 #ifdef CXPLAT_TLS_SECRETS_SUPPORT
         //
         // Parse the client initial to populate the TlsSecrets with the
@@ -1390,8 +1484,8 @@ QuicCryptoProcessTlsCompletion(
         QuicCryptoValidate(Crypto);
     }
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_COMPLETE) {
-        CXPLAT_DBG_ASSERT(!(ResultFlags & CXPLAT_TLS_RESULT_ERROR));
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_COMPLETE) {
+        CXPLAT_DBG_ASSERT(!(Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR));
         CXPLAT_TEL_ASSERT(!Connection->State.Connected);
 
         QuicTraceEvent(
@@ -1470,7 +1564,7 @@ QuicCryptoProcessTlsCompletion(
 
     QuicCryptoValidate(Crypto);
 
-    if (ResultFlags & CXPLAT_TLS_RESULT_READ_KEY_UPDATED) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_READ_KEY_UPDATED) {
         QuicConnFlushDeferred(Connection);
     }
 }
@@ -1479,11 +1573,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoProcessDataComplete(
     _In_ QUIC_CRYPTO* Crypto,
-    _In_ CXPLAT_TLS_RESULT_FLAGS ResultFlags,
     _In_ uint32_t RecvBufferConsumed
     )
 {
-    Crypto->TlsCallPending = FALSE;
     if (RecvBufferConsumed != 0) {
         Crypto->RecvTotalConsumed += RecvBufferConsumed;
         QuicTraceLogConnVerbose(
@@ -1495,10 +1587,12 @@ QuicCryptoProcessDataComplete(
     }
 
     QuicCryptoValidate(Crypto);
-    QuicCryptoProcessTlsCompletion(Crypto, ResultFlags);
 
-    if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
-        QuicCryptoProcessData(Crypto, FALSE);
+    if (!Crypto->CertValidationPending) {
+        QuicCryptoProcessTlsCompletion(Crypto);
+        if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
+            (void)QuicCryptoProcessData(Crypto, FALSE);
+        }
     }
 }
 
@@ -1527,18 +1621,54 @@ QuicCryptoProcessCompleteOperation(
     )
 {
     uint32_t BufferConsumed = 0;
-    CXPLAT_TLS_RESULT_FLAGS ResultFlags =
+    Crypto->ResultFlags =
         CxPlatTlsProcessDataComplete(Crypto->TLS, &BufferConsumed);
-    QuicCryptoProcessDataComplete(Crypto, ResultFlags, BufferConsumed);
+    QuicCryptoProcessDataComplete(Crypto, BufferConsumed);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicCryptoCustomCertValidationComplete(
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ BOOLEAN Result
+    )
+{
+    CXPLAT_TEL_ASSERT(Crypto->CertValidationPending);
+    if (!Crypto->CertValidationPending) {
+        return;
+    }
+
+    Crypto->CertValidationPending = FALSE;
+    if (Result) {
+        QuicTraceLogConnInfo(
+            CustomCertValidationSuccess,
+            QuicCryptoGetConnection(Crypto),
+            "Custom cert validation succeeded");
+        QuicCryptoProcessTlsCompletion(Crypto);
+        if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
+            QuicCryptoProcessData(Crypto, FALSE);
+        }
+
+    } else {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            QuicCryptoGetConnection(Crypto),
+            "Custom cert validation failed.");
+        QuicConnTransportError(
+            QuicCryptoGetConnection(Crypto),
+            QUIC_ERROR_CRYPTO_ERROR(0xFF & CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE));
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
 QuicCryptoProcessData(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN IsClientInitial
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t BufferCount = 1;
     QUIC_BUFFER Buffer;
 
@@ -1581,7 +1711,7 @@ QuicCryptoProcessData(
             //
             CXPLAT_DBG_ASSERT(BufferOffset == 0);
             QUIC_NEW_CONNECTION_INFO Info = {0};
-            QUIC_STATUS Status =
+            Status =
                 QuicCryptoTlsReadInitial(
                     Connection,
                     Buffer.Buffer,
@@ -1608,7 +1738,15 @@ QuicCryptoProcessData(
                 goto Error;
             }
 
-            QuicConnProcessPeerTransportParameters(Connection, FALSE);
+            Status =
+                QuicConnProcessPeerTransportParameters(Connection, FALSE);
+            if (Status == QUIC_STATUS_VER_NEG_ERROR) {
+                //
+                // Communicate error up the stack to perform Incompatible
+                // Version Negotiation.
+                //
+                goto Error;
+            }
 
             QuicRecvBufferDrain(&Crypto->RecvBuffer, 0);
             QuicCryptoValidate(Crypto);
@@ -1623,7 +1761,7 @@ QuicCryptoProcessData(
                 Connection->Paths[0].Binding,
                 Connection,
                 &Info);
-            return;
+            return Status;
         }
     }
 
@@ -1641,7 +1779,7 @@ QuicCryptoProcessData(
 
     QuicCryptoValidate(Crypto);
 
-    CXPLAT_TLS_RESULT_FLAGS ResultFlags =
+    Crypto->ResultFlags =
         CxPlatTlsProcessData(
             Crypto->TLS,
             CXPLAT_TLS_CRYPTO_DATA,
@@ -1649,18 +1787,22 @@ QuicCryptoProcessData(
             &Buffer.Length,
             &Crypto->TlsState);
 
-    CXPLAT_TEL_ASSERT(!IsClientInitial || ResultFlags != CXPLAT_TLS_RESULT_PENDING); // TODO - Support async for client Initial?
+    CXPLAT_TEL_ASSERT(
+        !IsClientInitial ||
+        Crypto->ResultFlags != CXPLAT_TLS_RESULT_PENDING); // TODO - Support async for client Initial?
 
-    if (ResultFlags != CXPLAT_TLS_RESULT_PENDING) {
-        QuicCryptoProcessDataComplete(Crypto, ResultFlags, Buffer.Length);
+    if (Crypto->ResultFlags != CXPLAT_TLS_RESULT_PENDING) {
+        QuicCryptoProcessDataComplete(Crypto, Buffer.Length);
     }
 
-    return;
+    return Status;
 
 Error:
 
     QuicRecvBufferDrain(&Crypto->RecvBuffer, 0);
     QuicCryptoValidate(Crypto);
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1678,15 +1820,25 @@ QuicCryptoProcessAppData(
         goto Error;
     }
 
-    CXPLAT_TLS_RESULT_FLAGS ResultFlags =
-        CxPlatTlsProcessData(Crypto->TLS, CXPLAT_TLS_TICKET_DATA, AppData, &DataLength, &Crypto->TlsState);
-    if (ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
-        Status = QUIC_STATUS_INTERNAL_ERROR;
+    Crypto->TlsCallPending = TRUE;
+    Crypto->ResultFlags =
+        CxPlatTlsProcessData(
+            Crypto->TLS,
+            CXPLAT_TLS_TICKET_DATA,
+            AppData,
+            &DataLength,
+            &Crypto->TlsState);
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
+        if (Crypto->TlsState.AlertCode != 0) {
+            Status = QUIC_STATUS_TLS_ALERT(Crypto->TlsState.AlertCode);
+        } else {
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+        }
         goto Error;
     }
 
-    if (!(ResultFlags & CXPLAT_TLS_RESULT_PENDING)) {
-        QuicCryptoProcessDataComplete(Crypto, ResultFlags, 0);
+    if (!(Crypto->ResultFlags & CXPLAT_TLS_RESULT_PENDING)) {
+        QuicCryptoProcessDataComplete(Crypto, 0);
     }
 
     Status = QUIC_STATUS_SUCCESS;
@@ -1860,6 +2012,10 @@ QuicCryptoEncodeServerTicket(
     *Ticket = NULL;
     *TicketLength = 0;
 
+    //
+    // Don't use a deep copy here because only a subset of
+    // transport parameters are copied.
+    //
     QUIC_TRANSPORT_PARAMETERS HSTPCopy = *HandshakeTP;
     HSTPCopy.Flags &= (
         QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
@@ -1989,6 +2145,15 @@ QuicCryptoDecodeServerTicket(
         goto Error;
     }
 
+    if (TicketLength < Offset + sizeof(uint32_t)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Resumption Ticket too short to hold QUIC version");
+        goto Error;
+    }
+
     uint32_t QuicVersion;
     memcpy(&QuicVersion, Ticket + Offset, sizeof(QuicVersion));
     if (!QuicIsVersionSupported(QuicVersion)) {
@@ -2028,6 +2193,15 @@ QuicCryptoDecodeServerTicket(
         goto Error;
     }
 
+    if (TicketLength < Offset + AlpnLength) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Resumption Ticket too small for ALPN");
+        goto Error;
+    }
+
     if (CxPlatTlsAlpnFindInList(AlpnListLength, AlpnList, (uint8_t)AlpnLength, Ticket + Offset) == NULL) {
         QuicTraceEvent(
             ConnError,
@@ -2037,6 +2211,15 @@ QuicCryptoDecodeServerTicket(
         goto Error;
     }
     Offset += (uint16_t)AlpnLength;
+
+    if (TicketLength < Offset + TPLength) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Resumption Ticket too small for Transport Parameters");
+        goto Error;
+    }
 
     if (!QuicCryptoTlsDecodeTransportParameters(
             Connection,
@@ -2192,7 +2375,7 @@ QuicCryptoDecodeClientTicket(
     _Out_ uint32_t* QuicVersion
     )
 {
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
     uint16_t Offset = 0;
     QUIC_VAR_INT TicketVersion = 0, TPLength = 0, TicketLength = 0;
 
@@ -2206,7 +2389,6 @@ QuicCryptoDecodeClientTicket(
             "[conn][%p] ERROR, %s.",
             Connection,
             "Client Ticket version failed to decode");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
     if (TicketVersion != CXPLAT_TLS_RESUMPTION_CLIENT_TICKET_VERSION) {
@@ -2215,10 +2397,25 @@ QuicCryptoDecodeClientTicket(
             "[conn][%p] ERROR, %s.",
             Connection,
             "Client Ticket version unsupported");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+    if (ClientTicketLength < Offset + sizeof(uint32_t)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Client Ticket not long enough for QUIC version");
         goto Error;
     }
     CxPlatCopyMemory(QuicVersion, ClientTicket + Offset, sizeof(*QuicVersion));
+    if (!QuicIsVersionSupported(*QuicVersion)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Resumption Ticket for unsupported QUIC version");
+        goto Error;
+    }
     Offset += sizeof(*QuicVersion);
     if (!QuicVarIntDecode(ClientTicketLength, ClientTicket, &Offset, &TPLength)) {
         QuicTraceEvent(
@@ -2226,7 +2423,6 @@ QuicCryptoDecodeClientTicket(
             "[conn][%p] ERROR, %s.",
             Connection,
             "Client Ticket TP length failed to decode");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
     if (!QuicVarIntDecode(ClientTicketLength, ClientTicket, &Offset, &TicketLength)) {
@@ -2235,7 +2431,14 @@ QuicCryptoDecodeClientTicket(
             "[conn][%p] ERROR, %s.",
             Connection,
             "Resumption Ticket data length failed to decode");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+    if (ClientTicketLength < Offset + TPLength) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Client Ticket not long enough for Client Transport Parameters");
         goto Error;
     }
     if (!QuicCryptoTlsDecodeTransportParameters(
@@ -2249,12 +2452,10 @@ QuicCryptoDecodeClientTicket(
             "[conn][%p] ERROR, %s.",
             Connection,
             "Resumption Ticket TParams failed to decode");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
     Offset += (uint16_t)TPLength;
     if (Offset + TicketLength != ClientTicketLength) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",

@@ -170,6 +170,7 @@ struct DrillSender {
                 nullptr,
                 &ServerAddress,
                 this,
+                0,
                 &Binding);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Binding failed: 0x%x", Status);
@@ -189,12 +190,12 @@ struct DrillSender {
         QUIC_ADDR LocalAddress;
         CxPlatSocketGetLocalAddress(Binding, &LocalAddress);
 
-        CXPLAT_SEND_DATA* SendContext =
+        CXPLAT_SEND_DATA* SendData =
             CxPlatSendDataAlloc(
                 Binding, CXPLAT_ECN_NON_ECT, DatagramLength);
 
         QUIC_BUFFER* SendBuffer =
-            CxPlatSendDataAllocBuffer(SendContext, DatagramLength);
+            CxPlatSendDataAllocBuffer(SendData, DatagramLength);
 
         if (SendBuffer == nullptr) {
             TEST_FAILURE("Buffer null");
@@ -212,7 +213,7 @@ struct DrillSender {
                 Binding,
                 &LocalAddress,
                 &ServerAddress,
-                SendContext);
+                SendData);
 
         return Status;
     }
@@ -240,7 +241,7 @@ QuicDrillInitialPacketFailureTest(
 
     MsQuicAlpn Alpn("MsQuicTest");
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, SelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
     if (!ServerConfiguration.IsValid()) {
         TEST_FAILURE("ServerConfiguration not valid!");
         return false;

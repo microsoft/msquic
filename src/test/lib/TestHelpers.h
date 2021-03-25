@@ -40,6 +40,36 @@ struct TestScopeLogger {
     }
 };
 
+class TestConnection;
+
+struct ServerAcceptContext {
+    CXPLAT_EVENT NewConnectionReady;
+    TestConnection** NewConnection;
+    QUIC_STATUS ExpectedTransportCloseStatus{QUIC_STATUS_SUCCESS};
+    ServerAcceptContext(TestConnection** _NewConnection) :
+        NewConnection(_NewConnection) {
+        CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);
+    }
+    ~ServerAcceptContext() {
+        CxPlatEventUninitialize(NewConnectionReady);
+    }
+};
+
+struct ClearGlobalVersionListScope {
+    ~ClearGlobalVersionListScope() {
+        MsQuicSettings ClearVNSettings;
+        ClearVNSettings.SetDesiredVersionsList(nullptr, 0);
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_SETTINGS,
+                sizeof(ClearVNSettings),
+                &ClearVNSettings));
+    }
+};
+
 //
 // No 64-bit version for this existed globally. This defines an interlocked
 // helper for subtracting 64-bit numbers.
@@ -138,7 +168,7 @@ struct DatapathHook
     Send(
         _Inout_ QUIC_ADDR* /* RemoteAddress */,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct CXPLAT_SEND_DATA* /* SendContext */
+        _Inout_ struct CXPLAT_SEND_DATA* /* SendData */
         ) {
         return FALSE; // Don't drop by default
     }
@@ -168,9 +198,9 @@ class DatapathHooks
     SendCallback(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* LocalAddress,
-        _Inout_ struct CXPLAT_SEND_DATA* SendContext
+        _Inout_ struct CXPLAT_SEND_DATA* SendData
         ) {
-        return Instance->Send(RemoteAddress, LocalAddress, SendContext);
+        return Instance->Send(RemoteAddress, LocalAddress, SendData);
     }
 
     void Register() {
@@ -239,13 +269,13 @@ class DatapathHooks
     Send(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* LocalAddress,
-        _Inout_ struct CXPLAT_SEND_DATA* SendContext
+        _Inout_ struct CXPLAT_SEND_DATA* SendData
         ) {
         BOOLEAN Result = FALSE;
         CxPlatDispatchLockAcquire(&Lock);
         DatapathHook* Iter = Hooks;
         while (Iter) {
-            if (Iter->Send(RemoteAddress, LocalAddress, SendContext)) {
+            if (Iter->Send(RemoteAddress, LocalAddress, SendData)) {
                 Result = TRUE;
                 break;
             }
@@ -385,7 +415,7 @@ struct ReplaceAddressHelper : public DatapathHook
     Send(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct CXPLAT_SEND_DATA* /* SendContext */
+        _Inout_ struct CXPLAT_SEND_DATA* /* SendData */
         ) {
         if (QuicAddrCompare(RemoteAddress, &New)) {
             *RemoteAddress = Original;
@@ -445,7 +475,7 @@ struct ReplaceAddressThenDropHelper : public DatapathHook
     Send(
         _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct CXPLAT_SEND_DATA* /* SendContext */
+        _Inout_ struct CXPLAT_SEND_DATA* /* SendData */
         ) {
         if (QuicAddrCompare(RemoteAddress, &New)) {
             if (AllowPacketCount == 0) {

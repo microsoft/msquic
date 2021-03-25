@@ -169,6 +169,7 @@ typedef struct CXPLAT_SEC_CONFIG {
 
     QUIC_CREDENTIAL_TYPE Type;
     QUIC_CREDENTIAL_FLAGS Flags;
+    CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags;
 
     CXPLAT_TLS_CALLBACKS Callbacks;
 
@@ -390,6 +391,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
     _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
     _In_opt_ void* Context,
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
@@ -400,7 +402,8 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
@@ -422,6 +425,7 @@ CxPlatTlsSecConfigCreate(
 
     SecurityConfig->Type = CredConfig->Type;
     SecurityConfig->Flags = CredConfig->Flags;
+    SecurityConfig->TlsFlags = TlsCredFlags;
     SecurityConfig->Callbacks = *TlsCallbacks;
     SecurityConfig->Certificate = NULL;
     SecurityConfig->PrivateKey = NULL;
@@ -429,29 +433,7 @@ CxPlatTlsSecConfigCreate(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-
-        if (CredConfig->TicketKey != NULL &&
-            !FFI_mitls_set_sealing_key("AES256-GCM", (uint8_t*)CredConfig->TicketKey, 44)) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "FFI_mitls_set_sealing_key failed");
-            Status = QUIC_STATUS_INVALID_STATE;
-            goto Error;
-        }
-
-    } else {
-
-        if (CredConfig->TicketKey != NULL &&
-            !FFI_mitls_set_ticket_key("AES256-GCM", (uint8_t*)CredConfig->TicketKey, 44)) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "FFI_mitls_set_ticket_key failed");
-            Status = QUIC_STATUS_INVALID_STATE;
-            goto Error;
-        }
+    if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
 
         Status = CxPlatCertCreate(CredConfig, &SecurityConfig->Certificate);
         if (QUIC_FAILED(Status)) {
@@ -511,6 +493,45 @@ CxPlatTlsSecConfigDelete(
     CXPLAT_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
 }
 
+const uint8_t miTlsTicketKeyLength = 44;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsSecConfigSetTicketKeys(
+    _In_ CXPLAT_SEC_CONFIG* SecurityConfig,
+    _In_reads_(KeyCount) QUIC_TICKET_KEY_CONFIG* KeyConfig,
+    _In_ uint8_t KeyCount
+    )
+{
+    CXPLAT_DBG_ASSERT(KeyCount >= 1);
+    UNREFERENCED_PARAMETER(KeyCount);
+
+    if (KeyConfig->MaterialLength < miTlsTicketKeyLength) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (SecurityConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        if (!FFI_mitls_set_sealing_key("AES256-GCM", KeyConfig->Material, miTlsTicketKeyLength)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "FFI_mitls_set_sealing_key failed");
+            return QUIC_STATUS_INVALID_STATE;
+        }
+
+    } else {
+        if (!FFI_mitls_set_ticket_key("AES256-GCM", KeyConfig->Material, miTlsTicketKeyLength)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "FFI_mitls_set_ticket_key failed");
+            return QUIC_STATUS_INVALID_STATE;
+        }
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsInitialize(
@@ -565,7 +586,9 @@ CxPlatTlsInitialize(
     TlsContext->Extensions[1].ext_data_len = Config->LocalTPLength;
     TlsContext->Extensions[1].ext_data = Config->LocalTPBuffer;
 
-    TlsContext->miTlsConfig.enable_0rtt = TRUE;
+    TlsContext->miTlsConfig.enable_0rtt =
+        !Config->IsServer ||
+        !(Config->SecConfig->TlsFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION);
     TlsContext->miTlsConfig.exts = TlsContext->Extensions;
     TlsContext->miTlsConfig.exts_count = ARRAYSIZE(TlsContext->Extensions);
     TlsContext->miTlsConfig.cipher_suites = CXPLAT_SUPPORTED_CIPHER_SUITES;
@@ -1530,8 +1553,7 @@ CxPlatTlsOnCertVerify(
             miTlsCertValidationDisabled,
             TlsContext->Connection,
             "Certificate validation disabled!");
-        Result = 1;
-        goto Error;
+        goto Indicate; // Skip internal validation
     }
 
     Certificate =
@@ -1550,24 +1572,47 @@ CxPlatTlsOnCertVerify(
     if (!CxPlatCertValidateChain(
             Certificate,
             TlsContext->SNI,
-            TlsContext->SecConfig->Flags)) {
+            0)) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
             TlsContext->Connection,
             "Cert chain validation failed");
-        Result = 0;
         goto Error;
     }
 
-    Result =
-        CxPlatCertVerify(
+    if (!CxPlatCertVerify(
             Certificate,
             SignatureAlgorithm,
             CertListToBeSigned,
             CertListToBeSignedLength,
             Signature,
-            SignatureLength);
+            SignatureLength)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "CxPlatCertVerify failed");
+        goto Error;
+    }
+
+Indicate:
+
+    if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+        !TlsContext->SecConfig->Callbacks.CertificateReceived(
+            TlsContext->Connection,
+            NULL,
+            0,
+            0)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Indicate certificate received failed");
+        goto Error;
+    }
+
+    Result = 1;
 
 Error:
 
@@ -1665,7 +1710,7 @@ CxPlatTlsParamGet(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
+    _Inout_updates_bytes_opt_(*BufferLength)
         void* Buffer
     )
 {

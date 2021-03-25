@@ -170,7 +170,50 @@ ThroughputClient::Start(
     _In_ CXPLAT_EVENT* StopEvnt
     ) {
     this->StopEvent = StopEvnt;
+    QuicTraceLogVerbose(
+        PerfRpsStart,
+        "[perf] RPS Client start");
     return UseTcp ? StartTcp() : StartQuic();
+}
+
+QUIC_STATUS
+ThroughputClient::Wait(
+    _In_ int Timeout
+    ) {
+    if (Timeout > 0) {
+        if (!CxPlatEventWaitWithTimeout(*StopEvent, Timeout)) {
+            QuicTraceLogVerbose(
+                PerfRpsTimeout,
+                "[perf] RPS Client timeout");
+        }
+    } else {
+        CxPlatEventWaitForever(*StopEvent);
+    }
+    QuicTraceLogVerbose(
+        PerfRpsComplete,
+        "[perf] RPS Client complete");
+    Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 1);
+    OnTcpConnectionComplete();
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+ThroughputClient::GetExtraDataMetadata(
+    _Out_ PerfExtraDataMetadata* Result
+    )
+{
+    Result->TestType = PerfTestType::ThroughputClient;
+    Result->ExtraDataLength = 0;
+}
+
+QUIC_STATUS
+ThroughputClient::GetExtraData(
+    _Out_writes_bytes_(*Length) uint8_t*,
+    _Inout_ uint32_t* Length
+    )
+{
+    *Length = 0;
+    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
@@ -254,9 +297,7 @@ ThroughputClient::StartQuic()
     Status =
         MsQuic->StreamOpen(
             Shutdown.ConnHandle,
-            DownloadLength != 0 ?
-                QUIC_STREAM_OPEN_FLAG_NONE :
-                QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
+            QUIC_STREAM_OPEN_FLAG_NONE,
             [](HQUIC Handle, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
                 return ((StreamContext*)Context)->Client->
                     StreamCallback(
@@ -348,7 +389,7 @@ QUIC_STATUS
 ThroughputClient::StartTcp()
 {
     MsQuicCredentialConfig CredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
-    auto Connection =
+    TcpConn =
         new TcpConnection(
             &Engine,
             &CredConfig,
@@ -357,14 +398,16 @@ ThroughputClient::StartTcp()
             Port,
             (QuicAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) ? &LocalIpAddr : nullptr,
             this);
-    if (!Connection || !Connection->IsInitialized()) {
-        if (Connection) {
-            Connection->Close();
+    if (!TcpConn || !TcpConn->IsInitialized()) {
+        if (TcpConn) {
+            TcpConn->Close();
+            TcpConn = nullptr;
         }
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     TcpStrmContext = StreamContextAllocator.Alloc(this);
+    TcpStrmContext->IdealSendBuffer = 1; // TCP uses send buffering, so just set to 1.
 
     if (DownloadLength) {
         auto SendData = new TcpSendData();
@@ -373,10 +416,10 @@ ThroughputClient::StartTcp()
         SendData->Fin = TRUE;
         SendData->Buffer = DataBuffer->Buffer;
         SendData->Length = DataBuffer->Length;
-        Connection->Send(SendData);
+        TcpConn->Send(SendData);
     } else {
         CXPLAT_DBG_ASSERT(UploadLength != 0);
-        SendTcpData(Connection, TcpStrmContext);
+        SendTcpData(TcpConn, TcpStrmContext);
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -435,46 +478,18 @@ ThroughputClient::OnStreamShutdownComplete(
             SendRate,
             (uint32_t)(ElapsedMicroseconds / 1000),
             (uint32_t)(ElapsedMicroseconds % 1000));
-    } else {
+    } else if (StrmContext->BytesCompleted) {
         WriteOutput(
-            "Error: Did not complete all bytes. Completed %llu bytes in (%u.%03u ms). Failed to connect?\n",
+            "Error: Did not complete all bytes! %llu bytes @ %u kbps (%u.%03u ms).\n",
             (unsigned long long)StrmContext->BytesCompleted,
+            SendRate,
             (uint32_t)(ElapsedMicroseconds / 1000),
             (uint32_t)(ElapsedMicroseconds % 1000));
+    } else {
+        WriteOutput("Error: Did not complete any bytes! Failed to connect?\n");
     }
 
     StreamContextAllocator.Free(StrmContext);
-}
-
-QUIC_STATUS
-ThroughputClient::Wait(
-    _In_ int Timeout
-    ) {
-    if (Timeout > 0) {
-        CxPlatEventWaitWithTimeout(*StopEvent, Timeout);
-    } else {
-        CxPlatEventWaitForever(*StopEvent);
-    }
-    return QUIC_STATUS_SUCCESS;
-}
-
-void
-ThroughputClient::GetExtraDataMetadata(
-    _Out_ PerfExtraDataMetadata* Result
-    )
-{
-    Result->TestType = PerfTestType::ThroughputClient;
-    Result->ExtraDataLength = 0;
-}
-
-QUIC_STATUS
-ThroughputClient::GetExtraData(
-    _Out_writes_bytes_(*Length) uint8_t*,
-    _Inout_ uint32_t* Length
-    )
-{
-    *Length = 0;
-    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
@@ -545,6 +560,27 @@ ThroughputClient::StreamCallback(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+void
+ThroughputClient::OnTcpConnectionComplete(
+    )
+{
+    CxPlatLockAcquire(&TcpLock);
+    auto Connection = TcpConn;
+    TcpConn = nullptr;
+    auto Stream = TcpStrmContext;
+    TcpStrmContext = nullptr;
+    CxPlatLockRelease(&TcpLock);
+
+    if (Stream) {
+        OnStreamShutdownComplete(Stream);
+    }
+    if (Connection) {
+        Connection->Close();
+    }
+    CxPlatEventSet(*StopEvent);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(TcpConnectCallback)
 void
 ThroughputClient::TcpConnectCallback(
@@ -554,8 +590,7 @@ ThroughputClient::TcpConnectCallback(
 {
     auto This = (ThroughputClient*)Connection->Context;
     if (!IsConnected) {
-        Connection->Close();
-        CxPlatEventSet(*This->StopEvent);
+        This->OnTcpConnectionComplete();
     }
 }
 
@@ -567,27 +602,34 @@ ThroughputClient::TcpReceiveCallback(
     uint32_t /* StreamID */,
     bool /* Open */,
     bool Fin,
+    bool Abort,
     uint32_t Length,
     uint8_t* /* Buffer */
     )
 {
     auto This = (ThroughputClient*)Connection->Context;
     auto StrmContext = This->TcpStrmContext;
-    StrmContext->BytesCompleted += Length;
-    if (This->TimedTransfer) {
-        if (CxPlatTimeDiff64(StrmContext->StartTime, CxPlatTimeUs64()) >= MS_TO_US(This->DownloadLength)) {
-            //MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE, 0);
+    if (!StrmContext) return;
+    if (Length) {
+        StrmContext->BytesCompleted += Length;
+        if (This->TimedTransfer) {
+            if (CxPlatTimeDiff64(StrmContext->StartTime, CxPlatTimeUs64()) >= MS_TO_US(This->DownloadLength)) {
+                auto SendData = new TcpSendData();
+                SendData->StreamId = 0;
+                SendData->Abort = TRUE;
+                SendData->Buffer = This->DataBuffer->Buffer;
+                SendData->Length = 0;
+                Connection->Send(SendData);
+                StrmContext->Complete = true;
+            }
+        } else if (StrmContext->BytesCompleted == This->DownloadLength) {
             StrmContext->Complete = true;
         }
-    } else if (StrmContext->BytesCompleted == This->DownloadLength) {
-        StrmContext->Complete = true;
     }
-    if (Fin) {
+    if ((Fin || Abort) && !StrmContext->RecvShutdown) {
         StrmContext->RecvShutdown = true;
         if (StrmContext->SendShutdown) {
-            This->OnStreamShutdownComplete(StrmContext);
-            Connection->Close();
-            CxPlatEventSet(*This->StopEvent);
+            This->OnTcpConnectionComplete();
         }
     }
 }
@@ -601,21 +643,20 @@ ThroughputClient::TcpSendCompleteCallback(
     )
 {
     auto This = (ThroughputClient*)Connection->Context;
-    auto StrmContext = This->TcpStrmContext;
     while (SendDataChain) {
         auto Data = SendDataChain;
         SendDataChain = Data->Next;
-        if (This->UploadLength) {
-            StrmContext->OutstandingBytes -= Data->Length;
-            StrmContext->BytesCompleted += Data->Length;
-            This->SendTcpData(Connection, StrmContext);
-        }
-        if (Data->Fin) {
-            StrmContext->SendShutdown = true;
-            if (StrmContext->RecvShutdown) {
-                This->OnStreamShutdownComplete(StrmContext);
-                Connection->Close();
-                CxPlatEventSet(*This->StopEvent);
+        if (This->TcpStrmContext) {
+            if (This->UploadLength) {
+                This->TcpStrmContext->OutstandingBytes -= Data->Length;
+                This->TcpStrmContext->BytesCompleted += Data->Length;
+                This->SendTcpData(Connection, This->TcpStrmContext);
+            }
+            if ((Data->Fin || Data->Abort) && !This->TcpStrmContext->SendShutdown) {
+                This->TcpStrmContext->SendShutdown = true;
+                if (This->TcpStrmContext->RecvShutdown) {
+                    This->OnTcpConnectionComplete();
+                }
             }
         }
         delete Data;

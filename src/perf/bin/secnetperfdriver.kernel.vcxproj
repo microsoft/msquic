@@ -44,12 +44,12 @@
     <ProjectReference Include="..\lib\perflib.kernel.vcxproj">
       <Project>{11633785-79cc-4c7d-ab6a-aecdf29a1fa7}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\bin\winkernel\msquicpriv.kernel.vcxproj">
-      <Project>{e2ddb0a8-594d-424d-9add-4ef211f7fc3f}</Project>
+    <ProjectReference Include="..\..\bin\winkernel\msquic.kernel.vcxproj">
+      <Project>{C31B028C-E91C-4CF7-A8E7-F385B2AF5F85}</Project>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{2be64dbf-60e6-4fe8-96b0-5f2526405096}</ProjectGuid>
+    <ProjectGuid>{1862ccd7-31d7-4869-a409-5b9b5edf19bb}</ProjectGuid>
     <TemplateGuid>{1bc93793-694f-48fe-9372-81e2b05556fd}</TemplateGuid>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
@@ -75,7 +75,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <TargetName>quicperfdrvpriv</TargetName>
+    <TargetName>secnetperfdrv</TargetName>
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <EnableInf2cat>false</EnableInf2cat>
     <OutDir>$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\</OutDir>
@@ -93,19 +93,19 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;netio.lib;wdmsec.lib;uuid.lib;msquicpriv.lib;ndis.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;netio.lib;wdmsec.lib;uuid.lib;msquic.lib;ndis.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PreprocessorDefinitions>PRIVATE_LIBRARY;QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <PreprocessorDefinitions>PRIVATE_LIBRARY;QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>

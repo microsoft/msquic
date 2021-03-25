@@ -45,7 +45,7 @@ struct RpsConnectionContext {
         _In_ HQUIC StreamHandle,
         _Inout_ QUIC_STREAM_EVENT* Event
         );
-    void SendRequest();
+    void SendRequest(bool DelaySend);
 };
 
 struct RpsWorkerContext {
@@ -110,6 +110,10 @@ public:
         for (uint32_t i = 0; i < PERF_MAX_THREAD_COUNT; ++i) {
             Workers[i].Client = this;
         }
+    }
+
+    ~RpsClient() override {
+        Running = false;
     }
 
     QUIC_STATUS

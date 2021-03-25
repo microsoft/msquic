@@ -42,7 +42,7 @@ BOOLEAN
 (QUIC_API * QUIC_TEST_DATAPATH_SEND_HOOK)(
     _Inout_ QUIC_ADDR* RemoteAddress,
     _Inout_opt_ QUIC_ADDR* LocalAddress,
-    _Inout_ CXPLAT_SEND_DATA* SendContext
+    _Inout_ CXPLAT_SEND_DATA* SendData
     );
 
 typedef struct QUIC_TEST_DATAPATH_HOOKS {

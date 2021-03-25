@@ -17,14 +17,12 @@ Abstract:
 #pragma warning(push)
 #pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
 #endif
-#include "openssl/ssl.h"
 #include "openssl/err.h"
 #include "openssl/kdf.h"
 #include "openssl/pem.h"
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
-#include "openssl/pem.h"
 #ifdef _WIN32
 #pragma warning(pop)
 #endif
@@ -298,11 +296,24 @@ typedef struct CXPLAT_CREDENTIAL_CONFIG_INTERNAL {
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 const QUIC_CREDENTIAL_CONFIG*
-CxPlatPlatGetSelfSignedCert(
-    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type
+CxPlatGetSelfSignedCert(
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
+    _In_ BOOLEAN ClientCertificate
     )
 {
     UNREFERENCED_PARAMETER(Type);
+    UNREFERENCED_PARAMETER(ClientCertificate);
+
+    if (ClientCertificate) {
+        //
+        // Client certificate is not supported on OpenSSL (yet)
+        //
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Client Certificate is not supported in OpenSSL");
+        return NULL;
+    }
 
     CXPLAT_CREDENTIAL_CONFIG_INTERNAL* Params =
         malloc(sizeof(CXPLAT_CREDENTIAL_CONFIG_INTERNAL) + sizeof(TEMP_DIR_TEMPLATE));
@@ -415,9 +426,47 @@ Error:
     return NULL;
 }
 
+_Success_(return == TRUE)
+BOOLEAN
+CxPlatGetTestCertificate(
+    _In_ CXPLAT_TEST_CERT_TYPE Type,
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
+    _In_ uint32_t CredType,
+    _Out_ QUIC_CREDENTIAL_CONFIG* Params,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Reserved_)
+        QUIC_CERTIFICATE_HASH* CertHash,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Reserved_)
+        QUIC_CERTIFICATE_HASH_STORE* CertHashStore,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_NONE, _Out_z_bytecap_(100))
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_NONE, _Reserved_)
+        char Principal[100]
+    )
+{
+    // Not yet supported
+    UNREFERENCED_PARAMETER(Type);
+    UNREFERENCED_PARAMETER(StoreType);
+    UNREFERENCED_PARAMETER(CredType);
+    UNREFERENCED_PARAMETER(Params);
+    UNREFERENCED_PARAMETER(CertHash);
+    UNREFERENCED_PARAMETER(CertHashStore);
+    UNREFERENCED_PARAMETER(Principal);
+    return FALSE;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatPlatFreeSelfSignedCert(
+CxPlatFreeTestCert(
+    _In_ QUIC_CREDENTIAL_CONFIG* Params
+    )
+{
+    UNREFERENCED_PARAMETER(Params);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     )
 {

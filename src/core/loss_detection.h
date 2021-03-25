@@ -100,7 +100,8 @@ QuicLossDetectionOnZeroRttRejected(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionUpdateTimer(
-    _In_ QUIC_LOSS_DETECTION* LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
+    _In_ BOOLEAN ExecuteImmediatelyIfNecessary
     );
 
 //

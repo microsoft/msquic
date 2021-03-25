@@ -30,6 +30,12 @@ This script runs spinquic locally for a period of time.
 .PARAMETER LogProfile
     The name of the profile to use for log collection.
 
+.Parameter CodeCoverage
+    Collect code coverage for the binary being run.
+
+.Parameter AZP
+    Runs in Azure Pipelines mode.
+
 #>
 
 param (
@@ -65,7 +71,10 @@ param (
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
-    [switch]$CodeCoverage = $false
+    [switch]$CodeCoverage = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$AZP = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -103,8 +112,12 @@ if ($CodeCoverage) {
 $SpinQuic = $null
 if ($IsWindows) {
     $SpinQuic = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\spinquic.exe"
-} else {
+} elseif ($IsLinux) {
     $SpinQuic = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/spinquic"
+} elseif ($IsMacOS) {
+    $SpinQuic = Join-Path $RootDir "/artifacts/bin/macos/$($Arch)_$($Config)_$($Tls)/spinquic"
+} else {
+    Write-Error "Unsupported platform type!"
 }
 
 # Make sure the build is present.
@@ -128,6 +141,9 @@ if ("None" -ne $LogProfile) {
 }
 if ($CodeCoverage) {
     $Arguments += " -CodeCoverage"
+}
+if ($AZP) {
+    $Arguments += " -AZP"
 }
 
 # Run the script.

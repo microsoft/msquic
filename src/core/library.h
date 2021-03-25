@@ -73,7 +73,7 @@ typedef struct QUIC_LIBRARY {
     //
     BOOLEAN Loaded : 1;
 
-#ifdef QuicVerifierEnabled
+#ifdef CxPlatVerifierEnabled
     //
     // The app or driver verifier is globally enabled.
     //
@@ -229,11 +229,24 @@ typedef struct QUIC_LIBRARY {
     QUIC_TEST_DATAPATH_HOOKS* TestDatapathHooks;
 #endif
 
+    //
+    // Default client compatibility list. Use for connections that don't
+    // specify a custom list. Generated for QUIC_VERSION_LATEST
+    //
+    const uint32_t* DefaultCompatibilityList;
+    uint32_t DefaultCompatibilityListLength;
+
+    //
+    // Last sample of the performance counters
+    //
+    uint64_t PerfCounterSamplesTime;
+    int64_t PerfCounterSamples[QUIC_PERF_COUNTER_MAX];
+
 } QUIC_LIBRARY;
 
 extern QUIC_LIBRARY MsQuicLib;
 
-#ifdef QuicVerifierEnabled
+#ifdef CxPlatVerifierEnabled
 #define QUIC_LIB_VERIFY(Expr) \
     if (MsQuicLib.IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
 #else
@@ -326,6 +339,38 @@ QuicPerfCounterAdd(
 
 #define QuicPerfCounterIncrement(Type) QuicPerfCounterAdd(Type, 1)
 #define QuicPerfCounterDecrement(Type) QuicPerfCounterAdd(Type, -1)
+
+#define QUIC_PERF_SAMPLE_INTERVAL_S    30 // 30 seconds
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicPerfCounterSnapShot(
+    _In_ uint64_t TimeDiffUs
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+void
+QuicPerfCounterTrySnapShot(
+    _In_ uint64_t TimeNow
+    )
+{
+    uint64_t TimeLast = MsQuicLib.PerfCounterSamplesTime;
+    uint64_t TimeDiff = CxPlatTimeDiff64(TimeLast, TimeNow);
+    if (TimeDiff < S_TO_US(QUIC_PERF_SAMPLE_INTERVAL_S)) {
+        return; // Not time to resample yet.
+    }
+
+    if ((int64_t)TimeLast !=
+        InterlockedCompareExchange64(
+            (int64_t*)&MsQuicLib.PerfCounterSamplesTime,
+            (int64_t)TimeNow,
+            (int64_t)TimeLast)) {
+        return; // Someone else already is updating.
+    }
+
+    QuicPerfCounterSnapShot(TimeDiff);
+}
 
 //
 // Creates a random, new source connection ID, that will be used on the receive

@@ -93,10 +93,10 @@ QuicPacketBuilderCleanup(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    CXPLAT_DBG_ASSERT(Builder->SendContext == NULL);
+    CXPLAT_DBG_ASSERT(Builder->SendData == NULL);
 
     if (Builder->PacketBatchSent && Builder->PacketBatchRetransmittable) {
-        QuicLossDetectionUpdateTimer(&Builder->Connection->LossDetection);
+        QuicLossDetectionUpdateTimer(&Builder->Connection->LossDetection, FALSE);
     }
 
     QuicSentPacketMetadataReleaseFrames(Builder->Metadata);
@@ -159,10 +159,10 @@ QuicPacketBuilderPrepare(
         // The current data cannot go in the current QUIC packet. Finalize the
         // current QUIC packet up so we can create another.
         //
-        if (Builder->SendContext != NULL) {
+        if (Builder->SendData != NULL) {
             QuicPacketBuilderFinalize(Builder, IsPathMtuDiscovery);
         }
-        if (Builder->SendContext == NULL &&
+        if (Builder->SendData == NULL &&
             Builder->TotalCountDatagrams >= QUIC_MAX_DATAGRAMS_PER_SEND) {
             goto Error;
         }
@@ -181,8 +181,8 @@ QuicPacketBuilderPrepare(
         // Allocate and initialize a new send buffer (UDP packet/payload).
         //
 
-        if (Builder->SendContext == NULL) {
-            Builder->SendContext =
+        if (Builder->SendData == NULL) {
+            Builder->SendData =
                 CxPlatSendDataAlloc(
                     Builder->Path->Binding->Socket,
                     CXPLAT_ECN_NON_ECT,
@@ -191,7 +191,7 @@ QuicPacketBuilderPrepare(
                         MaxUdpPayloadSizeForFamily(
                             QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                             DatagramSize));
-            if (Builder->SendContext == NULL) {
+            if (Builder->SendData == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
@@ -212,7 +212,7 @@ QuicPacketBuilderPrepare(
 
         Builder->Datagram =
             CxPlatSendDataAllocBuffer(
-                Builder->SendContext,
+                Builder->SendData,
                 NewDatagramLength);
         if (Builder->Datagram == NULL) {
             QuicTraceEvent(
@@ -585,7 +585,7 @@ QuicPacketBuilderFinalize(
             Builder->DatagramLength -= Builder->HeaderLength;
 
             if (Builder->DatagramLength == 0) {
-                CxPlatSendDataFreeBuffer(Builder->SendContext, Builder->Datagram);
+                CxPlatSendDataFreeBuffer(Builder->SendData, Builder->Datagram);
                 Builder->Datagram = NULL;
             }
         }
@@ -859,7 +859,7 @@ Exit:
             Builder->TotalDatagramsLength += Builder->DatagramLength;
         }
 
-        if (FlushBatchedDatagrams || CxPlatSendDataIsFull(Builder->SendContext)) {
+        if (FlushBatchedDatagrams || CxPlatSendDataIsFull(Builder->SendData)) {
             if (Builder->BatchCount != 0) {
                 QuicPacketBuilderFinalizeHeaderProtection(Builder);
             }
@@ -893,11 +893,11 @@ QuicPacketBuilderSendBatch(
         Builder->Path->Binding,
         &Builder->Path->LocalAddress,
         &Builder->Path->RemoteAddress,
-        Builder->SendContext,
+        Builder->SendData,
         Builder->TotalDatagramsLength,
         Builder->TotalCountDatagrams);
 
     Builder->PacketBatchSent = TRUE;
-    Builder->SendContext = NULL;
+    Builder->SendData = NULL;
     Builder->TotalDatagramsLength = 0;
 }

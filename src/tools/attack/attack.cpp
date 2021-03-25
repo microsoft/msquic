@@ -114,20 +114,20 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
 
     while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs) {
 
-        CXPLAT_SEND_DATA* SendContext =
+        CXPLAT_SEND_DATA* SendData =
             CxPlatSendDataAlloc(
                 Binding, CXPLAT_ECN_NON_ECT, Length);
-        if (SendContext == nullptr) {
+        if (SendData == nullptr) {
             printf("CxPlatSendDataAlloc failed\n");
             return;
         }
 
-        while (!CxPlatSendDataIsFull(SendContext)) {
+        while (!CxPlatSendDataIsFull(SendData)) {
             QUIC_BUFFER* SendBuffer =
-                CxPlatSendDataAllocBuffer(SendContext, Length);
+                CxPlatSendDataAllocBuffer(SendData, Length);
             if (SendBuffer == nullptr) {
                 printf("CxPlatSendDataAllocBuffer failed\n");
-                CxPlatSendDataFree(SendContext);
+                CxPlatSendDataFree(SendData);
                 return;
             }
 
@@ -161,7 +161,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
             Binding,
             &LocalAddress,
             &ServerAddress,
-            SendContext)));
+            SendData)));
     }
 }
 
@@ -217,15 +217,15 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 
     while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs) {
 
-        CXPLAT_SEND_DATA* SendContext =
+        CXPLAT_SEND_DATA* SendData =
             CxPlatSendDataAlloc(
                 Binding, CXPLAT_ECN_NON_ECT, DatagramLength);
-        VERIFY(SendContext);
+        VERIFY(SendData);
 
         while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs &&
-            !CxPlatSendDataIsFull(SendContext)) {
+            !CxPlatSendDataIsFull(SendData)) {
             QUIC_BUFFER* SendBuffer =
-                CxPlatSendDataAllocBuffer(SendContext, DatagramLength);
+                CxPlatSendDataAllocBuffer(SendData, DatagramLength);
             VERIFY(SendBuffer);
 
             (*DestCid)++; (*SrcCid)++;
@@ -291,7 +291,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             Binding,
             &LocalAddress,
             &ServerAddress,
-            SendContext)));
+            SendData)));
     }
 }
 
@@ -304,6 +304,7 @@ CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
             nullptr,
             &ServerAddress,
             nullptr,
+            0,
             &Binding);
     if (QUIC_FAILED(Status)) {
         printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);

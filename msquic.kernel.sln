@@ -20,13 +20,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "manifest.kernel", "src\mani
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "perflib.kernel", "src\perf\lib\perflib.kernel.vcxproj", "{11633785-79CC-4C7D-AB6A-AECDF29A1FA7}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "quicperfdriverpriv.kernel", "src\perf\bin\quicperfdriverpriv.kernel.vcxproj", "{2BE64DBF-60E6-4FE8-96B0-5F2526405096}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "secnetperfdriverpriv.kernel", "src\perf\bin\secnetperfdriverpriv.kernel.vcxproj", "{2BE64DBF-60E6-4FE8-96B0-5F2526405096}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msquicpriv.kernel", "src\bin\winkernel\msquicpriv.kernel.vcxproj", "{E2DDB0A8-594D-424D-9ADD-4EF211F7FC3F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msquictestpriv.kernel", "src\test\bin\winkernel\msquictestpriv.kernel.vcxproj", "{C8491270-B0BE-440C-B88D-7B441A8CB67E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "quicperfdriver.kernel", "src\perf\bin\quicperfdriver.kernel.vcxproj", "{1862CCD7-31D7-4869-A409-5B9B5EDF19BB}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "secnetperfdriver.kernel", "src\perf\bin\secnetperfdriver.kernel.vcxproj", "{1862CCD7-31D7-4869-A409-5B9B5EDF19BB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

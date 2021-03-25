@@ -128,6 +128,13 @@ InterlockedCompareExchange16(
     _In_ short Comperand
     );
 
+int64_t
+InterlockedCompareExchange64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Destination,
+    _In_ int64_t ExChange,
+    _In_ int64_t Comperand
+    );
+
 short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend
@@ -192,6 +199,12 @@ CxPlatTimeAtOrBefore32(
     );
 
 void
+QuicTraceEventStubVarArgs(
+    _In_ const void* Fmt,
+    ...
+    );
+
+void
 QuicTraceStubVarArgs(
     _In_ const void* Fmt,
     ...
@@ -229,7 +242,7 @@ QuicAddrCompare(
     _In_ const QUIC_ADDR* const Addr2
     );
 
-uint16_t
+QUIC_ADDRESS_FAMILY
 QuicAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
     );
@@ -237,7 +250,7 @@ QuicAddrGetFamily(
 void
 QuicAddrSetFamily(
     _In_ QUIC_ADDR* Addr,
-    _In_ uint16_t Family
+    _In_ QUIC_ADDRESS_FAMILY Family
     );
 
 uint16_t
@@ -294,4 +307,37 @@ BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,
     _Out_ QUIC_ADDR_STR* AddrStr
+    );
+
+void
+CxPlatEventInitialize(
+    _Out_ CXPLAT_EVENT* Event,
+    _In_ BOOLEAN ManualReset,
+    _In_ BOOLEAN InitialState
+    );
+
+void
+CxPlatInternalEventUninitialize(
+    _Inout_ CXPLAT_EVENT* Event
+    );
+
+void
+CxPlatInternalEventSet(
+    _Inout_ CXPLAT_EVENT* Event
+    );
+
+void
+CxPlatInternalEventReset(
+    _Inout_ CXPLAT_EVENT* Event
+    );
+
+void
+CxPlatInternalEventWaitForever(
+    _Inout_ CXPLAT_EVENT* Event
+    );
+
+BOOLEAN
+CxPlatInternalEventWaitWithTimeout(
+    _Inout_ CXPLAT_EVENT* Event,
+    _In_ uint32_t TimeoutMs
     );

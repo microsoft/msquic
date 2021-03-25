@@ -13,7 +13,9 @@ Abstract:
 
 //#define QUIC_COMPARTMENT_TESTS 1
 
-extern QUIC_CREDENTIAL_CONFIG SelfSignedCredConfig;
+extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
+extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
+extern QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,6 +35,7 @@ void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
 void QuicTestGetPerfCounters();
+void QuicTestDesiredVersionSettings();
 
 //
 // Event Validation Tests
@@ -60,6 +63,12 @@ void QuicTestBindConnectionExplicit(_In_ int Family);
 // Handshake Tests
 //
 
+typedef enum QUIC_TEST_RESUMPTION_MODE {
+    QUIC_TEST_RESUMPTION_DISABLED,
+    QUIC_TEST_RESUMPTION_ENABLED,
+    QUIC_TEST_RESUMPTION_REJECTED,
+} QUIC_TEST_RESUMPTION_MODE;
+
 void
 QuicTestConnect(
     _In_ int Family,
@@ -68,13 +77,76 @@ QuicTestConnect(
     _In_ bool MultipleALPNs,
     _In_ bool AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
-    _In_ bool SessionResumption,
+    _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
     _In_ uint8_t RandomLossPercentage // 0 to 100
     );
 
 void
 QuicTestVersionNegotiation(
     _In_ int Family
+    );
+
+void
+QuicTestVersionNegotiationRetry(
+    _In_ int Family
+    );
+
+void
+QuicTestCompatibleVersionNegotiationRetry(
+    _In_ int Family
+    );
+
+void
+QuicTestCompatibleVersionNegotiation(
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
+    );
+
+void
+QuicTestCompatibleVersionNegotiationDefaultClient(
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
+    );
+
+void
+QuicTestCompatibleVersionNegotiationDefaultServer(
+    _In_ int Family,
+    _In_ bool DisableVNEClient,
+    _In_ bool DisableVNEServer
+    );
+
+void
+QuicTestIncompatibleVersionNegotiation(
+    _In_ int Family
+    );
+
+void
+QuicTestFailedVersionNegotiation(
+    _In_ int Family
+    );
+
+void
+QuicTestCustomCertificateValidation(
+    _In_ bool AcceptCert,
+    _In_ bool AsyncValidation
+    );
+
+void
+QuicTestConnectClientCertificate(
+    _In_ int Family,
+    _In_ bool UseClientCertificate
+    );
+
+void
+QuicTestValidAlpnLengths(
+    void
+    );
+
+void
+QuicTestInvalidAlpnLengths(
+    void
     );
 
 //
@@ -99,6 +171,16 @@ QuicTestConnectBadSni(
 void
 QuicTestConnectServerRejected(
     _In_ int Family
+    );
+
+void
+QuicTestConnectExpiredServerCertificate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    );
+
+void
+QuicTestConnectValidServerCertificate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* Config
     );
 
 //
@@ -330,9 +412,14 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 // IOCTL Interface
 //
 
-#define IOCTL_QUIC_SET_CERT_HASH \
+typedef struct {
+    QUIC_CERTIFICATE_HASH ServerCertHash;
+    QUIC_CERTIFICATE_HASH ClientCertHash;
+} QUIC_RUN_CERTIFICATE_PARAMS;
+
+#define IOCTL_QUIC_SET_CERT_PARAMS \
     QUIC_CTL_CODE(1, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // QUIC_CERTIFICATE_HASH
+    // QUIC_RUN_CERTIFICATE_PARAMS
 
 #define IOCTL_QUIC_RUN_VALIDATE_REGISTRATION \
     QUIC_CTL_CODE(2, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -590,4 +677,80 @@ typedef struct {
     QUIC_CTL_CODE(46, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 46
+typedef struct {
+    BOOLEAN AcceptCert;
+    BOOLEAN AsyncValidation;
+} QUIC_RUN_CUSTOM_CERT_VALIDATION;
+
+#define IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION \
+    QUIC_CTL_CODE(47, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_CUSTOM_CERT_VALIDATION
+
+#define IOCTL_QUIC_RUN_VERSION_NEGOTIATION_RETRY \
+    QUIC_CTL_CODE(48, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_RETRY \
+    QUIC_CTL_CODE(49, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+typedef struct {
+    int Family;
+    BOOLEAN DisableVNEClient;
+    BOOLEAN DisableVNEServer;
+} QUIC_RUN_VERSION_NEGOTIATION_EXT;
+
+#define IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION \
+    QUIC_CTL_CODE(50, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_VERSION_NEGOTIATION_EXT
+
+#define IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_SERVER \
+    QUIC_CTL_CODE(51, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_VERSION_NEGOTIATION_EXT
+
+#define IOCTL_QUIC_RUN_COMPATIBLE_VERSION_NEGOTIATION_DEFAULT_CLIENT \
+    QUIC_CTL_CODE(52, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_VERSION_NEGOTIATION_EXT
+
+#define IOCTL_QUIC_RUN_INCOMPATIBLE_VERSION_NEGOTIATION \
+    QUIC_CTL_CODE(53, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_FAILED_VERSION_NEGOTIATION \
+    QUIC_CTL_CODE(54, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_VALIDATE_DESIRED_VERSIONS_SETTINGS \
+    QUIC_CTL_CODE(55, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+typedef struct {
+    int Family;
+    BOOLEAN UseClientCert;
+} QUIC_RUN_CONNECT_CLIENT_CERT;
+
+#define IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT \
+    QUIC_CTL_CODE(56, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_CONNECT_CLIENT_CERT
+
+#define IOCTL_QUIC_RUN_VALID_ALPN_LENGTHS \
+    QUIC_CTL_CODE(57, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_INVALID_ALPN_LENGTHS \
+    QUIC_CTL_CODE(58, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+typedef struct {
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    union {
+        QUIC_CERTIFICATE_HASH CertHash;
+        QUIC_CERTIFICATE_HASH_STORE CertHashStore;
+        char PrincipalString[100];
+    };
+} QUIC_RUN_CRED_VALIDATION;
+
+#define IOCTL_QUIC_RUN_EXPIRED_SERVER_CERT \
+    QUIC_CTL_CODE(59, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALID_SERVER_CERT \
+    QUIC_CTL_CODE(60, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 60

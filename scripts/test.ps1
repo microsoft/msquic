@@ -12,6 +12,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER Tls
     The TLS library test.
 
+.PARAMETER ExtraArtifactDir
+    Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
+
 .PARAMETER Kernel
     Runs the Windows kernel mode tests.
 
@@ -57,6 +60,9 @@ This script provides helpers for running executing the MsQuic tests.
 
 .Parameter CodeCoverage
     Collect code coverage for this test run. Incompatible with -Kernel and -Debugger.
+
+.Parameter AZP
+    Runs in Azure Pipelines mode.
 
 .EXAMPLE
     test.ps1
@@ -137,7 +143,13 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CodeCoverage = $false
+    [switch]$CodeCoverage = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$AZP = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -173,6 +185,16 @@ if ("" -eq $Tls) {
     }
 }
 
+if ($IsWindows) {
+    $Platform = "windows"
+} elseif ($IsLinux) {
+    $Platform = "linux"
+} elseif ($IsMacOS) {
+    $Platform = "macos"
+} else {
+    Write-Error "Unsupported platform type!"
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -189,20 +211,31 @@ if ($CodeCoverage) {
 # Path to the run-gtest Powershell script.
 $RunTest = Join-Path $RootDir "scripts/run-gtest.ps1"
 
+if ("" -eq $ExtraArtifactDir) {
+    $RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)"
+} else {
+    if ($Kernel) {
+        Write-Error "Kernel not supported with extra artifact dir"
+    }
+    $RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
+}
+
 # Path to the msquictest exectuable.
 $MsQuicTest = $null
 $MsQuicCoreTest = $null
 $MsQuicPlatTest = $null
 $KernelPath = $null;
 if ($IsWindows) {
-    $MsQuicTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquictest.exe"
-    $MsQuicCoreTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquiccoretest.exe"
-    $MsQuicPlatTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquicplatformtest.exe"
+    $MsQuicTest = Join-Path $RootArtifactDir  "msquictest.exe"
+    $MsQuicCoreTest = Join-Path $RootArtifactDir "msquiccoretest.exe"
+    $MsQuicPlatTest = Join-Path $RootArtifactDir "msquicplatformtest.exe"
     $KernelPath = Join-Path $RootDir "\artifacts\bin\winkernel\$($Arch)_$($Config)_$($Tls)"
+}  elseif ($IsLinux -or $IsMacOS) {
+    $MsQuicTest = Join-Path $RootArtifactDir "msquictest"
+    $MsQuicCoreTest = Join-Path $RootArtifactDir "msquiccoretest"
+    $MsQuicPlatTest = Join-Path $RootArtifactDir "msquicplatformtest"
 } else {
-    $MsQuicTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquictest"
-    $MsQuicCoreTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquiccoretest"
-    $MsQuicPlatTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquicplatformtest"
+    Write-Error "Unsupported platform type!"
 }
 
 # Make sure the build is present.
@@ -215,8 +248,16 @@ if ($Kernel) {
     }
 }
 
+$PfxFile = Join-Path $RootArtifactDir "selfsignedservercert.pfx"
+if (!(Test-Path $PfxFile)) {
+    $MyPath = Split-Path -Path $PSCommandPath -Parent
+    $ScriptPath = Join-Path $MyPath install-test-certificates.ps1
+
+    &$ScriptPath -OutputFile $PfxFile
+}
+
 # Build up all the arguments to pass to the Powershell script.
-$TestArguments =  "-ExecutionMode $ExecutionMode -IsolationMode $IsolationMode"
+$TestArguments =  "-ExecutionMode $ExecutionMode -IsolationMode $IsolationMode -PfxPath $PfxFile"
 
 if ($Kernel) {
     $TestArguments += " -Kernel $KernelPath"
@@ -256,6 +297,9 @@ if ($EnableAppVerifier) {
 }
 if ($CodeCoverage) {
     $TestArguments += " -CodeCoverage"
+}
+if ($AZP) {
+    $TestArguments += " -AZP"
 }
 
 # Run the script.

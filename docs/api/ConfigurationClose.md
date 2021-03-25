@@ -17,11 +17,13 @@ void
 
 # Parameters
 
-**TODO**
+`Configuration`
+
+The valid handle to an open configuration object.
 
 # Remarks
 
-**TODO**
+This function releases the configuration object.
 
 # See Also
 

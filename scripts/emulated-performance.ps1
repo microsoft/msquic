@@ -2,7 +2,7 @@
 
 .SYNOPSIS
 This script runs performance tests with various emulated network conditions. Note,
-this script requires duonic to be preinstalled on the system and quicperf.exe to
+this script requires duonic to be preinstalled on the system and secnetperf.exe to
 be in the current directory.
 
 .PARAMETER Config
@@ -89,72 +89,18 @@ param (
     [Int32]$NumIterations = 1,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("None", "Datapath.Light", "Datapath.Verbose", "Performance.Light", "Performance.Verbose")]
-    [string]$LogProfile = "None"
+    [ValidateSet("None", "Datapath.Light", "Datapath.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose")]
+    [string]$LogProfile = "None",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Periodic = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ForceBranchName = $null
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
-
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) {
-        $Tls = "schannel"
-    } else {
-        $Tls = "openssl"
-    }
-}
-
-# Root directory of the project.
-$RootDir = Split-Path $PSScriptRoot -Parent
-
-# Script for controlling loggings.
-$LogScript = Join-Path $RootDir "scripts" "log.ps1"
-
-# Folder for log files.
-$LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf" (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
-if ($LogProfile -ne "None") {
-    try {
-        Write-Debug "Canceling any already running logs"
-        & $LogScript -Cancel
-    } catch {
-    }
-    New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
-    dir $LogScript | Write-Debug
-}
-
-$Platform = $IsWindows ? "windows" : "linux"
-$ExeName = $IsWindows ? "quicperf.exe" : "quicperf"
-# Path to the quicperf exectuable.
-$QuicPerf = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)" $ExeName
-
-# Path to the netput exectuable.
-$NetPut = "C:\Windows\System32\netput.exe"
-
-Get-NetAdapter | Write-Debug
-ipconfig -all | Write-Debug
-
-# Start the perf server listening.
-Write-Debug "Starting server..."
-if (!(Test-Path -Path $QuicPerf)) {
-    Write-Error "Missing file: $QuicPerf"
-}
-$pinfo = New-Object System.Diagnostics.ProcessStartInfo
-$pinfo.FileName = $QuicPerf
-$pinfo.UseShellExecute = $false
-$pinfo.RedirectStandardOutput = $true
-$pinfo.RedirectStandardError = $true
-$p = New-Object System.Diagnostics.Process
-$p.StartInfo = $pinfo
-$p.Start() | Out-Null
-
-# Wait for the server(s) to come up.
-Sleep -Seconds 1
-
-$OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
-New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
-$UniqueId = New-Guid
-$OutputFile = Join-Path $OutputDir "WANPerf_$($UniqueId.ToString("N")).json"
 
 class TestResult {
     [int]$RttMs;
@@ -206,9 +152,161 @@ class Results {
     }
 }
 
-$PlatformName = (($IsWindows ? "Windows" : "Linux") + "_$($Arch)_$($Tls)")
-$RunResults = [Results]::new($PlatformName)
+function Find-MatchingTest([TestResult]$TestResult, [Object]$RemoteResults) {
+    foreach ($Remote in $RemoteResults) {
+        if (
+            $TestResult.RttMs -eq $Remote.RttMs -and
+            $TestResult.BottleneckMbps -eq $Remote.BottleneckMbps -and
+            $TestResult.BottleneckBufferPackets -eq $Remote.BottleneckBufferPackets -and
+            $TestResult.RandomLossDenominator -eq $Remote.RandomLossDenominator -and
+            $TestResult.RandomReorderDenominator -eq $Remote.RandomReorderDenominator -and
+            $TestResult.ReorderDelayDeltaMs -eq $Remote.ReorderDelayDeltaMs -and
+            $TestResult.Tcp -eq $Remote.Tcp -and
+            $TestResult.DurationMs -eq $Remote.DurationMs -and
+            $TestResult.Pacing -eq $Remote.Pacing
+        ) {
+            return $Remote
+        }
+    }
+    return $null;
+}
 
+function Get-CurrentBranch {
+    param($RepoDir)
+    $CurrentLoc = Get-Location
+    Set-Location -Path $RepoDir | Out-Null
+    $env:GIT_REDIRECT_STDERR = '2>&1'
+    $CurrentBranch = $null
+    try {
+        $CurrentBranch = git branch --show-current
+    } catch {
+        Write-Debug "Failed to get commit date from git"
+    }
+    Set-Location -Path $CurrentLoc | Out-Null
+    return $CurrentBranch
+}
+
+function Get-LatestCommitHash([string]$Branch) {
+    $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/commits.json"
+    if ($Periodic) {
+        $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/periodic/$Branch/commits.json"
+    }
+    Write-Debug "Requesting: $Uri"
+    try {
+        $AllCommits = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
+        Write-Debug "Result: $AllCommits"
+        $LatestResult = ($AllCommits | Sort-Object -Property Date -Descending)[0]
+        Write-Debug "Latest Commit: $LatestResult"
+        if ($Periodic) {
+            return $LatestResult.Date
+        } else {
+            return $LatestResult.CommitHash
+        }
+    } catch {
+        return ""
+    }
+}
+
+function Get-LatestWanTestResult([string]$Branch, [string]$CommitHash) {
+    $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/wan_data.json"
+    if ($Periodic) {
+        $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/periodic/$Branch/$CommitHash/wan_data.json"
+    }
+    Write-Debug "Requesting: $Uri"
+    try {
+        $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
+        Write-Debug "Result: $LatestResult"
+        return $LatestResult
+    } catch {
+        return ""
+    }
+}
+
+# See if we are an AZP PR
+$PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
+if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
+    # Mainline build, just get branch name
+    $AzpBranchName = $env:BUILD_SOURCEBRANCH
+    if ([string]::IsNullOrWhiteSpace($AzpBranchName)) {
+        # Non azure build
+        $BranchName = Get-CurrentBranch -RepoDir $RootDir
+    } else {
+        # Azure Build
+        $BranchName = $AzpBranchName.Substring(11);
+    }
+} else {
+    # PR Build
+    $BranchName = $PrBranchName
+}
+
+if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
+    $BranchName = $ForceBranchName
+}
+
+$LastCommitHash = Get-LatestCommitHash -Branch $BranchName
+$PreviousResults = Get-LatestWanTestResult -Branch $BranchName -CommitHash $LastCommitHash
+
+# Default TLS based on current platform.
+if ("" -eq $Tls) {
+    if ($IsWindows) {
+        $Tls = "schannel"
+    } else {
+        $Tls = "openssl"
+    }
+}
+
+# Root directory of the project.
+$RootDir = Split-Path $PSScriptRoot -Parent
+
+# Script for controlling loggings.
+$LogScript = Join-Path $RootDir "scripts" "log.ps1"
+
+# Folder for log files.
+$LogDir = Join-Path $RootDir "artifacts" "logs" "wanperf" (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+if ($LogProfile -ne "None") {
+    try {
+        Write-Debug "Canceling any already running logs"
+        & $LogScript -Cancel
+    } catch {
+    }
+    New-Item -Path $LogDir -ItemType Directory -Force | Write-Debug
+    Get-ChildItem $LogScript | Write-Debug
+}
+
+$Platform = $IsWindows ? "windows" : "linux"
+$PlatformName = (($IsWindows ? "Windows" : "Linux") + "_$($Arch)_$($Tls)")
+
+# Path to the secnetperf exectuable.
+$ExeName = $IsWindows ? "secnetperf.exe" : "secnetperf"
+$SecNetPerf = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)" $ExeName
+
+Get-NetAdapter | Write-Debug
+ipconfig -all | Write-Debug
+
+# Make sure to kill any old processes
+try { Stop-Process -Name secnetperf } catch { }
+
+# Start the perf server listening.
+Write-Debug "Starting server..."
+if (!(Test-Path -Path $SecNetPerf)) {
+    Write-Error "Missing file: $SecNetPerf"
+}
+$pinfo = New-Object System.Diagnostics.ProcessStartInfo
+$pinfo.FileName = $SecNetPerf
+$pinfo.UseShellExecute = $false
+$pinfo.RedirectStandardOutput = $true
+$pinfo.RedirectStandardError = $true
+$p = New-Object System.Diagnostics.Process
+$p.StartInfo = $pinfo
+$p.Start() | Out-Null
+
+# Wait for the server(s) to come up.
+Start-Sleep -Seconds 1
+
+$OutputDir = Join-Path $RootDir "artifacts" "PerfDataResults" $Platform "$($Arch)_$($Config)_$($Tls)" "WAN"
+New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
+$UniqueId = New-Guid
+$OutputFile = Join-Path $OutputDir "WANPerf_$($UniqueId.ToString("N")).json"
 # CSV header
 $Header = "RttMs, BottleneckMbps, BottleneckBufferPackets, RandomLossDenominator, RandomReorderDenominator, ReorderDelayDeltaMs, Tcp, DurationMs, Pacing, RateKbps"
 for ($i = 0; $i -lt $NumIterations; $i++) {
@@ -225,6 +323,17 @@ Set-NetAdapterAdvancedProperty duo? -DisplayName RdqEnabled -RegistryValue 1 -No
 # into MTU-sized packets).
 Set-NetAdapterLso duo? -IPv4Enabled $false -IPv6Enabled $false -NoRestart
 
+$RunResults = [Results]::new($PlatformName)
+
+$RemoteResults = ""
+if ($PreviousResults -ne "") {
+    try {
+        $RemoteResults = $PreviousResults.$PlatformName
+    } catch {
+        Write-Debug "Failed to get $PlatformName from previous results"
+    }
+}
+
 # Loop over all the network emulation configurations.
 foreach ($ThisRttMs in $RttMs) {
 foreach ($ThisBottleneckMbps in $BottleneckMbps) {
@@ -232,6 +341,10 @@ foreach ($ThisBottleneckQueueRatio in $BottleneckQueueRatio) {
 foreach ($ThisRandomLossDenominator in $RandomLossDenominator) {
 foreach ($ThisRandomReorderDenominator in $RandomReorderDenominator) {
 foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
+
+    if (($ThisRandomReorderDenominator -ne 0) -ne ($ThisReorderDelayDeltaMs -ne 0)) {
+        continue; # Ignore cases where one is zero, but the other isn't.
+    }
 
     # Calculate BDP in 'packets'
     $BDP = [double]($ThisRttMs * $ThisBottleneckMbps) / (1.5 * 8.0)
@@ -244,8 +357,8 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
     Set-NetAdapterAdvancedProperty duo? -DisplayName RateLimitMbps -RegistryValue $ThisBottleneckMbps -NoRestart
     Set-NetAdapterAdvancedProperty duo? -DisplayName QueueLimitPackets -RegistryValue $ThisBottleneckBufferPackets -NoRestart
     Set-NetAdapterAdvancedProperty duo? -DisplayName RandomLossDenominator -RegistryValue $ThisRandomLossDenominator -NoRestart
-    Set-NetAdapterAdvancedProperty duo? -DisplayName ReorderDelayDeltaMs -RegistryValue $ThisRandomReorderDenominator -NoRestart
-    Set-NetAdapterAdvancedProperty duo? -DisplayName RandomReorderDenominator -RegistryValue $ThisReorderDelayDeltaMs -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName RandomReorderDenominator -RegistryValue $ThisRandomReorderDenominator -NoRestart
+    Set-NetAdapterAdvancedProperty duo? -DisplayName ReorderDelayDeltaMs -RegistryValue $ThisReorderDelayDeltaMs -NoRestart
     Write-Debug "Restarting NIC"
     Restart-NetAdapter duo?
     Start-Sleep 5 # (wait for duonic to restart)
@@ -259,6 +372,8 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         if ($ThisProtocol -eq "TCPTLS") {
             $UseTcp = 1
         }
+
+        $MaxRuntimeMs = $ThisDurationMs + 5000
 
         # Run through all the iterations and keep track of the results.
         $Results = [System.Collections.Generic.List[int]]::new()
@@ -277,22 +392,24 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             Write-Debug "Run upload test: Iteration=$($i + 1)"
 
             $Rate = 0
-            $Command = "$QuicPerf -test:tput -tcp:$UseTcp -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
+            $Command = "$SecNetPerf -test:tput -tcp:$UseTcp -maxruntime:$MaxRuntimeMs -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
             Write-Debug $Command
-            $Output = [string](iex $Command)
+            $Output = [string](Invoke-Expression $Command)
             Write-Debug $Output
             if (!$Output.Contains("App Main returning status 0") -or $Output.Contains("Error:")) {
-                if ($LogProfile -ne "None") {
-                    & $LogScript -Cancel | Out-Null
-                }
-                Write-Error $Output
+                # Don't treat one failure as fatal for the whole run. Just print
+                # it out, use 0 as the rate, and continue on.
+                Write-Host $Command
+                Write-Host $Output
+                $Rate = 0
+
+            } else {
+                # Grab the rate from the output text. Example:
+                #   Started!  Result: 23068672 bytes @ 18066 kbps (10215.203 ms). App Main returning status 0
+                $Rate = [int]$Output.Split(" ")[6]
+                Write-Debug "$Rate Kbps"
             }
 
-            # Grab the rate from the output text. Example:
-            #   Started!  Result: 23068672 bytes @ 18066 kbps (10215.203 ms). App Main returning status 0
-            $Rate = [int]$Output.Split(" ")[6]
-
-            Write-Debug "$Rate Kbps"
             $Results.Add($Rate) | Out-Null
 
             if ($LogProfile -ne "None") {
@@ -306,7 +423,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         }
 
         # Grab the average result and write the CSV output.
-        $RateKbps = [int]($Results | Measure-Object -Average).Average
+        $RateKbps = [int]($Results | Where-Object {$_ -ne 0} | Measure-Object -Average).Average
         $Row = "$ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisDurationMs, $ThisPacing, $RateKbps"
         for ($i = 0; $i -lt $NumIterations; $i++) {
             $Row += ", $($Results[$i])"
@@ -314,8 +431,27 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
         $RunResult = [TestResult]::new($ThisRttMs, $ThisBottleneckMbps, $ThisBottleneckBufferPackets, $ThisRandomLossDenominator, $ThisRandomReorderDenominator, $ThisReorderDelayDeltaMs, $UseTcp, $ThisDurationMs, $ThisPacing, $RateKbps, $Results);
         $RunResults.Runs.Add($RunResult)
         Write-Host $Row
+        if ($RemoteResults -ne "") {
+            $RemoteResult = Find-MatchingTest -TestResult $RunResult -RemoteResults $RemoteResults
+            if ($null -ne $RemoteResult) {
+                $MedianLastResult = $RemoteResult.RateKbps
+                $PercentDiff = 100 * (($RateKbps - $MedianLastResult) / $MedianLastResult)
+                $PercentDiffStr = $PercentDiff.ToString("#.##")
+                if ($PercentDiff -ge 0) {
+                    $PercentDiffStr = "+$PercentDiffStr"
+                }
+                Write-Output "Median: $RateKbps, Remote: $MedianLastResult, ($PercentDiffStr%)"
+            } else {
+                Write-Output "Median: $RateKbps"
+            }
+        } else {
+            Write-Output "Median: $RateKbps"
+        }
     }}}
 
 }}}}}}
 
 $RunResults | ConvertTo-Json -Depth 100 | Out-File $OutputFile
+
+# Kill any leftovers.
+try { Stop-Process -Name secnetperf } catch { }

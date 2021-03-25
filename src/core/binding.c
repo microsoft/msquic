@@ -131,6 +131,7 @@ QuicBindingInitialize(
             LocalAddress,
             RemoteAddress,
             Binding,
+            0,
             &Binding->Socket);
 
 #ifdef QUIC_COMPARTMENT_ID
@@ -474,17 +475,23 @@ QuicBindingAcceptConnection(
     // used later in building up the TLS response.
     //
     uint16_t NegotiatedAlpnLength = 1 + Info->NegotiatedAlpn[-1];
-    uint8_t* NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength, QUIC_POOL_ALPN);
-    if (NegotiatedAlpn == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "NegotiatedAlpn",
-            NegotiatedAlpnLength);
-        QuicConnTransportError(
-            Connection,
-            QUIC_ERROR_INTERNAL_ERROR);
-        return;
+    uint8_t* NegotiatedAlpn;
+
+    if (NegotiatedAlpnLength <= TLS_SMALL_ALPN_BUFFER_SIZE) {
+        NegotiatedAlpn = Connection->Crypto.TlsState.SmallAlpnBuffer;
+    } else {
+        NegotiatedAlpn = CXPLAT_ALLOC_NONPAGED(NegotiatedAlpnLength, QUIC_POOL_ALPN);
+        if (NegotiatedAlpn == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "NegotiatedAlpn",
+                NegotiatedAlpnLength);
+            QuicConnTransportError(
+                Connection,
+                QUIC_ERROR_INTERNAL_ERROR);
+            return;
+        }
     }
     CxPlatCopyMemory(NegotiatedAlpn, Info->NegotiatedAlpn - 1, NegotiatedAlpnLength);
     Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
@@ -751,16 +758,16 @@ QuicBindingProcessStatelessOperation(
         Binding,
         OperationType);
 
-    CXPLAT_SEND_DATA* SendContext =
+    CXPLAT_SEND_DATA* SendData =
         CxPlatSendDataAlloc(
             Binding->Socket,
             CXPLAT_ECN_NON_ECT,
             0);
-    if (SendContext == NULL) {
+    if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "stateless send context",
+            "stateless send data",
             0);
         goto Exit;
     }
@@ -770,16 +777,26 @@ QuicBindingProcessStatelessOperation(
         CXPLAT_DBG_ASSERT(RecvPacket->DestCid != NULL);
         CXPLAT_DBG_ASSERT(RecvPacket->SourceCid != NULL);
 
+        const uint32_t* SupportedVersions;
+        uint32_t SupportedVersionsLength;
+        if (MsQuicLib.Settings.IsSet.DesiredVersionsList) {
+            SupportedVersions = MsQuicLib.Settings.DesiredVersionsList;
+            SupportedVersionsLength = MsQuicLib.Settings.DesiredVersionsListLength;
+        } else {
+            SupportedVersions = DefaultSupportedVersionsList;
+            SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
+        }
+
         const uint16_t PacketLength =
             sizeof(QUIC_VERSION_NEGOTIATION_PACKET) +               // Header
             RecvPacket->SourceCidLen +
             sizeof(uint8_t) +
             RecvPacket->DestCidLen +
             sizeof(uint32_t) +                                      // One random version
-            ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t); // Our actual supported versions
+            (uint16_t)(SupportedVersionsLength * sizeof(uint32_t)); // Our actual supported versions
 
         SendDatagram =
-            CxPlatSendDataAllocBuffer(SendContext, PacketLength);
+            CxPlatSendDataAllocBuffer(SendData, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -798,7 +815,7 @@ QuicBindingProcessStatelessOperation(
 
         uint8_t* Buffer = VerNeg->DestCid;
         VerNeg->DestCidLength = RecvPacket->SourceCidLen;
-        memcpy(
+        CxPlatCopyMemory(
             Buffer,
             RecvPacket->SourceCid,
             RecvPacket->SourceCidLen);
@@ -806,7 +823,7 @@ QuicBindingProcessStatelessOperation(
 
         *Buffer = RecvPacket->DestCidLen;
         Buffer++;
-        memcpy(
+        CxPlatCopyMemory(
             Buffer,
             RecvPacket->DestCid,
             RecvPacket->DestCidLen);
@@ -816,12 +833,16 @@ QuicBindingProcessStatelessOperation(
         CxPlatRandom(sizeof(uint8_t), &RandomValue);
         VerNeg->Unused = 0x7F & RandomValue;
 
-        memcpy(Buffer, &Binding->RandomReservedVersion, sizeof(uint32_t));
+        CxPlatCopyMemory(Buffer, &Binding->RandomReservedVersion, sizeof(uint32_t));
         Buffer += sizeof(uint32_t);
-        for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
-            memcpy(Buffer, &QuicSupportedVersionList[i].Number, sizeof(uint32_t));
-            Buffer += sizeof(uint32_t);
-        }
+
+        CxPlatCopyMemory(
+            Buffer,
+            SupportedVersions,
+            SupportedVersionsLength * sizeof(uint32_t));
+
+        CXPLAT_RECV_PACKET* Packet = CxPlatDataPathRecvDataToRecvPacket(RecvDatagram);
+        Packet->ReleaseDeferred = FALSE;
 
         QuicTraceLogVerbose(
             PacketTxVersionNegotiation,
@@ -859,7 +880,7 @@ QuicBindingProcessStatelessOperation(
         CXPLAT_DBG_ASSERT(PacketLength >= QUIC_MIN_STATELESS_RESET_PACKET_LENGTH);
 
         SendDatagram =
-            CxPlatSendDataAllocBuffer(SendContext, PacketLength);
+            CxPlatSendDataAllocBuffer(SendData, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -899,7 +920,7 @@ QuicBindingProcessStatelessOperation(
 
         uint16_t PacketLength = QuicPacketMaxBufferSizeForRetryV1();
         SendDatagram =
-            CxPlatSendDataAllocBuffer(SendContext, PacketLength);
+            CxPlatSendDataAllocBuffer(SendData, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -981,15 +1002,15 @@ QuicBindingProcessStatelessOperation(
         Binding,
         &RecvDatagram->Tuple->LocalAddress,
         &RecvDatagram->Tuple->RemoteAddress,
-        SendContext,
+        SendData,
         SendDatagram->Length,
         1);
-    SendContext = NULL;
+    SendData = NULL;
 
 Exit:
 
-    if (SendContext != NULL) {
-        CxPlatSendDataFree(SendContext);
+    if (SendData != NULL) {
+        CxPlatSendDataFree(SendData);
     }
 }
 
@@ -1087,7 +1108,7 @@ QuicBindingPreprocessDatagram(
         // Validate we support this long header packet version.
         //
         if (Packet->Invariant->LONG_HDR.Version != QUIC_VERSION_VER_NEG &&
-            !QuicIsVersionSupported(Packet->Invariant->LONG_HDR.Version)) {
+            !QuicVersionNegotiationExtIsVersionServerSupported(Packet->Invariant->LONG_HDR.Version)) {
             //
             // The QUIC packet has an unsupported and non-VN packet number. If
             // we have a listener on this binding and the packet is long enough
@@ -1666,7 +1687,7 @@ QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend
     )
@@ -1683,14 +1704,14 @@ QuicBindingSend(
             Hooks->Send(
                 &RemoteAddressCopy,
                 &LocalAddressCopy,
-                SendContext);
+                SendData);
 
         if (Drop) {
             QuicTraceLogVerbose(
                 BindingSendTestDrop,
                 "[bind][%p] Test dropped packet",
                 Binding);
-            CxPlatSendDataFree(SendContext);
+            CxPlatSendDataFree(SendData);
             Status = QUIC_STATUS_SUCCESS;
         } else {
             Status =
@@ -1698,7 +1719,7 @@ QuicBindingSend(
                     Binding->Socket,
                     &LocalAddressCopy,
                     &RemoteAddressCopy,
-                    SendContext);
+                    SendData);
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogWarning(
                     BindingSendFailed,
@@ -1714,7 +1735,7 @@ QuicBindingSend(
                 Binding->Socket,
                 LocalAddress,
                 RemoteAddress,
-                SendContext);
+                SendData);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 BindingSendFailed,

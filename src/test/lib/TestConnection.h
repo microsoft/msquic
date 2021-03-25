@@ -61,10 +61,12 @@ class TestConnection
     bool ShutdownTimedOut   : 1;
     bool AutoDelete         : 1;
     bool HasRandomLoss      : 1;
+    bool AsyncCustomValidation : 1;
 
     bool ExpectedResumed    : 1;
     QUIC_STATUS ExpectedTransportCloseStatus;
     QUIC_UINT62 ExpectedPeerCloseErrorCode;
+    bool ExpectedCustomValidationResult;
 
     QUIC_STATUS TransportCloseStatus;
     QUIC_UINT62 PeerCloseErrorCode;
@@ -199,6 +201,10 @@ public:
     QUIC_UINT62 GetExpectedPeerCloseErrorCode() const { return ExpectedPeerCloseErrorCode; };
     void SetExpectedPeerCloseErrorCode(QUIC_UINT62 ErrorCode) { ExpectedPeerCloseErrorCode = ErrorCode; }
 
+    QUIC_UINT62 GetExpectedCustomValidationResult() const { return ExpectedCustomValidationResult; };
+    void SetExpectedCustomValidationResult(bool AcceptCert) { ExpectedCustomValidationResult = AcceptCert; }
+    void SetAsyncCustomValidationResult(bool Async) { AsyncCustomValidation = Async; }
+
     uint32_t GetDatagramsSent() const { return DatagramsSent; }
     uint32_t GetDatagramsCanceled() const { return DatagramsCanceled; }
     uint32_t GetDatagramsSuspectLost() const { return DatagramsSuspectLost; }
@@ -265,4 +271,6 @@ public:
     QUIC_STATUS SetConfiguration(HQUIC value);
 
     QUIC_STATUS SetResumptionTicket(const QUIC_BUFFER* ResumptionTicket) const;
+
+    QUIC_STATUS SetCustomValidationResult(bool AcceptCert);
 };

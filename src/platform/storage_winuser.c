@@ -100,6 +100,7 @@ CxPlatStorageOpen(
         "[ reg] Opening %s",
         FullKeyName);
 
+#pragma prefast(suppress:6001, "SAL can't track FullKeyName")
     Status =
         HRESULT_FROM_WIN32(
         RegOpenKeyExA(
@@ -139,7 +140,7 @@ Exit:
             CloseThreadpoolWait(Storage->ThreadPoolWait);
         }
         if (Storage->NotifyEvent != NULL) {
-            CloseHandle(Storage->NotifyEvent);
+            CxPlatCloseHandle(Storage->NotifyEvent);
         }
         CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
@@ -157,7 +158,7 @@ CxPlatStorageClose(
         WaitForThreadpoolWaitCallbacks(Storage->ThreadPoolWait, TRUE);
         RegCloseKey(Storage->RegKey);
         CloseThreadpoolWait(Storage->ThreadPoolWait);
-        CloseHandle(Storage->NotifyEvent);
+        CxPlatCloseHandle(Storage->NotifyEvent);
         CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
 }

@@ -21,9 +21,10 @@ TestConnection::TestConnection(
     QuicConnection(Handle),
     IsServer(true), IsStarted(true), IsConnected(false), Resumed(false),
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
-    IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false),
+    IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
     ExpectedResumed(false), ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
-    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR), EventDeleted(nullptr),
+    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR), ExpectedCustomValidationResult(false),
+    EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
@@ -47,9 +48,10 @@ TestConnection::TestConnection(
     QuicConnection(nullptr),
     IsServer(false), IsStarted(false), IsConnected(false), Resumed(false),
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
-    IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false),
+    IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
     ExpectedResumed(false), ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
-    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR), EventDeleted(nullptr),
+    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR), ExpectedCustomValidationResult(false),
+    EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
@@ -294,13 +296,17 @@ TestConnection::SetQuicVersion(
     uint32_t value
     )
 {
+    QUIC_SETTINGS Settings = {0};
+    Settings.IsSet.DesiredVersionsList = TRUE;
+    Settings.DesiredVersionsList = &value;
+    Settings.DesiredVersionsListLength = 1;
     return
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_QUIC_VERSION,
-            sizeof(value),
-            &value);
+            QUIC_PARAM_CONN_SETTINGS,
+            sizeof(Settings),
+            &Settings);
 }
 
 QUIC_STATUS
@@ -716,6 +722,21 @@ TestConnection::SetResumptionTicket(
 }
 
 QUIC_STATUS
+TestConnection::SetCustomValidationResult(
+    bool AcceptCert
+    )
+{
+    BOOLEAN Result = AcceptCert ? TRUE : FALSE;
+    return
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID,
+            sizeof(Result),
+            &Result);
+}
+
+QUIC_STATUS
 TestConnection::HandleConnectionEvent(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
@@ -836,6 +857,16 @@ TestConnection::HandleConnectionEvent(
                 Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
             CxPlatEventSet(EventResumptionTicketReceived);
         }
+        break;
+
+    case QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED:
+        if (AsyncCustomValidation) {
+            return QUIC_STATUS_PENDING;
+        }
+        if (!ExpectedCustomValidationResult) {
+            return QUIC_STATUS_INTERNAL_ERROR;
+        }
+        break;
 
     default:
         break;
