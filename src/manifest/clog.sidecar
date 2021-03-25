@@ -9745,6 +9745,22 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "OpenSslOnSetTicket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Setting session ticket, %u bytes",
+      "UniqueId": "OpenSslOnSetTicket",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "OpenSslHandshakeComplete": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake complete",
@@ -9753,6 +9769,22 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "OpenSslOnRecvTicket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Received session ticket, %u bytes",
+      "UniqueId": "OpenSslOnRecvTicket",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
@@ -9848,6 +9880,26 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
+    },
+    "TlsErrorStatus": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p] ERROR, %u, %s.",
+      "UniqueId": "TlsErrorStatus",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     },
     "SchannelInitialized": {
       "ModuleProperites": {},
@@ -10135,26 +10187,6 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
-    },
-    "TlsErrorStatus": {
-      "ModuleProperites": {},
-      "TraceString": "[ tls][%p] ERROR, %u, %s.",
-      "UniqueId": "TlsErrorStatus",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
     },
     "StubTlsCertValidationDisabled": {
       "ModuleProperites": {},
@@ -13534,8 +13566,16 @@
         "TraceID": "OpenSsl1RttDataStart"
       },
       {
+        "UniquenessHash": "f402229a-851f-11c6-00b3-69f4a4b0428a",
+        "TraceID": "OpenSslOnSetTicket"
+      },
+      {
         "UniquenessHash": "a02a0e9d-57cd-0abf-1cd9-5a46076919b2",
         "TraceID": "OpenSslHandshakeComplete"
+      },
+      {
+        "UniquenessHash": "26435dc8-4bc1-07f9-1db1-9b206d1cdf14",
+        "TraceID": "OpenSslOnRecvTicket"
       },
       {
         "UniquenessHash": "e9fe92dd-5582-f430-a385-ab63ebfd22c8",
@@ -13560,6 +13600,10 @@
       {
         "UniquenessHash": "ff332af9-4ba2-95a8-bb2c-c5c729be4ccd",
         "TraceID": "OpenSslProcessData"
+      },
+      {
+        "UniquenessHash": "7312d23f-2305-b54b-e1da-81597fabe281",
+        "TraceID": "TlsErrorStatus"
       },
       {
         "UniquenessHash": "a0f9d887-3cc8-3dd3-f2c7-8143878abe6e",
@@ -13644,10 +13688,6 @@
       {
         "UniquenessHash": "183e91b7-6ad7-7a8b-0d77-94004bde6757",
         "TraceID": "SchannelProcessingData"
-      },
-      {
-        "UniquenessHash": "7312d23f-2305-b54b-e1da-81597fabe281",
-        "TraceID": "TlsErrorStatus"
       },
       {
         "UniquenessHash": "64ef2389-7553-24d5-62f5-94fa1ab55eac",

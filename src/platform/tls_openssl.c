@@ -555,6 +555,52 @@ CxPlatTlsClientHelloCallback(
     return SSL_CLIENT_HELLO_SUCCESS;
 }
 
+int
+CxPlatTlsOnSessionReceived(
+    _In_ SSL *Ssl,
+    _In_ SSL_SESSION *Session
+    )
+{
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+
+    BIO* Bio = BIO_new(BIO_s_mem());
+    if (Bio) {
+        if (PEM_write_bio_SSL_SESSION(Bio, Session) == 1) {
+            uint64_t WriteLength = BIO_number_written(Bio);
+            QuicTraceLogConnInfo(
+                OpenSslOnRecvTicket,
+                TlsContext->Connection,
+                "Received session ticket, %u bytes",
+                (uint32_t)WriteLength);
+            TlsContext->SecConfig->Callbacks.ReceiveTicket(
+                TlsContext->Connection,
+                (uint32_t)WriteLength,
+                (uint8_t*)BIO_get_data(Bio));
+        } else {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                ERR_get_error(),
+                "PEM_write_bio_SSL_SESSION failed");
+        }
+        BIO_free(Bio);
+    } else {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            ERR_get_error(),
+            "BIO_new_mem_buf failed");
+    }
+
+    //
+    // We always return a "fail" response so that the session gets freed again
+    // because we haven't used the reference.
+    //
+    return 0;
+}
+
 SSL_QUIC_METHOD OpenSslQuicCallbacks = {
     CxPlatTlsSetEncryptionSecretsCallback,
     CxPlatTlsAddHandshakeDataCallback,
@@ -763,6 +809,16 @@ CxPlatTlsSecConfigCreate(
         goto Exit;
     }
 
+    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) &&
+        !(TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
+        SSL_CTX_set_session_cache_mode(
+            SecurityConfig->SSLCtx,
+            SSL_SESS_CACHE_CLIENT | SSL_SESS_CACHE_NO_INTERNAL_STORE);
+        SSL_CTX_sess_set_new_cb(
+            SecurityConfig->SSLCtx,
+            CxPlatTlsOnSessionReceived);
+    }
+
     if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
         if (!(TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
             Ret = SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, 0xFFFFFFFF);
@@ -772,6 +828,17 @@ CxPlatTlsSecConfigCreate(
                     "[ lib] ERROR, %u, %s.",
                     ERR_get_error(),
                     "SSL_CTX_set_max_early_data failed");
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
+
+            Ret = SSL_CTX_set_num_tickets(SecurityConfig->SSLCtx, 1);
+            if (Ret != 1) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_set_num_tickets failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -1056,6 +1123,7 @@ CxPlatTlsInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_TLS* TlsContext = NULL;
     uint16_t ServerNameLength = 0;
+    UNREFERENCED_PARAMETER(State);
 
     TlsContext = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_TLS), QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
@@ -1143,7 +1211,45 @@ CxPlatTlsInitialize(
     if (!(Config->SecConfig->TlsFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
 
         if (Config->ResumptionTicketLength != 0) {
-            CXPLAT_DBG_ASSERT(Config->ResumptionTicketBuffer != NULL); // TODO set
+            CXPLAT_DBG_ASSERT(Config->ResumptionTicketBuffer != NULL);
+
+            QuicTraceLogConnInfo(
+                OpenSslOnSetTicket,
+                TlsContext->Connection,
+                "Setting session ticket, %u bytes",
+                Config->ResumptionTicketLength);
+            BIO* Bio =
+                BIO_new_mem_buf(
+                    Config->ResumptionTicketBuffer,
+                    (int)Config->ResumptionTicketLength);
+            if (Bio) {
+                SSL_SESSION* Session = PEM_read_bio_SSL_SESSION(Bio, NULL, 0, NULL);
+                if (Session) {
+                    if (!SSL_set_session(TlsContext->Ssl, Session)) {
+                        QuicTraceEvent(
+                            TlsErrorStatus,
+                            "[ tls][%p] ERROR, %u, %s.",
+                            TlsContext->Connection,
+                            ERR_get_error(),
+                            "SSL_set_session failed");
+                    }
+                } else {
+                    QuicTraceEvent(
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        ERR_get_error(),
+                        "PEM_read_bio_SSL_SESSION failed");
+                }
+                BIO_free(Bio);
+            } else {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    ERR_get_error(),
+                    "BIO_new_mem_buf failed");
+            }
         }
 
         if (Config->IsServer || (Config->ResumptionTicketLength != 0)) {
@@ -1168,8 +1274,6 @@ CxPlatTlsInitialize(
         goto Exit;
     }
     CXPLAT_FREE(Config->LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
-
-    State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
 
     *NewTlsContext = TlsContext;
     TlsContext = NULL;
@@ -1224,8 +1328,6 @@ CxPlatTlsProcessData(
     CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
     if (DataType == CXPLAT_TLS_TICKET_DATA) {
-        TlsContext->ResultFlags = CXPLAT_TLS_RESULT_ERROR;
-
         QuicTraceLogConnVerbose(
             OpenSsslIgnoringTicket,
             TlsContext->Connection,
@@ -1367,28 +1469,13 @@ CxPlatTlsProcessData(
     } else {
         if (SSL_process_quic_post_handshake(TlsContext->Ssl) != 1) {
             QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
                 ERR_get_error(),
                 "SSL_process_quic_post_handshake failed");
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
-        }
-
-        if (!TlsContext->IsServer) {
-            SSL_SESSION* Session = SSL_get_session(TlsContext->Ssl);
-            if (Session == NULL) {
-                QuicTraceEvent(
-                    LibraryError,
-                    "[ lib] ERROR, %s.",
-                    "SSL_get1_session failed");
-            } else {
-                // TODO - Serialize session bytes
-                TlsContext->SecConfig->Callbacks.ReceiveTicket(
-                    TlsContext->Connection,
-                    0,
-                    NULL);
-            }
         }
     }
 

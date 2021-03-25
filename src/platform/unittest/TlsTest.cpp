@@ -379,6 +379,8 @@ protected:
             Config.Connection = (QUIC_CONNECTION*)this;
             Config.ServerName = "localhost";
             if (Ticket) {
+                ASSERT_NE(nullptr, Ticket->Buffer);
+                //ASSERT_NE((uint32_t)0, Ticket->Length);
                 Config.ResumptionTicketBuffer = Ticket->Buffer;
                 Config.ResumptionTicketLength = Ticket->Length;
                 Ticket->Buffer = nullptr;
@@ -628,6 +630,7 @@ protected:
             if (Context->ResumptionTicket.Buffer == nullptr) {
                 Context->ResumptionTicket.Buffer =
                     (uint8_t*)CXPLAT_ALLOC_NONPAGED(TicketLength, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+                Context->ResumptionTicket.Length = TicketLength;
                 CxPlatCopyMemory(
                     Context->ResumptionTicket.Buffer,
                     Ticket,
@@ -1035,6 +1038,7 @@ TEST_F(TlsTest, HandshakeResumption)
     DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
 
     ASSERT_NE(nullptr, ClientContext.ResumptionTicket.Buffer);
+    //ASSERT_NE((uint32_t)0, ClientContext.ResumptionTicket.Length);
 
     TlsContext ServerContext2, ClientContext2;
     ServerContext2.InitializeServer(ServerSecConfig);
