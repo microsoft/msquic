@@ -49,7 +49,7 @@ PerfServer::Start(
     QuicAddrSetPort(&Address, Port);
 
     if (!Server.Start(&Address)) { // TCP
-        //printf("TCP Server failed to start!\n");
+        WriteOutput("TCP Server failed to start!\n");
     }
 
     StopEvent = _StopEvent;

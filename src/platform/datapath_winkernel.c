@@ -298,7 +298,7 @@ CxPlatDataPathTcpAccept(
 );
 
 //
-// Callback for WSK to indicate a new tcp listener connection.
+// Callback for WSK to indicate a tcp receive.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
@@ -313,7 +313,7 @@ CxPlatDataPathTcpReceive(
 );
 
 //
-// Callback for WSK to indicate a new tcp listener connection.
+// Callback for WSK to indicate a tcp disconnect.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
@@ -325,7 +325,7 @@ CxPlatDataPathTcpDisconnect(
 );
 
 //
-// Callback for WSK to indicate a new tcp listener connection.
+// Callback for WSK to indicate a tcp backlog update.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
@@ -339,6 +339,10 @@ CxPlatDataPathTcpSendBacklog(
 typedef struct _WSK_DATAGRAM_SOCKET {
     const WSK_PROVIDER_DATAGRAM_DISPATCH* Dispatch;
 } WSK_DATAGRAM_SOCKET, * PWSK_DATAGRAM_SOCKET;
+
+typedef struct _WSK_LISTENER_SOCKET {
+    const WSK_PROVIDER_LISTEN_DISPATCH* Dispatch;
+} WSK_LISTENER_SOCKET, * PWSK_LISTENER_SOCKET;
 
 //
 // Per-port state.
@@ -371,6 +375,7 @@ typedef struct CXPLAT_SOCKET {
     union {
         PWSK_SOCKET Socket;
         PWSK_DATAGRAM_SOCKET DgrmSocket;
+        PWSK_LISTENER_SOCKET ListenerSocket;
     };
 
     //
@@ -1983,7 +1988,7 @@ CxPlatSocketCreateTcpListener(
     CxPlatEventReset(Socket->WskCompletionEvent);
 
     Status =
-        Socket->DgrmSocket->Dispatch->
+        Socket->ListenerSocket->Dispatch->
         WskBind(
             Socket->Socket,
             (PSOCKADDR)&Socket->LocalAddress,
@@ -2022,6 +2027,88 @@ Error:
     }
 
     return Status;
+}
+
+//
+// Callback for WSK to indicate a new tcp listener connection.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+QUIC_STATUS
+NTAPI
+CxPlatDataPathTcpAccept(
+    _In_opt_ void* Socket,
+    _In_ ULONG Flags,
+    _In_ PSOCKADDR LocalAddress,
+    _In_ PSOCKADDR RemoteAddress,
+    _In_opt_ PWSK_SOCKET AcceptSocket,
+    _Outptr_result_maybenull_ PVOID* AcceptSocketContext,
+    _Outptr_result_maybenull_ CONST WSK_CLIENT_CONNECTION_DISPATCH** AcceptSocketDispatch
+)
+{
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Flags);
+    UNREFERENCED_PARAMETER(LocalAddress);
+    UNREFERENCED_PARAMETER(RemoteAddress);
+    UNREFERENCED_PARAMETER(AcceptSocket);
+    UNREFERENCED_PARAMETER(AcceptSocketContext);
+    UNREFERENCED_PARAMETER(AcceptSocketDispatch);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+//
+// Callback for WSK to indicate a tcp receive.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+QUIC_STATUS
+NTAPI
+CxPlatDataPathTcpReceive(
+    _In_opt_ void* Socket,
+    _In_ ULONG Flags,
+    _In_opt_ PWSK_DATA_INDICATION DataIndication,
+    _In_ SIZE_T BytesIndicated,
+    _Inout_ SIZE_T* BytesAccepted
+) {
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Flags);
+    UNREFERENCED_PARAMETER(DataIndication);
+    UNREFERENCED_PARAMETER(BytesIndicated);
+    UNREFERENCED_PARAMETER(BytesAccepted);
+
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+//
+// Callback for WSK to indicate a tcp disconnect.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+QUIC_STATUS
+NTAPI
+CxPlatDataPathTcpDisconnect(
+    _In_opt_ void* Socket,
+    _In_ ULONG     Flags
+) {
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Flags);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+//
+// Callback for WSK to indicate a tcp backlog update.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+QUIC_STATUS
+NTAPI
+CxPlatDataPathTcpSendBacklog(
+    _In_opt_ void* SocketContext,
+    _In_ SIZE_T    IdealBacklogSize
+) {
+    UNREFERENCED_PARAMETER(SocketContext);
+    UNREFERENCED_PARAMETER(IdealBacklogSize);
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
