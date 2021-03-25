@@ -243,9 +243,9 @@ SecNetPerfGetServiceName(
         return STATUS_INVALID_PARAMETER;
     }
 
-    UNICODE_STRING ServiceString = { ServiceNameLength, ServiceNameLength, BaseRegPath->Buffer + (BaseRegPathLength - ServiceNameLength) };
+    *ServiceName = { ServiceNameLength * sizeof(WCHAR), ServiceNameLength * sizeof(WCHAR), BaseRegPath->Buffer + (BaseRegPathLength - ServiceNameLength) };
 
-    return RtlUnicodeStringCopy(ServiceName, &ServiceString);
+    return STATUS_SUCCESS;
 }
 
 _No_competing_thread_
@@ -278,7 +278,7 @@ SecNetPerfCtlInitialize(
             "WdfControlDeviceInitAllocate failed");
         Status = STATUS_INSUFFICIENT_RESOURCES;
         goto Error;
-    }    
+    }
 
     Status = 
         SecNetPerfGetServiceName(

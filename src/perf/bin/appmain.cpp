@@ -358,6 +358,8 @@ main(
     const char* FileName = nullptr;
     const char* DriverName = nullptr;
     bool PrivateTestLibrary = false;
+    constexpr const char* DriverSearch = "driverName";
+    size_t DriverLen = strlen(DriverSearch);
 
     UniquePtr<char*[]> ArgValues = UniquePtr<char*[]>(new char*[argc]);
 
@@ -373,8 +375,6 @@ main(
     }
 
     for (int i = 0; i < argc; ++i) {
-        constexpr const char* DriverSearch = "driverName";
-        constexpr size_t DriverLen = sizeof(DriverSearch);
 
         if (_strnicmp(argv[i] + 1, DriverSearch, DriverLen) == 0) {
 #ifdef _WIN32
@@ -382,7 +382,7 @@ main(
             // See if private driver
             //
             constexpr const char* DriverSearchPriv = "driverNamePriv";
-            constexpr size_t DriverLenPriv = sizeof(DriverSearchPriv);
+            size_t DriverLenPriv = strlen(DriverSearchPriv);
             if (_strnicmp(argv[i] + 1, DriverSearchPriv, DriverLenPriv) == 0) {
                 PrivateTestLibrary = true;
                 DriverName = argv[i] + 1 + DriverLenPriv + 1;
