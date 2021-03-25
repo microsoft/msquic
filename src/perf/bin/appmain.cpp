@@ -290,7 +290,7 @@ QuicKernelMain(
             OutBuffer,
             OutBufferSize,
             &OutBufferWritten,
-            240000);
+            INFINITE);
     if (RunSuccess) {
         printf("%s\n", OutBuffer);
 
