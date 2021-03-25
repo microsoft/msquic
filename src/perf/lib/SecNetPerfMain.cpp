@@ -139,6 +139,11 @@ QuicMainStart(
         if (QUIC_FAILED(Status)) {
             CxPlatDataPathUninitialize(Datapath);
             Datapath = nullptr;
+            //
+            // Must explicitly set binding to null, as CxPlatSocketCreateUdp
+            // can set the Binding variable even in invalid cases.
+            //
+            Binding = nullptr;
             WriteOutput("Datapath Binding for shutdown failed to initialize: %d\n", Status);
             return Status;
         }
