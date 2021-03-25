@@ -27,9 +27,6 @@ typedef struct {
 } QUIC_RUN_CERTIFICATE_PARAMS;
 #include "quic_driver_helpers.h"
 
-#define QUIC_DRIVER_NAME            "secnetperfdrv"
-#define QUIC_DRIVER_NAME_PRIVATE    "secnetperfdrvpriv"
-
 #endif
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
@@ -177,6 +174,7 @@ QuicKernelMain(
     _In_ bool /*KeyboardWait*/,
     _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedParams,
     _In_ bool PrivateTestLibrary,
+    _In_z_ const char* DriverName,
     _In_opt_z_ const char* FileName
     )
 {
@@ -226,13 +224,10 @@ QuicKernelMain(
     QuicDriverService DriverService;
     QuicDriverClient DriverClient;
 
-    const char* DriverName;
     const char* DependentDriverNames;
     if (PrivateTestLibrary) {
-        DriverName = QUIC_DRIVER_NAME_PRIVATE;
         DependentDriverNames = "msquicpriv\0";
     } else {
-        DriverName = QUIC_DRIVER_NAME;
         DependentDriverNames = "msquic\0";
     }
 
@@ -359,9 +354,9 @@ main(
     ) {
     const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     QUIC_STATUS RetVal = 0;
-    bool TestingKernelMode = false;
     bool KeyboardWait = false;
     const char* FileName = nullptr;
+    const char* DriverName = nullptr;
     bool PrivateTestLibrary = false;
 
     UniquePtr<char*[]> ArgValues = UniquePtr<char*[]>(new char*[argc]);
@@ -378,11 +373,21 @@ main(
     }
 
     for (int i = 0; i < argc; ++i) {
-        if (strcmp("--kernel", argv[i]) == 0 || strcmp("--kernelPriv", argv[i]) == 0) {
+        constexpr const char* DriverSearch = "driverName";
+        constexpr size_t DriverLen = sizeof(DriverSearch);
+
+        if (_strnicmp(argv[i] + 1, DriverSearch, DriverLen) == 0) {
 #ifdef _WIN32
-            TestingKernelMode = true;
-            if (strcmp("--kernelPriv", argv[i]) == 0) {
+            //
+            // See if private driver
+            //
+            constexpr const char* DriverSearchPriv = "driverNamePriv";
+            constexpr size_t DriverLenPriv = sizeof(DriverSearchPriv);
+            if (_strnicmp(argv[i] + 1, DriverSearchPriv, DriverLenPriv) == 0) {
                 PrivateTestLibrary = true;
+                DriverName = argv[i] + 1 + DriverLenPriv + 1;
+            } else {
+                DriverName = argv[i] + 1 + DriverLen + 1;
             }
 #else
             printf("Cannot run kernel mode tests on non windows platforms\n");
@@ -401,7 +406,7 @@ main(
 
     SelfSignedCredConfig =
         CxPlatGetSelfSignedCert(
-            TestingKernelMode ?
+            DriverName != nullptr ?
                 CXPLAT_SELF_SIGN_CERT_MACHINE :
                 CXPLAT_SELF_SIGN_CERT_USER,
             FALSE);
@@ -411,10 +416,10 @@ main(
         goto Exit;
     }
 
-    if (TestingKernelMode) {
+    if (DriverName != nullptr) {
 #ifdef _WIN32
         printf("Entering kernel mode main\n");
-        RetVal = QuicKernelMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, PrivateTestLibrary, FileName);
+        RetVal = QuicKernelMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, PrivateTestLibrary, DriverName, FileName);
 #else
         UNREFERENCED_PARAMETER(PrivateTestLibrary);
         CXPLAT_FRE_ASSERT(FALSE);

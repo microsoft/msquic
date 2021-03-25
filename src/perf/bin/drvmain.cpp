@@ -17,13 +17,8 @@ Abstract:
 #include "drivermain.cpp.clog.h"
 #endif
 
-#ifdef PRIVATE_LIBRARY
-DECLARE_CONST_UNICODE_STRING(SecNetPerfCtlDeviceName, L"\\Device\\secnetperfdrv");
-DECLARE_CONST_UNICODE_STRING(SecNetPerfCtlDeviceSymLink, L"\\DosDevices\\secnetperfdrvpriv");
-#else
-DECLARE_CONST_UNICODE_STRING(SecNetPerfCtlDeviceName, L"\\Device\\secnetperfdrv");
-DECLARE_CONST_UNICODE_STRING(SecNetPerfCtlDeviceSymLink, L"\\DosDevices\\secnetperfdrvpriv");
-#endif
+DECLARE_CONST_UNICODE_STRING(SecNetPerfCtlDeviceNameBase, L"\\Device\\");
+DECLARE_CONST_UNICODE_STRING(SecNetPerfCtlDeviceSymLinkBase, L"\\DosDevices\\");
 
 typedef struct QUIC_DEVICE_EXTENSION {
     EX_PUSH_LOCK Lock;
@@ -69,7 +64,8 @@ _No_competing_thread_
 INITCODE
 NTSTATUS
 SecNetPerfCtlInitialize(
-    _In_ WDFDRIVER Driver
+    _In_ WDFDRIVER Driver,
+    _In_ PUNICODE_STRING BaseRegPath
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -178,7 +174,7 @@ DriverEntry(
     //
     // Initialize the device control interface.
     //
-    Status = SecNetPerfCtlInitialize(Driver);
+    Status = SecNetPerfCtlInitialize(Driver, RegistryPath);
     if (!NT_SUCCESS(Status)) {
         goto Error;
     }
@@ -219,11 +215,45 @@ SecNetPerfDriverUnload(
     CxPlatSystemUnload();
 }
 
+#define PERF_REG_PATH                 L"\\Parameters"
+
+_No_competing_thread_
+INITCODE
+NTSTATUS
+SecNetPerfGetServiceName(
+    _In_ PUNICODE_STRING BaseRegPath,
+    _Inout_ PUNICODE_STRING ServiceName
+    )
+{
+    USHORT BaseRegPathLength = BaseRegPath->Length / sizeof(WCHAR);
+    if (BaseRegPath->Buffer[BaseRegPathLength - 1] == L'\\') {
+        //LogWarning("[config] Trimming trailing '\\' from registry!");
+        BaseRegPathLength--;
+    }
+
+    //
+    // Get the service name from the base registry path.
+    //
+    USHORT ServiceNameLength = 0;
+    while (BaseRegPath->Buffer[BaseRegPathLength - ServiceNameLength - 1] != L'\\') {
+        ServiceNameLength++;
+    }
+    if (ServiceNameLength == 0) {
+        //LogError("[config] Empty service name!");
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    UNICODE_STRING ServiceString = { ServiceNameLength, ServiceNameLength, BaseRegPath->Buffer + (BaseRegPathLength - ServiceNameLength) };
+
+    return RtlUnicodeStringCopy(ServiceName, &ServiceString);
+}
+
 _No_competing_thread_
 INITCODE
 NTSTATUS
 SecNetPerfCtlInitialize(
-    _In_ WDFDRIVER Driver
+    _In_ WDFDRIVER Driver,
+    _In_ PUNICODE_STRING BaseRegPath
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
@@ -234,6 +264,8 @@ SecNetPerfCtlInitialize(
     QUIC_DEVICE_EXTENSION* DeviceContext;
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
+    DECLARE_UNICODE_STRING_SIZE(ServiceName, 64);
+    DECLARE_UNICODE_STRING_SIZE(DeviceName, 100);
 
     DeviceInit =
         WdfControlDeviceInitAllocate(
@@ -246,12 +278,45 @@ SecNetPerfCtlInitialize(
             "WdfControlDeviceInitAllocate failed");
         Status = STATUS_INSUFFICIENT_RESOURCES;
         goto Error;
+    }    
+
+    Status = 
+        SecNetPerfGetServiceName(
+            BaseRegPath,
+            &ServiceName);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "SecNetPerfGetServiceName failed");
+        goto Error;
+    }
+
+    Status = RtlUnicodeStringCopy(&DeviceName, &SecNetPerfCtlDeviceNameBase);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUnicodeStringCopy failed");
+        goto Error;
+    }
+
+    Status = RtlUnicodeStringCat(&DeviceName, &ServiceName);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUnicodeStringCat failed");
+        goto Error;
     }
 
     Status =
         WdfDeviceInitAssignName(
             DeviceInit,
-            &SecNetPerfCtlDeviceName);
+            &DeviceName);
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -263,7 +328,7 @@ SecNetPerfCtlInitialize(
 
     QuicTraceLogVerbose(
         PerfControlInitialized,
-        "[perf] Control interface initialized with %.*S", SecNetPerfCtlDeviceName.Length, SecNetPerfCtlDeviceName.Buffer);
+        "[perf] Control interface initialized with %.*S", DeviceName.Length, DeviceName.Buffer);
 
     WDF_FILEOBJECT_CONFIG_INIT(
         &FileConfig,
@@ -298,7 +363,28 @@ SecNetPerfCtlInitialize(
     ExInitializePushLock(&DeviceContext->Lock);
     InitializeListHead(&DeviceContext->ClientList);
 
-    Status = WdfDeviceCreateSymbolicLink(Device, &SecNetPerfCtlDeviceSymLink);
+    DeviceName.Length = 0;
+    Status = RtlUnicodeStringCopy(&DeviceName, &SecNetPerfCtlDeviceSymLinkBase);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUnicodeStringCopy failed");
+        goto Error;
+    }
+
+    Status = RtlUnicodeStringCat(&DeviceName, &ServiceName);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUnicodeStringCat failed");
+        goto Error;
+    }
+
+    Status = WdfDeviceCreateSymbolicLink(Device, &DeviceName);
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
