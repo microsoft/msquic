@@ -310,47 +310,52 @@ CxPlatTlsSetEncryptionSecretsCallback(
 
     CXPLAT_SECRET Secret;
     CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
-    CxPlatCopyMemory(Secret.Secret, WriteSecret, SecretLen);
 
-    CXPLAT_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
-    Status =
-        QuicPacketKeyDerive(
-            KeyType,
-            &Secret,
-            "write secret",
-            TRUE,
-            &TlsState->WriteKeys[KeyType]);
-    if (QUIC_FAILED(Status)) {
-        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-        return -1;
+    if (WriteSecret) {
+        CxPlatCopyMemory(Secret.Secret, WriteSecret, SecretLen);
+        CXPLAT_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
+        Status =
+            QuicPacketKeyDerive(
+                KeyType,
+                &Secret,
+                "write secret",
+                TRUE,
+                &TlsState->WriteKeys[KeyType]);
+        if (QUIC_FAILED(Status)) {
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            return -1;
+        }
+
+        TlsState->WriteKey = KeyType;
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
     }
 
-    TlsState->WriteKey = KeyType;
-    TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
-    CxPlatCopyMemory(Secret.Secret, ReadSecret, SecretLen);
+    if (ReadSecret) {
+        CxPlatCopyMemory(Secret.Secret, ReadSecret, SecretLen);
+        CXPLAT_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
+        Status =
+            QuicPacketKeyDerive(
+                KeyType,
+                &Secret,
+                "read secret",
+                TRUE,
+                &TlsState->ReadKeys[KeyType]);
+        if (QUIC_FAILED(Status)) {
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            return -1;
+        }
 
-    CXPLAT_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
-    Status =
-        QuicPacketKeyDerive(
-            KeyType,
-            &Secret,
-            "read secret",
-            TRUE,
-            &TlsState->ReadKeys[KeyType]);
-    if (QUIC_FAILED(Status)) {
-        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-        return -1;
+        if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_1_RTT) {
+            //
+            // The 1-RTT read keys aren't actually allowed to be used until the
+            // handshake completes.
+            //
+        } else {
+            TlsState->ReadKey = KeyType;
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
+        }
     }
 
-    if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_1_RTT) {
-        //
-        // The 1-RTT read keys aren't actually allowed to be used until the
-        // handshake completes.
-        //
-    } else {
-        TlsState->ReadKey = KeyType;
-        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
-    }
 #ifdef CXPLAT_TLS_SECRETS_SUPPORT
     if (TlsContext->TlsSecrets != NULL) {
         TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
@@ -566,16 +571,17 @@ CxPlatTlsOnSessionReceived(
     BIO* Bio = BIO_new(BIO_s_mem());
     if (Bio) {
         if (PEM_write_bio_SSL_SESSION(Bio, Session) == 1) {
-            uint64_t WriteLength = BIO_number_written(Bio);
+            uint8_t* Data = NULL;
+            long Length = BIO_get_mem_data(Bio, &Data);
             QuicTraceLogConnInfo(
                 OpenSslOnRecvTicket,
                 TlsContext->Connection,
                 "Received session ticket, %u bytes",
-                (uint32_t)WriteLength);
+                (uint32_t)Length);
             TlsContext->SecConfig->Callbacks.ReceiveTicket(
                 TlsContext->Connection,
-                (uint32_t)WriteLength,
-                (uint8_t*)BIO_get_data(Bio));
+                (uint32_t)Length,
+                (uint8_t*)Data);
         } else {
             QuicTraceEvent(
                 TlsErrorStatus,
