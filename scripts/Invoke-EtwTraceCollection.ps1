@@ -66,21 +66,25 @@ function Format-IPAddresses {
     }
 }
 
-if ($Flush -ne "") {
+if ($FlushSession -ne "") {
     # Flush the ETW memory buffers to disk.
-	logman.exe update $Flush -ets -fd
+    $Command = "logman.exe update $($FlushSession) -ets -fd"
+    Write-Debug $Command
+    Invoke-Expression $Command 2>&1 | Out-Null
 }
 
 if ($ConvertEtl -ne "") {
-    # Convert the ETL to text
+    # Convert the ETL to text.
     $OutputPath = Join-Path $env:temp "temp.log"
     $Command = "netsh trace convert $($ConvertEtl) output=$($OutputPath) overwrite=yes report=no"
     if ($TmfPath -ne "") {
         $Command += " tmfpath=$($TmfPath)"
     }
     Write-Debug $Command
-    Invoke-Expression $Command
+    Invoke-Expression $Command 2>&1 | Out-Null
 
     # Get the text content, sanitizing as necessary.
-    Get-Content -Path $OutputPath | Format-IPAddresses -Sanitize $Sanitize
+    Get-Content -Path $OutputPath `
+        | Where-Object { !$_.Contains("(No Format Information found)")} `
+        | Format-IPAddresses -Sanitize $Sanitize
 }
