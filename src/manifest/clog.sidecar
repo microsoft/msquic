@@ -9745,6 +9745,22 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "OpenSslOnRecvTicket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Received session ticket, %u bytes",
+      "UniqueId": "OpenSslOnRecvTicket",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "OpenSslOnSetTicket": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Setting session ticket, %u bytes",
@@ -9773,18 +9789,14 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
-    "OpenSslOnRecvTicket": {
+    "OpenSslHandshakeResumed": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Received session ticket, %u bytes",
-      "UniqueId": "OpenSslOnRecvTicket",
+      "TraceString": "[conn][%p] Handshake resumed",
+      "UniqueId": "OpenSslHandshakeResumed",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
@@ -13566,6 +13578,10 @@
         "TraceID": "OpenSsl1RttDataStart"
       },
       {
+        "UniquenessHash": "26435dc8-4bc1-07f9-1db1-9b206d1cdf14",
+        "TraceID": "OpenSslOnRecvTicket"
+      },
+      {
         "UniquenessHash": "f402229a-851f-11c6-00b3-69f4a4b0428a",
         "TraceID": "OpenSslOnSetTicket"
       },
@@ -13574,8 +13590,8 @@
         "TraceID": "OpenSslHandshakeComplete"
       },
       {
-        "UniquenessHash": "26435dc8-4bc1-07f9-1db1-9b206d1cdf14",
-        "TraceID": "OpenSslOnRecvTicket"
+        "UniquenessHash": "09736133-b5f6-e294-24fe-ac9200d0d2d4",
+        "TraceID": "OpenSslHandshakeResumed"
       },
       {
         "UniquenessHash": "e9fe92dd-5582-f430-a385-ab63ebfd22c8",

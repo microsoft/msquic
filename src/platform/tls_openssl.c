@@ -328,6 +328,11 @@ CxPlatTlsSetEncryptionSecretsCallback(
 
         TlsState->WriteKey = KeyType;
         TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
+
+        if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_0_RTT) {
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
+            TlsContext->State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
+        }
     }
 
     if (ReadSecret) {
@@ -573,15 +578,23 @@ CxPlatTlsOnSessionReceived(
         if (PEM_write_bio_SSL_SESSION(Bio, Session) == 1) {
             uint8_t* Data = NULL;
             long Length = BIO_get_mem_data(Bio, &Data);
-            QuicTraceLogConnInfo(
-                OpenSslOnRecvTicket,
-                TlsContext->Connection,
-                "Received session ticket, %u bytes",
-                (uint32_t)Length);
-            TlsContext->SecConfig->Callbacks.ReceiveTicket(
-                TlsContext->Connection,
-                (uint32_t)Length,
-                (uint8_t*)Data);
+            if (Length < UINT16_MAX) {
+                QuicTraceLogConnInfo(
+                    OpenSslOnRecvTicket,
+                    TlsContext->Connection,
+                    "Received session ticket, %u bytes",
+                    (uint32_t)Length);
+                TlsContext->SecConfig->Callbacks.ReceiveTicket(
+                    TlsContext->Connection,
+                    (uint32_t)Length,
+                    Data);
+            } else {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Session data too big");
+            }
         } else {
             QuicTraceEvent(
                 TlsErrorStatus,
@@ -1445,6 +1458,24 @@ CxPlatTlsProcessData(
             TlsContext->Connection,
             "Handshake complete");
         State->HandshakeComplete = TRUE;
+        if (SSL_session_reused(TlsContext->Ssl)) {
+            QuicTraceLogConnInfo(
+                OpenSslHandshakeResumed,
+                TlsContext->Connection,
+                "Handshake resumed");
+            State->SessionResumed = TRUE;
+        }
+        if (!TlsContext->IsServer) {
+            int EarlyDataStatus = SSL_get_early_data_status(TlsContext->Ssl);
+            if (EarlyDataStatus == SSL_EARLY_DATA_ACCEPTED) {
+                State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
+
+            } else if (EarlyDataStatus == SSL_EARLY_DATA_REJECTED) {
+                State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_REJECTED;
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_REJECT;
+            }
+        }
         TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_COMPLETE;
 
         if (TlsContext->IsServer) {
