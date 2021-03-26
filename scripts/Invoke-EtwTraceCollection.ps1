@@ -3,17 +3,31 @@
 .SYNOPSIS
 This script invokes an ETW trace collection
 
+.PARAMETER FlushSession
+    The name of an ETW session to flush.
+
+.PARAMETER ConvertEtl
+    The name of an ETL file to convert.
+
+.PARAMETER TmfPath
+    The path of the TMF files to use to convert the ETL.
+
 .PARAMETER Sanitize
-    If set, sanitizes IP addresses
+    If set, sanitizes IP addresses in the converted ETL file.
 #>
 
 param (
     [Parameter(Mandatory = $false)]
-    [switch]$Sanitize,
+    [string]$FlushSession = "",
 
-    # Temp variables for testing
-    [string]$In,
-    [string]$Out
+    [Parameter(Mandatory = $false)]
+    [string]$ConvertEtl = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$TmfPath = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Sanitize
 )
 
 $Pattern = ":(?::[a-f\d]{1,4}){0,5}(?:(?::[a-f\d]{1,4}){1,2}|:(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})))|[a-f\d]{1,4}:(?:[a-f\d]{1,4}:(?:[a-f\d]{1,4}:(?:[a-f\d]{1,4}:(?:[a-f\d]{1,4}:(?:[a-f\d]{1,4}:(?:[a-f\d]{1,4}:(?:[a-f\d]{1,4}|:)|(?::(?:[a-f\d]{1,4})?|(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))))|:(?:(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|[a-f\d]{1,4}(?::[a-f\d]{1,4})?|))|(?::(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|:[a-f\d]{1,4}(?::(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|(?::[a-f\d]{1,4}){0,2})|:))|(?:(?::[a-f\d]{1,4}){0,2}(?::(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|(?::[a-f\d]{1,4}){1,2})|:))|(?:(?::[a-f\d]{1,4}){0,3}(?::(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|(?::[a-f\d]{1,4}){1,2})|:))|(?:(?::[a-f\d]{1,4}){0,4}(?::(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|(?::[a-f\d]{1,4}){1,2})|:))"
@@ -52,5 +66,21 @@ function Format-IPAddresses {
     }
 }
 
-# To use, Just have your data in an array, and pass through.
-Get-Content -Path $In | Format-IPAddresses -Sanitize $Sanitize | Set-Content -Path $Out
+if ($Flush -ne "") {
+    # Flush the ETW memory buffers to disk.
+	logman.exe update $Flush -ets -fd
+}
+
+if ($ConvertEtl -ne "") {
+    # Convert the ETL to text
+    $OutputPath = Join-Path $env:temp "temp.log"
+    $Command = "netsh trace convert $($ConvertEtl) output=$($OutputPath) overwrite=yes report=no"
+    if ($TmfPath -ne "") {
+        $Command += " tmfpath=$($TmfPath)"
+    }
+    Write-Debug $Command
+    Invoke-Expression $Command
+
+    # Get the text content, sanitizing as necessary.
+    Get-Content -Path $OutputPath | Format-IPAddresses -Sanitize $Sanitize
+}
