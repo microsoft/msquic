@@ -228,8 +228,6 @@ endif()
 if(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Disabling client certificate tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
-    message(STATUS "Disabling 0-RTT support") # Almost there!
-    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
 endif()
 
 if(QUIC_TLS STREQUAL "mitls")
