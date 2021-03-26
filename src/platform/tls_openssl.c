@@ -713,7 +713,8 @@ CxPlatTlsOnServerSessionTicketDecrypted(
     UNREFERENCED_PARAMETER(arg);
     if (status == SSL_TICKET_SUCCESS) {
         return SSL_TICKET_RETURN_USE;
-    } else if (status == SSL_TICKET_SUCCESS_RENEW) {
+    }
+    if (status == SSL_TICKET_SUCCESS_RENEW) {
         return SSL_TICKET_RETURN_USE_RENEW;
     }
     return SSL_TICKET_RETURN_IGNORE_RENEW;
