@@ -49,6 +49,11 @@ typedef struct CXPLAT_SEC_CONFIG {
     SSL_CTX *SSLCtx;
 
     //
+    // Optional ticket key provided by the app.
+    //
+    QUIC_TICKET_KEY_CONFIG* TicketKey;
+
+    //
     // Callbacks for TLS.
     //
     CXPLAT_TLS_CALLBACKS Callbacks;
@@ -566,7 +571,7 @@ CxPlatTlsClientHelloCallback(
 }
 
 int
-CxPlatTlsOnSessionReceived(
+CxPlatTlsOnClientSessionTicketReceived(
     _In_ SSL *Ssl,
     _In_ SSL_SESSION *Session
     )
@@ -618,6 +623,101 @@ CxPlatTlsOnSessionReceived(
     // because we haven't used the reference.
     //
     return 0;
+}
+
+_Success_(return > 0)
+int
+CxPlatTlsOnSessionTicketKeyNeeded(
+    _In_ SSL *Ssl,
+    _When_(enc, _Out_writes_bytes_(16))
+    _When_(!enc, _In_reads_bytes_(16))
+        unsigned char key_name[16],
+    _When_(enc, _Out_writes_bytes_(EVP_MAX_IV_LENGTH))
+    _When_(!enc, _In_reads_bytes_(EVP_MAX_IV_LENGTH))
+        unsigned char iv[EVP_MAX_IV_LENGTH],
+    _Inout_ EVP_CIPHER_CTX *ctx,
+    _Inout_ HMAC_CTX *hctx,
+    _In_ int enc // Encryption or decryption
+    )
+{
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+    QUIC_TICKET_KEY_CONFIG* TicketKey = TlsContext->SecConfig->TicketKey;
+
+    CXPLAT_DBG_ASSERT(TicketKey != NULL);
+    if (TicketKey == NULL) {
+        return -1;
+    }
+
+    CXPLAT_STATIC_ASSERT(
+        sizeof(TicketKey->Id) == 16,
+        "key_name and TicketKey->Id are the same size");
+
+    if (enc) {
+        if (QUIC_FAILED(CxPlatRandom(EVP_MAX_IV_LENGTH, iv))) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Failed to generate ticket IV");
+            return -1; // Insufficient random
+        }
+        CxPlatCopyMemory(key_name, TicketKey->Id, 16);
+        EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, TicketKey->Material, iv);
+        HMAC_Init_ex(hctx, TicketKey->Material, 32, EVP_sha256(), NULL);
+
+    } else {
+        if (memcmp(key_name, TicketKey->Id, 16)) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Ticket key_name mismatch");
+            return 0; // No match
+        }
+        HMAC_Init_ex(hctx, TicketKey->Material, 32, EVP_sha256(), NULL);
+        EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, TicketKey->Material, iv);
+    }
+
+    return 1; // This indicates that the ctx and hctx have been set and the
+              // session can continue on those parameters.
+}
+
+int
+CxPlatTlsOnServerSessionTicketGenerated(
+    _In_ SSL *Ssl,
+    _In_ void *arg
+    )
+{
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+    UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(arg);
+    return 1;
+}
+
+SSL_TICKET_RETURN
+CxPlatTlsOnServerSessionTicketDecrypted(
+    _In_ SSL *Ssl,
+    _In_ SSL_SESSION *ss,
+    _In_ const unsigned char *keyname,
+    _In_ size_t keyname_length,
+    _In_ SSL_TICKET_STATUS status,
+    _In_ void *arg
+    )
+{
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+    UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(ss);
+    UNREFERENCED_PARAMETER(keyname);
+    UNREFERENCED_PARAMETER(keyname_length);
+    UNREFERENCED_PARAMETER(status);
+    UNREFERENCED_PARAMETER(arg);
+    if (status == SSL_TICKET_SUCCESS) {
+        return SSL_TICKET_RETURN_USE;
+    } else if (status == SSL_TICKET_SUCCESS_RENEW) {
+        return SSL_TICKET_RETURN_USE_RENEW;
+    } else {
+        return SSL_TICKET_RETURN_IGNORE_RENEW;
+    }
 }
 
 SSL_QUIC_METHOD OpenSslQuicCallbacks = {
@@ -727,6 +827,7 @@ CxPlatTlsSecConfigCreate(
         goto Exit;
     }
 
+    CxPlatZeroMemory(SecurityConfig, sizeof(CXPLAT_SEC_CONFIG));
     SecurityConfig->Callbacks = *TlsCallbacks;
     SecurityConfig->Flags = CredConfig->Flags;
     SecurityConfig->TlsFlags = TlsCredFlags;
@@ -835,7 +936,7 @@ CxPlatTlsSecConfigCreate(
             SSL_SESS_CACHE_CLIENT | SSL_SESS_CACHE_NO_INTERNAL_STORE);
         SSL_CTX_sess_set_new_cb(
             SecurityConfig->SSLCtx,
-            CxPlatTlsOnSessionReceived);
+            CxPlatTlsOnClientSessionTicketReceived);
     }
 
     if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
@@ -1111,7 +1212,10 @@ CxPlatTlsSecConfigDelete(
 {
     if (SecurityConfig->SSLCtx != NULL) {
         SSL_CTX_free(SecurityConfig->SSLCtx);
-        SecurityConfig->SSLCtx = NULL;
+    }
+
+    if (SecurityConfig->TicketKey != NULL) {
+        CXPLAT_FREE(SecurityConfig->TicketKey, QUIC_POOL_TLS_TICKET_KEY);
     }
 
     CXPLAT_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
@@ -1125,10 +1229,36 @@ CxPlatTlsSecConfigSetTicketKeys(
     _In_ uint8_t KeyCount
     )
 {
-    UNREFERENCED_PARAMETER(SecurityConfig);
-    UNREFERENCED_PARAMETER(KeyConfig);
+    CXPLAT_DBG_ASSERT(KeyCount >= 1); // Only support 1, ignore the rest for now
     UNREFERENCED_PARAMETER(KeyCount);
-    return QUIC_STATUS_NOT_SUPPORTED;
+
+    if (SecurityConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
+
+    if (SecurityConfig->TicketKey == NULL) {
+        SecurityConfig->TicketKey =
+            CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_TICKET_KEY_CONFIG), QUIC_POOL_TLS_TICKET_KEY);
+        if (SecurityConfig->TicketKey == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "QUIC_TICKET_KEY_CONFIG",
+                sizeof(QUIC_TICKET_KEY_CONFIG));
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+    }
+
+    CxPlatCopyMemory(
+        SecurityConfig->TicketKey,
+        KeyConfig,
+        sizeof(QUIC_TICKET_KEY_CONFIG));
+
+    SSL_CTX_set_tlsext_ticket_key_cb(
+        SecurityConfig->SSLCtx,
+        CxPlatTlsOnSessionTicketKeyNeeded);
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1346,6 +1476,9 @@ CxPlatTlsProcessData(
 {
     CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
+    TlsContext->State = State;
+    TlsContext->ResultFlags = 0;
+
     if (DataType == CXPLAT_TLS_TICKET_DATA) {
         QuicTraceLogConnVerbose(
             OpenSsslIgnoringTicket,
@@ -1354,9 +1487,6 @@ CxPlatTlsProcessData(
             *BufferLength);
         goto Exit;
     }
-
-    TlsContext->State = State;
-    TlsContext->ResultFlags = 0;
 
     if (*BufferLength != 0) {
         QuicTraceLogConnVerbose(
@@ -1456,13 +1586,13 @@ CxPlatTlsProcessData(
         QuicTraceLogConnInfo(
             OpenSslHandshakeComplete,
             TlsContext->Connection,
-            "Handshake complete");
+            "TLS Handshake complete");
         State->HandshakeComplete = TRUE;
         if (SSL_session_reused(TlsContext->Ssl)) {
             QuicTraceLogConnInfo(
                 OpenSslHandshakeResumed,
                 TlsContext->Connection,
-                "Handshake resumed");
+                "TLS Handshake resumed");
             State->SessionResumed = TRUE;
         }
         if (!TlsContext->IsServer) {

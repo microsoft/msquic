@@ -9779,7 +9779,7 @@
     },
     "OpenSslHandshakeComplete": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Handshake complete",
+      "TraceString": "[conn][%p] TLS Handshake complete",
       "UniqueId": "OpenSslHandshakeComplete",
       "splitArgs": [
         {
@@ -9791,7 +9791,7 @@
     },
     "OpenSslHandshakeResumed": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Handshake resumed",
+      "TraceString": "[conn][%p] TLS Handshake resumed",
       "UniqueId": "OpenSslHandshakeResumed",
       "splitArgs": [
         {
@@ -13586,11 +13586,11 @@
         "TraceID": "OpenSslOnSetTicket"
       },
       {
-        "UniquenessHash": "a02a0e9d-57cd-0abf-1cd9-5a46076919b2",
+        "UniquenessHash": "2e040e87-bbc9-9c8e-8a2e-83c0cff19c5e",
         "TraceID": "OpenSslHandshakeComplete"
       },
       {
-        "UniquenessHash": "09736133-b5f6-e294-24fe-ac9200d0d2d4",
+        "UniquenessHash": "d8d00935-5969-fe32-21c9-de32190ac99f",
         "TraceID": "OpenSslHandshakeResumed"
       },
       {
