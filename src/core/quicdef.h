@@ -433,7 +433,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MAX_PARTITION_COUNT            "MaxPartitionCount"
 #define QUIC_SETTING_RETRY_MEMORY_FRACTION          "RetryMemoryFraction"
 #define QUIC_SETTING_LOAD_BALANCING_MODE            "LoadBalancingMode"
-#define QUIC_SETTING_MAX_WORKER_QUEUE_DELAY         "MaxWorkerQueueDelayMs"
+#define QUIC_SETTING_MAX_WORKER_QUEUE_DELAY         "MaxWorkerQueueDelayUs"
 #define QUIC_SETTING_MAX_STATELESS_OPERATIONS       "MaxStatelessOperations"
 #define QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN       "MaxOperationsPerDrain"
 

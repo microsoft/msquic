@@ -41,7 +41,7 @@ MsQuic supports a number of configuration knobs (or settings). These settings ca
 | Stream Receive Window              | uint32_t | StreamRecvWindowDefault |                                                                                                    |
 | Stream Receive Buffer              | uint32_t | StreamRecvBufferDefault |                                                                                                    |
 | Flow Control Window                | uint32_t | ConnFlowControlWindow   |                                                                                                    |
-| Max Worker Queue Delay             | uint32_t | MaxWorkerQueueDelayMs   | The maximum queue delay (in ms) allowed for a worker thread                                        |
+| Max Worker Queue Delay             | uint32_t | MaxWorkerQueueDelayUs   | The maximum queue delay (in microseconds) allowed for a worker thread                              |
 | Max Stateless Operations           | uint32_t | MaxStatelessOperations  | The maximum number of stateless operations that may be queued at any one time                      |
 | Initial Window                     | uint32_t | InitialWindowPackets    | The size (in packets) of the initial congestion window for a connection                            |
 | Send Idle Timeout                  | uint32_t | SendIdleTimeoutMs       |                                                                                                    |
