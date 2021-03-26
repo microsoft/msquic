@@ -502,6 +502,7 @@ QuicStreamTryCompleteShutdown(
     )
 {
     if (!Stream->Flags.ShutdownComplete &&
+        !Stream->Flags.ReceiveDataPending &&
         Stream->Flags.LocalCloseAcked &&
         Stream->Flags.RemoteCloseAcked) {
 
