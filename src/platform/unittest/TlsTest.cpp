@@ -626,6 +626,7 @@ protected:
             _In_reads_(TicketLength) const uint8_t* Ticket
             )
         {
+            //std::cout << "==RecvTicketClient==" << std::endl;
             auto Context = (TlsContext*)Connection;
             if (Context->ResumptionTicket.Buffer == nullptr) {
                 Context->ResumptionTicket.Buffer =
@@ -767,6 +768,8 @@ protected:
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
 
         if (SendResumptionTicket) {
+            //std::cout << "==PostHandshake==" << std::endl;
+
             Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize, false, CXPLAT_TLS_TICKET_DATA);
             ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
 
@@ -1029,7 +1032,7 @@ TEST_F(TlsTest, HandshakeParallel)
     }
 }
 
-#ifndef QUIC_DISABLE_0RTT_TESTS
+/*#ifndef QUIC_DISABLE_0RTT_TESTS
 TEST_F(TlsTest, HandshakeResumption)
 {
     TlsContext ServerContext, ClientContext;
@@ -1045,7 +1048,7 @@ TEST_F(TlsTest, HandshakeResumption)
     ClientContext2.InitializeClient(ClientSecConfigNoCertValidation, false, 64, &ClientContext.ResumptionTicket);
     DoHandshake(ServerContext2, ClientContext2);
 }
-#endif
+#endif*/
 
 TEST_F(TlsTest, HandshakeMultiAlpnServer)
 {
