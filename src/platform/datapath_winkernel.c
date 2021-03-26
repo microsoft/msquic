@@ -344,6 +344,10 @@ typedef struct _WSK_LISTENER_SOCKET {
     const WSK_PROVIDER_LISTEN_DISPATCH* Dispatch;
 } WSK_LISTENER_SOCKET, * PWSK_LISTENER_SOCKET;
 
+typedef struct _WSK_STREAM_SOCKET {
+    const WSK_PROVIDER_STREAM_DISPATCH* Dispatch;
+} WSK_STREAM_SOCKET, * PWSK_STREAM_SOCKET;
+
 //
 // Per-port state.
 //
@@ -376,6 +380,7 @@ typedef struct CXPLAT_SOCKET {
         PWSK_SOCKET Socket;
         PWSK_DATAGRAM_SOCKET DgrmSocket;
         PWSK_LISTENER_SOCKET ListenerSocket;
+        PWSK_STREAM_SOCKET StreamSocket;
     };
 
     //
@@ -1861,7 +1866,7 @@ CxPlatSocketCreateTcpListener(
         sizeof(CXPLAT_SOCKET) +
         CxPlatProcMaxCount() * sizeof(CXPLAT_RUNDOWN_REF);
 
-    CXPLAT_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
+    CXPLAT_SOCKET* Socket = CXPLAT_ALLOC_NONPAGED(SocketLength, QUIC_POOL_SOCKET);
     if (Socket == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -2034,8 +2039,8 @@ Error:
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
-QUIC_STATUS
-NTAPI
+NTSTATUS
+WSKAPI
 CxPlatDataPathTcpAccept(
     _In_opt_ void* Socket,
     _In_ ULONG Flags,
@@ -2046,6 +2051,46 @@ CxPlatDataPathTcpAccept(
     _Outptr_result_maybenull_ CONST WSK_CLIENT_CONNECTION_DISPATCH** AcceptSocketDispatch
 )
 {
+    NTSTATUS Status = STATUS_SUCCESS;
+
+    if (AcceptSocket == NULL) {
+        // Handle accept socket error
+        goto Error;
+    }
+
+    CXPLAT_DBG_ASSERT(Socket != NULL);
+
+    CXPLAT_DATAPATH* Datapath = ((CXPLAT_SOCKET*)Socket)->Datapath;
+
+    uint32_t SocketLength =
+        sizeof(CXPLAT_SOCKET) +
+        CxPlatProcMaxCount() * sizeof(CXPLAT_RUNDOWN_REF);
+
+    CXPLAT_SOCKET* SocketContext = CXPLAT_ALLOC_NONPAGED(SocketLength, QUIC_POOL_SOCKET);
+    if (SocketContext == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_SOCKET",
+            SocketLength);
+        Status = STATUS_NO_MEMORY;
+        goto Error;
+    }
+
+    SocketContext->Socket = AcceptSocket;
+    SocketContext->Datapath = Datapath;
+    SocketContext->Type = CXPLAT_SOCKET_TCP_SERVER;
+    SocketContext->Mtu = CXPLAT_MAX_MTU;
+    for (uint32_t i = 0; i < CxPlatProcMaxCount(); ++i) {
+        CxPlatRundownInitialize(&SocketContext->Rundown[i]);
+    }
+    *AcceptSocketContext = SocketContext;
+    *AcceptSocketDispatch = &Datapath->WskClientConnectionDispatch;
+    Status = STATUS_SUCCESS;
+
+
+Error:
+
     UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(Flags);
     UNREFERENCED_PARAMETER(LocalAddress);
@@ -2053,7 +2098,10 @@ CxPlatDataPathTcpAccept(
     UNREFERENCED_PARAMETER(AcceptSocket);
     UNREFERENCED_PARAMETER(AcceptSocketContext);
     UNREFERENCED_PARAMETER(AcceptSocketDispatch);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    if (Status != STATUS_SUCCESS) {
+        Status = STATUS_REQUEST_NOT_ACCEPTED;
+    }
+    return Status;
 }
 
 //
@@ -2070,13 +2118,22 @@ CxPlatDataPathTcpReceive(
     _In_ SIZE_T BytesIndicated,
     _Inout_ SIZE_T* BytesAccepted
 ) {
+    CXPLAT_SOCKET* SocketContext = (CXPLAT_SOCKET*)Socket;
+
+    if (DataIndication == NULL) {
+        // Failure Case, Close Socket
+        goto Exit;
+    }
+
+Exit:
+
     UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(Flags);
     UNREFERENCED_PARAMETER(DataIndication);
     UNREFERENCED_PARAMETER(BytesIndicated);
     UNREFERENCED_PARAMETER(BytesAccepted);
 
-    return QUIC_STATUS_NOT_SUPPORTED;
+    return STATUS_SUCCESS;
 }
 
 //
