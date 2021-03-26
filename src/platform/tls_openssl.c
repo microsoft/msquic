@@ -666,7 +666,7 @@ CxPlatTlsOnSessionTicketKeyNeeded(
         HMAC_Init_ex(hctx, TicketKey->Material, 32, EVP_sha256(), NULL);
 
     } else {
-        if (memcmp(key_name, TicketKey->Id, 16)) {
+        if (memcmp(key_name, TicketKey->Id, 16) != 0) {
             QuicTraceEvent(
                 TlsError,
                 "[ tls][%p] ERROR, %s.",
@@ -715,9 +715,8 @@ CxPlatTlsOnServerSessionTicketDecrypted(
         return SSL_TICKET_RETURN_USE;
     } else if (status == SSL_TICKET_SUCCESS_RENEW) {
         return SSL_TICKET_RETURN_USE_RENEW;
-    } else {
-        return SSL_TICKET_RETURN_IGNORE_RENEW;
     }
+    return SSL_TICKET_RETURN_IGNORE_RENEW;
 }
 
 SSL_QUIC_METHOD OpenSslQuicCallbacks = {
