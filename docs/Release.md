@@ -10,7 +10,7 @@ MsQuic has two main types of branches **main** and **release** defined as:
 
 * **Release** - Release branches only receive security and bug fixes, and are considered stable. There should be no breaking changes in these branches, and they can be used for stable products.
 
-  * **Prerelease** - Only release branches explicitly indicated below, in the **Official Releases** section, are considered officially supported and serviced releases. All others are considered prereleases, which are considered stable, but will not receive servicing fixes.
+  * **Prerelease** - The [Releases](Release.md#releases) section below indicates which releases are considered officially supported and serviced releases. All others are considered prereleases, which are generally considered stable, but will **not receive servicing fixes**.
 
 \* Both main and official release branches receive critical fixes throughout their lifecycle, for security, reliability.
 
@@ -18,27 +18,33 @@ MsQuic has two main types of branches **main** and **release** defined as:
 
 MsQuic support lifecycle is governed by the Windows Server servicing channels: [LTSC and SAC](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19)
 
-* **LTSC** release branches will be serviced for 5 years mainstream and 5 years extended.
-* **SAC** release branches will be serviced for 18 months.
-* **Main** is not considered supported branch because it is under active development. It does however receive security and bug fixes.
+* **LTSC** indicates official release branches to be serviced for 5 years mainstream and 5 years extended.
+* **SAC** indicates official release branches to be serviced for 18 months.
+* **PRE** indicates prerelease branches (**not** officially supported).
+* **TBD** indicates release branches that are set to be classified as one of the above.
+
+> **Important** Main and prerelease branches are considered not **officially supported**.
+>  * Prerelease branches get no further changes.
+>  * Main is under active development (i.e. not stable), however it does receive security and bug fixes.
 
 ## End of support
 
 End of support refers to the date when Microsoft no longer provides fixes, updates, or online technical assistance for your product. As this date nears, make sure you have the latest available update installed. Without Microsoft support, you will no longer receive security updates that can help protect your machine from harmful viruses, spyware, and other malicious software that can steal your personal information.
 
-# Official Releases
+# Releases
 
-A release branch will be created (forked) for each official release of MsQuic. The release branch will then go through a several month stabilization process before it is then finalized as an official release. Once finalized the release branch will only be serviced with security and bug fixes throughout its lifecycle. MsQuic official releases generally will correspond to Windows releases, but in some cases additional future releases may be created for other major products. Releases for Windows generally will end support at the same time as the Windows release.
+A release branch will be created (forked) for each release of MsQuic. Official release branches will then go through a several month stabilization process before it is then finalized. Once finalized, offical release branches will only be serviced with security and bug fixes throughout its lifecycle. MsQuic official releases generally will correspond to Windows releases, but in some cases additional future releases may be created for other major products. Official releases for Windows generally will end support at the same time as the Windows release.
 
-This table describes the version, release date and end of support for official (non-prerelease) MsQuic releases.
+This table describes all MsQuic releases, both officially supported (LTSC or SAC) and unsupported (PRE).
 
-| Release | Branch | Fork Date | Release Date | Support Type | End of Support |
-| -- | -- | -- | -- | -- | -- |
-| [1.0](https://github.com/microsoft/msquic/releases/tag/v1.0.0-129524) | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Nov 13 2020 | Jan 5 2021 | LTSC | Jan 4 2026 (2031) |
-| [1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.2) | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | Feb 10 2020 | TBD | TBD | TBD |
+| [Type](Release.md#release-support-policies) | Branch | Fork Date | Release Date | End of Support |
+| -- | -- | -- | -- | -- |
+| LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 |
+| TBD | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | Feb 10 2020 | TBD | TBD |
+| PRE | [release/1.2](https://github.com/microsoft/msquic/tree/release/1.2) | Mar 26 2020 | N/A |N/A |
 
 <br>\* Future **Release Dates** are subject to change.
-<br>\** **End of Support** dates in parentheses are for [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc).
+<br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
 
 ## MsQuic v1.0
 
@@ -67,3 +73,21 @@ The QUIC specifications are currently "Submitted to IESG for Publication", so bo
  - Diagnostics documentation improvements.
 
 The QUIC specifications have been approved by the IESG and are in RFC editor queue. Both the v1 and draft-29 versions are supported by this release.
+
+## MsQuic v1.2 (Prerelease)
+
+**Not officially supported**
+
+[MsQuic v1.2](https://github.com/microsoft/msquic/releases/tag/v1.2.0) has numerous improvements from v1.1. As this is a prerelease, there is no expected shipping vehicle for this release. Some noted changes in this release include:
+
+- Switched to quictls (https://github.com/quictls/openssl) and the 1.1.1 branch of OpenSSL instead of 3.0
+- Initial MacOS support added (using OpenSSL)
+- Support for RSS, GSO and Receive Batching on Linux
+- Initial OpenSSL session resumption and 0-RTT support
+- Improved CPU and WAN performance
+- Various API improvements (e.g. new delayed send API flag; query handshake info)
+- Initial client certificate support with Schannel on Windows
+- Initial support for ACK frequency (or delayed ACK) QUIC extension
+- Support for pkcs12 imports
+
+The QUIC specifications are still in RFC editor queue. Both the v1 and draft-29 versions are still supported by this release.
