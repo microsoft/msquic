@@ -186,8 +186,23 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 if ("" -eq $Arch) {
-    # TODO Actually detect current platform
-    $Arch = "x64"
+    if ($IsMacOS) {
+        $RunningArch = uname -m
+        if ("x86_64" -eq $RunningArch) {
+            $IsTranslated = sysctl -in sysctl.proc_translated
+            if ($IsTranslated) {
+                $Arch = "arm64"
+            } else {
+                $Arch = "x64"
+            }
+        } elseif ("arm64" -eq $RunningArch) {
+            $Arch = "arm64"
+        } else {
+            Write-Error "Unknown architecture"
+        }
+    } else {
+        $Arch = "x64"
+    }
 }
 
 if ($Generator -eq "") {
