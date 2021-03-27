@@ -46,7 +46,7 @@ This table describes all MsQuic releases, both officially supported (LTSC or SAC
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
 
-## MsQuic v1.0
+## MsQuic v1.0 (LTSC)
 
 [MsQuic v1.0](https://github.com/microsoft/msquic/releases/tag/v1.0.0-129524) is the first officially supported release. The primary shipping vehicle for this release will be the Windows Server 2022 release. No official, signed binaries are currently slated to be released. Linux support is considered a preview for this release.
 
@@ -59,7 +59,7 @@ The QUIC specifications are currently "Submitted to IESG for Publication", so bo
 >  * Server Preferred Address
 >  * Path MTU Discovery
 
-## MsQuic v1.1
+## MsQuic v1.1 (TBD)
 
 [MsQuic v1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.2) has various small improvements from v1.0. The primary shipping vehicle for this release will be the Windows Client (Cobalt) release. These changes include:
 
