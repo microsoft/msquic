@@ -122,7 +122,7 @@ private:
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
             .SetSendBufferingEnabled(false)
-            .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT)};
+            .SetServerResumptionLevel(QUIC_SERVER_NO_RESUME)};
     MsQuicListener Listener {Registration};
     uint16_t Port {PERF_DEFAULT_PORT};
     CXPLAT_EVENT* StopEvent {nullptr};
