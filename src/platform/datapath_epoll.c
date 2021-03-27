@@ -1179,25 +1179,31 @@ CxPlatSocketContextInitialize(
     }
 
     //
-    // The port is shared across processors.
+    // Only set SO_REUSEPORT on a server socket, otherwise the client could be
+    // assigned a server port.
     //
-    Option = TRUE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            SOL_SOCKET,
-            SO_REUSEPORT,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(SO_REUSEPORT) failed");
-        goto Exit;
+    if (RemoteAddress == NULL) {
+        //
+        // The port is shared across processors.
+        //
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                SOL_SOCKET,
+                SO_REUSEPORT,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(SO_REUSEPORT) failed");
+            goto Exit;
+        }
     }
 
     CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
