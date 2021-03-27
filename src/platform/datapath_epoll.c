@@ -1276,6 +1276,7 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
 
+#if DEBUG
     if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
         CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
     } else if (RemoteAddress && LocalAddress && LocalAddress->Ipv4.sin_port == 0) {
@@ -1285,6 +1286,7 @@ CxPlatSocketContextInitialize(
         //
         CXPLAT_DBG_ASSERT(Binding->LocalAddress.Ipv4.sin_port != RemoteAddress->Ipv4.sin_port);
     }
+#endif
 
     if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
         Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
