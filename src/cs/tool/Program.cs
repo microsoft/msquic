@@ -1,12 +1,14 @@
 ﻿using System;
+using Microsoft.Quic;
 
 namespace tool
 {
     class Program
     {
-        static void Main(string[] args)
+        static unsafe void Main(string[] args)
         {
-            MsQuic.MsQuicOpen();
+            QUIC_API_TABLE* ApiTable;
+            MsQuic.MsQuicOpen(&ApiTable);
         }
     }
 }
