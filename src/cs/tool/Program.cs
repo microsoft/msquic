@@ -1,4 +1,9 @@
-﻿using System;
+﻿//
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+//
+
+using System;
 using System.Runtime.InteropServices;
 using Microsoft.Quic;
 
@@ -23,6 +28,7 @@ namespace tool
                 });
             }
 
+            // TODO make this an actual unit test
             var ApiTable = MsQuic.Open();
             try
             {
@@ -31,6 +37,7 @@ namespace tool
                 uint SettingsSize = (uint)sizeof(QUIC_SETTINGS);
                 int Status = ApiTable->GetParam(null, QUIC_PARAM_LEVEL.QUIC_PARAM_LEVEL_GLOBAL, MsQuic.QUIC_PARAM_GLOBAL_SETTINGS, &SettingsSize, &Settings);
                 MsQuic.ThrowIfFailure(Status);
+                Console.WriteLine("Ran Successfully!");
             }
             finally
             {

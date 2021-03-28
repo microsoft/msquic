@@ -13,11 +13,15 @@ $MsQuicPosixGeneratedSource = Join-Path $RootDir src cs lib msquic_generated_pos
 $MsQuicWindowsHeader = Join-Path $RootDir src inc msquic_winuser.h
 $MsQuicPosixHeader = Join-Path $RootDir src inc msquic_posix.h
 
-ClangSharpPInvokeGenerator -f $MsQuicHeader -n Microsoft.Quic -o $MsQuicGeneratedSource -m MsQuic -l msquic -c exclude-enum-operators -r _SOCKADDR_INET=QuicAddr -c generate-macro-bindings `
+$LicenseHeader = Join-Path $RootDir src cs LicenseHeader.txt
+
+ClangSharpPInvokeGenerator -f $MsQuicHeader -n Microsoft.Quic -o $MsQuicGeneratedSource -m MsQuic -l msquic `
+    -c exclude-enum-operators -r _SOCKADDR_INET=QuicAddr -c generate-macro-bindings -h $LicenseHeader `
     -e QUIC_UINT62_MAX
 
 if ($IsWindows) {
-    ClangSharpPInvokeGenerator -f $MsQuicWindowsHeader -n Microsoft.Quic -o $MsQuicWindowsGeneratedSource -m MsQuic_Windows -l msquic -c generate-macro-bindings -c exclude-funcs-with-body `
+    ClangSharpPInvokeGenerator -f $MsQuicWindowsHeader -n Microsoft.Quic -o $MsQuicWindowsGeneratedSource -m MsQuic_Windows -l msquic `
+        -c generate-macro-bindings -c exclude-funcs-with-body -h $LicenseHeader `
         -D CSHARP_GENERATION `
         -e QUIC_ADDR_STR `
         -e QUIC_ADDR_V4_PORT_OFFSET `
@@ -28,7 +32,8 @@ if ($IsWindows) {
     # In the current version of PInvokeGenerator, macros with ternarys are generated incorrectly. Manually fix this up
     (Get-Content $MsQuicWindowsGeneratedSource).Replace("public static readonly", "public const") | Set-Content $MsQuicWindowsGeneratedSource
 } else {
-        ClangSharpPInvokeGenerator -f $MsQuicPosixHeader -n Microsoft.Quic -o $MsQuicPosixGeneratedSource -m MsQuic_Posix -l msquic -c generate-macro-bindings -c exclude-funcs-with-body `
+        ClangSharpPInvokeGenerator -f $MsQuicPosixHeader -n Microsoft.Quic -o $MsQuicPosixGeneratedSource -m MsQuic_Posix -l msquic `
+        -c generate-macro-bindings -c exclude-funcs-with-body -h $LicenseHeader `
         -D CSHARP_GENERATION `
         -e QUIC_ADDR_STR `
         -e QUIC_ADDR_V4_PORT_OFFSET `

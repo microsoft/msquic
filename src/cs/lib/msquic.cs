@@ -1,8 +1,11 @@
+//
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+//
+
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-
-//ClangSharpPInvokeGenerator -f ..\inc\msquic.h -n Microsoft.Quic -o .\lib\msquic_generated.cs -m MsQuic -l msquic -c exclude-enum-operators
 
 namespace Microsoft.Quic
 {
