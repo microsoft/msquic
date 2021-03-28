@@ -1290,8 +1290,6 @@ CxPlatSocketContextInitialize(
     UNREFERENCED_PARAMETER(LocalAddress);
 #endif
 
-    CXPLAT_DBG_ASSERT()
-
     if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
         Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
     }
