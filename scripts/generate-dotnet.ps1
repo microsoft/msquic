@@ -24,6 +24,9 @@ if ($IsWindows) {
         -e QUIC_ADDR_V4_IP_OFFSET `
         -e QUIC_ADDR_V6_PORT_OFFSET `
         -e QUIC_ADDR_V6_IP_OFFSET `
+
+    # In the current version of PInvokeGenerator, macros with ternarys are generated incorrectly. Manually fix this up
+    (Get-Content $MsQuicWindowsGeneratedSource).Replace("public static readonly", "public const") | Set-Content $MsQuicWindowsGeneratedSource
 } else {
         ClangSharpPInvokeGenerator -f $MsQuicPosixHeader -n Microsoft.Quic -o $MsQuicPosixGeneratedSource -m MsQuic_Posix -l msquic -c generate-macro-bindings -c exclude-funcs-with-body `
         -D CSHARP_GENERATION `
@@ -32,4 +35,7 @@ if ($IsWindows) {
         -e QUIC_ADDR_V4_IP_OFFSET `
         -e QUIC_ADDR_V6_PORT_OFFSET `
         -e QUIC_ADDR_V6_IP_OFFSET `
+
+    # In the current version of PInvokeGenerator, macros with ternarys are generated incorrectly. Manually fix this up
+    (Get-Content $MsQuicPosixGeneratedSource).Replace("public static readonly", "public const") | Set-Content $MsQuicPosixGeneratedSource
 }

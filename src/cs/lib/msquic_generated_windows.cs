@@ -42,16 +42,16 @@ namespace Microsoft.Quic
         public const int QUIC_STATUS_INVALID_PARAMETER = unchecked((int)(0x80070057));
 
         [NativeTypeName("#define QUIC_STATUS_INVALID_STATE QUIC_STATUS_HRESULT_FROM_WIN32(ERROR_INVALID_STATE)")]
-        public static readonly int QUIC_STATUS_INVALID_STATE = unchecked((int)(5023) <= 0 ? ((int)(5023)) : ((int)(((5023) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
+        public const int QUIC_STATUS_INVALID_STATE = unchecked((int)(5023) <= 0 ? ((int)(5023)) : ((int)(((5023) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
 
         [NativeTypeName("#define QUIC_STATUS_NOT_SUPPORTED E_NOINTERFACE")]
         public const int QUIC_STATUS_NOT_SUPPORTED = unchecked((int)(0x80004002));
 
         [NativeTypeName("#define QUIC_STATUS_NOT_FOUND QUIC_STATUS_HRESULT_FROM_WIN32(ERROR_NOT_FOUND)")]
-        public static readonly int QUIC_STATUS_NOT_FOUND = unchecked((int)(1168) <= 0 ? ((int)(1168)) : ((int)(((1168) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
+        public const int QUIC_STATUS_NOT_FOUND = unchecked((int)(1168) <= 0 ? ((int)(1168)) : ((int)(((1168) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
 
         [NativeTypeName("#define QUIC_STATUS_BUFFER_TOO_SMALL QUIC_STATUS_HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER)")]
-        public static readonly int QUIC_STATUS_BUFFER_TOO_SMALL = unchecked((int)(122) <= 0 ? ((int)(122)) : ((int)(((122) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
+        public const int QUIC_STATUS_BUFFER_TOO_SMALL = unchecked((int)(122) <= 0 ? ((int)(122)) : ((int)(((122) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
 
         [NativeTypeName("#define QUIC_STATUS_HANDSHAKE_FAILURE ERROR_QUIC_HANDSHAKE_FAILURE")]
         public const int QUIC_STATUS_HANDSHAKE_FAILURE = unchecked((int)(0x80410000));
@@ -60,7 +60,7 @@ namespace Microsoft.Quic
         public const int QUIC_STATUS_ABORTED = unchecked((int)(0x80004004));
 
         [NativeTypeName("#define QUIC_STATUS_ADDRESS_IN_USE QUIC_STATUS_HRESULT_FROM_WIN32(WSAEADDRINUSE)")]
-        public static readonly int QUIC_STATUS_ADDRESS_IN_USE = unchecked((int)(10048) <= 0 ? ((int)(10048)) : ((int)(((10048) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
+        public const int QUIC_STATUS_ADDRESS_IN_USE = unchecked((int)(10048) <= 0 ? ((int)(10048)) : ((int)(((10048) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
 
         [NativeTypeName("#define QUIC_STATUS_CONNECTION_TIMEOUT ERROR_QUIC_CONNECTION_TIMEOUT")]
         public const int QUIC_STATUS_CONNECTION_TIMEOUT = unchecked((int)(0x80410006));
@@ -69,13 +69,13 @@ namespace Microsoft.Quic
         public const int QUIC_STATUS_CONNECTION_IDLE = unchecked((int)(0x80410005));
 
         [NativeTypeName("#define QUIC_STATUS_UNREACHABLE QUIC_STATUS_HRESULT_FROM_WIN32(ERROR_HOST_UNREACHABLE)")]
-        public static readonly int QUIC_STATUS_UNREACHABLE = unchecked((int)(1232) <= 0 ? ((int)(1232)) : ((int)(((1232) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
+        public const int QUIC_STATUS_UNREACHABLE = unchecked((int)(1232) <= 0 ? ((int)(1232)) : ((int)(((1232) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
 
         [NativeTypeName("#define QUIC_STATUS_INTERNAL_ERROR ERROR_QUIC_INTERNAL_ERROR")]
         public const int QUIC_STATUS_INTERNAL_ERROR = unchecked((int)(0x80410003));
 
         [NativeTypeName("#define QUIC_STATUS_CONNECTION_REFUSED QUIC_STATUS_HRESULT_FROM_WIN32(ERROR_CONNECTION_REFUSED)")]
-        public static readonly int QUIC_STATUS_CONNECTION_REFUSED = unchecked((int)(1225) <= 0 ? ((int)(1225)) : ((int)(((1225) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
+        public const int QUIC_STATUS_CONNECTION_REFUSED = unchecked((int)(1225) <= 0 ? ((int)(1225)) : ((int)(((1225) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
 
         [NativeTypeName("#define QUIC_STATUS_PROTOCOL_ERROR ERROR_QUIC_PROTOCOL_VIOLATION")]
         public const int QUIC_STATUS_PROTOCOL_ERROR = unchecked((int)(0x80410004));
@@ -84,7 +84,7 @@ namespace Microsoft.Quic
         public const int QUIC_STATUS_VER_NEG_ERROR = unchecked((int)(0x80410001));
 
         [NativeTypeName("#define QUIC_STATUS_TLS_ERROR QUIC_STATUS_HRESULT_FROM_WIN32(WSA_SECURE_HOST_NOT_FOUND)")]
-        public static readonly int QUIC_STATUS_TLS_ERROR = unchecked((int)(11032) <= 0 ? ((int)(11032)) : ((int)(((11032) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
+        public const int QUIC_STATUS_TLS_ERROR = unchecked((int)(11032) <= 0 ? ((int)(11032)) : ((int)(((11032) & 0x0000FFFF) | (7 << 16) | 0x80000000)));
 
         [NativeTypeName("#define QUIC_STATUS_USER_CANCELED ERROR_QUIC_USER_CANCELED")]
         public const int QUIC_STATUS_USER_CANCELED = unchecked((int)(0x80410002));
