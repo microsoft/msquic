@@ -1956,9 +1956,6 @@ namespace Microsoft.Quic
         [DllImport("msquic", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void MsQuicClose([NativeTypeName("const QUIC_API_TABLE *")] QUIC_API_TABLE* QuicApi);
 
-        [NativeTypeName("#define QUIC_UINT62_MAX ((1ULL << 62U) - 1)")]
-        public const ulong QUIC_UINT62_MAX = ((1UL << 62U) - 1);
-
         [NativeTypeName("#define QUIC_MAX_ALPN_LENGTH 255")]
         public const int QUIC_MAX_ALPN_LENGTH = 255;
 

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "MsQuicTool": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Users\\thhous\\Documents\\GitHub\\msquic\\artifacts\\bin\\windows\\x64_Debug_openssl\\msquic.dll"
+    }
+  }
+}

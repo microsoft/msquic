@@ -6,6 +6,57 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Quic
 {
+    public partial class MsQuic
+    {
+        public static unsafe QUIC_API_TABLE* Open()
+        {
+            QUIC_API_TABLE* ApiTable;
+            int Status = MsQuicOpen(&ApiTable);
+            ThrowIfFailure(Status);
+            return ApiTable;
+        }
+
+        public static unsafe void Close(QUIC_API_TABLE* ApiTable)
+        {
+            MsQuicClose(ApiTable);
+        }
+
+        public static void ThrowIfFailure(int status)
+        {
+            if (StatusFailed(status))
+            {
+                // TODO make custom exception, and maybe throw helpers
+                throw new Exception($"Failed with code {status}");
+            }
+        }
+
+        public static bool StatusSucceeded(int status)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return status >= 0;
+            }
+            else
+            {
+                // TODO make this work
+                throw new PlatformNotSupportedException();
+            }
+        }
+
+        public static bool StatusFailed(int status)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return status < 0;
+            }
+            else
+            {
+                // TODO make this work
+                throw new PlatformNotSupportedException();
+            }
+        }
+    }
+
     /// <summary>Defines the type of a member as it was used in the native signature.</summary>
     [AttributeUsage(AttributeTargets.Enum | AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.ReturnValue, AllowMultiple = false, Inherited = true)]
     [Conditional("DEBUG")]
