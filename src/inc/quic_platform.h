@@ -132,6 +132,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_TLS_TMP_TP                '44cQ' // Qc44 - QUIC Platform TLS Temporary TP storage
 #define QUIC_POOL_PCP                       '54cQ' // Qc45 - QUIC PCP
 #define QUIC_POOL_DATAPATH_ADDRESSES        '64cQ' // Qc46 - QUIC Datapath Addresses
+#define QUIC_POOL_TLS_TICKET_KEY            '74cQ' // Qc21 - QUIC Platform TLS ticket key
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,

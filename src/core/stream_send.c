@@ -1319,7 +1319,7 @@ QuicStreamOnAck(
         AckRange,
         Stream,
         "Received ack for %d bytes, offset=%llu, FF=0x%hx",
-        Length,
+        (int32_t)Length,
         Offset,
         FrameMetadata->Flags);
 

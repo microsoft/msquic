@@ -218,6 +218,33 @@ if(QUIC_TELEMETRY_ASSERTS)
     list(APPEND QUIC_COMMON_DEFINES QUIC_TELEMETRY_ASSERTS=1)
 endif()
 
+if(QUIC_TLS STREQUAL "schannel")
+    message(STATUS "Disabling PFX tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
+    message(STATUS "Disabling 0-RTT support")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
+endif()
+
+if(QUIC_TLS STREQUAL "openssl")
+    message(STATUS "Disabling client certificate tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
+endif()
+
+if(QUIC_TLS STREQUAL "mitls")
+    message(STATUS "Disabling PFX tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
+    message(STATUS "Disabling client certificate tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
+endif()
+
+if(QUIC_TLS STREQUAL "stub")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
+    message(STATUS "Disabling PFX tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
+    message(STATUS "Disabling ticket key tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
+endif()
+
 if(WIN32)
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
@@ -251,30 +278,6 @@ if(WIN32)
         message(STATUS "Disabling tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE stubs)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
-    endif()
-
-    if(QUIC_TLS STREQUAL "openssl")
-        # OpenSSL doesn't support session resumption yet.
-        message(STATUS "Disabling session resumption support")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION)
-    endif()
-
-    if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel")
-        # OpenSSL and Schannel don't support 0-RTT yet.
-        message(STATUS "Disabling 0-RTT support")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
-    endif()
-
-    if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
-        # OpenSSL and mitls don't support client certificates yet.
-        message(STATUS "Disabling Client Certificate tests")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
-    endif()
-
-    if(QUIC_TLS STREQUAL "stub")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
     endif()
 
     if(QUIC_ENABLE_SANITIZERS)
@@ -367,33 +370,12 @@ else()
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
-    if(QUIC_TLS STREQUAL "openssl")
-        # OpenSSL doesn't support session resumption yet.
-        message(STATUS "Disabling session resumption support")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION)
-        # OpenSSL doesn't support 0-RTT yet.
-        message(STATUS "Disabling 0-RTT support")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
-    endif()
-
-    if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
-        # OpenSSL and mitls don't support client certificates yet.
-        message(STATUS "Disabling Client Certificate tests")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
-    endif()
-
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
         list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-address-use-after-scope -Og -ggdb3 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
         if (CMAKE_C_COMPILER_ID MATCHES "Clang")
             list(APPEND QUIC_COMMON_FLAGS -fsanitize=unsigned-integer-overflow -fsanitize=local-bounds -fsanitize=integer -fsanitize=nullability)
         endif()
-    endif()
-
-    if(QUIC_TLS STREQUAL "stub")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})

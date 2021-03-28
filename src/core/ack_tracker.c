@@ -139,7 +139,7 @@ QuicAckTrackerAckPacket(
         "[%c][RX][%llu] Marked for ACK (ECN=%hhu)",
         PtkConnPre(Connection),
         PacketNumber,
-        ECN);
+        (uint8_t)ECN);
 
     BOOLEAN NewLargestPacketNumber =
         PacketNumber == QuicRangeGetMax(&Tracker->PacketNumbersToAck);

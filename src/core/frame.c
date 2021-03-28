@@ -1285,7 +1285,7 @@ QuicFrameLog(
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
-            (*Offset - Start) + 1);
+            (uint16_t)((*Offset - Start) + 1));
         break;
     }
 

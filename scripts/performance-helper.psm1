@@ -382,7 +382,7 @@ function Invoke-RemoteExe {
     } -ArgumentList $Exe
 
     if ($Kernel) {
-        $RunArgs = "--kernelPriv $RunArgs"
+        $RunArgs = "-driverNamePriv:secnetperfdrvpriv $RunArgs"
     }
 
     Write-Debug "Running Remote: $Exe $RunArgs"
