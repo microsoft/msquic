@@ -1179,25 +1179,31 @@ CxPlatSocketContextInitialize(
     }
 
     //
-    // The port is shared across processors.
+    // Only set SO_REUSEPORT on a server socket, otherwise the client could be
+    // assigned a server port.
     //
-    Option = TRUE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            SOL_SOCKET,
-            SO_REUSEPORT,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(SO_REUSEPORT) failed");
-        goto Exit;
+    if (RemoteAddress == NULL) {
+        //
+        // The port is shared across processors.
+        //
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                SOL_SOCKET,
+                SO_REUSEPORT,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(SO_REUSEPORT) failed");
+            goto Exit;
+        }
     }
 
     CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
@@ -1270,9 +1276,19 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
 
+#if DEBUG
     if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
         CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    } else if (RemoteAddress && LocalAddress && LocalAddress->Ipv4.sin_port == 0) {
+        //
+        // A client socket being assigned the same port as a remote socket causes issues later
+        // in the datapath and binding paths. Check to make sure this case was not given to us.
+        //
+        CXPLAT_DBG_ASSERT(Binding->LocalAddress.Ipv4.sin_port != RemoteAddress->Ipv4.sin_port);
     }
+#else
+    UNREFERENCED_PARAMETER(LocalAddress);
+#endif
 
     if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
         Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
