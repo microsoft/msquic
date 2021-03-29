@@ -109,7 +109,7 @@ param (
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [ValidateSet("schannel", "openssl", "stub")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
