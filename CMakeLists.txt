@@ -131,6 +131,7 @@ option(QUIC_RANDOM_ALLOC_FAIL "Randomly fails allocation calls" OFF)
 option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
+option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -340,6 +341,10 @@ else()
         list(APPEND QUIC_COMMON_FLAGS -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers)
     else()
         list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_LINUX)
+    endif()
+
+    if (QUIC_DISABLE_POSIX_GSO)
+        list(APPEND QUIC_COMMON_DEFINES DISABLE_POSIX_GSO)
     endif()
 
     if (QUIC_ENABLE_SANITIZERS)

@@ -37,6 +37,12 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 //
 #define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
 
+#ifdef DISABLE_POSIX_GSO
+#ifdef UDP_SEGMENT
+#undef UDP_SEGMENT
+#endif
+#endif
+
 //
 // A receive block to receive a UDP packet over the sockets.
 //
