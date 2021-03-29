@@ -393,7 +393,7 @@ if(QUIC_TLS STREQUAL "openssl")
             message(FATAL_ERROR "UWP is not supported with OpenSSL")
         endif()
 
-        if (${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm64")
+        if (${CMAKE_GENERATOR_PLATFORM} STREQUAL "ARM64")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64-ARM")
         elseif (${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32-ARM")
