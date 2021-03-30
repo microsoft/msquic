@@ -6,7 +6,7 @@
 if [ -n "$TESTCASE" ]; then
     case "$TESTCASE" in
     # TODO: add supported test cases here
-    "versionnegotiation"|"handshake"|"transfer"|"retry"|"multiconnect"|"keyupdate")
+    "versionnegotiation"|"handshake"|"resumption"|"zerortt"|"transfer"|"retry"|"multiconnect"|"keyupdate")
         ;;
     *)
         exit 127
@@ -76,12 +76,12 @@ if [ "$ROLE" == "client" ]; then
 
     if [ "$TESTCASE" == "multiconnect" ]; then
         for REQ in $REQUESTS; do
-            quicinterop ${CLIENT_PARAMS} -custom:$SERVER -port:443 -urls:"$REQ" -version:-16777187
+            quicinterop ${CLIENT_PARAMS} -custom:$SERVER -port:443 -urls:"$REQ"
         done
     else
         # FIXME: there doesn't seem to be a way to specify to use /certs/ca.pem
         # for certificate verification
-        quicinterop ${CLIENT_PARAMS} -custom:$SERVER -port:443 -urls:${REQUESTS[@]} -version:-16777187
+        quicinterop ${CLIENT_PARAMS} -custom:$SERVER -port:443 -urls:${REQUESTS[@]}
     fi
     # Wait for the logs to flush to disk.
     sleep 5

@@ -30,6 +30,12 @@ This script runs spinquic locally for a period of time.
 .PARAMETER LogProfile
     The name of the profile to use for log collection.
 
+.Parameter CodeCoverage
+    Collect code coverage for the binary being run.
+
+.Parameter AZP
+    Runs in Azure Pipelines mode.
+
 #>
 
 param (
@@ -42,7 +48,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [ValidateSet("schannel", "openssl", "stub")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -65,7 +71,10 @@ param (
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
-    [switch]$CodeCoverage = $false
+    [switch]$CodeCoverage = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$AZP = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -132,6 +141,9 @@ if ("None" -ne $LogProfile) {
 }
 if ($CodeCoverage) {
     $Arguments += " -CodeCoverage"
+}
+if ($AZP) {
+    $Arguments += " -AZP"
 }
 
 # Run the script.

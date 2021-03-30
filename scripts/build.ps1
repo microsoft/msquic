@@ -109,7 +109,7 @@ param (
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [ValidateSet("schannel", "openssl", "stub")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -186,15 +186,28 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 if ("" -eq $Arch) {
-    # TODO Actually detect current platform
-    $Arch = "x64"
+    if ($IsMacOS) {
+        $RunningArch = uname -m
+        if ("x86_64" -eq $RunningArch) {
+            $IsTranslated = sysctl -in sysctl.proc_translated
+            if ($IsTranslated) {
+                $Arch = "arm64"
+            } else {
+                $Arch = "x64"
+            }
+        } elseif ("arm64" -eq $RunningArch) {
+            $Arch = "arm64"
+        } else {
+            Write-Error "Unknown architecture"
+        }
+    } else {
+        $Arch = "x64"
+    }
 }
 
 if ($Generator -eq "") {
     if ($IsWindows) {
         $Generator = "Visual Studio 16 2019"
-    } elseif ($IsLinux) {
-        $Generator = "Ninja"
     } else {
         $Generator = "Unix Makefiles"
     }
@@ -282,9 +295,14 @@ function CMake-Execute([String]$Arguments) {
 
 # Uses cmake to generate the build configuration files.
 function CMake-Generate {
-    $Arguments = "-g"
+    $Arguments = "-G"
+
+    if ($Generator.Contains(" ")) {
+        $Generator = """$Generator"""
+    }
+
     if ($IsWindows) {
-        $Arguments += " '$Generator' -A "
+        $Arguments += " $Generator -A "
         switch ($Arch) {
             "x86"   { $Arguments += "Win32" }
             "x64"   { $Arguments += "x64" }
@@ -292,13 +310,13 @@ function CMake-Generate {
             "arm64" { $Arguments += "arm64" }
         }
     } elseif ($IsMacOS) {
-        $Arguments += " '$Generator'"
+        $Arguments += " $Generator"
         switch ($Arch) {
             "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64"}
             "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64"}
         }
     } else {
-        $Arguments += " '$Generator'"
+        $Arguments += " $Generator"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir

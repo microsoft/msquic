@@ -61,6 +61,9 @@ This script provides helpers for running executing the MsQuic tests.
 .Parameter CodeCoverage
     Collect code coverage for this test run. Incompatible with -Kernel and -Debugger.
 
+.Parameter AZP
+    Runs in Azure Pipelines mode.
+
 .EXAMPLE
     test.ps1
 
@@ -91,7 +94,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [ValidateSet("schannel", "openssl", "stub")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -143,7 +146,10 @@ param (
     [switch]$CodeCoverage = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ExtraArtifactDir = ""
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$AZP = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -242,8 +248,16 @@ if ($Kernel) {
     }
 }
 
+$PfxFile = Join-Path $RootArtifactDir "selfsignedservercert.pfx"
+if (!(Test-Path $PfxFile)) {
+    $MyPath = Split-Path -Path $PSCommandPath -Parent
+    $ScriptPath = Join-Path $MyPath install-test-certificates.ps1
+
+    &$ScriptPath -OutputFile $PfxFile
+}
+
 # Build up all the arguments to pass to the Powershell script.
-$TestArguments =  "-ExecutionMode $ExecutionMode -IsolationMode $IsolationMode"
+$TestArguments =  "-ExecutionMode $ExecutionMode -IsolationMode $IsolationMode -PfxPath $PfxFile"
 
 if ($Kernel) {
     $TestArguments += " -Kernel $KernelPath"
@@ -283,6 +297,9 @@ if ($EnableAppVerifier) {
 }
 if ($CodeCoverage) {
     $TestArguments += " -CodeCoverage"
+}
+if ($AZP) {
+    $TestArguments += " -AZP"
 }
 
 # Run the script.

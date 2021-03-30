@@ -77,7 +77,7 @@ param (
     [string]$LocalArch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [ValidateSet("schannel", "openssl", "stub")]
     [string]$LocalTls = "",
 
     [Parameter(Mandatory = $false)]
@@ -85,7 +85,7 @@ param (
     [string]$RemoteArch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [ValidateSet("schannel", "openssl", "stub")]
     [string]$RemoteTls = "",
 
     [Parameter(Mandatory = $false)]
@@ -498,7 +498,7 @@ try {
         Copy-Item "$LocalExePath\msquic.pgd" $OutputDir
     }
 
-    Write-Failures
+    Check-Regressions
 
 } finally {
     if ($null -ne $Session) {

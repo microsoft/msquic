@@ -324,9 +324,8 @@ QuicTestValidateConnectionEvents1(
     );
     ConnValidator Server(
         new(std::nothrow) ConnEventValidator* [6] {
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true), // This comes AFTER shutdown in miTLS
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true), // This comes AFTER shutdown in miTLS
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         },
@@ -449,9 +448,8 @@ QuicTestValidateConnectionEvents3(
     ConnValidator Server(
         new(std::nothrow) ConnEventValidator* [8] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true, true), // This comes AFTER shutdown in miTLS
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true, true),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true, true), // This comes AFTER shutdown in miTLS
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         },
@@ -680,9 +678,8 @@ QuicTestValidateStreamEvents2(
         });
     Server.SetExpectedEvents(
         new(std::nothrow) ConnEventValidator* [6] {
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true), // This comes AFTER shutdown in miTLS
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT),
-            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true), // This comes AFTER shutdown in miTLS
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         });

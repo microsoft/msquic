@@ -1188,10 +1188,10 @@ QuicSendFlush(
             QuicPacketBuilderFinalize(&Builder, FlushBatchedDatagrams);
         }
 
-    } while (Builder.SendContext != NULL ||
+    } while (Builder.SendData != NULL ||
         Builder.TotalCountDatagrams < QUIC_MAX_DATAGRAMS_PER_SEND);
 
-    if (Builder.SendContext != NULL) {
+    if (Builder.SendData != NULL) {
         //
         // Final send, if there is anything left over.
         //

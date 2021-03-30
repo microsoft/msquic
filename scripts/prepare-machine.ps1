@@ -91,15 +91,10 @@ if ($InitSubmodules) {
         Write-Host "Initializing openssl submodule"
         git submodule init submodules/openssl
         git submodule update
-    } elseif ($Tls -eq "mitls") {
-        Write-Host "Initializing everest submodule"
-        git submodule init submodules/everest
-        git submodule update
     }
 
     if ($Kernel) {
-        # Remove OpenSSL and Everest
-        git rm submodules/everest
+        # Remove OpenSSL
         git rm submodules/openssl
     }
 

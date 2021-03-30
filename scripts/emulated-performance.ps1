@@ -2,7 +2,7 @@
 
 .SYNOPSIS
 This script runs performance tests with various emulated network conditions. Note,
-this script requires duonic to be preinstalled on the system and quicperf.exe to
+this script requires duonic to be preinstalled on the system and secnetperf.exe to
 be in the current directory.
 
 .PARAMETER Config
@@ -55,7 +55,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [ValidateSet("schannel", "openssl", "stub")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -276,23 +276,23 @@ if ($LogProfile -ne "None") {
 $Platform = $IsWindows ? "windows" : "linux"
 $PlatformName = (($IsWindows ? "Windows" : "Linux") + "_$($Arch)_$($Tls)")
 
-# Path to the quicperf exectuable.
-$ExeName = $IsWindows ? "quicperf.exe" : "quicperf"
-$QuicPerf = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)" $ExeName
+# Path to the secnetperf exectuable.
+$ExeName = $IsWindows ? "secnetperf.exe" : "secnetperf"
+$SecNetPerf = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)" $ExeName
 
 Get-NetAdapter | Write-Debug
 ipconfig -all | Write-Debug
 
 # Make sure to kill any old processes
-try { Stop-Process -Name quicperf } catch { }
+try { Stop-Process -Name secnetperf } catch { }
 
 # Start the perf server listening.
 Write-Debug "Starting server..."
-if (!(Test-Path -Path $QuicPerf)) {
-    Write-Error "Missing file: $QuicPerf"
+if (!(Test-Path -Path $SecNetPerf)) {
+    Write-Error "Missing file: $SecNetPerf"
 }
 $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-$pinfo.FileName = $QuicPerf
+$pinfo.FileName = $SecNetPerf
 $pinfo.UseShellExecute = $false
 $pinfo.RedirectStandardOutput = $true
 $pinfo.RedirectStandardError = $true
@@ -392,7 +392,7 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
             Write-Debug "Run upload test: Iteration=$($i + 1)"
 
             $Rate = 0
-            $Command = "$QuicPerf -test:tput -tcp:$UseTcp -maxruntime:$MaxRuntimeMs -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
+            $Command = "$SecNetPerf -test:tput -tcp:$UseTcp -maxruntime:$MaxRuntimeMs -bind:192.168.1.12 -target:192.168.1.11 -sendbuf:0 -upload:$ThisDurationMs -timed:1 -pacing:$ThisPacing"
             Write-Debug $Command
             $Output = [string](Invoke-Expression $Command)
             Write-Debug $Output
@@ -454,4 +454,4 @@ foreach ($ThisReorderDelayDeltaMs in $ReorderDelayDeltaMs) {
 $RunResults | ConvertTo-Json -Depth 100 | Out-File $OutputFile
 
 # Kill any leftovers.
-try { Stop-Process -Name quicperf } catch { }
+try { Stop-Process -Name secnetperf } catch { }

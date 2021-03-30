@@ -1,6 +1,6 @@
 {
     "Remote": {
-        "Exe": "quicperf",
+        "Exe": "secnetperf",
         "Arguments": ""
     },
     "FullMatrix": false,
@@ -9,9 +9,9 @@
             "TestName": "ThroughputUp",
             "Local": {
                 "Platform": "Windows",
-                "Tls": ["stub", "schannel", "openssl", "mitls"],
+                "Tls": ["stub", "schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
-                "Exe": "quicperf",
+                "Exe": "secnetperf",
                 "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -upload:2000000000"
             },
             "Variables": [
@@ -45,7 +45,7 @@
                 "Platform": "linux",
                 "Tls": ["stub", "openssl"],
                 "Arch": ["x64", "arm"],
-                "Exe": "quicperf",
+                "Exe": "secnetperf",
                 "Arguments": "-test:Throughput -target:$RemoteAddress -uni:1 -upload:2000000000"
             },
             "Variables": [
@@ -77,9 +77,9 @@
             "TestName": "ThroughputDown",
             "Local": {
                 "Platform": "Windows",
-                "Tls": ["stub", "schannel", "openssl", "mitls"],
+                "Tls": ["stub", "schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
-                "Exe": "quicperf",
+                "Exe": "secnetperf",
                 "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -download:2000000000"
             },
             "Variables": [
@@ -105,7 +105,7 @@
                 "Platform": "linux",
                 "Tls": ["stub", "openssl"],
                 "Arch": ["x64", "arm"],
-                "Exe": "quicperf",
+                "Exe": "secnetperf",
                 "Arguments": "-test:Throughput -target:$RemoteAddress -uni:1 -download:2000000000"
             },
             "Variables": [
@@ -129,9 +129,9 @@
             "TestName": "RPS",
             "Local": {
                 "Platform": "Windows",
-                "Tls": ["stub", "schannel", "openssl", "mitls"],
+                "Tls": ["stub", "schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
-                "Exe": "quicperf",
+                "Exe": "secnetperf",
                 "Arguments": "-test:RPS -target:$RemoteAddress"
             },
             "Variables": [
@@ -174,7 +174,7 @@
                 "Platform": "linux",
                 "Tls": ["stub", "openssl"],
                 "Arch": ["x64", "arm"],
-                "Exe": "quicperf",
+                "Exe": "secnetperf",
                 "Arguments": "-test:RPS -target:$RemoteAddress"
             },
             "Variables": [
@@ -215,9 +215,9 @@
             "TestName": "HPS",
             "Local": {
                 "Platform": "Windows",
-                "Tls": ["stub", "schannel", "openssl", "mitls"],
+                "Tls": ["stub", "schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
-                "Exe": "quicperf",
+                "Exe": "secnetperf",
                 "Arguments": "-test:HPS -target:$RemoteAddress"
             },
             "Variables": [],
@@ -234,7 +234,7 @@
                 "Platform": "linux",
                 "Tls": ["stub", "openssl"],
                 "Arch": ["x64", "arm"],
-                "Exe": "quicperf",
+                "Exe": "secnetperf",
                 "Arguments": "-test:HPS -target:$RemoteAddress"
             },
             "Variables": [],

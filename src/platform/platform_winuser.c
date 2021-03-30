@@ -544,16 +544,6 @@ Error:
     return HRESULT_FROM_WIN32(Error);
 }
 
-__declspec(noreturn)
-void
-KrmlExit(
-    int n
-    )
-{
-    UNREFERENCED_PARAMETER(n);
-    CXPLAT_FRE_ASSERTMSG(FALSE, "miTLS hit a fatal error");
-}
-
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _IRQL_requires_same_

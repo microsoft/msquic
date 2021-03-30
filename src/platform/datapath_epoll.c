@@ -30,12 +30,18 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
 
 #define CXPLAT_MAX_BATCH_SEND 1
-#define CXPLAT_MAX_BATCH_RECEIVE 40
+#define CXPLAT_MAX_BATCH_RECEIVE 43
 
 //
 // The maximum single buffer size for sending coalesced payloads.
 //
 #define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
+
+#ifdef DISABLE_POSIX_GSO
+#ifdef UDP_SEGMENT
+#undef UDP_SEGMENT
+#endif
+#endif
 
 //
 // A receive block to receive a UDP packet over the sockets.
@@ -206,12 +212,12 @@ typedef struct CXPLAT_SOCKET_CONTEXT {
     //
     // The head of list containg all pending sends on this socket.
     //
-    CXPLAT_LIST_ENTRY PendingSendContextHead;
+    CXPLAT_LIST_ENTRY PendingSendDataHead;
 
     //
-    // Lock around the PendingSendContext list.
+    // Lock around the PendingSendData list.
     //
-    CXPLAT_LOCK PendingSendContextLock;
+    CXPLAT_LOCK PendingSendDataLock;
 
 } CXPLAT_SOCKET_CONTEXT;
 
@@ -326,9 +332,9 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
     CXPLAT_POOL LargeSendBufferPool;
 
     //
-    // Pool of send contexts to be shared by all sockets on this core.
+    // Pool of send data contexts to be shared by all sockets on this core.
     //
-    CXPLAT_POOL SendContextPool;
+    CXPLAT_POOL SendDataPool;
 
 } CXPLAT_DATAPATH_PROC_CONTEXT;
 
@@ -483,7 +489,7 @@ CxPlatProcessorContextInitialize(
         TRUE,
         sizeof(CXPLAT_SEND_DATA),
         QUIC_POOL_PLATFORM_SENDCTX,
-        &ProcContext->SendContextPool);
+        &ProcContext->SendDataPool);
 
     EpollFd = epoll_create1(EPOLL_CLOEXEC);
     if (EpollFd == INVALID_SOCKET) {
@@ -570,7 +576,7 @@ Exit:
         CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
         CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
         CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
-        CxPlatPoolUninitialize(&ProcContext->SendContextPool);
+        CxPlatPoolUninitialize(&ProcContext->SendDataPool);
     }
 
     return Status;
@@ -593,7 +599,7 @@ CxPlatProcessorContextUninitialize(
     CxPlatPoolUninitialize(&ProcContext->RecvBlockPool);
     CxPlatPoolUninitialize(&ProcContext->LargeSendBufferPool);
     CxPlatPoolUninitialize(&ProcContext->SendBufferPool);
-    CxPlatPoolUninitialize(&ProcContext->SendContextPool);
+    CxPlatPoolUninitialize(&ProcContext->SendDataPool);
 }
 
 QUIC_STATUS
@@ -1179,25 +1185,31 @@ CxPlatSocketContextInitialize(
     }
 
     //
-    // The port is shared across processors.
+    // Only set SO_REUSEPORT on a server socket, otherwise the client could be
+    // assigned a server port.
     //
-    Option = TRUE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            SOL_SOCKET,
-            SO_REUSEPORT,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(SO_REUSEPORT) failed");
-        goto Exit;
+    if (RemoteAddress == NULL) {
+        //
+        // The port is shared across processors.
+        //
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                SOL_SOCKET,
+                SO_REUSEPORT,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(SO_REUSEPORT) failed");
+            goto Exit;
+        }
     }
 
     CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
@@ -1270,9 +1282,19 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
 
+#if DEBUG
     if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
         CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    } else if (RemoteAddress && LocalAddress && LocalAddress->Ipv4.sin_port == 0) {
+        //
+        // A client socket being assigned the same port as a remote socket causes issues later
+        // in the datapath and binding paths. Check to make sure this case was not given to us.
+        //
+        CXPLAT_DBG_ASSERT(Binding->LocalAddress.Ipv4.sin_port != RemoteAddress->Ipv4.sin_port);
     }
+#else
+    UNREFERENCED_PARAMETER(LocalAddress);
+#endif
 
     if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
         Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
@@ -1312,10 +1334,10 @@ CxPlatSocketContextUninitializeComplete(
         }
     }
 
-    while (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
+    while (!CxPlatListIsEmpty(&SocketContext->PendingSendDataHead)) {
         CxPlatSendDataFree(
             CXPLAT_CONTAINING_RECORD(
-                CxPlatListRemoveHead(&SocketContext->PendingSendContextHead),
+                CxPlatListRemoveHead(&SocketContext->PendingSendDataHead),
                 CXPLAT_SEND_DATA,
                 PendingSendLinkage));
     }
@@ -1539,7 +1561,7 @@ Drop:
 }
 
 //
-// N.B Requires SocketContext->PendingSendContextLock to be locked.
+// N.B Requires SocketContext->PendingSendDataLock to be locked.
 //
 void
 CxPlatSocketContextPendSend(
@@ -1567,7 +1589,7 @@ CxPlatSocketContextPendSend(
     // of the queue.
     //
     CxPlatListInsertTail(
-        &SocketContext->PendingSendContextHead,
+        &SocketContext->PendingSendDataHead,
         &SendData->PendingSendLinkage);
 }
 
@@ -1603,15 +1625,15 @@ CxPlatSocketContextSendComplete(
         return Status;
     }
 
-    CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
-    if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
+    CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
+    if (!CxPlatListIsEmpty(&SocketContext->PendingSendDataHead)) {
         SendData =
             CXPLAT_CONTAINING_RECORD(
-                SocketContext->PendingSendContextHead.Flink,
+                SocketContext->PendingSendDataHead.Flink,
                 CXPLAT_SEND_DATA,
                 PendingSendLinkage);
     }
-    CxPlatLockRelease(&SocketContext->PendingSendContextLock);
+    CxPlatLockRelease(&SocketContext->PendingSendDataLock);
     if (SendData == NULL) {
         return Status;
     }
@@ -1624,21 +1646,21 @@ CxPlatSocketContextSendComplete(
                 &SendData->RemoteAddress,
                 SendData,
                 TRUE);
-        CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
+        CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
         if (Status != QUIC_STATUS_PENDING) {
-            CxPlatListRemoveHead(&SocketContext->PendingSendContextHead);
+            CxPlatListRemoveHead(&SocketContext->PendingSendDataHead);
             CxPlatSendDataFree(SendData);
-            if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
+            if (!CxPlatListIsEmpty(&SocketContext->PendingSendDataHead)) {
                 SendData =
                     CXPLAT_CONTAINING_RECORD(
-                        SocketContext->PendingSendContextHead.Flink,
+                        SocketContext->PendingSendDataHead.Flink,
                         CXPLAT_SEND_DATA,
                         PendingSendLinkage);
             } else {
                 SendData = NULL;
             }
         }
-        CxPlatLockRelease(&SocketContext->PendingSendContextLock);
+        CxPlatLockRelease(&SocketContext->PendingSendDataLock);
     } while (Status == QUIC_STATUS_SUCCESS && SendData != NULL);
 
     return Status;
@@ -1814,8 +1836,8 @@ CxPlatSocketCreateUdp(
                 Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
         }
         Binding->SocketContexts[i].ProcContext = &Datapath->ProcContexts[IsServerSocket ? i : CurrentProc];
-        CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendContextHead);
-        CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendContextLock);
+        CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendDataHead);
+        CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendDataLock);
         CxPlatRundownAcquire(&Binding->Rundown);
     }
 
@@ -1883,7 +1905,7 @@ Exit:
             CxPlatRundownRelease(&Datapath->BindingsRundown);
             CxPlatRundownUninitialize(&Binding->Rundown);
             for (uint32_t i = 0; i < SocketCount; i++) {
-                CxPlatLockUninitialize(&Binding->SocketContexts[i].PendingSendContextLock);
+                CxPlatLockUninitialize(&Binding->SocketContexts[i].PendingSendDataLock);
             }
             CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
             Binding = NULL;
@@ -1961,7 +1983,7 @@ CxPlatSocketDelete(
 
     CxPlatRundownUninitialize(&Socket->Rundown);
     for (uint32_t i = 0; i < SocketCount; i++) {
-        CxPlatLockUninitialize(&Socket->SocketContexts[i].PendingSendContextLock);
+        CxPlatLockUninitialize(&Socket->SocketContexts[i].PendingSendDataLock);
     }
     CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
 #endif
@@ -2116,7 +2138,7 @@ CxPlatSendDataAlloc(
         &Socket->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount];
 
     CXPLAT_SEND_DATA* SendData =
-        CxPlatPoolAlloc(&DatapathProc->SendContextPool);
+        CxPlatPoolAlloc(&DatapathProc->SendDataPool);
 
     if (SendData == NULL) {
         QuicTraceEvent(
@@ -2158,20 +2180,20 @@ CxPlatSendDataFree(
         CxPlatPoolFree(BufferPool, SendData->Buffers[i].Buffer);
     }
 
-    CxPlatPoolFree(&DatapathProc->SendContextPool, SendData);
+    CxPlatPoolFree(&DatapathProc->SendDataPool, SendData);
 #endif
 }
 
 static
 BOOLEAN
-CxPlatSendContextCanAllocSendSegment(
+CxPlatSendDataCanAllocSendSegment(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     )
 {
     CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
     CXPLAT_DBG_ASSERT(SendData->BufferCount > 0);
-    //CXPLAT_DBG_ASSERT(SendContext->BufferCount <= SendContext->Owner->Datapath->MaxSendBatchSize);
+    //CXPLAT_DBG_ASSERT(SendData->BufferCount <= SendData->Owner->Datapath->MaxSendBatchSize);
 
     uint64_t BytesAvailable =
         CXPLAT_LARGE_SEND_BUFFER_SIZE -
@@ -2183,7 +2205,7 @@ CxPlatSendContextCanAllocSendSegment(
 
 static
 BOOLEAN
-CxPlatSendContextCanAllocSend(
+CxPlatSendDataCanAllocSend(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     )
@@ -2191,12 +2213,12 @@ CxPlatSendContextCanAllocSend(
     return
         (SendData->BufferCount < SendData->Owner->Datapath->MaxSendBatchSize) ||
         ((SendData->SegmentSize > 0) &&
-            CxPlatSendContextCanAllocSendSegment(SendData, MaxBufferLength));
+            CxPlatSendDataCanAllocSendSegment(SendData, MaxBufferLength));
 }
 
 static
 void
-CxPlatSendContextFinalizeSendBuffer(
+CxPlatSendDataFinalizeSendBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ BOOLEAN IsSendingImmediately
     )
@@ -2215,7 +2237,7 @@ CxPlatSendContextFinalizeSendBuffer(
 
     CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0 && SendData->BufferCount > 0);
     CXPLAT_DBG_ASSERT(SendData->ClientBuffer.Length > 0 && SendData->ClientBuffer.Length <= SendData->SegmentSize);
-    CXPLAT_DBG_ASSERT(CxPlatSendContextCanAllocSendSegment(SendData, 0));
+    CXPLAT_DBG_ASSERT(CxPlatSendDataCanAllocSendSegment(SendData, 0));
 
     //
     // Append the client's buffer segment to our internal send buffer.
@@ -2241,7 +2263,7 @@ CxPlatSendContextFinalizeSendBuffer(
 _Success_(return != NULL)
 static
 QUIC_BUFFER*
-CxPlatSendContextAllocBuffer(
+CxPlatSendDataAllocDataBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ CXPLAT_POOL* BufferPool
     )
@@ -2261,13 +2283,13 @@ CxPlatSendContextAllocBuffer(
 _Success_(return != NULL)
 static
 QUIC_BUFFER*
-CxPlatSendContextAllocPacketBuffer(
+CxPlatSendDataAllocPacketBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     )
 {
     QUIC_BUFFER* Buffer =
-        CxPlatSendContextAllocBuffer(SendData, &SendData->Owner->SendBufferPool);
+        CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->SendBufferPool);
     if (Buffer != NULL) {
         Buffer->Length = MaxBufferLength;
     }
@@ -2277,7 +2299,7 @@ CxPlatSendContextAllocPacketBuffer(
 _Success_(return != NULL)
 static
 QUIC_BUFFER*
-CxPlatSendContextAllocSegmentBuffer(
+CxPlatSendDataAllocSegmentBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     )
@@ -2289,7 +2311,7 @@ CxPlatSendContextAllocSegmentBuffer(
     QUIC_BUFFER* Buffer;
 
     if (SendData->ClientBuffer.Buffer != NULL &&
-        CxPlatSendContextCanAllocSendSegment(SendData, MaxBufferLength)) {
+        CxPlatSendDataCanAllocSendSegment(SendData, MaxBufferLength)) {
 
         //
         // All clear to return the next segment of our contiguous buffer.
@@ -2298,7 +2320,7 @@ CxPlatSendContextAllocSegmentBuffer(
         return &SendData->ClientBuffer;
     }
 
-    Buffer = CxPlatSendContextAllocBuffer(SendData, &DatapathProc->LargeSendBufferPool);
+    Buffer = CxPlatSendDataAllocDataBuffer(SendData, &DatapathProc->LargeSendBufferPool);
     if (Buffer == NULL) {
         return NULL;
     }
@@ -2332,16 +2354,16 @@ CxPlatSendDataAllocBuffer(
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
     //CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
 
-    CxPlatSendContextFinalizeSendBuffer(SendData, FALSE);
+    CxPlatSendDataFinalizeSendBuffer(SendData, FALSE);
 
-    if (!CxPlatSendContextCanAllocSend(SendData, MaxBufferLength)) {
+    if (!CxPlatSendDataCanAllocSend(SendData, MaxBufferLength)) {
         return NULL;
     }
 
     if (SendData->SegmentSize == 0) {
-        return CxPlatSendContextAllocPacketBuffer(SendData, MaxBufferLength);
+        return CxPlatSendDataAllocPacketBuffer(SendData, MaxBufferLength);
     }
-    return CxPlatSendContextAllocSegmentBuffer(SendData, MaxBufferLength);
+    return CxPlatSendDataAllocSegmentBuffer(SendData, MaxBufferLength);
 #endif
 }
 
@@ -2390,12 +2412,12 @@ CxPlatSendDataIsFull(
 #ifdef CX_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->SendDataIsFull(SendData);
 #else
-    return !CxPlatSendContextCanAllocSend(SendData, SendData->SegmentSize);
+    return !CxPlatSendDataCanAllocSend(SendData, SendData->SegmentSize);
 #endif
 }
 
 void
-CxPlatSendContextComplete(
+CxPlatSendDataComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketProc,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint64_t IoResult
@@ -2416,7 +2438,7 @@ CxPlatSendContextComplete(
     //         SocketProc->Parent,
     //         SocketProc->Parent->ClientContext,
     //         IoResult,
-    //         SendContext->TotalSize);
+    //         SendData->TotalSize);
     // }
 
     CxPlatSendDataFree(SendData);
@@ -2463,7 +2485,7 @@ CxPlatSocketSendInternal(
     }
 
     if (!IsPendedSend) {
-        CxPlatSendContextFinalizeSendBuffer(SendData, TRUE);
+        CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
         for (size_t i = SendData->SentMessagesCount; i < SendData->BufferCount; ++i) {
             SendData->Iovs[i].iov_base = SendData->Buffers[i].Buffer;
             SendData->Iovs[i].iov_len = SendData->Buffers[i].Length;
@@ -2481,8 +2503,8 @@ CxPlatSocketSendInternal(
         //
         // Check to see if we need to pend.
         //
-        CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
-        if (!CxPlatListIsEmpty(&SocketContext->PendingSendContextHead)) {
+        CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
+        if (!CxPlatListIsEmpty(&SocketContext->PendingSendDataHead)) {
             CxPlatSocketContextPendSend(
                 SocketContext,
                 SendData,
@@ -2490,7 +2512,7 @@ CxPlatSocketSendInternal(
                 RemoteAddress);
             SendPending = TRUE;
         }
-        CxPlatLockRelease(&SocketContext->PendingSendContextLock);
+        CxPlatLockRelease(&SocketContext->PendingSendDataLock);
         if (SendPending) {
             Status = QUIC_STATUS_PENDING;
             goto Exit;
@@ -2579,13 +2601,13 @@ CxPlatSocketSendInternal(
         if (SuccessfullySentMessages < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 if (!IsPendedSend) {
-                    CxPlatLockAcquire(&SocketContext->PendingSendContextLock);
+                    CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
                     CxPlatSocketContextPendSend(
                         SocketContext,
                         SendData,
                         LocalAddress,
                         RemoteAddress);
-                    CxPlatLockRelease(&SocketContext->PendingSendContextLock);
+                    CxPlatLockRelease(&SocketContext->PendingSendDataLock);
                 }
                 SendPending = TRUE;
                 struct epoll_event SockFdEpEvt = {
@@ -2650,7 +2672,7 @@ Exit:
 
     if (!SendPending && !IsPendedSend) {
         // TODO Add TCP when necessary
-        CxPlatSendContextComplete(SocketContext, SendData, Status);
+        CxPlatSendDataComplete(SocketContext, SendData, Status);
     }
 
     return Status;

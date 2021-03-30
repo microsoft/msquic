@@ -1,6 +1,6 @@
 {
     "Remote": {
-        "Exe": "quicperf",
+        "Exe": "secnetperf",
         "Arguments": ""
     },
     "FullMatrix": true,
@@ -9,9 +9,9 @@
             "TestName": "RPS",
             "Local": {
                 "Platform": "Windows",
-                "Tls": ["stub", "schannel", "openssl", "mitls"],
+                "Tls": ["stub", "schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
-                "Exe": "quicperf",
+                "Exe": "secnetperf",
                 "Arguments": "-test:RPS -target:$RemoteAddress"
             },
             "Variables": [

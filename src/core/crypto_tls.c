@@ -114,7 +114,7 @@ static
 uint8_t*
 TlsWriteTransportParam(
     _In_ QUIC_VAR_INT Id,
-    _In_ uint16_t Length,
+    _In_range_(0, QUIC_VAR_INT_MAX) uint16_t Length,
     _In_reads_bytes_opt_(Length) const uint8_t* Param,
     _Out_writes_bytes_(_Inexpressible_("Too Dynamic"))
         uint8_t* Buffer

@@ -22,15 +22,11 @@ if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION 10.0.18362.0 CACHE STRING INTERNAL FORCE)
 endif()
 
-if (QUIC_TLS STREQUAL "mitls")
-    message(WARNING "Policy 0091 unsupported for miTLS.")
+if(POLICY CMP0091)
+    cmake_policy(SET CMP0091 NEW)
+    message(STATUS "Setting policy 0091")
 else()
-    if(POLICY CMP0091)
-        cmake_policy(SET CMP0091 NEW)
-        message(STATUS "Setting policy 0091")
-    else()
-        message(WARNING "CMake version too old to support Policy 0091; CRT static linking won't work")
-    endif()
+    message(WARNING "CMake version too old to support Policy 0091; CRT static linking won't work")
 endif()
 
 if (POLICY CMP0111)
@@ -131,6 +127,7 @@ option(QUIC_RANDOM_ALLOC_FAIL "Randomly fails allocation calls" OFF)
 option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
+option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -218,6 +215,26 @@ if(QUIC_TELEMETRY_ASSERTS)
     list(APPEND QUIC_COMMON_DEFINES QUIC_TELEMETRY_ASSERTS=1)
 endif()
 
+if(QUIC_TLS STREQUAL "schannel")
+    message(STATUS "Disabling PFX tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
+    message(STATUS "Disabling 0-RTT support")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
+endif()
+
+if(QUIC_TLS STREQUAL "openssl")
+    message(STATUS "Disabling client certificate tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
+endif()
+
+if(QUIC_TLS STREQUAL "stub")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
+    message(STATUS "Disabling PFX tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
+    message(STATUS "Disabling ticket key tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
+endif()
+
 if(WIN32)
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
@@ -251,30 +268,6 @@ if(WIN32)
         message(STATUS "Disabling tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE stubs)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
-    endif()
-
-    if(QUIC_TLS STREQUAL "openssl")
-        # OpenSSL doesn't support session resumption yet.
-        message(STATUS "Disabling session resumption support")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION)
-    endif()
-
-    if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel")
-        # OpenSSL and Schannel don't support 0-RTT yet.
-        message(STATUS "Disabling 0-RTT support")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
-    endif()
-
-    if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
-        # OpenSSL and mitls don't support client certificates yet.
-        message(STATUS "Disabling Client Certificate tests")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
-    endif()
-
-    if(QUIC_TLS STREQUAL "stub")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
     endif()
 
     if(QUIC_ENABLE_SANITIZERS)
@@ -339,6 +332,10 @@ else()
         list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_LINUX)
     endif()
 
+    if (QUIC_DISABLE_POSIX_GSO)
+        list(APPEND QUIC_COMMON_DEFINES DISABLE_POSIX_GSO)
+    endif()
+
     if (QUIC_ENABLE_SANITIZERS)
         set(QUIC_ENABLE_LOGGING OFF)
         message(WARNING "LTTng logging is incompatible with sanitizers. Skipping logging")
@@ -367,33 +364,12 @@ else()
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
-    if(QUIC_TLS STREQUAL "openssl")
-        # OpenSSL doesn't support session resumption yet.
-        message(STATUS "Disabling session resumption support")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION)
-        # OpenSSL doesn't support 0-RTT yet.
-        message(STATUS "Disabling 0-RTT support")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
-    endif()
-
-    if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "mitls")
-        # OpenSSL and mitls don't support client certificates yet.
-        message(STATUS "Disabling Client Certificate tests")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
-    endif()
-
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
         list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-address-use-after-scope -Og -ggdb3 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
         if (CMAKE_C_COMPILER_ID MATCHES "Clang")
             list(APPEND QUIC_COMMON_FLAGS -fsanitize=unsigned-integer-overflow -fsanitize=local-bounds -fsanitize=integer -fsanitize=nullability)
         endif()
-    endif()
-
-    if(QUIC_TLS STREQUAL "stub")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
-        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
@@ -477,13 +453,13 @@ if(QUIC_TLS STREQUAL "openssl")
                 DEPENDS mkdir_openssl_build_debug
                 WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
                 OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile
-                COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug)
+                COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug)
 
             add_custom_command(
                 DEPENDS mkdir_openssl_build_release
                 WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
                 OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/release/makefile
-                COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release)
+                COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release)
 
             add_custom_target(OpenSSL_Build
                 DEPENDS $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
@@ -521,11 +497,11 @@ if(QUIC_TLS STREQUAL "openssl")
         elseif(CX_PLATFORM STREQUAL "darwin")
             # need to build with Apple's compiler
             if (CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
-                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-arm64-cc)
+                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure darwin64-arm64-cc)
             elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
-                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch x86_64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-x86_64-cc)
+                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch x86_64" ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure darwin64-x86_64-cc)
             else()
-                set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
+                set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config)
             endif()
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
@@ -598,18 +574,6 @@ else()
     function(add_clog_library)
         add_library(${ARGV0} INTERFACE)
     endfunction()
-endif()
-
-if(QUIC_TLS STREQUAL "mitls")
-    # Build Everest.
-    add_subdirectory(submodules/everest/msquic/msvc/kremlib)
-    add_subdirectory(submodules/everest/msquic/msvc/evercrypt)
-    add_subdirectory(submodules/everest/msquic/msvc/mitls)
-    add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
-    set_property(TARGET kremlib PROPERTY FOLDER "libraries")
-    set_property(TARGET evercrypt PROPERTY FOLDER "libraries")
-    set_property(TARGET mitls PROPERTY FOLDER "libraries")
-    set_property(TARGET quiccrypto PROPERTY FOLDER "libraries")
 endif()
 
 if(QUIC_CODE_CHECK)

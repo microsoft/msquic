@@ -758,16 +758,16 @@ QuicBindingProcessStatelessOperation(
         Binding,
         OperationType);
 
-    CXPLAT_SEND_DATA* SendContext =
+    CXPLAT_SEND_DATA* SendData =
         CxPlatSendDataAlloc(
             Binding->Socket,
             CXPLAT_ECN_NON_ECT,
             0);
-    if (SendContext == NULL) {
+    if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "stateless send context",
+            "stateless send data",
             0);
         goto Exit;
     }
@@ -796,7 +796,7 @@ QuicBindingProcessStatelessOperation(
             (uint16_t)(SupportedVersionsLength * sizeof(uint32_t)); // Our actual supported versions
 
         SendDatagram =
-            CxPlatSendDataAllocBuffer(SendContext, PacketLength);
+            CxPlatSendDataAllocBuffer(SendData, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -880,7 +880,7 @@ QuicBindingProcessStatelessOperation(
         CXPLAT_DBG_ASSERT(PacketLength >= QUIC_MIN_STATELESS_RESET_PACKET_LENGTH);
 
         SendDatagram =
-            CxPlatSendDataAllocBuffer(SendContext, PacketLength);
+            CxPlatSendDataAllocBuffer(SendData, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -920,7 +920,7 @@ QuicBindingProcessStatelessOperation(
 
         uint16_t PacketLength = QuicPacketMaxBufferSizeForRetryV1();
         SendDatagram =
-            CxPlatSendDataAllocBuffer(SendContext, PacketLength);
+            CxPlatSendDataAllocBuffer(SendData, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1002,15 +1002,15 @@ QuicBindingProcessStatelessOperation(
         Binding,
         &RecvDatagram->Tuple->LocalAddress,
         &RecvDatagram->Tuple->RemoteAddress,
-        SendContext,
+        SendData,
         SendDatagram->Length,
         1);
-    SendContext = NULL;
+    SendData = NULL;
 
 Exit:
 
-    if (SendContext != NULL) {
-        CxPlatSendDataFree(SendContext);
+    if (SendData != NULL) {
+        CxPlatSendDataFree(SendData);
     }
 }
 
@@ -1687,7 +1687,7 @@ QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendContext,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend
     )
@@ -1704,14 +1704,14 @@ QuicBindingSend(
             Hooks->Send(
                 &RemoteAddressCopy,
                 &LocalAddressCopy,
-                SendContext);
+                SendData);
 
         if (Drop) {
             QuicTraceLogVerbose(
                 BindingSendTestDrop,
                 "[bind][%p] Test dropped packet",
                 Binding);
-            CxPlatSendDataFree(SendContext);
+            CxPlatSendDataFree(SendData);
             Status = QUIC_STATUS_SUCCESS;
         } else {
             Status =
@@ -1719,7 +1719,7 @@ QuicBindingSend(
                     Binding->Socket,
                     &LocalAddressCopy,
                     &RemoteAddressCopy,
-                    SendContext);
+                    SendData);
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogWarning(
                     BindingSendFailed,
@@ -1735,7 +1735,7 @@ QuicBindingSend(
                 Binding->Socket,
                 LocalAddress,
                 RemoteAddress,
-                SendContext);
+                SendData);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 BindingSendFailed,

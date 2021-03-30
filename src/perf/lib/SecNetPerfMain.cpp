@@ -16,7 +16,7 @@ Abstract:
 #include "HpsClient.h"
 
 #ifdef QUIC_CLOG
-#include "quicmain.cpp.clog.h"
+#include "SecNetPerfMain.cpp.clog.h"
 #endif
 
 const MsQuicApi* MsQuic;
@@ -40,13 +40,13 @@ uint32_t MaxRuntime = 0;
         CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED((_STATUS = x))); \
     } while (0)
 
-class QuicPerfWatchdog {
+class SecNetPerfWatchdog {
     CXPLAT_THREAD WatchdogThread;
     CXPLAT_EVENT ShutdownEvent;
     uint32_t TimeoutMs;
     static
     CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
-        auto This = (QuicPerfWatchdog*)Context;
+        auto This = (SecNetPerfWatchdog*)Context;
         if (!CxPlatEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
             WriteOutput("Watchdog timeout fired!\n");
             CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
@@ -54,7 +54,7 @@ class QuicPerfWatchdog {
         CXPLAT_THREAD_RETURN(0);
     }
 public:
-    QuicPerfWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
+    SecNetPerfWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
         CxPlatEventInitialize(&ShutdownEvent, TRUE, FALSE);
         CXPLAT_THREAD_CONFIG Config = { 0 };
         Config.Name = "perf_watchdog";
@@ -62,7 +62,7 @@ public:
         Config.Context = this;
         ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &WatchdogThread));
     }
-    ~QuicPerfWatchdog() {
+    ~SecNetPerfWatchdog() {
         CxPlatEventSet(ShutdownEvent);
         CxPlatThreadWait(&WatchdogThread);
         CxPlatThreadDelete(&WatchdogThread);
@@ -70,7 +70,7 @@ public:
     }
 };
 
-QuicPerfWatchdog* Watchdog;
+SecNetPerfWatchdog* Watchdog;
 
 static
 void
@@ -78,13 +78,13 @@ PrintHelp(
     ) {
     WriteOutput(
         "\n"
-        "quicperf usage:\n"
+        "secnetperf usage:\n"
         "\n"
-        "Server: quicperf [options]\n"
+        "Server: secnetperf [options]\n"
         "\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "\n"
-        "Client: quicperf -TestName:<Throughput|RPS|HPS> [options]\n"
+        "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
         "\n",
         PERF_DEFAULT_PORT
         );
@@ -116,7 +116,7 @@ QuicMainStart(
     TryGetValue(argc, argv, "watchdog", &WatchdogTimeout);
 
     if (WatchdogTimeout != 0) {
-        Watchdog = new(std::nothrow) QuicPerfWatchdog{WatchdogTimeout};
+        Watchdog = new(std::nothrow) SecNetPerfWatchdog{WatchdogTimeout};
     }
 
     QUIC_STATUS Status;
@@ -139,6 +139,11 @@ QuicMainStart(
         if (QUIC_FAILED(Status)) {
             CxPlatDataPathUninitialize(Datapath);
             Datapath = nullptr;
+            //
+            // Must explicitly set binding to null, as CxPlatSocketCreateUdp
+            // can set the Binding variable even in invalid cases.
+            //
+            Binding = nullptr;
             WriteOutput("Datapath Binding for shutdown failed to initialize: %d\n", Status);
             return Status;
         }

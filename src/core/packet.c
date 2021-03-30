@@ -558,17 +558,17 @@ QuicPacketLogHeader(
                 LogPacketVersionNegotiation,
                 "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %lu bytes)",
                 PtkConnPre(Connection),
-                PktRxPre(Rx),
+                (uint8_t)PktRxPre(Rx),
                 QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                 QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                PacketLength - Offset);
+                (uint16_t)(PacketLength - Offset));
 
             while (Offset < PacketLength) {
                 QuicTraceLogVerbose(
                     LogPacketVersionNegotiationVersion,
                     "[%c][%cX][-]   Ver:0x%x",
                     PtkConnPre(Connection),
-                    PktRxPre(Rx),
+                    (uint8_t)PktRxPre(Rx),
                     *(uint32_t*)(Packet + Offset));
                 Offset += sizeof(uint32_t);
             }
@@ -604,7 +604,7 @@ QuicPacketLogHeader(
                     LongHdr->Version,
                     QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                     QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                    PacketLength - (Offset + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1));
+                    (uint16_t)(PacketLength - (Offset + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1)));
                 break;
 
             } else {
@@ -683,7 +683,7 @@ QuicPacketLogHeader(
                 QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                 Header->KeyPhase,
                 Header->SpinBit,
-                PacketLength - Offset);
+                (uint16_t)(PacketLength - Offset));
             break;
         }
 

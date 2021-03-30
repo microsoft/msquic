@@ -366,9 +366,7 @@ QuicTestConnectAndPing(
     }
     Settings.SetSendBufferingEnabled(UseSendBuffer);
 
-    MsQuicCredentialConfig ServerConfig(ServerSelfSignedCredConfig);
-
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     QUIC_TICKET_KEY_CONFIG GoodKey;

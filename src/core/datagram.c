@@ -102,7 +102,7 @@ QuicDatagramIndicateSendStateChange(
         DatagramSendStateChanged,
         Connection,
         "Indicating DATAGRAM_SEND_STATE_CHANGED to %u",
-        State);
+        (uint32_t)State);
     (void)QuicConnIndicateEvent(Connection, &Event);
 
     *ClientContext = Event.DATAGRAM_SEND_STATE_CHANGED.ClientContext;

@@ -298,7 +298,7 @@ QuicCryptoFrameEncode(
     _In_ const QUIC_CRYPTO_EX * const Frame,
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
-    _Out_writes_bytes_(BufferLength) uint8_t* Buffer
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     );
 
 _Success_(return != FALSE)

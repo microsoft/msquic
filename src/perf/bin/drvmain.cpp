@@ -17,13 +17,8 @@ Abstract:
 #include "drivermain.cpp.clog.h"
 #endif
 
-#ifdef PRIVATE_LIBRARY
-DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperfdrv");
-DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperfdrvpriv");
-#else
-DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperfdrv");
-DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperfdrvpriv");
-#endif
+DECLARE_CONST_UNICODE_STRING(SecNetPerfCtlDeviceNameBase, L"\\Device\\");
+DECLARE_CONST_UNICODE_STRING(SecNetPerfCtlDeviceSymLinkBase, L"\\DosDevices\\");
 
 typedef struct QUIC_DEVICE_EXTENSION {
     EX_PUSH_LOCK Lock;
@@ -34,7 +29,7 @@ typedef struct QUIC_DEVICE_EXTENSION {
 
 } QUIC_DEVICE_EXTENSION;
 
-WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DEVICE_EXTENSION, QuicPerfCtlGetDeviceContext);
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DEVICE_EXTENSION, SecNetPerfCtlGetDeviceContext);
 
 typedef struct QUIC_DRIVER_CLIENT {
     LIST_ENTRY Link;
@@ -49,32 +44,33 @@ typedef struct QUIC_DRIVER_CLIENT {
     CXPLAT_LOCK CleanupLock;
 } QUIC_DRIVER_CLIENT;
 
-WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DRIVER_CLIENT, QuicPerfCtlGetFileContext);
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DRIVER_CLIENT, SecNetPerfCtlGetFileContext);
 
-EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL QuicPerfCtlEvtIoDeviceControl;
-EVT_WDF_IO_QUEUE_IO_CANCELED_ON_QUEUE QuicPerfCtlEvtIoQueueCanceled;
-EVT_WDF_REQUEST_CANCEL QuicPerfCtlEvtIoCanceled;
+EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL SecNetPerfCtlEvtIoDeviceControl;
+EVT_WDF_IO_QUEUE_IO_CANCELED_ON_QUEUE SecNetPerfCtlEvtIoQueueCanceled;
+EVT_WDF_REQUEST_CANCEL SecNetPerfCtlEvtIoCanceled;
 
-PAGEDX EVT_WDF_DEVICE_FILE_CREATE QuicPerfCtlEvtFileCreate;
-PAGEDX EVT_WDF_FILE_CLOSE QuicPerfCtlEvtFileClose;
-PAGEDX EVT_WDF_FILE_CLEANUP QuicPerfCtlEvtFileCleanup;
+PAGEDX EVT_WDF_DEVICE_FILE_CREATE SecNetPerfCtlEvtFileCreate;
+PAGEDX EVT_WDF_FILE_CLOSE SecNetPerfCtlEvtFileClose;
+PAGEDX EVT_WDF_FILE_CLEANUP SecNetPerfCtlEvtFileCleanup;
 
-WDFDEVICE QuicPerfCtlDevice = nullptr;
-QUIC_DEVICE_EXTENSION* QuicPerfCtlExtension = nullptr;
-QUIC_DRIVER_CLIENT* QuicPerfClient = nullptr;
+WDFDEVICE SecNetPerfCtlDevice = nullptr;
+QUIC_DEVICE_EXTENSION* SecNetPerfCtlExtension = nullptr;
+QUIC_DRIVER_CLIENT* SecNetPerfClient = nullptr;
 
-EVT_WDF_DRIVER_UNLOAD QuicPerfDriverUnload;
+EVT_WDF_DRIVER_UNLOAD SecNetPerfDriverUnload;
 
 _No_competing_thread_
 INITCODE
 NTSTATUS
-QuicPerfCtlInitialize(
-    _In_ WDFDRIVER Driver
+SecNetPerfCtlInitialize(
+    _In_ WDFDRIVER Driver,
+    _In_ PUNICODE_STRING BaseRegPath
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPerfCtlUninitialize(
+SecNetPerfCtlUninitialize(
         void
     );
 
@@ -155,7 +151,7 @@ DriverEntry(
     // Create the WdfDriver Object
     //
     WDF_DRIVER_CONFIG_INIT(&Config, NULL);
-    Config.EvtDriverUnload = QuicPerfDriverUnload;
+    Config.EvtDriverUnload = SecNetPerfDriverUnload;
     Config.DriverInitFlags = WdfDriverInitNonPnpDriver;
     Config.DriverPoolTag = QUIC_POOL_PERF;
 
@@ -178,7 +174,7 @@ DriverEntry(
     //
     // Initialize the device control interface.
     //
-    Status = QuicPerfCtlInitialize(Driver);
+    Status = SecNetPerfCtlInitialize(Driver, RegistryPath);
     if (!NT_SUCCESS(Status)) {
         goto Error;
     }
@@ -203,13 +199,13 @@ _Function_class_(EVT_WDF_DRIVER_UNLOAD)
 _IRQL_requires_same_
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPerfDriverUnload(
+SecNetPerfDriverUnload(
     _In_ WDFDRIVER /*Driver*/
     )
 {
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
 
-    QuicPerfCtlUninitialize();
+    SecNetPerfCtlUninitialize();
 
     QuicTraceLogInfo(
         PerfDriverStopped,
@@ -219,11 +215,45 @@ QuicPerfDriverUnload(
     CxPlatSystemUnload();
 }
 
+#define PERF_REG_PATH                 L"\\Parameters"
+
 _No_competing_thread_
 INITCODE
 NTSTATUS
-QuicPerfCtlInitialize(
-    _In_ WDFDRIVER Driver
+SecNetPerfGetServiceName(
+    _In_ PUNICODE_STRING BaseRegPath,
+    _Inout_ PUNICODE_STRING ServiceName
+    )
+{
+    USHORT BaseRegPathLength = BaseRegPath->Length / sizeof(WCHAR);
+    if (BaseRegPath->Buffer[BaseRegPathLength - 1] == L'\\') {
+        //LogWarning("[config] Trimming trailing '\\' from registry!");
+        BaseRegPathLength--;
+    }
+
+    //
+    // Get the service name from the base registry path.
+    //
+    USHORT ServiceNameLength = 0;
+    while (BaseRegPath->Buffer[BaseRegPathLength - ServiceNameLength - 1] != L'\\') {
+        ServiceNameLength++;
+    }
+    if (ServiceNameLength == 0) {
+        //LogError("[config] Empty service name!");
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    *ServiceName = { ServiceNameLength * sizeof(WCHAR), ServiceNameLength * sizeof(WCHAR), BaseRegPath->Buffer + (BaseRegPathLength - ServiceNameLength) };
+
+    return STATUS_SUCCESS;
+}
+
+_No_competing_thread_
+INITCODE
+NTSTATUS
+SecNetPerfCtlInitialize(
+    _In_ WDFDRIVER Driver,
+    _In_ PUNICODE_STRING BaseRegPath
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
@@ -234,6 +264,8 @@ QuicPerfCtlInitialize(
     QUIC_DEVICE_EXTENSION* DeviceContext;
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
+    DECLARE_UNICODE_STRING_SIZE(ServiceName, 64);
+    DECLARE_UNICODE_STRING_SIZE(DeviceName, 100);
 
     DeviceInit =
         WdfControlDeviceInitAllocate(
@@ -248,10 +280,43 @@ QuicPerfCtlInitialize(
         goto Error;
     }
 
+    Status = 
+        SecNetPerfGetServiceName(
+            BaseRegPath,
+            &ServiceName);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "SecNetPerfGetServiceName failed");
+        goto Error;
+    }
+
+    Status = RtlUnicodeStringCopy(&DeviceName, &SecNetPerfCtlDeviceNameBase);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUnicodeStringCopy failed");
+        goto Error;
+    }
+
+    Status = RtlUnicodeStringCat(&DeviceName, &ServiceName);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUnicodeStringCat failed");
+        goto Error;
+    }
+
     Status =
         WdfDeviceInitAssignName(
             DeviceInit,
-            &QuicPerfCtlDeviceName);
+            &DeviceName);
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -263,13 +328,13 @@ QuicPerfCtlInitialize(
 
     QuicTraceLogVerbose(
         PerfControlInitialized,
-        "[perf] Control interface initialized with %.*S", QuicPerfCtlDeviceName.Length, QuicPerfCtlDeviceName.Buffer);
+        "[perf] Control interface initialized with %.*S", DeviceName.Length, DeviceName.Buffer);
 
     WDF_FILEOBJECT_CONFIG_INIT(
         &FileConfig,
-        QuicPerfCtlEvtFileCreate,
-        QuicPerfCtlEvtFileClose,
-        QuicPerfCtlEvtFileCleanup);
+        SecNetPerfCtlEvtFileCreate,
+        SecNetPerfCtlEvtFileClose,
+        SecNetPerfCtlEvtFileCleanup);
     FileConfig.FileObjectClass = WdfFileObjectWdfCanUseFsContext2;
 
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&Attribs, QUIC_DRIVER_CLIENT);
@@ -293,12 +358,33 @@ QuicPerfCtlInitialize(
         goto Error;
     }
 
-    DeviceContext = QuicPerfCtlGetDeviceContext(Device);
+    DeviceContext = SecNetPerfCtlGetDeviceContext(Device);
     RtlZeroMemory(DeviceContext, sizeof(QUIC_DEVICE_EXTENSION));
     ExInitializePushLock(&DeviceContext->Lock);
     InitializeListHead(&DeviceContext->ClientList);
 
-    Status = WdfDeviceCreateSymbolicLink(Device, &QuicPerfCtlDeviceSymLink);
+    DeviceName.Length = 0;
+    Status = RtlUnicodeStringCopy(&DeviceName, &SecNetPerfCtlDeviceSymLinkBase);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUnicodeStringCopy failed");
+        goto Error;
+    }
+
+    Status = RtlUnicodeStringCat(&DeviceName, &ServiceName);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUnicodeStringCat failed");
+        goto Error;
+    }
+
+    Status = WdfDeviceCreateSymbolicLink(Device, &DeviceName);
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -309,8 +395,8 @@ QuicPerfCtlInitialize(
     }
 
     WDF_IO_QUEUE_CONFIG_INIT_DEFAULT_QUEUE(&QueueConfig, WdfIoQueueDispatchParallel);
-    QueueConfig.EvtIoDeviceControl = QuicPerfCtlEvtIoDeviceControl;
-    QueueConfig.EvtIoCanceledOnQueue = QuicPerfCtlEvtIoQueueCanceled;
+    QueueConfig.EvtIoDeviceControl = SecNetPerfCtlEvtIoDeviceControl;
+    QueueConfig.EvtIoCanceledOnQueue = SecNetPerfCtlEvtIoQueueCanceled;
 
     __analysis_assume(QueueConfig.EvtIoStop != 0);
     Status =
@@ -330,8 +416,8 @@ QuicPerfCtlInitialize(
         goto Error;
     }
 
-    QuicPerfCtlDevice = Device;
-    QuicPerfCtlExtension = DeviceContext;
+    SecNetPerfCtlDevice = Device;
+    SecNetPerfCtlExtension = DeviceContext;
 
     WdfControlFinishInitializing(Device);
 
@@ -350,7 +436,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPerfCtlUninitialize(
+SecNetPerfCtlUninitialize(
         void
     )
 {
@@ -358,12 +444,12 @@ QuicPerfCtlUninitialize(
         PerfControlUninitializing,
         "[perf] Control interface uninitializing");
 
-    if (QuicPerfCtlDevice != nullptr) {
-        NT_ASSERT(QuicPerfCtlExtension != nullptr);
-        QuicPerfCtlExtension = nullptr;
+    if (SecNetPerfCtlDevice != nullptr) {
+        NT_ASSERT(SecNetPerfCtlExtension != nullptr);
+        SecNetPerfCtlExtension = nullptr;
 
-        WdfObjectDelete(QuicPerfCtlDevice);
-        QuicPerfCtlDevice = nullptr;
+        WdfObjectDelete(SecNetPerfCtlDevice);
+        SecNetPerfCtlDevice = nullptr;
     }
 
     QuicTraceLogVerbose(
@@ -374,7 +460,7 @@ QuicPerfCtlUninitialize(
 PAGEDX
 _Use_decl_annotations_
 void
-QuicPerfCtlEvtFileCreate(
+SecNetPerfCtlEvtFileCreate(
     _In_ WDFDEVICE /* Device */,
     _In_ WDFREQUEST Request,
     _In_ WDFFILEOBJECT FileObject
@@ -385,10 +471,10 @@ QuicPerfCtlEvtFileCreate(
     PAGED_CODE();
 
     KeEnterGuardedRegion();
-    ExfAcquirePushLockExclusive(&QuicPerfCtlExtension->Lock);
+    ExfAcquirePushLockExclusive(&SecNetPerfCtlExtension->Lock);
 
     do {
-        if (QuicPerfCtlExtension->ClientListSize >= 1) {
+        if (SecNetPerfCtlExtension->ClientListSize >= 1) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
@@ -397,7 +483,7 @@ QuicPerfCtlEvtFileCreate(
             break;
         }
 
-        QUIC_DRIVER_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
+        QUIC_DRIVER_CLIENT* Client = SecNetPerfCtlGetFileContext(FileObject);
         if (Client == nullptr) {
             QuicTraceEvent(
                 LibraryError,
@@ -413,8 +499,8 @@ QuicPerfCtlEvtFileCreate(
         //
         // Insert into the client list
         //
-        InsertTailList(&QuicPerfCtlExtension->ClientList, &Client->Link);
-        QuicPerfCtlExtension->ClientListSize++;
+        InsertTailList(&SecNetPerfCtlExtension->ClientList, &Client->Link);
+        SecNetPerfCtlExtension->ClientListSize++;
 
         QuicTraceLogInfo(
             PerfControlClientCreated,
@@ -424,12 +510,12 @@ QuicPerfCtlEvtFileCreate(
         //
         // Update globals. (TODO: Add multiple device client support)
         //
-        QuicPerfClient = Client;
+        SecNetPerfClient = Client;
         InterlockedExchange((volatile LONG*)&BufferCurrent, 0);
         CxPlatEventInitialize(&Client->StopEvent, true, false);
     } while (false);
 
-    ExfReleasePushLockExclusive(&QuicPerfCtlExtension->Lock);
+    ExfReleasePushLockExclusive(&SecNetPerfCtlExtension->Lock);
     KeLeaveGuardedRegion();
 
     WdfRequestComplete(Request, Status);
@@ -438,7 +524,7 @@ QuicPerfCtlEvtFileCreate(
 PAGEDX
 _Use_decl_annotations_
 void
-QuicPerfCtlEvtFileClose(
+SecNetPerfCtlEvtFileClose(
     _In_ WDFFILEOBJECT /* FileObject */
     )
 {
@@ -448,7 +534,7 @@ QuicPerfCtlEvtFileClose(
 PAGEDX
 _Use_decl_annotations_
 void
-QuicPerfCtlEvtFileCleanup(
+SecNetPerfCtlEvtFileCleanup(
     _In_ WDFFILEOBJECT FileObject
     )
 {
@@ -456,18 +542,18 @@ QuicPerfCtlEvtFileCleanup(
 
     KeEnterGuardedRegion();
 
-    QUIC_DRIVER_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
+    QUIC_DRIVER_CLIENT* Client = SecNetPerfCtlGetFileContext(FileObject);
     if (Client != nullptr) {
 
-        ExfAcquirePushLockExclusive(&QuicPerfCtlExtension->Lock);
+        ExfAcquirePushLockExclusive(&SecNetPerfCtlExtension->Lock);
 
         //
         // Remove the device client from the list
         //
         RemoveEntryList(&Client->Link);
-        QuicPerfCtlExtension->ClientListSize--;
+        SecNetPerfCtlExtension->ClientListSize--;
 
-        ExfReleasePushLockExclusive(&QuicPerfCtlExtension->Lock);
+        ExfReleasePushLockExclusive(&SecNetPerfCtlExtension->Lock);
 
         QuicTraceLogInfo(
             PerfControlClientCleaningUp,
@@ -489,23 +575,23 @@ QuicPerfCtlEvtFileCleanup(
         //
         // Clean up globals.
         //
-        QuicPerfClient = nullptr;
+        SecNetPerfClient = nullptr;
     }
 
     KeLeaveGuardedRegion();
 }
 
 VOID
-QuicPerfCtlEvtIoQueueCanceled(
+SecNetPerfCtlEvtIoQueueCanceled(
     _In_ WDFQUEUE /* Queue */,
     _In_ WDFREQUEST Request
     )
 {
-    QuicPerfCtlEvtIoCanceled(Request);
+    SecNetPerfCtlEvtIoCanceled(Request);
 }
 
 VOID
-QuicPerfCtlEvtIoCanceled(
+SecNetPerfCtlEvtIoCanceled(
     _In_ WDFREQUEST Request
     )
 {
@@ -518,7 +604,7 @@ QuicPerfCtlEvtIoCanceled(
         goto Error;
     }
 
-    QUIC_DRIVER_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
+    QUIC_DRIVER_CLIENT* Client = SecNetPerfCtlGetFileContext(FileObject);
     if (Client == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
         goto Error;
@@ -545,7 +631,7 @@ Error:
 }
 
 NTSTATUS
-QuicPerfCtlSetSecurityConfig(
+SecNetPerfCtlSetSecurityConfig(
     _Inout_ QUIC_DRIVER_CLIENT* Client,
     _In_ const QUIC_CERTIFICATE_HASH* CertHash
     )
@@ -596,7 +682,7 @@ CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
     QUIC_DRIVER_CLIENT* Client = (QUIC_DRIVER_CLIENT*)Context;
     WDFREQUEST Request = Client->Request;
 
-    WdfRequestMarkCancelable(Request, QuicPerfCtlEvtIoCanceled);
+    WdfRequestMarkCancelable(Request, SecNetPerfCtlEvtIoCanceled);
     if (Client->Canceled) {
         QuicTraceLogInfo(
             PerformanceStopCancelled,
@@ -659,7 +745,7 @@ Exit:
 }
 
 void
-QuicPerfCtlReadPrints(
+SecNetPerfCtlReadPrints(
     _In_ WDFREQUEST Request,
     _In_ QUIC_DRIVER_CLIENT* Client
     )
@@ -687,7 +773,7 @@ QuicPerfCtlReadPrints(
 }
 
 NTSTATUS
-QuicPerfCtlStart(
+SecNetPerfCtlStart(
     _In_ QUIC_DRIVER_CLIENT* Client,
     _In_ char* Arguments,
     _In_ int Length
@@ -717,7 +803,7 @@ QuicPerfCtlStart(
 }
 
 void
-QuicPerfCtlGetMetadata(
+SecNetPerfCtlGetMetadata(
     _In_ WDFREQUEST Request
     )
 {
@@ -751,7 +837,7 @@ QuicPerfCtlGetMetadata(
 }
 
 void
-QuicPerfCtlGetExtraData(
+SecNetPerfCtlGetExtraData(
     _In_ WDFREQUEST Request,
     _In_ size_t OutputBufferLength
     )
@@ -783,7 +869,7 @@ QuicPerfCtlGetExtraData(
 }
 
 VOID
-QuicPerfCtlEvtIoDeviceControl(
+SecNetPerfCtlEvtIoDeviceControl(
     _In_ WDFQUEUE Queue,
     _In_ WDFREQUEST Request,
     _In_ size_t OutputBufferLength,
@@ -817,13 +903,13 @@ QuicPerfCtlEvtIoDeviceControl(
         goto Error;
     }
 
-    Client = QuicPerfCtlGetFileContext(FileObject);
+    Client = SecNetPerfCtlGetFileContext(FileObject);
     if (Client == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "QuicPerfCtlGetFileContext failed");
+            "SecNetPerfCtlGetFileContext failed");
         goto Error;
     }
 
@@ -831,15 +917,15 @@ QuicPerfCtlEvtIoDeviceControl(
     // Handle IOCTL for read
     //
     if (IoControlCode == IOCTL_QUIC_READ_DATA) {
-        QuicPerfCtlReadPrints(
+        SecNetPerfCtlReadPrints(
             Request,
             Client);
         return;
     } else if (IoControlCode == IOCTL_QUIC_GET_METADATA) {
-        QuicPerfCtlGetMetadata(Request);
+        SecNetPerfCtlGetMetadata(Request);
         return;
     } else if (IoControlCode == IOCTL_QUIC_GET_EXTRA_DATA) {
-        QuicPerfCtlGetExtraData(Request, OutputBufferLength);
+        SecNetPerfCtlGetExtraData(Request, OutputBufferLength);
         return;
     }
 
@@ -895,13 +981,13 @@ QuicPerfCtlEvtIoDeviceControl(
     case IOCTL_QUIC_SET_CERT_PARAMS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         Status =
-            QuicPerfCtlSetSecurityConfig(
+            SecNetPerfCtlSetSecurityConfig(
                 Client,
                 &Params->CertParams.ServerCertHash);
         break;
     case IOCTL_QUIC_RUN_PERF:
         Status =
-            QuicPerfCtlStart(
+            SecNetPerfCtlStart(
                 Client,
                 &Params->Data,
                 Params->Length);
