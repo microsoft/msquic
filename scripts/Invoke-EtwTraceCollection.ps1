@@ -3,14 +3,31 @@
 .SYNOPSIS
 This script invokes an ETW trace collection
 
-.PARAMETER FlushSession
-    The name of an ETW session to flush.
+.PARAMETER SessionName
+    The name of an ETW session.
 
-.PARAMETER ConvertEtl
-    The name of an ETL file to convert.
+.PARAMETER SessionName
+    The name of a netsh tracing scenario to start.
+
+.PARAMETER EtlPath
+    The name of an ETL file.
 
 .PARAMETER TmfPath
-    The path of the TMF files to use to convert the ETL.
+    The path of the TMF files (used to convert ETL).
+
+.PARAMETER Start
+    If set, starts a new netsh.exe trace session for the given NetshScenario.
+
+.PARAMETER Stop
+    If set, stops a running netsh.exe trace session.
+
+.PARAMETER Flush
+    If set, flushes the specified SessionName. Also can populate EtlPath
+    automatically from the ETW session configuration.
+
+.PARAMETER Convert
+    If set, convert the (either manually specified or automatically populated
+    by -Flush) EtlPath to text.
 
 .PARAMETER Sanitize
     If set, sanitizes IP addresses in the converted ETL file.
@@ -18,17 +35,35 @@ This script invokes an ETW trace collection
 
 param (
     [Parameter(Mandatory = $false)]
-    [string]$FlushSession = "",
+    [string]$SessionName = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$ConvertEtl = "",
+    [string]$NetshScenario = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$EtlPath = "",
 
     [Parameter(Mandatory = $false)]
     [string]$TmfPath = "",
 
     [Parameter(Mandatory = $false)]
+    [switch]$Start,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Stop,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Flush,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Convert,
+
+    [Parameter(Mandatory = $false)]
     [switch]$Sanitize
 )
+
+Set-StrictMode -Version 'Latest'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 $Pattern = ":(?::[a-f\d]{1,4}){0,5}(?:(?::[a-f\d]{1,4}){1,2}|:(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})))|[a-f\d]{1,4}:(?:[a-f\d]{1,4}:(?:[a-f\d]{1,4}:(?:[a-f\d]{1,4}:(?:[a-f\d]{1,4}:(?:[a-f\d]{1,4}:(?:[a-f\d]{1,4}:(?:[a-f\d]{1,4}|:)|(?::(?:[a-f\d]{1,4})?|(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))))|:(?:(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|[a-f\d]{1,4}(?::[a-f\d]{1,4})?|))|(?::(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|:[a-f\d]{1,4}(?::(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|(?::[a-f\d]{1,4}){0,2})|:))|(?:(?::[a-f\d]{1,4}){0,2}(?::(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|(?::[a-f\d]{1,4}){1,2})|:))|(?:(?::[a-f\d]{1,4}){0,3}(?::(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|(?::[a-f\d]{1,4}){1,2})|:))|(?:(?::[a-f\d]{1,4}){0,4}(?::(?:(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))|(?::[a-f\d]{1,4}){1,2})|:))"
 
@@ -66,17 +101,80 @@ function Format-IPAddresses {
     }
 }
 
-if ($FlushSession -ne "") {
-    # Flush the ETW memory buffers to disk.
-    $Command = "logman.exe update $($FlushSession) -ets -fd"
+# Starts a netsh tracing ETW session for the given scenario.
+if ($Start) {
+    if ($NetshScenario -eq "") {
+        Write-Error "No NetshScenario argument present"
+    }
+    if ($SessionName -eq "") {
+        Write-Error "No SessionName argument present"
+    }
+    if ($EtlPath -eq "") {
+        $EtlPath = Join-Path $env:temp "$($SessionName).etl"
+    }
+
+    # Start the ETW session running.
+    $Command = "netsh.exe trace start scenario=$($NetshScenario) sessionname=$($SessionName) tracefile=$($EtlPath)"
     Write-Debug $Command
-    Invoke-Expression $Command 2>&1 | Out-Null
+    $Result = Invoke-Expression $Command
 }
 
-if ($ConvertEtl -ne "") {
+# Stops a netsh tracing session
+if ($Stop) {
+    if ($SessionName -eq "") {
+        Write-Error "No SessionName argument present"
+    }
+    if ($EtlPath -eq "") {
+        $EtlPath = Join-Path $env:temp "$($SessionName).etl"
+    }
+
+    # Stop the ETW session.
+    $Command = "netsh.exe trace stopsessionname=$($SessionName)"
+    Write-Debug $Command
+    $Result = Invoke-Expression $Command
+}
+
+# Flush an ETW session.
+if ($Flush) {
+    if ($SessionName -eq "") {
+        Write-Error "No SessionName argument present"
+    }
+
+    # Query the ETW session status (and config).
+    $Command = "logman.exe query $($SessionName) -ets"
+    Write-Debug $Command
+    $QueryResult = Invoke-Expression $Command
+    if (!$QueryResult.Contains("The command completed successfully.")) {
+        Write-Error "Unable to find the logging session`n$QueryResult"
+    }
+
+    # Flush the ETW memory buffers to disk.
+    $Command = "logman.exe update $($SessionName) -ets -fd"
+    Write-Debug $Command
+    Invoke-Expression $Command 2>&1 | Out-Null
+
+    # Grab the ETL output path if not already specified.
+    if ($EtlPath -eq "") {
+        $outputLocationLine = $QueryResult.Split("`r`n") | Select-String "Output Location:"
+        if ($outputLocationLine -eq "") {
+            Write-Error "Cannot extract EtlPath output location`n$($QueryResult)"
+        }
+        $EtlPath = $outputLocationLine.Line.ToString().Split(':', 2)[1].Trim()
+    }
+}
+
+# Convert an ETL to text (sanitizing as necessary).
+if ($Convert) {
+    if ($EtlPath -eq "") {
+        Write-Error "No EtlPath argument present"
+    }
+    if (!(Test-Path $EtlPath)) {
+        Write-Error "$EtlPath file not found"
+    }
+
     # Convert the ETL to text.
     $OutputPath = Join-Path $env:temp "temp.log"
-    $Command = "netsh trace convert $($ConvertEtl) output=$($OutputPath) overwrite=yes report=no"
+    $Command = "netsh trace convert $($EtlPath) output=$($OutputPath) overwrite=yes report=no"
     if ($TmfPath -ne "") {
         $Command += " tmfpath=$($TmfPath)"
     }
