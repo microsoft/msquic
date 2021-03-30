@@ -227,14 +227,6 @@ if(QUIC_TLS STREQUAL "openssl")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
 endif()
 
-if(QUIC_TLS STREQUAL "stub")
-    list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
-    message(STATUS "Disabling PFX tests")
-    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
-    message(STATUS "Disabling ticket key tests")
-    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_TICKET_KEY_TESTS)
-endif()
-
 if(WIN32)
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)

@@ -94,7 +94,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub")]
+    [ValidateSet("schannel", "openssl")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
