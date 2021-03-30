@@ -347,6 +347,8 @@ TEST_F(CryptTest, HpMaskChaCha20)
         LogTestBuffer("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
         FAIL();
     }
+
+    CxPlatHpKeyFree(HpKey);
 }
 
 TEST_F(CryptTest, HpMaskAes256)
