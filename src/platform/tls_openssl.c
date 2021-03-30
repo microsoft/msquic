@@ -1382,6 +1382,7 @@ CxPlatTlsInitialize(
                             ERR_get_error(),
                             "SSL_set_session failed");
                     }
+                    SSL_SESSION_free(Session);
                 } else {
                     QuicTraceEvent(
                         TlsErrorStatus,
