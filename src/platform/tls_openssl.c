@@ -1391,6 +1391,7 @@ CxPlatTlsInitialize(
                         "PEM_read_bio_SSL_SESSION failed");
                 }
                 BIO_free(Bio);
+                CXPLAT_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
             } else {
                 QuicTraceEvent(
                     TlsErrorStatus,
