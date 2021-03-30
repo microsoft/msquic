@@ -14,8 +14,6 @@
 #include "CryptTest.cpp.clog.h"
 #endif
 
-#ifndef QUIC_TLS_STUB
-
 void
 LogTestBuffer(
     _In_z_ const char* Name,
@@ -523,5 +521,3 @@ TEST_P(CryptTest, HashRandom)
 }
 
 INSTANTIATE_TEST_SUITE_P(CryptTest, CryptTest, ::testing::Values(0, 1, 2));
-
-#endif // CXPLAT_TLS_STUB

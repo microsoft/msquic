@@ -77,7 +77,7 @@ param (
     [string]$LocalArch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub")]
+    [ValidateSet("schannel", "openssl")]
     [string]$LocalTls = "",
 
     [Parameter(Mandatory = $false)]
@@ -85,7 +85,7 @@ param (
     [string]$RemoteArch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub")]
+    [ValidateSet("schannel", "openssl")]
     [string]$RemoteTls = "",
 
     [Parameter(Mandatory = $false)]

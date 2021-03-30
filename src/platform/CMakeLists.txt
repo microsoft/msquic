@@ -54,8 +54,7 @@ elseif(QUIC_TLS STREQUAL "openssl")
         set(SOURCES ${SOURCES} selfsign_openssl.c)
     endif()
 else()
-    message(STATUS "Configuring for stub TLS")
-    set(SOURCES ${SOURCES} cert_stub.c selfsign_stub.c tls_stub.c)
+    message(FATAL_ERROR "TLS Provider not configured")
 endif()
 
 # Allow CLOG to preprocess all the source files.

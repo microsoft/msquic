@@ -123,7 +123,7 @@ The script has a lot of additional configuration options, but the default should
 
 `-Arch <x86/x64/arm/arm64>` Allow for building for different architectures. **x64** is the defualt architecture.
 
-`-Tls <stub/schannel/openssl>` Allows for building with different TLS providers. The default is platform dependent (Windows = schannel, Linux = openssl).
+`-Tls <schannel/openssl>` Allows for building with different TLS providers. The default is platform dependent (Windows = schannel, Linux = openssl).
 
 `-Clean` Forces a clean build of everything.
 
