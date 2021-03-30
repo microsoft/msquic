@@ -5,10 +5,6 @@
 	path = submodules/openssl
 	url = https://github.com/quictls/openssl.git
 	branch = OpenSSL_1_1_1k+quic
-[submodule "submodules/everest"]
-	path = submodules/everest
-	url = https://github.com/nibanks/everest-dist.git
-	branch = pr/msquic
 [submodule "submodules/wil"]
 	path = submodules/wil
 	url = https://github.com/microsoft/wil

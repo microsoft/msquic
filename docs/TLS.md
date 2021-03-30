@@ -52,10 +52,6 @@ MsQuic has a number of implementations for the TLS abstraction layer to support 
 
 > **Important** - Currently, OpenSSL doesn't officially have QUIC API support (hopefully coming soon), so MsQuic **temporarily** relies on a [fork of OpenSSL](https://github.com/quictls/openssl) that is purely a fork + a set of (unapproved by OMC) changes to expose some QUIC functionality. This fork is only a **stopgap solution** until OpenSSL officially supports QUIC, at which MsQuic will immediately switch to it.
 
-## miTLS
-
-[miTLS](https://mitls.org/) is an experimental TLS implementation from Microsoft Research. It is not officially supported by MsQuic and is generally just used for testing purposes. It is currently only works on Windows.
-
 # Detailed Design
 
 TO-DO
