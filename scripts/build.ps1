@@ -299,7 +299,7 @@ function CMake-Execute([String]$Arguments) {
 function CMake-Generate {
     $Arguments = "-G"
     if ($IsWindows) {
-        $Arguments += " ""$Generator"" -A "
+        $Arguments += " '$Generator' -A "
         switch ($Arch) {
             "x86"   { $Arguments += "Win32" }
             "x64"   { $Arguments += "x64" }
@@ -313,7 +313,7 @@ function CMake-Generate {
             "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64"}
         }
     } else {
-        $Arguments += " ""$Generator"""
+        $Arguments += " '$Generator'"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
