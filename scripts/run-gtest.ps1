@@ -409,28 +409,38 @@ function PrintDumpCallStack($DumpFile) {
 
 # Waits for the executable to finish and processes the results.
 function Wait-TestCase($TestCase) {
-    $stdout = $null
-    $stderr = $null
     $ProcessCrashed = $false
     $AnyTestFailed = $false
+    $StdOut = $null
+    $StdOutTxt = $null
+    $StdError = $null
+    $StdErrorTxt = $null
+    $IsReadingStreams = $false
 
     try {
         if (!$Debugger) {
-            $stdout = $TestCase.Process.StandardOutput.ReadToEnd()
-            $stderr = $TestCase.Process.StandardError.ReadToEnd()
-            if (!$isWindows) {
-                $ProcessCrashed = $stderr.Contains("Aborted")
-            }
-            $AnyTestFailed = $stdout.Contains("[  FAILED  ]")
-            if (!(Test-Path $TestCase.ResultsPath) -and !$ProcessCrashed) {
-                LogWrn "No test results generated! Treating as crash!"
-                $ProcessCrashed = $true
-            }
+            $IsReadingStreams = $true
+            $StdOut = $TestCase.Process.StandardOutput.ReadToEndAsync()
+            $StdError = $TestCase.Process.StandardError.ReadToEndAsync()
         }
         $TestCase.Process.WaitForExit()
         if ($TestCase.Process.ExitCode -ne 0) {
             LogWrn "Process had nonzero exit code: $($TestCase.Process.ExitCode)"
             $ProcessCrashed = $true
+        }
+        if ($IsReadingStreams) {
+            [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
+            $StdOutTxt = $StdOut.Result
+            $StdErrorTxt = $StdError.Result
+
+            if (!$isWindows -and !$ProcessCrashed) {
+                $ProcessCrashed = $StdErrorTxt.Contains("Aborted")
+            }
+            $AnyTestFailed = $StdOutTxt.Contains("[  FAILED  ]")
+            if (!(Test-Path $TestCase.ResultsPath) -and !$ProcessCrashed) {
+                LogWrn "No test results generated! Treating as crash!"
+                $ProcessCrashed = $true
+            }
         }
         $DumpFiles = (Get-ChildItem $TestCase.LogDir) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
@@ -481,13 +491,13 @@ function Wait-TestCase($TestCase) {
         }
 
         if ($IsolationMode -eq "Batch") {
-            if ($stdout) { Write-Host $stdout }
-            if ($stderr) { Write-Host $stderr }
+            if ($StdOutTxt) { Write-Host $StdOutTxt }
+            if ($StdErrorTxt) { Write-Host $StdErrorTxt }
         } else {
             if ($AnyTestFailed -or $ProcessCrashed) {
                 LogErr "$($TestCase.Name) failed:"
-                if ($stdout) { Write-Host $stdout }
-                if ($stderr) { Write-Host $stderr }
+                if ($StdOutTxt) { Write-Host $StdOutTxt }
+                if ($StdErrorTxt) { Write-Host $StdErrorTxt }
             } else {
                 Log "$($TestCase.Name) succeeded"
             }
@@ -499,12 +509,12 @@ function Wait-TestCase($TestCase) {
                 & $LogScript -Stop -OutputPath (Join-Path $TestCase.LogDir "quic")
             }
 
-            if ($stdout) {
-                $stdout > (Join-Path $TestCase.LogDir "stdout.txt")
+            if ($StdOutTxt) {
+                $StdOutTxt > (Join-Path $TestCase.LogDir "stdout.txt")
             }
 
-            if ($stderr) {
-                $stderr > (Join-Path $TestCase.LogDir "stderr.txt")
+            if ($StdErrorTxt) {
+                $StdErrorTxt > (Join-Path $TestCase.LogDir "stderr.txt")
             }
 
             if ($CompressOutput) {
