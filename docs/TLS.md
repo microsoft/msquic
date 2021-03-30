@@ -48,7 +48,7 @@ MsQuic has a number of implementations for the TLS abstraction layer to support 
 
 ## OpenSSL
 
-[OpenSSL](https://www.openssl.org/) is the primary TLS library by MsQuic on Linux. It is also works on Windows, but is not officially supported.
+[OpenSSL](https://www.openssl.org/) is the primary TLS library by MsQuic on Linux. It is also works on Windows, but Schannel is preferred if supported by your OS build.
 
 > **Important** - Currently, OpenSSL doesn't officially have QUIC API support (hopefully coming soon), so MsQuic **temporarily** relies on a [fork of OpenSSL](https://github.com/quictls/openssl) that is purely a fork + a set of (unapproved by OMC) changes to expose some QUIC functionality. This fork is only a **stopgap solution** until OpenSSL officially supports QUIC, at which MsQuic will immediately switch to it.
 
