@@ -296,7 +296,7 @@ QuicVersionNegotiationExtParseClientVerNegInfo(
 
 QUIC_STATUS
 QuicVersionNegotiationExtParseServerVerNegInfo(
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_bytes_(BufferLength)
         const uint8_t* const Buffer,
     _In_ uint16_t BufferLength,
