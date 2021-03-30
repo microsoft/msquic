@@ -74,6 +74,9 @@ param (
     [switch]$CodeCoverage = $false,
 
     [Parameter(Mandatory = $false)]
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $false)]
     [switch]$AZP = $false
 )
 
@@ -87,6 +90,16 @@ if ("" -eq $Tls) {
     } else {
         $Tls = "openssl"
     }
+}
+
+if ($IsWindows) {
+    $Platform = "windows"
+} elseif ($IsLinux) {
+    $Platform = "linux"
+} elseif ($IsMacOS) {
+    $Platform = "macos"
+} else {
+    Write-Error "Unsupported platform type!"
 }
 
 # Root directory of the project.
@@ -108,14 +121,18 @@ if ($CodeCoverage) {
     }
 }
 
+if ("" -eq $ExtraArtifactDir) {
+    $RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)"
+} else {
+    $RootArtifactDir = Join-Path $RootDir "artifacts" "bin" $Platform "$($Arch)_$($Config)_$($Tls)_$($ExtraArtifactDir)"
+}
+
 # Path to the spinquic exectuable.
 $SpinQuic = $null
 if ($IsWindows) {
-    $SpinQuic = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\spinquic.exe"
-} elseif ($IsLinux) {
-    $SpinQuic = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/spinquic"
-} elseif ($IsMacOS) {
-    $SpinQuic = Join-Path $RootDir "/artifacts/bin/macos/$($Arch)_$($Config)_$($Tls)/spinquic"
+    $SpinQuic = Join-Path $RootArtifactDir "spinquic.exe"
+} elseif ($IsLinux -or $IsMacOS) {
+    $SpinQuic = Join-Path $RootArtifactDir "spinquic"
 } else {
     Write-Error "Unsupported platform type!"
 }

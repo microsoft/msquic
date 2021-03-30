@@ -1382,6 +1382,7 @@ CxPlatTlsInitialize(
                             ERR_get_error(),
                             "SSL_set_session failed");
                     }
+                    SSL_SESSION_free(Session);
                 } else {
                     QuicTraceEvent(
                         TlsErrorStatus,
@@ -1423,6 +1424,9 @@ CxPlatTlsInitialize(
         goto Exit;
     }
     CXPLAT_FREE(Config->LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
+    if (Config->ResumptionTicketBuffer) {
+        CXPLAT_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+    }
 
     *NewTlsContext = TlsContext;
     TlsContext = NULL;
