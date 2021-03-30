@@ -27,6 +27,7 @@ TEST(VersionNegExtTest, ParseClientVerNegInfoFail)
     };
 
     QUIC_CLIENT_VER_NEG_INFO OutputClientVNI = {0};
+    QUIC_CONNECTION* NoOpConnection = (QUIC_CONNECTION*)0x1;
 
     //
     // Test parsing a valid VNI with too short of buffer
@@ -36,7 +37,7 @@ TEST(VersionNegExtTest, ParseClientVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             ValidClientVNI,
             3,
             &OutputClientVNI));
@@ -45,7 +46,7 @@ TEST(VersionNegExtTest, ParseClientVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             ValidClientVNI,
             7,
             &OutputClientVNI));
@@ -54,7 +55,7 @@ TEST(VersionNegExtTest, ParseClientVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             ValidClientVNI,
             8,
             &OutputClientVNI));
@@ -63,25 +64,25 @@ TEST(VersionNegExtTest, ParseClientVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             ValidClientVNI,
             9,
             &OutputClientVNI));
 
-    // Not enough room for Compatible Versions List 
+    // Not enough room for Compatible Versions List
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             ValidClientVNI,
             11,
             &OutputClientVNI));
 
-    // Not enough room for Compatible Versions List 
+    // Not enough room for Compatible Versions List
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             ValidClientVNI,
             17,
             &OutputClientVNI));
@@ -103,7 +104,7 @@ TEST(VersionNegExtTest, ParseClientVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             InvalidClientVNI_RecvVer,
             (uint16_t)sizeof(InvalidClientVNI_RecvVer),
             &OutputClientVNI));
@@ -121,7 +122,7 @@ TEST(VersionNegExtTest, ParseClientVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             InvalidClientVNI_RecvVer2,
             (uint16_t)sizeof(InvalidClientVNI_RecvVer2),
             &OutputClientVNI));
@@ -141,7 +142,7 @@ TEST(VersionNegExtTest, ParseClientVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             InvalidClientVNI_RecvVerUnderflow,
             (uint16_t)sizeof(InvalidClientVNI_RecvVerUnderflow),
             &OutputClientVNI));
@@ -159,7 +160,7 @@ TEST(VersionNegExtTest, ParseClientVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             InvalidClientVNI_CompatVer,
             (uint16_t)sizeof(InvalidClientVNI_CompatVer),
             &OutputClientVNI));
@@ -178,7 +179,7 @@ TEST(VersionNegExtTest, ParseClientVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             InvalidClientVNI_CompatVer2,
             (uint16_t)sizeof(InvalidClientVNI_CompatVer2),
             &OutputClientVNI));
@@ -197,7 +198,7 @@ TEST(VersionNegExtTest, ParseClientVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             InvalidClientVNI_CompatVerUnderflow,
             (uint16_t)sizeof(InvalidClientVNI_CompatVerUnderflow),
             &OutputClientVNI));
@@ -214,7 +215,7 @@ TEST(VersionNegExtTest, ParseClientVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseClientVerNegInfo(
-            nullptr,
+            NoOpConnection,
             InvalidClientVNI_CompatVerZero,
             (uint16_t)sizeof(InvalidClientVNI_CompatVerZero),
             &OutputClientVNI));
@@ -231,6 +232,7 @@ TEST(VersionNegExtTest, ParseServerVerNegInfoFail)
     };
 
     QUIC_SERVER_VER_NEG_INFO OutputServerVNI = {0};
+    QUIC_CONNECTION* NoOpConnection = (QUIC_CONNECTION*)0x1;
 
     //
     // Test parsing a valid VNI with too short of buffer
@@ -240,7 +242,7 @@ TEST(VersionNegExtTest, ParseServerVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseServerVerNegInfo(
-            nullptr,
+            NoOpConnection,
             ValidServerVNI,
             3,
             &OutputServerVNI));
@@ -249,7 +251,7 @@ TEST(VersionNegExtTest, ParseServerVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseServerVerNegInfo(
-            nullptr,
+            NoOpConnection,
             ValidServerVNI,
             4,
             &OutputServerVNI));
@@ -258,7 +260,7 @@ TEST(VersionNegExtTest, ParseServerVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseServerVerNegInfo(
-            nullptr,
+            NoOpConnection,
             ValidServerVNI,
             5,
             &OutputServerVNI));
@@ -267,7 +269,7 @@ TEST(VersionNegExtTest, ParseServerVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseServerVerNegInfo(
-            nullptr,
+            NoOpConnection,
             ValidServerVNI,
             6,
             &OutputServerVNI));
@@ -276,7 +278,7 @@ TEST(VersionNegExtTest, ParseServerVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseServerVerNegInfo(
-            nullptr,
+            NoOpConnection,
             ValidServerVNI,
             11,
             &OutputServerVNI));
@@ -285,7 +287,7 @@ TEST(VersionNegExtTest, ParseServerVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseServerVerNegInfo(
-            nullptr,
+            NoOpConnection,
             ValidServerVNI,
             16,
             &OutputServerVNI));
@@ -306,7 +308,7 @@ TEST(VersionNegExtTest, ParseServerVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseServerVerNegInfo(
-            nullptr,
+            NoOpConnection,
             InvalidServerVNI_SuppVer,
             (uint16_t)sizeof(InvalidServerVNI_SuppVer),
             &OutputServerVNI));
@@ -323,7 +325,7 @@ TEST(VersionNegExtTest, ParseServerVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseServerVerNegInfo(
-            nullptr,
+            NoOpConnection,
             InvalidServerVNI_SuppVer2,
             (uint16_t)sizeof(InvalidServerVNI_SuppVer2),
             &OutputServerVNI));
@@ -340,7 +342,7 @@ TEST(VersionNegExtTest, ParseServerVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseServerVerNegInfo(
-            nullptr,
+            NoOpConnection,
             InvalidServerVNI_Underflow,
             (uint16_t)sizeof(InvalidServerVNI_Underflow),
             &OutputServerVNI));
@@ -354,7 +356,7 @@ TEST(VersionNegExtTest, ParseServerVerNegInfoFail)
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseServerVerNegInfo(
-            nullptr,
+            NoOpConnection,
             InvalidServerVNI_Zero,
             (uint16_t)sizeof(InvalidServerVNI_Zero),
             &OutputServerVNI));

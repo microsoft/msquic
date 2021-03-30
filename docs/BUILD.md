@@ -123,7 +123,7 @@ The script has a lot of additional configuration options, but the default should
 
 `-Arch <x86/x64/arm/arm64>` Allow for building for different architectures. **x64** is the defualt architecture.
 
-`-Tls <stub/schannel/openssl/mitls>` Allows for building with different TLS providers. The default is platform dependent (Windows = schannel, Linux = openssl).
+`-Tls <stub/schannel/openssl>` Allows for building with different TLS providers. The default is platform dependent (Windows = schannel, Linux = openssl).
 
 `-Clean` Forces a clean build of everything.
 
@@ -164,7 +164,7 @@ The build needs CMake and compiler.
 ```
 brew install cmake
 ```
-Minimally, build needs Xcode 'Command Line Tools`. That can be done via XCode in App Store or from command line  
+Minimally, build needs Xcode 'Command Line Tools`. That can be done via XCode in App Store or from command line
 ```
 xcode-select --install
 ```
