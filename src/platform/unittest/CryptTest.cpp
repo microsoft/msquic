@@ -373,6 +373,8 @@ TEST_F(CryptTest, HpMaskAes256)
         LogTestBuffer("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
         FAIL();
     }
+
+    CxPlatHpKeyFree(HpKey);
 }
 
 TEST_F(CryptTest, HpMaskAes128)
@@ -397,6 +399,8 @@ TEST_F(CryptTest, HpMaskAes128)
         LogTestBuffer("Calculated Mask:   ", Mask, sizeof(ExpectedMask));
         FAIL();
     }
+
+    CxPlatHpKeyFree(HpKey);
 }
 
 TEST_P(CryptTest, Encryption)
