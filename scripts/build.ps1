@@ -298,8 +298,13 @@ function CMake-Execute([String]$Arguments) {
 # Uses cmake to generate the build configuration files.
 function CMake-Generate {
     $Arguments = "-G"
+
+    if ($Generator.Contains(" ")) {
+        $Generator = """$Generator"""
+    }
+
     if ($IsWindows) {
-        $Arguments += " ""$Generator"" -A "
+        $Arguments += " $Generator -A "
         switch ($Arch) {
             "x86"   { $Arguments += "Win32" }
             "x64"   { $Arguments += "x64" }
@@ -307,13 +312,13 @@ function CMake-Generate {
             "arm64" { $Arguments += "arm64" }
         }
     } elseif ($IsMacOS) {
-        $Arguments += " ""$Generator"""
+        $Arguments += " $Generator"
         switch ($Arch) {
             "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64"}
             "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64"}
         }
     } else {
-        $Arguments += " ""$Generator"""
+        $Arguments += " $Generator"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
