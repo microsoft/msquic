@@ -453,13 +453,13 @@ if(QUIC_TLS STREQUAL "openssl")
                 DEPENDS mkdir_openssl_build_debug
                 WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
                 OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile
-                COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug)
+                COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug)
 
             add_custom_command(
                 DEPENDS mkdir_openssl_build_release
                 WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
                 OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/release/makefile
-                COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release)
+                COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release)
 
             add_custom_target(OpenSSL_Build
                 DEPENDS $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
@@ -497,11 +497,11 @@ if(QUIC_TLS STREQUAL "openssl")
         elseif(CX_PLATFORM STREQUAL "darwin")
             # need to build with Apple's compiler
             if (CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
-                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-arm64-cc)
+                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure darwin64-arm64-cc)
             elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
-                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch x86_64" ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure darwin64-x86_64-cc)
+                set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch x86_64" ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure darwin64-x86_64-cc)
             else()
-                set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
+                set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config)
             endif()
         else()
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/config
