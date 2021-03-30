@@ -102,6 +102,8 @@ main(
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
     Settings.IsSet.InitialRttMs = TRUE;
+    Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT; // Enable resumption & 0-RTT
+    Settings.IsSet.ServerResumptionLevel = TRUE;
     if (EnableVNE) {
         Settings.VersionNegotiationExtEnabled = TRUE;
         Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
