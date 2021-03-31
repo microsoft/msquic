@@ -514,9 +514,9 @@ if(QUIC_TLS STREQUAL "openssl")
             OUTPUT ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             OUTPUT ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
             COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} 
-                SDKROOT=$(xcrun -sdk macosx11.1 --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx11.1 --show-sdk-platform-version) ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
-            COMMAND SDKROOT=$(xcrun -sdk macosx11.1 --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx11.1 --show-sdk-platform-version) make -j$$(nproc)
-            COMMAND SDKROOT=$(xcrun -sdk macosx11.1 --show-sdk-path) MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx11.1 --show-sdk-platform-version) make install_dev)
+                SDKROOT="$(xcrun -sdk macosx11.1 --show-sdk-path)" MACOSX_DEPLOYMENT_TARGET="$(xcrun -sdk macosx11.1 --show-sdk-platform-version)" ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
+            COMMAND SDKROOT="$(xcrun -sdk macosx11.1 --show-sdk-path)" MACOSX_DEPLOYMENT_TARGET="$(xcrun -sdk macosx11.1 --show-sdk-platform-version)" make -j$$(nproc)
+            COMMAND SDKROOT="$(xcrun -sdk macosx11.1 --show-sdk-path)" MACOSX_DEPLOYMENT_TARGET="$(xcrun -sdk macosx11.1 --show-sdk-platform-version)" make install_dev)
         add_custom_target(OpenSSL_Build
             DEPENDS ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
