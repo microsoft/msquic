@@ -992,6 +992,9 @@ QuicTestCtlEvtIoDeviceControl(
                 &Params->CredValidationParams.CredConfig));
         break;
 
+    case IOCTL_QUIC_RUN_EXPIRED_CLIENT_CERT:
+        __fallthrough;
+
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;

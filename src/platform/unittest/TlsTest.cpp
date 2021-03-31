@@ -30,6 +30,7 @@ struct TlsTest : public ::testing::TestWithParam<bool>
 protected:
     CXPLAT_SEC_CONFIG* ServerSecConfig {nullptr};
     CXPLAT_SEC_CONFIG* ServerSecConfigClientAuth {nullptr};
+    CXPLAT_SEC_CONFIG* ServerSecConfigDeferClientAuth {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfig {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigDeferredCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigCustomCertValidation {nullptr};
@@ -174,6 +175,17 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfigClientAuth);
 
+        SelfSignedCertParams->Flags |=
+            QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                SelfSignedCertParams,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsServerCallbacks,
+                &ServerSecConfigDeferClientAuth,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ServerSecConfigDeferClientAuth);
+
         QUIC_CREDENTIAL_CONFIG ClientCredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
             QUIC_CREDENTIAL_FLAG_CLIENT,
@@ -285,6 +297,10 @@ protected:
         if (ServerSecConfigClientAuth) {
             CxPlatTlsSecConfigDelete(ServerSecConfigClientAuth);
             ServerSecConfigClientAuth = nullptr;
+        }
+        if (ServerSecConfigDeferClientAuth) {
+            CxPlatTlsSecConfigDelete(ServerSecConfigDeferClientAuth);
+            ServerSecConfigDeferClientAuth = nullptr;
         }
         if (ServerSecConfig) {
             CxPlatTlsSecConfigDelete(ServerSecConfig);
@@ -1565,7 +1581,16 @@ TEST_F(TlsTest, ClientCertificate)
 {
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfigClientAuth);
-    ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation );
+    ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation);
+
+    DoHandshake(ServerContext, ClientContext);
+}
+
+TEST_F(TlsTest, ClientCertificateDeferValidation)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfigDeferClientAuth);
+    ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation);
 
     DoHandshake(ServerContext, ClientContext);
 }
