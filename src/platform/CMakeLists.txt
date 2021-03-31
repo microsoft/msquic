@@ -73,7 +73,7 @@ set_property(TARGET platform PROPERTY FOLDER "libraries")
 
 target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 
-if (MSVC AND (QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel"))
+if (MSVC AND (QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel") AND NOT ${CMAKE_GENERATOR} STREQUAL "Ninja")
     target_compile_options(platform PRIVATE /analyze)
 endif()
 
