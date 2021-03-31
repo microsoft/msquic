@@ -494,6 +494,7 @@ if(QUIC_TLS STREQUAL "openssl")
             # need to build with Apple's compiler
             if (CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
                 set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure darwin64-arm64-cc)
+                list(APPEND OPENSSL_CONFIG_FLAGS -mmacosx-version-min=11.1)
             elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
                 set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch x86_64" ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure darwin64-x86_64-cc)
             else()
@@ -510,9 +511,10 @@ if(QUIC_TLS STREQUAL "openssl")
             WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
             OUTPUT ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             OUTPUT ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} MACOSX_DEPLOYMENT_TARGET=11.1 ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
-            COMMAND MACOSX_DEPLOYMENT_TARGET=11.1 make -j$$(nproc)
-            COMMAND MACOSX_DEPLOYMENT_TARGET=11.1 make install_dev)
+            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} 
+                ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
+            COMMAND make -j$$(nproc)
+            COMMAND make install_dev)
         add_custom_target(OpenSSL_Build
             DEPENDS ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
