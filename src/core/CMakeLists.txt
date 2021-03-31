@@ -66,7 +66,10 @@ target_link_libraries(core PRIVATE warnings)
 
 set_property(TARGET core PROPERTY FOLDER "libraries")
 
-# NOTE: /analyze throws spurious warnings when building with the Ninja generator in VS2019
-if (MSVC AND NOT ${CMAKE_GENERATOR} STREQUAL "Ninja")
+if(${CMAKE_GENERATOR} STREQUAL "Ninja")
+    target_compile_definitions(core PUBLIC "QUIC_WIN32_NINJA_BUILD")
+endif()
+
+if (MSVC)
     target_compile_options(core PRIVATE /analyze)
 endif()

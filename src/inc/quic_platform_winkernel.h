@@ -40,8 +40,13 @@ Environment:
 #include <netioapi.h>
 #include <wsk.h>
 #include <bcrypt.h>
-#include <intrin.h>
 #include <msquic_winkernel.h>
+
+#ifdef QUIC_WIN32_NINJA_BUILD
+#pragma warning(disable:28251) // Inconsistent annotation for function
+#endif
+#include <intrin.h>
+
 #pragma warning(pop)
 
 #if defined(__cplusplus)
