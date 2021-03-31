@@ -27,18 +27,14 @@ Environment:
 #include <ws2def.h>
 #include <ws2ipdef.h>
 
-#ifdef QUIC_WIN32_NINJA_BUILD
 #pragma warning(push)
 #pragma warning(disable:6385) // Invalid data: accessing [buffer-name], the readable size is size1 bytes but size2 bytes may be read
 #pragma warning(disable:6101) // Returning uninitialized memory
-#endif
 
 #include <ws2tcpip.h>
 #include <mstcpip.h>
 
-#ifdef QUIC_WIN32_NINJA_BUILD
 #pragma warning(pop)
-#endif
 
 #include <stdint.h>
 

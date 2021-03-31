@@ -54,10 +54,6 @@ elseif(QUIC_ENABLE_LOGGING)
     install(TARGETS msquic.lttng DESTINATION "${main_lib_dest}")
 endif()
 
-if(${CMAKE_GENERATOR} STREQUAL "Ninja")
-    target_compile_definitions(msquic PUBLIC "QUIC_WIN32_NINJA_BUILD")
-endif()
-
 if (MSVC)
     target_compile_options(msquic PRIVATE /analyze)
 endif()

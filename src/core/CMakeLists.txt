@@ -66,10 +66,6 @@ target_link_libraries(core PRIVATE warnings)
 
 set_property(TARGET core PROPERTY FOLDER "libraries")
 
-if(${CMAKE_GENERATOR} STREQUAL "Ninja")
-    target_compile_definitions(core PUBLIC "QUIC_WIN32_NINJA_BUILD")
-endif()
-
 if (MSVC)
     target_compile_options(core PRIVATE /analyze)
 endif()

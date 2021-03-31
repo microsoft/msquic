@@ -47,9 +47,7 @@ Environment:
 #include <msquic_winuser.h>
 
 #ifdef _M_X64
-#ifdef QUIC_WIN32_NINJA_BUILD
 #pragma warning(disable:28251) // Inconsistent annotation for function
-#endif
 #include <intrin.h>
 #endif
 
