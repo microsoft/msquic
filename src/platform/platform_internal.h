@@ -55,10 +55,8 @@ typedef struct CX_PLATFORM {
 #pragma warning(push)
 #pragma warning(disable:6385) // Invalid data: accessing [buffer-name], the readable size is size1 bytes but size2 bytes may be read
 #pragma warning(disable:6101) // Returning uninitialized memory
-
 #include <ws2tcpip.h>
 #include <mstcpip.h>
-
 #pragma warning(pop)
 
 #include <mswsock.h>
