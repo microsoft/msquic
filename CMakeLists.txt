@@ -510,9 +510,9 @@ if(QUIC_TLS STREQUAL "openssl")
             WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
             OUTPUT ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             OUTPUT ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            COMMAND ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
-            COMMAND make -j$$(nproc)
-            COMMAND make install_dev)
+            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} MACOSX_DEPLOYMENT_TARGET=11.1 ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
+            COMMAND MACOSX_DEPLOYMENT_TARGET=11.1 make -j$$(nproc)
+            COMMAND MACOSX_DEPLOYMENT_TARGET=11.1 make install_dev)
         add_custom_target(OpenSSL_Build
             DEPENDS ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
