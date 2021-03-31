@@ -510,8 +510,7 @@ if(QUIC_TLS STREQUAL "openssl")
             WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
             OUTPUT ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             OUTPUT ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME}
-                ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
+            COMMAND ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
             COMMAND make -j$$(nproc)
             COMMAND make install_dev)
         add_custom_target(OpenSSL_Build
