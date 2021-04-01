@@ -374,25 +374,31 @@ if(QUIC_TLS STREQUAL "openssl")
             message(FATAL_ERROR "UWP is not supported with OpenSSL")
         endif()
 
-        if (${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm64")
+        string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
+
+        if (${SYSTEM_PROCESSOR} STREQUAL "arm64")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64-ARM")
-        elseif (${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm")
+        elseif (${SYSTEM_PROCESSOR} STREQUAL "arm")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32-ARM")
-        elseif (${CMAKE_GENERATOR_PLATFORM} STREQUAL "Win32")
+        elseif (${SYSTEM_PROCESSOR} STREQUAL "win32")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32")
-        elseif (${CMAKE_GENERATOR_PLATFORM} STREQUAL "x64")
+        elseif (${SYSTEM_PROCESSOR} STREQUAL "x64" OR ${SYSTEM_PROCESSOR} STREQUAL "amd64")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64A")
         else()
             message(FATAL_ERROR "Unknown Generator Platform ${CMAKE_GENERATOR_PLATFORM}")
         endif()
 
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
+        set(LIBSSL_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+        set(LIBCRYPTO_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+        set(LIBSSL_PATH ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+        set(LIBCRYPTO_PATH ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 
         add_library(OpenSSL_Crypto STATIC IMPORTED)
         set_property(TARGET OpenSSL_Crypto PROPERTY FOLDER "libraries")
         set_target_properties(OpenSSL_Crypto PROPERTIES
-            IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-            IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LOCATION_DEBUG ${LIBCRYPTO_DEBUG_PATH}
+            IMPORTED_LOCATION_RELEASE ${LIBCRYPTO_PATH}
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
             MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
             MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
@@ -400,8 +406,8 @@ if(QUIC_TLS STREQUAL "openssl")
         add_library(OpenSSL STATIC IMPORTED)
         set_property(TARGET OpenSSL PROPERTY FOLDER "libraries")
         set_target_properties(OpenSSL PROPERTIES
-            IMPORTED_LOCATION_DEBUG ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            IMPORTED_LOCATION_DEBUG ${LIBSSL_DEBUG_PATH}
+            IMPORTED_LOCATION_RELEASE ${LIBSSL_PATH}
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
             MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
             MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
@@ -411,9 +417,9 @@ if(QUIC_TLS STREQUAL "openssl")
             $<$<CONFIG:Release>:${OPENSSL_DIR}/release/include>)
         target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
 
-        if (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Release" AND EXISTS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+        if (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Release" AND EXISTS ${LIBCRYPTO_PATH})
             message(STATUS "Found existing OpenSSL Release cache, skipping openssl build")
-        elseif (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Debug" AND EXISTS ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+        elseif (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Debug" AND EXISTS ${LIBCRYPTO_DEBUG_PATH})
             message(STATUS "Found existing OpenSSL Debug cache, skipping openssl build")
         else()
             file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
@@ -453,10 +459,15 @@ if(QUIC_TLS STREQUAL "openssl")
                 OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/release/makefile
                 COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release)
 
-            add_custom_target(OpenSSL_Build
+            add_custom_command(
+                OUTPUT ${LIBSSL_PATH} ${LIBSSL_DEBUG_PATH} ${LIBCRYPTO_PATH} ${LIBCRYPTO_DEBUG_PATH}
                 DEPENDS $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
                 WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug,${QUIC_BUILD_DIR}/submodules/openssl/release>
                 COMMAND nmake install_dev)
+
+            add_custom_target(OpenSSL_Build
+                DEPENDS ${LIBSSL_PATH} ${LIBSSL_DEBUG_PATH} ${LIBCRYPTO_PATH} ${LIBCRYPTO_DEBUG_PATH}
+            )
             set_property(TARGET OpenSSL_Build PROPERTY FOLDER "helpers")
 
             add_library(OpenSSL_Build_Tgt INTERFACE)
