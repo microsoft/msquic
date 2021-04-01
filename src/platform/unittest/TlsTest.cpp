@@ -165,6 +165,7 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfig);
 
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         SelfSignedCertParams->Flags = SelfSignedCertParamsFlags | QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
@@ -186,6 +187,7 @@ protected:
                 &ServerSecConfigDeferClientAuth,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfigDeferClientAuth);
+#endif
 
         QUIC_CREDENTIAL_CONFIG ClientCredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
@@ -1596,7 +1598,9 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
 {
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfigDeferClientAuth);
-    ServerContext.ExpectedValidationStatus = 0x800b0109; // CERT_E_UNTRUSTED_ROOT
+#ifdef _WIN32
+    ServerContext.ExpectedValidationStatus = CERT_E_UNTRUSTEDROOT;
+#endif
     ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation);
 
     DoHandshake(ServerContext, ClientContext);
