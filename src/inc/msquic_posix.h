@@ -119,6 +119,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define ERROR_STREAM_LIMIT_REACHED       21 + ERROR_BASE
 
 #define TLS_ERROR_BASE                  256 + ERROR_BASE
+#define CERT_ERROR_BASE                 512 + ERROR_BASE
 
 #define QUIC_STATUS_SUCCESS                 ((QUIC_STATUS)ERROR_SUCCESS)
 #define QUIC_STATUS_PENDING                 ((QUIC_STATUS)ERROR_NOT_READY)
@@ -153,6 +154,9 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define QUIC_STATUS_CLOSE_NOTIFY            QUIC_STATUS_TLS_ALERT(0)    // Close notify
 #define QUIC_STATUS_BAD_CERTIFICATE         QUIC_STATUS_TLS_ALERT(42)   // Bad Certificate
 #define QUIC_STATUS_EXPIRED_CERTIFICATE     QUIC_STATUS_TLS_ALERT(45)   // Expired Certificate
+
+#define QUIC_STATUS_CERT_EXPIRED            ((QUIC_STATUS)1 + CERT_ERROR_BASE)
+#define QUIC_STATUS_CERT_UNTRUSTED_ROOT     ((QUIC_STATUS)2 + CERT_ERROR_BASE)
 
 typedef unsigned char BOOLEAN;
 typedef struct in_addr IN_ADDR;

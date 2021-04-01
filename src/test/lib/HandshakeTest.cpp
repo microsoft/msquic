@@ -2044,9 +2044,7 @@ QuicTestConnectClientCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-#ifdef _WIN32
-            ServerAcceptCtx.ExpectedClientCertValidationResult = CERT_E_UNTRUSTEDROOT;
-#endif
+            ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -2403,9 +2401,7 @@ QuicTestConnectExpiredClientCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-#ifdef _WIN32
-            ServerAcceptCtx.ExpectedClientCertValidationResult = CERT_E_EXPIRED;
-#endif
+            ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_CERT_EXPIRED;
             Listener.Context = &ServerAcceptCtx;
 
             {

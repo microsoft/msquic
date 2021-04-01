@@ -114,6 +114,9 @@ typedef UINT64 uint64_t;
 #define QUIC_STATUS_BAD_CERTIFICATE         QUIC_STATUS_TLS_ALERT(42)   // Bad Certificate
 #define QUIC_STATUS_EXPIRED_CERTIFICATE     QUIC_STATUS_TLS_ALERT(45)   // Expired Certificate
 
+#define QUIC_STATUS_CERT_EXPIRED            ((NTSTATUS)0x800B0101L)     // CERT_E_EXPIRED
+#define QUIC_STATUS_CERT_UNTRUSTED_ROOT     ((NTSTATUS)0x800B0109L)     // CERT_E_UNTRUSTEDROOT
+
 //
 // Swaps byte orders between host and network endianness.
 //

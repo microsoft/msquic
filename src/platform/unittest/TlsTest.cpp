@@ -1200,9 +1200,9 @@ TEST_F(TlsTest, DeferredCertificateValidationAllow)
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfig);
     ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
+    ClientContext.ExpectedValidationStatus = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
 #ifdef _WIN32
     ClientContext.ExpectedErrorFlags = CERT_TRUST_IS_UNTRUSTED_ROOT;
-    ClientContext.ExpectedValidationStatus = CERT_E_UNTRUSTEDROOT;
 #else
     // TODO - Add platform specific values if support is added.
 #endif
@@ -1598,9 +1598,7 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
 {
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfigDeferClientAuth);
-#ifdef _WIN32
-    ServerContext.ExpectedValidationStatus = CERT_E_UNTRUSTEDROOT;
-#endif
+    ServerContext.ExpectedValidationStatus = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
     ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation);
 
     DoHandshake(ServerContext, ClientContext);
