@@ -2400,7 +2400,7 @@ QuicTestConnectExpiredClientCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            ServerAcceptCtx.ExpectedClientCertValidationResult = (HRESULT)0x800b0101; // CERT_E_EXPIRED
+            ServerAcceptCtx.ExpectedClientCertValidationResult = (QUIC_STATUS)0x800b0101; // CERT_E_EXPIRED
             Listener.Context = &ServerAcceptCtx;
 
             {
