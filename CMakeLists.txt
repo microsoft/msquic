@@ -226,6 +226,12 @@ if(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Disabling client certificate tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
 endif()
+    
+if (CMAKE_GENERATOR_PLATFORM STREQUAL "")
+    string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
+else()
+    string(TOLOWER ${CMAKE_GENERATOR_PLATFORM} SYSTEM_PROCESSOR)
+endif()
 
 if(WIN32)
     # Generate the MsQuicEtw header file.
@@ -276,7 +282,7 @@ if(WIN32)
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /DEBUG /OPT:REF /OPT:ICF")
 
     # Configure PGO linker flags.
-    set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${CMAKE_GENERATOR_PLATFORM}/msquic.pgd")
+    set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/msquic.pgd")
     if(QUIC_PGO)
         # Configured for training mode. Use the previous PGD file if present.
         if(EXISTS "${QUIC_PGO_FILE}")
@@ -374,8 +380,6 @@ if(QUIC_TLS STREQUAL "openssl")
             message(FATAL_ERROR "UWP is not supported with OpenSSL")
         endif()
 
-        string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
-
         if (${SYSTEM_PROCESSOR} STREQUAL "arm64")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64-ARM")
         elseif (${SYSTEM_PROCESSOR} STREQUAL "arm")
@@ -385,7 +389,7 @@ if(QUIC_TLS STREQUAL "openssl")
         elseif (${SYSTEM_PROCESSOR} STREQUAL "x64" OR ${SYSTEM_PROCESSOR} STREQUAL "amd64")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64A")
         else()
-            message(FATAL_ERROR "Unknown Generator Platform ${CMAKE_GENERATOR_PLATFORM}")
+            message(FATAL_ERROR "Unknown Generator Platform ${SYSTEM_PROCESSOR}")
         endif()
 
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
