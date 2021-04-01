@@ -158,6 +158,18 @@ sudo apt-get install liblttng-ust-dev
 sudo apt-get install lttng-tools
 ```
 
+On RHEL 8, you'll need to manually install CMake to get the latest version.
+Download the x86_64 Linux installation script from cmake.org, and run the following
+`sudo sh cmake.sh --prefix=/usr/local/ --exclude-subdir`
+to install CMake.
+
+RHEL 8 also requires the following:
+
+```
+sudo dnf install openssl-devel
+sudo dnf install libatomic
+``
+
 ### macOS
 The build needs CMake and compiler.
 
