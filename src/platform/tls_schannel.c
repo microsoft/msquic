@@ -320,7 +320,6 @@ typedef struct _SecPkgContext_CertificateValidationResult
     DWORD dwChainErrorStatus;    // Contains chain build error flags set by CertGetCertificateChain.
     HRESULT hrVerifyChainStatus; // Certificate validation policy error returned by CertVerifyCertificateChainPolicy.
 } SecPkgContext_CertificateValidationResult, *PSecPkgContext_CertificateValidationResult;
-#define SECPKG_ATTR_CERT_CHECK_RESULT        0x71 // returns SecPkgContext_CertificateValidationResult, use during and after SSPI handshake loop
 #define SECPKG_ATTR_CERT_CHECK_RESULT_INPROC 0x72 // returns SecPkgContext_CertificateValidationResult, use only after SSPI handshake loop
 #endif // SCH_CRED_DEFERRED_CRED_VALIDATION
 
@@ -2236,7 +2235,7 @@ CxPlatTlsWriteDataToSchannel(
                         (void*)PeerCert,
 #endif
                         CertValidationResult.dwChainErrorStatus,
-                        CertValidationResult.hrVerifyChainStatus)) {
+                        (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
                     QuicTraceEvent(
                         TlsError,
                         "[ tls][%p] ERROR, %s.",
