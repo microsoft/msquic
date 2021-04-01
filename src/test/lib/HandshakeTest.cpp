@@ -2400,7 +2400,7 @@ QuicTestConnectExpiredClientCertificate(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            ServerAcceptCtx.ExpectedClientCertValidationResult = QUIC_STATUS_SUCCESS;
+            ServerAcceptCtx.ExpectedClientCertValidationResult = (HRESULT)0x800b0101; // CERT_E_EXPIRED
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -2416,8 +2416,8 @@ QuicTestConnectExpiredClientCertificate(
                         ServerLocalAddr.GetPort()));
 
                 //
-                // This test expects the client cert to be accepted
-                // even though it fails deferred validation.
+                // This test expects the server to accept the client
+                // cert even though it gives a validation error.
                 //
                 if (!Client.WaitForConnectionComplete()) {
                     return;

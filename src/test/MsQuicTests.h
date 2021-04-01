@@ -188,6 +188,11 @@ QuicTestConnectValidClientCertificate(
     _In_ const QUIC_CREDENTIAL_CONFIG* Config
     );
 
+void
+QuicTestConnectExpiredClientCertificate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* Config
+    );
+
 //
 // Post Handshake Tests
 //

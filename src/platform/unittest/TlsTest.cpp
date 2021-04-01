@@ -165,7 +165,7 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfig);
 
-        SelfSignedCertParams->Flags |= QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+        SelfSignedCertParams->Flags = SelfSignedCertParamsFlags | QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,
@@ -175,8 +175,9 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfigClientAuth);
 
-        SelfSignedCertParams->Flags |=
-            QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
+        SelfSignedCertParams->Flags =
+            QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION | QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,
@@ -763,7 +764,8 @@ protected:
         TlsContext& ServerContext,
         TlsContext& ClientContext,
         uint32_t FragmentSize = DefaultFragmentSize,
-        bool SendResumptionTicket = false
+        bool SendResumptionTicket = false,
+        bool ServerResultError = false
         )
     {
         //std::cout << "==DoHandshake==" << std::endl;
@@ -780,8 +782,12 @@ protected:
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
         ASSERT_NE(nullptr, ClientContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
-        Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize);
-        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
+        Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize, ServerResultError);
+        if (ServerResultError) {
+            ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+        } else {
+            ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
+        }
 
         if (SendResumptionTicket) {
             //std::cout << "==PostHandshake==" << std::endl;
@@ -1577,19 +1583,20 @@ TEST_F(TlsTest, LockPerfTest)
 }
 
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
-TEST_F(TlsTest, ClientCertificate)
+TEST_F(TlsTest, ClientCertificateFailValidation)
 {
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfigClientAuth);
     ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation);
 
-    DoHandshake(ServerContext, ClientContext);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, false, true);
 }
 
 TEST_F(TlsTest, ClientCertificateDeferValidation)
 {
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfigDeferClientAuth);
+    ServerContext.ExpectedValidationStatus = 0x800b0109; // CERT_E_UNTRUSTED_ROOT
     ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation);
 
     DoHandshake(ServerContext, ClientContext);

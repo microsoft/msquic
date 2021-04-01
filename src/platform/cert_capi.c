@@ -368,31 +368,40 @@ CxPlatCertStoreFind(
     )
 {
     PCSTR OID_SERVER_AUTH = szOID_PKIX_KP_SERVER_AUTH;
+    PCSTR OID_CLIENT_AUTH = szOID_PKIX_KP_CLIENT_AUTH;
     CERT_ENHKEY_USAGE Usage;
     Usage.cUsageIdentifier = 1;
     Usage.rgpszUsageIdentifier = (LPSTR*)&OID_SERVER_AUTH;
 
-    PCCERT_CONTEXT CertCtx;
-    for (PCCERT_CONTEXT PrevCertCtx = NULL;
-        (CertCtx =
-            CertFindCertificateInStore(
-                CertStore,
-                X509_ASN_ENCODING,
-                CERT_FIND_OPTIONAL_ENHKEY_USAGE_FLAG, // FindFlags
-                CERT_FIND_ENHKEY_USAGE,
-                &Usage,
-                PrevCertCtx)) != NULL;
-        PrevCertCtx = CertCtx) {
-
-        if (CertHash != NULL && !CxPlatCertMatchHash(CertCtx, CertHash)) {
-            continue;
+    for (int i = 0; i < 2; ++i) {
+        if (i == 0) {
+            Usage.rgpszUsageIdentifier = (LPSTR*)&OID_SERVER_AUTH;
+        } else if (i == 1) {
+            Usage.rgpszUsageIdentifier = (LPSTR*)&OID_CLIENT_AUTH;
         }
 
-        if (Principal != NULL && !CxPlatCertMatchPrincipal(CertCtx, Principal)) {
-            continue;
-        }
+        PCCERT_CONTEXT CertCtx;
+        for (PCCERT_CONTEXT PrevCertCtx = NULL;
+            (CertCtx =
+                CertFindCertificateInStore(
+                    CertStore,
+                    X509_ASN_ENCODING,
+                    CERT_FIND_OPTIONAL_ENHKEY_USAGE_FLAG, // FindFlags
+                    CERT_FIND_ENHKEY_USAGE,
+                    &Usage,
+                    PrevCertCtx)) != NULL;
+            PrevCertCtx = CertCtx) {
 
-        return CertCtx;
+            if (CertHash != NULL && !CxPlatCertMatchHash(CertCtx, CertHash)) {
+                continue;
+            }
+
+            if (Principal != NULL && !CxPlatCertMatchPrincipal(CertCtx, Principal)) {
+                continue;
+            }
+
+            return CertCtx;
+        }
     }
 
     return NULL;

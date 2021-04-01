@@ -993,7 +993,25 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_EXPIRED_CLIENT_CERT:
-        __fallthrough;
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        //
+        // Fix up pointers for kernel mode
+        //
+        switch (Params->CredValidationParams.CredConfig.Type) {
+        case QUIC_CREDENTIAL_TYPE_NONE:
+            Params->CredValidationParams.CredConfig.Principal = (const char*)Params->CredValidationParams.PrincipalString;
+            break;
+        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
+            Params->CredValidationParams.CredConfig.CertificateHash = &Params->CredValidationParams.CertHash;
+            break;
+        case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
+            Params->CredValidationParams.CredConfig.CertificateHashStore = &Params->CredValidationParams.CertHashStore;
+            break;
+        }
+        QuicTestCtlRun(
+            QuicTestConnectExpiredClientCertificate(
+                &Params->CredValidationParams.CredConfig));
+        break;
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;

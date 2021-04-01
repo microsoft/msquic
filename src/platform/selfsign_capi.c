@@ -1092,6 +1092,10 @@ CxPlatGetTestCertificate(
         FriendlyName = CXPLAT_TEST_CERT_EXPIRED_SERVER_FRIENDLY_NAME;
         SubjectName = CXPLAT_TEST_CERT_EXPIRED_SERVER_SUBJECT_NAME;
         break;
+    case CXPLAT_TEST_CERT_EXPIRED_CLIENT:
+        FriendlyName = CXPLAT_TEST_CERT_EXPIRED_CLIENT_FRIENDLY_NAME;
+        SubjectName = CXPLAT_TEST_CERT_EXPIRED_CLIENT_SUBJECT_NAME;
+        break;
     default:
         QuicTraceEvent(
             LibraryErrorStatus,
