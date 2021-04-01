@@ -30,6 +30,7 @@ struct TlsTest : public ::testing::TestWithParam<bool>
 protected:
     CXPLAT_SEC_CONFIG* ServerSecConfig {nullptr};
     CXPLAT_SEC_CONFIG* ServerSecConfigClientAuth {nullptr};
+    CXPLAT_SEC_CONFIG* ServerSecConfigDeferClientAuth {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfig {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigDeferredCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigCustomCertValidation {nullptr};
@@ -164,7 +165,8 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfig);
 
-        SelfSignedCertParams->Flags |= QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
+#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
+        SelfSignedCertParams->Flags = SelfSignedCertParamsFlags | QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,
@@ -173,6 +175,19 @@ protected:
                 &ServerSecConfigClientAuth,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfigClientAuth);
+
+        SelfSignedCertParams->Flags =
+            QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION | QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                SelfSignedCertParams,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsServerCallbacks,
+                &ServerSecConfigDeferClientAuth,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ServerSecConfigDeferClientAuth);
+#endif
 
         QUIC_CREDENTIAL_CONFIG ClientCredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
@@ -285,6 +300,10 @@ protected:
         if (ServerSecConfigClientAuth) {
             CxPlatTlsSecConfigDelete(ServerSecConfigClientAuth);
             ServerSecConfigClientAuth = nullptr;
+        }
+        if (ServerSecConfigDeferClientAuth) {
+            CxPlatTlsSecConfigDelete(ServerSecConfigDeferClientAuth);
+            ServerSecConfigDeferClientAuth = nullptr;
         }
         if (ServerSecConfig) {
             CxPlatTlsSecConfigDelete(ServerSecConfig);
@@ -747,7 +766,8 @@ protected:
         TlsContext& ServerContext,
         TlsContext& ClientContext,
         uint32_t FragmentSize = DefaultFragmentSize,
-        bool SendResumptionTicket = false
+        bool SendResumptionTicket = false,
+        bool ServerResultError = false
         )
     {
         //std::cout << "==DoHandshake==" << std::endl;
@@ -764,8 +784,12 @@ protected:
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
         ASSERT_NE(nullptr, ClientContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
-        Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize);
-        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
+        Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize, ServerResultError);
+        if (ServerResultError) {
+            ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+        } else {
+            ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_COMPLETE);
+        }
 
         if (SendResumptionTicket) {
             //std::cout << "==PostHandshake==" << std::endl;
@@ -1176,9 +1200,9 @@ TEST_F(TlsTest, DeferredCertificateValidationAllow)
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfig);
     ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
+    ClientContext.ExpectedValidationStatus = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
 #ifdef _WIN32
     ClientContext.ExpectedErrorFlags = CERT_TRUST_IS_UNTRUSTED_ROOT;
-    ClientContext.ExpectedValidationStatus = CERT_E_UNTRUSTEDROOT;
 #else
     // TODO - Add platform specific values if support is added.
 #endif
@@ -1561,11 +1585,21 @@ TEST_F(TlsTest, LockPerfTest)
 }
 
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
-TEST_F(TlsTest, ClientCertificate)
+TEST_F(TlsTest, ClientCertificateFailValidation)
 {
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerSecConfigClientAuth);
-    ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation );
+    ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation);
+
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, false, true);
+}
+
+TEST_F(TlsTest, ClientCertificateDeferValidation)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfigDeferClientAuth);
+    ServerContext.ExpectedValidationStatus = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
+    ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation);
 
     DoHandshake(ServerContext, ClientContext);
 }

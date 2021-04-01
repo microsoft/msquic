@@ -62,10 +62,12 @@ class TestConnection
     bool AutoDelete         : 1;
     bool HasRandomLoss      : 1;
     bool AsyncCustomValidation : 1;
+    bool CustomValidationResultSet : 1;
 
     bool ExpectedResumed    : 1;
     QUIC_STATUS ExpectedTransportCloseStatus;
     QUIC_UINT62 ExpectedPeerCloseErrorCode;
+    QUIC_STATUS ExpectedClientCertValidationResult;
     bool ExpectedCustomValidationResult;
 
     QUIC_STATUS TransportCloseStatus;
@@ -202,8 +204,11 @@ public:
     void SetExpectedPeerCloseErrorCode(QUIC_UINT62 ErrorCode) { ExpectedPeerCloseErrorCode = ErrorCode; }
 
     QUIC_UINT62 GetExpectedCustomValidationResult() const { return ExpectedCustomValidationResult; };
-    void SetExpectedCustomValidationResult(bool AcceptCert) { ExpectedCustomValidationResult = AcceptCert; }
+    void SetExpectedCustomValidationResult(bool AcceptCert) { CustomValidationResultSet = true; ExpectedCustomValidationResult = AcceptCert; }
     void SetAsyncCustomValidationResult(bool Async) { AsyncCustomValidation = Async; }
+
+    QUIC_STATUS GetExpectedClientCertValidationResult() const { return ExpectedClientCertValidationResult; }
+    void SetExpectedClientCertValidationResult(QUIC_STATUS Status) { ExpectedClientCertValidationResult = Status; }
 
     uint32_t GetDatagramsSent() const { return DatagramsSent; }
     uint32_t GetDatagramsCanceled() const { return DatagramsCanceled; }
