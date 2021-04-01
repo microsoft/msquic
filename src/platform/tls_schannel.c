@@ -2255,8 +2255,10 @@ CxPlatTlsWriteDataToSchannel(
                     CertFreeCertificateContext(PeerCert);
                 }
 #endif
-            } else if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION
-                && CertValidationResult.hrVerifyChainStatus != QUIC_STATUS_SUCCESS) {
+            }
+
+            if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) &&
+                CertValidationResult.hrVerifyChainStatus != QUIC_STATUS_SUCCESS) {
                 //
                 // If the server has configured client authentication but not deferred validation,
                 // fail the handshake if the client cert doesn't pass validation
@@ -2266,7 +2268,7 @@ CxPlatTlsWriteDataToSchannel(
                     "[ tls][%p] ERROR, %u, %s.",
                     TlsContext->Connection,
                     CertValidationResult.hrVerifyChainStatus,
-                    "Client certificate validation failed");
+                    "Certificate validation failed");
                 Result |= CXPLAT_TLS_RESULT_ERROR;
                 State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
                 break;
