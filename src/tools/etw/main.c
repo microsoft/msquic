@@ -162,12 +162,12 @@ void WINAPI EventCallback(_In_ PEVENT_RECORD ev)
 
 BOOLEAN OpenTraceFile(const char* FileName)
 {
-    EVENT_TRACE_LOGFILE LogFile = {0};
+    EVENT_TRACE_LOGFILEA LogFile = {0};
     LogFile.ProcessTraceMode = PROCESS_TRACE_MODE_EVENT_RECORD;
     LogFile.EventRecordCallback = EventCallback;
     LogFile.LogFileName = (LPSTR)FileName;
 
-    Trace.Handle = OpenTrace(&LogFile);
+    Trace.Handle = OpenTraceA(&LogFile);
     if (Trace.Handle == INVALID_PROCESSTRACE_HANDLE) {
         int Err = GetLastError();
         printf("OpenTrace failed with %u\n", Err);
@@ -205,7 +205,7 @@ BOOLEAN CollectTrace(void)
     Properties->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(QuicEtwSessionName);
     memcpy(PropertiesBuffer + Properties->LogFileNameOffset, QuicEtwFileName, sizeof(QuicEtwFileName));
 
-    ULONG Err = StartTrace(&Trace.Handle, QuicEtwSessionName, Properties);
+    ULONG Err = StartTraceA(&Trace.Handle, QuicEtwSessionName, Properties);
     if (Err != ERROR_SUCCESS) {
         printf("StartTrace failed with %u\n", Err);
         goto Cleanup;
@@ -229,7 +229,7 @@ BOOLEAN CollectTrace(void)
 
     Sleep(250); // Just let the rundowns fire.
 
-    Err = ControlTrace(
+    Err = ControlTraceA(
         Trace.Handle,
         QuicEtwSessionName,
         Properties,
@@ -245,7 +245,7 @@ BOOLEAN CollectTrace(void)
 Cleanup:
 
     if (Stop) {
-        Err = ControlTrace(
+        Err = ControlTraceA(
             Trace.Handle,
             QuicEtwSessionName,
             Properties,

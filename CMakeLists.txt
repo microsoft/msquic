@@ -376,9 +376,6 @@ endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     if (WIN32)
-        if (QUIC_UWP_BUILD)
-            message(FATAL_ERROR "UWP is not supported with OpenSSL")
-        endif()
 
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
         set(LIBSSL_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
