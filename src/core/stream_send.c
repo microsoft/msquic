@@ -603,110 +603,93 @@ QuicStreamSendFlush(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Ret_range_(0, Len)
-uint16_t
+void
 QuicStreamCopyFromSendRequests(
     _In_ QUIC_STREAM* Stream,
     _In_ uint64_t Offset,
     _Out_writes_bytes_(Len) uint8_t* Buf,
-    _In_ uint16_t Len
+    _In_range_(>, 0) uint16_t Len
     )
 {
     //
     // Copies up to Len stream bytes starting at Offset from the noncontiguous
     // send request queue into a contiguous frame buffer.
     //
-    // Returns the actual number of bytes copied, which may be less than the
-    // requested number of bytes when not enough data is present in send
-    // requests.
-    //
-
-    QUIC_SEND_REQUEST* Req;
-    uint16_t Copied = 0;
 
     CXPLAT_DBG_ASSERT(Len > 0);
-    CXPLAT_DBG_ASSERT(Offset < Stream->QueuedSendOffset);
     CXPLAT_DBG_ASSERT(Stream->SendRequests != NULL);
     CXPLAT_DBG_ASSERT(Offset >= Stream->SendRequests->StreamOffset);
-
-    if (Len > Stream->QueuedSendOffset - Offset) {
-        //
-        // Since Len (a 16-bit number) is greater, this won't overflow.
-        //
-        Len = (uint16_t)(Stream->QueuedSendOffset - Offset);
-        CXPLAT_DBG_ASSERT(Len > 0);
-    }
 
     //
     // Find the send request containing the first byte, using the bookmark if
     // possible (if the caller is requesting bytes before the bookmark, e.g.
     // for a retransmission, then we have to do a full search).
     //
+    QUIC_SEND_REQUEST* Req;
     if (Stream->SendBookmark != NULL &&
         Stream->SendBookmark->StreamOffset <= Offset) {
         Req = Stream->SendBookmark;
     } else {
         Req = Stream->SendRequests;
     }
-    while (Req && (Req->StreamOffset + Req->TotalLength <= Offset)) {
+    while (Req->StreamOffset + Req->TotalLength <= Offset) {
+        CXPLAT_DBG_ASSERT(Req->Next);
         Req = Req->Next;
     }
 
     CXPLAT_DBG_ASSERT(Req);
 
     //
-    // Loop over request buffers until we've copied enough bytes.
+    // Loop through the request's buffers to calculate the current index and
+    // offset into that buffer.
     //
-
     uint32_t CurIndex = 0; // Index of the current buffer.
     uint64_t CurOffset = Offset - Req->StreamOffset; // Offset in the current buffer.
-
-    //
-    // Find the correct request buffer to start copying from.
-    //
-    while (CurOffset > Req->Buffers[CurIndex].Length) {
+    while (CurOffset >= Req->Buffers[CurIndex].Length) {
         CurOffset -= Req->Buffers[CurIndex++].Length;
     }
 
+    //
+    // Starting with the current request, buffer and offset, continue copying
+    // until we run out of the requested copy length.
+    //
     for (;;) {
         CXPLAT_DBG_ASSERT(Req != NULL);
         CXPLAT_DBG_ASSERT(CurIndex < Req->BufferCount);
-        CXPLAT_DBG_ASSERT(CurOffset <= (uint64_t)Req->Buffers[CurIndex].Length);
+        CXPLAT_DBG_ASSERT(CurOffset < Req->Buffers[CurIndex].Length);
+        CXPLAT_DBG_ASSERT(Len > 0);
 
         //
         // Copy the data from the request buffer to the frame buffer.
         //
-        uint16_t SubLen = (uint16_t)min(Len, Req->Buffers[CurIndex].Length - (uint32_t)CurOffset);
-        CxPlatCopyMemory(Buf, Req->Buffers[CurIndex].Buffer + CurOffset, SubLen);
-        Len -= SubLen;
-        Buf += SubLen;
-        Copied += SubLen;
+        uint32_t BufferLeft = Req->Buffers[CurIndex].Length - (uint32_t)CurOffset;
+        uint16_t CopyLength = Len < BufferLeft ? Len : (uint16_t)BufferLeft;
+        CXPLAT_DBG_ASSERT(CopyLength > 0);
+        CxPlatCopyMemory(Buf, Req->Buffers[CurIndex].Buffer + CurOffset, CopyLength);
+        Len -= CopyLength;
+        Buf += CopyLength;
 
         if (Len == 0) {
-            //
-            // No more frame buffer to copy to or request buffer to copy from.
-            //
-            break;
+            break; // All data has been copied!
         }
 
         //
-        // Move to the next request buffer, or if no more buffers in the
-        // current request, move to the next request.
+        // Move to the next non-zero length request buffer.
         //
         CurOffset = 0;
-        if (++CurIndex == Req->BufferCount) {
-            CXPLAT_DBG_ASSERT(Req->Next != NULL);
-            Req = Req->Next;
-            CurIndex = 0;
-        }
+        do {
+            if (++CurIndex == Req->BufferCount) {
+                CurIndex = 0;
+                CXPLAT_DBG_ASSERT(Req->Next != NULL);
+                Req = Req->Next;
+            }
+        } while (Req->Buffers[CurIndex].Length == 0);
     }
 
     //
     // Save the bookmark for later.
     //
     Stream->SendBookmark = Req;
-
-    return Copied;
 }
 
 //
@@ -726,7 +709,6 @@ QuicStreamWriteOneFrame(
 {
     QUIC_STREAM_EX Frame = { FALSE, ExplicitDataLength, Stream->ID, Offset, 0, NULL };
     uint16_t HeaderLength = 0;
-    uint16_t SendLength;
 
     //
     // First calculate the header length to make sure there's at least room for
@@ -746,15 +728,21 @@ QuicStreamWriteOneFrame(
     //
     // Notes:
     // -the value passed in as FramePayloadBytes is an upper limit on payload bytes.
-    // -even if SendLength becomes zero, we might still write an empty FIN frame.
+    // -even if Frame.Length becomes zero, we might still write an empty FIN frame.
     //
-    SendLength = min(*FrameBytes - HeaderLength, *FramePayloadBytes);
-    if (SendLength > 0) {
-        uint8_t* FrameBuffer = Buffer + HeaderLength;
-        Frame.Length =
-            QuicStreamCopyFromSendRequests(
-                Stream, Offset, FrameBuffer, SendLength);
-        Frame.Data = FrameBuffer;
+    Frame.Length = *FrameBytes - HeaderLength;
+    if (Frame.Length > *FramePayloadBytes) {
+        Frame.Length = *FramePayloadBytes;
+    }
+    if (Frame.Length > 0) {
+        CXPLAT_DBG_ASSERT(Offset < Stream->QueuedSendOffset);
+        if (Frame.Length > Stream->QueuedSendOffset - Offset) {
+            Frame.Length = Stream->QueuedSendOffset - Offset;
+            CXPLAT_DBG_ASSERT(Frame.Length > 0);
+        }
+        Frame.Data = Buffer + HeaderLength;
+        QuicStreamCopyFromSendRequests(
+            Stream, Offset, (uint8_t*)Frame.Data, (uint16_t)Frame.Length);
         Stream->Connection->Stats.Send.TotalStreamBytes += Frame.Length;
     }
 
