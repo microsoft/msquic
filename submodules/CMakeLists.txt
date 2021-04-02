@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 cmake_minimum_required(VERSION 3.16)
 
 # This is a helper project to build OpenSSL as part of the CMake "superbuild"
