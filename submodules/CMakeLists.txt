@@ -119,3 +119,4 @@ target_link_libraries(
     $<$<NOT:$<CONFIG:Debug>>:${LIBCRYPTO_PATH}>
 )
 add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)
+
