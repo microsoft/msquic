@@ -426,7 +426,7 @@ CxPlatProcMaxCount(
     //
     return 1;
 #else
-    return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+    return (uint32_t)sysconf(_SC_NPROCESSORS_CONF);
 #endif
 }
 
@@ -441,7 +441,7 @@ CxPlatProcActiveCount(
     //
     return 1;
 #else
-    return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+    return (uint32_t)sysconf(_SC_NPROCESSORS_CONF);
 #endif
 }
 
