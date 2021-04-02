@@ -111,6 +111,12 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS)
 
+typedef enum QUIC_CIPHER_SUITE {
+    QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256        = 0x1301,
+    QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384        = 0x1302,
+    QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256  = 0x1303, // Not supported on Schannel
+} QUIC_CIPHER_SUITE;
+
 typedef enum QUIC_CERTIFICATE_HASH_STORE_FLAGS {
     QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE           = 0x0000,
     QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE  = 0x0001,
@@ -269,6 +275,8 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
     const char* Principal;
     void* Reserved; // Currently unused
     QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
+    QUIC_CIPHER_SUITE* AllowedCipherSuites;             // Optional
+    uint8_t AllowedCipherSuitesLength;
 } QUIC_CREDENTIAL_CONFIG;
 
 //
@@ -333,11 +341,6 @@ typedef enum QUIC_HASH_ALGORITHM {
 typedef enum QUIC_KEY_EXCHANGE_ALGORITHM {
     QUIC_KEY_EXCHANGE_ALGORITHM_NONE  = 0,
 } QUIC_KEY_EXCHANGE_ALGORITHM;
-
-typedef enum QUIC_CIPHER_SUITE {
-    QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256 = 0x1301,
-    QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384 = 0x1302,
-} QUIC_CIPHER_SUITE;
 
 //
 // All the available information describing a handshake.

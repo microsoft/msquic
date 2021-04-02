@@ -141,6 +141,10 @@ typedef struct CXPLAT_HP_KEY {
 //
 #define CXPLAT_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
 
+#define CXPLAT_TLS_AES_128_GCM_SHA256       "TLS_AES_128_GCM_SHA256"
+#define CXPLAT_TLS_AES_256_GCM_SHA384       "TLS_AES_256_GCM_SHA384"
+#define CXPLAT_TLS_CHACHA20_POLY1305_SHA256 "TLS_CHACHA20_POLY1305_SHA256"
+
 //
 // Default list of curves for ECDHE ciphers.
 //
@@ -805,12 +809,18 @@ CxPlatTlsSecConfigCreate(
         }
     }
 
+    if ((CredConfig->AllowedCipherSuites == NULL && CredConfig->AllowedCipherSuitesLength > 0) ||
+        (CredConfig->AllowedCipherSuites != NULL && CredConfig->AllowedCipherSuitesLength == 0)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     CXPLAT_SEC_CONFIG* SecurityConfig = NULL;
     RSA* RsaKey = NULL;
     X509* X509Cert = NULL;
     EVP_PKEY * PrivateKey = NULL;
+    char* CipherSuiteString = NULL;
 
     //
     // Create a security config.
@@ -873,10 +883,85 @@ CxPlatTlsSecConfigCreate(
         goto Exit;
     }
 
+    char* CipherSuites = CXPLAT_TLS_DEFAULT_SSL_CIPHERS;
+    if (CredConfig->AllowedCipherSuitesLength > 0) {
+        //
+        // Calculate allowed cipher suite string length.
+        //
+        uint8_t CipherSuiteStringLength = 0;
+        for (uint8_t Idx = 0; Idx < CredConfig->AllowedCipherSuitesLength; ++Idx) {
+            switch (CredConfig->AllowedCipherSuites[Idx]) {
+            case QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256:
+                CipherSuiteStringLength += (uint8_t)sizeof(CXPLAT_TLS_AES_128_GCM_SHA256);
+                break;
+            case QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384:
+                CipherSuiteStringLength += (uint8_t)sizeof(CXPLAT_TLS_AES_256_GCM_SHA384);
+                break;
+            case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
+                CipherSuiteStringLength += (uint8_t)sizeof(CXPLAT_TLS_CHACHA20_POLY1305_SHA256);
+                break;
+            default:
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    CredConfig->AllowedCipherSuites[Idx],
+                    "Unsupported cipher suite presented");
+                goto Exit;
+            }
+        }
+
+        CipherSuiteString = CXPLAT_ALLOC_NONPAGED(CipherSuiteStringLength, QUIC_POOL_TLS_CIPHER_SUITE_STRING);
+        if (CipherSuiteString == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "CipherSuiteString",
+                CipherSuiteStringLength);
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
+
+        uint8_t CipherSuiteStringCursor = 0;
+        for (uint8_t Idx = 0; Idx < CredConfig->AllowedCipherSuitesLength; ++Idx) {
+            switch (CredConfig->AllowedCipherSuites[Idx]) {
+            case QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256:
+                CxPlatCopyMemory(
+                    &CipherSuiteString[CipherSuiteStringCursor],
+                    CXPLAT_TLS_AES_128_GCM_SHA256,
+                    sizeof(CXPLAT_TLS_AES_128_GCM_SHA256));
+                CipherSuiteStringCursor += (uint8_t)sizeof(CXPLAT_TLS_AES_128_GCM_SHA256);
+                break;
+            case QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384:
+                CxPlatCopyMemory(
+                    &CipherSuiteString[CipherSuiteStringCursor],
+                    CXPLAT_TLS_AES_256_GCM_SHA384,
+                    sizeof(CXPLAT_TLS_AES_256_GCM_SHA384));
+                CipherSuiteStringCursor += (uint8_t)sizeof(CXPLAT_TLS_AES_256_GCM_SHA384);
+                break;
+            case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
+                CxPlatCopyMemory(
+                    &CipherSuiteString[CipherSuiteStringCursor],
+                    CXPLAT_TLS_CHACHA20_POLY1305_SHA256,
+                    sizeof(CXPLAT_TLS_CHACHA20_POLY1305_SHA256));
+                CipherSuiteStringCursor += (uint8_t)sizeof(CXPLAT_TLS_CHACHA20_POLY1305_SHA256);
+                break;
+            }
+            //
+            // Replace the copied NULL character with a semicolon,
+            // except for terminal NULL.
+            //
+            if (Idx < CredConfig->AllowedCipherSuitesLength - 1) {
+                CipherSuiteString[CipherSuiteStringCursor - 1] = ':';
+            }
+        }
+        CipherSuites = CipherSuiteString;
+    }
+
     Ret =
         SSL_CTX_set_ciphersuites(
             SecurityConfig->SSLCtx,
-            CXPLAT_TLS_DEFAULT_SSL_CIPHERS);
+            CipherSuites);
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -1186,6 +1271,10 @@ Exit:
 
     if (SecurityConfig != NULL) {
         CxPlatTlsSecConfigDelete(SecurityConfig);
+    }
+
+    if (CipherSuiteString != NULL) {
+        CxPlatFree(CipherSuiteString, QUIC_POOL_TLS_CIPHER_SUITE_STRING);
     }
 
     if (X509Cert != NULL) {
