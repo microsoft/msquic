@@ -2,7 +2,7 @@
   "profiles": {
     "WPA": {
       "commandName": "Executable",
-      "executablePath": "f:\\xperf\\wpa.exe",
+        "executablePath": "E:\\xperf\\wpa.exe",
       "commandLineArgs": "-addsearchdir $(SolutionDir)..\\..\\artifacts\\bin\\wpa\\$(Configuration)",
       "nativeDebugging": false
     }
