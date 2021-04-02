@@ -632,7 +632,8 @@ QuicStreamCopyFromSendRequests(
     } else {
         Req = Stream->SendRequests;
     }
-    while (Req && (Req->StreamOffset + Req->TotalLength <= Offset)) {
+    while (Req->StreamOffset + Req->TotalLength <= Offset) {
+        CXPLAT_DBG_ASSERT(Req->Next);
         Req = Req->Next;
     }
 
@@ -669,22 +670,20 @@ QuicStreamCopyFromSendRequests(
         Buf += CopyLength;
 
         if (Len == 0) {
-            //
-            // All the requests data has been copied.
-            //
-            break;
+            break; // All data has been copied!
         }
 
         //
-        // Move to the next request buffer, or if no more buffers in the
-        // current request, move to the next request.
+        // Move to the next non-zero length request buffer.
         //
         CurOffset = 0;
-        if (++CurIndex == Req->BufferCount) {
-            CXPLAT_DBG_ASSERT(Req->Next != NULL);
-            Req = Req->Next;
-            CurIndex = 0;
-        }
+        do {
+            if (++CurIndex == Req->BufferCount) {
+                CurIndex = 0;
+                CXPLAT_DBG_ASSERT(Req->Next != NULL);
+                Req = Req->Next;
+            }
+        } while (Req->Buffers[CurIndex].Length == 0);
     }
 
     //
