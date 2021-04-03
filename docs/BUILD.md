@@ -168,7 +168,7 @@ RHEL 8 also requires the following:
 ```
 sudo dnf install openssl-devel
 sudo dnf install libatomic
-``
+```
 
 ### macOS
 The build needs CMake and compiler.
