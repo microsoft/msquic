@@ -459,7 +459,7 @@ typedef struct QUIC_ACH_CONTEXT {
     //
     // Holds the blocked algorithms for the lifetime of the ACH call.
     //
-    CRYPTO_SETTINGS CryptoSettings[2];
+    CRYPTO_SETTINGS CryptoSettings[3];
 
     //
     // Holds the list of blocked chaining modes for the lifetime of the ACH call.
@@ -1008,7 +1008,7 @@ CxPlatTlsAllocateAchContext(
         AchContext->CompletionContext = Context;
         AchContext->CompletionCallback = Callback;
         AchContext->TlsParameters.pDisabledCrypto = AchContext->CryptoSettings;
-        AchContext->TlsParameters.cDisabledCrypto = ARRAYSIZE(AchContext->CryptoSettings);
+        AchContext->TlsParameters.cDisabledCrypto = 2; // initialized to the basic blocked cipher suites.
         AchContext->Credentials.pTlsParameters = &AchContext->TlsParameters;
         AchContext->Credentials.cTlsParameters = 1;
 #ifdef _KERNEL_MODE
@@ -1286,11 +1286,13 @@ CxPlatTlsSecConfigCreate(
     //
     //  Disallow ChaCha20-Poly1305 until full support is possible.
     //
-    AchContext->CryptoSettings[0].eAlgorithmUsage = TlsParametersCngAlgUsageCipher;
-    AchContext->CryptoSettings[0].strCngAlgId = (UNICODE_STRING){
+    uint8_t CryptoSettingsIdx = 0;
+    AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCipher;
+    AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
         sizeof(BCRYPT_CHACHA20_POLY1305_ALGORITHM),
         sizeof(BCRYPT_CHACHA20_POLY1305_ALGORITHM),
         BCRYPT_CHACHA20_POLY1305_ALGORITHM};
+    CryptoSettingsIdx++;
 
     //
     // Disallow AES_CCM algorithm, since there's no support for it yet.
@@ -1301,13 +1303,72 @@ CxPlatTlsSecConfigCreate(
         sizeof(BCRYPT_CHAIN_MODE_CCM),
         BCRYPT_CHAIN_MODE_CCM};
 
-    AchContext->CryptoSettings[1].eAlgorithmUsage = TlsParametersCngAlgUsageCipher;
-    AchContext->CryptoSettings[1].rgstrChainingModes = AchContext->BlockedChainingModes;
-    AchContext->CryptoSettings[1].cChainingModes = ARRAYSIZE(AchContext->BlockedChainingModes);
-    AchContext->CryptoSettings[1].strCngAlgId = (UNICODE_STRING){
+    AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCipher;
+    AchContext->CryptoSettings[CryptoSettingsIdx].rgstrChainingModes = AchContext->BlockedChainingModes;
+    AchContext->CryptoSettings[CryptoSettingsIdx].cChainingModes = ARRAYSIZE(AchContext->BlockedChainingModes);
+    AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
         sizeof(BCRYPT_AES_ALGORITHM),
         sizeof(BCRYPT_AES_ALGORITHM),
         BCRYPT_AES_ALGORITHM};
+    CryptoSettingsIdx++;
+
+    if (CredConfig->AllowedCipherSuitesLength > 0) {
+        BOOLEAN UseAes128 = FALSE;
+        BOOLEAN UseAes256 = FALSE;
+        for (uint8_t Idx = 0; Idx < CredConfig->AllowedCipherSuitesLength; ++Idx) {
+            switch (CredConfig->AllowedCipherSuites[Idx]) {
+            case QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256:
+                UseAes128 = TRUE;
+                break;
+            case QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384:
+                UseAes256 = TRUE;
+                break;
+            default:
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    CredConfig->AllowedCipherSuites[Idx],
+                    "Unsupported TLS Cipher Suite");
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                goto Error;
+            }
+        }
+
+        if (UseAes128 && !UseAes256) {
+            //
+            // Disallow AES-GCM 256
+            //
+            AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCipher;
+            AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
+                sizeof(BCRYPT_AES_ALGORITHM),
+                sizeof(BCRYPT_AES_ALGORITHM),
+                BCRYPT_AES_ALGORITHM};
+            AchContext->CryptoSettings[CryptoSettingsIdx].dwMaxBitLength = 256;
+            AchContext->CryptoSettings[CryptoSettingsIdx].dwMinBitLength = 256;
+            CryptoSettingsIdx++;
+        } else if (!UseAes128 && UseAes256) {
+            //
+            // Disallow AES-GCM 128
+            //
+            AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCipher;
+            AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
+                sizeof(BCRYPT_AES_ALGORITHM),
+                sizeof(BCRYPT_AES_ALGORITHM),
+                BCRYPT_AES_ALGORITHM};
+            AchContext->CryptoSettings[CryptoSettingsIdx].dwMaxBitLength = 128;
+            AchContext->CryptoSettings[CryptoSettingsIdx].dwMinBitLength = 128;
+            CryptoSettingsIdx++;
+        } else if (!UseAes128 && !UseAes256) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "No Allowed TLS Cipher Suites");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+    }
+
+    AchContext->TlsParameters.cDisabledCrypto = CryptoSettingsIdx;
 
 
 #ifdef _KERNEL_MODE
