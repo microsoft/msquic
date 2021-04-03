@@ -31,12 +31,15 @@ protected:
     CXPLAT_SEC_CONFIG* ServerSecConfig {nullptr};
     CXPLAT_SEC_CONFIG* ServerSecConfigClientAuth {nullptr};
     CXPLAT_SEC_CONFIG* ServerSecConfigDeferClientAuth {nullptr};
+    CXPLAT_SEC_CONFIG* ServerSecConfigAes128 {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfig {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigDeferredCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigCustomCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigExtraCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigClientCertNoCertValidation {nullptr};
+    CXPLAT_SEC_CONFIG* ClientSecConfigAes128 {nullptr};
+    CXPLAT_SEC_CONFIG* ClientSecConfigAes256 {nullptr};
     CXPLAT_SEC_CONFIG* Pkcs12SecConfig {nullptr};
     static QUIC_CREDENTIAL_FLAGS SelfSignedCertParamsFlags;
     static QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
@@ -155,7 +158,12 @@ protected:
 
     void SetUp() override
     {
-        SelfSignedCertParams->Flags = SelfSignedCertParamsFlags; // Make sure to start fresh
+        //
+        // Make sure to start fresh
+        //
+        SelfSignedCertParams->AllowedCipherSuites = nullptr;
+        SelfSignedCertParams->AllowedCipherSuitesLength = 0;
+        SelfSignedCertParams->Flags = SelfSignedCertParamsFlags;
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,
@@ -164,6 +172,20 @@ protected:
                 &ServerSecConfig,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfig);
+
+        QUIC_CIPHER_SUITE Aes128CipherSuite = QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256;
+        SelfSignedCertParams->AllowedCipherSuites = &Aes128CipherSuite;
+        SelfSignedCertParams->AllowedCipherSuitesLength = 1;
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                SelfSignedCertParams,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsServerCallbacks,
+                &ServerSecConfigAes128,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ServerSecConfigAes128);
+        SelfSignedCertParams->AllowedCipherSuitesLength = 0;
+        SelfSignedCertParams->AllowedCipherSuites = nullptr;
 
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         SelfSignedCertParams->Flags = SelfSignedCertParamsFlags | QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
@@ -195,7 +217,9 @@ protected:
             NULL,
             NULL,
             NULL,
-            NULL
+            NULL,
+            NULL,
+            0
         };
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
@@ -269,10 +293,48 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, Pkcs12SecConfig);
 #endif
+
+        QUIC_CREDENTIAL_CONFIG ClientCredConfigCipherSuite = {
+            QUIC_CREDENTIAL_TYPE_NONE,
+            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            &Aes128CipherSuite,
+            1
+        };
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                &ClientCredConfigCipherSuite,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsClientCallbacks,
+                &ClientSecConfigAes128,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ClientSecConfigAes128);
+
+        QUIC_CIPHER_SUITE Aes256CipherSuite = QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384;
+        ClientCredConfigCipherSuite.AllowedCipherSuites = &Aes256CipherSuite;
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                &ClientCredConfigCipherSuite,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsClientCallbacks,
+                &ClientSecConfigAes256,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ClientSecConfigAes256);
     }
 
     void TearDown() override
     {
+        if (ClientSecConfigAes128) {
+            CxPlatTlsSecConfigDelete(ClientSecConfigAes128);
+            ClientSecConfigAes128 = nullptr;
+        }
+        if (ClientSecConfigAes256) {
+            CxPlatTlsSecConfigDelete(ClientSecConfigAes256);
+            ClientSecConfigAes256 = nullptr;
+        }
         if (ClientSecConfigNoCertValidation) {
             CxPlatTlsSecConfigDelete(ClientSecConfigNoCertValidation);
             ClientSecConfigNoCertValidation = nullptr;
@@ -304,6 +366,10 @@ protected:
         if (ServerSecConfigDeferClientAuth) {
             CxPlatTlsSecConfigDelete(ServerSecConfigDeferClientAuth);
             ServerSecConfigDeferClientAuth = nullptr;
+        }
+        if (ServerSecConfigAes128) {
+            CxPlatTlsSecConfigDelete(ServerSecConfigAes128);
+            ServerSecConfigAes128 = nullptr;
         }
         if (ServerSecConfig) {
             CxPlatTlsSecConfigDelete(ServerSecConfig);
@@ -1604,5 +1670,55 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
     DoHandshake(ServerContext, ClientContext);
 }
 #endif
+
+TEST_F(TlsTest, CipherSuiteSuccess)
+{
+    //
+    // Set Server to use explicit cipher suite, client use default.
+    //
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSecConfigAes128);
+        ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+
+        DoHandshake(ServerContext, ClientContext);
+    }
+    //
+    // Set Client to use explicit cipher suite, server use default.
+    //
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSecConfig);
+        ClientContext.InitializeClient(ClientSecConfigAes128);
+
+        DoHandshake(ServerContext, ClientContext);
+    }
+    //
+    // Set both Client and Server to use same cipher suite.
+    //
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSecConfigAes128);
+        ClientContext.InitializeClient(ClientSecConfigAes128);
+
+        DoHandshake(ServerContext, ClientContext);
+    }
+}
+
+TEST_F(TlsTest, CipherSuiteFailure)
+{
+    //
+    // Use mutually-exclusive cipher suites on client and server.
+    //
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfigAes128);
+    ClientContext.InitializeClient(ClientSecConfigAes256);
+
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+
+    Result = ServerContext.ProcessData(&ClientContext.State, DefaultFragmentSize, true);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+}
 
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());

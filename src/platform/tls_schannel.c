@@ -1214,6 +1214,11 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
+    if ((CredConfig->AllowedCipherSuites == NULL && CredConfig->AllowedCipherSuitesLength > 0) ||
+        (CredConfig->AllowedCipherSuites != NULL && CredConfig->AllowedCipherSuitesLength == 0)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     QUIC_ACH_CONTEXT* AchContext =
         CxPlatTlsAllocateAchContext(
             CredConfig,
