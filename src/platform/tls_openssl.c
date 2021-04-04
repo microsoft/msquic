@@ -809,8 +809,16 @@ CxPlatTlsSecConfigCreate(
         }
     }
 
-    if ((CredConfig->AllowedCipherSuites == NULL && CredConfig->AllowedCipherSuitesLength > 0) ||
-        (CredConfig->AllowedCipherSuites != NULL && CredConfig->AllowedCipherSuitesLength == 0)) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES &&
+        ((CredConfig->AllowedCipherSuites &
+            (QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256 |
+            QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384 |
+            QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256)) == 0)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            CredConfig->AllowedCipherSuites,
+            "No valid cipher suites presented");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -884,31 +892,23 @@ CxPlatTlsSecConfigCreate(
     }
 
     char* CipherSuites = CXPLAT_TLS_DEFAULT_SSL_CIPHERS;
-    if (CredConfig->AllowedCipherSuitesLength > 0) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES) {
         //
         // Calculate allowed cipher suite string length.
         //
         uint8_t CipherSuiteStringLength = 0;
-        for (uint8_t Idx = 0; Idx < CredConfig->AllowedCipherSuitesLength; ++Idx) {
-            switch (CredConfig->AllowedCipherSuites[Idx]) {
-            case QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256:
-                CipherSuiteStringLength += (uint8_t)sizeof(CXPLAT_TLS_AES_128_GCM_SHA256);
-                break;
-            case QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384:
-                CipherSuiteStringLength += (uint8_t)sizeof(CXPLAT_TLS_AES_256_GCM_SHA384);
-                break;
-            case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
-                CipherSuiteStringLength += (uint8_t)sizeof(CXPLAT_TLS_CHACHA20_POLY1305_SHA256);
-                break;
-            default:
-                Status = QUIC_STATUS_INVALID_PARAMETER;
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    CredConfig->AllowedCipherSuites[Idx],
-                    "Unsupported cipher suite presented");
-                goto Exit;
-            }
+        uint8_t AllowedCipherSuitesCount = 0;
+        if (CredConfig->AllowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256) {
+            CipherSuiteStringLength += (uint8_t)sizeof(CXPLAT_TLS_AES_128_GCM_SHA256);
+            AllowedCipherSuitesCount++;
+        }
+        if (CredConfig->AllowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384) {
+            CipherSuiteStringLength += (uint8_t)sizeof(CXPLAT_TLS_AES_256_GCM_SHA384);
+            AllowedCipherSuitesCount++;
+        }
+        if (CredConfig->AllowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256) {
+            CipherSuiteStringLength += (uint8_t)sizeof(CXPLAT_TLS_CHACHA20_POLY1305_SHA256);
+            AllowedCipherSuitesCount++;
         }
 
         CipherSuiteString = CXPLAT_ALLOC_NONPAGED(CipherSuiteStringLength, QUIC_POOL_TLS_CIPHER_SUITE_STRING);
@@ -922,39 +922,40 @@ CxPlatTlsSecConfigCreate(
             goto Exit;
         }
 
+        //
+        // Order of if-statements matters here because OpenSSL uses the order
+        // of cipher suites to indicate preference. Below, we use the default
+        // order of preference for TLS 1.3 cipher suites.
+        //
         uint8_t CipherSuiteStringCursor = 0;
-        for (uint8_t Idx = 0; Idx < CredConfig->AllowedCipherSuitesLength; ++Idx) {
-            switch (CredConfig->AllowedCipherSuites[Idx]) {
-            case QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256:
-                CxPlatCopyMemory(
-                    &CipherSuiteString[CipherSuiteStringCursor],
-                    CXPLAT_TLS_AES_128_GCM_SHA256,
-                    sizeof(CXPLAT_TLS_AES_128_GCM_SHA256));
-                CipherSuiteStringCursor += (uint8_t)sizeof(CXPLAT_TLS_AES_128_GCM_SHA256);
-                break;
-            case QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384:
-                CxPlatCopyMemory(
-                    &CipherSuiteString[CipherSuiteStringCursor],
-                    CXPLAT_TLS_AES_256_GCM_SHA384,
-                    sizeof(CXPLAT_TLS_AES_256_GCM_SHA384));
-                CipherSuiteStringCursor += (uint8_t)sizeof(CXPLAT_TLS_AES_256_GCM_SHA384);
-                break;
-            case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
-                CxPlatCopyMemory(
-                    &CipherSuiteString[CipherSuiteStringCursor],
-                    CXPLAT_TLS_CHACHA20_POLY1305_SHA256,
-                    sizeof(CXPLAT_TLS_CHACHA20_POLY1305_SHA256));
-                CipherSuiteStringCursor += (uint8_t)sizeof(CXPLAT_TLS_CHACHA20_POLY1305_SHA256);
-                break;
-            }
-            //
-            // Replace the copied NULL character with a semicolon,
-            // except for terminal NULL.
-            //
-            if (Idx < CredConfig->AllowedCipherSuitesLength - 1) {
+        if (CredConfig->AllowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384) {
+            CxPlatCopyMemory(
+                &CipherSuiteString[CipherSuiteStringCursor],
+                CXPLAT_TLS_AES_256_GCM_SHA384,
+                sizeof(CXPLAT_TLS_AES_256_GCM_SHA384));
+            CipherSuiteStringCursor += (uint8_t)sizeof(CXPLAT_TLS_AES_256_GCM_SHA384);
+            if (--AllowedCipherSuitesCount > 0) {
                 CipherSuiteString[CipherSuiteStringCursor - 1] = ':';
             }
         }
+        if (CredConfig->AllowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256) {
+            CxPlatCopyMemory(
+                &CipherSuiteString[CipherSuiteStringCursor],
+                CXPLAT_TLS_CHACHA20_POLY1305_SHA256,
+                sizeof(CXPLAT_TLS_CHACHA20_POLY1305_SHA256));
+            CipherSuiteStringCursor += (uint8_t)sizeof(CXPLAT_TLS_CHACHA20_POLY1305_SHA256);
+            if (--AllowedCipherSuitesCount > 0) {
+                CipherSuiteString[CipherSuiteStringCursor - 1] = ':';
+            }
+        }
+        if (CredConfig->AllowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256) {
+            CxPlatCopyMemory(
+                &CipherSuiteString[CipherSuiteStringCursor],
+                CXPLAT_TLS_AES_128_GCM_SHA256,
+                sizeof(CXPLAT_TLS_AES_128_GCM_SHA256));
+            CipherSuiteStringCursor += (uint8_t)sizeof(CXPLAT_TLS_AES_128_GCM_SHA256);
+        }
+        CXPLAT_DBG_ASSERT(CipherSuiteStringCursor == CipherSuiteStringLength);
         CipherSuites = CipherSuiteString;
     }
 

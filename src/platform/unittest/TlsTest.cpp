@@ -161,8 +161,7 @@ protected:
         //
         // Make sure to start fresh
         //
-        SelfSignedCertParams->AllowedCipherSuites = nullptr;
-        SelfSignedCertParams->AllowedCipherSuitesLength = 0;
+        SelfSignedCertParams->AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_NONE;
         SelfSignedCertParams->Flags = SelfSignedCertParamsFlags;
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
@@ -173,9 +172,8 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfig);
 
-        QUIC_CIPHER_SUITE Aes128CipherSuite = QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256;
-        SelfSignedCertParams->AllowedCipherSuites = &Aes128CipherSuite;
-        SelfSignedCertParams->AllowedCipherSuitesLength = 1;
+        SelfSignedCertParams->AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256;
+        SelfSignedCertParams->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 SelfSignedCertParams,
@@ -184,8 +182,8 @@ protected:
                 &ServerSecConfigAes128,
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ServerSecConfigAes128);
-        SelfSignedCertParams->AllowedCipherSuitesLength = 0;
-        SelfSignedCertParams->AllowedCipherSuites = nullptr;
+        SelfSignedCertParams->AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_NONE;
+        SelfSignedCertParams->Flags &= ~QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
 
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         SelfSignedCertParams->Flags = SelfSignedCertParamsFlags | QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
@@ -218,8 +216,7 @@ protected:
             NULL,
             NULL,
             NULL,
-            NULL,
-            0
+            QUIC_ALLOWED_CIPHER_SUITE_NONE
         };
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
@@ -296,13 +293,13 @@ protected:
 
         QUIC_CREDENTIAL_CONFIG ClientCredConfigCipherSuite = {
             QUIC_CREDENTIAL_TYPE_NONE,
-            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
+            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+                QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
             NULL,
             NULL,
             NULL,
             NULL,
-            &Aes128CipherSuite,
-            1
+            QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256
         };
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
@@ -313,8 +310,7 @@ protected:
                 OnSecConfigCreateComplete));
         ASSERT_NE(nullptr, ClientSecConfigAes128);
 
-        QUIC_CIPHER_SUITE Aes256CipherSuite = QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384;
-        ClientCredConfigCipherSuite.AllowedCipherSuites = &Aes256CipherSuite;
+        ClientCredConfigCipherSuite.AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384;
         VERIFY_QUIC_SUCCESS(
             CxPlatTlsSecConfigCreate(
                 &ClientCredConfigCipherSuite,

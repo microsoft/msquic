@@ -459,7 +459,7 @@ typedef struct QUIC_ACH_CONTEXT {
     //
     // Holds the blocked algorithms for the lifetime of the ACH call.
     //
-    CRYPTO_SETTINGS CryptoSettings[3];
+    CRYPTO_SETTINGS CryptoSettings[4];
 
     //
     // Holds the list of blocked chaining modes for the lifetime of the ACH call.
@@ -1214,8 +1214,16 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
-    if ((CredConfig->AllowedCipherSuites == NULL && CredConfig->AllowedCipherSuitesLength > 0) ||
-        (CredConfig->AllowedCipherSuites != NULL && CredConfig->AllowedCipherSuitesLength == 0)) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES &&
+        ((CredConfig->AllowedCipherSuites &
+            (QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256 |
+            QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384)) == 0 ||
+        (CredConfig->AllowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256))) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            CredConfig->AllowedCipherSuites,
+            "No valid cipher suites presented");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1312,32 +1320,20 @@ CxPlatTlsSecConfigCreate(
         BCRYPT_AES_ALGORITHM};
     CryptoSettingsIdx++;
 
-    if (CredConfig->AllowedCipherSuitesLength > 0) {
-        BOOLEAN UseAes128 = FALSE;
-        BOOLEAN UseAes256 = FALSE;
-        for (uint8_t Idx = 0; Idx < CredConfig->AllowedCipherSuitesLength; ++Idx) {
-            switch (CredConfig->AllowedCipherSuites[Idx]) {
-            case QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256:
-                UseAes128 = TRUE;
-                break;
-            case QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384:
-                UseAes256 = TRUE;
-                break;
-            default:
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    CredConfig->AllowedCipherSuites[Idx],
-                    "Unsupported TLS Cipher Suite");
-                Status = QUIC_STATUS_INVALID_PARAMETER;
-                goto Error;
-            }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES) {
+        QUIC_ALLOWED_CIPHER_SUITE_FLAGS DisallowedCipherSuites = ~CredConfig->AllowedCipherSuites;
+
+        if (DisallowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384 &&
+            DisallowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "No Allowed TLS Cipher Suites");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
         }
 
-        if (UseAes128 && !UseAes256) {
-            //
-            // Disallow AES-GCM 256
-            //
+        if (DisallowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384) {
             AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCipher;
             AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
                 sizeof(BCRYPT_AES_ALGORITHM),
@@ -1346,10 +1342,15 @@ CxPlatTlsSecConfigCreate(
             AchContext->CryptoSettings[CryptoSettingsIdx].dwMaxBitLength = 256;
             AchContext->CryptoSettings[CryptoSettingsIdx].dwMinBitLength = 256;
             CryptoSettingsIdx++;
-        } else if (!UseAes128 && UseAes256) {
-            //
-            // Disallow AES-GCM 128
-            //
+
+            AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageDigest;
+            AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
+                sizeof(BCRYPT_SHA384_ALGORITHM),
+                sizeof(BCRYPT_SHA384_ALGORITHM),
+                BCRYPT_SHA384_ALGORITHM};
+            CryptoSettingsIdx++;
+        }
+        if (DisallowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256) {
             AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCipher;
             AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
                 sizeof(BCRYPT_AES_ALGORITHM),
@@ -1358,13 +1359,13 @@ CxPlatTlsSecConfigCreate(
             AchContext->CryptoSettings[CryptoSettingsIdx].dwMaxBitLength = 128;
             AchContext->CryptoSettings[CryptoSettingsIdx].dwMinBitLength = 128;
             CryptoSettingsIdx++;
-        } else if (!UseAes128 && !UseAes256) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "No Allowed TLS Cipher Suites");
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
+
+            AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageDigest;
+            AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
+                sizeof(BCRYPT_SHA256_ALGORITHM),
+                sizeof(BCRYPT_SHA256_ALGORITHM),
+                BCRYPT_SHA256_ALGORITHM};
+            CryptoSettingsIdx++;
         }
     }
 
