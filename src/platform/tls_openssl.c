@@ -1733,14 +1733,11 @@ CxPlatMapCipherSuite(
             HandshakeInfo->CipherStrength = 256;
             HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_SHA_384;
             break;
-        //
-        // Not supporting ChaChaPoly for querying currently.
-        //
-        // case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
-        //     HandshakeInfo->CipherAlgorithm = QUIC_ALG_CHACHA20;
-        //     HandshakeInfo->CipherStrength = 256;
-        //     HandshakeInfo->Hash = QUIC_ALG_SHA_256;
-        //     break;
+        case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
+            HandshakeInfo->CipherAlgorithm = QUIC_CIPHER_ALGORITHM_NONE;
+            HandshakeInfo->CipherStrength = 256;
+            HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_NONE;
+            break;
         default:
             Status = QUIC_STATUS_NOT_SUPPORTED;
             break;
