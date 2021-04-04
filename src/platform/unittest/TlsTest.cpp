@@ -1706,15 +1706,69 @@ TEST_F(TlsTest, CipherSuiteFailure)
     //
     // Use mutually-exclusive cipher suites on client and server.
     //
-    TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfigAes128);
-    ClientContext.InitializeClient(ClientSecConfigAes256);
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSecConfigAes128);
+        ClientContext.InitializeClient(ClientSecConfigAes256);
 
-    auto Result = ClientContext.ProcessData(nullptr);
-    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
 
-    Result = ServerContext.ProcessData(&ClientContext.State, DefaultFragmentSize, true);
-    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+        Result = ServerContext.ProcessData(&ClientContext.State, DefaultFragmentSize, true);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+    }
+    for (auto Flag : {
+            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+            QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES}) {
+        //
+        // Don't set any allowed cipher suites
+        //
+        {
+            QUIC_CREDENTIAL_CONFIG TestCredConfig = {
+                QUIC_CREDENTIAL_TYPE_NONE,
+                Flag,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                QUIC_ALLOWED_CIPHER_SUITE_NONE
+            };
+            CXPLAT_SEC_CONFIG* TestSecConfig = nullptr;
+            ASSERT_EQ(
+                QUIC_STATUS_INVALID_PARAMETER,
+                CxPlatTlsSecConfigCreate(
+                    &TestCredConfig,
+                    CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                    &TlsContext::TlsClientCallbacks,
+                    &TestSecConfig,
+                    OnSecConfigCreateComplete));
+            ASSERT_EQ(TestSecConfig, nullptr);
+        }
+        //
+        // Set an unrecognized cipher suite
+        //
+        {
+            QUIC_CREDENTIAL_CONFIG TestCredConfig = {
+                QUIC_CREDENTIAL_TYPE_NONE,
+                Flag,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                (QUIC_ALLOWED_CIPHER_SUITE_FLAGS)0x100
+            };
+            CXPLAT_SEC_CONFIG* TestSecConfig = nullptr;
+            ASSERT_EQ(
+                QUIC_STATUS_INVALID_PARAMETER,
+                CxPlatTlsSecConfigCreate(
+                    &TestCredConfig,
+                    CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                    &TlsContext::TlsClientCallbacks,
+                    &TestSecConfig,
+                    OnSecConfigCreateComplete));
+            ASSERT_EQ(TestSecConfig, nullptr);
+        }
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());
