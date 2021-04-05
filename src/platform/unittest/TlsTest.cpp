@@ -1646,58 +1646,52 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
 }
 #endif
 
-#ifndef QUIC_DISABLE_ALLOW_CIPHER_TESTS
 TEST_F(TlsTest, CipherSuiteSuccess1)
 {
+    //
+    // Set Server to use explicit cipher suite, client use default.
+    //
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfigAes128(
         QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
         QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
-    //
-    // Set Server to use explicit cipher suite, client use default.
-    //
-    {
-        TlsContext ServerContext, ClientContext;
-        ClientContext.InitializeClient(ClientConfig);
-        ServerContext.InitializeServer(ServerConfigAes128);
-        DoHandshake(ServerContext, ClientContext);
-    }
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfigAes128);
+    DoHandshake(ServerContext, ClientContext);
 }
 
 TEST_F(TlsTest, CipherSuiteSuccess2)
 {
+    //
+    // Set Client to use explicit cipher suite, server use default.
+    //
     CxPlatClientSecConfig ClientConfigAes128(
         QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
         QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
     CxPlatServerSecConfig ServerConfig;
-    //
-    // Set Client to use explicit cipher suite, server use default.
-    //
-    {
-        TlsContext ServerContext, ClientContext;
-        ClientContext.InitializeClient(ClientConfigAes128);
-        ServerContext.InitializeServer(ServerConfig);
-        DoHandshake(ServerContext, ClientContext);
-    }
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfigAes128);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext);
 }
 
 TEST_F(TlsTest, CipherSuiteSuccess3)
 {
+    //
+    // Set both Client and Server to use same cipher suite.
+    //
     CxPlatClientSecConfig ClientConfigAes128(
-        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
         QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
     CxPlatServerSecConfig ServerConfigAes128(
         QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
         QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
-    //
-    // Set both Client and Server to use same cipher suite.
-    //
-    {
-        TlsContext ServerContext, ClientContext;
-        ClientContext.InitializeClient(ClientConfigAes128);
-        ServerContext.InitializeServer(ServerConfigAes128);
-        DoHandshake(ServerContext, ClientContext);
-    }
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfigAes128);
+    ServerContext.InitializeServer(ServerConfigAes128);
+    DoHandshake(ServerContext, ClientContext);
 }
 
 TEST_F(TlsTest, CipherSuiteMismatch)
@@ -1706,7 +1700,8 @@ TEST_F(TlsTest, CipherSuiteMismatch)
     // Use mutually-exclusive cipher suites on client and server.
     //
     CxPlatClientSecConfig ClientConfigAes256(
-        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
         QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384);
     CxPlatServerSecConfig ServerConfigAes128(
         QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
@@ -1777,6 +1772,5 @@ TEST_F(TlsTest, CipherSuiteInvalid)
         }
     }
 }
-#endif // QUIC_DISABLE_ALLOW_CIPHER_TESTS
 
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());
