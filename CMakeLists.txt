@@ -376,21 +376,6 @@ endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     if (WIN32)
-        if (QUIC_UWP_BUILD)
-            message(FATAL_ERROR "UWP is not supported with OpenSSL")
-        endif()
-
-        if (${SYSTEM_PROCESSOR} STREQUAL "arm64")
-            set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64-ARM")
-        elseif (${SYSTEM_PROCESSOR} STREQUAL "arm")
-            set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32-ARM")
-        elseif (${SYSTEM_PROCESSOR} STREQUAL "win32")
-            set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32")
-        elseif (${SYSTEM_PROCESSOR} STREQUAL "x64" OR ${SYSTEM_PROCESSOR} STREQUAL "amd64")
-            set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64A")
-        else()
-            message(FATAL_ERROR "Unknown Generator Platform ${SYSTEM_PROCESSOR}")
-        endif()
 
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
         set(LIBSSL_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
@@ -407,77 +392,41 @@ if(QUIC_TLS STREQUAL "openssl")
             MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
             MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
 
-        add_library(OpenSSL STATIC IMPORTED)
-        set_property(TARGET OpenSSL PROPERTY FOLDER "libraries")
-        set_target_properties(OpenSSL PROPERTIES
+        add_library(OpenSSL_SSL STATIC IMPORTED)
+        set_property(TARGET OpenSSL_SSL PROPERTY FOLDER "libraries")
+        set_target_properties(OpenSSL_SSL PROPERTIES
             IMPORTED_LOCATION_DEBUG ${LIBSSL_DEBUG_PATH}
             IMPORTED_LOCATION_RELEASE ${LIBSSL_PATH}
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
             MAP_IMPORTED_CONFIG_MINSIZEREL RELEASE
             MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
 
+        add_library(OpenSSL INTERFACE)
+
         target_include_directories(OpenSSL INTERFACE
             $<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
-            $<$<CONFIG:Release>:${OPENSSL_DIR}/release/include>)
-        target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
+            $<$<NOT:$<CONFIG:Debug>>:${OPENSSL_DIR}/release/include>)
 
         if (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Release" AND EXISTS ${LIBCRYPTO_PATH})
             message(STATUS "Found existing OpenSSL Release cache, skipping openssl build")
+            target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto OpenSSL_SSL)
         elseif (QUIC_CI AND QUIC_CI_CONFIG STREQUAL "Debug" AND EXISTS ${LIBCRYPTO_DEBUG_PATH})
             message(STATUS "Found existing OpenSSL Debug cache, skipping openssl build")
+            target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto OpenSSL_SSL)
         else()
-            file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
-            file(MAKE_DIRECTORY ${OPENSSL_DIR}/release/include)
+            include(FetchContent)
 
-            set(OPENSSL_CONFIG_FLAGS
-                enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
-
-                #
-                # The following line is needed for the 3.0 branch.
-                #
-                # no-uplink no-cmp no-acvp_tests no-fips no-padlockeng no-siv
-
-                no-zlib no-egd no-idea no-rc5 no-rc4 no-afalgeng
-                no-comp no-cms no-ct no-srp no-srtp no-ts no-gost no-dso no-ec2m
-                no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
-                no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
-                no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
-                no-weak-ssl-ciphers no-shared no-tests ${QUIC_OPENSSL_WIN_ARCH})
-
-            add_custom_target(mkdir_openssl_build_debug
-                COMMAND if not exist \"${QUIC_BUILD_DIR}/submodules/openssl/debug\" mkdir \"${QUIC_BUILD_DIR}/submodules/openssl/debug\" 2> NUL)
-            set_property(TARGET mkdir_openssl_build_debug PROPERTY FOLDER "helpers")
-            add_custom_target(mkdir_openssl_build_release
-                COMMAND if not exist \"${QUIC_BUILD_DIR}/submodules/openssl/release\" mkdir \"${QUIC_BUILD_DIR}/submodules/openssl/release\" 2> NUL)
-            set_property(TARGET mkdir_openssl_build_release PROPERTY FOLDER "helpers")
-
-            add_custom_command(
-                DEPENDS mkdir_openssl_build_debug
-                WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
-                OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile
-                COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug)
-
-            add_custom_command(
-                DEPENDS mkdir_openssl_build_release
-                WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
-                OUTPUT ${QUIC_BUILD_DIR}/submodules/openssl/release/makefile
-                COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release)
-
-            add_custom_command(
-                OUTPUT ${LIBSSL_PATH} ${LIBSSL_DEBUG_PATH} ${LIBCRYPTO_PATH} ${LIBCRYPTO_DEBUG_PATH}
-                DEPENDS $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug/makefile,${QUIC_BUILD_DIR}/submodules/openssl/release/makefile>
-                WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/openssl/debug,${QUIC_BUILD_DIR}/submodules/openssl/release>
-                COMMAND nmake install_dev)
-
-            add_custom_target(OpenSSL_Build
-                DEPENDS ${LIBSSL_PATH} ${LIBSSL_DEBUG_PATH} ${LIBCRYPTO_PATH} ${LIBCRYPTO_DEBUG_PATH}
+            FetchContent_Declare(
+                OpenSSLQuic
+                SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules
+                CMAKE_ARGS "-DQUIC_BUILD_DIR=${QUIC_BUILD_DIR}"
             )
-            set_property(TARGET OpenSSL_Build PROPERTY FOLDER "helpers")
+            FetchContent_MakeAvailable(OpenSSLQuic)
 
-            add_library(OpenSSL_Build_Tgt INTERFACE)
-            add_dependencies(OpenSSL_Build_Tgt OpenSSL_Build)
-
-            target_link_libraries(OpenSSL INTERFACE OpenSSL_Build_Tgt)
+            target_link_libraries(OpenSSL
+                INTERFACE
+                OpenSSLQuic::OpenSSLQuic
+            )
         endif()
     else()
         # Configure and build OpenSSL.

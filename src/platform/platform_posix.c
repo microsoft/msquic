@@ -420,9 +420,10 @@ CxPlatProcMaxCount(
     void
     )
 {
-#if defined(CX_PLATFORM_DARWIN) && defined(__arm64__)
+#if defined(CX_PLATFORM_DARWIN)
     //
-    // arm64 macOS has no way to get the current proc, so act like a single core.
+    // arm64 macOS has no way to get the current proc, so treat as single core.
+    // Intel macOS can return incorrect values for CPUID, so treat as single core. 
     //
     return 1;
 #else
@@ -435,9 +436,10 @@ CxPlatProcActiveCount(
     void
     )
 {
-#if defined(CX_PLATFORM_DARWIN) && defined(__arm64__)
+#if defined(CX_PLATFORM_DARWIN)
     //
-    // arm64 macOS has no way to get the current proc, so act like a single core.
+    // arm64 macOS has no way to get the current proc, so treat as single core.
+    // Intel macOS can return incorrect values for CPUID, so treat as single core. 
     //
     return 1;
 #else
@@ -452,26 +454,10 @@ CxPlatProcCurrentNumber(
 {
 #if defined(CX_PLATFORM_LINUX)
     return (uint32_t)sched_getcpu();
-#elif defined(CX_PLATFORM_DARWIN) && !defined(__arm64__)
-    int cpuinfo[4];
-    asm("cpuid"
-            : "=a" (cpuinfo[0]),
-            "=b" (cpuinfo[1]),
-            "=c" (cpuinfo[2]),
-            "=d" (cpuinfo[3])
-            : "a"(1));
+#elif defined(CX_PLATFORM_DARWIN)
     //
-    // Check flag to see if current core is part of cpuid. If not, assume
-    // core 0. Not all supported platforms (Specifically M1 under Rosetta)
-    // support this flag.
-    //
-    if ((cpuinfo[3] & (1 << 9)) != 0) {
-        return (uint32_t)cpuinfo[1] >> 24;
-    }
-    return 0;
-#else
-    //
-    // arm64 macOS has no way to get the current proc, so just hardcode 0.
+    // arm64 macOS has no way to get the current proc, so treat as single core.
+    // Intel macOS can return incorrect values for CPUID, so treat as single core. 
     //
     return 0;
 #endif // CX_PLATFORM_DARWIN
