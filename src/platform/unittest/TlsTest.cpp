@@ -1667,7 +1667,8 @@ TEST_F(TlsTest, CipherSuiteSuccess2)
     // Set Client to use explicit cipher suite, server use default.
     //
     CxPlatClientSecConfig ClientConfigAes128(
-        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
         QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
     CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
