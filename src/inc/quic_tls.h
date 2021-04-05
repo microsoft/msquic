@@ -201,7 +201,7 @@ typedef struct CXPLAT_TLS_CONFIG {
 typedef enum CXPLAT_TLS_RESULT_FLAGS {
 
     CXPLAT_TLS_RESULT_CONTINUE            = 0x0001, // Needs immediate call again. (Used internally to schannel)
-    CXPLAT_TLS_RESULT_DATA                = 0x0001, // Data ready to be sent.
+    CXPLAT_TLS_RESULT_DATA                = 0x0002, // Data ready to be sent.
     CXPLAT_TLS_RESULT_READ_KEY_UPDATED    = 0x0004, // ReadKey variable has been updated.
     CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED   = 0x0008, // WriteKey variable has been updated.
     CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT   = 0x0010, // The server accepted the early (0-RTT) data.
