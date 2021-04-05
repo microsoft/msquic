@@ -797,6 +797,53 @@ TEST_F(TlsTest, HandshakeCertFromFile)
 }
 #endif // QUIC_DISABLE_PFX_TESTS
 
+TEST_F(TlsTest, HandshakeParamInfoDefault)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext);
+
+    QUIC_HANDSHAKE_INFO HandshakeInfo;
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    uint32_t HandshakeInfoLen = sizeof(HandshakeInfo);
+    QUIC_STATUS Status =
+        CxPlatTlsParamGet(
+            ClientContext.Ptr,
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &HandshakeInfoLen,
+            &HandshakeInfo);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384, HandshakeInfo.CipherSuite);
+    EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
+    EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
+    EXPECT_EQ(256, HandshakeInfo.CipherStrength);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
+    EXPECT_EQ(0, HandshakeInfo.HashStrength);
+
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    HandshakeInfoLen = sizeof(HandshakeInfo);
+    Status =
+        CxPlatTlsParamGet(
+            ServerContext.Ptr,
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &HandshakeInfoLen,
+            &HandshakeInfo);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384, HandshakeInfo.CipherSuite);
+    EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
+    EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
+    EXPECT_EQ(256, HandshakeInfo.CipherStrength);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
+    EXPECT_EQ(0, HandshakeInfo.HashStrength);
+}
+
 TEST_F(TlsTest, HandshakeParamInfoAES256GCM)
 {
     CxPlatClientSecConfig ClientConfig;
@@ -1139,7 +1186,7 @@ TEST_F(TlsTest, HandshakesInterleaved)
 
 TEST_F(TlsTest, CertificateError)
 {
-    CxPlatClientSecConfig ClientConfig;
+    CxPlatClientSecConfig ClientConfig(QUIC_CREDENTIAL_FLAG_NONE);
     CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
     ServerContext.InitializeServer(ServerConfig);
@@ -1599,13 +1646,9 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
 }
 #endif
 
-TEST_F(TlsTest, CipherSuiteSuccess)
+TEST_F(TlsTest, CipherSuiteSuccess1)
 {
     CxPlatClientSecConfig ClientConfig;
-    CxPlatClientSecConfig ClientConfigAes128(
-        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
-        QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
-    CxPlatServerSecConfig ServerConfig;
     CxPlatServerSecConfig ServerConfigAes128(
         QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
         QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
@@ -1618,6 +1661,14 @@ TEST_F(TlsTest, CipherSuiteSuccess)
         ServerContext.InitializeServer(ServerConfigAes128);
         DoHandshake(ServerContext, ClientContext);
     }
+}
+
+TEST_F(TlsTest, CipherSuiteSuccess2)
+{
+    CxPlatClientSecConfig ClientConfigAes128(
+        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
+    CxPlatServerSecConfig ServerConfig;
     //
     // Set Client to use explicit cipher suite, server use default.
     //
@@ -1627,6 +1678,16 @@ TEST_F(TlsTest, CipherSuiteSuccess)
         ServerContext.InitializeServer(ServerConfig);
         DoHandshake(ServerContext, ClientContext);
     }
+}
+
+TEST_F(TlsTest, CipherSuiteSuccess3)
+{
+    CxPlatClientSecConfig ClientConfigAes128(
+        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
+    CxPlatServerSecConfig ServerConfigAes128(
+        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
     //
     // Set both Client and Server to use same cipher suite.
     //
