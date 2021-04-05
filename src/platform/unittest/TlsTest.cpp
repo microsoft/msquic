@@ -1646,6 +1646,7 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
 }
 #endif
 
+#ifndef QUIC_DISABLE_ALLOW_CIPHER_TESTS
 TEST_F(TlsTest, CipherSuiteSuccess1)
 {
     CxPlatClientSecConfig ClientConfig;
@@ -1776,5 +1777,6 @@ TEST_F(TlsTest, CipherSuiteInvalid)
         }
     }
 }
+#endif // QUIC_DISABLE_ALLOW_CIPHER_TESTS
 
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());
