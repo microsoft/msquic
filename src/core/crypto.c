@@ -23,13 +23,11 @@ Abstract:
 #include "crypto.c.clog.h"
 #endif
 
-CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 CXPLAT_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
 CXPLAT_TLS_RECEIVE_TICKET_CALLBACK QuicConnRecvResumptionTicket;
 CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK QuicConnPeerCertReceived;
 
 CXPLAT_TLS_CALLBACKS QuicTlsCallbacks = {
-    QuicTlsProcessDataCompleteCallback,
     QuicConnReceiveTP,
     QuicConnRecvResumptionTicket,
     QuicConnPeerCertReceived
@@ -359,8 +357,6 @@ QuicCryptoReset(
     )
 {
     CXPLAT_DBG_ASSERT(!QuicConnIsServer(QuicCryptoGetConnection(Crypto)));
-    CXPLAT_TEL_ASSERT(!Crypto->TlsDataPending);
-    CXPLAT_TEL_ASSERT(!Crypto->TlsCallPending);
     CXPLAT_TEL_ASSERT(Crypto->RecvTotalConsumed == 0);
 
     Crypto->MaxSentLength = 0;
@@ -1226,33 +1222,27 @@ QuicCryptoProcessFrame(
     Status =
         QuicCryptoProcessDataFrame(
             Crypto, KeyType, Frame, &DataReady);
+    if (QUIC_FAILED(Status) || !DataReady) {
+        goto Error;
+    }
 
-    if (QUIC_SUCCEEDED(Status) && DataReady) {
-        if (!Crypto->TlsCallPending) {
-            Status = QuicCryptoProcessData(Crypto, FALSE);
-            if (QUIC_FAILED(Status)) {
-                goto Error;
-            }
+    Status = QuicCryptoProcessData(Crypto, FALSE);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
 
-            QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-            if (Connection->State.ClosedLocally) {
-                //
-                // If processing the received frame caused us to close the
-                // connection, make sure to stop processing anything else in the
-                // packet.
-                //
-                Status = QUIC_STATUS_INVALID_STATE;
-            }
-        } else {
-            //
-            // Can't call TLS yet (either hasn't been initialized or already
-            // working) so just indicate we have data pending ready for delivery.
-            //
-            Crypto->TlsDataPending = TRUE;
-        }
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+    if (Connection->State.ClosedLocally) {
+        //
+        // If processing the received frame caused us to close the
+        // connection, make sure to stop processing anything else in the
+        // packet.
+        //
+        Status = QUIC_STATUS_INVALID_STATE;
     }
 
 Error:
+
     return Status;
 }
 
@@ -1287,9 +1277,6 @@ QuicCryptoProcessTlsCompletion(
     )
 {
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-
-    CXPLAT_DBG_ASSERT(Crypto->TlsCallPending);
-    Crypto->TlsCallPending = FALSE;
 
     if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
         QuicTraceEvent(
@@ -1484,7 +1471,7 @@ QuicCryptoProcessTlsCompletion(
         QuicCryptoValidate(Crypto);
     }
 
-    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_COMPLETE) {
+    if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE) {
         CXPLAT_DBG_ASSERT(!(Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR));
         CXPLAT_TEL_ASSERT(!Connection->State.Connected);
 
@@ -1590,40 +1577,7 @@ QuicCryptoProcessDataComplete(
 
     if (!Crypto->CertValidationPending) {
         QuicCryptoProcessTlsCompletion(Crypto);
-        if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
-            (void)QuicCryptoProcessData(Crypto, FALSE);
-        }
     }
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicTlsProcessDataCompleteCallback(
-    _In_ QUIC_CONNECTION* Connection
-    )
-{
-    QUIC_OPERATION* Oper;
-    if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_TLS_COMPLETE)) != NULL) {
-        QuicConnQueueOper(Connection, Oper);
-    } else {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "TLS complete operation",
-            0);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicCryptoProcessCompleteOperation(
-    _In_ QUIC_CRYPTO* Crypto
-    )
-{
-    uint32_t BufferConsumed = 0;
-    Crypto->ResultFlags =
-        CxPlatTlsProcessDataComplete(Crypto->TLS, &BufferConsumed);
-    QuicCryptoProcessDataComplete(Crypto, BufferConsumed);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1645,9 +1599,6 @@ QuicCryptoCustomCertValidationComplete(
             QuicCryptoGetConnection(Crypto),
             "Custom cert validation succeeded");
         QuicCryptoProcessTlsCompletion(Crypto);
-        if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
-            QuicCryptoProcessData(Crypto, FALSE);
-        }
 
     } else {
         QuicTraceEvent(
@@ -1671,8 +1622,6 @@ QuicCryptoProcessData(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t BufferCount = 1;
     QUIC_BUFFER Buffer;
-
-    CXPLAT_TEL_ASSERT(!Crypto->TlsCallPending);
 
     if (IsClientInitial) {
         Buffer.Length = 0;
@@ -1774,9 +1723,6 @@ QuicCryptoProcessData(
         goto Error;
     }
 
-    Crypto->TlsDataPending = FALSE;
-    Crypto->TlsCallPending = TRUE;
-
     QuicCryptoValidate(Crypto);
 
     Crypto->ResultFlags =
@@ -1787,13 +1733,7 @@ QuicCryptoProcessData(
             &Buffer.Length,
             &Crypto->TlsState);
 
-    CXPLAT_TEL_ASSERT(
-        !IsClientInitial ||
-        Crypto->ResultFlags != CXPLAT_TLS_RESULT_PENDING); // TODO - Support async for client Initial?
-
-    if (Crypto->ResultFlags != CXPLAT_TLS_RESULT_PENDING) {
-        QuicCryptoProcessDataComplete(Crypto, Buffer.Length);
-    }
+    QuicCryptoProcessDataComplete(Crypto, Buffer.Length);
 
     return Status;
 
@@ -1815,12 +1755,7 @@ QuicCryptoProcessAppData(
     )
 {
     QUIC_STATUS Status;
-    if (Crypto->TlsCallPending) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Error;
-    }
 
-    Crypto->TlsCallPending = TRUE;
     Crypto->ResultFlags =
         CxPlatTlsProcessData(
             Crypto->TLS,
@@ -1837,9 +1772,7 @@ QuicCryptoProcessAppData(
         goto Error;
     }
 
-    if (!(Crypto->ResultFlags & CXPLAT_TLS_RESULT_PENDING)) {
-        QuicCryptoProcessDataComplete(Crypto, 0);
-    }
+    QuicCryptoProcessDataComplete(Crypto, 0);
 
     Status = QUIC_STATUS_SUCCESS;
 

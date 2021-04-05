@@ -1700,7 +1700,7 @@ CxPlatTlsProcessData(
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_REJECT;
             }
         }
-        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_COMPLETE;
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE;
 
         if (TlsContext->IsServer) {
             TlsContext->State->ReadKey = QUIC_PACKET_KEY_1_RTT;
@@ -1764,18 +1764,6 @@ Exit:
     }
 
     return TlsContext->ResultFlags;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-CXPLAT_TLS_RESULT_FLAGS
-CxPlatTlsProcessDataComplete(
-    _In_ CXPLAT_TLS* TlsContext,
-    _Out_ uint32_t * ConsumedBuffer
-    )
-{
-    UNREFERENCED_PARAMETER(TlsContext);
-    *ConsumedBuffer = 0;
-    return CXPLAT_TLS_RESULT_ERROR;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

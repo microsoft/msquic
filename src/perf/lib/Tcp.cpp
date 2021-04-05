@@ -93,7 +93,6 @@ const CXPLAT_TCP_DATAPATH_CALLBACKS TcpEngine::TcpCallbacks = {
 };
 
 const CXPLAT_TLS_CALLBACKS TcpEngine::TlsCallbacks = {
-    TcpConnection::TlsProcessCompleteCallback,
     TcpConnection::TlsReceiveTpCallback,
     TcpConnection::TlsReceiveTicketCallback
 };
@@ -455,15 +454,6 @@ TcpConnection::SendCompleteCallback(
     This->Queue();
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-TcpConnection::TlsProcessCompleteCallback(
-    _In_ QUIC_CONNECTION* /* Context */
-    )
-{
-    // Unsupported
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 TcpConnection::TlsReceiveTpCallback(
@@ -597,11 +587,6 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
             Buffer,
             &BufferLength,
             &TlsState);
-    if (Results & CXPLAT_TLS_RESULT_PENDING) {
-        // TODO - Not supported yet
-        WriteOutput("CxPlatTlsProcessData PENDING (not supported)\n");
-        return false;
-    }
     if (Results & CXPLAT_TLS_RESULT_ERROR) {
         WriteOutput("CxPlatTlsProcessData FAILED\n");
         return false;
