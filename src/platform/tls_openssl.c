@@ -1812,9 +1812,9 @@ CxPlatMapCipherSuite(
             HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_SHA_384;
             break;
         case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
-            HandshakeInfo->CipherAlgorithm = QUIC_CIPHER_ALGORITHM_NONE;
-            HandshakeInfo->CipherStrength = 256;
-            HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_NONE;
+            HandshakeInfo->CipherAlgorithm = QUIC_CIPHER_ALGORITHM_CHACHA20;
+            HandshakeInfo->CipherStrength = 256; // TODO - Is this correct?
+            HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_SHA_256;
             break;
         default:
             Status = QUIC_STATUS_NOT_SUPPORTED;

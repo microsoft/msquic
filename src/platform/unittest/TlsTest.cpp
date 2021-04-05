@@ -32,6 +32,7 @@ protected:
     CXPLAT_SEC_CONFIG* ServerSecConfigClientAuth {nullptr};
     CXPLAT_SEC_CONFIG* ServerSecConfigDeferClientAuth {nullptr};
     CXPLAT_SEC_CONFIG* ServerSecConfigAes128 {nullptr};
+    CXPLAT_SEC_CONFIG* ServerSecConfigChaCha20 {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfig {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigDeferredCertValidation {nullptr};
     CXPLAT_SEC_CONFIG* ClientSecConfigCustomCertValidation {nullptr};
@@ -184,6 +185,21 @@ protected:
         ASSERT_NE(nullptr, ServerSecConfigAes128);
         SelfSignedCertParams->AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_NONE;
         SelfSignedCertParams->Flags &= ~QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
+
+#ifndef QUIC_DISABLE_CHACHA20_TESTS
+        SelfSignedCertParams->AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256;
+        SelfSignedCertParams->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
+        VERIFY_QUIC_SUCCESS(
+            CxPlatTlsSecConfigCreate(
+                SelfSignedCertParams,
+                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                &TlsContext::TlsServerCallbacks,
+                &ServerSecConfigChaCha20,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ServerSecConfigChaCha20);
+        SelfSignedCertParams->AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_NONE;
+        SelfSignedCertParams->Flags &= ~QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
+#endif // QUIC_DISABLE_CHACHA20_TESTS
 
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
         SelfSignedCertParams->Flags = SelfSignedCertParamsFlags | QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
@@ -366,6 +382,10 @@ protected:
         if (ServerSecConfigAes128) {
             CxPlatTlsSecConfigDelete(ServerSecConfigAes128);
             ServerSecConfigAes128 = nullptr;
+        }
+        if (ServerSecConfigChaCha20) {
+            CxPlatTlsSecConfigDelete(ServerSecConfigChaCha20);
+            ServerSecConfigChaCha20 = nullptr;
         }
         if (ServerSecConfig) {
             CxPlatTlsSecConfigDelete(ServerSecConfig);
@@ -997,51 +1017,97 @@ TEST_F(TlsTest, HandshakeParamInfoAES256GCM)
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
 }
 
-// Disabled until we have a way to switch ciphers
-// TEST_F(TlsTest, HandshakeParamInfoAES128GCM)
-// {
-//     TlsContext ServerContext, ClientContext;
-//     ServerContext.InitializeServer(ServerSecConfig);
-//     ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
-//     DoHandshake(ServerContext, ClientContext);
+TEST_F(TlsTest, HandshakeParamInfoAES128GCM)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfigAes128);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    DoHandshake(ServerContext, ClientContext);
 
-//     QUIC_HANDSHAKE_INFO HandshakeInfo;
-//     CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
-//     uint32_t HandshakeInfoLen = sizeof(HandshakeInfo);
-//     QUIC_STATUS Status =
-//         CxPlatTlsParamGet(
-//             ClientContext.Ptr,
-//             QUIC_PARAM_TLS_HANDSHAKE_INFO,
-//             &HandshakeInfoLen,
-//             &HandshakeInfo);
-//     ASSERT_TRUE(QUIC_SUCCEEDED(Status));
-//     EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256, HandshakeInfo.CipherSuite);
-//     EXPECT_EQ(QUIC_TLS1_3_CLIENT, HandshakeInfo.TlsProtocolVersion);
-//     EXPECT_EQ(QUIC_ALG_AES_128, HandshakeInfo.CipherAlgorithm);
-//     EXPECT_EQ(128, HandshakeInfo.CipherStrength);
-//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
-//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
-//     EXPECT_EQ(QUIC_ALG_SHA_256, HandshakeInfo.Hash);
-//     EXPECT_EQ(0, HandshakeInfo.HashStrength);
+    QUIC_HANDSHAKE_INFO HandshakeInfo;
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    uint32_t HandshakeInfoLen = sizeof(HandshakeInfo);
+    QUIC_STATUS Status =
+        CxPlatTlsParamGet(
+            ClientContext.Ptr,
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &HandshakeInfoLen,
+            &HandshakeInfo);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256, HandshakeInfo.CipherSuite);
+    EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
+    EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_128, HandshakeInfo.CipherAlgorithm);
+    EXPECT_EQ(128, HandshakeInfo.CipherStrength);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_256, HandshakeInfo.Hash);
+    EXPECT_EQ(0, HandshakeInfo.HashStrength);
 
-//     CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
-//     HandshakeInfoLen = sizeof(HandshakeInfo);
-//     Status =
-//         CxPlatTlsParamGet(
-//             ServerContext.Ptr,
-//             QUIC_PARAM_TLS_HANDSHAKE_INFO,
-//             &HandshakeInfoLen,
-//             &HandshakeInfo);
-//     ASSERT_TRUE(QUIC_SUCCEEDED(Status));
-//     EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256, HandshakeInfo.CipherSuite);
-//     EXPECT_EQ(QUIC_TLS1_3_SERVER, HandshakeInfo.TlsProtocolVersion);
-//     EXPECT_EQ(QUIC_ALG_AES_128, HandshakeInfo.CipherAlgorithm);
-//     EXPECT_EQ(128, HandshakeInfo.CipherStrength);
-//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
-//     EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
-//     EXPECT_EQ(QUIC_ALG_SHA_256, HandshakeInfo.Hash);
-//     EXPECT_EQ(0, HandshakeInfo.HashStrength);
-// }
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    HandshakeInfoLen = sizeof(HandshakeInfo);
+    Status =
+        CxPlatTlsParamGet(
+            ServerContext.Ptr,
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &HandshakeInfoLen,
+            &HandshakeInfo);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256, HandshakeInfo.CipherSuite);
+    EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
+    EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_128, HandshakeInfo.CipherAlgorithm);
+    EXPECT_EQ(128, HandshakeInfo.CipherStrength);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_256, HandshakeInfo.Hash);
+    EXPECT_EQ(0, HandshakeInfo.HashStrength);
+}
+
+#ifndef QUIC_DISABLE_CHACHA20_TESTS
+TEST_F(TlsTest, HandshakeParamInfoChaCha20)
+{
+    TlsContext ServerContext, ClientContext;
+    ServerContext.InitializeServer(ServerSecConfigChaCha20);
+    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    DoHandshake(ServerContext, ClientContext);
+
+    QUIC_HANDSHAKE_INFO HandshakeInfo;
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    uint32_t HandshakeInfoLen = sizeof(HandshakeInfo);
+    QUIC_STATUS Status =
+        CxPlatTlsParamGet(
+            ClientContext.Ptr,
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &HandshakeInfoLen,
+            &HandshakeInfo);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256, HandshakeInfo.CipherSuite);
+    EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
+    EXPECT_EQ(QUIC_CIPHER_ALGORITHM_CHACHA20, HandshakeInfo.CipherAlgorithm);
+    EXPECT_EQ(256, HandshakeInfo.CipherStrength);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_256, HandshakeInfo.Hash);
+    EXPECT_EQ(0, HandshakeInfo.HashStrength);
+
+    CxPlatZeroMemory(&HandshakeInfo, sizeof(HandshakeInfo));
+    HandshakeInfoLen = sizeof(HandshakeInfo);
+    Status =
+        CxPlatTlsParamGet(
+            ServerContext.Ptr,
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &HandshakeInfoLen,
+            &HandshakeInfo);
+    ASSERT_TRUE(QUIC_SUCCEEDED(Status));
+    EXPECT_EQ(QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256, HandshakeInfo.CipherSuite);
+    EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
+    EXPECT_EQ(QUIC_CIPHER_ALGORITHM_CHACHA20, HandshakeInfo.CipherAlgorithm);
+    EXPECT_EQ(256, HandshakeInfo.CipherStrength);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
+    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_256, HandshakeInfo.Hash);
+    EXPECT_EQ(0, HandshakeInfo.HashStrength);
+}
+#endif // QUIC_DISABLE_CHACHA20_TESTS
 
 TEST_F(TlsTest, HandshakeParamNegotiatedAlpn)
 {
