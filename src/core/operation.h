@@ -27,7 +27,7 @@ typedef enum QUIC_OPERATION_TYPE {
     QUIC_OPER_TYPE_UNREACHABLE,         // Process UDP unreachable event.
     QUIC_OPER_TYPE_FLUSH_STREAM_RECV,   // Indicate a stream data to the app.
     QUIC_OPER_TYPE_FLUSH_SEND,          // Frame packets and send them.
-    QUIC_OPER_TYPE_TLS_COMPLETE,        // A TLS process call completed.
+    QUIC_OPER_TYPE_DEPRECATED,          // No longer used.
     QUIC_OPER_TYPE_TIMER_EXPIRED,       // A timer expired.
     QUIC_OPER_TYPE_TRACE_RUNDOWN,       // A trace rundown was triggered.
 

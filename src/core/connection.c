@@ -6690,10 +6690,6 @@ QuicConnDrainOperations(
             }
             break;
 
-        case QUIC_OPER_TYPE_TLS_COMPLETE:
-            QuicCryptoProcessCompleteOperation(&Connection->Crypto);
-            break;
-
         case QUIC_OPER_TYPE_TIMER_EXPIRED:
             QuicConnProcessExpiredTimer(Connection, Oper->TIMER_EXPIRED.Type);
             break;

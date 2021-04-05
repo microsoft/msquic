@@ -119,17 +119,12 @@ typedef CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK *CXPLAT_TLS_PEER_CERTIFICA
 typedef struct CXPLAT_TLS_CALLBACKS {
 
     //
-    // Invoked for the completion of process calls that were pending.
-    //
-    CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER ProcessComplete;
-
-    //
     // Invoked when QUIC transport parameters are received.
     //
     CXPLAT_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTP;
 
     //
-    // Invoked when a resumption ticket is received.
+    // Invoked when a session ticket is received.
     //
     CXPLAT_TLS_RECEIVE_TICKET_CALLBACK_HANDLER ReceiveTicket;
 
@@ -206,13 +201,12 @@ typedef struct CXPLAT_TLS_CONFIG {
 typedef enum CXPLAT_TLS_RESULT_FLAGS {
 
     CXPLAT_TLS_RESULT_CONTINUE            = 0x0001, // Needs immediate call again. (Used internally to schannel)
-    CXPLAT_TLS_RESULT_PENDING             = 0x0002, // The call is pending.
-    CXPLAT_TLS_RESULT_DATA                = 0x0004, // Data ready to be sent.
-    CXPLAT_TLS_RESULT_READ_KEY_UPDATED    = 0x0008, // ReadKey variable has been updated.
-    CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED   = 0x0010, // WriteKey variable has been updated.
-    CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT   = 0x0020, // The server accepted the early (0-RTT) data.
-    CXPLAT_TLS_RESULT_EARLY_DATA_REJECT   = 0x0040, // The server rejected the early (0-RTT) data.
-    CXPLAT_TLS_RESULT_COMPLETE            = 0x0080, // Handshake complete.
+    CXPLAT_TLS_RESULT_DATA                = 0x0001, // Data ready to be sent.
+    CXPLAT_TLS_RESULT_READ_KEY_UPDATED    = 0x0004, // ReadKey variable has been updated.
+    CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED   = 0x0008, // WriteKey variable has been updated.
+    CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT   = 0x0010, // The server accepted the early (0-RTT) data.
+    CXPLAT_TLS_RESULT_EARLY_DATA_REJECT   = 0x0020, // The server rejected the early (0-RTT) data.
+    CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE  = 0x0040, // Handshake complete.
     CXPLAT_TLS_RESULT_ERROR               = 0x8000  // An error occured.
 
 } CXPLAT_TLS_RESULT_FLAGS;
@@ -400,11 +394,7 @@ CxPlatTlsUninitialize(
 // Called to process any data received from the peer. In the case of the client,
 // the initial call is made with no input buffer to generate the initial output.
 // The returned CXPLAT_TLS_RESULT_FLAGS and CXPLAT_TLS_PROCESS_STATE are update with
-// any state changes as a result of the call. If the call returns
-// CXPLAT_TLS_RESULT_PENDING, then the registered CXPLAT_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER
-// will be triggered at a later date; at which the QUIC code must then call
-// QuicTlsProcessDataComplete to complete the operation and get the resulting
-// flags.
+// any state changes as a result of the call.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
@@ -415,16 +405,6 @@ CxPlatTlsProcessData(
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State
-    );
-
-//
-// Called when in response to receiving a process completed callback.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-CXPLAT_TLS_RESULT_FLAGS
-CxPlatTlsProcessDataComplete(
-    _In_ CXPLAT_TLS* TlsContext,
-    _Out_ uint32_t * ConsumedBuffer
     );
 
 //
