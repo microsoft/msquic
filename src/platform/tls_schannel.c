@@ -1339,8 +1339,8 @@ CxPlatTlsSecConfigCreate(
                 sizeof(BCRYPT_AES_ALGORITHM),
                 sizeof(BCRYPT_AES_ALGORITHM),
                 BCRYPT_AES_ALGORITHM};
-            AchContext->CryptoSettings[CryptoSettingsIdx].dwMaxBitLength = 256;
-            AchContext->CryptoSettings[CryptoSettingsIdx].dwMinBitLength = 256;
+            AchContext->CryptoSettings[CryptoSettingsIdx].dwMaxBitLength = 128;
+            AchContext->CryptoSettings[CryptoSettingsIdx].dwMinBitLength = 128;
             CryptoSettingsIdx++;
 
             AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageDigest;
@@ -1356,8 +1356,8 @@ CxPlatTlsSecConfigCreate(
                 sizeof(BCRYPT_AES_ALGORITHM),
                 sizeof(BCRYPT_AES_ALGORITHM),
                 BCRYPT_AES_ALGORITHM};
-            AchContext->CryptoSettings[CryptoSettingsIdx].dwMaxBitLength = 128;
-            AchContext->CryptoSettings[CryptoSettingsIdx].dwMinBitLength = 128;
+            AchContext->CryptoSettings[CryptoSettingsIdx].dwMaxBitLength = 256;
+            AchContext->CryptoSettings[CryptoSettingsIdx].dwMinBitLength = 256;
             CryptoSettingsIdx++;
 
             AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageDigest;

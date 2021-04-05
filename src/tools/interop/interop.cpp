@@ -776,6 +776,11 @@ RunInteropTest(
     CxPlatZeroMemory(&CredConfig, sizeof(CredConfig));
     CredConfig.Flags = QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 
+    if (Feature == ChaCha20) {
+        CredConfig.Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
+        CredConfig.AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256;
+    }
+
     VERIFY_QUIC_SUCCESS(
         MsQuic->ConfigurationLoadCredential(
             Configuration,
@@ -804,7 +809,8 @@ RunInteropTest(
     case ConnectionClose:
     case Resumption:
     case StatelessRetry:
-    case PostQuantum: {
+    case PostQuantum:
+    case ChaCha20: {
         const uint8_t* ResumptionTicket = nullptr;
         uint32_t ResumptionTicketLength = 0;
         if (Feature == Resumption) {

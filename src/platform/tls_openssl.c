@@ -139,7 +139,7 @@ typedef struct CXPLAT_HP_KEY {
 //
 // Default list of Cipher used.
 //
-#define CXPLAT_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
+#define CXPLAT_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256"
 
 #define CXPLAT_TLS_AES_128_GCM_SHA256       "TLS_AES_128_GCM_SHA256"
 #define CXPLAT_TLS_AES_256_GCM_SHA384       "TLS_AES_256_GCM_SHA384"
@@ -1811,14 +1811,11 @@ CxPlatMapCipherSuite(
             HandshakeInfo->CipherStrength = 256;
             HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_SHA_384;
             break;
-        //
-        // Not supporting ChaChaPoly for querying currently.
-        //
-        // case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
-        //     HandshakeInfo->CipherAlgorithm = QUIC_ALG_CHACHA20;
-        //     HandshakeInfo->CipherStrength = 256;
-        //     HandshakeInfo->Hash = QUIC_ALG_SHA_256;
-        //     break;
+        case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
+            HandshakeInfo->CipherAlgorithm = QUIC_CIPHER_ALGORITHM_CHACHA20;
+            HandshakeInfo->CipherStrength = 256; // TODO - Is this correct?
+            HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_SHA_256;
+            break;
         default:
             Status = QUIC_STATUS_NOT_SUPPORTED;
             break;
