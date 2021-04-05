@@ -227,6 +227,8 @@ endif()
 if(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Disabling client certificate tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
+    message(STATUS "Disabling deferred certificate tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_DEFERRED_CERT_TESTS)
 endif()
 
 if (CMAKE_GENERATOR_PLATFORM STREQUAL "")

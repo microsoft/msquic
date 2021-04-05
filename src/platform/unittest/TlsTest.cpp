@@ -28,45 +28,84 @@ extern const char* PfxPath;
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
 protected:
-    CXPLAT_SEC_CONFIG* ServerSecConfig {nullptr};
-    CXPLAT_SEC_CONFIG* ServerSecConfigClientAuth {nullptr};
-    CXPLAT_SEC_CONFIG* ServerSecConfigDeferClientAuth {nullptr};
-    CXPLAT_SEC_CONFIG* ServerSecConfigAes128 {nullptr};
-    CXPLAT_SEC_CONFIG* ServerSecConfigChaCha20 {nullptr};
-    CXPLAT_SEC_CONFIG* ClientSecConfig {nullptr};
-    CXPLAT_SEC_CONFIG* ClientSecConfigDeferredCertValidation {nullptr};
-    CXPLAT_SEC_CONFIG* ClientSecConfigCustomCertValidation {nullptr};
-    CXPLAT_SEC_CONFIG* ClientSecConfigExtraCertValidation {nullptr};
-    CXPLAT_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
-    CXPLAT_SEC_CONFIG* ClientSecConfigClientCertNoCertValidation {nullptr};
-    CXPLAT_SEC_CONFIG* ClientSecConfigAes128 {nullptr};
-    CXPLAT_SEC_CONFIG* ClientSecConfigAes256 {nullptr};
-    CXPLAT_SEC_CONFIG* Pkcs12SecConfig {nullptr};
     static QUIC_CREDENTIAL_FLAGS SelfSignedCertParamsFlags;
     static QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
     static QUIC_CREDENTIAL_CONFIG* ClientCertParams;
     static QUIC_CREDENTIAL_CONFIG* CertParamsFromFile;
+
+    struct CxPlatSecConfig {
+        CXPLAT_SEC_CONFIG* SecConfig {nullptr};
+        operator CXPLAT_SEC_CONFIG* () noexcept { return SecConfig; }
+        CxPlatSecConfig() { }
+        ~CxPlatSecConfig() {
+            if (SecConfig) {
+                CxPlatTlsSecConfigDelete(SecConfig);
+            }
+        }
+        void Load(
+            _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
+            _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
+            ) {
+            VERIFY_QUIC_SUCCESS(
+                CxPlatTlsSecConfigCreate(
+                    CredConfig,
+                    CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+                    TlsCallbacks,
+                    &SecConfig,
+                    OnSecConfigCreateComplete));
+            ASSERT_NE(nullptr, SecConfig);
+        }
+        _Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
+        static void
+        QUIC_API
+        OnSecConfigCreateComplete(
+            _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
+            _In_opt_ void* Context,
+            _In_ QUIC_STATUS Status,
+            _In_opt_ CXPLAT_SEC_CONFIG* SecConfig
+            )
+        {
+            VERIFY_QUIC_SUCCESS(Status);
+            ASSERT_NE(nullptr, SecConfig);
+            *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
+        }
+    };
+
+    struct CxPlatServerSecConfig : public CxPlatSecConfig {
+        CxPlatServerSecConfig(
+            _In_ QUIC_CREDENTIAL_FLAGS CredFlags = QUIC_CREDENTIAL_FLAG_NONE,
+            _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE
+            ) {
+            SelfSignedCertParams->Flags = SelfSignedCertParamsFlags | CredFlags;
+            SelfSignedCertParams->AllowedCipherSuites = CipherFlags;
+            Load(&TlsContext::TlsServerCallbacks, SelfSignedCertParams);
+        }
+    };
+
+    struct CxPlatClientSecConfig : public CxPlatSecConfig {
+        CxPlatClientSecConfig(
+            _In_ QUIC_CREDENTIAL_FLAGS CredFlags = QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
+            _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE
+            ) {
+            QUIC_CREDENTIAL_CONFIG CredConfig = {
+                QUIC_CREDENTIAL_TYPE_NONE,
+                QUIC_CREDENTIAL_FLAG_CLIENT,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                QUIC_ALLOWED_CIPHER_SUITE_NONE};
+            CredConfig.Flags |= CredFlags;
+            CredConfig.AllowedCipherSuites = CipherFlags;
+            Load(&TlsContext::TlsClientCallbacks, &CredConfig);
+        }
+    };
 
     TlsTest() { }
 
     ~TlsTest()
     {
         TearDown();
-    }
-
-    _Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
-    static void
-    QUIC_API
-    OnSecConfigCreateComplete(
-        _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
-        _In_opt_ void* Context,
-        _In_ QUIC_STATUS Status,
-        _In_opt_ CXPLAT_SEC_CONFIG* SecConfig
-        )
-    {
-        VERIFY_QUIC_SUCCESS(Status);
-        ASSERT_NE(nullptr, SecConfig);
-        *(CXPLAT_SEC_CONFIG**)Context = SecConfig;
     }
 
 #ifndef QUIC_DISABLE_PFX_TESTS
@@ -157,245 +196,9 @@ protected:
 #endif
     }
 
-    void SetUp() override
-    {
-        //
-        // Make sure to start fresh
-        //
-        SelfSignedCertParams->AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_NONE;
-        SelfSignedCertParams->Flags = SelfSignedCertParamsFlags;
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                SelfSignedCertParams,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsServerCallbacks,
-                &ServerSecConfig,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ServerSecConfig);
+    void SetUp() override { }
 
-        SelfSignedCertParams->AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256;
-        SelfSignedCertParams->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                SelfSignedCertParams,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsServerCallbacks,
-                &ServerSecConfigAes128,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ServerSecConfigAes128);
-        SelfSignedCertParams->AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_NONE;
-        SelfSignedCertParams->Flags &= ~QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
-
-#ifndef QUIC_DISABLE_CHACHA20_TESTS
-        SelfSignedCertParams->AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256;
-        SelfSignedCertParams->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                SelfSignedCertParams,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsServerCallbacks,
-                &ServerSecConfigChaCha20,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ServerSecConfigChaCha20);
-        SelfSignedCertParams->AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_NONE;
-        SelfSignedCertParams->Flags &= ~QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
-#endif // QUIC_DISABLE_CHACHA20_TESTS
-
-#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
-        SelfSignedCertParams->Flags = SelfSignedCertParamsFlags | QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                SelfSignedCertParams,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsServerCallbacks,
-                &ServerSecConfigClientAuth,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ServerSecConfigClientAuth);
-
-        SelfSignedCertParams->Flags =
-            QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION | QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
-            QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                SelfSignedCertParams,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsServerCallbacks,
-                &ServerSecConfigDeferClientAuth,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ServerSecConfigDeferClientAuth);
-#endif
-
-        QUIC_CREDENTIAL_CONFIG ClientCredConfig = {
-            QUIC_CREDENTIAL_TYPE_NONE,
-            QUIC_CREDENTIAL_FLAG_CLIENT,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
-            QUIC_ALLOWED_CIPHER_SUITE_NONE
-        };
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                &ClientCredConfig,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsClientCallbacks,
-                &ClientSecConfig,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ClientSecConfig);
-
-        ClientCredConfig.Flags =
-            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED | QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION;
-        CxPlatTlsSecConfigCreate( // Don't assert as this is expected to fail on some platforms
-            &ClientCredConfig,
-            CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-            &TlsContext::TlsClientCallbacks,
-            &ClientSecConfigDeferredCertValidation,
-            OnSecConfigCreateComplete);
-
-        ClientCredConfig.Flags =
-            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                &ClientCredConfig,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsClientCallbacks,
-                &ClientSecConfigCustomCertValidation,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ClientSecConfigCustomCertValidation);
-
-        ClientCredConfig.Flags =
-            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                &ClientCredConfig,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsClientCallbacks,
-                &ClientSecConfigExtraCertValidation,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ClientSecConfigExtraCertValidation);
-
-        ClientCredConfig.Flags =
-            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                &ClientCredConfig,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsClientCallbacks,
-                &ClientSecConfigNoCertValidation,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ClientSecConfigNoCertValidation);
-
-#ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                ClientCertParams,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsClientCallbacks,
-                &ClientSecConfigClientCertNoCertValidation,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ClientSecConfigClientCertNoCertValidation);
-#endif
-#ifndef QUIC_DISABLE_PFX_TESTS
-        ASSERT_NE(nullptr, CertParamsFromFile);
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                CertParamsFromFile,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsClientCallbacks,
-                &Pkcs12SecConfig,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, Pkcs12SecConfig);
-#endif
-
-        QUIC_CREDENTIAL_CONFIG ClientCredConfigCipherSuite = {
-            QUIC_CREDENTIAL_TYPE_NONE,
-            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
-                QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
-            QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256
-        };
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                &ClientCredConfigCipherSuite,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsClientCallbacks,
-                &ClientSecConfigAes128,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ClientSecConfigAes128);
-
-        ClientCredConfigCipherSuite.AllowedCipherSuites = QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384;
-        VERIFY_QUIC_SUCCESS(
-            CxPlatTlsSecConfigCreate(
-                &ClientCredConfigCipherSuite,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TlsContext::TlsClientCallbacks,
-                &ClientSecConfigAes256,
-                OnSecConfigCreateComplete));
-        ASSERT_NE(nullptr, ClientSecConfigAes256);
-    }
-
-    void TearDown() override
-    {
-        if (ClientSecConfigAes128) {
-            CxPlatTlsSecConfigDelete(ClientSecConfigAes128);
-            ClientSecConfigAes128 = nullptr;
-        }
-        if (ClientSecConfigAes256) {
-            CxPlatTlsSecConfigDelete(ClientSecConfigAes256);
-            ClientSecConfigAes256 = nullptr;
-        }
-        if (ClientSecConfigNoCertValidation) {
-            CxPlatTlsSecConfigDelete(ClientSecConfigNoCertValidation);
-            ClientSecConfigNoCertValidation = nullptr;
-        }
-        if (ClientSecConfigExtraCertValidation) {
-            CxPlatTlsSecConfigDelete(ClientSecConfigExtraCertValidation);
-            ClientSecConfigExtraCertValidation = nullptr;
-        }
-        if (ClientSecConfigCustomCertValidation) {
-            CxPlatTlsSecConfigDelete(ClientSecConfigCustomCertValidation);
-            ClientSecConfigCustomCertValidation = nullptr;
-        }
-        if (ClientSecConfigDeferredCertValidation) {
-            CxPlatTlsSecConfigDelete(ClientSecConfigDeferredCertValidation);
-            ClientSecConfigDeferredCertValidation = nullptr;
-        }
-        if (ClientSecConfigClientCertNoCertValidation) {
-            CxPlatTlsSecConfigDelete(ClientSecConfigClientCertNoCertValidation);
-            ClientSecConfigClientCertNoCertValidation  = nullptr;
-        }
-        if (ClientSecConfig) {
-            CxPlatTlsSecConfigDelete(ClientSecConfig);
-            ClientSecConfig = nullptr;
-        }
-        if (ServerSecConfigClientAuth) {
-            CxPlatTlsSecConfigDelete(ServerSecConfigClientAuth);
-            ServerSecConfigClientAuth = nullptr;
-        }
-        if (ServerSecConfigDeferClientAuth) {
-            CxPlatTlsSecConfigDelete(ServerSecConfigDeferClientAuth);
-            ServerSecConfigDeferClientAuth = nullptr;
-        }
-        if (ServerSecConfigAes128) {
-            CxPlatTlsSecConfigDelete(ServerSecConfigAes128);
-            ServerSecConfigAes128 = nullptr;
-        }
-        if (ServerSecConfigChaCha20) {
-            CxPlatTlsSecConfigDelete(ServerSecConfigChaCha20);
-            ServerSecConfigChaCha20 = nullptr;
-        }
-        if (ServerSecConfig) {
-            CxPlatTlsSecConfigDelete(ServerSecConfig);
-            ServerSecConfig = nullptr;
-        }
-        if (Pkcs12SecConfig) {
-            CxPlatTlsSecConfigDelete(Pkcs12SecConfig);
-            Pkcs12SecConfig = nullptr;
-        }
-    }
+    void TearDown() override { }
 
     struct TlsContext
     {
@@ -866,13 +669,18 @@ protected:
         }
     }
 
+    struct AyncContext {
+        CXPLAT_SEC_CONFIG* ClientConfig;
+        CXPLAT_SEC_CONFIG* ServerConfig;
+    };
+
     static CXPLAT_THREAD_CALLBACK(HandshakeAsync, Context)
     {
-        TlsTest* This = (TlsTest*)Context;
+        AyncContext* Ctx = (AyncContext*)Context;
         for (uint32_t i = 0; i < 100; ++i) {
             TlsContext ServerContext, ClientContext;
-            ServerContext.InitializeServer(This->ServerSecConfig);
-            ClientContext.InitializeClient(This->ClientSecConfigNoCertValidation);
+            ClientContext.InitializeClient(Ctx->ClientConfig);
+            ServerContext.InitializeServer(Ctx->ServerConfig);
             DoHandshake(ServerContext, ClientContext);
         }
         CXPLAT_THREAD_RETURN(0);
@@ -959,24 +767,45 @@ QUIC_CREDENTIAL_CONFIG* TlsTest::CertParamsFromFile = nullptr;
 
 TEST_F(TlsTest, Initialize)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
 }
 
 TEST_F(TlsTest, Handshake)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext);
 }
 
+#ifndef QUIC_DISABLE_PFX_TESTS
+TEST_F(TlsTest, HandshakeCertFromFile)
+{
+    CxPlatSecConfig ClientConfig;
+    ClientConfig.Load(&TlsContext::TlsClientCallbacks, CertParamsFromFile);
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext);
+}
+#endif // QUIC_DISABLE_PFX_TESTS
+
 TEST_F(TlsTest, HandshakeParamInfoAES256GCM)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig(
+        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384);
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext);
 
     QUIC_HANDSHAKE_INFO HandshakeInfo;
@@ -1019,9 +848,13 @@ TEST_F(TlsTest, HandshakeParamInfoAES256GCM)
 
 TEST_F(TlsTest, HandshakeParamInfoAES128GCM)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig(
+        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfigAes128);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext);
 
     QUIC_HANDSHAKE_INFO HandshakeInfo;
@@ -1065,9 +898,13 @@ TEST_F(TlsTest, HandshakeParamInfoAES128GCM)
 #ifndef QUIC_DISABLE_CHACHA20_TESTS
 TEST_F(TlsTest, HandshakeParamInfoChaCha20)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig(
+        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256);
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfigChaCha20);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext);
 
     QUIC_HANDSHAKE_INFO HandshakeInfo;
@@ -1111,9 +948,11 @@ TEST_F(TlsTest, HandshakeParamInfoChaCha20)
 
 TEST_F(TlsTest, HandshakeParamNegotiatedAlpn)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext);
 
     char NegotiatedAlpn[255];
@@ -1144,12 +983,16 @@ TEST_F(TlsTest, HandshakeParamNegotiatedAlpn)
 
 TEST_F(TlsTest, HandshakeParallel)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    AyncContext Context = { ClientConfig, ServerConfig };
+
     CXPLAT_THREAD_CONFIG Config = {
         0,
         0,
         "TlsWorker",
         HandshakeAsync,
-        this
+        &Context
     };
 
     CXPLAT_THREAD Threads[64];
@@ -1168,84 +1011,100 @@ TEST_F(TlsTest, HandshakeParallel)
 /*#ifndef QUIC_DISABLE_0RTT_TESTS
 TEST_F(TlsTest, HandshakeResumption)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
 
     ASSERT_NE(nullptr, ClientContext.ResumptionTicket.Buffer);
     //ASSERT_NE((uint32_t)0, ClientContext.ResumptionTicket.Length);
 
     TlsContext ServerContext2, ClientContext2;
-    ServerContext2.InitializeServer(ServerSecConfig);
-    ClientContext2.InitializeClient(ClientSecConfigNoCertValidation, false, 64, &ClientContext.ResumptionTicket);
+    ClientContext2.InitializeClient(ClientConfig, false, 64, &ClientContext.ResumptionTicket);
+    ServerContext2.InitializeServer(ServerConfig);
     DoHandshake(ServerContext2, ClientContext2);
 }
 #endif*/
 
 TEST_F(TlsTest, HandshakeMultiAlpnServer)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig, true);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig, true);
     DoHandshake(ServerContext, ClientContext);
 }
 
 TEST_F(TlsTest, HandshakeMultiAlpnClient)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation, true);
+    ClientContext.InitializeClient(ClientConfig, true);
+    ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext);
 }
 
 TEST_F(TlsTest, HandshakeMultiAlpnBoth)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig, true);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation, true);
+    ClientContext.InitializeClient(ClientConfig, true);
+    ServerContext.InitializeServer(ServerConfig, true);
     DoHandshake(ServerContext, ClientContext);
 }
 
 TEST_F(TlsTest, HandshakeFragmented)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext, 200);
 }
 
 TEST_F(TlsTest, HandshakeVeryFragmented)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig, false, 1500);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation, false, 1500);
+    ClientContext.InitializeClient(ClientConfig, false, 1500);
+    ServerContext.InitializeServer(ServerConfig, false, 1500);
     DoHandshake(ServerContext, ClientContext, 1);
 }
 
 TEST_F(TlsTest, HandshakesSerial)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     {
-        TlsContext ServerContext, ClientContext1;
-        ServerContext.InitializeServer(ServerSecConfig);
-        ClientContext1.InitializeClient(ClientSecConfigNoCertValidation);
-        DoHandshake(ServerContext, ClientContext1);
+        TlsContext ServerContext, ClientContext;
+        ClientContext.InitializeClient(ClientConfig);
+        ServerContext.InitializeServer(ServerConfig);
+        DoHandshake(ServerContext, ClientContext);
     }
     {
-        TlsContext ServerContext, ClientContext2;
-        ServerContext.InitializeServer(ServerSecConfig);
-        ClientContext2.InitializeClient(ClientSecConfigNoCertValidation);
-        DoHandshake(ServerContext, ClientContext2);
+        TlsContext ServerContext, ClientContext;
+        ClientContext.InitializeClient(ClientConfig);
+        ServerContext.InitializeServer(ServerConfig);
+        DoHandshake(ServerContext, ClientContext);
     }
 }
 
 TEST_F(TlsTest, HandshakesInterleaved)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext1, ServerContext2, ClientContext1, ClientContext2;
-    ServerContext1.InitializeServer(ServerSecConfig);
-    ClientContext1.InitializeClient(ClientSecConfigNoCertValidation);
-    ServerContext2.InitializeServer(ServerSecConfig);
-    ClientContext2.InitializeClient(ClientSecConfigNoCertValidation);
+    ClientContext1.InitializeClient(ClientConfig);
+    ClientContext2.InitializeClient(ClientConfig);
+    ServerContext1.InitializeServer(ServerConfig);
+    ServerContext2.InitializeServer(ServerConfig);
 
     auto Result = ClientContext1.ProcessData(nullptr);
     ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
@@ -1280,9 +1139,11 @@ TEST_F(TlsTest, HandshakesInterleaved)
 
 TEST_F(TlsTest, CertificateError)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    ClientContext.InitializeClient(ClientConfig);
     {
         auto Result = ClientContext.ProcessData(nullptr);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
@@ -1299,16 +1160,16 @@ TEST_F(TlsTest, CertificateError)
     }
 }
 
+#ifndef QUIC_DISABLE_DEFERRED_CERT_TESTS
 TEST_F(TlsTest, DeferredCertificateValidationAllow)
 {
-    if (!ClientSecConfigDeferredCertValidation) {
-        std::cout << "WARNING: Test unsupported\n";
-        return; // Unsupported by platform
-    }
-
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
+        QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION);
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     ClientContext.ExpectedValidationStatus = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
 #ifdef _WIN32
     ClientContext.ExpectedErrorFlags = CERT_TRUST_IS_UNTRUSTED_ROOT;
@@ -1331,14 +1192,13 @@ TEST_F(TlsTest, DeferredCertificateValidationAllow)
 
 TEST_F(TlsTest, DeferredCertificateValidationReject)
 {
-    if (!ClientSecConfigDeferredCertValidation) {
-        std::cout << "WARNING: Test unsupported\n";
-        return; // Unsupported by platform
-    }
-
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
+        QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION);
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigDeferredCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     {
         auto Result = ClientContext.ProcessData(nullptr);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
@@ -1353,12 +1213,17 @@ TEST_F(TlsTest, DeferredCertificateValidationReject)
         ASSERT_EQ((0xFF & ClientContext.State.AlertCode), CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE);
     }
 }
+#endif // QUIC_DISABLE_DEFERRED_CERT_TESTS
 
 TEST_F(TlsTest, CustomCertificateValidationAllow)
 {
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigCustomCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     {
         auto Result = ClientContext.ProcessData(nullptr);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
@@ -1375,9 +1240,13 @@ TEST_F(TlsTest, CustomCertificateValidationAllow)
 
 TEST_F(TlsTest, CustomCertificateValidationReject)
 {
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigCustomCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     ClientContext.OnPeerCertReceivedResult = FALSE;
     {
         auto Result = ClientContext.ProcessData(nullptr);
@@ -1396,9 +1265,12 @@ TEST_F(TlsTest, CustomCertificateValidationReject)
 
 TEST_F(TlsTest, ExtraCertificateValidation)
 {
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigExtraCertValidation);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     {
         auto Result = ClientContext.ProcessData(nullptr);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
@@ -1420,9 +1292,11 @@ TEST_P(TlsTest, One1RttKey)
 {
     bool PNE = GetParam();
 
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ServerContext.InitializeServer(ServerConfig);
+    ClientContext.InitializeClient(ClientConfig);
     DoHandshake(ServerContext, ClientContext);
 
     PacketKey ServerKey(ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
@@ -1475,9 +1349,11 @@ TEST_P(TlsTest, KeyUpdate)
 {
     bool PNE = GetParam();
 
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ServerContext.InitializeServer(ServerConfig);
+    ClientContext.InitializeClient(ClientConfig);
     DoHandshake(ServerContext, ClientContext);
 
     QUIC_PACKET_KEY* UpdateWriteKey = nullptr, *UpdateReadKey = nullptr;
@@ -1557,9 +1433,11 @@ TEST_P(TlsTest, PacketEncryptionPerf)
 {
     bool PNE = GetParam();
 
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfig);
-    ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
+    ServerContext.InitializeServer(ServerConfig);
+    ClientContext.InitializeClient(ClientConfig);
     DoHandshake(ServerContext, ClientContext);
 
     PacketKey ServerKey(ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
@@ -1696,34 +1574,48 @@ TEST_F(TlsTest, LockPerfTest)
 #ifndef QUIC_DISABLE_CLIENT_CERT_TESTS
 TEST_F(TlsTest, ClientCertificateFailValidation)
 {
+    CxPlatSecConfig ClientConfig;
+    ClientConfig.Load(&TlsContext::TlsClientCallbacks, ClientCertParams);
+    CxPlatServerSecConfig ServerConfig(QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION);
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfigClientAuth);
-    ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation);
-
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, false, true);
 }
 
 TEST_F(TlsTest, ClientCertificateDeferValidation)
 {
+    CxPlatSecConfig ClientConfig;
+    ClientConfig.Load(&TlsContext::TlsClientCallbacks, ClientCertParams);
+    CxPlatServerSecConfig ServerConfig(
+        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
+        QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
     TlsContext ServerContext, ClientContext;
-    ServerContext.InitializeServer(ServerSecConfigDeferClientAuth);
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     ServerContext.ExpectedValidationStatus = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
-    ClientContext.InitializeClient(ClientSecConfigClientCertNoCertValidation);
-
     DoHandshake(ServerContext, ClientContext);
 }
 #endif
 
 TEST_F(TlsTest, CipherSuiteSuccess)
 {
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatClientSecConfig ClientConfigAes128(
+        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
+    CxPlatServerSecConfig ServerConfig;
+    CxPlatServerSecConfig ServerConfigAes128(
+        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
     //
     // Set Server to use explicit cipher suite, client use default.
     //
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSecConfigAes128);
-        ClientContext.InitializeClient(ClientSecConfigNoCertValidation);
-
+        ClientContext.InitializeClient(ClientConfig);
+        ServerContext.InitializeServer(ServerConfigAes128);
         DoHandshake(ServerContext, ClientContext);
     }
     //
@@ -1731,9 +1623,8 @@ TEST_F(TlsTest, CipherSuiteSuccess)
     //
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSecConfig);
-        ClientContext.InitializeClient(ClientSecConfigAes128);
-
+        ClientContext.InitializeClient(ClientConfigAes128);
+        ServerContext.InitializeServer(ServerConfig);
         DoHandshake(ServerContext, ClientContext);
     }
     //
@@ -1741,29 +1632,36 @@ TEST_F(TlsTest, CipherSuiteSuccess)
     //
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSecConfigAes128);
-        ClientContext.InitializeClient(ClientSecConfigAes128);
-
+        ClientContext.InitializeClient(ClientConfigAes128);
+        ServerContext.InitializeServer(ServerConfigAes128);
         DoHandshake(ServerContext, ClientContext);
     }
 }
 
-TEST_F(TlsTest, CipherSuiteFailure)
+TEST_F(TlsTest, CipherSuiteMismatch)
 {
     //
     // Use mutually-exclusive cipher suites on client and server.
     //
-    {
-        TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSecConfigAes128);
-        ClientContext.InitializeClient(ClientSecConfigAes256);
+    CxPlatClientSecConfig ClientConfigAes256(
+        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384);
+    CxPlatServerSecConfig ServerConfigAes128(
+        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
+        QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfigAes256);
+    ServerContext.InitializeServer(ServerConfigAes128);
 
-        auto Result = ClientContext.ProcessData(nullptr);
-        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+    auto Result = ClientContext.ProcessData(nullptr);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
 
-        Result = ServerContext.ProcessData(&ClientContext.State, DefaultFragmentSize, true);
-        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
-    }
+    Result = ServerContext.ProcessData(&ClientContext.State, DefaultFragmentSize, true);
+    ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
+}
+
+TEST_F(TlsTest, CipherSuiteInvalid)
+{
     for (auto Flag : {
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
             QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES}) {
@@ -1788,7 +1686,7 @@ TEST_F(TlsTest, CipherSuiteFailure)
                     CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                     &TlsContext::TlsClientCallbacks,
                     &TestSecConfig,
-                    OnSecConfigCreateComplete));
+                    CxPlatSecConfig::OnSecConfigCreateComplete));
             ASSERT_EQ(TestSecConfig, nullptr);
         }
         //
@@ -1812,7 +1710,7 @@ TEST_F(TlsTest, CipherSuiteFailure)
                     CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                     &TlsContext::TlsClientCallbacks,
                     &TestSecConfig,
-                    OnSecConfigCreateComplete));
+                    CxPlatSecConfig::OnSecConfigCreateComplete));
             ASSERT_EQ(TestSecConfig, nullptr);
         }
     }
