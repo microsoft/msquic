@@ -112,6 +112,14 @@ foreach ($File in $Files) {
         $Configuration.NumberOfStreams = $Data.NumberOfStreams;
         $Configuration.ServerToClient = $Data.ServerToClient;
         $Model.TputConfig = $Configuration;
+    } elseif ($Data.TestName -eq "TcpThroughput") {
+        $Configuration = [ThroughputConfiguration]::new();
+        $Configuration.Loopback = $Data.Loopback;
+        $Configuration.Encryption = $Data.Encryption;
+        $Configuration.SendBuffering = $Data.SendBuffering;
+        $Configuration.NumberOfStreams = $Data.NumberOfStreams;
+        $Configuration.ServerToClient = $Data.ServerToClient;
+        $Model.TputConfig = $Configuration;
     } elseif ($Data.TestName -eq "RPS") {
         $Configuration = [RpsConfiguration]::new();
         $Configuration.ConnectionCount = $Data.ConnectionCount;
