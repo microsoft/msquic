@@ -719,9 +719,10 @@ class ThroughputTestPublishResult {
         [ThroughputRequest]$Request,
         [double[]]$RunResults,
         [string]$MachineName,
-        [string]$CommitHash
+        [string]$CommitHash,
+        [boolean]$Tcp
     ) {
-        $this.TestName = "Throughput"
+        $this.TestName = $Tcp ? "TcpThroughput" : "Throughput"
         $this.MachineName = $MachineName
         $this.PlatformName = $Request.PlatformName
         $this.CommitHash = $CommitHash
@@ -736,9 +737,9 @@ class ThroughputTestPublishResult {
 }
 
 function Publish-ThroughputTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ServerToClient, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ServerToClient, $ExePath, $Tcp)
 
-    $Request = [ThroughputRequest]::new($Test, $ServerToClient)
+    $Request = [ThroughputRequest]::new($Test, $ServerToClient, $Tcp)
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
@@ -1063,9 +1064,13 @@ function Publish-TestResults {
     param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ExePath)
 
     if ($Test.TestName -eq "ThroughputUp") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ServerToClient $false -ExePath $ExePath
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ServerToClient $false -ExePath $ExePath -Tcp $false
     } elseif ($Test.TestName -eq "ThroughputDown") {
-        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ServerToClient $true -ExePath $ExePath
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ServerToClient $true -ExePath $ExePath -Tcp $false
+    } elseif ($Test.TestName -eq "TcpThroughputUp") {
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ServerToClient $false -ExePath $ExePath -Tcp $true
+    } elseif ($Test.TestName -eq "TcpThroughputDown") {
+        Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ServerToClient $true -ExePath $ExePath -Tcp $true
     } elseif ($Test.TestName -eq "RPS") {
         Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ExePath $ExePath
     } elseif ($Test.TestName -eq "HPS") {
@@ -1394,6 +1399,7 @@ class ExecutableSpec {
 
 class TestDefinition {
     [string]$TestName;
+    [boolean]$SkipKernel;
     [ExecutableSpec]$Local;
     [VariableSpec[]]$Variables;
     [int]$Iterations;
@@ -1458,6 +1464,9 @@ function Test-CanRunTest {
         return $false
     }
     if ($Local -and !$Test.AllowLoopback) {
+        return $false
+    }
+    if ($script:Kernel -and $Test.SkipKernel) {
         return $false
     }
     return $true
