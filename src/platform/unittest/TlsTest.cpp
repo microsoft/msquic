@@ -43,14 +43,13 @@ protected:
             }
         }
         void Load(
-            _In_ const CXPLAT_TLS_CALLBACKS* TlsCallbacks,
             _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
             ) {
             VERIFY_QUIC_SUCCESS(
                 CxPlatTlsSecConfigCreate(
                     CredConfig,
                     CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                    TlsCallbacks,
+                    &TlsContext::TlsCallbacks,
                     &SecConfig,
                     OnSecConfigCreateComplete));
             ASSERT_NE(nullptr, SecConfig);
@@ -78,7 +77,7 @@ protected:
             ) {
             SelfSignedCertParams->Flags = SelfSignedCertParamsFlags | CredFlags;
             SelfSignedCertParams->AllowedCipherSuites = CipherFlags;
-            Load(&TlsContext::TlsServerCallbacks, SelfSignedCertParams);
+            Load(SelfSignedCertParams);
         }
     };
 
@@ -97,7 +96,7 @@ protected:
                 QUIC_ALLOWED_CIPHER_SUITE_NONE};
             CredConfig.Flags |= CredFlags;
             CredConfig.AllowedCipherSuites = CipherFlags;
-            Load(&TlsContext::TlsClientCallbacks, &CredConfig);
+            Load(&CredConfig);
         }
     };
 
@@ -202,22 +201,24 @@ protected:
 
     struct TlsContext
     {
-        CXPLAT_TLS* Ptr;
-        CXPLAT_SEC_CONFIG* SecConfig;
+        CXPLAT_TLS* Ptr {nullptr};
+        CXPLAT_SEC_CONFIG* SecConfig {nullptr};
 
         CXPLAT_TLS_PROCESS_STATE State;
 
-        static const CXPLAT_TLS_CALLBACKS TlsServerCallbacks;
-        static const CXPLAT_TLS_CALLBACKS TlsClientCallbacks;
+        static const CXPLAT_TLS_CALLBACKS TlsCallbacks;
 
-        bool Connected;
-        bool Key0RttReady;
-        bool Key1RttReady;
+        bool ReceivedPeerCertificate {false};
 
-        TlsContext() :
-            Ptr(nullptr),
-            SecConfig(nullptr),
-            Connected(false) {
+        BOOLEAN OnPeerCertReceivedResult {TRUE};
+        BOOLEAN OnSessionTicketReceivedResult {TRUE};
+
+        QUIC_BUFFER ReceivedSessionTicket {0, nullptr};
+
+        uint32_t ExpectedErrorFlags {0};
+        QUIC_STATUS ExpectedValidationStatus {QUIC_STATUS_SUCCESS};
+
+        TlsContext() {
             CxPlatZeroMemory(&State, sizeof(State));
             State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, QUIC_POOL_TEST);
             State.BufferAllocLength = 8000;
@@ -230,8 +231,8 @@ protected:
                 QuicPacketKeyFree(State.ReadKeys[i]);
                 QuicPacketKeyFree(State.WriteKeys[i]);
             }
-            if (ResumptionTicket.Buffer) {
-                CXPLAT_FREE(ResumptionTicket.Buffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+            if (ReceivedSessionTicket.Buffer) {
+                CXPLAT_FREE(ReceivedSessionTicket.Buffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
             }
         }
 
@@ -407,13 +408,6 @@ protected:
 
     public:
 
-        QUIC_BUFFER ResumptionTicket {0, nullptr};
-
-        bool OnPeerCertReceivedCalled{false};
-        uint32_t ExpectedErrorFlags {0};
-        QUIC_STATUS ExpectedValidationStatus {QUIC_STATUS_SUCCESS};
-        BOOLEAN OnPeerCertReceivedResult{TRUE};
-
         CXPLAT_TLS_RESULT_FLAGS
         ProcessData(
             _Inout_ CXPLAT_TLS_PROCESS_STATE* PeerState,
@@ -481,7 +475,7 @@ protected:
     private:
 
         static BOOLEAN
-        OnRecvQuicTP(
+        OnQuicTPReceived(
             _In_ QUIC_CONNECTION* Connection,
             _In_ uint16_t TPLength,
             _In_reads_(TPLength) const uint8_t* TPBuffer
@@ -494,37 +488,26 @@ protected:
         }
 
         static BOOLEAN
-        OnRecvTicketServer(
+        OnSessionTicketReceived(
             _In_ QUIC_CONNECTION* Connection,
             _In_ uint32_t TicketLength,
             _In_reads_(TicketLength) const uint8_t* Ticket
             )
         {
-            UNREFERENCED_PARAMETER(Connection);
-            UNREFERENCED_PARAMETER(TicketLength);
-            UNREFERENCED_PARAMETER(Ticket);
-            return TRUE;
-        }
-
-        static BOOLEAN
-        OnRecvTicketClient(
-            _In_ QUIC_CONNECTION* Connection,
-            _In_ uint32_t TicketLength,
-            _In_reads_(TicketLength) const uint8_t* Ticket
-            )
-        {
-            //std::cout << "==RecvTicketClient==" << std::endl;
+            //std::cout << "==RecvTicket==" << std::endl;
             auto Context = (TlsContext*)Connection;
-            if (Context->ResumptionTicket.Buffer == nullptr) {
-                Context->ResumptionTicket.Buffer =
+            if (Context->ReceivedSessionTicket.Buffer == nullptr) {
+                Context->ReceivedSessionTicket.Buffer =
                     (uint8_t*)CXPLAT_ALLOC_NONPAGED(TicketLength, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
-                Context->ResumptionTicket.Length = TicketLength;
-                CxPlatCopyMemory(
-                    Context->ResumptionTicket.Buffer,
-                    Ticket,
-                    TicketLength);
+                Context->ReceivedSessionTicket.Length = TicketLength;
+                if (TicketLength != 0) {
+                    CxPlatCopyMemory(
+                        Context->ReceivedSessionTicket.Buffer,
+                        Ticket,
+                        TicketLength);
+                }
             }
-            return TRUE;
+            return Context->OnSessionTicketReceivedResult;
         }
 
         static BOOLEAN
@@ -536,7 +519,7 @@ protected:
             )
         {
             auto Context = (TlsContext*)Connection;
-            Context->OnPeerCertReceivedCalled = true;
+            Context->ReceivedPeerCertificate = true;
             if (Context->ExpectedErrorFlags != DeferredErrorFlags) {
                 std::cout << "Incorrect ErrorFlags: " << DeferredErrorFlags << "\n";
                 return FALSE;
@@ -650,6 +633,7 @@ protected:
         Result = ClientContext.ProcessData(&ServerContext.State, FragmentSize);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
+        ASSERT_TRUE(ClientContext.State.HandshakeComplete);
         ASSERT_NE(nullptr, ClientContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
         Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize, ServerResultError);
@@ -657,6 +641,7 @@ protected:
             ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
         } else {
             ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
+            ASSERT_TRUE(ServerContext.State.HandshakeComplete);
         }
 
         if (SendResumptionTicket) {
@@ -748,15 +733,9 @@ protected:
     }
 };
 
-const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsServerCallbacks = {
-    TlsTest::TlsContext::OnRecvQuicTP,
-    TlsTest::TlsContext::OnRecvTicketServer,
-    TlsTest::TlsContext::OnPeerCertReceived
-};
-
-const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsClientCallbacks = {
-    TlsTest::TlsContext::OnRecvQuicTP,
-    TlsTest::TlsContext::OnRecvTicketClient,
+const CXPLAT_TLS_CALLBACKS TlsTest::TlsContext::TlsCallbacks = {
+    TlsTest::TlsContext::OnQuicTPReceived,
+    TlsTest::TlsContext::OnSessionTicketReceived,
     TlsTest::TlsContext::OnPeerCertReceived
 };
 
@@ -782,13 +761,16 @@ TEST_F(TlsTest, Handshake)
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext);
+
+    ASSERT_FALSE(ClientContext.State.SessionResumed);
+    ASSERT_FALSE(ServerContext.State.SessionResumed);
 }
 
 #ifndef QUIC_DISABLE_PFX_TESTS
 TEST_F(TlsTest, HandshakeCertFromFile)
 {
     CxPlatSecConfig ClientConfig;
-    ClientConfig.Load(&TlsContext::TlsClientCallbacks, CertParamsFromFile);
+    ClientConfig.Load(CertParamsFromFile);
     CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
@@ -1055,7 +1037,7 @@ TEST_F(TlsTest, HandshakeParallel)
     }
 }
 
-/*#ifndef QUIC_DISABLE_0RTT_TESTS
+#ifndef QUIC_DISABLE_0RTT_TESTS
 TEST_F(TlsTest, HandshakeResumption)
 {
     CxPlatClientSecConfig ClientConfig;
@@ -1065,15 +1047,46 @@ TEST_F(TlsTest, HandshakeResumption)
     ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
 
-    ASSERT_NE(nullptr, ClientContext.ResumptionTicket.Buffer);
-    //ASSERT_NE((uint32_t)0, ClientContext.ResumptionTicket.Length);
+    ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
+    ASSERT_NE((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
 
     TlsContext ServerContext2, ClientContext2;
-    ClientContext2.InitializeClient(ClientConfig, false, 64, &ClientContext.ResumptionTicket);
+    ClientContext2.InitializeClient(ClientConfig, false, 64, &ClientContext.ReceivedSessionTicket);
     ServerContext2.InitializeServer(ServerConfig);
     DoHandshake(ServerContext2, ClientContext2);
+
+    ASSERT_TRUE(ClientContext2.State.SessionResumed);
+    ASSERT_TRUE(ServerContext2.State.SessionResumed);
+
+    ASSERT_NE(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
+    ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
 }
-#endif*/
+
+TEST_F(TlsTest, HandshakeResumptionRejection)
+{
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
+
+    ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
+    ASSERT_NE((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
+
+    TlsContext ServerContext2, ClientContext2;
+    ClientContext2.InitializeClient(ClientConfig, false, 64, &ClientContext.ReceivedSessionTicket);
+    ServerContext2.InitializeServer(ServerConfig);
+    ServerContext2.OnSessionTicketReceivedResult = FALSE;
+    DoHandshake(ServerContext2, ClientContext2);
+
+    ASSERT_FALSE(ClientContext2.State.SessionResumed);
+    ASSERT_FALSE(ServerContext2.State.SessionResumed);
+
+    ASSERT_NE(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
+    ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
+}
+#endif
 
 TEST_F(TlsTest, HandshakeMultiAlpnServer)
 {
@@ -1232,7 +1245,7 @@ TEST_F(TlsTest, DeferredCertificateValidationAllow)
         ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
         Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
-        ASSERT_TRUE(ClientContext.OnPeerCertReceivedCalled);
+        ASSERT_TRUE(ClientContext.ReceivedPeerCertificate);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
     }
 }
@@ -1255,7 +1268,7 @@ TEST_F(TlsTest, DeferredCertificateValidationReject)
         ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
         Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
-        ASSERT_TRUE(ClientContext.OnPeerCertReceivedCalled);
+        ASSERT_TRUE(ClientContext.ReceivedPeerCertificate);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
         ASSERT_EQ((0xFF & ClientContext.State.AlertCode), CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE);
     }
@@ -1280,7 +1293,7 @@ TEST_F(TlsTest, CustomCertificateValidationAllow)
         ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
         Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
-        ASSERT_TRUE(ClientContext.OnPeerCertReceivedCalled);
+        ASSERT_TRUE(ClientContext.ReceivedPeerCertificate);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
     }
 }
@@ -1304,7 +1317,7 @@ TEST_F(TlsTest, CustomCertificateValidationReject)
         ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
         Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
-        ASSERT_TRUE(ClientContext.OnPeerCertReceivedCalled);
+        ASSERT_TRUE(ClientContext.ReceivedPeerCertificate);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
         ASSERT_EQ((0xFF & ClientContext.State.AlertCode), CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE);
     }
@@ -1327,7 +1340,7 @@ TEST_F(TlsTest, ExtraCertificateValidation)
         ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
         Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
-        ASSERT_FALSE(ClientContext.OnPeerCertReceivedCalled);
+        ASSERT_FALSE(ClientContext.ReceivedPeerCertificate);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_ERROR);
         ASSERT_TRUE(
             (0xFF & ClientContext.State.AlertCode) == CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE ||
@@ -1622,7 +1635,7 @@ TEST_F(TlsTest, LockPerfTest)
 TEST_F(TlsTest, ClientCertificateFailValidation)
 {
     CxPlatSecConfig ClientConfig;
-    ClientConfig.Load(&TlsContext::TlsClientCallbacks, ClientCertParams);
+    ClientConfig.Load(ClientCertParams);
     CxPlatServerSecConfig ServerConfig(QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION);
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
@@ -1633,7 +1646,7 @@ TEST_F(TlsTest, ClientCertificateFailValidation)
 TEST_F(TlsTest, ClientCertificateDeferValidation)
 {
     CxPlatSecConfig ClientConfig;
-    ClientConfig.Load(&TlsContext::TlsClientCallbacks, ClientCertParams);
+    ClientConfig.Load(ClientCertParams);
     CxPlatServerSecConfig ServerConfig(
         QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
         QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
@@ -1742,7 +1755,7 @@ TEST_F(TlsTest, CipherSuiteInvalid)
                 CxPlatTlsSecConfigCreate(
                     &TestCredConfig,
                     CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                    &TlsContext::TlsClientCallbacks,
+                    &TlsContext::TlsCallbacks,
                     &TestSecConfig,
                     CxPlatSecConfig::OnSecConfigCreateComplete));
             ASSERT_EQ(TestSecConfig, nullptr);
@@ -1766,7 +1779,7 @@ TEST_F(TlsTest, CipherSuiteInvalid)
                 CxPlatTlsSecConfigCreate(
                     &TestCredConfig,
                     CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                    &TlsContext::TlsClientCallbacks,
+                    &TlsContext::TlsCallbacks,
                     &TestSecConfig,
                     CxPlatSecConfig::OnSecConfigCreateComplete));
             ASSERT_EQ(TestSecConfig, nullptr);

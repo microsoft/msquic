@@ -731,9 +731,7 @@ CxPlatTlsOnServerSessionTicketDecrypted(
     uint8_t* Buffer = NULL;
     size_t Length = 0;
     if (Session != NULL &&
-        SSL_SESSION_get0_ticket_appdata(Session, &Buffer, &Length) &&
-        Length != 0 &&
-        Buffer != NULL) {
+        SSL_SESSION_get0_ticket_appdata(Session, &Buffer, &Length)) {
 
         QuicTraceLogConnVerbose(
             OpenSslRecvTicketData,
