@@ -1154,11 +1154,16 @@ CxPlatTlsSecConfigCreate(
                 goto Exit;
             }
 
-            STACK_OF(X509) *Ca = NULL;
+            STACK_OF(X509) *CaCertificates = NULL;
             Ret =
-                PKCS12_parse(Pkcs12, CredConfig->CertificatePkcs12->PrivateKeyPassword, &PrivateKey, &X509Cert, &Ca);
-            if (Ca) {
-                sk_X509_pop_free(Ca, X509_free); // no handling for custom certificate chains yet.
+                PKCS12_parse(Pkcs12, CredConfig->CertificatePkcs12->PrivateKeyPassword, &PrivateKey, &X509Cert, &CaCertificates);
+            if (CaCertificates) {
+                X509* CaCert;
+                while ((CaCert = sk_X509_pop(CaCertificates)))
+                {
+                    // This transfers ownership to SSLCtx and CaCert does not need to be freed.
+                    SSL_CTX_add_extra_chain_cert(SecurityConfig->SSLCtx, CaCert);
+                }
             }
             if (Pkcs12) {
                 PKCS12_free(Pkcs12);
