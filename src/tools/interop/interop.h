@@ -28,10 +28,11 @@ enum QuicTestFeature {
     KeyUpdate           = 0x0100,
     CidUpdate           = 0x0200,
     NatRebinding        = 0x0400,
-    Datagram            = 0x0800
+    Datagram            = 0x0800,
+    ChaCha20            = 0x1000
 };
 
-#define QuicTestFeatureCodes "VHDCRZSQUMBG"
+#define QuicTestFeatureCodes "VHDCRZSQUMBG2"
 
 const uint32_t QuicTestFeatureCount = sizeof(QuicTestFeatureCodes) - 1;
 const uint32_t QuicTestFeatureAll = ((1 << QuicTestFeatureCount) - 1);

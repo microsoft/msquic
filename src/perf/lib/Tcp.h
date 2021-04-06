@@ -220,12 +220,6 @@ class TcpConnection {
         _In_ uint32_t ByteCount
         );
     static
-    _IRQL_requires_max_(DISPATCH_LEVEL)
-    void
-    TlsProcessCompleteCallback(
-        _In_ QUIC_CONNECTION* Connection
-        );
-    static
     _IRQL_requires_max_(PASSIVE_LEVEL)
     BOOLEAN
     TlsReceiveTpCallback(

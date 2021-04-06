@@ -369,7 +369,7 @@ const WORD TlsHandshake_ClientHello = 0x01;
 const WORD TlsHandshake_EncryptedExtensions = 0x08;
 
 // {791A59D6-34C8-4ADE-9B53-D13EEA4E9F0B}
-static const GUID CxPlatTlsClientCertPolicyGuid = 
+static const GUID CxPlatTlsClientCertPolicyGuid =
 {
     0x791a59d6,
     0x34c8,
@@ -1339,8 +1339,8 @@ CxPlatTlsSecConfigCreate(
                 sizeof(BCRYPT_AES_ALGORITHM),
                 sizeof(BCRYPT_AES_ALGORITHM),
                 BCRYPT_AES_ALGORITHM};
-            AchContext->CryptoSettings[CryptoSettingsIdx].dwMaxBitLength = 256;
-            AchContext->CryptoSettings[CryptoSettingsIdx].dwMinBitLength = 256;
+            AchContext->CryptoSettings[CryptoSettingsIdx].dwMaxBitLength = 128;
+            AchContext->CryptoSettings[CryptoSettingsIdx].dwMinBitLength = 128;
             CryptoSettingsIdx++;
 
             AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageDigest;
@@ -1356,8 +1356,8 @@ CxPlatTlsSecConfigCreate(
                 sizeof(BCRYPT_AES_ALGORITHM),
                 sizeof(BCRYPT_AES_ALGORITHM),
                 BCRYPT_AES_ALGORITHM};
-            AchContext->CryptoSettings[CryptoSettingsIdx].dwMaxBitLength = 128;
-            AchContext->CryptoSettings[CryptoSettingsIdx].dwMinBitLength = 128;
+            AchContext->CryptoSettings[CryptoSettingsIdx].dwMaxBitLength = 256;
+            AchContext->CryptoSettings[CryptoSettingsIdx].dwMinBitLength = 256;
             CryptoSettingsIdx++;
 
             AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageDigest;
@@ -2347,7 +2347,7 @@ CxPlatTlsWriteDataToSchannel(
                 "Handshake complete (resume=%hu)",
                 State->SessionResumed);
             State->HandshakeComplete = TRUE;
-            Result |= CXPLAT_TLS_RESULT_COMPLETE;
+            Result |= CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE;
         }
 
         __fallthrough;
@@ -2828,18 +2828,6 @@ CxPlatTlsProcessData(
 Error:
 
     return Result;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-CXPLAT_TLS_RESULT_FLAGS
-CxPlatTlsProcessDataComplete(
-    _In_ CXPLAT_TLS* TlsContext,
-    _Out_ uint32_t * BufferConsumed
-    )
-{
-    UNREFERENCED_PARAMETER(TlsContext);
-    *BufferConsumed = 0;
-    return CXPLAT_TLS_RESULT_ERROR;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

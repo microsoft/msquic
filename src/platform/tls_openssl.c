@@ -139,7 +139,7 @@ typedef struct CXPLAT_HP_KEY {
 //
 // Default list of Cipher used.
 //
-#define CXPLAT_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
+#define CXPLAT_TLS_DEFAULT_SSL_CIPHERS    "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256"
 
 #define CXPLAT_TLS_AES_128_GCM_SHA256       "TLS_AES_128_GCM_SHA256"
 #define CXPLAT_TLS_AES_256_GCM_SHA384       "TLS_AES_256_GCM_SHA384"
@@ -1785,7 +1785,7 @@ CxPlatTlsProcessData(
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_REJECT;
             }
         }
-        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_COMPLETE;
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE;
 
         if (TlsContext->IsServer) {
             TlsContext->State->ReadKey = QUIC_PACKET_KEY_1_RTT;
@@ -1852,18 +1852,6 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-CXPLAT_TLS_RESULT_FLAGS
-CxPlatTlsProcessDataComplete(
-    _In_ CXPLAT_TLS* TlsContext,
-    _Out_ uint32_t * ConsumedBuffer
-    )
-{
-    UNREFERENCED_PARAMETER(TlsContext);
-    *ConsumedBuffer = 0;
-    return CXPLAT_TLS_RESULT_ERROR;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsParamSet(
     _In_ CXPLAT_TLS* TlsContext,
@@ -1908,14 +1896,11 @@ CxPlatMapCipherSuite(
             HandshakeInfo->CipherStrength = 256;
             HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_SHA_384;
             break;
-        //
-        // Not supporting ChaChaPoly for querying currently.
-        //
-        // case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
-        //     HandshakeInfo->CipherAlgorithm = QUIC_ALG_CHACHA20;
-        //     HandshakeInfo->CipherStrength = 256;
-        //     HandshakeInfo->Hash = QUIC_ALG_SHA_256;
-        //     break;
+        case QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256:
+            HandshakeInfo->CipherAlgorithm = QUIC_CIPHER_ALGORITHM_CHACHA20;
+            HandshakeInfo->CipherStrength = 256; // TODO - Is this correct?
+            HandshakeInfo->Hash = QUIC_HASH_ALGORITHM_SHA_256;
+            break;
         default:
             Status = QUIC_STATUS_NOT_SUPPORTED;
             break;

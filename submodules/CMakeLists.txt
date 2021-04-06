@@ -65,6 +65,10 @@ set(OPENSSL_CONFIG_FLAGS
     no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
     no-weak-ssl-ciphers no-shared no-tests ${QUIC_OPENSSL_WIN_ARCH})
 
+if (QUIC_UWP_BUILD)
+    list(APPEND OPENSSL_CONFIG_FLAGS no-async)
+endif()
+
 # Create working and output directories as needed
 file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
 file(MAKE_DIRECTORY ${OPENSSL_DIR}/release/include)

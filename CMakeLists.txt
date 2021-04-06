@@ -220,13 +220,17 @@ if(QUIC_TLS STREQUAL "schannel")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
     message(STATUS "Disabling 0-RTT support")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
+    message(STATUS "Disabling ChaCha20 support")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CHACHA20_TESTS)
 endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Disabling client certificate tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CLIENT_CERT_TESTS)
+    message(STATUS "Disabling deferred certificate tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_DEFERRED_CERT_TESTS)
 endif()
-    
+
 if (CMAKE_GENERATOR_PLATFORM STREQUAL "")
     string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
 else()
