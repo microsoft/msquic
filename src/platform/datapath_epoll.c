@@ -1649,8 +1649,7 @@ CxPlatSocketContextSendComplete(
                 SocketContext,
                 SendData->Bind ? &SendData->LocalAddress : NULL,
                 &SendData->RemoteAddress,
-                SendData,
-                TRUE);
+                SendData);
         CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
         if (Status != QUIC_STATUS_PENDING) {
             CxPlatListRemoveHead(&SocketContext->PendingSendDataHead);
@@ -2510,7 +2509,7 @@ CxPlatSocketSendInternal(
         CMsg->cmsg_len = CMSG_LEN(sizeof(int));
         *(int *)CMSG_DATA(CMsg) = SendData->ECN;
 
-        if (!Socket->Connected) {
+        if (!SocketContext->Binding->Connected) {
             Mhdr->msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
             CMsg = CMSG_NXTHDR(Mhdr, CMsg);
             CXPLAT_DBG_ASSERT(LocalAddress != NULL);
