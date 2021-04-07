@@ -1098,8 +1098,12 @@
                 name="Connection"
                 />
             <data
-                inType="win:UInt64"
+                inType="win:UInt32"
                 map="map_QUIC_TRANSPORT_SHUTDOWN_REASON"
+                name="ShortErrorCode"
+                />
+            <data
+                inType="win:UInt64"
                 name="ErrorCode"
                 />
             <data
@@ -3178,7 +3182,7 @@
             />
         <string
             id="Etw.ConnTransportShutdown"
-            value="[conn][%1] Transport Shutdown: %2 (Remote=%3) (QS=%4)"
+            value="[conn][%1] Transport Shutdown: %2 (%3) (Remote=%4) (QS=%5)"
             />
         <string
             id="Etw.ConnAppShutdown"

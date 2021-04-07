@@ -1756,7 +1756,7 @@
     },
     "ConnTransportShutdown": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Transport Shutdown: %llu (Remote=%hhu) (QS=%hhu)",
+      "TraceString": "[conn][%p] Transport Shutdown: %u (%llu) (Remote=%hhu) (QS=%hhu)",
       "UniqueId": "ConnTransportShutdown",
       "splitArgs": [
         {
@@ -1764,16 +1764,20 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         },
         {
           "DefinationEncoding": "hhu",
           "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg6"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -11000,7 +11004,7 @@
         "TraceID": "ConnAppShutdown"
       },
       {
-        "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",
+        "UniquenessHash": "1eb32826-3640-9696-bd14-4c462c417744",
         "TraceID": "ConnTransportShutdown"
       },
       {
