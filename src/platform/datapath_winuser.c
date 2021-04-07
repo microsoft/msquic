@@ -183,8 +183,8 @@ typedef struct CXPLAT_SEND_DATA {
     //
     WSABUF ClientBuffer;
 
-    QUIC_ADDR RemoteAddr;
-    QUIC_ADDR LocalAddr;
+    QUIC_ADDR RemoteAddress;
+    QUIC_ADDR LocalAddress;
 
 } CXPLAT_SEND_DATA;
 
@@ -3626,6 +3626,7 @@ CxPlatSocketSend(
 {
     QUIC_STATUS Status;
     CXPLAT_SOCKET_PROC* SocketProc;
+    BOOL Result;
 
     CXPLAT_DBG_ASSERT(
         Socket != NULL && LocalAddress != NULL &&
@@ -3640,16 +3641,24 @@ CxPlatSocketSend(
 
     CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
 
-    SendData->LocalAddr = *LocalAddress;
-    SendData->RemoteAddr = *RemoteAddress;
+    CxPlatCopyMemory(
+        &SendData->LocalAddress,
+        LocalAddress,
+        sizeof(*LocalAddress));
 
-    PostQueuedCompletionStatus(
+    CxPlatCopyMemory(
+        &SendData->RemoteAddress,
+        RemoteAddress,
+        sizeof(*RemoteAddress));
+
+    RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
+    Result = PostQueuedCompletionStatus(
         Socket->Datapath->Processors[GetCurrentProcessorNumber()].IOCP,
         UINT32_MAX,
         (ULONG_PTR)SocketProc,
         &SendData->Overlapped);
 
-    Status = QUIC_STATUS_SUCCESS;
+    Status = Result ? QUIC_STATUS_SUCCESS : QUIC_STATUS_INTERNAL_ERROR;
 
 Exit:
     return Status;
@@ -3658,7 +3667,7 @@ Exit:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSendInternal(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData
@@ -3666,12 +3675,12 @@ CxPlatSocketSendInternal(
 {
     QUIC_STATUS Status;
     CXPLAT_DATAPATH* Datapath;
-    CXPLAT_SOCKET_PROC* SocketProc;
+    CXPLAT_SOCKET* Socket;
     int Result;
     DWORD BytesSent;
 
-    Datapath = Socket->Datapath;
-    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : GetCurrentProcessorNumber()];
+    Datapath = SocketProc->Parent->Datapath;
+    Socket = SocketProc->Parent;
 
     QuicTraceEvent(
         DatapathSend,
@@ -3957,12 +3966,10 @@ CxPlatDataPathWorkerThread(
                     Overlapped);
 
             if (NumberOfBytesTransferred == UINT32_MAX) {
-                CXPLAT_SOCKET* Socket = SocketProc->Parent;
-
                 CxPlatSocketSendInternal(
-                    Socket,
-                    &SendData->RemoteAddr,
-                    &SendData->LocalAddr,
+                    SocketProc,
+                    &SendData->LocalAddress,
+                    &SendData->RemoteAddress,
                     SendData);
                 
             } else {
