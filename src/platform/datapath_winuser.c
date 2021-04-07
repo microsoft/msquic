@@ -183,6 +183,9 @@ typedef struct CXPLAT_SEND_DATA {
     //
     WSABUF ClientBuffer;
 
+    QUIC_ADDR RemoteAddr;
+    QUIC_ADDR LocalAddr;
+
 } CXPLAT_SEND_DATA;
 
 //
@@ -3622,10 +3625,7 @@ CxPlatSocketSend(
     )
 {
     QUIC_STATUS Status;
-    CXPLAT_DATAPATH* Datapath;
     CXPLAT_SOCKET_PROC* SocketProc;
-    int Result;
-    DWORD BytesSent;
 
     CXPLAT_DBG_ASSERT(
         Socket != NULL && LocalAddress != NULL &&
@@ -3636,7 +3636,39 @@ CxPlatSocketSend(
         goto Exit;
     }
 
+    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : GetCurrentProcessorNumber()];
+
     CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
+
+    SendData->LocalAddr = *LocalAddress;
+    SendData->RemoteAddr = *RemoteAddress;
+
+    PostQueuedCompletionStatus(
+        Socket->Datapath->Processors[GetCurrentProcessorNumber()].IOCP,
+        UINT32_MAX,
+        (ULONG_PTR)SocketProc,
+        &SendData->Overlapped);
+
+    Status = QUIC_STATUS_SUCCESS;
+
+Exit:
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatSocketSendInternal(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    QUIC_STATUS Status;
+    CXPLAT_DATAPATH* Datapath;
+    CXPLAT_SOCKET_PROC* SocketProc;
+    int Result;
+    DWORD BytesSent;
 
     Datapath = Socket->Datapath;
     SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : GetCurrentProcessorNumber()];
@@ -3924,10 +3956,21 @@ CxPlatDataPathWorkerThread(
                     CXPLAT_SEND_DATA,
                     Overlapped);
 
-            CxPlatSendDataComplete(
-                SocketProc,
-                SendData,
-                IoResult);
+            if (NumberOfBytesTransferred == UINT32_MAX) {
+                CXPLAT_SOCKET* Socket = SocketProc->Parent;
+
+                CxPlatSocketSendInternal(
+                    Socket,
+                    &SendData->RemoteAddr,
+                    &SendData->LocalAddr,
+                    SendData);
+                
+            } else {
+                CxPlatSendDataComplete(
+                    SocketProc,
+                    SendData,
+                    IoResult);
+            }
         }
     }
 
