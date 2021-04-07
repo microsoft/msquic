@@ -95,6 +95,9 @@ typedef struct CXPLAT_SEND_DATA {
     //
     QUIC_ADDR RemoteAddress;
 
+    //
+    // The Partition Index for this send.
+    //
     uint16_t PartitionIndex;
 
     //

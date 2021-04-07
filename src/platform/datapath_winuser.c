@@ -183,8 +183,15 @@ typedef struct CXPLAT_SEND_DATA {
     //
     WSABUF ClientBuffer;
 
-    QUIC_ADDR RemoteAddress;
+    //
+    // The local address to bind to.
+    //
     QUIC_ADDR LocalAddress;
+
+    //
+    // The remote address to send to.
+    //
+    QUIC_ADDR RemoteAddress;
 
 } CXPLAT_SEND_DATA;
 
