@@ -95,6 +95,8 @@ typedef struct CXPLAT_SEND_DATA {
     //
     QUIC_ADDR RemoteAddress;
 
+    uint16_t PartitionIndex;
+
     //
     // Linkage to pending send list.
     //
@@ -1645,6 +1647,7 @@ CxPlatSocketContextSendComplete(
                 SendData->Bind ? &SendData->LocalAddress : NULL,
                 &SendData->RemoteAddress,
                 SendData,
+                SendData->PartitionIndex,
                 TRUE);
         CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
         if (Status != QUIC_STATUS_PENDING) {
@@ -2450,6 +2453,7 @@ CxPlatSocketSendInternal(
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ uint16_t PartitionIndex
     _In_ BOOLEAN IsPendedSend
     )
 {
@@ -2480,7 +2484,7 @@ CxPlatSocketSendInternal(
     if (Socket->HasFixedRemoteAddress) {
         SocketContext = &Socket->SocketContexts[0];
     } else {
-        uint32_t ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
+        uint32_t ProcNumber = PartitionIndex % Socket->Datapath->ProcCount;
         SocketContext = &Socket->SocketContexts[ProcNumber];
     }
 
@@ -2504,14 +2508,13 @@ CxPlatSocketSendInternal(
         // Check to see if we need to pend.
         //
         CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
-        if (!CxPlatListIsEmpty(&SocketContext->PendingSendDataHead)) {
-            CxPlatSocketContextPendSend(
-                SocketContext,
-                SendData,
-                LocalAddress,
-                RemoteAddress);
-            SendPending = TRUE;
-        }
+        SendData->PartitionIndex = PartitionIndex;
+        CxPlatSocketContextPendSend(
+            SocketContext,
+            SendData,
+            LocalAddress,
+            RemoteAddress);
+        SendPending = TRUE;
         CxPlatLockRelease(&SocketContext->PendingSendDataLock);
         if (SendPending) {
             Status = QUIC_STATUS_PENDING;
@@ -2602,6 +2605,7 @@ CxPlatSocketSendInternal(
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 if (!IsPendedSend) {
                     CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
+                    SendData->PartitionIndex = PartitionIndex;
                     CxPlatSocketContextPendSend(
                         SocketContext,
                         SendData,
@@ -2683,7 +2687,8 @@ CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendData
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ uint16_t PartitionIndex
     )
 {
 #ifdef CX_PLATFORM_DISPATCH_TABLE
@@ -2700,6 +2705,7 @@ CxPlatSocketSend(
             LocalAddress,
             RemoteAddress,
             SendData,
+            PartitionIndex
             FALSE);
     if (Status == QUIC_STATUS_PENDING) {
         Status = QUIC_STATUS_SUCCESS;
