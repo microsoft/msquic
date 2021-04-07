@@ -139,6 +139,7 @@ void TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex
 {
     CXPLAT_DBG_ASSERT(PartitionIndex < ProcCount);
     CXPLAT_DBG_ASSERT(!Connection->Worker);
+    Connection->PartitionIndex = PartitionIndex;
     Connection->Worker = &Workers[PartitionIndex];
 }
 
@@ -522,7 +523,7 @@ void TcpConnection::Process()
     }
     if (BatchedSendData) {
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, 0))) {
+            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, this->PartitionIndex))) {
             IndicateDisconnect = true;
         }
         BatchedSendData = nullptr;
@@ -905,7 +906,7 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, 0))) {
+            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, this->PartitionIndex))) {
             WriteOutput("CxPlatSocketSend FAILED\n");
             return false;
         }
