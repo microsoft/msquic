@@ -523,7 +523,7 @@ void TcpConnection::Process()
     }
     if (BatchedSendData) {
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, this->PartitionIndex))) {
+            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, PartitionIndex))) {
             IndicateDisconnect = true;
         }
         BatchedSendData = nullptr;
@@ -906,7 +906,7 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, this->PartitionIndex))) {
+            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, PartitionIndex))) {
             WriteOutput("CxPlatSocketSend FAILED\n");
             return false;
         }
