@@ -162,7 +162,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
             &LocalAddress,
             &ServerAddress,
             SendData,
-            CxPlatProcCurrentNumber())));
+            (uint16_6)CxPlatProcCurrentNumber())));
     }
 }
 
@@ -293,7 +293,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             &LocalAddress,
             &ServerAddress,
             SendData,
-            CxPlatProcCurrentNumber())));
+            (uint16_6)CxPlatProcCurrentNumber())));
     }
 }
 
