@@ -26,8 +26,8 @@
                 {
                     "Name": "SendBuffering",
                     "Local": {
-                        "On": "",
-                        "Off": "-sendbuf:0"
+                        "On": "-sendbuf:1",
+                        "Off": ""
                     },
                     "Default": "Off"
                 }
@@ -79,8 +79,8 @@
                 {
                     "Name": "SendBuffering",
                     "Local": {
-                        "On": "",
-                        "Off": "-sendbuf:0"
+                        "On": "-sendbuf:1",
+                        "Off": ""
                     },
                     "Default": "Off"
                 }

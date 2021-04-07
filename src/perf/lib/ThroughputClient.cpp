@@ -32,7 +32,7 @@ PrintHelp(
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -ip:<0/4/6>                 A hint for the resolving the hostname to an IP address. (def:0)\n"
         "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
-        "  -sendbuf:<0/1>              Whether to use send buffering. (def:1)\n"
+        "  -sendbuf:<0/1>              Whether to use send buffering. (def:0)\n"
         "  -pacing:<0/1>               Whether to use pacing. (def:1)\n"
         "  -timed:<0/1>                Indicates the upload/download arg time (ms). (def:0)\n"
         "  -upload:<####>              The length of data (or time with -timed:1 arg) to send. (def:0)\n"
