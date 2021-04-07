@@ -113,6 +113,7 @@ endif()
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
 option(QUIC_BUILD_PERF "Builds the perf code" ON)
+option(QUIC_BUILD_SHARED "Builds msquic as a dynamic library" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" OFF)
 option(QUIC_ENABLE_SANITIZERS "Enables sanitizers" OFF)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
@@ -128,6 +129,8 @@ option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
+
+set(BUILD_SHARED_LIBS ${QUIC_BUILD_SHARED})
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")

@@ -7,7 +7,12 @@ else()
     set(SOURCES linux/init.c)
 endif()
 
-add_library(msquic SHARED ${SOURCES})
+if(BUILD_SHARED_LIBS)
+    add_library(msquic SHARED ${SOURCES})
+else()
+    add_library(msquic STATIC static/init.c)
+    target_compile_definitions(msquic PUBLIC QUIC_BUILD_STATIC)
+endif()
 
 set_property(TARGET msquic PROPERTY FOLDER "libraries")
 
@@ -44,12 +49,14 @@ configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
 
 install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
 
-install(EXPORT msquic DESTINATION ${msquic_dest})
+if(BUILD_SHARED_LIBS)
+    install(EXPORT msquic DESTINATION ${msquic_dest})
+endif()
 
 if(WIN32)
     add_library(msquic.lttng INTERFACE)
 elseif(QUIC_ENABLE_LOGGING)
-    add_library(msquic.lttng SHARED $<TARGET_OBJECTS:platform.clog.provider> $<TARGET_OBJECTS:core.clog.provider>)
+    add_library(msquic.lttng $<TARGET_OBJECTS:platform.clog.provider> $<TARGET_OBJECTS:core.clog.provider>)
     target_link_libraries(msquic.lttng inc)
     install(TARGETS msquic.lttng DESTINATION "${main_lib_dest}")
 endif()
