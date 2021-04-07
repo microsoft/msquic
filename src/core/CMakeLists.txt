@@ -55,7 +55,7 @@ endif()
 # Allow CLOG to preprocess all the source files.
 add_clog_library(core.clog DYNAMIC ${SOURCES})
 if(QUIC_ENABLE_LOGGING)
-    set_property(TARGET core.clog.provider PROPERTY FOLDER "helpers")
+    set_property(TARGET core.clog.provider PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
 endif()
 
 add_library(core STATIC ${SOURCES})
@@ -64,7 +64,7 @@ target_link_libraries(core PUBLIC core.clog inc)
 
 target_link_libraries(core PRIVATE warnings)
 
-set_property(TARGET core PROPERTY FOLDER "libraries")
+set_property(TARGET core PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
 if (MSVC)
     target_compile_options(core PRIVATE /analyze)

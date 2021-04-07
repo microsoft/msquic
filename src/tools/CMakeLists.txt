@@ -7,7 +7,7 @@ function(add_quic_tool)
 
     add_executable(${targetname} ${ARGV})
     target_link_libraries(${targetname} inc warnings msquic platform inc)
-    set_property(TARGET ${targetname} PROPERTY FOLDER "tools")
+    set_property(TARGET ${targetname} PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tools")
 endfunction()
 
 function(quic_tool_warnings)

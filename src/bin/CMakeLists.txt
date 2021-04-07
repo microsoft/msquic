@@ -9,14 +9,134 @@ endif()
 
 if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
+    target_link_libraries(msquic PRIVATE core platform inc warnings)
 else()
-    add_library(msquic STATIC static/init.c)
-    target_compile_definitions(msquic PUBLIC QUIC_BUILD_STATIC)
+    add_library(msquic_static STATIC static/init.c)
+    target_link_libraries(msquic_static PRIVATE core platform inc warnings)
+    set_property(TARGET msquic_static PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
+
+    # We need to take given library and walk all its dependencies, including
+    # transient dependencies. For each dependency, if it either compiles
+    # directly to or imports a static library, that library needs to be
+    # added to the QUIC_STATIC_LIBS list. This list is ultimately fed into
+    # the archiving utility to produce a monolithic static library as
+    # static library flags
+    set_property(GLOBAL PROPERTY VISITED_TARGETS_PROP "")
+    set_property(GLOBAL PROPERTY QUIC_STATIC_LIBS "")
+    function(flatten_link_dependencies CURRENT_TARGET)
+        # Check first if we've already flattened the dependencies of this
+        # library (possible if the dependency exists multiple times in the
+        # same dependency graph)
+        get_property(VISITED_TARGETS GLOBAL PROPERTY VISITED_TARGETS_PROP)
+
+        if(${CURRENT_TARGET} IN_LIST VISITED_TARGETS)
+            return()
+        endif()
+
+        # Ensure we don't process this target again
+        list(APPEND VISITED_TARGETS ${CURRENT_TARGET})
+        set_property(GLOBAL PROPERTY VISITED_TARGETS_PROP ${VISITED_TARGETS})
+
+        message(STATUS "Evaluating linker output and dependencies for ${CURRENT_TARGET}")
+
+        if(NOT TARGET ${CURRENT_TARGET})
+            string(FIND ${CURRENT_TARGET} "$<LINK_ONLY:" LINK_ONLY)
+            string(FIND ${CURRENT_TARGET} "Threads::Threads" THREADS_TARGET)
+            string(FIND ${CURRENT_TARGET} "${CMAKE_STATIC_LIBRARY_SUFFIX}" SUFFIX_INDEX)
+            if(${SUFFIX_INDEX} EQUAL "-1")
+                string(APPEND CURRENT_TARGET "${CMAKE_STATIC_LIBRARY_SUFFIX}")
+            endif()
+
+            if(${LINK_ONLY} EQUAL "-1" AND ${THREADS_TARGET} EQUAL "-1")
+                # This is expected to be a generator expression that maps
+                # to a static library
+                set_property(
+                    GLOBAL
+                    APPEND
+                    APPEND_STRING
+                    PROPERTY QUIC_STATIC_LIBS
+                    # # NOTE: Leading space here matters! (input files to the MSVC linker are space separated)
+                    " ${CURRENT_TARGET}"
+                )
+            endif()
+            return()
+        endif()
+
+        # Check if this is an interface target
+        get_target_property(TARGET_TYPE ${CURRENT_TARGET} TYPE)
+
+        get_target_property(TARGET_OUTPUT ${CURRENT_TARGET} OUTPUT_NAME)
+        if(NOT TARGET_OUTPUT)
+            # The target's logical name is used as the base name if the
+            # output name property isn't specified
+            set(TARGET_OUTPUT ${CURRENT_TARGET})
+        endif()
+
+        if(${TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
+            get_target_property(OUTPUT_DIR ${CURRENT_TARGET} ARCHIVE_OUTPUT_DIRECTORY)
+            # NOTE: Leading space here matters! (input files to the MSVC linker are space separated)
+            set(STATIC_LIB " ${OUTPUT_DIR}/${TARGET_OUTPUT}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+            set_property(
+                GLOBAL
+                APPEND
+                APPEND_STRING
+                PROPERTY QUIC_STATIC_LIBS
+                ${STATIC_LIB}
+            )
+        endif()
+
+        # Next, recursively invoke this function for each dependency
+
+        get_target_property(LINK_LIBS ${CURRENT_TARGET} LINK_LIBRARIES)
+        get_target_property(INTERFACE_LIBS ${CURRENT_TARGET} INTERFACE_LINK_LIBRARIES)
+        get_target_property(DEPS ${CURRENT_TARGET} LINK_DEPENDS)
+
+        if(LINK_LIBS)
+            foreach(DEP ${LINK_LIBS})
+                flatten_link_dependencies(${DEP})
+            endforeach()
+        endif()
+
+        if(INTERFACE_LIBS)
+            foreach(DEP ${INTERFACE_LIBS})
+                flatten_link_dependencies(${DEP})
+            endforeach()
+        endif()
+    endfunction()
+
+    flatten_link_dependencies(msquic_static)
+
+    get_property(DEPS GLOBAL PROPERTY QUIC_STATIC_LIBS)
+    message(STATUS "DEPS: ${DEPS}, ${QUIC_BUILD_DIR}")
+
+    # Emit all linker inputs at build time to resolve generator expressions
+    set(QUIC_DEPS_FILE ${CMAKE_CURRENT_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>/quicdeps.txt)
+    file(
+        GENERATE
+        OUTPUT ${QUIC_DEPS_FILE}
+        CONTENT "/OUT:\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/$<IF:$<CONFIG:Debug>,Debug,Release>/msquic.lib\" ${DEPS}"
+    )
+    add_custom_target(
+        msquic_linker_inputs
+        DEPENDS ${QUIC_DEPS_FILE}
+    )
+    add_dependencies(msquic_linker_inputs msquic_static)
+    message(STATUS "${QUIC_DEPS_FILE}")
+    set_property(TARGET msquic_linker_inputs PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
+
+    # Run archiver tool (lib.exe) on our generated linker args
+    add_custom_target(msquic_lib COMMAND ${CMAKE_AR} @${QUIC_DEPS_FILE})
+    add_dependencies(msquic_lib msquic_linker_inputs)
+    set_property(TARGET msquic_lib PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
+
+    # Provide interface library to link the monolithic library
+    add_library(msquic INTERFACE)
+    target_compile_definitions(msquic INTERFACE QUIC_BUILD_STATIC)
+    target_link_libraries(msquic INTERFACE ${QUIC_OUTPUT_DIR}/msquic.lib)
+    add_dependencies(msquic msquic_lib)
 endif()
 
-set_property(TARGET msquic PROPERTY FOLDER "libraries")
-
-target_link_libraries(msquic PRIVATE core platform inc warnings)
+set_property(TARGET msquic PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
 if(WIN32)
     if(QUIC_UWP_BUILD)
@@ -32,9 +152,15 @@ elseif (CX_PLATFORM STREQUAL "darwin")
         PROPERTIES LINK_FLAGS "-exported_symbols_list \"${CMAKE_CURRENT_SOURCE_DIR}/darwin/exports.txt\"")
 endif()
 
-target_include_directories(msquic PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-    $<INSTALL_INTERFACE:${include_dest}>)
+if(BUILD_SHARED_LIBS)
+    target_include_directories(msquic PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
+        $<INSTALL_INTERFACE:${include_dest}>)
+else()
+    target_include_directories(msquic INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
+        $<INSTALL_INTERFACE:${include_dest}>)
+endif()
 
 set(PUBLIC_HEADERS
     ../inc/msquic.h
@@ -62,5 +188,9 @@ elseif(QUIC_ENABLE_LOGGING)
 endif()
 
 if (MSVC)
-    target_compile_options(msquic PRIVATE /analyze)
+    if(BUILD_SHARED_LIBS)
+        target_compile_options(msquic PRIVATE /analyze)
+    else()
+        target_compile_options(msquic_static PRIVATE /analyze)
+    endif()
 endif()

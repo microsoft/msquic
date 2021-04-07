@@ -129,6 +129,7 @@ option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
+option(QUIC_FOLDER_PREFIX "Optional prefix for source group folders when using an IDE generator" "")
 
 set(BUILD_SHARED_LIBS ${QUIC_BUILD_SHARED})
 
@@ -252,14 +253,14 @@ if(WIN32)
     add_custom_target(MsQuicEtw_HeaderBuild
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
-    set_property(TARGET MsQuicEtw_HeaderBuild PROPERTY FOLDER "helpers")
+    set_property(TARGET MsQuicEtw_HeaderBuild PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
 
     add_library(MsQuicEtw_Header INTERFACE)
     target_include_directories(MsQuicEtw_Header INTERFACE ${QUIC_BUILD_DIR}/inc)
     add_dependencies(MsQuicEtw_Header MsQuicEtw_HeaderBuild)
 
     add_library(MsQuicEtw_Resource OBJECT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
-    set_property(TARGET MsQuicEtw_Resource PROPERTY FOLDER "helpers")
+    set_property(TARGET MsQuicEtw_Resource PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
 
     if (QUIC_UWP_BUILD)
         list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP QUIC_UWP_BUILD)
@@ -391,7 +392,7 @@ if(QUIC_TLS STREQUAL "openssl")
         set(LIBCRYPTO_PATH ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 
         add_library(OpenSSL_Crypto STATIC IMPORTED)
-        set_property(TARGET OpenSSL_Crypto PROPERTY FOLDER "libraries")
+        set_property(TARGET OpenSSL_Crypto PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
         set_target_properties(OpenSSL_Crypto PROPERTIES
             IMPORTED_LOCATION_DEBUG ${LIBCRYPTO_DEBUG_PATH}
             IMPORTED_LOCATION_RELEASE ${LIBCRYPTO_PATH}
@@ -400,7 +401,7 @@ if(QUIC_TLS STREQUAL "openssl")
             MAP_IMPORTED_CONFIG_RELWITHDEBINFO RELEASE)
 
         add_library(OpenSSL_SSL STATIC IMPORTED)
-        set_property(TARGET OpenSSL_SSL PROPERTY FOLDER "libraries")
+        set_property(TARGET OpenSSL_SSL PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
         set_target_properties(OpenSSL_SSL PROPERTIES
             IMPORTED_LOCATION_DEBUG ${LIBSSL_DEBUG_PATH}
             IMPORTED_LOCATION_RELEASE ${LIBSSL_PATH}
@@ -536,7 +537,7 @@ if (QUIC_ENABLE_LOGGING)
     function(add_clog_library)
         CLOG_GENERATE_TARGET(${ARGV})
         target_link_libraries(${ARGV0} PRIVATE inc)
-        set_property(TARGET ${ARGV0} PROPERTY FOLDER "helpers")
+        set_property(TARGET ${ARGV0} PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
     endfunction()
 else()
     function(add_clog_library)
@@ -622,8 +623,8 @@ if(QUIC_BUILD_TEST)
     set_property(TARGET gtest PROPERTY CXX_STANDARD 17)
     set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
 
-    set_property(TARGET gtest PROPERTY FOLDER "tests")
-    set_property(TARGET gtest_main PROPERTY FOLDER "tests")
+    set_property(TARGET gtest PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
+    set_property(TARGET gtest_main PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
 
     add_subdirectory(src/core/unittest)
     add_subdirectory(src/platform/unittest)

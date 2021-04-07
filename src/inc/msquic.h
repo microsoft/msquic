@@ -1270,13 +1270,13 @@ MsQuicClose(
 //
 // If MsQuic is built as a static library, the DLL load and unload hooks are not
 // active. The user MUST invoke MsQuicLoad prior to interacting with any other
-// aspect of the API
+// aspect of the API.
 //
 void MsQuicLoad(void);
 
 //
 // If MsQuic is built as a static library, the DLL load and unload hooks are not
-// active. The user MUST invoke MsQuicUnload prior to program exit
+// active. The user MUST invoke MsQuicUnload prior to program exit.
 //
 void MsQuicUnload(void);
 #endif
