@@ -27,3 +27,4 @@ MsQuicUnload(
     MsQuicLibraryUnload();
     CxPlatSystemUnload();
 }
+
