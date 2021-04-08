@@ -56,7 +56,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": ".*@ (.*) kbps.*",
             "Formats": ["{0} kbps"],
-            "RegressionThreshold": "-8.0"
+            "RegressionThreshold": "-50.0"
         },
         {
             "TestName": "ThroughputUp",
@@ -135,7 +135,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": ".*@ (.*) kbps.*",
             "Formats": ["{0} kbps"],
-            "RegressionThreshold": "-8.0"
+            "RegressionThreshold": "-50.0"
         },
         {
             "TestName": "ThroughputDown",
