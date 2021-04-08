@@ -1691,7 +1691,7 @@ QuicBindingSend(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend,
-    _In_ uint16_t PartitionIndex
+    _In_ uint16_t IdealProcessor
     )
 {
     QUIC_STATUS Status;
@@ -1722,7 +1722,7 @@ QuicBindingSend(
                     &LocalAddressCopy,
                     &RemoteAddressCopy,
                     SendData,
-                    PartitionIndex);
+                    IdealProcessor);
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogWarning(
                     BindingSendFailed,
@@ -1739,7 +1739,7 @@ QuicBindingSend(
                 LocalAddress,
                 RemoteAddress,
                 SendData,
-                PartitionIndex);
+                IdealProcessor);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 BindingSendFailed,

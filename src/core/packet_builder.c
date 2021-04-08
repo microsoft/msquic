@@ -30,8 +30,7 @@ QuicFuzzInjectHook(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPacketBuilderSendBatch(
-    _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ uint16_t PartitionIndex
+    _Inout_ QUIC_PACKET_BUILDER* Builder
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -864,7 +863,7 @@ Exit:
             if (Builder->BatchCount != 0) {
                 QuicPacketBuilderFinalizeHeaderProtection(Builder);
             }
-            QuicPacketBuilderSendBatch(Builder, QuicPartitionIdGetIndex(Connection->PartitionID));
+            QuicPacketBuilderSendBatch(Builder);
         }
 
         if (Builder->PacketType == QUIC_RETRY) {
@@ -881,8 +880,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPacketBuilderSendBatch(
-    _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ uint16_t PartitionIndex
+    _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
     QuicTraceLogConnVerbose(
@@ -898,7 +896,7 @@ QuicPacketBuilderSendBatch(
         Builder->SendData,
         Builder->TotalDatagramsLength,
         Builder->TotalCountDatagrams,
-        PartitionIndex);
+        Builder->Connection->Worker->IdealProcessor);
 
     Builder->PacketBatchSent = TRUE;
     Builder->SendData = NULL;

@@ -3629,7 +3629,7 @@ CxPlatSocketSend(
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t PartitionIndex
+    _In_ uint16_t IdealProcessor
     )
 {
     QUIC_STATUS Status;

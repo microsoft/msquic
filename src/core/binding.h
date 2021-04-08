@@ -431,7 +431,7 @@ QuicBindingSend(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
     _In_ uint32_t DatagramsToSend,
-    _In_ uint16_t PartitionIndex
+    _In_ uint16_t IdealProcessor
     );
 
 //
