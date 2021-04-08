@@ -3634,8 +3634,10 @@ CxPlatSocketSend(
 {
     QUIC_STATUS Status;
     CXPLAT_SOCKET_PROC* SocketProc;
+    CXPLAT_DATAPATH* Datapath;
     BOOL Result;
     DWORD BytesSent;
+    uint16_t Processor;
 
     CXPLAT_DBG_ASSERT(
         Socket != NULL && LocalAddress != NULL &&
@@ -3646,7 +3648,9 @@ CxPlatSocketSend(
         goto Exit;
     }
 
-    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : PartitionIndex];
+    Datapath = Socket->Datapath;
+    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : PartitionIndex % Datapath->ProcCount];
+    Processor = Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : PartitionIndex % Datapath->ProcCount;
 
     CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
     RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
@@ -3699,14 +3703,30 @@ CxPlatSocketSend(
         sizeof(*RemoteAddress));
 
     Result = PostQueuedCompletionStatus(
-        Socket->Datapath->Processors[PartitionIndex].IOCP,
+        Datapath->Processors[Processor].IOCP,
         UINT32_MAX,
         (ULONG_PTR)SocketProc,
         &SendData->Overlapped);
+    if (!Result) {
+        int LastError = GetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            LastError,
+            "PostQueuedCompletionStatus");
+        Status = HRESULT_FROM_WIN32(LastError);
+        goto Exit;
+    }
 
-    Status = Result ? QUIC_STATUS_SUCCESS : QUIC_STATUS_INTERNAL_ERROR;
+    Status = QUIC_STATUS_SUCCESS;
 
 Exit:
+
+    if (QUIC_FAILED(Status)) {
+        CxPlatSendDataFree(SendData);
+    }
+
     return Status;
 }
 
@@ -4001,13 +4021,14 @@ CxPlatDataPathWorkerThread(
                     CXPLAT_SEND_DATA,
                     Overlapped);
 
-            if (NumberOfBytesTransferred == UINT32_MAX) {
+            if (NumberOfBytesTransferred == UINT32_MAX && 
+                CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
                 CxPlatSocketSendInternal(
                     SocketProc,
                     &SendData->LocalAddress,
                     &SendData->RemoteAddress,
                     SendData);
-                
+                CxPlatRundownRelease(&SocketProc->UpcallRundown);                
             } else {
                 CxPlatSendDataComplete(
                     SocketProc,
