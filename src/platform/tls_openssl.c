@@ -252,6 +252,7 @@ CxPlatTlsCertificateVerifyCallback(
     if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
         !TlsContext->SecConfig->Callbacks.CertificateReceived(
             TlsContext->Connection,
+            Cert,
             x509_ctx,
             0,
             0)) {

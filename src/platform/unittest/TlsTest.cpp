@@ -530,7 +530,8 @@ protected:
         static BOOLEAN
         OnPeerCertReceived(
             _In_ QUIC_CONNECTION* Connection,
-            _In_ void* /* Certificate */,
+            _In_ QUIC_CERTIFICATE* /* Certificate */,
+            _In_ QUIC_CERTIFICATE_CHAIN*,
             _In_ uint32_t DeferredErrorFlags,
             _In_ QUIC_STATUS DeferredStatus
             )

@@ -263,7 +263,8 @@ typedef struct QUIC_CERTIFICATE_PKCS12 {
     const char *PrivateKeyPassword;     // Optional: used if provided. Ignored if NULL
 } QUIC_CERTIFICATE_PKCS12;
 
-typedef void QUIC_CERTIFICATE; // Platform specific certificate context object
+typedef void QUIC_CERTIFICATE; // Platform specific certificate object
+typedef void QUIC_CERTIFICATE_CHAIN; // Platform specific certificate chain object
 
 typedef struct QUIC_CREDENTIAL_CONFIG {
     QUIC_CREDENTIAL_TYPE Type;
@@ -925,9 +926,10 @@ typedef struct QUIC_CONNECTION_EVENT {
             const uint8_t* ResumptionTicket;
         } RESUMPTION_TICKET_RECEIVED;
         struct {
-            void* Certificate;                  // Peer certificate (platform specific)
+            QUIC_CERTIFICATE* Certificate;      // Peer certificate (platform specific). Valid only during QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED callback.
             uint32_t DeferredErrorFlags;        // Bit flag of errors (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)
             QUIC_STATUS DeferredStatus;         // Most severe error status (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)
+            QUIC_CERTIFICATE_CHAIN* Chain;      // Peer certificate chain (platform specific) Valid only during QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED callback.
         } PEER_CERTIFICATE_RECEIVED;
     };
 } QUIC_CONNECTION_EVENT;

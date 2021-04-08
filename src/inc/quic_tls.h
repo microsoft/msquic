@@ -109,7 +109,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 (CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK)(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ void* Certificate,
+    _In_ QUIC_CERTIFICATE* Certificate,
+    _In_ QUIC_CERTIFICATE_CHAIN* Chain,
     _In_ uint32_t DeferredErrorFlags,
     _In_ QUIC_STATUS DeferredStatus
     );

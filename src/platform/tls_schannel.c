@@ -2298,8 +2298,11 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
 #ifdef _KERNEL_MODE
                         (void*)&PeerCert,
+                        NULL,
 #else
-                        (void*)PeerCert,
+                        (QUIC_CERTIFICATE*)PeerCert,
+                        (QUIC_CERTIFICATE_CHAIN*)(PeerCert ? PeerCert->hCertStore : NULL),
+
 #endif
                         CertValidationResult.dwChainErrorStatus,
                         (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
