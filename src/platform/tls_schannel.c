@@ -1191,7 +1191,7 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
     }
 
-    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {
        return QUIC_STATUS_NOT_SUPPORTED;    // Not supported yet.
     }
 
