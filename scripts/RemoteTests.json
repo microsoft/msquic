@@ -26,8 +26,8 @@
                 {
                     "Name": "SendBuffering",
                     "Local": {
-                        "On": "",
-                        "Off": "-sendbuf:0"
+                        "On": "-sendbuf:1",
+                        "Off": ""
                     },
                     "Default": "Off"
                 }
@@ -56,7 +56,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": ".*@ (.*) kbps.*",
             "Formats": ["{0} kbps"],
-            "RegressionThreshold": "-8.0"
+            "RegressionThreshold": "-50.0"
         },
         {
             "TestName": "ThroughputUp",
@@ -79,8 +79,8 @@
                 {
                     "Name": "SendBuffering",
                     "Local": {
-                        "On": "",
-                        "Off": "-sendbuf:0"
+                        "On": "-sendbuf:1",
+                        "Off": ""
                     },
                     "Default": "Off"
                 }
@@ -135,7 +135,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": ".*@ (.*) kbps.*",
             "Formats": ["{0} kbps"],
-            "RegressionThreshold": "-8.0"
+            "RegressionThreshold": "-50.0"
         },
         {
             "TestName": "ThroughputDown",
