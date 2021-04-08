@@ -10,16 +10,16 @@ This script provides helpers for building msquic.
     The CPU architecture to build for.
 
 .PARAMETER Platform
-    Specify which platform to build for
+    Specify which platform to build for.
 
-.PARAMETER Shared
-    Specify whether to build a shared library or static library
+.PARAMETER Static
+    Specify a static library is preferred (shared is the default).
 
 .PARAMETER Tls
     The TLS library to use.
 
 .PARAMETER ToolchainFile
-    Toolchain file to use (if cross)
+    Toolchain file to use (if cross).
 
 .PARAMETER DisableLogs
     Disables log collection.
@@ -112,7 +112,7 @@ param (
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Shared = $true
+    [switch]$Static = $false,
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl")]
@@ -245,7 +245,7 @@ if (!$IsWindows -And $Platform -eq "uwp") {
     exit
 }
 
-if (!$IsWindows -And !$Shared) {
+if (!$IsWindows -And $Static) {
     Write-Error "[$(Get-Date)] Static linkage on non windows platforms not yet supported"
     exit
 }
@@ -329,7 +329,7 @@ function CMake-Generate {
     } else {
         $Arguments += " $Generator"
     }
-    if(!$Shared) {
+    if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
