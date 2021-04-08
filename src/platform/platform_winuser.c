@@ -594,6 +594,7 @@ CxPlatProcActiveCount(
     DWORD Count;
 
     if (!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
+        CXPLAT_DBG_ASSERT(FALSE);
         return 0;
     }
 
@@ -602,6 +603,7 @@ CxPlatProcActiveCount(
         Count +=  ProcInfo->Group.GroupInfo[i].ActiveProcessorCount;
     }
     CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    CXPLAT_DBG_ASSERT(Count != 0);
     return Count;
 }
 
@@ -614,6 +616,7 @@ CxPlatProcMaxCount(
     DWORD Count;
 
     if (!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
+        CXPLAT_DBG_ASSERT(FALSE);
         return 0;
     }
 
@@ -622,6 +625,7 @@ CxPlatProcMaxCount(
         Count +=  ProcInfo->Group.GroupInfo[i].MaximumProcessorCount;
     }
     CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    CXPLAT_DBG_ASSERT(Count != 0);
     return Count;
 }
 #endif
