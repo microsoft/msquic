@@ -235,7 +235,7 @@ protected:
                         Socket,
                         &RecvData->Tuple->LocalAddress,
                         &RecvData->Tuple->RemoteAddress,
-                        ServerSendData
+                        ServerSendData, 0
                     ));
 
             } else {
@@ -284,7 +284,7 @@ protected:
                         Socket,
                         &RecvData->Tuple->LocalAddress,
                         &RecvData->Tuple->RemoteAddress,
-                        ServerSendData
+                        ServerSendData, 0
                     ));
 
             } else {
@@ -632,7 +632,7 @@ TEST_P(DataPathTest, UdpData)
             client,
             &ClientAddress,
             &serverAddress.SockAddr,
-            ClientSendData));
+            ClientSendData, 0));
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 
@@ -717,7 +717,7 @@ TEST_P(DataPathTest, UdpDataRebind)
             client,
             &ClientAddress,
             &serverAddress.SockAddr,
-            ClientSendData));
+            ClientSendData, 0));
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 
@@ -752,7 +752,7 @@ TEST_P(DataPathTest, UdpDataRebind)
             client,
             &ClientAddress,
             &serverAddress.SockAddr,
-            ClientSendData));
+            ClientSendData, 0));
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 
@@ -837,7 +837,7 @@ TEST_P(DataPathTest, UdpDataECT0)
             client,
             &ClientAddress,
             &serverAddress.SockAddr,
-            ClientSendData));
+            ClientSendData, 0));
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 
@@ -1092,7 +1092,7 @@ TEST_P(DataPathTest, TcpDataClient)
             Client,
             &ServerAddress,
             &ClientAddress,
-            SendData));
+            SendData, 0));
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.ServerContext.ReceiveEvent, 100));
 
@@ -1178,7 +1178,7 @@ TEST_P(DataPathTest, TcpDataServer)
             ListenerContext.Server,
             &ServerAddress,
             &ClientAddress,
-            SendData));
+            SendData, 0));
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 100));
 

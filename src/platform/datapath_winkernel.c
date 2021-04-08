@@ -2825,12 +2825,14 @@ CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendData
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ uint16_t PartitionIndex
     )
 {
     QUIC_STATUS Status;
     PDWORD SegmentSize;
 
+    UNREFERENCED_PARAMETER(PartitionIndex);
     CXPLAT_DBG_ASSERT(
         Binding != NULL && LocalAddress != NULL &&
         RemoteAddress != NULL && SendData != NULL);
