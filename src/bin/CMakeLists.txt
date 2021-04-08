@@ -110,7 +110,8 @@ else()
     flatten_link_dependencies(msquic_static)
 
     get_property(DEPS GLOBAL PROPERTY QUIC_STATIC_LIBS)
-    message(STATUS "DEPS: ${DEPS}, ${QUIC_BUILD_DIR}")
+    # Uncomment to analyze which dependencies were traversed
+    # message(STATUS "DEPS: ${DEPS}, ${QUIC_BUILD_DIR}")
 
     set(NODEFAULTS "")
     foreach(EXCLUDE ${EXCLUDE_LIST})
@@ -120,8 +121,8 @@ else()
     # Exclude libraries for the corresponding msvcrts
     # https://docs.microsoft.com/en-us/cpp/error-messages/tool-errors/linker-tools-warning-lnk4098?view=msvc-160
     string(APPEND NODEFAULTS "/NODEFAULTLIB:msvcrt.lib /NODEFAULTLIB:msvcrtd.lib $<IF:$<CONFIG:Debug>,/NODEFAULTLIB:libcmt.lib /NODEFAULTLIB:msvcrtd.lib,/NODEFAULTLIB:libcmtd.lib>")
-
-    message(STATUS "NODEFAULTS: ${NODEFAULTS}")
+    # Uncomment to inspect which libraries will have referenced symbols ignored
+    # message(STATUS "NODEFAULTS: ${NODEFAULTS}")
 
     # Emit all linker inputs at build time to resolve generator expressions
     set(QUIC_DEPS_FILE ${CMAKE_CURRENT_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>/quicdeps.txt)
@@ -141,6 +142,7 @@ else()
     # Run archiver tool (lib.exe) on our generated linker args
     add_custom_target(
         msquic_lib
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
         COMMAND ${CMAKE_AR} @${QUIC_DEPS_FILE}
         COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msquic.lib" "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
         DEPENDS ${QUIC_DEPS_FILE}
