@@ -21,7 +21,8 @@ else()
     # added to the QUIC_STATIC_LIBS list. This list is ultimately fed into
     # the archiving utility to produce a monolithic static library as
     # static library flags
-    set_property(GLOBAL PROPERTY VISITED_TARGETS_PROP "")
+    set(EXCLUDE_LIST "ws2_32;schannel;ntdll;bcrypt;ncrypt;crypt32;iphlpapi;advapi32")
+    set_property(GLOBAL PROPERTY VISITED_TARGETS_PROP "${EXCLUDE_LIST}")
     set_property(GLOBAL PROPERTY QUIC_STATIC_LIBS "")
     function(flatten_link_dependencies CURRENT_TARGET)
         # Check first if we've already flattened the dependencies of this
@@ -37,7 +38,8 @@ else()
         list(APPEND VISITED_TARGETS ${CURRENT_TARGET})
         set_property(GLOBAL PROPERTY VISITED_TARGETS_PROP ${VISITED_TARGETS})
 
-        message(STATUS "Evaluating linker output and dependencies for ${CURRENT_TARGET}")
+        # Uncomment to understand the dependency walk
+        # message(STATUS "Evaluating linker output and dependencies for ${CURRENT_TARGET}")
 
         if(NOT TARGET ${CURRENT_TARGET})
             string(FIND ${CURRENT_TARGET} "$<LINK_ONLY:" LINK_ONLY)
@@ -109,12 +111,18 @@ else()
     get_property(DEPS GLOBAL PROPERTY QUIC_STATIC_LIBS)
     message(STATUS "DEPS: ${DEPS}, ${QUIC_BUILD_DIR}")
 
+    set(NODEFAULTS "")
+    foreach(EXCLUDE ${EXCLUDE_LIST})
+        string(APPEND NODEFAULTS "/NODEFAULTLIB:${EXCLUDE}${CMAKE_STATIC_LIBRARY_SUFFIX} ")
+    endforeach()
+    message(STATUS "NODEFAULTS: ${NODEFAULTS}")
+
     # Emit all linker inputs at build time to resolve generator expressions
     set(QUIC_DEPS_FILE ${CMAKE_CURRENT_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>/quicdeps.txt)
     file(
         GENERATE
         OUTPUT ${QUIC_DEPS_FILE}
-        CONTENT "/OUT:\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/$<IF:$<CONFIG:Debug>,Debug,Release>/msquic.lib\" ${DEPS}"
+        CONTENT "/OUT:\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/$<IF:$<CONFIG:Debug>,Debug,Release>/msquic.lib\" ${DEPS} ${NODEFAULTS}"
     )
     add_custom_target(
         msquic_linker_inputs
@@ -125,14 +133,28 @@ else()
     set_property(TARGET msquic_linker_inputs PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
     # Run archiver tool (lib.exe) on our generated linker args
-    add_custom_target(msquic_lib COMMAND ${CMAKE_AR} @${QUIC_DEPS_FILE})
+    add_custom_target(
+        msquic_lib
+        COMMAND ${CMAKE_AR} @${QUIC_DEPS_FILE}
+        DEPENDS ${QUIC_DEPS_FILE}
+    )
     add_dependencies(msquic_lib msquic_linker_inputs)
     set_property(TARGET msquic_lib PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
     # Provide interface library to link the monolithic library
     add_library(msquic INTERFACE)
     target_compile_definitions(msquic INTERFACE QUIC_BUILD_STATIC)
-    target_link_libraries(msquic INTERFACE ${QUIC_OUTPUT_DIR}/msquic.lib)
+    target_link_libraries(msquic
+        INTERFACE
+        ${QUIC_OUTPUT_DIR}/msquic.lib
+        ws2_32
+        schannel
+        ntdll
+        bcrypt
+        ncrypt
+        crypt32
+        iphlpapi
+        advapi32)
     add_dependencies(msquic msquic_lib)
 endif()
 

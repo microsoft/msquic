@@ -12,6 +12,9 @@ This script provides helpers for building msquic.
 .PARAMETER Platform
     Specify which platform to build for
 
+.PARAMETER Shared
+    Specify whether to build a shared library or static library
+
 .PARAMETER Tls
     The TLS library to use.
 
@@ -107,6 +110,9 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("uwp", "windows", "linux", "macos")] # For future expansion
     [string]$Platform = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Shared = $true
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl")]
@@ -239,6 +245,11 @@ if (!$IsWindows -And $Platform -eq "uwp") {
     exit
 }
 
+if (!$IsWindows -And !$Shared) {
+    Write-Error "[$(Get-Date)] Static linkage on non windows platforms not yet supported"
+    exit
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -317,6 +328,9 @@ function CMake-Generate {
         }
     } else {
         $Arguments += " $Generator"
+    }
+    if(!$Shared) {
+        $Arguments += " -DQUIC_BUILD_SHARED=off"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
