@@ -19,7 +19,7 @@ set(SOURCES
 # Allow CLOG to preprocess all the source files.
 add_clog_library(testlib.clog STATIC ${SOURCES})
 
-add_library(testlib ${SOURCES})
+add_library(testlib STATIC ${SOURCES})
 
 target_include_directories(testlib PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 

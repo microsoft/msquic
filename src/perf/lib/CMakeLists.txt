@@ -13,7 +13,7 @@ set(SOURCES
 # Allow CLOG to preprocess all the source files.
 add_clog_library(perflib.clog STATIC ${SOURCES} PerfHelpers.h)
 
-add_library(perflib ${SOURCES})
+add_library(perflib STATIC ${SOURCES})
 
 set_property(TARGET perflib PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}perf")
 
