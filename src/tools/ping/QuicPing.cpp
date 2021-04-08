@@ -16,7 +16,9 @@ HQUIC Registration;
 HQUIC Configuration;
 QUIC_PING_CONFIG PingConfig;
 
+#ifndef QUIC_BUILD_STATIC
 extern "C" void QuicTraceRundown(void) { }
+#endif
 
 void
 PrintUsage()

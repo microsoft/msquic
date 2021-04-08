@@ -1279,7 +1279,7 @@ void MsQuicLoad(void);
 // active. The user MUST invoke MsQuicUnload prior to program exit.
 //
 void MsQuicUnload(void);
-#endif
+#endif // QUIC_BUILD_STATIC
 
 #if defined(__cplusplus)
 }

@@ -13,7 +13,9 @@ Abstract:
 
 #include <msquichelper.h>
 
+#ifndef QUIC_BUILD_STATIC
 extern "C" void QuicTraceRundown(void) { }
+#endif
 
 #define IO_SIZE (128 * 1024)
 

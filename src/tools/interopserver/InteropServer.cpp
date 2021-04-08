@@ -23,7 +23,9 @@ const QUIC_BUFFER SupportedALPNs[] = {
     { sizeof("siduck-00") - 1, (uint8_t*)"siduck-00" }
 };
 
+#ifndef QUIC_BUILD_STATIC
 extern "C" void QuicTraceRundown(void) { }
+#endif
 
 void
 PrintUsage()

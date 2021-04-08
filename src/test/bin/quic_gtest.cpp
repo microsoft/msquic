@@ -18,7 +18,9 @@ QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QuicDriverClient DriverClient;
 
+#ifndef QUIC_BUILD_STATIC
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
+#endif
 
 class QuicTestEnvironment : public ::testing::Environment {
     QuicDriverService DriverService;

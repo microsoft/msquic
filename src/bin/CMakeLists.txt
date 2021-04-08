@@ -122,7 +122,7 @@ else()
     file(
         GENERATE
         OUTPUT ${QUIC_DEPS_FILE}
-        CONTENT "/OUT:\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/$<IF:$<CONFIG:Debug>,Debug,Release>/msquic.lib\" ${DEPS} ${NODEFAULTS}"
+        CONTENT "/OUT:\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msquic.lib\" ${DEPS} ${NODEFAULTS}"
     )
     add_custom_target(
         msquic_linker_inputs
@@ -136,6 +136,7 @@ else()
     add_custom_target(
         msquic_lib
         COMMAND ${CMAKE_AR} @${QUIC_DEPS_FILE}
+        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msquic.lib" "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
         DEPENDS ${QUIC_DEPS_FILE}
     )
     add_dependencies(msquic_lib msquic_linker_inputs)
@@ -146,7 +147,7 @@ else()
     target_compile_definitions(msquic INTERFACE QUIC_BUILD_STATIC)
     target_link_libraries(msquic
         INTERFACE
-        ${QUIC_OUTPUT_DIR}/msquic.lib
+        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msquic.lib
         ws2_32
         schannel
         ntdll

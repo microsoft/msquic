@@ -68,7 +68,9 @@ void __cdecl operator delete[] (_In_opt_ void* Mem) {
     }
 }
 
+#ifndef QUIC_BUILD_STATIC
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
+#endif
 
 extern "C"
 INITCODE

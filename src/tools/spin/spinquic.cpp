@@ -193,7 +193,9 @@ static struct {
     uint8_t LossPercent;
 } Settings;
 
+#ifndef QUIC_BUILD_STATIC
 extern "C" void QuicTraceRundown(void) { }
+#endif
 
 QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_STREAM_EVENT *Event)
 {
