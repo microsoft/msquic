@@ -13,6 +13,7 @@ if(BUILD_SHARED_LIBS)
 else()
     add_library(msquic_static STATIC static/init.c)
     target_link_libraries(msquic_static PRIVATE core platform inc warnings)
+    target_compile_definitions(msquic_static PUBLIC QUIC_BUILD_STATIC)
     set_property(TARGET msquic_static PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
     # We need to take given library and walk all its dependencies, including
@@ -115,6 +116,11 @@ else()
     foreach(EXCLUDE ${EXCLUDE_LIST})
         string(APPEND NODEFAULTS "/NODEFAULTLIB:${EXCLUDE}${CMAKE_STATIC_LIBRARY_SUFFIX} ")
     endforeach()
+
+    # Exclude libraries for the corresponding msvcrts
+    # https://docs.microsoft.com/en-us/cpp/error-messages/tool-errors/linker-tools-warning-lnk4098?view=msvc-160
+    string(APPEND NODEFAULTS "/NODEFAULTLIB:msvcrt.lib /NODEFAULTLIB:msvcrtd.lib $<IF:$<CONFIG:Debug>,/NODEFAULTLIB:libcmt.lib /NODEFAULTLIB:msvcrtd.lib,/NODEFAULTLIB:libcmtd.lib>")
+
     message(STATUS "NODEFAULTS: ${NODEFAULTS}")
 
     # Emit all linker inputs at build time to resolve generator expressions
@@ -143,6 +149,10 @@ else()
     set_property(TARGET msquic_lib PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
     # Provide interface library to link the monolithic library
+    # NOTE: It is important that this interface library NOT link directly to
+    # msquic_static or the linker flags will inadvertently bring in symbols
+    # that are already linked as part of msquic.lib. Users can link to
+    # msquic_static directly if they don't need the monolithic library.
     add_library(msquic INTERFACE)
     target_compile_definitions(msquic INTERFACE QUIC_BUILD_STATIC)
     target_link_libraries(msquic
@@ -180,6 +190,9 @@ if(BUILD_SHARED_LIBS)
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
         $<INSTALL_INTERFACE:${include_dest}>)
 else()
+    target_include_directories(msquic_static INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
+        $<INSTALL_INTERFACE:${include_dest}>)
     target_include_directories(msquic INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
         $<INSTALL_INTERFACE:${include_dest}>)

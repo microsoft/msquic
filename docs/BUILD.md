@@ -123,7 +123,7 @@ The script has a lot of additional configuration options, but the default should
 
 `-Arch <x86/x64/arm/arm64>` Allow for building for different architectures. **x64** is the defualt architecture.
 
-`-Shared <true/false>` Allows for building a static or shared library.
+`-Static` Compiles msquic as a monolithic statically linkable library.
 Supported only by Windows currently.
 
 `-Tls <schannel/openssl>` Allows for building with different TLS providers. The default is platform dependent (Windows = schannel, Linux = openssl).
