@@ -17,16 +17,6 @@ Environment:
 
 typedef struct QUIC_CREDENTIAL_CONFIG QUIC_CREDENTIAL_CONFIG;
 typedef void QUIC_CERTIFICATE;
-typedef void QUIC_CERTIFICATE_CHAIN;
-#ifndef _MSQUIC_
-typedef struct QUIC_BUFFER QUIC_BUFFER;
-#endif
-
-typedef enum QUIC_CERTIFICATE_FORMAT {
-    QUIC_CERTIFICATE_FORMAT_DER   = 0,
-    QUIC_CERTIFICATE_FORMAT_PKCS7 = 1,
-} QUIC_CERTIFICATE_FORMAT;
-
 
 //
 // Gets the certificate from the input configuration.
@@ -142,33 +132,3 @@ CxPlatCertVerify(
         const uint8_t *Signature,
     _In_ size_t SignatureLength
     );
-
-
-//
-// Convert platform specific certificate to requested format.
-// OutputBuffer is allocated and needs to be freed with CxPlatQuicBufferFree.
-//
-_Success_(return != FALSE)
-BOOLEAN
-CxPlatCertConvert(
-    _In_ QUIC_CERTIFICATE* Certificate,
-    _In_ QUIC_CERTIFICATE_FORMAT OutputFormat,
-    _Inout_ QUIC_BUFFER* OutputBuffer);
-
-//
-// Convert platform specific certificate chain to requested format.
-// OutputBuffer is allocated and needs to be freed with CxPlatQuicBufferFree.
-//
-_Success_(return != FALSE)
-BOOLEAN
-CxPlatCertChainConvert(
-    _In_ QUIC_CERTIFICATE_CHAIN* CertificateChain,
-    _In_ QUIC_CERTIFICATE_FORMAT OutputFormat,
-    _Inout_ QUIC_BUFFER* OutputBuffer);
-
-
-//
-// This will free QUIC_BUFFER resources if allocated by MsQiuc.
-// This has undefined and possibly dangerous behavior if Buffer was not allocated by MsQuic.
-//
-void CxPlatQuicBufferFree(_In_ QUIC_BUFFER* Buffer);

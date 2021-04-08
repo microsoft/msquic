@@ -22,6 +22,7 @@ Abstract:
 #include "openssl/kdf.h"
 #include "openssl/pem.h"
 #include "openssl/pkcs12.h"
+#include "openssl/pkcs7.h"
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
@@ -231,6 +232,9 @@ CxPlatTlsCertificateVerifyCallback(
     X509_STORE_CTX *x509_ctx
     )
 {
+    int status = TRUE;
+    QUIC_BUFFER PortableCertificate = { 0, 0};
+    QUIC_BUFFER PortableChain = { 0, 0};
     X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
     SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
@@ -249,11 +253,47 @@ CxPlatTlsCertificateVerifyCallback(
         return FALSE;
     }
 
+    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {
+        if (Cert) {
+            PortableCertificate.Length = i2d_X509(Cert, &PortableCertificate.Buffer);
+            if (!PortableCertificate.Buffer) {
+                QuicTraceEvent(
+                        TlsError,
+                        "[ tls][%p] ERROR, %s.",
+                        TlsContext->Connection,
+                        "Failed to serialize certificate context");
+            }
+        }
+        if (x509_ctx) {
+            int ChainCount;
+            STACK_OF(X509)* Chain = X509_STORE_CTX_get0_chain(x509_ctx);
+            if ((ChainCount = sk_X509_num(Chain)) > 0) {
+                PKCS7* p7 = PKCS7_new();
+                if (p7) {
+                    PKCS7_set_type(p7, NID_pkcs7_signed);
+                    PKCS7_content_new(p7, NID_pkcs7_data);
+
+                    for (int i = 0; i < ChainCount; i++) {
+                        PKCS7_add_certificate(p7, sk_X509_value(Chain, i));
+                    }
+                    PortableChain.Length = i2d_PKCS7(p7, &PortableChain.Buffer);
+                    PKCS7_free(p7);
+                } else {
+                    QuicTraceEvent(
+                        TlsError,
+                        "[ tls][%p] ERROR, %s.",
+                        TlsContext->Connection,
+                        "Failed to allocate PKCS7 context");
+                }
+            }
+        }
+    }
+
     if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
         !TlsContext->SecConfig->Callbacks.CertificateReceived(
             TlsContext->Connection,
-            Cert,
-            x509_ctx,
+            (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE*)&PortableCertificate : (QUIC_CERTIFICATE*)Cert,
+            (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE_CHAIN*)&PortableChain : (QUIC_CERTIFICATE_CHAIN*)x509_ctx,
             0,
             0)) {
         QuicTraceEvent(
@@ -262,10 +302,17 @@ CxPlatTlsCertificateVerifyCallback(
             TlsContext->Connection,
             "Indicate certificate received failed");
         X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
-        return FALSE;
+        status = FALSE;
     }
 
-    return TRUE;
+    if (PortableCertificate.Buffer) {
+        OPENSSL_free(PortableCertificate.Buffer);
+    }
+    if (PortableChain.Buffer) {
+        OPENSSL_free(PortableChain.Buffer);
+    }
+
+    return status;
 }
 
 CXPLAT_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
