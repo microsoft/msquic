@@ -3629,7 +3629,7 @@ CxPlatSocketSend(
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t PartitionIndex
+    _In_ uint16_t IdealProcessor
     )
 {
     QUIC_STATUS Status;
@@ -3649,8 +3649,8 @@ CxPlatSocketSend(
     }
 
     Datapath = Socket->Datapath;
-    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : PartitionIndex % Datapath->ProcCount];
-    Processor = Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : PartitionIndex % Datapath->ProcCount;
+    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
+    Processor = Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : IdealProcessor % Datapath->ProcCount;
 
     CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
     RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
