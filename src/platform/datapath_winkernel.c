@@ -2832,7 +2832,7 @@ CxPlatSocketSend(
     QUIC_STATUS Status;
     PDWORD SegmentSize;
 
-    UNREFERENCED_PARAMETER(PartitionIndex);
+    UNREFERENCED_PARAMETER(IdealProcessor);
     CXPLAT_DBG_ASSERT(
         Binding != NULL && LocalAddress != NULL &&
         RemoteAddress != NULL && SendData != NULL);

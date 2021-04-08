@@ -3649,8 +3649,8 @@ CxPlatSocketSend(
     }
 
     Datapath = Socket->Datapath;
-    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : PartitionIndex % Datapath->ProcCount];
-    Processor = Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : PartitionIndex % Datapath->ProcCount;
+    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
+    Processor = Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : IdealProcessor % Datapath->ProcCount;
 
     CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
     RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));

@@ -2687,7 +2687,7 @@ CxPlatSocketSend(
     _In_ uint16_t IdealProcessor
     )
 {
-    UNREFERENCED_PARAMETER(PartitionIndex);
+    UNREFERENCED_PARAMETER(IdealProcessor);
 #ifdef CX_PLATFORM_DISPATCH_TABLE
     return
         PlatDispatch->SocketSend(
