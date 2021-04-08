@@ -58,6 +58,12 @@ CxPlatSystemUnload(
 #endif
 }
 
+BOOLEAN CxPlatProcessorGroupInfo(
+    _In_ LOGICAL_PROCESSOR_RELATIONSHIP Relationship,
+    _Out_ PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
+    _Out_ PDWORD BufferLength
+    );
+
 BOOLEAN
 CxPlatProcessorInfoInit(
     void
@@ -86,34 +92,11 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    GetLogicalProcessorInformationEx(RelationAll, NULL, &BufferLength);
-    if (BufferLength == 0) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to determine PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX size");
-        goto Error;
-    }
-
-    Buffer = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
-    if (Buffer == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX",
-            BufferLength);
-        goto Error;
-    }
-
-    if (!GetLogicalProcessorInformationEx(
+    if (!
+        CxPlatProcessorGroupInfo(
             RelationAll,
-            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)Buffer,
+            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)&Buffer,
             &BufferLength)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "GetLogicalProcessorInformationEx failed");
         goto Error;
     }
 
@@ -543,6 +526,98 @@ Error:
 
     return HRESULT_FROM_WIN32(Error);
 }
+
+BOOLEAN
+CxPlatProcessorGroupInfo(
+    _In_ LOGICAL_PROCESSOR_RELATIONSHIP Relationship,
+    _Out_writes_bytes_to_opt_(*BufferLength,*BufferLength)
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
+    _Out_ PDWORD BufferLength
+    )
+{
+    *BufferLength = 0;
+    GetLogicalProcessorInformationEx(Relationship, NULL, BufferLength);
+    if (*BufferLength == 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Failed to determine PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX size");
+        goto Error;
+    }
+
+    *Buffer = CXPLAT_ALLOC_NONPAGED(*BufferLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    if (*Buffer == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX",
+            *BufferLength);
+        goto Error;
+    }
+
+    if (!GetLogicalProcessorInformationEx(
+            Relationship,
+            *Buffer,
+            BufferLength)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "GetLogicalProcessorInformationEx failed");
+        CXPLAT_FREE(*Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        goto Error;
+    }
+
+    return TRUE;
+
+Error:
+
+    *Buffer = NULL;
+    *BufferLength = 0;
+    return FALSE;
+}
+
+#ifdef QUIC_UWP_BUILD
+DWORD
+CxPlatProcActiveCount(
+    )
+{
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
+    DWORD ProcLength;
+    DWORD Count;
+
+    if(!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
+        return 0;
+    }
+
+    Count = 0;
+    for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
+        Count +=  ProcInfo->Group.GroupInfo[i].ActiveProcessorCount;
+    }
+    CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    return Count;
+}
+
+DWORD
+CxPlatProcMaxCount(
+    )
+{
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
+    DWORD ProcLength;
+    DWORD Count;
+
+    if(!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
+        return 0;
+    }
+
+    Count = 0;
+    for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
+        Count +=  ProcInfo->Group.GroupInfo[i].MaximumProcessorCount;
+    }
+    CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    return Count;
+}
+#endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 _IRQL_requires_max_(PASSIVE_LEVEL)
