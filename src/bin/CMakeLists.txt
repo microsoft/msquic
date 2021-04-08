@@ -77,15 +77,17 @@ else()
 
         if(${TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
             get_target_property(OUTPUT_DIR ${CURRENT_TARGET} ARCHIVE_OUTPUT_DIRECTORY)
-            # NOTE: Leading space here matters! (input files to the MSVC linker are space separated)
-            set(STATIC_LIB " ${OUTPUT_DIR}/${TARGET_OUTPUT}${CMAKE_STATIC_LIBRARY_SUFFIX}")
-            set_property(
-                GLOBAL
-                APPEND
-                APPEND_STRING
-                PROPERTY QUIC_STATIC_LIBS
-                ${STATIC_LIB}
-            )
+            if(OUTPUT_DIR)
+                # NOTE: Leading space here matters! (input files to the MSVC linker are space separated)
+                set(STATIC_LIB " ${OUTPUT_DIR}/${TARGET_OUTPUT}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+                set_property(
+                    GLOBAL
+                    APPEND
+                    APPEND_STRING
+                    PROPERTY QUIC_STATIC_LIBS
+                    ${STATIC_LIB}
+                )
+            endif()
         endif()
 
         # Next, recursively invoke this function for each dependency
@@ -108,6 +110,32 @@ else()
     endfunction()
 
     flatten_link_dependencies(msquic_static)
+
+    if(QUIC_CI AND QUIC_CI_CONFIG AND QUIC_TLS STREQUAL "openssl")
+        # CI builds may have a cached OpenSSL library available for use.
+        # Inject them directly to the dependency list if so.
+        # Again, leading spaces are important.
+        # NOTE: CI builds are single configuration only so each build variant
+        # is tested separately as opposed to using a generator expression in
+        # this case.
+        if(QUIC_CI_CONFIG STREQUAL "Release" AND EXISTS ${LIBCRYPTO_PATH})
+            set_property(
+                GLOBAL
+                APPEND
+                APPEND_STRING
+                PROPERTY QUIC_STATIC_LIBS
+                " ${LIBCRYPTO_PATH} ${LIBSSL_PATH}"
+            )
+        elseif(QUIC_CI_CONFIG STREQUAL "Debug" AND EXISTS ${LIBCRYPTO_DEBUG_PATH})
+            set_property(
+                GLOBAL
+                APPEND
+                APPEND_STRING
+                PROPERTY QUIC_STATIC_LIBS
+                " ${LIBCRYPTO_DEBUG_PATH} ${LIBSSL_DEBUG_PATH}"
+            )
+        endif()
+    endif()
 
     get_property(DEPS GLOBAL PROPERTY QUIC_STATIC_LIBS)
     # Uncomment to analyze which dependencies were traversed
