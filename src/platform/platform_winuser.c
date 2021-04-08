@@ -58,9 +58,15 @@ CxPlatSystemUnload(
 #endif
 }
 
-BOOLEAN CxPlatProcessorGroupInfo(
+_IRQL_requires_max_(PASSIVE_LEVEL)
+__drv_allocatesMem(Mem)
+_Must_inspect_result_
+_Success_(return != FALSE)
+BOOLEAN
+CxPlatProcessorGroupInfo(
     _In_ LOGICAL_PROCESSOR_RELATIONSHIP Relationship,
-    _Out_ PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
+    _Out_writes_bytes_to_opt_(*BufferLength,*BufferLength)
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
     _Out_ PDWORD BufferLength
     );
 
@@ -92,8 +98,7 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    if (!
-        CxPlatProcessorGroupInfo(
+    if (!CxPlatProcessorGroupInfo(
             RelationAll,
             (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)&Buffer,
             &BufferLength)) {
@@ -527,6 +532,10 @@ Error:
     return HRESULT_FROM_WIN32(Error);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+__drv_allocatesMem(Mem)
+_Must_inspect_result_
+_Success_(return != FALSE)
 BOOLEAN
 CxPlatProcessorGroupInfo(
     _In_ LOGICAL_PROCESSOR_RELATIONSHIP Relationship,
@@ -586,7 +595,7 @@ CxPlatProcActiveCount(
     DWORD ProcLength;
     DWORD Count;
 
-    if(!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
+    if (!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
         return 0;
     }
 
@@ -606,7 +615,7 @@ CxPlatProcMaxCount(
     DWORD ProcLength;
     DWORD Count;
 
-    if(!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
+    if (!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
         return 0;
     }
 
