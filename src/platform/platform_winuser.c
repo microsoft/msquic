@@ -59,13 +59,12 @@ CxPlatSystemUnload(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-__drv_allocatesMem(Mem)
 _Must_inspect_result_
 _Success_(return != FALSE)
 BOOLEAN
 CxPlatProcessorGroupInfo(
     _In_ LOGICAL_PROCESSOR_RELATIONSHIP Relationship,
-    _Out_writes_bytes_to_opt_(*BufferLength,*BufferLength)
+    _Outptr_ _At_(*Buffer, __drv_allocatesMem(Mem)) _Pre_defensive_
         PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
     _Out_ PDWORD BufferLength
     );
@@ -533,13 +532,12 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-__drv_allocatesMem(Mem)
 _Must_inspect_result_
 _Success_(return != FALSE)
 BOOLEAN
 CxPlatProcessorGroupInfo(
     _In_ LOGICAL_PROCESSOR_RELATIONSHIP Relationship,
-    _Out_writes_bytes_to_opt_(*BufferLength,*BufferLength)
+    _Outptr_ _At_(*Buffer, __drv_allocatesMem(Mem)) _Pre_defensive_
         PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
     _Out_ PDWORD BufferLength
     )
