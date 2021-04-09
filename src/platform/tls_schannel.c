@@ -2301,8 +2301,8 @@ CxPlatTlsWriteDataToSchannel(
                 if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
                         TlsContext->Connection,
 #ifdef _KERNEL_MODE
-                        (void*)&PeerCert,
-                        NULL,
+                        (QUIC_CERTIFICATE*)&PeerCert,
+                        (QUIC_CERTIFICATE_CHAIN*)&PeerCert,
 #else
                         (QUIC_CERTIFICATE*)PeerCert,
                         (QUIC_CERTIFICATE_CHAIN*)(PeerCert ? PeerCert->hCertStore : NULL),
