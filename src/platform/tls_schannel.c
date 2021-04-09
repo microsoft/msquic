@@ -2298,6 +2298,7 @@ CxPlatTlsWriteDataToSchannel(
                         "Query peer cert");
                 }
 
+                CXPLAT_DBG_ASSERT(PeerCert != NULL);
                 if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
                         TlsContext->Connection,
 #ifdef _KERNEL_MODE
@@ -2305,7 +2306,7 @@ CxPlatTlsWriteDataToSchannel(
                         NULL,
 #else
                         (QUIC_CERTIFICATE*)PeerCert,
-                        (QUIC_CERTIFICATE_CHAIN*)(PeerCert ? PeerCert->hCertStore : NULL),
+                        (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore),
 
 #endif
                         CertValidationResult.dwChainErrorStatus,
