@@ -258,10 +258,11 @@ CxPlatTlsCertificateVerifyCallback(
             PortableCertificate.Length = i2d_X509(Cert, &PortableCertificate.Buffer);
             if (!PortableCertificate.Buffer) {
                 QuicTraceEvent(
-                        TlsError,
-                        "[ tls][%p] ERROR, %s.",
-                        TlsContext->Connection,
-                        "Failed to serialize certificate context");
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Failed to serialize certificate context");
+                return FALSE;
             }
         }
         if (x509_ctx) {
