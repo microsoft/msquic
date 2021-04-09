@@ -553,28 +553,6 @@ typedef HANDLE CXPLAT_EVENT;
 // Time Measurement Interfaces
 //
 
-#ifdef QUIC_UWP_BUILD
-inline
-uint64_t
-CxPlatGetTimerResolution()
-{
-    return 15625;
-}
-#else
-//
-// This is an undocumented API that is used to query the current timer
-// resolution.
-//
-__kernel_entry
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtQueryTimerResolution(
-    _Out_ PULONG MaximumTime,
-    _Out_ PULONG MinimumTime,
-    _Out_ PULONG CurrentTime
-    );
-
 //
 // Returns the worst-case system timer resolution (in us).
 //
@@ -582,11 +560,11 @@ inline
 uint64_t
 CxPlatGetTimerResolution()
 {
-    ULONG MaximumTime, MinimumTime, CurrentTime;
-    NtQueryTimerResolution(&MaximumTime, &MinimumTime, &CurrentTime);
-    return NS100_TO_US(MaximumTime);
+    DWORD Adjustment, Increment;
+    BOOL AdjustmentDisabled;
+    GetSystemTimeAdjustment(&Adjustment, &Increment, &AdjustmentDisabled);
+    return NS100_TO_US(Increment);
 }
-#endif
 
 //
 // Performance counter frequency.
