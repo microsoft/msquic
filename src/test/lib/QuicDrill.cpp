@@ -192,7 +192,7 @@ struct DrillSender {
 
         CXPLAT_SEND_DATA* SendData =
             CxPlatSendDataAlloc(
-                Binding, CXPLAT_ECN_NON_ECT, DatagramLength);
+                Binding, CXPLAT_ECN_NON_ECT, DatagramLength, (uint16_t)CxPlatProcCurrentNumber());
 
         QUIC_BUFFER* SendBuffer =
             CxPlatSendDataAllocBuffer(SendData, DatagramLength);
@@ -213,8 +213,7 @@ struct DrillSender {
                 Binding,
                 &LocalAddress,
                 &ServerAddress,
-                SendData,
-                0);
+                SendData);
 
         return Status;
     }

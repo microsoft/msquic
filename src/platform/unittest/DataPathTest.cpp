@@ -221,7 +221,7 @@ protected:
             if (RecvData->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->ServerAddress.Ipv4.sin_port) {
 
                 auto ServerSendData =
-                    CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, 0);
+                    CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, 0, (uint16_t)CxPlatProcCurrentNumber());
                 ASSERT_NE(nullptr, ServerSendData);
 
                 auto ServerBuffer =
@@ -235,8 +235,7 @@ protected:
                         Socket,
                         &RecvData->Tuple->LocalAddress,
                         &RecvData->Tuple->RemoteAddress,
-                        ServerSendData, 0
-                    ));
+                        ServerSendData));
 
             } else {
                 CxPlatEventSet(RecvContext->ClientCompletion);
@@ -269,7 +268,7 @@ protected:
                 CXPLAT_ECN_TYPE ecn = (CXPLAT_ECN_TYPE)RecvData->TypeOfService;
 
                 auto ServerSendData =
-                    CxPlatSendDataAlloc(Socket, CXPLAT_ECN_ECT_0, 0);
+                    CxPlatSendDataAlloc(Socket, CXPLAT_ECN_ECT_0, 0, (uint16_t)CxPlatProcCurrentNumber());
                 ASSERT_NE(nullptr, ServerSendData);
 
                 auto ServerBuffer =
@@ -284,8 +283,7 @@ protected:
                         Socket,
                         &RecvData->Tuple->LocalAddress,
                         &RecvData->Tuple->RemoteAddress,
-                        ServerSendData, 0
-                    ));
+                        ServerSendData));
 
             } else {
                 CxPlatEventSet(RecvContext->ClientCompletion);
@@ -615,7 +613,7 @@ TEST_P(DataPathTest, UdpData)
     ASSERT_NE(nullptr, client);
 
     auto ClientSendData =
-        CxPlatSendDataAlloc(client, CXPLAT_ECN_NON_ECT, 0);
+        CxPlatSendDataAlloc(client, CXPLAT_ECN_NON_ECT, 0, (uint16_t)CxPlatProcCurrentNumber());
     ASSERT_NE(nullptr, ClientSendData);
 
     auto ClientBuffer =
@@ -632,7 +630,7 @@ TEST_P(DataPathTest, UdpData)
             client,
             &ClientAddress,
             &serverAddress.SockAddr,
-            ClientSendData, 0));
+            ClientSendData));
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 
@@ -700,7 +698,7 @@ TEST_P(DataPathTest, UdpDataRebind)
     ASSERT_NE(nullptr, client);
 
     auto ClientSendData =
-        CxPlatSendDataAlloc(client, CXPLAT_ECN_NON_ECT, 0);
+        CxPlatSendDataAlloc(client, CXPLAT_ECN_NON_ECT, 0, (uint16_t)CxPlatProcCurrentNumber());
     ASSERT_NE(nullptr, ClientSendData);
 
     auto ClientBuffer =
@@ -717,7 +715,7 @@ TEST_P(DataPathTest, UdpDataRebind)
             client,
             &ClientAddress,
             &serverAddress.SockAddr,
-            ClientSendData, 0));
+            ClientSendData));
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 
@@ -736,7 +734,7 @@ TEST_P(DataPathTest, UdpDataRebind)
     ASSERT_NE(nullptr, client);
 
     ClientSendData =
-        CxPlatSendDataAlloc(client, CXPLAT_ECN_NON_ECT, 0);
+        CxPlatSendDataAlloc(client, CXPLAT_ECN_NON_ECT, 0, (uint16_t)CxPlatProcCurrentNumber());
     ASSERT_NE(nullptr, ClientSendData);
 
     ClientBuffer =
@@ -752,7 +750,7 @@ TEST_P(DataPathTest, UdpDataRebind)
             client,
             &ClientAddress,
             &serverAddress.SockAddr,
-            ClientSendData, 0));
+            ClientSendData));
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 
@@ -820,7 +818,7 @@ TEST_P(DataPathTest, UdpDataECT0)
     ASSERT_NE(nullptr, client);
 
     auto ClientSendData =
-        CxPlatSendDataAlloc(client, CXPLAT_ECN_ECT_0, 0);
+        CxPlatSendDataAlloc(client, CXPLAT_ECN_ECT_0, 0, (uint16_t)CxPlatProcCurrentNumber());
     ASSERT_NE(nullptr, ClientSendData);
 
     auto ClientBuffer =
@@ -837,7 +835,7 @@ TEST_P(DataPathTest, UdpDataECT0)
             client,
             &ClientAddress,
             &serverAddress.SockAddr,
-            ClientSendData, 0));
+            ClientSendData));
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 
@@ -1078,7 +1076,7 @@ TEST_P(DataPathTest, TcpDataClient)
     ASSERT_NE(nullptr, ListenerContext.Server);
 
     auto SendData =
-        CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0);
+        CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0, (uint16_t)CxPlatProcCurrentNumber());
     ASSERT_NE(nullptr, SendData);
 
     auto SendBuffer =
@@ -1092,7 +1090,7 @@ TEST_P(DataPathTest, TcpDataClient)
             Client,
             &ServerAddress,
             &ClientAddress,
-            SendData, 0));
+            SendData));
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.ServerContext.ReceiveEvent, 100));
 
@@ -1164,7 +1162,7 @@ TEST_P(DataPathTest, TcpDataServer)
     ASSERT_NE(nullptr, ListenerContext.Server);
 
     auto SendData =
-        CxPlatSendDataAlloc(ListenerContext.Server, CXPLAT_ECN_NON_ECT, 0);
+        CxPlatSendDataAlloc(ListenerContext.Server, CXPLAT_ECN_NON_ECT, 0, (uint16_t)CxPlatProcCurrentNumber());
     ASSERT_NE(nullptr, SendData);
 
     auto SendBuffer =
@@ -1178,7 +1176,7 @@ TEST_P(DataPathTest, TcpDataServer)
             ListenerContext.Server,
             &ServerAddress,
             &ClientAddress,
-            SendData, 0));
+            SendData));
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 100));
 

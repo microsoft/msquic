@@ -523,7 +523,7 @@ void TcpConnection::Process()
     }
     if (BatchedSendData) {
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, PartitionIndex))) {
+            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData))) {
             IndicateDisconnect = true;
         }
         BatchedSendData = nullptr;
@@ -889,7 +889,7 @@ bool TcpConnection::EncryptFrame(TcpFrame* Frame)
 QUIC_BUFFER* TcpConnection::NewSendBuffer()
 {
     if (!BatchedSendData) {
-        BatchedSendData = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, TLS_BLOCK_SIZE);
+        BatchedSendData = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, TLS_BLOCK_SIZE, PartitionIndex);
         if (!BatchedSendData) { return nullptr; }
     }
     return CxPlatSendDataAllocBuffer(BatchedSendData, TLS_BLOCK_SIZE);
@@ -906,7 +906,7 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData, PartitionIndex))) {
+            CxPlatSocketSend(Socket, &LocalAddress, &RemoteAddress, BatchedSendData))) {
             WriteOutput("CxPlatSocketSend FAILED\n");
             return false;
         }

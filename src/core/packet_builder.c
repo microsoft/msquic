@@ -190,7 +190,8 @@ QuicPacketBuilderPrepare(
                         0 :
                         MaxUdpPayloadSizeForFamily(
                             QuicAddrGetFamily(&Builder->Path->RemoteAddress),
-                            DatagramSize));
+                            DatagramSize),
+                    Builder->Connection->Worker->IdealProcessor);
             if (Builder->SendData == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -895,8 +896,7 @@ QuicPacketBuilderSendBatch(
         &Builder->Path->RemoteAddress,
         Builder->SendData,
         Builder->TotalDatagramsLength,
-        Builder->TotalCountDatagrams,
-        Builder->Connection->Worker->IdealProcessor);
+        Builder->TotalCountDatagrams);
 
     Builder->PacketBatchSent = TRUE;
     Builder->SendData = NULL;

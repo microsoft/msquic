@@ -1688,13 +1688,14 @@ CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize
+    _In_ uint16_t MaxPacketSize,
+    _In_ uint16_t IdealProcessor
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc =
-        &Socket->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount];
+        &Socket->Datapath->ProcContexts[IdealProcessor % Socket->Datapath->ProcCount];
 
     CXPLAT_SEND_DATA* SendData =
         CxPlatPoolAlloc(&DatapathProc->SendDataPool);
@@ -2181,11 +2182,9 @@ CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    UNREFERENCED_PARAMETER(IdealProcessor);
     QUIC_STATUS Status =
         CxPlatSocketSendInternal(
             Socket,

@@ -486,7 +486,8 @@ CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize
+    _In_ uint16_t MaxPacketSize,
+    _In_ uint16_t IdealProcessor
     );
 
 //
@@ -537,8 +538,7 @@ CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t PartitionId
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 //

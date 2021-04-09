@@ -2408,13 +2408,14 @@ CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Binding,
     _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ UINT16 MaxPacketSize
+    _In_ UINT16 MaxPacketSize,
+    _In_ UINT16 IdealProcessor
     )
 {
     CXPLAT_DBG_ASSERT(Binding != NULL);
 
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
-        &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
+        &Binding->Datapath->ProcContexts[IdealProcessor];
 
     CXPLAT_SEND_DATA* SendData =
         CxPlatPoolAlloc(&ProcContext->SendDataPool);
@@ -2825,14 +2826,12 @@ CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     QUIC_STATUS Status;
     PDWORD SegmentSize;
 
-    UNREFERENCED_PARAMETER(IdealProcessor);
     CXPLAT_DBG_ASSERT(
         Binding != NULL && LocalAddress != NULL &&
         RemoteAddress != NULL && SendData != NULL);

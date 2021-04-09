@@ -386,7 +386,7 @@ CxPlatPcpSendMapRequestInternal(
     CxPlatConvertToMappedV6(&LocalAddress, &LocalMappedAddress);
 
     CXPLAT_SEND_DATA* SendData =
-        CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, PCP_MAP_REQUEST_SIZE);
+        CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, PCP_MAP_REQUEST_SIZE, (uint16_t)CxPlatProcCurrentNumber());
     if (SendData == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -423,8 +423,7 @@ CxPlatPcpSendMapRequestInternal(
             Socket,
             &LocalAddress,
             &RemoteAddress,
-            SendData,
-            (uint16_t)CxPlatProcCurrentNumber());
+            SendData);
     if (QUIC_FAILED(Status)) {
         return Status;
     }
@@ -487,7 +486,7 @@ CxPlatPcpSendPeerRequestInternal(
     CxPlatConvertToMappedV6(RemotePeerAddress, &RemotePeerMappedAddress);
 
     CXPLAT_SEND_DATA* SendData =
-        CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, PCP_PEER_REQUEST_SIZE);
+        CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, PCP_PEER_REQUEST_SIZE, (uint16_t)CxPlatProcCurrentNumber());
     if (SendData == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -529,8 +528,7 @@ CxPlatPcpSendPeerRequestInternal(
             Socket,
             &LocalAddress,
             &RemoteAddress,
-            SendData,
-            (uint16_t)CxPlatProcCurrentNumber());
+            SendData);
     if (QUIC_FAILED(Status)) {
         return Status;
     }
