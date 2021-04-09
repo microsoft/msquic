@@ -735,8 +735,13 @@ extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 extern uint64_t* CxPlatNumaMasks;
 extern uint32_t* CxPlatProcessorGroupOffsets;
 
+#ifdef QUIC_UWP_BUILD
+DWORD CxPlatProcMaxCount();
+DWORD CxPlatProcActiveCount();
+#else
 #define CxPlatProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
 #define CxPlatProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
+#endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
