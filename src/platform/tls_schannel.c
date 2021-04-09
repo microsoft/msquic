@@ -2297,8 +2297,9 @@ CxPlatTlsWriteDataToSchannel(
                         SecStatus,
                         "Query peer cert");
                 }
-
+#ifndef _KERNEL_MODE
                 CXPLAT_DBG_ASSERT(PeerCert != NULL);
+#endif
                 if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
                         TlsContext->Connection,
 #ifdef _KERNEL_MODE

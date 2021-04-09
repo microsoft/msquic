@@ -96,9 +96,6 @@ protected:
                 NULL,
                 QUIC_ALLOWED_CIPHER_SUITE_NONE};
             CredConfig.Flags |= CredFlags;
-#ifndef _WIN32
-            CredConfig.Flags |= QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES;
-#endif
             CredConfig.AllowedCipherSuites = CipherFlags;
             Load(&TlsContext::TlsClientCallbacks, &CredConfig);
         }
