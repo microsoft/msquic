@@ -3344,7 +3344,7 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC* DatapathProc =
-        &Socket->Datapath->Processors[IdealProcessor];
+        &Socket->Datapath->Processors[GetCurrentProcessorNumber()];
 
     CXPLAT_SEND_DATA* SendData =
         CxPlatPoolAlloc(&DatapathProc->SendDataPool);

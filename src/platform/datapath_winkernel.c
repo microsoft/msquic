@@ -2412,10 +2412,11 @@ CxPlatSendDataAlloc(
     _In_ UINT16 IdealProcessor
     )
 {
+    UNREFERENCED_PARAMETER(IdealProcessor);
     CXPLAT_DBG_ASSERT(Binding != NULL);
 
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
-        &Binding->Datapath->ProcContexts[IdealProcessor];
+        &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
 
     CXPLAT_SEND_DATA* SendData =
         CxPlatPoolAlloc(&ProcContext->SendDataPool);

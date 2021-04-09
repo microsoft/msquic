@@ -2126,6 +2126,7 @@ CxPlatSendDataAlloc(
     _In_ uint16_t IdealProcessor
     )
 {
+    UNREFERENCED_PARAMETER(IdealProcessor);
 #ifdef CX_PLATFORM_DISPATCH_TABLE
     return
         PlatDispatch->SendDataAlloc(
@@ -2136,7 +2137,7 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc =
-        &Socket->Datapath->ProcContexts[IdealProcessor % Socket->Datapath->ProcCount];
+        &Socket->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount];
 
     CXPLAT_SEND_DATA* SendData =
         CxPlatPoolAlloc(&DatapathProc->SendDataPool);
