@@ -553,6 +553,14 @@ typedef HANDLE CXPLAT_EVENT;
 // Time Measurement Interfaces
 //
 
+#ifdef QUIC_UWP_BUILD
+inline
+uint64_t
+CxPlatGetTimerResolution()
+{
+    return 15625;
+}
+#else
 //
 // This is an undocumented API that is used to query the current timer
 // resolution.
@@ -578,6 +586,7 @@ CxPlatGetTimerResolution()
     NtQueryTimerResolution(&MaximumTime, &MinimumTime, &CurrentTime);
     return NS100_TO_US(MaximumTime);
 }
+#endif
 
 //
 // Performance counter frequency.
