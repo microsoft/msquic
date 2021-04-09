@@ -92,7 +92,10 @@ public:
     void StartConnection(HpsWorkerContext* Context);
 
     HpsWorkerContext Contexts[PERF_MAX_THREAD_COUNT];
-    MsQuicRegistration Registration;
+    MsQuicRegistration Registration {
+        "secnetperf-client-hps",
+        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        false};
     MsQuicConfiguration Configuration {
         Registration,
         MsQuicAlpn(PERF_ALPN),

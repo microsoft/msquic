@@ -106,7 +106,10 @@ private:
 
     void OnStreamShutdownComplete(_In_ StreamContext* Context);
 
-    MsQuicRegistration Registration {true};
+    MsQuicRegistration Registration {
+        "secnetperf-client-tput",
+        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        true};
     MsQuicConfiguration Configuration {
         Registration,
         MsQuicAlpn(PERF_ALPN),

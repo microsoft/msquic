@@ -111,7 +111,10 @@ private:
         );
 
     QUIC_STATUS InitStatus;
-    MsQuicRegistration Registration {true};
+    MsQuicRegistration Registration {
+        "secnetperf-server",
+        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        true};
     MsQuicAlpn Alpn {PERF_ALPN};
     MsQuicConfiguration Configuration {
         Registration,
