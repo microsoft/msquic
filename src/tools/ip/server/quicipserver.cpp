@@ -214,6 +214,10 @@ main(
         return Status;
     }
 
+#ifdef QUIC_BUILD_STATIC
+    MsQuicLoad();
+#endif
+
     if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed, 0x%x!\n", Status);
         goto Error;
@@ -239,6 +243,10 @@ Error:
         }
         MsQuicClose(MsQuic);
     }
+
+#ifdef QUIC_BUILD_STATIC
+    MsQuicUnload();
+#endif
 
     CxPlatUninitialize();
     CxPlatSystemUnload();

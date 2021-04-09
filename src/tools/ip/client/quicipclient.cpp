@@ -26,6 +26,10 @@ main(
         return 0;
     }
 
+#ifdef QUIC_BUILD_STATIC
+    MsQuicLoad();
+#endif
+
     const char* Target = "quic.westus.cloudapp.azure.com";
     const char* LocalAddressArg = "*";
     bool Unsecure = false;
@@ -52,6 +56,10 @@ main(
     } else {
         printf("Failed!\n");
     }
+
+#ifdef QUIC_BUILD_STATIC
+    MsQuicUnload();
+#endif
 
     return 0;
 }

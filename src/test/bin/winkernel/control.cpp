@@ -79,6 +79,10 @@ QuicTestCtlInitialize(
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
 
+#ifdef QUIC_BUILD_STATIC
+    MsQuicLoad();
+#endif
+
     MsQuic = new MsQuicApi();
     if (!MsQuic) {
         goto Error;
@@ -219,6 +223,10 @@ QuicTestCtlUninitialize(
     }
 
     delete MsQuic;
+
+#ifdef QUIC_BUILD_STATIC
+    MsQuicUnload();
+#endif
 
     QuicTraceLogVerbose(
         TestControlUninitialized,

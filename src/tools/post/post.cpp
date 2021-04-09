@@ -21,6 +21,16 @@ extern "C" void QuicTraceRundown(void) { }
 
 #define POST_HEADER_FORMAT "POST %s\r\n"
 
+#ifdef QUIC_BUILD_STATIC
+#define EXIT_ON_FAILURE(x) do { \
+    auto _Status = x; \
+    if (QUIC_FAILED(_Status)) { \
+       printf("%s:%d %s failed!\n", __FILE__, __LINE__, #x); \
+       MsQuicUnload(); \
+       exit(1); \
+    } \
+} while (0);
+#else
 #define EXIT_ON_FAILURE(x) do { \
     auto _Status = x; \
     if (QUIC_FAILED(_Status)) { \
@@ -28,6 +38,7 @@ extern "C" void QuicTraceRundown(void) { }
        exit(1); \
     } \
 } while (0);
+#endif // QUIC_BUILD_STATIC
 
 #define ALPN_BUFFER(str) { sizeof(str) - 1, (uint8_t*)str }
 const QUIC_BUFFER ALPNs[] = {
@@ -150,6 +161,10 @@ main(
     CredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
     CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_CLIENT;
 
+#ifdef QUIC_BUILD_STATIC
+    MsQuicLoad();
+#endif
+
     EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
     const QUIC_REGISTRATION_CONFIG RegConfig = { "post", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
     EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
@@ -187,6 +202,10 @@ main(
     MsQuic->ConfigurationClose(Configuration);
     MsQuic->RegistrationClose(Registration);
     MsQuicClose(MsQuic);
+
+#ifdef QUIC_BUILD_STATIC
+    MsQuicUnload();
+#endif
 
     uint64_t TimeEnd = CxPlatTimeUs64();
     uint64_t ElapsedUs = CxPlatTimeDiff64(TimeStart, TimeEnd);

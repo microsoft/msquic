@@ -819,6 +819,15 @@ main(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
+#ifdef QUIC_BUILD_STATIC
+    //
+    // When linking against MsQuic statically, MsQuicLoad must be
+    // called before all other MsQuic routines and MsQuicUnload must
+    // be called before exit for a clean shutdown.
+    //
+    MsQuicLoad();
+#endif
+
     //
     // Open a handle to the library and get the API function table.
     //
@@ -859,6 +868,10 @@ Error:
             MsQuic->RegistrationClose(Registration);
         }
         MsQuicClose(MsQuic);
+
+#ifdef QUIC_BUILD_STATIC
+        MsQuicUnload();
+#endif
     }
 
     return (int)Status;

@@ -610,15 +610,17 @@ endif()
 
 # Test code
 if(QUIC_BUILD_TEST)
-    # Build the googletest framework.
-    set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject")
-    set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)")
-    if(WIN32)
-        option(gtest_force_shared_crt "Use shared (DLL) run-time lib even when Google Test is built as static lib." ON)
-    endif()
+    include(FetchContent)
 
     enable_testing()
-    add_subdirectory(submodules/googletest)
+    
+    # Build the googletest framework.
+    FetchContent_Declare(
+        googletest
+        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules/googletest
+        CMAKE_ARGS "-DBUILD_SHARED_LIBS=OFF -DBUILD_GMOCK=OFF -DINSTALL_GTEST=OFF -Dgtest_force_shared_crt=ON"
+    )
+    FetchContent_MakeAvailable(googletest)
 
     set_property(TARGET gtest PROPERTY CXX_STANDARD 17)
     set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)

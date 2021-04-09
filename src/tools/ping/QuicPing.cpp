@@ -340,12 +340,16 @@ main(
 
     if (argc < 2) {
         PrintUsage();
-        goto Error;
+        goto Error2;
     }
+
+#ifdef QUIC_BUILD_STATIC
+    MsQuicLoad();
+#endif
 
     if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed!\n");
-        goto Error;
+        goto Error1;
     }
 
     TryGetValue(argc, argv, "exec", &execProfile);
@@ -354,7 +358,7 @@ main(
     if (QUIC_FAILED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
         printf("RegistrationOpen failed!\n");
         MsQuicClose(MsQuic);
-        goto Error;
+        goto Error1;
     }
 
     //
@@ -374,7 +378,13 @@ main(
     MsQuic->RegistrationClose(Registration);
     MsQuicClose(MsQuic);
 
-Error:
+Error1:
+
+#ifdef QUIC_BUILD_STATIC
+    MsQuicUnload();
+#endif
+
+Error2:
 
     CxPlatUninitialize();
     CxPlatSystemUnload();

@@ -803,6 +803,10 @@ main(int argc, char **argv)
 
     Settings.RunTimeMs = Settings.RunTimeMs / RepeatCount;
 
+#ifdef QUIC_BUILD_STATIC
+    MsQuicLoad();
+#endif
+
     for (uint32_t i = 0; i < RepeatCount; i++) {
 
         for (size_t j = 0; j < BufferCount; ++j) {
@@ -937,6 +941,10 @@ main(int argc, char **argv)
 
         MsQuicClose(MsQuic);
         MsQuic = nullptr;
+
+#ifdef QUIC_BUILD_STATIC
+        MsQuicUnload();
+#endif
 
         for (size_t j = 0; j < BufferCount; ++j) {
             free(Buffers[j].Buffer);

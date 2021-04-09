@@ -60,6 +60,10 @@ main(
         return -1;
     }
 
+#ifdef QUIC_BUILD_STATIC
+    MsQuicLoad();
+#endif
+
     HQUIC Registration = nullptr;
     EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
     const QUIC_REGISTRATION_CONFIG RegConfig = { "interopserver", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
@@ -147,6 +151,10 @@ main(
         0);
     MsQuic->RegistrationClose(Registration);
     MsQuicClose(MsQuic);
+
+#ifdef QUIC_BUILD_STATIC
+    MsQuicUnload();
+#endif
 
     return 0;
 }
