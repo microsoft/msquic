@@ -615,12 +615,17 @@ if(QUIC_BUILD_TEST)
     enable_testing()
     
     # Build the googletest framework.
+
+    # Enforce static builds for test artifacts
+    set(PREV_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS} CACHE INTERNAL "")
+    set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
     FetchContent_Declare(
         googletest
         SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules/googletest
-        CMAKE_ARGS "-DBUILD_SHARED_LIBS=OFF -DBUILD_GMOCK=OFF -DINSTALL_GTEST=OFF -Dgtest_force_shared_crt=ON"
+        CMAKE_ARGS "-DBUILD_GMOCK=OFF -DINSTALL_GTEST=OFF -Dgtest_force_shared_crt=ON"
     )
     FetchContent_MakeAvailable(googletest)
+    set(BUILD_SHARED_LIBS ${PREV_BUILD_SHARED_LIBS} CACHE INTERNAL "")
 
     set_property(TARGET gtest PROPERTY CXX_STANDARD 17)
     set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
