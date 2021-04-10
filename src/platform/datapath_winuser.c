@@ -358,6 +358,11 @@ typedef struct CXPLAT_DATAPATH_PROC {
     uint16_t Index;
 
     //
+    // Flag indicates that the worker thread is currently actively processing.
+    //
+    uint16_t WorkerActive : 1;
+
+    //
     // Pool of send contexts to be shared by all sockets on this core.
     //
     CXPLAT_POOL SendDataPool;
@@ -3643,54 +3648,32 @@ CxPlatSocketSend(
         Socket != NULL && LocalAddress != NULL &&
         RemoteAddress != NULL && SendData != NULL);
 
-    if (SendData->WsaBufferCount == 0) {
+    if (SendData->WsaBufferCount == 0) { // TODO - Make a dbg assert?
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
     Datapath = Socket->Datapath;
-    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
     Processor = Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : IdealProcessor % Datapath->ProcCount;
+    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
 
     CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
-    RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
 
-    if (Socket->Type != CXPLAT_SOCKET_UDP) {
-        Result =
-            WSASend(
-                SocketProc->Socket,
-                SendData->WsaBuffers,
-                SendData->WsaBufferCount,
-                &BytesSent,
-                0,
-                &SendData->Overlapped,
-                NULL);
-
-        if (Result == SOCKET_ERROR) {
-            int WsaError = WSAGetLastError();
-            if (WsaError != WSA_IO_PENDING) {
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    SocketProc->Parent,
-                    WsaError,
-                    "WSASendMsg");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Exit;
-            }
-        } else {
-            //
-            // Completed synchronously.
-            //
-            CxPlatSendDataComplete(
+    if ((Socket->Type != CXPLAT_SOCKET_UDP) ||
+        Datapath->Processors[Processor].WorkerActive) {
+        //
+        // Currently TCP always sends inline. For UDP, if the worker thread is
+        // already active (i.e. overloaded?) then we just send here. If it's
+        // not currently processing then we queue and let the worker do it.
+        //
+        return
+            CxPlatSocketSendInline(
                 SocketProc,
-                SendData,
-                QUIC_STATUS_SUCCESS);
-        }
-
-        Status = QUIC_STATUS_SUCCESS;
-        goto Exit;
+                LocalAddress,
+                RemoteAddress,
+                SendData);
     }
+
 
     CxPlatCopyMemory(
         &SendData->LocalAddress,
@@ -3702,6 +3685,7 @@ CxPlatSocketSend(
         RemoteAddress,
         sizeof(*RemoteAddress));
 
+    RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
     Result = PostQueuedCompletionStatus(
         Datapath->Processors[Processor].IOCP,
         UINT32_MAX,
@@ -3732,7 +3716,7 @@ Exit:
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-CxPlatSocketSendInternal(
+CxPlatSocketSendInline(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
@@ -3747,8 +3731,6 @@ CxPlatSocketSendInternal(
 
     Datapath = SocketProc->Parent->Datapath;
     Socket = SocketProc->Parent;
-
-    CXPLAT_DBG_ASSERT(Socket->Type == CXPLAT_SOCKET_UDP);
 
     QuicTraceEvent(
         DatapathSend,
@@ -3848,14 +3830,26 @@ CxPlatSocketSendInternal(
     // Start the async send.
     //
     RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
-    Result =
-        Datapath->WSASendMsg(
-            SocketProc->Socket,
-            &WSAMhdr,
-            0,
-            &BytesSent,
-            &SendData->Overlapped,
-            NULL);
+    if (Socket->Type == CXPLAT_SOCKET_UDP) {
+        Result =
+            Datapath->WSASendMsg(
+                SocketProc->Socket,
+                &WSAMhdr,
+                0,
+                &BytesSent,
+                &SendData->Overlapped,
+                NULL);
+    } else {
+        Result =
+            WSASend(
+                SocketProc->Socket,
+                SendData->WsaBuffers,
+                SendData->WsaBufferCount,
+                &BytesSent,
+                0,
+                &SendData->Overlapped,
+                NULL);
+    }
 
     if (Result == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
@@ -3929,6 +3923,8 @@ CxPlatDataPathWorkerThread(
 
         CXPLAT_DBG_ASSERT(Overlapped != NULL);
         CXPLAT_DBG_ASSERT(SocketProc != NULL);
+
+        DatapathProc->WorkerActive = TRUE; // TODO - Use interlocked operations instead?
 
         IoResult = Result ? NO_ERROR : GetLastError();
 
@@ -4021,14 +4017,14 @@ CxPlatDataPathWorkerThread(
                     CXPLAT_SEND_DATA,
                     Overlapped);
 
-            if (NumberOfBytesTransferred == UINT32_MAX && 
+            if (NumberOfBytesTransferred == UINT32_MAX &&
                 CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
-                CxPlatSocketSendInternal(
+                CxPlatSocketSendInline(
                     SocketProc,
                     &SendData->LocalAddress,
                     &SendData->RemoteAddress,
                     SendData);
-                CxPlatRundownRelease(&SocketProc->UpcallRundown);                
+                CxPlatRundownRelease(&SocketProc->UpcallRundown);
             } else {
                 CxPlatSendDataComplete(
                     SocketProc,
@@ -4036,6 +4032,8 @@ CxPlatDataPathWorkerThread(
                     IoResult);
             }
         }
+
+        DatapathProc->WorkerActive = FALSE;
     }
 
     QuicTraceLogInfo(
