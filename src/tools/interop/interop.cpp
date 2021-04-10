@@ -1200,6 +1200,13 @@ main(
 
     RunSerially = GetValue(argc, argv, "serial") != nullptr;
 
+#ifdef QUIC_BUILD_STATIC
+    MsQuicLoad();
+    std::atexit([]() noexcept {
+        MsQuicUnload();
+    });
+#endif
+
     CxPlatSystemLoad();
 
     QUIC_STATUS Status;
