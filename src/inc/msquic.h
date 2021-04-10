@@ -264,8 +264,8 @@ typedef struct QUIC_CERTIFICATE_PKCS12 {
     const char *PrivateKeyPassword;     // Optional: used if provided. Ignored if NULL
 } QUIC_CERTIFICATE_PKCS12;
 
-typedef void QUIC_CERTIFICATE; // Platform specific certificate object
-typedef void QUIC_CERTIFICATE_CHAIN; // Platform specific certificate chain object
+typedef void QUIC_CERTIFICATE;          // Platform specific certificate object
+typedef void QUIC_CERTIFICATE_CHAIN;    // Platform specific certificate chain object
 
 typedef struct QUIC_CREDENTIAL_CONFIG {
     QUIC_CREDENTIAL_TYPE Type;

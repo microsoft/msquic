@@ -233,8 +233,8 @@ CxPlatTlsCertificateVerifyCallback(
     )
 {
     int status = TRUE;
-    QUIC_BUFFER PortableCertificate = { 0, 0};
-    QUIC_BUFFER PortableChain = { 0, 0};
+    QUIC_BUFFER PortableCertificate = { 0, 0 };
+    QUIC_BUFFER PortableChain = { 0, 0 };
     X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
     SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);

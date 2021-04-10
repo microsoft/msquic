@@ -2308,7 +2308,6 @@ CxPlatTlsWriteDataToSchannel(
 #else
                         (QUIC_CERTIFICATE*)PeerCert,
                         (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore),
-
 #endif
                         CertValidationResult.dwChainErrorStatus,
                         (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
