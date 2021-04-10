@@ -13,6 +13,10 @@ Abstract:
 #include "msquichelper.h"
 #include "quicip.h"
 
+#ifdef QUIC_BUILD_STATIC
+#include <cstdlib>
+#endif
+
 int
 QUIC_MAIN_EXPORT
 main(
@@ -28,6 +32,9 @@ main(
 
 #ifdef QUIC_BUILD_STATIC
     MsQuicLoad();
+    std::atexit([]() noexcept {
+        MsQuicUnload();
+    });
 #endif
 
     const char* Target = "quic.westus.cloudapp.azure.com";
@@ -56,10 +63,6 @@ main(
     } else {
         printf("Failed!\n");
     }
-
-#ifdef QUIC_BUILD_STATIC
-    MsQuicUnload();
-#endif
 
     return 0;
 }

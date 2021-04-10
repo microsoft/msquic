@@ -13,6 +13,10 @@ Abstract:
 
 #include <msquichelper.h>
 
+#ifdef QUIC_BUILD_STATIC
+#include <cstdlib>
+#endif
+
 #ifndef QUIC_BUILD_STATIC
 extern "C" void QuicTraceRundown(void) { }
 #endif
@@ -163,6 +167,9 @@ main(
 
 #ifdef QUIC_BUILD_STATIC
     MsQuicLoad();
+    std::atexit([]() noexcept {
+        MsQuicUnload();
+    });
 #endif
 
     EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
@@ -202,10 +209,6 @@ main(
     MsQuic->ConfigurationClose(Configuration);
     MsQuic->RegistrationClose(Registration);
     MsQuicClose(MsQuic);
-
-#ifdef QUIC_BUILD_STATIC
-    MsQuicUnload();
-#endif
 
     uint64_t TimeEnd = CxPlatTimeUs64();
     uint64_t ElapsedUs = CxPlatTimeDiff64(TimeStart, TimeEnd);

@@ -40,6 +40,10 @@ Abstract:
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef QUIC_BUILD_STATIC
+#include <cstdlib>
+#endif
+
 //
 // The (optional) registration configuration for the app. This sets a name for
 // the app (used for persistent storage and for debugging). It also configures
@@ -826,6 +830,9 @@ main(
     // be called before exit for a clean shutdown.
     //
     MsQuicLoad();
+    std::atexit([]() noexcept {
+        MsQuicUnload();
+    });
 #endif
 
     //
@@ -868,10 +875,6 @@ Error:
             MsQuic->RegistrationClose(Registration);
         }
         MsQuicClose(MsQuic);
-
-#ifdef QUIC_BUILD_STATIC
-        MsQuicUnload();
-#endif
     }
 
     return (int)Status;

@@ -17,6 +17,10 @@
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // Needed for disabling 1-RTT encryption
 #include <msquichelper.h>
 
+#ifdef QUIC_BUILD_STATIC
+#include <cstdlib>
+#endif
+
 #define ASSERT_ON_FAILURE(x) \
     do { \
         QUIC_STATUS _STATUS; \
@@ -805,6 +809,9 @@ main(int argc, char **argv)
 
 #ifdef QUIC_BUILD_STATIC
     MsQuicLoad();
+    std::atexit([]() noexcept {
+        MsQuicUnload();
+    });
 #endif
 
     for (uint32_t i = 0; i < RepeatCount; i++) {
@@ -941,10 +948,6 @@ main(int argc, char **argv)
 
         MsQuicClose(MsQuic);
         MsQuic = nullptr;
-
-#ifdef QUIC_BUILD_STATIC
-        MsQuicUnload();
-#endif
 
         for (size_t j = 0; j < BufferCount; ++j) {
             free(Buffers[j].Buffer);

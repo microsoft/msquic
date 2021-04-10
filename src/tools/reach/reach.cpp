@@ -16,6 +16,10 @@
 #include <quic_datapath.h>
 #include <msquichelper.h>
 
+#ifdef QUIC_BUILD_STATIC
+#include <cstdlib>
+#endif
+
 uint16_t Port = 443;
 const char* ServerName = "localhost";
 const char* ServerIp = nullptr;
@@ -175,22 +179,19 @@ main(int argc, char **argv)
 
 #ifdef QUIC_BUILD_STATIC
     MsQuicLoad();
+    std::atexit([]() noexcept {
+        MsQuicUnload();
+    });
 #endif
 
     if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed.\n");
-#ifdef QUIC_BUILD_STATIC
-        MsQuicUnload();
-#endif
         exit(1);
     }
 
     const QUIC_REGISTRATION_CONFIG RegConfig = { "reach", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
     if (QUIC_FAILED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
         printf("RegistrationOpen failed.\n");
-#ifdef QUIC_BUILD_STATIC
-        MsQuicUnload();
-#endif
         exit(1);
     }
 
@@ -204,9 +205,6 @@ main(int argc, char **argv)
         CXPLAT_THREAD Thread;
         if (QUIC_FAILED(CxPlatThreadCreate(&Config, &Thread))) {
             printf("CxPlatThreadCreate failed.\n");
-#ifdef QUIC_BUILD_STATIC
-            MsQuicUnload();
-#endif
             exit(1);
         }
         Threads.push_back(Thread);
@@ -216,9 +214,6 @@ main(int argc, char **argv)
             CXPLAT_THREAD Thread;
             if (QUIC_FAILED(CxPlatThreadCreate(&Config, &Thread))) {
                 printf("CxPlatThreadCreate failed.\n");
-#ifdef QUIC_BUILD_STATIC
-                MsQuicUnload();
-#endif
                 exit(1);
             }
             Threads.push_back(Thread);
@@ -233,10 +228,6 @@ main(int argc, char **argv)
     MsQuic->RegistrationClose(Registration);
 
     MsQuicClose(MsQuic);
-
-#ifdef QUIC_BUILD_STATIC
-    MsQuicUnload();
-#endif
 
     CxPlatUninitialize();
     CxPlatSystemUnload();

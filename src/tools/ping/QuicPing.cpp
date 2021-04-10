@@ -11,6 +11,10 @@ Abstract:
 
 #include "QuicPing.h"
 
+#ifdef QUIC_BUILD_STATIC
+#include <cstdlib>
+#endif
+
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 HQUIC Configuration;
@@ -340,16 +344,19 @@ main(
 
     if (argc < 2) {
         PrintUsage();
-        goto Error2;
+        goto Error;
     }
 
 #ifdef QUIC_BUILD_STATIC
     MsQuicLoad();
+    std::atexit([]() noexcept {
+        MsQuicUnload();
+    });
 #endif
 
     if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed!\n");
-        goto Error1;
+        goto Error;
     }
 
     TryGetValue(argc, argv, "exec", &execProfile);
@@ -358,7 +365,7 @@ main(
     if (QUIC_FAILED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
         printf("RegistrationOpen failed!\n");
         MsQuicClose(MsQuic);
-        goto Error1;
+        goto Error;
     }
 
     //
@@ -378,13 +385,7 @@ main(
     MsQuic->RegistrationClose(Registration);
     MsQuicClose(MsQuic);
 
-Error1:
-
-#ifdef QUIC_BUILD_STATIC
-    MsQuicUnload();
-#endif
-
-Error2:
+Error:
 
     CxPlatUninitialize();
     CxPlatSystemUnload();

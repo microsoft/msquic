@@ -43,16 +43,6 @@ const QUIC_BUFFER QuackAckBuffer = { sizeof("quack-ack") - 1, (uint8_t*)"quack-a
 //
 // Exits if there is a failure.
 //
-#ifdef QUIC_BUILD_STATIC
-#define EXIT_ON_FAILURE(x) do { \
-    auto _Status = x; \
-    if (QUIC_FAILED(_Status)) { \
-       printf("%s:%d %s failed!\n", __FILE__, __LINE__, #x); \
-       MsQuicUnload(); \
-       exit(1); \
-    } \
-} while (0);
-#else
 #define EXIT_ON_FAILURE(x) do { \
     auto _Status = x; \
     if (QUIC_FAILED(_Status)) { \
@@ -60,7 +50,6 @@ const QUIC_BUFFER QuackAckBuffer = { sizeof("quack-ack") - 1, (uint8_t*)"quack-a
        exit(1); \
     } \
 } while (0);
-#endif // QUIC_BUILD_STATIC
 
 struct HttpSendBuffer {
     QUIC_SEND_FLAGS Flags;

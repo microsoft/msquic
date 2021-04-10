@@ -11,6 +11,10 @@ Abstract:
 
 #include "InteropServer.h"
 
+#ifdef QUIC_BUILD_STATIC
+#include <cstdlib>
+#endif
+
 const QUIC_API_TABLE* MsQuic;
 HQUIC Configuration;
 const char* RootFolderPath;
@@ -62,6 +66,9 @@ main(
 
 #ifdef QUIC_BUILD_STATIC
     MsQuicLoad();
+    std::atexit([]() noexcept {
+        MsQuicUnload();
+    });
 #endif
 
     HQUIC Registration = nullptr;
