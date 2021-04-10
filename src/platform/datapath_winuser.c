@@ -3629,93 +3629,6 @@ CxPlatSendDataComplete(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-CxPlatSocketSend(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor
-    )
-{
-    QUIC_STATUS Status;
-    CXPLAT_SOCKET_PROC* SocketProc;
-    CXPLAT_DATAPATH* Datapath;
-    BOOL Result;
-    DWORD BytesSent;
-    uint16_t Processor;
-
-    CXPLAT_DBG_ASSERT(
-        Socket != NULL && LocalAddress != NULL &&
-        RemoteAddress != NULL && SendData != NULL);
-
-    if (SendData->WsaBufferCount == 0) { // TODO - Make a dbg assert?
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    Datapath = Socket->Datapath;
-    Processor = Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : IdealProcessor % Datapath->ProcCount;
-    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
-
-    CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
-
-    if ((Socket->Type != CXPLAT_SOCKET_UDP) ||
-        Datapath->Processors[Processor].WorkerActive) {
-        //
-        // Currently TCP always sends inline. For UDP, if the worker thread is
-        // already active (i.e. overloaded?) then we just send here. If it's
-        // not currently processing then we queue and let the worker do it.
-        //
-        return
-            CxPlatSocketSendInline(
-                SocketProc,
-                LocalAddress,
-                RemoteAddress,
-                SendData);
-    }
-
-
-    CxPlatCopyMemory(
-        &SendData->LocalAddress,
-        LocalAddress,
-        sizeof(*LocalAddress));
-
-    CxPlatCopyMemory(
-        &SendData->RemoteAddress,
-        RemoteAddress,
-        sizeof(*RemoteAddress));
-
-    RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
-    Result = PostQueuedCompletionStatus(
-        Datapath->Processors[Processor].IOCP,
-        UINT32_MAX,
-        (ULONG_PTR)SocketProc,
-        &SendData->Overlapped);
-    if (!Result) {
-        int LastError = GetLastError();
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketProc->Parent,
-            LastError,
-            "PostQueuedCompletionStatus");
-        Status = HRESULT_FROM_WIN32(LastError);
-        goto Exit;
-    }
-
-    Status = QUIC_STATUS_SUCCESS;
-
-Exit:
-
-    if (QUIC_FAILED(Status)) {
-        CxPlatSendDataFree(SendData);
-    }
-
-    return Status;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
 CxPlatSocketSendInline(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ const QUIC_ADDR* LocalAddress,
@@ -3871,6 +3784,92 @@ CxPlatSocketSendInline(
             SocketProc,
             SendData,
             QUIC_STATUS_SUCCESS);
+    }
+
+    Status = QUIC_STATUS_SUCCESS;
+
+Exit:
+
+    if (QUIC_FAILED(Status)) {
+        CxPlatSendDataFree(SendData);
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatSocketSend(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ uint16_t IdealProcessor
+    )
+{
+    QUIC_STATUS Status;
+    CXPLAT_SOCKET_PROC* SocketProc;
+    CXPLAT_DATAPATH* Datapath;
+    BOOL Result;
+    DWORD BytesSent;
+    uint16_t Processor;
+
+    CXPLAT_DBG_ASSERT(
+        Socket != NULL && LocalAddress != NULL &&
+        RemoteAddress != NULL && SendData != NULL);
+
+    if (SendData->WsaBufferCount == 0) { // TODO - Make a dbg assert?
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    Datapath = Socket->Datapath;
+    Processor = Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : IdealProcessor % Datapath->ProcCount;
+    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
+
+    CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
+
+    if ((Socket->Type != CXPLAT_SOCKET_UDP) ||
+        Datapath->Processors[Processor].WorkerActive) {
+        //
+        // Currently TCP always sends inline. For UDP, if the worker thread is
+        // already active (i.e. overloaded?) then we just send here. If it's
+        // not currently processing then we queue and let the worker do it.
+        //
+        return
+            CxPlatSocketSendInline(
+                SocketProc,
+                LocalAddress,
+                RemoteAddress,
+                SendData);
+    }
+
+    CxPlatCopyMemory(
+        &SendData->LocalAddress,
+        LocalAddress,
+        sizeof(*LocalAddress));
+
+    CxPlatCopyMemory(
+        &SendData->RemoteAddress,
+        RemoteAddress,
+        sizeof(*RemoteAddress));
+
+    RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
+    Result = PostQueuedCompletionStatus(
+        Datapath->Processors[Processor].IOCP,
+        UINT32_MAX,
+        (ULONG_PTR)SocketProc,
+        &SendData->Overlapped);
+    if (!Result) {
+        int LastError = GetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            LastError,
+            "PostQueuedCompletionStatus");
+        Status = HRESULT_FROM_WIN32(LastError);
+        goto Exit;
     }
 
     Status = QUIC_STATUS_SUCCESS;
