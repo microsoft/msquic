@@ -11,9 +11,9 @@ if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
     target_link_libraries(msquic PRIVATE core platform inc warnings)
 else()
-    add_library(msquic_static STATIC static/init.c)
-    target_link_libraries(msquic_static PRIVATE core platform inc warnings)
-    target_compile_definitions(msquic_static PUBLIC QUIC_BUILD_STATIC)
+    add_library(msquic_static INTERFACE)
+    target_link_libraries(msquic_static INTERFACE core platform)
+    target_compile_definitions(msquic_static INTERFACE QUIC_BUILD_STATIC)
     set_property(TARGET msquic_static PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
     # We need to take given library and walk all its dependencies, including
@@ -21,9 +21,8 @@ else()
     # directly to or imports a static library, that library needs to be
     # added to the QUIC_STATIC_LIBS list. This list is ultimately fed into
     # the archiving utility to produce a monolithic static library as
-    # static library flags
-    set(EXCLUDE_LIST "ws2_32;schannel;ntdll;bcrypt;ncrypt;crypt32;iphlpapi;advapi32")
-    set_property(GLOBAL PROPERTY VISITED_TARGETS_PROP "${EXCLUDE_LIST}")
+    # static library flags.
+    set_property(GLOBAL PROPERTY VISITED_TARGETS_PROP "")
     set_property(GLOBAL PROPERTY QUIC_STATIC_LIBS "")
     function(flatten_link_dependencies CURRENT_TARGET)
         # Check first if we've already flattened the dependencies of this
@@ -141,11 +140,6 @@ else()
     # Uncomment to analyze which dependencies were traversed
     # message(STATUS "DEPS: ${DEPS}, ${QUIC_BUILD_DIR}")
 
-    set(NODEFAULTS "")
-    foreach(EXCLUDE ${EXCLUDE_LIST})
-        string(APPEND NODEFAULTS "/NODEFAULTLIB:${EXCLUDE}${CMAKE_STATIC_LIBRARY_SUFFIX} ")
-    endforeach()
-
     # Exclude libraries for the corresponding msvcrts
     # https://docs.microsoft.com/en-us/cpp/error-messages/tool-errors/linker-tools-warning-lnk4098?view=msvc-160
     string(APPEND NODEFAULTS "/NODEFAULTLIB:msvcrt.lib /NODEFAULTLIB:msvcrtd.lib $<IF:$<CONFIG:Debug>,/NODEFAULTLIB:libcmt.lib /NODEFAULTLIB:msvcrtd.lib,/NODEFAULTLIB:libcmtd.lib>")
@@ -188,14 +182,8 @@ else()
     target_link_libraries(msquic
         INTERFACE
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/msquic.lib
-        ws2_32
-        schannel
-        ntdll
-        bcrypt
-        ncrypt
-        crypt32
-        iphlpapi
-        advapi32)
+        inc
+    )
     add_dependencies(msquic msquic_lib)
 endif()
 
@@ -257,6 +245,6 @@ if (MSVC)
     if(BUILD_SHARED_LIBS)
         target_compile_options(msquic PRIVATE /analyze)
     else()
-        target_compile_options(msquic_static PRIVATE /analyze)
+        target_compile_options(msquic_static INTERFACE /analyze)
     endif()
 endif()

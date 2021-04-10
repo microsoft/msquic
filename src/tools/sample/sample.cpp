@@ -40,10 +40,6 @@ Abstract:
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef QUIC_BUILD_STATIC
-#include <cstdlib>
-#endif
-
 //
 // The (optional) registration configuration for the app. This sets a name for
 // the app (used for persistent storage and for debugging). It also configures
@@ -822,18 +818,6 @@ main(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-#ifdef QUIC_BUILD_STATIC
-    //
-    // When linking against MsQuic statically, MsQuicLoad must be
-    // called before all other MsQuic routines and MsQuicUnload must
-    // be called before exit for a clean shutdown.
-    //
-    MsQuicLoad();
-    std::atexit([]() noexcept {
-        MsQuicUnload();
-    });
-#endif
 
     //
     // Open a handle to the library and get the API function table.

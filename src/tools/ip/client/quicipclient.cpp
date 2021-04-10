@@ -13,10 +13,6 @@ Abstract:
 #include "msquichelper.h"
 #include "quicip.h"
 
-#ifdef QUIC_BUILD_STATIC
-#include <cstdlib>
-#endif
-
 int
 QUIC_MAIN_EXPORT
 main(
@@ -29,13 +25,6 @@ main(
         printf("  quicipclient.exe [-target:<...>] [-local:<...>] [-unsecure]\n");
         return 0;
     }
-
-#ifdef QUIC_BUILD_STATIC
-    MsQuicLoad();
-    std::atexit([]() noexcept {
-        MsQuicUnload();
-    });
-#endif
 
     const char* Target = "quic.westus.cloudapp.azure.com";
     const char* LocalAddressArg = "*";

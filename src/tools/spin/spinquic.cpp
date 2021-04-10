@@ -17,10 +17,6 @@
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // Needed for disabling 1-RTT encryption
 #include <msquichelper.h>
 
-#ifdef QUIC_BUILD_STATIC
-#include <cstdlib>
-#endif
-
 #define ASSERT_ON_FAILURE(x) \
     do { \
         QUIC_STATUS _STATUS; \
@@ -806,13 +802,6 @@ main(int argc, char **argv)
     SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
 
     Settings.RunTimeMs = Settings.RunTimeMs / RepeatCount;
-
-#ifdef QUIC_BUILD_STATIC
-    MsQuicLoad();
-    std::atexit([]() noexcept {
-        MsQuicUnload();
-    });
-#endif
 
     for (uint32_t i = 0; i < RepeatCount; i++) {
 

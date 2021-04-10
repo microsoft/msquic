@@ -13,10 +13,6 @@ Abstract:
 
 #include <msquichelper.h>
 
-#ifdef QUIC_BUILD_STATIC
-#include <cstdlib>
-#endif
-
 #ifndef QUIC_BUILD_STATIC
 extern "C" void QuicTraceRundown(void) { }
 #endif
@@ -25,16 +21,6 @@ extern "C" void QuicTraceRundown(void) { }
 
 #define POST_HEADER_FORMAT "POST %s\r\n"
 
-#ifdef QUIC_BUILD_STATIC
-#define EXIT_ON_FAILURE(x) do { \
-    auto _Status = x; \
-    if (QUIC_FAILED(_Status)) { \
-       printf("%s:%d %s failed!\n", __FILE__, __LINE__, #x); \
-       MsQuicUnload(); \
-       exit(1); \
-    } \
-} while (0);
-#else
 #define EXIT_ON_FAILURE(x) do { \
     auto _Status = x; \
     if (QUIC_FAILED(_Status)) { \
@@ -42,7 +28,6 @@ extern "C" void QuicTraceRundown(void) { }
        exit(1); \
     } \
 } while (0);
-#endif // QUIC_BUILD_STATIC
 
 #define ALPN_BUFFER(str) { sizeof(str) - 1, (uint8_t*)str }
 const QUIC_BUFFER ALPNs[] = {
@@ -164,13 +149,6 @@ main(
     CxPlatZeroMemory(&CredConfig, sizeof(CredConfig));
     CredConfig.Type = QUIC_CREDENTIAL_TYPE_NONE;
     CredConfig.Flags = QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_CLIENT;
-
-#ifdef QUIC_BUILD_STATIC
-    MsQuicLoad();
-    std::atexit([]() noexcept {
-        MsQuicUnload();
-    });
-#endif
 
     EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
     const QUIC_REGISTRATION_CONFIG RegConfig = { "post", QUIC_EXECUTION_PROFILE_LOW_LATENCY };

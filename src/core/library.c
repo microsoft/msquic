@@ -1176,6 +1176,15 @@ Error:
     return Status;
 }
 
+#ifdef QUIC_BUILD_STATIC
+// This variable has a bit layout according to the following scheme:
+// MSB [Unloading:1] [Loading:1] [RefCount:30] LSB
+volatile long LoadState = 0;
+#define UNLOADING_BIT (1 << 31)
+#define LOADED_BIT (1 << 30)
+#define REFCOUNT_MASK (LOADED_BIT - 1)
+#endif // QUIC_BUILD_STATIC
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -1183,6 +1192,49 @@ MsQuicOpen(
     _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
     )
 {
+#ifdef QUIC_BUILD_STATIC
+    long NextState = InterlockedIncrement(&LoadState);
+    long PriorCount = NextState & REFCOUNT_MASK - 1;
+
+    if (PriorCount == 0) {
+        // We're responsible for ensuring the library is loaded
+
+        // Spin until we aren't unloading the library
+        while ((NextState & UNLOADING_BIT) != 0) {
+            YieldProcessor();
+            // No-op atomic read
+            NextState = InterlockedOr(&LoadState, 0);
+        }
+
+        // NOTE: Because this open call has atomically incremented the
+        // ref count already, it's impossible for the ref count to dip
+        // to zero at this time
+
+        // This expression can be FALSE if we arrived here prior to the
+        // unloading process starts. In this case, we proceed without
+        // further operation.
+        if ((NextState & LOADED_BIT) == 0)
+        {
+            CxPlatSystemLoad();
+            MsQuicLibraryLoad();
+
+            // Try and transition to the loaded state
+            while (NextState != InterlockedCompareExchange(&LoadState, NextState | LOADED_BIT, NextState)) {
+                YieldProcessor();
+                // No-op atomic read
+                NextState = InterlockedOr(&LoadState, 0);
+            }
+        }
+    } else {
+        // Busy wait until we aren't in a loading state anymore
+        while ((NextState & LOADED_BIT) == 0) {
+            YieldProcessor();
+            // No-op atomic read
+            NextState = InterlockedOr(&LoadState, 0);
+        }
+    }
+#endif // QUIC_BUILD_STATIC
+
     QUIC_STATUS Status;
 
     if (QuicApi == NULL) {
@@ -1277,6 +1329,27 @@ MsQuicClose(
         CXPLAT_FREE(QuicApi, QUIC_POOL_API);
         MsQuicRelease();
     }
+
+#ifdef QUIC_BUILD_STATIC
+    long NextState = InterlockedDecrement(&LoadState);
+    long PriorCount = (NextState & REFCOUNT_MASK) + 1;
+
+    if (PriorCount == 1) {
+        // We are responsible for unloading the library IFF another thread
+        // doesn't open the library in the meantime
+
+        // Attempt to transition to the unloading state. If we fail, that
+        // means another thread has already incremented the ref count before
+        // we arrived at this instruction. Thus, we don't bother unloading
+        // the library
+        if (InterlockedCompareExchange(&LoadState, UNLOADING_BIT, NextState) == NextState)
+        {
+            // We've succeeded. Unload the library
+            MsQuicLibraryUnload();
+            CxPlatSystemUnload();
+        }
+    }
+#endif // QUIC_BUILD_STATIC
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1756,3 +1829,4 @@ QuicLibraryEvaluateSendRetryState(
             NewSendRetryState);
     }
 }
+

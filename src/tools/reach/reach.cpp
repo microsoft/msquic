@@ -16,10 +16,6 @@
 #include <quic_datapath.h>
 #include <msquichelper.h>
 
-#ifdef QUIC_BUILD_STATIC
-#include <cstdlib>
-#endif
-
 uint16_t Port = 443;
 const char* ServerName = "localhost";
 const char* ServerIp = nullptr;
@@ -176,13 +172,6 @@ main(int argc, char **argv)
             exit(1);
         }
     }
-
-#ifdef QUIC_BUILD_STATIC
-    MsQuicLoad();
-    std::atexit([]() noexcept {
-        MsQuicUnload();
-    });
-#endif
 
     if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed.\n");

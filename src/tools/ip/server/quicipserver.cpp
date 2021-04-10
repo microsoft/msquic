@@ -17,10 +17,6 @@ TODO:
 #define QUIC_TEST_APIS 1 // Needed for self signed cert API
 #include <msquichelper.h>
 
-#ifdef QUIC_BUILD_STATIC
-#include <cstdlib>
-#endif
-
 const QUIC_REGISTRATION_CONFIG RegConfig = { "ip", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
 const QUIC_BUFFER Alpn = { sizeof("ip") - 1, (uint8_t*)"ip" };
 const uint16_t UdpPort = 4444;
@@ -217,13 +213,6 @@ main(
         CxPlatSystemUnload();
         return Status;
     }
-
-#ifdef QUIC_BUILD_STATIC
-    MsQuicLoad();
-    std::atexit([]() noexcept {
-        MsQuicUnload();
-    });
-#endif
 
     if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed, 0x%x!\n", Status);

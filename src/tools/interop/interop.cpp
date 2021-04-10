@@ -15,10 +15,6 @@ Abstract:
 #include "interop.cpp.clog.h"
 #endif
 
-#ifdef QUIC_BUILD_STATIC
-#include <cstdlib>
-#endif
-
 #define VERIFY_QUIC_SUCCESS(X) { \
     QUIC_STATUS s = X; \
     if (QUIC_FAILED(s)) { printf(#X " FAILURE: 0x%x!!\n", s); } \
@@ -1203,13 +1199,6 @@ main(
     }
 
     RunSerially = GetValue(argc, argv, "serial") != nullptr;
-
-#ifdef QUIC_BUILD_STATIC
-    MsQuicLoad();
-    std::atexit([]() noexcept {
-        MsQuicUnload();
-    });
-#endif
 
     CxPlatSystemLoad();
 

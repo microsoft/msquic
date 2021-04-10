@@ -1266,21 +1266,6 @@ MsQuicClose(
     _In_ _Pre_defensive_ const QUIC_API_TABLE* QuicApi
     );
 
-#ifdef QUIC_BUILD_STATIC
-//
-// If MsQuic is built as a static library, the DLL load and unload hooks are not
-// active. The user MUST invoke MsQuicLoad prior to interacting with any other
-// aspect of the API.
-//
-void MsQuicLoad(void);
-
-//
-// If MsQuic is built as a static library, the DLL load and unload hooks are not
-// active. The user MUST invoke MsQuicUnload prior to program exit.
-//
-void MsQuicUnload(void);
-#endif // QUIC_BUILD_STATIC
-
 #if defined(__cplusplus)
 }
 #endif

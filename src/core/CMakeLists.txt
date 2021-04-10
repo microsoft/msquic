@@ -60,6 +60,10 @@ endif()
 
 add_library(core STATIC ${SOURCES})
 
+if(NOT QUIC_BUILD_SHARED)
+    target_compile_definitions(core PUBLIC QUIC_BUILD_STATIC)
+endif()
+
 target_link_libraries(core PUBLIC core.clog inc)
 
 target_link_libraries(core PRIVATE warnings)

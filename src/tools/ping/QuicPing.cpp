@@ -11,10 +11,6 @@ Abstract:
 
 #include "QuicPing.h"
 
-#ifdef QUIC_BUILD_STATIC
-#include <cstdlib>
-#endif
-
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 HQUIC Configuration;
@@ -346,13 +342,6 @@ main(
         PrintUsage();
         goto Error;
     }
-
-#ifdef QUIC_BUILD_STATIC
-    MsQuicLoad();
-    std::atexit([]() noexcept {
-        MsQuicUnload();
-    });
-#endif
 
     if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed!\n");
