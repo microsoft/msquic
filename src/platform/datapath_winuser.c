@@ -3811,7 +3811,6 @@ CxPlatSocketSend(
     CXPLAT_SOCKET_PROC* SocketProc;
     CXPLAT_DATAPATH* Datapath;
     BOOL Result;
-    DWORD BytesSent;
     uint16_t Processor;
 
     CXPLAT_DBG_ASSERT(
