@@ -1211,10 +1211,9 @@ MsQuicOpen(
         // to zero at this time
 
         // This expression can be FALSE if we arrived here prior to the
-        // unloading process starts. In this case, we proceed without
+        // unloading process start. In this case, we proceed without
         // further operation.
-        if ((NextState & LOADED_BIT) == 0)
-        {
+        if ((NextState & LOADED_BIT) == 0) {
             CxPlatSystemLoad();
             MsQuicLibraryLoad();
 
@@ -1342,8 +1341,7 @@ MsQuicClose(
         // means another thread has already incremented the ref count before
         // we arrived at this instruction. Thus, we don't bother unloading
         // the library
-        if (InterlockedCompareExchange(&LoadState, UNLOADING_BIT, NextState) == NextState)
-        {
+        if (InterlockedCompareExchange(&LoadState, UNLOADING_BIT, NextState) == NextState) {
             // We've succeeded. Unload the library
             MsQuicLibraryUnload();
             CxPlatSystemUnload();
@@ -1829,4 +1827,3 @@ QuicLibraryEvaluateSendRetryState(
             NewSendRetryState);
     }
 }
-

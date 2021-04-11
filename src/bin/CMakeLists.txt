@@ -12,7 +12,7 @@ if(BUILD_SHARED_LIBS)
     target_link_libraries(msquic PRIVATE core platform inc warnings)
 else()
     add_library(msquic_static INTERFACE)
-    target_link_libraries(msquic_static INTERFACE core platform)
+    target_link_libraries(msquic_static INTERFACE core platform inc)
     target_compile_definitions(msquic_static INTERFACE QUIC_BUILD_STATIC)
     set_property(TARGET msquic_static PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
@@ -22,7 +22,11 @@ else()
     # added to the QUIC_STATIC_LIBS list. This list is ultimately fed into
     # the archiving utility to produce a monolithic static library as
     # static library flags.
-    set_property(GLOBAL PROPERTY VISITED_TARGETS_PROP "")
+    #
+    # Here, we exclude the inc interface target which includes various system
+    # libraries we do not wish to archive for distribution.
+    set(EXCLUDE_LIST "inc")
+    set_property(GLOBAL PROPERTY VISITED_TARGETS_PROP "${EXCLUDE_LIST}")
     set_property(GLOBAL PROPERTY QUIC_STATIC_LIBS "")
     function(flatten_link_dependencies CURRENT_TARGET)
         # Check first if we've already flattened the dependencies of this
@@ -139,6 +143,11 @@ else()
     get_property(DEPS GLOBAL PROPERTY QUIC_STATIC_LIBS)
     # Uncomment to analyze which dependencies were traversed
     # message(STATUS "DEPS: ${DEPS}, ${QUIC_BUILD_DIR}")
+
+    set(NODEFAULTS "")
+    foreach(EXCLUDE ${EXCLUDE_LIST})
+        string(APPEND NODEFAULTS "/NODEFAULTLIB:${EXCLUDE}${CMAKE_STATIC_LIBRARY_SUFFIX} ")
+    endforeach()
 
     # Exclude libraries for the corresponding msvcrts
     # https://docs.microsoft.com/en-us/cpp/error-messages/tool-errors/linker-tools-warning-lnk4098?view=msvc-160
