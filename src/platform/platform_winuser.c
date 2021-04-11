@@ -24,6 +24,7 @@ CX_PLATFORM CxPlatform = { NULL };
 CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 uint64_t* CxPlatNumaMasks;
 uint32_t* CxPlatProcessorGroupOffsets;
+QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -651,11 +652,15 @@ QuicEtwCallback(
     UNREFERENCED_PARAMETER(MatchAllKeyword);
     UNREFERENCED_PARAMETER(FilterData);
 
+    if (!QuicTraceRundownCallback) {
+        return;
+    }
+
     switch(ControlCode) {
     case EVENT_CONTROL_CODE_ENABLE_PROVIDER:
     case EVENT_CONTROL_CODE_CAPTURE_STATE:
         if (CallbackContext == &MICROSOFT_MSQUIC_PROVIDER_Context) {
-            QuicTraceRundown();
+            QuicTraceRundownCallback();
         }
         break;
     case EVENT_CONTROL_CODE_DISABLE_PROVIDER:

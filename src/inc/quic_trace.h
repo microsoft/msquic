@@ -104,11 +104,15 @@ typedef enum QUIC_TRACE_API_TYPE {
 #ifdef __cplusplus
 extern "C"
 #endif
+typedef
+_Function_class_(QUIC_TRACE_RUNDOWN_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicTraceRundown(
+(QUIC_TRACE_RUNDOWN_CALLBACK)(
     void
     );
+
+extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 #ifdef QUIC_CLOG
 
