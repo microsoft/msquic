@@ -1345,6 +1345,10 @@ MsQuicClose(
             // We've succeeded. Unload the library
             MsQuicLibraryUnload();
             CxPlatSystemUnload();
+
+            // Allow possibly spinning thread that incremented ref count in
+            // the meantime to proceed
+            InterlockedAnd(&LoadState, ~UNLOADING_BIT);
         }
     }
 #endif // QUIC_BUILD_STATIC
