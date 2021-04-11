@@ -16,11 +16,7 @@ Abstract:
 
 QUIC_LIBRARY MsQuicLib = { 0 };
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTraceRundown(
-    void
-    );
+QUIC_TRACE_RUNDOWN_CALLBACK QuicTraceRundown;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -1587,6 +1583,7 @@ QuicLibraryGetWorker(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_TRACE_RUNDOWN_CALLBACK)
 void
 QuicTraceRundown(
     void
