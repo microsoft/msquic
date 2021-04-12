@@ -13,8 +13,6 @@ Abstract:
 
 #include <msquichelper.h>
 
-extern "C" void QuicTraceRundown(void) { }
-
 #define IO_SIZE (128 * 1024)
 
 #define POST_HEADER_FORMAT "POST %s\r\n"

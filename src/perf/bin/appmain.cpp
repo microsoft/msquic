@@ -29,8 +29,6 @@ typedef struct {
 
 #endif
 
-extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
-
 QUIC_STATUS
 QuicHandleRpsClient(
     _In_reads_(Length) uint8_t* ExtraData,

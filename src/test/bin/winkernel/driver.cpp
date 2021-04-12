@@ -68,8 +68,6 @@ void __cdecl operator delete[] (_In_opt_ void* Mem) {
     }
 }
 
-extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
-
 extern "C"
 INITCODE
 _Function_class_(DRIVER_INITIALIZE)
