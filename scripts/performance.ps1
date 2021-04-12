@@ -238,7 +238,7 @@ Set-ScriptVariables -Local $Local `
                     -RemoteAddress $RemoteAddress `
                     -Session $Session `
                     -Kernel $Kernel `
-                    -FailOnRegression $FailOnRegression `
+                    -FailOnRegression $FailOnRegression
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {
