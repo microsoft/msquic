@@ -88,7 +88,7 @@ $WpaQUICLogProfileXml = `
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC, $RemoteAddress, $Session, $Kernel, $FailOnRegression, $DebugLogFile)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
@@ -101,13 +101,17 @@ function Set-ScriptVariables {
     $script:RemoteAddress = $RemoteAddress
     $script:Session = $Session
     $script:Kernel = $Kernel
-    $script:DebugLogFile = $DebugLogFile
     $script:FailOnRegression = $FailOnRegression
     if ($null -ne $Session) {
         Invoke-Command -Session $Session -ScriptBlock {
             $ErrorActionPreference = "Stop"
         }
     }
+}
+
+function Set-DebugLogFile {
+    param ($DebugLogFile) 
+    $script:DebugLogFile = $DebugLogFile
 }
 
 function Write-LogAndDebug {

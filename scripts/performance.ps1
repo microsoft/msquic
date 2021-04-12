@@ -226,12 +226,6 @@ if ($Local) {
     Write-Output "Local IP Connection $LocalAddress"
 }
 
-$OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
-New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
-
-$DebugLogFile = Join-Path $OutputDir "DebugLog.txt"
-"" | Out-File $DebugLogFile
-
 Set-ScriptVariables -Local $Local `
                     -LocalTls $LocalTls `
                     -LocalArch $LocalArch `
@@ -245,7 +239,6 @@ Set-ScriptVariables -Local $Local `
                     -Session $Session `
                     -Kernel $Kernel `
                     -FailOnRegression $FailOnRegression `
-                    -DebugLogFile $DebugLogFile
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {
@@ -254,6 +247,14 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
         return "linux"
     }
 }
+
+$OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
+New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
+
+$DebugLogFile = Join-Path $OutputDir "DebugLog.txt"
+"" | Out-File $DebugLogFile
+
+Set-DebugLogFile -DebugLogFile $DebugLogFile
 
 $LocalDirectory = Join-Path $RootDir "artifacts/bin"
 $RemoteDirectorySMB = $null
