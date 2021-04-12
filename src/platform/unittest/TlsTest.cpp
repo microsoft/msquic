@@ -1373,7 +1373,7 @@ TEST_F(TlsTest, PortableCertificateValidation)
         ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
         Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
-        ASSERT_TRUE(ClientContext.OnPeerCertReceivedCalled);
+        ASSERT_TRUE(ClientContext.ReceivedPeerCertificate);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
     }
 }
