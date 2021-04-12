@@ -12,7 +12,7 @@
                 "Tls": ["schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -upload:2000000000"
+                "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -upload:2000000000 -stats:1"
             },
             "Variables": [
                 {
@@ -65,7 +65,7 @@
                 "Tls": ["openssl"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
-                "Arguments": "-test:Throughput -target:$RemoteAddress -uni:1 -upload:2000000000"
+                "Arguments": "-test:Throughput -target:$RemoteAddress -uni:1 -upload:2000000000 -stats:1"
             },
             "Variables": [
                 {
@@ -99,7 +99,7 @@
                 "Tls": ["schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -download:2000000000"
+                "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -download:2000000000 -stats:1"
             },
             "Variables": [
                 {
@@ -144,7 +144,7 @@
                 "Tls": ["openssl"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
-                "Arguments": "-test:Throughput -target:$RemoteAddress -uni:1 -download:2000000000"
+                "Arguments": "-test:Throughput -target:$RemoteAddress -uni:1 -download:2000000000 -stats:1"
             },
             "Variables": [
                 {

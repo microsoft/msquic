@@ -88,7 +88,7 @@ $WpaQUICLogProfileXml = `
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC, $RemoteAddress, $Session, $Kernel, $FailOnRegression)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC, $RemoteAddress, $Session, $Kernel, $FailOnRegression, $DebugLogFile)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
@@ -101,12 +101,19 @@ function Set-ScriptVariables {
     $script:RemoteAddress = $RemoteAddress
     $script:Session = $Session
     $script:Kernel = $Kernel
+    $script:DebugLogFile = $DebugLogFile
     $script:FailOnRegression = $FailOnRegression
     if ($null -ne $Session) {
         Invoke-Command -Session $Session -ScriptBlock {
             $ErrorActionPreference = "Stop"
         }
     }
+}
+
+function Write-LogAndDebug {
+    param($Data)
+    Write-Debug $Data
+    $Data | Out-File $script:DebugLogFile -Append
 }
 
 function Set-Session {
@@ -277,7 +284,7 @@ function Get-GitHash {
     try {
         $CurrentCommitHash = git rev-parse HEAD
     } catch {
-        Write-Debug "Failed to get commit hash from git"
+        Write-LogAndDebug "Failed to get commit hash from git"
     }
     Set-Location -Path $CurrentLoc | Out-Null
     return $CurrentCommitHash
@@ -293,7 +300,7 @@ function Get-CommitDate {
         $CurrentCommitDate = git show -s --format=%ct
         $CurrentCommitDate = [DateTimeOffset]::FromUnixTimeSeconds($CurrentCommitDate).ToUnixTimeMilliseconds()
     } catch {
-        Write-Debug "Failed to get commit date from git"
+        Write-LogAndDebug "Failed to get commit date from git"
     }
     Set-Location -Path $CurrentLoc | Out-Null
     return $CurrentCommitDate
@@ -308,7 +315,7 @@ function Get-CurrentBranch {
     try {
         $CurrentBranch = git branch --show-current
     } catch {
-        Write-Debug "Failed to get commit date from git"
+        Write-LogAndDebug "Failed to get commit date from git"
     }
     Set-Location -Path $CurrentLoc | Out-Null
     return $CurrentBranch
@@ -385,7 +392,7 @@ function Invoke-RemoteExe {
         $RunArgs = "-driverNamePriv:secnetperfdrvpriv $RunArgs"
     }
 
-    Write-Debug "Running Remote: $Exe $RunArgs"
+    Write-LogAndDebug "Running Remote: $Exe $RunArgs"
 
     $WpaXml = $WpaStackWalkProfileXml
     if ($RecordQUIC) {
@@ -477,7 +484,7 @@ function Stop-Tracing {
 function Merge-PGOCounts {
     param ($Path, $OutputDir)
     $Command = "$Path\pgomgr.exe /merge $Path $Path\msquic.pgd"
-    Invoke-Expression $Command | Write-Debug
+    Invoke-Expression $Command | Write-LogAndDebug
     Remove-Item "$Path\*.pgc" | Out-Null
 }
 
@@ -516,7 +523,7 @@ function Invoke-LocalExe {
     $RunArgs = "-watchdog:$TimeoutMs $RunArgs"
 
     $FullCommand = "$Exe $RunArgs"
-    Write-Debug "Running Locally: $FullCommand"
+    Write-LogAndDebug "Running Locally: $FullCommand"
 
     $ExeName = Split-Path $Exe -Leaf
     # Path to the WER registry key used for collecting dumps.
@@ -592,12 +599,12 @@ function Get-TestResult($Results, $Matcher) {
 
 function Get-LatestCommitHash([string]$Branch) {
     $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/commits.json"
-    Write-Debug "Requesting: $Uri"
+    Write-LogAndDebug "Requesting: $Uri"
     try {
         $AllCommits = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
-        Write-Debug "Result: $AllCommits"
+        Write-LogAndDebug "Result: $AllCommits"
         $LatestResult = ($AllCommits | Sort-Object -Property Date -Descending)[0]
-        Write-Debug "Latest Commit: $LatestResult"
+        Write-LogAndDebug "Latest Commit: $LatestResult"
     return $LatestResult.CommitHash
     } catch {
         return ""
@@ -606,10 +613,10 @@ function Get-LatestCommitHash([string]$Branch) {
 
 function Get-LatestCpuTestResult([string]$Branch, [string]$CommitHash) {
     $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/cpu_data.json"
-    Write-Debug "Requesting: $Uri"
+    Write-LogAndDebug "Requesting: $Uri"
     try {
         $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
-        Write-Debug "Result: $LatestResult"
+        Write-LogAndDebug "Result: $LatestResult"
     return $LatestResult
     } catch {
         return ""
@@ -786,7 +793,7 @@ function Publish-ThroughputTestResults {
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
     } elseif (!$Publish) {
-        Write-Debug "Failed to publish because of missing commit hash"
+        Write-LogAndDebug "Failed to publish because of missing commit hash"
     }
 }
 
@@ -940,7 +947,7 @@ function Publish-RPSTestResults {
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
     } elseif (!$Publish) {
-        Write-Debug "Failed to publish because of missing commit hash"
+        Write-LogAndDebug "Failed to publish because of missing commit hash"
     }
 }
 
@@ -1057,7 +1064,7 @@ function Publish-HPSTestResults {
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
     } elseif (!$Publish) {
-        Write-Debug "Failed to publish because of missing commit hash"
+        Write-LogAndDebug "Failed to publish because of missing commit hash"
     }
 }
 
