@@ -26,8 +26,8 @@
                 {
                     "Name": "SendBuffering",
                     "Local": {
-                        "On": "",
-                        "Off": "-sendbuf:0"
+                        "On": "-sendbuf:1",
+                        "Off": ""
                     },
                     "Default": "Off"
                 }
@@ -38,6 +38,25 @@
             "ResultsMatcher": ".*@ (.*) kbps.*",
             "Formats": ["{0} kbps"],
             "RegressionThreshold": "-8.0"
+        },
+        {
+            "TestName": "TcpThroughputUp",
+            "Local": {
+                "Platform": "Windows",
+                "Tls": ["schannel", "openssl"],
+                "Arch": ["x64", "x86", "arm", "arm64"],
+                "Exe": "secnetperf",
+                "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -upload:2000000000 -tcp:1"
+            },
+            "Variables": [
+            ],
+            "SkipKernel": true,
+            "AllowLoopback": true,
+            "Iterations": 5,
+            "RemoteReadyMatcher": "Started!",
+            "ResultsMatcher": ".*@ (.*) kbps.*",
+            "Formats": ["{0} kbps"],
+            "RegressionThreshold": "-50.0"
         },
         {
             "TestName": "ThroughputUp",
@@ -60,8 +79,8 @@
                 {
                     "Name": "SendBuffering",
                     "Local": {
-                        "On": "",
-                        "Off": "-sendbuf:0"
+                        "On": "-sendbuf:1",
+                        "Off": ""
                     },
                     "Default": "Off"
                 }
@@ -98,6 +117,25 @@
             "ResultsMatcher": ".*@ (.*) kbps.*",
             "Formats": ["{0} kbps"],
             "RegressionThreshold": "-8.0"
+        },
+        {
+        "TestName": "TcpThroughputDown",
+            "Local": {
+                "Platform": "Windows",
+                "Tls": ["schannel", "openssl"],
+                "Arch": ["x64", "x86", "arm", "arm64"],
+                "Exe": "secnetperf",
+                "Arguments": "-test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -download:2000000000 -tcp:1"
+            },
+            "Variables": [
+            ],
+            "SkipKernel": true,
+            "AllowLoopback": true,
+            "Iterations": 5,
+            "RemoteReadyMatcher": "Started!",
+            "ResultsMatcher": ".*@ (.*) kbps.*",
+            "Formats": ["{0} kbps"],
+            "RegressionThreshold": "-50.0"
         },
         {
             "TestName": "ThroughputDown",

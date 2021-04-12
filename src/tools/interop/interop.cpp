@@ -121,8 +121,6 @@ std::vector<std::string> Urls;
 
 const char* SslKeyLogFileParam = nullptr;
 
-extern "C" void QuicTraceRundown(void) { }
-
 void
 PrintUsage()
 {

@@ -554,29 +554,16 @@ typedef HANDLE CXPLAT_EVENT;
 //
 
 //
-// This is an undocumented API that is used to query the current timer
-// resolution.
-//
-__kernel_entry
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtQueryTimerResolution(
-    _Out_ PULONG MaximumTime,
-    _Out_ PULONG MinimumTime,
-    _Out_ PULONG CurrentTime
-    );
-
-//
 // Returns the worst-case system timer resolution (in us).
 //
 inline
 uint64_t
 CxPlatGetTimerResolution()
 {
-    ULONG MaximumTime, MinimumTime, CurrentTime;
-    NtQueryTimerResolution(&MaximumTime, &MinimumTime, &CurrentTime);
-    return NS100_TO_US(MaximumTime);
+    DWORD Adjustment, Increment;
+    BOOL AdjustmentDisabled;
+    GetSystemTimeAdjustment(&Adjustment, &Increment, &AdjustmentDisabled);
+    return NS100_TO_US(Increment);
 }
 
 //
@@ -735,8 +722,13 @@ extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 extern uint64_t* CxPlatNumaMasks;
 extern uint32_t* CxPlatProcessorGroupOffsets;
 
+#ifdef QUIC_UWP_BUILD
+DWORD CxPlatProcMaxCount();
+DWORD CxPlatProcActiveCount();
+#else
 #define CxPlatProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
 #define CxPlatProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
+#endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline

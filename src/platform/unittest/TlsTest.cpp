@@ -513,7 +513,8 @@ protected:
         static BOOLEAN
         OnPeerCertReceived(
             _In_ QUIC_CONNECTION* Connection,
-            _In_ void* /* Certificate */,
+            _In_ QUIC_CERTIFICATE* Certificate,
+            _In_ QUIC_CERTIFICATE_CHAIN* Chain,
             _In_ uint32_t DeferredErrorFlags,
             _In_ QUIC_STATUS DeferredStatus
             )
@@ -526,6 +527,10 @@ protected:
             }
             if (Context->ExpectedValidationStatus != DeferredStatus) {
                 std::cout << "Incorrect validation Status: " << DeferredStatus << "\n";
+                return FALSE;
+            }
+            if (!Certificate || !Chain) {
+                std::cout << "Expecting valid certificate and certificate chain\n";
                 return FALSE;
             }
             return Context->OnPeerCertReceivedResult;
@@ -1347,6 +1352,32 @@ TEST_F(TlsTest, ExtraCertificateValidation)
             (0xFF & ClientContext.State.AlertCode) == CXPLAT_TLS_ALERT_CODE_UNKNOWN_CA);
     }
 }
+
+#ifndef QUIC_DISABLE_PORTABLE_CERTIFICATE_TESTS
+TEST_F(TlsTest, PortableCertificateValidation)
+{
+    CxPlatClientSecConfig ClientConfig(
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
+        QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES);
+    CxPlatServerSecConfig ServerConfig;
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    {
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+
+        Result = ServerContext.ProcessData(&ClientContext.State);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+        ASSERT_TRUE(ClientContext.OnPeerCertReceivedCalled);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
+    }
+}
+#endif
 
 TEST_P(TlsTest, One1RttKey)
 {

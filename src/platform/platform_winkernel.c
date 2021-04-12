@@ -59,6 +59,7 @@ typedef struct _SYSTEM_BASIC_INFORMATION {
 uint64_t CxPlatPerfFreq;
 uint64_t CxPlatTotalMemory;
 CX_PLATFORM CxPlatform = { NULL, NULL };
+QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -250,11 +251,15 @@ QuicEtwCallback(
     UNREFERENCED_PARAMETER(MatchAllKeyword);
     UNREFERENCED_PARAMETER(FilterData);
 
+    if (!QuicTraceRundownCallback) {
+        return;
+    }
+
     switch(ControlCode) {
     case EVENT_CONTROL_CODE_ENABLE_PROVIDER:
     case EVENT_CONTROL_CODE_CAPTURE_STATE:
         if (CallbackContext == &MICROSOFT_MSQUIC_PROVIDER_Context) {
-            QuicTraceRundown();
+            QuicTraceRundownCallback();
         }
         break;
     case EVENT_CONTROL_CODE_DISABLE_PROVIDER:
