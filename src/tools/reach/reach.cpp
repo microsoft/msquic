@@ -26,10 +26,6 @@ const char* InputAlpn = nullptr;
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 
-#ifndef QUIC_BUILD_STATIC
-extern "C" void QuicTraceRundown(void) { }
-#endif
-
 struct ConnectionContext {
     bool GotConnected;
     CXPLAT_EVENT Complete;

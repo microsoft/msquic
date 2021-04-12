@@ -36,6 +36,7 @@ CX_PLATFORM_DISPATCH* PlatDispatch = NULL;
 #else
 int RandomFd; // Used for reading random numbers.
 #endif
+QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 static const char TpLibName[] = "libmsquic.lttng.so";
 
@@ -423,7 +424,7 @@ CxPlatProcMaxCount(
 #if defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
-    // Intel macOS can return incorrect values for CPUID, so treat as single core. 
+    // Intel macOS can return incorrect values for CPUID, so treat as single core.
     //
     return 1;
 #else
@@ -439,7 +440,7 @@ CxPlatProcActiveCount(
 #if defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
-    // Intel macOS can return incorrect values for CPUID, so treat as single core. 
+    // Intel macOS can return incorrect values for CPUID, so treat as single core.
     //
     return 1;
 #else
@@ -457,7 +458,7 @@ CxPlatProcCurrentNumber(
 #elif defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
-    // Intel macOS can return incorrect values for CPUID, so treat as single core. 
+    // Intel macOS can return incorrect values for CPUID, so treat as single core.
     //
     return 0;
 #endif // CX_PLATFORM_DARWIN

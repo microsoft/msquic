@@ -1191,6 +1191,10 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
     }
 
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {
+       return QUIC_STATUS_NOT_SUPPORTED;    // Not supported yet.
+    }
+
     switch (CredConfig->Type) {
     case QUIC_CREDENTIAL_TYPE_NONE:
         if (!IsClient) {
@@ -2293,13 +2297,17 @@ CxPlatTlsWriteDataToSchannel(
                         SecStatus,
                         "Query peer cert");
                 }
-
+#ifndef _KERNEL_MODE
+                CXPLAT_DBG_ASSERT(PeerCert != NULL);
+#endif
                 if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
                         TlsContext->Connection,
 #ifdef _KERNEL_MODE
-                        (void*)&PeerCert,
+                        (QUIC_CERTIFICATE*)&PeerCert,
+                        (QUIC_CERTIFICATE_CHAIN*)&PeerCert,
 #else
-                        (void*)PeerCert,
+                        (QUIC_CERTIFICATE*)PeerCert,
+                        (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore),
 #endif
                         CertValidationResult.dwChainErrorStatus,
                         (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {

@@ -895,7 +895,8 @@ QuicPacketBuilderSendBatch(
         &Builder->Path->RemoteAddress,
         Builder->SendData,
         Builder->TotalDatagramsLength,
-        Builder->TotalCountDatagrams);
+        Builder->TotalCountDatagrams,
+        Builder->Connection->Worker->IdealProcessor);
 
     Builder->PacketBatchSent = TRUE;
     Builder->SendData = NULL;

@@ -121,10 +121,6 @@ std::vector<std::string> Urls;
 
 const char* SslKeyLogFileParam = nullptr;
 
-#ifndef QUIC_BUILD_STATIC
-extern "C" void QuicTraceRundown(void) { }
-#endif
-
 void
 PrintUsage()
 {

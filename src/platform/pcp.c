@@ -423,7 +423,8 @@ CxPlatPcpSendMapRequestInternal(
             Socket,
             &LocalAddress,
             &RemoteAddress,
-            SendData);
+            SendData,
+            (uint16_t)CxPlatProcCurrentNumber());
     if (QUIC_FAILED(Status)) {
         return Status;
     }
@@ -528,7 +529,8 @@ CxPlatPcpSendPeerRequestInternal(
             Socket,
             &LocalAddress,
             &RemoteAddress,
-            SendData);
+            SendData,
+            (uint16_t)CxPlatProcCurrentNumber());
     if (QUIC_FAILED(Status)) {
         return Status;
     }

@@ -173,6 +173,7 @@ class TcpConnection {
     TcpConnection* Next{nullptr};
     TcpEngine* Engine;
     TcpWorker* Worker{nullptr};
+    uint16_t PartitionIndex;
     CXPLAT_REF_COUNT Ref;
     CXPLAT_DISPATCH_LOCK Lock;
     QUIC_ADDR LocalAddress;
