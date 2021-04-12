@@ -38,7 +38,7 @@ PrintHelp(
         "  -upload:<####>               The length of data (or time with -timed:1 arg) to send. (def:0)\n"
         "  -download:<####>             The length of data (or time with -timed:1 arg) to request/receive. (def:0)\n"
         "  -iosize:<####>               The size of each send request queued. (def:%u)\n"
-        "  -tcp:<0/1>                   Indicates TCP/TLS should be used instead of QUIC. (def:0)\n",
+        "  -tcp:<0/1>                   Indicates TCP/TLS should be used instead of QUIC. (def:0)\n"
         "  -stats:<0/1>                 Indicates connection stats should be printed at the end of the run. (def:0)\n",
         "\n",
         PERF_DEFAULT_PORT,
