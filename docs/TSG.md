@@ -20,9 +20,15 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 
 ## Why is the handshake failing?
 
-> TODO - More stuff
+1. [The handshake failed with an error code I don't understand.](#mapping-error-codes-for-handshake-failures)
+2. [Does it happen on Linux, only with large number of connections?](#linux-file-handle-limit-too-small)
+3.
 
-### Does it happen on Linux, only with large number of connections?
+### Mapping Error Codes for Handshake Failures
+
+> TODO
+
+### Linux File Handle Limit Too Small
 
 In many Linux setups, the default per-process file handle limit is relatively small (~1024). In scenarios where lots of (usually client) connection are opened, a large number of sockets (a type of file handle) are created. Eventually the handle limit is reached and connections start failing because new sockets cannot be created. To fix this, you will need to increase the handle limit.
 
@@ -45,5 +51,14 @@ ulimit -n newValue
 > TODO
 
 # Trouble Shooting a Performance Issue
+
+1. [Is it a problem with just a single (or very few) connection?]()
+2. [Is it a problem multiple (lots) of connections?]()
+
+## Why is Performance bad for my Connection?
+
+> TODO
+
+## Why is Performance bad across all my Connections?
 
 > TODO
