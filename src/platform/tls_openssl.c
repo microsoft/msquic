@@ -750,7 +750,7 @@ CxPlatTlsOnServerSessionTicketGenerated(
 SSL_TICKET_RETURN
 CxPlatTlsOnServerSessionTicketDecrypted(
     _In_ SSL *Ssl,
-    _In_ SSL_SESSION *ss,
+    _In_ SSL_SESSION *Session,
     _In_ const unsigned char *keyname,
     _In_ size_t keyname_length,
     _In_ SSL_TICKET_STATUS status,
@@ -758,19 +758,54 @@ CxPlatTlsOnServerSessionTicketDecrypted(
     )
 {
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(ss);
     UNREFERENCED_PARAMETER(keyname);
     UNREFERENCED_PARAMETER(keyname_length);
-    UNREFERENCED_PARAMETER(status);
     UNREFERENCED_PARAMETER(arg);
+
+    QuicTraceLogConnVerbose(
+        OpenSslTickedDecrypted,
+        TlsContext->Connection,
+        "Session ticket decrypted, status %u",
+        (uint32_t)status);
+
+    SSL_TICKET_RETURN Result;
     if (status == SSL_TICKET_SUCCESS) {
-        return SSL_TICKET_RETURN_USE;
+        Result = SSL_TICKET_RETURN_USE;
+    } else if (status == SSL_TICKET_SUCCESS_RENEW) {
+        Result = SSL_TICKET_RETURN_USE_RENEW;
+    } else {
+        Result = SSL_TICKET_RETURN_IGNORE_RENEW;
     }
-    if (status == SSL_TICKET_SUCCESS_RENEW) {
-        return SSL_TICKET_RETURN_USE_RENEW;
+
+    uint8_t* Buffer = NULL;
+    size_t Length = 0;
+    if (Session != NULL &&
+        SSL_SESSION_get0_ticket_appdata(Session, (void**)&Buffer, &Length)) {
+
+        QuicTraceLogConnVerbose(
+            OpenSslRecvTicketData,
+            TlsContext->Connection,
+            "Received ticket data, %u bytes",
+            (uint32_t)Length);
+
+        if (!TlsContext->SecConfig->Callbacks.ReceiveTicket(
+                TlsContext->Connection,
+                (uint32_t)Length,
+                Buffer)) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "ReceiveTicket failed");
+            if (status == SSL_TICKET_SUCCESS_RENEW) {
+                Result = SSL_TICKET_RETURN_IGNORE_RENEW;
+            } else {
+                Result = SSL_TICKET_RETURN_IGNORE;
+            }
+        }
     }
-    return SSL_TICKET_RETURN_IGNORE_RENEW;
+
+    return Result;
 }
 
 SSL_QUIC_METHOD OpenSslQuicCallbacks = {
@@ -1087,28 +1122,31 @@ CxPlatTlsSecConfigCreate(
                 goto Exit;
             }
 
-            Ret = SSL_CTX_set_num_tickets(SecurityConfig->SSLCtx, 1);
+            Ret = SSL_CTX_set_session_ticket_cb(
+                SecurityConfig->SSLCtx,
+                NULL,
+                CxPlatTlsOnServerSessionTicketDecrypted,
+                NULL);
             if (Ret != 1) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
                     ERR_get_error(),
-                    "SSL_CTX_set_num_tickets failed");
+                    "SSL_CTX_set_session_ticket_cb failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
+        }
 
-        } else {
-            Ret = SSL_CTX_set_num_tickets(SecurityConfig->SSLCtx, 0);
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_set_num_tickets failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
+        Ret = SSL_CTX_set_num_tickets(SecurityConfig->SSLCtx, 0);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_set_num_tickets failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
         }
     }
 
@@ -1630,10 +1668,55 @@ CxPlatTlsProcessData(
 
     if (DataType == CXPLAT_TLS_TICKET_DATA) {
         QuicTraceLogConnVerbose(
-            OpenSsslIgnoringTicket,
+            OpenSslSendTicketData,
             TlsContext->Connection,
-            "Ignoring %u ticket bytes",
+            "Sending ticket data, %u bytes",
             *BufferLength);
+
+        SSL_SESSION* Session = SSL_get_session(TlsContext->Ssl);
+        if (Session == NULL) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "SSL_get_session failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+        if (!SSL_SESSION_set1_ticket_appdata(Session, Buffer, *BufferLength)) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                ERR_get_error(),
+                "SSL_SESSION_set1_ticket_appdata failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+
+        if (!SSL_new_session_ticket(TlsContext->Ssl)) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                ERR_get_error(),
+                "SSL_new_session_ticket failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+
+        int Ret = SSL_do_handshake(TlsContext->Ssl);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                SSL_get_error(TlsContext->Ssl, Ret),
+                "SSL_do_handshake failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+
         goto Exit;
     }
 
