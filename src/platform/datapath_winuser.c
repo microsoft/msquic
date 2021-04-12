@@ -40,6 +40,12 @@ CxPlatFuzzerRecvMsg(
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 
 //
+// If set, CXPLAT_DATAPATH_QUEUE_SENDS enables logic to queue the UDP send
+// to the datapath worker thread instead of inline execution.
+//
+//#define CXPLAT_DATAPATH_QUEUE_SENDS 1
+
+//
 // This IOCTL allows for creating per-processor sockets for the same UDP port.
 // This is used to get better parallelization to improve performance.
 //
@@ -183,6 +189,7 @@ typedef struct CXPLAT_SEND_DATA {
     //
     WSABUF ClientBuffer;
 
+#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
     //
     // The local address to bind to.
     //
@@ -192,6 +199,7 @@ typedef struct CXPLAT_SEND_DATA {
     // The remote address to send to.
     //
     QUIC_ADDR RemoteAddress;
+#endif
 
 } CXPLAT_SEND_DATA;
 
@@ -3807,26 +3815,22 @@ CxPlatSocketSend(
     _In_ uint16_t IdealProcessor
     )
 {
-    QUIC_STATUS Status;
-    CXPLAT_SOCKET_PROC* SocketProc;
-    CXPLAT_DATAPATH* Datapath;
-    BOOL Result;
-    uint16_t Processor;
-
     CXPLAT_DBG_ASSERT(
         Socket != NULL && LocalAddress != NULL &&
-        RemoteAddress != NULL && SendData != NULL);
+        RemoteAddress != NULL && SendData != NULL &&
+        SendData->WsaBufferCount != 0);
 
-    if (SendData->WsaBufferCount == 0) { // TODO - Make a dbg assert?
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    Datapath = Socket->Datapath;
-    Processor = Socket->HasFixedRemoteAddress ? Socket->ProcessorAffinity : IdealProcessor % Datapath->ProcCount;
-    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
+    CXPLAT_DATAPATH* Datapath = Socket->Datapath;
+    CXPLAT_SOCKET_PROC* SocketProc =
+        &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
 
     CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
+
+#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
+    uint16_t Processor =
+        Socket->HasFixedRemoteAddress ?
+            Socket->ProcessorAffinity :
+            IdealProcessor % Datapath->ProcCount;
 
     if ((Socket->Type != CXPLAT_SOCKET_UDP) ||
         Datapath->Processors[Processor].WorkerActive) {
@@ -3854,11 +3858,12 @@ CxPlatSocketSend(
         sizeof(*RemoteAddress));
 
     RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
-    Result = PostQueuedCompletionStatus(
-        Datapath->Processors[Processor].IOCP,
-        UINT32_MAX,
-        (ULONG_PTR)SocketProc,
-        &SendData->Overlapped);
+    BOOL Result =
+        PostQueuedCompletionStatus(
+            Datapath->Processors[Processor].IOCP,
+            UINT32_MAX,
+            (ULONG_PTR)SocketProc,
+            &SendData->Overlapped);
     if (!Result) {
         int LastError = GetLastError();
         QuicTraceEvent(
@@ -3867,19 +3872,22 @@ CxPlatSocketSend(
             SocketProc->Parent,
             LastError,
             "PostQueuedCompletionStatus");
-        Status = HRESULT_FROM_WIN32(LastError);
-        goto Exit;
-    }
-
-    Status = QUIC_STATUS_SUCCESS;
-
-Exit:
-
-    if (QUIC_FAILED(Status)) {
         CxPlatSendDataFree(SendData);
+        return HRESULT_FROM_WIN32(LastError);
     }
 
-    return Status;
+    return QUIC_STATUS_SUCCESS;
+
+#else // CXPLAT_DATAPATH_QUEUE_SENDS
+
+    return
+        CxPlatSocketSendInline(
+            SocketProc,
+            LocalAddress,
+            RemoteAddress,
+            SendData);
+
+#endif // CXPLAT_DATAPATH_QUEUE_SENDS
 }
 
 DWORD
@@ -4015,6 +4023,7 @@ CxPlatDataPathWorkerThread(
                     CXPLAT_SEND_DATA,
                     Overlapped);
 
+#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
             if (NumberOfBytesTransferred == UINT32_MAX &&
                 CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
                 CxPlatSocketSendInline(
@@ -4023,7 +4032,9 @@ CxPlatDataPathWorkerThread(
                     &SendData->RemoteAddress,
                     SendData);
                 CxPlatRundownRelease(&SocketProc->UpcallRundown);
-            } else {
+            } else
+#endif // CXPLAT_DATAPATH_QUEUE_SENDS
+            {
                 CxPlatSendDataComplete(
                     SocketProc,
                     SendData,
