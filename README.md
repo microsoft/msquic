@@ -41,7 +41,7 @@ MsQuic has several features that differentiates it from other QUIC implementatio
   * For building the MsQuic library, see the [Build docs](./docs/BUILD.md).
   * For using the MsQuic API, see the [API docs](./docs/API.md) or the [Sample](./src/tools/sample/sample.cpp).
   * For deploying with MsQuic, see the [Deployment docs](./docs/Deployment.md).
-  * For diagnosing MsQuic, see the [Diagnostics docs](./docs/Diagnostics.md).
+  * For diagnosing MsQuic, see the [Diagnostics docs](./docs/Diagnostics.md) and the [Trouble Shooting Guide](./docs/TSG.md).
 
 # Contributing
 
