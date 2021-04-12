@@ -52,8 +52,8 @@ ulimit -n newValue
 
 # Trouble Shooting a Performance Issue
 
-1. [Is it a problem with just a single (or very few) connection?]()
-2. [Is it a problem multiple (lots) of connections?]()
+1. [Is it a problem with just a single (or very few) connection?](#why-in-performance-bad-for-my-connection)
+2. [Is it a problem multiple (lots) of connections?](#why-is-performance-bad-across-all-my-connections)
 
 ## Why is Performance bad for my Connection?
 
