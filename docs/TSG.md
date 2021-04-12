@@ -4,9 +4,9 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 
 ## What kind of Issue are you having?
 
-1. [I am debugging a crash.]()
-2. [Something is not functionally working as I expect.]()
-3. [Performance is not what I expect it to be.]()
+1. [I am debugging a crash.](#debugging-a-crash)
+2. [Something is not functionally working as I expect.](#trouble-shooting-a-functional-issue)
+3. [Performance is not what I expect it to be.](#trouble-shooting-a-performance-issue)
 
 # Debugging a Crash
 
@@ -14,9 +14,9 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 
 # Trouble Shooting a Functional Issue
 
-1. [The handshake is failing for some or all of my connections.]()
-2. [The connection is unexpectedly disconnecting.]()
-3. [No application (stream) data seems to be flowing.]()
+1. [The handshake is failing for some or all of my connections.](#why-is-the-handshake-failing)
+2. [The connection is unexpectedly disconnecting.](#why-is-the-connection-disconnecting)
+3. [No application (stream) data seems to be flowing.](#why-isnt-application-data-flowing)
 
 ## Why is the handshake failing?
 
