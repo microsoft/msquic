@@ -219,6 +219,7 @@ QuicKernelMain(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
+    QuicDriverService MsQuicPrivDriverService;
     QuicDriverService DriverService;
     QuicDriverClient DriverClient;
 
@@ -229,14 +230,31 @@ QuicKernelMain(
         DependentDriverNames = "msquic\0";
     }
 
+    if (PrivateTestLibrary) {
+        if (!MsQuicPrivDriverService.Initialize("msquicpriv", "")) {
+            printf("Failed to initialize msquicpriv driver service\n");
+            CXPLAT_FREE(Data, QUIC_POOL_PERF);
+            return QUIC_STATUS_INVALID_STATE;
+        }
+
+        if (!MsQuicPrivDriverService.Start()) {
+            printf("Starting msquicpriv Driver Service Failed\n");
+            MsQuicPrivDriverService.Uninitialize();
+            CXPLAT_FREE(Data, QUIC_POOL_PERF);
+            return QUIC_STATUS_INVALID_STATE;
+        }
+    }
+
     if (!DriverService.Initialize(DriverName, DependentDriverNames)) {
         printf("Failed to initialize driver service\n");
+        MsQuicPrivDriverService.Uninitialize();
         CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
     if (!DriverService.Start()) {
         printf("Starting Driver Service Failed\n");
         DriverService.Uninitialize();
+        MsQuicPrivDriverService.Uninitialize();
         CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
@@ -250,6 +268,7 @@ QuicKernelMain(
     if (!DriverClient.Initialize(&CertParams, DriverName)) {
         printf("Intializing Driver Client Failed.\n");
         DriverService.Uninitialize();
+        MsQuicPrivDriverService.Uninitialize();
         CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
@@ -338,6 +357,7 @@ QuicKernelMain(
 
     DriverClient.Uninitialize();
     DriverService.Uninitialize();
+    MsQuicPrivDriverService.Uninitialize();
 
     return RunSuccess ? QUIC_STATUS_SUCCESS : QUIC_STATUS_INTERNAL_ERROR;
 }

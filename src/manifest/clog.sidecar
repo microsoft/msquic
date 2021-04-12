@@ -9311,6 +9311,38 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "OpenSslTickedDecrypted": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Session ticket decrypted, status %u",
+      "UniqueId": "OpenSslTickedDecrypted",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "OpenSslRecvTicketData": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Received ticket data, %u bytes",
+      "UniqueId": "OpenSslRecvTicketData",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "OpenSslContextCreated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TLS context Created",
@@ -9335,10 +9367,10 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
-    "OpenSsslIgnoringTicket": {
+    "OpenSslSendTicketData": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Ignoring %u ticket bytes",
-      "UniqueId": "OpenSsslIgnoringTicket",
+      "TraceString": "[conn][%p] Sending ticket data, %u bytes",
+      "UniqueId": "OpenSslSendTicketData",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -12816,6 +12848,14 @@
         "TraceID": "OpenSslAddHandshakeData"
       },
       {
+        "UniquenessHash": "72e491bb-79fd-ba28-760a-54e0b9a4d854",
+        "TraceID": "OpenSslTickedDecrypted"
+      },
+      {
+        "UniquenessHash": "882fcfec-93cc-9255-700a-96a9263f2421",
+        "TraceID": "OpenSslRecvTicketData"
+      },
+      {
         "UniquenessHash": "e1629f75-f460-8951-5138-b0602b8f4db0",
         "TraceID": "OpenSslContextCreated"
       },
@@ -12824,8 +12864,8 @@
         "TraceID": "OpenSslContextCleaningUp"
       },
       {
-        "UniquenessHash": "cc5e9bc2-359a-36f2-27f3-a319e5aee533",
-        "TraceID": "OpenSsslIgnoringTicket"
+        "UniquenessHash": "78497dcf-70d4-80d5-af6d-0856653591e3",
+        "TraceID": "OpenSslSendTicketData"
       },
       {
         "UniquenessHash": "ff332af9-4ba2-95a8-bb2c-c5c729be4ccd",
