@@ -11,8 +11,6 @@
 #include "main.cpp.clog.h"
 #endif
 
-extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
-
 const char* PfxPath = nullptr;
 
 class QuicCoreTestEnvironment : public ::testing::Environment {

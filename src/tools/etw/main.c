@@ -7,8 +7,6 @@
 
 #include "quicetw.h"
 
-_IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
-
 #define USAGE \
 "QUIC Trace Analyzer\n" \
 "\n" \
