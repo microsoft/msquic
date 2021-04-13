@@ -791,9 +791,9 @@ function Publish-ThroughputTestResults {
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
         Write-Output "Saving results_$Test.json out for publishing."
-        $MachineName = $script:OsBuildNumber
+        $MachineName = ($script:OsBuildNumber).ToString()
         if (Test-Path 'env:AGENT_MACHINENAME') {
-            $MachineName = $script:OsBuildNumber + ":" + $env:AGENT_MACHINENAME
+            $MachineName = $MachineName + ":" + $env:AGENT_MACHINENAME
         }
         $Results = [ThroughputTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7), $Tcp)
         $Results.AuthKey = $CurrentCommitDate;
@@ -945,9 +945,9 @@ function Publish-RPSTestResults {
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
         Write-Output "Saving results_$Test.json out for publishing."
-        $MachineName = $null
+        $MachineName = ($script:OsBuildNumber).ToString()
         if (Test-Path 'env:AGENT_MACHINENAME') {
-            $MachineName = $env:AGENT_MACHINENAME
+            $MachineName = $MachineName + ":" + $env:AGENT_MACHINENAME
         }
         $Results = [RPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
         $Results.AuthKey = $CurrentCommitDate;
@@ -1062,9 +1062,9 @@ function Publish-HPSTestResults {
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
         Write-Output "Saving results_$Test.json out for publishing."
-        $MachineName = $null
+        $MachineName = ($script:OsBuildNumber).ToString()
         if (Test-Path 'env:AGENT_MACHINENAME') {
-            $MachineName = $env:AGENT_MACHINENAME
+            $MachineName = $MachineName + ":" + $env:AGENT_MACHINENAME
         }
         $Results = [HPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
         $Results.AuthKey = $CurrentCommitDate;
