@@ -251,7 +251,8 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
-$DebugLogFile = Join-Path $OutputDir "DebugLog.txt"
+$DebugFileName = $Local ? "DebugLogLocal.txt" : "DebugLog.txt"
+$DebugLogFile = Join-Path $OutputDir $DebugFileName
 "" | Out-File $DebugLogFile
 
 Set-DebugLogFile -DebugLogFile $DebugLogFile
