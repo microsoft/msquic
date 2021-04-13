@@ -257,7 +257,7 @@ $DebugLogFile = Join-Path $OutputDir "DebugLog.txt"
 Set-DebugLogFile -DebugLogFile $DebugLogFile
 
 $OsBuildNumber = [System.Environment]::OSVersion.Version.Build
-Write-LogOrDebug "Running on $OsBuildNumber"
+Write-LogAndDebug "Running on $OsBuildNumber"
 
 $LocalDirectory = Join-Path $RootDir "artifacts/bin"
 $RemoteDirectorySMB = $null
