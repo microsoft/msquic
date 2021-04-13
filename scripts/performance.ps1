@@ -252,6 +252,9 @@ $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($Re
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 $DebugFileName = $Local ? "DebugLogLocal.txt" : "DebugLog.txt"
+if ($Kernel) {
+    $DebugFileName = "Kernel$DebugFileName"
+}
 $DebugLogFile = Join-Path $OutputDir $DebugFileName
 "" | Out-File $DebugLogFile
 
