@@ -115,7 +115,10 @@ function Set-DebugLogFile {
 }
 
 function Write-LogAndDebug {
-    param($Data)
+    param([AllowNull()]$Data)
+    if ($null -eq $Data) {
+        return
+    }
     Write-Debug $Data
     $Data | Out-File $script:DebugLogFile -Append
 }
