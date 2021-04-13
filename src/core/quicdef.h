@@ -187,9 +187,9 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 // Kernel modes receive path is slightly different, so allow larger queue sizes.
 //
-#define QUIC_MAX_RECEIVE_QUEUE_COUNT            4096
+#define QUIC_MAX_RECEIVE_QUEUE_COUNT            1024
 #else
-#define QUIC_MAX_RECEIVE_QUEUE_COUNT            4096
+#define QUIC_MAX_RECEIVE_QUEUE_COUNT            180
 #endif
 
 //

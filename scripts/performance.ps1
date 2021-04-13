@@ -136,10 +136,6 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-if ($IsWindows) {
-    $RecordQUIC = $true
-}
-
 # Validate the the kernel switch.
 if ($Kernel -and !$IsWindows) {
     Write-Error "-Kernel switch only supported on Windows"
