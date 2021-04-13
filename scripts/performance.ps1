@@ -386,6 +386,10 @@ function Invoke-Test {
 
     $RemoteArguments = $RemoteConfig.Arguments
 
+    if ($LocalArguments.Contains("-stats:1")) {
+        $RemoteArguments += " -stats:1"
+    }
+
     Write-LogAndDebug "Running Remote: $RemoteExe Args: $RemoteArguments"
 
     # Starting the server
