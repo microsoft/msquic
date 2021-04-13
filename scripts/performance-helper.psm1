@@ -102,6 +102,7 @@ function Set-ScriptVariables {
     $script:Session = $Session
     $script:Kernel = $Kernel
     $script:FailOnRegression = $FailOnRegression
+    $script:OsBuildNumber = [System.Environment]::OSVersion.Version.Build
     if ($null -ne $Session) {
         Invoke-Command -Session $Session -ScriptBlock {
             $ErrorActionPreference = "Stop"
@@ -790,9 +791,9 @@ function Publish-ThroughputTestResults {
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
         Write-Output "Saving results_$Test.json out for publishing."
-        $MachineName = $null
+        $MachineName = $script:OsBuildNumber
         if (Test-Path 'env:AGENT_MACHINENAME') {
-            $MachineName = $env:AGENT_MACHINENAME
+            $MachineName = $script:OsBuildNumber + ":" + $env:AGENT_MACHINENAME
         }
         $Results = [ThroughputTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7), $Tcp)
         $Results.AuthKey = $CurrentCommitDate;
