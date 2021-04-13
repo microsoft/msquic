@@ -251,6 +251,18 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
+$DebugFileName = $Local ? "DebugLogLocal.txt" : "DebugLog.txt"
+if ($Kernel) {
+    $DebugFileName = "Kernel$DebugFileName"
+}
+$DebugLogFile = Join-Path $OutputDir $DebugFileName
+"" | Out-File $DebugLogFile
+
+Set-DebugLogFile -DebugLogFile $DebugLogFile
+
+$OsBuildNumber = [System.Environment]::OSVersion.Version.Build
+Write-LogAndDebug "Running on $OsBuildNumber"
+
 $LocalDirectory = Join-Path $RootDir "artifacts/bin"
 $RemoteDirectorySMB = $null
 
@@ -295,7 +307,7 @@ function LocalSetup {
             $apipaAddr = Get-NetIPAddress 169.254.*
             if ($null -ne $apipaAddr) {
                 # Disable all the APIPA interfaces for URO perf.
-                Write-Debug "Temporarily disabling APIPA interfaces"
+                Write-LogAndDebug "Temporarily disabling APIPA interfaces"
                 $RetObj.apipaInterfaces = (Get-NetAdapter -InterfaceIndex $apipaAddr.InterfaceIndex) | Where-Object {$_.AdminStatus -eq "Up"}
                 $RetObj.apipaInterfaces | Disable-NetAdapter -Confirm:$false
             }
@@ -311,7 +323,7 @@ function LocalTeardown {
     param ($LocalCache)
     if ($null -ne $LocalCache.apipaInterfaces) {
         # Re-enable the interfaces we disabled earlier.
-        Write-Debug "Re-enabling APIPA interfaces"
+        Write-LogAndDebug "Re-enabling APIPA interfaces"
         $LocalCache.apipaInterfaces | Enable-NetAdapter
     }
 }
@@ -374,7 +386,7 @@ function Invoke-Test {
 
     $RemoteArguments = $RemoteConfig.Arguments
 
-    Write-Debug "Running Remote: $RemoteExe Args: $RemoteArguments"
+    Write-LogAndDebug "Running Remote: $RemoteExe Args: $RemoteArguments"
 
     # Starting the server
     $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
@@ -393,8 +405,9 @@ function Invoke-Test {
 
     try {
         1..$Test.Iterations | ForEach-Object {
-            Write-Debug "Running Local: $LocalExe Args: $LocalArguments"
+            Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
+            Write-LogAndDebug $LocalResults
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
             $AllRunsResults += $AllLocalParsedResults
             if ($PGO) {
@@ -414,11 +427,11 @@ function Invoke-Test {
             $OutputString = "Run $($_): $Joined"
 
             Write-Output $OutputString
-            $LocalResults | Write-Debug
+            $LocalResults | Write-LogAndDebug
         }
     } finally {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
-        Write-Debug $RemoteResults.ToString()
+        Write-LogAndDebug $RemoteResults.ToString()
 
         Stop-Tracing -Exe $LocalExe
 

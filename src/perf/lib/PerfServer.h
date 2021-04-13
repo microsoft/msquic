@@ -130,6 +130,7 @@ private:
     uint16_t Port {PERF_DEFAULT_PORT};
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
+    uint8_t PrintStats {FALSE};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
 
     TcpEngine Engine;

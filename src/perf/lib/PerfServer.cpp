@@ -25,6 +25,7 @@ PerfServer::Init(
     }
 
     TryGetValue(argc, argv, "port", &Port);
+    TryGetValue(argc, argv, "stats", &PrintStats);
 
     DataBuffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE, QUIC_POOL_PERF);
     if (!DataBuffer) {
@@ -135,6 +136,9 @@ PerfServer::ConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
+            if (PrintStats) {
+                QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
+            }
             MsQuic->ConnectionClose(ConnectionHandle);
         }
         break;
