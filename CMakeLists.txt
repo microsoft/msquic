@@ -216,6 +216,8 @@ if(QUIC_TELEMETRY_ASSERTS)
 endif()
 
 if(QUIC_TLS STREQUAL "schannel")
+    message(STATUS "Enabling UDP Send Queuing")
+    list(APPEND QUIC_COMMON_DEFINES CXPLAT_DATAPATH_QUEUE_SENDS=1)
     message(STATUS "Disabling PFX tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
     message(STATUS "Disabling portable certificate tests")
