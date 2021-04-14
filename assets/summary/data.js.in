@@ -1,31 +1,31 @@
 /*!
  * Automatically generated data
  */
+
+// Arrays of {c:N, m:"M", b:B, d:[D1, D2, ...]}
 var dataUp_WinKernel_x64_Schannel = UP_WINKERNEL_X64_SCHANNEL
 var dataUp_Windows_x64_Schannel = UP_WINDOWS_X64_SCHANNEL
 var dataUp_Windows_x64_Openssl = UP_WINDOWS_X64_OPENSSL
 var dataUp_Linux_x64_Openssl = UP_LINUX_X64_OPENSSL
-
 var dataDown_WinKernel_x64_Schannel = DOWN_WINKERNEL_X64_SCHANNEL
 var dataDown_Windows_x64_Schannel = DOWN_WINDOWS_X64_SCHANNEL
 var dataDown_Windows_x64_Openssl = DOWN_WINDOWS_X64_OPENSSL
 var dataDown_Linux_x64_Openssl = DOWN_LINUX_X64_OPENSSL
-
 var dataRps_WinKernel_x64_Schannel = RPS_WINKERNEL_X64_SCHANNEL
 var dataRps_Windows_x64_Schannel = RPS_WINDOWS_X64_SCHANNEL
 var dataRps_Windows_x64_Openssl = RPS_WINDOWS_X64_OPENSSL
 var dataRps_Linux_x64_Openssl = RPS_LINUX_X64_OPENSSL
+var dataHps_WinKernel_x64_Schannel = HPS_WINKERNEL_X64_SCHANNEL
+var dataHps_Windows_x64_Schannel = HPS_WINDOWS_X64_SCHANNEL
+var dataHps_Windows_x64_Openssl = HPS_WINDOWS_X64_OPENSSL
+var dataHps_Linux_x64_Openssl = HPS_LINUX_X64_OPENSSL
 
 var dataRpsLatency_WinKernel_x64_Schannel = RPS_LATENCY_WINKERNEL_X64_SCHANNEL
 var dataRpsLatency_Windows_x64_Schannel = RPS_LATENCY_WINDOWS_X64_SCHANNEL
 var dataRpsLatency_Windows_x64_OpenSsl = RPS_LATENCY_WINDOWS_X64_OPENSSL
 var dataRpsLatency_Linux_x64_OpenSsl = RPS_LATENCY_LINUX_X64_OPENSSL
 
-var dataHps_WinKernel_x64_Schannel = HPS_WINKERNEL_X64_SCHANNEL
-var dataHps_Windows_x64_Schannel = HPS_WINDOWS_X64_SCHANNEL
-var dataHps_Windows_x64_Openssl = HPS_WINDOWS_X64_OPENSSL
-var dataHps_Linux_x64_Openssl = HPS_LINUX_X64_OPENSSL
-
+// Map of {N: {t:T, H:'H'}}
 var recentCommits = RECENT_COMMITS
 
 var newestDate = NEWEST_DATE

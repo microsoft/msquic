@@ -39,7 +39,7 @@ var dataView = [
     { name:"linuxOpenSslHps", unit:"Hz", div:1, raw:dataHps_Linux_x64_Openssl },
 ]
 
-// Fixed charting array
+// Fixed charting values
 var dataLineWidth = 2
 var dataRawPointRadius = 3
 
