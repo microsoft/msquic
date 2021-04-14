@@ -57,7 +57,11 @@ namespace MsQuicTracing.DataModel
                     {
                         if (!(lastEvent is null))
                         {
-                            activityEvents.Add(new QuicActivityData(lastEvent.TimeStamp, evt.TimeStamp - lastEvent.TimeStamp));
+                            activityEvents.Add(
+                                new QuicActivityData(
+                                    lastEvent.TimeStamp,
+                                    evt.TimeStamp - lastEvent.TimeStamp,
+                                    lastEvent.Processor));
                             lastEvent = null;
                         }
                     }

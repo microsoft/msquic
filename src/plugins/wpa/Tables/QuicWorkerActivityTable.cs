@@ -39,6 +39,11 @@ namespace MsQuicTracing.Tables
                 new ColumnMetadata(new Guid("{530749a6-4e3f-5ad3-91f8-91ec9332ab09}"), "ThreadId"),
                 new UIHints { AggregationMode = AggregationMode.Max });
 
+        private static readonly ColumnConfiguration cpuColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{3d38dcd2-7ba8-4f35-8f6a-2e69ddcadeb2}"), "CPU"),
+                new UIHints { AggregationMode = AggregationMode.Max });
+
         private static readonly ColumnConfiguration countColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{3c554919-7249-5268-42d1-bc57bf89dbee}"), "Count"),
@@ -74,6 +79,7 @@ namespace MsQuicTracing.Tables
                      TableConfiguration.LeftFreezeColumn,
                      processIdColumnConfig,
                      threadIdColumnConfig,
+                     cpuColumnConfig,
                      countColumnConfig,
                      weightColumnConfig,
                      percentWeightColumnConfig,
@@ -94,6 +100,7 @@ namespace MsQuicTracing.Tables
                      TableConfiguration.LeftFreezeColumn,
                      processIdColumnConfig,
                      threadIdColumnConfig,
+                     cpuColumnConfig,
                      countColumnConfig,
                      weightColumnConfig,
                      timeColumnConfig,
@@ -138,6 +145,7 @@ namespace MsQuicTracing.Tables
             table.AddColumn(workerColumnConfig, dataProjection.Compose(ProjectId));
             table.AddColumn(processIdColumnConfig, dataProjection.Compose(ProjectProcessId));
             table.AddColumn(threadIdColumnConfig, dataProjection.Compose(ProjectThreadId));
+            table.AddColumn(cpuColumnConfig, dataProjection.Compose(ProjectCPU));
             table.AddColumn(countColumnConfig, Projection.Constant<uint>(1));
             table.AddColumn(weightColumnConfig, dataProjection.Compose(ProjectWeight));
             table.AddColumn(percentWeightColumnConfig, dataProjection.Compose(ProjectPercentWeight));
@@ -174,6 +182,11 @@ namespace MsQuicTracing.Tables
         private static uint ProjectThreadId(ValueTuple<QuicWorker, QuicActivityData> data)
         {
             return data.Item1.ThreadId;
+        }
+
+        private static uint ProjectCPU(ValueTuple<QuicWorker, QuicActivityData> data)
+        {
+            return data.Item2.Processor;
         }
 
         private static TimestampDelta ProjectWeight(ValueTuple<QuicWorker, QuicActivityData> data)
