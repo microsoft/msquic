@@ -92,4 +92,86 @@ The error code indicated in this event is completely application defined (type o
 
 ### Diagnosing RSS Issues
 
-> TODO
+> **Important** - The following is specific to Windows OS.
+
+For scenarios with lots of parallel connections, generally the work should be spread across all the available processors. But if there are issues with the work not spreading there are a few things you can do. First off, here's an example where the RPS tests were run to a server that should be able to handle near 1 million requests per second:
+
+```
+> secnetperf.exe -test:RPS -target:quic-server -conns:250 -requests:7500 -request:0 -response:4096 -runtime:20000
+All Connected! Waiting for idle.
+Start sending request...
+Started!
+
+Result: 25869 RPS, Min: 944, Max: 888078, 50th: 281889.000000, 90th: 369965.000000, 99th: 490582.000000, 99.9th: 574533.000000, 99.99th: 797810.000000, 99.999th: 884055.000000, 99.9999th: 888078.000000, StdErr: 91.224221
+App Main returning status 0
+```
+
+As you can see from the output of `secnetperf.exe` the resulting `25869 RPS` is nowhere near what it should be. The next step is to grab a performance trace to see what is going on. For these type of issues the best way to collect the traces would be to [use WPR](./Diagnostics.md#using-wpr-to-collect-traces) (with `Scheduling.Verbose` or `Performance.Verbose` profiles).
+
+Once you have the ETL, open it [in WPA using the MsQuic plugin](../src/plugins/wpa/README.md). First thing after opening, let's take a look at the QUIC Worker utilization. In the `Graph Explorer`, under `Computation`, expand `QUIC Workers` and open the one labeled `Utilization by Worker`. For the example above (server-side trace), here is what the output looks like:
+
+![](images/rss-debug-1.png)
+
+You can immediately see that only 2 different workers are being used, with worker `2` being used primarily.
+
+> **In depth details** - MsQuic always uses at least two workers on the server side for per connection. The first worker is a global, shared worker that is used to do initial validation of the connection request. Its job is to figure out which app the incoming connection belongs to. Once that's complete, the connection will be handed off to that app (and its worker thread(s)). So, this is why you only see usage of worker `1` at the beginning of the trace.
+
+The first usage spikes are from the RPS test initially connecting all its (250) parallel connections. There is a bit of back and forth to do the handshakes for these connections. Then there is an idle period while the test waits for things to die down. Finally, the actual RPS tests commense and that is where you see the solid usage of worker `2`.
+
+Ideally, RPS tests should generate work that is spread across **many** different workers. The fact that only 1 worker is being used is definitely the source of the low RPS numbers that were measured and indicated in the tool output above. Since MsQuic picks which workers to use based on how the UDP datagrams are received, the next step is to look into the UDP receive layer.
+
+One way to do this is by using the `Generic Events` table (under `System Activity` in the `Graph Explorer`). Open that up, and then filter to just MsQuic (also shows up as `ff15e657-4f26-570e-88ab-0796b258d11c` some times) `Provider Name` (Right Click -> `Filter To Selection`). Next, we're looking for specifically the datapath receive events, which are `Id` 9218. Filter to just those and we see something like this:
+
+![](images/rss-debug-2.png)
+
+Now, what we're really interested in is what CPU these events are coming in on. So, add the CPU column to the left of the yellow bar. It doesn't really show a much different picture, but you can clearly see that all events happen on CPU 0.
+
+![](images/rss-debug-3.png)
+
+Now, we can clearly see that all our receive events are happening on the same CPU. This definitely not supposed to happen in an environment where RSS should be spreading all the different incoming UDP flows/tuples to different processors.
+
+The next step is to take a look at the RSS configuration on the machine to ensure things are properly configured. Run `Get-NetAdapterRss` to get an output like this:
+
+```
+Name                                            : Slot0A x8
+InterfaceDescription                            : Mellanox ConnectX-3 Pro Ethernet Adapter
+Enabled                                         : True
+NumberOfReceiveQueues                           : 8
+Profile                                         : Closest
+BaseProcessor: [Group:Number]                   : 0:0
+MaxProcessor: [Group:Number]                    : 1:38
+MaxProcessors                                   : 8
+RssProcessorArray: [Group:Number/NUMA Distance] : 0:0/0  0:2/0  0:4/0  0:6/0  0:8/0  0:10/0  0:12/0  0:14/0
+                                                  0:16/0  0:18/0  0:20/0  0:22/0  0:24/0  0:26/0  0:28/0  0:30/0
+                                                  0:32/0  0:34/0  0:36/0  0:38/0  1:0/32767  1:2/32767  1:4/32767
+                                                  1:6/32767
+                                                  1:8/32767  1:10/32767  1:12/32767  1:14/32767  1:16/32767
+                                                  1:18/32767  1:20/32767  1:22/32767
+                                                  1:24/32767  1:26/32767  1:28/32767  1:30/32767  1:32/32767
+                                                  1:34/32767  1:36/32767  1:38/32767
+IndirectionTable: [Group:Number]                : 0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+```
+
+The output above indicates RSS is configured with 8 queues, so there should be spreading of the incoming flows to 8 different CPUs (and then passed to 8 different workers) instead of just the 1 that we are seeing. So, finally, in cases where everything seems to be configured correctly, but things **still** aren't working, that usually indicates a problem with the network card driver. Make sure the driver is up to date with the latest version available. If that still doesn't fix the problem, you will likely need to contact support from the network card vendor.
+
+> **Follow up** - We should have `CPU` and `Ideal Processor` columns in the Worker Utilization chart/table.
+
+> **Follow up** - We should have `CPU` column in the Data Batching chart/table.
+
+> **Follow up** - We should data rate chart/table per binding.
+
