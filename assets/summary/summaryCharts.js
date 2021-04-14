@@ -8,7 +8,7 @@ if (maxIndex < commitCount) {
 function titlePlacement(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem[0].datasetIndex]
     var datapoint = dataset.data[tooltipItem[0].index]
-    var time = recentCommits[datapoint.c].t
+    var time = recentCommits[datapoint.x].t
     // TODO Fix this, this is very hacky
     return Chart._adapters._date.prototype.format(time, Chart._adapters._date.prototype.formats().datetime)
 }
@@ -16,13 +16,13 @@ function titlePlacement(tooltipItem, data) {
 function beforeBodyPlacement(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem[0].datasetIndex]
     var datapoint = dataset.data[tooltipItem[0].index]
-    return "Commit Hash: " + commitDatePairs[datapoint.c].h
+    return "Commit Hash: " + recentCommits[datapoint.x].h
 }
 
 function chartOnClick(a, activeElements) {
     if (activeElements.length === 0) return
     var dataset = this.config.data.datasets[activeElements[0]._datasetIndex]
-    var commitIndex = dataset.data[activeElements[0]._index].c
+    var commitIndex = dataset.data[activeElements[0]._index].x
     var commitHash = recentCommits[commitIndex].h
     window.open("https://github.com/microsoft/msquic/commit/" + commitHash, "_blank")
 }
@@ -35,7 +35,7 @@ function createDataset(test, platform) {
     var data = dataView.find(x => x.name === (platform.name + test))
     return {
         type: "line",
-        label: platform.friendly + " (average)",
+        label: platform.friendly + " (" + pointsToValueName + ")",
         backgroundColor: platform.color,
         borderColor: platform.color,
         borderWidth: dataLineWidth,

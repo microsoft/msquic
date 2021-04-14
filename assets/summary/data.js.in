@@ -20,12 +20,13 @@ var dataHps_Windows_x64_Schannel = HPS_WINDOWS_X64_SCHANNEL
 var dataHps_Windows_x64_Openssl = HPS_WINDOWS_X64_OPENSSL
 var dataHps_Linux_x64_Openssl = HPS_LINUX_X64_OPENSSL
 
+// Arrays of {x:X, y:Y}
 var dataRpsLatency_WinKernel_x64_Schannel = RPS_LATENCY_WINKERNEL_X64_SCHANNEL
 var dataRpsLatency_Windows_x64_Schannel = RPS_LATENCY_WINDOWS_X64_SCHANNEL
 var dataRpsLatency_Windows_x64_OpenSsl = RPS_LATENCY_WINDOWS_X64_OPENSSL
 var dataRpsLatency_Linux_x64_OpenSsl = RPS_LATENCY_LINUX_X64_OPENSSL
 
-// Map of {N: {t:T, H:'H'}}
+// Map of {N: {h:'H', t:T}}
 var recentCommits = RECENT_COMMITS
 
 var newestDate = NEWEST_DATE

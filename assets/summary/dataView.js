@@ -55,13 +55,17 @@ function median(array){
     return (array[half - 1] + array[half]) / 2.0;
 }
 
+function max(array){
+    if (array.length === 0) return 0;
+    return array.sort(function(a,b){ return b-a; })[0];
+}
+
+// Controls how we represent a single value for an array of data points
+pointsToValue = median
+pointsToValueName = "median"
+
 // Helper functions for generating chart data sets
 function generatePointDataset(dataset, maxIndex, commitCount) {
-    // Format of single input data point:
-    //   {c:477, m:"27", b:22355, d:[7861449, 7858376, 7824282, 7852652, 7883781]}
-    // Format of single output data point:
-    //   {x:447, y:7861449, m:"27", b:22355}
-
     // Filter the number of commits to use in the dataset
     dataset = dataset.filter(p => (maxIndex - 1 - p.c) < commitCount)
 
@@ -75,18 +79,13 @@ function generatePointDataset(dataset, maxIndex, commitCount) {
 }
 
 function generateLineDataset(dataset, maxIndex, commitCount) {
-    // Format of single input data point:
-    //   {c:477, m:"27", b:22355, d:[7861449, 7858376, 7824282, 7852652, 7883781]}
-    // Format of single output data point:
-    //   {x:447, y:7861449, m:"27", b:22355}
-
     // Filter the number of commits to use in the dataset
     dataset = dataset.filter(p => (maxIndex - 1 - p.c) < commitCount)
 
     // Generate output in the correct format
     var output = []
     dataset.forEach(
-        p => output.push({x:p.c, y:median(p.d), m:p.m, b:p.b}))
+        p => output.push({x:p.c, y:pointsToValue(p.d), m:p.m, b:p.b}))
 
     return output
 }

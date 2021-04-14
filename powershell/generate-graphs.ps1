@@ -94,26 +94,6 @@ function Get-CpuCommitData {
     return $CpuData
 }
 
-function Get-CommitTimePairJs {
-    param (
-        [Parameter(Mandatory = $true)]
-        [CommitsFileModel[]]$CommitModel
-    )
-
-    $DataVal = ""
-    foreach ($Pair in $CommitModel) {
-        $TimeUnix = $Pair.Date;
-        $Hash = $Pair.CommitHash
-        $Data = "'$TimeUnix': '$Hash'"
-        if ($DataVal -eq "") {
-            $DataVal = $Data
-        } else {
-            $DataVal = "$DataVal, $Data"
-        }
-    }
-    return "{$DataVal}"
-}
-
 function Get-RawTestDataJs {
     param (
         [Parameter(Mandatory = $true)]
@@ -519,7 +499,7 @@ function Get-LatencyDataJs {
             continue
         }
         #$XVal = 100.0 - (100.0 / $XVal);
-        $ToWrite = "{x: $XVal, y: $YVal}"
+        $ToWrite = "{x:$XVal, y:$YVal}"
         if ($DataVal -eq "") {
             $DataVal = $ToWrite
         } else {
@@ -535,6 +515,26 @@ function Get-LatencyDataJs {
 #region Commits
 
 function Get-RecentCommitsJs {
+    param (
+        [TestCommitModel[]]$CpuCommitData
+    )
+
+    $DataVal = "";
+
+    foreach ($Commit in $CpuCommitData) {
+        $TimeUnix = $Commit.Date
+        $Data = "{h:`"$($Commit.CommitHash)`", t:$TimeUnix}";
+        if ($DataVal -eq "") {
+            $DataVal = $Data;
+        } else {
+            $DataVal = "$DataVal, $Data";
+        }
+    }
+
+    return "[$DataVal]";
+}
+
+function Get-CommitTableDataJs {
     param (
         [TestCommitModel[]]$CpuCommitData
     )
@@ -585,7 +585,7 @@ foreach ($Item in $CommitHistory) {
     $Index--
 }
 
-$DataFileContents = $DataFileContents.Replace("COMMIT_DATE_PAIR", (Get-RecentCommitsJs -CommitModel $CommitHistory))
+$DataFileContents = $DataFileContents.Replace("RECENT_COMMITS", (Get-RecentCommitsJs -CpuCommitData $CpuCommitData))
 
 $DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
 $DataFileContents = Get-RpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
