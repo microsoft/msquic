@@ -534,26 +534,6 @@ function Get-RecentCommitsJs {
     return "[$DataVal]";
 }
 
-function Get-CommitTableDataJs {
-    param (
-        [TestCommitModel[]]$CpuCommitData
-    )
-
-    $DataVal = "";
-
-    foreach ($Commit in $CpuCommitData) {
-        $TimeUnix = $Commit.Date
-        $Data = "{commitHash: `"$($Commit.CommitHash)`", commitDate: $TimeUnix}";
-        if ($DataVal -eq "") {
-            $DataVal = $Data;
-        } else {
-            $DataVal = "$DataVal, $Data";
-        }
-    }
-
-    return "[$DataVal]";
-}
-
 #endregion
 
 $RootDir = Split-Path $PSScriptRoot -Parent
