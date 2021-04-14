@@ -38,7 +38,7 @@ function chartOnClick(a, activeElements) {
     var dataset = this.config.data.datasets[activeElements[0]._datasetIndex]
     var rawTime = dataset.data[activeElements[0]._index].rawTime
     var commitHash = commitDatePairs[rawTime]
-    window.open("./percommit/main/" + commitHash + "/index.html", "_blank")
+    window.open("https://github.com/microsoft/msquic/commit/" + commitHash, "_blank")
 }
 
 function filterDataset(dataset, commitCount) {
@@ -232,7 +232,7 @@ function computePercentile(value) {
 function latencyTitleChange(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem[0].datasetIndex]
     var datapoint = dataset.data[tooltipItem[0].index]
-    
+
     return computePercentile(datapoint.x).toFixed(6) + "%";
 }
 
