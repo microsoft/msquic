@@ -8,21 +8,22 @@ if (maxIndex < commitCount) {
 function titlePlacement(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem[0].datasetIndex]
     var datapoint = dataset.data[tooltipItem[0].index]
+    var time = recentCommits[datapoint.c].t
     // TODO Fix this, this is very hacky
-    return Chart._adapters._date.prototype.format(datapoint.t, Chart._adapters._date.prototype.formats().datetime)
+    return Chart._adapters._date.prototype.format(time, Chart._adapters._date.prototype.formats().datetime)
 }
 
 function beforeBodyPlacement(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem[0].datasetIndex]
     var datapoint = dataset.data[tooltipItem[0].index]
-    return "Commit Hash: " + commitDatePairs[datapoint.rawTime]
+    return "Commit Hash: " + commitDatePairs[datapoint.c].h
 }
 
 function chartOnClick(a, activeElements) {
     if (activeElements.length === 0) return
     var dataset = this.config.data.datasets[activeElements[0]._datasetIndex]
-    var rawTime = dataset.data[activeElements[0]._index].rawTime
-    var commitHash = commitDatePairs[rawTime]
+    var commitIndex = dataset.data[activeElements[0]._index].c
+    var commitHash = recentCommits[commitIndex].h
     window.open("https://github.com/microsoft/msquic/commit/" + commitHash, "_blank")
 }
 
@@ -40,7 +41,7 @@ function createDataset(test, platform) {
         borderWidth: dataLineWidth,
         pointRadius: dataRawPointRadius,
         tension: 0,
-        data: filterDataset(data.avg, commitCount),
+        data: generateLineDataset(data.raw, maxIndex, commitCount),
         fill: false,
         sortOrder: 1,
         hidden: false,

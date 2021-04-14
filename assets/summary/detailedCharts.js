@@ -8,26 +8,22 @@ if (maxIndex < commitCount) {
 function titlePlacement(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem[0].datasetIndex]
     var datapoint = dataset.data[tooltipItem[0].index]
+    var time = recentCommits[datapoint.c].t
     // TODO Fix this, this is very hacky
-    return Chart._adapters._date.prototype.format(datapoint.t, Chart._adapters._date.prototype.formats().datetime)
+    return Chart._adapters._date.prototype.format(time, Chart._adapters._date.prototype.formats().datetime)
 }
 
 function beforeBodyPlacement(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem[0].datasetIndex]
     var datapoint = dataset.data[tooltipItem[0].index]
-    return "Commit Hash: " + commitDatePairs[datapoint.rawTime]
-}
-
-function filterDataset(dataset, commitCount) {
-    return dataset.filter(p => (maxIndex - 1 - p.x) < commitCount);
+    return "Commit Hash: " + recentCommits[datapoint.c].h
 }
 
 function labelChange(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem.datasetIndex]
     if (dataset.label.includes('(average)')) {
         var datapoint = dataset.data[tooltipItem.index]
-        var shortMachine = datapoint.machine.substring(datapoint.machine.length - 2)
-        return "Average (M" + shortMachine + "):" + tooltipItem.value
+        return "Average (M" + datapoint.m + "):" + tooltipItem.value
     } else {
         return "Raw:       " + tooltipItem.value
     }
@@ -36,16 +32,12 @@ function labelChange(tooltipItem, data) {
 function chartOnClick(a, activeElements) {
     if (activeElements.length === 0) return
     var dataset = this.config.data.datasets[activeElements[0]._datasetIndex]
-    var rawTime = dataset.data[activeElements[0]._index].rawTime
-    var commitHash = commitDatePairs[rawTime]
+    var commitIndex = dataset.data[activeElements[0]._index].c
+    var commitHash = recentCommits[commitIndex].h
     window.open("https://github.com/microsoft/msquic/commit/" + commitHash, "_blank")
 }
 
-function filterDataset(dataset, commitCount) {
-    return dataset.filter(p => (maxIndex - 1 - p.x) < commitCount);
-}
-
-function createAvgDataset(test, platform) {
+function createLineDataset(test, platform) {
     var data = dataView.find(x => x.name === (platform.name + test))
     return {
         type: "line",
@@ -55,7 +47,7 @@ function createAvgDataset(test, platform) {
         borderWidth: dataLineWidth,
         pointRadius: dataRawPointRadius,
         tension: 0,
-        data: filterDataset(data.avg, commitCount),
+        data: generateLineDataset(data.raw, maxIndex, commitCount),
         fill: false,
         sortOrder: 1,
         hidden: false,
@@ -65,7 +57,7 @@ function createAvgDataset(test, platform) {
     };
 }
 
-function createRawDataset(test, platform) {
+function createPointDataset(test, platform) {
     var data = dataView.find(x => x.name === (platform.name + test))
     return {
         type: "scatter",
@@ -75,7 +67,7 @@ function createRawDataset(test, platform) {
         pointStyle: "crossRot",
         pointRadius: dataRawPointRadius,
         pointBorderWidth: 2,
-        data: filterDataset(data.raw, commitCount),
+        data: generatePointDataset(data.raw, maxIndex, commitCount),
         sortOrder: 2,
         hidden: true,
         hiddenType: true,
@@ -146,8 +138,8 @@ function addTypeToggle(test, type, chart) {
 
 function createChart(test) {
     var datasets = []
-    platformTypes.forEach(x => datasets.push(createAvgDataset(test, x)))
-    platformTypes.forEach(x => datasets.push(createRawDataset(test, x)))
+    platformTypes.forEach(x => datasets.push(createLineDataset(test, x)))
+    platformTypes.forEach(x => datasets.push(createPointDataset(test, x)))
 
     var div = dataView.find(x => x.name === platformTypes[0].name + test).div
 

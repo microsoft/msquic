@@ -17,28 +17,76 @@ var platformTypes = [
 
 // The set of data and available properties
 var dataView = [
-    { name:"winKernelSchannelUp", unit:"Gbps", div:1000000, raw:dataRawWinKernelx64SchannelThroughput, avg:dataAverageWinKernelx64SchannelThroughput},
-    { name:"winKernelSchannelDown", unit:"Gbps", div:1000000, raw:dataRawWinKernelx64SchannelThroughputDown, avg:dataAverageWinKernelx64SchannelThroughputDown},
-    { name:"winKernelSchannelRps", unit:"KHz", div:1000, raw:dataRawWinKernelx64SchannelRps, avg:dataAverageWinKernelx64SchannelRps},
-    { name:"winKernelSchannelRpsLatency", unit:"μs", div:1, raw:dataRpsLatencyWinKernel, avg:null},
-    { name:"winKernelSchannelHps", unit:"Hz", div:1, raw:dataRawWinKernelx64SchannelHps, avg:dataAverageWinKernelx64SchannelHps},
-    { name:"winUserSchannelUp", unit:"Gbps", div:1000000, raw:dataRawWindowsx64SchannelThroughput, avg:dataAverageWindowsx64SchannelThroughput},
-    { name:"winUserSchannelDown", unit:"Gbps", div:1000000, raw:dataRawWindowsx64SchannelThroughputDown, avg:dataAverageWindowsx64SchannelThroughputDown},
-    { name:"winUserSchannelRps", unit:"KHz", div:1000, raw:dataRawWindowsx64SchannelRps, avg:dataAverageWindowsx64SchannelRps},
-    { name:"winUserSchannelRpsLatency", unit:"μs", div:1, raw:dataRpsLatencyWindowsSchannel, avg:null},
-    { name:"winUserSchannelHps", unit:"Hz", div:1, raw:dataRawWindowsx64SchannelHps, avg:dataAverageWindowsx64SchannelHps},
-    { name:"winUserOpenSslUp", unit:"Gbps", div:1000000, raw:dataRawWindowsx64OpensslThroughput, avg:dataAverageWindowsx64OpensslThroughput},
-    { name:"winUserOpenSslDown", unit:"Gbps", div:1000000, raw:dataRawWindowsx64OpensslThroughputDown, avg:dataAverageWindowsx64OpensslThroughputDown},
-    { name:"winUserOpenSslRps", unit:"KHz", div:1000, raw:dataRawWindowsx64OpensslRps, avg:dataAverageWindowsx64OpensslRps},
-    { name:"winUserOpenSslRpsLatency", unit:"μs", div:1, raw:dataRpsLatencyWindowsOpenSsl, avg:null},
-    { name:"winUserOpenSslHps", unit:"Hz", div:1, raw:dataRawWindowsx64OpensslHps, avg:dataAverageWindowsx64OpensslHps},
-    { name:"linuxOpenSslUp", unit:"Gbps", div:1000000, raw:dataRawLinuxx64OpensslThroughput, avg:dataAverageLinuxx64OpensslThroughput},
-    { name:"linuxOpenSslDown", unit:"Gbps", div:1000000, raw:dataRawLinuxx64OpensslThroughputDown, avg:dataAverageLinuxx64OpensslThroughputDown},
-    { name:"linuxOpenSslRps", unit:"KHz", div:1000, raw:dataRawLinuxx64OpensslRps, avg:dataAverageLinuxx64OpensslRps},
-    { name:"linuxOpenSslRpsLatency", unit:"μs", div:1, raw:dataRpsLatencyLinuxOpenSsl, avg:null},
-    { name:"linuxOpenSslHps", unit:"Hz", div:1, raw:dataRawLinuxx64OpensslHps, avg:dataAverageLinuxx64OpensslHps},
+    { name:"winKernelSchannelUp", unit:"Gbps", div:1000000, raw:dataUp_WinKernel_x64_Schannel },
+    { name:"winKernelSchannelDown", unit:"Gbps", div:1000000, raw:dataDown_WinKernel_x64_Schannel },
+    { name:"winKernelSchannelRps", unit:"KHz", div:1000, raw:dataRps_WinKernel_x64_Schannel },
+    { name:"winKernelSchannelRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_WinKernel_x64_Schannel },
+    { name:"winKernelSchannelHps", unit:"Hz", div:1, raw:dataHps_WinKernel_x64_Schannel },
+    { name:"winUserSchannelUp", unit:"Gbps", div:1000000, raw:dataUp_Windows_x64_Schannel },
+    { name:"winUserSchannelDown", unit:"Gbps", div:1000000, raw:dataDown_Windows_x64_Schannel },
+    { name:"winUserSchannelRps", unit:"KHz", div:1000, raw:dataRps_Windows_x64_Schannel },
+    { name:"winUserSchannelRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_Windows_x64_Schannel },
+    { name:"winUserSchannelHps", unit:"Hz", div:1, raw:dataHps_Windows_x64_Schannel },
+    { name:"winUserOpenSslUp", unit:"Gbps", div:1000000, raw:dataUp_Windows_x64_Openssl },
+    { name:"winUserOpenSslDown", unit:"Gbps", div:1000000, raw:dataDown_Windows_x64_Openssl },
+    { name:"winUserOpenSslRps", unit:"KHz", div:1000, raw:dataRps_Windows_x64_Openssl },
+    { name:"winUserOpenSslRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_Windows_x64_OpenSsl },
+    { name:"winUserOpenSslHps", unit:"Hz", div:1, raw:dataHps_Windows_x64_Openssl },
+    { name:"linuxOpenSslUp", unit:"Gbps", div:1000000, raw:dataUp_Linux_x64_Openssl },
+    { name:"linuxOpenSslDown", unit:"Gbps", div:1000000, raw:dataDown_Linux_x64_Openssl },
+    { name:"linuxOpenSslRps", unit:"KHz", div:1000, raw:dataRps_Linux_x64_Openssl },
+    { name:"linuxOpenSslRpsLatency", unit:"μs", div:1, raw:dataRpsLatency_Linux_x64_OpenSsl },
+    { name:"linuxOpenSslHps", unit:"Hz", div:1, raw:dataHps_Linux_x64_Openssl },
 ]
 
-// Fixed charting values
+// Fixed charting array
 var dataLineWidth = 2
 var dataRawPointRadius = 3
+
+function average(array) {
+    return array.reduce((a, b) => a + b) / array.length
+}
+
+function median(array){
+    if (array.length === 0) return 0;
+    array.sort(function(a,b){ return a-b; });
+    var half = Math.floor(array.length / 2);
+    if (array.length % 2) return array[half];
+    return (array[half - 1] + array[half]) / 2.0;
+}
+
+// Helper functions for generating chart data sets
+function generatePointDataset(dataset, maxIndex, commitCount) {
+    // Format of single input data point:
+    //   {c:477, m:"27", b:22355, d:[7861449, 7858376, 7824282, 7852652, 7883781]}
+    // Format of single output data point:
+    //   {x:447, y:7861449, m:"27", b:22355}
+
+    // Filter the number of commits to use in the dataset
+    dataset = dataset.filter(p => (maxIndex - 1 - p.c) < commitCount)
+
+    // Generate output in the correct format
+    var output = []
+    dataset.forEach(
+        p => p.d.forEach(
+            r => output.push({x:p.c, y:r, m:p.m, b:p.b})))
+
+    return output
+}
+
+function generateLineDataset(dataset, maxIndex, commitCount) {
+    // Format of single input data point:
+    //   {c:477, m:"27", b:22355, d:[7861449, 7858376, 7824282, 7852652, 7883781]}
+    // Format of single output data point:
+    //   {x:447, y:7861449, m:"27", b:22355}
+
+    // Filter the number of commits to use in the dataset
+    dataset = dataset.filter(p => (maxIndex - 1 - p.c) < commitCount)
+
+    // Generate output in the correct format
+    var output = []
+    dataset.forEach(
+        p => output.push({x:p.c, y:median(p.d), m:p.m, b:p.b}))
+
+    return output
+}
