@@ -366,11 +366,6 @@ typedef struct CXPLAT_DATAPATH_PROC {
     uint16_t Index;
 
     //
-    // Flag indicates that the worker thread is currently actively processing.
-    //
-    uint16_t WorkerActive : 1;
-
-    //
     // Pool of send contexts to be shared by all sockets on this core.
     //
     CXPLAT_POOL SendDataPool;
@@ -3832,12 +3827,9 @@ CxPlatSocketSend(
             Socket->ProcessorAffinity :
             IdealProcessor % Datapath->ProcCount;
 
-    if ((Socket->Type != CXPLAT_SOCKET_UDP) ||
-        Datapath->Processors[Processor].WorkerActive) {
+    if ((Socket->Type != CXPLAT_SOCKET_UDP)) {
         //
-        // Currently TCP always sends inline. For UDP, if the worker thread is
-        // already active (i.e. overloaded?) then we just send here. If it's
-        // not currently processing then we queue and let the worker do it.
+        // Currently TCP always sends inline.
         //
         return
             CxPlatSocketSendInline(
@@ -3929,8 +3921,6 @@ CxPlatDataPathWorkerThread(
 
         CXPLAT_DBG_ASSERT(Overlapped != NULL);
         CXPLAT_DBG_ASSERT(SocketProc != NULL);
-
-        DatapathProc->WorkerActive = TRUE; // TODO - Use interlocked operations instead?
 
         IoResult = Result ? NO_ERROR : GetLastError();
 
@@ -4041,8 +4031,6 @@ CxPlatDataPathWorkerThread(
                     IoResult);
             }
         }
-
-        DatapathProc->WorkerActive = FALSE;
     }
 
     QuicTraceLogInfo(
