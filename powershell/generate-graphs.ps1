@@ -650,52 +650,5 @@ $CommitsTableTemplate = $CommitsTableTemplate.Replace("COMMIT_DATA", $CommitTabl
 $DataFileOut = Join-Path $OutputFolder "data.commits.js"
 $CommitsTableTemplate | Set-Content $DataFileOut
 
-# Grab per commit pages
-
-$CommitHistory = Get-CommitHistory -DaysToReceive $DaysToReceive -MinimumCommits 5 -MaximumCommits 5 -BranchFolder $BranchFolder
-$CpuCommitData = Get-CpuCommitData -CommitHistory $CommitHistory -BranchFolder $BranchFolder
-$CurrentCommitHash = $CommitHistory[0].CommitHash
-
-$TemplateFolder = $DataFileIn = Join-Path $RootDir "assets" "percommit"
-$DataFileIn = Join-Path $TemplateFolder "data.js.in"
-$DataFileContents = Get-Content $DataFileIn
-
-$FirstAndLast = $CommitHistory | Sort-Object -Property Date | Select-Object -Index 0, ($CommitHistory.Count - 1)
-
-$OldestDateString = $FirstAndLast[0].Date;
-if ($FirstAndLast.Count -eq 1) {
-    $NewestDateString = $FirstAndLast[0].Date;
-} else {
-    $NewestDateString = $FirstAndLast[1].Date;
-}
-
-$DataFileContents = $DataFileContents.Replace("NEWEST_DATE", "new Date($NewestDateString)")
-$DataFileContents = $DataFileContents.Replace("OLDEST_DATE", "new Date($OldestDateString)")
-$DataFileContents = $DataFileContents.Replace("MAX_INDEX", $CommitHistory.Count)
-$DataFileContents = $DataFileContents.Replace("PAGE_COMMIT_HASH", "`"$CurrentCommitHash`"")
-
-$CommitIndexMap = @{}
-$Index = $CommitHistory.Length - 1
-foreach ($Item in $CommitHistory) {
-    $CommitIndexMap.Add($Item.CommitHash, $Index)
-    $Index--
-}
-
-$DataFileContents = Get-ThroughputTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
-$DataFileContents = Get-RpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
-$DataFileContents = Get-HpsTestsJs -DataFile $DataFileContents -CpuCommitData $CpuCommitData -CommitIndexMap $CommitIndexMap
-
-$DataFileContents = $DataFileContents.Replace("COMMIT_DATE_PAIR", (Get-CommitTimePairJs -CommitModel $CommitHistory))
-
-$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_LINUX_OPENSSL", $LinuxOpenSslData)
-$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_OPENSSL", $WinOpenSslData)
-$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINDOWS_SCHANNEL", $WinSchannelData)
-$DataFileContents = $DataFileContents.Replace("RPS_LATENCY_WINKERNEL", $WinKernelData)
-
-$OutputFolder = Join-Path $RootDir 'percommit' $BranchName $CurrentCommitHash
-New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
-$DataFileOut = Join-Path $OutputFolder "data.js"
-$DataFileContents | Set-Content $DataFileOut
-
 # Take template folder, and copy to commit
 Copy-Item -Path $TemplateFolder/* -Destination $OutputFolder -Exclude "data.js.in" -Force
