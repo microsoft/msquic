@@ -527,7 +527,7 @@ function Get-RecentCommitsJs {
         if ($DataVal -eq "") {
             $DataVal = $Data;
         } else {
-            $DataVal = "$DataVal, $Data";
+            $DataVal = "$Data, $DataVal";
         }
     }
 
