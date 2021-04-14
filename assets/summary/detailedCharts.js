@@ -23,7 +23,11 @@ function labelChange(tooltipItem, data) {
     var dataset = data.datasets[tooltipItem.datasetIndex]
     if (dataset.label.includes(pointsToValueName)) {
         var datapoint = dataset.data[tooltipItem.index]
-        return pointsToValueName + " (M" + datapoint.m + "):" + tooltipItem.value
+        var machine = datapoint.m
+        if (datapoint.b != 0) {
+            machine = machine + "|" + datapoint.b
+        }
+        return pointsToValueName + " (M" + machine + "):" + tooltipItem.value
     } else {
         return "Raw:       " + tooltipItem.value
     }
