@@ -1406,6 +1406,7 @@ CxPlatSocketCreateUdp(
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
     _In_ uint32_t InternalFlags,
+    _In_ uint16_t IdealProcessor,
     _Out_ CXPLAT_SOCKET** NewBinding
     )
 {
@@ -1415,7 +1416,7 @@ CxPlatSocketCreateUdp(
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || InternalFlags & CXPLAT_SOCKET_FLAG_PCP);
 
     uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
-    uint32_t CurrentProc = CxPlatProcCurrentNumber() % Datapath->ProcCount;
+    uint32_t CurrentProc = IdealProcessor % Datapath->ProcCount;
     CXPLAT_FRE_ASSERT(SocketCount > 0);
     size_t BindingLength =
         sizeof(CXPLAT_SOCKET) +

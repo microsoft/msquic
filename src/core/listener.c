@@ -265,6 +265,7 @@ MsQuicListenerStart(
             TRUE,
             &BindingLocalAddress,
             NULL,
+            0, // Server does not have an ideal processor
             &Listener->Binding);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(

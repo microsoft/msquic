@@ -1802,6 +1802,7 @@ QuicConnStart(
             FALSE,
             Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL,
             &Path->RemoteAddress,
+            Connection->Worker->IdealProcessor,
             &Path->Binding);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -5582,6 +5583,7 @@ QuicConnParamSet(
                     FALSE,
                     LocalAddress,
                     &Connection->Paths[0].RemoteAddress,
+                    Connection->Worker->IdealProcessor,
                     &Connection->Paths[0].Binding);
             if (QUIC_FAILED(Status)) {
                 Connection->Paths[0].Binding = OldBinding;

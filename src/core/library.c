@@ -1343,6 +1343,7 @@ QuicLibraryGetBinding(
     _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
+    _In_ uint16_t IdealProcessor,
     _Out_ QUIC_BINDING** NewBinding
     )
 {
@@ -1411,6 +1412,7 @@ NewBinding:
             ServerOwned,
             LocalAddress,
             RemoteAddress,
+            IdealProcessor,
             NewBinding);
     if (QUIC_FAILED(Status)) {
         goto Exit;

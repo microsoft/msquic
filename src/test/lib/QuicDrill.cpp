@@ -171,6 +171,7 @@ struct DrillSender {
                 &ServerAddress,
                 this,
                 0,
+                (uint16_t)CxPlatProcCurrentNumber(),
                 &Binding);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Binding failed: 0x%x", Status);

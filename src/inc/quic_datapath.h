@@ -394,6 +394,7 @@ CxPlatSocketCreateUdp(
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* CallbackContext,
     _In_ uint32_t InternalFlags,
+    _In_ uint16_t IdealProcessor,
     _Out_ CXPLAT_SOCKET** Socket
     );
 

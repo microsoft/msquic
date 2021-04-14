@@ -307,6 +307,7 @@ CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
             &ServerAddress,
             nullptr,
             0,
+            (uint16_t)CxPlatProcCurrentNumber(),
             &Binding);
     if (QUIC_FAILED(Status)) {
         printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);
