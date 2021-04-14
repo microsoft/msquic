@@ -27,10 +27,6 @@ function chartOnClick(a, activeElements) {
     window.open("https://github.com/microsoft/msquic/commit/" + commitHash, "_blank")
 }
 
-function filterDataset(dataset, commitCount) {
-    return dataset.filter(p => (maxIndex - 1 - p.x) < commitCount);
-}
-
 function createDataset(test, platform) {
     var data = dataView.find(x => x.name === (platform.name + test))
     return {

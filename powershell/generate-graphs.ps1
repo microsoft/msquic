@@ -613,9 +613,3 @@ $OutputFolder = Join-Path $RootDir "assets" "summary" $BranchName
 New-Item -Path $OutputFolder -ItemType "directory" -Force | Out-Null
 $DataFileOut = Join-Path $OutputFolder "data.js"
 $DataFileContents | Set-Content $DataFileOut
-
-$CommitsTableTemplate = Get-Content (Join-Path $RootDir "assets" "summary" "data.commits.js.in")
-$CommitTableJs = Get-CommitTableDataJs -CpuCommitData $CpuCommitData
-$CommitsTableTemplate = $CommitsTableTemplate.Replace("COMMIT_DATA", $CommitTableJs);
-$DataFileOut = Join-Path $OutputFolder "data.commits.js"
-$CommitsTableTemplate | Set-Content $DataFileOut
