@@ -125,7 +125,7 @@ As you will immediately see, `<Symbols disabled>` shows up everywhere because sy
 
 This example has just the `msquic.dll` and `secnetperf.exe` symbols loaded. You can then drill down to various various part of the flame, and zoom into them by right clicking on them and selecting `Filter To Flame`. Also, remember you can change the Flame filter slider at any time as well. For example, the following is what filtering to the `msquic.dll!QuicWorkerThread` flame.
 
-![](images/cpu-debug-7.png)
+![](images/cpu-debug-8.png)
 
 Since this flame was essentially all of CPU 4, whatever is taking the most significant CPU resources here can be blamed as the most significant cost of CPU resources. Practically, this comes down to `bcrypt.dll`. From experience, since this happens in `QuicConnRecvDecryptAndAuthenticate` this is the work related to decrypting the packet payloads (over 71% of the CPU!).
 
