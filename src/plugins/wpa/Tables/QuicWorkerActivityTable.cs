@@ -29,20 +29,25 @@ namespace MsQuicTracing.Tables
                 new ColumnMetadata(new Guid("{9e14c926-73be-4c7c-8b3a-447156fa422e}"), "Worker"),
                 new UIHints { AggregationMode = AggregationMode.UniqueCount });
 
+        private static readonly ColumnConfiguration idealProcessorColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{785b9cda-af33-49c4-894c-d7e922e4c4fd}"), "Ideal Processor"),
+                new UIHints { AggregationMode = AggregationMode.Max });
+
         private static readonly ColumnConfiguration processIdColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{da6c804b-2d19-5b9e-4941-ec903c62ba98}"), "Process (ID)"),
-                new UIHints { AggregationMode = AggregationMode.Max });
+                new UIHints { AggregationMode = AggregationMode.UniqueCount });
 
         private static readonly ColumnConfiguration threadIdColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{530749a6-4e3f-5ad3-91f8-91ec9332ab09}"), "ThreadId"),
-                new UIHints { AggregationMode = AggregationMode.Max });
+                new UIHints { AggregationMode = AggregationMode.UniqueCount });
 
         private static readonly ColumnConfiguration cpuColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{3d38dcd2-7ba8-4f35-8f6a-2e69ddcadeb2}"), "CPU"),
-                new UIHints { AggregationMode = AggregationMode.Max });
+                new UIHints { AggregationMode = AggregationMode.UniqueCount });
 
         private static readonly ColumnConfiguration countColumnConfig =
             new ColumnConfiguration(
@@ -77,9 +82,10 @@ namespace MsQuicTracing.Tables
                      workerColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
+                     idealProcessorColumnConfig,
+                     cpuColumnConfig,
                      processIdColumnConfig,
                      threadIdColumnConfig,
-                     cpuColumnConfig,
                      countColumnConfig,
                      weightColumnConfig,
                      percentWeightColumnConfig,
@@ -98,9 +104,10 @@ namespace MsQuicTracing.Tables
                      workerColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
+                     idealProcessorColumnConfig,
+                     cpuColumnConfig,
                      processIdColumnConfig,
                      threadIdColumnConfig,
-                     cpuColumnConfig,
                      countColumnConfig,
                      weightColumnConfig,
                      timeColumnConfig,
@@ -143,9 +150,10 @@ namespace MsQuicTracing.Tables
             var dataProjection = Projection.Index(data);
 
             table.AddColumn(workerColumnConfig, dataProjection.Compose(ProjectId));
+            table.AddColumn(idealProcessorColumnConfig, dataProjection.Compose(ProjectIdealProcessor));
+            table.AddColumn(cpuColumnConfig, dataProjection.Compose(ProjectCPU));
             table.AddColumn(processIdColumnConfig, dataProjection.Compose(ProjectProcessId));
             table.AddColumn(threadIdColumnConfig, dataProjection.Compose(ProjectThreadId));
-            table.AddColumn(cpuColumnConfig, dataProjection.Compose(ProjectCPU));
             table.AddColumn(countColumnConfig, Projection.Constant<uint>(1));
             table.AddColumn(weightColumnConfig, dataProjection.Compose(ProjectWeight));
             table.AddColumn(percentWeightColumnConfig, dataProjection.Compose(ProjectPercentWeight));
@@ -174,6 +182,16 @@ namespace MsQuicTracing.Tables
             return data.Item1.Id;
         }
 
+        private static ushort ProjectIdealProcessor(ValueTuple<QuicWorker, QuicActivityData> data)
+        {
+            return data.Item1.IdealProcessor;
+        }
+
+        private static ushort ProjectCPU(ValueTuple<QuicWorker, QuicActivityData> data)
+        {
+            return data.Item2.Processor;
+        }
+
         private static uint ProjectProcessId(ValueTuple<QuicWorker, QuicActivityData> data)
         {
             return data.Item1.ProcessId;
@@ -182,11 +200,6 @@ namespace MsQuicTracing.Tables
         private static uint ProjectThreadId(ValueTuple<QuicWorker, QuicActivityData> data)
         {
             return data.Item1.ThreadId;
-        }
-
-        private static uint ProjectCPU(ValueTuple<QuicWorker, QuicActivityData> data)
-        {
-            return data.Item2.Processor;
         }
 
         private static TimestampDelta ProjectWeight(ValueTuple<QuicWorker, QuicActivityData> data)

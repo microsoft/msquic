@@ -32,12 +32,17 @@ namespace MsQuicTracing.Tables
         private static readonly ColumnConfiguration processIdColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{72FB3C76-A7EB-4576-97C0-714AABD7B7FE}"), "Process (ID)"),
-                new UIHints { AggregationMode = AggregationMode.Max });
+                new UIHints { AggregationMode = AggregationMode.UniqueCount });
+
+        private static readonly ColumnConfiguration threadIdColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{530749a6-4e3f-5ad3-91f8-91ec9332ab09}"), "ThreadId"),
+                new UIHints { AggregationMode = AggregationMode.UniqueCount });
 
         private static readonly ColumnConfiguration cpuColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{3d38dcd2-7ba8-4f35-8f6a-2e69ddcadeb2}"), "CPU"),
-                new UIHints { AggregationMode = AggregationMode.Max });
+                new UIHints { AggregationMode = AggregationMode.UniqueCount });
 
         private static readonly ColumnConfiguration timeColumnConfig =
             new ColumnConfiguration(
@@ -54,7 +59,7 @@ namespace MsQuicTracing.Tables
                 new ColumnMetadata(new Guid("{1ad097ad-11a0-40c3-9425-d9255512be82}"), "Bits"),
                 new UIHints { AggregationMode = AggregationMode.Sum });
 
-        private static readonly TableConfiguration tableConfig2 =
+        private static readonly TableConfiguration tableConfig1 =
             new TableConfiguration("Data Rates by Datapath")
             {
                 Columns = new[]
@@ -62,8 +67,9 @@ namespace MsQuicTracing.Tables
                      typeColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
-                     processIdColumnConfig,
                      cpuColumnConfig,
+                     processIdColumnConfig,
+                     threadIdColumnConfig,
                      timeColumnConfig,
                      TableConfiguration.RightFreezeColumn,
                      TableConfiguration.GraphColumn,
@@ -72,7 +78,7 @@ namespace MsQuicTracing.Tables
                 AggregationOverTime = AggregationOverTime.Rate
             };
 
-        private static readonly TableConfiguration tableConfig1 =
+        private static readonly TableConfiguration tableConfig2 =
             new TableConfiguration("Batch Sizes by Datapath")
             {
                 Columns = new[]
@@ -80,8 +86,9 @@ namespace MsQuicTracing.Tables
                      typeColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
-                     processIdColumnConfig,
                      cpuColumnConfig,
+                     processIdColumnConfig,
+                     threadIdColumnConfig,
                      timeColumnConfig,
                      TableConfiguration.RightFreezeColumn,
                      TableConfiguration.GraphColumn,
@@ -117,31 +124,37 @@ namespace MsQuicTracing.Tables
             var dataProjection = Projection.Index(events);
 
             table.AddColumn(processIdColumnConfig, dataProjection.Compose(ProjectProcessId));
+            table.AddColumn(threadIdColumnConfig, dataProjection.Compose(ProjectThreadId));
             table.AddColumn(cpuColumnConfig, dataProjection.Compose(ProjectCPU));
             table.AddColumn(typeColumnConfig, dataProjection.Compose(ProjectType));
             table.AddColumn(timeColumnConfig, dataProjection.Compose(ProjectTime));
             table.AddColumn(bytesColumnConfig, dataProjection.Compose(ProjectBytes));
             table.AddColumn(bitsColumnConfig, dataProjection.Compose(ProjectBits));
 
-            tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
-            tableBuilder.AddTableConfiguration(tableConfig2);
-
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableBuilder.AddTableConfiguration(tableConfig1);
 
-            tableBuilder.SetDefaultTableConfiguration(tableConfig2);
+            tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
+            tableBuilder.AddTableConfiguration(tableConfig2);
+
+            tableBuilder.SetDefaultTableConfiguration(tableConfig1);
         }
 
         #region Projections
+
+        private static ushort ProjectCPU(QuicEvent evt)
+        {
+            return evt.Processor;
+        }
 
         private static uint ProjectProcessId(QuicEvent evt)
         {
             return evt.ProcessId;
         }
 
-        private static uint ProjectCPU(QuicEvent evt)
+        private static uint ProjectThreadId(QuicEvent evt)
         {
-            return evt.Processor;
+            return evt.ThreadId;
         }
 
         private static string ProjectType(QuicEvent evt)

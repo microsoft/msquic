@@ -168,10 +168,3 @@ IndirectionTable: [Group:Number]                : 0:0   0:2     0:4     0:6     
 ```
 
 The output above indicates RSS is configured with 8 queues, so there should be spreading of the incoming flows to 8 different CPUs (and then passed to 8 different workers) instead of just the 1 that we are seeing. So, finally, in cases where everything seems to be configured correctly, but things **still** aren't working, that usually indicates a problem with the network card driver. Make sure the driver is up to date with the latest version available. If that still doesn't fix the problem, you will likely need to contact support from the network card vendor.
-
-> **Follow up** - We should have `CPU` and `Ideal Processor` columns in the Worker Utilization chart/table.
-
-> **Follow up** - We should have `CPU` column in the Data Batching chart/table.
-
-> **Follow up** - We should data rate chart/table per binding.
-
