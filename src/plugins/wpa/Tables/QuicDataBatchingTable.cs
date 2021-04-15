@@ -19,8 +19,8 @@ namespace MsQuicTracing.Tables
     {
         public static readonly TableDescriptor TableDescriptor = new TableDescriptor(
            Guid.Parse("{B2365B31-F7BE-4CE3-82E8-661774789818}"),
-           "QUIC Data Batching",
-           "QUIC Data Batching",
+           "QUIC Network (UDP)",
+           "QUIC Network (UDP)",
            category: "Communications",
            requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
 
@@ -49,8 +49,31 @@ namespace MsQuicTracing.Tables
                 new ColumnMetadata(new Guid("{910E9271-9964-49B1-A4BA-668AF89BDF7E}"), "Bytes"),
                 new UIHints { AggregationMode = AggregationMode.Average });
 
+        private static readonly ColumnConfiguration bitsColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{1ad097ad-11a0-40c3-9425-d9255512be82}"), "Bits"),
+                new UIHints { AggregationMode = AggregationMode.Sum });
+
+        private static readonly TableConfiguration tableConfig2 =
+            new TableConfiguration("Data Rates by Datapath")
+            {
+                Columns = new[]
+                {
+                     typeColumnConfig,
+                     TableConfiguration.PivotColumn,
+                     TableConfiguration.LeftFreezeColumn,
+                     processIdColumnConfig,
+                     cpuColumnConfig,
+                     timeColumnConfig,
+                     TableConfiguration.RightFreezeColumn,
+                     TableConfiguration.GraphColumn,
+                     bitsColumnConfig,
+                },
+                AggregationOverTime = AggregationOverTime.Rate
+            };
+
         private static readonly TableConfiguration tableConfig1 =
-            new TableConfiguration("TX/RX Batching Rates by Datapath")
+            new TableConfiguration("Batch Sizes by Datapath")
             {
                 Columns = new[]
                 {
@@ -98,11 +121,15 @@ namespace MsQuicTracing.Tables
             table.AddColumn(typeColumnConfig, dataProjection.Compose(ProjectType));
             table.AddColumn(timeColumnConfig, dataProjection.Compose(ProjectTime));
             table.AddColumn(bytesColumnConfig, dataProjection.Compose(ProjectBytes));
+            table.AddColumn(bitsColumnConfig, dataProjection.Compose(ProjectBits));
+
+            tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
+            tableBuilder.AddTableConfiguration(tableConfig2);
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableBuilder.AddTableConfiguration(tableConfig1);
 
-            tableBuilder.SetDefaultTableConfiguration(tableConfig1);
+            tableBuilder.SetDefaultTableConfiguration(tableConfig2);
         }
 
         #region Projections
@@ -136,6 +163,18 @@ namespace MsQuicTracing.Tables
             else
             {
                 return (evt as QuicDatapathRecvEvent)!.TotalSize;
+            }
+        }
+
+        private static uint ProjectBits(QuicEvent evt)
+        {
+            if (evt.EventId == QuicEventId.DatapathSend)
+            {
+                return (evt as QuicDatapathSendEvent)!.TotalSize * 8;
+            }
+            else
+            {
+                return (evt as QuicDatapathRecvEvent)!.TotalSize * 8;
             }
         }
 
