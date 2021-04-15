@@ -31,10 +31,13 @@ namespace MsQuicTracing.DataModel
 
         public TimestampDelta Duration { get; }
 
-        internal QuicActivityData(Timestamp timeStamp, TimestampDelta duration)
+        public ushort Processor { get; }
+
+        internal QuicActivityData(Timestamp timeStamp, TimestampDelta duration, ushort processor)
         {
             TimeStamp = timeStamp;
             Duration = duration;
+            Processor = processor;
         }
     }
 

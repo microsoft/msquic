@@ -34,6 +34,11 @@ namespace MsQuicTracing.Tables
                 new ColumnMetadata(new Guid("{72FB3C76-A7EB-4576-97C0-714AABD7B7FE}"), "Process (ID)"),
                 new UIHints { AggregationMode = AggregationMode.Max });
 
+        private static readonly ColumnConfiguration cpuColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{3d38dcd2-7ba8-4f35-8f6a-2e69ddcadeb2}"), "CPU"),
+                new UIHints { AggregationMode = AggregationMode.Max });
+
         private static readonly ColumnConfiguration timeColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{69545071-7165-4BD3-84BC-9052C310FF33}"), "Time"),
@@ -53,6 +58,7 @@ namespace MsQuicTracing.Tables
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
                      processIdColumnConfig,
+                     cpuColumnConfig,
                      timeColumnConfig,
                      TableConfiguration.RightFreezeColumn,
                      TableConfiguration.GraphColumn,
@@ -88,6 +94,7 @@ namespace MsQuicTracing.Tables
             var dataProjection = Projection.Index(events);
 
             table.AddColumn(processIdColumnConfig, dataProjection.Compose(ProjectProcessId));
+            table.AddColumn(cpuColumnConfig, dataProjection.Compose(ProjectCPU));
             table.AddColumn(typeColumnConfig, dataProjection.Compose(ProjectType));
             table.AddColumn(timeColumnConfig, dataProjection.Compose(ProjectTime));
             table.AddColumn(bytesColumnConfig, dataProjection.Compose(ProjectBytes));
@@ -103,6 +110,11 @@ namespace MsQuicTracing.Tables
         private static uint ProjectProcessId(QuicEvent evt)
         {
             return evt.ProcessId;
+        }
+
+        private static uint ProjectCPU(QuicEvent evt)
+        {
+            return evt.Processor;
         }
 
         private static string ProjectType(QuicEvent evt)
