@@ -83,6 +83,54 @@ The error code indicated in this event is completely application defined (type o
 
 ## Why is Performance bad for my Connection?
 
+1. [Where is the CPU being spent for my connection?](#analyzing-cpu-usage)
+2. [What is limiting throughput for my connection?](#finding-throughput-bottlenecks)
+3.
+
+### Analyzing CPU Usage
+
+> **Important** - The following is specific to Windows OS.
+
+It's extremely common that everything may be functional, but not just as fast as expected. So the normal next step is then to grab a performance trace for the scenario and then dive into the details to analyze what exactly is happening. When you're explicitly looking for where the CPU is spending its time in the scenario, you will need to collect CPU traces. One way to do this is to [use WPR](./Diagnostics.md#using-wpr-to-collect-traces) (with `Stacks.Light` profile).
+
+Once you have the ETL, open it [in WPA](../src/plugins/wpa/README.md) (MsQuic plugin is unnecessary). Then, go to the `Graph Explorer`, expand `Computation`, expand `CPU Usage (Sampled)` and open up `Utilization by Process, Thread, Stack`. The following is an example of a CPU trace a server in a client upload scenario:
+
+![](images/cpu-debug-1.png)
+
+The next step is to filter things down to only the important information. First, select the relavent time period: click and drag over the area, right click, select `Zoom`.
+
+![](images/cpu-debug-2.png)
+
+Then eliminate any unrelated "noise". The easiest way is to select all the Processes that have very little weight; then right click, and select `Filter Out Selection`. Another important thing to filter is the `[Idle]` stack under the `Idle (0)` process. Expact the `Thread ID` column for `Idle (0)`, right click the `[Idle]` row and then select `Filter Out Selection`. You should then be left with only the relavent CPU usage.
+
+![](images/cpu-debug-3.png)
+
+The current view now shows the CPU usage as a fraction of the total available CPU resources. Generally, the total available resources will include multiple (possibly many) different CPUs. So, it's a lot more helpful to get a per-CPU view. To see this, right click the table header (for instance, on `Process`), expand `More Columns ...`, and select `CPU`. Next, drag the `CPU` column to the front, before `Process`.
+
+Initially, nothing will most likely show up in the graph view. You will need to manually enable the relavent CPUs. In this particular example, only CPUs 4 and 36 have any significant usage (as seen by `Count` or `Weight` columns). In the `Series` list in the graph view, click the boxes next to each relavent CPU series to enable it. You may also chose to explicitly filter out the CPUs that are irrelevant.
+
+![](images/cpu-debug-4.png)
+
+Now, you could use this view to dig into the various stacks by expanding the rows under the `Stack` column, but a better way is to change the view to a Flame Graph. Click the icon at the top to `Select chart type` and change it to `Flame`. Additionally, check the `Enable` box under it to enable filtering.
+
+![](images/cpu-debug-5.png)
+
+You can then slide the filter slider to change the level of filtering. In this example, after resizing the window some, it looks like this:
+
+![](images/cpu-debug-6.png)
+
+As you will immediately see, `<Symbols disabled>` shows up everywhere because symbols haven't been loaded. To load them, you will first need to configure the symbol path. You can do this by clicking on `Trace` in the top and then `Configure Symbol Path`. Then add any relavent paths to the list and close the window (hit `Ok`). Next you can load the symbols; `Trace` -> `Load Symbols`.
+
+![](images/cpu-debug-7.png)
+
+This example has just the `msquic.dll` and `secnetperf.exe` symbols loaded. You can then drill down to various various part of the flame, and zoom into them by right clicking on them and selecting `Filter To Flame`. Also, remember you can change the Flame filter slider at any time as well. For example, the following is what filtering to the `msquic.dll!QuicWorkerThread` flame.
+
+![](images/cpu-debug-8.png)
+
+Since this flame was essentially all of CPU 4, whatever is taking the most significant CPU resources here can be blamed as the most significant cost of CPU resources. Practically, this comes down to `bcrypt.dll`. From experience, since this happens in `QuicConnRecvDecryptAndAuthenticate` this is the work related to decrypting the packet payloads (over 71% of the CPU!).
+
+### Finding Throughput Bottlenecks
+
 > TODO
 
 ## Why is Performance bad across all my Connections?
