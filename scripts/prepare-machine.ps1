@@ -111,12 +111,17 @@ if ($InitSubmodules) {
     }
 }
 
+
+# Fail if dotnet isnt installed - also mention that the env needs to be restarted such that the path for clog is included
 function Install-ClogTool {
     param($ToolName)
     New-Item -Path $NuGetPath -ItemType Directory -Force | Out-Null
     $NuGetName = "$ToolName.$ClogVersion.nupkg"
     $NuGetFile = Join-Path $NuGetPath $NuGetName
     try {
+        Write-Host "File : $NuGetFile"
+        Write-Host "ToolName : $ToolName"
+
         if (!(Test-Path $NuGetFile)) {
             Write-Host "Downloading $ClogDownloadUrl/$NuGetName"
             Invoke-WebRequest -Uri "$ClogDownloadUrl/$NuGetName" -OutFile $NuGetFile

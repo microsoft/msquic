@@ -33,6 +33,9 @@ Then you will need to **manually** launch "PowerShell 7" to continue. This insta
 
 ## Install on Linux
 
+# BUGBUG : Notes, can we install dotnet as the tool, because it makes installing other tools easy (pwsh for example)
+https://devblogs.microsoft.com/powershell/introducing-powershell-as-net-global-tool/
+
 You find the full installation instructions for PowerShell on Linux [here](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?). For Ubuntu you can run the following:
 
 ```PowerShell
