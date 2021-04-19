@@ -31,6 +31,6 @@
     </None>
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="echo f | xcopy $(TargetDir)$(TargetName).dll $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)$(TargetName).pdb $(SolutionDir)..\..\artifacts\bin\wpa\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)Microsoft.Diagnostics.FastSerialization.dll $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)Microsoft.Diagnostics.Tracing.TraceEvent.dll $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y" />
+    <Exec Command="echo f | xcopy $(TargetDir)$(TargetName).dll $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)$(TargetName).pdb $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)Microsoft.Diagnostics.FastSerialization.dll $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)Microsoft.Diagnostics.Tracing.TraceEvent.dll $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y" />
   </Target>
 </Project>
