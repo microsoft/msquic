@@ -12,6 +12,6 @@
     <ProjectReference Include="..\dll\QuicTraceLib.csproj" />
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="echo f | xcopy $(TargetDir)$(TargetName).exe $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y" />
+    <Exec Command="echo f | xcopy $(TargetDir)*.dll $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)*.exe $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)*.pdb $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y&#xD;&#xA;echo f | xcopy $(TargetDir)*.json $(SolutionDir)..\..\artifacts\bin\quictrace\$(Configuration)\ /Y" />
   </Target>
 </Project>
