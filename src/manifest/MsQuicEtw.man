@@ -953,6 +953,21 @@
                 name="ErrStr"
                 />
           </template>
+          <template tid="tid_LISTENER_ALPN">
+            <data
+                inType="win:Pointer"
+                name="Listener"
+                />
+            <data
+                inType="win:UInt8"
+                name="AlpnLength"
+                />
+            <data
+                inType="win:Binary"
+                length="AlpnLength"
+                name="Alpn"
+                />
+          </template>
           <template tid="tid_CONN">
             <data
                 inType="win:Pointer"
@@ -1096,11 +1111,6 @@
             <data
                 inType="win:Pointer"
                 name="Connection"
-                />
-            <data
-                inType="win:UInt32"
-                map="map_QUIC_TRANSPORT_SHUTDOWN_REASON"
-                name="ShortErrorCode"
                 />
             <data
                 inType="win:UInt64"
@@ -1381,12 +1391,6 @@
                 name="Connection"
                 />
           </template>
-          <template tid="tid_STREAM">
-            <data
-                inType="win:Pointer"
-                name="Stream"
-                />
-          </template>
           <template tid="tid_CONN_VNL">
             <data
                 inType="win:Pointer"
@@ -1400,6 +1404,27 @@
                 inType="win:Binary"
                 length="VnlLength"
                 name="Vnl"
+                />
+          </template>
+          <template tid="tid_CONN_ALPN">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt8"
+                name="AlpnLength"
+                />
+            <data
+                inType="win:Binary"
+                length="AlpnLength"
+                name="Alpn"
+                />
+          </template>
+          <template tid="tid_STREAM">
+            <data
+                inType="win:Pointer"
+                name="Stream"
                 />
           </template>
           <template tid="tid_STREAM_BEGIN">
@@ -2240,6 +2265,15 @@
               template="tid_LISTENER_STATUS_ERROR"
               value="4102"
               />
+          <event
+              keywords="ut:Listener ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ListenerAlpn)"
+              opcode="Listener"
+              symbol="QuicListenerAlpn"
+              template="tid_LISTENER_ALPN"
+              value="4103"
+              />
           <!-- 5120 - 6143 | Connection Events -->
           <event
               keywords="ut:Connection ut:LowVolume"
@@ -2781,6 +2815,24 @@
               template="tid_CONN"
               value="5179"
               />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnNoListenerIp)"
+              opcode="Connection"
+              symbol="QuicConnNoListenerIp"
+              template="tid_CONN_IP_ADDR"
+              value="5180"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnNoListenerAlpn)"
+              opcode="Connection"
+              symbol="QuicConnNoListenerAlpn"
+              template="tid_CONN_ALPN"
+              value="5181"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume"
@@ -3182,7 +3234,7 @@
             />
         <string
             id="Etw.ConnTransportShutdown"
-            value="[conn][%1] Transport Shutdown: %2 (%3) (Remote=%4) (QS=%5)"
+            value="[conn][%1] Transport Shutdown: %2 (Remote=%3) (QS=%4)"
             />
         <string
             id="Etw.ConnAppShutdown"
@@ -4116,6 +4168,18 @@
         <string
             id="Enum.QUIC_TRANSPORT_SHUTDOWN_REASON.QUIC_VERSION_NEGOTIATION_ERROR"
             value="QUIC_VERSION_NEGOTIATION_ERROR"
+            />
+        <string
+            id="Etw.ListenerAlpn"
+            value="[list][%1] Accepting ALPNs: %3"
+            />
+        <string
+            id="Etw.ConnNoListenerIp"
+            value="[conn][%1] No Listener for IP address: %3"
+            />
+        <string
+            id="Etw.ConnNoListenerAlpn"
+            value="[conn][%1] No listener matching ALPN: %3"
             />
       </stringTable>
     </resources>

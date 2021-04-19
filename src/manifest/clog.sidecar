@@ -1756,7 +1756,7 @@
     },
     "ConnTransportShutdown": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Transport Shutdown: %u (%llu) (Remote=%hhu) (QS=%hhu)",
+      "TraceString": "[conn][%p] Transport Shutdown: %u (Remote=%hhu) (QS=%hhu)",
       "UniqueId": "ConnTransportShutdown",
       "splitArgs": [
         {
@@ -1768,16 +1768,12 @@
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "hhu",
           "MacroVariableName": "arg4"
         },
         {
           "DefinationEncoding": "hhu",
           "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg6"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -10071,6 +10067,38 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
+    },
+    "ConnectionIpDoesntMatch": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] No Listener for IP address: %!ADDR!",
+      "UniqueId": "ConnectionIpDoesntMatch",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "ConnectionRequestedAlpn": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] No listener matching ALPN: %!ALPN!",
+      "UniqueId": "ConnectionRequestedAlpn",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ALPN!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     }
   },
   "Version": 1,
@@ -10128,7 +10156,7 @@
     },
     "Version": 1,
     "CustomTypeClogCSharpFile": "msquic.clog.cs",
-    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            if (value.Length == 0)\n            {\n                return \"None\";\n            }\n\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            byte[] sa2;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    sa2 = new byte[4];\n                    Array.Copy(value, 4, sa2, 0, 4);\n                    msg += $\"{new IPAddress(sa2).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    sa2 = new byte[16];\n                    Array.Copy(value, 8, sa2, 0, 16);\n                    msg += $\"[{new IPAddress(sa2).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n\n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n\n        public static string VNL(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            if (value.Length < 4)\n            {\n                return \"Invalid\";\n            }\n            StringBuilder hex = new StringBuilder(\n                (value.Length * 2) +                    // Hex length for all characters\n                ((value.Length / sizeof(int)) - 1));    // Space for commas, if list is long enough.\n\n            for (int i = 0; value.Length - i >= sizeof(int); i += sizeof(int))\n            {\n                int Version = (int)(value[i] << 24) | (int)(value[i + 1] << 16) | (int)(value[i + 2] << 8) | (int)(value[i + 3]);\n                hex.Append(Version.ToString(\"X8\"));\n                if (value.Length - (i + sizeof(int)) >= sizeof(int)) {\n                    hex.Append(\",\");\n                }\n            }\n            return hex.ToString();\n        }\n    }\n}\n",
+    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            if (value.Length == 0)\n            {\n                return \"None\";\n            }\n\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            byte[] sa2;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    sa2 = new byte[4];\n                    Array.Copy(value, 4, sa2, 0, 4);\n                    msg += $\"{new IPAddress(sa2).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    sa2 = new byte[16];\n                    Array.Copy(value, 8, sa2, 0, 16);\n                    msg += $\"[{new IPAddress(sa2).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n\n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n\n        public static string VNL(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            if (value.Length < 4)\n            {\n                return \"Invalid\";\n            }\n            StringBuilder hex = new StringBuilder(\n                (value.Length * 2) +                    // Hex length for all characters\n                ((value.Length / sizeof(int)) - 1));    // Space for commas, if list is long enough.\n\n            for (int i = 0; value.Length - i >= sizeof(int); i += sizeof(int))\n            {\n                int Version = (int)(value[i] << 24) | (int)(value[i + 1] << 16) | (int)(value[i + 2] << 8) | (int)(value[i + 3]);\n                hex.Append(Version.ToString(\"X8\"));\n                if (value.Length - (i + sizeof(int)) >= sizeof(int)) {\n                    hex.Append(\",\");\n                }\n            }\n            return hex.ToString();\n        }\n\n        public static string ALPN(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            StringBuilder AlpnList = new StringBuilder(value.Length);\n            uint i = 0;\n            while (i < value.Length)\n            {\n                uint AlpnLength = value[i];\n                i++;\n                if (AlpnLength > value.Length - i)\n                {\n                    // Alpn longer than remaining buffer, print to the end.\n                    AlpnLength = (uint)value.Length - i;\n                }\n                for (; AlpnLength > 0; AlpnLength--, i++)\n                {\n                    AlpnList.Append(value[i].ToString(\"c\"));\n                }\n                if (i < value.Length)\n                {\n                    AlpnList.Append(';');\n                }\n            }\n            return AlpnList.ToString();\n        }\n    }\n}\n",
     "TypeEncoders": {
       "Version": 0,
       "TypeEncoder": [
@@ -10137,6 +10165,12 @@
           "CType": "CLOG_PTR",
           "DefinationEncoding": "!ADDR!",
           "CustomDecoder": "msquic.clog_config.Types.ADDR"
+        },
+        {
+          "EncodingType": "ByteArray",
+          "CType": "CLOG_PTR",
+          "DefinationEncoding": "!ALPN!",
+          "CustomDecoder": "msquic.clog_config.Types.ALPN"
         },
         {
           "EncodingType": "ByteArray",
@@ -11002,10 +11036,6 @@
       {
         "UniquenessHash": "905ba7f9-0427-2d53-7d13-88f2bb532bf0",
         "TraceID": "ConnAppShutdown"
-      },
-      {
-        "UniquenessHash": "1eb32826-3640-9696-bd14-4c462c417744",
-        "TraceID": "ConnTransportShutdown"
       },
       {
         "UniquenessHash": "7a6ee833-be8b-28d5-a62a-4addb834ada3",
@@ -13054,6 +13084,30 @@
       {
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop"
+      },
+      {
+        "UniquenessHash": "9fe48daa-27a8-cf03-133a-5cd8f4059c55",
+        "TraceID": "ConnectionIpDoesntMatch"
+      },
+      {
+        "UniquenessHash": "e8f6c5f5-667c-ed9a-cffe-ce93b17e4d6c",
+        "TraceID": "ConnectionRequestedAlpn"
+      },
+      {
+        "UniquenessHash": "11b93e99-5a6c-6cc9-12c9-6ef575ffa8e0",
+        "TraceID": "ConnNoListenerIp"
+      },
+      {
+        "UniquenessHash": "36572545-3721-e03a-c50a-7afdd62c4614",
+        "TraceID": "ConnNoListenerAlpn"
+      },
+      {
+        "UniquenessHash": "30305b4e-7c77-5454-f74f-b8ef1f84ca8e",
+        "TraceID": "ListenerAlpn"
+      },
+      {
+        "UniquenessHash": "b5bb3b61-9ab9-3c90-fc7a-521bcd3a592b",
+        "TraceID": "ConnTransportShutdown"
       }
     ]
   }

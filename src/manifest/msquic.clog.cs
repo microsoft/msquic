@@ -84,5 +84,33 @@ namespace msquic.clog_config
             }
             return hex.ToString();
         }
+
+        public static string ALPN(byte [] value)
+        {
+            if (value.Length == 0) {
+                return "Empty";
+            }
+            StringBuilder AlpnList = new StringBuilder(value.Length);
+            uint i = 0;
+            while (i < value.Length)
+            {
+                uint AlpnLength = value[i];
+                i++;
+                if (AlpnLength > value.Length - i)
+                {
+                    // Alpn longer than remaining buffer, print to the end.
+                    AlpnLength = (uint)value.Length - i;
+                }
+                for (; AlpnLength > 0; AlpnLength--, i++)
+                {
+                    AlpnList.Append(value[i].ToString("c"));
+                }
+                if (i < value.Length)
+                {
+                    AlpnList.Append(';');
+                }
+            }
+            return AlpnList.ToString();
+        }
     }
 }

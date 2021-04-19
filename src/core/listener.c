@@ -304,6 +304,11 @@ MsQuicListenerStart(
         Listener,
         Listener->Binding,
         CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
+    QuicTraceEvent(
+        ListenerAlpn,
+        "[list][%p] Accepting ALPNs: %!ALPN!",
+        Listener,
+        CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
 
 Error:
 

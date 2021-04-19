@@ -382,6 +382,7 @@ _Success_(return != NULL)
 QUIC_LISTENER*
 QuicBindingGetListener(
     _In_ QUIC_BINDING* Binding,
+    _In_opt_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
@@ -391,6 +392,7 @@ QuicBindingGetListener(
     const QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(Addr);
 
     BOOLEAN FailedAlpnMatch = FALSE;
+    BOOLEAN FailedAddrMatch = FALSE;
 
     CxPlatDispatchRwLockAcquireShared(&Binding->RwLock);
 
@@ -404,10 +406,12 @@ QuicBindingGetListener(
         const BOOLEAN ExistingWildCard = ExistingListener->WildCard;
         const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
         FailedAlpnMatch = FALSE;
+        FailedAddrMatch = FALSE;
 
         if (ExistingFamily != QUIC_ADDRESS_FAMILY_UNSPEC) {
             if (Family != ExistingFamily ||
                 (!ExistingWildCard && !QuicAddrCompareIp(Addr, ExistingAddr))) {
+                FailedAddrMatch = TRUE;
                 continue; // No IP match.
             }
         }
@@ -426,7 +430,20 @@ Done:
 
     CxPlatDispatchRwLockReleaseShared(&Binding->RwLock);
 
+    if (FailedAddrMatch) {
+        QuicTraceEvent(
+            ConnNoListenerIp,
+            "[conn][%p] No Listener for IP address: %!ADDR!",
+            Connection,
+            CLOG_BYTEARRAY(sizeof(*Addr), Addr));
+    }
+
     if (FailedAlpnMatch) {
+        QuicTraceEvent(
+            ConnNoListenerAlpn,
+            "[conn][%p] No listener matching ALPN: %!ALPN!",
+            Connection,
+            CLOG_BYTEARRAY(Info->ClientAlpnListLength, Info->ClientAlpnList));
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_NO_ALPN);
     }
 
@@ -457,7 +474,7 @@ QuicBindingAcceptConnection(
     // Find a listener that matches the incoming connection request, by IP, port
     // and ALPN.
     //
-    QUIC_LISTENER* Listener = QuicBindingGetListener(Binding, Info);
+    QUIC_LISTENER* Listener = QuicBindingGetListener(Binding, Connection, Info);
     if (Listener == NULL) {
         QuicTraceEvent(
             ConnError,

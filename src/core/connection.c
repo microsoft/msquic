@@ -1635,9 +1635,8 @@ QuicConnTryClose(
         } else {
             QuicTraceEvent(
                 ConnTransportShutdown,
-                "[conn][%p] Transport Shutdown: %u (%llu) (Remote=%hhu) (QS=%hhu)",
+                "[conn][%p] Transport Shutdown: %u (Remote=%hhu) (QS=%hhu)",
                 Connection,
-                (uint32_t)ErrorCode,
                 ErrorCode,
                 ClosedRemotely,
                 !!(Flags & QUIC_CLOSE_QUIC_STATUS));
