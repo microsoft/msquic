@@ -8,3 +8,6 @@
 [submodule "submodules/wil"]
 	path = submodules/wil
 	url = https://github.com/microsoft/wil
+[submodule "submodules/clog"]
+	path = submodules/clog
+	url = https://github.com/microsoft/CLOG.git

@@ -525,12 +525,13 @@ if(QUIC_TLS STREQUAL "openssl")
 endif()
 
 if (QUIC_ENABLE_LOGGING)
-    execute_process(COMMAND clog --installDirectory ${QUIC_BUILD_DIR}/clog)
+    add_subdirectory(submodules/clog)
+    LIST(APPEND CMAKE_PROGRAM_PATH  "./submodules/clog/src/clog/bin/Debug/net5.0/linux-x64")
 
     set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
     set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
-    set(CLOG_INCLUDE_DIRECTORY ${QUIC_BUILD_DIR}/clog)
-    set(CMAKE_CLOG_GENERATE_FILE ${QUIC_BUILD_DIR}/clog/CLog.cmake)
+    set(CLOG_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/clog/defaults)
+    set(CMAKE_CLOG_GENERATE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/submodules/clog/defaults/CLog.cmake)
     set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
     include(${CMAKE_CLOG_GENERATE_FILE})
 
