@@ -445,9 +445,11 @@ function Invoke-Test {
             $LocalResults | Write-LogAndDebug
         }
     } finally {
-        net.exe stop msquicpriv /y | Out-Null
-        sc.exe delete msquictestpriv | Out-Null
-        sc.exe delete msquicpriv | Out-Null
+        if ($Kernel) {
+            net.exe stop msquicpriv /y | Out-Null
+            sc.exe delete msquictestpriv | Out-Null
+            sc.exe delete msquicpriv | Out-Null
+        }
 
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
         Write-LogAndDebug $RemoteResults.ToString()
