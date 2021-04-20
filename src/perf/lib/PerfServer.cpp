@@ -28,7 +28,7 @@ PerfServer::Init(
 
     const char* LocalAddress = nullptr;
     if (TryGetValue(argc, argv, "bind", &LocalAddress)) {
-        if (!ConvertArgToAddress(LocalAddress, 0, &LocalAddr)) {
+        if (!ConvertArgToAddress(LocalAddress, PERF_DEFAULT_PORT, &LocalAddr)) {
             WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", LocalAddress);
             return QUIC_STATUS_INVALID_PARAMETER;
         }
