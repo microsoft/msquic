@@ -526,7 +526,14 @@ endif()
 
 if (QUIC_ENABLE_LOGGING)
     add_subdirectory(submodules/clog)
-    LIST(APPEND CMAKE_PROGRAM_PATH  "./submodules/clog/src/clog/bin/Debug/net5.0/linux-x64")
+
+    set(CLOG_ARTIFACT_DIR ${PROJECT_BINARY_DIR}/artifacts)
+
+    if (WIN32)
+        LIST(APPEND CMAKE_PROGRAM_PATH  "${PROJECT_BINARY_DIR}/submodules/clog/artifacts/win-x64")
+    elseif (UNIX)
+        LIST(APPEND CMAKE_PROGRAM_PATH  "${PROJECT_BINARY_DIR}/submodules/clog/artifacts/linux-x64")
+    endif()
 
     set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
     set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
