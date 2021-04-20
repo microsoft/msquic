@@ -527,8 +527,6 @@ endif()
 if (QUIC_ENABLE_LOGGING)
     add_subdirectory(submodules/clog)
 
-    set(CLOG_ARTIFACT_DIR ${PROJECT_BINARY_DIR}/artifacts)
-
     if (WIN32)
         LIST(APPEND CMAKE_PROGRAM_PATH  "${PROJECT_BINARY_DIR}/submodules/clog/artifacts/win-x64")
     elseif (UNIX)
