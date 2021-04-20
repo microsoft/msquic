@@ -947,7 +947,7 @@ SecNetPerfCtlEvtIoDeviceControl(
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] Error, %u, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "WfdRequestRetreiveInputBuffer failed");
     } else if (Params == nullptr) {

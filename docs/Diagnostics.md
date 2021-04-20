@@ -32,7 +32,7 @@ netsh.exe trace convert quic.etl
 
 > **Important** - If you're using a version of MsQuic that uses an ETW manifest version more recent than the one built into the Windows image, decoding may not provide correct output. **TODO** - Provide instructions to get around this problem.
 
-You may also open the trace in Windows Performance Analyzer. See the [WPA instructions](../src/plugins/wpa/README.md) for more details.
+You may also open the trace in Windows Performance Analyzer. See the [WPA instructions](../src/plugins/trace/README.md) for more details.
 
 ### Using WPR to Collect Traces
 
@@ -99,7 +99,7 @@ clog2text_lttng -i quic.babel.txt -s clog.sidecar -o quic.log --showTimestamp --
 
 # Trace Analysis
 
-MsQuic supports a custom plugin for Windows Performance Analyzer (WPA) to detailed analysis of ETW traces. See the [WPA instructions](../src/plugins/wpa/README.md) for more details.
+MsQuic supports a custom plugin for Windows Performance Analyzer (WPA) to detailed analysis of ETW traces. See the [WPA instructions](../src/plugins/trace/README.md) for more details.
 
 # Performance Counters
 
