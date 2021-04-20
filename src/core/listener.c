@@ -300,14 +300,10 @@ MsQuicListenerStart(
 
     QuicTraceEvent(
         ListenerStarted,
-        "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!",
+        "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!, ALPN=%!ALPN!",
         Listener,
         Listener->Binding,
-        CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
-    QuicTraceEvent(
-        ListenerAlpn,
-        "[list][%p] Accepting ALPNs: %!ALPN!",
-        Listener,
+        CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
         CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
 
 Error:
@@ -388,10 +384,11 @@ QuicListenerTraceRundown(
     if (Listener->Binding != NULL) {
         QuicTraceEvent(
             ListenerStarted,
-            "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!",
+            "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!, ALPN=%!ALPN!",
             Listener,
             Listener->Binding,
-            CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
+            CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
+            CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
     }
 }
 

@@ -928,6 +928,15 @@
                 name="Addr"
                 outType="win:SocketAddress"
                 />
+            <data
+                inType="win:UInt8"
+                name="AlpnLength"
+                />
+            <data
+                inType="win:Binary"
+                length="AlpnLength"
+                name="Alpn"
+                />
           </template>
           <template tid="tid_LISTENER_ERROR">
             <data
@@ -2265,15 +2274,6 @@
               template="tid_LISTENER_STATUS_ERROR"
               value="4102"
               />
-          <event
-              keywords="ut:Listener ut:LowVolume"
-              level="win:Informational"
-              message="$(string.Etw.ListenerAlpn)"
-              opcode="Listener"
-              symbol="QuicListenerAlpn"
-              template="tid_LISTENER_ALPN"
-              value="4103"
-              />
           <!-- 5120 - 6143 | Connection Events -->
           <event
               keywords="ut:Connection ut:LowVolume"
@@ -3550,7 +3550,7 @@
             />
         <string
             id="Etw.ListenerStarted"
-            value="[list][%1] Started, Binding=%2, LocalAddr=%4"
+            value="[list][%1] Started, Binding=%2, LocalAddr=%4, ALPN=%6"
             />
         <string
             id="Etw.ListenerStopped"
@@ -4168,10 +4168,6 @@
         <string
             id="Enum.QUIC_TRANSPORT_SHUTDOWN_REASON.QUIC_VERSION_NEGOTIATION_ERROR"
             value="QUIC_VERSION_NEGOTIATION_ERROR"
-            />
-        <string
-            id="Etw.ListenerAlpn"
-            value="[list][%1] Accepting ALPNs: %3"
             />
         <string
             id="Etw.ConnNoListenerIp"

@@ -1756,7 +1756,7 @@
     },
     "ConnTransportShutdown": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Transport Shutdown: %u (Remote=%hhu) (QS=%hhu)",
+      "TraceString": "[conn][%p] Transport Shutdown: %llu (Remote=%hhu) (QS=%hhu)",
       "UniqueId": "ConnTransportShutdown",
       "splitArgs": [
         {
@@ -1764,7 +1764,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -4754,7 +4754,7 @@
     },
     "ListenerStarted": {
       "ModuleProperites": {},
-      "TraceString": "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!",
+      "TraceString": "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!, ALPN=%!ALPN!",
       "UniqueId": "ListenerStarted",
       "splitArgs": [
         {
@@ -4768,6 +4768,10 @@
         {
           "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!ALPN!",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -10156,7 +10160,7 @@
     },
     "Version": 1,
     "CustomTypeClogCSharpFile": "msquic.clog.cs",
-    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            if (value.Length == 0)\n            {\n                return \"None\";\n            }\n\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            byte[] sa2;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    sa2 = new byte[4];\n                    Array.Copy(value, 4, sa2, 0, 4);\n                    msg += $\"{new IPAddress(sa2).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    sa2 = new byte[16];\n                    Array.Copy(value, 8, sa2, 0, 16);\n                    msg += $\"[{new IPAddress(sa2).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n\n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n\n        public static string VNL(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            if (value.Length < 4)\n            {\n                return \"Invalid\";\n            }\n            StringBuilder hex = new StringBuilder(\n                (value.Length * 2) +                    // Hex length for all characters\n                ((value.Length / sizeof(int)) - 1));    // Space for commas, if list is long enough.\n\n            for (int i = 0; value.Length - i >= sizeof(int); i += sizeof(int))\n            {\n                int Version = (int)(value[i] << 24) | (int)(value[i + 1] << 16) | (int)(value[i + 2] << 8) | (int)(value[i + 3]);\n                hex.Append(Version.ToString(\"X8\"));\n                if (value.Length - (i + sizeof(int)) >= sizeof(int)) {\n                    hex.Append(\",\");\n                }\n            }\n            return hex.ToString();\n        }\n\n        public static string ALPN(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            StringBuilder AlpnList = new StringBuilder(value.Length);\n            uint i = 0;\n            while (i < value.Length)\n            {\n                uint AlpnLength = value[i];\n                i++;\n                if (AlpnLength > value.Length - i)\n                {\n                    // Alpn longer than remaining buffer, print to the end.\n                    AlpnLength = (uint)value.Length - i;\n                }\n                for (; AlpnLength > 0; AlpnLength--, i++)\n                {\n                    AlpnList.Append(value[i].ToString(\"c\"));\n                }\n                if (i < value.Length)\n                {\n                    AlpnList.Append(';');\n                }\n            }\n            return AlpnList.ToString();\n        }\n    }\n}\n",
+    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            if (value.Length == 0)\n            {\n                return \"None\";\n            }\n\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            byte[] sa2;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    sa2 = new byte[4];\n                    Array.Copy(value, 4, sa2, 0, 4);\n                    msg += $\"{new IPAddress(sa2).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    sa2 = new byte[16];\n                    Array.Copy(value, 8, sa2, 0, 16);\n                    msg += $\"[{new IPAddress(sa2).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n\n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n\n        public static string VNL(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            if (value.Length < 4)\n            {\n                return \"Invalid\";\n            }\n            StringBuilder hex = new StringBuilder(\n                (value.Length * 2) +                    // Hex length for all characters\n                ((value.Length / sizeof(int)) - 1));    // Space for commas, if list is long enough.\n\n            for (int i = 0; value.Length - i >= sizeof(int); i += sizeof(int))\n            {\n                int Version = (int)(value[i] << 24) | (int)(value[i + 1] << 16) | (int)(value[i + 2] << 8) | (int)(value[i + 3]);\n                hex.Append(Version.ToString(\"X8\"));\n                if (value.Length - (i + sizeof(int)) >= sizeof(int)) {\n                    hex.Append(\",\");\n                }\n            }\n            return hex.ToString();\n        }\n\n        public static string ALPN(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            StringBuilder AlpnList = new StringBuilder(value.Length);\n            uint i = 0;\n            while (i < value.Length)\n            {\n                uint AlpnLength = value[i];\n                i++;\n                if (AlpnLength > value.Length - i)\n                {\n                    // Alpn longer than remaining buffer, print to the end.\n                    AlpnLength = (uint)value.Length - i;\n                }\n                try {\n                    String CurrentAlpn = Encoding.ASCII.GetString(value, (int)i, (int)AlpnLength);\n                    AlpnList.Append(CurrentAlpn);\n                    i += AlpnLength;\n                } catch {\n                    // Fall back to printing hex\n                    for (; AlpnLength > 0; AlpnLength--, i++)\n                    {\n                        AlpnList.Append(value[i].ToString(\"x2\"));\n                    }\n                }\n                if (i < value.Length)\n                {\n                    AlpnList.Append(';');\n                }\n            }\n            return AlpnList.ToString();\n        }\n    }\n}\n",
     "TypeEncoders": {
       "Version": 0,
       "TypeEncoder": [
@@ -11698,10 +11702,6 @@
         "TraceID": "ListenerError"
       },
       {
-        "UniquenessHash": "753890f0-f5e6-b412-0d97-189eed7c57ef",
-        "TraceID": "ListenerStarted"
-      },
-      {
         "UniquenessHash": "da94a1b4-7135-7fd3-9216-36a5faf1ed7a",
         "TraceID": "ListenerStopped"
       },
@@ -13106,8 +13106,12 @@
         "TraceID": "ListenerAlpn"
       },
       {
-        "UniquenessHash": "b5bb3b61-9ab9-3c90-fc7a-521bcd3a592b",
+        "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",
         "TraceID": "ConnTransportShutdown"
+      },
+      {
+        "UniquenessHash": "9b2d757a-63f3-549c-eff6-53512cd8b811",
+        "TraceID": "ListenerStarted"
       }
     ]
   }

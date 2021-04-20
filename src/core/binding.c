@@ -386,6 +386,7 @@ QuicBindingGetListener(
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
+    UNREFERENCED_PARAMETER(Connection);
     QUIC_LISTENER* Listener = NULL;
 
     const QUIC_ADDR* Addr = Info->LocalAddress;
