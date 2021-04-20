@@ -138,7 +138,8 @@ namespace QuicTrace.DataModel
     {
         Idle,
         Queued,
-        Processing
+        Processing,
+        Max
     }
 
     #region Global Events
@@ -480,8 +481,10 @@ namespace QuicTrace.DataModel
     {
         public uint State { get; }
 
+        public QuicScheduleState ScheduleState { get { return (QuicScheduleState)State; } }
+
         public override string PayloadString =>
-            string.Format("Scheduling: {0}", (QuicScheduleState)State);
+            string.Format("Scheduling: {0}", ScheduleState);
 
         internal QuicConnectionScheduleStateEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, uint state) :
             base(QuicEventId.ConnScheduleState, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
