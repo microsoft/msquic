@@ -310,6 +310,38 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnNoListenerIp": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] No Listener for IP address: %!ADDR!",
+      "UniqueId": "ConnNoListenerIp",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnNoListenerAlpn": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] No listener matching ALPN: %!ALPN!",
+      "UniqueId": "ConnNoListenerAlpn",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ALPN!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "BindingExecOper": {
       "ModuleProperites": {},
       "TraceString": "[bind][%p] Execute: %u",
@@ -10103,38 +10135,6 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
-    },
-    "ConnectionIpDoesntMatch": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] No Listener for IP address: %!ADDR!",
-      "UniqueId": "ConnectionIpDoesntMatch",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "ConnectionRequestedAlpn": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] No listener matching ALPN: %!ALPN!",
-      "UniqueId": "ConnectionRequestedAlpn",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "!ALPN!",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
     }
   },
   "Version": 1,
@@ -10192,7 +10192,7 @@
     },
     "Version": 1,
     "CustomTypeClogCSharpFile": "msquic.clog.cs",
-    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            if (value.Length == 0)\n            {\n                return \"None\";\n            }\n\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            byte[] sa2;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    sa2 = new byte[4];\n                    Array.Copy(value, 4, sa2, 0, 4);\n                    msg += $\"{new IPAddress(sa2).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    sa2 = new byte[16];\n                    Array.Copy(value, 8, sa2, 0, 16);\n                    msg += $\"[{new IPAddress(sa2).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n\n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n\n        public static string VNL(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            if (value.Length < 4)\n            {\n                return \"Invalid\";\n            }\n            StringBuilder hex = new StringBuilder(\n                (value.Length * 2) +                    // Hex length for all characters\n                ((value.Length / sizeof(int)) - 1));    // Space for commas, if list is long enough.\n\n            for (int i = 0; value.Length - i >= sizeof(int); i += sizeof(int))\n            {\n                int Version = (int)(value[i] << 24) | (int)(value[i + 1] << 16) | (int)(value[i + 2] << 8) | (int)(value[i + 3]);\n                hex.Append(Version.ToString(\"X8\"));\n                if (value.Length - (i + sizeof(int)) >= sizeof(int)) {\n                    hex.Append(\",\");\n                }\n            }\n            return hex.ToString();\n        }\n\n        public static string ALPN(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            StringBuilder AlpnList = new StringBuilder(value.Length);\n            uint i = 0;\n            while (i < value.Length)\n            {\n                uint AlpnLength = value[i];\n                i++;\n                if (AlpnLength > value.Length - i)\n                {\n                    // Alpn longer than remaining buffer, print to the end.\n                    AlpnLength = (uint)value.Length - i;\n                }\n                try {\n                    String CurrentAlpn = Encoding.ASCII.GetString(value, (int)i, (int)AlpnLength);\n                    AlpnList.Append(CurrentAlpn);\n                    i += AlpnLength;\n                } catch {\n                    // Fall back to printing hex\n                    for (; AlpnLength > 0; AlpnLength--, i++)\n                    {\n                        AlpnList.Append(value[i].ToString(\"x2\"));\n                    }\n                }\n                if (i < value.Length)\n                {\n                    AlpnList.Append(';');\n                }\n            }\n            return AlpnList.ToString();\n        }\n    }\n}\n",
+    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            if (value.Length == 0)\n            {\n                return \"None\";\n            }\n\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            byte[] sa2;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    sa2 = new byte[4];\n                    Array.Copy(value, 4, sa2, 0, 4);\n                    msg += $\"{new IPAddress(sa2).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    sa2 = new byte[16];\n                    Array.Copy(value, 8, sa2, 0, 16);\n                    msg += $\"[{new IPAddress(sa2).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n\n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n\n        public static string VNL(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            if (value.Length < 4)\n            {\n                return \"Invalid\";\n            }\n            StringBuilder hex = new StringBuilder(\n                (value.Length * 2) +                    // Hex length for all characters\n                ((value.Length / sizeof(int)) - 1));    // Space for commas, if list is long enough.\n\n            for (int i = 0; value.Length - i >= sizeof(int); i += sizeof(int))\n            {\n                int Version = (int)(value[i] << 24) | (int)(value[i + 1] << 16) | (int)(value[i + 2] << 8) | (int)(value[i + 3]);\n                hex.Append(Version.ToString(\"X8\"));\n                if (value.Length - (i + sizeof(int)) >= sizeof(int)) {\n                    hex.Append(\",\");\n                }\n            }\n            return hex.ToString();\n        }\n\n        public static string ALPN(byte [] value)\n        {\n            if (value.Length == 0) {\n                return \"Empty\";\n            }\n            UTF8Encoding utf8 = new UTF8Encoding(false, true);\n            utf8.DecoderFallback = new DecoderExceptionFallback();\n            StringBuilder AlpnList = new StringBuilder(value.Length);\n            uint i = 0;\n            while (i < value.Length)\n            {\n                uint AlpnLength = value[i];\n                i++;\n                if (AlpnLength > value.Length - i)\n                {\n                    // Alpn longer than remaining buffer, print to the end.\n                    AlpnLength = (uint)value.Length - i;\n                }\n                try {\n                    String CurrentAlpn = utf8.GetString(value, (int)i, (int)AlpnLength);\n                    AlpnList.Append(CurrentAlpn);\n                    i += AlpnLength;\n                } catch {\n                    // Fall back to printing hex\n                    for (; AlpnLength > 0; AlpnLength--, i++)\n                    {\n                        AlpnList.Append(value[i].ToString(\"x2\"));\n                        if (AlpnLength > 1) {\n                            AlpnList.Append(\",\");\n                        }\n                    }\n                }\n                if (i < value.Length)\n                {\n                    AlpnList.Append(';');\n                }\n            }\n            return AlpnList.ToString();\n        }\n    }\n}\n",
     "TypeEncoders": {
       "Version": 0,
       "TypeEncoder": [
@@ -10690,6 +10690,14 @@
         "TraceID": "BindingRundown"
       },
       {
+        "UniquenessHash": "11b93e99-5a6c-6cc9-12c9-6ef575ffa8e0",
+        "TraceID": "ConnNoListenerIp"
+      },
+      {
+        "UniquenessHash": "36572545-3721-e03a-c50a-7afdd62c4614",
+        "TraceID": "ConnNoListenerAlpn"
+      },
+      {
         "UniquenessHash": "3726f8cb-fca2-1ea3-208b-0f223c09aae2",
         "TraceID": "BindingExecOper"
       },
@@ -11072,6 +11080,10 @@
       {
         "UniquenessHash": "905ba7f9-0427-2d53-7d13-88f2bb532bf0",
         "TraceID": "ConnAppShutdown"
+      },
+      {
+        "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",
+        "TraceID": "ConnTransportShutdown"
       },
       {
         "UniquenessHash": "7a6ee833-be8b-28d5-a62a-4addb834ada3",
@@ -11732,6 +11744,10 @@
       {
         "UniquenessHash": "c11d30b9-28c1-6e74-528e-d5660eebfcc9",
         "TraceID": "ListenerError"
+      },
+      {
+        "UniquenessHash": "9b2d757a-63f3-549c-eff6-53512cd8b811",
+        "TraceID": "ListenerStarted"
       },
       {
         "UniquenessHash": "da94a1b4-7135-7fd3-9216-36a5faf1ed7a",
@@ -13124,34 +13140,6 @@
       {
         "UniquenessHash": "7368812e-a46d-0924-7643-009511288886",
         "TraceID": "InteropTestStop"
-      },
-      {
-        "UniquenessHash": "9fe48daa-27a8-cf03-133a-5cd8f4059c55",
-        "TraceID": "ConnectionIpDoesntMatch"
-      },
-      {
-        "UniquenessHash": "e8f6c5f5-667c-ed9a-cffe-ce93b17e4d6c",
-        "TraceID": "ConnectionRequestedAlpn"
-      },
-      {
-        "UniquenessHash": "11b93e99-5a6c-6cc9-12c9-6ef575ffa8e0",
-        "TraceID": "ConnNoListenerIp"
-      },
-      {
-        "UniquenessHash": "36572545-3721-e03a-c50a-7afdd62c4614",
-        "TraceID": "ConnNoListenerAlpn"
-      },
-      {
-        "UniquenessHash": "30305b4e-7c77-5454-f74f-b8ef1f84ca8e",
-        "TraceID": "ListenerAlpn"
-      },
-      {
-        "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",
-        "TraceID": "ConnTransportShutdown"
-      },
-      {
-        "UniquenessHash": "9b2d757a-63f3-549c-eff6-53512cd8b811",
-        "TraceID": "ListenerStarted"
       }
     ]
   }
