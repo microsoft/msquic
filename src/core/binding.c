@@ -393,7 +393,7 @@ QuicBindingGetListener(
     const QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(Addr);
 
     BOOLEAN FailedAlpnMatch = FALSE;
-    BOOLEAN FailedAddrMatch = FALSE;
+    BOOLEAN FailedAddrMatch = TRUE;
 
     CxPlatDispatchRwLockAcquireShared(&Binding->RwLock);
 
@@ -407,7 +407,6 @@ QuicBindingGetListener(
         const BOOLEAN ExistingWildCard = ExistingListener->WildCard;
         const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
         FailedAlpnMatch = FALSE;
-        FailedAddrMatch = FALSE;
 
         if (ExistingFamily != QUIC_ADDRESS_FAMILY_UNSPEC) {
             if (Family != ExistingFamily ||
@@ -416,6 +415,7 @@ QuicBindingGetListener(
                 continue; // No IP match.
             }
         }
+        FailedAddrMatch = FALSE;
 
         if (QuicListenerMatchesAlpn(ExistingListener, Info)) {
             if (CxPlatRundownAcquire(&ExistingListener->Rundown)) {
@@ -437,9 +437,7 @@ Done:
             "[conn][%p] No Listener for IP address: %!ADDR!",
             Connection,
             CLOG_BYTEARRAY(sizeof(*Addr), Addr));
-    }
-
-    if (FailedAlpnMatch) {
+    } else if (FailedAlpnMatch) {
         QuicTraceEvent(
             ConnNoListenerAlpn,
             "[conn][%p] No listener matching ALPN: %!ALPN!",

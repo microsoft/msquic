@@ -836,21 +836,6 @@
                 name="ErrStr"
                 />
           </template>
-          <template tid="tid_LISTENER_ALPN">
-            <data
-                inType="win:Pointer"
-                name="Listener"
-                />
-            <data
-                inType="win:UInt8"
-                name="AlpnLength"
-                />
-            <data
-                inType="win:Binary"
-                length="AlpnLength"
-                name="Alpn"
-                />
-          </template>
           <template tid="tid_CONN">
             <data
                 inType="win:Pointer"
@@ -2691,7 +2676,7 @@
               />
           <event
               keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
+              level="win:Error"
               message="$(string.Etw.ConnNoListenerIp)"
               opcode="Connection"
               symbol="QuicConnNoListenerIp"
@@ -2700,7 +2685,7 @@
               />
           <event
               keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
+              level="win:Error"
               message="$(string.Etw.ConnNoListenerAlpn)"
               opcode="Connection"
               symbol="QuicConnNoListenerAlpn"
