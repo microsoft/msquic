@@ -15,7 +15,6 @@ Environment:
 
 #include "platform_internal.h"
 #include "quic_platform.h"
-#include "quic_platform_dispatch.h"
 #include "quic_trace.h"
 #ifdef CX_PLATFORM_LINUX
 #include <sys/syscall.h>
@@ -31,11 +30,8 @@ Environment:
 
 #define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
 
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-CX_PLATFORM_DISPATCH* PlatDispatch = NULL;
-#else
 int RandomFd; // Used for reading random numbers.
-#endif
+QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 static const char TpLibName[] = "libmsquic.lttng.so";
 
@@ -145,14 +141,10 @@ CxPlatInitialize(
     void
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    CXPLAT_FRE_ASSERT(PlatDispatch != NULL);
-#else
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
         return (QUIC_STATUS)errno;
     }
-#endif
 
     CxPlatTotalMemory = 0x40000000; // TODO - Hard coded at 1 GB. Query real value.
 
@@ -164,9 +156,7 @@ CxPlatUninitialize(
     void
     )
 {
-#ifndef CX_PLATFORM_DISPATCH_TABLE
     close(RandomFd);
-#endif
 }
 
 void*
@@ -176,16 +166,12 @@ CxPlatAlloc(
     )
 {
     UNREFERENCED_PARAMETER(Tag);
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->Alloc(ByteCount);
-#else
 #ifdef QUIC_RANDOM_ALLOC_FAIL
     uint8_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
     return ((Rand % 100) == 1) ? NULL : malloc(ByteCount);
 #else
     return malloc(ByteCount);
 #endif // QUIC_RANDOM_ALLOC_FAIL
-#endif // CX_PLATFORM_DISPATCH_TABLE
 }
 
 void
@@ -195,11 +181,7 @@ CxPlatFree(
     )
 {
     UNREFERENCED_PARAMETER(Tag);
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->Free(Mem);
-#else
     free(Mem);
-#endif
 }
 
 void
@@ -423,7 +405,7 @@ CxPlatProcMaxCount(
 #if defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
-    // Intel macOS can return incorrect values for CPUID, so treat as single core. 
+    // Intel macOS can return incorrect values for CPUID, so treat as single core.
     //
     return 1;
 #else
@@ -439,7 +421,7 @@ CxPlatProcActiveCount(
 #if defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
-    // Intel macOS can return incorrect values for CPUID, so treat as single core. 
+    // Intel macOS can return incorrect values for CPUID, so treat as single core.
     //
     return 1;
 #else
@@ -457,7 +439,7 @@ CxPlatProcCurrentNumber(
 #elif defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
-    // Intel macOS can return incorrect values for CPUID, so treat as single core. 
+    // Intel macOS can return incorrect values for CPUID, so treat as single core.
     //
     return 0;
 #endif // CX_PLATFORM_DARWIN
@@ -469,14 +451,10 @@ CxPlatRandom(
     _Out_writes_bytes_(BufferLen) void* Buffer
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->Random(BufferLen, Buffer);
-#else
     if (read(RandomFd, Buffer, BufferLen) == -1) {
         return (QUIC_STATUS)errno;
     }
     return QUIC_STATUS_SUCCESS;
-#endif
 }
 
 void

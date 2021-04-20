@@ -22,6 +22,7 @@ Abstract:
 #include "openssl/kdf.h"
 #include "openssl/pem.h"
 #include "openssl/pkcs12.h"
+#include "openssl/pkcs7.h"
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
@@ -231,6 +232,9 @@ CxPlatTlsCertificateVerifyCallback(
     X509_STORE_CTX *x509_ctx
     )
 {
+    int status = TRUE;
+    QUIC_BUFFER PortableCertificate = { 0, 0 };
+    QUIC_BUFFER PortableChain = { 0, 0 };
     X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
     SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
@@ -249,10 +253,48 @@ CxPlatTlsCertificateVerifyCallback(
         return FALSE;
     }
 
+    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {
+        if (Cert) {
+            PortableCertificate.Length = i2d_X509(Cert, &PortableCertificate.Buffer);
+            if (!PortableCertificate.Buffer) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Failed to serialize certificate context");
+                return FALSE;
+            }
+        }
+        if (x509_ctx) {
+            int ChainCount;
+            STACK_OF(X509)* Chain = X509_STORE_CTX_get0_chain(x509_ctx);
+            if ((ChainCount = sk_X509_num(Chain)) > 0) {
+                PKCS7* p7 = PKCS7_new();
+                if (p7) {
+                    PKCS7_set_type(p7, NID_pkcs7_signed);
+                    PKCS7_content_new(p7, NID_pkcs7_data);
+
+                    for (int i = 0; i < ChainCount; i++) {
+                        PKCS7_add_certificate(p7, sk_X509_value(Chain, i));
+                    }
+                    PortableChain.Length = i2d_PKCS7(p7, &PortableChain.Buffer);
+                    PKCS7_free(p7);
+                } else {
+                    QuicTraceEvent(
+                        TlsError,
+                        "[ tls][%p] ERROR, %s.",
+                        TlsContext->Connection,
+                        "Failed to allocate PKCS7 context");
+                }
+            }
+        }
+    }
+
     if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
         !TlsContext->SecConfig->Callbacks.CertificateReceived(
             TlsContext->Connection,
-            x509_ctx,
+            (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE*)&PortableCertificate : (QUIC_CERTIFICATE*)Cert,
+            (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE_CHAIN*)&PortableChain : (QUIC_CERTIFICATE_CHAIN*)x509_ctx,
             0,
             0)) {
         QuicTraceEvent(
@@ -261,10 +303,17 @@ CxPlatTlsCertificateVerifyCallback(
             TlsContext->Connection,
             "Indicate certificate received failed");
         X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
-        return FALSE;
+        status = FALSE;
     }
 
-    return TRUE;
+    if (PortableCertificate.Buffer) {
+        OPENSSL_free(PortableCertificate.Buffer);
+    }
+    if (PortableChain.Buffer) {
+        OPENSSL_free(PortableChain.Buffer);
+    }
+
+    return status;
 }
 
 CXPLAT_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
@@ -701,7 +750,7 @@ CxPlatTlsOnServerSessionTicketGenerated(
 SSL_TICKET_RETURN
 CxPlatTlsOnServerSessionTicketDecrypted(
     _In_ SSL *Ssl,
-    _In_ SSL_SESSION *ss,
+    _In_ SSL_SESSION *Session,
     _In_ const unsigned char *keyname,
     _In_ size_t keyname_length,
     _In_ SSL_TICKET_STATUS status,
@@ -709,19 +758,54 @@ CxPlatTlsOnServerSessionTicketDecrypted(
     )
 {
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(ss);
     UNREFERENCED_PARAMETER(keyname);
     UNREFERENCED_PARAMETER(keyname_length);
-    UNREFERENCED_PARAMETER(status);
     UNREFERENCED_PARAMETER(arg);
+
+    QuicTraceLogConnVerbose(
+        OpenSslTickedDecrypted,
+        TlsContext->Connection,
+        "Session ticket decrypted, status %u",
+        (uint32_t)status);
+
+    SSL_TICKET_RETURN Result;
     if (status == SSL_TICKET_SUCCESS) {
-        return SSL_TICKET_RETURN_USE;
+        Result = SSL_TICKET_RETURN_USE;
+    } else if (status == SSL_TICKET_SUCCESS_RENEW) {
+        Result = SSL_TICKET_RETURN_USE_RENEW;
+    } else {
+        Result = SSL_TICKET_RETURN_IGNORE_RENEW;
     }
-    if (status == SSL_TICKET_SUCCESS_RENEW) {
-        return SSL_TICKET_RETURN_USE_RENEW;
+
+    uint8_t* Buffer = NULL;
+    size_t Length = 0;
+    if (Session != NULL &&
+        SSL_SESSION_get0_ticket_appdata(Session, (void**)&Buffer, &Length)) {
+
+        QuicTraceLogConnVerbose(
+            OpenSslRecvTicketData,
+            TlsContext->Connection,
+            "Received ticket data, %u bytes",
+            (uint32_t)Length);
+
+        if (!TlsContext->SecConfig->Callbacks.ReceiveTicket(
+                TlsContext->Connection,
+                (uint32_t)Length,
+                Buffer)) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "ReceiveTicket failed");
+            if (status == SSL_TICKET_SUCCESS_RENEW) {
+                Result = SSL_TICKET_RETURN_IGNORE_RENEW;
+            } else {
+                Result = SSL_TICKET_RETURN_IGNORE;
+            }
+        }
     }
-    return SSL_TICKET_RETURN_IGNORE_RENEW;
+
+    return Result;
 }
 
 SSL_QUIC_METHOD OpenSslQuicCallbacks = {
@@ -1038,28 +1122,31 @@ CxPlatTlsSecConfigCreate(
                 goto Exit;
             }
 
-            Ret = SSL_CTX_set_num_tickets(SecurityConfig->SSLCtx, 1);
+            Ret = SSL_CTX_set_session_ticket_cb(
+                SecurityConfig->SSLCtx,
+                NULL,
+                CxPlatTlsOnServerSessionTicketDecrypted,
+                NULL);
             if (Ret != 1) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
                     ERR_get_error(),
-                    "SSL_CTX_set_num_tickets failed");
+                    "SSL_CTX_set_session_ticket_cb failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
+        }
 
-        } else {
-            Ret = SSL_CTX_set_num_tickets(SecurityConfig->SSLCtx, 0);
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_set_num_tickets failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
+        Ret = SSL_CTX_set_num_tickets(SecurityConfig->SSLCtx, 0);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_set_num_tickets failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
         }
     }
 
@@ -1581,10 +1668,55 @@ CxPlatTlsProcessData(
 
     if (DataType == CXPLAT_TLS_TICKET_DATA) {
         QuicTraceLogConnVerbose(
-            OpenSsslIgnoringTicket,
+            OpenSslSendTicketData,
             TlsContext->Connection,
-            "Ignoring %u ticket bytes",
+            "Sending ticket data, %u bytes",
             *BufferLength);
+
+        SSL_SESSION* Session = SSL_get_session(TlsContext->Ssl);
+        if (Session == NULL) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "SSL_get_session failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+        if (!SSL_SESSION_set1_ticket_appdata(Session, Buffer, *BufferLength)) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                ERR_get_error(),
+                "SSL_SESSION_set1_ticket_appdata failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+
+        if (!SSL_new_session_ticket(TlsContext->Ssl)) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                ERR_get_error(),
+                "SSL_new_session_ticket failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+
+        int Ret = SSL_do_handshake(TlsContext->Ssl);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                SSL_get_error(TlsContext->Ssl, Ret),
+                "SSL_do_handshake failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+
         goto Exit;
     }
 

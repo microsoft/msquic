@@ -40,6 +40,12 @@ CxPlatFuzzerRecvMsg(
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 
 //
+// If set, CXPLAT_DATAPATH_QUEUE_SENDS enables logic to queue the UDP send
+// to the datapath worker thread instead of inline execution.
+//
+//#define CXPLAT_DATAPATH_QUEUE_SENDS 1
+
+//
 // This IOCTL allows for creating per-processor sockets for the same UDP port.
 // This is used to get better parallelization to improve performance.
 //
@@ -182,6 +188,18 @@ typedef struct CXPLAT_SEND_DATA {
     // The WSABUF returned to the client for segmented sends.
     //
     WSABUF ClientBuffer;
+
+#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
+    //
+    // The local address to bind to.
+    //
+    QUIC_ADDR LocalAddress;
+
+    //
+    // The remote address to send to.
+    //
+    QUIC_ADDR RemoteAddress;
+#endif
 
 } CXPLAT_SEND_DATA;
 
@@ -3614,8 +3632,8 @@ CxPlatSendDataComplete(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-CxPlatSocketSend(
-    _In_ CXPLAT_SOCKET* Socket,
+CxPlatSocketSendInline(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData
@@ -3623,23 +3641,12 @@ CxPlatSocketSend(
 {
     QUIC_STATUS Status;
     CXPLAT_DATAPATH* Datapath;
-    CXPLAT_SOCKET_PROC* SocketProc;
+    CXPLAT_SOCKET* Socket;
     int Result;
     DWORD BytesSent;
 
-    CXPLAT_DBG_ASSERT(
-        Socket != NULL && LocalAddress != NULL &&
-        RemoteAddress != NULL && SendData != NULL);
-
-    if (SendData->WsaBufferCount == 0) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
-
-    Datapath = Socket->Datapath;
-    SocketProc = &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : GetCurrentProcessorNumber()];
+    Datapath = SocketProc->Parent->Datapath;
+    Socket = SocketProc->Parent;
 
     QuicTraceEvent(
         DatapathSend,
@@ -3793,6 +3800,88 @@ Exit:
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatSocketSend(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ uint16_t IdealProcessor
+    )
+{
+    CXPLAT_DBG_ASSERT(
+        Socket != NULL && LocalAddress != NULL &&
+        RemoteAddress != NULL && SendData != NULL &&
+        SendData->WsaBufferCount != 0);
+
+    CXPLAT_DATAPATH* Datapath = Socket->Datapath;
+    CXPLAT_SOCKET_PROC* SocketProc =
+        &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
+
+    CxPlatSendDataFinalizeSendBuffer(SendData, TRUE);
+
+#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
+    uint16_t Processor =
+        Socket->HasFixedRemoteAddress ?
+            Socket->ProcessorAffinity :
+            IdealProcessor % Datapath->ProcCount;
+
+    if ((Socket->Type != CXPLAT_SOCKET_UDP)) {
+        //
+        // Currently TCP always sends inline.
+        //
+        return
+            CxPlatSocketSendInline(
+                SocketProc,
+                LocalAddress,
+                RemoteAddress,
+                SendData);
+    }
+
+    CxPlatCopyMemory(
+        &SendData->LocalAddress,
+        LocalAddress,
+        sizeof(*LocalAddress));
+
+    CxPlatCopyMemory(
+        &SendData->RemoteAddress,
+        RemoteAddress,
+        sizeof(*RemoteAddress));
+
+    RtlZeroMemory(&SendData->Overlapped, sizeof(OVERLAPPED));
+    BOOL Result =
+        PostQueuedCompletionStatus(
+            Datapath->Processors[Processor].IOCP,
+            UINT32_MAX,
+            (ULONG_PTR)SocketProc,
+            &SendData->Overlapped);
+    if (!Result) {
+        int LastError = GetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            LastError,
+            "PostQueuedCompletionStatus");
+        CxPlatSendDataFree(SendData);
+        return HRESULT_FROM_WIN32(LastError);
+    }
+
+    return QUIC_STATUS_SUCCESS;
+
+#else // CXPLAT_DATAPATH_QUEUE_SENDS
+
+    return
+        CxPlatSocketSendInline(
+            SocketProc,
+            LocalAddress,
+            RemoteAddress,
+            SendData);
+
+#endif // CXPLAT_DATAPATH_QUEUE_SENDS
+}
+
 DWORD
 WINAPI
 CxPlatDataPathWorkerThread(
@@ -3924,10 +4013,23 @@ CxPlatDataPathWorkerThread(
                     CXPLAT_SEND_DATA,
                     Overlapped);
 
-            CxPlatSendDataComplete(
-                SocketProc,
-                SendData,
-                IoResult);
+#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
+            if (NumberOfBytesTransferred == UINT32_MAX &&
+                CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
+                CxPlatSocketSendInline(
+                    SocketProc,
+                    &SendData->LocalAddress,
+                    &SendData->RemoteAddress,
+                    SendData);
+                CxPlatRundownRelease(&SocketProc->UpcallRundown);
+            } else
+#endif // CXPLAT_DATAPATH_QUEUE_SENDS
+            {
+                CxPlatSendDataComplete(
+                    SocketProc,
+                    SendData,
+                    IoResult);
+            }
         }
     }
 

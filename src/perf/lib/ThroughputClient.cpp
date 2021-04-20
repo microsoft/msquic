@@ -23,22 +23,23 @@ PrintHelp(
         "\n"
         "Throughput Client options:\n"
         "\n"
-        "  -target:<####>              The target server to connect to.\n"
+        "  -target:<####>               The target server to connect to.\n"
 #if _WIN32
-        "  -comp:<####>                The compartment ID to run in.\n"
-        "  -core:<####>                The CPU core to use for the main thread.\n"
+        "  -comp:<####>                 The compartment ID to run in.\n"
+        "  -core:<####>                 The CPU core to use for the main thread.\n"
 #endif
-        "  -bind:<addr>                A local IP address to bind to.\n"
-        "  -port:<####>                The UDP port of the server. (def:%u)\n"
-        "  -ip:<0/4/6>                 A hint for the resolving the hostname to an IP address. (def:0)\n"
-        "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
-        "  -sendbuf:<0/1>              Whether to use send buffering. (def:1)\n"
-        "  -pacing:<0/1>               Whether to use pacing. (def:1)\n"
-        "  -timed:<0/1>                Indicates the upload/download arg time (ms). (def:0)\n"
-        "  -upload:<####>              The length of data (or time with -timed:1 arg) to send. (def:0)\n"
-        "  -download:<####>            The length of data (or time with -timed:1 arg) to request/receive. (def:0)\n"
-        "  -iosize:<####>              The size of each send request queued. (def:%u)\n"
-        "  -tcp:<0/1>                  Indicates TCP/TLS should be used instead of QUIC. (def:0)\n"
+        "  -bind:<addr>                 A local IP address to bind to.\n"
+        "  -port:<####>                 The UDP port of the server. (def:%u)\n"
+        "  -ip:<0/4/6>                  A hint for the resolving the hostname to an IP address. (def:0)\n"
+        "  -encrypt:<0/1>               Enables/disables encryption. (def:1)\n"
+        "  -sendbuf:<0/1>               Whether to use send buffering. (def:0)\n"
+        "  -pacing:<0/1>                Whether to use pacing. (def:1)\n"
+        "  -timed:<0/1>                 Indicates the upload/download arg time (ms). (def:0)\n"
+        "  -upload:<####>               The length of data (or time with -timed:1 arg) to send. (def:0)\n"
+        "  -download:<####>             The length of data (or time with -timed:1 arg) to request/receive. (def:0)\n"
+        "  -iosize:<####>               The size of each send request queued. (def:%u)\n"
+        "  -tcp:<0/1>                   Indicates TCP/TLS should be used instead of QUIC. (def:0)\n"
+        "  -stats:<0/1>                 Indicates connection stats should be printed at the end of the run. (def:0)\n"
         "\n",
         PERF_DEFAULT_PORT,
         PERF_DEFAULT_IO_SIZE
@@ -71,6 +72,7 @@ ThroughputClient::Init(
     TryGetValue(argc, argv, "encrypt", &UseEncryption);
     TryGetValue(argc, argv, "upload", &UploadLength);
     TryGetValue(argc, argv, "download", &DownloadLength);
+    TryGetValue(argc, argv, "stats", &PrintStats);
 
     if (UploadLength && DownloadLength) {
         WriteOutput("Must specify only one of '-upload' or '-download' argument!\n");
@@ -499,6 +501,9 @@ ThroughputClient::ConnectionCallback(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+        if (PrintStats) {
+            QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
+        }
         MsQuic->ConnectionClose(ConnectionHandle);
         CxPlatEventSet(*StopEvent);
         break;

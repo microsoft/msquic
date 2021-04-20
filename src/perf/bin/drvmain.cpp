@@ -116,8 +116,6 @@ void __cdecl operator delete[] (_In_opt_ void* Mem, _In_opt_ size_t) {
     }
 }
 
-extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
-
 extern "C"
 INITCODE
 _Function_class_(DRIVER_INITIALIZE)
@@ -280,7 +278,7 @@ SecNetPerfCtlInitialize(
         goto Error;
     }
 
-    Status = 
+    Status =
         SecNetPerfGetServiceName(
             BaseRegPath,
             &ServiceName);
@@ -949,7 +947,7 @@ SecNetPerfCtlEvtIoDeviceControl(
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] Error, %u, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "WfdRequestRetreiveInputBuffer failed");
     } else if (Params == nullptr) {

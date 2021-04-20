@@ -1022,7 +1022,8 @@ QuicBindingProcessStatelessOperation(
         &RecvDatagram->Tuple->RemoteAddress,
         SendData,
         SendDatagram->Length,
-        1);
+        1,
+        RecvDatagram->PartitionIndex % MsQuicLib.PartitionCount);
     SendData = NULL;
 
 Exit:
@@ -1707,7 +1708,8 @@ QuicBindingSend(
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
-    _In_ uint32_t DatagramsToSend
+    _In_ uint32_t DatagramsToSend,
+    _In_ uint16_t IdealProcessor
     )
 {
     QUIC_STATUS Status;
@@ -1737,7 +1739,8 @@ QuicBindingSend(
                     Binding->Socket,
                     &LocalAddressCopy,
                     &RemoteAddressCopy,
-                    SendData);
+                    SendData,
+                    IdealProcessor);
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogWarning(
                     BindingSendFailed,
@@ -1753,7 +1756,8 @@ QuicBindingSend(
                 Binding->Socket,
                 LocalAddress,
                 RemoteAddress,
-                SendData);
+                SendData,
+                IdealProcessor);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 BindingSendFailed,

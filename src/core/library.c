@@ -16,6 +16,8 @@ Abstract:
 
 QUIC_LIBRARY MsQuicLib = { 0 };
 
+QUIC_TRACE_RUNDOWN_CALLBACK QuicTraceRundown;
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLibApplyLoadBalancingSetting(
@@ -42,6 +44,7 @@ MsQuicLibraryLoad(
     CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
     CxPlatListInitializeHead(&MsQuicLib.Registrations);
     CxPlatListInitializeHead(&MsQuicLib.Bindings);
+    QuicTraceRundownCallback = QuicTraceRundown;
     MsQuicLib.Loaded = TRUE;
 }
 
@@ -1580,6 +1583,7 @@ QuicLibraryGetWorker(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_TRACE_RUNDOWN_CALLBACK)
 void
 QuicTraceRundown(
     void

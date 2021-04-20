@@ -111,7 +111,10 @@ private:
         );
 
     QUIC_STATUS InitStatus;
-    MsQuicRegistration Registration {true};
+    MsQuicRegistration Registration {
+        "secnetperf-server",
+        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        true};
     MsQuicAlpn Alpn {PERF_ALPN};
     MsQuicConfiguration Configuration {
         Registration,
@@ -127,6 +130,7 @@ private:
     uint16_t Port {PERF_DEFAULT_PORT};
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
+    uint8_t PrintStats {FALSE};
     QuicPoolAllocator<StreamContext> StreamContextAllocator;
 
     TcpEngine Engine;

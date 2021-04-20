@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "WPA": {
+      "commandName": "Executable",
+      "executablePath": "f:\\xperf\\wpa.exe",
+      "commandLineArgs": "-addsearchdir $(SolutionDir)..\\..\\artifacts\\bin\\quictrace\\$(Configuration)",
+      "nativeDebugging": false
+    }
+  }
+}

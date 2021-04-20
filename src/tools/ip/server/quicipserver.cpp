@@ -26,8 +26,6 @@ const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 HQUIC Configuration;
 
-extern "C" void QuicTraceRundown(void) { }
-
 void
 PrintUsage()
 {

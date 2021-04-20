@@ -155,6 +155,16 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+function Test-Administrator
+{
+    $user = [Security.Principal.WindowsIdentity]::GetCurrent();
+    (New-Object Security.Principal.WindowsPrincipal $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+}
+
+if ($IsWindows -and !(Test-Administrator)) {
+    Write-Warning "We recommend running this test as administrator. Crash dumps will not work"
+}
+
 # Validate the the kernel switch.
 if ($Kernel -and !$IsWindows) {
     Write-Error "-Kernel switch only supported on Windows";

@@ -149,7 +149,10 @@ public:
         _Inout_ QUIC_CONNECTION_EVENT* Event
         );
 
-    MsQuicRegistration Registration {true};
+    MsQuicRegistration Registration {
+        "secnetperf-client-rps",
+        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        true};
     MsQuicConfiguration Configuration {
         Registration,
         MsQuicAlpn(PERF_ALPN),
