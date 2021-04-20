@@ -32,6 +32,8 @@ namespace QuicTrace.DataModel
 
         public Timestamp FinalTimeStamp { get; private set; }
 
+        public TimestampDelta ElapsedTimeDelta { get { return FinalTimeStamp - InitialTimeStamp; } }
+
         public Timestamp LastActiveTimeStamp { get; private set; }
 
         public TimestampDelta TotalActiveTime { get; private set; }
@@ -39,6 +41,21 @@ namespace QuicTrace.DataModel
         public uint TotalConnections { get; private set; }
 
         public uint CurrentConnections { get; private set; }
+
+        public QuicSchedulingStats SchedulingStats { get; private set; }
+
+        public uint AverageQueueDelayUs { get { return SchedulingStats.GetStats(QuicScheduleState.Queued).AverageCpuTimeUs; } }
+
+        public ulong TotalProcessingTimeUs { get { return SchedulingStats.GetStats(QuicScheduleState.Processing).TotalCpuTimeUs; } }
+
+        public uint ActivePercent
+        {
+            get
+            {
+                var elapsedTime = (ulong)ElapsedTimeDelta.ToMicroseconds;
+                return (uint)(elapsedTime == 0 ? 0 : (100 * TotalProcessingTimeUs / elapsedTime));
+            }
+        }
 
         internal QuicConnection? LastConnection { get; private set; }
 
@@ -86,6 +103,8 @@ namespace QuicTrace.DataModel
             FinalTimeStamp = Timestamp.MaxValue;
             LastActiveTimeStamp = Timestamp.MaxValue;
             TotalActiveTime = TimestampDelta.Zero;
+
+            SchedulingStats = new QuicSchedulingStats();
 
             LastConnection = null;
         }
@@ -136,7 +155,7 @@ namespace QuicTrace.DataModel
             if (evt.EventId == QuicEventId.ConnScheduleState)
             {
                 var _evt = evt as QuicConnectionScheduleStateEvent;
-                if (_evt!.State == (uint)QuicScheduleState.Processing)
+                if (_evt!.ScheduleState == QuicScheduleState.Processing)
                 {
                     if (ThreadId == uint.MaxValue)
                     {
@@ -155,6 +174,11 @@ namespace QuicTrace.DataModel
             {
                 LastConnection = connection;
             }
+        }
+
+        internal void AddSchedulingCpuTime(QuicScheduleState state, TimestampDelta delta)
+        {
+            SchedulingStats.AddCpuTime(state, delta);
         }
 
         internal void OnConnectionAdded()
