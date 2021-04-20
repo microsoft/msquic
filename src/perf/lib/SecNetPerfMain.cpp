@@ -82,11 +82,10 @@ PrintHelp(
         "\n"
         "Server: secnetperf [options]\n"
         "\n"
-        "  -port:<####>                The UDP port of the server. (def:%u)\n"
+        "  -bind:<addr>                A local IP address to bind to.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
-        "\n",
-        PERF_DEFAULT_PORT
+        "\n"
         );
 }
 

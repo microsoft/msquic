@@ -21,6 +21,9 @@ public:
     PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig) :
         Engine(TcpAcceptCallback, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback),
         Server(&Engine, CredConfig, this) {
+        CxPlatZeroMemory(&LocalAddr, sizeof(LocalAddr));
+        QuicAddrSetFamily(&LocalAddr, QUIC_ADDRESS_FAMILY_UNSPEC);
+        QuicAddrSetPort(&LocalAddr, PERF_DEFAULT_PORT);
         InitStatus =
             Configuration.IsValid() ?
                 Configuration.LoadCredential(CredConfig) :
@@ -127,7 +130,7 @@ private:
             .SetSendBufferingEnabled(false)
             .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT)};
     MsQuicListener Listener {Registration};
-    uint16_t Port {PERF_DEFAULT_PORT};
+    QUIC_ADDR LocalAddr;
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
     uint8_t PrintStats {FALSE};

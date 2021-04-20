@@ -24,8 +24,15 @@ PerfServer::Init(
         return InitStatus;
     }
 
-    TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "stats", &PrintStats);
+
+    const char* LocalAddress = nullptr;
+    if (TryGetValue(argc, argv, "bind", &LocalAddress)) {
+        if (!ConvertArgToAddress(LocalAddress, PERF_DEFAULT_PORT, &LocalAddr)) {
+            WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", LocalAddress);
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
 
     DataBuffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE, QUIC_POOL_PERF);
     if (!DataBuffer) {
@@ -44,12 +51,7 @@ QUIC_STATUS
 PerfServer::Start(
     _In_ CXPLAT_EVENT* _StopEvent
     ) {
-    QUIC_ADDR Address;
-    CxPlatZeroMemory(&Address, sizeof(Address));
-    QuicAddrSetFamily(&Address, QUIC_ADDRESS_FAMILY_UNSPEC);
-    QuicAddrSetPort(&Address, Port);
-
-    if (!Server.Start(&Address)) { // TCP
+    if (!Server.Start(&LocalAddr)) { // TCP
         //printf("TCP Server failed to start!\n");
     }
 
@@ -58,7 +60,7 @@ PerfServer::Start(
     return
         Listener.Start(
             Alpn,
-            &Address,
+            &LocalAddr,
             [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
                 return ((PerfServer*)Context)->ListenerCallback(Handle, Event);
             },
