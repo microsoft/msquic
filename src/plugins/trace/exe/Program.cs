@@ -234,7 +234,7 @@ namespace QuicTrace
                     Console.Write("quictrace> ");
 
                     var input = Console.ReadLine();
-                    if (input == "--exit" || input == "exit" || input == "-e")
+                    if (input == null || input == "--exit" || input == "exit" || input == "-e")
                     {
                         return;
                     }
