@@ -441,7 +441,7 @@ function Invoke-Test {
         if ($Record) {
             if ($Local) {
                 $LocalLogPath = (Join-Path $RemoteDirectory serverlogs)
-                Copy-Item -Path $LocalLogPath -Destination (Join-Path $OutputDir serverlogs $Test.ToString()) -Recurse -Force
+                Copy-Item -Path $LocalLogPath -Destination (Join-Path $OutputDir $Test.ToString()) -Recurse -Force
                 try {
                     Remove-Item -Path "$LocalLogPath/*" -Recurse -Force
                 } catch [System.Management.Automation.ItemNotFoundException] {
@@ -449,7 +449,7 @@ function Invoke-Test {
                     # This will still throw if a file cannot successfuly be deleted
                 }
             } else {
-                Get-RemoteLogDirectory -Local (Join-Path $OutputDir serverlogs $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
+                Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
             }
         }
     }
