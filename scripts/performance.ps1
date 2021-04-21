@@ -506,7 +506,6 @@ try {
 
     if (!$SkipDeploy -and !$Local) {
         Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbDir $RemoteDirectorySMB
-
     }
 
     foreach ($Test in $Tests.Tests) {
