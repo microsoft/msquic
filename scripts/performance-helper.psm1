@@ -359,7 +359,7 @@ function Invoke-RemoteExe {
 }
 
 function Get-RemoteLogDirectory {
-    param ([string]$Local, [string]$Remote, [string]$SmbDir, [boolean]$Cleanup)
+    param ([string]$Local, [string]$Remote, [string]$SmbDir, [switch]$Cleanup)
 
     if (![string]::IsNullOrWhiteSpace($SmbDir)) {
         robocopy $SmbDir $Local /e /IS /IT /IM | Out-Null
@@ -368,23 +368,27 @@ function Get-RemoteLogDirectory {
         } else {
             $global:LASTEXITCODE = 0
         }
-        try {
-            Remove-Item -Path "$SmbDir/*" -Recurse -Force
-        } catch [System.Management.Automation.ItemNotFoundException] {
-            # Ignore Not Found for when the directory does not exist
-            # This will still throw if a file cannot successfuly be deleted
-        }
-    } else {
-        Copy-Item -Path "$Remote\*" -Destination $Local -FromSession $Session  -Recurse -Force
-        Invoke-TestCommand $Session -ScriptBlock {
-            param ($Remote)
+        if ($Cleanup) {
             try {
-                Remove-Item -Path "$Remote/*" -Recurse -Force
+                Remove-Item -Path "$SmbDir/*" -Recurse -Force
             } catch [System.Management.Automation.ItemNotFoundException] {
                 # Ignore Not Found for when the directory does not exist
                 # This will still throw if a file cannot successfuly be deleted
             }
-        } -ArgumentList $Remote
+        }
+    } else {
+        Copy-Item -Path "$Remote\*" -Destination $Local -FromSession $Session  -Recurse -Force
+        if ($Cleanup) {
+            Invoke-TestCommand $Session -ScriptBlock {
+                param ($Remote)
+                try {
+                    Remove-Item -Path "$Remote/*" -Recurse -Force
+                } catch [System.Management.Automation.ItemNotFoundException] {
+                    # Ignore Not Found for when the directory does not exist
+                    # This will still throw if a file cannot successfuly be deleted
+                }
+            } -ArgumentList $Remote
+        }
     }
 }
 
