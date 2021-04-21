@@ -802,6 +802,15 @@
                 name="Addr"
                 outType="win:SocketAddress"
                 />
+            <data
+                inType="win:UInt8"
+                name="AlpnLength"
+                />
+            <data
+                inType="win:Binary"
+                length="AlpnLength"
+                name="Alpn"
+                />
           </template>
           <template tid="tid_LISTENER_ERROR">
             <data
@@ -1250,12 +1259,6 @@
                 name="Connection"
                 />
           </template>
-          <template tid="tid_STREAM">
-            <data
-                inType="win:Pointer"
-                name="Stream"
-                />
-          </template>
           <template tid="tid_CONN_VNL">
             <data
                 inType="win:Pointer"
@@ -1269,6 +1272,27 @@
                 inType="win:Binary"
                 length="VnlLength"
                 name="Vnl"
+                />
+          </template>
+          <template tid="tid_CONN_ALPN">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt8"
+                name="AlpnLength"
+                />
+            <data
+                inType="win:Binary"
+                length="AlpnLength"
+                name="Alpn"
+                />
+          </template>
+          <template tid="tid_STREAM">
+            <data
+                inType="win:Pointer"
+                name="Stream"
                 />
           </template>
           <template tid="tid_STREAM_BEGIN">
@@ -2650,6 +2674,24 @@
               template="tid_CONN"
               value="5179"
               />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Error"
+              message="$(string.Etw.ConnNoListenerIp)"
+              opcode="Connection"
+              symbol="QuicConnNoListenerIp"
+              template="tid_CONN_IP_ADDR"
+              value="5180"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Error"
+              message="$(string.Etw.ConnNoListenerAlpn)"
+              opcode="Connection"
+              symbol="QuicConnNoListenerAlpn"
+              template="tid_CONN_ALPN"
+              value="5181"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume"
@@ -3367,7 +3409,7 @@
             />
         <string
             id="Etw.ListenerStarted"
-            value="[list][%1] Started, Binding=%2, LocalAddr=%4"
+            value="[list][%1] Started, Binding=%2, LocalAddr=%4, ALPN=%6"
             />
         <string
             id="Etw.ListenerStopped"
@@ -3861,6 +3903,14 @@
         <string
             id="Enum.QUIC_SEND_FLUSH_REASON.SCHEDULING"
             value="SCHEDULING"
+            />
+        <string
+            id="Etw.ConnNoListenerIp"
+            value="[conn][%1] No Listener for IP address: %3"
+            />
+        <string
+            id="Etw.ConnNoListenerAlpn"
+            value="[conn][%1] No listener matching ALPN: %3"
             />
       </stringTable>
     </resources>

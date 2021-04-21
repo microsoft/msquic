@@ -84,5 +84,45 @@ namespace msquic.clog_config
             }
             return hex.ToString();
         }
+
+        public static string ALPN(byte [] value)
+        {
+            if (value.Length == 0) {
+                return "Empty";
+            }
+            UTF8Encoding utf8 = new UTF8Encoding(false, true);
+            utf8.DecoderFallback = new DecoderExceptionFallback();
+            StringBuilder AlpnList = new StringBuilder(value.Length);
+            uint i = 0;
+            while (i < value.Length)
+            {
+                uint AlpnLength = value[i];
+                i++;
+                if (AlpnLength > value.Length - i)
+                {
+                    // Alpn longer than remaining buffer, print to the end.
+                    AlpnLength = (uint)value.Length - i;
+                }
+                try {
+                    String CurrentAlpn = utf8.GetString(value, (int)i, (int)AlpnLength);
+                    AlpnList.Append(CurrentAlpn);
+                    i += AlpnLength;
+                } catch {
+                    // Fall back to printing hex
+                    for (; AlpnLength > 0; AlpnLength--, i++)
+                    {
+                        AlpnList.Append(value[i].ToString("x2"));
+                        if (AlpnLength > 1) {
+                            AlpnList.Append(",");
+                        }
+                    }
+                }
+                if (i < value.Length)
+                {
+                    AlpnList.Append(';');
+                }
+            }
+            return AlpnList.ToString();
+        }
     }
 }
