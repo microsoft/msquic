@@ -361,6 +361,7 @@ function Invoke-RemoteExe {
 function Get-RemoteLogDirectory {
     param ([string]$Local, [string]$Remote, [string]$SmbDir, [switch]$Cleanup)
 
+    New-Item -Path $Local -ItemType Directory -Force | Out-Null
     if (![string]::IsNullOrWhiteSpace($SmbDir)) {
         Write-Host $SmbDir
         Write-Host $Local
