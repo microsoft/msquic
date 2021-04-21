@@ -89,7 +89,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 # Path for the WPR profile.
 $WprpFile = $RootDir + "\src\manifest\msquic.wprp"
 if ($ProfileInScriptDirectory) {
-    $WprpFile = Join-Path $RootDir MsQuic.wprp
+    $WprpFile = Join-Path $PSScriptRoot MsQuic.wprp
 }
 $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"
 $Clog2Text_lttng = "$HOME/.dotnet/tools/clog2text_lttng"
