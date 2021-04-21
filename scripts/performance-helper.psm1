@@ -362,6 +362,8 @@ function Get-RemoteLogDirectory {
     param ([string]$Local, [string]$Remote, [string]$SmbDir, [switch]$Cleanup)
 
     if (![string]::IsNullOrWhiteSpace($SmbDir)) {
+        Write-Host $SmbDir
+        Write-Host $Local
         robocopy $SmbDir $Local /e /IS /IT /IM | Out-Null
         if ($LASTEXITCODE -ne 1) {
             Write-Error "Robocopy failed: $LASTEXITCODE"

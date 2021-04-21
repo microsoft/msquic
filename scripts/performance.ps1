@@ -439,8 +439,18 @@ function Invoke-Test {
         Stop-Tracing -OutputDir $OutputDir -Test $Test
 
         if ($Record) {
-            # Copy local to combined
-            Get-RemoteLogDirectory -Local (Join-Path $OutputDir serverlogs $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
+            if ($Local) {
+                $LocalLogPath = (Join-Path $RemoteDirectory serverlogs)
+                Copy-Item -Path $LocalLogPath -Destination (Join-Path $OutputDir serverlogs $Test.ToString()) -Recurse -Force
+                try {
+                    Remove-Item -Path "$LocalLogPath/*" -Recurse -Force
+                } catch [System.Management.Automation.ItemNotFoundException] {
+                    # Ignore Not Found for when the directory does not exist
+                    # This will still throw if a file cannot successfuly be deleted
+                }
+            } else {
+                Get-RemoteLogDirectory -Local (Join-Path $OutputDir serverlogs $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
+            }
         }
     }
 
