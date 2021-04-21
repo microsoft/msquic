@@ -341,7 +341,12 @@ if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
         $BranchName = Get-CurrentBranch -RepoDir $RootDir
     } else {
         # Azure Build
-        $BranchName = $AzpBranchName.Substring(11);
+        $BuildReason = $env:BUILD_REASON
+        if ("Manual" -eq $BuildReason) {
+            $BranchName = "main"
+        } else {
+            $BranchName = $AzpBranchName.Substring(11);
+        }
     }
 } else {
     # PR Build
