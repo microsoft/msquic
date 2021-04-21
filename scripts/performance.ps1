@@ -436,7 +436,7 @@ function Invoke-Test {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
         Write-LogAndDebug $RemoteResults.ToString()
 
-        Stop-Tracing -OutputDir $OutputDir -Test $Test
+        Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test
 
         if ($Record) {
             if ($Local) {

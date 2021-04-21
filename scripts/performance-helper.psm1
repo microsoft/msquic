@@ -366,7 +366,7 @@ function Get-RemoteLogDirectory {
         Write-Host $SmbDir
         Write-Host $Local
         robocopy $SmbDir $Local /e /IS /IT /IM | Out-Null
-        if ($LASTEXITCODE -ne 1) {
+        if ($LASTEXITCODE -ne 3) {
             Write-Error "Robocopy failed: $LASTEXITCODE"
         } else {
             $global:LASTEXITCODE = 0
@@ -423,7 +423,7 @@ function Start-Tracing {
 }
 
 function Stop-Tracing {
-    param($OutputDir, $Test)
+    param($LocalDirectory, $OutputDir, $Test)
     if ($Record -and !$Local) {
         $LogScript = Join-Path $LocalDirectory log.ps1
         & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -ProfileInScriptDirectory
