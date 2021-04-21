@@ -353,7 +353,7 @@ function Invoke-RemoteExe {
         }
 
         if ($Record) {
-            & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -ProfileInScriptDirectory
+            & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -ProfileInScriptDirectory } | Out-Null
         }
     } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory
 }
@@ -426,7 +426,7 @@ function Stop-Tracing {
     param($LocalDirectory, $OutputDir, $Test)
     if ($Record -and !$Local) {
         $LogScript = Join-Path $LocalDirectory log.ps1
-        & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -ProfileInScriptDirectory
+        & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -ProfileInScriptDirectory | Out-Null
     }
 }
 
