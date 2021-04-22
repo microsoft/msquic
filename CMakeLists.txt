@@ -529,8 +529,10 @@ if (QUIC_ENABLE_LOGGING)
 
     if (WIN32)
         LIST(APPEND CMAKE_PROGRAM_PATH  "${PROJECT_BINARY_DIR}/submodules/clog/artifacts/win-x64")
+        set(CLOG_EXE  "${PROJECT_BINARY_DIR}/submodules/clog/artifacts/win-x64/clog")
     elseif (UNIX)
         LIST(APPEND CMAKE_PROGRAM_PATH  "${PROJECT_BINARY_DIR}/submodules/clog/artifacts/linux-x64")
+        set(CLOG_EXE  "${PROJECT_BINARY_DIR}/submodules/clog/artifacts/linux-x64/clog")
     endif()
 
     set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
