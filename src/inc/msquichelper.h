@@ -306,7 +306,9 @@ GetValue(
 {
     const size_t nameLen = strlen(name);
     for (int i = 0; i < argc; i++) {
-        if (_strnicmp(argv[i] + 1, name, nameLen) == 0) {
+        if (_strnicmp(argv[i] + 1, name, nameLen) == 0
+            && strlen(argv[i]) > 1 + nameLen + 1
+            && *(argv[i] + 1 + nameLen) == ':') {
             return argv[i] + 1 + nameLen + 1;
         }
     }
