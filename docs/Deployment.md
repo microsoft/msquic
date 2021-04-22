@@ -85,6 +85,8 @@ reg.exe add "HKLM\System\CurrentControlSet\Services\MsQuic\Parameters" /v Initia
 
 ## Windows
 
+> **Important** - ChaCha20-Poly1305 is not yet supported with MsQuic and Schannel, so this doesn't do anything yet.
+
 By default, the new cipher suite `TLS_CHACHA20_POLY1305_SHA256` is disabled. It can be enabled via the following command:
 
 ```PowerShell
