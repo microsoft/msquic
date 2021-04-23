@@ -114,16 +114,7 @@ void
 
 extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
-#ifdef QUIC_CLOG
 
-#define QuicTraceLogStreamVerboseEnabled() TRUE
-#define QuicTraceLogErrorEnabled()   TRUE
-#define QuicTraceLogWarningEnabled() TRUE
-#define QuicTraceLogInfoEnabled()    TRUE
-#define QuicTraceLogVerboseEnabled() TRUE
-#define QuicTraceEventEnabled(x) TRUE
-
-#else
 
 #ifdef QUIC_EVENTS_STUB
 
@@ -179,6 +170,8 @@ QuicEtwCallback(
 #pragma warning(pop)
 
 #define QuicTraceEventEnabled(Name) EventEnabledQuic##Name()
+
+#ifndef QUIC_CLOG
 #if defined(_MSVC_TRADITIONAL) && _MSVC_TRADITIONAL
 #define _QuicTraceEvent(Name, Args) EventWriteQuic##Name##Args
 #define QuicTraceEvent(Name, Fmt, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
@@ -187,6 +180,7 @@ QuicEtwCallback(
 #endif
 
 #define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
+#endif
 
 #endif // QUIC_EVENTS_MANIFEST_ETW
 
@@ -242,7 +236,9 @@ QuicTraceStubVarArgs(
 #define QuicTraceLogVerboseEnabled() EventEnabledQuicLogVerbose()
 
 #define QUIC_ETW_BUFFER_LENGTH 128
+#define QuicTraceLogStreamVerboseEnabled() EventEnabledQuicStreamLogVerbose()
 
+#ifndef QUIC_CLOG
 #define LogEtw(EventName, Fmt, ...) \
     if (EventEnabledQuicLog##EventName()) { \
         char EtwBuffer[QUIC_ETW_BUFFER_LENGTH]; \
@@ -267,13 +263,9 @@ QuicTraceStubVarArgs(
 #define QuicTraceLogConnInfo(Name, Ptr, Fmt, ...)       LogEtwType(Conn, Info, Ptr, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogConnVerbose(Name, Ptr, Fmt, ...)    LogEtwType(Conn, Verbose, Ptr, Fmt, ##__VA_ARGS__)
 
-#define QuicTraceLogStreamVerboseEnabled() EventEnabledQuicStreamLogVerbose()
-
 #define QuicTraceLogStreamError(Name, Ptr, Fmt, ...)    LogEtwType(Stream, Error, Ptr, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogStreamWarning(Name, Ptr, Fmt, ...)  LogEtwType(Stream, Warning, Ptr, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogStreamInfo(Name, Ptr, Fmt, ...)     LogEtwType(Stream, Info, Ptr, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogStreamVerbose(Name, Ptr, Fmt, ...)  LogEtwType(Stream, Verbose, Ptr, Fmt, ##__VA_ARGS__)
-
-#endif // QUIC_LOGS_MANIFEST_ETW
-
 #endif // QUIC_CLOG
+#endif // QUIC_LOGS_MANIFEST_ETW

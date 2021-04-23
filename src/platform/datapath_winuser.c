@@ -1315,12 +1315,14 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
-    QuicTraceEvent(
+#ifdef BUGBUG
+    uicTraceEvent(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
         CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+#endif
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
@@ -1826,12 +1828,14 @@ CxPlatSocketCreateTcpInternal(
         goto Error;
     }
 
-    QuicTraceEvent(
+    #ifdef BUGBUG
+    uicTraceEvent(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
         CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+    #endif
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
@@ -2127,12 +2131,14 @@ CxPlatSocketCreateTcpListener(
         goto Error;
     }
 
-    QuicTraceEvent(
+    #ifdef BUGBUG
+    uicTraceEvent(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
         CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CLOG_BYTEARRAY(0, NULL));
+    #endif
 
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;

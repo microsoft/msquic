@@ -505,7 +505,8 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
                 MsQuicLib.DefaultCompatibilityListLength :
                 (uint32_t)(CompatibilityListByteLength / sizeof(uint32_t)));
 
-        QuicTraceEvent(
+        #ifdef BUGBUG
+        uicTraceEvent(
             ConnClientCompatibleVersionList,
             "[conn][%p] Client VNI Compatible Version List: %!VNL!",
             Connection,
@@ -514,6 +515,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
                     MsQuicLib.DefaultCompatibilityListLength * sizeof(uint32_t):
                     CompatibilityListByteLength,
                 VNIBuf));
+        #endif
 
         QuicTraceEvent(
             ConnClientReceivedVersionList,

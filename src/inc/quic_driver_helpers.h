@@ -10,6 +10,11 @@ Abstract:
 
 #pragma once
 
+#ifdef QUIC_CLOG
+#include "quic_driver_helpers.clog.h"
+#endif
+
+
 #define QUIC_TEST_APIS 1
 #include "quic_platform.h"
 #include "quic_trace.h"

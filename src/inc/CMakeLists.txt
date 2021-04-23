@@ -41,5 +41,18 @@ if(WIN32)
     target_link_libraries(inc INTERFACE ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
 endif()
 
+
+
+set(SOURCES
+    quic_driver_helpers.h)
+
+# Allow CLOG to preprocess all the source files.
+add_clog_library(quic.inc.clog DYNAMIC ${SOURCES})
+if(QUIC_ENABLE_LOGGING)
+    set_property(TARGET quic.inc.clog.provider PROPERTY FOLDER "helpers")
+endif()
+
+
+
 add_library(warnings INTERFACE)
 target_compile_options(warnings INTERFACE ${QUIC_WARNING_FLAGS})

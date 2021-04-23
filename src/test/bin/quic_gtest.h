@@ -19,6 +19,15 @@
 #include "quic_gtest.h.clog.h"
 #endif
 
+
+#ifndef QUIC_LOGS_MANIFEST_ETW
+#error bad
+#endif
+
+#ifndef QUIC_CLOG
+#error bad
+#endif
+
 extern bool TestingKernelMode;
 
 class WithBool : public testing::Test,

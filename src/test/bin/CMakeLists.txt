@@ -15,7 +15,8 @@ target_include_directories(msquictest PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
 set_property(TARGET msquictest PROPERTY FOLDER "tests")
 
-target_link_libraries(msquictest msquic testlib platform inc gtest msquictest.clog)
+target_link_libraries(msquictest msquic testlib platform inc gtest msquictest.clog quic.inc.clog quic.inc.clog.provider)
+
 
 add_test(NAME msquictest
          COMMAND msquictest
