@@ -1271,6 +1271,26 @@ TEST_P(WithFamilyArgs, AckSendDelay) {
     }
 }
 
+TEST(Misc, AbortPausedReceive) {
+    TestLogger Logger("AbortPausedReceive");
+    if (TestingKernelMode) {
+        BOOLEAN IsPaused = TRUE;
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, IsPaused));
+    } else {
+        QuicTestAbortReceive(true);
+    }
+}
+
+TEST(Misc, AbortPendingReceive) {
+    TestLogger Logger("AbortPendingReceive");
+    if (TestingKernelMode) {
+        BOOLEAN IsPaused = FALSE;
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, IsPaused));
+    } else {
+        QuicTestAbortReceive(false);
+    }
+}
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {

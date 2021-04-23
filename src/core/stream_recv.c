@@ -68,6 +68,7 @@ QuicStreamRecvShutdown(
         //
         Stream->Flags.RemoteCloseFin = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
+        Silent = TRUE; // To indicate we try to shutdown complete.
         goto Exit;
     }
 

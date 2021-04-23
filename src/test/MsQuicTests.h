@@ -334,6 +334,11 @@ QuicTestAckSendDelay(
     _In_ int Family
     );
 
+void
+QuicTestAbortReceive(
+    _In_ bool IsPaused
+    );
+
 //
 // QuicDrill tests
 //
@@ -771,4 +776,8 @@ typedef struct {
 #define IOCTL_QUIC_RUN_EXPIRED_CLIENT_CERT \
     QUIC_CTL_CODE(62, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 62
+#define IOCTL_QUIC_RUN_ABORT_RECEIVE \
+    QUIC_CTL_CODE(63, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // BOOLEAN
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 63
