@@ -57,14 +57,7 @@ PerfServer::Start(
 
     StopEvent = _StopEvent;
 
-    return
-        Listener.Start(
-            Alpn,
-            &LocalAddr,
-            [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
-                return ((PerfServer*)Context)->ListenerCallback(Handle, Event);
-            },
-            this);
+    return Listener.Start(Alpn, &LocalAddr);
 }
 
 QUIC_STATUS

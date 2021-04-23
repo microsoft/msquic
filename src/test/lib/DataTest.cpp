@@ -950,42 +950,15 @@ QuicAbortiveTransfers(
     {
         AbortiveTestContext ClientContext(nullptr, false, Flags, ExpectedError, ShutdownFlags), ServerContext(ServerConfiguration, true, Flags, ExpectedError, ShutdownFlags);
 
-        ListenerScope Listener;
-        QUIC_STATUS Status =
-            MsQuic->ListenerOpen(
-                Registration,
-                QuicAbortiveListenerHandler,
-                &ServerContext,
-                &Listener.Handle);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->ListenerOpen failed, 0x%x.", Status);
-            return;
-        }
-
-        Status = MsQuic->ListenerStart(Listener.Handle, Alpn, Alpn.Length(), nullptr);
-
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->ListenerStart failed, 0x%x.", Status);
-            return;
-        }
-
-        uint32_t Size = sizeof(ServerLocalAddr.SockAddr);
-        Status =
-            MsQuic->GetParam(
-                Listener.Handle,
-                QUIC_PARAM_LEVEL_LISTENER,
-                QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
-                &Size,
-                &(ServerLocalAddr.SockAddr));
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->GetParam failed, 0x%x.", Status);
-            return;
-        }
+        MsQuicListener Listener(Registration, QuicAbortiveListenerHandler, &ServerContext);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         //
         // Start the client
         //
-        Status =
+        QUIC_STATUS Status =
             MsQuic->ConnectionOpen(
                 Registration,
                 QuicAbortiveConnectionHandler,
@@ -1438,41 +1411,15 @@ QuicTestReceiveResume(
         //
         // Start the server.
         //
-        ListenerScope Listener;
-        QUIC_STATUS Status =
-            MsQuic->ListenerOpen(
-                Registration,
-                QuicRecvResumeListenerHandler,
-                &ServerContext,
-                &Listener.Handle);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->ListenerOpen failed, 0x%x.", Status);
-            return;
-        }
-
-        Status = MsQuic->ListenerStart(Listener.Handle, Alpn, Alpn.Length(), nullptr);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->ListenerStart failed, 0x%x.", Status);
-            return;
-        }
-
-        uint32_t Size = sizeof(ServerLocalAddr.SockAddr);
-        Status =
-            MsQuic->GetParam(
-                Listener.Handle,
-                QUIC_PARAM_LEVEL_LISTENER,
-                QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
-                &Size,
-                &ServerLocalAddr.SockAddr);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->GetParam failed, 0x%x.", Status);
-            return;
-        }
+        MsQuicListener Listener(Registration, QuicRecvResumeListenerHandler, &ServerContext);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         //
         // Start the client.
         //
-        Status =
+        QUIC_STATUS Status =
             MsQuic->ConnectionOpen(
                 Registration,
                 QuicRecvResumeConnectionHandler,
@@ -1699,41 +1646,15 @@ QuicTestReceiveResumeNoData(
         //
         // Start the server.
         //
-        ListenerScope Listener;
-        QUIC_STATUS Status =
-            MsQuic->ListenerOpen(
-                Registration,
-                QuicRecvResumeListenerHandler,
-                &ServerContext,
-                &Listener.Handle);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->ListenerOpen failed, 0x%x.", Status);
-            return;
-        }
-
-        Status = MsQuic->ListenerStart(Listener.Handle, Alpn, Alpn.Length(), nullptr);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->ListenerStart failed, 0x%x.", Status);
-            return;
-        }
-
-        uint32_t Size = sizeof(ServerLocalAddr.SockAddr);
-        Status =
-            MsQuic->GetParam(
-                Listener.Handle,
-                QUIC_PARAM_LEVEL_LISTENER,
-                QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
-                &Size,
-                &ServerLocalAddr.SockAddr);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->GetParam failed, 0x%x.", Status);
-            return;
-        }
+        MsQuicListener Listener(Registration, QuicRecvResumeListenerHandler, &ServerContext);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         //
         // Start the client.
         //
-        Status =
+        QUIC_STATUS Status =
             MsQuic->ConnectionOpen(
                 Registration,
                 QuicRecvResumeConnectionHandler,
@@ -2050,41 +1971,15 @@ QuicTestAckSendDelay(
         //
         // Start the server.
         //
-        ListenerScope Listener;
-        QUIC_STATUS Status =
-            MsQuic->ListenerOpen(
-                Registration,
-                QuicAckDelayListenerHandler,
-                &TestContext,
-                &Listener.Handle);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->ListenerOpen failed, 0x%x.", Status);
-            return;
-        }
-
-        Status = MsQuic->ListenerStart(Listener.Handle, Alpn, Alpn.Length(), nullptr);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->ListenerStart failed, 0x%x.", Status);
-            return;
-        }
-
-        uint32_t Size = sizeof(ServerLocalAddr.SockAddr);
-        Status =
-            MsQuic->GetParam(
-                Listener.Handle,
-                QUIC_PARAM_LEVEL_LISTENER,
-                QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
-                &Size,
-                &ServerLocalAddr.SockAddr);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->GetParam failed, 0x%x.", Status);
-            return;
-        }
+        MsQuicListener Listener(Registration, QuicAckDelayListenerHandler, &TestContext);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         //
         // Start the client.
         //
-        Status =
+        QUIC_STATUS Status =
             MsQuic->ConnectionOpen(
                 Registration,
                 QuicAckDelayConnectionHandler,

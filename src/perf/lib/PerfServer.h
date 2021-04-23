@@ -94,6 +94,16 @@ private:
         _Inout_ QUIC_LISTENER_EVENT* Event
         );
 
+    static
+    QUIC_STATUS
+    ListenerCallbackStatic(
+        _In_ HQUIC ListenerHandle,
+        _In_ void* Context,
+        _Inout_ QUIC_LISTENER_EVENT* Event
+        ) {
+        return ((PerfServer*)Context)->ListenerCallback(ListenerHandle, Event);
+    }
+
     QUIC_STATUS
     ConnectionCallback(
         _In_ HQUIC ConnectionHandle,
@@ -129,7 +139,7 @@ private:
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
             .SetSendBufferingEnabled(false)
             .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT)};
-    MsQuicListener Listener {Registration};
+    MsQuicListener Listener {Registration, ListenerCallbackStatic, this};
     QUIC_ADDR LocalAddr;
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
