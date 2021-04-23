@@ -282,6 +282,21 @@ function Get-ExeName {
 
 function Remove-PerfServices {
     if ($IsWindows) {
+        if ($null -ne (Get-Service -Name "secnetperfdrvpriv" -ErrorAction Ignore)) {
+            try {
+                net.exe stop secnetperfdrvpriv /y | Out-Null
+            }
+            catch {}
+            sc.exe delete secnetperfdrvpriv /y | Out-Null
+        }
+        if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
+            try {
+                net.exe stop msquicpriv /y | Out-Null
+            }
+            catch {}
+            sc.exe delete msquicpriv /y | Out-Null
+        }
+
         Invoke-TestCommand -Session $Session -ScriptBlock {
             if ($null -ne (Get-Service -Name "secnetperfdrvpriv" -ErrorAction Ignore)) {
                 try {

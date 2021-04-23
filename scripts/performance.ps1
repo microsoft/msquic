@@ -394,6 +394,17 @@ function Invoke-Test {
         $RemoteArguments += " -stats:1"
     }
 
+    if ($Kernel) {
+        $Arch = Split-Path (Split-Path $LocalExe -Parent) -Leaf
+        $RootBinPath = Split-Path (Split-Path (Split-Path $LocalExe -Parent) -Parent) -Parent
+        $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
+
+        Copy-Item (Join-Path $KernelDir "secnetperfdrvpriv.sys") (Split-Path $LocalExe -Parent)
+        Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $LocalExe -Parent)
+
+        $LocalArguments = "-driverNamePriv:secnetperfdrvpriv $LocalArguments"
+    }
+
     Write-LogAndDebug "Running Remote: $RemoteExe Args: $RemoteArguments"
 
     # Starting the server
@@ -438,6 +449,12 @@ function Invoke-Test {
             $LocalResults | Write-LogAndDebug
         }
     } finally {
+        if ($Kernel) {
+            net.exe stop msquicpriv /y | Out-Null
+            sc.exe delete msquictestpriv | Out-Null
+            sc.exe delete msquicpriv | Out-Null
+        }
+
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
         Write-LogAndDebug $RemoteResults.ToString()
 
