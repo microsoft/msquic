@@ -283,6 +283,8 @@ typedef union QUIC_ABORTIVE_TRANSFER_FLAGS {
         uint32_t WaitForStream : 1;
         uint32_t ShutdownDirection : 2;
         uint32_t UnidirectionalStream : 1;
+        uint32_t PauseReceive : 1;
+        uint32_t PendReceive : 1;
     };
     uint32_t IntValue;
 } QUIC_ABORTIVE_TRANSFER_FLAGS;

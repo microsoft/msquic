@@ -735,6 +735,9 @@ QuicAbortiveStreamHandler(
         case QUIC_STREAM_EVENT_START_COMPLETE:
             break;
         case QUIC_STREAM_EVENT_RECEIVE:
+            if (TestContext->Flags.PauseReceive) {
+                Event->RECEIVE.TotalBufferLength = 0; // Pause by not draining
+            }
             if (TestContext->Server &&
                 !TestContext->Flags.ClientShutdown &&
                 TestContext->Flags.SendDataOnStream) {
@@ -748,6 +751,9 @@ QuicAbortiveStreamHandler(
                     TestContext->TestResult = Status;
                 }
                 CxPlatEventSet(TestContext->TestEvent.Handle);
+            }
+            if (TestContext->Flags.PendReceive) {
+                return QUIC_STATUS_PENDING;
             }
             break;
         case QUIC_STREAM_EVENT_SEND_COMPLETE:

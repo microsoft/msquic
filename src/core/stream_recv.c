@@ -60,7 +60,7 @@ QuicStreamRecvShutdown(
     Stream->Flags.ReceiveDataPending = FALSE;
     Stream->Flags.ReceiveCallPending = FALSE;
 
-    if (Stream->RecvMaxLength == UINT64_MAX) {
+    if (Stream->RecvMaxLength != UINT64_MAX) {
         //
         // The peer has already gracefully closed, but we just haven't drained
         // the receives to that point. Ignore this abort from the app and jump
