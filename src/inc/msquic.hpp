@@ -531,7 +531,7 @@ struct MsQuicConnection {
         _In_ void* Context = nullptr
         ) noexcept {
         Handle = ConnectionHandle;
-        MsQuic->SetCallbackHandler(Handle, Handler, Context);
+        MsQuic->SetCallbackHandler(Handle, (void*)Handler, Context);
         InitStatus = QUIC_STATUS_SUCCESS;
     }
 
