@@ -998,7 +998,7 @@ QUIC_STATUS
     _In_ _Pre_defensive_ HQUIC Connection,
     _In_ _Pre_defensive_ HQUIC Configuration,
     _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
+    _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,
     _In_ uint16_t ServerPort // Host byte order
     );
