@@ -255,6 +255,7 @@ TEST_F(CryptTest, WellKnownClientInitial)
     QuicPacketKeyFree(NewPacketKey);
 }
 
+#ifndef QUIC_DISABLE_CHACHA20_TESTS
 TEST_F(CryptTest, WellKnownChaChaPoly)
 {
     const QuicBuffer SecretBuffer("9ac312a7f877468ebe69422748ad00a15443f18203a07d6060f688f30f21632b");
@@ -348,6 +349,7 @@ TEST_F(CryptTest, HpMaskChaCha20)
 
     CxPlatHpKeyFree(HpKey);
 }
+#endif // QUIC_DISABLE_CHACHA20_TESTS
 
 TEST_F(CryptTest, HpMaskAes256)
 {
