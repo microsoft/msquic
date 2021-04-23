@@ -292,6 +292,24 @@ IsValue(
     return _strnicmp(name, toTestAgainst, min(strlen(name), strlen(toTestAgainst))) == 0;
 }
 
+inline
+bool
+GetFlag(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name
+    )
+{
+    const size_t nameLen = strlen(name);
+    for (int i = 0; i < argc; i++) {
+        if (_strnicmp(argv[i] + 1, name, nameLen) == 0
+            && strlen(argv[i]) == nameLen + 1) {
+            return true;
+        }
+    }
+    return false;
+}
+
 //
 // Helper function that searches the list of args for a given
 // parameter name, insensitive to case.

@@ -50,8 +50,8 @@ main(
     )
 {
     if (argc < 2 ||
-        GetValue(argc, argv, "help") ||
-        GetValue(argc, argv, "?")) {
+        GetFlag(argc, argv, "help") ||
+        GetFlag(argc, argv, "?")) {
         PrintUsage();
         return -1;
     }
