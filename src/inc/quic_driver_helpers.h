@@ -11,7 +11,7 @@ Abstract:
 #pragma once
 
 #ifdef QUIC_CLOG
-#include "quic_driver_helpers.clog.h"
+#include "quic_driver_helpers.h.clog.h"
 #endif
 
 
