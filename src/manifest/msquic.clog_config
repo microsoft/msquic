@@ -87,6 +87,12 @@
         "CustomDecoder": "msquic.clog_config.Types.VNL"
       },
       {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!ALPN!",
+        "CustomDecoder": "msquic.clog_config.Types.ALPN"
+      },
+      {
         "EncodingType": "UInt32",
         "CType": "CLOG_UINT32",
         "DefinationEncoding": "03u"

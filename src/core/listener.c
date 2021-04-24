@@ -303,7 +303,8 @@ MsQuicListenerStart(
         "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!",
         Listener,
         Listener->Binding,
-        CLOG_BYTEARRAY_BUGBUG(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
+        CLOG_BYTEARRAY_BUGBUG(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
+        CLOG_BYTEARRAY_BUGBUG(Listener->AlpnListLength, Listener->AlpnList));
 
 Error:
 
@@ -386,7 +387,7 @@ QuicListenerTraceRundown(
             "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!",
             Listener,
             Listener->Binding,
-            CLOG_BYTEARRAY_BUGBUG(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
+            CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
     }
 }
 
