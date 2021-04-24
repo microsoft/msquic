@@ -283,13 +283,13 @@ QuicVersionNegotiationExtParseClientVerNegInfo(
         ConnClientCompatibleVersionList,
         "[conn][%p] Client VNI Compatible Version List: %!VNL!",
         Connection,
-        CLOG_BYTEARRAY(ClientVNI->CompatibleVersionCount * sizeof(uint32_t), ClientVNI->CompatibleVersions));
+        CLOG_BYTEARRAY_BUGBUG(ClientVNI->CompatibleVersionCount * sizeof(uint32_t), ClientVNI->CompatibleVersions));
 
     QuicTraceEvent(
         ConnClientReceivedVersionList,
         "[conn][%p] Client VNI Received Version List: %!VNL!",
         Connection,
-        CLOG_BYTEARRAY(ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t), ClientVNI->RecvNegotiationVersions));
+        CLOG_BYTEARRAY_BUGBUG(ClientVNI->RecvNegotiationVerCount * sizeof(uint32_t), ClientVNI->RecvNegotiationVersions));
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -366,7 +366,7 @@ QuicVersionNegotiationExtParseServerVerNegInfo(
         ConnServerSupportedVersionList,
         "[conn][%p] Server VNI Supported Version List: %!VNL!",
         Connection,
-        CLOG_BYTEARRAY(ServerVNI->SupportedVersionCount * sizeof(uint32_t), ServerVNI->SupportedVersions));
+        CLOG_BYTEARRAY_BUGBUG(ServerVNI->SupportedVersionCount * sizeof(uint32_t), ServerVNI->SupportedVersions));
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -429,7 +429,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
             ConnServerSupportedVersionList,
             "[conn][%p] Server VNI Supported Version List: %!VNL!",
             Connection,
-            CLOG_BYTEARRAY(DesiredVersionsListLength * sizeof(uint32_t), VNIBuf));
+            CLOG_BYTEARRAY_BUGBUG(DesiredVersionsListLength * sizeof(uint32_t), VNIBuf));
     } else {
         //
         // Generate Client VNI
@@ -521,7 +521,7 @@ QuicVersionNegotiationExtEncodeVersionNegotiationInfo(
             ConnClientReceivedVersionList,
             "[conn][%p] Client VNI Received Version List: %!VNL!",
             Connection,
-            CLOG_BYTEARRAY(
+            CLOG_BYTEARRAY_BUGBUG(
                 Connection->ReceivedNegotiationVersionsLength * sizeof(uint32_t),
                 Connection->ReceivedNegotiationVersions));
         }

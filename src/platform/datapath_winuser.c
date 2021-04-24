@@ -2827,7 +2827,7 @@ CxPlatSocketHandleUnreachableError(
         "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
         SocketProc->Parent,
         ErrorCode,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+        CLOG_BYTEARRAY_BUGBUG(sizeof(*RemoteAddr), RemoteAddr));
 #endif
 
     SocketProc->Parent->Datapath->UdpHandlers.Unreachable(
@@ -2999,7 +2999,7 @@ CxPlatDataPathUdpRecvComplete(
             DatapathTooLarge,
             "[data][%p] Received larger than expected datagram from %!ADDR!",
             SocketProc->Parent,
-            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CLOG_BYTEARRAY_BUGBUG(sizeof(*RemoteAddr), RemoteAddr));
 #endif
 
         //
@@ -3089,8 +3089,8 @@ CxPlatDataPathUdpRecvComplete(
             SocketProc->Parent,
             NumberOfBytesTransferred,
             MessageLength,
-            CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CLOG_BYTEARRAY_BUGBUG(sizeof(*LocalAddr), LocalAddr),
+            CLOG_BYTEARRAY_BUGBUG(sizeof(*RemoteAddr), RemoteAddr));
 
         CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
 
@@ -3245,8 +3245,8 @@ CxPlatDataPathTcpRecvComplete(
             SocketProc->Parent,
             NumberOfBytesTransferred,
             NumberOfBytesTransferred,
-            CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CLOG_BYTEARRAY_BUGBUG(sizeof(*LocalAddr), LocalAddr),
+            CLOG_BYTEARRAY_BUGBUG(sizeof(*RemoteAddr), RemoteAddr));
 
         CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
 
@@ -3661,8 +3661,8 @@ CxPlatSocketSendInline(
         SendData->TotalSize,
         SendData->WsaBufferCount,
         SendData->SegmentSize,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-        CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+        CLOG_BYTEARRAY_BUGBUG(sizeof(*RemoteAddress), RemoteAddress),
+        CLOG_BYTEARRAY_BUGBUG(sizeof(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.
