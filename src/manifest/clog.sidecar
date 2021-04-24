@@ -14583,6 +14583,892 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
+    },
+    "PerfControlClientCanceledRequest": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "497",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[perf] Client %p canceled request %p",
+      "UniqueId": "PerfControlClientCanceledRequest",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "PerfDriverStarted": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "498",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[perf] Started",
+      "UniqueId": "PerfDriverStarted",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PerfDriverStopped": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "499",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[perf] Stopped",
+      "UniqueId": "PerfDriverStopped",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PerfControlClientCreated": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "500",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[perf] Client %p created",
+      "UniqueId": "PerfControlClientCreated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PerfControlClientCleaningUp": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "501",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[perf] Client %p cleaning up",
+      "UniqueId": "PerfControlClientCleaningUp",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PerformanceStopCancelled": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "502",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[perf] Performance Stop Cancelled",
+      "UniqueId": "PerformanceStopCancelled",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PrintBufferReturn": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "503",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[perf] Print Buffer %d %s\\n",
+      "UniqueId": "PrintBufferReturn",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PerfControlClientIoctl": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "504",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[perf] Client %p executing write IOCTL %u",
+      "UniqueId": "PerfControlClientIoctl",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PerfControlClientIoctlComplete": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "505",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[perf] Client %p completing request, 0x%x",
+      "UniqueId": "PerfControlClientIoctlComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "PerfControlInitialized": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "506",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[perf] Control interface initialized",
+      "UniqueId": "PerfControlInitialized",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfControlUninitializing": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "507",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[perf] Control interface uninitializing",
+      "UniqueId": "PerfControlUninitializing",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PerfControlUninitialized": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "508",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[perf] Control interface uninitialized",
+      "UniqueId": "PerfControlUninitialized",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathQueryUdpSegmentFailed": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "533",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[data] Query for UDP_SEGMENT failed, 0x%x",
+      "UniqueId": "DatapathQueryUdpSegmentFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathCreated": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "540",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+      "UniqueId": "DatapathCreated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "DatapathOpenTcpSocketFailedAsync": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "544",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[data] RSS helper socket failed to open (async), 0x%x",
+      "UniqueId": "DatapathOpenTcpSocketFailedAsync",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathQueryRssScalabilityInfoFailed": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "545",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
+      "UniqueId": "DatapathQueryRssScalabilityInfoFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathQueryRssScalabilityInfoFailedAsync": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "546",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed (async), 0x%x",
+      "UniqueId": "DatapathQueryRssScalabilityInfoFailedAsync",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathOpenUdpSocketFailedAsync": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "547",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[data] UDP send segmentation helper socket failed to open (async), 0x%x",
+      "UniqueId": "DatapathOpenUdpSocketFailedAsync",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathQueryUdpSendMsgFailedAsync": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "549",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[data] Query for UDP_SEND_MSG_SIZE failed (async), 0x%x",
+      "UniqueId": "DatapathQueryUdpSendMsgFailedAsync",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathQueryRecvMaxCoalescedSizeFailedAsync": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "551",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x",
+      "UniqueId": "DatapathQueryRecvMaxCoalescedSizeFailedAsync",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathDropEmptyMdl": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "552",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[%p] Dropping datagram with empty mdl.",
+      "UniqueId": "DatapathDropEmptyMdl",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathDropMissingInfo": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "553",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[%p] Dropping datagram missing IP_PKTINFO/IP_RECVERR.",
+      "UniqueId": "DatapathDropMissingInfo",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathDropTooBig": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "554",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[%p] Dropping datagram with too many bytes (%llu).",
+      "UniqueId": "DatapathDropTooBig",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathDropMdlMapFailure": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "555",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[%p] Failed to map MDL chain",
+      "UniqueId": "DatapathDropMdlMapFailure",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathFragmented": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "556",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[%p] Dropping datagram with fragmented MDL.",
+      "UniqueId": "DatapathFragmented",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathDropAllocRecvContextFailure": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "557",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[%p] Couldn't allocate receive context.",
+      "UniqueId": "DatapathDropAllocRecvContextFailure",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathDropAllocRecvBufferFailure": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "558",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[%p] Couldn't allocate receive buffers.",
+      "UniqueId": "DatapathDropAllocRecvBufferFailure",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathUroExceeded": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "559",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[%p] Exceeded URO preallocation capacity.",
+      "UniqueId": "DatapathUroExceeded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathUnreachableMsg": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "560",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[sock][%p] Unreachable error from %!ADDR!",
+      "UniqueId": "DatapathUnreachableMsg",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "WindowsKernelLoaded": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "569",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ sys] Loaded",
+      "UniqueId": "WindowsKernelLoaded",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "WindowsKernelUnloaded": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "570",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ sys] Unloaded",
+      "UniqueId": "WindowsKernelUnloaded",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "WindowsKernelInitialized": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "571",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
+      "UniqueId": "WindowsKernelInitialized",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "WindowsKernelUninitialized": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "572",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ sys] Uninitialized",
+      "UniqueId": "WindowsKernelUninitialized",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "TestControlClientCanceledRequest": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "637",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[test] Client %p canceled request %p",
+      "UniqueId": "TestControlClientCanceledRequest",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "TestControlClientCreated": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "638",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[test] Client %p created",
+      "UniqueId": "TestControlClientCreated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "TestControlClientCleaningUp": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "639",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[test] Client %p cleaning up",
+      "UniqueId": "TestControlClientCleaningUp",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "TestControlClientIoctl": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "640",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[test] Client %p executing IOCTL %u",
+      "UniqueId": "TestControlClientIoctl",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "TestControlClientIoctlComplete": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "641",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[test] Client %p completing request, 0x%x",
+      "UniqueId": "TestControlClientIoctlComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "TestControlInitialized": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "642",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[test] Control interface initialized",
+      "UniqueId": "TestControlInitialized",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "TestControlUninitializing": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "643",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[test] Control interface uninitializing",
+      "UniqueId": "TestControlUninitializing",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "TestControlUninitialized": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "644",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[test] Control interface uninitialized",
+      "UniqueId": "TestControlUninitialized",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "TestDriverFailureLocation": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "645",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[test] File: %s, Function: %s, Line: %d",
+      "UniqueId": "TestDriverFailureLocation",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "TestDriverFailure": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "646",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[test] FAIL: %s",
+      "UniqueId": "TestDriverFailure",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "TestDriverStarted": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "647",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[test] Started",
+      "UniqueId": "TestDriverStarted",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "TestDriverStopped": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "648",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[test] Stopped",
+      "UniqueId": "TestDriverStopped",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
     }
   },
   "ConfigFile": {
@@ -18140,6 +19026,231 @@
         "UniquenessHash": "183e91b7-6ad7-7a8b-0d77-94004bde6757",
         "TraceID": "SchannelProcessingData",
         "EncodingString": "[conn][%p] Processing %u received bytes"
+      },
+      {
+        "UniquenessHash": "a8e218d7-5268-b267-37f8-7d52b57a9b8d",
+        "TraceID": "PerfControlClientCanceledRequest",
+        "EncodingString": "[perf] Client %p canceled request %p"
+      },
+      {
+        "UniquenessHash": "cbb6dfec-610a-8ac9-6e81-bfcc4a3cf1d0",
+        "TraceID": "PerfDriverStarted",
+        "EncodingString": "[perf] Started"
+      },
+      {
+        "UniquenessHash": "aa784cdc-ddba-63bf-3353-f49cab3704ff",
+        "TraceID": "PerfDriverStopped",
+        "EncodingString": "[perf] Stopped"
+      },
+      {
+        "UniquenessHash": "3bf75e53-3309-6c6a-eb4e-f863fe2acbe5",
+        "TraceID": "PerfControlClientCreated",
+        "EncodingString": "[perf] Client %p created"
+      },
+      {
+        "UniquenessHash": "90cb187a-83f2-bfb3-7999-aa5a4456940d",
+        "TraceID": "PerfControlClientCleaningUp",
+        "EncodingString": "[perf] Client %p cleaning up"
+      },
+      {
+        "UniquenessHash": "99857768-2aa8-73b4-9fcc-4ec0f76d3746",
+        "TraceID": "PerformanceStopCancelled",
+        "EncodingString": "[perf] Performance Stop Cancelled"
+      },
+      {
+        "UniquenessHash": "11eead25-b324-9846-3de0-2aa73980bc0b",
+        "TraceID": "PrintBufferReturn",
+        "EncodingString": "[perf] Print Buffer %d %s\\n"
+      },
+      {
+        "UniquenessHash": "ff32f865-3179-13d0-8cc9-a70db92aae6d",
+        "TraceID": "PerfControlClientIoctl",
+        "EncodingString": "[perf] Client %p executing write IOCTL %u"
+      },
+      {
+        "UniquenessHash": "612e4adb-52a7-78a4-200f-5cfb76ad9713",
+        "TraceID": "PerfControlClientIoctlComplete",
+        "EncodingString": "[perf] Client %p completing request, 0x%x"
+      },
+      {
+        "UniquenessHash": "0ba57698-ca5f-449b-4d87-183b7ea2918b",
+        "TraceID": "PerfControlInitialized",
+        "EncodingString": "[perf] Control interface initialized"
+      },
+      {
+        "UniquenessHash": "bce70700-af58-e03b-5021-93a28f3dd74f",
+        "TraceID": "PerfControlUninitializing",
+        "EncodingString": "[perf] Control interface uninitializing"
+      },
+      {
+        "UniquenessHash": "22229503-d941-59c2-95d5-6d3123dab580",
+        "TraceID": "PerfControlUninitialized",
+        "EncodingString": "[perf] Control interface uninitialized"
+      },
+      {
+        "UniquenessHash": "fd2c68c0-8a5e-b4bf-9d40-937c67e99fdd",
+        "TraceID": "DatapathQueryUdpSegmentFailed",
+        "EncodingString": "[data] Query for UDP_SEGMENT failed, 0x%x"
+      },
+      {
+        "UniquenessHash": "1cde4174-4172-15b7-b59b-dcbb6410b43a",
+        "TraceID": "DatapathCreated",
+        "EncodingString": "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!"
+      },
+      {
+        "UniquenessHash": "3fa7bab2-3b0c-9bb8-549d-167f35ace387",
+        "TraceID": "DatapathOpenTcpSocketFailedAsync",
+        "EncodingString": "[data] RSS helper socket failed to open (async), 0x%x"
+      },
+      {
+        "UniquenessHash": "89ed61ea-4393-6369-8aeb-35d7b01a2b02",
+        "TraceID": "DatapathQueryRssScalabilityInfoFailed",
+        "EncodingString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x"
+      },
+      {
+        "UniquenessHash": "74f297f4-8e97-b395-7e1b-bf46a620caa1",
+        "TraceID": "DatapathQueryRssScalabilityInfoFailedAsync",
+        "EncodingString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed (async), 0x%x"
+      },
+      {
+        "UniquenessHash": "b68b4500-98ad-8200-72d3-788a4f0af3d1",
+        "TraceID": "DatapathOpenUdpSocketFailedAsync",
+        "EncodingString": "[data] UDP send segmentation helper socket failed to open (async), 0x%x"
+      },
+      {
+        "UniquenessHash": "26a5e3a8-910f-4058-923c-97ea977107b0",
+        "TraceID": "DatapathQueryUdpSendMsgFailedAsync",
+        "EncodingString": "[data] Query for UDP_SEND_MSG_SIZE failed (async), 0x%x"
+      },
+      {
+        "UniquenessHash": "5af86e1e-9f51-cd58-2506-9b88ac659923",
+        "TraceID": "DatapathQueryRecvMaxCoalescedSizeFailedAsync",
+        "EncodingString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x"
+      },
+      {
+        "UniquenessHash": "b503f2a8-8676-cb38-1cab-733b1b6168c4",
+        "TraceID": "DatapathDropEmptyMdl",
+        "EncodingString": "[%p] Dropping datagram with empty mdl."
+      },
+      {
+        "UniquenessHash": "93ba4ba0-a056-754c-13bd-4d57d0f1d5f4",
+        "TraceID": "DatapathDropMissingInfo",
+        "EncodingString": "[%p] Dropping datagram missing IP_PKTINFO/IP_RECVERR."
+      },
+      {
+        "UniquenessHash": "e2a52ac0-8148-8ba4-8ea5-bab2cbf1a43c",
+        "TraceID": "DatapathDropTooBig",
+        "EncodingString": "[%p] Dropping datagram with too many bytes (%llu)."
+      },
+      {
+        "UniquenessHash": "177e3d8f-353c-329c-6b7c-638649a7d3ef",
+        "TraceID": "DatapathDropMdlMapFailure",
+        "EncodingString": "[%p] Failed to map MDL chain"
+      },
+      {
+        "UniquenessHash": "b940eb8b-74ec-f569-8167-e95ccc36510e",
+        "TraceID": "DatapathFragmented",
+        "EncodingString": "[%p] Dropping datagram with fragmented MDL."
+      },
+      {
+        "UniquenessHash": "a3d48581-00d1-fbbf-3ede-f8e9a4a22187",
+        "TraceID": "DatapathDropAllocRecvContextFailure",
+        "EncodingString": "[%p] Couldn't allocate receive context."
+      },
+      {
+        "UniquenessHash": "977ca100-03bb-010a-09ab-0a04d33a7dfd",
+        "TraceID": "DatapathDropAllocRecvBufferFailure",
+        "EncodingString": "[%p] Couldn't allocate receive buffers."
+      },
+      {
+        "UniquenessHash": "9ab36cd5-f082-c444-283c-9b8354ecedb5",
+        "TraceID": "DatapathUroExceeded",
+        "EncodingString": "[%p] Exceeded URO preallocation capacity."
+      },
+      {
+        "UniquenessHash": "29acd049-f710-a71e-1271-698510cfc519",
+        "TraceID": "DatapathUnreachableMsg",
+        "EncodingString": "[sock][%p] Unreachable error from %!ADDR!"
+      },
+      {
+        "UniquenessHash": "bddd082e-fd86-4e92-2b3f-ed831dad41eb",
+        "TraceID": "WindowsKernelLoaded",
+        "EncodingString": "[ sys] Loaded"
+      },
+      {
+        "UniquenessHash": "99b1ad83-0cbf-8b42-36e2-86e505bf6b76",
+        "TraceID": "WindowsKernelUnloaded",
+        "EncodingString": "[ sys] Unloaded"
+      },
+      {
+        "UniquenessHash": "09622250-6902-8f51-16a4-41a81d9cfc14",
+        "TraceID": "WindowsKernelInitialized",
+        "EncodingString": "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)"
+      },
+      {
+        "UniquenessHash": "7d3c84e1-4c84-fd6e-19b0-5210f45719fe",
+        "TraceID": "WindowsKernelUninitialized",
+        "EncodingString": "[ sys] Uninitialized"
+      },
+      {
+        "UniquenessHash": "ad38c379-0d77-0135-bf6a-19efa61ee493",
+        "TraceID": "TestControlClientCanceledRequest",
+        "EncodingString": "[test] Client %p canceled request %p"
+      },
+      {
+        "UniquenessHash": "c2475345-0789-7d74-d7de-4f1b86d1e04a",
+        "TraceID": "TestControlClientCreated",
+        "EncodingString": "[test] Client %p created"
+      },
+      {
+        "UniquenessHash": "c14ddd31-b8a1-390e-bce4-3d10b373b5e2",
+        "TraceID": "TestControlClientCleaningUp",
+        "EncodingString": "[test] Client %p cleaning up"
+      },
+      {
+        "UniquenessHash": "90748ce7-a1ac-f056-31f8-9d25493934c4",
+        "TraceID": "TestControlClientIoctl",
+        "EncodingString": "[test] Client %p executing IOCTL %u"
+      },
+      {
+        "UniquenessHash": "5bdce545-413d-da19-a8fc-6de86efa7ec9",
+        "TraceID": "TestControlClientIoctlComplete",
+        "EncodingString": "[test] Client %p completing request, 0x%x"
+      },
+      {
+        "UniquenessHash": "7aae4087-bcff-7d98-58cb-dc33ab321e29",
+        "TraceID": "TestControlInitialized",
+        "EncodingString": "[test] Control interface initialized"
+      },
+      {
+        "UniquenessHash": "96076d60-1a15-11da-1c76-bc25bddb612b",
+        "TraceID": "TestControlUninitializing",
+        "EncodingString": "[test] Control interface uninitializing"
+      },
+      {
+        "UniquenessHash": "f9c9cbda-520a-37f2-487e-ac0ac46338ea",
+        "TraceID": "TestControlUninitialized",
+        "EncodingString": "[test] Control interface uninitialized"
+      },
+      {
+        "UniquenessHash": "66538ddd-2fba-ef2b-dde7-b0d0d014e40e",
+        "TraceID": "TestDriverFailureLocation",
+        "EncodingString": "[test] File: %s, Function: %s, Line: %d"
+      },
+      {
+        "UniquenessHash": "eceb97df-f1b3-f467-bbe8-bab1c1659e78",
+        "TraceID": "TestDriverFailure",
+        "EncodingString": "[test] FAIL: %s"
+      },
+      {
+        "UniquenessHash": "72110314-d083-e651-5eab-788ae00e228c",
+        "TraceID": "TestDriverStarted",
+        "EncodingString": "[test] Started"
+      },
+      {
+        "UniquenessHash": "4f17ceb1-4af8-424e-18d8-17117328147a",
+        "TraceID": "TestDriverStopped",
+        "EncodingString": "[test] Stopped"
       }
     ]
   }
