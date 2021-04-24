@@ -432,17 +432,21 @@ Done:
     CxPlatDispatchRwLockReleaseShared(&Binding->RwLock);
 
     if (FailedAddrMatch) {
-        QuicTraceEvent(
+    #ifdef BUGBUG
+        uicTraceEvent(
             ConnNoListenerIp,
             "[conn][%p] No Listener for IP address: %!ADDR!",
             Connection,
             CLOG_BYTEARRAY(sizeof(*Addr), Addr));
+    #endif
     } else if (FailedAlpnMatch) {
-        QuicTraceEvent(
+    #ifdef BUGBUG
+        uicTraceEvent(
             ConnNoListenerAlpn,
             "[conn][%p] No listener matching ALPN: %!ALPN!",
             Connection,
             CLOG_BYTEARRAY(Info->ClientAlpnListLength, Info->ClientAlpnList));
+    #endif
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_NO_ALPN);
     }
 
