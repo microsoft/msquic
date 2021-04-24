@@ -117,11 +117,13 @@ extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 #define CLOG_BYTEARRAY_BUGBUG(length, pointer) CLOG_BYTEARRAY(((unsigned char)length), ((const unsigned char *)pointer))
 
-#ifdef QUIC_EVENTS_LTTNG
+#ifdef QUIC_LOGS_LTTNG
 #define QuicTraceLogErrorEnabled()   TRUE
 #define QuicTraceLogWarningEnabled() TRUE
 #define QuicTraceLogInfoEnabled()    TRUE
 #define QuicTraceLogVerboseEnabled() TRUE
+#define QuicTraceEventEnabled(Name) TRUE
+#define QuicTraceLogStreamVerboseEnabled() TRUE
 #endif
 
 #ifdef QUIC_EVENTS_STUB
