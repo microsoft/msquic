@@ -109,6 +109,9 @@ if ($InitSubmodules) {
     Write-Host "Initializing CLOG submodule"
     git submodule init submodules/clog
     git submodule update
+
+    dotnet --list-sdks
+    dotnet --list-runtimes
 }
 
 if ($IsWindows) {
