@@ -516,8 +516,7 @@ struct MsQuicAutoAcceptListener : public MsQuicListener {
         Configuration(Config),
         ConnectionHandler(_ConnectionHandler),
         ConnectionContext(_ConnectionContext)
-    {
-    }
+    { }
 
 private:
 
@@ -533,6 +532,7 @@ private:
         )
     {
         auto pThis = (MsQuicAutoAcceptListener*)Context;
+        CXPLAT_DBG_ASSERT(pThis);
         switch (Event->Type) {
         case QUIC_LISTENER_EVENT_NEW_CONNECTION:
             MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)pThis->ConnectionHandler, pThis->ConnectionContext);
@@ -541,7 +541,6 @@ private:
             return QUIC_STATUS_INVALID_STATE;
         }
     }
-
 };
 
 struct MsQuicConnection {
