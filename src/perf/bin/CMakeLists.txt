@@ -12,4 +12,4 @@ add_executable(secnetperf ${SOURCES} histogram/hdr_histogram.c)
 
 set_property(TARGET secnetperf PROPERTY FOLDER "perf")
 
-target_link_libraries(secnetperf inc warnings perflib msquic platform perfbin.clog)
+target_link_libraries(secnetperf inc warnings perflib msquic platform perfbin.clog quic.inc.clog)

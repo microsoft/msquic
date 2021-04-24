@@ -158,8 +158,8 @@ QuicBindingInitialize(
         "[bind][%p] Created, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
         Binding,
         Binding->Socket,
-        CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
-        CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
+        CLOG_BYTEARRAY_BUGBUG(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
+        CLOG_BYTEARRAY_BUGBUG(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
@@ -255,8 +255,8 @@ QuicBindingTraceRundown(
         "[bind][%p] Rundown, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
         Binding,
         Binding->Socket,
-        CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
-        CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
+        CLOG_BYTEARRAY_BUGBUG(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
+        CLOG_BYTEARRAY_BUGBUG(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
     CxPlatDispatchRwLockAcquireShared(&Binding->RwLock);
 

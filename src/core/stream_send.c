@@ -1304,7 +1304,7 @@ QuicStreamOnAck(
     CXPLAT_DBG_ASSERT(FollowingOffset <= Stream->QueuedSendOffset);
 
     QuicTraceLogStreamVerbose(
-        AckRange,
+        AckRangeMsg,
         Stream,
         "Received ack for %d bytes, offset=%llu, FF=0x%hx",
         (int32_t)Length,

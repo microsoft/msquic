@@ -278,7 +278,7 @@ QuicSendClearSendFlag(
 {
     if (Send->SendFlags & SendFlags) {
         QuicTraceLogConnVerbose(
-            RemoveSendFlags,
+            RemoveSendFlagsMsg,
             QuicSendGetConnection(Send),
             "Removing flags %x",
             (SendFlags & Send->SendFlags));
@@ -1019,7 +1019,7 @@ QuicSendFlush(
     _Analysis_assume_(Builder.Metadata != NULL);
 
     QuicTraceLogConnVerbose(
-        FlushSend,
+        FlushSendMsg,
         Connection,
         "Flushing send. Allowance=%u bytes",
         Builder.SendAllowance);
