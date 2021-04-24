@@ -109,6 +109,10 @@ if ($InitSubmodules) {
             git submodule update
         }
     }
+
+    Write-Host "Initializing CLOG submodule"
+    git submodule init submodules/clog
+    git submodule update
 }
 
 
