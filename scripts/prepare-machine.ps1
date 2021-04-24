@@ -112,6 +112,9 @@ if ($InitSubmodules) {
 
     dotnet --list-sdks
     dotnet --list-runtimes
+
+    dotnet --info
+    find /usr/share/dotnet
 }
 
 if ($IsWindows) {
