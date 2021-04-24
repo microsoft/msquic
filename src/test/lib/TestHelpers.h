@@ -11,8 +11,6 @@ Abstract:
 
 #ifdef QUIC_CLOG
 #include "TestHelpers.h.clog.h"
-#else
-#error !!
 #endif
 
 #include "msquic.hpp"
