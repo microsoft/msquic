@@ -431,7 +431,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_CRED_VALIDATION),
     sizeof(QUIC_RUN_CRED_VALIDATION),
     sizeof(QUIC_RUN_CRED_VALIDATION),
-    sizeof(QUIC_RUN_CRED_VALIDATION)
+    sizeof(QUIC_RUN_CRED_VALIDATION),
+    sizeof(BOOLEAN)
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -457,6 +458,7 @@ typedef union {
     QUIC_RUN_VERSION_NEGOTIATION_EXT VersionNegotiationExtParams;
     QUIC_RUN_CONNECT_CLIENT_CERT ConnectClientCertParams;
     QUIC_RUN_CRED_VALIDATION CredValidationParams;
+    BOOLEAN IsPaused;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -1011,6 +1013,11 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicTestConnectExpiredClientCertificate(
                 &Params->CredValidationParams.CredConfig));
+        break;
+
+    case IOCTL_QUIC_RUN_ABORT_RECEIVE:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestAbortReceive(Params->IsPaused));
         break;
 
     default:
