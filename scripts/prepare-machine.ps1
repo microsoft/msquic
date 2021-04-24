@@ -109,12 +109,6 @@ if ($InitSubmodules) {
     Write-Host "Initializing CLOG submodule"
     git submodule init submodules/clog
     git submodule update
-
-    dotnet --list-sdks
-    dotnet --list-runtimes
-
-    dotnet --info
-    find /usr/share/dotnet
 }
 
 if ($IsWindows) {
