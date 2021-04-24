@@ -387,7 +387,8 @@ QuicListenerTraceRundown(
             "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!, ALPN=%!ALPN!",
             Listener,
             Listener->Binding,
-            CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
+            CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
+            CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
     }
 }
 
