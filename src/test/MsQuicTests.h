@@ -334,9 +334,15 @@ QuicTestAckSendDelay(
     _In_ int Family
     );
 
+typedef enum QUIC_ABORT_RECEIVE_TYPE {
+    QUIC_ABORT_RECEIVE_PAUSED,
+    QUIC_ABORT_RECEIVE_PENDING,
+    QUIC_ABORT_RECEIVE_INCOMPLETE
+} QUIC_ABORT_RECEIVE_TYPE;
+
 void
 QuicTestAbortReceive(
-    _In_ bool IsPaused
+    _In_ QUIC_ABORT_RECEIVE_TYPE Type
     );
 
 //
