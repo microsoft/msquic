@@ -428,7 +428,7 @@ struct MsQuicListener {
     QUIC_STATUS InitStatus;
 
     MsQuicListener(
-        const MsQuicRegistration& Registration,
+        _In_ const MsQuicRegistration& Registration,
         _In_ QUIC_LISTENER_CALLBACK_HANDLER Handler,
         _In_ void* Context = nullptr
         ) noexcept {
@@ -501,12 +501,54 @@ struct MsQuicListener {
     operator HQUIC () const noexcept { return Handle; }
 };
 
+struct MsQuicAutoAcceptListener : public MsQuicListener {
+    const MsQuicConfiguration& Configuration;
+    QUIC_CONNECTION_CALLBACK_HANDLER ConnectionHandler;
+    void* ConnectionContext;
+
+    MsQuicAutoAcceptListener(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ const MsQuicConfiguration& Config,
+        _In_ QUIC_CONNECTION_CALLBACK_HANDLER _ConnectionHandler,
+        _In_ void* _ConnectionContext = nullptr
+        ) noexcept :
+        MsQuicListener(Registration, ListenerCallback, this),
+        Configuration(Config),
+        ConnectionHandler(_ConnectionHandler),
+        ConnectionContext(_ConnectionContext)
+    { }
+
+private:
+
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_LISTENER_CALLBACK)
+    QUIC_STATUS
+    QUIC_API
+    ListenerCallback(
+        _In_ HQUIC /* Listener */,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_LISTENER_EVENT* Event
+        )
+    {
+        auto pThis = (MsQuicAutoAcceptListener*)Context;
+        CXPLAT_DBG_ASSERT(pThis);
+        switch (Event->Type) {
+        case QUIC_LISTENER_EVENT_NEW_CONNECTION:
+            MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)pThis->ConnectionHandler, pThis->ConnectionContext);
+            return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, pThis->Configuration);
+        default:
+            return QUIC_STATUS_INVALID_STATE;
+        }
+    }
+};
+
 struct MsQuicConnection {
     HQUIC Handle { nullptr };
     QUIC_STATUS InitStatus;
 
     MsQuicConnection(
-        const MsQuicRegistration& Registration,
+        _In_ const MsQuicRegistration& Registration,
         _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
         _In_ void* Context = nullptr
         ) noexcept {
@@ -526,7 +568,7 @@ struct MsQuicConnection {
     }
 
     MsQuicConnection(
-        HQUIC ConnectionHandle,
+        _In_ HQUIC ConnectionHandle,
         _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
         _In_ void* Context = nullptr
         ) noexcept {
@@ -625,6 +667,57 @@ struct MsQuicConnection {
     operator HQUIC () const noexcept { return Handle; }
 };
 
+struct MsQuicStream {
+    HQUIC Handle { nullptr };
+    QUIC_STATUS InitStatus;
+
+    MsQuicStream(
+        _In_ const MsQuicConnection& Connection,
+        _In_ QUIC_STREAM_OPEN_FLAGS Flags,
+        _In_ QUIC_STREAM_CALLBACK_HANDLER Handler,
+        _In_ void* Context = nullptr
+        ) noexcept {
+        if (!Connection.IsValid()) {
+            InitStatus = Connection.GetInitStatus();
+            return;
+        }
+        if (QUIC_FAILED(
+            InitStatus =
+                MsQuic->StreamOpen(
+                    Connection,
+                    Flags,
+                    Handler,
+                    Context,
+                    &Handle))) {
+            Handle = nullptr;
+        }
+    }
+
+    ~MsQuicStream() noexcept {
+        if (Handle) {
+            MsQuic->StreamClose(Handle);
+        }
+    }
+
+    QUIC_STATUS
+    Send(
+        _In_reads_(BufferCount) _Pre_defensive_
+            const QUIC_BUFFER* const Buffers,
+        _In_ uint32_t BufferCount = 1,
+        _In_ QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE,
+        _In_opt_ void* ClientSendContext = nullptr
+        )
+    {
+        return MsQuic->StreamSend(Handle, Buffers, BufferCount, Flags, ClientSendContext);
+    }
+
+    QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
+    bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
+    MsQuicStream(MsQuicStream& other) = delete;
+    MsQuicStream operator=(MsQuicStream& Other) = delete;
+    operator HQUIC () const noexcept { return Handle; }
+};
+
 struct ConnectionScope {
     HQUIC Handle;
     ConnectionScope() noexcept : Handle(nullptr) { }
@@ -667,14 +760,18 @@ struct QuicBufferScope {
 // Abstractions for platform specific types/interfaces
 //
 
-struct EventScope {
+struct CxPlatEvent {
     CXPLAT_EVENT Handle;
-    EventScope() noexcept { CxPlatEventInitialize(&Handle, FALSE, FALSE); }
-    EventScope(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
-    EventScope(CXPLAT_EVENT event) noexcept : Handle(event) { }
-    ~EventScope() noexcept { CxPlatEventUninitialize(Handle); }
+    CxPlatEvent() noexcept { CxPlatEventInitialize(&Handle, FALSE, FALSE); }
+    CxPlatEvent(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
+    CxPlatEvent(CXPLAT_EVENT event) noexcept : Handle(event) { }
+    ~CxPlatEvent() noexcept { CxPlatEventUninitialize(Handle); }
     CXPLAT_EVENT* operator &() noexcept { return &Handle; }
     operator CXPLAT_EVENT() const noexcept { return Handle; }
+    void Set() { CxPlatEventSet(Handle); }
+    void Reset() { CxPlatEventReset(Handle); }
+    void WaitForever() { CxPlatEventWaitForever(Handle); }
+    bool WaitTimeout(uint32_t TimeoutMs) { return CxPlatEventWaitWithTimeout(Handle, TimeoutMs); }
 };
 
 #ifdef CXPLAT_HASH_MIN_SIZE

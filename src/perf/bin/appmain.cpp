@@ -109,7 +109,7 @@ QuicUserMain(
     _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig,
     _In_opt_z_ const char* FileName
     ) {
-    EventScope StopEvent {true};
+    CxPlatEvent StopEvent {true};
 
     QUIC_STATUS Status;
 
