@@ -234,6 +234,8 @@ QuicStreamProcessResetFrame(
             &Stream->Connection->Send,
             Stream,
             QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+
+        QuicStreamTryCompleteShutdown(Stream);
     }
 }
 
