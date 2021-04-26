@@ -1274,20 +1274,30 @@ TEST_P(WithFamilyArgs, AckSendDelay) {
 TEST(Misc, AbortPausedReceive) {
     TestLogger Logger("AbortPausedReceive");
     if (TestingKernelMode) {
-        BOOLEAN IsPaused = TRUE;
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, IsPaused));
+        QUIC_ABORT_RECEIVE_TYPE Type = QUIC_ABORT_RECEIVE_PAUSED;
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, Type));
     } else {
-        QuicTestAbortReceive(true);
+        QuicTestAbortReceive(QUIC_ABORT_RECEIVE_PAUSED);
     }
 }
 
 TEST(Misc, AbortPendingReceive) {
     TestLogger Logger("AbortPendingReceive");
     if (TestingKernelMode) {
-        BOOLEAN IsPaused = FALSE;
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, IsPaused));
+        QUIC_ABORT_RECEIVE_TYPE Type = QUIC_ABORT_RECEIVE_PENDING;
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, Type));
     } else {
-        QuicTestAbortReceive(false);
+        QuicTestAbortReceive(QUIC_ABORT_RECEIVE_PENDING);
+    }
+}
+
+TEST(Misc, AbortIncompleteReceive) {
+    TestLogger Logger("AbortIncompleteReceive");
+    if (TestingKernelMode) {
+        QUIC_ABORT_RECEIVE_TYPE Type = QUIC_ABORT_RECEIVE_INCOMPLETE;
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORT_RECEIVE, Type));
+    } else {
+        QuicTestAbortReceive(QUIC_ABORT_RECEIVE_INCOMPLETE);
     }
 }
 

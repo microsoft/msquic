@@ -700,6 +700,14 @@ struct MsQuicStream {
     }
 
     QUIC_STATUS
+    Start(
+        _In_ QUIC_STREAM_START_FLAGS Flags = QUIC_STREAM_START_FLAG_ASYNC
+        )
+    {
+        return MsQuic->StreamStart(Handle, Flags);
+    }
+
+    QUIC_STATUS
     Send(
         _In_reads_(BufferCount) _Pre_defensive_
             const QUIC_BUFFER* const Buffers,

@@ -2064,7 +2064,7 @@ QuicTestAckSendDelay(
 }
 
 struct AbortRecvTestContext {
-    bool IsPaused;
+    QUIC_ABORT_RECEIVE_TYPE Type;
     CxPlatEvent ServerStreamRecv;
     CxPlatEvent ServerStreamShutdown;
     HQUIC ServerStream {nullptr};
@@ -2084,9 +2084,9 @@ AbortRecvStreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         TestContext->ServerStreamRecv.Set();
-        if (TestContext->IsPaused) {
+        if (TestContext->Type == QUIC_ABORT_RECEIVE_PAUSED) {
             Event->RECEIVE.TotalBufferLength = 0;
-        } else {
+        } else if (TestContext->Type == QUIC_ABORT_RECEIVE_PENDING) {
             return QUIC_STATUS_PENDING;
         }
         break;
@@ -2123,6 +2123,9 @@ AbortRecvConnCallback(
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         TestContext->ServerStream = Event->PEER_STREAM_STARTED.Stream;
         MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)AbortRecvStreamCallback, Context);
+        if (TestContext->Type == QUIC_ABORT_RECEIVE_INCOMPLETE) {
+            TestContext->ServerStreamRecv.Set();
+        }
         break;
     default:
         break;
@@ -2132,7 +2135,7 @@ AbortRecvConnCallback(
 
 void
 QuicTestAbortReceive(
-    _In_ bool IsPaused
+    _In_ QUIC_ABORT_RECEIVE_TYPE Type
     )
 {
     MsQuicRegistration Registration;
@@ -2144,7 +2147,7 @@ QuicTestAbortReceive(
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    AbortRecvTestContext RecvContext { IsPaused };
+    AbortRecvTestContext RecvContext { Type };
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AbortRecvConnCallback, &RecvContext);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
@@ -2160,7 +2163,11 @@ QuicTestAbortReceive(
 
     uint8_t RawBuffer[100];
     QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
-    TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+    if (Type == QUIC_ABORT_RECEIVE_INCOMPLETE) {
+        TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
+    } else {
+        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+    }
 
     TEST_TRUE(RecvContext.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
     TEST_QUIC_SUCCEEDED(MsQuic->StreamShutdown(RecvContext.ServerStream, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 1));
