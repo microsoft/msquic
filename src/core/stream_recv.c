@@ -766,6 +766,15 @@ QuicStreamRecvFlush(
             Event.RECEIVE.Flags);
 
         QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
+
+        if (Stream->Flags.SentStopSending || Stream->Flags.RemoteCloseFin) {
+            //
+            // The app has aborted their receive path. No need to process any
+            // more.
+            //
+            break;
+        }
+
         if (Status == QUIC_STATUS_PENDING) {
             if (Stream->Flags.ReceiveCallPending) {
                 //
