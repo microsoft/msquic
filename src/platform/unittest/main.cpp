@@ -28,6 +28,6 @@ public:
 int main(int argc, char** argv) {
     ::testing::AddGlobalTestEnvironment(new QuicCoreTestEnvironment);
     ::testing::InitGoogleTest(&argc, argv);
-    PfxPath = GetValue(argc, argv, "PfxPath");
+    PfxPath = GetFlag(argc, argv, "PfxPath");
     return RUN_ALL_TESTS();
 }

@@ -125,7 +125,7 @@ main(
 
     {
         HttpServer Server(Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &ListenAddr, SslKeyLogFileParam);
-        if (!GetValue(argc, argv, "noexit")) {
+        if (!GetFlag(argc, argv, "noexit")) {
             printf("Press Enter to exit.\n\n");
             getchar();
         } else {
