@@ -53,11 +53,27 @@ QuicStreamRecvShutdown(
         goto Exit;
     }
 
-    Stream->SendCloseErrorCode = ErrorCode;
-    Stream->Flags.SentStopSending = TRUE;
+    //
+    // Disable all future receive events.
+    //
     Stream->Flags.ReceiveEnabled = FALSE;
     Stream->Flags.ReceiveDataPending = FALSE;
     Stream->Flags.ReceiveCallPending = FALSE;
+
+    if (Stream->RecvMaxLength != UINT64_MAX) {
+        //
+        // The peer has already gracefully closed, but we just haven't drained
+        // the receives to that point. Ignore this abort from the app and jump
+        // right to the closed state.
+        //
+        Stream->Flags.RemoteCloseFin = TRUE;
+        Stream->Flags.RemoteCloseAcked = TRUE;
+        Silent = TRUE; // To indicate we try to shutdown complete.
+        goto Exit;
+    }
+
+    Stream->SendCloseErrorCode = ErrorCode;
+    Stream->Flags.SentStopSending = TRUE;
 
     //
     // Queue up a stop sending frame to be sent.
@@ -908,6 +924,8 @@ QuicStreamReceiveComplete(
             &Stream->Connection->Send,
             Stream,
             QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+
+        QuicStreamTryCompleteShutdown(Stream);
     }
 
     return FALSE;
