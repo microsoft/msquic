@@ -31,8 +31,7 @@
             "ETWManifestFile": "MsQuicEtw.man",
             "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
             "Level": "win:Informational",
-            "Keywords": "ut:Connection ut:LowVolume",
-            "EmitString": "1"
+            "Keywords": "ut:Connection ut:LowVolume"
           }
         }
       ]
@@ -49,20 +48,7 @@
           }
         }
       ]
-    },
-    "tracelogging": {
-      "Modules": [
-        {
-          "ExportModule": "TRACELOGGING",
-          "CustomSettings": {
-            "ETWManifestFile": "MsQuicEtw.man",
-            "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-            "Level": "win:Informational",
-            "Keywords": "ut:Connection ut:LowVolume"
-          }
-        }
-      ]
-    },
+    }
   },
   "Version": 1,
   "CustomTypeClogCSharpFile": "msquic.clog.cs",
@@ -110,7 +96,7 @@
         "stubs": "stubs",
         "macos": "STDOUT",
         "windows_kernel": "empty",
-        "windows": "etw_only"
+        "windows": "empty"
       }
     },
     {
@@ -122,7 +108,7 @@
         "stubs": "stubs",
         "macos": "STDOUT",
         "windows_kernel": "empty",
-        "windows": "etw_only"
+        "windows": "empty"
       }
     },
     {
@@ -134,7 +120,7 @@
         "stubs": "stubs",
         "macos": "STDOUT",
         "windows_kernel": "empty",
-        "windows": "etw_only"
+        "windows": "empty"
       }
     },
     {
@@ -146,7 +132,7 @@
         "stubs": "stubs",
         "macos": "STDOUT",
         "windows_kernel": "empty",
-        "windows": "etw_only"
+        "windows": "empty"
       }
     },
     {
@@ -158,7 +144,7 @@
         "stubs": "stubs",
         "macos": "STDOUT",
         "windows_kernel": "empty",
-        "windows": "etw_only"
+        "windows": "empty"
       }
     },
     {
@@ -170,7 +156,7 @@
         "stubs": "stubs",
         "macos": "STDOUT",
         "windows_kernel": "empty",
-        "windows": "etw_only"
+        "windows": "empty"
       }
     },
     {
@@ -182,7 +168,7 @@
         "stubs": "stubs",
         "macos": "STDOUT",
         "windows_kernel": "empty",
-        "windows": "etw_only"
+        "windows": "empty"
       }
     },
     {
@@ -194,7 +180,7 @@
         "stubs": "stubs",
         "macos": "STDOUT",
         "windows_kernel": "empty",
-        "windows": "etw_only"
+        "windows": "empty"
       }
     },
     {
@@ -206,7 +192,7 @@
         "stubs": "stubs",
         "macos": "STDOUT",
         "windows_kernel": "empty",
-        "windows": "etw_only"
+        "windows": "empty"
       }
     },
     {
@@ -218,7 +204,7 @@
         "stubs": "stubs",
         "macos": "STDOUT",
         "windows_kernel": "empty",
-        "windows": "etw_only"
+        "windows": "empty"
       }
     },
     {
@@ -230,7 +216,7 @@
         "stubs": "stubs",
         "macos": "STDOUT",
         "windows_kernel": "empty",
-        "windows": "etw_only"
+        "windows": "empty"
       }
     },
     {
@@ -242,7 +228,7 @@
         "stubs": "stubs",
         "macos": "STDOUT",
         "windows_kernel": "empty",
-        "windows": "etw_only"
+        "windows": "empty"
       }
     }
   ],
