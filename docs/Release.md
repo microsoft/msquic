@@ -93,7 +93,7 @@ The QUIC specifications have been approved by the IESG and are in RFC editor que
 
 The QUIC specifications are still in RFC editor queue. Both the v1 and draft-29 versions are still supported by this release.
 
-## MsQuic v1.2 (Prerelease)
+## MsQuic v1.3 (Prerelease)
 
 **Not officially supported**
 
