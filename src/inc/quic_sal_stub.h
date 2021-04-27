@@ -91,6 +91,10 @@
 #define _In_reads_opt_z_(...)
 #endif
 
+#ifndef _In_reads_or_z_opt_
+#define _In_reads_or_z_opt_(...)
+#endif
+
 #ifndef _Out_writes_bytes_opt_
 #define _Out_writes_bytes_opt_(...)
 #endif

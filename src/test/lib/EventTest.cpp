@@ -493,24 +493,12 @@ void QuicTestValidateConnectionEvents()
 
     { // Listener Scope
 
-    ListenerScope Listener;
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->ListenerOpen(
-            Registration,
-            ListenerEventValidatorCallback,
-            nullptr,
-            &Listener.Handle));
-    TEST_QUIC_SUCCEEDED(MsQuic->ListenerStart(Listener.Handle, Alpn, Alpn.Length(), nullptr));
+    MsQuicListener Listener(Registration, ListenerEventValidatorCallback);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
     QuicAddr ServerLocalAddr;
-    uint32_t ServerLocalAddrSize = sizeof(ServerLocalAddr.SockAddr);
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->GetParam(
-            Listener.Handle,
-            QUIC_PARAM_LEVEL_LISTENER,
-            QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
-            &ServerLocalAddrSize,
-            &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
     QuicTestValidateConnectionEvents1(Registration, Listener.Handle, ServerLocalAddr);
     QuicTestValidateConnectionEvents2(Registration, Listener.Handle, ServerLocalAddr);
@@ -964,24 +952,12 @@ void QuicTestValidateStreamEvents()
 
     { // Listener Scope
 
-    ListenerScope Listener;
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->ListenerOpen(
-            Registration,
-            ListenerEventValidatorCallback,
-            nullptr,
-            &Listener.Handle));
-    TEST_QUIC_SUCCEEDED(MsQuic->ListenerStart(Listener.Handle,  Alpn, Alpn.Length(), nullptr));
+    MsQuicListener Listener(Registration, ListenerEventValidatorCallback);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
     QuicAddr ServerLocalAddr;
-    uint32_t ServerLocalAddrSize = sizeof(ServerLocalAddr.SockAddr);
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->GetParam(
-            Listener.Handle,
-            QUIC_PARAM_LEVEL_LISTENER,
-            QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
-            &ServerLocalAddrSize,
-            &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
     QuicTestValidateStreamEvents1(Registration, Listener.Handle, ServerLocalAddr);
     QuicTestValidateStreamEvents2(Registration, Listener.Handle, ServerLocalAddr);

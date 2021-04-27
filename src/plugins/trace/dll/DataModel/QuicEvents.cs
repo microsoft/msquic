@@ -71,14 +71,30 @@ namespace QuicTrace.DataModel
         FINAL_SIZE_ERROR = 0x6,
         FRAME_ENCODING_ERROR = 0x7,
         TRANSPORT_PARAMETER_ERROR = 0x8,
+        CONNECTION_ID_LIMIT_ERROR = 0x9,
         PROTOCOL_VIOLATION = 0xA,
+        INVALID_TOKEN = 0xB,
+        APPLICATION_ERROR = 0xC,
         CRYPTO_BUFFER_EXCEEDED = 0xD,
         KEY_UPDATE_ERROR = 0xE,
         AEAD_LIMIT_REACHED = 0xF,
 
-        CRYPTO_USER_CANCELED = 0x116,
-        CRYPTO_HANDSHAKE_FAILURE = 0x128,
-        CRYPTO_NO_APPLICATION_PROTOCOL = 0x178,
+        TLS_CLOSE_NOTIFY = 0x100,
+        TLS_USER_CANCELED = 0x116,
+        TLS_HANDSHAKE_FAILURE = 0x128,
+        TLS_BAD_CERTIFICATE = 0x12A,
+        TLS_CERTIFICATE_UNSUPPORTED = 0x12B,
+        TLS_CERTIFICATE_REVOKED = 0x12C,
+        TLS_CERTIFICATE_EXPIRED = 0x12D,
+        TLS_CERTIFICATE_UNKNOWN = 0x12E,
+        TLS_UNKNOWN_CA = 0x130,
+        TLS_ACCESS_DENIED = 0x131,
+        TLS_INTERNAL_ERROR = 0x150,
+        TLS_UNRECOGNIZED_NAME = 0x170,
+        TLS_CERTIFICATE_REQUIRED = 0x174,
+        TLS_NO_APPLICATION_PROTOCOL = 0x178,
+
+        QUIC_VERSION_NEGOTIATION_ERROR = 0x53F8
     }
 
     public enum QuicExecutionType
@@ -138,7 +154,8 @@ namespace QuicTrace.DataModel
     {
         Idle,
         Queued,
-        Processing
+        Processing,
+        Max
     }
 
     #region Global Events
@@ -480,8 +497,10 @@ namespace QuicTrace.DataModel
     {
         public uint State { get; }
 
+        public QuicScheduleState ScheduleState { get { return (QuicScheduleState)State; } }
+
         public override string PayloadString =>
-            string.Format("Scheduling: {0}", (QuicScheduleState)State);
+            string.Format("Scheduling: {0}", ScheduleState);
 
         internal QuicConnectionScheduleStateEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, uint state) :
             base(QuicEventId.ConnScheduleState, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)

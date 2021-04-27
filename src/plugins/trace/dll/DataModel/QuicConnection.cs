@@ -42,6 +42,8 @@ namespace QuicTrace.DataModel
 
         public Timestamp ShutdownTimeStamp { get; private set; }
 
+        public Timestamp LastScheduleStateTimeStamp { get; private set; }
+
         public ulong BytesSent { get; private set; }
 
         public ulong BytesReceived { get; private set; }
@@ -292,6 +294,7 @@ namespace QuicTrace.DataModel
             InitialTimeStamp = Timestamp.MaxValue;
             FinalTimeStamp = Timestamp.MaxValue;
             ShutdownTimeStamp = Timestamp.MaxValue;
+            LastScheduleStateTimeStamp = Timestamp.MinValue;
         }
 
         private void TrySetWorker(QuicEvent evt, QuicState state)
@@ -332,10 +335,15 @@ namespace QuicTrace.DataModel
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionSchedule;
                         var _evt = evt as QuicConnectionScheduleStateEvent;
-                        if (_evt!.State == (uint)QuicScheduleState.Processing)
+                        if (_evt!.ScheduleState == QuicScheduleState.Processing)
                         {
                             TrySetWorker(evt, state);
                         }
+                        if (LastScheduleStateTimeStamp != Timestamp.MinValue)
+                        {
+                            Worker?.AddSchedulingCpuTime(_evt!.ScheduleState, _evt.TimeStamp - LastScheduleStateTimeStamp);
+                        }
+                        LastScheduleStateTimeStamp = _evt.TimeStamp;
                         break;
                     }
                 case QuicEventId.ConnExecOper:

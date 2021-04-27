@@ -92,6 +92,10 @@ param (
     [string]$ComputerName = "quic-server",
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "None")]
+    [string]$LogProfile = "None",
+
+    [Parameter(Mandatory = $false)]
     [string]$WinRMUser = "",
 
     [Parameter(Mandatory = $false)]
@@ -107,16 +111,10 @@ param (
     [switch]$Local = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$RecordStack = $false,
-
-    [Parameter(Mandatory = $false)]
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
     [int]$Timeout = 120,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$RecordQUIC = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$TestToRun = "",
@@ -152,7 +150,7 @@ if (!$IsWindows -and [string]::IsNullOrWhiteSpace($Remote)) {
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
-$Record = $RecordStack -or $RecordQUIC
+$Record = "None" -ne $LogProfile
 
 # Remove any previous remote PowerShell sessions
 Get-PSSession | Remove-PSSession
@@ -180,9 +178,6 @@ if (($LocalTls -eq "") -and ($RemoteTls -eq "")) {
 if (!$IsWindows) {
     if ($PGO) {
         Write-Error "'-PGO' is not supported on this platform!"
-    }
-    if ($Record) {
-        Write-Error "'-Record' is not supported on this platform!"
     }
 }
 
@@ -234,7 +229,7 @@ Set-ScriptVariables -Local $Local `
                     -Config $Config `
                     -Publish $Publish `
                     -Record $Record `
-                    -RecordQUIC $RecordQUIC `
+                    -LogProfile $LogProfile `
                     -RemoteAddress $RemoteAddress `
                     -Session $Session `
                     -Kernel $Kernel `
@@ -265,6 +260,10 @@ Write-LogAndDebug "Running on $OsBuildNumber"
 
 $LocalDirectory = Join-Path $RootDir "artifacts/bin"
 $RemoteDirectorySMB = $null
+
+# Copy manifest and log script to local directory
+Copy-Item -Path (Join-Path $RootDir scripts log.ps1) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir src manifest MsQuic.wprp) -Destination $LocalDirectory
 
 if ($Local) {
     $RemoteDirectory = $LocalDirectory
@@ -341,7 +340,12 @@ if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
         $BranchName = Get-CurrentBranch -RepoDir $RootDir
     } else {
         # Azure Build
-        $BranchName = $AzpBranchName.Substring(11);
+        $BuildReason = $env:BUILD_REASON
+        if ("Manual" -eq $BuildReason) {
+            $BranchName = "main"
+        } else {
+            $BranchName = $AzpBranchName.Substring(11);
+        }
     }
 } else {
     # PR Build
@@ -390,10 +394,21 @@ function Invoke-Test {
         $RemoteArguments += " -stats:1"
     }
 
+    if ($Kernel) {
+        $Arch = Split-Path (Split-Path $LocalExe -Parent) -Leaf
+        $RootBinPath = Split-Path (Split-Path (Split-Path $LocalExe -Parent) -Parent) -Parent
+        $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
+
+        Copy-Item (Join-Path $KernelDir "secnetperfdrvpriv.sys") (Split-Path $LocalExe -Parent)
+        Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $LocalExe -Parent)
+
+        $LocalArguments = "-driverNamePriv:secnetperfdrvpriv $LocalArguments"
+    }
+
     Write-LogAndDebug "Running Remote: $RemoteExe Args: $RemoteArguments"
 
     # Starting the server
-    $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
+    $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments -RemoteDirectory $RemoteDirectory
     $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob -Matcher $Test.RemoteReadyMatcher
 
     if (!$ReadyToStart) {
@@ -405,7 +420,7 @@ function Invoke-Test {
 
     $AllRunsResults = @()
 
-    Start-Tracing -Exe $LocalExe
+    Start-Tracing -LocalDirectory $LocalDirectory
 
     try {
         1..$Test.Iterations | ForEach-Object {
@@ -434,17 +449,29 @@ function Invoke-Test {
             $LocalResults | Write-LogAndDebug
         }
     } finally {
+        if ($Kernel) {
+            net.exe stop msquicpriv /y | Out-Null
+            sc.exe delete msquictestpriv | Out-Null
+            sc.exe delete msquicpriv | Out-Null
+        }
+
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
         Write-LogAndDebug $RemoteResults.ToString()
 
-        Stop-Tracing -Exe $LocalExe
+        Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test
 
         if ($Record) {
             if ($Local) {
-                Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
+                $LocalLogPath = (Join-Path $RemoteDirectory serverlogs)
+                Copy-Item -Path $LocalLogPath -Destination (Join-Path $OutputDir $Test.ToString()) -Recurse -Force
+                try {
+                    Remove-Item -Path "$LocalLogPath/*" -Recurse -Force
+                } catch [System.Management.Automation.ItemNotFoundException] {
+                    # Ignore Not Found for when the directory does not exist
+                    # This will still throw if a file cannot successfuly be deleted
+                }
             } else {
-                Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
-                Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
+                Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
             }
         }
     }

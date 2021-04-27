@@ -298,6 +298,7 @@ _Success_(return != NULL)
 QUIC_LISTENER*
 QuicBindingGetListener(
     _In_ QUIC_BINDING* Binding,
+    _In_opt_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     );
 

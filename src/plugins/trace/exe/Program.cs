@@ -65,15 +65,68 @@ namespace QuicTrace
 
         static void RunReport(QuicState quicState)
         {
+            //
+            // Worker info
+            //
+
             var workers = quicState.Workers;
-            Console.WriteLine("WORKERS ({0})\n", workers.Count);
+            Console.WriteLine("\nWORKERS ({0})\n", workers.Count);
+
+            uint unhealthyWorkers = 0;
+            uint mostlyIdleWorkers = 0;
+            uint reallyActiveWorkers = 0;
+
+            const uint UnhealthyQueueDelayUs = 25 * 1000; // More than 25 ms queue delay is "unhealthy"
+
+            foreach (var worker in workers)
+            {
+                if (worker.AverageQueueDelayUs >= UnhealthyQueueDelayUs)
+                {
+                    unhealthyWorkers++;
+                }
+
+                if (worker.ActivePercent <= 5)
+                {
+                    mostlyIdleWorkers++;
+                }
+                else if (worker.ActivePercent >= 80)
+                {
+                    reallyActiveWorkers++;
+                }
+            }
+
+            if (unhealthyWorkers == 0)
+            {
+                Console.WriteLine("  All workers healthy.");
+            }
+            else
+            {
+                Console.Write("  {0} workers unhealthy: [", unhealthyWorkers);
+                unhealthyWorkers = 0;
+                foreach (var worker in workers)
+                {
+                    if (worker.AverageQueueDelayUs >= UnhealthyQueueDelayUs)
+                    {
+                        if (unhealthyWorkers != 0)
+                        {
+                            Console.Write(", ");
+                        }
+                        Console.Write("#{0}", worker.Id);
+                        unhealthyWorkers++;
+                    }
+                }
+                Console.WriteLine("]");
+            }
+
+            Console.WriteLine("  {0} workers mostly idle.", mostlyIdleWorkers);
+            Console.WriteLine("  {0} workers really active.", reallyActiveWorkers);
 
             //
-            // TODO - Dump Worker info
+            // Connection info
             //
 
             var conns = quicState.Connections;
-            Console.WriteLine("CONNECTIONS ({0})\n", conns.Count);
+            Console.WriteLine("\nCONNECTIONS ({0})\n", conns.Count);
 
             //
             // TODO - Dump Connection info
@@ -181,7 +234,7 @@ namespace QuicTrace
                     Console.Write("quictrace> ");
 
                     var input = Console.ReadLine();
-                    if (input == "--exit" || input == "exit" || input == "-e")
+                    if (input == null || input == "--exit" || input == "exit" || input == "-e")
                     {
                         return;
                     }
