@@ -1056,7 +1056,9 @@ DummyStreamCallback(
     switch (Event->Type) {
 
     case QUIC_STREAM_EVENT_RECEIVE:
-        TEST_FAILURE("QUIC_STREAM_EVENT_RECEIVE should never be called!");
+        if (Event->RECEIVE.TotalBufferLength != 0) {
+            TEST_FAILURE("QUIC_STREAM_EVENT_RECEIVE with data should never be called!");
+        }
         break;
 
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
@@ -1083,7 +1085,9 @@ ShutdownStreamCallback(
     switch (Event->Type) {
 
     case QUIC_STREAM_EVENT_RECEIVE:
-        TEST_FAILURE("QUIC_STREAM_EVENT_RECEIVE should never be called!");
+        if (Event->RECEIVE.TotalBufferLength != 0) {
+            TEST_FAILURE("QUIC_STREAM_EVENT_RECEIVE with data should never be called!");
+        }
         break;
 
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
