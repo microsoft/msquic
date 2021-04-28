@@ -56,6 +56,7 @@ struct QuicAddr {
     void IncrementAddr() {
         QuicAddrIncrement(&SockAddr);
     }
+    QUIC_ADDRESS_FAMILY GetFamily() const { return QuicAddrGetFamily(&SockAddr); }
     uint16_t GetPort() const { return QuicAddrGetPort(&SockAddr); }
     void SetPort(uint16_t Port) noexcept { QuicAddrSetPort(&SockAddr, Port); }
 };
@@ -425,10 +426,12 @@ public:
 struct MsQuicListener {
     HQUIC Handle { nullptr };
     QUIC_STATUS InitStatus;
-    QUIC_LISTENER_CALLBACK_HANDLER Handler { nullptr };
-    void* Context{ nullptr };
 
-    MsQuicListener(const MsQuicRegistration& Registration) noexcept {
+    MsQuicListener(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ QUIC_LISTENER_CALLBACK_HANDLER Handler,
+        _In_ void* Context = nullptr
+        ) noexcept {
         if (!Registration.IsValid()) {
             InitStatus = Registration.GetInitStatus();
             return;
@@ -437,19 +440,14 @@ struct MsQuicListener {
             InitStatus =
                 MsQuic->ListenerOpen(
                     Registration,
-                    [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
-                        MsQuicListener* Listener = (MsQuicListener*)Context;
-                        return Listener->Handler(Handle, Listener->Context, Event);
-                    },
-                    this,
+                    Handler,
+                    Context,
                     &Handle))) {
             Handle = nullptr;
         }
     }
+
     ~MsQuicListener() noexcept {
-        if (Handler != nullptr) {
-            MsQuic->ListenerStop(Handle);
-        }
         if (Handle) {
             MsQuic->ListenerClose(Handle);
         }
@@ -458,17 +456,42 @@ struct MsQuicListener {
     QUIC_STATUS
     Start(
         _In_ const MsQuicAlpn& Alpns,
-        _In_ QUIC_ADDR* Address,
-        _In_ QUIC_LISTENER_CALLBACK_HANDLER _Handler,
-        _In_ void* _Context) noexcept {
-        Handler = _Handler;
-        Context = _Context;
+        _In_ QUIC_ADDR* Address = nullptr
+        ) noexcept {
         return MsQuic->ListenerStart(Handle, Alpns, Alpns.Length(), Address);
     }
 
     QUIC_STATUS
-    ListenerCallback(HQUIC Listener, QUIC_LISTENER_EVENT* Event) noexcept {
-        return Handler(Listener, Context, Event);
+    SetParam(
+        _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
+        _In_ uint32_t Param,
+        _In_ uint32_t BufferLength,
+        _In_reads_bytes_(BufferLength)
+            const void* Buffer
+        ) noexcept {
+        return MsQuic->SetParam(Handle, Level, Param, BufferLength, Buffer);
+    }
+
+    QUIC_STATUS
+    GetParam(
+        _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
+        _In_ uint32_t Param,
+        _Inout_ _Pre_defensive_ uint32_t* BufferLength,
+        _Out_writes_bytes_opt_(*BufferLength)
+            void* Buffer
+        ) noexcept {
+        return MsQuic->GetParam(Handle, Level, Param, BufferLength, Buffer);
+    }
+
+    QUIC_STATUS
+    GetLocalAddr(_Out_ QuicAddr& Addr) {
+        uint32_t Size = sizeof(Addr.SockAddr);
+        return
+            GetParam(
+                QUIC_PARAM_LEVEL_LISTENER,
+                QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
+                &Size,
+                &Addr.SockAddr);
     }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
@@ -478,12 +501,229 @@ struct MsQuicListener {
     operator HQUIC () const noexcept { return Handle; }
 };
 
-struct ListenerScope {
-    HQUIC Handle;
-    ListenerScope() noexcept : Handle(nullptr) { }
-    ListenerScope(HQUIC handle) noexcept : Handle(handle) { }
-    ~ListenerScope() noexcept { if (Handle) { MsQuic->ListenerClose(Handle); } }
-    operator HQUIC() const noexcept { return Handle; }
+struct MsQuicAutoAcceptListener : public MsQuicListener {
+    const MsQuicConfiguration& Configuration;
+    QUIC_CONNECTION_CALLBACK_HANDLER ConnectionHandler;
+    void* ConnectionContext;
+
+    MsQuicAutoAcceptListener(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ const MsQuicConfiguration& Config,
+        _In_ QUIC_CONNECTION_CALLBACK_HANDLER _ConnectionHandler,
+        _In_ void* _ConnectionContext = nullptr
+        ) noexcept :
+        MsQuicListener(Registration, ListenerCallback, this),
+        Configuration(Config),
+        ConnectionHandler(_ConnectionHandler),
+        ConnectionContext(_ConnectionContext)
+    { }
+
+private:
+
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_LISTENER_CALLBACK)
+    QUIC_STATUS
+    QUIC_API
+    ListenerCallback(
+        _In_ HQUIC /* Listener */,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_LISTENER_EVENT* Event
+        )
+    {
+        auto pThis = (MsQuicAutoAcceptListener*)Context;
+        CXPLAT_DBG_ASSERT(pThis);
+        switch (Event->Type) {
+        case QUIC_LISTENER_EVENT_NEW_CONNECTION:
+            MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)pThis->ConnectionHandler, pThis->ConnectionContext);
+            return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, pThis->Configuration);
+        default:
+            return QUIC_STATUS_INVALID_STATE;
+        }
+    }
+};
+
+struct MsQuicConnection {
+    HQUIC Handle { nullptr };
+    QUIC_STATUS InitStatus;
+
+    MsQuicConnection(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+        _In_ void* Context = nullptr
+        ) noexcept {
+        if (!Registration.IsValid()) {
+            InitStatus = Registration.GetInitStatus();
+            return;
+        }
+        if (QUIC_FAILED(
+            InitStatus =
+                MsQuic->ConnectionOpen(
+                    Registration,
+                    Handler,
+                    Context,
+                    &Handle))) {
+            Handle = nullptr;
+        }
+    }
+
+    MsQuicConnection(
+        _In_ HQUIC ConnectionHandle,
+        _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+        _In_ void* Context = nullptr
+        ) noexcept {
+        Handle = ConnectionHandle;
+        MsQuic->SetCallbackHandler(Handle, (void*)Handler, Context);
+        InitStatus = QUIC_STATUS_SUCCESS;
+    }
+
+    ~MsQuicConnection() noexcept {
+        if (Handle) {
+            MsQuic->ConnectionClose(Handle);
+        }
+    }
+
+    void
+    Shutdown(
+        _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode, // Application defined error code
+        _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_NONE
+        )
+    {
+        return MsQuic->ConnectionShutdown(Handle, Flags, ErrorCode);
+    }
+
+    QUIC_STATUS
+    Start(
+        _In_ const MsQuicConfiguration& Config,
+        _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
+            const char* ServerName,
+        _In_ uint16_t ServerPort // Host byte order
+        ) noexcept {
+        return MsQuic->ConnectionStart(Handle, Config, QUIC_ADDRESS_FAMILY_UNSPEC, ServerName, ServerPort);
+    }
+
+    QUIC_STATUS
+    Start(
+        _In_ const MsQuicConfiguration& Config,
+        _In_ QUIC_ADDRESS_FAMILY Family,
+        _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
+            const char* ServerName,
+        _In_ uint16_t ServerPort // Host byte order
+        ) noexcept {
+        return MsQuic->ConnectionStart(Handle, Config, Family, ServerName, ServerPort);
+    }
+
+    QUIC_STATUS
+    StartLocalhost(
+        _In_ const MsQuicConfiguration& Config,
+        _In_ const QuicAddr& LocalhostAddr
+        ) noexcept {
+        return MsQuic->ConnectionStart(Handle, Config, LocalhostAddr.GetFamily(), QUIC_LOCALHOST_FOR_AF(LocalhostAddr.GetFamily()), LocalhostAddr.GetPort());
+    }
+
+    QUIC_STATUS
+    SetConfiguration(
+        _In_ const MsQuicConfiguration& Config
+        ) noexcept {
+        return MsQuic->ConnectionSetConfiguration(Handle, Config);
+    }
+
+    QUIC_STATUS
+    SendResumptionTicket(
+        _In_ QUIC_SEND_RESUMPTION_FLAGS Flags = QUIC_SEND_RESUMPTION_FLAG_NONE,
+        _In_ uint16_t DataLength = 0,
+        _In_reads_bytes_opt_(DataLength)
+            const uint8_t* ResumptionData = nullptr
+        ) noexcept {
+        return MsQuic->ConnectionSendResumptionTicket(Handle, Flags, DataLength, ResumptionData);
+    }
+
+    QUIC_STATUS
+    SetParam(
+        _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
+        _In_ uint32_t Param,
+        _In_ uint32_t BufferLength,
+        _In_reads_bytes_(BufferLength)
+            const void* Buffer
+        ) noexcept {
+        return MsQuic->SetParam(Handle, Level, Param, BufferLength, Buffer);
+    }
+
+    QUIC_STATUS
+    GetParam(
+        _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
+        _In_ uint32_t Param,
+        _Inout_ _Pre_defensive_ uint32_t* BufferLength,
+        _Out_writes_bytes_opt_(*BufferLength)
+            void* Buffer
+        ) noexcept {
+        return MsQuic->GetParam(Handle, Level, Param, BufferLength, Buffer);
+    }
+
+    QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
+    bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
+    MsQuicConnection(MsQuicConnection& other) = delete;
+    MsQuicConnection operator=(MsQuicConnection& Other) = delete;
+    operator HQUIC () const noexcept { return Handle; }
+};
+
+struct MsQuicStream {
+    HQUIC Handle { nullptr };
+    QUIC_STATUS InitStatus;
+
+    MsQuicStream(
+        _In_ const MsQuicConnection& Connection,
+        _In_ QUIC_STREAM_OPEN_FLAGS Flags,
+        _In_ QUIC_STREAM_CALLBACK_HANDLER Handler,
+        _In_ void* Context = nullptr
+        ) noexcept {
+        if (!Connection.IsValid()) {
+            InitStatus = Connection.GetInitStatus();
+            return;
+        }
+        if (QUIC_FAILED(
+            InitStatus =
+                MsQuic->StreamOpen(
+                    Connection,
+                    Flags,
+                    Handler,
+                    Context,
+                    &Handle))) {
+            Handle = nullptr;
+        }
+    }
+
+    ~MsQuicStream() noexcept {
+        if (Handle) {
+            MsQuic->StreamClose(Handle);
+        }
+    }
+
+    QUIC_STATUS
+    Start(
+        _In_ QUIC_STREAM_START_FLAGS Flags = QUIC_STREAM_START_FLAG_ASYNC
+        )
+    {
+        return MsQuic->StreamStart(Handle, Flags);
+    }
+
+    QUIC_STATUS
+    Send(
+        _In_reads_(BufferCount) _Pre_defensive_
+            const QUIC_BUFFER* const Buffers,
+        _In_ uint32_t BufferCount = 1,
+        _In_ QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE,
+        _In_opt_ void* ClientSendContext = nullptr
+        )
+    {
+        return MsQuic->StreamSend(Handle, Buffers, BufferCount, Flags, ClientSendContext);
+    }
+
+    QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
+    bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
+    MsQuicStream(MsQuicStream& other) = delete;
+    MsQuicStream operator=(MsQuicStream& Other) = delete;
+    operator HQUIC () const noexcept { return Handle; }
 };
 
 struct ConnectionScope {
@@ -528,14 +768,18 @@ struct QuicBufferScope {
 // Abstractions for platform specific types/interfaces
 //
 
-struct EventScope {
+struct CxPlatEvent {
     CXPLAT_EVENT Handle;
-    EventScope() noexcept { CxPlatEventInitialize(&Handle, FALSE, FALSE); }
-    EventScope(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
-    EventScope(CXPLAT_EVENT event) noexcept : Handle(event) { }
-    ~EventScope() noexcept { CxPlatEventUninitialize(Handle); }
+    CxPlatEvent() noexcept { CxPlatEventInitialize(&Handle, FALSE, FALSE); }
+    CxPlatEvent(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
+    CxPlatEvent(CXPLAT_EVENT event) noexcept : Handle(event) { }
+    ~CxPlatEvent() noexcept { CxPlatEventUninitialize(Handle); }
     CXPLAT_EVENT* operator &() noexcept { return &Handle; }
     operator CXPLAT_EVENT() const noexcept { return Handle; }
+    void Set() { CxPlatEventSet(Handle); }
+    void Reset() { CxPlatEventReset(Handle); }
+    void WaitForever() { CxPlatEventWaitForever(Handle); }
+    bool WaitTimeout(uint32_t TimeoutMs) { return CxPlatEventWaitWithTimeout(Handle, TimeoutMs); }
 };
 
 #ifdef CXPLAT_HASH_MIN_SIZE

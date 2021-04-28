@@ -283,6 +283,8 @@ typedef union QUIC_ABORTIVE_TRANSFER_FLAGS {
         uint32_t WaitForStream : 1;
         uint32_t ShutdownDirection : 2;
         uint32_t UnidirectionalStream : 1;
+        uint32_t PauseReceive : 1;
+        uint32_t PendReceive : 1;
     };
     uint32_t IntValue;
 } QUIC_ABORTIVE_TRANSFER_FLAGS;
@@ -330,6 +332,17 @@ QuicTestReceiveResumeNoData(
 void
 QuicTestAckSendDelay(
     _In_ int Family
+    );
+
+typedef enum QUIC_ABORT_RECEIVE_TYPE {
+    QUIC_ABORT_RECEIVE_PAUSED,
+    QUIC_ABORT_RECEIVE_PENDING,
+    QUIC_ABORT_RECEIVE_INCOMPLETE
+} QUIC_ABORT_RECEIVE_TYPE;
+
+void
+QuicTestAbortReceive(
+    _In_ QUIC_ABORT_RECEIVE_TYPE Type
     );
 
 //
@@ -769,4 +782,8 @@ typedef struct {
 #define IOCTL_QUIC_RUN_EXPIRED_CLIENT_CERT \
     QUIC_CTL_CODE(62, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 62
+#define IOCTL_QUIC_RUN_ABORT_RECEIVE \
+    QUIC_CTL_CODE(63, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // BOOLEAN
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 63

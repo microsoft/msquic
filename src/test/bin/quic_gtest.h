@@ -403,7 +403,9 @@ struct AbortiveArgs {
         for (uint32_t WaitForStream : { 1 })
         for (uint32_t ShutdownDirection : { 0, 1, 2 })
         for (uint32_t UnidirectionStream : { 0, 1 })
-            list.push_back({ Family, {{ DelayStreamCreation, SendDataOnStream, ClientShutdown, DelayClientShutdown, WaitForStream, ShutdownDirection, UnidirectionStream }} });
+        for (uint32_t PauseReceive : { 0, 1 })
+        for (uint32_t PendReceive : { 0, 1 })
+            list.push_back({ Family, {{ DelayStreamCreation, SendDataOnStream, ClientShutdown, DelayClientShutdown, WaitForStream, ShutdownDirection, UnidirectionStream, PauseReceive, PendReceive }} });
         return list;
     }
 };
@@ -411,7 +413,15 @@ struct AbortiveArgs {
 std::ostream& operator << (std::ostream& o, const AbortiveArgs& args) {
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
-        args.Flags.IntValue;
+        args.Flags.DelayStreamCreation << "/" <<
+        args.Flags.SendDataOnStream << "/" <<
+        args.Flags.ClientShutdown << "/" <<
+        args.Flags.DelayClientShutdown << "/" <<
+        args.Flags.WaitForStream << "/" <<
+        args.Flags.ShutdownDirection << "/" <<
+        args.Flags.UnidirectionalStream << "/" <<
+        args.Flags.PauseReceive << "/" <<
+        args.Flags.PendReceive;
 }
 
 class WithAbortiveArgs : public testing::Test,

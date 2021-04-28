@@ -14,7 +14,6 @@ Environment:
 --*/
 
 #include "platform_internal.h"
-#include "quic_platform_dispatch.h"
 #include <arpa/inet.h>
 #include <inttypes.h>
 #include <linux/filter.h>
@@ -611,13 +610,6 @@ CxPlatDataPathInitialize(
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->DatapathInitialize(
-            ClientRecvContextLength,
-            UdpCallbacks,
-            NewDataPath);
-#else
     if (NewDataPath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -685,7 +677,6 @@ Exit:
     }
 
     return Status;
-#endif
 }
 
 void
@@ -697,9 +688,6 @@ CxPlatDataPathUninitialize(
         return;
     }
 
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->DatapathUninitialize(Datapath);
-#else
     CxPlatRundownReleaseAndWait(&Datapath->BindingsRundown);
 
     Datapath->Shutdown = TRUE;
@@ -709,7 +697,6 @@ CxPlatDataPathUninitialize(
 
     CxPlatRundownUninitialize(&Datapath->BindingsRundown);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
-#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -726,11 +713,7 @@ CxPlatDataPathIsPaddingPreferred(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->DatapathIsPaddingPreferred(Datapath);
-#else
     return !!(Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
-#endif
 }
 
 CXPLAT_DATAPATH_RECV_BLOCK*
@@ -826,9 +809,6 @@ CxPlatDataPathResolveAddress(
     _Inout_ QUIC_ADDR* Address
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->DatapathResolveAddress(Datapath, HostName, Address);
-#else
     UNREFERENCED_PARAMETER(Datapath);
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     ADDRINFO Hints = {0};
@@ -881,7 +861,6 @@ CxPlatDataPathResolveAddress(
 Exit:
 
     return Status;
-#endif
 }
 
 QUIC_STATUS
@@ -1777,16 +1756,6 @@ CxPlatSocketCreateUdp(
     _Out_ CXPLAT_SOCKET** NewBinding
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->SocketCreate(
-            Datapath,
-            Type,
-            LocalAddress,
-            RemoteAddress,
-            RecvCallbackContext,
-            NewBinding);
-#else
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN IsServerSocket = RemoteAddress == NULL;
 
@@ -1914,7 +1883,6 @@ Exit:
     }
 
     return Status;
-#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1956,9 +1924,6 @@ CxPlatSocketDelete(
     _Inout_ CXPLAT_SOCKET* Socket
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->SocketDelete(Socket);
-#else
     CXPLAT_DBG_ASSERT(Socket != NULL);
     QuicTraceEvent(
         DatapathDestroyed,
@@ -1987,7 +1952,6 @@ CxPlatSocketDelete(
         CxPlatLockUninitialize(&Socket->SocketContexts[i].PendingSendDataLock);
     }
     CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
-#endif
 }
 
 void
@@ -1996,12 +1960,8 @@ CxPlatSocketGetLocalAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->SocketGetLocalAddress(Socket, Address);
-#else
     CXPLAT_DBG_ASSERT(Socket != NULL);
     *Address = Socket->LocalAddress;
-#endif
 }
 
 void
@@ -2010,12 +1970,8 @@ CxPlatSocketGetRemoteAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->SocketGetRemoteAddress(Socket, Address);
-#else
     CXPLAT_DBG_ASSERT(Socket != NULL);
     *Address = Socket->RemoteAddress;
-#endif
 }
 
 QUIC_STATUS
@@ -2026,20 +1982,11 @@ CxPlatSocketSetParam(
     _In_reads_bytes_(BufferLength) const uint8_t * Buffer
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->SocketSetParam(
-            Socket,
-            Param,
-            BufferLength,
-            Buffer);
-#else
     UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(Param);
     UNREFERENCED_PARAMETER(BufferLength);
     UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_NOT_SUPPORTED;
-#endif
 }
 
 QUIC_STATUS
@@ -2050,20 +1997,11 @@ CxPlatSocketGetParam(
     _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->SocketGetParam(
-            Socket,
-            Param,
-            BufferLength,
-            Buffer);
-#else
     UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(Param);
     UNREFERENCED_PARAMETER(BufferLength);
     UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_NOT_SUPPORTED;
-#endif
 }
 
 CXPLAT_RECV_DATA*
@@ -2071,15 +2009,11 @@ CxPlatDataPathRecvPacketToRecvData(
     _In_ const CXPLAT_RECV_PACKET* const Packet
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->DatapathRecvContextToRecvPacket(Packet);
-#else
     CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
         (CXPLAT_DATAPATH_RECV_BLOCK*)
             ((char *)Packet - sizeof(CXPLAT_DATAPATH_RECV_BLOCK));
 
     return &RecvBlock->RecvPacket;
-#endif
 }
 
 CXPLAT_RECV_PACKET*
@@ -2087,14 +2021,10 @@ CxPlatDataPathRecvDataToRecvPacket(
     _In_ const CXPLAT_RECV_DATA* const RecvData
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->DatapathRecvPacketToRecvContext(RecvData);
-#else
     CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
         CXPLAT_CONTAINING_RECORD(RecvData, CXPLAT_DATAPATH_RECV_BLOCK, RecvPacket);
 
     return (CXPLAT_RECV_PACKET*)(RecvBlock + 1);
-#endif
 }
 
 void
@@ -2102,11 +2032,6 @@ CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    if (RecvDataChain != NULL) {
-        PlatDispatch->SocketReturnRecvPacket(RecvDataChain);
-    }
-#else
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = RecvDataChain) != NULL) {
         RecvDataChain = RecvDataChain->Next;
@@ -2114,7 +2039,6 @@ CxPlatRecvDataReturn(
             CXPLAT_CONTAINING_RECORD(Datagram, CXPLAT_DATAPATH_RECV_BLOCK, RecvPacket);
         CxPlatPoolFree(RecvBlock->OwningPool, RecvBlock);
     }
-#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2126,13 +2050,6 @@ CxPlatSendDataAlloc(
     _In_ uint16_t MaxPacketSize
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->SendDataAlloc(
-            Socket,
-            ECN
-            MaxPacketSize);
-#else
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc =
@@ -2160,7 +2077,6 @@ CxPlatSendDataAlloc(
 
 Exit:
     return SendData;
-#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2169,9 +2085,6 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->SendDataFree(SendData);
-#else
     CXPLAT_DATAPATH_PROC_CONTEXT* DatapathProc = SendData->Owner;
     CXPLAT_POOL* BufferPool =
         SendData->SegmentSize > 0 ?
@@ -2182,7 +2095,6 @@ CxPlatSendDataFree(
     }
 
     CxPlatPoolFree(&DatapathProc->SendDataPool, SendData);
-#endif
 }
 
 static
@@ -2345,12 +2257,6 @@ CxPlatSendDataAllocBuffer(
     _In_ uint16_t MaxBufferLength
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->SendDataAllocBuffer(
-            SendData,
-            MaxBufferLength);
-#else
     CXPLAT_DBG_ASSERT(SendData != NULL);
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
     //CXPLAT_DBG_ASSERT(MaxBufferLength <= CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE);
@@ -2365,7 +2271,6 @@ CxPlatSendDataAllocBuffer(
         return CxPlatSendDataAllocPacketBuffer(SendData, MaxBufferLength);
     }
     return CxPlatSendDataAllocSegmentBuffer(SendData, MaxBufferLength);
-#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2375,9 +2280,6 @@ CxPlatSendDataFreeBuffer(
     _In_ QUIC_BUFFER* Buffer
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    PlatDispatch->SendDataFreeBuffer(SendData, Buffer);
-#else
     //
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
@@ -2401,7 +2303,6 @@ CxPlatSendDataFreeBuffer(
         SendData->ClientBuffer.Buffer = NULL;
         SendData->ClientBuffer.Length = 0;
     }
-#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2410,11 +2311,7 @@ CxPlatSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->SendDataIsFull(SendData);
-#else
     return !CxPlatSendDataCanAllocSend(SendData, SendData->SegmentSize);
-#endif
 }
 
 void
@@ -2689,14 +2586,6 @@ CxPlatSocketSend(
     )
 {
     UNREFERENCED_PARAMETER(IdealProcessor);
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return
-        PlatDispatch->SocketSend(
-            Socket,
-            LocalAddress,
-            RemoteAddress,
-            SendData);
-#else
     QUIC_STATUS Status =
         CxPlatSocketSendInternal(
             Socket,
@@ -2708,7 +2597,6 @@ CxPlatSocketSend(
         Status = QUIC_STATUS_SUCCESS;
     }
     return Status;
-#endif // CX_PLATFORM_DISPATCH_TABLE
 }
 
 uint16_t
@@ -2716,12 +2604,8 @@ CxPlatSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-#ifdef CX_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->SocketGetLocalMtu(Socket);
-#else
     CXPLAT_DBG_ASSERT(Socket != NULL);
     return Socket->Mtu;
-#endif
 }
 
 #ifndef TEMP_FAILURE_RETRY

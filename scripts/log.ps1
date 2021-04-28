@@ -24,6 +24,9 @@ This script provides helpers for starting, stopping and canceling log collection
 .PARAMETER InstanceName
     A unique name for the logging instance.
 
+.PARAMETER ProfileInScriptDirectory
+    Flag for if the MsQuic wprp file is in the same directory as the script.
+
 .EXAMPLE
     logs.ps1 -Start -Profile Basic.Light
 
@@ -71,7 +74,10 @@ param (
     [string]$WorkingDirectory,
 
     [Parameter(Mandatory = $false)]
-    [string]$InstanceName = "msquic"
+    [string]$InstanceName = "msquic",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ProfileInScriptDirectory = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -82,6 +88,9 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 
 # Path for the WPR profile.
 $WprpFile = $RootDir + "\src\manifest\msquic.wprp"
+if ($ProfileInScriptDirectory) {
+    $WprpFile = Join-Path $PSScriptRoot MsQuic.wprp
+}
 $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"
 $Clog2Text_lttng = "$HOME/.dotnet/tools/clog2text_lttng"
 

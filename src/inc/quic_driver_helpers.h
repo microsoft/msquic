@@ -160,7 +160,7 @@ public:
         if (PathResult < 0 || PathResult >= sizeof(IoctlPath)) {
             QuicTraceEvent(
                 LibraryError,
-                "[ lib] ERROR, %s",
+                "[ lib] ERROR, %s.",
                 "Creating Driver File Path failed");
             return false;
         }

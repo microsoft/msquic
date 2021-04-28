@@ -32,7 +32,39 @@ netsh.exe trace convert quic.etl
 
 > **Important** - If you're using a version of MsQuic that uses an ETW manifest version more recent than the one built into the Windows image, decoding may not provide correct output. **TODO** - Provide instructions to get around this problem.
 
-You may also open the trace in Windows Performance Analyzer. See the [WPA instructions](../src/plugins/wpa/README.md) for more details.
+You may also open the trace in Windows Performance Analyzer. See the [WPA instructions](../src/plugins/trace/README.md) for more details.
+
+### Using WPR to Collect Traces
+
+You can also use [MsQuic.wprp](../src/manifest/MsQuic.wprp) along with `wpr.exe` (inbox on Windows) to collect several different, specifically tailored traces. Once you copy [MsQuic.wprp](../src/manifest/MsQuic.wprp) to the machine you wish to collect the traces for, you can simply run the following to start trace collection:
+
+```
+wpr.exe -start MsQuic.wprp!PROFILE -filemode
+```
+
+You must replace `PROFILE` with the name of the profile you want to run. You can find more details on the supported profiles farther below.
+
+When you're done and ready to collect the logs, you run:
+
+```
+wpr.exe -stop ETL_PATH
+```
+
+You must replace `ETL_PATH` with the path of the output ETL file that you want to be written.
+
+#### Available WPRP Profiles
+
+- `Stacks.Light`- Collects CPU callstacks.
+- `Performance.Light` - Collects all well-formated MsQuic events.
+- `Performance.Verbose` - Collects CPU callstacks and all well-formated MsQuic events.
+- `Basic.light` - Collects general, "low volume" MsQuic events.
+- `Basic.Verbose` - Collects all MsQuic events.
+- `Scheduling.Verbose` - Collects "low volume" and scheduling related MsQuic events.
+- `Datapath.Light` - Collects "low volume" and datapath related MsQuic events.
+- `Datapath.Verbose` - Collects CPU callstacks and "low volume" and datapath related MsQuic events.
+- `Full.Light` - Collects all MsQuic events as well as [TAEF](https://docs.microsoft.com/en-us/windows-hardware/drivers/taef/) events.
+- `Full.Verbose` - Collects All MsQuic events, [TAEF](https://docs.microsoft.com/en-us/windows-hardware/drivers/taef/) events and several networking components' events.
+- `SpinQuic.Light` - Collects "low volume" and API related MsQuic events.
 
 ## Linux
 
@@ -67,7 +99,7 @@ clog2text_lttng -i quic.babel.txt -s clog.sidecar -o quic.log --showTimestamp --
 
 # Trace Analysis
 
-MsQuic supports a custom plugin for Windows Performance Analyzer (WPA) to detailed analysis of ETW traces. See the [WPA instructions](../src/plugins/wpa/README.md) for more details.
+MsQuic supports a custom plugin for Windows Performance Analyzer (WPA) to detailed analysis of ETW traces. See the [WPA instructions](../src/plugins/trace/README.md) for more details.
 
 # Performance Counters
 

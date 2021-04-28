@@ -120,6 +120,12 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+function Test-Administrator
+{
+    $user = [Security.Principal.WindowsIdentity]::GetCurrent();
+    (New-Object Security.Principal.WindowsPrincipal $user).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+}
+
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
 }
@@ -288,9 +294,11 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
-            # Enable WER dump collection.
-            New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
-            New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $OutputDir -Force | Out-Null
+            if (Test-Administrator) {
+                # Enable WER dump collection.
+                New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
+                New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $OutputDir -Force | Out-Null
+            }
         }
     } else {
         if ($Debugger) {
@@ -339,7 +347,7 @@ function Start-TestCase([String]$Name) {
         $Arguments += " --kernelPriv"
     }
     if ($PfxPath -ne "") {
-        $Arguments += " -PfxPath $PfxPath"
+        $Arguments += " -PfxPath:$PfxPath"
     }
 
     # Start the test process and return some information about the test case.
@@ -376,7 +384,7 @@ function Start-AllTestCases {
         $Arguments += " --kernelPriv"
     }
     if ($PfxPath -ne "") {
-        $Arguments += " -PfxPath $PfxPath"
+        $Arguments += " -PfxPath:$PfxPath"
     }
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
@@ -592,7 +600,7 @@ if ($ExecutionMode -eq "Parallel") {
 }
 
 # Initialize WER dump registry key if necessary.
-if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
+if ($IsWindows -and !(Test-Path $WerDumpRegPath) -and (Test-Administrator)) {
     New-Item -Path $WerDumpRegPath -Force | Out-Null
 }
 
@@ -685,7 +693,9 @@ try {
 
     if ($isWindows) {
         # Cleanup the WER registry.
-        Remove-Item -Path $WerDumpRegPath -Force | Out-Null
+        if (Test-Administrator) {
+            Remove-Item -Path $WerDumpRegPath -Force | Out-Null
+        }
         # Turn off App Verifier
         if ($EnableAppVerifier) {
             appverif.exe -disable * -for $Path
