@@ -799,7 +799,7 @@ QuicStreamWriteOneFrame(
         Stream->SendFlags &= ~QUIC_STREAM_SEND_FLAG_FIN;
         PacketMetadata->Frames[PacketMetadata->FrameCount].Flags |= QUIC_SENT_FRAME_FLAG_STREAM_FIN;
     }
-    QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND_PACKET);
+    QuicStreamSentMetadataIncrement(Stream);
     PacketMetadata->FrameCount++;
 }
 

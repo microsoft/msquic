@@ -197,6 +197,12 @@ typedef struct QUIC_STREAM {
     short RefTypeCount[QUIC_STREAM_REF_COUNT];
 #endif
 
+    //
+    // Number of outstanding sent metadata items currently being tracked for
+    // this stream.
+    //
+    uint32_t OutstandingSentMetadata;
+
     union {
         //
         // The entry in the connection's hashtable of streams.
@@ -637,6 +643,40 @@ QuicStreamRelease(
     return FALSE;
 }
 #pragma warning(pop)
+
+//
+// Increments the sent metadata counter.
+// No synchronization necessary as it's always called on the worker thread.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+QuicStreamSentMetadataIncrement(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    if (++Stream->OutstandingSentMetadata == 1) {
+        QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND_PACKET);
+    }
+    CXPLAT_DBG_ASSERT(Stream->OutstandingSentMetadata != 0);
+}
+
+//
+// Decrements the sent metadata counter.
+// No synchronization necessary as it's always called on the worker thread.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+QuicStreamSentMetadataDecrement(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    CXPLAT_DBG_ASSERT(Stream->OutstandingSentMetadata != 0);
+    if (--Stream->OutstandingSentMetadata == 0) {
+        QuicStreamRelease(Stream, QUIC_STREAM_REF_SEND_PACKET);
+    }
+}
 
 //
 // Send Functions
