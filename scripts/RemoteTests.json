@@ -256,7 +256,7 @@
                 "Tls": ["schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-test:HPS -target:$RemoteAddress"
+                "Arguments": "-test:HPS -target:$RemoteAddress -incrementtarget:1"
             },
             "Variables": [],
             "AllowLoopback": false,
