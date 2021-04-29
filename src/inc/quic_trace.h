@@ -219,9 +219,8 @@ QuicEtwCallback(
 #endif
 #else
 #undef CLOG_BYTEARRAY
-#endif // QUIC_CLOG
-
 #define CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY_HELPER((unsigned char)(Len), (const unsigned char*)(Data))
+#endif // QUIC_CLOG
 
 #pragma warning(push) // Don't care about warnings from generated files
 #pragma warning(disable:6001)
