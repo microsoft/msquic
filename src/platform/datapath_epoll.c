@@ -1504,8 +1504,8 @@ CxPlatSocketContextRecvComplete(
             SocketContext->Binding,
             (uint32_t)RecvPacket->BufferLength,
             (uint32_t)RecvPacket->BufferLength,
-            CLOG_ADDR(sizeof(*LocalAddr), LocalAddr),
-            CLOG_ADDR(sizeof(*RemoteAddr), RemoteAddr));
+            CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
     }
 
     if (BytesTransferred == 0 || DatagramHead == NULL) {
@@ -1783,8 +1783,8 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Binding,
-        CLOG_ADDR(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CLOG_ADDR(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
     CxPlatZeroMemory(Binding, BindingLength);
     Binding->Datapath = Datapath;
@@ -2394,8 +2394,8 @@ CxPlatSocketSendInternal(
             SendData->TotalSize,
             SendData->BufferCount,
             SendData->SegmentSize,
-            CLOG_ADDR(sizeof(*RemoteAddress), RemoteAddress),
-            CLOG_ADDR(sizeof(*LocalAddress), LocalAddress));
+            CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+            CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
         //
         // Check to see if we need to pend.
