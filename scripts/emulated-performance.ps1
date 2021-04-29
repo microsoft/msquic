@@ -291,7 +291,7 @@ if ($BaseRandomSeed -eq "") {
     # the iteration count.
 }
 
-Write-Debug "BaseRandomSeed: $($BaseRandomSeed)"
+Write-Host "BaseRandomSeed: $($BaseRandomSeed)"
 
 # Path to the secnetperf exectuable.
 $ExeName = $IsWindows ? "secnetperf.exe" : "secnetperf"
