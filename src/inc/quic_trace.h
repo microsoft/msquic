@@ -141,6 +141,38 @@ QuicTraceEventStubVarArgs(
 
 #define CLOG_BYTEARRAY(Len, Data) (Len)
 
+#define QuicTraceLogErrorEnabled()   FALSE
+#define QuicTraceLogWarningEnabled() FALSE
+#define QuicTraceLogInfoEnabled()    FALSE
+#define QuicTraceLogVerboseEnabled() FALSE
+
+inline
+void
+QuicTraceStubVarArgs(
+    _In_ const void* Fmt,
+    ...
+    )
+{
+    UNREFERENCED_PARAMETER(Fmt);
+}
+
+#define QuicTraceLogError(X,...)            QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogWarning(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogInfo(X,...)             QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogVerbose(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
+
+#define QuicTraceLogConnError(X,...)        QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnWarning(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnInfo(X,...)         QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnVerbose(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
+
+#define QuicTraceLogStreamVerboseEnabled() FALSE
+
+#define QuicTraceLogStreamError(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamWarning(X,...)    QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamInfo(X,...)       QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(X,...)    QuicTraceStubVarArgs(__VA_ARGS__)
+
 #endif // QUIC_EVENTS_STUB
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
@@ -185,49 +217,11 @@ QuicEtwCallback(
 #else
 #define QuicTraceEvent(Name, Fmt, ...) EventWriteQuic##Name (__VA_ARGS__)
 #endif
+#else
+#undef CLOG_BYTEARRAY
+#endif // QUIC_CLOG
 
 #define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
-#endif
-
-#endif // QUIC_EVENTS_MANIFEST_ETW
-
-#ifdef QUIC_LOGS_STUB
-
-#define QuicTraceLogErrorEnabled()   FALSE
-#define QuicTraceLogWarningEnabled() FALSE
-#define QuicTraceLogInfoEnabled()    FALSE
-#define QuicTraceLogVerboseEnabled() FALSE
-
-inline
-void
-QuicTraceStubVarArgs(
-    _In_ const void* Fmt,
-    ...
-    )
-{
-    UNREFERENCED_PARAMETER(Fmt);
-}
-
-#define QuicTraceLogError(X,...)            QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogWarning(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogInfo(X,...)             QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogVerbose(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
-
-#define QuicTraceLogConnError(X,...)        QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogConnWarning(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogConnInfo(X,...)         QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogConnVerbose(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
-
-#define QuicTraceLogStreamVerboseEnabled() FALSE
-
-#define QuicTraceLogStreamError(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogStreamWarning(X,...)    QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogStreamInfo(X,...)       QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogStreamVerbose(X,...)    QuicTraceStubVarArgs(__VA_ARGS__)
-
-#endif // QUIC_LOGS_STUB
-
-#ifdef QUIC_LOGS_MANIFEST_ETW
 
 #pragma warning(push) // Don't care about warnings from generated files
 #pragma warning(disable:6001)
@@ -275,4 +269,5 @@ QuicTraceStubVarArgs(
 #define QuicTraceLogStreamInfo(Name, Ptr, Fmt, ...)     LogEtwType(Stream, Info, Ptr, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogStreamVerbose(Name, Ptr, Fmt, ...)  LogEtwType(Stream, Verbose, Ptr, Fmt, ##__VA_ARGS__)
 #endif // QUIC_CLOG
+
 #endif // QUIC_LOGS_MANIFEST_ETW
