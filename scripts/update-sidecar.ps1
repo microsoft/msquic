@@ -41,12 +41,12 @@ if ($Clean) {
 
 $allFiles = ""
 foreach ($File in $Files) {
-    #Write-Output "Processing : $File"
+    Write-Debug "Add file: $File"
     $allFiles = $allFiles + " " + $File
 }
-    Invoke-Expression "clog -p windows --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
-    Invoke-Expression "clog -p windows_kernel --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
-    Invoke-Expression "clog -p stubs --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
-    Invoke-Expression "clog -p linux --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
-    Invoke-Expression "clog -p macos --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
-#}
+
+Invoke-Expression "clog -p windows --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
+Invoke-Expression "clog -p windows_kernel --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
+Invoke-Expression "clog -p stubs --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
+Invoke-Expression "clog -p linux --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
+Invoke-Expression "clog -p macos --scopePrefix QUIC -s $Sidecar -c $ConfigFile --outputDirectory $OutputDir --inputFiles $allFiles"
