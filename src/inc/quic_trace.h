@@ -221,7 +221,7 @@ QuicEtwCallback(
 #undef CLOG_BYTEARRAY
 #endif // QUIC_CLOG
 
-#define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
+#define CLOG_BYTEARRAY(Len, Data) (unsigned char)(Len), (const unsigned char*)(Data)
 
 #pragma warning(push) // Don't care about warnings from generated files
 #pragma warning(disable:6001)
