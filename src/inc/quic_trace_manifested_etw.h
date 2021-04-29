@@ -18,7 +18,7 @@ QuicEtwCallback(
     );
 
 //
-// Defining MCGEN_PRIVATE_ENABLE_CALLBACK_V2, makes McGenControlCallbackV2
+// Defining MCGEN_PRIVATE_ENABLE_CALLBACK_V2, makes McGenControlCallbackV2ks
 // call our user-defined callback routine. See MsQuicEvents.h.
 //
 #define MCGEN_PRIVATE_ENABLE_CALLBACK_V2 QuicEtwCallback
@@ -31,4 +31,4 @@ QuicEtwCallback(
 
 #define QuicTraceEventEnabled(Name) TRUE //EventEnabledQuic##Name()
 
-#define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
+#define CLOG_BYTEARRAY(Len, Data) (ksuint8_t)(Len), (uint8_t*)(Data)

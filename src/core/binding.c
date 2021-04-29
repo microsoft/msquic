@@ -158,8 +158,8 @@ QuicBindingInitialize(
         "[bind][%p] Created, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
         Binding,
         Binding->Socket,
-        CLOG_BYTEARRAY_BUGBUG(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
-        CLOG_BYTEARRAY_BUGBUG(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
+        CLOG_ADDR(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
+        CLOG_ADDR(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
@@ -255,8 +255,8 @@ QuicBindingTraceRundown(
         "[bind][%p] Rundown, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
         Binding,
         Binding->Socket,
-        CLOG_BYTEARRAY_BUGBUG(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
-        CLOG_BYTEARRAY_BUGBUG(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
+        CLOG_ADDR(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
+        CLOG_ADDR(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
     CxPlatDispatchRwLockAcquireShared(&Binding->RwLock);
 
@@ -432,21 +432,17 @@ Done:
     CxPlatDispatchRwLockReleaseShared(&Binding->RwLock);
 
     if (FailedAddrMatch) {
-    #ifdef BUGBUG
-        uicTraceEvent(
+        QuicTraceEvent(
             ConnNoListenerIp,
             "[conn][%p] No Listener for IP address: %!ADDR!",
             Connection,
-            CLOG_BYTEARRAY(sizeof(*Addr), Addr));
-    #endif
+            CLOG_ADDR(sizeof(*Addr), Addr));
     } else if (FailedAlpnMatch) {
-    #ifdef BUGBUG
-        uicTraceEvent(
+        QuicTraceEvent(
             ConnNoListenerAlpn,
             "[conn][%p] No listener matching ALPN: %!ALPN!",
             Connection,
-            CLOG_BYTEARRAY(Info->ClientAlpnListLength, Info->ClientAlpnList));
-    #endif
+            CLOG_ADDR(Info->ClientAlpnListLength, Info->ClientAlpnList));
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_NO_ALPN);
     }
 

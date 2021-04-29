@@ -711,8 +711,8 @@ QuicPacketLogDrop(
             ConnDropPacket,
             "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
-            CLOG_BYTEARRAY_BUGBUG(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
-            CLOG_BYTEARRAY_BUGBUG(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
+            CLOG_ADDR(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
+            CLOG_ADDR(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
     } else {
         InterlockedIncrement64((int64_t*)&((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
@@ -720,8 +720,8 @@ QuicPacketLogDrop(
             BindingDropPacket,
             "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
-            CLOG_BYTEARRAY_BUGBUG(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
-            CLOG_BYTEARRAY_BUGBUG(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
+            CLOG_ADDR(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
+            CLOG_ADDR(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
     }
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_DROPPED);
@@ -746,8 +746,8 @@ QuicPacketLogDropWithValue(
             "[conn][%p] DROP packet Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
             Value,
-            CLOG_BYTEARRAY_BUGBUG(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
-            CLOG_BYTEARRAY_BUGBUG(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
+            CLOG_ADDR(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
+            CLOG_ADDR(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
     } else {
         InterlockedIncrement64((int64_t*)&((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
@@ -756,8 +756,8 @@ QuicPacketLogDropWithValue(
             "[bind][%p] DROP packet %llu. Dst=%!ADDR! Src=%!ADDR! Reason=%s",
             Owner,
             Value,
-            CLOG_BYTEARRAY_BUGBUG(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
-            CLOG_BYTEARRAY_BUGBUG(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
+            CLOG_ADDR(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
+            CLOG_ADDR(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
     }
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_DROPPED);

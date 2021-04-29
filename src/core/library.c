@@ -1632,7 +1632,7 @@ QuicTraceRundown(
         QuicTraceEvent(
             PerfCountersRundown,
             "[ lib] Perf counters Rundown, Counters=%!CID!",
-            CLOG_BYTEARRAY_BUGBUG(sizeof(PerfCounters), PerfCounters));
+            CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
     }
 
     CxPlatLockRelease(&MsQuicLib.Lock);
