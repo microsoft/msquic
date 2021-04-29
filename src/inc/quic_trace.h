@@ -217,8 +217,8 @@ QuicEtwCallback(
 #else
 #define QuicTraceEvent(Name, Fmt, ...) EventWriteQuic##Name (__VA_ARGS__)
 #endif
+#define CLOG_BYTEARRAY(Len, Data) (unsigned char)(Len), (const unsigned char*)(Data)
 #else
-#undef CLOG_BYTEARRAY
 #define CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY_HELPER((unsigned char)(Len), (const unsigned char*)(Data))
 #endif // QUIC_CLOG
 
