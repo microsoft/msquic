@@ -218,27 +218,22 @@ QuicEtwCallback(
 #define QuicTraceEvent(Name, Fmt, ...) EventWriteQuic##Name (__VA_ARGS__)
 #endif
 #define CLOG_BYTEARRAY(Len, Data) (unsigned char)(Len), (const unsigned char*)(Data)
-#else
+#else // QUIC_CLOG
 #define CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY_HELPER((unsigned char)(Len), (const unsigned char*)(Data))
 #endif // QUIC_CLOG
-
-#pragma warning(push) // Don't care about warnings from generated files
-#pragma warning(disable:6001)
-#pragma warning(disable:26451)
-#include "MsQuicEtw.h"
-#pragma warning(pop)
-
-#include <stdio.h>
 
 #define QuicTraceLogErrorEnabled()   EventEnabledQuicLogError()
 #define QuicTraceLogWarningEnabled() EventEnabledQuicLogWarning()
 #define QuicTraceLogInfoEnabled()    EventEnabledQuicLogInfo()
 #define QuicTraceLogVerboseEnabled() EventEnabledQuicLogVerbose()
 
-#define QUIC_ETW_BUFFER_LENGTH 128
 #define QuicTraceLogStreamVerboseEnabled() EventEnabledQuicStreamLogVerbose()
 
 #ifndef QUIC_CLOG
+
+#include <stdio.h>
+#define QUIC_ETW_BUFFER_LENGTH 128
+
 #define LogEtw(EventName, Fmt, ...) \
     if (EventEnabledQuicLog##EventName()) { \
         char EtwBuffer[QUIC_ETW_BUFFER_LENGTH]; \
