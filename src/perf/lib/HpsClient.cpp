@@ -9,9 +9,6 @@ Abstract:
 
 --*/
 
-#define _CRT_NONSTDC_NO_DEPRECATE 1 // Needed to work around itoa
-#define _CRT_SECURE_NO_WARNINGS
-
 #include "HpsClient.h"
 
 #ifdef QUIC_CLOG
@@ -97,6 +94,16 @@ HpsClient::Init(
     return QUIC_STATUS_SUCCESS;
 }
 
+
+
+static void AppendIntToString(char* String, uint8_t Value) {
+    const char* Hex = "0123456789ABCDEF";
+
+    String[0] = Hex[(Value >> 4) & 0xF];
+    String[1] = Hex[Value & 0xF];
+    String[2] = '\0';
+}
+
 CXPLAT_THREAD_CALLBACK(HpsWorkerThread, _Context)
 {
     auto Context = (HpsWorkerContext*)_Context;
@@ -109,7 +116,7 @@ CXPLAT_THREAD_CALLBACK(HpsWorkerThread, _Context)
     CxPlatCopyMemory(Context->Target.get(), Target, Len);
 
     if (Context->pThis->IncrementTarget) {
-        itoa(Context->Processor, Context->Target.get() + Len, 10);
+        AppendIntToString(Context->Target.get() + Len, (uint8_t)Context->Processor);
     } else {
         Context->Target.get()[Len] = '\0';
     }
