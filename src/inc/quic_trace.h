@@ -117,7 +117,13 @@ extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 #define CLOG_ADDR(length, pointer) \
     CLOG_BYTEARRAY(((unsigned char)length), ((const unsigned char *)pointer))
 
+#define CLOG_CID(length, pointer) \
+    CLOG_BYTEARRAY(((unsigned char)length), ((const unsigned char *)pointer))
+
 #define CLOG_VNL(length, pointer) \
+    CLOG_BYTEARRAY(((unsigned char)length), ((const unsigned char *)pointer))
+
+#define CLOG_ALPN(length, pointer) \
     CLOG_BYTEARRAY(((unsigned char)length), ((const unsigned char *)pointer))
 
 #ifdef QUIC_LOGS_LTTNG
