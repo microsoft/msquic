@@ -101,8 +101,27 @@ void PrintUsage()
 }
 
 //
-// Helper function to look up a command line argument.
+// Helper functions to look up a command line arguments.
 //
+inline
+bool
+GetFlag(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name
+    )
+{
+    const size_t nameLen = strlen(name);
+    for (int i = 0; i < argc; i++) {
+        if (_strnicmp(argv[i] + 1, name, nameLen) == 0
+            && strlen(argv[i]) == nameLen + 1) {
+            return true;
+        }
+    }
+    return false;
+}
+
+inline
 _Ret_maybenull_ _Null_terminated_ const char*
 GetValue(
     _In_ int argc,
@@ -112,7 +131,9 @@ GetValue(
 {
     const size_t nameLen = strlen(name);
     for (int i = 0; i < argc; i++) {
-        if (_strnicmp(argv[i] + 1, name, nameLen) == 0) {
+        if (_strnicmp(argv[i] + 1, name, nameLen) == 0
+            && strlen(argv[i]) > 1 + nameLen + 1
+            && *(argv[i] + 1 + nameLen) == ':') {
             return argv[i] + 1 + nameLen + 1;
         }
     }
@@ -754,7 +775,7 @@ RunClient(
     //
     // Load the client configuration based on the "unsecure" command line option.
     //
-    if (!ClientLoadConfiguration(GetValue(argc, argv, "unsecure"))) {
+    if (!ClientLoadConfiguration(GetFlag(argc, argv, "unsecure"))) {
         return;
     }
 
@@ -835,11 +856,11 @@ main(
         goto Error;
     }
 
-    if (GetValue(argc, argv, "help") || GetValue(argc, argv, "?")) {
+    if (GetFlag(argc, argv, "help") || GetFlag(argc, argv, "?")) {
         PrintUsage();
-    } else if (GetValue(argc, argv, "client")) {
+    } else if (GetFlag(argc, argv, "client")) {
         RunClient(argc, argv);
-    } else if (GetValue(argc, argv, "server")) {
+    } else if (GetFlag(argc, argv, "server")) {
         RunServer(argc, argv);
     } else {
         PrintUsage();

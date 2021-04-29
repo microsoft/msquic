@@ -193,6 +193,18 @@ QuicStreamRelease(
     _In_ QUIC_STREAM_REF Ref
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamSentMetadataDecrement(
+    _In_ QUIC_STREAM* Stream
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamSentMetadataIncrement(
+    _In_ QUIC_STREAM* Stream
+    );
+
 QUIC_ENCRYPT_LEVEL
 QuicKeyTypeToEncryptLevel(
     QUIC_PACKET_KEY_TYPE KeyType
