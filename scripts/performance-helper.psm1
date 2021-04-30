@@ -561,30 +561,41 @@ function Get-TestResult($Results, $Matcher) {
     }
 }
 
-function Get-LatestCommitHash([string]$Branch) {
+function Get-LatestCommitHashes([string]$Branch) {
     $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/commits.json"
     Write-LogAndDebug "Requesting: $Uri"
     try {
         $AllCommits = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
         Write-LogAndDebug "Result: $AllCommits"
-        $LatestResult = ($AllCommits | Sort-Object -Property Date -Descending)[0]
-        Write-LogAndDebug "Latest Commit: $LatestResult"
-    return $LatestResult.CommitHash
+        if ($AllCommits.Count -eq 0) {
+            return ""
+        }
+        $SortedList = $AllCommits | Sort-Object -Property Date -Descending
+        if ($SortedList.Count -lt 5) {
+            $LatestResult = $SortedList
+        } else {
+            $LatestResult = $SortedList | Select-Object -First 5
+        }
+        Write-LogAndDebug "Latest Commits: $LatestResult"
+        return $LatestResult
     } catch {
         return ""
     }
 }
 
-function Get-LatestCpuTestResult([string]$Branch, [string]$CommitHash) {
-    $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/cpu_data.json"
-    Write-LogAndDebug "Requesting: $Uri"
-    try {
-        $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
-        Write-LogAndDebug "Result: $LatestResult"
-    return $LatestResult
-    } catch {
-        return ""
+function Get-LatestCpuTestResults([string]$Branch, $CommitHashes) {
+    $Items = @()
+    foreach ($Result in $CommitHashes) {
+        $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/cpu_data.json"
+        Write-LogAndDebug "Requesting: $Uri"
+        try {
+            $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Method 'GET' -ContentType "application/json"
+            Write-LogAndDebug "Result: $LatestResult"
+            $Items.Add($LatestResult)
+        } catch {
+        }
     }
+    return $Items
 }
 
 $global:HasRegression = $false
@@ -661,16 +672,24 @@ class ThroughputRequest {
 
 function Get-LatestThroughputRemoteTestResults($CpuData, [ThroughputRequest]$Request) {
     try {
+        $Values = @()
         $TestConfig = $Request.GetConfiguration()
-        foreach ($Test in $CpuData.Tests) {
-            if ($null -eq $Test.TputConfig) {
-                continue;
-            }
+        foreach ($Result in $CpuData) {
+            foreach ($Test in $Result.Tests) {
+                if ($null -eq $Test.TputConfig) {
+                    continue;
+                }
 
-            if ($Test.TestName -eq $Request.TestName -and $TestConfig -eq $Test.TputConfig -and $Request.PlatformName -eq $Test.PlatformName) {
-                return $Test
+                if ($Test.TestName -eq $Request.TestName -and $TestConfig -eq $Test.TputConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                    $Values.Add((Get-MedianTestResults -FullResults $Test.Results))
+                    break;
+                }
             }
         }
+        if ($Values.Count -eq 0) {
+            return $null
+        }
+        return ($Values | Measure-Object -Average).Average
     } catch {
     }
     return $null
@@ -721,7 +740,7 @@ function Publish-ThroughputTestResults {
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($null -ne $FullLastResult) {
-        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.Results
+        $MedianLastResult = $FullLastResult
         if ($MedianLastResult -eq 0) {
             Write-Error "Cannot have a last result median of 0"
         }
@@ -812,16 +831,24 @@ class RPSRequest {
 
 function Get-LatestRPSRemoteTestResults($CpuData, [RpsRequest]$Request) {
     try {
+        $Values = @()
         $TestConfig = $Request.GetConfiguration()
-        foreach ($Test in $CpuData.Tests) {
-            if ($null -eq $Test.RpsConfig) {
-                continue;
-            }
+        foreach ($Result in $CpuData) {
+            foreach ($Test in $Result.Tests) {
+                if ($null -eq $Test.RpsConfig) {
+                    continue;
+                }
 
-            if ($TestConfig -eq $Test.RpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
-                return $Test
+                if ($TestConfig -eq $Test.RpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                    $Values.Add((Get-MedianTestResults -FullResults $Test.Results))
+                    break;
+                }
             }
         }
+        if ($Values.Count -eq 0) {
+            return $null
+        }
+        return ($Values | Measure-Object -Average).Average
     } catch {
     }
     return $null
@@ -878,7 +905,7 @@ function Publish-RPSTestResults {
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($null -ne $FullLastResult) {
-        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.Results
+        $MedianLastResult = $FullLastResult
         if ($MedianLastResult -eq 0) {
             Write-Error "Cannot have a last result median of 0"
         }
@@ -946,16 +973,24 @@ class HPSRequest {
 
 function Get-LatestHPSRemoteTestResults($CpuData, [HpsRequest]$Request) {
     try {
+        $Values = @()
         $TestConfig = $Request.GetConfiguration()
-        foreach ($Test in $CpuData.Tests) {
-            if ($null -eq $Test.HpsConfig) {
-                continue;
-            }
+        foreach ($Result in $CpuData) {
+            foreach ($Test in $Result.Tests) {
+                if ($null -eq $Test.HpsConfig) {
+                    continue;
+                }
 
-            if ($TestConfig -eq $Test.HpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
-                return $Test
+                if ($TestConfig -eq $Test.HpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                    $Values.Add((Get-MedianTestResults -FullResults $Test.Results))
+                    break;
+                }
             }
         }
+        if ($Values.Count -eq 0) {
+            return $null
+        }
+        return ($Values | Measure-Object -Average).Average
     } catch {
     }
     return $null
@@ -995,7 +1030,7 @@ function Publish-HPSTestResults {
     $CurrentFormatted = [string]::Format($Test.Formats[0], $MedianCurrentResult)
 
     if ($null -ne $FullLastResult) {
-        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.Results
+        $MedianLastResult = $FullLastResult
         if ($MedianLastResult -eq 0) {
             Write-Error "Cannot have a last result median of 0"
         }
