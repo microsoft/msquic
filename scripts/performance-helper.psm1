@@ -561,6 +561,8 @@ function Get-TestResult($Results, $Matcher) {
     }
 }
 
+$NumberOfCommitsToAverage = 5
+
 function Get-LatestCommitHashes([string]$Branch) {
     $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/commits.json"
     Write-LogAndDebug "Requesting: $Uri"
@@ -571,10 +573,10 @@ function Get-LatestCommitHashes([string]$Branch) {
             return ""
         }
         $SortedList = $AllCommits | Sort-Object -Property Date -Descending
-        if ($SortedList.Count -lt 5) {
+        if ($SortedList.Count -lt $NumberOfCommitsToAverage) {
             $LatestResult = $SortedList
         } else {
-            $LatestResult = $SortedList | Select-Object -First 5
+            $LatestResult = $SortedList | Select-Object -First $NumberOfCommitsToAverage
         }
         Write-LogAndDebug "Latest Commits: $LatestResult"
         return $LatestResult
