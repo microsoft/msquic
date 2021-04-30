@@ -356,8 +356,8 @@ if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
     $BranchName = $ForceBranchName
 }
 
-$LastCommitHash = Get-LatestCommitHash -Branch $BranchName
-$PreviousResults = Get-LatestCpuTestResult -Branch $BranchName -CommitHash $LastCommitHash
+$LastCommitHashes = Get-LatestCommitHashes -Branch $BranchName
+$PreviousResults = Get-LatestCpuTestResults -Branch $BranchName -CommitHashes $LastCommitHashes
 
 function Invoke-Test {
     param ([TestRunDefinition]$Test, [RemoteConfig]$RemoteConfig)
