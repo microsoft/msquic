@@ -585,7 +585,8 @@ function Get-LatestCommitHashes([string]$Branch) {
 
 function Get-LatestCpuTestResults([string]$Branch, $CommitHashes) {
     $Items = @()
-    foreach ($CommitHash in $CommitHashes) {
+    foreach ($Result in $CommitHashes) {
+        $CommitHash = $Result.CommitHash
         $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/cpu_data.json"
         Write-LogAndDebug "Requesting: $Uri"
         try {
