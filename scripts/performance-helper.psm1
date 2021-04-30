@@ -584,7 +584,7 @@ function Get-LatestCommitHashes([string]$Branch) {
 }
 
 function Get-LatestCpuTestResults([string]$Branch, $CommitHashes) {
-    $Items = @()
+    $Items = [System.Collections.Generic.List[object]]::new()
     foreach ($Result in $CommitHashes) {
         $CommitHash = $Result.CommitHash
         $Uri = "https://raw.githubusercontent.com/microsoft/msquic/performance/data/$Branch/$CommitHash/cpu_data.json"
@@ -673,7 +673,7 @@ class ThroughputRequest {
 
 function Get-LatestThroughputRemoteTestResults($CpuData, [ThroughputRequest]$Request) {
     try {
-        $Values = @()
+        $Values = [System.Collections.Generic.List[int]]::new()
         $TestConfig = $Request.GetConfiguration()
         foreach ($Result in $CpuData) {
             foreach ($Test in $Result.Tests) {
@@ -832,7 +832,7 @@ class RPSRequest {
 
 function Get-LatestRPSRemoteTestResults($CpuData, [RpsRequest]$Request) {
     try {
-        $Values = @()
+        $Values = [System.Collections.Generic.List[int]]::new()
         $TestConfig = $Request.GetConfiguration()
         foreach ($Result in $CpuData) {
             foreach ($Test in $Result.Tests) {
@@ -974,7 +974,7 @@ class HPSRequest {
 
 function Get-LatestHPSRemoteTestResults($CpuData, [HpsRequest]$Request) {
     try {
-        $Values = @()
+        $Values = [System.Collections.Generic.List[int]]::new()
         $TestConfig = $Request.GetConfiguration()
         foreach ($Result in $CpuData) {
             foreach ($Test in $Result.Tests) {
