@@ -174,12 +174,12 @@ CxPlatAlloc(
     UNREFERENCED_PARAMETER(Tag);
 #ifdef DEBUG
     uint32_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
-    if (CxPlatform.AllocFailDenominator > 0 && (Rand % CxPlatform.AllocFailDenominator) == 1) return NULL;
-    else if (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0) return NULL;
-    else return malloc(ByteCount);
-#else
+    if ((CxPlatform.AllocFailDenominator > 0 && (Rand % CxPlatform.AllocFailDenominator) == 1) ||
+        (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0)) {
+        return NULL;
+    }
+#endif
     return malloc(ByteCount);
-#endif // DEBUG
 }
 
 void
