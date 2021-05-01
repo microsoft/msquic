@@ -127,6 +127,9 @@ CxPlatSystemLoad(
     dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
 
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
+
+    CxPlatform.AllocFailDenominator = 0;
+    CxPlatform.AllocCounter = 0;
 }
 
 void
@@ -166,12 +169,14 @@ CxPlatAlloc(
     )
 {
     UNREFERENCED_PARAMETER(Tag);
-#ifdef QUIC_RANDOM_ALLOC_FAIL
-    uint8_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
-    return ((Rand % 100) == 1) ? NULL : malloc(ByteCount);
+#ifdef DEBUG
+    uint32_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
+    if (CxPlatform.AllocFailDenominator > 0 && (Rand % CxPlatform.AllocFailDenominator) == 1) return NULL;
+    else if (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0) return NULL;
+    else return malloc(ByteCount);
 #else
     return malloc(ByteCount);
-#endif // QUIC_RANDOM_ALLOC_FAIL
+#endif // DEBUG
 }
 
 void
@@ -497,6 +502,16 @@ CxPlatConvertFromMappedV6(
         *OutAddr = *InAddr;
     }
 }
+
+#ifdef DEBUG
+void
+CxPlatSetAllocFailDenominator(
+    _In_ int32_t Value
+    )
+{
+    CxPlatform.AllocFailDenominator = Value;
+}
+#endif
 
 #if defined(CX_PLATFORM_LINUX)
 

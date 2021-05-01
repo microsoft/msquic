@@ -48,6 +48,19 @@ typedef struct CX_PLATFORM {
     //
     BCRYPT_ALG_HANDLE RngAlgorithm;
 
+#ifdef DEBUG
+    //
+    // 1/Denominator of allocations to fail.
+    // Negative is Nth allocation to fail.
+    //
+    int32_t AllocFailDenominator;
+
+    //
+    // Count of allocations.
+    //
+    uint32_t AllocCounter;
+#endif
+
 } CX_PLATFORM;
 
 #elif _WIN32
@@ -74,6 +87,19 @@ typedef struct CX_PLATFORM {
     //
     HANDLE Heap;
 
+#ifdef DEBUG
+    //
+    // 1/Denominator of allocations to fail.
+    // Negative is Nth allocation to fail.
+    //
+    int32_t AllocFailDenominator;
+
+    //
+    // Count of allocations.
+    //
+    long AllocCounter;
+#endif
+
 } CX_PLATFORM;
 
 #elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
@@ -81,6 +107,19 @@ typedef struct CX_PLATFORM {
 typedef struct CX_PLATFORM {
 
     void* Reserved; // Nothing right now.
+
+#ifdef DEBUG
+    //
+    // 1/Denominator of allocations to fail.
+    // Negative is Nth allocation to fail.
+    //
+    int32_t AllocFailDenominator;
+
+    //
+    // Count of allocations.
+    //
+    uint32_t AllocCounter;
+#endif
 
 } CX_PLATFORM;
 

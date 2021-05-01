@@ -323,6 +323,13 @@ CxPlatListPopEntry(
 #include "quic_hashtable.h"
 #include "quic_toeplitz.h"
 
+#ifdef DEBUG
+void
+CxPlatSetAllocFailDenominator(
+    _In_ int32_t Value
+    );
+#endif
+
 //
 // Test Interface for loading a self-signed certificate.
 //

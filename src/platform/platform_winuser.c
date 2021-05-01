@@ -20,7 +20,7 @@ Environment:
 
 uint64_t CxPlatPerfFreq;
 uint64_t CxPlatTotalMemory;
-CX_PLATFORM CxPlatform = { NULL };
+CX_PLATFORM CxPlatform = { NULL, 0, 0 };
 CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 uint64_t* CxPlatNumaMasks;
 uint32_t* CxPlatProcessorGroupOffsets;
@@ -38,6 +38,8 @@ CxPlatSystemLoad(
 
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&CxPlatPerfFreq);
     CxPlatform.Heap = NULL;
+    CxPlatform.AllocFailDenominator = 0;
+    CxPlatform.AllocCounter = 0;
 
     QuicTraceLogInfo(
         WindowsUserLoaded,
@@ -425,11 +427,13 @@ CxPlatAlloc(
     )
 {
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
-#ifdef QUIC_RANDOM_ALLOC_FAIL
-    uint8_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
-    if ((Rand % 100) == 1) return NULL;
-#else
 #ifdef DEBUG
+    uint32_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
+    if (CxPlatform.AllocFailDenominator > 0 && (Rand % CxPlatform.AllocFailDenominator) == 1) return NULL;
+    else if (
+        CxPlatform.AllocFailDenominator < 0 &&
+        InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0) return NULL;
+
     void* Alloc = HeapAlloc(CxPlatform.Heap, 0, ByteCount + AllocOffset);
     if (Alloc == NULL) {
         return NULL;
@@ -440,7 +444,6 @@ CxPlatAlloc(
     UNREFERENCED_PARAMETER(Tag);
     return HeapAlloc(CxPlatform.Heap, 0, ByteCount);
 #endif
-#endif // QUIC_RANDOM_ALLOC_FAIL
 }
 
 void
@@ -584,6 +587,16 @@ Error:
     *BufferLength = 0;
     return FALSE;
 }
+
+#ifdef DEBUG
+void
+CxPlatSetAllocFailDenominator(
+    _In_ int32_t Value
+    )
+{
+    CxPlatform.AllocFailDenominator = Value;
+}
+#endif
 
 #ifdef QUIC_UWP_BUILD
 DWORD
