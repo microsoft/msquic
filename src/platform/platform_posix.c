@@ -30,6 +30,7 @@ Environment:
 
 #define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
 
+CX_PLATFORM CxPlatform = { NULL };
 int RandomFd; // Used for reading random numbers.
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
