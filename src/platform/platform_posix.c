@@ -128,8 +128,10 @@ CxPlatSystemLoad(
 
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
+#ifdef DEBUG
     CxPlatform.AllocFailDenominator = 0;
     CxPlatform.AllocCounter = 0;
+#endif
 }
 
 void

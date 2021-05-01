@@ -58,7 +58,7 @@ typedef struct CX_PLATFORM {
     //
     // Count of allocations.
     //
-    uint32_t AllocCounter;
+    long AllocCounter;
 #endif
 
 } CX_PLATFORM;
@@ -118,7 +118,7 @@ typedef struct CX_PLATFORM {
     //
     // Count of allocations.
     //
-    uint32_t AllocCounter;
+    long AllocCounter;
 #endif
 
 } CX_PLATFORM;

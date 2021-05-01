@@ -20,7 +20,7 @@ Environment:
 
 uint64_t CxPlatPerfFreq;
 uint64_t CxPlatTotalMemory;
-CX_PLATFORM CxPlatform = { NULL, 0, 0 };
+CX_PLATFORM CxPlatform = { NULL };
 CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 uint64_t* CxPlatNumaMasks;
 uint32_t* CxPlatProcessorGroupOffsets;
@@ -38,8 +38,10 @@ CxPlatSystemLoad(
 
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&CxPlatPerfFreq);
     CxPlatform.Heap = NULL;
+#ifdef DEBUG
     CxPlatform.AllocFailDenominator = 0;
     CxPlatform.AllocCounter = 0;
+#endif
 
     QuicTraceLogInfo(
         WindowsUserLoaded,

@@ -58,7 +58,7 @@ typedef struct _SYSTEM_BASIC_INFORMATION {
 
 uint64_t CxPlatPerfFreq;
 uint64_t CxPlatTotalMemory;
-CX_PLATFORM CxPlatform = { NULL, NULL, 0, 0 };
+CX_PLATFORM CxPlatform = { NULL, NULL };
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 INITCODE
@@ -78,7 +78,11 @@ CxPlatSystemLoad(
     CxPlatform.DriverObject = DriverObject;
     (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&CxPlatPerfFreq);
     CxPlatform.RngAlgorithm = NULL;
+
+#ifdef DEBUG
     CxPlatform.AllocFailDenominator = 0;
+    CxPlatform.AllocCounter = 0;
+#endif
 
     QuicTraceLogInfo(
         WindowsKernelLoaded,
