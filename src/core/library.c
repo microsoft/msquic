@@ -1610,7 +1610,12 @@ QuicLibraryGetWorker(
     _In_ const _In_ CXPLAT_RECV_DATA* Datagram
     )
 {
-    CXPLAT_DBG_ASSERT(MsQuicLib.StatelessRegistration != NULL);
+    if (!CxPlatIsRandomMemoryFailureEnabled()) {
+        CXPLAT_DBG_ASSERT(MsQuicLib.StatelessRegistration != NULL);
+    }
+    if (MsQuicLib.StatelessRegistration == NULL) {
+        return NULL;
+    }
     return
         &MsQuicLib.StatelessRegistration->WorkerPool->Workers[
             Datagram->PartitionIndex % MsQuicLib.PartitionCount];

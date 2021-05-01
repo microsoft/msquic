@@ -822,7 +822,7 @@ main(int argc, char **argv)
     if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
         CxPlatRandom(sizeof(RngSeed), &RngSeed);
     }
-    printf("Using seed value: 0x%d\n", RngSeed);
+    printf("Using seed value: %u\n", RngSeed);
     srand(RngSeed);
 
     SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);

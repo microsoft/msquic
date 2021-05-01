@@ -244,6 +244,13 @@ CxPlatSetAllocFailDenominator(
     CxPlatform.AllocFailDenominator = Value;
 }
 
+int32_t
+CxPlatGetAllocFailDenominator(
+    )
+{
+    return CxPlatform.AllocFailDenominator;
+}
+
 #endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW

@@ -328,7 +328,23 @@ void
 CxPlatSetAllocFailDenominator(
     _In_ int32_t Value
     );
+
+int32_t
+CxPlatGetAllocFailDenominator(
+    );
 #endif
+
+inline
+BOOLEAN
+CxPlatIsRandomMemoryFailureEnabled(
+    )
+{
+#ifdef DEBUG
+    return CxPlatGetAllocFailDenominator() != 0;
+#else
+    return FALSE;
+#endif
+}
 
 //
 // Test Interface for loading a self-signed certificate.

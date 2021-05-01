@@ -720,6 +720,11 @@ QuicBindingQueueStatelessOperation(
     }
 
     QUIC_WORKER* Worker = QuicLibraryGetWorker(Datagram);
+    if (Worker == NULL) {
+        QuicPacketLogDrop(Binding, CxPlatDataPathRecvDataToRecvPacket(Datagram),
+            "Stateless worker non-existent (stateless oper)");
+        return FALSE;
+    }
     if (QuicWorkerIsOverloaded(Worker)) {
         QuicPacketLogDrop(Binding, CxPlatDataPathRecvDataToRecvPacket(Datagram),
             "Stateless worker overloaded (stateless oper)");
@@ -998,7 +1003,12 @@ QuicBindingProcessStatelessOperation(
                 (uint8_t*)&Token,
                 (uint16_t)SendDatagram->Length,
                 SendDatagram->Buffer);
-        CXPLAT_DBG_ASSERT(SendDatagram->Length != 0);
+        if (SendDatagram->Length == 0) {
+            if (!CxPlatIsRandomMemoryFailureEnabled()) {
+                CXPLAT_DBG_ASSERT(FALSE);
+            }
+            goto Exit;
+        }
 
         QuicTraceLogVerbose(
             PacketTxRetry,
@@ -1267,6 +1277,10 @@ QuicBindingCreateConnection(
     // the connection will later be moved to the correct registration's worker.
     //
     QUIC_WORKER* Worker = QuicLibraryGetWorker(Datagram);
+    if (Worker == NULL) {
+        QuicPacketLogDrop(Binding, Packet, "Stateless worker non-existent");
+        return NULL;
+    }
     if (QuicWorkerIsOverloaded(Worker)) {
         QuicPacketLogDrop(Binding, Packet, "Stateless worker overloaded");
         return NULL;

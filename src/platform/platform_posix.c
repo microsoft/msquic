@@ -514,6 +514,13 @@ CxPlatSetAllocFailDenominator(
 {
     CxPlatform.AllocFailDenominator = Value;
 }
+
+int32_t
+CxPlatGetAllocFailDenominator(
+    )
+{
+    return CxPlatform.AllocFailDenominator;
+}
 #endif
 
 #if defined(CX_PLATFORM_LINUX)
