@@ -54,6 +54,6 @@ elseif(QUIC_ENABLE_LOGGING)
     install(TARGETS msquic.lttng DESTINATION "${main_lib_dest}")
 endif()
 
-if (MSVC)
+if (MSVC AND NOT QUIC_ENABLE_SANITIZERS)
     target_compile_options(msquic PRIVATE /analyze)
 endif()

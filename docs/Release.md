@@ -37,12 +37,12 @@ A release branch will be created (forked) for each release of MsQuic. Official r
 
 This table describes all MsQuic releases, both officially supported (LTSC or SAC) and unsupported (PRE).
 
-| [Type](Release.md#release-support-policies) | Branch | Fork Date | Release Date | End of Support |
-| -- | -- | -- | -- | -- |
-| LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 |
-| TBD | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | Feb 10 2020 | TBD | TBD |
-| PRE | [prerelease/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | Mar 26 2020 | N/A |N/A |
-| PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | Apr 27 2020 | N/A |N/A |
+| [Type](Release.md#release-support-policies) | Branch | Windows | Fork Date | Release Date | End of Support |
+| -- | -- | -- | -- | -- | -- |
+| LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | Server 2022 | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 |
+| TBD | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | TBD | Feb 10 2020 | TBD | TBD |
+| PRE | [prerelease/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | N/A | Mar 26 2020 | N/A |N/A |
+| PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | N/A | Apr 27 2020 | N/A |N/A |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -62,7 +62,7 @@ The QUIC specifications are currently "Submitted to IESG for Publication", so bo
 
 ## MsQuic v1.1 (TBD)
 
-[MsQuic v1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.2) has various small improvements from v1.0. The primary shipping vehicle for this release will be the Windows Client (Cobalt) release. These changes include:
+[MsQuic v1.1](https://github.com/microsoft/msquic/releases/tag/v1.1.2) has various small improvements from v1.0. The primary shipping vehicle for this release will be the Windows Client (official name TBD) release. These changes include:
 
  - Preview support for [Version Negotiation](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation-03) extension.
  - Public API header build fixes.

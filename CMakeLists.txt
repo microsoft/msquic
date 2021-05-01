@@ -277,7 +277,12 @@ if(WIN32)
     endif()
 
     if(QUIC_ENABLE_SANITIZERS)
-        message(STATUS "Sanitizers unsupported on this platform.")
+        # This fails when linking statically, so for today require dynamic linkage
+        if (QUIC_STATIC_LINK_CRT)
+            message(FATAL_ERROR "Static linkage unsupported with Address Sanitizer in Windows")
+        endif()
+        message(STATUS "Configuring sanitizers")
+        list(APPEND QUIC_COMMON_FLAGS /fsanitize=address)
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
