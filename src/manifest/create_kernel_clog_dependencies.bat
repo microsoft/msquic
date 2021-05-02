@@ -6,7 +6,6 @@ set QUIC_BUILD_DIR=%SOLUTION_DIR%\build\winkernel\%PLATFORM_ARG%_%CONFIGURATION_
 mkdir %QUIC_BUILD_DIR%\inc
 mc.exe -um -h %QUIC_BUILD_DIR%\inc -r %QUIC_BUILD_DIR%\inc %SOLUTION_DIR%\src\manifest\MsQuicEtw.man
 
-clog --installDirectory %SOLUTION_DIR%\build\clog
 
 cmd /c %SOLUTION_DIR%\scripts\generate_kernel_clog.bat %QUIC_BUILD_DIR% %SOLUTION_DIR% %SOLUTION_DIR%\src\core CORE
 cmd /c %SOLUTION_DIR%\scripts\generate_kernel_clog.bat %QUIC_BUILD_DIR% %SOLUTION_DIR% %SOLUTION_DIR%\src\platform PLATFORM
