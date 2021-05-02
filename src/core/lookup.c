@@ -255,7 +255,7 @@ QuicLookupMaximizePartitioning(
             Lookup->MaximizePartitioning = TRUE;
             Result = QuicLookupRebalance(Lookup, NULL);
             if (!Result) {
-                    CxPlatHashtableUninitialize(&Lookup->RemoteHashTable);
+                CxPlatHashtableUninitialize(&Lookup->RemoteHashTable);
                 Lookup->MaximizePartitioning = FALSE;
             }
         }
