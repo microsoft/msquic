@@ -335,9 +335,9 @@ CxPlatGetAllocFailDenominator(
 #endif
 
 #ifdef DEBUG
-#define CxPlatIsRandomMemoryFailureEnabled() CxPlatGetAllocFailDenominator() != 0
+#define CxPlatIsRandomMemoryFailureEnabled() (CxPlatGetAllocFailDenominator() != 0)
 #else
-#define CxPlatIsRandomMemoryFailureEnabled() FALSE
+#define CxPlatIsRandomMemoryFailureEnabled() (FALSE)
 #endif
 
 
