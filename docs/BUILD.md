@@ -33,9 +33,6 @@ Then you will need to **manually** launch "PowerShell 7" to continue. This insta
 
 ## Install on Linux
 
-# BUGBUG : Notes, can we install dotnet as the tool, because it makes installing other tools easy (pwsh for example)
-https://devblogs.microsoft.com/powershell/introducing-powershell-as-net-global-tool/
-
 You find the full installation instructions for PowerShell on Linux [here](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?). For Ubuntu you can run the following:
 
 ```PowerShell
@@ -73,6 +70,9 @@ sudo dpkg -i libicu55_55.1-7ubuntu0.5_amd64.deb
 wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.0.0_1.0.2g-1ubuntu4.18_amd64.deb
 sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.18_amd64.deb
 ```
+
+ > **Note** You can install dotnet as the tool, because it makes installing other tools easy (pwsh for example)
+https://devblogs.microsoft.com/powershell/introducing-powershell-as-net-global-tool/
 
 Then you will need to manually run "pwsh" to continue.
 

@@ -303,8 +303,8 @@ MsQuicListenerStart(
         "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!, ALPN=%!ALPN!",
         Listener,
         Listener->Binding,
-        CLOG_BYTEARRAY_BUGBUG(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
-        CLOG_BYTEARRAY_BUGBUG(Listener->AlpnListLength, Listener->AlpnList));
+        CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
+        CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
 
 Error:
 
@@ -382,15 +382,13 @@ QuicListenerTraceRundown(
         Listener,
         Listener->Registration);
     if (Listener->Binding != NULL) {
-    #ifdef BUGBUG
-    uicTraceEvent(
+        QuicTraceEvent(
             ListenerStarted,
             "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!, ALPN=%!ALPN!",
             Listener,
             Listener->Binding,
             CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress),
             CLOG_BYTEARRAY(Listener->AlpnListLength, Listener->AlpnList));
-    #endif
     }
 }
 
