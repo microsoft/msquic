@@ -641,18 +641,6 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
         }
     }
 
-    if (Settings.AllocFailDenominator > 0) {
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
-                sizeof(Settings.AllocFailDenominator),
-                &Settings.AllocFailDenominator))) {
-            printf("Setting Allocation Failure Denominator failed.\n");
-        }
-    }
-
     //
     // Run
     //
@@ -689,18 +677,6 @@ CXPLAT_THREAD_CALLBACK(ClientSpin, Context)
 {
     UNREFERENCED_PARAMETER(Context);
     LockableVector<HQUIC> Connections;
-
-    if (Settings.AllocFailDenominator > 0) {
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
-                sizeof(Settings.AllocFailDenominator),
-                &Settings.AllocFailDenominator))) {
-            printf("Setting Allocation Failure Denominator failed.\n");
-        }
-    }
 
     //
     // Run
@@ -838,6 +814,18 @@ main(int argc, char **argv)
         }
 
         ASSERT_ON_FAILURE(MsQuicOpen(&MsQuic));
+
+        if (Settings.AllocFailDenominator > 0) {
+            if (QUIC_FAILED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
+                    sizeof(Settings.AllocFailDenominator),
+                    &Settings.AllocFailDenominator))) {
+                printf("Setting Allocation Failure Denominator failed.\n");
+            }
+        }
 
         if (Settings.LossPercent != 0) {
             QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;

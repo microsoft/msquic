@@ -334,17 +334,12 @@ CxPlatGetAllocFailDenominator(
     );
 #endif
 
-inline
-BOOLEAN
-CxPlatIsRandomMemoryFailureEnabled(
-    )
-{
 #ifdef DEBUG
-    return CxPlatGetAllocFailDenominator() != 0;
+#define CxPlatIsRandomMemoryFailureEnabled() CxPlatGetAllocFailDenominator() != 0
 #else
-    return FALSE;
+FALSE
 #endif
-}
+
 
 //
 // Test Interface for loading a self-signed certificate.

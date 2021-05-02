@@ -105,10 +105,6 @@ CxPlatListPopEntry(
     _Inout_ CXPLAT_SLIST_ENTRY* ListHead
     );
 
-BOOLEAN
-CxPlatIsRandomMemoryFailureEnabled(
-    );
-
 long
 InterlockedIncrement(
     _Inout_ _Interlocked_operand_ long volatile *Addend

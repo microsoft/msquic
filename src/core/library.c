@@ -790,7 +790,6 @@ QuicLibrarySetGlobalParam(
             break;
         }
         CxPlatSetAllocFailDenominator(Value);
-
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
@@ -806,7 +805,6 @@ QuicLibrarySetGlobalParam(
             break;
         }
         CxPlatSetAllocFailDenominator(-Value);
-
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
@@ -1610,12 +1608,7 @@ QuicLibraryGetWorker(
     _In_ const _In_ CXPLAT_RECV_DATA* Datagram
     )
 {
-    if (!CxPlatIsRandomMemoryFailureEnabled()) {
-        CXPLAT_DBG_ASSERT(MsQuicLib.StatelessRegistration != NULL);
-    }
-    if (MsQuicLib.StatelessRegistration == NULL) {
-        return NULL;
-    }
+    CXPLAT_DBG_ASSERT(MsQuicLib.StatelessRegistration != NULL);
     return
         &MsQuicLib.StatelessRegistration->WorkerPool->Workers[
             Datagram->PartitionIndex % MsQuicLib.PartitionCount];
