@@ -27,7 +27,6 @@ ADD https://aka.ms/vs/16/release/vs_buildtools.exe C:\TEMP\vs_buildtools.exe
 RUN C:\TEMP\vs_buildtools.exe --quiet --wait --norestart --nocache `
     --installPath "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools" `
     --add Microsoft.VisualStudio.Workload.AzureBuildTools `
-    --add Microsoft.VisualStudio.Workload.AzureBuildTools `
     --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
     --add Microsoft.VisualStudio.Component.VC.CoreBuildTools `
     --add Microsoft.VisualStudio.Component.VC.CoreBuildTools `
@@ -38,6 +37,42 @@ RUN C:\TEMP\vs_buildtools.exe --quiet --wait --norestart --nocache `
     --add Microsoft.VisualStudio.Component.VC.140 `
     --add Microsoft.VisualStudio.Component.VC.CLI.Support `
     --add Microsoft.VisualStudio.Component.VC.ATLMFC `
+    --add Microsoft.Component.MSBuild `
+    --add Microsoft.VisualStudio.Component.VC.14.20.ATL `
+    --add Microsoft.VisualStudio.Component.VC.14.20.ATL.ARM `
+    --add Microsoft.VisualStudio.Component.VC.14.20.ATL.ARM64 `
+    --add Microsoft.VisualStudio.Component.VC.14.20.CLI.Support `
+    --add Microsoft.VisualStudio.Component.VC.14.20.MFC `
+    --add Microsoft.VisualStudio.Component.VC.14.20.MFC.ARM `
+    --add Microsoft.VisualStudio.Component.VC.14.20.MFC.ARM64 `
+    --add Microsoft.VisualStudio.Component.VC.ATL.ARM `
+    --add Microsoft.VisualStudio.Component.VC.ATL.ARM64 `
+    --add Microsoft.VisualStudio.Component.VC.ATL.Spectre `
+    --add Microsoft.VisualStudio.Component.VC.ATLMFC.Spectre `
+    --add Microsoft.VisualStudio.Component.VC.CLI.Support `
+    --add Microsoft.VisualStudio.Component.VC.CMake.Project `
+    --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest `
+    --add Microsoft.VisualStudio.Component.VC.Runtimes.ARM.Spectre `
+    --add Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre `
+    --add Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre `
+    --add Microsoft.VisualStudio.Component.VC.TestAdapterForBoostTest `
+    --add Microsoft.VisualStudio.Component.VC.TestAdapterForGoogleTest `
+    --add Microsoft.VisualStudio.Component.VC.Tools.ARM `
+    --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 `
+    --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+    --add Microsoft.VisualStudio.Component.VC.v141.ATL.Spectre `
+    --add Microsoft.VisualStudio.Component.VC.v141.CLI.Support `
+    --add Microsoft.VisualStudio.Component.VC.v141.MFC.Spectre `
+    --add Microsoft.VisualStudio.Component.VC.v141.x86.x64 `
+    --add Microsoft.VisualStudio.Component.VC.v141.x86.x64.Spectre `
+    --add Microsoft.VisualStudio.Component.VisualStudioData `
+    --add Microsoft.VisualStudio.Component.VSSDK `
+    --add Microsoft.VisualStudio.Component.Web `
+    --add Microsoft.VisualStudio.Component.WebDeploy `
+    --add Microsoft.VisualStudio.Component.Windows10SDK `
+    --add Microsoft.VisualStudio.Component.Windows10SDK.17763 `
+    --add Microsoft.VisualStudio.Component.Windows10SDK.18362 `
+    --add Microsoft.VisualStudio.Component.Windows10SDK.19041 `
  || IF "%ERRORLEVEL%"=="3010" EXIT 0
 
 
