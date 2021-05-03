@@ -93,14 +93,16 @@ QuicLookupCreateHashTable(
     if (Lookup->HASH.Tables != NULL) {
 
         uint16_t Cleanup = 0;
+        uint8_t Failed = FALSE;
         for (uint16_t i = 0; i < PartitionCount; i++) {
             if (!CxPlatHashtableInitializeEx(&Lookup->HASH.Tables[i].Table, CXPLAT_HASH_MIN_SIZE)) {
                 Cleanup = i;
+                Failed = TRUE;
                 break;
             }
             CxPlatDispatchRwLockInitialize(&Lookup->HASH.Tables[i].RwLock);
         }
-        if (Cleanup != 0) {
+        if (Failed) {
             for (uint16_t i = 0; i < Cleanup; i++) {
                 CxPlatHashtableUninitialize(&Lookup->HASH.Tables[i].Table);
             }
