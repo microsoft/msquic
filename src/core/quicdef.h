@@ -439,12 +439,12 @@ CXPLAT_STATIC_ASSERT(
 //
 // The timeout time in milliseconds for the DPLPMTUD PROBE_TIMER.
 //
-#define QUIC_DPLPMTUD_PROBE_TIMER_TIMEOUT 15000
+#define QUIC_DPLPMTUD_PROBE_TIMER_TIMEOUT 2000 // 15000
 
 //
 // The timeout time in milliseconds for the DPLPMTUD PMTU_RAISE_TIMER.
 //
-#define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT 600000
+#define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT 5000 // 600000
 
 
 /*************************************************************
