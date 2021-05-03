@@ -90,7 +90,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": ".*@ (.*) kbps.*",
             "Formats": ["{0} kbps"],
-            "RegressionThreshold": "-10.0"
+            "RegressionThreshold": "-60.0"
         },
         {
             "TestName": "ThroughputDown",
@@ -161,7 +161,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": ".*@ (.*) kbps.*",
             "Formats": ["{0} kbps"],
-            "RegressionThreshold": "-10.0"
+            "RegressionThreshold": "-60.0"
         },
         {
             "TestName": "RPS",
@@ -247,7 +247,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": "Result: (.*) RPS, Min: (.*), Max: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), StdErr: (.*)",
             "Formats": ["{0} RPS", "Minimum: {0}", "Maximum: {0}", "Percentiles: 50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "99.999th: {0}", "99.9999th: {0}", "Standard Error: {0}"],
-            "RegressionThreshold": "-50.0"
+            "RegressionThreshold": "-75.0"
         },
         {
             "TestName": "HPS",
@@ -281,7 +281,7 @@
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": "Result: (.*) HPS.*",
             "Formats": ["{0} HPS"],
-            "RegressionThreshold": "-40.0"
+            "RegressionThreshold": "-75.0"
         }
     ]
 }
