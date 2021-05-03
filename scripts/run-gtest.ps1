@@ -686,6 +686,9 @@ try {
             }
         }
     }
+} catch {
+    Log "Exception Thrown"
+    Log $_
 } finally {
     if ($LogProfile -ne "None") {
         & $LogScript -Cancel | Out-Null
