@@ -430,11 +430,11 @@ CxPlatAlloc(
 {
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
 #ifdef DEBUG
-    uint32_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
-    if (CxPlatform.AllocFailDenominator > 0 && (Rand % CxPlatform.AllocFailDenominator) == 1) return NULL;
-    else if (
-        CxPlatform.AllocFailDenominator < 0 &&
-        InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0) return NULL;
+    uint32_t Rand;
+    if ((CxPlatform.AllocFailDenominator > 0 && (CxPlatRandom(sizeof(Rand), &Rand), Rand % CxPlatform.AllocFailDenominator) == 1) ||
+        (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0)) {
+        return NULL;
+    }
 
     void* Alloc = HeapAlloc(CxPlatform.Heap, 0, ByteCount + AllocOffset);
     if (Alloc == NULL) {
