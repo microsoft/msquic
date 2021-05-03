@@ -603,15 +603,14 @@ QuicLossDetectionOnPacketAcknowledged(
                 Path->ID);
         }
 
-        if (PacketMtu > Path->Mtu) {
-            Path->Mtu = PacketMtu;
-            QuicTraceLogConnInfo(
-                PathMtuUpdated,
-                Connection,
-                "Path[%hhu] MTU updated to %hu bytes",
-                Path->ID,
-                Path->Mtu);
-            QuicDatagramOnSendStateChanged(&Connection->Datagram);
+        if (Packet->Flags.IsDPLPMTUD) {
+            if (QuicMtuDiscoveryOnAckedPacket(
+                &Connection->MtuDiscovery,
+                PacketMtu,
+                Path,
+                Connection)) {
+                QuicDatagramOnSendStateChanged(&Connection->Datagram);
+            }
         }
     }
 
@@ -636,7 +635,7 @@ QuicLossDetectionRetransmitFrames(
     for (uint8_t i = 0; i < Packet->FrameCount; i++) {
         switch (Packet->Frames[i].Type) {
         case QUIC_FRAME_PING:
-            if (!Packet->Flags.IsPMTUD) {
+            if (!Packet->Flags.IsDPLPMTUD) {
                 NewDataQueued |=
                     QuicSendSetSendFlag(
                         &Connection->Send,

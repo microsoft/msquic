@@ -1091,12 +1091,12 @@ QuicSendFlush(
 
         BOOLEAN WrotePacketFrames;
         BOOLEAN FlushBatchedDatagrams = FALSE;
-        if ((SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD) != 0) {
+        if ((SendFlags & ~QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0) {
             CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
             if (!QuicPacketBuilderPrepareForControlFrames(
                     &Builder,
                     Send->TailLossProbeNeeded,
-                    SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD)) {
+                    SendFlags & ~QUIC_CONN_SEND_FLAG_DPLPMTUD)) {
                 break;
             }
             WrotePacketFrames = QuicSendWriteFrames(Send, &Builder);
@@ -1141,12 +1141,12 @@ QuicSendFlush(
                 Stream = NULL;
             }
 
-        } else if (SendFlags == QUIC_CONN_SEND_FLAG_PMTUD) {
+        } else if (SendFlags == QUIC_CONN_SEND_FLAG_DPLPMTUD) {
             if (!QuicPacketBuilderPrepareForPathMtuDiscovery(&Builder)) {
                 break;
             }
             FlushBatchedDatagrams = TRUE;
-            Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PMTUD;
+            Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_DPLPMTUD;
             if (Builder.Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET &&
                 Builder.DatagramLength < Builder.Datagram->Length - Builder.EncryptionOverhead) {
                 //

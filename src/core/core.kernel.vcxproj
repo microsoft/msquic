@@ -50,6 +50,7 @@
     <ClCompile Include="listener.c" />
     <ClCompile Include="lookup.c" />
     <ClCompile Include="loss_detection.c" />
+    <ClCompile Include="mtu_discovery.c" />
     <ClCompile Include="operation.c" />
     <ClCompile Include="packet.c" />
     <ClCompile Include="packet_builder.c" />
@@ -85,6 +86,7 @@
     <ClInclude Include="listener.h" />
     <ClInclude Include="lookup.h" />
     <ClInclude Include="loss_detection.h" />
+    <ClCompile Include="mtu_discovery.h" />
     <ClInclude Include="operation.h" />
     <ClInclude Include="packet.h" />
     <ClInclude Include="packet_builder.h" />

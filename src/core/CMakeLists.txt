@@ -24,6 +24,7 @@ set(SOURCES
     listener.c
     lookup.c
     loss_detection.c
+    mtu_discovery.c
     operation.c
     packet.c
     packet_builder.c

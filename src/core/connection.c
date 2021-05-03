@@ -1262,7 +1262,8 @@ QuicConnTimerExpired(
             "KEEP_ALIVE",
             "IDLE",
             "SHUTDOWN",
-            "INVALID"
+            "INVALID",
+            "DPLPMTUD"
         };
         QuicTraceLogConnVerbose(
             TimerExpired,
@@ -6595,6 +6596,8 @@ QuicConnProcessExpiredTimer(
     case QUIC_CONN_TIMER_SHUTDOWN:
         QuicConnProcessShutdownTimerOperation(Connection);
         break;
+    case QUIC_CONN_TIMER_DPLPMTUD:
+        QuicMtuDiscoveryTimerExpired(&Connection->MtuDiscovery);
     default:
         CXPLAT_FRE_ASSERT(FALSE);
         break;

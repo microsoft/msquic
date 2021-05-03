@@ -69,6 +69,7 @@ extern "C" {
 #include "stream_set.h"
 #include "datagram.h"
 #include "version_neg.h"
+#include "mtu_discovery.h"
 #include "connection.h"
 #include "packet_builder.h"
 #include "listener.h"

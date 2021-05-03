@@ -431,6 +431,22 @@ CXPLAT_STATIC_ASSERT(
 //
 #define CXPLAT_AEAD_INTEGRITY_LIMIT               11863283
 
+//
+// The maximum value of probe packets sent before an PMTU is detected as too big.
+//
+#define QUIC_DPLPMTUD_MAX_PROBES 3
+
+//
+// The timeout time in milliseconds for the DPLPMTUD PROBE_TIMER.
+//
+#define QUIC_DPLPMTUD_PROBE_TIMER_TIMEOUT 15000
+
+//
+// The timeout time in milliseconds for the DPLPMTUD PMTU_RAISE_TIMER.
+//
+#define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT 600000
+
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/

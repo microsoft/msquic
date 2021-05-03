@@ -140,7 +140,7 @@ QuicPathSetValid(
         // TODO - If minimum MTU was not validated, we might want to validate
         // that first instead.
         //
-        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PMTUD);
+        QuicMtuDiscoveryNewPath(&Connection->MtuDiscovery, CXPLAT_MAX_MTU);
     }
 }
 

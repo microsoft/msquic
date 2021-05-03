@@ -567,6 +567,11 @@ typedef struct QUIC_CONNECTION {
     //
     uint32_t PreviousQuicVersion;
 
+    //
+    // MTU Discovery
+    //
+    QUIC_MTU_DISCOVERY MtuDiscovery;
+
 } QUIC_CONNECTION;
 
 typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
