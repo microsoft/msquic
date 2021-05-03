@@ -6598,6 +6598,7 @@ QuicConnProcessExpiredTimer(
         break;
     case QUIC_CONN_TIMER_DPLPMTUD:
         QuicMtuDiscoveryTimerExpired(&Connection->MtuDiscovery);
+        break;
     default:
         CXPLAT_FRE_ASSERT(FALSE);
         break;
