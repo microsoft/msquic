@@ -1,0 +1,62 @@
+# escape=`
+
+#docker build -f Dockerfile.windows -t "chgray123/chgray_repro:msquic" .
+
+#docker run --rm -i -v c:\Source\msquic:c:\msquic -t chgray123/chgray_repro:msquic cmd
+
+# Pusing the container
+# docker push chgray123/chgray_repro:pandoc
+
+# Use the latest Windows Server Core image with .NET Framework 4.8.
+FROM mcr.microsoft.com/dotnet/framework/sdk:4.8-windowsservercore-ltsc2019
+
+# Restore the default Windows shell for correct batch processing.
+SHELL ["cmd", "/S", "/C"]
+
+RUN @"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"
+
+RUN choco install git -y
+RUN choco install cmake -y
+RUN choco install pwsh -y
+RUN choco install python3 -y
+
+# Download the Build Tools bootstrapper.
+ADD https://aka.ms/vs/16/release/vs_buildtools.exe C:\TEMP\vs_buildtools.exe
+
+# Install Build Tools with the Microsoft.VisualStudio.Workload.AzureBuildTools workload, excluding workloads and components with known issues.
+RUN C:\TEMP\vs_buildtools.exe --quiet --wait --norestart --nocache `
+    --installPath "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools" `
+    --add Microsoft.VisualStudio.Workload.AzureBuildTools `
+    --add Microsoft.VisualStudio.Workload.AzureBuildTools `
+    --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+    --add Microsoft.VisualStudio.Component.VC.CoreBuildTools `
+    --add Microsoft.VisualStudio.Component.VC.CoreBuildTools `
+    --add Microsoft.VisualStudio.Component.Windows10SDK `
+    --add Microsoft.VisualStudio.Component.Windows10SDK `
+    --add Microsoft.VisualStudio.Component.Windows10SDK.19041 `
+    --add Microsoft.VisualStudio.Component.Windows10SDK.19041 `
+    --add Microsoft.VisualStudio.Component.VC.140 `
+    --add Microsoft.VisualStudio.Component.VC.CLI.Support `
+    --add Microsoft.VisualStudio.Component.VC.ATLMFC `
+ || IF "%ERRORLEVEL%"=="3010" EXIT 0
+
+
+
+RUN setx /M PATH "%PATH%;C:\Program Files\CMake\bin"
+RUN setx /M PATH "%PATH%;C:\Program Files\PowerShell\7"
+
+RUN git clone https://github.com/microsoft/msquic.git c:\msquic
+
+
+# Define the entry point for the docker container.
+# This entry point starts the developer command prompt and launches the PowerShell shell.
+# ENTRYPOINT ["C:\\BuildTools\\Common7\\Tools\\VsDevCmd.bat", "&&", "powershell.exe", "-NoLogo", "-ExecutionPolicy", "Bypass"]
+#
+#Invoke-WebRequest https://github.com/git-for-windows/git/releases/download/v2.31.1.windows.1/PortableGit-2.31.1-64-bit.7z.exe -UseBasicParsing
+
+#RUN powershell Invoke-WebRequest 'https://github.com/git-for-windows/git/releases/download/v2.12.2.windows.2/MinGit-2.12.2.2-64-bit.zip' -OutFile MinGit.zip
+
+#RUN powershell Expand-Archive c:\MinGit.zip -DestinationPath c:\MinGit; \
+#$env:PATH = $env:PATH + ';C:\MinGit\cmd\;C:\MinGit\cmd'; \
+#Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\' -Name Path -Value $env:PATH
+
