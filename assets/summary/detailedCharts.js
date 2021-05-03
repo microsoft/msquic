@@ -163,10 +163,11 @@ function createChart(test) {
                         maxTicksLimit: commitCount + 10,
                         stepSize: 1,
                         callback: function(value) {
-                            if (value % 1 !== 0) {
+                            value = maxIndex - 1 - value
+                            if (value % 10 !== 0) {
                                 return "";
                             } else {
-                                return maxIndex - 1 - value;
+                                return value;
                             }
                         }
                     }
@@ -296,6 +297,24 @@ function createLatencyChart(test) {
 }
 
 window.onload = function() {
+    // Check for custom parameters
+    var url = new URL(window.location.href);
+    var param = url.searchParams.get("count")
+    if (param) {
+        commitCount = param
+        if (maxIndex < commitCount) {
+            commitCount = maxIndex
+        }
+    }
+    var param = url.searchParams.get("width")
+    if (param) {
+        dataLineWidth = param
+    }
+    var param = url.searchParams.get("radius")
+    if (param) {
+        dataRawPointRadius = param
+    }
+
     // Latest values
     setLatestData()
 
