@@ -28,6 +28,19 @@ QuicMtuDiscoveryMoveToSearchComplete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
+QuicMtuDiscoveryMoveToSearching(
+    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
+    )
+{
+    MtuDiscovery->State = QUIC_MTU_DISCOVERY_STATE_SEARCHING;
+    MtuDiscovery->ProbeCount = 0;
+
+    QuicMtuDiscoverySendProbePacket(MtuDiscovery, FALSE);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+static
+void
 QuicMtuDiscoverySendProbePacket(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
     _In_ BOOLEAN IncreaseProbeSize
@@ -64,7 +77,7 @@ QuicMtuDiscoveryNewPath(
     MtuDiscovery->MaxMTU = MaxMTU;
     MtuDiscovery->ProbedSize = QUIC_DEFAULT_PATH_MTU;
 
-    QuicMtuDiscoverySendProbePacket(MtuDiscovery, FALSE);
+    QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -121,8 +134,7 @@ QuicMtuDiscoveryTimerExpired(
             return;
         }
         printf("Leaving search complete\n");
-        MtuDiscovery->ProbeCount = 0;
-        QuicMtuDiscoverySendProbePacket(MtuDiscovery, FALSE);
+        QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
     } else {
         printf("Probe Timer Expired %u\n", MtuDiscovery->ProbeCount);
         //
