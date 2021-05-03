@@ -17,9 +17,6 @@ as necessary.
 .PARAMETER ListTestCases
     Lists all the test cases.
 
-.PARAMETER ExecutionMode
-    Controls the execution mode when running each test case.
-
 .PARAMETER IsolationMode
     Controls the isolation mode when running each test case.
 
@@ -72,12 +69,8 @@ param (
     [switch]$ListTestCases = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("Serial", "Parallel")]
-    [string]$ExecutionMode = "Serial",
-
-    [Parameter(Mandatory = $false)]
     [ValidateSet("Batch", "Isolated")]
-    [string]$IsolationMode = "Batch",
+    [string]$IsolationMode = "Isolated",
 
     [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
@@ -588,17 +581,6 @@ if ($ListTestCases) {
 # Cancel any outstanding logs that might be leftover.
 & $LogScript -Cancel | Out-Null
 
-# Debugger doesn't work for parallel right now.
-if ($Debugger -and $ExecutionMode -eq "Parallel") {
-    Log "Warning: Disabling parallel execution for debugger runs!"
-    $ExecutionMode = "IsolatedSerial"
-}
-
-# Parallel execution doesn't work well. Warn.
-if ($ExecutionMode -eq "Parallel") {
-    Log "Warning: Parallel execution doesn't work very well"
-}
-
 # Initialize WER dump registry key if necessary.
 if ($IsWindows -and !(Test-Path $WerDumpRegPath) -and (Test-Administrator)) {
     New-Item -Path $WerDumpRegPath -Force | Out-Null
@@ -640,49 +622,14 @@ if ($Kernel -ne "") {
 
 try {
     if ($IsolationMode -eq "Batch") {
-        # Batch/Parallel is an unsupported combination.
-        if ($ExecutionMode -eq "Parallel") {
-            Log "Warning: Disabling parallel execution for batch runs!"
-            $ExecutionMode = "IsolatedSerial"
-        }
-
         # Run the the test process once for all tests.
         Wait-TestCase (Start-AllTestCases)
-
     } else {
-        if ($ExecutionMode -eq "Serial") {
-            # Run the test cases serially.
-            for ($i = 0; $i -lt $TestCount; $i++) {
-                Wait-TestCase (Start-TestCase ($TestCases -as [String[]])[$i])
-                if (!$NoProgress) {
-                    Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCount*100)
-                }
-            }
-
-        } else {
-            # Log collection doesn't work for parallel right now.
-            if ($LogProfile -ne "None") {
-                Log "Warning: Disabling log collection for parallel runs!"
-                $LogProfile = "None"
-            }
-
-            # Starting the test cases all in parallel.
-            $Runs = New-Object System.Collections.ArrayList
-            for ($i = 0; $i -lt $TestCount; $i++) {
-                $Runs.Add((Start-TestCase ($TestCases -as [String[]]))) | Out-Null
-                if (!$NoProgress) {
-                    Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCount*100)
-                }
-                Start-Sleep -Milliseconds 1
-            }
-
-            # Wait for the test cases to complete.
-            Log "Waiting for all test cases to complete..."
-            for ($i = 0; $i -lt $Runs.Count; $i++) {
-                Wait-TestCase $Runs[$i]
-                if (!$NoProgress) {
-                    Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCount*100)
-                }
+        # Run the test cases individually.
+        for ($i = 0; $i -lt $TestCount; $i++) {
+            Wait-TestCase (Start-TestCase ($TestCases -as [String[]])[$i])
+            if (!$NoProgress) {
+                Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCount*100)
             }
         }
     }

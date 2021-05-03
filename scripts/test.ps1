@@ -25,9 +25,6 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER ListTestCases
     Lists all the test cases.
 
-.PARAMETER ExecutionMode
-    Controls the execution mode when running each test case.
-
 .PARAMETER IsolationMode
     Controls the isolation mode when running each test case.
 
@@ -107,12 +104,8 @@ param (
     [switch]$ListTestCases = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("Serial", "Parallel")]
-    [string]$ExecutionMode = "Serial",
-
-    [Parameter(Mandatory = $false)]
     [ValidateSet("Batch", "Isolated")]
-    [string]$IsolationMode = "Batch",
+    [string]$IsolationMode = "Isolated",
 
     [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
@@ -267,7 +260,7 @@ if (!(Test-Path $PfxFile)) {
 }
 
 # Build up all the arguments to pass to the Powershell script.
-$TestArguments =  "-ExecutionMode $ExecutionMode -IsolationMode $IsolationMode -PfxPath $PfxFile"
+$TestArguments =  "-IsolationMode $IsolationMode -PfxPath $PfxFile"
 
 if ($Kernel) {
     $TestArguments += " -Kernel $KernelPath"
