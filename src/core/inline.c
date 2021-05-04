@@ -678,8 +678,7 @@ QuicConnGetMaxMtuForPath(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
 void
 QuicMtuDiscoveryCheckSearchCompleteReset(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
-    )
+    );
