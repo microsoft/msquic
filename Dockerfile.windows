@@ -8,7 +8,8 @@
 # docker push chgray123/chgray_repro:pandoc
 
 # Use the latest Windows Server Core image with .NET Framework 4.8.
-FROM mcr.microsoft.com/dotnet/framework/sdk:4.8-windowsservercore-ltsc2019
+# FROM mcr.microsoft.com/dotnet/framework/sdk:4.8-windowsservercore-ltsc2019
+FROM mcr.microsoft.com/windows:1903
 
 # Restore the default Windows shell for correct batch processing.
 SHELL ["cmd", "/S", "/C"]
@@ -67,12 +68,10 @@ RUN C:\TEMP\vs_buildtools.exe --quiet --wait --norestart --nocache `
     --add Microsoft.VisualStudio.Component.VC.v141.x86.x64.Spectre `
     --add Microsoft.VisualStudio.Component.VisualStudioData `
     --add Microsoft.VisualStudio.Component.VSSDK `
-    --add Microsoft.VisualStudio.Component.Web `
-    --add Microsoft.VisualStudio.Component.WebDeploy `
-    --add Microsoft.VisualStudio.Component.Windows10SDK `
-    --add Microsoft.VisualStudio.Component.Windows10SDK.17763 `
-    --add Microsoft.VisualStudio.Component.Windows10SDK.18362 `
-    --add Microsoft.VisualStudio.Component.Windows10SDK.19041 `
+    --remove Microsoft.VisualStudio.Component.Windows10SDK.10240 `
+    --remove Microsoft.VisualStudio.Component.Windows10SDK.10586 `
+    --remove Microsoft.VisualStudio.Component.Windows10SDK.14393 `
+    --remove Microsoft.VisualStudio.Component.Windows81SDK `
  || IF "%ERRORLEVEL%"=="3010" EXIT 0
 
 
