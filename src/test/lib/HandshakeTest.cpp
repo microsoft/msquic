@@ -1856,12 +1856,12 @@ QuicTestKeyUpdate(
                     //
                     TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount((uint16_t)(101+i)));
                     TEST_EQUAL((uint16_t)(101+i), Client.GetPeerBidiStreamCount());
-                    CxPlatSleep(750);
+                    CxPlatSleep(100);
                     TEST_EQUAL((uint16_t)(101+i), Server->GetLocalBidiStreamCount());
 
                     TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount((uint16_t)(100+i)));
                     TEST_EQUAL((uint16_t)(100+i), Server->GetPeerBidiStreamCount());
-                    CxPlatSleep(750);
+                    CxPlatSleep(100);
                     TEST_EQUAL((uint16_t)(100+i), Client.GetLocalBidiStreamCount());
                 }
 

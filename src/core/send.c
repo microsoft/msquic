@@ -1093,7 +1093,7 @@ QuicSendFlush(
 
         BOOLEAN WrotePacketFrames;
         BOOLEAN FlushBatchedDatagrams = FALSE;
-        if (SendFlags == QUIC_CONN_SEND_FLAG_DPLPMTUD) {
+        if ((SendFlags & QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0) {
             if (!QuicPacketBuilderPrepareForPathMtuDiscovery(&Builder)) {
                 break;
             }
