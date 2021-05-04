@@ -58,6 +58,12 @@ param (
     [Int32]$RepeatCount = 1,
 
     [Parameter(Mandatory = $false)]
+    [Int32]$AllocFail = 0,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Seed = "",
+
+    [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
 
     [Parameter(Mandatory = $false)]
@@ -143,7 +149,16 @@ if (!(Test-Path $SpinQuic)) {
 }
 
 # Build up all the arguments to pass to the Powershell script.
-$Arguments = "-Path $($SpinQuic) -Arguments 'both -timeout:$($Timeout) -repeat_count:$($RepeatCount)' -ShowOutput"
+$SpinQuicArgs = "both -timeout:$($Timeout) -repeat_count:$($RepeatCount)"
+
+if ($AllocFail -gt 0) {
+    $SpinQuicArgs += " -alloc_fail:$($AllocFail)"
+}
+if ($Seed -ne "") {
+    $SpinQuicArgs += " -seed:$($Seed)"
+}
+
+$Arguments = "-Path $($SpinQuic) -Arguments '$($SpinQuicArgs)' -ShowOutput"
 if ($KeepOutputOnSuccess) {
     $Arguments += " -KeepOutputOnSuccess"
 }

@@ -404,6 +404,22 @@ TryGetValue(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_z_ const char* name,
+    _Out_ int32_t* pValue
+    )
+{
+    auto value = GetValue(argc, argv, name);
+    if (!value) return false;
+    *pValue = (int32_t)atoi(value);
+    return true;
+}
+
+inline
+_Success_(return != false)
+bool
+TryGetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
     _Out_ uint64_t* pValue
     )
 {

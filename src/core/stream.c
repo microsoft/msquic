@@ -158,8 +158,10 @@ QuicStreamFree(
     QUIC_WORKER* Worker = Connection->Worker;
 
     CXPLAT_TEL_ASSERT(Stream->RefCount == 0);
-    CXPLAT_TEL_ASSERT(Stream->Flags.ShutdownComplete);
-    CXPLAT_TEL_ASSERT(Stream->Flags.HandleClosed);
+    if (!CxPlatIsRandomMemoryFailureEnabled()) {
+        CXPLAT_TEL_ASSERT(Stream->Flags.ShutdownComplete);
+        CXPLAT_TEL_ASSERT(Stream->Flags.HandleClosed);
+    }
     CXPLAT_TEL_ASSERT(Stream->ClosedLink.Flink == NULL);
     CXPLAT_TEL_ASSERT(Stream->SendLink.Flink == NULL);
 

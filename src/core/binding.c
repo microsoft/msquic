@@ -998,7 +998,10 @@ QuicBindingProcessStatelessOperation(
                 (uint8_t*)&Token,
                 (uint16_t)SendDatagram->Length,
                 SendDatagram->Buffer);
-        CXPLAT_DBG_ASSERT(SendDatagram->Length != 0);
+        if (SendDatagram->Length == 0) {
+            CXPLAT_DBG_ASSERT(CxPlatIsRandomMemoryFailureEnabled());
+            goto Exit;
+        }
 
         QuicTraceLogVerbose(
             PacketTxRetry,
