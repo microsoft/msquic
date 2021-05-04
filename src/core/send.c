@@ -987,6 +987,8 @@ QuicSendFlush(
     QuicConnRemoveOutFlowBlockedReason(
         Connection, QUIC_FLOW_BLOCKED_SCHEDULING | QUIC_FLOW_BLOCKED_PACING);
 
+    QuicMtuDiscoveryCheckSearchCompleteReset(&Connection->MtuDiscovery);
+
     if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
         return TRUE;
     }

@@ -13,6 +13,7 @@ typedef enum QUIC_MTU_DISCOVERY_STATE {
 } QUIC_MTU_DISCOVERY_STATE;
 
 typedef struct QUIC_MTU_DISCOVERY {
+    uint64_t SearchWaitingEnterTime;
     QUIC_MTU_DISCOVERY_STATE State;
     uint16_t MinMtu;
     uint16_t MaxMtu;
@@ -22,6 +23,12 @@ typedef struct QUIC_MTU_DISCOVERY {
     //uint16_t MinMtuProbeWindow;
     uint8_t ProbeCount;
 } QUIC_MTU_DISCOVERY;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicMtuDiscoveryMoveToSearching(
+    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
+    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -47,7 +54,16 @@ QuicMtuDiscoveryProbePacketDiscarded(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+inline
 void
-QuicMtuDiscoveryTimerExpired(
+QuicMtuDiscoveryCheckSearchCompleteReset(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
-    );
+    )
+{
+    if (MtuDiscovery->State != QUIC_MTU_DISCOVERY_STATE_SEARCH_COMPLETE) {
+        return;
+    }
+    if (CxPlatTimeDiff64(MtuDiscovery->SearchWaitingEnterTime, CxPlatTimeUs64()) >= QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT) {
+        QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
+    }
+}

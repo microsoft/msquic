@@ -437,15 +437,9 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DPLPMTUD_MAX_PROBES 3
 
 //
-// The timeout time in milliseconds for the DPLPMTUD PROBE_TIMER.
-// Spec suggests 15 seconds, but most QUIC layers seem to use 1 second.
+// The timeout time in microseconds for the DPLPMTUD PMTU_RAISE_TIMER.
 //
-#define QUIC_DPLPMTUD_PROBE_TIMER_TIMEOUT 1000
-
-//
-// The timeout time in milliseconds for the DPLPMTUD PMTU_RAISE_TIMER.
-//
-#define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT 600000
+#define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT 600000000
 
 
 /*************************************************************
