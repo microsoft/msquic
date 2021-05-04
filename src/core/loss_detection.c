@@ -832,13 +832,10 @@ QuicLossDetectionOnPacketDiscarded(
             break;
         }
         if (Packet->Flags.IsDPLPMTUD) {
-            printf("Discarding 1\n");
             uint8_t PathIndex;
             QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
             UNREFERENCED_PARAMETER(PathIndex);
-            printf("Path %p\n", Path);
             if (Path != NULL) {
-                printf("Entering Discard\n");
                 uint16_t PacketMtu =
                     PacketSizeFromUdpPayloadSize(
                         QuicAddrGetFamily(&Path->RemoteAddress),
