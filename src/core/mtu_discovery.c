@@ -12,6 +12,34 @@ Abstract:
 #include "mtu_discovery.c.clog.h"
 #endif
 
+#define MTU_LOOKUP_TABLE_LENGTH 7
+
+static
+const
+uint16_t
+QuicMtuLookupTable[MTU_LOOKUP_TABLE_LENGTH] = {
+    QUIC_DEFAULT_PATH_MTU,
+    1360,
+    1400,
+    1500,
+    3000,
+    5000,
+    10000
+};
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+static
+void
+QuicMtuDiscoverySendProbePacket(
+    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
+    )
+{
+    QUIC_CONNECTION* Connection = CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
+    printf("Trying MTU of %u\n", MtuDiscovery->ProbedSize);
+    QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DPLPMTUD);
+    QuicConnTimerSet(Connection, QUIC_CONN_TIMER_DPLPMTUD, QUIC_DPLPMTUD_PROBE_TIMER_TIMEOUT);
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
@@ -19,9 +47,8 @@ QuicMtuDiscoveryMoveToSearchComplete(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
     )
 {
-    MtuDiscovery->State = QUIC_MTU_DISCOVERY_STATE_SEARCH_COMPLETE;
-
     QUIC_CONNECTION* Connection = CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
+    MtuDiscovery->State = QUIC_MTU_DISCOVERY_STATE_SEARCH_COMPLETE;
     QuicConnTimerSet(Connection, QUIC_CONN_TIMER_DPLPMTUD, QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT);
 }
 
@@ -32,35 +59,16 @@ QuicMtuDiscoveryMoveToSearching(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
     )
 {
+    CXPLAT_DBG_ASSERT(MtuDiscovery->CurrentMtuIndex + 1 < MTU_LOOKUP_TABLE_LENGTH);
+
     MtuDiscovery->State = QUIC_MTU_DISCOVERY_STATE_SEARCHING;
     MtuDiscovery->ProbeCount = 0;
-
-    QuicMtuDiscoverySendProbePacket(MtuDiscovery, FALSE);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-static
-void
-QuicMtuDiscoverySendProbePacket(
-    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
-    _In_ BOOLEAN IncreaseProbeSize
-    )
-{
-    MtuDiscovery->State = QUIC_MTU_DISCOVERY_STATE_SEARCHING;
-    if (IncreaseProbeSize) {
-        MtuDiscovery->ProbeCount = 0;
-        //
-        // TODO improve this algorithm
-        //
-        MtuDiscovery->ProbedSize += 20;
-        if (MtuDiscovery->ProbedSize > MtuDiscovery->MaxMTU) {
-            MtuDiscovery->ProbedSize = MtuDiscovery->MaxMTU;
-        }
+    MtuDiscovery->ProbedSize = QuicMtuLookupTable[MtuDiscovery->CurrentMtuIndex + 1];
+    if (MtuDiscovery->ProbedSize > MtuDiscovery->MaxMtu) {
+        MtuDiscovery->ProbedSize = MtuDiscovery->MaxMtu;
     }
-    QUIC_CONNECTION* Connection = CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
-    printf("Trying MTU of %u\n", MtuDiscovery->ProbedSize);
-    QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DPLPMTUD);
-    QuicConnTimerSet(Connection, QUIC_CONN_TIMER_DPLPMTUD, QUIC_DPLPMTUD_PROBE_TIMER_TIMEOUT);
+
+    QuicMtuDiscoverySendProbePacket(MtuDiscovery);
 }
 
 //
@@ -70,12 +78,14 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicMtuDiscoveryNewPath(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
-    _In_ uint16_t MaxMTU
+    _In_ QUIC_PATH* Path,
+    _In_ uint16_t MaxMtu
     )
 {
-    MtuDiscovery->CurrentMTU = QUIC_DEFAULT_PATH_MTU;
-    MtuDiscovery->MaxMTU = MaxMTU;
-    MtuDiscovery->ProbedSize = QUIC_DEFAULT_PATH_MTU;
+    CXPLAT_DBG_ASSERT(Path->Mtu == QuicMtuLookupTable[0]);
+
+    MtuDiscovery->MaxMtu = MaxMtu;
+    MtuDiscovery->CurrentMtuIndex = 0;
 
     QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
 }
@@ -97,8 +107,8 @@ QuicMtuDiscoveryOnAckedPacket(
         return FALSE;
     }
 
-    MtuDiscovery->CurrentMTU = MtuDiscovery->ProbedSize;
-    Path->Mtu = MtuDiscovery->CurrentMTU;
+    MtuDiscovery->CurrentMtuIndex++;
+    Path->Mtu = MtuDiscovery->ProbedSize;
     printf("Updating MTU to %u\n", Path->Mtu);
     QuicTraceLogConnInfo(
         PathMtuUpdated,
@@ -107,13 +117,14 @@ QuicMtuDiscoveryOnAckedPacket(
         Path->ID,
         Path->Mtu);
 
-    if (MtuDiscovery->ProbedSize == MtuDiscovery->MaxMTU) {
+    if (MtuDiscovery->CurrentMtuIndex >= MTU_LOOKUP_TABLE_LENGTH || Path->Mtu == MtuDiscovery->MaxMtu) {
+        MtuDiscovery->CurrentMtuIndex = MTU_LOOKUP_TABLE_LENGTH;
         printf("Moving to Search Complete because of max MTU\n");
         QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
         return TRUE;
     }
 
-    QuicMtuDiscoverySendProbePacket(MtuDiscovery, TRUE);
+    QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
     return TRUE;
 }
 
@@ -128,7 +139,7 @@ QuicMtuDiscoveryTimerExpired(
         //
         // Expired PMTU_RAISE_TIMER. If we're already at max MTU, we can't do anything.
         //
-        if (MtuDiscovery->CurrentMTU == MtuDiscovery->MaxMTU) {
+        if (MtuDiscovery->CurrentMtuIndex >= MTU_LOOKUP_TABLE_LENGTH) {
             printf("Staying in search complete\n");
             QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
             return;
@@ -146,6 +157,6 @@ QuicMtuDiscoveryTimerExpired(
             return;
         }
         MtuDiscovery->ProbeCount++;
-        QuicMtuDiscoverySendProbePacket(MtuDiscovery, FALSE);
+        QuicMtuDiscoverySendProbePacket(MtuDiscovery);
     }
 }

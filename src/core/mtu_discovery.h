@@ -14,9 +14,9 @@ typedef enum QUIC_MTU_DISCOVERY_STATE {
 
 typedef struct QUIC_MTU_DISCOVERY {
     QUIC_MTU_DISCOVERY_STATE State;
-    uint16_t CurrentMTU;
-    uint16_t MaxMTU;
+    uint16_t MaxMtu;
     uint16_t ProbedSize;
+    uint8_t CurrentMtuIndex;
     uint8_t ProbeCount;
 } QUIC_MTU_DISCOVERY;
 
@@ -24,7 +24,8 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicMtuDiscoveryNewPath(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
-    _In_ uint16_t MaxMTU
+    _In_ QUIC_PATH* Path,
+    _In_ uint16_t MaxMtu
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

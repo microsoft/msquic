@@ -134,13 +134,12 @@ QuicPathSetValid(
 
     if (Path->IsPeerValidated && Reason == QUIC_PATH_VALID_PATH_RESPONSE) {
         //
-        // If the active path was just validated, then let's queue up a PMTUD
-        // packet.
+        // If the active path was just validated, then trigger MTU discovery.
         //
-        // TODO - If minimum MTU was not validated, we might want to validate
-        // that first instead.
-        //
-        QuicMtuDiscoveryNewPath(&Connection->MtuDiscovery, CXPLAT_MAX_MTU);
+        QuicMtuDiscoveryNewPath(
+            &Connection->MtuDiscovery,
+            Path,
+            CxPlatSocketGetLocalMtu(Path->Binding->Socket));
     }
 }
 
