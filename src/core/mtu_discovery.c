@@ -32,7 +32,6 @@ QuicMtuDiscoveryMoveToSearchComplete(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
     )
 {
-    QUIC_CONNECTION* Connection = CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
     MtuDiscovery->State = QUIC_MTU_DISCOVERY_STATE_SEARCH_COMPLETE;
     MtuDiscovery->SearchWaitingEnterTime = CxPlatTimeUs64();
 }
