@@ -86,7 +86,7 @@
     <ClInclude Include="listener.h" />
     <ClInclude Include="lookup.h" />
     <ClInclude Include="loss_detection.h" />
-    <ClCompile Include="mtu_discovery.h" />
+    <ClInclude Include="mtu_discovery.h" />
     <ClInclude Include="operation.h" />
     <ClInclude Include="packet.h" />
     <ClInclude Include="packet_builder.h" />
