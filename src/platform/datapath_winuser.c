@@ -3812,8 +3812,10 @@ CxPlatSocketSend(
 {
     CXPLAT_DBG_ASSERT(
         Socket != NULL && LocalAddress != NULL &&
-        RemoteAddress != NULL && SendData != NULL &&
-        SendData->WsaBufferCount != 0);
+        RemoteAddress != NULL && SendData != NULL);
+    if (!CxPlatIsRandomMemoryFailureEnabled()) {
+        CXPLAT_DBG_ASSERT(SendData->WsaBufferCount != 0);
+    }
 
     CXPLAT_DATAPATH* Datapath = Socket->Datapath;
     CXPLAT_SOCKET_PROC* SocketProc =
