@@ -136,10 +136,7 @@ QuicPathSetValid(
         //
         // If the active path was just validated, then trigger MTU discovery.
         //
-        QuicMtuDiscoveryNewPath(
-            &Connection->MtuDiscovery,
-            Path,
-            CxPlatSocketGetLocalMtu(Path->Binding->Socket));
+        QuicMtuDiscoveryNewPath(&Connection->MtuDiscovery, Path);
     }
 }
 

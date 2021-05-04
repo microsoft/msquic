@@ -12,21 +12,6 @@ Abstract:
 #include "mtu_discovery.c.clog.h"
 #endif
 
-#define MTU_LOOKUP_TABLE_LENGTH 7
-
-static
-const
-uint16_t
-QuicMtuLookupTable[MTU_LOOKUP_TABLE_LENGTH] = {
-    QUIC_DEFAULT_PATH_MTU,
-    1360,
-    1400,
-    1500,
-    3000,
-    5000,
-    10000
-};
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 static
 void
@@ -54,19 +39,34 @@ QuicMtuDiscoveryMoveToSearchComplete(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 static
+uint16_t
+QuicGetNextProbeSize(
+    _In_ const QUIC_MTU_DISCOVERY* MtuDiscovery
+    )
+{
+    if (MtuDiscovery->MaxMtu <= 1500 &&
+        MtuDiscovery->MaxMtu == MtuDiscovery->MaxMtuProbeWindow) {
+        //
+        // First try the max value if less than ethernet size
+        //
+        return MtuDiscovery->MaxMtu;
+    }
+    //
+    // Binary Search to find the best match
+    //
+
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+static
 void
 QuicMtuDiscoveryMoveToSearching(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
     )
 {
-    CXPLAT_DBG_ASSERT(MtuDiscovery->CurrentMtuIndex + 1 < MTU_LOOKUP_TABLE_LENGTH);
-
     MtuDiscovery->State = QUIC_MTU_DISCOVERY_STATE_SEARCHING;
     MtuDiscovery->ProbeCount = 0;
-    MtuDiscovery->ProbedSize = QuicMtuLookupTable[MtuDiscovery->CurrentMtuIndex + 1];
-    if (MtuDiscovery->ProbedSize > MtuDiscovery->MaxMtu) {
-        MtuDiscovery->ProbedSize = MtuDiscovery->MaxMtu;
-    }
+    MtuDiscovery->ProbedSize = QuicGetNextProbeSize(MtuDiscovery);
 
     QuicMtuDiscoverySendProbePacket(MtuDiscovery);
 }
@@ -78,15 +78,22 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicMtuDiscoveryNewPath(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
-    _In_ QUIC_PATH* Path,
-    _In_ uint16_t MaxMtu
+    _In_ QUIC_PATH* Path
     )
 {
-    UNREFERENCED_PARAMETER(Path);
-    CXPLAT_DBG_ASSERT(Path->Mtu == QuicMtuLookupTable[0]);
+    QUIC_CONNECTION* Connection = CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
+    uint16_t LocalMtu = CxPlatSocketGetLocalMtu(Path->Binding->Socket);
+    uint16_t RemoteMtu = 0xFFFF;
+    if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE)) {
+        RemoteMtu = (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize;
+    }
+    // TODO add settings
+    MtuDiscovery->MaxMtu = min(LocalMtu, RemoteMtu);
+    MtuDiscovery->MinMtu = Path->Mtu;
+    MtuDiscovery->CurrentMtu = Path->Mtu;
 
-    MtuDiscovery->MaxMtu = MaxMtu;
-    MtuDiscovery->CurrentMtuIndex = 0;
+    MtuDiscovery->MaxMtuProbeWindow = MtuDiscovery->MaxMtu;
+    MtuDiscovery->MinMtuProbeWindow = MtuDiscovery->MinMtu;
 
     QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
 }
@@ -108,7 +115,7 @@ QuicMtuDiscoveryOnAckedPacket(
         return FALSE;
     }
 
-    MtuDiscovery->CurrentMtuIndex++;
+    MtuDiscovery->CurrentMtu = MtuDiscovery->ProbedSize;
     Path->Mtu = MtuDiscovery->ProbedSize;
     //printf("Updating MTU to %u\n", Path->Mtu);
     QuicTraceLogConnInfo(
@@ -118,8 +125,7 @@ QuicMtuDiscoveryOnAckedPacket(
         Path->ID,
         Path->Mtu);
 
-    if (MtuDiscovery->CurrentMtuIndex >= MTU_LOOKUP_TABLE_LENGTH || Path->Mtu == MtuDiscovery->MaxMtu) {
-        MtuDiscovery->CurrentMtuIndex = MTU_LOOKUP_TABLE_LENGTH;
+    if (Path->Mtu == MtuDiscovery->MaxMtu) {
         //printf("Moving to Search Complete because of max MTU\n");
         QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
         return TRUE;
@@ -140,7 +146,7 @@ QuicMtuDiscoveryTimerExpired(
         //
         // Expired PMTU_RAISE_TIMER. If we're already at max MTU, we can't do anything.
         //
-        if (MtuDiscovery->CurrentMtuIndex >= MTU_LOOKUP_TABLE_LENGTH) {
+        if (MtuDiscovery->CurrentMtu == MtuDiscovery->MaxMtu) {
          //   printf("Staying in search complete\n");
             QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
             return;
