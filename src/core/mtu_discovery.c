@@ -35,7 +35,7 @@ QuicMtuDiscoverySendProbePacket(
     )
 {
     QUIC_CONNECTION* Connection = CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
-    printf("Trying MTU of %u\n", MtuDiscovery->ProbedSize);
+    //printf("Trying MTU of %u\n", MtuDiscovery->ProbedSize);
     QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DPLPMTUD);
     QuicConnTimerSet(Connection, QUIC_CONN_TIMER_DPLPMTUD, QUIC_DPLPMTUD_PROBE_TIMER_TIMEOUT);
 }
@@ -82,6 +82,7 @@ QuicMtuDiscoveryNewPath(
     _In_ uint16_t MaxMtu
     )
 {
+    UNREFERENCED_PARAMETER(Path);
     CXPLAT_DBG_ASSERT(Path->Mtu == QuicMtuLookupTable[0]);
 
     MtuDiscovery->MaxMtu = MaxMtu;
@@ -103,13 +104,13 @@ QuicMtuDiscoveryOnAckedPacket(
     // If out of order receives are received, ignore the packet
     //
     if (PacketMtu != MtuDiscovery->ProbedSize) {
-        printf("Probe Failure Receive %u %u\n", PacketMtu, MtuDiscovery->ProbedSize);
+        //printf("Probe Failure Receive %u %u\n", PacketMtu, MtuDiscovery->ProbedSize);
         return FALSE;
     }
 
     MtuDiscovery->CurrentMtuIndex++;
     Path->Mtu = MtuDiscovery->ProbedSize;
-    printf("Updating MTU to %u\n", Path->Mtu);
+    //printf("Updating MTU to %u\n", Path->Mtu);
     QuicTraceLogConnInfo(
         PathMtuUpdated,
         Connection,
@@ -119,7 +120,7 @@ QuicMtuDiscoveryOnAckedPacket(
 
     if (MtuDiscovery->CurrentMtuIndex >= MTU_LOOKUP_TABLE_LENGTH || Path->Mtu == MtuDiscovery->MaxMtu) {
         MtuDiscovery->CurrentMtuIndex = MTU_LOOKUP_TABLE_LENGTH;
-        printf("Moving to Search Complete because of max MTU\n");
+        //printf("Moving to Search Complete because of max MTU\n");
         QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
         return TRUE;
     }
@@ -135,24 +136,24 @@ QuicMtuDiscoveryTimerExpired(
     )
 {
     if (MtuDiscovery->State == QUIC_MTU_DISCOVERY_STATE_SEARCH_COMPLETE) {
-        printf("PMTU_RAISE_TIMER Expired\n");
+       // printf("PMTU_RAISE_TIMER Expired\n");
         //
         // Expired PMTU_RAISE_TIMER. If we're already at max MTU, we can't do anything.
         //
         if (MtuDiscovery->CurrentMtuIndex >= MTU_LOOKUP_TABLE_LENGTH) {
-            printf("Staying in search complete\n");
+         //   printf("Staying in search complete\n");
             QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
             return;
         }
-        printf("Leaving search complete\n");
+       // printf("Leaving search complete\n");
         QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
     } else {
-        printf("Probe Timer Expired %u\n", MtuDiscovery->ProbeCount);
+//printf("Probe Timer Expired %u\n", MtuDiscovery->ProbeCount);
         //
         // Expired PROBE_TIMER
         //
         if (MtuDiscovery->ProbeCount >= QUIC_DPLPMTUD_MAX_PROBES - 1) {
-            printf("Moving to Search Complete because of max probes\n");
+      //      printf("Moving to Search Complete because of max probes\n");
             QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
             return;
         }
