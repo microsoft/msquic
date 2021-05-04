@@ -1397,7 +1397,7 @@ QuicConnParamGet(
     );
 
 //
-// Look up a source CID by sequence number.
+// Get the max MTU for a specific path.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
