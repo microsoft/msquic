@@ -675,4 +675,4 @@ uint16_t
 QuicConnGetMaxMtuForPath(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path
-    )
+    );
