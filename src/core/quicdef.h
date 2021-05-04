@@ -445,7 +445,7 @@ CXPLAT_STATIC_ASSERT(
 //
 // The timeout time in milliseconds for the DPLPMTUD PMTU_RAISE_TIMER.
 //
-#define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT 5000 // 600000
+#define QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT 600000
 
 
 /*************************************************************

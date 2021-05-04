@@ -18,19 +18,19 @@ typedef struct QUIC_MTU_DISCOVERY {
     uint16_t MaxMtu;
     uint16_t ProbedSize;
     uint16_t CurrentMtu;
-    uint16_t MaxMtuProbeWindow;
-    uint16_t MinMtuProbeWindow;
+    //uint16_t MaxMtuProbeWindow;
+    //uint16_t MinMtuProbeWindow;
     uint8_t ProbeCount;
 } QUIC_MTU_DISCOVERY;
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicMtuDiscoveryNewPath(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
     _In_ QUIC_PATH* Path
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicMtuDiscoveryOnAckedPacket(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
@@ -39,7 +39,7 @@ QuicMtuDiscoveryOnAckedPacket(
     _In_ QUIC_CONNECTION* Connection
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicMtuDiscoveryTimerExpired(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery

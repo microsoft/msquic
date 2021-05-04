@@ -1395,3 +1395,23 @@ QuicConnParamGet(
     _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
     );
+
+//
+// Look up a source CID by sequence number.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint16_t
+QuicConnGetMaxMtuForPath(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path
+    )
+{
+    uint16_t LocalMtu = CxPlatSocketGetLocalMtu(Path->Binding->Socket);
+    uint16_t RemoteMtu = 0xFFFF;
+    if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE)) {
+        RemoteMtu = (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize;
+    }
+    // TODO add settings
+    return min(LocalMtu, RemoteMtu);
+}

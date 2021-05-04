@@ -12,7 +12,9 @@ Abstract:
 #include "mtu_discovery.c.clog.h"
 #endif
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+#define MTU_INCREMENT 80
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 static
 void
 QuicMtuDiscoverySendProbePacket(
@@ -20,12 +22,11 @@ QuicMtuDiscoverySendProbePacket(
     )
 {
     QUIC_CONNECTION* Connection = CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
-    //printf("Trying MTU of %u\n", MtuDiscovery->ProbedSize);
     QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DPLPMTUD);
     QuicConnTimerSet(Connection, QUIC_CONN_TIMER_DPLPMTUD, QUIC_DPLPMTUD_PROBE_TIMER_TIMEOUT);
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 static
 void
 QuicMtuDiscoveryMoveToSearchComplete(
@@ -37,27 +38,26 @@ QuicMtuDiscoveryMoveToSearchComplete(
     QuicConnTimerSet(Connection, QUIC_CONN_TIMER_DPLPMTUD, QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT);
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 static
 uint16_t
 QuicGetNextProbeSize(
     _In_ const QUIC_MTU_DISCOVERY* MtuDiscovery
     )
 {
-    if (MtuDiscovery->MaxMtu <= 1500 &&
-        MtuDiscovery->MaxMtu == MtuDiscovery->MaxMtuProbeWindow) {
+    uint16_t Mtu = MtuDiscovery->CurrentMtu + MTU_INCREMENT;
+    if (Mtu > MtuDiscovery->MaxMtu) {
+        Mtu = MtuDiscovery->MaxMtu;
+    } else if (Mtu == 1520) {
         //
-        // First try the max value if less than ethernet size
+        // 1520 is the 4th multiplier, but we want 1500, so force that.
         //
-        return MtuDiscovery->MaxMtu;
+        Mtu = 1500;
     }
-    //
-    // Binary Search to find the best match
-    //
-
+    return Mtu;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 static
 void
 QuicMtuDiscoveryMoveToSearching(
@@ -74,7 +74,7 @@ QuicMtuDiscoveryMoveToSearching(
 //
 // Called when a new path is initialized.
 //
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicMtuDiscoveryNewPath(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
@@ -82,23 +82,17 @@ QuicMtuDiscoveryNewPath(
     )
 {
     QUIC_CONNECTION* Connection = CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
-    uint16_t LocalMtu = CxPlatSocketGetLocalMtu(Path->Binding->Socket);
-    uint16_t RemoteMtu = 0xFFFF;
-    if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE)) {
-        RemoteMtu = (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize;
-    }
-    // TODO add settings
-    MtuDiscovery->MaxMtu = min(LocalMtu, RemoteMtu);
+    MtuDiscovery->MaxMtu = QuicConnGetMaxMtuForPath(Connection, Path);
     MtuDiscovery->MinMtu = Path->Mtu;
     MtuDiscovery->CurrentMtu = Path->Mtu;
 
-    MtuDiscovery->MaxMtuProbeWindow = MtuDiscovery->MaxMtu;
-    MtuDiscovery->MinMtuProbeWindow = MtuDiscovery->MinMtu;
+    //MtuDiscovery->MaxMtuProbeWindow = MtuDiscovery->MaxMtu;
+    //MtuDiscovery->MinMtuProbeWindow = MtuDiscovery->MinMtu;
 
     QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicMtuDiscoveryOnAckedPacket(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
@@ -111,13 +105,11 @@ QuicMtuDiscoveryOnAckedPacket(
     // If out of order receives are received, ignore the packet
     //
     if (PacketMtu != MtuDiscovery->ProbedSize) {
-        //printf("Probe Failure Receive %u %u\n", PacketMtu, MtuDiscovery->ProbedSize);
         return FALSE;
     }
 
     MtuDiscovery->CurrentMtu = MtuDiscovery->ProbedSize;
     Path->Mtu = MtuDiscovery->ProbedSize;
-    //printf("Updating MTU to %u\n", Path->Mtu);
     QuicTraceLogConnInfo(
         PathMtuUpdated,
         Connection,
@@ -126,7 +118,6 @@ QuicMtuDiscoveryOnAckedPacket(
         Path->Mtu);
 
     if (Path->Mtu == MtuDiscovery->MaxMtu) {
-        //printf("Moving to Search Complete because of max MTU\n");
         QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
         return TRUE;
     }
@@ -135,31 +126,26 @@ QuicMtuDiscoveryOnAckedPacket(
     return TRUE;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicMtuDiscoveryTimerExpired(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
     )
 {
     if (MtuDiscovery->State == QUIC_MTU_DISCOVERY_STATE_SEARCH_COMPLETE) {
-       // printf("PMTU_RAISE_TIMER Expired\n");
         //
         // Expired PMTU_RAISE_TIMER. If we're already at max MTU, we can't do anything.
         //
         if (MtuDiscovery->CurrentMtu == MtuDiscovery->MaxMtu) {
-         //   printf("Staying in search complete\n");
             QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
             return;
         }
-       // printf("Leaving search complete\n");
         QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
     } else {
-//printf("Probe Timer Expired %u\n", MtuDiscovery->ProbeCount);
         //
         // Expired PROBE_TIMER
         //
         if (MtuDiscovery->ProbeCount >= QUIC_DPLPMTUD_MAX_PROBES - 1) {
-      //      printf("Moving to Search Complete because of max probes\n");
             QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
             return;
         }
