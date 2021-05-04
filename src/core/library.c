@@ -778,6 +778,38 @@ QuicLibrarySetGlobalParam(
         break;
 #endif
 
+#ifdef DEBUG
+    case QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR: {
+        if (BufferLength != sizeof(int32_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        int32_t Value = *(int32_t*)Buffer;
+        if (Value < 0) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        CxPlatSetAllocFailDenominator(Value);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case QUIC_PARAM_GLOBAL_ALLOC_FAIL_CYCLE: {
+        if (BufferLength != sizeof(int32_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        int32_t Value = *(int32_t*)Buffer;
+        if (Value < 0) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        CxPlatSetAllocFailDenominator(-Value);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+#endif
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

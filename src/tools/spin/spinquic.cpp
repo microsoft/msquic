@@ -191,6 +191,7 @@ static struct {
     std::vector<uint16_t> Ports;
     const char* ServerName;
     uint8_t LossPercent;
+    int32_t AllocFailDenominator;
 } Settings;
 
 QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_STREAM_EVENT *Event)
@@ -768,11 +769,13 @@ main(int argc, char **argv)
     Settings.AlpnPrefix = "spin";
     Settings.MaxOperationCount = UINT64_MAX;
     Settings.LossPercent = 1;
+    Settings.AllocFailDenominator = 0;
 
     TryGetValue(argc, argv, "timeout", &Settings.RunTimeMs);
     TryGetValue(argc, argv, "max_ops", &Settings.MaxOperationCount);
     TryGetValue(argc, argv, "loss", &Settings.LossPercent);
     TryGetValue(argc, argv, "repeat_count", &RepeatCount);
+    TryGetValue(argc, argv, "alloc_fail", &Settings.AllocFailDenominator);
 
     if (RepeatCount == 0) {
         printf("Must specify a non 0 repeat count\n");
@@ -791,8 +794,11 @@ main(int argc, char **argv)
         TryGetValue(argc, argv, "sessions", &SessionCount);
     }
 
-    uint32_t RngSeed = 6;
-    TryGetValue(argc, argv, "seed", &RngSeed);
+    uint32_t RngSeed = 0;
+    if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
+        CxPlatRandom(sizeof(RngSeed), &RngSeed);
+    }
+    printf("Using seed value: %u\n", RngSeed);
     srand(RngSeed);
 
     SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
@@ -808,6 +814,18 @@ main(int argc, char **argv)
         }
 
         ASSERT_ON_FAILURE(MsQuicOpen(&MsQuic));
+
+        if (Settings.AllocFailDenominator > 0) {
+            if (QUIC_FAILED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
+                    sizeof(Settings.AllocFailDenominator),
+                    &Settings.AllocFailDenominator))) {
+                printf("Setting Allocation Failure Denominator failed.\n");
+            }
+        }
 
         if (Settings.LossPercent != 0) {
             QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;

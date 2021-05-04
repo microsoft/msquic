@@ -30,6 +30,7 @@ Environment:
 
 #define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
 
+CX_PLATFORM CxPlatform = { NULL };
 int RandomFd; // Used for reading random numbers.
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
@@ -127,6 +128,11 @@ CxPlatSystemLoad(
     dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
 
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
+
+#ifdef DEBUG
+    CxPlatform.AllocFailDenominator = 0;
+    CxPlatform.AllocCounter = 0;
+#endif
 }
 
 void
@@ -166,12 +172,14 @@ CxPlatAlloc(
     )
 {
     UNREFERENCED_PARAMETER(Tag);
-#ifdef QUIC_RANDOM_ALLOC_FAIL
-    uint8_t Rand; CxPlatRandom(sizeof(Rand), &Rand);
-    return ((Rand % 100) == 1) ? NULL : malloc(ByteCount);
-#else
+#ifdef DEBUG
+    uint32_t Rand;
+    if ((CxPlatform.AllocFailDenominator > 0 && (CxPlatRandom(sizeof(Rand), &Rand), Rand % CxPlatform.AllocFailDenominator) == 1) ||
+        (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0)) {
+        return NULL;
+    }
+#endif
     return malloc(ByteCount);
-#endif // QUIC_RANDOM_ALLOC_FAIL
 }
 
 void
@@ -497,6 +505,23 @@ CxPlatConvertFromMappedV6(
         *OutAddr = *InAddr;
     }
 }
+
+#ifdef DEBUG
+void
+CxPlatSetAllocFailDenominator(
+    _In_ int32_t Value
+    )
+{
+    CxPlatform.AllocFailDenominator = Value;
+}
+
+int32_t
+CxPlatGetAllocFailDenominator(
+    )
+{
+    return CxPlatform.AllocFailDenominator;
+}
+#endif
 
 #if defined(CX_PLATFORM_LINUX)
 
