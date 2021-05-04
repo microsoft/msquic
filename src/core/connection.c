@@ -4256,6 +4256,7 @@ QuicConnRecvFrames(
                         Payload,
                         &Offset,
                         &UpdatedFlowControl);
+                QuicStreamRelease(Stream, QUIC_STREAM_REF_LOOKUP);
                 if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
                     return FALSE;
                 }
@@ -4270,15 +4271,12 @@ QuicConnRecvFrames(
                     return FALSE;
                 }
 
-                QuicStreamRelease(Stream, QUIC_STREAM_REF_LOOKUP);
-
             } else if (ProtocolViolation) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
                     Connection,
                     "Getting stream from ID");
-                QuicConnTransportError(Connection, QUIC_ERROR_STREAM_STATE_ERROR);
                 return FALSE;
             } else {
                 //

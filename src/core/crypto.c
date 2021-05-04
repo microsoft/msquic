@@ -533,6 +533,17 @@ QuicCryptoDiscardKeys(
         Crypto->NextSendOffset = BufferOffset;
     }
     if (Crypto->UnAckedOffset < BufferOffset) {
+        uint32_t DrainLength = BufferOffset - Crypto->UnAckedOffset;
+        CXPLAT_DBG_ASSERT(DrainLength <= (uint32_t)Crypto->TlsState.BufferLength);
+        if ((uint32_t)Crypto->TlsState.BufferLength > DrainLength) {
+            Crypto->TlsState.BufferLength -= (uint16_t)DrainLength;
+            CxPlatMoveMemory(
+                Crypto->TlsState.Buffer,
+                Crypto->TlsState.Buffer + DrainLength,
+                Crypto->TlsState.BufferLength);
+        } else {
+            Crypto->TlsState.BufferLength = 0;
+        }
         Crypto->UnAckedOffset = BufferOffset;
         QuicRangeSetMin(&Crypto->SparseAckRanges, Crypto->UnAckedOffset);
     }

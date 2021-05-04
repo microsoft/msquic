@@ -180,7 +180,7 @@ QuicPacketBuilderPrepare(
         //
         // Allocate and initialize a new send buffer (UDP packet/payload).
         //
-
+        BOOLEAN SendDataAllocated = FALSE;
         if (Builder->SendData == NULL) {
             Builder->SendData =
                 CxPlatSendDataAlloc(
@@ -199,6 +199,7 @@ QuicPacketBuilderPrepare(
                     0);
                 goto Error;
             }
+            SendDataAllocated = TRUE;
         }
 
         uint16_t NewDatagramLength =
@@ -220,6 +221,10 @@ QuicPacketBuilderPrepare(
                 "Allocation of '%s' failed. (%llu bytes)",
                 "packet datagram",
                 NewDatagramLength);
+            if (SendDataAllocated) {
+                CxPlatSendDataFree(Builder->SendData);
+                Builder->SendData = NULL;
+            }
             goto Error;
         }
 
@@ -452,7 +457,7 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         Builder->Connection,
         "Failed to get packet type for control frames, 0x%x",
         SendFlags);
-    CXPLAT_DBG_ASSERT(FALSE); // This shouldn't have been called then!
+    CXPLAT_DBG_ASSERT(CxPlatIsRandomMemoryFailureEnabled()); // This shouldn't have been called then!
 
     return FALSE;
 }
@@ -589,7 +594,7 @@ QuicPacketBuilderFinalize(
                 Builder->Datagram = NULL;
             }
         }
-        FinalQuicPacket = FlushBatchedDatagrams;
+        FinalQuicPacket = FlushBatchedDatagrams && (Builder->TotalCountDatagrams != 0);
         goto Exit;
     }
 
@@ -810,6 +815,7 @@ QuicPacketBuilderFinalize(
     //
     // Track the sent packet.
     //
+    CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
 
     Builder->Metadata->SentTime = CxPlatTimeUs32();
     Builder->Metadata->PacketLength =
@@ -863,7 +869,9 @@ Exit:
             if (Builder->BatchCount != 0) {
                 QuicPacketBuilderFinalizeHeaderProtection(Builder);
             }
+            CXPLAT_DBG_ASSERT(Builder->TotalCountDatagrams > 0);
             QuicPacketBuilderSendBatch(Builder);
+            CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount == 0);
         }
 
         if (Builder->PacketType == QUIC_RETRY) {
@@ -901,4 +909,5 @@ QuicPacketBuilderSendBatch(
     Builder->PacketBatchSent = TRUE;
     Builder->SendData = NULL;
     Builder->TotalDatagramsLength = 0;
+    Builder->Metadata->FrameCount = 0;
 }

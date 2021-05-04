@@ -623,18 +623,24 @@ QuicStreamSetGetStreamForPeer(
                     FrameIn0Rtt,                    // Opened0Rtt
                     &Stream);
             if (QUIC_FAILED(Status)) {
+                *ProtocolViolation = TRUE;
+                QuicConnTransportError(Connection, QUIC_ERROR_INTERNAL_ERROR);
                 goto Exit;
             }
 
             Stream->ID = NewStreamId;
             Status = QuicStreamStart(Stream, QUIC_STREAM_START_FLAG_NONE, TRUE);
             if (QUIC_FAILED(Status)) {
+                *ProtocolViolation = TRUE;
+                QuicConnTransportError(Connection, QUIC_ERROR_INTERNAL_ERROR);
                 QuicStreamRelease(Stream, QUIC_STREAM_REF_APP);
                 Stream = NULL;
                 break;
             }
 
             if (!QuicStreamSetInsertStream(StreamSet, Stream)) {
+                *ProtocolViolation = TRUE;
+                QuicConnTransportError(Connection, QUIC_ERROR_INTERNAL_ERROR);
                 QuicStreamRelease(Stream, QUIC_STREAM_REF_APP);
                 Stream = NULL;
                 break;
