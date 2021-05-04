@@ -1344,8 +1344,8 @@ CxPlatSocketCreateUdp(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Binding,
-        CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
-        CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
     RtlZeroMemory(Binding, BindingSize);
     Binding->Datapath = Datapath;
@@ -2093,7 +2093,7 @@ CxPlatDataPathSocketReceive(
                 DatapathUnreachableMsg,
                 "[sock][%p] Unreachable error from %!ADDR!",
                 Binding,
-                CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
+                CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
 #endif
 
             if (!Binding->PcpBinding) {
@@ -2143,8 +2143,8 @@ CxPlatDataPathSocketReceive(
             Binding,
             (uint32_t)DataLength,
             MessageLength,
-            CLOG_BYTEARRAY(sizeof(LocalAddr), &LocalAddr),
-            CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
+            CASTED_CLOG_BYTEARRAY(sizeof(LocalAddr), &LocalAddr),
+            CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
 
         for ( ; DataLength != 0; DataLength -= MessageLength) {
 
@@ -2851,8 +2851,8 @@ CxPlatSocketSend(
         SendData->TotalSize,
         SendData->WskBufferCount,
         SendData->SegmentSize,
-        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-        CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.

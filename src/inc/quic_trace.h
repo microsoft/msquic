@@ -139,7 +139,7 @@ QuicTraceEventStubVarArgs(
 
 #define QuicTraceEvent(Name, ...) QuicTraceEventStubVarArgs("", __VA_ARGS__)
 
-#define CLOG_BYTEARRAY(Len, Data) (Len)
+#define CASTED_CLOG_BYTEARRAY(Len, Data) (Len)
 
 #define QuicTraceLogErrorEnabled()   FALSE
 #define QuicTraceLogWarningEnabled() FALSE
@@ -217,9 +217,9 @@ QuicEtwCallback(
 #else
 #define QuicTraceEvent(Name, Fmt, ...) EventWriteQuic##Name (__VA_ARGS__)
 #endif
-#define CLOG_BYTEARRAY(Len, Data) (unsigned char)(Len), (const unsigned char*)(Data)
+#define CASTED_CLOG_BYTEARRAY(Len, Data) (unsigned char)(Len), (const unsigned char*)(Data)
 #else // QUIC_CLOG
-#define CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY_HELPER((unsigned char)(Len), (const unsigned char*)(Data))
+#define CASTED_CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char*)(Data))
 #endif // QUIC_CLOG
 
 #define QuicTraceLogErrorEnabled()   EventEnabledQuicLogError()
