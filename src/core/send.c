@@ -1084,14 +1084,32 @@ QuicSendFlush(
         //
         // We write data to packets in the following order:
         //
-        //   1. Connection wide control data.
-        //   2. Stream (control and application) data.
-        //   3. Path MTU discovery packets.
+        //   1. Path MTU discovery packets.
+        //   2. Connection wide control data.
+        //   3. Stream (control and application) data.
         //
 
         BOOLEAN WrotePacketFrames;
         BOOLEAN FlushBatchedDatagrams = FALSE;
-        if ((SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD) != 0) {
+        if (SendFlags == QUIC_CONN_SEND_FLAG_PMTUD) {
+            if (!QuicPacketBuilderPrepareForPathMtuDiscovery(&Builder)) {
+                break;
+            }
+            FlushBatchedDatagrams = TRUE;
+            Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PMTUD;
+            if (Builder.Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET &&
+                Builder.DatagramLength < Builder.Datagram->Length - Builder.EncryptionOverhead) {
+                //
+                // We are doing PMTUD, so make sure there is a PING frame in there, if
+                // we have room, just to make sure we get an ACK.
+                //
+                Builder.Datagram->Buffer[Builder.DatagramLength++] = QUIC_FRAME_PING;
+                Builder.Metadata->Frames[Builder.Metadata->FrameCount++].Type = QUIC_FRAME_PING;
+                WrotePacketFrames = TRUE;
+            } else {
+                WrotePacketFrames = FALSE;
+            }
+        } else if ((SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD) != 0) {
             CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
             if (!QuicPacketBuilderPrepareForControlFrames(
                     &Builder,
@@ -1139,25 +1157,6 @@ QuicSendFlush(
                 // Try a new stream next loop iteration.
                 //
                 Stream = NULL;
-            }
-
-        } else if (SendFlags == QUIC_CONN_SEND_FLAG_PMTUD) {
-            if (!QuicPacketBuilderPrepareForPathMtuDiscovery(&Builder)) {
-                break;
-            }
-            FlushBatchedDatagrams = TRUE;
-            Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PMTUD;
-            if (Builder.Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET &&
-                Builder.DatagramLength < Builder.Datagram->Length - Builder.EncryptionOverhead) {
-                //
-                // We are doing PMTUD, so make sure there is a PING frame in there, if
-                // we have room, just to make sure we get an ACK.
-                //
-                Builder.Datagram->Buffer[Builder.DatagramLength++] = QUIC_FRAME_PING;
-                Builder.Metadata->Frames[Builder.Metadata->FrameCount++].Type = QUIC_FRAME_PING;
-                WrotePacketFrames = TRUE;
-            } else {
-                WrotePacketFrames = FALSE;
             }
 
         } else {
