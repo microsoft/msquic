@@ -23,7 +23,7 @@ QuicMtuDiscoverySendProbePacket(
 {
     QUIC_CONNECTION* Connection = CXPLAT_CONTAINING_RECORD(MtuDiscovery, QUIC_CONNECTION, MtuDiscovery);
     QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DPLPMTUD);
-    QuicConnTimerSet(Connection, QUIC_CONN_TIMER_DPLPMTUD, QUIC_DPLPMTUD_PROBE_TIMER_TIMEOUT);
+    //QuicConnTimerSet(Connection, QUIC_CONN_TIMER_DPLPMTUD, QUIC_DPLPMTUD_PROBE_TIMER_TIMEOUT);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -54,6 +54,7 @@ QuicGetNextProbeSize(
         //
         Mtu = 1500;
     }
+    printf("Probing %u\n", Mtu);
     return Mtu;
 }
 
@@ -110,6 +111,7 @@ QuicMtuDiscoveryOnAckedPacket(
 
     MtuDiscovery->CurrentMtu = MtuDiscovery->ProbedSize;
     Path->Mtu = MtuDiscovery->ProbedSize;
+    printf("Mtu updated to %u\n", Path->Mtu);
     QuicTraceLogConnInfo(
         PathMtuUpdated,
         Connection,
@@ -128,6 +130,30 @@ QuicMtuDiscoveryOnAckedPacket(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicMtuDiscoveryProbePacketDiscarded(
+    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
+    _In_ uint16_t PacketMtu
+    )
+{
+    //
+    // If out of order receives are received, ignore the packet
+    //
+    if (PacketMtu != MtuDiscovery->ProbedSize) {
+        return;
+    }
+
+    if (MtuDiscovery->ProbeCount >= QUIC_DPLPMTUD_MAX_PROBES - 1) {
+        printf("Moving to search complete\n");
+        QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
+        return;
+    }
+    MtuDiscovery->ProbeCount++;
+    printf("Retrying %u %u times\n", MtuDiscovery->ProbedSize, MtuDiscovery->ProbeCount);
+    QuicMtuDiscoverySendProbePacket(MtuDiscovery);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicMtuDiscoveryTimerExpired(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
     )
@@ -141,15 +167,16 @@ QuicMtuDiscoveryTimerExpired(
             return;
         }
         QuicMtuDiscoveryMoveToSearching(MtuDiscovery);
-    } else {
-        //
-        // Expired PROBE_TIMER
-        //
-        if (MtuDiscovery->ProbeCount >= QUIC_DPLPMTUD_MAX_PROBES - 1) {
-            QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
-            return;
-        }
-        MtuDiscovery->ProbeCount++;
-        QuicMtuDiscoverySendProbePacket(MtuDiscovery);
     }
+    // } else {
+    //     //
+    //     // Expired PROBE_TIMER
+    //     //
+    //     if (MtuDiscovery->ProbeCount >= QUIC_DPLPMTUD_MAX_PROBES - 1) {
+    //         QuicMtuDiscoveryMoveToSearchComplete(MtuDiscovery);
+    //         return;
+    //     }
+    //     MtuDiscovery->ProbeCount++;
+    //     QuicMtuDiscoverySendProbePacket(MtuDiscovery);
+    // }
 }

@@ -41,6 +41,13 @@ QuicMtuDiscoveryOnAckedPacket(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicMtuDiscoveryProbePacketDiscarded(
+    _In_ QUIC_MTU_DISCOVERY* MtuDiscovery,
+    _In_ uint16_t PacketMtu
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicMtuDiscoveryTimerExpired(
     _In_ QUIC_MTU_DISCOVERY* MtuDiscovery
     );

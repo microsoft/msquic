@@ -831,6 +831,21 @@ QuicLossDetectionOnPacketDiscarded(
                 QUIC_DATAGRAM_SEND_LOST_DISCARDED);
             break;
         }
+        if (Packet->Flags.IsDPLPMTUD) {
+            printf("Discarding 1\n");
+            uint8_t PathIndex;
+            QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
+            UNREFERENCED_PARAMETER(PathIndex);
+            printf("Path %p\n", Path);
+            if (Path != NULL) {
+                printf("Entering Discard\n");
+                uint16_t PacketMtu =
+                    PacketSizeFromUdpPayloadSize(
+                        QuicAddrGetFamily(&Path->RemoteAddress),
+                        Packet->PacketLength);
+                QuicMtuDiscoveryProbePacketDiscarded(&Connection->MtuDiscovery, PacketMtu);
+            }
+        }
     }
 
     QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);

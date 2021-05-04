@@ -1410,7 +1410,10 @@ QuicConnGetMaxMtuForPath(
     uint16_t LocalMtu = CxPlatSocketGetLocalMtu(Path->Binding->Socket);
     uint16_t RemoteMtu = 0xFFFF;
     if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE)) {
-        RemoteMtu = (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize;
+        RemoteMtu =
+            PacketSizeFromUdpPayloadSize(
+                QuicAddrGetFamily(&Path->RemoteAddress),
+                (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize);
     }
     // TODO add settings
     return min(LocalMtu, RemoteMtu);
