@@ -39,7 +39,7 @@ for %%i in (*.cpp *.c operation.h stream.h connection.h TestHelpers.h perfhelper
     if EXIST %%i (
 
         if NOT EXIST %CMAKE_CLOG_OUTPUT_DIRECTORY%\%%i.clog.h (
-            %CMAKE_SOURCE_DIR%\build\tools\clog\clog.exe -p windows_kernel --scopePrefix %SCOPE_PREFIX% -c %CMAKE_CLOG_CONFIG_FILE% -s %CMAKE_CLOG_SIDECAR_DIRECTORY%\clog.sidecar --inputFiles %%i --outputDirectory %CMAKE_CLOG_OUTPUT_DIRECTORY%
+            %CMAKE_SOURCE_DIR%\build\tools\clog\clog.exe --readOnly -p windows_kernel --scopePrefix %SCOPE_PREFIX% -c %CMAKE_CLOG_CONFIG_FILE% -s %CMAKE_CLOG_SIDECAR_DIRECTORY%\clog.sidecar --inputFiles %%i --outputDirectory %CMAKE_CLOG_OUTPUT_DIRECTORY%
             echo PROCESSED %%i
         ) else (
             echo ALREADY EXISTSS...
