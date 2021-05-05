@@ -670,6 +670,7 @@ private:
         _In_opt_ MsQuicConnection* pThis,
         _Inout_ QUIC_CONNECTION_EVENT* Event
         ) noexcept {
+        CXPLAT_DBG_ASSERT(pThis);
         auto DeleteOnExit =
             Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE &&
             pThis->CleanUpMode == CleanUpAutoDelete;
@@ -841,6 +842,7 @@ private:
         _In_opt_ MsQuicStream* pThis,
         _Inout_ QUIC_STREAM_EVENT* Event
         ) noexcept {
+        CXPLAT_DBG_ASSERT(pThis);
         auto DeleteOnExit =
             Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE &&
             pThis->CleanUpMode == CleanUpAutoDelete;
