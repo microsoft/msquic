@@ -109,7 +109,7 @@
         "linux": "lttng_plus",
         "stubs": "stubs",
         "macos": "STDOUT",
-        "windows_kernel": "empty",
+        "windows_kernel": "etw_only",
         "windows": "etw_only"
       }
     },
@@ -121,7 +121,7 @@
         "linux": "lttng_plus",
         "stubs": "stubs",
         "macos": "STDOUT",
-        "windows_kernel": "empty",
+        "windows_kernel": "etw_only",
         "windows": "etw_only"
       }
     },
@@ -133,7 +133,7 @@
         "linux": "lttng_plus",
         "stubs": "stubs",
         "macos": "STDOUT",
-        "windows_kernel": "empty",
+        "windows_kernel": "etw_only",
         "windows": "etw_only"
       }
     },
@@ -145,7 +145,7 @@
         "linux": "lttng_plus",
         "stubs": "stubs",
         "macos": "STDOUT",
-        "windows_kernel": "empty",
+        "windows_kernel": "etw_only",
         "windows": "etw_only"
       }
     },
@@ -157,7 +157,7 @@
         "linux": "lttng_plus",
         "stubs": "stubs",
         "macos": "STDOUT",
-        "windows_kernel": "empty",
+        "windows_kernel": "etw_only",
         "windows": "etw_only"
       }
     },
@@ -169,7 +169,7 @@
         "linux": "lttng_plus",
         "stubs": "stubs",
         "macos": "STDOUT",
-        "windows_kernel": "empty",
+        "windows_kernel": "etw_only",
         "windows": "etw_only"
       }
     },
@@ -181,7 +181,7 @@
         "linux": "lttng_plus",
         "stubs": "stubs",
         "macos": "STDOUT",
-        "windows_kernel": "empty",
+        "windows_kernel": "etw_only",
         "windows": "etw_only"
       }
     },
@@ -193,7 +193,7 @@
         "linux": "lttng_plus",
         "stubs": "stubs",
         "macos": "STDOUT",
-        "windows_kernel": "empty",
+        "windows_kernel": "etw_only",
         "windows": "etw_only"
       }
     },
@@ -205,7 +205,7 @@
         "linux": "lttng_plus",
         "stubs": "stubs",
         "macos": "STDOUT",
-        "windows_kernel": "empty",
+        "windows_kernel": "etw_only",
         "windows": "etw_only"
       }
     },
@@ -217,7 +217,7 @@
         "linux": "lttng_plus",
         "stubs": "stubs",
         "macos": "STDOUT",
-        "windows_kernel": "empty",
+        "windows_kernel": "etw_only",
         "windows": "etw_only"
       }
     },
@@ -229,7 +229,7 @@
         "linux": "lttng_plus",
         "stubs": "stubs",
         "macos": "STDOUT",
-        "windows_kernel": "empty",
+        "windows_kernel": "etw_only",
         "windows": "etw_only"
       }
     },
@@ -241,7 +241,7 @@
         "linux": "lttng_plus",
         "stubs": "stubs",
         "macos": "STDOUT",
-        "windows_kernel": "empty",
+        "windows_kernel": "etw_only",
         "windows": "etw_only"
       }
     }
