@@ -19,6 +19,7 @@ set CMAKE_CLOG_CONFIG_FILE=%CMAKE_SOURCE_DIR%\src\manifest\msquic.clog_config
 echo DotNet information] --------------------------------------------------------------
 dotnet --list-sdks
 dotnet --list-runtimes
+dir /B /S C:\Users\VssAdministrator\.nuget\packages\netstandard.library
 echo -----------------------------------------------------------------------
 
 
