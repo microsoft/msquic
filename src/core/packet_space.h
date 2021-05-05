@@ -90,6 +90,11 @@ typedef struct QUIC_PACKET_SPACE {
     uint64_t ReadKeyPhaseStartPacketNumber;
 
     //
+    // Packet number of the latest received packet of the current key phase.
+    //
+    uint64_t ReadKeyPhaseEndPacketNumber;
+
+    //
     // Count of bytes sent at the current key phase.
     //
     uint64_t CurrentKeyPhaseBytesSent;

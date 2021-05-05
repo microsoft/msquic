@@ -3629,13 +3629,11 @@ QuicConnRecvPrepareDecrypt(
     QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
     if (Packet->IsShortHeader && EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT &&
         Packet->SH->KeyPhase != PacketSpace->CurrentKeyPhase) {
-        if (PacketSpace->AwaitingKeyPhaseConfirmation ||
-            Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
+        if (Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
             //
-            // The packet doesn't match our current key phase and we're awaiting
-            // confirmation of our current key phase or the packet number is less
-            // than the start of the current key phase, so this is likely using
-            // the old key phase.
+            // The packet doesn't match our current key phase and the packet number
+            // is less than the start of the current key phase, so this is likely
+            // using the old key phase.
             //
             QuicTraceLogConnVerbose(
                 DecryptOldKey,
@@ -3644,12 +3642,11 @@ QuicConnRecvPrepareDecrypt(
             CXPLAT_DBG_ASSERT(Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT_OLD] != NULL);
             CXPLAT_DBG_ASSERT(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT_OLD] != NULL);
             Packet->KeyType = QUIC_PACKET_KEY_1_RTT_OLD;
-        } else {
+        } else if (Packet->PacketNumber > PacketSpace->ReadKeyPhaseEndPacketNumber) {
             //
-            // The packet doesn't match our key phase, and we're not awaiting
-            // confirmation of a key phase change, or this is a newer packet
-            // number, so most likely using a new key phase. Update the keys
-            // and try it out.
+            // The packet doesn't match our key phase, and the packet number is higher
+            // then the end of the current key phase, so most likely using a new key phase.
+            // Update the keys and try it out.
             //
 
             QuicTraceLogConnVerbose(
@@ -3664,6 +3661,9 @@ QuicConnRecvPrepareDecrypt(
                 return FALSE;
             }
             Packet->KeyType = QUIC_PACKET_KEY_1_RTT_NEW;
+        } else {
+            QuicPacketLogDrop(Connection, Packet, "This packet has already been read");
+            return FALSE;
         }
     }
 
@@ -3907,6 +3907,7 @@ QuicConnRecvDecryptAndAuthenticate(
 
             QuicCryptoUpdateKeyPhase(Connection, FALSE);
             PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
+            PacketSpace->ReadKeyPhaseEndPacketNumber = Packet->PacketNumber;
 
             QuicTraceLogConnVerbose(
                 UpdateReadKeyPhase,
@@ -3915,12 +3916,16 @@ QuicConnRecvDecryptAndAuthenticate(
                 Packet->PacketNumber);
 
         } else if (Packet->KeyType == QUIC_PACKET_KEY_1_RTT &&
-            Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
+            Packet->SH->KeyPhase == PacketSpace->CurrentKeyPhase) {
             //
-            // If this packet is the current key phase, but has an earlier packet
-            // number than this key phase's start, update the key phase start.
+            // This packet is in the current key phase, so update the packet space
+            // endpoints.
             //
-            PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
+            if (Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
+                PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
+            } else if (Packet->PacketNumber > PacketSpace->ReadKeyPhaseEndPacketNumber) {
+                PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
+            }
             QuicTraceLogConnVerbose(
                 UpdateReadKeyPhase,
                 Connection,
