@@ -227,7 +227,7 @@ QuicPacketBuilderPrepare(
         Builder->MinimumDatagramLength = 0;
 
         if (IsTailLossProbe && !QuicConnIsServer(Connection)) {
-            if (Connection->Crypto.TlsState.WriteKey == QUIC_PACKET_KEY_1_RTT) {
+            if (NewPacketType == SEND_PACKET_SHORT_HEADER_TYPE) {
                 //
                 // Short header (1-RTT) packets need to be padded enough to
                 // elicit stateless resets from the server.
