@@ -501,57 +501,30 @@ struct MsQuicListener {
     operator HQUIC () const noexcept { return Handle; }
 };
 
-struct MsQuicAutoAcceptListener : public MsQuicListener {
-    const MsQuicConfiguration& Configuration;
-    QUIC_CONNECTION_CALLBACK_HANDLER ConnectionHandler;
-    void* ConnectionContext;
-
-    MsQuicAutoAcceptListener(
-        _In_ const MsQuicRegistration& Registration,
-        _In_ const MsQuicConfiguration& Config,
-        _In_ QUIC_CONNECTION_CALLBACK_HANDLER _ConnectionHandler,
-        _In_ void* _ConnectionContext = nullptr
-        ) noexcept :
-        MsQuicListener(Registration, ListenerCallback, this),
-        Configuration(Config),
-        ConnectionHandler(_ConnectionHandler),
-        ConnectionContext(_ConnectionContext)
-    { }
-
-private:
-
-    static
-    _IRQL_requires_max_(PASSIVE_LEVEL)
-    _Function_class_(QUIC_LISTENER_CALLBACK)
-    QUIC_STATUS
-    QUIC_API
-    ListenerCallback(
-        _In_ HQUIC /* Listener */,
-        _In_opt_ void* Context,
-        _Inout_ QUIC_LISTENER_EVENT* Event
-        )
-    {
-        auto pThis = (MsQuicAutoAcceptListener*)Context;
-        CXPLAT_DBG_ASSERT(pThis);
-        switch (Event->Type) {
-        case QUIC_LISTENER_EVENT_NEW_CONNECTION:
-            MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)pThis->ConnectionHandler, pThis->ConnectionContext);
-            return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, pThis->Configuration);
-        default:
-            return QUIC_STATUS_INVALID_STATE;
-        }
-    }
+enum MsQuicCleanUpMode {
+    CleanUpManual,
+    CleanUpAutoDelete,
 };
+
+typedef QUIC_STATUS MsQuicConnectionCallback(
+    _In_ struct MsQuicConnection* Connection,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    );
 
 struct MsQuicConnection {
     HQUIC Handle { nullptr };
+    MsQuicCleanUpMode CleanUpMode;
+    MsQuicConnectionCallback* Callback;
+    void* Context;
     QUIC_STATUS InitStatus;
 
     MsQuicConnection(
         _In_ const MsQuicRegistration& Registration,
-        _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+        _In_ MsQuicCleanUpMode CleanUpMode = CleanUpManual,
+        _In_ MsQuicConnectionCallback* Callback = NoOpCallback,
         _In_ void* Context = nullptr
-        ) noexcept {
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
         if (!Registration.IsValid()) {
             InitStatus = Registration.GetInitStatus();
             return;
@@ -560,8 +533,8 @@ struct MsQuicConnection {
             InitStatus =
                 MsQuic->ConnectionOpen(
                     Registration,
-                    Handler,
-                    Context,
+                    (QUIC_CONNECTION_CALLBACK_HANDLER)MsQuicCallback,
+                    this,
                     &Handle))) {
             Handle = nullptr;
         }
@@ -569,11 +542,12 @@ struct MsQuicConnection {
 
     MsQuicConnection(
         _In_ HQUIC ConnectionHandle,
-        _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+        _In_ MsQuicCleanUpMode CleanUpMode,
+        _In_ MsQuicConnectionCallback* Callback,
         _In_ void* Context = nullptr
-        ) noexcept {
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
         Handle = ConnectionHandle;
-        MsQuic->SetCallbackHandler(Handle, (void*)Handler, Context);
+        MsQuic->SetCallbackHandler(Handle, (void*)MsQuicCallback, this);
         InitStatus = QUIC_STATUS_SUCCESS;
     }
 
@@ -587,9 +561,8 @@ struct MsQuicConnection {
     Shutdown(
         _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode, // Application defined error code
         _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_NONE
-        )
-    {
-        return MsQuic->ConnectionShutdown(Handle, Flags, ErrorCode);
+        ) noexcept {
+        MsQuic->ConnectionShutdown(Handle, Flags, ErrorCode);
     }
 
     QUIC_STATUS
@@ -665,18 +638,113 @@ struct MsQuicConnection {
     MsQuicConnection(MsQuicConnection& other) = delete;
     MsQuicConnection operator=(MsQuicConnection& Other) = delete;
     operator HQUIC () const noexcept { return Handle; }
+
+    static
+    QUIC_STATUS
+    QUIC_API
+    NoOpCallback(
+        _In_ MsQuicConnection* /* Connection */,
+        _In_opt_ void* /* Context */,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        ) noexcept {
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            //
+            // Not great beacuse it doesn't provide an application specific
+            // error code. If you expect to get streams, you should no be no-op
+            // the callbacks.
+            //
+            MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+private:
+
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_CONNECTION_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    MsQuicCallback(
+        _In_ HQUIC /* Connection */,
+        _In_opt_ MsQuicConnection* pThis,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        ) noexcept {
+        auto DeleteOnExit =
+            Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE &&
+            pThis->CleanUpMode == CleanUpAutoDelete;
+        auto Status = pThis->Callback(pThis, pThis->Context, Event);
+        if (DeleteOnExit) {
+            delete pThis;
+        }
+        return Status;
+    }
 };
+
+struct MsQuicAutoAcceptListener : public MsQuicListener {
+    const MsQuicConfiguration& Configuration;
+    MsQuicConnectionCallback* ConnectionHandler;
+    void* ConnectionContext;
+
+    MsQuicAutoAcceptListener(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ const MsQuicConfiguration& Config,
+        _In_ MsQuicConnectionCallback* _ConnectionHandler,
+        _In_ void* _ConnectionContext = nullptr
+        ) noexcept :
+        MsQuicListener(Registration, ListenerCallback, this),
+        Configuration(Config),
+        ConnectionHandler(_ConnectionHandler),
+        ConnectionContext(_ConnectionContext)
+    { }
+
+private:
+
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_LISTENER_CALLBACK)
+    QUIC_STATUS
+    QUIC_API
+    ListenerCallback(
+        _In_ HQUIC /* Listener */,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_LISTENER_EVENT* Event
+        ) noexcept {
+        auto pThis = (MsQuicAutoAcceptListener*)Context; CXPLAT_DBG_ASSERT(pThis);
+        QUIC_STATUS Status = QUIC_STATUS_INVALID_STATE;
+        if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+            auto Connection = new MsQuicConnection(Event->NEW_CONNECTION.Connection, CleanUpAutoDelete, pThis->ConnectionHandler, pThis->ConnectionContext);
+            if (Connection) {
+                Status = Connection->SetConfiguration(pThis->Configuration);
+                if (QUIC_FAILED(Status)) {
+                    delete Connection;
+                }
+            }
+        }
+        return Status;
+    }
+};
+
+typedef QUIC_STATUS MsQuicStreamCallback(
+    _In_ struct MsQuicStream* Stream,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_STREAM_EVENT* Event
+    );
 
 struct MsQuicStream {
     HQUIC Handle { nullptr };
+    MsQuicCleanUpMode CleanUpMode;
+    MsQuicStreamCallback* Callback;
+    void* Context;
     QUIC_STATUS InitStatus;
 
     MsQuicStream(
         _In_ const MsQuicConnection& Connection,
         _In_ QUIC_STREAM_OPEN_FLAGS Flags,
-        _In_ QUIC_STREAM_CALLBACK_HANDLER Handler,
+        _In_ MsQuicCleanUpMode CleanUpMode = CleanUpManual,
+        _In_ MsQuicStreamCallback* Callback = NoOpCallback,
         _In_ void* Context = nullptr
-        ) noexcept {
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
         if (!Connection.IsValid()) {
             InitStatus = Connection.GetInitStatus();
             return;
@@ -686,11 +754,22 @@ struct MsQuicStream {
                 MsQuic->StreamOpen(
                     Connection,
                     Flags,
-                    Handler,
-                    Context,
+                    (QUIC_STREAM_CALLBACK_HANDLER)MsQuicCallback,
+                    this,
                     &Handle))) {
             Handle = nullptr;
         }
+    }
+
+    MsQuicStream(
+        _In_ HQUIC StreamHandle,
+        _In_ MsQuicCleanUpMode CleanUpMode,
+        _In_ MsQuicStreamCallback* Callback,
+        _In_ void* Context = nullptr
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
+        Handle = StreamHandle;
+        MsQuic->SetCallbackHandler(Handle, (void*)MsQuicCallback, this);
+        InitStatus = QUIC_STATUS_SUCCESS;
     }
 
     ~MsQuicStream() noexcept {
@@ -702,9 +781,24 @@ struct MsQuicStream {
     QUIC_STATUS
     Start(
         _In_ QUIC_STREAM_START_FLAGS Flags = QUIC_STREAM_START_FLAG_ASYNC
-        )
-    {
+        ) noexcept {
         return MsQuic->StreamStart(Handle, Flags);
+    }
+
+    QUIC_STATUS
+    Shutdown(
+        _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode, // Application defined error code
+        _In_ QUIC_STREAM_SHUTDOWN_FLAGS Flags = QUIC_STREAM_SHUTDOWN_FLAG_ABORT
+        ) noexcept {
+        return MsQuic->StreamShutdown(Handle, Flags, ErrorCode);
+    }
+
+    void
+    ConnectionShutdown(
+        _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode, // Application defined error code
+        _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_NONE
+        ) noexcept {
+        MsQuic->ConnectionShutdown(Handle, Flags, ErrorCode);
     }
 
     QUIC_STATUS
@@ -714,8 +808,7 @@ struct MsQuicStream {
         _In_ uint32_t BufferCount = 1,
         _In_ QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE,
         _In_opt_ void* ClientSendContext = nullptr
-        )
-    {
+        ) noexcept {
         return MsQuic->StreamSend(Handle, Buffers, BufferCount, Flags, ClientSendContext);
     }
 
@@ -724,6 +817,39 @@ struct MsQuicStream {
     MsQuicStream(MsQuicStream& other) = delete;
     MsQuicStream operator=(MsQuicStream& Other) = delete;
     operator HQUIC () const noexcept { return Handle; }
+
+    static
+    QUIC_STATUS
+    QUIC_API
+    NoOpCallback(
+        _In_ MsQuicStream* /* Stream */,
+        _In_opt_ void* /* Context */,
+        _Inout_ QUIC_STREAM_EVENT* /* Event */
+        ) noexcept {
+        return QUIC_STATUS_SUCCESS;
+    }
+
+private:
+
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_STREAM_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    MsQuicCallback(
+        _In_ HQUIC /* Stream */,
+        _In_opt_ MsQuicStream* pThis,
+        _Inout_ QUIC_STREAM_EVENT* Event
+        ) noexcept {
+        auto DeleteOnExit =
+            Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE &&
+            pThis->CleanUpMode == CleanUpAutoDelete;
+        auto Status = pThis->Callback(pThis, pThis->Context, Event);
+        if (DeleteOnExit) {
+            delete pThis;
+        }
+        return Status;
+    }
 };
 
 struct ConnectionScope {
