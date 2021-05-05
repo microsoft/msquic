@@ -20,6 +20,9 @@ echo EnvVars] --------------------------------------------------------------
 set
 echo -----------------------------------------------------------------------
 
+dotnet --list-sdks
+dotnet --list-runtimes
+
 if NOT EXIST %CMAKE_SOURCE_DIR%\build\tools\clog\clog.exe (
     dotnet publish %CMAKE_SOURCE_DIR%\submodules\clog\src\clog\clog.csproj --self-contained -o %CMAKE_SOURCE_DIR%\build\tools\clog -f net5.0 -r win-x64
 )
