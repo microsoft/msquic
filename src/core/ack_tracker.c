@@ -134,14 +134,6 @@ QuicAckTrackerAckPacket(
         return;
     }
 
-
-    QuicTraceLogVerbose(
-        Test123ABC,
-        "[%c][RX][%llu] Marked for ACK (ECN=%hhu)",
-        PtkConnPre(Connection),
-        PacketNumber,
-        (uint8_t)ECN);
-
     QuicTraceLogVerbose(
         PacketRxMarkedForAck,
         "[%c][RX][%llu] Marked for ACK (ECN=%hhu)",
