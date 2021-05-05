@@ -49,6 +49,9 @@
     <ProjectReference Include="..\..\core\core.kernel.vcxproj">
       <Project>{E862BE76-298B-4021-8105-A3E115FA2900}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\manifest\manifest.kernel.vcxproj">
+      <Project>{c1adb76f-7005-4516-badb-2a60797ef912}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\platform\platform.kernel.vcxproj">
       <Project>{5f99f713-bf5f-44eb-90fe-fea03906bba9}</Project>
     </ProjectReference>

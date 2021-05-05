@@ -106,6 +106,11 @@
     <ClInclude Include="version_neg.h" />
     <ClInclude Include="worker.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\manifest\manifest.kernel.vcxproj">
+      <Project>{c1adb76f-7005-4516-badb-2a60797ef912}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E862BE76-298B-4021-8105-A3E115FA2900}</ProjectGuid>
     <TemplateGuid>{0a049372-4c4d-4ea0-a64e-dc6ad88ceca1}</TemplateGuid>
