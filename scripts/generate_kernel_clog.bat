@@ -16,12 +16,11 @@ set CLOG_SOURCE_DIRECTORY=%CMAKE_SOURCE_DIR%\submodules\clog
 set CLOG_INCLUDE_DIRECTORY=%CMAKE_SOURCE_DIR%\inc
 set CMAKE_CLOG_CONFIG_FILE=%CMAKE_SOURCE_DIR%\src\manifest\msquic.clog_config
 
-echo EnvVars] --------------------------------------------------------------
-set
-echo -----------------------------------------------------------------------
-
+echo DotNet information] --------------------------------------------------------------
 dotnet --list-sdks
 dotnet --list-runtimes
+echo -----------------------------------------------------------------------
+
 
 if NOT EXIST %CMAKE_SOURCE_DIR%\build\tools\clog\clog.exe (
     dotnet publish %CMAKE_SOURCE_DIR%\submodules\clog\src\clog\clog.csproj --self-contained -o %CMAKE_SOURCE_DIR%\build\tools\clog -f net5.0 -r win-x64
