@@ -645,6 +645,8 @@ try {
 } catch {
     Log "Exception Thrown"
     Log $_
+    Get-Error
+    $_ | Format-List *
 } finally {
     if ($LogProfile -ne "None") {
         & $LogScript -Cancel | Out-Null
