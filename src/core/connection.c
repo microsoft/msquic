@@ -3630,12 +3630,6 @@ QuicConnRecvPrepareDecrypt(
     if (Packet->IsShortHeader && EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT &&
         Packet->SH->KeyPhase != PacketSpace->CurrentKeyPhase) {
         if (Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
-            if (Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT_OLD] == NULL ||
-                Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT_OLD] == NULL) {
-                    QuicPacketLogDrop(Connection, Packet, "Old packet without old keys");
-                    return FALSE;
-            }
-
             //
             // The packet doesn't match our current key phase and the packet number
             // is less than the start of the current key phase, so this is likely
@@ -3645,6 +3639,8 @@ QuicConnRecvPrepareDecrypt(
                 DecryptOldKey,
                 Connection,
                 "Using old key to decrypt");
+            CXPLAT_DBG_ASSERT(Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT_OLD] != NULL);
+            CXPLAT_DBG_ASSERT(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT_OLD] != NULL);
             Packet->KeyType = QUIC_PACKET_KEY_1_RTT_OLD;
         } else if (Packet->PacketNumber > PacketSpace->ReadKeyPhaseEndPacketNumber) {
             //
