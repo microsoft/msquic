@@ -863,7 +863,6 @@ Exit:
     return Status;
 }
 
-
 QUIC_STATUS
 CxPlatSocketConfigureRss(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
