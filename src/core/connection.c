@@ -3635,6 +3635,7 @@ QuicConnRecvPrepareDecrypt(
                 //
                 // We don't have old keys to be able to decode this. Drop the packet.
                 //
+                CXPLAT_TEL_ASSERTMSG(FALSE, "We are unable to decrypt an old packet without old keys");
                 QuicPacketLogDrop(Connection, Packet, "Old keys not available to decrypt packet");
                 return FALSE;
             }
@@ -3671,6 +3672,7 @@ QuicConnRecvPrepareDecrypt(
             }
             Packet->KeyType = QUIC_PACKET_KEY_1_RTT_NEW;
         } else {
+            CXPLAT_TEL_ASSERTMSG(FALSE, "We should never receive an out of phase packet in a range we've already seen");
             QuicPacketLogDrop(Connection, Packet, "This packet can never be a legal packet");
             return FALSE;
         }
