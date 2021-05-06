@@ -616,6 +616,7 @@ Arguments:
 
         if (HashTable->SecondLevelDir != NULL) {
             CXPLAT_FREE(HashTable->SecondLevelDir, QUIC_POOL_HASHTABLE_MEMBER);
+            HashTable->SecondLevelDir = NULL;
         }
 
     } else {
@@ -662,6 +663,7 @@ Arguments:
 #endif
 
             CXPLAT_FREE(HashTable->FirstLevelDir, QUIC_POOL_HASHTABLE_MEMBER);
+            HashTable->FirstLevelDir = NULL;
         }
     }
 

@@ -72,9 +72,6 @@ This script provides helpers for building msquic.
 .PARAMETER CI
     Build is occuring from CI
 
-.PARAMETER RandomAllocFail
-    Enables random allocation failures.
-
 .PARAMETER TlsSecretsSupport
     Enables export of traffic secrets.
 
@@ -165,9 +162,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$CI = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$RandomAllocFail = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$TlsSecretsSupport = $false,
@@ -364,9 +358,6 @@ function CMake-Generate {
         $Arguments += " -DQUIC_CI_CONFIG=$Config"
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
-    }
-    if ($RandomAllocFail) {
-        $Arguments += " -DQUIC_RANDOM_ALLOC_FAIL=on"
     }
     if ($TlsSecretsSupport) {
         $Arguments += " -DQUIC_TLS_SECRETS_SUPPORT=on"
