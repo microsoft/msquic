@@ -3919,15 +3919,15 @@ QuicConnRecvDecryptAndAuthenticate(
             //
             if (Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
                 PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
+                QuicTraceLogConnVerbose(
+                    UpdateReadKeyPhase,
+                    Connection,
+                    "Updating current read key phase and packet number[%llu]",
+                    Packet->PacketNumber);
             }
             if (Packet->PacketNumber > PacketSpace->ReadKeyPhaseEndPacketNumber) {
                 PacketSpace->ReadKeyPhaseEndPacketNumber = Packet->PacketNumber;
             }
-            QuicTraceLogConnVerbose(
-                UpdateReadKeyPhase,
-                Connection,
-                "Updating current read key phase and packet number[%llu]",
-                Packet->PacketNumber);
         }
     }
 
