@@ -3631,7 +3631,7 @@ QuicConnRecvPrepareDecrypt(
         Packet->SH->KeyPhase != PacketSpace->CurrentKeyPhase) {
         if (Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
             if (Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT_OLD] == NULL ||
-                Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT_OLD] != NULL) {
+                Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT_OLD] == NULL) {
                 //
                 // We don't have old keys to be able to decode this. Drop the packet.
                 //
