@@ -3633,7 +3633,7 @@ QuicConnRecvPrepareDecrypt(
             //
             // The packet doesn't match our current key phase and the packet number
             // is less than the start of the current key phase, so this is likely
-            // using the old key phase.
+            // using the old keys.
             //
             QuicTraceLogConnVerbose(
                 DecryptOldKey,
@@ -3645,8 +3645,8 @@ QuicConnRecvPrepareDecrypt(
         } else {
             //
             // The packet doesn't match our key phase, and the packet number is higher
-            // than the end of the current key phase, so most likely using a new key phase.
-            // Update the keys and try it out.
+            // than the start of the current key phase, so most likely using a new key phase.
+            // Update the keys and try it out. If this fails, the packet was invalid anyway.
             //
             QuicTraceLogConnVerbose(
                 PossiblePeerKeyUpdate,
@@ -3914,8 +3914,8 @@ QuicConnRecvDecryptAndAuthenticate(
             Packet->SH->KeyPhase == PacketSpace->CurrentKeyPhase &&
             Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
             //
-            // This packet is in the current key phase, so update the packet space
-            // endpoints.
+            // This packet is in the current key phase and before the current phase
+            // start, so update the packet space start point.
             //
             PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
             QuicTraceLogConnVerbose(
