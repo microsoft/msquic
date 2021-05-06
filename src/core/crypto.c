@@ -1920,7 +1920,6 @@ QuicCryptoUpdateKeyPhase(
     // Reset the read packet space so any new packet will be properly detected.
     //
     PacketSpace->ReadKeyPhaseStartPacketNumber = UINT64_MAX;
-    PacketSpace->ReadKeyPhaseEndPacketNumber = 0;
 
     PacketSpace->AwaitingKeyPhaseConfirmation = TRUE;
 

@@ -1859,6 +1859,10 @@ QuicTestKeyUpdate(
                     CxPlatSleep(100);
                     TEST_EQUAL((uint16_t)(101+i), Server->GetLocalBidiStreamCount());
 
+                    if (ClientKeyUpdate) {
+                        TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
+                    }
+
                     TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount((uint16_t)(100+i)));
                     TEST_EQUAL((uint16_t)(100+i), Server->GetPeerBidiStreamCount());
                     CxPlatSleep(100);

@@ -3642,7 +3642,7 @@ QuicConnRecvPrepareDecrypt(
             CXPLAT_DBG_ASSERT(Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT_OLD] != NULL);
             CXPLAT_DBG_ASSERT(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT_OLD] != NULL);
             Packet->KeyType = QUIC_PACKET_KEY_1_RTT_OLD;
-        } else if (Packet->PacketNumber > PacketSpace->ReadKeyPhaseEndPacketNumber) {
+        } else {
             //
             // The packet doesn't match our key phase, and the packet number is higher
             // than the end of the current key phase, so most likely using a new key phase.
@@ -3903,7 +3903,6 @@ QuicConnRecvDecryptAndAuthenticate(
 
             QuicCryptoUpdateKeyPhase(Connection, FALSE);
             PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
-            PacketSpace->ReadKeyPhaseEndPacketNumber = Packet->PacketNumber;
 
             QuicTraceLogConnVerbose(
                 UpdateReadKeyPhase,
@@ -3912,22 +3911,18 @@ QuicConnRecvDecryptAndAuthenticate(
                 Packet->PacketNumber);
 
         } else if (Packet->KeyType == QUIC_PACKET_KEY_1_RTT &&
-            Packet->SH->KeyPhase == PacketSpace->CurrentKeyPhase) {
+            Packet->SH->KeyPhase == PacketSpace->CurrentKeyPhase &&
+            Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
             //
             // This packet is in the current key phase, so update the packet space
             // endpoints.
             //
-            if (Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
-                PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
-                QuicTraceLogConnVerbose(
-                    UpdateReadKeyPhase,
-                    Connection,
-                    "Updating current read key phase and packet number[%llu]",
-                    Packet->PacketNumber);
-            }
-            if (Packet->PacketNumber > PacketSpace->ReadKeyPhaseEndPacketNumber) {
-                PacketSpace->ReadKeyPhaseEndPacketNumber = Packet->PacketNumber;
-            }
+            PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
+            QuicTraceLogConnVerbose(
+                UpdateReadKeyPhase,
+                Connection,
+                "Updating current read key phase and packet number[%llu]",
+                Packet->PacketNumber);
         }
     }
 
