@@ -3630,16 +3630,6 @@ QuicConnRecvPrepareDecrypt(
     if (Packet->IsShortHeader && EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT &&
         Packet->SH->KeyPhase != PacketSpace->CurrentKeyPhase) {
         if (Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
-            if (Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT_OLD] == NULL ||
-                Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT_OLD] == NULL) {
-                //
-                // We don't have old keys to be able to decode this. Drop the packet.
-                //
-                CXPLAT_TEL_ASSERTMSG(FALSE, "We are unable to decrypt an old packet without old keys");
-                QuicPacketLogDrop(Connection, Packet, "Old keys not available to decrypt packet");
-                return FALSE;
-            }
-
             //
             // The packet doesn't match our current key phase and the packet number
             // is less than the start of the current key phase, so this is likely
@@ -3658,7 +3648,6 @@ QuicConnRecvPrepareDecrypt(
             // than the end of the current key phase, so most likely using a new key phase.
             // Update the keys and try it out.
             //
-
             QuicTraceLogConnVerbose(
                 PossiblePeerKeyUpdate,
                 Connection,
