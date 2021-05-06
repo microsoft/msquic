@@ -3664,9 +3664,6 @@ QuicConnRecvPrepareDecrypt(
                 return FALSE;
             }
             Packet->KeyType = QUIC_PACKET_KEY_1_RTT_NEW;
-        } else {
-            QuicPacketLogDrop(Connection, Packet, "This packet can never be a legal packet");
-            return FALSE;
         }
     }
 
