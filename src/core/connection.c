@@ -3630,6 +3630,15 @@ QuicConnRecvPrepareDecrypt(
     if (Packet->IsShortHeader && EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT &&
         Packet->SH->KeyPhase != PacketSpace->CurrentKeyPhase) {
         if (Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
+            if (Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT_OLD] == NULL ||
+                Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT_OLD] != NULL) {
+                //
+                // We don't have old keys to be able to decode this. Drop the packet.
+                //
+                QuicPacketLogDrop(Connection, Packet, "Old keys not available to decrypt packet");
+                return FALSE;
+            }
+
             //
             // The packet doesn't match our current key phase and the packet number
             // is less than the start of the current key phase, so this is likely
@@ -3645,7 +3654,7 @@ QuicConnRecvPrepareDecrypt(
         } else if (Packet->PacketNumber > PacketSpace->ReadKeyPhaseEndPacketNumber) {
             //
             // The packet doesn't match our key phase, and the packet number is higher
-            // then the end of the current key phase, so most likely using a new key phase.
+            // than the end of the current key phase, so most likely using a new key phase.
             // Update the keys and try it out.
             //
 
@@ -3662,7 +3671,7 @@ QuicConnRecvPrepareDecrypt(
             }
             Packet->KeyType = QUIC_PACKET_KEY_1_RTT_NEW;
         } else {
-            QuicPacketLogDrop(Connection, Packet, "This packet has already been read");
+            QuicPacketLogDrop(Connection, Packet, "This packet can never be a legal packet");
             return FALSE;
         }
     }
@@ -3923,8 +3932,9 @@ QuicConnRecvDecryptAndAuthenticate(
             //
             if (Packet->PacketNumber < PacketSpace->ReadKeyPhaseStartPacketNumber) {
                 PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
-            } else if (Packet->PacketNumber > PacketSpace->ReadKeyPhaseEndPacketNumber) {
-                PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
+            }
+            if (Packet->PacketNumber > PacketSpace->ReadKeyPhaseEndPacketNumber) {
+                PacketSpace->ReadKeyPhaseEndPacketNumber = Packet->PacketNumber;
             }
             QuicTraceLogConnVerbose(
                 UpdateReadKeyPhase,
