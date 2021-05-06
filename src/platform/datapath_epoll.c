@@ -903,6 +903,8 @@ CxPlatSocketConfigureRss(
 
     return Status;
 #else
+    UNREFERENCED_PARAMETER(SocketContext);
+    UNREFERENCED_PARAMETER(SocketCount);
     return QUIC_STATUS_NOT_SUPPORTED;
 #endif
 }
