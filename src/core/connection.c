@@ -3665,7 +3665,6 @@ QuicConnRecvPrepareDecrypt(
             }
             Packet->KeyType = QUIC_PACKET_KEY_1_RTT_NEW;
         } else {
-            CXPLAT_TEL_ASSERTMSG(FALSE, "We should never receive an out of phase packet in a range we've already seen");
             QuicPacketLogDrop(Connection, Packet, "This packet can never be a legal packet");
             return FALSE;
         }
