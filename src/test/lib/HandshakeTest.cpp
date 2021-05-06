@@ -1859,6 +1859,10 @@ QuicTestKeyUpdate(
                     CxPlatSleep(100);
                     TEST_EQUAL((uint16_t)(101+i), Server->GetLocalBidiStreamCount());
 
+                    //
+                    // Force a client key update to occur again to check for double update
+                    // while server is still waiting for key response.
+                    //
                     if (ClientKeyUpdate) {
                         TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
                     }
