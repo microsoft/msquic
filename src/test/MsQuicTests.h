@@ -268,6 +268,12 @@ QuicTestKeyUpdate(
     _In_ bool ServerKeyUpdate
     );
 
+void
+QuicTestKeyUpdateRandomLoss(
+    _In_ int Family,
+    _In_ uint8_t RandomLossPercentage
+    );
+
 typedef enum QUIC_ABORTIVE_TRANSFER_DIRECTION {
     ShutdownBoth,
     ShutdownSend,
@@ -786,4 +792,17 @@ typedef struct {
     QUIC_CTL_CODE(63, METHOD_BUFFERED, FILE_WRITE_DATA)
     // BOOLEAN
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 63
+#pragma pack(push)
+#pragma pack(1)
+
+typedef struct {
+    int Family;
+    uint8_t RandomLossPercentage;
+} QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS;
+
+#pragma pack(pop)
+
+#define IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS \
+    QUIC_CTL_CODE(64, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 64

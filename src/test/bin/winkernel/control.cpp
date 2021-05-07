@@ -432,7 +432,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_CRED_VALIDATION),
     sizeof(QUIC_RUN_CRED_VALIDATION),
     sizeof(QUIC_RUN_CRED_VALIDATION),
-    sizeof(QUIC_ABORT_RECEIVE_TYPE)
+    sizeof(QUIC_ABORT_RECEIVE_TYPE),
+    sizeof(QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS)
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -459,6 +460,7 @@ typedef union {
     QUIC_RUN_CONNECT_CLIENT_CERT ConnectClientCertParams;
     QUIC_RUN_CRED_VALIDATION CredValidationParams;
     QUIC_ABORT_RECEIVE_TYPE AbortReceiveType;
+    QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS KeyUpdateRandomLossParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -1020,6 +1022,13 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestAbortReceive(Params->AbortReceiveType));
         break;
 
+    case IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestKeyUpdateRandomLoss(
+                Params->KeyUpdateRandomLossParams.Family,
+                Params->KeyUpdateRandomLossParams.RandomLossPercentage))
+        break;
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;

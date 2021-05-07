@@ -1196,6 +1196,23 @@ TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
     }
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+TEST_P(WithKeyUpdateArgs2, RandomLoss) {
+    TestLoggerT<ParamType> Logger("QuicTestKeyUpdateRandomLoss", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_KEY_UPDATE_PARAMS Params = {
+            GetParam().Family,
+            GetParam().RandomLossPercentage
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_KEY_UPDATE_RANDOM_LOSS, Params));
+    } else {
+        QuicTestKeyUpdateRandomLoss(
+            GetParam().Family,
+            GetParam().RandomLossPercentage);
+    }
+}
+#endif
+
 TEST_P(WithAbortiveArgs, AbortiveShutdown) {
     TestLoggerT<ParamType> Logger("QuicAbortiveTransfers", GetParam());
     if (TestingKernelMode) {
@@ -1444,6 +1461,11 @@ INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithKeyUpdateArgs1,
     testing::ValuesIn(KeyUpdateArgs1::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithKeyUpdateArgs2,
+    testing::ValuesIn(KeyUpdateArgs2::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
