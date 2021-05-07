@@ -1776,6 +1776,139 @@ QuicTestConnectServerRejected(
 }
 
 void
+QuicTestKeyUpdateRandomLoss(
+    _In_ int Family,
+    _In_ uint8_t RandomLossPercentage
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+
+    const int Iterations = 10;
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                {
+                    RandomLossHelper LossHelper(RandomLossPercentage);
+
+                    CxPlatSleep(100);
+
+                    for (uint16_t i = 0; i < Iterations; ++i) {
+
+                        //
+                        // We don't care if this call succeeds, we just want to trigger it every time
+                        //
+                        Client.ForceKeyUpdate();
+                        Server->ForceKeyUpdate();
+
+                        //
+                        // Send some data to perform the key update.
+                        // TODO: Update this to send stream data, like QuicConnectAndPing does.
+                        //
+                        TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount((uint16_t)(101 + i)));
+                        TEST_EQUAL((uint16_t)(101 + i), Client.GetPeerBidiStreamCount());
+                        CxPlatSleep(50);
+
+                        //
+                        // Force a client key update to occur again to check for double update
+                        // while server is still waiting for key response.
+                        //
+                        Client.ForceKeyUpdate();
+
+                        TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount((uint16_t)(100 + i)));
+                        TEST_EQUAL((uint16_t)(100 + i), Server->GetPeerBidiStreamCount());
+                        CxPlatSleep(50);
+                    }
+
+                    CxPlatSleep(100);
+                }
+
+                QUIC_STATISTICS Stats = Client.GetStatistics();
+                if (Stats.Recv.DecryptionFailures) {
+                    TEST_FAILURE("%llu server packets failed to decrypt!", Stats.Recv.DecryptionFailures);
+                    return;
+                }
+
+                if (Stats.Misc.KeyUpdateCount < 1) {
+                    TEST_FAILURE("%u Key updates occured. Expected at least 1", Stats.Misc.KeyUpdateCount);
+                    return;
+                }
+
+                Stats = Server->GetStatistics();
+                if (Stats.Recv.DecryptionFailures) {
+                    TEST_FAILURE("%llu client packets failed to decrypt!", Stats.Recv.DecryptionFailures);
+                    return;
+                }
+
+                if (Stats.Misc.KeyUpdateCount < 1) {
+                    TEST_FAILURE("%u Key updates occured. Expected at least 1", Stats.Misc.KeyUpdateCount);
+                    return;
+                }
+
+                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                if (!Client.WaitForShutdownComplete()) {
+                    return;
+                }
+
+                TEST_FALSE(Client.GetPeerClosed());
+                TEST_FALSE(Client.GetTransportClosed());
+            }
+
+#if !QUIC_SEND_FAKE_LOSS
+            TEST_TRUE(Server->GetPeerClosed());
+            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+#endif
+        }
+    }
+}
+
+
+void
 QuicTestKeyUpdate(
     _In_ int Family,
     _In_ uint16_t Iterations,
@@ -1783,7 +1916,7 @@ QuicTestKeyUpdate(
     _In_ bool UseKeyUpdateBytes,
     _In_ bool ClientKeyUpdate,
     _In_ bool ServerKeyUpdate
-    )
+)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
