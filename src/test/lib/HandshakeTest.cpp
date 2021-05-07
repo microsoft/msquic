@@ -1906,7 +1906,6 @@ QuicTestKeyUpdateRandomLoss(
     }
 }
 
-
 void
 QuicTestKeyUpdate(
     _In_ int Family,
