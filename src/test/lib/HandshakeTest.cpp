@@ -1794,7 +1794,6 @@ QuicTestKeyUpdateRandomLoss(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-
     const int Iterations = 10;
 
     {
@@ -1916,7 +1915,7 @@ QuicTestKeyUpdate(
     _In_ bool UseKeyUpdateBytes,
     _In_ bool ClientKeyUpdate,
     _In_ bool ServerKeyUpdate
-)
+    )
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
