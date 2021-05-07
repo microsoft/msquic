@@ -570,6 +570,7 @@ QuicLossDetectionOnPacketAcknowledged(
                     Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
                     TRUE);
             if (DestCid != NULL) {
+                CXPLAT_DBG_ASSERT(DestCid->AssignedPath == NULL);
                 CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
             }
             break;
@@ -749,6 +750,7 @@ QuicLossDetectionRetransmitFrames(
                     FALSE);
             if (DestCid != NULL) {
                 CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
+                CXPLAT_DBG_ASSERT(DestCid->AssignedPath == NULL);
                 DestCid->CID.NeedsToSend = TRUE;
                 NewDataQueued |=
                     QuicSendSetSendFlag(

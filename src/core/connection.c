@@ -201,6 +201,9 @@ QuicConnAlloc(
         if (Path->DestCid == NULL) {
             goto Error;
         }
+#ifdef DEBUG
+        Path->DestCid->AssignedPath = Path;
+#endif
         Path->DestCid->CID.UsedLocally = TRUE;
         CxPlatListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
         QuicTraceEvent(
@@ -239,6 +242,9 @@ QuicConnAlloc(
         if (Path->DestCid == NULL) {
             goto Error;
         }
+#ifdef DEBUG
+        Path->DestCid->AssignedPath = Path;
+#endif
         Path->DestCid->CID.UsedLocally = TRUE;
         Connection->DestCidCount++;
         CxPlatListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
@@ -983,6 +989,7 @@ QuicConnRetireCid(
         Connection,
         DestCid->CID.SequenceNumber,
         CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
+    CXPLAT_DBG_ASSERT(DestCid->AssignedPath == NULL);
     Connection->DestCidCount--;
     DestCid->CID.Retired = TRUE;
     DestCid->CID.NeedsToSend = TRUE;
@@ -1013,6 +1020,9 @@ QuicConnRetireCurrentDestCid(
         return FALSE;
     }
 
+#ifdef DEBUG
+    Path->DestCid->AssignedPath = NULL;
+#endif
     QuicConnRetireCid(Connection, Path->DestCid);
     Path->DestCid = NewDestCid;
     Path->DestCid->CID.UsedLocally = TRUE;
@@ -1045,6 +1055,9 @@ QuicConnOnRetirePriorToUpdated(
             ReplaceRetiredCids = TRUE;
         }
 
+#ifdef DEBUG
+    DestCid->AssignedPath = NULL;
+#endif
         QuicConnRetireCid(Connection, DestCid);
     }
 
@@ -4473,6 +4486,11 @@ QuicConnRecvFrames(
                         "Allocation of '%s' failed. (%llu bytes)",
                         "new DestCid",
                         sizeof(QUIC_CID_CXPLAT_LIST_ENTRY) + Frame.Length);
+                    if (ReplaceRetiredCids) {
+                        QuicConnSilentlyAbort(Connection);
+                    } else {
+                        QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, NULL);
+                    }
                     return FALSE;
                 }
 
@@ -4501,7 +4519,11 @@ QuicConnRecvFrames(
                         "[conn][%p] ERROR, %s.",
                         Connection,
                         "Peer exceeded CID limit");
-                    QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                    if (ReplaceRetiredCids) {
+                        QuicConnSilentlyAbort(Connection);
+                    } else {
+                        QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                    }
                     return FALSE;
                 }
             }

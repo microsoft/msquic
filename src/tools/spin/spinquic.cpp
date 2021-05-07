@@ -19,14 +19,8 @@
 
 #define ASSERT_ON_FAILURE(x) \
     do { \
-        QUIC_STATUS _STATUS = (x); \
-        if (Settings.AllocFailDenominator != 0) { \
-            if (!QUIC_SUCCEEDED(_STATUS)) { \
-                exit(_STATUS); \
-            } \
-        } else { \
-            CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(_STATUS)); \
-        } \
+        QUIC_STATUS _STATUS; \
+        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED((_STATUS = x))); \
     } while (0)
 #define ASSERT_ON_NOT(x) CXPLAT_FRE_ASSERT(x)
 
@@ -834,7 +828,14 @@ main(int argc, char **argv)
             ASSERT_ON_NOT(Buffers[j].Buffer);
         }
 
-        ASSERT_ON_FAILURE(MsQuicOpen(&MsQuic));
+        QUIC_STATUS Status = MsQuicOpen(&MsQuic);
+        if (QUIC_FAILED(Status)) {
+            //
+            // This may fail on subsequent iterations, but not on the first.
+            //
+            CXPLAT_DBG_ASSERT(i > 0);
+            continue;
+        }
 
         if (Settings.AllocFailDenominator > 0) {
             if (QUIC_FAILED(
