@@ -1028,7 +1028,7 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestKeyUpdateRandomLoss(
                 Params->KeyUpdateRandomLossParams.Family,
                 Params->KeyUpdateRandomLossParams.RandomLossPercentage))
-
+        break;
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;
