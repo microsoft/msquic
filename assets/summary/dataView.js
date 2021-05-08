@@ -60,6 +60,11 @@ function max(array){
     return array.sort(function(a,b){ return b-a; })[0];
 }
 
+function min(array){
+    if (array.length === 0) return 0;
+    return array.sort(function(a,b){ return a-b; })[0];
+}
+
 // Controls how we represent a single value for an array of data points
 pointsToValue = median
 pointsToValueName = "median"
@@ -88,4 +93,38 @@ function generateLineDataset(dataset, maxIndex, commitCount) {
         p => output.push({x:p.c, y:pointsToValue(p.d), m:p.m, b:p.b}))
 
     return output
+}
+
+function processSearchParams() {
+    var url = new URL(window.location.href);
+
+    var param = url.searchParams.get("count")
+    if (param) {
+        commitCount = param
+        if (maxIndex < commitCount) {
+            commitCount = maxIndex
+        }
+    }
+
+    var param = url.searchParams.get("width")
+    if (param) {
+        dataLineWidth = param
+    }
+
+    var param = url.searchParams.get("radius")
+    if (param) {
+        dataRawPointRadius = param
+    }
+
+    var param = url.searchParams.get("mode")
+    if (param == "max") {
+        pointsToValue = max
+        pointsToValueName = "max"
+    } else if (param == "min") {
+        pointsToValue = min
+        pointsToValueName = "average"
+    } else if (param == "average") {
+        pointsToValue = average
+        pointsToValueName = "average"
+    }
 }

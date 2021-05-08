@@ -298,22 +298,7 @@ function createLatencyChart(test) {
 
 window.onload = function() {
     // Check for custom parameters
-    var url = new URL(window.location.href);
-    var param = url.searchParams.get("count")
-    if (param) {
-        commitCount = param
-        if (maxIndex < commitCount) {
-            commitCount = maxIndex
-        }
-    }
-    var param = url.searchParams.get("width")
-    if (param) {
-        dataLineWidth = param
-    }
-    var param = url.searchParams.get("radius")
-    if (param) {
-        dataRawPointRadius = param
-    }
+    processSearchParams()
 
     // Latest values
     setLatestData()

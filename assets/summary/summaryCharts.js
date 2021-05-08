@@ -121,6 +121,9 @@ function createChart(test) {
 }
 
 window.onload = function() {
+    // Check for custom parameters
+    processSearchParams()
+
     // Latest values
     setLatestData()
 
