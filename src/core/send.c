@@ -1196,6 +1196,7 @@ QuicSendFlush(
         // Final send, if there is anything left over.
         //
         QuicPacketBuilderFinalize(&Builder, TRUE);
+        CXPLAT_DBG_ASSERT(Builder.SendData == NULL);
     }
 
     QuicPacketBuilderCleanup(&Builder);

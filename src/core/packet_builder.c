@@ -828,13 +828,10 @@ QuicPacketBuilderFinalize(
         Builder->Metadata->PacketNumber,
         QuicPacketTraceType(Builder->Metadata),
         Builder->Metadata->PacketLength);
-    if (QUIC_FAILED(
-        QuicLossDetectionOnPacketSent(
-            &Connection->LossDetection,
-            Builder->Path,
-            Builder->Metadata))) {
-        goto Exit;
-    }
+    QuicLossDetectionOnPacketSent(
+        &Connection->LossDetection,
+        Builder->Path,
+        Builder->Metadata);
 
     Builder->Metadata->FrameCount = 0;
 
@@ -882,7 +879,19 @@ Exit:
                 QUIC_ERROR_NO_ERROR,
                 NULL);
         }
+
+    } else if (FlushBatchedDatagrams) {
+        if (Builder->Datagram != NULL) {
+            CxPlatSendDataFreeBuffer(Builder->SendData, Builder->Datagram);
+            Builder->Datagram = NULL;
+        }
+        if (Builder->SendData != NULL) {
+            CxPlatSendDataFree(Builder->SendData);
+            Builder->SendData = NULL;
+        }
     }
+
+    CXPLAT_DBG_ASSERT(!FlushBatchedDatagrams || Builder->SendData == NULL);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

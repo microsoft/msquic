@@ -42,6 +42,7 @@ MsQuicLibraryLoad(
 {
     CxPlatLockInitialize(&MsQuicLib.Lock);
     CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
+    CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
     CxPlatListInitializeHead(&MsQuicLib.Registrations);
     CxPlatListInitializeHead(&MsQuicLib.Bindings);
     QuicTraceRundownCallback = QuicTraceRundown;
@@ -61,6 +62,7 @@ MsQuicLibraryUnload(
     QUIC_LIB_VERIFY(MsQuicLib.RefCount == 0);
     QUIC_LIB_VERIFY(!MsQuicLib.InUse);
     MsQuicLib.Loaded = FALSE;
+    CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
     CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
     CxPlatLockUninitialize(&MsQuicLib.Lock);
 }
@@ -268,7 +270,6 @@ MsQuicLibraryInitialize(
 
     MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
 
-    CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
     CxPlatZeroMemory(&MsQuicLib.StatelessRetryKeys, sizeof(MsQuicLib.StatelessRetryKeys));
     CxPlatZeroMemory(&MsQuicLib.StatelessRetryKeysExpiration, sizeof(MsQuicLib.StatelessRetryKeysExpiration));
 
@@ -496,7 +497,6 @@ MsQuicLibraryUninitialize(
         CxPlatKeyFree(MsQuicLib.StatelessRetryKeys[i]);
         MsQuicLib.StatelessRetryKeys[i] = NULL;
     }
-    CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
 
     QuicSettingsCleanup(&MsQuicLib.Settings);
 

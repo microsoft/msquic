@@ -39,6 +39,13 @@ QuicStreamInitialize(
     }
     CxPlatZeroMemory(Stream, sizeof(QUIC_STREAM));
 
+#if DEBUG
+    CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
+    CxPlatListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
+    CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
+#endif
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
+
     Stream->Type = QUIC_HANDLE_TYPE_STREAM;
     Stream->Connection = Connection;
     Stream->ID = UINT64_MAX;
@@ -121,21 +128,20 @@ QuicStreamInitialize(
     Stream->MaxAllowedRecvOffset = Stream->RecvBuffer.VirtualBufferLength;
     Stream->RecvWindowLastUpdate = CxPlatTimeUs32();
 
-#if DEBUG
-    CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
-    CxPlatListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
-    CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
-#endif
-
     Stream->Flags.Initialized = TRUE;
     *NewStream = Stream;
     Stream = NULL;
     PreallocatedRecvBuffer = NULL;
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 
 Exit:
 
     if (Stream) {
+#if DEBUG
+        CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
+        CxPlatListEntryRemove(&Stream->AllStreamsLink);
+        CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
+#endif
+        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
         CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
         Stream->Flags.Freed = TRUE;
         CxPlatPoolFree(&Worker->StreamPool, Stream);
@@ -173,6 +179,7 @@ QuicStreamFree(
     CxPlatListEntryRemove(&Stream->AllStreamsLink);
     CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
+    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     QuicRangeUninitialize(&Stream->SparseAckRanges);
@@ -187,8 +194,6 @@ QuicStreamFree(
 
     Stream->Flags.Freed = TRUE;
     CxPlatPoolFree(&Worker->StreamPool, Stream);
-
-    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     if (WasStarted) {
 #pragma warning(push)

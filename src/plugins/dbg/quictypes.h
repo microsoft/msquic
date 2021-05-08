@@ -257,6 +257,8 @@ struct LinkedList : ListEntry {
         }
     }
 
+    bool IsEmpty() { return NextAddr == 0; }
+
     ULONG64 Next() {
         if (NextAddr == 0) {
             return 0;
@@ -1265,10 +1267,11 @@ struct Worker : Struct {
     }
 
     PSTR StateStr() {
+        bool HasWorkQueue = !GetConnections().IsEmpty() || !GetOperations().IsEmpty();
         if (IsActive()) {
-            return "ACTIVE";
+            return HasWorkQueue ? "ACTIVE (+queue)" : "ACTIVE";
         } else {
-            return "IDLE";
+            return HasWorkQueue ? "QUEUE" : "IDLE";
         }
     }
 
@@ -1286,6 +1289,10 @@ struct Worker : Struct {
 
     LinkedList GetConnections() {
         return LinkedList(AddrOf("Connections"));
+    }
+
+    LinkedList GetOperations() {
+        return LinkedList(AddrOf("Operations"));
     }
 };
 
