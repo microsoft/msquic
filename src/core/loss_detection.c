@@ -571,6 +571,7 @@ QuicLossDetectionOnPacketAcknowledged(
                     TRUE);
             if (DestCid != NULL) {
 #ifdef DEBUG
+#pragma prefast(suppress:6001, "TODO - Why does compiler think: Using uninitialized memory '*DestCid'")
                 CXPLAT_DBG_ASSERT(DestCid->AssignedPath == NULL);
 #endif
                 CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
