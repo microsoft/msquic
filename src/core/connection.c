@@ -989,7 +989,9 @@ QuicConnRetireCid(
         Connection,
         DestCid->CID.SequenceNumber,
         CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
+#ifdef DEBUG
     CXPLAT_DBG_ASSERT(DestCid->AssignedPath == NULL);
+#endif
     Connection->DestCidCount--;
     DestCid->CID.Retired = TRUE;
     DestCid->CID.NeedsToSend = TRUE;
