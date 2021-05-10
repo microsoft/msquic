@@ -28,7 +28,7 @@ QuicPathInitialize(
     CxPlatZeroMemory(Path, sizeof(QUIC_PATH));
     Path->ID = Connection->NextPathId++; // TODO - Check for duplicates after wrap around?
     Path->MinRtt = UINT32_MAX;
-    Path->Mtu = QUIC_DEFAULT_MIN_MTU;
+    Path->Mtu = QUIC_DPLPMUTD_DEFAULT_MIN_MTU;
     Path->SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
     Path->RttVariance = Path->SmoothedRtt / 2;
 
